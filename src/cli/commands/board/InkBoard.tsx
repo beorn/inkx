@@ -9,6 +9,50 @@ import { getNodeDisplayName, buildBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "../../../node/types.ts";
 import { getChildren, getNode } from "../../../node/db.ts";
 
+// Get type indicator for a node type
+function getTypeIndicator(type: string): string {
+  switch (type) {
+    case "folder": return "/";
+    case "file": return ".md";
+    case "section": return "#";
+    default: return "";
+  }
+}
+
+// Build collapsed type suffix for unified nodes (nodes with same-name children)
+// e.g., folder -> file -> section with same name = "/ .md #"
+function getCollapsedTypeSuffix(node: Node): string {
+  const indicators: string[] = [];
+
+  // Add this node's type indicator
+  const thisIndicator = getTypeIndicator(node.type);
+  if (thisIndicator) {
+    indicators.push(thisIndicator);
+  }
+
+  // Follow children with matching display name
+  const nodeName = getNodeDisplayName(node);
+  let current: Node | undefined = node;
+
+  while (current) {
+    const children = getChildren(current.id);
+    // Find a child with the same display name
+    const matchingChild = children.find(c => getNodeDisplayName(c) === nodeName);
+    if (!matchingChild) break;
+
+    const childIndicator = getTypeIndicator(matchingChild.type);
+    if (childIndicator) {
+      indicators.push(childIndicator);
+    }
+    current = matchingChild;
+  }
+
+  // If only one indicator (just the node itself), don't show suffix
+  if (indicators.length <= 1) return "";
+
+  return indicators.join(" ");
+}
+
 // Build path from root to a given node as file path with # for sections
 function getNodePath(nodeId: string | null): string {
   if (!nodeId) return "/";
@@ -85,6 +129,8 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
   const icon = isTask ? getStatusIcon(node.task_status) : "";
   const rawContent = node.content || getNodeDisplayName(node);
   const firstLine = rawContent.split("\n")[0] ?? rawContent;
+  // Get collapsed type suffix (e.g., "/ .md #" for unified folder/file/section)
+  const typeSuffix = getCollapsedTypeSuffix(node);
   const availWidth = width - (depth * 2) - 4;
   const content = firstLine.slice(0, availWidth);
 
@@ -117,7 +163,7 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
         color={textColor}
         dimColor={!isCardSelected && depth > 0}
       >
-        {indent}{foldIndicator} {icon}{icon ? " " : ""}{content}{hasChildren && isFolded ? ` (${children.length})` : ""}
+        {indent}{foldIndicator} {icon}{icon ? " " : ""}{content}{typeSuffix ? ` ${typeSuffix}` : ""}{hasChildren && isFolded ? ` (${children.length})` : ""}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
