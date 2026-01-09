@@ -45,27 +45,27 @@ km board [query]            # Kanban board (TUI)
 km board --id               # Show node IDs
 ```
 
-### Convenience Aliases
+### Task Commands
 
 ```bash
-km tasks [query]            # = km list --type task --context
-km tasks --status open      # Filter by status
+km task [query]             # List tasks (= km ls --type task --context)
+km task --status open       # Filter by status
+km task status <id> [status] # View or set task status (open, in_progress, done, etc.)
+km task create "title"      # Create a new task
+km task assign <who> <id>   # Assign to agent or user
 ```
-
-`tasks` is shorthand for listing tasks with their collapsed ancestor context.
 
 ### Actions
 
 ```bash
-km toggle <id>              # Toggle task status
 km init                     # Create .km/ for persistence
 ```
 
 ### Output Formats
 
 ```bash
-km tasks --json             # JSON output
-km tasks --ids              # IDs only (for scripting)
+km task --json              # JSON output
+km task --ids               # IDs only (for scripting)
 km ls --json                # Works on all views
 ```
 
@@ -75,13 +75,13 @@ km ls --json                # Works on all views
 
 ```bash
 # Path patterns (in query or --filter)
-km tasks 'projects/**'
-km tasks --filter '*.md'
+km task 'projects/**'
+km task --filter '*.md'
 
 # Status
-km tasks --status open
-km tasks --status done
-km tasks --status in_progress
+km task --status open
+km task --status done
+km task --status in_progress
 
 # Type (for list/ls)
 km ls --type task
@@ -89,7 +89,7 @@ km ls --type section
 km ls --type file
 
 # Combined
-km tasks 'work/**' --status open
+km task 'work/**' --status open
 ```
 
 ---
@@ -148,10 +148,8 @@ Cards expand to show children:
 ## Task Actions (Future)
 
 ```bash
-km done <id>                # Mark complete
-km start <id>               # Mark in progress
-km add "Task title"         # Quick capture
-km add "Task" --in <id>     # Add under parent
+km task add "Task title"    # Quick capture
+km task add "Task" --in <id> # Add under parent
 ```
 
 ---
@@ -169,16 +167,6 @@ km agent run <id>           # Run agent (continuous, pulls from queue)
 km agent run <id> "task"    # Run agent for one-shot task
 km agent stop <id>          # Stop a running agent
 km agent queue <id>         # View agent's task queue
-```
-
-### Managing Tasks
-
-```bash
-km task ls                  # List all tasks
-km task create "title"      # Create a new task
-km task assign <who> <id>   # Assign task to agent or user
-km task unassign <who> <id> # Unassign task
-km task status <id>         # View task status
 ```
 
 ### Sessions
@@ -212,7 +200,7 @@ eval "$(km completions bash)"
 eval "$(km completions zsh)"
 
 # Quick done
-km toggle $(km tasks --ids | fzf)
+km task status $(km task --ids | fzf) done
 
 # List and select
 km show $(km ls --ids | fzf)

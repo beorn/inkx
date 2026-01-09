@@ -8,10 +8,10 @@ A system for knowledge management and agent orchestration, built on markdown fil
 
 ## Quick Start
 
-**km** unifies folders, files, and markdown content into a queryable tree. Run `km tasks` in any directory with `.md` files — no setup required.
+**km** unifies folders, files, and markdown content into a queryable tree. Run `km task` in any directory with `.md` files — no setup required.
 
 ```bash
-km tasks              # List all tasks
+km task               # List all tasks
 km board              # Kanban view
 km tree               # Show structure
 ```
@@ -63,7 +63,7 @@ For full features (history, sync), initialize with `km init`.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  CLI / TUI                                                      │
-│  km tasks, km board, km tree, km agent                          │
+│  km task, km board, km tree, km agent                           │
 └─────────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┼───────────────┐

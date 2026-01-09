@@ -8,7 +8,7 @@
 
 ```bash
 # View tasks in any markdown directory (no setup)
-km tasks
+km task
 
 # See your knowledge tree
 km tree

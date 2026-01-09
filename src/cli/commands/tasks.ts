@@ -1,7 +1,7 @@
 /**
- * Tasks Command Group
+ * Task Command Group
  *
- * All task-related commands grouped under 'km tasks'
+ * All task-related commands grouped under 'km task'
  */
 
 import { Command } from "commander";
@@ -185,9 +185,9 @@ function getTasksUnderNode(rootId: string): Node[] {
 }
 
 /**
- * Tasks command - unified task management
+ * Task command - unified task management
  */
-export const tasksCommand = new Command("tasks")
+export const taskCommand = new Command("task")
   .description("Task management - list, add, complete, and assign tasks")
   .argument("[path-or-id]", "Path or ID to scope tasks (optional)")
   .option("-a, --all", "Show all tasks including done")
@@ -233,6 +233,106 @@ export const tasksCommand = new Command("tasks")
     // Default: list tasks
     listTasks(pathOrId, options);
   });
+
+/**
+ * Status subcommand - view or set task status
+ *
+ * km task status <id>              # View status
+ * km task status <id> done         # Set status to done
+ * km task status <id> open         # Set status to open
+ * km task status <id> in_progress  # Set status to in_progress
+ */
+taskCommand
+  .command("status")
+  .description("View or set task status")
+  .argument("<id>", "Task ID or prefix")
+  .argument("[new-status]", "New status (open, in_progress, done, blocked, cancelled)")
+  .option("--json", "Output as JSON")
+  .action((id, newStatus, options) => {
+    const task = findTask(id);
+
+    if (!task) {
+      console.error(chalk.red(`No task found with ID prefix: ${id}`));
+      process.exit(1);
+    }
+
+    if (!newStatus) {
+      // View mode - just show current status
+      if (options.json) {
+        console.log(JSON.stringify({
+          id: task.id,
+          status: task.task_status ?? "open",
+          mark: task.task_mark ?? " ",
+          content: task.content,
+        }));
+        return;
+      }
+
+      const status = task.task_status ?? "open";
+      const statusIcon = status === "done"
+        ? chalk.green("✓")
+        : status === "in_progress"
+          ? chalk.yellow("●")
+          : status === "blocked"
+            ? chalk.red("✗")
+            : chalk.dim("○");
+
+      console.log(`${statusIcon} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`);
+      return;
+    }
+
+    // Set mode - update the status
+    const validStatuses = ["open", "in_progress", "done", "blocked", "waiting", "cancelled"];
+    if (!validStatuses.includes(newStatus)) {
+      console.error(chalk.red(`Invalid status: ${newStatus}`));
+      console.error(chalk.dim(`Valid statuses: ${validStatuses.join(", ")}`));
+      process.exit(1);
+    }
+
+    const newMark = getMarkForStatus(newStatus as TaskStatus);
+
+    emitNodeUpdated("cli", task.id, {
+      task_status: newStatus as TaskStatus,
+      task_mark: newMark,
+    });
+
+    if (options.json) {
+      console.log(JSON.stringify({ id: task.id, status: newStatus }));
+      return;
+    }
+
+    const statusIcon = newStatus === "done"
+      ? chalk.green("✓")
+      : newStatus === "in_progress"
+        ? chalk.yellow("●")
+        : newStatus === "blocked"
+          ? chalk.red("✗")
+          : chalk.dim("○");
+
+    console.log(
+      `${statusIcon} ${chalk.dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`
+    );
+  });
+
+/**
+ * Get task mark for status
+ */
+function getMarkForStatus(status: TaskStatus): string {
+  switch (status) {
+    case "done":
+      return "x";
+    case "in_progress":
+      return "/";
+    case "blocked":
+      return "-";
+    case "waiting":
+      return "?";
+    case "cancelled":
+      return "-";
+    default:
+      return " ";
+  }
+}
 
 /**
  * Build a tree structure for tasks grouped by their ancestor paths

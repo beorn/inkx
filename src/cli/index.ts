@@ -4,8 +4,8 @@
  *
  * Main entry point for the km command
  *
- * km - Knowledge management tool
- * km tasks - Task management subcommand
+ * km - Knowledge Machine CLI
+ * km task - Task management subcommand
  */
 
 import { existsSync, statSync } from "fs";
@@ -18,10 +18,9 @@ import { syncCommand } from "./commands/sync.ts";
 import { watchCommand } from "./commands/watch.ts";
 import { rebuildCommand } from "./commands/rebuild.ts";
 import { searchCommand } from "./commands/search.ts";
-import { tasksCommand } from "./commands/tasks.ts";
+import { taskCommand } from "./commands/tasks.ts";
 import { boardCommand } from "./commands/board.ts";
 import { listCommand } from "./commands/list.ts";
-import { toggleCommand } from "./commands/toggle.ts";
 import { initCommand } from "./commands/init.ts";
 
 const program = new Command();
@@ -82,11 +81,10 @@ program.addCommand(showCommand);      // km show <id> - show node details
 program.addCommand(boardCommand);     // km board [query] - interactive kanban TUI
 program.addCommand(searchCommand);    // km search <query> - full-text search
 
-// Task convenience alias
-program.addCommand(tasksCommand);     // km tasks = km ls --type task --context
+// Task commands
+program.addCommand(taskCommand);      // km task - task management (list, status, assign, etc.)
 
 // Actions
-program.addCommand(toggleCommand);    // km toggle <id> - toggle task status
 program.addCommand(initCommand);      // km init - create .km/ for disk mode
 program.addCommand(syncCommand);      // km sync - sync filesystem
 program.addCommand(watchCommand);     // km watch - watch for changes

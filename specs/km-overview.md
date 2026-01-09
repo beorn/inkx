@@ -10,7 +10,7 @@ km combines knowledge management and agent orchestration:
 
 **Knowledge Management**
 - Treats markdown files as a unified tree of nodes
-- Task views — `km tasks`, `km board`
+- Task views — `km task`, `km board`
 - Navigation — `km tree`, `km show`
 - Zero setup — works instantly on any directory
 
@@ -35,7 +35,7 @@ Both modes are **read-write**. The difference is where state lives:
 - **Disk**: Run `km init` once. SQLite persists in `.km/state.db`. Every change logged to `events.jsonl`. Stable node IDs, undo capability, sync support. Use for your own projects.
 
 ```bash
-km tasks              # Works anywhere (memory mode)
+km task               # Works anywhere (memory mode)
 km init               # Enable tracking (creates .km/, disk mode)
 ```
 
@@ -56,11 +56,11 @@ km tree 01H5X               # Tree from node ID prefix
 km ls --type task           # List all tasks
 km ls --type task --context # Tasks with ancestor paths
 
-# Convenience alias
-km tasks [query]            # = km ls --type task --context
+# Task commands
+km task [query]             # = km ls --type task --context
+km task status <id> [status] # View or set task status
 
 # Actions
-km toggle <id>              # Toggle task status
 km init                     # Enable persistence
 
 km --help                   # All commands
