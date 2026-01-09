@@ -9,18 +9,40 @@ import { getNodeDisplayName, buildBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "../../../node/types.ts";
 import { getChildren, getNode } from "../../../node/db.ts";
 
-// Build path from root to a given node
-function getNodePath(nodeId: string | null): string[] {
-  if (!nodeId) return [];
-  const path: string[] = [];
+// Build path from root to a given node as file path with # for sections
+function getNodePath(nodeId: string | null): string {
+  if (!nodeId) return "/";
+
+  // Collect all nodes from root to target
+  const nodes: Node[] = [];
   let currentId: string | null = nodeId;
   while (currentId) {
     const node = getNode(currentId);
     if (!node) break;
-    path.unshift(getNodeDisplayName(node));
+    nodes.unshift(node);
     currentId = node.parent_id;
   }
-  return path;
+
+  if (nodes.length === 0) return "/";
+
+  // Build path: folders/files use /, sections use #
+  let path = "";
+  for (const node of nodes) {
+    const name = getNodeDisplayName(node);
+    if (node.type === "folder" || node.type === "file") {
+      path += (path ? "/" : "") + name;
+    } else if (node.type === "section") {
+      path += "#" + name;
+    } else if (node.type === "board") {
+      // Skip board nodes in path, or show as root
+      if (!path) path = name;
+    } else {
+      // Other types (paragraph, task, etc.) - add with /
+      path += (path ? "/" : "") + name;
+    }
+  }
+
+  return path || "/";
 }
 
 // Status icons
@@ -58,7 +80,9 @@ interface OutlineItemProps {
 
 function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, isCardSelected, isItemSelected, isMultiSelected, flatIndex, selectedSubIndex, multiSelected, colIndex, cardIndex }: OutlineItemProps) {
   const indent = "  ".repeat(depth);
-  const icon = getStatusIcon(node.task_status);
+  // Only show status icon for tasks, not for sections or other types
+  const isTask = node.type === "task";
+  const icon = isTask ? getStatusIcon(node.task_status) : "";
   const rawContent = node.content || getNodeDisplayName(node);
   const firstLine = rawContent.split("\n")[0] ?? rawContent;
   const availWidth = width - (depth * 2) - 4;
@@ -93,7 +117,7 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
         color={textColor}
         dimColor={!isCardSelected && depth > 0}
       >
-        {indent}{foldIndicator} {icon} {content}{hasChildren && isFolded ? ` (${children.length})` : ""}
+        {indent}{foldIndicator} {icon}{icon ? " " : ""}{content}{hasChildren && isFolded ? ` (${children.length})` : ""}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
@@ -559,21 +583,12 @@ function Board({ initialState }: BoardProps) {
     });
   });
 
-  // Build breadcrumb path
-  const path = state.rootId ? getNodePath(state.rootId) : [];
-  const breadcrumb = path.length > 0 ? path.join(" / ") : "Board";
+  // Build breadcrumb path as file path format
+  const breadcrumb = getNodePath(state.rootId);
 
   return (
     <Box flexDirection="column" height={termHeight}>
-      <Box>
-        <Text bold inverse>{` ${breadcrumb} `}</Text>
-        {inOutlineMode && <Text color="cyan">{` [OUTLINE]`}</Text>}
-        {multiSelected.size > 0 && <Text color="yellow">{` [${multiSelected.size} selected]`}</Text>}
-        {state.columns.length > maxCols && (
-          <Text dimColor>{` [${colScrollOffset + 1}-${colScrollOffset + maxCols}/${state.columns.length} cols]`}</Text>
-        )}
-        <Text dimColor>{` [depth: ${maxOutlineDepth}]`}</Text>
-      </Box>
+      <Text bold inverse>{` ${breadcrumb} `}</Text>
       <Box flexGrow={1}>
         {visibleColumns.map((col, i) => {
           const actualColIndex = colScrollOffset + i;
@@ -586,7 +601,7 @@ function Board({ initialState }: BoardProps) {
               selectedCardIndex={state.cardIndex}
               selectedSubIndex={inOutlineMode ? subIndex : -1}
               width={colWidth}
-              height={termHeight - 4}
+              height={termHeight - 3}
               maxOutlineDepth={maxOutlineDepth}
               foldedNodes={foldedNodes}
               onToggleFold={toggleFold}
@@ -595,10 +610,17 @@ function Board({ initialState }: BoardProps) {
           );
         })}
       </Box>
-      <Text dimColor>
-        {inOutlineMode
-          ? "j/k:items  J/K:select  Tab:fold  Esc:exit outline  Enter:zoom  q:quit"
-          : "h/l:cols  j/k:cards  Tab:outline  Enter:zoom  Esc/u:parent  +/-:depth  q:quit"}
+      <Text>
+        {inOutlineMode && <Text color="cyan">{`[OUTLINE] `}</Text>}
+        {multiSelected.size > 0 && <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>}
+        {state.columns.length > maxCols && (
+          <Text dimColor>{`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${state.columns.length}] `}</Text>
+        )}
+        <Text dimColor>
+          {inOutlineMode
+            ? "j/k:items J/K:select Tab:fold Esc:exit Enter:zoom q:quit"
+            : "h/l:cols j/k:cards Tab:outline Enter:zoom Esc/u:parent +/-:depth q:quit"}
+        </Text>
       </Text>
     </Box>
   );
