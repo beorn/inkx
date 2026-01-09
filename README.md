@@ -80,7 +80,7 @@ km mail                              # Email bot
 
 ### Phase 4: Collaboration
 
-Your team's agents and yours, working on shared knowledge. Web interface. Cloud sync. Email as a content type.
+Your team's agents and yours, working on shared knowledge. Web interface. Cloud sync. Mobile app with ubiquitous capture. Email as a content type.
 
 ## Docs
 
