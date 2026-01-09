@@ -41,6 +41,60 @@ function getNodeDisplayName(node: Node): string {
 }
 
 /**
+ * Normalize a name for comparison (lowercase, remove special chars, collapse whitespace)
+ */
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[-_]/g, " ")        // Treat - and _ as spaces
+    .replace(/\.md$/i, "")        // Remove .md extension
+    .replace(/[^\w\s]/g, "")      // Remove special chars
+    .replace(/\s+/g, " ")         // Collapse whitespace
+    .trim();
+}
+
+/**
+ * Check if two names are substantially the same
+ */
+function namesAreSimilar(a: string, b: string): boolean {
+  return normalizeName(a) === normalizeName(b);
+}
+
+/**
+ * Filter ancestors to remove redundant levels (where name matches parent/child)
+ */
+function collapseRedundantAncestors(ancestors: Node[]): Node[] {
+  if (ancestors.length === 0) return ancestors;
+
+  const result: Node[] = [];
+
+  for (let i = 0; i < ancestors.length; i++) {
+    const current = ancestors[i];
+    const currentName = getNodeDisplayName(current);
+
+    // Skip if this name is the same as the previous kept item
+    if (result.length > 0) {
+      const prevName = getNodeDisplayName(result[result.length - 1]);
+      if (namesAreSimilar(currentName, prevName)) {
+        continue;
+      }
+    }
+
+    // Skip if this name is the same as the next item
+    if (i < ancestors.length - 1) {
+      const nextName = getNodeDisplayName(ancestors[i + 1]);
+      if (namesAreSimilar(currentName, nextName)) {
+        continue;
+      }
+    }
+
+    result.push(current);
+  }
+
+  return result;
+}
+
+/**
  * Format a task for display with path
  */
 function formatTaskWithPath(
@@ -131,28 +185,25 @@ export const tasksCommand = new Command("tasks")
  */
 interface TaskWithAncestors {
   task: Node;
-  ancestors: Node[];
-  ancestorIds: string[];
-  ancestorKeys: string[]; // For sorting/grouping by display name
+  ancestors: Node[];        // Collapsed (redundant levels removed)
+  ancestorKeys: string[];   // For sorting/grouping by normalized name
 }
 
 /**
  * Get a stable key for an ancestor node (for grouping)
+ * Uses normalized name so similar names group together
  */
 function getAncestorKey(node: Node): string {
-  // Use fs_path for folders/files, md_slug for sections, or content
-  if (node.fs_path) return node.fs_path;
-  if (node.md_slug) return node.md_slug;
-  return node.content ?? node.id;
+  return normalizeName(getNodeDisplayName(node));
 }
 
 function buildTaskTree(tasks: Node[]): TaskWithAncestors[] {
   return tasks.map((task) => {
-    const ancestors = getAncestors(task.id);
+    const rawAncestors = getAncestors(task.id);
+    const ancestors = collapseRedundantAncestors(rawAncestors);
     return {
       task,
       ancestors,
-      ancestorIds: ancestors.map((a) => a.id),
       ancestorKeys: ancestors.map((a) => getAncestorKey(a)),
     };
   });
@@ -227,7 +278,8 @@ function listAction(options: {
   // Flat mode: simple single-line display
   if (options.flat) {
     for (const task of tasks) {
-      const ancestors = getAncestors(task.id);
+      const rawAncestors = getAncestors(task.id);
+      const ancestors = collapseRedundantAncestors(rawAncestors);
       const lines = formatTaskWithPath(task, ancestors, {
         verbose: options.verbose,
         flat: true,
