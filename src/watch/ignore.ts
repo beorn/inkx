@@ -43,7 +43,7 @@ export const DEFAULT_IGNORE_PATTERNS = [
   "**/.obsidian/**",
   "**/.trash/**",
 
-  // Kimmi internals
+  // km internals
   "**/.km/**",
 
   // OS files
@@ -148,7 +148,7 @@ export function readGitignore(vaultPath: string): string[] {
 }
 
 /**
- * Read and parse a .kmignore file (Kimmi-specific ignore patterns)
+ * Read and parse a .kmignore file (km-specific ignore patterns)
  */
 export function readKmignore(vaultPath: string): string[] {
   const kmignorePath = join(vaultPath, ".kmignore");
@@ -218,7 +218,7 @@ export function getIgnorePatterns(vaultPath: string): string[] {
   // Add .obsidianignore patterns (Obsidian's native ignore file)
   patterns.push(...readObsidianIgnore(vaultPath));
 
-  // Add .kmignore patterns (Kimmi-specific)
+  // Add .kmignore patterns (km-specific)
   patterns.push(...readKmignore(vaultPath));
 
   return patterns;

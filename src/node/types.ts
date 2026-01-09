@@ -1,5 +1,5 @@
 /**
- * Kimmi Node Types
+ * km Node Types
  * Core type definitions for the event-sourced data model
  */
 
@@ -175,7 +175,7 @@ export interface Dependency {
 }
 
 // Config types
-export interface KimmiConfig {
+export interface KmConfig {
   watch: {
     debounce_fs: number;
     debounce_apply: number;

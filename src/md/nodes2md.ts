@@ -1,7 +1,7 @@
 /**
  * Nodes to Markdown Converter
  *
- * Serializes Kimmi nodes back to markdown format
+ * Serializes km nodes back to markdown format
  */
 
 import { stringify as stringifyYaml } from "yaml";

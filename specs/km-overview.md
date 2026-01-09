@@ -1,17 +1,23 @@
 # km Overview
 
-A local-first knowledge and task management system.
+**Knowledge Machine** — The agentic work desk.
 
 ---
 
 ## What km Does
 
-km treats markdown files as a unified tree of nodes. It provides:
+km combines knowledge management and agent orchestration:
 
-- **Task views** — `km tasks`, `km board`
-- **Navigation** — `km tree`, `km show`
-- **Zero setup** — works instantly on any directory
-- **Full persistence** — optional `km init` for history and sync
+**Knowledge Management**
+- Treats markdown files as a unified tree of nodes
+- Task views — `km tasks`, `km board`
+- Navigation — `km tree`, `km show`
+- Zero setup — works instantly on any directory
+
+**Agent Orchestration** *(coming soon)*
+- Run AI agents with preconfigured harnesses
+- Assign tasks to agents or yourself
+- Full session logging and replay
 
 ---
 
@@ -110,6 +116,31 @@ The `/ .md #` suffix shows what was collapsed. See [km-display](km-ui.md).
 
 ---
 
+## Agents & Harnesses
+
+> **Status: Future** — Not yet implemented.
+
+**Harness**: A preconfigured set of tools and data connectors for an agent.
+
+```yaml
+harness:
+  name: code-reviewer
+  tools: [read_file, write_file, run_tests]
+  connectors: [github, linear]
+```
+
+**Agent**: An AI agent equipped with a harness, working on a queue of tasks.
+
+```bash
+km agent ls                    # List agents
+km agent run reviewer          # Run agent continuously
+km agent run reviewer "do X"   # One-shot task
+```
+
+See [km-agents.md](km-agents.md) for details.
+
+---
+
 ## See Also
 
 - [README](README.md) — Reading order, glossary
@@ -117,3 +148,4 @@ The `/ .md #` suffix shows what was collapsed. See [km-display](km-ui.md).
 - [Store](km-store.md) — Mode detection, interfaces
 - [UI](km-ui.md) — Views, collapsing
 - [CLI](km-cli.md) — Commands
+- [Agents](km-agents.md) — Agent orchestration

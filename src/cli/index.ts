@@ -26,7 +26,7 @@ const program = new Command();
 
 program
   .name("km")
-  .description("KM - Local-first knowledge and task management")
+  .description("Knowledge Machine - The agentic work desk")
   .version("0.1.0");
 
 // Initialize state on startup (skip for init command)

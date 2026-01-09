@@ -1,7 +1,7 @@
 /**
  * AST to Nodes Converter
  *
- * Converts mdast AST into Kimmi nodes
+ * Converts mdast AST into km nodes
  */
 
 import { ulid } from "ulid";
@@ -19,7 +19,7 @@ import {
 } from "./parser.ts";
 
 /**
- * Parse a markdown file into Kimmi nodes
+ * Parse a markdown file into km nodes
  */
 export function parseMarkdownToNodes(
   content: string,
@@ -66,7 +66,7 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
 }
 
 /**
- * Convert AST children to Kimmi nodes
+ * Convert AST children to km nodes
  */
 function astToNodes(ast: Root, fileNode: Node, sourceText: string): Node[] {
   const nodes: Node[] = [];

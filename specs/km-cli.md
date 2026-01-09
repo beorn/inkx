@@ -156,6 +156,40 @@ km add "Task" --in <id>     # Add under parent
 
 ---
 
+## Agent Commands (Future)
+
+> See [km-agents.md](km-agents.md) for full specification.
+
+### Managing Agents
+
+```bash
+km agent ls                 # List all agents
+km agent create <spec>      # Create agent from YAML spec
+km agent run <id>           # Run agent (continuous, pulls from queue)
+km agent run <id> "task"    # Run agent for one-shot task
+km agent stop <id>          # Stop a running agent
+km agent queue <id>         # View agent's task queue
+```
+
+### Managing Tasks
+
+```bash
+km task ls                  # List all tasks
+km task create "title"      # Create a new task
+km task assign <who> <id>   # Assign task to agent or user
+km task unassign <who> <id> # Unassign task
+km task status <id>         # View task status
+```
+
+### Sessions
+
+```bash
+km session <id>             # View session transcript
+km session ls --agent <id>  # List sessions for agent
+```
+
+---
+
 ## Configuration
 
 ```yaml
@@ -190,3 +224,4 @@ km show $(km ls --ids | fzf)
 
 - [UI](km-ui.md) — View behavior, collapsing
 - [Overview](km-overview.md) — Quick start
+- [Agents](km-agents.md) — Agent orchestration

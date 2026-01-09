@@ -8,14 +8,19 @@ AI agent orchestration for km.
 
 ## Overview
 
-Agents are nodes in the km data model (see [km-data-model](km-data-model.md)) that can claim tasks, execute sessions, and communicate with each other.
+Agents are AI-powered workers that can claim tasks, execute sessions, and communicate with each other. Each agent is equipped with a **harness** — a preconfigured set of tools and data connectors.
 
 ### Design Principles
 
 1. **Agents are nodes**: Agent identity and config stored in the node tree
-2. **Work queues via hierarchy**: Agent's children (or symlinks) define its queue
-3. **Session logging**: Full conversation transcripts recorded as events
-4. **Simple IPC**: Unix socket for real-time notifications
+2. **Harnesses equip agents**: Tools + connectors + constraints bundled together
+3. **Work queues via hierarchy**: Agent's children (or symlinks) define its queue
+4. **Session logging**: Full conversation transcripts recorded as events
+5. **Simple IPC**: Unix socket for real-time notifications
+
+### Kimmi: The Default Agent
+
+**Kimmi** is the Knowledge Machine's built-in agent — the assistant you interact with by default. Kimmi comes with a general-purpose harness and can be customized or extended.
 
 ---
 
@@ -48,6 +53,52 @@ Agents are nodes in the km data model (see [km-data-model](km-data-model.md)) th
 
 ---
 
+## Harnesses
+
+A **harness** is a preconfigured bundle that equips an agent with:
+- **Tools**: What the agent can do (read files, write code, run tests, etc.)
+- **Connectors**: External services the agent can access (GitHub, Linear, Slack, etc.)
+- **Constraints**: Limits on the agent's behavior (read-only, max files, etc.)
+
+### Harness Definition
+
+```yaml
+# .km/harnesses/code-reviewer.yaml
+harness:
+  name: code-reviewer
+  description: "Reviews code for quality and correctness"
+
+  tools:
+    - read_file
+    - write_file
+    - run_tests
+    - search_codebase
+
+  connectors:
+    - github:
+        permissions: [read, comment]
+    - linear:
+        permissions: [read, update]
+
+  constraints:
+    read_only: false
+    max_files_per_session: 20
+    allowed_paths:
+      - "src/**"
+      - "tests/**"
+```
+
+### Built-in Harnesses
+
+| Harness | Description | Tools |
+|---------|-------------|-------|
+| `general` | Default harness for Kimmi | All tools |
+| `code-reviewer` | Code review and feedback | read, comment, test |
+| `researcher` | Information gathering | read, search, web |
+| `writer` | Documentation and content | read, write |
+
+---
+
 ## Agent Data Model
 
 ### Agent Node Structure
@@ -60,8 +111,21 @@ const agent: Node = {
   data: {
     name: 'Auth Agent',
     model: 'claude-sonnet-4',
+    harness: 'code-reviewer',  // Reference to harness config
     workdir: '.agents/agent-1',
-    capabilities: ['code', 'test', 'review']
+  }
+}
+
+// Kimmi - the default agent
+const kimmi: Node = {
+  id: 'kimmi',
+  type: 'agent',
+  parent_id: 'agents',
+  data: {
+    name: 'Kimmi',
+    model: 'claude-sonnet-4',
+    harness: 'general',
+    description: "Knowledge Machine's built-in agent"
   }
 }
 ```
@@ -426,27 +490,68 @@ CREATE TABLE cursors (
 
 ## CLI Commands
 
+### Agent Commands
+
+```bash
+# List agents
+km agent ls
+
+# Create a new agent
+km agent create <spec.yaml>
+
+# Run agent continuously (pulls from queue)
+km agent run <agent_id>
+
+# Run agent for a single task (one-shot)
+km agent run <agent_id> "review the auth module"
+
+# Stop a running agent
+km agent stop <agent_id>
+
+# View agent's queue
+km agent queue <agent_id>
+```
+
+### Task Commands
+
+```bash
+# List tasks
+km task ls
+
+# Create a task
+km task create "Review Q1 financials"
+
+# Assign task to agent or user
+km task assign <agent_id|user> <task_id>
+
+# Unassign task
+km task unassign <agent_id|user> <task_id>
+
+# View task status
+km task status <task_id>
+```
+
+### Session Commands
+
+```bash
+# View session transcript
+km session <session_id>
+
+# List sessions for an agent
+km session ls --agent <agent_id>
+```
+
+### Hub Commands
+
 ```bash
 # Start event hub (background)
 km hub start
 
-# List agents
-km agents
+# Stop event hub
+km hub stop
 
-# Start an agent
-km agent start <agent-id>
-
-# Assign task to agent
-km task assign <task-id> <agent-id>
-
-# View agent's queue
-km queue <agent-id>
-
-# Send message
+# Send message to agent
 km message <target-agent> "Hello"
-
-# View session transcript
-km session <session-id>
 ```
 
 ---

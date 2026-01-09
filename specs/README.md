@@ -1,6 +1,8 @@
 # km Specifications
 
-A local-first knowledge and task management system built on markdown files.
+**Knowledge Machine** — The agentic work desk.
+
+A system for knowledge management and agent orchestration, built on markdown files.
 
 ---
 
@@ -49,6 +51,10 @@ For full features (history, sync), initialize with `km init`.
 | **collapsing** | Unifying same-named folder/file/section into one display line. |
 | **memory mode** | No `.km/`. SQLite in RAM. Rebuilt each run. Ephemeral IDs. |
 | **disk mode** | `.km/` exists. SQLite on disk. Full tracking: events, history, stable IDs, sync. |
+| **agent** | An AI agent that can claim and execute tasks. |
+| **harness** | A preconfigured set of tools and data connectors for an agent. |
+| **queue** | Tasks assigned to an agent, awaiting execution. |
+| **Kimmi** | The default built-in agent / assistant. |
 
 ---
 
@@ -57,32 +63,33 @@ For full features (history, sync), initialize with `km init`.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  CLI / TUI                                                      │
-│  km tasks, km board, km tree                                    │
+│  km tasks, km board, km tree, km agent                          │
 └─────────────────────────────────────────────────────────────────┘
                               │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Display Layer              (km-ui.md)                     │
-│  Collapsing, type indicators, formatting                        │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Store Layer                (km-store.md)                       │
-│  NodeStore interface → PersistedStore | MemoryStore             │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  km-tree                    (km-data-model.md)                  │
-│  Unified nodes in SQLite                                        │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  fs-tree                    (km-markdown.md)                    │
-│  Markdown files on disk                                         │
-└─────────────────────────────────────────────────────────────────┘
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+┌─────────────────────┐ ┌───────────────────────────────────────┐
+│  Agent Runtime      │ │  Display Layer        (km-ui.md)      │
+│  (km-agents.md)     │ │  Collapsing, formatting               │
+│  Harnesses, queues  │ └───────────────────────────────────────┘
+└─────────────────────┘               │
+              │                       ▼
+              │       ┌───────────────────────────────────────┐
+              │       │  Store Layer            (km-store.md) │
+              └──────►│  MemoryStore | DiskStore              │
+                      └───────────────────────────────────────┘
+                                      │
+                                      ▼
+              ┌───────────────────────────────────────────────┐
+              │  km-tree                (km-data-model.md)    │
+              │  Unified nodes in SQLite                      │
+              └───────────────────────────────────────────────┘
+                                      │
+                                      ▼
+              ┌───────────────────────────────────────────────┐
+              │  fs-tree                (km-markdown.md)      │
+              │  Markdown files on disk                       │
+              └───────────────────────────────────────────────┘
 ```
 
 ---

@@ -1,7 +1,7 @@
 {
   "name": "km",
   "version": "0.1.0",
-  "description": "Kimmi - Local-first, event-sourced knowledge and task management",
+  "description": "Knowledge Machine - The agentic work desk",
   "private": true,
   "type": "module",
   "bin": {
