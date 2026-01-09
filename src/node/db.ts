@@ -398,6 +398,30 @@ export function getSubtree(rootId: string): Node[] {
 }
 
 /**
+ * Get ancestors of a node (from root to parent)
+ * Returns array from root down to immediate parent (excludes the node itself)
+ */
+export function getAncestors(nodeId: string): Node[] {
+  const db = getDb();
+  const rows = db
+    .query(
+      `
+    WITH RECURSIVE ancestors AS (
+      SELECT * FROM nodes WHERE id = (SELECT parent_id FROM nodes WHERE id = ?)
+      UNION ALL
+      SELECT n.* FROM nodes n
+      JOIN ancestors a ON n.id = a.parent_id
+    )
+    SELECT * FROM ancestors
+  `
+    )
+    .all(nodeId) as Record<string, unknown>[];
+
+  // Results come in child-to-root order, reverse to get root-to-parent
+  return rows.map(rowToNode).reverse();
+}
+
+/**
  * Get tasks by status
  */
 export function getTasksByStatus(status: TaskStatus | TaskStatus[]): Node[] {

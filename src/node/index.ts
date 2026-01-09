@@ -44,6 +44,7 @@ export {
   getNodeByPath,
   getChildren,
   getSubtree,
+  getAncestors,
   getTasksByStatus,
   getAllTasks,
   getAllNodes,

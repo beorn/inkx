@@ -11,16 +11,70 @@ import { emitNodeCreated, emitNodeUpdated } from "../../node/emit.ts";
 import {
   getNode,
   getNodeByPath,
-  queryNodes,
+  getAncestors,
   getDb,
 } from "../../node/db.ts";
 import { parseTaskMetadata, extractTags } from "../../md/parser.ts";
 import type { Node, TaskStatus } from "../../node/types.ts";
 
 /**
- * Format a task for display
+ * Get display name for a node (filename, slug, content prefix, or type)
  */
-function formatTask(task: Node, options: { verbose?: boolean } = {}): string {
+function getNodeDisplayName(node: Node): string {
+  // For files, use the filename
+  if (node.fs_path) {
+    const filename = node.fs_path.split("/").pop() ?? node.fs_path;
+    // Remove .md extension
+    return filename.replace(/\.md$/, "");
+  }
+  // For sections, use the slug
+  if (node.md_slug) {
+    return node.md_slug;
+  }
+  // For items with content, use first 30 chars
+  if (node.content) {
+    const preview = node.content.slice(0, 30);
+    return preview.length < node.content.length ? `${preview}...` : preview;
+  }
+  // Fallback to type
+  return `(${node.type})`;
+}
+
+/**
+ * Format a task for display with path
+ */
+function formatTaskWithPath(
+  task: Node,
+  ancestors: Node[],
+  options: { verbose?: boolean; flat?: boolean } = {}
+): string[] {
+  const lines: string[] = [];
+  const indent = "  ";
+
+  if (options.flat) {
+    // Single line: path → task
+    const pathParts = ancestors.map((a) => chalk.dim(getNodeDisplayName(a)));
+    const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : "";
+    lines.push(pathStr + formatTaskLine(task, options));
+  } else {
+    // Multi-line: each ancestor on its own line, indented
+    for (let i = 0; i < ancestors.length; i++) {
+      const ancestor = ancestors[i];
+      const prefix = indent.repeat(i);
+      lines.push(prefix + chalk.dim(getNodeDisplayName(ancestor)));
+    }
+    // Task at its depth
+    const taskPrefix = indent.repeat(ancestors.length);
+    lines.push(taskPrefix + formatTaskLine(task, options));
+  }
+
+  return lines;
+}
+
+/**
+ * Format the task line itself (status icon, id, content)
+ */
+function formatTaskLine(task: Node, options: { verbose?: boolean } = {}): string {
   const status = task.task_status ?? "open";
   const statusIcon =
     status === "done"
@@ -71,6 +125,7 @@ function listAction(options: {
   mine?: boolean;
   due?: string;
   verbose?: boolean;
+  flat?: boolean;
   json?: boolean;
 }): void {
   const db = getDb();
@@ -110,8 +165,23 @@ function listAction(options: {
     return;
   }
 
-  for (const task of tasks) {
-    console.log(formatTask(task, { verbose: options.verbose }));
+  // Display tasks with their hierarchy paths
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
+    const ancestors = getAncestors(task.id);
+    const lines = formatTaskWithPath(task, ancestors, {
+      verbose: options.verbose,
+      flat: options.flat,
+    });
+
+    for (const line of lines) {
+      console.log(line);
+    }
+
+    // Add blank line between tasks (unless flat mode)
+    if (!options.flat && i < tasks.length - 1) {
+      console.log();
+    }
   }
 
   console.log();
@@ -127,6 +197,7 @@ tasksCommand
   .option("-m, --mine", "Show only my tasks")
   .option("-d, --due <date>", "Show tasks due by date")
   .option("-v, --verbose", "Show more details")
+  .option("-f, --flat", "Show path on single line (file › section › task)")
   .option("--json", "Output as JSON")
   .action(listAction);
 
