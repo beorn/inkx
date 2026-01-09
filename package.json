@@ -1,24 +1,44 @@
 {
   "name": "km",
   "version": "0.1.0",
-  "description": "KM project",
+  "description": "Kimmi - Local-first, event-sourced knowledge and task management",
   "private": true,
+  "type": "module",
+  "bin": {
+    "km": "./src/cli/index.ts"
+  },
   "scripts": {
+    "km": "bun run ./src/cli/index.ts",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write . --log-level warn",
     "fix": "bun run lint:fix && bun run format:fix",
-    "test": "bun test"
+    "test": "bun test",
+    "build": "bun build ./src/cli/index.ts --outdir ./dist --target node"
   },
   "devDependencies": {
     "@types/bun": "^1.3.4",
+    "@types/better-sqlite3": "^7.6.11",
     "eslint": "^9.39.2",
     "eslint-plugin-promise": "^7.2.1",
     "prettier": "^3.7.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "chalk": "^5.4.1",
+    "chokidar": "^4.0.3",
+    "commander": "^13.1.0",
+    "mdast-util-from-markdown": "^2.0.2",
+    "mdast-util-gfm": "^3.1.0",
+    "mdast-util-to-markdown": "^2.1.2",
+    "mdast-util-wiki-link": "^0.0.2",
+    "micromark-extension-gfm": "^3.0.0",
+    "micromark-extension-wiki-link": "^0.0.4",
+    "ulid": "^2.3.0",
+    "yaml": "^2.7.1"
+  }
 }
