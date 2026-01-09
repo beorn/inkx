@@ -287,6 +287,8 @@ interface ColumnProps {
 
 function Column({ column, colIndex, isSelected, selectedCardIndex, selectedSubIndex, width, height, maxOutlineDepth, foldedNodes, onToggleFold, multiSelected }: ColumnProps) {
   const name = getNodeDisplayName(column.node);
+  const typeSuffix = getCollapsedTypeSuffix(column.node);
+  const displayName = typeSuffix ? `${name} ${typeSuffix}` : name;
   const count = column.cards.length;
   const maxCards = Math.max(1, Math.floor(height / 3)); // Estimate cards visible
 
@@ -300,7 +302,7 @@ function Column({ column, colIndex, isSelected, selectedCardIndex, selectedSubIn
   return (
     <Box flexDirection="column" width={width} borderStyle="single" borderColor={isSelected ? "blue" : "gray"}>
       <Text bold inverse={isSelected}>
-        {` ${name.slice(0, width - 8)} (${count}) `.slice(0, width - 2)}
+        {` ${displayName.slice(0, width - 8)} (${count}) `.slice(0, width - 2)}
       </Text>
       <Box flexDirection="column" paddingX={1}>
         {visibleCards.map((card, i) => {
