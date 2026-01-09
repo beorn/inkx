@@ -133,6 +133,17 @@ interface TaskWithAncestors {
   task: Node;
   ancestors: Node[];
   ancestorIds: string[];
+  ancestorKeys: string[]; // For sorting/grouping by display name
+}
+
+/**
+ * Get a stable key for an ancestor node (for grouping)
+ */
+function getAncestorKey(node: Node): string {
+  // Use fs_path for folders/files, md_slug for sections, or content
+  if (node.fs_path) return node.fs_path;
+  if (node.md_slug) return node.md_slug;
+  return node.content ?? node.id;
 }
 
 function buildTaskTree(tasks: Node[]): TaskWithAncestors[] {
@@ -142,6 +153,7 @@ function buildTaskTree(tasks: Node[]): TaskWithAncestors[] {
       task,
       ancestors,
       ancestorIds: ancestors.map((a) => a.id),
+      ancestorKeys: ancestors.map((a) => getAncestorKey(a)),
     };
   });
 }
@@ -151,14 +163,14 @@ function buildTaskTree(tasks: Node[]): TaskWithAncestors[] {
  */
 function sortByPath(tasksWithAncestors: TaskWithAncestors[]): TaskWithAncestors[] {
   return tasksWithAncestors.sort((a, b) => {
-    // Compare ancestor paths lexicographically
-    const minLen = Math.min(a.ancestorIds.length, b.ancestorIds.length);
+    // Compare ancestor paths by keys (fs_path/slug/content), not IDs
+    const minLen = Math.min(a.ancestorKeys.length, b.ancestorKeys.length);
     for (let i = 0; i < minLen; i++) {
-      if (a.ancestorIds[i] < b.ancestorIds[i]) return -1;
-      if (a.ancestorIds[i] > b.ancestorIds[i]) return 1;
+      if (a.ancestorKeys[i] < b.ancestorKeys[i]) return -1;
+      if (a.ancestorKeys[i] > b.ancestorKeys[i]) return 1;
     }
     // Shorter paths come first
-    return a.ancestorIds.length - b.ancestorIds.length;
+    return a.ancestorKeys.length - b.ancestorKeys.length;
   });
 }
 
@@ -235,15 +247,15 @@ function listAction(options: {
   const sorted = sortByPath(tasksWithAncestors);
 
   const indent = "  ";
-  let previousAncestorIds: string[] = [];
+  let previousAncestorKeys: string[] = [];
 
-  for (const { task, ancestors, ancestorIds } of sorted) {
-    // Find where current path diverges from previous
+  for (const { task, ancestors, ancestorKeys } of sorted) {
+    // Find where current path diverges from previous (using keys, not IDs)
     let divergeIndex = 0;
     while (
-      divergeIndex < previousAncestorIds.length &&
-      divergeIndex < ancestorIds.length &&
-      previousAncestorIds[divergeIndex] === ancestorIds[divergeIndex]
+      divergeIndex < previousAncestorKeys.length &&
+      divergeIndex < ancestorKeys.length &&
+      previousAncestorKeys[divergeIndex] === ancestorKeys[divergeIndex]
     ) {
       divergeIndex++;
     }
@@ -259,7 +271,7 @@ function listAction(options: {
     const taskPrefix = indent.repeat(ancestors.length);
     console.log(taskPrefix + formatTaskLine(task, { verbose: options.verbose, showId: options.id }));
 
-    previousAncestorIds = ancestorIds;
+    previousAncestorKeys = ancestorKeys;
   }
 
   console.log();
