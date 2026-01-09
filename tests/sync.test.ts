@@ -22,6 +22,7 @@ import {
   getNodeByPath,
   getAllNodes,
   applyEvent,
+  getAncestors,
 } from "../src/node/db.ts";
 
 import { setKmPath, setDatabase } from "../src/node/emit.ts";
@@ -354,6 +355,198 @@ code
             expect(typeof event.data.type).toBe("string");
           }
         }
+      }
+    });
+  });
+
+  describe("Folder hierarchy", () => {
+    test("should create folder nodes for parent directories", async () => {
+      // Create nested folder structure
+      const subFolder = join(VAULT_DIR, "projects");
+      const deepFolder = join(subFolder, "active");
+      mkdirSync(deepFolder, { recursive: true });
+
+      const testFile = join(deepFolder, "task.md");
+      writeFileSync(testFile, "# Task\n\n- [ ] Do something\n");
+
+      const manager = new SyncManager({
+        vaultPath: VAULT_DIR,
+        debounceFs: 0,
+        debounceApply: 0,
+        conflictStrategy: "fs_wins",
+      });
+
+      await manager.syncFromFs();
+
+      const allNodes = getAllNodes();
+
+      // Verify folder nodes were created
+      const folderNodes = allNodes.filter((n) => n.type === "folder");
+      expect(folderNodes.length).toBeGreaterThanOrEqual(2); // projects and active
+
+      // Verify the folders exist by path
+      const projectsFolder = getNodeByPath(subFolder);
+      const activeFolder = getNodeByPath(deepFolder);
+
+      expect(projectsFolder).not.toBeNull();
+      expect(projectsFolder!.type).toBe("folder");
+
+      expect(activeFolder).not.toBeNull();
+      expect(activeFolder!.type).toBe("folder");
+    });
+
+    test("should link files to their parent folder via parent_id", async () => {
+      // Create folder structure
+      const subFolder = join(VAULT_DIR, "docs");
+      mkdirSync(subFolder);
+
+      const testFile = join(subFolder, "readme.md");
+      writeFileSync(testFile, "# Documentation\n\nSome content.\n");
+
+      const manager = new SyncManager({
+        vaultPath: VAULT_DIR,
+        debounceFs: 0,
+        debounceApply: 0,
+        conflictStrategy: "fs_wins",
+      });
+
+      await manager.syncFromFs();
+
+      // Get the file and folder nodes
+      const fileNode = getNodeByPath(testFile);
+      const folderNode = getNodeByPath(subFolder);
+
+      expect(fileNode).not.toBeNull();
+      expect(folderNode).not.toBeNull();
+
+      // File should have parent_id pointing to folder
+      expect(fileNode!.parent_id).toBe(folderNode!.id);
+    });
+
+    test("should create parent chain from nested folders to vault root", async () => {
+      // Create deeply nested structure
+      const level1 = join(VAULT_DIR, "level1");
+      const level2 = join(level1, "level2");
+      const level3 = join(level2, "level3");
+      mkdirSync(level3, { recursive: true });
+
+      const testFile = join(level3, "deep.md");
+      writeFileSync(testFile, "# Deep File\n");
+
+      const manager = new SyncManager({
+        vaultPath: VAULT_DIR,
+        debounceFs: 0,
+        debounceApply: 0,
+        conflictStrategy: "fs_wins",
+      });
+
+      await manager.syncFromFs();
+
+      // Get all the nodes
+      const folder1 = getNodeByPath(level1);
+      const folder2 = getNodeByPath(level2);
+      const folder3 = getNodeByPath(level3);
+      const file = getNodeByPath(testFile);
+
+      expect(folder1).not.toBeNull();
+      expect(folder2).not.toBeNull();
+      expect(folder3).not.toBeNull();
+      expect(file).not.toBeNull();
+
+      // Verify parent chain
+      expect(file!.parent_id).toBe(folder3!.id);
+      expect(folder3!.parent_id).toBe(folder2!.id);
+      expect(folder2!.parent_id).toBe(folder1!.id);
+      // folder1's parent should be null (at vault root)
+      expect(folder1!.parent_id).toBeNull();
+    });
+
+    test("getAncestors should return full path from root to parent", async () => {
+      // Create nested structure with a task
+      const subFolder = join(VAULT_DIR, "work");
+      mkdirSync(subFolder);
+
+      const testFile = join(subFolder, "tasks.md");
+      writeFileSync(
+        testFile,
+        `# Project Tasks
+
+## Sprint 1
+
+- [ ] Complete the feature
+`
+      );
+
+      const manager = new SyncManager({
+        vaultPath: VAULT_DIR,
+        debounceFs: 0,
+        debounceApply: 0,
+        conflictStrategy: "fs_wins",
+      });
+
+      await manager.syncFromFs();
+
+      // Find the task node
+      const allNodes = getAllNodes();
+      const taskNode = allNodes.find((n) => n.type === "task");
+      expect(taskNode).toBeDefined();
+
+      // Get ancestors
+      const ancestors = getAncestors(taskNode!.id);
+
+      // Should have ancestors: folder -> file -> section (Project Tasks) -> section (Sprint 1)
+      expect(ancestors.length).toBeGreaterThanOrEqual(3);
+
+      // First ancestor should be the folder (root of chain)
+      const folderAncestor = ancestors.find((a) => a.type === "folder");
+      expect(folderAncestor).toBeDefined();
+      expect(folderAncestor!.fs_path).toBe(subFolder);
+
+      // Should have the file in the chain
+      const fileAncestor = ancestors.find((a) => a.type === "file");
+      expect(fileAncestor).toBeDefined();
+      expect(fileAncestor!.fs_path).toBe(testFile);
+
+      // Should have section(s) in the chain
+      const sectionAncestors = ancestors.filter((a) => a.type === "section");
+      expect(sectionAncestors.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test("should handle multiple files in same folder efficiently", async () => {
+      // Create folder with multiple files
+      const subFolder = join(VAULT_DIR, "multi");
+      mkdirSync(subFolder);
+
+      writeFileSync(join(subFolder, "file1.md"), "# File 1\n");
+      writeFileSync(join(subFolder, "file2.md"), "# File 2\n");
+      writeFileSync(join(subFolder, "file3.md"), "# File 3\n");
+
+      const manager = new SyncManager({
+        vaultPath: VAULT_DIR,
+        debounceFs: 0,
+        debounceApply: 0,
+        conflictStrategy: "fs_wins",
+      });
+
+      await manager.syncFromFs();
+
+      const allNodes = getAllNodes();
+
+      // Should only have ONE folder node for 'multi'
+      const folderNodes = allNodes.filter(
+        (n) => n.type === "folder" && n.fs_path === subFolder
+      );
+      expect(folderNodes.length).toBe(1);
+
+      // All three files should have the same parent_id
+      const fileNodes = allNodes.filter(
+        (n) => n.type === "file" && n.fs_path?.startsWith(subFolder)
+      );
+      expect(fileNodes.length).toBe(3);
+
+      const folderId = folderNodes[0].id;
+      for (const file of fileNodes) {
+        expect(file.parent_id).toBe(folderId);
       }
     });
   });

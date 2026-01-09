@@ -131,12 +131,54 @@ export async function applyReconcileOps(
 }
 
 /**
+ * Ensure all ancestor folders exist as nodes, creating them if needed.
+ * Returns the ID of the immediate parent folder node.
+ */
+function ensureFolderHierarchy(path: string, vaultRoot: string): string | null {
+  const parentPath = dirname(path);
+
+  // If we're at or above the vault root, no parent
+  if (parentPath === vaultRoot || parentPath === dirname(vaultRoot) || parentPath === path) {
+    return null;
+  }
+
+  // Check if parent folder node already exists
+  let parentNode = getNodeByPath(parentPath);
+  if (parentNode) {
+    return parentNode.id;
+  }
+
+  // Recursively ensure grandparent exists first
+  const grandparentId = ensureFolderHierarchy(parentPath, vaultRoot);
+
+  // Create the parent folder node
+  try {
+    const stat = statSync(parentPath);
+    const folderId = ulid();
+    emitNodeCreated("fs-watch", {
+      id: folderId,
+      type: "folder",
+      fs_path: parentPath,
+      fs_ino: stat.ino,
+      parent_id: grandparentId,
+      content: basename(parentPath),
+      data: { name: basename(parentPath) },
+    });
+    return folderId;
+  } catch {
+    // Parent folder doesn't exist on filesystem
+    return null;
+  }
+}
+
+/**
  * Handle new file/folder creation
  */
 async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
   const stat = statSync(op.path);
-  const parentPath = dirname(op.path);
-  const parentNode = getNodeByPath(parentPath);
+
+  // Ensure all parent folders exist as nodes
+  const parentId = ensureFolderHierarchy(op.path, vaultRoot);
 
   if (stat.isDirectory()) {
     // Create folder node
@@ -145,7 +187,8 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
       type: "folder",
       fs_path: op.path,
       fs_ino: op.ino,
-      parent_id: parentNode?.id ?? null,
+      parent_id: parentId,
+      content: basename(op.path),
       data: { name: basename(op.path) },
     });
   } else if (op.path.endsWith(".md")) {
@@ -154,8 +197,8 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     const nodes = parseMarkdownToNodes(content, op.path, op.ino);
 
     // Set parent for file node
-    if (nodes.length > 0 && parentNode) {
-      nodes[0].parent_id = parentNode.id;
+    if (nodes.length > 0) {
+      nodes[0].parent_id = parentId;
     }
 
     // Emit creation events for all nodes
