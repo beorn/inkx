@@ -18,6 +18,9 @@ import { rebuildCommand } from "./commands/rebuild.ts";
 import { searchCommand } from "./commands/search.ts";
 import { tasksCommand } from "./commands/tasks.ts";
 import { boardCommand } from "./commands/board.ts";
+import { listCommand } from "./commands/list.ts";
+import { toggleCommand } from "./commands/toggle.ts";
+import { initCommand } from "./commands/init.ts";
 
 const program = new Command();
 
@@ -26,23 +29,33 @@ program
   .description("KM - Local-first knowledge and task management")
   .version("0.1.0");
 
-// Initialize state on startup
-program.hook("preAction", () => {
+// Initialize state on startup (skip for init command)
+program.hook("preAction", (thisCommand, actionCommand) => {
+  // Don't initialize state for 'init' command - it creates .km/ itself
+  const cmdName = actionCommand?.name() ?? thisCommand.name();
+  if (cmdName === "init") {
+    return;
+  }
   ensureState();
 });
 
 // Register commands
-// Knowledge management commands (root level)
-program.addCommand(showCommand);      // km show <id> - show any node
-program.addCommand(treeCommand);      // km tree - show node hierarchy
-program.addCommand(boardCommand);     // km board - interactive boardliner TUI
-program.addCommand(searchCommand);    // km search <query> - search all nodes
+// Core views
+program.addCommand(listCommand);      // km list [query] / km ls - list nodes
+program.addCommand(treeCommand);      // km tree [query] - show node hierarchy
+program.addCommand(showCommand);      // km show <id> - show node details
+program.addCommand(boardCommand);     // km board [query] - interactive kanban TUI
+program.addCommand(searchCommand);    // km search <query> - full-text search
+
+// Task convenience alias
+program.addCommand(tasksCommand);     // km tasks = km ls --type task --context
+
+// Actions
+program.addCommand(toggleCommand);    // km toggle <id> - toggle task status
+program.addCommand(initCommand);      // km init - create .km/ for disk mode
 program.addCommand(syncCommand);      // km sync - sync filesystem
 program.addCommand(watchCommand);     // km watch - watch for changes
 program.addCommand(rebuildCommand);   // km rebuild - rebuild state
-
-// Task management commands (grouped)
-program.addCommand(tasksCommand);     // km tasks [list|add|done|claim|release|show]
 
 // Default to help if no command specified
 program.action(() => {

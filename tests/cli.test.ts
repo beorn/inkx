@@ -392,6 +392,200 @@ Some content here.
   });
 });
 
+describe("km list", () => {
+  beforeEach(async () => {
+    // Clean up and create test directories
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(VAULT_DIR, { recursive: true });
+    mkdirSync(KM_PATH, { recursive: true });
+
+    // Create test files
+    writeFileSync(
+      join(VAULT_DIR, "notes.md"),
+      `# Notes
+
+Some paragraph content.
+
+- [ ] A task in notes
+`
+    );
+
+    const projectDir = join(VAULT_DIR, "projects");
+    mkdirSync(projectDir, { recursive: true });
+    writeFileSync(
+      join(projectDir, "work.md"),
+      `# Work
+
+## Tasks
+
+- [ ] Work task
+- [x] Done task
+`
+    );
+
+    await km(["sync"]);
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("should list all nodes", async () => {
+    const result = await km(["list"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("node(s)");
+  });
+
+  test("should filter by type", async () => {
+    const result = await km(["ls", "--type", "task"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("A task in notes");
+    expect(result.stdout).toContain("Work task");
+  });
+
+  test("should filter by path query", async () => {
+    const result = await km(["ls", "--type", "task", "projects"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Work task");
+    expect(result.stdout).not.toContain("A task in notes");
+  });
+
+  test("should show IDs with --id flag", async () => {
+    const result = await km(["ls", "--type", "task", "--id"]);
+    expect(result.exitCode).toBe(0);
+    // Should show ID prefixes in brackets
+    expect(result.stdout).toMatch(/\[[\w]{5}\]/);
+  });
+
+  test("should output JSON with --json", async () => {
+    const result = await km(["ls", "--type", "task", "--json"]);
+    expect(result.exitCode).toBe(0);
+    const nodes = JSON.parse(result.stdout);
+    expect(Array.isArray(nodes)).toBe(true);
+    expect(nodes.length).toBeGreaterThan(0);
+    expect(nodes[0]).toHaveProperty("type", "task");
+  });
+});
+
+describe("km toggle", () => {
+  beforeEach(async () => {
+    // Clean up and create test directories
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(VAULT_DIR, { recursive: true });
+    mkdirSync(KM_PATH, { recursive: true });
+
+    writeFileSync(
+      join(VAULT_DIR, "tasks.md"),
+      `# Tasks
+
+- [ ] Task to toggle
+- [x] Already done
+`
+    );
+    await km(["sync"]);
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("should toggle task from open to in_progress", async () => {
+    // Get task ID
+    const listResult = await km(["tasks", "--json"]);
+    const tasks = JSON.parse(listResult.stdout);
+    const task = tasks.find((t: { content: string }) =>
+      t.content.includes("Task to toggle")
+    );
+    expect(task).toBeDefined();
+
+    // Toggle
+    const toggleResult = await km(["toggle", task.id.slice(0, 8)]);
+    expect(toggleResult.exitCode).toBe(0);
+    expect(toggleResult.stdout).toContain("in_progress");
+
+    // Verify
+    const afterResult = await km(["tasks", "--all", "--json"]);
+    const afterTasks = JSON.parse(afterResult.stdout);
+    const toggled = afterTasks.find((t: { id: string }) => t.id === task.id);
+    expect(toggled.task_status).toBe("in_progress");
+  });
+
+  test("should toggle with --simple flag (open → done)", async () => {
+    // Get task ID
+    const listResult = await km(["tasks", "--json"]);
+    const tasks = JSON.parse(listResult.stdout);
+    const task = tasks.find((t: { content: string }) =>
+      t.content.includes("Task to toggle")
+    );
+
+    // Simple toggle (skip in_progress)
+    const toggleResult = await km(["toggle", task.id.slice(0, 8), "--simple"]);
+    expect(toggleResult.exitCode).toBe(0);
+    expect(toggleResult.stdout).toContain("done");
+  });
+
+  test("should error on invalid ID", async () => {
+    const result = await km(["toggle", "nonexistent123"]);
+    expect(result.exitCode).not.toBe(0);
+  });
+});
+
+describe("km init", () => {
+  const INIT_TEST_DIR = join(import.meta.dir, ".test-init");
+
+  beforeEach(() => {
+    // Use a completely separate directory for init tests
+    if (existsSync(INIT_TEST_DIR)) {
+      rmSync(INIT_TEST_DIR, { recursive: true });
+    }
+    mkdirSync(INIT_TEST_DIR, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(INIT_TEST_DIR)) {
+      rmSync(INIT_TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("should create .km/ directory", async () => {
+    const initDir = join(INIT_TEST_DIR, "new-project");
+    mkdirSync(initDir, { recursive: true });
+
+    // Run init without existing .km/
+    const result = await km(["init"], {
+      cwd: initDir,
+      env: { KM_PATH: join(initDir, ".km") }
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Initialized");
+    expect(existsSync(join(initDir, ".km"))).toBe(true);
+    expect(existsSync(join(initDir, ".km", "events.jsonl"))).toBe(true);
+  });
+
+  test("should warn if already initialized", async () => {
+    const initDir = join(INIT_TEST_DIR, "already-init");
+    mkdirSync(join(initDir, ".km"), { recursive: true });
+
+    const result = await km(["init"], {
+      cwd: initDir,
+      env: { KM_PATH: join(initDir, ".km") }
+    });
+
+    expect(result.stdout).toContain("Already initialized");
+  });
+});
+
 describe("CLI Error Handling", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
