@@ -1,8 +1,44 @@
 # Knowledge Machine
 
-> The agentic work desk
+> km - the agentic work desk
 
-## Try It
+## Why
+
+AI can finally think. Now it needs a place to work.
+
+**Human and AI agents, side by side.** You set direction. Agents do the rest.
+
+But today's tools weren't built for this:
+
+- **Context is fragmented** — calendar here, notes there, tasks elsewhere
+- **Agents are blind** — they see only what you paste in
+- **No history** — what did the agent do while you weren't looking?
+- **No "run" mode** — agents can't work in the background
+
+The bottleneck isn't AI capability. It's the workspace.
+
+## What km Does
+
+A shared workspace for you and your agents — with full history.
+
+- Unified context — notes, tasks, calendar in one place
+- Full audit trail — every change tracked
+- Pure function agents — undo, replay, approve
+- Local-first — you own your data
+
+## Use Cases
+
+- **Vibe coding** — like Claude Code, but with persistent task tracking and background agents
+- **Research** — like Perplexity, but agents organize findings into your knowledge base
+- **Project management** — like Linear or Asana, but local-first, markdown-based, and agents do the work
+- **Personal knowledge** — like Notion or Apple Notes, but local-first and agents integrated
+- **AI automation** — configure and run agents in one system
+
+## Phases
+
+### Phase 1: The Tree *(now)*
+
+Your markdown becomes a knowledge base. Notes, tasks, calendar — all nodes in one tree.
 
 ```bash
 cd ~/notes
@@ -11,80 +47,35 @@ km tree       # Your knowledge hierarchy
 km board      # Kanban view
 ```
 
-Point km at any folder. No config. Files stay plain text.
+### Phase 2: The Hub
 
-## Why
-
-AI can finally think. Now it needs a place to work.
-
-Today's tools assume *you* do everything. But a new way of working is emerging: **human and AI agents, side by side**. You set direction. Agents do the rest.
-
-The problem:
-
-- **Context is fragmented** — calendar here, notes there, tasks somewhere else
-- **Agents are blind** — they can't see your life, only what you paste in
-- **No history** — what did the agent do while you weren't looking?
-- **No "run" mode** — agents can't work in the background or on a schedule
-
-The bottleneck isn't AI capability. It's the workspace.
-
-## What km Does
-
-A shared workspace for you and your agents.
-
-```
-     You ◄────────────► km ◄────────────► Agents
-                         │
-                    ┌────┴────┐
-                    │  Notes  │
-                    │  Tasks  │
-                    │ Calendar│
-                    │ Contacts│
-                    │ History │
-                    └─────────┘
-```
-
-Same notes. Same tasks. Same calendar. Full history.
-
-- Agents see your context — no copy-paste
-- Every change tracked — full audit trail
-- Data stays local — plain markdown, Obsidian-compatible
-
-## Components
-
-**Index** — Markdown becomes a knowledge base. Notes, tasks, calendar, contacts — all nodes in one tree.
-
-**Board** — Kanban TUI. Vim keys.
-
-**Hub** *(coming)* — Command center for agent teams. Inspired by [Beads](https://github.com/steveyegge/beads) and [Gas Town](https://github.com/steveyegge/gastown).
-
-**Kimmi** *(coming)* — AI assistant with full context on your life.
-
-## Status
-
-| Component | Status |
-|-----------|--------|
-| Index (notes, tasks, tree) | ✓ Done |
-| Event log (history) | ✓ Done |
-| Board (kanban TUI) | ✓ Done |
-| Agent CLI | ✓ Works |
-| Task dependencies | In progress |
-| Hub (orchestration) | Designed |
-| Connectors (CalDAV) | Planned |
-| Kimmi (assistant) | Planned |
-
-## Install
+Command center for agent teams. Spawn agents, assign work, watch progress.
 
 ```bash
-git clone https://github.com/beorn/km
-cd km && bun install && bun link
+km hub        # Agent dashboard
+km hub start  # Run agents in background
 ```
+
+### Phase 3: The Assistant
+
+AI with full context on your life. Ask questions, get answers that know your schedule, your projects, your people.
+
+```bash
+km chat "What's on my calendar today?"
+km chat "Summarize my notes on Project X"
+```
+
+### Phase 4: Collaboration
+
+Your team's agents and yours, working on shared knowledge. Web interface. Cloud sync.
 
 ## Docs
 
 - [specs/](specs/) — Architecture
 - [specs/km-agents.md](specs/km-agents.md) — Agent orchestration
 
+Inspired by [Beads](https://github.com/steveyegge/beads) and [Gas Town](https://github.com/steveyegge/gastown).
+
 ## License
 
-MIT
+All rights reserved.
