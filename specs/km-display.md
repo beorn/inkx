@@ -22,7 +22,9 @@ Collapsing happens only in display-tree — km-tree preserves actual structure.
 
 | View | Command | Collapsing | Use |
 |------|---------|------------|-----|
-| Tasks | `km tasks` | Yes (ancestors) | Task list with context |
+| List | `km list` / `km ls` | No | Flat node list |
+| List | `km ls --context` | Yes (ancestors) | With ancestor paths |
+| Tasks | `km tasks` | Yes (ancestors) | = `ls --type task --context` |
 | Board | `km board` | Yes (children) | Kanban columns |
 | Tree | `km tree` | No | Actual structure |
 | Tree | `km tree --collapsed` | Yes | Compact view |
@@ -94,10 +96,13 @@ Suffix renders dim/gray.
 
 ---
 
-## Tasks View
+## List with Context
+
+`km ls --context` (or `km tasks` for tasks) shows ancestor paths:
 
 ```
 $ km tasks
+# equivalent to: km ls --type task --context
 
 Taxes / .md #                           ← collapsed ancestors
   ## 2025

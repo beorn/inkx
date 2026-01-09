@@ -17,37 +17,42 @@ km <command> [query]        # Query can be:
 
 Examples:
 ```bash
-km tasks projects/          # Tasks under projects/
+km list projects/           # Nodes under projects/
 km tree 01H5X               # Tree from node ID prefix
 km show ./README.md         # Show specific file
-km list                     # List all nodes
 ```
 
 ---
 
 ## Commands
 
-### Views
+### Core Views
 
 ```bash
-km tasks [query]            # List tasks with context
-km tasks --status open      # Filter by status
-km tasks --id               # Show node IDs
+km list [query]             # List nodes (alias: ls)
+km ls [query]               # Short form
+km ls --type task           # Filter by type
+km ls --type task --context # With ancestor paths (= tasks)
+km ls --id                  # Show node IDs
 
 km tree [query]             # Show structure from root
 km tree --collapsed         # With collapsing
 km tree --id                # Show node IDs
-
-km list [query]             # List nodes (alias: ls)
-km ls [query]               # Short form
-km ls --type task           # Filter by type
-km ls --id                  # Show node IDs
 
 km show <query>             # Show node details
 
 km board [query]            # Kanban board (TUI)
 km board --id               # Show node IDs
 ```
+
+### Convenience Aliases
+
+```bash
+km tasks [query]            # = km list --type task --context
+km tasks --status open      # Filter by status
+```
+
+`tasks` is shorthand for listing tasks with their collapsed ancestor context.
 
 ### Actions
 

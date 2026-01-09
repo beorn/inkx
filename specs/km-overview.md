@@ -29,17 +29,20 @@ Run `km init` to enable persisted mode.
 ## Quick Reference
 
 ```bash
-# Views (all accept optional [query] for root node)
-km tasks [query]            # List tasks with context
-km tree [query]             # Show structure
+# Core views (all accept optional [query] for root node)
 km list [query]             # List nodes (alias: ls)
+km tree [query]             # Show structure
 km show <query>             # Show node details
 km board [query]            # Kanban board (TUI)
 
 # Query can be: node ID, path pattern, or relative path
-km tasks projects/          # Tasks under projects/
+km ls projects/             # Nodes under projects/
 km tree 01H5X               # Tree from node ID prefix
 km ls --type task           # List all tasks
+km ls --type task --context # Tasks with ancestor paths
+
+# Convenience alias
+km tasks [query]            # = km ls --type task --context
 
 # Actions
 km toggle <id>              # Toggle task status
