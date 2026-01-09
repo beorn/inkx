@@ -31,7 +31,7 @@ A shared workspace for you and your agents — with full history.
 - **Vibe coding** — like Claude Code, but with persistent task tracking and background agents
 - **Research** — like Perplexity, but agents organize findings into your knowledge base
 - **Project management** — like Linear or Asana, but local-first, markdown-based, and agents do the work
-- **Personal knowledge** — like Notion or Apple Notes, but local-first and agents integrated
+- **Personal knowledge** — like Cloud Drive, Notion or Apple Notes, but local-first and agents integrated
 - **AI automation** — configure and run agents in one system
 
 ## Phases

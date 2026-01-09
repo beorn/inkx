@@ -1,25 +1,8 @@
 # km Overview
 
-**Knowledge Machine** — The agentic work desk.
+See [../README.md](../README.md) for vision, use cases, and roadmap.
 
----
-
-## What km Does
-
-km combines knowledge management and agent orchestration:
-
-**Knowledge Management**
-
-- Treats markdown files as a unified tree of nodes
-- Task views — `km task`, `km board`
-- Navigation — `km tree`, `km show`
-- Zero setup — works instantly on any directory
-
-**Agent Orchestration** _(coming soon)_
-
-- Run AI agents with preconfigured harnesses
-- Assign tasks to agents or yourself
-- Full session logging and replay
+This spec covers the technical design of km's core: the node tree and two operating modes.
 
 ---
 

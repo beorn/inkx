@@ -1,22 +1,8 @@
 # km Specifications
 
-**Knowledge Machine** — The agentic work desk.
+See [../README.md](../README.md) for vision, use cases, and roadmap.
 
-A system for knowledge management and agent orchestration, built on markdown files.
-
----
-
-## Quick Start
-
-**km** unifies folders, files, and markdown content into a queryable tree. Run `km task` in any directory with `.md` files — no setup required.
-
-```bash
-km task               # List all tasks
-km board              # Kanban view
-km tree               # Show structure
-```
-
-For full features (history, sync), initialize with `km init`.
+This directory contains technical specifications for implementation.
 
 ---
 

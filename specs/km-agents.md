@@ -12,12 +12,25 @@ Agents are AI-powered workers that can claim tasks, execute sessions, and commun
 
 ### Design Principles
 
-1. **Agents are nodes**: Agent identity and config stored in the node tree
-2. **Harnesses equip agents**: Tools + connectors + constraints bundled together
-3. **Work queues via hierarchy**: Agent's children (or symlinks) define its queue
-4. **Session logging**: Full conversation transcripts recorded as events
-5. **Simple IPC**: Unix socket for real-time notifications
-6. **Hub for orchestration**: `km hub` provides a TUI dashboard for coordinating multiple agents
+1. **Agents are pure functions**: Events in → Events out. No hidden side effects.
+2. **Agents are nodes**: Agent identity and config stored in the node tree
+3. **Harnesses equip agents**: Tools + connectors + constraints bundled together
+4. **Work queues via hierarchy**: Agent's children (or symlinks) define its queue
+5. **Session logging**: Full conversation transcripts recorded as events
+6. **Simple IPC**: Unix socket for real-time notifications
+7. **Hub for orchestration**: `km hub` provides a TUI dashboard for coordinating multiple agents
+
+### Pure Function Guarantee
+
+Agents produce events, not side effects. This enables:
+
+- **Undo** — Replay events up to a point, or emit compensating events
+- **Replay** — Reproduce any agent run with the same inputs
+- **Approval gates** — Effect handlers can require human approval before executing
+- **Dry-run mode** — See what an agent would do without doing it
+- **Audit trail** — Every action is logged with timestamp and source
+
+Effect handlers at the edge turn events into real actions (send email, push notification, etc.).
 
 ### Kimmi: The Default Agent
 
