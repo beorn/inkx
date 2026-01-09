@@ -17,7 +17,9 @@ import {
   getNode,
   getSubtree,
   applyEvent,
+  dbApplyEvent,
 } from "../node/db.ts";
+import { setDatabase } from "../node/emit.ts";
 import { readEvents } from "../node/rebuild.ts";
 import { nodesToMarkdown } from "../md/nodes2md.ts";
 import type { Event, Node } from "../node/types.ts";
@@ -242,6 +244,9 @@ export class SyncManager extends EventEmitter {
    * Force sync from filesystem
    */
   async syncFromFs(): Promise<{ processed: number }> {
+    // Enable immediate event application so folder nodes are visible during sync
+    setDatabase(dbApplyEvent);
+
     // Load ignore patterns for this vault
     const ignorePatterns = getIgnorePatterns(this.config.vaultPath);
 

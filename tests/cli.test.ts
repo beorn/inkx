@@ -11,9 +11,10 @@ import { join } from "path";
 import { $ } from "bun";
 
 // Set test environment before imports
+// KM_PATH should be inside the vault so sync defaults to correct directory
 const TEST_DIR = join(import.meta.dir, ".test-cli");
 const VAULT_DIR = join(TEST_DIR, "vault");
-const KM_PATH = join(TEST_DIR, ".km");
+const KM_PATH = join(VAULT_DIR, ".km"); // .km inside vault, not sibling
 
 // CLI path
 const CLI_PATH = join(import.meta.dir, "..", "src", "cli", "index.ts");
