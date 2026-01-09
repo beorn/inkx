@@ -330,7 +330,38 @@ function sortByPath(tasksWithAncestors: TaskWithAncestors[]): TaskWithAncestors[
 }
 
 /**
- * List tasks (optionally scoped to a root node)
+ * Check if a task's path matches the filter (case-insensitive substring match)
+ */
+function taskPathMatches(task: Node, filter: string): boolean {
+  const filterLower = filter.toLowerCase();
+
+  // Check task content
+  if (task.content?.toLowerCase().includes(filterLower)) {
+    return true;
+  }
+
+  // Check ancestors for path match
+  const ancestors = getAncestors(task.id);
+  for (const ancestor of ancestors) {
+    // Check fs_path
+    if (ancestor.fs_path?.toLowerCase().includes(filterLower)) {
+      return true;
+    }
+    // Check content (section headings, etc.)
+    if (ancestor.content?.toLowerCase().includes(filterLower)) {
+      return true;
+    }
+    // Check md_slug
+    if (ancestor.md_slug?.toLowerCase().includes(filterLower)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * List tasks (optionally scoped to a root node or filtered by path)
  */
 function listTasks(
   pathOrId: string | undefined,
@@ -346,31 +377,52 @@ function listTasks(
   const db = getDb();
   let tasks: Node[];
   let rootNode: Node | null = null;
+  let pathFilter: string | null = null;
 
   if (pathOrId) {
-    // Find the root node
+    // Try to find an exact node match first
     rootNode = findNodeByPathOrId(pathOrId);
-    if (!rootNode) {
-      console.error(chalk.red(`Not found: ${pathOrId}`));
-      process.exit(1);
+
+    if (rootNode) {
+      // If the root IS a task, show its details
+      if (rootNode.type === "task") {
+        showTaskDetails(rootNode, options);
+        return;
+      }
+
+      // Get tasks under this root
+      tasks = getTasksUnderNode(rootNode.id);
+    } else {
+      // No exact match - treat as path filter (like `bun test <filter>`)
+      pathFilter = pathOrId;
+
+      // Get all tasks and filter by path
+      let sql = "SELECT * FROM nodes WHERE type = 'task'";
+      const params: unknown[] = [];
+
+      if (options.status) {
+        sql += " AND task_status = ?";
+        params.push(options.status);
+      } else if (!options.all) {
+        sql += " AND task_status IN ('open', 'in_progress')";
+      }
+
+      sql += " ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC";
+      const allTasks = db.prepare(sql).all(...params) as Node[];
+
+      // Filter by path match
+      tasks = allTasks.filter((t) => taskPathMatches(t, pathFilter!));
     }
 
-    // If the root IS a task, show its details
-    if (rootNode.type === "task") {
-      showTaskDetails(rootNode, options);
-      return;
-    }
-
-    // Get tasks under this root
-    tasks = getTasksUnderNode(rootNode.id);
-
-    // Apply status filter
-    if (options.status) {
-      tasks = tasks.filter((t) => t.task_status === options.status);
-    } else if (!options.all) {
-      tasks = tasks.filter(
-        (t) => t.task_status === "open" || t.task_status === "in_progress"
-      );
+    // Apply status filter for root node case
+    if (rootNode) {
+      if (options.status) {
+        tasks = tasks.filter((t) => t.task_status === options.status);
+      } else if (!options.all) {
+        tasks = tasks.filter(
+          (t) => t.task_status === "open" || t.task_status === "in_progress"
+        );
+      }
     }
   } else {
     // Global task list
@@ -399,9 +451,12 @@ function listTasks(
     return;
   }
 
-  // Show root context if scoped
+  // Show context header
   if (rootNode) {
     console.log(chalk.bold(getNodeDisplayName(rootNode, true)));
+    console.log();
+  } else if (pathFilter) {
+    console.log(chalk.dim(`Filter: ${pathFilter}`));
     console.log();
   }
 
