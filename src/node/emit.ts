@@ -42,8 +42,15 @@ export function setEventHub(hub: { broadcast: (event: Event) => void }): void {
  */
 export function setDatabase(database: {
   applyEvent: (event: Event) => void;
-}): void {
+} | null): void {
   db = database;
+}
+
+/**
+ * Clear the database reference (for testing)
+ */
+export function clearDatabase(): void {
+  db = null;
 }
 
 /**
