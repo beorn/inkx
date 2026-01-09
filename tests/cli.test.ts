@@ -71,7 +71,7 @@ describe("CLI Integration", () => {
     test("should show help message", async () => {
       const result = await km(["--help"]);
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("KM");
+      expect(result.stdout).toContain("Knowledge Machine");
       expect(result.stdout).toContain("tasks");
       expect(result.stdout).toContain("sync");
     });

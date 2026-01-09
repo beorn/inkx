@@ -7,7 +7,8 @@
 import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs";
 import { join } from "path";
 import { getEventsPath, getKmPath } from "./emit.ts";
-import { applyEvent, getDb, getDbPath, resetDb, closeDb } from "./db.ts";
+import { applyEvent, getDb, getDbPath, resetDb, closeDb, setDb } from "./db.ts";
+import { initStore } from "./store.ts";
 import type { Event } from "./types.ts";
 
 /**
@@ -171,12 +172,25 @@ export function fullReset(): { eventCount: number; nodeCount: number } {
 /**
  * Ensure state is up to date
  * Called at startup
+ *
+ * Supports two modes:
+ * - Disk mode (.km/ exists): rebuild from events.jsonl
+ * - Memory mode (no .km/): scan filesystem into :memory: SQLite
  */
-export function ensureState(): void {
-  if (needsRebuild()) {
-    rebuildState();
+export function ensureState(rootPath?: string): void {
+  const store = initStore(rootPath);
+
+  if (store.mode === "memory") {
+    // Memory mode: store already scanned filesystem
+    // Inject its database into db.ts for backwards compatibility
+    setDb(store.getDatabase());
   } else {
-    syncState();
+    // Disk mode: use existing event-sourced approach
+    if (needsRebuild()) {
+      rebuildState();
+    } else {
+      syncState();
+    }
   }
 }
 

@@ -12,6 +12,9 @@ import { getKmPath } from "./emit.ts";
 // Singleton database instance
 let dbInstance: Database | null = null;
 
+// Flag to track if db was injected externally (e.g., from MemoryStore)
+let dbInjected = false;
+
 /**
  * SQL schema for state.db
  */
@@ -123,9 +126,32 @@ export function getDb(): Database {
  */
 export function closeDb(): void {
   if (dbInstance) {
-    dbInstance.close();
+    // Only close if we own it (not injected from external store)
+    if (!dbInjected) {
+      dbInstance.close();
+    }
     dbInstance = null;
+    dbInjected = false;
   }
+}
+
+/**
+ * Inject an external database instance (e.g., from MemoryStore)
+ * This allows memory mode to work with existing db.ts functions
+ */
+export function setDb(db: Database): void {
+  if (dbInstance && !dbInjected) {
+    dbInstance.close();
+  }
+  dbInstance = db;
+  dbInjected = true;
+}
+
+/**
+ * Check if database is using memory mode
+ */
+export function isMemoryMode(): boolean {
+  return dbInjected;
 }
 
 /**

@@ -8,6 +8,8 @@
  * km tasks - Task management subcommand
  */
 
+import { existsSync, statSync } from "fs";
+import { resolve } from "path";
 import { Command } from "commander";
 import { ensureState } from "../node/rebuild.ts";
 import { showCommand } from "./commands/show.ts";
@@ -29,6 +31,36 @@ program
   .description("Knowledge Machine - The agentic work desk")
   .version("0.1.0");
 
+/**
+ * Extract root path from command arguments
+ * Returns the first argument if it's a valid directory path
+ */
+function extractRootPath(cmd: Command): string | undefined {
+  const args = cmd.args;
+  if (args.length === 0) return undefined;
+
+  const firstArg = args[0];
+  if (!firstArg) return undefined;
+
+  // Check if it looks like a path (starts with /, ./, ~, or ..)
+  if (!firstArg.startsWith("/") && !firstArg.startsWith("./") &&
+      !firstArg.startsWith("~/") && !firstArg.startsWith("..")) {
+    return undefined;
+  }
+
+  // Expand ~ to home directory
+  const expanded = firstArg.startsWith("~")
+    ? firstArg.replace("~", process.env.HOME || "")
+    : firstArg;
+  const resolved = resolve(expanded);
+
+  if (existsSync(resolved) && statSync(resolved).isDirectory()) {
+    return resolved;
+  }
+
+  return undefined;
+}
+
 // Initialize state on startup (skip for init command)
 program.hook("preAction", (thisCommand, actionCommand) => {
   // Don't initialize state for 'init' command - it creates .km/ itself
@@ -36,7 +68,10 @@ program.hook("preAction", (thisCommand, actionCommand) => {
   if (cmdName === "init") {
     return;
   }
-  ensureState();
+
+  // Check if a path argument was provided
+  const rootPath = extractRootPath(actionCommand ?? thisCommand);
+  ensureState(rootPath);
 });
 
 // Register commands

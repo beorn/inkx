@@ -21,6 +21,9 @@ export interface NodeStore {
   readonly mode: "memory" | "disk";
   readonly rootPath: string;
 
+  // Internal database access (for backwards compatibility with db.ts)
+  getDatabase(): Database;
+
   // Read operations
   getNode(id: string): Node | null;
   getNodeByPath(fsPath: string): Node | null;
@@ -149,6 +152,10 @@ abstract class BaseStore implements NodeStore {
   abstract readonly mode: "memory" | "disk";
   abstract readonly rootPath: string;
   protected abstract db: Database;
+
+  getDatabase(): Database {
+    return this.db;
+  }
 
   getNode(id: string): Node | null {
     const row = this.db
