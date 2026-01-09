@@ -20,24 +20,32 @@ import type { Node, TaskStatus } from "../../node/types.ts";
 /**
  * Get display name for a node (title/content preferred, then filename, then slug)
  */
-function getNodeDisplayName(node: Node): string {
+function getNodeDisplayName(node: Node, includeFolderSlash = false): string {
+  let name: string;
+
   // Prefer content (title/heading text) if available
   if (node.content) {
     const preview = node.content.slice(0, 50);
-    return preview.length < node.content.length ? `${preview}...` : preview;
-  }
-  // For files, use the filename
-  if (node.fs_path) {
+    name = preview.length < node.content.length ? `${preview}...` : preview;
+  } else if (node.fs_path) {
+    // For files, use the filename
     const filename = node.fs_path.split("/").pop() ?? node.fs_path;
     // Remove .md extension
-    return filename.replace(/\.md$/, "");
+    name = filename.replace(/\.md$/, "");
+  } else if (node.md_slug) {
+    // Fallback to slug if no content
+    name = node.md_slug;
+  } else {
+    // Fallback to type
+    name = `(${node.type})`;
   }
-  // Fallback to slug if no content
-  if (node.md_slug) {
-    return node.md_slug;
+
+  // Add faint / suffix for folders
+  if (includeFolderSlash && node.type === "folder") {
+    name += chalk.gray("/");
   }
-  // Fallback to type
-  return `(${node.type})`;
+
+  return name;
 }
 
 /**
@@ -107,7 +115,7 @@ function formatTaskWithPath(
 
   if (options.flat) {
     // Single line: path → task
-    const pathParts = ancestors.map((a) => chalk.dim(getNodeDisplayName(a)));
+    const pathParts = ancestors.map((a) => chalk.dim(getNodeDisplayName(a, true)));
     const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : "";
     lines.push(pathStr + formatTaskLine(task, options));
   } else {
@@ -115,7 +123,7 @@ function formatTaskWithPath(
     for (let i = 0; i < ancestors.length; i++) {
       const ancestor = ancestors[i];
       const prefix = indent.repeat(i);
-      lines.push(prefix + chalk.dim(getNodeDisplayName(ancestor)));
+      lines.push(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
     }
     // Task at its depth
     const taskPrefix = indent.repeat(ancestors.length);
@@ -316,7 +324,7 @@ function listAction(options: {
     for (let i = divergeIndex; i < ancestors.length; i++) {
       const ancestor = ancestors[i];
       const prefix = indent.repeat(i);
-      console.log(prefix + chalk.dim(getNodeDisplayName(ancestor)));
+      console.log(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
     }
 
     // Print the task at its depth

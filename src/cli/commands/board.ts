@@ -199,15 +199,24 @@ async function runBoardTUI(state: BoardState): Promise<void> {
   const stdin = process.stdin;
   const stdout = process.stdout;
 
-  // Enable raw mode for keypress handling
-  if (stdin.isTTY) {
-    stdin.setRawMode(true);
+  // Check if we're in a TTY - if not, fall back to static mode
+  if (!stdin.isTTY || !stdout.isTTY) {
+    console.log(chalk.yellow("Not running in a TTY, using static mode"));
+    printBoardStatic(state);
+    return;
   }
+
+  // Enable raw mode for keypress handling
+  stdin.setRawMode(true);
   stdin.resume();
   stdin.setEncoding("utf8");
 
   // Hide cursor
   stdout.write("\x1B[?25l");
+
+  // Handle terminal resize
+  const handleResize = () => render();
+  stdout.on("resize", handleResize);
 
   // Clear screen and render
   const render = () => {
@@ -261,6 +270,7 @@ async function runBoardTUI(state: BoardState): Promise<void> {
     const cleanup = () => {
       stdin.setRawMode(false);
       stdin.removeListener("data", handleKey);
+      stdout.removeListener("resize", handleResize);
       stdout.write("\x1B[?25h"); // Show cursor
       stdout.write("\x1B[2J\x1B[H"); // Clear screen
     };
