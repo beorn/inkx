@@ -128,18 +128,20 @@ interface CardProps {
 }
 
 function Card({ card, isSelected, selectedSubIndex, width, maxOutlineDepth, foldedNodes, onToggleFold }: CardProps) {
+  // Always use border for consistent sizing, but make it invisible when not selected
   return (
     <Box
       flexDirection="column"
       marginBottom={1}
-      borderStyle={isSelected ? "round" : undefined}
-      borderColor={isSelected ? "cyan" : undefined}
+      borderStyle="round"
+      borderColor={isSelected ? "cyan" : "black"}
+      borderDimColor={!isSelected}
     >
       <OutlineItem
         node={card.node}
         depth={0}
         maxDepth={maxOutlineDepth}
-        width={isSelected ? width - 2 : width}
+        width={width - 2}
         foldedNodes={foldedNodes}
         onToggleFold={onToggleFold}
         isCardSelected={isSelected}
