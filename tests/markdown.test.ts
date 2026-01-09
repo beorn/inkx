@@ -515,7 +515,10 @@ describe("Fixture Files", () => {
   const fixturesDir = join(import.meta.dir, "fixtures");
 
   test("should parse sample-project.md", () => {
-    const content = readFileSync(join(fixturesDir, "sample-project.md"), "utf-8");
+    const content = readFileSync(
+      join(fixturesDir, "sample-project.md"),
+      "utf-8",
+    );
     const nodes = parseMarkdownToNodes(content, "sample-project.md");
 
     // Should have multiple sections
@@ -597,7 +600,10 @@ describe("Fixture Files", () => {
   });
 
   test("should parse comprehensive.md with all content types", () => {
-    const content = readFileSync(join(fixturesDir, "comprehensive.md"), "utf-8");
+    const content = readFileSync(
+      join(fixturesDir, "comprehensive.md"),
+      "utf-8",
+    );
     const { frontmatter, body } = extractFrontmatter(content);
 
     // Has frontmatter with multiple fields

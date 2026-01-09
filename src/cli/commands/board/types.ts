@@ -8,6 +8,7 @@ import type { Node, TaskStatus, TaskMark } from "../../../node/types.ts";
 
 export interface BoardState {
   rootId: string | null;
+  rootPath: string | null; // Filesystem path to the board root (for display)
   columns: ColumnState[];
   colIndex: number;
   cardIndex: number;

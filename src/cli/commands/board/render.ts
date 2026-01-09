@@ -6,11 +6,7 @@
 
 import chalk from "chalk";
 import type { TaskStatus } from "../../../node/types.ts";
-import type {
-  BoardState,
-  CardState,
-  RenderOptions,
-} from "./types.ts";
+import type { BoardState, CardState, RenderOptions } from "./types.ts";
 import { getNodeDisplayName } from "./state.ts";
 import { getNode } from "../../../node/db.ts";
 
@@ -81,7 +77,13 @@ export function renderBoard(state: BoardState, opts: RenderOptions): string {
       const isSelected = state.selectedCards.has(card.node.id);
       const isFolded = state.foldedCards.has(card.node.id);
 
-      return renderCard(card, colWidth - 1, isCurrentCard, isSelected, isFolded);
+      return renderCard(
+        card,
+        colWidth - 1,
+        isCurrentCard,
+        isSelected,
+        isFolded,
+      );
     });
 
     // Cards can be multi-line
@@ -99,7 +101,9 @@ export function renderBoard(state: BoardState, opts: RenderOptions): string {
   // Show "..." if more cards
   const moreIndicators = state.columns.map((col) => {
     if (col.cards.length > maxCardsVisible) {
-      return chalk.dim(`  ... +${col.cards.length - maxCardsVisible} more`).padEnd(colWidth - 1);
+      return chalk
+        .dim(`  ... +${col.cards.length - maxCardsVisible} more`)
+        .padEnd(colWidth - 1);
     }
     return " ".repeat(colWidth - 1);
   });
@@ -125,14 +129,17 @@ export function renderCard(
   width: number,
   isCurrent: boolean,
   isSelected: boolean,
-  isFolded: boolean
+  isFolded: boolean,
 ): string {
   const lines: string[] = [];
   const { node, children } = card;
 
   // Status icon and content - compact format: "○ Content"
   const statusIcon = getStatusIcon(node.task_status);
-  const content = (node.content || getNodeDisplayName(node)).slice(0, width - 3);
+  const content = (node.content || getNodeDisplayName(node)).slice(
+    0,
+    width - 3,
+  );
   let firstLine = `${statusIcon} ${content}`;
 
   // Apply styling
@@ -152,13 +159,22 @@ export function renderCard(
     for (const child of visibleChildren) {
       const childIcon = getStatusIcon(child.task_status);
       const childContent = (child.content || "").slice(0, width - 3);
-      lines.push(chalk.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width));
+      lines.push(
+        chalk.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width),
+      );
     }
     if (children.length > maxChildren) {
-      lines.push(chalk.dim(`  +${children.length - maxChildren} more`).padEnd(width).slice(0, width));
+      lines.push(
+        chalk
+          .dim(`  +${children.length - maxChildren} more`)
+          .padEnd(width)
+          .slice(0, width),
+      );
     }
   } else if (children.length > 0) {
-    lines.push(chalk.dim(`  ▶ ${children.length}`).padEnd(width).slice(0, width));
+    lines.push(
+      chalk.dim(`  ▶ ${children.length}`).padEnd(width).slice(0, width),
+    );
   }
 
   // Card border bottom
@@ -267,8 +283,7 @@ export function renderBoardStatic(state: BoardState, width: number): string {
     } else {
       const maxCards = 10; // Limit cards shown per column
       const visibleCards = col.cards.slice(0, maxCards);
-      for (let i = 0; i < visibleCards.length; i++) {
-        const card = visibleCards[i]!;
+      for (const card of visibleCards) {
         const statusIcon = getStatusIcon(card.node.task_status);
         const rawContent = card.node.content || getNodeDisplayName(card.node);
         const firstLine = rawContent.split("\n")[0] ?? rawContent;
@@ -279,8 +294,7 @@ export function renderBoardStatic(state: BoardState, width: number): string {
         if (card.children.length > 0) {
           const maxChildren = 3;
           const visibleChildren = card.children.slice(0, maxChildren);
-          for (let j = 0; j < visibleChildren.length; j++) {
-            const child = visibleChildren[j]!;
+          for (const child of visibleChildren) {
             const childIcon = getStatusIcon(child.task_status);
             const childRaw = child.content || "";
             const childLine = childRaw.split("\n")[0] ?? childRaw;
@@ -288,7 +302,9 @@ export function renderBoardStatic(state: BoardState, width: number): string {
             lines.push(chalk.dim(`  ${childIcon} ${childContent}`));
           }
           if (card.children.length > maxChildren) {
-            lines.push(chalk.dim(`    +${card.children.length - maxChildren} more`));
+            lines.push(
+              chalk.dim(`    +${card.children.length - maxChildren} more`),
+            );
           }
         }
       }

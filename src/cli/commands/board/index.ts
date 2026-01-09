@@ -4,34 +4,20 @@
  * CLI entry point for the boardliner TUI
  */
 
-import { existsSync, statSync } from "fs";
 import { Command } from "commander";
 import { runBoard } from "./tui.ts";
-
-/**
- * Check if argument is a filesystem path (used for store initialization)
- * vs a node ID (used for board root)
- */
-function isFilesystemPath(arg: string): boolean {
-  if (arg.startsWith("/") || arg.startsWith("./") ||
-      arg.startsWith("~/") || arg.startsWith("..")) {
-    const expanded = arg.startsWith("~")
-      ? arg.replace("~", process.env.HOME || "")
-      : arg;
-    return existsSync(expanded) && statSync(expanded).isDirectory();
-  }
-  return false;
-}
+import { getRootPath } from "../../index.ts";
+import { getStore } from "../../../node/store.ts";
 
 export const boardCommand = new Command("board")
   .description("Display interactive boardliner TUI view")
-  .argument("[root]", "Root node ID or directory path for board")
+  .argument("[root]", "Root node ID to start board from")
   .option("--no-tui", "Non-interactive mode, just print board")
   .action(async (root, options) => {
-    // If root is a filesystem path, it's used for store init (handled by CLI preAction)
-    // The board should show root-level nodes, not try to look up the path as a node ID
-    const nodeId = root && !isFilesystemPath(root) ? root : undefined;
-    await runBoard(nodeId, options.tui !== false);
+    // root argument is now always a node ID (paths are handled by global --root)
+    // Get the filesystem root path - prefer explicit --root, fall back to store's rootPath
+    const fsPath = getRootPath() || getStore().rootPath;
+    await runBoard(root, options.tui !== false, fsPath);
   });
 
 // Re-export for testing

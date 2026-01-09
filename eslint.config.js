@@ -1,5 +1,5 @@
-import tseslint from "typescript-eslint"
-import pluginPromise from "eslint-plugin-promise"
+import tseslint from "typescript-eslint";
+import pluginPromise from "eslint-plugin-promise";
 
 export default [
   ...tseslint.configs.recommendedTypeChecked,
@@ -8,9 +8,9 @@ export default [
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: import.meta.dirname
-      }
-    }
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
   },
   {
     files: ["**/*.ts", "**/*.tsx"],
@@ -48,12 +48,12 @@ export default [
         "warn",
         {
           argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_"
-        }
+          varsIgnorePattern: "^_",
+        },
       ],
       "@typescript-eslint/no-deprecated": "warn",
-      curly: ["error", "multi-line"]
-    }
+      curly: ["error", "multi-line"],
+    },
   },
   {
     // Relax rules for test files and scripts
@@ -61,7 +61,7 @@ export default [
       "**/*.test.ts",
       "**/*.test.tsx",
       "**/tests/**/*.ts",
-      "scripts/**/*.ts"
+      "scripts/**/*.ts",
     ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
@@ -80,13 +80,13 @@ export default [
       "promise/prefer-await-to-callbacks": "off",
       "promise/catch-or-return": "off",
       "promise/always-return": "off",
-      "promise/param-names": "off"
-    }
+      "promise/param-names": "off",
+    },
   },
   {
     // Disable type-checked rules for JS config files
     files: ["*.js", "*.mjs", "*.cjs"],
-    ...tseslint.configs.disableTypeChecked
+    ...tseslint.configs.disableTypeChecked,
   },
   {
     ignores: [
@@ -100,7 +100,7 @@ export default [
       ".env.*",
       "*.min.js",
       "*.bundle.js",
-      ".DS_Store"
-    ]
-  }
-]
+      ".DS_Store",
+    ],
+  },
+];

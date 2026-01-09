@@ -38,7 +38,10 @@ function findTask(idOrPrefix: string): Node | null {
 /**
  * Get next status in cycle
  */
-function getNextStatus(current: TaskStatus | undefined, simple: boolean): TaskStatus {
+function getNextStatus(
+  current: TaskStatus | undefined,
+  simple: boolean,
+): TaskStatus {
   if (simple) {
     // Simple toggle: open ↔ done
     return current === "done" ? "open" : "done";
@@ -98,13 +101,14 @@ export const toggleCommand = new Command("toggle")
     });
 
     // Status icons
-    const statusIcon = newStatus === "done"
-      ? chalk.green("✓")
-      : newStatus === "in_progress"
-        ? chalk.yellow("●")
-        : chalk.dim("○");
+    const statusIcon =
+      newStatus === "done"
+        ? chalk.green("✓")
+        : newStatus === "in_progress"
+          ? chalk.yellow("●")
+          : chalk.dim("○");
 
     console.log(
-      `${statusIcon} ${chalk.dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`
+      `${statusIcon} ${chalk.dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
     );
   });

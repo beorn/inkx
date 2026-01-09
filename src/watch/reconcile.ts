@@ -8,7 +8,12 @@ import { statSync, readFileSync, existsSync } from "fs";
 import { dirname, basename, relative } from "path";
 import { ulid } from "ulid";
 import { getDb, getNodeByPath, getChildren } from "../node/db.ts";
-import { emitNodeCreated, emitNodeUpdated, emitNodeMoved, emitNodeDeleted } from "../node/emit.ts";
+import {
+  emitNodeCreated,
+  emitNodeUpdated,
+  emitNodeMoved,
+  emitNodeDeleted,
+} from "../node/emit.ts";
 import { parseMarkdownToNodes } from "../md/ast2nodes.ts";
 import { hashContent } from "../node/cas.ts";
 import type { Node } from "../node/types.ts";
@@ -25,7 +30,10 @@ export interface ReconcileOp {
 /**
  * Reconcile a directory - compare filesystem to database
  */
-export function reconcileDirectory(dirPath: string, vaultRoot: string): ReconcileOp[] {
+export function reconcileDirectory(
+  dirPath: string,
+  vaultRoot: string,
+): ReconcileOp[] {
   const ops: ReconcileOp[] = [];
   const db = getDb();
 
@@ -39,7 +47,7 @@ export function reconcileDirectory(dirPath: string, vaultRoot: string): Reconcil
       SELECT * FROM nodes
       WHERE fs_path LIKE ? || '%'
       AND (type = 'folder' OR type = 'file')
-    `
+    `,
     )
     .all(dirPath) as Array<Record<string, unknown>>;
 
@@ -110,7 +118,7 @@ export function reconcileDirectory(dirPath: string, vaultRoot: string): Reconcil
  */
 export async function applyReconcileOps(
   ops: ReconcileOp[],
-  vaultRoot: string
+  vaultRoot: string,
 ): Promise<void> {
   for (const op of ops) {
     switch (op.type) {
@@ -138,12 +146,16 @@ function ensureFolderHierarchy(path: string, vaultRoot: string): string | null {
   const parentPath = dirname(path);
 
   // If we're at or above the vault root, no parent
-  if (parentPath === vaultRoot || parentPath === dirname(vaultRoot) || parentPath === path) {
+  if (
+    parentPath === vaultRoot ||
+    parentPath === dirname(vaultRoot) ||
+    parentPath === path
+  ) {
     return null;
   }
 
   // Check if parent folder node already exists
-  let parentNode = getNodeByPath(parentPath);
+  const parentNode = getNodeByPath(parentPath);
   if (parentNode) {
     return parentNode.id;
   }
@@ -237,7 +249,7 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
       WHERE fs_path = ? OR parent_id IN (
         SELECT id FROM nodes WHERE fs_path = ?
       )
-    `
+    `,
     )
     .all(op.path, op.path) as Array<Record<string, unknown>>;
 
@@ -251,13 +263,15 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
   for (const change of changes) {
     switch (change.type) {
       case "created":
-        emitNodeCreated("fs-watch", change.node!);
+        if (change.node) emitNodeCreated("fs-watch", { ...change.node });
         break;
       case "updated":
-        emitNodeUpdated("fs-watch", change.nodeId!, change.changes!);
+        if (change.nodeId && change.changes) {
+          emitNodeUpdated("fs-watch", change.nodeId, change.changes);
+        }
         break;
       case "deleted":
-        emitNodeDeleted("fs-watch", change.nodeId!);
+        if (change.nodeId) emitNodeDeleted("fs-watch", change.nodeId);
         break;
     }
   }
@@ -295,7 +309,7 @@ interface NodeChange {
 
 function diffNodes(
   existing: Array<Record<string, unknown>>,
-  newNodes: Node[]
+  newNodes: Node[],
 ): NodeChange[] {
   const changes: NodeChange[] = [];
 

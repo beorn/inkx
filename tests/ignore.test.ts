@@ -119,7 +119,9 @@ describe("Ignore Patterns", () => {
       const patterns = ["*.log"];
 
       // When vault path is provided, paths are made relative
-      expect(shouldIgnore("/home/user/vault/debug.log", patterns, vaultPath)).toBe(true);
+      expect(
+        shouldIgnore("/home/user/vault/debug.log", patterns, vaultPath),
+      ).toBe(true);
     });
   });
 
@@ -161,7 +163,7 @@ describe("Ignore Patterns", () => {
 node_modules
 *.log
 dist/
-`
+`,
       );
 
       const patterns = readGitignore(TEST_DIR);
@@ -187,7 +189,7 @@ dist/
 
 # Another comment
 *.log
-`
+`,
       );
 
       const patterns = readGitignore(TEST_DIR);
@@ -200,7 +202,7 @@ dist/
         join(TEST_DIR, ".gitignore"),
         `*.log
 !important.log
-`
+`,
       );
 
       const patterns = readGitignore(TEST_DIR);
@@ -220,7 +222,7 @@ dist/
         `# KM-specific ignores
 **/private/**
 **/*.draft.md
-`
+`,
       );
 
       const patterns = readKmignore(TEST_DIR);
@@ -242,7 +244,7 @@ dist/
         `# Obsidian ignore
 Archive/
 *.tmp
-`
+`,
       );
 
       const patterns = readObsidianIgnore(TEST_DIR);

@@ -7,7 +7,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { syncOnce, SyncManager } from "../../watch/sync.ts";
-import { getKmPath } from "../../node/emit.ts";
+import { getKmDir } from "../../node/emit.ts";
 import { dirname } from "path";
 
 export const syncCommand = new Command("sync")
@@ -17,7 +17,7 @@ export const syncCommand = new Command("sync")
   .option("--to-fs", "Sync from database to filesystem")
   .option("--dry-run", "Show what would be synced without making changes")
   .action(async (path, options) => {
-    const vaultPath = path ?? dirname(getKmPath());
+    const vaultPath = path ?? dirname(getKmDir());
 
     console.log(chalk.dim(`Syncing: ${vaultPath}`));
 
@@ -43,7 +43,10 @@ export const syncCommand = new Command("sync")
         // Default: from filesystem
         console.log(chalk.dim("Syncing filesystem → database..."));
         const result = await manager.syncFromFs();
-        console.log(chalk.green("✓"), `Processed ${result.processed} change(s)`);
+        console.log(
+          chalk.green("✓"),
+          `Processed ${result.processed} change(s)`,
+        );
       }
     } catch (error) {
       console.error(chalk.red("Sync failed:"), error);

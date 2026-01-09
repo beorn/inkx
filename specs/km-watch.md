@@ -9,6 +9,7 @@ Bidirectional filesystem ↔ SQLite synchronization.
 ## Overview
 
 km-watch maintains sync between:
+
 - **Filesystem** — Markdown files
 - **SQLite** — state.db (fast queries)
 - **Events** — events.jsonl (audit log)
@@ -51,57 +52,57 @@ Changes flow both directions with conflict resolution and round-trip prevention.
 Use native filesystem events (FSEvents on macOS, inotify on Linux):
 
 ```typescript
-import { watch } from 'fs'
-import { FSWatcher } from 'chokidar'
+import { watch } from "fs";
+import { FSWatcher } from "chokidar";
 
 class FileSystemWatcher {
-  private watcher: FSWatcher
-  private pendingPaths: Set<string> = new Set()
-  private debounceTimer: NodeJS.Timeout | null = null
+  private watcher: FSWatcher;
+  private pendingPaths: Set<string> = new Set();
+  private debounceTimer: NodeJS.Timeout | null = null;
 
   start(vaultPath: string) {
     this.watcher = new FSWatcher({
       persistent: true,
       ignoreInitial: true,
       ignored: [
-        '**/node_modules/**',
-        '**/.git/**',
-        '**/.km/**',
-        '**/.*'  // Hidden files
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/.km/**",
+        "**/.*", // Hidden files
       ],
       awaitWriteFinish: {
         stabilityThreshold: 500,
-        pollInterval: 100
-      }
-    })
+        pollInterval: 100,
+      },
+    });
 
-    this.watcher.add(vaultPath)
+    this.watcher.add(vaultPath);
 
-    this.watcher.on('all', (event, path) => {
-      this.pendingPaths.add(path)
-      this.scheduleSync()
-    })
+    this.watcher.on("all", (event, path) => {
+      this.pendingPaths.add(path);
+      this.scheduleSync();
+    });
   }
 
   private scheduleSync() {
     if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer)
+      clearTimeout(this.debounceTimer);
     }
 
     this.debounceTimer = setTimeout(() => {
-      this.sync()
-    }, 5000)  // 5 second debounce
+      this.sync();
+    }, 5000); // 5 second debounce
   }
 
   private async sync() {
-    const paths = [...this.pendingPaths]
-    this.pendingPaths.clear()
+    const paths = [...this.pendingPaths];
+    this.pendingPaths.clear();
 
     // Group by directory for efficient scanning
-    const dirs = new Set(paths.map(p => dirname(p)))
+    const dirs = new Set(paths.map((p) => dirname(p)));
 
     for (const dir of dirs) {
-      await this.reconcileDirectory(dir)
+      await this.reconcileDirectory(dir);
     }
   }
 }
@@ -113,20 +114,20 @@ Files identified by inode + path for rename detection:
 
 ```typescript
 interface FileIdentity {
-  ino: number       // Inode number (stable across renames)
-  path: string      // Current path
-  mtime: number     // Modification time
-  size: number      // File size
+  ino: number; // Inode number (stable across renames)
+  path: string; // Current path
+  mtime: number; // Modification time
+  size: number; // File size
 }
 
 async function getFileIdentity(path: string): Promise<FileIdentity> {
-  const stat = await fs.stat(path)
+  const stat = await fs.stat(path);
   return {
     ino: stat.ino,
     path,
     mtime: stat.mtimeMs,
-    size: stat.size
-  }
+    size: stat.size,
+  };
 }
 ```
 
@@ -140,63 +141,66 @@ Compare filesystem state to SQLite state:
 
 ```typescript
 async function reconcileDirectory(dir: string): Promise<Op[]> {
-  const ops: Op[] = []
+  const ops: Op[] = [];
 
   // Get filesystem state
-  const fsEntries = await scanDirectory(dir)
+  const fsEntries = await scanDirectory(dir);
 
   // Get database state
-  const dbNodes = db.all(`
+  const dbNodes = db.all(
+    `
     SELECT * FROM nodes
     WHERE fs_path LIKE ? || '%'
     AND (type = 'folder' OR type = 'file')
-  `, [dir])
+  `,
+    [dir],
+  );
 
   // Index by inode for rename detection
-  const dbByIno = new Map(dbNodes.map(n => [n.fs_ino, n]))
-  const dbByPath = new Map(dbNodes.map(n => [n.fs_path, n]))
+  const dbByIno = new Map(dbNodes.map((n) => [n.fs_ino, n]));
+  const dbByPath = new Map(dbNodes.map((n) => [n.fs_path, n]));
 
   for (const entry of fsEntries) {
-    const existingByIno = dbByIno.get(entry.ino)
-    const existingByPath = dbByPath.get(entry.path)
+    const existingByIno = dbByIno.get(entry.ino);
+    const existingByPath = dbByPath.get(entry.path);
 
     if (existingByIno && existingByIno.fs_path !== entry.path) {
       // Renamed (same inode, different path)
       ops.push({
-        type: 'rename',
+        type: "rename",
         node_id: existingByIno.id,
         old_path: existingByIno.fs_path,
-        new_path: entry.path
-      })
+        new_path: entry.path,
+      });
     } else if (!existingByPath) {
       // New file
       ops.push({
-        type: 'create',
+        type: "create",
         path: entry.path,
-        ino: entry.ino
-      })
+        ino: entry.ino,
+      });
     } else if (entry.mtime > existingByPath.updated_at) {
       // Modified
       ops.push({
-        type: 'update',
+        type: "update",
         node_id: existingByPath.id,
-        path: entry.path
-      })
+        path: entry.path,
+      });
     }
 
-    dbByPath.delete(entry.path)
+    dbByPath.delete(entry.path);
   }
 
   // Remaining in dbByPath are deleted
   for (const [path, node] of dbByPath) {
     ops.push({
-      type: 'delete',
+      type: "delete",
       node_id: node.id,
-      path
-    })
+      path,
+    });
   }
 
-  return ops
+  return ops;
 }
 ```
 
@@ -206,71 +210,74 @@ async function reconcileDirectory(dir: string): Promise<Op[]> {
 async function applyOps(ops: Op[]): Promise<void> {
   for (const op of ops) {
     switch (op.type) {
-      case 'create':
-        await handleCreate(op)
-        break
-      case 'update':
-        await handleUpdate(op)
-        break
-      case 'rename':
-        await handleRename(op)
-        break
-      case 'delete':
-        await handleDelete(op)
-        break
+      case "create":
+        await handleCreate(op);
+        break;
+      case "update":
+        await handleUpdate(op);
+        break;
+      case "rename":
+        await handleRename(op);
+        break;
+      case "delete":
+        await handleDelete(op);
+        break;
     }
   }
 }
 
 async function handleCreate(op: CreateOp): Promise<void> {
-  const stat = await fs.stat(op.path)
+  const stat = await fs.stat(op.path);
 
   if (stat.isDirectory()) {
     emit({
-      type: 'node_created',
-      actor: 'system',
+      type: "node_created",
+      actor: "system",
       data: {
         id: ulid(),
-        type: 'folder',
+        type: "folder",
         fs_path: op.path,
         fs_ino: op.ino,
         parent_id: getParentNodeId(op.path),
-        data: { name: basename(op.path) }
-      }
-    })
-  } else if (op.path.endsWith('.md')) {
-    const content = await fs.readFile(op.path, 'utf-8')
-    const nodes = parseMarkdownToNodes(content, op.path, op.ino)
+        data: { name: basename(op.path) },
+      },
+    });
+  } else if (op.path.endsWith(".md")) {
+    const content = await fs.readFile(op.path, "utf-8");
+    const nodes = parseMarkdownToNodes(content, op.path, op.ino);
 
     for (const node of nodes) {
       emit({
-        type: 'node_created',
-        actor: 'system',
-        data: node
-      })
+        type: "node_created",
+        actor: "system",
+        data: node,
+      });
     }
   }
 }
 
 async function handleUpdate(op: UpdateOp): Promise<void> {
-  const content = await fs.readFile(op.path, 'utf-8')
+  const content = await fs.readFile(op.path, "utf-8");
 
   // Get existing nodes for this file
-  const existingNodes = db.all(`
+  const existingNodes = db.all(
+    `
     SELECT * FROM nodes
     WHERE fs_path = ? OR parent_id IN (
       SELECT id FROM nodes WHERE fs_path = ?
     )
-  `, [op.path, op.path])
+  `,
+    [op.path, op.path],
+  );
 
   // Parse new content
-  const newNodes = parseMarkdownToNodes(content, op.path)
+  const newNodes = parseMarkdownToNodes(content, op.path);
 
   // Diff and emit changes
-  const changes = diffNodes(existingNodes, newNodes)
+  const changes = diffNodes(existingNodes, newNodes);
 
   for (const change of changes) {
-    emit(change)
+    emit(change);
   }
 }
 ```
@@ -283,50 +290,50 @@ async function handleUpdate(op: UpdateOp): Promise<void> {
 
 ```typescript
 interface PendingWrite {
-  path: string
-  content: string
-  source_event_id: string
+  path: string;
+  content: string;
+  source_event_id: string;
 }
 
 class WriteQueue {
-  private pending: Map<string, PendingWrite> = new Map()
-  private debounceTimer: NodeJS.Timeout | null = null
+  private pending: Map<string, PendingWrite> = new Map();
+  private debounceTimer: NodeJS.Timeout | null = null;
 
   queue(write: PendingWrite) {
     // Coalesce writes to same file
-    this.pending.set(write.path, write)
-    this.scheduleFlush()
+    this.pending.set(write.path, write);
+    this.scheduleFlush();
   }
 
   private scheduleFlush() {
     if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer)
+      clearTimeout(this.debounceTimer);
     }
 
     this.debounceTimer = setTimeout(() => {
-      this.flush()
-    }, 3000)  // 3 second debounce
+      this.flush();
+    }, 3000); // 3 second debounce
   }
 
   private async flush() {
-    const writes = [...this.pending.values()]
-    this.pending.clear()
+    const writes = [...this.pending.values()];
+    this.pending.clear();
 
     // Mark these as "in-flight" to prevent watch triggering re-sync
     for (const write of writes) {
-      inFlightWrites.add(write.path)
+      inFlightWrites.add(write.path);
     }
 
     for (const write of writes) {
-      await fs.writeFile(write.path, write.content)
+      await fs.writeFile(write.path, write.content);
     }
 
     // Clear in-flight after a delay (allow FSEvents to settle)
     setTimeout(() => {
       for (const write of writes) {
-        inFlightWrites.delete(write.path)
+        inFlightWrites.delete(write.path);
       }
-    }, 1000)
+    }, 1000);
   }
 }
 ```
@@ -336,7 +343,8 @@ class WriteQueue {
 ```typescript
 function regenerateFile(fileNodeId: string): string {
   // Get file node and all descendants
-  const nodes = db.all(`
+  const nodes = db.all(
+    `
     WITH RECURSIVE descendants AS (
       SELECT * FROM nodes WHERE id = ?
       UNION ALL
@@ -345,9 +353,11 @@ function regenerateFile(fileNodeId: string): string {
     )
     SELECT * FROM descendants
     ORDER BY sort_order
-  `, [fileNodeId])
+  `,
+    [fileNodeId],
+  );
 
-  return nodesToMarkdown(nodes)
+  return nodesToMarkdown(nodes);
 }
 ```
 
@@ -364,32 +374,35 @@ Edit file → watch → emit → state.db → apply → write file → watch →
 ### Solution 1: In-Flight Tracking
 
 ```typescript
-const inFlightWrites = new Set<string>()
+const inFlightWrites = new Set<string>();
 
 // In watcher
-watcher.on('change', (path) => {
+watcher.on("change", (path) => {
   if (inFlightWrites.has(path)) {
     // Skip - this is our own write
-    return
+    return;
   }
-  pendingPaths.add(path)
-})
+  pendingPaths.add(path);
+});
 ```
 
 ### Solution 2: Content Hash Comparison
 
 ```typescript
 async function handleUpdate(op: UpdateOp): Promise<void> {
-  const content = await fs.readFile(op.path, 'utf-8')
-  const contentHash = hash(content)
+  const content = await fs.readFile(op.path, "utf-8");
+  const contentHash = hash(content);
 
-  const existing = db.get(`
+  const existing = db.get(
+    `
     SELECT content_hash FROM nodes WHERE fs_path = ?
-  `, [op.path])
+  `,
+    [op.path],
+  );
 
   if (existing?.content_hash === contentHash) {
     // No actual change, skip
-    return
+    return;
   }
 
   // Process change...
@@ -426,28 +439,30 @@ enum ConflictStrategy {
   LAST_WRITE_WINS,
   FILESYSTEM_WINS,
   DATABASE_WINS,
-  MERGE
+  MERGE,
 }
 
 async function resolveConflict(
   fsContent: string,
   dbContent: string,
-  strategy: ConflictStrategy
+  strategy: ConflictStrategy,
 ): Promise<string> {
   switch (strategy) {
     case ConflictStrategy.LAST_WRITE_WINS:
-      const fsMtime = (await fs.stat(path)).mtimeMs
-      const dbMtime = db.get('SELECT updated_at FROM nodes WHERE fs_path = ?', [path])
-      return fsMtime > dbMtime ? fsContent : dbContent
+      const fsMtime = (await fs.stat(path)).mtimeMs;
+      const dbMtime = db.get("SELECT updated_at FROM nodes WHERE fs_path = ?", [
+        path,
+      ]);
+      return fsMtime > dbMtime ? fsContent : dbContent;
 
     case ConflictStrategy.FILESYSTEM_WINS:
-      return fsContent
+      return fsContent;
 
     case ConflictStrategy.DATABASE_WINS:
-      return dbContent
+      return dbContent;
 
     case ConflictStrategy.MERGE:
-      return threeWayMerge(commonAncestor, fsContent, dbContent)
+      return threeWayMerge(commonAncestor, fsContent, dbContent);
   }
 }
 ```
@@ -460,9 +475,9 @@ When merge fails, create conflict file:
 async function createConflictFile(
   path: string,
   fsContent: string,
-  dbContent: string
+  dbContent: string,
 ): Promise<void> {
-  const conflictPath = path.replace('.md', '.conflict.md')
+  const conflictPath = path.replace(".md", ".conflict.md");
 
   const content = `# Conflict: ${basename(path)}
 
@@ -475,18 +490,18 @@ ${fsContent}
 ## Database Version
 
 ${dbContent}
-`
+`;
 
-  await fs.writeFile(conflictPath, content)
+  await fs.writeFile(conflictPath, content);
 
   emit({
-    type: 'conflict_created',
-    actor: 'system',
+    type: "conflict_created",
+    actor: "system",
     data: {
       original_path: path,
-      conflict_path: conflictPath
-    }
-  })
+      conflict_path: conflictPath,
+    },
+  });
 }
 ```
 
@@ -517,18 +532,18 @@ vault/
 ```typescript
 function getFolderContentFile(folderPath: string): string | null {
   const candidates = [
-    join(folderPath, 'index.md'),
-    join(folderPath, 'README.md'),
-    join(folderPath, `${basename(folderPath)}.md`)
-  ]
+    join(folderPath, "index.md"),
+    join(folderPath, "README.md"),
+    join(folderPath, `${basename(folderPath)}.md`),
+  ];
 
   for (const path of candidates) {
     if (existsSync(path)) {
-      return path
+      return path;
     }
   }
 
-  return null
+  return null;
 }
 ```
 
@@ -563,15 +578,15 @@ km sync path/to/file.md
 ```yaml
 # .km/config.yaml
 watch:
-  debounce_fs: 5000      # ms before processing FS changes
-  debounce_apply: 3000   # ms before applying DB changes to FS
+  debounce_fs: 5000 # ms before processing FS changes
+  debounce_apply: 3000 # ms before applying DB changes to FS
 
   ignore:
     - "node_modules/**"
     - ".git/**"
-    - ".*"               # Hidden files
+    - ".*" # Hidden files
 
-  conflict_strategy: last_write_wins  # or: fs_wins, db_wins, merge
+  conflict_strategy: last_write_wins # or: fs_wins, db_wins, merge
 
   # Folder content file preference
   folder_content:

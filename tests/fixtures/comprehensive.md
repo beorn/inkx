@@ -12,13 +12,13 @@ priority: 1
 
 # Main Section
 
-This is a paragraph with **bold**, *italic*, and `inline code`.
+This is a paragraph with **bold**, _italic_, and `inline code`.
 
 ## Tasks with Standard Marks
 
 - [ ] Open task (default)
 - [x] Completed task
-- [X] Also completed (uppercase X)
+- [x] Also completed (uppercase X)
 
 Note: Custom marks like [/], [-], [?] are NOT recognized as tasks by GFM parser.
 They are treated as regular list items. Use standard marks only for reliable parsing.
@@ -103,7 +103,7 @@ Plain code block without language
 
 Content after horizontal rule.
 
-***
+---
 
 Another section after asterisk rule.
 

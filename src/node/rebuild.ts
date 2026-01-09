@@ -6,7 +6,7 @@
 
 import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs";
 import { join } from "path";
-import { getEventsPath, getKmPath } from "./emit.ts";
+import { getEventsPath, getKmDir } from "./emit.ts";
 import { applyEvent, getDb, getDbPath, resetDb, closeDb, setDb } from "./db.ts";
 import { initStore } from "./store.ts";
 import type { Event } from "./types.ts";
@@ -176,9 +176,12 @@ export function fullReset(): { eventCount: number; nodeCount: number } {
  * Supports two modes:
  * - Disk mode (.km/ exists): rebuild from events.jsonl
  * - Memory mode (no .km/): scan filesystem into :memory: SQLite
+ *
+ * @param rootPath - Directory to use as root
+ * @param searchAncestors - If true, search for .km/ in ancestors (default: true)
  */
-export function ensureState(rootPath?: string): void {
-  const store = initStore(rootPath);
+export function ensureState(rootPath?: string, searchAncestors = true): void {
+  const store = initStore(rootPath, searchAncestors);
 
   if (store.mode === "memory") {
     // Memory mode: store already scanned filesystem
@@ -201,7 +204,7 @@ export function ensureState(rootPath?: string): void {
 export function freshStart(): void {
   closeDb();
 
-  const kmPath = getKmPath();
+  const kmPath = getKmDir();
   if (!existsSync(kmPath)) {
     return;
   }

@@ -11,10 +11,10 @@ import { join } from "path";
 import { $ } from "bun";
 
 // Set test environment before imports
-// KM_PATH should be inside the vault so sync defaults to correct directory
+// KM_DIR should be inside the vault so sync defaults to correct directory
 const TEST_DIR = join(import.meta.dir, ".test-cli");
 const VAULT_DIR = join(TEST_DIR, "vault");
-const KM_PATH = join(VAULT_DIR, ".km"); // .km inside vault, not sibling
+const KM_DIR = join(VAULT_DIR, ".km"); // .km inside vault, not sibling
 
 // CLI path
 const CLI_PATH = join(import.meta.dir, "..", "src", "cli", "index.ts");
@@ -24,12 +24,12 @@ const CLI_PATH = join(import.meta.dir, "..", "src", "cli", "index.ts");
  */
 async function km(
   args: string[],
-  options: { cwd?: string; env?: Record<string, string> } = {}
+  options: { cwd?: string; env?: Record<string, string> } = {},
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const cwd = options.cwd ?? VAULT_DIR;
   const env = {
     ...process.env,
-    KM_PATH,
+    KM_DIR,
     ...options.env,
   };
 
@@ -41,7 +41,11 @@ async function km(
       exitCode: result.exitCode,
     };
   } catch (error: unknown) {
-    const err = error as { stdout?: Buffer; stderr?: Buffer; exitCode?: number };
+    const err = error as {
+      stdout?: Buffer;
+      stderr?: Buffer;
+      exitCode?: number;
+    };
     return {
       stdout: err.stdout?.toString() ?? "",
       stderr: err.stderr?.toString() ?? "",
@@ -58,7 +62,7 @@ describe("CLI Integration", () => {
     }
     mkdirSync(TEST_DIR, { recursive: true });
     mkdirSync(VAULT_DIR, { recursive: true });
-    mkdirSync(KM_PATH, { recursive: true });
+    mkdirSync(KM_DIR, { recursive: true });
   });
 
   afterEach(() => {
@@ -86,7 +90,7 @@ describe("CLI Integration", () => {
 
 - [ ] First task
 - [ ] Second task
-`
+`,
       );
 
       const result = await km(["sync"]);
@@ -105,7 +109,7 @@ describe("CLI Integration", () => {
         `# Project Tasks
 
 - [ ] Task in project
-`
+`,
       );
 
       const result = await km(["sync"]);
@@ -123,7 +127,7 @@ describe("CLI Integration", () => {
 - [ ] Inbox task 1
 - [ ] Inbox task 2
 - [x] Completed inbox task
-`
+`,
       );
 
       const projectDir = join(VAULT_DIR, "projects");
@@ -136,7 +140,7 @@ describe("CLI Integration", () => {
 
 - [ ] Work task A
 - [ ] Work task B
-`
+`,
       );
 
       // Sync to populate database
@@ -144,7 +148,7 @@ describe("CLI Integration", () => {
     });
 
     test("should list open tasks", async () => {
-      const result = await km(["tasks"]);
+      const result = await km(["task"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Inbox task 1");
       expect(result.stdout).toContain("Inbox task 2");
@@ -154,14 +158,14 @@ describe("CLI Integration", () => {
     });
 
     test("should show all tasks with --all", async () => {
-      const result = await km(["tasks", "--all"]);
+      const result = await km(["task", "--all"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Completed inbox task");
     });
 
     test("should filter by path prefix", async () => {
       // Filter by folder name - matches segments starting with "projects"
-      const result = await km(["tasks", "projects"]);
+      const result = await km(["task", "projects"]);
       expect(result.exitCode).toBe(0);
       // Should show tasks under projects folder
       expect(result.stdout).toContain("Work task A");
@@ -172,32 +176,32 @@ describe("CLI Integration", () => {
 
     test("should filter by file name prefix", async () => {
       // Filter by file name - matches "work.md" which starts with "work"
-      const result = await km(["tasks", "work"]);
+      const result = await km(["task", "work"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Work task A");
     });
 
     test("should filter by contains with *filter*", async () => {
-      const result = await km(["tasks", "*work*"]);
+      const result = await km(["task", "*work*"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Work task A");
     });
 
     test("should show task count", async () => {
-      const result = await km(["tasks"]);
+      const result = await km(["task"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("task(s)");
     });
 
     test("should show flat output with --flat", async () => {
-      const result = await km(["tasks", "--flat"]);
+      const result = await km(["task", "--flat"]);
       expect(result.exitCode).toBe(0);
       // Flat mode uses › separator
       expect(result.stdout).toContain("›");
     });
 
     test("should output JSON with --json", async () => {
-      const result = await km(["tasks", "--json"]);
+      const result = await km(["task", "--json"]);
       expect(result.exitCode).toBe(0);
       const tasks = JSON.parse(result.stdout);
       expect(Array.isArray(tasks)).toBe(true);
@@ -214,28 +218,24 @@ describe("CLI Integration", () => {
     });
 
     test("should add a new task", async () => {
-      const result = await km(["tasks", "--add", "New test task"]);
+      const result = await km(["task", "--add", "New test task"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Created task");
 
       // Verify task appears in list
-      const listResult = await km(["tasks"]);
+      const listResult = await km(["task"]);
       expect(listResult.stdout).toContain("New test task");
     });
 
     test("should add task with metadata", async () => {
-      const result = await km([
-        "tasks",
-        "--add",
-        "Task with due 📅 2025-12-25",
-      ]);
+      const result = await km(["task", "--add", "Task with due 📅 2025-12-25"]);
       expect(result.exitCode).toBe(0);
 
       // Verify task with verbose output
-      const listResult = await km(["tasks", "--verbose", "--json"]);
+      const listResult = await km(["task", "--verbose", "--json"]);
       const tasks = JSON.parse(listResult.stdout);
       const newTask = tasks.find((t: { content: string }) =>
-        t.content.includes("Task with due")
+        t.content.includes("Task with due"),
       );
       expect(newTask).toBeDefined();
       expect(newTask.due_date).toBe("2025-12-25");
@@ -249,28 +249,28 @@ describe("CLI Integration", () => {
         `# Tasks
 
 - [ ] Task to complete
-`
+`,
       );
       await km(["sync"]);
     });
 
     test("should mark task as done by ID prefix", async () => {
       // Get task ID
-      const listResult = await km(["tasks", "--json"]);
+      const listResult = await km(["task", "--json"]);
       const tasks = JSON.parse(listResult.stdout);
       const task = tasks.find((t: { content: string }) =>
-        t.content.includes("Task to complete")
+        t.content.includes("Task to complete"),
       );
       expect(task).toBeDefined();
 
       // Mark as done using ID prefix (first 8 chars)
       const idPrefix = task.id.slice(0, 8);
-      const doneResult = await km(["tasks", "--done", idPrefix]);
+      const doneResult = await km(["task", "--done", idPrefix]);
       expect(doneResult.exitCode).toBe(0);
       expect(doneResult.stdout).toContain("Marked as done");
 
       // Verify task is now done
-      const allResult = await km(["tasks", "--all", "--json"]);
+      const allResult = await km(["task", "--all", "--json"]);
       const allTasks = JSON.parse(allResult.stdout);
       const doneTask = allTasks.find((t: { id: string }) => t.id === task.id);
       expect(doneTask.task_status).toBe("done");
@@ -288,14 +288,14 @@ This document contains information about the project.
 ## Keywords
 
 Testing, integration, CLI commands.
-`
+`,
       );
       writeFileSync(
         join(VAULT_DIR, "other.md"),
         `# Other Document
 
 Unrelated content here.
-`
+`,
       );
       await km(["sync"]);
     });
@@ -355,7 +355,7 @@ Unrelated content here.
       expect(result.exitCode).toBe(0);
 
       // Verify data still accessible after rebuild
-      const listResult = await km(["tasks"]);
+      const listResult = await km(["task"]);
       expect(listResult.stdout).toContain("Task");
     });
 
@@ -374,14 +374,14 @@ Unrelated content here.
 Some content here.
 
 - [ ] A task in the doc
-`
+`,
       );
       await km(["sync"]);
     });
 
     test("should show node by ID prefix", async () => {
       // Get a task ID
-      const listResult = await km(["tasks", "--json"]);
+      const listResult = await km(["task", "--json"]);
       const tasks = JSON.parse(listResult.stdout);
       expect(tasks.length).toBeGreaterThan(0);
 
@@ -400,7 +400,7 @@ describe("km list", () => {
     }
     mkdirSync(TEST_DIR, { recursive: true });
     mkdirSync(VAULT_DIR, { recursive: true });
-    mkdirSync(KM_PATH, { recursive: true });
+    mkdirSync(KM_DIR, { recursive: true });
 
     // Create test files
     writeFileSync(
@@ -410,7 +410,7 @@ describe("km list", () => {
 Some paragraph content.
 
 - [ ] A task in notes
-`
+`,
     );
 
     const projectDir = join(VAULT_DIR, "projects");
@@ -423,7 +423,7 @@ Some paragraph content.
 
 - [ ] Work task
 - [x] Done task
-`
+`,
     );
 
     await km(["sync"]);
@@ -472,7 +472,7 @@ Some paragraph content.
   });
 });
 
-describe("km toggle", () => {
+describe("km task status", () => {
   beforeEach(async () => {
     // Clean up and create test directories
     if (existsSync(TEST_DIR)) {
@@ -480,7 +480,7 @@ describe("km toggle", () => {
     }
     mkdirSync(TEST_DIR, { recursive: true });
     mkdirSync(VAULT_DIR, { recursive: true });
-    mkdirSync(KM_PATH, { recursive: true });
+    mkdirSync(KM_DIR, { recursive: true });
 
     writeFileSync(
       join(VAULT_DIR, "tasks.md"),
@@ -488,7 +488,7 @@ describe("km toggle", () => {
 
 - [ ] Task to toggle
 - [x] Already done
-`
+`,
     );
     await km(["sync"]);
   });
@@ -499,43 +499,53 @@ describe("km toggle", () => {
     }
   });
 
-  test("should toggle task from open to in_progress", async () => {
+  test("should set task status to in_progress", async () => {
     // Get task ID
-    const listResult = await km(["tasks", "--json"]);
+    const listResult = await km(["task", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find((t: { content: string }) =>
-      t.content.includes("Task to toggle")
+      t.content.includes("Task to toggle"),
     );
     expect(task).toBeDefined();
 
-    // Toggle
-    const toggleResult = await km(["toggle", task.id.slice(0, 8)]);
-    expect(toggleResult.exitCode).toBe(0);
-    expect(toggleResult.stdout).toContain("in_progress");
+    // Set status
+    const statusResult = await km([
+      "task",
+      "status",
+      task.id.slice(0, 8),
+      "in_progress",
+    ]);
+    expect(statusResult.exitCode).toBe(0);
+    expect(statusResult.stdout).toContain("in_progress");
 
     // Verify
-    const afterResult = await km(["tasks", "--all", "--json"]);
+    const afterResult = await km(["task", "--all", "--json"]);
     const afterTasks = JSON.parse(afterResult.stdout);
-    const toggled = afterTasks.find((t: { id: string }) => t.id === task.id);
-    expect(toggled.task_status).toBe("in_progress");
+    const updated = afterTasks.find((t: { id: string }) => t.id === task.id);
+    expect(updated.task_status).toBe("in_progress");
   });
 
-  test("should toggle with --simple flag (open → done)", async () => {
+  test("should set task status to done", async () => {
     // Get task ID
-    const listResult = await km(["tasks", "--json"]);
+    const listResult = await km(["task", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find((t: { content: string }) =>
-      t.content.includes("Task to toggle")
+      t.content.includes("Task to toggle"),
     );
 
-    // Simple toggle (skip in_progress)
-    const toggleResult = await km(["toggle", task.id.slice(0, 8), "--simple"]);
-    expect(toggleResult.exitCode).toBe(0);
-    expect(toggleResult.stdout).toContain("done");
+    // Set done
+    const statusResult = await km([
+      "task",
+      "status",
+      task.id.slice(0, 8),
+      "done",
+    ]);
+    expect(statusResult.exitCode).toBe(0);
+    expect(statusResult.stdout).toContain("done");
   });
 
   test("should error on invalid ID", async () => {
-    const result = await km(["toggle", "nonexistent123"]);
+    const result = await km(["task", "status", "nonexistent123"]);
     expect(result.exitCode).not.toBe(0);
   });
 });
@@ -564,7 +574,7 @@ describe("km init", () => {
     // Run init without existing .km/
     const result = await km(["init"], {
       cwd: initDir,
-      env: { KM_PATH: join(initDir, ".km") }
+      env: { KM_DIR: join(initDir, ".km") },
     });
 
     expect(result.exitCode).toBe(0);
@@ -579,7 +589,7 @@ describe("km init", () => {
 
     const result = await km(["init"], {
       cwd: initDir,
-      env: { KM_PATH: join(initDir, ".km") }
+      env: { KM_DIR: join(initDir, ".km") },
     });
 
     expect(result.stdout).toContain("Already initialized");
@@ -593,7 +603,7 @@ describe("CLI Error Handling", () => {
     }
     mkdirSync(TEST_DIR, { recursive: true });
     mkdirSync(VAULT_DIR, { recursive: true });
-    mkdirSync(KM_PATH, { recursive: true });
+    mkdirSync(KM_DIR, { recursive: true });
   });
 
   afterEach(() => {
@@ -609,8 +619,113 @@ describe("CLI Error Handling", () => {
   });
 
   test("should handle missing task ID for --done", async () => {
-    const result = await km(["tasks", "--done"]);
+    const result = await km(["task", "--done"]);
     // Should fail without an ID
     expect(result.exitCode).not.toBe(0);
+  });
+});
+
+describe("Global --root option", () => {
+  const ROOT_TEST_DIR = "/tmp/km-root-test";
+  const VAULT_A = join(ROOT_TEST_DIR, "vault-a");
+  const VAULT_B = join(ROOT_TEST_DIR, "vault-b");
+
+  beforeEach(() => {
+    // Clean up and create test directories
+    if (existsSync(ROOT_TEST_DIR)) {
+      rmSync(ROOT_TEST_DIR, { recursive: true });
+    }
+    mkdirSync(VAULT_A, { recursive: true });
+    mkdirSync(VAULT_B, { recursive: true });
+
+    // Create test files in vault-a
+    writeFileSync(
+      join(VAULT_A, "tasks-a.md"),
+      `# Vault A Tasks
+
+- [ ] Task from vault A
+`,
+    );
+
+    // Create test files in vault-b
+    writeFileSync(
+      join(VAULT_B, "tasks-b.md"),
+      `# Vault B Tasks
+
+- [ ] Task from vault B
+`,
+    );
+  });
+
+  afterEach(() => {
+    if (existsSync(ROOT_TEST_DIR)) {
+      rmSync(ROOT_TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("should use --root option for memory mode", async () => {
+    // Run from a different directory but specify --root
+    const result = await km(["--root", VAULT_A, "task"], {
+      cwd: "/tmp",
+      env: { KM_DIR: "" }, // Ensure no KM_DIR interference
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Task from vault A");
+    expect(result.stdout).not.toContain("Task from vault B");
+  });
+
+  test("should use KM_ROOT env var for memory mode", async () => {
+    const result = await km(["task"], {
+      cwd: "/tmp",
+      env: { KM_ROOT: VAULT_B, KM_DIR: "" },
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Task from vault B");
+    expect(result.stdout).not.toContain("Task from vault A");
+  });
+
+  test("--root should override KM_ROOT env var", async () => {
+    const result = await km(["--root", VAULT_A, "task"], {
+      cwd: "/tmp",
+      env: { KM_ROOT: VAULT_B, KM_DIR: "" },
+    });
+
+    expect(result.exitCode).toBe(0);
+    // Should use --root (vault A), not KM_ROOT (vault B)
+    expect(result.stdout).toContain("Task from vault A");
+    expect(result.stdout).not.toContain("Task from vault B");
+  });
+
+  test("should support tilde expansion in --root", async () => {
+    // Create a test file in home directory (use a temp subdir)
+    const homeSubdir = join(process.env.HOME || "", ".km-test-home");
+    mkdirSync(homeSubdir, { recursive: true });
+    writeFileSync(
+      join(homeSubdir, "home-tasks.md"),
+      `# Home Tasks
+
+- [ ] Task from home
+`,
+    );
+
+    try {
+      const result = await km(["--root", "~/.km-test-home", "task"], {
+        cwd: "/tmp",
+        env: { KM_DIR: "" },
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Task from home");
+    } finally {
+      rmSync(homeSubdir, { recursive: true });
+    }
+  });
+
+  test("should show --root in help", async () => {
+    const result = await km(["--help"], { cwd: "/tmp" });
+    expect(result.stdout).toContain("--root");
+    expect(result.stdout).toContain("-r");
   });
 });

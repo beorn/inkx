@@ -34,7 +34,7 @@ describe("MemoryStore", () => {
 - [ ] Open task
 - [x] Done task
 - [/] In progress task
-`
+`,
     );
 
     writeFileSync(
@@ -48,7 +48,7 @@ Some content here.
 ## Section Two
 
 - [ ] Nested task
-`
+`,
     );
 
     // Create a subfolder with content
@@ -58,7 +58,7 @@ Some content here.
       `# Project A
 
 - [ ] Project task
-`
+`,
     );
 
     // Create non-markdown files (inbox scenario)
@@ -96,7 +96,9 @@ Some content here.
     const store = new MemoryStore(ROOT_DIR);
 
     const allNodes = store.getAllNodes();
-    const fileNames = allNodes.filter((n) => n.type === "file").map((n) => n.content);
+    const fileNames = allNodes
+      .filter((n) => n.type === "file")
+      .map((n) => n.content);
 
     // Non-markdown files should be included with full filename
     expect(fileNames).toContain("document.pdf");
@@ -159,7 +161,7 @@ Some content here.
 
     // notes.md has "Notes", "Section One", "Section Two"
     const noteSections = sections.filter(
-      (s) => s.fs_path && s.fs_path.includes("notes.md")
+      (s) => s.fs_path && s.fs_path.includes("notes.md"),
     );
     expect(noteSections.length).toBe(3);
 
@@ -328,13 +330,15 @@ describe("initStore mode detection", () => {
   });
 
   test("should return MemoryStore when no .km directory exists", () => {
-    const store = initStore(MEMORY_DIR);
+    // Pass false to disable ancestor search (avoid /tmp/.km pollution)
+    const store = initStore(MEMORY_DIR, false);
     expect(store.mode).toBe("memory");
     expect(store).toBeInstanceOf(MemoryStore);
   });
 
   test("should return DiskStore when .km directory exists", () => {
-    const store = initStore(DISK_DIR);
+    // Pass false to disable ancestor search (test specific directory)
+    const store = initStore(DISK_DIR, false);
     expect(store.mode).toBe("disk");
     expect(store).toBeInstanceOf(DiskStore);
   });

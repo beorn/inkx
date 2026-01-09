@@ -56,6 +56,7 @@ Agents are AI-powered workers that can claim tasks, execute sessions, and commun
 ## Harnesses
 
 A **harness** is a preconfigured bundle that equips an agent with:
+
 - **Tools**: What the agent can do (read files, write code, run tests, etc.)
 - **Connectors**: External services the agent can access (GitHub, Linear, Slack, etc.)
 - **Constraints**: Limits on the agent's behavior (read-only, max files, etc.)
@@ -90,12 +91,12 @@ harness:
 
 ### Built-in Harnesses
 
-| Harness | Description | Tools |
-|---------|-------------|-------|
-| `general` | Default harness for Kimmi | All tools |
-| `code-reviewer` | Code review and feedback | read, comment, test |
-| `researcher` | Information gathering | read, search, web |
-| `writer` | Documentation and content | read, write |
+| Harness         | Description               | Tools               |
+| --------------- | ------------------------- | ------------------- |
+| `general`       | Default harness for Kimmi | All tools           |
+| `code-reviewer` | Code review and feedback  | read, comment, test |
+| `researcher`    | Information gathering     | read, search, web   |
+| `writer`        | Documentation and content | read, write         |
 
 ---
 
@@ -105,29 +106,29 @@ harness:
 
 ```typescript
 const agent: Node = {
-  id: 'agent-1',
-  type: 'agent',
-  parent_id: 'agents',  // Folder containing all agents
+  id: "agent-1",
+  type: "agent",
+  parent_id: "agents", // Folder containing all agents
   data: {
-    name: 'Auth Agent',
-    model: 'claude-sonnet-4',
-    harness: 'code-reviewer',  // Reference to harness config
-    workdir: '.agents/agent-1',
-  }
-}
+    name: "Auth Agent",
+    model: "claude-sonnet-4",
+    harness: "code-reviewer", // Reference to harness config
+    workdir: ".agents/agent-1",
+  },
+};
 
 // Kimmi - the default agent
 const kimmi: Node = {
-  id: 'kimmi',
-  type: 'agent',
-  parent_id: 'agents',
+  id: "kimmi",
+  type: "agent",
+  parent_id: "agents",
   data: {
-    name: 'Kimmi',
-    model: 'claude-sonnet-4',
-    harness: 'general',
-    description: "Knowledge Machine's built-in agent"
-  }
-}
+    name: "Kimmi",
+    model: "claude-sonnet-4",
+    harness: "general",
+    description: "Knowledge Machine's built-in agent",
+  },
+};
 ```
 
 ### Agent Work Queue
@@ -148,37 +149,45 @@ Agents claim tasks by setting `assigned_to` when starting work, and clear it whe
 ```typescript
 function getAgentQueue(db: Database, agentId: string): Node[] {
   // Get direct children
-  const children = db.all(`
+  const children = db.all(
+    `
     SELECT * FROM nodes
     WHERE parent_id = ?
     ORDER BY sort_order
-  `, [agentId])
+  `,
+    [agentId],
+  );
 
-  const queue: Node[] = []
+  const queue: Node[] = [];
 
   for (const child of children) {
     if (child.symlink_to) {
       // Resolve symlink
-      const target = db.get('SELECT * FROM nodes WHERE id = ?', [child.symlink_to])
+      const target = db.get("SELECT * FROM nodes WHERE id = ?", [
+        child.symlink_to,
+      ]);
 
-      if (target.type === 'board') {
+      if (target.type === "board") {
         // Expand board into tasks
-        const boardTasks = db.all(`
+        const boardTasks = db.all(
+          `
           SELECT * FROM nodes
           WHERE parent_id = ? AND type = 'task' AND status != 'done'
           ORDER BY sort_order
-        `, [target.id])
-        queue.push(...boardTasks)
-      } else if (target.type === 'task' && target.status !== 'done') {
-        queue.push(target)
+        `,
+          [target.id],
+        );
+        queue.push(...boardTasks);
+      } else if (target.type === "task" && target.status !== "done") {
+        queue.push(target);
       }
-    } else if (child.type === 'task' && child.status !== 'done') {
-      queue.push(child)
+    } else if (child.type === "task" && child.status !== "done") {
+      queue.push(child);
     }
   }
 
   // Filter out tasks claimed by other agents
-  return queue.filter(t => !t.assigned_to || t.assigned_to === agentId)
+  return queue.filter((t) => !t.assigned_to || t.assigned_to === agentId);
 }
 ```
 
@@ -237,32 +246,34 @@ Messages are newline-delimited JSON events (same format as events.jsonl).
 ### Hub (Main Process)
 
 ```typescript
-import { createServer, Socket } from 'net'
-import { unlinkSync } from 'fs'
+import { createServer, Socket } from "net";
+import { unlinkSync } from "fs";
 
-const SOCKET_PATH = '.km/events.sock'
+const SOCKET_PATH = ".km/events.sock";
 
 class EventHub {
-  private clients: Set<Socket> = new Set()
+  private clients: Set<Socket> = new Set();
 
   start() {
     // Clean up stale socket
-    try { unlinkSync(SOCKET_PATH) } catch {}
+    try {
+      unlinkSync(SOCKET_PATH);
+    } catch {}
 
     const server = createServer((client) => {
-      this.clients.add(client)
+      this.clients.add(client);
 
-      client.on('close', () => this.clients.delete(client))
-      client.on('error', () => this.clients.delete(client))
-    })
+      client.on("close", () => this.clients.delete(client));
+      client.on("error", () => this.clients.delete(client));
+    });
 
-    server.listen(SOCKET_PATH)
+    server.listen(SOCKET_PATH);
   }
 
   broadcast(event: Event) {
-    const line = JSON.stringify(event) + '\n'
+    const line = JSON.stringify(event) + "\n";
     for (const client of this.clients) {
-      client.write(line)
+      client.write(line);
     }
   }
 }
@@ -271,53 +282,53 @@ class EventHub {
 ### Agent (Subscriber)
 
 ```typescript
-import { createConnection } from 'net'
-import { createInterface } from 'readline'
+import { createConnection } from "net";
+import { createInterface } from "readline";
 
 class EventSubscriber {
-  private handlers: ((event: Event) => void)[] = []
+  private handlers: ((event: Event) => void)[] = [];
 
   connect(agentId: string) {
-    const socket = createConnection('.km/events.sock')
+    const socket = createConnection(".km/events.sock");
 
-    const rl = createInterface({ input: socket })
+    const rl = createInterface({ input: socket });
 
-    rl.on('line', (line) => {
-      const event: Event = JSON.parse(line)
+    rl.on("line", (line) => {
+      const event: Event = JSON.parse(line);
 
       // Filter: only events targeting this agent or broadcast
       if (!event.target || event.target === agentId) {
         for (const handler of this.handlers) {
-          handler(event)
+          handler(event);
         }
       }
-    })
+    });
 
-    socket.on('error', () => {
+    socket.on("error", () => {
       // Fall back to polling if socket unavailable
-      this.startPolling(agentId)
-    })
+      this.startPolling(agentId);
+    });
   }
 
   on(handler: (event: Event) => void) {
-    this.handlers.push(handler)
+    this.handlers.push(handler);
   }
 
   private startPolling(agentId: string) {
     // Fallback: poll events.jsonl every 500ms
-    let lastSeen = ''
+    let lastSeen = "";
     setInterval(() => {
-      const events = readEventsSync('.km/events.jsonl')
-        .filter(e => e.id > lastSeen)
-        .filter(e => !e.target || e.target === agentId)
+      const events = readEventsSync(".km/events.jsonl")
+        .filter((e) => e.id > lastSeen)
+        .filter((e) => !e.target || e.target === agentId);
 
       for (const event of events) {
-        lastSeen = event.id
+        lastSeen = event.id;
         for (const handler of this.handlers) {
-          handler(event)
+          handler(event);
         }
       }
-    }, 500)
+    }, 500);
   }
 }
 ```
@@ -325,31 +336,31 @@ class EventSubscriber {
 ### Unified Emit Function (with IPC)
 
 ```typescript
-import { appendFileSync } from 'fs'
-import { ulid } from 'ulid'
+import { appendFileSync } from "fs";
+import { ulid } from "ulid";
 
-let hub: EventHub | null = null
+let hub: EventHub | null = null;
 
 function setHub(h: EventHub) {
-  hub = h
+  hub = h;
 }
 
-function emit(event: Omit<Event, 'id' | 'ts'>): Event {
+function emit(event: Omit<Event, "id" | "ts">): Event {
   const full: Event = {
     id: ulid(),
     ts: Date.now(),
-    ...event
-  }
+    ...event,
+  };
 
   // 1. Append to events file (persistent)
-  appendFileSync('.km/events.jsonl', JSON.stringify(full) + '\n')
+  appendFileSync(".km/events.jsonl", JSON.stringify(full) + "\n");
 
   // 2. Broadcast via socket (real-time)
   if (hub) {
-    hub.broadcast(full)
+    hub.broadcast(full);
   }
 
-  return full
+  return full;
 }
 ```
 
@@ -361,47 +372,47 @@ function emit(event: Omit<Event, 'id' | 'ts'>): Event {
 
 ```typescript
 async function agentMain(agentId: string) {
-  const db = await rebuildState()
+  const db = await rebuildState();
 
   // Connect to event bus
-  const subscriber = new EventSubscriber()
-  subscriber.connect(agentId)
+  const subscriber = new EventSubscriber();
+  subscriber.connect(agentId);
 
   // Handle incoming messages
   subscriber.on((event) => {
-    if (event.type === 'message') {
-      handleMessage(event)
+    if (event.type === "message") {
+      handleMessage(event);
     }
-  })
+  });
 
   // Main work loop
   while (true) {
     // Sync state
-    await syncState(db)
+    await syncState(db);
 
     // Get work queue
-    const queue = getAgentQueue(db, agentId)
+    const queue = getAgentQueue(db, agentId);
 
     // Find unclaimed task
-    const task = queue.find(t => !t.assigned_to)
+    const task = queue.find((t) => !t.assigned_to);
 
     if (task) {
       // Claim it
-      emit({ type: 'task_claimed', actor: agentId, target: task.id })
+      emit({ type: "task_claimed", actor: agentId, target: task.id });
 
       // Execute
-      await executeTask(agentId, task)
+      await executeTask(agentId, task);
 
       // Complete
       emit({
-        type: 'task_completed',
+        type: "task_completed",
         actor: agentId,
         target: task.id,
-        data: { summary: '...' }
-      })
+        data: { summary: "..." },
+      });
     } else {
       // No work, wait for events
-      await sleep(1000)
+      await sleep(1000);
     }
   }
 }
@@ -411,62 +422,61 @@ async function agentMain(agentId: string) {
 
 ```typescript
 async function executeTask(agentId: string, task: Node) {
-  const sessionId = ulid()
+  const sessionId = ulid();
 
   // Start session
   emit({
-    type: 'session_started',
+    type: "session_started",
     actor: agentId,
     target: task.id,
-    data: { session_id: sessionId, model: 'claude-sonnet-4' }
-  })
+    data: { session_id: sessionId, model: "claude-sonnet-4" },
+  });
 
   try {
     // Run Claude Code
-    const session = spawnClaudeCode(task)
+    const session = spawnClaudeCode(task);
 
-    session.on('message', (role, content, tokens) => {
+    session.on("message", (role, content, tokens) => {
       emit({
-        type: 'session_message',
+        type: "session_message",
         actor: agentId,
-        data: { session_id: sessionId, role, content, tokens }
-      })
-    })
+        data: { session_id: sessionId, role, content, tokens },
+      });
+    });
 
-    session.on('tool_call', (tool, args, result, tokens) => {
+    session.on("tool_call", (tool, args, result, tokens) => {
       emit({
-        type: 'session_tool_call',
+        type: "session_tool_call",
         actor: agentId,
-        data: { session_id: sessionId, tool, args, result, tokens }
-      })
-    })
+        data: { session_id: sessionId, tool, args, result, tokens },
+      });
+    });
 
-    await session.complete()
+    await session.complete();
 
     emit({
-      type: 'session_ended',
+      type: "session_ended",
       actor: agentId,
       target: task.id,
       data: {
         session_id: sessionId,
-        status: 'success',
+        status: "success",
         total_tokens: session.totalTokens,
-        summary: session.summary
-      }
-    })
-
+        summary: session.summary,
+      },
+    });
   } catch (error) {
     emit({
-      type: 'session_ended',
+      type: "session_ended",
       actor: agentId,
       target: task.id,
       data: {
         session_id: sessionId,
-        status: 'error',
-        error: error.message
-      }
-    })
-    throw error
+        status: "error",
+        error: error.message,
+      },
+    });
+    throw error;
   }
 }
 ```
@@ -558,10 +568,10 @@ km message <target-agent> "Hello"
 
 ## File Size Estimates (Session Data)
 
-| Content | Size per Unit | Daily (10 agents) | Monthly |
-|---------|---------------|-------------------|---------|
-| Session message | ~2KB | 2000 turns = 4MB | 120MB |
-| Session tool call | ~1KB | 1000 calls = 1MB | 30MB |
+| Content           | Size per Unit | Daily (10 agents) | Monthly |
+| ----------------- | ------------- | ----------------- | ------- |
+| Session message   | ~2KB          | 2000 turns = 4MB  | 120MB   |
+| Session tool call | ~1KB          | 1000 calls = 1MB  | 30MB    |
 
 **Total estimate**: 150-200MB/month uncompressed, ~20-30MB compressed.
 

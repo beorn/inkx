@@ -32,10 +32,14 @@ export function getNodeDisplayName(node: Node): string {
  */
 export function getTypeIndicator(type: string): string {
   switch (type) {
-    case "folder": return "/";
-    case "file": return ".md";
-    case "section": return "#";
-    default: return "";
+    case "folder":
+      return "/";
+    case "file":
+      return ".md";
+    case "section":
+      return "#";
+    default:
+      return "";
   }
 }
 
@@ -48,11 +52,11 @@ export function getTypeIndicator(type: string): string {
  */
 export function normalizeName(name: string): string {
   return name
-    .replace(/^#+\s*/, "")        // Remove leading # from sections
-    .replace(/\.md$/i, "")        // Remove .md extension
-    .replace(/[-_]/g, " ")        // Treat - and _ as spaces
-    .replace(/[^\w\s]/g, "")      // Remove special chars
-    .replace(/\s+/g, " ")         // Collapse whitespace
+    .replace(/^#+\s*/, "") // Remove leading # from sections
+    .replace(/\.md$/i, "") // Remove .md extension
+    .replace(/[-_]/g, " ") // Treat - and _ as spaces
+    .replace(/[^\w\s]/g, "") // Remove special chars
+    .replace(/\s+/g, " ") // Collapse whitespace
     .trim()
     .toLowerCase();
 }
@@ -89,7 +93,9 @@ export function getCollapsedTypeSuffix(node: Node): string {
   while (current) {
     const children = getChildren(current.id);
     // Find a child with the same normalized name
-    const matchingChild = children.find(c => normalizeName(getNodeDisplayName(c)) === nodeName);
+    const matchingChild = children.find(
+      (c) => normalizeName(getNodeDisplayName(c)) === nodeName,
+    );
     if (!matchingChild) break;
 
     const childIndicator = getTypeIndicator(matchingChild.type);
@@ -110,7 +116,7 @@ export function getCollapsedTypeSuffix(node: Node): string {
  */
 export interface CollapsedAncestor {
   node: Node;
-  typeSuffix: string;  // e.g., "/ .md" if folder and file were unified
+  typeSuffix: string; // e.g., "/ .md" if folder and file were unified
 }
 
 /**
@@ -121,27 +127,31 @@ export interface CollapsedAncestor {
  * Returns: [{node: projects/, suffix: "/ .md #"}, {node: ## Subtask, suffix: ""}]
  */
 export function collapseRedundantAncestors(ancestors: Node[]): Node[] {
-  return collapseAncestorsWithTypes(ancestors).map(ca => ca.node);
+  return collapseAncestorsWithTypes(ancestors).map((ca) => ca.node);
 }
 
 /**
  * Collapse ancestors and return type suffix information
  */
-export function collapseAncestorsWithTypes(ancestors: Node[]): CollapsedAncestor[] {
+export function collapseAncestorsWithTypes(
+  ancestors: Node[],
+): CollapsedAncestor[] {
   if (ancestors.length === 0) return [];
 
   const result: CollapsedAncestor[] = [];
   let i = 0;
 
   while (i < ancestors.length) {
-    const current = ancestors[i]!;
+    const current = ancestors[i];
+    if (!current) break;
     const currentName = normalizeName(getNodeDisplayName(current));
 
     // Collect all consecutive ancestors with the same normalized name
     const collapsedTypes: string[] = [];
     let j = i;
     while (j < ancestors.length) {
-      const candidate = ancestors[j]!;
+      const candidate = ancestors[j];
+      if (!candidate) break;
       const candidateName = normalizeName(getNodeDisplayName(candidate));
       if (candidateName !== currentName) break;
 
@@ -154,8 +164,10 @@ export function collapseAncestorsWithTypes(ancestors: Node[]): CollapsedAncestor
 
     // If we collapsed multiple items, the LAST one is kept (deepest in hierarchy)
     // and we show all the types as a suffix
-    const keptNode = ancestors[j - 1]!;
-    const typeSuffix = collapsedTypes.length > 1 ? collapsedTypes.join(" ") : "";
+    const keptNode = ancestors[j - 1];
+    if (!keptNode) break;
+    const typeSuffix =
+      collapsedTypes.length > 1 ? collapsedTypes.join(" ") : "";
 
     result.push({ node: keptNode, typeSuffix });
     i = j;

@@ -8,11 +8,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { ulid } from "ulid";
 import { emitNodeCreated, emitNodeUpdated } from "../../node/emit.ts";
-import {
-  getNodeByPath,
-  getAncestors,
-  getDb,
-} from "../../node/db.ts";
+import { getNodeByPath, getAncestors, getDb } from "../../node/db.ts";
 import { parseTaskMetadata, extractTags } from "../../md/parser.ts";
 import type { Node, TaskStatus } from "../../node/types.ts";
 import {
@@ -48,13 +44,15 @@ function formatCollapsedAncestor(ca: CollapsedAncestor): string {
 function formatTaskWithPath(
   task: Node,
   collapsedAncestors: CollapsedAncestor[],
-  options: { verbose?: boolean; flat?: boolean; showId?: boolean } = {}
+  options: { verbose?: boolean; flat?: boolean; showId?: boolean } = {},
 ): string[] {
   const lines: string[] = [];
 
   if (options.flat) {
     // Single line: path → task
-    const pathParts = collapsedAncestors.map((ca) => chalk.dim(formatCollapsedAncestor(ca)));
+    const pathParts = collapsedAncestors.map((ca) =>
+      chalk.dim(formatCollapsedAncestor(ca)),
+    );
     const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : "";
     lines.push(pathStr + formatTaskLine(task, options));
   } else {
@@ -85,7 +83,10 @@ function formatTaskWithPath(
 /**
  * Format the task line itself (checkbox, id, content)
  */
-function formatTaskLine(task: Node, options: { verbose?: boolean; showId?: boolean } = {}): string {
+function formatTaskLine(
+  task: Node,
+  options: { verbose?: boolean; showId?: boolean } = {},
+): string {
   const mark = task.task_mark ?? " ";
   const status = task.task_status ?? "open";
 
@@ -135,9 +136,9 @@ function findNodeByPathOrId(pathOrId: string): Node | null {
   const db = getDb();
 
   // Try exact ID match first
-  let node = db
-    .prepare("SELECT * FROM nodes WHERE id = ?")
-    .get(pathOrId) as Node | undefined;
+  let node = db.prepare("SELECT * FROM nodes WHERE id = ?").get(pathOrId) as
+    | Node
+    | undefined;
   if (node) return node;
 
   // Try ID prefix match
@@ -191,13 +192,19 @@ export const taskCommand = new Command("task")
   .description("Task management - list, add, complete, and assign tasks")
   .argument("[path-or-id]", "Path or ID to scope tasks (optional)")
   .option("-a, --all", "Show all tasks including done")
-  .option("-s, --status <status>", "Filter by status (open, in_progress, done, blocked)")
+  .option(
+    "-s, --status <status>",
+    "Filter by status (open, in_progress, done, blocked)",
+  )
   .option("-v, --verbose", "Show more details")
   .option("-f, --flat", "Show path on single line")
   .option("-i, --id", "Show task IDs")
   .option("--json", "Output as JSON")
   .option("--add <content>", "Add a new task")
-  .option("--done [id]", "Mark task as done (use with path-or-id or provide task id)")
+  .option(
+    "--done [id]",
+    "Mark task as done (use with path-or-id or provide task id)",
+  )
   .option("--assign <user>", "Assign task to user (use with path-or-id)")
   .option("--claim", "Claim task for yourself (use with path-or-id)")
   .option("--release", "Release claimed task (use with path-or-id)")
@@ -246,7 +253,10 @@ taskCommand
   .command("status")
   .description("View or set task status")
   .argument("<id>", "Task ID or prefix")
-  .argument("[new-status]", "New status (open, in_progress, done, blocked, cancelled)")
+  .argument(
+    "[new-status]",
+    "New status (open, in_progress, done, blocked, cancelled)",
+  )
   .option("--json", "Output as JSON")
   .action((id, newStatus, options) => {
     const task = findTask(id);
@@ -259,30 +269,42 @@ taskCommand
     if (!newStatus) {
       // View mode - just show current status
       if (options.json) {
-        console.log(JSON.stringify({
-          id: task.id,
-          status: task.task_status ?? "open",
-          mark: task.task_mark ?? " ",
-          content: task.content,
-        }));
+        console.log(
+          JSON.stringify({
+            id: task.id,
+            status: task.task_status ?? "open",
+            mark: task.task_mark ?? " ",
+            content: task.content,
+          }),
+        );
         return;
       }
 
       const status = task.task_status ?? "open";
-      const statusIcon = status === "done"
-        ? chalk.green("✓")
-        : status === "in_progress"
-          ? chalk.yellow("●")
-          : status === "blocked"
-            ? chalk.red("✗")
-            : chalk.dim("○");
+      const statusIcon =
+        status === "done"
+          ? chalk.green("✓")
+          : status === "in_progress"
+            ? chalk.yellow("●")
+            : status === "blocked"
+              ? chalk.red("✗")
+              : chalk.dim("○");
 
-      console.log(`${statusIcon} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`);
+      console.log(
+        `${statusIcon} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`,
+      );
       return;
     }
 
     // Set mode - update the status
-    const validStatuses = ["open", "in_progress", "done", "blocked", "waiting", "cancelled"];
+    const validStatuses = [
+      "open",
+      "in_progress",
+      "done",
+      "blocked",
+      "waiting",
+      "cancelled",
+    ];
     if (!validStatuses.includes(newStatus)) {
       console.error(chalk.red(`Invalid status: ${newStatus}`));
       console.error(chalk.dim(`Valid statuses: ${validStatuses.join(", ")}`));
@@ -301,16 +323,17 @@ taskCommand
       return;
     }
 
-    const statusIcon = newStatus === "done"
-      ? chalk.green("✓")
-      : newStatus === "in_progress"
-        ? chalk.yellow("●")
-        : newStatus === "blocked"
-          ? chalk.red("✗")
-          : chalk.dim("○");
+    const statusIcon =
+      newStatus === "done"
+        ? chalk.green("✓")
+        : newStatus === "in_progress"
+          ? chalk.yellow("●")
+          : newStatus === "blocked"
+            ? chalk.red("✗")
+            : chalk.dim("○");
 
     console.log(
-      `${statusIcon} ${chalk.dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`
+      `${statusIcon} ${chalk.dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
     );
   });
 
@@ -339,8 +362,8 @@ function getMarkForStatus(status: TaskStatus): string {
  */
 interface TaskWithAncestors {
   task: Node;
-  collapsedAncestors: CollapsedAncestor[];  // Collapsed with type suffixes
-  ancestorKeys: string[];                    // For sorting/grouping by normalized name
+  collapsedAncestors: CollapsedAncestor[]; // Collapsed with type suffixes
+  ancestorKeys: string[]; // For sorting/grouping by normalized name
 }
 
 /**
@@ -366,7 +389,9 @@ function buildTaskTree(tasks: Node[]): TaskWithAncestors[] {
 /**
  * Sort tasks so those with shared paths are adjacent
  */
-function sortByPath(tasksWithAncestors: TaskWithAncestors[]): TaskWithAncestors[] {
+function sortByPath(
+  tasksWithAncestors: TaskWithAncestors[],
+): TaskWithAncestors[] {
   return tasksWithAncestors.sort((a, b) => {
     // Compare ancestor paths by keys (fs_path/slug/content), not IDs
     const minLen = Math.min(a.ancestorKeys.length, b.ancestorKeys.length);
@@ -384,7 +409,11 @@ function sortByPath(tasksWithAncestors: TaskWithAncestors[]): TaskWithAncestors[
  * Default: segment starts with filter (case-insensitive)
  * With *filter*: contains filter anywhere
  */
-function segmentMatches(segment: string, filter: string, mode: "prefix" | "contains"): boolean {
+function segmentMatches(
+  segment: string,
+  filter: string,
+  mode: "prefix" | "contains",
+): boolean {
   const segmentLower = segment.toLowerCase();
   const filterLower = filter.toLowerCase();
 
@@ -467,7 +496,7 @@ function listTasks(
     flat?: boolean;
     id?: boolean;
     json?: boolean;
-  }
+  },
 ): void {
   const db = getDb();
   let tasks: Node[];
@@ -502,11 +531,14 @@ function listTasks(
         sql += " AND task_status IN ('open', 'in_progress')";
       }
 
-      sql += " ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC";
+      sql +=
+        " ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC";
       const allTasks = db.prepare(sql).all(...params) as Node[];
 
       // Filter by path match
-      tasks = allTasks.filter((t) => taskPathMatches(t, pathFilter!));
+      tasks = allTasks.filter(
+        (t) => pathFilter && taskPathMatches(t, pathFilter),
+      );
     }
 
     // Apply status filter for root node case
@@ -515,7 +547,7 @@ function listTasks(
         tasks = tasks.filter((t) => t.task_status === options.status);
       } else if (!options.all) {
         tasks = tasks.filter(
-          (t) => t.task_status === "open" || t.task_status === "in_progress"
+          (t) => t.task_status === "open" || t.task_status === "in_progress",
         );
       }
     }
@@ -594,7 +626,8 @@ function listTasks(
     // Count fs depth (folders/files) before divergence point
     let fsDepth = 0;
     for (let i = 0; i < divergeIndex && i < collapsedAncestors.length; i++) {
-      if (collapsedAncestors[i]!.node.type !== "section") {
+      const ca = collapsedAncestors[i];
+      if (ca && ca.node.type !== "section") {
         fsDepth++;
       }
     }
@@ -604,7 +637,8 @@ function listTasks(
     // - Sections: same indent as their file (# prefix shows heading level)
     let hasSection = false;
     for (let i = divergeIndex; i < collapsedAncestors.length; i++) {
-      const ca = collapsedAncestors[i]!;
+      const ca = collapsedAncestors[i];
+      if (!ca) continue;
       const prefix = " ".repeat(fsDepth);
       console.log(prefix + chalk.dim(formatCollapsedAncestor(ca)));
       if (ca.node.type === "section") {
@@ -625,7 +659,7 @@ function listTasks(
     const taskPrefix = " ".repeat(taskIndent);
     console.log(
       taskPrefix +
-        formatTaskLine(task, { verbose: options.verbose, showId: options.id })
+        formatTaskLine(task, { verbose: options.verbose, showId: options.id }),
     );
 
     previousAncestorKeys = ancestorKeys;
@@ -638,10 +672,7 @@ function listTasks(
 /**
  * Show task details
  */
-function showTaskDetails(
-  task: Node,
-  options: { json?: boolean }
-): void {
+function showTaskDetails(task: Node, options: { json?: boolean }): void {
   if (options.json) {
     console.log(JSON.stringify(task, null, 2));
     return;
@@ -651,13 +682,18 @@ function showTaskDetails(
   console.log(chalk.dim("Status:"), task.task_status ?? "open");
   console.log(chalk.dim("Content:"), task.content ?? "(none)");
   if (task.due_date) console.log(chalk.dim("Due:"), task.due_date);
-  if (task.scheduled_date)
+  if (task.scheduled_date) {
     console.log(chalk.dim("Scheduled:"), task.scheduled_date);
+  }
   if (task.priority) console.log(chalk.dim("Priority:"), task.priority);
   if (task.assigned_to) console.log(chalk.dim("Assigned:"), task.assigned_to);
-  if (task.parent_id)
+  if (task.parent_id) {
     console.log(chalk.dim("Parent:"), task.parent_id.slice(0, 8));
-  console.log(chalk.dim("Created:"), new Date(task.created_at!).toISOString());
+  }
+  console.log(
+    chalk.dim("Created:"),
+    new Date(task.created_at ?? Date.now()).toISOString(),
+  );
 
   // Show child tasks if any
   const children = getTasksUnderNode(task.id);
@@ -676,7 +712,7 @@ function showTaskDetails(
 function addTask(
   pathOrId: string | undefined,
   content: string,
-  options: { json?: boolean }
+  options: { json?: boolean },
 ): void {
   // Parse metadata from content
   const metadata = parseTaskMetadata(content);
@@ -720,7 +756,7 @@ function addTask(
  */
 function markDone(
   pathOrId: string | undefined,
-  options: { json?: boolean }
+  options: { json?: boolean },
 ): void {
   if (!pathOrId) {
     console.error(chalk.red("Task ID or path required"));
@@ -751,7 +787,7 @@ function markDone(
  */
 function claimTask(
   pathOrId: string | undefined,
-  options: { json?: boolean }
+  options: { json?: boolean },
 ): void {
   if (!pathOrId) {
     console.error(chalk.red("Task ID or path required"));
@@ -772,7 +808,13 @@ function claimTask(
   });
 
   if (options.json) {
-    console.log(JSON.stringify({ id: task.id, status: "in_progress", assigned_to: actor }));
+    console.log(
+      JSON.stringify({
+        id: task.id,
+        status: "in_progress",
+        assigned_to: actor,
+      }),
+    );
     return;
   }
 
@@ -784,7 +826,7 @@ function claimTask(
  */
 function releaseTask(
   pathOrId: string | undefined,
-  options: { json?: boolean }
+  options: { json?: boolean },
 ): void {
   if (!pathOrId) {
     console.error(chalk.red("Task ID or path required"));
@@ -804,7 +846,9 @@ function releaseTask(
   });
 
   if (options.json) {
-    console.log(JSON.stringify({ id: task.id, status: "open", assigned_to: null }));
+    console.log(
+      JSON.stringify({ id: task.id, status: "open", assigned_to: null }),
+    );
     return;
   }
 
@@ -817,7 +861,7 @@ function releaseTask(
 function assignTask(
   pathOrId: string | undefined,
   user: string,
-  options: { json?: boolean }
+  options: { json?: boolean },
 ): void {
   if (!pathOrId) {
     console.error(chalk.red("Task ID or path required"));

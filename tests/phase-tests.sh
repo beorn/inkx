@@ -203,7 +203,7 @@ test_phase4() {
   pass "cli/index.ts has correct structure"
 
   # Check commands are registered
-  grep -q "tasksCommand" src/cli/index.ts || fail "tasks command not registered"
+  grep -q "taskCommand" src/cli/index.ts || fail "task command not registered"
   grep -q "showCommand" src/cli/index.ts || fail "show command not registered"
   grep -q "treeCommand" src/cli/index.ts || fail "tree command not registered"
   grep -q "syncCommand" src/cli/index.ts || fail "sync command not registered"
@@ -287,8 +287,8 @@ test_phase6() {
   TEST_DIR=$(mktemp -d)
   mkdir -p "$TEST_DIR/.km"
 
-  # Set KM_PATH for tests
-  export KM_PATH="$TEST_DIR/.km"
+  # Set KM_DIR for tests
+  export KM_DIR="$TEST_DIR/.km"
 
   # Clean up on exit
   trap "rm -rf $TEST_DIR" EXIT
@@ -301,13 +301,13 @@ test_phase6() {
   bun src/cli/index.ts rebuild --status >/dev/null 2>&1 || fail "km rebuild --status failed"
   pass "km rebuild --status works"
 
-  # Test km tasks (should work with empty db)
-  bun src/cli/index.ts tasks >/dev/null 2>&1 || fail "km tasks failed"
-  pass "km tasks works"
+  # Test km task (should work with empty db)
+  bun src/cli/index.ts task >/dev/null 2>&1 || fail "km task failed"
+  pass "km task works"
 
-  # Test km tasks list (should work with empty db)
-  bun src/cli/index.ts tasks list >/dev/null 2>&1 || fail "km tasks list failed"
-  pass "km tasks list works"
+  # Test km task list (should work with empty db)
+  bun src/cli/index.ts task list >/dev/null 2>&1 || fail "km task list failed"
+  pass "km task list works"
 
   # Test km tree (should work with empty db)
   bun src/cli/index.ts tree >/dev/null 2>&1 || fail "km tree failed"

@@ -6,7 +6,12 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { rebuildState, fullReset, syncState, freshStart } from "../../node/rebuild.ts";
+import {
+  rebuildState,
+  fullReset,
+  syncState,
+  freshStart,
+} from "../../node/rebuild.ts";
 import { getDbPath, getLastEventId } from "../../node/db.ts";
 import { getEventsPath } from "../../node/emit.ts";
 import { existsSync, statSync } from "fs";
@@ -25,7 +30,10 @@ export const rebuildCommand = new Command("rebuild")
     if (options.fresh) {
       console.log(chalk.yellow("Fresh start - deleting all .km data..."));
       freshStart();
-      console.log(chalk.green("✓"), "Fresh start complete - .km directory cleared");
+      console.log(
+        chalk.green("✓"),
+        "Fresh start complete - .km directory cleared",
+      );
       return;
     }
 
@@ -70,13 +78,13 @@ function showStatus(): void {
     const stat = statSync(dbPath);
     console.log(chalk.dim("Database:"), dbPath);
     console.log(chalk.dim("  Size:"), formatSize(stat.size));
-    console.log(
-      chalk.dim("  Modified:"),
-      new Date(stat.mtimeMs).toISOString()
-    );
+    console.log(chalk.dim("  Modified:"), new Date(stat.mtimeMs).toISOString());
 
     const lastEvent = getLastEventId();
-    console.log(chalk.dim("  Last event:"), lastEvent?.slice(0, 13) ?? "(none)");
+    console.log(
+      chalk.dim("  Last event:"),
+      lastEvent?.slice(0, 13) ?? "(none)",
+    );
   } else {
     console.log(chalk.yellow("Database:"), "Not found");
   }
@@ -88,10 +96,7 @@ function showStatus(): void {
     const stat = statSync(eventsPath);
     console.log(chalk.dim("Events:"), eventsPath);
     console.log(chalk.dim("  Size:"), formatSize(stat.size));
-    console.log(
-      chalk.dim("  Modified:"),
-      new Date(stat.mtimeMs).toISOString()
-    );
+    console.log(chalk.dim("  Modified:"), new Date(stat.mtimeMs).toISOString());
   } else {
     console.log(chalk.yellow("Events:"), "Not found");
   }

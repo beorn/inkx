@@ -41,12 +41,23 @@ export function runBoardStatic(state: BoardState): void {
 /**
  * Entry point for the board command
  */
-export async function runBoard(rootId?: string, interactive: boolean = true): Promise<void> {
+export async function runBoard(
+  rootId?: string,
+  interactive: boolean = true,
+  rootPath?: string,
+): Promise<void> {
   const state = initBoardState(rootId);
 
   if (!state) {
-    console.error(chalk.red("No board found. Create a board node or specify a root ID."));
+    console.error(
+      chalk.red("No board found. Create a board node or specify a root ID."),
+    );
     process.exit(1);
+  }
+
+  // Set the filesystem path for display in the TUI header
+  if (rootPath) {
+    state.rootPath = rootPath;
   }
 
   if (interactive) {

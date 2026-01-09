@@ -11,7 +11,9 @@
 import { existsSync, statSync } from "fs";
 import { resolve } from "path";
 import { Command } from "commander";
+import chalk from "chalk";
 import { ensureState } from "../node/rebuild.ts";
+import { getStore } from "../node/store.ts";
 import { showCommand } from "./commands/show.ts";
 import { treeCommand } from "./commands/tree.ts";
 import { syncCommand } from "./commands/sync.ts";
@@ -25,38 +27,61 @@ import { initCommand } from "./commands/init.ts";
 
 const program = new Command();
 
+// Global state for resolved root path (set in preAction, used by commands)
+let resolvedRootPath: string | undefined;
+// Track whether root was explicitly set (vs falling back to cwd)
+let rootExplicitlySet = false;
+
+/**
+ * Get the resolved root path (for use by commands that need it)
+ */
+export function getRootPath(): string | undefined {
+  return resolvedRootPath;
+}
+
+/**
+ * Check if root was explicitly set (via --root or KM_ROOT)
+ */
+export function wasRootExplicit(): boolean {
+  return rootExplicitlySet;
+}
+
 program
   .name("km")
   .description("Knowledge Machine - The agentic work desk")
-  .version("0.1.0");
+  .version("0.1.0")
+  .option(
+    "-r, --root <path>",
+    "Root directory to operate on (overrides KM_ROOT env var)",
+  );
 
 /**
- * Extract root path from command arguments
- * Returns the first argument if it's a valid directory path
+ * Resolve a path argument to an absolute directory path
+ * Expands ~ and validates the path exists and is a directory
  */
-function extractRootPath(cmd: Command): string | undefined {
-  const args = cmd.args;
-  if (args.length === 0) return undefined;
-
-  const firstArg = args[0];
-  if (!firstArg) return undefined;
-
-  // Check if it looks like a path (starts with /, ./, ~, or ..)
-  if (!firstArg.startsWith("/") && !firstArg.startsWith("./") &&
-      !firstArg.startsWith("~/") && !firstArg.startsWith("..")) {
-    return undefined;
-  }
-
+function resolvePath(path: string): string | undefined {
   // Expand ~ to home directory
-  const expanded = firstArg.startsWith("~")
-    ? firstArg.replace("~", process.env.HOME || "")
-    : firstArg;
+  const expanded = path.startsWith("~")
+    ? path.replace("~", process.env.HOME || "")
+    : path;
   const resolved = resolve(expanded);
 
   if (existsSync(resolved) && statSync(resolved).isDirectory()) {
     return resolved;
   }
 
+  return undefined;
+}
+
+/**
+ * Get root path from options, env var, or default to cwd
+ */
+function getRootFromOptions(opts: { root?: string }): string | undefined {
+  // Priority: --root option > KM_ROOT env var > undefined (use cwd)
+  const rootArg = opts.root || process.env.KM_ROOT;
+  if (rootArg) {
+    return resolvePath(rootArg);
+  }
   return undefined;
 }
 
@@ -68,27 +93,43 @@ program.hook("preAction", (thisCommand, actionCommand) => {
     return;
   }
 
-  // Check if a path argument was provided
-  const rootPath = extractRootPath(actionCommand ?? thisCommand);
-  ensureState(rootPath);
+  // Get root path from global options or env var
+  const opts = thisCommand.opts() as { root?: string };
+  resolvedRootPath = getRootFromOptions(opts);
+  rootExplicitlySet = !!(opts.root || process.env.KM_ROOT);
+
+  // ensureState will search for .km/ if no explicit root was set
+  // If root was explicit, don't search ancestors - use the path directly
+  ensureState(resolvedRootPath, !rootExplicitlySet);
+
+  // Warn if using cwd in memory mode (no .km/ found, no explicit root)
+  const store = getStore();
+  if (!rootExplicitlySet && store.mode === "memory") {
+    console.error(chalk.yellow(`Using current directory: ${store.rootPath}`));
+    console.error(
+      chalk.yellow(
+        `Hint: Use --root <path> or set KM_ROOT, or run 'km init' for disk mode\n`,
+      ),
+    );
+  }
 });
 
 // Register commands
 // Core views
-program.addCommand(listCommand);      // km list [query] / km ls - list nodes
-program.addCommand(treeCommand);      // km tree [query] - show node hierarchy
-program.addCommand(showCommand);      // km show <id> - show node details
-program.addCommand(boardCommand);     // km board [query] - interactive kanban TUI
-program.addCommand(searchCommand);    // km search <query> - full-text search
+program.addCommand(listCommand); // km list [query] / km ls - list nodes
+program.addCommand(treeCommand); // km tree [query] - show node hierarchy
+program.addCommand(showCommand); // km show <id> - show node details
+program.addCommand(boardCommand); // km board [query] - interactive kanban TUI
+program.addCommand(searchCommand); // km search <query> - full-text search
 
 // Task commands
-program.addCommand(taskCommand);      // km task - task management (list, status, assign, etc.)
+program.addCommand(taskCommand); // km task - task management (list, status, assign, etc.)
 
 // Actions
-program.addCommand(initCommand);      // km init - create .km/ for disk mode
-program.addCommand(syncCommand);      // km sync - sync filesystem
-program.addCommand(watchCommand);     // km watch - watch for changes
-program.addCommand(rebuildCommand);   // km rebuild - rebuild state
+program.addCommand(initCommand); // km init - create .km/ for disk mode
+program.addCommand(syncCommand); // km sync - sync filesystem
+program.addCommand(watchCommand); // km watch - watch for changes
+program.addCommand(rebuildCommand); // km rebuild - rebuild state
 
 // Default to help if no command specified
 program.action(() => {

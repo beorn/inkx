@@ -46,9 +46,10 @@ export function parseMarkdown(content: string): Root {
  * Extract frontmatter from markdown content
  * Returns { frontmatter, content } where content has frontmatter removed
  */
-export function extractFrontmatter(
-  content: string
-): { frontmatter: string | null; body: string } {
+export function extractFrontmatter(content: string): {
+  frontmatter: string | null;
+  body: string;
+} {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
 
   if (match) {
@@ -69,11 +70,14 @@ export function extractFrontmatter(
  */
 export function extractTaskMark(
   content: string,
-  position?: { start: { offset: number } }
+  position?: { start: { offset: number } },
 ): string | undefined {
   if (!position) return undefined;
 
-  const slice = content.slice(position.start.offset, position.start.offset + 20);
+  const slice = content.slice(
+    position.start.offset,
+    position.start.offset + 20,
+  );
   const match = slice.match(/^\s*[-*+]\s*\[([ xX/\-12?])\]/);
 
   return match?.[1];
@@ -84,7 +88,8 @@ export function extractTaskMark(
  */
 export function parseWikiLinks(text: string): WikiLink[] {
   const links: WikiLink[] = [];
-  const regex = /\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g;
+  const regex =
+    /\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g;
 
   let match;
   while ((match = regex.exec(text)) !== null) {

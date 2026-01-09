@@ -9,10 +9,10 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync, writeFileSync } from "fs";
 import { join } from "path";
 
-// Test directories - KM_PATH is set in beforeEach via setKmPath()
+// Test directories - KM_DIR is set in beforeEach via setKmDir()
 const TEST_DIR = join(import.meta.dir, ".test-sync");
 const VAULT_DIR = join(TEST_DIR, "vault");
-const KM_PATH = join(TEST_DIR, ".km");
+const KM_DIR = join(TEST_DIR, ".km");
 
 import {
   getDb,
@@ -25,7 +25,7 @@ import {
   getAncestors,
 } from "../src/node/db.ts";
 
-import { setKmPath, setDatabase } from "../src/node/emit.ts";
+import { setKmDir, setDatabase } from "../src/node/emit.ts";
 import { SyncManager } from "../src/watch/sync.ts";
 
 describe("Sync Integration", () => {
@@ -36,10 +36,10 @@ describe("Sync Integration", () => {
     }
     mkdirSync(TEST_DIR, { recursive: true });
     mkdirSync(VAULT_DIR, { recursive: true });
-    mkdirSync(KM_PATH, { recursive: true });
+    mkdirSync(KM_DIR, { recursive: true });
 
     // Configure emit to use test directory and connect to database
-    setKmPath(KM_PATH);
+    setKmDir(KM_DIR);
     setDatabase({ applyEvent });
 
     // Reset database
@@ -65,7 +65,7 @@ This is a paragraph.
 
 - [ ] Open task
 - [x] Completed task
-`
+`,
       );
 
       // Sync from filesystem
@@ -146,7 +146,7 @@ tags: [test, fixture]
 # Content Section
 
 Some content here.
-`
+`,
       );
 
       const manager = new SyncManager({
@@ -176,7 +176,7 @@ Some content here.
 - [ ] High priority task ⏫
 - [ ] Task with scheduled date ⏳ 2025-03-10
 - [x] Completed task
-`
+`,
       );
 
       const manager = new SyncManager({
@@ -202,7 +202,9 @@ Some content here.
       expect(highPriorityTask).toBeDefined();
 
       // Verify task with scheduled date
-      const scheduledTask = tasks.find((t) => t.scheduled_date === "2025-03-10");
+      const scheduledTask = tasks.find(
+        (t) => t.scheduled_date === "2025-03-10",
+      );
       expect(scheduledTask).toBeDefined();
     });
 
@@ -246,7 +248,7 @@ Paragraph text.
 \`\`\`javascript
 code
 \`\`\`
-`
+`,
       );
 
       const manager = new SyncManager({
@@ -293,7 +295,7 @@ code
 - [ ] Parent task
   - [ ] Child task 1
   - [x] Child task 2
-`
+`,
       );
 
       const manager = new SyncManager({
@@ -474,7 +476,7 @@ code
 ## Sprint 1
 
 - [ ] Complete the feature
-`
+`,
       );
 
       const manager = new SyncManager({
@@ -534,13 +536,13 @@ code
 
       // Should only have ONE folder node for 'multi'
       const folderNodes = allNodes.filter(
-        (n) => n.type === "folder" && n.fs_path === subFolder
+        (n) => n.type === "folder" && n.fs_path === subFolder,
       );
       expect(folderNodes.length).toBe(1);
 
       // All three files should have the same parent_id
       const fileNodes = allNodes.filter(
-        (n) => n.type === "file" && n.fs_path?.startsWith(subFolder)
+        (n) => n.type === "file" && n.fs_path?.startsWith(subFolder),
       );
       expect(fileNodes.length).toBe(3);
 

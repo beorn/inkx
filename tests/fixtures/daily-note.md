@@ -15,17 +15,20 @@ tags: [journal, planning]
 ## Focus Time
 
 ### Project Alpha
+
 - [ ] Complete feature spec ⏫ 📅 2025-01-10
 - [ ] Review code changes
 - [x] Completed unit tests
 
 ### Admin
+
 - [ ] Submit expense report
 - [x] Finished meeting prep
 
 ## Evening Reflection
 
 Today was productive. Key accomplishments:
+
 - Finished the API design
 - Fixed 3 bugs
 - Helped onboard new team member

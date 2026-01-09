@@ -62,7 +62,7 @@ export const claimCommand = new Command("claim")
 
     if (node.assigned_to) {
       console.error(
-        chalk.yellow(`Task already assigned to: ${node.assigned_to}`)
+        chalk.yellow(`Task already assigned to: ${node.assigned_to}`),
       );
       process.exit(1);
     }
@@ -133,7 +133,7 @@ export const statusCommand = new Command("status")
       console.error(
         chalk.red(`Invalid status: ${status}`),
         "\nValid:",
-        validStatuses.join(", ")
+        validStatuses.join(", "),
       );
       process.exit(1);
     }
@@ -141,7 +141,11 @@ export const statusCommand = new Command("status")
     const actor = process.env.USER ?? "user";
     emitNodeUpdated(id, { task_status: status }, actor);
 
-    console.log(chalk.cyan("→"), `Status changed to ${status}:`, id.slice(0, 8));
+    console.log(
+      chalk.cyan("→"),
+      `Status changed to ${status}:`,
+      id.slice(0, 8),
+    );
   });
 
 /**

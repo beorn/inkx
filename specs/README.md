@@ -22,39 +22,39 @@ For full features (history, sync), initialize with `km init`.
 
 ## Reading Order
 
-| # | Spec | Description |
-|---|------|-------------|
-| 1 | [Overview](km-overview.md) | Design principles, architecture, quick reference |
-| 2 | [Data Model](km-data-model.md) | Nodes, events, storage schema |
-| 3 | [Store](km-store.md) | Persisted vs in-memory modes |
-| 4 | [UI](km-ui.md) | Views, collapsing, formatting |
-| 5 | [CLI](km-cli.md) | Commands and TUI |
+| #   | Spec                           | Description                                      |
+| --- | ------------------------------ | ------------------------------------------------ |
+| 1   | [Overview](km-overview.md)     | Design principles, architecture, quick reference |
+| 2   | [Data Model](km-data-model.md) | Nodes, events, storage schema                    |
+| 3   | [Store](km-store.md)           | Persisted vs in-memory modes                     |
+| 4   | [UI](km-ui.md)                 | Views, collapsing, formatting                    |
+| 5   | [CLI](km-cli.md)               | Commands and TUI                                 |
 
 ### Supporting Specs
 
-| Spec | Description | Status |
-|------|-------------|--------|
-| [Markdown](km-markdown.md) | Parsing, AST conversion | Implemented |
-| [Watch](km-watch.md) | Bidirectional filesystem sync | Persisted mode |
-| [Agents](km-agents.md) | AI agent orchestration | Future |
+| Spec                       | Description                   | Status         |
+| -------------------------- | ----------------------------- | -------------- |
+| [Markdown](km-markdown.md) | Parsing, AST conversion       | Implemented    |
+| [Watch](km-watch.md)       | Bidirectional filesystem sync | Persisted mode |
+| [Agents](km-agents.md)     | AI agent orchestration        | Future         |
 
 ---
 
 ## Glossary
 
-| Term | Definition |
-|------|------------|
-| **fs-tree** | Raw filesystem: folders, files, markdown content. Source of truth. |
-| **km-tree** | Unified node hierarchy in SQLite. Queryable. |
-| **ui-tree** | Render-time transformation with collapsing and formatting. |
-| **node** | Everything is a node: folder, file, section, task, paragraph, etc. |
-| **collapsing** | Unifying same-named folder/file/section into one display line. |
-| **memory mode** | No `.km/`. SQLite in RAM. Rebuilt each run. Ephemeral IDs. |
-| **disk mode** | `.km/` exists. SQLite on disk. Full tracking: events, history, stable IDs, sync. |
-| **agent** | An AI agent that can claim and execute tasks. |
-| **harness** | A preconfigured set of tools and data connectors for an agent. |
-| **queue** | Tasks assigned to an agent, awaiting execution. |
-| **Kimmi** | The default built-in agent / assistant. |
+| Term            | Definition                                                                       |
+| --------------- | -------------------------------------------------------------------------------- |
+| **fs-tree**     | Raw filesystem: folders, files, markdown content. Source of truth.               |
+| **km-tree**     | Unified node hierarchy in SQLite. Queryable.                                     |
+| **ui-tree**     | Render-time transformation with collapsing and formatting.                       |
+| **node**        | Everything is a node: folder, file, section, task, paragraph, etc.               |
+| **collapsing**  | Unifying same-named folder/file/section into one display line.                   |
+| **memory mode** | No `.km/`. SQLite in RAM. Rebuilt each run. Ephemeral IDs.                       |
+| **disk mode**   | `.km/` exists. SQLite on disk. Full tracking: events, history, stable IDs, sync. |
+| **agent**       | An AI agent that can claim and execute tasks.                                    |
+| **harness**     | A preconfigured set of tools and data connectors for an agent.                   |
+| **queue**       | Tasks assigned to an agent, awaiting execution.                                  |
+| **Kimmi**       | The default built-in agent / assistant.                                          |
 
 ---
 

@@ -256,7 +256,7 @@ export function matchesPattern(path: string, pattern: string): boolean {
 export function shouldIgnore(
   path: string,
   patterns: string[],
-  vaultPath?: string
+  vaultPath?: string,
 ): boolean {
   // Normalize path for matching
   const normalizedPath = vaultPath ? relative(vaultPath, path) : path;

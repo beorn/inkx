@@ -25,6 +25,7 @@ export { getNodeDisplayName };
 export function createEmptyState(): BoardState {
   return {
     rootId: null,
+    rootPath: null,
     columns: [],
     colIndex: 0,
     cardIndex: 0,
@@ -66,7 +67,7 @@ export function initBoardState(rootId?: string): BoardState | null {
     if (!groups.has(name)) {
       groups.set(name, []);
     }
-    groups.get(name)!.push(root);
+    groups.get(name)?.push(root);
   }
 
   // Build columns from grouped roots
@@ -98,6 +99,7 @@ export function initBoardState(rootId?: string): BoardState | null {
 
   return {
     rootId: null, // null means "root level"
+    rootPath: null,
     columns,
     colIndex: 0,
     cardIndex: 0,
@@ -129,6 +131,7 @@ export function buildBoardState(rootId: string): BoardState {
 
   return {
     rootId,
+    rootPath: null, // Will be set by caller if needed
     columns,
     colIndex: 0,
     cardIndex: 0,
@@ -141,7 +144,6 @@ export function buildBoardState(rootId: string): BoardState {
     zoomStack: [],
   };
 }
-
 
 /**
  * Get the current card (if any)
@@ -164,7 +166,7 @@ export function getCurrentColumn(state: BoardState): ColumnState | null {
  */
 export function handleKey(
   state: BoardState,
-  key: string
+  key: string,
 ): { state: BoardState; action: BoardAction } {
   // Clone state for immutability
   const newState = { ...state };
@@ -202,16 +204,19 @@ export function handleKey(
       newState.colIndex = Math.max(0, state.colIndex - 1);
       newState.cardIndex = Math.min(
         state.cardIndex,
-        (state.columns[newState.colIndex]?.cards.length || 1) - 1
+        (state.columns[newState.colIndex]?.cards.length || 1) - 1,
       );
       return { state: newState, action: null };
 
     case "l":
     case "\x06": // Ctrl+F
-      newState.colIndex = Math.min(state.columns.length - 1, state.colIndex + 1);
+      newState.colIndex = Math.min(
+        state.columns.length - 1,
+        state.colIndex + 1,
+      );
       newState.cardIndex = Math.min(
         state.cardIndex,
-        (state.columns[newState.colIndex]?.cards.length || 1) - 1
+        (state.columns[newState.colIndex]?.cards.length || 1) - 1,
       );
       return { state: newState, action: null };
 
@@ -233,7 +238,10 @@ export function handleKey(
     case "j":
     case "\x0E": // Ctrl+N
       if (col) {
-        newState.cardIndex = Math.min(col.cards.length - 1, state.cardIndex + 1);
+        newState.cardIndex = Math.min(
+          col.cards.length - 1,
+          state.cardIndex + 1,
+        );
         if (state.visualMode) {
           const newCard = col.cards[newState.cardIndex];
           if (newCard) {
@@ -352,7 +360,7 @@ export function handleKey(
  */
 export function handleSearchKey(
   state: BoardState,
-  key: string
+  key: string,
 ): { state: BoardState; exitSearch: boolean } {
   const newState = { ...state };
 

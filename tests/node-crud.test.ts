@@ -8,7 +8,7 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
-// Test directory - KM_PATH is set in beforeEach via setKmPath()
+// Test directory - KM_DIR is set in beforeEach via setKmDir()
 const TEST_DIR = join(import.meta.dir, ".test-km");
 
 import {
@@ -35,7 +35,7 @@ import {
   emitTaskClaimed,
   emitTaskReleased,
   emitTaskCompleted,
-  setKmPath,
+  setKmDir,
   setDatabase,
 } from "../src/node/emit.ts";
 
@@ -49,7 +49,7 @@ function createTestNode(
   type: NodeType,
   content?: string,
   parentId?: string | null,
-  extra?: Record<string, unknown>
+  extra?: Record<string, unknown>,
 ): Event {
   const id = ulid();
   return emitNodeCreated("test-user", {
@@ -70,7 +70,7 @@ describe("Node CRUD Operations", () => {
     mkdirSync(TEST_DIR, { recursive: true });
 
     // Configure emit to use test directory and connect to database
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     setDatabase({ applyEvent });
 
     // Reset database
@@ -121,7 +121,7 @@ describe("Node CRUD Operations", () => {
         {
           md_slug: "introduction",
           md_pos: 0,
-        }
+        },
       );
 
       const section = getNode(sectionEvent.data.id as string);
@@ -134,7 +134,7 @@ describe("Node CRUD Operations", () => {
     test("should create paragraph node", () => {
       const event = createTestNode(
         "paragraph",
-        "This is a test paragraph with **bold** text."
+        "This is a test paragraph with **bold** text.",
       );
 
       const node = getNode(event.data.id as string);
@@ -146,7 +146,7 @@ describe("Node CRUD Operations", () => {
     test("should create quote node", () => {
       const event = createTestNode(
         "quote",
-        "To be or not to be, that is the question."
+        "To be or not to be, that is the question.",
       );
 
       const node = getNode(event.data.id as string);
@@ -189,9 +189,14 @@ describe("Node CRUD Operations", () => {
       ];
 
       for (const status of statuses) {
-        const event = createTestNode("task", `Task with status: ${status}`, null, {
-          task_status: status,
-        });
+        const event = createTestNode(
+          "task",
+          `Task with status: ${status}`,
+          null,
+          {
+            task_status: status,
+          },
+        );
 
         const node = getNode(event.data.id as string);
         expect(node!.task_status).toBe(status);
@@ -275,7 +280,7 @@ describe("Node CRUD Operations", () => {
         folderEvent.data.id as string,
         {
           fs_path: "/projects/readme.md",
-        }
+        },
       );
 
       const sectionEvent = createTestNode(
@@ -284,13 +289,13 @@ describe("Node CRUD Operations", () => {
         fileEvent.data.id as string,
         {
           md_slug: "getting-started",
-        }
+        },
       );
 
       const paragraphEvent = createTestNode(
         "paragraph",
         "Welcome to the project!",
-        sectionEvent.data.id as string
+        sectionEvent.data.id as string,
       );
 
       // Verify hierarchy
@@ -382,7 +387,9 @@ describe("Node CRUD Operations", () => {
     test("should search nodes by content", () => {
       createTestNode("paragraph", "The quick brown fox");
       createTestNode("paragraph", "The lazy dog");
-      createTestNode("task", "Fix the fox issue", null, { task_status: "open" });
+      createTestNode("task", "Fix the fox issue", null, {
+        task_status: "open",
+      });
 
       const results = search("fox");
       expect(results.length).toBe(2);
@@ -523,12 +530,12 @@ describe("Node CRUD Operations", () => {
       const section = createTestNode(
         "section",
         "Parent",
-        folder1.data.id as string
+        folder1.data.id as string,
       );
       const paragraph = createTestNode(
         "paragraph",
         "Child",
-        section.data.id as string
+        section.data.id as string,
       );
 
       const sectionId = section.data.id as string;
@@ -696,7 +703,11 @@ describe("Node CRUD Operations", () => {
       });
 
       // Complete task
-      emitTaskCompleted(taskId, "developer-1", "Feature implemented and tested");
+      emitTaskCompleted(
+        taskId,
+        "developer-1",
+        "Feature implemented and tested",
+      );
       task = getNode(taskId);
       expect(task!.task_status).toBe("done");
       expect(task!.task_mark).toBe("x");

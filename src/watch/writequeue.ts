@@ -4,7 +4,13 @@
  * Manages pending filesystem writes with debouncing
  */
 
-import { writeFileSync, mkdirSync, unlinkSync, renameSync, existsSync } from "fs";
+import {
+  writeFileSync,
+  mkdirSync,
+  unlinkSync,
+  renameSync,
+  existsSync,
+} from "fs";
 import { dirname } from "path";
 import { EventEmitter } from "events";
 import { FileSystemWatcher } from "./watcher.ts";
@@ -85,7 +91,7 @@ export class WriteQueue extends EventEmitter {
     }
 
     this.debounceTimer = setTimeout(() => {
-      this.flush();
+      void this.flush();
     }, this.config.debounceMs);
   }
 

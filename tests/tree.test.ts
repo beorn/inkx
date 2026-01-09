@@ -15,18 +15,9 @@ import { join } from "path";
 
 const TEST_DIR = join(import.meta.dir, ".test-tree");
 
-import {
-  resetDb,
-  closeDb,
-  getNode,
-  getChildren,
-} from "../src/node/db.ts";
+import { resetDb, closeDb, getNode, getChildren } from "../src/node/db.ts";
 
-import {
-  emitNodeCreated,
-  setKmPath,
-  setDatabase,
-} from "../src/node/emit.ts";
+import { emitNodeCreated, setKmDir, setDatabase } from "../src/node/emit.ts";
 
 import { applyEvent } from "../src/node/db.ts";
 import type { NodeType } from "../src/node/types.ts";
@@ -46,7 +37,7 @@ function createTestNode(
   type: NodeType,
   content?: string,
   parentId?: string | null,
-  extra?: Record<string, unknown>
+  extra?: Record<string, unknown>,
 ): string {
   const id = ulid();
   emitNodeCreated("test-user", {
@@ -65,7 +56,7 @@ describe("getNodeDisplayName", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     setDatabase({ applyEvent });
     resetDb();
   });
@@ -84,7 +75,9 @@ describe("getNodeDisplayName", () => {
   });
 
   test("returns data.name if present", () => {
-    const id = createTestNode("folder", undefined, null, { data: { name: "My Folder" } });
+    const id = createTestNode("folder", undefined, null, {
+      data: { name: "My Folder" },
+    });
     const node = getNode(id)!;
     expect(getNodeDisplayName(node)).toBe("My Folder");
   });
@@ -204,7 +197,7 @@ describe("getCollapsedTypeSuffix", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     setDatabase({ applyEvent });
     resetDb();
   });
@@ -217,7 +210,9 @@ describe("getCollapsedTypeSuffix", () => {
   });
 
   test("returns empty for node with no matching children", () => {
-    const folderId = createTestNode("folder", undefined, null, { data: { name: "Projects" } });
+    const folderId = createTestNode("folder", undefined, null, {
+      data: { name: "Projects" },
+    });
     createTestNode("file", undefined, folderId, { data: { name: "Other" } });
 
     const folder = getNode(folderId)!;
@@ -225,7 +220,9 @@ describe("getCollapsedTypeSuffix", () => {
   });
 
   test("returns / .md for folder with same-name file", () => {
-    const folderId = createTestNode("folder", undefined, null, { data: { name: "Projects" } });
+    const folderId = createTestNode("folder", undefined, null, {
+      data: { name: "Projects" },
+    });
     createTestNode("file", undefined, folderId, { data: { name: "Projects" } });
 
     const folder = getNode(folderId)!;
@@ -233,8 +230,12 @@ describe("getCollapsedTypeSuffix", () => {
   });
 
   test("returns / .md # for folder -> file -> section chain", () => {
-    const folderId = createTestNode("folder", undefined, null, { data: { name: "Projects" } });
-    const fileId = createTestNode("file", undefined, folderId, { data: { name: "Projects" } });
+    const folderId = createTestNode("folder", undefined, null, {
+      data: { name: "Projects" },
+    });
+    const fileId = createTestNode("file", undefined, folderId, {
+      data: { name: "Projects" },
+    });
     createTestNode("section", "# Projects", fileId);
 
     const folder = getNode(folderId)!;
@@ -242,8 +243,12 @@ describe("getCollapsedTypeSuffix", () => {
   });
 
   test("handles underscore/space variants in name matching", () => {
-    const folderId = createTestNode("folder", undefined, null, { data: { name: "2025_Taxes" } });
-    const fileId = createTestNode("file", undefined, folderId, { data: { name: "2025 Taxes" } });
+    const folderId = createTestNode("folder", undefined, null, {
+      data: { name: "2025_Taxes" },
+    });
+    const fileId = createTestNode("file", undefined, folderId, {
+      data: { name: "2025 Taxes" },
+    });
     createTestNode("section", "# 2025 Taxes", fileId);
 
     const folder = getNode(folderId)!;
@@ -251,7 +256,9 @@ describe("getCollapsedTypeSuffix", () => {
   });
 
   test("returns .md # for file with same-name section", () => {
-    const fileId = createTestNode("file", undefined, null, { data: { name: "README" } });
+    const fileId = createTestNode("file", undefined, null, {
+      data: { name: "README" },
+    });
     createTestNode("section", "# README", fileId);
 
     const file = getNode(fileId)!;
@@ -259,8 +266,12 @@ describe("getCollapsedTypeSuffix", () => {
   });
 
   test("only follows matching names, not all children", () => {
-    const folderId = createTestNode("folder", undefined, null, { data: { name: "Projects" } });
-    createTestNode("file", undefined, folderId, { data: { name: "Other File" } });
+    const folderId = createTestNode("folder", undefined, null, {
+      data: { name: "Projects" },
+    });
+    createTestNode("file", undefined, folderId, {
+      data: { name: "Other File" },
+    });
     createTestNode("file", undefined, folderId, { data: { name: "Another" } });
 
     const folder = getNode(folderId)!;
@@ -274,7 +285,7 @@ describe("collapseRedundantAncestors", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     setDatabase({ applyEvent });
     resetDb();
   });
@@ -291,7 +302,9 @@ describe("collapseRedundantAncestors", () => {
   });
 
   test("returns single node unchanged", () => {
-    const id = createTestNode("folder", undefined, null, { data: { name: "Projects" } });
+    const id = createTestNode("folder", undefined, null, {
+      data: { name: "Projects" },
+    });
     const node = getNode(id)!;
     const result = collapseRedundantAncestors([node]);
     expect(result).toHaveLength(1);
@@ -299,8 +312,12 @@ describe("collapseRedundantAncestors", () => {
   });
 
   test("collapses folder -> file with same name", () => {
-    const folderId = createTestNode("folder", undefined, null, { data: { name: "Projects" } });
-    const fileId = createTestNode("file", undefined, folderId, { data: { name: "Projects" } });
+    const folderId = createTestNode("folder", undefined, null, {
+      data: { name: "Projects" },
+    });
+    const fileId = createTestNode("file", undefined, folderId, {
+      data: { name: "Projects" },
+    });
 
     const folder = getNode(folderId)!;
     const file = getNode(fileId)!;
@@ -311,8 +328,12 @@ describe("collapseRedundantAncestors", () => {
   });
 
   test("collapses folder -> file -> section with same name", () => {
-    const folderId = createTestNode("folder", undefined, null, { data: { name: "Projects" } });
-    const fileId = createTestNode("file", undefined, folderId, { data: { name: "Projects" } });
+    const folderId = createTestNode("folder", undefined, null, {
+      data: { name: "Projects" },
+    });
+    const fileId = createTestNode("file", undefined, folderId, {
+      data: { name: "Projects" },
+    });
     const sectionId = createTestNode("section", "# Projects", fileId);
 
     const folder = getNode(folderId)!;
@@ -324,8 +345,12 @@ describe("collapseRedundantAncestors", () => {
   });
 
   test("keeps nodes with different names", () => {
-    const folderId = createTestNode("folder", undefined, null, { data: { name: "Projects" } });
-    const fileId = createTestNode("file", undefined, folderId, { data: { name: "Projects" } });
+    const folderId = createTestNode("folder", undefined, null, {
+      data: { name: "Projects" },
+    });
+    const fileId = createTestNode("file", undefined, folderId, {
+      data: { name: "Projects" },
+    });
     const sectionId = createTestNode("section", "# Introduction", fileId);
 
     const folder = getNode(folderId)!;
@@ -339,8 +364,12 @@ describe("collapseRedundantAncestors", () => {
   });
 
   test("handles underscore/space variants", () => {
-    const folderId = createTestNode("folder", undefined, null, { data: { name: "2025_Taxes" } });
-    const fileId = createTestNode("file", undefined, folderId, { data: { name: "2025 Taxes" } });
+    const folderId = createTestNode("folder", undefined, null, {
+      data: { name: "2025_Taxes" },
+    });
+    const fileId = createTestNode("file", undefined, folderId, {
+      data: { name: "2025 Taxes" },
+    });
     const sectionId = createTestNode("section", "# 2025 Taxes", fileId);
 
     const folder = getNode(folderId)!;
@@ -352,9 +381,15 @@ describe("collapseRedundantAncestors", () => {
   });
 
   test("preserves non-adjacent different items", () => {
-    const folder1 = createTestNode("folder", undefined, null, { data: { name: "Archive" } });
-    const folder2 = createTestNode("folder", undefined, folder1, { data: { name: "2024" } });
-    const folder3 = createTestNode("folder", undefined, folder2, { data: { name: "Projects" } });
+    const folder1 = createTestNode("folder", undefined, null, {
+      data: { name: "Archive" },
+    });
+    const folder2 = createTestNode("folder", undefined, folder1, {
+      data: { name: "2024" },
+    });
+    const folder3 = createTestNode("folder", undefined, folder2, {
+      data: { name: "Projects" },
+    });
 
     const n1 = getNode(folder1)!;
     const n2 = getNode(folder2)!;

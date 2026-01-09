@@ -71,7 +71,7 @@ export class EventHub extends EventEmitter {
   subscribe(
     id: string,
     handler: EventHandler,
-    filter?: EventFilter
+    filter?: EventFilter,
   ): () => void {
     this.subscriptions.set(id, { id, handler, filter });
 

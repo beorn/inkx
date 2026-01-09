@@ -8,11 +8,11 @@ Views, collapsing, and formatting for km output.
 
 km uses three tree levels:
 
-| Tree | Location | Purpose |
-|------|----------|---------|
-| **fs-tree** | Disk | Folders, files, markdown content. Source of truth. |
-| **km-tree** | SQLite | Unified nodes. Queryable. |
-| **ui-tree** | Render-time | Collapsed, formatted for output. |
+| Tree        | Location    | Purpose                                            |
+| ----------- | ----------- | -------------------------------------------------- |
+| **fs-tree** | Disk        | Folders, files, markdown content. Source of truth. |
+| **km-tree** | SQLite      | Unified nodes. Queryable.                          |
+| **ui-tree** | Render-time | Collapsed, formatted for output.                   |
 
 Collapsing happens only in ui-tree — km-tree preserves actual structure.
 
@@ -20,14 +20,14 @@ Collapsing happens only in ui-tree — km-tree preserves actual structure.
 
 ## Views
 
-| View | Command | Collapsing | Use |
-|------|---------|------------|-----|
-| List | `km list` / `km ls` | No | Flat node list |
-| List | `km ls --context` | Yes (ancestors) | With ancestor paths |
-| Tasks | `km tasks` | Yes (ancestors) | = `ls --type task --context` |
-| Board | `km board` | Yes (children) | Kanban columns |
-| Tree | `km tree` | No | Actual structure |
-| Tree | `km tree --collapsed` | Yes | Compact view |
+| View  | Command               | Collapsing      | Use                          |
+| ----- | --------------------- | --------------- | ---------------------------- |
+| List  | `km list` / `km ls`   | No              | Flat node list               |
+| List  | `km ls --context`     | Yes (ancestors) | With ancestor paths          |
+| Tasks | `km tasks`            | Yes (ancestors) | = `ls --type task --context` |
+| Board | `km board`            | Yes (children)  | Kanban columns               |
+| Tree  | `km tree`             | No              | Actual structure             |
+| Tree  | `km tree --collapsed` | Yes             | Compact view                 |
 
 All views support `--id` to show node IDs (hidden by default).
 
@@ -57,40 +57,40 @@ Taxes / .md #    # shows all three types in suffix
 
 ### Name Normalization
 
-| Original | Normalized |
-|----------|------------|
-| `Taxes/` | `taxes` |
-| `Taxes.md` | `taxes` |
-| `# Taxes` | `taxes` |
+| Original             | Normalized           |
+| -------------------- | -------------------- |
+| `Taxes/`             | `taxes`              |
+| `Taxes.md`           | `taxes`              |
+| `# Taxes`            | `taxes`              |
 | `US-Financial-Setup` | `us financial setup` |
 
 Rules: strip `#`, `.md`, replace `-_` with space, lowercase, trim.
 
 ### Collapsing Directions
 
-| Direction | Used By | Algorithm |
-|-----------|---------|-----------|
-| **Bottom-up** | Task context | Walk ancestors, group matching names |
-| **Top-down** | Board columns | Walk children, find first different name |
+| Direction     | Used By       | Algorithm                                |
+| ------------- | ------------- | ---------------------------------------- |
+| **Bottom-up** | Task context  | Walk ancestors, group matching names     |
+| **Top-down**  | Board columns | Walk children, find first different name |
 
 ---
 
 ## Type Indicators
 
-| Type | Indicator | Example |
-|------|-----------|---------|
-| folder | `/` | `Projects/` |
-| file | `.md` | `README.md` |
-| section | `#` | `# Overview` |
-| task | `[ ]` `[x]` `[/]` | `[ ] Do thing` |
+| Type    | Indicator         | Example        |
+| ------- | ----------------- | -------------- |
+| folder  | `/`               | `Projects/`    |
+| file    | `.md`             | `README.md`    |
+| section | `#`               | `# Overview`   |
+| task    | `[ ]` `[x]` `[/]` | `[ ] Do thing` |
 
 ### Collapsed Suffix
 
-| Collapsed | Suffix |
-|-----------|--------|
-| folder + file | `/ .md` |
+| Collapsed               | Suffix    |
+| ----------------------- | --------- |
+| folder + file           | `/ .md`   |
 | folder + file + section | `/ .md #` |
-| file + section | `.md #` |
+| file + section          | `.md #`   |
 
 Suffix renders dim/gray.
 
@@ -150,6 +150,7 @@ projects/
 No collapsing — shows actual km-tree structure.
 
 With `--collapsed`:
+
 ```
 $ km tree --collapsed
 
@@ -163,15 +164,15 @@ projects/
 
 ## Colors
 
-| Element | Color |
-|---------|-------|
-| Type suffix | dim/gray |
-| Task `[ ]` | default |
-| Task `[x]` | green |
-| Task `[/]` | yellow |
-| Due (overdue) | red |
-| Due (today) | yellow |
-| Due (future) | dim |
+| Element       | Color    |
+| ------------- | -------- |
+| Type suffix   | dim/gray |
+| Task `[ ]`    | default  |
+| Task `[x]`    | green    |
+| Task `[/]`    | yellow   |
+| Due (overdue) | red      |
+| Due (today)   | yellow   |
+| Due (future)  | dim      |
 
 ---
 

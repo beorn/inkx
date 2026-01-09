@@ -61,7 +61,7 @@ export class TaskQueue {
     // Filter by assigned_to
     if (this.config.assignedTo) {
       filteredTasks = filteredTasks.filter(
-        (t) => t.assigned_to === this.config.assignedTo
+        (t) => t.assigned_to === this.config.assignedTo,
       );
     }
 

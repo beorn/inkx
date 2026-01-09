@@ -264,7 +264,7 @@ export class Agent extends EventEmitter {
     tool: string,
     input: Record<string, unknown>,
     output?: unknown,
-    error?: string
+    error?: string,
   ): void {
     this.currentSession?.logToolCall(tool, input, output, error);
   }

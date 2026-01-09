@@ -23,7 +23,10 @@ import {
 /**
  * Format a collapsed ancestor for display with its type suffix
  */
-function formatCollapsedAncestor(ca: CollapsedAncestor, showId: boolean): string {
+function formatCollapsedAncestor(
+  ca: CollapsedAncestor,
+  showId: boolean,
+): string {
   let prefix = "";
   if (showId) {
     prefix = chalk.dim(`[${ca.node.id.slice(0, 5)}] `);
@@ -82,7 +85,9 @@ function formatNode(node: Node, showId: boolean): string {
     case "paragraph":
       return prefix + chalk.dim("¶ ") + (node.content?.slice(0, 50) ?? "");
     default:
-      return prefix + chalk.dim("• ") + (node.content?.slice(0, 50) ?? node.type);
+      return (
+        prefix + chalk.dim("• ") + (node.content?.slice(0, 50) ?? node.type)
+      );
   }
 }
 
@@ -166,7 +171,7 @@ function getFilteredNodes(options: {
  */
 function displayWithContext(
   nodes: Node[],
-  options: { showId: boolean; flat: boolean }
+  options: { showId: boolean; flat: boolean },
 ): void {
   // Group nodes by their collapsed ancestor paths
   interface NodeWithContext {
@@ -189,7 +194,7 @@ function displayWithContext(
     // Flat mode: each node on one line with path prefix
     for (const { node, collapsed } of nodesWithContext) {
       const pathParts = collapsed.map((ca) =>
-        chalk.dim(formatCollapsedAncestor(ca, false))
+        chalk.dim(formatCollapsedAncestor(ca, false)),
       );
       const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : "";
       console.log(pathStr + formatNode(node, options.showId));
@@ -206,7 +211,9 @@ function displayWithContext(
         let depth = 0;
         for (const ca of collapsed) {
           const prefix = " ".repeat(depth);
-          console.log(prefix + chalk.dim(formatCollapsedAncestor(ca, options.showId)));
+          console.log(
+            prefix + chalk.dim(formatCollapsedAncestor(ca, options.showId)),
+          );
           if (ca.node.type !== "section") {
             depth++;
           }
@@ -234,8 +241,14 @@ export const listCommand = new Command("list")
   .alias("ls")
   .description("List nodes")
   .argument("[query]", "Filter by path, ID prefix, or pattern")
-  .option("-t, --type <type>", "Filter by node type (task, section, file, folder)")
-  .option("-s, --status <status>", "Filter tasks by status (open, in_progress, done)")
+  .option(
+    "-t, --type <type>",
+    "Filter by node type (task, section, file, folder)",
+  )
+  .option(
+    "-s, --status <status>",
+    "Filter tasks by status (open, in_progress, done)",
+  )
   .option("-a, --all", "Show all (including done tasks)")
   .option("-c, --context", "Show ancestor paths (like tasks command)")
   .option("-i, --id", "Show node IDs")

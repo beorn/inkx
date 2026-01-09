@@ -72,17 +72,32 @@ interface OutlineItemProps {
   width: number;
   foldedNodes: Set<string>;
   onToggleFold: (id: string) => void;
-  isCardSelected: boolean;  // The card containing this item is selected
-  isItemSelected: boolean;  // This specific item is the selected sub-item
+  isCardSelected: boolean; // The card containing this item is selected
+  isItemSelected: boolean; // This specific item is the selected sub-item
   isMultiSelected: boolean; // This item is part of multi-selection
-  flatIndex: number;        // Index in flattened list for selection tracking
+  flatIndex: number; // Index in flattened list for selection tracking
   selectedSubIndex: number; // Currently selected sub-item index
-  multiSelected: Set<SelectionKey>;  // All multi-selected items
+  multiSelected: Set<SelectionKey>; // All multi-selected items
   colIndex: number;
   cardIndex: number;
 }
 
-function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, isCardSelected, isItemSelected, isMultiSelected, flatIndex, selectedSubIndex, multiSelected, colIndex, cardIndex }: OutlineItemProps) {
+function OutlineItem({
+  node,
+  depth,
+  maxDepth,
+  width,
+  foldedNodes,
+  onToggleFold,
+  isCardSelected,
+  isItemSelected,
+  isMultiSelected,
+  flatIndex,
+  selectedSubIndex,
+  multiSelected,
+  colIndex,
+  cardIndex,
+}: OutlineItemProps) {
   const indent = "  ".repeat(depth);
   // Only show status icon for tasks, not for sections or other types
   const isTask = node.type === "task";
@@ -91,7 +106,10 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
   const firstLine = rawContent.split("\n")[0] ?? rawContent;
   // Get collapsed type suffix (e.g., "/ .md #" for unified folder/file/section)
   const typeSuffix = getCollapsedTypeSuffix(node);
-  const availWidth = width - (depth * 2) - 4;
+  // Calculate available width accounting for indent, icon, fold indicator, and suffix
+  const prefixWidth = depth * 2 + 3 + (icon ? 2 : 0); // indent + fold + space + icon
+  const suffixWidth = typeSuffix ? typeSuffix.length + 1 : 0;
+  const availWidth = Math.max(5, width - prefixWidth - suffixWidth - 2);
   const content = firstLine.slice(0, availWidth);
 
   const children = getChildren(node.id);
@@ -122,8 +140,14 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
         backgroundColor={backgroundColor}
         color={textColor}
         dimColor={!isCardSelected && depth > 0}
+        wrap="truncate"
       >
-        {indent}{foldIndicator} {icon}{icon ? " " : ""}{content}{typeSuffix ? <Text dimColor>{` ${typeSuffix}`}</Text> : ""}{hasChildren && isFolded ? ` (${children.length})` : ""}
+        {indent}
+        {foldIndicator} {icon}
+        {icon ? " " : ""}
+        {content}
+        {typeSuffix ? <Text color="gray">{` ${typeSuffix}`}</Text> : ""}
+        {hasChildren && isFolded ? ` (${children.length})` : ""}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
@@ -131,7 +155,10 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
             const childIndex = nextIndex;
             const childKey = makeSelectionKey(colIndex, cardIndex, childIndex);
             // Calculate next index by counting visible descendants
-            nextIndex = childIndex + 1 + countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
+            nextIndex =
+              childIndex +
+              1 +
+              countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
             return (
               <OutlineItem
                 key={child.id}
@@ -142,7 +169,9 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
                 foldedNodes={foldedNodes}
                 onToggleFold={onToggleFold}
                 isCardSelected={isCardSelected}
-                isItemSelected={isCardSelected && childIndex === selectedSubIndex}
+                isItemSelected={
+                  isCardSelected && childIndex === selectedSubIndex
+                }
                 isMultiSelected={multiSelected.has(childKey)}
                 flatIndex={childIndex}
                 selectedSubIndex={selectedSubIndex}
@@ -153,7 +182,9 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
             );
           })}
           {children.length > 10 && (
-            <Text dimColor>{indent}  +{children.length - 10} more</Text>
+            <Text dimColor>
+              {indent} +{children.length - 10} more
+            </Text>
           )}
         </Box>
       )}
@@ -162,7 +193,12 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
 }
 
 // Helper to count visible descendants for flat indexing
-function countVisibleDescendants(node: Node, depth: number, maxDepth: number, foldedNodes: Set<string>): number {
+function countVisibleDescendants(
+  node: Node,
+  depth: number,
+  maxDepth: number,
+  foldedNodes: Set<string>,
+): number {
   if (depth > maxDepth || foldedNodes.has(node.id)) {
     return 0;
   }
@@ -176,41 +212,62 @@ function countVisibleDescendants(node: Node, depth: number, maxDepth: number, fo
 
 // Selection key: "col:card:sub" format for tracking multi-selection
 type SelectionKey = string;
-function makeSelectionKey(colIndex: number, cardIndex: number, subIndex: number): SelectionKey {
+function makeSelectionKey(
+  colIndex: number,
+  cardIndex: number,
+  subIndex: number,
+): SelectionKey {
   return `${colIndex}:${cardIndex}:${subIndex}`;
 }
 
 interface CardProps {
   card: CardState;
   isSelected: boolean;
-  selectedSubIndex: number;  // Which sub-item within this card is selected (-1 = card header)
+  selectedSubIndex: number; // Which sub-item within this card is selected (-1 = card header)
   width: number;
   maxOutlineDepth: number;
   foldedNodes: Set<string>;
   onToggleFold: (id: string) => void;
-  multiSelected: Set<SelectionKey>;  // Set of selected sub-item keys within this card
+  multiSelected: Set<SelectionKey>; // Set of selected sub-item keys within this card
   colIndex: number;
   cardIndex: number;
 }
 
-function Card({ card, isSelected, selectedSubIndex, width, maxOutlineDepth, foldedNodes, onToggleFold, multiSelected, colIndex, cardIndex }: CardProps) {
+function Card({
+  card,
+  isSelected,
+  selectedSubIndex,
+  width,
+  maxOutlineDepth,
+  foldedNodes,
+  onToggleFold,
+  multiSelected,
+  colIndex,
+  cardIndex,
+}: CardProps) {
+  // Card width includes border (2 chars), so inner content width is width - 4
+  const innerWidth = Math.max(5, width - 4);
   return (
     <Box
       flexDirection="column"
+      width={width}
       borderStyle="round"
       borderColor={isSelected ? "cyan" : "gray"}
       borderDimColor={!isSelected}
+      overflowX="hidden"
     >
       <OutlineItem
         node={card.node}
         depth={0}
         maxDepth={maxOutlineDepth}
-        width={width - 2}
+        width={innerWidth}
         foldedNodes={foldedNodes}
         onToggleFold={onToggleFold}
         isCardSelected={isSelected}
         isItemSelected={isSelected && selectedSubIndex === 0}
-        isMultiSelected={multiSelected.has(makeSelectionKey(colIndex, cardIndex, 0))}
+        isMultiSelected={multiSelected.has(
+          makeSelectionKey(colIndex, cardIndex, 0),
+        )}
         flatIndex={0}
         selectedSubIndex={selectedSubIndex}
         multiSelected={multiSelected}
@@ -226,7 +283,7 @@ interface ColumnProps {
   colIndex: number;
   isSelected: boolean;
   selectedCardIndex: number;
-  selectedSubIndex: number;  // Which sub-item within the selected card (0 = card header)
+  selectedSubIndex: number; // Which sub-item within the selected card (0 = card header)
   width: number;
   height: number;
   maxOutlineDepth: number;
@@ -235,37 +292,66 @@ interface ColumnProps {
   multiSelected: Set<SelectionKey>;
 }
 
-function Column({ column, colIndex, isSelected, selectedCardIndex, selectedSubIndex, width, height, maxOutlineDepth, foldedNodes, onToggleFold, multiSelected }: ColumnProps) {
+function Column({
+  column,
+  colIndex,
+  isSelected,
+  selectedCardIndex,
+  selectedSubIndex,
+  width,
+  height,
+  maxOutlineDepth,
+  foldedNodes,
+  onToggleFold,
+  multiSelected,
+}: ColumnProps) {
   const name = getNodeDisplayName(column.node);
   const typeSuffix = getCollapsedTypeSuffix(column.node);
   const count = column.cards.length;
-  const maxCards = Math.max(1, Math.floor(height / 3)); // Estimate cards visible
+  // Available height for cards: column height - border (2) - header (1) - scroll indicator (1)
+  const contentHeight = Math.max(1, height - 4);
+  // Estimate how many cards can be visible (each card ~3 lines minimum with border)
+  const maxCards = Math.max(1, Math.floor(contentHeight / 3));
 
   // Scroll to keep selected card visible
-  const scrollOffset = Math.max(0, Math.min(
-    selectedCardIndex - Math.floor(maxCards / 2),
-    Math.max(0, column.cards.length - maxCards)
-  ));
-  const visibleCards = column.cards.slice(scrollOffset, scrollOffset + maxCards);
+  const scrollOffset = Math.max(
+    0,
+    Math.min(
+      selectedCardIndex - Math.floor(maxCards / 2),
+      Math.max(0, column.cards.length - maxCards),
+    ),
+  );
+  const visibleCards = column.cards.slice(
+    scrollOffset,
+    scrollOffset + maxCards,
+  );
 
   return (
-    <Box flexDirection="column" width={width} borderStyle="single" borderColor={isSelected ? "blue" : "gray"}>
-      <Text bold inverse={isSelected}>
+    <Box
+      flexDirection="column"
+      width={width}
+      height={height}
+      borderStyle="single"
+      borderColor={isSelected ? "blue" : "gray"}
+      overflowY="hidden"
+    >
+      <Text bold inverse={isSelected} wrap="truncate">
         {` ${name.slice(0, width - 8 - (typeSuffix ? typeSuffix.length + 1 : 0))}`}
-        {typeSuffix ? <Text dimColor>{` ${typeSuffix}`}</Text> : ""}
+        {typeSuffix ? <Text color="gray">{` ${typeSuffix}`}</Text> : ""}
         {` (${count}) `}
       </Text>
-      <Box flexDirection="column" paddingX={1}>
+      <Box flexDirection="column" height={contentHeight} overflowY="hidden">
         {visibleCards.map((card, i) => {
           const actualCardIndex = scrollOffset + i;
-          const cardIsSelected = isSelected && actualCardIndex === selectedCardIndex;
+          const cardIsSelected =
+            isSelected && actualCardIndex === selectedCardIndex;
           return (
             <Card
               key={card.node.id}
               card={card}
               isSelected={cardIsSelected}
               selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
-              width={width - 4}
+              width={width - 2}
               maxOutlineDepth={maxOutlineDepth}
               foldedNodes={foldedNodes}
               onToggleFold={onToggleFold}
@@ -295,36 +381,57 @@ interface BoardProps {
 function Board({ initialState }: BoardProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
+  const [dimensions, setDimensions] = useState({
+    columns: stdout?.columns ?? 80,
+    rows: stdout?.rows ?? 24,
+  });
   const [state, setState] = useState(initialState);
-  const [termWidth, setTermWidth] = useState(stdout?.columns || 80);
-  const [termHeight, setTermHeight] = useState(stdout?.rows || 24);
   const [foldedNodes, setFoldedNodes] = useState<Set<string>>(new Set());
   const [maxOutlineDepth, setMaxOutlineDepth] = useState(2); // Default 2 levels
   const [subIndex, setSubIndex] = useState(0); // Sub-item index within selected card (0 = card header)
   const [inOutlineMode, setInOutlineMode] = useState(false); // Whether navigating within card outline
-  const [multiSelected, setMultiSelected] = useState<Set<SelectionKey>>(new Set()); // Multi-selected items
-  const [selectionAnchor, setSelectionAnchor] = useState<{ col: number; card: number; sub: number } | null>(null);
+  const [multiSelected, setMultiSelected] = useState<Set<SelectionKey>>(
+    new Set(),
+  ); // Multi-selected items
+  const [selectionAnchor, setSelectionAnchor] = useState<{
+    col: number;
+    card: number;
+    sub: number;
+  } | null>(null);
 
+  // Listen for terminal resize
   useEffect(() => {
-    const handler = () => {
-      setTermWidth(stdout?.columns || 80);
-      setTermHeight(stdout?.rows || 24);
+    if (!stdout) return;
+    const handleResize = () => {
+      setDimensions({ columns: stdout.columns, rows: stdout.rows });
     };
-    stdout?.on("resize", handler);
+    stdout.on("resize", handleResize);
     return () => {
-      stdout?.off("resize", handler);
+      stdout.off("resize", handleResize);
     };
   }, [stdout]);
 
-  const maxCols = Math.min(state.columns.length, Math.max(2, Math.floor(termWidth / 35)));
+  const termWidth = dimensions.columns;
+  const termHeight = dimensions.rows;
+
+  const maxCols = Math.min(
+    state.columns.length,
+    Math.max(2, Math.floor(termWidth / 35)),
+  );
   const colWidth = Math.floor((termWidth - 2) / maxCols);
 
   // Horizontal scrolling for columns
-  const colScrollOffset = Math.max(0, Math.min(
-    state.colIndex - Math.floor(maxCols / 2),
-    Math.max(0, state.columns.length - maxCols)
-  ));
-  const visibleColumns = state.columns.slice(colScrollOffset, colScrollOffset + maxCols);
+  const colScrollOffset = Math.max(
+    0,
+    Math.min(
+      state.colIndex - Math.floor(maxCols / 2),
+      Math.max(0, state.columns.length - maxCols),
+    ),
+  );
+  const visibleColumns = state.columns.slice(
+    colScrollOffset,
+    colScrollOffset + maxCols,
+  );
 
   const toggleFold = (nodeId: string) => {
     setFoldedNodes((prev) => {
@@ -343,11 +450,17 @@ function Board({ initialState }: BoardProps) {
     const col = state.columns[state.colIndex];
     const card = col?.cards[state.cardIndex];
     if (!card) return 0;
-    return 1 + countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes);
+    return (
+      1 + countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes)
+    );
   };
 
   // Update multi-selection range from anchor to current position
-  const updateSelectionRange = (toCol: number, toCard: number, toSub: number) => {
+  const updateSelectionRange = (
+    toCol: number,
+    toCard: number,
+    toSub: number,
+  ) => {
     if (!selectionAnchor) return;
     const newSelected = new Set<SelectionKey>();
 
@@ -366,7 +479,9 @@ function Board({ initialState }: BoardProps) {
         // Select all visible items in each card
         const card = state.columns[toCol]?.cards[c];
         if (card) {
-          const maxItems = 1 + countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes);
+          const maxItems =
+            1 +
+            countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes);
           for (let s = 0; s < maxItems; s++) {
             newSelected.add(makeSelectionKey(toCol, c, s));
           }
@@ -468,7 +583,11 @@ function Board({ initialState }: BoardProps) {
     if (input === "J" && inOutlineMode) {
       // Start or extend selection downward
       if (!selectionAnchor) {
-        setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: subIndex });
+        setSelectionAnchor({
+          col: state.colIndex,
+          card: state.cardIndex,
+          sub: subIndex,
+        });
       }
       const maxSub = getMaxSubIndex();
       if (subIndex < maxSub - 1) {
@@ -481,7 +600,11 @@ function Board({ initialState }: BoardProps) {
     if (input === "K" && inOutlineMode) {
       // Start or extend selection upward
       if (!selectionAnchor) {
-        setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: subIndex });
+        setSelectionAnchor({
+          col: state.colIndex,
+          card: state.cardIndex,
+          sub: subIndex,
+        });
       }
       if (subIndex > 0) {
         const newSubIndex = subIndex - 1;
@@ -502,7 +625,10 @@ function Board({ initialState }: BoardProps) {
         } else {
           // Move to next card's first item
           const currentCol = state.columns[state.colIndex];
-          const nextCardIndex = Math.min((currentCol?.cards.length || 1) - 1, state.cardIndex + 1);
+          const nextCardIndex = Math.min(
+            (currentCol?.cards.length || 1) - 1,
+            state.cardIndex + 1,
+          );
           if (nextCardIndex !== state.cardIndex) {
             setState((s) => ({ ...s, cardIndex: nextCardIndex }));
             setSubIndex(0);
@@ -511,7 +637,10 @@ function Board({ initialState }: BoardProps) {
       } else {
         // Not in outline mode: just move cards
         const currentCol = state.columns[state.colIndex];
-        const nextCardIndex = Math.min((currentCol?.cards.length || 1) - 1, state.cardIndex + 1);
+        const nextCardIndex = Math.min(
+          (currentCol?.cards.length || 1) - 1,
+          state.cardIndex + 1,
+        );
         setState((s) => ({ ...s, cardIndex: nextCardIndex }));
       }
       return;
@@ -528,9 +657,17 @@ function Board({ initialState }: BoardProps) {
           const prevCardIndex = Math.max(0, state.cardIndex - 1);
           if (prevCardIndex !== state.cardIndex) {
             setState((s) => ({ ...s, cardIndex: prevCardIndex }));
-            const prevCard = state.columns[state.colIndex]?.cards[prevCardIndex];
+            const prevCard =
+              state.columns[state.colIndex]?.cards[prevCardIndex];
             if (prevCard) {
-              const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, maxOutlineDepth, foldedNodes);
+              const maxSub =
+                1 +
+                countVisibleDescendants(
+                  prevCard.node,
+                  0,
+                  maxOutlineDepth,
+                  foldedNodes,
+                );
               setSubIndex(maxSub - 1);
             }
           }
@@ -551,7 +688,7 @@ function Board({ initialState }: BoardProps) {
         newState.colIndex = Math.max(0, s.colIndex - 1);
         newState.cardIndex = Math.min(
           s.cardIndex,
-          Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1)
+          Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1),
         );
         setInOutlineMode(false);
         setSubIndex(0);
@@ -560,7 +697,7 @@ function Board({ initialState }: BoardProps) {
         newState.colIndex = Math.min(s.columns.length - 1, s.colIndex + 1);
         newState.cardIndex = Math.min(
           s.cardIndex,
-          Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1)
+          Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1),
         );
         setInOutlineMode(false);
         setSubIndex(0);
@@ -593,7 +730,8 @@ function Board({ initialState }: BoardProps) {
   });
 
   // Build board root path (static title)
-  const boardPath = getNodePath(state.rootId);
+  // Use filesystem path if available, otherwise build from node path
+  const boardPath = state.rootPath || getNodePath(state.rootId);
 
   // Build selected item path for status line
   const selectedCol = state.columns[state.colIndex];
@@ -629,9 +767,13 @@ function Board({ initialState }: BoardProps) {
       <Text>
         <Text>{selectedPath} </Text>
         {inOutlineMode && <Text color="cyan">{`[OUTLINE] `}</Text>}
-        {multiSelected.size > 0 && <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>}
+        {multiSelected.size > 0 && (
+          <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
+        )}
         {state.columns.length > maxCols && (
-          <Text dimColor>{`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${state.columns.length}] `}</Text>
+          <Text
+            dimColor
+          >{`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${state.columns.length}] `}</Text>
         )}
       </Text>
     </Box>
@@ -639,5 +781,103 @@ function Board({ initialState }: BoardProps) {
 }
 
 export function renderInkBoard(state: BoardState): void {
-  render(<Board initialState={state} />, { exitOnCtrlC: true });
+  // Use patchConsole to prevent console output from corrupting the TUI
+  // and enable full screen to ensure proper initial render
+  render(<Board initialState={state} />, {
+    exitOnCtrlC: true,
+    patchConsole: true,
+  });
+}
+
+// Testable version of Board component with fixed dimensions for testing
+interface TestBoardProps {
+  initialState: BoardState;
+  testWidth: number;
+  testHeight: number;
+}
+
+export function InkBoardTestable({
+  initialState,
+  testWidth,
+  testHeight,
+}: TestBoardProps): React.ReactElement {
+  const [foldedNodes, setFoldedNodes] = useState<Set<string>>(new Set());
+  const maxOutlineDepth = 2;
+  const multiSelected = new Set<SelectionKey>();
+
+  // Use fixed test dimensions instead of stdout
+  const termWidth = testWidth;
+  const termHeight = testHeight;
+
+  const maxCols = Math.min(
+    initialState.columns.length,
+    Math.max(2, Math.floor(termWidth / 35)),
+  );
+  const colWidth = Math.floor((termWidth - 2) / maxCols);
+
+  const colScrollOffset = Math.max(
+    0,
+    Math.min(
+      initialState.colIndex - Math.floor(maxCols / 2),
+      Math.max(0, initialState.columns.length - maxCols),
+    ),
+  );
+  const visibleColumns = initialState.columns.slice(
+    colScrollOffset,
+    colScrollOffset + maxCols,
+  );
+
+  const toggleFold = (nodeId: string) => {
+    setFoldedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  };
+
+  const boardPath = initialState.rootPath || getNodePath(initialState.rootId);
+  const selectedCol = initialState.columns[initialState.colIndex];
+  const selectedCard = selectedCol?.cards[initialState.cardIndex];
+  const selectedPath = selectedCard ? getNodePath(selectedCard.node.id) : "";
+
+  return (
+    <Box flexDirection="column" height={termHeight} minHeight={3}>
+      <Box height={1}>
+        <Text bold inverse>{` ${boardPath} `}</Text>
+      </Box>
+      <Box flexGrow={1}>
+        {visibleColumns.map((col, i) => {
+          const actualColIndex = colScrollOffset + i;
+          return (
+            <Column
+              key={col.node.id}
+              column={col}
+              colIndex={actualColIndex}
+              isSelected={actualColIndex === initialState.colIndex}
+              selectedCardIndex={initialState.cardIndex}
+              selectedSubIndex={-1}
+              width={colWidth}
+              height={termHeight - 3}
+              maxOutlineDepth={maxOutlineDepth}
+              foldedNodes={foldedNodes}
+              onToggleFold={toggleFold}
+              multiSelected={multiSelected}
+            />
+          );
+        })}
+      </Box>
+      <Text>
+        <Text>{selectedPath} </Text>
+        {initialState.columns.length > maxCols && (
+          <Text
+            dimColor
+          >{`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${initialState.columns.length}] `}</Text>
+        )}
+      </Text>
+    </Box>
+  );
 }

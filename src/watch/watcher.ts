@@ -6,9 +6,14 @@
 
 import { watch, type FSWatcher } from "chokidar";
 import { dirname, basename, relative, join } from "path";
-import { statSync, existsSync } from "fs";
+import { statSync, existsSync, readdirSync } from "fs";
 import { EventEmitter } from "events";
-import { DEFAULT_IGNORE_PATTERNS, getIgnorePatterns } from "./ignore.ts";
+import {
+  DEFAULT_IGNORE_PATTERNS,
+  getIgnorePatterns,
+  shouldIgnore,
+  isHiddenFile,
+} from "./ignore.ts";
 
 export interface WatcherConfig {
   debounceMs: number;
@@ -167,7 +172,7 @@ export class FileSystemWatcher extends EventEmitter {
    * Get file identity (for rename detection)
    */
   static getFileIdentity(
-    path: string
+    path: string,
   ): { ino: number; path: string; mtime: number; size: number } | null {
     try {
       const stat = statSync(path);
@@ -188,7 +193,7 @@ export class FileSystemWatcher extends EventEmitter {
  */
 export function scanDirectory(
   dirPath: string,
-  ignorePatterns?: string[]
+  ignorePatterns?: string[],
 ): Array<{ path: string; ino: number; mtime: number; isDirectory: boolean }> {
   const results: Array<{
     path: string;
@@ -201,8 +206,6 @@ export function scanDirectory(
     return results;
   }
 
-  const { readdirSync } = require("fs");
-  const { shouldIgnore, isHiddenFile } = require("./ignore.ts");
   const entries = readdirSync(dirPath, { withFileTypes: true });
 
   for (const entry of entries) {
@@ -240,7 +243,7 @@ export function scanDirectory(
 export function scanDirectoryRecursive(
   dirPath: string,
   filter?: (path: string) => boolean,
-  ignorePatterns?: string[]
+  ignorePatterns?: string[],
 ): Array<{ path: string; ino: number; mtime: number; isDirectory: boolean }> {
   const results: Array<{
     path: string;

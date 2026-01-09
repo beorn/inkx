@@ -176,13 +176,13 @@ abstract class BaseStore implements NodeStore {
     if (parentId === null) {
       rows = this.db
         .query(
-          "SELECT * FROM nodes WHERE parent_id IS NULL ORDER BY sort_order, created_at"
+          "SELECT * FROM nodes WHERE parent_id IS NULL ORDER BY sort_order, created_at",
         )
         .all() as Record<string, unknown>[];
     } else {
       rows = this.db
         .query(
-          "SELECT * FROM nodes WHERE parent_id = ? ORDER BY sort_order, created_at"
+          "SELECT * FROM nodes WHERE parent_id = ? ORDER BY sort_order, created_at",
         )
         .all(parentId) as Record<string, unknown>[];
     }
@@ -200,7 +200,7 @@ abstract class BaseStore implements NodeStore {
           JOIN ancestors a ON n.id = a.parent_id
         )
         SELECT * FROM ancestors
-      `
+      `,
       )
       .all(nodeId) as Record<string, unknown>[];
     return rows.map(rowToNode).reverse();
@@ -217,16 +217,17 @@ abstract class BaseStore implements NodeStore {
           JOIN subtree s ON n.parent_id = s.id
         )
         SELECT * FROM subtree ORDER BY sort_order, created_at
-      `
+      `,
       )
       .all(rootId) as Record<string, unknown>[];
     return rows.map(rowToNode);
   }
 
   getAllNodes(): Node[] {
-    const rows = this.db
-      .query("SELECT * FROM nodes")
-      .all() as Record<string, unknown>[];
+    const rows = this.db.query("SELECT * FROM nodes").all() as Record<
+      string,
+      unknown
+    >[];
     return rows.map(rowToNode);
   }
 
@@ -234,7 +235,7 @@ abstract class BaseStore implements NodeStore {
     const rows = this.db
       .query(
         `SELECT * FROM nodes WHERE type = 'task'
-         ORDER BY task_status, priority ASC, due_date ASC, created_at ASC`
+         ORDER BY task_status, priority ASC, due_date ASC, created_at ASC`,
       )
       .all() as Record<string, unknown>[];
     return rows.map(rowToNode);
@@ -246,7 +247,7 @@ abstract class BaseStore implements NodeStore {
     const rows = this.db
       .query(
         `SELECT * FROM nodes WHERE type = 'task' AND task_status IN (${placeholders})
-         ORDER BY priority ASC, due_date ASC, created_at ASC`
+         ORDER BY priority ASC, due_date ASC, created_at ASC`,
       )
       .all(...statuses) as Record<string, unknown>[];
     return rows.map(rowToNode);
@@ -259,16 +260,14 @@ abstract class BaseStore implements NodeStore {
           `SELECT n.* FROM nodes n
            JOIN nodes_fts f ON n.id = f.id
            WHERE nodes_fts MATCH ?
-           ORDER BY rank LIMIT ?`
+           ORDER BY rank LIMIT ?`,
         )
         .all(query, limit) as Record<string, unknown>[];
       return rows.map(rowToNode);
     } catch {
       // FTS might fail, fallback to simple search
       const rows = this.db
-        .query(
-          `SELECT * FROM nodes WHERE content LIKE ? LIMIT ?`
-        )
+        .query(`SELECT * FROM nodes WHERE content LIKE ? LIMIT ?`)
         .all(`%${query}%`, limit) as Record<string, unknown>[];
       return rows.map(rowToNode);
     }
@@ -358,12 +357,18 @@ export class MemoryStore extends BaseStore {
   /**
    * Recursively scan a directory
    */
-  private scanDirectory(dirPath: string, parentId: string | null, sortOrder: number): void {
+  private scanDirectory(
+    dirPath: string,
+    parentId: string | null,
+    sortOrder: number,
+  ): void {
     if (!existsSync(dirPath)) return;
 
-    // Skip hidden directories and common excludes
-    const name = basename(dirPath);
-    if (name.startsWith(".") || name === "node_modules") return;
+    // Skip hidden directories and common excludes (but not the root directory)
+    if (parentId !== null) {
+      const name = basename(dirPath);
+      if (name.startsWith(".") || name === "node_modules") return;
+    }
 
     const entries = readdirSync(dirPath, { withFileTypes: true });
     let order = 0;
@@ -419,7 +424,7 @@ export class MemoryStore extends BaseStore {
       const lines = content.split("\n");
 
       let currentSection: string | null = parentId;
-      let sectionStack: { id: string; depth: number }[] = [];
+      const sectionStack: { id: string; depth: number }[] = [];
 
       for (let lineNum = 0; lineNum < lines.length; lineNum++) {
         const line = lines[lineNum];
@@ -431,13 +436,17 @@ export class MemoryStore extends BaseStore {
           const headingText = headingMatch[2].trim();
 
           // Pop sections until we find a parent at lower depth
-          while (sectionStack.length > 0 && sectionStack[sectionStack.length - 1].depth >= depth) {
+          while (
+            sectionStack.length > 0 &&
+            sectionStack[sectionStack.length - 1].depth >= depth
+          ) {
             sectionStack.pop();
           }
 
-          const sectionParent = sectionStack.length > 0
-            ? sectionStack[sectionStack.length - 1].id
-            : parentId;
+          const sectionParent =
+            sectionStack.length > 0
+              ? sectionStack[sectionStack.length - 1].id
+              : parentId;
 
           const sectionId = this.generateId(filePath, lineNum);
           this.insertNode({
@@ -522,7 +531,7 @@ export class MemoryStore extends BaseStore {
         JSON.stringify(node.data ?? {}),
         now,
         now,
-      ]
+      ],
     );
   }
 
@@ -551,7 +560,11 @@ export class MemoryStore extends BaseStore {
     this.db.run(`UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`, values);
 
     // Write through to markdown file for task status changes
-    if (changes.task_status !== undefined && node.fs_path && node.md_line !== undefined) {
+    if (
+      changes.task_status !== undefined &&
+      node.fs_path &&
+      node.md_line !== undefined
+    ) {
       this.writeTaskToFile(node, changes.task_status);
     }
   }
@@ -569,14 +582,12 @@ export class MemoryStore extends BaseStore {
       if (node.md_line >= lines.length) return;
 
       const line = lines[node.md_line];
-      const newMark = newStatus === "done" ? "x" : newStatus === "in_progress" ? "/" : " ";
+      const newMark =
+        newStatus === "done" ? "x" : newStatus === "in_progress" ? "/" : " ";
 
-      lines[node.md_line] = line.replace(
-        /^(\s*-\s+\[).(])/,
-        `$1${newMark}$2`
-      );
+      lines[node.md_line] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
 
-      Bun.write(node.fs_path, lines.join("\n"));
+      void Bun.write(node.fs_path, lines.join("\n"));
     } catch {
       // Ignore write errors
     }
@@ -598,10 +609,21 @@ let storeInstance: NodeStore | null = null;
 
 /**
  * Detect mode and initialize appropriate store
+ * @param startPath - Directory to use as root
+ * @param searchAncestors - If true (default), search for .km/ in ancestors.
+ *                          If false, only check startPath directly for .km/
  */
-export function initStore(startPath?: string): NodeStore {
+export function initStore(
+  startPath?: string,
+  searchAncestors = true,
+): NodeStore {
   const path = startPath ?? process.cwd();
-  const kmPath = findKmDirectory(path);
+
+  // When a path is explicitly provided, check only that directory for .km/
+  // When no path is provided (using cwd), search ancestors for .km/
+  const kmPath = searchAncestors
+    ? findKmDirectory(path)
+    : findKmDirectoryExact(path);
 
   if (kmPath) {
     storeInstance = new DiskStore(kmPath);
@@ -610,6 +632,17 @@ export function initStore(startPath?: string): NodeStore {
   }
 
   return storeInstance;
+}
+
+/**
+ * Check if .km directory exists in the exact path (no ancestor search)
+ */
+function findKmDirectoryExact(path: string): string | null {
+  const kmPath = join(path, ".km");
+  if (existsSync(kmPath) && statSync(kmPath).isDirectory()) {
+    return kmPath;
+  }
+  return null;
 }
 
 /**

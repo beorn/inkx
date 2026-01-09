@@ -20,11 +20,13 @@ km board
 ## Features
 
 **Knowledge Management**
+
 - Treats markdown files as a unified tree of nodes
 - Zero setup - works instantly on any directory
 - Git-friendly plain text
 
-**Agent Orchestration** *(coming soon)*
+**Agent Orchestration** _(coming soon)_
+
 - Run AI agents with preconfigured harnesses
 - Assign tasks to agents or yourself
 - Full session logging and replay

@@ -7,7 +7,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { SyncManager } from "../../watch/sync.ts";
-import { getKmPath } from "../../node/emit.ts";
+import { getKmDir } from "../../node/emit.ts";
 import { dirname } from "path";
 
 export const watchCommand = new Command("watch")
@@ -15,7 +15,7 @@ export const watchCommand = new Command("watch")
   .argument("[path]", "Path to watch (default: vault root)")
   .option("--debounce <ms>", "Debounce interval in ms", "5000")
   .action(async (path, options) => {
-    const vaultPath = path ?? dirname(getKmPath());
+    const vaultPath = path ?? dirname(getKmDir());
     const debounceMs = parseInt(options.debounce, 10);
 
     console.log(chalk.dim(`Watching: ${vaultPath}`));
@@ -41,7 +41,7 @@ export const watchCommand = new Command("watch")
       console.log(
         chalk.green("✓"),
         `Wrote ${data.count} file(s)`,
-        data.errors > 0 ? chalk.red(`(${data.errors} error(s))`) : ""
+        data.errors > 0 ? chalk.red(`(${data.errors} error(s))`) : "",
       );
     });
 
@@ -59,14 +59,12 @@ export const watchCommand = new Command("watch")
     manager.start();
 
     // Handle shutdown
-    process.on("SIGINT", async () => {
+    process.on("SIGINT", () => {
       console.log(chalk.dim("\nStopping watcher..."));
-      await manager.stop();
-      process.exit(0);
+      void manager.stop().then(() => process.exit(0));
     });
 
-    process.on("SIGTERM", async () => {
-      await manager.stop();
-      process.exit(0);
+    process.on("SIGTERM", () => {
+      void manager.stop().then(() => process.exit(0));
     });
   });

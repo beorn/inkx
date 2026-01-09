@@ -16,6 +16,7 @@ km <command> [query]        # Query can be:
 ```
 
 Examples:
+
 ```bash
 km list projects/           # Nodes under projects/
 km tree 01H5X               # Tree from node ID prefix
@@ -111,16 +112,16 @@ Full-screen kanban interface.
 
 ### Keybindings
 
-| Key | Action |
-|-----|--------|
-| `h` `l` | Move between columns |
-| `j` `k` | Move between cards |
+| Key     | Action                       |
+| ------- | ---------------------------- |
+| `h` `l` | Move between columns         |
+| `j` `k` | Move between cards           |
 | `Enter` | Expand card / toggle outline |
-| `x` | Toggle task done |
-| `o` | Toggle outline mode |
-| `m` | Multi-select mode |
-| `?` | Help |
-| `q` | Quit |
+| `x`     | Toggle task done             |
+| `o`     | Toggle outline mode          |
+| `m`     | Multi-select mode            |
+| `?`     | Help                         |
+| `q`     | Quit                         |
 
 ### Outline Mode
 
@@ -137,11 +138,11 @@ Cards expand to show children:
 └────────────────────────────────┘
 ```
 
-| Key | Action |
-|-----|--------|
-| `Enter` | Toggle fold |
-| `Tab` | Move into children |
-| `Shift+Tab` | Move to parent |
+| Key         | Action             |
+| ----------- | ------------------ |
+| `Enter`     | Toggle fold        |
+| `Tab`       | Move into children |
+| `Shift+Tab` | Move to parent     |
 
 ---
 

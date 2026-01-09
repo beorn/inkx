@@ -75,7 +75,7 @@ export class Session {
   logMessage(
     role: "user" | "assistant" | "system",
     content: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): void {
     const messageData: SessionMessageData = {
       session_id: this.id,
@@ -101,7 +101,7 @@ export class Session {
     tool: string,
     input: Record<string, unknown>,
     output?: unknown,
-    error?: string
+    error?: string,
   ): void {
     const toolData: SessionToolCallData = {
       session_id: this.id,

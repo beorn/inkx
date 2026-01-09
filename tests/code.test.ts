@@ -20,7 +20,7 @@ import {
   Agent,
   createAgent,
 } from "../src/code/index.ts";
-import { setKmPath, emit, clearDatabase } from "../src/node/emit.ts";
+import { setKmDir, emit, clearDatabase } from "../src/node/emit.ts";
 import { getDb, closeDb, resetDb } from "../src/node/db.ts";
 import type { Event, Node } from "../src/node/types.ts";
 
@@ -61,7 +61,7 @@ describe("EventHub", () => {
       (event) => {
         received.push(event);
       },
-      (e) => e.type === "node_created"
+      (e) => e.type === "node_created",
     );
 
     await hub.publish({
@@ -330,7 +330,7 @@ describe("Subscriber", () => {
       (event) => {
         received.push(event);
       },
-      { eventTypes: ["node_created"] }
+      { eventTypes: ["node_created"] },
     );
 
     sub.start();
@@ -391,7 +391,7 @@ describe("TaskQueue", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     // getDb() auto-initializes the database
@@ -423,7 +423,7 @@ describe("TaskQueue", () => {
 
     db.prepare(
       `INSERT INTO nodes (id, type, content, task_status, priority, due_date, assigned_to, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       node.id,
       node.type,
@@ -433,7 +433,7 @@ describe("TaskQueue", () => {
       node.due_date ?? null,
       node.assigned_to ?? null,
       node.created_at,
-      node.updated_at
+      node.updated_at,
     );
 
     return node;
@@ -504,8 +504,12 @@ describe("TaskQueue", () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    createTask("Future task", { due_date: tomorrow.toISOString().split("T")[0] });
-    createTask("Overdue task", { due_date: yesterday.toISOString().split("T")[0] });
+    createTask("Future task", {
+      due_date: tomorrow.toISOString().split("T")[0],
+    });
+    createTask("Overdue task", {
+      due_date: yesterday.toISOString().split("T")[0],
+    });
 
     const queue = new TaskQueue({ id: "test-queue" });
     queue.refresh();
@@ -550,7 +554,10 @@ describe("TaskQueue", () => {
     yesterday.setDate(yesterday.getDate() - 1);
 
     createTask("Task 1", { priority: 1 });
-    createTask("Task 2", { priority: 2, due_date: yesterday.toISOString().split("T")[0] });
+    createTask("Task 2", {
+      priority: 2,
+      due_date: yesterday.toISOString().split("T")[0],
+    });
 
     const queue = new TaskQueue({ id: "test-queue" });
     queue.refresh();
@@ -581,7 +588,7 @@ describe("Session", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     // Session tests emit events, which may use the database
     // Clear any stale db references from previous tests
     clearDatabase();
@@ -700,7 +707,7 @@ describe("Agent", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     // getDb() auto-initializes the database
@@ -733,7 +740,7 @@ describe("Agent", () => {
 
     db.prepare(
       `INSERT INTO nodes (id, type, content, task_status, priority, due_date, assigned_to, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       node.id,
       node.type,
@@ -743,7 +750,7 @@ describe("Agent", () => {
       node.due_date ?? null,
       node.assigned_to ?? null,
       node.created_at,
-      node.updated_at
+      node.updated_at,
     );
 
     return node;

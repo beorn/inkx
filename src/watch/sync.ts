@@ -4,8 +4,8 @@
  * Coordinates bidirectional sync between filesystem and database
  */
 
-import { existsSync, readFileSync, statSync, readdirSync } from "fs";
-import { join, relative, extname } from "path";
+import { mkdirSync } from "fs";
+import { dirname } from "path";
 import { EventEmitter } from "events";
 import { FileSystemWatcher, scanDirectoryRecursive } from "./watcher.ts";
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts";
@@ -67,7 +67,7 @@ export class SyncManager extends EventEmitter {
     this.writeQueue.setWatcher(this.watcher);
 
     // Wire up events
-    this.watcher.on("sync", (data) => this.handleFsSync(data));
+    this.watcher.on("sync", (data) => void this.handleFsSync(data));
     this.watcher.on("error", (error) => this.emit("error", error));
     this.watcher.on("ready", () => this.emit("ready"));
 
@@ -183,7 +183,6 @@ export class SyncManager extends EventEmitter {
 
     if (data.type === "folder" && data.fs_path) {
       // Create directory
-      const { mkdirSync } = require("fs");
       try {
         mkdirSync(data.fs_path, { recursive: true });
       } catch {
@@ -253,12 +252,11 @@ export class SyncManager extends EventEmitter {
     const entries = scanDirectoryRecursive(
       this.config.vaultPath,
       (path) => path.endsWith(".md"),
-      ignorePatterns
+      ignorePatterns,
     );
 
     // Group by directory
     const dirs = new Set<string>();
-    const { dirname } = require("path");
 
     for (const entry of entries) {
       dirs.add(dirname(entry.path));
@@ -282,11 +280,12 @@ export class SyncManager extends EventEmitter {
     const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path);
 
     for (const fileNode of fileNodes) {
+      if (!fileNode.fs_path) continue;
       const subtree = getSubtree(fileNode.id);
       const content = nodesToMarkdown(subtree);
 
       this.writeQueue.queue({
-        path: fileNode.fs_path!,
+        path: fileNode.fs_path,
         content,
         sourceEventId: "sync-to-fs",
       });

@@ -20,8 +20,8 @@ export type {
 // Event emission
 export {
   emit,
-  getKmPath,
-  setKmPath,
+  getKmDir,
+  setKmDir,
   getEventsPath,
   setEventHub,
   emitNodeCreated,

@@ -57,7 +57,7 @@ function serializeFile(node: Node, tree: Map<string, Node[]>): string {
 function serializeNode(
   node: Node,
   tree: Map<string, Node[]>,
-  indent: number
+  indent: number,
 ): string {
   const children = tree.get(node.id) ?? [];
 
@@ -106,7 +106,7 @@ function serializeNode(
 function serializeSection(
   node: Node,
   children: Node[],
-  tree: Map<string, Node[]>
+  tree: Map<string, Node[]>,
 ): string {
   const depth = (node.data?.depth as number) ?? 1;
   const prefix = "#".repeat(depth);
@@ -146,7 +146,7 @@ function serializeListItem(
   children: Node[],
   tree: Map<string, Node[]>,
   indent: number,
-  ordered: boolean
+  ordered: boolean,
 ): string {
   const indentStr = "  ".repeat(indent);
   const marker = ordered ? "1." : "-";
@@ -174,7 +174,7 @@ function serializeTask(
   node: Node,
   children: Node[],
   tree: Map<string, Node[]>,
-  indent: number
+  indent: number,
 ): string {
   const indentStr = "  ".repeat(indent);
   const mark = node.task_mark ?? " ";

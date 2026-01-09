@@ -9,8 +9,14 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
-import { setKmPath, clearDatabase } from "../src/node/emit.ts";
-import { getDb, closeDb, resetDb, getNode, getTasksByStatus } from "../src/node/db.ts";
+import { setKmDir, clearDatabase } from "../src/node/emit.ts";
+import {
+  getDb,
+  closeDb,
+  resetDb,
+  getNode,
+  getTasksByStatus,
+} from "../src/node/db.ts";
 import type { Node, TaskStatus } from "../src/node/types.ts";
 
 // Test directory
@@ -36,7 +42,7 @@ function createTask(content: string, options: Partial<Node> = {}): Node {
 
   db.prepare(
     `INSERT INTO nodes (id, type, content, task_status, priority, due_date, assigned_to, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     node.id,
     node.type,
@@ -46,7 +52,7 @@ function createTask(content: string, options: Partial<Node> = {}): Node {
     node.due_date ?? null,
     node.assigned_to ?? null,
     node.created_at,
-    node.updated_at
+    node.updated_at,
   );
 
   return node;
@@ -58,7 +64,7 @@ describe("Task Status Filtering", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();
@@ -111,7 +117,7 @@ describe("Task Priority Sorting", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();
@@ -130,7 +136,7 @@ describe("Task Priority Sorting", () => {
     createTask("High priority", { priority: 1 });
     createTask("Medium priority", { priority: 3 });
 
-    let tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["open"]);
     tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
 
     expect(tasks[0].content).toBe("High priority");
@@ -142,7 +148,7 @@ describe("Task Priority Sorting", () => {
     createTask("No priority");
     createTask("Has priority", { priority: 2 });
 
-    let tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["open"]);
     tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
 
     expect(tasks[0].content).toBe("Has priority");
@@ -156,7 +162,7 @@ describe("Task Due Date Sorting", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();
@@ -175,7 +181,7 @@ describe("Task Due Date Sorting", () => {
     createTask("Due today", { due_date: "2026-01-09" });
     createTask("Due next week", { due_date: "2026-01-16" });
 
-    let tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["open"]);
     tasks.sort((a, b) => {
       if (!a.due_date && !b.due_date) return 0;
       if (!a.due_date) return 1;
@@ -192,7 +198,7 @@ describe("Task Due Date Sorting", () => {
     createTask("No due date");
     createTask("Has due date", { due_date: "2026-01-15" });
 
-    let tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["open"]);
     tasks.sort((a, b) => {
       if (!a.due_date && !b.due_date) return 0;
       if (!a.due_date) return 1;
@@ -240,7 +246,7 @@ describe("Node ID Prefix Matching", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();
@@ -289,7 +295,7 @@ describe("Task Assignment", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();
@@ -324,7 +330,9 @@ describe("Task Assignment", () => {
 
     const db = getDb();
     const unassigned = db
-      .prepare("SELECT * FROM nodes WHERE type = 'task' AND assigned_to IS NULL")
+      .prepare(
+        "SELECT * FROM nodes WHERE type = 'task' AND assigned_to IS NULL",
+      )
       .all() as Node[];
 
     expect(unassigned.length).toBe(2);
@@ -340,7 +348,7 @@ describe("Task Content Parsing", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();
@@ -384,7 +392,7 @@ describe("Search Functionality", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();
@@ -419,7 +427,7 @@ describe("Search Functionality", () => {
     const db = getDb();
     const results = db
       .prepare(
-        "SELECT * FROM nodes WHERE type = 'task' AND LOWER(content) LIKE LOWER(?)"
+        "SELECT * FROM nodes WHERE type = 'task' AND LOWER(content) LIKE LOWER(?)",
       )
       .all("%groceries%") as Node[];
 
@@ -444,7 +452,7 @@ describe("Task Data Field", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();
@@ -465,7 +473,7 @@ describe("Task Data Field", () => {
 
     db.prepare(
       `INSERT INTO nodes (id, type, content, task_status, data, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       "task",
@@ -473,7 +481,7 @@ describe("Task Data Field", () => {
       "open",
       JSON.stringify(data),
       Date.now(),
-      Date.now()
+      Date.now(),
     );
 
     const found = getNode(id);
@@ -495,7 +503,7 @@ describe("Overdue Detection", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();
@@ -549,7 +557,7 @@ describe("Timestamp Handling", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     clearDatabase();
     closeDb();
     resetDb();

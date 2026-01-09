@@ -8,21 +8,12 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
-// Test directories - KM_PATH is set in beforeEach via setKmPath()
+// Test directories - KM_DIR is set in beforeEach via setKmDir()
 const TEST_DIR = join(import.meta.dir, ".test-board");
 
-import {
-  resetDb,
-  closeDb,
-  getNode,
-  getChildren,
-} from "../src/node/db.ts";
+import { resetDb, closeDb, getNode, getChildren } from "../src/node/db.ts";
 
-import {
-  emitNodeCreated,
-  setKmPath,
-  setDatabase,
-} from "../src/node/emit.ts";
+import { emitNodeCreated, setKmDir, setDatabase } from "../src/node/emit.ts";
 
 import { applyEvent } from "../src/node/db.ts";
 
@@ -50,14 +41,18 @@ import {
   defaultRenderOptions,
 } from "../src/cli/commands/board/render.ts";
 
-import type { BoardState, CardState, ColumnState } from "../src/cli/commands/board/types.ts";
+import type {
+  BoardState,
+  CardState,
+  ColumnState,
+} from "../src/cli/commands/board/types.ts";
 
 // Test helpers
 function createTestNode(
   type: NodeType,
   content?: string,
   parentId?: string | null,
-  extra?: Record<string, unknown>
+  extra?: Record<string, unknown>,
 ): string {
   const id = ulid();
   emitNodeCreated("test-user", {
@@ -76,7 +71,7 @@ describe("Board State", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     setDatabase({ applyEvent });
     resetDb();
   });
@@ -154,7 +149,7 @@ describe("Board State", () => {
 
     // Cards should be deduplicated by name - should have 3 unique: Projects, Archive, Work
     const cardNames = state!.columns[0]!.cards.map(
-      (c) => c.node.content || c.node.data?.name
+      (c) => c.node.content || c.node.data?.name,
     );
     const uniqueNames = new Set(cardNames);
     expect(uniqueNames.size).toBe(3);
@@ -173,7 +168,9 @@ describe("Board State", () => {
   });
 
   test("getNodeDisplayName returns data.name if present", () => {
-    const id = createTestNode("folder", undefined, null, { data: { name: "My Folder" } });
+    const id = createTestNode("folder", undefined, null, {
+      data: { name: "My Folder" },
+    });
     const node = getNode(id)!;
     expect(getNodeDisplayName(node)).toBe("My Folder");
   });
@@ -208,7 +205,7 @@ describe("Board Key Handling", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     setDatabase({ applyEvent });
     resetDb();
   });
@@ -373,7 +370,7 @@ describe("Board Rendering", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     setDatabase({ applyEvent });
     resetDb();
   });
@@ -546,7 +543,7 @@ describe("Board Zoom Navigation", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmPath(TEST_DIR);
+    setKmDir(TEST_DIR);
     setDatabase({ applyEvent });
     resetDb();
   });
@@ -597,5 +594,288 @@ describe("Board Zoom Navigation", () => {
 
     const result = handleKey(state, "\x1B");
     expect(result.action).toBe("quit");
+  });
+});
+
+describe("Ink Board Rendering", () => {
+  beforeEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    setKmDir(TEST_DIR);
+    setDatabase({ applyEvent });
+    resetDb();
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  // Note: Full Ink testing would require ink-testing-library
+  // These tests verify the static rendering which shares logic with Ink components
+
+  test("board with rootPath shows filesystem path", () => {
+    const rootId = createTestNode("board", "Test Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    createTestNode("task", "Task 1", colId);
+
+    const state = buildBoardState(rootId);
+    state.rootPath = "/Users/test/vault";
+
+    const output = renderBoardStatic(state, 80);
+    // The static renderer doesn't show rootPath, but this verifies state setup
+    expect(state.rootPath).toBe("/Users/test/vault");
+    expect(output).toContain("Column");
+  });
+
+  test("board state includes rootPath field", () => {
+    const state = createEmptyState();
+    expect(state.rootPath).toBeNull();
+
+    const rootId = createTestNode("board", "Board");
+    const boardState = buildBoardState(rootId);
+    expect(boardState.rootPath).toBeNull(); // Set by caller, not buildBoardState
+  });
+
+  test("renderBoardStatic truncates long content", () => {
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    createTestNode(
+      "task",
+      "This is a very long task name that should be truncated when rendered in a narrow column width",
+      colId,
+    );
+
+    const state = buildBoardState(rootId);
+    const output = renderBoardStatic(state, 40); // Narrow width
+
+    // Content should be present but may be truncated
+    expect(output).toContain("This is a very long");
+    expect(output.length).toBeLessThan(500); // Reasonable output size
+  });
+
+  test("renderBoardStatic shows column counts", () => {
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "Todo", rootId);
+    createTestNode("task", "Task 1", colId);
+    createTestNode("task", "Task 2", colId);
+    createTestNode("task", "Task 3", colId);
+
+    const state = buildBoardState(rootId);
+    const output = renderBoardStatic(state, 80);
+
+    expect(output).toContain("Todo");
+    expect(output).toContain("(3)"); // Card count
+  });
+
+  test("renderBoardStatic handles multiple columns", () => {
+    const rootId = createTestNode("board", "Board");
+    createTestNode("folder", "Todo", rootId);
+    createTestNode("folder", "In Progress", rootId);
+    createTestNode("folder", "Done", rootId);
+
+    const state = buildBoardState(rootId);
+    const output = renderBoardStatic(state, 120);
+
+    expect(output).toContain("Todo");
+    expect(output).toContain("In Progress");
+    expect(output).toContain("Done");
+  });
+});
+
+describe("Ink Board TUI Rendering", () => {
+  // Tests using ink-testing-library to test the ACTUAL Ink components
+
+  beforeEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    setKmDir(TEST_DIR);
+    setDatabase({ applyEvent });
+    resetDb();
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("ink board shows header path on first render", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } =
+      await import("../src/cli/commands/board/InkBoard.tsx");
+    const React = await import("react");
+
+    const rootId = createTestNode("board", "Test Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    createTestNode("task", "Task 1", colId);
+
+    const state = buildBoardState(rootId);
+    state.rootPath = "/Users/test/vault";
+
+    const { lastFrame } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 80,
+        testHeight: 24,
+      }),
+    );
+
+    const output = lastFrame() ?? "";
+
+    // Header should show the filesystem path immediately on first render
+    expect(output).toContain("/Users/test/vault");
+
+    // First non-empty line should contain the path (not be blank)
+    const lines = output.split("\n").filter((l) => l.trim().length > 0);
+    expect(lines[0]).toContain("/Users/test/vault");
+  });
+
+  test("ink board card content does not overflow into borders", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } =
+      await import("../src/cli/commands/board/InkBoard.tsx");
+    const React = await import("react");
+
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    createTestNode("task", "Stretching exercises for morning routine", colId);
+
+    const state = buildBoardState(rootId);
+
+    // Use narrow width to force content handling
+    const { lastFrame } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 40,
+        testHeight: 24,
+      }),
+    );
+
+    const output = lastFrame() ?? "";
+    const lines = output.split("\n");
+
+    // Check that text doesn't bleed into box-drawing border characters
+    for (const line of lines) {
+      // Pattern: letter directly touching horizontal border line (no space between)
+      const hasOverflow = /[a-zA-Z]─|─[a-zA-Z]/.test(line);
+      if (hasOverflow) {
+        console.log("Overflow detected in line:", line);
+      }
+      expect(hasOverflow).toBe(false);
+    }
+  });
+
+  test("ink board cards have minimal padding", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } =
+      await import("../src/cli/commands/board/InkBoard.tsx");
+    const React = await import("react");
+
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    createTestNode("task", "TestContent", colId);
+
+    const state = buildBoardState(rootId);
+
+    const { lastFrame } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 80,
+        testHeight: 24,
+      }),
+    );
+
+    const output = lastFrame() ?? "";
+    const lines = output.split("\n");
+
+    // Find line with our test content
+    const contentLine = lines.find((l) => l.includes("TestContent"));
+    expect(contentLine).toBeDefined();
+
+    if (contentLine) {
+      // Find padding between border and content
+      // Round border uses │ for vertical sides
+      const match = contentLine.match(/[│](\s*).*TestContent/);
+      if (match) {
+        const leftPadding = match[1]?.length ?? 0;
+        // Should have at most 1 space of padding
+        expect(leftPadding).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  test("ink board columns show side by side", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } =
+      await import("../src/cli/commands/board/InkBoard.tsx");
+    const React = await import("react");
+
+    const rootId = createTestNode("board", "Board");
+    createTestNode("folder", "Todo", rootId);
+    createTestNode("folder", "InProgress", rootId);
+    createTestNode("folder", "Done", rootId);
+
+    const state = buildBoardState(rootId);
+
+    // Wide enough for 3 columns
+    const { lastFrame } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 120,
+        testHeight: 24,
+      }),
+    );
+
+    const output = lastFrame() ?? "";
+
+    // All column names should appear
+    expect(output).toContain("Todo");
+    expect(output).toContain("InProgress");
+    expect(output).toContain("Done");
+
+    // Find the lines with column headers - they should be on same line
+    const lines = output.split("\n");
+    const headerLine = lines.find(
+      (l) =>
+        l.includes("Todo") && l.includes("InProgress") && l.includes("Done"),
+    );
+    // All headers should be on the same line (horizontal layout)
+    expect(headerLine).toBeDefined();
+  });
+
+  test("ink board shows card count in column header", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } =
+      await import("../src/cli/commands/board/InkBoard.tsx");
+    const React = await import("react");
+
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "MyColumn", rootId);
+    createTestNode("task", "Task 1", colId);
+    createTestNode("task", "Task 2", colId);
+    createTestNode("task", "Task 3", colId);
+
+    const state = buildBoardState(rootId);
+
+    const { lastFrame } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 80,
+        testHeight: 24,
+      }),
+    );
+
+    const output = lastFrame() ?? "";
+
+    // Column header should show count
+    expect(output).toContain("(3)");
   });
 });

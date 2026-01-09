@@ -57,7 +57,7 @@ function printTree(
   isLast: boolean,
   depth: number,
   maxDepth: number,
-  options: { tasks?: boolean; files?: boolean }
+  options: { tasks?: boolean; files?: boolean },
 ): void {
   // Filter
   if (options.tasks && node.type !== "task") {
@@ -84,7 +84,7 @@ function printTree(
       i === children.length - 1,
       depth + 1,
       maxDepth,
-      options
+      options,
     );
   }
 }
@@ -130,9 +130,7 @@ function getTypeIcon(node: Node): string {
     case "section":
       return chalk.yellow("§");
     case "task":
-      return node.task_status === "done"
-        ? chalk.green("✓")
-        : chalk.dim("○");
+      return node.task_status === "done" ? chalk.green("✓") : chalk.dim("○");
     case "paragraph":
       return chalk.dim("¶");
     case "code":
@@ -150,7 +148,7 @@ function getTypeIcon(node: Node): string {
 function buildJsonTree(
   nodes: Node[],
   maxDepth: number,
-  depth: number = 0
+  depth: number = 0,
 ): object[] {
   if (depth > maxDepth) {
     return [];

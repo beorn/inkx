@@ -6,7 +6,12 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getNodeByIdPrefix, getNodeByPath, getChildren, getSubtree } from "../../node/db.ts";
+import {
+  getNodeByIdPrefix,
+  getNodeByPath,
+  getChildren,
+  getSubtree,
+} from "../../node/db.ts";
 import type { Node } from "../../node/types.ts";
 
 export const showCommand = new Command("show")
@@ -28,11 +33,7 @@ export const showCommand = new Command("show")
         console.log(JSON.stringify(getSubtree(node.id), null, 2));
       } else if (options.children) {
         console.log(
-          JSON.stringify(
-            { node, children: getChildren(node.id) },
-            null,
-            2
-          )
+          JSON.stringify({ node, children: getChildren(node.id) }, null, 2),
         );
       } else {
         console.log(JSON.stringify(node, null, 2));
@@ -72,8 +73,14 @@ export const showCommand = new Command("show")
       console.log(chalk.bold("Parent:"), node.parent_id.slice(0, 8));
     }
 
-    console.log(chalk.bold("Created:"), new Date(node.created_at).toISOString());
-    console.log(chalk.bold("Updated:"), new Date(node.updated_at).toISOString());
+    console.log(
+      chalk.bold("Created:"),
+      new Date(node.created_at).toISOString(),
+    );
+    console.log(
+      chalk.bold("Updated:"),
+      new Date(node.updated_at).toISOString(),
+    );
 
     if (Object.keys(node.data).length > 0) {
       console.log(chalk.bold("Data:"), JSON.stringify(node.data, null, 2));
@@ -134,7 +141,7 @@ function formatNodeBrief(node: Node): string {
  */
 function getIndent(node: Node, rootId: string): string {
   let depth = 0;
-  let current = node;
+  const current = node;
 
   // Count depth from root
   while (current.parent_id && current.parent_id !== rootId) {

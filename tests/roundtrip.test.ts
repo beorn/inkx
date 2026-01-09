@@ -532,7 +532,10 @@ describe("Round-trip: Fixture Files", () => {
   });
 
   test("should round-trip sample-project.md", () => {
-    const original = readFileSync(join(fixturesDir, "sample-project.md"), "utf-8");
+    const original = readFileSync(
+      join(fixturesDir, "sample-project.md"),
+      "utf-8",
+    );
     const { body } = extractFrontmatter(original);
 
     const nodes = parseMarkdownToNodes(body, "sample-project.md");
@@ -558,7 +561,10 @@ describe("Round-trip: Fixture Files", () => {
   });
 
   test("should round-trip comprehensive.md", () => {
-    const original = readFileSync(join(fixturesDir, "comprehensive.md"), "utf-8");
+    const original = readFileSync(
+      join(fixturesDir, "comprehensive.md"),
+      "utf-8",
+    );
     const { body } = extractFrontmatter(original);
 
     const nodes = parseMarkdownToNodes(body, "comprehensive.md");
@@ -573,7 +579,10 @@ describe("Round-trip: Fixture Files", () => {
   });
 
   test("comprehensive.md key content is preserved after round-trip", () => {
-    const original = readFileSync(join(fixturesDir, "comprehensive.md"), "utf-8");
+    const original = readFileSync(
+      join(fixturesDir, "comprehensive.md"),
+      "utf-8",
+    );
     const { body } = extractFrontmatter(original);
 
     // First round-trip

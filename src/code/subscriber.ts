@@ -67,8 +67,8 @@ export class Subscriber extends EventEmitter {
     // Subscribe
     this.unsubscribe = hub.subscribe(
       this.id,
-      (event) => this.handleEvent(event),
-      filter
+      (event) => void this.handleEvent(event),
+      filter,
     );
 
     this.running = true;
@@ -128,14 +128,14 @@ export class Subscriber extends EventEmitter {
 export function createSubscriber(
   id: string,
   handler: EventHandler,
-  config?: Partial<SubscriberConfig>
+  config?: Partial<SubscriberConfig>,
 ): Subscriber {
   const subscriber = new Subscriber({
     id,
     ...config,
   });
 
-  subscriber.on("event", handler);
+  subscriber.on("event", (event: Event) => void handler(event));
 
   return subscriber;
 }

@@ -8,7 +8,7 @@
 import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { getKmPath } from "./emit.ts";
+import { getKmDir } from "./emit.ts";
 
 const INLINE_THRESHOLD = 4096; // 4KB - content larger than this goes to CAS
 
@@ -16,7 +16,7 @@ const INLINE_THRESHOLD = 4096; // 4KB - content larger than this goes to CAS
  * Get the blobs directory path
  */
 export function getBlobsPath(): string {
-  return join(getKmPath(), "blobs");
+  return join(getKmDir(), "blobs");
 }
 
 /**
@@ -106,7 +106,7 @@ export function storeContentAuto(content: string): {
  */
 export function loadContentAuto(
   inlineContent: string | null | undefined,
-  contentHash: string | null | undefined
+  contentHash: string | null | undefined,
 ): string | null {
   if (inlineContent) {
     return inlineContent;

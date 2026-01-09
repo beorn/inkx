@@ -7,7 +7,7 @@ import { Database } from "bun:sqlite";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 import type { Node, Event, TaskStatus, NodeType } from "./types.ts";
-import { getKmPath } from "./emit.ts";
+import { getKmDir } from "./emit.ts";
 
 // Singleton database instance
 let dbInstance: Database | null = null;
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS meta (
  * Get the database path
  */
 export function getDbPath(): string {
-  return join(getKmPath(), "state.db");
+  return join(getKmDir(), "state.db");
 }
 
 /**
@@ -107,7 +107,7 @@ export function getDb(): Database {
     return dbInstance;
   }
 
-  const kmPath = getKmPath();
+  const kmPath = getKmDir();
   if (!existsSync(kmPath)) {
     mkdirSync(kmPath, { recursive: true });
   }
@@ -207,10 +207,10 @@ export function applyEvent(event: Event): void {
   }
 
   // Update last event cursor
-  db.run(
-    "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
-    ["last_event", event.id]
-  );
+  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", [
+    "last_event",
+    event.id,
+  ]);
 }
 
 function applyNodeCreated(db: Database, event: Event): void {
@@ -254,7 +254,7 @@ function applyNodeCreated(db: Database, event: Event): void {
       event.ts,
       event.ts,
       event.id,
-    ]
+    ],
   );
 }
 
@@ -294,7 +294,7 @@ function applyNodeMoved(db: Database, event: Event): void {
     SET parent_id = ?, sort_order = ?, updated_at = ?, version = ?
     WHERE id = ?
   `,
-    [data.parent_id, data.sort_order ?? 0, event.ts, event.id, event.target]
+    [data.parent_id, data.sort_order ?? 0, event.ts, event.id, event.target],
   );
 }
 
@@ -312,7 +312,7 @@ function applyTaskClaimed(db: Database, event: Event): void {
     SET assigned_to = ?, task_status = 'in_progress', updated_at = ?, version = ?
     WHERE id = ?
   `,
-    [event.actor, event.ts, event.id, event.target]
+    [event.actor, event.ts, event.id, event.target],
   );
 }
 
@@ -325,7 +325,7 @@ function applyTaskReleased(db: Database, event: Event): void {
     SET assigned_to = NULL, task_status = 'open', updated_at = ?, version = ?
     WHERE id = ?
   `,
-    [event.ts, event.id, event.target]
+    [event.ts, event.id, event.target],
   );
 }
 
@@ -338,7 +338,7 @@ function applyTaskCompleted(db: Database, event: Event): void {
     SET task_status = 'done', task_mark = 'x', updated_at = ?, version = ?
     WHERE id = ?
   `,
-    [event.ts, event.id, event.target]
+    [event.ts, event.id, event.target],
   );
 }
 
@@ -347,9 +347,10 @@ function applyTaskCompleted(db: Database, event: Event): void {
  */
 export function getNode(id: string): Node | null {
   const db = getDb();
-  const row = db.query("SELECT * FROM nodes WHERE id = ?").get(id) as
-    | Record<string, unknown>
-    | null;
+  const row = db.query("SELECT * FROM nodes WHERE id = ?").get(id) as Record<
+    string,
+    unknown
+  > | null;
 
   if (!row) return null;
   return rowToNode(row);
@@ -362,16 +363,16 @@ export function getNodeByIdPrefix(idPrefix: string): Node | null {
   const db = getDb();
 
   // Try exact match first
-  let row = db.query("SELECT * FROM nodes WHERE id = ?").get(idPrefix) as
-    | Record<string, unknown>
-    | null;
+  let row = db
+    .query("SELECT * FROM nodes WHERE id = ?")
+    .get(idPrefix) as Record<string, unknown> | null;
 
   if (row) return rowToNode(row);
 
   // Try prefix match
-  row = db.query("SELECT * FROM nodes WHERE id LIKE ?").get(`${idPrefix}%`) as
-    | Record<string, unknown>
-    | null;
+  row = db
+    .query("SELECT * FROM nodes WHERE id LIKE ?")
+    .get(`${idPrefix}%`) as Record<string, unknown> | null;
 
   if (!row) return null;
   return rowToNode(row);
@@ -404,7 +405,7 @@ export function getChildren(parentId: string | null): Node[] {
       SELECT * FROM nodes
       WHERE parent_id IS NULL
       ORDER BY sort_order, created_at
-    `
+    `,
       )
       .all() as Record<string, unknown>[];
   } else {
@@ -414,7 +415,7 @@ export function getChildren(parentId: string | null): Node[] {
       SELECT * FROM nodes
       WHERE parent_id = ?
       ORDER BY sort_order, created_at
-    `
+    `,
       )
       .all(parentId) as Record<string, unknown>[];
   }
@@ -438,7 +439,7 @@ export function getSubtree(rootId: string): Node[] {
     )
     SELECT * FROM subtree
     ORDER BY sort_order, created_at
-  `
+  `,
     )
     .all(rootId) as Record<string, unknown>[];
 
@@ -461,7 +462,7 @@ export function getAncestors(nodeId: string): Node[] {
       JOIN ancestors a ON n.id = a.parent_id
     )
     SELECT * FROM ancestors
-  `
+  `,
     )
     .all(nodeId) as Record<string, unknown>[];
 
@@ -483,7 +484,7 @@ export function getTasksByStatus(status: TaskStatus | TaskStatus[]): Node[] {
     SELECT * FROM nodes
     WHERE type = 'task' AND task_status IN (${placeholders})
     ORDER BY priority ASC, due_date ASC, created_at ASC
-  `
+  `,
     )
     .all(...statuses) as Record<string, unknown>[];
 
@@ -501,7 +502,7 @@ export function getAllTasks(): Node[] {
     SELECT * FROM nodes
     WHERE type = 'task'
     ORDER BY task_status, priority ASC, due_date ASC, created_at ASC
-  `
+  `,
     )
     .all() as Record<string, unknown>[];
 
@@ -521,7 +522,7 @@ export function search(query: string, limit = 50): Node[] {
     WHERE nodes_fts MATCH ?
     ORDER BY rank
     LIMIT ?
-  `
+  `,
     )
     .all(query, limit) as Record<string, unknown>[];
 

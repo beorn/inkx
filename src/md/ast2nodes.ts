@@ -24,7 +24,7 @@ import {
 export function parseMarkdownToNodes(
   content: string,
   fsPath: string,
-  fsIno?: number
+  fsIno?: number,
 ): Node[] {
   const { frontmatter, body } = extractFrontmatter(content);
   const ast = parseMarkdown(body);
@@ -125,7 +125,7 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): Node[] {
           currentParent,
           list.ordered ?? false,
           sortOrder++,
-          sourceText
+          sourceText,
         );
         nodes.push(...itemNodes);
       }
@@ -150,7 +150,7 @@ function convertListItem(
   parent: Node,
   ordered: boolean,
   sortOrder: number,
-  sourceText: string
+  sourceText: string,
 ): Node[] {
   const nodes: Node[] = [];
   const now = Date.now();
@@ -227,7 +227,7 @@ function convertListItem(
           node,
           list.ordered ?? false,
           nestedSort++,
-          sourceText
+          sourceText,
         );
         nodes.push(...nestedNodes);
       }
@@ -243,7 +243,7 @@ function convertListItem(
 function convertBlock(
   block: Content,
   parent: Node,
-  sortOrder: number
+  sortOrder: number,
 ): Node | null {
   const now = Date.now();
 
@@ -319,7 +319,7 @@ export function buildNodeTree(nodes: Node[]): Map<string, Node[]> {
     if (!tree.has(parentId)) {
       tree.set(parentId, []);
     }
-    tree.get(parentId)!.push(node);
+    tree.get(parentId)?.push(node);
   }
 
   // Sort children by sort_order

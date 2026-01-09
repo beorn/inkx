@@ -6,23 +6,23 @@ Memory vs disk modes for km.
 
 ## Two Modes
 
-| Mode | Trigger | SQLite | Event Log | Node IDs |
-|------|---------|--------|-----------|----------|
-| **Memory** | No `.km/` | `:memory:` | None | Ephemeral |
-| **Disk** | `.km/` exists | `.km/state.db` | `.km/events.jsonl` | Stable |
+| Mode       | Trigger       | SQLite         | Event Log          | Node IDs  |
+| ---------- | ------------- | -------------- | ------------------ | --------- |
+| **Memory** | No `.km/`     | `:memory:`     | None               | Ephemeral |
+| **Disk**   | `.km/` exists | `.km/state.db` | `.km/events.jsonl` | Stable    |
 
 **Both modes are read-write.** The key differences:
 
 ### What's Different
 
-| Aspect | Memory Mode | Disk Mode |
-|--------|-------------|-----------|
-| **SQLite** | Rebuilt from `.md` each run | Persisted in `.km/state.db` |
-| **Event log** | None | All changes in `events.jsonl` |
-| **Node IDs** | `path:line` (session-local) | ULIDs (permanent) |
-| **Write path** | Direct to `.md` files | Event → SQLite → (optionally sync to `.md`) |
-| **Startup** | Scan filesystem | Load SQLite |
-| **History** | None | Full audit trail |
+| Aspect         | Memory Mode                 | Disk Mode                                   |
+| -------------- | --------------------------- | ------------------------------------------- |
+| **SQLite**     | Rebuilt from `.md` each run | Persisted in `.km/state.db`                 |
+| **Event log**  | None                        | All changes in `events.jsonl`               |
+| **Node IDs**   | `path:line` (session-local) | ULIDs (permanent)                           |
+| **Write path** | Direct to `.md` files       | Event → SQLite → (optionally sync to `.md`) |
+| **Startup**    | Scan filesystem             | Load SQLite                                 |
+| **History**    | None                        | Full audit trail                            |
 
 ### Memory Mode
 
@@ -61,14 +61,14 @@ km show abc123        # Same ID still works
 
 ### When to Use Each
 
-| Use Case | Mode |
-|----------|------|
-| Browse any markdown folder | Memory |
+| Use Case                         | Mode   |
+| -------------------------------- | ------ |
+| Browse any markdown folder       | Memory |
 | Quick task toggle in random repo | Memory |
-| Your main projects | Disk |
-| Need history/undo | Disk |
-| Reference tasks by stable ID | Disk |
-| Multi-device sync (future) | Disk |
+| Your main projects               | Disk   |
+| Need history/undo                | Disk   |
+| Reference tasks by stable ID     | Disk   |
+| Multi-device sync (future)       | Disk   |
 
 ---
 
@@ -164,7 +164,7 @@ class MemoryStore implements NodeStore {
     const lines = readFileSync(node.fs_path, "utf-8").split("\n");
     lines[node.md_line] = lines[node.md_line].replace(
       /^(\s*- \[).(])/,
-      `$1${changes.task_status === "done" ? "x" : " "}$2`
+      `$1${changes.task_status === "done" ? "x" : " "}$2`,
     );
     writeFileSync(node.fs_path, lines.join("\n"));
   }
@@ -204,23 +204,23 @@ function findKmDirectory(startPath: string): string | null {
 
 ## Feature Comparison
 
-| Feature | Memory | Disk |
-|---------|--------|------|
-| View tree/tasks/board | Yes | Yes |
-| Toggle checkboxes | Yes | Yes |
-| Event history | No | Yes |
-| Stable IDs across sessions | No | Yes |
-| `km show <id>` works later | No | Yes |
-| Undo/history | No | Yes |
-| Sync support | No | Yes |
+| Feature                    | Memory | Disk |
+| -------------------------- | ------ | ---- |
+| View tree/tasks/board      | Yes    | Yes  |
+| Toggle checkboxes          | Yes    | Yes  |
+| Event history              | No     | Yes  |
+| Stable IDs across sessions | No     | Yes  |
+| `km show <id>` works later | No     | Yes  |
+| Undo/history               | No     | Yes  |
+| Sync support               | No     | Yes  |
 
 ---
 
 ## ID Strategy
 
-| Mode | Format | Example |
-|------|--------|---------|
-| Disk | ULID | `01H5XJKM...` |
+| Mode   | Format      | Example               |
+| ------ | ----------- | --------------------- |
+| Disk   | ULID        | `01H5XJKM...`         |
 | Memory | `path:line` | `projects/todo.md:42` |
 
 Memory IDs are session-local. Write-back uses `fs_path` + `md_line`, not ID.

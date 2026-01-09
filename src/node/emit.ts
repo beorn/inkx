@@ -13,21 +13,21 @@ let eventHub: { broadcast: (event: Event) => void } | null = null;
 // Database for immediate projection (set when db is loaded)
 let db: { applyEvent: (event: Event) => void } | null = null;
 
-// Path to km state directory (defaults to .km, can be overridden with KM_PATH env var)
-let kmPath = process.env.KM_PATH ?? ".km";
+// Path to km state directory (defaults to .km, can be overridden with KM_DIR env var)
+let kmDir = process.env.KM_DIR ?? ".km";
 
 /**
- * Set the km directory path
+ * Set the km state directory path
  */
-export function setKmPath(path: string): void {
-  kmPath = path;
+export function setKmDir(path: string): void {
+  kmDir = path;
 }
 
 /**
- * Get the current km path
+ * Get the current km state directory path
  */
-export function getKmPath(): string {
-  return kmPath;
+export function getKmDir(): string {
+  return kmDir;
 }
 
 /**
@@ -40,9 +40,11 @@ export function setEventHub(hub: { broadcast: (event: Event) => void }): void {
 /**
  * Set the database for immediate projection
  */
-export function setDatabase(database: {
-  applyEvent: (event: Event) => void;
-} | null): void {
+export function setDatabase(
+  database: {
+    applyEvent: (event: Event) => void;
+  } | null,
+): void {
   db = database;
 }
 
@@ -57,8 +59,8 @@ export function clearDatabase(): void {
  * Ensure the km directory exists
  */
 function ensureKmDir(): void {
-  if (!existsSync(kmPath)) {
-    mkdirSync(kmPath, { recursive: true });
+  if (!existsSync(kmDir)) {
+    mkdirSync(kmDir, { recursive: true });
   }
 }
 
@@ -66,7 +68,7 @@ function ensureKmDir(): void {
  * Get the events file path
  */
 export function getEventsPath(): string {
-  return join(kmPath, "events.jsonl");
+  return join(kmDir, "events.jsonl");
 }
 
 /**
@@ -74,7 +76,7 @@ export function getEventsPath(): string {
  */
 export function emit(
   event: Omit<Event, "id" | "ts">,
-  options: { skipPersist?: boolean; skipBroadcast?: boolean } = {}
+  options: { skipPersist?: boolean; skipBroadcast?: boolean } = {},
 ): Event {
   const full: Event = {
     id: ulid(),
@@ -109,7 +111,7 @@ export function emit(
  */
 export function createEmitter<T extends Record<string, unknown>>(
   type: EventType,
-  actor: string
+  actor: string,
 ) {
   return (data: T, target?: string): Event => {
     return emit({
@@ -126,7 +128,7 @@ export function createEmitter<T extends Record<string, unknown>>(
  */
 export function emitNodeCreated(
   actor: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ): Event {
   return emit({
     type: "node_created",
@@ -141,7 +143,7 @@ export function emitNodeCreated(
 export function emitNodeUpdated(
   actor: string,
   target: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ): Event {
   return emit({
     type: "node_updated",
@@ -157,7 +159,7 @@ export function emitNodeUpdated(
 export function emitNodeMoved(
   actor: string,
   target: string,
-  data: { parent_id: string | null; sort_order?: number }
+  data: { parent_id: string | null; sort_order?: number },
 ): Event {
   return emit({
     type: "node_moved",
@@ -173,7 +175,7 @@ export function emitNodeMoved(
 export function emitNodeDeleted(
   actor: string,
   target: string,
-  reason?: string
+  reason?: string,
 ): Event {
   return emit({
     type: "node_deleted",
@@ -201,7 +203,7 @@ export function emitTaskClaimed(target: string, actor: string): Event {
 export function emitTaskReleased(
   target: string,
   actor: string,
-  reason?: string
+  reason?: string,
 ): Event {
   return emit({
     type: "task_released",
@@ -217,7 +219,7 @@ export function emitTaskReleased(
 export function emitTaskCompleted(
   target: string,
   actor: string,
-  summary?: string
+  summary?: string,
 ): Event {
   return emit({
     type: "task_completed",

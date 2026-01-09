@@ -23,7 +23,7 @@ This is a sample project file with various node types for testing.
 
 ## Content Blocks
 
-Here is a regular paragraph with some **bold** and *italic* text.
+Here is a regular paragraph with some **bold** and _italic_ text.
 
 > This is a blockquote
 > spanning multiple lines
@@ -38,23 +38,25 @@ function hello(): string {
 ## Lists
 
 ### Unordered List
+
 - Item one
 - Item two
 - Item three
   - Nested item
 
 ### Ordered List
+
 1. First item
 2. Second item
 3. Third item
 
 ## Table
 
-| Name | Status | Priority |
-|------|--------|----------|
-| Task A | open | 1 |
-| Task B | done | 2 |
-| Task C | blocked | 3 |
+| Name   | Status  | Priority |
+| ------ | ------- | -------- |
+| Task A | open    | 1        |
+| Task B | done    | 2        |
+| Task C | blocked | 3        |
 
 ## Wikilinks
 
