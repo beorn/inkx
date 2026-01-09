@@ -32,10 +32,13 @@ interface OutlineItemProps {
   width: number;
   foldedNodes: Set<string>;
   onToggleFold: (id: string) => void;
-  isSelected: boolean;
+  isCardSelected: boolean;  // The card containing this item is selected
+  isItemSelected: boolean;  // This specific item is the selected sub-item
+  flatIndex: number;        // Index in flattened list for selection tracking
+  selectedSubIndex: number; // Currently selected sub-item index
 }
 
-function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, isSelected }: OutlineItemProps) {
+function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, isCardSelected, isItemSelected, flatIndex, selectedSubIndex }: OutlineItemProps) {
   const indent = "  ".repeat(depth);
   const icon = getStatusIcon(node.task_status);
   const rawContent = node.content || getNodeDisplayName(node);
@@ -49,29 +52,53 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
 
   const foldIndicator = hasChildren ? (isFolded ? "\u25B6" : "\u25BC") : " ";
 
+  // Determine background color based on selection state
+  let backgroundColor: string | undefined;
+  let textColor: string | undefined;
+  if (isItemSelected) {
+    // This specific sub-item is selected
+    backgroundColor = "blue";
+    textColor = "white";
+  } else if (isCardSelected && depth === 0) {
+    // Card is selected but we're at root level (card header)
+    backgroundColor = "cyan";
+    textColor = "black";
+  }
+
+  // Track index for children
+  let nextIndex = flatIndex + 1;
+
   return (
     <Box flexDirection="column">
       <Text
-        backgroundColor={isSelected ? "blue" : undefined}
-        color={isSelected ? "white" : undefined}
-        dimColor={depth > 0}
+        backgroundColor={backgroundColor}
+        color={textColor}
+        dimColor={!isCardSelected && depth > 0}
       >
         {indent}{foldIndicator} {icon} {content}{hasChildren && isFolded ? ` (${children.length})` : ""}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
-          {children.slice(0, 10).map((child) => (
-            <OutlineItem
-              key={child.id}
-              node={child}
-              depth={depth + 1}
-              maxDepth={maxDepth}
-              width={width}
-              foldedNodes={foldedNodes}
-              onToggleFold={onToggleFold}
-              isSelected={false}
-            />
-          ))}
+          {children.slice(0, 10).map((child, i) => {
+            const childIndex = nextIndex;
+            // Calculate next index by counting visible descendants
+            nextIndex = childIndex + 1 + countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
+            return (
+              <OutlineItem
+                key={child.id}
+                node={child}
+                depth={depth + 1}
+                maxDepth={maxDepth}
+                width={width}
+                foldedNodes={foldedNodes}
+                onToggleFold={onToggleFold}
+                isCardSelected={isCardSelected}
+                isItemSelected={isCardSelected && childIndex === selectedSubIndex}
+                flatIndex={childIndex}
+                selectedSubIndex={selectedSubIndex}
+              />
+            );
+          })}
           {children.length > 10 && (
             <Text dimColor>{indent}  +{children.length - 10} more</Text>
           )}
@@ -81,16 +108,30 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
   );
 }
 
+// Helper to count visible descendants for flat indexing
+function countVisibleDescendants(node: Node, depth: number, maxDepth: number, foldedNodes: Set<string>): number {
+  if (depth > maxDepth || foldedNodes.has(node.id)) {
+    return 0;
+  }
+  const children = getChildren(node.id).slice(0, 10);
+  let count = children.length;
+  for (const child of children) {
+    count += countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
+  }
+  return count;
+}
+
 interface CardProps {
   card: CardState;
   isSelected: boolean;
+  selectedSubIndex: number;  // Which sub-item within this card is selected (-1 = card header)
   width: number;
   maxOutlineDepth: number;
   foldedNodes: Set<string>;
   onToggleFold: (id: string) => void;
 }
 
-function Card({ card, isSelected, width, maxOutlineDepth, foldedNodes, onToggleFold }: CardProps) {
+function Card({ card, isSelected, selectedSubIndex, width, maxOutlineDepth, foldedNodes, onToggleFold }: CardProps) {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <OutlineItem
@@ -100,7 +141,10 @@ function Card({ card, isSelected, width, maxOutlineDepth, foldedNodes, onToggleF
         width={width}
         foldedNodes={foldedNodes}
         onToggleFold={onToggleFold}
-        isSelected={isSelected}
+        isCardSelected={isSelected}
+        isItemSelected={isSelected && selectedSubIndex === 0}
+        flatIndex={0}
+        selectedSubIndex={selectedSubIndex}
       />
     </Box>
   );
