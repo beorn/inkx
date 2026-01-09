@@ -37,7 +37,11 @@
       "SlashCommand(/ops)",
       "SlashCommand(/ops deploy)",
       "SlashCommand(/ops:*)",
-      "mcp__pal__analyze"
+      "mcp__pal__analyze",
+      "Bash:*",
+      "Bash(bun km:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
