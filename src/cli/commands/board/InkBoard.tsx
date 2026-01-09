@@ -7,7 +7,21 @@ import { render, Box, Text, useInput, useApp, useStdout } from "ink";
 import type { BoardState, CardState, ColumnState } from "./types.ts";
 import { getNodeDisplayName, buildBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "../../../node/types.ts";
-import { getChildren } from "../../../node/db.ts";
+import { getChildren, getNode } from "../../../node/db.ts";
+
+// Build path from root to a given node
+function getNodePath(nodeId: string | null): string[] {
+  if (!nodeId) return [];
+  const path: string[] = [];
+  let currentId: string | null = nodeId;
+  while (currentId) {
+    const node = getNode(currentId);
+    if (!node) break;
+    path.unshift(getNodeDisplayName(node));
+    currentId = node.parent_id;
+  }
+  return path;
+}
 
 // Status icons
 function getStatusIcon(status?: TaskStatus): string {
@@ -545,20 +559,16 @@ function Board({ initialState }: BoardProps) {
     });
   });
 
-  // Title
-  const title = state.rootId
-    ? getNodeDisplayName(
-        state.columns[0]?.node || { id: "", type: "folder", parent_id: null, sort_order: 0, symlink_to: null, content: "Board", data: {}, created_at: 0, updated_at: 0, version: "v1" }
-      )
-    : "Board";
+  // Build breadcrumb path
+  const path = state.rootId ? getNodePath(state.rootId) : [];
+  const breadcrumb = path.length > 0 ? path.join(" / ") : "Board";
 
   return (
     <Box flexDirection="column" height={termHeight}>
       <Box>
-        <Text bold inverse>{` ${title} `}</Text>
+        <Text bold inverse>{` ${breadcrumb} `}</Text>
         {inOutlineMode && <Text color="cyan">{` [OUTLINE]`}</Text>}
         {multiSelected.size > 0 && <Text color="yellow">{` [${multiSelected.size} selected]`}</Text>}
-        {state.zoomStack.length > 0 && <Text dimColor>{` [depth: ${state.zoomStack.length}]`}</Text>}
         {state.columns.length > maxCols && (
           <Text dimColor>{` [${colScrollOffset + 1}-${colScrollOffset + maxCols}/${state.columns.length} cols]`}</Text>
         )}
