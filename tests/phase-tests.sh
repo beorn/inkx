@@ -203,8 +203,7 @@ test_phase4() {
   pass "cli/index.ts has correct structure"
 
   # Check commands are registered
-  grep -q "listCommand" src/cli/index.ts || fail "list command not registered"
-  grep -q "addCommand" src/cli/index.ts || fail "add command not registered"
+  grep -q "tasksCommand" src/cli/index.ts || fail "tasks command not registered"
   grep -q "showCommand" src/cli/index.ts || fail "show command not registered"
   grep -q "treeCommand" src/cli/index.ts || fail "tree command not registered"
   grep -q "syncCommand" src/cli/index.ts || fail "sync command not registered"
@@ -302,9 +301,13 @@ test_phase6() {
   bun src/cli/index.ts rebuild --status >/dev/null 2>&1 || fail "km rebuild --status failed"
   pass "km rebuild --status works"
 
-  # Test km list (should work with empty db)
-  bun src/cli/index.ts list >/dev/null 2>&1 || fail "km list failed"
-  pass "km list works"
+  # Test km tasks (should work with empty db)
+  bun src/cli/index.ts tasks >/dev/null 2>&1 || fail "km tasks failed"
+  pass "km tasks works"
+
+  # Test km tasks list (should work with empty db)
+  bun src/cli/index.ts tasks list >/dev/null 2>&1 || fail "km tasks list failed"
+  pass "km tasks list works"
 
   # Test km tree (should work with empty db)
   bun src/cli/index.ts tree >/dev/null 2>&1 || fail "km tree failed"
