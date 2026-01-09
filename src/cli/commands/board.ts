@@ -100,24 +100,118 @@ export const boardCommand = new Command("board")
  * Initialize board state from a root node
  */
 function initBoard(rootId?: string): BoardState | null {
-  let root: Node | null = null;
-
   if (rootId) {
-    root = getNode(rootId);
+    const root = getNode(rootId);
     if (!root) {
       console.error(chalk.red(`Node not found: ${rootId}`));
       return null;
     }
-  } else {
-    // Find first board or folder with children
-    const roots = getChildren(null);
-    root = roots.find((n) => n.type === "board") ?? roots[0] ?? null;
-    if (!root) {
-      return null;
+    return buildBoardState(root.id);
+  }
+
+  // No root specified - find the best board to display
+  const roots = getChildren(null);
+
+  // 1. Check for explicit board nodes
+  const boardNode = roots.find((n) => n.type === "board");
+  if (boardNode) {
+    return buildBoardState(boardNode.id);
+  }
+
+  // 2. Find a node with multiple children that can serve as columns
+  // Search through roots and their children for a good board root
+  const candidates = findBoardCandidates(roots, 3);
+  const best = candidates.sort((a, b) => b.childCount - a.childCount)[0];
+  if (best) {
+    return buildBoardState(best.node.id);
+  }
+
+  // 3. Fall back: group roots by name and show unique ones as columns
+  if (roots.length === 0) {
+    return null;
+  }
+
+  return buildBoardStateFromGroupedRoots(roots);
+}
+
+/**
+ * Find nodes that would make good board roots (have multiple children)
+ */
+function findBoardCandidates(
+  nodes: Node[],
+  maxDepth: number,
+  depth: number = 0
+): { node: Node; childCount: number }[] {
+  const candidates: { node: Node; childCount: number }[] = [];
+
+  for (const node of nodes) {
+    const children = getChildren(node.id);
+
+    // A good board candidate has 2+ children
+    if (children.length >= 2) {
+      candidates.push({ node, childCount: children.length });
+    }
+
+    // Recurse into children if we haven't reached max depth
+    if (depth < maxDepth && children.length > 0) {
+      candidates.push(...findBoardCandidates(children, maxDepth, depth + 1));
     }
   }
 
-  return buildBoardState(root.id);
+  return candidates;
+}
+
+/**
+ * Build board state grouping roots by name
+ * Used when no explicit board is configured
+ */
+function buildBoardStateFromGroupedRoots(roots: Node[]): BoardState {
+  // Group roots by display name to consolidate duplicates
+  const groups = new Map<string, Node[]>();
+
+  for (const root of roots) {
+    const name = getNodeName(root);
+    if (!groups.has(name)) {
+      groups.set(name, []);
+    }
+    groups.get(name)!.push(root);
+  }
+
+  const columns: ColumnState[] = [];
+
+  // Each unique name becomes a column, combining children from all roots with that name
+  for (const [_name, groupRoots] of groups) {
+    // Use first root as the column node
+    const colNode = groupRoots[0];
+    if (!colNode) continue;
+
+    // Collect children from all roots with this name
+    const allChildren: Node[] = [];
+    for (const root of groupRoots) {
+      allChildren.push(...getChildren(root.id));
+    }
+
+    const cards: CardState[] = allChildren.map((child) => ({
+      node: child,
+      children: getChildren(child.id),
+    }));
+
+    columns.push({ node: colNode, cards });
+  }
+
+  return {
+    rootId: null, // Special case: no single root
+    columns,
+    colIndex: 0,
+    cardIndex: 0,
+    selectedCards: new Set(),
+    visualMode: false,
+    foldedCards: new Set(),
+    searchQuery: "",
+    searchMode: false,
+    helpMode: false,
+    zoomStack: [],
+  };
 }
 
 /**
