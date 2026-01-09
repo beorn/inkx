@@ -2,41 +2,35 @@
 
 > The agentic work desk
 
-## A New Kind of Coworker
+## Try It
 
-AI can finally think. This changes everything.
+```bash
+cd ~/notes
+km task       # Every TODO across all files
+km tree       # Your knowledge hierarchy
+km board      # Kanban view
+```
 
-The **knowledge worker** used to do it all — research, organize, decide, execute. Now there's a new role emerging: the **agentic coworker**. Human and AI agents, working together. You set direction. Agents do the rest.
+Point km at any folder. No config. Files stay plain text.
 
-## The Problem
+## Why
 
-Today's tools weren't built for this.
+AI can finally think. Now it needs a place to work.
 
-| Tool | Assumes... |
-|------|------------|
-| Obsidian, Notion | *You* do the work |
-| Linear, Asana | *Humans* coordinate |
-| Claude Code, Cursor | *Code* is the context |
+Today's tools assume *you* do everything. But a new way of working is emerging: **human and AI agents, side by side**. You set direction. Agents do the rest.
 
-**Your context is fragmented.** Calendar here, notes there, tasks somewhere else.
+The problem:
 
-**Your agents are blind.** They can't see your schedule, your contacts, your research — only what you paste in.
+- **Context is fragmented** — calendar here, notes there, tasks somewhere else
+- **Agents are blind** — they can't see your life, only what you paste in
+- **No history** — what did the agent do while you weren't looking?
+- **No "run" mode** — agents can't work in the background or on a schedule
 
-**There's no audit trail.** What did the agent do while you weren't looking?
+The bottleneck isn't AI capability. It's the workspace.
 
-**You're still the glue.** Every handoff between tools and agents goes through you.
+## What km Does
 
-**Setup is a nightmare.** Custom scripts, API wiring, prompt engineering. Everything is bespoke.
-
-**No "run" mode.** You can work interactively with Claude Code — but agents can't run in the background, on a schedule, or while you're away.
-
-The bottleneck isn't AI capability anymore. It's the workspace.
-
-## The Solution
-
-**km** — the agentic work desk.
-
-A shared workspace where you and your agents work side by side.
+A shared workspace for you and your agents.
 
 ```
      You ◄────────────► km ◄────────────► Agents
@@ -52,40 +46,19 @@ A shared workspace where you and your agents work side by side.
 
 Same notes. Same tasks. Same calendar. Full history.
 
-- Agents see your context — no more copy-paste
-- Every change is tracked — see what happened
-- Your data stays local — plain markdown, Obsidian-compatible
+- Agents see your context — no copy-paste
+- Every change tracked — full audit trail
+- Data stays local — plain markdown, Obsidian-compatible
 
-## Try It
+## Components
 
-```bash
-cd ~/notes
-km task       # Every TODO across all files
-km tree       # Your knowledge hierarchy
-km board      # Kanban view
-```
+**Index** — Markdown becomes a knowledge base. Notes, tasks, calendar, contacts — all nodes in one tree.
 
-Point km at any folder. No config. Files stay plain text.
+**Board** — Kanban TUI. Vim keys.
 
-## What km Provides
+**Hub** *(coming)* — Command center for agent teams. Inspired by [Beads](https://github.com/steveyegge/beads) and [Gas Town](https://github.com/steveyegge/gastown).
 
-**The Index** — Your markdown becomes a knowledge base. Notes, tasks, calendar, contacts — all nodes in one tree.
-
-**The Board** — Kanban TUI for tasks. Vim keys.
-
-**The Hub** *(designed)* — Command center for agent teams. Spawn agents, assign work, watch progress. Inspired by [Beads](https://github.com/steveyegge/beads) and [Gas Town](https://github.com/steveyegge/gastown).
-
-**Kimmi** *(planned)* — An AI assistant who knows your whole life:
-
-```
-You: "What's on my plate this week?"
-
-Kimmi: Mon: Design review (10am), 3 open tasks on auth module
-       Tue: Coffee with Sarah Chen
-       Wed: API spec deadline — blocks 3 other tasks
-       Thu: Clear — good for deep work
-       Fri: Team retro (2pm)
-```
+**Kimmi** *(coming)* — AI assistant with full context on your life.
 
 ## Status
 

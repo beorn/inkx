@@ -3,7 +3,8 @@
  * Full-screen board view with columns and cards
  */
 import React, { useState, useEffect } from "react";
-import { render, Box, Text, useInput, useApp, useStdout } from "ink";
+import { Box, Text, useInput, useApp, useStdout } from "ink";
+import { withFullScreen } from "fullscreen-ink";
 import type { BoardState, CardState, ColumnState } from "./types.ts";
 import { buildBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "../../../node/types.ts";
@@ -119,12 +120,18 @@ function OutlineItem({
     : `${indent}${foldIndicator} `;
   const suffix = typeSuffix ? ` ${typeSuffix}` : "";
 
-  // Calculate content width: total width - prefix - suffix - foldedCount
-  const availWidth = Math.max(
-    1,
-    width - prefix.length - suffix.length - foldedCount.length,
-  );
-  const content = firstLine.slice(0, availWidth);
+  // Build the full line and truncate to fit width exactly
+  // Format: prefix + content + suffix + foldedCount
+  const fixedParts = prefix.length + suffix.length + foldedCount.length;
+  const availWidth = Math.max(1, width - fixedParts);
+  const truncatedContent =
+    firstLine.length > availWidth
+      ? firstLine.slice(0, availWidth - 1) + "…"
+      : firstLine;
+
+  // Build complete line, padded/truncated to exact width
+  const fullLine = prefix + truncatedContent + suffix + foldedCount;
+  const displayLine = fullLine.slice(0, width);
 
   // Determine background color based on selection state
   let backgroundColor: string | undefined;
@@ -141,17 +148,14 @@ function OutlineItem({
   let nextIndex = flatIndex + 1;
 
   return (
-    <Box flexDirection="column" width={width}>
+    <Box flexDirection="column" width={width} overflowX="hidden">
       <Text
         backgroundColor={backgroundColor}
         color={textColor}
         dimColor={!isCardSelected && depth > 0}
         wrap="truncate"
       >
-        {prefix}
-        {content}
-        {typeSuffix ? <Text color="gray">{suffix}</Text> : ""}
-        {foldedCount}
+        {displayLine}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
@@ -258,6 +262,7 @@ function Card({
       borderStyle="round"
       borderColor={isSelected ? "cyan" : "gray"}
       borderDimColor={!isSelected}
+      overflowX="hidden"
     >
       <OutlineItem
         node={card.node}
@@ -783,29 +788,11 @@ function Board({ initialState }: BoardProps) {
   );
 }
 
-// ANSI escape codes for alternate screen buffer
-const ENTER_ALT_SCREEN = "\x1b[?1049h";
-const LEAVE_ALT_SCREEN = "\x1b[?1049l";
-const CLEAR_SCREEN = "\x1b[2J\x1b[H";
-
 export function renderInkBoard(state: BoardState): void {
-  // Enter alternate screen buffer for fullscreen TUI
-  process.stdout.write(ENTER_ALT_SCREEN + CLEAR_SCREEN);
-
-  // Ensure we leave alternate screen on exit
-  const cleanup = () => {
-    process.stdout.write(LEAVE_ALT_SCREEN);
-  };
-  process.on("exit", cleanup);
-  process.on("SIGINT", () => {
-    cleanup();
-    process.exit(0);
-  });
-
-  render(<Board initialState={state} />, {
+  withFullScreen(<Board initialState={state} />, {
     exitOnCtrlC: true,
     patchConsole: true,
-  });
+  }).start();
 }
 
 // Testable version of Board component with fixed dimensions for testing
