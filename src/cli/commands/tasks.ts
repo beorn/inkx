@@ -46,7 +46,7 @@ function getNodeDisplayName(node: Node): string {
 function formatTaskWithPath(
   task: Node,
   ancestors: Node[],
-  options: { verbose?: boolean; flat?: boolean } = {}
+  options: { verbose?: boolean; flat?: boolean; showId?: boolean } = {}
 ): string[] {
   const lines: string[] = [];
   const indent = "  ";
@@ -72,23 +72,33 @@ function formatTaskWithPath(
 }
 
 /**
- * Format the task line itself (status icon, id, content)
+ * Format the task line itself (checkbox, id, content)
  */
-function formatTaskLine(task: Node, options: { verbose?: boolean } = {}): string {
+function formatTaskLine(task: Node, options: { verbose?: boolean; showId?: boolean } = {}): string {
+  const mark = task.task_mark ?? " ";
   const status = task.task_status ?? "open";
-  const statusIcon =
-    status === "done"
-      ? chalk.green("✓")
-      : status === "in_progress"
-        ? chalk.yellow("◐")
-        : status === "blocked"
-          ? chalk.red("✗")
-          : chalk.dim("○");
 
-  const id = chalk.dim(task.id.slice(0, 8));
+  // Color the checkbox based on status, using actual task mark
+  const checkboxStr = `[${mark}]`;
+  const checkbox =
+    status === "done"
+      ? chalk.green(checkboxStr)
+      : status === "in_progress"
+        ? chalk.yellow(checkboxStr)
+        : status === "blocked"
+          ? chalk.red(checkboxStr)
+          : chalk.dim(checkboxStr);
+
   const content = task.content ?? "(no content)";
 
-  let line = `${statusIcon}  ${id}  ${content}`;
+  // Build line: checkbox, optional id, content
+  let line = `${checkbox} `;
+  if (options.showId) {
+    // Show last 8 chars of ID (the random part, not timestamp)
+    const shortId = task.id.slice(-8);
+    line += `${chalk.dim(shortId)}  `;
+  }
+  line += content;
 
   if (options.verbose) {
     if (task.due_date) {
@@ -162,6 +172,7 @@ function listAction(options: {
   due?: string;
   verbose?: boolean;
   flat?: boolean;
+  id?: boolean;
   json?: boolean;
 }): void {
   const db = getDb();
@@ -208,6 +219,7 @@ function listAction(options: {
       const lines = formatTaskWithPath(task, ancestors, {
         verbose: options.verbose,
         flat: true,
+        showId: options.id,
       });
       for (const line of lines) {
         console.log(line);
@@ -245,7 +257,7 @@ function listAction(options: {
 
     // Print the task at its depth
     const taskPrefix = indent.repeat(ancestors.length);
-    console.log(taskPrefix + formatTaskLine(task, { verbose: options.verbose }));
+    console.log(taskPrefix + formatTaskLine(task, { verbose: options.verbose, showId: options.id }));
 
     previousAncestorIds = ancestorIds;
   }
@@ -264,6 +276,7 @@ tasksCommand
   .option("-d, --due <date>", "Show tasks due by date")
   .option("-v, --verbose", "Show more details")
   .option("-f, --flat", "Show path on single line (file › section › task)")
+  .option("-i, --id", "Show task IDs")
   .option("--json", "Output as JSON")
   .action(listAction);
 
