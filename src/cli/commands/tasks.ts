@@ -133,20 +133,18 @@ function formatTaskWithPath(
   } else {
     // Multi-line: each ancestor on its own line
     // - Folders/files: 1 space per level
-    // - Sections: no indent (# prefix indicates depth)
+    // - Sections: same indent as their file (# prefix shows heading level)
     let fsDepth = 0;
     for (const ancestor of ancestors) {
-      if (ancestor.type === "section") {
-        lines.push(chalk.dim(getNodeDisplayName(ancestor, true)));
-      } else {
-        const prefix = " ".repeat(fsDepth);
-        lines.push(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
+      const prefix = " ".repeat(fsDepth);
+      lines.push(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
+      if (ancestor.type !== "section") {
+        // Only folders/files increase the depth
         fsDepth++;
       }
     }
     // Task gets 1 space indent from folder/file depth
-    const totalFsDepth = ancestors.filter((a) => a.type !== "section").length;
-    const taskPrefix = " ".repeat(totalFsDepth);
+    const taskPrefix = " ".repeat(fsDepth);
     lines.push(taskPrefix + formatTaskLine(task, options));
   }
 
@@ -572,16 +570,13 @@ function listTasks(
 
     // Print only the new path elements with appropriate indentation
     // - Folders/files: 1 space per level
-    // - Sections: no indent (# prefix indicates depth)
+    // - Sections: same indent as their file (# prefix shows heading level)
     for (let i = divergeIndex; i < ancestors.length; i++) {
       const ancestor = ancestors[i];
-      if (ancestor.type === "section") {
-        // Sections don't get additional indent - their # prefix handles it
-        console.log(chalk.dim(getNodeDisplayName(ancestor, true)));
-      } else {
-        // Folders/files get 1 space per level
-        const prefix = " ".repeat(fsDepth);
-        console.log(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
+      const prefix = " ".repeat(fsDepth);
+      console.log(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
+      if (ancestor.type !== "section") {
+        // Only folders/files increase the depth
         fsDepth++;
       }
     }

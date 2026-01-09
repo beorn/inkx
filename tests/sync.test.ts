@@ -9,10 +9,10 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync, writeFileSync } from "fs";
 import { join } from "path";
 
-// Set test environment before imports
+// Test directories - KM_PATH is set in beforeEach via setKmPath()
 const TEST_DIR = join(import.meta.dir, ".test-sync");
 const VAULT_DIR = join(TEST_DIR, "vault");
-process.env.KM_PATH = join(TEST_DIR, ".km");
+const KM_PATH = join(TEST_DIR, ".km");
 
 import {
   getDb,
@@ -36,10 +36,10 @@ describe("Sync Integration", () => {
     }
     mkdirSync(TEST_DIR, { recursive: true });
     mkdirSync(VAULT_DIR, { recursive: true });
-    mkdirSync(join(TEST_DIR, ".km"), { recursive: true });
+    mkdirSync(KM_PATH, { recursive: true });
 
     // Configure emit to use test directory and connect to database
-    setKmPath(join(TEST_DIR, ".km"));
+    setKmPath(KM_PATH);
     setDatabase({ applyEvent });
 
     // Reset database
