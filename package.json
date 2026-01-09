@@ -14,7 +14,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write . --log-level warn",
-    "fix": "bun run lint:fix && bun run format:fix",
+    "codemod": "bun scripts/codemod.ts",
+    "fix": "bun run codemod && bun run lint:fix && bun run format:fix",
     "test": "bun test",
     "build": "bun build ./src/cli/index.ts --outdir ./dist --target node"
   },
@@ -24,6 +25,7 @@
     "@types/react": "^19.2.7",
     "eslint": "^9.39.2",
     "eslint-plugin-promise": "^7.2.1",
+    "ink-testing-library": "^4.0.0",
     "prettier": "^3.7.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.0"
