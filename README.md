@@ -42,10 +42,23 @@ Your markdown becomes a knowledge base. Notes, tasks, calendar — all nodes in 
 
 ```bash
 cd ~/notes
-km task       # Every TODO across all files
-km tree       # Your knowledge hierarchy
-km board      # Kanban view
+km init               # Point km at your notes
+km tree               # Your knowledge hierarchy
+km task               # Every TODO across all files
+km board              # Kanban TUI (vim keys)
+km search "query"     # Full-text search
+km show <id>          # Node details
 ```
+
+Features:
+- **PKM + PIM** — notes, tasks, calendar, contacts in one tree
+- **Bidirectional links** — wikilinks and backlinks
+- **Event-sourced** — every change logged, undo anything
+- **Git sync** — push/pull your knowledge via GitHub
+- **Obsidian-compatible** — edit in Obsidian, VS Code, or any editor
+- **Watch mode** — `km watch` keeps index updated in real-time
+- **Connectors** — sync calendar/contacts via CalDAV/CardDAV
+- **No lock-in** — plain markdown, standard frontmatter
 
 ### Phase 2: The Hub
 
@@ -58,16 +71,16 @@ km hub start  # Run agents in background
 
 ### Phase 3: The Assistant
 
-AI with full context on your life. Ask questions, get answers that know your schedule, your projects, your people.
+AI with full context on your life. Chat or email — same assistant, same knowledge.
 
 ```bash
 km chat "What's on my calendar today?"
-km chat "Summarize my notes on Project X"
+km mail                              # Email bot
 ```
 
 ### Phase 4: Collaboration
 
-Your team's agents and yours, working on shared knowledge. Web interface. Cloud sync.
+Your team's agents and yours, working on shared knowledge. Web interface. Cloud sync. Email as a content type.
 
 ## Docs
 
