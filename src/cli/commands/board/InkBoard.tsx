@@ -98,7 +98,6 @@ function OutlineItem({
   colIndex,
   cardIndex,
 }: OutlineItemProps) {
-  const indent = "  ".repeat(depth);
   // Only show status icon for tasks, not for sections or other types
   const isTask = node.type === "task";
   const icon = isTask ? getStatusIcon(node.task_status) : "";
@@ -106,27 +105,34 @@ function OutlineItem({
   const firstLine = rawContent.split("\n")[0] ?? rawContent;
   // Get collapsed type suffix (e.g., "/ .md #" for unified folder/file/section)
   const typeSuffix = getCollapsedTypeSuffix(node);
-  // Calculate available width accounting for indent, icon, fold indicator, and suffix
-  const prefixWidth = depth * 2 + 3 + (icon ? 2 : 0); // indent + fold + space + icon
-  const suffixWidth = typeSuffix ? typeSuffix.length + 1 : 0;
-  const availWidth = Math.max(5, width - prefixWidth - suffixWidth - 2);
-  const content = firstLine.slice(0, availWidth);
 
   const children = getChildren(node.id);
   const hasChildren = children.length > 0;
   const isFolded = foldedNodes.has(node.id);
-
   const foldIndicator = hasChildren ? (isFolded ? "\u25B6" : "\u25BC") : " ";
+  const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
+
+  // Build prefix: "  " per depth + fold indicator + space + icon + space
+  const indent = "  ".repeat(depth);
+  const prefix = icon
+    ? `${indent}${foldIndicator} ${icon} `
+    : `${indent}${foldIndicator} `;
+  const suffix = typeSuffix ? ` ${typeSuffix}` : "";
+
+  // Calculate content width: total width - prefix - suffix - foldedCount
+  const availWidth = Math.max(
+    1,
+    width - prefix.length - suffix.length - foldedCount.length,
+  );
+  const content = firstLine.slice(0, availWidth);
 
   // Determine background color based on selection state
   let backgroundColor: string | undefined;
   let textColor: string | undefined;
   if (isItemSelected) {
-    // This specific item is the cursor (blue highlight)
     backgroundColor = "blue";
     textColor = "white";
   } else if (isMultiSelected) {
-    // This item is part of multi-selection (yellow/inverse highlight)
     backgroundColor = "yellow";
     textColor = "black";
   }
@@ -135,19 +141,17 @@ function OutlineItem({
   let nextIndex = flatIndex + 1;
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" width={width}>
       <Text
         backgroundColor={backgroundColor}
         color={textColor}
         dimColor={!isCardSelected && depth > 0}
         wrap="truncate"
       >
-        {indent}
-        {foldIndicator} {icon}
-        {icon ? " " : ""}
+        {prefix}
         {content}
-        {typeSuffix ? <Text color="gray">{` ${typeSuffix}`}</Text> : ""}
-        {hasChildren && isFolded ? ` (${children.length})` : ""}
+        {typeSuffix ? <Text color="gray">{suffix}</Text> : ""}
+        {foldedCount}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
@@ -245,8 +249,8 @@ function Card({
   colIndex,
   cardIndex,
 }: CardProps) {
-  // Card width includes border (2 chars), so inner content width is width - 4
-  const innerWidth = Math.max(5, width - 4);
+  // Card border uses 2 chars (1 left + 1 right), so inner content is width - 2
+  const innerWidth = Math.max(5, width - 2);
   return (
     <Box
       flexDirection="column"
@@ -254,7 +258,6 @@ function Card({
       borderStyle="round"
       borderColor={isSelected ? "cyan" : "gray"}
       borderDimColor={!isSelected}
-      overflowX="hidden"
     >
       <OutlineItem
         node={card.node}
@@ -336,9 +339,9 @@ function Column({
       overflowY="hidden"
     >
       <Text bold inverse={isSelected} wrap="truncate">
-        {` ${name.slice(0, width - 8 - (typeSuffix ? typeSuffix.length + 1 : 0))}`}
+        {name.slice(0, width - 6 - (typeSuffix ? typeSuffix.length + 1 : 0))}
         {typeSuffix ? <Text color="gray">{` ${typeSuffix}`}</Text> : ""}
-        {` (${count}) `}
+        {` (${count})`}
       </Text>
       <Box flexDirection="column" height={contentHeight} overflowY="hidden">
         {visibleCards.map((card, i) => {
@@ -780,9 +783,25 @@ function Board({ initialState }: BoardProps) {
   );
 }
 
+// ANSI escape codes for alternate screen buffer
+const ENTER_ALT_SCREEN = "\x1b[?1049h";
+const LEAVE_ALT_SCREEN = "\x1b[?1049l";
+const CLEAR_SCREEN = "\x1b[2J\x1b[H";
+
 export function renderInkBoard(state: BoardState): void {
-  // Use patchConsole to prevent console output from corrupting the TUI
-  // and enable full screen to ensure proper initial render
+  // Enter alternate screen buffer for fullscreen TUI
+  process.stdout.write(ENTER_ALT_SCREEN + CLEAR_SCREEN);
+
+  // Ensure we leave alternate screen on exit
+  const cleanup = () => {
+    process.stdout.write(LEAVE_ALT_SCREEN);
+  };
+  process.on("exit", cleanup);
+  process.on("SIGINT", () => {
+    cleanup();
+    process.exit(0);
+  });
+
   render(<Board initialState={state} />, {
     exitOnCtrlC: true,
     patchConsole: true,
