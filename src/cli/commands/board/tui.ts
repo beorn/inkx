@@ -1,0 +1,57 @@
+/**
+ * Board TUI
+ *
+ * Terminal interaction layer using Ink (React for CLI)
+ */
+
+import chalk from "chalk";
+import type { BoardState } from "./types.ts";
+import { initBoardState } from "./state.ts";
+import { renderBoardStatic } from "./render.ts";
+import { renderInkBoard } from "./InkBoard.tsx";
+
+/**
+ * Run the interactive board TUI using Ink
+ * Returns when the user quits
+ */
+export async function runBoardTUI(initialState: BoardState): Promise<void> {
+  const stdin = process.stdin;
+  const stdout = process.stdout;
+
+  // Check if we're in a TTY - if not, fall back to static mode
+  if (!stdin.isTTY || !stdout.isTTY) {
+    console.log(chalk.yellow("Not running in a TTY, using static mode"));
+    const width = process.stdout.columns || 80;
+    console.log(renderBoardStatic(initialState, width));
+    return;
+  }
+
+  // Use Ink for interactive TUI
+  renderInkBoard(initialState);
+}
+
+/**
+ * Run the board in static (non-interactive) mode
+ */
+export function runBoardStatic(state: BoardState): void {
+  const width = process.stdout.columns || 80;
+  console.log(renderBoardStatic(state, width));
+}
+
+/**
+ * Entry point for the board command
+ */
+export async function runBoard(rootId?: string, interactive: boolean = true): Promise<void> {
+  const state = initBoardState(rootId);
+
+  if (!state) {
+    console.error(chalk.red("No board found. Create a board node or specify a root ID."));
+    process.exit(1);
+  }
+
+  if (interactive) {
+    await runBoardTUI(state);
+  } else {
+    runBoardStatic(state);
+  }
+}
