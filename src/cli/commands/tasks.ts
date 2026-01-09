@@ -18,23 +18,23 @@ import { parseTaskMetadata, extractTags } from "../../md/parser.ts";
 import type { Node, TaskStatus } from "../../node/types.ts";
 
 /**
- * Get display name for a node (filename, slug, content prefix, or type)
+ * Get display name for a node (title/content preferred, then filename, then slug)
  */
 function getNodeDisplayName(node: Node): string {
+  // Prefer content (title/heading text) if available
+  if (node.content) {
+    const preview = node.content.slice(0, 50);
+    return preview.length < node.content.length ? `${preview}...` : preview;
+  }
   // For files, use the filename
   if (node.fs_path) {
     const filename = node.fs_path.split("/").pop() ?? node.fs_path;
     // Remove .md extension
     return filename.replace(/\.md$/, "");
   }
-  // For sections, use the slug
+  // Fallback to slug if no content
   if (node.md_slug) {
     return node.md_slug;
-  }
-  // For items with content, use first 30 chars
-  if (node.content) {
-    const preview = node.content.slice(0, 30);
-    return preview.length < node.content.length ? `${preview}...` : preview;
   }
   // Fallback to type
   return `(${node.type})`;
