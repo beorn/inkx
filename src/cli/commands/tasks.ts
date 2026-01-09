@@ -124,7 +124,6 @@ function formatTaskWithPath(
   options: { verbose?: boolean; flat?: boolean; showId?: boolean } = {}
 ): string[] {
   const lines: string[] = [];
-  const indent = "  ";
 
   if (options.flat) {
     // Single line: path → task
@@ -132,14 +131,22 @@ function formatTaskWithPath(
     const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : "";
     lines.push(pathStr + formatTaskLine(task, options));
   } else {
-    // Multi-line: each ancestor on its own line, indented
-    for (let i = 0; i < ancestors.length; i++) {
-      const ancestor = ancestors[i];
-      const prefix = indent.repeat(i);
-      lines.push(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
+    // Multi-line: each ancestor on its own line
+    // - Folders/files: 1 space per level
+    // - Sections: no indent (# prefix indicates depth)
+    let fsDepth = 0;
+    for (const ancestor of ancestors) {
+      if (ancestor.type === "section") {
+        lines.push(chalk.dim(getNodeDisplayName(ancestor, true)));
+      } else {
+        const prefix = " ".repeat(fsDepth);
+        lines.push(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
+        fsDepth++;
+      }
     }
-    // Task at its depth
-    const taskPrefix = indent.repeat(ancestors.length);
+    // Task gets 1 space indent from folder/file depth
+    const totalFsDepth = ancestors.filter((a) => a.type !== "section").length;
+    const taskPrefix = " ".repeat(totalFsDepth);
     lines.push(taskPrefix + formatTaskLine(task, options));
   }
 
@@ -542,7 +549,6 @@ function listTasks(
   const tasksWithAncestors = buildTaskTree(tasks);
   const sorted = sortByPath(tasksWithAncestors);
 
-  const indent = "  ";
   let previousAncestorKeys: string[] = [];
 
   for (const { task, ancestors, ancestorKeys } of sorted) {
@@ -556,15 +562,32 @@ function listTasks(
       divergeIndex++;
     }
 
-    // Print only the new path elements
-    for (let i = divergeIndex; i < ancestors.length; i++) {
-      const ancestor = ancestors[i];
-      const prefix = indent.repeat(i);
-      console.log(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
+    // Count fs depth (folders/files) before divergence point
+    let fsDepth = 0;
+    for (let i = 0; i < divergeIndex && i < ancestors.length; i++) {
+      if (ancestors[i].type !== "section") {
+        fsDepth++;
+      }
     }
 
-    // Print the task at its depth
-    const taskPrefix = indent.repeat(ancestors.length);
+    // Print only the new path elements with appropriate indentation
+    // - Folders/files: 1 space per level
+    // - Sections: no indent (# prefix indicates depth)
+    for (let i = divergeIndex; i < ancestors.length; i++) {
+      const ancestor = ancestors[i];
+      if (ancestor.type === "section") {
+        // Sections don't get additional indent - their # prefix handles it
+        console.log(chalk.dim(getNodeDisplayName(ancestor, true)));
+      } else {
+        // Folders/files get 1 space per level
+        const prefix = " ".repeat(fsDepth);
+        console.log(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
+        fsDepth++;
+      }
+    }
+
+    // Task gets 1 space indent from folder/file depth
+    const taskPrefix = " ".repeat(fsDepth);
     console.log(
       taskPrefix +
         formatTaskLine(task, { verbose: options.verbose, showId: options.id })
