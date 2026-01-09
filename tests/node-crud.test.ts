@@ -8,9 +8,8 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
-// Set test environment before imports
+// Test directory - KM_PATH is set in beforeEach via setKmPath()
 const TEST_DIR = join(import.meta.dir, ".test-km");
-process.env.KM_PATH = TEST_DIR;
 
 import {
   getDb,

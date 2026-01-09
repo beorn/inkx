@@ -135,16 +135,20 @@ function formatTaskWithPath(
     // - Folders/files: 1 space per level
     // - Sections: same indent as their file (# prefix shows heading level)
     let fsDepth = 0;
+    let hasSection = false;
     for (const ancestor of ancestors) {
       const prefix = " ".repeat(fsDepth);
       lines.push(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
-      if (ancestor.type !== "section") {
+      if (ancestor.type === "section") {
+        hasSection = true;
+      } else {
         // Only folders/files increase the depth
         fsDepth++;
       }
     }
-    // Task gets 1 space indent from folder/file depth
-    const taskPrefix = " ".repeat(fsDepth);
+    // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
+    const taskIndent = hasSection ? fsDepth + 3 : fsDepth;
+    const taskPrefix = " ".repeat(taskIndent);
     lines.push(taskPrefix + formatTaskLine(task, options));
   }
 
@@ -571,18 +575,27 @@ function listTasks(
     // Print only the new path elements with appropriate indentation
     // - Folders/files: 1 space per level
     // - Sections: same indent as their file (# prefix shows heading level)
+    let hasSection = false;
     for (let i = divergeIndex; i < ancestors.length; i++) {
       const ancestor = ancestors[i];
       const prefix = " ".repeat(fsDepth);
       console.log(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
-      if (ancestor.type !== "section") {
+      if (ancestor.type === "section") {
+        hasSection = true;
+      } else {
         // Only folders/files increase the depth
         fsDepth++;
       }
     }
 
-    // Task gets 1 space indent from folder/file depth
-    const taskPrefix = " ".repeat(fsDepth);
+    // Check if any ancestor was a section (for task indent)
+    if (!hasSection) {
+      hasSection = ancestors.some((a) => a.type === "section");
+    }
+
+    // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
+    const taskIndent = hasSection ? fsDepth + 3 : fsDepth;
+    const taskPrefix = " ".repeat(taskIndent);
     console.log(
       taskPrefix +
         formatTaskLine(task, { verbose: options.verbose, showId: options.id })
