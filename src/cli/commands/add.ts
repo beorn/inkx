@@ -6,6 +6,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
+import { ulid } from "ulid";
 import { emitNodeCreated } from "../../node/emit.ts";
 import { getNode, getNodeByPath } from "../../node/db.ts";
 import { parseTaskMetadata, extractTags } from "../../md/parser.ts";
@@ -38,25 +39,22 @@ export const addCommand = new Command("add")
       parentId = parent.id;
     }
 
-    const event = emitNodeCreated(
-      {
-        type: "task",
-        parent_id: parentId,
-        content: text,
-        task_status: (options.status || "open") as TaskStatus,
-        task_mark: " ",
-        due_date: options.due || metadata.dueDate,
-        scheduled_date: metadata.scheduledDate,
-        priority: options.priority
-          ? parseInt(options.priority, 10)
-          : metadata.priority,
-        assigned_to: options.assign,
-        data: tags.length > 0 ? { tags } : {},
-      },
-      process.env.USER ?? "user"
-    );
-
-    const nodeId = (event.data as { id: string }).id;
+    const nodeId = ulid();
+    const event = emitNodeCreated(process.env.USER ?? "user", {
+      id: nodeId,
+      type: "task",
+      parent_id: parentId,
+      content: text,
+      task_status: (options.status || "open") as TaskStatus,
+      task_mark: " ",
+      due_date: options.due || metadata.dueDate,
+      scheduled_date: metadata.scheduledDate,
+      priority: options.priority
+        ? parseInt(options.priority, 10)
+        : metadata.priority,
+      assigned_to: options.assign,
+      data: tags.length > 0 ? { tags } : {},
+    });
 
     if (options.json) {
       console.log(JSON.stringify({ id: nodeId, event: event.id }));

@@ -313,6 +313,37 @@ test_phase6() {
   echo ""
 }
 
+# Phase 7: Unit Tests
+test_phase7() {
+  echo "=== Phase 7: Unit Tests ==="
+
+  # Check test files exist
+  [ -f tests/node-crud.test.ts ] || fail "node-crud.test.ts not found"
+  [ -f tests/markdown.test.ts ] || fail "markdown.test.ts not found"
+  pass "Test files exist"
+
+  # Check fixtures exist
+  [ -f tests/fixtures/sample-project.md ] || fail "sample-project.md fixture not found"
+  [ -f tests/fixtures/inbox.md ] || fail "inbox.md fixture not found"
+  [ -f tests/fixtures/daily-note.md ] || fail "daily-note.md fixture not found"
+  pass "Test fixtures exist"
+
+  # Run unit tests
+  info "Running Node CRUD tests..."
+  if ! bun test tests/node-crud.test.ts 2>&1; then
+    fail "Node CRUD tests failed"
+  fi
+  pass "Node CRUD tests pass"
+
+  info "Running Markdown tests..."
+  if ! bun test tests/markdown.test.ts 2>&1; then
+    fail "Markdown tests failed"
+  fi
+  pass "Markdown tests pass"
+
+  echo ""
+}
+
 # Run all tests
 main() {
   echo "========================================"
@@ -352,6 +383,15 @@ main() {
     echo ""
   fi
 
+  # Only test phase 7 if test files exist
+  if [ -f tests/node-crud.test.ts ] && [ -f tests/markdown.test.ts ]; then
+    test_phase7
+  else
+    echo "=== Phase 7: Unit Tests ==="
+    echo -e "${YELLOW}Skipped (test files not ready)${NC}"
+    echo ""
+  fi
+
   echo "========================================"
   echo -e "${GREEN}All tests passed!${NC}"
   echo "========================================"
@@ -366,6 +406,7 @@ case "${1:-all}" in
   4) test_phase4 ;;
   5) test_phase5 ;;
   6) test_phase6 ;;
+  7) test_phase7 ;;
   all) main ;;
-  *) echo "Usage: $0 [0|1|2|3|4|5|6|all]"; exit 1 ;;
+  *) echo "Usage: $0 [0|1|2|3|4|5|6|7|all]"; exit 1 ;;
 esac
