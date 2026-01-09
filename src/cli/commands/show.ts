@@ -6,7 +6,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getNode, getNodeByPath, getChildren, getSubtree } from "../../node/db.ts";
+import { getNodeByIdPrefix, getNodeByPath, getChildren, getSubtree } from "../../node/db.ts";
 import type { Node } from "../../node/types.ts";
 
 export const showCommand = new Command("show")
@@ -16,7 +16,7 @@ export const showCommand = new Command("show")
   .option("-t, --tree", "Show full subtree")
   .option("--json", "Output as JSON")
   .action((id, options) => {
-    const node = getNode(id) ?? getNodeByPath(id);
+    const node = getNodeByIdPrefix(id) ?? getNodeByPath(id);
 
     if (!node) {
       console.error(chalk.red(`Node not found: ${id}`));

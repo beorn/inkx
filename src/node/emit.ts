@@ -13,8 +13,8 @@ let eventHub: { broadcast: (event: Event) => void } | null = null;
 // Database for immediate projection (set when db is loaded)
 let db: { applyEvent: (event: Event) => void } | null = null;
 
-// Path to km state directory
-let kmPath = ".km";
+// Path to km state directory (defaults to .km, can be overridden with KM_PATH env var)
+let kmPath = process.env.KM_PATH ?? ".km";
 
 /**
  * Set the km directory path

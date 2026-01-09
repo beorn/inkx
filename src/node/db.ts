@@ -330,6 +330,28 @@ export function getNode(id: string): Node | null {
 }
 
 /**
+ * Get a node by ID prefix (for CLI convenience)
+ */
+export function getNodeByIdPrefix(idPrefix: string): Node | null {
+  const db = getDb();
+
+  // Try exact match first
+  let row = db.query("SELECT * FROM nodes WHERE id = ?").get(idPrefix) as
+    | Record<string, unknown>
+    | null;
+
+  if (row) return rowToNode(row);
+
+  // Try prefix match
+  row = db.query("SELECT * FROM nodes WHERE id LIKE ?").get(`${idPrefix}%`) as
+    | Record<string, unknown>
+    | null;
+
+  if (!row) return null;
+  return rowToNode(row);
+}
+
+/**
  * Get a node by filesystem path
  */
 export function getNodeByPath(fsPath: string): Node | null {

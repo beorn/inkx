@@ -41,6 +41,7 @@ export {
   resetDb,
   applyEvent,
   getNode,
+  getNodeByIdPrefix,
   getNodeByPath,
   getChildren,
   getSubtree,

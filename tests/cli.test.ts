@@ -1,0 +1,421 @@
+/**
+ * CLI Integration Tests
+ *
+ * End-to-end tests that run actual CLI commands and verify behavior.
+ * Tests the full workflow from command to database to output.
+ */
+
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { rmSync, mkdirSync, existsSync, writeFileSync, readFileSync } from "fs";
+import { join } from "path";
+import { $ } from "bun";
+
+// Set test environment before imports
+const TEST_DIR = join(import.meta.dir, ".test-cli");
+const VAULT_DIR = join(TEST_DIR, "vault");
+const KM_PATH = join(TEST_DIR, ".km");
+
+// CLI path
+const CLI_PATH = join(import.meta.dir, "..", "src", "cli", "index.ts");
+
+/**
+ * Run km CLI command and return result
+ */
+async function km(
+  args: string[],
+  options: { cwd?: string; env?: Record<string, string> } = {}
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const cwd = options.cwd ?? VAULT_DIR;
+  const env = {
+    ...process.env,
+    KM_PATH,
+    ...options.env,
+  };
+
+  try {
+    const result = await $`bun ${CLI_PATH} ${args}`.cwd(cwd).env(env).quiet();
+    return {
+      stdout: result.stdout.toString(),
+      stderr: result.stderr.toString(),
+      exitCode: result.exitCode,
+    };
+  } catch (error: unknown) {
+    const err = error as { stdout?: Buffer; stderr?: Buffer; exitCode?: number };
+    return {
+      stdout: err.stdout?.toString() ?? "",
+      stderr: err.stderr?.toString() ?? "",
+      exitCode: err.exitCode ?? 1,
+    };
+  }
+}
+
+describe("CLI Integration", () => {
+  beforeEach(() => {
+    // Clean up test directories
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(VAULT_DIR, { recursive: true });
+    mkdirSync(KM_PATH, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  describe("km --help", () => {
+    test("should show help message", async () => {
+      const result = await km(["--help"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("KM");
+      expect(result.stdout).toContain("tasks");
+      expect(result.stdout).toContain("sync");
+    });
+  });
+
+  describe("km sync", () => {
+    test("should sync files to database", async () => {
+      // Create test file
+      writeFileSync(
+        join(VAULT_DIR, "test.md"),
+        `# Test Document
+
+- [ ] First task
+- [ ] Second task
+`
+      );
+
+      const result = await km(["sync"]);
+      expect(result.exitCode).toBe(0);
+      // Output contains "Processed" with capital P
+      expect(result.stdout.toLowerCase()).toContain("processed");
+    });
+
+    test("should sync nested folder structure", async () => {
+      // Create nested structure
+      const projectDir = join(VAULT_DIR, "projects");
+      mkdirSync(projectDir, { recursive: true });
+
+      writeFileSync(
+        join(projectDir, "todo.md"),
+        `# Project Tasks
+
+- [ ] Task in project
+`
+      );
+
+      const result = await km(["sync"]);
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe("km tasks", () => {
+    beforeEach(async () => {
+      // Create test files with tasks
+      writeFileSync(
+        join(VAULT_DIR, "inbox.md"),
+        `# Inbox
+
+- [ ] Inbox task 1
+- [ ] Inbox task 2
+- [x] Completed inbox task
+`
+      );
+
+      const projectDir = join(VAULT_DIR, "projects");
+      mkdirSync(projectDir, { recursive: true });
+      writeFileSync(
+        join(projectDir, "work.md"),
+        `# Work Project
+
+## Tasks
+
+- [ ] Work task A
+- [ ] Work task B
+`
+      );
+
+      // Sync to populate database
+      await km(["sync"]);
+    });
+
+    test("should list open tasks", async () => {
+      const result = await km(["tasks"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Inbox task 1");
+      expect(result.stdout).toContain("Inbox task 2");
+      expect(result.stdout).toContain("Work task A");
+      // Should NOT show completed tasks by default
+      expect(result.stdout).not.toContain("Completed inbox task");
+    });
+
+    test("should show all tasks with --all", async () => {
+      const result = await km(["tasks", "--all"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Completed inbox task");
+    });
+
+    test("should filter by path prefix", async () => {
+      // Filter by folder name - matches segments starting with "projects"
+      const result = await km(["tasks", "projects"]);
+      expect(result.exitCode).toBe(0);
+      // Should show tasks under projects folder
+      expect(result.stdout).toContain("Work task A");
+      expect(result.stdout).toContain("Work task B");
+      // Should NOT show inbox tasks (not under projects/)
+      expect(result.stdout).not.toContain("Inbox task 1");
+    });
+
+    test("should filter by file name prefix", async () => {
+      // Filter by file name - matches "work.md" which starts with "work"
+      const result = await km(["tasks", "work"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Work task A");
+    });
+
+    test("should filter by contains with *filter*", async () => {
+      const result = await km(["tasks", "*work*"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Work task A");
+    });
+
+    test("should show task count", async () => {
+      const result = await km(["tasks"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("task(s)");
+    });
+
+    test("should show flat output with --flat", async () => {
+      const result = await km(["tasks", "--flat"]);
+      expect(result.exitCode).toBe(0);
+      // Flat mode uses › separator
+      expect(result.stdout).toContain("›");
+    });
+
+    test("should output JSON with --json", async () => {
+      const result = await km(["tasks", "--json"]);
+      expect(result.exitCode).toBe(0);
+      const tasks = JSON.parse(result.stdout);
+      expect(Array.isArray(tasks)).toBe(true);
+      expect(tasks.length).toBeGreaterThan(0);
+      expect(tasks[0]).toHaveProperty("id");
+      expect(tasks[0]).toHaveProperty("type", "task");
+    });
+  });
+
+  describe("km tasks --add", () => {
+    beforeEach(async () => {
+      writeFileSync(join(VAULT_DIR, "inbox.md"), "# Inbox\n");
+      await km(["sync"]);
+    });
+
+    test("should add a new task", async () => {
+      const result = await km(["tasks", "--add", "New test task"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Created task");
+
+      // Verify task appears in list
+      const listResult = await km(["tasks"]);
+      expect(listResult.stdout).toContain("New test task");
+    });
+
+    test("should add task with metadata", async () => {
+      const result = await km([
+        "tasks",
+        "--add",
+        "Task with due 📅 2025-12-25",
+      ]);
+      expect(result.exitCode).toBe(0);
+
+      // Verify task with verbose output
+      const listResult = await km(["tasks", "--verbose", "--json"]);
+      const tasks = JSON.parse(listResult.stdout);
+      const newTask = tasks.find((t: { content: string }) =>
+        t.content.includes("Task with due")
+      );
+      expect(newTask).toBeDefined();
+      expect(newTask.due_date).toBe("2025-12-25");
+    });
+  });
+
+  describe("km tasks --done", () => {
+    beforeEach(async () => {
+      writeFileSync(
+        join(VAULT_DIR, "tasks.md"),
+        `# Tasks
+
+- [ ] Task to complete
+`
+      );
+      await km(["sync"]);
+    });
+
+    test("should mark task as done by ID prefix", async () => {
+      // Get task ID
+      const listResult = await km(["tasks", "--json"]);
+      const tasks = JSON.parse(listResult.stdout);
+      const task = tasks.find((t: { content: string }) =>
+        t.content.includes("Task to complete")
+      );
+      expect(task).toBeDefined();
+
+      // Mark as done using ID prefix (first 8 chars)
+      const idPrefix = task.id.slice(0, 8);
+      const doneResult = await km(["tasks", "--done", idPrefix]);
+      expect(doneResult.exitCode).toBe(0);
+      expect(doneResult.stdout).toContain("Marked as done");
+
+      // Verify task is now done
+      const allResult = await km(["tasks", "--all", "--json"]);
+      const allTasks = JSON.parse(allResult.stdout);
+      const doneTask = allTasks.find((t: { id: string }) => t.id === task.id);
+      expect(doneTask.task_status).toBe("done");
+    });
+  });
+
+  describe("km search", () => {
+    beforeEach(async () => {
+      writeFileSync(
+        join(VAULT_DIR, "notes.md"),
+        `# Important Notes
+
+This document contains information about the project.
+
+## Keywords
+
+Testing, integration, CLI commands.
+`
+      );
+      writeFileSync(
+        join(VAULT_DIR, "other.md"),
+        `# Other Document
+
+Unrelated content here.
+`
+      );
+      await km(["sync"]);
+    });
+
+    test("should search content", async () => {
+      const result = await km(["search", "integration"]);
+      expect(result.exitCode).toBe(0);
+      // Search results show content that matches, not necessarily filename
+      expect(result.stdout).toContain("integration");
+      expect(result.stdout).toContain("result");
+    });
+
+    test("should not match non-matching content", async () => {
+      const result = await km(["search", "nonexistent-term-xyz"]);
+      // Should complete but find no matches
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe("km tree", () => {
+    beforeEach(async () => {
+      // Create hierarchical structure
+      const projectDir = join(VAULT_DIR, "projects");
+      const subDir = join(projectDir, "active");
+      mkdirSync(subDir, { recursive: true });
+
+      writeFileSync(join(VAULT_DIR, "root.md"), "# Root\n");
+      writeFileSync(join(projectDir, "project.md"), "# Project\n");
+      writeFileSync(join(subDir, "task.md"), "# Task\n");
+
+      await km(["sync"]);
+    });
+
+    test("should show tree structure", async () => {
+      const result = await km(["tree"]);
+      expect(result.exitCode).toBe(0);
+      // Should show folder names
+      expect(result.stdout).toContain("projects");
+      expect(result.stdout).toContain("active");
+    });
+
+    test("should limit depth", async () => {
+      const result = await km(["tree", "--depth", "1"]);
+      expect(result.exitCode).toBe(0);
+      // With depth 1, should show top level but not deep nesting
+    });
+  });
+
+  describe("km rebuild", () => {
+    beforeEach(async () => {
+      writeFileSync(join(VAULT_DIR, "test.md"), "# Test\n\n- [ ] Task\n");
+      await km(["sync"]);
+    });
+
+    test("should rebuild database from events", async () => {
+      const result = await km(["rebuild"]);
+      expect(result.exitCode).toBe(0);
+
+      // Verify data still accessible after rebuild
+      const listResult = await km(["tasks"]);
+      expect(listResult.stdout).toContain("Task");
+    });
+
+    test("should support --fresh flag", async () => {
+      const result = await km(["rebuild", "--fresh"]);
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe("km show", () => {
+    beforeEach(async () => {
+      writeFileSync(
+        join(VAULT_DIR, "doc.md"),
+        `# Document Title
+
+Some content here.
+
+- [ ] A task in the doc
+`
+      );
+      await km(["sync"]);
+    });
+
+    test("should show node by ID prefix", async () => {
+      // Get a task ID
+      const listResult = await km(["tasks", "--json"]);
+      const tasks = JSON.parse(listResult.stdout);
+      expect(tasks.length).toBeGreaterThan(0);
+
+      const idPrefix = tasks[0].id.slice(0, 8);
+      const result = await km(["show", idPrefix]);
+      expect(result.exitCode).toBe(0);
+    });
+  });
+});
+
+describe("CLI Error Handling", () => {
+  beforeEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(VAULT_DIR, { recursive: true });
+    mkdirSync(KM_PATH, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("should handle invalid command gracefully", async () => {
+    const result = await km(["invalidcommand"]);
+    // Commander shows help for unknown commands
+    expect(result.exitCode).not.toBe(0);
+  });
+
+  test("should handle missing task ID for --done", async () => {
+    const result = await km(["tasks", "--done"]);
+    // Should fail without an ID
+    expect(result.exitCode).not.toBe(0);
+  });
+});
