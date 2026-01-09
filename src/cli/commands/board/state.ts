@@ -14,6 +14,10 @@ import type {
 import { STATUS_CYCLE, STATUS_MARKS } from "./types.ts";
 import { getChildren, getNode } from "../../../node/db.ts";
 import { emit } from "../../../node/emit.ts";
+import { getNodeDisplayName } from "../../../shared/tree.ts";
+
+// Re-export for backwards compatibility
+export { getNodeDisplayName };
 
 /**
  * Create an empty board state
@@ -138,21 +142,6 @@ export function buildBoardState(rootId: string): BoardState {
   };
 }
 
-/**
- * Get display name for a node
- */
-export function getNodeDisplayName(node: Node): string {
-  if (node.data?.name) {
-    return node.data.name as string;
-  }
-  if (node.content) {
-    return node.content.split("\n")[0].slice(0, 50);
-  }
-  if (node.fs_path) {
-    return node.fs_path.split("/").pop() || node.id.slice(0, 8);
-  }
-  return node.id.slice(0, 8);
-}
 
 /**
  * Get the current card (if any)

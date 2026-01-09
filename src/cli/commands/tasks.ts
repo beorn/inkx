@@ -15,104 +15,31 @@ import {
 } from "../../node/db.ts";
 import { parseTaskMetadata, extractTags } from "../../md/parser.ts";
 import type { Node, TaskStatus } from "../../node/types.ts";
+import {
+  getNodeDisplayName as getNodeDisplayNameBase,
+  normalizeName,
+  collapseAncestorsWithTypes,
+  type CollapsedAncestor,
+} from "../../shared/tree.ts";
 
 /**
- * Get display name for a node (title/content preferred, then filename, then slug)
- * Includes visual type indicators:
- * - Folders: suffix /
- * - Files: suffix .md
- * - Sections: prefix # (based on heading depth)
+ * Format a collapsed ancestor for display with its type suffix
  */
-function getNodeDisplayName(node: Node, includeTypeIndicators = false): string {
-  let name: string;
-  let prefix = "";
-  let suffix = "";
-
-  // Prefer content (title/heading text) if available
-  if (node.content) {
-    const preview = node.content.slice(0, 50);
-    name = preview.length < node.content.length ? `${preview}...` : preview;
-  } else if (node.fs_path) {
-    // For files, use the filename
-    const filename = node.fs_path.split("/").pop() ?? node.fs_path;
-    // Remove .md extension
-    name = filename.replace(/\.md$/, "");
-  } else if (node.md_slug) {
-    // Fallback to slug if no content
-    name = node.md_slug;
-  } else {
-    // Fallback to type
-    name = `(${node.type})`;
+function formatCollapsedAncestor(ca: CollapsedAncestor): string {
+  const name = getNodeDisplayNameBase(ca.node);
+  if (ca.typeSuffix) {
+    return name + chalk.gray(` ${ca.typeSuffix}`);
   }
-
-  if (includeTypeIndicators) {
-    // Add type-specific indicators (greyed out)
-    if (node.type === "folder") {
-      suffix = chalk.gray("/");
-    } else if (node.type === "file") {
-      suffix = chalk.gray(".md");
-    } else if (node.type === "section") {
-      // Use heading depth from data, default to 1 if not set
-      const depth = (node.data?.depth as number) ?? 1;
-      prefix = chalk.gray("#".repeat(depth) + " ");
-    }
+  // No collapsed suffix - show individual type indicator
+  if (ca.node.type === "folder") {
+    return name + chalk.gray("/");
+  } else if (ca.node.type === "file") {
+    return name + chalk.gray(".md");
+  } else if (ca.node.type === "section") {
+    const depth = (ca.node.data?.depth as number) ?? 1;
+    return chalk.gray("#".repeat(depth) + " ") + name;
   }
-
-  return prefix + name + suffix;
-}
-
-/**
- * Normalize a name for comparison (lowercase, remove special chars, collapse whitespace)
- */
-function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[-_]/g, " ")        // Treat - and _ as spaces
-    .replace(/\.md$/i, "")        // Remove .md extension
-    .replace(/[^\w\s]/g, "")      // Remove special chars
-    .replace(/\s+/g, " ")         // Collapse whitespace
-    .trim();
-}
-
-/**
- * Check if two names are substantially the same
- */
-function namesAreSimilar(a: string, b: string): boolean {
-  return normalizeName(a) === normalizeName(b);
-}
-
-/**
- * Filter ancestors to remove redundant levels (where name matches parent/child)
- */
-function collapseRedundantAncestors(ancestors: Node[]): Node[] {
-  if (ancestors.length === 0) return ancestors;
-
-  const result: Node[] = [];
-
-  for (let i = 0; i < ancestors.length; i++) {
-    const current = ancestors[i];
-    const currentName = getNodeDisplayName(current);
-
-    // Skip if this name is the same as the previous kept item
-    if (result.length > 0) {
-      const prevName = getNodeDisplayName(result[result.length - 1]);
-      if (namesAreSimilar(currentName, prevName)) {
-        continue;
-      }
-    }
-
-    // Skip if this name is the same as the next item
-    if (i < ancestors.length - 1) {
-      const nextName = getNodeDisplayName(ancestors[i + 1]);
-      if (namesAreSimilar(currentName, nextName)) {
-        continue;
-      }
-    }
-
-    result.push(current);
-  }
-
-  return result;
+  return name;
 }
 
 /**
@@ -120,14 +47,14 @@ function collapseRedundantAncestors(ancestors: Node[]): Node[] {
  */
 function formatTaskWithPath(
   task: Node,
-  ancestors: Node[],
+  collapsedAncestors: CollapsedAncestor[],
   options: { verbose?: boolean; flat?: boolean; showId?: boolean } = {}
 ): string[] {
   const lines: string[] = [];
 
   if (options.flat) {
     // Single line: path → task
-    const pathParts = ancestors.map((a) => chalk.dim(getNodeDisplayName(a, true)));
+    const pathParts = collapsedAncestors.map((ca) => chalk.dim(formatCollapsedAncestor(ca)));
     const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : "";
     lines.push(pathStr + formatTaskLine(task, options));
   } else {
@@ -136,10 +63,10 @@ function formatTaskWithPath(
     // - Sections: same indent as their file (# prefix shows heading level)
     let fsDepth = 0;
     let hasSection = false;
-    for (const ancestor of ancestors) {
+    for (const ca of collapsedAncestors) {
       const prefix = " ".repeat(fsDepth);
-      lines.push(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
-      if (ancestor.type === "section") {
+      lines.push(prefix + chalk.dim(formatCollapsedAncestor(ca)));
+      if (ca.node.type === "section") {
         hasSection = true;
       } else {
         // Only folders/files increase the depth
@@ -312,26 +239,26 @@ export const tasksCommand = new Command("tasks")
  */
 interface TaskWithAncestors {
   task: Node;
-  ancestors: Node[];        // Collapsed (redundant levels removed)
-  ancestorKeys: string[];   // For sorting/grouping by normalized name
+  collapsedAncestors: CollapsedAncestor[];  // Collapsed with type suffixes
+  ancestorKeys: string[];                    // For sorting/grouping by normalized name
 }
 
 /**
- * Get a stable key for an ancestor node (for grouping)
+ * Get a stable key for a collapsed ancestor (for grouping)
  * Uses normalized name so similar names group together
  */
-function getAncestorKey(node: Node): string {
-  return normalizeName(getNodeDisplayName(node));
+function getAncestorKey(ca: CollapsedAncestor): string {
+  return normalizeName(getNodeDisplayNameBase(ca.node));
 }
 
 function buildTaskTree(tasks: Node[]): TaskWithAncestors[] {
   return tasks.map((task) => {
     const rawAncestors = getAncestors(task.id);
-    const ancestors = collapseRedundantAncestors(rawAncestors);
+    const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors);
     return {
       task,
-      ancestors,
-      ancestorKeys: ancestors.map((a) => getAncestorKey(a)),
+      collapsedAncestors,
+      ancestorKeys: collapsedAncestors.map((ca) => getAncestorKey(ca)),
     };
   });
 }
@@ -521,7 +448,7 @@ function listTasks(
 
   // Show context header
   if (rootNode) {
-    console.log(chalk.bold(getNodeDisplayName(rootNode, true)));
+    console.log(chalk.bold(getNodeDisplayNameBase(rootNode)));
     console.log();
   } else if (pathFilter) {
     console.log(chalk.dim(`Filter: ${pathFilter}`));
@@ -532,8 +459,8 @@ function listTasks(
   if (options.flat) {
     for (const task of tasks) {
       const rawAncestors = getAncestors(task.id);
-      const ancestors = collapseRedundantAncestors(rawAncestors);
-      const lines = formatTaskWithPath(task, ancestors, {
+      const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors);
+      const lines = formatTaskWithPath(task, collapsedAncestors, {
         verbose: options.verbose,
         flat: true,
         showId: options.id,
@@ -553,7 +480,7 @@ function listTasks(
 
   let previousAncestorKeys: string[] = [];
 
-  for (const { task, ancestors, ancestorKeys } of sorted) {
+  for (const { task, collapsedAncestors, ancestorKeys } of sorted) {
     // Find where current path diverges from previous
     let divergeIndex = 0;
     while (
@@ -566,8 +493,8 @@ function listTasks(
 
     // Count fs depth (folders/files) before divergence point
     let fsDepth = 0;
-    for (let i = 0; i < divergeIndex && i < ancestors.length; i++) {
-      if (ancestors[i].type !== "section") {
+    for (let i = 0; i < divergeIndex && i < collapsedAncestors.length; i++) {
+      if (collapsedAncestors[i]!.node.type !== "section") {
         fsDepth++;
       }
     }
@@ -576,11 +503,11 @@ function listTasks(
     // - Folders/files: 1 space per level
     // - Sections: same indent as their file (# prefix shows heading level)
     let hasSection = false;
-    for (let i = divergeIndex; i < ancestors.length; i++) {
-      const ancestor = ancestors[i];
+    for (let i = divergeIndex; i < collapsedAncestors.length; i++) {
+      const ca = collapsedAncestors[i]!;
       const prefix = " ".repeat(fsDepth);
-      console.log(prefix + chalk.dim(getNodeDisplayName(ancestor, true)));
-      if (ancestor.type === "section") {
+      console.log(prefix + chalk.dim(formatCollapsedAncestor(ca)));
+      if (ca.node.type === "section") {
         hasSection = true;
       } else {
         // Only folders/files increase the depth
@@ -590,7 +517,7 @@ function listTasks(
 
     // Check if any ancestor was a section (for task indent)
     if (!hasSection) {
-      hasSection = ancestors.some((a) => a.type === "section");
+      hasSection = collapsedAncestors.some((ca) => ca.node.type === "section");
     }
 
     // Task indent: fsDepth + 3 spaces if under a section (to align with section content)

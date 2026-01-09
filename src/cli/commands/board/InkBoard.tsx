@@ -5,63 +5,13 @@
 import React, { useState, useEffect } from "react";
 import { render, Box, Text, useInput, useApp, useStdout } from "ink";
 import type { BoardState, CardState, ColumnState } from "./types.ts";
-import { getNodeDisplayName, buildBoardState } from "./state.ts";
+import { buildBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "../../../node/types.ts";
 import { getChildren, getNode } from "../../../node/db.ts";
-
-// Get type indicator for a node type
-function getTypeIndicator(type: string): string {
-  switch (type) {
-    case "folder": return "/";
-    case "file": return ".md";
-    case "section": return "#";
-    default: return "";
-  }
-}
-
-// Normalize name for comparison - strip # prefixes, .md extensions, underscores
-function normalizeName(name: string): string {
-  return name
-    .replace(/^#+\s*/, "")        // Remove leading # from sections
-    .replace(/\.md$/i, "")        // Remove .md extension
-    .replace(/_/g, " ")           // Treat underscores as spaces
-    .trim()
-    .toLowerCase();
-}
-
-// Build collapsed type suffix for unified nodes (nodes with same-name children)
-// e.g., folder -> file -> section with same name = "/ .md #"
-function getCollapsedTypeSuffix(node: Node): string {
-  const indicators: string[] = [];
-
-  // Add this node's type indicator
-  const thisIndicator = getTypeIndicator(node.type);
-  if (thisIndicator) {
-    indicators.push(thisIndicator);
-  }
-
-  // Follow children with matching normalized name
-  const nodeName = normalizeName(getNodeDisplayName(node));
-  let current: Node | undefined = node;
-
-  while (current) {
-    const children = getChildren(current.id);
-    // Find a child with the same normalized name
-    const matchingChild = children.find(c => normalizeName(getNodeDisplayName(c)) === nodeName);
-    if (!matchingChild) break;
-
-    const childIndicator = getTypeIndicator(matchingChild.type);
-    if (childIndicator) {
-      indicators.push(childIndicator);
-    }
-    current = matchingChild;
-  }
-
-  // If only one indicator (just the node itself), don't show suffix
-  if (indicators.length <= 1) return "";
-
-  return indicators.join(" ");
-}
+import {
+  getNodeDisplayName,
+  getCollapsedTypeSuffix,
+} from "../../../shared/tree.ts";
 
 // Build path from root to a given node as file path with # for sections
 function getNodePath(nodeId: string | null): string {
@@ -173,7 +123,7 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
         color={textColor}
         dimColor={!isCardSelected && depth > 0}
       >
-        {indent}{foldIndicator} {icon}{icon ? " " : ""}{content}{typeSuffix ? ` ${typeSuffix}` : ""}{hasChildren && isFolded ? ` (${children.length})` : ""}
+        {indent}{foldIndicator} {icon}{icon ? " " : ""}{content}{typeSuffix ? <Text dimColor>{` ${typeSuffix}`}</Text> : ""}{hasChildren && isFolded ? ` (${children.length})` : ""}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
@@ -288,7 +238,6 @@ interface ColumnProps {
 function Column({ column, colIndex, isSelected, selectedCardIndex, selectedSubIndex, width, height, maxOutlineDepth, foldedNodes, onToggleFold, multiSelected }: ColumnProps) {
   const name = getNodeDisplayName(column.node);
   const typeSuffix = getCollapsedTypeSuffix(column.node);
-  const displayName = typeSuffix ? `${name} ${typeSuffix}` : name;
   const count = column.cards.length;
   const maxCards = Math.max(1, Math.floor(height / 3)); // Estimate cards visible
 
@@ -302,7 +251,9 @@ function Column({ column, colIndex, isSelected, selectedCardIndex, selectedSubIn
   return (
     <Box flexDirection="column" width={width} borderStyle="single" borderColor={isSelected ? "blue" : "gray"}>
       <Text bold inverse={isSelected}>
-        {` ${displayName.slice(0, width - 8)} (${count}) `.slice(0, width - 2)}
+        {` ${name.slice(0, width - 8 - (typeSuffix ? typeSuffix.length + 1 : 0))}`}
+        {typeSuffix ? <Text dimColor>{` ${typeSuffix}`}</Text> : ""}
+        {` (${count}) `}
       </Text>
       <Box flexDirection="column" paddingX={1}>
         {visibleCards.map((card, i) => {
