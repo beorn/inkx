@@ -19,6 +19,16 @@ function getTypeIndicator(type: string): string {
   }
 }
 
+// Normalize name for comparison - strip # prefixes, .md extensions, underscores
+function normalizeName(name: string): string {
+  return name
+    .replace(/^#+\s*/, "")        // Remove leading # from sections
+    .replace(/\.md$/i, "")        // Remove .md extension
+    .replace(/_/g, " ")           // Treat underscores as spaces
+    .trim()
+    .toLowerCase();
+}
+
 // Build collapsed type suffix for unified nodes (nodes with same-name children)
 // e.g., folder -> file -> section with same name = "/ .md #"
 function getCollapsedTypeSuffix(node: Node): string {
@@ -30,14 +40,14 @@ function getCollapsedTypeSuffix(node: Node): string {
     indicators.push(thisIndicator);
   }
 
-  // Follow children with matching display name
-  const nodeName = getNodeDisplayName(node);
+  // Follow children with matching normalized name
+  const nodeName = normalizeName(getNodeDisplayName(node));
   let current: Node | undefined = node;
 
   while (current) {
     const children = getChildren(current.id);
-    // Find a child with the same display name
-    const matchingChild = children.find(c => getNodeDisplayName(c) === nodeName);
+    // Find a child with the same normalized name
+    const matchingChild = children.find(c => normalizeName(getNodeDisplayName(c)) === nodeName);
     if (!matchingChild) break;
 
     const childIndicator = getTypeIndicator(matchingChild.type);
