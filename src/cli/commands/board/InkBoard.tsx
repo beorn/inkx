@@ -150,9 +150,6 @@ interface CardProps {
 }
 
 function Card({ card, isSelected, selectedSubIndex, width, maxOutlineDepth, foldedNodes, onToggleFold, multiSelected, colIndex, cardIndex }: CardProps) {
-  // Check if any item in this card is multi-selected
-  const hasMultiSelection = multiSelected.size > 0;
-
   return (
     <Box
       flexDirection="column"
@@ -257,6 +254,9 @@ function Board({ initialState }: BoardProps) {
   const [foldedNodes, setFoldedNodes] = useState<Set<string>>(new Set());
   const [maxOutlineDepth, setMaxOutlineDepth] = useState(2); // Default 2 levels
   const [subIndex, setSubIndex] = useState(0); // Sub-item index within selected card (0 = card header)
+  const [inOutlineMode, setInOutlineMode] = useState(false); // Whether navigating within card outline
+  const [multiSelected, setMultiSelected] = useState<Set<SelectionKey>>(new Set()); // Multi-selected items
+  const [selectionAnchor, setSelectionAnchor] = useState<{ col: number; card: number; sub: number } | null>(null);
 
   useEffect(() => {
     const handler = () => {
@@ -299,6 +299,42 @@ function Board({ initialState }: BoardProps) {
     return 1 + countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes);
   };
 
+  // Update multi-selection range from anchor to current position
+  const updateSelectionRange = (toCol: number, toCard: number, toSub: number) => {
+    if (!selectionAnchor) return;
+    const newSelected = new Set<SelectionKey>();
+
+    // For simplicity, only support selection within same column and card for now
+    if (selectionAnchor.col === toCol && selectionAnchor.card === toCard) {
+      const minSub = Math.min(selectionAnchor.sub, toSub);
+      const maxSub = Math.max(selectionAnchor.sub, toSub);
+      for (let s = minSub; s <= maxSub; s++) {
+        newSelected.add(makeSelectionKey(toCol, toCard, s));
+      }
+    } else if (selectionAnchor.col === toCol) {
+      // Selection across cards in same column
+      const minCard = Math.min(selectionAnchor.card, toCard);
+      const maxCard = Math.max(selectionAnchor.card, toCard);
+      for (let c = minCard; c <= maxCard; c++) {
+        // Select all visible items in each card
+        const card = state.columns[toCol]?.cards[c];
+        if (card) {
+          const maxItems = 1 + countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes);
+          for (let s = 0; s < maxItems; s++) {
+            newSelected.add(makeSelectionKey(toCol, c, s));
+          }
+        }
+      }
+    }
+    setMultiSelected(newSelected);
+  };
+
+  // Clear selection
+  const clearSelection = () => {
+    setMultiSelected(new Set());
+    setSelectionAnchor(null);
+  };
+
   useInput((input, key) => {
     const col = state.columns[state.colIndex];
     const card = col?.cards[state.cardIndex];
@@ -311,9 +347,11 @@ function Board({ initialState }: BoardProps) {
 
     // Go to parent: Escape or 'u'
     if (key.escape || input === "u") {
-      // If in a sub-item, go back to card header
-      if (subIndex > 0) {
+      // If in outline mode, exit outline mode
+      if (inOutlineMode) {
+        setInOutlineMode(false);
         setSubIndex(0);
+        clearSelection();
         return;
       }
       // If zoomed in, go back to parent board
@@ -323,17 +361,23 @@ function Board({ initialState }: BoardProps) {
           const zoomed = buildBoardState(parentId);
           zoomed.zoomStack = state.zoomStack.slice(0, -1);
           setState(zoomed);
+          clearSelection();
           return;
         }
       }
-      // At root with no sub-item selected, quit
+      // At root, quit
       exit();
       return;
     }
 
-    // Toggle fold on current card
+    // Tab: enter outline mode (or toggle fold if already in outline mode)
     if (key.tab && card) {
-      toggleFold(card.node.id);
+      if (!inOutlineMode) {
+        setInOutlineMode(true);
+        setSubIndex(0);
+      } else {
+        toggleFold(card.node.id);
+      }
       return;
     }
 
@@ -349,7 +393,6 @@ function Board({ initialState }: BoardProps) {
 
     // Fold all / unfold all
     if (input === "z") {
-      // Fold all cards in current column
       if (col) {
         setFoldedNodes((prev) => {
           const next = new Set(prev);
@@ -362,7 +405,6 @@ function Board({ initialState }: BoardProps) {
       return;
     }
     if (input === "Z") {
-      // Unfold all cards in current column
       if (col) {
         setFoldedNodes((prev) => {
           const next = new Set(prev);
@@ -375,40 +417,81 @@ function Board({ initialState }: BoardProps) {
       return;
     }
 
-    // Vertical navigation - move through sub-items first, then cards
-    if (input === "j" || key.downArrow) {
+    // Shift+J/K for multi-selection (vim style: capital letters)
+    if (input === "J" && inOutlineMode) {
+      // Start or extend selection downward
+      if (!selectionAnchor) {
+        setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: subIndex });
+      }
       const maxSub = getMaxSubIndex();
       if (subIndex < maxSub - 1) {
-        // Move to next sub-item
-        setSubIndex(subIndex + 1);
+        const newSubIndex = subIndex + 1;
+        setSubIndex(newSubIndex);
+        updateSelectionRange(state.colIndex, state.cardIndex, newSubIndex);
+      }
+      return;
+    }
+    if (input === "K" && inOutlineMode) {
+      // Start or extend selection upward
+      if (!selectionAnchor) {
+        setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: subIndex });
+      }
+      if (subIndex > 0) {
+        const newSubIndex = subIndex - 1;
+        setSubIndex(newSubIndex);
+        updateSelectionRange(state.colIndex, state.cardIndex, newSubIndex);
+      }
+      return;
+    }
+
+    // Vertical navigation
+    if (input === "j" || key.downArrow) {
+      clearSelection();
+      if (inOutlineMode) {
+        // In outline mode: navigate within card, then to next card
+        const maxSub = getMaxSubIndex();
+        if (subIndex < maxSub - 1) {
+          setSubIndex(subIndex + 1);
+        } else {
+          // Move to next card's first item
+          const currentCol = state.columns[state.colIndex];
+          const nextCardIndex = Math.min((currentCol?.cards.length || 1) - 1, state.cardIndex + 1);
+          if (nextCardIndex !== state.cardIndex) {
+            setState((s) => ({ ...s, cardIndex: nextCardIndex }));
+            setSubIndex(0);
+          }
+        }
       } else {
-        // Move to next card
+        // Not in outline mode: just move cards
         const currentCol = state.columns[state.colIndex];
         const nextCardIndex = Math.min((currentCol?.cards.length || 1) - 1, state.cardIndex + 1);
-        if (nextCardIndex !== state.cardIndex) {
-          setState((s) => ({ ...s, cardIndex: nextCardIndex }));
-          setSubIndex(0);
-        }
+        setState((s) => ({ ...s, cardIndex: nextCardIndex }));
       }
       return;
     }
 
     if (input === "k" || key.upArrow) {
-      if (subIndex > 0) {
-        // Move to previous sub-item
-        setSubIndex(subIndex - 1);
-      } else {
-        // Move to previous card (and its last sub-item)
-        const prevCardIndex = Math.max(0, state.cardIndex - 1);
-        if (prevCardIndex !== state.cardIndex) {
-          setState((s) => ({ ...s, cardIndex: prevCardIndex }));
-          // Calculate max sub-index for previous card
-          const prevCard = state.columns[state.colIndex]?.cards[prevCardIndex];
-          if (prevCard) {
-            const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, maxOutlineDepth, foldedNodes);
-            setSubIndex(maxSub - 1);
+      clearSelection();
+      if (inOutlineMode) {
+        // In outline mode: navigate within card, then to previous card
+        if (subIndex > 0) {
+          setSubIndex(subIndex - 1);
+        } else {
+          // Move to previous card's last item
+          const prevCardIndex = Math.max(0, state.cardIndex - 1);
+          if (prevCardIndex !== state.cardIndex) {
+            setState((s) => ({ ...s, cardIndex: prevCardIndex }));
+            const prevCard = state.columns[state.colIndex]?.cards[prevCardIndex];
+            if (prevCard) {
+              const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, maxOutlineDepth, foldedNodes);
+              setSubIndex(maxSub - 1);
+            }
           }
         }
+      } else {
+        // Not in outline mode: just move cards
+        const prevCardIndex = Math.max(0, state.cardIndex - 1);
+        setState((s) => ({ ...s, cardIndex: prevCardIndex }));
       }
       return;
     }
@@ -416,35 +499,45 @@ function Board({ initialState }: BoardProps) {
     setState((s) => {
       const newState = { ...s };
 
-      // Horizontal navigation - reset sub-index when changing columns
+      // Horizontal navigation - exit outline mode and clear selection when changing columns
       if (input === "h" || key.leftArrow) {
         newState.colIndex = Math.max(0, s.colIndex - 1);
         newState.cardIndex = Math.min(
           s.cardIndex,
           Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1)
         );
+        setInOutlineMode(false);
         setSubIndex(0);
+        clearSelection();
       } else if (input === "l" || key.rightArrow) {
         newState.colIndex = Math.min(s.columns.length - 1, s.colIndex + 1);
         newState.cardIndex = Math.min(
           s.cardIndex,
           Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1)
         );
+        setInOutlineMode(false);
         setSubIndex(0);
+        clearSelection();
       } else if (input === "g") {
         newState.cardIndex = 0;
+        setInOutlineMode(false);
         setSubIndex(0);
+        clearSelection();
       } else if (input === "G") {
         const currentCol = s.columns[s.colIndex];
         newState.cardIndex = Math.max(0, (currentCol?.cards.length || 1) - 1);
+        setInOutlineMode(false);
         setSubIndex(0);
+        clearSelection();
       }
 
       // Zoom in
       if (key.return && card && card.children.length > 0) {
         const zoomed = buildBoardState(card.node.id);
         zoomed.zoomStack = [...s.zoomStack, s.rootId || ""];
+        setInOutlineMode(false);
         setSubIndex(0);
+        clearSelection();
         return zoomed;
       }
 
@@ -463,30 +556,39 @@ function Board({ initialState }: BoardProps) {
     <Box flexDirection="column" height={termHeight}>
       <Box>
         <Text bold inverse>{` ${title} `}</Text>
+        {inOutlineMode && <Text color="cyan">{` [OUTLINE]`}</Text>}
+        {multiSelected.size > 0 && <Text color="yellow">{` [${multiSelected.size} selected]`}</Text>}
         {state.zoomStack.length > 0 && <Text dimColor>{` [depth: ${state.zoomStack.length}]`}</Text>}
         {state.columns.length > maxCols && (
           <Text dimColor>{` [${colScrollOffset + 1}-${colScrollOffset + maxCols}/${state.columns.length} cols]`}</Text>
         )}
-        <Text dimColor>{` [outline: ${maxOutlineDepth}]`}</Text>
+        <Text dimColor>{` [depth: ${maxOutlineDepth}]`}</Text>
       </Box>
       <Box flexGrow={1}>
-        {visibleColumns.map((col, i) => (
-          <Column
-            key={col.node.id}
-            column={col}
-            isSelected={(colScrollOffset + i) === state.colIndex}
-            selectedCardIndex={state.cardIndex}
-            selectedSubIndex={subIndex}
-            width={colWidth}
-            height={termHeight - 4}
-            maxOutlineDepth={maxOutlineDepth}
-            foldedNodes={foldedNodes}
-            onToggleFold={toggleFold}
-          />
-        ))}
+        {visibleColumns.map((col, i) => {
+          const actualColIndex = colScrollOffset + i;
+          return (
+            <Column
+              key={col.node.id}
+              column={col}
+              colIndex={actualColIndex}
+              isSelected={actualColIndex === state.colIndex}
+              selectedCardIndex={state.cardIndex}
+              selectedSubIndex={inOutlineMode ? subIndex : -1}
+              width={colWidth}
+              height={termHeight - 4}
+              maxOutlineDepth={maxOutlineDepth}
+              foldedNodes={foldedNodes}
+              onToggleFold={toggleFold}
+              multiSelected={multiSelected}
+            />
+          );
+        })}
       </Box>
       <Text dimColor>
-        h/l:cols  j/k:items  Enter:zoom  Esc/u:parent  Tab:fold  +/-:depth({maxOutlineDepth})  z/Z:fold all  q:quit
+        {inOutlineMode
+          ? "j/k:items  J/K:select  Tab:fold  Esc:exit outline  Enter:zoom  q:quit"
+          : "h/l:cols  j/k:cards  Tab:outline  Enter:zoom  Esc/u:parent  +/-:depth  q:quit"}
       </Text>
     </Box>
   );
