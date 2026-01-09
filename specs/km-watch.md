@@ -1,4 +1,6 @@
-# Kimmi Watch Specification
+# Watch Specification
+
+> **Status: Persisted mode only** — Requires `km init`.
 
 Bidirectional filesystem ↔ SQLite synchronization.
 
@@ -7,7 +9,7 @@ Bidirectional filesystem ↔ SQLite synchronization.
 ## Overview
 
 km-watch maintains sync between:
-- **Filesystem** — Obsidian vault (markdown files)
+- **Filesystem** — Markdown files
 - **SQLite** — state.db (fast queries)
 - **Events** — events.jsonl (audit log)
 

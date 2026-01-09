@@ -1,6 +1,6 @@
-# Kimmi Markdown Specification
+# Markdown Specification
 
-Markdown parsing and AST-to-node conversion.
+Parsing markdown files into km nodes.
 
 ---
 

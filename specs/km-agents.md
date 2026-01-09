@@ -1,12 +1,14 @@
-# Kimmi Code Specification
+# Agents Specification
 
-Agent orchestration layer for Kimmi.
+> **Status: Future** — Not yet implemented.
+
+AI agent orchestration for km.
 
 ---
 
 ## Overview
 
-Kimmi Code is an AI agent orchestration system. Agents are nodes in the Kimmi data model (see [km-node-spec](km-node-spec.md)) that can claim tasks, execute sessions, and communicate with each other.
+Agents are nodes in the km data model (see [km-data-model](km-data-model.md)) that can claim tasks, execute sessions, and communicate with each other.
 
 ### Design Principles
 
