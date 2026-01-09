@@ -17,6 +17,7 @@ import { watchCommand } from "./commands/watch.ts";
 import { rebuildCommand } from "./commands/rebuild.ts";
 import { searchCommand } from "./commands/search.ts";
 import { tasksCommand } from "./commands/tasks.ts";
+import { boardCommand } from "./commands/board.ts";
 
 const program = new Command();
 
@@ -34,6 +35,7 @@ program.hook("preAction", () => {
 // Knowledge management commands (root level)
 program.addCommand(showCommand);      // km show <id> - show any node
 program.addCommand(treeCommand);      // km tree - show node hierarchy
+program.addCommand(boardCommand);     // km board - interactive boardliner TUI
 program.addCommand(searchCommand);    // km search <query> - search all nodes
 program.addCommand(syncCommand);      // km sync - sync filesystem
 program.addCommand(watchCommand);     // km watch - watch for changes
