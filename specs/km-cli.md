@@ -188,5 +188,5 @@ km show $(km ls --ids | fzf)
 
 ## See Also
 
-- [Display](km-display.md) — View behavior, collapsing
+- [UI](km-ui.md) — View behavior, collapsing
 - [Overview](km-overview.md) — Quick start

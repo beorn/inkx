@@ -25,7 +25,7 @@ For full features (history, sync), initialize with `km init`.
 | 1 | [Overview](km-overview.md) | Design principles, architecture, quick reference |
 | 2 | [Data Model](km-data-model.md) | Nodes, events, storage schema |
 | 3 | [Store](km-store.md) | Persisted vs in-memory modes |
-| 4 | [Display](km-display.md) | Views, collapsing, formatting |
+| 4 | [UI](km-ui.md) | Views, collapsing, formatting |
 | 5 | [CLI](km-cli.md) | Commands and TUI |
 
 ### Supporting Specs
@@ -44,11 +44,11 @@ For full features (history, sync), initialize with `km init`.
 |------|------------|
 | **fs-tree** | Raw filesystem: folders, files, markdown content. Source of truth. |
 | **km-tree** | Unified node hierarchy in SQLite. Queryable. |
-| **display-tree** | Render-time transformation with collapsing and formatting. |
+| **ui-tree** | Render-time transformation with collapsing and formatting. |
 | **node** | Everything is a node: folder, file, section, task, paragraph, etc. |
 | **collapsing** | Unifying same-named folder/file/section into one display line. |
-| **persisted mode** | `.km/` exists. Full features: events, history, sync. |
-| **in-memory mode** | No `.km/`. Zero setup. Read-write to `.md` files. |
+| **memory mode** | No `.km/`. SQLite in RAM. Rebuilt each run. Ephemeral IDs. |
+| **disk mode** | `.km/` exists. SQLite on disk. Full tracking: events, history, stable IDs, sync. |
 
 ---
 
@@ -62,7 +62,7 @@ For full features (history, sync), initialize with `km init`.
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Display Layer              (km-display.md)                     │
+│  Display Layer              (km-ui.md)                     │
 │  Collapsing, type indicators, formatting                        │
 └─────────────────────────────────────────────────────────────────┘
                               │

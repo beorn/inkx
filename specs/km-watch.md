@@ -1,6 +1,6 @@
 # Watch Specification
 
-> **Status: Persisted mode only** — Requires `km init`.
+> **Status: Disk mode only** — Requires `km init`.
 
 Bidirectional filesystem ↔ SQLite synchronization.
 

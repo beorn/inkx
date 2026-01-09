@@ -1,4 +1,4 @@
-# Display Specification
+# UI Specification
 
 Views, collapsing, and formatting for km output.
 
@@ -12,9 +12,9 @@ km uses three tree levels:
 |------|----------|---------|
 | **fs-tree** | Disk | Folders, files, markdown content. Source of truth. |
 | **km-tree** | SQLite | Unified nodes. Queryable. |
-| **display-tree** | Render-time | Collapsed, formatted for output. |
+| **ui-tree** | Render-time | Collapsed, formatted for output. |
 
-Collapsing happens only in display-tree — km-tree preserves actual structure.
+Collapsing happens only in ui-tree — km-tree preserves actual structure.
 
 ---
 
@@ -208,7 +208,7 @@ interface CollapsedAncestor {
 ### Full Collapse
 
 ```
-km-tree:                      display-tree:
+km-tree:                      ui-tree:
 folder: "Taxes"               Taxes / .md #
   └─ file: "Taxes.md"           ## 2025
        └─ section: "# Taxes"      [ ] File returns
@@ -219,7 +219,7 @@ folder: "Taxes"               Taxes / .md #
 ### Partial Collapse
 
 ```
-km-tree:                              display-tree:
+km-tree:                              ui-tree:
 folder: "US Financial Setup"          US Financial Setup / .md
   └─ file: "US Financial Setup.md"      # US Financial Setup (2025-26)
        └─ section: "# US Financial         [ ] Open accounts
@@ -232,7 +232,7 @@ Section name differs (`(2025-26)`), so it's not collapsed.
 ### No Collapse
 
 ```
-km-tree:                      display-tree:
+km-tree:                      ui-tree:
 folder: "Work"                Work/
   └─ file: "Personal.md"        Personal.md
        └─ section: "# Ideas"      # Ideas

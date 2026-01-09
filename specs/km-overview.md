@@ -17,12 +17,21 @@ km treats markdown files as a unified tree of nodes. It provides:
 
 ## Two Modes
 
-| Mode | Trigger | What You Get |
-|------|---------|--------------|
-| **In-memory** | No `.km/` | Instant. Read-write to `.md` files. |
-| **Persisted** | `.km/` exists | + Event history, sync, stable IDs |
+| Mode | Trigger | Description |
+|------|---------|-------------|
+| **Memory** | No `.km/` | SQLite in RAM. Changes go directly to `.md` files. No history. |
+| **Disk** | `.km/` exists | SQLite on disk. Full tracking: event history, stable IDs, sync. |
 
-Run `km init` to enable persisted mode.
+Both modes are **read-write**. The difference is where state lives:
+
+- **Memory**: SQLite rebuilt from `.md` files each run. Toggle tasks, browse structure. Changes write through to `.md` files but aren't tracked. Node IDs are ephemeral. Great for quick access or using km on any repo.
+
+- **Disk**: Run `km init` once. SQLite persists in `.km/state.db`. Every change logged to `events.jsonl`. Stable node IDs, undo capability, sync support. Use for your own projects.
+
+```bash
+km tasks              # Works anywhere (memory mode)
+km init               # Enable tracking (creates .km/, disk mode)
+```
 
 ---
 
@@ -84,15 +93,15 @@ Taxes/                      →    Taxes / .md #
     # Taxes
 ```
 
-The `/ .md #` suffix shows what was collapsed. See [km-display](km-display.md).
+The `/ .md #` suffix shows what was collapsed. See [km-display](km-ui.md).
 
 ---
 
 ## Files
 
-**In-memory mode:** Just your `.md` files.
+**Memory mode:** Just your `.md` files.
 
-**Persisted mode:**
+**Disk mode:**
 ```
 .km/
 ├── events.jsonl      # Append-only event log (git-tracked)
@@ -106,5 +115,5 @@ The `/ .md #` suffix shows what was collapsed. See [km-display](km-display.md).
 - [README](README.md) — Reading order, glossary
 - [Data Model](km-data-model.md) — Node schema, events
 - [Store](km-store.md) — Mode detection, interfaces
-- [Display](km-display.md) — Views, collapsing
+- [UI](km-ui.md) — Views, collapsing
 - [CLI](km-cli.md) — Commands
