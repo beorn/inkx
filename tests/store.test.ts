@@ -60,6 +60,12 @@ Some content here.
 - [ ] Project task
 `
     );
+
+    // Create non-markdown files (inbox scenario)
+    mkdirSync(join(ROOT_DIR, "inbox"));
+    writeFileSync(join(ROOT_DIR, "inbox", "document.pdf"), "fake pdf content");
+    writeFileSync(join(ROOT_DIR, "inbox", "image.png"), "fake image content");
+    writeFileSync(join(ROOT_DIR, "inbox", "readme.txt"), "some text");
   });
 
   afterEach(() => {
@@ -75,13 +81,31 @@ Some content here.
     const allNodes = store.getAllNodes();
     expect(allNodes.length).toBeGreaterThan(0);
 
-    // Should have files
+    // Should have files (3 .md + 3 non-md)
     const files = allNodes.filter((n) => n.type === "file");
-    expect(files.length).toBe(3); // tasks.md, notes.md, project-a.md
+    expect(files.length).toBe(6); // tasks.md, notes.md, project-a.md, document.pdf, image.png, readme.txt
 
     // Should have folders
     const folders = allNodes.filter((n) => n.type === "folder");
-    expect(folders.length).toBe(1); // projects/
+    expect(folders.length).toBe(2); // projects/, inbox/
+
+    store.close();
+  });
+
+  test("should include non-markdown files as nodes", () => {
+    const store = new MemoryStore(ROOT_DIR);
+
+    const allNodes = store.getAllNodes();
+    const fileNames = allNodes.filter((n) => n.type === "file").map((n) => n.content);
+
+    // Non-markdown files should be included with full filename
+    expect(fileNames).toContain("document.pdf");
+    expect(fileNames).toContain("image.png");
+    expect(fileNames).toContain("readme.txt");
+
+    // Markdown files should have extension stripped
+    expect(fileNames).toContain("tasks");
+    expect(fileNames).toContain("notes");
 
     store.close();
   });
@@ -158,7 +182,7 @@ Some content here.
 
     // Get root children
     const rootChildren = store.getChildren(null);
-    expect(rootChildren.length).toBe(3); // tasks.md, notes.md, projects/
+    expect(rootChildren.length).toBe(4); // tasks.md, notes.md, projects/, inbox/
 
     // Get children of projects folder
     const projectsFolder = rootChildren.find((n) => n.content === "projects");

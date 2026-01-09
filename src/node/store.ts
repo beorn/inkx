@@ -381,20 +381,24 @@ export class MemoryStore extends BaseStore {
 
         // Recurse
         this.scanDirectory(fullPath, folderId, 0);
-      } else if (entry.name.endsWith(".md")) {
-        // Create file node and parse content
+      } else if (entry.isFile()) {
+        // Create file node for all files
         const fileId = this.generateId(fullPath);
+        const isMarkdown = entry.name.endsWith(".md");
+
         this.insertNode({
           id: fileId,
           type: "file",
           parent_id: parentId,
           fs_path: fullPath,
-          content: entry.name.replace(/\.md$/, ""),
+          content: isMarkdown ? entry.name.replace(/\.md$/, "") : entry.name,
           sort_order: order++,
         });
 
-        // Parse markdown content
-        this.parseMarkdownFile(fullPath, fileId);
+        // Parse markdown content (only for .md files)
+        if (isMarkdown) {
+          this.parseMarkdownFile(fullPath, fileId);
+        }
       }
     }
   }
