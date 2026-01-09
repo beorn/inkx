@@ -72,12 +72,20 @@ export function initBoardState(rootId?: string): BoardState | null {
     if (!colNode) continue;
 
     // Collect all children from all roots in this group
-    const allCardNodes: Node[] = [];
+    // Deduplicate by display name to avoid showing the same card multiple times
+    const seenNames = new Set<string>();
+    const uniqueCardNodes: Node[] = [];
     for (const root of groupRoots) {
-      allCardNodes.push(...getChildren(root.id));
+      for (const child of getChildren(root.id)) {
+        const cardName = getNodeDisplayName(child);
+        if (!seenNames.has(cardName)) {
+          seenNames.add(cardName);
+          uniqueCardNodes.push(child);
+        }
+      }
     }
 
-    const cards: CardState[] = allCardNodes.map((cardNode) => ({
+    const cards: CardState[] = uniqueCardNodes.map((cardNode) => ({
       node: cardNode,
       children: getChildren(cardNode.id),
     }));

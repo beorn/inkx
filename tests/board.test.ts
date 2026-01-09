@@ -133,6 +133,35 @@ describe("Board State", () => {
     expect(state!.columns).toHaveLength(2); // Grouped by unique name
   });
 
+  test("initBoardState deduplicates cards by name within grouped columns", () => {
+    // Create multiple root nodes with same name
+    const ref1 = createTestNode("folder", "ref");
+    const ref2 = createTestNode("folder", "ref");
+    const ref3 = createTestNode("folder", "ref");
+
+    // Each ref has a child with the same name "Projects"
+    createTestNode("folder", "Projects", ref1);
+    createTestNode("folder", "Projects", ref2);
+    createTestNode("folder", "Projects", ref3);
+
+    // And some with different names
+    createTestNode("folder", "Archive", ref1);
+    createTestNode("folder", "Work", ref2);
+
+    const state = initBoardState();
+
+    expect(state).not.toBeNull();
+    expect(state!.columns).toHaveLength(1); // Only one "ref" column
+
+    // Cards should be deduplicated by name - should have 3 unique: Projects, Archive, Work
+    const cardNames = state!.columns[0]!.cards.map(
+      (c) => c.node.content || c.node.data?.name
+    );
+    const uniqueNames = new Set(cardNames);
+    expect(uniqueNames.size).toBe(3);
+    expect(cardNames.length).toBe(3); // No duplicates
+  });
+
   test("initBoardState returns null for empty database", () => {
     const state = initBoardState();
     expect(state).toBeNull();
