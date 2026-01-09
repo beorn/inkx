@@ -34,11 +34,15 @@ interface OutlineItemProps {
   onToggleFold: (id: string) => void;
   isCardSelected: boolean;  // The card containing this item is selected
   isItemSelected: boolean;  // This specific item is the selected sub-item
+  isMultiSelected: boolean; // This item is part of multi-selection
   flatIndex: number;        // Index in flattened list for selection tracking
   selectedSubIndex: number; // Currently selected sub-item index
+  multiSelected: Set<SelectionKey>;  // All multi-selected items
+  colIndex: number;
+  cardIndex: number;
 }
 
-function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, isCardSelected, isItemSelected, flatIndex, selectedSubIndex }: OutlineItemProps) {
+function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, isCardSelected, isItemSelected, isMultiSelected, flatIndex, selectedSubIndex, multiSelected, colIndex, cardIndex }: OutlineItemProps) {
   const indent = "  ".repeat(depth);
   const icon = getStatusIcon(node.task_status);
   const rawContent = node.content || getNodeDisplayName(node);
@@ -56,9 +60,13 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
   let backgroundColor: string | undefined;
   let textColor: string | undefined;
   if (isItemSelected) {
-    // This specific item is selected (blue highlight)
+    // This specific item is the cursor (blue highlight)
     backgroundColor = "blue";
     textColor = "white";
+  } else if (isMultiSelected) {
+    // This item is part of multi-selection (yellow/inverse highlight)
+    backgroundColor = "yellow";
+    textColor = "black";
   }
 
   // Track index for children
@@ -75,8 +83,9 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
-          {children.slice(0, 10).map((child, i) => {
+          {children.slice(0, 10).map((child) => {
             const childIndex = nextIndex;
+            const childKey = makeSelectionKey(colIndex, cardIndex, childIndex);
             // Calculate next index by counting visible descendants
             nextIndex = childIndex + 1 + countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
             return (
@@ -90,8 +99,12 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
                 onToggleFold={onToggleFold}
                 isCardSelected={isCardSelected}
                 isItemSelected={isCardSelected && childIndex === selectedSubIndex}
+                isMultiSelected={multiSelected.has(childKey)}
                 flatIndex={childIndex}
                 selectedSubIndex={selectedSubIndex}
+                multiSelected={multiSelected}
+                colIndex={colIndex}
+                cardIndex={cardIndex}
               />
             );
           })}
@@ -117,6 +130,12 @@ function countVisibleDescendants(node: Node, depth: number, maxDepth: number, fo
   return count;
 }
 
+// Selection key: "col:card:sub" format for tracking multi-selection
+type SelectionKey = string;
+function makeSelectionKey(colIndex: number, cardIndex: number, subIndex: number): SelectionKey {
+  return `${colIndex}:${cardIndex}:${subIndex}`;
+}
+
 interface CardProps {
   card: CardState;
   isSelected: boolean;
@@ -125,16 +144,20 @@ interface CardProps {
   maxOutlineDepth: number;
   foldedNodes: Set<string>;
   onToggleFold: (id: string) => void;
+  multiSelected: Set<SelectionKey>;  // Set of selected sub-item keys within this card
+  colIndex: number;
+  cardIndex: number;
 }
 
-function Card({ card, isSelected, selectedSubIndex, width, maxOutlineDepth, foldedNodes, onToggleFold }: CardProps) {
-  // Always use border for consistent sizing, but make it invisible when not selected
+function Card({ card, isSelected, selectedSubIndex, width, maxOutlineDepth, foldedNodes, onToggleFold, multiSelected, colIndex, cardIndex }: CardProps) {
+  // Check if any item in this card is multi-selected
+  const hasMultiSelection = multiSelected.size > 0;
+
   return (
     <Box
       flexDirection="column"
-      marginBottom={1}
       borderStyle="round"
-      borderColor={isSelected ? "cyan" : "black"}
+      borderColor={isSelected ? "cyan" : "gray"}
       borderDimColor={!isSelected}
     >
       <OutlineItem
@@ -146,8 +169,12 @@ function Card({ card, isSelected, selectedSubIndex, width, maxOutlineDepth, fold
         onToggleFold={onToggleFold}
         isCardSelected={isSelected}
         isItemSelected={isSelected && selectedSubIndex === 0}
+        isMultiSelected={multiSelected.has(makeSelectionKey(colIndex, cardIndex, 0))}
         flatIndex={0}
         selectedSubIndex={selectedSubIndex}
+        multiSelected={multiSelected}
+        colIndex={colIndex}
+        cardIndex={cardIndex}
       />
     </Box>
   );
@@ -155,6 +182,7 @@ function Card({ card, isSelected, selectedSubIndex, width, maxOutlineDepth, fold
 
 interface ColumnProps {
   column: ColumnState;
+  colIndex: number;
   isSelected: boolean;
   selectedCardIndex: number;
   selectedSubIndex: number;  // Which sub-item within the selected card (0 = card header)
@@ -163,9 +191,10 @@ interface ColumnProps {
   maxOutlineDepth: number;
   foldedNodes: Set<string>;
   onToggleFold: (id: string) => void;
+  multiSelected: Set<SelectionKey>;
 }
 
-function Column({ column, isSelected, selectedCardIndex, selectedSubIndex, width, height, maxOutlineDepth, foldedNodes, onToggleFold }: ColumnProps) {
+function Column({ column, colIndex, isSelected, selectedCardIndex, selectedSubIndex, width, height, maxOutlineDepth, foldedNodes, onToggleFold, multiSelected }: ColumnProps) {
   const name = getNodeDisplayName(column.node);
   const count = column.cards.length;
   const maxCards = Math.max(1, Math.floor(height / 3)); // Estimate cards visible
@@ -184,7 +213,8 @@ function Column({ column, isSelected, selectedCardIndex, selectedSubIndex, width
       </Text>
       <Box flexDirection="column" paddingX={1}>
         {visibleCards.map((card, i) => {
-          const cardIsSelected = isSelected && (scrollOffset + i) === selectedCardIndex;
+          const actualCardIndex = scrollOffset + i;
+          const cardIsSelected = isSelected && actualCardIndex === selectedCardIndex;
           return (
             <Card
               key={card.node.id}
@@ -195,6 +225,9 @@ function Column({ column, isSelected, selectedCardIndex, selectedSubIndex, width
               maxOutlineDepth={maxOutlineDepth}
               foldedNodes={foldedNodes}
               onToggleFold={onToggleFold}
+              multiSelected={multiSelected}
+              colIndex={colIndex}
+              cardIndex={actualCardIndex}
             />
           );
         })}
