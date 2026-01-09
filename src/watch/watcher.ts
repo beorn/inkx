@@ -246,15 +246,17 @@ export function scanDirectoryRecursive(
     const entries = scanDirectory(dir);
 
     for (const entry of entries) {
+      // Always recurse into directories, but only add to results if filter passes
+      if (entry.isDirectory) {
+        scan(entry.path);
+      }
+
+      // Apply filter to determine if entry should be in results
       if (filter && !filter(entry.path)) {
         continue;
       }
 
       results.push(entry);
-
-      if (entry.isDirectory) {
-        scan(entry.path);
-      }
     }
   }
 

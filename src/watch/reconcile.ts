@@ -6,6 +6,7 @@
 
 import { statSync, readFileSync, existsSync } from "fs";
 import { dirname, basename, relative } from "path";
+import { ulid } from "ulid";
 import { getDb, getNodeByPath, getChildren } from "../node/db.ts";
 import { emitNodeCreated, emitNodeUpdated, emitNodeMoved, emitNodeDeleted } from "../node/emit.ts";
 import { parseMarkdownToNodes } from "../md/ast2nodes.ts";
@@ -139,16 +140,14 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
 
   if (stat.isDirectory()) {
     // Create folder node
-    emitNodeCreated(
-      {
-        type: "folder",
-        fs_path: op.path,
-        fs_ino: op.ino,
-        parent_id: parentNode?.id ?? null,
-        data: { name: basename(op.path) },
-      },
-      "fs-watch"
-    );
+    emitNodeCreated("fs-watch", {
+      id: ulid(),
+      type: "folder",
+      fs_path: op.path,
+      fs_ino: op.ino,
+      parent_id: parentNode?.id ?? null,
+      data: { name: basename(op.path) },
+    });
   } else if (op.path.endsWith(".md")) {
     // Parse markdown file and create nodes
     const content = readFileSync(op.path, "utf-8");
@@ -161,7 +160,7 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
 
     // Emit creation events for all nodes
     for (const node of nodes) {
-      emitNodeCreated(node, "fs-watch");
+      emitNodeCreated("fs-watch", node);
     }
   }
 }
@@ -209,13 +208,13 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
   for (const change of changes) {
     switch (change.type) {
       case "created":
-        emitNodeCreated(change.node, "fs-watch");
+        emitNodeCreated("fs-watch", change.node!);
         break;
       case "updated":
-        emitNodeUpdated(change.nodeId, change.changes, "fs-watch");
+        emitNodeUpdated("fs-watch", change.nodeId!, change.changes!);
         break;
       case "deleted":
-        emitNodeDeleted(change.nodeId, "fs-watch");
+        emitNodeDeleted("fs-watch", change.nodeId!);
         break;
     }
   }
@@ -227,13 +226,9 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
 async function handleRename(op: ReconcileOp): Promise<void> {
   if (!op.nodeId) return;
 
-  emitNodeUpdated(
-    op.nodeId,
-    {
-      fs_path: op.path,
-    },
-    "fs-watch"
-  );
+  emitNodeUpdated("fs-watch", op.nodeId, {
+    fs_path: op.path,
+  });
 }
 
 /**
@@ -242,7 +237,7 @@ async function handleRename(op: ReconcileOp): Promise<void> {
 function handleDelete(op: ReconcileOp): void {
   if (!op.nodeId) return;
 
-  emitNodeDeleted(op.nodeId, "fs-watch");
+  emitNodeDeleted("fs-watch", op.nodeId);
 }
 
 /**
