@@ -583,12 +583,19 @@ function Board({ initialState }: BoardProps) {
     });
   });
 
-  // Build breadcrumb path as file path format
-  const breadcrumb = getNodePath(state.rootId);
+  // Build board root path (static title)
+  const boardPath = getNodePath(state.rootId);
+
+  // Build selected item path for status line
+  const selectedCol = state.columns[state.colIndex];
+  const selectedCard = selectedCol?.cards[state.cardIndex];
+  const selectedPath = selectedCard ? getNodePath(selectedCard.node.id) : "";
 
   return (
-    <Box flexDirection="column" height={termHeight}>
-      <Text bold inverse>{` ${breadcrumb} `}</Text>
+    <Box flexDirection="column" height={termHeight} minHeight={3}>
+      <Box height={1}>
+        <Text bold inverse>{` ${boardPath} `}</Text>
+      </Box>
       <Box flexGrow={1}>
         {visibleColumns.map((col, i) => {
           const actualColIndex = colScrollOffset + i;
@@ -611,16 +618,12 @@ function Board({ initialState }: BoardProps) {
         })}
       </Box>
       <Text>
+        <Text>{selectedPath} </Text>
         {inOutlineMode && <Text color="cyan">{`[OUTLINE] `}</Text>}
         {multiSelected.size > 0 && <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>}
         {state.columns.length > maxCols && (
           <Text dimColor>{`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${state.columns.length}] `}</Text>
         )}
-        <Text dimColor>
-          {inOutlineMode
-            ? "j/k:items J/K:select Tab:fold Esc:exit Enter:zoom q:quit"
-            : "h/l:cols j/k:cards Tab:outline Enter:zoom Esc/u:parent +/-:depth q:quit"}
-        </Text>
       </Text>
     </Box>
   );
