@@ -20,7 +20,8 @@ export type {
 // Event emission
 export {
   emit,
-  getKimmiPath,
+  getKmPath,
+  setKmPath,
   getEventsPath,
   setEventHub,
   emitNodeCreated,
@@ -69,5 +70,6 @@ export {
   needsRebuild,
   syncState,
   fullReset,
+  freshStart,
   ensureState,
 } from "./rebuild.ts";

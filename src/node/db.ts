@@ -7,7 +7,7 @@ import { Database } from "bun:sqlite";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 import type { Node, Event, TaskStatus, NodeType } from "./types.ts";
-import { getKimmiPath } from "./emit.ts";
+import { getKmPath } from "./emit.ts";
 
 // Singleton database instance
 let dbInstance: Database | null = null;
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS meta (
  * Get the database path
  */
 export function getDbPath(): string {
-  return join(getKimmiPath(), "state.db");
+  return join(getKmPath(), "state.db");
 }
 
 /**
@@ -104,9 +104,9 @@ export function getDb(): Database {
     return dbInstance;
   }
 
-  const kimmiPath = getKimmiPath();
-  if (!existsSync(kimmiPath)) {
-    mkdirSync(kimmiPath, { recursive: true });
+  const kmPath = getKmPath();
+  if (!existsSync(kmPath)) {
+    mkdirSync(kmPath, { recursive: true });
   }
 
   const dbPath = getDbPath();

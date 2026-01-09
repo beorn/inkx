@@ -10,6 +10,7 @@ import { EventEmitter } from "events";
 import { FileSystemWatcher, scanDirectoryRecursive } from "./watcher.ts";
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts";
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts";
+import { getIgnorePatterns } from "./ignore.ts";
 import {
   getDb,
   getAllNodes,
@@ -241,8 +242,13 @@ export class SyncManager extends EventEmitter {
    * Force sync from filesystem
    */
   async syncFromFs(): Promise<{ processed: number }> {
-    const entries = scanDirectoryRecursive(this.config.vaultPath, (path) =>
-      path.endsWith(".md")
+    // Load ignore patterns for this vault
+    const ignorePatterns = getIgnorePatterns(this.config.vaultPath);
+
+    const entries = scanDirectoryRecursive(
+      this.config.vaultPath,
+      (path) => path.endsWith(".md"),
+      ignorePatterns
     );
 
     // Group by directory

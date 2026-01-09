@@ -7,7 +7,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { SyncManager } from "../../watch/sync.ts";
-import { getKimmiPath } from "../../node/emit.ts";
+import { getKmPath } from "../../node/emit.ts";
 import { dirname } from "path";
 
 export const watchCommand = new Command("watch")
@@ -15,7 +15,7 @@ export const watchCommand = new Command("watch")
   .argument("[path]", "Path to watch (default: vault root)")
   .option("--debounce <ms>", "Debounce interval in ms", "5000")
   .action(async (path, options) => {
-    const vaultPath = path ?? dirname(getKimmiPath());
+    const vaultPath = path ?? dirname(getKmPath());
     const debounceMs = parseInt(options.debounce, 10);
 
     console.log(chalk.dim(`Watching: ${vaultPath}`));

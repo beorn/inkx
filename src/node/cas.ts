@@ -8,7 +8,7 @@
 import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { getKimmiPath } from "./emit.ts";
+import { getKmPath } from "./emit.ts";
 
 const INLINE_THRESHOLD = 4096; // 4KB - content larger than this goes to CAS
 
@@ -16,7 +16,7 @@ const INLINE_THRESHOLD = 4096; // 4KB - content larger than this goes to CAS
  * Get the blobs directory path
  */
 export function getBlobsPath(): string {
-  return join(getKimmiPath(), "blobs");
+  return join(getKmPath(), "blobs");
 }
 
 /**

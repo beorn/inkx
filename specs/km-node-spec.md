@@ -23,7 +23,7 @@ Everything is a node: folders, files, sections, paragraphs, list items, tasks.
 ## Architecture
 
 ```
-.kimmi/
+.km/
 ├── events.jsonl      # Source of truth (git-tracked)
 ├── state.db          # SQLite snapshot (gitignored, disposable)
 └── blobs/            # Content-addressable store (gitignored)
@@ -327,7 +327,7 @@ CREATE TABLE meta (
 Large content stored by hash:
 
 ```
-.kimmi/blobs/
+.km/blobs/
 ├── ab/cd1234...  # SHA-256 prefix sharding
 └── ef/gh5678...
 ```
@@ -335,7 +335,7 @@ Large content stored by hash:
 ```typescript
 function storeContent(content: string): string {
   const hash = sha256(content)
-  const dir = join('.kimmi/blobs', hash.slice(0, 2))
+  const dir = join('.km/blobs', hash.slice(0, 2))
   const path = join(dir, hash.slice(2))
 
   if (!existsSync(path)) {
@@ -347,7 +347,7 @@ function storeContent(content: string): string {
 }
 
 function loadContent(hash: string): string {
-  const path = join('.kimmi/blobs', hash.slice(0, 2), hash.slice(2))
+  const path = join('.km/blobs', hash.slice(0, 2), hash.slice(2))
   return readFileSync(path, 'utf-8')
 }
 ```
@@ -360,7 +360,7 @@ function loadContent(hash: string): string {
 
 ```typescript
 async function rebuildState(): Promise<Database> {
-  const db = new Database('.kimmi/state.db')
+  const db = new Database('.km/state.db')
 
   db.exec(`
     DROP TABLE IF EXISTS nodes;
@@ -369,7 +369,7 @@ async function rebuildState(): Promise<Database> {
     -- ... create tables ...
   `)
 
-  const events = readEventsSync('.kimmi/events.jsonl')
+  const events = readEventsSync('.km/events.jsonl')
 
   for (const event of events) {
     applyEvent(db, event)
@@ -502,7 +502,7 @@ function emit(event: Omit<Event, 'id' | 'ts'>): Event {
   }
 
   // Append to events file
-  appendFileSync('.kimmi/events.jsonl', JSON.stringify(full) + '\n')
+  appendFileSync('.km/events.jsonl', JSON.stringify(full) + '\n')
 
   // Apply to state.db (if loaded)
   if (db) {
@@ -578,10 +578,10 @@ function resolveNode(node: Node): Node {
 ### .gitignore
 
 ```
-.kimmi/state.db
-.kimmi/state.db-journal
-.kimmi/state.db-wal
-.kimmi/blobs/
+.km/state.db
+.km/state.db-journal
+.km/state.db-wal
+.km/blobs/
 ```
 
 ### Sync
@@ -596,7 +596,7 @@ km rebuild
 # Local work generates events...
 
 # Push
-git add .kimmi/events.jsonl
+git add .km/events.jsonl
 git commit -m "Events $(date +%Y-%m-%d)"
 git push
 ```

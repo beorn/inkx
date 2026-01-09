@@ -285,10 +285,10 @@ test_phase6() {
 
   # Create temp test directory
   TEST_DIR=$(mktemp -d)
-  mkdir -p "$TEST_DIR/.kimmi"
+  mkdir -p "$TEST_DIR/.km"
 
-  # Set KIMMI_PATH for tests
-  export KIMMI_PATH="$TEST_DIR/.kimmi"
+  # Set KM_PATH for tests
+  export KM_PATH="$TEST_DIR/.km"
 
   # Clean up on exit
   trap "rm -rf $TEST_DIR" EXIT

@@ -27,7 +27,7 @@ Kimmi unifies files, folders, markdown sections, blocks, and tasks into a single
 ## Architecture
 
 ```
-.kimmi/
+.km/
 ├── events.jsonl      # Source of truth (git-tracked)
 ├── events.sock       # Unix socket for IPC (runtime only)
 └── state.db          # SQLite snapshot (gitignored, disposable)
@@ -188,7 +188,7 @@ inbox → today → in_progress → done
 Large content stored in Content-Addressable Store (CAS):
 
 ```
-.kimmi/
+.km/
 └── blobs/
     ├── ab/cd1234...  # SHA-256 prefix sharding
     └── ef/gh5678...

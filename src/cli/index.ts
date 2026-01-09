@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Kimmi CLI
+ * KM CLI
  *
  * Main entry point for the km command
  *
@@ -22,7 +22,7 @@ const program = new Command();
 
 program
   .name("km")
-  .description("Kimmi - Local-first knowledge and task management")
+  .description("KM - Local-first knowledge and task management")
   .version("0.1.0");
 
 // Initialize state on startup

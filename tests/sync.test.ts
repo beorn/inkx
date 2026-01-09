@@ -12,7 +12,7 @@ import { join } from "path";
 // Set test environment before imports
 const TEST_DIR = join(import.meta.dir, ".test-sync");
 const VAULT_DIR = join(TEST_DIR, "vault");
-process.env.KIMMI_PATH = join(TEST_DIR, ".kimmi");
+process.env.KM_PATH = join(TEST_DIR, ".km");
 
 import {
   getDb,
@@ -24,7 +24,7 @@ import {
   applyEvent,
 } from "../src/node/db.ts";
 
-import { setKimmiPath, setDatabase } from "../src/node/emit.ts";
+import { setKmPath, setDatabase } from "../src/node/emit.ts";
 import { SyncManager } from "../src/watch/sync.ts";
 
 describe("Sync Integration", () => {
@@ -35,10 +35,10 @@ describe("Sync Integration", () => {
     }
     mkdirSync(TEST_DIR, { recursive: true });
     mkdirSync(VAULT_DIR, { recursive: true });
-    mkdirSync(join(TEST_DIR, ".kimmi"), { recursive: true });
+    mkdirSync(join(TEST_DIR, ".km"), { recursive: true });
 
     // Configure emit to use test directory and connect to database
-    setKimmiPath(join(TEST_DIR, ".kimmi"));
+    setKmPath(join(TEST_DIR, ".km"));
     setDatabase({ applyEvent });
 
     // Reset database
@@ -329,7 +329,7 @@ code
       // Read events file directly
       const { readFileSync } = await import("fs");
       const { join: pathJoin } = await import("path");
-      const eventsPath = pathJoin(TEST_DIR, ".kimmi", "events.jsonl");
+      const eventsPath = pathJoin(TEST_DIR, ".km", "events.jsonl");
 
       if (existsSync(eventsPath)) {
         const content = readFileSync(eventsPath, "utf-8");

@@ -6,18 +6,26 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { rebuildState, fullReset, syncState } from "../../node/rebuild.ts";
+import { rebuildState, fullReset, syncState, freshStart } from "../../node/rebuild.ts";
 import { getDbPath, getLastEventId } from "../../node/db.ts";
 import { getEventsPath } from "../../node/emit.ts";
 import { existsSync, statSync } from "fs";
 
 export const rebuildCommand = new Command("rebuild")
   .description("Rebuild state from events")
-  .option("--full", "Full rebuild (delete and recreate)")
+  .option("--full", "Full rebuild (delete and recreate state.db)")
+  .option("--fresh", "Fresh start (delete all .km data including events)")
   .option("--status", "Show rebuild status only")
   .action((options) => {
     if (options.status) {
       showStatus();
+      return;
+    }
+
+    if (options.fresh) {
+      console.log(chalk.yellow("Fresh start - deleting all .km data..."));
+      freshStart();
+      console.log(chalk.green("✓"), "Fresh start complete - .km directory cleared");
       return;
     }
 

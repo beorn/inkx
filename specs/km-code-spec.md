@@ -20,7 +20,7 @@ Kimmi Code is an AI agent orchestration system. Agents are nodes in the Kimmi da
 ## Architecture
 
 ```
-.kimmi/
+.km/
 ├── events.jsonl      # Source of truth (includes session logs)
 ├── events.sock       # Unix socket for IPC (runtime only)
 └── state.db          # SQLite snapshot (gitignored)
@@ -164,7 +164,7 @@ function getAgentQueue(db: Database, agentId: string): Node[] {
 
 ### Socket Protocol
 
-Path: `.kimmi/events.sock`
+Path: `.km/events.sock`
 
 Messages are newline-delimited JSON events (same format as events.jsonl).
 
@@ -174,7 +174,7 @@ Messages are newline-delimited JSON events (same format as events.jsonl).
 import { createServer, Socket } from 'net'
 import { unlinkSync } from 'fs'
 
-const SOCKET_PATH = '.kimmi/events.sock'
+const SOCKET_PATH = '.km/events.sock'
 
 class EventHub {
   private clients: Set<Socket> = new Set()
@@ -212,7 +212,7 @@ class EventSubscriber {
   private handlers: ((event: Event) => void)[] = []
 
   connect(agentId: string) {
-    const socket = createConnection('.kimmi/events.sock')
+    const socket = createConnection('.km/events.sock')
 
     const rl = createInterface({ input: socket })
 
@@ -241,7 +241,7 @@ class EventSubscriber {
     // Fallback: poll events.jsonl every 500ms
     let lastSeen = ''
     setInterval(() => {
-      const events = readEventsSync('.kimmi/events.jsonl')
+      const events = readEventsSync('.km/events.jsonl')
         .filter(e => e.id > lastSeen)
         .filter(e => !e.target || e.target === agentId)
 
@@ -276,7 +276,7 @@ function emit(event: Omit<Event, 'id' | 'ts'>): Event {
   }
 
   // 1. Append to events file (persistent)
-  appendFileSync('.kimmi/events.jsonl', JSON.stringify(full) + '\n')
+  appendFileSync('.km/events.jsonl', JSON.stringify(full) + '\n')
 
   // 2. Broadcast via socket (real-time)
   if (hub) {
@@ -426,25 +426,25 @@ CREATE TABLE cursors (
 
 ```bash
 # Start event hub (background)
-kimmi hub start
+km hub start
 
 # List agents
-kimmi agents
+km agents
 
 # Start an agent
-kimmi agent start <agent-id>
+km agent start <agent-id>
 
 # Assign task to agent
-kimmi task assign <task-id> <agent-id>
+km task assign <task-id> <agent-id>
 
 # View agent's queue
-kimmi queue <agent-id>
+km queue <agent-id>
 
 # Send message
-kimmi message <target-agent> "Hello"
+km message <target-agent> "Hello"
 
 # View session transcript
-kimmi session <session-id>
+km session <session-id>
 ```
 
 ---
@@ -465,10 +465,10 @@ Consider periodic archival of old session data.
 ## .gitignore
 
 ```
-.kimmi/state.db
-.kimmi/state.db-journal
-.kimmi/state.db-wal
-.kimmi/events.sock
+.km/state.db
+.km/state.db-journal
+.km/state.db-wal
+.km/events.sock
 ```
 
 ---

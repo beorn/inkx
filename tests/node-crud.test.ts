@@ -9,8 +9,8 @@ import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
 // Set test environment before imports
-const TEST_DIR = join(import.meta.dir, ".test-kimmi");
-process.env.KIMMI_PATH = TEST_DIR;
+const TEST_DIR = join(import.meta.dir, ".test-km");
+process.env.KM_PATH = TEST_DIR;
 
 import {
   getDb,
@@ -36,7 +36,7 @@ import {
   emitTaskClaimed,
   emitTaskReleased,
   emitTaskCompleted,
-  setKimmiPath,
+  setKmPath,
   setDatabase,
 } from "../src/node/emit.ts";
 
@@ -71,7 +71,7 @@ describe("Node CRUD Operations", () => {
     mkdirSync(TEST_DIR, { recursive: true });
 
     // Configure emit to use test directory and connect to database
-    setKimmiPath(TEST_DIR);
+    setKmPath(TEST_DIR);
     setDatabase({ applyEvent });
 
     // Reset database

@@ -8,6 +8,7 @@ import { watch, type FSWatcher } from "chokidar";
 import { dirname, basename, relative, join } from "path";
 import { statSync, existsSync } from "fs";
 import { EventEmitter } from "events";
+import { DEFAULT_IGNORE_PATTERNS, getIgnorePatterns } from "./ignore.ts";
 
 export interface WatcherConfig {
   debounceMs: number;
@@ -16,12 +17,7 @@ export interface WatcherConfig {
 
 const DEFAULT_CONFIG: WatcherConfig = {
   debounceMs: 5000,
-  ignored: [
-    "**/node_modules/**",
-    "**/.git/**",
-    "**/.kimmi/**",
-    "**/.*", // Hidden files
-  ],
+  ignored: DEFAULT_IGNORE_PATTERNS,
 };
 
 export interface FileChange {
@@ -49,10 +45,13 @@ export class FileSystemWatcher extends EventEmitter {
   start(vaultPath: string): void {
     this.vaultPath = vaultPath;
 
+    // Load ignore patterns from vault's ignore files
+    const ignorePatterns = getIgnorePatterns(vaultPath);
+
     this.watcher = watch(vaultPath, {
       persistent: true,
       ignoreInitial: true,
-      ignored: this.config.ignored,
+      ignored: ignorePatterns,
       awaitWriteFinish: {
         stabilityThreshold: 500,
         pollInterval: 100,
@@ -185,10 +184,11 @@ export class FileSystemWatcher extends EventEmitter {
 }
 
 /**
- * Scan a directory for files
+ * Scan a directory for files, applying ignore patterns
  */
 export function scanDirectory(
-  dirPath: string
+  dirPath: string,
+  ignorePatterns?: string[]
 ): Array<{ path: string; ino: number; mtime: number; isDirectory: boolean }> {
   const results: Array<{
     path: string;
@@ -202,13 +202,19 @@ export function scanDirectory(
   }
 
   const { readdirSync } = require("fs");
+  const { shouldIgnore, isHiddenFile } = require("./ignore.ts");
   const entries = readdirSync(dirPath, { withFileTypes: true });
 
   for (const entry of entries) {
     const fullPath = join(dirPath, entry.name);
 
-    // Skip hidden files and ignored patterns
-    if (entry.name.startsWith(".")) {
+    // Skip hidden files (files starting with .)
+    if (isHiddenFile(fullPath)) {
+      continue;
+    }
+
+    // Skip files matching ignore patterns
+    if (ignorePatterns && shouldIgnore(fullPath, ignorePatterns)) {
       continue;
     }
 
@@ -233,7 +239,8 @@ export function scanDirectory(
  */
 export function scanDirectoryRecursive(
   dirPath: string,
-  filter?: (path: string) => boolean
+  filter?: (path: string) => boolean,
+  ignorePatterns?: string[]
 ): Array<{ path: string; ino: number; mtime: number; isDirectory: boolean }> {
   const results: Array<{
     path: string;
@@ -243,7 +250,7 @@ export function scanDirectoryRecursive(
   }> = [];
 
   function scan(dir: string) {
-    const entries = scanDirectory(dir);
+    const entries = scanDirectory(dir, ignorePatterns);
 
     for (const entry of entries) {
       // Always recurse into directories, but only add to results if filter passes

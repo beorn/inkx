@@ -13,21 +13,21 @@ let eventHub: { broadcast: (event: Event) => void } | null = null;
 // Database for immediate projection (set when db is loaded)
 let db: { applyEvent: (event: Event) => void } | null = null;
 
-// Path to kimmi directory
-let kimmiPath = ".kimmi";
+// Path to km state directory
+let kmPath = ".km";
 
 /**
- * Set the kimmi directory path
+ * Set the km directory path
  */
-export function setKimmiPath(path: string): void {
-  kimmiPath = path;
+export function setKmPath(path: string): void {
+  kmPath = path;
 }
 
 /**
- * Get the current kimmi path
+ * Get the current km path
  */
-export function getKimmiPath(): string {
-  return kimmiPath;
+export function getKmPath(): string {
+  return kmPath;
 }
 
 /**
@@ -47,11 +47,11 @@ export function setDatabase(database: {
 }
 
 /**
- * Ensure the kimmi directory exists
+ * Ensure the km directory exists
  */
-function ensureKimmiDir(): void {
-  if (!existsSync(kimmiPath)) {
-    mkdirSync(kimmiPath, { recursive: true });
+function ensureKmDir(): void {
+  if (!existsSync(kmPath)) {
+    mkdirSync(kmPath, { recursive: true });
   }
 }
 
@@ -59,7 +59,7 @@ function ensureKimmiDir(): void {
  * Get the events file path
  */
 export function getEventsPath(): string {
-  return join(kimmiPath, "events.jsonl");
+  return join(kmPath, "events.jsonl");
 }
 
 /**
@@ -76,7 +76,7 @@ export function emit(
   };
 
   // Ensure directory exists
-  ensureKimmiDir();
+  ensureKmDir();
 
   // 1. Append to events file (persistent)
   if (!options.skipPersist) {

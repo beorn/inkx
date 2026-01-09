@@ -36,8 +36,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Nix/direnv environment
 .direnv/
 
-# Kimmi runtime data
-.kimmi/
+# KM runtime data
+.km/
 
 # bv (beads viewer) local config and caches
 .bv/

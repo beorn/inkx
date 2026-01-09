@@ -64,7 +64,7 @@ class FileSystemWatcher {
       ignored: [
         '**/node_modules/**',
         '**/.git/**',
-        '**/.kimmi/**',
+        '**/.km/**',
         '**/.*'  // Hidden files
       ],
       awaitWriteFinish: {
@@ -559,7 +559,7 @@ km sync path/to/file.md
 ## Configuration
 
 ```yaml
-# .kimmi/config.yaml
+# .km/config.yaml
 watch:
   debounce_fs: 5000      # ms before processing FS changes
   debounce_apply: 3000   # ms before applying DB changes to FS

@@ -4,8 +4,9 @@
  * Rebuilds state.db from events.jsonl
  */
 
-import { existsSync, readFileSync, unlinkSync } from "fs";
-import { getEventsPath } from "./emit.ts";
+import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs";
+import { join } from "path";
+import { getEventsPath, getKmPath } from "./emit.ts";
 import { applyEvent, getDb, getDbPath, resetDb, closeDb } from "./db.ts";
 import type { Event } from "./types.ts";
 
@@ -176,5 +177,25 @@ export function ensureState(): void {
     rebuildState();
   } else {
     syncState();
+  }
+}
+
+/**
+ * Fresh start - delete entire .km directory contents
+ * This removes all events, state, and blobs
+ */
+export function freshStart(): void {
+  closeDb();
+
+  const kmPath = getKmPath();
+  if (!existsSync(kmPath)) {
+    return;
+  }
+
+  // Delete all contents of .km directory
+  const entries = readdirSync(kmPath);
+  for (const entry of entries) {
+    const fullPath = join(kmPath, entry);
+    rmSync(fullPath, { recursive: true, force: true });
   }
 }
