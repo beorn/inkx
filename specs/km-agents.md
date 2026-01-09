@@ -17,6 +17,7 @@ Agents are AI-powered workers that can claim tasks, execute sessions, and commun
 3. **Work queues via hierarchy**: Agent's children (or symlinks) define its queue
 4. **Session logging**: Full conversation transcripts recorded as events
 5. **Simple IPC**: Unix socket for real-time notifications
+6. **Hub for orchestration**: `km hub` provides a TUI dashboard for coordinating multiple agents
 
 ### Kimmi: The Default Agent
 
@@ -553,16 +554,66 @@ km session ls --agent <agent_id>
 
 ### Hub Commands
 
+The **hub** is the central coordination point for agent orchestration. It provides both a daemon for IPC and an interactive TUI for monitoring and controlling agents.
+
+**Aliases**: `km command`, `km cmd`, `km hq`
+
 ```bash
-# Start event hub (background)
+# Launch interactive hub TUI (dashboard view)
+km hub
+
+# Start hub daemon (background, enables IPC)
 km hub start
 
-# Stop event hub
+# Stop hub daemon
 km hub stop
 
+# Show hub status (agents, queues, recent events)
+km hub status
+
 # Send message to agent
-km message <target-agent> "Hello"
+km hub message <target-agent> "Hello"
 ```
+
+#### Hub TUI
+
+`km hub` launches an interactive dashboard for orchestration:
+
+```
+┌─ km hub ───────────────────────────────────────────────────┐
+│                                                            │
+│  AGENTS              WORK QUEUE         RECENT EVENTS      │
+│  ───────             ──────────         ─────────────      │
+│  ● claude-1          P0: Fix auth bug   12:01 claude-1     │
+│    └─ km-a3f           ↳ in_progress      claimed km-a3f   │
+│  ● claude-2          P1: Add tests      12:03 claude-2     │
+│    └─ km-b7c         P1: Update docs      completed km-b7c │
+│  ○ claude-3 (idle)   P2: Refactor DB    12:05 system       │
+│                      ...                  spawned claude-3 │
+│                                                            │
+│  [S]pawn  [K]ill  [A]ssign  [Q]ueue  [L]ogs  [?]Help      │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- Real-time agent status (active, idle, error)
+- Work queue with priorities and assignments
+- Live event stream
+- Spawn/kill agents
+- Reassign tasks between agents
+- Drill into agent logs and session transcripts
+
+**Keybindings:**
+| Key | Action |
+|-----|--------|
+| `s` | Spawn new agent |
+| `k` | Kill selected agent |
+| `a` | Assign task to agent |
+| `q` | View work queue |
+| `l` | View logs/sessions |
+| `Enter` | Expand/drill into selection |
+| `?` | Help |
+| `Esc` | Back / Quit |
 
 ---
 
@@ -596,6 +647,8 @@ Consider periodic archival of old session data.
 - **Multi-machine**: Distributed event bus over network
 - **Agent coordination**: Explicit handoff protocols
 - **Resource limits**: Token budgets, concurrent task limits
+- **Convoys**: Batch work assignments (inspired by Gas Town)
+- **Handoffs**: Structured agent-to-agent task transfers
 
 ---
 
@@ -603,3 +656,30 @@ Consider periodic archival of old session data.
 
 - [km-node-spec](km-node-spec.md) - Data model and storage
 - [Gas Town](https://github.com/steveyegge/gastown) - Multi-agent orchestrator
+- [Kimmi Vault](../../cloudi/specs/active/ADR24-kimmi-vault.md) - Prior art: unified vault architecture for PIM + memory
+- [Cloudi Agent Architecture](../../cloudi/specs/active/ADR25-agent-architecture.md) - Prior art: event-sourced agent model
+
+---
+
+## Relationship to Kimmi Vault (Cloudi)
+
+km is intended to eventually subsume the Kimmi Vault architecture designed in the Cloudi project. Key concepts to incorporate:
+
+| Kimmi Vault Concept | km Equivalent | Status |
+|---------------------|---------------|--------|
+| Markdown vault with frontmatter | Node tree with metadata | ✓ Core model |
+| Entity types (contact, event, task) | Node types | Partial (task done, others planned) |
+| Daily notes as operation log | events.jsonl | ✓ Implemented |
+| Wikilinks and backlinks | Node references | Planned |
+| Chat storage (folder per conversation) | Session events | Designed |
+| Google sync (Contacts, Calendar, Tasks) | Connectors (CalDAV, CardDAV) | Planned |
+| AGENTS.md for agent definition | Harnesses + agent nodes | Designed |
+| Mastra for semantic search | Built-in embeddings | Planned |
+| CRDT for multi-device sync | Event merging | Future |
+
+**Migration path:** As km matures, Kimmi Vault concepts will be implemented natively. The goal is a single unified system that provides:
+
+1. **PKM/PIM** — Notes, tasks, calendar, contacts in one queryable tree
+2. **Agent workspace** — Agents use km as their working memory
+3. **Orchestration** — `km hub` coordinates agent teams
+4. **Kimmi** — The AI assistant with full context on your life
