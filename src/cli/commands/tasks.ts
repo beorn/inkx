@@ -117,6 +117,42 @@ export const tasksCommand = new Command("tasks")
   });
 
 /**
+ * Build a tree structure for tasks grouped by their ancestor paths
+ */
+interface TaskWithAncestors {
+  task: Node;
+  ancestors: Node[];
+  ancestorIds: string[];
+}
+
+function buildTaskTree(tasks: Node[]): TaskWithAncestors[] {
+  return tasks.map((task) => {
+    const ancestors = getAncestors(task.id);
+    return {
+      task,
+      ancestors,
+      ancestorIds: ancestors.map((a) => a.id),
+    };
+  });
+}
+
+/**
+ * Sort tasks so those with shared paths are adjacent
+ */
+function sortByPath(tasksWithAncestors: TaskWithAncestors[]): TaskWithAncestors[] {
+  return tasksWithAncestors.sort((a, b) => {
+    // Compare ancestor paths lexicographically
+    const minLen = Math.min(a.ancestorIds.length, b.ancestorIds.length);
+    for (let i = 0; i < minLen; i++) {
+      if (a.ancestorIds[i] < b.ancestorIds[i]) return -1;
+      if (a.ancestorIds[i] > b.ancestorIds[i]) return 1;
+    }
+    // Shorter paths come first
+    return a.ancestorIds.length - b.ancestorIds.length;
+  });
+}
+
+/**
  * List tasks
  */
 function listAction(options: {
@@ -165,23 +201,53 @@ function listAction(options: {
     return;
   }
 
-  // Display tasks with their hierarchy paths
-  for (let i = 0; i < tasks.length; i++) {
-    const task = tasks[i];
-    const ancestors = getAncestors(task.id);
-    const lines = formatTaskWithPath(task, ancestors, {
-      verbose: options.verbose,
-      flat: options.flat,
-    });
+  // Flat mode: simple single-line display
+  if (options.flat) {
+    for (const task of tasks) {
+      const ancestors = getAncestors(task.id);
+      const lines = formatTaskWithPath(task, ancestors, {
+        verbose: options.verbose,
+        flat: true,
+      });
+      for (const line of lines) {
+        console.log(line);
+      }
+    }
+    console.log();
+    console.log(chalk.dim(`${tasks.length} task(s)`));
+    return;
+  }
 
-    for (const line of lines) {
-      console.log(line);
+  // Tree mode: group tasks by shared paths
+  const tasksWithAncestors = buildTaskTree(tasks);
+  const sorted = sortByPath(tasksWithAncestors);
+
+  const indent = "  ";
+  let previousAncestorIds: string[] = [];
+
+  for (const { task, ancestors, ancestorIds } of sorted) {
+    // Find where current path diverges from previous
+    let divergeIndex = 0;
+    while (
+      divergeIndex < previousAncestorIds.length &&
+      divergeIndex < ancestorIds.length &&
+      previousAncestorIds[divergeIndex] === ancestorIds[divergeIndex]
+    ) {
+      divergeIndex++;
     }
 
-    // Add blank line between tasks (unless flat mode)
-    if (!options.flat && i < tasks.length - 1) {
-      console.log();
+    // Print only the new path elements (from diverge point)
+    for (let i = divergeIndex; i < ancestors.length; i++) {
+      const ancestor = ancestors[i];
+      const prefix = indent.repeat(i);
+      console.log(prefix + chalk.dim(getNodeDisplayName(ancestor)));
     }
+
+    // Print the task at its depth
+    const taskPrefix = indent.repeat(ancestors.length);
+    console.log(taskPrefix + formatTaskLine(task, { verbose: options.verbose }));
+
+    previousAncestorIds = ancestorIds;
   }
 
   console.log();
