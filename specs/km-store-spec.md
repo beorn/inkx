@@ -9,7 +9,9 @@ km operates in two modes depending on whether a `.km/` directory exists:
 | Mode | Trigger | Storage | Persistence | Use Case |
 |------|---------|---------|-------------|----------|
 | **Persisted** | `.km/` exists | SQLite on disk | Yes | Full features, event history |
-| **In-Memory** | No `.km/` found | SQLite `:memory:` | No | Portable viewer, quick access |
+| **In-Memory** | No `.km/` found | SQLite `:memory:` | No | Portable read-write, zero setup |
+
+**Both modes support read-write operations.** In-memory mode writes changes directly to markdown files (e.g., toggling checkboxes), while persisted mode additionally records events for history and sync.
 
 ## Mode Detection
 
@@ -145,55 +147,7 @@ projects/
 - Collapsing applied based on context
 - Formatted with type indicators, colors, indentation
 
----
-
-## Display Layer: Collapsing
-
-Node collapsing transforms km-tree → display-tree by unifying adjacent nodes with matching names.
-
-### When Collapsing Happens
-
-Collapsing is a **display-time transformation**, not stored in km-tree. This keeps the data model clean and allows different views to collapse differently.
-
-```typescript
-// km-tree (stored)
-nodes: [
-  { id: "1", type: "folder", name: "Taxes" },
-  { id: "2", type: "file", name: "Taxes.md", parent_id: "1" },
-  { id: "3", type: "section", content: "# Taxes", parent_id: "2" },
-]
-
-// display-tree (computed at render)
-collapsed: [
-  { node: section, typeSuffix: "/ .md #" }  // represents all three
-]
-```
-
-### Collapsing Modes
-
-Different UIs may collapse differently:
-
-| View | Collapsing | Reason |
-|------|------------|--------|
-| `km tasks` | Full (ancestors) | Show task context compactly |
-| `km board` | Full (children) | Column headers should be concise |
-| `km tree` | None | Debug view, show actual structure |
-| `km tree --raw` | None | Explicit raw mode |
-
-### Collapsing Functions
-
-Two directions, same algorithm:
-
-**Top-down** (`getCollapsedTypeSuffix`): Starting from a node, find children with matching names.
-- Used for: column headers, card titles
-
-**Bottom-up** (`collapseAncestorsWithTypes`): Given an ancestor path, group consecutive matching names.
-- Used for: task context, breadcrumbs
-
-Both use:
-- `normalizeName()` - Normalize for comparison
-- `namesAreSimilar()` - Check if normalized names match
-- `getTypeIndicator()` - Get `/`, `.md`, `#` suffix
+For details on collapsing, views, and formatting, see [km-ui-spec](km-ui-spec.md).
 
 ---
 
@@ -245,6 +199,8 @@ class PersistedStore implements NodeStore {
 
 ### MemoryStore
 
+**Read-write without persistence.** Changes are written directly to markdown files.
+
 ```typescript
 class MemoryStore implements NodeStore {
   readonly mode = "memory";
@@ -286,6 +242,12 @@ class MemoryStore implements NodeStore {
   }
 }
 ```
+
+**Write-through behavior:** When a task's status changes, MemoryStore:
+1. Updates the in-memory SQLite database
+2. Immediately writes the change to the source `.md` file using `fs_path` and `md_line`
+
+This enables full task management (toggling checkboxes, etc.) without requiring `km init`.
 
 ---
 
@@ -421,6 +383,7 @@ The store module re-exports the same functions, dispatching to the active store.
 
 ## See Also
 
-- [km-tree-spec.md](km-tree-spec.md) - Display tree and collapsing
-- [km-node-spec.md](km-node-spec.md) - Node data model (persisted mode)
-- [km-cli-spec.md](km-cli-spec.md) - CLI commands
+- [km-tree-spec.md](km-tree-spec.md) — Tree nomenclature (fs-tree, km-tree, display-tree)
+- [km-ui-spec.md](km-ui-spec.md) — Display layer, views, collapsing
+- [km-node-spec.md](km-node-spec.md) — Node data model (persisted mode)
+- [km-cli-spec.md](km-cli-spec.md) — CLI commands
