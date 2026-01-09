@@ -18,9 +18,15 @@ import type { Node, TaskStatus } from "../../node/types.ts";
 
 /**
  * Get display name for a node (title/content preferred, then filename, then slug)
+ * Includes visual type indicators:
+ * - Folders: suffix /
+ * - Files: suffix .md
+ * - Sections: prefix # (based on heading depth)
  */
-function getNodeDisplayName(node: Node, includeFolderSlash = false): string {
+function getNodeDisplayName(node: Node, includeTypeIndicators = false): string {
   let name: string;
+  let prefix = "";
+  let suffix = "";
 
   // Prefer content (title/heading text) if available
   if (node.content) {
@@ -39,12 +45,20 @@ function getNodeDisplayName(node: Node, includeFolderSlash = false): string {
     name = `(${node.type})`;
   }
 
-  // Add faint / suffix for folders
-  if (includeFolderSlash && node.type === "folder") {
-    name += chalk.gray("/");
+  if (includeTypeIndicators) {
+    // Add type-specific indicators (greyed out)
+    if (node.type === "folder") {
+      suffix = chalk.gray("/");
+    } else if (node.type === "file") {
+      suffix = chalk.gray(".md");
+    } else if (node.type === "section") {
+      // Use heading depth from data, default to 1 if not set
+      const depth = (node.data?.depth as number) ?? 1;
+      prefix = chalk.gray("#".repeat(depth) + " ");
+    }
   }
 
-  return name;
+  return prefix + name + suffix;
 }
 
 /**
