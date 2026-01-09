@@ -4,25 +4,49 @@ Commands and keyboard shortcuts for km.
 
 ---
 
+## Query Argument
+
+Most commands accept an optional `[query]` that specifies a root node:
+
+```bash
+km <command> [query]        # Query can be:
+                            #   - Node ID (full or prefix)
+                            #   - Path pattern (projects/**)
+                            #   - Relative path (./folder)
+```
+
+Examples:
+```bash
+km tasks projects/          # Tasks under projects/
+km tree 01H5X               # Tree from node ID prefix
+km show ./README.md         # Show specific file
+km list                     # List all nodes
+```
+
+---
+
 ## Commands
 
 ### Views
 
 ```bash
-km tasks                    # List all tasks with context
-km tasks --filter 'path/**' # Filter by path pattern
+km tasks [query]            # List tasks with context
 km tasks --status open      # Filter by status
 km tasks --id               # Show node IDs
 
-km board                    # Kanban board (TUI)
-km board <path>             # Board rooted at path
-km board --id               # Show node IDs
-
-km tree                     # Show actual structure
+km tree [query]             # Show structure from root
 km tree --collapsed         # With collapsing
 km tree --id                # Show node IDs
 
-km show <id>                # Show node details
+km list [query]             # List nodes (alias: ls)
+km ls [query]               # Short form
+km ls --type task           # Filter by type
+km ls --id                  # Show node IDs
+
+km show <query>             # Show node details
+
+km board [query]            # Kanban board (TUI)
+km board --id               # Show node IDs
 ```
 
 ### Actions
@@ -37,6 +61,7 @@ km init                     # Create .km/ for persistence
 ```bash
 km tasks --json             # JSON output
 km tasks --ids              # IDs only (for scripting)
+km ls --json                # Works on all views
 ```
 
 ---
@@ -44,8 +69,8 @@ km tasks --ids              # IDs only (for scripting)
 ## Filters
 
 ```bash
-# Path patterns
-km tasks --filter 'projects/**'
+# Path patterns (in query or --filter)
+km tasks 'projects/**'
 km tasks --filter '*.md'
 
 # Status
@@ -53,8 +78,13 @@ km tasks --status open
 km tasks --status done
 km tasks --status in_progress
 
+# Type (for list/ls)
+km ls --type task
+km ls --type section
+km ls --type file
+
 # Combined
-km tasks --filter 'work/**' --status open
+km tasks 'work/**' --status open
 ```
 
 ---
@@ -144,6 +174,9 @@ eval "$(km completions zsh)"
 
 # Quick done
 km toggle $(km tasks --ids | fzf)
+
+# List and select
+km show $(km ls --ids | fzf)
 ```
 
 ---
