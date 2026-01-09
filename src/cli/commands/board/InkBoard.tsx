@@ -56,13 +56,9 @@ function OutlineItem({ node, depth, maxDepth, width, foldedNodes, onToggleFold, 
   let backgroundColor: string | undefined;
   let textColor: string | undefined;
   if (isItemSelected) {
-    // This specific sub-item is selected
+    // This specific item is selected (blue highlight)
     backgroundColor = "blue";
     textColor = "white";
-  } else if (isCardSelected && depth === 0) {
-    // Card is selected but we're at root level (card header)
-    backgroundColor = "cyan";
-    textColor = "black";
   }
 
   // Track index for children
@@ -133,12 +129,17 @@ interface CardProps {
 
 function Card({ card, isSelected, selectedSubIndex, width, maxOutlineDepth, foldedNodes, onToggleFold }: CardProps) {
   return (
-    <Box flexDirection="column" marginBottom={1}>
+    <Box
+      flexDirection="column"
+      marginBottom={1}
+      borderStyle={isSelected ? "round" : undefined}
+      borderColor={isSelected ? "cyan" : undefined}
+    >
       <OutlineItem
         node={card.node}
         depth={0}
         maxDepth={maxOutlineDepth}
-        width={width}
+        width={isSelected ? width - 2 : width}
         foldedNodes={foldedNodes}
         onToggleFold={onToggleFold}
         isCardSelected={isSelected}
@@ -154,6 +155,7 @@ interface ColumnProps {
   column: ColumnState;
   isSelected: boolean;
   selectedCardIndex: number;
+  selectedSubIndex: number;  // Which sub-item within the selected card (0 = card header)
   width: number;
   height: number;
   maxOutlineDepth: number;
@@ -161,7 +163,7 @@ interface ColumnProps {
   onToggleFold: (id: string) => void;
 }
 
-function Column({ column, isSelected, selectedCardIndex, width, height, maxOutlineDepth, foldedNodes, onToggleFold }: ColumnProps) {
+function Column({ column, isSelected, selectedCardIndex, selectedSubIndex, width, height, maxOutlineDepth, foldedNodes, onToggleFold }: ColumnProps) {
   const name = getNodeDisplayName(column.node);
   const count = column.cards.length;
   const maxCards = Math.max(1, Math.floor(height / 3)); // Estimate cards visible
@@ -179,17 +181,21 @@ function Column({ column, isSelected, selectedCardIndex, width, height, maxOutli
         {` ${name.slice(0, width - 8)} (${count}) `.slice(0, width - 2)}
       </Text>
       <Box flexDirection="column" paddingX={1}>
-        {visibleCards.map((card, i) => (
-          <Card
-            key={card.node.id}
-            card={card}
-            isSelected={isSelected && (scrollOffset + i) === selectedCardIndex}
-            width={width - 4}
-            maxOutlineDepth={maxOutlineDepth}
-            foldedNodes={foldedNodes}
-            onToggleFold={onToggleFold}
-          />
-        ))}
+        {visibleCards.map((card, i) => {
+          const cardIsSelected = isSelected && (scrollOffset + i) === selectedCardIndex;
+          return (
+            <Card
+              key={card.node.id}
+              card={card}
+              isSelected={cardIsSelected}
+              selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
+              width={width - 4}
+              maxOutlineDepth={maxOutlineDepth}
+              foldedNodes={foldedNodes}
+              onToggleFold={onToggleFold}
+            />
+          );
+        })}
         {column.cards.length === 0 && <Text dimColor>(empty)</Text>}
       </Box>
       {column.cards.length > maxCards && (
@@ -215,6 +221,7 @@ function Board({ initialState }: BoardProps) {
   const [termHeight, setTermHeight] = useState(stdout?.rows || 24);
   const [foldedNodes, setFoldedNodes] = useState<Set<string>>(new Set());
   const [maxOutlineDepth, setMaxOutlineDepth] = useState(2); // Default 2 levels
+  const [subIndex, setSubIndex] = useState(0); // Sub-item index within selected card (0 = card header)
 
   useEffect(() => {
     const handler = () => {
@@ -249,6 +256,14 @@ function Board({ initialState }: BoardProps) {
     });
   };
 
+  // Calculate max sub-items in current card
+  const getMaxSubIndex = () => {
+    const col = state.columns[state.colIndex];
+    const card = col?.cards[state.cardIndex];
+    if (!card) return 0;
+    return 1 + countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes);
+  };
+
   useInput((input, key) => {
     const col = state.columns[state.colIndex];
     const card = col?.cards[state.cardIndex];
@@ -259,7 +274,14 @@ function Board({ initialState }: BoardProps) {
       return;
     }
 
-    if (key.escape) {
+    // Go to parent: Escape or 'u'
+    if (key.escape || input === "u") {
+      // If in a sub-item, go back to card header
+      if (subIndex > 0) {
+        setSubIndex(0);
+        return;
+      }
+      // If zoomed in, go back to parent board
       if (state.zoomStack.length > 0) {
         const parentId = state.zoomStack[state.zoomStack.length - 1];
         if (parentId) {
@@ -269,6 +291,7 @@ function Board({ initialState }: BoardProps) {
           return;
         }
       }
+      // At root with no sub-item selected, quit
       exit();
       return;
     }
@@ -317,37 +340,76 @@ function Board({ initialState }: BoardProps) {
       return;
     }
 
+    // Vertical navigation - move through sub-items first, then cards
+    if (input === "j" || key.downArrow) {
+      const maxSub = getMaxSubIndex();
+      if (subIndex < maxSub - 1) {
+        // Move to next sub-item
+        setSubIndex(subIndex + 1);
+      } else {
+        // Move to next card
+        const currentCol = state.columns[state.colIndex];
+        const nextCardIndex = Math.min((currentCol?.cards.length || 1) - 1, state.cardIndex + 1);
+        if (nextCardIndex !== state.cardIndex) {
+          setState((s) => ({ ...s, cardIndex: nextCardIndex }));
+          setSubIndex(0);
+        }
+      }
+      return;
+    }
+
+    if (input === "k" || key.upArrow) {
+      if (subIndex > 0) {
+        // Move to previous sub-item
+        setSubIndex(subIndex - 1);
+      } else {
+        // Move to previous card (and its last sub-item)
+        const prevCardIndex = Math.max(0, state.cardIndex - 1);
+        if (prevCardIndex !== state.cardIndex) {
+          setState((s) => ({ ...s, cardIndex: prevCardIndex }));
+          // Calculate max sub-index for previous card
+          const prevCard = state.columns[state.colIndex]?.cards[prevCardIndex];
+          if (prevCard) {
+            const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, maxOutlineDepth, foldedNodes);
+            setSubIndex(maxSub - 1);
+          }
+        }
+      }
+      return;
+    }
+
     setState((s) => {
       const newState = { ...s };
-      const currentCol = s.columns[s.colIndex];
 
-      // Navigation
+      // Horizontal navigation - reset sub-index when changing columns
       if (input === "h" || key.leftArrow) {
         newState.colIndex = Math.max(0, s.colIndex - 1);
         newState.cardIndex = Math.min(
           s.cardIndex,
           Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1)
         );
+        setSubIndex(0);
       } else if (input === "l" || key.rightArrow) {
         newState.colIndex = Math.min(s.columns.length - 1, s.colIndex + 1);
         newState.cardIndex = Math.min(
           s.cardIndex,
           Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1)
         );
-      } else if (input === "j" || key.downArrow) {
-        newState.cardIndex = Math.min((currentCol?.cards.length || 1) - 1, s.cardIndex + 1);
-      } else if (input === "k" || key.upArrow) {
-        newState.cardIndex = Math.max(0, s.cardIndex - 1);
+        setSubIndex(0);
       } else if (input === "g") {
         newState.cardIndex = 0;
+        setSubIndex(0);
       } else if (input === "G") {
+        const currentCol = s.columns[s.colIndex];
         newState.cardIndex = Math.max(0, (currentCol?.cards.length || 1) - 1);
+        setSubIndex(0);
       }
 
       // Zoom in
       if (key.return && card && card.children.length > 0) {
         const zoomed = buildBoardState(card.node.id);
         zoomed.zoomStack = [...s.zoomStack, s.rootId || ""];
+        setSubIndex(0);
         return zoomed;
       }
 
@@ -379,6 +441,7 @@ function Board({ initialState }: BoardProps) {
             column={col}
             isSelected={(colScrollOffset + i) === state.colIndex}
             selectedCardIndex={state.cardIndex}
+            selectedSubIndex={subIndex}
             width={colWidth}
             height={termHeight - 4}
             maxOutlineDepth={maxOutlineDepth}
@@ -388,7 +451,7 @@ function Board({ initialState }: BoardProps) {
         ))}
       </Box>
       <Text dimColor>
-        h/l:cols  j/k:cards  Tab:fold  +/-:depth({maxOutlineDepth})  z/Z:fold/unfold all  Enter:zoom  q:quit
+        h/l:cols  j/k:items  Enter:zoom  Esc/u:parent  Tab:fold  +/-:depth({maxOutlineDepth})  z/Z:fold all  q:quit
       </Text>
     </Box>
   );
