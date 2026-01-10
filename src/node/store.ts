@@ -13,6 +13,7 @@ import { Database } from "bun:sqlite";
 import { existsSync, readdirSync, statSync, readFileSync } from "fs";
 import { join, dirname, basename, relative } from "path";
 import type { Node, NodeType, TaskStatus } from "./types.ts";
+import { setKmDir } from "./emit.ts";
 
 /**
  * NodeStore interface - unified access to node storage
@@ -626,6 +627,8 @@ export function initStore(
     : findKmDirectoryExact(path);
 
   if (kmPath) {
+    // Update global kmDir so getKmDir() returns the correct path
+    setKmDir(kmPath);
     storeInstance = new DiskStore(kmPath);
   } else {
     storeInstance = new MemoryStore(path);

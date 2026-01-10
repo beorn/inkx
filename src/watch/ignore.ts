@@ -46,6 +46,9 @@ export const DEFAULT_IGNORE_PATTERNS = [
   // km internals
   "**/.km/**",
 
+  // beads issue tracker (contains sockets)
+  "**/.beads/**",
+
   // OS files
   "**/.DS_Store",
   "**/Thumbs.db",
@@ -58,6 +61,9 @@ export const DEFAULT_IGNORE_PATTERNS = [
   "**/*.bak",
   "**/npm-debug.log*",
   "**/yarn-error.log*",
+
+  // Socket files (can't be watched)
+  "**/*.sock",
 
   // Cache directories
   "**/.cache/**",
