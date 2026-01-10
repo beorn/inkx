@@ -952,21 +952,50 @@ function Board({ initialState }: BoardProps) {
     setState((s) => {
       const newState = { ...s };
 
+      // Helper to find card with closest relative position
+      // Uses fractional position (0-1) to find best match regardless of column length
+      const findClosestCard = (
+        targetColIndex: number,
+        currentCardIndex: number,
+        currentColLength: number,
+      ): number => {
+        const targetCol = s.columns[targetColIndex];
+        if (!targetCol || targetCol.cards.length === 0) return 0;
+
+        // Calculate relative position (0-1) of current card in its column
+        const relativePos =
+          currentColLength <= 1
+            ? 0.5
+            : currentCardIndex / (currentColLength - 1);
+
+        // Find card at equivalent relative position in target column
+        const targetIndex = Math.round(
+          relativePos * (targetCol.cards.length - 1),
+        );
+        return Math.max(0, Math.min(targetCol.cards.length - 1, targetIndex));
+      };
+
       // Horizontal navigation - exit outline mode and clear selection when changing columns
       if (input === "h" || key.leftArrow) {
-        newState.colIndex = Math.max(0, s.colIndex - 1);
-        newState.cardIndex = Math.min(
+        const newColIndex = Math.max(0, s.colIndex - 1);
+        const currentCol = s.columns[s.colIndex];
+        newState.colIndex = newColIndex;
+        newState.cardIndex = findClosestCard(
+          newColIndex,
           s.cardIndex,
-          Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1),
+          currentCol?.cards.length || 0,
         );
         setInOutlineMode(false);
         setSubIndex(0);
         clearSelection();
       } else if (input === "l" || key.rightArrow) {
-        newState.colIndex = Math.min(s.columns.length - 1, s.colIndex + 1);
-        newState.cardIndex = Math.min(
+        const newColIndex = Math.min(s.columns.length - 1, s.colIndex + 1);
+        const currentCol = s.columns[s.colIndex];
+        newState.colIndex = newColIndex;
+        newState.cardIndex = findClosestCard(
+          newColIndex,
           s.cardIndex,
-          Math.max(0, (s.columns[newState.colIndex]?.cards.length || 1) - 1),
+          currentCol?.cards.length || 0,
         );
         setInOutlineMode(false);
         setSubIndex(0);
