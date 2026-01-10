@@ -202,7 +202,9 @@ function formatLink(link: Link): string {
   if (link.target_id) {
     const targetNode = getNode(link.target_id);
     if (targetNode) {
-      parts.push(chalk.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`));
+      parts.push(
+        chalk.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`),
+      );
     }
   } else {
     parts.push(chalk.yellow("(unresolved)"));

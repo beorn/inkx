@@ -7,12 +7,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "fs";
 import { join } from "path";
-import {
-  initStore,
-  closeStore,
-  MemoryStore,
-  DiskStore,
-} from "../src/store.ts";
+import { initStore, closeStore, MemoryStore, DiskStore } from "../src/store.ts";
 
 const TEST_DIR = join(import.meta.dir, ".test-store");
 

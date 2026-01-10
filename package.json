@@ -4,7 +4,10 @@
   "description": "Knowledge Machine - The agentic work desk",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "bin": {
     "km": "./apps/km-cli/src/index.ts"
   },

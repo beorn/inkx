@@ -10,13 +10,7 @@ import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
 import { setKmDir, clearDatabase } from "@km/core";
-import {
-  getDb,
-  closeDb,
-  resetDb,
-  getNode,
-  getTasksByStatus,
-} from "@km/store";
+import { getDb, closeDb, resetDb, getNode, getTasksByStatus } from "@km/store";
 import type { Node, TaskStatus } from "@km/core";
 
 // Test directory

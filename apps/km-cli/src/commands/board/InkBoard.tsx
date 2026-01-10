@@ -10,10 +10,7 @@ import { buildBoardState, initBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "@km/core";
 import { getChildren, getNode, getDb, isMemoryMode } from "@km/store";
 import { emit } from "@km/core";
-import {
-  getNodeDisplayName,
-  getCollapsedTypeSuffix,
-} from "@km/shared";
+import { getNodeDisplayName, getCollapsedTypeSuffix } from "@km/shared";
 
 // Build path from root to a given node as file path with # for sections
 function getNodePath(nodeId: string | null): string {
@@ -513,7 +510,8 @@ function Board({ initialState }: BoardProps) {
     if (!col) return;
 
     const currentIndex = state.cardIndex;
-    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const targetIndex =
+      direction === "up" ? currentIndex - 1 : currentIndex + 1;
 
     if (targetIndex < 0 || targetIndex >= col.cards.length) return;
 
@@ -523,7 +521,11 @@ function Board({ initialState }: BoardProps) {
       const c = col.cards[cardIndex];
       // If all cards have parent_idx 0, use index as fallback
       // Otherwise use the actual parent_idx
-      return c ? (c.node.parent_idx === 0 ? cardIndex : c.node.parent_idx) : cardIndex;
+      return c
+        ? c.node.parent_idx === 0
+          ? cardIndex
+          : c.node.parent_idx
+        : cardIndex;
     };
 
     let newSortOrder: number;
@@ -592,7 +594,8 @@ function Board({ initialState }: BoardProps) {
 
   // Move card to different column (left/right)
   const moveCardToColumn = (card: CardState, direction: "left" | "right") => {
-    const targetColIndex = direction === "left" ? state.colIndex - 1 : state.colIndex + 1;
+    const targetColIndex =
+      direction === "left" ? state.colIndex - 1 : state.colIndex + 1;
     if (targetColIndex < 0 || targetColIndex >= state.columns.length) return;
 
     const targetCol = state.columns[targetColIndex];
@@ -640,7 +643,10 @@ function Board({ initialState }: BoardProps) {
         newState.zoomStack = state.zoomStack;
         newState.rootPath = state.rootPath;
         newState.colIndex = targetColIndex;
-        newState.cardIndex = Math.min(newCardIndex, newState.columns[targetColIndex]?.cards.length || 0);
+        newState.cardIndex = Math.min(
+          newCardIndex,
+          newState.columns[targetColIndex]?.cards.length || 0,
+        );
         setState(newState);
       }
     }, 50);
@@ -793,7 +799,7 @@ function Board({ initialState }: BoardProps) {
 
     // Shift+J/K or Shift+Down/Up for range selection
     // Works in both outline mode (sub-item selection) and card mode (card selection)
-    if ((input === "J" || (key.shift && key.downArrow))) {
+    if (input === "J" || (key.shift && key.downArrow)) {
       if (inOutlineMode) {
         // Start or extend selection downward within card
         if (!selectionAnchor) {
@@ -829,10 +835,19 @@ function Board({ initialState }: BoardProps) {
           // Select current card fully
           const currentCard = col?.cards[state.cardIndex];
           if (currentCard) {
-            const maxItems = 1 + countVisibleDescendants(currentCard.node, 0, maxOutlineDepth, foldedNodes);
+            const maxItems =
+              1 +
+              countVisibleDescendants(
+                currentCard.node,
+                0,
+                maxOutlineDepth,
+                foldedNodes,
+              );
             const newSelected = new Set<SelectionKey>();
             for (let s = 0; s < maxItems; s++) {
-              newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, s));
+              newSelected.add(
+                makeSelectionKey(state.colIndex, state.cardIndex, s),
+              );
             }
             setMultiSelected(newSelected);
           }
@@ -846,7 +861,7 @@ function Board({ initialState }: BoardProps) {
       }
       return;
     }
-    if ((input === "K" || (key.shift && key.upArrow))) {
+    if (input === "K" || (key.shift && key.upArrow)) {
       if (inOutlineMode) {
         // Start or extend selection upward within card
         if (!selectionAnchor) {
@@ -866,7 +881,14 @@ function Board({ initialState }: BoardProps) {
             const newCardIndex = state.cardIndex - 1;
             const prevCard = state.columns[state.colIndex]?.cards[newCardIndex];
             if (prevCard) {
-              const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, maxOutlineDepth, foldedNodes);
+              const maxSub =
+                1 +
+                countVisibleDescendants(
+                  prevCard.node,
+                  0,
+                  maxOutlineDepth,
+                  foldedNodes,
+                );
               setState((s) => ({ ...s, cardIndex: newCardIndex }));
               setSubIndex(maxSub - 1);
               updateSelectionRange(state.colIndex, newCardIndex, maxSub - 1);
@@ -884,10 +906,19 @@ function Board({ initialState }: BoardProps) {
           // Select current card fully
           const currentCard = col?.cards[state.cardIndex];
           if (currentCard) {
-            const maxItems = 1 + countVisibleDescendants(currentCard.node, 0, maxOutlineDepth, foldedNodes);
+            const maxItems =
+              1 +
+              countVisibleDescendants(
+                currentCard.node,
+                0,
+                maxOutlineDepth,
+                foldedNodes,
+              );
             const newSelected = new Set<SelectionKey>();
             for (let s = 0; s < maxItems; s++) {
-              newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, s));
+              newSelected.add(
+                makeSelectionKey(state.colIndex, state.cardIndex, s),
+              );
             }
             setMultiSelected(newSelected);
           }
@@ -902,7 +933,7 @@ function Board({ initialState }: BoardProps) {
     }
 
     // Shift+H/L or Shift+Left/Right for horizontal range selection (across columns)
-    if ((input === "H" || (key.shift && key.leftArrow))) {
+    if (input === "H" || (key.shift && key.leftArrow)) {
       // Currently H is used for moving cards. For now, Shift+Left extends selection.
       // In the future, could remap card movement to Alt+H/L
       if (state.colIndex > 0) {
@@ -917,14 +948,17 @@ function Board({ initialState }: BoardProps) {
         setState((s) => ({
           ...s,
           colIndex: newColIndex,
-          cardIndex: Math.min(s.cardIndex, Math.max(0, (s.columns[newColIndex]?.cards.length || 1) - 1)),
+          cardIndex: Math.min(
+            s.cardIndex,
+            Math.max(0, (s.columns[newColIndex]?.cards.length || 1) - 1),
+          ),
         }));
         // For cross-column selection, we just track that multiple columns are involved
         // Full implementation would require more complex selection model
       }
       return;
     }
-    if ((input === "L" || (key.shift && key.rightArrow))) {
+    if (input === "L" || (key.shift && key.rightArrow)) {
       if (state.colIndex < state.columns.length - 1) {
         if (!selectionAnchor) {
           setSelectionAnchor({
@@ -937,7 +971,10 @@ function Board({ initialState }: BoardProps) {
         setState((s) => ({
           ...s,
           colIndex: newColIndex,
-          cardIndex: Math.min(s.cardIndex, Math.max(0, (s.columns[newColIndex]?.cards.length || 1) - 1)),
+          cardIndex: Math.min(
+            s.cardIndex,
+            Math.max(0, (s.columns[newColIndex]?.cards.length || 1) - 1),
+          ),
         }));
       }
       return;
@@ -1140,7 +1177,7 @@ function Board({ initialState }: BoardProps) {
 }
 
 export function renderInkBoard(state: BoardState): void {
-  withFullScreen(<Board initialState={state} />, {
+  void withFullScreen(<Board initialState={state} />, {
     exitOnCtrlC: true,
     patchConsole: true,
   }).start();

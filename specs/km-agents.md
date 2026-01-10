@@ -609,6 +609,7 @@ km hub message <target-agent> "Hello"
 ```
 
 **Features:**
+
 - Real-time agent status (active, idle, error)
 - Work queue with priorities and assignments
 - Live event stream
@@ -678,17 +679,17 @@ Consider periodic archival of old session data.
 
 km is intended to eventually subsume the Kimmi Vault architecture designed in the Cloudi project. Key concepts to incorporate:
 
-| Kimmi Vault Concept | km Equivalent | Status |
-|---------------------|---------------|--------|
-| Markdown vault with frontmatter | Node tree with metadata | ✓ Core model |
-| Entity types (contact, event, task) | Node types | Partial (task done, others planned) |
-| Daily notes as operation log | events.jsonl | ✓ Implemented |
-| Wikilinks and backlinks | Node references | Planned |
-| Chat storage (folder per conversation) | Session events | Designed |
-| Google sync (Contacts, Calendar, Tasks) | Connectors (CalDAV, CardDAV) | Planned |
-| AGENTS.md for agent definition | Harnesses + agent nodes | Designed |
-| Mastra for semantic search | Built-in embeddings | Planned |
-| CRDT for multi-device sync | Event merging | Future |
+| Kimmi Vault Concept                     | km Equivalent                | Status                              |
+| --------------------------------------- | ---------------------------- | ----------------------------------- |
+| Markdown vault with frontmatter         | Node tree with metadata      | ✓ Core model                        |
+| Entity types (contact, event, task)     | Node types                   | Partial (task done, others planned) |
+| Daily notes as operation log            | events.jsonl                 | ✓ Implemented                       |
+| Wikilinks and backlinks                 | Node references              | Planned                             |
+| Chat storage (folder per conversation)  | Session events               | Designed                            |
+| Google sync (Contacts, Calendar, Tasks) | Connectors (CalDAV, CardDAV) | Planned                             |
+| AGENTS.md for agent definition          | Harnesses + agent nodes      | Designed                            |
+| Mastra for semantic search              | Built-in embeddings          | Planned                             |
+| CRDT for multi-device sync              | Event merging                | Future                              |
 
 **Migration path:** As km matures, Kimmi Vault concepts will be implemented natively. The goal is a single unified system that provides:
 

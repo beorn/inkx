@@ -22,13 +22,7 @@ import {
   handleKey,
   getCurrentCard,
 } from "../src/commands/board/state.ts";
-import {
-  resetDb,
-  closeDb,
-  getNode,
-  applyEvent,
-  setDb,
-} from "@km/store";
+import { resetDb, closeDb, getNode, applyEvent, setDb } from "@km/store";
 import {
   emitNodeCreated,
   setKmDir,
@@ -47,7 +41,7 @@ function createTestNode(
   type: NodeType,
   content?: string,
   parentId?: string | null,
-  extra?: Record<string, unknown>
+  extra?: Record<string, unknown>,
 ): string {
   const id = ulid();
   emitNodeCreated("test-user", {
@@ -412,17 +406,17 @@ describe("Board Move - In-Memory Mode", () => {
     localDb.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
        VALUES (?, 'board', null, 0, 'Board', '{}', ?, ?, '')`,
-      [rootId, now, now]
+      [rootId, now, now],
     );
     localDb.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
        VALUES (?, 'folder', ?, 0, 'Column', '{}', ?, ?, '')`,
-      [col1Id, rootId, now, now]
+      [col1Id, rootId, now, now],
     );
     localDb.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
        VALUES (?, 'task', ?, 0, 'Test Card', '{}', ?, ?, '')`,
-      [cardId, col1Id, now, now]
+      [cardId, col1Id, now, now],
     );
 
     const state = buildBoardState(rootId);
@@ -432,7 +426,7 @@ describe("Board Move - In-Memory Mode", () => {
         initialState: state,
         testWidth: 80,
         testHeight: 24,
-      })
+      }),
     );
 
     const frame = lastFrame() ?? "";
@@ -452,22 +446,22 @@ describe("Board Move - In-Memory Mode", () => {
     localDb.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
        VALUES (?, 'board', null, 0, 'Board', '{}', ?, ?, '')`,
-      [rootId, now, now]
+      [rootId, now, now],
     );
     localDb.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
        VALUES (?, 'folder', ?, 0, 'Source', '{}', ?, ?, '')`,
-      [col1Id, rootId, now, now]
+      [col1Id, rootId, now, now],
     );
     localDb.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
        VALUES (?, 'folder', ?, 1, 'Target', '{}', ?, ?, '')`,
-      [col2Id, rootId, now, now]
+      [col2Id, rootId, now, now],
     );
     localDb.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
        VALUES (?, 'task', ?, 0, 'Moving Card', '{}', ?, ?, '')`,
-      [cardId, col1Id, now, now]
+      [cardId, col1Id, now, now],
     );
 
     // Build initial state

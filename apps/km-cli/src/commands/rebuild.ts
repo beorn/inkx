@@ -6,12 +6,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import {
-  rebuildState,
-  fullReset,
-  syncState,
-  freshStart,
-} from "@km/store";
+import { rebuildState, fullReset, syncState, freshStart } from "@km/store";
 import { getDbPath, getLastEventId } from "@km/store";
 import { getEventsPath } from "@km/core";
 import { existsSync, statSync } from "fs";

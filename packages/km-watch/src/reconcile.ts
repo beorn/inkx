@@ -213,7 +213,11 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
   } else if (op.path.endsWith(".md")) {
     // Parse markdown file and create nodes with wikilinks
     const content = readFileSync(op.path, "utf-8");
-    const { nodes, wikilinks } = parseMarkdownWithLinks(content, op.path, op.ino);
+    const { nodes, wikilinks } = parseMarkdownWithLinks(
+      content,
+      op.path,
+      op.ino,
+    );
 
     // Set parent for file node
     const fileNode = nodes[0];
@@ -338,11 +342,12 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
   for (const change of changes) {
     switch (change.type) {
       case "created":
-        if (change.node)
+        if (change.node) {
           emitNodeCreated(
             "fs-watch",
             change.node as unknown as Record<string, unknown>,
           );
+        }
         break;
       case "updated":
         if (change.nodeId && change.changes) {

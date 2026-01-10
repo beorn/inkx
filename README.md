@@ -36,7 +36,7 @@ A shared workspace for you and your agents — with full history.
 
 ## Phases
 
-### Phase 1: The Tree *(now)*
+### Phase 1: The Tree _(now)_
 
 Your markdown becomes a knowledge base. Notes, tasks, calendar — all nodes in one tree.
 
@@ -51,6 +51,7 @@ km show <id>          # Node details
 ```
 
 Features:
+
 - **PKM + PIM** — notes, tasks, calendar, contacts in one tree
 - **Bidirectional links** — wikilinks and backlinks
 - **Event-sourced** — every change logged, undo anything
@@ -102,6 +103,7 @@ km/
 ```
 
 **Dependency Graph:**
+
 ```
 @km/core ──────────────────────────────┐
     │                                  │
