@@ -9,6 +9,7 @@ import type { BoardState, CardState, ColumnState } from "./types.ts";
 import { buildBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "../../../node/types.ts";
 import { getChildren, getNode } from "../../../node/db.ts";
+import { emit } from "../../../node/emit.ts";
 import {
   getNodeDisplayName,
   getCollapsedTypeSuffix,
@@ -406,6 +407,7 @@ function Board({ initialState }: BoardProps) {
     card: number;
     sub: number;
   } | null>(null);
+  const [moveMode, setMoveMode] = useState(false); // Whether in move mode (m prefix)
 
   // Listen for terminal resize
   useEffect(() => {
@@ -505,14 +507,156 @@ function Board({ initialState }: BoardProps) {
     setSelectionAnchor(null);
   };
 
+  // Move card within column (up/down)
+  const moveCardInColumn = (card: CardState, direction: "up" | "down") => {
+    const col = state.columns[state.colIndex];
+    if (!col) return;
+
+    const currentIndex = state.cardIndex;
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+    if (targetIndex < 0 || targetIndex >= col.cards.length) return;
+
+    // Calculate new sort order
+    let newSortOrder: number;
+    if (direction === "up") {
+      if (targetIndex === 0) {
+        const first = col.cards[0];
+        newSortOrder = first ? first.node.sort_order - 1 : 0;
+      } else {
+        const prev = col.cards[targetIndex - 1];
+        const target = col.cards[targetIndex];
+        newSortOrder = prev && target ? (prev.node.sort_order + target.node.sort_order) / 2 : 0;
+      }
+    } else {
+      if (targetIndex >= col.cards.length - 1) {
+        const last = col.cards[col.cards.length - 1];
+        newSortOrder = last ? last.node.sort_order + 1 : 0;
+      } else {
+        const target = col.cards[targetIndex];
+        const next = col.cards[targetIndex + 1];
+        newSortOrder = target && next ? (target.node.sort_order + next.node.sort_order) / 2 : 0;
+      }
+    }
+
+    emit({
+      type: "node_moved",
+      actor: "user",
+      target: card.node.id,
+      data: {
+        parent_id: col.node.id,
+        sort_order: newSortOrder,
+      },
+    });
+
+    // Update local state
+    setState((s) => ({ ...s, cardIndex: targetIndex }));
+
+    // Rebuild board state to reflect changes
+    setTimeout(() => {
+      if (state.rootId) {
+        const newState = buildBoardState(state.rootId);
+        newState.zoomStack = state.zoomStack;
+        newState.colIndex = state.colIndex;
+        newState.cardIndex = targetIndex;
+        setState(newState);
+      }
+    }, 50);
+  };
+
+  // Move card to different column (left/right)
+  const moveCardToColumn = (card: CardState, direction: "left" | "right") => {
+    const targetColIndex = direction === "left" ? state.colIndex - 1 : state.colIndex + 1;
+    if (targetColIndex < 0 || targetColIndex >= state.columns.length) return;
+
+    const targetCol = state.columns[targetColIndex];
+    if (!targetCol) return;
+
+    // Calculate sort order (add at end of target column)
+    const lastCard = targetCol.cards[targetCol.cards.length - 1];
+    const newSortOrder = lastCard ? lastCard.node.sort_order + 1 : 0;
+
+    emit({
+      type: "node_moved",
+      actor: "user",
+      target: card.node.id,
+      data: {
+        parent_id: targetCol.node.id,
+        sort_order: newSortOrder,
+      },
+    });
+
+    // Update local state
+    setState((s) => ({
+      ...s,
+      colIndex: targetColIndex,
+      cardIndex: targetCol.cards.length, // Will be at end
+    }));
+
+    // Rebuild board state
+    setTimeout(() => {
+      if (state.rootId) {
+        const newState = buildBoardState(state.rootId);
+        newState.zoomStack = state.zoomStack;
+        newState.colIndex = targetColIndex;
+        newState.cardIndex = Math.min(targetCol.cards.length, newState.columns[targetColIndex]?.cards.length || 0);
+        setState(newState);
+      }
+    }, 50);
+  };
+
   useInput((input, key) => {
     const col = state.columns[state.colIndex];
     const card = col?.cards[state.cardIndex];
 
     // Quit
-    if (input === "q") {
+    if (input === "q" && !moveMode) {
       exit();
       return;
+    }
+
+    // Cancel move mode with Escape or q
+    if (moveMode && (key.escape || input === "q")) {
+      setMoveMode(false);
+      return;
+    }
+
+    // Enter move mode with 'm'
+    if (input === "m" && !moveMode) {
+      setMoveMode(true);
+      return;
+    }
+
+    // Move mode operations: m+hjkl
+    if (moveMode && card) {
+      if (input === "k" || input === "j" || input === "h" || input === "l") {
+        if (input === "k") moveCardInColumn(card, "up");
+        else if (input === "j") moveCardInColumn(card, "down");
+        else if (input === "h") moveCardToColumn(card, "left");
+        else if (input === "l") moveCardToColumn(card, "right");
+        setMoveMode(false);
+        return;
+      }
+    }
+
+    // Alt+Arrow for move (direct, without move mode prefix)
+    if (key.meta && card) {
+      if (key.upArrow) {
+        moveCardInColumn(card, "up");
+        return;
+      }
+      if (key.downArrow) {
+        moveCardInColumn(card, "down");
+        return;
+      }
+      if (key.leftArrow) {
+        moveCardToColumn(card, "left");
+        return;
+      }
+      if (key.rightArrow) {
+        moveCardToColumn(card, "right");
+        return;
+      }
     }
 
     // Go to parent: Escape or 'u'
@@ -891,6 +1035,7 @@ function Board({ initialState }: BoardProps) {
       </Box>
       <Text>
         <Text>{selectedPath} </Text>
+        {moveMode && <Text color="magenta">{`[MOVE] `}</Text>}
         {inOutlineMode && <Text color="cyan">{`[OUTLINE] `}</Text>}
         {multiSelected.size > 0 && (
           <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
