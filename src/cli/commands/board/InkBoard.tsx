@@ -587,37 +587,154 @@ function Board({ initialState }: BoardProps) {
       return;
     }
 
-    // Shift+J/K for multi-selection (vim style: capital letters)
-    if (input === "J" && inOutlineMode) {
-      // Start or extend selection downward
-      if (!selectionAnchor) {
-        setSelectionAnchor({
-          col: state.colIndex,
-          card: state.cardIndex,
-          sub: subIndex,
-        });
-      }
-      const maxSub = getMaxSubIndex();
-      if (subIndex < maxSub - 1) {
-        const newSubIndex = subIndex + 1;
-        setSubIndex(newSubIndex);
-        updateSelectionRange(state.colIndex, state.cardIndex, newSubIndex);
+    // Shift+J/K or Shift+Down/Up for range selection
+    // Works in both outline mode (sub-item selection) and card mode (card selection)
+    if ((input === "J" || (key.shift && key.downArrow))) {
+      if (inOutlineMode) {
+        // Start or extend selection downward within card
+        if (!selectionAnchor) {
+          setSelectionAnchor({
+            col: state.colIndex,
+            card: state.cardIndex,
+            sub: subIndex,
+          });
+        }
+        const maxSub = getMaxSubIndex();
+        if (subIndex < maxSub - 1) {
+          const newSubIndex = subIndex + 1;
+          setSubIndex(newSubIndex);
+          updateSelectionRange(state.colIndex, state.cardIndex, newSubIndex);
+        } else {
+          // At end of card, extend selection to next card
+          const currentCol = state.columns[state.colIndex];
+          if (currentCol && state.cardIndex < currentCol.cards.length - 1) {
+            const newCardIndex = state.cardIndex + 1;
+            setState((s) => ({ ...s, cardIndex: newCardIndex }));
+            setSubIndex(0);
+            updateSelectionRange(state.colIndex, newCardIndex, 0);
+          }
+        }
+      } else {
+        // Card-level selection: extend selection to include next card
+        if (!selectionAnchor) {
+          setSelectionAnchor({
+            col: state.colIndex,
+            card: state.cardIndex,
+            sub: 0,
+          });
+          // Select current card fully
+          const currentCard = col?.cards[state.cardIndex];
+          if (currentCard) {
+            const maxItems = 1 + countVisibleDescendants(currentCard.node, 0, maxOutlineDepth, foldedNodes);
+            const newSelected = new Set<SelectionKey>();
+            for (let s = 0; s < maxItems; s++) {
+              newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, s));
+            }
+            setMultiSelected(newSelected);
+          }
+        }
+        const currentCol = state.columns[state.colIndex];
+        if (currentCol && state.cardIndex < currentCol.cards.length - 1) {
+          const newCardIndex = state.cardIndex + 1;
+          setState((s) => ({ ...s, cardIndex: newCardIndex }));
+          updateSelectionRange(state.colIndex, newCardIndex, 0);
+        }
       }
       return;
     }
-    if (input === "K" && inOutlineMode) {
-      // Start or extend selection upward
-      if (!selectionAnchor) {
-        setSelectionAnchor({
-          col: state.colIndex,
-          card: state.cardIndex,
-          sub: subIndex,
-        });
+    if ((input === "K" || (key.shift && key.upArrow))) {
+      if (inOutlineMode) {
+        // Start or extend selection upward within card
+        if (!selectionAnchor) {
+          setSelectionAnchor({
+            col: state.colIndex,
+            card: state.cardIndex,
+            sub: subIndex,
+          });
+        }
+        if (subIndex > 0) {
+          const newSubIndex = subIndex - 1;
+          setSubIndex(newSubIndex);
+          updateSelectionRange(state.colIndex, state.cardIndex, newSubIndex);
+        } else {
+          // At start of card, extend selection to previous card
+          if (state.cardIndex > 0) {
+            const newCardIndex = state.cardIndex - 1;
+            const prevCard = state.columns[state.colIndex]?.cards[newCardIndex];
+            if (prevCard) {
+              const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, maxOutlineDepth, foldedNodes);
+              setState((s) => ({ ...s, cardIndex: newCardIndex }));
+              setSubIndex(maxSub - 1);
+              updateSelectionRange(state.colIndex, newCardIndex, maxSub - 1);
+            }
+          }
+        }
+      } else {
+        // Card-level selection: extend selection to include previous card
+        if (!selectionAnchor) {
+          setSelectionAnchor({
+            col: state.colIndex,
+            card: state.cardIndex,
+            sub: 0,
+          });
+          // Select current card fully
+          const currentCard = col?.cards[state.cardIndex];
+          if (currentCard) {
+            const maxItems = 1 + countVisibleDescendants(currentCard.node, 0, maxOutlineDepth, foldedNodes);
+            const newSelected = new Set<SelectionKey>();
+            for (let s = 0; s < maxItems; s++) {
+              newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, s));
+            }
+            setMultiSelected(newSelected);
+          }
+        }
+        if (state.cardIndex > 0) {
+          const newCardIndex = state.cardIndex - 1;
+          setState((s) => ({ ...s, cardIndex: newCardIndex }));
+          updateSelectionRange(state.colIndex, newCardIndex, 0);
+        }
       }
-      if (subIndex > 0) {
-        const newSubIndex = subIndex - 1;
-        setSubIndex(newSubIndex);
-        updateSelectionRange(state.colIndex, state.cardIndex, newSubIndex);
+      return;
+    }
+
+    // Shift+H/L or Shift+Left/Right for horizontal range selection (across columns)
+    if ((input === "H" || (key.shift && key.leftArrow))) {
+      // Currently H is used for moving cards. For now, Shift+Left extends selection.
+      // In the future, could remap card movement to Alt+H/L
+      if (state.colIndex > 0) {
+        if (!selectionAnchor) {
+          setSelectionAnchor({
+            col: state.colIndex,
+            card: state.cardIndex,
+            sub: 0,
+          });
+        }
+        const newColIndex = state.colIndex - 1;
+        setState((s) => ({
+          ...s,
+          colIndex: newColIndex,
+          cardIndex: Math.min(s.cardIndex, Math.max(0, (s.columns[newColIndex]?.cards.length || 1) - 1)),
+        }));
+        // For cross-column selection, we just track that multiple columns are involved
+        // Full implementation would require more complex selection model
+      }
+      return;
+    }
+    if ((input === "L" || (key.shift && key.rightArrow))) {
+      if (state.colIndex < state.columns.length - 1) {
+        if (!selectionAnchor) {
+          setSelectionAnchor({
+            col: state.colIndex,
+            card: state.cardIndex,
+            sub: 0,
+          });
+        }
+        const newColIndex = state.colIndex + 1;
+        setState((s) => ({
+          ...s,
+          colIndex: newColIndex,
+          cardIndex: Math.min(s.cardIndex, Math.max(0, (s.columns[newColIndex]?.cards.length || 1) - 1)),
+        }));
       }
       return;
     }
