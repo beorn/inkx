@@ -91,7 +91,9 @@ export default [
   {
     ignores: [
       "node_modules/",
+      "**/node_modules/",
       "dist/",
+      "**/dist/",
       "build/",
       "coverage/",
       "*.lcov",
@@ -101,6 +103,8 @@ export default [
       "*.min.js",
       "*.bundle.js",
       ".DS_Store",
+      // Old src directory (to be removed after migration)
+      "src/",
     ],
   },
 ];

@@ -82,6 +82,39 @@ km mail                              # Email bot
 
 Your team's agents and yours, working on shared knowledge. Web interface. Cloud sync. Mobile app with ubiquitous capture. Email as a content type.
 
+## Project Structure
+
+Monorepo with `packages/` for shared libraries and `apps/` for runnable applications.
+
+```
+km/
+├── apps/
+│   └── km-cli/           # CLI application (@km/app-cli)
+│
+├── packages/
+│   ├── km-core/          # Core types & events (@km/core)
+│   ├── km-store/         # Database & storage (@km/store)
+│   ├── km-markdown/      # Markdown parsing (@km/markdown)
+│   ├── km-watch/         # File system watching (@km/watch)
+│   └── km-shared/        # Shared utilities (@km/shared)
+│
+├── specs/                # Architecture docs
+└── tests/                # Integration tests
+```
+
+**Dependency Graph:**
+```
+@km/core ──────────────────────────────┐
+    │                                  │
+    ├──→ @km/store                     │
+    ├──→ @km/markdown                  │
+    └──→ @km/shared                    │
+            │                          │
+            └──→ @km/watch ←───────────┤
+                     │                 │
+                     └──→ @km/app-cli ←┘
+```
+
 ## Docs
 
 - [specs/](specs/) — Architecture

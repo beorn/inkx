@@ -4,40 +4,20 @@
   "workspaces": {
     "": {
       "name": "km",
-      "dependencies": {
-        "chalk": "^5.4.1",
-        "chokidar": "^4.0.3",
-        "commander": "^13.1.0",
-        "fullscreen-ink": "^0.1.0",
-        "ink": "^6.6.0",
-        "ink-select-input": "^6.2.0",
-        "mdast-util-from-markdown": "^2.0.2",
-        "mdast-util-gfm": "^3.1.0",
-        "mdast-util-gfm-task-list-item": "^2.0.0",
-        "mdast-util-to-string": "^4.0.0",
-        "micromark-extension-gfm": "^3.0.0",
-        "micromark-extension-gfm-task-list-item": "^2.1.0",
-        "react": "^19.2.3",
-        "ulid": "^2.3.0",
-        "yaml": "^2.7.1",
-      },
       "devDependencies": {
-        "@types/better-sqlite3": "^7.6.11",
         "@types/bun": "^1.3.4",
-        "@types/react": "^19.2.7",
         "eslint": "^9.39.2",
         "eslint-plugin-promise": "^7.2.1",
         "ink-testing-library": "^4.0.0",
         "node-pty": "^1.1.0",
         "prettier": "^3.7.4",
         "react-devtools-core": "^7.0.1",
-        "tui-tester": "^0.3.0",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.50.0",
       },
     },
     "apps/km-cli": {
-      "name": "@km/cli",
+      "name": "@km/app-cli",
       "version": "0.1.0",
       "bin": {
         "km": "./src/index.ts",
@@ -45,6 +25,7 @@
       "dependencies": {
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
+        "@km/shared": "workspace:*",
         "@km/store": "workspace:*",
         "@km/watch": "workspace:*",
         "chalk": "^5.4.1",
@@ -54,44 +35,52 @@
         "ink-select-input": "^6.2.0",
         "react": "^19.2.3",
       },
-    },
-    "packages/core": {
-      "name": "@km/core",
-      "version": "0.1.0",
-      "dependencies": {
-        "ulid": "^2.3.0",
-        "yaml": "^2.7.1",
+      "devDependencies": {
+        "@types/react": "^19.2.7",
       },
     },
-    "packages/markdown": {
+    "packages/km-core": {
+      "name": "@km/core",
+      "dependencies": {
+        "ulid": "^2.3.0",
+      },
+    },
+    "packages/km-markdown": {
       "name": "@km/markdown",
-      "version": "0.1.0",
       "dependencies": {
         "@km/core": "workspace:*",
+        "@types/mdast": "^4.0.4",
         "mdast-util-from-markdown": "^2.0.2",
         "mdast-util-gfm": "^3.1.0",
         "mdast-util-gfm-task-list-item": "^2.0.0",
         "mdast-util-to-string": "^4.0.0",
         "micromark-extension-gfm": "^3.0.0",
         "micromark-extension-gfm-task-list-item": "^2.1.0",
+        "ulid": "^2.3.0",
         "yaml": "^2.7.1",
       },
     },
-    "packages/store": {
+    "packages/km-shared": {
+      "name": "@km/shared",
+      "dependencies": {
+        "@km/core": "workspace:*",
+        "@km/store": "workspace:*",
+      },
+    },
+    "packages/km-store": {
       "name": "@km/store",
-      "version": "0.1.0",
       "dependencies": {
         "@km/core": "workspace:*",
       },
     },
-    "packages/watch": {
+    "packages/km-watch": {
       "name": "@km/watch",
-      "version": "0.1.0",
       "dependencies": {
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
         "@km/store": "workspace:*",
         "chokidar": "^4.0.3",
+        "ulid": "^2.3.0",
       },
     },
   },
@@ -124,17 +113,17 @@
 
     "@humanwhocodes/retry": ["@humanwhocodes/retry@0.4.3", "", {}, "sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ=="],
 
-    "@km/cli": ["@km/cli@workspace:apps/km-cli"],
+    "@km/app-cli": ["@km/app-cli@workspace:apps/km-cli"],
 
-    "@km/core": ["@km/core@workspace:packages/core"],
+    "@km/core": ["@km/core@workspace:packages/km-core"],
 
-    "@km/markdown": ["@km/markdown@workspace:packages/markdown"],
+    "@km/markdown": ["@km/markdown@workspace:packages/km-markdown"],
 
-    "@km/store": ["@km/store@workspace:packages/store"],
+    "@km/shared": ["@km/shared@workspace:packages/km-shared"],
 
-    "@km/watch": ["@km/watch@workspace:packages/watch"],
+    "@km/store": ["@km/store@workspace:packages/km-store"],
 
-    "@types/better-sqlite3": ["@types/better-sqlite3@7.6.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA=="],
+    "@km/watch": ["@km/watch@workspace:packages/km-watch"],
 
     "@types/bun": ["@types/bun@1.3.5", "", { "dependencies": { "bun-types": "1.3.5" } }, "sha512-RnygCqNrd3srIPEWBd5LFeUYG7plCoH2Yw9WaZGyNmdTEei+gWaHqydbaIRkIkcbXwhBT94q78QljxN0Sk838w=="],
 
@@ -493,8 +482,6 @@
     "to-rotated": ["to-rotated@1.0.0", "", {}, "sha512-KsEID8AfgUy+pxVRLsWp0VzCa69wxzUDZnzGbyIST/bcgcrMvTYoFBX/QORH4YApoD89EDuUovx4BTdpOn319Q=="],
 
     "ts-api-utils": ["ts-api-utils@2.4.0", "", { "peerDependencies": { "typescript": ">=4.8.4" } }, "sha512-3TaVTaAv2gTiMB35i3FiGJaRfwb3Pyn/j3m/bfAvGe8FB7CF6u+LMYqYlDh7reQf7UNvoTvdfAqHGmPGOSsPmA=="],
-
-    "tui-tester": ["tui-tester@0.3.0", "", {}, "sha512-3zFZ4KHXTUCUdD0lTQPZDUPBnyeuWOBt18SOVEHsaCySuU64lXM0iqTsSiGW61dhQHF1ogCISDNGazPQ5x3nww=="],
 
     "type-check": ["type-check@0.4.0", "", { "dependencies": { "prelude-ls": "^1.2.1" } }, "sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew=="],
 

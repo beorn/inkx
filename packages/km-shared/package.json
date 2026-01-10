@@ -1,0 +1,14 @@
+{
+  "name": "@km/shared",
+  "description": "Shared utilities for km",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "@km/core": "workspace:*",
+    "@km/store": "workspace:*"
+  }
+}

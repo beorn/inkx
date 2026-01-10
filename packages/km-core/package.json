@@ -1,0 +1,13 @@
+{
+  "name": "@km/core",
+  "description": "Core types and event system for km",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "ulid": "^2.3.0"
+  }
+}

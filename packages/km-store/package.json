@@ -1,0 +1,13 @@
+{
+  "name": "@km/store",
+  "description": "Database and storage for km",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "@km/core": "workspace:*"
+  }
+}
