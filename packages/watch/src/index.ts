@@ -5,10 +5,12 @@
  */
 
 // Watcher
-export { createWatcher, scanDirectory } from "../../../src/watch/watcher.ts";
+export { FileSystemWatcher, scanDirectory, scanDirectoryRecursive } from "../../../src/watch/watcher.ts";
+export type { WatcherConfig, FileChange } from "../../../src/watch/watcher.ts";
 
 // Sync
-export { syncMarkdownFile, syncToMarkdown } from "../../../src/watch/sync.ts";
+export { SyncManager, syncOnce } from "../../../src/watch/sync.ts";
+export type { SyncConfig, SyncState } from "../../../src/watch/sync.ts";
 
 // Reconcile
 export {
@@ -22,5 +24,5 @@ export type { ReconcileOp } from "../../../src/watch/reconcile.ts";
 export { shouldIgnore, DEFAULT_IGNORE_PATTERNS } from "../../../src/watch/ignore.ts";
 
 // Write queue
-export { createWriteQueue } from "../../../src/watch/writequeue.ts";
-export type { WriteQueue } from "../../../src/watch/writequeue.ts";
+export { WriteQueue, shouldApplyToFs } from "../../../src/watch/writequeue.ts";
+export type { PendingWrite, WriteQueueConfig } from "../../../src/watch/writequeue.ts";

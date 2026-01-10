@@ -11,14 +11,19 @@ import {
   getNodeByPath,
   getChildren,
   getSubtree,
+  getBacklinks,
+  getOutgoingLinks,
+  getNode,
 } from "../../node/db.ts";
 import type { Node } from "../../node/types.ts";
+import type { Link } from "../../node/db.ts";
 
 export const showCommand = new Command("show")
   .description("Show node details")
   .argument("<id>", "Node ID or path")
   .option("-c, --children", "Show children")
   .option("-t, --tree", "Show full subtree")
+  .option("-l, --links", "Show links (outgoing and backlinks)")
   .option("--json", "Output as JSON")
   .action((id, options) => {
     const node = getNodeByIdPrefix(id) ?? getNodeByPath(id);
@@ -100,6 +105,30 @@ export const showCommand = new Command("show")
         }
       }
     }
+
+    // Links
+    if (options.links) {
+      const outgoing = getOutgoingLinks(node.id);
+      const backlinks = getBacklinks(node.id);
+
+      if (outgoing.length > 0) {
+        console.log(chalk.bold("\nOutgoing links:"));
+        for (const link of outgoing) {
+          console.log(`  ${formatLink(link)}`);
+        }
+      }
+
+      if (backlinks.length > 0) {
+        console.log(chalk.bold("\nBacklinks:"));
+        for (const link of backlinks) {
+          console.log(`  ${formatBacklink(link)}`);
+        }
+      }
+
+      if (outgoing.length === 0 && backlinks.length === 0) {
+        console.log(chalk.dim("\nNo links found."));
+      }
+    }
   });
 
 /**
@@ -151,4 +180,58 @@ function getIndent(node: Node, rootId: string): string {
   }
 
   return "  ".repeat(depth + 1);
+}
+
+/**
+ * Format an outgoing link
+ */
+function formatLink(link: Link): string {
+  const parts: string[] = [];
+
+  // Target name with section/block
+  let target = chalk.cyan(`[[${link.target_name}]]`);
+  if (link.section) {
+    target = chalk.cyan(`[[${link.target_name}#${link.section}]]`);
+  }
+  if (link.block_id) {
+    target = chalk.cyan(`[[${link.target_name}^${link.block_id}]]`);
+  }
+  parts.push(target);
+
+  // Resolution status
+  if (link.target_id) {
+    const targetNode = getNode(link.target_id);
+    if (targetNode) {
+      parts.push(chalk.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`));
+    }
+  } else {
+    parts.push(chalk.yellow("(unresolved)"));
+  }
+
+  // Alias
+  if (link.alias) {
+    parts.push(chalk.dim(`"${link.alias}"`));
+  }
+
+  return parts.join(" ");
+}
+
+/**
+ * Format a backlink (incoming link)
+ */
+function formatBacklink(link: Link): string {
+  const sourceNode = getNode(link.source_id);
+  const parts: string[] = [];
+
+  if (sourceNode) {
+    const sourceName = sourceNode.fs_path
+      ? sourceNode.fs_path.split("/").pop()
+      : sourceNode.content?.slice(0, 30) || link.source_id.slice(0, 8);
+    parts.push(chalk.green(`← ${sourceName}`));
+    parts.push(chalk.dim(`(${link.source_id.slice(0, 8)})`));
+  } else {
+    parts.push(chalk.dim(`← ${link.source_id.slice(0, 8)}`));
+  }
+
+  return parts.join(" ");
 }

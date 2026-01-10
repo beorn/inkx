@@ -16,7 +16,17 @@ import {
   slugify,
   parseTaskMetadata,
   extractTags,
+  parseWikiLinks,
 } from "./parser.ts";
+import type { WikiLink } from "./parser.ts";
+
+/**
+ * Result of parsing markdown with wikilinks
+ */
+export interface ParseResult {
+  nodes: Node[];
+  wikilinks: Array<{ nodeId: string; link: WikiLink }>;
+}
 
 /**
  * Parse a markdown file into km nodes
@@ -26,6 +36,17 @@ export function parseMarkdownToNodes(
   fsPath: string,
   fsIno?: number,
 ): Node[] {
+  return parseMarkdownWithLinks(content, fsPath, fsIno).nodes;
+}
+
+/**
+ * Parse a markdown file into km nodes with wikilink extraction
+ */
+export function parseMarkdownWithLinks(
+  content: string,
+  fsPath: string,
+  fsIno?: number,
+): ParseResult {
   const { frontmatter, body } = extractFrontmatter(content);
   const ast = parseMarkdown(body);
   const now = Date.now();
@@ -49,8 +70,20 @@ export function parseMarkdownToNodes(
 
   // Convert AST to nodes
   const childNodes = astToNodes(ast, fileNode, body);
+  const allNodes = [fileNode, ...childNodes];
 
-  return [fileNode, ...childNodes];
+  // Extract wikilinks from all nodes with content
+  const wikilinks: Array<{ nodeId: string; link: WikiLink }> = [];
+  for (const node of allNodes) {
+    if (node.content) {
+      const links = parseWikiLinks(node.content);
+      for (const link of links) {
+        wikilinks.push({ nodeId: node.id, link });
+      }
+    }
+  }
+
+  return { nodes: allNodes, wikilinks };
 }
 
 /**

@@ -25,10 +25,25 @@ export {
   getLastEventId,
   getAllNodes,
   dbApplyEvent,
+  // Link management
+  addLink,
+  removeLinksFromSource,
+  getOutgoingLinks,
+  getBacklinks,
+  getBacklinksByName,
+  resolveLinks,
 } from "../../../src/node/db.ts";
+export type { Link } from "../../../src/node/db.ts";
 
 // CAS (content-addressable storage)
-export { hashContent, storeContent, getContent } from "../../../src/node/cas.ts";
+export {
+  hashContent,
+  storeContent,
+  loadContent,
+  hasContent,
+  storeContentAuto,
+  loadContentAuto,
+} from "../../../src/node/cas.ts";
 
 // Rebuild
 export {
@@ -42,5 +57,5 @@ export {
 } from "../../../src/node/rebuild.ts";
 
 // Store abstraction
-export { initStore, MemoryStore } from "../../../src/node/store.ts";
-export type { Store, StoreMode } from "../../../src/node/store.ts";
+export { initStore, MemoryStore, DiskStore, getStore, closeStore } from "../../../src/node/store.ts";
+export type { NodeStore } from "../../../src/node/store.ts";

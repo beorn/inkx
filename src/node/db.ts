@@ -90,6 +90,22 @@ CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY,
   value TEXT
 );
+
+-- Wikilinks (for bidirectional linking)
+CREATE TABLE IF NOT EXISTS links (
+  source_id TEXT NOT NULL,     -- Node containing the link
+  target_name TEXT NOT NULL,   -- Target filename/slug (from [[target]])
+  target_id TEXT,              -- Resolved target node ID (can be null if unresolved)
+  section TEXT,                -- Optional section anchor (#section)
+  block_id TEXT,               -- Optional block ID (^block)
+  alias TEXT,                  -- Display alias (|alias)
+  created_at INTEGER,
+  PRIMARY KEY (source_id, target_name, section, block_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id);
+CREATE INDEX IF NOT EXISTS idx_links_target_name ON links(target_name);
+CREATE INDEX IF NOT EXISTS idx_links_target_id ON links(target_id);
 `;
 
 /**
@@ -582,6 +598,128 @@ function rowToNode(row: Record<string, unknown>): Node {
     created_at: row.created_at as number,
     updated_at: row.updated_at as number,
     version: row.version as string,
+  };
+}
+
+// ========== Link Management ==========
+
+/**
+ * Link record for wikilinks
+ */
+export interface Link {
+  source_id: string;
+  target_name: string;
+  target_id: string | null;
+  section: string | null;
+  block_id: string | null;
+  alias: string | null;
+  created_at: number;
+}
+
+/**
+ * Add a link from source to target
+ */
+export function addLink(link: Omit<Link, "created_at">): void {
+  const db = getDb();
+  db.run(
+    `
+    INSERT OR REPLACE INTO links (source_id, target_name, target_id, section, block_id, alias, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `,
+    [
+      link.source_id,
+      link.target_name,
+      link.target_id,
+      link.section,
+      link.block_id,
+      link.alias,
+      Date.now(),
+    ],
+  );
+}
+
+/**
+ * Remove all links from a source node
+ */
+export function removeLinksFromSource(sourceId: string): void {
+  const db = getDb();
+  db.run("DELETE FROM links WHERE source_id = ?", [sourceId]);
+}
+
+/**
+ * Get outgoing links from a node (forward links)
+ */
+export function getOutgoingLinks(sourceId: string): Link[] {
+  const db = getDb();
+  const rows = db
+    .query("SELECT * FROM links WHERE source_id = ?")
+    .all(sourceId) as Array<Record<string, unknown>>;
+
+  return rows.map(rowToLink);
+}
+
+/**
+ * Get incoming links to a node (backlinks)
+ */
+export function getBacklinks(targetId: string): Link[] {
+  const db = getDb();
+  const rows = db
+    .query("SELECT * FROM links WHERE target_id = ?")
+    .all(targetId) as Array<Record<string, unknown>>;
+
+  return rows.map(rowToLink);
+}
+
+/**
+ * Get backlinks by target name (for unresolved links)
+ */
+export function getBacklinksByName(targetName: string): Link[] {
+  const db = getDb();
+  // Match by name (case-insensitive, with or without .md extension)
+  const normalizedName = targetName.toLowerCase().replace(/\.md$/, "");
+  const rows = db
+    .query(
+      `
+    SELECT * FROM links
+    WHERE LOWER(REPLACE(target_name, '.md', '')) = ?
+  `,
+    )
+    .all(normalizedName) as Array<Record<string, unknown>>;
+
+  return rows.map(rowToLink);
+}
+
+/**
+ * Resolve unresolved links to a target node
+ * Call this when a new node is created that might match pending links
+ */
+export function resolveLinks(targetId: string, targetName: string): number {
+  const db = getDb();
+  const normalizedName = targetName.toLowerCase().replace(/\.md$/, "");
+  const result = db.run(
+    `
+    UPDATE links
+    SET target_id = ?
+    WHERE target_id IS NULL
+    AND LOWER(REPLACE(target_name, '.md', '')) = ?
+  `,
+    [targetId, normalizedName],
+  );
+  return result.changes;
+}
+
+/**
+ * Convert database row to Link object
+ */
+function rowToLink(row: Record<string, unknown>): Link {
+  return {
+    source_id: row.source_id as string,
+    target_name: row.target_name as string,
+    target_id: row.target_id as string | null,
+    section: row.section as string | null,
+    block_id: row.block_id as string | null,
+    alias: row.alias as string | null,
+    created_at: row.created_at as number,
   };
 }
 
