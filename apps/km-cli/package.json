@@ -1,0 +1,21 @@
+{
+  "name": "@km/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "km": "./src/index.ts"
+  },
+  "dependencies": {
+    "@km/core": "workspace:*",
+    "@km/store": "workspace:*",
+    "@km/markdown": "workspace:*",
+    "@km/watch": "workspace:*",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "fullscreen-ink": "^0.1.0",
+    "ink": "^6.6.0",
+    "ink-select-input": "^6.2.0",
+    "react": "^19.2.3"
+  }
+}
