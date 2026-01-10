@@ -5,6 +5,7 @@
  * Enables disk mode with full tracking.
  *
  * km init [path]   # Create .km/ in path (default: cwd)
+ * km --root /path init  # Uses --root as target directory
  */
 
 import { Command } from "commander";
@@ -16,8 +17,10 @@ export const initCommand = new Command("init")
   .description("Initialize km in a directory (enables disk mode)")
   .argument("[path]", "Directory to initialize (default: current directory)")
   .option("-f, --force", "Reinitialize even if .km/ exists")
-  .action((pathArg, options) => {
-    const targetDir = resolve(pathArg ?? process.cwd());
+  .action((pathArg, options, command) => {
+    // Priority: positional path > --root from parent > KM_ROOT env > cwd
+    const globalRoot = command.parent?.opts()?.root || process.env.KM_ROOT;
+    const targetDir = resolve(pathArg ?? globalRoot ?? process.cwd());
     const kmDir = join(targetDir, ".km");
 
     // Check if .km/ already exists
