@@ -9,15 +9,15 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
-import { setKmDir, clearDatabase } from "../src/node/emit.ts";
+import { setKmDir, clearDatabase } from "@km/core";
 import {
   getDb,
   closeDb,
   resetDb,
   getNode,
   getTasksByStatus,
-} from "../src/node/db.ts";
-import type { Node, TaskStatus } from "../src/node/types.ts";
+} from "@km/store";
+import type { Node, TaskStatus } from "@km/core";
 
 // Test directory
 const TEST_DIR = join(import.meta.dir, ".test-cli-unit");

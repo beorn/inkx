@@ -12,7 +12,7 @@ import {
   closeStore,
   MemoryStore,
   DiskStore,
-} from "../src/node/store.ts";
+} from "../src/store.ts";
 
 const TEST_DIR = join(import.meta.dir, ".test-store");
 

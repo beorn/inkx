@@ -9,9 +9,9 @@ import { describe, test, expect } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-import { parseMarkdownToNodes } from "../src/md/ast2nodes.ts";
-import { nodesToMarkdown } from "../src/md/nodes2md.ts";
-import { extractFrontmatter } from "../src/md/parser.ts";
+import { parseMarkdownToNodes } from "../src/ast2nodes.ts";
+import { nodesToMarkdown } from "../src/nodes2md.ts";
+import { extractFrontmatter } from "../src/parser.ts";
 
 /**
  * Helper to normalize whitespace for comparison

@@ -103,8 +103,6 @@ export default [
       "*.min.js",
       "*.bundle.js",
       ".DS_Store",
-      // Old src directory (to be removed after migration)
-      "src/",
     ],
   },
 ];

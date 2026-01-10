@@ -15,11 +15,11 @@ import {
   parseWikiLinks,
   slugify,
   parseTaskMetadata,
-} from "../src/md/parser.ts";
+} from "../src/parser.ts";
 
-import { parseMarkdownToNodes, buildNodeTree } from "../src/md/ast2nodes.ts";
+import { parseMarkdownToNodes, buildNodeTree } from "../src/ast2nodes.ts";
 
-import { nodesToMarkdown } from "../src/md/nodes2md.ts";
+import { nodesToMarkdown } from "../src/nodes2md.ts";
 
 describe("Markdown Parser", () => {
   describe("parseMarkdown", () => {

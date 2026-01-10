@@ -15,12 +15,11 @@ import { join } from "path";
 
 const TEST_DIR = join(import.meta.dir, ".test-tree");
 
-import { resetDb, closeDb, getNode, getChildren } from "../src/node/db.ts";
+import { resetDb, closeDb, getNode, getChildren, applyEvent } from "@km/store";
 
-import { emitNodeCreated, setKmDir, setDatabase } from "../src/node/emit.ts";
+import { emitNodeCreated, setKmDir, setDatabase } from "@km/core";
 
-import { applyEvent } from "../src/node/db.ts";
-import type { NodeType } from "../src/node/types.ts";
+import type { NodeType } from "@km/core";
 import { ulid } from "ulid";
 
 import {
@@ -30,7 +29,7 @@ import {
   namesAreSimilar,
   getCollapsedTypeSuffix,
   collapseRedundantAncestors,
-} from "../src/shared/tree.ts";
+} from "../src/tree.ts";
 
 // Test helpers
 function createTestNode(

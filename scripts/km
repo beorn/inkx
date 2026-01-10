@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# km CLI wrapper - runs bun km with all arguments
+exec bun km "$@"

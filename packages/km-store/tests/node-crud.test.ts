@@ -24,7 +24,7 @@ import {
   getAllTasks,
   search,
   getAllNodes,
-} from "../src/node/db.ts";
+} from "../src/db.ts";
 
 import {
   emit,
@@ -37,11 +37,9 @@ import {
   emitTaskCompleted,
   setKmDir,
   setDatabase,
-} from "../src/node/emit.ts";
+} from "@km/core";
 
-import { applyEvent } from "../src/node/db.ts";
-
-import type { NodeType, TaskStatus, Event } from "../src/node/types.ts";
+import type { NodeType, TaskStatus, Event } from "@km/core";
 import { ulid } from "ulid";
 
 // Test helpers

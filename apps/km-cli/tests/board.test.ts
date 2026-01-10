@@ -11,13 +11,11 @@ import { join } from "path";
 // Test directories - KM_DIR is set in beforeEach via setKmDir()
 const TEST_DIR = join(import.meta.dir, ".test-board");
 
-import { resetDb, closeDb, getNode, getChildren } from "../src/node/db.ts";
+import { resetDb, closeDb, getNode, getChildren, applyEvent } from "@km/store";
 
-import { emitNodeCreated, setKmDir, setDatabase } from "../src/node/emit.ts";
+import { emitNodeCreated, setKmDir, setDatabase } from "@km/core";
 
-import { applyEvent } from "../src/node/db.ts";
-
-import type { NodeType } from "../src/node/types.ts";
+import type { NodeType } from "@km/core";
 import { ulid } from "ulid";
 
 import {
@@ -29,7 +27,7 @@ import {
   getNodeDisplayName,
   getCurrentCard,
   getCurrentColumn,
-} from "../src/cli/commands/board/state.ts";
+} from "../src/commands/board/state.ts";
 
 import {
   renderBoard,
@@ -39,13 +37,13 @@ import {
   renderHelp,
   getStatusIcon,
   defaultRenderOptions,
-} from "../src/cli/commands/board/render.ts";
+} from "../src/commands/board/render.ts";
 
 import type {
   BoardState,
   CardState,
   ColumnState,
-} from "../src/cli/commands/board/types.ts";
+} from "../src/commands/board/types.ts";
 
 // Test helpers
 function createTestNode(
@@ -710,7 +708,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board shows header path on first render", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/cli/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/InkBoard.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Test Board");
@@ -741,7 +739,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board card content does not overflow into borders", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/cli/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/InkBoard.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Board");
@@ -776,7 +774,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board cards have minimal padding", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/cli/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/InkBoard.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Board");
@@ -815,7 +813,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board columns show side by side", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/cli/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/InkBoard.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Board");
@@ -854,7 +852,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board shows card count in column header", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/cli/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/InkBoard.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Board");

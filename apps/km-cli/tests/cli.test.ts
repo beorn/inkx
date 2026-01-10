@@ -17,7 +17,7 @@ const VAULT_DIR = join(TEST_DIR, "vault");
 const KM_DIR = join(VAULT_DIR, ".km"); // .km inside vault, not sibling
 
 // CLI path
-const CLI_PATH = join(import.meta.dir, "..", "src", "cli", "index.ts");
+const CLI_PATH = join(import.meta.dir, "..", "src", "index.ts");
 
 /**
  * Run km CLI command and return result

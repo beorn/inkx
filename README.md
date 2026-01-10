@@ -98,8 +98,7 @@ km/
 │   ├── km-watch/         # File system watching (@km/watch)
 │   └── km-shared/        # Shared utilities (@km/shared)
 │
-├── specs/                # Architecture docs
-└── tests/                # Integration tests
+└── specs/                # Architecture docs
 ```
 
 **Dependency Graph:**

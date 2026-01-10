@@ -16,26 +16,26 @@ import React from "react";
 import { rmSync, mkdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 
-import { InkBoardTestable } from "../apps/km-cli/src/commands/board/InkBoard.tsx";
+import { InkBoardTestable } from "../src/commands/board/InkBoard.tsx";
 import {
   buildBoardState,
   handleKey,
   getCurrentCard,
-} from "../apps/km-cli/src/commands/board/state.ts";
+} from "../src/commands/board/state.ts";
 import {
   resetDb,
   closeDb,
   getNode,
   applyEvent,
   setDb,
-} from "../packages/km-store/src/db.ts";
+} from "@km/store";
 import {
   emitNodeCreated,
   setKmDir,
   setDatabase,
   getEventsPath,
-} from "../packages/km-core/src/emit.ts";
-import type { NodeType, Event } from "../packages/km-core/src/types.ts";
+} from "@km/core";
+import type { NodeType, Event } from "@km/core";
 import { ulid } from "ulid";
 import { Database } from "bun:sqlite";
 

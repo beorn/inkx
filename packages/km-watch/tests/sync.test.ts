@@ -23,10 +23,10 @@ import {
   getAllNodes,
   applyEvent,
   getAncestors,
-} from "../src/node/db.ts";
+} from "@km/store";
 
-import { setKmDir, setDatabase } from "../src/node/emit.ts";
-import { SyncManager } from "../src/watch/sync.ts";
+import { setKmDir, setDatabase } from "@km/core";
+import { SyncManager } from "../src/sync.ts";
 
 describe("Sync Integration", () => {
   beforeEach(() => {
