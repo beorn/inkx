@@ -8,7 +8,7 @@ import { withFullScreen } from "fullscreen-ink";
 import type { BoardState, CardState, ColumnState } from "./types.ts";
 import { buildBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "../../../node/types.ts";
-import { getChildren, getNode } from "../../../node/db.ts";
+import { getChildren, getNode, getDb, isMemoryMode } from "../../../node/db.ts";
 import { emit } from "../../../node/emit.ts";
 import {
   getNodeDisplayName,
@@ -539,18 +539,28 @@ function Board({ initialState }: BoardProps) {
       }
     }
 
-    emit({
-      type: "node_moved",
-      actor: "user",
-      target: card.node.id,
-      data: {
-        parent_id: col.node.id,
-        sort_order: newSortOrder,
-      },
-    });
+    // Update database - use direct SQL in memory mode, emit event in disk mode
+    if (isMemoryMode()) {
+      const db = getDb();
+      db.run(
+        "UPDATE nodes SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+        [col.node.id, newSortOrder, Date.now(), card.node.id],
+      );
+    } else {
+      emit({
+        type: "node_moved",
+        actor: "user",
+        target: card.node.id,
+        data: {
+          parent_id: col.node.id,
+          sort_order: newSortOrder,
+        },
+      });
+    }
 
-    // Update local state
-    setState((s) => ({ ...s, cardIndex: targetIndex }));
+    // Update local state and rebuild
+    const newCardIndex = targetIndex;
+    setState((s) => ({ ...s, cardIndex: newCardIndex }));
 
     // Rebuild board state to reflect changes
     setTimeout(() => {
@@ -558,7 +568,7 @@ function Board({ initialState }: BoardProps) {
         const newState = buildBoardState(state.rootId);
         newState.zoomStack = state.zoomStack;
         newState.colIndex = state.colIndex;
-        newState.cardIndex = targetIndex;
+        newState.cardIndex = newCardIndex;
         setState(newState);
       }
     }, 50);
@@ -576,21 +586,31 @@ function Board({ initialState }: BoardProps) {
     const lastCard = targetCol.cards[targetCol.cards.length - 1];
     const newSortOrder = lastCard ? lastCard.node.sort_order + 1 : 0;
 
-    emit({
-      type: "node_moved",
-      actor: "user",
-      target: card.node.id,
-      data: {
-        parent_id: targetCol.node.id,
-        sort_order: newSortOrder,
-      },
-    });
+    // Update database - use direct SQL in memory mode, emit event in disk mode
+    if (isMemoryMode()) {
+      const db = getDb();
+      db.run(
+        "UPDATE nodes SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+        [targetCol.node.id, newSortOrder, Date.now(), card.node.id],
+      );
+    } else {
+      emit({
+        type: "node_moved",
+        actor: "user",
+        target: card.node.id,
+        data: {
+          parent_id: targetCol.node.id,
+          sort_order: newSortOrder,
+        },
+      });
+    }
 
     // Update local state
+    const newCardIndex = targetCol.cards.length;
     setState((s) => ({
       ...s,
       colIndex: targetColIndex,
-      cardIndex: targetCol.cards.length, // Will be at end
+      cardIndex: newCardIndex,
     }));
 
     // Rebuild board state
@@ -599,7 +619,7 @@ function Board({ initialState }: BoardProps) {
         const newState = buildBoardState(state.rootId);
         newState.zoomStack = state.zoomStack;
         newState.colIndex = targetColIndex;
-        newState.cardIndex = Math.min(targetCol.cards.length, newState.columns[targetColIndex]?.cards.length || 0);
+        newState.cardIndex = Math.min(newCardIndex, newState.columns[targetColIndex]?.cards.length || 0);
         setState(newState);
       }
     }, 50);
@@ -628,15 +648,36 @@ function Board({ initialState }: BoardProps) {
     }
 
     // Move mode operations: m+hjkl
-    if (moveMode && card) {
+    if (moveMode) {
+      // Valid move keys
       if (input === "k" || input === "j" || input === "h" || input === "l") {
-        if (input === "k") moveCardInColumn(card, "up");
-        else if (input === "j") moveCardInColumn(card, "down");
-        else if (input === "h") moveCardToColumn(card, "left");
-        else if (input === "l") moveCardToColumn(card, "right");
+        if (card) {
+          if (input === "k") moveCardInColumn(card, "up");
+          else if (input === "j") moveCardInColumn(card, "down");
+          else if (input === "h") moveCardToColumn(card, "left");
+          else if (input === "l") moveCardToColumn(card, "right");
+        }
         setMoveMode(false);
         return;
       }
+      // Arrow keys also work in move mode
+      if (key.upArrow || key.downArrow || key.leftArrow || key.rightArrow) {
+        if (card) {
+          if (key.upArrow) moveCardInColumn(card, "up");
+          else if (key.downArrow) moveCardInColumn(card, "down");
+          else if (key.leftArrow) moveCardToColumn(card, "left");
+          else if (key.rightArrow) moveCardToColumn(card, "right");
+        }
+        setMoveMode(false);
+        return;
+      }
+      // Ignore empty inputs (terminal noise) - stay in move mode
+      if (input === "") {
+        return;
+      }
+      // Any other key cancels move mode
+      setMoveMode(false);
+      // Don't return - let the key be processed normally
     }
 
     // Alt+Arrow for move (direct, without move mode prefix)
