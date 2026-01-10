@@ -56,7 +56,7 @@ export function parseMarkdownWithLinks(
     id: ulid(),
     type: "file",
     parent_id: null, // Will be set based on folder structure
-    sort_order: 0,
+    parent_idx: 0,
     symlink_to: null,
     fs_path: fsPath,
     fs_ino: fsIno,
@@ -129,7 +129,7 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): Node[] {
           sectionStack.length > 0
             ? sectionStack[sectionStack.length - 1].node.id
             : fileNode.id,
-        sort_order: sortOrder++,
+        parent_idx: sortOrder++,
         symlink_to: null,
         md_pos: heading.position?.start.offset,
         md_slug: slugify(text),
@@ -227,7 +227,7 @@ function convertListItem(
     id: ulid(),
     type: isTask ? "task" : ordered ? "ol" : "ul",
     parent_id: parent.id,
-    sort_order: sortOrder,
+    parent_idx: sortOrder,
     symlink_to: null,
     md_pos: item.position?.start.offset,
     content: text,
@@ -329,7 +329,7 @@ function convertBlock(
     id: ulid(),
     type,
     parent_id: parent.id,
-    sort_order: sortOrder,
+    parent_idx: sortOrder,
     symlink_to: null,
     md_pos: block.position?.start.offset,
     content,
@@ -355,9 +355,9 @@ export function buildNodeTree(nodes: Node[]): Map<string, Node[]> {
     tree.get(parentId)?.push(node);
   }
 
-  // Sort children by sort_order
+  // Sort children by parent_idx
   for (const children of tree.values()) {
-    children.sort((a, b) => a.sort_order - b.sort_order);
+    children.sort((a, b) => a.parent_idx - b.parent_idx);
   }
 
   return tree;

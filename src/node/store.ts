@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS nodes (
   type TEXT NOT NULL,
   parent_id TEXT,
   symlink_to TEXT,
-  sort_order REAL DEFAULT 0,
+  parent_idx REAL DEFAULT 0,
 
   -- Filesystem
   fs_path TEXT,
@@ -121,7 +121,7 @@ function rowToNode(row: Record<string, unknown>): Node {
     id: row.id as string,
     type: row.type as NodeType,
     parent_id: row.parent_id as string | null,
-    sort_order: row.sort_order as number,
+    parent_idx: row.parent_idx as number,
     symlink_to: row.symlink_to as string | null,
     fs_path: row.fs_path as string | undefined,
     fs_ino: row.fs_ino as number | undefined,
@@ -177,13 +177,13 @@ abstract class BaseStore implements NodeStore {
     if (parentId === null) {
       rows = this.db
         .query(
-          "SELECT * FROM nodes WHERE parent_id IS NULL ORDER BY sort_order, created_at",
+          "SELECT * FROM nodes WHERE parent_id IS NULL ORDER BY parent_idx, created_at",
         )
         .all() as Record<string, unknown>[];
     } else {
       rows = this.db
         .query(
-          "SELECT * FROM nodes WHERE parent_id = ? ORDER BY sort_order, created_at",
+          "SELECT * FROM nodes WHERE parent_id = ? ORDER BY parent_idx, created_at",
         )
         .all(parentId) as Record<string, unknown>[];
     }
@@ -217,7 +217,7 @@ abstract class BaseStore implements NodeStore {
           SELECT n.* FROM nodes n
           JOIN subtree s ON n.parent_id = s.id
         )
-        SELECT * FROM subtree ORDER BY sort_order, created_at
+        SELECT * FROM subtree ORDER BY parent_idx, created_at
       `,
       )
       .all(rootId) as Record<string, unknown>[];
@@ -389,7 +389,7 @@ export class MemoryStore extends BaseStore {
           parent_id: parentId,
           fs_path: fullPath,
           content: entry.name,
-          sort_order: order++,
+          parent_idx: order++,
         });
 
         // Recurse
@@ -405,7 +405,7 @@ export class MemoryStore extends BaseStore {
           parent_id: parentId,
           fs_path: fullPath,
           content: isMarkdown ? entry.name.replace(/\.md$/, "") : entry.name,
-          sort_order: order++,
+          parent_idx: order++,
         });
 
         // Parse markdown content (only for .md files)
@@ -458,7 +458,7 @@ export class MemoryStore extends BaseStore {
             md_line: lineNum,
             content: headingText,
             data: { depth },
-            sort_order: lineNum,
+            parent_idx: lineNum,
           });
 
           sectionStack.push({ id: sectionId, depth });
@@ -489,7 +489,7 @@ export class MemoryStore extends BaseStore {
             content: taskContent,
             task_status: status,
             task_mark: mark as Node["task_mark"],
-            sort_order: lineNum,
+            parent_idx: lineNum,
           });
         }
       }
@@ -516,14 +516,14 @@ export class MemoryStore extends BaseStore {
     const now = Date.now();
     this.db.run(
       `INSERT INTO nodes (
-        id, type, parent_id, sort_order, fs_path, md_line,
+        id, type, parent_id, parent_idx, fs_path, md_line,
         content, task_status, task_mark, data, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id,
         node.type,
         node.parent_id ?? null,
-        node.sort_order ?? 0,
+        node.parent_idx ?? 0,
         node.fs_path ?? null,
         node.md_line ?? null,
         node.content ?? null,

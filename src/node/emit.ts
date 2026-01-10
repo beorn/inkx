@@ -159,7 +159,7 @@ export function emitNodeUpdated(
 export function emitNodeMoved(
   actor: string,
   target: string,
-  data: { parent_id: string | null; sort_order?: number },
+  data: { parent_id: string | null; parent_idx?: number },
 ): Event {
   return emit({
     type: "node_moved",

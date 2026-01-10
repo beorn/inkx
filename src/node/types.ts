@@ -43,7 +43,7 @@ export interface Node {
   id: string; // ULID
   type: NodeType;
   parent_id: string | null;
-  sort_order: number;
+  parent_idx: number;
   symlink_to: string | null; // Reference to another node
 
   // Filesystem mapping (for folder/file)
@@ -111,7 +111,7 @@ export interface NodeCreatedData {
   id: string;
   type: NodeType;
   parent_id?: string | null;
-  sort_order?: number;
+  parent_idx?: number;
   symlink_to?: string | null;
   fs_path?: string;
   fs_ino?: number;
@@ -134,7 +134,7 @@ export interface NodeUpdatedData {
 
 export interface NodeMovedData {
   parent_id: string | null;
-  sort_order?: number;
+  parent_idx?: number;
 }
 
 export interface SessionStartedData {

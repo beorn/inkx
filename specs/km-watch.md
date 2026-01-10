@@ -352,7 +352,7 @@ function regenerateFile(fileNodeId: string): string {
       JOIN descendants d ON n.parent_id = d.id
     )
     SELECT * FROM descendants
-    ORDER BY sort_order
+    ORDER BY parent_idx
   `,
     [fileNodeId],
   );

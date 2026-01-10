@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS nodes (
   type TEXT NOT NULL,
   parent_id TEXT,
   symlink_to TEXT,
-  sort_order REAL DEFAULT 0,
+  parent_idx REAL DEFAULT 0,
 
   -- Filesystem
   fs_path TEXT,
@@ -235,7 +235,7 @@ function applyNodeCreated(db: Database, event: Event): void {
   db.run(
     `
     INSERT INTO nodes (
-      id, type, parent_id, symlink_to, sort_order,
+      id, type, parent_id, symlink_to, parent_idx,
       fs_path, fs_ino, md_pos, md_slug,
       task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
       content, content_hash, data,
@@ -253,7 +253,7 @@ function applyNodeCreated(db: Database, event: Event): void {
       data.type as string,
       (data.parent_id as string) ?? null,
       (data.symlink_to as string) ?? null,
-      (data.sort_order as number) ?? 0,
+      (data.parent_idx as number) ?? 0,
       (data.fs_path as string) ?? null,
       (data.fs_ino as number) ?? null,
       (data.md_pos as number) ?? null,
@@ -302,15 +302,15 @@ function applyNodeUpdated(db: Database, event: Event): void {
 function applyNodeMoved(db: Database, event: Event): void {
   if (!event.target) return;
 
-  const data = event.data as { parent_id: string | null; sort_order?: number };
+  const data = event.data as { parent_id: string | null; parent_idx?: number };
 
   db.run(
     `
     UPDATE nodes
-    SET parent_id = ?, sort_order = ?, updated_at = ?, version = ?
+    SET parent_id = ?, parent_idx = ?, updated_at = ?, version = ?
     WHERE id = ?
   `,
-    [data.parent_id, data.sort_order ?? 0, event.ts, event.id, event.target],
+    [data.parent_id, data.parent_idx ?? 0, event.ts, event.id, event.target],
   );
 }
 
@@ -420,7 +420,7 @@ export function getChildren(parentId: string | null): Node[] {
         `
       SELECT * FROM nodes
       WHERE parent_id IS NULL
-      ORDER BY sort_order, created_at
+      ORDER BY parent_idx, created_at
     `,
       )
       .all() as Record<string, unknown>[];
@@ -430,7 +430,7 @@ export function getChildren(parentId: string | null): Node[] {
         `
       SELECT * FROM nodes
       WHERE parent_id = ?
-      ORDER BY sort_order, created_at
+      ORDER BY parent_idx, created_at
     `,
       )
       .all(parentId) as Record<string, unknown>[];
@@ -454,7 +454,7 @@ export function getSubtree(rootId: string): Node[] {
       JOIN subtree s ON n.parent_id = s.id
     )
     SELECT * FROM subtree
-    ORDER BY sort_order, created_at
+    ORDER BY parent_idx, created_at
   `,
     )
     .all(rootId) as Record<string, unknown>[];
@@ -577,7 +577,7 @@ function rowToNode(row: Record<string, unknown>): Node {
     id: row.id as string,
     type: row.type as NodeType,
     parent_id: row.parent_id as string | null,
-    sort_order: row.sort_order as number,
+    parent_idx: row.parent_idx as number,
     symlink_to: row.symlink_to as string | null,
     fs_path: row.fs_path as string | undefined,
     fs_ino: row.fs_ino as number | undefined,

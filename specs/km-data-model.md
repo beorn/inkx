@@ -13,7 +13,7 @@ interface Node {
   id: string; // ULID (persisted) or path:line (memory)
   type: NodeType;
   parent_id: string | null;
-  sort_order: number;
+  parent_idx: number;
 
   // Location (for write-back)
   fs_path: string | null; // Absolute path to .md file
@@ -104,7 +104,7 @@ CREATE TABLE nodes (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL,
   parent_id TEXT,
-  sort_order REAL DEFAULT 0,
+  parent_idx REAL DEFAULT 0,
 
   -- Location
   fs_path TEXT,
@@ -155,7 +155,7 @@ interface Event {
 // Node lifecycle
 { type: 'node_created', data: { id, type, parent_id, content, ... } }
 { type: 'node_updated', target: id, data: { task_status: 'done' } }
-{ type: 'node_moved', target: id, data: { parent_id, sort_order } }
+{ type: 'node_moved', target: id, data: { parent_id, parent_idx } }
 { type: 'node_deleted', target: id }
 
 // Task actions
@@ -213,7 +213,7 @@ function getChildren(parentId: string | null): Node[] {
     `
     SELECT * FROM nodes
     WHERE parent_id ${parentId ? "= ?" : "IS NULL"}
-    ORDER BY sort_order
+    ORDER BY parent_idx
   `,
     parentId ? [parentId] : [],
   );

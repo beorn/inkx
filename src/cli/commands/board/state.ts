@@ -453,7 +453,7 @@ function moveCardToColumn(state: BoardState, targetColIndex: number): void {
   if (!card || !targetCol) return;
 
   const lastCard = targetCol.cards[targetCol.cards.length - 1];
-  const sortOrder = lastCard ? lastCard.node.sort_order + 1 : 0;
+  const sortOrder = lastCard ? lastCard.node.parent_idx + 1 : 0;
 
   emit({
     type: "node_moved",
@@ -461,7 +461,7 @@ function moveCardToColumn(state: BoardState, targetColIndex: number): void {
     target: card.node.id,
     data: {
       parent_id: targetCol.node.id,
-      sort_order: sortOrder,
+      parent_idx: sortOrder,
     },
   });
 }
@@ -478,14 +478,14 @@ function moveCardInColumn(state: BoardState, targetIndex: number): void {
   let sortOrder: number;
   if (targetIndex === 0) {
     const first = col.cards[0];
-    sortOrder = first ? first.node.sort_order - 1 : 0;
+    sortOrder = first ? first.node.parent_idx - 1 : 0;
   } else if (targetIndex >= col.cards.length - 1) {
     const last = col.cards[col.cards.length - 1];
-    sortOrder = last ? last.node.sort_order + 1 : 0;
+    sortOrder = last ? last.node.parent_idx + 1 : 0;
   } else {
     const prev = col.cards[targetIndex - 1];
     const next = col.cards[targetIndex];
-    sortOrder = (prev.node.sort_order + next.node.sort_order) / 2;
+    sortOrder = (prev.node.parent_idx + next.node.parent_idx) / 2;
   }
 
   emit({
@@ -494,7 +494,7 @@ function moveCardInColumn(state: BoardState, targetIndex: number): void {
     target: card.node.id,
     data: {
       parent_id: col.node.id,
-      sort_order: sortOrder,
+      parent_idx: sortOrder,
     },
   });
 }

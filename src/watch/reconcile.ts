@@ -276,7 +276,7 @@ function findNodeByName(name: string): Node | null {
     id: row.id as string,
     type: row.type as Node["type"],
     parent_id: row.parent_id as string | null,
-    sort_order: row.sort_order as number,
+    parent_idx: row.parent_idx as number,
     symlink_to: row.symlink_to as string | null,
     fs_path: row.fs_path as string | undefined,
     fs_ino: row.fs_ino as number | undefined,

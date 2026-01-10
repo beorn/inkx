@@ -516,11 +516,11 @@ describe("Node CRUD Operations", () => {
       // Move file1 with new sort order
       emitNodeMoved("test-user", file1Id, {
         parent_id: folder.data.id as string,
-        sort_order: 100,
+        parent_idx: 100,
       });
 
       const node = getNode(file1Id);
-      expect(node!.sort_order).toBe(100);
+      expect(node!.parent_idx).toBe(100);
     });
 
     test("should preserve subtree on move", () => {

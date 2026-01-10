@@ -6,7 +6,8 @@
 
 import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs";
 import { join } from "path";
-import { getEventsPath, getKmDir } from "./emit.ts";
+import { getEventsPath, getKmDir, setDatabase } from "./emit.ts";
+import { dbApplyEvent } from "./db.ts";
 import { applyEvent, getDb, getDbPath, resetDb, closeDb, setDb } from "./db.ts";
 import { initStore } from "./store.ts";
 import type { Event } from "./types.ts";
@@ -194,6 +195,8 @@ export function ensureState(rootPath?: string, searchAncestors = true): void {
     } else {
       syncState();
     }
+    // Enable immediate event application so emit() updates state.db in real-time
+    setDatabase(dbApplyEvent);
   }
 }
 

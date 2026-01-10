@@ -167,7 +167,7 @@ function getAgentQueue(db: Database, agentId: string): Node[] {
     `
     SELECT * FROM nodes
     WHERE parent_id = ?
-    ORDER BY sort_order
+    ORDER BY parent_idx
   `,
     [agentId],
   );
@@ -187,7 +187,7 @@ function getAgentQueue(db: Database, agentId: string): Node[] {
           `
           SELECT * FROM nodes
           WHERE parent_id = ? AND type = 'task' AND status != 'done'
-          ORDER BY sort_order
+          ORDER BY parent_idx
         `,
           [target.id],
         );

@@ -150,7 +150,7 @@ function getFilteredNodes(options: {
     }
   }
 
-  sql += " ORDER BY sort_order ASC, created_at DESC";
+  sql += " ORDER BY parent_idx ASC, created_at DESC";
 
   let nodes = db.prepare(sql).all(...params) as Node[];
 

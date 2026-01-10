@@ -6,7 +6,7 @@ import React, { useState, useEffect } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { withFullScreen } from "fullscreen-ink";
 import type { BoardState, CardState, ColumnState } from "./types.ts";
-import { buildBoardState } from "./state.ts";
+import { buildBoardState, initBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "../../../node/types.ts";
 import { getChildren, getNode, getDb, isMemoryMode } from "../../../node/db.ts";
 import { emit } from "../../../node/emit.ts";
@@ -517,35 +517,54 @@ function Board({ initialState }: BoardProps) {
 
     if (targetIndex < 0 || targetIndex >= col.cards.length) return;
 
-    // Calculate new sort order
+    // Calculate new sort order using fractional indexing
+    // When cards have same parent_idx (e.g., all 0), use index-based fallback
+    const getEffectiveSortOrder = (cardIndex: number): number => {
+      const c = col.cards[cardIndex];
+      // If all cards have parent_idx 0, use index as fallback
+      // Otherwise use the actual parent_idx
+      return c ? (c.node.parent_idx === 0 ? cardIndex : c.node.parent_idx) : cardIndex;
+    };
+
     let newSortOrder: number;
     if (direction === "up") {
       if (targetIndex === 0) {
-        const first = col.cards[0];
-        newSortOrder = first ? first.node.sort_order - 1 : 0;
+        // Moving to first position: go before the current first card
+        const firstOrder = getEffectiveSortOrder(0);
+        newSortOrder = firstOrder - 1;
       } else {
-        const prev = col.cards[targetIndex - 1];
-        const target = col.cards[targetIndex];
-        newSortOrder = prev && target ? (prev.node.sort_order + target.node.sort_order) / 2 : 0;
+        // Moving between two cards: use midpoint
+        const prevOrder = getEffectiveSortOrder(targetIndex - 1);
+        const targetOrder = getEffectiveSortOrder(targetIndex);
+        newSortOrder = (prevOrder + targetOrder) / 2;
       }
     } else {
       if (targetIndex >= col.cards.length - 1) {
-        const last = col.cards[col.cards.length - 1];
-        newSortOrder = last ? last.node.sort_order + 1 : 0;
+        // Moving to last position: go after the current last card
+        const lastOrder = getEffectiveSortOrder(col.cards.length - 1);
+        newSortOrder = lastOrder + 1;
       } else {
-        const target = col.cards[targetIndex];
-        const next = col.cards[targetIndex + 1];
-        newSortOrder = target && next ? (target.node.sort_order + next.node.sort_order) / 2 : 0;
+        // Moving between two cards: use midpoint
+        const targetOrder = getEffectiveSortOrder(targetIndex);
+        const nextOrder = getEffectiveSortOrder(targetIndex + 1);
+        newSortOrder = (targetOrder + nextOrder) / 2;
       }
     }
 
     // Update database - use direct SQL in memory mode, emit event in disk mode
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const debugFs = require("fs");
+    debugFs.appendFileSync("/tmp/km-move-debug.log", `[DB] Updating card ${card.node.id.slice(-4)} to parent_idx=${newSortOrder} (memory=${isMemoryMode()})\n`);
+
     if (isMemoryMode()) {
       const db = getDb();
       db.run(
-        "UPDATE nodes SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
         [col.node.id, newSortOrder, Date.now(), card.node.id],
       );
+      // Verify the update
+      const updated = db.query("SELECT id, parent_idx FROM nodes WHERE id = ?").get(card.node.id) as { id: string; parent_idx: number } | null;
+      debugFs.appendFileSync("/tmp/km-move-debug.log", `[DB] After update: parent_idx=${updated?.parent_idx}\n`);
     } else {
       emit({
         type: "node_moved",
@@ -553,7 +572,7 @@ function Board({ initialState }: BoardProps) {
         target: card.node.id,
         data: {
           parent_id: col.node.id,
-          sort_order: newSortOrder,
+          parent_idx: newSortOrder,
         },
       });
     }
@@ -564,9 +583,21 @@ function Board({ initialState }: BoardProps) {
 
     // Rebuild board state to reflect changes
     setTimeout(() => {
-      if (state.rootId) {
-        const newState = buildBoardState(state.rootId);
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const debugFs = require("fs");
+      debugFs.appendFileSync("/tmp/km-move-debug.log", `[REBUILD] Rebuilding board state for rootId=${state.rootId}\n`);
+
+      // Use initBoardState for root level (null), buildBoardState for specific root
+      const newState = state.rootId
+        ? buildBoardState(state.rootId)
+        : initBoardState();
+
+      if (newState) {
+        const colCards = newState.columns[state.colIndex]?.cards ?? [];
+        debugFs.appendFileSync("/tmp/km-move-debug.log", `[REBUILD] Column ${state.colIndex} cards: ${colCards.map(c => c.node.id.slice(-4)).join(", ")}\n`);
+        debugFs.appendFileSync("/tmp/km-move-debug.log", `[REBUILD] Sort orders: ${colCards.map(c => c.node.parent_idx).join(", ")}\n`);
         newState.zoomStack = state.zoomStack;
+        newState.rootPath = state.rootPath;
         newState.colIndex = state.colIndex;
         newState.cardIndex = newCardIndex;
         setState(newState);
@@ -584,13 +615,13 @@ function Board({ initialState }: BoardProps) {
 
     // Calculate sort order (add at end of target column)
     const lastCard = targetCol.cards[targetCol.cards.length - 1];
-    const newSortOrder = lastCard ? lastCard.node.sort_order + 1 : 0;
+    const newSortOrder = lastCard ? lastCard.node.parent_idx + 1 : 0;
 
     // Update database - use direct SQL in memory mode, emit event in disk mode
     if (isMemoryMode()) {
       const db = getDb();
       db.run(
-        "UPDATE nodes SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
         [targetCol.node.id, newSortOrder, Date.now(), card.node.id],
       );
     } else {
@@ -600,7 +631,7 @@ function Board({ initialState }: BoardProps) {
         target: card.node.id,
         data: {
           parent_id: targetCol.node.id,
-          sort_order: newSortOrder,
+          parent_idx: newSortOrder,
         },
       });
     }
@@ -615,9 +646,14 @@ function Board({ initialState }: BoardProps) {
 
     // Rebuild board state
     setTimeout(() => {
-      if (state.rootId) {
-        const newState = buildBoardState(state.rootId);
+      // Use initBoardState for root level (null), buildBoardState for specific root
+      const newState = state.rootId
+        ? buildBoardState(state.rootId)
+        : initBoardState();
+
+      if (newState) {
         newState.zoomStack = state.zoomStack;
+        newState.rootPath = state.rootPath;
         newState.colIndex = targetColIndex;
         newState.cardIndex = Math.min(newCardIndex, newState.columns[targetColIndex]?.cards.length || 0);
         setState(newState);
@@ -628,6 +664,10 @@ function Board({ initialState }: BoardProps) {
   useInput((input, key) => {
     const col = state.columns[state.colIndex];
     const card = col?.cards[state.cardIndex];
+
+    // DEBUG: Log all key events
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    try { require("fs").appendFileSync("/tmp/km-move-debug.log", `[KEY] input="${input}" moveMode=${moveMode} key=${JSON.stringify(key)}\n`); } catch {}
 
     // Quit
     if (input === "q" && !moveMode) {
@@ -643,24 +683,42 @@ function Board({ initialState }: BoardProps) {
 
     // Enter move mode with 'm'
     if (input === "m" && !moveMode) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      try { require("fs").appendFileSync("/tmp/km-move-debug.log", `[MOVE] Entering move mode\n`); } catch {}
       setMoveMode(true);
       return;
     }
 
     // Move mode operations: m+hjkl
     if (moveMode) {
-      // Valid move keys
+      // DEBUG: Write to a file for debugging since stderr may not be visible
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const debugFs = require("fs");
+      const logDebug = (msg: string) => {
+        try { debugFs.appendFileSync("/tmp/km-move-debug.log", msg + "\n"); } catch {}
+      };
+      logDebug(`[MOVE] input="${input}" len=${input.length} charCode=${input.charCodeAt(0)} key=${JSON.stringify(key)} card=${!!card} colIndex=${state.colIndex} cardIndex=${state.cardIndex}`);
+
+      // Valid move keys - stay in move mode for repeated moves
       if (input === "k" || input === "j" || input === "h" || input === "l") {
         if (card) {
-          if (input === "k") moveCardInColumn(card, "up");
-          else if (input === "j") moveCardInColumn(card, "down");
-          else if (input === "h") moveCardToColumn(card, "left");
-          else if (input === "l") moveCardToColumn(card, "right");
+          try {
+            logDebug(`[MOVE] Executing move: ${input}`);
+            if (input === "k") moveCardInColumn(card, "up");
+            else if (input === "j") moveCardInColumn(card, "down");
+            else if (input === "h") moveCardToColumn(card, "left");
+            else if (input === "l") moveCardToColumn(card, "right");
+            logDebug(`[MOVE] Move completed`);
+          } catch (err) {
+            logDebug(`[MOVE] Error: ${err}`);
+          }
+        } else {
+          logDebug(`[MOVE] No card selected!`);
         }
-        setMoveMode(false);
+        // Stay in move mode - don't exit until Escape/q/other key
         return;
       }
-      // Arrow keys also work in move mode
+      // Arrow keys also work in move mode - stay in move mode for repeated moves
       if (key.upArrow || key.downArrow || key.leftArrow || key.rightArrow) {
         if (card) {
           if (key.upArrow) moveCardInColumn(card, "up");
@@ -668,14 +726,16 @@ function Board({ initialState }: BoardProps) {
           else if (key.leftArrow) moveCardToColumn(card, "left");
           else if (key.rightArrow) moveCardToColumn(card, "right");
         }
-        setMoveMode(false);
+        // Stay in move mode - don't exit until Escape/q/other key
         return;
       }
       // Ignore empty inputs (terminal noise) - stay in move mode
       if (input === "") {
+        logDebug(`[MOVE] Ignoring empty input`);
         return;
       }
       // Any other key cancels move mode
+      logDebug(`[MOVE] Canceling - unrecognized key`);
       setMoveMode(false);
       // Don't return - let the key be processed normally
     }
