@@ -1,12 +1,12 @@
 # Knowledge Machine
 
-> km - the agentic work desk
+> km - the workspace for agentic knowledge workers
 
 ## Why
 
 AI can finally think. Now it needs a place to work.
 
-**Human and AI agents, side by side.** You set direction. Agents do the rest.
+A new role is emerging: the **agentic knowledge worker**. Human and AI agents, side by side. You set direction. Agents do the rest.
 
 But today's tools weren't built for this:
 
