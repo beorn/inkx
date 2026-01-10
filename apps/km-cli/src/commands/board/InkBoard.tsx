@@ -745,7 +745,32 @@ function Board({ initialState }: BoardProps) {
           return;
         }
       }
-      // At root, quit
+      // At root of zoom stack - try to go up to parent node
+      if (state.rootId) {
+        const currentRoot = getNode(state.rootId);
+        if (currentRoot?.parent_id) {
+          // Go up to parent
+          const parentNode = getNode(currentRoot.parent_id);
+          if (parentNode?.parent_id) {
+            // Parent has a parent - build board from grandparent
+            const grandparent = getNode(parentNode.parent_id);
+            if (grandparent) {
+              const zoomed = buildBoardState(grandparent.id);
+              setState(zoomed);
+              clearSelection();
+              return;
+            }
+          }
+          // Parent is at top level - go to root view
+          const rootState = initBoardState();
+          if (rootState) {
+            setState(rootState);
+            clearSelection();
+            return;
+          }
+        }
+      }
+      // Truly at top level, quit
       exit();
       return;
     }
