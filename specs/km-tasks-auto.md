@@ -34,9 +34,7 @@ setup:
   boards:
     - "@inbox"
     - "@next"
-    - "@waiting"
     - "@someday"
-    - "@blocked"
   folders:
     - inbox/
     - archive/
@@ -61,12 +59,26 @@ setup:
   boards:
     - "@inbox"
     - name: "@next"
-      columns: [today, this-week]
-    - name: "@waiting"
-      columns: [pending]
+      columns: [today, this-week, waiting]
+    - "@someday"
   folders:
     - inbox/
     - archive/
+```
+
+### Column Status Automation
+
+Columns can auto-set status when tasks are added:
+
+```yaml
+setup:
+  boards:
+    - name: "@next"
+      columns:
+        - today
+        - this-week
+        - name: waiting
+          status: blocked    # Moving here sets status=blocked
 ```
 
 ### Running Setup
@@ -111,12 +123,12 @@ Filter which nodes the rule applies to:
 ```yaml
 where:
   status: open                    # Exact match
-  status: [open, done]            # Any of
+  status: [open, blocked]         # Any of
   path: starts_with "inbox/"      # String match
   due: past                       # Date comparison
   due: today
   start: today_or_past
-  has_field: waiting              # Field exists
+  has_field: due                  # Field exists
   has_ref: "@bjorn"               # Has reference
   on_board: "@next"               # Currently on board
 ```
@@ -128,9 +140,9 @@ For change triggers:
 ```yaml
 - trigger: field.changed
   where:
-    field: waiting
-    value.was: null               # Field was empty
-    value: not null               # Field now has value
+    field: status
+    value.was: open               # Was open
+    value: blocked                # Now blocked
 ```
 
 ---
@@ -142,6 +154,7 @@ For change triggers:
 | `board.add: "@board"` | Add to board (default column) |
 | `board.add: "@board/column"` | Add to specific column |
 | `board.remove: "@board"` | Remove from board |
+| `status.set: blocked` | Set task status |
 | `archive` | Move to archive/ folder |
 
 ### Dynamic Values
@@ -150,7 +163,6 @@ Use `${}` for dynamic board names:
 
 ```yaml
 actions:
-  - board.add: "@waiting/${waiting}"  # e.g., @waiting/@sarah
   - board.add: "${ref}"               # Each reference
 ```
 
@@ -169,10 +181,12 @@ setup:
   boards:
     - "@inbox"
     - name: "@next"
-      columns: [today, this-week]
-    - "@waiting"
+      columns:
+        - today
+        - this-week
+        - name: waiting
+          status: blocked
     - "@someday"
-    - "@blocked"
   folders:
     - inbox/
     - archive/
@@ -216,44 +230,6 @@ rules:
     actions:
       - board.add: "@next"
 
-  # === WAITING ===
-
-  - name: waiting-add
-    description: Tasks with waiting field go to @waiting
-    trigger: field.changed
-    where:
-      field: waiting
-      value: not null
-    actions:
-      - board.add: "@waiting"
-      - board.add: "@waiting/${waiting}"
-
-  - name: waiting-remove
-    description: Tasks without waiting field leave @waiting
-    trigger: field.cleared
-    where:
-      field: waiting
-    actions:
-      - board.remove: "@waiting"
-      - board.remove: "@waiting/${value.was}"
-
-  # === BLOCKED ===
-
-  - name: blocked-add
-    trigger: field.changed
-    where:
-      field: blocked
-      value: not null
-    actions:
-      - board.add: "@blocked"
-
-  - name: blocked-remove
-    trigger: field.cleared
-    where:
-      field: blocked
-    actions:
-      - board.remove: "@blocked"
-
   # === COMPLETION ===
 
   - name: done-cleanup
@@ -264,9 +240,7 @@ rules:
       value: [done, dropped]
     actions:
       - board.remove: "@next"
-      - board.remove: "@waiting"
       - board.remove: "@inbox"
-      - board.remove: "@blocked"
 ```
 
 ---
@@ -288,9 +262,7 @@ rules:
       has_ref: starts_with "@"
       ref: not "@inbox"           # Skip system boards
       ref: not "@next"
-      ref: not "@waiting"
       ref: not "@someday"
-      ref: not "@blocked"
     actions:
       - board.add: "${ref}"
 
@@ -333,8 +305,8 @@ km auto --dry-run <id>     # Preview for specific task
 Output:
 ```
 [dry-run] Task "Review budget" (01HXY...)
-  + board.add @waiting         (rule: waiting-add)
-  + board.add @waiting/@sarah  (rule: waiting-add)
+  + board.add @next/waiting    (rule: column-status)
+  + status.set blocked         (rule: column-status)
 
 1 task, 2 actions
 ```
@@ -350,12 +322,11 @@ km auto log <task-id>      # History for specific task
 Example `km auto explain`:
 ```
 Task: "Get approval" (01HXY...)
-waiting: @sarah
+status: blocked
 
 On boards:
-  @waiting        <- rule: waiting-add (has waiting field)
-  @waiting/@sarah <- rule: waiting-add (waiting = @sarah)
-  @bjorn          <- rule: person-boards (has @bjorn ref)
+  @next/waiting     <- rule: column-status (in waiting column)
+  @bjorn            <- rule: person-boards (has @bjorn ref)
 ```
 
 ### Managing Rules
@@ -383,7 +354,7 @@ Tasks can opt-out of automations:
 
 ```markdown
 - [ ] Special task auto:ignore
-- [ ] Another auto:ignore:waiting-add
+- [ ] Another auto:ignore:inbox-capture
 ```
 
 | Syntax | Effect |

@@ -46,21 +46,25 @@ For each item:
 
 ### 3. Organize
 
-Tasks go to boards via references and fields:
+Tasks go to boards via references:
 
 ```markdown
 - [ ] Call vendor +website           # → +website board
 - [ ] Discuss budget @bjorn          # → @bjorn board
-- [ ] Await approval waiting:@sarah  # → @waiting/@sarah board
+```
+
+Blocked tasks go to waiting column:
+
+```bash
+km @next/waiting add ./tasks/approval
 ```
 
 ### 4. Review
 
 ```bash
-km @next          # What to work on
-km @waiting       # What's blocked on others
-km @waiting/@sarah  # What's Sarah got?
-km @someday       # Weekly review
+km @next                  # What to work on
+km @next/waiting          # What's blocked
+km @someday               # Weekly review
 ```
 
 ### 5. Do
@@ -80,7 +84,7 @@ km @next          # Open next actions board
 km auto setup                      # Create GTD boards
 ```
 
-This creates: `@inbox`, `@next`, `@waiting`, `@someday`, `@blocked`, and the `inbox/` folder.
+This creates: `@inbox`, `@next`, `@someday`, and the `inbox/` folder.
 
 ### Importing Existing Tasks
 
@@ -88,30 +92,30 @@ If you have a hierarchy of tasks (e.g., imported from another system):
 
 ```bash
 # Preview what would be added
-km @next add --query "status:open due:today" --dry-run
+km @next add status:open due:today --dry-run
 
 # Add all tasks due today or overdue
-km @next add --query "status:open due:past"
-km @next add --query "status:open due:today"
+km @next add status:open due:past
+km @next add status:open due:today
 
 # Add open tasks from a specific project
-km @next add --query "ref:+website status:open"
+km @next add +website status:open
 
 # Add by path/glob
-km @next add --path "projects/urgent/**"
+km @next add ./projects/urgent/**
 ```
 
 ### Bulk Board Population
 
 ```bash
 # Add everything due this week to @next
-km @next add --query "status:open due:week" --column this-week
+km @next/this-week add status:open due:week
 
 # Add high-priority items
-km @next add --query "status:open p:1"
+km @next/today add status:open p:1
 
-# Set up waiting board from existing waiting: fields
-km auto --all    # Re-run all automations
+# Re-run all automations
+km auto --all
 ```
 
 ### Query Examples
@@ -124,26 +128,25 @@ km task status:open -@next -@someday
 km task +website status:open due:none
 
 # Find blocked items
-km task @blocked
+km task status:blocked
 ```
 
 ---
 
 ## Core Concepts
 
-### Three Statuses
+### Four Statuses
 
-Tasks have exactly three statuses:
+Tasks have exactly four statuses:
 
 | Mark | Status | Meaning |
 |------|--------|---------|
 | `[ ]` | `open` | Available to work on |
+| `[~]` | `blocked` | Can't work on it (waiting/blocked) |
 | `[x]` | `done` | Completed |
 | `[-]` | `dropped` | Cancelled |
 
-**That's it.** Status answers: "Can I work on this?"
-
-Everything else — waiting, blocked, someday, in-progress — is a board or field.
+Status answers: "Can I work on this?"
 
 ### Boards = Organization
 
@@ -157,26 +160,28 @@ Boards are markdown files with columns. They're populated by automations or manu
 
 ## this-week
 - [[tasks/review-budget]]
+
+## waiting status:blocked
+- [[tasks/get-approval]]
 ```
 
 | Board | Purpose | How Populated |
 |-------|---------|---------------|
 | `@inbox` | Unprocessed items | Auto: `inbox/` folder |
 | `@next` | Next actions | Manual + auto (overdue) |
-| `@waiting` | Waiting on others | Auto: `waiting:` field |
 | `@someday` | Maybe/later | Manual only |
-| `@blocked` | Blocked by something | Auto: `blocked:` field |
 | `+project` | Project tasks | Auto: `+project` ref |
 | `@person` | Person agenda | Auto: `@person` ref |
 
-### Fields for Context
+### Column-Status Automation
 
-| Field | Purpose | Creates Board Entry |
-|-------|---------|---------------------|
-| `waiting:@sarah` | Who you're waiting on | `@waiting/@sarah` |
-| `blocked:"reason"` | What's blocking | `@blocked` |
-| `due:2025-01-15` | When it's due | (triggers @next if overdue) |
-| `start:2025-01-20` | Don't show until | (triggers @next when reached) |
+Columns can auto-set status when tasks are moved:
+
+```markdown
+## waiting status:blocked
+```
+
+Moving to `@next/waiting` sets `status=blocked`.
 
 ### Automations Move Tasks
 
@@ -185,12 +190,11 @@ Rules automatically populate boards:
 ```yaml
 # .km/auto/gtd.yml
 rules:
-  - name: waiting-board
-    trigger: field.changed
-    where: { has_field: waiting }
+  - name: surface-overdue
+    trigger: due.passed
+    where: { status: open }
     actions:
-      - board.add: "@waiting"
-      - board.add: "@waiting/${waiting}"
+      - board.add: "@next"
 ```
 
 See [km-tasks-auto.md](km-tasks-auto.md) for details.
@@ -205,10 +209,9 @@ Number keys `1-6` open favorite boards. Configure in `.km/config.yml`:
 favorites:
   1: "@next"
   2: "@inbox"
-  3: "@waiting"
-  4: "@someday"
-  5: "+current-project"
-  6: "@bjorn"
+  3: "@someday"
+  4: "+current-project"
+  5: "@bjorn"
 ```
 
 ---
@@ -222,39 +225,32 @@ Single input field:
 - Enter on no match creates new task
 - References in input (`@`, `#`, `+`) create links
 
-### Query & Filter
+### Node Queries
 
-Google-like search with filters:
+Unified query syntax:
 
 ```bash
-km task status:open due:week           # Open + due this week
-km task +website -@next                # Project tasks not on @next
-km task @waiting owner:bjorn           # My waiting items
+# References
+km task @bjorn                     # Has @bjorn reference
+km task +website                   # Has +website reference
+
+# Fields
+km task status:open due:week       # Open + due this week
+
+# Paths
+km task ./inbox/**                 # Tasks in inbox folder
 ```
 
-See [Query Syntax](km-tasks-data.md#queries) for full reference.
-
-### Waiting Tracking
-
-Track WHO you're waiting on:
-
-```markdown
-- [ ] Get sign-off waiting:@sarah
-- [ ] Await API waiting:vendor
-```
-
-View by person:
-```bash
-km @waiting/@sarah    # Everything Sarah owes you
-```
+See [Node Queries](km-tasks-data.md#node-queries) for full reference.
 
 ### Batch Operations
 
 Add multiple tasks to boards:
 
 ```bash
-km @next add --query "status:open due:today"
-km @next add --query "projects/website/**"
+km @next add status:open due:today
+km @next/today add +website status:open
+km @next add ./projects/website/**
 ```
 
 ### Easy Re-parenting

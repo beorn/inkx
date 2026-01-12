@@ -35,39 +35,39 @@ km task --all               # All tasks including done
 km task "budget"            # Full-text search
 ```
 
-### Query Syntax
+### Node Query Syntax
 
-Google-like search with filters:
+Unified query syntax for selecting nodes:
 
 ```bash
-km task budget                         # Full-text search
-km task @bjorn                         # Has @bjorn reference
-km task +website                       # Has +website reference
-km task '#finance'                     # Has #finance reference
+# Reference queries (has this reference)
+km task @bjorn                     # Has @bjorn reference
+km task +website                   # Has +website reference
+km task '#finance'                 # Has #finance reference
+km task -@bjorn                    # Does NOT have @bjorn reference
 
-km task @next                          # On @next board
-km task -@next                         # NOT on @next board
-km task @waiting/@sarah                # On @waiting/@sarah board
+# Field queries
+km task status:open                # By status
+km task status:blocked             # Blocked tasks
+km task due:today                  # Due today
+km task due:past                   # Overdue
+km task due:week                   # Due within 7 days
+km task owner:bjorn                # Owned by bjorn
 
-km task status:open                    # By status
-km task due:today                      # Due today
-km task due:past                       # Overdue
-km task due:week                       # Due within 7 days
-km task waiting:@sarah                 # Waiting on Sarah
-km task owner:bjorn                    # Owned by bjorn
-
-km task inbox/                         # In inbox/ folder
-km task projects/website/              # In project folder
-km task projects/**                    # Recursive glob
+# Path queries (contain / or start with .)
+km task ./inbox/                   # In inbox/ folder (relative)
+km task ./inbox/**                 # Inbox recursive
+km task projects/                  # Path contains projects/
+km task projects/**                # Recursive glob
 ```
 
-### Combining Filters
+### Combining Queries
 
 ```bash
 km task status:open due:week           # Open + due this week
 km task +website -@next                # Project tasks not on @next
-km task budget owner:bjorn             # Search + filter
-km task status:open -@next -@someday   # Not scheduled anywhere
+km task @bjorn status:open             # Bjorn's open tasks
+km task ./inbox/** status:open         # Open tasks in inbox
 ```
 
 ### Output Options
@@ -85,8 +85,7 @@ km task --count             # Count only
 ```bash
 km task due:past --verbose             # Overdue tasks, full detail
 km task +website status:open           # Open website tasks
-km task @waiting owner:bjorn           # My waiting items
-km task @blocked                       # All blocked tasks
+km task status:blocked                 # All blocked tasks
 ```
 
 ---
@@ -99,11 +98,10 @@ View and manage boards. Sigil (`@`, `+`, `#`) required.
 
 ```bash
 km @next                    # View @next board
+km @next/today              # View today column
+km @next/waiting            # View waiting column
 km @inbox                   # View @inbox board
-km @waiting                 # View all waiting items
-km @waiting/@sarah          # Waiting on Sarah specifically
 km @someday                 # View someday board
-km @blocked                 # View blocked board
 km @bjorn                   # View person board
 km +website                 # View project board
 km '#finance'               # View tag board (quote in shell)
@@ -112,44 +110,40 @@ km '#finance'               # View tag board (quote in shell)
 ### Adding to Boards
 
 ```bash
-# Add single task
-km @next add <id>
-km @next add <id> --column today
+# Add by node query
+km @next add status:open due:today
+km @next/today add +website status:open
+km @next/waiting add @sarah
 
-# Add by query
-km @next add --query "status:open due:today"
-km @next add --query "+website status:open"
-km @next add --query "status:open p:1" --column today
+# Add by path
+km @next add ./inbox/**
 
-# Add by path/glob
-km @next add --query "projects/website/**"
-
-# Add multiple specific tasks
-km @next add task-1 task-2 task-3
+# Add specific nodes by ID
+km @next add task-1 task-2
 
 # Preview first
-km @next add --query "due:week" --dry-run
+km @next add due:week --dry-run
 ```
 
 ### Removing from Boards
 
 ```bash
-km @next remove <id>
-km @next remove --query "status:done"
+km @next remove status:done
+km @next/waiting remove @sarah
 ```
 
 ### Moving Between Columns
 
 ```bash
-km @next move <id> <column>
-km @next move <id> this-week
+km @next/today add task-id           # Move to today
+km @next/waiting add task-id         # Move to waiting (sets blocked)
 ```
 
 ### Listing Board Contents
 
 ```bash
 km @next list               # List all tasks on board
-km @next list --column today  # Just one column
+km @next/today list         # Just one column
 ```
 
 ### Inbox Processing
@@ -182,7 +176,6 @@ km add "Task title"                    # Add to inbox
 km add -n "Task title"                 # Add to @next
 km add -p "Project" "Task title"       # Add to project
 km add "Task @bjorn due:2025-01-15"    # With metadata
-km add "Get sign-off waiting:@sarah"   # Waiting task
 ```
 
 ### Options
@@ -194,8 +187,6 @@ km add "Get sign-off waiting:@sarah"   # Waiting task
 | `-d, --due` | Set due date |
 | `-s, --start` | Set start/scheduled date |
 | `-o, --owner` | Assign to user |
-| `-w, --waiting` | Set waiting on who/what |
-| `-b, --blocked` | Set blocked by what |
 | `-P, --priority` | Set priority (1-5) |
 
 ### Examples
@@ -204,8 +195,6 @@ km add "Get sign-off waiting:@sarah"   # Waiting task
 km add "Call dentist"
 km add -n "Review PR #42"
 km add -p "Work/Q1" "Budget review" -d 2025-01-15
-km add "Get approval" -w @sarah
-km add "Deploy" -b "API migration"
 km add "Weekly review" --recur "FREQ=WEEKLY;BYDAY=MO"
 ```
 
@@ -226,7 +215,6 @@ km done --last              # Mark last touched task done
 ### Behavior
 
 - Sets `status = done`
-- Clears `waiting:` and `blocked:` fields
 - For recurring tasks: clones with next occurrence
 - Automations remove from active boards
 
@@ -251,13 +239,11 @@ km move <id> --root              # Move to root level
 Quick field changes:
 
 ```bash
-km task set <id> waiting:@sarah        # Set waiting field
-km task set <id> blocked:"API issue"   # Set blocked field
 km task set <id> due:2025-01-20        # Set due date
 km task set <id> p:1                   # Set priority
+km task set <id> status:blocked        # Set blocked
 
-km task clear <id> waiting             # Clear waiting field
-km task clear <id> blocked             # Clear blocked field
+km task clear <id> due                 # Clear due date
 
 km task claim <id>                     # Assign to me
 km task release <id>                   # Unassign
@@ -322,7 +308,7 @@ Work / Finance
 
 Personal / Health
   [ ] Call dentist              due:today
-  [ ] ↻ Weekly review           Mon
+  [~] Waiting on callback       blocked
 ```
 
 ### Flat (`--flat`)
@@ -331,6 +317,7 @@ Personal / Health
 [ ] Review Q1 budget    Work/Finance    due:Jan15
 [ ] Send invoice        Work/Finance    @bjorn
 [ ] Call dentist        Personal        due:today
+[~] Waiting on callback Personal        blocked
 ```
 
 ### JSON (`--json`)

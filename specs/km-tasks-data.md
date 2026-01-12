@@ -50,6 +50,9 @@ A board is a markdown file with H2 columns containing wikilinks to tasks:
 
 ## this-week
 - [[tasks/send-invoice]]
+
+## waiting
+- [[tasks/get-approval]]
 ```
 
 Boards are populated by **automations** or **manual curation**.
@@ -58,40 +61,44 @@ Boards are populated by **automations** or **manual curation**.
 
 ## Status Model
 
-### Three Statuses
+### Four Statuses
 
 | Mark | Status | Meaning |
 |------|--------|---------|
 | `[ ]` | `open` | Available to work on |
+| `[~]` | `blocked` | Can't work on it (waiting/blocked) |
 | `[x]` | `done` | Completed |
 | `[-]` | `dropped` | Cancelled, won't do |
 
-**Three statuses only.** Everything else is a board or a field.
-
-### Why So Few?
+### Why These Four?
 
 Status answers one question: **Can I work on this?**
 
 - `open` — Yes
+- `blocked` — No, waiting on something/someone
 - `done` — No, it's finished
 - `dropped` — No, I decided not to
-
-Other concepts are fields or boards:
-
-| Concept | Implementation | Why Not Status? |
-|---------|----------------|-----------------|
-| In progress | On `@next` board | Board membership shows intent |
-| Waiting | `waiting:` field → `@waiting` board | Track WHO you're waiting on |
-| Blocked | `blocked:` field → `@blocked` board | Track WHAT is blocking |
-| Someday | `@someday` board | Just a list, no special semantics |
 
 ### Status Flow
 
 ```
-open [ ] ──→ done [x]
-  │
-  └──→ dropped [-]
+open [ ] ──→ blocked [~] ──→ open [ ]
+  │              │
+  └──────────────┼──→ done [x]
+                 │
+                 └──→ dropped [-]
 ```
+
+### Column-Status Automation
+
+Board columns can auto-set status when tasks are moved:
+
+```markdown
+## waiting status:blocked
+- [[tasks/get-approval]]
+```
+
+Moving a task to `@next/waiting` automatically sets `status=blocked`.
 
 ---
 
@@ -104,8 +111,6 @@ open [ ] ──→ done [x]
 | `due:` | `due:2025-01-15` | When it's due |
 | `start:` | `start:2025-01-20` | Don't show until this date |
 | `p:` | `p:1` | Priority (1-5, 1=highest) |
-| `waiting:` | `waiting:@sarah` | Who/what you're waiting on |
-| `blocked:` | `blocked:"API migration"` | What's blocking this |
 | `recur:` | `recur:FREQ=WEEKLY` | Recurrence rule (iCal RRULE) |
 
 ### References
@@ -126,14 +131,12 @@ interface Node {
   type: string;           // file, folder, heading, list_item
 
   // Task fields (optional)
-  status?: 'open' | 'done' | 'dropped';
+  status?: 'open' | 'blocked' | 'done' | 'dropped';
   owner?: string;         // First @ reference
   references?: string[];  // All @, #, + references
   due?: string;           // YYYY-MM-DD
   start?: string;         // YYYY-MM-DD (defer until)
   p?: number;             // Priority 1-5
-  waiting?: string;       // Who/what waiting on
-  blocked?: string;       // What's blocking
   recur?: string;         // iCal RRULE
   recur_prev?: string;    // Previous instance ID
 }
@@ -153,9 +156,6 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 |-------|---------|--------------|
 | `@inbox` | Unprocessed items | Automation: `inbox/` folder |
 | `@next` | Next actions | Manual + automation (overdue/starting) |
-| `@waiting` | Waiting on others | Automation: has `waiting:` field |
-| `@waiting/@sarah` | Waiting on Sarah | Automation: `waiting:@sarah` |
-| `@blocked` | Blocked tasks | Automation: has `blocked:` field |
 | `@someday` | Maybe/later | Manual curation only |
 
 ### Reference Boards
@@ -169,17 +169,17 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 ### Board Files
 
 ```markdown
-# @waiting.md
+# @next.md
 
-## @sarah
-- [[tasks/budget-approval]]
-- [[tasks/contract-review]]
+## today
+- [[tasks/review-budget]]
 
-## @vendor
-- [[tasks/api-access]]
+## this-week
+- [[tasks/send-invoice]]
+
+## waiting status:blocked
+- [[tasks/get-approval]]
 ```
-
-Sub-boards for waiting are auto-generated from the `waiting:` field value.
 
 ### Column Attributes
 
@@ -187,6 +187,7 @@ Sub-boards for waiting are auto-generated from the `waiting:` field value.
 ## wip limit:3
 ## done collapse:true
 ## review default:true
+## waiting status:blocked
 ```
 
 | Attribute | Effect |
@@ -194,95 +195,127 @@ Sub-boards for waiting are auto-generated from the `waiting:` field value.
 | `limit:N` | WIP limit (visual warning) |
 | `collapse:true` | Collapsed in UI |
 | `default:true` | New items go here |
+| `status:X` | Auto-set status when task added |
 
 ---
 
-## Queries
+## Node Queries
 
-### Query Syntax
+Unified query syntax for selecting nodes.
 
-Google-like search with filters:
+### Matching Rules
 
-```bash
-km task budget                         # Full-text search
-km task @bjorn                         # Has @bjorn reference
-km task +website                       # Has +website reference
-km task @next                          # On @next board
-km task -@next                         # NOT on @next board
-```
-
-### Reference & Board Filters
+By default, queries use **contains** matching. Add `$` suffix for exact match:
 
 | Query | Matches |
 |-------|---------|
-| `@bjorn` | Has @bjorn reference |
-| `+website` | Has +website reference |
-| `#urgent` | Has #urgent reference |
-| `@next` | On @next board |
-| `@waiting/@sarah` | On @waiting/@sarah board |
-| `-@next` | NOT on @next board |
+| `@bjorn` | Contains @bjorn reference (also matches @bjornson) |
+| `@bjorn$` | Exactly @bjorn |
+| `projects/` | Path contains "projects/" |
+| `projects/web$` | Path is exactly "projects/web" |
 
-### Field Filters
+### Query Types
 
-| Filter | Matches |
-|--------|---------|
+| Pattern | Type | Matches |
+|---------|------|---------|
+| `@bjorn` | Reference | Contains @bjorn reference |
+| `+website` | Reference | Contains +website reference |
+| `#urgent` | Reference | Contains #urgent reference |
+| `status:open` | Field | Field equals value |
+| `due:today` | Field | Due date is today |
+| `./inbox/**` | Path | Relative glob |
+| `projects/` | Path | Path contains |
+
+### Reference Queries
+
+Sigil-prefixed terms match nodes with that reference:
+
+```bash
+@bjorn              # Contains @bjorn reference
+@bjorn$             # Exactly @bjorn
++website            # Contains +website reference
+#urgent             # Contains #urgent reference
+-@bjorn             # Does NOT contain @bjorn reference
+```
+
+### Field Queries
+
+`key:value` matches field values:
+
+| Query | Matches |
+|-------|---------|
 | `status:open` | Status is open |
+| `status:blocked` | Status is blocked |
 | `status:done` | Status is done |
 | `due:today` | Due today |
 | `due:past` | Overdue |
 | `due:week` | Due within 7 days |
 | `due:none` | No due date |
 | `start:past` | Start date reached |
-| `waiting:@sarah` | Waiting on Sarah |
-| `owner:bjorn` | Owned by bjorn |
+| `owner:bjorn` | Owner contains bjorn |
+| `owner:bjorn$` | Owner is exactly bjorn |
 | `p:1` | Priority 1 |
 
-### Path Filters
+### Path Queries
+
+Path-like patterns (contain `/` or start with `.`) match by location:
 
 | Query | Matches |
 |-------|---------|
-| `inbox/` | In inbox folder |
-| `projects/website/` | In specific folder |
+| `./inbox/` | In inbox folder (relative) |
+| `./inbox/**` | Inbox folder recursive |
+| `/projects/web` | Absolute path contains |
+| `/projects/web$` | Absolute path exactly |
+| `projects/` | Path contains "projects/" |
 | `projects/**` | Recursive glob |
 
-### Combining Filters
+### Combining Queries
 
 ```bash
-km task status:open due:week           # Open + due this week
-km task +website -@next                # Project tasks not on @next
-km task budget owner:bjorn             # Search + filter
+status:open due:week           # Open + due this week
++website -@next                # Project tasks not on @next board
+@bjorn$ status:open            # Exactly bjorn's open tasks
+./inbox/** status:open         # Open tasks in inbox
 ```
 
 ---
 
-## Batch Operations
+## Board Commands
+
+### Board/Column Paths
+
+Boards and columns are addressed with path-like syntax:
+
+```bash
+km @next                       # View @next board
+km @next/today                 # View today column
+km @next/waiting               # View waiting column
+km +website                    # View project board
+```
 
 ### Adding to Boards
 
-Add multiple tasks to a board at once:
-
 ```bash
-# Add by query
-km @next add --query "status:open due:today"
-km @next add --query "+website status:open"
+# Add by node query
+km @next add status:open due:today
+km @next/today add +website status:open
+km @next/waiting add @sarah
 
 # Add by path
-km @next add --query "projects/website/**"
+km @next add ./inbox/**
 
-# Add specific tasks
-km @next add task-1 task-2 task-3
+# Add specific nodes by ID
+km @next add task-1 task-2
 
 # Preview first
-km @next add --query "due:week" --dry-run
-
-# Add to specific column
-km @next add --query "due:today" --column today
+km @next add due:week --dry-run
 ```
 
 ### Removing from Boards
 
 ```bash
-km @next remove --query "status:done"
+km @next remove status:done
+km @next/waiting remove @sarah
 ```
 
 ---
@@ -332,13 +365,13 @@ Completed items can be moved to `archive/` (manual or via automation).
 |-------------|-------------------|
 | Inbox | `inbox/` folder → `@inbox` board |
 | Next Actions | `@next` board (curated) |
-| Waiting For | `waiting:` field → `@waiting` board |
-| Someday/Maybe | `@someday` board (just a list) |
+| Waiting For | `@next/waiting` column (status=blocked) |
+| Someday/Maybe | `@someday` board |
 | Projects | `+project` references |
 | Contexts | `@context` references |
 | Reference | Nodes without status |
 
-**Key insight:** GTD "lists" are boards. A task's status (open/done/dropped) is independent of which lists it's on.
+**Key insight:** GTD "lists" are boards. Status (open/blocked/done/dropped) indicates whether you can work on it.
 
 ---
 
@@ -356,21 +389,13 @@ Completed items can be moved to `archive/` (manual or via automation).
 - [ ] Review Q1 budget @bjorn #finance +q1 due:2025-01-15 p:1
 ```
 
-### Waiting Task
-
-```markdown
-- [ ] Get budget approval waiting:@sarah
-```
-
-Appears on: `@waiting`, `@waiting/@sarah`
-
 ### Blocked Task
 
 ```markdown
-- [ ] Deploy to prod blocked:"API migration"
+- [~] Get budget approval @sarah
 ```
 
-Appears on: `@blocked`
+On `@next/waiting` → status auto-set to `blocked`.
 
 ### Recurring Task
 

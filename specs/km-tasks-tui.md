@@ -14,14 +14,14 @@ Terminal UI for task management.
 ├────────────────────────────────────────────────────┤
 │ @next (3)                                    [1]  │
 │ ─────────────────────────────────────────────────  │
-│ ▸ [.] Review Q1 budget      Work / Finance  -2d  │
+│ ▸ [~] Review Q1 budget      Work / Finance  -2d  │
 │   [ ] Call dentist          Personal        today │
 │   [ ] Fix login bug         Work / Auth          │
 ├────────────────────────────────────────────────────┤
 │                                                    │
 │  Review Q1 budget                                  │
 │  ───────────────────────────────────────────────── │
-│  Status: wip    Due: Jan 10 (overdue)             │
+│  Status: blocked    Due: Jan 10 (overdue)         │
 │  Project: Work / Finance                          │
 │                                                    │
 │  Need to compare with [[Q4 Actuals]].             │
@@ -70,7 +70,7 @@ Unified NV-style input:
 ```
 [mark] Title                    Project / Path      Due
 ─────────────────────────────────────────────────────────
-[.]    Review Q1 budget         Work / Finance      -2d
+[~]    Review Q1 budget         Work / Finance      -2d
 [ ]    Call dentist             Personal            today
 [x]    Setup repo               Work / Auth         ✓
 [ ] ↻  Weekly review            Personal            Mon
@@ -78,7 +78,7 @@ Unified NV-style input:
 
 | Column | Source | Width |
 |--------|--------|-------|
-| Mark | `[ ]` `[.]` `[x]` `[-]` | 3 |
+| Mark | `[ ]` `[~]` `[x]` `[-]` | 3 |
 | Recur | `↻` if recurring | 2 |
 | Title | First line of content | flex |
 | Project | Collapsed ancestors | 20 |
@@ -89,6 +89,7 @@ Unified NV-style input:
 | Mark | Status | Display |
 |------|--------|---------|
 | `[ ]` | open | Default |
+| `[~]` | blocked | Yellow |
 | `[x]` | done | Green, dim |
 | `[-]` | dropped | Dim, strikethrough |
 
@@ -113,10 +114,9 @@ Opens on `Enter` or `l`, closes on `Esc` or `h`.
 ┌─────────────────────────────────────────────┐
 │ Task Title                            [Edit]│
 ├─────────────────────────────────────────────┤
-│ Status:    [wip ▼]       Due: [Jan 10 🔴]  │
+│ Status:    [blocked ▼]    Due: [Jan 10 🔴] │
 │ Project:   [Work / Finance              ▼] │
 │ Owner:     [@bjorn                      ▼] │
-│ Waiting:   [@sarah                      ▼] │
 ├─────────────────────────────────────────────┤
 │ ## Description                              │
 │                                             │
@@ -151,10 +151,9 @@ Number keys `1-6` open favorite boards. Configure in `.km/config.yml`:
 favorites:
   1: "@next"
   2: "@inbox"
-  3: "@waiting"
-  4: "@someday"
-  5: "+current-project"
-  6: "@bjorn"
+  3: "@someday"
+  4: "+current-project"
+  5: "@bjorn"
 ```
 
 ### Board View
@@ -164,29 +163,18 @@ All boards display as columns:
 ```
 @next                                        [1]
 ────────────────────────────────────────────────
-┌──────────────────┐ ┌──────────────────┐
-│ today            │ │ this-week        │
-├──────────────────┤ ├──────────────────┤
-│ 🔴 [.] Budget    │ │ [ ] Send invoice │
-│    [ ] Dentist   │ │ [ ] Review PR    │
-└──────────────────┘ └──────────────────┘
-```
-
-```
-@waiting                                     [3]
-────────────────────────────────────────────────
-┌──────────────────┐ ┌──────────────────┐
-│ @sarah           │ │ @vendor          │
-├──────────────────┤ ├──────────────────┤
-│ [ ] Approval     │ │ [ ] API access   │
-│ [ ] Sign-off     │ │                  │
-└──────────────────┘ └──────────────────┘
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│ today            │ │ this-week        │ │ waiting          │
+├──────────────────┤ ├──────────────────┤ ├──────────────────┤
+│ 🔴 [ ] Budget    │ │ [ ] Send invoice │ │ [~] Get approval │
+│    [ ] Dentist   │ │ [ ] Review PR    │ │ [~] API access   │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
 ```
 
 ### Person Board
 
 ```
-@bjorn                                       [6]
+@bjorn                                       [5]
 ────────────────────────────────────────────────
 ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
 │ to-discuss  │ │ discussed   │ │ done        │
@@ -225,11 +213,12 @@ All boards display as columns:
 | Key | Action |
 |-----|--------|
 | `x` | Toggle done |
+| `b` | Toggle blocked |
 | `n` | Add to @next |
+| `w` | Add to @next/waiting |
 | `p` | Change project |
 | `d` | Set due date |
 | `s` | Change status |
-| `w` | Set waiting (prompts for who) |
 | `e` | Edit title inline |
 | `N` | Add note |
 | `a` | Add subtask |
@@ -295,6 +284,7 @@ Type to filter...
 |---------|-------|
 | Selected row | Inverse |
 | Task `[ ]` | Default |
+| Task `[~]` | Yellow |
 | Task `[x]` | Green |
 | Task `[-]` | Dim |
 | Due (overdue) | Red |
