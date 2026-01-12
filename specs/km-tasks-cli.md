@@ -27,7 +27,7 @@ List and filter tasks.
 ### Basic Usage
 
 ```bash
-km task                     # Open tasks (open, next, wip)
+km task                     # Open tasks (open, wip)
 km task --all               # All tasks including done
 km task "query"             # Search tasks
 ```
@@ -86,10 +86,11 @@ km next clear               # Clear all from next
 
 ### Behavior
 
-- Shows tasks with `status = next` or `status = wip`
+- Shows tasks with `status = open` or `status = wip`
 - Overdue tasks auto-surface at top
-- Adding sets `status = next`
-- Removing sets `status = open`
+- Tasks ordered by manual priority in a "next list" (curated view)
+- Adding places task in next list
+- Removing takes task out of next list
 
 ### Examples
 
@@ -153,7 +154,7 @@ km add "Task @bjorn due:2025-01-15"    # With metadata
 
 | Option            | Description                    |
 |-------------------|--------------------------------|
-| `-t, --today`     | Add to today (status=next)     |
+| `-t, --today`     | Add to next list (curated)     |
 | `-p, --project`   | Set parent project             |
 | `-d, --due`       | Set due date                   |
 | `-s, --start`     | Set start/scheduled date       |

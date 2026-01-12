@@ -86,6 +86,8 @@ NV-style unified input:
 
 ### Status Marks
 
+See [km-tasks-data.md](km-tasks-data.md#status-model) for full status model.
+
 | Mark | Status | Display |
 |------|--------|---------|
 | `[ ]` | open | Default |
@@ -119,7 +121,7 @@ Opens on `Enter` or `l`, closes on `Esc` or `h`.
 ┌─────────────────────────────────────────────┐
 │ Task Title                            [Edit]│
 ├─────────────────────────────────────────────┤
-│ Status:    [next ▼]      Due: [Jan 10 🔴]  │
+│ Status:    [wip ▼]       Due: [Jan 10 🔴]  │
 │ Project:   [Work / Finance              ▼] │
 │ Owner:     [bjorn                       ▼] │
 │ Priority:  [★★☆☆☆]                         │

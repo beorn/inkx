@@ -487,6 +487,35 @@ Quote values containing spaces:
 - [[tasks/call-vendor]]
 ```
 
+### Board (Next Actions)
+
+```markdown
+# @next.md
+
+## today
+- [[tasks/review-budget]]
+- [[tasks/call-dentist]]
+
+## this-week
+- [[tasks/send-invoice]]
+```
+
+The "Next" view in the TUI is essentially viewing the `@next` board.
+
+---
+
+## GTD Mapping
+
+| GTD Concept | km Implementation |
+|-------------|-------------------|
+| Inbox | `inbox/` folder |
+| Next Actions | `@next.md` board or Next view |
+| Projects | `+project` nodes or parent folders |
+| Waiting For | `status = waiting` |
+| Someday/Maybe | `status = someday` |
+| Reference | Nodes without status |
+| Contexts | `@phone.md`, `@computer.md` boards |
+
 ---
 
 ## See Also
