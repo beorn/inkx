@@ -29,8 +29,8 @@ Task management in km, inspired by Notational Velocity and Simplenote.
 ### 1. Capture
 
 ```bash
-km add "Call dentist"              # → @inbox
-km add "Review budget @bjorn"      # → @inbox + @bjorn board
+km new "Call dentist"              # → @inbox
+km new "Review budget @bjorn"      # → @inbox + @bjorn board
 ```
 
 ### 2. Clarify (Process Inbox)

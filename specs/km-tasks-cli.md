@@ -12,7 +12,7 @@ Command-line interface for task management.
 | `km @board` | View/manage `@` board |
 | `km +board` | View/manage `+` board |
 | `km #board` | View/manage `#` board |
-| `km add` | Quick capture |
+| `km new` | Quick capture (create task) |
 | `km done` | Mark task done |
 | `km move` | Re-parent task |
 | `km auto` | Manage automations |
@@ -133,17 +133,17 @@ Inbox item 1 of 5:
 
 ---
 
-## km add
+## km new
 
-Quick capture - create new task.
+Quick capture — create new task.
 
 ### Usage
 
 ```bash
-km add "Task title"                    # Add to inbox
-km add -n "Task title"                 # Add to @next
-km add -p "Project" "Task title"       # Add to project
-km add "Task @bjorn due:2025-01-15"    # With metadata
+km new "Task title"                    # Create in inbox
+km new -n "Task title"                 # Create and add to @next
+km new -p "Project" "Task title"       # Create under project
+km new "Task @bjorn due:2025-01-15"    # With metadata
 ```
 
 ### Options
@@ -160,10 +160,10 @@ km add "Task @bjorn due:2025-01-15"    # With metadata
 ### Examples
 
 ```bash
-km add "Call dentist"
-km add -n "Review PR #42"
-km add -p "Work/Q1" "Budget review" -d 2025-01-15
-km add "Weekly review" --recur "FREQ=WEEKLY;BYDAY=MO"
+km new "Call dentist"
+km new -n "Review PR #42"
+km new -p "Work/Q1" "Budget review" -d 2025-01-15
+km new "Weekly review" --recur "FREQ=WEEKLY;BYDAY=MO"
 ```
 
 ---
