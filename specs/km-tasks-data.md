@@ -4,6 +4,102 @@ Data model extensions for task management.
 
 ---
 
+## Unified Task Model
+
+Any markdown element can become a task by adding a checkbox prefix. Tasks are nodes
+in the unified km model — same schema, same queries, same event log.
+
+### Task Sources
+
+| Source | Markdown | Node Type |
+|--------|----------|-----------|
+| List item | `- [ ] Call dentist` | `task` |
+| Heading | `## [ ] Q1 Review` | `task` (was `heading`) |
+| File | frontmatter `type: task` | `task` |
+| Folder | contains tasks | `project` (implicit) |
+
+### List Item Tasks
+
+Standard checkbox syntax:
+
+```markdown
+- [ ] Call dentist
+- [x] Send invoice
+```
+
+### Section Tasks
+
+Any heading can be a task by prefixing with checkbox:
+
+```markdown
+## [ ] Q1 Budget Review @bjorn due:2025-01-15
+
+Need to analyze spending across all departments.
+
+### Subtasks
+- [ ] Pull finance data
+- [ ] Meet with department heads
+- [x] Draft template
+
+### Notes
+2025-01-10: Kicked off analysis
+```
+
+The heading becomes a task node; content below (until next same-level heading)
+becomes the task description. Child headings and lists become subtasks.
+
+### File-Level Tasks
+
+A file with `type: task` in frontmatter is a task:
+
+```yaml
+---
+type: task
+status: in_progress
+assigned_to: bjorn
+due_date: 2025-01-15
+priority: 1
+tags: [work, q1]
+---
+
+# Review Q1 Budget
+
+Full task description with rich content...
+
+## Subtasks
+- [ ] Pull data
+- [ ] Analyze trends
+```
+
+**Frontmatter → Node mapping:**
+
+| Frontmatter | Node Field |
+|-------------|------------|
+| `type: task` | `type = 'task'` |
+| `status` | `task_status` |
+| `assigned_to` | `assigned_to` |
+| `due_date` | `due_date` |
+| `scheduled_date` | `scheduled_date` |
+| `priority` | `priority` |
+| `tags` | `data.tags` |
+| `recurrence` | `recurrence` |
+
+### Folder as Project
+
+A folder containing tasks implicitly becomes a project:
+
+```
+Work/
+├── Q1-Planning/
+│   ├── budget-review.md      # type: task
+│   └── headcount.md          # type: task
+└── tasks.md                  # contains - [ ] items
+```
+
+Query `Work/Q1-Planning/` to get all tasks in that project.
+
+---
+
 ## Markdown Representation
 
 Tasks are stored in markdown files using standard checkbox syntax with optional metadata.
@@ -196,10 +292,11 @@ interface Node {
 ```typescript
 data: {
   someday?: boolean;   // Maybe/someday flag
-  inbox?: boolean;     // Unprocessed item flag
   tags?: string[];     // Extracted from content #tags
 }
 ```
+
+Note: Inbox status is determined by location (`inbox/` folder), not a flag.
 
 ---
 
@@ -240,20 +337,49 @@ data: { someday: true }
 
 ---
 
-## Inbox Items
+## Inbox
 
-Flag for unprocessed items:
+The `inbox/` folder is the capture location for unprocessed items.
 
-```typescript
-data: { inbox: true }
+### Folder = Inbox
+
+Items in the `inbox/` folder automatically have inbox status:
+
+```
+inbox/
+├── call-from-john.md
+├── idea-refactor-auth.md
+└── meeting-notes-jan10.md
 ```
 
-Sources:
-- Quick capture (`km add "..."`)
-- New items without project parent
-- Watch mode discoveries
+**No separate flag needed** — location determines inbox status.
 
-Processing clears the flag and sets project.
+### Inbox Behavior
+
+| Action | Result |
+|--------|--------|
+| `km add "..."` | Creates file in `inbox/` |
+| File dropped in `inbox/` | Appears in inbox view |
+| Move to project | Removes from inbox (location change) |
+| `km inbox process` | Interactive triage |
+
+### Processing
+
+Processing an inbox item = moving it to a project:
+
+```bash
+km move inbox/call-from-john.md "Personal/Health"
+```
+
+The item leaves inbox when it leaves the `inbox/` folder.
+
+### Quick Capture
+
+```bash
+km add "Call dentist"           # → inbox/call-dentist.md
+km add -t "Review PR"           # → inbox/review-pr.md + status=next
+km add -p "Work" "Fix bug"      # → Work/fix-bug.md (skips inbox)
+```
 
 ---
 
