@@ -9,15 +9,17 @@ Command-line interface for task management.
 | Command        | Purpose                        |
 |----------------|--------------------------------|
 | `km task`      | List and filter tasks          |
-| `km @board`    | View/manage any board          |
-| `km next`      | Shortcut for `km @next`        |
-| `km inbox`     | Shortcut for `km @inbox`       |
+| `km @board`    | View/manage `@` board (person/context) |
+| `km +board`    | View/manage `+` board (project) |
+| `km #board`    | View/manage `#` board (tag)    |
 | `km add`       | Quick capture                  |
 | `km done`      | Mark task done                 |
 | `km move`      | Re-parent task                 |
 | `km auto`      | Manage automations             |
 | `km import`    | Import TextBundle              |
 | `km export`    | Export TextBundle              |
+
+**Note:** Board commands require the sigil prefix (`@`, `+`, `#`) to distinguish from subcommands.
 
 ---
 
@@ -74,7 +76,7 @@ km task "budget" --due week
 
 ## Board Commands
 
-Unified board interface. Everything is a board.
+Unified board interface. The sigil (`@`, `+`, `#`) is required.
 
 ### View Boards
 
@@ -83,8 +85,9 @@ km @next                    # View @next board
 km @inbox                   # View @inbox board
 km @waiting                 # View @waiting board
 km @bjorn                   # View person board
+km @phone                   # View context board
 km +website                 # View project board
-km "#finance"               # View tag board (quote the #)
+km '#finance'               # View tag board (quote in shell)
 ```
 
 ### Board Operations
@@ -97,22 +100,11 @@ km @next move <id> <col>    # Move to different column
 km @next list               # List all tasks on board
 ```
 
-### Shortcuts
-
-Common boards have shortcuts:
-
-```bash
-km next                     # Alias for: km @next
-km inbox                    # Alias for: km @inbox
-km waiting                  # Alias for: km @waiting
-km someday                  # Alias for: km @someday
-```
-
 ### Inbox Processing
 
 ```bash
-km inbox                    # Show inbox items
-km inbox process            # Interactive processing
+km @inbox                   # Show inbox items
+km @inbox process           # Interactive processing
 ```
 
 Interactive processing walks through each item:
@@ -133,6 +125,7 @@ km @next add 01HXY...       # Add task to @next
 km @next add "call" today   # Add by search, to "today" column
 km @bjorn add 01HXY... to-discuss  # Add to person board
 km +website move 01HXY... done     # Move to done column
+km '#urgent' add 01HXY...   # Add to tag board
 ```
 
 ---
