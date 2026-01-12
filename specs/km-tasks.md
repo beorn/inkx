@@ -142,7 +142,7 @@ Tasks have exactly four statuses:
 | Mark | Status | Meaning |
 |------|--------|---------|
 | `[ ]` | `open` | Available to work on |
-| `[~]` | `blocked` | Can't work on it (waiting/blocked) |
+| `[!]` | `blocked` | Can't work on it (waiting/blocked) |
 | `[x]` | `done` | Completed |
 | `[-]` | `dropped` | Cancelled |
 
@@ -227,21 +227,15 @@ Single input field:
 
 ### Node Queries
 
-Unified query syntax:
+Space-separated terms, AND-ed together:
 
 ```bash
-# References
-km task @bjorn                     # Has @bjorn reference
-km task +website                   # Has +website reference
-
-# Fields
-km task status:open due:week       # Open + due this week
-
-# Paths
-km task ./inbox/**                 # Tasks in inbox folder
+km task @bjorn status:open         # Has @bjorn AND is open
+km task ./inbox/** -status:done    # In inbox AND not done
+km task "budget"                   # Full-text search
 ```
 
-See [Node Queries](km-tasks-data.md#node-queries) for full reference.
+See [Node Queries](km-tasks-data.md#node-queries) for full syntax.
 
 ### Batch Operations
 

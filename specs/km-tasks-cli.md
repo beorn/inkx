@@ -35,39 +35,15 @@ km task --all               # All tasks including done
 km task "budget"            # Full-text search
 ```
 
-### Node Query Syntax
+### Node Queries
 
-Unified query syntax for selecting nodes:
+Space-separated terms, AND-ed together. See [Node Queries](km-tasks-data.md#node-queries) for full syntax.
 
 ```bash
-# Reference queries (has this reference)
 km task @bjorn                     # Has @bjorn reference
-km task +website                   # Has +website reference
-km task '#finance'                 # Has #finance reference
-km task -@bjorn                    # Does NOT have @bjorn reference
-
-# Field queries
-km task status:open                # By status
-km task status:blocked             # Blocked tasks
-km task due:today                  # Due today
-km task due:past                   # Overdue
-km task due:week                   # Due within 7 days
-km task owner:bjorn                # Owned by bjorn
-
-# Path queries (contain / or start with .)
-km task ./inbox/                   # In inbox/ folder (relative)
-km task ./inbox/**                 # Inbox recursive
-km task projects/                  # Path contains projects/
-km task projects/**                # Recursive glob
-```
-
-### Combining Queries
-
-```bash
-km task status:open due:week           # Open + due this week
-km task +website -@next                # Project tasks not on @next
-km task @bjorn status:open             # Bjorn's open tasks
-km task ./inbox/** status:open         # Open tasks in inbox
+km task +website status:open       # Has +website AND is open
+km task ./inbox/** -status:done    # In inbox AND not done
+km task "budget"                   # Full-text search
 ```
 
 ### Output Options
@@ -78,14 +54,6 @@ km task --flat              # Single-line format
 km task --id                # Show task IDs
 km task --json              # JSON output
 km task --count             # Count only
-```
-
-### Examples
-
-```bash
-km task due:past --verbose             # Overdue tasks, full detail
-km task +website status:open           # Open website tasks
-km task status:blocked                 # All blocked tasks
 ```
 
 ---
@@ -308,7 +276,7 @@ Work / Finance
 
 Personal / Health
   [ ] Call dentist              due:today
-  [~] Waiting on callback       blocked
+  [!] Waiting on callback       blocked
 ```
 
 ### Flat (`--flat`)
@@ -317,7 +285,7 @@ Personal / Health
 [ ] Review Q1 budget    Work/Finance    due:Jan15
 [ ] Send invoice        Work/Finance    @bjorn
 [ ] Call dentist        Personal        due:today
-[~] Waiting on callback Personal        blocked
+[!] Waiting on callback Personal        blocked
 ```
 
 ### JSON (`--json`)

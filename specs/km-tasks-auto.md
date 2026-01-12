@@ -68,18 +68,22 @@ setup:
 
 ### Column Status Automation
 
-Columns can auto-set status when tasks are added:
+Columns can auto-set status via attributes in the markdown heading:
 
-```yaml
-setup:
-  boards:
-    - name: "@next"
-      columns:
-        - today
-        - this-week
-        - name: waiting
-          status: blocked    # Moving here sets status=blocked
+```markdown
+# @next.md
+
+## today
+- [[tasks/review-budget]]
+
+## this-week
+- [[tasks/send-invoice]]
+
+## waiting status:blocked
+- [[tasks/get-approval]]
 ```
+
+Moving a task to `@next/waiting` automatically sets `status=blocked`.
 
 ### Running Setup
 
@@ -180,12 +184,7 @@ name: GTD Workflow
 setup:
   boards:
     - "@inbox"
-    - name: "@next"
-      columns:
-        - today
-        - this-week
-        - name: waiting
-          status: blocked
+    - "@next"      # Columns defined in @next.md with status:blocked on waiting
     - "@someday"
   folders:
     - inbox/

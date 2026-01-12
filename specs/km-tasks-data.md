@@ -66,7 +66,7 @@ Boards are populated by **automations** or **manual curation**.
 | Mark | Status | Meaning |
 |------|--------|---------|
 | `[ ]` | `open` | Available to work on |
-| `[~]` | `blocked` | Can't work on it (waiting/blocked) |
+| `[!]` | `blocked` | Can't work on it (waiting/blocked) |
 | `[x]` | `done` | Completed |
 | `[-]` | `dropped` | Cancelled, won't do |
 
@@ -82,7 +82,7 @@ Status answers one question: **Can I work on this?**
 ### Status Flow
 
 ```
-open [ ] ──→ blocked [~] ──→ open [ ]
+open [ ] ──→ blocked [!] ──→ open [ ]
   │              │
   └──────────────┼──→ done [x]
                  │
@@ -201,81 +201,106 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 
 ## Node Queries
 
-Unified query syntax for selecting nodes.
+Unified syntax for selecting nodes. Used by `km task`, `km @board add`, and anywhere nodes are filtered.
 
-### Matching Rules
+A query is a space-separated list of **terms**. All terms are AND-ed together (intersection).
 
-By default, queries use **contains** matching. Add `$` suffix for exact match:
+### Term Types
 
-| Query | Matches |
-|-------|---------|
-| `@bjorn` | Contains @bjorn reference (also matches @bjornson) |
-| `@bjorn$` | Exactly @bjorn |
-| `projects/` | Path contains "projects/" |
-| `projects/web$` | Path is exactly "projects/web" |
+| Pattern | Name | Description |
+|---------|------|-------------|
+| `@ref` | Reference | Node has this reference (contains) |
+| `#tag` | Reference | Node has this tag (contains) |
+| `+proj` | Reference | Node has this project ref (contains) |
+| `./path` | Path | Node is under this relative path |
+| `/path` | Path | Node is under this absolute path |
+| `path/` | Path | Node path contains this string |
+| `key:value` | Field | Field matches value |
+| `-TERM` | Negation | Exclude nodes matching TERM |
+| `"text"` | Search | Full-text search |
 
-### Query Types
+### Modifiers
 
-| Pattern | Type | Matches |
-|---------|------|---------|
-| `@bjorn` | Reference | Contains @bjorn reference |
-| `+website` | Reference | Contains +website reference |
-| `#urgent` | Reference | Contains #urgent reference |
-| `status:open` | Field | Field equals value |
-| `due:today` | Field | Due date is today |
-| `./inbox/**` | Path | Relative glob |
-| `projects/` | Path | Path contains |
+| Suffix | Effect |
+|--------|--------|
+| `$` | Exact match (default is contains) |
+| `**` | Recursive (for paths) |
 
-### Reference Queries
+### Reference Terms
 
-Sigil-prefixed terms match nodes with that reference:
+Match nodes that have a reference:
 
 ```bash
-@bjorn              # Contains @bjorn reference
-@bjorn$             # Exactly @bjorn
-+website            # Contains +website reference
-#urgent             # Contains #urgent reference
--@bjorn             # Does NOT contain @bjorn reference
+@bjorn              # Has reference containing "bjorn"
+@bjorn$             # Has exactly @bjorn reference
++website            # Has +website project ref
+#urgent             # Has #urgent tag
+-@bjorn             # Does NOT have @bjorn reference
 ```
 
-### Field Queries
+### Path Terms
 
-`key:value` matches field values:
-
-| Query | Matches |
-|-------|---------|
-| `status:open` | Status is open |
-| `status:blocked` | Status is blocked |
-| `status:done` | Status is done |
-| `due:today` | Due today |
-| `due:past` | Overdue |
-| `due:week` | Due within 7 days |
-| `due:none` | No due date |
-| `start:past` | Start date reached |
-| `owner:bjorn` | Owner contains bjorn |
-| `owner:bjorn$` | Owner is exactly bjorn |
-| `p:1` | Priority 1 |
-
-### Path Queries
-
-Path-like patterns (contain `/` or start with `.`) match by location:
-
-| Query | Matches |
-|-------|---------|
-| `./inbox/` | In inbox folder (relative) |
-| `./inbox/**` | Inbox folder recursive |
-| `/projects/web` | Absolute path contains |
-| `/projects/web$` | Absolute path exactly |
-| `projects/` | Path contains "projects/" |
-| `projects/**` | Recursive glob |
-
-### Combining Queries
+Match nodes by location:
 
 ```bash
-status:open due:week           # Open + due this week
-+website -@next                # Project tasks not on @next board
-@bjorn$ status:open            # Exactly bjorn's open tasks
-./inbox/** status:open         # Open tasks in inbox
+./inbox             # Under ./inbox (relative to cwd)
+./inbox/**          # Under ./inbox, recursive
+/projects/web       # Under /projects/web (absolute)
+projects/           # Path contains "projects/"
+projects/**         # Contains "projects/", recursive
+./tasks/budget$     # Exactly this path
+```
+
+### Field Terms
+
+Match field values with `key:value`:
+
+| Field | Values | Example |
+|-------|--------|---------|
+| `status` | open, blocked, done, dropped | `status:open` |
+| `due` | today, past, week, none, YYYY-MM-DD | `due:past` |
+| `start` | past, today, YYYY-MM-DD | `start:past` |
+| `owner` | name | `owner:bjorn$` |
+| `p` | 1-5 | `p:1` |
+
+### Negation
+
+Prefix any term with `-` to exclude:
+
+```bash
+-@bjorn             # Not assigned to bjorn
+-status:done        # Not done
+-./archive/         # Not in archive
+```
+
+### Combining Terms
+
+Terms are AND-ed (all must match):
+
+```bash
+status:open due:week              # Open AND due this week
++website status:open              # Has +website AND is open
+./inbox/** -status:done           # In inbox AND not done
+@bjorn$ status:open p:1           # Exactly bjorn, open, priority 1
+```
+
+### Examples
+
+```bash
+# Find unorganized tasks
+status:open -@next -@someday
+
+# Find project tasks not scheduled
++website status:open due:none
+
+# Find blocked items
+status:blocked
+
+# Find tasks in inbox folder
+./inbox/**
+
+# Find tasks mentioning budget
+"budget"
 ```
 
 ---
@@ -392,7 +417,7 @@ Completed items can be moved to `archive/` (manual or via automation).
 ### Blocked Task
 
 ```markdown
-- [~] Get budget approval @sarah
+- [!] Get budget approval @sarah
 ```
 
 On `@next/waiting` → status auto-set to `blocked`.

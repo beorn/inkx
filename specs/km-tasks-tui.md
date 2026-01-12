@@ -14,7 +14,7 @@ Terminal UI for task management.
 ├────────────────────────────────────────────────────┤
 │ @next (3)                                    [1]  │
 │ ─────────────────────────────────────────────────  │
-│ ▸ [~] Review Q1 budget      Work / Finance  -2d  │
+│ ▸ [!] Review Q1 budget      Work / Finance  -2d  │
 │   [ ] Call dentist          Personal        today │
 │   [ ] Fix login bug         Work / Auth          │
 ├────────────────────────────────────────────────────┤
@@ -70,7 +70,7 @@ Unified NV-style input:
 ```
 [mark] Title                    Project / Path      Due
 ─────────────────────────────────────────────────────────
-[~]    Review Q1 budget         Work / Finance      -2d
+[!]    Review Q1 budget         Work / Finance      -2d
 [ ]    Call dentist             Personal            today
 [x]    Setup repo               Work / Auth         ✓
 [ ] ↻  Weekly review            Personal            Mon
@@ -78,7 +78,7 @@ Unified NV-style input:
 
 | Column | Source | Width |
 |--------|--------|-------|
-| Mark | `[ ]` `[~]` `[x]` `[-]` | 3 |
+| Mark | `[ ]` `[!]` `[x]` `[-]` | 3 |
 | Recur | `↻` if recurring | 2 |
 | Title | First line of content | flex |
 | Project | Collapsed ancestors | 20 |
@@ -89,7 +89,7 @@ Unified NV-style input:
 | Mark | Status | Display |
 |------|--------|---------|
 | `[ ]` | open | Default |
-| `[~]` | blocked | Yellow |
+| `[!]` | blocked | Yellow |
 | `[x]` | done | Green, dim |
 | `[-]` | dropped | Dim, strikethrough |
 
@@ -166,8 +166,8 @@ All boards display as columns:
 ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
 │ today            │ │ this-week        │ │ waiting          │
 ├──────────────────┤ ├──────────────────┤ ├──────────────────┤
-│ 🔴 [ ] Budget    │ │ [ ] Send invoice │ │ [~] Get approval │
-│    [ ] Dentist   │ │ [ ] Review PR    │ │ [~] API access   │
+│ 🔴 [ ] Budget    │ │ [ ] Send invoice │ │ [!] Get approval │
+│    [ ] Dentist   │ │ [ ] Review PR    │ │ [!] API access   │
 └──────────────────┘ └──────────────────┘ └──────────────────┘
 ```
 
@@ -284,7 +284,7 @@ Type to filter...
 |---------|-------|
 | Selected row | Inverse |
 | Task `[ ]` | Default |
-| Task `[~]` | Yellow |
+| Task `[!]` | Yellow |
 | Task `[x]` | Green |
 | Task `[-]` | Dim |
 | Due (overdue) | Red |
