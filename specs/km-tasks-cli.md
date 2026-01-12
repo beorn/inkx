@@ -15,6 +15,7 @@ Command-line interface for task management.
 | `km inbox`     | Inbox view                     |
 | `km add`       | Quick capture                  |
 | `km done`      | Mark task done                 |
+| `km someday`   | Convert task to list item      |
 | `km move`      | Re-parent task                 |
 | `km import`    | Import TextBundle              |
 | `km export`    | Export TextBundle              |
@@ -303,6 +304,36 @@ km task claim 01HXY...
 km task wait 01HXY... "Waiting for Sarah's review"
 km task start 01HXY... 2025-01-20
 ```
+
+---
+
+## km someday
+
+Convert task to someday (plain list item).
+
+### Usage
+
+```bash
+km someday <id>                   # Convert task to list item
+```
+
+Removes checkbox: `- [ ] Learn Rust` → `- Learn Rust`
+
+---
+
+## km task promote
+
+Convert list item to task.
+
+### Usage
+
+```bash
+km task promote <id>              # Add checkbox
+km task promote <id> -t           # Add checkbox + today
+km task promote <id> -p "Work"    # Add checkbox + move to project
+```
+
+Adds checkbox: `- Learn Rust` → `- [ ] Learn Rust`
 
 ---
 

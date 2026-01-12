@@ -183,7 +183,7 @@ Inbox (5)                                    [2]
    Idea: refactor auth                      2d ago
 ```
 
-Actions: `t` (today), `p` (project), `D` (delete)
+Actions: `t` (today), `p` (project), `s` (someday → converts to list item), `D` (delete)
 
 ### Projects View
 
@@ -254,10 +254,20 @@ Type to filter...
 | `p`     | Change project            |
 | `d`     | Set due date              |
 | `s`     | Change status             |
+| `S`     | Convert to someday (→ list item) |
 | `e`     | Edit title inline         |
 | `n`     | Add note                  |
 | `a`     | Add subtask               |
 | `@`     | Insert wikilink           |
+| `D`     | Delete                    |
+
+### Someday Actions
+
+| Key     | Action                    |
+|---------|---------------------------|
+| `t`     | Promote to task + today   |
+| `T`     | Promote to task only      |
+| `p`     | Promote to task + project |
 | `D`     | Delete                    |
 
 ### Detail Pane

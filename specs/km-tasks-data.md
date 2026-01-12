@@ -554,12 +554,19 @@ Someday items are **plain list items** (no checkbox), not tasks:
 - Can live in any file, any folder
 - Becomes a task when you add the checkbox
 
-**Promotion to task:**
-```bash
-km add -p "Learning" "Learn Rust"  # Creates task in Learning/
-```
+**Conversion:**
 
-Or manually add checkbox: `- Learn Rust` → `- [ ] Learn Rust`
+| Direction | Action | Result |
+|-----------|--------|--------|
+| Task → Someday | `S` key or `km someday <id>` | Remove checkbox: `- [ ] X` → `- X` |
+| Someday → Task | `T` key or `km task promote <id>` | Add checkbox: `- X` → `- [ ] X` |
+
+```bash
+km someday 01HXY...              # Convert task to list item
+km task promote 01HXY...         # Convert list item to task
+km task promote 01HXY... -t      # Convert and add to today
+km task promote 01HXY... -p Work # Convert and move to project
+```
 
 **Someday view** shows all plain list items (type `list_item`, no checkbox).
 
