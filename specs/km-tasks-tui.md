@@ -75,14 +75,18 @@ NV-style unified input:
 [/]    Review Q1 budget         Work / Finance      -2d
 [ ]    Call dentist             Personal            today
 [x]    Setup repo               Work / Auth         ✓
+[ ] ↻  Weekly review            Personal            Mon
 ```
 
 | Column  | Source                        | Width |
 |---------|-------------------------------|-------|
 | Mark    | `[ ]` `[x]` `[/]` from status | 3     |
+| Recur   | `↻` if `recur` is set         | 2     |
 | Title   | `content` first line          | flex  |
 | Project | Collapsed ancestors           | 20    |
-| Due     | Relative `due`                | 8     |
+| Due     | Relative `due` or next recur  | 8     |
+
+Recurring tasks show `↻` indicator after the mark.
 
 ### Due Date Display
 

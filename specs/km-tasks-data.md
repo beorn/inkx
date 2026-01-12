@@ -121,93 +121,7 @@ Query `Work/Q1-Planning/` to get all tasks in that project.
 
 Metadata embedded in the same line as task content. Used by list tasks and section tasks.
 
-### Prior Art
-
-| System | Assignee | Due Date | Priority | Tags | ID/Permalink |
-|--------|----------|----------|----------|------|--------------|
-| **[todo.txt](https://github.com/todotxt/todo.txt)** | — | `due:YYYY-MM-DD` | `(A)`-`(Z)` | `@context` | — |
-| **[TaskPaper](https://guide.taskpaper.com/)** | — | `@due(YYYY-MM-DD)` | `@priority(N)` | `@tag` | `@id(value)` |
-| **[Todoist](https://todoist.com/)** | — | natural language | `!p1`-`!p4` | `@label` | internal |
-| **[TODO.md](https://github.com/todomd/todo.md)** | `@name` | `YYYY-MM-DD` | — | `#tag` | — |
-| **[Org-mode](https://orgmode.org/)** | — | `DEADLINE:` | `[#A]` | `:tag:` | `:ID:` property |
-| **[Logseq](https://docs.logseq.com/)** | — | `deadline:: DATE` | — | `#tag` | `id:: UUID` |
-| **[Obsidian Tasks](https://obsidian-tasks-group.github.io/obsidian-tasks/)** | — | `📅 YYYY-MM-DD` or `[due:: DATE]` | `⏫` or `[priority:: high]` | `#tag` | `^block-id` |
-| **[Dataview](https://blacksmithgu.github.io/obsidian-dataview/)** | `[assigned:: name]` | `[due:: DATE]` | `[priority:: N]` | `#tag` | — |
-| **[Task Genius](https://taskgenius.md/)** | — | `📅 YYYY-MM-DD` | `⏫` or `[#A]` or `[priority:: N]` | `#tag` | — |
-| **[TaskForge](https://taskforge.md/)** | `👤 @user` | `📅 YYYY-MM-DD` | `⏫` emoji | `@context` | — |
-| **[Tana](https://tana.inc/)** | field | field | field | `#supertag` | node ID |
-| **[Linear](https://linear.app/)** | UI/API | UI/API | UI/API | labels | UUID |
-| **[Pandoc](https://pandoc.org/MANUAL.html)** | — | — | — | `{.class}` | `{#id}` |
-| **[GFM](https://github.github.com/gfm/)** | — | — | — | — | `#heading-slug` |
-
-### Tana Supertags vs Plain Tags
-
-Tana's `#supertag` is fundamentally different from plain hashtags:
-
-| Aspect | Plain `#tag` | Tana `#supertag` |
-|--------|--------------|------------------|
-| Purpose | Classification/grouping | Type definition ("is-a") |
-| Schema | None | Fields, defaults, views |
-| Inheritance | No | Yes (`#author` extends `#person`) |
-| Fields | No | Yes (due date, priority, etc.) |
-| Behavior | Search/filter only | Auto-populates template |
-
-**Supertags define what a node *is***, not just how to find it. `#task` in Tana means
-"this node is a task" and brings fields (status, due, assignee), not just a search keyword.
-
-Plain hashtags still work in Tana for simple categorization, but supertags enable
-database-like behavior with typed fields and views.
-
-**km approach:** Type is usually implicit:
-- Checkbox prefix (`- [ ]`) → task
-- Frontmatter `type: task` → task
-- Folder structure → project
-
-**Future: Type tags.** km could support `#type/task` or `##task` syntax for explicit typing,
-enabling Tana-like schemas for custom types (e.g., `##book`, `##person`, `##meeting`).
-Plain `#tags` remain for classification.
-
-### Metadata Syntax Families
-
-Systems use different approaches for inline metadata:
-
-| Family | Syntax | Placement | Examples |
-|--------|--------|-----------|----------|
-| **Key-colon-value** | `key:value` | same line | todo.txt, km |
-| **Property syntax** | `key:: value` | line(s) below | Logseq, Dataview |
-| **Function style** | `@key(value)` | same line | TaskPaper |
-| **Emoji prefix** | `📅 value` | same line | Obsidian Tasks, TaskForge |
-| **Brackets** | `[key:: value]` | inline | Dataview |
-| **Curly brace attrs** | `{#id .class key=val}` | same line (end) | Pandoc, kramdown |
-| **Typed tags** | `#supertag` | node-level | Tana |
-| **Structured data** | fields/UI | separate | Linear, Notion |
-
-### Placement Patterns
-
-```markdown
-# Same line (km, todo.txt, TaskPaper)
-- [ ] Review budget @bjorn due:2025-01-15
-
-# End of line (Pandoc)
-## Review budget {#budget-review .task}
-
-# Lines below (Logseq)
-- Review budget
-  due:: 2025-01-15
-  assigned:: bjorn
-
-# Fenced block (Pandoc divs)
-::: {#budget-review .task due="2025-01-15"}
-Review budget content here...
-:::
-```
-
-**Tradeoffs:**
-- **Same line** — compact, good for short metadata, can get cluttered
-- **Lines below** — cleaner for many properties, but takes more space
-- **Fenced blocks** — powerful for rich content, but verbose
-
-**km choice:** Same-line for simplicity. Most tasks have 0-3 metadata fields.
+See [Prior Art](km-tasks-prior-art.md) for comparison with todo.txt, TaskPaper, Obsidian Tasks, Tana, and others.
 
 ### km Syntax
 
@@ -477,17 +391,48 @@ When you complete instance 3:
 
 ### Instance Linking
 
-Instances share a `recur_id` linking them to the same series:
+Each instance points back to the original task:
 
 ```typescript
 interface Node {
-  recur?: string;        // RRULE (only on current instance)
-  recur_id?: string;     // Links all instances in series
-  recur_parent?: string; // ID of original/template task
+  recur?: string;        // RRULE (on current active instance)
+  recur_parent?: string; // ID of original task in series
 }
 ```
 
-Query all instances: `WHERE recur_id = '...'`
+- Original task has `recur` but no `recur_parent`
+- Cloned instances have `recur_parent` pointing to original
+- Query all instances: `WHERE id = 'original' OR recur_parent = 'original'`
+- If original is deleted, oldest remaining instance becomes new "original"
+
+### Clone Behavior
+
+**Shallow clone:** Only the parent task is cloned, not subtasks.
+
+Rationale: Subtasks in recurring tasks typically represent the *same* checklist each time
+(e.g., "Weekly review" with subtasks "Check inbox", "Review projects"). These reset rather
+than accumulate. For persistent subtasks across recurrences, use a project structure instead.
+
+**Search filtering:** Completed instances excluded from search by default (`status != done`).
+Use `--all` or explicit filters to include history.
+
+### Pattern Changes
+
+When the recurrence pattern changes (e.g., weekly → biweekly), update `recur` on
+the current instance. All instances keep pointing to the same original:
+
+```
+Original A (recur: WEEKLY)
+├── [x] Instance B (recur_parent: A)
+├── [x] Instance C (recur_parent: A)
+└── [ ] Instance D (recur_parent: A, recur: BIWEEKLY)  ← pattern changed
+        └── [ ] Instance E (recur_parent: A)           ← still same lineage
+```
+
+- Single chain of lineage (all point to A)
+- Active instance holds current `recur` rule
+- Future clones inherit pattern from the instance they're cloned from
+- Query entire series: `WHERE id = 'A' OR recur_parent = 'A'`
 
 ### RRULE Format
 
@@ -505,12 +450,13 @@ FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1  # Jan 1st
 
 | Action | Behavior |
 |--------|----------|
-| **Complete** | Mark done, clone next instance |
-| **Skip** | Mark cancelled, clone next instance |
+| **Complete** | Mark done, shallow clone next instance |
+| **Skip** | Mark cancelled, shallow clone next instance |
 | **Edit this** | Modify current instance only |
-| **Edit all future** | Modify recur template, affect future clones |
+| **Edit all future** | Modify original task, affect future clones |
+| **Change pattern** | Update `recur` on current instance |
 | **Stop recurring** | Remove `recur` from current instance |
-| **Delete series** | Delete all instances with same `recur_id` |
+| **Delete series** | Delete original + all instances with `recur_parent` |
 
 ### Start vs Due
 
@@ -823,7 +769,7 @@ ALTER TABLE nodes ADD COLUMN due TEXT;
 ALTER TABLE nodes ADD COLUMN start TEXT;
 ALTER TABLE nodes ADD COLUMN p INTEGER;
 ALTER TABLE nodes ADD COLUMN recur TEXT;
-ALTER TABLE nodes ADD COLUMN recur_id TEXT;
+ALTER TABLE nodes ADD COLUMN recur_parent TEXT;
 ALTER TABLE nodes ADD COLUMN waiting_for TEXT;
 ```
 
@@ -838,6 +784,8 @@ CREATE INDEX idx_nodes_start ON nodes(start)
   WHERE start IS NOT NULL;
 CREATE INDEX idx_nodes_owner ON nodes(owner)
   WHERE owner IS NOT NULL;
+CREATE INDEX idx_nodes_recur_parent ON nodes(recur_parent)
+  WHERE recur_parent IS NOT NULL;
 ```
 
 ---
@@ -847,4 +795,5 @@ CREATE INDEX idx_nodes_owner ON nodes(owner)
 - [km-tasks.md](km-tasks.md) — Overview
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI spec
+- [km-tasks-prior-art.md](km-tasks-prior-art.md) — Prior art research
 - [km-data-model.md](km-data-model.md) — Full node schema

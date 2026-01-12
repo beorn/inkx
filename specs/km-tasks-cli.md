@@ -317,8 +317,11 @@ Work / Finance / .md #
   [/] Send invoice              @bjorn
 
 Personal / Health
-  [ ] Call dentist              due: today
+  [ ] Call dentist              due:today
+  [ ] ↻ Weekly review           Mon
 ```
+
+Recurring tasks show `↻` indicator after the mark.
 
 ### Flat (`--flat`)
 
@@ -326,6 +329,7 @@ Personal / Health
 [ ] Review Q1 budget    Work/Finance    due:Jan15
 [/] Send invoice        Work/Finance    @bjorn
 [ ] Call dentist        Personal        due:today
+[ ] ↻ Weekly review     Personal        ↻weekly Mon
 ```
 
 ### JSON (`--json`)
@@ -338,6 +342,14 @@ Personal / Health
     "status": "open",
     "due": "2025-01-15",
     "ancestors": ["Work", "Finance"]
+  },
+  {
+    "id": "01HXZ...",
+    "content": "Weekly review",
+    "status": "open",
+    "recur": "FREQ=WEEKLY;BYDAY=MO",
+    "recur_parent": "01HXW...",
+    "ancestors": ["Personal"]
   }
 ]
 ```
