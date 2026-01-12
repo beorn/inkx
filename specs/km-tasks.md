@@ -18,17 +18,54 @@ Task management in km, inspired by Notational Velocity and Simplenote.
 
 **From km:**
 - Collapsing ancestors — `Taxes / .md #` shows hierarchy compactly
-- Unified node schema — tasks are nodes
+- Unified node schema — tasks are nodes with status
 - Event log — full history, undo, sync
 - Markdown-native — files you own
+
+---
+
+## Core Concepts
+
+### Everything is a Node
+
+Any node can become a task by having a status:
+
+```markdown
+- [ ] Call dentist                     # list item with status
+## [ ] Q1 Budget Review                # heading with status
+```
+
+### References Create Links
+
+`@bjorn`, `#finance`, `+project` are references to nodes:
+
+```markdown
+- [ ] Review budget @bjorn #finance +q1
+```
+
+All create links. First `@` is owner.
+
+### Boards Display Tasks
+
+A board is a node with columns (H2 sections) containing wikilinks:
+
+```markdown
+# @bjorn.md
+
+## to-discuss
+- [[tasks/review-budget]]
+
+## discussed
+- [[tasks/hiring-plan]]
+```
 
 ---
 
 ## Core Workflow
 
 **Daily:**
-1. Morning: Review Next list, curate from inbox/scheduled
-2. During day: Work through Next actions, add notes, complete tasks
+1. Morning: Review Next list, curate from inbox
+2. During day: Work through tasks, add notes, complete
 3. End of day: Process inbox, defer incomplete
 
 **Weekly:**
@@ -44,7 +81,7 @@ Six views accessed via number keys `1-6`:
 
 | View     | Purpose                              |
 |----------|--------------------------------------|
-| Next     | Next actions, overdue surfaces       |
+| Next     | Open + WIP tasks, overdue surfaces   |
 | Inbox    | Unprocessed items                    |
 | All      | All open tasks                       |
 | Projects | Grouped by ancestor                  |
@@ -62,7 +99,7 @@ See [TUI Views](km-tasks-tui.md#views) for filter definitions.
 Single input field:
 - Type to filter existing tasks
 - Enter on no match creates new task
-- `#tag` in input adds tag
+- References in input (`@`, `#`, `+`) create links
 
 ### Split-Pane Layout
 
@@ -94,13 +131,7 @@ Interop with Bear, Ulysses, Craft:
 
 ## Related Specs
 
-- [km-tasks-data.md](km-tasks-data.md) — Data model, states, fields
+- [km-tasks-data.md](km-tasks-data.md) — Data model, status, boards
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI layout, views, keybindings
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
-
----
-
-## See Also
-
-- [km-ui.md](km-ui.md) — Collapsing, display functions
-- [km-data-model.md](km-data-model.md) — Node schema
+- [km-tasks-prior-art.md](km-tasks-prior-art.md) — Prior art research

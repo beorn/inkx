@@ -2,8 +2,6 @@
 
 Terminal UI for task management.
 
-> Field names follow [Unified Names](km-tasks-data.md#unified-names).
-
 ---
 
 ## Layout
@@ -16,14 +14,14 @@ Terminal UI for task management.
 ├────────────────────────────────────────────────────┤
 │ Next (3)                               [1]        │
 │ ─────────────────────────────────────────────────  │
-│ ▸ [/] Review Q1 budget      Work / Finance  -2d  │
+│ ▸ [.] Review Q1 budget      Work / Finance  -2d  │
 │   [ ] Call dentist          Personal        today │
 │   [ ] Fix login bug         Work / Auth          │
 ├────────────────────────────────────────────────────┤
 │                                                    │
 │  Review Q1 budget                                  │
 │  ───────────────────────────────────────────────── │
-│  Status: wip    Due: Jan 10 (overdue)     │
+│  Status: wip    Due: Jan 10 (overdue)             │
 │  Project: Work / Finance                          │
 │                                                    │
 │  Need to compare with [[Q4 Actuals]].             │
@@ -60,7 +58,7 @@ NV-style unified input:
 **Fuzzy matching on:**
 - Task content (title)
 - Collapsed ancestor path
-- Tags in content
+- References (`@`, `#`, `+`)
 - Due date keywords ("today", "overdue")
 
 ---
@@ -72,7 +70,7 @@ NV-style unified input:
 ```
 [mark] Title                    Project / Path      Due
 ─────────────────────────────────────────────────────────
-[/]    Review Q1 budget         Work / Finance      -2d
+[.]    Review Q1 budget         Work / Finance      -2d
 [ ]    Call dentist             Personal            today
 [x]    Setup repo               Work / Auth         ✓
 [ ] ↻  Weekly review            Personal            Mon
@@ -80,13 +78,23 @@ NV-style unified input:
 
 | Column  | Source                        | Width |
 |---------|-------------------------------|-------|
-| Mark    | `[ ]` `[x]` `[/]` from status | 3     |
+| Mark    | `[ ]` `[.]` `[x]` etc.        | 3     |
 | Recur   | `↻` if `recur` is set         | 2     |
 | Title   | `content` first line          | flex  |
 | Project | Collapsed ancestors           | 20    |
 | Due     | Relative `due` or next recur  | 8     |
 
-Recurring tasks show `↻` indicator after the mark.
+### Status Marks
+
+| Mark | Status | Display |
+|------|--------|---------|
+| `[ ]` | open | Default |
+| `[.]` | wip | Yellow |
+| `[x]` | done | Green, dim |
+| `[-]` | dropped | Dim, strikethrough |
+| `[s]` | someday | Dim |
+| `[>]` | waiting | Cyan |
+| `[<]` | blocked | Red |
 
 ### Due Date Display
 
@@ -152,19 +160,19 @@ Switch with number keys:
 
 | Key | View     | Filter                                    |
 |-----|----------|-------------------------------------------|
-| `1` | Next     | `status IN (next, wip)` + overdue         |
+| `1` | Next     | `status IN (open, wip)` + overdue         |
 | `2` | Inbox    | `path LIKE 'inbox/%'`                     |
 | `3` | All      | All open tasks                            |
 | `4` | Projects | Grouped by ancestor                       |
 | `5` | Waiting  | `status = waiting`                        |
-| `6` | Someday  | Plain list items (type `list_item`)       |
+| `6` | Someday  | `status = someday`                        |
 
 ### Next View
 
 ```
 Next (3)                                     [1]
 ────────────────────────────────────────────────
-🔴 [/] Review Q1 budget    Work / Finance   -2d
+🔴 [.] Review Q1 budget    Work / Finance   -2d
    [ ] Call dentist        Personal         today
    [ ] Fix login bug       Work / Auth
 ```
@@ -183,7 +191,7 @@ Inbox (5)                                    [2]
    Idea: refactor auth                      2d ago
 ```
 
-Actions: `n` (next), `p` (project), `s` (someday → converts to list item), `D` (delete)
+Actions: `n` (next), `p` (project), `s` (someday), `D` (delete)
 
 ### Projects View
 
@@ -200,6 +208,26 @@ Projects                                     [4]
 ```
 
 Expand/collapse with Enter.
+
+### Board View
+
+When viewing a board node (`@bjorn.md`, `+project.md`):
+
+```
+@bjorn
+────────────────────────────────────────────────
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│ to-discuss  │ │ discussed   │ │ done        │
+├─────────────┤ ├─────────────┤ ├─────────────┤
+│ [ ] Budget  │ │ [x] Hiring  │ │ [x] Offsite │
+│ [ ] Q1 Plan │ │             │ │ [x] Review  │
+└─────────────┘ └─────────────┘ └─────────────┘
+```
+
+- Columns from H2 sections in board file
+- Tasks from wikilinks in each section
+- Drag tasks between columns to move
+- Column limits shown when exceeded
 
 ---
 
@@ -254,20 +282,20 @@ Type to filter...
 | `p`     | Change project            |
 | `d`     | Set due date              |
 | `s`     | Change status             |
-| `S`     | Convert to someday (→ list item) |
+| `S`     | Set someday status        |
 | `e`     | Edit title inline         |
-| `n`     | Add note                  |
+| `N`     | Add note                  |
 | `a`     | Add subtask               |
-| `@`     | Insert wikilink           |
+| `@`     | Insert reference          |
 | `D`     | Delete                    |
 
 ### Someday Actions
 
 | Key     | Action                    |
 |---------|---------------------------|
-| `t`     | Promote to task + today   |
-| `T`     | Promote to task only      |
-| `p`     | Promote to task + project |
+| `o`     | Set status to open        |
+| `n`     | Add to next               |
+| `p`     | Change project            |
 | `D`     | Delete                    |
 
 ### Detail Pane
@@ -296,13 +324,19 @@ Type to filter...
 |------------------|----------|
 | Selected row     | Inverse  |
 | Task `[ ]`       | Default  |
+| Task `[.]`       | Yellow   |
 | Task `[x]`       | Green    |
-| Task `[/]`       | Yellow   |
+| Task `[-]`       | Dim      |
+| Task `[s]`       | Dim      |
+| Task `[>]`       | Cyan     |
+| Task `[<]`       | Red      |
 | Due (overdue)    | Red      |
 | Due (today)      | Yellow   |
 | Due (future)     | Dim      |
 | Project path     | Dim      |
-| Type suffix      | Dim      |
+| Reference `@`    | Blue     |
+| Reference `#`    | Green    |
+| Reference `+`    | Magenta  |
 | Wikilink         | Cyan     |
 
 ---
@@ -312,4 +346,3 @@ Type to filter...
 - [km-tasks.md](km-tasks.md) — Overview
 - [km-tasks-data.md](km-tasks-data.md) — Data model
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI spec
-- [km-ui.md](km-ui.md) — Display functions

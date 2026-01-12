@@ -2,8 +2,6 @@
 
 Command-line interface for task management.
 
-> Field names follow [Unified Names](km-tasks-data.md#unified-names).
-
 ---
 
 ## Commands Overview
@@ -15,7 +13,7 @@ Command-line interface for task management.
 | `km inbox`     | Inbox view                     |
 | `km add`       | Quick capture                  |
 | `km done`      | Mark task done                 |
-| `km someday`   | Convert task to list item      |
+| `km board`     | View/manage boards             |
 | `km move`      | Re-parent task                 |
 | `km import`    | Import TextBundle              |
 | `km export`    | Export TextBundle              |
@@ -38,18 +36,19 @@ km task "query"             # Search tasks
 
 ```bash
 km task --status <status>   # Filter by status
-km task --status next       # Next actions
+km task --status wip        # In progress tasks
 km task --status waiting    # Waiting tasks
+km task --status someday    # Someday tasks
 
 km task --overdue           # Overdue tasks
 km task --due today         # Due today
 km task --due week          # Due this week
 
 km task --project "Work"    # Tasks in project
-km task --owner bjorn       # Assigned to user
-km task --tag urgent        # With tag
+km task --owner bjorn       # Assigned to user (first @)
+km task --ref @bjorn        # Tasks referencing @bjorn
+km task --ref "#finance"    # Tasks referencing #finance
 
-km task --someday           # Plain list items (no checkbox)
 km task --inbox             # Items in inbox/ folder
 ```
 
@@ -307,33 +306,36 @@ km task start 01HXY... 2025-01-20
 
 ---
 
-## km someday
+## km board
 
-Convert task to someday (plain list item).
-
-### Usage
-
-```bash
-km someday <id>                   # Convert task to list item
-```
-
-Removes checkbox: `- [ ] Learn Rust` → `- Learn Rust`
-
----
-
-## km task promote
-
-Convert list item to task.
+View and manage boards (`@person`, `#tag`, `+project` nodes).
 
 ### Usage
 
 ```bash
-km task promote <id>              # Add checkbox
-km task promote <id> -t           # Add checkbox + today
-km task promote <id> -p "Work"    # Add checkbox + move to project
+km board                          # List all boards
+km board @bjorn                   # View @bjorn's board
+km board +website                 # View +website board
+km board @bjorn add <id>          # Add task to board
+km board @bjorn move <id> <col>   # Move task to column
 ```
 
-Adds checkbox: `- Learn Rust` → `- [ ] Learn Rust`
+### Options
+
+| Option            | Description                    |
+|-------------------|--------------------------------|
+| `--column`        | Filter by column               |
+| `--json`          | JSON output                    |
+
+### Examples
+
+```bash
+km board @bjorn                   # View person board
+km board "#finance"               # View tag board
+km board +q1-planning             # View project board
+km board @bjorn add 01HXY...      # Add task to @bjorn
+km board @bjorn move 01HXY... discussed  # Move to column
+```
 
 ---
 
@@ -344,7 +346,7 @@ Adds checkbox: `- Learn Rust` → `- [ ] Learn Rust`
 ```
 Work / Finance / .md #
   [ ] Review Q1 budget          due:Jan 15
-  [/] Send invoice              @bjorn
+  [.] Send invoice              @bjorn
 
 Personal / Health
   [ ] Call dentist              due:today
@@ -357,7 +359,7 @@ Recurring tasks show `↻` indicator after the mark.
 
 ```
 [ ] Review Q1 budget    Work/Finance    due:Jan15
-[/] Send invoice        Work/Finance    @bjorn
+[.] Send invoice        Work/Finance    @bjorn
 [ ] Call dentist        Personal        due:today
 [ ] ↻ Weekly review     Personal        ↻weekly Mon
 ```
@@ -371,6 +373,8 @@ Recurring tasks show `↻` indicator after the mark.
     "content": "Review Q1 budget",
     "status": "open",
     "due": "2025-01-15",
+    "owner": "bjorn",
+    "references": ["@bjorn", "#finance", "+q1"],
     "ancestors": ["Work", "Finance"]
   },
   {
@@ -401,4 +405,3 @@ Recurring tasks show `↻` indicator after the mark.
 - [km-tasks.md](km-tasks.md) — Overview
 - [km-tasks-data.md](km-tasks-data.md) — Data model
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
-- [km-cli.md](km-cli.md) — Full CLI reference

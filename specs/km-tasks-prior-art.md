@@ -290,9 +290,16 @@ Recurrence is a property; completion adds a new block.
 ## km Design Choices
 
 See [km-tasks-data.md](km-tasks-data.md) for km's implementation decisions:
-- **Recurrence:** Clone-on-complete with `recur_prev` linked list
-- **Metadata:** Same-line `key:value` syntax (like todo.txt)
-- **Type determination:** Implicit from checkbox prefix
+
+| Aspect | Choice | Rationale |
+|--------|--------|-----------|
+| Recurrence | Clone-on-complete | Each instance is real, full history |
+| Metadata | `key:value` inline | Compact, grep-friendly, like todo.txt |
+| References | `@person` `#tag` `+project` | Sigils = node links, first `@` = owner |
+| Boards | H2 columns + wikilinks | Pure markdown, no special format |
+| Status | 1:1 with marks | `[ ]`=open, `[.]`=wip, `[x]`=done, etc. |
+| Someday | Status `[s]` | Not a type, just another status |
+| Inbox/Archive | Location-based | `inbox/` and `archive/` folders |
 
 ---
 

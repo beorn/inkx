@@ -1,932 +1,490 @@
 # Tasks Data Model
 
-Data model extensions for task management.
+Data model for task management in km.
 
 ---
 
-## Unified Names {#unified-names}
+## Core Concepts
 
-All field names are consistent across inline syntax, frontmatter, CLI, and database:
+### Everything is a Node
 
-| Field | Inline | Frontmatter | CLI Flag | DB Column |
-|-------|--------|-------------|----------|-----------|
-| Owner | `@user` (first) | `owner` | `--owner` | `owner` |
-| Tags | `@name` `#tag` | `tags` | `--tag` | `tags` |
-| Due date | `due:DATE` | `due` | `--due` | `due` |
-| Start date | `start:DATE` | `start` | `--start` | `start` |
-| Priority | `p:N` | `p` | `--priority` | `p` |
-| Recurrence | `recur:RRULE` | `recur` | `--recur` | `recur` |
-| Status | (from mark) | `status` | `--status` | `status` |
+km has one primitive: **nodes**. A node is a piece of content that can be:
+- A file, folder, heading, list item, paragraph
+- Optionally has a **status** (making it a task)
+- Optionally has **references** to other nodes (`@`, `#`, `+`, `[[]]`)
 
----
+### Node with Status = Task
 
-## Unified Task Model
-
-Any markdown element can become a task by adding a checkbox prefix. Tasks are nodes
-in the unified km model — same schema, same queries, same event log.
-
-### Three Representations
-
-Tasks can be represented three ways in markdown. All become `type: task` nodes internally.
-
-| Representation | Syntax | Interop | Best For |
-|----------------|--------|---------|----------|
-| **List tasks** | `- [ ] Call dentist` | ✅ Standard | Quick items, checklists |
-| **Section tasks** | `## [ ] Q1 Review` | ⚠️ km-specific | Projects, multi-part work |
-| **File tasks** | frontmatter `type: task` | ✅ Shared | Complex tasks, rich content |
-
-**Interoperability notes:**
-- **List tasks** — Standard GFM checkboxes. Works in GitHub, Obsidian, Bear, etc.
-- **Section tasks** — km extension. Other tools see `## [ ] Title` as a heading.
-- **File tasks** — Shared convention with TaskGenius, TaskNotes. Frontmatter-based.
-
-All three unify in km's node model — same queries, same status tracking, same views.
-
-### Task Sources
-
-| Source | Markdown | Node Type |
-|--------|----------|-----------|
-| List item | `- [ ] Call dentist` | `task` |
-| Heading | `## [ ] Q1 Review` | `task` (was `heading`) |
-| File | frontmatter `type: task` | `task` |
-| Folder | contains tasks | `project` (implicit) |
-
-### List Item Tasks
-
-Standard checkbox syntax with optional [line-based metadata](#line-based-metadata):
+Any node can become a task by having a status:
 
 ```markdown
-- [ ] Call dentist
-- [x] Send invoice @bjorn due:2025-01-15
+- [ ] Call dentist                     # list item with status = task
+## [ ] Q1 Budget Review                # heading with status = task
 ```
-
-### Section Tasks
-
-Any heading can be a task by prefixing with checkbox. Uses [line-based metadata](#line-based-metadata):
-
-```markdown
-## [ ] Q1 Budget Review @bjorn due:2025-01-15 p:1
-
-Need to analyze spending across all departments.
-
-### Subtasks
-- [ ] Pull finance data
-- [ ] Meet with department heads
-- [x] Draft template
-
-### Notes
-2025-01-10: Kicked off analysis
-```
-
-The heading becomes a task node; content below (until next same-level heading)
-becomes the task description. Child headings and lists become subtasks.
-
-### File-Level Tasks
-
-A file with `type: task` in frontmatter is a task:
 
 ```yaml
+# file with status = task
 ---
-type: task
-status: wip
-owner: bjorn
-due: 2025-01-15
-p: 1
-tags: [work, q1]
+status: open
 ---
-
-# Review Q1 Budget
-
-Full task description with rich content...
-
-## Subtasks
-- [ ] Pull data
-- [ ] Analyze trends
+# Project Proposal
 ```
 
-**Frontmatter → Node mapping:**
+### References are Node Links
 
-| Frontmatter | Node Field |
-|-------------|------------|
-| `type` | `type` |
-| `status` | `status` |
-| `owner` | `owner` |
-| `due` | `due` |
-| `start` | `start` |
-| `p` | `p` |
-| `tags` | `tags` |
-| `recur` | `recur` |
-
-### Tree Navigation (No Special "Project" Type)
-
-km doesn't have a special "project" type. A project is just **a node with tasks beneath it** — could be a folder, a file, or a heading. Users organize however they prefer:
-
-```
-Work/
-├── Q1-Planning/           # folder with tasks
-│   ├── budget-review.md   # task file
-│   └── headcount.md       # task file
-└── tasks.md               # file with task list items
-```
-
-**Querying tasks under a node:**
-```bash
-km task --under "Work/Q1-Planning"   # All tasks in subtree
-km task --project "Q1-Planning"      # Shorthand (searches by name)
-```
-
-**User conventions (not enforced by km):**
-- **PARA:** Put projects in `projects/`, areas in `areas/`
-- **GTD:** Tag projects with `#project` or use a `Projects/` folder
-- **Flat:** Just use folders naturally
-
-**Why no `type: project`?**
-- A "project" is a mental model, not a data type
-- Any node can have child tasks
-- Keeps the model simple: tasks have checkboxes, everything else doesn't
-
----
-
-## Line-Based Metadata
-
-Metadata embedded in the same line as task content. Used by list tasks and section tasks.
-
-See [Prior Art](km-tasks-prior-art.md) for comparison with todo.txt, TaskPaper, Obsidian Tasks, Tana, and others.
-
-### km Syntax
-
-km uses `key:value` pairs (like todo.txt) with `@` for mentions and `#` for tags:
+`@bjorn`, `#finance`, `+project`, and `[[note]]` are all **references to nodes**:
 
 ```markdown
-- [ ] Review Q1 budget @bjorn due:2025-01-15 p:1 #finance
+- [ ] Review budget @bjorn #finance +q1-planning [[Q4-Report]]
 ```
 
-| Field      | Inline | Frontmatter | Node Field | Example |
-|------------|--------|-------------|------------|---------|
-| Owner      | `@user` (first) | `owner` | `owner` | `@bjorn` |
-| Tags       | `@name` `#tag` | `tags` | `tags` | `@sarah @phone #work` |
-| Due        | `due:DATE` | `due` | `due` | `due:2025-01-15` |
-| Scheduled  | `start:DATE` | `start` | `start` | `start:2025-01-10` |
-| Priority   | `p:N` | `p` | `p` | `p:1` |
-| Recurrence | `recur:RRULE` | `recur` | `recur` | `recur:FREQ=WEEKLY` |
-| ID/Anchor  | `^id` | — | `id` | `^budget-q1` |
+- `@bjorn` → reference to node `@bjorn` (person/context)
+- `#finance` → reference to node `#finance` (tag/category)
+- `+q1-planning` → reference to node `+q1-planning` (project)
+- `[[Q4-Report]]` → wikilink to node `Q4-Report`
 
-**Tags as Node References:** `@`, `#`, and `[[...]]` are all ways to reference nodes:
+All create links. The sigil is part of the node name.
+
+### Boards are Nodes with Columns
+
+A board is a node that displays linked items in columns:
 
 ```markdown
-- [ ] Discuss budget @bjorn @sarah @phone #finance [[Q4-Report]]
-      ↑ owner        ↑───── node refs (tags) ─────↑ ↑ wikilink ↑
+# @bjorn.md
+
+## to-discuss
+- [[tasks/review-budget]]
+- [[tasks/team-offsite]]
+
+## discussed
+- [[tasks/hiring-plan]]
 ```
 
-- `@bjorn` — first `@` = owner AND reference to `user/bjorn` node
-- `@sarah`, `@phone` — references (people/contexts)
-- `#finance` — reference (category)
-- `[[Q4-Report]]` — explicit wikilink
-
-All are **references to nodes in the tree**. The difference is syntax:
-- `@` and `#` — inline shorthand, extracted to `tags[]`
-- `[[...]]` — explicit wikilink, creates backlink
-
-A reference like `@bjorn` could resolve to `user/bjorn`, `@phone` to `context/phone`,
-`#harry-potter` to `book/harry-potter`. The tree provides structure; syntax is sugar.
-
-**Naming principles:**
-- Short field names minimize clutter (`p` not `priority`)
-- `@` for people and contexts (first one also sets `owner`)
-- `#` for categories
-- `[[]]` for explicit links with backlinks
-- `start` = when task becomes available; `due` = deadline
-
-### Parsing Rules
-
-1. Metadata tokens appear after task title, space-separated
-2. `@word` → node reference / tag (first also sets `owner`)
-3. `#word` → node reference / tag
-4. `[[name]]` → wikilink (explicit link, creates backlink)
-5. `key:value` → field (no spaces around colon)
-6. Unrecognized tokens remain in title
-
-```
-- [ ] Call @john about #budget review due:2025-01-15 @phone [[Notes]]
-      ↑ owner/ref  ↑ ref       ↑ field       ↑ ref  ↑ wikilink
-```
-
-**Resolution:** `@john` could resolve to `people/john`, `context/john`, or just be
-a tag. Resolution is by lookup — if a node exists at a conventional path, it links.
-If not, it's just a tag for filtering.
+When you add `@bjorn` to a task, a link appears on the `@bjorn` board.
 
 ---
 
-## Task Marks
+## Unified Syntax
 
-Checkbox variants indicating status:
+### `key:value` Everywhere
 
-| Mark  | Status        | Meaning            |
-|-------|---------------|--------------------|
-| `[ ]` | open/next     | Not started        |
-| `[x]` | done          | Completed          |
-| `[/]` | wip   | Currently working  |
-| `[-]` | cancelled     | Dropped            |
-| `[?]` | waiting       | Blocked/waiting    |
-| `[>]` | scheduled     | Scheduled for later|
+One syntax pattern for all metadata:
 
-**Prior art:** Extended marks from [Obsidian Tasks](https://obsidian-tasks-group.github.io/obsidian-tasks/),
-[Logseq](https://docs.logseq.com/), and [org-mode](https://orgmode.org/).
+| Type | Syntax | Example |
+|------|--------|---------|
+| Reference | `@word` `#word` `+word` | `@bjorn #urgent +website` |
+| Attribute | `key:value` | `due:2025-01-15 p:1` |
+| Wikilink | `[[path]]` | `[[notes/meeting]]` |
+
+### Task Example
+
+```markdown
+- [ ] Review Q1 budget @bjorn @sarah #finance +q1 due:2025-01-15 p:1
+```
+
+Parsed as:
+- Content: "Review Q1 budget"
+- Owner: `bjorn` (first `@`)
+- References: `@bjorn`, `@sarah`, `#finance`, `+q1`
+- Due: `2025-01-15`
+- Priority: `1`
+
+### Column Example
+
+```markdown
+## wip limit:3 set_status:wip
+```
+
+Parsed as:
+- Column name: "wip"
+- WIP limit: 3
+- On enter: set task status to `wip`
 
 ---
 
-## Markdown Representation
+## Status Model
 
-Examples of tasks in markdown files. See [Line-Based Metadata](#line-based-metadata)
-for syntax details and [Task Marks](#task-marks) for checkbox variants.
+### Status = Mark (1:1)
 
-### Examples
+Each status has exactly one checkbox mark:
 
-```markdown
-- [ ] Call dentist
-- [ ] Review Q1 budget @bjorn due:2025-01-15 start:2025-01-10
-- [/] Fix login bug @alice p:1
-- [x] Setup repo due:2025-01-08
-```
+| Mark | Status | Meaning |
+|------|--------|---------|
+| `[ ]` | `open` | Available, not started |
+| `[.]` | `wip` | In progress |
+| `[x]` | `done` | Completed |
+| `[-]` | `dropped` | Cancelled |
+| `[s]` | `someday` | Maybe/later |
+| `[>]` | `waiting` | Waiting on external |
+| `[<]` | `blocked` | Blocked by internal |
 
-### Subtasks
+### Status Semantics
 
-Nested list items under a task:
-
-```markdown
-- [ ] Plan Q1 review
-  - [ ] Gather metrics
-  - [ ] Schedule meeting
-  - [x] Draft agenda
-```
-
-### Task with Description
-
-Content indented under task becomes the description. The description can include
-multiple paragraphs, lists, code blocks, and embedded content:
-
-```markdown
-- [ ] Review Q1 budget @bjorn due:2025-01-15
-
-  Need to compare with Q4 actuals.
-  See [[Finance/Q4-Report]] for details.
-
-  Key areas to review:
-  - Revenue projections
-  - Cost overruns
-  - Headcount changes
-
-  ```sql
-  SELECT * FROM budget WHERE quarter = 'Q1'
-  ```
-```
-
-### Task with Activity Log
-
-Timestamped entries track progress and communication:
-
-```markdown
-- [ ] Review Q1 budget @bjorn due:2025-01-15
-
-  Need to compare with Q4 actuals.
-
-  ---
-  2025-01-10: Called Sarah, waiting for numbers
-  2025-01-08: Started initial analysis
-```
-
-The `---` separator distinguishes description from activity log (optional convention).
-
-### Task with Attachments
-
-Attachments use standard markdown image/link syntax with `assets/` path:
-
-```markdown
-- [ ] Review Q1 budget @bjorn due:2025-01-15
-
-  See attached spreadsheet and screenshot.
-
-  ![Budget Screenshot](assets/budget-q1-screenshot.png)
-  [Q1 Budget.xlsx](assets/q1-budget-2025.xlsx)
-```
-
-**Asset storage:**
-- Files stored in `.km/assets/` (CAS-style, content-addressed)
-- Or alongside .md files in `assets/` subdirectory (Obsidian-compatible)
-- Drag-and-drop in TUI copies file and inserts reference
-
-### Frontmatter Alternative
-
-For file-level tasks or complex metadata:
-
-```yaml
----
-type: task
-status: wip
-owner: bjorn
-due: 2025-01-15
-p: 1
-tags: [work, q1, finance]
-recur: FREQ=WEEKLY;BYDAY=MO
----
-
-# Review Q1 Budget
-
-Task description here...
-```
-
----
-
-## Task Status
-
-Extend existing `TaskStatus` with `next`:
-
-```typescript
-type TaskStatus =
-  | "open"        // Available, not scheduled
-  | "next"        // Selected for immediate action
-  | "wip" // Actively working
-  | "done"        // Completed
-  | "waiting"     // Blocked on external
-  | "blocked"     // Blocked on internal
-  | "scheduled"   // Has future start date
-  | "cancelled";  // Dropped
-```
+| Status | Use Case | Agent Behavior |
+|--------|----------|----------------|
+| `open` | Available to work on | Can pick up |
+| `wip` | Actively working | In progress |
+| `done` | Completed | Skip |
+| `dropped` | Won't do | Skip |
+| `someday` | Maybe later | Skip unless reviewing |
+| `waiting` | Needs external input (human, API) | Cannot proceed autonomously |
+| `blocked` | Needs internal dependency | Check blocker, may auto-resolve |
 
 ### Status Flow
 
 ```
-open ──→ next ──→ wip ──→ done
-  │        │           │
-  │        └───────────┴──→ waiting ──→ (back to open/next)
+open [ ] ──→ wip [.] ──→ done [x]
+  │           │
+  │           ├──→ waiting [>] ──→ (back to wip/open)
+  │           │
+  │           └──→ blocked [<] ──→ (auto-resolve → wip)
   │
-  └──→ scheduled ──→ (auto to open when date arrives)
+  └──→ someday [s] ──→ (promote to open)
   │
-  └──→ cancelled
+  └──→ dropped [-]
 ```
-
-### Status Meanings
-
-| Status       | In View    | Meaning                          |
-|--------------|------------|----------------------------------|
-| `open`       | All        | Available but not scheduled      |
-| `next`       | Next       | Selected for immediate action    |
-| `wip`        | Next       | Actively working on              |
-| `waiting`    | Waiting    | Blocked on external dependency   |
-| `blocked`    | Blocked    | Blocked on internal dependency   |
-| `scheduled`  | (hidden)   | Has future `start` date          |
-| `done`       | (archive)  | Completed                        |
-| `cancelled`  | (archive)  | Dropped                          |
-
-Note: Inbox is determined by **folder location** (`inbox/`), not status.
 
 ---
 
-## Node Fields
+## References
+
+### Sigil Conventions
+
+| Sigil | Convention | Creates Link To |
+|-------|------------|-----------------|
+| `@` | People, contexts | `@bjorn.md`, `@phone.md` |
+| `#` | Tags, categories | `#finance.md`, `#urgent.md` |
+| `+` | Projects | `+website.md`, `+q1.md` |
+| `[[]]` | Any node | Explicit wikilink |
+
+### Node Names Include Sigils
+
+The sigil is part of the name:
+
+```
+@bjorn.md       # Person node named "@bjorn"
+#finance.md     # Tag node named "#finance"
++q1-planning.md # Project node named "+q1-planning"
+```
+
+### First `@` is Owner
+
+```markdown
+- [ ] Task @bjorn @sarah #work
+```
+
+- `@bjorn` = owner (first `@`) AND reference
+- `@sarah` = reference only
+- `#work` = reference
+
+All go to `references[]`. First `@` also sets `owner`.
+
+### Reference Resolution
+
+When you write `@bjorn`:
+1. Look for `@bjorn.md` in root
+2. Look for `people/@bjorn.md`
+3. Look for `contexts/@bjorn.md`
+4. Auto-create `@bjorn.md` if not found
+
+---
+
+## Boards
+
+### Board = Node with Columns
+
+Any node with H2 sections containing wikilinks is a board:
+
+```markdown
+# @bjorn.md
+
+## to-discuss
+- [[tasks/review-budget]]
+
+## discussed
+- [[tasks/hiring-plan]]
+
+## action-needed
+- [[tasks/send-proposal]]
+```
+
+### Column Metadata
+
+Columns can have `key:value` attributes:
+
+```markdown
+## wip limit:3 set_status:wip
+
+## done set_status:done collapse:true
+
+## staging set_status:waiting set_waiting_for:QA
+```
+
+### Column Attributes
+
+| Attribute | Effect |
+|-----------|--------|
+| `set_status:X` | Set task status when entering |
+| `set_owner:@X` | Set task owner |
+| `set_waiting_for:X` | Set waiting_for field |
+| `limit:N` | WIP limit |
+| `collapse:true` | Collapsed in UI by default |
+| `default:true` | New items go here |
+
+### Smart Defaults
+
+Column names auto-map to behaviors:
+
+| Column Name | Auto Behavior |
+|-------------|---------------|
+| `done`, `complete`, `finished` | `set_status:done` |
+| `wip`, `doing`, `in-progress` | `set_status:wip` |
+| `blocked`, `waiting` | `set_status:blocked` |
+| `backlog`, `someday` | `set_status:someday` |
+
+### Adding to Boards
+
+When a task has `@bjorn`:
+
+```markdown
+- [ ] Review budget @bjorn #finance
+```
+
+The task appears on `@bjorn` board (in default column).
+
+Equivalent to adding `[[tasks/review-budget]]` to `@bjorn.md`.
+
+### Board as View
+
+The board file stores:
+- Which tasks (as wikilinks)
+- Which column (under which H2)
+- Column behaviors (as attributes)
+
+The viewer renders task details by resolving links.
+
+---
+
+## Task Fields
+
+### Node Schema
 
 ```typescript
 interface Node {
-  // Task fields
-  status?: TaskStatus;
-  owner?: string;        // first @mention (node ref, also in tags)
-  tags?: string[];       // from @ and # (node refs: people, contexts, categories)
-  due?: string;          // YYYY-MM-DD deadline
-  start?: string;        // YYYY-MM-DD defer/scheduled
-  p?: number;            // 1-5 priority
-  recur?: string;        // iCal RRULE
-  recur_prev?: string;   // ID of predecessor (for recurring)
-  waiting_for?: string;  // who/what blocked on
+  // Identity
+  id: string;
+  type: string;           // file, folder, heading, list_item, etc.
+
+  // Task fields (optional - presence makes it a task)
+  status?: Status;        // open, wip, done, dropped, someday, waiting, blocked
+  owner?: string;         // First @ reference
+  references?: string[];  // All @, #, + references
+  due?: string;           // YYYY-MM-DD
+  start?: string;         // YYYY-MM-DD (defer until)
+  p?: number;             // Priority 1-5
+  recur?: string;         // iCal RRULE
+  recur_prev?: string;    // Previous instance ID
+  waiting_for?: string;   // Who/what blocked on
 }
 ```
 
-**Tags as node references:** Items in `tags[]` may resolve to nodes in the tree
-(e.g., `bjorn` → `people/bjorn`). Resolution is opportunistic — unresolved tags
-still work for filtering.
+### Inline Syntax
 
-Note: Inbox, archive, and someday are determined by **folder location**, not flags.
+```markdown
+- [ ] Task title @owner #tag +project due:DATE start:DATE p:N recur:RRULE
+```
+
+| Field | Syntax | Example |
+|-------|--------|---------|
+| Owner | `@name` (first) | `@bjorn` |
+| References | `@name` `#tag` `+proj` | `@sarah #urgent +q1` |
+| Due | `due:DATE` | `due:2025-01-15` |
+| Start | `start:DATE` | `start:2025-01-20` |
+| Priority | `p:N` | `p:1` |
+| Recurrence | `recur:RRULE` | `recur:FREQ=WEEKLY` |
+| Waiting for | `waiting_for:X` | `waiting_for:Sarah` |
+
+### Frontmatter (File Tasks)
+
+```yaml
+---
+status: wip
+owner: bjorn
+due: 2025-01-15
+p: 1
+references: ["@sarah", "#finance", "+q1"]
+recur: FREQ=WEEKLY;BYDAY=MO
+---
+# Review Q1 Budget
+
+Task description...
+```
 
 ---
 
 ## Recurrence
 
-### Entity Model: Clone-on-Complete
+### Clone-on-Complete
 
-Two approaches exist for recurring tasks:
-
-| Approach | Description | Used By |
-|----------|-------------|---------|
-| **Template + Virtual** | Single entity, instances computed on-the-fly | Google Calendar, Outlook |
-| **Clone-on-Complete** | New entity created when current completes | Todoist, Things, OmniFocus, km |
-
-**km uses clone-on-complete** because:
-- Each instance has its own history (notes, completion date, modifications)
-- Skipping an instance doesn't break the chain
-- Search and queries work naturally (each is a real node)
-- Simpler mental model (what you see is what exists)
-
-### How It Works
+When a recurring task is completed:
+1. Current task marked `done`
+2. New task cloned with next occurrence date
+3. New task links back via `recur_prev`
 
 ```
-Original task (recur: FREQ=WEEKLY)
-├── [x] done 2025-01-06 — instance 1 (completed)
-├── [x] done 2025-01-13 — instance 2 (completed)
-└── [ ] due 2025-01-20  — instance 3 (current, the "live" task)
+Task A (recur: FREQ=WEEKLY)
+├── [x] done 2025-01-06
+├── [x] done 2025-01-13
+└── [ ] due 2025-01-20  ← current
 ```
-
-When you complete instance 3:
-1. Instance 3 marked `done`, completion timestamp recorded
-2. Instance 4 created with `start` = next occurrence
-3. Instance 4 inherits: content, recur, project, tags
-
-### Instance Linking
-
-Each instance points back to the original task:
-
-```typescript
-interface Node {
-  recur?: string;      // RRULE (on current active instance)
-  recur_prev?: string; // ID of task this was cloned from
-}
-```
-
-- Original task has `recur` but no `recur_prev`
-- Each clone points to its predecessor (linked list)
-- Traverse chain to find history: E → D → C → B → A
-- Find original: follow `recur_prev` until null
-
-### Clone Behavior
-
-**Shallow clone:** Only the parent task is cloned, not subtasks.
-
-Rationale: Subtasks in recurring tasks typically represent the *same* checklist each time
-(e.g., "Weekly review" with subtasks "Check inbox", "Review projects"). These reset rather
-than accumulate. For persistent subtasks across recurrences, use a project structure instead.
-
-**Where clones are created:** New instances are created in the **same location** as the
-completed task (same parent folder/project).
-
-**When clones are created:** On completion only. No pre-generation of future instances.
-The next instance is created immediately when the current one is marked done.
-
-**Search filtering:** Completed instances excluded from search by default (`status != done`).
-Use `--all` or explicit filters to include history.
-
-### Large Task Warning
-
-⚠️ **Avoid recurrence on complex tasks with extensive content.**
-
-If a task has significant description, attachments, or accumulated notes, recurring it
-wastes storage and makes instances harder to manage. Instead:
-
-1. **Make a recurring subtask:**
-   ```markdown
-   # Project Alpha (persistent)
-
-   Project overview and accumulated notes...
-
-   ## Tasks
-   - [ ] ↻ Weekly check-in  recur:FREQ=WEEKLY  ← only this recurs
-   - [ ] Other tasks...
-   ```
-
-2. **Use project + recurring task:**
-   ```
-   project-alpha/
-   ├── README.md            # Project info (persistent)
-   └── weekly-review.md     # type: task, recur: FREQ=WEEKLY
-   ```
-
-The recurring task stays small; the project holds accumulated context.
-
-### Pattern Changes
-
-When the recurrence pattern changes (e.g., weekly → biweekly), update `recur` on
-the current instance. The linked list preserves history:
-
-```
-Original A (recur: WEEKLY)
-└── [x] Instance B (recur_prev: A)
-    └── [x] Instance C (recur_prev: B)
-        └── [ ] Instance D (recur_prev: C, recur: BIWEEKLY)  ← pattern changed
-            └── [ ] Instance E (recur_prev: D)
-```
-
-- Linked list captures full history and order
-- Pattern change visible in chain (D has different `recur` than A)
-- Traverse: E → D → C → B → A to see evolution
 
 ### RRULE Format
 
-iCal RRULE standard:
-
 ```
-FREQ=DAILY                        # Every day
-FREQ=WEEKLY;BYDAY=MO,WE,FR       # Mon/Wed/Fri
-FREQ=MONTHLY;BYMONTHDAY=1        # 1st of month
-FREQ=WEEKLY;INTERVAL=2           # Every 2 weeks
-FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1  # Jan 1st
+recur:FREQ=DAILY
+recur:FREQ=WEEKLY;BYDAY=MO,WE,FR
+recur:FREQ=MONTHLY;BYMONTHDAY=1
+recur:FREQ=WEEKLY;INTERVAL=2
 ```
 
-### Operations
+### Instance Linking
 
-| Action | Behavior |
-|--------|----------|
-| **Complete** | Mark done, shallow clone next instance |
-| **Skip** | Mark cancelled, shallow clone next instance |
-| **Edit this** | Modify current instance only |
-| **Edit all future** | Modify original task, affect future clones |
-| **Change pattern** | Update `recur` on current instance |
-| **Stop recurring** | Remove `recur` from current instance |
-| **Delete series** | Traverse chain, delete all linked instances |
-
-### Start vs Due
-
-For recurring tasks, two date types matter:
-
-| Field | Meaning | Example |
-|-------|---------|---------|
-| `start` | When task appears/becomes available | Jan 20 (defer until) |
-| `due` | When task must be completed | Jan 22 (deadline) |
-
-Recurring tasks typically set `start` from RRULE, not `due`.
-
-### Display
-
-```
-[x] ↻ Weekly review    completed Jan 13
-[ ] ↻ Weekly review    scheduled Jan 20
+```typescript
+interface Node {
+  recur?: string;       // RRULE on active instance
+  recur_prev?: string;  // ID of previous instance (linked list)
+}
 ```
 
-The ↻ indicator shows the task is part of a recurring series.
+Traverse `recur_prev` to find history.
 
 ---
 
-## Someday/Maybe
+## Special Locations
 
-Someday items are **plain list items** (no checkbox), not tasks:
+### Inbox
 
-```markdown
-## Ideas
+Items in `inbox/` folder are unprocessed:
 
-- Learn Rust
-- Trip to Japan
-- Refactor auth system
+```
+inbox/
+├── quick-note.md
+└── idea.md
 ```
 
-**Why plain list items?**
-- No checkbox = no commitment
-- Clear distinction: `[ ]` means "I will do this", `-` means "maybe"
-- Can live in any file, any folder
-- Becomes a task when you add the checkbox
+**Not a status** — determined by location.
 
-**Conversion:**
+### Archive
 
-| Direction | Action | Result |
-|-----------|--------|--------|
-| Task → Someday | `S` key or `km someday <id>` | Remove checkbox: `- [ ] X` → `- X` |
-| Someday → Task | `T` key or `km task promote <id>` | Add checkbox: `- X` → `- [ ] X` |
-
-```bash
-km someday 01HXY...              # Convert task to list item
-km task promote 01HXY...         # Convert list item to task
-km task promote 01HXY... -t      # Convert and add to today
-km task promote 01HXY... -p Work # Convert and move to project
-```
-
-**Someday view query:**
-```sql
-type = 'list_item'
-AND content NOT LIKE '- [ ]%'     -- no checkbox
-AND parent_type NOT IN ('task')   -- not a subtask description
-```
-
-This excludes list items that are within task descriptions or subtask lists.
-
----
-
-## Archive
-
-Completed and cancelled tasks move to `archive/` folder:
+Completed items can be moved to `archive/`:
 
 ```
 archive/
 ├── 2025/
-│   ├── 01/
-│   │   ├── call-dentist.md      # done 2025-01-10
-│   │   └── fix-login-bug.md     # done 2025-01-12
-│   └── 02/
-└── cancelled/
-    └── old-project.md
+│   └── 01/
+│       └── completed-task.md
 ```
 
-**Why folder-based?**
-- Physical separation from active work
-- Easy to browse by date
-- Can exclude from search/sync
-- Standard file system semantics
-
-**Archiving:**
-```bash
-km done 01HXY...      # Moves to archive/YYYY/MM/
-km archive 01HXY...   # Explicit archive without status change
-```
-
-Tasks in `archive/` excluded from normal views/search.
+**Not automatic** — explicit action to archive.
 
 ---
 
-## Inbox
+## Parsing Rules
 
-The `inbox/` folder is the capture location for unprocessed items.
-
-### Folder = Inbox
-
-Items in the `inbox/` folder automatically have inbox status:
+### Task Line
 
 ```
-inbox/
-├── call-from-john.md
-├── idea-refactor-auth.md
-└── meeting-notes-jan10.md
+- [mark] content @ref #ref +ref key:value [[link]]
 ```
 
-**No separate flag needed** — location determines inbox status.
+1. `[mark]` → status (see mark table)
+2. `@word` → first is owner, all go to references
+3. `#word` → references
+4. `+word` → references
+5. `key:value` → attributes (no space around `:`)
+6. `[[path]]` → wikilinks
+7. Remaining text → content/title
 
-### Inbox Behavior
-
-| Action | Result |
-|--------|--------|
-| `km add "..."` | Creates file in `inbox/` |
-| File dropped in `inbox/` | Appears in inbox view |
-| Move to project | Removes from inbox (location change) |
-| `km inbox process` | Interactive triage |
-
-### Processing
-
-Processing an inbox item = moving it to a project:
-
-```bash
-km move inbox/call-from-john.md "Personal/Health"
-```
-
-The item leaves inbox when it leaves the `inbox/` folder.
-
-### Quick Capture
-
-```bash
-km add "Call dentist"           # → inbox/call-dentist.md
-km add -t "Review PR"           # → inbox/review-pr.md + status=next
-km add -p "Work" "Fix bug"      # → Work/fix-bug.md (skips inbox)
-```
-
----
-
-## Due Date Behavior
-
-| Condition     | Display        | Behavior                    |
-|---------------|----------------|-----------------------------|
-| Overdue       | Red, "-3d"     | Auto-surfaces in Next view  |
-| Due today     | Yellow, "today"| Highlighted                 |
-| Due tomorrow  | Normal         | Normal display              |
-| Due later     | Dim, "Jan 15"  | Normal display              |
-
-Overdue = `due < today AND status NOT IN (done, cancelled)`
-
----
-
-## Subtasks
-
-Child nodes of type `task` under parent task.
+### Heading with Attributes
 
 ```
-Task (parent)
-├── Subtask 1
-├── Subtask 2
-└── Subtask 3
+## heading-text key:value key:value
 ```
 
-- Each subtask has independent status
-- Parent completion doesn't auto-complete subtasks
-- Subtask can be promoted to top-level task
+1. `##` → heading level
+2. Text before first `key:` → heading name
+3. `key:value` pairs → attributes
 
----
+### Values with Spaces
 
-## Notes/Comments
-
-Child nodes of type `paragraph` under task.
-
-Auto-timestamp pattern:
-```markdown
-2025-01-12: Called vendor, waiting for reply
-2025-01-10: Started research
-```
-
----
-
-## Wikilinks
-
-### Linking FROM Tasks
-
-Reference other content from within a task:
+Quote values containing spaces:
 
 ```markdown
-- [ ] Review [[Q1 Budget]] report
-- [ ] Follow up with [[John]] about [[Project Alpha]]
+- [ ] Task waiting_for:"Sarah's review"
+## column description:"Work in progress"
 ```
 
-### Linking TO Tasks
+---
 
-Reference a specific task from elsewhere using its anchor ID:
+## Examples
+
+### Simple Task
 
 ```markdown
-# Meeting Notes
-
-Discussed the [[#budget-q1]] task with Sarah.
-Need to complete [[Review Q1 budget]] before EOD.
-
-## Action Items
-- See [[#01HXY...]] for details (by ULID)
+- [ ] Call dentist @phone
 ```
 
-### Link Resolution
-
-| Syntax                  | Links to                    |
-|-------------------------|-----------------------------|
-| `[[Page Name]]`         | Node by title/content match |
-| `[[#anchor-id]]`        | Node by `^id` anchor        |
-| `[[#01HXY...]]`         | Node by ULID                |
-| `[[file.md#Section]]`   | Section in specific file    |
-
-### Task Anchors
-
-Add `^id` to create a stable, human-readable link target:
+### Task with Metadata
 
 ```markdown
-- [ ] Review Q1 budget @bjorn due:2025-01-15 ^budget-q1
-
-  ...description...
+- [ ] Review Q1 budget @bjorn @sarah #finance +q1 due:2025-01-15 p:1
 ```
 
-Or use `id:ULID` for system-assigned IDs:
+### Recurring Task
 
 ```markdown
-- [ ] Review Q1 budget id:01HXYZ...
+- [ ] Weekly review @team #planning recur:FREQ=WEEKLY;BYDAY=MO start:2025-01-20
 ```
 
-Anchors are:
-- `^id` — user-defined, human-readable, unique within repo
-- `id:ULID` — system-assigned, auto-generated on first reference
-
-### Backlinks
-
-Detail pane shows "Linked from:" section with all incoming references.
-
-Query: find all nodes containing `[[target]]` or `[[#id]]` in content.
-
-### Embed vs Link
-
-| Syntax                  | Behavior                    |
-|-------------------------|-----------------------------|
-| `[[Page Name]]`         | Clickable link              |
-| `![[Page Name]]`        | Embed content inline        |
-| `![[image.png]]`        | Embed image                 |
-
----
-
-## Attachments
-
-### Attachment Syntax
-
-Standard markdown for images and files:
+### Board (Person Agenda)
 
 ```markdown
-![Screenshot](assets/screenshot-2025-01-12.png)
-[Report PDF](assets/q1-report.pdf)
-[Spreadsheet](assets/budget.xlsx)
+# @bjorn.md
+
+## to-discuss
+- [[tasks/review-budget]]
+- [[tasks/team-offsite]]
+
+## discussed
+- [[tasks/hiring-plan]]
 ```
 
-### Storage Models
+### Board (Project Kanban)
 
-**CAS (Content-Addressed Storage):**
-```
-.km/
-├── assets/
-│   ├── abc123...def  # SHA-256 of content
-│   └── xyz789...ghi
-└── db/
-```
-- Files named by content hash
-- Automatic deduplication
-- Path mapping in node metadata
+```markdown
+# +website.md
 
-**Alongside (Obsidian-compatible):**
-```
-project/
-├── task-notes.md
-└── assets/
-    ├── screenshot.png
-    └── report.pdf
-```
-- Human-readable filenames
-- Files grouped with related content
-- Portable folder structure
+## backlog
+- [[tasks/design-homepage]]
 
-### Inline vs Referenced
+## wip limit:2 set_status:wip
+- [[tasks/setup-repo]]
 
-| Type       | Syntax                           | Display               |
-|------------|----------------------------------|-----------------------|
-| Inline img | `![alt](assets/img.png)`         | Rendered in content   |
-| Link       | `[Report](assets/report.pdf)`    | Clickable download    |
-| Embed      | `![[assets/doc.md]]`             | Content embedded      |
+## review set_status:waiting
+- [[tasks/code-review]]
 
-### Attachment Metadata
-
-Optional frontmatter for file-level tasks with attachments:
-
-```yaml
----
-type: task
-attachments:
-  - path: assets/screenshot.png
-    type: image/png
-    size: 245000
-    added: 2025-01-12T10:00:00Z
-  - path: assets/report.pdf
-    type: application/pdf
-    size: 1024000
----
+## done set_status:done collapse:true
+- [[tasks/create-project]]
 ```
 
-### TUI Attachment Actions
+### Board (GTD Context)
 
-| Key     | Action                    |
-|---------|---------------------------|
-| `A`     | Add attachment (picker)   |
-| `Enter` | Open attachment           |
-| `y`     | Copy attachment path      |
-| `D`     | Remove attachment         |
+```markdown
+# @phone.md
 
-Drag-and-drop: File dropped on task copies to assets and inserts reference.
-
----
-
-## TextBundle
-
-### Import Schema
-
-```
-document.textbundle/
-├── info.json
-├── text.md
-└── assets/
-    └── image.png
-```
-
-Parse `text.md` to nodes, copy assets to `.km/assets/`.
-
-### Export Schema
-
-```json
-{
-  "version": 2,
-  "type": "net.daringfireball.markdown",
-  "creatorIdentifier": "io.km.app",
-  "io.km.app": {
-    "nodeId": "01HXYZ...",
-    "exportedAt": "2025-01-12T10:00:00Z"
-  }
-}
-```
-
----
-
-## Database Schema
-
-### New Columns
-
-```sql
-ALTER TABLE nodes ADD COLUMN owner TEXT;
-ALTER TABLE nodes ADD COLUMN due TEXT;
-ALTER TABLE nodes ADD COLUMN start TEXT;
-ALTER TABLE nodes ADD COLUMN p INTEGER;
-ALTER TABLE nodes ADD COLUMN recur TEXT;
-ALTER TABLE nodes ADD COLUMN recur_prev TEXT;
-ALTER TABLE nodes ADD COLUMN waiting_for TEXT;
-```
-
-### Indexes
-
-```sql
-CREATE INDEX idx_nodes_status ON nodes(status)
-  WHERE type = 'task';
-CREATE INDEX idx_nodes_due ON nodes(due)
-  WHERE due IS NOT NULL;
-CREATE INDEX idx_nodes_start ON nodes(start)
-  WHERE start IS NOT NULL;
-CREATE INDEX idx_nodes_owner ON nodes(owner)
-  WHERE owner IS NOT NULL;
-CREATE INDEX idx_nodes_recur_prev ON nodes(recur_prev)
-  WHERE recur_prev IS NOT NULL;
+## calls
+- [[tasks/call-dentist]]
+- [[tasks/call-vendor]]
 ```
 
 ---
@@ -937,4 +495,3 @@ CREATE INDEX idx_nodes_recur_prev ON nodes(recur_prev)
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI spec
 - [km-tasks-prior-art.md](km-tasks-prior-art.md) — Prior art research
-- [km-data-model.md](km-data-model.md) — Full node schema
