@@ -123,13 +123,18 @@ Metadata embedded in the same line as task content. Used by list tasks and secti
 
 ### Prior Art
 
-| System | Assignee | Due Date | Priority | Tags | Project |
-|--------|----------|----------|----------|------|---------|
-| **Todoist** | — | natural language | `!p1`-`!p4` | `@label` | `#project` |
-| **todo.txt** | — | `due:YYYY-MM-DD` | `(A)`-`(Z)` | `@context` | `+project` |
-| **TODO.md** | `@name` | `YYYY-MM-DD` | — | `#tag` | section |
-| **Org-mode** | — | `DEADLINE:` | `[#A]` | `:tag:` | headline |
-| **Obsidian Tasks** | — | `📅 YYYY-MM-DD` | `⏫` `🔼` `🔽` | `#tag` | — |
+| System | Assignee | Due Date | Priority | Tags | ID/Permalink |
+|--------|----------|----------|----------|------|--------------|
+| **[todo.txt](https://github.com/todotxt/todo.txt)** | — | `due:YYYY-MM-DD` | `(A)`-`(Z)` | `@context` | — |
+| **[TaskPaper](https://guide.taskpaper.com/)** | — | `@due(YYYY-MM-DD)` | `@priority(N)` | `@tag` | `@id(value)` |
+| **[Todoist](https://todoist.com/)** | — | natural language | `!p1`-`!p4` | `@label` | internal |
+| **[TODO.md](https://github.com/todomd/todo.md)** | `@name` | `YYYY-MM-DD` | — | `#tag` | — |
+| **[Org-mode](https://orgmode.org/)** | — | `DEADLINE:` | `[#A]` | `:tag:` | `:ID:` property |
+| **[Logseq](https://docs.logseq.com/)** | — | — | — | `#tag` | `id:: UUID` |
+| **[Obsidian Tasks](https://obsidian-tasks-group.github.io/obsidian-tasks/)** | — | `📅 YYYY-MM-DD` or `[due:: DATE]` | `⏫` or `[priority:: high]` | `#tag` | `^block-id` |
+| **[Task Genius](https://taskgenius.md/)** | — | `📅 YYYY-MM-DD` | `⏫` or `[#A]` or `[priority:: N]` | `#tag` | — |
+| **[TaskForge](https://taskforge.md/)** | `👤 @user` | `📅 YYYY-MM-DD` | `⏫` emoji | `@context` | — |
+| **[GFM](https://github.github.com/gfm/)** | — | — | — | — | `#heading-slug` |
 
 ### km Syntax
 
