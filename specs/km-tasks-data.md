@@ -130,11 +130,29 @@ Metadata embedded in the same line as task content. Used by list tasks and secti
 | **[Todoist](https://todoist.com/)** | — | natural language | `!p1`-`!p4` | `@label` | internal |
 | **[TODO.md](https://github.com/todomd/todo.md)** | `@name` | `YYYY-MM-DD` | — | `#tag` | — |
 | **[Org-mode](https://orgmode.org/)** | — | `DEADLINE:` | `[#A]` | `:tag:` | `:ID:` property |
-| **[Logseq](https://docs.logseq.com/)** | — | — | — | `#tag` | `id:: UUID` |
+| **[Logseq](https://docs.logseq.com/)** | — | `deadline:: DATE` | — | `#tag` | `id:: UUID` |
 | **[Obsidian Tasks](https://obsidian-tasks-group.github.io/obsidian-tasks/)** | — | `📅 YYYY-MM-DD` or `[due:: DATE]` | `⏫` or `[priority:: high]` | `#tag` | `^block-id` |
+| **[Dataview](https://blacksmithgu.github.io/obsidian-dataview/)** | `[assigned:: name]` | `[due:: DATE]` | `[priority:: N]` | `#tag` | — |
 | **[Task Genius](https://taskgenius.md/)** | — | `📅 YYYY-MM-DD` | `⏫` or `[#A]` or `[priority:: N]` | `#tag` | — |
 | **[TaskForge](https://taskforge.md/)** | `👤 @user` | `📅 YYYY-MM-DD` | `⏫` emoji | `@context` | — |
+| **[Tana](https://tana.inc/)** | field | field | field | `#supertag` | node ID |
+| **[Linear](https://linear.app/)** | UI/API | UI/API | UI/API | labels | UUID |
 | **[GFM](https://github.github.com/gfm/)** | — | — | — | — | `#heading-slug` |
+
+### Metadata Syntax Families
+
+Systems use different approaches for inline metadata:
+
+| Family | Syntax | Examples |
+|--------|--------|----------|
+| **Key-colon-value** | `key:value` | todo.txt, km |
+| **Property syntax** | `key:: value` | Logseq, Dataview |
+| **Function style** | `@key(value)` | TaskPaper |
+| **Emoji prefix** | `📅 value` | Obsidian Tasks, TaskForge |
+| **Brackets** | `[key:: value]` | Dataview (inline) |
+| **Structured data** | fields/UI | Tana, Linear, Notion |
+
+**Note:** Linear and Tana don't use text-based metadata in content — they use structured fields via UI/API. This makes them powerful but less portable.
 
 ### km Syntax
 
@@ -152,7 +170,7 @@ km uses `key:value` pairs (like todo.txt) with `@` for mentions and `#` for tags
 | Priority   | `priority:N`           | `priority:1`               |
 | Tags       | `#tag`                 | `#work #urgent`            |
 | Recurrence | `every:RRULE`          | `every:FREQ=WEEKLY`        |
-| Slug       | `slug:identifier`      | `slug:budget-review`       |
+| ID/Anchor  | `^id` or `id:ULID`     | `^budget-q1` or `id:01HXY...` |
 
 **Design choices:**
 - `key:value` — adopted from todo.txt, widely understood
@@ -367,9 +385,52 @@ Note: Inbox status is determined by location (`inbox/` folder), not a flag.
 
 ## Recurrence
 
+### Entity Model: Clone-on-Complete
+
+Two approaches exist for recurring tasks:
+
+| Approach | Description | Used By |
+|----------|-------------|---------|
+| **Template + Virtual** | Single entity, instances computed on-the-fly | Google Calendar, Outlook |
+| **Clone-on-Complete** | New entity created when current completes | Todoist, Things, OmniFocus, km |
+
+**km uses clone-on-complete** because:
+- Each instance has its own history (notes, completion date, modifications)
+- Skipping an instance doesn't break the chain
+- Search and queries work naturally (each is a real node)
+- Simpler mental model (what you see is what exists)
+
+### How It Works
+
+```
+Original task (recurrence: FREQ=WEEKLY)
+├── [x] done 2025-01-06 — instance 1 (completed)
+├── [x] done 2025-01-13 — instance 2 (completed)
+└── [ ] due 2025-01-20  — instance 3 (current, the "live" task)
+```
+
+When you complete instance 3:
+1. Instance 3 marked `done`, completion timestamp recorded
+2. Instance 4 created with `scheduled_date` = next occurrence
+3. Instance 4 inherits: content, recurrence, project, tags
+
+### Instance Linking
+
+Instances share a `recurrence_id` linking them to the same series:
+
+```typescript
+interface Node {
+  recurrence?: string;       // RRULE (only on current instance)
+  recurrence_id?: string;    // Links all instances in series
+  recurrence_parent?: string; // ID of original/template task
+}
+```
+
+Query all instances: `WHERE recurrence_id = '...'`
+
 ### RRULE Format
 
-iCal RRULE for recurring tasks:
+iCal RRULE standard:
 
 ```
 FREQ=DAILY                        # Every day
@@ -379,12 +440,36 @@ FREQ=WEEKLY;INTERVAL=2           # Every 2 weeks
 FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1  # Jan 1st
 ```
 
-### Recurrence Behavior
+### Operations
 
-When recurring task marked done:
-1. Clone task with same content, recurrence, project
-2. Set clone's `scheduled_date` to next occurrence
-3. Original stays done (audit trail preserved)
+| Action | Behavior |
+|--------|----------|
+| **Complete** | Mark done, clone next instance |
+| **Skip** | Mark cancelled, clone next instance |
+| **Edit this** | Modify current instance only |
+| **Edit all future** | Modify recurrence template, affect future clones |
+| **Stop recurring** | Remove `recurrence` from current instance |
+| **Delete series** | Delete all instances with same `recurrence_id` |
+
+### Defer vs Due
+
+For recurring tasks, two date types matter:
+
+| Field | Meaning | Example |
+|-------|---------|---------|
+| `scheduled_date` | When task appears/becomes available | Jan 20 (defer until) |
+| `due_date` | When task must be completed | Jan 22 (deadline) |
+
+Recurring tasks typically set `scheduled_date` from RRULE, not `due_date`.
+
+### Display
+
+```
+[x] ↻ Weekly review    completed Jan 13
+[ ] ↻ Weekly review    scheduled Jan 20
+```
+
+The ↻ indicator shows the task is part of a recurring series.
 
 ---
 
@@ -503,16 +588,16 @@ Reference other content from within a task:
 
 ### Linking TO Tasks
 
-Reference a specific task from elsewhere:
+Reference a specific task from elsewhere using its anchor ID:
 
 ```markdown
 # Meeting Notes
 
-Discussed the [[#01HXY...]] task with Sarah.
+Discussed the [[#budget-q1]] task with Sarah.
 Need to complete [[Review Q1 budget]] before EOD.
 
 ## Action Items
-- See [[#budget-review]] for details
+- See [[#01HXY...]] for details (by ULID)
 ```
 
 ### Link Resolution
@@ -520,24 +605,29 @@ Need to complete [[Review Q1 budget]] before EOD.
 | Syntax                  | Links to                    |
 |-------------------------|-----------------------------|
 | `[[Page Name]]`         | Node by title/content match |
-| `[[#01HXY...]]`         | Node by ID (ULID)           |
-| `[[#slug]]`             | Node by slug (if defined)   |
+| `[[#anchor-id]]`        | Node by `^id` anchor        |
+| `[[#01HXY...]]`         | Node by ULID                |
 | `[[file.md#Section]]`   | Section in specific file    |
 
-### Task Slugs
+### Task Anchors
 
-Optional human-readable identifier for stable linking:
+Add `^id` to create a stable, human-readable link target:
 
 ```markdown
-- [ ] Review Q1 budget @bjorn due:2025-01-15 slug:budget-review
+- [ ] Review Q1 budget @bjorn due:2025-01-15 ^budget-q1
 
   ...description...
 ```
 
-Slugs are:
-- Unique within repository
-- Stable across renames
-- User-defined or auto-generated from title
+Or use `id:ULID` for system-assigned IDs:
+
+```markdown
+- [ ] Review Q1 budget id:01HXYZ...
+```
+
+Anchors are:
+- `^id` — user-defined, human-readable, unique within repo
+- `id:ULID` — system-assigned, auto-generated on first reference
 
 ### Backlinks
 
