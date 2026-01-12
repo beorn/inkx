@@ -171,41 +171,49 @@ km uses `key:value` pairs (like todo.txt) with `@` for mentions and `#` for tags
 | Recurrence | `recur:RRULE` | `recur` | `recur` | `recur:FREQ=WEEKLY` |
 | ID/Anchor  | `^id` | — | `id` | `^budget-q1` |
 
-**Tags:** Both `@` and `#` are tags. First `@` is also the owner:
+**Tags as Node References:** `@`, `#`, and `[[...]]` are all ways to reference nodes:
+
 ```markdown
-- [ ] Discuss budget @bjorn @sarah @phone #finance
-      ↑ owner        ↑──────── tags ────────────↑
+- [ ] Discuss budget @bjorn @sarah @phone #finance [[Q4-Report]]
+      ↑ owner        ↑───── node refs (tags) ─────↑ ↑ wikilink ↑
 ```
 
-- `@bjorn` — first `@` = owner AND tag
-- `@sarah`, `@phone` — tags (people/contexts)
-- `#finance` — tag (category)
+- `@bjorn` — first `@` = owner AND reference to `user/bjorn` node
+- `@sarah`, `@phone` — references (people/contexts)
+- `#finance` — reference (category)
+- `[[Q4-Report]]` — explicit wikilink
 
-All stored in `tags[]`. Owner is additionally stored in `owner` field.
+All are **references to nodes in the tree**. The difference is syntax:
+- `@` and `#` — inline shorthand, extracted to `tags[]`
+- `[[...]]` — explicit wikilink, creates backlink
+
+A reference like `@bjorn` could resolve to `user/bjorn`, `@phone` to `context/phone`,
+`#harry-potter` to `book/harry-potter`. The tree provides structure; syntax is sugar.
 
 **Naming principles:**
 - Short field names minimize clutter (`p` not `priority`)
-- `@` and `#` are both tags — just different conventions
+- `@` for people and contexts (first one also sets `owner`)
+- `#` for categories
+- `[[]]` for explicit links with backlinks
 - `start` = when task becomes available; `due` = deadline
-
-**Design choices:**
-- `key:value` — adopted from todo.txt
-- `@` — people and GTD contexts (person = agenda for them)
-- `#` — categories and labels
-- Both become tags — queried the same way
 
 ### Parsing Rules
 
 1. Metadata tokens appear after task title, space-separated
-2. `@word` → tag (first also sets `owner`)
-3. `#word` → tag
-4. `key:value` → field (no spaces around colon)
-5. Unrecognized tokens remain in title
+2. `@word` → node reference / tag (first also sets `owner`)
+3. `#word` → node reference / tag
+4. `[[name]]` → wikilink (explicit link, creates backlink)
+5. `key:value` → field (no spaces around colon)
+6. Unrecognized tokens remain in title
 
 ```
-- [ ] Call @john about #budget review due:2025-01-15 @phone
-      ↑ owner + tag    ↑ tag          ↑ field       ↑ tag
+- [ ] Call @john about #budget review due:2025-01-15 @phone [[Notes]]
+      ↑ owner/ref  ↑ ref       ↑ field       ↑ ref  ↑ wikilink
 ```
+
+**Resolution:** `@john` could resolve to `people/john`, `context/john`, or just be
+a tag. Resolution is by lookup — if a node exists at a conventional path, it links.
+If not, it's just a tag for filtering.
 
 ---
 
@@ -380,8 +388,8 @@ Note: Inbox is determined by **folder location** (`inbox/`), not status.
 interface Node {
   // Task fields
   status?: TaskStatus;
-  owner?: string;        // first @mention (also in tags)
-  tags?: string[];       // from @ and # (people, contexts, categories)
+  owner?: string;        // first @mention (node ref, also in tags)
+  tags?: string[];       // from @ and # (node refs: people, contexts, categories)
   due?: string;          // YYYY-MM-DD deadline
   start?: string;        // YYYY-MM-DD defer/scheduled
   p?: number;            // 1-5 priority
@@ -390,6 +398,10 @@ interface Node {
   waiting_for?: string;  // who/what blocked on
 }
 ```
+
+**Tags as node references:** Items in `tags[]` may resolve to nodes in the tree
+(e.g., `bjorn` → `people/bjorn`). Resolution is opportunistic — unresolved tags
+still work for filtering.
 
 Note: Inbox, archive, and someday are determined by **folder location**, not flags.
 
