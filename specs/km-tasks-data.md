@@ -46,10 +46,10 @@ Standard checkbox syntax:
 
 ### Section Tasks
 
-Any heading can be a task by prefixing with checkbox:
+Any heading can be a task by prefixing with checkbox. Uses same inline metadata syntax as list tasks:
 
 ```markdown
-## [ ] Q1 Budget Review @bjorn due:2025-01-15
+## [ ] Q1 Budget Review @bjorn due:2025-01-15 priority:1
 
 Need to analyze spending across all departments.
 
@@ -61,6 +61,15 @@ Need to analyze spending across all departments.
 ### Notes
 2025-01-10: Kicked off analysis
 ```
+
+**Metadata syntax** — same as list tasks:
+- `@username` — assignee
+- `due:YYYY-MM-DD` — due date
+- `scheduled:YYYY-MM-DD` — scheduled date
+- `priority:N` — priority (1-5)
+- `#tag` — tags
+- `every:RRULE` — recurrence
+- `slug:identifier` — stable link target
 
 The heading becomes a task node; content below (until next same-level heading)
 becomes the task description. Child headings and lists become subtasks.
