@@ -2,6 +2,8 @@
 
 Task management in km, inspired by Notational Velocity and Simplenote.
 
+> **Note:** This system is currently designed for tasks. Supporting other content types (notes, documents, etc.) may require adjustments to the model.
+
 ---
 
 ## Design Principles
@@ -61,10 +63,20 @@ km @next/waiting add ./tasks/approval
 
 ### 4. Review
 
+**Daily:**
 ```bash
-km @next                  # What to work on
+km @next                  # What to work on today
 km @next/waiting          # What's blocked
-km @someday               # Weekly review
+```
+
+**Weekly Review:**
+```bash
+km @inbox                 # Process anything left
+km @next                  # Is everything current?
+km @next/waiting          # Follow up on blocked items
+km @someday               # Anything ready to activate?
+km task status:open       # Any orphaned tasks?
+km +project               # Check each active project
 ```
 
 ### 5. Do
@@ -137,33 +149,13 @@ km task status:blocked
 
 ### Four Statuses
 
-Tasks have exactly four statuses:
+Tasks have exactly four statuses: `open`, `blocked`, `done`, `dropped`. Status answers: "Can I work on this?"
 
-| Mark | Status | Meaning |
-|------|--------|---------|
-| `[ ]` | `open` | Available to work on |
-| `[!]` | `blocked` | Can't work on it (waiting/blocked) |
-| `[x]` | `done` | Completed |
-| `[-]` | `dropped` | Cancelled |
-
-Status answers: "Can I work on this?"
+See [Status Model](km-tasks-data.md#status-model) for details.
 
 ### Boards = Organization
 
-Boards are markdown files with columns. They're populated by automations or manual curation:
-
-```markdown
-# @next.md
-
-## today
-- [[tasks/call-dentist]]
-
-## this-week
-- [[tasks/review-budget]]
-
-## waiting status:blocked
-- [[tasks/get-approval]]
-```
+Boards are markdown files with columns containing task transclusions. They're populated by automations or manual curation.
 
 | Board | Purpose | How Populated |
 |-------|---------|---------------|
@@ -173,15 +165,7 @@ Boards are markdown files with columns. They're populated by automations or manu
 | `+project` | Project tasks | Auto: `+project` ref |
 | `@person` | Person agenda | Auto: `@person` ref |
 
-### Column-Status Automation
-
-Columns can auto-set status when tasks are moved:
-
-```markdown
-## waiting status:blocked
-```
-
-Moving to `@next/waiting` sets `status=blocked`.
+Columns can auto-set status (e.g., `## waiting status:blocked`). See [Board System](km-tasks-data.md#board-system) for details.
 
 ### Automations Move Tasks
 

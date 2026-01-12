@@ -2,6 +2,8 @@
 
 Data model for task management in km.
 
+> **Note:** This system is currently designed for tasks. Supporting other content types (notes, documents, etc.) may require adjustments to the model.
+
 ---
 
 ## Core Concepts
@@ -39,20 +41,20 @@ All create links. The sigil is part of the node name.
 
 ### Boards Organize Tasks
 
-A board is a markdown file with H2 columns containing wikilinks to tasks:
+A board is a markdown file with H2 columns containing transclusions to tasks:
 
 ```markdown
 # @next.md
 
 ## today
-- [[tasks/review-budget]]
-- [[tasks/call-dentist]]
+- ![[tasks/review-budget]]
+- ![[tasks/call-dentist]]
 
 ## this-week
-- [[tasks/send-invoice]]
+- ![[tasks/send-invoice]]
 
 ## waiting
-- [[tasks/get-approval]]
+- ![[tasks/get-approval]]
 ```
 
 Boards are populated by **automations** or **manual curation**.
@@ -95,7 +97,7 @@ Board columns can auto-set status when tasks are moved:
 
 ```markdown
 ## waiting status:blocked
-- [[tasks/get-approval]]
+- ![[tasks/get-approval]]
 ```
 
 Moving a task to `@next/waiting` automatically sets `status=blocked`.
@@ -121,7 +123,11 @@ Moving a task to `@next/waiting` automatically sets `status=blocked`.
 | `#` | Tags, categories | `#finance`, `#urgent` |
 | `+` | Projects | `+website`, `+q1` |
 
-First `@` is the **owner** (assignee). All references create links to boards.
+The **first** `@` reference becomes the **owner** (assignee). All references create links to boards.
+
+Example: `- [ ] Review budget @bjorn @sarah #finance`
+- `owner` = `bjorn` (first `@`)
+- `references` = `[@bjorn, @sarah, #finance]` (all refs)
 
 ### Schema
 
@@ -132,8 +138,8 @@ interface Node {
 
   // Task fields (optional)
   status?: 'open' | 'blocked' | 'done' | 'dropped';
-  owner?: string;         // First @ reference
-  references?: string[];  // All @, #, + references
+  owner?: string;         // Extracted from first @ reference (without sigil)
+  references?: string[];  // All @, #, + references (with sigils)
   due?: string;           // YYYY-MM-DD
   start?: string;         // YYYY-MM-DD (defer until)
   p?: number;             // Priority 1-5
@@ -172,13 +178,13 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 # @next.md
 
 ## today
-- [[tasks/review-budget]]
+- ![[tasks/review-budget]]
 
 ## this-week
-- [[tasks/send-invoice]]
+- ![[tasks/send-invoice]]
 
 ## waiting status:blocked
-- [[tasks/get-approval]]
+- ![[tasks/get-approval]]
 ```
 
 ### Column Attributes

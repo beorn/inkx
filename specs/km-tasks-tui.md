@@ -86,12 +86,14 @@ Unified NV-style input:
 
 ### Status Marks
 
-| Mark | Status | Display |
-|------|--------|---------|
-| `[ ]` | open | Default |
-| `[!]` | blocked | Yellow |
-| `[x]` | done | Green, dim |
-| `[-]` | dropped | Dim, strikethrough |
+See [Status Model](km-tasks-data.md#status-model) for status definitions.
+
+| Mark | Display |
+|------|---------|
+| `[ ]` | Default |
+| `[!]` | Yellow |
+| `[x]` | Green, dim |
+| `[-]` | Dim, strikethrough |
 
 ### Due Date Display
 

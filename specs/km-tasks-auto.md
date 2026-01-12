@@ -74,13 +74,13 @@ Columns can auto-set status via attributes in the markdown heading:
 # @next.md
 
 ## today
-- [[tasks/review-budget]]
+- ![[tasks/review-budget]]
 
 ## this-week
-- [[tasks/send-invoice]]
+- ![[tasks/send-invoice]]
 
 ## waiting status:blocked
-- [[tasks/get-approval]]
+- ![[tasks/get-approval]]
 ```
 
 Moving a task to `@next/waiting` automatically sets `status=blocked`.
