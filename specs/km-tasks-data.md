@@ -137,6 +137,7 @@ Metadata embedded in the same line as task content. Used by list tasks and secti
 | **[TaskForge](https://taskforge.md/)** | `👤 @user` | `📅 YYYY-MM-DD` | `⏫` emoji | `@context` | — |
 | **[Tana](https://tana.inc/)** | field | field | field | `#supertag` | node ID |
 | **[Linear](https://linear.app/)** | UI/API | UI/API | UI/API | labels | UUID |
+| **[Pandoc](https://pandoc.org/MANUAL.html)** | — | — | — | `{.class}` | `{#id}` |
 | **[GFM](https://github.github.com/gfm/)** | — | — | — | — | `#heading-slug` |
 
 ### Metadata Syntax Families
@@ -150,9 +151,10 @@ Systems use different approaches for inline metadata:
 | **Function style** | `@key(value)` | TaskPaper |
 | **Emoji prefix** | `📅 value` | Obsidian Tasks, TaskForge |
 | **Brackets** | `[key:: value]` | Dataview (inline) |
+| **Curly brace attrs** | `{#id .class key=val}` | Pandoc, kramdown |
 | **Structured data** | fields/UI | Tana, Linear, Notion |
 
-**Note:** Linear and Tana don't use text-based metadata in content — they use structured fields via UI/API. This makes them powerful but less portable.
+**Note:** Linear and Tana don't use text-based metadata in content — they use structured fields via UI/API. Pandoc's attribute syntax works across headings, code blocks, divs, and spans — the most versatile but less human-readable.
 
 ### km Syntax
 
