@@ -144,17 +144,42 @@ Metadata embedded in the same line as task content. Used by list tasks and secti
 
 Systems use different approaches for inline metadata:
 
-| Family | Syntax | Examples |
-|--------|--------|----------|
-| **Key-colon-value** | `key:value` | todo.txt, km |
-| **Property syntax** | `key:: value` | Logseq, Dataview |
-| **Function style** | `@key(value)` | TaskPaper |
-| **Emoji prefix** | `📅 value` | Obsidian Tasks, TaskForge |
-| **Brackets** | `[key:: value]` | Dataview (inline) |
-| **Curly brace attrs** | `{#id .class key=val}` | Pandoc, kramdown |
-| **Structured data** | fields/UI | Tana, Linear, Notion |
+| Family | Syntax | Placement | Examples |
+|--------|--------|-----------|----------|
+| **Key-colon-value** | `key:value` | same line | todo.txt, km |
+| **Property syntax** | `key:: value` | line(s) below | Logseq, Dataview |
+| **Function style** | `@key(value)` | same line | TaskPaper |
+| **Emoji prefix** | `📅 value` | same line | Obsidian Tasks, TaskForge |
+| **Brackets** | `[key:: value]` | inline | Dataview |
+| **Curly brace attrs** | `{#id .class key=val}` | same line (end) | Pandoc, kramdown |
+| **Structured data** | fields/UI | separate | Tana, Linear, Notion |
 
-**Note:** Linear and Tana don't use text-based metadata in content — they use structured fields via UI/API. Pandoc's attribute syntax works across headings, code blocks, divs, and spans — the most versatile but less human-readable.
+### Placement Patterns
+
+```markdown
+# Same line (km, todo.txt, TaskPaper)
+- [ ] Review budget @bjorn due:2025-01-15
+
+# End of line (Pandoc)
+## Review budget {#budget-review .task}
+
+# Lines below (Logseq)
+- Review budget
+  due:: 2025-01-15
+  assigned:: bjorn
+
+# Fenced block (Pandoc divs)
+::: {#budget-review .task due="2025-01-15"}
+Review budget content here...
+:::
+```
+
+**Tradeoffs:**
+- **Same line** — compact, good for short metadata, can get cluttered
+- **Lines below** — cleaner for many properties, but takes more space
+- **Fenced blocks** — powerful for rich content, but verbose
+
+**km choice:** Same-line for simplicity. Most tasks have 0-3 metadata fields.
 
 ### km Syntax
 
