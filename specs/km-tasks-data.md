@@ -17,12 +17,12 @@ Tasks can be represented three ways in markdown. All become `type: task` nodes i
 |----------------|--------|---------|----------|
 | **List tasks** | `- [ ] Call dentist` | ✅ Standard | Quick items, checklists |
 | **Section tasks** | `## [ ] Q1 Review` | ⚠️ km-specific | Projects, multi-part work |
-| **File tasks** | frontmatter `type: task` | ⚠️ km-specific | Complex tasks, rich content |
+| **File tasks** | frontmatter `type: task` | ✅ Shared | Complex tasks, rich content |
 
 **Interoperability notes:**
 - **List tasks** — Standard GFM checkboxes. Works in GitHub, Obsidian, Bear, etc.
 - **Section tasks** — km extension. Other tools see `## [ ] Title` as a heading.
-- **File tasks** — km extension. Other tools see it as a note with frontmatter.
+- **File tasks** — Shared convention with TaskGenius, TaskNotes. Frontmatter-based.
 
 All three unify in km's node model — same queries, same status tracking, same views.
 
