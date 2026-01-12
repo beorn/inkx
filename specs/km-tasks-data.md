@@ -45,6 +45,7 @@ Inline metadata after task content:
 | Priority  | `priority:N`        | `priority:1`               |
 | Tags      | `#tag`              | `#work #urgent`            |
 | Recurrence| `every:RRULE`       | `every:FREQ=WEEKLY`        |
+| Slug      | `slug:identifier`   | `slug:budget-review`       |
 
 ### Subtasks
 
@@ -57,9 +58,10 @@ Nested list items under a task:
   - [x] Draft agenda
 ```
 
-### Task with Notes
+### Task with Description
 
-Content after task becomes description/notes:
+Content indented under task becomes the description. The description can include
+multiple paragraphs, lists, code blocks, and embedded content:
 
 ```markdown
 - [ ] Review Q1 budget @bjorn due:2025-01-15
@@ -67,9 +69,49 @@ Content after task becomes description/notes:
   Need to compare with Q4 actuals.
   See [[Finance/Q4-Report]] for details.
 
+  Key areas to review:
+  - Revenue projections
+  - Cost overruns
+  - Headcount changes
+
+  ```sql
+  SELECT * FROM budget WHERE quarter = 'Q1'
+  ```
+```
+
+### Task with Activity Log
+
+Timestamped entries track progress and communication:
+
+```markdown
+- [ ] Review Q1 budget @bjorn due:2025-01-15
+
+  Need to compare with Q4 actuals.
+
+  ---
   2025-01-10: Called Sarah, waiting for numbers
   2025-01-08: Started initial analysis
 ```
+
+The `---` separator distinguishes description from activity log (optional convention).
+
+### Task with Attachments
+
+Attachments use standard markdown image/link syntax with `assets/` path:
+
+```markdown
+- [ ] Review Q1 budget @bjorn due:2025-01-15
+
+  See attached spreadsheet and screenshot.
+
+  ![Budget Screenshot](assets/budget-q1-screenshot.png)
+  [Q1 Budget.xlsx](assets/q1-budget-2025.xlsx)
+```
+
+**Asset storage:**
+- Files stored in `.km/assets/` (CAS-style, content-addressed)
+- Or alongside .md files in `assets/` subdirectory (Obsidian-compatible)
+- Drag-and-drop in TUI copies file and inserts reference
 
 ### Frontmatter Alternative
 
@@ -259,24 +301,143 @@ Auto-timestamp pattern:
 
 ## Wikilinks
 
-### Syntax
+### Linking FROM Tasks
+
+Reference other content from within a task:
 
 ```markdown
 - [ ] Review [[Q1 Budget]] report
 - [ ] Follow up with [[John]] about [[Project Alpha]]
 ```
 
-### Resolution
+### Linking TO Tasks
+
+Reference a specific task from elsewhere:
+
+```markdown
+# Meeting Notes
+
+Discussed the [[#01HXY...]] task with Sarah.
+Need to complete [[Review Q1 budget]] before EOD.
+
+## Action Items
+- See [[#budget-review]] for details
+```
+
+### Link Resolution
 
 | Syntax                  | Links to                    |
 |-------------------------|-----------------------------|
-| `[[Page Name]]`         | File/section by name        |
-| `[[#task-id]]`          | Task by ID                  |
+| `[[Page Name]]`         | Node by title/content match |
+| `[[#01HXY...]]`         | Node by ID (ULID)           |
+| `[[#slug]]`             | Node by slug (if defined)   |
 | `[[file.md#Section]]`   | Section in specific file    |
+
+### Task Slugs
+
+Optional human-readable identifier for stable linking:
+
+```markdown
+- [ ] Review Q1 budget @bjorn due:2025-01-15 slug:budget-review
+
+  ...description...
+```
+
+Slugs are:
+- Unique within repository
+- Stable across renames
+- User-defined or auto-generated from title
 
 ### Backlinks
 
-Query: find all nodes containing `[[target]]` in content.
+Detail pane shows "Linked from:" section with all incoming references.
+
+Query: find all nodes containing `[[target]]` or `[[#id]]` in content.
+
+### Embed vs Link
+
+| Syntax                  | Behavior                    |
+|-------------------------|-----------------------------|
+| `[[Page Name]]`         | Clickable link              |
+| `![[Page Name]]`        | Embed content inline        |
+| `![[image.png]]`        | Embed image                 |
+
+---
+
+## Attachments
+
+### Attachment Syntax
+
+Standard markdown for images and files:
+
+```markdown
+![Screenshot](assets/screenshot-2025-01-12.png)
+[Report PDF](assets/q1-report.pdf)
+[Spreadsheet](assets/budget.xlsx)
+```
+
+### Storage Models
+
+**CAS (Content-Addressed Storage):**
+```
+.km/
+├── assets/
+│   ├── abc123...def  # SHA-256 of content
+│   └── xyz789...ghi
+└── db/
+```
+- Files named by content hash
+- Automatic deduplication
+- Path mapping in node metadata
+
+**Alongside (Obsidian-compatible):**
+```
+project/
+├── task-notes.md
+└── assets/
+    ├── screenshot.png
+    └── report.pdf
+```
+- Human-readable filenames
+- Files grouped with related content
+- Portable folder structure
+
+### Inline vs Referenced
+
+| Type       | Syntax                           | Display               |
+|------------|----------------------------------|-----------------------|
+| Inline img | `![alt](assets/img.png)`         | Rendered in content   |
+| Link       | `[Report](assets/report.pdf)`    | Clickable download    |
+| Embed      | `![[assets/doc.md]]`             | Content embedded      |
+
+### Attachment Metadata
+
+Optional frontmatter for file-level tasks with attachments:
+
+```yaml
+---
+type: task
+attachments:
+  - path: assets/screenshot.png
+    type: image/png
+    size: 245000
+    added: 2025-01-12T10:00:00Z
+  - path: assets/report.pdf
+    type: application/pdf
+    size: 1024000
+---
+```
+
+### TUI Attachment Actions
+
+| Key     | Action                    |
+|---------|---------------------------|
+| `A`     | Add attachment (picker)   |
+| `Enter` | Open attachment           |
+| `y`     | Copy attachment path      |
+| `D`     | Remove attachment         |
+
+Drag-and-drop: File dropped on task copies to assets and inserts reference.
 
 ---
 
