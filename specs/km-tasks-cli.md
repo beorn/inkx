@@ -9,12 +9,13 @@ Command-line interface for task management.
 | Command        | Purpose                        |
 |----------------|--------------------------------|
 | `km task`      | List and filter tasks          |
-| `km next`      | Next actions view              |
-| `km inbox`     | Inbox view                     |
+| `km @board`    | View/manage any board          |
+| `km next`      | Shortcut for `km @next`        |
+| `km inbox`     | Shortcut for `km @inbox`       |
 | `km add`       | Quick capture                  |
 | `km done`      | Mark task done                 |
-| `km board`     | View/manage boards             |
 | `km move`      | Re-parent task                 |
+| `km auto`      | Manage automations             |
 | `km import`    | Import TextBundle              |
 | `km export`    | Export TextBundle              |
 
@@ -71,68 +72,67 @@ km task "budget" --due week
 
 ---
 
-## km next
+## Board Commands
 
-Next actions view - tasks selected for immediate action.
+Unified board interface. Everything is a board.
 
-### Usage
-
-```bash
-km next                     # Show next actions
-km next add <id>            # Add task to next
-km next remove <id>         # Remove from next
-km next clear               # Clear all from next
-```
-
-### Behavior
-
-- Shows tasks with `status = open` or `status = wip`
-- Overdue tasks auto-surface at top
-- Tasks ordered by manual priority in a "next list" (curated view)
-- Adding places task in next list
-- Removing takes task out of next list
-
-### Examples
+### View Boards
 
 ```bash
-km next                     # List next actions
-km next add 01HXY...        # Add by ID
-km next add "call"          # Add by search match
-km next remove 01HXY...     # Remove from next
+km @next                    # View @next board
+km @inbox                   # View @inbox board
+km @waiting                 # View @waiting board
+km @bjorn                   # View person board
+km +website                 # View project board
+km "#finance"               # View tag board (quote the #)
 ```
 
----
+### Board Operations
 
-## km inbox
+```bash
+km @next add <id>           # Add task to board (default column)
+km @next add <id> today     # Add to specific column
+km @next remove <id>        # Remove task from board
+km @next move <id> <col>    # Move to different column
+km @next list               # List all tasks on board
+```
 
-Inbox view - unprocessed items.
+### Shortcuts
 
-### Usage
+Common boards have shortcuts:
+
+```bash
+km next                     # Alias for: km @next
+km inbox                    # Alias for: km @inbox
+km waiting                  # Alias for: km @waiting
+km someday                  # Alias for: km @someday
+```
+
+### Inbox Processing
 
 ```bash
 km inbox                    # Show inbox items
 km inbox process            # Interactive processing
-km inbox clear              # Clear processed items
 ```
 
-### Interactive Processing
-
-`km inbox process` walks through each item:
+Interactive processing walks through each item:
 
 ```
 Inbox item 1 of 5:
 "Call from John about project"
 
-[t] Today  [p] Project  [s] Someday  [d] Done  [D] Delete  [n] Next
+[n] @next  [p] Project  [s] Someday  [d] Done  [D] Delete
 >
 ```
 
 ### Examples
 
 ```bash
-km inbox                    # List inbox
-km inbox --count            # Just show count
-km inbox process            # Interactive mode
+km @next                    # View next actions
+km @next add 01HXY...       # Add task to @next
+km @next add "call" today   # Add by search, to "today" column
+km @bjorn add 01HXY... to-discuss  # Add to person board
+km +website move 01HXY... done     # Move to done column
 ```
 
 ---
@@ -307,39 +307,6 @@ km task start 01HXY... 2025-01-20
 
 ---
 
-## km board
-
-View and manage boards (`@person`, `#tag`, `+project` nodes).
-
-### Usage
-
-```bash
-km board                          # List all boards
-km board @bjorn                   # View @bjorn's board
-km board +website                 # View +website board
-km board @bjorn add <id>          # Add task to board
-km board @bjorn move <id> <col>   # Move task to column
-```
-
-### Options
-
-| Option            | Description                    |
-|-------------------|--------------------------------|
-| `--column`        | Filter by column               |
-| `--json`          | JSON output                    |
-
-### Examples
-
-```bash
-km board @bjorn                   # View person board
-km board "#finance"               # View tag board
-km board +q1-planning             # View project board
-km board @bjorn add 01HXY...      # Add task to @bjorn
-km board @bjorn move 01HXY... discussed  # Move to column
-```
-
----
-
 ## Output Formats
 
 ### Default (Tree)
@@ -406,3 +373,4 @@ Recurring tasks show `↻` indicator after the mark.
 - [km-tasks.md](km-tasks.md) — Overview
 - [km-tasks-data.md](km-tasks-data.md) — Data model
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
+- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules

@@ -506,15 +506,18 @@ The "Next" view in the TUI is essentially viewing the `@next` board.
 
 ## GTD Mapping
 
-| GTD Concept | km Implementation |
-|-------------|-------------------|
-| Inbox | `inbox/` folder |
-| Next Actions | `@next.md` board or Next view |
-| Projects | `+project` nodes or parent folders |
-| Waiting For | `status = waiting` |
-| Someday/Maybe | `status = someday` |
-| Reference | Nodes without status |
-| Contexts | `@phone.md`, `@computer.md` boards |
+| GTD Concept | km Board | Populated By |
+|-------------|----------|--------------|
+| Inbox | `@inbox` | Automation: items in `inbox/` folder |
+| Next Actions | `@next` | Manual curation + automation (overdue/starting) |
+| Waiting For | `@waiting` | Automation: `status = waiting` |
+| Someday/Maybe | `@someday` | Automation: `status = someday` |
+| Blocked | `@blocked` | Automation: `status = blocked` |
+| Projects | `+project` | Tasks with `+project` reference |
+| Contexts | `@phone`, `@computer` | Tasks with `@context` reference |
+| Reference | (any node) | Nodes without status |
+
+See [km-tasks-auto.md](km-tasks-auto.md) for automation rules.
 
 ---
 
@@ -523,4 +526,5 @@ The "Next" view in the TUI is essentially viewing the `@next` board.
 - [km-tasks.md](km-tasks.md) — Overview
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI spec
+- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
 - [km-tasks-prior-art.md](km-tasks-prior-art.md) — Prior art research

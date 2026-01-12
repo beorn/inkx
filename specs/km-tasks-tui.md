@@ -156,67 +156,65 @@ Opens on `Enter` or `l`, closes on `Esc` or `h`.
 
 ---
 
-## Views
+## Favorites
 
-Switch with number keys:
+Number keys `1-6` open favorite boards. Configurable in `.km/config.yml`:
 
-| Key | View     | Filter                                    |
-|-----|----------|-------------------------------------------|
-| `1` | Next     | `status IN (open, wip)` + overdue         |
-| `2` | Inbox    | `path LIKE 'inbox/%'`                     |
-| `3` | All      | All open tasks                            |
-| `4` | Projects | Grouped by ancestor                       |
-| `5` | Waiting  | `status = waiting`                        |
-| `6` | Someday  | `status = someday`                        |
-
-### Next View
-
-```
-Next (3)                                     [1]
-────────────────────────────────────────────────
-🔴 [.] Review Q1 budget    Work / Finance   -2d
-   [ ] Call dentist        Personal         today
-   [ ] Fix login bug       Work / Auth
+```yaml
+# .km/config.yml
+favorites:
+  1: "@next"
+  2: "@inbox"
+  3: "@waiting"
+  4: "@someday"
+  5: "+website"      # Current project
+  6: "@bjorn"        # Person you work with
 ```
 
-- Manual ordering via `parent_idx`
-- Overdue tasks auto-surface at top (red indicator)
-- Drag to reorder
+Default GTD favorites:
 
-### Inbox View
-
-```
-Inbox (5)                                    [2]
-────────────────────────────────────────────────
-   New note from meeting                    3h ago
-   Call from John                           1d ago
-   Idea: refactor auth                      2d ago
-```
-
-Actions: `n` (next), `p` (project), `s` (someday), `D` (delete)
-
-### Projects View
-
-```
-Projects                                     [4]
-────────────────────────────────────────────────
-▼ Work / Finance / .md
-    [ ] Review Q1 budget
-    [ ] Send invoice
-
-▼ Personal / Health
-    [ ] Call dentist
-    [ ] Schedule checkup
-```
-
-Expand/collapse with Enter.
+| Key | Board | Purpose |
+|-----|-------|---------|
+| `1` | `@next` | Next actions (curated + overdue) |
+| `2` | `@inbox` | Unprocessed items |
+| `3` | `@waiting` | Waiting for external |
+| `4` | `@someday` | Maybe/later ideas |
+| `5` | `@blocked` | Blocked tasks |
+| `6` | (user choice) | Your current focus |
 
 ### Board View
 
-When viewing a board node (`@bjorn.md`, `+project.md`):
+All favorites open as board views:
 
 ```
-@bjorn
+@next                                        [1]
+────────────────────────────────────────────────
+┌──────────────────┐ ┌──────────────────┐
+│ today            │ │ this-week        │
+├──────────────────┤ ├──────────────────┤
+│ 🔴 [.] Budget    │ │ [ ] Send invoice │
+│    [ ] Dentist   │ │ [ ] Review PR    │
+└──────────────────┘ └──────────────────┘
+```
+
+```
+@inbox                                       [2]
+────────────────────────────────────────────────
+┌──────────────────┐
+│ new              │
+├──────────────────┤
+│ Note from mtg    │  3h ago
+│ Call from John   │  1d ago
+│ Idea: refactor   │  2d ago
+└──────────────────┘
+```
+
+Inbox actions: `n` (add to @next), `p` (set project), `s` (someday), `D` (delete)
+
+### Person/Project Boards
+
+```
+@bjorn                                       [6]
 ────────────────────────────────────────────────
 ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
 │ to-discuss  │ │ discussed   │ │ done        │
@@ -348,3 +346,4 @@ Type to filter...
 - [km-tasks.md](km-tasks.md) — Overview
 - [km-tasks-data.md](km-tasks-data.md) — Data model
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI spec
+- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules

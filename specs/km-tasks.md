@@ -59,6 +59,17 @@ A board is a node with columns (H2 sections) containing wikilinks:
 - [[tasks/hiring-plan]]
 ```
 
+### Automations Move Tasks
+
+Rules automatically move tasks between boards:
+
+```yaml
+# When status → waiting, add to @waiting board
+- trigger: status.changed
+  where: { status: waiting }
+  actions: [board.add: "@waiting"]
+```
+
 ---
 
 ## Core Workflow
@@ -75,20 +86,22 @@ A board is a node with columns (H2 sections) containing wikilinks:
 
 ---
 
-## Views
+## Favorites
 
-Six views accessed via number keys `1-6`:
+Number keys `1-6` open favorite boards:
 
-| View     | Purpose                              |
-|----------|--------------------------------------|
-| Next     | Open + WIP tasks, overdue surfaces   |
-| Inbox    | Unprocessed items                    |
-| All      | All open tasks                       |
-| Projects | Grouped by ancestor                  |
-| Waiting  | Blocked on external                  |
-| Someday  | Maybe/later ideas                    |
+| Key | Board | Purpose |
+|-----|-------|---------|
+| `1` | `@next` | Next actions |
+| `2` | `@inbox` | Unprocessed items |
+| `3` | `@waiting` | Waiting for external |
+| `4` | `@someday` | Maybe/later ideas |
+| `5` | `@blocked` | Blocked tasks |
+| `6` | (custom) | Your current focus |
 
-See [TUI Views](km-tasks-tui.md#views) for filter definitions.
+Favorites are configurable in `.km/config.yml`.
+
+See [TUI Favorites](km-tasks-tui.md#favorites) for details.
 
 ---
 
@@ -132,6 +145,7 @@ Interop with Bear, Ulysses, Craft:
 ## Related Specs
 
 - [km-tasks-data.md](km-tasks-data.md) — Data model, status, boards
-- [km-tasks-tui.md](km-tasks-tui.md) — TUI layout, views, keybindings
+- [km-tasks-tui.md](km-tasks-tui.md) — TUI layout, favorites, keybindings
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
+- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
 - [km-tasks-prior-art.md](km-tasks-prior-art.md) — Prior art research
