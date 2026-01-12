@@ -103,8 +103,8 @@ Task A (recur: FREQ=WEEKLY)  →  mark done  →  Task A' (done)
 **Schema:**
 ```typescript
 interface Node {
-  recur?: string;        // RRULE (on current active instance)
-  recur_parent?: string; // ID of original task in series
+  recur?: string;      // RRULE (on current active instance)
+  recur_prev?: string; // ID of task this was cloned from
 }
 ```
 
@@ -296,21 +296,19 @@ km uses clone-on-complete (like Todoist, Things, Asana):
 - Each instance has its own history
 - Natural for markdown files and event log
 
-**Simplified linking:** `recur_parent` only (no `recur_id`)
-- Each instance points to the original task
-- Query: `WHERE id = 'original' OR recur_parent = 'original'`
-- Simpler than maintaining a separate series ID
+**Linked list via `recur_prev`:**
+- Each instance points to its predecessor (the task it was cloned from)
+- Traverse chain to find history: E → D → C → B → A
+- Pattern changes visible in chain (each instance has its own `recur`)
 
 **Shallow clones:** Only parent task cloned, not subtasks
 - Avoids expensive deep copies of large tasks
 - Prevents search pollution from accumulated subtasks
 - Subtasks represent the same checklist each recurrence (they reset)
 
-**Pattern changes:** Update `recur` on current instance, keep `recur_parent`
-- All instances keep pointing to the same original
-- Active instance holds current `recur` rule
-- Future clones inherit pattern from instance they're cloned from
-- Single chain of lineage simplifies queries
+**Pattern changes:** Update `recur` on current instance
+- Linked list naturally captures pattern evolution
+- Future clones inherit pattern from the instance they're cloned from
 
 **Search filtering:** Completed instances excluded by default (`status != done`)
 - Prevents clone pollution in search results

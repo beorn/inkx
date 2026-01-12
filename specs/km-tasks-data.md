@@ -395,15 +395,15 @@ Each instance points back to the original task:
 
 ```typescript
 interface Node {
-  recur?: string;        // RRULE (on current active instance)
-  recur_parent?: string; // ID of original task in series
+  recur?: string;      // RRULE (on current active instance)
+  recur_prev?: string; // ID of task this was cloned from
 }
 ```
 
-- Original task has `recur` but no `recur_parent`
-- Cloned instances have `recur_parent` pointing to original
-- Query all instances: `WHERE id = 'original' OR recur_parent = 'original'`
-- If original is deleted, oldest remaining instance becomes new "original"
+- Original task has `recur` but no `recur_prev`
+- Each clone points to its predecessor (linked list)
+- Traverse chain to find history: E → D → C → B → A
+- Find original: follow `recur_prev` until null
 
 ### Clone Behavior
 
@@ -419,20 +419,19 @@ Use `--all` or explicit filters to include history.
 ### Pattern Changes
 
 When the recurrence pattern changes (e.g., weekly → biweekly), update `recur` on
-the current instance. All instances keep pointing to the same original:
+the current instance. The linked list preserves history:
 
 ```
 Original A (recur: WEEKLY)
-├── [x] Instance B (recur_parent: A)
-├── [x] Instance C (recur_parent: A)
-└── [ ] Instance D (recur_parent: A, recur: BIWEEKLY)  ← pattern changed
-        └── [ ] Instance E (recur_parent: A)           ← still same lineage
+└── [x] Instance B (recur_prev: A)
+    └── [x] Instance C (recur_prev: B)
+        └── [ ] Instance D (recur_prev: C, recur: BIWEEKLY)  ← pattern changed
+            └── [ ] Instance E (recur_prev: D)
 ```
 
-- Single chain of lineage (all point to A)
-- Active instance holds current `recur` rule
-- Future clones inherit pattern from the instance they're cloned from
-- Query entire series: `WHERE id = 'A' OR recur_parent = 'A'`
+- Linked list captures full history and order
+- Pattern change visible in chain (D has different `recur` than A)
+- Traverse: E → D → C → B → A to see evolution
 
 ### RRULE Format
 
@@ -456,7 +455,7 @@ FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1  # Jan 1st
 | **Edit all future** | Modify original task, affect future clones |
 | **Change pattern** | Update `recur` on current instance |
 | **Stop recurring** | Remove `recur` from current instance |
-| **Delete series** | Delete original + all instances with `recur_parent` |
+| **Delete series** | Traverse chain, delete all linked instances |
 
 ### Start vs Due
 
@@ -769,7 +768,7 @@ ALTER TABLE nodes ADD COLUMN due TEXT;
 ALTER TABLE nodes ADD COLUMN start TEXT;
 ALTER TABLE nodes ADD COLUMN p INTEGER;
 ALTER TABLE nodes ADD COLUMN recur TEXT;
-ALTER TABLE nodes ADD COLUMN recur_parent TEXT;
+ALTER TABLE nodes ADD COLUMN recur_prev TEXT;
 ALTER TABLE nodes ADD COLUMN waiting_for TEXT;
 ```
 
@@ -784,8 +783,8 @@ CREATE INDEX idx_nodes_start ON nodes(start)
   WHERE start IS NOT NULL;
 CREATE INDEX idx_nodes_owner ON nodes(owner)
   WHERE owner IS NOT NULL;
-CREATE INDEX idx_nodes_recur_parent ON nodes(recur_parent)
-  WHERE recur_parent IS NOT NULL;
+CREATE INDEX idx_nodes_recur_prev ON nodes(recur_prev)
+  WHERE recur_prev IS NOT NULL;
 ```
 
 ---

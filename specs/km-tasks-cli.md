@@ -348,7 +348,7 @@ Recurring tasks show `↻` indicator after the mark.
     "content": "Weekly review",
     "status": "open",
     "recur": "FREQ=WEEKLY;BYDAY=MO",
-    "recur_parent": "01HXW...",
+    "recur_prev": "01HXW...",
     "ancestors": ["Personal"]
   }
 ]
