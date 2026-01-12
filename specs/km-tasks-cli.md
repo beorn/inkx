@@ -8,7 +8,7 @@ Command-line interface for task management.
 
 | Command | Purpose |
 |---------|---------|
-| `km task` | List and filter tasks |
+| `km task` | List, filter, query tasks |
 | `km @board` | View/manage `@` board |
 | `km +board` | View/manage `+` board |
 | `km #board` | View/manage `#` board |
@@ -25,36 +25,49 @@ Command-line interface for task management.
 
 ## km task
 
-List and filter tasks.
+List, filter, and query tasks.
 
 ### Basic Usage
 
 ```bash
-km task                     # Open tasks (open, wip)
+km task                     # Open tasks
 km task --all               # All tasks including done
-km task "query"             # Search tasks
+km task "budget"            # Full-text search
 ```
 
-### Filters
+### Query Syntax
+
+Google-like search with filters:
 
 ```bash
-km task --status <status>   # Filter by status (open, wip, done, dropped)
-km task --status wip        # In progress tasks
+km task budget                         # Full-text search
+km task @bjorn                         # Has @bjorn reference
+km task +website                       # Has +website reference
+km task '#finance'                     # Has #finance reference
 
-km task --overdue           # Overdue tasks
-km task --due today         # Due today
-km task --due week          # Due this week
+km task @next                          # On @next board
+km task -@next                         # NOT on @next board
+km task @waiting/@sarah                # On @waiting/@sarah board
 
-km task --project "Work"    # Tasks in project
-km task --owner bjorn       # Assigned to user
-km task --ref @bjorn        # Tasks referencing @bjorn
-km task --ref "#finance"    # Tasks referencing #finance
+km task status:open                    # By status
+km task due:today                      # Due today
+km task due:past                       # Overdue
+km task due:week                       # Due within 7 days
+km task waiting:@sarah                 # Waiting on Sarah
+km task owner:bjorn                    # Owned by bjorn
 
-km task --waiting           # Tasks with waiting: field
-km task --waiting @sarah    # Waiting on Sarah
-km task --blocked           # Tasks with blocked: field
+km task inbox/                         # In inbox/ folder
+km task projects/website/              # In project folder
+km task projects/**                    # Recursive glob
+```
 
-km task --inbox             # Items in inbox/ folder
+### Combining Filters
+
+```bash
+km task status:open due:week           # Open + due this week
+km task +website -@next                # Project tasks not on @next
+km task budget owner:bjorn             # Search + filter
+km task status:open -@next -@someday   # Not scheduled anywhere
 ```
 
 ### Output Options
@@ -64,15 +77,16 @@ km task --verbose           # Show all fields
 km task --flat              # Single-line format
 km task --id                # Show task IDs
 km task --json              # JSON output
+km task --count             # Count only
 ```
 
 ### Examples
 
 ```bash
-km task --overdue --verbose
-km task --project "Work/Q1" --status open
-km task "budget" --due week
-km task --waiting @sarah    # What's Sarah got?
+km task due:past --verbose             # Overdue tasks, full detail
+km task +website status:open           # Open website tasks
+km task @waiting owner:bjorn           # My waiting items
+km task @blocked                       # All blocked tasks
 ```
 
 ---
@@ -89,20 +103,53 @@ km @inbox                   # View @inbox board
 km @waiting                 # View all waiting items
 km @waiting/@sarah          # Waiting on Sarah specifically
 km @someday                 # View someday board
+km @blocked                 # View blocked board
 km @bjorn                   # View person board
-km @phone                   # View context board
 km +website                 # View project board
 km '#finance'               # View tag board (quote in shell)
 ```
 
-### Board Operations
+### Adding to Boards
 
 ```bash
-km @next add <id>           # Add task to board (default column)
-km @next add <id> today     # Add to specific column
-km @next remove <id>        # Remove task from board
-km @next move <id> <col>    # Move to different column
+# Add single task
+km @next add <id>
+km @next add <id> --column today
+
+# Add by query
+km @next add --query "status:open due:today"
+km @next add --query "+website status:open"
+km @next add --query "status:open p:1" --column today
+
+# Add by path/glob
+km @next add --query "projects/website/**"
+
+# Add multiple specific tasks
+km @next add task-1 task-2 task-3
+
+# Preview first
+km @next add --query "due:week" --dry-run
+```
+
+### Removing from Boards
+
+```bash
+km @next remove <id>
+km @next remove --query "status:done"
+```
+
+### Moving Between Columns
+
+```bash
+km @next move <id> <column>
+km @next move <id> this-week
+```
+
+### Listing Board Contents
+
+```bash
 km @next list               # List all tasks on board
+km @next list --column today  # Just one column
 ```
 
 ### Inbox Processing
@@ -120,17 +167,6 @@ Inbox item 1 of 5:
 
 [n] @next  [p] Project  [s] Someday  [d] Done  [D] Delete
 >
-```
-
-### Examples
-
-```bash
-km @next                    # View next actions
-km @next add 01HXY...       # Add task to @next
-km @next add "call" today   # Add by search, to "today" column
-km @bjorn add 01HXY... to-discuss  # Add to person board
-km +website move 01HXY... done     # Move to done column
-km @waiting/@sarah          # What's Sarah owe me?
 ```
 
 ---
@@ -159,6 +195,7 @@ km add "Get sign-off waiting:@sarah"   # Waiting task
 | `-s, --start` | Set start/scheduled date |
 | `-o, --owner` | Assign to user |
 | `-w, --waiting` | Set waiting on who/what |
+| `-b, --blocked` | Set blocked by what |
 | `-P, --priority` | Set priority (1-5) |
 
 ### Examples
@@ -168,6 +205,7 @@ km add "Call dentist"
 km add -n "Review PR #42"
 km add -p "Work/Q1" "Budget review" -d 2025-01-15
 km add "Get approval" -w @sarah
+km add "Deploy" -b "API migration"
 km add "Weekly review" --recur "FREQ=WEEKLY;BYDAY=MO"
 ```
 
@@ -190,15 +228,7 @@ km done --last              # Mark last touched task done
 - Sets `status = done`
 - Clears `waiting:` and `blocked:` fields
 - For recurring tasks: clones with next occurrence
-- Removes from active boards (@next, @waiting, etc.)
-
-### Examples
-
-```bash
-km done 01HXY...            # By ID
-km done "call dentist"      # By search
-km done --last              # Last task
-```
+- Automations remove from active boards
 
 ---
 
@@ -214,12 +244,23 @@ km move <id> --project "Name"    # Move by project name
 km move <id> --root              # Move to root level
 ```
 
-### Examples
+---
+
+## Task Field Commands
+
+Quick field changes:
 
 ```bash
-km move 01HXY... 01HXZ...        # Move to parent
-km move "call" --project "Personal/Health"
-km move 01HXY... --root          # Unparent
+km task set <id> waiting:@sarah        # Set waiting field
+km task set <id> blocked:"API issue"   # Set blocked field
+km task set <id> due:2025-01-20        # Set due date
+km task set <id> p:1                   # Set priority
+
+km task clear <id> waiting             # Clear waiting field
+km task clear <id> blocked             # Clear blocked field
+
+km task claim <id>                     # Assign to me
+km task release <id>                   # Unassign
 ```
 
 ---
@@ -270,31 +311,6 @@ km export --project "Name" -o <path>  # Export project
 
 ---
 
-## Status Shortcuts
-
-Quick status changes:
-
-```bash
-km task status <id> <status>      # Set status
-km task claim <id>                # Set wip, assign to me
-km task release <id>              # Set open, unassign
-km task wait <id> @person         # Set waiting: field
-km task block <id> "reason"       # Set blocked: field
-km task unblock <id>              # Clear blocked: field
-km task start <id> <date>         # Set start date
-```
-
-### Examples
-
-```bash
-km task claim 01HXY...
-km task wait 01HXY... @sarah
-km task block 01HXY... "Waiting for API migration"
-km task unblock 01HXY...
-```
-
----
-
 ## Output Formats
 
 ### Default (Tree)
@@ -302,22 +318,19 @@ km task unblock 01HXY...
 ```
 Work / Finance
   [ ] Review Q1 budget          due:Jan 15
-  [.] Send invoice              @bjorn
+  [ ] Send invoice              @bjorn
 
 Personal / Health
   [ ] Call dentist              due:today
   [ ] ↻ Weekly review           Mon
 ```
 
-Recurring tasks show `↻` indicator.
-
 ### Flat (`--flat`)
 
 ```
 [ ] Review Q1 budget    Work/Finance    due:Jan15
-[.] Send invoice        Work/Finance    @bjorn
+[ ] Send invoice        Work/Finance    @bjorn
 [ ] Call dentist        Personal        due:today
-[ ] ↻ Weekly review     Personal        Mon
 ```
 
 ### JSON (`--json`)
@@ -332,13 +345,6 @@ Recurring tasks show `↻` indicator.
     "owner": "bjorn",
     "references": ["@bjorn", "#finance", "+q1"],
     "ancestors": ["Work", "Finance"]
-  },
-  {
-    "id": "01HXZ...",
-    "content": "Get approval",
-    "status": "open",
-    "waiting": "@sarah",
-    "ancestors": ["Work"]
   }
 ]
 ```
@@ -358,6 +364,6 @@ Recurring tasks show `↻` indicator.
 ## See Also
 
 - [km-tasks.md](km-tasks.md) — Overview
-- [km-tasks-data.md](km-tasks-data.md) — Data model
+- [km-tasks-data.md](km-tasks-data.md) — Data model, query syntax
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
 - [km-tasks-auto.md](km-tasks-auto.md) — Automation rules

@@ -297,8 +297,9 @@ See [km-tasks-data.md](km-tasks-data.md) for km's implementation decisions:
 | Metadata | `key:value` inline | Compact, grep-friendly, like todo.txt |
 | References | `@person` `#tag` `+project` | Sigils = node links, first `@` = owner |
 | Boards | H2 columns + wikilinks | Pure markdown, no special format |
-| Status | 4 only: open, wip, done, dropped | Minimal — waiting/someday/blocked are boards |
+| Status | 3 only: open, done, dropped | Minimal — waiting/blocked/wip are boards/fields |
 | Waiting | `waiting:` field + `@waiting` board | Track WHO you're waiting on |
+| Blocked | `blocked:` field + `@blocked` board | Track WHAT is blocking |
 | Inbox/Archive | Location-based | `inbox/` and `archive/` folders |
 | GTD Lists | Boards, not statuses | Separates work state from organization |
 

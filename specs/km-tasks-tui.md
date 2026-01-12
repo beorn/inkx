@@ -89,7 +89,6 @@ Unified NV-style input:
 | Mark | Status | Display |
 |------|--------|---------|
 | `[ ]` | open | Default |
-| `[.]` | wip | Yellow |
 | `[x]` | done | Green, dim |
 | `[-]` | dropped | Dim, strikethrough |
 
@@ -296,7 +295,6 @@ Type to filter...
 |---------|-------|
 | Selected row | Inverse |
 | Task `[ ]` | Default |
-| Task `[.]` | Yellow |
 | Task `[x]` | Green |
 | Task `[-]` | Dim |
 | Due (overdue) | Red |

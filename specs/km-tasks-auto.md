@@ -111,7 +111,7 @@ Filter which nodes the rule applies to:
 ```yaml
 where:
   status: open                    # Exact match
-  status: [open, wip]             # Any of
+  status: [open, done]            # Any of
   path: starts_with "inbox/"      # String match
   due: past                       # Date comparison
   due: today
@@ -204,7 +204,7 @@ rules:
     description: Overdue open tasks surface to @next
     trigger: due.passed
     where:
-      status: [open, wip]
+      status: open
     actions:
       - board.add: "@next"
 
