@@ -2,7 +2,7 @@
 
 Task management in km, inspired by Notational Velocity and Simplenote.
 
-> **Note:** This system is currently designed for tasks. Supporting other content types (notes, documents, etc.) may require adjustments to the model.
+> **Note:** This system is currently designed for tasks. Supporting other content types (notes, documents, etc.) may require adjustments to interfaces (TUI and CLI) but hopefully not the data model.
 
 ---
 
