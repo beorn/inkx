@@ -37,16 +37,16 @@ All three unify in km's node model — same queries, same status tracking, same 
 
 ### List Item Tasks
 
-Standard checkbox syntax:
+Standard checkbox syntax with optional [line-based metadata](#line-based-metadata):
 
 ```markdown
 - [ ] Call dentist
-- [x] Send invoice
+- [x] Send invoice @bjorn due:2025-01-15
 ```
 
 ### Section Tasks
 
-Any heading can be a task by prefixing with checkbox. Uses same inline metadata syntax as list tasks:
+Any heading can be a task by prefixing with checkbox. Uses [line-based metadata](#line-based-metadata):
 
 ```markdown
 ## [ ] Q1 Budget Review @bjorn due:2025-01-15 priority:1
@@ -61,15 +61,6 @@ Need to analyze spending across all departments.
 ### Notes
 2025-01-10: Kicked off analysis
 ```
-
-**Metadata syntax** — same as list tasks:
-- `@username` — assignee
-- `due:YYYY-MM-DD` — due date
-- `scheduled:YYYY-MM-DD` — scheduled date
-- `priority:N` — priority (1-5)
-- `#tag` — tags
-- `every:RRULE` — recurrence
-- `slug:identifier` — stable link target
 
 The heading becomes a task node; content below (until next same-level heading)
 becomes the task description. Child headings and lists become subtasks.
@@ -126,27 +117,63 @@ Query `Work/Q1-Planning/` to get all tasks in that project.
 
 ---
 
-## Markdown Representation
+## Line-Based Metadata
 
-Tasks are stored in markdown files using standard checkbox syntax with optional metadata.
+Metadata embedded in the same line as task content. Used by list tasks and section tasks.
 
-### Basic Task
+### Prior Art
+
+| System | Assignee | Due Date | Priority | Tags | Project |
+|--------|----------|----------|----------|------|---------|
+| **Todoist** | — | natural language | `!p1`-`!p4` | `@label` | `#project` |
+| **todo.txt** | — | `due:YYYY-MM-DD` | `(A)`-`(Z)` | `@context` | `+project` |
+| **TODO.md** | `@name` | `YYYY-MM-DD` | — | `#tag` | section |
+| **Org-mode** | — | `DEADLINE:` | `[#A]` | `:tag:` | headline |
+| **Obsidian Tasks** | — | `📅 YYYY-MM-DD` | `⏫` `🔼` `🔽` | `#tag` | — |
+
+### km Syntax
+
+km uses `key:value` pairs (like todo.txt) with `@` for mentions and `#` for tags:
 
 ```markdown
-- [ ] Call dentist
+- [ ] Review Q1 budget @bjorn due:2025-01-15 priority:1 #finance
 ```
 
-### Task with Metadata
+| Field      | Syntax                 | Example                    |
+|------------|------------------------|----------------------------|
+| Assignee   | `@username`            | `@bjorn`                   |
+| Due date   | `due:YYYY-MM-DD`       | `due:2025-01-15`           |
+| Scheduled  | `scheduled:YYYY-MM-DD` | `scheduled:2025-01-10`     |
+| Priority   | `priority:N`           | `priority:1`               |
+| Tags       | `#tag`                 | `#work #urgent`            |
+| Recurrence | `every:RRULE`          | `every:FREQ=WEEKLY`        |
+| Slug       | `slug:identifier`      | `slug:budget-review`       |
 
-Inline metadata after task content:
+**Design choices:**
+- `key:value` — adopted from todo.txt, widely understood
+- `@user` — universal mention syntax (GitHub, Slack, Todoist)
+- `#tag` — universal tag syntax (Twitter, Obsidian, Bear)
+- ISO dates — unambiguous, sortable, no locale issues
 
-```markdown
-- [ ] Review Q1 budget @bjorn due:2025-01-15 scheduled:2025-01-10
-- [/] Fix login bug @alice priority:1
-- [x] Setup repo due:2025-01-08
+### Parsing Rules
+
+1. Metadata tokens appear after task title, space-separated
+2. `@word` → assignee (first match) or mention (subsequent)
+3. `#word` → tag
+4. `key:value` → field (no spaces around colon)
+5. Unrecognized tokens remain in title
+
+```
+- [ ] Call @john about #budget review due:2025-01-15
+      ↑────────────────────────────↑ ↑──────────────↑
+              title content              metadata
 ```
 
-### Task Marks
+---
+
+## Task Marks
+
+Checkbox variants indicating status:
 
 | Mark  | Status        | Meaning            |
 |-------|---------------|--------------------|
@@ -157,17 +184,24 @@ Inline metadata after task content:
 | `[?]` | waiting       | Blocked/waiting    |
 | `[>]` | scheduled     | Scheduled for later|
 
-### Inline Metadata Syntax
+**Prior art:** Extended marks from [Obsidian Tasks](https://obsidian-tasks-group.github.io/obsidian-tasks/),
+[Logseq](https://docs.logseq.com/), and [org-mode](https://orgmode.org/).
 
-| Field     | Syntax              | Example                    |
-|-----------|---------------------|----------------------------|
-| Assignee  | `@username`         | `@bjorn`                   |
-| Due date  | `due:YYYY-MM-DD`    | `due:2025-01-15`           |
-| Scheduled | `scheduled:YYYY-MM-DD` | `scheduled:2025-01-10`  |
-| Priority  | `priority:N`        | `priority:1`               |
-| Tags      | `#tag`              | `#work #urgent`            |
-| Recurrence| `every:RRULE`       | `every:FREQ=WEEKLY`        |
-| Slug      | `slug:identifier`   | `slug:budget-review`       |
+---
+
+## Markdown Representation
+
+Examples of tasks in markdown files. See [Line-Based Metadata](#line-based-metadata)
+for syntax details and [Task Marks](#task-marks) for checkbox variants.
+
+### Examples
+
+```markdown
+- [ ] Call dentist
+- [ ] Review Q1 budget @bjorn due:2025-01-15 scheduled:2025-01-10
+- [/] Fix login bug @alice priority:1
+- [x] Setup repo due:2025-01-08
+```
 
 ### Subtasks
 
