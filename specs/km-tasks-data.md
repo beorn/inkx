@@ -49,7 +49,7 @@ Standard checkbox syntax with optional [line-based metadata](#line-based-metadat
 Any heading can be a task by prefixing with checkbox. Uses [line-based metadata](#line-based-metadata):
 
 ```markdown
-## [ ] Q1 Budget Review @bjorn due:2025-01-15 priority:1
+## [ ] Q1 Budget Review @bjorn due:2025-01-15 p:1
 
 Need to analyze spending across all departments.
 
@@ -73,9 +73,9 @@ A file with `type: task` in frontmatter is a task:
 ---
 type: task
 status: in_progress
-assigned_to: bjorn
-due_date: 2025-01-15
-priority: 1
+owner: bjorn
+due: 2025-01-15
+p: 1
 tags: [work, q1]
 ---
 
@@ -92,14 +92,14 @@ Full task description with rich content...
 
 | Frontmatter | Node Field |
 |-------------|------------|
-| `type: task` | `type = 'task'` |
-| `status` | `task_status` |
-| `assigned_to` | `assigned_to` |
-| `due_date` | `due_date` |
-| `scheduled_date` | `scheduled_date` |
-| `priority` | `priority` |
-| `tags` | `data.tags` |
-| `recurrence` | `recurrence` |
+| `type` | `type` |
+| `status` | `status` |
+| `owner` | `owner` |
+| `due` | `due` |
+| `start` | `start` |
+| `p` | `p` |
+| `tags` | `tags` |
+| `recur` | `recur` |
 
 ### Folder as Project
 
@@ -158,8 +158,14 @@ Tana's `#supertag` is fundamentally different from plain hashtags:
 Plain hashtags still work in Tana for simple categorization, but supertags enable
 database-like behavior with typed fields and views.
 
-**km approach:** Plain `#tags` for classification. Type is determined by checkbox prefix
-(`- [ ]`) or frontmatter (`type: task`), not tag syntax.
+**km approach:** Type is usually implicit:
+- Checkbox prefix (`- [ ]`) → task
+- Frontmatter `type: task` → task
+- Folder structure → project
+
+**Future: Type tags.** km could support `#type/task` or `##task` syntax for explicit typing,
+enabling Tana-like schemas for custom types (e.g., `##book`, `##person`, `##meeting`).
+Plain `#tags` remain for classification.
 
 ### Metadata Syntax Families
 
@@ -208,18 +214,25 @@ Review budget content here...
 km uses `key:value` pairs (like todo.txt) with `@` for mentions and `#` for tags:
 
 ```markdown
-- [ ] Review Q1 budget @bjorn due:2025-01-15 priority:1 #finance
+- [ ] Review Q1 budget @bjorn due:2025-01-15 p:1 #finance
 ```
 
-| Field      | Syntax                 | Example                    |
-|------------|------------------------|----------------------------|
-| Assignee   | `@username`            | `@bjorn`                   |
-| Due date   | `due:YYYY-MM-DD`       | `due:2025-01-15`           |
-| Scheduled  | `scheduled:YYYY-MM-DD` | `scheduled:2025-01-10`     |
-| Priority   | `priority:N`           | `priority:1`               |
-| Tags       | `#tag`                 | `#work #urgent`            |
-| Recurrence | `every:RRULE`          | `every:FREQ=WEEKLY`        |
-| ID/Anchor  | `^id` or `id:ULID`     | `^budget-q1` or `id:01HXY...` |
+| Field      | Inline | Frontmatter | Node Field | Example |
+|------------|--------|-------------|------------|---------|
+| Owner      | `@user` | `owner` | `owner` | `@bjorn` |
+| Due        | `due:DATE` | `due` | `due` | `due:2025-01-15` |
+| Scheduled  | `start:DATE` | `start` | `start` | `start:2025-01-10` |
+| Priority   | `p:N` | `p` | `p` | `p:1` |
+| Tags       | `#tag` | `tags` | `tags` | `#work #urgent` |
+| Recurrence | `recur:RRULE` | `recur` | `recur` | `recur:FREQ=WEEKLY` |
+| ID/Anchor  | `^id` | — | `id` | `^budget-q1` |
+
+**Naming principles:**
+- Short field names minimize clutter (`p` not `priority`, `recur` not `recurrence`)
+- `@user` for owner (not assignee) — matches common usage
+- `start` for scheduled date — when task becomes available (like OmniFocus "defer")
+- `due` for deadline — when task must be done
+- Same names in inline, frontmatter, and node fields for consistency
 
 **Design choices:**
 - `key:value` — adopted from todo.txt, widely understood
@@ -270,8 +283,8 @@ for syntax details and [Task Marks](#task-marks) for checkbox variants.
 
 ```markdown
 - [ ] Call dentist
-- [ ] Review Q1 budget @bjorn due:2025-01-15 scheduled:2025-01-10
-- [/] Fix login bug @alice priority:1
+- [ ] Review Q1 budget @bjorn due:2025-01-15 start:2025-01-10
+- [/] Fix login bug @alice p:1
 - [x] Setup repo due:2025-01-08
 ```
 
@@ -349,11 +362,11 @@ For file-level tasks or complex metadata:
 ---
 type: task
 status: in_progress
-assigned_to: bjorn
-due_date: 2025-01-15
-priority: 1
+owner: bjorn
+due: 2025-01-15
+p: 1
 tags: [work, q1, finance]
-recurrence: FREQ=WEEKLY;BYDAY=MO
+recur: FREQ=WEEKLY;BYDAY=MO
 ---
 
 # Review Q1 Budget
@@ -375,7 +388,7 @@ type TaskStatus =
   | "done"        // Completed
   | "waiting"     // Blocked on external
   | "blocked"     // Blocked on internal
-  | "scheduled"   // Has future scheduled_date
+  | "scheduled"   // Has future start date
   | "cancelled";  // Dropped
 ```
 
@@ -400,31 +413,30 @@ open ──→ next ──→ in_progress ──→ done
 | `in_progress`| Today      | Actively working on              |
 | `waiting`    | Waiting    | Blocked on external dependency   |
 | `blocked`    | Blocked    | Blocked on internal dependency   |
-| `scheduled`  | Scheduled  | Has future `scheduled_date`      |
+| `scheduled`  | Scheduled  | Has future `start` date          |
 | `done`       | Archive    | Completed                        |
 | `cancelled`  | Archive    | Dropped                          |
 
 ---
 
-## New Fields
+## Node Fields
 
 ```typescript
 interface Node {
-  // Existing (add 'next' to task_status type)
-  task_status?: TaskStatus;
+  // Task fields
+  status?: TaskStatus;
+  owner?: string;        // @user
+  due?: string;          // YYYY-MM-DD deadline
+  start?: string;        // YYYY-MM-DD defer/scheduled
+  p?: number;            // 1-5 priority
+  tags?: string[];       // from #tags
+  recur?: string;        // iCal RRULE
+  waiting_for?: string;  // who/what blocked on
 
-  // New fields
-  recurrence?: string;     // iCal RRULE format
-  waiting_for?: string;    // Who/what blocked on
-}
-```
-
-### Data Object Extensions
-
-```typescript
-data: {
-  someday?: boolean;   // Maybe/someday flag
-  tags?: string[];     // Extracted from content #tags
+  // Someday flag (in data object)
+  data?: {
+    someday?: boolean;
+  };
 }
 ```
 
@@ -452,7 +464,7 @@ Two approaches exist for recurring tasks:
 ### How It Works
 
 ```
-Original task (recurrence: FREQ=WEEKLY)
+Original task (recur: FREQ=WEEKLY)
 ├── [x] done 2025-01-06 — instance 1 (completed)
 ├── [x] done 2025-01-13 — instance 2 (completed)
 └── [ ] due 2025-01-20  — instance 3 (current, the "live" task)
@@ -460,22 +472,22 @@ Original task (recurrence: FREQ=WEEKLY)
 
 When you complete instance 3:
 1. Instance 3 marked `done`, completion timestamp recorded
-2. Instance 4 created with `scheduled_date` = next occurrence
-3. Instance 4 inherits: content, recurrence, project, tags
+2. Instance 4 created with `start` = next occurrence
+3. Instance 4 inherits: content, recur, project, tags
 
 ### Instance Linking
 
-Instances share a `recurrence_id` linking them to the same series:
+Instances share a `recur_id` linking them to the same series:
 
 ```typescript
 interface Node {
-  recurrence?: string;       // RRULE (only on current instance)
-  recurrence_id?: string;    // Links all instances in series
-  recurrence_parent?: string; // ID of original/template task
+  recur?: string;        // RRULE (only on current instance)
+  recur_id?: string;     // Links all instances in series
+  recur_parent?: string; // ID of original/template task
 }
 ```
 
-Query all instances: `WHERE recurrence_id = '...'`
+Query all instances: `WHERE recur_id = '...'`
 
 ### RRULE Format
 
@@ -496,20 +508,20 @@ FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1  # Jan 1st
 | **Complete** | Mark done, clone next instance |
 | **Skip** | Mark cancelled, clone next instance |
 | **Edit this** | Modify current instance only |
-| **Edit all future** | Modify recurrence template, affect future clones |
-| **Stop recurring** | Remove `recurrence` from current instance |
-| **Delete series** | Delete all instances with same `recurrence_id` |
+| **Edit all future** | Modify recur template, affect future clones |
+| **Stop recurring** | Remove `recur` from current instance |
+| **Delete series** | Delete all instances with same `recur_id` |
 
-### Defer vs Due
+### Start vs Due
 
 For recurring tasks, two date types matter:
 
 | Field | Meaning | Example |
 |-------|---------|---------|
-| `scheduled_date` | When task appears/becomes available | Jan 20 (defer until) |
-| `due_date` | When task must be completed | Jan 22 (deadline) |
+| `start` | When task appears/becomes available | Jan 20 (defer until) |
+| `due` | When task must be completed | Jan 22 (deadline) |
 
-Recurring tasks typically set `scheduled_date` from RRULE, not `due_date`.
+Recurring tasks typically set `start` from RRULE, not `due`.
 
 ### Display
 
@@ -591,7 +603,7 @@ km add -p "Work" "Fix bug"      # → Work/fix-bug.md (skips inbox)
 | Due tomorrow  | Normal         | Normal display              |
 | Due later     | Dim, "Jan 15"  | Normal display              |
 
-Overdue = `due_date < today AND status NOT IN (done, cancelled)`
+Overdue = `due < today AND status NOT IN (done, cancelled)`
 
 ---
 
@@ -806,19 +818,26 @@ Parse `text.md` to nodes, copy assets to `.km/assets/`.
 ### New Columns
 
 ```sql
-ALTER TABLE nodes ADD COLUMN recurrence TEXT;
+ALTER TABLE nodes ADD COLUMN owner TEXT;
+ALTER TABLE nodes ADD COLUMN due TEXT;
+ALTER TABLE nodes ADD COLUMN start TEXT;
+ALTER TABLE nodes ADD COLUMN p INTEGER;
+ALTER TABLE nodes ADD COLUMN recur TEXT;
+ALTER TABLE nodes ADD COLUMN recur_id TEXT;
 ALTER TABLE nodes ADD COLUMN waiting_for TEXT;
 ```
 
 ### Indexes
 
 ```sql
-CREATE INDEX idx_nodes_task_status ON nodes(task_status)
+CREATE INDEX idx_nodes_status ON nodes(status)
   WHERE type = 'task';
-CREATE INDEX idx_nodes_due_date ON nodes(due_date)
-  WHERE due_date IS NOT NULL;
-CREATE INDEX idx_nodes_scheduled_date ON nodes(scheduled_date)
-  WHERE scheduled_date IS NOT NULL;
+CREATE INDEX idx_nodes_due ON nodes(due)
+  WHERE due IS NOT NULL;
+CREATE INDEX idx_nodes_start ON nodes(start)
+  WHERE start IS NOT NULL;
+CREATE INDEX idx_nodes_owner ON nodes(owner)
+  WHERE owner IS NOT NULL;
 ```
 
 ---
