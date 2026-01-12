@@ -2,6 +2,8 @@
 
 Command-line interface for task management.
 
+> Field names follow [Unified Names](km-tasks-data.md#unified-names).
+
 ---
 
 ## Commands Overview
@@ -43,7 +45,7 @@ km task --due today         # Due today
 km task --due week          # Due this week
 
 km task --project "Work"    # Tasks in project
-km task --assigned bjorn    # Assigned to user
+km task --owner bjorn       # Assigned to user
 km task --tag urgent        # With tag
 
 km task --someday           # Someday/maybe tasks
@@ -154,9 +156,9 @@ km add "Task @bjorn due:2025-01-15"    # With metadata
 | `-t, --today`     | Add to today (status=next)     |
 | `-p, --project`   | Set parent project             |
 | `-d, --due`       | Set due date                   |
-| `-s, --scheduled` | Set scheduled date             |
-| `-a, --assign`    | Assign to user                 |
-| `--priority`      | Set priority (1-5)             |
+| `-s, --start`     | Set start/scheduled date       |
+| `-o, --owner`     | Assign to user                 |
+| `-P, --priority`  | Set priority (1-5)             |
 | `--someday`       | Mark as someday                |
 
 ### Examples
@@ -165,7 +167,7 @@ km add "Task @bjorn due:2025-01-15"    # With metadata
 km add "Call dentist"
 km add -t "Review PR #42"
 km add -p "Work/Q1" "Budget review" -d 2025-01-15
-km add "Weekly review" --every "FREQ=WEEKLY;BYDAY=MO"
+km add "Weekly review" --recur "FREQ=WEEKLY;BYDAY=MO"
 ```
 
 ---
@@ -292,7 +294,7 @@ km task claim <id>                # Set in_progress, assign to me
 km task release <id>              # Set open, unassign
 km task wait <id> "reason"        # Set waiting
 km task block <id>                # Set blocked
-km task schedule <id> <date>      # Set scheduled
+km task start <id> <date>         # Set start date
 ```
 
 ### Examples
@@ -300,7 +302,7 @@ km task schedule <id> <date>      # Set scheduled
 ```bash
 km task claim 01HXY...
 km task wait 01HXY... "Waiting for Sarah's review"
-km task schedule 01HXY... 2025-01-20
+km task start 01HXY... 2025-01-20
 ```
 
 ---
@@ -311,8 +313,8 @@ km task schedule 01HXY... 2025-01-20
 
 ```
 Work / Finance / .md #
-  [ ] Review Q1 budget          due: Jan 15
-  [/] Send invoice              assigned: bjorn
+  [ ] Review Q1 budget          due:Jan 15
+  [/] Send invoice              @bjorn
 
 Personal / Health
   [ ] Call dentist              due: today
@@ -333,8 +335,8 @@ Personal / Health
   {
     "id": "01HXY...",
     "content": "Review Q1 budget",
-    "task_status": "open",
-    "due_date": "2025-01-15",
+    "status": "open",
+    "due": "2025-01-15",
     "ancestors": ["Work", "Finance"]
   }
 ]

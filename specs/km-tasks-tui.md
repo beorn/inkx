@@ -2,6 +2,8 @@
 
 Terminal UI for task management.
 
+> Field names follow [Unified Names](km-tasks-data.md#unified-names).
+
 ---
 
 ## Layout
@@ -75,12 +77,12 @@ NV-style unified input:
 [x]    Setup repo               Work / Auth         ✓
 ```
 
-| Column  | Source                          | Width |
-|---------|---------------------------------|-------|
-| Mark    | `task_mark` (`[ ]` `[x]` `[/]`) | 3     |
-| Title   | `content` first line            | flex  |
-| Project | Collapsed ancestors             | 20    |
-| Due     | Relative `due_date`             | 8     |
+| Column  | Source                        | Width |
+|---------|-------------------------------|-------|
+| Mark    | `[ ]` `[x]` `[/]` from status | 3     |
+| Title   | `content` first line          | flex  |
+| Project | Collapsed ancestors           | 20    |
+| Due     | Relative `due`                | 8     |
 
 ### Due Date Display
 
@@ -107,7 +109,7 @@ Opens on `Enter` or `l`, closes on `Esc` or `h`.
 ├─────────────────────────────────────────────┤
 │ Status:    [next ▼]      Due: [Jan 10 🔴]  │
 │ Project:   [Work / Finance              ▼] │
-│ Assignee:  [bjorn                       ▼] │
+│ Owner:     [bjorn                       ▼] │
 │ Priority:  [★★☆☆☆]                         │
 ├─────────────────────────────────────────────┤
 │ ## Description                              │

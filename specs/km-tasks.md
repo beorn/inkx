@@ -40,14 +40,18 @@ Task management in km, inspired by Notational Velocity and Simplenote.
 
 ## Views
 
-| Key | View     | Purpose                              |
-|-----|----------|--------------------------------------|
-| `1` | Today    | Manually curated, overdue surfaces   |
-| `2` | Inbox    | Unprocessed items                    |
-| `3` | All      | All open tasks                       |
-| `4` | Projects | Grouped by ancestor                  |
-| `5` | Waiting  | Blocked on external                  |
-| `6` | Someday  | Maybe/later ideas                    |
+Six views accessed via number keys `1-6`:
+
+| View     | Purpose                              |
+|----------|--------------------------------------|
+| Today    | Manually curated, overdue surfaces   |
+| Inbox    | Unprocessed items                    |
+| All      | All open tasks                       |
+| Projects | Grouped by ancestor                  |
+| Waiting  | Blocked on external                  |
+| Someday  | Maybe/later ideas                    |
+
+See [TUI Views](km-tasks-tui.md#views) for filter definitions.
 
 ---
 
