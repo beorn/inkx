@@ -9,6 +9,23 @@ Data model extensions for task management.
 Any markdown element can become a task by adding a checkbox prefix. Tasks are nodes
 in the unified km model — same schema, same queries, same event log.
 
+### Three Representations
+
+Tasks can be represented three ways in markdown. All become `type: task` nodes internally.
+
+| Representation | Syntax | Interop | Best For |
+|----------------|--------|---------|----------|
+| **List tasks** | `- [ ] Call dentist` | ✅ Standard | Quick items, checklists |
+| **Section tasks** | `## [ ] Q1 Review` | ⚠️ km-specific | Projects, multi-part work |
+| **File tasks** | frontmatter `type: task` | ⚠️ km-specific | Complex tasks, rich content |
+
+**Interoperability notes:**
+- **List tasks** — Standard GFM checkboxes. Works in GitHub, Obsidian, Bear, etc.
+- **Section tasks** — km extension. Other tools see `## [ ] Title` as a heading.
+- **File tasks** — km extension. Other tools see it as a note with frontmatter.
+
+All three unify in km's node model — same queries, same status tracking, same views.
+
 ### Task Sources
 
 | Source | Markdown | Node Type |
