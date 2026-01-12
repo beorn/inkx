@@ -12,7 +12,7 @@ Terminal UI for task management.
 ┌────────────────────────────────────────────────────┐
 │  [🔍 Type to search or create...              ⌘K] │
 ├────────────────────────────────────────────────────┤
-│ Next (3)                               [1]        │
+│ @next (3)                                    [1]  │
 │ ─────────────────────────────────────────────────  │
 │ ▸ [.] Review Q1 budget      Work / Finance  -2d  │
 │   [ ] Call dentist          Personal        today │
@@ -37,13 +37,13 @@ Terminal UI for task management.
 
 1. **Search/Create Field** — Top, always visible
 2. **List Pane** — Left side, task list
-3. **Detail Pane** — Right side, selected task details
+3. **Detail Pane** — Right side, selected task
 
 ---
 
 ## Search/Create Field
 
-NV-style unified input:
+Unified NV-style input:
 
 1. **Type to search** — Instant filter as you type
 2. **Enter on match** — Select that task
@@ -52,7 +52,7 @@ NV-style unified input:
 ```
 [review budget]     → filters to matching tasks
 [call mom]          → no match, Enter creates "call mom"
-[#work fix bug]     → creates task tagged #work
+[#work fix bug]     → creates task with #work reference
 ```
 
 **Fuzzy matching on:**
@@ -76,17 +76,15 @@ NV-style unified input:
 [ ] ↻  Weekly review            Personal            Mon
 ```
 
-| Column  | Source                        | Width |
-|---------|-------------------------------|-------|
-| Mark    | `[ ]` `[.]` `[x]` etc.        | 3     |
-| Recur   | `↻` if `recur` is set         | 2     |
-| Title   | `content` first line          | flex  |
-| Project | Collapsed ancestors           | 20    |
-| Due     | Relative `due` or next recur  | 8     |
+| Column | Source | Width |
+|--------|--------|-------|
+| Mark | `[ ]` `[.]` `[x]` `[-]` | 3 |
+| Recur | `↻` if recurring | 2 |
+| Title | First line of content | flex |
+| Project | Collapsed ancestors | 20 |
+| Due | Relative due date | 8 |
 
 ### Status Marks
-
-See [km-tasks-data.md](km-tasks-data.md#status-model) for full status model.
 
 | Mark | Status | Display |
 |------|--------|---------|
@@ -94,20 +92,17 @@ See [km-tasks-data.md](km-tasks-data.md#status-model) for full status model.
 | `[.]` | wip | Yellow |
 | `[x]` | done | Green, dim |
 | `[-]` | dropped | Dim, strikethrough |
-| `[s]` | someday | Dim |
-| `[>]` | waiting | Cyan |
-| `[<]` | blocked | Red |
 
 ### Due Date Display
 
-| Condition    | Display                    |
-|--------------|----------------------------|
-| Overdue      | Red, bold, "-3d"           |
-| Due today    | Yellow, "today"            |
-| Due tomorrow | Normal, "tomorrow"         |
-| This week    | Dim, "Wed" or "3d"         |
-| Later        | Dim, "Jan 15"              |
-| Done         | Dim, "✓"                   |
+| Condition | Display |
+|-----------|---------|
+| Overdue | Red, bold, "-3d" |
+| Due today | Yellow, "today" |
+| Due tomorrow | Normal, "tomorrow" |
+| This week | Dim, "Wed" or "3d" |
+| Later | Dim, "Jan 15" |
+| Done | Dim, "✓" |
 
 ---
 
@@ -115,16 +110,14 @@ See [km-tasks-data.md](km-tasks-data.md#status-model) for full status model.
 
 Opens on `Enter` or `l`, closes on `Esc` or `h`.
 
-### Layout
-
 ```
 ┌─────────────────────────────────────────────┐
 │ Task Title                            [Edit]│
 ├─────────────────────────────────────────────┤
 │ Status:    [wip ▼]       Due: [Jan 10 🔴]  │
 │ Project:   [Work / Finance              ▼] │
-│ Owner:     [bjorn                       ▼] │
-│ Priority:  [★★☆☆☆]                         │
+│ Owner:     [@bjorn                      ▼] │
+│ Waiting:   [@sarah                      ▼] │
 ├─────────────────────────────────────────────┤
 │ ## Description                              │
 │                                             │
@@ -137,54 +130,37 @@ Opens on `Enter` or `l`, closes on `Esc` or `h`.
 │ [ ] Compare forecasts                      │
 │ + Add subtask                              │
 ├─────────────────────────────────────────────┤
-│ ## Notes                                    │
-│ 2025-01-10: Called vendor, waiting reply   │
-│ 2025-01-08: Started research               │
-│ + Add note                                 │
-├─────────────────────────────────────────────┤
 │ ## Linked from                              │
 │ → Weekly Review                            │
-│ → Project Alpha / Planning                 │
+│ → @bjorn / to-discuss                      │
 └─────────────────────────────────────────────┘
 ```
 
 ### Field Editing
 
 - Tab through fields
-- Enter to edit current field
+- Enter to edit
 - Dropdowns for status, project
 
 ---
 
 ## Favorites
 
-Number keys `1-6` open favorite boards. Configurable in `.km/config.yml`:
+Number keys `1-6` open favorite boards. Configure in `.km/config.yml`:
 
 ```yaml
-# .km/config.yml
 favorites:
   1: "@next"
   2: "@inbox"
   3: "@waiting"
   4: "@someday"
-  5: "+website"      # Current project
-  6: "@bjorn"        # Person you work with
+  5: "+current-project"
+  6: "@bjorn"
 ```
-
-Default GTD favorites:
-
-| Key | Board | Purpose |
-|-----|-------|---------|
-| `1` | `@next` | Next actions (curated + overdue) |
-| `2` | `@inbox` | Unprocessed items |
-| `3` | `@waiting` | Waiting for external |
-| `4` | `@someday` | Maybe/later ideas |
-| `5` | `@blocked` | Blocked tasks |
-| `6` | (user choice) | Your current focus |
 
 ### Board View
 
-All favorites open as board views:
+All boards display as columns:
 
 ```
 @next                                        [1]
@@ -198,20 +174,17 @@ All favorites open as board views:
 ```
 
 ```
-@inbox                                       [2]
+@waiting                                     [3]
 ────────────────────────────────────────────────
-┌──────────────────┐
-│ new              │
-├──────────────────┤
-│ Note from mtg    │  3h ago
-│ Call from John   │  1d ago
-│ Idea: refactor   │  2d ago
-└──────────────────┘
+┌──────────────────┐ ┌──────────────────┐
+│ @sarah           │ │ @vendor          │
+├──────────────────┤ ├──────────────────┤
+│ [ ] Approval     │ │ [ ] API access   │
+│ [ ] Sign-off     │ │                  │
+└──────────────────┘ └──────────────────┘
 ```
 
-Inbox actions: `n` (add to @next), `p` (set project), `s` (someday), `D` (delete)
-
-### Person/Project Boards
+### Person Board
 
 ```
 @bjorn                                       [6]
@@ -220,14 +193,79 @@ Inbox actions: `n` (add to @next), `p` (set project), `s` (someday), `D` (delete
 │ to-discuss  │ │ discussed   │ │ done        │
 ├─────────────┤ ├─────────────┤ ├─────────────┤
 │ [ ] Budget  │ │ [x] Hiring  │ │ [x] Offsite │
-│ [ ] Q1 Plan │ │             │ │ [x] Review  │
+│ [ ] Q1 Plan │ │             │ │             │
 └─────────────┘ └─────────────┘ └─────────────┘
 ```
 
-- Columns from H2 sections in board file
-- Tasks from wikilinks in each section
-- Drag tasks between columns to move
-- Column limits shown when exceeded
+---
+
+## Keybindings
+
+### Global
+
+| Key | Action |
+|-----|--------|
+| `⌘K` | Focus search/create |
+| `/` | Focus search |
+| `1-6` | Open favorite |
+| `?` | Help |
+| `q` | Quit |
+| `u` | Go up (parent view) |
+
+### List Navigation
+
+| Key | Action |
+|-----|--------|
+| `j/k` | Move down/up |
+| `g/G` | First/last item |
+| `Enter` | Open detail pane |
+| `l` | Open detail pane |
+
+### Task Actions
+
+| Key | Action |
+|-----|--------|
+| `x` | Toggle done |
+| `n` | Add to @next |
+| `p` | Change project |
+| `d` | Set due date |
+| `s` | Change status |
+| `w` | Set waiting (prompts for who) |
+| `e` | Edit title inline |
+| `N` | Add note |
+| `a` | Add subtask |
+| `@` | Insert reference |
+| `D` | Delete |
+
+### Inbox Actions
+
+When viewing `@inbox`:
+
+| Key | Action |
+|-----|--------|
+| `n` | Add to @next |
+| `p` | Set project |
+| `s` | Move to @someday |
+| `d` | Mark done |
+| `D` | Delete |
+
+### Detail Pane
+
+| Key | Action |
+|-----|--------|
+| `h/Esc` | Close pane |
+| `e` | Edit content |
+| `Tab` | Next field |
+| `S-Tab` | Previous field |
+
+### Visual Selection
+
+| Key | Action |
+|-----|--------|
+| `v` | Start visual mode |
+| `V` | Select entire task |
+| `J/K` | Extend selection |
+| `Esc` | Clear selection |
 
 ---
 
@@ -246,98 +284,29 @@ Move to project:
 Type to filter...
 ```
 
-- Fuzzy search on project names
+- Fuzzy search on names
 - Recent projects at top
 - Enter to move task
 
 ---
 
-## Keybindings
-
-### Global
-
-| Key     | Action                    |
-|---------|---------------------------|
-| `⌘K`    | Focus search/create field |
-| `/`     | Focus search field        |
-| `1-6`   | Switch view               |
-| `?`     | Help                      |
-| `q`     | Quit                      |
-
-### List Navigation
-
-| Key     | Action                    |
-|---------|---------------------------|
-| `j/k`   | Move down/up              |
-| `g/G`   | First/last item           |
-| `Enter` | Open detail pane          |
-| `l`     | Open detail pane          |
-
-### Task Actions
-
-| Key     | Action                    |
-|---------|---------------------------|
-| `x`     | Toggle done               |
-| `n`     | Add to next               |
-| `p`     | Change project            |
-| `d`     | Set due date              |
-| `s`     | Change status             |
-| `S`     | Set someday status        |
-| `e`     | Edit title inline         |
-| `N`     | Add note                  |
-| `a`     | Add subtask               |
-| `@`     | Insert reference          |
-| `D`     | Delete                    |
-
-### Someday Actions
-
-| Key     | Action                    |
-|---------|---------------------------|
-| `o`     | Set status to open        |
-| `n`     | Add to next               |
-| `p`     | Change project            |
-| `D`     | Delete                    |
-
-### Detail Pane
-
-| Key     | Action                    |
-|---------|---------------------------|
-| `h/Esc` | Close pane                |
-| `e`     | Edit content              |
-| `Tab`   | Next field                |
-| `S-Tab` | Previous field            |
-
-### Visual Selection
-
-| Key     | Action                    |
-|---------|---------------------------|
-| `v`     | Start visual mode         |
-| `V`     | Select entire task        |
-| `J/K`   | Extend selection          |
-| `Esc`   | Clear selection           |
-
----
-
 ## Colors
 
-| Element          | Color    |
-|------------------|----------|
-| Selected row     | Inverse  |
-| Task `[ ]`       | Default  |
-| Task `[.]`       | Yellow   |
-| Task `[x]`       | Green    |
-| Task `[-]`       | Dim      |
-| Task `[s]`       | Dim      |
-| Task `[>]`       | Cyan     |
-| Task `[<]`       | Red      |
-| Due (overdue)    | Red      |
-| Due (today)      | Yellow   |
-| Due (future)     | Dim      |
-| Project path     | Dim      |
-| Reference `@`    | Blue     |
-| Reference `#`    | Green    |
-| Reference `+`    | Magenta  |
-| Wikilink         | Cyan     |
+| Element | Color |
+|---------|-------|
+| Selected row | Inverse |
+| Task `[ ]` | Default |
+| Task `[.]` | Yellow |
+| Task `[x]` | Green |
+| Task `[-]` | Dim |
+| Due (overdue) | Red |
+| Due (today) | Yellow |
+| Due (future) | Dim |
+| Project path | Dim |
+| Reference `@` | Blue |
+| Reference `#` | Green |
+| Reference `+` | Magenta |
+| Wikilink | Cyan |
 
 ---
 

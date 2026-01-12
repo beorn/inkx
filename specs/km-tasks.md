@@ -14,94 +14,136 @@ Task management in km, inspired by Notational Velocity and Simplenote.
 **From Simplenote:**
 - Minimal UI — content over chrome
 - Frictionless capture — thought to task in one step
-- Tags over folders — flexible categorization
 
 **From km:**
-- Collapsing ancestors — `Taxes / .md #` shows hierarchy compactly
-- Unified node schema — tasks are nodes with status
-- Event log — full history, undo, sync
 - Markdown-native — files you own
+- Boards over statuses — organization through views, not state
+- Pure automation — rules move tasks, no magic queries
+
+---
+
+## GTD Quick Start
+
+### 1. Capture
+
+```bash
+km add "Call dentist"              # → @inbox
+km add "Review budget @bjorn"      # → @inbox + @bjorn board
+```
+
+### 2. Clarify (Process Inbox)
+
+```bash
+km @inbox process
+```
+
+For each item:
+- `n` — Add to @next (do soon)
+- `p` — Set project
+- `s` — Move to @someday
+- `d` — Mark done
+- `D` — Delete
+
+### 3. Organize
+
+Tasks go to boards via references and fields:
+
+```markdown
+- [ ] Call vendor +website           # → +website board
+- [ ] Discuss budget @bjorn          # → @bjorn board
+- [ ] Await approval waiting:@sarah  # → @waiting/@sarah board
+```
+
+### 4. Review
+
+```bash
+km @next          # What to work on
+km @waiting       # What's blocked on others
+km @waiting/@bjorn  # What's Bjorn got?
+km @someday       # Weekly review
+```
+
+### 5. Do
+
+```bash
+km @next          # Open next actions board
+# Work through tasks, mark done with 'x'
+```
 
 ---
 
 ## Core Concepts
 
-### Everything is a Node
+### Four Statuses
 
-Any node can become a task by having a status:
+Tasks have exactly four statuses:
 
-```markdown
-- [ ] Call dentist                     # list item with status
-## [ ] Q1 Budget Review                # heading with status
-```
+| Mark | Status | Meaning |
+|------|--------|---------|
+| `[ ]` | `open` | Available |
+| `[.]` | `wip` | In progress |
+| `[x]` | `done` | Completed |
+| `[-]` | `dropped` | Cancelled |
 
-### References Create Links
+**That's it.** Waiting, someday, blocked are boards, not statuses.
 
-`@bjorn`, `#finance`, `+project` are references to nodes:
+### Boards = Organization
 
-```markdown
-- [ ] Review budget @bjorn #finance +q1
-```
-
-All create links. First `@` is owner.
-
-### Boards Display Tasks
-
-A board is a node with columns (H2 sections) containing wikilinks:
+Boards are markdown files with columns. Automations populate them:
 
 ```markdown
-# @bjorn.md
+# @next.md
 
-## to-discuss
+## today
+- [[tasks/call-dentist]]
+
+## this-week
 - [[tasks/review-budget]]
-
-## discussed
-- [[tasks/hiring-plan]]
 ```
+
+| Board | Purpose |
+|-------|---------|
+| `@inbox` | Unprocessed items |
+| `@next` | Next actions (curated) |
+| `@waiting` | Waiting on others |
+| `@waiting/@person` | Waiting on specific person |
+| `@someday` | Maybe/later |
+| `@blocked` | Blocked by something |
+| `+project` | Project tasks |
+| `@person` | Person agenda |
 
 ### Automations Move Tasks
 
-Rules automatically move tasks between boards:
+Rules automatically add tasks to boards:
 
 ```yaml
-# When status → waiting, add to @waiting board
-- trigger: status.changed
-  where: { status: waiting }
-  actions: [board.add: "@waiting"]
+# .km/auto/gtd.yml
+rules:
+  - name: waiting-board
+    trigger: field.changed
+    where: { has_field: waiting }
+    actions:
+      - board.add: "@waiting"
+      - board.add: "@waiting/${waiting}"
 ```
 
----
-
-## Core Workflow
-
-**Daily:**
-1. Morning: Review Next list, curate from inbox
-2. During day: Work through tasks, add notes, complete
-3. End of day: Process inbox, defer incomplete
-
-**Weekly:**
-1. Review projects, schedule tasks
-2. Process Someday list
-3. Archive completed
+See [km-tasks-auto.md](km-tasks-auto.md) for details.
 
 ---
 
 ## Favorites
 
-Number keys `1-6` open favorite boards:
+Number keys `1-6` open favorite boards. Configure in `.km/config.yml`:
 
-| Key | Board | Purpose |
-|-----|-------|---------|
-| `1` | `@next` | Next actions |
-| `2` | `@inbox` | Unprocessed items |
-| `3` | `@waiting` | Waiting for external |
-| `4` | `@someday` | Maybe/later ideas |
-| `5` | `@blocked` | Blocked tasks |
-| `6` | (custom) | Your current focus |
-
-Favorites are configurable in `.km/config.yml`.
-
-See [TUI Favorites](km-tasks-tui.md#favorites) for details.
+```yaml
+favorites:
+  1: "@next"
+  2: "@inbox"
+  3: "@waiting"
+  4: "@someday"
+  5: "+current-project"
+  6: "@bjorn"
+```
 
 ---
 
@@ -114,12 +156,19 @@ Single input field:
 - Enter on no match creates new task
 - References in input (`@`, `#`, `+`) create links
 
-### Split-Pane Layout
+### Waiting Tracking
 
-List (left) + Detail (right):
-- Navigate list with j/k
-- Enter opens detail pane
-- h/Esc closes detail
+Track who you're waiting on:
+
+```markdown
+- [ ] Get sign-off waiting:@sarah
+- [ ] Await API waiting:vendor
+```
+
+View by person:
+```bash
+km @waiting/@sarah    # Everything Sarah owes you
+```
 
 ### Easy Re-parenting
 
@@ -134,18 +183,12 @@ iCal RRULE format:
 - When done, clone with next occurrence
 - Original stays in history
 
-### TextBundle Import/Export
-
-Interop with Bear, Ulysses, Craft:
-- `km import file.textbundle`
-- `km export --textpack`
-
 ---
 
 ## Related Specs
 
-- [km-tasks-data.md](km-tasks-data.md) — Data model, status, boards
-- [km-tasks-tui.md](km-tasks-tui.md) — TUI layout, favorites, keybindings
-- [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
+- [km-tasks-data.md](km-tasks-data.md) — Data model, schema
 - [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
-- [km-tasks-prior-art.md](km-tasks-prior-art.md) — Prior art research
+- [km-tasks-tui.md](km-tasks-tui.md) — TUI layout, keybindings
+- [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
+- [km-tasks-prior-art.md](km-tasks-prior-art.md) — Research

@@ -6,18 +6,18 @@ Command-line interface for task management.
 
 ## Commands Overview
 
-| Command        | Purpose                        |
-|----------------|--------------------------------|
-| `km task`      | List and filter tasks          |
-| `km @board`    | View/manage `@` board (person/context) |
-| `km +board`    | View/manage `+` board (project) |
-| `km #board`    | View/manage `#` board (tag)    |
-| `km add`       | Quick capture                  |
-| `km done`      | Mark task done                 |
-| `km move`      | Re-parent task                 |
-| `km auto`      | Manage automations             |
-| `km import`    | Import TextBundle              |
-| `km export`    | Export TextBundle              |
+| Command | Purpose |
+|---------|---------|
+| `km task` | List and filter tasks |
+| `km @board` | View/manage `@` board |
+| `km +board` | View/manage `+` board |
+| `km #board` | View/manage `#` board |
+| `km add` | Quick capture |
+| `km done` | Mark task done |
+| `km move` | Re-parent task |
+| `km auto` | Manage automations |
+| `km import` | Import TextBundle |
+| `km export` | Export TextBundle |
 
 **Note:** Board commands require the sigil prefix (`@`, `+`, `#`) to distinguish from subcommands.
 
@@ -38,19 +38,21 @@ km task "query"             # Search tasks
 ### Filters
 
 ```bash
-km task --status <status>   # Filter by status
+km task --status <status>   # Filter by status (open, wip, done, dropped)
 km task --status wip        # In progress tasks
-km task --status waiting    # Waiting tasks
-km task --status someday    # Someday tasks
 
 km task --overdue           # Overdue tasks
 km task --due today         # Due today
 km task --due week          # Due this week
 
 km task --project "Work"    # Tasks in project
-km task --owner bjorn       # Assigned to user (first @)
+km task --owner bjorn       # Assigned to user
 km task --ref @bjorn        # Tasks referencing @bjorn
 km task --ref "#finance"    # Tasks referencing #finance
+
+km task --waiting           # Tasks with waiting: field
+km task --waiting @sarah    # Waiting on Sarah
+km task --blocked           # Tasks with blocked: field
 
 km task --inbox             # Items in inbox/ folder
 ```
@@ -70,20 +72,23 @@ km task --json              # JSON output
 km task --overdue --verbose
 km task --project "Work/Q1" --status open
 km task "budget" --due week
+km task --waiting @sarah    # What's Sarah got?
 ```
 
 ---
 
 ## Board Commands
 
-Unified board interface. The sigil (`@`, `+`, `#`) is required.
+View and manage boards. Sigil (`@`, `+`, `#`) required.
 
 ### View Boards
 
 ```bash
 km @next                    # View @next board
 km @inbox                   # View @inbox board
-km @waiting                 # View @waiting board
+km @waiting                 # View all waiting items
+km @waiting/@sarah          # Waiting on Sarah specifically
+km @someday                 # View someday board
 km @bjorn                   # View person board
 km @phone                   # View context board
 km +website                 # View project board
@@ -125,7 +130,7 @@ km @next add 01HXY...       # Add task to @next
 km @next add "call" today   # Add by search, to "today" column
 km @bjorn add 01HXY... to-discuss  # Add to person board
 km +website move 01HXY... done     # Move to done column
-km '#urgent' add 01HXY...   # Add to tag board
+km @waiting/@sarah          # What's Sarah owe me?
 ```
 
 ---
@@ -138,28 +143,31 @@ Quick capture - create new task.
 
 ```bash
 km add "Task title"                    # Add to inbox
-km add -t "Task title"                 # Add to today
+km add -n "Task title"                 # Add to @next
 km add -p "Project" "Task title"       # Add to project
 km add "Task @bjorn due:2025-01-15"    # With metadata
+km add "Get sign-off waiting:@sarah"   # Waiting task
 ```
 
 ### Options
 
-| Option            | Description                    |
-|-------------------|--------------------------------|
-| `-t, --today`     | Add to next list (curated)     |
-| `-p, --project`   | Set parent project             |
-| `-d, --due`       | Set due date                   |
-| `-s, --start`     | Set start/scheduled date       |
-| `-o, --owner`     | Assign to user                 |
-| `-P, --priority`  | Set priority (1-5)             |
+| Option | Description |
+|--------|-------------|
+| `-n, --next` | Add to @next board |
+| `-p, --project` | Set parent project |
+| `-d, --due` | Set due date |
+| `-s, --start` | Set start/scheduled date |
+| `-o, --owner` | Assign to user |
+| `-w, --waiting` | Set waiting on who/what |
+| `-P, --priority` | Set priority (1-5) |
 
 ### Examples
 
 ```bash
 km add "Call dentist"
-km add -t "Review PR #42"
+km add -n "Review PR #42"
 km add -p "Work/Q1" "Budget review" -d 2025-01-15
+km add "Get approval" -w @sarah
 km add "Weekly review" --recur "FREQ=WEEKLY;BYDAY=MO"
 ```
 
@@ -180,8 +188,9 @@ km done --last              # Mark last touched task done
 ### Behavior
 
 - Sets `status = done`
+- Clears `waiting:` and `blocked:` fields
 - For recurring tasks: clones with next occurrence
-- Records completion timestamp
+- Removes from active boards (@next, @waiting, etc.)
 
 ### Examples
 
@@ -230,19 +239,11 @@ km import ~/Bear/                 # Batch import directory
 
 ### Options
 
-| Option            | Description                    |
-|-------------------|--------------------------------|
-| `--dry-run`       | Preview without importing      |
-| `--project`       | Set parent for imported items  |
-| `--assets`        | Asset handling (cas/alongside) |
-
-### Examples
-
-```bash
-km import notes.textbundle
-km import ~/Bear/Export/ --project "Imported/Bear"
-km import backup.textpack --dry-run
-```
+| Option | Description |
+|--------|-------------|
+| `--dry-run` | Preview without importing |
+| `--project` | Set parent for imported items |
+| `--assets` | Asset handling (cas/alongside) |
 
 ---
 
@@ -260,20 +261,12 @@ km export --project "Name" -o <path>  # Export project
 
 ### Options
 
-| Option            | Description                    |
-|-------------------|--------------------------------|
-| `-o, --output`    | Output path (required)         |
-| `--textbundle`    | Export as .textbundle (default)|
-| `--textpack`      | Export as .textpack (compressed)|
-| `--include-done`  | Include completed tasks        |
-
-### Examples
-
-```bash
-km export 01HXY... -o task.textbundle
-km export --all -o backup.textpack
-km export --project "Work" -o work.textpack
-```
+| Option | Description |
+|--------|-------------|
+| `-o, --output` | Output path (required) |
+| `--textbundle` | Export as .textbundle (default) |
+| `--textpack` | Export as .textpack (compressed) |
+| `--include-done` | Include completed tasks |
 
 ---
 
@@ -285,8 +278,9 @@ Quick status changes:
 km task status <id> <status>      # Set status
 km task claim <id>                # Set wip, assign to me
 km task release <id>              # Set open, unassign
-km task wait <id> "reason"        # Set waiting
-km task block <id>                # Set blocked
+km task wait <id> @person         # Set waiting: field
+km task block <id> "reason"       # Set blocked: field
+km task unblock <id>              # Clear blocked: field
 km task start <id> <date>         # Set start date
 ```
 
@@ -294,8 +288,9 @@ km task start <id> <date>         # Set start date
 
 ```bash
 km task claim 01HXY...
-km task wait 01HXY... "Waiting for Sarah's review"
-km task start 01HXY... 2025-01-20
+km task wait 01HXY... @sarah
+km task block 01HXY... "Waiting for API migration"
+km task unblock 01HXY...
 ```
 
 ---
@@ -305,7 +300,7 @@ km task start 01HXY... 2025-01-20
 ### Default (Tree)
 
 ```
-Work / Finance / .md #
+Work / Finance
   [ ] Review Q1 budget          due:Jan 15
   [.] Send invoice              @bjorn
 
@@ -314,7 +309,7 @@ Personal / Health
   [ ] ↻ Weekly review           Mon
 ```
 
-Recurring tasks show `↻` indicator after the mark.
+Recurring tasks show `↻` indicator.
 
 ### Flat (`--flat`)
 
@@ -322,7 +317,7 @@ Recurring tasks show `↻` indicator after the mark.
 [ ] Review Q1 budget    Work/Finance    due:Jan15
 [.] Send invoice        Work/Finance    @bjorn
 [ ] Call dentist        Personal        due:today
-[ ] ↻ Weekly review     Personal        ↻weekly Mon
+[ ] ↻ Weekly review     Personal        Mon
 ```
 
 ### JSON (`--json`)
@@ -340,11 +335,10 @@ Recurring tasks show `↻` indicator after the mark.
   },
   {
     "id": "01HXZ...",
-    "content": "Weekly review",
+    "content": "Get approval",
     "status": "open",
-    "recur": "FREQ=WEEKLY;BYDAY=MO",
-    "recur_prev": "01HXW...",
-    "ancestors": ["Personal"]
+    "waiting": "@sarah",
+    "ancestors": ["Work"]
   }
 ]
 ```
@@ -353,11 +347,11 @@ Recurring tasks show `↻` indicator after the mark.
 
 ## Environment Variables
 
-| Variable       | Description                    |
-|----------------|--------------------------------|
-| `KM_DIR`       | Override .km directory         |
-| `KM_USER`      | Default user for assignment    |
-| `KM_ROOT`      | Default root directory         |
+| Variable | Description |
+|----------|-------------|
+| `KM_DIR` | Override .km directory |
+| `KM_USER` | Default user for assignment |
+| `KM_ROOT` | Default root directory |
 
 ---
 

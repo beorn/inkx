@@ -22,14 +22,6 @@ Any node can become a task by having a status:
 ## [ ] Q1 Budget Review                # heading with status = task
 ```
 
-```yaml
-# file with status = task
----
-status: open
----
-# Project Proposal
-```
-
 ### References are Node Links
 
 `@bjorn`, `#finance`, `+project`, and `[[note]]` are all **references to nodes**:
@@ -45,60 +37,22 @@ status: open
 
 All create links. The sigil is part of the node name.
 
-### Boards are Nodes with Columns
+### Boards Organize Tasks
 
-A board is a node that displays linked items in columns:
+A board is a markdown file with H2 columns containing wikilinks to tasks:
 
 ```markdown
-# @bjorn.md
+# @next.md
 
-## to-discuss
+## today
 - [[tasks/review-budget]]
-- [[tasks/team-offsite]]
+- [[tasks/call-dentist]]
 
-## discussed
-- [[tasks/hiring-plan]]
+## this-week
+- [[tasks/send-invoice]]
 ```
 
-When you add `@bjorn` to a task, a link appears on the `@bjorn` board.
-
----
-
-## Unified Syntax
-
-### `key:value` Everywhere
-
-One syntax pattern for all metadata:
-
-| Type | Syntax | Example |
-|------|--------|---------|
-| Reference | `@word` `#word` `+word` | `@bjorn #urgent +website` |
-| Attribute | `key:value` | `due:2025-01-15 p:1` |
-| Wikilink | `[[path]]` | `[[notes/meeting]]` |
-
-### Task Example
-
-```markdown
-- [ ] Review Q1 budget @bjorn @sarah #finance +q1 due:2025-01-15 p:1
-```
-
-Parsed as:
-- Content: "Review Q1 budget"
-- Owner: `bjorn` (first `@`)
-- References: `@bjorn`, `@sarah`, `#finance`, `+q1`
-- Due: `2025-01-15`
-- Priority: `1`
-
-### Column Example
-
-```markdown
-## wip limit:3 set_status:wip
-```
-
-Parsed as:
-- Column name: "wip"
-- WIP limit: 3
-- On enter: set task status to `wip`
+Boards are populated by **automations** — rules that add/remove tasks based on events.
 
 ---
 
@@ -114,184 +68,134 @@ Each status has exactly one checkbox mark:
 | `[.]` | `wip` | In progress |
 | `[x]` | `done` | Completed |
 | `[-]` | `dropped` | Cancelled |
-| `[s]` | `someday` | Maybe/later |
-| `[>]` | `waiting` | Waiting on external |
-| `[<]` | `blocked` | Blocked by internal |
 
-### Status Semantics
+**Four statuses only.** Other states (waiting, someday, blocked) are handled by board membership, not status.
 
-| Status | Use Case | Agent Behavior |
-|--------|----------|----------------|
-| `open` | Available to work on | Can pick up |
-| `wip` | Actively working | In progress |
-| `done` | Completed | Skip |
-| `dropped` | Won't do | Skip |
-| `someday` | Maybe later | Skip unless reviewing |
-| `waiting` | Needs external input (human, API) | Cannot proceed autonomously |
-| `blocked` | Needs internal dependency | Check blocker, may auto-resolve |
+### Why Not More Statuses?
+
+Previous designs had `[>]` waiting, `[s]` someday, `[<]` blocked. This created confusion:
+
+- Two sources of truth (status AND board)
+- Automations to keep them in sync
+- Extra complexity with no clear benefit
+
+**Simpler model:** Status = work state. Boards = organization/workflow.
+
+- A task is `open` or `wip` regardless of which boards it's on
+- Being on `@waiting` doesn't change the task's status
+- Boards are views, not states
 
 ### Status Flow
 
 ```
 open [ ] ──→ wip [.] ──→ done [x]
-  │           │
-  │           ├──→ waiting [>] ──→ (back to wip/open)
-  │           │
-  │           └──→ blocked [<] ──→ (auto-resolve → wip)
-  │
-  └──→ someday [s] ──→ (promote to open)
   │
   └──→ dropped [-]
 ```
 
 ---
 
-## References
+## Board System
 
-### Sigil Conventions
+### What Boards Do
 
-| Sigil | Convention | Creates Link To |
-|-------|------------|-----------------|
-| `@` | People, contexts | `@bjorn.md`, `@phone.md` |
-| `#` | Tags, categories | `#finance.md`, `#urgent.md` |
-| `+` | Projects | `+website.md`, `+q1.md` |
-| `[[]]` | Any node | Explicit wikilink |
+Boards organize tasks into columns. They're populated by automations:
 
-### Node Names Include Sigils
+| Board | Purpose | Populated By |
+|-------|---------|--------------|
+| `@inbox` | Unprocessed items | Items in `inbox/` folder |
+| `@next` | Next actions | Manual + overdue/starting |
+| `@waiting` | Waiting on others | Has `waiting:` field |
+| `@waiting/@bjorn` | Waiting on Bjorn | `waiting:@bjorn` |
+| `@someday` | Maybe/later | Manual curation |
+| `@blocked` | Blocked tasks | Has `blocked:` field |
+| `+project` | Project tasks | `+project` reference |
+| `@person` | Person agenda | `@person` reference |
+| `#tag` | Tagged items | `#tag` reference |
 
-The sigil is part of the name:
+### Waiting Boards
 
-```
-@bjorn.md       # Person node named "@bjorn"
-#finance.md     # Tag node named "#finance"
-+q1-planning.md # Project node named "+q1-planning"
-```
-
-### First `@` is Owner
-
-```markdown
-- [ ] Task @bjorn @sarah #work
-```
-
-- `@bjorn` = owner (first `@`) AND reference
-- `@sarah` = reference only
-- `#work` = reference
-
-All go to `references[]`. First `@` also sets `owner`.
-
-### Reference Resolution
-
-When you write `@bjorn`:
-1. Look for `@bjorn.md` in root
-2. Look for `people/@bjorn.md`
-3. Look for `contexts/@bjorn.md`
-4. Auto-create `@bjorn.md` if not found
-
----
-
-## Boards
-
-### Board = Node with Columns
-
-Any node with H2 sections containing wikilinks is a board:
+Track WHO you're waiting on with sub-boards:
 
 ```markdown
-# @bjorn.md
-
-## to-discuss
-- [[tasks/review-budget]]
-
-## discussed
-- [[tasks/hiring-plan]]
-
-## action-needed
-- [[tasks/send-proposal]]
+- [ ] Get budget approval waiting:@sarah
+- [ ] Await API response waiting:vendor
 ```
 
-### Column Metadata
+This creates entries on:
+- `@waiting` (all waiting items)
+- `@waiting/@sarah` (waiting on Sarah specifically)
 
-Columns can have `key:value` attributes:
+View all items you're waiting on from Sarah:
+```bash
+km @waiting/@sarah
+```
+
+### Board Files
 
 ```markdown
-## wip limit:3 set_status:wip
+# @waiting.md
 
-## done set_status:done collapse:true
+## pending
+- [[tasks/budget-approval]]
+- [[tasks/api-response]]
+```
 
-## staging set_status:waiting set_waiting_for:QA
+Sub-boards are nested files:
+```
+@waiting.md           # All waiting items
+@waiting/@sarah.md    # Waiting on Sarah
+@waiting/@vendor.md   # Waiting on vendor
 ```
 
 ### Column Attributes
 
-| Attribute | Effect |
-|-----------|--------|
-| `set_status:X` | Set task status when entering |
-| `set_owner:@X` | Set task owner |
-| `set_waiting_for:X` | Set waiting_for field |
-| `limit:N` | WIP limit |
-| `collapse:true` | Collapsed in UI by default |
-| `default:true` | New items go here |
-
-### Smart Defaults
-
-Column names auto-map to behaviors:
-
-| Column Name | Auto Behavior |
-|-------------|---------------|
-| `done`, `complete`, `finished` | `set_status:done` |
-| `wip`, `doing`, `in-progress` | `set_status:wip` |
-| `blocked`, `waiting` | `set_status:blocked` |
-| `backlog`, `someday` | `set_status:someday` |
-
-### Adding to Boards
-
-When a task has `@bjorn`:
+Columns can have `key:value` attributes:
 
 ```markdown
-- [ ] Review budget @bjorn #finance
+## wip limit:3
+## done collapse:true
+## review default:true
 ```
 
-The task appears on `@bjorn` board (in default column).
-
-Equivalent to adding `[[tasks/review-budget]]` to `@bjorn.md`.
-
-### Board as View
-
-The board file stores:
-- Which tasks (as wikilinks)
-- Which column (under which H2)
-- Column behaviors (as attributes)
-
-The viewer renders task details by resolving links.
+| Attribute | Effect |
+|-----------|--------|
+| `limit:N` | WIP limit (visual warning) |
+| `collapse:true` | Collapsed in UI by default |
+| `default:true` | New items go here |
 
 ---
 
 ## Task Fields
 
-### Node Schema
+### Schema
 
 ```typescript
 interface Node {
   // Identity
   id: string;
-  type: string;           // file, folder, heading, list_item, etc.
+  type: string;           // file, folder, heading, list_item
 
   // Task fields (optional - presence makes it a task)
-  status?: Status;        // open, wip, done, dropped, someday, waiting, blocked
+  status?: Status;        // open, wip, done, dropped
   owner?: string;         // First @ reference
   references?: string[];  // All @, #, + references
   due?: string;           // YYYY-MM-DD
   start?: string;         // YYYY-MM-DD (defer until)
   p?: number;             // Priority 1-5
+  waiting?: string;       // Who/what waiting on
+  blocked?: string;       // What's blocking (task ID or description)
   recur?: string;         // iCal RRULE
   recur_prev?: string;    // Previous instance ID
-  waiting_for?: string;   // Who/what blocked on
 }
+
+type Status = 'open' | 'wip' | 'done' | 'dropped';
 ```
 
 ### Inline Syntax
 
 ```markdown
-- [ ] Task title @owner #tag +project due:DATE start:DATE p:N recur:RRULE
+- [ ] Task @owner #tag +project due:DATE start:DATE p:N waiting:WHO blocked:WHAT
 ```
 
 | Field | Syntax | Example |
@@ -301,24 +205,27 @@ interface Node {
 | Due | `due:DATE` | `due:2025-01-15` |
 | Start | `start:DATE` | `start:2025-01-20` |
 | Priority | `p:N` | `p:1` |
+| Waiting | `waiting:WHO` | `waiting:@sarah` |
+| Blocked | `blocked:WHAT` | `blocked:"API not ready"` |
 | Recurrence | `recur:RRULE` | `recur:FREQ=WEEKLY` |
-| Waiting for | `waiting_for:X` | `waiting_for:Sarah` |
 
-### Frontmatter (File Tasks)
+### Reference Sigils
 
-```yaml
----
-status: wip
-owner: bjorn
-due: 2025-01-15
-p: 1
-references: ["@sarah", "#finance", "+q1"]
-recur: FREQ=WEEKLY;BYDAY=MO
----
-# Review Q1 Budget
+| Sigil | Convention | Creates Link To |
+|-------|------------|-----------------|
+| `@` | People, contexts | `@bjorn.md`, `@phone.md` |
+| `#` | Tags, categories | `#finance.md`, `#urgent.md` |
+| `+` | Projects | `+website.md`, `+q1.md` |
+| `[[]]` | Any node | Explicit wikilink |
 
-Task description...
+### First `@` is Owner
+
+```markdown
+- [ ] Task @bjorn @sarah #work
 ```
+
+- `@bjorn` = owner (first `@`) AND reference
+- `@sarah` = reference only
 
 ---
 
@@ -347,22 +254,11 @@ recur:FREQ=MONTHLY;BYMONTHDAY=1
 recur:FREQ=WEEKLY;INTERVAL=2
 ```
 
-### Instance Linking
-
-```typescript
-interface Node {
-  recur?: string;       // RRULE on active instance
-  recur_prev?: string;  // ID of previous instance (linked list)
-}
-```
-
-Traverse `recur_prev` to find history.
-
 ---
 
 ## Special Locations
 
-### Inbox
+### Inbox Folder
 
 Items in `inbox/` folder are unprocessed:
 
@@ -372,9 +268,9 @@ inbox/
 └── idea.md
 ```
 
-**Not a status** — determined by location.
+Automation adds these to `@inbox` board.
 
-### Archive
+### Archive Folder
 
 Completed items can be moved to `archive/`:
 
@@ -385,44 +281,21 @@ archive/
 │       └── completed-task.md
 ```
 
-**Not automatic** — explicit action to archive.
-
 ---
 
-## Parsing Rules
+## GTD Mapping
 
-### Task Line
+| GTD Concept | km Implementation |
+|-------------|-------------------|
+| Inbox | `inbox/` folder → `@inbox` board |
+| Next Actions | `@next` board (curated + auto-surfaced) |
+| Waiting For | `waiting:` field → `@waiting` board |
+| Someday/Maybe | `@someday` board (manual) |
+| Projects | `+project` references → `+project` boards |
+| Contexts | `@context` references → `@context` boards |
+| Reference | Nodes without status |
 
-```
-- [mark] content @ref #ref +ref key:value [[link]]
-```
-
-1. `[mark]` → status (see mark table)
-2. `@word` → first is owner, all go to references
-3. `#word` → references
-4. `+word` → references
-5. `key:value` → attributes (no space around `:`)
-6. `[[path]]` → wikilinks
-7. Remaining text → content/title
-
-### Heading with Attributes
-
-```
-## heading-text key:value key:value
-```
-
-1. `##` → heading level
-2. Text before first `key:` → heading name
-3. `key:value` pairs → attributes
-
-### Values with Spaces
-
-Quote values containing spaces:
-
-```markdown
-- [ ] Task waiting_for:"Sarah's review"
-## column description:"Work in progress"
-```
+**Key insight:** GTD lists are boards, not statuses. A task's status (open/wip/done/dropped) is orthogonal to which GTD list it's on.
 
 ---
 
@@ -440,13 +313,29 @@ Quote values containing spaces:
 - [ ] Review Q1 budget @bjorn @sarah #finance +q1 due:2025-01-15 p:1
 ```
 
+### Waiting Task
+
+```markdown
+- [ ] Get budget approval waiting:@sarah
+```
+
+Appears on: `@waiting`, `@waiting/@sarah`
+
+### Blocked Task
+
+```markdown
+- [ ] Deploy to prod blocked:"API migration"
+```
+
+Appears on: `@blocked`
+
 ### Recurring Task
 
 ```markdown
-- [ ] Weekly review @team #planning recur:FREQ=WEEKLY;BYDAY=MO start:2025-01-20
+- [ ] Weekly review recur:FREQ=WEEKLY;BYDAY=MO start:2025-01-20
 ```
 
-### Board (Person Agenda)
+### Person Board
 
 ```markdown
 # @bjorn.md
@@ -459,7 +348,7 @@ Quote values containing spaces:
 - [[tasks/hiring-plan]]
 ```
 
-### Board (Project Kanban)
+### Project Board
 
 ```markdown
 # +website.md
@@ -467,64 +356,18 @@ Quote values containing spaces:
 ## backlog
 - [[tasks/design-homepage]]
 
-## wip limit:2 set_status:wip
+## wip limit:2
 - [[tasks/setup-repo]]
 
-## review set_status:waiting
-- [[tasks/code-review]]
-
-## done set_status:done collapse:true
+## done collapse:true
 - [[tasks/create-project]]
 ```
-
-### Board (GTD Context)
-
-```markdown
-# @phone.md
-
-## calls
-- [[tasks/call-dentist]]
-- [[tasks/call-vendor]]
-```
-
-### Board (Next Actions)
-
-```markdown
-# @next.md
-
-## today
-- [[tasks/review-budget]]
-- [[tasks/call-dentist]]
-
-## this-week
-- [[tasks/send-invoice]]
-```
-
-The "Next" view in the TUI is essentially viewing the `@next` board.
-
----
-
-## GTD Mapping
-
-| GTD Concept | km Board | Populated By |
-|-------------|----------|--------------|
-| Inbox | `@inbox` | Automation: items in `inbox/` folder |
-| Next Actions | `@next` | Manual curation + automation (overdue/starting) |
-| Waiting For | `@waiting` | Automation: `status = waiting` |
-| Someday/Maybe | `@someday` | Automation: `status = someday` |
-| Blocked | `@blocked` | Automation: `status = blocked` |
-| Projects | `+project` | Tasks with `+project` reference |
-| Contexts | `@phone`, `@computer` | Tasks with `@context` reference |
-| Reference | (any node) | Nodes without status |
-
-See [km-tasks-auto.md](km-tasks-auto.md) for automation rules.
 
 ---
 
 ## See Also
 
 - [km-tasks.md](km-tasks.md) — Overview
+- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI spec
-- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
-- [km-tasks-prior-art.md](km-tasks-prior-art.md) — Prior art research
