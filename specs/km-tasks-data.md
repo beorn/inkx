@@ -140,6 +140,27 @@ Metadata embedded in the same line as task content. Used by list tasks and secti
 | **[Pandoc](https://pandoc.org/MANUAL.html)** | — | — | — | `{.class}` | `{#id}` |
 | **[GFM](https://github.github.com/gfm/)** | — | — | — | — | `#heading-slug` |
 
+### Tana Supertags vs Plain Tags
+
+Tana's `#supertag` is fundamentally different from plain hashtags:
+
+| Aspect | Plain `#tag` | Tana `#supertag` |
+|--------|--------------|------------------|
+| Purpose | Classification/grouping | Type definition ("is-a") |
+| Schema | None | Fields, defaults, views |
+| Inheritance | No | Yes (`#author` extends `#person`) |
+| Fields | No | Yes (due date, priority, etc.) |
+| Behavior | Search/filter only | Auto-populates template |
+
+**Supertags define what a node *is***, not just how to find it. `#task` in Tana means
+"this node is a task" and brings fields (status, due, assignee), not just a search keyword.
+
+Plain hashtags still work in Tana for simple categorization, but supertags enable
+database-like behavior with typed fields and views.
+
+**km approach:** Plain `#tags` for classification. Type is determined by checkbox prefix
+(`- [ ]`) or frontmatter (`type: task`), not tag syntax.
+
 ### Metadata Syntax Families
 
 Systems use different approaches for inline metadata:
@@ -152,7 +173,8 @@ Systems use different approaches for inline metadata:
 | **Emoji prefix** | `📅 value` | same line | Obsidian Tasks, TaskForge |
 | **Brackets** | `[key:: value]` | inline | Dataview |
 | **Curly brace attrs** | `{#id .class key=val}` | same line (end) | Pandoc, kramdown |
-| **Structured data** | fields/UI | separate | Tana, Linear, Notion |
+| **Typed tags** | `#supertag` | node-level | Tana |
+| **Structured data** | fields/UI | separate | Linear, Notion |
 
 ### Placement Patterns
 
