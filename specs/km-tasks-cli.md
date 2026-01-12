@@ -11,7 +11,7 @@ Command-line interface for task management.
 | Command        | Purpose                        |
 |----------------|--------------------------------|
 | `km task`      | List and filter tasks          |
-| `km today`     | Today view                     |
+| `km next`      | Next actions view              |
 | `km inbox`     | Inbox view                     |
 | `km add`       | Quick capture                  |
 | `km done`      | Mark task done                 |
@@ -29,7 +29,7 @@ List and filter tasks.
 ### Basic Usage
 
 ```bash
-km task                     # Open tasks (open, next, in_progress)
+km task                     # Open tasks (open, next, wip)
 km task --all               # All tasks including done
 km task "query"             # Search tasks
 ```
@@ -38,7 +38,7 @@ km task "query"             # Search tasks
 
 ```bash
 km task --status <status>   # Filter by status
-km task --status next       # Today tasks
+km task --status next       # Next actions
 km task --status waiting    # Waiting tasks
 
 km task --overdue           # Overdue tasks
@@ -72,22 +72,22 @@ km task "budget" --due week
 
 ---
 
-## km today
+## km next
 
-Today view - manually curated tasks.
+Next actions view - tasks selected for immediate action.
 
 ### Usage
 
 ```bash
-km today                    # Show today list
-km today add <id>           # Add task to today
-km today remove <id>        # Remove from today
-km today clear              # Clear all from today
+km next                     # Show next actions
+km next add <id>            # Add task to next
+km next remove <id>         # Remove from next
+km next clear               # Clear all from next
 ```
 
 ### Behavior
 
-- Shows tasks with `status = next` or `status = in_progress`
+- Shows tasks with `status = next` or `status = wip`
 - Overdue tasks auto-surface at top
 - Adding sets `status = next`
 - Removing sets `status = open`
@@ -95,10 +95,10 @@ km today clear              # Clear all from today
 ### Examples
 
 ```bash
-km today                    # List today's tasks
-km today add 01HXY...       # Add by ID
-km today add "call"         # Add by search match
-km today remove 01HXY...    # Remove from today
+km next                     # List next actions
+km next add 01HXY...        # Add by ID
+km next add "call"          # Add by search match
+km next remove 01HXY...     # Remove from next
 ```
 
 ---
@@ -290,7 +290,7 @@ Quick status changes:
 
 ```bash
 km task status <id> <status>      # Set status
-km task claim <id>                # Set in_progress, assign to me
+km task claim <id>                # Set wip, assign to me
 km task release <id>              # Set open, unassign
 km task wait <id> "reason"        # Set waiting
 km task block <id>                # Set blocked

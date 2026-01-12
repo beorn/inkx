@@ -4,6 +4,22 @@ Data model extensions for task management.
 
 ---
 
+## Unified Names {#unified-names}
+
+All field names are consistent across inline syntax, frontmatter, CLI, and database:
+
+| Field | Inline | Frontmatter | CLI Flag | DB Column |
+|-------|--------|-------------|----------|-----------|
+| Owner | `@user` (first) | `owner` | `--owner` | `owner` |
+| Tags | `@name` `#tag` | `tags` | `--tag` | `tags` |
+| Due date | `due:DATE` | `due` | `--due` | `due` |
+| Start date | `start:DATE` | `start` | `--start` | `start` |
+| Priority | `p:N` | `p` | `--priority` | `p` |
+| Recurrence | `recur:RRULE` | `recur` | `--recur` | `recur` |
+| Status | (from mark) | `status` | `--status` | `status` |
+
+---
+
 ## Unified Task Model
 
 Any markdown element can become a task by adding a checkbox prefix. Tasks are nodes
@@ -72,7 +88,7 @@ A file with `type: task` in frontmatter is a task:
 ```yaml
 ---
 type: task
-status: in_progress
+status: wip
 owner: bjorn
 due: 2025-01-15
 p: 1
@@ -101,47 +117,33 @@ Full task description with rich content...
 | `tags` | `tags` |
 | `recur` | `recur` |
 
-### Projects
+### Tree Navigation (No Special "Project" Type)
 
-Projects are **containers for related tasks**. Three ways to define them:
+km doesn't have a special "project" type. A project is just **a node with tasks beneath it** — could be a folder, a file, or a heading. Users organize however they prefer:
 
-**1. Folder containment** (implicit):
 ```
 Work/
-├── Q1-Planning/           # ← project (folder)
-│   ├── budget-review.md   # task
-│   └── headcount.md       # task
-└── tasks.md               # contains - [ ] items
+├── Q1-Planning/           # folder with tasks
+│   ├── budget-review.md   # task file
+│   └── headcount.md       # task file
+└── tasks.md               # file with task list items
 ```
 
-**2. File with child tasks** (explicit):
-```markdown
----
-type: project
----
-# Q1 Planning
-
-Project description...
-
-## Tasks
-- [ ] Review budget
-- [ ] Plan headcount
+**Querying tasks under a node:**
+```bash
+km task --under "Work/Q1-Planning"   # All tasks in subtree
+km task --project "Q1-Planning"      # Shorthand (searches by name)
 ```
 
-**3. Tags and links** (virtual):
-```markdown
-- [ ] Review budget #q1-planning
-- [ ] Plan headcount #q1-planning [[Q1 Planning]]
-```
+**User conventions (not enforced by km):**
+- **PARA:** Put projects in `projects/`, areas in `areas/`
+- **GTD:** Tag projects with `#project` or use a `Projects/` folder
+- **Flat:** Just use folders naturally
 
-| Method | Best For | Query |
-|--------|----------|-------|
-| Folder | Dedicated projects with many tasks | `path LIKE 'Q1-Planning/%'` |
-| File | Projects with description/notes | `parent_id = <project-id>` |
-| Tag | Cross-cutting concerns | `tags CONTAINS 'q1-planning'` |
-| Link | Loose association | backlinks to project |
-
-**Combining methods:** A project folder can have a `README.md` or `_index.md` with project metadata, and tasks can use tags for cross-project membership.
+**Why no `type: project`?**
+- A "project" is a mental model, not a data type
+- Any node can have child tasks
+- Keeps the model simple: tasks have checkboxes, everything else doesn't
 
 ---
 
@@ -161,39 +163,48 @@ km uses `key:value` pairs (like todo.txt) with `@` for mentions and `#` for tags
 
 | Field      | Inline | Frontmatter | Node Field | Example |
 |------------|--------|-------------|------------|---------|
-| Owner      | `@user` | `owner` | `owner` | `@bjorn` |
+| Owner      | `@user` (first) | `owner` | `owner` | `@bjorn` |
+| Tags       | `@name` `#tag` | `tags` | `tags` | `@sarah @phone #work` |
 | Due        | `due:DATE` | `due` | `due` | `due:2025-01-15` |
 | Scheduled  | `start:DATE` | `start` | `start` | `start:2025-01-10` |
 | Priority   | `p:N` | `p` | `p` | `p:1` |
-| Tags       | `#tag` | `tags` | `tags` | `#work #urgent` |
 | Recurrence | `recur:RRULE` | `recur` | `recur` | `recur:FREQ=WEEKLY` |
 | ID/Anchor  | `^id` | — | `id` | `^budget-q1` |
 
+**Tags:** Both `@` and `#` are tags. First `@` is also the owner:
+```markdown
+- [ ] Discuss budget @bjorn @sarah @phone #finance
+      ↑ owner        ↑──────── tags ────────────↑
+```
+
+- `@bjorn` — first `@` = owner AND tag
+- `@sarah`, `@phone` — tags (people/contexts)
+- `#finance` — tag (category)
+
+All stored in `tags[]`. Owner is additionally stored in `owner` field.
+
 **Naming principles:**
-- Short field names minimize clutter (`p` not `priority`, `recur` not `recurrence`)
-- `@user` for owner (not assignee) — matches common usage
-- `start` for scheduled date — when task becomes available (like OmniFocus "defer")
-- `due` for deadline — when task must be done
-- Same names in inline, frontmatter, and node fields for consistency
+- Short field names minimize clutter (`p` not `priority`)
+- `@` and `#` are both tags — just different conventions
+- `start` = when task becomes available; `due` = deadline
 
 **Design choices:**
-- `key:value` — adopted from todo.txt, widely understood
-- `@user` — universal mention syntax (GitHub, Slack, Todoist)
-- `#tag` — universal tag syntax (Twitter, Obsidian, Bear)
-- ISO dates — unambiguous, sortable, no locale issues
+- `key:value` — adopted from todo.txt
+- `@` — people and GTD contexts (person = agenda for them)
+- `#` — categories and labels
+- Both become tags — queried the same way
 
 ### Parsing Rules
 
 1. Metadata tokens appear after task title, space-separated
-2. `@word` → assignee (first match) or mention (subsequent)
+2. `@word` → tag (first also sets `owner`)
 3. `#word` → tag
 4. `key:value` → field (no spaces around colon)
 5. Unrecognized tokens remain in title
 
 ```
-- [ ] Call @john about #budget review due:2025-01-15
-      ↑────────────────────────────↑ ↑──────────────↑
-              title content              metadata
+- [ ] Call @john about #budget review due:2025-01-15 @phone
+      ↑ owner + tag    ↑ tag          ↑ field       ↑ tag
 ```
 
 ---
@@ -206,7 +217,7 @@ Checkbox variants indicating status:
 |-------|---------------|--------------------|
 | `[ ]` | open/next     | Not started        |
 | `[x]` | done          | Completed          |
-| `[/]` | in_progress   | Currently working  |
+| `[/]` | wip   | Currently working  |
 | `[-]` | cancelled     | Dropped            |
 | `[?]` | waiting       | Blocked/waiting    |
 | `[>]` | scheduled     | Scheduled for later|
@@ -303,7 +314,7 @@ For file-level tasks or complex metadata:
 ```yaml
 ---
 type: task
-status: in_progress
+status: wip
 owner: bjorn
 due: 2025-01-15
 p: 1
@@ -325,8 +336,8 @@ Extend existing `TaskStatus` with `next`:
 ```typescript
 type TaskStatus =
   | "open"        // Available, not scheduled
-  | "next"        // Selected for today (NEW)
-  | "in_progress" // Actively working
+  | "next"        // Selected for immediate action
+  | "wip" // Actively working
   | "done"        // Completed
   | "waiting"     // Blocked on external
   | "blocked"     // Blocked on internal
@@ -337,7 +348,7 @@ type TaskStatus =
 ### Status Flow
 
 ```
-open ──→ next ──→ in_progress ──→ done
+open ──→ next ──→ wip ──→ done
   │        │           │
   │        └───────────┴──→ waiting ──→ (back to open/next)
   │
@@ -350,14 +361,16 @@ open ──→ next ──→ in_progress ──→ done
 
 | Status       | In View    | Meaning                          |
 |--------------|------------|----------------------------------|
-| `open`       | Inbox/All  | Available but not scheduled      |
-| `next`       | Today      | Selected for today (manual)      |
-| `in_progress`| Today      | Actively working on              |
+| `open`       | All        | Available but not scheduled      |
+| `next`       | Next       | Selected for immediate action    |
+| `wip`        | Next       | Actively working on              |
 | `waiting`    | Waiting    | Blocked on external dependency   |
 | `blocked`    | Blocked    | Blocked on internal dependency   |
-| `scheduled`  | Scheduled  | Has future `start` date          |
-| `done`       | Archive    | Completed                        |
-| `cancelled`  | Archive    | Dropped                          |
+| `scheduled`  | (hidden)   | Has future `start` date          |
+| `done`       | (archive)  | Completed                        |
+| `cancelled`  | (archive)  | Dropped                          |
+
+Note: Inbox is determined by **folder location** (`inbox/`), not status.
 
 ---
 
@@ -367,11 +380,11 @@ open ──→ next ──→ in_progress ──→ done
 interface Node {
   // Task fields
   status?: TaskStatus;
-  owner?: string;        // @user
+  owner?: string;        // first @mention (also in tags)
+  tags?: string[];       // from @ and # (people, contexts, categories)
   due?: string;          // YYYY-MM-DD deadline
   start?: string;        // YYYY-MM-DD defer/scheduled
   p?: number;            // 1-5 priority
-  tags?: string[];       // from #tags
   recur?: string;        // iCal RRULE
   recur_prev?: string;   // ID of predecessor (for recurring)
   waiting_for?: string;  // who/what blocked on
@@ -568,7 +581,14 @@ km task promote 01HXY... -t      # Convert and add to today
 km task promote 01HXY... -p Work # Convert and move to project
 ```
 
-**Someday view** shows all plain list items (type `list_item`, no checkbox).
+**Someday view query:**
+```sql
+type = 'list_item'
+AND content NOT LIKE '- [ ]%'     -- no checkbox
+AND parent_type NOT IN ('task')   -- not a subtask description
+```
+
+This excludes list items that are within task descriptions or subtask lists.
 
 ---
 
@@ -653,7 +673,7 @@ km add -p "Work" "Fix bug"      # → Work/fix-bug.md (skips inbox)
 
 | Condition     | Display        | Behavior                    |
 |---------------|----------------|-----------------------------|
-| Overdue       | Red, "-3d"     | Auto-surfaces in Today view |
+| Overdue       | Red, "-3d"     | Auto-surfaces in Next view  |
 | Due today     | Yellow, "today"| Highlighted                 |
 | Due tomorrow  | Normal         | Normal display              |
 | Due later     | Dim, "Jan 15"  | Normal display              |

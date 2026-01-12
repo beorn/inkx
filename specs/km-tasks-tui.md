@@ -14,7 +14,7 @@ Terminal UI for task management.
 ┌────────────────────────────────────────────────────┐
 │  [🔍 Type to search or create...              ⌘K] │
 ├────────────────────────────────────────────────────┤
-│ Today (3)                              [1]        │
+│ Next (3)                               [1]        │
 │ ─────────────────────────────────────────────────  │
 │ ▸ [/] Review Q1 budget      Work / Finance  -2d  │
 │   [ ] Call dentist          Personal        today │
@@ -23,7 +23,7 @@ Terminal UI for task management.
 │                                                    │
 │  Review Q1 budget                                  │
 │  ───────────────────────────────────────────────── │
-│  Status: in_progress    Due: Jan 10 (overdue)     │
+│  Status: wip    Due: Jan 10 (overdue)     │
 │  Project: Work / Finance                          │
 │                                                    │
 │  Need to compare with [[Q4 Actuals]].             │
@@ -152,17 +152,17 @@ Switch with number keys:
 
 | Key | View     | Filter                                    |
 |-----|----------|-------------------------------------------|
-| `1` | Today    | `status IN (next, in_progress)` + overdue |
+| `1` | Next     | `status IN (next, wip)` + overdue         |
 | `2` | Inbox    | `path LIKE 'inbox/%'`                     |
 | `3` | All      | All open tasks                            |
 | `4` | Projects | Grouped by ancestor                       |
 | `5` | Waiting  | `status = waiting`                        |
 | `6` | Someday  | Plain list items (type `list_item`)       |
 
-### Today View
+### Next View
 
 ```
-Today (3)                                    [1]
+Next (3)                                     [1]
 ────────────────────────────────────────────────
 🔴 [/] Review Q1 budget    Work / Finance   -2d
    [ ] Call dentist        Personal         today
@@ -183,7 +183,7 @@ Inbox (5)                                    [2]
    Idea: refactor auth                      2d ago
 ```
 
-Actions: `t` (today), `p` (project), `s` (someday → converts to list item), `D` (delete)
+Actions: `n` (next), `p` (project), `s` (someday → converts to list item), `D` (delete)
 
 ### Projects View
 
@@ -250,7 +250,7 @@ Type to filter...
 | Key     | Action                    |
 |---------|---------------------------|
 | `x`     | Toggle done               |
-| `t`     | Add to today (→ next)     |
+| `n`     | Add to next               |
 | `p`     | Change project            |
 | `d`     | Set due date              |
 | `s`     | Change status             |

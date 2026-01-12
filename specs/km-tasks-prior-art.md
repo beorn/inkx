@@ -289,44 +289,10 @@ Recurrence is a property; completion adds a new block.
 
 ## km Design Choices
 
-### Recurrence: Clone-on-Complete
-
-km uses clone-on-complete (like Todoist, Things, Asana):
-- Fits km's "everything is a node" model
-- Each instance has its own history
-- Natural for markdown files and event log
-
-**Linked list via `recur_prev`:**
-- Each instance points to its predecessor (the task it was cloned from)
-- Traverse chain to find history: E → D → C → B → A
-- Pattern changes visible in chain (each instance has its own `recur`)
-
-**Shallow clones:** Only parent task cloned, not subtasks
-- Avoids expensive deep copies of large tasks
-- Prevents search pollution from accumulated subtasks
-- Subtasks represent the same checklist each recurrence (they reset)
-
-**Pattern changes:** Update `recur` on current instance
-- Linked list naturally captures pattern evolution
-- Future clones inherit pattern from the instance they're cloned from
-
-**Search filtering:** Completed instances excluded by default (`status != done`)
-- Prevents clone pollution in search results
-- Use `--all` flag to include history
-
-### Metadata Syntax
-
-Same-line `key:value` (like todo.txt):
-- Compact for typical 0-3 metadata fields
-- Familiar syntax
-- No special parsing for multi-line properties
-
-### Type Determination
-
-Implicit from structure:
-- Checkbox prefix (`- [ ]`) → task
-- Frontmatter `type: task` → task
-- Future: `#type/task` or `##task` for explicit typing
+See [km-tasks-data.md](km-tasks-data.md) for km's implementation decisions:
+- **Recurrence:** Clone-on-complete with `recur_prev` linked list
+- **Metadata:** Same-line `key:value` syntax (like todo.txt)
+- **Type determination:** Implicit from checkbox prefix
 
 ---
 

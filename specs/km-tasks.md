@@ -27,8 +27,8 @@ Task management in km, inspired by Notational Velocity and Simplenote.
 ## Core Workflow
 
 **Daily:**
-1. Morning: Review Today list, curate from inbox/scheduled
-2. During day: Work through Today, add notes, complete tasks
+1. Morning: Review Next list, curate from inbox/scheduled
+2. During day: Work through Next actions, add notes, complete tasks
 3. End of day: Process inbox, defer incomplete
 
 **Weekly:**
@@ -44,7 +44,7 @@ Six views accessed via number keys `1-6`:
 
 | View     | Purpose                              |
 |----------|--------------------------------------|
-| Today    | Manually curated, overdue surfaces   |
+| Next     | Next actions, overdue surfaces       |
 | Inbox    | Unprocessed items                    |
 | All      | All open tasks                       |
 | Projects | Grouped by ancestor                  |
