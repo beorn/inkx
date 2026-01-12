@@ -48,8 +48,8 @@ km task --project "Work"    # Tasks in project
 km task --owner bjorn       # Assigned to user
 km task --tag urgent        # With tag
 
-km task --someday           # Someday/maybe tasks
-km task --inbox             # Inbox items
+km task --someday           # Plain list items (no checkbox)
+km task --inbox             # Items in inbox/ folder
 ```
 
 ### Output Options
@@ -159,7 +159,6 @@ km add "Task @bjorn due:2025-01-15"    # With metadata
 | `-s, --start`     | Set start/scheduled date       |
 | `-o, --owner`     | Assign to user                 |
 | `-P, --priority`  | Set priority (1-5)             |
-| `--someday`       | Mark as someday                |
 
 ### Examples
 

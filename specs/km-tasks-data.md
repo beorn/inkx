@@ -101,19 +101,47 @@ Full task description with rich content...
 | `tags` | `tags` |
 | `recur` | `recur` |
 
-### Folder as Project
+### Projects
 
-A folder containing tasks implicitly becomes a project:
+Projects are **containers for related tasks**. Three ways to define them:
 
+**1. Folder containment** (implicit):
 ```
 Work/
-├── Q1-Planning/
-│   ├── budget-review.md      # type: task
-│   └── headcount.md          # type: task
-└── tasks.md                  # contains - [ ] items
+├── Q1-Planning/           # ← project (folder)
+│   ├── budget-review.md   # task
+│   └── headcount.md       # task
+└── tasks.md               # contains - [ ] items
 ```
 
-Query `Work/Q1-Planning/` to get all tasks in that project.
+**2. File with child tasks** (explicit):
+```markdown
+---
+type: project
+---
+# Q1 Planning
+
+Project description...
+
+## Tasks
+- [ ] Review budget
+- [ ] Plan headcount
+```
+
+**3. Tags and links** (virtual):
+```markdown
+- [ ] Review budget #q1-planning
+- [ ] Plan headcount #q1-planning [[Q1 Planning]]
+```
+
+| Method | Best For | Query |
+|--------|----------|-------|
+| Folder | Dedicated projects with many tasks | `path LIKE 'Q1-Planning/%'` |
+| File | Projects with description/notes | `parent_id = <project-id>` |
+| Tag | Cross-cutting concerns | `tags CONTAINS 'q1-planning'` |
+| Link | Loose association | backlinks to project |
+
+**Combining methods:** A project folder can have a `README.md` or `_index.md` with project metadata, and tasks can use tags for cross-project membership.
 
 ---
 
@@ -345,16 +373,12 @@ interface Node {
   p?: number;            // 1-5 priority
   tags?: string[];       // from #tags
   recur?: string;        // iCal RRULE
+  recur_prev?: string;   // ID of predecessor (for recurring)
   waiting_for?: string;  // who/what blocked on
-
-  // Someday flag (in data object)
-  data?: {
-    someday?: boolean;
-  };
 }
 ```
 
-Note: Inbox status is determined by location (`inbox/` folder), not a flag.
+Note: Inbox, archive, and someday are determined by **folder location**, not flags.
 
 ---
 
@@ -413,8 +437,41 @@ Rationale: Subtasks in recurring tasks typically represent the *same* checklist 
 (e.g., "Weekly review" with subtasks "Check inbox", "Review projects"). These reset rather
 than accumulate. For persistent subtasks across recurrences, use a project structure instead.
 
+**Where clones are created:** New instances are created in the **same location** as the
+completed task (same parent folder/project).
+
+**When clones are created:** On completion only. No pre-generation of future instances.
+The next instance is created immediately when the current one is marked done.
+
 **Search filtering:** Completed instances excluded from search by default (`status != done`).
 Use `--all` or explicit filters to include history.
+
+### Large Task Warning
+
+⚠️ **Avoid recurrence on complex tasks with extensive content.**
+
+If a task has significant description, attachments, or accumulated notes, recurring it
+wastes storage and makes instances harder to manage. Instead:
+
+1. **Make a recurring subtask:**
+   ```markdown
+   # Project Alpha (persistent)
+
+   Project overview and accumulated notes...
+
+   ## Tasks
+   - [ ] ↻ Weekly check-in  recur:FREQ=WEEKLY  ← only this recurs
+   - [ ] Other tasks...
+   ```
+
+2. **Use project + recurring task:**
+   ```
+   project-alpha/
+   ├── README.md            # Project info (persistent)
+   └── weekly-review.md     # type: task, recur: FREQ=WEEKLY
+   ```
+
+The recurring task stays small; the project holds accumulated context.
 
 ### Pattern Changes
 
@@ -481,15 +538,61 @@ The ↻ indicator shows the task is part of a recurring series.
 
 ## Someday/Maybe
 
-Flag for "someday" tasks:
+Someday items are **plain list items** (no checkbox), not tasks:
 
-```typescript
-data: { someday: true }
+```markdown
+## Ideas
+
+- Learn Rust
+- Trip to Japan
+- Refactor auth system
 ```
 
-- Filters out of normal views (Today, All, Projects)
-- Appears in dedicated Someday view
-- Weekly review: promote to open or archive
+**Why plain list items?**
+- No checkbox = no commitment
+- Clear distinction: `[ ]` means "I will do this", `-` means "maybe"
+- Can live in any file, any folder
+- Becomes a task when you add the checkbox
+
+**Promotion to task:**
+```bash
+km add -p "Learning" "Learn Rust"  # Creates task in Learning/
+```
+
+Or manually add checkbox: `- Learn Rust` → `- [ ] Learn Rust`
+
+**Someday view** shows all plain list items (type `list_item`, no checkbox).
+
+---
+
+## Archive
+
+Completed and cancelled tasks move to `archive/` folder:
+
+```
+archive/
+├── 2025/
+│   ├── 01/
+│   │   ├── call-dentist.md      # done 2025-01-10
+│   │   └── fix-login-bug.md     # done 2025-01-12
+│   └── 02/
+└── cancelled/
+    └── old-project.md
+```
+
+**Why folder-based?**
+- Physical separation from active work
+- Easy to browse by date
+- Can exclude from search/sync
+- Standard file system semantics
+
+**Archiving:**
+```bash
+km done 01HXY...      # Moves to archive/YYYY/MM/
+km archive 01HXY...   # Explicit archive without status change
+```
+
+Tasks in `archive/` excluded from normal views/search.
 
 ---
 

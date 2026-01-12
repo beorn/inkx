@@ -153,11 +153,11 @@ Switch with number keys:
 | Key | View     | Filter                                    |
 |-----|----------|-------------------------------------------|
 | `1` | Today    | `status IN (next, in_progress)` + overdue |
-| `2` | Inbox    | `data.inbox = true` or no project         |
+| `2` | Inbox    | `path LIKE 'inbox/%'`                     |
 | `3` | All      | All open tasks                            |
 | `4` | Projects | Grouped by ancestor                       |
 | `5` | Waiting  | `status = waiting`                        |
-| `6` | Someday  | `data.someday = true`                     |
+| `6` | Someday  | Plain list items (type `list_item`)       |
 
 ### Today View
 
@@ -183,7 +183,7 @@ Inbox (5)                                    [2]
    Idea: refactor auth                      2d ago
 ```
 
-Actions: `t` (today), `p` (project), `s` (someday), `D` (delete)
+Actions: `t` (today), `p` (project), `D` (delete)
 
 ### Projects View
 
