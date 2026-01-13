@@ -571,8 +571,8 @@ describe("km init", () => {
     const initDir = join(INIT_TEST_DIR, "new-project");
     mkdirSync(initDir, { recursive: true });
 
-    // Run init without existing .km/
-    const result = await km(["init"], {
+    // Run init without existing .km/ (--force needed since tests run within km repo)
+    const result = await km(["init", "--force"], {
       cwd: initDir,
       env: { KM_DIR: join(initDir, ".km") },
     });
@@ -600,7 +600,8 @@ describe("km init", () => {
       const initDir = join(INIT_TEST_DIR, "gtd-project");
       mkdirSync(initDir, { recursive: true });
 
-      const result = await km(["init", "gtd"], {
+      // --force needed since tests run within km repo which has ancestor .km/
+      const result = await km(["init", "--force", "gtd"], {
         cwd: initDir,
         env: { KM_DIR: join(initDir, ".km") },
       });
@@ -622,7 +623,7 @@ describe("km init", () => {
       const initDir = join(INIT_TEST_DIR, "gtd-inbox");
       mkdirSync(initDir, { recursive: true });
 
-      await km(["init", "gtd"], {
+      await km(["init", "--force", "gtd"], {
         cwd: initDir,
         env: { KM_DIR: join(initDir, ".km") },
       });
@@ -639,7 +640,7 @@ describe("km init", () => {
       const initDir = join(INIT_TEST_DIR, "gtd-next");
       mkdirSync(initDir, { recursive: true });
 
-      await km(["init", "gtd"], {
+      await km(["init", "--force", "gtd"], {
         cwd: initDir,
         env: { KM_DIR: join(initDir, ".km") },
       });
@@ -656,7 +657,7 @@ describe("km init", () => {
       const initDir = join(INIT_TEST_DIR, "gtd-someday");
       mkdirSync(initDir, { recursive: true });
 
-      await km(["init", "gtd"], {
+      await km(["init", "--force", "gtd"], {
         cwd: initDir,
         env: { KM_DIR: join(initDir, ".km") },
       });
@@ -668,18 +669,18 @@ describe("km init", () => {
       expect(content).toContain("Ideas and projects for the future");
     });
 
-    test("should warn on unknown template", async () => {
-      const initDir = join(INIT_TEST_DIR, "unknown-template");
-      mkdirSync(initDir, { recursive: true });
+    test("should use path argument when not gtd template", async () => {
+      const initDir = join(INIT_TEST_DIR, "path-argument");
 
-      const result = await km(["init", "unknown"], {
-        cwd: initDir,
+      // km init ./path should create .km/ in ./path
+      const result = await km(["init", "--force", initDir], {
+        cwd: INIT_TEST_DIR,
         env: { KM_DIR: join(initDir, ".km") },
       });
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Unknown template");
-      expect(result.stdout).toContain("Available: gtd");
+      expect(result.stdout).toContain("Initialized");
+      expect(existsSync(join(initDir, ".km"))).toBe(true);
     });
   });
 });

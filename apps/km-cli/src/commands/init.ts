@@ -4,15 +4,36 @@
  * Initialize km in a directory by creating .km/ folder.
  * Enables disk mode with full tracking.
  *
- * km init [path]       # Create .km/ in path (default: cwd)
- * km init gtd          # Create .km/ plus GTD folder structure
+ * km init              # Create .km/ in cwd
+ * km init ./path       # Create .km/ in ./path
+ * km init gtd          # Create .km/ plus GTD folder structure in cwd
  * km --root /path init # Uses --root as target directory
+ * km -r ./path init gtd # Create .km/ and GTD structure in ./path
  */
 
 import { Command } from "commander";
 import chalk from "chalk";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { join, resolve } from "path";
+import { dirname, join, resolve } from "path";
+
+/**
+ * Search for .km/ in ancestors of the given directory
+ * Returns the path to the ancestor .km/ if found, undefined otherwise
+ */
+function findAncestorKmDir(startDir: string): string | undefined {
+  let current = dirname(startDir);
+
+  while (current !== dirname(current)) {
+    // Stop at filesystem root
+    const kmPath = join(current, ".km");
+    if (existsSync(kmPath)) {
+      return kmPath;
+    }
+    current = dirname(current);
+  }
+
+  return undefined;
+}
 
 /**
  * GTD template content
@@ -83,18 +104,66 @@ function createGtdStructure(targetDir: string): void {
 
 export const initCommand = new Command("init")
   .description("Initialize km in a directory (enables disk mode)")
-  .argument("[template]", "Optional template: gtd")
+  .argument("[path]", "Target directory or template (gtd)")
   .option("-f, --force", "Reinitialize even if .km/ exists")
   .action((templateArg, options, command) => {
     // Priority: --root from parent > KM_ROOT env > cwd
+    // Note: For init, we resolve the path directly without requiring it to exist
     const globalRoot = command.parent?.opts()?.root || process.env.KM_ROOT;
-    const targetDir = resolve(globalRoot ?? process.cwd());
+    let targetDir: string;
+    let template: string | undefined;
+
+    // Detect if templateArg is actually a path (not "gtd")
+    // If it's a path, use it as targetDir; otherwise treat as template
+    if (templateArg && templateArg !== "gtd") {
+      // Treat as path
+      const expanded = templateArg.startsWith("~")
+        ? templateArg.replace("~", process.env.HOME || "")
+        : templateArg;
+      targetDir = resolve(expanded);
+
+      // Create target directory if it doesn't exist
+      if (!existsSync(targetDir)) {
+        mkdirSync(targetDir, { recursive: true });
+        console.log(chalk.dim(`Created directory: ${targetDir}`));
+      }
+    } else if (globalRoot) {
+      // Expand ~ and resolve to absolute path
+      const expanded = globalRoot.startsWith("~")
+        ? globalRoot.replace("~", process.env.HOME || "")
+        : globalRoot;
+      targetDir = resolve(expanded);
+
+      // Create target directory if it doesn't exist
+      if (!existsSync(targetDir)) {
+        mkdirSync(targetDir, { recursive: true });
+        console.log(chalk.dim(`Created directory: ${targetDir}`));
+      }
+      template = templateArg; // "gtd" or undefined
+    } else {
+      targetDir = resolve(process.cwd());
+      template = templateArg; // "gtd" or undefined
+    }
+
     const kmDir = join(targetDir, ".km");
 
     // Check if .km/ already exists
     if (existsSync(kmDir) && !options.force) {
       console.log(chalk.yellow(`Already initialized: ${kmDir}`));
       console.log(chalk.dim("Use --force to reinitialize"));
+      return;
+    }
+
+    // Check if there's a .km/ in an ancestor directory
+    const ancestorKm = findAncestorKmDir(targetDir);
+    if (ancestorKm && !options.force) {
+      console.log(chalk.yellow(`Found existing km vault at ${ancestorKm}`));
+      console.log(
+        chalk.yellow(
+          `Creating a nested vault may cause conflicts. Consider using the parent vault instead.`,
+        ),
+      );
+      console.log(chalk.dim("Use --force to create a nested vault"));
       return;
     }
 
@@ -111,12 +180,8 @@ export const initCommand = new Command("init")
     console.log(chalk.dim(`  Created: ${kmDir}/`));
 
     // Handle template
-    if (templateArg === "gtd") {
+    if (template === "gtd") {
       createGtdStructure(targetDir);
-    } else if (templateArg && templateArg !== "gtd") {
-      console.log(
-        chalk.yellow(`Unknown template: ${templateArg}. Available: gtd`),
-      );
     }
 
     console.log();
