@@ -37,37 +37,50 @@ A shared workspace for you and your agents — with full history.
 ## Quick Start
 
 ```bash
-# Install
-bun install -g @km/app-cli    # or run from source: bun run km
+# Install (run from source)
+git clone https://github.com/beorn/km.git && cd km
+bun install
 
 # Initialize in your notes folder
-cd ~/notes
-km init
+cd ~/notes     # or any folder with .md files
+bun run km init
+bun run km sync              # Import your existing markdown files
 
-# See your knowledge tree
-km tree
+# View your knowledge
+bun run km tree              # See the tree structure
+bun run km task              # List all tasks found in your files
+bun run km task -i           # Show task IDs (use these with done/show)
 
 # Create tasks
-km new "Review Q4 budget @finance #urgent due:friday"
-km new "Call mom" --project personal
+bun run km new "Review Q4 budget @finance #urgent"
+bun run km sync              # Sync to pick up the new task
 
-# View and manage tasks
-km task                     # List all tasks
-km task status:open         # Filter by status
-km task @bjorn due:week     # Multiple filters
-km board                    # Kanban TUI
+# Complete tasks (use ID from 'km task -i')
+bun run km done ABCD1234     # Mark task done using short ID
 
-# Complete tasks
-km done <id>                # Mark task complete
-km done "budget"            # Fuzzy match by content
-
-# Sync with filesystem
-km sync                     # One-time sync
-km sync --watch             # Watch for changes
+# Task status workflow
+bun run km task status ABCD1234            # View status
+bun run km task status ABCD1234 in_progress # Set to in_progress
 
 # Search
-km search "meeting notes"   # Full-text search
-km search '"exact phrase"'  # Phrase search
+bun run km search "meeting"        # Full-text search
+bun run km search '"exact phrase"' # Phrase search
+
+# Changes sync both ways
+# - Edit .md files → run 'km sync' → changes appear in km
+# - Use 'km done' → task checkbox updates in your .md file automatically
+```
+
+### Alias Setup (Recommended)
+
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+alias km="bun run ~/path/to/km/apps/km-cli/src/index.ts"
+
+# Then use simply:
+km task
+km done ABCD1234
+km sync
 ```
 
 ### Query Language
@@ -103,12 +116,15 @@ Your markdown becomes a knowledge base. Notes, tasks, calendar — all nodes in 
 
 ```bash
 cd ~/notes
-km init               # Point km at your notes
+km init               # Create .km/ folder
+km sync               # Scan and import .md files
 km tree               # Your knowledge hierarchy
 km task               # Every TODO across all files
+km task -i            # Show with IDs for use with done/show
 km board              # Kanban TUI (vim keys)
 km search "query"     # Full-text search
-km show <id>          # Node details
+km show <id>          # Node details (use full or short ID)
+km done <id>          # Mark done - writes back to .md file
 ```
 
 Features:
