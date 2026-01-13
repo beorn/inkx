@@ -4,7 +4,7 @@
  */
 
 import { Database } from "bun:sqlite";
-import { join } from "path";
+import { join, resolve } from "path";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import type { Node, Event, TaskStatus, NodeType } from "@km/core";
 import { getKmDir } from "@km/core";
@@ -552,6 +552,15 @@ export function resolveNode(query: string, type?: string): Node | null {
   const db = getDb();
   const typeFilter = type ? " AND type = ?" : "";
   const typeParams = type ? [type] : [];
+
+  // 0. Handle relative paths (./file.md, ../folder/file.md)
+  if (query.startsWith("./") || query.startsWith("../")) {
+    const absolutePath = resolve(process.cwd(), query);
+    const row = db
+      .query(`SELECT * FROM nodes WHERE fs_path = ?${typeFilter}`)
+      .get(absolutePath, ...typeParams) as Record<string, unknown> | null;
+    if (row) return rowToNode(row);
+  }
 
   // 1. Exact ID match
   let row = db
