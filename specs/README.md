@@ -25,7 +25,7 @@ This directory contains technical specifications for implementation.
 | [Daemon](km-services.md)   | Background sync & automation  | Design         |
 | [Agents](km-agents.md)     | AI agent orchestration        | Future         |
 | [Tasks](km-tasks.md)       | Task management system        | Implemented    |
-| [Roadmap](km-roadmap.md)   | Implementation plan + tests   | Current        |
+| [Roadmap](../ROADMAP.md)   | Implementation phases         | Current        |
 
 ---
 
