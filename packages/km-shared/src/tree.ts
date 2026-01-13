@@ -9,18 +9,64 @@ import type { Node } from "@km/core";
 import { getChildren } from "@km/store";
 
 /**
- * Get display name for a node (content, filename, or slug)
+ * Get display name for a node
+ *
+ * Priority:
+ * 1. frontmatter title (data.name)
+ * 2. node.title (pre-parsed clean title, for sections)
+ * 3. For files: first section's title or content (H1 heading)
+ * 4. node.content (first line, for tasks)
+ * 5. filename (without .md extension)
+ * 6. short ID
  */
 export function getNodeDisplayName(node: Node): string {
+  // 1. Frontmatter title takes priority
   if (node.data?.name) {
     return node.data.name as string;
   }
+
+  // 2. Use pre-parsed title (for sections, already has rules stripped)
+  if (node.title) {
+    return node.title.slice(0, 50);
+  }
+
+  // 3. For file nodes, use first section's title or content (H1 heading)
+  if (node.type === "file") {
+    const children = getChildren(node.id);
+    const firstSection = children.find((c) => c.type === "section");
+    if (firstSection) {
+      // Use pre-parsed title if available
+      if (firstSection.title) {
+        return firstSection.title.slice(0, 50);
+      }
+      // Fallback: strip rules from content
+      if (firstSection.content) {
+        const heading = firstSection.content.split("\n")[0] ?? "";
+        const cleanHeading = heading
+          .replace(
+            /\s+(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|\S+)/g,
+            "",
+          )
+          .trim();
+        if (cleanHeading) {
+          return cleanHeading.slice(0, 50);
+        }
+      }
+    }
+  }
+
+  // 4. Use node content (for tasks, etc.)
   if (node.content) {
     return node.content.split("\n")[0].slice(0, 50);
   }
+
+  // 5. Use filename (strip .md extension)
   if (node.fs_path) {
-    return node.fs_path.split("/").pop() || node.id.slice(0, 8);
+    const filename = node.fs_path.split("/").pop() || "";
+    return filename.replace(/\.md$/, "") || node.id.slice(0, 8);
   }
+
+  // 6. Fallback to short ID
   return node.id.slice(0, 8);
 }
 

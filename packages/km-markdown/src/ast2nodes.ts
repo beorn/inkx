@@ -19,8 +19,18 @@ import {
   extractMentions,
   extractProjects,
   parseWikiLinks,
+  parseHeadingRules,
 } from "./parser.ts";
 import type { WikiLink } from "./parser.ts";
+
+/**
+ * Parse warning for structural issues
+ */
+export interface ParseWarning {
+  type: "missing_h1" | "multiple_h1";
+  message: string;
+  line?: number;
+}
 
 /**
  * Result of parsing markdown with wikilinks
@@ -28,6 +38,7 @@ import type { WikiLink } from "./parser.ts";
 export interface ParseResult {
   nodes: Node[];
   wikilinks: Array<{ nodeId: string; link: WikiLink }>;
+  warnings: ParseWarning[];
 }
 
 /**
@@ -85,7 +96,26 @@ export function parseMarkdownWithLinks(
     }
   }
 
-  return { nodes: allNodes, wikilinks };
+  // Validate H1 headings - each file should have exactly one
+  const warnings: ParseWarning[] = [];
+  const h1Sections = childNodes.filter(
+    (n) => n.type === "section" && n.data?.depth === 1,
+  );
+
+  if (h1Sections.length === 0) {
+    warnings.push({
+      type: "missing_h1",
+      message: `${fsPath}: Missing H1 heading. Each markdown file should have exactly one # heading as its title.`,
+    });
+  } else if (h1Sections.length > 1) {
+    warnings.push({
+      type: "multiple_h1",
+      message: `${fsPath}: Multiple H1 headings found (${h1Sections.length}). Each markdown file should have exactly one # heading.`,
+      line: h1Sections[1]?.md_line,
+    });
+  }
+
+  return { nodes: allNodes, wikilinks, warnings };
 }
 
 /**
@@ -124,6 +154,9 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): Node[] {
       }
 
       const text = nodeToText(heading);
+      const { title, rules } = parseHeadingRules(text);
+      const hasRules = Object.keys(rules).length > 0;
+
       const sectionNode: Node = {
         id: ulid(),
         type: "section",
@@ -134,9 +167,11 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): Node[] {
         parent_idx: sortOrder++,
         symlink_to: null,
         md_pos: heading.position?.start.offset,
-        md_slug: slugify(text),
-        content: text,
+        md_slug: slugify(title),
+        content: text, // Keep original content for serialization
         content_hash: null,
+        title, // Clean title without rules
+        rules: hasRules ? rules : undefined, // Only set if rules exist
         data: { depth: heading.depth },
         created_at: now,
         updated_at: now,

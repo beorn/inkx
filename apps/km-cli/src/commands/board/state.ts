@@ -223,8 +223,8 @@ export function buildBoardState(rootId: string): BoardState {
     const colNode = columnNodes[colIdx];
     if (!colNode) continue;
 
-    // Parse column rules from content (heading text)
-    const rules = parseColumnRules(colNode.content || "");
+    // Use pre-parsed rules from node, fallback to parsing content for compatibility
+    const rules = colNode.rules ?? parseColumnRules(colNode.content || "");
 
     // Get existing cards in the column
     const cardNodes = getChildren(colNode.id);

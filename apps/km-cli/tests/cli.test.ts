@@ -651,14 +651,13 @@ describe("km init", () => {
       });
 
       const content = readFileSync(join(initDir, "@inbox.md"), "utf-8");
-      expect(content).toContain("title: Inbox");
-      expect(content).toContain("type: board");
-      expect(content).toContain("add: ./inbox/**");
+      // No frontmatter - inline column rules in heading
+      expect(content).not.toContain("---");
       expect(content).toContain("# Inbox");
-      expect(content).toContain("Unprocessed items awaiting triage");
+      expect(content).toContain('## Unprocessed add="./inbox/**"');
     });
 
-    test("should create @next.md with columns", async () => {
+    test("should create @next.md with columns and sync rules", async () => {
       const initDir = join(INIT_TEST_DIR, "gtd-next");
       mkdirSync(initDir, { recursive: true });
 
@@ -668,14 +667,16 @@ describe("km init", () => {
       });
 
       const content = readFileSync(join(initDir, "@next.md"), "utf-8");
-      expect(content).toContain("title: Next Actions");
-      expect(content).toContain("type: board");
-      expect(content).toContain("## Today");
-      expect(content).toContain("## This Week");
-      expect(content).toContain("## Waiting");
+      // No frontmatter - column rules inline in headings
+      expect(content).not.toContain("---");
+      expect(content).toContain("# Next Actions");
+      expect(content).toContain('## Today add="due:past status:open"');
+      expect(content).toContain('## This Week add="due:week status:open"');
+      expect(content).toContain("## Waiting sync=status:blocked");
+      expect(content).toContain("## Done sync=status:done collapse=true");
     });
 
-    test("should create @someday.md with correct content", async () => {
+    test("should create @someday.md with columns", async () => {
       const initDir = join(INIT_TEST_DIR, "gtd-someday");
       mkdirSync(initDir, { recursive: true });
 
@@ -685,10 +686,11 @@ describe("km init", () => {
       });
 
       const content = readFileSync(join(initDir, "@someday.md"), "utf-8");
-      expect(content).toContain("title: Someday/Maybe");
-      expect(content).toContain("type: board");
+      // No frontmatter - just clean markdown with columns
+      expect(content).not.toContain("---");
       expect(content).toContain("# Someday/Maybe");
-      expect(content).toContain("Ideas and projects for the future");
+      expect(content).toContain("## Ideas");
+      expect(content).toContain("## Projects");
     });
 
     test("should use path argument", async () => {

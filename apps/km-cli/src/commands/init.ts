@@ -37,46 +37,33 @@ function findAncestorKmDir(startDir: string): string | undefined {
 
 /**
  * GTD template content
+ *
+ * Boards are just .md files - the @ prefix is a naming convention.
+ * Column rules (add=, sync=) are inline in the section heading.
  */
-const GTD_INBOX_MD = `---
-title: Inbox
-type: board
-add: ./inbox/**
----
+const GTD_INBOX_MD = `# Inbox
 
-# Inbox
+## Unprocessed add="./inbox/**"
 
-Unprocessed items awaiting triage.
+## Processing
 `;
 
-const GTD_NEXT_MD = `---
-title: Next Actions
-type: board
----
+const GTD_NEXT_MD = `# Next Actions
 
-# Next Actions
+## Today add="due:past status:open"
 
-## Today
+## This Week add="due:week status:open"
 
-Items to focus on today.
+## Waiting sync=status:blocked
 
-## This Week
-
-Items to complete this week.
-
-## Waiting
-
-Items waiting on someone/something.
+## Done sync=status:done collapse=true
 `;
 
-const GTD_SOMEDAY_MD = `---
-title: Someday/Maybe
-type: board
----
+const GTD_SOMEDAY_MD = `# Someday/Maybe
 
-# Someday/Maybe
+## Ideas
 
-Ideas and projects for the future.
+## Projects
 `;
 
 /**

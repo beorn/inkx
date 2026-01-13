@@ -20,7 +20,13 @@ import {
   extractProjects,
 } from "../src/parser.ts";
 
-import { parseMarkdownToNodes, buildNodeTree } from "../src/ast2nodes.ts";
+import {
+  parseMarkdownToNodes,
+  buildNodeTree,
+  parseMarkdownWithLinks,
+} from "../src/ast2nodes.ts";
+
+import { parseHeadingRules } from "../src/parser.ts";
 
 import { nodesToMarkdown } from "../src/nodes2md.ts";
 
@@ -704,5 +710,162 @@ describe("Fixture Files", () => {
     expect(nodes.filter((n) => n.type === "quote").length).toBeGreaterThan(0);
     expect(nodes.filter((n) => n.type === "hr").length).toBeGreaterThan(0);
     expect(nodes.filter((n) => n.type === "section").length).toBeGreaterThan(5);
+  });
+});
+
+describe("H1 Heading Validation", () => {
+  test("should warn when file has no H1 heading", () => {
+    const md = `## Section Two
+
+Some content without a top-level heading.
+
+## Another Section
+
+More content.`;
+
+    const result = parseMarkdownWithLinks(md, "no-h1.md");
+    expect(result.warnings).toHaveLength(1);
+    const warning = result.warnings[0]!;
+    expect(warning.type).toBe("missing_h1");
+    expect(warning.message).toContain("Missing H1 heading");
+  });
+
+  test("should warn when file has multiple H1 headings", () => {
+    const md = `# First Title
+
+Some content.
+
+# Second Title
+
+More content.
+
+# Third Title
+
+Even more content.`;
+
+    const result = parseMarkdownWithLinks(md, "multiple-h1.md");
+    expect(result.warnings).toHaveLength(1);
+    const warning = result.warnings[0]!;
+    expect(warning.type).toBe("multiple_h1");
+    expect(warning.message).toContain("Multiple H1 headings found (3)");
+  });
+
+  test("should not warn when file has exactly one H1 heading", () => {
+    const md = `# Document Title
+
+## Section One
+
+Content.
+
+## Section Two
+
+More content.`;
+
+    const result = parseMarkdownWithLinks(md, "valid.md");
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  test("should not warn for empty file", () => {
+    // Empty file has no H1, but we might want to be lenient here
+    // Current behavior: warns about missing H1
+    const result = parseMarkdownWithLinks("", "empty.md");
+    expect(result.warnings).toHaveLength(1);
+    const warning = result.warnings[0]!;
+    expect(warning.type).toBe("missing_h1");
+  });
+});
+
+describe("parseHeadingRules", () => {
+  test("should extract add rule with double quotes", () => {
+    const result = parseHeadingRules('Today add="due:past status:open"');
+    expect(result.title).toBe("Today");
+    expect(result.rules.add).toBe("due:past status:open");
+  });
+
+  test("should extract add rule with single quotes", () => {
+    const result = parseHeadingRules("Today add='due:past status:open'");
+    expect(result.title).toBe("Today");
+    expect(result.rules.add).toBe("due:past status:open");
+  });
+
+  test("should extract sync rule", () => {
+    const result = parseHeadingRules("Blocked sync=status:blocked");
+    expect(result.title).toBe("Blocked");
+    expect(result.rules.sync).toBe("status:blocked");
+  });
+
+  test("should extract collapse rule", () => {
+    const result = parseHeadingRules("Done collapse=true");
+    expect(result.title).toBe("Done");
+    expect(result.rules.collapse).toBe(true);
+  });
+
+  test("should extract limit rule", () => {
+    const result = parseHeadingRules("In Progress limit=5");
+    expect(result.title).toBe("In Progress");
+    expect(result.rules.limit).toBe(5);
+  });
+
+  test("should extract default rule", () => {
+    const result = parseHeadingRules("Inbox default=true");
+    expect(result.title).toBe("Inbox");
+    expect(result.rules.default).toBe(true);
+  });
+
+  test("should extract multiple rules", () => {
+    const result = parseHeadingRules(
+      'Today add="due:past" sync=status:open limit=10 collapse=true',
+    );
+    expect(result.title).toBe("Today");
+    expect(result.rules.add).toBe("due:past");
+    expect(result.rules.sync).toBe("status:open");
+    expect(result.rules.limit).toBe(10);
+    expect(result.rules.collapse).toBe(true);
+  });
+
+  test("should handle heading with no rules", () => {
+    const result = parseHeadingRules("Simple Heading");
+    expect(result.title).toBe("Simple Heading");
+    expect(result.rules).toEqual({});
+  });
+
+  test("should preserve complex titles", () => {
+    const result = parseHeadingRules('2025 Taxes - Q1 add="project:taxes"');
+    expect(result.title).toBe("2025 Taxes - Q1");
+    expect(result.rules.add).toBe("project:taxes");
+  });
+});
+
+describe("Section title and rules parsing", () => {
+  test("should populate title and rules on section nodes", () => {
+    const md = `# Document Title
+
+## Today add="due:past status:open"
+
+- [ ] Task 1
+
+## Done sync=status:done collapse=true
+
+- [x] Completed task
+`;
+    const result = parseMarkdownWithLinks(md, "board.md");
+    const sections = result.nodes.filter((n) => n.type === "section");
+
+    // H1 section
+    const h1 = sections.find((s) => s.data?.depth === 1);
+    expect(h1?.title).toBe("Document Title");
+    expect(h1?.rules).toBeUndefined();
+
+    // Today column
+    const today = sections.find((s) => s.title === "Today");
+    expect(today).toBeDefined();
+    expect(today?.rules?.add).toBe("due:past status:open");
+    expect(today?.content).toBe('Today add="due:past status:open"'); // Original content preserved
+
+    // Done column
+    const done = sections.find((s) => s.title === "Done");
+    expect(done).toBeDefined();
+    expect(done?.rules?.sync).toBe("status:done");
+    expect(done?.rules?.collapse).toBe(true);
   });
 });

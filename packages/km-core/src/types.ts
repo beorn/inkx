@@ -34,6 +34,15 @@ export type TaskStatus =
 // Task checkbox marks
 export type TaskMark = " " | "x" | "X" | "!" | "-" | "/" | "1" | "2";
 
+// Column/section rules (parsed from inline attributes like add="..." sync=...)
+export interface NodeRules {
+  add?: string; // Query to auto-pull matching tasks
+  sync?: string; // Bidirectional field sync (e.g., "status:blocked")
+  collapse?: boolean; // Start collapsed
+  limit?: number; // WIP limit
+  default?: boolean; // Default column for new items
+}
+
 /**
  * Core Node interface - everything is a node
  */
@@ -66,6 +75,10 @@ export interface Node {
   // Content
   content?: string; // Text content (inline for small)
   content_hash?: string; // CAS reference for large content
+  title?: string; // Display title (for sections: heading without rules)
+
+  // Column/section rules (parsed from inline attributes)
+  rules?: NodeRules;
 
   // Metadata
   data: Record<string, unknown>;
@@ -117,6 +130,7 @@ export interface NodeCreatedData {
   fs_path?: string;
   fs_ino?: number;
   md_pos?: number;
+  md_line?: number;
   md_slug?: string;
   task_status?: TaskStatus;
   task_mark?: TaskMark;
@@ -126,6 +140,8 @@ export interface NodeCreatedData {
   priority?: number;
   content?: string;
   content_hash?: string;
+  title?: string;
+  rules?: NodeRules;
   data?: Record<string, unknown>;
 }
 

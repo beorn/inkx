@@ -100,6 +100,50 @@ describe("getNodeDisplayName", () => {
     const node = getNode(id)!;
     expect(getNodeDisplayName(node)).toBe(id.slice(0, 8));
   });
+
+  test("uses H1 heading for file nodes", () => {
+    // Create a file with a section child (H1 heading)
+    const fileId = createTestNode("file", undefined, null, {
+      fs_path: "/path/to/@next.md",
+    });
+    createTestNode("section", "Next Actions", fileId);
+
+    const file = getNode(fileId)!;
+    expect(getNodeDisplayName(file)).toBe("Next Actions");
+  });
+
+  test("strips column rules from H1 heading", () => {
+    // Create a file with a section that has inline column rules
+    const fileId = createTestNode("file", undefined, null, {
+      fs_path: "/path/to/@next.md",
+    });
+    createTestNode("section", 'Today add="due:past status:open"', fileId);
+
+    const file = getNode(fileId)!;
+    expect(getNodeDisplayName(file)).toBe("Today");
+  });
+
+  test("falls back to filename without .md for files with no H1", () => {
+    // Create a file with no section children
+    const fileId = createTestNode("file", undefined, null, {
+      fs_path: "/path/to/@inbox.md",
+    });
+
+    const file = getNode(fileId)!;
+    expect(getNodeDisplayName(file)).toBe("@inbox");
+  });
+
+  test("frontmatter title takes priority over H1", () => {
+    // Create a file with both frontmatter title and H1
+    const fileId = createTestNode("file", undefined, null, {
+      fs_path: "/path/to/board.md",
+      data: { name: "My Custom Title" },
+    });
+    createTestNode("section", "H1 Heading", fileId);
+
+    const file = getNode(fileId)!;
+    expect(getNodeDisplayName(file)).toBe("My Custom Title");
+  });
 });
 
 describe("getTypeIndicator", () => {

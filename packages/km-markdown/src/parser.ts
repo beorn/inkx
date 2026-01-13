@@ -200,6 +200,74 @@ export function parseTaskMetadata(text: string): {
 }
 
 /**
+ * Section/column rules parsed from inline attributes
+ */
+export interface SectionRules {
+  add?: string; // Query to auto-pull matching tasks
+  sync?: string; // Bidirectional field sync (e.g., "status:blocked")
+  collapse?: boolean; // Start collapsed
+  limit?: number; // WIP limit
+  default?: boolean; // Default column for new items
+}
+
+/**
+ * Result of parsing heading text
+ */
+export interface ParsedHeading {
+  title: string; // Clean title without rules
+  rules: SectionRules; // Extracted rules
+}
+
+/**
+ * Parse heading text to extract title and inline rules
+ *
+ * Format: "Column Name add=\"query\" sync=field:value collapse=true limit=3"
+ * Returns: { title: "Column Name", rules: { add: "query", sync: "field:value", ... } }
+ */
+export function parseHeadingRules(text: string): ParsedHeading {
+  const rules: SectionRules = {};
+
+  // Parse add="query" or add='query'
+  const addMatch = text.match(/\badd=["']([^"']+)["']/);
+  if (addMatch) {
+    rules.add = addMatch[1];
+  }
+
+  // Parse sync=field:value (no quotes needed for simple values)
+  const syncMatch = text.match(/\bsync=["']?([^\s"']+)["']?/);
+  if (syncMatch) {
+    rules.sync = syncMatch[1];
+  }
+
+  // Parse collapse=true
+  if (/\bcollapse=true\b/i.test(text)) {
+    rules.collapse = true;
+  }
+
+  // Parse limit=N
+  const limitMatch = text.match(/\blimit=(\d+)/);
+  if (limitMatch) {
+    rules.limit = parseInt(limitMatch[1] || "0", 10);
+  }
+
+  // Parse default=true
+  if (/\bdefault=true\b/i.test(text)) {
+    rules.default = true;
+  }
+
+  // Extract title by removing all rule attributes
+  const title = text
+    .replace(/\s+add=["'][^"']*["']/g, "")
+    .replace(/\s+sync=["']?[^\s"']+["']?/g, "")
+    .replace(/\s+collapse=\w+/gi, "")
+    .replace(/\s+limit=\d+/g, "")
+    .replace(/\s+default=\w+/gi, "")
+    .trim();
+
+  return { title, rules };
+}
+
+/**
  * Convert mdast node to plain text
  */
 export function nodeToText(node: Content | Root): string {

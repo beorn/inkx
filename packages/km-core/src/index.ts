@@ -2,6 +2,7 @@
 export type {
   Node,
   NodeType,
+  NodeRules,
   TaskStatus,
   TaskMark,
   Event,
