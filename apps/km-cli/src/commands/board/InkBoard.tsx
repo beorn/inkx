@@ -1023,32 +1023,14 @@ function Board({ initialState }: BoardProps) {
       return;
     }
 
-    // Number keys 1-9: jump to column or move card to column
-    // Shift+1-9 (characters !@#$%^&*() on US keyboard) move card to column
-    const shiftNumberMap: Record<string, number> = {
-      "!": 0,
-      "@": 1,
-      "#": 2,
-      $: 3,
-      "%": 4,
-      "^": 5,
-      "&": 6,
-      "*": 7,
-      "(": 8,
-    };
-    if (shiftNumberMap[input] !== undefined && card && !showDetailPane) {
-      const targetCol = shiftNumberMap[input];
-      if (targetCol < state.columns.length) {
-        moveCardToColumnByIndex(card, targetCol);
-      }
-      return;
-    }
     // Plain 1-9: jump cursor to column (0-indexed, so 1 = column 0)
+    // Note: Alt+1-9 for moving is handled below with key.meta check
     if (
       /^[1-9]$/.test(input) &&
       !moveMode &&
       !showDetailPane &&
-      !inOutlineMode
+      !inOutlineMode &&
+      !key.meta // Not Alt+number (move)
     ) {
       const targetCol = parseInt(input, 10) - 1;
       if (targetCol < state.columns.length) {
@@ -1115,8 +1097,9 @@ function Board({ initialState }: BoardProps) {
       // Don't return - let the key be processed normally
     }
 
-    // Alt+Arrow for move (direct, without move mode prefix)
+    // Alt/Opt + key for moving items (standardized modifier)
     if (key.meta && card) {
+      // Alt+Arrow: move card
       if (key.upArrow) {
         moveCardInColumn(card, "up");
         return;
@@ -1131,6 +1114,31 @@ function Board({ initialState }: BoardProps) {
       }
       if (key.rightArrow) {
         moveCardToColumn(card, "right");
+        return;
+      }
+      // Alt+hjkl: move card (vim style)
+      if (input === "k") {
+        moveCardInColumn(card, "up");
+        return;
+      }
+      if (input === "j") {
+        moveCardInColumn(card, "down");
+        return;
+      }
+      if (input === "h") {
+        moveCardToColumn(card, "left");
+        return;
+      }
+      if (input === "l") {
+        moveCardToColumn(card, "right");
+        return;
+      }
+      // Alt+1-9: move card to column (at top)
+      if (/^[1-9]$/.test(input) && !showDetailPane) {
+        const targetCol = parseInt(input, 10) - 1;
+        if (targetCol < state.columns.length) {
+          moveCardToColumnByIndex(card, targetCol);
+        }
         return;
       }
     }

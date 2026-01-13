@@ -29,9 +29,10 @@ const shortcuts = [
   {
     category: "Card Operations",
     keys: [
-      { key: "Shift+1-9", desc: "Move card to top of column 1-9" },
+      { key: "Opt+1-9", desc: "Move card to top of column 1-9" },
+      { key: "Opt+hjkl", desc: "Move card (vim style)" },
+      { key: "Opt + ↑/↓/←/→", desc: "Move card directly" },
       { key: "m + hjkl", desc: "Move card (enter move mode, then direction)" },
-      { key: "Alt + ↑/↓/←/→", desc: "Move card directly" },
       { key: "p", desc: "Open project picker (move to project)" },
       { key: "s or x", desc: "Cycle task status" },
       { key: "1-5", desc: "Set priority (in detail pane)" },
