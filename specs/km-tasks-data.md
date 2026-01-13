@@ -133,7 +133,7 @@ All references create links to boards.
 
 Example: `- [ ] Review budget @bjorn @sarah #finance`
 - `owner` = `bjorn` (first `@`)
-- `references` = `[@bjorn, @sarah, #finance]` (all refs)
+- `refs` = `[@bjorn, @sarah, #finance]` (all refs)
 
 ### Schema
 
@@ -145,7 +145,7 @@ interface Node {
   // Task fields (optional)
   status?: 'open' | 'blocked' | 'done' | 'dropped';
   owner?: string;         // Extracted from first @ reference (without sigil)
-  references?: string[];  // All @, #, + references (with sigils)
+  refs?: string[];        // All @, #, + references (with sigils)
   due?: string;           // YYYY-MM-DD
   start?: string;         // YYYY-MM-DD (defer until)
   p?: number;             // Priority 1-5
@@ -174,40 +174,64 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 
 | Board | Purpose | Populated By |
 |-------|---------|--------------|
-| `+project` | Project tasks | Automation: `+project` reference |
-| `@person` | Person agenda | Automation: `@person` reference |
-| `#tag` | Tagged items | Automation: `#tag` reference |
+| `+project` | Project tasks | Automation: `+project` ref |
+| `@person` | Person agenda | Automation: `@person` ref |
+| `#tag` | Tagged items | Automation: `#tag` ref |
 
 ### Board Files
 
 ```markdown
 # @next.md
 
-## today
+## today add="due:past status:open" add="start:past status:open"
 - ![[tasks/review-budget]]
 
-## this-week
+## this-week add="due:week status:open -due:past"
 - ![[tasks/send-invoice]]
 
-## waiting status:blocked
+## waiting sync=status:blocked
 - ![[tasks/get-approval]]
+
+## done sync=status:done
+- ![[tasks/setup-repo]]
 ```
 
-### Column Attributes
+### Column Rules
+
+Columns can have rules that control task membership and field synchronization.
+
+| Attribute | Syntax | Effect |
+|-----------|--------|--------|
+| `add` | `add="query"` | Pull in tasks matching query |
+| `sync` | `sync=field:value` | Bidirectional: move here ↔ set field |
+
+**`add="query"`** — Continuously pulls in matching tasks from anywhere:
+```markdown
+## today add="due:past status:open"    # Overdue open tasks appear here
+## inbox add="./inbox/**"              # Files in inbox/ folder
+```
+
+**`sync=field:value`** — Bidirectional synchronization:
+```markdown
+## waiting sync=status:blocked         # Move here → set blocked
+                                       # Become blocked → move here
+## done sync=status:done               # Move here → set done
+                                       # Become done → move here
+```
+
+### Display Attributes
 
 ```markdown
-## wip limit:3
-## done collapse:true
-## review default:true
-## waiting status:blocked
+## done sync=status:done collapse=true
+## wip limit=3
+## review default=true
 ```
 
 | Attribute | Effect |
 |-----------|--------|
-| `limit:N` | WIP limit (visual warning) |
-| `collapse:true` | Collapsed in UI |
-| `default:true` | New items go here |
-| `status:X` | Auto-set status when task added |
+| `collapse=true` | Collapsed in UI |
+| `limit=N` | WIP limit (visual warning) |
+| `default=true` | New items go here |
 
 ---
 

@@ -1,14 +1,19 @@
 # Automations
 
-Event-driven rules that populate boards.
+Rules for board setup and dynamic board creation.
 
 ---
 
 ## Overview
 
-Automations are rules that add/remove tasks from boards based on events. They're the only way tasks get onto boards — no magic queries.
+Automations handle two things:
 
-**Philosophy:** Explicit over implicit. When something changes, you can see exactly which rules fired and why.
+1. **Setup** — Creating boards and folders
+2. **Reference Boards** — Dynamic boards from `@person`, `+project`, `#tag` references
+
+**Column rules** (`add=`, `sync=`) are defined inline in board files. See [km-tasks-data.md](km-tasks-data.md#column-rules).
+
+**Philosophy:** Explicit over implicit. Column rules live with their boards. Global rules handle cross-cutting concerns.
 
 ---
 
@@ -66,24 +71,27 @@ setup:
     - archive/
 ```
 
-### Column Status Automation
+### Column Rules
 
-Columns can auto-set status via attributes in the markdown heading:
+Column rules are defined inline in board files:
 
 ```markdown
 # @next.md
 
-## today
+## today add="due:past status:open"
 - ![[tasks/review-budget]]
 
-## this-week
+## this-week add="due:week status:open -due:past"
 - ![[tasks/send-invoice]]
 
-## waiting status:blocked
+## waiting sync=status:blocked
 - ![[tasks/get-approval]]
+
+## done sync=status:done
+- ![[tasks/setup-repo]]
 ```
 
-Moving a task to `@next/waiting` automatically sets `status=blocked`.
+See [km-tasks-data.md](km-tasks-data.md#column-rules) for full syntax.
 
 ### Running Setup
 
@@ -168,7 +176,9 @@ actions:
 
 ## GTD Workflow
 
-Standard GTD rules:
+GTD setup creates the boards and folders. Column rules are defined in each board file.
+
+### Setup File
 
 ```yaml
 # .km/auto/gtd.yml
@@ -178,58 +188,49 @@ name: GTD Workflow
 setup:
   boards:
     - "@inbox"
-    - "@next"      # Columns defined in @next.md with status:blocked on waiting
+    - "@next"
     - "@someday"
   folders:
     - inbox/
     - archive/
-
-rules:
-  # === INBOX ===
-
-  - name: inbox-capture
-    description: Items in inbox/ folder appear on @inbox
-    trigger: node.created
-    match: "./inbox/**"
-    actions:
-      - board.add: "@inbox"
-
-  - name: inbox-processed
-    description: Remove from @inbox when moved out of inbox folder
-    trigger: field.changed
-    field: path
-    was: "./inbox/**"
-    now: "!./inbox/**"    # Now outside inbox (! = not matching)
-    actions:
-      - board.remove: "@inbox"
-
-  # === NEXT ACTIONS ===
-
-  - name: surface-overdue
-    description: Overdue open tasks surface to @next
-    trigger: due.passed
-    match: "status:open"
-    actions:
-      - board.add: "@next"
-
-  - name: surface-starting
-    description: Tasks with start date reached surface to @next
-    trigger: start.reached
-    match: "status:open"
-    actions:
-      - board.add: "@next"
-
-  # === COMPLETION ===
-
-  - name: done-cleanup
-    description: Completed tasks removed from active boards
-    trigger: field.changed
-    field: status
-    now: "done|dropped"
-    actions:
-      - board.remove: "@next"
-      - board.remove: "@inbox"
 ```
+
+### Board Files
+
+```markdown
+# @inbox.md
+
+## unprocessed add="./inbox/**"
+- ![[inbox/call-from-john]]
+```
+
+```markdown
+# @next.md
+
+## today add="due:past status:open" add="start:past status:open"
+- ![[tasks/review-budget]]
+
+## this-week add="due:week status:open -due:past"
+- ![[tasks/send-invoice]]
+
+## waiting sync=status:blocked
+- ![[tasks/get-approval]]
+
+## done sync=status:done collapse=true
+- ![[tasks/setup-repo]]
+```
+
+```markdown
+# @someday.md
+
+## maybe
+- ![[tasks/learn-rust]]
+
+## review
+- ![[tasks/revisit-q2]]
+```
+
+The `@someday` board has no rules — it's purely manual curation.
 
 ---
 

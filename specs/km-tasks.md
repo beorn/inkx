@@ -165,21 +165,18 @@ Boards are markdown files with columns containing task transclusions. They're po
 | `+project` | Project tasks | Auto: `+project` ref |
 | `@person` | Person agenda | Auto: `@person` ref |
 
-Columns can auto-set status (e.g., `## waiting status:blocked`). See [Board System](km-tasks-data.md#board-system) for details.
+Columns can have rules that pull in tasks or sync status:
 
-### Automations Move Tasks
-
-Rules automatically populate boards:
-
-```yaml
-# .km/auto/gtd.yml
-rules:
-  - name: surface-overdue
-    trigger: due.passed
-    match: "status:open"
-    actions:
-      - board.add: "@next"
+```markdown
+## today add="due:past status:open"
+## waiting sync=status:blocked
 ```
+
+See [Board System](km-tasks-data.md#board-system) for details.
+
+### Automations
+
+Column rules (inline in board files) handle task membership and status sync. Global automations (in `.km/auto/`) handle setup and reference boards.
 
 See [km-tasks-auto.md](km-tasks-auto.md) for details.
 
