@@ -127,8 +127,7 @@ function OutlineItem({
   // Get parent context for top-level cards (depth 0)
   // Shows where the task belongs, e.g., "< Green card" for a task from green-card.md
   // For transcluded items, their parent_id still points to the original file/section
-  const parentContext =
-    depth === 0 && isTask ? getParentContext(node) : null;
+  const parentContext = depth === 0 && isTask ? getParentContext(node) : null;
 
   const children = getChildren(node.id);
   const hasChildren = children.length > 0;
@@ -740,13 +739,13 @@ function Board({ initialState }: BoardProps) {
       }
     }
 
+    // Track moved card IDs to re-select after state rebuild
+    const movedCardIds = validCards.map((c) => c.card.node.id);
+
     // Update local state: move the focused card index
     const newCardIndex =
       direction === "up" ? state.cardIndex - 1 : state.cardIndex + 1;
     setState((s) => ({ ...s, cardIndex: newCardIndex }));
-
-    // Clear selection after move
-    clearSelection();
 
     // Rebuild board state to reflect changes
     setTimeout(() => {
@@ -760,6 +759,21 @@ function Board({ initialState }: BoardProps) {
         newState.colIndex = state.colIndex;
         newState.cardIndex = newCardIndex;
         setState(newState);
+
+        // Re-select moved cards in their new positions
+        if (movedCardIds.length > 1) {
+          const newSelected = new Set<SelectionKey>();
+          const col = newState.columns[state.colIndex];
+          if (col) {
+            for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
+              const c = col.cards[cardIdx];
+              if (c && movedCardIds.includes(c.node.id)) {
+                newSelected.add(makeSelectionKey(state.colIndex, cardIdx, 0));
+              }
+            }
+          }
+          setMultiSelected(newSelected);
+        }
       }
     }, 50);
   };
@@ -817,6 +831,9 @@ function Board({ initialState }: BoardProps) {
       newSortOrder++;
     }
 
+    // Track moved card IDs to re-select after state rebuild
+    const movedCardIds = cardsToMove.map((c) => c.node.id);
+
     // Update local state
     const newCardIndex = targetCol.cards.length;
     setState((s) => ({
@@ -824,9 +841,6 @@ function Board({ initialState }: BoardProps) {
       colIndex: targetColIndex,
       cardIndex: newCardIndex,
     }));
-
-    // Clear selection after move
-    clearSelection();
 
     // Rebuild board state
     setTimeout(() => {
@@ -844,11 +858,26 @@ function Board({ initialState }: BoardProps) {
           newState.columns[targetColIndex]?.cards.length || 0,
         );
         setState(newState);
+
+        // Re-select moved cards in their new positions
+        if (movedCardIds.length > 0) {
+          const newSelected = new Set<SelectionKey>();
+          const col = newState.columns[targetColIndex];
+          if (col) {
+            for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
+              const c = col.cards[cardIdx];
+              if (c && movedCardIds.includes(c.node.id)) {
+                newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
+              }
+            }
+          }
+          setMultiSelected(newSelected);
+        }
       }
     }, 50);
   };
 
-  // Move card to a specific column by index (for Shift+1-9)
+  // Move card to a specific column by index (for Opt+1-9)
   const moveCardToColumnByIndex = (card: CardState, targetColIndex: number) => {
     const col = state.columns[state.colIndex];
     if (!col) return;
@@ -899,15 +928,15 @@ function Board({ initialState }: BoardProps) {
       newSortOrder++;
     }
 
+    // Track moved card IDs to re-select after state rebuild
+    const movedCardIds = cardsToMove.map((c) => c.node.id);
+
     // Stay in current column and select the next card that took this spot
     // (or the previous card if we were at the end)
     const newCardIndex = Math.min(
       state.cardIndex,
       Math.max(0, col.cards.length - cardsToMove.length - 1),
     );
-
-    // Clear selection after move
-    clearSelection();
 
     // Rebuild board state
     setTimeout(() => {
@@ -927,6 +956,25 @@ function Board({ initialState }: BoardProps) {
           ),
         );
         setState(newState);
+
+        // Re-select moved cards in their new positions (target column)
+        if (movedCardIds.length > 0) {
+          const newSelected = new Set<SelectionKey>();
+          const targetColumnState = newState.columns[targetColIndex];
+          if (targetColumnState) {
+            for (
+              let cardIdx = 0;
+              cardIdx < targetColumnState.cards.length;
+              cardIdx++
+            ) {
+              const c = targetColumnState.cards[cardIdx];
+              if (c && movedCardIds.includes(c.node.id)) {
+                newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
+              }
+            }
+          }
+          setMultiSelected(newSelected);
+        }
       }
     }, 50);
   };
