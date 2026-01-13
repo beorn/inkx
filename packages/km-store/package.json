@@ -9,6 +9,7 @@
   "private": true,
   "dependencies": {
     "@km/core": "workspace:*",
+    "@km/markdown": "workspace:*",
     "@km/query": "workspace:*"
   }
 }

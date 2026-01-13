@@ -6,8 +6,9 @@
 import { Database } from "bun:sqlite";
 import { join, resolve } from "path";
 import { existsSync, mkdirSync, readFileSync } from "fs";
-import type { Node, Event, TaskStatus, NodeType } from "@km/core";
+import type { Node, Event, TaskStatus, NodeType, NodeRules } from "@km/core";
 import { getKmDir } from "@km/core";
+import { parseHeadingRules } from "@km/markdown";
 
 // Singleton database instance
 let dbInstance: Database | null = null;
@@ -900,11 +901,27 @@ export function getAllNodes(): Node[] {
 
 /**
  * Convert database row to Node object
+ * For section nodes, computes title and rules from content on-the-fly
  */
 function rowToNode(row: Record<string, unknown>): Node {
+  const type = row.type as NodeType;
+  const content = row.content as string | undefined;
+
+  // For sections, compute title and rules from content (first line only)
+  let title: string | undefined;
+  let rules: NodeRules | undefined;
+  if (type === "section" && content) {
+    const firstLine = content.split("\n")[0] ?? content;
+    const parsed = parseHeadingRules(firstLine);
+    title = parsed.title;
+    if (Object.keys(parsed.rules).length > 0) {
+      rules = parsed.rules;
+    }
+  }
+
   return {
     id: row.id as string,
-    type: row.type as NodeType,
+    type,
     parent_id: row.parent_id as string | null,
     parent_idx: row.parent_idx as number,
     symlink_to: row.symlink_to as string | null,
@@ -918,8 +935,10 @@ function rowToNode(row: Record<string, unknown>): Node {
     due_date: row.due_date as string | undefined,
     scheduled_date: row.scheduled_date as string | undefined,
     priority: row.priority as number | undefined,
-    content: row.content as string | undefined,
+    content,
     content_hash: row.content_hash as string | undefined,
+    title,
+    rules,
     data:
       typeof row.data === "string"
         ? (JSON.parse(row.data) as Record<string, unknown>)

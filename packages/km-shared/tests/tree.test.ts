@@ -101,6 +101,20 @@ describe("getNodeDisplayName", () => {
     expect(getNodeDisplayName(node)).toBe(id.slice(0, 8));
   });
 
+  test("strips rules from section display name", () => {
+    // Section with add= and sync= rules should display only the title
+    const id = createTestNode(
+      "section",
+      "Done sync=status:done collapse=true",
+      null,
+    );
+    const node = getNode(id)!;
+    expect(getNodeDisplayName(node)).toBe("Done");
+    expect(node.title).toBe("Done");
+    expect(node.rules?.sync).toBe("status:done");
+    expect(node.rules?.collapse).toBe(true);
+  });
+
   test("uses H1 heading for file nodes", () => {
     // Create a file with a section child (H1 heading)
     const fileId = createTestNode("file", undefined, null, {
