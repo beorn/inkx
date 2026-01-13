@@ -148,7 +148,7 @@ describe("CLI Integration", () => {
     });
 
     test("should list open tasks", async () => {
-      const result = await km(["task"]);
+      const result = await km(["tasks"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Inbox task 1");
       expect(result.stdout).toContain("Inbox task 2");
@@ -158,14 +158,14 @@ describe("CLI Integration", () => {
     });
 
     test("should show all tasks with --all", async () => {
-      const result = await km(["task", "--all"]);
+      const result = await km(["tasks", "--all"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Completed inbox task");
     });
 
     test("should filter by path prefix", async () => {
       // Filter by folder name - matches segments starting with "projects"
-      const result = await km(["task", "projects"]);
+      const result = await km(["tasks", "projects"]);
       expect(result.exitCode).toBe(0);
       // Should show tasks under projects folder
       expect(result.stdout).toContain("Work task A");
@@ -176,32 +176,32 @@ describe("CLI Integration", () => {
 
     test("should filter by file name prefix", async () => {
       // Filter by file name - matches "work.md" which starts with "work"
-      const result = await km(["task", "work"]);
+      const result = await km(["tasks", "work"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Work task A");
     });
 
     test("should filter by contains with *filter*", async () => {
-      const result = await km(["task", "*work*"]);
+      const result = await km(["tasks", "*work*"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Work task A");
     });
 
     test("should show task count", async () => {
-      const result = await km(["task"]);
+      const result = await km(["tasks"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("task(s)");
     });
 
     test("should show flat output with --flat", async () => {
-      const result = await km(["task", "--flat"]);
+      const result = await km(["tasks", "--flat"]);
       expect(result.exitCode).toBe(0);
       // Flat mode uses › separator
       expect(result.stdout).toContain("›");
     });
 
     test("should output JSON with --json", async () => {
-      const result = await km(["task", "--json"]);
+      const result = await km(["tasks", "--json"]);
       expect(result.exitCode).toBe(0);
       const tasks = JSON.parse(result.stdout);
       expect(Array.isArray(tasks)).toBe(true);
@@ -218,21 +218,25 @@ describe("CLI Integration", () => {
     });
 
     test("should add a new task", async () => {
-      const result = await km(["task", "--add", "New test task"]);
+      const result = await km(["tasks", "--add", "New test task"]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Created task");
 
       // Verify task appears in list
-      const listResult = await km(["task"]);
+      const listResult = await km(["tasks"]);
       expect(listResult.stdout).toContain("New test task");
     });
 
     test("should add task with metadata", async () => {
-      const result = await km(["task", "--add", "Task with due 📅 2025-12-25"]);
+      const result = await km([
+        "tasks",
+        "--add",
+        "Task with due 📅 2025-12-25",
+      ]);
       expect(result.exitCode).toBe(0);
 
       // Verify task with verbose output
-      const listResult = await km(["task", "--verbose", "--json"]);
+      const listResult = await km(["tasks", "--verbose", "--json"]);
       const tasks = JSON.parse(listResult.stdout);
       const newTask = tasks.find((t: { content: string }) =>
         t.content.includes("Task with due"),
@@ -256,7 +260,7 @@ describe("CLI Integration", () => {
 
     test("should mark task as done by ID prefix", async () => {
       // Get task ID
-      const listResult = await km(["task", "--json"]);
+      const listResult = await km(["tasks", "--json"]);
       const tasks = JSON.parse(listResult.stdout);
       const task = tasks.find((t: { content: string }) =>
         t.content.includes("Task to complete"),
@@ -265,12 +269,12 @@ describe("CLI Integration", () => {
 
       // Mark as done using ID prefix (first 8 chars)
       const idPrefix = task.id.slice(0, 8);
-      const doneResult = await km(["task", "--done", idPrefix]);
+      const doneResult = await km(["tasks", "--done", idPrefix]);
       expect(doneResult.exitCode).toBe(0);
       expect(doneResult.stdout).toContain("Marked as done");
 
       // Verify task is now done
-      const allResult = await km(["task", "--all", "--json"]);
+      const allResult = await km(["tasks", "--all", "--json"]);
       const allTasks = JSON.parse(allResult.stdout);
       const doneTask = allTasks.find((t: { id: string }) => t.id === task.id);
       expect(doneTask.task_status).toBe("done");
@@ -278,7 +282,7 @@ describe("CLI Integration", () => {
 
     test("should mark task as done by ID suffix (displayed short ID)", async () => {
       // Reset task status first
-      const listResult = await km(["task", "--all", "--json"]);
+      const listResult = await km(["tasks", "--all", "--json"]);
       const tasks = JSON.parse(listResult.stdout);
       const task = tasks.find((t: { content: string }) =>
         t.content.includes("Task to complete"),
@@ -292,7 +296,7 @@ describe("CLI Integration", () => {
       expect(doneResult.stdout).toContain("Marked done");
 
       // Verify task is now done
-      const afterResult = await km(["task", "--all", "--json"]);
+      const afterResult = await km(["tasks", "--all", "--json"]);
       const afterTasks = JSON.parse(afterResult.stdout);
       const doneTask = afterTasks.find((t: { id: string }) => t.id === task.id);
       expect(doneTask.task_status).toBe("done");
@@ -377,7 +381,7 @@ Unrelated content here.
       expect(result.exitCode).toBe(0);
 
       // Verify data still accessible after rebuild
-      const listResult = await km(["task"]);
+      const listResult = await km(["tasks"]);
       expect(listResult.stdout).toContain("Task");
     });
 
@@ -403,7 +407,7 @@ Some content here.
 
     test("should show node by ID prefix", async () => {
       // Get a task ID
-      const listResult = await km(["task", "--json"]);
+      const listResult = await km(["tasks", "--json"]);
       const tasks = JSON.parse(listResult.stdout);
       expect(tasks.length).toBeGreaterThan(0);
 
@@ -523,7 +527,7 @@ describe("km task status", () => {
 
   test("should set task status to in_progress", async () => {
     // Get task ID
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find((t: { content: string }) =>
       t.content.includes("Task to toggle"),
@@ -532,7 +536,7 @@ describe("km task status", () => {
 
     // Set status (using valid status "blocked" instead of "in_progress")
     const statusResult = await km([
-      "task",
+      "tasks",
       "status",
       task.id.slice(0, 8),
       "blocked",
@@ -541,7 +545,7 @@ describe("km task status", () => {
     expect(statusResult.stdout).toContain("blocked");
 
     // Verify
-    const afterResult = await km(["task", "--all", "--json"]);
+    const afterResult = await km(["tasks", "--all", "--json"]);
     const afterTasks = JSON.parse(afterResult.stdout);
     const updated = afterTasks.find((t: { id: string }) => t.id === task.id);
     expect(updated.task_status).toBe("blocked");
@@ -549,7 +553,7 @@ describe("km task status", () => {
 
   test("should set task status to done", async () => {
     // Get task ID
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find((t: { content: string }) =>
       t.content.includes("Task to toggle"),
@@ -557,7 +561,7 @@ describe("km task status", () => {
 
     // Set done
     const statusResult = await km([
-      "task",
+      "tasks",
       "status",
       task.id.slice(0, 8),
       "done",
@@ -567,7 +571,7 @@ describe("km task status", () => {
   });
 
   test("should error on invalid ID", async () => {
-    const result = await km(["task", "status", "nonexistent123"]);
+    const result = await km(["tasks", "status", "nonexistent123"]);
     expect(result.exitCode).not.toBe(0);
   });
 });
@@ -751,7 +755,7 @@ describe("CLI Error Handling", () => {
   });
 
   test("should handle missing task ID for --done", async () => {
-    const result = await km(["task", "--done"]);
+    const result = await km(["tasks", "--done"]);
     // Should fail without an ID
     expect(result.exitCode).not.toBe(0);
   });
@@ -797,7 +801,7 @@ describe("Global --root option", () => {
 
   test("should use --root option for memory mode", async () => {
     // Run from a different directory but specify --root
-    const result = await km(["--root", VAULT_A, "task"], {
+    const result = await km(["--root", VAULT_A, "tasks"], {
       cwd: "/tmp",
       env: { KM_DIR: "" }, // Ensure no KM_DIR interference
     });
@@ -808,7 +812,7 @@ describe("Global --root option", () => {
   });
 
   test("should use KM_ROOT env var for memory mode", async () => {
-    const result = await km(["task"], {
+    const result = await km(["tasks"], {
       cwd: "/tmp",
       env: { KM_ROOT: VAULT_B, KM_DIR: "" },
     });
@@ -819,7 +823,7 @@ describe("Global --root option", () => {
   });
 
   test("--root should override KM_ROOT env var", async () => {
-    const result = await km(["--root", VAULT_A, "task"], {
+    const result = await km(["--root", VAULT_A, "tasks"], {
       cwd: "/tmp",
       env: { KM_ROOT: VAULT_B, KM_DIR: "" },
     });
@@ -843,7 +847,7 @@ describe("Global --root option", () => {
     );
 
     try {
-      const result = await km(["--root", "~/.km-test-home", "task"], {
+      const result = await km(["--root", "~/.km-test-home", "tasks"], {
         cwd: "/tmp",
         env: { KM_DIR: "" },
       });
@@ -939,7 +943,7 @@ describe("km new", () => {
     await km(["new", "Synced task"]);
     await km(["sync"]);
 
-    const result = await km(["task"]);
+    const result = await km(["tasks"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Synced task");
   });
@@ -974,7 +978,7 @@ describe("km done", () => {
 
   test("should mark task as done by ID prefix", async () => {
     // Get task ID
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find((t: { content: string }) =>
       t.content.includes("Task to mark done"),
@@ -988,7 +992,7 @@ describe("km done", () => {
     expect(doneResult.stdout).toContain("Marked done");
 
     // Verify task is now done
-    const allResult = await km(["task", "--all", "--json"]);
+    const allResult = await km(["tasks", "--all", "--json"]);
     const allTasks = JSON.parse(allResult.stdout);
     const doneTask = allTasks.find((t: { id: string }) => t.id === task.id);
     expect(doneTask.task_status).toBe("done");
@@ -1002,7 +1006,7 @@ describe("km done", () => {
 
   test("should handle already done task gracefully", async () => {
     // Get the already completed task - use full ID to avoid prefix collisions
-    const listResult = await km(["task", "--all", "--json"]);
+    const listResult = await km(["tasks", "--all", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find((t: { content: string }) =>
       t.content.includes("Already completed task"),
@@ -1031,7 +1035,7 @@ describe("km done", () => {
 
   test("should output JSON with --json", async () => {
     // Get task ID
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find((t: { content: string }) =>
       t.content.includes("Task to mark done"),
@@ -1077,7 +1081,7 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
 
   test("km done should update markdown file with [x]", async () => {
     // Get task ID for "Open task"
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find(
       (t: { content: string }) => t.content === "Open task",
@@ -1099,7 +1103,7 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
 
   test("km toggle should cycle through statuses and update markdown", async () => {
     // Get task ID for "Another open task"
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find(
       (t: { content: string }) => t.content === "Another open task",
@@ -1127,7 +1131,7 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
 
   test("km task status should update markdown with correct mark", async () => {
     // Get task ID
-    const listResult = await km(["task", "--all", "--json"]);
+    const listResult = await km(["tasks", "--all", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find(
       (t: { content: string }) => t.content === "Open task",
@@ -1135,19 +1139,19 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
     expect(task).toBeDefined();
 
     // Set to blocked
-    const statusResult = await km(["task", "status", task.id, "blocked"]);
+    const statusResult = await km(["tasks", "status", task.id, "blocked"]);
     expect(statusResult.exitCode).toBe(0);
 
     let content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [!] Open task");
 
     // Set to done
-    await km(["task", "status", task.id, "done"]);
+    await km(["tasks", "status", task.id, "done"]);
     content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [x] Open task");
 
     // Set back to open
-    await km(["task", "status", task.id, "open"]);
+    await km(["tasks", "status", task.id, "open"]);
     content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [ ] Open task");
   });
@@ -1170,7 +1174,7 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
     await km(["sync"]);
 
     // Get the nested task
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const nestedTask = tasks.find((t: { content: string }) =>
       t.content.includes("Nested task in project"),
@@ -1222,7 +1226,7 @@ describe("Task mark types - parsing and status mapping", () => {
   });
 
   test("should parse GFM-standard mark types correctly", async () => {
-    const result = await km(["task", "--all", "--json"]);
+    const result = await km(["tasks", "--all", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1244,7 +1248,7 @@ describe("Task mark types - parsing and status mapping", () => {
   });
 
   test("km task (default) should only show open tasks", async () => {
-    const result = await km(["task", "--json"]);
+    const result = await km(["tasks", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1262,7 +1266,7 @@ describe("Task mark types - parsing and status mapping", () => {
   });
 
   test("km task --all should show all statuses", async () => {
-    const result = await km(["task", "--all", "--json"]);
+    const result = await km(["tasks", "--all", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1316,7 +1320,7 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should filter by @mention", async () => {
-    const result = await km(["task", "@bjorn", "--json"]);
+    const result = await km(["tasks", "@bjorn", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1330,7 +1334,7 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should filter by #tag", async () => {
-    const result = await km(["task", "#urgent", "--json"]);
+    const result = await km(["tasks", "#urgent", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1341,7 +1345,7 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should filter by +project", async () => {
-    const result = await km(["task", "+project-alpha", "--json"]);
+    const result = await km(["tasks", "+project-alpha", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1354,7 +1358,7 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should filter by status:open", async () => {
-    const result = await km(["task", "status:open", "--json"]);
+    const result = await km(["tasks", "status:open", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1365,7 +1369,7 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should filter by status:done with --all", async () => {
-    const result = await km(["task", "--all", "status:done", "--json"]);
+    const result = await km(["tasks", "--all", "status:done", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1376,7 +1380,7 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should exclude with negation -status:done", async () => {
-    const result = await km(["task", "--all", "-status:done", "--json"]);
+    const result = await km(["tasks", "--all", "-status:done", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1386,7 +1390,7 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should filter by path pattern ./projects/**", async () => {
-    const result = await km(["task", "--all", "./projects/**", "--json"]);
+    const result = await km(["tasks", "--all", "./projects/**", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1402,7 +1406,7 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should combine multiple conditions (AND)", async () => {
-    const result = await km(["task", "@bjorn", "status:open", "--json"]);
+    const result = await km(["tasks", "@bjorn", "status:open", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1416,7 +1420,7 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should filter by priority p:1", async () => {
-    const result = await km(["task", "p:1", "--json"]);
+    const result = await km(["tasks", "p:1", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
@@ -1466,7 +1470,7 @@ describe("km move - re-parent nodes", () => {
 
   test("should move task to different parent by ID", async () => {
     // Get IDs
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const inboxTask = tasks.find((t: { content: string }) =>
       t.content.includes("Task in inbox"),
@@ -1495,7 +1499,7 @@ describe("km move - re-parent nodes", () => {
   });
 
   test("should move task to root with --root", async () => {
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks.find((t: { content: string }) =>
       t.content.includes("Task in inbox"),
@@ -1518,7 +1522,7 @@ describe("km move - re-parent nodes", () => {
   });
 
   test("should error when no parent specified", async () => {
-    const listResult = await km(["task", "--json"]);
+    const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
     const task = tasks[0];
 

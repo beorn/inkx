@@ -186,7 +186,7 @@ function getTasksUnderNode(rootId: string): Node[] {
 /**
  * Task command - unified task management
  */
-export const taskCommand = new Command("task")
+export const taskCommand = new Command("tasks")
   .description("Task management - list, add, complete, and assign tasks")
   .argument(
     "[query...]",

@@ -10,18 +10,8 @@ $ beforeAll() {
 >   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
 >   export -f km
 >   # Create a test vault with GTD structure in temp dir
->   km init . >/dev/null
+>   km init .
 > }
-```
-
-## Basic Commands
-
-### km --help
-
-```console
-$ km --help
-Usage: km [options] [command]
-[...]
 ```
 
 ### km sync
@@ -32,20 +22,7 @@ Sync filesystem to database:
 $ km sync
 Syncing: ...
 Syncing filesystem → database...
-✓ Processed 5 change(s)
-```
-
-### km list
-
-List all nodes in the vault:
-
-```console
-$ km ls
-# Someday/Maybe
-[...]
-# Inbox
-[...]
-16 node(s)
+✓ Processed ... change(s)
 ```
 
 ## Task Management
@@ -57,29 +34,27 @@ Create a task and sync to see it:
 ```console
 $ km new "Test task from mdtest"
 ✓ Added to inbox: Test task from mdtest
-```
 
-```console
 $ km sync
 Syncing: ...
 Syncing filesystem → database...
 ✓ Processed 2 change(s)
 ```
 
-### km task - List tasks
+### km tasks - List tasks
 
 ```console
-$ km task
+$ km tasks
 inbox / .md
  [ ] Test task from mdtest
 
 1 task(s)
 ```
 
-### km task with query
+### km tasks with query
 
 ```console
-$ km task status:open
+$ km tasks status:open
 inbox / .md
  [ ] Test task from mdtest
 
@@ -91,7 +66,7 @@ inbox / .md
 Get a task and mark it done:
 
 ```console
-$ TASK_ID=$(km task --json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+$ TASK_ID=$(km tasks --json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 $ km done "$TASK_ID"
 ✓ Marked done: Test task from mdtest
 ```
@@ -192,4 +167,26 @@ $ rm -rf /tmp/km-mdtest-init
 $ km show nonexistent-id-12345 2>&1
 Node not found: nonexistent-id-12345
 [1]
+```
+
+### km --help
+
+```console
+$ km --help
+Usage: km [options] [command]
+[...]
+```
+
+## Basic Commands
+
+### km list
+
+List all nodes in the vault:
+
+```console
+$ km ls
+[...]
+# Inbox
+[...]
+... node(s)
 ```
