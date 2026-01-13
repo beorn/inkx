@@ -53,14 +53,24 @@ bun run km task -i           # Show task IDs (use these with done/show)
 
 # Create tasks
 bun run km new "Review Q4 budget @finance #urgent"
+bun run km new -p @next "Task under @next board"   # Create under parent
 bun run km sync              # Sync to pick up the new task
 
-# Complete tasks (use ID from 'km task -i')
+# Add tasks to boards
+bun run km add @next ABCD1234        # Add task to @next board
+bun run km add @next ./inbox/**      # Add all inbox tasks to @next
+bun run km add @next status:open     # Add all open tasks to @next
+
+# Complete tasks (accepts ID, path, or filename)
 bun run km done ABCD1234     # Mark task done using short ID
+bun run km done @inbox       # Mark done by filename
 
 # Task status workflow
 bun run km task status ABCD1234            # View status
 bun run km task status ABCD1234 in_progress # Set to in_progress
+
+# View tasks by folder
+bun run km task ./inbox/**   # List tasks in inbox folder
 
 # Search
 bun run km search "meeting"        # Full-text search
@@ -122,9 +132,10 @@ km tree               # Your knowledge hierarchy
 km task               # Every TODO across all files
 km task -i            # Show with IDs for use with done/show
 km board              # Kanban TUI (vim keys)
+km board @inbox       # Open @inbox board by filename
 km search "query"     # Full-text search
-km show <id>          # Node details (use full or short ID)
-km done <id>          # Mark done - writes back to .md file
+km show <node>        # Node details (ID, path, or filename)
+km done <node>        # Mark done - accepts ID, path, or filename
 ```
 
 Features:

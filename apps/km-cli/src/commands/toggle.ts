@@ -9,7 +9,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getTaskByIdPrefix } from "@km/store";
+import { resolveTask } from "@km/store";
 import { emitNodeUpdated } from "@km/core";
 import type { TaskStatus } from "@km/core";
 
@@ -58,13 +58,13 @@ function getMarkForStatus(status: TaskStatus): string {
 
 export const toggleCommand = new Command("toggle")
   .description("Toggle task status")
-  .argument("<id>", "Task ID or prefix/suffix")
+  .argument("<id>", "Task ID, path, or filename")
   .option("-s, --simple", "Simple toggle: open ↔ done (skip in_progress)")
   .action((id, options) => {
-    const node = getTaskByIdPrefix(id);
+    const node = resolveTask(id);
 
     if (!node) {
-      console.error(chalk.red(`No task found with ID prefix: ${id}`));
+      console.error(chalk.red(`Task not found: ${id}`));
       process.exit(1);
     }
 

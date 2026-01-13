@@ -117,6 +117,34 @@ interface NodeStore {
 
 ---
 
+## Smart Node Resolution
+
+The `resolveNode` function provides flexible node lookup for CLI commands:
+
+```typescript
+// Resolution order:
+// 1. Exact ID match
+// 2. ID prefix match (e.g., "abc" matches "abc123...")
+// 3. ID suffix match (e.g., "xyz" matches "...xyz")
+// 4. Exact filesystem path match
+// 5. Filename match (fs_path ends with query)
+// 6. Filename without extension ("@inbox" matches "@inbox.md")
+// 7. Content/title match
+
+function resolveNode(query: string, type?: string): Node | null;
+function resolveTask(query: string): Node | null; // type="task"
+```
+
+Used by CLI commands to accept IDs, paths, or filenames:
+
+```bash
+km show 01H5X           # ID prefix
+km board @inbox         # Filename (resolves @inbox.md)
+km tree ./projects      # Path
+```
+
+---
+
 ## DiskStore
 
 Uses `.km/state.db` with event sourcing.

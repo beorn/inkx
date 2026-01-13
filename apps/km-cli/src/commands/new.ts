@@ -8,7 +8,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "path";
 import { existsSync, mkdirSync, appendFileSync, writeFileSync } from "fs";
-import { getStore } from "@km/store";
+import { getStore, resolveNode } from "@km/store";
 import { parseTaskMetadata, extractTags, extractMentions } from "@km/markdown";
 
 /**
@@ -70,7 +70,7 @@ export const newCommand = new Command("new")
   .description("Quick capture - create new task in inbox")
   .argument("<content...>", "Task content")
   .option("-n, --next", "Add to @next board after creation")
-  .option("-p, --project <name>", "Set parent project")
+  .option("-p, --parent <target>", "Add to parent file (ID, path, or filename)")
   .option(
     "-d, --due <date>",
     "Set due date (YYYY-MM-DD or 'today', 'tomorrow')",
@@ -110,17 +110,41 @@ export const newCommand = new Command("new")
 
     const taskLine = `- [ ] ${taskContent}${metadata}\n`;
 
-    // Get inbox path
-    const inboxPath = ensureInbox(store.rootPath);
+    // Determine target file
+    let targetPath: string;
+    let targetName: string;
 
-    // Append to inbox
-    appendFileSync(inboxPath, taskLine);
+    if (options.parent) {
+      // Try to resolve parent by ID, path, or filename
+      const parentNode = resolveNode(options.parent);
+      if (parentNode && parentNode.fs_path) {
+        targetPath = parentNode.fs_path;
+        targetName = parentNode.fs_path.split("/").pop() || options.parent;
+      } else if (existsSync(join(store.rootPath, options.parent))) {
+        // Try as relative path
+        targetPath = join(store.rootPath, options.parent);
+        targetName = options.parent;
+      } else {
+        console.error(
+          chalk.red(`Parent not found: ${options.parent}`),
+          chalk.dim("\nUse ID, path, or filename (e.g., @next.md)"),
+        );
+        process.exit(1);
+      }
+    } else {
+      // Default to inbox
+      targetPath = ensureInbox(store.rootPath);
+      targetName = "inbox";
+    }
+
+    // Append to target file
+    appendFileSync(targetPath, taskLine);
 
     if (options.json) {
       console.log(
         JSON.stringify({
           content: taskContent,
-          file: inboxPath,
+          file: targetPath,
           metadata: {
             due: options.due || existingMetadata.dueDate,
             start: options.start || existingMetadata.scheduledDate,
@@ -133,7 +157,7 @@ export const newCommand = new Command("new")
       return;
     }
 
-    console.log(chalk.green("✓"), `Added to inbox: ${taskContent}`);
+    console.log(chalk.green("✓"), `Added to ${targetName}: ${taskContent}`);
 
     // If --next flag, remind user to sync and add to @next
     if (options.next) {

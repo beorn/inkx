@@ -11,6 +11,8 @@ export {
   getNodeByIdPrefix,
   getTaskByIdPrefix,
   getNodeByPath,
+  resolveNode,
+  resolveTask,
   getChildren,
   getSubtree,
   getAncestors,

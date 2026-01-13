@@ -1,65 +1,131 @@
 /**
  * Add Command
  *
- * Creates new tasks and nodes
+ * Add tasks to boards/lists. Re-parent nodes to a target container.
+ *
+ * km add @next TASKID          # Add task to @next board
+ * km add @next ./inbox/**      # Add all inbox tasks to @next
+ * km add +project TASKID       # Add task to project
  */
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { ulid } from "ulid";
-import { emitNodeCreated } from "@km/core";
-import { getNode, getNodeByPath } from "@km/store";
-import { parseTaskMetadata, extractTags } from "@km/markdown";
-import type { TaskStatus } from "@km/core";
+import { resolveNode, queryTasks, getNode } from "@km/store";
+import { emit } from "@km/core";
 
 export const addCommand = new Command("add")
-  .description("Add a new task")
-  .argument("<content...>", "Task content")
-  .option("-p, --parent <id>", "Parent node ID")
-  .option("-s, --status <status>", "Initial status", "open")
-  .option("-d, --due <date>", "Due date (YYYY-MM-DD)")
-  .option("-P, --priority <n>", "Priority (1-5)")
-  .option("-a, --assign <actor>", "Assign to actor")
+  .description("Add tasks to a board or list")
+  .argument("<target>", "Target board/list (ID, path, or filename like @next)")
+  .argument("<source...>", "Task IDs or query (e.g., ./inbox/**, status:open)")
+  .option("--dry-run", "Preview without making changes")
   .option("--json", "Output as JSON")
-  .action((content, options) => {
-    const text = content.join(" ");
-
-    // Parse metadata from content
-    const metadata = parseTaskMetadata(text);
-    const tags = extractTags(text);
-
-    // Resolve parent
-    let parentId: string | null = null;
-    if (options.parent) {
-      const parent = getNode(options.parent) ?? getNodeByPath(options.parent);
-      if (!parent) {
-        console.error(chalk.red(`Parent not found: ${options.parent}`));
-        process.exit(1);
-      }
-      parentId = parent.id;
+  .action((target, sources, options) => {
+    // Resolve target board/container
+    const targetNode = resolveNode(target);
+    if (!targetNode) {
+      console.error(chalk.red(`Target not found: ${target}`));
+      console.error(
+        chalk.dim("Use ID, path, or filename (e.g., @next, @inbox.md)"),
+      );
+      process.exit(1);
     }
 
-    const nodeId = ulid();
-    const event = emitNodeCreated(process.env.USER ?? "user", {
-      id: nodeId,
-      type: "task",
-      parent_id: parentId,
-      content: text,
-      task_status: (options.status || "open") as TaskStatus,
-      task_mark: " ",
-      due_date: options.due || metadata.dueDate,
-      scheduled_date: metadata.scheduledDate,
-      priority: options.priority
-        ? parseInt(options.priority, 10)
-        : metadata.priority,
-      assigned_to: options.assign,
-      data: tags.length > 0 ? { tags } : {},
-    });
+    // Collect tasks to add
+    const tasksToAdd: Array<{ id: string; content: string }> = [];
 
-    if (options.json) {
-      console.log(JSON.stringify({ id: nodeId, event: event.id }));
+    for (const source of sources) {
+      // Try as node ID first
+      const node = resolveNode(source, "task");
+      if (node) {
+        tasksToAdd.push({
+          id: node.id,
+          content: node.content || "(no content)",
+        });
+        continue;
+      }
+
+      // Try as query
+      const queryResults = queryTasks(source);
+      if (queryResults.length > 0) {
+        for (const task of queryResults) {
+          // Don't add duplicates
+          if (!tasksToAdd.some((t) => t.id === task.id)) {
+            tasksToAdd.push({
+              id: task.id,
+              content: task.content || "(no content)",
+            });
+          }
+        }
+        continue;
+      }
+
+      // Nothing found
+      console.warn(chalk.yellow(`No tasks found for: ${source}`));
+    }
+
+    if (tasksToAdd.length === 0) {
+      console.log(chalk.yellow("No tasks to add"));
+      process.exit(0);
+    }
+
+    // Get target's last child for ordering
+    const targetChildren = getNode(targetNode.id);
+    let nextIdx = 0;
+    if (targetChildren) {
+      // Query for max parent_idx
+      // For simplicity, just use timestamp-based ordering
+      nextIdx = Date.now();
+    }
+
+    if (options.dryRun) {
+      console.log(chalk.cyan("Dry run - would add:"));
+      for (const task of tasksToAdd) {
+        console.log(
+          `  ${chalk.dim(task.id.slice(0, 8))} ${task.content.slice(0, 50)}`,
+        );
+      }
+      console.log(
+        chalk.dim(
+          `\nTo: ${targetNode.content || targetNode.fs_path || target}`,
+        ),
+      );
       return;
     }
 
-    console.log(chalk.green("Created task:"), nodeId.slice(0, 8));
+    // Move tasks to target
+    for (const task of tasksToAdd) {
+      emit({
+        type: "node_moved",
+        actor: process.env.USER || "user",
+        target: task.id,
+        data: {
+          parent_id: targetNode.id,
+          parent_idx: nextIdx++,
+        },
+      });
+    }
+
+    if (options.json) {
+      console.log(
+        JSON.stringify({
+          target: targetNode.id,
+          added: tasksToAdd.map((t) => t.id),
+          count: tasksToAdd.length,
+        }),
+      );
+      return;
+    }
+
+    console.log(
+      chalk.green("✓"),
+      `Added ${tasksToAdd.length} task(s) to ${targetNode.content || target}`,
+    );
+    for (const task of tasksToAdd.slice(0, 5)) {
+      console.log(
+        chalk.dim(`  ${task.id.slice(0, 8)} ${task.content.slice(0, 40)}`),
+      );
+    }
+    if (tasksToAdd.length > 5) {
+      console.log(chalk.dim(`  ... and ${tasksToAdd.length - 5} more`));
+    }
   });

@@ -14,10 +14,9 @@ Command-line interface for task management.
 | `km #board` | View/manage `#` board       |
 | `km new`    | Quick capture (create task) |
 | `km done`   | Mark task done              |
+| `km add`    | Add tasks to board/list     |
 | `km move`   | Re-parent task              |
 | `km init`   | Initialize from template    |
-| `km import` | Import TextBundle           |
-| `km export` | Export TextBundle           |
 
 **Note:** Board commands require the sigil prefix (`@`, `+`, `#`) to distinguish from subcommands.
 
@@ -148,21 +147,22 @@ km new "Task @bjorn due:2025-01-15"    # With metadata
 
 ### Options
 
-| Option           | Description              |
-| ---------------- | ------------------------ |
-| `-n, --next`     | Add to @next board       |
-| `-p, --project`  | Set parent project       |
-| `-d, --due`      | Set due date             |
-| `-s, --start`    | Set start/scheduled date |
-| `-o, --owner`    | Assign to user           |
-| `-P, --priority` | Set priority (1-5)       |
+| Option           | Description                         |
+| ---------------- | ----------------------------------- |
+| `-n, --next`     | Add to @next board                  |
+| `-p, --parent`   | Parent node (ID, path, or filename) |
+| `-d, --due`      | Set due date                        |
+| `-s, --start`    | Set start/scheduled date            |
+| `-o, --owner`    | Assign to user                      |
+| `-P, --priority` | Set priority (1-5)                  |
 
 ### Examples
 
 ```bash
 km new "Call dentist"
 km new -n "Review PR #42"
-km new -p "Work/Q1" "Budget review" -d 2025-01-15
+km new -p @next "Review PR #42"        # Create under @next board
+km new -p ./projects/q1.md "Budget"    # Create under specific file
 km new "Weekly review" --recur "FREQ=WEEKLY;BYDAY=MO"
 ```
 
@@ -175,10 +175,12 @@ Mark task done.
 ### Usage
 
 ```bash
-km done <id>                # Mark done by ID
-km done "query"             # Mark done by search
-km done --last              # Mark last touched task done
+km done <node>              # Mark done by ID, path, or filename
+km done ABCD1234            # By ID prefix/suffix
+km done ./inbox/task.md     # By path
 ```
+
+Node resolution tries: exact ID, ID prefix, ID suffix, path, filename, content match.
 
 ### Behavior
 
@@ -195,73 +197,27 @@ Re-parent task to different project.
 ### Usage
 
 ```bash
-km move <id> <parent-id>         # Move by IDs
-km move <id> --project "Name"    # Move by project name
-km move <id> --root              # Move to root level
+km move <node> <parent>          # Move by ID, path, or filename
+km move <node> --project "Name"  # Move by project name
+km move <node> --root            # Move to root level
 ```
 
 ---
 
 ## Task Field Commands
 
-Quick field changes:
+Quick field changes. All accept ID, path, or filename:
 
 ```bash
-km task set <id> due:2025-01-20        # Set due date
-km task set <id> p:1                   # Set priority
-km task set <id> status:blocked        # Set blocked
+km task set <node> due:2025-01-20      # Set due date
+km task set <node> p:1                 # Set priority
+km task set <node> status:blocked      # Set blocked
 
-km task clear <id> due                 # Clear due date
+km task clear <node> due               # Clear due date
 
-km task claim <id>                     # Assign to me
-km task release <id>                   # Unassign
+km task claim <node>                   # Assign to me
+km task release <node>                 # Unassign
 ```
-
----
-
-## km import
-
-Import from TextBundle format.
-
-### Usage
-
-```bash
-km import <path>                  # Import file or directory
-km import file.textbundle         # Single TextBundle
-km import file.textpack           # Compressed TextPack
-km import ~/Bear/                 # Batch import directory
-```
-
-### Options
-
-| Option      | Description                    |
-| ----------- | ------------------------------ |
-| `--dry-run` | Preview without importing      |
-| `--project` | Set parent for imported items  |
-| `--assets`  | Asset handling (cas/alongside) |
-
----
-
-## km export
-
-Export to TextBundle format.
-
-### Usage
-
-```bash
-km export <id> -o <path>          # Export single node
-km export --all -o <path>         # Export everything
-km export --project "Name" -o <path>  # Export project
-```
-
-### Options
-
-| Option           | Description                      |
-| ---------------- | -------------------------------- |
-| `-o, --output`   | Output path (required)           |
-| `--textbundle`   | Export as .textbundle (default)  |
-| `--textpack`     | Export as .textpack (compressed) |
-| `--include-done` | Include completed tasks          |
 
 ---
 

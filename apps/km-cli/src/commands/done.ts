@@ -7,15 +7,15 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { emitNodeUpdated } from "@km/core";
-import { getTaskByIdPrefix } from "@km/store";
+import { resolveTask } from "@km/store";
 
 export const doneCommand = new Command("done")
   .description("Mark a task as done")
-  .argument("<id>", "Task ID or prefix/suffix")
+  .argument("<id>", "Task ID, path, or filename")
   .option("--json", "Output as JSON")
   .action((id, options) => {
-    // Find task by ID, prefix, or suffix (for short IDs shown with -i flag)
-    const node = getTaskByIdPrefix(id);
+    // Find task by ID, prefix, suffix, path, or filename
+    const node = resolveTask(id);
 
     if (!node) {
       console.error(chalk.red(`Task not found: ${id}`));

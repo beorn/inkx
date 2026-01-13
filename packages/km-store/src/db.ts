@@ -536,6 +536,96 @@ export function getNodeByPath(fsPath: string): Node | null {
 }
 
 /**
+ * Smart node resolver - finds a node by various identifiers.
+ *
+ * Resolution order:
+ * 1. Exact ID match
+ * 2. ID prefix match (e.g., "abc" matches "abc123...")
+ * 3. ID suffix match (e.g., "xyz" matches "...xyz")
+ * 4. Exact filesystem path match
+ * 5. Filename match (fs_path ends with query)
+ * 6. Filename without extension (e.g., "@inbox" matches "@inbox.md")
+ * 7. Content/title match (for nodes without fs_path)
+ *
+ * @param query - ID, path, or filename to search for
+ * @param type - Optional type filter (e.g., "task", "file")
+ * @returns The matching node, or null if not found
+ */
+export function resolveNode(query: string, type?: string): Node | null {
+  const db = getDb();
+  const typeFilter = type ? " AND type = ?" : "";
+  const typeParams = type ? [type] : [];
+
+  // 1. Exact ID match
+  let row = db
+    .query(`SELECT * FROM nodes WHERE id = ?${typeFilter}`)
+    .get(query, ...typeParams) as Record<string, unknown> | null;
+  if (row) return rowToNode(row);
+
+  // 2. ID prefix match
+  row = db
+    .query(`SELECT * FROM nodes WHERE id LIKE ?${typeFilter}`)
+    .get(`${query}%`, ...typeParams) as Record<string, unknown> | null;
+  if (row) return rowToNode(row);
+
+  // 3. ID suffix match (for short IDs like the last 8 chars)
+  row = db
+    .query(`SELECT * FROM nodes WHERE id LIKE ?${typeFilter}`)
+    .get(`%${query}`, ...typeParams) as Record<string, unknown> | null;
+  if (row) return rowToNode(row);
+
+  // 4. Exact filesystem path match
+  row = db
+    .query(`SELECT * FROM nodes WHERE fs_path = ?${typeFilter}`)
+    .get(query, ...typeParams) as Record<string, unknown> | null;
+  if (row) return rowToNode(row);
+
+  // 5. Filename match (fs_path ends with the query)
+  // This handles cases like "@inbox.md" when full path is "/path/to/@inbox.md"
+  row = db
+    .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${typeFilter}`)
+    .get(`%/${query}`, ...typeParams) as Record<string, unknown> | null;
+  if (row) return rowToNode(row);
+
+  // Also try without leading slash (handles bare filenames)
+  row = db
+    .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${typeFilter}`)
+    .get(`%${query}`, ...typeParams) as Record<string, unknown> | null;
+  if (row) return rowToNode(row);
+
+  // 6. Filename without extension (e.g., "@inbox" matches "@inbox.md")
+  if (!query.includes(".")) {
+    row = db
+      .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${typeFilter}`)
+      .get(`%/${query}.md`, ...typeParams) as Record<string, unknown> | null;
+    if (row) return rowToNode(row);
+
+    row = db
+      .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${typeFilter}`)
+      .get(`%${query}.md`, ...typeParams) as Record<string, unknown> | null;
+    if (row) return rowToNode(row);
+  }
+
+  // 7. Content/title match (exact match on content field)
+  row = db
+    .query(`SELECT * FROM nodes WHERE content = ?${typeFilter}`)
+    .get(query, ...typeParams) as Record<string, unknown> | null;
+  if (row) return rowToNode(row);
+
+  return null;
+}
+
+/**
+ * Smart task resolver - like resolveNode but only returns tasks.
+ *
+ * @param query - ID, path, or filename to search for
+ * @returns The matching task node, or null if not found
+ */
+export function resolveTask(query: string): Node | null {
+  return resolveNode(query, "task");
+}
+
+/**
  * Get children of a node
  */
 export function getChildren(parentId: string | null): Node[] {

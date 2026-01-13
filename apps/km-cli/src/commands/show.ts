@@ -7,8 +7,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import {
-  getNodeByIdPrefix,
-  getNodeByPath,
+  resolveNode,
   getChildren,
   getSubtree,
   getBacklinks,
@@ -20,13 +19,13 @@ import type { Link } from "@km/store";
 
 export const showCommand = new Command("show")
   .description("Show node details")
-  .argument("<id>", "Node ID or path")
+  .argument("<id>", "Node ID, path, or filename")
   .option("-c, --children", "Show children")
   .option("-t, --tree", "Show full subtree")
   .option("-l, --links", "Show links (outgoing and backlinks)")
   .option("--json", "Output as JSON")
   .action((id, options) => {
-    const node = getNodeByIdPrefix(id) ?? getNodeByPath(id);
+    const node = resolveNode(id);
 
     if (!node) {
       console.error(chalk.red(`Node not found: ${id}`));

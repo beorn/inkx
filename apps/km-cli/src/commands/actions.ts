@@ -6,7 +6,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getNode } from "@km/store";
+import { resolveNode, resolveTask } from "@km/store";
 import {
   emitTaskCompleted,
   emitTaskClaimed,
@@ -20,25 +20,20 @@ import type { TaskStatus } from "@km/core";
  */
 export const doneCommand = new Command("done")
   .description("Mark task as done")
-  .argument("<id>", "Task ID")
+  .argument("<id>", "Task ID, path, or filename")
   .option("-m, --message <msg>", "Completion message")
   .action((id, options) => {
-    const node = getNode(id);
+    const node = resolveTask(id);
 
     if (!node) {
       console.error(chalk.red(`Task not found: ${id}`));
       process.exit(1);
     }
 
-    if (node.type !== "task") {
-      console.error(chalk.red(`Node is not a task: ${node.type}`));
-      process.exit(1);
-    }
-
     const actor = process.env.USER ?? "user";
-    emitTaskCompleted(id, actor, options.message);
+    emitTaskCompleted(node.id, actor, options.message);
 
-    console.log(chalk.green("✓"), "Marked as done:", id.slice(0, 8));
+    console.log(chalk.green("✓"), "Marked as done:", node.id.slice(0, 8));
   });
 
 /**
@@ -46,17 +41,12 @@ export const doneCommand = new Command("done")
  */
 export const claimCommand = new Command("claim")
   .description("Claim a task")
-  .argument("<id>", "Task ID")
+  .argument("<id>", "Task ID, path, or filename")
   .action((id) => {
-    const node = getNode(id);
+    const node = resolveTask(id);
 
     if (!node) {
       console.error(chalk.red(`Task not found: ${id}`));
-      process.exit(1);
-    }
-
-    if (node.type !== "task") {
-      console.error(chalk.red(`Node is not a task: ${node.type}`));
       process.exit(1);
     }
 
@@ -68,9 +58,9 @@ export const claimCommand = new Command("claim")
     }
 
     const actor = process.env.USER ?? "user";
-    emitTaskClaimed(id, actor);
+    emitTaskClaimed(node.id, actor);
 
-    console.log(chalk.blue("●"), "Claimed:", id.slice(0, 8));
+    console.log(chalk.blue("●"), "Claimed:", node.id.slice(0, 8));
   });
 
 /**
@@ -78,25 +68,20 @@ export const claimCommand = new Command("claim")
  */
 export const releaseCommand = new Command("release")
   .description("Release a claimed task")
-  .argument("<id>", "Task ID")
+  .argument("<id>", "Task ID, path, or filename")
   .option("-r, --reason <reason>", "Reason for release")
   .action((id, options) => {
-    const node = getNode(id);
+    const node = resolveTask(id);
 
     if (!node) {
       console.error(chalk.red(`Task not found: ${id}`));
       process.exit(1);
     }
 
-    if (node.type !== "task") {
-      console.error(chalk.red(`Node is not a task: ${node.type}`));
-      process.exit(1);
-    }
-
     const actor = process.env.USER ?? "user";
-    emitTaskReleased(id, actor, options.reason);
+    emitTaskReleased(node.id, actor, options.reason);
 
-    console.log(chalk.yellow("○"), "Released:", id.slice(0, 8));
+    console.log(chalk.yellow("○"), "Released:", node.id.slice(0, 8));
   });
 
 /**
@@ -104,18 +89,13 @@ export const releaseCommand = new Command("release")
  */
 export const statusCommand = new Command("status")
   .description("Change task status")
-  .argument("<id>", "Task ID")
+  .argument("<id>", "Task ID, path, or filename")
   .argument("<status>", "New status")
   .action((id, status) => {
-    const node = getNode(id);
+    const node = resolveTask(id);
 
     if (!node) {
       console.error(chalk.red(`Task not found: ${id}`));
-      process.exit(1);
-    }
-
-    if (node.type !== "task") {
-      console.error(chalk.red(`Node is not a task: ${node.type}`));
       process.exit(1);
     }
 
@@ -139,12 +119,12 @@ export const statusCommand = new Command("status")
     }
 
     const actor = process.env.USER ?? "user";
-    emitNodeUpdated(id, { task_status: status }, actor);
+    emitNodeUpdated(actor, node.id, { task_status: status });
 
     console.log(
       chalk.cyan("→"),
       `Status changed to ${status}:`,
-      id.slice(0, 8),
+      node.id.slice(0, 8),
     );
   });
 
@@ -153,13 +133,13 @@ export const statusCommand = new Command("status")
  */
 export const editCommand = new Command("edit")
   .description("Edit task fields")
-  .argument("<id>", "Task ID")
+  .argument("<id>", "Node ID, path, or filename")
   .option("-c, --content <text>", "Update content")
   .option("-d, --due <date>", "Update due date")
   .option("-P, --priority <n>", "Update priority")
   .option("-a, --assign <actor>", "Assign to actor")
   .action((id, options) => {
-    const node = getNode(id);
+    const node = resolveNode(id);
 
     if (!node) {
       console.error(chalk.red(`Node not found: ${id}`));
@@ -187,7 +167,7 @@ export const editCommand = new Command("edit")
     }
 
     const actor = process.env.USER ?? "user";
-    emitNodeUpdated(id, updates, actor);
+    emitNodeUpdated(actor, node.id, updates);
 
-    console.log(chalk.green("✓"), "Updated:", id.slice(0, 8));
+    console.log(chalk.green("✓"), "Updated:", node.id.slice(0, 8));
   });

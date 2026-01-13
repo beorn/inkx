@@ -1044,3 +1044,146 @@ describe("km done", () => {
     expect(output.status).toBe("done");
   });
 });
+
+describe("Bidirectional sync - km done writes to markdown file", () => {
+  beforeEach(async () => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(VAULT_DIR, { recursive: true });
+    mkdirSync(KM_DIR, { recursive: true });
+
+    writeFileSync(
+      join(VAULT_DIR, "tasks.md"),
+      `# Tasks
+
+- [ ] Open task
+- [ ] Another open task
+- [/] In progress task
+- [!] Blocked task
+`,
+    );
+    await km(["sync"]);
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("km done should update markdown file with [x]", async () => {
+    // Get task ID for "Open task"
+    const listResult = await km(["task", "--json"]);
+    const tasks = JSON.parse(listResult.stdout);
+    const task = tasks.find(
+      (t: { content: string }) => t.content === "Open task",
+    );
+    expect(task).toBeDefined();
+
+    // Mark as done
+    const doneResult = await km(["done", task.id]);
+    expect(doneResult.exitCode).toBe(0);
+
+    // Read the markdown file and verify it was updated
+    const content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
+    expect(content).toContain("- [x] Open task");
+    // Other tasks should remain unchanged
+    expect(content).toContain("- [ ] Another open task");
+    expect(content).toContain("- [/] In progress task");
+    expect(content).toContain("- [!] Blocked task");
+  });
+
+  test("km toggle should cycle through statuses and update markdown", async () => {
+    // Get task ID for "Another open task"
+    const listResult = await km(["task", "--json"]);
+    const tasks = JSON.parse(listResult.stdout);
+    const task = tasks.find(
+      (t: { content: string }) => t.content === "Another open task",
+    );
+    expect(task).toBeDefined();
+
+    // Toggle from open -> in_progress
+    const toggleResult = await km(["toggle", task.id]);
+    expect(toggleResult.exitCode).toBe(0);
+
+    // Read the markdown file - should now show [/]
+    let content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
+    expect(content).toContain("- [/] Another open task");
+
+    // Toggle from in_progress -> done
+    await km(["toggle", task.id]);
+    content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
+    expect(content).toContain("- [x] Another open task");
+
+    // Toggle from done -> open
+    await km(["toggle", task.id]);
+    content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
+    expect(content).toContain("- [ ] Another open task");
+  });
+
+  test("km task status should update markdown with correct mark", async () => {
+    // Get task ID
+    const listResult = await km(["task", "--all", "--json"]);
+    const tasks = JSON.parse(listResult.stdout);
+    const task = tasks.find(
+      (t: { content: string }) => t.content === "Open task",
+    );
+    expect(task).toBeDefined();
+
+    // Set to blocked
+    const statusResult = await km(["task", "status", task.id, "blocked"]);
+    expect(statusResult.exitCode).toBe(0);
+
+    let content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
+    expect(content).toContain("- [!] Open task");
+
+    // Set to done
+    await km(["task", "status", task.id, "done"]);
+    content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
+    expect(content).toContain("- [x] Open task");
+
+    // Set back to open
+    await km(["task", "status", task.id, "open"]);
+    content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
+    expect(content).toContain("- [ ] Open task");
+  });
+
+  test("nested task should update in correct file", async () => {
+    // Create a nested structure
+    const projectDir = join(VAULT_DIR, "projects");
+    mkdirSync(projectDir, { recursive: true });
+    writeFileSync(
+      join(projectDir, "alpha.md"),
+      `# Alpha Project
+
+## Tasks
+
+- [ ] Nested task in project
+`,
+    );
+
+    // Re-sync to pick up new file
+    await km(["sync"]);
+
+    // Get the nested task
+    const listResult = await km(["task", "--json"]);
+    const tasks = JSON.parse(listResult.stdout);
+    const nestedTask = tasks.find((t: { content: string }) =>
+      t.content.includes("Nested task in project"),
+    );
+    expect(nestedTask).toBeDefined();
+
+    // Mark as done
+    await km(["done", nestedTask.id]);
+
+    // Verify the nested file was updated
+    const content = readFileSync(join(projectDir, "alpha.md"), "utf-8");
+    expect(content).toContain("- [x] Nested task in project");
+
+    // Original file should be unchanged
+    const originalContent = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
+    expect(originalContent).toContain("- [ ] Open task");
+  });
+});

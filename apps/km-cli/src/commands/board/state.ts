@@ -12,7 +12,7 @@ import type {
   BoardAction,
 } from "./types.ts";
 import { STATUS_CYCLE, STATUS_MARKS } from "./types.ts";
-import { getChildren, getNode } from "@km/store";
+import { getChildren, getNode, resolveNode } from "@km/store";
 import { emit } from "@km/core";
 import { getNodeDisplayName } from "@km/shared";
 
@@ -41,12 +41,13 @@ export function createEmptyState(): BoardState {
 }
 
 /**
- * Initialize board state from a root node ID
+ * Initialize board state from a root node ID, path, or filename
  * Returns null if no suitable board found
  */
 export function initBoardState(rootId?: string): BoardState | null {
   if (rootId) {
-    const root = getNode(rootId);
+    // Use smart resolver to find by ID, path, or filename
+    const root = resolveNode(rootId);
     if (!root) {
       return null;
     }

@@ -6,12 +6,12 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getChildren, getNode, getAllNodes } from "@km/store";
+import { getChildren, resolveNode } from "@km/store";
 import type { Node } from "@km/core";
 
 export const treeCommand = new Command("tree")
   .description("Display node tree")
-  .argument("[root]", "Root node ID (default: all roots)")
+  .argument("[root]", "Root node ID, path, or filename (default: all roots)")
   .option("-d, --depth <n>", "Maximum depth", "10")
   .option("--tasks", "Only show tasks")
   .option("--files", "Only show files/folders")
@@ -20,14 +20,14 @@ export const treeCommand = new Command("tree")
     const maxDepth = parseInt(options.depth, 10);
 
     if (options.json) {
-      const nodes = root ? [getNode(root)] : getRootNodes();
+      const nodes = root ? [resolveNode(root)] : getRootNodes();
       const tree = buildJsonTree(nodes.filter(Boolean) as Node[], maxDepth);
       console.log(JSON.stringify(tree, null, 2));
       return;
     }
 
     if (root) {
-      const node = getNode(root);
+      const node = resolveNode(root);
       if (!node) {
         console.error(chalk.red(`Node not found: ${root}`));
         process.exit(1);

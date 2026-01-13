@@ -4,24 +4,29 @@ Commands and keyboard shortcuts for km.
 
 ---
 
-## Query Argument
+## Node Resolution
 
-Most commands accept an optional `[query]` that specifies a root node:
+Most commands accept an optional node identifier. The `resolveNode` function tries these in order:
 
 ```bash
-km <command> [query]        # Query can be:
-                            #   - Node ID (full or prefix)
-                            #   - Path pattern (projects/**)
-                            #   - Relative path (./folder)
+km <command> [node]         # Node can be:
+                            #   - Node ID (full or prefix/suffix)
+                            #   - Filesystem path (./folder/file.md)
+                            #   - Filename (@inbox.md or @inbox)
+                            #   - Content/title match
 ```
 
 Examples:
 
 ```bash
-km list projects/           # Nodes under projects/
 km tree 01H5X               # Tree from node ID prefix
-km show ./README.md         # Show specific file
+km show ./README.md         # Show specific file by path
+km board @inbox             # Board by filename (resolves @inbox.md)
+km board @inbox.md          # Same, with extension
+km show "Next Actions"      # Show by content/title match
 ```
+
+This "smart resolution" applies to: `board`, `tree`, `show`, `done`, `toggle`, and action commands.
 
 ---
 
@@ -36,13 +41,14 @@ km ls --type task           # Filter by type
 km ls --type task --context # With ancestor paths (= tasks)
 km ls --id                  # Show node IDs
 
-km tree [query]             # Show structure from root
+km tree [node]              # Show structure from root (ID, path, or filename)
 km tree --collapsed         # With collapsing
 km tree --id                # Show node IDs
 
-km show <query>             # Show node details
+km show <node>              # Show node details (ID, path, or filename)
 
-km board [query]            # Kanban board (TUI)
+km board [node]             # Kanban board (TUI) - ID, path, or filename
+km board @inbox             # Open @inbox.md board by filename
 km board --id               # Show node IDs
 ```
 
@@ -59,6 +65,12 @@ km task assign <who> <id>   # Assign to agent or user
 ### Actions
 
 ```bash
+km new "Task content"       # Quick capture to inbox
+km new "Task" -p @next      # Create under parent (ID, path, or filename)
+km done <node>              # Mark task done (ID, path, or filename)
+km add <target> <source...> # Add tasks to board/list
+km add @next TASKID         # Add task to @next board
+km add @next ./inbox/**     # Add all inbox tasks to @next
 km init                     # Create .km/ for persistence
 ```
 
@@ -146,12 +158,21 @@ Cards expand to show children:
 
 ---
 
-## Task Actions (Future)
+## km add
+
+Add tasks to boards or lists. Moves tasks to a target container.
 
 ```bash
-km task add "Task title"    # Quick capture
-km task add "Task" --in <id> # Add under parent
+km add <target> <source...>      # Add tasks to target board/list
+km add @next TASKID              # Add single task by ID
+km add @next ./inbox/**          # Add all inbox tasks via query
+km add @next status:open         # Add all open tasks
+km add +project TASKID           # Add task to project
+km add @next --dry-run TASKID    # Preview without changes
 ```
+
+The target can be an ID, path, or filename (e.g., `@next`, `@inbox.md`, `+project`).
+Sources can be task IDs or query patterns that match multiple tasks.
 
 ---
 
