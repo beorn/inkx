@@ -594,6 +594,94 @@ describe("km init", () => {
 
     expect(result.stdout).toContain("Already initialized");
   });
+
+  describe("gtd template", () => {
+    test("should create GTD folder structure", async () => {
+      const initDir = join(INIT_TEST_DIR, "gtd-project");
+      mkdirSync(initDir, { recursive: true });
+
+      const result = await km(["init", "gtd"], {
+        cwd: initDir,
+        env: { KM_DIR: join(initDir, ".km") },
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Initialized");
+
+      // Check folders exist
+      expect(existsSync(join(initDir, "inbox"))).toBe(true);
+      expect(existsSync(join(initDir, "archive"))).toBe(true);
+
+      // Check board files exist
+      expect(existsSync(join(initDir, "@inbox.md"))).toBe(true);
+      expect(existsSync(join(initDir, "@next.md"))).toBe(true);
+      expect(existsSync(join(initDir, "@someday.md"))).toBe(true);
+    });
+
+    test("should create @inbox.md with correct content", async () => {
+      const initDir = join(INIT_TEST_DIR, "gtd-inbox");
+      mkdirSync(initDir, { recursive: true });
+
+      await km(["init", "gtd"], {
+        cwd: initDir,
+        env: { KM_DIR: join(initDir, ".km") },
+      });
+
+      const content = readFileSync(join(initDir, "@inbox.md"), "utf-8");
+      expect(content).toContain("title: Inbox");
+      expect(content).toContain("type: board");
+      expect(content).toContain("add: ./inbox/**");
+      expect(content).toContain("# Inbox");
+      expect(content).toContain("Unprocessed items awaiting triage");
+    });
+
+    test("should create @next.md with columns", async () => {
+      const initDir = join(INIT_TEST_DIR, "gtd-next");
+      mkdirSync(initDir, { recursive: true });
+
+      await km(["init", "gtd"], {
+        cwd: initDir,
+        env: { KM_DIR: join(initDir, ".km") },
+      });
+
+      const content = readFileSync(join(initDir, "@next.md"), "utf-8");
+      expect(content).toContain("title: Next Actions");
+      expect(content).toContain("type: board");
+      expect(content).toContain("## Today");
+      expect(content).toContain("## This Week");
+      expect(content).toContain("## Waiting");
+    });
+
+    test("should create @someday.md with correct content", async () => {
+      const initDir = join(INIT_TEST_DIR, "gtd-someday");
+      mkdirSync(initDir, { recursive: true });
+
+      await km(["init", "gtd"], {
+        cwd: initDir,
+        env: { KM_DIR: join(initDir, ".km") },
+      });
+
+      const content = readFileSync(join(initDir, "@someday.md"), "utf-8");
+      expect(content).toContain("title: Someday/Maybe");
+      expect(content).toContain("type: board");
+      expect(content).toContain("# Someday/Maybe");
+      expect(content).toContain("Ideas and projects for the future");
+    });
+
+    test("should warn on unknown template", async () => {
+      const initDir = join(INIT_TEST_DIR, "unknown-template");
+      mkdirSync(initDir, { recursive: true });
+
+      const result = await km(["init", "unknown"], {
+        cwd: initDir,
+        env: { KM_DIR: join(initDir, ".km") },
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Unknown template");
+      expect(result.stdout).toContain("Available: gtd");
+    });
+  });
 });
 
 describe("CLI Error Handling", () => {
@@ -727,5 +815,190 @@ describe("Global --root option", () => {
     const result = await km(["--help"], { cwd: "/tmp" });
     expect(result.stdout).toContain("--root");
     expect(result.stdout).toContain("-r");
+  });
+});
+
+describe("km new", () => {
+  beforeEach(() => {
+    // Clean up and create test directories
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(VAULT_DIR, { recursive: true });
+    mkdirSync(KM_DIR, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("should create task in inbox file", async () => {
+    const result = await km(["new", "Call dentist"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Added to inbox");
+
+    // Verify inbox file was created with task
+    const inboxPath = join(VAULT_DIR, "inbox", "inbox.md");
+    expect(existsSync(inboxPath)).toBe(true);
+    const content = readFileSync(inboxPath, "utf-8");
+    expect(content).toContain("- [ ] Call dentist");
+  });
+
+  test("should parse metadata from content", async () => {
+    const result = await km(["new", "Task @bjorn due:2026-01-20 p:1"]);
+    expect(result.exitCode).toBe(0);
+
+    const inboxPath = join(VAULT_DIR, "inbox", "inbox.md");
+    const content = readFileSync(inboxPath, "utf-8");
+    expect(content).toContain("- [ ] Task @bjorn due:2026-01-20 p:1");
+  });
+
+  test("should add metadata from options", async () => {
+    const result = await km([
+      "new",
+      "Simple task",
+      "-d",
+      "2026-01-15",
+      "-P",
+      "2",
+    ]);
+    expect(result.exitCode).toBe(0);
+
+    const inboxPath = join(VAULT_DIR, "inbox", "inbox.md");
+    const content = readFileSync(inboxPath, "utf-8");
+    expect(content).toContain("- [ ] Simple task due:2026-01-15 p:2");
+  });
+
+  test("should output JSON with --json", async () => {
+    const result = await km(["new", "JSON task", "--json"]);
+    expect(result.exitCode).toBe(0);
+
+    const output = JSON.parse(result.stdout);
+    expect(output.content).toBe("JSON task");
+    expect(output.file).toContain("inbox.md");
+  });
+
+  test("should append multiple tasks to same inbox", async () => {
+    await km(["new", "First task"]);
+    await km(["new", "Second task"]);
+
+    const inboxPath = join(VAULT_DIR, "inbox", "inbox.md");
+    const content = readFileSync(inboxPath, "utf-8");
+    expect(content).toContain("- [ ] First task");
+    expect(content).toContain("- [ ] Second task");
+  });
+
+  test("should sync and show tasks after km new", async () => {
+    await km(["new", "Synced task"]);
+    await km(["sync"]);
+
+    const result = await km(["task"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Synced task");
+  });
+});
+
+describe("km done", () => {
+  beforeEach(async () => {
+    // Clean up and create test directories
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(VAULT_DIR, { recursive: true });
+    mkdirSync(KM_DIR, { recursive: true });
+
+    writeFileSync(
+      join(VAULT_DIR, "tasks.md"),
+      `# Tasks
+
+- [ ] Task to mark done
+- [x] Already completed task
+`,
+    );
+    await km(["sync"]);
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("should mark task as done by ID prefix", async () => {
+    // Get task ID
+    const listResult = await km(["task", "--json"]);
+    const tasks = JSON.parse(listResult.stdout);
+    const task = tasks.find((t: { content: string }) =>
+      t.content.includes("Task to mark done"),
+    );
+    expect(task).toBeDefined();
+
+    // Mark as done using km done
+    const idPrefix = task.id.slice(0, 8);
+    const doneResult = await km(["done", idPrefix]);
+    expect(doneResult.exitCode).toBe(0);
+    expect(doneResult.stdout).toContain("Marked done");
+
+    // Verify task is now done
+    const allResult = await km(["task", "--all", "--json"]);
+    const allTasks = JSON.parse(allResult.stdout);
+    const doneTask = allTasks.find((t: { id: string }) => t.id === task.id);
+    expect(doneTask.task_status).toBe("done");
+  });
+
+  test("should error on task not found", async () => {
+    const result = await km(["done", "nonexistent123"]);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("Task not found");
+  });
+
+  test("should handle already done task gracefully", async () => {
+    // Get the already completed task - use full ID to avoid prefix collisions
+    const listResult = await km(["task", "--all", "--json"]);
+    const tasks = JSON.parse(listResult.stdout);
+    const task = tasks.find((t: { content: string }) =>
+      t.content.includes("Already completed task"),
+    );
+    expect(task).toBeDefined();
+
+    // Try to mark as done again using full ID
+    const doneResult = await km(["done", task.id]);
+    expect(doneResult.exitCode).toBe(0);
+    expect(doneResult.stdout).toContain("already done");
+  });
+
+  test("should error when file ID prefix has no matching task", async () => {
+    // Get a file node (not a task)
+    const listResult = await km(["ls", "--type", "file", "--json"]);
+    const nodes = JSON.parse(listResult.stdout);
+    expect(nodes.length).toBeGreaterThan(0);
+
+    // Use full ID to ensure no accidental task matches
+    const fileNode = nodes[0];
+    const result = await km(["done", fileNode.id]);
+    expect(result.exitCode).not.toBe(0);
+    // Since findTask only looks for tasks, a file ID returns "Task not found"
+    expect(result.stderr).toContain("Task not found");
+  });
+
+  test("should output JSON with --json", async () => {
+    // Get task ID
+    const listResult = await km(["task", "--json"]);
+    const tasks = JSON.parse(listResult.stdout);
+    const task = tasks.find((t: { content: string }) =>
+      t.content.includes("Task to mark done"),
+    );
+
+    // Use full ID to avoid race condition with other tasks created same millisecond
+    const doneResult = await km(["done", task.id, "--json"]);
+    expect(doneResult.exitCode).toBe(0);
+
+    const output = JSON.parse(doneResult.stdout);
+    expect(output.id).toBe(task.id);
+    expect(output.status).toBe("done");
   });
 });

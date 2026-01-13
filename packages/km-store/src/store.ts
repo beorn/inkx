@@ -296,9 +296,10 @@ export class DiskStore extends BaseStore {
   }
 
   updateNode(id: string, changes: Partial<Node>): void {
-    // In disk mode, updates go through events
-    // This is handled by emitNodeUpdated -> applyEvent flow
-    // Direct update for compatibility:
+    const node = this.getNode(id);
+    if (!node) return;
+
+    // Update SQLite database
     const sets: string[] = [];
     const values: unknown[] = [];
 
@@ -319,6 +320,48 @@ export class DiskStore extends BaseStore {
     values.push(Date.now(), id);
 
     this.db.run(`UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`, values);
+
+    // Write through to markdown file for task status changes (bidirectional sync)
+    if (
+      changes.task_status !== undefined &&
+      node.fs_path &&
+      node.md_line !== undefined
+    ) {
+      this.writeTaskToFile(node, changes.task_status);
+    }
+  }
+
+  /**
+   * Write task status change back to markdown file
+   */
+  private writeTaskToFile(node: Node, newStatus: TaskStatus): void {
+    if (!node.fs_path || node.md_line === undefined) return;
+
+    try {
+      const content = readFileSync(node.fs_path, "utf-8");
+      const lines = content.split("\n");
+
+      if (node.md_line >= lines.length) return;
+
+      const line = lines[node.md_line];
+      if (!line) return;
+
+      // Map status to task mark
+      const newMark =
+        newStatus === "done"
+          ? "x"
+          : newStatus === "blocked"
+            ? "!"
+            : newStatus === "dropped"
+              ? "-"
+              : " "; // open
+
+      lines[node.md_line] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
+
+      void Bun.write(node.fs_path, lines.join("\n"));
+    } catch {
+      // Ignore write errors
+    }
   }
 
   refresh(): void {
@@ -583,8 +626,17 @@ export class MemoryStore extends BaseStore {
       if (node.md_line >= lines.length) return;
 
       const line = lines[node.md_line];
+      if (!line) return;
+
+      // Map status to task mark
       const newMark =
-        newStatus === "done" ? "x" : newStatus === "in_progress" ? "/" : " ";
+        newStatus === "done"
+          ? "x"
+          : newStatus === "blocked"
+            ? "!"
+            : newStatus === "dropped"
+              ? "-"
+              : " "; // open
 
       lines[node.md_line] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
 

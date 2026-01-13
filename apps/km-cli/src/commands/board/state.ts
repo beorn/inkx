@@ -32,6 +32,7 @@ export function createEmptyState(): BoardState {
     selectedCards: new Set(),
     visualMode: false,
     foldedCards: new Set(),
+    collapsedColumns: new Set(),
     searchQuery: "",
     searchMode: false,
     helpMode: false,
@@ -106,6 +107,7 @@ export function initBoardState(rootId?: string): BoardState | null {
     selectedCards: new Set(),
     visualMode: false,
     foldedCards: new Set(),
+    collapsedColumns: new Set(),
     searchQuery: "",
     searchMode: false,
     helpMode: false,
@@ -114,9 +116,41 @@ export function initBoardState(rootId?: string): BoardState | null {
 }
 
 /**
+ * Extract WIP limits from frontmatter columns config
+ * Frontmatter format: columns: { column_name: { limit: number } }
+ */
+function extractWipLimits(rootNode: Node | null): Map<string, number> {
+  const limits = new Map<string, number>();
+  if (!rootNode?.data?.columns) return limits;
+
+  const columnsConfig = rootNode.data.columns as Record<
+    string,
+    { limit?: number }
+  >;
+  for (const [colName, config] of Object.entries(columnsConfig)) {
+    if (typeof config?.limit === "number" && config.limit > 0) {
+      // Normalize column name: lowercase, replace spaces with underscores
+      const normalizedName = colName.toLowerCase().replace(/\s+/g, "_");
+      limits.set(normalizedName, config.limit);
+    }
+  }
+  return limits;
+}
+
+/**
+ * Normalize column name for WIP limit lookup
+ * Matches frontmatter keys like "in_progress" to column names like "In Progress"
+ */
+function normalizeColumnName(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, "_");
+}
+
+/**
  * Build board state from a specific root ID
  */
 export function buildBoardState(rootId: string): BoardState {
+  const rootNode = getNode(rootId);
+  const wipLimits = extractWipLimits(rootNode);
   const columns: ColumnState[] = [];
   const columnNodes = getChildren(rootId);
 
@@ -126,7 +160,13 @@ export function buildBoardState(rootId: string): BoardState {
       node: cardNode,
       children: getChildren(cardNode.id),
     }));
-    columns.push({ node: colNode, cards });
+
+    // Look up WIP limit for this column by normalized name
+    const colName = getNodeDisplayName(colNode);
+    const normalizedName = normalizeColumnName(colName);
+    const wipLimit = wipLimits.get(normalizedName);
+
+    columns.push({ node: colNode, cards, wipLimit });
   }
 
   return {
@@ -138,6 +178,7 @@ export function buildBoardState(rootId: string): BoardState {
     selectedCards: new Set(),
     visualMode: false,
     foldedCards: new Set(),
+    collapsedColumns: new Set(),
     searchQuery: "",
     searchMode: false,
     helpMode: false,
@@ -273,7 +314,7 @@ export function handleKey(
       }
       return { state: newState, action: null };
 
-    // Fold/unfold
+    // Fold/unfold card
     case "\t": // Tab
       if (card) {
         newState.foldedCards = new Set(state.foldedCards);
@@ -282,6 +323,16 @@ export function handleKey(
         } else {
           newState.foldedCards.add(card.node.id);
         }
+      }
+      return { state: newState, action: null };
+
+    // Toggle column collapse (show count only)
+    case "c":
+      newState.collapsedColumns = new Set(state.collapsedColumns);
+      if (state.collapsedColumns.has(state.colIndex)) {
+        newState.collapsedColumns.delete(state.colIndex);
+      } else {
+        newState.collapsedColumns.add(state.colIndex);
       }
       return { state: newState, action: null };
 

@@ -11,6 +11,7 @@ import type { Node, TaskStatus } from "@km/core";
 import { getChildren, getNode, getDb, isMemoryMode } from "@km/store";
 import { emit } from "@km/core";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "@km/shared";
+import { DetailPane } from "./detail-pane.tsx";
 
 // Build path from root to a given node as file path with # for sections
 function getNodePath(nodeId: string | null): string {
@@ -288,6 +289,7 @@ interface ColumnProps {
   column: ColumnState;
   colIndex: number;
   isSelected: boolean;
+  isCollapsed: boolean; // Whether column shows only header with count
   selectedCardIndex: number;
   selectedSubIndex: number; // Which sub-item within the selected card (0 = card header)
   width: number;
@@ -302,6 +304,7 @@ function Column({
   column,
   colIndex,
   isSelected,
+  isCollapsed,
   selectedCardIndex,
   selectedSubIndex,
   width,
@@ -314,6 +317,9 @@ function Column({
   const name = getNodeDisplayName(column.node);
   const typeSuffix = getCollapsedTypeSuffix(column.node);
   const count = column.cards.length;
+  const wipLimit = column.wipLimit;
+  const wipExceeded = wipLimit !== undefined && count > wipLimit;
+
   // Available height for cards: column height - border (2) - header (1) - scroll indicator (1)
   const contentHeight = Math.max(1, height - 4);
   // Estimate how many cards can be visible (each card ~3 lines minimum with border)
@@ -332,49 +338,86 @@ function Column({
     scrollOffset + maxCards,
   );
 
+  // Build count display: "(3)" or "(4/3)" with WIP limit
+  const countDisplay =
+    wipLimit !== undefined ? `(${count}/${wipLimit})` : `(${count})`;
+  const warningIndicator = wipExceeded ? " \u26A0" : ""; // Warning sign when WIP exceeded
+  const collapsedIndicator = isCollapsed ? " \u25B8" : ""; // Right-pointing triangle when collapsed
+
+  // Determine border color: red if WIP exceeded, otherwise normal
+  const borderColor = wipExceeded ? "red" : isSelected ? "blue" : "gray";
+
   return (
     <Box
       flexDirection="column"
       width={width}
       height={height}
       borderStyle="single"
-      borderColor={isSelected ? "blue" : "gray"}
+      borderColor={borderColor}
       overflowY="hidden"
     >
       <Text bold inverse={isSelected} wrap="truncate">
-        {name.slice(0, width - 6 - (typeSuffix ? typeSuffix.length + 1 : 0))}
+        {name.slice(
+          0,
+          width -
+            6 -
+            (typeSuffix ? typeSuffix.length + 1 : 0) -
+            countDisplay.length -
+            warningIndicator.length -
+            collapsedIndicator.length,
+        )}
         {typeSuffix ? <Text color="gray">{` ${typeSuffix}`}</Text> : ""}
-        {` (${count})`}
+        {wipExceeded ? (
+          <Text color="red">{` ${countDisplay}${warningIndicator}`}</Text>
+        ) : (
+          ` ${countDisplay}`
+        )}
+        {collapsedIndicator}
       </Text>
-      <Box flexDirection="column" height={contentHeight} overflowY="hidden">
-        {visibleCards.map((card, i) => {
-          const actualCardIndex = scrollOffset + i;
-          const cardIsSelected =
-            isSelected && actualCardIndex === selectedCardIndex;
-          return (
-            <Card
-              key={card.node.id}
-              card={card}
-              isSelected={cardIsSelected}
-              selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
-              width={width - 2}
-              maxOutlineDepth={maxOutlineDepth}
-              foldedNodes={foldedNodes}
-              onToggleFold={onToggleFold}
-              multiSelected={multiSelected}
-              colIndex={colIndex}
-              cardIndex={actualCardIndex}
-            />
-          );
-        })}
-        {column.cards.length === 0 && <Text dimColor>(empty)</Text>}
-      </Box>
-      {column.cards.length > maxCards && (
-        <Text dimColor>
-          {scrollOffset > 0 ? "\u2191" : " "}
-          {scrollOffset + maxCards < column.cards.length ? "\u2193" : " "}
-          {` ${scrollOffset + 1}-${Math.min(scrollOffset + maxCards, column.cards.length)}/${column.cards.length}`}
-        </Text>
+      {isCollapsed ? (
+        // Collapsed view: show only count summary
+        <Box
+          flexDirection="column"
+          height={contentHeight}
+          justifyContent="center"
+          alignItems="center"
+        >
+          <Text dimColor>[collapsed - {count}]</Text>
+        </Box>
+      ) : (
+        // Normal view: show cards
+        <>
+          <Box flexDirection="column" height={contentHeight} overflowY="hidden">
+            {visibleCards.map((card, i) => {
+              const actualCardIndex = scrollOffset + i;
+              const cardIsSelected =
+                isSelected && actualCardIndex === selectedCardIndex;
+              return (
+                <Card
+                  key={card.node.id}
+                  card={card}
+                  isSelected={cardIsSelected}
+                  selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
+                  width={width - 2}
+                  maxOutlineDepth={maxOutlineDepth}
+                  foldedNodes={foldedNodes}
+                  onToggleFold={onToggleFold}
+                  multiSelected={multiSelected}
+                  colIndex={colIndex}
+                  cardIndex={actualCardIndex}
+                />
+              );
+            })}
+            {column.cards.length === 0 && <Text dimColor>(empty)</Text>}
+          </Box>
+          {column.cards.length > maxCards && (
+            <Text dimColor>
+              {scrollOffset > 0 ? "\u2191" : " "}
+              {scrollOffset + maxCards < column.cards.length ? "\u2193" : " "}
+              {` ${scrollOffset + 1}-${Math.min(scrollOffset + maxCards, column.cards.length)}/${column.cards.length}`}
+            </Text>
+          )}
+        </>
       )}
     </Box>
   );
@@ -405,6 +448,10 @@ function Board({ initialState }: BoardProps) {
     sub: number;
   } | null>(null);
   const [moveMode, setMoveMode] = useState(false); // Whether in move mode (m prefix)
+  const [showDetailPane, setShowDetailPane] = useState(false); // Whether detail pane is visible
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<number>>(
+    new Set(initialState.collapsedColumns),
+  ); // Column indices that are collapsed
 
   // Listen for terminal resize
   useEffect(() => {
@@ -727,6 +774,11 @@ function Board({ initialState }: BoardProps) {
 
     // Go to parent: Escape or 'u'
     if (key.escape || input === "u") {
+      // If detail pane is open, close it
+      if (showDetailPane) {
+        setShowDetailPane(false);
+        return;
+      }
       // If in outline mode, exit outline mode
       if (inOutlineMode) {
         setInOutlineMode(false);
@@ -819,6 +871,20 @@ function Board({ initialState }: BoardProps) {
           return next;
         });
       }
+      return;
+    }
+
+    // Toggle column collapse (c key)
+    if (input === "c") {
+      setCollapsedColumns((prev) => {
+        const next = new Set(prev);
+        if (next.has(state.colIndex)) {
+          next.delete(state.colIndex);
+        } else {
+          next.add(state.colIndex);
+        }
+        return next;
+      });
       return;
     }
 
@@ -1135,19 +1201,65 @@ function Board({ initialState }: BoardProps) {
         clearSelection();
       }
 
-      // Zoom in
-      if (key.return && card && card.children.length > 0) {
+      // Enter opens detail pane
+      if (key.return && card) {
+        setShowDetailPane(true);
+        setInOutlineMode(false);
+        setSubIndex(0);
+        clearSelection();
+        return s; // Don't change board state, just show pane
+      }
+
+      // Zoom in with 'o' (open/expand into children)
+      if (input === "o" && card && card.children.length > 0) {
         const zoomed = buildBoardState(card.node.id);
         zoomed.zoomStack = [...s.zoomStack, s.rootId || ""];
         setInOutlineMode(false);
         setSubIndex(0);
         clearSelection();
+        setShowDetailPane(false);
         return zoomed;
       }
 
       return newState;
     });
   });
+
+  // Handle detail pane navigation (j/k to move cards while pane is open)
+  useInput(
+    (input, key) => {
+      if (!showDetailPane) return;
+
+      const col = state.columns[state.colIndex];
+
+      // Close detail pane with 'h' key
+      if (input === "h") {
+        setShowDetailPane(false);
+        return;
+      }
+
+      // Navigate cards while detail pane is open
+      if (input === "j" || key.downArrow) {
+        if (col && state.cardIndex < col.cards.length - 1) {
+          setState((s) => ({ ...s, cardIndex: s.cardIndex + 1 }));
+        }
+        return;
+      }
+      if (input === "k" || key.upArrow) {
+        if (state.cardIndex > 0) {
+          setState((s) => ({ ...s, cardIndex: s.cardIndex - 1 }));
+        }
+        return;
+      }
+
+      // Quit from detail pane
+      if (input === "q") {
+        exit();
+        return;
+      }
+    },
+    { isActive: showDetailPane },
+  );
 
   // Build board root path (static title)
   // Use filesystem path if available, otherwise build from node path
@@ -1158,43 +1270,95 @@ function Board({ initialState }: BoardProps) {
   const selectedCard = selectedCol?.cards[state.cardIndex];
   const selectedPath = selectedCard ? getNodePath(selectedCard.node.id) : "";
 
+  // Calculate widths for split view
+  const detailPaneWidth = showDetailPane ? Math.floor(termWidth * 0.4) : 0;
+  const boardWidth = termWidth - detailPaneWidth;
+
+  // Recalculate columns when detail pane is shown
+  const effectiveMaxCols = showDetailPane
+    ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
+    : maxCols;
+  const effectiveColWidth = showDetailPane
+    ? Math.floor((boardWidth - 2) / effectiveMaxCols)
+    : colWidth;
+  const effectiveVisibleColumns = showDetailPane
+    ? state.columns.slice(
+        Math.max(
+          0,
+          Math.min(
+            state.colIndex - Math.floor(effectiveMaxCols / 2),
+            Math.max(0, state.columns.length - effectiveMaxCols),
+          ),
+        ),
+        Math.max(
+          0,
+          Math.min(
+            state.colIndex - Math.floor(effectiveMaxCols / 2),
+            Math.max(0, state.columns.length - effectiveMaxCols),
+          ),
+        ) + effectiveMaxCols,
+      )
+    : visibleColumns;
+  const effectiveScrollOffset = showDetailPane
+    ? Math.max(
+        0,
+        Math.min(
+          state.colIndex - Math.floor(effectiveMaxCols / 2),
+          Math.max(0, state.columns.length - effectiveMaxCols),
+        ),
+      )
+    : colScrollOffset;
+
   return (
     <Box flexDirection="column" height={termHeight} minHeight={3}>
       <Box height={1}>
         <Text bold inverse>{` ${boardPath} `}</Text>
       </Box>
-      <Box flexGrow={1}>
-        {visibleColumns.map((col, i) => {
-          const actualColIndex = colScrollOffset + i;
-          return (
-            <Column
-              key={col.node.id}
-              column={col}
-              colIndex={actualColIndex}
-              isSelected={actualColIndex === state.colIndex}
-              selectedCardIndex={state.cardIndex}
-              selectedSubIndex={inOutlineMode ? subIndex : -1}
-              width={colWidth}
-              height={termHeight - 3}
-              maxOutlineDepth={maxOutlineDepth}
-              foldedNodes={foldedNodes}
-              onToggleFold={toggleFold}
-              multiSelected={multiSelected}
-            />
-          );
-        })}
+      <Box flexGrow={1} flexDirection="row">
+        {/* Board columns */}
+        <Box flexDirection="row" width={boardWidth}>
+          {effectiveVisibleColumns.map((col, i) => {
+            const actualColIndex = effectiveScrollOffset + i;
+            return (
+              <Column
+                key={col.node.id}
+                column={col}
+                colIndex={actualColIndex}
+                isSelected={actualColIndex === state.colIndex}
+                isCollapsed={collapsedColumns.has(actualColIndex)}
+                selectedCardIndex={state.cardIndex}
+                selectedSubIndex={inOutlineMode ? subIndex : -1}
+                width={effectiveColWidth}
+                height={termHeight - 3}
+                maxOutlineDepth={maxOutlineDepth}
+                foldedNodes={foldedNodes}
+                onToggleFold={toggleFold}
+                multiSelected={multiSelected}
+              />
+            );
+          })}
+        </Box>
+        {/* Detail pane */}
+        {showDetailPane && selectedCard && (
+          <DetailPane
+            node={selectedCard.node}
+            width={detailPaneWidth}
+            height={termHeight - 3}
+          />
+        )}
       </Box>
       <Text>
         <Text>{selectedPath} </Text>
+        {showDetailPane && <Text color="cyan">{`[DETAIL] `}</Text>}
         {moveMode && <Text color="magenta">{`[MOVE] `}</Text>}
         {inOutlineMode && <Text color="cyan">{`[OUTLINE] `}</Text>}
         {multiSelected.size > 0 && (
           <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
         )}
-        {state.columns.length > maxCols && (
+        {state.columns.length > effectiveMaxCols && (
           <Text
             dimColor
-          >{`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${state.columns.length}] `}</Text>
+          >{`[cols ${effectiveScrollOffset + 1}-${effectiveScrollOffset + effectiveMaxCols}/${state.columns.length}] `}</Text>
         )}
       </Text>
     </Box>
@@ -1277,6 +1441,7 @@ export function InkBoardTestable({
               column={col}
               colIndex={actualColIndex}
               isSelected={actualColIndex === initialState.colIndex}
+              isCollapsed={initialState.collapsedColumns.has(actualColIndex)}
               selectedCardIndex={initialState.cardIndex}
               selectedSubIndex={-1}
               width={colWidth}

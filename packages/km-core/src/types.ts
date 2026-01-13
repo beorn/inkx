@@ -50,6 +50,7 @@ export interface Node {
 
   // Markdown mapping (for sections/blocks)
   md_pos?: number; // Byte offset in file
+  md_line?: number; // Line number in file (0-indexed)
   md_slug?: string; // Heading slug (for sections)
 
   // Task properties

@@ -1,0 +1,144 @@
+/**
+ * New Command
+ *
+ * Quick capture - creates new task in inbox.md file
+ */
+
+import { Command } from "commander";
+import chalk from "chalk";
+import { join } from "path";
+import { existsSync, mkdirSync, appendFileSync, writeFileSync } from "fs";
+import { getStore } from "@km/store";
+import { parseTaskMetadata, extractTags, extractMentions } from "@km/markdown";
+
+/**
+ * Format task metadata as inline fields
+ */
+function formatMetadata(options: {
+  due?: string;
+  start?: string;
+  priority?: string;
+  owner?: string;
+}): string {
+  const parts: string[] = [];
+
+  if (options.due) {
+    parts.push(`due:${options.due}`);
+  }
+  if (options.start) {
+    parts.push(`start:${options.start}`);
+  }
+  if (options.priority) {
+    parts.push(`p:${options.priority}`);
+  }
+  if (options.owner) {
+    parts.push(`@${options.owner}`);
+  }
+
+  return parts.length > 0 ? " " + parts.join(" ") : "";
+}
+
+/**
+ * Ensure inbox.md exists and return its path
+ */
+function ensureInbox(rootPath: string): string {
+  const inboxDir = join(rootPath, "inbox");
+  const inboxPath = join(inboxDir, "inbox.md");
+
+  if (!existsSync(inboxDir)) {
+    mkdirSync(inboxDir, { recursive: true });
+  }
+
+  if (!existsSync(inboxPath)) {
+    const content = `---
+title: Inbox
+type: inbox
+---
+
+# Inbox
+
+Quick capture zone for new items.
+
+`;
+    writeFileSync(inboxPath, content);
+  }
+
+  return inboxPath;
+}
+
+export const newCommand = new Command("new")
+  .description("Quick capture - create new task in inbox")
+  .argument("<content...>", "Task content")
+  .option("-n, --next", "Add to @next board after creation")
+  .option("-p, --project <name>", "Set parent project")
+  .option(
+    "-d, --due <date>",
+    "Set due date (YYYY-MM-DD or 'today', 'tomorrow')",
+  )
+  .option("-s, --start <date>", "Set start/scheduled date")
+  .option("-o, --owner <user>", "Assign to user")
+  .option("-P, --priority <n>", "Set priority (1-5)")
+  .option("--json", "Output as JSON")
+  .action((content, options) => {
+    const store = getStore();
+    const text = content.join(" ");
+
+    // Parse any metadata already in the content
+    const existingMetadata = parseTaskMetadata(text);
+    const tags = extractTags(text);
+    const mentions = extractMentions(text);
+
+    // Build the task line
+    const taskContent = text;
+
+    // Add metadata from options (if not already in content)
+    const metadata = formatMetadata({
+      due: options.due && !existingMetadata.dueDate ? options.due : undefined,
+      start:
+        options.start && !existingMetadata.scheduledDate
+          ? options.start
+          : undefined,
+      priority:
+        options.priority && !existingMetadata.priority
+          ? options.priority
+          : undefined,
+      owner:
+        options.owner && !mentions.includes(options.owner)
+          ? options.owner
+          : undefined,
+    });
+
+    const taskLine = `- [ ] ${taskContent}${metadata}\n`;
+
+    // Get inbox path
+    const inboxPath = ensureInbox(store.rootPath);
+
+    // Append to inbox
+    appendFileSync(inboxPath, taskLine);
+
+    if (options.json) {
+      console.log(
+        JSON.stringify({
+          content: taskContent,
+          file: inboxPath,
+          metadata: {
+            due: options.due || existingMetadata.dueDate,
+            start: options.start || existingMetadata.scheduledDate,
+            priority: options.priority || existingMetadata.priority,
+            tags,
+            mentions,
+          },
+        }),
+      );
+      return;
+    }
+
+    console.log(chalk.green("✓"), `Added to inbox: ${taskContent}`);
+
+    // If --next flag, remind user to sync and add to @next
+    if (options.next) {
+      console.log(
+        chalk.dim("  Hint: Run 'km sync' then 'km @next add' to add to board"),
+      );
+    }
+  });

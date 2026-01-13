@@ -742,4 +742,94 @@ describe("Node CRUD Operations", () => {
       expect(node!.due_date).toBe("2025-05-01");
     });
   });
+
+  describe("Bidirectional Sync", () => {
+    test("should write task status change back to markdown file", async () => {
+      // Create a test markdown file with a task
+      const testFile = join(TEST_DIR, "test-task.md");
+      await Bun.write(testFile, "- [ ] Test task\n");
+
+      // Create a task node pointing to the file
+      const task = emit({
+        type: "node_created",
+        actor: "test",
+        data: {
+          id: "test-task-id",
+          type: "task",
+          content: "Test task",
+          fs_path: testFile,
+          md_line: 0,
+          task_status: "open",
+          task_mark: " ",
+        },
+      });
+      const taskId = task.data.id as string;
+
+      // Update task status to done
+      emitNodeUpdated("test-user", taskId, { task_status: "done" });
+
+      // Wait for async file write
+      await Bun.sleep(50);
+
+      // Verify file content changed
+      const content = await Bun.file(testFile).text();
+      expect(content).toBe("- [x] Test task\n");
+    });
+
+    test("should write blocked status to markdown file", async () => {
+      const testFile = join(TEST_DIR, "test-blocked.md");
+      await Bun.write(testFile, "- [ ] Blocked task\n");
+
+      emit({
+        type: "node_created",
+        actor: "test",
+        data: {
+          id: "test-blocked-id",
+          type: "task",
+          content: "Blocked task",
+          fs_path: testFile,
+          md_line: 0,
+          task_status: "open",
+          task_mark: " ",
+        },
+      });
+
+      emitNodeUpdated("test-user", "test-blocked-id", {
+        task_status: "blocked",
+      });
+
+      await Bun.sleep(50);
+
+      const content = await Bun.file(testFile).text();
+      expect(content).toBe("- [!] Blocked task\n");
+    });
+
+    test("should write dropped status to markdown file", async () => {
+      const testFile = join(TEST_DIR, "test-dropped.md");
+      await Bun.write(testFile, "- [ ] Dropped task\n");
+
+      emit({
+        type: "node_created",
+        actor: "test",
+        data: {
+          id: "test-dropped-id",
+          type: "task",
+          content: "Dropped task",
+          fs_path: testFile,
+          md_line: 0,
+          task_status: "open",
+          task_mark: " ",
+        },
+      });
+
+      emitNodeUpdated("test-user", "test-dropped-id", {
+        task_status: "dropped",
+      });
+
+      await Bun.sleep(50);
+
+      const content = await Bun.file(testFile).text();
+      expect(content).toBe("- [-] Dropped task\n");
+    });
+  });
 });

@@ -87,8 +87,42 @@ export const showCommand = new Command("show")
       new Date(node.updated_at).toISOString(),
     );
 
-    if (Object.keys(node.data).length > 0) {
-      console.log(chalk.bold("Data:"), JSON.stringify(node.data, null, 2));
+    // Display refs from data
+    const data = node.data as Record<string, unknown>;
+    if (
+      data.mentions &&
+      Array.isArray(data.mentions) &&
+      data.mentions.length > 0
+    ) {
+      console.log(
+        chalk.bold("Refs:"),
+        data.mentions.map((m: string) => chalk.magenta(`@${m}`)).join(" "),
+      );
+    }
+    if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
+      console.log(
+        chalk.bold("Tags:"),
+        data.tags.map((t: string) => chalk.cyan(`#${t}`)).join(" "),
+      );
+    }
+    if (
+      data.projects &&
+      Array.isArray(data.projects) &&
+      data.projects.length > 0
+    ) {
+      console.log(
+        chalk.bold("Projects:"),
+        data.projects.map((p: string) => chalk.yellow(`+${p}`)).join(" "),
+      );
+    }
+
+    // Show other data if present
+    const otherData = { ...data };
+    delete otherData.mentions;
+    delete otherData.tags;
+    delete otherData.projects;
+    if (Object.keys(otherData).length > 0) {
+      console.log(chalk.bold("Data:"), JSON.stringify(otherData, null, 2));
     }
 
     // Children

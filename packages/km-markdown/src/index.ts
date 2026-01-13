@@ -5,6 +5,8 @@ export {
   extractTaskMark,
   parseWikiLinks,
   extractTags,
+  extractMentions,
+  extractProjects,
   parseTaskMetadata,
   nodeToText,
   slugify,

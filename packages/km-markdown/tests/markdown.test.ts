@@ -15,6 +15,9 @@ import {
   parseWikiLinks,
   slugify,
   parseTaskMetadata,
+  extractTags,
+  extractMentions,
+  extractProjects,
 } from "../src/parser.ts";
 
 import { parseMarkdownToNodes, buildNodeTree } from "../src/ast2nodes.ts";
@@ -128,6 +131,33 @@ tags: [a, b, c]
       expect(parseTaskMetadata("Medium priority 🔼").priority).toBe(2);
       expect(parseTaskMetadata("Low priority 🔽").priority).toBe(3);
     });
+
+    test("should parse due date with inline field", () => {
+      const result = parseTaskMetadata("Submit report due:2026-01-20");
+      expect(result.dueDate).toBe("2026-01-20");
+    });
+
+    test("should parse scheduled date with start: inline field", () => {
+      const result = parseTaskMetadata("Call client start:2026-01-15");
+      expect(result.scheduledDate).toBe("2026-01-15");
+    });
+
+    test("should parse priority with p: inline field", () => {
+      expect(parseTaskMetadata("Important task p:1").priority).toBe(1);
+      expect(parseTaskMetadata("Normal task p:2").priority).toBe(2);
+      expect(parseTaskMetadata("Low task p:3").priority).toBe(3);
+    });
+
+    test("should parse multiple inline fields", () => {
+      const result = parseTaskMetadata("Submit report due:2026-01-20 p:1");
+      expect(result.dueDate).toBe("2026-01-20");
+      expect(result.priority).toBe(1);
+    });
+
+    test("emoji format takes precedence over inline fields", () => {
+      const result = parseTaskMetadata("Task 📅 2025-03-15 due:2026-01-20");
+      expect(result.dueDate).toBe("2025-03-15"); // Emoji takes precedence
+    });
   });
 
   describe("parseWikiLinks", () => {
@@ -157,6 +187,47 @@ tags: [a, b, c]
       const text = "No links here, just plain text.";
       const links = parseWikiLinks(text);
       expect(links.length).toBe(0);
+    });
+  });
+
+  describe("extractTags", () => {
+    test("should extract hashtags from text", () => {
+      const tags = extractTags("Task with #urgent and #work tags");
+      expect(tags).toEqual(["urgent", "work"]);
+    });
+
+    test("should handle no tags", () => {
+      const tags = extractTags("No tags here");
+      expect(tags).toEqual([]);
+    });
+
+    test("should handle hyphens and underscores", () => {
+      const tags = extractTags("#my-tag and #another_tag");
+      expect(tags).toEqual(["my-tag", "another_tag"]);
+    });
+  });
+
+  describe("extractMentions", () => {
+    test("should extract @mentions from text", () => {
+      const mentions = extractMentions("Assigned to @john and @jane");
+      expect(mentions).toEqual(["john", "jane"]);
+    });
+
+    test("should handle no mentions", () => {
+      const mentions = extractMentions("No mentions here");
+      expect(mentions).toEqual([]);
+    });
+  });
+
+  describe("extractProjects", () => {
+    test("should extract +projects from text", () => {
+      const projects = extractProjects("Part of +project-alpha and +beta");
+      expect(projects).toEqual(["project-alpha", "beta"]);
+    });
+
+    test("should handle no projects", () => {
+      const projects = extractProjects("No projects here");
+      expect(projects).toEqual([]);
     });
   });
 

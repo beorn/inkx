@@ -41,7 +41,8 @@
       "Bash:*",
       "Bash(bun km:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "mcp__peekaboo__list"
     ],
     "deny": [],
     "ask": []

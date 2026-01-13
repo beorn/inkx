@@ -24,6 +24,8 @@ import { taskCommand } from "./commands/tasks.ts";
 import { boardCommand } from "./commands/board.ts";
 import { listCommand } from "./commands/list.ts";
 import { initCommand } from "./commands/init.ts";
+import { newCommand } from "./commands/new.ts";
+import { doneCommand } from "./commands/done.ts";
 
 const program = new Command();
 
@@ -126,9 +128,11 @@ program.addCommand(searchCommand); // km search <query> - full-text search
 program.addCommand(taskCommand); // km task - task management (list, status, assign, etc.)
 
 // Actions
+program.addCommand(newCommand); // km new - quick capture to inbox
+program.addCommand(doneCommand); // km done <id> - mark task as done
 program.addCommand(initCommand); // km init - create .km/ for disk mode
-program.addCommand(syncCommand); // km sync - sync filesystem
-program.addCommand(watchCommand); // km watch - watch for changes
+program.addCommand(syncCommand); // km sync [--watch] - sync filesystem (with optional continuous watch)
+program.addCommand(watchCommand); // km watch - deprecated, use 'km sync --watch' instead
 program.addCommand(rebuildCommand); // km rebuild - rebuild state
 
 // Default to help if no command specified

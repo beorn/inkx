@@ -8,7 +8,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { ulid } from "ulid";
 import { emitNodeCreated, emitNodeUpdated } from "@km/core";
-import { getNodeByPath, getAncestors, getDb } from "@km/store";
+import { getNodeByPath, getAncestors, getDb, queryTasks } from "@km/store";
 import { parseTaskMetadata, extractTags } from "@km/markdown";
 import type { Node, TaskStatus } from "@km/core";
 import {
@@ -190,11 +190,15 @@ function getTasksUnderNode(rootId: string): Node[] {
  */
 export const taskCommand = new Command("task")
   .description("Task management - list, add, complete, and assign tasks")
-  .argument("[path-or-id]", "Path or ID to scope tasks (optional)")
+  .argument("[path-or-id]", "Path, ID, or query to scope tasks (optional)")
   .option("-a, --all", "Show all tasks including done")
   .option(
     "-s, --status <status>",
     "Filter by status (open, in_progress, done, blocked)",
+  )
+  .option(
+    "-q, --query <query>",
+    "Filter with query syntax (status:open @person #tag)",
   )
   .option("-v, --verbose", "Show more details")
   .option("-f, --flat", "Show path on single line")
@@ -485,12 +489,13 @@ function taskPathMatches(task: Node, filter: string): boolean {
 }
 
 /**
- * List tasks (optionally scoped to a root node or filtered by path)
+ * List tasks (optionally scoped to a root node or filtered by path/query)
  */
 function listTasks(
   pathOrId: string | undefined,
   options: {
     status?: string;
+    query?: string;
     all?: boolean;
     verbose?: boolean;
     flat?: boolean;
@@ -503,7 +508,18 @@ function listTasks(
   let rootNode: Node | null = null;
   let pathFilter: string | null = null;
 
-  if (pathOrId) {
+  // Handle query option first (takes precedence)
+  if (options.query) {
+    // Build query string, adding default status filter
+    let queryStr = options.query;
+    if (!options.all && !queryStr.includes("status:")) {
+      queryStr = `-status:done ${queryStr}`;
+    }
+    if (options.status) {
+      queryStr = `status:${options.status} ${queryStr}`;
+    }
+    tasks = queryTasks(queryStr);
+  } else if (pathOrId) {
     // Try to find an exact node match first
     rootNode = findNodeByPathOrId(pathOrId);
 

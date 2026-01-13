@@ -16,6 +16,8 @@ import {
   slugify,
   parseTaskMetadata,
   extractTags,
+  extractMentions,
+  extractProjects,
   parseWikiLinks,
 } from "./parser.ts";
 import type { WikiLink } from "./parser.ts";
@@ -218,6 +220,8 @@ function convertListItem(
   // Parse task metadata from text
   const metadata = isTask ? parseTaskMetadata(text) : {};
   const tags = extractTags(text);
+  const mentions = extractMentions(text);
+  const projects = extractProjects(text);
 
   // Determine priority from mark or metadata
   let priority: number | undefined = metadata.priority;
@@ -240,6 +244,8 @@ function convertListItem(
     priority,
     data: {
       ...(tags.length > 0 ? { tags } : {}),
+      ...(mentions.length > 0 ? { mentions } : {}),
+      ...(projects.length > 0 ? { projects } : {}),
       ...(metadata.recurrence ? { recurrence: metadata.recurrence } : {}),
     },
     created_at: now,

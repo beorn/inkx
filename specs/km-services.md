@@ -33,6 +33,7 @@ Inspired by [beads](https://github.com/Dicklesworthstone/beads_viewer) architect
 ```
 
 **Single process, multiple responsibilities:**
+
 - Filesystem watching (via SyncManager)
 - Rule automation (event handlers)
 - Socket for CLI↔daemon communication
@@ -132,7 +133,10 @@ eventBus.on("node_updated", async (event) => {
   if (event.data.task_status) {
     const rules = getBoardSyncRules();
     for (const rule of rules) {
-      if (rule.field === "task_status" && rule.value === event.data.task_status) {
+      if (
+        rule.field === "task_status" &&
+        rule.value === event.data.task_status
+      ) {
         await moveToColumn(event.target, rule.column);
       }
     }
@@ -186,11 +190,11 @@ server.on("connection", (socket) => {
 ```
 
 **Messages:**
-| Type       | Description                    |
+| Type | Description |
 |------------|--------------------------------|
-| `status`   | Get daemon status              |
-| `sync`     | Force filesystem sync          |
-| `flush`    | Flush pending writes           |
+| `status` | Get daemon status |
+| `sync` | Force filesystem sync |
+| `flush` | Flush pending writes |
 | `subscribe`| Subscribe to events (streaming)|
 
 ---
@@ -213,14 +217,14 @@ server.on("connection", (socket) => {
 ```yaml
 # .km/config.yaml
 daemon:
-  auto_start: true         # Auto-start when km commands need it
-  debounce_fs: 5000        # ms before processing FS changes
-  debounce_write: 3000     # ms before writing to FS
-  log_level: info          # debug, info, warn, error
+  auto_start: true # Auto-start when km commands need it
+  debounce_fs: 5000 # ms before processing FS changes
+  debounce_write: 3000 # ms before writing to FS
+  log_level: info # debug, info, warn, error
 
 automation:
-  board_sync: true         # Enable sync= rules
-  recurring: true          # Enable recurring tasks
+  board_sync: true # Enable sync= rules
+  recurring: true # Enable recurring tasks
 ```
 
 ---
@@ -305,11 +309,13 @@ class KmDaemon {
 ## When Is the Daemon Needed?
 
 **Required for:**
+
 - Real-time file watching (`km sync --watch`)
 - Background automation (recurring tasks, board sync)
 - TUI live updates (`km hub`)
 
 **Not required for:**
+
 - Read-only commands (`km list`, `km tree`, `km show`)
 - One-shot sync (`km sync`)
 - Memory mode exploration

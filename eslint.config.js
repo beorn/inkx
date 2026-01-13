@@ -2,6 +2,9 @@ import tseslint from "typescript-eslint";
 import pluginPromise from "eslint-plugin-promise";
 
 export default [
+  {
+    ignores: ["website/**"],
+  },
   ...tseslint.configs.recommendedTypeChecked,
   pluginPromise.configs["flat/recommended"],
   {

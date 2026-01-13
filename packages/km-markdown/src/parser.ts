@@ -121,8 +121,46 @@ export function extractTags(text: string): string[] {
 }
 
 /**
- * Parse task metadata (Obsidian Tasks compatible)
- * Extracts: due date, scheduled date, priority
+ * Extract mentions from text (@person)
+ */
+export function extractMentions(text: string): string[] {
+  const regex = /@([a-zA-Z0-9_-]+)/g;
+  const mentions: string[] = [];
+
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match[1]) {
+      mentions.push(match[1]);
+    }
+  }
+
+  return mentions;
+}
+
+/**
+ * Extract projects from text (+project-name)
+ */
+export function extractProjects(text: string): string[] {
+  const regex = /\+([a-zA-Z0-9_-]+)/g;
+  const projects: string[] = [];
+
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match[1]) {
+      projects.push(match[1]);
+    }
+  }
+
+  return projects;
+}
+
+/**
+ * Parse task metadata (supports multiple formats)
+ * Extracts: due date, scheduled date, priority, recurrence
+ *
+ * Supported formats:
+ * - Obsidian Tasks: 📅 2024-01-15, ⏳ 2024-01-10, ⏫/🔼/🔽, 🔁 every week
+ * - Inline fields: due:2024-01-15, start:2024-01-10, p:1
  */
 export function parseTaskMetadata(text: string): {
   dueDate?: string;
@@ -137,25 +175,37 @@ export function parseTaskMetadata(text: string): {
     recurrence?: string;
   } = {};
 
-  // Due date: 📅 2024-01-15
+  // Due date: 📅 2024-01-15 OR due:2024-01-15
   const dueMatch = text.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
   if (dueMatch) {
     result.dueDate = dueMatch[1];
   }
+  const dueInlineMatch = text.match(/\bdue:(\d{4}-\d{2}-\d{2})\b/);
+  if (dueInlineMatch && !result.dueDate) {
+    result.dueDate = dueInlineMatch[1];
+  }
 
-  // Scheduled date: ⏳ 2024-01-10
+  // Scheduled date: ⏳ 2024-01-10 OR start:2024-01-10
   const scheduledMatch = text.match(/⏳\s*(\d{4}-\d{2}-\d{2})/);
   if (scheduledMatch) {
     result.scheduledDate = scheduledMatch[1];
   }
+  const startInlineMatch = text.match(/\bstart:(\d{4}-\d{2}-\d{2})\b/);
+  if (startInlineMatch && !result.scheduledDate) {
+    result.scheduledDate = startInlineMatch[1];
+  }
 
-  // Priority: ⏫ (high), 🔼 (medium), 🔽 (low)
+  // Priority: ⏫ (high=1), 🔼 (medium=2), 🔽 (low=3) OR p:1, p:2, p:3
   if (text.includes("⏫")) {
     result.priority = 1;
   } else if (text.includes("🔼")) {
     result.priority = 2;
   } else if (text.includes("🔽")) {
     result.priority = 3;
+  }
+  const priorityInlineMatch = text.match(/\bp:([1-9])\b/);
+  if (priorityInlineMatch && priorityInlineMatch[1] && !result.priority) {
+    result.priority = parseInt(priorityInlineMatch[1], 10);
   }
 
   // Recurrence: 🔁 every week
