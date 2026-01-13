@@ -51,7 +51,7 @@ km board --id               # Show node IDs
 ```bash
 km task [query]             # List tasks (= km ls --type task --context)
 km task --status open       # Filter by status
-km task status <id> [status] # View or set task status (open, in_progress, done, etc.)
+km task status <id> [status] # View or set task status (open, blocked, done, dropped)
 km task create "title"      # Create a new task
 km task assign <who> <id>   # Assign to agent or user
 ```
@@ -82,7 +82,7 @@ km task --filter '*.md'
 # Status
 km task --status open
 km task --status done
-km task --status in_progress
+km task --status blocked
 
 # Type (for list/ls)
 km ls --type task
@@ -185,7 +185,7 @@ km session ls --agent <id>  # List sessions for agent
 # ~/.config/km/config.yaml
 
 defaults:
-  board_columns: [open, in_progress, done]
+  board_columns: [open, blocked, done]
 
 tui:
   vim_keys: true
@@ -211,6 +211,7 @@ km show $(km ls --ids | fzf)
 
 ## See Also
 
+- [Tasks CLI](km-tasks-cli.md) — Task-specific commands
 - [UI](km-ui.md) — View behavior, collapsing
 - [Overview](km-overview.md) — Quick start
 - [Agents](km-agents.md) — Agent orchestration
