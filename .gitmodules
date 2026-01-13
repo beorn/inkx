@@ -1,0 +1,3 @@
+[submodule "vendor/beorn-mdtest"]
+	path = vendor/beorn-mdtest
+	url = git@github.com:beorn/mdtest.git
