@@ -195,11 +195,11 @@ rules:
       - board.add: "@inbox"
 
   - name: inbox-processed
-    description: Remove from @inbox when moved out
+    description: Remove from @inbox when moved out of inbox folder
     trigger: field.changed
     field: path
     was: "./inbox/**"
-    now: "-./inbox/**"
+    now: "!./inbox/**"    # Now outside inbox (! = not matching)
     actions:
       - board.remove: "@inbox"
 
@@ -235,7 +235,9 @@ rules:
 
 ## Reference Boards
 
-Tasks automatically appear on boards they reference:
+Tasks automatically appear on boards they reference.
+
+When `field: references` is used, `match:` filters which references trigger the action. The `${ref}` variable expands to each matched reference.
 
 ```yaml
 # .km/auto/references.yml
@@ -244,26 +246,27 @@ name: Reference Boards
 
 rules:
   - name: person-boards
-    description: Tasks with @person appear on that board
+    description: Tasks with @person appear on that person's board
     trigger: field.changed
     field: references
-    match: "@* -@inbox -@next -@someday"    # Skip system boards
+    ref_match: "@*"                         # Match @person references
+    ref_exclude: "@inbox @next @someday"    # Skip system boards
     actions:
-      - board.add: "${ref}"
+      - board.add: "${ref}"                 # ${ref} = the matched @person
 
   - name: project-boards
-    description: Tasks with +project appear on that board
+    description: Tasks with +project appear on that project's board
     trigger: field.changed
     field: references
-    match: "+*"
+    ref_match: "+*"                         # Match +project references
     actions:
       - board.add: "${ref}"
 
   - name: tag-boards
-    description: Tasks with #tag appear on that board
+    description: Tasks with #tag appear on that tag's board
     trigger: field.changed
     field: references
-    match: "#*"
+    ref_match: "#*"                         # Match #tag references
     actions:
       - board.add: "${ref}"
 ```

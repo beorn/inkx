@@ -123,7 +123,13 @@ Moving a task to `@next/waiting` automatically sets `status=blocked`.
 | `#` | Tags, categories | `#finance`, `#urgent` |
 | `+` | Projects | `+website`, `+q1` |
 
-The **first** `@` reference becomes the **owner** (assignee). All references create links to boards.
+**@ for People vs Contexts:**
+- **People** (`@bjorn`, `@sarah`): Delegation, collaboration, agenda items to discuss
+- **Contexts** (`@phone`, `@computer`, `@errands`): GTD contexts — where/how you can do the task
+
+Both use `@` because they answer "who/where can do this?" The first `@` becomes the **owner** (assignee) — typically a person. Contexts are usually used alone or after a person reference.
+
+All references create links to boards.
 
 Example: `- [ ] Review budget @bjorn @sarah #finance`
 - `owner` = `bjorn` (first `@`)
@@ -216,46 +222,6 @@ status:open @bjorn           # Field match + reference
 ./inbox/** -status:done      # Path + negation
 +website due:week            # Project ref + date
 "budget"                     # Full-text search
-```
-
----
-
-## Board Commands
-
-### Board/Column Paths
-
-Boards and columns are addressed with path-like syntax:
-
-```bash
-km @next                       # View @next board
-km @next/today                 # View today column
-km @next/waiting               # View waiting column
-km +website                    # View project board
-```
-
-### Adding to Boards
-
-```bash
-# Add by node query
-km @next add status:open due:today
-km @next/today add +website status:open
-km @next/waiting add @sarah
-
-# Add by path
-km @next add ./inbox/**
-
-# Add specific nodes by ID
-km @next add task-1 task-2
-
-# Preview first
-km @next add due:week --dry-run
-```
-
-### Removing from Boards
-
-```bash
-km @next remove status:done
-km @next/waiting remove @sarah
 ```
 
 ---

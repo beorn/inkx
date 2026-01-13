@@ -147,16 +147,7 @@ Opens on `Enter` or `l`, closes on `Esc` or `h`.
 
 ## Favorites
 
-Number keys `1-6` open favorite boards. Configure in `.km/config.yml`:
-
-```yaml
-favorites:
-  1: "@next"
-  2: "@inbox"
-  3: "@someday"
-  4: "+current-project"
-  5: "@bjorn"
-```
+Number keys `1-6` open favorite boards. See [km-tasks.md](km-tasks.md#favorites) for configuration.
 
 ### Board View
 

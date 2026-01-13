@@ -176,7 +176,7 @@ Rules automatically populate boards:
 rules:
   - name: surface-overdue
     trigger: due.passed
-    where: { status: open }
+    match: "status:open"
     actions:
       - board.add: "@next"
 ```
