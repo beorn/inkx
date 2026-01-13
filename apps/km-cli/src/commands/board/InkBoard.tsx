@@ -126,8 +126,9 @@ function OutlineItem({
 
   // Get parent context for top-level cards (depth 0)
   // Shows where the task belongs, e.g., "< Green card" for a task from green-card.md
+  // For transcluded items, their parent_id still points to the original file/section
   const parentContext =
-    depth === 0 && isTask ? getParentContext(node, node.parent_id) : null;
+    depth === 0 && isTask ? getParentContext(node) : null;
 
   const children = getChildren(node.id);
   const hasChildren = children.length > 0;
