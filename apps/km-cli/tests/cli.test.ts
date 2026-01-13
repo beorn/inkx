@@ -275,6 +275,28 @@ describe("CLI Integration", () => {
       const doneTask = allTasks.find((t: { id: string }) => t.id === task.id);
       expect(doneTask.task_status).toBe("done");
     });
+
+    test("should mark task as done by ID suffix (displayed short ID)", async () => {
+      // Reset task status first
+      const listResult = await km(["task", "--all", "--json"]);
+      const tasks = JSON.parse(listResult.stdout);
+      const task = tasks.find((t: { content: string }) =>
+        t.content.includes("Task to complete"),
+      );
+      expect(task).toBeDefined();
+
+      // Mark as done using ID suffix (last 8 chars - what 'km task -i' displays)
+      const idSuffix = task.id.slice(-8);
+      const doneResult = await km(["done", idSuffix]);
+      expect(doneResult.exitCode).toBe(0);
+      expect(doneResult.stdout).toContain("Marked done");
+
+      // Verify task is now done
+      const afterResult = await km(["task", "--all", "--json"]);
+      const afterTasks = JSON.parse(afterResult.stdout);
+      const doneTask = afterTasks.find((t: { id: string }) => t.id === task.id);
+      expect(doneTask.task_status).toBe("done");
+    });
   });
 
   describe("km search", () => {
@@ -595,13 +617,13 @@ describe("km init", () => {
     expect(result.stdout).toContain("Already initialized");
   });
 
-  describe("gtd template", () => {
-    test("should create GTD folder structure", async () => {
+  describe("gtd template (default)", () => {
+    test("should create GTD folder structure by default", async () => {
       const initDir = join(INIT_TEST_DIR, "gtd-project");
       mkdirSync(initDir, { recursive: true });
 
       // --force needed since tests run within km repo which has ancestor .km/
-      const result = await km(["init", "--force", "gtd"], {
+      const result = await km(["init", "--force"], {
         cwd: initDir,
         env: { KM_DIR: join(initDir, ".km") },
       });
@@ -623,7 +645,7 @@ describe("km init", () => {
       const initDir = join(INIT_TEST_DIR, "gtd-inbox");
       mkdirSync(initDir, { recursive: true });
 
-      await km(["init", "--force", "gtd"], {
+      await km(["init", "--force"], {
         cwd: initDir,
         env: { KM_DIR: join(initDir, ".km") },
       });
@@ -640,7 +662,7 @@ describe("km init", () => {
       const initDir = join(INIT_TEST_DIR, "gtd-next");
       mkdirSync(initDir, { recursive: true });
 
-      await km(["init", "--force", "gtd"], {
+      await km(["init", "--force"], {
         cwd: initDir,
         env: { KM_DIR: join(initDir, ".km") },
       });
@@ -657,7 +679,7 @@ describe("km init", () => {
       const initDir = join(INIT_TEST_DIR, "gtd-someday");
       mkdirSync(initDir, { recursive: true });
 
-      await km(["init", "--force", "gtd"], {
+      await km(["init", "--force"], {
         cwd: initDir,
         env: { KM_DIR: join(initDir, ".km") },
       });
@@ -669,10 +691,10 @@ describe("km init", () => {
       expect(content).toContain("Ideas and projects for the future");
     });
 
-    test("should use path argument when not gtd template", async () => {
+    test("should use path argument", async () => {
       const initDir = join(INIT_TEST_DIR, "path-argument");
 
-      // km init ./path should create .km/ in ./path
+      // km init ./path should create .km/ and GTD files in ./path
       const result = await km(["init", "--force", initDir], {
         cwd: INIT_TEST_DIR,
         env: { KM_DIR: join(initDir, ".km") },
@@ -681,6 +703,25 @@ describe("km init", () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Initialized");
       expect(existsSync(join(initDir, ".km"))).toBe(true);
+      // GTD files should also be created by default
+      expect(existsSync(join(initDir, "@inbox.md"))).toBe(true);
+    });
+
+    test("should skip GTD with --no-gtd", async () => {
+      const initDir = join(INIT_TEST_DIR, "no-gtd");
+      mkdirSync(initDir, { recursive: true });
+
+      const result = await km(["init", "--force", "--no-gtd"], {
+        cwd: initDir,
+        env: { KM_DIR: join(initDir, ".km") },
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Initialized");
+      expect(existsSync(join(initDir, ".km"))).toBe(true);
+      // GTD files should NOT exist
+      expect(existsSync(join(initDir, "@inbox.md"))).toBe(false);
+      expect(existsSync(join(initDir, "inbox"))).toBe(false);
     });
   });
 });

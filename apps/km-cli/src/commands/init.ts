@@ -81,45 +81,64 @@ Ideas and projects for the future.
 
 /**
  * Create GTD folder structure
+ * Skips existing files unless force is true
  */
-function createGtdStructure(targetDir: string): void {
-  // Create folders
+function createGtdStructure(targetDir: string, force: boolean): void {
+  // Create folders (always safe)
   const inboxDir = join(targetDir, "inbox");
   const archiveDir = join(targetDir, "archive");
 
-  mkdirSync(inboxDir, { recursive: true });
-  mkdirSync(archiveDir, { recursive: true });
+  if (!existsSync(inboxDir)) {
+    mkdirSync(inboxDir, { recursive: true });
+    console.log(chalk.dim(`  Created: inbox/`));
+  }
 
-  // Create board files
-  writeFileSync(join(targetDir, "@inbox.md"), GTD_INBOX_MD);
-  writeFileSync(join(targetDir, "@next.md"), GTD_NEXT_MD);
-  writeFileSync(join(targetDir, "@someday.md"), GTD_SOMEDAY_MD);
+  if (!existsSync(archiveDir)) {
+    mkdirSync(archiveDir, { recursive: true });
+    console.log(chalk.dim(`  Created: archive/`));
+  }
 
-  console.log(chalk.dim(`  Created: inbox/`));
-  console.log(chalk.dim(`  Created: archive/`));
-  console.log(chalk.dim(`  Created: @inbox.md`));
-  console.log(chalk.dim(`  Created: @next.md`));
-  console.log(chalk.dim(`  Created: @someday.md`));
+  // Create board files (skip if exists unless --force)
+  const files: [string, string][] = [
+    ["@inbox.md", GTD_INBOX_MD],
+    ["@next.md", GTD_NEXT_MD],
+    ["@someday.md", GTD_SOMEDAY_MD],
+  ];
+
+  let skipped = false;
+  for (const [filename, content] of files) {
+    const filepath = join(targetDir, filename);
+    if (existsSync(filepath) && !force) {
+      console.log(chalk.dim(`  Skipped: ${filename} (exists)`));
+      skipped = true;
+    } else {
+      writeFileSync(filepath, content);
+      console.log(chalk.dim(`  Created: ${filename}`));
+    }
+  }
+
+  if (skipped) {
+    console.log(chalk.dim(`  Use --force to overwrite existing files`));
+  }
 }
 
 export const initCommand = new Command("init")
-  .description("Initialize km in a directory (enables disk mode)")
-  .argument("[path]", "Target directory or template (gtd)")
-  .option("-f, --force", "Reinitialize even if .km/ exists")
-  .action((templateArg, options, command) => {
-    // Priority: --root from parent > KM_ROOT env > cwd
-    // Note: For init, we resolve the path directly without requiring it to exist
+  .description(
+    "Initialize km in a directory (enables disk mode, adds GTD by default)",
+  )
+  .argument("[path]", "Target directory")
+  .option("-f, --force", "Overwrite existing files")
+  .option("--no-gtd", "Skip GTD folder structure")
+  .action((pathArg, options, command) => {
+    // Priority: --root from parent > path arg > KM_ROOT env > cwd
     const globalRoot = command.parent?.opts()?.root || process.env.KM_ROOT;
     let targetDir: string;
-    let template: string | undefined;
 
-    // Detect if templateArg is actually a path (not "gtd")
-    // If it's a path, use it as targetDir; otherwise treat as template
-    if (templateArg && templateArg !== "gtd") {
-      // Treat as path
-      const expanded = templateArg.startsWith("~")
-        ? templateArg.replace("~", process.env.HOME || "")
-        : templateArg;
+    if (pathArg) {
+      // Path argument provided
+      const expanded = pathArg.startsWith("~")
+        ? pathArg.replace("~", process.env.HOME || "")
+        : pathArg;
       targetDir = resolve(expanded);
 
       // Create target directory if it doesn't exist
@@ -139,10 +158,8 @@ export const initCommand = new Command("init")
         mkdirSync(targetDir, { recursive: true });
         console.log(chalk.dim(`Created directory: ${targetDir}`));
       }
-      template = templateArg; // "gtd" or undefined
     } else {
       targetDir = resolve(process.cwd());
-      template = templateArg; // "gtd" or undefined
     }
 
     const kmDir = join(targetDir, ".km");
@@ -179,9 +196,9 @@ export const initCommand = new Command("init")
     console.log(chalk.green(`Initialized km in ${targetDir}`));
     console.log(chalk.dim(`  Created: ${kmDir}/`));
 
-    // Handle template
-    if (template === "gtd") {
-      createGtdStructure(targetDir);
+    // Add GTD structure by default (unless --no-gtd)
+    if (options.gtd !== false) {
+      createGtdStructure(targetDir, options.force);
     }
 
     console.log();
