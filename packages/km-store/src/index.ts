@@ -16,6 +16,8 @@ export {
   getTasksByStatus,
   getAllTasks,
   search,
+  searchWithSnippet,
+  toFts5Query,
   getLastEventId,
   getAllNodes,
   addLink,
@@ -27,7 +29,7 @@ export {
   dbApplyEvent,
 } from "./db.ts";
 
-export type { Link } from "./db.ts";
+export type { Link, SearchResult } from "./db.ts";
 
 // Store abstraction
 export {
@@ -62,3 +64,14 @@ export {
   storeContentAuto,
   loadContentAuto,
 } from "./cas.ts";
+
+// Query language
+export {
+  parseQuery,
+  executeQuery,
+  queryTasks,
+  queryNodes,
+  resolveDateQuery,
+} from "./query.ts";
+
+export type { QueryAST, QueryCondition, QueryRef, DateRange } from "./query.ts";

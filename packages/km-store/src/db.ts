@@ -5,7 +5,7 @@
 
 import { Database } from "bun:sqlite";
 import { join } from "path";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import type { Node, Event, TaskStatus, NodeType } from "@km/core";
 import { getKmDir } from "@km/core";
 
@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS nodes (
 
   -- Markdown
   md_pos INTEGER,
+  md_line INTEGER,
   md_slug TEXT,
 
   -- Task
@@ -236,13 +237,13 @@ function applyNodeCreated(db: Database, event: Event): void {
     `
     INSERT INTO nodes (
       id, type, parent_id, symlink_to, parent_idx,
-      fs_path, fs_ino, md_pos, md_slug,
+      fs_path, fs_ino, md_pos, md_line, md_slug,
       task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
       ?, ?, ?, ?, ?,
-      ?, ?, ?, ?,
+      ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?
@@ -257,6 +258,7 @@ function applyNodeCreated(db: Database, event: Event): void {
       (data.fs_path as string) ?? null,
       (data.fs_ino as number) ?? null,
       (data.md_pos as number) ?? null,
+      (data.md_line as number) ?? null,
       (data.md_slug as string) ?? null,
       (data.task_status as string) ?? null,
       (data.task_mark as string) ?? null,
@@ -297,6 +299,59 @@ function applyNodeUpdated(db: Database, event: Event): void {
 
   const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`;
   db.run(sql, values);
+
+  // Bidirectional sync: write task status changes back to markdown file
+  if (data.task_status !== undefined) {
+    const node = db
+      .query("SELECT fs_path, md_line FROM nodes WHERE id = ?")
+      .get(event.target) as {
+      fs_path: string | null;
+      md_line: number | null;
+    } | null;
+
+    if (node?.fs_path && node.md_line !== null) {
+      writeTaskStatusToFile(
+        node.fs_path,
+        node.md_line,
+        data.task_status as TaskStatus,
+      );
+    }
+  }
+}
+
+/**
+ * Write task status change back to markdown file (bidirectional sync)
+ */
+function writeTaskStatusToFile(
+  fsPath: string,
+  mdLine: number,
+  newStatus: TaskStatus,
+): void {
+  try {
+    const content = readFileSync(fsPath, "utf-8");
+    const lines = content.split("\n");
+
+    if (mdLine >= lines.length) return;
+
+    const line = lines[mdLine];
+    if (!line) return;
+
+    // Map status to task mark
+    const newMark =
+      newStatus === "done"
+        ? "x"
+        : newStatus === "blocked"
+          ? "!"
+          : newStatus === "dropped"
+            ? "-"
+            : " "; // open
+
+    lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
+
+    void Bun.write(fsPath, lines.join("\n"));
+  } catch {
+    // Ignore write errors
+  }
 }
 
 function applyNodeMoved(db: Database, event: Event): void {
@@ -526,10 +581,52 @@ export function getAllTasks(): Node[] {
 }
 
 /**
+ * Convert a search query to FTS5 syntax
+ * - Quoted phrases become FTS5 phrase queries
+ * - Unquoted terms use prefix matching with *
+ */
+export function toFts5Query(query: string): string {
+  const parts: string[] = [];
+
+  // Extract quoted phrases and replace with placeholders
+  const phrases: string[] = [];
+  const remaining = query.replace(/"([^"]+)"/g, (_, phrase) => {
+    phrases.push(phrase);
+    return `__PHRASE_${phrases.length - 1}__`;
+  });
+
+  // Split remaining into tokens
+  const tokens = remaining.split(/\s+/).filter((t) => t.length > 0);
+
+  for (const token of tokens) {
+    // Check if this is a phrase placeholder
+    const phraseMatch = token.match(/^__PHRASE_(\d+)__$/);
+    if (phraseMatch && phraseMatch[1] !== undefined) {
+      const idx = parseInt(phraseMatch[1], 10);
+      const phrase = phrases[idx];
+      if (phrase !== undefined) {
+        // FTS5 phrase syntax: "word1 word2 word3"
+        parts.push(`"${phrase}"`);
+      }
+    } else if (token.startsWith("-")) {
+      // Negation: NOT term
+      parts.push(`NOT ${token.slice(1)}*`);
+    } else {
+      // Regular term with prefix matching
+      parts.push(`${token}*`);
+    }
+  }
+
+  return parts.join(" ");
+}
+
+/**
  * Full-text search
  */
 export function search(query: string, limit = 50): Node[] {
   const db = getDb();
+  const ftsQuery = toFts5Query(query);
+
   const rows = db
     .query(
       `
@@ -540,9 +637,72 @@ export function search(query: string, limit = 50): Node[] {
     LIMIT ?
   `,
     )
-    .all(query, limit) as Record<string, unknown>[];
+    .all(ftsQuery, limit) as Record<string, unknown>[];
 
   return rows.map(rowToNode);
+}
+
+/**
+ * Search result with snippet highlighting
+ */
+export interface SearchResult {
+  node: Node;
+  snippet: string;
+}
+
+/**
+ * Full-text search with snippet highlighting
+ *
+ * Returns nodes with a snippet showing matching context.
+ * Uses FTS5 snippet() function for efficient highlighting.
+ *
+ * @param query - Search query (supports "quoted phrases" and individual terms)
+ * @param limit - Maximum results to return
+ * @param snippetOptions - Options for snippet generation
+ * @returns Array of search results with highlighted snippets
+ */
+export function searchWithSnippet(
+  query: string,
+  limit = 50,
+  snippetOptions: {
+    startMark?: string;
+    endMark?: string;
+    ellipsis?: string;
+    maxTokens?: number;
+  } = {},
+): SearchResult[] {
+  const db = getDb();
+  const ftsQuery = toFts5Query(query);
+
+  const {
+    startMark = "<<",
+    endMark = ">>",
+    ellipsis = "...",
+    maxTokens = 32,
+  } = snippetOptions;
+
+  // Use snippet() function for highlighting
+  // snippet(fts_table, column_idx, start_mark, end_mark, ellipsis, max_tokens)
+  // column_idx 1 = content column
+  const rows = db
+    .query(
+      `
+    SELECT n.*, snippet(nodes_fts, 1, ?, ?, ?, ?) as snippet
+    FROM nodes n
+    JOIN nodes_fts f ON n.id = f.id
+    WHERE nodes_fts MATCH ?
+    ORDER BY rank
+    LIMIT ?
+  `,
+    )
+    .all(startMark, endMark, ellipsis, maxTokens, ftsQuery, limit) as Array<
+    Record<string, unknown> & { snippet: string }
+  >;
+
+  return rows.map((row) => ({
+    node: rowToNode(row),
+    snippet: row.snippet ?? "",
+  }));
 }
 
 /**
