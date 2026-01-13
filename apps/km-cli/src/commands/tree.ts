@@ -15,6 +15,7 @@ export const treeCommand = new Command("tree")
   .option("-d, --depth <n>", "Maximum depth", "10")
   .option("--tasks", "Only show tasks")
   .option("--files", "Only show files/folders")
+  .option("--ids", "Show node IDs")
   .option("--json", "Output as JSON")
   .action((root, options) => {
     const maxDepth = parseInt(options.depth, 10);
@@ -57,7 +58,7 @@ function printTree(
   isLast: boolean,
   depth: number,
   maxDepth: number,
-  options: { tasks?: boolean; files?: boolean },
+  options: { tasks?: boolean; files?: boolean; ids?: boolean },
 ): void {
   // Filter
   if (options.tasks && node.type !== "task") {
@@ -67,7 +68,7 @@ function printTree(
   } else {
     // Print this node
     const connector = isLast ? "└── " : "├── ";
-    console.log(prefix + connector + formatNode(node));
+    console.log(prefix + connector + formatNode(node, options.ids));
   }
 
   if (depth >= maxDepth) {
@@ -92,14 +93,16 @@ function printTree(
 /**
  * Format a node for tree display
  */
-function formatNode(node: Node): string {
+function formatNode(node: Node, showIds?: boolean): string {
   const parts: string[] = [];
 
   // Type icon
   parts.push(getTypeIcon(node));
 
-  // ID (truncated)
-  parts.push(chalk.dim(node.id.slice(0, 8)));
+  // ID (truncated) - only if requested
+  if (showIds) {
+    parts.push(chalk.dim(node.id.slice(0, 8)));
+  }
 
   // Name/content
   if (node.type === "file" || node.type === "folder") {

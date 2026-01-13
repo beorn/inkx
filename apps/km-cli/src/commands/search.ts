@@ -12,15 +12,20 @@ import { searchWithSnippet, getAllNodes } from "@km/store";
 import type { Node } from "@km/core";
 import type { SearchResult } from "@km/store";
 
+// Store showIds flag for formatResult
+let showIds = false;
+
 export const searchCommand = new Command("search")
   .alias("s")
   .description('Search nodes (supports "quoted phrases")')
   .argument("<query>", "Search query")
   .option("-t, --type <type>", "Filter by node type")
   .option("-l, --limit <n>", "Maximum results", "20")
+  .option("--ids", "Show node IDs")
   .option("--json", "Output as JSON")
   .action((query, options) => {
     const limit = parseInt(options.limit, 10);
+    showIds = options.ids ?? false;
 
     let results: SearchResult[];
 
@@ -85,8 +90,10 @@ function formatResult(result: SearchResult): string {
   // Type icon
   parts.push(getTypeIcon(node.type));
 
-  // ID
-  parts.push(chalk.dim(node.id.slice(0, 8)));
+  // ID - only if requested
+  if (showIds) {
+    parts.push(chalk.dim(node.id.slice(0, 8)));
+  }
 
   // Content with FTS5-highlighted snippet (already contains ANSI codes)
   // or fallback to raw content

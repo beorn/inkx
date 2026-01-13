@@ -31,7 +31,8 @@ Sync filesystem to database:
 ```console
 $ km sync
 Syncing: ...
-[...]
+Syncing filesystem → database...
+✓ Processed 5 change(s)
 ```
 
 ### km list
@@ -40,7 +41,11 @@ List all nodes in the vault:
 
 ```console
 $ km ls
+# Someday/Maybe
 [...]
+# Inbox
+[...]
+16 node(s)
 ```
 
 ## Task Management
@@ -52,28 +57,33 @@ Create a task and sync to see it:
 ```console
 $ km new "Test task from mdtest"
 ✓ Added to inbox: Test task from mdtest
-[...]
 ```
 
 ```console
 $ km sync
-[...]
+Syncing: ...
+Syncing filesystem → database...
+✓ Processed 2 change(s)
 ```
 
 ### km task - List tasks
 
 ```console
 $ km task
-[...]
+inbox / .md
  [ ] Test task from mdtest
-[...]
+
+1 task(s)
 ```
 
 ### km task with query
 
 ```console
 $ km task status:open
-[...]
+inbox / .md
+ [ ] Test task from mdtest
+
+1 task(s)
 ```
 
 ### km done - Complete a task
@@ -83,17 +93,24 @@ Get a task and mark it done:
 ```console
 $ TASK_ID=$(km task --json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 $ km done "$TASK_ID"
-✓ Marked done: ...
+✓ Marked done: Test task from mdtest
 ```
 
 ## Tree View
 
 ### km tree
 
-Show node hierarchy:
+Show node hierarchy (IDs hidden by default):
 
 ```console
 $ km tree
+├── 📁 inbox
+│   └── 📄 inbox.md
+│       └── ✓ [x] Test task from mdtest
+├── 📁 archive
+├── 📄 @inbox.md
+[...]
+└── 📄 @someday.md
 [...]
 ```
 
@@ -101,11 +118,12 @@ $ km tree
 
 ### km search
 
-Full-text search:
+Full-text search (IDs hidden by default):
 
 ```console
 $ km search "inbox"
 [...]
+3 result(s)
 ```
 
 ## Node Resolution
@@ -119,7 +137,8 @@ $ km show @inbox
 ID: ...
 Type: file
 Path: .../@inbox.md
-[...]
+Created: ...
+Updated: ...
 ```
 
 ### Resolve by path
@@ -128,7 +147,11 @@ Commands accept relative paths:
 
 ```console
 $ km show ./@inbox.md
-[...]
+ID: ...
+Type: file
+Path: .../@inbox.md
+Created: ...
+Updated: ...
 ```
 
 ## Init Command
@@ -139,7 +162,17 @@ $ km show ./@inbox.md
 $ mkdir -p /tmp/km-mdtest-init
 $ cd /tmp/km-mdtest-init && km init .
 Initialized km in ...
-[...]
+  Created: .../.km/
+  Created: inbox/
+  Created: archive/
+  Created: @inbox.md
+  Created: @next.md
+  Created: @someday.md
+
+Next steps:
+  km sync    # Scan and import .md files
+  km tasks   # List tasks
+  km board   # Open kanban board
 ```
 
 ```console
@@ -157,7 +190,6 @@ $ rm -rf /tmp/km-mdtest-init
 
 ```console
 $ km show nonexistent-id-12345 2>&1
-[...]
 Node not found: nonexistent-id-12345
 [1]
 ```
