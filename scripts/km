@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
-# km CLI wrapper - runs bun km with all arguments
-exec bun km "$@"
+# km CLI wrapper - runs km CLI while preserving current directory
+# Uses absolute path to avoid bun changing cwd to package.json location
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Run the CLI directly with bun, preserving cwd
+exec bun "$REPO_ROOT/apps/km-cli/src/index.ts" "$@"
