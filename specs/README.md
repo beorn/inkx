@@ -22,7 +22,9 @@ This directory contains technical specifications for implementation.
 | -------------------------- | ----------------------------- | -------------- |
 | [Markdown](km-markdown.md) | Parsing, AST conversion       | Implemented    |
 | [Watch](km-watch.md)       | Bidirectional filesystem sync | Persisted mode |
+| [Services](km-services.md) | sync, auto, agents daemons    | Design         |
 | [Agents](km-agents.md)     | AI agent orchestration        | Future         |
+| [Tasks](km-tasks.md)       | Task management system        | Implemented    |
 
 ---
 
