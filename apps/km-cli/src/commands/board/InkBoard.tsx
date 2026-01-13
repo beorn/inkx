@@ -10,7 +10,11 @@ import { buildBoardState, initBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "@km/core";
 import { getChildren, getNode, getDb, isMemoryMode } from "@km/store";
 import { emit } from "@km/core";
-import { getNodeDisplayName, getCollapsedTypeSuffix } from "@km/shared";
+import {
+  getNodeDisplayName,
+  getCollapsedTypeSuffix,
+  getParentContext,
+} from "@km/shared";
 import { DetailPane } from "./detail-pane.tsx";
 import { ProjectPicker } from "./project-picker.tsx";
 import { HelpOverlay } from "./help-overlay.tsx";
@@ -120,6 +124,11 @@ function OutlineItem({
   // Get collapsed type suffix (e.g., "/ .md #" for unified folder/file/section)
   const typeSuffix = getCollapsedTypeSuffix(node);
 
+  // Get parent context for top-level cards (depth 0)
+  // Shows where the task belongs, e.g., "< Green card" for a task from green-card.md
+  const parentContext =
+    depth === 0 && isTask ? getParentContext(node, node.parent_id) : null;
+
   const children = getChildren(node.id);
   const hasChildren = children.length > 0;
   const isFolded = foldedNodes.has(node.id);
@@ -134,17 +143,19 @@ function OutlineItem({
   const suffix = typeSuffix ? ` ${typeSuffix}` : "";
 
   // Build the full line and truncate to fit width exactly
-  // Format: prefix + content + suffix + foldedCount
-  const fixedParts = prefix.length + suffix.length + foldedCount.length;
+  // Format: prefix + content + suffix + foldedCount + parentContext (grey)
+  // Reserve space for parent context if present
+  const contextSuffix = parentContext ? ` < ${parentContext}` : "";
+  const fixedParts =
+    prefix.length + suffix.length + foldedCount.length + contextSuffix.length;
   const availWidth = Math.max(1, width - fixedParts);
   const truncatedContent =
     firstLine.length > availWidth
       ? firstLine.slice(0, availWidth - 1) + "…"
       : firstLine;
 
-  // Build complete line, padded/truncated to exact width
-  const fullLine = prefix + truncatedContent + suffix + foldedCount;
-  const displayLine = fullLine.slice(0, width);
+  // Build the main line (without context) - context suffix styled separately
+  const mainLine = prefix + truncatedContent + suffix + foldedCount;
 
   // Determine background color based on selection state
   let backgroundColor: string | undefined;
@@ -168,7 +179,8 @@ function OutlineItem({
         dimColor={!isCardSelected && depth > 0}
         wrap="truncate"
       >
-        {displayLine}
+        {mainLine}
+        {parentContext && <Text dimColor>{contextSuffix}</Text>}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
@@ -475,6 +487,7 @@ function Board({ initialState }: BoardProps) {
   ); // Mouse drag selection range
   const [isMouseDragging, setIsMouseDragging] = useState(false); // Whether mouse drag is active
   const [showHelp, setShowHelp] = useState(false); // Whether help overlay is visible
+  const [selectAllLevel, setSelectAllLevel] = useState(0); // Track selection level for progressive Shift+A
 
   // Listen for terminal resize
   useEffect(() => {
@@ -610,6 +623,23 @@ function Board({ initialState }: BoardProps) {
   const clearSelection = () => {
     setMultiSelected(new Set());
     setSelectionAnchor(null);
+    setSelectAllLevel(0);
+  };
+
+  // Get unique selected card indices from multi-selection
+  const getSelectedCardIndices = (): number[] => {
+    if (multiSelected.size === 0) return [];
+    const indices = new Set<number>();
+    for (const key of multiSelected) {
+      const [colStr, cardStr] = key.split(":");
+      const col = parseInt(colStr ?? "0", 10);
+      const card = parseInt(cardStr ?? "0", 10);
+      // Only include cards from the current column
+      if (col === state.colIndex) {
+        indices.add(card);
+      }
+    }
+    return Array.from(indices).sort((a, b) => a - b);
   };
 
   // Move card within column (up/down)
@@ -617,10 +647,31 @@ function Board({ initialState }: BoardProps) {
     const col = state.columns[state.colIndex];
     if (!col) return;
 
-    const currentIndex = state.cardIndex;
-    const targetIndex =
-      direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    // Get all selected card indices, or just the current one if no multi-selection
+    const selectedIndices = getSelectedCardIndices();
+    const cardsToMove =
+      selectedIndices.length > 0
+        ? selectedIndices.map((i) => ({ index: i, card: col.cards[i] }))
+        : [{ index: state.cardIndex, card }];
 
+    // Filter out any undefined cards
+    const validCards = cardsToMove.filter(
+      (c): c is { index: number; card: CardState } => c.card !== undefined,
+    );
+    if (validCards.length === 0) return;
+
+    // For moving up, we need to move the topmost card first
+    // For moving down, we need to move the bottommost card first
+    const sortedCards =
+      direction === "up"
+        ? validCards.sort((a, b) => a.index - b.index)
+        : validCards.sort((a, b) => b.index - a.index);
+
+    // Check if we can move in this direction
+    const firstToMove = sortedCards[0];
+    if (!firstToMove) return;
+    const targetIndex =
+      direction === "up" ? firstToMove.index - 1 : firstToMove.index + 1;
     if (targetIndex < 0 || targetIndex >= col.cards.length) return;
 
     // Calculate new sort order using fractional indexing
@@ -636,53 +687,65 @@ function Board({ initialState }: BoardProps) {
         : cardIndex;
     };
 
-    let newSortOrder: number;
-    if (direction === "up") {
-      if (targetIndex === 0) {
-        // Moving to first position: go before the current first card
-        const firstOrder = getEffectiveSortOrder(0);
-        newSortOrder = firstOrder - 1;
+    // Move each card
+    for (const { index: currentIndex, card: cardToMove } of sortedCards) {
+      const cardTargetIndex =
+        direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+      if (cardTargetIndex < 0 || cardTargetIndex >= col.cards.length) continue;
+
+      let newSortOrder: number;
+      if (direction === "up") {
+        if (cardTargetIndex === 0) {
+          // Moving to first position: go before the current first card
+          const firstOrder = getEffectiveSortOrder(0);
+          newSortOrder = firstOrder - 1;
+        } else {
+          // Moving between two cards: use midpoint
+          const prevOrder = getEffectiveSortOrder(cardTargetIndex - 1);
+          const targetOrder = getEffectiveSortOrder(cardTargetIndex);
+          newSortOrder = (prevOrder + targetOrder) / 2;
+        }
       } else {
-        // Moving between two cards: use midpoint
-        const prevOrder = getEffectiveSortOrder(targetIndex - 1);
-        const targetOrder = getEffectiveSortOrder(targetIndex);
-        newSortOrder = (prevOrder + targetOrder) / 2;
+        if (cardTargetIndex >= col.cards.length - 1) {
+          // Moving to last position: go after the current last card
+          const lastOrder = getEffectiveSortOrder(col.cards.length - 1);
+          newSortOrder = lastOrder + 1;
+        } else {
+          // Moving between two cards: use midpoint
+          const targetOrder = getEffectiveSortOrder(cardTargetIndex);
+          const nextOrder = getEffectiveSortOrder(cardTargetIndex + 1);
+          newSortOrder = (targetOrder + nextOrder) / 2;
+        }
       }
-    } else {
-      if (targetIndex >= col.cards.length - 1) {
-        // Moving to last position: go after the current last card
-        const lastOrder = getEffectiveSortOrder(col.cards.length - 1);
-        newSortOrder = lastOrder + 1;
+
+      // Update database - use direct SQL in memory mode, emit event in disk mode
+      if (isMemoryMode()) {
+        const db = getDb();
+        db.run(
+          "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
+          [col.node.id, newSortOrder, Date.now(), cardToMove.node.id],
+        );
       } else {
-        // Moving between two cards: use midpoint
-        const targetOrder = getEffectiveSortOrder(targetIndex);
-        const nextOrder = getEffectiveSortOrder(targetIndex + 1);
-        newSortOrder = (targetOrder + nextOrder) / 2;
+        emit({
+          type: "node_moved",
+          actor: "user",
+          target: cardToMove.node.id,
+          data: {
+            parent_id: col.node.id,
+            parent_idx: newSortOrder,
+          },
+        });
       }
     }
 
-    // Update database - use direct SQL in memory mode, emit event in disk mode
-    if (isMemoryMode()) {
-      const db = getDb();
-      db.run(
-        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-        [col.node.id, newSortOrder, Date.now(), card.node.id],
-      );
-    } else {
-      emit({
-        type: "node_moved",
-        actor: "user",
-        target: card.node.id,
-        data: {
-          parent_id: col.node.id,
-          parent_idx: newSortOrder,
-        },
-      });
-    }
-
-    // Update local state and rebuild
-    const newCardIndex = targetIndex;
+    // Update local state: move the focused card index
+    const newCardIndex =
+      direction === "up" ? state.cardIndex - 1 : state.cardIndex + 1;
     setState((s) => ({ ...s, cardIndex: newCardIndex }));
+
+    // Clear selection after move
+    clearSelection();
 
     // Rebuild board state to reflect changes
     setTimeout(() => {
@@ -702,6 +765,9 @@ function Board({ initialState }: BoardProps) {
 
   // Move card to different column (left/right)
   const moveCardToColumn = (card: CardState, direction: "left" | "right") => {
+    const col = state.columns[state.colIndex];
+    if (!col) return;
+
     const targetColIndex =
       direction === "left" ? state.colIndex - 1 : state.colIndex + 1;
     if (targetColIndex < 0 || targetColIndex >= state.columns.length) return;
@@ -709,27 +775,45 @@ function Board({ initialState }: BoardProps) {
     const targetCol = state.columns[targetColIndex];
     if (!targetCol) return;
 
-    // Calculate sort order (add at end of target column)
-    const lastCard = targetCol.cards[targetCol.cards.length - 1];
-    const newSortOrder = lastCard ? lastCard.node.parent_idx + 1 : 0;
+    // Get all selected card indices, or just the current one if no multi-selection
+    const selectedIndices = getSelectedCardIndices();
+    const cardsToMove: CardState[] =
+      selectedIndices.length > 0
+        ? selectedIndices
+            .map((i) => col.cards[i])
+            .filter((c): c is CardState => c !== undefined)
+        : [card];
 
-    // Update database - use direct SQL in memory mode, emit event in disk mode
-    if (isMemoryMode()) {
-      const db = getDb();
-      db.run(
-        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-        [targetCol.node.id, newSortOrder, Date.now(), card.node.id],
-      );
-    } else {
-      emit({
-        type: "node_moved",
-        actor: "user",
-        target: card.node.id,
-        data: {
-          parent_id: targetCol.node.id,
-          parent_idx: newSortOrder,
-        },
-      });
+    if (cardsToMove.length === 0) return;
+
+    // Calculate sort order (add at end of target column)
+    let newSortOrder =
+      targetCol.cards.length > 0
+        ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) +
+          1
+        : 0;
+
+    // Move each card, incrementing sort order
+    for (const cardToMove of cardsToMove) {
+      // Update database - use direct SQL in memory mode, emit event in disk mode
+      if (isMemoryMode()) {
+        const db = getDb();
+        db.run(
+          "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
+          [targetCol.node.id, newSortOrder, Date.now(), cardToMove.node.id],
+        );
+      } else {
+        emit({
+          type: "node_moved",
+          actor: "user",
+          target: cardToMove.node.id,
+          data: {
+            parent_id: targetCol.node.id,
+            parent_idx: newSortOrder,
+          },
+        });
+      }
+      newSortOrder++;
     }
 
     // Update local state
@@ -739,6 +823,9 @@ function Board({ initialState }: BoardProps) {
       colIndex: targetColIndex,
       cardIndex: newCardIndex,
     }));
+
+    // Clear selection after move
+    clearSelection();
 
     // Rebuild board state
     setTimeout(() => {
@@ -760,6 +847,155 @@ function Board({ initialState }: BoardProps) {
     }, 50);
   };
 
+  // Move card to a specific column by index (for Shift+1-9)
+  const moveCardToColumnByIndex = (card: CardState, targetColIndex: number) => {
+    const col = state.columns[state.colIndex];
+    if (!col) return;
+
+    if (targetColIndex < 0 || targetColIndex >= state.columns.length) return;
+    if (targetColIndex === state.colIndex) return; // Already in this column
+
+    const targetCol = state.columns[targetColIndex];
+    if (!targetCol) return;
+
+    // Get all selected card indices, or just the current one if no multi-selection
+    const selectedIndices = getSelectedCardIndices();
+    const cardsToMove: CardState[] =
+      selectedIndices.length > 0
+        ? selectedIndices
+            .map((i) => col.cards[i])
+            .filter((c): c is CardState => c !== undefined)
+        : [card];
+
+    if (cardsToMove.length === 0) return;
+
+    // Calculate sort order - add at TOP of target column (before first card)
+    let newSortOrder =
+      targetCol.cards.length > 0
+        ? (targetCol.cards[0]?.node.parent_idx ?? 0) - cardsToMove.length
+        : 0;
+
+    // Move each card, incrementing sort order to keep order
+    for (const cardToMove of cardsToMove) {
+      // Update database - use direct SQL in memory mode, emit event in disk mode
+      if (isMemoryMode()) {
+        const db = getDb();
+        db.run(
+          "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
+          [targetCol.node.id, newSortOrder, Date.now(), cardToMove.node.id],
+        );
+      } else {
+        emit({
+          type: "node_moved",
+          actor: "user",
+          target: cardToMove.node.id,
+          data: {
+            parent_id: targetCol.node.id,
+            parent_idx: newSortOrder,
+          },
+        });
+      }
+      newSortOrder++;
+    }
+
+    // Stay in current column and select the next card that took this spot
+    // (or the previous card if we were at the end)
+    const newCardIndex = Math.min(
+      state.cardIndex,
+      Math.max(0, col.cards.length - cardsToMove.length - 1),
+    );
+
+    // Clear selection after move
+    clearSelection();
+
+    // Rebuild board state
+    setTimeout(() => {
+      const newState = state.rootId
+        ? buildBoardState(state.rootId)
+        : initBoardState();
+
+      if (newState) {
+        newState.zoomStack = state.zoomStack;
+        newState.rootPath = state.rootPath;
+        newState.colIndex = state.colIndex; // Stay in same column
+        newState.cardIndex = Math.min(
+          newCardIndex,
+          Math.max(
+            0,
+            (newState.columns[state.colIndex]?.cards.length ?? 1) - 1,
+          ),
+        );
+        setState(newState);
+      }
+    }, 50);
+  };
+
+  // Progressive select all with Shift+A
+  const progressiveSelectAll = () => {
+    const col = state.columns[state.colIndex];
+    const card = col?.cards[state.cardIndex];
+
+    // Determine current selection level based on what's already selected
+    const currentLevel = selectAllLevel;
+
+    // Level 0: Select all sub-items in current card (if in outline mode)
+    // Level 1: Select all cards in current column
+    // Level 2: Select all cards in all columns (entire board)
+    if (currentLevel === 0 && inOutlineMode && card) {
+      // Select all sub-items in current card
+      const newSelected = new Set<SelectionKey>();
+      const maxItems =
+        1 + countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes);
+      for (let s = 0; s < maxItems; s++) {
+        newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, s));
+      }
+      setMultiSelected(newSelected);
+      setSelectAllLevel(1);
+    } else if (currentLevel <= 1 && col) {
+      // Select all cards in current column
+      const newSelected = new Set<SelectionKey>();
+      for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
+        const c = col.cards[cardIdx];
+        if (c) {
+          const maxItems =
+            1 +
+            countVisibleDescendants(c.node, 0, maxOutlineDepth, foldedNodes);
+          for (let s = 0; s < maxItems; s++) {
+            newSelected.add(makeSelectionKey(state.colIndex, cardIdx, s));
+          }
+        }
+      }
+      setMultiSelected(newSelected);
+      setSelectAllLevel(2);
+    } else {
+      // Select all cards in all columns
+      const newSelected = new Set<SelectionKey>();
+      for (let colIdx = 0; colIdx < state.columns.length; colIdx++) {
+        const column = state.columns[colIdx];
+        if (column) {
+          for (let cardIdx = 0; cardIdx < column.cards.length; cardIdx++) {
+            const c = column.cards[cardIdx];
+            if (c) {
+              const maxItems =
+                1 +
+                countVisibleDescendants(
+                  c.node,
+                  0,
+                  maxOutlineDepth,
+                  foldedNodes,
+                );
+              for (let s = 0; s < maxItems; s++) {
+                newSelected.add(makeSelectionKey(colIdx, cardIdx, s));
+              }
+            }
+          }
+        }
+      }
+      setMultiSelected(newSelected);
+      setSelectAllLevel(0); // Wrap around
+    }
+  };
+
   useInput((input, key) => {
     const col = state.columns[state.colIndex];
     const card = col?.cards[state.cardIndex];
@@ -778,6 +1014,55 @@ function Board({ initialState }: BoardProps) {
 
     // Ignore other keys when help is shown
     if (showHelp) {
+      return;
+    }
+
+    // Shift+A: progressive select all
+    if (input === "A") {
+      progressiveSelectAll();
+      return;
+    }
+
+    // Number keys 1-9: jump to column or move card to column
+    // Shift+1-9 (characters !@#$%^&*() on US keyboard) move card to column
+    const shiftNumberMap: Record<string, number> = {
+      "!": 0,
+      "@": 1,
+      "#": 2,
+      $: 3,
+      "%": 4,
+      "^": 5,
+      "&": 6,
+      "*": 7,
+      "(": 8,
+    };
+    if (shiftNumberMap[input] !== undefined && card && !showDetailPane) {
+      const targetCol = shiftNumberMap[input];
+      if (targetCol < state.columns.length) {
+        moveCardToColumnByIndex(card, targetCol);
+      }
+      return;
+    }
+    // Plain 1-9: jump cursor to column (0-indexed, so 1 = column 0)
+    if (
+      /^[1-9]$/.test(input) &&
+      !moveMode &&
+      !showDetailPane &&
+      !inOutlineMode
+    ) {
+      const targetCol = parseInt(input, 10) - 1;
+      if (targetCol < state.columns.length) {
+        setState((s) => ({
+          ...s,
+          colIndex: targetCol,
+          cardIndex: Math.min(
+            s.cardIndex,
+            Math.max(0, (s.columns[targetCol]?.cards.length ?? 1) - 1),
+          ),
+        }));
+        clearSelection();
+        setSelectAllLevel(0); // Reset select all level when moving
+      }
       return;
     }
 

@@ -29,6 +29,7 @@ import {
   namesAreSimilar,
   getCollapsedTypeSuffix,
   collapseRedundantAncestors,
+  getParentContext,
 } from "../src/tree.ts";
 
 // Test helpers
@@ -454,5 +455,97 @@ describe("collapseRedundantAncestors", () => {
 
     const result = collapseRedundantAncestors([n1, n2, n3]);
     expect(result).toHaveLength(3);
+  });
+});
+
+describe("getParentContext", () => {
+  beforeEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    setKmDir(TEST_DIR);
+    setDatabase({ applyEvent });
+    resetDb();
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("returns null for node at root", () => {
+    const taskId = createTestNode("task", "Root task");
+    const task = getNode(taskId)!;
+    expect(getParentContext(task)).toBeNull();
+  });
+
+  test("returns file name for task in a file", () => {
+    // Create: file -> task
+    const fileId = createTestNode("file", undefined, null, {
+      data: { name: "Green card" },
+    });
+    const taskId = createTestNode("task", "Renew passport", fileId);
+
+    const task = getNode(taskId)!;
+    expect(getParentContext(task)).toBe("Green card");
+  });
+
+  test("returns section name for task in a section without rules", () => {
+    // Create: file -> section (no rules) -> task
+    const fileId = createTestNode("file", undefined, null, {
+      fs_path: "/path/to/project.md",
+    });
+    const sectionId = createTestNode("section", "Phase 1", fileId);
+    const taskId = createTestNode("task", "Do something", sectionId);
+
+    const task = getNode(taskId)!;
+    expect(getParentContext(task)).toBe("Phase 1");
+  });
+
+  test("skips board column (section with rules) and returns file", () => {
+    // Create: file (board) -> section (column with rules) -> task
+    // This simulates a task that was added to a board column
+    const fileId = createTestNode("file", undefined, null, {
+      data: { name: "Next Actions" },
+    });
+    const columnId = createTestNode(
+      "section",
+      "Processing default=true",
+      fileId,
+    );
+    const taskId = createTestNode("task", "Some task", columnId);
+
+    const task = getNode(taskId)!;
+    // Skip the column (has rules) and return the file name
+    expect(getParentContext(task, columnId)).toBe("Next Actions");
+  });
+
+  test("returns null when only board columns in ancestry", () => {
+    // Create: board -> column (with rules) -> task
+    // When task's only ancestors are board columns, return null
+    const boardId = createTestNode("board", "My Board");
+    const columnId = createTestNode("section", "Todo default=true", boardId);
+    const taskId = createTestNode("task", "Task", columnId);
+
+    const task = getNode(taskId)!;
+    // Skip the column, board type doesn't match file/section
+    expect(getParentContext(task, columnId)).toBeNull();
+  });
+
+  test("returns file name even when task is nested deep", () => {
+    // Create: file -> section1 -> section2 -> task
+    const fileId = createTestNode("file", undefined, null, {
+      data: { name: "Project X" },
+    });
+    const section1Id = createTestNode("section", "Chapter 1", fileId);
+    const section2Id = createTestNode("section", "Part A", section1Id);
+    const taskId = createTestNode("task", "Do task", section2Id);
+
+    const task = getNode(taskId)!;
+    // Returns first meaningful section
+    expect(getParentContext(task)).toBe("Part A");
   });
 });

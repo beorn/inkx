@@ -6,6 +6,7 @@ export {
   getCollapsedTypeSuffix,
   collapseRedundantAncestors,
   collapseAncestorsWithTypes,
+  getParentContext,
 } from "./tree.ts";
 
 export type { CollapsedAncestor } from "./tree.ts";

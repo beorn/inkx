@@ -6,7 +6,7 @@
  */
 
 import type { Node } from "@km/core";
-import { getChildren } from "@km/store";
+import { getChildren, getNode } from "@km/store";
 
 /**
  * Get display name for a node
@@ -227,4 +227,55 @@ export function collapseAncestorsWithTypes(
   }
 
   return result;
+}
+
+/**
+ * Get parent context for a node (for board card display)
+ *
+ * Walks up the parent chain to find meaningful context:
+ * - Skips board columns/sections (immediate parent in board view)
+ * - Returns the containing file's display name
+ *
+ * This is useful for showing where a task "belongs" when displayed on a board.
+ * For example, a task from "projects/green-card.md" would return "Green card".
+ *
+ * @param node The node to get context for
+ * @param skipParentId Optional parent ID to skip (e.g., current column)
+ * @returns The parent context string, or null if at root or no meaningful context
+ */
+export function getParentContext(
+  node: Node,
+  skipParentId?: string | null,
+): string | null {
+  if (!node.parent_id) return null;
+
+  let currentId: string | null = node.parent_id;
+
+  // Walk up the parent chain
+  while (currentId) {
+    // Skip the specified parent (e.g., board column)
+    if (skipParentId && currentId === skipParentId) {
+      const parent = getNode(currentId);
+      currentId = parent?.parent_id ?? null;
+      continue;
+    }
+
+    const parent = getNode(currentId);
+    if (!parent) break;
+
+    // If we find a file node, return its display name
+    if (parent.type === "file") {
+      return getNodeDisplayName(parent);
+    }
+
+    // If we find a meaningful section (not a board column), return it
+    // Board columns typically have rules like add=, sync=, default=
+    if (parent.type === "section" && !parent.rules) {
+      return getNodeDisplayName(parent);
+    }
+
+    currentId = parent.parent_id;
+  }
+
+  return null;
 }

@@ -18,6 +18,7 @@ const shortcuts = [
     keys: [
       { key: "h/l or ←/→", desc: "Move between columns" },
       { key: "j/k or ↓/↑", desc: "Move between cards" },
+      { key: "1-9", desc: "Jump to column 1-9" },
       { key: "g/G", desc: "Go to first/last card" },
       { key: "Tab", desc: "Enter outline mode (navigate within card)" },
       { key: "Enter", desc: "Open detail pane" },
@@ -28,6 +29,7 @@ const shortcuts = [
   {
     category: "Card Operations",
     keys: [
+      { key: "Shift+1-9", desc: "Move card to top of column 1-9" },
       { key: "m + hjkl", desc: "Move card (enter move mode, then direction)" },
       { key: "Alt + ↑/↓/←/→", desc: "Move card directly" },
       { key: "p", desc: "Open project picker (move to project)" },
@@ -46,6 +48,7 @@ const shortcuts = [
   {
     category: "Selection",
     keys: [
+      { key: "Shift+A", desc: "Select all (progressive: card→column→board)" },
       { key: "Shift + j/k", desc: "Extend selection up/down" },
       { key: "Shift + h/l", desc: "Extend selection across columns" },
     ],
