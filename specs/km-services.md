@@ -106,6 +106,19 @@ services:
 
 Rules-based automation engine.
 
+### When Is This Service Needed?
+
+**Most automation can be trigger-based** (event handlers in the Model layer):
+- Board sync rules: task status change → move to column
+- Recurring tasks: task done → create next occurrence
+
+**The service is needed for:**
+- **Startup sweep**: Catch up on missed time (recurring tasks that became due, scheduled actions that should have fired)
+- **Scheduled actions**: Fire at specific times (requires timer loop)
+- **Periodic checks**: Rules that need to run on a schedule
+
+If you don't use scheduled actions or periodic rules, the auto service can be disabled.
+
 ### Responsibilities
 
 - Evaluate board `sync=` rules
