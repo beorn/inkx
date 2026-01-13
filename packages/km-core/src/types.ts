@@ -23,18 +23,16 @@ export type NodeType =
   | "agent"
   | "board";
 
-// Task status workflow
+// Task status workflow (4 statuses only)
+// Status answers: "Can I work on this?"
 export type TaskStatus =
-  | "open"
-  | "in_progress"
-  | "done"
-  | "blocked"
-  | "waiting"
-  | "scheduled"
-  | "cancelled";
+  | "open"     // [ ] — available to work on
+  | "blocked"  // [!] — waiting on something/someone
+  | "done"     // [x] — completed
+  | "dropped"; // [-] — cancelled, won't do
 
 // Task checkbox marks
-export type TaskMark = " " | "x" | "X" | "/" | "-" | "?" | "1" | "2";
+export type TaskMark = " " | "x" | "X" | "!" | "-" | "/" | "1" | "2";
 
 /**
  * Core Node interface - everything is a node

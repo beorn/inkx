@@ -200,14 +200,15 @@ function convertListItem(
       case "X":
         taskStatus = "done";
         break;
-      case "/":
-        taskStatus = "in_progress";
+      case "!":
+        taskStatus = "blocked";
         break;
       case "-":
-        taskStatus = "cancelled";
+        taskStatus = "dropped";
         break;
-      case "?":
-        taskStatus = "blocked";
+      case "/":
+        // Legacy: treat in-progress as open
+        taskStatus = "open";
         break;
       default:
         taskStatus = "open";
