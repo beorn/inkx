@@ -62,23 +62,24 @@ type NodeType =
 
 ```typescript
 type TaskStatus =
-  | "open" // [ ]
-  | "in_progress" // [/]
-  | "done" // [x]
-  | "blocked"
-  | "waiting"
-  | "cancelled"; // [-]
+  | "open"    // [ ] — available to work on
+  | "blocked" // [!] — waiting on something/someone
+  | "done"    // [x] — completed
+  | "dropped"; // [-] — cancelled, won't do
 ```
+
+Status answers one question: **Can I work on this?**
+
+See [km-tasks-data.md](km-tasks-data.md#status-model) for details.
 
 ### Task Marks
 
-| Mark       | Status      | Display |
-| ---------- | ----------- | ------- |
-| ` `        | open        | `[ ]`   |
-| `x` or `X` | done        | `[x]`   |
-| `/`        | in_progress | `[/]`   |
-| `-`        | cancelled   | `[-]`   |
-| `?`        | blocked     | `[?]`   |
+| Mark       | Status    | Display |
+| ---------- | --------- | ------- |
+| ` `        | open      | `[ ]`   |
+| `x` or `X` | done      | `[x]`   |
+| `!`        | blocked   | `[!]`   |
+| `-`        | dropped   | `[-]`   |
 
 ---
 
@@ -252,3 +253,4 @@ function getTasks(): Node[] {
 - [Store](km-store.md) — Persisted vs in-memory modes
 - [Markdown](km-markdown.md) — Parsing .md to nodes
 - [Overview](km-overview.md) — Quick start
+- [Tasks Data Model](km-tasks-data.md) — Task-specific fields and boards

@@ -15,7 +15,7 @@ Command-line interface for task management.
 | `km new` | Quick capture (create task) |
 | `km done` | Mark task done |
 | `km move` | Re-parent task |
-| `km auto` | Manage automations |
+| `km init` | Initialize from template |
 | `km import` | Import TextBundle |
 | `km export` | Export TextBundle |
 
@@ -322,4 +322,4 @@ Personal / Health
 - [km-query.md](km-query.md) — Query language
 - [km-tasks-data.md](km-tasks-data.md) — Data model
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
-- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
+- [km-tasks-templates.md](km-tasks-templates.md) — GTD and other templates

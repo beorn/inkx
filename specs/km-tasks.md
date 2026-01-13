@@ -2,7 +2,66 @@
 
 Task management in km, inspired by Notational Velocity and Simplenote.
 
-> **Note:** This system is currently designed for tasks. Supporting other content types (notes, documents, etc.) may require adjustments to interfaces (TUI and CLI) but hopefully not the data model.
+> **Note:** This system is designed for tasks. Supporting other content types may require interface adjustments but hopefully not the data model.
+
+---
+
+## Core Concepts
+
+### Four Statuses
+
+Tasks have exactly four statuses:
+
+| Mark | Status | Meaning |
+|------|--------|---------|
+| `[ ]` | `open` | Available to work on |
+| `[!]` | `blocked` | Waiting on something |
+| `[x]` | `done` | Completed |
+| `[-]` | `dropped` | Cancelled |
+
+Status answers one question: **Can I work on this?**
+
+### Boards = Organization
+
+Boards are markdown files with H2 columns containing task transclusions:
+
+```markdown
+# @next
+
+## today add="due:past status:open"
+- ![[tasks/review-budget]]
+
+## waiting sync=status:blocked
+- ![[tasks/get-approval]]
+```
+
+**Column rules** control task membership:
+- `add="query"` — Pull in matching tasks
+- `sync=field:value` — Bidirectional: move here ↔ set field
+
+### References
+
+Sigils create links to nodes:
+
+| Sigil | Convention | Example |
+|-------|------------|---------|
+| `@` | People, contexts | `@bjorn`, `@phone` |
+| `#` | Tags | `#finance`, `#urgent` |
+| `+` | Projects | `+website`, `+q1` |
+
+Any reference can have a board — it's just a markdown file (`@bjorn.md`, `+website.md`).
+
+### Node Queries
+
+Space-separated terms, AND-ed together:
+
+```bash
+km task @bjorn status:open         # Has @bjorn AND is open
+km task ./inbox/** -status:done    # In inbox AND not done
+km task "budget"                   # Full-text search
+```
+
+See [km-query.md](km-query.md) for full syntax.
 
 ---
 
@@ -20,17 +79,25 @@ Task management in km, inspired by Notational Velocity and Simplenote.
 **From km:**
 - Markdown-native — files you own
 - Boards over statuses — organization through lists, not state
-- Pure automation — rules populate boards, no magic queries
+- Column rules — behavior defined in board files, not config
 
 ---
 
 ## GTD Quick Start
 
+### Setup
+
+```bash
+km init gtd                        # Create GTD boards
+```
+
+This creates: `@inbox`, `@next`, `@someday`, and the `inbox/` folder.
+
 ### 1. Capture
 
 ```bash
-km new "Call dentist"              # → @inbox
-km new "Review budget @bjorn"      # → @inbox + @bjorn board
+km new "Call dentist"              # → inbox/
+km new "Review budget @bjorn"      # → inbox/, with @bjorn reference
 ```
 
 ### 2. Clarify (Process Inbox)
@@ -76,7 +143,6 @@ km @next                  # Is everything current?
 km @next/waiting          # Follow up on blocked items
 km @someday               # Anything ready to activate?
 km task status:open       # Any orphaned tasks?
-km +project               # Check each active project
 ```
 
 ### 5. Do
@@ -84,115 +150,6 @@ km +project               # Check each active project
 ```bash
 km @next          # Open next actions board
 # Work through tasks, mark done with 'x'
-```
-
----
-
-## Getting Set Up
-
-### Initial Setup
-
-```bash
-km auto setup                      # Create GTD boards
-```
-
-This creates: `@inbox`, `@next`, `@someday`, and the `inbox/` folder.
-
-### Importing Existing Tasks
-
-If you have a hierarchy of tasks (e.g., imported from another system):
-
-```bash
-# Preview what would be added
-km @next add status:open due:today --dry-run
-
-# Add all tasks due today or overdue
-km @next add status:open due:past
-km @next add status:open due:today
-
-# Add open tasks from a specific project
-km @next add +website status:open
-
-# Add by path/glob
-km @next add ./projects/urgent/**
-```
-
-### Bulk Board Population
-
-```bash
-# Add everything due this week to @next
-km @next/this-week add status:open due:week
-
-# Add high-priority items
-km @next/today add status:open p:1
-
-# Re-run all automations
-km auto --all
-```
-
-### Query Examples
-
-```bash
-# Find tasks not yet organized
-km task status:open -@next -@someday
-
-# Find project tasks not scheduled
-km task +website status:open due:none
-
-# Find blocked items
-km task status:blocked
-```
-
----
-
-## Core Concepts
-
-### Four Statuses
-
-Tasks have exactly four statuses: `open`, `blocked`, `done`, `dropped`. Status answers: "Can I work on this?"
-
-See [Status Model](km-tasks-data.md#status-model) for details.
-
-### Boards = Organization
-
-Boards are markdown files with columns containing task transclusions. They're populated by automations or manual curation.
-
-| Board | Purpose | How Populated |
-|-------|---------|---------------|
-| `@inbox` | Unprocessed items | Auto: `inbox/` folder |
-| `@next` | Next actions | Manual + auto (overdue) |
-| `@someday` | Maybe/later | Manual only |
-| `+project` | Project tasks | Auto: `+project` ref |
-| `@person` | Person agenda | Auto: `@person` ref |
-
-Columns can have rules that pull in tasks or sync status:
-
-```markdown
-## today add="due:past status:open"
-## waiting sync=status:blocked
-```
-
-See [Board System](km-tasks-data.md#board-system) for details.
-
-### Automations
-
-Column rules (inline in board files) handle task membership and status sync. Global automations (in `.km/auto/`) handle setup and reference boards.
-
-See [km-tasks-auto.md](km-tasks-auto.md) for details.
-
----
-
-## Favorites
-
-Number keys `1-6` open favorite boards. Configure in `.km/config.yml`:
-
-```yaml
-favorites:
-  1: "@next"
-  2: "@inbox"
-  3: "@someday"
-  4: "+current-project"
-  5: "@bjorn"
 ```
 
 ---
@@ -205,18 +162,6 @@ Single input field:
 - Type to filter existing tasks
 - Enter on no match creates new task
 - References in input (`@`, `#`, `+`) create links
-
-### Node Queries
-
-Space-separated terms, AND-ed together:
-
-```bash
-km task @bjorn status:open         # Has @bjorn AND is open
-km task ./inbox/** -status:done    # In inbox AND not done
-km task "budget"                   # Full-text search
-```
-
-See [km-query.md](km-query.md) for full syntax.
 
 ### Batch Operations
 
@@ -243,11 +188,26 @@ iCal RRULE format:
 
 ---
 
+## Favorites
+
+Number keys `1-6` open favorite boards. Configure in `.km/config.yml`:
+
+```yaml
+favorites:
+  1: "@next"
+  2: "@inbox"
+  3: "@someday"
+  4: "+current-project"
+  5: "@bjorn"
+```
+
+---
+
 ## Related Specs
 
 - [km-tasks-data.md](km-tasks-data.md) — Data model, schema
 - [km-query.md](km-query.md) — Query language
-- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
+- [km-tasks-templates.md](km-tasks-templates.md) — GTD and other templates
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI layout, keybindings
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
 - [km-tasks-prior-art.md](km-tasks-prior-art.md) — Research

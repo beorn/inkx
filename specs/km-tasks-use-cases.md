@@ -107,13 +107,11 @@ Test scenarios for task management workflows.
 
 ---
 
-## Automation
+## Templates
 
-- **Setup**: `km auto setup` → create boards + folders
-- **Setup idempotent**: `km auto setup` (exists) → no changes
-- **Explain**: `km auto explain <id>` → show rules + boards
-- **Ignore all**: task has `auto:ignore` → skipped by all rules
-- **Ignore one**: task has `auto:ignore:inbox-capture` → skipped by that rule
+- **Setup GTD**: `km init gtd` → create boards + folders
+- **Setup idempotent**: `km init gtd` (exists) → no changes
+- **Ignore**: task has `auto:ignore` → skipped by column rules
 
 ---
 
@@ -122,4 +120,4 @@ Test scenarios for task management workflows.
 - [km-tasks.md](km-tasks.md) — Overview
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
-- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
+- [km-tasks-templates.md](km-tasks-templates.md) — GTD and other templates

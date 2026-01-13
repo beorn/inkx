@@ -46,18 +46,18 @@ A board is a markdown file with H2 columns containing transclusions to tasks:
 ```markdown
 # @next.md
 
-## today
+## today add="due:past status:open"
 - ![[tasks/review-budget]]
 - ![[tasks/call-dentist]]
 
-## this-week
+## this-week add="due:week status:open -due:past"
 - ![[tasks/send-invoice]]
 
-## waiting
+## waiting sync=status:blocked
 - ![[tasks/get-approval]]
 ```
 
-Boards are populated by **automations** or **manual curation**.
+Boards are populated by **column rules** or **manual curation**. See [Board System](#board-system) for details.
 
 ---
 
@@ -91,16 +91,16 @@ open [ ] ──→ blocked [!] ──→ open [ ]
                  └──→ dropped [-]
 ```
 
-### Column-Status Automation
+### Column-Status Sync
 
-Board columns can auto-set status when tasks are moved:
+Use `sync=` to bidirectionally link column membership with field values:
 
 ```markdown
-## waiting status:blocked
+## waiting sync=status:blocked
 - ![[tasks/get-approval]]
 ```
 
-Moving a task to `@next/waiting` automatically sets `status=blocked`.
+Moving a task to `@next/waiting` sets `status=blocked`. When a task becomes blocked, it moves here automatically. See [Column Rules](#column-rules) for full syntax.
 
 ---
 
@@ -166,19 +166,21 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 
 | Board | Purpose | Populated By |
 |-------|---------|--------------|
-| `@inbox` | Unprocessed items | Automation: `inbox/` folder |
-| `@next` | Next actions | Manual + automation (overdue/starting) |
+| `@inbox` | Unprocessed items | Column rule: `add="./inbox/**"` |
+| `@next` | Next actions | Manual + column rules (overdue/starting) |
 | `@someday` | Maybe/later | Manual curation only |
 
-> **Multi-user note:** `@next` may become `@me` (current user's board) when multi-user support is added. Person boards (`@bjorn`, `@sarah`) remain agenda boards for discussions.
+> **Multi-user note:** `@next` may become `@me` (current user's board) when multi-user support is added.
 
-### Reference Boards
+### Any Reference Can Be a Board
 
-| Board | Purpose | Populated By |
-|-------|---------|--------------|
-| `+project` | Project tasks | Automation: `+project` ref |
-| `@person` | Person agenda | Automation: `@person` ref |
-| `#tag` | Tagged items | Automation: `#tag` ref |
+`@person`, `+project`, and `#tag` references can have boards — they're just markdown files:
+
+- `@bjorn.md` — agenda for discussions with Bjorn
+- `+website.md` — project board for website tasks
+- `#urgent.md` — board for urgent items
+
+If the board file doesn't exist, the reference is a broken link (like any wikilink). Create the file when needed.
 
 ### Board Files
 
@@ -341,6 +343,6 @@ On `@next/waiting` → status auto-set to `blocked`.
 
 - [km-tasks.md](km-tasks.md) — Overview
 - [km-query.md](km-query.md) — Query language
-- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
+- [km-tasks-templates.md](km-tasks-templates.md) — GTD and other templates
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec

@@ -297,4 +297,4 @@ Type to filter...
 - [km-query.md](km-query.md) — Query language
 - [km-tasks-data.md](km-tasks-data.md) — Data model
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI spec
-- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
+- [km-tasks-templates.md](km-tasks-templates.md) — GTD and other templates

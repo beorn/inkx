@@ -165,7 +165,7 @@ In automation rules, queries appear in `match:`, `was:`, and `now:` fields:
     - board.remove: "@inbox"
 ```
 
-See [km-tasks-auto.md](km-tasks-auto.md) for full automation syntax.
+See [km-tasks-templates.md](km-tasks-templates.md) for GTD board templates.
 
 ---
 
@@ -413,5 +413,5 @@ Embeddings add ~1.5KB per node (384 dimensions × 4 bytes). For 10k tasks, ~15MB
 ## See Also
 
 - [km-tasks-data.md](km-tasks-data.md) — Data model
-- [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
+- [km-tasks-templates.md](km-tasks-templates.md) — GTD and other templates
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
