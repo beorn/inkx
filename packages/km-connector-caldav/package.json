@@ -1,6 +1,6 @@
 {
-  "name": "@km/store",
-  "description": "Database and storage for km",
+  "name": "@km/connector-caldav",
+  "description": "CalDAV/CardDAV sync connector for km",
   "type": "module",
   "module": "src/index.ts",
   "exports": {
@@ -9,6 +9,6 @@
   "private": true,
   "dependencies": {
     "@km/core": "workspace:*",
-    "@km/query": "workspace:*"
+    "@km/store": "workspace:*"
   }
 }

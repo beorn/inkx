@@ -12,6 +12,19 @@ import { getChildren, getNode, getDb, isMemoryMode } from "@km/store";
 import { emit } from "@km/core";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "@km/shared";
 import { DetailPane } from "./detail-pane.tsx";
+import { ProjectPicker } from "./project-picker.tsx";
+import {
+  createPasteHandler,
+  getFileInfo,
+  supportsFileDrop,
+} from "./paste-handler.ts";
+import {
+  createMouseHandler,
+  supportsMouseMode,
+  SelectionManager,
+  type SelectionRange,
+  type MouseEvent as TermMouseEvent,
+} from "./mouse-handler.ts";
 
 // Build path from root to a given node as file path with # for sections
 function getNodePath(nodeId: string | null): string {
@@ -452,6 +465,14 @@ function Board({ initialState }: BoardProps) {
   const [collapsedColumns, setCollapsedColumns] = useState<Set<number>>(
     new Set(initialState.collapsedColumns),
   ); // Column indices that are collapsed
+  const [showProjectPicker, setShowProjectPicker] = useState(false); // Whether project picker is visible
+  const [recentProjectIds, setRecentProjectIds] = useState<string[]>([]); // Recently used project targets
+  const [droppedFiles, setDroppedFiles] = useState<string[]>([]); // Files dropped via drag-and-drop
+  const [showDropNotification, setShowDropNotification] = useState(false); // Show drop notification
+  const [mouseSelection, setMouseSelection] = useState<SelectionRange | null>(
+    null,
+  ); // Mouse drag selection range
+  const [isMouseDragging, setIsMouseDragging] = useState(false); // Whether mouse drag is active
 
   // Listen for terminal resize
   useEffect(() => {
@@ -464,6 +485,44 @@ function Board({ initialState }: BoardProps) {
       stdout.off("resize", handleResize);
     };
   }, [stdout]);
+
+  // Handle file drops via bracketed paste
+  useEffect(() => {
+    if (!supportsFileDrop()) return;
+
+    const cleanup = createPasteHandler((files) => {
+      setDroppedFiles(files);
+      setShowDropNotification(true);
+      // Auto-hide notification after 3 seconds
+      setTimeout(() => setShowDropNotification(false), 3000);
+    });
+
+    return cleanup;
+  }, []);
+
+  // Handle mouse drag-select
+  useEffect(() => {
+    if (!supportsMouseMode()) return;
+
+    const selectionManager = new SelectionManager((range) => {
+      setMouseSelection(range);
+      setIsMouseDragging(range !== null);
+    });
+
+    const cleanup = createMouseHandler((event: TermMouseEvent) => {
+      selectionManager.handleMouseEvent(event);
+
+      // Convert screen coordinates to board items
+      // This is a simplified version - full implementation would map
+      // coordinates to specific cards/items in the board
+      if (event.type === "up" && mouseSelection) {
+        // Selection complete - could trigger multi-select of items
+        // within the selection range
+      }
+    });
+
+    return cleanup;
+  }, [mouseSelection]);
 
   const termWidth = dimensions.columns;
   const termHeight = dimensions.rows;
@@ -1221,6 +1280,16 @@ function Board({ initialState }: BoardProps) {
         return zoomed;
       }
 
+      // Open project picker with 'p' key
+      if (input === "p" && card) {
+        setShowProjectPicker(true);
+        setInOutlineMode(false);
+        setSubIndex(0);
+        clearSelection();
+        setShowDetailPane(false);
+        return s; // Don't change board state, just show picker
+      }
+
       return newState;
     });
   });
@@ -1260,6 +1329,74 @@ function Board({ initialState }: BoardProps) {
     },
     { isActive: showDetailPane },
   );
+
+  // Handle project picker selection
+  const handleProjectSelect = (targetNode: Node) => {
+    const card = state.columns[state.colIndex]?.cards[state.cardIndex];
+    if (!card) {
+      setShowProjectPicker(false);
+      return;
+    }
+
+    // Calculate sort order (add at end of target)
+    const targetChildren = getChildren(targetNode.id);
+    const lastChild = targetChildren[targetChildren.length - 1];
+    const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0;
+
+    // Update database - use direct SQL in memory mode, emit event in disk mode
+    if (isMemoryMode()) {
+      const db = getDb();
+      db.run(
+        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
+        [targetNode.id, newSortOrder, Date.now(), card.node.id],
+      );
+    } else {
+      emit({
+        type: "node_moved",
+        actor: "user",
+        target: card.node.id,
+        data: {
+          parent_id: targetNode.id,
+          parent_idx: newSortOrder,
+        },
+      });
+    }
+
+    // Track as recent project
+    setRecentProjectIds((prev) => {
+      const filtered = prev.filter((id) => id !== targetNode.id);
+      return [targetNode.id, ...filtered].slice(0, 5); // Keep last 5
+    });
+
+    // Close picker and rebuild board
+    setShowProjectPicker(false);
+
+    setTimeout(() => {
+      const newState = state.rootId
+        ? buildBoardState(state.rootId)
+        : initBoardState();
+
+      if (newState) {
+        newState.zoomStack = state.zoomStack;
+        newState.rootPath = state.rootPath;
+        // Reset to first card if current no longer exists
+        newState.colIndex = Math.min(
+          state.colIndex,
+          Math.max(0, newState.columns.length - 1),
+        );
+        const col = newState.columns[newState.colIndex];
+        newState.cardIndex = Math.min(
+          state.cardIndex,
+          Math.max(0, (col?.cards.length ?? 1) - 1),
+        );
+        setState(newState);
+      }
+    }, 50);
+  };
+
+  const handleProjectCancel = () => {
+    setShowProjectPicker(false);
+  };
 
   // Build board root path (static title)
   // Use filesystem path if available, otherwise build from node path
@@ -1346,14 +1483,41 @@ function Board({ initialState }: BoardProps) {
             height={termHeight - 3}
           />
         )}
+        {/* Project picker modal */}
+        {showProjectPicker && (
+          <Box
+            position="absolute"
+            marginLeft={Math.floor(termWidth / 4)}
+            marginTop={Math.floor(termHeight / 4)}
+          >
+            <ProjectPicker
+              onSelect={handleProjectSelect}
+              onCancel={handleProjectCancel}
+              width={Math.floor(termWidth / 2)}
+              height={Math.floor(termHeight / 2)}
+              recentProjectIds={recentProjectIds}
+            />
+          </Box>
+        )}
       </Box>
       <Text>
         <Text>{selectedPath} </Text>
         {showDetailPane && <Text color="cyan">{`[DETAIL] `}</Text>}
+        {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
         {moveMode && <Text color="magenta">{`[MOVE] `}</Text>}
         {inOutlineMode && <Text color="cyan">{`[OUTLINE] `}</Text>}
         {multiSelected.size > 0 && (
           <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
+        )}
+        {showDropNotification && droppedFiles.length > 0 && (
+          <Text color="green">
+            {`[Dropped: ${droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
+          </Text>
+        )}
+        {isMouseDragging && mouseSelection && (
+          <Text color="blue">
+            {`[Select: ${mouseSelection.startY}-${mouseSelection.endY}] `}
+          </Text>
         )}
         {state.columns.length > effectiveMaxCols && (
           <Text

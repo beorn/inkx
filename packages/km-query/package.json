@@ -1,0 +1,10 @@
+{
+  "name": "@km/query",
+  "description": "Query language parser for km",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true
+}

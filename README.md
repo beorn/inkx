@@ -34,6 +34,67 @@ A shared workspace for you and your agents — with full history.
 - **Personal knowledge** — like Cloud Drive, Notion or Apple Notes, but local-first and agents integrated
 - **AI automation** — configure and run agents in one system
 
+## Quick Start
+
+```bash
+# Install
+bun install -g @km/app-cli    # or run from source: bun run km
+
+# Initialize in your notes folder
+cd ~/notes
+km init
+
+# See your knowledge tree
+km tree
+
+# Create tasks
+km new "Review Q4 budget @finance #urgent due:friday"
+km new "Call mom" --project personal
+
+# View and manage tasks
+km task                     # List all tasks
+km task status:open         # Filter by status
+km task @bjorn due:week     # Multiple filters
+km board                    # Kanban TUI
+
+# Complete tasks
+km done <id>                # Mark task complete
+km done "budget"            # Fuzzy match by content
+
+# Sync with filesystem
+km sync                     # One-time sync
+km sync --watch             # Watch for changes
+
+# Search
+km search "meeting notes"   # Full-text search
+km search '"exact phrase"'  # Phrase search
+```
+
+### Query Language
+
+```bash
+# Field filters
+status:open               # By status (open, blocked, done, dropped)
+priority:1                # By priority (1=high, 2=medium, 3=low)
+due:today                 # By due date
+due:week                  # Due this week
+assigned:@bjorn           # By assignee
+
+# References
+@bjorn                    # Mentions
+#urgent                   # Tags
++project-name             # Projects
+
+# Path patterns
+./inbox/**                # Tasks in inbox folder (recursive)
+/projects/alpha           # Absolute path
+
+# Negation & combination
+-status:done              # Exclude done tasks
+status:open,blocked       # Multiple values (OR)
+status:open @bjorn #urgent  # Multiple conditions (AND)
+```
+
 ## Phases
 
 ### Phase 1: The Tree _(now)_

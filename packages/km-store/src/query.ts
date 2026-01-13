@@ -1,278 +1,34 @@
 /**
- * Query Language Parser and Executor
+ * Query Executor
  *
- * Parses and executes structured queries for task filtering.
- *
- * Syntax:
- * - field:value      Filter by field (status:open, priority:1, due:2026-01-20)
- * - @ref             Filter by mention
- * - #tag             Filter by tag
- * - +project         Filter by project
- * - -field:value     Negation (exclude matches)
- * - text             Full-text search
+ * Executes parsed queries against the SQLite database.
+ * Parsing is done by @km/query package.
  */
 
 import { getDb } from "./db.ts";
 import type { Node } from "@km/core";
+import {
+  parseQuery as parse,
+  resolveDateQuery as resolveDate,
+  isDateShortcut,
+  isDateField,
+  type QueryAST,
+  type QueryCondition,
+  type QueryRef,
+  type QueryPath,
+  type DateRange,
+} from "@km/query";
 
-/**
- * Parsed query condition
- */
-export interface QueryCondition {
-  field: string;
-  op: "=" | "!=" | ">" | "<" | ">=" | "<=" | "LIKE";
-  value: string;
-  negated?: boolean;
-}
-
-/**
- * Parsed reference filter
- */
-export interface QueryRef {
-  type: "person" | "tag" | "project";
-  value: string;
-  negated?: boolean;
-}
-
-/**
- * Parsed query AST
- */
-export interface QueryAST {
-  conditions: QueryCondition[];
-  refs: QueryRef[];
-  text: string[];
-  phrases: string[]; // Quoted phrase searches
-}
-
-/**
- * Parse a query string into an AST
- */
-export function parseQuery(query: string): QueryAST {
-  const ast: QueryAST = {
-    conditions: [],
-    refs: [],
-    text: [],
-    phrases: [],
-  };
-
-  if (!query || query.trim() === "") {
-    return ast;
-  }
-
-  // Tokenize by splitting on whitespace, but preserve quoted strings
-  const tokens: string[] = [];
-  const regex = /"([^"]+)"|(\S+)/g;
-  let match;
-  while ((match = regex.exec(query)) !== null) {
-    // match[1] is content inside quotes (phrase search)
-    // match[2] is unquoted token
-    if (match[1] !== undefined) {
-      // Quoted phrase - add to phrases array
-      ast.phrases.push(match[1]);
-    } else {
-      tokens.push(match[2] ?? "");
-    }
-  }
-
-  for (const token of tokens) {
-    if (!token) continue;
-
-    // Check for negation prefix
-    const negated = token.startsWith("-");
-    const term = negated ? token.slice(1) : token;
-
-    // @mention
-    if (term.startsWith("@")) {
-      ast.refs.push({
-        type: "person",
-        value: term.slice(1),
-        negated,
-      });
-      continue;
-    }
-
-    // #tag
-    if (term.startsWith("#")) {
-      ast.refs.push({
-        type: "tag",
-        value: term.slice(1),
-        negated,
-      });
-      continue;
-    }
-
-    // +project
-    if (term.startsWith("+")) {
-      ast.refs.push({
-        type: "project",
-        value: term.slice(1),
-        negated,
-      });
-      continue;
-    }
-
-    // field:value (supports comma-separated values like status:open,blocked)
-    const fieldMatch = term.match(/^([a-z_]+)([:=<>!]+)(.+)$/i);
-    if (fieldMatch) {
-      const [, field, opStr, rawValue] = fieldMatch;
-      let op: QueryCondition["op"] = "=";
-
-      // Determine operator
-      if (opStr === ":" || opStr === "=") {
-        op = negated ? "!=" : "=";
-      } else if (opStr === "!=") {
-        op = "!=";
-      } else if (opStr === ">") {
-        op = ">";
-      } else if (opStr === "<") {
-        op = "<";
-      } else if (opStr === ">=") {
-        op = ">=";
-      } else if (opStr === "<=") {
-        op = "<=";
-      }
-
-      // Map common field aliases
-      const mappedField = mapFieldName(field ?? "");
-
-      // Store value as-is (comma-separated values handled in executeQuery)
-      ast.conditions.push({
-        field: mappedField,
-        op,
-        value: rawValue ?? "",
-        negated,
-      });
-      continue;
-    }
-
-    // Plain text search term
-    ast.text.push(negated ? `-${term}` : term);
-  }
-
-  return ast;
-}
-
-/**
- * Map common field aliases to database column names
- */
-function mapFieldName(field: string): string {
-  const aliases: Record<string, string> = {
-    status: "task_status",
-    priority: "priority",
-    p: "priority",
-    due: "due_date",
-    start: "scheduled_date",
-    scheduled: "scheduled_date",
-    assigned: "assigned_to",
-    type: "type",
-  };
-  return aliases[field.toLowerCase()] ?? field;
-}
-
-/**
- * Date range for query resolution
- */
-export interface DateRange {
-  start: string;
-  end: string;
-}
-
-/**
- * Resolve a date shortcut to a date range (YYYY-MM-DD format)
- *
- * Supported shortcuts:
- * - today: today's date
- * - tomorrow: tomorrow's date
- * - yesterday: yesterday's date
- * - week: next 7 days (including today)
- * - past: all dates before today (overdue)
- * - YYYY-MM-DD: exact date
- */
-export function resolveDateQuery(value: string): DateRange | null {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const formatDate = (d: Date): string => {
-    return d.toISOString().slice(0, 10);
-  };
-
-  switch (value.toLowerCase()) {
-    case "today": {
-      const dateStr = formatDate(today);
-      return { start: dateStr, end: dateStr };
-    }
-
-    case "tomorrow": {
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = formatDate(tomorrow);
-      return { start: dateStr, end: dateStr };
-    }
-
-    case "yesterday": {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const dateStr = formatDate(yesterday);
-      return { start: dateStr, end: dateStr };
-    }
-
-    case "week": {
-      const weekEnd = new Date(today);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      return { start: formatDate(today), end: formatDate(weekEnd) };
-    }
-
-    case "past":
-    case "overdue": {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return { start: "0000-01-01", end: formatDate(yesterday) };
-    }
-
-    default: {
-      // Check if it's a date range pattern (YYYY-MM-DD-YYYY-MM-DD)
-      const rangeMatch = value.match(
-        /^(\d{4}-\d{2}-\d{2})-(\d{4}-\d{2}-\d{2})$/,
-      );
-      if (rangeMatch && rangeMatch[1] && rangeMatch[2]) {
-        return { start: rangeMatch[1], end: rangeMatch[2] };
-      }
-
-      // Check if it's a single date pattern (YYYY-MM-DD)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        return { start: value, end: value };
-      }
-      return null;
-    }
-  }
-}
-
-/**
- * Check if a value is a date shortcut or date range
- */
-function isDateShortcut(value: string): boolean {
-  const shortcuts = [
-    "today",
-    "tomorrow",
-    "yesterday",
-    "week",
-    "past",
-    "overdue",
-  ];
-  // Also match date ranges (YYYY-MM-DD-YYYY-MM-DD)
-  if (/^\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return true;
-  }
-  return shortcuts.includes(value.toLowerCase());
-}
-
-/**
- * Check if a field is a date field
- */
-function isDateField(field: string): boolean {
-  const dateFields = ["due_date", "scheduled_date", "created_at", "updated_at"];
-  return dateFields.includes(field);
-}
+// Re-export parsing types and functions from @km/query
+export {
+  parse as parseQuery,
+  resolveDate as resolveDateQuery,
+  type QueryAST,
+  type QueryCondition,
+  type QueryRef,
+  type QueryPath,
+  type DateRange,
+};
 
 /**
  * Execute a query against the database
@@ -295,7 +51,7 @@ export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
 
     // Handle date shortcuts for date fields
     if (isDateField(field) && isDateShortcut(value)) {
-      const dateRange = resolveDateQuery(value);
+      const dateRange = resolveDate(value);
       if (dateRange) {
         if (op === "=" || op === "!=") {
           if (dateRange.start === dateRange.end) {
@@ -323,7 +79,7 @@ export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
     }
 
     // Handle comma-separated values (e.g., status:open,blocked → IN clause)
-    const values = value.split(",").filter((v) => v.length > 0);
+    const values = value.split(",").filter((v: string) => v.length > 0);
 
     if (op === "=") {
       if (values.length > 1) {
@@ -387,6 +143,50 @@ export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
     }
   }
 
+  // Apply path pattern filters
+  // Path patterns match against fs_path or require CTE for parent lookup
+  for (const pathFilter of ast.paths) {
+    const { pattern, recursive, negated } = pathFilter;
+
+    // Normalize pattern:
+    // - Remove leading ./ for relative paths
+    // - Remove leading / for absolute paths (we use LIKE %/pattern/%)
+    // - Remove trailing / if present
+    let normalizedPattern = pattern;
+    if (normalizedPattern.startsWith("./")) {
+      normalizedPattern = normalizedPattern.slice(2);
+    }
+    if (normalizedPattern.startsWith("/")) {
+      normalizedPattern = normalizedPattern.slice(1);
+    }
+    if (normalizedPattern.endsWith("/")) {
+      normalizedPattern = normalizedPattern.slice(0, -1);
+    }
+
+    if (recursive) {
+      // Recursive pattern (e.g., ./inbox/** → match inbox or anything under inbox)
+      // Match: fs_path contains /pattern/ or ends with /pattern
+      if (negated) {
+        sql += ` AND (fs_path IS NULL OR (fs_path NOT LIKE ? AND fs_path NOT LIKE ?))`;
+        params.push(`%/${normalizedPattern}/%`, `%/${normalizedPattern}`);
+      } else {
+        // Match path containing pattern as directory
+        sql += ` AND (fs_path LIKE ? OR fs_path LIKE ?)`;
+        params.push(`%/${normalizedPattern}/%`, `%/${normalizedPattern}`);
+      }
+    } else {
+      // Non-recursive pattern - must contain this directory segment
+      if (negated) {
+        sql += ` AND (fs_path IS NULL OR fs_path NOT LIKE ?)`;
+        params.push(`%/${normalizedPattern}/%`);
+      } else {
+        // Must contain this path segment
+        sql += ` AND fs_path LIKE ?`;
+        params.push(`%/${normalizedPattern}/%`);
+      }
+    }
+  }
+
   sql += " ORDER BY parent_idx ASC, created_at DESC";
 
   const rows = db.prepare(sql).all(...params) as Node[];
@@ -397,7 +197,7 @@ export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
  * Query tasks with a string query
  */
 export function queryTasks(query: string): Node[] {
-  const ast = parseQuery(query);
+  const ast = parse(query);
   return executeQuery(ast, "task");
 }
 
@@ -405,6 +205,6 @@ export function queryTasks(query: string): Node[] {
  * Query all nodes with a string query
  */
 export function queryNodes(query: string, type?: string): Node[] {
-  const ast = parseQuery(query);
+  const ast = parse(query);
   return executeQuery(ast, type);
 }

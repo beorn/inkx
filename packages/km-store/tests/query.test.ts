@@ -24,7 +24,7 @@ describe("Query Parser", () => {
   describe("parseQuery", () => {
     test("parses field:value conditions", () => {
       const ast = parseQuery("status:open");
-      expect(ast.conditions).toContainEqual({
+      expect(ast.conditions[0]).toMatchObject({
         field: "task_status",
         op: "=",
         value: "open",
@@ -34,7 +34,7 @@ describe("Query Parser", () => {
 
     test("parses priority:N with alias p:", () => {
       const ast = parseQuery("p:1");
-      expect(ast.conditions).toContainEqual({
+      expect(ast.conditions[0]).toMatchObject({
         field: "priority",
         op: "=",
         value: "1",
@@ -44,7 +44,7 @@ describe("Query Parser", () => {
 
     test("parses @mentions", () => {
       const ast = parseQuery("@bjorn");
-      expect(ast.refs).toContainEqual({
+      expect(ast.refs[0]).toMatchObject({
         type: "person",
         value: "bjorn",
         negated: false,
@@ -53,7 +53,7 @@ describe("Query Parser", () => {
 
     test("parses #tags", () => {
       const ast = parseQuery("#urgent");
-      expect(ast.refs).toContainEqual({
+      expect(ast.refs[0]).toMatchObject({
         type: "tag",
         value: "urgent",
         negated: false,
@@ -62,7 +62,7 @@ describe("Query Parser", () => {
 
     test("parses +projects", () => {
       const ast = parseQuery("+alpha");
-      expect(ast.refs).toContainEqual({
+      expect(ast.refs[0]).toMatchObject({
         type: "project",
         value: "alpha",
         negated: false,
@@ -71,7 +71,7 @@ describe("Query Parser", () => {
 
     test("parses negations with -", () => {
       const ast = parseQuery("-status:done");
-      expect(ast.conditions).toContainEqual({
+      expect(ast.conditions[0]).toMatchObject({
         field: "task_status",
         op: "!=",
         value: "done",
@@ -81,7 +81,7 @@ describe("Query Parser", () => {
 
     test("parses negated @mentions", () => {
       const ast = parseQuery("-@bjorn");
-      expect(ast.refs).toContainEqual({
+      expect(ast.refs[0]).toMatchObject({
         type: "person",
         value: "bjorn",
         negated: true,
@@ -127,7 +127,7 @@ describe("Query Parser", () => {
     test("parses phrases with field filters", () => {
       const ast = parseQuery('"budget review" status:open');
       expect(ast.phrases).toEqual(["budget review"]);
-      expect(ast.conditions).toContainEqual({
+      expect(ast.conditions[0]).toMatchObject({
         field: "task_status",
         op: "=",
         value: "open",
@@ -137,13 +137,13 @@ describe("Query Parser", () => {
 
     test("maps field aliases", () => {
       const ast = parseQuery("due:2026-01-20 start:2026-01-15");
-      expect(ast.conditions).toContainEqual({
+      expect(ast.conditions[0]).toMatchObject({
         field: "due_date",
         op: "=",
         value: "2026-01-20",
         negated: false,
       });
-      expect(ast.conditions).toContainEqual({
+      expect(ast.conditions[1]).toMatchObject({
         field: "scheduled_date",
         op: "=",
         value: "2026-01-15",
@@ -153,12 +153,81 @@ describe("Query Parser", () => {
 
     test("parses comma-separated values", () => {
       const ast = parseQuery("status:open,blocked");
-      expect(ast.conditions).toContainEqual({
+      expect(ast.conditions[0]).toMatchObject({
         field: "task_status",
         op: "=",
         value: "open,blocked",
         negated: false,
       });
+    });
+
+    test("parses relative path pattern with recursive glob", () => {
+      const ast = parseQuery("./inbox/**");
+      expect(ast.paths[0]).toMatchObject({
+        pattern: "./inbox",
+        recursive: true,
+        negated: false,
+      });
+    });
+
+    test("parses absolute path pattern", () => {
+      const ast = parseQuery("/projects/alpha");
+      expect(ast.paths[0]).toMatchObject({
+        pattern: "/projects/alpha",
+        recursive: false,
+        negated: false,
+      });
+    });
+
+    test("parses negated path pattern", () => {
+      const ast = parseQuery("-./archive/**");
+      expect(ast.paths[0]).toMatchObject({
+        pattern: "./archive",
+        recursive: true,
+        negated: true,
+      });
+    });
+
+    test("parses path ending with slash", () => {
+      const ast = parseQuery("inbox/");
+      expect(ast.paths[0]).toMatchObject({
+        pattern: "inbox/",
+        recursive: false,
+        negated: false,
+      });
+    });
+
+    test("parses mixed path patterns and conditions", () => {
+      const ast = parseQuery("./inbox/** status:open -status:done");
+      expect(ast.paths.length).toBe(1);
+      expect(ast.conditions.length).toBe(2);
+    });
+
+    test("tracks offsets for conditions", () => {
+      const ast = parseQuery("status:open");
+      expect(ast.conditions[0]?.offset).toEqual({ start: 0, end: 11 });
+    });
+
+    test("tracks offsets for refs", () => {
+      const ast = parseQuery("@bjorn #tag");
+      expect(ast.refs[0]?.offset).toEqual({ start: 0, end: 6 });
+      expect(ast.refs[1]?.offset).toEqual({ start: 7, end: 11 });
+    });
+
+    test("tracks offsets for phrases", () => {
+      const ast = parseQuery('"hello world"');
+      expect(ast.phraseTerms[0]?.offset).toEqual({ start: 0, end: 13 });
+    });
+
+    test("tracks offsets for text terms", () => {
+      const ast = parseQuery("foo bar");
+      expect(ast.textTerms[0]?.offset).toEqual({ start: 0, end: 3 });
+      expect(ast.textTerms[1]?.offset).toEqual({ start: 4, end: 7 });
+    });
+
+    test("tracks offsets for path patterns", () => {
+      const ast = parseQuery("./inbox/**");
+      expect(ast.paths[0]?.offset).toEqual({ start: 0, end: 10 });
     });
   });
 });
@@ -315,6 +384,164 @@ describe("Query Executor", () => {
     // task1 is open, task2 is done, task3 is open
     const results = queryTasks("-status:open,done");
     expect(results.length).toBe(0); // Nothing left after excluding open and done
+  });
+});
+
+describe("Path Pattern Query Execution", () => {
+  beforeEach(() => {
+    // Create in-memory database with fs_path
+    const db = new Database(":memory:");
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS nodes (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        parent_id TEXT,
+        symlink_to TEXT,
+        parent_idx REAL DEFAULT 0,
+        fs_path TEXT,
+        fs_ino INTEGER,
+        md_pos INTEGER,
+        md_slug TEXT,
+        task_status TEXT,
+        task_mark TEXT,
+        assigned_to TEXT,
+        due_date TEXT,
+        scheduled_date TEXT,
+        priority INTEGER,
+        content TEXT,
+        content_hash TEXT,
+        data JSON DEFAULT '{}',
+        created_at INTEGER,
+        updated_at INTEGER,
+        version TEXT
+      );
+    `);
+
+    const now = Date.now();
+    // Tasks in different paths
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "inbox-task1",
+        "task",
+        "open",
+        "Task in inbox",
+        "/vault/inbox/tasks.md",
+        "{}",
+        now,
+        now,
+        "v1",
+        0,
+      ],
+    );
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "inbox-task2",
+        "task",
+        "open",
+        "Another inbox task",
+        "/vault/inbox/notes.md",
+        "{}",
+        now,
+        now,
+        "v2",
+        1,
+      ],
+    );
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "project-task1",
+        "task",
+        "open",
+        "Task in project",
+        "/vault/projects/alpha/tasks.md",
+        "{}",
+        now,
+        now,
+        "v3",
+        2,
+      ],
+    );
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "archive-task1",
+        "task",
+        "done",
+        "Archived task",
+        "/vault/archive/2024/tasks.md",
+        "{}",
+        now,
+        now,
+        "v4",
+        3,
+      ],
+    );
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "root-task1",
+        "task",
+        "open",
+        "Task at root",
+        "/vault/root-tasks.md",
+        "{}",
+        now,
+        now,
+        "v5",
+        4,
+      ],
+    );
+
+    setDb(db);
+  });
+
+  afterEach(() => {
+    closeDb();
+  });
+
+  test("filters by recursive path pattern (./inbox/**)", () => {
+    const ast = parseQuery("./inbox/**");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(2);
+    expect(results.every((r) => r.fs_path?.includes("/inbox"))).toBe(true);
+  });
+
+  test("filters by absolute path pattern", () => {
+    const ast = parseQuery("/projects/");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("project-task1");
+  });
+
+  test("filters with recursive nested path pattern", () => {
+    const ast = parseQuery("./archive/**");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("archive-task1");
+  });
+
+  test("excludes with negated path pattern", () => {
+    const ast = parseQuery("-./inbox/**");
+    const results = executeQuery(ast, "task");
+    // Should exclude both inbox tasks
+    expect(results.length).toBe(3);
+    expect(results.every((r) => !r.fs_path?.includes("/inbox/"))).toBe(true);
+  });
+
+  test("combines path pattern with status filter", () => {
+    const ast = parseQuery("./inbox/** status:open");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(2);
+    expect(results.every((r) => r.task_status === "open")).toBe(true);
+    expect(results.every((r) => r.fs_path?.includes("/inbox"))).toBe(true);
   });
 });
 

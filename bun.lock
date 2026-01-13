@@ -39,6 +39,13 @@
         "@types/react": "^19.2.7",
       },
     },
+    "packages/km-connector-caldav": {
+      "name": "@km/connector-caldav",
+      "dependencies": {
+        "@km/core": "workspace:*",
+        "@km/store": "workspace:*",
+      },
+    },
     "packages/km-core": {
       "name": "@km/core",
       "dependencies": {
@@ -60,6 +67,9 @@
         "yaml": "^2.7.1",
       },
     },
+    "packages/km-query": {
+      "name": "@km/query",
+    },
     "packages/km-shared": {
       "name": "@km/shared",
       "dependencies": {
@@ -71,6 +81,7 @@
       "name": "@km/store",
       "dependencies": {
         "@km/core": "workspace:*",
+        "@km/query": "workspace:*",
       },
     },
     "packages/km-watch": {
@@ -115,9 +126,13 @@
 
     "@km/app-cli": ["@km/app-cli@workspace:apps/km-cli"],
 
+    "@km/connector-caldav": ["@km/connector-caldav@workspace:packages/km-connector-caldav"],
+
     "@km/core": ["@km/core@workspace:packages/km-core"],
 
     "@km/markdown": ["@km/markdown@workspace:packages/km-markdown"],
+
+    "@km/query": ["@km/query@workspace:packages/km-query"],
 
     "@km/shared": ["@km/shared@workspace:packages/km-shared"],
 
