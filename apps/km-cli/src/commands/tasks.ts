@@ -188,7 +188,10 @@ function getTasksUnderNode(rootId: string): Node[] {
  */
 export const taskCommand = new Command("task")
   .description("Task management - list, add, complete, and assign tasks")
-  .argument("[path-or-id]", "Path, ID, or query to scope tasks (optional)")
+  .argument(
+    "[query...]",
+    "Query terms: @person, #tag, +project, status:open, ./path/**",
+  )
   .option("-a, --all", "Show all tasks including done")
   .option(
     "-s, --status <status>",
@@ -210,37 +213,41 @@ export const taskCommand = new Command("task")
   .option("--assign <user>", "Assign task to user (use with path-or-id)")
   .option("--claim", "Claim task for yourself (use with path-or-id)")
   .option("--release", "Release claimed task (use with path-or-id)")
-  .action((pathOrId, options) => {
+  .action((queryArgs: string[], options) => {
+    // Join query args into a single query string (or use first arg for ID-based operations)
+    const queryStr = queryArgs.length > 0 ? queryArgs.join(" ") : undefined;
+    const firstArg = queryArgs[0];
+
     // Handle mutation operations first
     if (options.add) {
-      addTask(pathOrId, options.add, options);
+      addTask(firstArg, options.add, options);
       return;
     }
 
     if (options.done !== undefined) {
       // --done can be used with path-or-id or standalone with value
-      const taskId = options.done === true ? pathOrId : options.done;
+      const taskId = options.done === true ? firstArg : options.done;
       markDone(taskId, options);
       return;
     }
 
     if (options.claim) {
-      claimTask(pathOrId, options);
+      claimTask(firstArg, options);
       return;
     }
 
     if (options.release) {
-      releaseTask(pathOrId, options);
+      releaseTask(firstArg, options);
       return;
     }
 
     if (options.assign) {
-      assignTask(pathOrId, options.assign, options);
+      assignTask(firstArg, options.assign, options);
       return;
     }
 
     // Default: list tasks
-    listTasks(pathOrId, options);
+    listTasks(queryStr, options);
   });
 
 /**
@@ -489,6 +496,22 @@ function taskPathMatches(task: Node, filter: string): boolean {
 /**
  * List tasks (optionally scoped to a root node or filtered by path/query)
  */
+/**
+ * Check if a string looks like a query (vs a path or ID)
+ * Query indicators: starts with @, #, +, -, contains :, or is a known date shortcut
+ */
+function looksLikeQuery(str: string): boolean {
+  // Reference filters
+  if (/^[@#+-]/.test(str)) return true;
+  // Field:value filters
+  if (/[a-z]+:/.test(str)) return true;
+  // Path patterns (these ARE queries, not just paths)
+  if (/\*\*$/.test(str)) return true;
+  // Quoted phrases
+  if (/^".*"$/.test(str)) return true;
+  return false;
+}
+
 function listTasks(
   pathOrId: string | undefined,
   options: {
@@ -507,9 +530,12 @@ function listTasks(
   let pathFilter: string | null = null;
 
   // Handle query option first (takes precedence)
-  if (options.query) {
+  // Also treat positional arg as query if it looks like one
+  const queryArg =
+    options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null);
+  if (queryArg) {
     // Build query string, adding default status filter
-    let queryStr = options.query;
+    let queryStr = queryArg;
     if (!options.all && !queryStr.includes("status:")) {
       queryStr = `-status:done ${queryStr}`;
     }

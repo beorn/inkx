@@ -36,8 +36,33 @@ export {
 export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
   const db = getDb();
 
-  let sql = "SELECT * FROM nodes WHERE 1=1";
+  // Check if we need path filtering (requires CTE for ancestor lookup)
+  const needsPathFilter = ast.paths.length > 0;
+
+  let sql: string;
   const params: (string | number)[] = [];
+
+  if (needsPathFilter) {
+    // Use a CTE to compute effective_path (node's fs_path or ancestor's fs_path)
+    sql = `
+      WITH node_paths AS (
+        SELECT n.*,
+          COALESCE(n.fs_path, (
+            WITH RECURSIVE ancestors AS (
+              SELECT id, parent_id, fs_path FROM nodes WHERE id = n.id
+              UNION ALL
+              SELECT p.id, p.parent_id, p.fs_path
+              FROM nodes p
+              JOIN ancestors a ON p.id = a.parent_id
+            )
+            SELECT fs_path FROM ancestors WHERE fs_path IS NOT NULL LIMIT 1
+          )) AS effective_path
+        FROM nodes n
+      )
+      SELECT * FROM node_paths WHERE 1=1`;
+  } else {
+    sql = "SELECT * FROM nodes WHERE 1=1";
+  }
 
   // Filter by type if specified
   if (baseType) {
@@ -144,13 +169,16 @@ export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
   }
 
   // Apply path pattern filters
-  // Path patterns match against fs_path or require CTE for parent lookup
+  // Path patterns match against effective_path (includes ancestor lookup for child nodes)
+  // When needsPathFilter is true, we use the CTE with effective_path column
+  const pathColumn = needsPathFilter ? "effective_path" : "fs_path";
+
   for (const pathFilter of ast.paths) {
     const { pattern, recursive, negated } = pathFilter;
 
     // Normalize pattern:
     // - Remove leading ./ for relative paths
-    // - Remove leading / for absolute paths (we use LIKE %/pattern/%)
+    // - Remove leading / for absolute paths
     // - Remove trailing / if present
     let normalizedPattern = pattern;
     if (normalizedPattern.startsWith("./")) {
@@ -163,26 +191,46 @@ export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
       normalizedPattern = normalizedPattern.slice(0, -1);
     }
 
-    if (recursive) {
-      // Recursive pattern (e.g., ./inbox/** → match inbox or anything under inbox)
-      // Match: fs_path contains /pattern/ or ends with /pattern
+    // Default to recursive matching (./folder matches all contents)
+    // Use ./folder$ for non-recursive (direct children only)
+    const isNonRecursive = normalizedPattern.endsWith("$");
+    if (isNonRecursive) {
+      normalizedPattern = normalizedPattern.slice(0, -1);
+    }
+    const effectiveRecursive = recursive || !isNonRecursive;
+
+    if (effectiveRecursive) {
+      // Recursive pattern (e.g., ./inbox/** or ./inbox)
+      // Matches:
+      //   - /root/inbox/file.md (file directly in folder)
+      //   - /root/inbox/sub/file.md (file in subfolder)
+      //   - /root/inbox.md (the folder itself as a file)
       if (negated) {
-        sql += ` AND (fs_path IS NULL OR (fs_path NOT LIKE ? AND fs_path NOT LIKE ?))`;
-        params.push(`%/${normalizedPattern}/%`, `%/${normalizedPattern}`);
+        sql += ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ?))`;
+        params.push(
+          `%/${normalizedPattern}/%`, // files inside folder
+          `%/${normalizedPattern}.md`, // the folder file itself
+          `%/${normalizedPattern}`, // exact match at end
+        );
       } else {
-        // Match path containing pattern as directory
-        sql += ` AND (fs_path LIKE ? OR fs_path LIKE ?)`;
-        params.push(`%/${normalizedPattern}/%`, `%/${normalizedPattern}`);
+        sql += ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ?)`;
+        params.push(
+          `%/${normalizedPattern}/%`, // files inside folder
+          `%/${normalizedPattern}.md`, // the folder file itself
+          `%/${normalizedPattern}`, // exact match at end (for folder names without extension)
+        );
       }
     } else {
-      // Non-recursive pattern - must contain this directory segment
+      // Non-recursive pattern (e.g., ./inbox$) - direct children only
+      // Only matches files directly in the folder, not subfolders
       if (negated) {
-        sql += ` AND (fs_path IS NULL OR fs_path NOT LIKE ?)`;
-        params.push(`%/${normalizedPattern}/%`);
+        sql += ` AND (${pathColumn} IS NULL OR ${pathColumn} NOT GLOB ?)`;
+        params.push(`*/${normalizedPattern}/*[!/]*`);
       } else {
-        // Must contain this path segment
-        sql += ` AND fs_path LIKE ?`;
-        params.push(`%/${normalizedPattern}/%`);
+        // Match direct children: /folder/file.md but not /folder/sub/file.md
+        // GLOB pattern: */folder/* where the part after folder/ has no more slashes
+        sql += ` AND ${pathColumn} GLOB ? AND ${pathColumn} NOT GLOB ?`;
+        params.push(`*/${normalizedPattern}/*`, `*/${normalizedPattern}/*/*`);
       }
     }
   }

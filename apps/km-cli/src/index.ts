@@ -26,6 +26,8 @@ import { listCommand } from "./commands/list.ts";
 import { initCommand } from "./commands/init.ts";
 import { newCommand } from "./commands/new.ts";
 import { doneCommand } from "./commands/done.ts";
+import { toggleCommand } from "./commands/toggle.ts";
+import { moveCommand } from "./commands/move.ts";
 import { addCommand } from "./commands/add.ts";
 import { daemonCommand } from "./commands/daemon.ts";
 
@@ -132,6 +134,8 @@ program.addCommand(taskCommand); // km task - task management (list, status, ass
 // Actions
 program.addCommand(newCommand); // km new - quick capture to inbox
 program.addCommand(doneCommand); // km done <id> - mark task as done
+program.addCommand(toggleCommand); // km toggle <id> - toggle task status
+program.addCommand(moveCommand); // km move <node> <parent> - re-parent a node
 program.addCommand(addCommand); // km add <target> <source...> - add tasks to board/list
 program.addCommand(initCommand); // km init - create .km/ for disk mode
 program.addCommand(syncCommand); // km sync [--watch] - sync filesystem (with optional continuous watch)
