@@ -79,18 +79,4 @@ km-bjm (sections)         └──→ km-0ps (detail pane)
                               └──→ Automation (board sync, recurring)
 ```
 
----
-
-## Quick Start
-
-```bash
-bd ready              # Show unblocked work
-bd show <id>          # View details + acceptance test
-bd update <id> --status in_progress
-# ... implement ...
-bun test && bun fix
-bd close <id>
-bd sync && git push
-```
-
 Start with **Phase 1 parser** — it unblocks everything else.
