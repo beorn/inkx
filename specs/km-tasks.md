@@ -227,7 +227,6 @@ favorites:
   - `km @board` / `+board` / `#board` — view/manage boards
   - `km new` — quick capture
   - `km done` / `km move` — task operations
-  - `km import` / `km export` — TextBundle support
 - **[km-tasks-tui.md](km-tasks-tui.md)** — Terminal UI
   - Layout — split pane, search field
   - List Pane — columns, sorting, selection
