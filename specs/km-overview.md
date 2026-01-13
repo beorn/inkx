@@ -134,4 +134,5 @@ See [km-agents.md](km-agents.md) for details.
 - [Store](km-store.md) — Mode detection, interfaces
 - [UI](km-ui.md) — Views, collapsing
 - [CLI](km-cli.md) — Commands
+- [Tasks](km-tasks.md) — Task management, GTD workflow
 - [Agents](km-agents.md) — Agent orchestration
