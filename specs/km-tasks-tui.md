@@ -56,6 +56,7 @@ Unified NV-style input:
 ```
 
 **Fuzzy matching on:**
+
 - Task content (title)
 - Collapsed ancestor path
 - References (`@`, `#`, `+`)
@@ -76,35 +77,35 @@ Unified NV-style input:
 [ ] ↻  Weekly review            Personal            Mon
 ```
 
-| Column | Source | Width |
-|--------|--------|-------|
-| Mark | `[ ]` `[!]` `[x]` `[-]` | 3 |
-| Recur | `↻` if recurring | 2 |
-| Title | First line of content | flex |
-| Project | Collapsed ancestors | 20 |
-| Due | Relative due date | 8 |
+| Column  | Source                  | Width |
+| ------- | ----------------------- | ----- |
+| Mark    | `[ ]` `[!]` `[x]` `[-]` | 3     |
+| Recur   | `↻` if recurring        | 2     |
+| Title   | First line of content   | flex  |
+| Project | Collapsed ancestors     | 20    |
+| Due     | Relative due date       | 8     |
 
 ### Status Marks
 
 See [Status Model](km-tasks-data.md#status-model) for status definitions.
 
-| Mark | Display |
-|------|---------|
-| `[ ]` | Default |
-| `[!]` | Yellow |
-| `[x]` | Green, dim |
+| Mark  | Display            |
+| ----- | ------------------ |
+| `[ ]` | Default            |
+| `[!]` | Yellow             |
+| `[x]` | Green, dim         |
 | `[-]` | Dim, strikethrough |
 
 ### Due Date Display
 
-| Condition | Display |
-|-----------|---------|
-| Overdue | Red, bold, "-3d" |
-| Due today | Yellow, "today" |
+| Condition    | Display            |
+| ------------ | ------------------ |
+| Overdue      | Red, bold, "-3d"   |
+| Due today    | Yellow, "today"    |
 | Due tomorrow | Normal, "tomorrow" |
-| This week | Dim, "Wed" or "3d" |
-| Later | Dim, "Jan 15" |
-| Done | Dim, "✓" |
+| This week    | Dim, "Wed" or "3d" |
+| Later        | Dim, "Jan 15"      |
+| Done         | Dim, "✓"           |
 
 ---
 
@@ -183,70 +184,70 @@ All boards display as columns:
 
 ### Global
 
-| Key | Action |
-|-----|--------|
-| `⌘K` | Focus search/create |
-| `/` | Focus search |
-| `1-6` | Open favorite |
-| `?` | Help |
-| `q` | Quit |
-| `u` | Go up (parent view) |
+| Key   | Action              |
+| ----- | ------------------- |
+| `⌘K`  | Focus search/create |
+| `/`   | Focus search        |
+| `1-6` | Open favorite       |
+| `?`   | Help                |
+| `q`   | Quit                |
+| `u`   | Go up (parent view) |
 
 ### List Navigation
 
-| Key | Action |
-|-----|--------|
-| `j/k` | Move down/up |
-| `g/G` | First/last item |
+| Key     | Action           |
+| ------- | ---------------- |
+| `j/k`   | Move down/up     |
+| `g/G`   | First/last item  |
 | `Enter` | Open detail pane |
-| `l` | Open detail pane |
+| `l`     | Open detail pane |
 
 ### Task Actions
 
-| Key | Action |
-|-----|--------|
-| `x` | Toggle done |
-| `b` | Toggle blocked |
-| `n` | Add to @next |
+| Key | Action               |
+| --- | -------------------- |
+| `x` | Toggle done          |
+| `b` | Toggle blocked       |
+| `n` | Add to @next         |
 | `w` | Add to @next/waiting |
-| `p` | Change project |
-| `d` | Set due date |
-| `s` | Change status |
-| `e` | Edit title inline |
-| `N` | Add note |
-| `a` | Add subtask |
-| `@` | Insert reference |
-| `D` | Delete |
+| `p` | Change project       |
+| `d` | Set due date         |
+| `s` | Change status        |
+| `e` | Edit title inline    |
+| `N` | Add note             |
+| `a` | Add subtask          |
+| `@` | Insert reference     |
+| `D` | Delete               |
 
 ### Inbox Actions
 
 When viewing `@inbox`:
 
-| Key | Action |
-|-----|--------|
-| `n` | Add to @next |
-| `p` | Set project |
+| Key | Action           |
+| --- | ---------------- |
+| `n` | Add to @next     |
+| `p` | Set project      |
 | `s` | Move to @someday |
-| `d` | Mark done |
-| `D` | Delete |
+| `d` | Mark done        |
+| `D` | Delete           |
 
 ### Detail Pane
 
-| Key | Action |
-|-----|--------|
-| `h/Esc` | Close pane |
-| `e` | Edit content |
-| `Tab` | Next field |
+| Key     | Action         |
+| ------- | -------------- |
+| `h/Esc` | Close pane     |
+| `e`     | Edit content   |
+| `Tab`   | Next field     |
 | `S-Tab` | Previous field |
 
 ### Visual Selection
 
-| Key | Action |
-|-----|--------|
-| `v` | Start visual mode |
-| `V` | Select entire task |
-| `J/K` | Extend selection |
-| `Esc` | Clear selection |
+| Key   | Action             |
+| ----- | ------------------ |
+| `v`   | Start visual mode  |
+| `V`   | Select entire task |
+| `J/K` | Extend selection   |
+| `Esc` | Clear selection    |
 
 ---
 
@@ -273,21 +274,21 @@ Type to filter...
 
 ## Colors
 
-| Element | Color |
-|---------|-------|
-| Selected row | Inverse |
-| Task `[ ]` | Default |
-| Task `[!]` | Yellow |
-| Task `[x]` | Green |
-| Task `[-]` | Dim |
-| Due (overdue) | Red |
-| Due (today) | Yellow |
-| Due (future) | Dim |
-| Project path | Dim |
-| Reference `@` | Blue |
-| Reference `#` | Green |
+| Element       | Color   |
+| ------------- | ------- |
+| Selected row  | Inverse |
+| Task `[ ]`    | Default |
+| Task `[!]`    | Yellow  |
+| Task `[x]`    | Green   |
+| Task `[-]`    | Dim     |
+| Due (overdue) | Red     |
+| Due (today)   | Yellow  |
+| Due (future)  | Dim     |
+| Project path  | Dim     |
+| Reference `@` | Blue    |
+| Reference `#` | Green   |
 | Reference `+` | Magenta |
-| Wikilink | Cyan |
+| Wikilink      | Cyan    |
 
 ---
 

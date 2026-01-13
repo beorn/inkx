@@ -26,19 +26,22 @@ km init gtd --dry-run      # Preview what would be created
 ### What Gets Created
 
 **Folders:**
+
 - `inbox/` — drop zone for quick capture
 - `archive/` — completed items (optional)
 
 **Boards:**
 
 **@inbox.md:**
+
 ```markdown
 # @inbox
 
-## unprocessed add="./inbox/**"
+## unprocessed add="./inbox/\*\*"
 ```
 
 **@next.md:**
+
 ```markdown
 # @next
 
@@ -52,6 +55,7 @@ km init gtd --dry-run      # Preview what would be created
 ```
 
 **@someday.md:**
+
 ```markdown
 # @someday
 
@@ -77,6 +81,7 @@ Tasks can opt-out of column rules:
 ## Other Templates
 
 Future templates could include:
+
 - **kanban** — Simple Todo/Doing/Done board
 - **zettelkasten** — Note-taking workflow
 - **agile** — Sprint-based project management

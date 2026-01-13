@@ -116,10 +116,22 @@ km/
                      └──→ @km/app-cli ←┘
 ```
 
+## Development
+
+```bash
+bun install          # Install dependencies
+bun test             # Run all tests
+bun fix              # Lint + format
+bun run km           # Run CLI
+```
+
 ## Docs
 
-- [specs/](specs/) — Architecture
+- [specs/README.md](specs/README.md) — Architecture & principles
+- [specs/km-overview.md](specs/km-overview.md) — Design overview
+- [specs/km-tasks.md](specs/km-tasks.md) — Task management
 - [specs/km-agents.md](specs/km-agents.md) — Agent orchestration
+- [CLAUDE.md](CLAUDE.md) — Agent development instructions
 
 Inspired by [Beads](https://github.com/steveyegge/beads) and [Gas Town](https://github.com/steveyegge/gastown).
 

@@ -1,5 +1,49 @@
 # Agent Instructions
 
+## Architectural Rules (MUST FOLLOW)
+
+Before writing ANY code, you MUST understand and follow these rules. See [specs/README.md](specs/README.md) for full details.
+
+### 1. Clear Layering
+
+```
+UI Layer (km-cli)     → Query Layer (km-store)
+                      → Model Layer (km-store, km-core)
+                      → Sync Layer (km-watch)
+                      → Parser Layer (km-markdown)
+                      → Filesystem (markdown files)
+```
+
+- Each layer only calls the layer directly below it
+- UI never touches filesystem directly
+- Model changes MUST propagate to filesystem (bidirectional)
+
+### 2. Bidirectional Sync
+
+ALL task edits MUST flow both directions:
+
+- TUI edit → Model → File
+- File edit → Model → TUI re-render
+
+### 3. Test-Driven Development
+
+**BEFORE committing any code changes:**
+
+```bash
+bun fix              # MUST pass - auto-fix lint + format
+bun test             # MUST pass - all 351+ tests
+```
+
+**When implementing features:**
+
+1. Write acceptance test first (should fail)
+2. Implement feature
+3. Test passes
+4. `bun fix` passes
+5. Commit
+
+---
+
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
 ## Quick Reference

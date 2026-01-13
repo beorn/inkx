@@ -11,6 +11,7 @@ Data model for task management in km.
 ### Everything is a Node
 
 km has one primitive: **nodes**. A node is a piece of content that can be:
+
 - A file, folder, heading, list item, paragraph
 - Optionally has a **status** (making it a task)
 - Optionally has **references** to other nodes (`@`, `#`, `+`, `[[]]`)
@@ -20,8 +21,9 @@ km has one primitive: **nodes**. A node is a piece of content that can be:
 Any node can become a task by having a status:
 
 ```markdown
-- [ ] Call dentist                     # list item with status = task
-## [ ] Q1 Budget Review                # heading with status = task
+- [ ] Call dentist # list item with status = task
+
+## [ ] Q1 Budget Review # heading with status = task
 ```
 
 ### References are Node Links
@@ -47,13 +49,16 @@ A board is a markdown file with H2 columns containing transclusions to tasks:
 # @next.md
 
 ## today add="due:past status:open"
+
 - ![[tasks/review-budget]]
 - ![[tasks/call-dentist]]
 
 ## this-week add="due:week status:open -due:past"
+
 - ![[tasks/send-invoice]]
 
 ## waiting sync=status:blocked
+
 - ![[tasks/get-approval]]
 ```
 
@@ -65,12 +70,12 @@ Boards are populated by **column rules** or **manual curation**. See [Board Syst
 
 ### Four Statuses
 
-| Mark | Status | Meaning |
-|------|--------|---------|
-| `[ ]` | `open` | Available to work on |
+| Mark  | Status    | Meaning                            |
+| ----- | --------- | ---------------------------------- |
+| `[ ]` | `open`    | Available to work on               |
 | `[!]` | `blocked` | Can't work on it (waiting/blocked) |
-| `[x]` | `done` | Completed |
-| `[-]` | `dropped` | Cancelled, won't do |
+| `[x]` | `done`    | Completed                          |
+| `[-]` | `dropped` | Cancelled, won't do                |
 
 ### Why These Four?
 
@@ -97,6 +102,7 @@ Use `sync=` to bidirectionally link column membership with field values:
 
 ```markdown
 ## waiting sync=status:blocked
+
 - ![[tasks/get-approval]]
 ```
 
@@ -108,22 +114,23 @@ Moving a task to `@next/waiting` sets `status=blocked`. When a task becomes bloc
 
 ### Core Fields
 
-| Field | Syntax | Purpose |
-|-------|--------|---------|
-| `due:` | `due:2025-01-15` | When it's due |
-| `start:` | `start:2025-01-20` | Don't show until this date |
-| `p:` | `p:1` | Priority (1-5, 1=highest) |
+| Field    | Syntax              | Purpose                      |
+| -------- | ------------------- | ---------------------------- |
+| `due:`   | `due:2025-01-15`    | When it's due                |
+| `start:` | `start:2025-01-20`  | Don't show until this date   |
+| `p:`     | `p:1`               | Priority (1-5, 1=highest)    |
 | `recur:` | `recur:FREQ=WEEKLY` | Recurrence rule (iCal RRULE) |
 
 ### References
 
-| Sigil | Convention | Example |
-|-------|------------|---------|
-| `@` | People, contexts | `@bjorn`, `@phone` |
-| `#` | Tags, categories | `#finance`, `#urgent` |
-| `+` | Projects | `+website`, `+q1` |
+| Sigil | Convention       | Example               |
+| ----- | ---------------- | --------------------- |
+| `@`   | People, contexts | `@bjorn`, `@phone`    |
+| `#`   | Tags, categories | `#finance`, `#urgent` |
+| `+`   | Projects         | `+website`, `+q1`     |
 
 **@ for People vs Contexts:**
+
 - **People** (`@bjorn`, `@sarah`): Delegation, collaboration, agenda items to discuss
 - **Contexts** (`@phone`, `@computer`, `@errands`): GTD contexts — where/how you can do the task
 
@@ -132,6 +139,7 @@ Both use `@` because they answer "who/where can do this?" The first `@` becomes 
 All references create links to boards.
 
 Example: `- [ ] Review budget @bjorn @sarah #finance`
+
 - `owner` = `bjorn` (first `@`)
 - `refs` = `[@bjorn, @sarah, #finance]` (all refs)
 
@@ -140,17 +148,17 @@ Example: `- [ ] Review budget @bjorn @sarah #finance`
 ```typescript
 interface Node {
   id: string;
-  type: string;           // file, folder, heading, list_item
+  type: string; // file, folder, heading, list_item
 
   // Task fields (optional)
-  status?: 'open' | 'blocked' | 'done' | 'dropped';
-  owner?: string;         // Extracted from first @ reference (without sigil)
-  refs?: string[];        // All @, #, + references (with sigils)
-  due?: string;           // YYYY-MM-DD
-  start?: string;         // YYYY-MM-DD (defer until)
-  p?: number;             // Priority 1-5
-  recur?: string;         // iCal RRULE
-  recur_prev?: string;    // Previous instance ID
+  status?: "open" | "blocked" | "done" | "dropped";
+  owner?: string; // Extracted from first @ reference (without sigil)
+  refs?: string[]; // All @, #, + references (with sigils)
+  due?: string; // YYYY-MM-DD
+  start?: string; // YYYY-MM-DD (defer until)
+  p?: number; // Priority 1-5
+  recur?: string; // iCal RRULE
+  recur_prev?: string; // Previous instance ID
 }
 ```
 
@@ -164,11 +172,11 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 
 ### Standard GTD Boards
 
-| Board | Purpose | Populated By |
-|-------|---------|--------------|
-| `@inbox` | Unprocessed items | Column rule: `add="./inbox/**"` |
-| `@next` | Next actions | Manual + column rules (overdue/starting) |
-| `@someday` | Maybe/later | Manual curation only |
+| Board      | Purpose           | Populated By                             |
+| ---------- | ----------------- | ---------------------------------------- |
+| `@inbox`   | Unprocessed items | Column rule: `add="./inbox/**"`          |
+| `@next`    | Next actions      | Manual + column rules (overdue/starting) |
+| `@someday` | Maybe/later       | Manual curation only                     |
 
 > **Multi-user note:** `@next` may become `@me` (current user's board) when multi-user support is added.
 
@@ -188,15 +196,19 @@ If the board file doesn't exist, the reference is a broken link (like any wikili
 # @next.md
 
 ## today add="due:past status:open" add="start:past status:open"
+
 - ![[tasks/review-budget]]
 
 ## this-week add="due:week status:open -due:past"
+
 - ![[tasks/send-invoice]]
 
 ## waiting sync=status:blocked
+
 - ![[tasks/get-approval]]
 
 ## done sync=status:done
+
 - ![[tasks/setup-repo]]
 ```
 
@@ -204,22 +216,28 @@ If the board file doesn't exist, the reference is a broken link (like any wikili
 
 Columns can have rules that control task membership and field synchronization.
 
-| Attribute | Syntax | Effect |
-|-----------|--------|--------|
-| `add` | `add="query"` | Pull in tasks matching query |
-| `sync` | `sync=field:value` | Bidirectional: move here ↔ set field |
+| Attribute | Syntax             | Effect                               |
+| --------- | ------------------ | ------------------------------------ |
+| `add`     | `add="query"`      | Pull in tasks matching query         |
+| `sync`    | `sync=field:value` | Bidirectional: move here ↔ set field |
 
 **`add="query"`** — Continuously pulls in matching tasks from anywhere:
+
 ```markdown
-## today add="due:past status:open"    # Overdue open tasks appear here
-## inbox add="./inbox/**"              # Files in inbox/ folder
+## today add="due:past status:open" # Overdue open tasks appear here
+
+## inbox add="./inbox/\*\*" # Files in inbox/ folder
 ```
 
 **`sync=field:value`** — Bidirectional synchronization:
+
 ```markdown
-## waiting sync=status:blocked         # Move here → set blocked
+## waiting sync=status:blocked # Move here → set blocked
+
                                        # Become blocked → move here
-## done sync=status:done               # Move here → set done
+
+## done sync=status:done # Move here → set done
+
                                        # Become done → move here
 ```
 
@@ -227,15 +245,17 @@ Columns can have rules that control task membership and field synchronization.
 
 ```markdown
 ## done sync=status:done collapse=true
+
 ## wip limit=3
+
 ## review default=true
 ```
 
-| Attribute | Effect |
-|-----------|--------|
-| `collapse=true` | Collapsed in UI |
-| `limit=N` | WIP limit (visual warning) |
-| `default=true` | New items go here |
+| Attribute       | Effect                     |
+| --------------- | -------------------------- |
+| `collapse=true` | Collapsed in UI            |
+| `limit=N`       | WIP limit (visual warning) |
+| `default=true`  | New items go here          |
 
 ---
 
@@ -259,6 +279,7 @@ status:open @bjorn           # Field match + reference
 ### Clone-on-Complete
 
 When a recurring task is completed:
+
 1. Current task marked `done`
 2. New task cloned with next occurrence date
 3. New task links back via `recur_prev`
@@ -295,15 +316,15 @@ Completed items can be moved to `archive/` (manual or via automation).
 
 ## GTD Mapping
 
-| GTD Concept | km Implementation |
-|-------------|-------------------|
-| Inbox | `inbox/` folder → `@inbox` board |
-| Next Actions | `@next` board (curated) |
-| Waiting For | `@next/waiting` column (status=blocked) |
-| Someday/Maybe | `@someday` board |
-| Projects | `+project` references |
-| Contexts | `@context` references |
-| Reference | Nodes without status |
+| GTD Concept   | km Implementation                       |
+| ------------- | --------------------------------------- |
+| Inbox         | `inbox/` folder → `@inbox` board        |
+| Next Actions  | `@next` board (curated)                 |
+| Waiting For   | `@next/waiting` column (status=blocked) |
+| Someday/Maybe | `@someday` board                        |
+| Projects      | `+project` references                   |
+| Contexts      | `@context` references                   |
+| Reference     | Nodes without status                    |
 
 **Key insight:** GTD "lists" are boards. Status (open/blocked/done/dropped) indicates whether you can work on it.
 

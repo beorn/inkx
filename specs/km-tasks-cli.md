@@ -6,18 +6,18 @@ Command-line interface for task management.
 
 ## Commands Overview
 
-| Command | Purpose |
-|---------|---------|
-| `km task` | List, filter, query tasks |
-| `km @board` | View/manage `@` board |
-| `km +board` | View/manage `+` board |
-| `km #board` | View/manage `#` board |
-| `km new` | Quick capture (create task) |
-| `km done` | Mark task done |
-| `km move` | Re-parent task |
-| `km init` | Initialize from template |
-| `km import` | Import TextBundle |
-| `km export` | Export TextBundle |
+| Command     | Purpose                     |
+| ----------- | --------------------------- |
+| `km task`   | List, filter, query tasks   |
+| `km @board` | View/manage `@` board       |
+| `km +board` | View/manage `+` board       |
+| `km #board` | View/manage `#` board       |
+| `km new`    | Quick capture (create task) |
+| `km done`   | Mark task done              |
+| `km move`   | Re-parent task              |
+| `km init`   | Initialize from template    |
+| `km import` | Import TextBundle           |
+| `km export` | Export TextBundle           |
 
 **Note:** Board commands require the sigil prefix (`@`, `+`, `#`) to distinguish from subcommands.
 
@@ -148,14 +148,14 @@ km new "Task @bjorn due:2025-01-15"    # With metadata
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-n, --next` | Add to @next board |
-| `-p, --project` | Set parent project |
-| `-d, --due` | Set due date |
-| `-s, --start` | Set start/scheduled date |
-| `-o, --owner` | Assign to user |
-| `-P, --priority` | Set priority (1-5) |
+| Option           | Description              |
+| ---------------- | ------------------------ |
+| `-n, --next`     | Add to @next board       |
+| `-p, --project`  | Set parent project       |
+| `-d, --due`      | Set due date             |
+| `-s, --start`    | Set start/scheduled date |
+| `-o, --owner`    | Assign to user           |
+| `-P, --priority` | Set priority (1-5)       |
 
 ### Examples
 
@@ -234,11 +234,11 @@ km import ~/Bear/                 # Batch import directory
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Preview without importing |
-| `--project` | Set parent for imported items |
-| `--assets` | Asset handling (cas/alongside) |
+| Option      | Description                    |
+| ----------- | ------------------------------ |
+| `--dry-run` | Preview without importing      |
+| `--project` | Set parent for imported items  |
+| `--assets`  | Asset handling (cas/alongside) |
 
 ---
 
@@ -256,12 +256,12 @@ km export --project "Name" -o <path>  # Export project
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-o, --output` | Output path (required) |
-| `--textbundle` | Export as .textbundle (default) |
-| `--textpack` | Export as .textpack (compressed) |
-| `--include-done` | Include completed tasks |
+| Option           | Description                      |
+| ---------------- | -------------------------------- |
+| `-o, --output`   | Output path (required)           |
+| `--textbundle`   | Export as .textbundle (default)  |
+| `--textpack`     | Export as .textpack (compressed) |
+| `--include-done` | Include completed tasks          |
 
 ---
 
@@ -308,11 +308,11 @@ Personal / Health
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `KM_DIR` | Override .km directory |
+| Variable  | Description                 |
+| --------- | --------------------------- |
+| `KM_DIR`  | Override .km directory      |
 | `KM_USER` | Default user for assignment |
-| `KM_ROOT` | Default root directory |
+| `KM_ROOT` | Default root directory      |
 
 ---
 

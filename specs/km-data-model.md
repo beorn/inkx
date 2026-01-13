@@ -62,9 +62,9 @@ type NodeType =
 
 ```typescript
 type TaskStatus =
-  | "open"    // [ ] — available to work on
+  | "open" // [ ] — available to work on
   | "blocked" // [!] — waiting on something/someone
-  | "done"    // [x] — completed
+  | "done" // [x] — completed
   | "dropped"; // [-] — cancelled, won't do
 ```
 
@@ -74,12 +74,12 @@ See [km-tasks-data.md](km-tasks-data.md#status-model) for details.
 
 ### Task Marks
 
-| Mark       | Status    | Display |
-| ---------- | --------- | ------- |
-| ` `        | open      | `[ ]`   |
-| `x` or `X` | done      | `[x]`   |
-| `!`        | blocked   | `[!]`   |
-| `-`        | dropped   | `[-]`   |
+| Mark       | Status  | Display |
+| ---------- | ------- | ------- |
+| ` `        | open    | `[ ]`   |
+| `x` or `X` | done    | `[x]`   |
+| `!`        | blocked | `[!]`   |
+| `-`        | dropped | `[-]`   |
 
 ---
 

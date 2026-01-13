@@ -12,12 +12,12 @@ Task management in km, inspired by Notational Velocity and Simplenote.
 
 Tasks have exactly four statuses:
 
-| Mark | Status | Meaning |
-|------|--------|---------|
-| `[ ]` | `open` | Available to work on |
+| Mark  | Status    | Meaning              |
+| ----- | --------- | -------------------- |
+| `[ ]` | `open`    | Available to work on |
 | `[!]` | `blocked` | Waiting on something |
-| `[x]` | `done` | Completed |
-| `[-]` | `dropped` | Cancelled |
+| `[x]` | `done`    | Completed            |
+| `[-]` | `dropped` | Cancelled            |
 
 Status answers one question: **Can I work on this?**
 
@@ -29,13 +29,16 @@ Boards are markdown files with H2 columns containing task transclusions:
 # @next
 
 ## today add="due:past status:open"
+
 - ![[tasks/review-budget]]
 
 ## waiting sync=status:blocked
+
 - ![[tasks/get-approval]]
 ```
 
 **Column rules** control task membership:
+
 - `add="query"` — Pull in matching tasks
 - `sync=field:value` — Bidirectional: move here ↔ set field
 
@@ -43,11 +46,11 @@ Boards are markdown files with H2 columns containing task transclusions:
 
 Sigils create links to nodes:
 
-| Sigil | Convention | Example |
-|-------|------------|---------|
-| `@` | People, contexts | `@bjorn`, `@phone` |
-| `#` | Tags | `#finance`, `#urgent` |
-| `+` | Projects | `+website`, `+q1` |
+| Sigil | Convention       | Example               |
+| ----- | ---------------- | --------------------- |
+| `@`   | People, contexts | `@bjorn`, `@phone`    |
+| `#`   | Tags             | `#finance`, `#urgent` |
+| `+`   | Projects         | `+website`, `+q1`     |
 
 Any reference can have a board — it's just a markdown file (`@bjorn.md`, `+website.md`).
 
@@ -68,15 +71,18 @@ See [km-query.md](km-query.md) for full syntax.
 ## Design Principles
 
 **From Notational Velocity:**
+
 - Unified search/create field — type to filter OR create
 - Instant incremental filtering — no submit button
 - Keyboard-first — vim keys, no mouse required
 
 **From Simplenote:**
+
 - Minimal UI — content over chrome
 - Frictionless capture — thought to task in one step
 
 **From km:**
+
 - Markdown-native — files you own
 - Boards over statuses — organization through lists, not state
 - Column rules — behavior defined in board files, not config
@@ -107,6 +113,7 @@ km @inbox process
 ```
 
 For each item:
+
 - `n` — Add to @next (do soon)
 - `p` — Set project
 - `s` — Move to @someday
@@ -118,8 +125,8 @@ For each item:
 Tasks go to boards via references:
 
 ```markdown
-- [ ] Call vendor +website           # → +website board
-- [ ] Discuss budget @bjorn          # → @bjorn board
+- [ ] Call vendor +website # → +website board
+- [ ] Discuss budget @bjorn # → @bjorn board
 ```
 
 Blocked tasks go to waiting column:
@@ -131,12 +138,14 @@ km @next/waiting add ./tasks/approval
 ### 4. Review
 
 **Daily:**
+
 ```bash
 km @next                  # What to work on today
 km @next/waiting          # What's blocked
 ```
 
 **Weekly Review:**
+
 ```bash
 km @inbox                 # Process anything left
 km @next                  # Is everything current?
@@ -159,6 +168,7 @@ km @next          # Open next actions board
 ### Unified Search/Create
 
 Single input field:
+
 - Type to filter existing tasks
 - Enter on no match creates new task
 - References in input (`@`, `#`, `+`) create links
@@ -176,6 +186,7 @@ km @next add ./projects/website/**
 ### Easy Re-parenting
 
 `p` key opens fuzzy project picker:
+
 - Recent projects at top
 - Type to filter
 - Bulk move with visual selection
@@ -183,6 +194,7 @@ km @next add ./projects/website/**
 ### Recurring Tasks
 
 iCal RRULE format:
+
 - When done, clone with next occurrence
 - Original stays in history
 

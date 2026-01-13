@@ -7,6 +7,7 @@ Unified query syntax for selecting nodes in km.
 ## Overview
 
 Node queries are space-separated terms that filter nodes. Used by:
+
 - `km task` — filter task list
 - `km @board add` — add matching nodes to board
 - Automation rules — `match:` conditions
@@ -17,27 +18,27 @@ All terms are AND-ed together (intersection).
 
 ## Term Types
 
-| Pattern | Name | Description |
-|---------|------|-------------|
-| `@ref` | Reference | Node has this reference (contains) |
-| `#tag` | Reference | Node has this tag (contains) |
-| `+proj` | Reference | Node has this project ref (contains) |
-| `./path` | Path | Node is under this relative path |
-| `/path` | Path | Node is under this absolute path |
-| `path/` | Path | Node path contains this string |
-| `key:value` | Field | Field matches value |
-| `-TERM` | Negation | Exclude nodes matching TERM |
-| `"text"` | Search | Full-text search |
+| Pattern     | Name      | Description                          |
+| ----------- | --------- | ------------------------------------ |
+| `@ref`      | Reference | Node has this reference (contains)   |
+| `#tag`      | Reference | Node has this tag (contains)         |
+| `+proj`     | Reference | Node has this project ref (contains) |
+| `./path`    | Path      | Node is under this relative path     |
+| `/path`     | Path      | Node is under this absolute path     |
+| `path/`     | Path      | Node path contains this string       |
+| `key:value` | Field     | Field matches value                  |
+| `-TERM`     | Negation  | Exclude nodes matching TERM          |
+| `"text"`    | Search    | Full-text search                     |
 
 ---
 
 ## Modifiers
 
-| Suffix | Effect |
-|--------|--------|
-| `$` | Exact match (default is contains) |
-| `**` | Recursive (for paths) |
-| `*` | Wildcard (for values) |
+| Suffix | Effect                            |
+| ------ | --------------------------------- |
+| `$`    | Exact match (default is contains) |
+| `**`   | Recursive (for paths)             |
+| `*`    | Wildcard (for values)             |
 
 ---
 
@@ -75,24 +76,24 @@ projects/**         # Contains "projects/", recursive
 
 Match field values with `key:value`:
 
-| Field | Values | Example |
-|-------|--------|---------|
-| `status` | open, blocked, done, dropped | `status:open` |
-| `due` | today, past, week, none, YYYY-MM-DD | `due:past` |
-| `start` | past, today, YYYY-MM-DD | `start:past` |
-| `owner` | name | `owner:bjorn$` |
-| `p` | 1-5 | `p:1` |
+| Field    | Values                              | Example        |
+| -------- | ----------------------------------- | -------------- |
+| `status` | open, blocked, done, dropped        | `status:open`  |
+| `due`    | today, past, week, none, YYYY-MM-DD | `due:past`     |
+| `start`  | past, today, YYYY-MM-DD             | `start:past`   |
+| `owner`  | name                                | `owner:bjorn$` |
+| `p`      | 1-5                                 | `p:1`          |
 
 ### Date Values
 
-| Value | Meaning |
-|-------|---------|
-| `today` | Due/start date is today |
-| `past` | Date is before today |
-| `week` | Within next 7 days |
-| `none` | Field is not set |
-| `YYYY-MM-DD` | Specific date |
-| `older_than_Nd` | More than N days ago |
+| Value           | Meaning                 |
+| --------------- | ----------------------- |
+| `today`         | Due/start date is today |
+| `past`          | Date is before today    |
+| `week`          | Within next 7 days      |
+| `none`          | Field is not set        |
+| `YYYY-MM-DD`    | Specific date           |
+| `older_than_Nd` | More than N days ago    |
 
 ---
 
@@ -189,31 +190,31 @@ WHERE status = 'open'
 
 #### Query Parsing
 
-| Library | Notes |
-|---------|-------|
-| [search-query-parser](https://github.com/nepsilon/search-query-parser) | Parses `key:value`, exclusions (`-key:val`), ranges. Has TypeScript types. Good fit for km's syntax. |
-| [@projekt-apollo/query-parser](https://www.npmjs.com/package/@projekt-apollo/query-parser) | Lightweight, Gmail/GitHub-inspired. Produces AST. |
-| [search-parser](https://www.npmjs.com/package/search-parser) | Supports AND/OR/NOT, parentheses. More complex than needed. |
+| Library                                                                                    | Notes                                                                                                |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| [search-query-parser](https://github.com/nepsilon/search-query-parser)                     | Parses `key:value`, exclusions (`-key:val`), ranges. Has TypeScript types. Good fit for km's syntax. |
+| [@projekt-apollo/query-parser](https://www.npmjs.com/package/@projekt-apollo/query-parser) | Lightweight, Gmail/GitHub-inspired. Produces AST.                                                    |
+| [search-parser](https://www.npmjs.com/package/search-parser)                               | Supports AND/OR/NOT, parentheses. More complex than needed.                                          |
 
 **Recommendation:** `search-query-parser` handles km's syntax well (key:value, negation with `-`, comma-separated values). May need light extension for path terms (`./`, `/**`).
 
 #### SQL Generation
 
-| Library | Notes |
-|---------|-------|
-| [Kysely](https://kysely.dev/) | Pure query builder. 13k+ stars. Best-in-class type safety — catches invalid queries at compile time. SQL-like API. |
-| [Drizzle ORM](https://orm.drizzle.team/) | Lightweight ORM (~7.4kb). Schema-in-TypeScript, built-in migrations. Types only on results, not query construction. |
-| [ts-sql-query](https://ts-sql-query.readthedocs.io/) | Type-safe, supports SQLite. Can run sync with better-sqlite3. |
+| Library                                              | Notes                                                                                                               |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [Kysely](https://kysely.dev/)                        | Pure query builder. 13k+ stars. Best-in-class type safety — catches invalid queries at compile time. SQL-like API.  |
+| [Drizzle ORM](https://orm.drizzle.team/)             | Lightweight ORM (~7.4kb). Schema-in-TypeScript, built-in migrations. Types only on results, not query construction. |
+| [ts-sql-query](https://ts-sql-query.readthedocs.io/) | Type-safe, supports SQLite. Can run sync with better-sqlite3.                                                       |
 
 **Kysely vs Drizzle:**
 
-| Aspect | Kysely | Drizzle |
-|--------|--------|---------|
-| Type safety | Full (query + results) | Partial (results only) |
-| Schema | External/codegen | TypeScript-native |
-| Migrations | Community tools | Built-in (drizzle-kit) |
-| API style | Fluent builder | SQL-like |
-| Dependencies | Zero | Zero |
+| Aspect       | Kysely                 | Drizzle                |
+| ------------ | ---------------------- | ---------------------- |
+| Type safety  | Full (query + results) | Partial (results only) |
+| Schema       | External/codegen       | TypeScript-native      |
+| Migrations   | Community tools        | Built-in (drizzle-kit) |
+| API style    | Fluent builder         | SQL-like               |
+| Dependencies | Zero                   | Zero                   |
 
 **Recommendation:** Kysely for km's dynamic query building — its compile-time validation catches malformed queries before runtime. Drizzle excels at schema management but allows invalid queries to compile.
 
@@ -222,11 +223,11 @@ Note: [drizzle-kysely](https://github.com/drizzle-team/drizzle-kysely) lets you 
 ### Suggested Implementation
 
 ```typescript
-import { parse } from 'search-query-parser';
-import { Kysely, sql } from 'kysely';
+import { parse } from "search-query-parser";
+import { Kysely, sql } from "kysely";
 
 interface QueryTerm {
-  type: 'field' | 'ref' | 'path' | 'text';
+  type: "field" | "ref" | "path" | "text";
   key?: string;
   value: string;
   negated: boolean;
@@ -235,7 +236,7 @@ interface QueryTerm {
 
 function parseQuery(input: string): QueryTerm[] {
   const options = {
-    keywords: ['status', 'due', 'start', 'owner', 'p'],
+    keywords: ["status", "due", "start", "owner", "p"],
     tokenize: true,
   };
   const parsed = parse(input, options);
@@ -243,7 +244,7 @@ function parseQuery(input: string): QueryTerm[] {
 }
 
 function toSQL(terms: QueryTerm[], db: Kysely<Database>) {
-  let query = db.selectFrom('nodes');
+  let query = db.selectFrom("nodes");
 
   for (const term of terms) {
     query = applyTerm(query, term);
@@ -254,13 +255,13 @@ function toSQL(terms: QueryTerm[], db: Kysely<Database>) {
 
 function applyTerm(query, term: QueryTerm) {
   switch (term.type) {
-    case 'field':
+    case "field":
       return applyFieldTerm(query, term);
-    case 'ref':
+    case "ref":
       return applyRefTerm(query, term);
-    case 'path':
+    case "path":
       return applyPathTerm(query, term);
-    case 'text':
+    case "text":
       return applyFullTextTerm(query, term);
   }
 }
@@ -306,16 +307,16 @@ CREATE INDEX idx_refs_type ON refs(ref_type);
 
 ### Query Translation Examples
 
-| Query | SQL |
-|-------|-----|
-| `status:open` | `WHERE status = 'open'` |
-| `@bjorn` | `WHERE id IN (SELECT node_id FROM refs WHERE ref LIKE '%bjorn%')` |
-| `@bjorn$` | `WHERE id IN (SELECT node_id FROM refs WHERE ref = '@bjorn')` |
-| `-status:done` | `WHERE status != 'done' OR status IS NULL` |
-| `./inbox/**` | `WHERE path LIKE './inbox/%'` |
-| `"budget"` | `WHERE id IN (SELECT rowid FROM nodes_fts WHERE content MATCH 'budget')` |
-| `due:past` | `WHERE due < date('now')` |
-| `due:week` | `WHERE due BETWEEN date('now') AND date('now', '+7 days')` |
+| Query          | SQL                                                                      |
+| -------------- | ------------------------------------------------------------------------ |
+| `status:open`  | `WHERE status = 'open'`                                                  |
+| `@bjorn`       | `WHERE id IN (SELECT node_id FROM refs WHERE ref LIKE '%bjorn%')`        |
+| `@bjorn$`      | `WHERE id IN (SELECT node_id FROM refs WHERE ref = '@bjorn')`            |
+| `-status:done` | `WHERE status != 'done' OR status IS NULL`                               |
+| `./inbox/**`   | `WHERE path LIKE './inbox/%'`                                            |
+| `"budget"`     | `WHERE id IN (SELECT rowid FROM nodes_fts WHERE content MATCH 'budget')` |
+| `due:past`     | `WHERE due < date('now')`                                                |
+| `due:week`     | `WHERE due BETWEEN date('now') AND date('now', '+7 days')`               |
 
 ---
 
@@ -370,34 +371,40 @@ km task "quarterly report" --semantic    # Semantic search
 
 ### Embedding Generation
 
-| Library | Notes |
-|---------|-------|
+| Library                                                        | Notes                                                                                       |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | [Transformers.js](https://huggingface.co/docs/transformers.js) | Run models in Node.js/browser. all-MiniLM-L6-v2 (384 dim) is good balance of speed/quality. |
-| OpenAI API | text-embedding-3-small (1536 dim). Higher quality, requires API key. |
-| Ollama | Local models like nomic-embed-text. No API key, runs offline. |
+| OpenAI API                                                     | text-embedding-3-small (1536 dim). Higher quality, requires API key.                        |
+| Ollama                                                         | Local models like nomic-embed-text. No API key, runs offline.                               |
 
 ### Implementation Notes
 
 ```typescript
-import * as sqliteVec from 'sqlite-vec';
+import * as sqliteVec from "sqlite-vec";
 
 // Load extension
 db.loadExtension(sqliteVec.getLoadablePath());
 
 // Insert embedding
-db.prepare(`
+db.prepare(
+  `
   INSERT INTO node_embeddings (node_id, embedding)
   VALUES (?, ?)
-`).run(nodeId, vectorAsFloat32Array);
+`,
+).run(nodeId, vectorAsFloat32Array);
 
 // Query similar
-const similar = db.prepare(`
+const similar = db
+  .prepare(
+    `
   SELECT node_id, distance
   FROM node_embeddings
   WHERE embedding MATCH ?
   ORDER BY distance
   LIMIT ?
-`).all(queryVector, limit);
+`,
+  )
+  .all(queryVector, limit);
 ```
 
 ### When to Generate Embeddings

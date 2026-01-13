@@ -26,9 +26,9 @@ export type NodeType =
 // Task status workflow (4 statuses only)
 // Status answers: "Can I work on this?"
 export type TaskStatus =
-  | "open"     // [ ] — available to work on
-  | "blocked"  // [!] — waiting on something/someone
-  | "done"     // [x] — completed
+  | "open" // [ ] — available to work on
+  | "blocked" // [!] — waiting on something/someone
+  | "done" // [x] — completed
   | "dropped"; // [-] — cancelled, won't do
 
 // Task checkbox marks

@@ -80,7 +80,170 @@ This directory contains technical specifications for implementation.
 
 ---
 
-## Design Principles
+## Architectural Principles (MUST HAVE)
+
+These principles are non-negotiable. All code changes MUST adhere to them.
+
+### 1. Clear Layering
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│  UI Layer               (km-cli, TUI components)              │
+│  • Renders nodes for display                                  │
+│  • User input → commands                                      │
+│  • NO direct filesystem access                                │
+└───────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────┐
+│  Query Layer            (km-store queries)                    │
+│  • SQL queries on km-tree                                     │
+│  • Filtering, sorting, aggregation                            │
+│  • Returns Node objects                                       │
+└───────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────┐
+│  Model Layer            (km-store, km-core)                   │
+│  • Node CRUD operations                                       │
+│  • Event emission (disk mode)                                 │
+│  • Bidirectional sync coordination                            │
+└───────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────┐
+│  Sync Layer             (km-watch)                            │
+│  • Filesystem ↔ Model synchronization                         │
+│  • Conflict detection & resolution                            │
+│  • Change debouncing                                          │
+└───────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────┐
+│  Parser Layer           (km-markdown)                         │
+│  • Markdown → AST → Nodes (parseMarkdownToNodes)              │
+│  • Nodes → Markdown (nodesToMarkdown)                         │
+│  • Extracts: frontmatter, tasks, refs, fields                 │
+└───────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────┐
+│  Filesystem             (plain markdown files)                │
+│  • Source of truth in memory mode                             │
+│  • Synchronized with model in disk mode                       │
+└───────────────────────────────────────────────────────────────┘
+```
+
+**Rules:**
+
+- Each layer only calls the layer directly below it
+- UI never touches filesystem directly
+- Model changes MUST propagate to filesystem (bidirectional)
+- Parser is stateless — pure transformation
+
+### 2. Bidirectional Sync (Task Edits)
+
+All task modifications MUST flow both directions:
+
+```
+User toggles task in TUI
+         │
+         ▼
+┌─────────────────┐
+│  UI Layer       │  Calls: store.updateNode(id, {task_status: "done"})
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Model Layer    │  Updates SQLite, emits node_updated event
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Sync Layer     │  Detects change, calls writer
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Parser Layer   │  Regenerates markdown for affected node
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Filesystem     │  File updated: - [x] Task
+└─────────────────┘
+```
+
+**AND** the reverse:
+
+```
+User edits markdown file
+         │
+         ▼
+┌─────────────────┐
+│  Filesystem     │  File watcher detects change
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Sync Layer     │  Debounces, triggers re-parse
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Parser Layer   │  Parses markdown → nodes
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Model Layer    │  Diffs and updates SQLite
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  UI Layer       │  Re-renders with new state
+└─────────────────┘
+```
+
+### 3. Test-Driven Development
+
+**BEFORE implementing any feature:**
+
+1. Write acceptance test(s) that verify user-visible behavior
+2. Run `bun test` — test should fail
+3. Implement the feature
+4. Run `bun test` — test should pass
+5. Run `bun fix` — code must lint/format
+
+**Quality gates that MUST pass before any commit:**
+
+```bash
+bun fix              # Auto-fix lint + format issues
+bun test             # All tests must pass
+```
+
+**Test file locations:**
+
+- Unit tests: `packages/<pkg>/tests/` or `apps/<app>/tests/`
+- E2E tests: alongside implementation, testing real CLI behavior
+
+**Acceptance test pattern:**
+
+```typescript
+// tests/task-toggle.test.ts
+import { describe, it, expect } from "bun:test";
+
+describe("km task toggle", () => {
+  it("marks task done in model AND file", async () => {
+    // Setup: create temp dir with markdown file
+    // Action: toggle task via store
+    // Assert: SQLite shows done
+    // Assert: File contains [x]
+  });
+});
+```
+
+### 4. Design Principles
 
 1. **Everything is a node** — folders, files, sections, tasks, paragraphs
 2. **Zero setup** — works on any markdown directory
