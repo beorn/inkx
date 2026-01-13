@@ -170,6 +170,8 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 | `@next` | Next actions | Manual + automation (overdue/starting) |
 | `@someday` | Maybe/later | Manual curation only |
 
+> **Multi-user note:** `@next` may become `@me` (current user's board) when multi-user support is added. Person boards (`@bjorn`, `@sarah`) remain agenda boards for discussions.
+
 ### Reference Boards
 
 | Board | Purpose | Populated By |
