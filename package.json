@@ -22,6 +22,8 @@
     "codemod": "bun scripts/codemod.ts",
     "fix": "bun run codemod && bun run lint:fix && bun run format:fix",
     "test": "bun test",
+    "test:e2e": "bun run vendor/beorn-mdtest/src/index.ts tests/*.test.md",
+    "test:e2e:update": "bun run vendor/beorn-mdtest/src/index.ts --update tests/*.test.md",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node"
   },
   "devDependencies": {
