@@ -98,6 +98,8 @@ km auto setup                      # Create GTD boards
 
 This creates: `@inbox`, `@next`, `@someday`, and the `inbox/` folder.
 
+Setup runs automatically on first `km` invocation, so you can also just start using km.
+
 ### Importing Existing Tasks
 
 If you have a hierarchy of tasks (e.g., imported from another system):

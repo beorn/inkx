@@ -92,7 +92,12 @@ km auto setup              # Create missing boards/folders
 km auto setup --dry-run    # Preview what would be created
 ```
 
-Setup is idempotent — safe to run multiple times.
+Setup runs automatically on first `km` invocation if `.km/` doesn't exist. Also runs idempotently when automation files change.
+
+To bootstrap a new GTD setup:
+```bash
+km auto setup              # Creates @inbox, @next, @someday boards + inbox/, archive/ folders
+```
 
 ---
 
