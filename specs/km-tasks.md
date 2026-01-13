@@ -205,51 +205,38 @@ favorites:
 
 ## Related Specs
 
-### [km-tasks-data.md](km-tasks-data.md) — Data Model
-
-- Core Concepts — nodes, status, references
-- Status Model — four statuses, status flow
-- Fields — due, start, priority, recurrence
-- Board System — columns, rules, display attributes
-
-### [km-tasks-cli.md](km-tasks-cli.md) — CLI Commands
-
-- `km task` — list, filter, query
-- `km @board` / `+board` / `#board` — view/manage boards
-- `km new` — quick capture
-- `km done` / `km move` — task operations
-- `km import` / `km export` — TextBundle support
-
-### [km-tasks-tui.md](km-tasks-tui.md) — Terminal UI
-
-- Layout — split pane, search field
-- List Pane — columns, sorting, selection
-- Detail Pane — fields, subtasks, notes
-- Keybindings — navigation, actions, modes
-- Project Picker — fuzzy search, re-parenting
-
-### [km-tasks-templates.md](km-tasks-templates.md) — Templates
-
-- GTD Template — `km init gtd`
-- Board Templates — @inbox, @next, @someday
-- Manual Override — `auto:ignore`
-
-### [km-query.md](km-query.md) — Query Language
-
-- Field queries — `status:open`, `due:week`
-- Reference queries — `@bjorn`, `+project`
-- Path queries — `./inbox/**`
-- Full-text search — `"budget"`
-
-### [km-tasks-use-cases.md](km-tasks-use-cases.md) — Use Cases
-
-- Inbox Processing — triage workflows
-- Board Navigation — columns, bulk ops
-- Status Changes — blocking, completion
-- Recurring Tasks — clone-on-complete
-
-### [km-tasks-prior-art.md](km-tasks-prior-art.md) — Research
-
-- Metadata Syntax Comparison — todo.txt, TaskPaper, Obsidian, etc.
-- Recurrence Models — clone vs template vs hybrid
-- km Design Choices — rationale for decisions
+- **[km-tasks-data.md](km-tasks-data.md)** — Data Model
+  - Core Concepts — nodes, status, references
+  - Status Model — four statuses, status flow
+  - Fields — due, start, priority, recurrence
+  - Board System — columns, rules, display attributes
+- **[km-tasks-cli.md](km-tasks-cli.md)** — CLI Commands
+  - `km task` — list, filter, query
+  - `km @board` / `+board` / `#board` — view/manage boards
+  - `km new` — quick capture
+  - `km done` / `km move` — task operations
+  - `km import` / `km export` — TextBundle support
+- **[km-tasks-tui.md](km-tasks-tui.md)** — Terminal UI
+  - Layout — split pane, search field
+  - List Pane — columns, sorting, selection
+  - Detail Pane — fields, subtasks, notes
+  - Keybindings — navigation, actions, modes
+  - Project Picker — fuzzy search, re-parenting
+- **[km-tasks-templates.md](km-tasks-templates.md)** — Templates
+  - GTD Template — `km init gtd`
+  - Board Templates — @inbox, @next, @someday
+  - Manual Override — `auto:ignore`
+- **[km-query.md](km-query.md)** — Query Language
+  - Field queries — `status:open`, `due:week`
+  - Reference queries — `@bjorn`, `+project`
+  - Path queries — `./inbox/**`
+  - Full-text search — `"budget"`
+- **[km-tasks-use-cases.md](km-tasks-use-cases.md)** — Use Cases
+  - Inbox Processing — triage workflows
+  - Board Navigation — columns, bulk ops
+  - Status Changes — blocking, completion
+  - Recurring Tasks — clone-on-complete
+- **[km-tasks-prior-art.md](km-tasks-prior-art.md)** — Research
+  - Metadata Syntax Comparison — todo.txt, TaskPaper, Obsidian, etc.
+  - Recurrence Models — clone vs template vs hybrid
+  - km Design Choices — rationale for decisions
