@@ -207,106 +207,15 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 
 ## Node Queries
 
-Unified syntax for selecting nodes. Used by `km task`, `km @board add`, and anywhere nodes are filtered.
+See [km-query.md](km-query.md) for full query language specification.
 
-A query is a space-separated list of **terms**. All terms are AND-ed together (intersection).
-
-### Term Types
-
-| Pattern | Name | Description |
-|---------|------|-------------|
-| `@ref` | Reference | Node has this reference (contains) |
-| `#tag` | Reference | Node has this tag (contains) |
-| `+proj` | Reference | Node has this project ref (contains) |
-| `./path` | Path | Node is under this relative path |
-| `/path` | Path | Node is under this absolute path |
-| `path/` | Path | Node path contains this string |
-| `key:value` | Field | Field matches value |
-| `-TERM` | Negation | Exclude nodes matching TERM |
-| `"text"` | Search | Full-text search |
-
-### Modifiers
-
-| Suffix | Effect |
-|--------|--------|
-| `$` | Exact match (default is contains) |
-| `**` | Recursive (for paths) |
-
-### Reference Terms
-
-Match nodes that have a reference:
+**Quick reference:**
 
 ```bash
-@bjorn              # Has reference containing "bjorn"
-@bjorn$             # Has exactly @bjorn reference
-+website            # Has +website project ref
-#urgent             # Has #urgent tag
--@bjorn             # Does NOT have @bjorn reference
-```
-
-### Path Terms
-
-Match nodes by location:
-
-```bash
-./inbox             # Under ./inbox (relative to cwd)
-./inbox/**          # Under ./inbox, recursive
-/projects/web       # Under /projects/web (absolute)
-projects/           # Path contains "projects/"
-projects/**         # Contains "projects/", recursive
-./tasks/budget$     # Exactly this path
-```
-
-### Field Terms
-
-Match field values with `key:value`:
-
-| Field | Values | Example |
-|-------|--------|---------|
-| `status` | open, blocked, done, dropped | `status:open` |
-| `due` | today, past, week, none, YYYY-MM-DD | `due:past` |
-| `start` | past, today, YYYY-MM-DD | `start:past` |
-| `owner` | name | `owner:bjorn$` |
-| `p` | 1-5 | `p:1` |
-
-### Negation
-
-Prefix any term with `-` to exclude:
-
-```bash
--@bjorn             # Not assigned to bjorn
--status:done        # Not done
--./archive/         # Not in archive
-```
-
-### Combining Terms
-
-Terms are AND-ed (all must match):
-
-```bash
-status:open due:week              # Open AND due this week
-+website status:open              # Has +website AND is open
-./inbox/** -status:done           # In inbox AND not done
-@bjorn$ status:open p:1           # Exactly bjorn, open, priority 1
-```
-
-### Examples
-
-```bash
-# Find unorganized tasks
-status:open -@next -@someday
-
-# Find project tasks not scheduled
-+website status:open due:none
-
-# Find blocked items
-status:blocked
-
-# Find tasks in inbox folder
-./inbox/**
-
-# Find tasks mentioning budget
-"budget"
+status:open @bjorn           # Field match + reference
+./inbox/** -status:done      # Path + negation
++website due:week            # Project ref + date
+"budget"                     # Full-text search
 ```
 
 ---
@@ -439,6 +348,7 @@ On `@next/waiting` → status auto-set to `blocked`.
 ## See Also
 
 - [km-tasks.md](km-tasks.md) — Overview
+- [km-query.md](km-query.md) — Query language
 - [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec

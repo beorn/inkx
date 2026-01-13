@@ -219,7 +219,7 @@ km task ./inbox/** -status:done    # In inbox AND not done
 km task "budget"                   # Full-text search
 ```
 
-See [Node Queries](km-tasks-data.md#node-queries) for full syntax.
+See [km-query.md](km-query.md) for full syntax.
 
 ### Batch Operations
 
@@ -248,7 +248,8 @@ iCal RRULE format:
 
 ## Related Specs
 
-- [km-tasks-data.md](km-tasks-data.md) — Data model, queries, schema
+- [km-tasks-data.md](km-tasks-data.md) — Data model, schema
+- [km-query.md](km-query.md) — Query language
 - [km-tasks-auto.md](km-tasks-auto.md) — Automation rules
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI layout, keybindings
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI commands

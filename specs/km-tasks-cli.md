@@ -37,7 +37,7 @@ km task "budget"            # Full-text search
 
 ### Node Queries
 
-Space-separated terms, AND-ed together. See [Node Queries](km-tasks-data.md#node-queries) for full syntax.
+Space-separated terms, AND-ed together. See [km-query.md](km-query.md) for full syntax.
 
 ```bash
 km task @bjorn                     # Has @bjorn reference
@@ -319,6 +319,7 @@ Personal / Health
 ## See Also
 
 - [km-tasks.md](km-tasks.md) — Overview
-- [km-tasks-data.md](km-tasks-data.md) — Data model, query syntax
+- [km-query.md](km-query.md) — Query language
+- [km-tasks-data.md](km-tasks-data.md) — Data model
 - [km-tasks-tui.md](km-tasks-tui.md) — TUI spec
 - [km-tasks-auto.md](km-tasks-auto.md) — Automation rules

@@ -122,7 +122,7 @@ Triggers provide variables for conditions:
 
 ## Conditions (match)
 
-Filter which nodes the rule applies to using [Node Query](km-tasks-data.md#node-queries) syntax:
+Filter which nodes the rule applies to using [Node Query](km-query.md) syntax:
 
 ```yaml
 match: "status:open"                    # Open tasks
@@ -392,6 +392,7 @@ If multiple rules affect the same board, last one wins.
 
 ## See Also
 
-- [km-tasks-data.md](km-tasks-data.md) — Data model
 - [km-tasks.md](km-tasks.md) — Overview
+- [km-query.md](km-query.md) — Query language
+- [km-tasks-data.md](km-tasks-data.md) — Data model
 - [km-tasks-cli.md](km-tasks-cli.md) — CLI commands
