@@ -82,7 +82,42 @@ export function parseMarkdownWithLinks(
   };
 
   // Convert AST to nodes
-  const childNodes = astToNodes(ast, fileNode, body);
+  let childNodes = astToNodes(ast, fileNode, body);
+
+  // Merge H1 section into file node (file + H1 = one conceptual node)
+  // The H1 title becomes the file's title, and H1's children become file's children
+  const h1Section = childNodes.find(
+    (n) => n.type === "section" && n.data?.depth === 1,
+  );
+
+  if (h1Section) {
+    // Copy H1 properties to file node
+    fileNode.title = h1Section.title;
+    fileNode.content = h1Section.content;
+    fileNode.md_pos = h1Section.md_pos;
+    fileNode.md_slug = h1Section.md_slug;
+    if (h1Section.rules) {
+      fileNode.rules = h1Section.rules;
+    }
+    // Merge H1's data into file data, but frontmatter takes precedence
+    // (frontmatter fields overwrite H1 data fields)
+    if (h1Section.data) {
+      fileNode.data = { ...h1Section.data, ...fileNode.data };
+    }
+    // Store H1 title in data for DB persistence (only if no frontmatter title)
+    if (h1Section.title && !fileNode.data?.title) {
+      fileNode.data = { ...fileNode.data, title: h1Section.title };
+    }
+
+    // Re-parent H1's children to the file node
+    childNodes = childNodes.filter((n) => n.id !== h1Section.id);
+    for (const child of childNodes) {
+      if (child.parent_id === h1Section.id) {
+        child.parent_id = fileNode.id;
+      }
+    }
+  }
+
   const allNodes = [fileNode, ...childNodes];
 
   // Extract wikilinks from all nodes with content
@@ -98,20 +133,26 @@ export function parseMarkdownWithLinks(
 
   // Validate H1 headings - each file should have exactly one
   const warnings: ParseWarning[] = [];
-  const h1Sections = childNodes.filter(
+  const h1Count = childNodes.filter(
     (n) => n.type === "section" && n.data?.depth === 1,
-  );
+  ).length;
+  // Add 1 for the merged H1 if it existed
+  const totalH1s = h1Section ? h1Count + 1 : h1Count;
 
-  if (h1Sections.length === 0) {
+  if (totalH1s === 0) {
     warnings.push({
       type: "missing_h1",
       message: `${fsPath}: Missing H1 heading. Each markdown file should have exactly one # heading as its title.`,
     });
-  } else if (h1Sections.length > 1) {
+  } else if (totalH1s > 1) {
+    // Find the second H1 for line number
+    const secondH1 = childNodes.find(
+      (n) => n.type === "section" && n.data?.depth === 1,
+    );
     warnings.push({
       type: "multiple_h1",
-      message: `${fsPath}: Multiple H1 headings found (${h1Sections.length}). Each markdown file should have exactly one # heading.`,
-      line: h1Sections[1]?.md_line,
+      message: `${fsPath}: Multiple H1 headings found (${totalH1s}). Each markdown file should have exactly one # heading.`,
+      line: secondH1?.md_line,
     });
   }
 
@@ -172,7 +213,10 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): Node[] {
         content_hash: null,
         title, // Clean title without rules
         rules: hasRules ? rules : undefined, // Only set if rules exist
-        data: { depth: heading.depth },
+        data: {
+          depth: heading.depth,
+          ...(hasRules ? { rules, title } : {}), // Store rules and clean title in data for DB persistence
+        },
         created_at: now,
         updated_at: now,
         version: "",

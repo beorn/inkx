@@ -49,7 +49,17 @@ export const showCommand = new Command("show")
     console.log(chalk.bold("ID:"), node.id);
     console.log(chalk.bold("Type:"), node.type);
 
-    if (node.content) {
+    if (node.fs_path) {
+      console.log(chalk.bold("Path:"), node.fs_path);
+    }
+
+    // Title can be on node.title (in-memory) or node.data.title (from DB)
+    const title = node.title || (node.data?.title as string | undefined);
+    if (title) {
+      console.log(chalk.bold("Title:"), title);
+    }
+
+    if (node.content && node.content !== title) {
       console.log(chalk.bold("Content:"), node.content);
     }
 
@@ -67,10 +77,6 @@ export const showCommand = new Command("show")
 
     if (node.assigned_to) {
       console.log(chalk.bold("Assigned:"), node.assigned_to);
-    }
-
-    if (node.fs_path) {
-      console.log(chalk.bold("Path:"), node.fs_path);
     }
 
     if (node.parent_id) {

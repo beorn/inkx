@@ -112,8 +112,10 @@ $ km show @inbox
 ID: ...
 Type: file
 Path: .../@inbox.md
+Title: Inbox
 Created: ...
 Updated: ...
+[...]
 ```
 
 ### Resolve by path
@@ -125,8 +127,10 @@ $ km show ./@inbox.md
 ID: ...
 Type: file
 Path: .../@inbox.md
+Title: Inbox
 Created: ...
 Updated: ...
+[...]
 ```
 
 ## Init Command
@@ -145,18 +149,126 @@ Initialized km in ...
   Created: @someday.md
 
 Next steps:
-  km sync    # Scan and import .md files
-  km tasks   # List tasks
-  km board   # Open kanban board
-```
+[...]
 
-```console
 $ ls /tmp/km-mdtest-init/.km
 events.jsonl
+
+$ rm -rf /tmp/km-mdtest-init
 ```
 
+## Add Command
+
+### km add - Move tasks from file to board
+
+Create a project file with tasks, then add them to @next:
+
 ```console
-$ rm -rf /tmp/km-mdtest-init
+$ mkdir projects
+$ cat << 'EOF' > projects/p1.md
+> # Test Project
+> Some tasks.
+> ## Tasks
+> - [ ] First project task
+> - [ ] Second project task
+> - [ ] Third project task
+> EOF
+$ km sync
+Syncing: ...
+Syncing filesystem → database...
+✓ Processed ... change(s)
+```
+
+Verify tasks exist in the project file:
+
+```console
+$ km tasks './projects**'
+projects/
+[...]
+     [ ] First project task
+[...]
+3 task(s)
+```
+
+Add all tasks from projects to @next:
+
+```console
+$ km add @next './projects**'
+✓ Added 3 task(s) to Next Actions
+[...]
+```
+
+Verify tasks now appear under @next in the default (Processing) column:
+
+```console
+$ km tree @next
+[...]
+    ├── § Processing default=true
+    │   ├── ○ [ ] First project task
+[...]
+```
+
+Verify original file no longer shows tasks (they were moved):
+
+```console
+$ km tasks './projects**'
+No tasks found
+```
+
+Clean up:
+
+```console
+$ rm -rf projects
+```
+
+## H1 Merge into File Node
+
+### File title comes from H1 heading
+
+Create a markdown file with an H1 heading and verify the file node gets the title:
+
+```console
+$ mkdir docs
+$ cat << 'EOF' > docs/readme.md
+> # Welcome to My Project
+> This is the intro paragraph.
+> ## Getting Started
+> - [ ] Read the docs
+> - [ ] Install dependencies
+> EOF
+$ km sync
+Syncing: ...
+Syncing filesystem → database...
+✓ Processed ... change(s)
+```
+
+The file node should display with the H1 title "Welcome to My Project":
+
+```console
+$ km show docs/readme.md
+ID: ...
+Type: file
+Path: .../docs/readme.md
+Title: Welcome to My Project
+[...]
+```
+
+H2 sections should be direct children of the file (not nested under an H1 section):
+
+```console
+$ km tree docs/readme.md
+[...]
+└── 📄 readme.md
+    ├── ¶ This is the intro paragraph.
+    └── § Getting Started
+        ├── ○ [ ] Read the docs
+        └── ○ [ ] Install dependencies
+```
+
+Clean up:
+
+```console
+$ rm -rf docs
 ```
 
 ## Error Handling
@@ -186,7 +298,7 @@ List all nodes in the vault:
 ```console
 $ km ls
 [...]
-# Inbox
+inbox/
 [...]
 ... node(s)
 ```

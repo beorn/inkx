@@ -269,9 +269,9 @@ This is a paragraph.
       const nodes = parseMarkdownToNodes(md, "test-file.md");
       expect(nodes.length).toBeGreaterThan(0);
 
-      // Should have section for heading
-      const sections = nodes.filter((n) => n.type === "section");
-      expect(sections.length).toBeGreaterThanOrEqual(1);
+      // H1 is merged into file node, so check file has title
+      const fileNode = nodes.find((n) => n.type === "file");
+      expect(fileNode?.title).toBe("Title");
 
       // Should have tasks
       const tasks = nodes.filter((n) => n.type === "task");
@@ -306,7 +306,12 @@ More content
 `;
       const nodes = parseMarkdownToNodes(md, "nested.md");
       const sections = nodes.filter((n) => n.type === "section");
+      // H1 is merged into file, so we have 3 sections: A, B, B1
       expect(sections.length).toBeGreaterThanOrEqual(3);
+
+      // File node should have H1 title
+      const fileNode = nodes.find((n) => n.type === "file");
+      expect(fileNode?.title).toBe("Top Level");
     });
 
     test("should parse code blocks with language", () => {
@@ -851,10 +856,9 @@ describe("Section title and rules parsing", () => {
     const result = parseMarkdownWithLinks(md, "board.md");
     const sections = result.nodes.filter((n) => n.type === "section");
 
-    // H1 section
-    const h1 = sections.find((s) => s.data?.depth === 1);
-    expect(h1?.title).toBe("Document Title");
-    expect(h1?.rules).toBeUndefined();
+    // H1 is merged into file node, so no depth-1 section should exist
+    const h1Sections = sections.filter((s) => s.data?.depth === 1);
+    expect(h1Sections.length).toBe(0);
 
     // Today column
     const today = sections.find((s) => s.title === "Today");
@@ -867,5 +871,131 @@ describe("Section title and rules parsing", () => {
     expect(done).toBeDefined();
     expect(done?.rules?.sync).toBe("status:done");
     expect(done?.rules?.collapse).toBe(true);
+  });
+});
+
+describe("H1 merge into file node", () => {
+  test("should merge H1 properties into file node", () => {
+    const md = `# Board Title
+
+## Column One
+
+- [ ] Task 1
+
+## Column Two
+
+- [ ] Task 2
+`;
+    const result = parseMarkdownWithLinks(md, "board.md");
+    const fileNode = result.nodes.find((n) => n.type === "file");
+    const sections = result.nodes.filter((n) => n.type === "section");
+
+    // File node should have H1's title
+    expect(fileNode?.title).toBe("Board Title");
+    expect(fileNode?.content).toBe("Board Title");
+
+    // No depth-1 sections (H1 was merged)
+    const h1Sections = sections.filter((s) => s.data?.depth === 1);
+    expect(h1Sections.length).toBe(0);
+
+    // H2 sections should be direct children of file
+    const h2Sections = sections.filter((s) => s.data?.depth === 2);
+    expect(h2Sections.length).toBe(2);
+    expect(fileNode).toBeDefined();
+    for (const s of h2Sections) {
+      expect(s.parent_id).toBe(fileNode!.id);
+    }
+  });
+
+  test("should re-parent H1 children to file node", () => {
+    const md = `# Main Title
+
+## Section A
+
+Content A
+
+## Section B
+
+Content B
+`;
+    const result = parseMarkdownWithLinks(md, "test.md");
+    const fileNode = result.nodes.find((n) => n.type === "file");
+    const sections = result.nodes.filter((n) => n.type === "section");
+
+    // All sections should be children of the file node
+    expect(fileNode).toBeDefined();
+    for (const section of sections) {
+      expect(section.parent_id).toBe(fileNode!.id);
+    }
+  });
+
+  test("should preserve H1 rules when merging into file node", () => {
+    const md = `# Board default=true collapse=true
+
+## Column One
+
+- [ ] Task
+`;
+    const result = parseMarkdownWithLinks(md, "board.md");
+    const fileNode = result.nodes.find((n) => n.type === "file");
+
+    expect(fileNode?.title).toBe("Board");
+    expect(fileNode?.rules?.default).toBe(true);
+    expect(fileNode?.rules?.collapse).toBe(true);
+  });
+
+  test("should handle file without H1 (no merge needed)", () => {
+    const md = `## Just H2
+
+- [ ] Task
+`;
+    const result = parseMarkdownWithLinks(md, "no-h1.md");
+    const fileNode = result.nodes.find((n) => n.type === "file");
+    const sections = result.nodes.filter((n) => n.type === "section");
+
+    // File node has no title (no H1 to merge)
+    expect(fileNode?.title).toBeUndefined();
+
+    // H2 section exists as child of file
+    expect(sections.length).toBe(1);
+    expect(sections[0]?.parent_id).toBe(fileNode?.id);
+  });
+
+  test("should merge frontmatter data with H1 data", () => {
+    const md = `---
+author: test
+---
+
+# Document Title
+
+## Section
+`;
+    const result = parseMarkdownWithLinks(md, "with-frontmatter.md");
+    const fileNode = result.nodes.find((n) => n.type === "file");
+
+    // Both frontmatter and H1 data should be present
+    expect(fileNode?.data?.author).toBe("test");
+    expect(fileNode?.data?.depth).toBe(1); // H1 depth
+    expect(fileNode?.title).toBe("Document Title");
+  });
+
+  test("should warn about multiple H1s but still merge first one", () => {
+    const md = `# First Title
+
+## Section
+
+# Second Title
+
+More content
+`;
+    const result = parseMarkdownWithLinks(md, "multi-h1.md");
+    const fileNode = result.nodes.find((n) => n.type === "file");
+
+    // First H1 merged into file
+    expect(fileNode?.title).toBe("First Title");
+
+    // Warning generated for multiple H1s
+    expect(result.warnings.length).toBe(1);
+    expect(result.warnings[0]?.type).toBe("multiple_h1");
   });
 });

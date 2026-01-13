@@ -13,6 +13,7 @@ import { emit } from "@km/core";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "@km/shared";
 import { DetailPane } from "./detail-pane.tsx";
 import { ProjectPicker } from "./project-picker.tsx";
+import { HelpOverlay } from "./help-overlay.tsx";
 import {
   createPasteHandler,
   getFileInfo,
@@ -473,6 +474,7 @@ function Board({ initialState }: BoardProps) {
     null,
   ); // Mouse drag selection range
   const [isMouseDragging, setIsMouseDragging] = useState(false); // Whether mouse drag is active
+  const [showHelp, setShowHelp] = useState(false); // Whether help overlay is visible
 
   // Listen for terminal resize
   useEffect(() => {
@@ -761,6 +763,23 @@ function Board({ initialState }: BoardProps) {
   useInput((input, key) => {
     const col = state.columns[state.colIndex];
     const card = col?.cards[state.cardIndex];
+
+    // Toggle help with '?'
+    if (input === "?") {
+      setShowHelp((prev) => !prev);
+      return;
+    }
+
+    // Close help with Escape
+    if (showHelp && key.escape) {
+      setShowHelp(false);
+      return;
+    }
+
+    // Ignore other keys when help is shown
+    if (showHelp) {
+      return;
+    }
 
     // Quit
     if (input === "q" && !moveMode) {
@@ -1573,9 +1592,12 @@ function Board({ initialState }: BoardProps) {
             />
           </Box>
         )}
+        {/* Help overlay */}
+        {showHelp && <HelpOverlay width={termWidth} height={termHeight - 2} />}
       </Box>
       <Text>
         <Text>{selectedPath} </Text>
+        {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
         {showDetailPane && <Text color="cyan">{`[DETAIL] `}</Text>}
         {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
         {moveMode && <Text color="magenta">{`[MOVE] `}</Text>}

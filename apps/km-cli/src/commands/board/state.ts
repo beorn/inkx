@@ -211,13 +211,22 @@ function applyAddRule(
 
 /**
  * Build board state from a specific root ID
+ *
+ * Board hierarchy:
+ * - Root node's children become columns
+ * - Each column's children become cards
+ *
+ * For markdown files, the parser merges the H1 into the file node,
+ * so H2 sections are direct children of the file node (columns).
  */
 export function buildBoardState(rootId: string): BoardState {
   const rootNode = getNode(rootId);
   const wipLimits = extractWipLimits(rootNode);
   const columns: ColumnState[] = [];
-  const columnNodes = getChildren(rootId);
   const collapsedColumns = new Set<number>();
+
+  // Get direct children as columns
+  const columnNodes = getChildren(rootId);
 
   for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
     const colNode = columnNodes[colIdx];
@@ -582,7 +591,7 @@ function cycleStatus(state: BoardState): void {
     const currentStatus = card.node.task_status || "open";
     const currentIndex = STATUS_CYCLE.indexOf(currentStatus);
     const nextIndex = (currentIndex + 1) % STATUS_CYCLE.length;
-    const nextStatus = STATUS_CYCLE[nextIndex];
+    const nextStatus = STATUS_CYCLE[nextIndex] ?? "open";
     const nextMark = STATUS_MARKS[nextStatus];
 
     emit({
@@ -694,7 +703,11 @@ function moveCardInColumn(state: BoardState, targetIndex: number): void {
   } else {
     const prev = col.cards[targetIndex - 1];
     const next = col.cards[targetIndex];
-    sortOrder = (prev.node.parent_idx + next.node.parent_idx) / 2;
+    if (prev && next) {
+      sortOrder = (prev.node.parent_idx + next.node.parent_idx) / 2;
+    } else {
+      sortOrder = 0;
+    }
   }
 
   emit({

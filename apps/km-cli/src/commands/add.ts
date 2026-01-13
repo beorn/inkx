@@ -10,7 +10,8 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { resolveNode, queryTasks, getNode, getStore } from "@km/store";
+import { resolveNode, queryTasks, getStore, getChildren } from "@km/store";
+import type { Node } from "@km/core";
 
 export const addCommand = new Command("add")
   .description("Add tasks to a board or list")
@@ -67,14 +68,31 @@ export const addCommand = new Command("add")
       process.exit(0);
     }
 
-    // Get target's last child for ordering
-    const targetChildren = getNode(targetNode.id);
-    let nextIdx = 0;
-    if (targetChildren) {
-      // Query for max parent_idx
-      // For simplicity, just use timestamp-based ordering
-      nextIdx = Date.now();
+    // Find the default column (section with data.rules.default=true)
+    // Search recursively through children to find the first default section
+    let actualTarget = targetNode;
+    const findDefaultSection = (parentId: string): Node | undefined => {
+      const children = getChildren(parentId);
+      for (const child of children) {
+        if (child.type === "section") {
+          const rules = child.data?.rules as { default?: boolean } | undefined;
+          if (rules?.default) {
+            return child;
+          }
+          // Search deeper
+          const found = findDefaultSection(child.id);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    };
+    const defaultColumn = findDefaultSection(targetNode.id);
+    if (defaultColumn) {
+      actualTarget = defaultColumn;
     }
+
+    // Use timestamp-based ordering for new items
+    let nextIdx = Date.now();
 
     if (options.dryRun) {
       console.log(chalk.cyan("Dry run - would add:"));
@@ -91,10 +109,10 @@ export const addCommand = new Command("add")
       return;
     }
 
-    // Move tasks to target via store
+    // Move tasks to actual target (default column or target itself)
     const store = getStore();
     for (const task of tasksToAdd) {
-      store.moveNode(task.id, targetNode.id, nextIdx++);
+      store.moveNode(task.id, actualTarget.id, nextIdx++);
     }
 
     if (options.json) {

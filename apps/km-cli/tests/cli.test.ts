@@ -671,13 +671,14 @@ describe("km init", () => {
       });
 
       const content = readFileSync(join(initDir, "@next.md"), "utf-8");
-      // No frontmatter - column rules inline in headings
+      // No frontmatter - clean headings with minimal inline rules
       expect(content).not.toContain("---");
       expect(content).toContain("# Next Actions");
-      expect(content).toContain('## Today add="due:past status:open"');
-      expect(content).toContain('## This Week add="due:week status:open"');
-      expect(content).toContain("## Waiting sync=status:blocked");
-      expect(content).toContain("## Done sync=status:done collapse=true");
+      expect(content).toContain("## Processing default=true");
+      expect(content).toContain("## Next");
+      expect(content).toContain("## Doing");
+      expect(content).toContain("## Waiting");
+      expect(content).toContain("## Done collapse=true");
     });
 
     test("should create @someday.md with columns", async () => {

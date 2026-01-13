@@ -26,8 +26,12 @@ export function getNodeDisplayName(node: Node): string {
   }
 
   // 2. Use pre-parsed title (for sections, already has rules stripped)
+  // Check node.title first (set during parsing), then data.title (persisted to DB)
   if (node.title) {
     return node.title.slice(0, 50);
+  }
+  if (node.data?.title) {
+    return (node.data.title as string).slice(0, 50);
   }
 
   // 3. For file nodes, use first section's title or content (H1 heading)
@@ -35,9 +39,12 @@ export function getNodeDisplayName(node: Node): string {
     const children = getChildren(node.id);
     const firstSection = children.find((c) => c.type === "section");
     if (firstSection) {
-      // Use pre-parsed title if available
+      // Use pre-parsed title if available (node.title or data.title)
       if (firstSection.title) {
         return firstSection.title.slice(0, 50);
+      }
+      if (firstSection.data?.title) {
+        return (firstSection.data.title as string).slice(0, 50);
       }
       // Fallback: strip rules from content
       if (firstSection.content) {

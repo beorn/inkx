@@ -659,20 +659,23 @@ describe("Round-trip: Content Preservation Verification", () => {
 
     const nodes = parseMarkdownToNodes(md, "test.md");
     const sections = nodes.filter((n) => n.type === "section");
+    const fileNode = nodes.find((n) => n.type === "file");
 
-    expect(sections.length).toBe(3);
-    expect(sections[0].data?.depth).toBe(1);
-    expect(sections[1].data?.depth).toBe(2);
-    expect(sections[2].data?.depth).toBe(3);
+    // H1 is merged into file node, so only 2 section nodes
+    expect(sections.length).toBe(2);
+    expect(fileNode?.data?.depth).toBe(1);
+    expect(sections[0]?.data?.depth).toBe(2);
+    expect(sections[1]?.data?.depth).toBe(3);
 
     // After round-trip
     const output = nodesToMarkdown(nodes);
     const nodes2 = parseMarkdownToNodes(output, "test.md");
     const sections2 = nodes2.filter((n) => n.type === "section");
+    const fileNode2 = nodes2.find((n) => n.type === "file");
 
-    expect(sections2[0].data?.depth).toBe(1);
-    expect(sections2[1].data?.depth).toBe(2);
-    expect(sections2[2].data?.depth).toBe(3);
+    expect(fileNode2?.data?.depth).toBe(1);
+    expect(sections2[0]?.data?.depth).toBe(2);
+    expect(sections2[1]?.data?.depth).toBe(3);
   });
 
   test("should preserve code language", () => {
@@ -779,7 +782,12 @@ Content at deepest level.`;
     const nodes = parseMarkdownToNodes(md, "test.md");
     const sections = nodes.filter((n) => n.type === "section");
 
-    expect(sections.length).toBe(6);
+    // H1 is merged into file node, so only 5 section nodes (levels 2-6)
+    expect(sections.length).toBe(5);
+
+    // File node should have H1 title
+    const fileNode = nodes.find((n) => n.type === "file");
+    expect(fileNode?.title).toBe("Level 1");
 
     const output = nodesToMarkdown(nodes);
     expect(output).toContain("# Level 1");

@@ -50,13 +50,15 @@ const GTD_INBOX_MD = `# Inbox
 
 const GTD_NEXT_MD = `# Next Actions
 
-## Today add="due:past status:open"
+## Processing default=true
 
-## This Week add="due:week status:open"
+## Next
 
-## Waiting sync=status:blocked
+## Doing
 
-## Done sync=status:done collapse=true
+## Waiting
+
+## Done collapse=true
 `;
 
 const GTD_SOMEDAY_MD = `# Someday/Maybe

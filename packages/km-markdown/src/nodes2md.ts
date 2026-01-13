@@ -31,15 +31,28 @@ export function nodesToMarkdown(nodes: Node[]): string {
 
 /**
  * Serialize a file node (top-level document)
+ *
+ * The file node may have H1 properties merged in (content, title, rules).
+ * We serialize the H1 heading first, then frontmatter (minus depth), then children.
  */
 function serializeFile(node: Node, tree: Map<string, Node[]>): string {
   let md = "";
 
-  // Frontmatter
-  if (node.data && Object.keys(node.data).length > 0) {
+  // Frontmatter - exclude depth (it's internal for H1 merge tracking)
+  const frontmatterData = { ...node.data };
+  delete frontmatterData.depth;
+  delete frontmatterData.rules;
+  delete frontmatterData.title;
+
+  if (Object.keys(frontmatterData).length > 0) {
     md += "---\n";
-    md += stringifyYaml(node.data);
+    md += stringifyYaml(frontmatterData);
     md += "---\n\n";
+  }
+
+  // H1 heading (merged into file node)
+  if (node.content) {
+    md += `# ${node.content}\n\n`;
   }
 
   // Children
