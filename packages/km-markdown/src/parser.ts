@@ -106,52 +106,34 @@ export function parseWikiLinks(text: string): WikiLink[] {
 }
 
 /**
+ * Generic helper to extract regex matches from text
+ * Returns the first capture group from all matches
+ */
+function extractMatches(text: string, regex: RegExp): string[] {
+  return [...text.matchAll(regex)]
+    .map((m) => m[1])
+    .filter((m): m is string => !!m);
+}
+
+/**
  * Extract tags from text (#tag-name)
  */
 export function extractTags(text: string): string[] {
-  const regex = /#([a-zA-Z0-9_-]+)/g;
-  const tags: string[] = [];
-
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    tags.push(match[1]);
-  }
-
-  return tags;
+  return extractMatches(text, /#([a-zA-Z0-9_-]+)/g);
 }
 
 /**
  * Extract mentions from text (@person)
  */
 export function extractMentions(text: string): string[] {
-  const regex = /@([a-zA-Z0-9_-]+)/g;
-  const mentions: string[] = [];
-
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    if (match[1]) {
-      mentions.push(match[1]);
-    }
-  }
-
-  return mentions;
+  return extractMatches(text, /@([a-zA-Z0-9_-]+)/g);
 }
 
 /**
  * Extract projects from text (+project-name)
  */
 export function extractProjects(text: string): string[] {
-  const regex = /\+([a-zA-Z0-9_-]+)/g;
-  const projects: string[] = [];
-
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    if (match[1]) {
-      projects.push(match[1]);
-    }
-  }
-
-  return projects;
+  return extractMatches(text, /\+([a-zA-Z0-9_-]+)/g);
 }
 
 /**

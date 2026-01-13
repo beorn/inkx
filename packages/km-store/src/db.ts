@@ -460,66 +460,63 @@ export function getNode(id: string): Node | null {
 }
 
 /**
- * Get a node by ID prefix or suffix (for CLI convenience)
+ * Get a node by ID prefix or suffix with optional type filter.
  *
  * Supports both prefix matching (start of ID) and suffix matching (end of ID).
  * The CLI displays short IDs using the last 8 chars (suffix), so we try both.
+ *
+ * @param idPrefix - The ID or partial ID to search for
+ * @param typeFilter - Optional type to filter by (e.g., 'task')
  */
-export function getNodeByIdPrefix(idPrefix: string): Node | null {
+function getNodeByIdPrefixWithType(
+  idPrefix: string,
+  typeFilter?: string,
+): Node | null {
   const db = getDb();
+  const typeClause = typeFilter ? " AND type = ?" : "";
+  const params = typeFilter ? [idPrefix, typeFilter] : [idPrefix];
 
   // Try exact match first
   let row = db
-    .query("SELECT * FROM nodes WHERE id = ?")
-    .get(idPrefix) as Record<string, unknown> | null;
+    .query(`SELECT * FROM nodes WHERE id = ?${typeClause}`)
+    .get(...params) as Record<string, unknown> | null;
 
   if (row) return rowToNode(row);
 
   // Try prefix match (ID starts with input)
+  const prefixParams = typeFilter
+    ? [`${idPrefix}%`, typeFilter]
+    : [`${idPrefix}%`];
   row = db
-    .query("SELECT * FROM nodes WHERE id LIKE ?")
-    .get(`${idPrefix}%`) as Record<string, unknown> | null;
+    .query(`SELECT * FROM nodes WHERE id LIKE ?${typeClause}`)
+    .get(...prefixParams) as Record<string, unknown> | null;
 
   if (row) return rowToNode(row);
 
   // Try suffix match (ID ends with input) - for short IDs displayed as last 8 chars
+  const suffixParams = typeFilter
+    ? [`%${idPrefix}`, typeFilter]
+    : [`%${idPrefix}`];
   row = db
-    .query("SELECT * FROM nodes WHERE id LIKE ?")
-    .get(`%${idPrefix}`) as Record<string, unknown> | null;
+    .query(`SELECT * FROM nodes WHERE id LIKE ?${typeClause}`)
+    .get(...suffixParams) as Record<string, unknown> | null;
 
   if (!row) return null;
   return rowToNode(row);
 }
 
 /**
+ * Get a node by ID prefix or suffix (for CLI convenience)
+ */
+export function getNodeByIdPrefix(idPrefix: string): Node | null {
+  return getNodeByIdPrefixWithType(idPrefix);
+}
+
+/**
  * Get a task by ID prefix or suffix (for CLI convenience)
- *
- * Like getNodeByIdPrefix but only returns tasks.
  */
 export function getTaskByIdPrefix(idPrefix: string): Node | null {
-  const db = getDb();
-
-  // Try exact match first
-  let row = db
-    .query("SELECT * FROM nodes WHERE id = ? AND type = 'task'")
-    .get(idPrefix) as Record<string, unknown> | null;
-
-  if (row) return rowToNode(row);
-
-  // Try prefix match (ID starts with input)
-  row = db
-    .query("SELECT * FROM nodes WHERE id LIKE ? AND type = 'task'")
-    .get(`${idPrefix}%`) as Record<string, unknown> | null;
-
-  if (row) return rowToNode(row);
-
-  // Try suffix match (ID ends with input) - for short IDs displayed as last 8 chars
-  row = db
-    .query("SELECT * FROM nodes WHERE id LIKE ? AND type = 'task'")
-    .get(`%${idPrefix}`) as Record<string, unknown> | null;
-
-  if (!row) return null;
-  return rowToNode(row);
+  return getNodeByIdPrefixWithType(idPrefix, "task");
 }
 
 /**

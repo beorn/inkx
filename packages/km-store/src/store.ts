@@ -10,10 +10,19 @@
  */
 
 import { Database } from "bun:sqlite";
-import { existsSync, readdirSync, statSync, readFileSync } from "fs";
+import {
+  existsSync,
+  readdirSync,
+  statSync,
+  readFileSync,
+  mkdirSync,
+  writeFileSync,
+  appendFileSync,
+} from "fs";
 import { join, dirname, basename, relative } from "path";
+import { ulid } from "ulid";
 import type { Node, NodeType, TaskStatus } from "@km/core";
-import { setKmDir } from "@km/core";
+import { setKmDir, emitNodeMoved } from "@km/core";
 
 /**
  * NodeStore interface - unified access to node storage
@@ -38,6 +47,13 @@ export interface NodeStore {
 
   // Write operations
   updateNode(id: string, changes: Partial<Node>): void;
+  moveNode(id: string, newParentId: string | null, parentIdx?: number): void;
+  appendTaskToFile(
+    filePath: string,
+    content: string,
+    options?: { ensure?: boolean },
+  ): void;
+  cloneTask(sourceId: string, changes: Partial<Node>): string | null;
 
   // Lifecycle
   refresh(): void;
@@ -275,8 +291,70 @@ abstract class BaseStore implements NodeStore {
   }
 
   abstract updateNode(id: string, changes: Partial<Node>): void;
+  abstract moveNode(
+    id: string,
+    newParentId: string | null,
+    parentIdx?: number,
+  ): void;
+  abstract appendTaskToFile(
+    filePath: string,
+    content: string,
+    options?: { ensure?: boolean },
+  ): void;
+  abstract cloneTask(sourceId: string, changes: Partial<Node>): string | null;
   abstract refresh(): void;
   abstract close(): void;
+
+  /**
+   * Get file path for a node by traversing up to its file ancestor
+   */
+  protected getFilePathForNode(node: Node): string | null {
+    let current: Node | null = node;
+    while (current) {
+      if (current.fs_path && current.type === "file") {
+        return current.fs_path;
+      }
+      if (!current.parent_id) break;
+      current = this.getNode(current.parent_id);
+    }
+    return null;
+  }
+
+  /**
+   * Write task status change back to markdown file (synchronously for CLI)
+   */
+  protected writeTaskStatusToFile(
+    filePath: string,
+    mdLine: number,
+    newStatus: TaskStatus,
+  ): void {
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      const lines = content.split("\n");
+
+      if (mdLine >= lines.length) return;
+
+      const line = lines[mdLine];
+      if (!line) return;
+
+      // Map status to task mark
+      const newMark =
+        newStatus === "done"
+          ? "x"
+          : newStatus === "blocked"
+            ? "!"
+            : newStatus === "dropped"
+              ? "-"
+              : " "; // open
+
+      lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
+
+      // Use synchronous write to ensure completion before CLI exits
+      writeFileSync(filePath, lines.join("\n"));
+    } catch {
+      // Ignore write errors
+    }
+  }
 }
 
 /**
@@ -322,46 +400,123 @@ export class DiskStore extends BaseStore {
     this.db.run(`UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`, values);
 
     // Write through to markdown file for task status changes (bidirectional sync)
-    if (
-      changes.task_status !== undefined &&
-      node.fs_path &&
-      node.md_line !== undefined
-    ) {
-      this.writeTaskToFile(node, changes.task_status);
+    if (changes.task_status !== undefined && node.md_line !== undefined) {
+      // Tasks may not have fs_path directly - look up from parent file node
+      const filePath = node.fs_path || this.getFilePathForNode(node);
+      if (filePath) {
+        this.writeTaskStatusToFile(filePath, node.md_line, changes.task_status);
+      }
     }
   }
 
-  /**
-   * Write task status change back to markdown file
-   */
-  private writeTaskToFile(node: Node, newStatus: TaskStatus): void {
-    if (!node.fs_path || node.md_line === undefined) return;
+  moveNode(id: string, newParentId: string | null, parentIdx?: number): void {
+    const node = this.getNode(id);
+    if (!node) return;
 
-    try {
-      const content = readFileSync(node.fs_path, "utf-8");
-      const lines = content.split("\n");
+    const idx = parentIdx ?? Date.now();
+    this.db.run(
+      `UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?`,
+      [newParentId, idx, Date.now(), id],
+    );
 
-      if (node.md_line >= lines.length) return;
+    // Emit event for persistence
+    emitNodeMoved("store", id, { parent_id: newParentId, parent_idx: idx });
+  }
 
-      const line = lines[node.md_line];
-      if (!line) return;
+  appendTaskToFile(
+    filePath: string,
+    content: string,
+    options?: { ensure?: boolean },
+  ): void {
+    const fullPath = filePath.startsWith("/")
+      ? filePath
+      : join(this.rootPath, filePath);
 
-      // Map status to task mark
-      const newMark =
-        newStatus === "done"
-          ? "x"
-          : newStatus === "blocked"
-            ? "!"
-            : newStatus === "dropped"
-              ? "-"
-              : " "; // open
-
-      lines[node.md_line] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
-
-      void Bun.write(node.fs_path, lines.join("\n"));
-    } catch {
-      // Ignore write errors
+    // Ensure directory exists if requested
+    if (options?.ensure) {
+      const dir = dirname(fullPath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      if (!existsSync(fullPath)) {
+        writeFileSync(
+          fullPath,
+          `---\ntitle: ${basename(fullPath).replace(/\.md$/, "")}\n---\n\n`,
+        );
+      }
     }
+
+    appendFileSync(fullPath, content);
+  }
+
+  cloneTask(sourceId: string, changes: Partial<Node>): string | null {
+    const source = this.getNode(sourceId);
+    if (!source || source.type !== "task") return null;
+
+    // Generate new ID
+    const newId = ulid();
+    const now = Date.now();
+
+    // Clone the task with changes - use definite values
+    const id = newId;
+    const type = "task";
+    const parent_id = changes.parent_id ?? source.parent_id;
+    const parent_idx = changes.parent_idx ?? source.parent_idx + 0.001;
+    const symlink_to = null;
+    const task_status = changes.task_status ?? "open";
+    const task_mark = changes.task_mark ?? " ";
+    const assigned_to = changes.assigned_to ?? source.assigned_to ?? null;
+    const due_date = changes.due_date ?? source.due_date ?? null;
+    const scheduled_date =
+      changes.scheduled_date ?? source.scheduled_date ?? null;
+    const priority = changes.priority ?? source.priority ?? null;
+    const content = changes.content ?? source.content ?? "";
+    const data = JSON.stringify({
+      ...source.data,
+      ...changes.data,
+      recur_prev: sourceId, // Link back to source
+    });
+
+    // Insert into database
+    this.db.run(
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, symlink_to,
+        task_status, task_mark, assigned_to, due_date, scheduled_date,
+        priority, content, data, created_at, updated_at, version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        type,
+        parent_id,
+        parent_idx,
+        symlink_to,
+        task_status,
+        task_mark,
+        assigned_to,
+        due_date,
+        scheduled_date,
+        priority,
+        content,
+        data,
+        now,
+        now,
+        newId,
+      ],
+    );
+
+    // If the source task is in a file, append the new task to that file
+    const filePath = this.getFilePathForNode(source);
+    if (filePath && content) {
+      // Build task line with metadata
+      let taskLine = `\n- [ ] ${content}`;
+      // Remove old due date from content if present
+      taskLine = taskLine.replace(/\s*due:\d{4}-\d{2}-\d{2}/g, "");
+      if (due_date) {
+        taskLine += ` due:${due_date}`;
+      }
+      appendFileSync(filePath, taskLine);
+    }
+
+    return newId;
   }
 
   refresh(): void {
@@ -604,46 +759,129 @@ export class MemoryStore extends BaseStore {
     this.db.run(`UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`, values);
 
     // Write through to markdown file for task status changes
-    if (
-      changes.task_status !== undefined &&
-      node.fs_path &&
-      node.md_line !== undefined
-    ) {
-      this.writeTaskToFile(node, changes.task_status);
+    if (changes.task_status !== undefined && node.md_line !== undefined) {
+      // Tasks may not have fs_path directly - look up from parent file node
+      const filePath = node.fs_path || this.getFilePathForNode(node);
+      if (filePath) {
+        this.writeTaskStatusToFile(filePath, node.md_line, changes.task_status);
+      }
     }
   }
 
-  /**
-   * Write task status change back to markdown file
-   */
-  private writeTaskToFile(node: Node, newStatus: TaskStatus): void {
-    if (!node.fs_path || node.md_line === undefined) return;
+  moveNode(id: string, newParentId: string | null, parentIdx?: number): void {
+    const node = this.getNode(id);
+    if (!node) return;
 
-    try {
-      const content = readFileSync(node.fs_path, "utf-8");
-      const lines = content.split("\n");
+    const idx = parentIdx ?? Date.now();
+    this.db.run(
+      `UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?`,
+      [newParentId, idx, Date.now(), id],
+    );
 
-      if (node.md_line >= lines.length) return;
+    // Note: In memory mode, we don't emit events since there's no persistence
+    // The in-memory DB is the source of truth
+  }
 
-      const line = lines[node.md_line];
-      if (!line) return;
+  appendTaskToFile(
+    filePath: string,
+    content: string,
+    options?: { ensure?: boolean },
+  ): void {
+    const fullPath = filePath.startsWith("/")
+      ? filePath
+      : join(this.rootPath, filePath);
 
-      // Map status to task mark
-      const newMark =
-        newStatus === "done"
-          ? "x"
-          : newStatus === "blocked"
-            ? "!"
-            : newStatus === "dropped"
-              ? "-"
-              : " "; // open
-
-      lines[node.md_line] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
-
-      void Bun.write(node.fs_path, lines.join("\n"));
-    } catch {
-      // Ignore write errors
+    // Ensure directory exists if requested
+    if (options?.ensure) {
+      const dir = dirname(fullPath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      if (!existsSync(fullPath)) {
+        writeFileSync(
+          fullPath,
+          `---\ntitle: ${basename(fullPath).replace(/\.md$/, "")}\n---\n\n`,
+        );
+      }
     }
+
+    appendFileSync(fullPath, content);
+
+    // Re-parse the file to update in-memory state
+    const parentNode = this.getNodeByPath(fullPath);
+    if (parentNode) {
+      // Remove old content nodes for this file
+      this.db.run(`DELETE FROM nodes WHERE fs_path = ? AND type = 'task'`, [
+        fullPath,
+      ]);
+      // Re-parse
+      this.parseMarkdownFile(fullPath, parentNode.id);
+    }
+  }
+
+  cloneTask(sourceId: string, changes: Partial<Node>): string | null {
+    const source = this.getNode(sourceId);
+    if (!source || source.type !== "task") return null;
+
+    // Generate new ID (ephemeral for memory mode)
+    const newId = `clone-${Date.now()}`;
+    const now = Date.now();
+
+    // Clone the task with changes
+    const id = newId;
+    const type = "task";
+    const parent_id = changes.parent_id ?? source.parent_id;
+    const parent_idx = changes.parent_idx ?? source.parent_idx + 0.001;
+    const task_status = changes.task_status ?? "open";
+    const task_mark = changes.task_mark ?? " ";
+    const assigned_to = changes.assigned_to ?? source.assigned_to ?? null;
+    const due_date = changes.due_date ?? source.due_date ?? null;
+    const scheduled_date =
+      changes.scheduled_date ?? source.scheduled_date ?? null;
+    const priority = changes.priority ?? source.priority ?? null;
+    const content = changes.content ?? source.content ?? "";
+    const data = JSON.stringify({
+      ...source.data,
+      ...changes.data,
+      recur_prev: sourceId,
+    });
+
+    // Insert into database
+    this.db.run(
+      `INSERT INTO nodes (id, type, parent_id, parent_idx,
+        task_status, task_mark, assigned_to, due_date, scheduled_date,
+        priority, content, data, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        type,
+        parent_id,
+        parent_idx,
+        task_status,
+        task_mark,
+        assigned_to,
+        due_date,
+        scheduled_date,
+        priority,
+        content,
+        data,
+        now,
+        now,
+      ],
+    );
+
+    // If the source task is in a file, append the new task to that file
+    const filePath = this.getFilePathForNode(source);
+    if (filePath && content) {
+      let taskLine = `\n- [ ] ${content}`;
+      taskLine = taskLine.replace(/\s*due:\d{4}-\d{2}-\d{2}/g, "");
+      if (due_date) {
+        taskLine += ` due:${due_date}`;
+      }
+      appendFileSync(filePath, taskLine);
+    }
+
+    return newId;
   }
 
   refresh(): void {

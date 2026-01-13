@@ -694,3 +694,135 @@ const x: number = 1;
     expect(code2!.data?.lang).toBe("typescript");
   });
 });
+
+describe("Round-trip: Additional Edge Cases", () => {
+  test("should handle empty document", () => {
+    const md = "";
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    // Parser may create a root section for the file
+    // The important thing is output is also essentially empty
+    expect(output.trim()).toBe("");
+  });
+
+  test("should handle document with only whitespace", () => {
+    const md = "   \n\n   \n";
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output.trim()).toBe("");
+  });
+
+  test("should handle document with only headings (no tasks)", () => {
+    const md = `# Main Title
+
+## Section One
+
+Some content here.
+
+## Section Two
+
+More content.`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const tasks = nodes.filter((n) => n.type === "task");
+    const sections = nodes.filter((n) => n.type === "section");
+
+    expect(tasks.length).toBe(0);
+    expect(sections.length).toBeGreaterThan(0);
+
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("# Main Title");
+    expect(output).toContain("## Section One");
+  });
+
+  test("should handle RTL text (Hebrew)", () => {
+    const md = `# שלום עולם
+
+- [ ] משימה בעברית`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("שלום עולם");
+    expect(output).toContain("משימה בעברית");
+  });
+
+  test("should handle RTL text (Arabic)", () => {
+    const md = `# مرحبا بالعالم
+
+- [ ] مهمة بالعربية`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("مرحبا بالعالم");
+    expect(output).toContain("مهمة بالعربية");
+  });
+
+  test("should handle deeply nested structure (5+ levels)", () => {
+    const md = `# Level 1
+
+## Level 2
+
+### Level 3
+
+#### Level 4
+
+##### Level 5
+
+###### Level 6
+
+Content at deepest level.`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const sections = nodes.filter((n) => n.type === "section");
+
+    expect(sections.length).toBe(6);
+
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("# Level 1");
+    expect(output).toContain("###### Level 6");
+  });
+
+  test("should handle very long lines", () => {
+    const longContent = "A".repeat(500);
+    const md = `- [ ] ${longContent}`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain(longContent);
+  });
+
+  test("should handle document with only a single task", () => {
+    const md = `- [ ] Single task`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const tasks = nodes.filter((n) => n.type === "task");
+
+    expect(tasks.length).toBe(1);
+    expect(tasks[0]!.content).toBe("Single task");
+  });
+
+  test("should preserve task with blocked status mark", () => {
+    // Test the [!] blocked mark - parsed as regular list item by GFM
+    // but verify the content is preserved
+    const md = `- [!] Blocked task`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    // GFM doesn't recognize [!] as task, but content should be preserved
+    expect(output).toContain("Blocked task");
+  });
+
+  test("should preserve task with dropped status mark", () => {
+    // Test the [-] dropped mark - parsed as regular list item by GFM
+    const md = `- [-] Dropped task`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("Dropped task");
+  });
+});

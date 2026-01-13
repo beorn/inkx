@@ -515,11 +515,11 @@ describe("Board Move - Multi-card Selection", () => {
     // Cycle status for all selected
     handleKey(state, "x");
 
-    // Both should have changed status
+    // Both should have changed status (open → blocked in the cycle)
     const node1 = getNode(card1Id);
     const node2 = getNode(card2Id);
-    expect(node1?.task_status).toBe("in_progress");
-    expect(node2?.task_status).toBe("in_progress");
+    expect(node1?.task_status).toBe("blocked");
+    expect(node2?.task_status).toBe("blocked");
   });
 
   it("sets priority for multiple selected cards", () => {

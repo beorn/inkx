@@ -1326,6 +1326,80 @@ function Board({ initialState }: BoardProps) {
         exit();
         return;
       }
+
+      // Status cycling in detail pane
+      if (input === "s" || input === "x") {
+        const card = state.columns[state.colIndex]?.cards[state.cardIndex];
+        if (card) {
+          const currentStatus = card.node.task_status || "open";
+          const statusCycle: TaskStatus[] = [
+            "open",
+            "blocked",
+            "done",
+            "dropped",
+          ];
+          const currentIndex = statusCycle.indexOf(currentStatus);
+          const nextIndex = (currentIndex + 1) % statusCycle.length;
+          const nextStatus = statusCycle[nextIndex] as TaskStatus;
+          const markMap: Record<TaskStatus, string> = {
+            open: " ",
+            blocked: "!",
+            done: "x",
+            dropped: "-",
+          };
+          const nextMark = markMap[nextStatus];
+
+          emit({
+            type: "node_updated",
+            actor: "user",
+            target: card.node.id,
+            data: { task_status: nextStatus, task_mark: nextMark },
+          });
+
+          // Refresh board state
+          setTimeout(() => {
+            const newState = state.rootId
+              ? buildBoardState(state.rootId)
+              : initBoardState();
+            if (newState) {
+              newState.zoomStack = state.zoomStack;
+              newState.rootPath = state.rootPath;
+              newState.colIndex = state.colIndex;
+              newState.cardIndex = state.cardIndex;
+              setState(newState);
+            }
+          }, 50);
+        }
+        return;
+      }
+
+      // Priority setting in detail pane (1-5)
+      if (["1", "2", "3", "4", "5"].includes(input)) {
+        const card = state.columns[state.colIndex]?.cards[state.cardIndex];
+        if (card) {
+          emit({
+            type: "node_updated",
+            actor: "user",
+            target: card.node.id,
+            data: { priority: parseInt(input, 10) },
+          });
+
+          // Refresh board state
+          setTimeout(() => {
+            const newState = state.rootId
+              ? buildBoardState(state.rootId)
+              : initBoardState();
+            if (newState) {
+              newState.zoomStack = state.zoomStack;
+              newState.rootPath = state.rootPath;
+              newState.colIndex = state.colIndex;
+              newState.cardIndex = state.cardIndex;
+              setState(newState);
+            }
+          }, 50);
+        }
+        return;
+      }
     },
     { isActive: showDetailPane },
   );

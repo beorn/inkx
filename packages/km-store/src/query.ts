@@ -43,23 +43,43 @@ export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
   const params: (string | number)[] = [];
 
   if (needsPathFilter) {
-    // Use a CTE to compute effective_path (node's fs_path or ancestor's fs_path)
+    // Use a recursive CTE to compute effective_path for all nodes
+    // This walks up the parent chain to find the nearest ancestor with fs_path
     sql = `
-      WITH node_paths AS (
-        SELECT n.*,
-          COALESCE(n.fs_path, (
-            WITH RECURSIVE ancestors AS (
-              SELECT id, parent_id, fs_path FROM nodes WHERE id = n.id
-              UNION ALL
-              SELECT p.id, p.parent_id, p.fs_path
-              FROM nodes p
-              JOIN ancestors a ON p.id = a.parent_id
-            )
-            SELECT fs_path FROM ancestors WHERE fs_path IS NOT NULL LIMIT 1
-          )) AS effective_path
-        FROM nodes n
+      WITH RECURSIVE node_ancestors AS (
+        -- Base case: start with each node
+        SELECT
+          id AS node_id,
+          id AS current_id,
+          parent_id,
+          fs_path,
+          0 AS depth
+        FROM nodes
+
+        UNION ALL
+
+        -- Recursive case: walk up to parent
+        SELECT
+          na.node_id,
+          n.id,
+          n.parent_id,
+          n.fs_path,
+          na.depth + 1
+        FROM node_ancestors na
+        JOIN nodes n ON n.id = na.parent_id
+        WHERE na.fs_path IS NULL  -- Stop when we find an fs_path
+      ),
+      node_paths AS (
+        -- Get the first ancestor with fs_path for each node
+        SELECT node_id, fs_path AS effective_path
+        FROM node_ancestors
+        WHERE fs_path IS NOT NULL
+        GROUP BY node_id
       )
-      SELECT * FROM node_paths WHERE 1=1`;
+      SELECT n.*, COALESCE(n.fs_path, np.effective_path) AS effective_path
+      FROM nodes n
+      LEFT JOIN node_paths np ON n.id = np.node_id
+      WHERE 1=1`;
   } else {
     sql = "SELECT * FROM nodes WHERE 1=1";
   }

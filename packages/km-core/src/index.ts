@@ -29,3 +29,6 @@ export {
   emitTaskReleased,
   emitTaskCompleted,
 } from "./emit.ts";
+
+// Recurrence utilities
+export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts";

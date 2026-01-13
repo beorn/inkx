@@ -60,6 +60,8 @@ export interface Node {
   due_date?: string; // YYYY-MM-DD
   scheduled_date?: string;
   priority?: number; // 1-5
+  recurrence?: string; // iCal RRULE format
+  recur_prev?: string; // Previous recurrence instance ID
 
   // Content
   content?: string; // Text content (inline for small)

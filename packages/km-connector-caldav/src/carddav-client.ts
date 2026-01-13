@@ -7,6 +7,7 @@
 
 import type { CardDAVConfig, Contact, SyncState, SyncResult } from "./types.ts";
 import { parseVCard, formatVCard } from "./vcard.ts";
+import { createBasicAuthHeader, webdavRequest } from "./webdav-base.ts";
 
 /**
  * CardDAV client for syncing contacts
@@ -14,17 +15,11 @@ import { parseVCard, formatVCard } from "./vcard.ts";
 export class CardDAVClient {
   private config: CardDAVConfig;
   private addressBookUrl: string | null = null;
+  private authHeader: string;
 
   constructor(config: CardDAVConfig) {
     this.config = config;
-  }
-
-  /**
-   * Get authorization header
-   */
-  private getAuthHeader(): string {
-    const credentials = `${this.config.username}:${this.config.password}`;
-    return `Basic ${Buffer.from(credentials).toString("base64")}`;
+    this.authHeader = createBasicAuthHeader(config.username, config.password);
   }
 
   /**
@@ -36,23 +31,7 @@ export class CardDAVClient {
     body?: string,
     headers?: Record<string, string>,
   ): Promise<Response> {
-    const response = await fetch(url, {
-      method,
-      headers: {
-        Authorization: this.getAuthHeader(),
-        "Content-Type": "application/xml; charset=utf-8",
-        ...headers,
-      },
-      body,
-    });
-
-    if (!response.ok && response.status !== 207) {
-      throw new Error(
-        `CardDAV request failed: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    return response;
+    return webdavRequest(method, url, this.authHeader, body, headers);
   }
 
   /**

@@ -360,6 +360,61 @@ describe("Board Search", () => {
     const result = handleSearchKey(state, "\x1B");
     expect(result.exitSearch).toBe(true);
   });
+
+  test("handleSearchKey enter with no matches returns createTask (NV-style)", () => {
+    const state = createEmptyState();
+    state.searchMode = true;
+    state.searchQuery = "new task content";
+    // No columns/cards, so no matches exist
+
+    const result = handleSearchKey(state, "\r");
+    expect(result.exitSearch).toBe(true);
+    expect(result.createTask).toBe("new task content");
+  });
+
+  test("handleSearchKey enter with matches does not return createTask", () => {
+    const state = createEmptyState();
+    state.searchMode = true;
+    state.searchQuery = "task";
+    // Add a column with a matching card
+    state.columns = [
+      {
+        node: {
+          id: "col1",
+          type: "section",
+          content: "Todo",
+          parent_id: null,
+          parent_idx: 0,
+          symlink_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "1",
+        },
+        cards: [
+          {
+            node: {
+              id: "card1",
+              type: "task",
+              content: "Matching task here",
+              parent_id: "col1",
+              parent_idx: 0,
+              symlink_to: null,
+              data: {},
+              created_at: Date.now(),
+              updated_at: Date.now(),
+              version: "1",
+            },
+            children: [],
+          },
+        ],
+      },
+    ];
+
+    const result = handleSearchKey(state, "\r");
+    expect(result.exitSearch).toBe(true);
+    expect(result.createTask).toBeUndefined();
+  });
 });
 
 describe("Board Rendering", () => {

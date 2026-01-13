@@ -30,6 +30,7 @@ import { toggleCommand } from "./commands/toggle.ts";
 import { moveCommand } from "./commands/move.ts";
 import { addCommand } from "./commands/add.ts";
 import { daemonCommand } from "./commands/daemon.ts";
+import { inboxCommand } from "./commands/inbox.ts";
 
 const program = new Command();
 
@@ -137,6 +138,7 @@ program.addCommand(doneCommand); // km done <id> - mark task as done
 program.addCommand(toggleCommand); // km toggle <id> - toggle task status
 program.addCommand(moveCommand); // km move <node> <parent> - re-parent a node
 program.addCommand(addCommand); // km add <target> <source...> - add tasks to board/list
+program.addCommand(inboxCommand); // km inbox - GTD-style inbox processing
 program.addCommand(initCommand); // km init - create .km/ for disk mode
 program.addCommand(syncCommand); // km sync [--watch] - sync filesystem (with optional continuous watch)
 program.addCommand(watchCommand); // km watch - deprecated, use 'km sync --watch' instead

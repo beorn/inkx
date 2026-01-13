@@ -15,6 +15,15 @@ import { dirname } from "path";
 import { EventEmitter } from "events";
 import { FileSystemWatcher } from "./watcher.ts";
 
+/**
+ * Write operation types using discriminated union
+ */
+export type WriteOperation =
+  | { type: "write"; path: string; content: string; sourceEventId: string }
+  | { type: "delete"; path: string; sourceEventId: string }
+  | { type: "rename"; path: string; newPath: string; sourceEventId: string };
+
+// Legacy interface for backwards compatibility
 export interface PendingWrite {
   path: string;
   content: string;
@@ -30,7 +39,7 @@ const DEFAULT_CONFIG: WriteQueueConfig = {
 };
 
 export class WriteQueue extends EventEmitter {
-  private pending: Map<string, PendingWrite> = new Map();
+  private pending: Map<string, WriteOperation> = new Map();
   private debounceTimer: NodeJS.Timeout | null = null;
   private config: WriteQueueConfig;
   private watcher: FileSystemWatcher | null = null;
@@ -52,7 +61,12 @@ export class WriteQueue extends EventEmitter {
    */
   queue(write: PendingWrite): void {
     // Coalesce writes to same file
-    this.pending.set(write.path, write);
+    this.pending.set(write.path, {
+      type: "write",
+      path: write.path,
+      content: write.content,
+      sourceEventId: write.sourceEventId,
+    });
     this.scheduleFlush();
   }
 
@@ -60,10 +74,9 @@ export class WriteQueue extends EventEmitter {
    * Queue a delete operation
    */
   queueDelete(path: string, sourceEventId: string): void {
-    // Use null content to signal delete
     this.pending.set(path, {
+      type: "delete",
       path,
-      content: "__DELETE__",
       sourceEventId,
     });
     this.scheduleFlush();
@@ -73,10 +86,10 @@ export class WriteQueue extends EventEmitter {
    * Queue a rename operation
    */
   queueRename(oldPath: string, newPath: string, sourceEventId: string): void {
-    // Queue as special rename operation
     this.pending.set(oldPath, {
+      type: "rename",
       path: oldPath,
-      content: `__RENAME__:${newPath}`,
+      newPath,
       sourceEventId,
     });
     this.scheduleFlush();
@@ -121,41 +134,41 @@ export class WriteQueue extends EventEmitter {
     // Process writes
     const errors: Array<{ path: string; error: Error }> = [];
 
-    for (const write of writes) {
+    for (const op of writes) {
       try {
-        if (write.content === "__DELETE__") {
-          // Delete operation
-          if (existsSync(write.path)) {
-            unlinkSync(write.path);
-          }
-        } else if (write.content.startsWith("__RENAME__:")) {
-          // Rename operation
-          const newPath = write.content.slice("__RENAME__:".length);
-          if (existsSync(write.path)) {
-            const newDir = dirname(newPath);
-            if (!existsSync(newDir)) {
-              mkdirSync(newDir, { recursive: true });
+        switch (op.type) {
+          case "delete":
+            if (existsSync(op.path)) {
+              unlinkSync(op.path);
             }
-            renameSync(write.path, newPath);
-          }
-        } else {
-          // Regular write
-          const dir = dirname(write.path);
-          if (!existsSync(dir)) {
-            mkdirSync(dir, { recursive: true });
-          }
-          writeFileSync(write.path, write.content, "utf-8");
+            break;
+          case "rename":
+            if (existsSync(op.path)) {
+              const newDir = dirname(op.newPath);
+              if (!existsSync(newDir)) {
+                mkdirSync(newDir, { recursive: true });
+              }
+              renameSync(op.path, op.newPath);
+            }
+            break;
+          case "write":
+            const dir = dirname(op.path);
+            if (!existsSync(dir)) {
+              mkdirSync(dir, { recursive: true });
+            }
+            writeFileSync(op.path, op.content, "utf-8");
+            break;
         }
       } catch (error) {
-        errors.push({ path: write.path, error: error as Error });
+        errors.push({ path: op.path, error: error as Error });
       }
     }
 
     // Clear in-flight status after a delay
     setTimeout(() => {
-      for (const write of writes) {
+      for (const op of writes) {
         if (this.watcher) {
-          this.watcher.clearInFlight(write.path, 0);
+          this.watcher.clearInFlight(op.path, 0);
         }
       }
     }, 1000);

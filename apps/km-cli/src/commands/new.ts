@@ -7,7 +7,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "path";
-import { existsSync, mkdirSync, appendFileSync, writeFileSync } from "fs";
+import { existsSync } from "fs";
 import { getStore, resolveNode } from "@km/store";
 import { parseTaskMetadata, extractTags, extractMentions } from "@km/markdown";
 
@@ -39,31 +39,10 @@ function formatMetadata(options: {
 }
 
 /**
- * Ensure inbox.md exists and return its path
+ * Get the default inbox path
  */
-function ensureInbox(rootPath: string): string {
-  const inboxDir = join(rootPath, "inbox");
-  const inboxPath = join(inboxDir, "inbox.md");
-
-  if (!existsSync(inboxDir)) {
-    mkdirSync(inboxDir, { recursive: true });
-  }
-
-  if (!existsSync(inboxPath)) {
-    const content = `---
-title: Inbox
-type: inbox
----
-
-# Inbox
-
-Quick capture zone for new items.
-
-`;
-    writeFileSync(inboxPath, content);
-  }
-
-  return inboxPath;
+function getInboxPath(rootPath: string): string {
+  return join(rootPath, "inbox", "inbox.md");
 }
 
 export const newCommand = new Command("new")
@@ -133,12 +112,12 @@ export const newCommand = new Command("new")
       }
     } else {
       // Default to inbox
-      targetPath = ensureInbox(store.rootPath);
+      targetPath = getInboxPath(store.rootPath);
       targetName = "inbox";
     }
 
-    // Append to target file
-    appendFileSync(targetPath, taskLine);
+    // Append to target file via store (handles directory/file creation)
+    store.appendTaskToFile(targetPath, taskLine, { ensure: true });
 
     if (options.json) {
       console.log(

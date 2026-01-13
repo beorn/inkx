@@ -10,9 +10,10 @@ import type {
   ColumnState,
   CardState,
   BoardAction,
+  ColumnRules,
 } from "./types.ts";
 import { STATUS_CYCLE, STATUS_MARKS } from "./types.ts";
-import { getChildren, getNode, resolveNode } from "@km/store";
+import { getChildren, getNode, resolveNode, queryNodes } from "@km/store";
 import { emit } from "@km/core";
 import { getNodeDisplayName } from "@km/shared";
 
@@ -147,6 +148,68 @@ function normalizeColumnName(name: string): string {
 }
 
 /**
+ * Parse column rules from heading content
+ * Format: "## Column Name add=\"query\" sync=field:value collapse=true limit=3"
+ */
+export function parseColumnRules(content: string): ColumnRules {
+  const rules: ColumnRules = {};
+
+  // Parse add="query"
+  const addMatch = content.match(/\badd=["']([^"']+)["']/);
+  if (addMatch) {
+    rules.add = addMatch[1];
+  }
+
+  // Parse sync=field:value (no quotes needed for simple values)
+  const syncMatch = content.match(/\bsync=["']?([^\s"']+)["']?/);
+  if (syncMatch) {
+    rules.sync = syncMatch[1];
+  }
+
+  // Parse collapse=true
+  if (/\bcollapse=true\b/i.test(content)) {
+    rules.collapse = true;
+  }
+
+  // Parse limit=N
+  const limitMatch = content.match(/\blimit=(\d+)/);
+  if (limitMatch) {
+    rules.limit = parseInt(limitMatch[1] || "0", 10);
+  }
+
+  // Parse default=true
+  if (/\bdefault=true\b/i.test(content)) {
+    rules.default = true;
+  }
+
+  return rules;
+}
+
+/**
+ * Apply add= rule to pull in matching tasks
+ */
+function applyAddRule(
+  addQuery: string,
+  existingCardIds: Set<string>,
+): CardState[] {
+  const matchingNodes = queryNodes(addQuery, "task");
+  const newCards: CardState[] = [];
+
+  for (const node of matchingNodes) {
+    // Skip if already in the column
+    if (existingCardIds.has(node.id)) continue;
+
+    // Add as a card
+    newCards.push({
+      node,
+      children: getChildren(node.id),
+    });
+  }
+
+  return newCards;
+}
+
+/**
  * Build board state from a specific root ID
  */
 export function buildBoardState(rootId: string): BoardState {
@@ -154,20 +217,40 @@ export function buildBoardState(rootId: string): BoardState {
   const wipLimits = extractWipLimits(rootNode);
   const columns: ColumnState[] = [];
   const columnNodes = getChildren(rootId);
+  const collapsedColumns = new Set<number>();
 
-  for (const colNode of columnNodes) {
+  for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
+    const colNode = columnNodes[colIdx];
+    if (!colNode) continue;
+
+    // Parse column rules from content (heading text)
+    const rules = parseColumnRules(colNode.content || "");
+
+    // Get existing cards in the column
     const cardNodes = getChildren(colNode.id);
-    const cards: CardState[] = cardNodes.map((cardNode) => ({
+    const existingCardIds = new Set(cardNodes.map((c) => c.id));
+    let cards: CardState[] = cardNodes.map((cardNode) => ({
       node: cardNode,
       children: getChildren(cardNode.id),
     }));
 
-    // Look up WIP limit for this column by normalized name
+    // Apply add= rule to pull in matching tasks
+    if (rules.add) {
+      const additionalCards = applyAddRule(rules.add, existingCardIds);
+      cards = [...cards, ...additionalCards];
+    }
+
+    // Look up WIP limit (from rules or frontmatter)
     const colName = getNodeDisplayName(colNode);
     const normalizedName = normalizeColumnName(colName);
-    const wipLimit = wipLimits.get(normalizedName);
+    const wipLimit = rules.limit ?? wipLimits.get(normalizedName);
 
-    columns.push({ node: colNode, cards, wipLimit });
+    // Track collapsed columns
+    if (rules.collapse) {
+      collapsedColumns.add(colIdx);
+    }
+
+    columns.push({ node: colNode, cards, wipLimit, rules });
   }
 
   return {
@@ -179,7 +262,7 @@ export function buildBoardState(rootId: string): BoardState {
     selectedCards: new Set(),
     visualMode: false,
     foldedCards: new Set(),
-    collapsedColumns: new Set(),
+    collapsedColumns,
     searchQuery: "",
     searchMode: false,
     helpMode: false,
@@ -408,16 +491,52 @@ export function handleKey(
 }
 
 /**
+ * Check if search has any visible matches
+ */
+function hasSearchMatches(state: BoardState): boolean {
+  if (!state.searchQuery) return true; // Empty query matches all
+
+  const query = state.searchQuery.toLowerCase();
+  for (const col of state.columns) {
+    for (const card of col.cards) {
+      const content = card.node.content?.toLowerCase() ?? "";
+      if (content.includes(query)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Handle search mode key press
+ *
+ * Returns:
+ * - exitSearch: true if search mode should end
+ * - createTask: if set, contains the text for a new task to create (NV-style)
  */
 export function handleSearchKey(
   state: BoardState,
   key: string,
-): { state: BoardState; exitSearch: boolean } {
+): { state: BoardState; exitSearch: boolean; createTask?: string } {
   const newState = { ...state };
 
-  if (key === "\x1B" || key === "\r") {
+  // Escape - cancel search without action
+  if (key === "\x1B") {
     newState.searchMode = false;
+    return { state: newState, exitSearch: true };
+  }
+
+  // Enter - if no matches and query exists, create new task (NV-style)
+  if (key === "\r") {
+    newState.searchMode = false;
+    if (state.searchQuery && !hasSearchMatches(state)) {
+      return {
+        state: newState,
+        exitSearch: true,
+        createTask: state.searchQuery,
+      };
+    }
     return { state: newState, exitSearch: true };
   }
 
@@ -495,6 +614,16 @@ function setPriority(state: BoardState, priority: number): void {
 }
 
 /**
+ * Parse sync rule to extract field and value
+ * Format: "field:value" (e.g., "status:blocked")
+ */
+function parseSyncRule(sync: string): { field: string; value: string } | null {
+  const match = sync.match(/^(\w+):(.+)$/);
+  if (!match) return null;
+  return { field: match[1] || "", value: match[2] || "" };
+}
+
+/**
  * Move card to a different column
  */
 function moveCardToColumn(state: BoardState, targetColIndex: number): void {
@@ -507,6 +636,7 @@ function moveCardToColumn(state: BoardState, targetColIndex: number): void {
   const lastCard = targetCol.cards[targetCol.cards.length - 1];
   const sortOrder = lastCard ? lastCard.node.parent_idx + 1 : 0;
 
+  // Move the node
   emit({
     type: "node_moved",
     actor: "user",
@@ -516,6 +646,33 @@ function moveCardToColumn(state: BoardState, targetColIndex: number): void {
       parent_idx: sortOrder,
     },
   });
+
+  // Apply sync= rule if present on target column
+  if (targetCol.rules?.sync) {
+    const syncRule = parseSyncRule(targetCol.rules.sync);
+    if (syncRule) {
+      const fieldName =
+        syncRule.field === "status" ? "task_status" : syncRule.field;
+      const updateData: Record<string, unknown> = {
+        [fieldName]: syncRule.value,
+      };
+
+      // Also update task_mark if setting status
+      if (fieldName === "task_status") {
+        const mark = STATUS_MARKS[syncRule.value as keyof typeof STATUS_MARKS];
+        if (mark) {
+          updateData.task_mark = mark;
+        }
+      }
+
+      emit({
+        type: "node_updated",
+        actor: "user",
+        target: card.node.id,
+        data: updateData,
+      });
+    }
+  }
 }
 
 /**

@@ -9,12 +9,12 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { resolveTask } from "@km/store";
-import { emitNodeUpdated } from "@km/core";
-import type { TaskStatus } from "@km/core";
+import { resolveTask, getStore } from "@km/store";
+import type { TaskStatus, TaskMark } from "@km/core";
 
 /**
  * Get next status in cycle
+ * Valid statuses: open, blocked, done, dropped
  */
 function getNextStatus(
   current: TaskStatus | undefined,
@@ -25,32 +25,32 @@ function getNextStatus(
     return current === "done" ? "open" : "done";
   }
 
-  // Full cycle: open → in_progress → done → open
+  // Full cycle: open → blocked → done → open
   switch (current) {
     case "open":
-      return "in_progress";
-    case "in_progress":
+      return "blocked";
+    case "blocked":
       return "done";
     case "done":
       return "open";
+    case "dropped":
+      return "open";
     default:
-      return "in_progress";
+      return "blocked";
   }
 }
 
 /**
  * Get task mark for status
  */
-function getMarkForStatus(status: TaskStatus): string {
+function getMarkForStatus(status: TaskStatus): TaskMark {
   switch (status) {
     case "done":
       return "x";
-    case "in_progress":
-      return "/";
     case "blocked":
+      return "!";
+    case "dropped":
       return "-";
-    case "waiting":
-      return "?";
     default:
       return " ";
   }
@@ -72,8 +72,9 @@ export const toggleCommand = new Command("toggle")
     const newStatus = getNextStatus(currentStatus, options.simple ?? false);
     const newMark = getMarkForStatus(newStatus);
 
-    // Emit the update event
-    emitNodeUpdated("cli", node.id, {
+    // Update via store (handles event emission and file sync)
+    const store = getStore();
+    store.updateNode(node.id, {
       task_status: newStatus,
       task_mark: newMark,
     });
@@ -82,8 +83,8 @@ export const toggleCommand = new Command("toggle")
     const statusIcon =
       newStatus === "done"
         ? chalk.green("✓")
-        : newStatus === "in_progress"
-          ? chalk.yellow("●")
+        : newStatus === "blocked"
+          ? chalk.yellow("!")
           : chalk.dim("○");
 
     console.log(

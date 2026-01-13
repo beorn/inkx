@@ -34,6 +34,7 @@ export interface ColumnState {
   node: Node;
   cards: CardState[];
   wipLimit?: number; // Optional WIP limit from frontmatter
+  rules?: ColumnRules; // Optional column rules parsed from heading
 }
 
 export interface CardState {
@@ -41,26 +42,32 @@ export interface CardState {
   children: Node[];
 }
 
-// Status cycle order
+// Status cycle order (valid statuses only: open, blocked, done, dropped)
 export const STATUS_CYCLE: TaskStatus[] = [
   "open",
-  "in_progress",
-  "done",
   "blocked",
-  "waiting",
-  "cancelled",
+  "done",
+  "dropped",
 ];
 
 // Task marks by status
 export const STATUS_MARKS: Record<TaskStatus, TaskMark> = {
   open: " ",
-  in_progress: "/",
+  blocked: "!",
   done: "x",
-  blocked: "-",
-  waiting: "?",
-  scheduled: "1",
-  cancelled: "X",
+  dropped: "-",
 };
+
+/**
+ * Column rule configuration parsed from heading attributes
+ */
+export interface ColumnRules {
+  add?: string; // Query to auto-pull matching tasks
+  sync?: string; // Bidirectional field sync (e.g., "status:blocked")
+  collapse?: boolean; // Start collapsed
+  limit?: number; // WIP limit
+  default?: boolean; // Default column for new items
+}
 
 export type BoardAction = "quit" | "refresh" | null;
 

@@ -10,8 +10,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { emitNodeMoved } from "@km/core";
-import { resolveNode, getDb } from "@km/store";
+import { resolveNode, getDb, getStore } from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
 import type { Node } from "@km/core";
 
@@ -123,10 +122,9 @@ export const moveCommand = new Command("move")
       return;
     }
 
-    // Emit the move event
-    emitNodeMoved(process.env.USER ?? "user", node.id, {
-      parent_id: targetParentId,
-    });
+    // Move via store (handles event emission and persistence)
+    const store = getStore();
+    store.moveNode(node.id, targetParentId);
 
     if (options.json) {
       console.log(JSON.stringify({ id: node.id, parent_id: targetParentId }));

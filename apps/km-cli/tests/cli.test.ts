@@ -530,21 +530,21 @@ describe("km task status", () => {
     );
     expect(task).toBeDefined();
 
-    // Set status
+    // Set status (using valid status "blocked" instead of "in_progress")
     const statusResult = await km([
       "task",
       "status",
       task.id.slice(0, 8),
-      "in_progress",
+      "blocked",
     ]);
     expect(statusResult.exitCode).toBe(0);
-    expect(statusResult.stdout).toContain("in_progress");
+    expect(statusResult.stdout).toContain("blocked");
 
     // Verify
     const afterResult = await km(["task", "--all", "--json"]);
     const afterTasks = JSON.parse(afterResult.stdout);
     const updated = afterTasks.find((t: { id: string }) => t.id === task.id);
-    expect(updated.task_status).toBe("in_progress");
+    expect(updated.task_status).toBe("blocked");
   });
 
   test("should set task status to done", async () => {
@@ -1104,15 +1104,15 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
     );
     expect(task).toBeDefined();
 
-    // Toggle from open -> in_progress
+    // Toggle from open -> blocked
     const toggleResult = await km(["toggle", task.id]);
     expect(toggleResult.exitCode).toBe(0);
 
-    // Read the markdown file - should now show [/]
+    // Read the markdown file - should now show [!]
     let content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
-    expect(content).toContain("- [/] Another open task");
+    expect(content).toContain("- [!] Another open task");
 
-    // Toggle from in_progress -> done
+    // Toggle from blocked -> done
     await km(["toggle", task.id]);
     content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [x] Another open task");

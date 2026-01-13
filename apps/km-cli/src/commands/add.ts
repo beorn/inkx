@@ -10,8 +10,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { resolveNode, queryTasks, getNode } from "@km/store";
-import { emit } from "@km/core";
+import { resolveNode, queryTasks, getNode, getStore } from "@km/store";
 
 export const addCommand = new Command("add")
   .description("Add tasks to a board or list")
@@ -92,17 +91,10 @@ export const addCommand = new Command("add")
       return;
     }
 
-    // Move tasks to target
+    // Move tasks to target via store
+    const store = getStore();
     for (const task of tasksToAdd) {
-      emit({
-        type: "node_moved",
-        actor: process.env.USER || "user",
-        target: task.id,
-        data: {
-          parent_id: targetNode.id,
-          parent_idx: nextIdx++,
-        },
-      });
+      store.moveNode(task.id, targetNode.id, nextIdx++);
     }
 
     if (options.json) {

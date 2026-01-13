@@ -12,6 +12,7 @@ import type {
   SyncResult,
 } from "./types.ts";
 import { parseICalendar, formatICalendar } from "./icalendar.ts";
+import { createBasicAuthHeader, webdavRequest } from "./webdav-base.ts";
 
 /**
  * CalDAV client for syncing calendar events
@@ -19,17 +20,11 @@ import { parseICalendar, formatICalendar } from "./icalendar.ts";
 export class CalDAVClient {
   private config: CalDAVConfig;
   private calendarUrl: string | null = null;
+  private authHeader: string;
 
   constructor(config: CalDAVConfig) {
     this.config = config;
-  }
-
-  /**
-   * Get authorization header
-   */
-  private getAuthHeader(): string {
-    const credentials = `${this.config.username}:${this.config.password}`;
-    return `Basic ${Buffer.from(credentials).toString("base64")}`;
+    this.authHeader = createBasicAuthHeader(config.username, config.password);
   }
 
   /**
@@ -41,23 +36,7 @@ export class CalDAVClient {
     body?: string,
     headers?: Record<string, string>,
   ): Promise<Response> {
-    const response = await fetch(url, {
-      method,
-      headers: {
-        Authorization: this.getAuthHeader(),
-        "Content-Type": "application/xml; charset=utf-8",
-        ...headers,
-      },
-      body,
-    });
-
-    if (!response.ok && response.status !== 207) {
-      throw new Error(
-        `CalDAV request failed: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    return response;
+    return webdavRequest(method, url, this.authHeader, body, headers);
   }
 
   /**
