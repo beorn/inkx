@@ -1,181 +1,107 @@
-# Services Specification
+# Daemon Specification
 
-km runs multiple background services for sync, automation, and agents.
+km runs a single background daemon for real-time sync and automation.
 
 ---
 
 ## Overview
 
-| Service    | Purpose            | Dependencies |
-| ---------- | ------------------ | ------------ |
-| **sync**   | Filesystem ↔ Model | None         |
-| **auto**   | Rules automation   | sync         |
-| **agents** | AI orchestration   | sync, auto   |
+Inspired by [beads](https://github.com/Dicklesworthstone/beads_viewer) architecture.
 
 ```
 ┌─────────────────────────────────────────┐
 │  km daemon                               │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐    │
-│  │  sync   │ │  auto   │ │ agents  │    │
-│  │ worker  │ │ worker  │ │ worker  │    │
-│  └────┬────┘ └────┬────┘ └────┬────┘    │
-│       │           │           │          │
-│       └───────────┴───────────┘          │
-│                   │                       │
-│            Event Bus                      │
-│                   │                       │
+│                                          │
+│  ┌─────────────────────────────────────┐ │
+│  │  Event Loop                         │ │
+│  │  • FS watch (chokidar)              │ │
+│  │  • Rule evaluation                  │ │
+│  │  • Scheduled checks                 │ │
+│  └─────────────────────────────────────┘ │
+│                   │                      │
+│                   ▼                      │
+│  ┌─────────────────────────────────────┐ │
+│  │  Event Bus                          │ │
+│  │  • Emit to events.jsonl             │ │
+│  │  • Broadcast via socket             │ │
+│  └─────────────────────────────────────┘ │
+│                   │                      │
 │       ┌───────────┴───────────┐          │
 │       ▼                       ▼          │
-│  events.jsonl            events.sock     │
+│  events.jsonl            km.sock         │
 └─────────────────────────────────────────┘
 ```
 
+**Single process, multiple responsibilities:**
+- Filesystem watching (via SyncManager)
+- Rule automation (event handlers)
+- Socket for CLI↔daemon communication
+
 ---
 
-## Service Management
-
-### CLI Commands
+## CLI Commands
 
 ```bash
-# Service management
-km service ls                    # List services and status
-km service start <name>          # Start a service
-km service stop <name>           # Stop a service
-km service restart <name>        # Restart a service
-km service status <name>         # Show service status
-km service logs <name>           # View service logs
-
-# Combined management
-km daemon start                  # Start all services
-km daemon stop                   # Stop all services
-km daemon status                 # Show all service status
+# Daemon management
+km daemon start              # Start daemon (background)
+km daemon stop               # Stop daemon
+km daemon status             # Show daemon status
 
 # Shortcuts
-km sync --watch                  # Start sync service (foreground)
-km hub                           # Start all + open TUI
-```
-
-### Service Status
-
-```bash
-$ km service ls
-NAME      STATUS    PID     UPTIME
-sync      running   12345   2h 15m
-auto      running   12346   2h 15m
-agents    stopped   -       -
-
-$ km service status sync
-Service: sync
-Status: running
-PID: 12345
-Started: 2025-01-12 10:00:00
-Uptime: 2h 15m
-Events processed: 1,234
-Last event: 5s ago
+km sync --watch              # Start daemon (foreground, sync only)
+km hub                       # Start daemon + open TUI
 ```
 
 ---
 
-## sync Service
+## Daemon Lifecycle
 
-Filesystem ↔ Model synchronization (see [km-watch.md](km-watch.md)).
-
-### Responsibilities
-
-- Watch filesystem for changes
-- Parse markdown → nodes
-- Reconcile with SQLite
-- Write model changes → markdown
-
-### Configuration
-
-```yaml
-# .km/config.yaml
-services:
-  sync:
-    debounce_fs: 5000 # ms before processing FS changes
-    debounce_apply: 3000 # ms before writing to FS
-    ignore:
-      - "node_modules/**"
-      - ".git/**"
-```
-
----
-
-## auto Service
-
-Rules-based automation engine.
-
-### When Is This Service Needed?
-
-**Most automation can be trigger-based** (event handlers in the Model layer):
-- Board sync rules: task status change → move to column
-- Recurring tasks: task done → create next occurrence
-
-**The service is needed for:**
-- **Startup sweep**: Catch up on missed time (recurring tasks that became due, scheduled actions that should have fired)
-- **Scheduled actions**: Fire at specific times (requires timer loop)
-- **Periodic checks**: Rules that need to run on a schedule
-
-If you don't use scheduled actions or periodic rules, the auto service can be disabled.
-
-### Responsibilities
-
-- Evaluate board `sync=` rules
-- Handle recurring tasks
-- Process scheduled actions
-- Trigger notifications (future)
-
-### Trigger Detection Layer
-
-Triggers are detected at the **Model layer** when events are emitted.
-
-The auto service subscribes to the event bus and evaluates rules:
+### Startup
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  UI Layer (TUI)           │  Filesystem                     │
-│  User toggles task        │  User edits file                │
-└──────────┬────────────────┴──────────┬──────────────────────┘
-           │                           │
-           ▼                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Model Layer                                                 │
-│  store.updateNode() → emit('node_updated')                   │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               ▼  Event Bus
-┌─────────────────────────────────────────────────────────────┐
-│  auto Service (subscriber)                                   │
-│  onEvent('node_updated') → evaluateRules()                   │
-│                          → maybeCreateRecurring()            │
-│                          → maybeUpdateBoard()                │
-└─────────────────────────────────────────────────────────────┘
+km daemon start
+        │
+        ▼
+┌─────────────────┐
+│  Check PID file │  ← Already running? Exit.
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Write PID file │  ← .km/daemon.pid
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Create socket  │  ← .km/km.sock
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Startup sweep  │  ← Catch up on missed time
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Start watching │  ← chokidar on vault
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Event loop     │  ← Running
+└─────────────────┘
 ```
 
-**Key principle:** Automation logic is NOT in the UI or Parser layers. It's a separate service that reacts to model events. This keeps layers clean and testable.
+### Startup Sweep
 
-### Execution Modes
-
-The auto service operates in two modes:
-
-#### 1. Reactive (Event-Driven)
-
-Respond to events as they happen:
-
-```typescript
-eventBus.on("node_updated", async (event) => {
-  await evaluateRulesFor(event.target);
-});
-```
-
-#### 2. Sweep (Startup Catch-up)
-
-On startup, scan all nodes to catch up on missed time:
+On startup, check for work that may have been missed:
 
 ```typescript
 async function startupSweep() {
-  // Check recurring tasks that may have become due
+  // 1. Reconcile filesystem with database
+  await reconcileVault();
+
+  // 2. Process recurring tasks that became due
   const tasks = getAllTasksWithRecurrence();
   for (const task of tasks) {
     if (task.task_status === "done" && isDueForNextOccurrence(task)) {
@@ -183,15 +109,7 @@ async function startupSweep() {
     }
   }
 
-  // Check scheduled actions that may have fired
-  const scheduled = getAllScheduledActions();
-  for (const action of scheduled) {
-    if (isPast(action.scheduledAt) && !action.executed) {
-      await executeAction(action);
-    }
-  }
-
-  // Reconcile board sync rules
+  // 3. Run board sync rules
   const boards = getAllBoards();
   for (const board of boards) {
     await reconcileBoardColumns(board);
@@ -199,326 +117,223 @@ async function startupSweep() {
 }
 ```
 
-#### Startup Sequence
+---
 
-```
-auto service start
-        │
-        ▼
-┌─────────────────┐
-│  Startup Sweep  │  ← Check all rules, catch up on missed
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Subscribe to   │  ← Now listen for real-time events
-│  Event Bus      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Running        │  ← Process events as they arrive
-└─────────────────┘
-```
+## Event Handlers
 
-### Rule Types
+The daemon registers event handlers for automation:
 
-#### Board Sync Rules
+### Board Sync Rules
 
-When a node's field changes, move to matching column:
-
-```markdown
-## Done
-
-<!-- sync=task_status:done -->
-```
+When a task's status changes, move to matching column:
 
 ```typescript
-// Pseudo-code
-eventBus.on("node_updated", (event) => {
+eventBus.on("node_updated", async (event) => {
   if (event.data.task_status) {
     const rules = getBoardSyncRules();
     for (const rule of rules) {
-      if (
-        rule.field === "task_status" &&
-        rule.value === event.data.task_status
-      ) {
-        moveToColumn(event.target, rule.column);
+      if (rule.field === "task_status" && rule.value === event.data.task_status) {
+        await moveToColumn(event.target, rule.column);
       }
     }
   }
 });
 ```
 
-#### Recurring Tasks
+### Recurring Tasks
 
 When a recurring task is completed, create the next occurrence:
 
 ```typescript
-eventBus.on("node_updated", (event) => {
+eventBus.on("node_updated", async (event) => {
   if (event.data.task_status === "done") {
     const node = getNode(event.target);
     if (node.data.recurrence) {
       const next = computeNextOccurrence(node);
-      createNode({ ...node, task_status: "open", due_date: next });
+      await createNode({ ...node, task_status: "open", due_date: next });
     }
   }
 });
 ```
 
-#### Scheduled Actions (Future)
-
-```yaml
-# In node frontmatter
----
-scheduled:
-  - at: "2025-01-15 09:00"
-    action: notify
-    message: "Task due today!"
----
-```
-
-### Configuration
-
-```yaml
-# .km/config.yaml
-services:
-  auto:
-    rules:
-      board_sync: true # Enable sync= rules
-      recurring: true # Enable recurring tasks
-      scheduled: true # Enable scheduled actions
-    tick_interval: 60000 # ms between scheduled checks
-```
-
 ---
 
-## agents Service
+## Socket Communication
 
-AI agent orchestration (see [km-agents.md](km-agents.md)).
-
-### Responsibilities
-
-- Manage IPC socket (`.km/events.sock`)
-- Coordinate agent work queues
-- Broadcast events to subscribers
-- Track agent sessions
-
-### Configuration
-
-```yaml
-# .km/config.yaml
-services:
-  agents:
-    socket_path: .km/events.sock
-    max_concurrent: 3 # Max concurrent agent sessions
-    default_model: claude-sonnet-4
-```
-
----
-
-## Service Interface
+CLI commands communicate with daemon via Unix socket:
 
 ```typescript
-interface Service {
-  readonly name: string;
-  readonly dependsOn: string[];
+// CLI side
+const socket = connect(".km/km.sock");
+socket.write(JSON.stringify({ type: "status" }));
+const response = await readResponse(socket);
 
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  status(): ServiceStatus;
-
-  // Event handlers
-  onEvent(event: Event): Promise<void>;
-}
-
-interface ServiceStatus {
-  name: string;
-  running: boolean;
-  pid?: number;
-  startedAt?: number;
-  eventsProcessed: number;
-  lastEventAt?: number;
-  error?: string;
-}
-```
-
-### Implementation
-
-```typescript
-// packages/km-services/src/sync.ts
-export class SyncService implements Service {
-  readonly name = 'sync';
-  readonly dependsOn = [];
-
-  private watcher: FSWatcher | null = null;
-
-  async start() {
-    this.watcher = new FSWatcher({ ... });
-    this.watcher.on('all', this.handleFsEvent);
-  }
-
-  async stop() {
-    await this.watcher?.close();
-  }
-
-  async onEvent(event: Event) {
-    // Handle model → FS writes
-    if (shouldWriteToFs(event)) {
-      await this.writeToFs(event);
+// Daemon side
+server.on("connection", (socket) => {
+  socket.on("data", async (data) => {
+    const msg = JSON.parse(data);
+    switch (msg.type) {
+      case "status":
+        socket.write(JSON.stringify(getStatus()));
+        break;
+      case "sync":
+        await forceSyncFromFs();
+        socket.write(JSON.stringify({ ok: true }));
+        break;
     }
-  }
-}
+  });
+});
+```
+
+**Messages:**
+| Type       | Description                    |
+|------------|--------------------------------|
+| `status`   | Get daemon status              |
+| `sync`     | Force filesystem sync          |
+| `flush`    | Flush pending writes           |
+| `subscribe`| Subscribe to events (streaming)|
+
+---
+
+## Files
+
+```
+.km/
+├── daemon.pid      # PID of running daemon
+├── daemon.log      # Daemon output log
+├── km.sock         # Unix socket for IPC
+├── events.jsonl    # Event log
+└── state.db        # SQLite database
 ```
 
 ---
 
-## Daemon Process
+## Configuration
 
-Single process hosts all services:
+```yaml
+# .km/config.yaml
+daemon:
+  auto_start: true         # Auto-start when km commands need it
+  debounce_fs: 5000        # ms before processing FS changes
+  debounce_write: 3000     # ms before writing to FS
+  log_level: info          # debug, info, warn, error
+
+automation:
+  board_sync: true         # Enable sync= rules
+  recurring: true          # Enable recurring tasks
+```
+
+---
+
+## Daemon Status
+
+```bash
+$ km daemon status
+km daemon
+Status: running
+PID: 12345
+Uptime: 2h 15m
+Socket: .km/km.sock
+
+Events processed: 1,234
+Last event: 5s ago
+Pending writes: 0
+
+Config:
+  debounce_fs: 5000ms
+  debounce_write: 3000ms
+```
+
+---
+
+## Implementation
 
 ```typescript
 // apps/km-daemon/src/index.ts
+import { SyncManager } from "@km/watch";
+import { createServer } from "net";
+
 class KmDaemon {
-  private services = new Map<string, Service>();
-  private eventBus: EventBus;
+  private sync: SyncManager;
+  private server: Server;
+  private eventBus: EventEmitter;
 
-  constructor() {
-    this.eventBus = new EventBus();
-
-    // Register services
-    this.services.set("sync", new SyncService());
-    this.services.set("auto", new AutoService());
-    this.services.set("agents", new AgentsService());
-  }
-
-  async start(names?: string[]) {
-    const toStart = names ?? ["sync", "auto", "agents"];
-
-    // Sort by dependencies
-    const sorted = this.topologicalSort(toStart);
-
-    for (const name of sorted) {
-      const service = this.services.get(name)!;
-      await service.start();
-      console.log(`Started: ${name}`);
+  async start() {
+    // Check for existing daemon
+    if (await this.isRunning()) {
+      throw new Error("Daemon already running");
     }
 
-    // Wire up event routing
-    this.eventBus.on("*", (event) => {
-      for (const service of this.services.values()) {
-        service.onEvent(event);
-      }
-    });
+    // Write PID file
+    await this.writePidFile();
+
+    // Create socket
+    this.server = createServer(this.handleConnection.bind(this));
+    this.server.listen(".km/km.sock");
+
+    // Startup sweep
+    await this.startupSweep();
+
+    // Start file watching
+    this.sync = new SyncManager({ vaultPath: getKmDir() });
+    this.sync.start();
+
+    // Register event handlers
+    this.registerHandlers();
+
+    console.log("km daemon started");
   }
 
   async stop() {
-    // Stop in reverse dependency order
-    for (const service of [...this.services.values()].reverse()) {
-      await service.stop();
-    }
+    await this.sync.stop();
+    this.server.close();
+    await this.removePidFile();
+  }
+
+  private registerHandlers() {
+    // Board sync rules
+    this.eventBus.on("node_updated", this.handleBoardSync.bind(this));
+
+    // Recurring tasks
+    this.eventBus.on("node_updated", this.handleRecurring.bind(this));
   }
 }
 ```
 
 ---
 
-## PID File
+## When Is the Daemon Needed?
 
-Track running daemon:
+**Required for:**
+- Real-time file watching (`km sync --watch`)
+- Background automation (recurring tasks, board sync)
+- TUI live updates (`km hub`)
 
-```
-.km/daemon.pid    # Contains PID of running daemon
-```
+**Not required for:**
+- Read-only commands (`km list`, `km tree`, `km show`)
+- One-shot sync (`km sync`)
+- Memory mode exploration
+
+---
+
+## Auto-Start
+
+Like beads, the daemon can auto-start when needed:
 
 ```typescript
-function isDaemonRunning(): boolean {
-  const pidFile = ".km/daemon.pid";
-  if (!existsSync(pidFile)) return false;
-
-  const pid = parseInt(readFileSync(pidFile, "utf-8"));
-  try {
-    process.kill(pid, 0); // Check if process exists
-    return true;
-  } catch {
-    unlinkSync(pidFile); // Stale PID file
-    return false;
+// Before commands that need real-time updates
+async function ensureDaemon() {
+  if (!isDaemonRunning()) {
+    await startDaemon({ background: true });
   }
 }
 ```
 
----
-
-## Logging
-
-Services log to `.km/logs/`:
-
-```
-.km/logs/
-├── sync.log
-├── auto.log
-├── agents.log
-└── daemon.log     # Combined output
-```
-
-```bash
-km service logs sync           # View sync logs
-km service logs sync --follow  # Tail logs
-km service logs --all          # All services
-```
-
----
-
-## Future: Native Service Integration
-
-For production robustness, integrate with system service managers:
-
-### macOS (launchd)
-
-```xml
-<!-- ~/Library/LaunchAgents/io.km.daemon.plist -->
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" ...>
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>io.km.daemon</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/usr/local/bin/km</string>
-        <string>daemon</string>
-        <string>start</string>
-        <string>--foreground</string>
-    </array>
-    <key>WorkingDirectory</key>
-    <string>/Users/bjorn/notes</string>
-    <key>KeepAlive</key>
-    <true/>
-</dict>
-</plist>
-```
-
-### Linux (systemd)
-
-```ini
-# ~/.config/systemd/user/km-daemon.service
-[Unit]
-Description=km daemon
-After=default.target
-
-[Service]
-ExecStart=/usr/local/bin/km daemon start --foreground
-WorkingDirectory=/home/bjorn/notes
-Restart=always
-
-[Install]
-WantedBy=default.target
-```
+Controlled via config: `daemon.auto_start: true`
 
 ---
 
 ## See Also
 
-- [km-watch.md](km-watch.md) — sync service details
-- [km-agents.md](km-agents.md) — agents service details
-- [km-automation.md](km-automation.md) — auto service details (TODO)
+- [km-watch.md](km-watch.md) — SyncManager details
+- [km-cli.md](km-cli.md) — Command reference
