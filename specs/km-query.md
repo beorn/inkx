@@ -201,11 +201,23 @@ WHERE status = 'open'
 
 | Library | Notes |
 |---------|-------|
-| [Kysely](https://kysely.dev/) | Type-safe query builder. 13k+ stars. First-class SQLite support. Excellent for programmatic query building. |
+| [Kysely](https://kysely.dev/) | Pure query builder. 13k+ stars. Best-in-class type safety — catches invalid queries at compile time. SQL-like API. |
+| [Drizzle ORM](https://orm.drizzle.team/) | Lightweight ORM (~7.4kb). Schema-in-TypeScript, built-in migrations. Types only on results, not query construction. |
 | [ts-sql-query](https://ts-sql-query.readthedocs.io/) | Type-safe, supports SQLite. Can run sync with better-sqlite3. |
-| [Drizzle ORM](https://orm.drizzle.team/) | Lightweight ORM with query builder. Good SQLite support. |
 
-**Recommendation:** Kysely for its type safety and SQLite support. Queries compile to SQL at build time, catching errors early.
+**Kysely vs Drizzle:**
+
+| Aspect | Kysely | Drizzle |
+|--------|--------|---------|
+| Type safety | Full (query + results) | Partial (results only) |
+| Schema | External/codegen | TypeScript-native |
+| Migrations | Community tools | Built-in (drizzle-kit) |
+| API style | Fluent builder | SQL-like |
+| Dependencies | Zero | Zero |
+
+**Recommendation:** Kysely for km's dynamic query building — its compile-time validation catches malformed queries before runtime. Drizzle excels at schema management but allows invalid queries to compile.
+
+Note: [drizzle-kysely](https://github.com/drizzle-team/drizzle-kysely) lets you use Drizzle for schema/migrations with Kysely as query builder.
 
 ### Suggested Implementation
 
@@ -304,6 +316,97 @@ CREATE INDEX idx_refs_type ON refs(ref_type);
 | `"budget"` | `WHERE id IN (SELECT rowid FROM nodes_fts WHERE content MATCH 'budget')` |
 | `due:past` | `WHERE due < date('now')` |
 | `due:week` | `WHERE due BETWEEN date('now') AND date('now', '+7 days')` |
+
+---
+
+## Vector Search
+
+Semantic similarity search for finding related content.
+
+### Use Cases
+
+- Find tasks similar to current one
+- "More like this" suggestions
+- Semantic search beyond keyword matching
+- Duplicate detection
+
+### sqlite-vec
+
+[sqlite-vec](https://github.com/asg017/sqlite-vec) is a SQLite extension for vector search. Written in pure C, zero dependencies, runs anywhere SQLite runs (Node.js, browsers via WASM, edge runtimes).
+
+```bash
+npm install sqlite-vec
+```
+
+### Schema
+
+```sql
+-- Vector embeddings table
+CREATE VIRTUAL TABLE node_embeddings USING vec0(
+  node_id TEXT PRIMARY KEY,
+  embedding float[384]           -- Dimension depends on model
+);
+```
+
+### Query Example
+
+```sql
+-- Find 5 most similar nodes
+SELECT node_id, distance
+FROM node_embeddings
+WHERE embedding MATCH ?            -- Query vector as parameter
+ORDER BY distance
+LIMIT 5;
+```
+
+### Integration with Node Queries
+
+Vector search can augment text queries:
+
+```bash
+km task similar:./tasks/budget-review    # Find similar tasks
+km task "quarterly report" --semantic    # Semantic search
+```
+
+### Embedding Generation
+
+| Library | Notes |
+|---------|-------|
+| [Transformers.js](https://huggingface.co/docs/transformers.js) | Run models in Node.js/browser. all-MiniLM-L6-v2 (384 dim) is good balance of speed/quality. |
+| OpenAI API | text-embedding-3-small (1536 dim). Higher quality, requires API key. |
+| Ollama | Local models like nomic-embed-text. No API key, runs offline. |
+
+### Implementation Notes
+
+```typescript
+import * as sqliteVec from 'sqlite-vec';
+
+// Load extension
+db.loadExtension(sqliteVec.getLoadablePath());
+
+// Insert embedding
+db.prepare(`
+  INSERT INTO node_embeddings (node_id, embedding)
+  VALUES (?, ?)
+`).run(nodeId, vectorAsFloat32Array);
+
+// Query similar
+const similar = db.prepare(`
+  SELECT node_id, distance
+  FROM node_embeddings
+  WHERE embedding MATCH ?
+  ORDER BY distance
+  LIMIT ?
+`).all(queryVector, limit);
+```
+
+### When to Generate Embeddings
+
+- On node create/update (background job)
+- Lazy on first similarity query
+- Batch during import
+
+Embeddings add ~1.5KB per node (384 dimensions × 4 bytes). For 10k tasks, ~15MB storage.
 
 ---
 
