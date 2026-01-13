@@ -6,39 +6,16 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import type { Node } from "@km/core";
 import { emitNodeUpdated } from "@km/core";
-import { getDb } from "@km/store";
-
-/**
- * Find a task by ID or ID prefix
- * Only returns tasks, not other node types
- */
-function findTask(idPrefix: string): Node | null {
-  const db = getDb();
-
-  // Try exact match first
-  let task = db
-    .prepare("SELECT * FROM nodes WHERE id = ? AND type = 'task'")
-    .get(idPrefix) as Node | undefined;
-
-  if (task) return task;
-
-  // Try prefix match
-  task = db
-    .prepare("SELECT * FROM nodes WHERE id LIKE ? AND type = 'task'")
-    .get(`${idPrefix}%`) as Node | undefined;
-
-  return task ?? null;
-}
+import { getTaskByIdPrefix } from "@km/store";
 
 export const doneCommand = new Command("done")
   .description("Mark a task as done")
-  .argument("<id>", "Task ID or prefix")
+  .argument("<id>", "Task ID or prefix/suffix")
   .option("--json", "Output as JSON")
   .action((id, options) => {
-    // Find task by ID or prefix
-    const node = findTask(id);
+    // Find task by ID, prefix, or suffix (for short IDs shown with -i flag)
+    const node = getTaskByIdPrefix(id);
 
     if (!node) {
       console.error(chalk.red(`Task not found: ${id}`));

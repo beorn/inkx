@@ -40,7 +40,8 @@ function formatCollapsedAncestor(
   if (ca.node.type === "folder") {
     return prefix + name + chalk.gray("/");
   } else if (ca.node.type === "file") {
-    return prefix + name + chalk.gray(".md");
+    // Only add .md if name doesn't already end with it
+    return prefix + (name.endsWith(".md") ? name : name + chalk.gray(".md"));
   } else if (ca.node.type === "section") {
     const depth = (ca.node.data?.depth as number) ?? 1;
     return prefix + chalk.gray("#".repeat(depth) + " ") + name;

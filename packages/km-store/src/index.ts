@@ -9,6 +9,7 @@ export {
   applyEvent,
   getNode,
   getNodeByIdPrefix,
+  getTaskByIdPrefix,
   getNodeByPath,
   getChildren,
   getSubtree,

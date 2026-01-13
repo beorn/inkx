@@ -235,6 +235,9 @@ function convertListItem(
     parent_idx: sortOrder,
     symlink_to: null,
     md_pos: item.position?.start.offset,
+    md_line: item.position?.start.line
+      ? item.position.start.line - 1
+      : undefined, // Convert 1-indexed to 0-indexed
     content: text,
     content_hash: null,
     task_status: taskStatus,

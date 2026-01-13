@@ -9,31 +9,9 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getDb } from "@km/store";
+import { getTaskByIdPrefix } from "@km/store";
 import { emitNodeUpdated } from "@km/core";
-import type { Node, TaskStatus } from "@km/core";
-
-/**
- * Find a task by ID or ID prefix
- * Prioritizes tasks over other node types for prefix matching
- */
-function findTask(idOrPrefix: string): Node | null {
-  const db = getDb();
-
-  // Try exact ID match first (must be a task)
-  let node = db
-    .prepare("SELECT * FROM nodes WHERE id = ? AND type = 'task'")
-    .get(idOrPrefix) as Node | undefined;
-  if (node) return node;
-
-  // Try ID prefix match (only tasks)
-  node = db
-    .prepare("SELECT * FROM nodes WHERE id LIKE ? AND type = 'task' LIMIT 1")
-    .get(`${idOrPrefix}%`) as Node | undefined;
-  if (node) return node;
-
-  return null;
-}
+import type { TaskStatus } from "@km/core";
 
 /**
  * Get next status in cycle
@@ -80,10 +58,10 @@ function getMarkForStatus(status: TaskStatus): string {
 
 export const toggleCommand = new Command("toggle")
   .description("Toggle task status")
-  .argument("<id>", "Task ID or prefix")
+  .argument("<id>", "Task ID or prefix/suffix")
   .option("-s, --simple", "Simple toggle: open ↔ done (skip in_progress)")
   .action((id, options) => {
-    const node = findTask(id);
+    const node = getTaskByIdPrefix(id);
 
     if (!node) {
       console.error(chalk.red(`No task found with ID prefix: ${id}`));

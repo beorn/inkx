@@ -41,3 +41,4 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # bv (beads viewer) local config and caches
 .bv/
+tmp-test/

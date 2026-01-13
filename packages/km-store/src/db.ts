@@ -302,19 +302,44 @@ function applyNodeUpdated(db: Database, event: Event): void {
 
   // Bidirectional sync: write task status changes back to markdown file
   if (data.task_status !== undefined) {
-    const node = db
-      .query("SELECT fs_path, md_line FROM nodes WHERE id = ?")
+    // Get the task's md_line and fs_path (may be on task or parent file)
+    const task = db
+      .query("SELECT parent_id, md_line, fs_path FROM nodes WHERE id = ?")
       .get(event.target) as {
-      fs_path: string | null;
+      parent_id: string | null;
       md_line: number | null;
+      fs_path: string | null;
     } | null;
 
-    if (node?.fs_path && node.md_line !== null) {
-      writeTaskStatusToFile(
-        node.fs_path,
-        node.md_line,
-        data.task_status as TaskStatus,
-      );
+    if (task && task.md_line !== null) {
+      let fsPath = task.fs_path;
+
+      // If task doesn't have fs_path directly, walk up to find parent file
+      if (!fsPath && task.parent_id) {
+        const file = db
+          .query(
+            `
+            WITH RECURSIVE ancestors AS (
+              SELECT id, parent_id, fs_path, type FROM nodes WHERE id = ?
+              UNION ALL
+              SELECT n.id, n.parent_id, n.fs_path, n.type
+              FROM nodes n
+              JOIN ancestors a ON n.id = a.parent_id
+            )
+            SELECT fs_path FROM ancestors WHERE type = 'file' AND fs_path IS NOT NULL LIMIT 1
+          `,
+          )
+          .get(task.parent_id) as { fs_path: string } | null;
+        fsPath = file?.fs_path ?? null;
+      }
+
+      if (fsPath) {
+        writeTaskStatusToFile(
+          fsPath,
+          task.md_line,
+          data.task_status as TaskStatus,
+        );
+      }
     }
   }
 }
@@ -337,14 +362,21 @@ function writeTaskStatusToFile(
     if (!line) return;
 
     // Map status to task mark
+    // Note: TaskStatus type is open/blocked/done/dropped, but we also handle
+    // extended statuses that may come from CLI (in_progress, waiting, cancelled)
+    const statusStr = newStatus as string;
     const newMark =
-      newStatus === "done"
+      statusStr === "done"
         ? "x"
-        : newStatus === "blocked"
-          ? "!"
-          : newStatus === "dropped"
-            ? "-"
-            : " "; // open
+        : statusStr === "in_progress"
+          ? "/"
+          : statusStr === "blocked"
+            ? "!"
+            : statusStr === "dropped" || statusStr === "cancelled"
+              ? "-"
+              : statusStr === "waiting"
+                ? "?"
+                : " "; // open
 
     lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
 
@@ -428,7 +460,10 @@ export function getNode(id: string): Node | null {
 }
 
 /**
- * Get a node by ID prefix (for CLI convenience)
+ * Get a node by ID prefix or suffix (for CLI convenience)
+ *
+ * Supports both prefix matching (start of ID) and suffix matching (end of ID).
+ * The CLI displays short IDs using the last 8 chars (suffix), so we try both.
  */
 export function getNodeByIdPrefix(idPrefix: string): Node | null {
   const db = getDb();
@@ -440,10 +475,48 @@ export function getNodeByIdPrefix(idPrefix: string): Node | null {
 
   if (row) return rowToNode(row);
 
-  // Try prefix match
+  // Try prefix match (ID starts with input)
   row = db
     .query("SELECT * FROM nodes WHERE id LIKE ?")
     .get(`${idPrefix}%`) as Record<string, unknown> | null;
+
+  if (row) return rowToNode(row);
+
+  // Try suffix match (ID ends with input) - for short IDs displayed as last 8 chars
+  row = db
+    .query("SELECT * FROM nodes WHERE id LIKE ?")
+    .get(`%${idPrefix}`) as Record<string, unknown> | null;
+
+  if (!row) return null;
+  return rowToNode(row);
+}
+
+/**
+ * Get a task by ID prefix or suffix (for CLI convenience)
+ *
+ * Like getNodeByIdPrefix but only returns tasks.
+ */
+export function getTaskByIdPrefix(idPrefix: string): Node | null {
+  const db = getDb();
+
+  // Try exact match first
+  let row = db
+    .query("SELECT * FROM nodes WHERE id = ? AND type = 'task'")
+    .get(idPrefix) as Record<string, unknown> | null;
+
+  if (row) return rowToNode(row);
+
+  // Try prefix match (ID starts with input)
+  row = db
+    .query("SELECT * FROM nodes WHERE id LIKE ? AND type = 'task'")
+    .get(`${idPrefix}%`) as Record<string, unknown> | null;
+
+  if (row) return rowToNode(row);
+
+  // Try suffix match (ID ends with input) - for short IDs displayed as last 8 chars
+  row = db
+    .query("SELECT * FROM nodes WHERE id LIKE ? AND type = 'task'")
+    .get(`%${idPrefix}`) as Record<string, unknown> | null;
 
   if (!row) return null;
   return rowToNode(row);

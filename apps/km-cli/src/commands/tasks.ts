@@ -8,7 +8,14 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { ulid } from "ulid";
 import { emitNodeCreated, emitNodeUpdated } from "@km/core";
-import { getNodeByPath, getAncestors, getDb, queryTasks } from "@km/store";
+import {
+  getNodeByPath,
+  getAncestors,
+  getDb,
+  queryTasks,
+  getTaskByIdPrefix,
+  getNodeByIdPrefix,
+} from "@km/store";
 import { parseTaskMetadata, extractTags } from "@km/markdown";
 import type { Node, TaskStatus } from "@km/core";
 import {
@@ -30,7 +37,8 @@ function formatCollapsedAncestor(ca: CollapsedAncestor): string {
   if (ca.node.type === "folder") {
     return name + chalk.gray("/");
   } else if (ca.node.type === "file") {
-    return name + chalk.gray(".md");
+    // Only add .md if name doesn't already end with it
+    return name.endsWith(".md") ? name : name + chalk.gray(".md");
   } else if (ca.node.type === "section") {
     const depth = (ca.node.data?.depth as number) ?? 1;
     return chalk.gray("#".repeat(depth) + " ") + name;
@@ -129,35 +137,25 @@ function formatTaskLine(
 }
 
 /**
- * Find a node by path or ID prefix
+ * Find a node by path or ID prefix/suffix
  * Returns the node if found, null otherwise
  */
 function findNodeByPathOrId(pathOrId: string): Node | null {
-  const db = getDb();
-
-  // Try exact ID match first
-  let node = db.prepare("SELECT * FROM nodes WHERE id = ?").get(pathOrId) as
-    | Node
-    | undefined;
-  if (node) return node;
-
-  // Try ID prefix match
-  node = db
-    .prepare("SELECT * FROM nodes WHERE id LIKE ?")
-    .get(`${pathOrId}%`) as Node | undefined;
+  // Try ID match (exact, prefix, or suffix)
+  const node = getNodeByIdPrefix(pathOrId);
   if (node) return node;
 
   // Try path match (exact)
-  node = getNodeByPath(pathOrId);
-  if (node) return node;
+  const byPath = getNodeByPath(pathOrId);
+  if (byPath) return byPath;
 
   // Try path match with vault path prefix (user may provide relative path)
   // Check if it looks like a relative path
   if (!pathOrId.startsWith("/")) {
     const cwd = process.cwd();
     const fullPath = `${cwd}/${pathOrId}`;
-    node = getNodeByPath(fullPath);
-    if (node) return node;
+    const byFullPath = getNodeByPath(fullPath);
+    if (byFullPath) return byFullPath;
   }
 
   return null;
@@ -263,7 +261,7 @@ taskCommand
   )
   .option("--json", "Output as JSON")
   .action((id, newStatus, options) => {
-    const task = findTask(id);
+    const task = getTaskByIdPrefix(id);
 
     if (!task) {
       console.error(chalk.red(`No task found with ID prefix: ${id}`));
@@ -779,7 +777,7 @@ function markDone(
     process.exit(1);
   }
 
-  const task = findTask(pathOrId);
+  const task = getTaskByIdPrefix(pathOrId);
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`));
     process.exit(1);
@@ -810,7 +808,7 @@ function claimTask(
     process.exit(1);
   }
 
-  const task = findTask(pathOrId);
+  const task = getTaskByIdPrefix(pathOrId);
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`));
     process.exit(1);
@@ -849,7 +847,7 @@ function releaseTask(
     process.exit(1);
   }
 
-  const task = findTask(pathOrId);
+  const task = getTaskByIdPrefix(pathOrId);
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`));
     process.exit(1);
@@ -884,7 +882,7 @@ function assignTask(
     process.exit(1);
   }
 
-  const task = findTask(pathOrId);
+  const task = getTaskByIdPrefix(pathOrId);
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`));
     process.exit(1);
@@ -902,23 +900,4 @@ function assignTask(
   console.log(chalk.green("→"), `Assigned to ${user}:`, task.id.slice(0, 8));
 }
 
-/**
- * Find a task by ID prefix
- */
-function findTask(idPrefix: string): Node | null {
-  const db = getDb();
-
-  // Try exact match first
-  let task = db
-    .prepare("SELECT * FROM nodes WHERE id = ? AND type = 'task'")
-    .get(idPrefix) as Node | undefined;
-
-  if (task) return task;
-
-  // Try prefix match
-  task = db
-    .prepare("SELECT * FROM nodes WHERE id LIKE ? AND type = 'task'")
-    .get(`${idPrefix}%`) as Node | undefined;
-
-  return task ?? null;
-}
+// Use getTaskByIdPrefix from @km/store for task lookup by ID prefix/suffix
