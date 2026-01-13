@@ -120,33 +120,27 @@ Triggers provide variables for conditions:
 
 ---
 
-## Conditions (where)
+## Conditions (match)
 
-Filter which nodes the rule applies to:
+Filter which nodes the rule applies to using [Node Query](km-tasks-data.md#node-queries) syntax:
 
 ```yaml
-where:
-  status: open                    # Exact match
-  status: [open, blocked]         # Any of
-  path: starts_with "inbox/"      # String match
-  due: past                       # Date comparison
-  due: today
-  start: today_or_past
-  has_field: due                  # Field exists
-  has_ref: "@bjorn"               # Has reference
-  on_board: "@next"               # Currently on board
+match: "status:open"                    # Open tasks
+match: "./inbox/**"                     # In inbox folder
+match: "status:open due:past"           # Open AND overdue
+match: "@bjorn status:open"             # Has @bjorn AND is open
+match: "+website -status:done"          # Has +website AND not done
 ```
 
-### Previous Values
+### Change Triggers
 
-For change triggers:
+For `field.changed` triggers, use `was:` and `now:` to match transitions:
 
 ```yaml
 - trigger: field.changed
-  where:
-    field: status
-    value.was: open               # Was open
-    value: blocked                # Now blocked
+  field: status
+  was: "open"
+  now: "blocked"
 ```
 
 ---
@@ -196,18 +190,16 @@ rules:
   - name: inbox-capture
     description: Items in inbox/ folder appear on @inbox
     trigger: node.created
-    where:
-      path: starts_with "inbox/"
+    match: "./inbox/**"
     actions:
       - board.add: "@inbox"
 
   - name: inbox-processed
     description: Remove from @inbox when moved out
     trigger: field.changed
-    where:
-      field: path
-      value.was: starts_with "inbox/"
-      value: not_starts_with "inbox/"
+    field: path
+    was: "./inbox/**"
+    now: "-./inbox/**"
     actions:
       - board.remove: "@inbox"
 
@@ -216,16 +208,14 @@ rules:
   - name: surface-overdue
     description: Overdue open tasks surface to @next
     trigger: due.passed
-    where:
-      status: open
+    match: "status:open"
     actions:
       - board.add: "@next"
 
   - name: surface-starting
     description: Tasks with start date reached surface to @next
     trigger: start.reached
-    where:
-      status: open
+    match: "status:open"
     actions:
       - board.add: "@next"
 
@@ -234,9 +224,8 @@ rules:
   - name: done-cleanup
     description: Completed tasks removed from active boards
     trigger: field.changed
-    where:
-      field: status
-      value: [done, dropped]
+    field: status
+    now: "done|dropped"
     actions:
       - board.remove: "@next"
       - board.remove: "@inbox"
@@ -257,27 +246,24 @@ rules:
   - name: person-boards
     description: Tasks with @person appear on that board
     trigger: field.changed
-    where:
-      has_ref: starts_with "@"
-      ref: not "@inbox"           # Skip system boards
-      ref: not "@next"
-      ref: not "@someday"
+    field: references
+    match: "@* -@inbox -@next -@someday"    # Skip system boards
     actions:
       - board.add: "${ref}"
 
   - name: project-boards
     description: Tasks with +project appear on that board
     trigger: field.changed
-    where:
-      has_ref: starts_with "+"
+    field: references
+    match: "+*"
     actions:
       - board.add: "${ref}"
 
   - name: tag-boards
     description: Tasks with #tag appear on that board
     trigger: field.changed
-    where:
-      has_ref: starts_with "#"
+    field: references
+    match: "#*"
     actions:
       - board.add: "${ref}"
 ```
@@ -386,9 +372,7 @@ If multiple rules affect the same board, last one wins.
 ```yaml
 - name: archive-old
   trigger: daily
-  where:
-    status: done
-    done_at: older_than "30d"
+  match: "status:done done_at:older_than_30d"
   actions:
     - archive
 ```
@@ -398,9 +382,8 @@ If multiple rules affect the same board, last one wins.
 ```yaml
 - name: assign-to-board
   trigger: field.changed
-  where:
-    field: owner
-    value: not null
+  field: owner
+  now: "*"                    # Any non-null value
   actions:
     - board.add: "@${owner}"
 ```
