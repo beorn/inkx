@@ -2368,12 +2368,16 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       )
     : colScrollOffset;
 
-  // Build top bar path string with ANSI colors for foreground
-  // Using chalk for colored text within inverse region
+  // Build top bar with chalk.inverse for consistent white background
+  // Apply inverse to each segment individually to control foreground colors
   const topBarContent = selectedPathSegments
     .map((seg) => {
-      const sepPart = seg.sep ? chalk.gray(` ${seg.sep} `) : "";
-      const namePart = seg.isWithinBoard ? chalk.blue(seg.name) : seg.name;
+      // For inverse: we want white bg with colored fg
+      // chalk.inverse swaps fg/bg, so we set the "background" to get our desired foreground
+      const sepPart = seg.sep ? chalk.inverse.gray(` ${seg.sep} `) : "";
+      const namePart = seg.isWithinBoard
+        ? chalk.inverse.blue(seg.name)
+        : chalk.inverse(seg.name);
       return sepPart + namePart;
     })
     .join("");
@@ -2390,7 +2394,9 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     <Box flexDirection="column" height={termHeight} minHeight={3}>
       {/* Top bar: full path from root to selected item, inverted full width */}
       <Box height={1} width={termWidth}>
-        <Text inverse>{" " + topBarContent + padding}</Text>
+        <Text>
+          {chalk.inverse(" ") + topBarContent + chalk.inverse(padding)}
+        </Text>
       </Box>
       <Box flexGrow={1} flexDirection="row">
         {/* Board or Tree view */}
@@ -2398,10 +2404,10 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
           <Box flexDirection="row" width={boardWidth}>
             {/* Left scroll indicator - full height filled bar */}
             {effectiveScrollOffset > 0 && (
-              <Box flexDirection="column" width={1} height={termHeight - 3}>
-                {Array.from({ length: termHeight - 3 }).map((_, i) => (
+              <Box flexDirection="column" width={1} height={termHeight - 2}>
+                {Array.from({ length: termHeight - 2 }).map((_, i) => (
                   <Text key={i} backgroundColor="gray" color="white">
-                    {i === Math.floor((termHeight - 3) / 2) ? "‹" : " "}
+                    {i === Math.floor((termHeight - 2) / 2) ? "‹" : " "}
                   </Text>
                 ))}
               </Box>
@@ -2415,7 +2421,7 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
               const indicatorWidth =
                 (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
               const adjustedColWidth = Math.floor(
-                (boardWidth - indicatorWidth - 2) / effectiveMaxCols,
+                (boardWidth - indicatorWidth) / effectiveMaxCols,
               );
               return (
                 <Column
@@ -2427,7 +2433,7 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
                   selectedCardIndex={state.cardIndex}
                   selectedSubIndex={inOutlineMode ? subIndex : -1}
                   width={adjustedColWidth}
-                  height={termHeight - 3}
+                  height={termHeight - 2}
                   maxOutlineDepth={maxOutlineDepth}
                   foldedNodes={foldedNodes}
                   onToggleFold={toggleFold}
@@ -2438,10 +2444,10 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
             {/* Right scroll indicator - full height filled bar */}
             {effectiveScrollOffset + effectiveMaxCols <
               state.columns.length && (
-              <Box flexDirection="column" width={1} height={termHeight - 3}>
-                {Array.from({ length: termHeight - 3 }).map((_, i) => (
+              <Box flexDirection="column" width={1} height={termHeight - 2}>
+                {Array.from({ length: termHeight - 2 }).map((_, i) => (
                   <Text key={i} backgroundColor="gray" color="white">
-                    {i === Math.floor((termHeight - 3) / 2) ? "›" : " "}
+                    {i === Math.floor((termHeight - 2) / 2) ? "›" : " "}
                   </Text>
                 ))}
               </Box>
@@ -2451,7 +2457,7 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
           <TreeView
             state={state}
             width={boardWidth}
-            height={termHeight - 3}
+            height={termHeight - 2}
             foldedNodes={foldedNodes}
             maxOutlineDepth={maxOutlineDepth}
             multiSelected={multiSelected}
@@ -2466,7 +2472,7 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
           <DetailPane
             node={selectedCard.node}
             width={detailPaneWidth}
-            height={termHeight - 3}
+            height={termHeight - 2}
           />
         )}
         {/* Project picker modal */}
@@ -2584,11 +2590,13 @@ export function InkBoardTestable({
       )
     : getPathSegments(initialState.rootId, initialState.rootId);
 
-  // Build top bar path string with chalk colors
+  // Build top bar with chalk.inverse for consistent white background
   const testTopBarContent = selectedPathSegments
     .map((seg) => {
-      const sepPart = seg.sep ? chalk.gray(` ${seg.sep} `) : "";
-      const namePart = seg.isWithinBoard ? chalk.blue(seg.name) : seg.name;
+      const sepPart = seg.sep ? chalk.inverse.gray(` ${seg.sep} `) : "";
+      const namePart = seg.isWithinBoard
+        ? chalk.inverse.blue(seg.name)
+        : chalk.inverse(seg.name);
       return sepPart + namePart;
     })
     .join("");
@@ -2604,7 +2612,9 @@ export function InkBoardTestable({
     <Box flexDirection="column" height={termHeight} minHeight={3}>
       {/* Top bar: full path */}
       <Box height={1} width={termWidth}>
-        <Text inverse>{" " + testTopBarContent + testPadding}</Text>
+        <Text>
+          {chalk.inverse(" ") + testTopBarContent + chalk.inverse(testPadding)}
+        </Text>
       </Box>
       <Box flexGrow={1}>
         {visibleColumns.map((col, i) => {
@@ -2619,7 +2629,7 @@ export function InkBoardTestable({
               selectedCardIndex={initialState.cardIndex}
               selectedSubIndex={-1}
               width={colWidth}
-              height={termHeight - 3}
+              height={termHeight - 2}
               maxOutlineDepth={maxOutlineDepth}
               foldedNodes={foldedNodes}
               onToggleFold={toggleFold}
