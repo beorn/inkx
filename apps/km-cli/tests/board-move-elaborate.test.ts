@@ -16,7 +16,7 @@ import React from "react";
 import { rmSync, mkdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 
-import { InkBoardTestable } from "../src/commands/board/InkBoard.tsx";
+import { InkBoardTestable } from "../src/commands/board/views/Board.tsx";
 import {
   buildBoardState,
   handleKey,

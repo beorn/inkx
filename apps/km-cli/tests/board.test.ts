@@ -763,7 +763,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board shows header path on first render", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/views/Board.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Test Board");
@@ -796,7 +796,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board card content does not overflow into borders", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/views/Board.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Board");
@@ -831,7 +831,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board cards have minimal padding", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/views/Board.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Board");
@@ -870,7 +870,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board columns show side by side", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/views/Board.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Board");
@@ -909,7 +909,7 @@ describe("Ink Board TUI Rendering", () => {
   test("ink board shows card count in column header", async () => {
     const { render } = await import("ink-testing-library");
     const { InkBoardTestable } =
-      await import("../src/commands/board/InkBoard.tsx");
+      await import("../src/commands/board/views/Board.tsx");
     const React = await import("react");
 
     const rootId = createTestNode("board", "Board");

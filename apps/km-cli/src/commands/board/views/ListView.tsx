@@ -1,16 +1,16 @@
 /**
- * Tree View Component
+ * List View Component
  *
  * Full-width tree/outline view of the board hierarchy.
  * Shows the same data as board view but in a hierarchical list format.
  */
 import React from "react";
 import { Box, Text } from "ink";
-import type { BoardState, SelectionKey } from "./types.ts";
-import { TreeNode, makeSelectionKey } from "./shared/index.ts";
+import type { BoardState, SelectionKey } from "../types.ts";
+import { TreeNode, makeSelectionKey } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "@km/shared";
 
-interface TreeViewProps {
+interface ListViewProps {
   state: BoardState;
   width: number;
   height: number;
@@ -24,7 +24,7 @@ interface TreeViewProps {
   selectionLevel: "board" | "column" | "card";
 }
 
-export function TreeView({
+export function ListView({
   state,
   width,
   height,
@@ -36,7 +36,7 @@ export function TreeView({
   subIndex,
   inOutlineMode,
   selectionLevel,
-}: TreeViewProps): React.ReactElement {
+}: ListViewProps): React.ReactElement {
   // In tree view, we show all columns and their cards in a flat hierarchy
   // Root -> Columns -> Cards -> Children
 

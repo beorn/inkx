@@ -8,7 +8,7 @@ import chalk from "chalk";
 import type { BoardState, TuiOptions, ViewMode } from "./types.ts";
 import { initBoardState } from "./state.ts";
 import { renderBoardStatic } from "./render.ts";
-import { renderInkBoard } from "./InkBoard.tsx";
+import { renderInkBoard } from "./views/index.ts";
 import { setFsSync } from "@km/core";
 import { SyncManager } from "@km/watch";
 

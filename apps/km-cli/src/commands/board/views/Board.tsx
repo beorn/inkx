@@ -12,8 +12,8 @@ import type {
   ColumnState,
   ViewMode,
   SelectionKey,
-} from "./types.ts";
-import { buildBoardState, initBoardState } from "./state.ts";
+} from "../types.ts";
+import { buildBoardState, initBoardState } from "../state.ts";
 import type { Node, TaskStatus } from "@km/core";
 import {
   getChildren,
@@ -28,26 +28,26 @@ import {
   getCollapsedTypeSuffix,
   getParentContext,
 } from "@km/shared";
-import { DetailPane } from "./detail-pane.tsx";
-import { ProjectPicker } from "./project-picker.tsx";
-import { HelpOverlay } from "./help-overlay.tsx";
-import { TreeView } from "./TreeView.tsx";
+import { DetailPane } from "./DetailPane.tsx";
+import { ProjectPicker } from "./ProjectPicker.tsx";
+import { HelpOverlay } from "./HelpOverlay.tsx";
+import { ListView } from "./ListView.tsx";
 import { ColumnsView } from "./ColumnsView.tsx";
 import { TabsView } from "./TabsView.tsx";
 import {
   createPasteHandler,
   getFileInfo,
   supportsFileDrop,
-} from "./paste-handler.ts";
+} from "../paste-handler.ts";
 import {
   createMouseHandler,
   supportsMouseMode,
   SelectionManager,
   type SelectionRange,
   type MouseEvent as TermMouseEvent,
-} from "./mouse-handler.ts";
-import { getStatusIcon } from "./shared/icons.ts";
-import { makeSelectionKey } from "./shared/TreeNode.tsx";
+} from "../mouse-handler.ts";
+import { getStatusIcon } from "./icons.ts";
+import { makeSelectionKey } from "./TreeNode.tsx";
 
 // Default favorites: common boards accessed via 1-9 keys
 // These are resolved at runtime using the same resolution as CLI commands
@@ -385,7 +385,7 @@ function countVisibleDescendants(
 }
 
 // Re-export makeSelectionKey for backwards compatibility
-export { makeSelectionKey } from "./shared/TreeNode.tsx";
+export { makeSelectionKey } from "./TreeNode.tsx";
 
 interface CardProps {
   card: CardState;
@@ -2484,7 +2484,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             selectionLevel={selectionLevel}
           />
         ) : viewMode === "list" ? (
-          <TreeView
+          <ListView
             state={state}
             width={boardWidth}
             height={termHeight - 2}
