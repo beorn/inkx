@@ -680,7 +680,7 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
   const [isMouseDragging, setIsMouseDragging] = useState(false); // Whether mouse drag is active
   const [showHelp, setShowHelp] = useState(false); // Whether help overlay is visible
   const [selectAllLevel, setSelectAllLevel] = useState(0); // Track selection level for progressive Shift+A
-  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode); // board or tree view
+  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode); // cards, list, or columns view
 
   // Navigation history for [ and ] keys (separate from zoom stack which is physical parent chain)
   // Each entry stores the root ID and cursor position at that view
@@ -1403,9 +1403,20 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       return;
     }
 
-    // Toggle view mode with 'v'
+    // Cycle view mode with 'v': cards -> columns -> list -> cards
     if (input === "v") {
-      setViewMode((prev) => (prev === "board" ? "tree" : "board"));
+      setViewMode((prev) => {
+        switch (prev) {
+          case "cards":
+            return "columns";
+          case "columns":
+            return "list";
+          case "list":
+            return "cards";
+          default:
+            return "cards";
+        }
+      });
       return;
     }
 
@@ -2368,16 +2379,15 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       )
     : colScrollOffset;
 
-  // Build top bar with chalk.inverse for consistent white background
-  // Apply inverse to each segment individually to control foreground colors
+  // Build top bar with consistent white background, varying foreground colors
+  // Use bgWhite for consistent background, then set foreground color per segment
   const topBarContent = selectedPathSegments
     .map((seg) => {
-      // For inverse: we want white bg with colored fg
-      // chalk.inverse swaps fg/bg, so we set the "background" to get our desired foreground
-      const sepPart = seg.sep ? chalk.inverse.gray(` ${seg.sep} `) : "";
+      // White background with different foreground colors
+      const sepPart = seg.sep ? chalk.bgWhite.gray(` ${seg.sep} `) : "";
       const namePart = seg.isWithinBoard
-        ? chalk.inverse.blue(seg.name)
-        : chalk.inverse(seg.name);
+        ? chalk.bgWhite.blue(seg.name)
+        : chalk.bgWhite.black(seg.name);
       return sepPart + namePart;
     })
     .join("");
@@ -2395,7 +2405,7 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       {/* Top bar: full path from root to selected item, inverted full width */}
       <Box height={1} width={termWidth}>
         <Text>
-          {chalk.inverse(" ") + topBarContent + chalk.inverse(padding)}
+          {chalk.bgWhite.black(" ") + topBarContent + chalk.bgWhite(padding)}
         </Text>
       </Box>
       <Box flexGrow={1} flexDirection="row">
@@ -2590,13 +2600,13 @@ export function InkBoardTestable({
       )
     : getPathSegments(initialState.rootId, initialState.rootId);
 
-  // Build top bar with chalk.inverse for consistent white background
+  // Build top bar with consistent white background, varying foreground colors
   const testTopBarContent = selectedPathSegments
     .map((seg) => {
-      const sepPart = seg.sep ? chalk.inverse.gray(` ${seg.sep} `) : "";
+      const sepPart = seg.sep ? chalk.bgWhite.gray(` ${seg.sep} `) : "";
       const namePart = seg.isWithinBoard
-        ? chalk.inverse.blue(seg.name)
-        : chalk.inverse(seg.name);
+        ? chalk.bgWhite.blue(seg.name)
+        : chalk.bgWhite.black(seg.name);
       return sepPart + namePart;
     })
     .join("");
@@ -2613,7 +2623,9 @@ export function InkBoardTestable({
       {/* Top bar: full path */}
       <Box height={1} width={termWidth}>
         <Text>
-          {chalk.inverse(" ") + testTopBarContent + chalk.inverse(testPadding)}
+          {chalk.bgWhite.black(" ") +
+            testTopBarContent +
+            chalk.bgWhite(testPadding)}
         </Text>
       </Box>
       <Box flexGrow={1}>

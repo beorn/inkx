@@ -73,8 +73,11 @@ export type BoardAction = "quit" | "refresh" | null;
 
 /**
  * View mode for the TUI
+ * - cards: Kanban-style cards in columns (default)
+ * - list: Full-width hierarchical list view
+ * - columns: Tree/outline view within each column
  */
-export type ViewMode = "board" | "tree";
+export type ViewMode = "cards" | "list" | "columns";
 
 /**
  * Selection key format: "col:card:sub"

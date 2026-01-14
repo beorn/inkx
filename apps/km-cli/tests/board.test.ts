@@ -783,12 +783,14 @@ describe("Ink Board TUI Rendering", () => {
 
     const output = lastFrame() ?? "";
 
-    // Header should show the filesystem path immediately on first render
-    expect(output).toContain("/Users/test/vault");
+    // Header should show the path to the selected card immediately on first render
+    // The path shows node names: Test Board / Column / Task 1
+    expect(output).toContain("Test Board");
+    expect(output).toContain("Task 1");
 
     // First non-empty line should contain the path (not be blank)
     const lines = output.split("\n").filter((l) => l.trim().length > 0);
-    expect(lines[0]).toContain("/Users/test/vault");
+    expect(lines[0]).toContain("Test Board");
   });
 
   test("ink board card content does not overflow into borders", async () => {
