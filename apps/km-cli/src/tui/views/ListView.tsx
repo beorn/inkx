@@ -22,6 +22,8 @@ interface ListViewProps {
   subIndex: number;
   inOutlineMode: boolean;
   selectionLevel: "board" | "column" | "card";
+  /** Maximum lines of content to display per node */
+  maxContentLines: number;
 }
 
 export function ListView({
@@ -36,6 +38,7 @@ export function ListView({
   subIndex,
   inOutlineMode,
   selectionLevel,
+  maxContentLines,
 }: ListViewProps): React.ReactElement {
   // In tree view, we show all columns and their cards in a flat hierarchy
   // Root -> Columns -> Cards -> Children
@@ -107,6 +110,7 @@ export function ListView({
                   multiSelected={multiSelected}
                   inOutlineMode={inOutlineMode}
                   variant="wide"
+                  maxContentLines={maxContentLines}
                 />
               );
             })}

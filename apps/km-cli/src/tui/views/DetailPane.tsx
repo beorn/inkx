@@ -10,6 +10,41 @@ import type { Node } from "@km/core";
 import { getChildren, getBacklinks, getNode } from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
 
+/**
+ * Render text with wiki links [[like this]] styled as underlined text
+ * without the brackets
+ */
+function renderStyledText(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  // Match [[wiki links]] - capture the link text without brackets
+  const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
+  let lastIndex = 0;
+  let match;
+  let keyIndex = 0;
+
+  while ((match = wikiLinkRegex.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    // Add the wiki link with underline styling (no brackets)
+    const linkText = match[1];
+    parts.push(
+      <Text key={`link-${keyIndex++}`} underline dimColor>
+        {linkText}
+      </Text>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last match
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
+
 // Format date for display (e.g., "Jan 10" or "2026-01-10")
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return "";
@@ -352,7 +387,7 @@ export function DetailPane({
           </Text>
           {displayContent.map((line, i) => (
             <Text key={i} wrap="truncate">
-              {line}
+              {renderStyledText(line)}
             </Text>
           ))}
           {hasMoreContent && <Text dimColor>...</Text>}

@@ -25,6 +25,8 @@ interface ColumnsViewProps {
   effectiveMaxCols: number;
   effectiveVisibleColumns: ColumnState[];
   selectionLevel: "board" | "column" | "card";
+  /** Maximum lines of content to display per node */
+  maxContentLines: number;
 }
 
 interface ColumnTreeProps {
@@ -40,6 +42,8 @@ interface ColumnTreeProps {
   multiSelected: Set<SelectionKey>;
   inOutlineMode: boolean;
   selectionLevel: "board" | "column" | "card";
+  /** Maximum lines of content to display per node */
+  maxContentLines: number;
 }
 
 function ColumnTree({
@@ -55,6 +59,7 @@ function ColumnTree({
   multiSelected,
   inOutlineMode,
   selectionLevel,
+  maxContentLines,
 }: ColumnTreeProps): React.ReactElement {
   const name = getNodeDisplayName(column.node);
   const count = column.cards.length;
@@ -142,6 +147,7 @@ function ColumnTree({
               inOutlineMode={inOutlineMode}
               currentSubIndex={0}
               variant="compact"
+              maxContentLines={maxContentLines}
             />
           );
         })}
@@ -172,6 +178,7 @@ export function ColumnsView({
   effectiveMaxCols,
   effectiveVisibleColumns,
   selectionLevel,
+  maxContentLines,
 }: ColumnsViewProps): React.ReactElement {
   // Calculate column widths
   const hasLeftIndicator = effectiveScrollOffset > 0;
@@ -216,6 +223,7 @@ export function ColumnsView({
             multiSelected={multiSelected}
             inOutlineMode={inOutlineMode}
             selectionLevel={selectionLevel}
+            maxContentLines={maxContentLines}
           />
         );
       })}

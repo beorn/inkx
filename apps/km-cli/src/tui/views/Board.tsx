@@ -31,6 +31,7 @@ import {
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
 import { HelpOverlay } from "./HelpOverlay.tsx";
+import { NewItemDialog } from "./NewItemDialog.tsx";
 import { ListView } from "./ListView.tsx";
 import { ColumnsView } from "./ColumnsView.tsx";
 import { TabsView } from "./TabsView.tsx";
@@ -48,6 +49,41 @@ import {
 } from "../mouse-handler.ts";
 import { getStatusIcon } from "./icons.ts";
 import { makeSelectionKey } from "./TreeNode.tsx";
+
+/**
+ * Render text with wiki links [[like this]] styled as underlined text
+ * without the brackets
+ */
+function renderStyledText(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  // Match [[wiki links]] - capture the link text without brackets
+  const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
+  let lastIndex = 0;
+  let match;
+  let keyIndex = 0;
+
+  while ((match = wikiLinkRegex.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    // Add the wiki link with underline styling (no brackets)
+    const linkText = match[1];
+    parts.push(
+      <Text key={`link-${keyIndex++}`} underline dimColor>
+        {linkText}
+      </Text>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last match
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
 
 // Default favorites: common boards accessed via 1-9 keys
 // These are resolved at runtime using the same resolution as CLI commands
@@ -132,7 +168,9 @@ function getPathSegments(
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
     if (!node) continue;
-    const name = getNodeDisplayName(node);
+    // Strip wiki link brackets [[text]] -> text for display
+    const rawName = getNodeDisplayName(node);
+    const name = rawName.replace(/\[\[([^\]]+)\]\]/g, "$1");
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex;
 
     if (node.type === "folder" || node.type === "file") {
@@ -295,9 +333,6 @@ function OutlineItem({
       ? firstLine.slice(0, availWidth - 1) + "…"
       : firstLine;
 
-  // Build the main line (without context) - context suffix styled separately
-  const mainLine = prefix + truncatedContent + suffix + foldedCount;
-
   // Determine background color based on selection state
   let backgroundColor: string | undefined;
   let textColor: string | undefined;
@@ -320,7 +355,10 @@ function OutlineItem({
         dimColor={!isCardSelected && depth > 0}
         wrap="truncate"
       >
-        {mainLine}
+        {prefix}
+        {renderStyledText(truncatedContent)}
+        {suffix}
+        {foldedCount}
         {truncatedContext && <Text dimColor>{contextSuffix}</Text>}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
@@ -641,6 +679,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const [state, setState] = useState(initialState);
   const [foldedNodes, setFoldedNodes] = useState<Set<string>>(new Set());
   const [maxOutlineDepth, setMaxOutlineDepth] = useState(2); // Default 2 levels
+  const [maxContentLines, setMaxContentLines] = useState(3); // Default 3 lines of content per card
   const [subIndex, setSubIndex] = useState(0); // Sub-item index within selected card (0 = card header)
   const [inOutlineMode, setInOutlineMode] = useState(false); // Whether navigating within card outline
   const [multiSelected, setMultiSelected] = useState<Set<SelectionKey>>(
@@ -658,6 +697,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     new Set(initialState.collapsedColumns),
   ); // Column indices that are collapsed
   const [showProjectPicker, setShowProjectPicker] = useState(false); // Whether project picker is visible
+  const [showNewItemDialog, setShowNewItemDialog] = useState(false); // Whether new item dialog is visible
   const [recentProjectIds, setRecentProjectIds] = useState<string[]>([]); // Recently used project targets
   const [droppedFiles, setDroppedFiles] = useState<string[]>([]); // Files dropped via drag-and-drop
   const [showDropNotification, setShowDropNotification] = useState(false); // Show drop notification
@@ -674,10 +714,24 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   >("card");
 
   // Navigation history for [ and ] keys (separate from zoom stack which is physical parent chain)
-  // Each entry stores the root ID and cursor position at that view
+  // Each entry stores the root ID, cursor position, and selection state at that view
   const [navHistory, setNavHistory] = useState<
-    Array<{ rootId: string | null; colIndex: number; cardIndex: number }>
-  >([{ rootId: initialState.rootId, colIndex: 0, cardIndex: 0 }]);
+    Array<{
+      rootId: string | null;
+      colIndex: number;
+      cardIndex: number;
+      subIndex: number;
+      multiSelected: Set<SelectionKey>;
+    }>
+  >([
+    {
+      rootId: initialState.rootId,
+      colIndex: 0,
+      cardIndex: 0,
+      subIndex: 0,
+      multiSelected: new Set(),
+    },
+  ]);
   const [navHistoryIndex, setNavHistoryIndex] = useState(0); // Current position in history
 
   // Listen for terminal resize
@@ -764,15 +818,27 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   };
 
   // Push a new entry to navigation history (truncating any forward history)
+  // Captures current selection state so it can be restored when navigating back
   const pushNavHistory = (
     rootId: string | null,
     colIndex: number,
     cardIndex: number,
+    currentSubIndex: number,
+    currentMultiSelected: Set<SelectionKey>,
   ) => {
     setNavHistory((prev) => {
       // Truncate forward history if we're not at the end
       const truncated = prev.slice(0, navHistoryIndex + 1);
-      return [...truncated, { rootId, colIndex, cardIndex }];
+      return [
+        ...truncated,
+        {
+          rootId,
+          colIndex,
+          cardIndex,
+          subIndex: currentSubIndex,
+          multiSelected: new Set(currentMultiSelected),
+        },
+      ];
     });
     setNavHistoryIndex((prev) => prev + 1);
   };
@@ -1336,6 +1402,16 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       return;
     }
 
+    // Open new item dialog with 'n' key
+    if (input === "n") {
+      setShowNewItemDialog(true);
+      setInOutlineMode(false);
+      setSubIndex(0);
+      clearSelection();
+      setShowDetailPane(false);
+      return;
+    }
+
     // Shift+A: progressive select all
     if (input === "A") {
       progressiveSelectAll();
@@ -1390,7 +1466,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           const zoomed = buildBoardState(resolved.id);
           zoomed.zoomStack = [...state.zoomStack, state.rootId || ""];
           // Push current location to navigation history before navigating
-          pushNavHistory(state.rootId, state.colIndex, state.cardIndex);
+          pushNavHistory(
+            state.rootId,
+            state.colIndex,
+            state.cardIndex,
+            subIndex,
+            multiSelected,
+          );
           setInOutlineMode(false);
           setSubIndex(0);
           clearSelection();
@@ -1496,7 +1578,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           if (parentNode) {
             const zoomed = buildBoardState(parentNode.id);
             // Push current location to history before navigating
-            pushNavHistory(state.rootId, state.colIndex, state.cardIndex);
+            pushNavHistory(
+              state.rootId,
+              state.colIndex,
+              state.cardIndex,
+              subIndex,
+              multiSelected,
+            );
             setState(zoomed);
             clearSelection();
             return;
@@ -1521,9 +1609,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             newState.cardIndex = prevEntry.cardIndex;
             setState(newState);
             setNavHistoryIndex(navHistoryIndex - 1);
-            clearSelection();
-            setInOutlineMode(false);
-            setSubIndex(0);
+            // Restore selection state from history entry
+            setSubIndex(prevEntry.subIndex);
+            setMultiSelected(new Set(prevEntry.multiSelected));
+            setSelectionAnchor(null);
+            setSelectAllLevel(0);
+            setInOutlineMode(prevEntry.subIndex > 0);
           }
         }
       } else {
@@ -1546,9 +1637,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             newState.cardIndex = nextEntry.cardIndex;
             setState(newState);
             setNavHistoryIndex(navHistoryIndex + 1);
-            clearSelection();
-            setInOutlineMode(false);
-            setSubIndex(0);
+            // Restore selection state from history entry
+            setSubIndex(nextEntry.subIndex);
+            setMultiSelected(new Set(nextEntry.multiSelected));
+            setSelectionAnchor(null);
+            setSelectAllLevel(0);
+            setInOutlineMode(nextEntry.subIndex > 0);
           }
         }
       } else {
@@ -1570,12 +1664,22 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       return;
     }
 
-    // Adjust outline depth with +/-
+    // Adjust content lines with +/- (how many lines of wrapped text to show per item)
     if (input === "+" || input === "=") {
-      setMaxOutlineDepth((d) => Math.min(5, d + 1));
+      setMaxContentLines((n) => Math.min(10, n + 1));
       return;
     }
     if (input === "-" || input === "_") {
+      setMaxContentLines((n) => Math.max(1, n - 1));
+      return;
+    }
+
+    // Adjust outline depth with < and > (how many levels of children to show)
+    if (input === ">") {
+      setMaxOutlineDepth((d) => Math.min(5, d + 1));
+      return;
+    }
+    if (input === "<") {
       setMaxOutlineDepth((d) => Math.max(0, d - 1));
       return;
     }
@@ -2098,7 +2202,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         zoomed.cardIndex = foundCard;
 
         // Push current location to navigation history before navigating
-        pushNavHistory(s.rootId, s.colIndex, s.cardIndex);
+        pushNavHistory(
+          s.rootId,
+          s.colIndex,
+          s.cardIndex,
+          subIndex,
+          multiSelected,
+        );
 
         setInOutlineMode(false);
         setSubIndex(0);
@@ -2294,6 +2404,17 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     setShowProjectPicker(false);
   };
 
+  // Handler for new item creation
+  const handleNewItemCreate = (_newNodeId: string) => {
+    setShowNewItemDialog(false);
+    // Refresh the board to show the new item
+    setState((s) => (s.rootId ? buildBoardState(s.rootId) : s));
+  };
+
+  const handleNewItemCancel = () => {
+    setShowNewItemDialog(false);
+  };
+
   // Build selected item path segments for colorized top bar
   // Shows full path from filesystem root to selected item based on selection level
   const selectedCol = state.columns[state.colIndex];
@@ -2482,6 +2603,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             effectiveMaxCols={effectiveMaxCols}
             effectiveVisibleColumns={effectiveVisibleColumns}
             selectionLevel={selectionLevel}
+            maxContentLines={maxContentLines}
           />
         ) : viewMode === "list" ? (
           <ListView
@@ -2496,6 +2618,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             subIndex={subIndex}
             inOutlineMode={inOutlineMode}
             selectionLevel={selectionLevel}
+            maxContentLines={maxContentLines}
           />
         ) : (
           <TabsView
@@ -2510,6 +2633,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             subIndex={subIndex}
             inOutlineMode={inOutlineMode}
             selectionLevel={selectionLevel}
+            maxContentLines={maxContentLines}
           />
         )}
         {/* Detail pane */}
@@ -2536,6 +2660,22 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             />
           </Box>
         )}
+        {/* New item dialog modal */}
+        {showNewItemDialog && (
+          <Box
+            position="absolute"
+            marginLeft={Math.floor(termWidth / 4)}
+            marginTop={Math.floor(termHeight / 3)}
+          >
+            <NewItemDialog
+              cursorNode={selectedCard?.node ?? null}
+              onCreate={handleNewItemCreate}
+              onCancel={handleNewItemCancel}
+              width={Math.floor(termWidth / 2)}
+              height={10}
+            />
+          </Box>
+        )}
         {/* Help overlay */}
         {showHelp && <HelpOverlay width={termWidth} height={termHeight - 2} />}
       </Box>
@@ -2544,6 +2684,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         <Text>
           {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
           {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
+          {showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
           {showDropNotification && droppedFiles.length > 0 && (
             <Text color="green">
               {`[Dropped: ${droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}

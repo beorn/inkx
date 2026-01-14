@@ -13,6 +13,41 @@ import { getNodeDisplayName, getParentContext } from "@km/shared";
 import { getStatusIcon, getTypeIcon } from "./icons.ts";
 import type { SelectionKey } from "../types.ts";
 
+/**
+ * Render text with wiki links [[like this]] styled as underlined text
+ * without the brackets
+ */
+function renderStyledText(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  // Match [[wiki links]] - capture the link text without brackets
+  const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
+  let lastIndex = 0;
+  let match;
+  let keyIndex = 0;
+
+  while ((match = wikiLinkRegex.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    // Add the wiki link with underline styling (no brackets)
+    const linkText = match[1];
+    parts.push(
+      <Text key={`link-${keyIndex++}`} underline dimColor>
+        {linkText}
+      </Text>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last match
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
+
 // Selection key helper - exported for use by parent components
 export function makeSelectionKey(
   col: number,
@@ -40,6 +75,8 @@ export interface TreeNodeProps {
   inOutlineMode: boolean;
   /** 'compact' for column views, 'wide' for full-width views */
   variant?: "compact" | "wide";
+  /** Maximum lines of content to display per node (default: 1) */
+  maxContentLines?: number;
 }
 
 export function TreeNode({
@@ -57,6 +94,7 @@ export function TreeNode({
   multiSelected,
   inOutlineMode,
   variant = "wide",
+  maxContentLines = 1,
 }: TreeNodeProps): React.ReactElement {
   const children = getChildren(node.id);
   const hasChildren = children.length > 0;
@@ -69,7 +107,7 @@ export function TreeNode({
     ? getStatusIcon(node.task_status)
     : getTypeIcon(node.type);
   const content = node.content || getNodeDisplayName(node);
-  const firstLine = content.split("\n")[0] ?? content;
+  const contentLines = content.split("\n");
 
   // Check if this is a transcluded (symlinked) node
   const isTranscluded =
@@ -138,10 +176,47 @@ export function TreeNode({
     infoSuffix.length +
     contextSuffix.length;
   const availWidth = Math.max(1, width - fixedWidth);
-  const truncatedContent =
-    firstLine.length > availWidth
-      ? firstLine.slice(0, availWidth - 1) + "…"
-      : firstLine;
+
+  // Word-wrap content to fit available width, respecting maxContentLines
+  const wrappedLines: string[] = [];
+
+  for (const line of contentLines) {
+    if (wrappedLines.length >= maxContentLines) break;
+
+    if (line.length <= availWidth) {
+      wrappedLines.push(line);
+    } else {
+      // Word wrap this line
+      let remaining = line;
+      while (remaining.length > 0 && wrappedLines.length < maxContentLines) {
+        if (remaining.length <= availWidth) {
+          wrappedLines.push(remaining);
+          break;
+        }
+        // Find break point at space, or force break at availWidth
+        let breakPoint = remaining.lastIndexOf(" ", availWidth);
+        if (breakPoint <= 0) breakPoint = availWidth;
+        wrappedLines.push(remaining.slice(0, breakPoint));
+        remaining = remaining.slice(breakPoint).trimStart();
+      }
+    }
+  }
+
+  // Truncate last line if we hit the limit and there's more content
+  const hasMoreContent =
+    wrappedLines.length >= maxContentLines &&
+    (contentLines.length > 1 ||
+      (contentLines[0]?.length ?? 0) > availWidth * maxContentLines);
+  if (hasMoreContent && wrappedLines.length > 0) {
+    const lastLine = wrappedLines[wrappedLines.length - 1] ?? "";
+    if (lastLine.length >= availWidth) {
+      wrappedLines[wrappedLines.length - 1] =
+        lastLine.slice(0, availWidth - 1) + "…";
+    }
+  }
+
+  const firstLine = wrappedLines[0] ?? "";
+  const additionalLines = wrappedLines.slice(1);
 
   // Determine colors
   let backgroundColor: string | undefined;
@@ -162,15 +237,31 @@ export function TreeNode({
   const visibleChildren = children.slice(0, maxChildren);
   const hiddenCount = children.length - visibleChildren.length;
 
+  // Build continuation indent for wrapped lines (aligns with content start)
+  const continuationIndent = " ".repeat(prefix.length);
+
   return (
     <Box flexDirection="column" width={width}>
+      {/* First line with prefix, fold indicator, info suffix, and context */}
       <Text backgroundColor={backgroundColor} color={textColor} wrap="truncate">
         {prefix}
-        {truncatedContent}
+        {renderStyledText(firstLine)}
         {foldedCount}
         {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
         {truncatedContext && <Text dimColor>{contextSuffix}</Text>}
       </Text>
+      {/* Additional wrapped content lines */}
+      {additionalLines.map((line, i) => (
+        <Text
+          key={`wrap-${i}`}
+          backgroundColor={backgroundColor}
+          color={textColor}
+          wrap="truncate"
+        >
+          {continuationIndent}
+          {renderStyledText(line)}
+        </Text>
+      ))}
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
           {visibleChildren.map((child) => {
@@ -204,6 +295,7 @@ export function TreeNode({
                 multiSelected={multiSelected}
                 inOutlineMode={inOutlineMode}
                 variant={variant}
+                maxContentLines={maxContentLines}
               />
             );
           })}

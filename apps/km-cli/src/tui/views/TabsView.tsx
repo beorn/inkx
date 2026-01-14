@@ -22,6 +22,8 @@ interface TabsViewProps {
   subIndex: number;
   inOutlineMode: boolean;
   selectionLevel: "board" | "column" | "card";
+  /** Maximum lines of content to display per node */
+  maxContentLines: number;
 }
 
 export function TabsView({
@@ -36,6 +38,7 @@ export function TabsView({
   subIndex,
   inOutlineMode,
   selectionLevel,
+  maxContentLines,
 }: TabsViewProps): React.ReactElement {
   // Tab bar height (1 line for spacing + 1 for tabs)
   const tabBarHeight = 2;
@@ -177,6 +180,7 @@ export function TabsView({
                     inOutlineMode={inOutlineMode}
                     currentSubIndex={subIndex}
                     variant="wide"
+                    maxContentLines={maxContentLines}
                   />
                 );
               })}

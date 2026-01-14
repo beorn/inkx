@@ -925,3 +925,280 @@ describe("Ink Board TUI Rendering", () => {
     expect(output).toContain("(3)");
   });
 });
+
+describe("Navigation History with Selection", () => {
+  beforeEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    setKmDir(TEST_DIR);
+    setDatabase({ applyEvent });
+    resetDb();
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("navigation history stores selection state", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
+    const React = await import("react");
+
+    // Create a board with nested structure for navigation
+    const rootId = createTestNode("board", "Root Board");
+    const col1Id = createTestNode("folder", "Column 1", rootId);
+    const card1Id = createTestNode("task", "Card 1", col1Id);
+    createTestNode("task", "Card 2", col1Id);
+    // Add children to card1 so we can zoom into it
+    createTestNode("task", "Sub-task 1", card1Id);
+    createTestNode("task", "Sub-task 2", card1Id);
+
+    const state = buildBoardState(rootId);
+
+    const { lastFrame, stdin } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 80,
+        testHeight: 24,
+      }),
+    );
+
+    // Initial state should show Card 1
+    let output = lastFrame() ?? "";
+    expect(output).toContain("Card 1");
+
+    // Move down to select Card 2 (j key)
+    stdin.write("j");
+    output = lastFrame() ?? "";
+    expect(output).toContain("Card 2");
+
+    // Zoom into Card 1 by moving back up and pressing Enter
+    stdin.write("k"); // Move back to Card 1
+    stdin.write("\r"); // Enter to zoom
+
+    // Now we're zoomed into Card 1, should see sub-tasks
+    output = lastFrame() ?? "";
+    expect(output).toContain("Sub-task");
+
+    // Navigate back with [ - should restore to Card 1 selected at root
+    stdin.write("[");
+    output = lastFrame() ?? "";
+    expect(output).toContain("Card 1");
+    expect(output).toContain("Card 2");
+  });
+
+  test("navigation history preserves subIndex on restore", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
+    const React = await import("react");
+
+    // Create a board with a card that has children (for outline mode)
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    const cardId = createTestNode("task", "Parent Card", colId);
+    createTestNode("task", "Child 1", cardId);
+    createTestNode("task", "Child 2", cardId);
+    // Create another card to zoom into
+    const card2Id = createTestNode("task", "Card 2", colId);
+    createTestNode("task", "Card 2 Child", card2Id);
+
+    const state = buildBoardState(rootId);
+
+    const { lastFrame, stdin } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 80,
+        testHeight: 24,
+      }),
+    );
+
+    // Enter outline mode by pressing 'o' to navigate into the card's children
+    stdin.write("o");
+
+    // Move down in outline to select a child (increases subIndex)
+    stdin.write("j");
+
+    // Move to next card and zoom in
+    stdin.write("j"); // Move to Card 2
+    stdin.write("\r"); // Zoom in
+
+    // Navigate back - subIndex should be restored
+    stdin.write("[");
+
+    // We should be back at the root board
+    const output = lastFrame() ?? "";
+    expect(output).toContain("Parent Card");
+    expect(output).toContain("Card 2");
+  });
+
+  test("forward navigation with ] restores selection", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
+    const React = await import("react");
+
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    const cardId = createTestNode("task", "Card with children", colId);
+    createTestNode("task", "Child A", cardId);
+    createTestNode("task", "Child B", cardId);
+
+    const state = buildBoardState(rootId);
+
+    const { lastFrame, stdin } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 80,
+        testHeight: 24,
+      }),
+    );
+
+    // Zoom into the card
+    stdin.write("\r");
+
+    // Navigate back
+    stdin.write("[");
+
+    // Should be at root
+    let output = lastFrame() ?? "";
+    expect(output).toContain("Card with children");
+
+    // Navigate forward with ]
+    stdin.write("]");
+
+    // Should be back in the zoomed view
+    output = lastFrame() ?? "";
+    expect(output).toContain("Child A");
+    expect(output).toContain("Child B");
+  });
+});
+
+describe("Wiki Link Rendering", () => {
+  beforeEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    setKmDir(TEST_DIR);
+    setDatabase({ applyEvent });
+    resetDb();
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("wiki links are rendered without brackets", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
+    const React = await import("react");
+
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    // Create a task with wiki link in content
+    createTestNode("task", "Check out [[my note]] for details", colId);
+
+    const state = buildBoardState(rootId);
+
+    const { lastFrame } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 80,
+        testHeight: 24,
+      }),
+    );
+
+    const output = lastFrame() ?? "";
+
+    // The link text should appear without the brackets
+    expect(output).toContain("my note");
+    // The brackets should not appear
+    expect(output).not.toContain("[[");
+    expect(output).not.toContain("]]");
+  });
+});
+
+describe("New Item Dialog", () => {
+  beforeEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    setKmDir(TEST_DIR);
+    setDatabase({ applyEvent });
+    resetDb();
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("NewItemDialog renders with cursor context", async () => {
+    const { render } = await import("ink-testing-library");
+    const { NewItemDialog } =
+      await import("../src/tui/views/NewItemDialog.tsx");
+    const React = await import("react");
+
+    // Create test nodes
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    const taskId = createTestNode("task", "Test task", colId);
+
+    const cursorNode = getNode(taskId);
+
+    const { lastFrame } = render(
+      React.createElement(NewItemDialog, {
+        cursorNode,
+        onCreate: () => {},
+        onCancel: () => {},
+        width: 40,
+        height: 10,
+      }),
+    );
+
+    const output = lastFrame() ?? "";
+
+    // Should show "New task" header since cursor is on a task
+    expect(output).toContain("New task");
+    // Should show keybinding hints
+    expect(output).toContain("Enter:create");
+    expect(output).toContain("Esc:cancel");
+  });
+
+  test("NewItemDialog calls onCancel on Escape", async () => {
+    const { render } = await import("ink-testing-library");
+    const { NewItemDialog } =
+      await import("../src/tui/views/NewItemDialog.tsx");
+    const React = await import("react");
+
+    let cancelled = false;
+    const onCancel = () => {
+      cancelled = true;
+    };
+
+    const { stdin } = render(
+      React.createElement(NewItemDialog, {
+        cursorNode: null,
+        onCreate: () => {},
+        onCancel,
+        width: 40,
+        height: 10,
+      }),
+    );
+
+    // Press Escape
+    stdin.write("\x1b");
+
+    expect(cancelled).toBe(true);
+  });
+});
