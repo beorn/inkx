@@ -179,8 +179,14 @@ function OutlineItem({
 
   // Build the full line and truncate to fit width exactly
   // Format: prefix + content + suffix + foldedCount + parentContext (grey)
-  // Reserve space for parent context if present
-  const contextSuffix = parentContext ? ` < ${parentContext}` : "";
+  // Parent context truncated to max 20 chars for readability
+  const maxContextLen = 20;
+  const truncatedContext = parentContext
+    ? parentContext.length > maxContextLen
+      ? parentContext.slice(0, maxContextLen - 1) + "…"
+      : parentContext
+    : null;
+  const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
   const fixedParts =
     prefix.length + suffix.length + foldedCount.length + contextSuffix.length;
   const availWidth = Math.max(1, width - fixedParts);
@@ -215,7 +221,7 @@ function OutlineItem({
         wrap="truncate"
       >
         {mainLine}
-        {parentContext && <Text dimColor>{contextSuffix}</Text>}
+        {truncatedContext && <Text dimColor>{contextSuffix}</Text>}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
@@ -1037,6 +1043,130 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     }, 50);
   };
 
+  // Indent node: make it a child of the sibling above it
+  const indentNode = (card: CardState) => {
+    const col = state.columns[state.colIndex];
+    if (!col) return;
+
+    const cardIndex = col.cards.findIndex((c) => c.node.id === card.node.id);
+    if (cardIndex <= 0) {
+      // Can't indent first item - no sibling above
+      process.stdout.write("\x07"); // Beep
+      return;
+    }
+
+    // Get the sibling above this card
+    const siblingAbove = col.cards[cardIndex - 1];
+    if (!siblingAbove) return;
+
+    // Make this card a child of the sibling above
+    // Use timestamp-based ordering for new child
+    const newSortOrder = Date.now();
+
+    if (isMemoryMode()) {
+      const db = getDb();
+      db.run(
+        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
+        [siblingAbove.node.id, newSortOrder, Date.now(), card.node.id],
+      );
+    } else {
+      emit({
+        type: "node_moved",
+        actor: "user",
+        target: card.node.id,
+        data: {
+          parent_id: siblingAbove.node.id,
+          parent_idx: newSortOrder,
+        },
+      });
+    }
+
+    // Rebuild board state
+    setTimeout(() => {
+      const newState = state.rootId
+        ? buildBoardState(state.rootId)
+        : initBoardState();
+
+      if (newState) {
+        newState.zoomStack = state.zoomStack;
+        newState.rootPath = state.rootPath;
+        newState.colIndex = state.colIndex;
+        // Stay at same card index (will now point to different card)
+        newState.cardIndex = Math.max(0, cardIndex - 1);
+        setState(newState);
+      }
+    }, 50);
+  };
+
+  // Outdent node: make it a sibling of its parent
+  const outdentNode = (card: CardState) => {
+    const parentId = card.node.parent_id;
+    if (!parentId) {
+      // Can't outdent root-level item
+      process.stdout.write("\x07"); // Beep
+      return;
+    }
+
+    const parent = getNode(parentId);
+    if (!parent || !parent.parent_id) {
+      // Can't outdent if parent has no parent
+      process.stdout.write("\x07"); // Beep
+      return;
+    }
+
+    // Get parent's siblings to calculate sort order
+    const grandparentChildren = getChildren(parent.parent_id);
+    const parentIndex = grandparentChildren.findIndex((c) => c.id === parentId);
+
+    // Insert after the parent, before next sibling
+    let newSortOrder: number;
+    if (parentIndex === grandparentChildren.length - 1) {
+      // Parent is last child - add after it
+      newSortOrder = parent.parent_idx + 1;
+    } else {
+      // Insert between parent and next sibling
+      const nextSibling = grandparentChildren[parentIndex + 1];
+      newSortOrder =
+        (parent.parent_idx +
+          (nextSibling?.parent_idx ?? parent.parent_idx + 2)) /
+        2;
+    }
+
+    // Move card to be sibling of parent (child of grandparent)
+    if (isMemoryMode()) {
+      const db = getDb();
+      db.run(
+        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
+        [parent.parent_id, newSortOrder, Date.now(), card.node.id],
+      );
+    } else {
+      emit({
+        type: "node_moved",
+        actor: "user",
+        target: card.node.id,
+        data: {
+          parent_id: parent.parent_id,
+          parent_idx: newSortOrder,
+        },
+      });
+    }
+
+    // Rebuild board state
+    setTimeout(() => {
+      const newState = state.rootId
+        ? buildBoardState(state.rootId)
+        : initBoardState();
+
+      if (newState) {
+        newState.zoomStack = state.zoomStack;
+        newState.rootPath = state.rootPath;
+        newState.colIndex = state.colIndex;
+        newState.cardIndex = state.cardIndex;
+        setState(newState);
+      }
+    }, 50);
+  };
+
   // Progressive select all with Shift+A
   const progressiveSelectAll = () => {
     const col = state.columns[state.colIndex];
@@ -1352,13 +1482,14 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       return;
     }
 
-    // Tab: enter outline mode (or toggle fold if already in outline mode)
+    // Tab/Shift-Tab: indent/outdent items structurally
     if (key.tab && card) {
-      if (!inOutlineMode) {
-        setInOutlineMode(true);
-        setSubIndex(0);
+      if (key.shift) {
+        // Shift-Tab: outdent - make item a sibling of its parent
+        outdentNode(card);
       } else {
-        toggleFold(card.node.id);
+        // Tab: indent - make item a child of the item above
+        indentNode(card);
       }
       return;
     }

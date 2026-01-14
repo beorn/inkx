@@ -16,17 +16,13 @@ import { ensureState } from "@km/store";
 import { getStore } from "@km/store";
 import { showCommand } from "./commands/show.ts";
 import { viewCommand } from "./commands/view.ts";
-import { treeCommand } from "./commands/tree.ts";
 import { syncCommand } from "./commands/sync.ts";
 import { watchCommand } from "./commands/watch.ts";
 import { rebuildCommand } from "./commands/rebuild.ts";
-import { searchCommand } from "./commands/search.ts";
 import { taskCommand } from "./commands/tasks.ts";
 import { listCommand } from "./commands/list.ts";
 import { initCommand } from "./commands/init.ts";
 import { newCommand } from "./commands/new.ts";
-import { doneCommand } from "./commands/done.ts";
-import { toggleCommand } from "./commands/toggle.ts";
 import { statusCommand } from "./commands/status.ts";
 import { moveCommand } from "./commands/move.ts";
 import { addCommand } from "./commands/add.ts";
@@ -124,19 +120,15 @@ program.hook("preAction", (thisCommand, actionCommand) => {
 
 // Register commands
 // Core views
-program.addCommand(listCommand); // km list [query] / km ls - list/search nodes
+program.addCommand(listCommand); // km list [query] / km ls - list/search nodes (with FTS)
 program.addCommand(viewCommand); // km view [root] - interactive TUI (board/tree, press 'v' to toggle)
-program.addCommand(treeCommand); // km tree [root] - static tree output (non-interactive)
-program.addCommand(showCommand); // km show <id> - show node details
-program.addCommand(searchCommand); // km search <query> - full-text search
+program.addCommand(showCommand); // km show <id> [--tree] - show node details or subtree
 
 // Task commands
 program.addCommand(taskCommand); // km tasks - task listing with context
 
 // Actions
 program.addCommand(newCommand); // km new - quick capture to inbox
-program.addCommand(doneCommand); // km done <id> - mark task as done
-program.addCommand(toggleCommand); // km toggle <id> - cycle task status
 program.addCommand(statusCommand); // km status <id> [status] - view/set task status
 program.addCommand(moveCommand); // km move <node> <parent> - re-parent a node
 program.addCommand(addCommand); // km add <target> <source...> - add tasks to board/list

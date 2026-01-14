@@ -159,8 +159,14 @@ function TreeNode({
 
   const infoSuffix = infoParts.length > 0 ? `  ${infoParts.join(" ")}` : "";
 
-  // Parent context suffix (greyed out)
-  const contextSuffix = parentContext ? ` < ${parentContext}` : "";
+  // Parent context suffix (greyed out) - truncate to max 20 chars
+  const maxContextLen = 20;
+  const truncatedContext = parentContext
+    ? parentContext.length > maxContextLen
+      ? parentContext.slice(0, maxContextLen - 1) + "…"
+      : parentContext
+    : null;
+  const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
 
   // Calculate available width for content
   const fixedWidth =
@@ -171,7 +177,7 @@ function TreeNode({
   const availWidth = Math.max(1, width - fixedWidth);
   const truncatedContent =
     firstLine.length > availWidth
-      ? firstLine.slice(0, availWidth - 1) + "\u2026"
+      ? firstLine.slice(0, availWidth - 1) + "…"
       : firstLine;
 
   // Determine colors
@@ -195,7 +201,7 @@ function TreeNode({
         {truncatedContent}
         {foldedCount}
         {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
-        {parentContext && <Text dimColor>{contextSuffix}</Text>}
+        {truncatedContext && <Text dimColor>{contextSuffix}</Text>}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
