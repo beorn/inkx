@@ -44,7 +44,7 @@ const shortcuts = [
   {
     category: "View Controls",
     keys: [
-      { key: "v", desc: "Toggle view mode (board/tree)" },
+      { key: "v", desc: "Cycle view mode (cards/columns/list)" },
       { key: "+/-", desc: "Increase/decrease outline depth" },
       { key: "z/Z", desc: "Fold all / unfold all cards in column" },
       { key: "c", desc: "Toggle column collapse" },

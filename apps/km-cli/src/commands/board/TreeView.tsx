@@ -23,6 +23,7 @@ interface TreeViewProps {
   cardIndex: number;
   subIndex: number;
   inOutlineMode: boolean;
+  selectionLevel: "board" | "column" | "card";
 }
 
 /**
@@ -257,6 +258,7 @@ export function TreeView({
   cardIndex,
   subIndex,
   inOutlineMode,
+  selectionLevel,
 }: TreeViewProps): React.ReactElement {
   // In tree view, we show all columns and their cards in a flat hierarchy
   // Root -> Columns -> Cards -> Children
@@ -268,8 +270,9 @@ export function TreeView({
     <Box flexDirection="column" width={width} height={availableHeight}>
       {/* Columns as top-level sections */}
       {state.columns.map((column, cIdx) => {
-        const isColSelected = colIndex === cIdx && cardIndex === -1;
-        const colName = column.node.content || getNodeDisplayName(column.node);
+        // Column is selected when at column level and this is the selected column
+        const isColSelected = selectionLevel === "column" && colIndex === cIdx;
+        const colName = getNodeDisplayName(column.node);
         // Build column header line with separator
         const headerText = `\u2500\u2500 ${colName} (${column.cards.length}) `;
         const remainingWidth = Math.max(0, width - headerText.length - 1);
@@ -292,8 +295,9 @@ export function TreeView({
               <Text dimColor> (empty)</Text>
             ) : (
               column.cards.map((card, cardIdx) => {
+                // Card is selected when at card level and this is the selected card
                 const isCardSelected =
-                  colIndex === cIdx && cardIndex === cardIdx && !inOutlineMode;
+                  selectionLevel === "card" && colIndex === cIdx && cardIndex === cardIdx && !inOutlineMode;
                 const cardKey = makeSelectionKey(cIdx, cardIdx, 0);
                 const isCardMultiSelected = multiSelected.has(cardKey);
 
@@ -305,7 +309,8 @@ export function TreeView({
                     width={width - 2}
                     isSelected={
                       isCardSelected ||
-                      (inOutlineMode &&
+                      (selectionLevel === "card" &&
+                        inOutlineMode &&
                         colIndex === cIdx &&
                         cardIndex === cardIdx &&
                         subIndex === 0)
