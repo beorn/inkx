@@ -228,6 +228,7 @@ interface ColumnTreeProps {
   foldedNodes: Set<string>;
   multiSelected: Set<SelectionKey>;
   inOutlineMode: boolean;
+  selectionLevel: "board" | "column" | "card";
 }
 
 function ColumnTree({
@@ -242,6 +243,7 @@ function ColumnTree({
   foldedNodes,
   multiSelected,
   inOutlineMode,
+  selectionLevel,
 }: ColumnTreeProps): React.ReactElement {
   const name = getNodeDisplayName(column.node);
   const count = column.cards.length;
@@ -268,6 +270,9 @@ function ColumnTree({
     scrollOffset + maxVisibleCards,
   );
 
+  // Column header is selected when at column level
+  const isColumnHeaderSelected = isSelected && selectionLevel === "column";
+
   return (
     <Box
       flexDirection="column"
@@ -280,8 +285,8 @@ function ColumnTree({
       <Box width={width - 2}>
         <Text
           bold
-          color={isSelected && selectedCardIndex < 0 ? "white" : "yellow"}
-          backgroundColor={isSelected && selectedCardIndex < 0 ? "blue" : undefined}
+          color={isColumnHeaderSelected ? "white" : "yellow"}
+          backgroundColor={isColumnHeaderSelected ? "blue" : undefined}
           wrap="truncate"
         >
           {name} ({count})
@@ -296,7 +301,9 @@ function ColumnTree({
         {visibleCards.map((card, i) => {
           const actualCardIndex = scrollOffset + i;
           const cardKey = makeSelectionKey(colIndex, actualCardIndex, 0);
+          // Card is only selected when at card level
           const cardSelected =
+            selectionLevel === "card" &&
             isSelected &&
             actualCardIndex === selectedCardIndex &&
             !inOutlineMode;
@@ -310,7 +317,8 @@ function ColumnTree({
               width={width - 4}
               isSelected={
                 cardSelected ||
-                (inOutlineMode &&
+                (selectionLevel === "card" &&
+                  inOutlineMode &&
                   isSelected &&
                   actualCardIndex === selectedCardIndex &&
                   selectedSubIndex === 0)
@@ -352,6 +360,7 @@ export function ColumnsView({
   effectiveScrollOffset,
   effectiveMaxCols,
   effectiveVisibleColumns,
+  selectionLevel,
 }: ColumnsViewProps): React.ReactElement {
   // Calculate column widths
   const hasLeftIndicator = effectiveScrollOffset > 0;
@@ -395,6 +404,7 @@ export function ColumnsView({
             foldedNodes={foldedNodes}
             multiSelected={multiSelected}
             inOutlineMode={inOutlineMode}
+            selectionLevel={selectionLevel}
           />
         );
       })}

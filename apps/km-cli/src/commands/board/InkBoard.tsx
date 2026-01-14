@@ -439,7 +439,7 @@ function Card({
     <Box
       flexDirection="column"
       width={width}
-      borderStyle="round"
+      borderStyle={isSelected ? "double" : "round"}
       borderColor={isSelected ? "cyan" : "gray"}
       borderDimColor={!isSelected}
       overflowX="hidden"
@@ -550,7 +550,7 @@ function Column({
       flexDirection="column"
       width={width}
       height={height}
-      borderStyle="single"
+      borderStyle={isSelected ? "double" : "single"}
       borderColor={borderColor}
       overflowY="hidden"
     >
@@ -2525,6 +2525,7 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
             effectiveScrollOffset={effectiveScrollOffset}
             effectiveMaxCols={effectiveMaxCols}
             effectiveVisibleColumns={effectiveVisibleColumns}
+            selectionLevel={selectionLevel}
           />
         ) : (
           <TreeView
