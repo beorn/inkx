@@ -11,6 +11,7 @@ import { getChildren } from "@km/store";
 import type { BoardState, ColumnState, SelectionKey } from "./types.ts";
 import { makeSelectionKey } from "./InkBoard.tsx";
 import { getNodeDisplayName, getParentContext } from "@km/shared";
+import { getStatusIcon, getTypeIcon } from "./shared/icons.ts";
 
 interface ColumnsViewProps {
   state: BoardState;
@@ -27,48 +28,6 @@ interface ColumnsViewProps {
   effectiveMaxCols: number;
   effectiveVisibleColumns: ColumnState[];
   selectionLevel: "board" | "column" | "card";
-}
-
-/**
- * Get status icon for tasks
- */
-function getStatusIcon(status: string | null | undefined): string {
-  switch (status) {
-    case "done":
-      return "\u2713"; // checkmark
-    case "in_progress":
-      return "\u25D0"; // half circle
-    case "blocked":
-      return "\u2298"; // circled slash
-    case "waiting":
-      return "\u25F7"; // clock
-    case "dropped":
-      return "\u2205"; // empty set
-    default:
-      return "\u25CB"; // empty circle
-  }
-}
-
-/**
- * Get type icon for non-task nodes
- */
-function getTypeIcon(type: string): string {
-  switch (type) {
-    case "folder":
-      return "\uD83D\uDCC1"; // folder
-    case "file":
-      return "\uD83D\uDCC4"; // file
-    case "section":
-      return "\u00A7"; // section
-    case "paragraph":
-      return "\u00B6"; // pilcrow
-    case "code":
-      return "\u2328"; // keyboard
-    case "quote":
-      return "\u275D"; // quote
-    default:
-      return "\u2022"; // bullet
-  }
 }
 
 interface TreeNodeProps {
@@ -127,9 +86,9 @@ function TreeNode({
   // Transclusion indicator (→) for symlinked nodes
   const transclusionMark = isTranscluded ? "→" : "";
 
-  // Build prefix with indent
-  const indent = "  ".repeat(depth);
-  const prefix = `${indent}${foldIndicator} ${icon}${transclusionMark} `;
+  // Build prefix with indent (1 space per level for compactness)
+  const indent = " ".repeat(depth);
+  const prefix = `${indent}${foldIndicator}${icon}${transclusionMark} `;
 
   // Parent context suffix (greyed out) - truncate to max 15 chars for column view
   const maxContextLen = 15;
@@ -273,6 +232,8 @@ function ColumnTree({
   // Column header is selected when at column level
   const isColumnHeaderSelected = isSelected && selectionLevel === "column";
 
+  const headerText = `${name} (${count})`;
+
   return (
     <Box
       flexDirection="column"
@@ -282,22 +243,18 @@ function ColumnTree({
       borderColor={isSelected ? "blueBright" : "blackBright"}
     >
       {/* Column header */}
-      <Box width={width - 2}>
-        <Text
-          bold
-          color={isColumnHeaderSelected ? "white" : "yellow"}
-          backgroundColor={isColumnHeaderSelected ? "blue" : undefined}
-          wrap="truncate"
-        >
-          {name} ({count})
-        </Text>
-      </Box>
+      <Text
+        bold
+        color={isColumnHeaderSelected ? "white" : "yellow"}
+        backgroundColor={isColumnHeaderSelected ? "blue" : undefined}
+        wrap="truncate"
+      >
+        {headerText}
+      </Text>
 
       {/* Cards as tree nodes */}
       <Box flexDirection="column" height={height - 3} overflowY="hidden">
-        {scrollOffset > 0 && (
-          <Text dimColor> ▲ {scrollOffset} above</Text>
-        )}
+        {scrollOffset > 0 && <Text dimColor> ▲ {scrollOffset} above</Text>}
         {visibleCards.map((card, i) => {
           const actualCardIndex = scrollOffset + i;
           const cardKey = makeSelectionKey(colIndex, actualCardIndex, 0);
@@ -335,12 +292,13 @@ function ColumnTree({
             />
           );
         })}
-        {needsScroll && scrollOffset + visibleCards.length < column.cards.length && (
-          <Text dimColor>
-            {"  "}▼ {column.cards.length - scrollOffset - visibleCards.length} below
-          </Text>
-        )}
-        {column.cards.length === 0 && <Text dimColor> (empty)</Text>}
+        {needsScroll &&
+          scrollOffset + visibleCards.length < column.cards.length && (
+            <Text dimColor>
+              {"  "}▼ {column.cards.length - scrollOffset - visibleCards.length}{" "}
+              below
+            </Text>
+          )}
       </Box>
     </Box>
   );

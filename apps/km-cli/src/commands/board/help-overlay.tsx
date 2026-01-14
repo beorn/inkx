@@ -39,6 +39,7 @@ const shortcuts = [
       { key: "p", desc: "Open project picker (move to project)" },
       { key: "Space", desc: "Cycle task status" },
       { key: "1-5", desc: "Set priority (in detail pane)" },
+      { key: "D", desc: "Delete card (symlinks: remove from board only)" },
     ],
   },
   {
@@ -73,17 +74,32 @@ const maxKeyWidth = Math.max(
 );
 
 export function HelpOverlay({ width, height }: HelpOverlayProps) {
-  // Calculate content dimensions - need wider box for longer keys
-  const keyColWidth = maxKeyWidth + 2; // Add padding
-  const boxWidth = Math.min(70, width - 4);
+  // Calculate content dimensions - more padding around the box
+  const boxWidth = Math.min(70, width - 8);
   const boxHeight = Math.min(
-    shortcuts.reduce((acc, cat) => acc + cat.keys.length + 2, 2),
-    height - 4,
+    shortcuts.reduce((acc, cat) => acc + cat.keys.length + 3, 4), // Extra lines for internal padding
+    height - 6,
   );
 
   // Center the box
   const marginLeft = Math.floor((width - boxWidth) / 2);
   const marginTop = Math.floor((height - boxHeight) / 2);
+
+  // Content width inside the border (with internal padding)
+  const contentWidth = boxWidth - 4; // Account for border + internal padding
+
+  // Helper to create a full-width line with black background and internal padding
+  const bgLine = (text: string, indent: number = 1) => {
+    const prefix = " ".repeat(indent);
+    const availableWidth = contentWidth - indent;
+    const content =
+      text.length <= availableWidth ? text : text.slice(0, availableWidth);
+    const padded =
+      prefix +
+      content +
+      " ".repeat(Math.max(0, availableWidth - content.length + 1));
+    return padded;
+  };
 
   return (
     <Box
@@ -94,33 +110,56 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
       width={boxWidth}
       borderStyle="double"
       borderColor="cyan"
-      paddingX={1}
     >
-      <Box justifyContent="center" marginBottom={1}>
-        <Text bold color="cyan">
-          Keyboard Shortcuts
-        </Text>
-      </Box>
+      {/* Top padding */}
+      <Text backgroundColor="black">{bgLine("", 0)}</Text>
+
+      {/* Header */}
+      <Text backgroundColor="black" color="cyan" bold>
+        {bgLine(
+          "Keyboard Shortcuts"
+            .padStart(Math.floor((contentWidth + 18) / 2))
+            .padEnd(contentWidth),
+          0,
+        )}
+      </Text>
+      <Text backgroundColor="black">{bgLine("", 0)}</Text>
 
       {shortcuts.map((category) => (
-        <Box key={category.category} flexDirection="column" marginBottom={1}>
-          <Text bold underline>
-            {category.category}
+        <Box key={category.category} flexDirection="column">
+          <Text bold color="white" backgroundColor="black">
+            {bgLine(category.category)}
           </Text>
-          {category.keys.map((shortcut) => (
-            <Box key={shortcut.key}>
-              <Box width={keyColWidth}>
-                <Text color="yellow">{shortcut.key.padEnd(maxKeyWidth)}</Text>
-              </Box>
-              <Text dimColor>{shortcut.desc}</Text>
-            </Box>
-          ))}
+          {category.keys.map((shortcut) => {
+            return (
+              <Text key={shortcut.key} backgroundColor="black">
+                <Text color="yellow" backgroundColor="black">
+                  {"  "}
+                  {shortcut.key.padEnd(maxKeyWidth + 2)}
+                </Text>
+                <Text dimColor backgroundColor="black">
+                  {shortcut.desc.padEnd(
+                    Math.max(0, contentWidth - maxKeyWidth - 4),
+                  )}
+                </Text>
+              </Text>
+            );
+          })}
+          <Text backgroundColor="black">{bgLine("")}</Text>
         </Box>
       ))}
 
-      <Box justifyContent="center" marginTop={1}>
-        <Text dimColor>Press ? or Esc to close</Text>
-      </Box>
+      <Text backgroundColor="black" dimColor>
+        {bgLine(
+          "Press ? or Esc to close"
+            .padStart(Math.floor((contentWidth + 22) / 2))
+            .padEnd(contentWidth),
+          0,
+        )}
+      </Text>
+
+      {/* Bottom padding */}
+      <Text backgroundColor="black">{bgLine("", 0)}</Text>
     </Box>
   );
 }

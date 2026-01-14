@@ -7,7 +7,7 @@ import { Database } from "bun:sqlite";
 import { join, resolve } from "path";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import type { Node, Event, TaskStatus, NodeType, NodeRules } from "@km/core";
-import { getKmDir } from "@km/core";
+import { getKmDir, emit } from "@km/core";
 import { parseHeadingRules } from "@km/markdown";
 
 // Singleton database instance
@@ -1073,3 +1073,92 @@ function rowToLink(row: Record<string, unknown>): Link {
 
 // Export the applyEvent function for use with emit
 export const dbApplyEvent = { applyEvent };
+
+/**
+ * Move a node to a new parent with a new sort order.
+ * Handles both memory mode (direct SQL) and disk mode (via emit).
+ *
+ * This is the proper store-layer API for moving nodes.
+ * UI components should use this instead of raw SQL.
+ */
+export function moveNode(
+  nodeId: string,
+  newParentId: string,
+  newParentIdx: number,
+): void {
+  if (isMemoryMode()) {
+    const db = getDb();
+    db.run(
+      "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
+      [newParentId, newParentIdx, Date.now(), nodeId],
+    );
+  } else {
+    emit({
+      type: "node_moved",
+      actor: "user",
+      target: nodeId,
+      data: {
+        parent_id: newParentId,
+        parent_idx: newParentIdx,
+      },
+    });
+  }
+}
+
+/**
+ * Update a node's properties.
+ * Handles both memory mode (direct SQL) and disk mode (via emit).
+ *
+ * This is the proper store-layer API for updating nodes.
+ * UI components should use this instead of raw SQL.
+ */
+export function updateNode(
+  nodeId: string,
+  updates: Record<string, unknown>,
+): void {
+  if (isMemoryMode()) {
+    const db = getDb();
+    const sets: string[] = [];
+    const values: (string | number | null)[] = [];
+
+    for (const [key, value] of Object.entries(updates)) {
+      sets.push(`${key} = ?`);
+      values.push(value as string | number | null);
+    }
+
+    sets.push("updated_at = ?");
+    values.push(Date.now());
+    values.push(nodeId);
+
+    const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`;
+    db.run(sql, values);
+  } else {
+    emit({
+      type: "node_updated",
+      actor: "user",
+      target: nodeId,
+      data: updates,
+    });
+  }
+}
+
+/**
+ * Delete a node from the database.
+ * Handles both memory mode (direct SQL) and disk mode (via emit).
+ *
+ * This is the proper store-layer API for deleting nodes.
+ * UI components should use this instead of raw SQL.
+ */
+export function deleteNode(nodeId: string): void {
+  if (isMemoryMode()) {
+    const db = getDb();
+    db.run("DELETE FROM nodes WHERE id = ?", [nodeId]);
+  } else {
+    emit({
+      type: "node_deleted",
+      actor: "user",
+      target: nodeId,
+      data: {},
+    });
+  }
+}

@@ -18,11 +18,11 @@ import type { Node, TaskStatus } from "@km/core";
 import {
   getChildren,
   getNode,
-  getDb,
-  isMemoryMode,
   resolveNode,
+  moveNode,
+  updateNode,
+  deleteNode,
 } from "@km/store";
-import { emit } from "@km/core";
 import {
   getNodeDisplayName,
   getCollapsedTypeSuffix,
@@ -46,6 +46,7 @@ import {
   type SelectionRange,
   type MouseEvent as TermMouseEvent,
 } from "./mouse-handler.ts";
+import { getStatusIcon } from "./shared/icons.ts";
 
 // Default favorites: common boards accessed via 1-9 keys
 // These are resolved at runtime using the same resolution as CLI commands
@@ -208,24 +209,6 @@ function truncatePathSegments(
   }
 
   return [...rootSegs, ...boardSegs];
-}
-
-// Status icons
-function getStatusIcon(status?: TaskStatus): string {
-  switch (status) {
-    case "done":
-      return "\u2713"; // checkmark
-    case "in_progress":
-      return "\u25D0"; // half circle
-    case "blocked":
-      return "\u2298"; // circled slash
-    case "waiting":
-      return "\u25F7"; // clock
-    case "dropped":
-      return "\u2205"; // empty set (∅)
-    default:
-      return "\u25CB"; // empty circle
-  }
 }
 
 interface OutlineItemProps {
@@ -568,7 +551,9 @@ function Column({
       >
         {name}
         {typeSuffix ? (
-          <Text color={isColumnSelected ? "white" : "gray"}>{` ${typeSuffix}`}</Text>
+          <Text
+            color={isColumnSelected ? "white" : "gray"}
+          >{` ${typeSuffix}`}</Text>
         ) : (
           ""
         )}
@@ -943,24 +928,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
         }
       }
 
-      // Update database - use direct SQL in memory mode, emit event in disk mode
-      if (isMemoryMode()) {
-        const db = getDb();
-        db.run(
-          "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-          [col.node.id, newSortOrder, Date.now(), cardToMove.node.id],
-        );
-      } else {
-        emit({
-          type: "node_moved",
-          actor: "user",
-          target: cardToMove.node.id,
-          data: {
-            parent_id: col.node.id,
-            parent_idx: newSortOrder,
-          },
-        });
-      }
+      // Update database via store layer (handles memory/disk mode)
+      moveNode(cardToMove.node.id, col.node.id, newSortOrder);
     }
 
     // Track moved card IDs to re-select after state rebuild
@@ -1034,24 +1003,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
 
     // Move each card, incrementing sort order
     for (const cardToMove of cardsToMove) {
-      // Update database - use direct SQL in memory mode, emit event in disk mode
-      if (isMemoryMode()) {
-        const db = getDb();
-        db.run(
-          "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-          [targetCol.node.id, newSortOrder, Date.now(), cardToMove.node.id],
-        );
-      } else {
-        emit({
-          type: "node_moved",
-          actor: "user",
-          target: cardToMove.node.id,
-          data: {
-            parent_id: targetCol.node.id,
-            parent_idx: newSortOrder,
-          },
-        });
-      }
+      // Update database via store layer (handles memory/disk mode)
+      moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder);
       newSortOrder++;
     }
 
@@ -1131,24 +1084,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
 
     // Move each card, incrementing sort order to keep order
     for (const cardToMove of cardsToMove) {
-      // Update database - use direct SQL in memory mode, emit event in disk mode
-      if (isMemoryMode()) {
-        const db = getDb();
-        db.run(
-          "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-          [targetCol.node.id, newSortOrder, Date.now(), cardToMove.node.id],
-        );
-      } else {
-        emit({
-          type: "node_moved",
-          actor: "user",
-          target: cardToMove.node.id,
-          data: {
-            parent_id: targetCol.node.id,
-            parent_idx: newSortOrder,
-          },
-        });
-      }
+      // Update database via store layer (handles memory/disk mode)
+      moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder);
       newSortOrder++;
     }
 
@@ -1223,23 +1160,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     // Use timestamp-based ordering for new child
     const newSortOrder = Date.now();
 
-    if (isMemoryMode()) {
-      const db = getDb();
-      db.run(
-        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-        [siblingAbove.node.id, newSortOrder, Date.now(), card.node.id],
-      );
-    } else {
-      emit({
-        type: "node_moved",
-        actor: "user",
-        target: card.node.id,
-        data: {
-          parent_id: siblingAbove.node.id,
-          parent_idx: newSortOrder,
-        },
-      });
-    }
+    // Update database via store layer (handles memory/disk mode)
+    moveNode(card.node.id, siblingAbove.node.id, newSortOrder);
 
     // Rebuild board state
     setTimeout(() => {
@@ -1268,14 +1190,15 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     }
 
     const parent = getNode(parentId);
-    if (!parent || !parent.parent_id) {
+    const grandparentId = parent?.parent_id;
+    if (!parent || !grandparentId) {
       // Can't outdent if parent has no parent
       process.stdout.write("\x07"); // Beep
       return;
     }
 
     // Get parent's siblings to calculate sort order
-    const grandparentChildren = getChildren(parent.parent_id);
+    const grandparentChildren = getChildren(grandparentId);
     const parentIndex = grandparentChildren.findIndex((c) => c.id === parentId);
 
     // Insert after the parent, before next sibling
@@ -1293,23 +1216,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     }
 
     // Move card to be sibling of parent (child of grandparent)
-    if (isMemoryMode()) {
-      const db = getDb();
-      db.run(
-        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-        [parent.parent_id, newSortOrder, Date.now(), card.node.id],
-      );
-    } else {
-      emit({
-        type: "node_moved",
-        actor: "user",
-        target: card.node.id,
-        data: {
-          parent_id: parent.parent_id,
-          parent_idx: newSortOrder,
-        },
-      });
-    }
+    // Update database via store layer (handles memory/disk mode)
+    moveNode(card.node.id, grandparentId, newSortOrder);
 
     // Rebuild board state
     setTimeout(() => {
@@ -1738,12 +1646,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       };
       const nextMark = markMap[nextStatus];
 
-      emit({
-        type: "node_updated",
-        actor: "user",
-        target: targetId,
-        data: { task_status: nextStatus, task_mark: nextMark },
-      });
+      // Update database via store layer (handles memory/disk mode)
+      updateNode(targetId, { task_status: nextStatus, task_mark: nextMark });
 
       // Refresh board state
       setTimeout(() => {
@@ -1755,6 +1659,38 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
           newState.rootPath = state.rootPath;
           newState.colIndex = state.colIndex;
           newState.cardIndex = state.cardIndex;
+          setState(newState);
+        }
+      }, 50);
+      return;
+    }
+
+    // Delete with 'D' key
+    // For symlinked nodes (transclusions): delete the SYMLINK, not the target
+    // For regular nodes: delete the node itself
+    if (input === "D" && card) {
+      // For symlinks, we delete the symlink node (the card), not the target
+      // This allows removing a task from a board without deleting the original task
+      const nodeToDelete = card.node.id; // Always delete the card node itself
+
+      // Delete via store layer (handles memory/disk mode)
+      deleteNode(nodeToDelete);
+
+      // Refresh board state
+      setTimeout(() => {
+        const newState = state.rootId
+          ? buildBoardState(state.rootId)
+          : initBoardState();
+        if (newState) {
+          newState.zoomStack = state.zoomStack;
+          newState.rootPath = state.rootPath;
+          newState.colIndex = state.colIndex;
+          // Adjust card index if we were at the end
+          const col = newState.columns[state.colIndex];
+          newState.cardIndex = Math.min(
+            state.cardIndex,
+            Math.max(0, (col?.cards.length ?? 1) - 1),
+          );
           setState(newState);
         }
       }, 50);
@@ -2252,11 +2188,10 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
           };
           const nextMark = markMap[nextStatus];
 
-          emit({
-            type: "node_updated",
-            actor: "user",
-            target: targetId, // Target the original node, not the symlink
-            data: { task_status: nextStatus, task_mark: nextMark },
+          // Update database via store layer (handles memory/disk mode)
+          updateNode(targetId, {
+            task_status: nextStatus,
+            task_mark: nextMark,
           });
 
           // Refresh board state
@@ -2284,12 +2219,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
           // Resolve symlink target: if this is a symlink, operate on the target
           const targetId = card.node.symlink_to || card.node.id;
 
-          emit({
-            type: "node_updated",
-            actor: "user",
-            target: targetId, // Target the original node, not the symlink
-            data: { priority: parseInt(input, 10) },
-          });
+          // Update database via store layer (handles memory/disk mode)
+          updateNode(targetId, { priority: parseInt(input, 10) });
 
           // Refresh board state
           setTimeout(() => {
@@ -2329,24 +2260,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     const lastChild = targetChildren[targetChildren.length - 1];
     const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0;
 
-    // Update database - use direct SQL in memory mode, emit event in disk mode
-    if (isMemoryMode()) {
-      const db = getDb();
-      db.run(
-        "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-        [targetNode.id, newSortOrder, Date.now(), nodeToMove],
-      );
-    } else {
-      emit({
-        type: "node_moved",
-        actor: "user",
-        target: nodeToMove, // Target the original node, not the symlink
-        data: {
-          parent_id: targetNode.id,
-          parent_idx: newSortOrder,
-        },
-      });
-    }
+    // Update database via store layer (handles memory/disk mode)
+    moveNode(nodeToMove, targetNode.id, newSortOrder);
 
     // Track as recent project
     setRecentProjectIds((prev) => {

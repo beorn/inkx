@@ -11,6 +11,7 @@ import { getChildren } from "@km/store";
 import type { BoardState, SelectionKey } from "./types.ts";
 import { makeSelectionKey } from "./InkBoard.tsx";
 import { getNodeDisplayName, getParentContext } from "@km/shared";
+import { getStatusIcon, getTypeIcon } from "./shared/icons.ts";
 
 interface TreeViewProps {
   state: BoardState;
@@ -26,48 +27,6 @@ interface TreeViewProps {
   selectionLevel: "board" | "column" | "card";
 }
 
-/**
- * Get status icon for tasks
- */
-function getStatusIcon(status: string | null | undefined): string {
-  switch (status) {
-    case "done":
-      return "\u2713"; // checkmark
-    case "in_progress":
-      return "\u25D0"; // half circle
-    case "blocked":
-      return "\u2298"; // circled slash
-    case "waiting":
-      return "\u25F7"; // clock
-    case "dropped":
-      return "\u2205"; // empty set
-    default:
-      return "\u25CB"; // empty circle
-  }
-}
-
-/**
- * Get type icon for non-task nodes
- */
-function getTypeIcon(type: string): string {
-  switch (type) {
-    case "folder":
-      return "\uD83D\uDCC1"; // folder
-    case "file":
-      return "\uD83D\uDCC4"; // file
-    case "section":
-      return "\u00A7"; // section
-    case "paragraph":
-      return "\u00B6"; // pilcrow
-    case "code":
-      return "\u2328"; // keyboard
-    case "quote":
-      return "\u275D"; // quote
-    default:
-      return "\u2022"; // bullet
-  }
-}
-
 interface TreeNodeProps {
   node: Node;
   depth: number;
@@ -78,7 +37,8 @@ interface TreeNodeProps {
   maxDepth: number;
   colIndex: number;
   cardIndex: number;
-  subIndex: number;
+  nodeSubIndex: number; // This node's sub-index
+  currentSubIndex: number; // The current global selection sub-index
   multiSelected: Set<SelectionKey>;
   inOutlineMode: boolean;
   // Additional info columns
@@ -97,7 +57,8 @@ function TreeNode({
   maxDepth,
   colIndex,
   cardIndex,
-  subIndex,
+  nodeSubIndex,
+  currentSubIndex,
   multiSelected,
   inOutlineMode,
 }: TreeNodeProps): React.ReactElement {
@@ -129,9 +90,9 @@ function TreeNode({
   // Transclusion indicator (→) for symlinked nodes
   const transclusionMark = isTranscluded ? "→" : "";
 
-  // Build prefix with indent
-  const indent = "  ".repeat(depth);
-  const prefix = `${indent}${foldIndicator} ${icon}${transclusionMark} `;
+  // Build prefix with indent (1 space per level for compactness)
+  const indent = " ".repeat(depth);
+  const prefix = `${indent}${foldIndicator}${icon}${transclusionMark} `;
 
   // Info columns (right side) - organized for quick scanning
   const infoParts: string[] = [];
@@ -193,7 +154,7 @@ function TreeNode({
   }
 
   // Track sub-indices for children
-  let nextSubIndex = subIndex + 1;
+  let nextSubIndex = nodeSubIndex + 1;
 
   return (
     <Box flexDirection="column" width={width}>
@@ -214,10 +175,7 @@ function TreeNode({
               childSubIndex,
             );
             const childSelected =
-              inOutlineMode &&
-              colIndex === colIndex &&
-              cardIndex === cardIndex &&
-              subIndex === childSubIndex;
+              inOutlineMode && currentSubIndex === childSubIndex;
             const childMultiSelected = multiSelected.has(childKey);
 
             // Increment for next sibling (accounting for this child's descendants)
@@ -263,73 +221,74 @@ export function TreeView({
   // In tree view, we show all columns and their cards in a flat hierarchy
   // Root -> Columns -> Cards -> Children
 
-  // Calculate how many lines we can show
-  const availableHeight = height - 2; // Leave room for header/footer
+  const availableHeight = height - 2;
+  const colWidth = width;
 
   return (
     <Box flexDirection="column" width={width} height={availableHeight}>
-      {/* Columns as top-level sections */}
+      {/* Columns as bordered sections */}
       {state.columns.map((column, cIdx) => {
-        // Column is selected when at column level and this is the selected column
         const isColSelected = selectionLevel === "column" && colIndex === cIdx;
+        const isColumnActive = colIndex === cIdx;
         const colName = getNodeDisplayName(column.node);
-        // Build column header line with separator
-        const headerText = `\u2500\u2500 ${colName} (${column.cards.length}) `;
-        const remainingWidth = Math.max(0, width - headerText.length - 1);
-        const separator = "\u2500".repeat(remainingWidth);
+        const count = column.cards.length;
+        const borderColor = isColumnActive ? "blueBright" : "blackBright";
+
+        const headerText = `${colName} (${count})`;
 
         return (
-          <Box key={column.node.id} flexDirection="column" marginBottom={1}>
-            {/* Column header with horizontal line */}
+          <Box
+            key={column.node.id}
+            flexDirection="column"
+            width={colWidth}
+            borderStyle="single"
+            borderColor={borderColor}
+          >
+            {/* Column header - use inverse for full-width selection highlight */}
             <Text
               bold
               color={isColSelected ? "white" : "yellow"}
               backgroundColor={isColSelected ? "blue" : undefined}
+              wrap="truncate"
             >
               {headerText}
-              <Text dimColor>{separator}</Text>
             </Text>
 
             {/* Cards in column */}
-            {column.cards.length === 0 ? (
-              <>
-                <Text> </Text>
-                <Text dimColor>   (empty)</Text>
-              </>
-            ) : (
-              column.cards.map((card, cardIdx) => {
-                // Card is selected when at card level and this is the selected card
-                const isCardSelected =
-                  selectionLevel === "card" && colIndex === cIdx && cardIndex === cardIdx && !inOutlineMode;
-                const cardKey = makeSelectionKey(cIdx, cardIdx, 0);
-                const isCardMultiSelected = multiSelected.has(cardKey);
+            {column.cards.map((card, cardIdx) => {
+              const isCardSelected =
+                selectionLevel === "card" &&
+                colIndex === cIdx &&
+                cardIndex === cardIdx &&
+                !inOutlineMode;
+              const cardKey = makeSelectionKey(cIdx, cardIdx, 0);
+              const isCardMultiSelected = multiSelected.has(cardKey);
 
-                return (
-                  <TreeNode
-                    key={card.node.id}
-                    node={card.node}
-                    depth={1}
-                    width={width - 2}
-                    isSelected={
-                      isCardSelected ||
-                      (selectionLevel === "card" &&
-                        inOutlineMode &&
-                        colIndex === cIdx &&
-                        cardIndex === cardIdx &&
-                        subIndex === 0)
-                    }
-                    isMultiSelected={isCardMultiSelected}
-                    foldedNodes={foldedNodes}
-                    maxDepth={maxOutlineDepth + 1}
-                    colIndex={cIdx}
-                    cardIndex={cardIdx}
-                    subIndex={0}
-                    multiSelected={multiSelected}
-                    inOutlineMode={inOutlineMode}
-                  />
-                );
-              })
-            )}
+              return (
+                <TreeNode
+                  key={card.node.id}
+                  node={card.node}
+                  depth={0}
+                  width={colWidth - 4}
+                  isSelected={
+                    isCardSelected ||
+                    (selectionLevel === "card" &&
+                      inOutlineMode &&
+                      colIndex === cIdx &&
+                      cardIndex === cardIdx &&
+                      subIndex === 0)
+                  }
+                  isMultiSelected={isCardMultiSelected}
+                  foldedNodes={foldedNodes}
+                  maxDepth={maxOutlineDepth + 1}
+                  colIndex={cIdx}
+                  cardIndex={cardIdx}
+                  subIndex={0}
+                  multiSelected={multiSelected}
+                  inOutlineMode={inOutlineMode}
+                />
+              );
+            })}
           </Box>
         );
       })}

@@ -11,6 +11,7 @@ import { getChildren } from "@km/store";
 import type { BoardState, SelectionKey } from "./types.ts";
 import { makeSelectionKey } from "./InkBoard.tsx";
 import { getNodeDisplayName, getParentContext } from "@km/shared";
+import { getStatusIcon, getTypeIcon } from "./shared/icons.ts";
 
 interface TabsViewProps {
   state: BoardState;
@@ -24,48 +25,6 @@ interface TabsViewProps {
   subIndex: number;
   inOutlineMode: boolean;
   selectionLevel: "board" | "column" | "card";
-}
-
-/**
- * Get status icon for tasks
- */
-function getStatusIcon(status: string | null | undefined): string {
-  switch (status) {
-    case "done":
-      return "\u2713"; // checkmark
-    case "in_progress":
-      return "\u25D0"; // half circle
-    case "blocked":
-      return "\u2298"; // circled slash
-    case "waiting":
-      return "\u25F7"; // clock
-    case "dropped":
-      return "\u2205"; // empty set
-    default:
-      return "\u25CB"; // empty circle
-  }
-}
-
-/**
- * Get type icon for non-task nodes
- */
-function getTypeIcon(type: string): string {
-  switch (type) {
-    case "folder":
-      return "\uD83D\uDCC1"; // folder
-    case "file":
-      return "\uD83D\uDCC4"; // file
-    case "section":
-      return "\u00A7"; // section
-    case "paragraph":
-      return "\u00B6"; // pilcrow
-    case "code":
-      return "\u2328"; // keyboard
-    case "quote":
-      return "\u275D"; // quote
-    default:
-      return "\u2022"; // bullet
-  }
 }
 
 interface TreeNodeProps {
@@ -350,9 +309,16 @@ export function TabsView({
       >
         {currentColumn ? (
           count > 0 ? (
-            <Box flexDirection="column" height={contentHeight} overflowY="hidden">
+            <Box
+              flexDirection="column"
+              height={contentHeight}
+              overflowY="hidden"
+            >
               {scrollOffset > 0 && (
-                <Text dimColor> {"\u25B2"} {scrollOffset} above</Text>
+                <Text dimColor>
+                  {" "}
+                  {"\u25B2"} {scrollOffset} above
+                </Text>
               )}
               {visibleCards.map((card, i) => {
                 const actualCardIndex = scrollOffset + i;
@@ -388,12 +354,11 @@ export function TabsView({
                   />
                 );
               })}
-              {needsScroll &&
-                scrollOffset + visibleCards.length < count && (
-                  <Text dimColor>
-                    {" \u25BC"} {count - scrollOffset - visibleCards.length} below
-                  </Text>
-                )}
+              {needsScroll && scrollOffset + visibleCards.length < count && (
+                <Text dimColor>
+                  {" \u25BC"} {count - scrollOffset - visibleCards.length} below
+                </Text>
+              )}
             </Box>
           ) : (
             <Box marginLeft={1}>

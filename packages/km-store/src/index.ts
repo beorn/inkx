@@ -30,6 +30,10 @@ export {
   getBacklinksByName,
   resolveLinks,
   dbApplyEvent,
+  // Store-layer node operations (handles memory/disk mode automatically)
+  moveNode,
+  updateNode,
+  deleteNode,
 } from "./db.ts";
 
 export type { Link, SearchResult } from "./db.ts";
