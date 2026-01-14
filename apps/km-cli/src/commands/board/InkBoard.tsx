@@ -5,7 +5,13 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { withFullScreen } from "fullscreen-ink";
-import type { BoardState, CardState, ColumnState } from "./types.ts";
+import type {
+  BoardState,
+  CardState,
+  ColumnState,
+  ViewMode,
+  SelectionKey,
+} from "./types.ts";
 import { buildBoardState, initBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "@km/core";
 import { getChildren, getNode, getDb, isMemoryMode } from "@km/store";
@@ -18,6 +24,7 @@ import {
 import { DetailPane } from "./detail-pane.tsx";
 import { ProjectPicker } from "./project-picker.tsx";
 import { HelpOverlay } from "./help-overlay.tsx";
+import { TreeView } from "./TreeView.tsx";
 import {
   createPasteHandler,
   getFileInfo,
@@ -251,9 +258,8 @@ function countVisibleDescendants(
   return count;
 }
 
-// Selection key: "col:card:sub" format for tracking multi-selection
-type SelectionKey = string;
-function makeSelectionKey(
+// Selection key helper: "col:card:sub" format for tracking multi-selection
+export function makeSelectionKey(
   colIndex: number,
   cardIndex: number,
   subIndex: number,
@@ -495,6 +501,7 @@ function Board({ initialState }: BoardProps) {
   const [isMouseDragging, setIsMouseDragging] = useState(false); // Whether mouse drag is active
   const [showHelp, setShowHelp] = useState(false); // Whether help overlay is visible
   const [selectAllLevel, setSelectAllLevel] = useState(0); // Track selection level for progressive Shift+A
+  const [viewMode, setViewMode] = useState<ViewMode>("board"); // board or tree view
 
   // Listen for terminal resize
   useEffect(() => {
@@ -1070,6 +1077,12 @@ function Board({ initialState }: BoardProps) {
 
     // Ignore other keys when help is shown
     if (showHelp) {
+      return;
+    }
+
+    // Toggle view mode with 'v'
+    if (input === "v") {
+      setViewMode((prev) => (prev === "board" ? "tree" : "board"));
       return;
     }
 
@@ -1866,29 +1879,44 @@ function Board({ initialState }: BoardProps) {
         <Text bold inverse>{` ${boardPath} `}</Text>
       </Box>
       <Box flexGrow={1} flexDirection="row">
-        {/* Board columns */}
-        <Box flexDirection="row" width={boardWidth}>
-          {effectiveVisibleColumns.map((col, i) => {
-            const actualColIndex = effectiveScrollOffset + i;
-            return (
-              <Column
-                key={col.node.id}
-                column={col}
-                colIndex={actualColIndex}
-                isSelected={actualColIndex === state.colIndex}
-                isCollapsed={collapsedColumns.has(actualColIndex)}
-                selectedCardIndex={state.cardIndex}
-                selectedSubIndex={inOutlineMode ? subIndex : -1}
-                width={effectiveColWidth}
-                height={termHeight - 3}
-                maxOutlineDepth={maxOutlineDepth}
-                foldedNodes={foldedNodes}
-                onToggleFold={toggleFold}
-                multiSelected={multiSelected}
-              />
-            );
-          })}
-        </Box>
+        {/* Board or Tree view */}
+        {viewMode === "board" ? (
+          <Box flexDirection="row" width={boardWidth}>
+            {effectiveVisibleColumns.map((col, i) => {
+              const actualColIndex = effectiveScrollOffset + i;
+              return (
+                <Column
+                  key={col.node.id}
+                  column={col}
+                  colIndex={actualColIndex}
+                  isSelected={actualColIndex === state.colIndex}
+                  isCollapsed={collapsedColumns.has(actualColIndex)}
+                  selectedCardIndex={state.cardIndex}
+                  selectedSubIndex={inOutlineMode ? subIndex : -1}
+                  width={effectiveColWidth}
+                  height={termHeight - 3}
+                  maxOutlineDepth={maxOutlineDepth}
+                  foldedNodes={foldedNodes}
+                  onToggleFold={toggleFold}
+                  multiSelected={multiSelected}
+                />
+              );
+            })}
+          </Box>
+        ) : (
+          <TreeView
+            state={state}
+            width={boardWidth}
+            height={termHeight - 3}
+            foldedNodes={foldedNodes}
+            maxOutlineDepth={maxOutlineDepth}
+            multiSelected={multiSelected}
+            colIndex={state.colIndex}
+            cardIndex={state.cardIndex}
+            subIndex={subIndex}
+            inOutlineMode={inOutlineMode}
+          />
+        )}
         {/* Detail pane */}
         {showDetailPane && selectedCard && (
           <DetailPane
@@ -1918,6 +1946,7 @@ function Board({ initialState }: BoardProps) {
       </Box>
       <Text>
         <Text>{selectedPath} </Text>
+        <Text color="magenta">{`[${viewMode.toUpperCase()}] `}</Text>
         {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
         {showDetailPane && <Text color="cyan">{`[DETAIL] `}</Text>}
         {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}

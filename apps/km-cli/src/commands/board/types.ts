@@ -71,6 +71,16 @@ export interface ColumnRules {
 
 export type BoardAction = "quit" | "refresh" | null;
 
+/**
+ * View mode for the TUI
+ */
+export type ViewMode = "board" | "tree";
+
+/**
+ * Selection key format: "col:card:sub"
+ */
+export type SelectionKey = `${number}:${number}:${number}`;
+
 export interface RenderOptions {
   width: number;
   height: number;

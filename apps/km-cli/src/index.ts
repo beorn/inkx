@@ -15,13 +15,13 @@ import chalk from "chalk";
 import { ensureState } from "@km/store";
 import { getStore } from "@km/store";
 import { showCommand } from "./commands/show.ts";
+import { viewCommand } from "./commands/view.ts";
 import { treeCommand } from "./commands/tree.ts";
 import { syncCommand } from "./commands/sync.ts";
 import { watchCommand } from "./commands/watch.ts";
 import { rebuildCommand } from "./commands/rebuild.ts";
 import { searchCommand } from "./commands/search.ts";
 import { taskCommand } from "./commands/tasks.ts";
-import { boardCommand } from "./commands/board.ts";
 import { listCommand } from "./commands/list.ts";
 import { initCommand } from "./commands/init.ts";
 import { newCommand } from "./commands/new.ts";
@@ -124,9 +124,9 @@ program.hook("preAction", (thisCommand, actionCommand) => {
 // Register commands
 // Core views
 program.addCommand(listCommand); // km list [query] / km ls - list nodes
-program.addCommand(treeCommand); // km tree [query] - show node hierarchy
+program.addCommand(viewCommand); // km view [root] - interactive TUI (board/tree, press 'v' to toggle)
+program.addCommand(treeCommand); // km tree [root] - static tree output (non-interactive)
 program.addCommand(showCommand); // km show <id> - show node details
-program.addCommand(boardCommand); // km board [query] - interactive kanban TUI
 program.addCommand(searchCommand); // km search <query> - full-text search
 
 // Task commands
