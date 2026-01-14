@@ -19,14 +19,14 @@ km <command> [node]         # Node can be:
 Examples:
 
 ```bash
-km tree 01H5X               # Tree from node ID prefix
+km show --tree 01H5X        # Tree from node ID prefix
 km show ./README.md         # Show specific file by path
 km board @inbox             # Board by filename (resolves @inbox.md)
 km board @inbox.md          # Same, with extension
 km show "Next Actions"      # Show by content/title match
 ```
 
-This "smart resolution" applies to: `board`, `tree`, `show`, `done`, `toggle`, and action commands.
+This "smart resolution" applies to: `board`, `show`, `status`, and action commands.
 
 ---
 
@@ -40,12 +40,12 @@ km ls [query]               # Short form
 km ls --type task           # Filter by type
 km ls --type task --context # With ancestor paths (= tasks)
 km ls --id                  # Show node IDs
-
-km tree [node]              # Show structure from root (ID, path, or filename)
-km tree --collapsed         # With collapsing
-km tree --id                # Show node IDs
+km ls "search term"         # Full-text search
 
 km show <node>              # Show node details (ID, path, or filename)
+km show --tree <node>       # Show subtree structure
+km show --tree --collapsed  # With collapsing
+km show --id                # Show node IDs
 
 km board [node]             # Kanban board (TUI) - ID, path, or filename
 km board @inbox             # Open @inbox.md board by filename
@@ -67,7 +67,7 @@ km task assign <who> <id>   # Assign to agent or user
 ```bash
 km new "Task content"       # Quick capture to inbox
 km new "Task" -p @next      # Create under parent (ID, path, or filename)
-km done <node>              # Mark task done (ID, path, or filename)
+km status <node> [status]   # View/set task status (open, blocked, done, dropped)
 km add <target> <source...> # Add tasks to board/list
 km add @next TASKID         # Add task to @next board
 km add @next ./inbox/**     # Add all inbox tasks to @next
@@ -221,8 +221,8 @@ tui:
 eval "$(km completions bash)"
 eval "$(km completions zsh)"
 
-# Quick done
-km task status $(km task --ids | fzf) done
+# Quick status change
+km status $(km task --ids | fzf) done
 
 # List and select
 km show $(km ls --ids | fzf)

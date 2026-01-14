@@ -31,7 +31,7 @@ SQLite lives in RAM. Rebuilt from filesystem on each run:
 ```bash
 cd ~/any-project
 km tasks              # Scans .md files → builds :memory: SQLite
-km toggle abc123      # Updates :memory: + writes to .md file
+km status abc123 done # Updates :memory: + writes to .md file
 # exit
 km tasks              # Scans again, new IDs
 ```
@@ -48,7 +48,7 @@ SQLite and events persist in `.km/`:
 ```bash
 km init               # Creates .km/state.db, events.jsonl
 km tasks              # Loads from SQLite (fast)
-km toggle abc123      # Appends to events.jsonl, updates SQLite
+km status abc123 done # Appends to events.jsonl, updates SQLite
 # exit
 km show abc123        # Same ID still works
 ```
@@ -140,7 +140,7 @@ Used by CLI commands to accept IDs, paths, or filenames:
 ```bash
 km show 01H5X           # ID prefix
 km board @inbox         # Filename (resolves @inbox.md)
-km tree ./projects      # Path
+km show --tree ./projects  # Path
 ```
 
 ---

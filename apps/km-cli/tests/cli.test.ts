@@ -291,9 +291,9 @@ describe("CLI Integration", () => {
 
       // Mark as done using ID suffix (last 8 chars - what 'km task -i' displays)
       const idSuffix = task.id.slice(-8);
-      const doneResult = await km(["done", idSuffix]);
+      const doneResult = await km(["status", idSuffix, "done"]);
       expect(doneResult.exitCode).toBe(0);
-      expect(doneResult.stdout).toContain("Marked done");
+      expect(doneResult.stdout).toContain("done");
 
       // Verify task is now done
       const afterResult = await km(["tasks", "--all", "--json"]);
@@ -303,72 +303,8 @@ describe("CLI Integration", () => {
     });
   });
 
-  describe("km search", () => {
-    beforeEach(async () => {
-      writeFileSync(
-        join(VAULT_DIR, "notes.md"),
-        `# Important Notes
-
-This document contains information about the project.
-
-## Keywords
-
-Testing, integration, CLI commands.
-`,
-      );
-      writeFileSync(
-        join(VAULT_DIR, "other.md"),
-        `# Other Document
-
-Unrelated content here.
-`,
-      );
-      await km(["sync"]);
-    });
-
-    test("should search content", async () => {
-      const result = await km(["search", "integration"]);
-      expect(result.exitCode).toBe(0);
-      // Search results show content that matches, not necessarily filename
-      expect(result.stdout).toContain("integration");
-      expect(result.stdout).toContain("result");
-    });
-
-    test("should not match non-matching content", async () => {
-      const result = await km(["search", "nonexistent-term-xyz"]);
-      // Should complete but find no matches
-      expect(result.exitCode).toBe(0);
-    });
-  });
-
-  describe("km tree", () => {
-    beforeEach(async () => {
-      // Create hierarchical structure
-      const projectDir = join(VAULT_DIR, "projects");
-      const subDir = join(projectDir, "active");
-      mkdirSync(subDir, { recursive: true });
-
-      writeFileSync(join(VAULT_DIR, "root.md"), "# Root\n");
-      writeFileSync(join(projectDir, "project.md"), "# Project\n");
-      writeFileSync(join(subDir, "task.md"), "# Task\n");
-
-      await km(["sync"]);
-    });
-
-    test("should show tree structure", async () => {
-      const result = await km(["tree"]);
-      expect(result.exitCode).toBe(0);
-      // Should show folder names
-      expect(result.stdout).toContain("projects");
-      expect(result.stdout).toContain("active");
-    });
-
-    test("should limit depth", async () => {
-      const result = await km(["tree", "--depth", "1"]);
-      expect(result.exitCode).toBe(0);
-      // With depth 1, should show top level but not deep nesting
-    });
-  });
+  // Note: km search removed - use 'km list' for filtering
+  // Note: km tree removed - use 'km view' with 'v' to toggle board/tree
 
   describe("km rebuild", () => {
     beforeEach(async () => {
@@ -986,11 +922,11 @@ describe("km done", () => {
     );
     expect(task).toBeDefined();
 
-    // Mark as done using km done
+    // Mark as done using km status
     const idPrefix = task.id.slice(0, 8);
-    const doneResult = await km(["done", idPrefix]);
+    const doneResult = await km(["status", idPrefix, "done"]);
     expect(doneResult.exitCode).toBe(0);
-    expect(doneResult.stdout).toContain("Marked done");
+    expect(doneResult.stdout).toContain("done");
 
     // Verify task is now done
     const allResult = await km(["tasks", "--all", "--json"]);
@@ -1000,12 +936,12 @@ describe("km done", () => {
   });
 
   test("should error on task not found", async () => {
-    const result = await km(["done", "nonexistent123"]);
+    const result = await km(["status", "nonexistent123"]);
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toContain("Task not found");
   });
 
-  test("should handle already done task gracefully", async () => {
+  test("should show status for already done task", async () => {
     // Get the already completed task - use full ID to avoid prefix collisions
     const listResult = await km(["tasks", "--all", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
@@ -1014,10 +950,10 @@ describe("km done", () => {
     );
     expect(task).toBeDefined();
 
-    // Try to mark as done again using full ID
-    const doneResult = await km(["done", task.id]);
-    expect(doneResult.exitCode).toBe(0);
-    expect(doneResult.stdout).toContain("already done");
+    // View status - should show done
+    const statusResult = await km(["status", task.id]);
+    expect(statusResult.exitCode).toBe(0);
+    expect(statusResult.stdout).toContain("done");
   });
 
   test("should error when file ID prefix has no matching task", async () => {
@@ -1028,9 +964,9 @@ describe("km done", () => {
 
     // Use full ID to ensure no accidental task matches
     const fileNode = nodes[0];
-    const result = await km(["done", fileNode.id]);
+    const result = await km(["status", fileNode.id]);
     expect(result.exitCode).not.toBe(0);
-    // Since findTask only looks for tasks, a file ID returns "Task not found"
+    // Since resolveTask only looks for tasks, a file ID returns "Task not found"
     expect(result.stderr).toContain("Task not found");
   });
 
@@ -1043,7 +979,7 @@ describe("km done", () => {
     );
 
     // Use full ID to avoid race condition with other tasks created same millisecond
-    const doneResult = await km(["done", task.id, "--json"]);
+    const doneResult = await km(["status", task.id, "done", "--json"]);
     expect(doneResult.exitCode).toBe(0);
 
     const output = JSON.parse(doneResult.stdout);
@@ -1052,7 +988,7 @@ describe("km done", () => {
   });
 });
 
-describe("Bidirectional sync - km done writes to markdown file", () => {
+describe("Bidirectional sync - km status writes to markdown file", () => {
   beforeEach(async () => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -1080,7 +1016,7 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
     }
   });
 
-  test("km done should update markdown file with [x]", async () => {
+  test("km status done should update markdown file with [x]", async () => {
     // Get task ID for "Open task"
     const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
@@ -1090,7 +1026,7 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
     expect(task).toBeDefined();
 
     // Mark as done
-    const doneResult = await km(["done", task.id]);
+    const doneResult = await km(["status", task.id, "done"]);
     expect(doneResult.exitCode).toBe(0);
 
     // Read the markdown file and verify it was updated
@@ -1102,7 +1038,7 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
     expect(content).toContain("- [!] Blocked task");
   });
 
-  test("km toggle should cycle through statuses and update markdown", async () => {
+  test("km status should cycle through statuses and update markdown", async () => {
     // Get task ID for "Another open task"
     const listResult = await km(["tasks", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
@@ -1111,26 +1047,26 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
     );
     expect(task).toBeDefined();
 
-    // Toggle from open -> blocked
-    const toggleResult = await km(["toggle", task.id]);
-    expect(toggleResult.exitCode).toBe(0);
+    // Set to blocked
+    const blockedResult = await km(["status", task.id, "blocked"]);
+    expect(blockedResult.exitCode).toBe(0);
 
     // Read the markdown file - should now show [!]
     let content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [!] Another open task");
 
-    // Toggle from blocked -> done
-    await km(["toggle", task.id]);
+    // Set to done
+    await km(["status", task.id, "done"]);
     content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [x] Another open task");
 
-    // Toggle from done -> open
-    await km(["toggle", task.id]);
+    // Set back to open
+    await km(["status", task.id, "open"]);
     content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [ ] Another open task");
   });
 
-  test("km task status should update markdown with correct mark", async () => {
+  test("km tasks status should update markdown with correct mark", async () => {
     // Get task ID
     const listResult = await km(["tasks", "--all", "--json"]);
     const tasks = JSON.parse(listResult.stdout);
@@ -1183,7 +1119,7 @@ describe("Bidirectional sync - km done writes to markdown file", () => {
     expect(nestedTask).toBeDefined();
 
     // Mark as done
-    await km(["done", nestedTask.id]);
+    await km(["status", nestedTask.id, "done"]);
 
     // Verify the nested file was updated
     const content = readFileSync(join(projectDir, "alpha.md"), "utf-8");

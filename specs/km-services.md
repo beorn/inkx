@@ -316,7 +316,7 @@ class KmDaemon {
 
 **Not required for:**
 
-- Read-only commands (`km list`, `km tree`, `km show`)
+- Read-only commands (`km list`, `km show`)
 - One-shot sync (`km sync`)
 - Memory mode exploration
 

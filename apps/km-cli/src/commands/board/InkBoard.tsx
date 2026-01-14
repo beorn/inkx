@@ -14,7 +14,13 @@ import type {
 } from "./types.ts";
 import { buildBoardState, initBoardState } from "./state.ts";
 import type { Node, TaskStatus } from "@km/core";
-import { getChildren, getNode, getDb, isMemoryMode } from "@km/store";
+import {
+  getChildren,
+  getNode,
+  getDb,
+  isMemoryMode,
+  resolveNode,
+} from "@km/store";
 import { emit } from "@km/core";
 import {
   getNodeDisplayName,
@@ -37,6 +43,20 @@ import {
   type SelectionRange,
   type MouseEvent as TermMouseEvent,
 } from "./mouse-handler.ts";
+
+// Default favorites: common boards accessed via 1-9 keys
+// These are resolved at runtime using the same resolution as CLI commands
+const DEFAULT_FAVORITES: Record<string, string> = {
+  "1": "@inbox", // Inbox
+  "2": "@next", // Next actions
+  "3": "@waiting", // Waiting for
+  "4": "@someday", // Someday/maybe
+  "5": "@projects", // Projects
+  "6": "@areas", // Areas of responsibility
+  "7": "@archive", // Archive
+  "8": "@reference", // Reference
+  "9": "@goals", // Goals
+};
 
 // Build path from root to a given node as file path with # for sections
 function getNodePath(nodeId: string | null): string {
@@ -506,6 +526,13 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
   const [selectAllLevel, setSelectAllLevel] = useState(0); // Track selection level for progressive Shift+A
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode); // board or tree view
 
+  // Navigation history for [ and ] keys (separate from zoom stack which is physical parent chain)
+  // Each entry stores the root ID and cursor position at that view
+  const [navHistory, setNavHistory] = useState<
+    Array<{ rootId: string | null; colIndex: number; cardIndex: number }>
+  >([{ rootId: initialState.rootId, colIndex: 0, cardIndex: 0 }]);
+  const [navHistoryIndex, setNavHistoryIndex] = useState(0); // Current position in history
+
   // Listen for terminal resize
   useEffect(() => {
     if (!stdout) return;
@@ -588,6 +615,20 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       }
       return next;
     });
+  };
+
+  // Push a new entry to navigation history (truncating any forward history)
+  const pushNavHistory = (
+    rootId: string | null,
+    colIndex: number,
+    cardIndex: number,
+  ) => {
+    setNavHistory((prev) => {
+      // Truncate forward history if we're not at the end
+      const truncated = prev.slice(0, navHistoryIndex + 1);
+      return [...truncated, { rootId, colIndex, cardIndex }];
+    });
+    setNavHistoryIndex((prev) => prev + 1);
   };
 
   // Calculate max sub-items in current card
@@ -1095,7 +1136,40 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       return;
     }
 
-    // Plain 1-9: jump cursor to column (0-indexed, so 1 = column 0)
+    // Shift+1-9: jump cursor to column (0-indexed, so Shift+1 = column 0)
+    // Terminal sends !@#$%^&*( for Shift+1-9
+    const shiftNumberMap: Record<string, number> = {
+      "!": 0,
+      "@": 1,
+      "#": 2,
+      $: 3,
+      "%": 4,
+      "^": 5,
+      "&": 6,
+      "*": 7,
+      "(": 8,
+    };
+    const shiftColIndex = shiftNumberMap[input];
+    if (
+      shiftColIndex !== undefined &&
+      !showDetailPane &&
+      !inOutlineMode &&
+      shiftColIndex < state.columns.length
+    ) {
+      setState((s) => ({
+        ...s,
+        colIndex: shiftColIndex,
+        cardIndex: Math.min(
+          s.cardIndex,
+          Math.max(0, (s.columns[shiftColIndex]?.cards.length ?? 1) - 1),
+        ),
+      }));
+      clearSelection();
+      setSelectAllLevel(0); // Reset select all level when moving
+      return;
+    }
+
+    // Plain 1-9: jump to favorite boards
     // Note: Alt+1-9 for moving is handled below with key.meta check
     if (
       /^[1-9]$/.test(input) &&
@@ -1103,18 +1177,23 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       !inOutlineMode &&
       !key.meta // Not Alt+number (move)
     ) {
-      const targetCol = parseInt(input, 10) - 1;
-      if (targetCol < state.columns.length) {
-        setState((s) => ({
-          ...s,
-          colIndex: targetCol,
-          cardIndex: Math.min(
-            s.cardIndex,
-            Math.max(0, (s.columns[targetCol]?.cards.length ?? 1) - 1),
-          ),
-        }));
-        clearSelection();
-        setSelectAllLevel(0); // Reset select all level when moving
+      const favoriteRef = DEFAULT_FAVORITES[input];
+      if (favoriteRef) {
+        const resolved = resolveNode(favoriteRef);
+        if (resolved) {
+          const zoomed = buildBoardState(resolved.id);
+          zoomed.zoomStack = [...state.zoomStack, state.rootId || ""];
+          // Push current location to navigation history before navigating
+          pushNavHistory(state.rootId, state.colIndex, state.cardIndex);
+          setInOutlineMode(false);
+          setSubIndex(0);
+          clearSelection();
+          setShowDetailPane(false);
+          setState(zoomed);
+        } else {
+          // Favorite not found - beep
+          process.stdout.write("\x07");
+        }
       }
       return;
     }
@@ -1171,8 +1250,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       }
     }
 
-    // Go to parent: Escape or 'u'
-    if (key.escape || input === "u") {
+    // Escape: close UI elements progressively, then quit
+    if (key.escape) {
       // If detail pane is open, close it
       if (showDetailPane) {
         setShowDetailPane(false);
@@ -1185,44 +1264,91 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
         clearSelection();
         return;
       }
-      // If zoomed in, go back to parent board
-      if (state.zoomStack.length > 0) {
-        const parentId = state.zoomStack[state.zoomStack.length - 1];
-        if (parentId) {
-          const zoomed = buildBoardState(parentId);
-          zoomed.zoomStack = state.zoomStack.slice(0, -1);
-          setState(zoomed);
-          clearSelection();
-          return;
-        }
+      // Otherwise quit
+      exit();
+      return;
+    }
+
+    // 'u': Go up the physical path (parent of current root)
+    if (input === "u") {
+      if (showDetailPane) {
+        setShowDetailPane(false);
+        return;
       }
-      // At root of zoom stack - try to go up to parent node
+      if (inOutlineMode) {
+        setInOutlineMode(false);
+        setSubIndex(0);
+        clearSelection();
+        return;
+      }
+
+      // Go up to parent of current root
       if (state.rootId) {
         const currentRoot = getNode(state.rootId);
         if (currentRoot?.parent_id) {
-          // Go up to parent
           const parentNode = getNode(currentRoot.parent_id);
-          if (parentNode?.parent_id) {
-            // Parent has a parent - build board from grandparent
-            const grandparent = getNode(parentNode.parent_id);
-            if (grandparent) {
-              const zoomed = buildBoardState(grandparent.id);
-              setState(zoomed);
-              clearSelection();
-              return;
-            }
-          }
-          // Parent is at top level - go to root view
-          const rootState = initBoardState();
-          if (rootState) {
-            setState(rootState);
+          if (parentNode) {
+            const zoomed = buildBoardState(parentNode.id);
+            // Push current location to history before navigating
+            pushNavHistory(state.rootId, state.colIndex, state.cardIndex);
+            setState(zoomed);
             clearSelection();
             return;
           }
         }
       }
-      // Truly at top level, quit
-      exit();
+      // No parent - beep
+      process.stdout.write("\x07");
+      return;
+    }
+
+    // '[': Navigate back in history
+    if (input === "[") {
+      if (navHistoryIndex > 0) {
+        const prevEntry = navHistory[navHistoryIndex - 1];
+        if (prevEntry) {
+          const newState = prevEntry.rootId
+            ? buildBoardState(prevEntry.rootId)
+            : initBoardState();
+          if (newState) {
+            newState.colIndex = prevEntry.colIndex;
+            newState.cardIndex = prevEntry.cardIndex;
+            setState(newState);
+            setNavHistoryIndex(navHistoryIndex - 1);
+            clearSelection();
+            setInOutlineMode(false);
+            setSubIndex(0);
+          }
+        }
+      } else {
+        // No history to go back to - beep
+        process.stdout.write("\x07");
+      }
+      return;
+    }
+
+    // ']': Navigate forward in history
+    if (input === "]") {
+      if (navHistoryIndex < navHistory.length - 1) {
+        const nextEntry = navHistory[navHistoryIndex + 1];
+        if (nextEntry) {
+          const newState = nextEntry.rootId
+            ? buildBoardState(nextEntry.rootId)
+            : initBoardState();
+          if (newState) {
+            newState.colIndex = nextEntry.colIndex;
+            newState.cardIndex = nextEntry.cardIndex;
+            setState(newState);
+            setNavHistoryIndex(navHistoryIndex + 1);
+            clearSelection();
+            setInOutlineMode(false);
+            setSubIndex(0);
+          }
+        }
+      } else {
+        // No forward history - beep
+        process.stdout.write("\x07");
+      }
       return;
     }
 
@@ -1284,6 +1410,50 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
         }
         return next;
       });
+      return;
+    }
+
+    // Status cycling with Space key (works on selected card/item)
+    // For symlinked nodes (transclusions), apply status change to the TARGET node
+    if (input === " " && card) {
+      // Resolve symlink target: if this is a symlink, operate on the target
+      const targetId = card.node.symlink_to || card.node.id;
+      const targetNode = card.node.symlink_to
+        ? getNode(card.node.symlink_to)
+        : card.node;
+      const currentStatus = targetNode?.task_status || "open";
+      const statusCycle: TaskStatus[] = ["open", "blocked", "done", "dropped"];
+      const currentIndex = statusCycle.indexOf(currentStatus);
+      const nextIndex = (currentIndex + 1) % statusCycle.length;
+      const nextStatus = statusCycle[nextIndex] as TaskStatus;
+      const markMap: Record<TaskStatus, string> = {
+        open: " ",
+        blocked: "!",
+        done: "x",
+        dropped: "-",
+      };
+      const nextMark = markMap[nextStatus];
+
+      emit({
+        type: "node_updated",
+        actor: "user",
+        target: targetId,
+        data: { task_status: nextStatus, task_mark: nextMark },
+      });
+
+      // Refresh board state
+      setTimeout(() => {
+        const newState = state.rootId
+          ? buildBoardState(state.rootId)
+          : initBoardState();
+        if (newState) {
+          newState.zoomStack = state.zoomStack;
+          newState.rootPath = state.rootPath;
+          newState.colIndex = state.colIndex;
+          newState.cardIndex = state.cardIndex;
+          setState(newState);
+        }
+      }, 50);
       return;
     }
 
@@ -1609,10 +1779,53 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
         return s; // Don't change board state, just show pane
       }
 
-      // Zoom in with 'o' (open/expand into children)
-      if (input === "o" && card && card.children.length > 0) {
-        const zoomed = buildBoardState(card.node.id);
+      // Zoom in with 'o' - re-root at grandparent for context, select the item
+      // For transcluded/symlinked items, follow the link to the original
+      if (input === "o" && card) {
+        const targetId = card.node.symlink_to || card.node.id;
+        const targetNode = getNode(targetId);
+        if (!targetNode) return s;
+
+        // Find the best root: grandparent > parent > item itself
+        // This gives context by showing siblings
+        let rootId = targetId;
+        const parentNode = targetNode.parent_id
+          ? getNode(targetNode.parent_id)
+          : null;
+        const grandparentNode = parentNode?.parent_id
+          ? getNode(parentNode.parent_id)
+          : null;
+
+        if (grandparentNode) {
+          rootId = grandparentNode.id;
+        } else if (parentNode) {
+          rootId = parentNode.id;
+        }
+
+        const zoomed = buildBoardState(rootId);
         zoomed.zoomStack = [...s.zoomStack, s.rootId || ""];
+
+        // Find the target item in the new board state to select it
+        let foundCol = 0;
+        let foundCard = 0;
+        for (let cIdx = 0; cIdx < zoomed.columns.length; cIdx++) {
+          const col = zoomed.columns[cIdx];
+          if (!col) continue;
+          for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
+            const c = col.cards[cardIdx];
+            if (c && c.node.id === targetId) {
+              foundCol = cIdx;
+              foundCard = cardIdx;
+              break;
+            }
+          }
+        }
+        zoomed.colIndex = foundCol;
+        zoomed.cardIndex = foundCard;
+
+        // Push current location to navigation history before navigating
+        pushNavHistory(s.rootId, s.colIndex, s.cardIndex);
+
         setInOutlineMode(false);
         setSubIndex(0);
         clearSelection();
@@ -1667,10 +1880,10 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
         return;
       }
 
-      // Status cycling in detail pane
+      // Status cycling in detail pane with Space key
       // For symlinked nodes (transclusions), apply status change to the TARGET node
       // This ensures the original task is updated, not just the symlink
-      if (input === "s" || input === "x") {
+      if (input === " ") {
         const card = state.columns[state.colIndex]?.cards[state.cardIndex];
         if (card) {
           // Resolve symlink target: if this is a symlink, operate on the target

@@ -13,7 +13,7 @@ Command-line interface for task management.
 | `km +board` | View/manage `+` board       |
 | `km #board` | View/manage `#` board       |
 | `km new`    | Quick capture (create task) |
-| `km done`   | Mark task done              |
+| `km status` | View/set task status        |
 | `km add`    | Add tasks to board/list     |
 | `km move`   | Re-parent task              |
 | `km init`   | Initialize from template    |
@@ -168,25 +168,29 @@ km new "Weekly review" --recur "FREQ=WEEKLY;BYDAY=MO"
 
 ---
 
-## km done
+## km status
 
-Mark task done.
+View or set task status.
 
 ### Usage
 
 ```bash
-km done <node>              # Mark done by ID, path, or filename
-km done ABCD1234            # By ID prefix/suffix
-km done ./inbox/task.md     # By path
+km status <node>            # View current status
+km status <node> done       # Mark done (by ID, path, or filename)
+km status <node> open       # Re-open task
+km status <node> blocked    # Mark as blocked
+km status <node> dropped    # Drop/cancel task
+km status ABCD1234 done     # By ID prefix/suffix
+km status ./inbox/task.md done  # By path
 ```
 
 Node resolution tries: exact ID, ID prefix, ID suffix, path, filename, content match.
 
 ### Behavior
 
-- Sets `status = done`
-- For recurring tasks: clones with next occurrence
-- Automations remove from active boards
+- Sets `status` to specified value
+- For recurring tasks marked done: clones with next occurrence
+- Automations remove from active boards when done/dropped
 
 ---
 

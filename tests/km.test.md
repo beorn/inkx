@@ -61,44 +61,14 @@ inbox / .md
 1 task(s)
 ```
 
-### km done - Complete a task
+### km status - Complete a task
 
 Get a task and mark it done:
 
 ```console
 $ TASK_ID=$(km tasks --json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
-$ km done "$TASK_ID"
-✓ Marked done: Test task from mdtest
-```
-
-## Tree View
-
-### km tree
-
-Show node hierarchy (IDs hidden by default):
-
-```console
-$ km tree
-├── 📁 inbox
-│   └── 📄 inbox.md
-│       └── ✓ [x] Test task from mdtest
-├── 📁 archive
-├── 📄 @inbox.md
-[...]
-└── 📄 @someday.md
-[...]
-```
-
-## Search
-
-### km search
-
-Full-text search (IDs hidden by default):
-
-```console
-$ km search "inbox"
-[...]
-3 result(s)
+$ km status "$TASK_ID" done
+[...]done[...]
 ```
 
 ## Node Resolution
@@ -204,7 +174,7 @@ $ km add @next './projects**'
 Verify tasks now appear under @next in the default (Processing) column:
 
 ```console
-$ km tree @next
+$ km show --tree @next
 [...]
     ├── § Processing default=true
     │   ├── ○ [ ] First project task
@@ -263,7 +233,7 @@ Title: Welcome to My Project
 H2 sections should be direct children of the file (not nested under an H1 section):
 
 ```console
-$ km tree docs/readme.md
+$ km show --tree docs/readme.md
 [...]
 └── 📄 readme.md
     ├── ¶ This is the intro paragraph.

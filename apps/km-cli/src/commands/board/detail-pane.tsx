@@ -260,18 +260,16 @@ export function DetailPane({
       borderStyle="single"
       borderColor="cyan"
     >
-      {/* Title */}
-      <Box paddingX={1}>
-        <Text bold wrap="truncate">
-          {title.slice(0, innerWidth - 2)}
+      {/* Title - let Ink handle wrapping naturally */}
+      <Box paddingX={1} width={innerWidth}>
+        <Text bold wrap="wrap">
+          {title}
         </Text>
       </Box>
 
-      {/* Separator */}
+      {/* Separator - full width */}
       <Box paddingX={1}>
-        <Text dimColor>
-          {"─".repeat(Math.min(innerWidth - 2, title.length + 2))}
-        </Text>
+        <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
       </Box>
 
       {/* Fields */}
@@ -343,13 +341,18 @@ export function DetailPane({
 
       {/* Content section */}
       {displayContent.length > 0 && (
-        <Box flexDirection="column" paddingX={1} marginTop={1}>
+        <Box
+          flexDirection="column"
+          paddingX={1}
+          marginTop={1}
+          width={innerWidth}
+        >
           <Text bold dimColor>
             Content
           </Text>
           {displayContent.map((line, i) => (
             <Text key={i} wrap="truncate">
-              {line.slice(0, innerWidth - 2)}
+              {line}
             </Text>
           ))}
           {hasMoreContent && <Text dimColor>...</Text>}
@@ -358,7 +361,12 @@ export function DetailPane({
 
       {/* Subtasks */}
       {subtasks.length > 0 && (
-        <Box flexDirection="column" paddingX={1} marginTop={1}>
+        <Box
+          flexDirection="column"
+          paddingX={1}
+          marginTop={1}
+          width={innerWidth}
+        >
           <Text bold dimColor>
             Subtasks ({subtasks.length})
           </Text>
@@ -368,10 +376,7 @@ export function DetailPane({
                 {getStatusIcon(task.task_status)}{" "}
               </Text>
               <Text dimColor={task.task_status === "done"}>
-                {(task.content || getNodeDisplayName(task)).slice(
-                  0,
-                  innerWidth - 6,
-                )}
+                {task.content || getNodeDisplayName(task)}
               </Text>
             </Text>
           ))}
@@ -383,13 +388,18 @@ export function DetailPane({
 
       {/* Backlinks */}
       {backlinkNodes.length > 0 && (
-        <Box flexDirection="column" paddingX={1} marginTop={1}>
+        <Box
+          flexDirection="column"
+          paddingX={1}
+          marginTop={1}
+          width={innerWidth}
+        >
           <Text bold dimColor>
             Backlinks ({backlinkNodes.length})
           </Text>
           {backlinkNodes.slice(0, maxBacklinks).map((bl) => (
             <Text key={bl.id} wrap="truncate" dimColor>
-              {"- "}[[{getNodeDisplayName(bl).slice(0, innerWidth - 8)}]]
+              {"- "}[[{getNodeDisplayName(bl)}]]
             </Text>
           ))}
           {backlinkNodes.length > maxBacklinks && (
@@ -401,7 +411,7 @@ export function DetailPane({
       {/* Keybindings hint */}
       <Box flexGrow={1} />
       <Box paddingX={1}>
-        <Text dimColor>h/Esc:close e:edit s:status d:due</Text>
+        <Text dimColor>h/Esc:close Space:status 1-5:priority</Text>
       </Box>
     </Box>
   );

@@ -10,7 +10,7 @@ import type { Node } from "@km/core";
 import { getChildren } from "@km/store";
 import type { BoardState, SelectionKey } from "./types.ts";
 import { makeSelectionKey } from "./InkBoard.tsx";
-import { getNodeDisplayName } from "@km/shared";
+import { getNodeDisplayName, getParentContext } from "@km/shared";
 
 interface TreeViewProps {
   state: BoardState;
@@ -112,34 +112,62 @@ function TreeNode({
   const content = node.content || getNodeDisplayName(node);
   const firstLine = content.split("\n")[0] ?? content;
 
+  // Check if this is a transcluded (symlinked) node
+  const isTranscluded =
+    node.symlink_to !== null && node.symlink_to !== undefined;
+
+  // Get parent context for top-level cards (depth 1)
+  // Shows where the task belongs, e.g., "< Green card" for a task from green-card.md
+  // For transcluded items, getParentContext follows symlink_to to get original location
+  const parentContext = depth === 1 && isTask ? getParentContext(node) : null;
+
   // Fold indicator
   const foldIndicator = hasChildren ? (isFolded ? "\u25B6" : "\u25BC") : " ";
   const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
 
+  // Transclusion indicator (→) for symlinked nodes
+  const transclusionMark = isTranscluded ? "→" : "";
+
   // Build prefix with indent
   const indent = "  ".repeat(depth);
-  const prefix = `${indent}${foldIndicator} ${icon} `;
+  const prefix = `${indent}${foldIndicator} ${icon}${transclusionMark} `;
 
-  // Info columns (right side)
+  // Info columns (right side) - organized for quick scanning
   const infoParts: string[] = [];
+
+  // Priority (P1-P5)
   if (node.priority) {
     infoParts.push(`P${node.priority}`);
   }
+
+  // Assignee/owner (@person)
+  if (node.assigned_to) {
+    infoParts.push(`@${node.assigned_to}`);
+  }
+
+  // Date column: show most relevant date
+  // Priority: due_date (upcoming) > scheduled_date (planned start)
   if (node.due_date) {
     const due = new Date(node.due_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const dueStr = due.toISOString().slice(5, 10); // MM-DD
-    infoParts.push(dueStr);
-  }
-  if (node.task_status && node.task_status !== "open") {
-    infoParts.push(node.task_status);
+    infoParts.push(`⏰${dueStr}`);
+  } else if (node.scheduled_date) {
+    const sched = new Date(node.scheduled_date);
+    const schedStr = sched.toISOString().slice(5, 10);
+    infoParts.push(`▶${schedStr}`);
   }
 
   const infoSuffix = infoParts.length > 0 ? `  ${infoParts.join(" ")}` : "";
 
+  // Parent context suffix (greyed out)
+  const contextSuffix = parentContext ? ` < ${parentContext}` : "";
+
   // Calculate available width for content
-  const fixedWidth = prefix.length + foldedCount.length + infoSuffix.length;
+  const fixedWidth =
+    prefix.length +
+    foldedCount.length +
+    infoSuffix.length +
+    contextSuffix.length;
   const availWidth = Math.max(1, width - fixedWidth);
   const truncatedContent =
     firstLine.length > availWidth
@@ -167,6 +195,7 @@ function TreeNode({
         {truncatedContent}
         {foldedCount}
         {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
+        {parentContext && <Text dimColor>{contextSuffix}</Text>}
       </Text>
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">

@@ -31,19 +31,20 @@ km init               # Enable tracking (creates .km/, disk mode)
 ```bash
 # Core views (all accept optional [query] for root node)
 km list [query]             # List nodes (alias: ls)
-km tree [query]             # Show structure
 km show <query>             # Show node details
+km show --tree <query>      # Show structure
 km board [query]            # Kanban board (TUI)
 
 # Query can be: node ID, path pattern, or relative path
 km ls projects/             # Nodes under projects/
-km tree 01H5X               # Tree from node ID prefix
+km show --tree 01H5X        # Tree from node ID prefix
 km ls --type task           # List all tasks
 km ls --type task --context # Tasks with ancestor paths
+km ls "search term"         # Full-text search
 
 # Task commands
 km task [query]             # = km ls --type task --context
-km task status <id> [status] # View or set task status
+km status <id> [status]     # View or set task status (open, blocked, done, dropped)
 
 # Actions
 km init                     # Enable persistence

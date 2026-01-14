@@ -20,14 +20,14 @@ Collapsing happens only in ui-tree — km-tree preserves actual structure.
 
 ## Views
 
-| View  | Command               | Collapsing      | Use                          |
-| ----- | --------------------- | --------------- | ---------------------------- |
-| List  | `km list` / `km ls`   | No              | Flat node list               |
-| List  | `km ls --context`     | Yes (ancestors) | With ancestor paths          |
-| Tasks | `km tasks`            | Yes (ancestors) | = `ls --type task --context` |
-| Board | `km board`            | Yes (children)  | Kanban columns               |
-| Tree  | `km tree`             | No              | Actual structure             |
-| Tree  | `km tree --collapsed` | Yes             | Compact view                 |
+| View  | Command                      | Collapsing      | Use                          |
+| ----- | ---------------------------- | --------------- | ---------------------------- |
+| List  | `km list` / `km ls`          | No              | Flat node list               |
+| List  | `km ls --context`            | Yes (ancestors) | With ancestor paths          |
+| Tasks | `km tasks`                   | Yes (ancestors) | = `ls --type task --context` |
+| Board | `km board`                   | Yes (children)  | Kanban columns               |
+| Tree  | `km show --tree`             | No              | Actual structure             |
+| Tree  | `km show --tree --collapsed` | Yes             | Compact view                 |
 
 All views support `--id` to show node IDs (hidden by default).
 
@@ -137,7 +137,7 @@ Column headers use `getCollapsedTypeSuffix(node)`.
 ## Tree View
 
 ```
-$ km tree
+$ km show --tree projects/
 
 projects/
   Taxes/
@@ -152,7 +152,7 @@ No collapsing — shows actual km-tree structure.
 With `--collapsed`:
 
 ```
-$ km tree --collapsed
+$ km show --tree --collapsed projects/
 
 projects/
   Taxes / .md #
