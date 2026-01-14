@@ -33,6 +33,7 @@ import { ProjectPicker } from "./project-picker.tsx";
 import { HelpOverlay } from "./help-overlay.tsx";
 import { TreeView } from "./TreeView.tsx";
 import { ColumnsView } from "./ColumnsView.tsx";
+import { TabsView } from "./TabsView.tsx";
 import {
   createPasteHandler,
   getFileInfo,
@@ -283,12 +284,12 @@ function OutlineItem({
   const foldIndicator = hasChildren ? (isFolded ? "\u25B6" : "\u25BC") : " ";
   const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
 
-  // Build prefix: "  " per depth + fold indicator + space + icon + space
+  // Build prefix: 1 space per depth + fold indicator + icon (no extra spaces)
   // Add transclusion indicator (→) for symlinked nodes
-  const indent = "  ".repeat(depth);
+  const indent = " ".repeat(depth);
   const transclusionMark = isTranscluded ? "→" : "";
   const prefix = icon
-    ? `${indent}${foldIndicator} ${icon}${transclusionMark} `
+    ? `${indent}${foldIndicator}${icon}${transclusionMark} `
     : `${indent}${foldIndicator} `;
   const suffix = typeSuffix ? ` ${typeSuffix}` : "";
 
@@ -548,6 +549,8 @@ function Column({
       ? "blueBright"
       : "blackBright";
 
+  const isColumnSelected = isSelected && selectionLevel === "column";
+
   return (
     <Box
       flexDirection="column"
@@ -559,20 +562,16 @@ function Column({
     >
       <Text
         bold
-        color={isSelected && selectionLevel === "column" ? "white" : "yellow"}
-        backgroundColor={isSelected && selectionLevel === "column" ? "blue" : undefined}
+        color={isColumnSelected ? "white" : "yellow"}
+        backgroundColor={isColumnSelected ? "blue" : undefined}
         wrap="truncate"
       >
-        {name.slice(
-          0,
-          width -
-            6 -
-            (typeSuffix ? typeSuffix.length + 1 : 0) -
-            countDisplay.length -
-            warningIndicator.length -
-            collapsedIndicator.length,
+        {name}
+        {typeSuffix ? (
+          <Text color={isColumnSelected ? "white" : "gray"}>{` ${typeSuffix}`}</Text>
+        ) : (
+          ""
         )}
-        {typeSuffix ? <Text color="gray">{` ${typeSuffix}`}</Text> : ""}
         {wipExceeded ? (
           <Text color="red">{` ${countDisplay}${warningIndicator}`}</Text>
         ) : (
@@ -607,7 +606,9 @@ function Column({
               const actualCardIndex = scrollOffset + i;
               // Card is only selected when at card level (not column or board level)
               const cardIsSelected =
-                isSelected && actualCardIndex === selectedCardIndex && selectionLevel === "card";
+                isSelected &&
+                actualCardIndex === selectedCardIndex &&
+                selectionLevel === "card";
               return (
                 <Card
                   key={card.node.id}
@@ -688,7 +689,9 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
   const [selectAllLevel, setSelectAllLevel] = useState(0); // Track selection level for progressive Shift+A
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode); // cards, list, or columns view
   // Selection level: "card" (default), "column" (column header selected), "board" (entire board selected)
-  const [selectionLevel, setSelectionLevel] = useState<"board" | "column" | "card">("card");
+  const [selectionLevel, setSelectionLevel] = useState<
+    "board" | "column" | "card"
+  >("card");
 
   // Navigation history for [ and ] keys (separate from zoom stack which is physical parent chain)
   // Each entry stores the root ID and cursor position at that view
@@ -1411,7 +1414,7 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       return;
     }
 
-    // Cycle view mode with 'v': cards -> columns -> list -> cards
+    // Cycle view mode with 'v': cards -> columns -> list -> tabs -> cards
     if (input === "v") {
       setViewMode((prev) => {
         switch (prev) {
@@ -1420,6 +1423,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
           case "columns":
             return "list";
           case "list":
+            return "tabs";
+          case "tabs":
             return "cards";
           default:
             return "cards";
@@ -2063,10 +2068,15 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
         const newColIndex = Math.max(0, s.colIndex - 1);
         newState.colIndex = newColIndex;
         if (selectionLevel === "card") {
-          // At card level, also update card index to same position in new column
-          newState.cardIndex = findSamePositionCard(newColIndex, s.cardIndex);
+          const targetCol = s.columns[newColIndex];
+          if (!targetCol || targetCol.cards.length === 0) {
+            // Empty column - switch to column level
+            setSelectionLevel("column");
+          } else {
+            // At card level, update card index to same position in new column
+            newState.cardIndex = findSamePositionCard(newColIndex, s.cardIndex);
+          }
         }
-        // Stay at current selection level (column or card)
         setInOutlineMode(false);
         setSubIndex(0);
         clearSelection();
@@ -2078,10 +2088,15 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
         const newColIndex = Math.min(s.columns.length - 1, s.colIndex + 1);
         newState.colIndex = newColIndex;
         if (selectionLevel === "card") {
-          // At card level, also update card index to same position in new column
-          newState.cardIndex = findSamePositionCard(newColIndex, s.cardIndex);
+          const targetCol = s.columns[newColIndex];
+          if (!targetCol || targetCol.cards.length === 0) {
+            // Empty column - switch to column level
+            setSelectionLevel("column");
+          } else {
+            // At card level, update card index to same position in new column
+            newState.cardIndex = findSamePositionCard(newColIndex, s.cardIndex);
+          }
         }
-        // Stay at current selection level (column or card)
         setInOutlineMode(false);
         setSubIndex(0);
         clearSelection();
@@ -2436,29 +2451,30 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       )
     : colScrollOffset;
 
-  // Build top bar with consistent white background, bold black text
-  // Make the separator at board boundary stand out with blue color
-  // When at board/column level, highlight the selected segment with blue background
+  // Build top bar - blue background when board is selected, white otherwise
+  const isBoardSelected = selectionLevel === "board";
   const topBarContent = selectedPathSegments
     .map((seg, i) => {
       // Check if this is the boundary between board path and item path
       const prevSeg = i > 0 ? selectedPathSegments[i - 1] : null;
-      const isBoardBoundary = prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
-      const isLastSegment = i === selectedPathSegments.length - 1;
-      // At board level, highlight non-within-board segments (the board path itself)
-      const isBoardSelected = selectionLevel === "board" && !seg.isWithinBoard;
-      // At column level, highlight the last segment (the column)
-      const isColumnSelected = selectionLevel === "column" && isLastSegment;
-      // Use blue for the boundary separator to make it stand out
-      const sepPart = seg.sep
-        ? isBoardBoundary
-          ? chalk.bgWhite.blue.bold(` ${seg.sep} `)
-          : chalk.bgWhite.gray(` ${seg.sep} `)
-        : "";
-      const namePart = (isBoardSelected || isColumnSelected)
-        ? chalk.bgBlue.white.bold(seg.name)
-        : chalk.bgWhite.black.bold(seg.name);
-      return sepPart + namePart;
+      const isBoardBoundary =
+        prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
+
+      if (isBoardSelected) {
+        // Blue background, white text when board is selected
+        const sepPart = seg.sep ? chalk.bgBlue.white(` ${seg.sep} `) : "";
+        const namePart = chalk.bgBlue.white.bold(seg.name);
+        return sepPart + namePart;
+      } else {
+        // White background, black text normally
+        const sepPart = seg.sep
+          ? isBoardBoundary
+            ? chalk.bgWhite.blue.bold(` ${seg.sep} `)
+            : chalk.bgWhite.gray(` ${seg.sep} `)
+          : "";
+        const namePart = chalk.bgWhite.black.bold(seg.name);
+        return sepPart + namePart;
+      }
     })
     .join("");
   // Calculate visible length (without ANSI codes)
@@ -2470,13 +2486,15 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     );
   const padding = " ".repeat(Math.max(0, termWidth - visibleLen));
 
+  // Background color for the top bar
+  const topBarBg = isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
+  const topBarFg = isBoardSelected ? chalk.bgBlue.white : chalk.bgWhite.black;
+
   return (
     <Box flexDirection="column" height={termHeight} minHeight={3}>
       {/* Top bar: full path from root to selected item, inverted full width */}
       <Box height={1} width={termWidth}>
-        <Text>
-          {chalk.bgWhite.black(" ") + topBarContent + chalk.bgWhite(padding)}
-        </Text>
+        <Text>{topBarFg(" ") + topBarContent + topBarBg(padding)}</Text>
       </Box>
       <Box flexGrow={1} flexDirection="row" height={termHeight - 2}>
         {/* Cards, Columns, or List view */}
@@ -2501,7 +2519,9 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
               const indicatorWidth =
                 (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
               const availableWidth = boardWidth - indicatorWidth;
-              const baseColWidth = Math.floor(availableWidth / effectiveMaxCols);
+              const baseColWidth = Math.floor(
+                availableWidth / effectiveMaxCols,
+              );
               const remainder = availableWidth % effectiveMaxCols;
               // Distribute extra pixels to the first 'remainder' columns
               const adjustedColWidth = baseColWidth + (i < remainder ? 1 : 0);
@@ -2553,8 +2573,22 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
             effectiveVisibleColumns={effectiveVisibleColumns}
             selectionLevel={selectionLevel}
           />
-        ) : (
+        ) : viewMode === "list" ? (
           <TreeView
+            state={state}
+            width={boardWidth}
+            height={termHeight - 2}
+            foldedNodes={foldedNodes}
+            maxOutlineDepth={maxOutlineDepth}
+            multiSelected={multiSelected}
+            colIndex={state.colIndex}
+            cardIndex={state.cardIndex}
+            subIndex={subIndex}
+            inOutlineMode={inOutlineMode}
+            selectionLevel={selectionLevel}
+          />
+        ) : (
+          <TabsView
             state={state}
             width={boardWidth}
             height={termHeight - 2}

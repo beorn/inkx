@@ -145,3 +145,20 @@ git push                # Push to remote
 - Always `bd sync` before ending session
 
 <!-- end-bv-agent-instructions -->
+
+## Screenshots
+
+To capture screenshots for UI debugging, use peekaboo directly via bash (not the MCP server):
+
+```bash
+# Capture frontmost window
+peekaboo image --path /tmp/screenshot.png
+
+# Capture specific app
+peekaboo image --app "Ghostty" --path /tmp/screenshot.png
+
+# Capture full screen
+peekaboo image --target screen --path /tmp/screenshot.png
+```
+
+Then use the Read tool to view the image.
