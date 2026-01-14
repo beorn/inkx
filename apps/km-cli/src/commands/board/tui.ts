@@ -5,7 +5,7 @@
  */
 
 import chalk from "chalk";
-import type { BoardState } from "./types.ts";
+import type { BoardState, TuiOptions, ViewMode } from "./types.ts";
 import { initBoardState } from "./state.ts";
 import { renderBoardStatic } from "./render.ts";
 import { renderInkBoard } from "./InkBoard.tsx";
@@ -16,7 +16,10 @@ import { SyncManager } from "@km/watch";
  * Run the interactive board TUI using Ink
  * Returns when the user quits
  */
-export async function runBoardTUI(initialState: BoardState): Promise<void> {
+export async function runBoardTUI(
+  initialState: BoardState,
+  options?: TuiOptions,
+): Promise<void> {
   const stdin = process.stdin;
   const stdout = process.stdout;
 
@@ -29,7 +32,7 @@ export async function runBoardTUI(initialState: BoardState): Promise<void> {
   }
 
   // Use Ink for interactive TUI
-  renderInkBoard(initialState);
+  renderInkBoard(initialState, options?.initialViewMode);
 }
 
 /**
@@ -47,6 +50,7 @@ export async function runBoard(
   rootId?: string,
   interactive: boolean = true,
   rootPath?: string,
+  options?: TuiOptions,
 ): Promise<void> {
   const state = initBoardState(rootId);
 
@@ -77,7 +81,7 @@ export async function runBoard(
 
   try {
     if (interactive) {
-      await runBoardTUI(state);
+      await runBoardTUI(state, options);
     } else {
       runBoardStatic(state);
     }

@@ -86,3 +86,10 @@ export interface RenderOptions {
   height: number;
   useColor: boolean;
 }
+
+/**
+ * Options for running the TUI
+ */
+export interface TuiOptions {
+  initialViewMode?: ViewMode;
+}

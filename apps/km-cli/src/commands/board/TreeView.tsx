@@ -231,63 +231,62 @@ export function TreeView({
 
   return (
     <Box flexDirection="column" width={width} height={availableHeight}>
-      {/* Root node title if available */}
-      {state.rootPath && (
-        <Box marginBottom={1}>
-          <Text bold color="cyan">
-            {state.rootPath.split("/").pop() || "Board"}
-          </Text>
-        </Box>
-      )}
-
       {/* Columns as top-level sections */}
       {state.columns.map((column, cIdx) => {
         const isColSelected = colIndex === cIdx && cardIndex === -1;
+        const colName = column.node.content || getNodeDisplayName(column.node);
+        // Build column header line with separator
+        const headerText = `\u2500\u2500 ${colName} (${column.cards.length}) `;
+        const remainingWidth = Math.max(0, width - headerText.length - 1);
+        const separator = "\u2500".repeat(remainingWidth);
 
         return (
           <Box key={column.node.id} flexDirection="column" marginBottom={1}>
-            {/* Column header */}
+            {/* Column header with horizontal line */}
             <Text
               bold
               color={isColSelected ? "white" : "yellow"}
               backgroundColor={isColSelected ? "blue" : undefined}
             >
-              {"\u00A7"}{" "}
-              {column.node.content || getNodeDisplayName(column.node)}
-              <Text dimColor> ({column.cards.length})</Text>
+              {headerText}
+              <Text dimColor>{separator}</Text>
             </Text>
 
             {/* Cards in column */}
-            {column.cards.map((card, cardIdx) => {
-              const isCardSelected =
-                colIndex === cIdx && cardIndex === cardIdx && !inOutlineMode;
-              const cardKey = makeSelectionKey(cIdx, cardIdx, 0);
-              const isCardMultiSelected = multiSelected.has(cardKey);
+            {column.cards.length === 0 ? (
+              <Text dimColor> (empty)</Text>
+            ) : (
+              column.cards.map((card, cardIdx) => {
+                const isCardSelected =
+                  colIndex === cIdx && cardIndex === cardIdx && !inOutlineMode;
+                const cardKey = makeSelectionKey(cIdx, cardIdx, 0);
+                const isCardMultiSelected = multiSelected.has(cardKey);
 
-              return (
-                <TreeNode
-                  key={card.node.id}
-                  node={card.node}
-                  depth={1}
-                  width={width - 2}
-                  isSelected={
-                    isCardSelected ||
-                    (inOutlineMode &&
-                      colIndex === cIdx &&
-                      cardIndex === cardIdx &&
-                      subIndex === 0)
-                  }
-                  isMultiSelected={isCardMultiSelected}
-                  foldedNodes={foldedNodes}
-                  maxDepth={maxOutlineDepth + 1}
-                  colIndex={cIdx}
-                  cardIndex={cardIdx}
-                  subIndex={0}
-                  multiSelected={multiSelected}
-                  inOutlineMode={inOutlineMode}
-                />
-              );
-            })}
+                return (
+                  <TreeNode
+                    key={card.node.id}
+                    node={card.node}
+                    depth={1}
+                    width={width - 2}
+                    isSelected={
+                      isCardSelected ||
+                      (inOutlineMode &&
+                        colIndex === cIdx &&
+                        cardIndex === cardIdx &&
+                        subIndex === 0)
+                    }
+                    isMultiSelected={isCardMultiSelected}
+                    foldedNodes={foldedNodes}
+                    maxDepth={maxOutlineDepth + 1}
+                    colIndex={cIdx}
+                    cardIndex={cardIdx}
+                    subIndex={0}
+                    multiSelected={multiSelected}
+                    inOutlineMode={inOutlineMode}
+                  />
+                );
+              })
+            )}
           </Box>
         );
       })}

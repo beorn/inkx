@@ -465,9 +465,10 @@ function Column({
 
 interface BoardProps {
   initialState: BoardState;
+  initialViewMode?: ViewMode;
 }
 
-function Board({ initialState }: BoardProps) {
+function Board({ initialState, initialViewMode = "board" }: BoardProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [dimensions, setDimensions] = useState({
@@ -487,7 +488,9 @@ function Board({ initialState }: BoardProps) {
     card: number;
     sub: number;
   } | null>(null);
-  const [showDetailPane, setShowDetailPane] = useState(false); // Whether detail pane is visible
+  const [showDetailPane, setShowDetailPane] = useState(
+    initialViewMode === "tree",
+  ); // Detail pane visible by default in tree view
   const [collapsedColumns, setCollapsedColumns] = useState<Set<number>>(
     new Set(initialState.collapsedColumns),
   ); // Column indices that are collapsed
@@ -501,7 +504,7 @@ function Board({ initialState }: BoardProps) {
   const [isMouseDragging, setIsMouseDragging] = useState(false); // Whether mouse drag is active
   const [showHelp, setShowHelp] = useState(false); // Whether help overlay is visible
   const [selectAllLevel, setSelectAllLevel] = useState(0); // Track selection level for progressive Shift+A
-  const [viewMode, setViewMode] = useState<ViewMode>("board"); // board or tree view
+  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode); // board or tree view
 
   // Listen for terminal resize
   useEffect(() => {
@@ -1974,11 +1977,17 @@ function Board({ initialState }: BoardProps) {
   );
 }
 
-export function renderInkBoard(state: BoardState): void {
-  void withFullScreen(<Board initialState={state} />, {
-    exitOnCtrlC: true,
-    patchConsole: true,
-  }).start();
+export function renderInkBoard(
+  state: BoardState,
+  initialViewMode?: ViewMode,
+): void {
+  void withFullScreen(
+    <Board initialState={state} initialViewMode={initialViewMode} />,
+    {
+      exitOnCtrlC: true,
+      patchConsole: true,
+    },
+  ).start();
 }
 
 // Testable version of Board component with fixed dimensions for testing

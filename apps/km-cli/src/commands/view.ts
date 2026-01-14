@@ -9,6 +9,7 @@ import { Command } from "commander";
 import { runBoard } from "./board/tui.ts";
 import { getRootPath } from "../index.ts";
 import { getStore } from "@km/store";
+import type { ViewMode } from "./board/types.ts";
 
 export const viewCommand = new Command("view")
   .description("Interactive TUI view (board/tree, press 'v' to toggle)")
@@ -22,6 +23,8 @@ export const viewCommand = new Command("view")
   .action(async (root, options) => {
     // Get the filesystem root path - prefer explicit --root, fall back to store's rootPath
     const fsPath = getRootPath() || getStore().rootPath;
-    // TODO: Pass initial view mode to runBoard when we add that support
-    await runBoard(root, options.tui !== false, fsPath);
+    const viewMode = (options.as === "tree" ? "tree" : "board") as ViewMode;
+    await runBoard(root, options.tui !== false, fsPath, {
+      initialViewMode: viewMode,
+    });
   });
