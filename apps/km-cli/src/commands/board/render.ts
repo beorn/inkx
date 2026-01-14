@@ -332,6 +332,8 @@ export function getStatusIcon(status?: TaskStatus): string {
       return chalk.cyan("◷");
     case "cancelled":
       return chalk.dim("✗");
+    case "dropped":
+      return chalk.gray("∅");
     default:
       return chalk.dim("○");
   }

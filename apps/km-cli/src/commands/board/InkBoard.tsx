@@ -78,6 +78,8 @@ function getStatusIcon(status?: TaskStatus): string {
       return "\u2298"; // circled slash
     case "waiting":
       return "\u25F7"; // clock
+    case "dropped":
+      return "\u2205"; // empty set (∅)
     default:
       return "\u25CB"; // empty circle
   }
