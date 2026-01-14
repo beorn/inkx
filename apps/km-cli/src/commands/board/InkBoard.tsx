@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { withFullScreen } from "fullscreen-ink";
+import chalk from "chalk";
 import type {
   BoardState,
   CardState,
@@ -92,6 +93,119 @@ function getNodePath(nodeId: string | null): string {
   }
 
   return path || "/";
+}
+
+// Build path segments for colorized display
+// Returns segments with: { name, sep, isWithinBoard }
+// isWithinBoard distinguishes the board root path from path within the board
+function getPathSegments(
+  nodeId: string | null,
+  boardRootId: string | null,
+): Array<{ name: string; sep: string; isWithinBoard: boolean }> {
+  if (!nodeId) return [{ name: "/", sep: "", isWithinBoard: false }];
+
+  // Collect all nodes from root to target
+  const nodes: Node[] = [];
+  let currentId: string | null = nodeId;
+  while (currentId) {
+    const node = getNode(currentId);
+    if (!node) break;
+    nodes.unshift(node);
+    currentId = node.parent_id;
+  }
+
+  if (nodes.length === 0) return [{ name: "/", sep: "", isWithinBoard: false }];
+
+  // Find index where we enter the board (nodes after boardRootId)
+  let boardRootIndex = -1;
+  if (boardRootId) {
+    boardRootIndex = nodes.findIndex((n) => n.id === boardRootId);
+  }
+
+  // Build segments with separators
+  const segments: Array<{ name: string; sep: string; isWithinBoard: boolean }> =
+    [];
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (!node) continue;
+    const name = getNodeDisplayName(node);
+    const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex;
+
+    if (node.type === "folder" || node.type === "file") {
+      segments.push({
+        name,
+        sep: segments.length > 0 ? "/" : "",
+        isWithinBoard,
+      });
+    } else if (node.type === "section") {
+      segments.push({ name, sep: "#", isWithinBoard });
+    } else if (node.type === "board") {
+      if (segments.length === 0) {
+        segments.push({ name, sep: "", isWithinBoard: false });
+      }
+    } else {
+      // Other types (paragraph, task, etc.)
+      segments.push({
+        name,
+        sep: segments.length > 0 ? "/" : "",
+        isWithinBoard,
+      });
+    }
+  }
+
+  return segments.length > 0
+    ? segments
+    : [{ name: "/", sep: "", isWithinBoard: false }];
+}
+
+// Truncate path segments to fit within maxWidth
+// First truncates from the start of within-board segments, then from start of root path
+function truncatePathSegments(
+  segments: Array<{ name: string; sep: string; isWithinBoard: boolean }>,
+  maxWidth: number,
+): Array<{ name: string; sep: string; isWithinBoard: boolean }> {
+  // Calculate current total length (sep has space padding: " sep ")
+  const calcLength = (
+    segs: Array<{ name: string; sep: string; isWithinBoard: boolean }>,
+  ) =>
+    segs.reduce(
+      (acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0),
+      0,
+    );
+
+  let totalLen = calcLength(segments);
+  if (totalLen <= maxWidth) return segments;
+
+  // Split into root path and within-board segments
+  const rootSegs = segments.filter((s) => !s.isWithinBoard);
+  const boardSegs = segments.filter((s) => s.isWithinBoard);
+
+  // First truncate within-board segments from the start
+  while (
+    boardSegs.length > 1 &&
+    calcLength([...rootSegs, ...boardSegs]) > maxWidth
+  ) {
+    boardSegs.shift();
+    const first = boardSegs[0];
+    if (first) {
+      boardSegs[0] = { ...first, name: "…" + first.name };
+    }
+    break; // Only add one ellipsis
+  }
+
+  // If still too long, truncate root segments from the start
+  const combined = [...rootSegs, ...boardSegs];
+  totalLen = calcLength(combined);
+  if (totalLen > maxWidth && rootSegs.length > 1) {
+    // Remove from start, add ellipsis
+    const result = [...rootSegs.slice(1), ...boardSegs];
+    if (result.length > 0 && result[0]) {
+      result[0] = { ...result[0], sep: "", name: "…" + result[0].name };
+    }
+    return result;
+  }
+
+  return [...rootSegs, ...boardSegs];
 }
 
 // Status icons
@@ -386,9 +500,34 @@ function Column({
   const wipLimit = column.wipLimit;
   const wipExceeded = wipLimit !== undefined && count > wipLimit;
 
-  // Available height for cards: column height - border (2) - header (1) - scroll indicator (1)
-  const contentHeight = Math.max(1, height - 4);
+  // Available height for cards: column height - border (2) - header (1)
+  // Reserve space for potential overflow indicators (up to 2 lines)
+  const baseContentHeight = Math.max(1, height - 3);
   // Estimate how many cards can be visible (each card ~3 lines minimum with border)
+  // Reserve 2 lines for overflow indicators if needed
+  const maxCardsEstimate = Math.max(1, Math.floor((baseContentHeight - 2) / 3));
+
+  // Calculate actual scroll offset based on this estimate
+  const prelimScrollOffset = Math.max(
+    0,
+    Math.min(
+      selectedCardIndex - Math.floor(maxCardsEstimate / 2),
+      Math.max(0, column.cards.length - maxCardsEstimate),
+    ),
+  );
+
+  // Determine if we actually have overflow
+  const hasTopOverflow = prelimScrollOffset > 0;
+  const hasBottomOverflow =
+    prelimScrollOffset + maxCardsEstimate < column.cards.length;
+
+  // Adjust content height based on actual overflow
+  const overflowIndicatorHeight =
+    (hasTopOverflow ? 1 : 0) + (hasBottomOverflow ? 1 : 0);
+  const contentHeight = Math.max(
+    1,
+    baseContentHeight - overflowIndicatorHeight,
+  );
   const maxCards = Math.max(1, Math.floor(contentHeight / 3));
 
   // Scroll to keep selected card visible
@@ -451,8 +590,17 @@ function Column({
           <Text dimColor>[collapsed - {count}]</Text>
         </Box>
       ) : (
-        // Normal view: show cards
+        // Normal view: show cards with overflow indicators
         <>
+          {/* Top overflow indicator - full width bar */}
+          {scrollOffset > 0 && (
+            <Box width={width - 2}>
+              <Text backgroundColor="gray" color="white">
+                {" ".repeat(Math.floor((width - 4) / 2))}▲
+                {" ".repeat(Math.ceil((width - 4) / 2))}
+              </Text>
+            </Box>
+          )}
           <Box flexDirection="column" height={contentHeight} overflowY="hidden">
             {visibleCards.map((card, i) => {
               const actualCardIndex = scrollOffset + i;
@@ -476,12 +624,14 @@ function Column({
             })}
             {column.cards.length === 0 && <Text dimColor>(empty)</Text>}
           </Box>
-          {column.cards.length > maxCards && (
-            <Text dimColor>
-              {scrollOffset > 0 ? "\u2191" : " "}
-              {scrollOffset + maxCards < column.cards.length ? "\u2193" : " "}
-              {` ${scrollOffset + 1}-${Math.min(scrollOffset + maxCards, column.cards.length)}/${column.cards.length}`}
-            </Text>
+          {/* Bottom overflow indicator - full width bar */}
+          {scrollOffset + maxCards < column.cards.length && (
+            <Box width={width - 2}>
+              <Text backgroundColor="gray" color="white">
+                {" ".repeat(Math.floor((width - 4) / 2))}▼
+                {" ".repeat(Math.ceil((width - 4) / 2))}
+              </Text>
+            </Box>
           )}
         </>
       )}
@@ -596,7 +746,6 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     state.columns.length,
     Math.max(2, Math.floor(termWidth / 35)),
   );
-  const colWidth = Math.floor((termWidth - 2) / maxCols);
 
   // Horizontal scrolling for columns
   const colScrollOffset = Math.max(
@@ -2172,14 +2321,16 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     setShowProjectPicker(false);
   };
 
-  // Build board root path (static title)
-  // Use filesystem path if available, otherwise build from node path
-  const boardPath = state.rootPath || getNodePath(state.rootId);
-
-  // Build selected item path for status line
+  // Build selected item path segments for colorized top bar
+  // Shows full path from filesystem root to selected item
   const selectedCol = state.columns[state.colIndex];
   const selectedCard = selectedCol?.cards[state.cardIndex];
-  const selectedPath = selectedCard ? getNodePath(selectedCard.node.id) : "";
+  const selectedPathSegments = selectedCard
+    ? truncatePathSegments(
+        getPathSegments(selectedCard.node.id, state.rootId),
+        termWidth - 4, // Leave room for padding
+      )
+    : getPathSegments(state.rootId, state.rootId);
 
   // Calculate widths for split view
   const detailPaneWidth = showDetailPane ? Math.floor(termWidth * 0.4) : 0;
@@ -2189,9 +2340,6 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
   const effectiveMaxCols = showDetailPane
     ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
     : maxCols;
-  const effectiveColWidth = showDetailPane
-    ? Math.floor((boardWidth - 2) / effectiveMaxCols)
-    : colWidth;
   const effectiveVisibleColumns = showDetailPane
     ? state.columns.slice(
         Math.max(
@@ -2220,17 +2368,55 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
       )
     : colScrollOffset;
 
+  // Build top bar path string with ANSI colors for foreground
+  // Using chalk for colored text within inverse region
+  const topBarContent = selectedPathSegments
+    .map((seg) => {
+      const sepPart = seg.sep ? chalk.gray(` ${seg.sep} `) : "";
+      const namePart = seg.isWithinBoard ? chalk.blue(seg.name) : seg.name;
+      return sepPart + namePart;
+    })
+    .join("");
+  // Calculate visible length (without ANSI codes)
+  const visibleLen =
+    1 +
+    selectedPathSegments.reduce(
+      (acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0),
+      0,
+    );
+  const padding = " ".repeat(Math.max(0, termWidth - visibleLen));
+
   return (
     <Box flexDirection="column" height={termHeight} minHeight={3}>
-      <Box height={1}>
-        <Text bold inverse>{` ${boardPath} `}</Text>
+      {/* Top bar: full path from root to selected item, inverted full width */}
+      <Box height={1} width={termWidth}>
+        <Text inverse>{" " + topBarContent + padding}</Text>
       </Box>
       <Box flexGrow={1} flexDirection="row">
         {/* Board or Tree view */}
         {viewMode === "board" ? (
           <Box flexDirection="row" width={boardWidth}>
+            {/* Left scroll indicator - full height filled bar */}
+            {effectiveScrollOffset > 0 && (
+              <Box flexDirection="column" width={1} height={termHeight - 3}>
+                {Array.from({ length: termHeight - 3 }).map((_, i) => (
+                  <Text key={i} backgroundColor="gray" color="white">
+                    {i === Math.floor((termHeight - 3) / 2) ? "‹" : " "}
+                  </Text>
+                ))}
+              </Box>
+            )}
             {effectiveVisibleColumns.map((col, i) => {
               const actualColIndex = effectiveScrollOffset + i;
+              // Reduce column width if scroll indicators are shown
+              const hasLeftIndicator = effectiveScrollOffset > 0;
+              const hasRightIndicator =
+                effectiveScrollOffset + effectiveMaxCols < state.columns.length;
+              const indicatorWidth =
+                (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
+              const adjustedColWidth = Math.floor(
+                (boardWidth - indicatorWidth - 2) / effectiveMaxCols,
+              );
               return (
                 <Column
                   key={col.node.id}
@@ -2240,7 +2426,7 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
                   isCollapsed={collapsedColumns.has(actualColIndex)}
                   selectedCardIndex={state.cardIndex}
                   selectedSubIndex={inOutlineMode ? subIndex : -1}
-                  width={effectiveColWidth}
+                  width={adjustedColWidth}
                   height={termHeight - 3}
                   maxOutlineDepth={maxOutlineDepth}
                   foldedNodes={foldedNodes}
@@ -2249,6 +2435,17 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
                 />
               );
             })}
+            {/* Right scroll indicator - full height filled bar */}
+            {effectiveScrollOffset + effectiveMaxCols <
+              state.columns.length && (
+              <Box flexDirection="column" width={1} height={termHeight - 3}>
+                {Array.from({ length: termHeight - 3 }).map((_, i) => (
+                  <Text key={i} backgroundColor="gray" color="white">
+                    {i === Math.floor((termHeight - 3) / 2) ? "›" : " "}
+                  </Text>
+                ))}
+              </Box>
+            )}
           </Box>
         ) : (
           <TreeView
@@ -2291,32 +2488,26 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
         {/* Help overlay */}
         {showHelp && <HelpOverlay width={termWidth} height={termHeight - 2} />}
       </Box>
-      <Text>
-        <Text>{selectedPath} </Text>
-        <Text color="magenta">{`[${viewMode.toUpperCase()}] `}</Text>
-        {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
-        {showDetailPane && <Text color="cyan">{`[DETAIL] `}</Text>}
-        {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
-        {inOutlineMode && <Text color="cyan">{`[OUTLINE] `}</Text>}
-        {multiSelected.size > 0 && (
-          <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
-        )}
-        {showDropNotification && droppedFiles.length > 0 && (
-          <Text color="green">
-            {`[Dropped: ${droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
-          </Text>
-        )}
-        {isMouseDragging && mouseSelection && (
-          <Text color="blue">
-            {`[Select: ${mouseSelection.startY}-${mouseSelection.endY}] `}
-          </Text>
-        )}
-        {state.columns.length > effectiveMaxCols && (
-          <Text
-            dimColor
-          >{`[cols ${effectiveScrollOffset + 1}-${effectiveScrollOffset + effectiveMaxCols}/${state.columns.length}] `}</Text>
-        )}
-      </Text>
+      {/* Bottom bar: indicators right-aligned */}
+      <Box width={termWidth} justifyContent="flex-end" paddingX={1}>
+        <Text>
+          {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
+          {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
+          {showDropNotification && droppedFiles.length > 0 && (
+            <Text color="green">
+              {`[Dropped: ${droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
+            </Text>
+          )}
+          {isMouseDragging && mouseSelection && (
+            <Text color="blue">{`[Select: ${mouseSelection.startY}-${mouseSelection.endY}] `}</Text>
+          )}
+          {multiSelected.size > 0 && (
+            <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
+          )}
+          {inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
+          <Text inverse>{` ${viewMode.toUpperCase()} `}</Text>
+        </Text>
+      </Box>
     </Box>
   );
 }
@@ -2384,15 +2575,36 @@ export function InkBoardTestable({
     });
   };
 
-  const boardPath = initialState.rootPath || getNodePath(initialState.rootId);
   const selectedCol = initialState.columns[initialState.colIndex];
   const selectedCard = selectedCol?.cards[initialState.cardIndex];
-  const selectedPath = selectedCard ? getNodePath(selectedCard.node.id) : "";
+  const selectedPathSegments = selectedCard
+    ? truncatePathSegments(
+        getPathSegments(selectedCard.node.id, initialState.rootId),
+        termWidth - 4,
+      )
+    : getPathSegments(initialState.rootId, initialState.rootId);
+
+  // Build top bar path string with chalk colors
+  const testTopBarContent = selectedPathSegments
+    .map((seg) => {
+      const sepPart = seg.sep ? chalk.gray(` ${seg.sep} `) : "";
+      const namePart = seg.isWithinBoard ? chalk.blue(seg.name) : seg.name;
+      return sepPart + namePart;
+    })
+    .join("");
+  const testVisibleLen =
+    1 +
+    selectedPathSegments.reduce(
+      (acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0),
+      0,
+    );
+  const testPadding = " ".repeat(Math.max(0, termWidth - testVisibleLen));
 
   return (
     <Box flexDirection="column" height={termHeight} minHeight={3}>
-      <Box height={1}>
-        <Text bold inverse>{` ${boardPath} `}</Text>
+      {/* Top bar: full path */}
+      <Box height={1} width={termWidth}>
+        <Text inverse>{" " + testTopBarContent + testPadding}</Text>
       </Box>
       <Box flexGrow={1}>
         {visibleColumns.map((col, i) => {
@@ -2416,14 +2628,17 @@ export function InkBoardTestable({
           );
         })}
       </Box>
-      <Text>
-        <Text>{selectedPath} </Text>
-        {initialState.columns.length > maxCols && (
-          <Text
-            dimColor
-          >{`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${initialState.columns.length}] `}</Text>
-        )}
-      </Text>
+      {/* Bottom bar: indicators right-aligned */}
+      <Box width={termWidth} justifyContent="flex-end" paddingX={1}>
+        <Text>
+          {initialState.columns.length > maxCols && (
+            <Text dimColor>
+              {`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${initialState.columns.length}] `}
+            </Text>
+          )}
+          <Text inverse>{" BOARD "}</Text>
+        </Text>
+      </Box>
     </Box>
   );
 }
