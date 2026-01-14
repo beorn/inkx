@@ -16,12 +16,12 @@ import React from "react";
 import { rmSync, mkdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 
-import { InkBoardTestable } from "../src/commands/board/views/Board.tsx";
+import { InkBoardTestable } from "../src/tui/views/Board.tsx";
 import {
   buildBoardState,
   handleKey,
   getCurrentCard,
-} from "../src/commands/board/state.ts";
+} from "../src/tui/state.ts";
 import { resetDb, closeDb, getNode, applyEvent, setDb } from "@km/store";
 import {
   emitNodeCreated,

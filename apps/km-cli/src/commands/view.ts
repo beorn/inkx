@@ -6,10 +6,10 @@
  */
 
 import { Command } from "commander";
-import { runBoard } from "./board/tui.ts";
+import { runBoard } from "../tui/tui.ts";
 import { getRootPath } from "../index.ts";
 import { getStore } from "@km/store";
-import type { ViewMode } from "./board/types.ts";
+import type { ViewMode } from "../tui/types.ts";
 
 const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"];
 

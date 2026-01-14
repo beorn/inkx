@@ -29,7 +29,7 @@ import {
   formatDate,
   getStatusDisplay,
   getProjectPath,
-} from "../src/commands/board/views/DetailPane.tsx";
+} from "../src/tui/views/DetailPane.tsx";
 
 // Test helper to create nodes
 function createTestNode(

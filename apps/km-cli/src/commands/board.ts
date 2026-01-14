@@ -1,12 +1,12 @@
 /**
  * Board Command
  *
- * CLI entry point for the boardliner TUI
+ * CLI entry point for the boardliner TUI with add/remove subcommands
  */
 
 import { Command } from "commander";
-import { runBoard } from "./tui.ts";
-import { getRootPath } from "../../index.ts";
+import { runBoard } from "../tui/tui.ts";
+import { getRootPath } from "../index.ts";
 import { getStore, resolveNode, getChildren, queryNodes } from "@km/store";
 import chalk from "chalk";
 
@@ -162,9 +162,3 @@ boardCommand
       console.log(chalk.green(`Removed ${removed.length} nodes from board`));
     }
   });
-
-// Re-export for testing
-export * from "./types.ts";
-export * from "./state.ts";
-export * from "./render.ts";
-export * from "./tui.ts";
