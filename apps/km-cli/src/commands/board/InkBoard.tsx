@@ -47,6 +47,7 @@ import {
   type MouseEvent as TermMouseEvent,
 } from "./mouse-handler.ts";
 import { getStatusIcon } from "./shared/icons.ts";
+import { makeSelectionKey } from "./shared/TreeNode.tsx";
 
 // Default favorites: common boards accessed via 1-9 keys
 // These are resolved at runtime using the same resolution as CLI commands
@@ -383,14 +384,8 @@ function countVisibleDescendants(
   return count;
 }
 
-// Selection key helper: "col:card:sub" format for tracking multi-selection
-export function makeSelectionKey(
-  colIndex: number,
-  cardIndex: number,
-  subIndex: number,
-): SelectionKey {
-  return `${colIndex}:${cardIndex}:${subIndex}`;
-}
+// Re-export makeSelectionKey for backwards compatibility
+export { makeSelectionKey } from "./shared/TreeNode.tsx";
 
 interface CardProps {
   card: CardState;
@@ -636,7 +631,7 @@ interface BoardProps {
   initialViewMode?: ViewMode;
 }
 
-function Board({ initialState, initialViewMode = "board" }: BoardProps) {
+function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [dimensions, setDimensions] = useState({
@@ -657,8 +652,8 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
     sub: number;
   } | null>(null);
   const [showDetailPane, setShowDetailPane] = useState(
-    initialViewMode === "tree",
-  ); // Detail pane visible by default in tree view
+    initialViewMode === "list",
+  ); // Detail pane visible by default in list view
   const [collapsedColumns, setCollapsedColumns] = useState<Set<number>>(
     new Set(initialState.collapsedColumns),
   ); // Column indices that are collapsed

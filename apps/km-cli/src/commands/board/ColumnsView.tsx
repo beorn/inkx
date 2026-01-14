@@ -6,12 +6,9 @@
  */
 import React from "react";
 import { Box, Text } from "ink";
-import type { Node } from "@km/core";
-import { getChildren } from "@km/store";
 import type { BoardState, ColumnState, SelectionKey } from "./types.ts";
-import { makeSelectionKey } from "./InkBoard.tsx";
-import { getNodeDisplayName, getParentContext } from "@km/shared";
-import { getStatusIcon, getTypeIcon } from "./shared/icons.ts";
+import { TreeNode, makeSelectionKey } from "./shared/index.ts";
+import { getNodeDisplayName } from "@km/shared";
 
 interface ColumnsViewProps {
   state: BoardState;
@@ -28,151 +25,6 @@ interface ColumnsViewProps {
   effectiveMaxCols: number;
   effectiveVisibleColumns: ColumnState[];
   selectionLevel: "board" | "column" | "card";
-}
-
-interface TreeNodeProps {
-  node: Node;
-  depth: number;
-  width: number;
-  isSelected: boolean;
-  isMultiSelected: boolean;
-  foldedNodes: Set<string>;
-  maxDepth: number;
-  colIndex: number;
-  cardIndex: number;
-  subIndex: number;
-  multiSelected: Set<SelectionKey>;
-  inOutlineMode: boolean;
-  currentSubIndex: number;
-}
-
-function TreeNode({
-  node,
-  depth,
-  width,
-  isSelected,
-  isMultiSelected,
-  foldedNodes,
-  maxDepth,
-  colIndex,
-  cardIndex,
-  multiSelected,
-  inOutlineMode,
-  currentSubIndex,
-}: TreeNodeProps): React.ReactElement {
-  const children = getChildren(node.id);
-  const hasChildren = children.length > 0;
-  const isFolded = foldedNodes.has(node.id);
-
-  // Build line content
-  const isTask = node.type === "task";
-  const icon = isTask
-    ? getStatusIcon(node.task_status)
-    : getTypeIcon(node.type);
-  const content = node.content || getNodeDisplayName(node);
-  const firstLine = content.split("\n")[0] ?? content;
-
-  // Check if this is a transcluded (symlinked) node
-  const isTranscluded =
-    node.symlink_to !== null && node.symlink_to !== undefined;
-
-  // Get parent context for top-level cards (depth 0)
-  const parentContext = depth === 0 && isTask ? getParentContext(node) : null;
-
-  // Fold indicator
-  const foldIndicator = hasChildren ? (isFolded ? "\u25B6" : "\u25BC") : " ";
-  const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
-
-  // Transclusion indicator (→) for symlinked nodes
-  const transclusionMark = isTranscluded ? "→" : "";
-
-  // Build prefix with indent (1 space per level for compactness)
-  const indent = " ".repeat(depth);
-  const prefix = `${indent}${foldIndicator}${icon}${transclusionMark} `;
-
-  // Parent context suffix (greyed out) - truncate to max 15 chars for column view
-  const maxContextLen = 15;
-  const truncatedContext = parentContext
-    ? parentContext.length > maxContextLen
-      ? parentContext.slice(0, maxContextLen - 1) + "…"
-      : parentContext
-    : null;
-  const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
-
-  // Calculate available width for content
-  const fixedWidth = prefix.length + foldedCount.length + contextSuffix.length;
-  const availWidth = Math.max(1, width - fixedWidth);
-  const truncatedContent =
-    firstLine.length > availWidth
-      ? firstLine.slice(0, availWidth - 1) + "…"
-      : firstLine;
-
-  // Determine colors
-  let backgroundColor: string | undefined;
-  let textColor: string | undefined;
-  if (isSelected) {
-    backgroundColor = "blue";
-    textColor = "white";
-  } else if (isMultiSelected) {
-    backgroundColor = "cyan";
-    textColor = "black";
-  }
-
-  // Track sub-indices for children
-  let nextSubIndex = currentSubIndex + 1;
-
-  return (
-    <Box flexDirection="column" width={width}>
-      <Text backgroundColor={backgroundColor} color={textColor} wrap="truncate">
-        {prefix}
-        {truncatedContent}
-        {foldedCount}
-        {truncatedContext && <Text dimColor>{contextSuffix}</Text>}
-      </Text>
-      {hasChildren && !isFolded && depth < maxDepth && (
-        <Box flexDirection="column">
-          {children.slice(0, 8).map((child) => {
-            const childSubIndex = nextSubIndex;
-            const childKey = makeSelectionKey(
-              colIndex,
-              cardIndex,
-              childSubIndex,
-            );
-            const childSelected =
-              inOutlineMode && currentSubIndex === childSubIndex;
-            const childMultiSelected = multiSelected.has(childKey);
-
-            // Increment for next sibling
-            nextSubIndex++;
-
-            return (
-              <TreeNode
-                key={child.id}
-                node={child}
-                depth={depth + 1}
-                width={width}
-                isSelected={childSelected}
-                isMultiSelected={childMultiSelected}
-                foldedNodes={foldedNodes}
-                maxDepth={maxDepth}
-                colIndex={colIndex}
-                cardIndex={cardIndex}
-                subIndex={childSubIndex}
-                multiSelected={multiSelected}
-                inOutlineMode={inOutlineMode}
-                currentSubIndex={childSubIndex}
-              />
-            );
-          })}
-          {children.length > 8 && (
-            <Text dimColor>
-              {indent} +{children.length - 8} more
-            </Text>
-          )}
-        </Box>
-      )}
-    </Box>
-  );
 }
 
 interface ColumnTreeProps {
@@ -289,6 +141,7 @@ function ColumnTree({
               multiSelected={multiSelected}
               inOutlineMode={inOutlineMode}
               currentSubIndex={0}
+              variant="compact"
             />
           );
         })}
