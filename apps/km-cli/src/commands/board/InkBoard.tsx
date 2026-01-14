@@ -439,9 +439,8 @@ function Card({
     <Box
       flexDirection="column"
       width={width}
-      borderStyle={isSelected ? "double" : "round"}
-      borderColor={isSelected ? "cyan" : "gray"}
-      borderDimColor={!isSelected}
+      borderStyle="round"
+      borderColor={isSelected ? "cyanBright" : "blackBright"}
       overflowX="hidden"
     >
       <OutlineItem
@@ -542,15 +541,19 @@ function Column({
   const warningIndicator = wipExceeded ? " \u26A0" : ""; // Warning sign when WIP exceeded
   const collapsedIndicator = isCollapsed ? " \u25B8" : ""; // Right-pointing triangle when collapsed
 
-  // Determine border color: red if WIP exceeded, otherwise normal
-  const borderColor = wipExceeded ? "red" : isSelected ? "blue" : "gray";
+  // Determine border color: red if WIP exceeded, bright for selected, dim for unselected
+  const borderColor = wipExceeded
+    ? "red"
+    : isSelected
+      ? "blueBright"
+      : "blackBright";
 
   return (
     <Box
       flexDirection="column"
       width={width}
       height={height}
-      borderStyle={isSelected ? "double" : "single"}
+      borderStyle="single"
       borderColor={borderColor}
       overflowY="hidden"
     >
@@ -2367,15 +2370,35 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
   };
 
   // Build selected item path segments for colorized top bar
-  // Shows full path from filesystem root to selected item
+  // Shows full path from filesystem root to selected item based on selection level
   const selectedCol = state.columns[state.colIndex];
   const selectedCard = selectedCol?.cards[state.cardIndex];
-  const selectedPathSegments = selectedCard
-    ? truncatePathSegments(
+
+  // Determine which node to show path to based on selection level
+  const selectedPathSegments = (() => {
+    if (selectionLevel === "board" || !selectedCol) {
+      // At board level or no column - show path to board root
+      return getPathSegments(state.rootId, state.rootId);
+    } else if (selectionLevel === "column") {
+      // At column level - show path to selected column
+      return truncatePathSegments(
+        getPathSegments(selectedCol.node.id, state.rootId),
+        termWidth - 4,
+      );
+    } else if (selectedCard) {
+      // At card level with a card selected - show path to card
+      return truncatePathSegments(
         getPathSegments(selectedCard.node.id, state.rootId),
-        termWidth - 4, // Leave room for padding
-      )
-    : getPathSegments(state.rootId, state.rootId);
+        termWidth - 4,
+      );
+    } else {
+      // At card level but no card (empty column) - show path to column
+      return truncatePathSegments(
+        getPathSegments(selectedCol.node.id, state.rootId),
+        termWidth - 4,
+      );
+    }
+  })();
 
   // Calculate widths for split view
   const detailPaneWidth = showDetailPane ? Math.floor(termWidth * 0.4) : 0;
@@ -2415,21 +2438,24 @@ function Board({ initialState, initialViewMode = "board" }: BoardProps) {
 
   // Build top bar with consistent white background, bold black text
   // Make the separator at board boundary stand out with blue color
-  // When at board level, highlight the board path with blue background
+  // When at board/column level, highlight the selected segment with blue background
   const topBarContent = selectedPathSegments
     .map((seg, i) => {
       // Check if this is the boundary between board path and item path
       const prevSeg = i > 0 ? selectedPathSegments[i - 1] : null;
       const isBoardBoundary = prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
+      const isLastSegment = i === selectedPathSegments.length - 1;
       // At board level, highlight non-within-board segments (the board path itself)
       const isBoardSelected = selectionLevel === "board" && !seg.isWithinBoard;
+      // At column level, highlight the last segment (the column)
+      const isColumnSelected = selectionLevel === "column" && isLastSegment;
       // Use blue for the boundary separator to make it stand out
       const sepPart = seg.sep
         ? isBoardBoundary
           ? chalk.bgWhite.blue.bold(` ${seg.sep} `)
           : chalk.bgWhite.gray(` ${seg.sep} `)
         : "";
-      const namePart = isBoardSelected
+      const namePart = (isBoardSelected || isColumnSelected)
         ? chalk.bgBlue.white.bold(seg.name)
         : chalk.bgWhite.black.bold(seg.name);
       return sepPart + namePart;

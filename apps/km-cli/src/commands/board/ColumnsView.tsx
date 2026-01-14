@@ -279,7 +279,7 @@ function ColumnTree({
       width={width}
       height={height}
       borderStyle="single"
-      borderColor={isSelected ? "blue" : "gray"}
+      borderColor={isSelected ? "blueBright" : "blackBright"}
     >
       {/* Column header */}
       <Box width={width - 2}>

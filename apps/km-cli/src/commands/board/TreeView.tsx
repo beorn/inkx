@@ -292,7 +292,10 @@ export function TreeView({
 
             {/* Cards in column */}
             {column.cards.length === 0 ? (
-              <Text dimColor> (empty)</Text>
+              <>
+                <Text> </Text>
+                <Text dimColor>   (empty)</Text>
+              </>
             ) : (
               column.cards.map((card, cardIdx) => {
                 // Card is selected when at card level and this is the selected card
