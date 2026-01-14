@@ -13,6 +13,9 @@ let eventHub: { broadcast: (event: Event) => void } | null = null;
 // Database for immediate projection (set when db is loaded)
 let db: { applyEvent: (event: Event) => void } | null = null;
 
+// Filesystem sync callback (set by km-watch when sync is enabled)
+let fsSync: { applyEventToFs: (event: Event) => void } | null = null;
+
 // Path to km state directory (defaults to .km, can be overridden with KM_DIR env var)
 let kmDir = process.env.KM_DIR ?? ".km";
 
@@ -46,6 +49,16 @@ export function setDatabase(
   } | null,
 ): void {
   db = database;
+}
+
+/**
+ * Set the filesystem sync callback
+ * Called for each event to sync changes back to markdown files
+ */
+export function setFsSync(
+  sync: { applyEventToFs: (event: Event) => void } | null,
+): void {
+  fsSync = sync;
 }
 
 /**
@@ -101,6 +114,11 @@ export function emit(
   // 3. Broadcast via socket (real-time)
   if (eventHub && !options.skipBroadcast) {
     eventHub.broadcast(full);
+  }
+
+  // 4. Sync to filesystem if enabled
+  if (fsSync) {
+    fsSync.applyEventToFs(full);
   }
 
   return full;

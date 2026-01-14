@@ -19,6 +19,7 @@ export {
   getKmDir,
   setEventHub,
   setDatabase,
+  setFsSync,
   clearDatabase,
   getEventsPath,
   createEmitter,

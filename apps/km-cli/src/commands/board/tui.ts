@@ -9,6 +9,8 @@ import type { BoardState } from "./types.ts";
 import { initBoardState } from "./state.ts";
 import { renderBoardStatic } from "./render.ts";
 import { renderInkBoard } from "./InkBoard.tsx";
+import { setFsSync } from "@km/core";
+import { SyncManager } from "@km/watch";
 
 /**
  * Run the interactive board TUI using Ink
@@ -60,9 +62,30 @@ export async function runBoard(
     state.rootPath = rootPath;
   }
 
-  if (interactive) {
-    await runBoardTUI(state);
-  } else {
-    runBoardStatic(state);
+  // Initialize filesystem sync if we have a vault path
+  // This enables bidirectional sync: changes in the board are written back to .md files
+  let syncManager: SyncManager | null = null;
+  if (rootPath) {
+    syncManager = new SyncManager({
+      vaultPath: rootPath,
+      debounceFs: 0, // Immediate writes in interactive mode
+      debounceApply: 100, // Small debounce for batching rapid changes
+      conflictStrategy: "last_write_wins",
+    });
+    setFsSync(syncManager);
+  }
+
+  try {
+    if (interactive) {
+      await runBoardTUI(state);
+    } else {
+      runBoardStatic(state);
+    }
+  } finally {
+    // Clean up sync manager
+    if (syncManager) {
+      setFsSync(null);
+      await syncManager.stop();
+    }
   }
 }
