@@ -29,10 +29,9 @@ const shortcuts = [
   {
     category: "Card Operations",
     keys: [
-      { key: "Opt+1-9", desc: "Move card to top of column 1-9" },
       { key: "Opt+hjkl", desc: "Move card (vim style)" },
-      { key: "Opt + ↑/↓/←/→", desc: "Move card directly" },
-      { key: "m + hjkl", desc: "Move card (enter move mode, then direction)" },
+      { key: "Opt+↑/↓/←/→", desc: "Move card (arrows)" },
+      { key: "Opt+1-9", desc: "Move card to top of column 1-9" },
       { key: "p", desc: "Open project picker (move to project)" },
       { key: "s or x", desc: "Cycle task status" },
       { key: "1-5", desc: "Set priority (in detail pane)" },
@@ -63,9 +62,15 @@ const shortcuts = [
   },
 ];
 
+// Calculate max key width across all shortcuts
+const maxKeyWidth = Math.max(
+  ...shortcuts.flatMap((cat) => cat.keys.map((k) => k.key.length)),
+);
+
 export function HelpOverlay({ width, height }: HelpOverlayProps) {
-  // Calculate content dimensions
-  const boxWidth = Math.min(60, width - 4);
+  // Calculate content dimensions - need wider box for longer keys
+  const keyColWidth = maxKeyWidth + 2; // Add padding
+  const boxWidth = Math.min(70, width - 4);
   const boxHeight = Math.min(
     shortcuts.reduce((acc, cat) => acc + cat.keys.length + 2, 2),
     height - 4,
@@ -99,8 +104,8 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
           </Text>
           {category.keys.map((shortcut) => (
             <Box key={shortcut.key}>
-              <Box width={20}>
-                <Text color="yellow">{shortcut.key}</Text>
+              <Box width={keyColWidth}>
+                <Text color="yellow">{shortcut.key.padEnd(maxKeyWidth)}</Text>
               </Box>
               <Text dimColor>{shortcut.desc}</Text>
             </Box>

@@ -157,11 +157,14 @@ events.jsonl
 $ rm -rf /tmp/km-mdtest-init
 ```
 
-## Add Command
+## Add Command (Transclusion)
 
-### km add - Move tasks from file to board
+### km add - Link tasks to board (transclusion)
 
-Create a project file with tasks, then add them to @next:
+Tasks added to a board are transcluded (linked) - they remain in their original location
+while also appearing on the board. This allows tasks to keep their original context.
+
+Create a project file with tasks, then link them to @next:
 
 ```console
 $ mkdir projects
@@ -190,11 +193,11 @@ projects/
 3 task(s)
 ```
 
-Add all tasks from projects to @next:
+Add (link) all tasks from projects to @next:
 
 ```console
 $ km add @next './projects**'
-✓ Added 3 task(s) to Next Actions
+✓ Linked 3 task(s) to Next Actions
 [...]
 ```
 
@@ -208,11 +211,15 @@ $ km tree @next
 [...]
 ```
 
-Verify original file no longer shows tasks (they were moved):
+Verify original file STILL shows tasks (they were linked, not moved):
 
 ```console
 $ km tasks './projects**'
-No tasks found
+projects/
+[...]
+     [ ] First project task
+[...]
+3 task(s)
 ```
 
 Clean up:

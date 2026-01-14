@@ -212,6 +212,24 @@ If the board file doesn't exist, the reference is a broken link (like any wikili
 - ![[tasks/setup-repo]]
 ```
 
+### Transclusion (Symlinks)
+
+Board items are **symlinks** (transclusions) to tasks. The `![[...]]` syntax creates a symlink node that references the original task.
+
+**Operation semantics on symlinked tasks:**
+
+| Operation Type | Target  | Rationale                                      |
+| -------------- | ------- | ---------------------------------------------- |
+| **Positional** | Symlink | Board organization is independent of task data |
+| **Content**    | Target  | Task data has single source of truth           |
+
+- **Moving** a card within the board moves the symlink
+- **Status/priority changes** update the original task
+- **Deleting** a card removes the symlink (task remains)
+- **Display** always reads from the target task
+
+This allows tasks to appear on multiple boards (e.g., `@next`, `@bjorn`, `+project`) while maintaining consistent state.
+
 ### Column Rules
 
 Columns can have rules that control task membership and field synchronization.

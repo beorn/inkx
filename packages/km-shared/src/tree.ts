@@ -233,6 +233,7 @@ export function collapseAncestorsWithTypes(
  * Get parent context for a node (for board card display)
  *
  * Walks up the parent chain to find meaningful context:
+ * - For symlinked nodes (transclusions), follows symlink_to to get original context
  * - Skips board columns/sections (immediate parent in board view)
  * - Returns the containing file's display name
  *
@@ -247,9 +248,19 @@ export function getParentContext(
   node: Node,
   skipParentId?: string | null,
 ): string | null {
-  if (!node.parent_id) return null;
+  // For symlinked nodes (transclusions), follow the symlink to get original context
+  // This allows board items to show their original location even when displayed on a board
+  let targetNode = node;
+  if (node.symlink_to) {
+    const originalNode = getNode(node.symlink_to);
+    if (originalNode) {
+      targetNode = originalNode;
+    }
+  }
 
-  let currentId: string | null = node.parent_id;
+  if (!targetNode.parent_id) return null;
+
+  let currentId: string | null = targetNode.parent_id;
 
   // Walk up the parent chain
   while (currentId) {

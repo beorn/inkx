@@ -1,17 +1,20 @@
 /**
  * Add Command
  *
- * Add tasks to boards/lists. Re-parent nodes to a target container.
+ * Add tasks to boards/lists via transclusion (symlink).
+ * Tasks are linked to the board without changing their original location.
  *
- * km add @next TASKID          # Add task to @next board
- * km add @next ./inbox/**      # Add all inbox tasks to @next
- * km add +project TASKID       # Add task to project
+ * km add @next TASKID          # Link task to @next board
+ * km add @next ./inbox/**      # Link all inbox tasks to @next
+ * km add +project TASKID       # Link task to project
  */
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { resolveNode, queryTasks, getStore, getChildren } from "@km/store";
+import { ulid } from "ulid";
+import { resolveNode, queryTasks, getChildren } from "@km/store";
 import type { Node } from "@km/core";
+import { emitNodeCreated } from "@km/core";
 
 export const addCommand = new Command("add")
   .description("Add tasks to a board or list")
@@ -30,17 +33,14 @@ export const addCommand = new Command("add")
       process.exit(1);
     }
 
-    // Collect tasks to add
-    const tasksToAdd: Array<{ id: string; content: string }> = [];
+    // Collect tasks to add (store full node for symlink creation)
+    const tasksToAdd: Node[] = [];
 
     for (const source of sources) {
       // Try as node ID first
       const node = resolveNode(source, "task");
       if (node) {
-        tasksToAdd.push({
-          id: node.id,
-          content: node.content || "(no content)",
-        });
+        tasksToAdd.push(node);
         continue;
       }
 
@@ -50,10 +50,7 @@ export const addCommand = new Command("add")
         for (const task of queryResults) {
           // Don't add duplicates
           if (!tasksToAdd.some((t) => t.id === task.id)) {
-            tasksToAdd.push({
-              id: task.id,
-              content: task.content || "(no content)",
-            });
+            tasksToAdd.push(task);
           }
         }
         continue;
@@ -95,10 +92,10 @@ export const addCommand = new Command("add")
     let nextIdx = Date.now();
 
     if (options.dryRun) {
-      console.log(chalk.cyan("Dry run - would add:"));
+      console.log(chalk.cyan("Dry run - would link:"));
       for (const task of tasksToAdd) {
         console.log(
-          `  ${chalk.dim(task.id.slice(0, 8))} ${task.content.slice(0, 50)}`,
+          `  ${chalk.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
         );
       }
       console.log(
@@ -109,17 +106,28 @@ export const addCommand = new Command("add")
       return;
     }
 
-    // Move tasks to actual target (default column or target itself)
-    const store = getStore();
+    // Create symlink nodes in the target (transclusion - tasks stay in original location)
     for (const task of tasksToAdd) {
-      store.moveNode(task.id, actualTarget.id, nextIdx++);
+      // Create a symlink node that points to the original task
+      const symlinkId = ulid();
+      emitNodeCreated("cli:add", {
+        id: symlinkId,
+        type: "task",
+        parent_id: actualTarget.id,
+        parent_idx: nextIdx++,
+        symlink_to: task.id, // Points to the original task
+        // Copy some properties for display purposes
+        content: task.content,
+        task_status: task.task_status,
+        task_mark: task.task_mark,
+      });
     }
 
     if (options.json) {
       console.log(
         JSON.stringify({
           target: targetNode.id,
-          added: tasksToAdd.map((t) => t.id),
+          linked: tasksToAdd.map((t) => t.id),
           count: tasksToAdd.length,
         }),
       );
@@ -128,11 +136,13 @@ export const addCommand = new Command("add")
 
     console.log(
       chalk.green("✓"),
-      `Added ${tasksToAdd.length} task(s) to ${targetNode.content || target}`,
+      `Linked ${tasksToAdd.length} task(s) to ${targetNode.content || target}`,
     );
     for (const task of tasksToAdd.slice(0, 5)) {
       console.log(
-        chalk.dim(`  ${task.id.slice(0, 8)} ${task.content.slice(0, 40)}`),
+        chalk.dim(
+          `  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`,
+        ),
       );
     }
     if (tasksToAdd.length > 5) {

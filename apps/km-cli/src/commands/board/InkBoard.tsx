@@ -126,9 +126,13 @@ function OutlineItem({
   // Get collapsed type suffix (e.g., "/ .md #" for unified folder/file/section)
   const typeSuffix = getCollapsedTypeSuffix(node);
 
+  // Check if this is a transcluded (symlinked) node
+  const isTranscluded =
+    node.symlink_to !== null && node.symlink_to !== undefined;
+
   // Get parent context for top-level cards (depth 0)
   // Shows where the task belongs, e.g., "< Green card" for a task from green-card.md
-  // For transcluded items, their parent_id still points to the original file/section
+  // For transcluded items, getParentContext follows symlink_to to get original location
   const parentContext = depth === 0 && isTask ? getParentContext(node) : null;
 
   const children = getChildren(node.id);
@@ -138,9 +142,11 @@ function OutlineItem({
   const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
 
   // Build prefix: "  " per depth + fold indicator + space + icon + space
+  // Add transclusion indicator (→) for symlinked nodes
   const indent = "  ".repeat(depth);
+  const transclusionMark = isTranscluded ? "→" : "";
   const prefix = icon
-    ? `${indent}${foldIndicator} ${icon} `
+    ? `${indent}${foldIndicator} ${icon}${transclusionMark} `
     : `${indent}${foldIndicator} `;
   const suffix = typeSuffix ? ` ${typeSuffix}` : "";
 
@@ -475,7 +481,6 @@ function Board({ initialState }: BoardProps) {
     card: number;
     sub: number;
   } | null>(null);
-  const [moveMode, setMoveMode] = useState(false); // Whether in move mode (m prefix)
   const [showDetailPane, setShowDetailPane] = useState(false); // Whether detail pane is visible
   const [collapsedColumns, setCollapsedColumns] = useState<Set<number>>(
     new Set(initialState.collapsedColumns),
@@ -1078,7 +1083,6 @@ function Board({ initialState }: BoardProps) {
     // Note: Alt+1-9 for moving is handled below with key.meta check
     if (
       /^[1-9]$/.test(input) &&
-      !moveMode &&
       !showDetailPane &&
       !inOutlineMode &&
       !key.meta // Not Alt+number (move)
@@ -1100,52 +1104,9 @@ function Board({ initialState }: BoardProps) {
     }
 
     // Quit
-    if (input === "q" && !moveMode) {
+    if (input === "q") {
       exit();
       return;
-    }
-
-    // Cancel move mode with Escape or q
-    if (moveMode && (key.escape || input === "q")) {
-      setMoveMode(false);
-      return;
-    }
-
-    // Enter move mode with 'm'
-    if (input === "m" && !moveMode) {
-      setMoveMode(true);
-      return;
-    }
-
-    // Move mode operations: m+hjkl
-    if (moveMode) {
-      // Valid move keys - stay in move mode for repeated moves
-      if (input === "k" || input === "j" || input === "h" || input === "l") {
-        if (card) {
-          if (input === "k") moveCardInColumn(card, "up");
-          else if (input === "j") moveCardInColumn(card, "down");
-          else if (input === "h") moveCardToColumn(card, "left");
-          else if (input === "l") moveCardToColumn(card, "right");
-        }
-        return;
-      }
-      // Arrow keys also work in move mode
-      if (key.upArrow || key.downArrow || key.leftArrow || key.rightArrow) {
-        if (card) {
-          if (key.upArrow) moveCardInColumn(card, "up");
-          else if (key.downArrow) moveCardInColumn(card, "down");
-          else if (key.leftArrow) moveCardToColumn(card, "left");
-          else if (key.rightArrow) moveCardToColumn(card, "right");
-        }
-        return;
-      }
-      // Ignore empty inputs (terminal noise) - stay in move mode
-      if (input === "") {
-        return;
-      }
-      // Any other key cancels move mode
-      setMoveMode(false);
-      // Don't return - let the key be processed normally
     }
 
     // Alt/Opt + key for moving items (standardized modifier)
@@ -1691,10 +1652,17 @@ function Board({ initialState }: BoardProps) {
       }
 
       // Status cycling in detail pane
+      // For symlinked nodes (transclusions), apply status change to the TARGET node
+      // This ensures the original task is updated, not just the symlink
       if (input === "s" || input === "x") {
         const card = state.columns[state.colIndex]?.cards[state.cardIndex];
         if (card) {
-          const currentStatus = card.node.task_status || "open";
+          // Resolve symlink target: if this is a symlink, operate on the target
+          const targetId = card.node.symlink_to || card.node.id;
+          const targetNode = card.node.symlink_to
+            ? getNode(card.node.symlink_to)
+            : card.node;
+          const currentStatus = targetNode?.task_status || "open";
           const statusCycle: TaskStatus[] = [
             "open",
             "blocked",
@@ -1715,7 +1683,7 @@ function Board({ initialState }: BoardProps) {
           emit({
             type: "node_updated",
             actor: "user",
-            target: card.node.id,
+            target: targetId, // Target the original node, not the symlink
             data: { task_status: nextStatus, task_mark: nextMark },
           });
 
@@ -1737,13 +1705,17 @@ function Board({ initialState }: BoardProps) {
       }
 
       // Priority setting in detail pane (1-5)
+      // For symlinked nodes (transclusions), apply priority change to the TARGET node
       if (["1", "2", "3", "4", "5"].includes(input)) {
         const card = state.columns[state.colIndex]?.cards[state.cardIndex];
         if (card) {
+          // Resolve symlink target: if this is a symlink, operate on the target
+          const targetId = card.node.symlink_to || card.node.id;
+
           emit({
             type: "node_updated",
             actor: "user",
-            target: card.node.id,
+            target: targetId, // Target the original node, not the symlink
             data: { priority: parseInt(input, 10) },
           });
 
@@ -1768,12 +1740,17 @@ function Board({ initialState }: BoardProps) {
   );
 
   // Handle project picker selection
+  // For symlinked nodes (transclusions), re-parent the TARGET node, not the symlink
+  // This moves the original task to the new project
   const handleProjectSelect = (targetNode: Node) => {
     const card = state.columns[state.colIndex]?.cards[state.cardIndex];
     if (!card) {
       setShowProjectPicker(false);
       return;
     }
+
+    // Resolve symlink target: if this is a symlink, operate on the target
+    const nodeToMove = card.node.symlink_to || card.node.id;
 
     // Calculate sort order (add at end of target)
     const targetChildren = getChildren(targetNode.id);
@@ -1785,13 +1762,13 @@ function Board({ initialState }: BoardProps) {
       const db = getDb();
       db.run(
         "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-        [targetNode.id, newSortOrder, Date.now(), card.node.id],
+        [targetNode.id, newSortOrder, Date.now(), nodeToMove],
       );
     } else {
       emit({
         type: "node_moved",
         actor: "user",
-        target: card.node.id,
+        target: nodeToMove, // Target the original node, not the symlink
         data: {
           parent_id: targetNode.id,
           parent_idx: newSortOrder,
@@ -1944,7 +1921,6 @@ function Board({ initialState }: BoardProps) {
         {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
         {showDetailPane && <Text color="cyan">{`[DETAIL] `}</Text>}
         {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
-        {moveMode && <Text color="magenta">{`[MOVE] `}</Text>}
         {inOutlineMode && <Text color="cyan">{`[OUTLINE] `}</Text>}
         {multiSelected.size > 0 && (
           <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>

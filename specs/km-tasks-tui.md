@@ -219,6 +219,29 @@ All boards display as columns:
 | `@` | Insert reference     |
 | `D` | Delete               |
 
+### Symlink Operations
+
+When a task is displayed via symlink (transclusion), operations behave differently:
+
+| Operation Type | Target  | Example                                   |
+| -------------- | ------- | ----------------------------------------- |
+| **Positional** | Symlink | Move card within board, delete from board |
+| **Content**    | Target  | Status cycle, priority change, edit title |
+
+**Positional operations** (apply to the symlink):
+
+- `Opt+hjkl` / `Opt+arrows` — Move card within board
+- `D` — Delete symlink (task remains in original location)
+
+**Content operations** (apply to the target task):
+
+- `x`/`s` — Toggle/cycle status
+- `1-5` — Set priority
+- `e` — Edit title
+- `p` — Re-parent the original task
+
+This ensures tasks can appear on multiple boards while maintaining a single source of truth.
+
 ### Inbox Actions
 
 When viewing `@inbox`:

@@ -91,11 +91,23 @@ function getProjectPath(node: Node): string {
 }
 
 /**
+ * Get parent display name for context
+ */
+function getParentName(node: Node): string | null {
+  if (!node.parent_id) return null;
+  const parent = getNode(node.parent_id);
+  if (!parent) return null;
+  return getNodeDisplayName(parent);
+}
+
+/**
  * Project option for the picker
  */
 interface ProjectOption {
   node: Node;
-  path: string;
+  title: string; // Display name of the node
+  parentContext: string | null; // Parent name for context
+  path: string; // Full path for searching
   isRecent?: boolean;
 }
 
@@ -114,10 +126,14 @@ function getProjectOptions(recentIds?: string[]): ProjectOption[] {
       node.type === "file" ||
       node.type === "folder"
     ) {
+      const title = getNodeDisplayName(node);
+      const parentContext = getParentName(node);
       const path = getProjectPath(node);
       options.push({
         node,
-        path: path || getNodeDisplayName(node),
+        title,
+        parentContext,
+        path: path || title,
         isRecent: recentSet.has(node.id),
       });
     }
@@ -152,17 +168,26 @@ export function ProjectPicker({
 
   const filteredOptions = useMemo(() => {
     if (!query) {
-      // Show recent first, then alphabetically
+      // Show recent first, then alphabetically by title
       return [...allOptions].sort((a, b) => {
         if (a.isRecent && !b.isRecent) return -1;
         if (!a.isRecent && b.isRecent) return 1;
-        return a.path.localeCompare(b.path);
+        return a.title.localeCompare(b.title);
       });
     }
 
-    // Filter and score by query
+    // Filter and score by query - match against title, parent, and full path
     return allOptions
-      .map((opt) => ({ ...opt, score: fuzzyScore(query, opt.path) }))
+      .map((opt) => {
+        // Score against title (primary), parent context, and full path
+        const titleScore = fuzzyScore(query, opt.title);
+        const parentScore = opt.parentContext
+          ? fuzzyScore(query, opt.parentContext) * 0.8
+          : -1;
+        const pathScore = fuzzyScore(query, opt.path) * 0.6;
+        const bestScore = Math.max(titleScore, parentScore, pathScore);
+        return { ...opt, score: bestScore };
+      })
       .filter((opt) => opt.score >= 0)
       .sort((a, b) => b.score - a.score);
   }, [allOptions, query]);
@@ -258,7 +283,25 @@ export function ProjectPicker({
         {visibleOptions.map((opt, i) => {
           const actualIndex = scrollOffset + i;
           const isSelected = actualIndex === selectedIndex;
-          const displayPath = opt.path.slice(0, innerWidth - 12);
+
+          // Calculate available width for content
+          const prefix = isSelected ? "▸ " : "  ";
+          const recentSuffix = opt.isRecent ? " (recent)" : "";
+          const contextSuffix = opt.parentContext
+            ? ` < ${opt.parentContext}`
+            : "";
+          const availableWidth =
+            innerWidth -
+            prefix.length -
+            recentSuffix.length -
+            contextSuffix.length -
+            2;
+
+          // Truncate title if needed
+          const displayTitle =
+            opt.title.length > availableWidth
+              ? opt.title.slice(0, availableWidth - 1) + "…"
+              : opt.title;
 
           return (
             <Text
@@ -267,8 +310,16 @@ export function ProjectPicker({
               color={isSelected ? "white" : undefined}
               wrap="truncate"
             >
-              {isSelected ? "▸ " : "  "}
-              {displayPath}
+              {prefix}
+              {displayTitle}
+              {opt.parentContext && (
+                <Text
+                  dimColor={!isSelected}
+                  color={isSelected ? "gray" : undefined}
+                >
+                  {` < ${opt.parentContext}`}
+                </Text>
+              )}
               {opt.isRecent && (
                 <Text color="yellow" dimColor={!isSelected}>
                   {" (recent)"}

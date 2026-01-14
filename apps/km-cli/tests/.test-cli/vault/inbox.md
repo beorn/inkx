@@ -1,3 +1,0 @@
-# Inbox
-
-- [ ] Task in inbox

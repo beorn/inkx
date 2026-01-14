@@ -81,6 +81,37 @@ See [km-tasks-data.md](km-tasks-data.md#status-model) for details.
 | `!`        | blocked | `[!]`   |
 | `-`        | dropped | `[-]`   |
 
+### Symlinks (Transclusion)
+
+Nodes can be **symlinked** (transcluded) to appear in multiple locations. A symlink is a lightweight reference to another node:
+
+```typescript
+interface Node {
+  // ... other fields ...
+  symlink_to?: string; // ID of target node (if this is a symlink)
+}
+```
+
+**Key rules:**
+
+1. **Symlinks are positional references** — they exist in the tree but point elsewhere
+2. **Content operations apply to target** — status, priority, and other content changes affect the linked node
+3. **Positional operations apply to symlink** — moving within a board moves the symlink, not the target
+4. **Display reads from target** — symlinks show the target's content, status, and priority
+5. **Delete removes symlink only** — deleting a symlink does not delete the target
+
+**Example:**
+
+```markdown
+# @next.md (board)
+
+## today
+
+- ![[tasks/review-budget]] <!-- symlink to task -->
+```
+
+The task lives in `tasks/review-budget.md`. The board contains a symlink. Changing status via the board UI updates the original task. Moving the card within the board moves the symlink.
+
 ---
 
 ## ID Strategy
