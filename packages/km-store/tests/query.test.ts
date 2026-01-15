@@ -937,3 +937,214 @@ describe("Full-text Search with Phrases", () => {
     expect(results[0]?.node.id).toBe("doc1");
   });
 });
+
+/**
+ * Tests for status on any node type (km-oidi)
+ *
+ * A node is considered a "task" for workflow purposes if it has task_status,
+ * regardless of its type. This allows sections, files, or other nodes to
+ * participate in status-based workflows.
+ */
+describe("Status on Any Node Type", () => {
+  beforeEach(() => {
+    const db = new Database(":memory:");
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS nodes (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        parent_id TEXT,
+        symlink_to TEXT,
+        parent_idx REAL DEFAULT 0,
+        fs_path TEXT,
+        fs_ino INTEGER,
+        md_pos INTEGER,
+        md_slug TEXT,
+        task_status TEXT,
+        task_mark TEXT,
+        assigned_to TEXT,
+        due_date TEXT,
+        scheduled_date TEXT,
+        priority INTEGER,
+        content TEXT,
+        content_hash TEXT,
+        data JSON DEFAULT '{}',
+        created_at INTEGER,
+        updated_at INTEGER,
+        version TEXT
+      );
+    `);
+
+    const now = Date.now();
+
+    // Regular task (type: task with status)
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, task_mark, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "task1",
+        "task",
+        "todo",
+        " ",
+        "Regular checkbox task",
+        "{}",
+        now,
+        now,
+        "v1",
+        0,
+      ],
+    );
+
+    // Section with status (type: section with task_status)
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "section1",
+        "section",
+        "wip",
+        "Project Phase 1",
+        '{"depth": 2}',
+        now,
+        now,
+        "v2",
+        1,
+      ],
+    );
+
+    // File with status (type: file with task_status)
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "file1",
+        "file",
+        "done",
+        "Completed Document",
+        "/vault/completed.md",
+        "{}",
+        now,
+        now,
+        "v3",
+        2,
+      ],
+    );
+
+    // Paragraph with status (type: paragraph with task_status)
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "para1",
+        "paragraph",
+        "blocked",
+        "Waiting on external review",
+        "{}",
+        now,
+        now,
+        "v4",
+        3,
+      ],
+    );
+
+    // Regular section without status
+    db.run(
+      `INSERT INTO nodes (id, type, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "section2",
+        "section",
+        "Normal section",
+        '{"depth": 2}',
+        now,
+        now,
+        "v5",
+        4,
+      ],
+    );
+
+    setDb(db);
+  });
+
+  afterEach(() => {
+    closeDb();
+  });
+
+  test("status:todo matches only nodes with that status, any type", () => {
+    const ast = parseQuery("status:todo");
+    const results = executeQuery(ast);
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("task1");
+    expect(results[0].type).toBe("task");
+  });
+
+  test("status:wip matches section with status", () => {
+    const ast = parseQuery("status:wip");
+    const results = executeQuery(ast);
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("section1");
+    expect(results[0].type).toBe("section");
+  });
+
+  test("status:done matches file with status", () => {
+    const ast = parseQuery("status:done");
+    const results = executeQuery(ast);
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("file1");
+    expect(results[0].type).toBe("file");
+  });
+
+  test("status:blocked matches paragraph with status", () => {
+    const ast = parseQuery("status:blocked");
+    const results = executeQuery(ast);
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("para1");
+    expect(results[0].type).toBe("paragraph");
+  });
+
+  test("type:task only matches checkbox-originated nodes", () => {
+    const ast = parseQuery("type:task");
+    const results = executeQuery(ast);
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("task1");
+  });
+
+  test("type:section matches sections regardless of status", () => {
+    const ast = parseQuery("type:section");
+    const results = executeQuery(ast);
+    expect(results.length).toBe(2);
+    const ids = results.map((r) => r.id);
+    expect(ids).toContain("section1"); // has status
+    expect(ids).toContain("section2"); // no status
+  });
+
+  test("combining type and status filters", () => {
+    const ast = parseQuery("type:section status:wip");
+    const results = executeQuery(ast);
+    expect(results.length).toBe(1);
+    expect(results[0]?.id).toBe("section1");
+  });
+
+  test("queryTasks only returns type:task nodes", () => {
+    // queryTasks passes type:"task" to executeQuery
+    const results = queryTasks("status:todo");
+    expect(results.length).toBe(1);
+    expect(results[0]?.type).toBe("task");
+  });
+
+  test("-status:done excludes nodes with that status, any type", () => {
+    const ast = parseQuery("-status:done");
+    const results = executeQuery(ast);
+    // Should include task1, section1, para1, section2 (no status counts as not done)
+    expect(results.length).toBe(4);
+    expect(results.every((r) => r.task_status !== "done")).toBe(true);
+  });
+
+  test("status:todo,wip matches multiple statuses across types", () => {
+    const ast = parseQuery("status:todo,wip");
+    const results = executeQuery(ast);
+    expect(results.length).toBe(2);
+    const ids = results.map((r) => r.id);
+    expect(ids).toContain("task1"); // todo
+    expect(ids).toContain("section1"); // wip
+  });
+});

@@ -55,6 +55,21 @@ export interface NodeRules {
 
 /**
  * Core Node interface - everything is a node
+ *
+ * ## Task Definition
+ *
+ * A node is considered a "task" (for querying and workflow purposes) if it has
+ * a `task_status` property set, regardless of its `type`. This means:
+ *
+ * - `type: "task"` - checkbox-originated items (e.g., `- [ ] item`)
+ * - Any other type with `task_status` - can participate in task workflows
+ *
+ * Query behavior:
+ * - `type:task` - only checkbox-originated nodes
+ * - `status:todo` or `task_status:todo` - any node with that status
+ *
+ * This allows sections, files, or other nodes to have status for tracking
+ * completion without being parsed from checkbox syntax.
  */
 export interface Node {
   id: string; // ULID
@@ -72,9 +87,10 @@ export interface Node {
   md_line?: number; // Line number in file (0-indexed)
   md_slug?: string; // Heading slug (for sections)
 
-  // Task properties
+  // Task properties (can be set on any node type, not just type: "task")
+  // A node with task_status is considered a "task" for workflow purposes
   task_status?: TaskStatus;
-  task_mark?: TaskMark;
+  task_mark?: TaskMark; // Only meaningful for type: "task" (checkbox nodes)
   assigned_to?: string;
   due_date?: string; // YYYY-MM-DD
   scheduled_date?: string;

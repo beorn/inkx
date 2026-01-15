@@ -287,6 +287,45 @@ Columns can have rules that control task membership and field synchronization.
 | `limit=N`       | WIP limit (visual warning) |
 | `default=true`  | New items go here          |
 
+### Future: JSON Sync Syntax
+
+> **Note:** This syntax is planned but not yet implemented.
+
+For more complex sync rules, a JSON-like syntax allows richer semantics:
+
+```markdown
+# My Board {sync: {add: backlinks}}
+
+## Ready {sync: {status: todo}}
+
+## In Progress {sync: {status: wip}}
+
+## Waiting {sync: {status: blocked}}
+
+## Done {sync: {status: done}}
+```
+
+**Board-level rules:**
+
+| Property         | Effect                             |
+| ---------------- | ---------------------------------- |
+| `add: backlinks` | Pull nodes that link TO this board |
+| `add: "./path"`  | Pull nodes matching path pattern   |
+
+**Column-level rules:**
+
+| Property        | Effect                                |
+| --------------- | ------------------------------------- |
+| `status: value` | Bidirectional: move here ↔ set status |
+| `add: "query"`  | Pull matching nodes into this column  |
+
+**Semantics:**
+
+- `add: backlinks` — Find all nodes that contain a wikilink `[[Board Name]]` and embed them
+- `status: todo` — When a node moves to this column, set `task_status = todo`. When a node's status becomes `todo`, move it here.
+
+This enables automatic board population from backlinks, which is useful for project boards where tasks reference the project via `[[Project Name]]` or `+project-name`.
+
 ---
 
 ## Node Queries

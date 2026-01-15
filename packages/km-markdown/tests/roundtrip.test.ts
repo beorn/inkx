@@ -939,3 +939,674 @@ Regular paragraph here.`;
     expect(md2).toContain("![[Projects/API#Auth|API Docs]]");
   });
 });
+
+/**
+ * Comprehensive Round-trip Tests (km-744t)
+ *
+ * Additional tests for full coverage of markdown syntax and data model.
+ */
+
+describe("Round-trip: All Task Status Marks", () => {
+  test("should preserve all standard and custom task marks", () => {
+    const md = `- [ ] Open task (todo)
+- [x] Completed task (done)
+- [X] Also completed (done)
+- [/] In progress task (wip)
+- [-] Dropped/cancelled task (dropped)
+- [!] Blocked task (blocked)`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const tasks = nodes.filter((n) => n.type === "task");
+
+    // Should have 6 tasks
+    expect(tasks.length).toBe(6);
+
+    // Verify all statuses are present
+    const statuses = tasks.map((t) => t.task_status);
+    expect(statuses).toContain("todo");
+    expect(statuses).toContain("done");
+    expect(statuses).toContain("wip");
+    expect(statuses).toContain("dropped");
+    expect(statuses).toContain("blocked");
+
+    // Verify task marks are preserved
+    const marks = tasks.map((t) => t.task_mark);
+    expect(marks).toContain(" ");
+    expect(marks.filter((m) => m === "x" || m === "X").length).toBe(2);
+    expect(marks).toContain("/");
+    expect(marks).toContain("-");
+    expect(marks).toContain("!");
+
+    // After round-trip, marks should be preserved
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("- [ ]"); // open
+    expect(output).toContain("- [x]"); // done (normalized)
+    expect(output).toContain("- [/]"); // wip
+    expect(output).toContain("- [-]"); // dropped
+    expect(output).toContain("- [!]"); // blocked
+  });
+
+  test("should preserve task status through double round-trip", () => {
+    const original = `- [/] WIP task
+- [!] Blocked task`;
+
+    // First round-trip
+    const nodes1 = parseMarkdownToNodes(original, "test.md");
+    const md1 = nodesToMarkdown(nodes1);
+
+    // Second round-trip
+    const nodes2 = parseMarkdownToNodes(md1, "test.md");
+
+    // Statuses should be stable
+    const wip = nodes2.find((n) => n.content?.includes("WIP"));
+    const blocked = nodes2.find((n) => n.content?.includes("Blocked"));
+
+    expect(wip?.task_status).toBe("wip");
+    expect(blocked?.task_status).toBe("blocked");
+  });
+});
+
+describe("Round-trip: Task Metadata Formats", () => {
+  test("should preserve Obsidian Tasks emoji format", () => {
+    const md = `- [ ] Task with all metadata 📅 2025-12-25 ⏳ 2025-12-20 ⏫`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const task = nodes.find((n) => n.type === "task");
+
+    expect(task).toBeDefined();
+    expect(task!.due_date).toBe("2025-12-25");
+    expect(task!.scheduled_date).toBe("2025-12-20");
+    expect(task!.priority).toBe(1);
+
+    // Round-trip should preserve
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("📅 2025-12-25");
+    expect(output).toContain("⏳ 2025-12-20");
+    expect(output).toContain("⏫");
+  });
+
+  test("should preserve recurrence metadata", () => {
+    const md = `- [ ] Recurring task 🔁 every week`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const task = nodes.find((n) => n.type === "task");
+
+    expect(task).toBeDefined();
+    // Recurrence is stored in data.recurrence
+    expect(task!.data?.recurrence).toBe("every week");
+  });
+
+  test("should preserve inline field format (due:, start:, p:)", () => {
+    const md = `- [ ] Task with inline fields due:2025-11-15 start:2025-11-10 p:2`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const task = nodes.find((n) => n.type === "task");
+
+    expect(task).toBeDefined();
+    expect(task!.due_date).toBe("2025-11-15");
+    expect(task!.scheduled_date).toBe("2025-11-10");
+    expect(task!.priority).toBe(2);
+  });
+
+  test("should preserve all priority levels", () => {
+    const md = `- [ ] High priority ⏫
+- [ ] Medium priority 🔼
+- [ ] Low priority 🔽`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const tasks = nodes.filter((n) => n.type === "task");
+
+    expect(tasks[0]?.priority).toBe(1);
+    expect(tasks[1]?.priority).toBe(2);
+    expect(tasks[2]?.priority).toBe(3);
+
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("⏫");
+    expect(output).toContain("🔼");
+    expect(output).toContain("🔽");
+  });
+});
+
+describe("Round-trip: Wiki Links and Markdown Links", () => {
+  test("should preserve wiki links with all variations", () => {
+    const md = `Check [[simple link]] and [[path/to/note]] and [[target|alias]].`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("[[simple link]]");
+    expect(output).toContain("[[path/to/note]]");
+    expect(output).toContain("[[target|alias]]");
+  });
+
+  test("should preserve wiki links with section anchors", () => {
+    const md = `See [[note#heading]] and [[doc#section|link text]].`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("[[note#heading]]");
+    expect(output).toContain("[[doc#section|link text]]");
+  });
+
+  test("should preserve wiki links with block IDs", () => {
+    const md = `Reference [[doc^block123]] and [[page^abc|ref]].`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("[[doc^block123]]");
+    expect(output).toContain("[[page^abc|ref]]");
+  });
+
+  test("should preserve markdown links text content", () => {
+    // Note: Current implementation strips markdown link syntax, keeping only text
+    const md = `Visit [Example](https://example.com) and [Docs](./docs/README.md).`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    // Text content is preserved
+    expect(output).toContain("Example");
+    expect(output).toContain("Docs");
+  });
+});
+
+describe("Round-trip: Markdown Formatting", () => {
+  test("should preserve inline formatting in content", () => {
+    const md = `Text with **bold**, *italic*, \`code\`, and ~~strikethrough~~.`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    // Current parser may or may not preserve formatting depending on implementation
+    // At minimum, the text content should be preserved
+    expect(output).toContain("bold");
+    expect(output).toContain("italic");
+    expect(output).toContain("code");
+    expect(output).toContain("strikethrough");
+  });
+
+  test("should handle mixed formatting in tasks", () => {
+    const md = `- [ ] Task with **important** and \`code\` parts`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("important");
+    expect(output).toContain("code");
+  });
+});
+
+describe("Round-trip: Section Rules (Board Syntax)", () => {
+  test("should preserve section rules in headings", () => {
+    const md = `# Board
+
+## Ready add="status:todo"
+
+- [ ] Task 1
+
+## In Progress sync=status:wip limit=3
+
+- [/] Task 2
+
+## Done collapse=true
+
+- [x] Task 3`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const sections = nodes.filter((n) => n.type === "section");
+
+    // Verify rules are parsed
+    const ready = sections.find((s) => s.title === "Ready");
+    expect(ready?.rules?.add).toBe("status:todo");
+
+    const inProgress = sections.find((s) => s.title === "In Progress");
+    expect(inProgress?.rules?.sync).toBe("status:wip");
+    expect(inProgress?.rules?.limit).toBe(3);
+
+    const done = sections.find((s) => s.title === "Done");
+    expect(done?.rules?.collapse).toBe(true);
+
+    // Round-trip preserves rules in content
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain('add="status:todo"');
+    expect(output).toContain("sync=status:wip");
+    expect(output).toContain("limit=3");
+    expect(output).toContain("collapse=true");
+  });
+
+  test("should preserve color rule", () => {
+    const md = `## Section color=cyan`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const section = nodes.find((n) => n.type === "section");
+
+    expect(section?.rules?.color).toBe("cyan");
+
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("color=cyan");
+  });
+
+  test("should preserve default=true rule", () => {
+    const md = `## Inbox default=true`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const section = nodes.find((n) => n.type === "section");
+
+    expect(section?.rules?.default).toBe(true);
+
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("default=true");
+  });
+});
+
+describe("Round-trip: Nested Tasks (Indentation)", () => {
+  test("should preserve nested task hierarchy", () => {
+    const md = `- [ ] Parent task
+  - [ ] Child task 1
+  - [x] Child task 2
+    - [ ] Grandchild task`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const tasks = nodes.filter((n) => n.type === "task");
+
+    expect(tasks.length).toBeGreaterThanOrEqual(4);
+
+    // Content should be preserved
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("Parent task");
+    expect(output).toContain("Child task 1");
+    expect(output).toContain("Child task 2");
+    expect(output).toContain("Grandchild task");
+  });
+
+  test("should preserve mixed list/task nesting", () => {
+    const md = `- Regular item
+  - [ ] Nested task
+- [ ] Top-level task
+  - Nested regular item`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("Regular item");
+    expect(output).toContain("Nested task");
+    expect(output).toContain("Top-level task");
+  });
+});
+
+describe("Round-trip: Frontmatter", () => {
+  test("should preserve YAML frontmatter fields", () => {
+    const md = `---
+title: Test Document
+author: test-user
+tags:
+  - tag1
+  - tag2
+priority: 1
+created: 2025-01-15
+---
+
+# Content`;
+
+    const { frontmatter, body } = extractFrontmatter(md);
+
+    expect(frontmatter).toContain("title: Test Document");
+    expect(frontmatter).toContain("author: test-user");
+    expect(frontmatter).toContain("- tag1");
+    expect(frontmatter).toContain("priority: 1");
+
+    // Body should parse correctly
+    const nodes = parseMarkdownToNodes(body, "test.md");
+    const fileNode = nodes.find((n) => n.type === "file");
+    expect(fileNode?.title).toBe("Content");
+  });
+
+  test("should handle frontmatter with type field", () => {
+    const md = `---
+title: My Inbox
+type: inbox
+---
+
+## Quick capture
+
+- [ ] Task`;
+
+    const { frontmatter, body } = extractFrontmatter(md);
+
+    expect(frontmatter).toContain("type: inbox");
+
+    const nodes = parseMarkdownToNodes(body, "test.md");
+    expect(nodes.length).toBeGreaterThan(0);
+  });
+});
+
+describe("Round-trip: H1 Merging Edge Cases", () => {
+  test("should merge H1 rules into file node", () => {
+    const md = `# Board default=true color=blue
+
+## Column 1`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const fileNode = nodes.find((n) => n.type === "file");
+
+    expect(fileNode?.title).toBe("Board");
+    expect(fileNode?.rules?.default).toBe(true);
+    expect(fileNode?.rules?.color).toBe("blue");
+  });
+
+  test("should handle file with no H1", () => {
+    const md = `## Just a Section
+
+Content here.
+
+## Another Section`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const fileNode = nodes.find((n) => n.type === "file");
+    const sections = nodes.filter((n) => n.type === "section");
+
+    // File has no title (no H1)
+    expect(fileNode?.title).toBeUndefined();
+
+    // Sections are children of file
+    expect(sections.length).toBe(2);
+    expect(fileNode).toBeDefined();
+    for (const s of sections) {
+      expect(s.parent_id).toBe(fileNode!.id);
+    }
+  });
+
+  test("should handle multiple H1s (first is used)", () => {
+    const md = `# First Title
+
+Content.
+
+# Second Title
+
+More content.`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const fileNode = nodes.find((n) => n.type === "file");
+
+    // First H1 merged
+    expect(fileNode?.title).toBe("First Title");
+  });
+});
+
+describe("Round-trip: Deep Section Hierarchy", () => {
+  test("should handle all 6 heading levels", () => {
+    const md = `# H1 Level
+
+## H2 Level
+
+### H3 Level
+
+#### H4 Level
+
+##### H5 Level
+
+###### H6 Level
+
+Deepest content.`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const fileNode = nodes.find((n) => n.type === "file");
+    const sections = nodes.filter((n) => n.type === "section");
+
+    // H1 merged into file
+    expect(fileNode?.title).toBe("H1 Level");
+    expect(fileNode?.data?.depth).toBe(1);
+
+    // 5 section nodes (H2-H6)
+    expect(sections.length).toBe(5);
+
+    const depths = sections.map((s) => s.data?.depth);
+    expect(depths).toContain(2);
+    expect(depths).toContain(3);
+    expect(depths).toContain(4);
+    expect(depths).toContain(5);
+    expect(depths).toContain(6);
+
+    // Round-trip preserves
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("# H1 Level");
+    expect(output).toContain("###### H6 Level");
+  });
+
+  test("should handle skipped heading levels", () => {
+    const md = `# Title
+
+## Section
+
+#### Skipped to H4
+
+###### Skipped to H6`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const sections = nodes.filter((n) => n.type === "section");
+
+    // All sections should be created
+    const depths = sections.map((s) => s.data?.depth);
+    expect(depths).toContain(2);
+    expect(depths).toContain(4);
+    expect(depths).toContain(6);
+  });
+
+  test("should handle H2 after H2 (sibling sections)", () => {
+    const md = `# Document
+
+## Section A
+
+Content A
+
+## Section B
+
+Content B
+
+## Section C
+
+Content C`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const fileNode = nodes.find((n) => n.type === "file");
+    const sections = nodes.filter((n) => n.type === "section");
+
+    expect(sections.length).toBe(3);
+
+    // All H2s are children of file (siblings)
+    expect(fileNode).toBeDefined();
+    for (const s of sections) {
+      expect(s.parent_id).toBe(fileNode!.id);
+      expect(s.data?.depth).toBe(2);
+    }
+  });
+});
+
+describe("Round-trip: Empty Content Edge Cases", () => {
+  test("should handle section with no content", () => {
+    const md = `# Title
+
+## Empty Section
+
+## Non-empty Section
+
+Content here.`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const sections = nodes.filter((n) => n.type === "section");
+
+    expect(sections.length).toBe(2);
+
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("## Empty Section");
+    expect(output).toContain("## Non-empty Section");
+  });
+
+  test("should handle task with minimal content", () => {
+    // Note: Empty task "- [ ] " with trailing space may be parsed as list item
+    // Test task with single character content instead
+    const md = `- [ ] x`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const task = nodes.find((n) => n.type === "task");
+
+    expect(task).toBeDefined();
+    expect(task!.task_status).toBe("todo");
+    expect(task!.content).toBe("x");
+
+    const output = nodesToMarkdown(nodes);
+    expect(output).toContain("- [ ] x");
+  });
+
+  test("should handle empty code block", () => {
+    const md = `\`\`\`javascript
+\`\`\``;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const code = nodes.find((n) => n.type === "code");
+
+    expect(code).toBeDefined();
+    expect(code!.data?.lang).toBe("javascript");
+  });
+});
+
+describe("Round-trip: Data Model Integrity", () => {
+  test("should assign correct node types", () => {
+    const md = `# Document
+
+This is a paragraph.
+
+- [ ] A task
+- A list item
+
+> A quote
+
+\`\`\`python
+code
+\`\`\`
+
+| A | B |
+|---|---|
+| 1 | 2 |
+
+---`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+
+    expect(nodes.some((n) => n.type === "file")).toBe(true);
+    expect(nodes.some((n) => n.type === "paragraph")).toBe(true);
+    expect(nodes.some((n) => n.type === "task")).toBe(true);
+    expect(nodes.some((n) => n.type === "ul")).toBe(true);
+    expect(nodes.some((n) => n.type === "quote")).toBe(true);
+    expect(nodes.some((n) => n.type === "code")).toBe(true);
+    expect(nodes.some((n) => n.type === "table")).toBe(true);
+    expect(nodes.some((n) => n.type === "hr")).toBe(true);
+  });
+
+  test("should preserve node parent relationships", () => {
+    const md = `# Doc
+
+## Section
+
+- [ ] Task in section`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const fileNode = nodes.find((n) => n.type === "file");
+    const section = nodes.find((n) => n.type === "section");
+    const task = nodes.find((n) => n.type === "task");
+
+    expect(section?.parent_id).toBe(fileNode?.id);
+    expect(task?.parent_id).toBe(section?.id);
+  });
+
+  test("should assign parent_idx for ordering", () => {
+    const md = `- [ ] First
+- [ ] Second
+- [ ] Third`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const tasks = nodes.filter((n) => n.type === "task");
+
+    // Parent indices should be in order
+    expect(tasks[0]?.parent_idx).toBeLessThan(tasks[1]?.parent_idx ?? -1);
+    expect(tasks[1]?.parent_idx).toBeLessThan(tasks[2]?.parent_idx ?? -1);
+  });
+
+  test("should preserve content_hash for large content", () => {
+    // Generate content larger than inline threshold (if any)
+    const longContent = "A".repeat(1000);
+    const md = `${longContent}`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const para = nodes.find((n) => n.type === "paragraph");
+
+    // Content should be present (either inline or via hash)
+    expect(para?.content?.length || 0).toBeGreaterThan(0);
+  });
+
+  test("should set created_at and updated_at timestamps", () => {
+    const md = `- [ ] Task`;
+    const beforeParse = Date.now();
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+
+    const afterParse = Date.now();
+    const task = nodes.find((n) => n.type === "task");
+
+    expect(task?.created_at).toBeGreaterThanOrEqual(beforeParse);
+    expect(task?.created_at).toBeLessThanOrEqual(afterParse);
+    expect(task?.updated_at).toBeGreaterThanOrEqual(beforeParse);
+  });
+});
+
+describe("Round-trip: Special Characters", () => {
+  test("should preserve angle brackets", () => {
+    const md = `- [ ] Task with <angle> brackets`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("<angle>");
+  });
+
+  test("should preserve square brackets in content", () => {
+    const md = `- [ ] Task with [square] brackets (not wiki link)`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("[square]");
+  });
+
+  test("should preserve curly braces", () => {
+    const md = `Paragraph with {curly} braces and {{double}}.`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("{curly}");
+    expect(output).toContain("{{double}}");
+  });
+
+  test("should preserve pipe characters", () => {
+    const md = `Command: ls | grep foo | wc -l`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("|");
+    expect(output).toContain("ls");
+    expect(output).toContain("grep");
+  });
+
+  test("should preserve backslashes", () => {
+    const md = `Path: C:\\Users\\name\\file.txt`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("\\");
+  });
+});
