@@ -1,12 +1,12 @@
 /**
  * Shell Executor for km-sh
  *
- * Executes commands against a BoardState and produces output.
+ * Executes commands against a TreeState and produces output.
  * Supports both JSON and line (human-readable) output modes.
  */
 
-import type { BoardState, BoardAction } from "./types.ts";
-import { boardReducer } from "./boardReducer.ts";
+import type { TreeState, TreeAction, CursorPath } from "./types.ts";
+import { treeReducer, getNodeAtPath } from "./treeReducer.ts";
 import { parseCommand, getCommandHelp } from "./commandParser.ts";
 import type { ShellCommand } from "./commandParser.ts";
 
@@ -15,7 +15,7 @@ import type { ShellCommand } from "./commandParser.ts";
  */
 export type OutputEvent =
   | { event: "init"; state: SerializedState; ts: number }
-  | { event: "action"; action: BoardAction; ts: number }
+  | { event: "action"; action: TreeAction; ts: number }
   | { event: "state"; state: SerializedState; ts: number }
   | { event: "error"; error: string; ts: number }
   | { event: "output"; text: string; ts: number };
@@ -26,79 +26,86 @@ export type OutputEvent =
 export interface SerializedState {
   rootId: string | null;
   rootPath: string | null;
-  colIndex: number;
-  cardIndex: number;
-  selectedCards: string[];
-  foldedCards: string[];
-  collapsedColumns: number[];
+  cursor: CursorPath;
+  selectedNodes: string[];
+  foldedNodes: string[];
+  collapsedNodes: string[];
   searchQuery: string;
   searchMode: boolean;
   helpMode: boolean;
-  columnCount: number;
-  cardCounts: number[];
+  nodeCount: number;
+  topLevelCount: number;
 }
 
 /**
  * Shell execution context
  */
 export interface ShellContext {
-  state: BoardState;
+  state: TreeState;
   jsonMode: boolean;
+  verbose: boolean;
   output: (event: OutputEvent | string) => void;
+  stdlog?: (line: string) => void;
 }
 
 /**
- * Serialize BoardState for JSON output
+ * Serialize TreeState for JSON output
  */
-export function serializeState(state: BoardState): SerializedState {
+export function serializeState(state: TreeState): SerializedState {
+  // Count total nodes recursively
+  function countNodes(nodes: TreeState["nodes"]): number {
+    return nodes.reduce(
+      (sum, node) => sum + 1 + countNodes(node.children),
+      0,
+    );
+  }
+
   return {
     rootId: state.rootId,
     rootPath: state.rootPath,
-    colIndex: state.colIndex,
-    cardIndex: state.cardIndex,
-    selectedCards: Array.from(state.selectedCards),
-    foldedCards: Array.from(state.foldedCards),
-    collapsedColumns: Array.from(state.collapsedColumns),
+    cursor: state.cursor,
+    selectedNodes: Array.from(state.selectedNodes),
+    foldedNodes: Array.from(state.foldedNodes),
+    collapsedNodes: Array.from(state.collapsedNodes),
     searchQuery: state.searchQuery,
     searchMode: state.searchMode,
     helpMode: state.helpMode,
-    columnCount: state.columns.length,
-    cardCounts: state.columns.map((c) => c.cards.length),
+    nodeCount: countNodes(state.nodes),
+    topLevelCount: state.nodes.length,
   };
 }
 
 /**
  * Format state for human-readable output
  */
-export function formatStateHuman(state: BoardState): string {
-  const col = state.columns[state.colIndex];
-  const card = col?.cards[state.cardIndex];
+export function formatStateHuman(state: TreeState): string {
+  const currentNode = getNodeAtPath(state.nodes, state.cursor);
   const lines: string[] = [
-    `position: col=${state.colIndex} card=${state.cardIndex}`,
-    `column: ${col?.title ?? "(none)"} (${col?.cards.length ?? 0} cards)`,
-    `card: ${card?.title ?? "(none)"}`,
+    `cursor: [${state.cursor.join(",")}]`,
+    `node: ${currentNode?.title ?? "(none)"}`,
+    `topLevel: ${state.nodes.length} nodes`,
   ];
 
-  if (state.selectedCards.size > 0) {
-    lines.push(`selected: ${state.selectedCards.size} cards`);
+  if (state.selectedNodes.size > 0) {
+    lines.push(`selected: ${state.selectedNodes.size} nodes`);
   }
   if (state.searchMode) {
     lines.push(`search: "${state.searchQuery}"`);
   }
-  if (state.foldedCards.size > 0) {
-    lines.push(`folded: ${state.foldedCards.size} cards`);
+  if (state.foldedNodes.size > 0) {
+    lines.push(`folded: ${state.foldedNodes.size} nodes`);
   }
-  if (state.collapsedColumns.size > 0) {
-    lines.push(`collapsed: ${state.collapsedColumns.size} columns`);
+  if (state.collapsedNodes.size > 0) {
+    lines.push(`collapsed: ${state.collapsedNodes.size} nodes`);
   }
 
   return lines.join("\n");
 }
 
 /**
- * Render a simple ASCII view of the board
+ * Render a simple ASCII view of the tree
  */
-export function renderAsciiView(state: BoardState): string {
+export function renderAsciiView(state: TreeState): string {
   const lines: string[] = [];
 
   // Header
@@ -107,40 +114,45 @@ export function renderAsciiView(state: BoardState): string {
     lines.push("");
   }
 
-  // Columns as simple list
-  for (let ci = 0; ci < state.columns.length; ci++) {
-    const col = state.columns[ci];
-    const isSelected = ci === state.colIndex;
-    const colMarker = isSelected ? "▶" : " ";
-    lines.push(`${colMarker} [${ci}] ${col.title} (${col.cards.length})`);
-
-    // Cards in column
-    for (let cardi = 0; cardi < col.cards.length; cardi++) {
-      const card = col.cards[cardi];
-      const isCardSelected = isSelected && cardi === state.cardIndex;
-      const cardMarker = isCardSelected ? "→" : " ";
-      const foldMarker = state.foldedCards.has(card.nodeId) ? "▸" : " ";
-      const statusIcon = card.taskStatus
+  // Render nodes recursively with indentation
+  function renderNodes(
+    nodes: TreeState["nodes"],
+    path: CursorPath,
+    indent: string,
+  ) {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (!node) continue;
+      const nodePath = [...path, i];
+      const isSelected =
+        state.cursor.length === nodePath.length &&
+        state.cursor.every((v, idx) => v === nodePath[idx]);
+      const marker = isSelected ? "→" : " ";
+      const foldMarker = state.foldedNodes.has(node.nodeId) ? "▸" : " ";
+      const statusIcon = node.taskStatus
         ? { todo: "○", wip: "◐", blocked: "⊘", done: "✓", dropped: "∅" }[
-            card.taskStatus
+            node.taskStatus
           ]
         : " ";
 
       lines.push(
-        `  ${cardMarker}${foldMarker} ${statusIcon} ${card.title}${card.childCount > 0 ? ` (+${card.childCount})` : ""}`,
+        `${indent}${marker}${foldMarker} ${statusIcon} ${node.title}${node.childCount > 0 ? ` (+${node.childCount})` : ""}`,
       );
-    }
 
-    if (state.collapsedColumns.has(ci)) {
-      lines.push(`    (collapsed)`);
+      // Render children if not folded
+      if (node.children.length > 0 && !state.foldedNodes.has(node.nodeId)) {
+        renderNodes(node.children, nodePath, indent + "  ");
+      }
     }
   }
+
+  renderNodes(state.nodes, [], "");
 
   return lines.join("\n");
 }
 
 /**
- * Execute a shell command (not a BoardAction)
+ * Execute a shell command (not a TreeAction)
  */
 export function executeShellCommand(
   command: ShellCommand,
@@ -184,41 +196,41 @@ export function executeShellCommand(
 }
 
 /**
- * Execute a BoardAction
+ * Execute a TreeAction
  */
-export function executeBoardAction(
-  action: BoardAction,
+export function executeTreeAction(
+  action: TreeAction,
   ctx: ShellContext,
-): BoardState {
+): TreeState {
   const ts = Date.now();
 
-  // Log the action
+  // Log the action (JSON mode to stdout, verbose mode to stderr via stdlog)
   if (ctx.jsonMode) {
     ctx.output({ event: "action", action, ts });
-  } else {
-    ctx.output(`# ${action.type}`);
+  } else if (ctx.verbose && ctx.stdlog) {
+    ctx.stdlog(JSON.stringify({ event: "action", action, ts }));
   }
 
   // Execute the action
-  const newState = boardReducer(ctx.state, action);
+  const newState = treeReducer(ctx.state, action);
 
   // Log state change if something changed
   const changed =
-    newState.colIndex !== ctx.state.colIndex ||
-    newState.cardIndex !== ctx.state.cardIndex ||
+    newState.cursor.length !== ctx.state.cursor.length ||
+    !newState.cursor.every((v, i) => v === ctx.state.cursor[i]) ||
     newState.searchMode !== ctx.state.searchMode ||
     newState.helpMode !== ctx.state.helpMode ||
-    newState.foldedCards.size !== ctx.state.foldedCards.size ||
-    newState.collapsedColumns.size !== ctx.state.collapsedColumns.size ||
-    newState.selectedCards.size !== ctx.state.selectedCards.size;
+    newState.foldedNodes.size !== ctx.state.foldedNodes.size ||
+    newState.collapsedNodes.size !== ctx.state.collapsedNodes.size ||
+    newState.selectedNodes.size !== ctx.state.selectedNodes.size;
 
   if (changed) {
     if (ctx.jsonMode) {
       ctx.output({ event: "state", state: serializeState(newState), ts });
     } else {
-      const col = newState.columns[newState.colIndex];
+      const node = getNodeAtPath(newState.nodes, newState.cursor);
       ctx.output(
-        `state: col=${newState.colIndex} card=${newState.cardIndex}${col ? ` "${col.title}"` : ""}`,
+        `state: cursor=[${newState.cursor.join(",")}]${node ? ` "${node.title}"` : ""}`,
       );
     }
   }
@@ -233,7 +245,7 @@ export function executeBoardAction(
 export function executeCommand(
   line: string,
   ctx: ShellContext,
-): { state: BoardState; quit: boolean } {
+): { state: TreeState; quit: boolean } {
   const ts = Date.now();
   const result = parseCommand(line);
 
@@ -242,22 +254,45 @@ export function executeCommand(
     if (result.error.startsWith("KEY:")) {
       const key = result.error.slice(4);
       // Map common keys to actions
-      const keyMap: Record<string, BoardAction> = {
+      const keyMap: Record<string, TreeAction> = {
+        // Navigation - vim style
         j: { type: "MOVE_DOWN" },
         k: { type: "MOVE_UP" },
         h: { type: "MOVE_LEFT" },
         l: { type: "MOVE_RIGHT" },
         g: { type: "JUMP_TOP" },
         G: { type: "JUMP_BOTTOM" },
-        Enter: { type: "MOVE_DOWN" }, // Simplified - real TUI would zoom in
-        Escape: { type: "TOGGLE_SEARCH_MODE" },
+        Enter: { type: "NAV_CHILD" },
+        Backspace: { type: "NAV_PARENT" },
+        u: { type: "NAV_PARENT" },
+
+        // History navigation
+        "[": { type: "NAV_BACK" },
+        "]": { type: "NAV_FORWARD" },
+
+        // Selection
+        A: { type: "SELECT_ALL_SIBLINGS" },
+        Escape: { type: "CLEAR_SELECTION" },
+
+        // View controls
+        z: { type: "FOLD_LEVEL", depth: 1 },
+        Z: { type: "UNFOLD_LEVEL", depth: 1 },
+        "<": { type: "DECREASE_OUTLINE_DEPTH" },
+        ">": { type: "INCREASE_OUTLINE_DEPTH" },
+        "+": { type: "INCREASE_CONTENT_LINES" },
+        "-": { type: "DECREASE_CONTENT_LINES" },
+
+        // Modals
         "/": { type: "TOGGLE_SEARCH_MODE" },
         "?": { type: "TOGGLE_HELP_MODE" },
+        n: { type: "TOGGLE_NEW_ITEM_MODE" },
+        p: { type: "TOGGLE_PROJECT_PICKER" },
+        i: { type: "TOGGLE_DETAIL_PANE" },
       };
 
       const action = keyMap[key];
       if (action) {
-        const newState = executeBoardAction(action, ctx);
+        const newState = executeTreeAction(action, ctx);
         return { state: newState, quit: false };
       } else {
         if (ctx.jsonMode) {
@@ -283,12 +318,12 @@ export function executeCommand(
     return { state: ctx.state, quit: false };
   }
 
-  // Execute shell command or board action
+  // Execute shell command or tree action
   if ("command" in result) {
     const { quit } = executeShellCommand(result.command, ctx);
     return { state: ctx.state, quit };
   } else {
-    const newState = executeBoardAction(result.action, ctx);
+    const newState = executeTreeAction(result.action, ctx);
     return { state: newState, quit: false };
   }
 }
@@ -299,14 +334,20 @@ export function executeCommand(
  */
 export function runShell(
   lines: string[],
-  initialState: BoardState,
+  initialState: TreeState,
   options: {
     jsonMode?: boolean;
+    verbose?: boolean;
     output?: (event: OutputEvent | string) => void;
+    stdlog?: (line: string) => void;
   } = {},
-): BoardState {
+): TreeState {
   const jsonMode = options.jsonMode ?? false;
-  const output = options.output ?? ((e) => console.log(typeof e === "string" ? e : JSON.stringify(e)));
+  const verbose = options.verbose ?? false;
+  const output =
+    options.output ??
+    ((e) => console.log(typeof e === "string" ? e : JSON.stringify(e)));
+  const stdlog = options.stdlog ?? ((line) => console.error(line));
 
   // Initial state output
   const ts = Date.now();
@@ -317,7 +358,9 @@ export function runShell(
   const ctx: ShellContext = {
     state: initialState,
     jsonMode,
+    verbose,
     output,
+    stdlog,
   };
 
   for (const line of lines) {
