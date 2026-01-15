@@ -122,19 +122,23 @@ for (const status of statuses) {
   console.log(`  ${colorFn(icon.char)}  ${status}`);
 }
 console.log();
-// Error cases - null/undefined/unknown should show inverted ? marker
-console.log(chalk.dim("Error cases (null/undefined/invalid):"));
-for (const status of [null, undefined, "invalid"]) {
+// Error cases: missing status vs invalid status
+console.log(chalk.dim("Missing status (null/undefined) → red warning ⚠:"));
+for (const status of [null, undefined]) {
   const icon = getStatusIcon(status);
-  // Apply background color for error states
-  let styledChar = icon.char;
-  if (icon.backgroundColor) {
-    const bgFn = chalk[`bg${icon.backgroundColor.charAt(0).toUpperCase()}${icon.backgroundColor.slice(1)}` as keyof typeof chalk] as (s: string) => string;
-    const fgFn = chalk[icon.color as keyof typeof chalk] as (s: string) => string;
-    styledChar = bgFn(fgFn(icon.char));
-  }
-  const label = status === null ? "null" : status === undefined ? "undefined" : status;
-  console.log(`  ${styledChar}  ${label}`);
+  const colorFn = chalk[icon.color as keyof typeof chalk] as (s: string) => string;
+  const label = status === null ? "null" : "undefined";
+  console.log(`  ${colorFn(icon.char)}  ${label}`);
+}
+console.log();
+console.log(chalk.dim("Invalid/unknown status → shows marker with inverted colors:"));
+for (const status of ["x", "invalid", "custom"]) {
+  const icon = getStatusIcon(status);
+  // Apply background color for inverted display
+  const bgFn = chalk.bgWhite as (s: string) => string;
+  const fgFn = chalk.black as (s: string) => string;
+  const styledChar = bgFn(fgFn(icon.char));
+  console.log(`  ${styledChar}  "${status}" → shows "${icon.char}"`);
 }
 console.log();
 
