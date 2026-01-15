@@ -3,11 +3,6 @@
  *
  * OpenTUI-based board renderer.
  * Mirrors the API of tui/tui.ts for easy integration.
- *
- * NOTE: This file is currently broken because App.tsx in km-tui-opentui
- * hasn't been updated to use the tree-based model yet. See beads:
- * - km-pmub: Update km-tui-opentui App.tsx to use TreeState
- * - km-k6nb: Update km-tui-opentui views to use NodeViewModel/TreeViewModel
  */
 
 import {
@@ -18,10 +13,10 @@ import {
   getOutgoingLinks,
 } from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
-// App is currently broken - importing directly until km-tui-opentui is fixed
-// import { App } from "@km/tui-opentui";
-import type { TreeNodeState, TaskStatus } from "@km/tui-core";
-import type { ViewMode } from "@km/tui-core";
+import { App } from "@km/tui-opentui";
+import { createCliRenderer } from "@opentui/core";
+import { createRoot } from "@opentui/react";
+import type { TreeNodeState, TaskStatus, ViewMode } from "@km/tui-core";
 import type { Node } from "@km/core";
 
 export interface Tui2Options {
@@ -73,13 +68,11 @@ function buildTreeNodes(rootId: string | null): TreeNodeState[] {
 
 /**
  * Run the TUI2 board view
- *
- * Currently broken - App.tsx needs to be migrated to tree-based model.
  */
 export async function runBoardTui2(
   rootId?: string,
   rootPath?: string,
-  _options?: Tui2Options,
+  options?: Tui2Options,
 ): Promise<void> {
   const stdin = process.stdin;
   const stdout = process.stdout;
@@ -102,11 +95,17 @@ export async function runBoardTui2(
     process.exit(1);
   }
 
-  // TODO: App needs to be migrated to tree-based model
-  // See beads: km-pmub, km-k6nb
-  console.error(
-    "TUI2 is temporarily broken - App.tsx needs migration to tree model",
+  // Create renderer and render App
+  const renderer = await createCliRenderer({
+    exitOnCtrlC: true,
+  });
+
+  createRoot(renderer).render(
+    <App
+      initialNodes={nodes}
+      rootId={rootId ?? null}
+      rootPath={rootPath ?? null}
+      initialViewMode={options?.initialViewMode}
+    />,
   );
-  console.error("See beads: km-pmub, km-k6nb");
-  process.exit(1);
 }

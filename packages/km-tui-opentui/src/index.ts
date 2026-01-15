@@ -39,5 +39,5 @@ export {
   type TreeStateHook,
 } from "./hooks/index.ts";
 
-// App - temporarily disabled until migrated to tree model
-// export { App } from "./App.tsx";
+// App component
+export { App } from "./App.tsx";
