@@ -42,23 +42,30 @@ describe("getStatusIcon", () => {
     expect(icon.color).toBe("gray");
   });
 
-  it("returns inverted ? for null (error)", () => {
+  it("returns red warning triangle for null (missing status)", () => {
     const icon = getStatusIcon(null);
-    expect(icon.char).toBe("?");
-    expect(icon.color).toBe("black");
-    expect(icon.backgroundColor).toBe("white");
+    expect(icon.char).toBe("⚠");
+    expect(icon.color).toBe("red");
+    expect(icon.backgroundColor).toBeUndefined();
   });
 
-  it("returns inverted ? for undefined (error)", () => {
+  it("returns red warning triangle for undefined (missing status)", () => {
     const icon = getStatusIcon(undefined);
-    expect(icon.char).toBe("?");
+    expect(icon.char).toBe("⚠");
+    expect(icon.color).toBe("red");
+    expect(icon.backgroundColor).toBeUndefined();
+  });
+
+  it("returns first char with inverted colors for unrecognized status", () => {
+    const icon = getStatusIcon("invalid");
+    expect(icon.char).toBe("i"); // first char of "invalid"
     expect(icon.color).toBe("black");
     expect(icon.backgroundColor).toBe("white");
   });
 
-  it("returns inverted ? for unrecognized status (error)", () => {
-    const icon = getStatusIcon("invalid");
-    expect(icon.char).toBe("?");
+  it("returns first char with inverted colors for custom status", () => {
+    const icon = getStatusIcon("x");
+    expect(icon.char).toBe("x");
     expect(icon.color).toBe("black");
     expect(icon.backgroundColor).toBe("white");
   });

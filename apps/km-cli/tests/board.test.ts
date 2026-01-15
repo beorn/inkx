@@ -481,8 +481,8 @@ describe("Board Rendering", () => {
     expect(getStatusIcon("blocked")).toContain("⊘");
     expect(getStatusIcon("done")).toContain("✓");
     expect(getStatusIcon("dropped")).toContain("∅");
-    // undefined/null/invalid status shows error marker
-    expect(getStatusIcon(undefined)).toContain("?");
+    // undefined/null status shows red warning triangle
+    expect(getStatusIcon(undefined)).toContain("⚠");
   });
 
   test("renderCard includes content", () => {
