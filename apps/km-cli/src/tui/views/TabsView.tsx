@@ -139,7 +139,8 @@ export function TabsView({
           count > 0 ? (
             <Box
               flexDirection="column"
-              height={contentHeight}
+              flexGrow={1}
+              alignItems="flex-start"
               overflowY="hidden"
             >
               {scrollOffset > 0 && (

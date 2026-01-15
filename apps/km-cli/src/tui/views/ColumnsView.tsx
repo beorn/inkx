@@ -112,7 +112,12 @@ function ColumnTree({
       </Text>
 
       {/* Cards as tree nodes */}
-      <Box flexDirection="column" height={height - 3} overflowY="hidden">
+      <Box
+        flexDirection="column"
+        flexGrow={1}
+        alignItems="flex-start"
+        overflowY="hidden"
+      >
         {scrollOffset > 0 && <Text dimColor> ▲ {scrollOffset} above</Text>}
         {visibleCards.map((card, i) => {
           const actualCardIndex = scrollOffset + i;
