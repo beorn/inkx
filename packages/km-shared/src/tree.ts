@@ -9,6 +9,29 @@ import type { Node } from "@km/core";
 import { getChildren, getNode } from "@km/store";
 
 /**
+ * Strip inline section rules from a string
+ * Handles both plain and backtick-wrapped syntax:
+ *   - "Work default=true" → "Work"
+ *   - "Done `collapse=true`" → "Done"
+ */
+function stripInlineRules(text: string): string {
+  return (
+    text
+      // Plain syntax: collapse=true, default=true, etc.
+      .replace(
+        /\s+(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|\S+)/gi,
+        "",
+      )
+      // Backtick-wrapped: `collapse=true`, `default=true`, etc.
+      .replace(
+        /\s*`(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|[^`]+)`/gi,
+        "",
+      )
+      .trim()
+  );
+}
+
+/**
  * Get display name for a node
  *
  * Priority:
@@ -27,11 +50,12 @@ export function getNodeDisplayName(node: Node): string {
 
   // 2. Use pre-parsed title (for sections, already has rules stripped)
   // Check node.title first (set during parsing), then data.title (persisted to DB)
+  // Strip inline rules as a safety fallback for legacy data
   if (node.title) {
-    return node.title.slice(0, 50);
+    return stripInlineRules(node.title).slice(0, 50);
   }
   if (node.data?.title) {
-    return (node.data.title as string).slice(0, 50);
+    return stripInlineRules(node.data.title as string).slice(0, 50);
   }
 
   // 3. For file nodes, use first section's title or content (H1 heading)
@@ -41,20 +65,15 @@ export function getNodeDisplayName(node: Node): string {
     if (firstSection) {
       // Use pre-parsed title if available (node.title or data.title)
       if (firstSection.title) {
-        return firstSection.title.slice(0, 50);
+        return stripInlineRules(firstSection.title).slice(0, 50);
       }
       if (firstSection.data?.title) {
-        return (firstSection.data.title as string).slice(0, 50);
+        return stripInlineRules(firstSection.data.title as string).slice(0, 50);
       }
       // Fallback: strip rules from content
       if (firstSection.content) {
         const heading = firstSection.content.split("\n")[0] ?? "";
-        const cleanHeading = heading
-          .replace(
-            /\s+(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|\S+)/g,
-            "",
-          )
-          .trim();
+        const cleanHeading = stripInlineRules(heading);
         if (cleanHeading) {
           return cleanHeading.slice(0, 50);
         }

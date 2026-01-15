@@ -80,7 +80,12 @@ export function TreeNode({
   const isTask = node.type === "task";
   const statusIcon = isTask ? getStatusIcon(node.task_status) : null;
   const typeIcon = isTask ? "" : getTypeIcon(node.type);
-  const rawContent = node.content || getNodeDisplayName(node);
+  // For sections, use getNodeDisplayName which strips inline rules
+  // For tasks and other types, use raw content
+  const rawContent =
+    node.type === "section"
+      ? getNodeDisplayName(node)
+      : node.content || getNodeDisplayName(node);
 
   // Layer 1: Render to styled ANSI string (strips [[links]], [fields::], applies styling)
   const styledContent = renderRich(rawContent);

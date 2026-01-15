@@ -234,7 +234,8 @@ export function parseHeadingRules(text: string): ParsedHeading {
   }
 
   // Parse sync=field:value (no quotes needed for simple values)
-  const syncMatch = text.match(/\bsync=["']?([^\s"']+)["']?/);
+  // Exclude backticks from the value capture since attributes may be wrapped in backticks
+  const syncMatch = text.match(/\bsync=["']?([^\s"'`]+)["']?/);
   if (syncMatch) {
     rules.sync = syncMatch[1];
   }
@@ -256,12 +257,22 @@ export function parseHeadingRules(text: string): ParsedHeading {
   }
 
   // Extract title by removing all rule attributes
+  // Supports both plain and backtick-wrapped syntax:
+  //   ## Column add="query"
+  //   ## Column `add="query"`
   const title = text
+    // Plain syntax
     .replace(/\s+add=["'][^"']*["']/g, "")
     .replace(/\s+sync=["']?[^\s"']+["']?/g, "")
     .replace(/\s+collapse=\w+/gi, "")
     .replace(/\s+limit=\d+/g, "")
     .replace(/\s+default=\w+/gi, "")
+    // Backtick-wrapped syntax (common in markdown for code-like attributes)
+    .replace(/\s*`add=["'][^"']*["']`/g, "")
+    .replace(/\s*`sync=["']?[^\s"'`]+["']?`/g, "")
+    .replace(/\s*`collapse=\w+`/gi, "")
+    .replace(/\s*`limit=\d+`/g, "")
+    .replace(/\s*`default=\w+`/gi, "")
     .trim();
 
   return { title, rules };
