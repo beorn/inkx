@@ -6,9 +6,35 @@
 
 import { displayLength, stripAnsi } from "../../text/index.ts";
 
+// Minimum characters on a continuation line to avoid orphan fragments
+const MIN_CONTINUATION_LEN = 6;
+
+/**
+ * Find position in styled text corresponding to a plain text position.
+ */
+function findStyledPosition(styled: string, plainPos: number): number {
+  let styledPos = 0;
+  let displayCount = 0;
+  let inEscape = false;
+
+  for (let i = 0; i < styled.length && displayCount < plainPos; i++) {
+    if (styled[i] === "\x1b") {
+      inEscape = true;
+    } else if (inEscape && styled[i] === "m") {
+      inEscape = false;
+    } else if (!inEscape) {
+      displayCount++;
+    }
+    styledPos = i + 1;
+  }
+
+  return styledPos;
+}
+
 /**
  * Word-wrap text to fit within a given width.
  * Works correctly with ANSI-styled strings by measuring display length.
+ * Avoids creating very short orphan fragments at the start of continuation lines.
  *
  * @param text - Text to wrap (may contain ANSI codes)
  * @param width - Maximum display width per line
@@ -39,22 +65,23 @@ export function wrapText(text: string, width: number): string[] {
       let breakPoint = plainRemaining.lastIndexOf(" ", width);
       if (breakPoint <= 0) breakPoint = width;
 
-      // Find corresponding position in styled text
-      // Count display chars to find where to cut
-      let styledBreak = 0;
-      let displayCount = 0;
-      let inEscape = false;
-
-      for (let i = 0; i < remaining.length && displayCount < breakPoint; i++) {
-        if (remaining[i] === "\x1b") {
-          inEscape = true;
-        } else if (inEscape && remaining[i] === "m") {
-          inEscape = false;
-        } else if (!inEscape) {
-          displayCount++;
+      // Check if this break would create an orphan fragment
+      // An orphan is when the remaining text after the break is very short
+      const remainingAfterBreak = plainRemaining.slice(breakPoint).trimStart();
+      if (
+        remainingAfterBreak.length > 0 &&
+        remainingAfterBreak.length < MIN_CONTINUATION_LEN &&
+        breakPoint > MIN_CONTINUATION_LEN
+      ) {
+        // Find an earlier break point to give the next line more content
+        const earlierBreak = plainRemaining.lastIndexOf(" ", breakPoint - 1);
+        if (earlierBreak > MIN_CONTINUATION_LEN) {
+          breakPoint = earlierBreak;
         }
-        styledBreak = i + 1;
       }
+
+      // Find corresponding position in styled text
+      const styledBreak = findStyledPosition(remaining, breakPoint);
 
       lines.push(remaining.slice(0, styledBreak));
       remaining = remaining.slice(styledBreak).trimStart();
