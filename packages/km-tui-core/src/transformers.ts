@@ -70,6 +70,7 @@ export function toBoardViewModel(
     ),
     selectedCol: state.colIndex,
     selectedCard: state.cardIndex,
+    selectedCards: state.selectedCards,
     viewMode,
     searchQuery: state.searchQuery,
     searchMode: state.searchMode,

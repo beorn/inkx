@@ -13,6 +13,7 @@ interface ColumnsViewProps {
   columns: ColumnViewModel[];
   selectedCol: number;
   selectedCard: number;
+  selectedCards: Set<string>;
   width?: number;
   height?: number;
   scrollOffset?: number;
@@ -24,15 +25,17 @@ interface ColumnTreeProps {
   colIndex: number;
   isSelected: boolean;
   selectedCardIndex: number;
+  selectedCards: Set<string>;
   width: number;
   height: number;
 }
 
 function ColumnTree({
   column,
-  colIndex,
+  colIndex: _colIndex,
   isSelected,
   selectedCardIndex,
+  selectedCards,
   width,
   height,
 }: ColumnTreeProps): ReactElement {
@@ -91,6 +94,7 @@ function ColumnTree({
               depth={0}
               width={width}
               isSelected={isCardSelected}
+              isMultiSelected={selectedCards.has(card.id)}
               variant="compact"
             />
           );
@@ -109,6 +113,7 @@ export function ColumnsView({
   columns,
   selectedCol,
   selectedCard,
+  selectedCards,
   width = 80,
   height = 24,
   scrollOffset = 0,
@@ -148,6 +153,7 @@ export function ColumnsView({
               colIndex={actualColIndex}
               isSelected={actualColIndex === selectedCol}
               selectedCardIndex={selectedCard}
+              selectedCards={selectedCards}
               width={colWidth}
               height={height}
             />

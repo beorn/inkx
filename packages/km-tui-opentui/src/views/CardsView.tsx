@@ -12,12 +12,14 @@ interface CardsViewProps {
   columns: ColumnViewModel[];
   selectedCol: number;
   selectedCard: number;
+  selectedCards: Set<string>;
 }
 
 export function CardsView({
   columns,
   selectedCol,
   selectedCard,
+  selectedCards,
 }: CardsViewProps) {
   return (
     <box flexDirection="row" flexGrow={1}>
@@ -40,6 +42,7 @@ export function CardsView({
                 key={card.id}
                 title={card.title}
                 isSelected={isActive && cardIndex === currentSelectedCard}
+                isMultiSelected={selectedCards.has(card.id)}
                 childCount={card.childCount}
                 color={card.color}
                 icon={card.icon}

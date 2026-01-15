@@ -19,14 +19,18 @@ const STATUS_ICONS: Record<TaskStatus, string> = {
 export function Card({
   title,
   isSelected,
+  isMultiSelected,
   childCount,
   color,
   icon,
   isFolded,
   taskStatus,
 }: CardProps) {
-  const borderColor = isSelected ? "cyan" : color || "white";
-  const textColor = isSelected ? "cyan" : "white";
+  // Multi-selected cards show with cyan background (same as cursor selection per design system)
+  // isSelected = cursor position (current focus)
+  // isMultiSelected = part of multi-selection set
+  const hasSelection = isSelected || isMultiSelected;
+  const borderColor = hasSelection ? "cyan" : color || "white";
 
   // Build title with optional task status and icon
   let displayTitle = title;
@@ -43,6 +47,27 @@ export function Card({
     suffix = isFolded ? ` [+${childCount}]` : ` (${childCount})`;
   }
 
+  // Multi-selected cards use cyan background with black text (per design system)
+  // Regular selected (cursor) cards use cyan border only
+  if (isMultiSelected) {
+    return (
+      <box
+        border
+        borderStyle="single"
+        borderColor={borderColor}
+        width="100%"
+        paddingLeft={1}
+        paddingRight={1}
+        backgroundColor="cyan"
+      >
+        <text color="black">
+          {displayTitle}
+          {suffix}
+        </text>
+      </box>
+    );
+  }
+
   return (
     <box
       border
@@ -52,7 +77,7 @@ export function Card({
       paddingLeft={1}
       paddingRight={1}
     >
-      <text color={textColor}>
+      <text color={isSelected ? "cyan" : "white"}>
         {displayTitle}
         {suffix}
       </text>

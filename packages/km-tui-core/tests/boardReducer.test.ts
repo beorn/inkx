@@ -180,6 +180,65 @@ describe("boardReducer", () => {
     });
   });
 
+  describe("FOLD_COLUMN", () => {
+    test("folds all cards in specified column", () => {
+      const state = createInitialBoardState(createTestColumns());
+      const next = boardReducer(state, {
+        type: "FOLD_COLUMN",
+        colIndex: 0,
+      });
+      // All cards in column 0 should be folded
+      expect(next.foldedCards.has("card1")).toBe(true);
+      expect(next.foldedCards.has("card2")).toBe(true);
+      expect(next.foldedCards.has("card3")).toBe(true);
+      // Cards in column 1 should not be affected
+      expect(next.foldedCards.has("card4")).toBe(false);
+      expect(next.foldedCards.has("card5")).toBe(false);
+    });
+
+    test("is no-op for invalid column index", () => {
+      const state = createInitialBoardState(createTestColumns());
+      const next = boardReducer(state, {
+        type: "FOLD_COLUMN",
+        colIndex: 99,
+      });
+      expect(next.foldedCards.size).toBe(0);
+    });
+  });
+
+  describe("UNFOLD_COLUMN", () => {
+    test("unfolds all cards in specified column", () => {
+      const state = createInitialBoardState(createTestColumns());
+      // Pre-fold some cards
+      state.foldedCards.add("card1");
+      state.foldedCards.add("card2");
+      state.foldedCards.add("card3");
+      state.foldedCards.add("card4"); // Card in column 1
+
+      const next = boardReducer(state, {
+        type: "UNFOLD_COLUMN",
+        colIndex: 0,
+      });
+      // Cards in column 0 should be unfolded
+      expect(next.foldedCards.has("card1")).toBe(false);
+      expect(next.foldedCards.has("card2")).toBe(false);
+      expect(next.foldedCards.has("card3")).toBe(false);
+      // Card in column 1 should remain folded
+      expect(next.foldedCards.has("card4")).toBe(true);
+    });
+
+    test("is no-op for invalid column index", () => {
+      const state = createInitialBoardState(createTestColumns());
+      state.foldedCards.add("card1");
+      const next = boardReducer(state, {
+        type: "UNFOLD_COLUMN",
+        colIndex: 99,
+      });
+      // Should remain unchanged
+      expect(next.foldedCards.has("card1")).toBe(true);
+    });
+  });
+
   describe("TOGGLE_COLLAPSE", () => {
     test("adds column to collapsedColumns set", () => {
       const state = createInitialBoardState(createTestColumns());

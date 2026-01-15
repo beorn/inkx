@@ -62,6 +62,28 @@ export function boardReducer(
       return { ...state, foldedCards: newFolded };
     }
 
+    case "FOLD_COLUMN": {
+      // Fold all cards in the specified column (add all card IDs to foldedCards)
+      const column = state.columns[action.colIndex];
+      if (!column) return state;
+      const newFolded = new Set(state.foldedCards);
+      for (const card of column.cards) {
+        newFolded.add(card.nodeId);
+      }
+      return { ...state, foldedCards: newFolded };
+    }
+
+    case "UNFOLD_COLUMN": {
+      // Unfold all cards in the specified column (remove all card IDs from foldedCards)
+      const column = state.columns[action.colIndex];
+      if (!column) return state;
+      const newFolded = new Set(state.foldedCards);
+      for (const card of column.cards) {
+        newFolded.delete(card.nodeId);
+      }
+      return { ...state, foldedCards: newFolded };
+    }
+
     case "TOGGLE_COLLAPSE": {
       const newCollapsed = new Set(state.collapsedColumns);
       if (newCollapsed.has(action.colIndex)) {
@@ -108,6 +130,140 @@ export function boardReducer(
       };
     }
 
+    case "NAV_TO": {
+      // Navigate to a specific root, adding current position to history
+      const newHistory = [
+        ...state.navHistory.slice(0, state.navHistoryIndex + 1),
+        {
+          rootId: state.rootId,
+          colIndex: state.colIndex,
+          cardIndex: state.cardIndex,
+        },
+      ];
+      return {
+        ...state,
+        rootId: action.rootId,
+        rootPath: action.rootPath,
+        columns: action.columns,
+        colIndex: 0,
+        cardIndex: 0,
+        navHistory: newHistory,
+        navHistoryIndex: newHistory.length,
+      };
+    }
+
+    case "NAV_BACK": {
+      // Navigate back in history (decrement index)
+      // Actual state restoration happens in the UI layer
+      if (state.navHistoryIndex <= 0) return state;
+      return {
+        ...state,
+        navHistoryIndex: state.navHistoryIndex - 1,
+      };
+    }
+
+    case "NAV_FORWARD": {
+      // Navigate forward in history (increment index)
+      // Actual state restoration happens in the UI layer
+      if (state.navHistoryIndex >= state.navHistory.length - 1) return state;
+      return {
+        ...state,
+        navHistoryIndex: state.navHistoryIndex + 1,
+      };
+    }
+
+    case "ZOOM_IN": {
+      // Zoom into a card: push current rootId to zoomStack, set new rootId
+      // The nodeId becomes the new root, its children become columns
+      if (!action.nodeId) return state;
+      const newZoomStack = [...state.zoomStack];
+      if (state.rootId !== null) {
+        newZoomStack.push(state.rootId);
+      } else {
+        // Push a marker for "null" root (top level)
+        newZoomStack.push("__ROOT__");
+      }
+      return {
+        ...state,
+        rootId: action.nodeId,
+        columns: action.columns,
+        colIndex: 0,
+        cardIndex: 0,
+        zoomStack: newZoomStack,
+      };
+    }
+
+    case "ZOOM_OUT": {
+      // Zoom out: pop from zoomStack, restore previous rootId
+      if (state.zoomStack.length === 0) return state;
+      const newZoomStack = [...state.zoomStack];
+      const prevRootId = newZoomStack.pop();
+      // Convert marker back to null if needed
+      const newRootId = prevRootId === "__ROOT__" ? null : prevRootId ?? null;
+      return {
+        ...state,
+        rootId: newRootId,
+        columns: action.columns,
+        colIndex: 0,
+        cardIndex: 0,
+        zoomStack: newZoomStack,
+      };
+    }
+
+    // ===== Multi-select Actions =====
+
+    case "SELECT_CARD_ADD": {
+      // Add a card to the selection
+      const newSelected = new Set(state.selectedCards);
+      newSelected.add(action.nodeId);
+      return { ...state, selectedCards: newSelected };
+    }
+
+    case "SELECT_CARD_REMOVE": {
+      // Remove a card from the selection
+      const newSelected = new Set(state.selectedCards);
+      newSelected.delete(action.nodeId);
+      return { ...state, selectedCards: newSelected };
+    }
+
+    case "SELECT_CARD_TOGGLE": {
+      // Toggle a card's selection state
+      const newSelected = new Set(state.selectedCards);
+      if (newSelected.has(action.nodeId)) {
+        newSelected.delete(action.nodeId);
+      } else {
+        newSelected.add(action.nodeId);
+      }
+      return { ...state, selectedCards: newSelected };
+    }
+
+    case "SELECT_ALL_COLUMN": {
+      // Select all cards in the current column
+      const column = state.columns[state.colIndex];
+      if (!column) return state;
+      const newSelected = new Set(state.selectedCards);
+      for (const card of column.cards) {
+        newSelected.add(card.nodeId);
+      }
+      return { ...state, selectedCards: newSelected };
+    }
+
+    case "SELECT_ALL": {
+      // Select all cards in all columns
+      const newSelected = new Set(state.selectedCards);
+      for (const column of state.columns) {
+        for (const card of column.cards) {
+          newSelected.add(card.nodeId);
+        }
+      }
+      return { ...state, selectedCards: newSelected };
+    }
+
+    case "CLEAR_SELECTION": {
+      // Clear all selected cards
+      return { ...state, selectedCards: new Set() };
+    }
+
     default:
       return state;
   }
@@ -135,5 +291,7 @@ export function createInitialBoardState(
     searchMode: false,
     helpMode: false,
     zoomStack: [],
+    navHistory: [],
+    navHistoryIndex: 0,
   };
 }

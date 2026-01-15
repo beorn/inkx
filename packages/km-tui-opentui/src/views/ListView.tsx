@@ -13,6 +13,7 @@ interface ListViewProps {
   columns: ColumnViewModel[];
   selectedCol: number;
   selectedCard: number;
+  selectedCards: Set<string>;
   width?: number;
 }
 
@@ -20,6 +21,7 @@ export function ListView({
   columns,
   selectedCol,
   selectedCard,
+  selectedCards,
   width = 80,
 }: ListViewProps): ReactElement {
   return (
@@ -65,6 +67,7 @@ export function ListView({
                   depth={0}
                   width={width - 2}
                   isSelected={isCardSelected}
+                  isMultiSelected={selectedCards.has(card.id)}
                   variant="wide"
                 />
               );

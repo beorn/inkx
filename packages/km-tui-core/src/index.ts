@@ -18,6 +18,7 @@ export type {
   CardState,
   TaskStatus,
   ViewMode,
+  NavHistoryEntry,
   // ViewModel types
   CardViewModel,
   ColumnViewModel,

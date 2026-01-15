@@ -13,6 +13,7 @@ interface TabsViewProps {
   columns: ColumnViewModel[];
   selectedCol: number;
   selectedCard: number;
+  selectedCards: Set<string>;
   width?: number;
   height?: number;
 }
@@ -21,6 +22,7 @@ export function TabsView({
   columns,
   selectedCol,
   selectedCard,
+  selectedCards,
   width = 80,
   height = 24,
 }: TabsViewProps): ReactElement {
@@ -107,6 +109,7 @@ export function TabsView({
                     depth={0}
                     width={width - 4}
                     isSelected={isCardSelected}
+                    isMultiSelected={selectedCards.has(card.id)}
                     variant="wide"
                   />
                 );

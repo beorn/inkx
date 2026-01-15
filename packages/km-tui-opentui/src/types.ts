@@ -24,6 +24,7 @@ export type {
 export interface CardProps {
   title: string;
   isSelected: boolean;
+  isMultiSelected?: boolean;
   childCount: number;
   color?: string;
   icon?: string;

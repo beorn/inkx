@@ -25,6 +25,7 @@ export interface TreeNodeProps {
   depth: number;
   width: number;
   isSelected: boolean;
+  isMultiSelected?: boolean;
   isFolded?: boolean;
   maxDepth?: number;
   variant?: "compact" | "wide";
@@ -55,6 +56,7 @@ export function TreeNode({
   depth,
   width,
   isSelected,
+  isMultiSelected = false,
   isFolded = false,
   maxDepth = 3,
   variant = "wide",
@@ -79,9 +81,10 @@ export function TreeNode({
       ? node.title.slice(0, availableWidth - 1) + "…"
       : node.title;
 
-  // Selection colors
-  const bgColor = isSelected ? "cyan" : undefined;
-  const textColor = isSelected ? "black" : undefined;
+  // Selection colors: both cursor selection and multi-selection use cyan background
+  const hasSelection = isSelected || isMultiSelected;
+  const bgColor = hasSelection ? "cyan" : undefined;
+  const textColor = hasSelection ? "black" : undefined;
 
   // Dim done/dropped tasks
   const isDoneOrDropped =

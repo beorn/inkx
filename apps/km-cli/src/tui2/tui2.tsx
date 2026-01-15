@@ -103,11 +103,17 @@ export async function runBoardTui2(
     exitOnCtrlC: true,
   });
 
+  // Exit handler that properly destroys the renderer
+  const handleExit = () => {
+    renderer.destroy();
+  };
+
   createRoot(renderer).render(
     <App
       initialColumns={columns}
       rootPath={rootPath || store.rootPath}
       initialViewMode={options?.initialViewMode || "cards"}
+      onExit={handleExit}
     />,
   );
 }
