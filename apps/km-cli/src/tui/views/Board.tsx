@@ -1424,6 +1424,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       if (state.rootId) {
         const currentRoot = getNode(state.rootId);
         if (currentRoot?.parent_id) {
+          // Has a parent - navigate to it
           const parentNode = getNode(currentRoot.parent_id);
           if (parentNode) {
             const zoomed = buildBoardState(parentNode.id);
@@ -1437,6 +1438,22 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               inOutlineMode,
             );
             setState(zoomed);
+            clearSelection();
+            return;
+          }
+        } else {
+          // No parent_id means this is a root-level node - go to root view
+          const rootView = initBoardState();
+          if (rootView) {
+            pushNavHistory(
+              state.rootId,
+              state.colIndex,
+              state.cardIndex,
+              subIndex,
+              multiSelected,
+              inOutlineMode,
+            );
+            setState(rootView);
             clearSelection();
             return;
           }
@@ -2609,14 +2626,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       </Box>
       {/* Bottom bar: mode indicator left, other indicators right */}
       <Box width={termWidth} justifyContent="space-between" paddingX={1}>
-        {/* Left side: store mode indicator */}
+        {/* Left side: store mode indicator and path */}
         <Text>
           {(() => {
             const store = getStore();
             if (store.mode === "memory") {
-              return <Text color="yellow">MEM</Text>;
+              return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
             }
-            return <Text color="green">DISK</Text>;
+            return <Text color="green">DISK REPO {store.rootPath}</Text>;
           })()}
         </Text>
         {/* Right side: status indicators */}
@@ -2639,7 +2656,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           {selectionLevel !== "card" && (
             <Text color="magenta">{`${selectionLevel.toUpperCase()} `}</Text>
           )}
-          <Text inverse>{` ${viewMode.toUpperCase()} `}</Text>
+          <Text inverse>{` ${viewMode.toUpperCase()} VIEW `}</Text>
         </Text>
       </Box>
     </Box>

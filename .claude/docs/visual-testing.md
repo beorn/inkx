@@ -67,9 +67,9 @@ Layer 3: Components
 | quote     | (empty) |
 | list-item | ·       |
 
-### Layer 1: Board Pill Colors
+### Layer 1: Tag Pill Colors
 
-| Board    | Color                   |
+| Tag      | Color                   |
 | -------- | ----------------------- |
 | inbox    | white                   |
 | next     | cyan                    |
@@ -240,7 +240,7 @@ bun storybook
 Sections:
 
 1. Layer 1: Rich Text Rendering - inline fields, wiki links, markdown
-2. Layer 1: Board Pills - GTD colors, custom colors
+2. Layer 1: Tag Pills - preset colors, custom colors
 3. Layer 1: Status & Type Icons - all markers and types
 4. Layer 1: CLI Checkbox Formatting - `km list` output (brackets dim, marker colored)
 5. Layer 2: Layout Functions - wrap, truncate, pad, constrain, path

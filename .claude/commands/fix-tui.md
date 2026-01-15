@@ -45,6 +45,7 @@ HEADLESS=true bun x playwright screenshot --viewport-size=800,600 http://localho
 ```
 
 **Viewport size guidelines** (see visual-test.md for details):
+
 - `800,600` - Narrow, tests truncation/overflow (default)
 - `1000,700` - Balanced view
 - `1400,900` - Wide, only for multi-column layout testing

@@ -168,18 +168,19 @@ function Layer1RichText(): React.ReactElement {
 // Layer 1: Status & Type Icons Component
 // ============================================================================
 
-function Layer1BoardPills(): React.ReactElement {
-  // Demonstrate board pill colors
-  const gtdBoards = [
-    { name: "inbox", desc: "Default inbox" },
-    { name: "next", desc: "Next actions" },
-    { name: "waiting", desc: "Waiting for others" },
-    { name: "someday", desc: "Someday/maybe" },
+function Layer1TagPills(): React.ReactElement {
+  // Demonstrate tag/pill colors
+  // Some tags have preset colors (e.g., GTD workflow tags)
+  const presetTags = [
+    { name: "inbox", desc: "Uncategorized items" },
+    { name: "next", desc: "Ready to work on" },
+    { name: "waiting", desc: "Blocked on external" },
+    { name: "someday", desc: "Future consideration" },
     { name: "done", desc: "Completed" },
-    { name: "blocked", desc: "Blocked tasks" },
+    { name: "blocked", desc: "Cannot proceed" },
   ];
 
-  const customBoards = [
+  const customTags = [
     { name: "Sprint", color: "magenta" },
     { name: "Urgent", color: "red" },
     { name: "Research", color: "blue" },
@@ -187,12 +188,12 @@ function Layer1BoardPills(): React.ReactElement {
 
   return (
     <Box flexDirection="column">
-      <SectionHeader title="Layer 1: Board Pills" />
+      <SectionHeader title="Layer 1: Tag Pills" />
 
-      <SubsectionHeader title="GTD Default Board Colors" />
-      <Text dimColor> Board Name Color Pill Example</Text>
+      <SubsectionHeader title="Preset Tag Colors" />
+      <Text dimColor> Tag Name Color Pill Example</Text>
       <Text dimColor> ────────── ────── ─────────────────────</Text>
-      {gtdBoards.map(({ name, desc }) => {
+      {presetTags.map(({ name, desc }) => {
         const color = GTD_BOARD_COLORS[name] || "white";
         return (
           <Text key={name}>
@@ -204,14 +205,14 @@ function Layer1BoardPills(): React.ReactElement {
       })}
       <Text> </Text>
 
-      <SubsectionHeader title="Custom Board Colors (via color= attribute)" />
+      <SubsectionHeader title="Custom Tag Colors (via color= attribute)" />
       <Text dimColor>
         {" "}
-        Custom colors override GTD defaults using color=value in headings
+        Custom colors override presets using color=value in headings
       </Text>
       <Text dimColor> Example: ## Sprint `color=magenta`</Text>
       <Text> </Text>
-      {customBoards.map(({ name, color }) => (
+      {customTags.map(({ name, color }) => (
         <Text key={name}>
           {" "}
           {colorize(`@${name}`, color)} {chalk.dim(`← color=${color}`)}
@@ -223,17 +224,17 @@ function Layer1BoardPills(): React.ReactElement {
       <Text dimColor> In compact view, pills are shown as colored dots:</Text>
       <Text>
         {" "}
-        ○ Task on multiple boards {colorize("●", "cyan")}
+        ○ Task with multiple tags {colorize("●", "cyan")}
         {colorize("●", "yellow")}
         {colorize("●", "magenta")}
       </Text>
       <Text> </Text>
 
       <SubsectionHeader title="Wide Mode (full @name pills)" />
-      <Text dimColor> In wide view, pills show the full board name:</Text>
+      <Text dimColor> In wide view, pills show the full tag name:</Text>
       <Text>
         {" "}
-        ○ Task on multiple boards {colorize("@next", "cyan")}{" "}
+        ○ Task with multiple tags {colorize("@next", "cyan")}{" "}
         {colorize("@waiting", "yellow")} {colorize("@Sprint", "magenta")}
       </Text>
     </Box>
@@ -1163,7 +1164,7 @@ function Storybook(): React.ReactElement {
   return (
     <Box flexDirection="column">
       <Layer1RichText />
-      <Layer1BoardPills />
+      <Layer1TagPills />
       <Layer1Icons />
       <Layer1CLICheckboxes />
       <Layer2Layout />
