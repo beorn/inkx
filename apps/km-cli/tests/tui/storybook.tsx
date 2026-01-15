@@ -17,7 +17,6 @@ import chalk from "chalk";
 import {
   renderRich,
   getStatusIcon,
-  getTypeIcon,
   colorize,
   getChalkColor,
   GTD_BOARD_COLORS,
@@ -241,13 +240,14 @@ function Layer1TagPills(): React.ReactElement {
   );
 }
 
-function Layer1Icons(): React.ReactElement {
+function Layer1TaskStyling(): React.ReactElement {
+  // Status data for both TUI icons and CLI checkboxes
   const statusTable = [
-    { marker: "[ ]", status: "todo", desc: "Not started" },
-    { marker: "[/]", status: "wip", desc: "Work in progress" },
-    { marker: "[!]", status: "blocked", desc: "Blocked by something" },
-    { marker: "[x]", status: "done", desc: "Completed" },
-    { marker: "[-]", status: "dropped", desc: "Dropped" },
+    { marker: "[ ]", mark: " ", status: "todo", desc: "Not started" },
+    { marker: "[/]", mark: "/", status: "wip", desc: "Work in progress" },
+    { marker: "[!]", mark: "!", status: "blocked", desc: "Blocked" },
+    { marker: "[x]", mark: "x", status: "done", desc: "Completed" },
+    { marker: "[-]", mark: "-", status: "dropped", desc: "Dropped" },
   ];
 
   const customMarkers = [
@@ -256,57 +256,47 @@ function Layer1Icons(): React.ReactElement {
     { marker: "[<]", status: "<", desc: "Waiting on external" },
   ];
 
-  const typeExamples = [
-    { type: "folder", raw: "My Project", desc: "Folder name" },
-    { type: "file", raw: "README.md", desc: "File name" },
-    { type: "section", raw: "## Getting Started", desc: "Section header" },
-    {
-      type: "paragraph",
-      raw: "Regular text with **bold** and *italic*",
-      desc: "Formatted text",
-    },
-    { type: "code", raw: "const x = 42;", desc: "Code block (shown in cyan)" },
-    { type: "quote", raw: "A wise saying", desc: "Quote (with «» markers)" },
-    {
-      type: "list-item",
-      raw: "First item with [[link]]",
-      desc: "List item with wiki link",
-    },
-  ];
+  // Create mock nodes for CLI checkbox display
+  const taskNodes = statusTable.map(({ mark, status, desc }) => {
+    const node = mockNode(`task-${status}`, desc, status);
+    node.task_mark = mark as Node["task_mark"];
+    return { status, node };
+  });
 
   return (
     <Box flexDirection="column">
-      <SectionHeader title="Layer 1: Status & Type Icons" />
+      <SectionHeader title="Layer 1: Task Styling" />
+      <Text dimColor> TUI uses status icons, CLI uses checkbox markers</Text>
+      <Text> </Text>
 
-      <SubsectionHeader title="Status Icons (Tasks)" />
-      <Text dimColor> Marker Rendered Task</Text>
-      <Text dimColor> ──────── ─────────────────────────────────────────</Text>
+      <SubsectionHeader title="Standard Status States" />
+      <Text dimColor> Marker TUI Icon CLI Checkbox</Text>
+      <Text dimColor> ──────── ──────── ─────────────────────────────────</Text>
       {statusTable.map(({ marker, status, desc }) => {
         const icon = getStatusIcon(status);
         const isDoneOrDropped = status === "done" || status === "dropped";
-        const styledDesc = isDoneOrDropped
-          ? chalk.dim.strikethrough(desc)
-          : desc;
+        const taskNode = taskNodes.find((t) => t.status === status)?.node;
+        const cliOutput = taskNode ? formatNode(taskNode, false) : "";
+
         return (
           <Text key={status}>
             {" "}
             {marker.padEnd(8)} {getChalkColor(icon.color)(icon.char)}{" "}
-            {styledDesc}
+            {isDoneOrDropped
+              ? chalk.dim.strikethrough(desc.padEnd(8))
+              : desc.padEnd(8)}{" "}
+            {cliOutput}
           </Text>
         );
       })}
       <Text> </Text>
 
-      <Text dimColor> Error States</Text>
-      <Text dimColor> ──────── ─────────────────────────────────────────</Text>
-      <Text>
+      <SubsectionHeader title="Custom Markers (inverted display)" />
+      <Text dimColor>
         {" "}
-        {chalk.dim("(none)")} {chalk.red("⚠")} Missing status (null/undefined)
+        Non-standard markers show first char inverted in TUI
       </Text>
-      <Text> </Text>
-
-      <Text dimColor> Custom Markers (inverted display)</Text>
-      <Text dimColor> ──────── ─────────────────────────────────────────</Text>
+      <Text dimColor> ──────── ──────── ─────────────────────────────────</Text>
       {customMarkers.map(({ marker, status, desc }) => (
         <Text key={status}>
           {" "}
@@ -315,80 +305,16 @@ function Layer1Icons(): React.ReactElement {
       ))}
       <Text> </Text>
 
-      <SubsectionHeader title="Type Icons & Rich Text Rendering" />
-      <Text dimColor> Icon Type Example Rendering</Text>
-      <Text dimColor> ──── ────────── ───────────────────────────────────</Text>
-      {typeExamples.map(({ type, raw, desc }) => {
-        const icon = getTypeIcon(type);
-        const iconDisplay = (icon || " ").padEnd(2);
-
-        let rendered: string;
-        if (type === "code") {
-          rendered = chalk.cyan(raw);
-        } else if (type === "quote") {
-          rendered = chalk.italic(`«${raw}»`);
-        } else if (type === "section") {
-          rendered = chalk.bold(raw.replace(/^#+\s*/, ""));
-        } else {
-          rendered = renderRich(raw);
-        }
-
-        return (
-          <Text key={type}>
-            {" "}
-            {iconDisplay} {type.padEnd(10)} {rendered} {chalk.dim(`← ${desc}`)}
-          </Text>
-        );
-      })}
-    </Box>
-  );
-}
-
-// ============================================================================
-// Layer 1: CLI Checkbox Formatting Component
-// ============================================================================
-
-function Layer1CLICheckboxes(): React.ReactElement {
-  // Create mock task nodes for different statuses
-  const todoTask = mockNode("cli-todo", "Task not yet started", "todo");
-  todoTask.task_mark = " ";
-
-  const wipTask = mockNode("cli-wip", "Task in progress", "wip");
-  wipTask.task_mark = "/";
-
-  const blockedTask = mockNode("cli-blocked", "Task is blocked", "blocked");
-  blockedTask.task_mark = "!";
-
-  const doneTask = mockNode("cli-done", "Task completed", "done");
-  doneTask.task_mark = "x";
-
-  const droppedTask = mockNode("cli-dropped", "Task abandoned", "dropped");
-  droppedTask.task_mark = "-";
-
-  return (
-    <Box flexDirection="column">
-      <SectionHeader title="Layer 1: CLI Checkbox Formatting" />
-      <Text dimColor>
+      <SubsectionHeader title="Error State" />
+      <Text>
         {" "}
-        Used by `km list` command - brackets dim, only marker colored
+        {chalk.dim("(none)").padEnd(8)} {chalk.red("⚠")} Missing status
+        (null/undefined)
       </Text>
       <Text> </Text>
 
-      <SubsectionHeader title="formatNode() - Task Checkboxes" />
-      <Text dimColor> Status Rendered Output</Text>
-      <Text dimColor> ──────── ─────────────────────────────────────────</Text>
-      <Text> todo {formatNode(todoTask, false)}</Text>
-      <Text> wip {formatNode(wipTask, false)}</Text>
-      <Text> blocked {formatNode(blockedTask, false)}</Text>
-      <Text> done {formatNode(doneTask, false)}</Text>
-      <Text> dropped {formatNode(droppedTask, false)}</Text>
-      <Text> </Text>
-
-      <Text dimColor>
-        {" "}
-        Note: Brackets are always dim, only the marker character
-      </Text>
-      <Text dimColor> gets the status color (green/yellow/red/gray)</Text>
+      <Text dimColor> Note: CLI brackets are always dim, only the marker</Text>
+      <Text dimColor> character gets the status color</Text>
     </Box>
   );
 }
@@ -564,7 +490,7 @@ function Layer3Views(): React.ReactElement {
     cardIndex: 0,
     subIndex: 0,
     currentSubIndex: 0,
-    multiSelected: new Set<string>(),
+    multiSelected: new Set<SelectionKey>(),
     inOutlineMode: false,
     variant: "wide" as const,
     maxContentLines: 1,
@@ -1165,8 +1091,7 @@ function Storybook(): React.ReactElement {
     <Box flexDirection="column">
       <Layer1RichText />
       <Layer1TagPills />
-      <Layer1Icons />
-      <Layer1CLICheckboxes />
+      <Layer1TaskStyling />
       <Layer2Layout />
       <Layer3Views />
       <Layer3AllViews />

@@ -241,12 +241,11 @@ Sections:
 
 1. Layer 1: Rich Text Rendering - inline fields, wiki links, markdown
 2. Layer 1: Tag Pills - preset colors, custom colors
-3. Layer 1: Status & Type Icons - all markers and types
-4. Layer 1: CLI Checkbox Formatting - `km list` output (brackets dim, marker colored)
-5. Layer 2: Layout Functions - wrap, truncate, pad, constrain, path
-6. Layer 3: TreeNode Component - different states
-7. Layer 3: All View Modes - Cards, Columns, Tabs, List
-8. Visual Language - Design System reference
+3. Layer 1: Task Styling - TUI icons and CLI checkboxes side-by-side
+4. Layer 2: Layout Functions - wrap, truncate, pad, constrain, path
+5. Layer 3: TreeNode Component - different states
+6. Layer 3: All View Modes - Cards, Columns, Tabs, List
+7. Visual Language - Design System reference
 
 ## Bug Patterns
 
