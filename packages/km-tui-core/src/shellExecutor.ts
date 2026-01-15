@@ -196,7 +196,7 @@ export function executeBoardAction(
   if (ctx.jsonMode) {
     ctx.output({ event: "action", action, ts });
   } else {
-    ctx.output(`> ${action.type}`);
+    ctx.output(`# ${action.type}`);
   }
 
   // Execute the action
