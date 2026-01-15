@@ -47,6 +47,7 @@ import { makeSelectionKey } from "./TreeNode.tsx";
 import { renderPlain } from "../../text/index.ts";
 import { renderPath } from "../layout/index.ts";
 import { TreeNode } from "./TreeNode.tsx";
+import { tuiEvents } from "../tui.ts";
 
 // Default favorites: common boards accessed via 1-9 keys
 // These are resolved at runtime using the same resolution as CLI commands
@@ -512,6 +513,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     return cleanup;
   }, [mouseSelection]);
+
+  // Subscribe to external refresh events (filesystem changes)
+  useEffect(() => {
+    const handleRefresh = () => {
+      // Rebuild board state from database (which was updated by sync manager)
+      setState((s) => (s.rootId ? buildBoardState(s.rootId) : s));
+    };
+
+    tuiEvents.on("refresh", handleRefresh);
+    return () => {
+      tuiEvents.off("refresh", handleRefresh);
+    };
+  }, []);
 
   const termWidth = dimensions.columns;
   const termHeight = dimensions.rows;

@@ -4,6 +4,7 @@
  * Terminal interaction layer using Ink (React for CLI)
  */
 
+import { EventEmitter } from "events";
 import chalk from "chalk";
 import type { BoardState, TuiOptions, ViewMode } from "./types.ts";
 import { initBoardState } from "./state.ts";
@@ -11,6 +12,12 @@ import { renderBoardStatic } from "./render.ts";
 import { renderInkBoard } from "./views/index.ts";
 import { setFsSync } from "@km/core";
 import { SyncManager } from "@km/watch";
+
+/**
+ * Global event emitter for TUI refresh events
+ * Board components can subscribe to this to refresh when filesystem changes
+ */
+export const tuiEvents = new EventEmitter();
 
 /**
  * Run the interactive board TUI using Ink
@@ -67,16 +74,31 @@ export async function runBoard(
   }
 
   // Initialize filesystem sync if we have a vault path
-  // This enables bidirectional sync: changes in the board are written back to .md files
+  // This enables bidirectional sync:
+  // - TUI changes are written back to .md files (via setFsSync)
+  // - External .md changes trigger TUI refresh (via syncManager.start())
   let syncManager: SyncManager | null = null;
   if (rootPath) {
     syncManager = new SyncManager({
       vaultPath: rootPath,
-      debounceFs: 0, // Immediate writes in interactive mode
-      debounceApply: 100, // Small debounce for batching rapid changes
+      debounceFs: 2000, // Debounce external changes (2s)
+      debounceApply: 100, // Small debounce for batching TUI changes
       conflictStrategy: "last_write_wins",
     });
+
+    // Wire up TUI changes → filesystem
     setFsSync(syncManager);
+
+    // Wire up filesystem changes → TUI refresh
+    syncManager.on("state-change", (newState) => {
+      // When sync manager finishes reconciling external changes, refresh TUI
+      if (newState === "idle") {
+        tuiEvents.emit("refresh");
+      }
+    });
+
+    // Start watching for filesystem changes
+    syncManager.start();
   }
 
   try {
