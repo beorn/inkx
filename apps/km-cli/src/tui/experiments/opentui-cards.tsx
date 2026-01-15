@@ -21,7 +21,11 @@ const mockCards = [
   { id: 2, title: "Fix database connection pooling issue", status: "todo" },
   { id: 3, title: "Add unit tests for payment module", status: "todo" },
   { id: 4, title: "Review PR #234 - API refactoring", status: "in_progress" },
-  { id: 5, title: "Update documentation for new endpoints", status: "in_progress" },
+  {
+    id: 5,
+    title: "Update documentation for new endpoints",
+    status: "in_progress",
+  },
   { id: 6, title: "Deploy staging environment", status: "done" },
   { id: 7, title: "Configure CI/CD pipeline", status: "done" },
   { id: 8, title: "Optimize image loading performance", status: "todo" },
@@ -119,7 +123,10 @@ function App() {
   // Group cards by status
   const columns = [
     { title: "Todo", cards: mockCards.filter((c) => c.status === "todo") },
-    { title: "In Progress", cards: mockCards.filter((c) => c.status === "in_progress") },
+    {
+      title: "In Progress",
+      cards: mockCards.filter((c) => c.status === "in_progress"),
+    },
     { title: "Done", cards: mockCards.filter((c) => c.status === "done") },
   ];
 
@@ -133,7 +140,7 @@ function App() {
 
     if (name === "down" || key === "j") {
       setSelectedCard((prev) =>
-        Math.min(prev + 1, currentColumn.cards.length - 1)
+        Math.min(prev + 1, currentColumn.cards.length - 1),
       );
     } else if (name === "up" || key === "k") {
       setSelectedCard((prev) => Math.max(prev - 1, 0));
@@ -176,7 +183,9 @@ function App() {
       {/* Status bar */}
       <box paddingLeft={1} paddingTop={1}>
         <text color="gray">
-          Terminal: {width}x{height} | Column: {selectedColumn + 1}/{columns.length} | Card: {selectedCard + 1}/{columns[selectedColumn].cards.length}
+          Terminal: {width}x{height} | Column: {selectedColumn + 1}/
+          {columns.length} | Card: {selectedCard + 1}/
+          {columns[selectedColumn].cards.length}
         </text>
       </box>
     </box>
