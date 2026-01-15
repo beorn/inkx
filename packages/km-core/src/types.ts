@@ -50,6 +50,7 @@ export interface NodeRules {
   collapse?: boolean; // Start collapsed
   limit?: number; // WIP limit
   default?: boolean; // Default column for new items
+  color?: string; // Board/section color (cyan, yellow, magenta, etc.)
 }
 
 /**

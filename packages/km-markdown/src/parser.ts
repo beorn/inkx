@@ -217,6 +217,7 @@ export interface SectionRules {
   collapse?: boolean; // Start collapsed
   limit?: number; // WIP limit
   default?: boolean; // Default column for new items
+  color?: string; // Board/section color (cyan, yellow, magenta, etc.)
 }
 
 /**
@@ -265,6 +266,12 @@ export function parseHeadingRules(text: string): ParsedHeading {
     rules.default = true;
   }
 
+  // Parse color=value (no quotes needed for simple color names)
+  const colorMatch = text.match(/\bcolor=["']?([^\s"'`]+)["']?/);
+  if (colorMatch) {
+    rules.color = colorMatch[1];
+  }
+
   // Extract title by removing all rule attributes
   // Supports both plain and backtick-wrapped syntax:
   //   ## Column add="query"
@@ -276,12 +283,14 @@ export function parseHeadingRules(text: string): ParsedHeading {
     .replace(/\s+collapse=\w+/gi, "")
     .replace(/\s+limit=\d+/g, "")
     .replace(/\s+default=\w+/gi, "")
+    .replace(/\s+color=["']?[^\s"']+["']?/g, "")
     // Backtick-wrapped syntax (common in markdown for code-like attributes)
     .replace(/\s*`add=["'][^"']*["']`/g, "")
     .replace(/\s*`sync=["']?[^\s"'`]+["']?`/g, "")
     .replace(/\s*`collapse=\w+`/gi, "")
     .replace(/\s*`limit=\d+`/g, "")
     .replace(/\s*`default=\w+`/gi, "")
+    .replace(/\s*`color=["']?[^\s"'`]+["']?`/g, "")
     .trim();
 
   return { title, rules };

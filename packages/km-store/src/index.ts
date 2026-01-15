@@ -18,6 +18,7 @@ export {
   getAncestors,
   getTasksByStatus,
   getAllTasks,
+  getSymlinksTo,
   search,
   searchWithSnippet,
   toFts5Query,

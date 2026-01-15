@@ -29,3 +29,29 @@ export {
   formatNodeBrief,
   formatCollapsedAncestor,
 } from "./format.ts";
+
+// Extended ANSI features (chalk-x)
+export {
+  chalkX,
+  chalk,
+  curlyUnderline,
+  dottedUnderline,
+  dashedUnderline,
+  doubleUnderline,
+  underlineColor,
+  styledUnderline,
+  hyperlink,
+  supportsExtendedUnderline,
+  setExtendedUnderlineSupport,
+  type UnderlineStyle,
+} from "./chalk-x.ts";
+
+// Board color system
+export {
+  GTD_BOARD_COLORS,
+  getChalkColor,
+  normalizeBoardName,
+  getBoardColorByName,
+  colorize,
+  type ChalkColor,
+} from "./colors.ts";

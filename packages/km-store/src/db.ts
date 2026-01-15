@@ -748,6 +748,25 @@ export function getAllTasks(): Node[] {
 }
 
 /**
+ * Get all symlinks pointing to a given node
+ * Used to find which boards/sections contain a task
+ */
+export function getSymlinksTo(nodeId: string): Node[] {
+  const db = getDb();
+  const rows = db
+    .query(
+      `
+    SELECT * FROM nodes
+    WHERE symlink_to = ?
+    ORDER BY parent_idx ASC
+  `,
+    )
+    .all(nodeId) as Record<string, unknown>[];
+
+  return rows.map(rowToNode);
+}
+
+/**
  * Convert a search query to FTS5 syntax
  * - Quoted phrases become FTS5 phrase queries
  * - Unquoted terms use prefix matching with *

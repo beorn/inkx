@@ -888,6 +888,24 @@ describe("parseHeadingRules", () => {
     expect(result.title).toBe("2025 Taxes - Q1");
     expect(result.rules.add).toBe("project:taxes");
   });
+
+  test("should extract color rule", () => {
+    const result = parseHeadingRules("Next Actions color=cyan");
+    expect(result.title).toBe("Next Actions");
+    expect(result.rules.color).toBe("cyan");
+  });
+
+  test("should extract color rule with quotes", () => {
+    const result = parseHeadingRules('Waiting For color="yellow"');
+    expect(result.title).toBe("Waiting For");
+    expect(result.rules.color).toBe("yellow");
+  });
+
+  test("should extract color rule in backticks", () => {
+    const result = parseHeadingRules("My Board `color=magenta`");
+    expect(result.title).toBe("My Board");
+    expect(result.rules.color).toBe("magenta");
+  });
 });
 
 describe("Section title and rules parsing", () => {

@@ -23,6 +23,7 @@ import {
 } from "../../text/index.ts";
 import { constrainText, renderParentPath } from "../layout/index.ts";
 import type { SelectionKey } from "../types.ts";
+import { getBoardPills, formatBoardPills } from "../board-pills.ts";
 
 // Selection key helper - exported for use by parent components
 export function makeSelectionKey(
@@ -51,6 +52,8 @@ export interface TreeNodeProps {
   maxContentLines?: number;
   /** Dim child items when this subtree is not the active card (for cards view) */
   dimInactiveChildren?: boolean;
+  /** Board IDs to exclude from pills (e.g., current board being viewed) */
+  excludeBoardIds?: Set<string>;
 }
 
 export function TreeNode({
@@ -70,6 +73,7 @@ export function TreeNode({
   variant = "wide",
   maxContentLines = 1,
   dimInactiveChildren = false,
+  excludeBoardIds = new Set(),
 }: TreeNodeProps): React.ReactElement {
   const children = getChildren(node.id);
   const hasChildren = children.length > 0;
@@ -112,7 +116,12 @@ export function TreeNode({
   const prefixLength =
     prefixBeforeIcon.length + iconChar.length + prefixAfterIcon.length;
 
-  // Info suffix (wide variant only)
+  // Board pills - show which boards this task is on
+  // In compact mode: just colored dots; in wide mode: @boardname format
+  const boardPills = isTask ? getBoardPills(node, excludeBoardIds) : [];
+  const boardPillsStr = formatBoardPills(boardPills, isCompact);
+
+  // Info suffix (wide variant only, except board pills which show in both)
   let infoSuffix = "";
   if (!isCompact) {
     const infoParts: string[] = [];
@@ -125,7 +134,11 @@ export function TreeNode({
       const schedStr = new Date(node.scheduled_date).toISOString().slice(5, 10);
       infoParts.push(`▶${schedStr}`);
     }
+    if (boardPillsStr) infoParts.push(boardPillsStr);
     infoSuffix = infoParts.length > 0 ? `  ${infoParts.join(" ")}` : "";
+  } else if (boardPillsStr) {
+    // Compact mode: just show the colored dots
+    infoSuffix = ` ${boardPillsStr}`;
   }
 
   // Parent context suffix
@@ -171,6 +184,10 @@ export function TreeNode({
     textColor = "black";
   }
 
+  // Done/dropped tasks get dim + strikethrough
+  const isDoneOrDropped =
+    isTask && (node.task_status === "done" || node.task_status === "dropped");
+
   // Dim children when this card is not active (cards view mode)
   const shouldDim = dimInactiveChildren && depth > 0;
 
@@ -215,12 +232,16 @@ export function TreeNode({
         {prefixBeforeIcon}
         <Text
           color={isSelected || isMultiSelected ? textColor : iconColor}
-          backgroundColor={isSelected || isMultiSelected ? undefined : iconBgColor}
+          backgroundColor={
+            isSelected || isMultiSelected ? undefined : iconBgColor
+          }
         >
           {iconChar}
         </Text>
         {prefixAfterIcon}
-        {firstLine}
+        <Text dimColor={isDoneOrDropped} strikethrough={isDoneOrDropped}>
+          {firstLine}
+        </Text>
         {foldedCount}
         {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
         {showInlineContext && <Text dimColor>{contextSuffix}</Text>}
@@ -287,6 +308,7 @@ export function TreeNode({
                 variant={variant}
                 maxContentLines={maxContentLines}
                 dimInactiveChildren={dimInactiveChildren}
+                excludeBoardIds={excludeBoardIds}
               />
             );
           })}
