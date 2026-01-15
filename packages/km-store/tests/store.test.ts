@@ -100,9 +100,9 @@ Some content here.
     expect(fileNames).toContain("image.png");
     expect(fileNames).toContain("readme.txt");
 
-    // Markdown files should have extension stripped
-    expect(fileNames).toContain("tasks");
-    expect(fileNames).toContain("notes");
+    // Markdown files with H1 should have content = H1 title
+    expect(fileNames).toContain("Tasks"); // From # Tasks
+    expect(fileNames).toContain("Notes"); // From # Notes
 
     store.close();
   });
@@ -154,11 +154,12 @@ Some content here.
     const sections = store.getAllNodes().filter((n) => n.type === "section");
     expect(sections.length).toBeGreaterThan(0);
 
-    // notes.md has "Notes", "Section One", "Section Two"
+    // notes.md has "Notes" (H1 merged into file), "Section One", "Section Two" (H2s)
+    // H1 is merged into file node, so only H2 sections exist as separate nodes
     const noteSections = sections.filter(
       (s) => s.fs_path && s.fs_path.includes("notes.md"),
     );
-    expect(noteSections.length).toBe(3);
+    expect(noteSections.length).toBe(2); // Section One, Section Two
 
     store.close();
   });
@@ -169,7 +170,8 @@ Some content here.
     const tasksFile = store.getNodeByPath(join(ROOT_DIR, "tasks.md"));
     expect(tasksFile).not.toBeNull();
     expect(tasksFile!.type).toBe("file");
-    expect(tasksFile!.content).toBe("tasks");
+    // File content is the H1 title (merged into file node)
+    expect(tasksFile!.content).toBe("Tasks");
 
     store.close();
   });

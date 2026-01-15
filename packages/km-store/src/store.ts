@@ -618,6 +618,9 @@ export class MemoryStore extends BaseStore {
 
   /**
    * Parse a markdown file and create nodes for its content
+   *
+   * Note: H1 headings are merged into the file node (not created as separate sections).
+   * This matches the behavior of the full markdown parser in km-markdown.
    */
   private parseMarkdownFile(filePath: string, parentId: string): void {
     try {
@@ -626,6 +629,7 @@ export class MemoryStore extends BaseStore {
 
       let currentSection: string | null = parentId;
       const sectionStack: { id: string; depth: number }[] = [];
+      let h1Merged = false; // Track if we've merged an H1 into the file node
 
       for (let lineNum = 0; lineNum < lines.length; lineNum++) {
         const line = lines[lineNum];
@@ -635,6 +639,21 @@ export class MemoryStore extends BaseStore {
         if (headingMatch) {
           const depth = headingMatch[1].length;
           const headingText = headingMatch[2].trim();
+
+          // Merge H1 into file node (instead of creating a separate section)
+          // This matches km-markdown's parseMarkdownWithLinks behavior
+          if (depth === 1 && !h1Merged) {
+            h1Merged = true;
+            // Update the file node's content to be the H1 title
+            this.db.run(
+              `UPDATE nodes SET content = ?, data = json_set(data, '$.depth', 1, '$.title', ?) WHERE id = ?`,
+              [headingText, headingText, parentId],
+            );
+            // The file node acts as the H1, so push it onto the stack
+            sectionStack.push({ id: parentId, depth: 1 });
+            currentSection = parentId;
+            continue;
+          }
 
           // Pop sections until we find a parent at lower depth
           while (
