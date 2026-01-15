@@ -25,7 +25,16 @@ ALL task edits MUST flow both directions:
 - TUI edit → Model → File
 - File edit → Model → TUI re-render
 
-### 3. Test-Driven Development
+### 4. TUI Design System
+
+When modifying TUI styling (colors, selection states, visual hierarchy), you MUST consult [specs/km-design-system.md](specs/km-design-system.md). Key rules:
+
+- **Selection**: `cyan` background + `black` foreground (NEVER blue/white)
+- **Reserved colors**: `cyan` bg = selection only, `inverse` = input cursor only
+- **Headers**: `yellow` (selected) / `yellowBright` + dim (unselected)
+- **Status icons**: Use both color AND shape (colorblind-safe)
+
+### 5. Test-Driven Development
 
 **BEFORE committing any code changes:**
 
