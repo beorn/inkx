@@ -261,3 +261,47 @@ Sections:
 | Wrong icon color      | Status string not matching in `getStatusIcon()`    |
 | Inline fields visible | Regex in `stripInlineFields()` not matching        |
 | Wiki link not styled  | Regex in `styleWikiLinks()` not matching           |
+
+## Known Issues & Debugging Tips
+
+### Storybook vs Live TUI Differences
+
+**Key difference**: Storybook uses `ink-testing-library` (no height constraint), while live TUI uses `withFullScreen` (height constrained to terminal).
+
+**Debugging approach**:
+1. If storybook works but live TUI doesn't → issue is with height/overflow handling in Ink
+2. If both fail → issue is in text rendering code (Layers 1-2)
+3. Use `bun storybook` first to isolate whether rendering code is correct
+
+### Ink Flexbox Height Constraints
+
+When Ink's Box has explicit `height` + `overflowY="hidden"`:
+- Content that doesn't fit may be clipped
+- Clipping can show BOTTOM of content instead of TOP (unexpected behavior)
+- This causes text to show last words instead of first words
+
+**Symptoms**: Cards showing `@alice` instead of `Code review for PR #123 @alice`
+
+**Files involved**:
+- `Board.tsx` lines 329-336: Column outer Box with `height` and `overflowY="hidden"`
+- `Board.tsx` line 388: Content Box with `height={contentHeight}` and `overflowY="hidden"`
+
+**Investigation approach**:
+1. Compare storybook CardsViewDemo (no height constraints) with live Column component
+2. Check if removing explicit height from inner content Box fixes the issue
+3. Try `flexShrink={0}` on cards to prevent compression
+4. Try `alignItems="flex-start"` to ensure content aligns to top
+
+### Quick Diagnostic Commands
+
+```bash
+# Test rendering code in isolation (no height constraints)
+bun storybook
+
+# Test live TUI with height constraints
+bun km view -r /tmp/tui-test-vault @next.md
+
+# Capture screenshots for comparison
+ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault @next.md &
+bun x playwright screenshot --viewport-size=1400,900 http://localhost:7681 /tmp/tui.png
+```
