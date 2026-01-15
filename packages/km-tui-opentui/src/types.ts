@@ -1,7 +1,7 @@
 /**
  * OpenTUI Renderer Types
  *
- * Re-exports from @km/tui-core plus renderer-specific component props.
+ * Re-exports from @km/tui-core plus renderer-specific component props and view models.
  */
 
 // Re-export types from shared package
@@ -19,6 +19,40 @@ export type {
   NodeViewModel,
   TreeViewModel,
 } from "@km/tui-core";
+
+// ===== View Model Types (for Views) =====
+
+/**
+ * Card view model for rendering in columns/cards/list views.
+ * Simplified projection of NodeViewModel for card-based layouts.
+ */
+export interface CardViewModel {
+  id: string;
+  title: string;
+  childCount: number;
+  isTask: boolean;
+  taskStatus?: "todo" | "wip" | "blocked" | "done" | "dropped";
+  color?: string;
+  icon?: string;
+  isFolded?: boolean;
+  priority?: number;
+  dueDate?: string;
+  hasBacklinks?: boolean;
+  refsCount?: number;
+}
+
+/**
+ * Column view model for rendering column-based layouts.
+ * Used by CardsView, ListView, TabsView.
+ */
+export interface ColumnViewModel {
+  id: string;
+  title: string;
+  count: number;
+  wipLimit?: number;
+  isCollapsed: boolean;
+  cards: CardViewModel[];
+}
 
 // ===== Component Props (OpenTUI-specific) =====
 

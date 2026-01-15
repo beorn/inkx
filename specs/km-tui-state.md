@@ -10,7 +10,6 @@ The TUI uses a generic tree-based state model that supports:
 
 1. **Arbitrary depth navigation** — Path-based cursor instead of fixed 2D
 2. **Configurable view rendering** — Views interpret tree levels differently
-3. **Backwards compatibility** — Legacy Board/Column/Card types during migration
 
 ---
 
@@ -145,71 +144,20 @@ depth 2 = 4 spaces indent
 
 ---
 
-## Compatibility Layer
-
-During migration, `treeStateToBoard()` converts TreeState → BoardState:
-
-```typescript
-// Convert nodes to legacy columns
-const columns = state.nodes.map((node) => ({
-  nodeId: node.nodeId,
-  title: node.title,
-  cards: flattenToCards(node.children, maxOutlineDepth),
-}));
-
-// Convert cursor path to (colIndex, cardIndex)
-const colIndex = state.cursor[0] ?? 0;
-const cardIndex = resolveFlatCardIndex(state);
-```
-
----
-
 ## Package Structure
 
 ```
 packages/km-tui-core/
 ├── src/
-│   ├── types.ts          # All type definitions (Board + Tree)
-│   ├── boardReducer.ts   # Legacy 2D reducer
-│   ├── treeReducer.ts    # New path-based reducer
-│   ├── compat.ts         # TreeState ↔ BoardState conversion
+│   ├── types.ts          # All type definitions (TreeState, TreeNodeState)
+│   ├── treeReducer.ts    # Path-based reducer
 │   ├── transformers.ts   # State → ViewModel
 │   ├── selectors.ts      # State queries
 │   └── index.ts          # Public exports
 └── tests/
-    ├── boardReducer.test.ts
     ├── treeReducer.test.ts
-    └── compat.test.ts
+    └── transformers.test.ts
 ```
-
----
-
-## Migration Path
-
-### Phase 1: Coexistence ✓
-
-- Add TreeState, TreeNodeState, CursorPath types
-- Add treeReducer alongside boardReducer
-- Add compat layer for conversion
-- Both models work in parallel
-
-### Phase 2: Internal Migration
-
-- App.tsx builds TreeNodeState[] from store
-- Uses TreeState internally
-- Converts to BoardState for legacy views
-
-### Phase 3: View Migration
-
-- Views accept TreeNodeState[] directly
-- Use ViewLevelConfig for level interpretation
-- Remove compat layer dependency
-
-### Phase 4: Cleanup
-
-- Remove BoardState, ColumnState, CardState
-- Remove boardReducer
-- Remove compat layer
 
 ---
 

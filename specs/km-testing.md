@@ -134,20 +134,20 @@ The km codebase uses a **layered testing strategy** aligned with its architectur
 
 ### Layer 4: State Management (`packages/km-tui-core`)
 
-**Responsibility**: BoardState, reducers, selectors, transformers, shell execution
+**Responsibility**: TreeState, reducers, selectors, transformers, shell execution
 
 **Testing Approach**: **Unit tests for pure reducer functions**
 
 | Test Type   | Purpose                   | Example                                     |
 | ----------- | ------------------------- | ------------------------------------------- |
-| Unit        | Reducer state transitions | `boardReducer(state, MOVE_DOWN)`            |
-| Unit        | Selectors/transformers    | `toBoardViewModel(state)`                   |
+| Unit        | Reducer state transitions | `treeReducer(state, MOVE_DOWN)`             |
+| Unit        | Selectors/transformers    | `toTreeViewModel(state)`                    |
 | Unit        | Command parsing           | `parseCommand("move_down")`                 |
 | Integration | Shell execution sequences | `runShell(["move_down", "state"], initial)` |
 
 **DO test:**
 
-- Every action type in boardReducer
+- Every action type in treeReducer
 - Edge cases (move past bounds, empty columns)
 - State serialization/deserialization
 - Command parsing (line mode, JSON mode, key commands)
@@ -486,9 +486,9 @@ function createTestNode(overrides: Partial<Node> = {}): Node {
   };
 }
 
-function createTestBoardState(overrides: Partial<BoardState> = {}): BoardState {
+function createTestTreeState(overrides: Partial<TreeState> = {}): TreeState {
   return {
-    ...createInitialBoardState([]),
+    ...createInitialTreeState([]),
     ...overrides,
   };
 }
@@ -633,17 +633,17 @@ test("counter increments on click", () => {
 
 ```typescript
 // BAD: Mocking the function you're testing
-jest.mock("./boardReducer");
+jest.mock("./treeReducer");
 test("reducer moves down", () => {
-  boardReducer.mockReturnValue({ cardIndex: 1 });
-  // This doesn't test boardReducer at all!
+  treeReducer.mockReturnValue({ cursor: [0, 1] });
+  // This doesn't test treeReducer at all!
 });
 
 // GOOD: Test the real implementation
 test("reducer moves down", () => {
-  const state = createInitialState();
-  const newState = boardReducer(state, { type: "MOVE_DOWN" });
-  expect(newState.cardIndex).toBe(1);
+  const state = createInitialTreeState([]);
+  const newState = treeReducer(state, { type: "MOVE_DOWN" });
+  expect(newState.cursor).toEqual([0, 1]);
 });
 ```
 
@@ -737,7 +737,7 @@ CI runs both automatically on every PR.
 | Parser     | `parseMarkdown`, `nodesToMarkdown`          | Unit + Round-trip    | 90%+          |
 | Store      | `createNode`, `queryNodes`, `getChildren`   | Unit + Integration   | 85%+          |
 | Sync       | `syncFromFs`, `syncToFs`, conflict handling | Integration          | 80%+          |
-| State      | All `BoardAction` types, selectors          | Unit                 | 95%+          |
+| State      | All `TreeAction` types, selectors           | Unit                 | 95%+          |
 | Components | All exported components                     | Smoke                | 70%+          |
 | CLI        | All commands, error paths                   | Integration + Golden | 80%+          |
 
@@ -943,7 +943,7 @@ When adding a new feature, ensure you have tests for:
 
 - [ ] **Parser changes?** → Unit tests in `km-markdown/tests/`
 - [ ] **Store changes?** → Integration tests in `km-store/tests/`
-- [ ] **New BoardAction?** → Unit test in `km-tui-core/tests/boardReducer.test.ts`
+- [ ] **New TreeAction?** → Unit test in `km-tui-core/tests/treeReducer.test.ts`
 - [ ] **New command?** → CLI integration test + mdtest golden file
 - [ ] **Visual change?** → Storybook story + optional Playwright test
 

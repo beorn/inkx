@@ -7,13 +7,10 @@
 
 import type { ReactElement } from "react";
 import { TreeNode } from "../components/index.ts";
-import type { ColumnViewModel } from "../types.ts";
+import type { NodeViewModel, TreeViewModel } from "../types.ts";
 
 interface ColumnsViewProps {
-  columns: ColumnViewModel[];
-  selectedCol: number;
-  selectedCard: number;
-  selectedCards: Set<string>;
+  viewModel: TreeViewModel;
   width?: number;
   height?: number;
   scrollOffset?: number;
@@ -21,21 +18,21 @@ interface ColumnsViewProps {
 }
 
 interface ColumnTreeProps {
-  column: ColumnViewModel;
+  node: NodeViewModel;
   colIndex: number;
   isSelected: boolean;
   selectedCardIndex: number;
-  selectedCards: Set<string>;
+  selectedNodes: Set<string>;
   width: number;
   height: number;
 }
 
 function ColumnTree({
-  column,
+  node,
   colIndex: _colIndex,
   isSelected,
   selectedCardIndex,
-  selectedCards,
+  selectedNodes,
   width,
   height,
 }: ColumnTreeProps): ReactElement {
@@ -45,18 +42,18 @@ function ColumnTree({
 
   // Calculate visible cards with scrolling
   const contentHeight = Math.max(1, height - 3);
-  const needsScroll = column.cards.length > contentHeight;
+  const needsScroll = node.children.length > contentHeight;
   const scrollOffset = needsScroll
     ? Math.max(
         0,
         Math.min(
           selectedCardIndex - Math.floor(contentHeight / 2),
-          Math.max(0, column.cards.length - contentHeight),
+          Math.max(0, node.children.length - contentHeight),
         ),
       )
     : 0;
 
-  const visibleCards = column.cards.slice(
+  const visibleChildren = node.children.slice(
     scrollOffset,
     scrollOffset + contentHeight,
   );
@@ -67,45 +64,46 @@ function ColumnTree({
       <box flexDirection="column" height={2}>
         <text> </text>
         <text bold={isSelected} color={headerColor} backgroundColor={headerBg}>
-          {column.title} ({column.count})
+          {node.title} ({node.childCount})
         </text>
       </box>
 
       {/* Cards area */}
       <box flexDirection="column" flexGrow={1}>
         {scrollOffset > 0 && <text color="gray"> ▲ {scrollOffset} above</text>}
-        {visibleCards.map((card, i) => {
+        {visibleChildren.map((child: NodeViewModel, i: number) => {
           const actualCardIndex = scrollOffset + i;
           const isCardSelected =
             isSelected && actualCardIndex === selectedCardIndex;
 
           return (
             <TreeNode
-              key={card.id}
+              key={child.id}
               node={{
-                id: card.id,
-                title: card.title,
-                isTask: card.taskStatus !== undefined,
-                taskStatus: card.taskStatus,
-                childCount: card.childCount,
-                color: card.color,
-                priority: card.priority,
-                dueDate: card.dueDate,
-                hasBacklinks: card.hasBacklinks,
-                refsCount: card.refsCount,
+                id: child.id,
+                title: child.title,
+                isTask: child.taskStatus !== undefined,
+                taskStatus: child.taskStatus,
+                childCount: child.childCount,
+                color: child.color,
+                priority: child.priority,
+                dueDate: child.dueDate,
+                hasBacklinks: child.hasBacklinks,
+                refsCount: child.refsCount,
               }}
               depth={0}
               width={width}
               isSelected={isCardSelected}
-              isMultiSelected={selectedCards.has(card.id)}
+              isMultiSelected={selectedNodes.has(child.id)}
               variant="compact"
             />
           );
         })}
         {needsScroll &&
-          scrollOffset + visibleCards.length < column.cards.length && (
+          scrollOffset + visibleChildren.length < node.children.length && (
             <text color="gray">
-              {"  "}▼ {column.cards.length - scrollOffset - visibleCards.length}{" "}
+              {"  "}▼{" "}
+              {node.children.length - scrollOffset - visibleChildren.length}{" "}
               below
             </text>
           )}
@@ -115,30 +113,28 @@ function ColumnTree({
 }
 
 export function ColumnsView({
-  columns,
-  selectedCol,
-  selectedCard,
-  selectedCards,
+  viewModel,
   width = 80,
   height = 24,
   scrollOffset = 0,
   maxVisibleCols = 4,
 }: ColumnsViewProps): ReactElement {
+  const { nodes, cursor, selectedNodes } = viewModel;
+  const selectedCol = cursor[0] ?? -1;
+  const selectedCard = cursor[1] ?? -1;
+
   // Calculate which columns are visible
   const hasLeftIndicator = scrollOffset > 0;
-  const hasRightIndicator = scrollOffset + maxVisibleCols < columns.length;
+  const hasRightIndicator = scrollOffset + maxVisibleCols < nodes.length;
   const indicatorWidth =
     (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
   const availableWidth = width - indicatorWidth;
 
   // Get visible columns
-  const visibleColumns = columns.slice(
-    scrollOffset,
-    scrollOffset + maxVisibleCols,
-  );
-  const separatorCount = Math.max(0, visibleColumns.length - 1);
+  const visibleNodes = nodes.slice(scrollOffset, scrollOffset + maxVisibleCols);
+  const separatorCount = Math.max(0, visibleNodes.length - 1);
   const colWidth = Math.floor(
-    (availableWidth - separatorCount) / Math.max(1, visibleColumns.length),
+    (availableWidth - separatorCount) / Math.max(1, visibleNodes.length),
   );
 
   return (
@@ -153,18 +149,18 @@ export function ColumnsView({
       )}
 
       {/* Columns */}
-      {visibleColumns.map((col, i) => {
+      {visibleNodes.map((node: NodeViewModel, i: number) => {
         const actualColIndex = scrollOffset + i;
-        const isLastCol = i === visibleColumns.length - 1;
+        const isLastCol = i === visibleNodes.length - 1;
 
         return (
-          <box key={col.id} flexDirection="row">
+          <box key={node.id} flexDirection="row">
             <ColumnTree
-              column={col}
+              node={node}
               colIndex={actualColIndex}
               isSelected={actualColIndex === selectedCol}
               selectedCardIndex={selectedCard}
-              selectedCards={selectedCards}
+              selectedNodes={selectedNodes}
               width={colWidth}
               height={height}
             />
@@ -192,7 +188,7 @@ export function ColumnsView({
         </box>
       )}
 
-      {columns.length === 0 && <text color="gray">No columns to display</text>}
+      {nodes.length === 0 && <text color="gray">No columns to display</text>}
     </box>
   );
 }

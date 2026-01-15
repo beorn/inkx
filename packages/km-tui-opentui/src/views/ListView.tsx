@@ -7,36 +7,34 @@
 
 import type { ReactElement } from "react";
 import { TreeNode } from "../components/index.ts";
-import type { ColumnViewModel } from "../types.ts";
+import type { NodeViewModel, TreeViewModel } from "../types.ts";
 
 interface ListViewProps {
-  columns: ColumnViewModel[];
-  selectedCol: number;
-  selectedCard: number;
-  selectedCards: Set<string>;
+  viewModel: TreeViewModel;
   width?: number;
 }
 
 export function ListView({
-  columns,
-  selectedCol,
-  selectedCard,
-  selectedCards,
+  viewModel,
   width = 80,
 }: ListViewProps): ReactElement {
+  const { nodes, cursor, selectedNodes } = viewModel;
+  const selectedCol = cursor[0] ?? -1;
+  const selectedCard = cursor[1] ?? -1;
+
   return (
     <box flexDirection="column" flexGrow={1}>
       {/* Spacer line */}
       <text> </text>
 
       {/* Columns as sections */}
-      {columns.map((column, colIndex) => {
+      {nodes.map((node: NodeViewModel, colIndex: number) => {
         const isColSelected = colIndex === selectedCol;
         const headerBg = isColSelected ? "cyan" : undefined;
         const headerColor = isColSelected ? "black" : "yellow";
 
         return (
-          <box key={column.id} flexDirection="column">
+          <box key={node.id} flexDirection="column">
             {/* Blank line between sections (except first) */}
             {colIndex > 0 && <text> </text>}
 
@@ -46,33 +44,33 @@ export function ListView({
               color={headerColor}
               backgroundColor={headerBg}
             >
-              {column.title} ({column.count})
+              {node.title} ({node.childCount})
             </text>
 
             {/* Cards in column */}
-            {column.cards.map((card, cardIndex) => {
+            {node.children.map((child: NodeViewModel, cardIndex: number) => {
               const isCardSelected =
                 isColSelected && cardIndex === selectedCard;
 
               return (
                 <TreeNode
-                  key={card.id}
+                  key={child.id}
                   node={{
-                    id: card.id,
-                    title: card.title,
-                    isTask: card.taskStatus !== undefined,
-                    taskStatus: card.taskStatus,
-                    childCount: card.childCount,
-                    color: card.color,
-                    priority: card.priority,
-                    dueDate: card.dueDate,
-                    hasBacklinks: card.hasBacklinks,
-                    refsCount: card.refsCount,
+                    id: child.id,
+                    title: child.title,
+                    isTask: child.taskStatus !== undefined,
+                    taskStatus: child.taskStatus,
+                    childCount: child.childCount,
+                    color: child.color,
+                    priority: child.priority,
+                    dueDate: child.dueDate,
+                    hasBacklinks: child.hasBacklinks,
+                    refsCount: child.refsCount,
                   }}
                   depth={0}
                   width={width - 2}
                   isSelected={isCardSelected}
-                  isMultiSelected={selectedCards.has(card.id)}
+                  isMultiSelected={selectedNodes.has(child.id)}
                   variant="wide"
                 />
               );
@@ -81,7 +79,7 @@ export function ListView({
         );
       })}
 
-      {columns.length === 0 && <text color="gray">No columns to display</text>}
+      {nodes.length === 0 && <text color="gray">No columns to display</text>}
     </box>
   );
 }

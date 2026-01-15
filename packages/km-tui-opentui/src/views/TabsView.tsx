@@ -7,28 +7,26 @@
 
 import type { ReactElement } from "react";
 import { TreeNode } from "../components/index.ts";
-import type { ColumnViewModel } from "../types.ts";
+import type { NodeViewModel, TreeViewModel } from "../types.ts";
 
 interface TabsViewProps {
-  columns: ColumnViewModel[];
-  selectedCol: number;
-  selectedCard: number;
-  selectedCards: Set<string>;
+  viewModel: TreeViewModel;
   width?: number;
   height?: number;
 }
 
 export function TabsView({
-  columns,
-  selectedCol,
-  selectedCard,
-  selectedCards,
+  viewModel,
   width = 80,
   height = 24,
 }: TabsViewProps): ReactElement {
+  const { nodes, cursor, selectedNodes } = viewModel;
+  const selectedCol = cursor[0] ?? -1;
+  const selectedCard = cursor[1] ?? -1;
+
   // Current column
-  const currentColumn = columns[selectedCol];
-  const count = currentColumn?.cards.length ?? 0;
+  const currentNode = nodes[selectedCol];
+  const count = currentNode?.children.length ?? 0;
 
   // Calculate visible cards with scrolling
   const contentHeight = Math.max(1, height - 6); // tab bar + border + margins
@@ -43,12 +41,12 @@ export function TabsView({
       )
     : 0;
 
-  const visibleCards = currentColumn
-    ? currentColumn.cards.slice(scrollOffset, scrollOffset + contentHeight)
+  const visibleChildren = currentNode
+    ? currentNode.children.slice(scrollOffset, scrollOffset + contentHeight)
     : [];
 
   // Calculate max tab width
-  const maxTabWidth = Math.floor((width - 4) / Math.max(columns.length, 1)) - 3;
+  const maxTabWidth = Math.floor((width - 4) / Math.max(nodes.length, 1)) - 3;
 
   return (
     <box flexDirection="column" width={width} height={height} flexGrow={1}>
@@ -57,24 +55,24 @@ export function TabsView({
 
       {/* Tab bar */}
       <box flexDirection="row" width={width} height={1}>
-        {columns.map((column, colIndex) => {
+        {nodes.map((node: NodeViewModel, colIndex: number) => {
           const isActive = colIndex === selectedCol;
           // Truncate tab name if needed
           const truncatedName =
-            column.title.length > maxTabWidth
-              ? column.title.slice(0, maxTabWidth - 1) + "…"
-              : column.title;
+            node.title.length > maxTabWidth
+              ? node.title.slice(0, maxTabWidth - 1) + "…"
+              : node.title;
 
           return (
-            <box key={column.id} marginRight={1}>
+            <box key={node.id} marginRight={1}>
               <text
                 bold={isActive}
                 color={isActive ? "black" : "white"}
                 backgroundColor={isActive ? "cyan" : undefined}
               >
-                {truncatedName} ({column.count})
+                {truncatedName} ({node.childCount})
               </text>
-              {colIndex < columns.length - 1 && <text color="gray"> │</text>}
+              {colIndex < nodes.length - 1 && <text color="gray"> │</text>}
             </box>
           );
         })}
@@ -85,43 +83,43 @@ export function TabsView({
 
       {/* Content area */}
       <box flexDirection="column" flexGrow={1}>
-        {currentColumn ? (
+        {currentNode ? (
           count > 0 ? (
             <box flexDirection="column" flexGrow={1}>
               {scrollOffset > 0 && (
                 <text color="gray"> ▲ {scrollOffset} above</text>
               )}
-              {visibleCards.map((card, i) => {
+              {visibleChildren.map((child: NodeViewModel, i: number) => {
                 const actualCardIndex = scrollOffset + i;
                 const isCardSelected = actualCardIndex === selectedCard;
 
                 return (
                   <TreeNode
-                    key={card.id}
+                    key={child.id}
                     node={{
-                      id: card.id,
-                      title: card.title,
-                      isTask: card.taskStatus !== undefined,
-                      taskStatus: card.taskStatus,
-                      childCount: card.childCount,
-                      color: card.color,
-                      priority: card.priority,
-                      dueDate: card.dueDate,
-                      hasBacklinks: card.hasBacklinks,
-                      refsCount: card.refsCount,
+                      id: child.id,
+                      title: child.title,
+                      isTask: child.taskStatus !== undefined,
+                      taskStatus: child.taskStatus,
+                      childCount: child.childCount,
+                      color: child.color,
+                      priority: child.priority,
+                      dueDate: child.dueDate,
+                      hasBacklinks: child.hasBacklinks,
+                      refsCount: child.refsCount,
                     }}
                     depth={0}
                     width={width - 4}
                     isSelected={isCardSelected}
-                    isMultiSelected={selectedCards.has(card.id)}
+                    isMultiSelected={selectedNodes.has(child.id)}
                     variant="wide"
                   />
                 );
               })}
-              {needsScroll && scrollOffset + visibleCards.length < count && (
+              {needsScroll && scrollOffset + visibleChildren.length < count && (
                 <text color="gray">
                   {" "}
-                  ▼ {count - scrollOffset - visibleCards.length} below
+                  ▼ {count - scrollOffset - visibleChildren.length} below
                 </text>
               )}
             </box>

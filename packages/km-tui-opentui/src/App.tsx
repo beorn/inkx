@@ -11,8 +11,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import type { EventEmitter } from "events";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
-import { useBoardState, createInitialBoardState } from "./hooks/index.ts";
-import { toBoardViewModel } from "@km/tui-core";
+import { useTreeState, createInitialTreeState } from "./hooks/index.ts";
+import { toTreeViewModel } from "@km/tui-core";
 import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
 import {
   DetailPane,
@@ -62,13 +62,7 @@ const SHIFT_NUMBER_MAP: Record<string, number> = {
 };
 import { getNodeDisplayName } from "@km/shared";
 import type { Node } from "@km/core";
-import type {
-  ViewMode,
-  ColumnState,
-  CardState,
-  TaskStatus,
-  TreeNodeState,
-} from "./types.ts";
+import type { ViewMode, TaskStatus, TreeNodeState } from "./types.ts";
 
 // Task status cycle order for Space key
 const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "done", "dropped"];
@@ -137,9 +131,9 @@ function openInEditor(filePath: string, line?: number | null): void {
 }
 
 /**
- * Convert Node to CardState
+ * Convert Node to TreeNodeState (recursive)
  */
-function nodeToCardState(node: Node): CardState {
+function nodeToTreeNodeState(node: Node, depth: number = 0): TreeNodeState {
   const children = getChildren(node.id);
 
   // Get backlinks count
@@ -153,43 +147,31 @@ function nodeToCardState(node: Node): CardState {
   return {
     nodeId: node.id,
     title: getNodeDisplayName(node),
+    children: children.map((child) => nodeToTreeNodeState(child, depth + 1)),
     childCount: children.length,
     isTask: node.task_status !== undefined,
-    taskStatus: node.task_status as CardState["taskStatus"],
+    taskStatus: node.task_status as TreeNodeState["taskStatus"],
     color: node.rules?.color,
     icon: undefined,
-    // Rich task display fields
     priority: node.priority,
     dueDate: node.due_date,
     hasBacklinks: hasBacklinks || undefined,
     refsCount,
     content: node.content,
+    depth,
   };
 }
 
 /**
- * Convert Node to ColumnState
+ * Build tree nodes from root node
  */
-function nodeToColumnState(node: Node): ColumnState {
-  const children = getChildren(node.id);
-  return {
-    nodeId: node.id,
-    title: getNodeDisplayName(node),
-    cards: children.map(nodeToCardState),
-    wipLimit: undefined,
-  };
-}
-
-/**
- * Build columns from root node
- */
-function buildColumns(rootId: string | null): ColumnState[] {
+function buildNodes(rootId: string | null): TreeNodeState[] {
   if (!rootId) {
     const roots = getChildren(null);
     if (roots.length === 0) {
       return [];
     }
-    return roots.map(nodeToColumnState);
+    return roots.map((node) => nodeToTreeNodeState(node, 0));
   }
 
   const node = getNode(rootId);
@@ -198,11 +180,11 @@ function buildColumns(rootId: string | null): ColumnState[] {
   }
 
   const children = getChildren(node.id);
-  return children.map(nodeToColumnState);
+  return children.map((child) => nodeToTreeNodeState(child, 0));
 }
 
 interface AppProps {
-  initialColumns: ColumnState[];
+  initialNodes: TreeNodeState[];
   rootId?: string | null;
   rootPath?: string | null;
   initialViewMode?: ViewMode;
@@ -215,7 +197,7 @@ interface AppProps {
 const VIEW_MODES: ViewMode[] = ["cards", "list", "columns", "tabs"];
 
 export function App({
-  initialColumns,
+  initialNodes,
   rootId = null,
   rootPath = null,
   initialViewMode = "cards",
@@ -233,57 +215,57 @@ export function App({
   const { width, height } = useTerminalDimensions();
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
 
-  // Initialize board state
+  // Initialize tree state
   const initialState = useMemo(
-    () => createInitialBoardState(initialColumns, rootId, rootPath),
+    () => createInitialTreeState(initialNodes, rootId, rootPath),
     [], // Only compute once
   );
 
-  const board = useBoardState(initialState);
+  const tree = useTreeState(initialState);
 
   // Transform state to view model
   const viewModel = useMemo(
-    () => toBoardViewModel(board.state, viewMode),
-    [board.state, viewMode],
+    () => toTreeViewModel(tree.state, viewMode),
+    [tree.state, viewMode],
   );
 
-  // Refresh board data from store
-  const refreshBoard = useCallback(() => {
-    const columns = buildColumns(board.state.rootId);
-    if (columns.length > 0) {
-      board.dispatch({ type: "REFRESH", columns });
+  // Refresh tree data from store
+  const refreshTree = useCallback(() => {
+    const nodes = buildNodes(tree.state.rootId);
+    if (nodes.length > 0) {
+      tree.dispatch({ type: "REFRESH", nodes });
     }
-  }, [board]);
+  }, [tree]);
 
   // Subscribe to external refresh events (filesystem changes)
   useEffect(() => {
     if (!refreshEmitter) return;
 
     const handleRefresh = () => {
-      refreshBoard();
+      refreshTree();
     };
 
     refreshEmitter.on("refresh", handleRefresh);
     return () => {
       refreshEmitter.off("refresh", handleRefresh);
     };
-  }, [refreshEmitter, refreshBoard]);
+  }, [refreshEmitter, refreshTree]);
 
   // Navigate to a new root node (pushes to history)
   const navigateToRoot = useCallback(
     (newRootId: string | null) => {
-      const newColumns = buildColumns(newRootId);
+      const newNodes = buildNodes(newRootId);
       // Get root path from node if available
       const node = newRootId ? getNode(newRootId) : null;
       const newRootPath = node?.fs_path ?? null;
-      board.dispatch({
+      tree.dispatch({
         type: "NAV_TO",
         rootId: newRootId,
-        columns: newColumns,
+        nodes: newNodes,
         rootPath: newRootPath,
       });
     },
-    [board],
+    [tree],
   );
 
   // Handle keyboard input

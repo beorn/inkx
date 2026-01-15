@@ -2,85 +2,82 @@
  * TUI2 Mock Data Test
  *
  * Tests the new architecture with fake data (storybook-style).
- * Run with: bun apps/km-cli/src/tui2/test-mock.tsx
+ * Run with: bun packages/km-tui-opentui/src/test-mock.tsx
  */
 
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { App } from "./App.tsx";
-import type { ColumnState, CardState } from "./types.ts";
+import type { TreeNodeState } from "./types.ts";
 
-// Mock card data
-function mockCard(
+// Mock child node data
+function mockChild(
   id: string,
   title: string,
-  childCount = 0,
   isTask = false,
   taskStatus?: "todo" | "wip" | "blocked" | "done" | "dropped",
-): CardState {
+): TreeNodeState {
   return {
     nodeId: id,
     title,
-    childCount,
+    children: [],
+    childCount: 0,
     isTask,
     taskStatus,
     color: undefined,
     icon: undefined,
+    depth: 1,
   };
 }
 
-// Mock columns
-const mockColumns: ColumnState[] = [
-  {
-    nodeId: "col1",
-    title: "Inbox",
-    wipLimit: undefined,
-    cards: [
-      mockCard("card1", "Review pull request #234"),
-      mockCard("card2", "Update documentation", 3),
-      mockCard("card3", "Fix login bug", 0, true, "todo"),
-      mockCard("card4", "Deploy to staging", 0, true, "wip"),
-      mockCard("card5", "Code review feedback"),
-      mockCard("card6", "Meeting notes"),
-      mockCard("card7", "Research new framework", 5),
-      mockCard("card8", "Update dependencies"),
-    ],
-  },
-  {
-    nodeId: "col2",
-    title: "Next Actions",
-    wipLimit: 5,
-    cards: [
-      mockCard("card9", "Implement dark mode", 2, true, "todo"),
-      mockCard("card10", "Write unit tests", 0, true, "todo"),
-      mockCard("card11", "Refactor auth module", 0, true, "blocked"),
-      mockCard("card12", "API documentation", 0, true, "wip"),
-      mockCard("card13", "Performance optimization", 4, true, "todo"),
-      mockCard("card14", "Fix memory leak", 0, true, "todo"),
-    ],
-  },
-  {
-    nodeId: "col3",
-    title: "Waiting For",
-    wipLimit: undefined,
-    cards: [
-      mockCard("card15", "Client feedback on design"),
-      mockCard("card16", "Legal review of ToS", 0, true, "blocked"),
-      mockCard("card17", "Hardware delivery"),
-    ],
-  },
-  {
-    nodeId: "col4",
-    title: "Done",
-    wipLimit: undefined,
-    cards: [
-      mockCard("card18", "Setup CI/CD pipeline", 0, true, "done"),
-      mockCard("card19", "Database migration", 0, true, "done"),
-      mockCard("card20", "User onboarding flow", 3, true, "done"),
-      mockCard("card21", "Bug fixes batch 1", 0, true, "done"),
-      mockCard("card22", "Security audit", 0, true, "done"),
-    ],
-  },
+// Mock column/parent nodes (depth 0)
+function mockColumn(
+  id: string,
+  title: string,
+  children: TreeNodeState[],
+): TreeNodeState {
+  return {
+    nodeId: id,
+    title,
+    children,
+    childCount: children.length,
+    isTask: false,
+    depth: 0,
+  };
+}
+
+// Mock tree nodes (columns with children)
+const mockNodes: TreeNodeState[] = [
+  mockColumn("col1", "Inbox", [
+    mockChild("card1", "Review pull request #234"),
+    mockChild("card2", "Update documentation"),
+    mockChild("card3", "Fix login bug", true, "todo"),
+    mockChild("card4", "Deploy to staging", true, "wip"),
+    mockChild("card5", "Code review feedback"),
+    mockChild("card6", "Meeting notes"),
+    mockChild("card7", "Research new framework"),
+    mockChild("card8", "Update dependencies"),
+  ]),
+  mockColumn("col2", "Next Actions", [
+    mockChild("card9", "Implement dark mode", true, "todo"),
+    mockChild("card10", "Write unit tests", true, "todo"),
+    mockChild("card11", "Refactor auth module", true, "blocked"),
+    mockChild("card12", "API documentation", true, "wip"),
+    mockChild("card13", "Performance optimization", true, "todo"),
+    mockChild("card14", "Fix memory leak", true, "todo"),
+  ]),
+  mockColumn("col3", "Waiting For", [
+    mockChild("card15", "Client feedback on design"),
+    mockChild("card16", "Legal review of ToS", true, "blocked"),
+    mockChild("card17", "Hardware delivery"),
+  ]),
+  mockColumn("col4", "Done", [
+    mockChild("card18", "Setup CI/CD pipeline", true, "done"),
+    mockChild("card19", "Database migration", true, "done"),
+    mockChild("card20", "User onboarding flow", true, "done"),
+    mockChild("card21", "Bug fixes batch 1", true, "done"),
+    mockChild("card22", "Security audit", true, "done"),
+  ]),
 ];
 
 // Run the app
@@ -90,7 +87,7 @@ const renderer = await createCliRenderer({
 
 createRoot(renderer).render(
   <App
-    initialColumns={mockColumns}
+    initialNodes={mockNodes}
     rootPath="/test/mock-board"
     initialViewMode="cards"
   />,

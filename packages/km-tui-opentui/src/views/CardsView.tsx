@@ -6,52 +6,47 @@
  */
 
 import { Card, Column } from "../components/index.ts";
-import type { ColumnViewModel } from "../types.ts";
+import type { NodeViewModel, TreeViewModel } from "../types.ts";
 
 interface CardsViewProps {
-  columns: ColumnViewModel[];
-  selectedCol: number;
-  selectedCard: number;
-  selectedCards: Set<string>;
+  viewModel: TreeViewModel;
 }
 
-export function CardsView({
-  columns,
-  selectedCol,
-  selectedCard,
-  selectedCards,
-}: CardsViewProps) {
+export function CardsView({ viewModel }: CardsViewProps) {
+  const { nodes, cursor, selectedNodes } = viewModel;
+  const selectedCol = cursor[0] ?? -1;
+  const selectedCard = cursor[1] ?? -1;
+
   return (
     <box flexDirection="row" flexGrow={1}>
-      {columns.map((col, colIndex) => {
+      {nodes.map((node: NodeViewModel, colIndex: number) => {
         const isActive = colIndex === selectedCol;
         const currentSelectedCard = isActive ? selectedCard : -1;
 
         return (
           <Column
-            key={col.id}
-            title={col.title}
-            count={col.count}
-            wipLimit={col.wipLimit}
+            key={node.id}
+            title={node.title}
+            count={node.childCount}
             isActive={isActive}
-            isCollapsed={col.isCollapsed}
+            isCollapsed={node.isFolded}
             selectedIndex={currentSelectedCard}
           >
-            {col.cards.map((card, cardIndex) => (
+            {node.children.map((child: NodeViewModel, cardIndex: number) => (
               <Card
-                key={card.id}
-                title={card.title}
+                key={child.id}
+                title={child.title}
                 isSelected={isActive && cardIndex === currentSelectedCard}
-                isMultiSelected={selectedCards.has(card.id)}
-                childCount={card.childCount}
-                color={card.color}
-                icon={card.icon}
-                isFolded={card.isFolded}
-                taskStatus={card.taskStatus}
-                priority={card.priority}
-                dueDate={card.dueDate}
-                hasBacklinks={card.hasBacklinks}
-                refsCount={card.refsCount}
+                isMultiSelected={selectedNodes.has(child.id)}
+                childCount={child.childCount}
+                color={child.color}
+                icon={child.icon}
+                isFolded={child.isFolded}
+                taskStatus={child.taskStatus}
+                priority={child.priority}
+                dueDate={child.dueDate}
+                hasBacklinks={child.hasBacklinks}
+                refsCount={child.refsCount}
               />
             ))}
           </Column>
