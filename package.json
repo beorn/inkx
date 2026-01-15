@@ -25,7 +25,9 @@
     "test:e2e": "bun run vendor/beorn-mdtest/src/index.ts tests/*.test.md",
     "test:e2e:update": "bun run vendor/beorn-mdtest/src/index.ts --update tests/*.test.md",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
-    "storybook": "bun run apps/km-cli/tests/tui/storybook.tsx"
+    "storybook": "bun run apps/km-cli/tests/tui/storybook.tsx",
+    "tui2:mock": "bun run apps/km-cli/src/tui2/test-mock.tsx",
+    "tui2": "bun run apps/km-cli/src/tui2/test-real.tsx"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
