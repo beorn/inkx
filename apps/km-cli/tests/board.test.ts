@@ -1123,6 +1123,41 @@ describe("Wiki Link Rendering", () => {
     expect(output).not.toContain("[[");
     expect(output).not.toContain("]]");
   });
+
+  test("aliased wiki links show only the alias", async () => {
+    const { render } = await import("ink-testing-library");
+    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
+    const React = await import("react");
+
+    const rootId = createTestNode("board", "Board");
+    const colId = createTestNode("folder", "Column", rootId);
+    // Create a task with aliased wiki link: [[path|alias]]
+    createTestNode(
+      "task",
+      "See [[MDTasks/tasks-system|task-system]] for info",
+      colId,
+    );
+
+    const state = buildBoardState(rootId);
+
+    const { lastFrame } = render(
+      React.createElement(InkBoardTestable, {
+        initialState: state,
+        testWidth: 80,
+        testHeight: 24,
+      }),
+    );
+
+    const output = lastFrame() ?? "";
+
+    // Should show the alias, not the path
+    expect(output).toContain("task-system");
+    // Should NOT show the path
+    expect(output).not.toContain("MDTasks");
+    // The brackets should not appear
+    expect(output).not.toContain("[[");
+    expect(output).not.toContain("]]");
+  });
 });
 
 describe("New Item Dialog", () => {

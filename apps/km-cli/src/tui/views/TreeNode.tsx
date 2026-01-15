@@ -4,49 +4,25 @@
  * Two variants:
  * - compact: For column views (shorter context, no info columns, limited children)
  * - wide: For full-width views (longer context, info columns, unlimited children)
+ *
+ * Uses the layered rendering approach:
+ * 1. renderRich() - convert raw content to styled ANSI string
+ * 2. constrainText() - wrap and truncate using display length
+ * 3. Render each line in <Text>
  */
 import React from "react";
 import { Box, Text } from "ink";
 import type { Node } from "@km/core";
 import { getChildren } from "@km/store";
 import { getNodeDisplayName, getParentContext } from "@km/shared";
-import { getStatusIcon, getTypeIcon } from "./icons.ts";
+import { getStatusIcon, getTypeIcon } from "../render-icons.ts";
 import type { SelectionKey } from "../types.ts";
-
-/**
- * Render text with wiki links [[like this]] styled as underlined text
- * without the brackets
- */
-function renderStyledText(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  // Match [[wiki links]] - capture the link text without brackets
-  const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
-  let lastIndex = 0;
-  let match;
-  let keyIndex = 0;
-
-  while ((match = wikiLinkRegex.exec(text)) !== null) {
-    // Add text before the match
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    // Add the wiki link with underline styling (no brackets)
-    const linkText = match[1];
-    parts.push(
-      <Text key={`link-${keyIndex++}`} underline dimColor>
-        {linkText}
-      </Text>,
-    );
-    lastIndex = match.index + match[0].length;
-  }
-
-  // Add remaining text after last match
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-
-  return parts.length > 0 ? parts : [text];
-}
+import {
+  renderRich,
+  constrainText,
+  renderParentPath,
+  displayLength,
+} from "../render-text.ts";
 
 // Selection key helper - exported for use by parent components
 export function makeSelectionKey(
@@ -67,16 +43,14 @@ export interface TreeNodeProps {
   maxDepth: number;
   colIndex: number;
   cardIndex: number;
-  /** This node's sub-index in the tree */
   subIndex: number;
-  /** The current global selection sub-index */
   currentSubIndex: number;
   multiSelected: Set<SelectionKey>;
   inOutlineMode: boolean;
-  /** 'compact' for column views, 'wide' for full-width views */
   variant?: "compact" | "wide";
-  /** Maximum lines of content to display per node (default: 1) */
   maxContentLines?: number;
+  /** Dim child items when this subtree is not the active card (for cards view) */
+  dimInactiveChildren?: boolean;
 }
 
 export function TreeNode({
@@ -95,130 +69,92 @@ export function TreeNode({
   inOutlineMode,
   variant = "wide",
   maxContentLines = 1,
+  dimInactiveChildren = false,
 }: TreeNodeProps): React.ReactElement {
   const children = getChildren(node.id);
   const hasChildren = children.length > 0;
   const isFolded = foldedNodes.has(node.id);
   const isCompact = variant === "compact";
 
-  // Build line content
+  // Build styled content using layered rendering
   const isTask = node.type === "task";
-  const icon = isTask
-    ? getStatusIcon(node.task_status)
-    : getTypeIcon(node.type);
-  const content = node.content || getNodeDisplayName(node);
-  const contentLines = content.split("\n");
+  const statusIcon = isTask ? getStatusIcon(node.task_status) : null;
+  const typeIcon = isTask ? "" : getTypeIcon(node.type);
+  const rawContent = node.content || getNodeDisplayName(node);
 
-  // Check if this is a transcluded (symlinked) node
-  const isTranscluded =
-    node.symlink_to !== null && node.symlink_to !== undefined;
+  // Layer 1: Render to styled ANSI string (strips [[links]], [fields::], applies styling)
+  const styledContent = renderRich(rawContent);
 
-  // Get parent context for top-level cards
-  // Compact: depth 0, Wide: depth 1
+  // Check if embedded (symlink to another node)
+  const isEmbedded = node.symlink_to != null;
+
+  // Parent context for embedded tasks
   const contextDepth = isCompact ? 0 : 1;
   const parentContext =
-    depth === contextDepth && isTask ? getParentContext(node) : null;
+    depth === contextDepth && isTask && isEmbedded
+      ? getParentContext(node)
+      : null;
 
-  // Fold indicator
-  const foldIndicator = hasChildren ? (isFolded ? "\u25B6" : "\u25BC") : " ";
+  // Build prefix
+  const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : " ";
   const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
-
-  // Transclusion indicator (→) for symlinked nodes
-  const transclusionMark = isTranscluded ? "→" : "";
-
-  // Build prefix with indent (1 space per level for compactness)
   const indent = " ".repeat(depth);
-  const prefix = `${indent}${foldIndicator}${icon}${transclusionMark} `;
+  const iconChar = statusIcon ? statusIcon.char : typeIcon;
+  const iconColor = statusIcon ? statusIcon.color : undefined;
+  const prefixBeforeIcon = `${indent}${foldIndicator}`;
+  const prefixAfterIcon = " ";
+  const prefixLength =
+    prefixBeforeIcon.length + iconChar.length + prefixAfterIcon.length;
 
-  // Info columns (right side) - only for wide variant
+  // Info suffix (wide variant only)
   let infoSuffix = "";
   if (!isCompact) {
     const infoParts: string[] = [];
-
-    // Priority (P1-P5)
-    if (node.priority) {
-      infoParts.push(`P${node.priority}`);
-    }
-
-    // Assignee/owner (@person)
-    if (node.assigned_to) {
-      infoParts.push(`@${node.assigned_to}`);
-    }
-
-    // Date column: show most relevant date
+    if (node.priority) infoParts.push(`P${node.priority}`);
+    if (node.assigned_to) infoParts.push(`@${node.assigned_to}`);
     if (node.due_date) {
-      const due = new Date(node.due_date);
-      const dueStr = due.toISOString().slice(5, 10); // MM-DD
+      const dueStr = new Date(node.due_date).toISOString().slice(5, 10);
       infoParts.push(`⏰${dueStr}`);
     } else if (node.scheduled_date) {
-      const sched = new Date(node.scheduled_date);
-      const schedStr = sched.toISOString().slice(5, 10);
+      const schedStr = new Date(node.scheduled_date).toISOString().slice(5, 10);
       infoParts.push(`▶${schedStr}`);
     }
-
     infoSuffix = infoParts.length > 0 ? `  ${infoParts.join(" ")}` : "";
   }
 
-  // Parent context suffix (greyed out)
-  // Compact: 15 chars, Wide: 20 chars
-  const maxContextLen = isCompact ? 15 : 20;
-  const truncatedContext = parentContext
-    ? parentContext.length > maxContextLen
-      ? parentContext.slice(0, maxContextLen - 1) + "…"
-      : parentContext
-    : null;
-  const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
+  // Parent context suffix
+  // For compact mode: always show context on separate line to maximize content space
+  // For wide mode: show inline if single line, otherwise separate line
+  const maxContextLen = 20;
+  const truncatedContextInline =
+    !isCompact && parentContext
+      ? parentContext.length > maxContextLen
+        ? parentContext.slice(0, maxContextLen - 1) + "…"
+        : parentContext
+      : null;
+  const contextSuffix = truncatedContextInline
+    ? ` < ${truncatedContextInline}`
+    : "";
 
   // Calculate available width for content
   const fixedWidth =
-    prefix.length +
+    prefixLength +
     foldedCount.length +
     infoSuffix.length +
     contextSuffix.length;
   const availWidth = Math.max(1, width - fixedWidth);
 
-  // Word-wrap content to fit available width, respecting maxContentLines
-  const wrappedLines: string[] = [];
-
-  for (const line of contentLines) {
-    if (wrappedLines.length >= maxContentLines) break;
-
-    if (line.length <= availWidth) {
-      wrappedLines.push(line);
-    } else {
-      // Word wrap this line
-      let remaining = line;
-      while (remaining.length > 0 && wrappedLines.length < maxContentLines) {
-        if (remaining.length <= availWidth) {
-          wrappedLines.push(remaining);
-          break;
-        }
-        // Find break point at space, or force break at availWidth
-        let breakPoint = remaining.lastIndexOf(" ", availWidth);
-        if (breakPoint <= 0) breakPoint = availWidth;
-        wrappedLines.push(remaining.slice(0, breakPoint));
-        remaining = remaining.slice(breakPoint).trimStart();
-      }
-    }
-  }
-
-  // Truncate last line if we hit the limit and there's more content
-  const hasMoreContent =
-    wrappedLines.length >= maxContentLines &&
-    (contentLines.length > 1 ||
-      (contentLines[0]?.length ?? 0) > availWidth * maxContentLines);
-  if (hasMoreContent && wrappedLines.length > 0) {
-    const lastLine = wrappedLines[wrappedLines.length - 1] ?? "";
-    if (lastLine.length >= availWidth) {
-      wrappedLines[wrappedLines.length - 1] =
-        lastLine.slice(0, availWidth - 1) + "…";
-    }
-  }
+  // Layer 2: Constrain styled content to available width and lines
+  const { lines: wrappedLines } = constrainText(
+    styledContent,
+    availWidth,
+    maxContentLines,
+  );
 
   const firstLine = wrappedLines[0] ?? "";
   const additionalLines = wrappedLines.slice(1);
 
-  // Determine colors
+  // Selection colors
   let backgroundColor: string | undefined;
   let textColor: string | undefined;
   if (isSelected) {
@@ -229,39 +165,86 @@ export function TreeNode({
     textColor = "black";
   }
 
+  // Dim children when this card is not active (cards view mode)
+  const shouldDim = dimInactiveChildren && depth > 0;
+
   // Track sub-indices for children
   let nextSubIndex = subIndex + 1;
 
-  // Child limit for compact variant
+  // Child limits
   const maxChildren = isCompact ? 8 : Infinity;
   const visibleChildren = children.slice(0, maxChildren);
   const hiddenCount = children.length - visibleChildren.length;
 
-  // Build continuation indent for wrapped lines (aligns with content start)
-  const continuationIndent = " ".repeat(prefix.length);
+  // Continuation indent for wrapped lines
+  const continuationIndent = " ".repeat(prefixLength);
+
+  // Multi-line context handling
+  const isMultiLine = additionalLines.length > 0;
+  const showInlineContext = !isMultiLine && truncatedContextInline;
+  // Show context on separate line if multi-line content OR if compact mode with context
+  const showSeparateContext =
+    (isMultiLine && parentContext) || (isCompact && parentContext);
+
+  // Calculate padding needed to clear the rest of the line
+  // This prevents old content from showing when re-rendering shorter lines
+  const firstLineDisplayLen =
+    prefixLength +
+    displayLength(firstLine) +
+    foldedCount.length +
+    (showInlineContext
+      ? infoSuffix.length + contextSuffix.length
+      : infoSuffix.length);
+  const firstLinePadding = " ".repeat(Math.max(0, width - firstLineDisplayLen));
 
   return (
     <Box flexDirection="column" width={width}>
-      {/* First line with prefix, fold indicator, info suffix, and context */}
-      <Text backgroundColor={backgroundColor} color={textColor} wrap="truncate">
-        {prefix}
-        {renderStyledText(firstLine)}
+      {/* First line */}
+      <Text
+        backgroundColor={backgroundColor}
+        color={textColor}
+        dimColor={shouldDim}
+        wrap="truncate"
+      >
+        {prefixBeforeIcon}
+        <Text color={isSelected || isMultiSelected ? textColor : iconColor}>
+          {iconChar}
+        </Text>
+        {prefixAfterIcon}
+        {firstLine}
         {foldedCount}
         {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
-        {truncatedContext && <Text dimColor>{contextSuffix}</Text>}
+        {showInlineContext && <Text dimColor>{contextSuffix}</Text>}
+        {firstLinePadding}
       </Text>
-      {/* Additional wrapped content lines */}
-      {additionalLines.map((line, i) => (
-        <Text
-          key={`wrap-${i}`}
-          backgroundColor={backgroundColor}
-          color={textColor}
-          wrap="truncate"
-        >
-          {continuationIndent}
-          {renderStyledText(line)}
+
+      {/* Additional wrapped lines */}
+      {additionalLines.map((line, i) => {
+        const lineLen = prefixLength + displayLength(line);
+        const linePad = " ".repeat(Math.max(0, width - lineLen));
+        return (
+          <Text
+            key={`wrap-${i}`}
+            backgroundColor={backgroundColor}
+            color={textColor}
+            dimColor={shouldDim}
+            wrap="truncate"
+          >
+            {continuationIndent}
+            {line}
+            {linePad}
+          </Text>
+        );
+      })}
+
+      {/* Separate parent context line for multi-line content */}
+      {showSeparateContext && (
+        <Text dimColor wrap="truncate">
+          {renderParentPath(parentContext, width)}
         </Text>
-      ))}
+      )}
+
+      {/* Children */}
       {hasChildren && !isFolded && depth < maxDepth && (
         <Box flexDirection="column">
           {visibleChildren.map((child) => {
@@ -274,8 +257,6 @@ export function TreeNode({
             const childSelected =
               inOutlineMode && currentSubIndex === childSubIndex;
             const childMultiSelected = multiSelected.has(childKey);
-
-            // Increment for next sibling
             nextSubIndex++;
 
             return (
@@ -296,12 +277,13 @@ export function TreeNode({
                 inOutlineMode={inOutlineMode}
                 variant={variant}
                 maxContentLines={maxContentLines}
+                dimInactiveChildren={dimInactiveChildren}
               />
             );
           })}
           {hiddenCount > 0 && (
-            <Text dimColor>
-              {indent} +{hiddenCount} more
+            <Text dimColor wrap="truncate">
+              {`${indent} +${hiddenCount} more`.padEnd(width)}
             </Text>
           )}
         </Box>

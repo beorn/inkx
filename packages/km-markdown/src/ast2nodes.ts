@@ -288,8 +288,7 @@ function convertListItem(
         taskStatus = "dropped";
         break;
       case "/":
-        // Legacy: treat in-progress as open
-        taskStatus = "open";
+        taskStatus = "in_progress";
         break;
       default:
         taskStatus = "open";

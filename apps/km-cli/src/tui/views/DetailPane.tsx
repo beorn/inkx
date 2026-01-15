@@ -9,41 +9,7 @@ import { Box, Text } from "ink";
 import type { Node } from "@km/core";
 import { getChildren, getBacklinks, getNode } from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
-
-/**
- * Render text with wiki links [[like this]] styled as underlined text
- * without the brackets
- */
-function renderStyledText(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  // Match [[wiki links]] - capture the link text without brackets
-  const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
-  let lastIndex = 0;
-  let match;
-  let keyIndex = 0;
-
-  while ((match = wikiLinkRegex.exec(text)) !== null) {
-    // Add text before the match
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    // Add the wiki link with underline styling (no brackets)
-    const linkText = match[1];
-    parts.push(
-      <Text key={`link-${keyIndex++}`} underline dimColor>
-        {linkText}
-      </Text>,
-    );
-    lastIndex = match.index + match[0].length;
-  }
-
-  // Add remaining text after last match
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-
-  return parts.length > 0 ? parts : [text];
-}
+import { renderRich, wrapText } from "../render-text.ts";
 
 // Format date for display (e.g., "Jan 10" or "2026-01-10")
 function formatDate(dateStr: string | undefined): string {
@@ -253,29 +219,12 @@ export function DetailPane({
       4,
   );
 
-  // Wrap content into lines
+  // Wrap content using shared utility
   const fullContent = node.content || "";
-  const wrappedContent: string[] = [];
   const contentWidth = innerWidth - 2;
-
-  for (const line of fullContent.split("\n")) {
-    if (line.length <= contentWidth) {
-      wrappedContent.push(line);
-    } else {
-      // Word wrap
-      let remaining = line;
-      while (remaining.length > 0) {
-        if (remaining.length <= contentWidth) {
-          wrappedContent.push(remaining);
-          break;
-        }
-        let breakPoint = remaining.lastIndexOf(" ", contentWidth);
-        if (breakPoint <= 0) breakPoint = contentWidth;
-        wrappedContent.push(remaining.slice(0, breakPoint));
-        remaining = remaining.slice(breakPoint).trimStart();
-      }
-    }
-  }
+  // Render to styled text first, then wrap
+  const styledContent = renderRich(fullContent);
+  const wrappedContent = wrapText(styledContent, contentWidth);
 
   const displayContent = wrappedContent.slice(0, contentLines);
   const hasMoreContent = wrappedContent.length > contentLines;
@@ -387,7 +336,7 @@ export function DetailPane({
           </Text>
           {displayContent.map((line, i) => (
             <Text key={i} wrap="truncate">
-              {renderStyledText(line)}
+              {line}
             </Text>
           ))}
           {hasMoreContent && <Text dimColor>...</Text>}

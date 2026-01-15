@@ -23,11 +23,7 @@ import {
   updateNode,
   deleteNode,
 } from "@km/store";
-import {
-  getNodeDisplayName,
-  getCollapsedTypeSuffix,
-  getParentContext,
-} from "@km/shared";
+import { getNodeDisplayName, getCollapsedTypeSuffix } from "@km/shared";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
 import { HelpOverlay } from "./HelpOverlay.tsx";
@@ -47,43 +43,9 @@ import {
   type SelectionRange,
   type MouseEvent as TermMouseEvent,
 } from "../mouse-handler.ts";
-import { getStatusIcon } from "./icons.ts";
 import { makeSelectionKey } from "./TreeNode.tsx";
-
-/**
- * Render text with wiki links [[like this]] styled as underlined text
- * without the brackets
- */
-function renderStyledText(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  // Match [[wiki links]] - capture the link text without brackets
-  const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
-  let lastIndex = 0;
-  let match;
-  let keyIndex = 0;
-
-  while ((match = wikiLinkRegex.exec(text)) !== null) {
-    // Add text before the match
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    // Add the wiki link with underline styling (no brackets)
-    const linkText = match[1];
-    parts.push(
-      <Text key={`link-${keyIndex++}`} underline dimColor>
-        {linkText}
-      </Text>,
-    );
-    lastIndex = match.index + match[0].length;
-  }
-
-  // Add remaining text after last match
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-
-  return parts.length > 0 ? parts : [text];
-}
+import { renderPath, renderPlain } from "../render-text.ts";
+import { TreeNode } from "./TreeNode.tsx";
 
 // Default favorites: common boards accessed via 1-9 keys
 // These are resolved at runtime using the same resolution as CLI commands
@@ -98,42 +60,6 @@ const DEFAULT_FAVORITES: Record<string, string> = {
   "8": "@reference", // Reference
   "9": "@goals", // Goals
 };
-
-// Build path from root to a given node as file path with # for sections
-function getNodePath(nodeId: string | null): string {
-  if (!nodeId) return "/";
-
-  // Collect all nodes from root to target
-  const nodes: Node[] = [];
-  let currentId: string | null = nodeId;
-  while (currentId) {
-    const node = getNode(currentId);
-    if (!node) break;
-    nodes.unshift(node);
-    currentId = node.parent_id;
-  }
-
-  if (nodes.length === 0) return "/";
-
-  // Build path: folders/files use /, sections use #
-  let path = "";
-  for (const node of nodes) {
-    const name = getNodeDisplayName(node);
-    if (node.type === "folder" || node.type === "file") {
-      path += (path ? "/" : "") + name;
-    } else if (node.type === "section") {
-      path += "#" + name;
-    } else if (node.type === "board") {
-      // Skip board nodes in path, or show as root
-      if (!path) path = name;
-    } else {
-      // Other types (paragraph, task, etc.) - add with /
-      path += (path ? "/" : "") + name;
-    }
-  }
-
-  return path || "/";
-}
 
 // Build path segments for colorized display
 // Returns segments with: { name, sep, isWithinBoard }
@@ -168,9 +94,9 @@ function getPathSegments(
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
     if (!node) continue;
-    // Strip wiki link brackets [[text]] -> text for display
+    // Strip wiki link brackets and show alias for display
     const rawName = getNodeDisplayName(node);
-    const name = rawName.replace(/\[\[([^\]]+)\]\]/g, "$1");
+    const name = renderPlain(rawName);
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex;
 
     if (node.type === "folder" || node.type === "file") {
@@ -198,210 +124,6 @@ function getPathSegments(
   return segments.length > 0
     ? segments
     : [{ name: "/", sep: "", isWithinBoard: false }];
-}
-
-// Truncate path segments to fit within maxWidth
-// First truncates from the start of within-board segments, then from start of root path
-function truncatePathSegments(
-  segments: Array<{ name: string; sep: string; isWithinBoard: boolean }>,
-  maxWidth: number,
-): Array<{ name: string; sep: string; isWithinBoard: boolean }> {
-  // Calculate current total length (sep has space padding: " sep ")
-  const calcLength = (
-    segs: Array<{ name: string; sep: string; isWithinBoard: boolean }>,
-  ) =>
-    segs.reduce(
-      (acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0),
-      0,
-    );
-
-  let totalLen = calcLength(segments);
-  if (totalLen <= maxWidth) return segments;
-
-  // Split into root path and within-board segments
-  const rootSegs = segments.filter((s) => !s.isWithinBoard);
-  const boardSegs = segments.filter((s) => s.isWithinBoard);
-
-  // First truncate within-board segments from the start
-  while (
-    boardSegs.length > 1 &&
-    calcLength([...rootSegs, ...boardSegs]) > maxWidth
-  ) {
-    boardSegs.shift();
-    const first = boardSegs[0];
-    if (first) {
-      boardSegs[0] = { ...first, name: "…" + first.name };
-    }
-    break; // Only add one ellipsis
-  }
-
-  // If still too long, truncate root segments from the start
-  const combined = [...rootSegs, ...boardSegs];
-  totalLen = calcLength(combined);
-  if (totalLen > maxWidth && rootSegs.length > 1) {
-    // Remove from start, add ellipsis
-    const result = [...rootSegs.slice(1), ...boardSegs];
-    if (result.length > 0 && result[0]) {
-      result[0] = { ...result[0], sep: "", name: "…" + result[0].name };
-    }
-    return result;
-  }
-
-  return [...rootSegs, ...boardSegs];
-}
-
-interface OutlineItemProps {
-  node: Node;
-  depth: number;
-  maxDepth: number;
-  width: number;
-  foldedNodes: Set<string>;
-  onToggleFold: (id: string) => void;
-  isCardSelected: boolean; // The card containing this item is selected
-  isItemSelected: boolean; // This specific item is the selected sub-item
-  isMultiSelected: boolean; // This item is part of multi-selection
-  flatIndex: number; // Index in flattened list for selection tracking
-  selectedSubIndex: number; // Currently selected sub-item index
-  multiSelected: Set<SelectionKey>; // All multi-selected items
-  colIndex: number;
-  cardIndex: number;
-}
-
-function OutlineItem({
-  node,
-  depth,
-  maxDepth,
-  width,
-  foldedNodes,
-  onToggleFold,
-  isCardSelected,
-  isItemSelected,
-  isMultiSelected,
-  flatIndex,
-  selectedSubIndex,
-  multiSelected,
-  colIndex,
-  cardIndex,
-}: OutlineItemProps) {
-  // Only show status icon for tasks, not for sections or other types
-  const isTask = node.type === "task";
-  const icon = isTask ? getStatusIcon(node.task_status) : "";
-  const rawContent = node.content || getNodeDisplayName(node);
-  const firstLine = rawContent.split("\n")[0] ?? rawContent;
-  // Get collapsed type suffix (e.g., "/ .md #" for unified folder/file/section)
-  const typeSuffix = getCollapsedTypeSuffix(node);
-
-  // Check if this is a transcluded (symlinked) node
-  const isTranscluded =
-    node.symlink_to !== null && node.symlink_to !== undefined;
-
-  // Get parent context for top-level cards (depth 0)
-  // Shows where the task belongs, e.g., "< Green card" for a task from green-card.md
-  // For transcluded items, getParentContext follows symlink_to to get original location
-  const parentContext = depth === 0 && isTask ? getParentContext(node) : null;
-
-  const children = getChildren(node.id);
-  const hasChildren = children.length > 0;
-  const isFolded = foldedNodes.has(node.id);
-  const foldIndicator = hasChildren ? (isFolded ? "\u25B6" : "\u25BC") : " ";
-  const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
-
-  // Build prefix: 1 space per depth + fold indicator + icon (no extra spaces)
-  // Add transclusion indicator (→) for symlinked nodes
-  const indent = " ".repeat(depth);
-  const transclusionMark = isTranscluded ? "→" : "";
-  const prefix = icon
-    ? `${indent}${foldIndicator}${icon}${transclusionMark} `
-    : `${indent}${foldIndicator} `;
-  const suffix = typeSuffix ? ` ${typeSuffix}` : "";
-
-  // Build the full line and truncate to fit width exactly
-  // Format: prefix + content + suffix + foldedCount + parentContext (grey)
-  // Parent context truncated to max 20 chars for readability
-  const maxContextLen = 20;
-  const truncatedContext = parentContext
-    ? parentContext.length > maxContextLen
-      ? parentContext.slice(0, maxContextLen - 1) + "…"
-      : parentContext
-    : null;
-  const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
-  const fixedParts =
-    prefix.length + suffix.length + foldedCount.length + contextSuffix.length;
-  const availWidth = Math.max(1, width - fixedParts);
-  const truncatedContent =
-    firstLine.length > availWidth
-      ? firstLine.slice(0, availWidth - 1) + "…"
-      : firstLine;
-
-  // Determine background color based on selection state
-  let backgroundColor: string | undefined;
-  let textColor: string | undefined;
-  if (isItemSelected) {
-    backgroundColor = "blue";
-    textColor = "white";
-  } else if (isMultiSelected) {
-    backgroundColor = "yellow";
-    textColor = "black";
-  }
-
-  // Track index for children
-  let nextIndex = flatIndex + 1;
-
-  return (
-    <Box flexDirection="column" width={width} overflowX="hidden">
-      <Text
-        backgroundColor={backgroundColor}
-        color={textColor}
-        dimColor={!isCardSelected && depth > 0}
-        wrap="truncate"
-      >
-        {prefix}
-        {renderStyledText(truncatedContent)}
-        {suffix}
-        {foldedCount}
-        {truncatedContext && <Text dimColor>{contextSuffix}</Text>}
-      </Text>
-      {hasChildren && !isFolded && depth < maxDepth && (
-        <Box flexDirection="column">
-          {children.slice(0, 10).map((child) => {
-            const childIndex = nextIndex;
-            const childKey = makeSelectionKey(colIndex, cardIndex, childIndex);
-            // Calculate next index by counting visible descendants
-            nextIndex =
-              childIndex +
-              1 +
-              countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
-            return (
-              <OutlineItem
-                key={child.id}
-                node={child}
-                depth={depth + 1}
-                maxDepth={maxDepth}
-                width={width}
-                foldedNodes={foldedNodes}
-                onToggleFold={onToggleFold}
-                isCardSelected={isCardSelected}
-                isItemSelected={
-                  isCardSelected && childIndex === selectedSubIndex
-                }
-                isMultiSelected={multiSelected.has(childKey)}
-                flatIndex={childIndex}
-                selectedSubIndex={selectedSubIndex}
-                multiSelected={multiSelected}
-                colIndex={colIndex}
-                cardIndex={cardIndex}
-              />
-            );
-          })}
-          {children.length > 10 && (
-            <Text dimColor>
-              {indent} +{children.length - 10} more
-            </Text>
-          )}
-        </Box>
-      )}
-    </Box>
-  );
 }
 
 // Helper to count visible descendants for flat indexing
@@ -432,10 +154,11 @@ interface CardProps {
   width: number;
   maxOutlineDepth: number;
   foldedNodes: Set<string>;
-  onToggleFold: (id: string) => void;
   multiSelected: Set<SelectionKey>; // Set of selected sub-item keys within this card
   colIndex: number;
   cardIndex: number;
+  /** Maximum lines of content to display per item */
+  maxContentLines: number;
 }
 
 function Card({
@@ -445,10 +168,10 @@ function Card({
   width,
   maxOutlineDepth,
   foldedNodes,
-  onToggleFold,
   multiSelected,
   colIndex,
   cardIndex,
+  maxContentLines,
 }: CardProps) {
   // Card border uses 2 chars (1 left + 1 right), so inner content is width - 2
   const innerWidth = Math.max(5, width - 2);
@@ -460,23 +183,25 @@ function Card({
       borderColor={isSelected ? "cyanBright" : "blackBright"}
       overflowX="hidden"
     >
-      <OutlineItem
+      <TreeNode
         node={card.node}
         depth={0}
         maxDepth={maxOutlineDepth}
         width={innerWidth}
         foldedNodes={foldedNodes}
-        onToggleFold={onToggleFold}
-        isCardSelected={isSelected}
-        isItemSelected={isSelected && selectedSubIndex === 0}
+        isSelected={isSelected && selectedSubIndex === 0}
         isMultiSelected={multiSelected.has(
           makeSelectionKey(colIndex, cardIndex, 0),
         )}
-        flatIndex={0}
-        selectedSubIndex={selectedSubIndex}
+        subIndex={0}
+        currentSubIndex={selectedSubIndex}
         multiSelected={multiSelected}
         colIndex={colIndex}
         cardIndex={cardIndex}
+        inOutlineMode={isSelected}
+        variant="compact"
+        maxContentLines={maxContentLines}
+        dimInactiveChildren={!isSelected}
       />
     </Box>
   );
@@ -493,9 +218,10 @@ interface ColumnProps {
   height: number;
   maxOutlineDepth: number;
   foldedNodes: Set<string>;
-  onToggleFold: (id: string) => void;
   multiSelected: Set<SelectionKey>;
   selectionLevel: "board" | "column" | "card"; // Current selection level
+  /** Maximum lines of content to display per item */
+  maxContentLines: number;
 }
 
 function Column({
@@ -509,9 +235,9 @@ function Column({
   height,
   maxOutlineDepth,
   foldedNodes,
-  onToggleFold,
   multiSelected,
   selectionLevel,
+  maxContentLines,
 }: ColumnProps) {
   const name = getNodeDisplayName(column.node);
   const typeSuffix = getCollapsedTypeSuffix(column.node);
@@ -612,10 +338,10 @@ function Column({
         <>
           {/* Top overflow indicator - full width bar */}
           {hasTopOverflow && (
-            <Box width={width - 2}>
+            <Box width={Math.max(1, width - 2)}>
               <Text backgroundColor="gray" color="white">
-                {" ".repeat(Math.floor((width - 4) / 2))}▲
-                {" ".repeat(Math.ceil((width - 4) / 2))}
+                {" ".repeat(Math.max(0, Math.floor((width - 4) / 2)))}▲
+                {" ".repeat(Math.max(0, Math.ceil((width - 4) / 2)))}
               </Text>
             </Box>
           )}
@@ -636,10 +362,10 @@ function Column({
                   width={width - 2}
                   maxOutlineDepth={maxOutlineDepth}
                   foldedNodes={foldedNodes}
-                  onToggleFold={onToggleFold}
                   multiSelected={multiSelected}
                   colIndex={colIndex}
                   cardIndex={actualCardIndex}
+                  maxContentLines={maxContentLines}
                 />
               );
             })}
@@ -651,10 +377,10 @@ function Column({
           </Box>
           {/* Bottom overflow indicator - full width bar */}
           {hasBottomOverflow && (
-            <Box width={width - 2}>
+            <Box width={Math.max(1, width - 2)}>
               <Text backgroundColor="gray" color="white">
-                {" ".repeat(Math.floor((width - 4) / 2))}▼
-                {" ".repeat(Math.ceil((width - 4) / 2))}
+                {" ".repeat(Math.max(0, Math.floor((width - 4) / 2)))}▼
+                {" ".repeat(Math.max(0, Math.ceil((width - 4) / 2)))}
               </Text>
             </Box>
           )}
@@ -722,6 +448,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       cardIndex: number;
       subIndex: number;
       multiSelected: Set<SelectionKey>;
+      inOutlineMode: boolean;
     }>
   >([
     {
@@ -730,6 +457,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       cardIndex: 0,
       subIndex: 0,
       multiSelected: new Set(),
+      inOutlineMode: false,
     },
   ]);
   const [navHistoryIndex, setNavHistoryIndex] = useState(0); // Current position in history
@@ -805,18 +533,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     colScrollOffset + maxCols,
   );
 
-  const toggleFold = (nodeId: string) => {
-    setFoldedNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(nodeId)) {
-        next.delete(nodeId);
-      } else {
-        next.add(nodeId);
-      }
-      return next;
-    });
-  };
-
   // Push a new entry to navigation history (truncating any forward history)
   // Captures current selection state so it can be restored when navigating back
   const pushNavHistory = (
@@ -825,6 +541,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     cardIndex: number,
     currentSubIndex: number,
     currentMultiSelected: Set<SelectionKey>,
+    currentInOutlineMode: boolean,
   ) => {
     setNavHistory((prev) => {
       // Truncate forward history if we're not at the end
@@ -837,6 +554,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           cardIndex,
           subIndex: currentSubIndex,
           multiSelected: new Set(currentMultiSelected),
+          inOutlineMode: currentInOutlineMode,
         },
       ];
     });
@@ -1472,6 +1190,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             state.cardIndex,
             subIndex,
             multiSelected,
+            inOutlineMode,
           );
           setInOutlineMode(false);
           setSubIndex(0);
@@ -1584,6 +1303,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               state.cardIndex,
               subIndex,
               multiSelected,
+              inOutlineMode,
             );
             setState(zoomed);
             clearSelection();
@@ -1614,7 +1334,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             setMultiSelected(new Set(prevEntry.multiSelected));
             setSelectionAnchor(null);
             setSelectAllLevel(0);
-            setInOutlineMode(prevEntry.subIndex > 0);
+            setInOutlineMode(prevEntry.inOutlineMode);
           }
         }
       } else {
@@ -1642,7 +1362,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             setMultiSelected(new Set(nextEntry.multiSelected));
             setSelectionAnchor(null);
             setSelectAllLevel(0);
-            setInOutlineMode(nextEntry.subIndex > 0);
+            setInOutlineMode(nextEntry.inOutlineMode);
           }
         }
       } else {
@@ -2208,6 +1928,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           s.cardIndex,
           subIndex,
           multiSelected,
+          inOutlineMode,
         );
 
         setInOutlineMode(false);
@@ -2427,19 +2148,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       return getPathSegments(state.rootId, state.rootId);
     } else if (selectionLevel === "column") {
       // At column level - show path to selected column
-      return truncatePathSegments(
+      return renderPath(
         getPathSegments(selectedCol.node.id, state.rootId),
         termWidth - 4,
       );
     } else if (selectedCard) {
       // At card level with a card selected - show path to card
-      return truncatePathSegments(
+      return renderPath(
         getPathSegments(selectedCard.node.id, state.rootId),
         termWidth - 4,
       );
     } else {
       // At card level but no card (empty column) - show path to column
-      return truncatePathSegments(
+      return renderPath(
         getPathSegments(selectedCol.node.id, state.rootId),
         termWidth - 4,
       );
@@ -2569,9 +2290,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                   height={termHeight - 2}
                   maxOutlineDepth={maxOutlineDepth}
                   foldedNodes={foldedNodes}
-                  onToggleFold={toggleFold}
                   multiSelected={multiSelected}
                   selectionLevel={selectionLevel}
+                  maxContentLines={maxContentLines}
                 />
               );
             })}
@@ -2732,8 +2453,9 @@ export function InkBoardTestable({
   testWidth,
   testHeight,
 }: TestBoardProps): React.ReactElement {
-  const [foldedNodes, setFoldedNodes] = useState<Set<string>>(new Set());
+  const foldedNodes = new Set<string>();
   const maxOutlineDepth = 2;
+  const maxContentLines = 3;
   const multiSelected = new Set<SelectionKey>();
 
   // Use fixed test dimensions instead of stdout
@@ -2758,22 +2480,10 @@ export function InkBoardTestable({
     colScrollOffset + maxCols,
   );
 
-  const toggleFold = (nodeId: string) => {
-    setFoldedNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(nodeId)) {
-        next.delete(nodeId);
-      } else {
-        next.add(nodeId);
-      }
-      return next;
-    });
-  };
-
   const selectedCol = initialState.columns[initialState.colIndex];
   const selectedCard = selectedCol?.cards[initialState.cardIndex];
   const selectedPathSegments = selectedCard
-    ? truncatePathSegments(
+    ? renderPath(
         getPathSegments(selectedCard.node.id, initialState.rootId),
         termWidth - 4,
       )
@@ -2823,9 +2533,9 @@ export function InkBoardTestable({
               height={termHeight - 2}
               maxOutlineDepth={maxOutlineDepth}
               foldedNodes={foldedNodes}
-              onToggleFold={toggleFold}
               multiSelected={multiSelected}
               selectionLevel="card"
+              maxContentLines={maxContentLines}
             />
           );
         })}

@@ -89,7 +89,9 @@ function ColumnTree({
   // Column header is selected when at column level
   const isColumnHeaderSelected = isSelected && selectionLevel === "column";
 
-  const headerText = `${name} (${count})`;
+  // Inner width is width minus 2 for borders
+  const innerWidth = width - 2;
+  const headerText = `${name} (${count})`.padEnd(innerWidth);
 
   return (
     <Box

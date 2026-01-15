@@ -219,9 +219,9 @@ All boards display as columns:
 | `@` | Insert reference     |
 | `D` | Delete               |
 
-### Symlink Operations
+### Embedded Task Operations
 
-When a task is displayed via symlink (transclusion), operations behave differently:
+When a task is displayed via embedding (symlink), operations behave differently:
 
 | Operation Type | Target  | Example                                   |
 | -------------- | ------- | ----------------------------------------- |

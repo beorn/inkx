@@ -23,7 +23,7 @@ Status answers one question: **Can I work on this?**
 
 ### Boards = Organization
 
-Boards are markdown files with H2 columns containing task transclusions:
+Boards are markdown files with H2 columns containing task embeddings:
 
 ```markdown
 # @next

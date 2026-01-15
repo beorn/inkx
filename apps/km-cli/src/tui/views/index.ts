@@ -32,4 +32,4 @@ export { TreeNode } from "./TreeNode.tsx";
 export type { TreeNodeProps } from "./TreeNode.tsx";
 
 // Utilities
-export { getStatusIcon, getTypeIcon } from "./icons.ts";
+export { getStatusIcon, getTypeIcon } from "../render-icons.ts";

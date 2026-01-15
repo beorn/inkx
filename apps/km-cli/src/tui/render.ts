@@ -9,6 +9,7 @@ import type { TaskStatus } from "@km/core";
 import type { BoardState, CardState, RenderOptions } from "./types.ts";
 import { getNodeDisplayName } from "./state.ts";
 import { getNode } from "@km/store";
+import { getStatusIcon as getStatusIconBase } from "./render-icons.ts";
 
 /**
  * Default render options
@@ -318,23 +319,23 @@ export function renderBoardStatic(state: BoardState, width: number): string {
 }
 
 /**
- * Get status icon
+ * Get status icon with chalk coloring for static output
  */
 export function getStatusIcon(status?: TaskStatus): string {
-  switch (status) {
-    case "done":
-      return chalk.green("✓");
-    case "in_progress":
-      return chalk.yellow("◐");
-    case "blocked":
-      return chalk.red("⊘");
-    case "waiting":
-      return chalk.cyan("◷");
-    case "cancelled":
-      return chalk.dim("✗");
-    case "dropped":
-      return chalk.gray("∅");
+  const icon = getStatusIconBase(status);
+  // Apply chalk color based on the icon's color property
+  switch (icon.color) {
+    case "green":
+      return chalk.green(icon.char);
+    case "yellow":
+      return chalk.yellow(icon.char);
+    case "red":
+      return chalk.red(icon.char);
+    case "blue":
+      return chalk.cyan(icon.char);
+    case "gray":
+      return chalk.gray(icon.char);
     default:
-      return chalk.dim("○");
+      return chalk.dim(icon.char);
   }
 }

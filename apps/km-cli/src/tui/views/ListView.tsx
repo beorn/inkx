@@ -56,7 +56,9 @@ export function ListView({
         const count = column.cards.length;
         const borderColor = isColumnActive ? "blueBright" : "blackBright";
 
-        const headerText = `${colName} (${count})`;
+        // Inner width is colWidth minus 2 for borders
+        const innerWidth = colWidth - 2;
+        const headerText = `${colName} (${count})`.padEnd(innerWidth);
 
         return (
           <Box

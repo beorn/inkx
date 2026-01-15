@@ -23,11 +23,13 @@ export type NodeType =
   | "agent"
   | "board";
 
-// Task status workflow (4 statuses only)
-// Status answers: "Can I work on this?"
+// Task status workflow
+// Status answers: "Can I work on this?" and "What's the current state?"
 export type TaskStatus =
-  | "open" // [ ] — available to work on
+  | "open" // [ ] — available to work on (alias: todo)
+  | "in_progress" // [/] — actively being worked on (alias: wip)
   | "blocked" // [!] — waiting on something/someone
+  | "waiting" // [◷] — paused, waiting for external input
   | "done" // [x] — completed
   | "dropped"; // [-] — cancelled, won't do
 

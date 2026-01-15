@@ -81,9 +81,9 @@ See [km-tasks-data.md](km-tasks-data.md#status-model) for details.
 | `!`        | blocked | `[!]`   |
 | `-`        | dropped | `[-]`   |
 
-### Symlinks (Transclusion)
+### Embeddings (Symlinks)
 
-Nodes can be **symlinked** (transcluded) to appear in multiple locations. A symlink is a lightweight reference to another node:
+Nodes can be **embedded** to appear in multiple locations. An embedding is a lightweight reference (symlink) to another node:
 
 ```typescript
 interface Node {
@@ -94,7 +94,7 @@ interface Node {
 
 **Key rules:**
 
-1. **Symlinks are positional references** — they exist in the tree but point elsewhere
+1. **Embeddings are positional references** — they exist in the tree but point elsewhere
 2. **Content operations apply to target** — status, priority, and other content changes affect the linked node
 3. **Positional operations apply to symlink** — moving within a board moves the symlink, not the target
 4. **Display reads from target** — symlinks show the target's content, status, and priority

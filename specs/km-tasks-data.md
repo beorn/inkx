@@ -43,7 +43,7 @@ All create links. The sigil is part of the node name.
 
 ### Boards Organize Tasks
 
-A board is a markdown file with H2 columns containing transclusions to tasks:
+A board is a markdown file with H2 columns containing embedded task references:
 
 ```markdown
 # @next.md
@@ -212,11 +212,11 @@ If the board file doesn't exist, the reference is a broken link (like any wikili
 - ![[tasks/setup-repo]]
 ```
 
-### Transclusion (Symlinks)
+### Embedding (Symlinks)
 
-Board items are **symlinks** (transclusions) to tasks. The `![[...]]` syntax creates a symlink node that references the original task.
+Board items are **embeddings** (symlinks) to tasks. The `![[...]]` syntax creates an embed link node that references the original task.
 
-**Operation semantics on symlinked tasks:**
+**Operation semantics on embedded tasks:**
 
 | Operation Type | Target  | Rationale                                      |
 | -------------- | ------- | ---------------------------------------------- |
