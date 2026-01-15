@@ -31,3 +31,26 @@ All tree rendering uses TreeNode with variants:
 - `render-text.ts` - Core rendering utilities (renderRich, constrainText, displayLength)
 - `views/TreeNode.tsx` - Unified tree node component
 - `views/Board.tsx` - Main board container and view switching
+- `tui.ts` - Entry point, sync manager lifecycle
+
+## Automatic Sync
+
+The TUI automatically syncs with the filesystem:
+
+```
+TUI edits → emit events → SyncManager → write to .md files
+External .md edits → SyncManager → emit events → TUI refreshes
+```
+
+**How it works:**
+
+1. `tui.ts` creates a `SyncManager` with file watching enabled
+2. `setFsSync(syncManager)` wires TUI changes → filesystem writes
+3. `syncManager.start()` watches for external filesystem changes
+4. On external change: reconcile → emit events → `tuiEvents.emit("refresh")`
+5. `Board.tsx` subscribes to `tuiEvents` and rebuilds state on refresh
+
+**Debounce timings:**
+
+- External FS changes: 2 seconds debounce before reconciliation
+- TUI changes to FS: 100ms debounce for batching rapid edits

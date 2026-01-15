@@ -188,6 +188,47 @@ sleep 3
 - [ ] Dimmed text for context/metadata
 - [ ] Status icon colors: green=done, yellow=wip, red=blocked, blue=waiting
 
+## Bug Handling Guidelines
+
+### Upstream Package Bugs
+
+If you discover a bug in an upstream package (ink, ttyd, Playwright, etc.):
+
+1. **Create a bead** documenting the bug with:
+   - Package name and version
+   - Minimal reproducible example
+   - Expected vs actual behavior
+   - Potential workaround (if any)
+
+2. **Example bead creation:**
+
+   ```bash
+   bd create --title="ink: Text overflow on ANSI sequences" \
+     --type=bug --priority=3 \
+     --description="ink's Text component miscalculates width when..."
+   ```
+
+3. The reproducible example can be used to submit patches upstream
+
+### Adding Unit Tests for Bugs
+
+When you find a rendering bug:
+
+1. **Add a unit test** that reproduces the bug before fixing
+2. Test should fail initially, then pass after the fix
+3. Test files:
+   - `apps/km-cli/tests/render-text.test.ts` - text rendering
+   - `apps/km-cli/tests/render-icons.test.ts` - icon rendering
+   - `apps/km-cli/tests/board.test.ts` - board/TUI behavior
+
+4. **Example test:**
+   ```ts
+   test("wiki links with special chars render correctly", () => {
+     const result = renderPlain("Check [[Projects/API|API docs]]");
+     expect(result).toBe("Check API docs");
+   });
+   ```
+
 ## Cleanup
 
 ```bash
