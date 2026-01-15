@@ -1,139 +1,216 @@
 /**
  * TUI Types
  *
- * Core state and view model types for TUI board management.
- * These are shareable across different renderers (OpenTUI, React DOM).
+ * Core state and view model types for TUI tree navigation.
+ * Uses a generic node model supporting arbitrary depth.
  */
 
-// ===== State Types =====
+// ===== Base Types =====
 
 export type TaskStatus = "todo" | "wip" | "blocked" | "done" | "dropped";
 
 export type ViewMode = "cards" | "list" | "columns" | "tabs";
 
-// ===== Navigation History =====
+// ===== Path-based Navigation =====
 
-export interface NavHistoryEntry {
-  rootId: string | null;
-  colIndex: number;
-  cardIndex: number;
-}
+/**
+ * Path-based cursor position.
+ * Variable-length array of indices: [2, 0, 3] = node 2, child 0, grandchild 3
+ */
+export type CursorPath = number[];
 
-export interface BoardState {
-  rootId: string | null;
-  rootPath: string | null;
-  columns: ColumnState[];
-  colIndex: number;
-  cardIndex: number;
-  selectedCards: Set<string>;
-  visualMode: boolean;
-  foldedCards: Set<string>;
-  collapsedColumns: Set<number>;
-  searchQuery: string;
-  searchMode: boolean;
-  helpMode: boolean;
-  zoomStack: string[];
-  // Navigation history for back/forward
-  navHistory: NavHistoryEntry[];
-  navHistoryIndex: number;
-  // New item dialog state
-  newItemMode: boolean;
-  newItemText: string;
-  // Project picker state
-  projectPickerOpen: boolean;
-  projectPickerQuery: string;
-  projectPickerIndex: number;
-  // Detail pane state
-  detailPaneOpen: boolean;
-  // Outline depth control (99 = show all levels)
-  maxOutlineDepth: number;
-  // Content lines control (how many lines of content to show per card)
-  maxContentLines: number;
-}
+// ===== Tree Node State =====
 
-export interface ColumnState {
+/**
+ * Generic tree node for TUI state.
+ * Unified structure for all tree levels (replaces Column/Card distinction).
+ */
+export interface TreeNodeState {
   nodeId: string;
   title: string;
-  cards: CardState[];
-  wipLimit?: number;
-}
+  children: TreeNodeState[]; // Recursive children
+  childCount: number; // Total children (may exceed loaded children.length)
 
-export interface CardState {
-  nodeId: string;
-  title: string;
-  childCount: number;
+  // Content properties
   isTask: boolean;
   taskStatus?: TaskStatus;
   color?: string;
   icon?: string;
-  // Rich task display fields
-  priority?: number; // 1-5 (P0-P5 style)
-  dueDate?: string; // ISO date string (YYYY-MM-DD)
-  hasBacklinks?: boolean; // Whether node has backlinks
-  refsCount?: number; // Count of @mentions, #tags, [[wikilinks]]
-  content?: string; // Full content text
-  // Depth within the column hierarchy (0 = direct child of column)
-  depth?: number;
+  priority?: number;
+  dueDate?: string;
+  hasBacklinks?: boolean;
+  refsCount?: number;
+  content?: string;
+
+  // Tree metadata
+  depth: number; // Depth from current view root (0 = top level)
 }
 
-export type BoardAction =
+// ===== Tree State =====
+
+/**
+ * Tree state with path-based navigation.
+ * Primary state model for TUI.
+ */
+export interface TreeState {
+  // Root context
+  rootId: string | null;
+  rootPath: string | null;
+
+  // Tree data
+  nodes: TreeNodeState[]; // Top-level nodes
+
+  // Path-based navigation
+  cursor: CursorPath; // Current selection path
+
+  // Selection state
+  selectedNodes: Set<string>;
+  foldedNodes: Set<string>;
+  collapsedNodes: Set<string>; // Top-level nodes that are collapsed
+
+  // Search
+  searchQuery: string;
+  searchMode: boolean;
+
+  // Help
+  helpMode: boolean;
+
+  // Zoom stack (with cursor memory)
+  zoomStack: Array<{
+    rootId: string | null;
+    cursor: CursorPath;
+  }>;
+
+  // Navigation history
+  navHistory: Array<{
+    rootId: string | null;
+    cursor: CursorPath;
+  }>;
+  navHistoryIndex: number;
+
+  // View configuration
+  maxOutlineDepth: number;
+  maxContentLines: number;
+
+  // Modal states
+  newItemMode: boolean;
+  newItemText: string;
+  projectPickerOpen: boolean;
+  projectPickerQuery: string;
+  projectPickerIndex: number;
+  detailPaneOpen: boolean;
+}
+
+// ===== Tree Actions =====
+
+/**
+ * Actions for tree state transitions.
+ */
+export type TreeAction =
+  // Path-based navigation
+  | { type: "NAV_PARENT" }
+  | { type: "NAV_CHILD" }
+  | { type: "NAV_NEXT_SIBLING" }
+  | { type: "NAV_PREV_SIBLING" }
+  | { type: "NAV_TO_PATH"; path: CursorPath }
+
+  // Vim-style navigation (mapped to path-based)
   | { type: "MOVE_UP" }
   | { type: "MOVE_DOWN" }
   | { type: "MOVE_LEFT" }
   | { type: "MOVE_RIGHT" }
   | { type: "JUMP_TOP" }
   | { type: "JUMP_BOTTOM" }
-  | { type: "SELECT_CARD"; col: number; card: number }
-  | { type: "TOGGLE_FOLD"; cardId: string }
-  | { type: "FOLD_COLUMN"; colIndex: number }
-  | { type: "UNFOLD_COLUMN"; colIndex: number }
-  | { type: "TOGGLE_COLLAPSE"; colIndex: number }
-  | { type: "SET_VIEW_MODE"; mode: ViewMode }
-  | { type: "SET_SEARCH_QUERY"; query: string }
-  | { type: "TOGGLE_SEARCH_MODE" }
-  | { type: "TOGGLE_HELP_MODE" }
-  | { type: "REFRESH"; columns: ColumnState[] }
-  // Navigation history actions
+
+  // Select specific position
+  | { type: "SELECT_POSITION"; path: CursorPath }
+
+  // Node operations
+  | { type: "TOGGLE_FOLD"; nodeId: string }
+  | { type: "TOGGLE_COLLAPSE"; nodeId: string }
+  | { type: "FOLD_LEVEL"; depth: number }
+  | { type: "UNFOLD_LEVEL"; depth: number }
+
+  // Zoom
+  | { type: "ZOOM_IN"; nodeId: string; nodes: TreeNodeState[] }
+  | { type: "ZOOM_OUT"; nodes: TreeNodeState[] }
+
+  // Refresh
+  | { type: "REFRESH"; nodes: TreeNodeState[] }
+
+  // Navigation history
   | { type: "NAV_BACK" }
   | { type: "NAV_FORWARD" }
   | {
       type: "NAV_TO";
       rootId: string | null;
-      columns: ColumnState[];
+      nodes: TreeNodeState[];
       rootPath: string | null;
     }
-  // Zoom actions
-  | { type: "ZOOM_IN"; nodeId: string; columns: ColumnState[] }
-  | { type: "ZOOM_OUT"; columns: ColumnState[] }
-  // Multi-select actions
-  | { type: "SELECT_CARD_ADD"; nodeId: string }
-  | { type: "SELECT_CARD_REMOVE"; nodeId: string }
-  | { type: "SELECT_CARD_TOGGLE"; nodeId: string }
-  | { type: "SELECT_ALL_COLUMN" }
+
+  // Selection
+  | { type: "SELECT_NODE_ADD"; nodeId: string }
+  | { type: "SELECT_NODE_REMOVE"; nodeId: string }
+  | { type: "SELECT_NODE_TOGGLE"; nodeId: string }
+  | { type: "SELECT_ALL_SIBLINGS" }
   | { type: "SELECT_ALL" }
   | { type: "CLEAR_SELECTION" }
-  // New item dialog actions
+
+  // Modals
+  | { type: "TOGGLE_SEARCH_MODE" }
+  | { type: "SET_SEARCH_QUERY"; query: string }
+  | { type: "TOGGLE_HELP_MODE" }
   | { type: "TOGGLE_NEW_ITEM_MODE" }
   | { type: "SET_NEW_ITEM_TEXT"; text: string }
   | { type: "CLEAR_NEW_ITEM" }
-  // Project picker actions
   | { type: "TOGGLE_PROJECT_PICKER" }
   | { type: "SET_PROJECT_PICKER_QUERY"; query: string }
   | { type: "PROJECT_PICKER_UP" }
   | { type: "PROJECT_PICKER_DOWN"; maxIndex: number }
   | { type: "CLOSE_PROJECT_PICKER" }
-  // Detail pane actions
   | { type: "TOGGLE_DETAIL_PANE" }
-  // Outline depth actions
+
+  // View configuration
   | { type: "INCREASE_OUTLINE_DEPTH" }
   | { type: "DECREASE_OUTLINE_DEPTH" }
-  // Content lines actions
   | { type: "INCREASE_CONTENT_LINES" }
   | { type: "DECREASE_CONTENT_LINES" };
 
+// ===== View Level Configuration =====
+
+/**
+ * How views interpret tree levels.
+ */
+export interface ViewLevelConfig {
+  /** Which depth level represents horizontal grouping */
+  columnLevel: number;
+  /** Which depth level represents vertical items */
+  itemLevel: number;
+  /** Maximum depth to render inline */
+  maxInlineDepth: number;
+  /** Whether to flatten all levels with indentation */
+  flattenAll: boolean;
+}
+
+/** Preset configurations for view modes */
+export const VIEW_LEVEL_PRESETS: Record<ViewMode, ViewLevelConfig> = {
+  cards: { columnLevel: 0, itemLevel: 1, maxInlineDepth: 1, flattenAll: false },
+  list: { columnLevel: 0, itemLevel: 1, maxInlineDepth: 99, flattenAll: true },
+  columns: {
+    columnLevel: 0,
+    itemLevel: 1,
+    maxInlineDepth: 2,
+    flattenAll: false,
+  },
+  tabs: { columnLevel: 0, itemLevel: 1, maxInlineDepth: 1, flattenAll: false },
+};
+
 // ===== ViewModel Types =====
 
-export interface CardViewModel {
+/**
+ * Node view model for rendering.
+ */
+export interface NodeViewModel {
   id: string;
   title: string;
   childCount: number;
@@ -142,32 +219,23 @@ export interface CardViewModel {
   color?: string;
   icon?: string;
   isFolded: boolean;
-  // Rich task display fields
   priority?: number;
   dueDate?: string;
   hasBacklinks?: boolean;
   refsCount?: number;
   content?: string;
-  // Depth within the column hierarchy (0 = direct child of column)
-  depth?: number;
+  depth: number;
+  children: NodeViewModel[];
 }
 
-export interface ColumnViewModel {
-  id: string;
-  title: string;
-  count: number;
-  wipLimit?: number;
-  isOverLimit: boolean;
-  isCollapsed: boolean;
-  cards: CardViewModel[];
-}
-
-export interface BoardViewModel {
+/**
+ * Tree view model for rendering.
+ */
+export interface TreeViewModel {
   rootPath: string | null;
-  columns: ColumnViewModel[];
-  selectedCol: number;
-  selectedCard: number;
-  selectedCards: Set<string>;
+  nodes: NodeViewModel[];
+  cursor: CursorPath;
+  selectedNodes: Set<string>;
   viewMode: ViewMode;
   searchQuery: string;
   searchMode: boolean;

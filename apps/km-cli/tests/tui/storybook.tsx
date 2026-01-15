@@ -292,8 +292,7 @@ function Layer1TaskStyling(): React.ReactElement {
         return (
           <Text key={status}>
             {" "}
-            {renderCheckbox(mark, status)}
-            {" "}
+            {renderCheckbox(mark, status)}{" "}
             {getChalkColor(icon.color)(icon.char)}
             {"    "}
             {styledDesc}
@@ -308,9 +307,7 @@ function Layer1TaskStyling(): React.ReactElement {
       {customMarkers.map(({ mark, desc }) => (
         <Text key={mark}>
           {" "}
-          {renderCheckbox(mark)}
-          {" "}
-          {chalk.bgWhite.black(mark)}
+          {renderCheckbox(mark)} {chalk.bgWhite.black(mark)}
           {"    "}
           {desc}
         </Text>
@@ -320,9 +317,7 @@ function Layer1TaskStyling(): React.ReactElement {
       <SubsectionHeader title="Error State" />
       <Text>
         {" "}
-        {renderCheckbox("-")}
-        {" "}
-        {chalk.red("⚠")}
+        {renderCheckbox("-")} {chalk.red("⚠")}
         {"    "}
         Missing status (null/undefined)
       </Text>

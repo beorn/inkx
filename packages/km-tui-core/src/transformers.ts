@@ -6,127 +6,75 @@
  */
 
 import type {
-  BoardState,
-  ColumnState,
-  CardState,
+  TreeState,
+  TreeNodeState,
   ViewMode,
-  CardViewModel,
-  ColumnViewModel,
-  BoardViewModel,
+  NodeViewModel,
+  TreeViewModel,
 } from "./types.ts";
 
 /**
- * Transform a CardState into a CardViewModel
+ * Transform a TreeNodeState into a NodeViewModel
  */
-export function toCardViewModel(
-  card: CardState,
-  isFolded: boolean,
-): CardViewModel {
+export function toNodeViewModel(
+  node: TreeNodeState,
+  foldedNodes: Set<string>,
+): NodeViewModel {
   return {
-    id: card.nodeId,
-    title: card.title,
-    childCount: card.childCount,
-    isTask: card.isTask,
-    taskStatus: card.taskStatus,
-    color: card.color,
-    icon: card.icon,
-    isFolded,
-    // Rich task display fields
-    priority: card.priority,
-    dueDate: card.dueDate,
-    hasBacklinks: card.hasBacklinks,
-    refsCount: card.refsCount,
-    content: card.content,
-    depth: card.depth,
+    id: node.nodeId,
+    title: node.title,
+    childCount: node.childCount,
+    isTask: node.isTask,
+    taskStatus: node.taskStatus,
+    color: node.color,
+    icon: node.icon,
+    isFolded: foldedNodes.has(node.nodeId),
+    priority: node.priority,
+    dueDate: node.dueDate,
+    hasBacklinks: node.hasBacklinks,
+    refsCount: node.refsCount,
+    content: node.content,
+    depth: node.depth,
+    children: node.children.map((child) => toNodeViewModel(child, foldedNodes)),
   };
 }
 
 /**
- * Filter cards by maximum outline depth
- * Cards with depth > maxOutlineDepth are filtered out
+ * Filter nodes by search query (case-insensitive title match)
  */
-function filterCardsByDepth(
-  cards: CardState[],
-  maxOutlineDepth: number,
-): CardState[] {
-  return cards.filter((card) => {
-    const cardDepth = card.depth ?? 0;
-    return cardDepth <= maxOutlineDepth;
-  });
-}
-
-/**
- * Transform a ColumnState into a ColumnViewModel
- */
-export function toColumnViewModel(
-  column: ColumnState,
-  foldedCards: Set<string>,
-  isCollapsed: boolean,
-  maxOutlineDepth: number = 99,
-): ColumnViewModel {
-  // Filter cards by depth first
-  const filteredCards = filterCardsByDepth(column.cards, maxOutlineDepth);
-
-  return {
-    id: column.nodeId,
-    title: column.title,
-    count: filteredCards.length,
-    wipLimit: column.wipLimit,
-    isOverLimit:
-      column.wipLimit !== undefined && filteredCards.length > column.wipLimit,
-    isCollapsed,
-    cards: filteredCards.map((card) =>
-      toCardViewModel(card, foldedCards.has(card.nodeId)),
-    ),
-  };
-}
-
-/**
- * Filter cards by search query (case-insensitive title match)
- */
-function filterCardsByQuery(
-  cards: CardViewModel[],
+function filterNodesByQuery(
+  nodes: NodeViewModel[],
   query: string,
-): CardViewModel[] {
+): NodeViewModel[] {
   if (!query) {
-    return cards;
+    return nodes;
   }
   const lowerQuery = query.toLowerCase();
-  return cards.filter((card) => card.title.toLowerCase().includes(lowerQuery));
+  return nodes.filter((node) => node.title.toLowerCase().includes(lowerQuery));
 }
 
 /**
- * Transform full BoardState into BoardViewModel
+ * Transform full TreeState into TreeViewModel
  */
-export function toBoardViewModel(
-  state: BoardState,
+export function toTreeViewModel(
+  state: TreeState,
   viewMode: ViewMode,
-): BoardViewModel {
-  // Transform columns to view models, applying outline depth filter
-  const columns = state.columns.map((col, i) =>
-    toColumnViewModel(
-      col,
-      state.foldedCards,
-      state.collapsedColumns.has(i),
-      state.maxOutlineDepth,
-    ),
+): TreeViewModel {
+  // Transform nodes to view models
+  const nodes = state.nodes.map((node) =>
+    toNodeViewModel(node, state.foldedNodes),
   );
 
   // Apply search filter if query is present
-  const filteredColumns = state.searchQuery
-    ? columns.map((col) => ({
-        ...col,
-        cards: filterCardsByQuery(col.cards, state.searchQuery),
-        count: filterCardsByQuery(col.cards, state.searchQuery).length,
-      }))
-    : columns;
+  const filteredNodes = state.searchQuery
+    ? filterNodesByQuery(nodes, state.searchQuery)
+    : nodes;
 
   return {
     rootPath: state.rootPath,
-    columns: filteredColumns,
-    selectedCol: state.colIndex,
-    selectedCard: state.cardIndex,
-    selectedCards: state.selectedCards,
+    nodes: filteredNodes,
+    cursor: state.cursor,
+    selectedNodes: state.selectedNodes,
     viewMode,
     searchQuery: state.searchQuery,
     searchMode: state.searchMode,

@@ -62,7 +62,13 @@ const SHIFT_NUMBER_MAP: Record<string, number> = {
 };
 import { getNodeDisplayName } from "@km/shared";
 import type { Node } from "@km/core";
-import type { ViewMode, ColumnState, CardState, TaskStatus } from "./types.ts";
+import type {
+  ViewMode,
+  ColumnState,
+  CardState,
+  TaskStatus,
+  TreeNodeState,
+} from "./types.ts";
 
 // Task status cycle order for Space key
 const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "done", "dropped"];

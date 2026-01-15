@@ -18,14 +18,15 @@ This directory contains technical specifications for implementation.
 
 ### Supporting Specs
 
-| Spec                       | Description                   | Status         |
-| -------------------------- | ----------------------------- | -------------- |
-| [Markdown](km-markdown.md) | Parsing, AST conversion       | Implemented    |
-| [Watch](km-watch.md)       | Bidirectional filesystem sync | Persisted mode |
-| [Daemon](km-services.md)   | Background sync & automation  | Design         |
-| [Agents](km-agents.md)     | AI agent orchestration        | Future         |
-| [Tasks](km-tasks.md)       | Task management system        | Implemented    |
-| [Roadmap](../ROADMAP.md)   | Implementation phases         | Current        |
+| Spec                         | Description                   | Status         |
+| ---------------------------- | ----------------------------- | -------------- |
+| [Markdown](km-markdown.md)   | Parsing, AST conversion       | Implemented    |
+| [Watch](km-watch.md)         | Bidirectional filesystem sync | Persisted mode |
+| [Daemon](km-services.md)     | Background sync & automation  | Design         |
+| [Agents](km-agents.md)       | AI agent orchestration        | Future         |
+| [Tasks](km-tasks.md)         | Task management system        | Implemented    |
+| [TUI State](km-tui-state.md) | TUI state architecture        | Phase 1        |
+| [Roadmap](../ROADMAP.md)     | Implementation phases         | Current        |
 
 ---
 

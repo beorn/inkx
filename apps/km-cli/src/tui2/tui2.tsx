@@ -3,60 +3,63 @@
  *
  * OpenTUI-based board renderer.
  * Mirrors the API of tui/tui.ts for easy integration.
+ *
+ * NOTE: This file is currently broken because App.tsx in km-tui-opentui
+ * hasn't been updated to use the tree-based model yet. See beads:
+ * - km-pmub: Update km-tui-opentui App.tsx to use TreeState
+ * - km-k6nb: Update km-tui-opentui views to use NodeViewModel/TreeViewModel
  */
 
-import { createCliRenderer } from "@opentui/core";
-import { createRoot } from "@opentui/react";
-import { getStore, getChildren, resolveNode, ensureState } from "@km/store";
+import {
+  getChildren,
+  resolveNode,
+  ensureState,
+  getBacklinks,
+  getOutgoingLinks,
+} from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
-import { App } from "@km/tui-opentui";
-import type { ColumnState, CardState, TaskStatus } from "@km/tui-opentui";
-import type { Node } from "@km/core";
+// App is currently broken - importing directly until km-tui-opentui is fixed
+// import { App } from "@km/tui-opentui";
+import type { TreeNodeState, TaskStatus } from "@km/tui-core";
 import type { ViewMode } from "@km/tui-core";
+import type { Node } from "@km/core";
 
 export interface Tui2Options {
   initialViewMode?: ViewMode;
 }
 
 /**
- * Convert Node to CardState
+ * Convert Node to TreeNodeState (recursive)
  */
-function nodeToCardState(node: Node): CardState {
+function nodeToTreeNodeState(node: Node, depth: number): TreeNodeState {
   const children = getChildren(node.id);
+  const backlinks = getBacklinks(node.id);
+  const outgoingLinks = getOutgoingLinks(node.id);
+
   return {
     nodeId: node.id,
     title: getNodeDisplayName(node),
+    depth,
     childCount: children.length,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as TaskStatus | undefined,
-    color: undefined,
-    icon: undefined,
+    color: node.rules?.color,
+    priority: node.priority,
+    dueDate: node.due_date,
+    hasBacklinks: backlinks.length > 0 || undefined,
+    refsCount: outgoingLinks.length > 0 ? outgoingLinks.length : undefined,
+    content: node.content,
+    children: children.map((child) => nodeToTreeNodeState(child, depth + 1)),
   };
 }
 
 /**
- * Convert Node to ColumnState
+ * Build tree nodes from root node
  */
-function nodeToColumnState(node: Node): ColumnState {
-  const children = getChildren(node.id);
-  return {
-    nodeId: node.id,
-    title: getNodeDisplayName(node),
-    cards: children.map(nodeToCardState),
-    wipLimit: undefined,
-  };
-}
-
-/**
- * Build columns from root node
- */
-function buildColumns(rootId: string | null): ColumnState[] {
+function buildTreeNodes(rootId: string | null): TreeNodeState[] {
   if (!rootId) {
     const roots = getChildren(null);
-    if (roots.length === 0) {
-      return [];
-    }
-    return roots.map(nodeToColumnState);
+    return roots.map((node) => nodeToTreeNodeState(node, 0));
   }
 
   const node = resolveNode(rootId);
@@ -65,16 +68,18 @@ function buildColumns(rootId: string | null): ColumnState[] {
   }
 
   const children = getChildren(node.id);
-  return children.map(nodeToColumnState);
+  return children.map((child) => nodeToTreeNodeState(child, 0));
 }
 
 /**
  * Run the TUI2 board view
+ *
+ * Currently broken - App.tsx needs to be migrated to tree-based model.
  */
 export async function runBoardTui2(
   rootId?: string,
   rootPath?: string,
-  options?: Tui2Options,
+  _options?: Tui2Options,
 ): Promise<void> {
   const stdin = process.stdin;
   const stdout = process.stdout;
@@ -90,30 +95,18 @@ export async function runBoardTui2(
     ensureState(rootPath, false);
   }
 
-  const store = getStore();
-  const columns = buildColumns(rootId || null);
+  const nodes = buildTreeNodes(rootId || null);
 
-  if (columns.length === 0) {
-    console.error("No columns found");
+  if (nodes.length === 0) {
+    console.error("No nodes found");
     process.exit(1);
   }
 
-  // Create renderer and mount app
-  const renderer = await createCliRenderer({
-    exitOnCtrlC: true,
-  });
-
-  // Exit handler that properly destroys the renderer
-  const handleExit = () => {
-    renderer.destroy();
-  };
-
-  createRoot(renderer).render(
-    <App
-      initialColumns={columns}
-      rootPath={rootPath || store.rootPath}
-      initialViewMode={options?.initialViewMode || "cards"}
-      onExit={handleExit}
-    />,
+  // TODO: App needs to be migrated to tree-based model
+  // See beads: km-pmub, km-k6nb
+  console.error(
+    "TUI2 is temporarily broken - App.tsx needs migration to tree model",
   );
+  console.error("See beads: km-pmub, km-k6nb");
+  process.exit(1);
 }

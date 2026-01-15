@@ -6,30 +6,30 @@
 
 import { describe, test, expect } from "bun:test";
 import {
-  toCardViewModel,
-  toColumnViewModel,
-  toBoardViewModel,
-  createInitialBoardState,
-  type ColumnState,
-  type CardState,
+  toNodeViewModel,
+  toTreeViewModel,
+  createInitialTreeState,
+  type TreeNodeState,
 } from "../src/index.ts";
 
-describe("toCardViewModel", () => {
-  test("transforms CardState to CardViewModel", () => {
-    const card: CardState = {
-      nodeId: "card-123",
-      title: "Test Card",
+describe("toNodeViewModel", () => {
+  test("transforms TreeNodeState to NodeViewModel", () => {
+    const node: TreeNodeState = {
+      nodeId: "node-123",
+      title: "Test Node",
+      depth: 1,
       childCount: 3,
       isTask: true,
       taskStatus: "todo",
       color: "blue",
       icon: "star",
+      children: [],
     };
 
-    const vm = toCardViewModel(card, false);
+    const vm = toNodeViewModel(node, new Set());
 
-    expect(vm.id).toBe("card-123");
-    expect(vm.title).toBe("Test Card");
+    expect(vm.id).toBe("node-123");
+    expect(vm.title).toBe("Test Node");
     expect(vm.childCount).toBe(3);
     expect(vm.isTask).toBe(true);
     expect(vm.taskStatus).toBe("todo");
@@ -38,206 +38,165 @@ describe("toCardViewModel", () => {
     expect(vm.isFolded).toBe(false);
   });
 
-  test("sets isFolded from parameter", () => {
-    const card: CardState = {
-      nodeId: "card-123",
-      title: "Test Card",
+  test("sets isFolded from foldedNodes set", () => {
+    const node: TreeNodeState = {
+      nodeId: "node-123",
+      title: "Test Node",
+      depth: 0,
       childCount: 0,
       isTask: false,
+      children: [],
     };
 
-    const vmFolded = toCardViewModel(card, true);
+    const vmFolded = toNodeViewModel(node, new Set(["node-123"]));
     expect(vmFolded.isFolded).toBe(true);
 
-    const vmUnfolded = toCardViewModel(card, false);
+    const vmUnfolded = toNodeViewModel(node, new Set());
     expect(vmUnfolded.isFolded).toBe(false);
   });
 
-  test("handles card without optional fields", () => {
-    const card: CardState = {
-      nodeId: "card-123",
-      title: "Simple Card",
+  test("handles node without optional fields", () => {
+    const node: TreeNodeState = {
+      nodeId: "node-123",
+      title: "Simple Node",
+      depth: 0,
       childCount: 0,
       isTask: false,
+      children: [],
     };
 
-    const vm = toCardViewModel(card, false);
+    const vm = toNodeViewModel(node, new Set());
 
     expect(vm.taskStatus).toBeUndefined();
     expect(vm.color).toBeUndefined();
     expect(vm.icon).toBeUndefined();
   });
-});
 
-describe("toColumnViewModel", () => {
-  test("transforms ColumnState to ColumnViewModel", () => {
-    const column: ColumnState = {
-      nodeId: "col-123",
-      title: "Test Column",
-      wipLimit: 5,
-      cards: [
-        { nodeId: "card1", title: "Card 1", childCount: 0, isTask: false },
+  test("recursively transforms children", () => {
+    const node: TreeNodeState = {
+      nodeId: "parent",
+      title: "Parent",
+      depth: 0,
+      childCount: 2,
+      isTask: false,
+      children: [
         {
-          nodeId: "card2",
-          title: "Card 2",
-          childCount: 2,
+          nodeId: "child1",
+          title: "Child 1",
+          depth: 1,
+          childCount: 0,
+          isTask: false,
+          children: [],
+        },
+        {
+          nodeId: "child2",
+          title: "Child 2",
+          depth: 1,
+          childCount: 0,
           isTask: true,
           taskStatus: "wip",
+          children: [],
         },
       ],
     };
 
-    const vm = toColumnViewModel(column, new Set(), false);
+    const vm = toNodeViewModel(node, new Set(["child1"]));
 
-    expect(vm.id).toBe("col-123");
-    expect(vm.title).toBe("Test Column");
-    expect(vm.count).toBe(2);
-    expect(vm.wipLimit).toBe(5);
-    expect(vm.isOverLimit).toBe(false);
-    expect(vm.isCollapsed).toBe(false);
-    expect(vm.cards).toHaveLength(2);
-    expect(vm.cards[0].title).toBe("Card 1");
-    expect(vm.cards[1].title).toBe("Card 2");
-  });
-
-  test("sets isOverLimit when cards exceed wipLimit", () => {
-    const column: ColumnState = {
-      nodeId: "col-123",
-      title: "Over Limit",
-      wipLimit: 1,
-      cards: [
-        { nodeId: "card1", title: "Card 1", childCount: 0, isTask: false },
-        { nodeId: "card2", title: "Card 2", childCount: 0, isTask: false },
-      ],
-    };
-
-    const vm = toColumnViewModel(column, new Set(), false);
-    expect(vm.isOverLimit).toBe(true);
-  });
-
-  test("isOverLimit false when no wipLimit", () => {
-    const column: ColumnState = {
-      nodeId: "col-123",
-      title: "No Limit",
-      cards: [
-        { nodeId: "card1", title: "Card 1", childCount: 0, isTask: false },
-        { nodeId: "card2", title: "Card 2", childCount: 0, isTask: false },
-      ],
-    };
-
-    const vm = toColumnViewModel(column, new Set(), false);
-    expect(vm.isOverLimit).toBe(false);
-  });
-
-  test("applies folded state to cards", () => {
-    const column: ColumnState = {
-      nodeId: "col-123",
-      title: "Column",
-      cards: [
-        { nodeId: "card1", title: "Card 1", childCount: 0, isTask: false },
-        { nodeId: "card2", title: "Card 2", childCount: 0, isTask: false },
-        { nodeId: "card3", title: "Card 3", childCount: 0, isTask: false },
-      ],
-    };
-
-    const foldedCards = new Set(["card1", "card3"]);
-    const vm = toColumnViewModel(column, foldedCards, false);
-
-    expect(vm.cards[0].isFolded).toBe(true);
-    expect(vm.cards[1].isFolded).toBe(false);
-    expect(vm.cards[2].isFolded).toBe(true);
-  });
-
-  test("sets isCollapsed from parameter", () => {
-    const column: ColumnState = {
-      nodeId: "col-123",
-      title: "Column",
-      cards: [],
-    };
-
-    const vmCollapsed = toColumnViewModel(column, new Set(), true);
-    expect(vmCollapsed.isCollapsed).toBe(true);
-
-    const vmExpanded = toColumnViewModel(column, new Set(), false);
-    expect(vmExpanded.isCollapsed).toBe(false);
+    expect(vm.children).toHaveLength(2);
+    expect(vm.children[0]?.id).toBe("child1");
+    expect(vm.children[0]?.isFolded).toBe(true);
+    expect(vm.children[1]?.id).toBe("child2");
+    expect(vm.children[1]?.taskStatus).toBe("wip");
+    expect(vm.children[1]?.isFolded).toBe(false);
   });
 });
 
-describe("toBoardViewModel", () => {
-  function createTestColumns(): ColumnState[] {
+describe("toTreeViewModel", () => {
+  function createTestNodes(): TreeNodeState[] {
     return [
       {
         nodeId: "col1",
         title: "Column 1",
-        cards: [
-          { nodeId: "card1", title: "Card 1", childCount: 0, isTask: false },
+        depth: 0,
+        childCount: 2,
+        isTask: false,
+        children: [
+          {
+            nodeId: "card1",
+            title: "Card 1",
+            depth: 1,
+            childCount: 0,
+            isTask: false,
+            children: [],
+          },
           {
             nodeId: "card2",
             title: "Card 2",
+            depth: 1,
             childCount: 2,
             isTask: true,
             taskStatus: "todo",
+            children: [],
           },
         ],
       },
       {
         nodeId: "col2",
         title: "Column 2",
-        wipLimit: 3,
-        cards: [
+        depth: 0,
+        childCount: 1,
+        isTask: false,
+        children: [
           {
             nodeId: "card3",
             title: "Card 3",
+            depth: 1,
             childCount: 1,
             isTask: true,
             taskStatus: "wip",
+            children: [],
           },
         ],
       },
     ];
   }
 
-  test("transforms BoardState to BoardViewModel", () => {
-    const state = createInitialBoardState(
-      createTestColumns(),
+  test("transforms TreeState to TreeViewModel", () => {
+    const state = createInitialTreeState(
+      createTestNodes(),
       "root-123",
-      "/path/to/board",
+      "/path/to/tree",
     );
-    state.colIndex = 1;
-    state.cardIndex = 0;
+    state.cursor = [1, 0];
 
-    const vm = toBoardViewModel(state, "cards");
+    const vm = toTreeViewModel(state, "cards");
 
-    expect(vm.rootPath).toBe("/path/to/board");
-    expect(vm.columns).toHaveLength(2);
-    expect(vm.selectedCol).toBe(1);
-    expect(vm.selectedCard).toBe(0);
+    expect(vm.rootPath).toBe("/path/to/tree");
+    expect(vm.nodes).toHaveLength(2);
+    expect(vm.cursor).toEqual([1, 0]);
     expect(vm.viewMode).toBe("cards");
     expect(vm.searchQuery).toBe("");
     expect(vm.searchMode).toBe(false);
     expect(vm.helpMode).toBe(false);
   });
 
-  test("transforms columns with folded and collapsed state", () => {
-    const state = createInitialBoardState(createTestColumns());
-    state.foldedCards.add("card1");
-    state.collapsedColumns.add(1);
+  test("transforms nodes with folded state", () => {
+    const state = createInitialTreeState(createTestNodes());
+    state.foldedNodes.add("card1");
 
-    const vm = toBoardViewModel(state, "list");
+    const vm = toTreeViewModel(state, "list");
 
-    expect(vm.columns[0].cards[0].isFolded).toBe(true);
-    expect(vm.columns[0].cards[1].isFolded).toBe(false);
-    expect(vm.columns[0].isCollapsed).toBe(false);
-    expect(vm.columns[1].isCollapsed).toBe(true);
+    expect(vm.nodes[0]?.children[0]?.isFolded).toBe(true);
+    expect(vm.nodes[0]?.children[1]?.isFolded).toBe(false);
   });
 
   test("includes search and help mode state", () => {
-    const state = createInitialBoardState(createTestColumns());
+    const state = createInitialTreeState(createTestNodes());
     state.searchQuery = "test query";
     state.searchMode = true;
     state.helpMode = true;
 
-    const vm = toBoardViewModel(state, "columns");
+    const vm = toTreeViewModel(state, "columns");
 
     expect(vm.searchQuery).toBe("test query");
     expect(vm.searchMode).toBe(true);
@@ -245,18 +204,30 @@ describe("toBoardViewModel", () => {
   });
 
   test("passes viewMode from parameter", () => {
-    const state = createInitialBoardState(createTestColumns());
+    const state = createInitialTreeState(createTestNodes());
 
-    const cardsVm = toBoardViewModel(state, "cards");
+    const cardsVm = toTreeViewModel(state, "cards");
     expect(cardsVm.viewMode).toBe("cards");
 
-    const listVm = toBoardViewModel(state, "list");
+    const listVm = toTreeViewModel(state, "list");
     expect(listVm.viewMode).toBe("list");
 
-    const columnsVm = toBoardViewModel(state, "columns");
+    const columnsVm = toTreeViewModel(state, "columns");
     expect(columnsVm.viewMode).toBe("columns");
 
-    const tabsVm = toBoardViewModel(state, "tabs");
+    const tabsVm = toTreeViewModel(state, "tabs");
     expect(tabsVm.viewMode).toBe("tabs");
+  });
+
+  test("includes selected nodes", () => {
+    const state = createInitialTreeState(createTestNodes());
+    state.selectedNodes.add("card1");
+    state.selectedNodes.add("card2");
+
+    const vm = toTreeViewModel(state, "cards");
+
+    expect(vm.selectedNodes.has("card1")).toBe(true);
+    expect(vm.selectedNodes.has("card2")).toBe(true);
+    expect(vm.selectedNodes.size).toBe(2);
   });
 });

@@ -1,22 +1,23 @@
 /**
  * OpenTUI Renderer Types
  *
- * Re-exports from @km/tui plus renderer-specific component props.
+ * Re-exports from @km/tui-core plus renderer-specific component props.
  */
 
 // Re-export types from shared package
 export type {
   // State types
-  BoardState,
-  BoardAction,
-  ColumnState,
-  CardState,
   TaskStatus,
   ViewMode,
+  // Tree types
+  TreeState,
+  TreeAction,
+  TreeNodeState,
+  CursorPath,
+  ViewLevelConfig,
   // ViewModel types
-  CardViewModel,
-  ColumnViewModel,
-  BoardViewModel,
+  NodeViewModel,
+  TreeViewModel,
 } from "@km/tui-core";
 
 // ===== Component Props (OpenTUI-specific) =====
@@ -57,10 +58,8 @@ export interface HeaderProps {
 export interface StatusBarProps {
   width: number;
   height: number;
-  colIndex: number;
-  colCount: number;
-  cardIndex: number;
-  cardCount: number;
+  cursor: number[];
+  nodeCount: number;
   viewMode: "cards" | "list" | "columns" | "tabs";
 }
 

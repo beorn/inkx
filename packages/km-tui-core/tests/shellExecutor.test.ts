@@ -1,7 +1,7 @@
 /**
  * Shell Executor Tests
  *
- * Tests for km-sh shell execution.
+ * Tests for km-sh shell execution with tree-based state.
  */
 
 import { describe, it, expect } from "bun:test";
@@ -12,101 +12,113 @@ import {
   formatStateHuman,
   renderAsciiView,
 } from "../src/shellExecutor.ts";
-import { createInitialBoardState } from "../src/boardReducer.ts";
-import type { ColumnState, CardState, BoardState } from "../src/types.ts";
+import { createInitialTreeState } from "../src/treeReducer.ts";
+import type { TreeNodeState, TreeState } from "../src/types.ts";
 import type { OutputEvent } from "../src/shellExecutor.ts";
 
-// Helper to create test state
-function createTestState(): BoardState {
-  const columns: ColumnState[] = [
+// Helper to create test state with tree structure
+function createTestNodes(): TreeNodeState[] {
+  return [
     {
       nodeId: "col-1",
       title: "Todo",
-      cards: [
+      depth: 0,
+      childCount: 3,
+      isTask: false,
+      children: [
         {
           nodeId: "card-1",
           title: "Task 1",
+          depth: 1,
           childCount: 0,
           isTask: true,
           taskStatus: "todo",
+          children: [],
         },
         {
           nodeId: "card-2",
           title: "Task 2",
+          depth: 1,
           childCount: 2,
           isTask: true,
           taskStatus: "wip",
+          children: [],
         },
         {
           nodeId: "card-3",
           title: "Task 3",
+          depth: 1,
           childCount: 0,
           isTask: true,
           taskStatus: "done",
+          children: [],
         },
       ],
     },
     {
       nodeId: "col-2",
       title: "In Progress",
-      cards: [
+      depth: 0,
+      childCount: 1,
+      isTask: false,
+      children: [
         {
           nodeId: "card-4",
           title: "Task 4",
+          depth: 1,
           childCount: 0,
           isTask: true,
           taskStatus: "wip",
+          children: [],
         },
       ],
     },
   ];
+}
 
-  return createInitialBoardState(columns, "root-1", "/test/vault");
+function createTestState(): TreeState {
+  return createInitialTreeState(createTestNodes(), "root-1", "/test/vault");
 }
 
 describe("serializeState", () => {
   it("converts Sets to arrays", () => {
     const state = createTestState();
-    state.selectedCards.add("card-1");
-    state.selectedCards.add("card-2");
-    state.foldedCards.add("card-3");
-    state.collapsedColumns.add(1);
+    state.selectedNodes.add("card-1");
+    state.selectedNodes.add("card-2");
+    state.foldedNodes.add("card-3");
+    state.collapsedNodes.add("col-1");
 
     const serialized = serializeState(state);
 
-    expect(serialized.selectedCards).toEqual(["card-1", "card-2"]);
-    expect(serialized.foldedCards).toEqual(["card-3"]);
-    expect(serialized.collapsedColumns).toEqual([1]);
+    expect(serialized.selectedNodes).toEqual(["card-1", "card-2"]);
+    expect(serialized.foldedNodes).toEqual(["card-3"]);
+    expect(serialized.collapsedNodes).toEqual(["col-1"]);
   });
 
-  it("includes position info", () => {
+  it("includes cursor path info", () => {
     const state = createTestState();
-    state.colIndex = 1;
-    state.cardIndex = 0;
+    state.cursor = [0, 1];
 
     const serialized = serializeState(state);
 
-    expect(serialized.colIndex).toBe(1);
-    expect(serialized.cardIndex).toBe(0);
-    expect(serialized.columnCount).toBe(2);
-    expect(serialized.cardCounts).toEqual([3, 1]);
+    expect(serialized.cursor).toEqual([0, 1]);
+    expect(serialized.nodeCount).toBe(6); // 2 cols + 3 cards in col1 + 1 card in col2
   });
 });
 
 describe("formatStateHuman", () => {
-  it("formats position", () => {
+  it("formats cursor position", () => {
     const state = createTestState();
     const output = formatStateHuman(state);
 
-    expect(output).toContain("col=0");
-    expect(output).toContain("card=0");
+    expect(output).toContain("cursor:");
     expect(output).toContain("Todo");
   });
 
-  it("shows selected cards count", () => {
+  it("shows selected nodes count", () => {
     const state = createTestState();
-    state.selectedCards.add("card-1");
-    state.selectedCards.add("card-2");
+    state.selectedNodes.add("card-1");
+    state.selectedNodes.add("card-2");
 
     const output = formatStateHuman(state);
     expect(output).toContain("selected: 2");
@@ -124,7 +136,7 @@ describe("formatStateHuman", () => {
 });
 
 describe("renderAsciiView", () => {
-  it("renders columns and cards", () => {
+  it("renders tree nodes", () => {
     const state = createTestState();
     const view = renderAsciiView(state);
 
@@ -134,12 +146,12 @@ describe("renderAsciiView", () => {
     expect(view).toContain("Task 4");
   });
 
-  it("marks selected column", () => {
+  it("marks selected node", () => {
     const state = createTestState();
     const view = renderAsciiView(state);
 
-    // First column (selected) should have marker
-    expect(view).toContain("▶");
+    // First node (selected) should have marker
+    expect(view).toContain("→");
   });
 
   it("shows task status icons", () => {
@@ -160,7 +172,7 @@ describe("renderAsciiView", () => {
 
   it("shows folded marker", () => {
     const state = createTestState();
-    state.foldedCards.add("card-2");
+    state.foldedNodes.add("card-2");
     const view = renderAsciiView(state);
 
     expect(view).toContain("▸"); // folded marker
@@ -168,12 +180,14 @@ describe("renderAsciiView", () => {
 });
 
 describe("executeCommand", () => {
-  it("executes move_down", () => {
+  it("executes move_down (nav_next_sibling)", () => {
     const state = createTestState();
+    state.cursor = [0, 0]; // First card
     const outputs: string[] = [];
     const ctx = {
       state,
       jsonMode: false,
+      verbose: false,
       output: (e: OutputEvent | string) => {
         if (typeof e === "string") outputs.push(e);
       },
@@ -181,7 +195,7 @@ describe("executeCommand", () => {
 
     const result = executeCommand("move_down", ctx);
 
-    expect(result.state.cardIndex).toBe(1);
+    expect(result.state.cursor).toEqual([0, 1]);
     expect(result.quit).toBe(false);
   });
 
@@ -190,6 +204,7 @@ describe("executeCommand", () => {
     const ctx = {
       state,
       jsonMode: false,
+      verbose: false,
       output: () => {},
     };
 
@@ -204,6 +219,7 @@ describe("executeCommand", () => {
     const ctx = {
       state,
       jsonMode: false,
+      verbose: false,
       output: (e: OutputEvent | string) => {
         if (typeof e === "string") outputs.push(e);
       },
@@ -217,61 +233,63 @@ describe("executeCommand", () => {
 
   it("handles key j as move_down", () => {
     const state = createTestState();
+    state.cursor = [0, 0];
     const ctx = {
       state,
       jsonMode: false,
+      verbose: false,
       output: () => {},
     };
 
     const result = executeCommand("key j", ctx);
 
-    expect(result.state.cardIndex).toBe(1);
+    expect(result.state.cursor).toEqual([0, 1]);
   });
 
   it("handles key k as move_up", () => {
     const state = createTestState();
-    state.cardIndex = 1;
+    state.cursor = [0, 1];
     const ctx = {
       state,
       jsonMode: false,
+      verbose: false,
       output: () => {},
     };
 
     const result = executeCommand("key k", ctx);
 
-    expect(result.state.cardIndex).toBe(0);
+    expect(result.state.cursor).toEqual([0, 0]);
   });
 });
 
 describe("runShell", () => {
   it("executes multiple commands", () => {
     const state = createTestState();
+    state.cursor = [0, 0];
     const outputs: (OutputEvent | string)[] = [];
 
-    const finalState = runShell(
-      ["move_down", "move_down"],
-      state,
-      { output: (e) => outputs.push(e) },
-    );
+    const finalState = runShell(["move_down", "move_down"], state, {
+      output: (e) => outputs.push(e),
+    });
 
-    expect(finalState.cardIndex).toBe(2);
+    expect(finalState.cursor).toEqual([0, 2]);
   });
 
   it("stops on quit", () => {
     const state = createTestState();
+    state.cursor = [0, 0];
 
-    const finalState = runShell(
-      ["move_down", "quit", "move_down"],
-      state,
-      { output: () => {} },
-    );
+    const finalState = runShell(["move_down", "quit", "move_down"], state, {
+      output: () => {},
+    });
 
     // Should stop after quit, so only one move_down executed
-    expect(finalState.cardIndex).toBe(1);
+    expect(finalState.cursor).toEqual([0, 1]);
   });
 
   it("skips comments and empty lines", () => {
     const state = createTestState();
+    state.cursor = [0, 0];
 
     const finalState = runShell(
       ["# comment", "", "move_down", "   ", "move_down"],
@@ -279,23 +297,20 @@ describe("runShell", () => {
       { output: () => {} },
     );
 
-    expect(finalState.cardIndex).toBe(2);
+    expect(finalState.cursor).toEqual([0, 2]);
   });
 
   it("outputs JSON in json mode", () => {
     const state = createTestState();
+    state.cursor = [0, 0];
     const outputs: OutputEvent[] = [];
 
-    runShell(
-      ["move_down"],
-      state,
-      {
-        jsonMode: true,
-        output: (e) => {
-          if (typeof e !== "string") outputs.push(e);
-        },
+    runShell(["move_down"], state, {
+      jsonMode: true,
+      output: (e) => {
+        if (typeof e !== "string") outputs.push(e);
       },
-    );
+    });
 
     // Should have init, action, and state events
     const events = outputs.map((o) => o.event);
@@ -308,56 +323,48 @@ describe("runShell", () => {
     const state = createTestState();
     const outputs: string[] = [];
 
-    runShell(
-      ["state"],
-      state,
-      {
-        jsonMode: false,
-        output: (e) => {
-          if (typeof e === "string") outputs.push(e);
-        },
+    runShell(["state"], state, {
+      jsonMode: false,
+      output: (e) => {
+        if (typeof e === "string") outputs.push(e);
       },
-    );
+    });
 
-    expect(outputs.some((o) => o.includes("col=0"))).toBe(true);
+    expect(outputs.some((o) => o.includes("cursor:"))).toBe(true);
   });
 
   it("handles view command", () => {
     const state = createTestState();
     const outputs: string[] = [];
 
-    runShell(
-      ["view"],
-      state,
-      {
-        jsonMode: false,
-        output: (e) => {
-          if (typeof e === "string") outputs.push(e);
-        },
+    runShell(["view"], state, {
+      jsonMode: false,
+      output: (e) => {
+        if (typeof e === "string") outputs.push(e);
       },
-    );
+    });
 
     expect(outputs.some((o) => o.includes("Todo"))).toBe(true);
   });
 });
 
 describe("runShell - integration scenarios", () => {
-  it("navigates around the board", () => {
+  it("navigates around the tree", () => {
     const state = createTestState();
+    state.cursor = [0, 0]; // card-1
 
     const finalState = runShell(
       [
-        "move_down",      // card 0 -> 1
-        "move_down",      // card 1 -> 2
-        "move_right",     // col 0 -> 1, card resets to 0
-        "jump_bottom",    // still card 0 (only 1 card in col 1)
+        "move_down", // card-1 -> card-2
+        "move_down", // card-2 -> card-3
+        "nav_parent", // card-3 -> col-1
+        "move_right", // col-1 -> col-2
       ],
       state,
       { output: () => {} },
     );
 
-    expect(finalState.colIndex).toBe(1);
-    expect(finalState.cardIndex).toBe(0);
+    expect(finalState.cursor).toEqual([1]);
   });
 
   it("manages selection", () => {
@@ -365,16 +372,16 @@ describe("runShell - integration scenarios", () => {
 
     const finalState = runShell(
       [
-        "select_card_add card-1",
-        "select_card_add card-2",
-        "select_card_toggle card-1", // Remove card-1
+        "select_node_add card-1",
+        "select_node_add card-2",
+        "select_node_toggle card-1", // Remove card-1
       ],
       state,
       { output: () => {} },
     );
 
-    expect(finalState.selectedCards.has("card-1")).toBe(false);
-    expect(finalState.selectedCards.has("card-2")).toBe(true);
+    expect(finalState.selectedNodes.has("card-1")).toBe(false);
+    expect(finalState.selectedNodes.has("card-2")).toBe(true);
   });
 
   it("manages fold state", () => {
@@ -383,29 +390,27 @@ describe("runShell - integration scenarios", () => {
     const finalState = runShell(
       [
         "toggle_fold card-2",
-        "fold_column 0",  // Fold all in column 0
+        "fold_level 1", // Fold all at depth 1
       ],
       state,
       { output: () => {} },
     );
 
-    expect(finalState.foldedCards.has("card-1")).toBe(true);
-    expect(finalState.foldedCards.has("card-2")).toBe(true);
-    expect(finalState.foldedCards.has("card-3")).toBe(true);
+    expect(finalState.foldedNodes.has("card-1")).toBe(true);
+    expect(finalState.foldedNodes.has("card-2")).toBe(true);
+    expect(finalState.foldedNodes.has("card-3")).toBe(true);
   });
 
   it("handles JSON input", () => {
     const state = createTestState();
+    state.cursor = [0, 0];
 
     const finalState = runShell(
-      [
-        '{"type": "MOVE_DOWN"}',
-        '{"type": "MOVE_DOWN"}',
-      ],
+      ['{"type": "MOVE_DOWN"}', '{"type": "MOVE_DOWN"}'],
       state,
       { jsonMode: true, output: () => {} },
     );
 
-    expect(finalState.cardIndex).toBe(2);
+    expect(finalState.cursor).toEqual([0, 2]);
   });
 });

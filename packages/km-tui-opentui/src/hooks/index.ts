@@ -5,8 +5,8 @@
  */
 
 export {
-  useBoardState,
-  boardReducer,
-  createInitialBoardState,
-  type BoardStateHook,
-} from "./useBoardState.ts";
+  useTreeState,
+  treeReducer,
+  createInitialTreeState,
+  type TreeStateHook,
+} from "./useTreeState.ts";

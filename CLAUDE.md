@@ -52,6 +52,7 @@ bun test             # MUST pass - all 1135+ tests
 5. Commit
 
 **For detailed testing guidance**, see [specs/km-testing.md](specs/km-testing.md):
+
 - Which test type to use for each layer
 - How to use `km sh` + `mdtest` for TUI behavior tests
 - Anti-patterns to avoid

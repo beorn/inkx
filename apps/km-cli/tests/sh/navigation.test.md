@@ -44,8 +44,8 @@ card: Task Alpha
 ### move_down moves cursor down
 
 ```console
-$ km sh board.md -c 'move_down; state'
-# MOVE_DOWN
+$ km sh board.md -v -c 'move_down; state'
+! ...MOVE_DOWN...
 state: col=0 card=1 "Tasks"
 position: col=0 card=1
 column: Tasks (3 cards)
@@ -55,10 +55,10 @@ card: Task Beta
 ### Multiple move_down commands
 
 ```console
-$ km sh board.md -c 'move_down; move_down; state'
-# MOVE_DOWN
+$ km sh board.md -v -c 'move_down; move_down; state'
+! ...MOVE_DOWN...
+! ...MOVE_DOWN...
 state: col=0 card=1 "Tasks"
-# MOVE_DOWN
 state: col=0 card=2 "Tasks"
 position: col=0 card=2
 column: Tasks (3 cards)
@@ -68,12 +68,12 @@ card: Task Gamma
 ### move_up moves cursor up
 
 ```console
-$ km sh board.md -c 'move_down; move_down; move_up; state'
-# MOVE_DOWN
+$ km sh board.md -v -c 'move_down; move_down; move_up; state'
+! ...MOVE_DOWN...
+! ...MOVE_DOWN...
+! ...MOVE_UP...
 state: col=0 card=1 "Tasks"
-# MOVE_DOWN
 state: col=0 card=2 "Tasks"
-# MOVE_UP
 state: col=0 card=1 "Tasks"
 position: col=0 card=1
 column: Tasks (3 cards)
@@ -83,8 +83,8 @@ card: Task Beta
 ### move_up at top stays at top
 
 ```console
-$ km sh board.md -c 'move_up; state'
-# MOVE_UP
+$ km sh board.md -v -c 'move_up; state'
+! ...MOVE_UP...
 position: col=0 card=0
 column: Tasks (3 cards)
 card: Task Alpha
@@ -94,12 +94,8 @@ card: Task Alpha
 
 ```console
 $ km sh board.md -c 'move_down; move_down; move_down; move_down; state'
-# MOVE_DOWN
 state: col=0 card=1 "Tasks"
-# MOVE_DOWN
 state: col=0 card=2 "Tasks"
-# MOVE_DOWN
-# MOVE_DOWN
 position: col=0 card=2
 column: Tasks (3 cards)
 card: Task Gamma
@@ -110,12 +106,12 @@ card: Task Gamma
 ### jump_top moves to first card
 
 ```console
-$ km sh board.md -c 'move_down; move_down; jump_top; state'
-# MOVE_DOWN
+$ km sh board.md -v -c 'move_down; move_down; jump_top; state'
+! ...MOVE_DOWN...
+! ...MOVE_DOWN...
+! ...JUMP_TOP...
 state: col=0 card=1 "Tasks"
-# MOVE_DOWN
 state: col=0 card=2 "Tasks"
-# JUMP_TOP
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (3 cards)
@@ -125,8 +121,8 @@ card: Task Alpha
 ### jump_bottom moves to last card
 
 ```console
-$ km sh board.md -c 'jump_bottom; state'
-# JUMP_BOTTOM
+$ km sh board.md -v -c 'jump_bottom; state'
+! ...JUMP_BOTTOM...
 state: col=0 card=2 "Tasks"
 position: col=0 card=2
 column: Tasks (3 cards)
@@ -138,8 +134,8 @@ card: Task Gamma
 ### key j is same as move_down
 
 ```console
-$ km sh board.md -c 'key j; state'
-# MOVE_DOWN
+$ km sh board.md -v -c 'key j; state'
+! ...MOVE_DOWN...
 state: col=0 card=1 "Tasks"
 position: col=0 card=1
 column: Tasks (3 cards)
@@ -150,9 +146,7 @@ card: Task Beta
 
 ```console
 $ km sh board.md -c 'key j; key k; state'
-# MOVE_DOWN
 state: col=0 card=1 "Tasks"
-# MOVE_UP
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (3 cards)
@@ -163,9 +157,7 @@ card: Task Alpha
 
 ```console
 $ km sh board.md -c 'jump_bottom; key g; state'
-# JUMP_BOTTOM
 state: col=0 card=2 "Tasks"
-# JUMP_TOP
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (3 cards)
@@ -176,7 +168,6 @@ card: Task Alpha
 
 ```console
 $ km sh board.md -c 'key G; state'
-# JUMP_BOTTOM
 state: col=0 card=2 "Tasks"
 position: col=0 card=2
 column: Tasks (3 cards)
@@ -207,8 +198,8 @@ Move cursor up one card
 ### quit exits the shell
 
 ```console
-$ km sh board.md -c 'move_down; quit; move_down; state'
-# MOVE_DOWN
+$ km sh board.md -v -c 'move_down; quit; move_down; state'
+! ...MOVE_DOWN...
 state: col=0 card=1 "Tasks"
 ```
 
@@ -248,7 +239,6 @@ card: Task Alpha
 
 ```console
 $ echo -e "# this is a comment\nmove_down\nstate" | km sh board.md
-# MOVE_DOWN
 state: col=0 card=1 "Tasks"
 position: col=0 card=1
 column: Tasks (3 cards)

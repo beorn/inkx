@@ -38,7 +38,6 @@ Syncing: ...
 
 ```console
 $ km sh board.md -c 'select_card 0 2; state'
-# SELECT_CARD
 state: col=0 card=2 "Tasks"
 position: col=0 card=2
 column: Tasks (5 cards)
@@ -49,11 +48,8 @@ card: Task C
 
 ```console
 $ km sh board.md -c 'move_down; move_down; select_card 0 0; state'
-# MOVE_DOWN
 state: col=0 card=1 "Tasks"
-# MOVE_DOWN
 state: col=0 card=2 "Tasks"
-# SELECT_CARD
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (5 cards)
@@ -66,7 +62,6 @@ card: Task A
 
 ```console
 $ km sh board.md -c 'select_all_column; state'
-# SELECT_ALL_COLUMN
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (5 cards)
@@ -78,9 +73,7 @@ selected: 5 cards
 
 ```console
 $ km sh board.md -c 'select_all_column; clear_selection; state'
-# SELECT_ALL_COLUMN
 state: col=0 card=0 "Tasks"
-# CLEAR_SELECTION
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (5 cards)

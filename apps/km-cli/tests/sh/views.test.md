@@ -36,7 +36,6 @@ Syncing: ...
 
 ```console
 $ km sh board.md -c 'set_view_mode cards; state'
-# SET_VIEW_MODE
 position: col=0 card=0
 column: Tasks (3 cards)
 card: Task 1
@@ -46,7 +45,6 @@ card: Task 1
 
 ```console
 $ km sh board.md -c 'set_view_mode list; state'
-# SET_VIEW_MODE
 position: col=0 card=0
 column: Tasks (3 cards)
 card: Task 1
@@ -56,7 +54,6 @@ card: Task 1
 
 ```console
 $ km sh board.md -c 'set_view_mode columns; state'
-# SET_VIEW_MODE
 position: col=0 card=0
 column: Tasks (3 cards)
 card: Task 1
@@ -66,7 +63,6 @@ card: Task 1
 
 ```console
 $ km sh board.md -c 'set_view_mode tabs; state'
-# SET_VIEW_MODE
 position: col=0 card=0
 column: Tasks (3 cards)
 card: Task 1
@@ -106,7 +102,6 @@ error: toggle_collapse requires a numeric column index
 
 ```console
 $ km sh board.md -c 'toggle_collapse 0; state'
-# TOGGLE_COLLAPSE
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (3 cards)
@@ -118,9 +113,7 @@ collapsed: 1 columns
 
 ```console
 $ km sh board.md -c 'toggle_collapse 0; toggle_collapse 0; state'
-# TOGGLE_COLLAPSE
 state: col=0 card=0 "Tasks"
-# TOGGLE_COLLAPSE
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (3 cards)
@@ -140,7 +133,6 @@ error: toggle_fold requires a cardId argument
 
 ```console
 $ km sh board.md -c 'toggle_fold test-card-id; state'
-# TOGGLE_FOLD
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (3 cards)
@@ -154,7 +146,6 @@ folded: 1 cards
 
 ```console
 $ km sh board.md -c 'toggle_search; state'
-# TOGGLE_SEARCH_MODE
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (3 cards)
@@ -166,7 +157,6 @@ search: ""
 
 ```console
 $ km sh board.md -c 'toggle_help; state'
-# TOGGLE_HELP_MODE
 state: col=0 card=0 "Tasks"
 position: col=0 card=0
 column: Tasks (3 cards)
@@ -177,9 +167,7 @@ card: Task 1
 
 ```console
 $ km sh board.md -c 'toggle_search; set_search_query hello world; state'
-# TOGGLE_SEARCH_MODE
 state: col=0 card=0 "Tasks"
-# SET_SEARCH_QUERY
 position: col=0 card=0
 column: Tasks (3 cards)
 card: Task 1

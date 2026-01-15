@@ -60,6 +60,25 @@ describe("parseCommand - simple actions", () => {
     });
   });
 
+  it("parses path-based navigation commands", () => {
+    expect(parseCommand("nav_prev_sibling")).toEqual({
+      ok: true,
+      action: { type: "NAV_PREV_SIBLING" },
+    });
+    expect(parseCommand("nav_next_sibling")).toEqual({
+      ok: true,
+      action: { type: "NAV_NEXT_SIBLING" },
+    });
+    expect(parseCommand("nav_parent")).toEqual({
+      ok: true,
+      action: { type: "NAV_PARENT" },
+    });
+    expect(parseCommand("nav_child")).toEqual({
+      ok: true,
+      action: { type: "NAV_CHILD" },
+    });
+  });
+
   it("parses history navigation commands", () => {
     expect(parseCommand("nav_back")).toEqual({
       ok: true,
@@ -76,9 +95,9 @@ describe("parseCommand - simple actions", () => {
       ok: true,
       action: { type: "SELECT_ALL" },
     });
-    expect(parseCommand("select_all_column")).toEqual({
+    expect(parseCommand("select_all_siblings")).toEqual({
       ok: true,
-      action: { type: "SELECT_ALL_COLUMN" },
+      action: { type: "SELECT_ALL_SIBLINGS" },
     });
     expect(parseCommand("clear_selection")).toEqual({
       ok: true,
@@ -95,6 +114,21 @@ describe("parseCommand - simple actions", () => {
       ok: true,
       action: { type: "TOGGLE_HELP_MODE" },
     });
+    expect(parseCommand("toggle_detail_pane")).toEqual({
+      ok: true,
+      action: { type: "TOGGLE_DETAIL_PANE" },
+    });
+  });
+
+  it("parses outline depth commands", () => {
+    expect(parseCommand("increase_outline_depth")).toEqual({
+      ok: true,
+      action: { type: "INCREASE_OUTLINE_DEPTH" },
+    });
+    expect(parseCommand("decrease_outline_depth")).toEqual({
+      ok: true,
+      action: { type: "DECREASE_OUTLINE_DEPTH" },
+    });
   });
 
   it("is case insensitive", () => {
@@ -110,86 +144,69 @@ describe("parseCommand - simple actions", () => {
 });
 
 describe("parseCommand - parameterized actions", () => {
-  it("parses toggle_fold with cardId", () => {
-    expect(parseCommand("toggle_fold card-123")).toEqual({
+  it("parses toggle_fold with nodeId", () => {
+    expect(parseCommand("toggle_fold node-123")).toEqual({
       ok: true,
-      action: { type: "TOGGLE_FOLD", cardId: "card-123" },
+      action: { type: "TOGGLE_FOLD", nodeId: "node-123" },
     });
   });
 
-  it("requires cardId for toggle_fold", () => {
+  it("requires nodeId for toggle_fold", () => {
     const result = parseCommand("toggle_fold");
     expect(result.ok).toBe(false);
   });
 
-  it("parses fold_column with index", () => {
-    expect(parseCommand("fold_column 0")).toEqual({
+  it("parses toggle_collapse with nodeId", () => {
+    expect(parseCommand("toggle_collapse node-abc")).toEqual({
       ok: true,
-      action: { type: "FOLD_COLUMN", colIndex: 0 },
-    });
-    expect(parseCommand("fold_column 2")).toEqual({
-      ok: true,
-      action: { type: "FOLD_COLUMN", colIndex: 2 },
+      action: { type: "TOGGLE_COLLAPSE", nodeId: "node-abc" },
     });
   });
 
-  it("parses unfold_column with index", () => {
-    expect(parseCommand("unfold_column 1")).toEqual({
+  it("parses fold_level with depth", () => {
+    expect(parseCommand("fold_level 0")).toEqual({
       ok: true,
-      action: { type: "UNFOLD_COLUMN", colIndex: 1 },
+      action: { type: "FOLD_LEVEL", depth: 0 },
+    });
+    expect(parseCommand("fold_level 2")).toEqual({
+      ok: true,
+      action: { type: "FOLD_LEVEL", depth: 2 },
     });
   });
 
-  it("parses toggle_collapse with index", () => {
-    expect(parseCommand("toggle_collapse 0")).toEqual({
+  it("parses unfold_level with depth", () => {
+    expect(parseCommand("unfold_level 1")).toEqual({
       ok: true,
-      action: { type: "TOGGLE_COLLAPSE", colIndex: 0 },
+      action: { type: "UNFOLD_LEVEL", depth: 1 },
     });
   });
 
-  it("parses select_card with col and card indices", () => {
-    expect(parseCommand("select_card 1 2")).toEqual({
+  it("parses nav_to_path with path", () => {
+    expect(parseCommand("nav_to_path 0,1,2")).toEqual({
       ok: true,
-      action: { type: "SELECT_CARD", col: 1, card: 2 },
+      action: { type: "NAV_TO_PATH", path: [0, 1, 2] },
     });
   });
 
-  it("parses select_card_add with nodeId", () => {
-    expect(parseCommand("select_card_add node-xyz")).toEqual({
+  it("parses select_position with path", () => {
+    expect(parseCommand("select_position 1,2")).toEqual({
       ok: true,
-      action: { type: "SELECT_CARD_ADD", nodeId: "node-xyz" },
+      action: { type: "SELECT_POSITION", path: [1, 2] },
     });
   });
 
-  it("parses select_card_toggle with nodeId", () => {
-    expect(parseCommand("select_card_toggle node-abc")).toEqual({
+  it("parses select_node_add with nodeId", () => {
+    expect(parseCommand("select_node_add node-xyz")).toEqual({
       ok: true,
-      action: { type: "SELECT_CARD_TOGGLE", nodeId: "node-abc" },
+      action: { type: "SELECT_NODE_ADD", nodeId: "node-xyz" },
     });
   });
 
-  it("parses set_view_mode with valid mode", () => {
-    expect(parseCommand("set_view_mode cards")).toEqual({
+  it("parses select_node_toggle with nodeId", () => {
+    expect(parseCommand("select_node_toggle node-abc")).toEqual({
       ok: true,
-      action: { type: "SET_VIEW_MODE", mode: "cards" },
+      action: { type: "SELECT_NODE_TOGGLE", nodeId: "node-abc" },
     });
-    expect(parseCommand("set_view_mode list")).toEqual({
-      ok: true,
-      action: { type: "SET_VIEW_MODE", mode: "list" },
-    });
-    expect(parseCommand("set_view_mode columns")).toEqual({
-      ok: true,
-      action: { type: "SET_VIEW_MODE", mode: "columns" },
-    });
-    expect(parseCommand("set_view_mode tabs")).toEqual({
-      ok: true,
-      action: { type: "SET_VIEW_MODE", mode: "tabs" },
-    });
-  });
-
-  it("rejects invalid view mode", () => {
-    const result = parseCommand("set_view_mode invalid");
-    expect(result.ok).toBe(false);
   });
 
   it("parses set_search_query with text", () => {
@@ -254,9 +271,9 @@ describe("parseCommand - JSON mode", () => {
   });
 
   it("parses JSON actions with parameters", () => {
-    expect(parseCommand('{"type": "TOGGLE_FOLD", "cardId": "abc"}')).toEqual({
+    expect(parseCommand('{"type": "TOGGLE_FOLD", "nodeId": "abc"}')).toEqual({
       ok: true,
-      action: { type: "TOGGLE_FOLD", cardId: "abc" },
+      action: { type: "TOGGLE_FOLD", nodeId: "abc" },
     });
   });
 
@@ -338,6 +355,7 @@ describe("getCommandNames", () => {
     expect(Array.isArray(names)).toBe(true);
     expect(names).toContain("move_up");
     expect(names).toContain("move_down");
+    expect(names).toContain("nav_prev_sibling");
     expect(names).toContain("state");
     expect(names).toContain("quit");
     expect(names).toContain("toggle_fold");

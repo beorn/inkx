@@ -1,53 +1,60 @@
 /**
- * @km/tui
+ * @km/tui-core
  *
  * Shareable TUI state management and view models for km.
  * Pure TypeScript - no React, no renderer dependencies.
  *
- * Use in:
- * - apps/km-cli/src/tui2/ (OpenTUI renderer)
- * - apps/km-web/ (future React DOM renderer)
+ * Uses a generic tree model with path-based navigation.
  */
 
 // Types
 export type {
-  // State types
-  BoardState,
-  BoardAction,
-  ColumnState,
-  CardState,
+  // Base types
   TaskStatus,
   ViewMode,
-  NavHistoryEntry,
+  CursorPath,
+  // State types
+  TreeState,
+  TreeAction,
+  TreeNodeState,
+  // View configuration
+  ViewLevelConfig,
   // ViewModel types
-  CardViewModel,
-  ColumnViewModel,
-  BoardViewModel,
+  NodeViewModel,
+  TreeViewModel,
 } from "./types.ts";
 
+// View level presets
+export { VIEW_LEVEL_PRESETS } from "./types.ts";
+
 // Reducer
-export { boardReducer, createInitialBoardState } from "./boardReducer.ts";
+export {
+  treeReducer,
+  createInitialTreeState,
+  getNodeAtPath,
+  getSiblingCount,
+} from "./treeReducer.ts";
 
 // Selectors
 export {
-  getCurrentColumn,
-  getCurrentCard,
-  canMoveUp,
-  canMoveDown,
-  canMoveLeft,
-  canMoveRight,
-  isCardFolded,
-  isColumnCollapsed,
-  getTotalCardCount,
-  isColumnOverWipLimit,
+  getCurrentNode,
+  getParentNode,
+  getSiblings,
+  getCurrentIndex,
+  canNavigateUp,
+  canNavigateDown,
+  canNavigateParent,
+  canNavigateChild,
+  isNodeFolded,
+  isNodeCollapsed,
+  getTotalNodeCount,
+  getTopLevelCount,
+  getCursorDepth,
+  getBreadcrumbs,
 } from "./selectors.ts";
 
 // Transformers
-export {
-  toCardViewModel,
-  toColumnViewModel,
-  toBoardViewModel,
-} from "./transformers.ts";
+export { toNodeViewModel, toTreeViewModel } from "./transformers.ts";
 
 // Command Parser (for km-sh)
 export {
@@ -62,7 +69,7 @@ export type { ParseResult, ShellCommand } from "./commandParser.ts";
 export {
   runShell,
   executeCommand,
-  executeBoardAction,
+  executeTreeAction,
   executeShellCommand,
   serializeState,
   formatStateHuman,

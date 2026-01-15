@@ -38,11 +38,7 @@ interface DetailPaneProps {
   width?: number;
 }
 
-export function DetailPane({
-  node,
-  childCount,
-  width = 40,
-}: DetailPaneProps) {
+export function DetailPane({ node, childCount, width = 40 }: DetailPaneProps) {
   // Content width inside the pane (accounting for padding and border)
   const contentWidth = width - 4;
 
@@ -107,8 +103,12 @@ export function DetailPane({
   const titleLines = wrapText(title, contentWidth);
 
   // Wrap content for display (limit to 10 lines)
-  const contentLines = content ? wrapText(content, contentWidth).slice(0, 10) : [];
-  const contentTruncated = content ? wrapText(content, contentWidth).length > 10 : false;
+  const contentLines = content
+    ? wrapText(content, contentWidth).slice(0, 10)
+    : [];
+  const contentTruncated = content
+    ? wrapText(content, contentWidth).length > 10
+    : false;
 
   return (
     <box
@@ -147,7 +147,9 @@ export function DetailPane({
       {statusConfig && (
         <box paddingLeft={1} paddingTop={1}>
           <text dimColor>Status: </text>
-          <text color={statusConfig.color as "gray" | "yellow" | "red" | "green"}>
+          <text
+            color={statusConfig.color as "gray" | "yellow" | "red" | "green"}
+          >
             {statusConfig.icon} {statusConfig.label}
           </text>
         </box>

@@ -54,10 +54,7 @@ export interface ShellContext {
 export function serializeState(state: TreeState): SerializedState {
   // Count total nodes recursively
   function countNodes(nodes: TreeState["nodes"]): number {
-    return nodes.reduce(
-      (sum, node) => sum + 1 + countNodes(node.children),
-      0,
-    );
+    return nodes.reduce((sum, node) => sum + 1 + countNodes(node.children), 0);
   }
 
   return {

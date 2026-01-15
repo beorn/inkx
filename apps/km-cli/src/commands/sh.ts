@@ -1,8 +1,8 @@
 /**
  * Shell Command - km sh
  *
- * Non-interactive shell for scripting and debugging TUI2.
- * Reads commands from stdin (or file), executes them against BoardState,
+ * Non-interactive shell for scripting and debugging TUI.
+ * Reads commands from stdin (or file), executes them against TreeState,
  * and outputs trace/state to stdout.
  *
  * Usage:
@@ -18,55 +18,43 @@ import { getRootPath } from "../index.ts";
 import { ensureState, getStore, getChildren, resolveNode } from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
 import {
-  createInitialBoardState,
+  createInitialTreeState,
   runShell,
   serializeState,
-  type ColumnState,
-  type CardState,
+  type TreeNodeState,
   type TaskStatus,
   type OutputEvent,
 } from "@km/tui-core";
 import type { Node } from "@km/core";
 
 /**
- * Convert Node to CardState
+ * Convert Node to TreeNodeState (recursive)
  */
-function nodeToCardState(node: Node): CardState {
+function nodeToTreeNodeState(node: Node, depth: number): TreeNodeState {
   const children = getChildren(node.id);
   return {
     nodeId: node.id,
     title: getNodeDisplayName(node),
+    children: children.map((child) => nodeToTreeNodeState(child, depth + 1)),
     childCount: children.length,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as TaskStatus | undefined,
     color: undefined,
     icon: undefined,
+    depth,
   };
 }
 
 /**
- * Convert Node to ColumnState
+ * Build tree nodes from root
  */
-function nodeToColumnState(node: Node): ColumnState {
-  const children = getChildren(node.id);
-  return {
-    nodeId: node.id,
-    title: getNodeDisplayName(node),
-    cards: children.map(nodeToCardState),
-    wipLimit: undefined,
-  };
-}
-
-/**
- * Build columns from root node
- */
-function buildColumns(rootId: string | null): ColumnState[] {
+function buildNodes(rootId: string | null): TreeNodeState[] {
   if (!rootId) {
     const roots = getChildren(null);
     if (roots.length === 0) {
       return [];
     }
-    return roots.map(nodeToColumnState);
+    return roots.map((node) => nodeToTreeNodeState(node, 0));
   }
 
   const node = resolveNode(rootId);
@@ -75,7 +63,7 @@ function buildColumns(rootId: string | null): ColumnState[] {
   }
 
   const children = getChildren(node.id);
-  return children.map(nodeToColumnState);
+  return children.map((child) => nodeToTreeNodeState(child, 0));
 }
 
 /**
@@ -118,17 +106,15 @@ function parseCommandString(cmdString: string): string[] {
 }
 
 export const shCommand = new Command("sh")
-  .description("Non-interactive shell for scripting and debugging TUI2")
+  .description("Non-interactive shell for scripting and debugging TUI")
   .argument("[root]", "Root node ID to start view from")
   .option("--json", "JSON mode: input and output as NDJSON")
   .option(
     "-c, --command <commands...>",
     "Execute commands (repeatable, semicolon/newline separated)",
   )
-  .option(
-    "-f, --file <path>",
-    "Read commands from file instead of stdin",
-  )
+  .option("-f, --file <path>", "Read commands from file instead of stdin")
+  .option("-v, --verbose", "Output JSON action event for each command")
   .action(async (root, options) => {
     // Get the filesystem root path
     const fsPath = getRootPath() || getStore().rootPath;
@@ -139,22 +125,26 @@ export const shCommand = new Command("sh")
     }
 
     const store = getStore();
-    const columns = buildColumns(root || null);
+    const nodes = buildNodes(root || null);
 
-    if (columns.length === 0) {
+    if (nodes.length === 0) {
       if (options.json) {
         console.log(
-          JSON.stringify({ event: "error", error: "No columns found", ts: Date.now() }),
+          JSON.stringify({
+            event: "error",
+            error: "No nodes found",
+            ts: Date.now(),
+          }),
         );
       } else {
-        console.error("error: No columns found");
+        console.error("error: No nodes found");
       }
       process.exit(1);
     }
 
     // Create initial state
-    const initialState = createInitialBoardState(
-      columns,
+    const initialState = createInitialTreeState(
+      nodes,
       root || null,
       store.rootPath,
     );
@@ -181,6 +171,7 @@ export const shCommand = new Command("sh")
     // Run the shell
     const finalState = runShell(lines, initialState, {
       jsonMode: options.json ?? false,
+      verbose: options.verbose ?? false,
       output,
     });
 

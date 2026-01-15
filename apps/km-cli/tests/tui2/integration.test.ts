@@ -11,98 +11,85 @@ import { describe, it, expect } from "bun:test";
 
 // Import from @km/tui-core - the shared state management layer
 import {
-  boardReducer,
-  createInitialBoardState,
-  getCurrentColumn,
-  getCurrentCard,
-  canMoveUp,
-  canMoveDown,
-  canMoveLeft,
-  canMoveRight,
-  isCardFolded,
-  isColumnCollapsed,
-  getTotalCardCount,
-  toCardViewModel,
-  toColumnViewModel,
-  toBoardViewModel,
+  treeReducer,
+  createInitialTreeState,
+  getCurrentNode,
+  getParentNode,
+  getSiblings,
+  canNavigateUp,
+  canNavigateDown,
+  canNavigateParent,
+  canNavigateChild,
+  isNodeFolded,
+  isNodeCollapsed,
+  getTotalNodeCount,
+  toNodeViewModel,
+  toTreeViewModel,
 } from "@km/tui-core";
 
-import type {
-  BoardState,
-  ColumnState,
-  CardState,
-  BoardAction,
-  ViewMode,
-} from "@km/tui-core";
+import type { TreeState, TreeNodeState } from "@km/tui-core";
 
 // ============================================================================
 // Test Helpers
 // ============================================================================
 
 /**
- * Create a mock card state for testing
+ * Create a mock node state for testing
  */
-function mockCard(
+function mockNode(
   id: string,
   title: string,
-  options: Partial<CardState> = {},
-): CardState {
+  children: TreeNodeState[] = [],
+  options: Partial<TreeNodeState> = {},
+): TreeNodeState {
   return {
     nodeId: id,
     title,
-    childCount: 0,
+    children,
+    childCount: children.length,
     isTask: true,
+    depth: 0,
     ...options,
   };
 }
 
 /**
- * Create a mock column state for testing
+ * Create a sample tree state for testing (mimics board/column/card structure)
  */
-function mockColumn(
-  id: string,
-  title: string,
-  cards: CardState[],
-  wipLimit?: number,
-): ColumnState {
-  return {
-    nodeId: id,
-    title,
-    cards,
-    wipLimit,
-  };
-}
-
-/**
- * Create a sample board state for testing
- */
-function createTestBoard(): BoardState {
-  const todoCards = [
-    mockCard("card-1", "Setup CI pipeline", { taskStatus: "todo" }),
-    mockCard("card-2", "Write documentation", { taskStatus: "todo" }),
-    mockCard("card-3", "Review PR", { taskStatus: "todo" }),
+function createTestTree(): TreeState {
+  const todoItems = [
+    mockNode("item-1", "Setup CI pipeline", [], {
+      taskStatus: "todo",
+      depth: 1,
+    }),
+    mockNode("item-2", "Write documentation", [], {
+      taskStatus: "todo",
+      depth: 1,
+    }),
+    mockNode("item-3", "Review PR", [], { taskStatus: "todo", depth: 1 }),
   ];
 
-  const wipCards = [
-    mockCard("card-4", "Implement auth", {
+  const wipItems = [
+    mockNode("item-4", "Implement auth", [], {
       taskStatus: "wip",
+      depth: 1,
       childCount: 3,
     }),
-    mockCard("card-5", "Fix bug #42", { taskStatus: "wip" }),
+    mockNode("item-5", "Fix bug #42", [], { taskStatus: "wip", depth: 1 }),
   ];
 
-  const doneCards = [
-    mockCard("card-6", "Initial setup", { taskStatus: "done" }),
-    mockCard("card-7", "Add tests", { taskStatus: "done" }),
+  const doneItems = [
+    mockNode("item-6", "Initial setup", [], { taskStatus: "done", depth: 1 }),
+    mockNode("item-7", "Add tests", [], { taskStatus: "done", depth: 1 }),
   ];
 
-  const columns: ColumnState[] = [
-    mockColumn("col-todo", "Todo", todoCards),
-    mockColumn("col-wip", "In Progress", wipCards, 3), // WIP limit of 3
-    mockColumn("col-done", "Done", doneCards),
+  const nodes: TreeNodeState[] = [
+    mockNode("col-todo", "Todo", todoItems, { depth: 0 }),
+    mockNode("col-wip", "In Progress", wipItems, { depth: 0 }),
+    mockNode("col-done", "Done", doneItems, { depth: 0 }),
   ];
 
-  return createInitialBoardState(columns, "board-root", "/test/vault");
+  return createInitialTreeState(nodes, "tree-root", "/test/vault");
 }
 
 // ============================================================================
@@ -110,28 +97,26 @@ function createTestBoard(): BoardState {
 // ============================================================================
 
 describe("TUI2 Integration: State Management", () => {
-  describe("createInitialBoardState", () => {
-    it("creates state with columns", () => {
-      const state = createTestBoard();
+  describe("createInitialTreeState", () => {
+    it("creates state with nodes", () => {
+      const state = createTestTree();
 
-      expect(state.columns).toHaveLength(3);
-      expect(state.colIndex).toBe(0);
-      expect(state.cardIndex).toBe(0);
-      expect(state.rootId).toBe("board-root");
+      expect(state.nodes).toHaveLength(3);
+      expect(state.cursor).toEqual([0]); // First top-level node
+      expect(state.rootId).toBe("tree-root");
       expect(state.rootPath).toBe("/test/vault");
     });
 
     it("initializes selection state correctly", () => {
-      const state = createTestBoard();
+      const state = createTestTree();
 
-      expect(state.selectedCards.size).toBe(0);
-      expect(state.visualMode).toBe(false);
-      expect(state.foldedCards.size).toBe(0);
-      expect(state.collapsedColumns.size).toBe(0);
+      expect(state.selectedNodes.size).toBe(0);
+      expect(state.foldedNodes.size).toBe(0);
+      expect(state.collapsedNodes.size).toBe(0);
     });
 
     it("initializes search state correctly", () => {
-      const state = createTestBoard();
+      const state = createTestTree();
 
       expect(state.searchQuery).toBe("");
       expect(state.searchMode).toBe(false);
@@ -139,133 +124,130 @@ describe("TUI2 Integration: State Management", () => {
     });
   });
 
-  describe("boardReducer navigation", () => {
-    it("MOVE_DOWN increments cardIndex", () => {
-      const state = createTestBoard();
-      const newState = boardReducer(state, { type: "MOVE_DOWN" });
+  describe("treeReducer navigation", () => {
+    it("MOVE_DOWN moves to next sibling at same level", () => {
+      const state = createTestTree();
+      const newState = treeReducer(state, { type: "MOVE_DOWN" });
 
-      expect(newState.cardIndex).toBe(1);
-      expect(newState.colIndex).toBe(0); // Column unchanged
+      expect(newState.cursor).toEqual([1]); // Second top-level node
     });
 
-    it("MOVE_UP decrements cardIndex", () => {
-      const state = { ...createTestBoard(), cardIndex: 2 };
-      const newState = boardReducer(state, { type: "MOVE_UP" });
+    it("MOVE_UP moves to previous sibling at same level", () => {
+      const state = { ...createTestTree(), cursor: [2] };
+      const newState = treeReducer(state, { type: "MOVE_UP" });
 
-      expect(newState.cardIndex).toBe(1);
+      expect(newState.cursor).toEqual([1]);
     });
 
-    it("MOVE_RIGHT increments colIndex and resets cardIndex", () => {
-      const state = { ...createTestBoard(), cardIndex: 2 };
-      const newState = boardReducer(state, { type: "MOVE_RIGHT" });
+    it("NAV_CHILD drills into children", () => {
+      const state = createTestTree();
+      const newState = treeReducer(state, { type: "NAV_CHILD" });
 
-      expect(newState.colIndex).toBe(1);
-      expect(newState.cardIndex).toBe(0); // Reset to first card
+      expect(newState.cursor).toEqual([0, 0]); // First child of first node
     });
 
-    it("MOVE_LEFT decrements colIndex and resets cardIndex", () => {
-      const state = { ...createTestBoard(), colIndex: 2, cardIndex: 1 };
-      const newState = boardReducer(state, { type: "MOVE_LEFT" });
+    it("NAV_PARENT goes up one level", () => {
+      const state = { ...createTestTree(), cursor: [0, 1] };
+      const newState = treeReducer(state, { type: "NAV_PARENT" });
 
-      expect(newState.colIndex).toBe(1);
-      expect(newState.cardIndex).toBe(0);
+      expect(newState.cursor).toEqual([0]);
     });
 
-    it("JUMP_TOP goes to first card", () => {
-      const state = { ...createTestBoard(), cardIndex: 2 };
-      const newState = boardReducer(state, { type: "JUMP_TOP" });
+    it("JUMP_TOP goes to first sibling", () => {
+      const state = { ...createTestTree(), cursor: [2] };
+      const newState = treeReducer(state, { type: "JUMP_TOP" });
 
-      expect(newState.cardIndex).toBe(0);
+      expect(newState.cursor).toEqual([0]);
     });
 
-    it("JUMP_BOTTOM goes to last card", () => {
-      const state = createTestBoard();
-      const newState = boardReducer(state, { type: "JUMP_BOTTOM" });
+    it("JUMP_BOTTOM goes to last sibling", () => {
+      const state = createTestTree();
+      const newState = treeReducer(state, { type: "JUMP_BOTTOM" });
 
-      expect(newState.cardIndex).toBe(2); // 3 cards in Todo column
+      expect(newState.cursor).toEqual([2]); // Last top-level node
     });
   });
 
-  describe("boardReducer boundaries", () => {
-    it("MOVE_UP at top stays at top", () => {
-      const state = createTestBoard(); // cardIndex = 0
-      const newState = boardReducer(state, { type: "MOVE_UP" });
+  describe("treeReducer boundaries", () => {
+    it("MOVE_UP at first sibling stays", () => {
+      const state = createTestTree(); // cursor = [0]
+      const newState = treeReducer(state, { type: "MOVE_UP" });
 
-      expect(newState.cardIndex).toBe(0);
+      expect(newState.cursor).toEqual([0]);
     });
 
-    it("MOVE_DOWN at bottom stays at bottom", () => {
-      const state = { ...createTestBoard(), cardIndex: 2 }; // last card
-      const newState = boardReducer(state, { type: "MOVE_DOWN" });
+    it("MOVE_DOWN at last sibling stays", () => {
+      const state = { ...createTestTree(), cursor: [2] }; // last node
+      const newState = treeReducer(state, { type: "MOVE_DOWN" });
 
-      expect(newState.cardIndex).toBe(2);
+      expect(newState.cursor).toEqual([2]);
     });
 
-    it("MOVE_LEFT at leftmost stays", () => {
-      const state = createTestBoard(); // colIndex = 0
-      const newState = boardReducer(state, { type: "MOVE_LEFT" });
+    it("NAV_PARENT at top level stays", () => {
+      const state = createTestTree(); // cursor = [0]
+      const newState = treeReducer(state, { type: "NAV_PARENT" });
 
-      expect(newState.colIndex).toBe(0);
+      expect(newState.cursor).toEqual([0]);
     });
 
-    it("MOVE_RIGHT at rightmost stays", () => {
-      const state = { ...createTestBoard(), colIndex: 2 }; // last column
-      const newState = boardReducer(state, { type: "MOVE_RIGHT" });
+    it("NAV_CHILD on leaf node stays", () => {
+      const state = { ...createTestTree(), cursor: [0, 0] }; // leaf node
+      const newState = treeReducer(state, { type: "NAV_CHILD" });
 
-      expect(newState.colIndex).toBe(2);
+      expect(newState.cursor).toEqual([0, 0]);
     });
   });
 
-  describe("boardReducer folding and collapse", () => {
-    it("TOGGLE_FOLD adds card to foldedCards", () => {
-      const state = createTestBoard();
-      const newState = boardReducer(state, {
+  describe("treeReducer folding and collapse", () => {
+    it("TOGGLE_FOLD adds node to foldedNodes", () => {
+      const state = createTestTree();
+      const newState = treeReducer(state, {
         type: "TOGGLE_FOLD",
-        cardId: "card-4",
+        nodeId: "item-4",
       });
 
-      expect(newState.foldedCards.has("card-4")).toBe(true);
+      expect(newState.foldedNodes.has("item-4")).toBe(true);
     });
 
-    it("TOGGLE_FOLD removes card from foldedCards when already folded", () => {
-      const state = createTestBoard();
-      state.foldedCards.add("card-4");
+    it("TOGGLE_FOLD removes node from foldedNodes when already folded", () => {
+      const state = createTestTree();
+      state.foldedNodes.add("item-4");
 
-      const newState = boardReducer(state, {
+      const newState = treeReducer(state, {
         type: "TOGGLE_FOLD",
-        cardId: "card-4",
+        nodeId: "item-4",
       });
 
-      expect(newState.foldedCards.has("card-4")).toBe(false);
+      expect(newState.foldedNodes.has("item-4")).toBe(false);
     });
 
-    it("TOGGLE_COLLAPSE adds column to collapsedColumns", () => {
-      const state = createTestBoard();
-      const newState = boardReducer(state, {
+    it("TOGGLE_COLLAPSE adds node to collapsedNodes", () => {
+      const state = createTestTree();
+      const newState = treeReducer(state, {
         type: "TOGGLE_COLLAPSE",
-        colIndex: 1,
+        nodeId: "col-wip",
       });
 
-      expect(newState.collapsedColumns.has(1)).toBe(true);
+      expect(newState.collapsedNodes.has("col-wip")).toBe(true);
     });
 
-    it("TOGGLE_COLLAPSE removes column when already collapsed", () => {
-      const state = createTestBoard();
-      state.collapsedColumns.add(1);
+    it("TOGGLE_COLLAPSE removes node when already collapsed", () => {
+      const state = createTestTree();
+      state.collapsedNodes.add("col-wip");
 
-      const newState = boardReducer(state, {
+      const newState = treeReducer(state, {
         type: "TOGGLE_COLLAPSE",
-        colIndex: 1,
+        nodeId: "col-wip",
       });
 
-      expect(newState.collapsedColumns.has(1)).toBe(false);
+      expect(newState.collapsedNodes.has("col-wip")).toBe(false);
     });
   });
 
-  describe("boardReducer search and modes", () => {
+  describe("treeReducer search and modes", () => {
     it("SET_SEARCH_QUERY updates query", () => {
-      const state = createTestBoard();
-      const newState = boardReducer(state, {
+      const state = createTestTree();
+      const newState = treeReducer(state, {
         type: "SET_SEARCH_QUERY",
         query: "test",
       });
@@ -274,32 +256,109 @@ describe("TUI2 Integration: State Management", () => {
     });
 
     it("TOGGLE_SEARCH_MODE enables search", () => {
-      const state = createTestBoard();
-      const newState = boardReducer(state, { type: "TOGGLE_SEARCH_MODE" });
+      const state = createTestTree();
+      const newState = treeReducer(state, { type: "TOGGLE_SEARCH_MODE" });
 
       expect(newState.searchMode).toBe(true);
     });
 
     it("TOGGLE_SEARCH_MODE disables search and clears query", () => {
       const state = {
-        ...createTestBoard(),
+        ...createTestTree(),
         searchMode: true,
         searchQuery: "test",
       };
-      const newState = boardReducer(state, { type: "TOGGLE_SEARCH_MODE" });
+      const newState = treeReducer(state, { type: "TOGGLE_SEARCH_MODE" });
 
       expect(newState.searchMode).toBe(false);
       expect(newState.searchQuery).toBe("");
     });
 
     it("TOGGLE_HELP_MODE toggles help", () => {
-      const state = createTestBoard();
-      const newState = boardReducer(state, { type: "TOGGLE_HELP_MODE" });
+      const state = createTestTree();
+      const newState = treeReducer(state, { type: "TOGGLE_HELP_MODE" });
 
       expect(newState.helpMode).toBe(true);
+    });
+  });
 
-      const newState2 = boardReducer(newState, { type: "TOGGLE_HELP_MODE" });
-      expect(newState2.helpMode).toBe(false);
+  describe("treeReducer selection", () => {
+    it("SELECT_NODE_ADD adds node to selection", () => {
+      const state = createTestTree();
+      const newState = treeReducer(state, {
+        type: "SELECT_NODE_ADD",
+        nodeId: "item-1",
+      });
+
+      expect(newState.selectedNodes.has("item-1")).toBe(true);
+    });
+
+    it("SELECT_NODE_REMOVE removes node from selection", () => {
+      const state = createTestTree();
+      state.selectedNodes.add("item-1");
+
+      const newState = treeReducer(state, {
+        type: "SELECT_NODE_REMOVE",
+        nodeId: "item-1",
+      });
+
+      expect(newState.selectedNodes.has("item-1")).toBe(false);
+    });
+
+    it("SELECT_NODE_TOGGLE toggles selection", () => {
+      const state = createTestTree();
+      const state1 = treeReducer(state, {
+        type: "SELECT_NODE_TOGGLE",
+        nodeId: "item-1",
+      });
+      expect(state1.selectedNodes.has("item-1")).toBe(true);
+
+      const state2 = treeReducer(state1, {
+        type: "SELECT_NODE_TOGGLE",
+        nodeId: "item-1",
+      });
+      expect(state2.selectedNodes.has("item-1")).toBe(false);
+    });
+
+    it("CLEAR_SELECTION clears all selections", () => {
+      const state = createTestTree();
+      state.selectedNodes.add("item-1");
+      state.selectedNodes.add("item-2");
+
+      const newState = treeReducer(state, { type: "CLEAR_SELECTION" });
+
+      expect(newState.selectedNodes.size).toBe(0);
+    });
+
+    it("SELECT_ALL selects all nodes recursively", () => {
+      const state = createTestTree();
+      const newState = treeReducer(state, { type: "SELECT_ALL" });
+
+      // 3 top-level nodes + 3 todo items + 2 wip items + 2 done items = 10
+      expect(newState.selectedNodes.size).toBe(10);
+    });
+  });
+
+  describe("treeReducer outline depth", () => {
+    it("INCREASE_OUTLINE_DEPTH increments depth", () => {
+      const state = { ...createTestTree(), maxOutlineDepth: 2 };
+      const newState = treeReducer(state, { type: "INCREASE_OUTLINE_DEPTH" });
+
+      expect(newState.maxOutlineDepth).toBe(3);
+    });
+
+    it("DECREASE_OUTLINE_DEPTH decrements depth", () => {
+      const state = { ...createTestTree(), maxOutlineDepth: 2 };
+      const newState = treeReducer(state, { type: "DECREASE_OUTLINE_DEPTH" });
+
+      expect(newState.maxOutlineDepth).toBe(1);
+    });
+
+    it("DECREASE_OUTLINE_DEPTH does not go below 0", () => {
+      const state = { ...createTestTree(), maxOutlineDepth: 0 };
+      const newState = treeReducer(state, { type: "DECREASE_OUTLINE_DEPTH" });
+
+      expect(newState.maxOutlineDepth).toBe(0);
     });
   });
 });
@@ -309,109 +368,126 @@ describe("TUI2 Integration: State Management", () => {
 // ============================================================================
 
 describe("TUI2 Integration: Selectors", () => {
-  describe("getCurrentColumn", () => {
-    it("returns current column", () => {
-      const state = createTestBoard();
-      const column = getCurrentColumn(state);
+  describe("getCurrentNode", () => {
+    it("returns the node at cursor", () => {
+      const state = createTestTree();
+      const node = getCurrentNode(state);
 
-      expect(column).not.toBeNull();
-      expect(column?.title).toBe("Todo");
+      expect(node?.nodeId).toBe("col-todo");
     });
 
-    it("returns null for invalid colIndex", () => {
-      const state = { ...createTestBoard(), colIndex: 99 };
-      const column = getCurrentColumn(state);
+    it("returns nested node at path", () => {
+      const state = { ...createTestTree(), cursor: [0, 1] };
+      const node = getCurrentNode(state);
 
-      expect(column).toBeNull();
+      expect(node?.nodeId).toBe("item-2");
+    });
+
+    it("returns null for empty cursor", () => {
+      const state = { ...createTestTree(), cursor: [] };
+      const node = getCurrentNode(state);
+
+      expect(node).toBeNull();
     });
   });
 
-  describe("getCurrentCard", () => {
-    it("returns current card", () => {
-      const state = createTestBoard();
-      const card = getCurrentCard(state);
+  describe("getParentNode", () => {
+    it("returns parent node", () => {
+      const state = { ...createTestTree(), cursor: [0, 1] };
+      const parent = getParentNode(state);
 
-      expect(card).not.toBeNull();
-      expect(card?.title).toBe("Setup CI pipeline");
+      expect(parent?.nodeId).toBe("col-todo");
     });
 
-    it("returns null for invalid cardIndex", () => {
-      const state = { ...createTestBoard(), cardIndex: 99 };
-      const card = getCurrentCard(state);
+    it("returns null at top level", () => {
+      const state = createTestTree();
+      const parent = getParentNode(state);
 
-      expect(card).toBeNull();
+      expect(parent).toBeNull();
+    });
+  });
+
+  describe("getSiblings", () => {
+    it("returns sibling nodes at current level", () => {
+      const state = { ...createTestTree(), cursor: [0, 1] };
+      const siblings = getSiblings(state);
+
+      expect(siblings).toHaveLength(3); // Todo column has 3 items
+    });
+
+    it("returns top-level nodes when at top level", () => {
+      const state = createTestTree();
+      const siblings = getSiblings(state);
+
+      expect(siblings).toHaveLength(3);
     });
   });
 
   describe("navigation predicates", () => {
-    it("canMoveUp returns true when not at top", () => {
-      const state = { ...createTestBoard(), cardIndex: 1 };
-      expect(canMoveUp(state)).toBe(true);
+    it("canNavigateUp returns false at first sibling", () => {
+      const state = createTestTree();
+      expect(canNavigateUp(state)).toBe(false);
     });
 
-    it("canMoveUp returns false when at top", () => {
-      const state = createTestBoard();
-      expect(canMoveUp(state)).toBe(false);
+    it("canNavigateUp returns true when not at first sibling", () => {
+      const state = { ...createTestTree(), cursor: [1] };
+      expect(canNavigateUp(state)).toBe(true);
     });
 
-    it("canMoveDown returns true when not at bottom", () => {
-      const state = createTestBoard();
-      expect(canMoveDown(state)).toBe(true);
+    it("canNavigateDown returns false at last sibling", () => {
+      const state = { ...createTestTree(), cursor: [2] };
+      expect(canNavigateDown(state)).toBe(false);
     });
 
-    it("canMoveDown returns false when at bottom", () => {
-      const state = { ...createTestBoard(), cardIndex: 2 };
-      expect(canMoveDown(state)).toBe(false);
+    it("canNavigateDown returns true when not at last sibling", () => {
+      const state = createTestTree();
+      expect(canNavigateDown(state)).toBe(true);
     });
 
-    it("canMoveLeft returns true when not at left edge", () => {
-      const state = { ...createTestBoard(), colIndex: 1 };
-      expect(canMoveLeft(state)).toBe(true);
+    it("canNavigateParent returns false at top level", () => {
+      const state = createTestTree();
+      expect(canNavigateParent(state)).toBe(false);
     });
 
-    it("canMoveLeft returns false when at left edge", () => {
-      const state = createTestBoard();
-      expect(canMoveLeft(state)).toBe(false);
+    it("canNavigateParent returns true when nested", () => {
+      const state = { ...createTestTree(), cursor: [0, 0] };
+      expect(canNavigateParent(state)).toBe(true);
     });
 
-    it("canMoveRight returns true when not at right edge", () => {
-      const state = createTestBoard();
-      expect(canMoveRight(state)).toBe(true);
+    it("canNavigateChild returns true when node has children", () => {
+      const state = createTestTree(); // First node (col-todo) has children
+      expect(canNavigateChild(state)).toBe(true);
     });
 
-    it("canMoveRight returns false when at right edge", () => {
-      const state = { ...createTestBoard(), colIndex: 2 };
-      expect(canMoveRight(state)).toBe(false);
-    });
-  });
-
-  describe("fold and collapse predicates", () => {
-    it("isCardFolded returns true for folded cards", () => {
-      const state = createTestBoard();
-      state.foldedCards.add("card-4");
-
-      expect(isCardFolded(state, "card-4")).toBe(true);
-      expect(isCardFolded(state, "card-1")).toBe(false);
-    });
-
-    it("isColumnCollapsed returns true for collapsed columns", () => {
-      const state = createTestBoard();
-      state.collapsedColumns.add(1);
-
-      expect(isColumnCollapsed(state, 1)).toBe(true);
-      expect(isColumnCollapsed(state, 0)).toBe(false);
+    it("canNavigateChild returns false for leaf node", () => {
+      const state = { ...createTestTree(), cursor: [0, 0] }; // Leaf node
+      expect(canNavigateChild(state)).toBe(false);
     });
   });
 
-  describe("getTotalCardCount", () => {
-    it("counts all cards across columns", () => {
-      const state = createTestBoard();
-      expect(getTotalCardCount(state)).toBe(7); // 3 + 2 + 2
+  describe("fold/collapse predicates", () => {
+    it("isNodeFolded returns correct state", () => {
+      const state = createTestTree();
+      expect(isNodeFolded(state, "item-4")).toBe(false);
+
+      state.foldedNodes.add("item-4");
+      expect(isNodeFolded(state, "item-4")).toBe(true);
     });
 
-    it("returns 0 for empty board", () => {
-      const state = createInitialBoardState([], null, null);
-      expect(getTotalCardCount(state)).toBe(0);
+    it("isNodeCollapsed returns correct state", () => {
+      const state = createTestTree();
+      expect(isNodeCollapsed(state, "col-wip")).toBe(false);
+
+      state.collapsedNodes.add("col-wip");
+      expect(isNodeCollapsed(state, "col-wip")).toBe(true);
+    });
+  });
+
+  describe("getTotalNodeCount", () => {
+    it("counts all nodes recursively", () => {
+      const state = createTestTree();
+      // 3 top-level + 3 in todo + 2 in wip + 2 in done = 10
+      expect(getTotalNodeCount(state)).toBe(10);
     });
   });
 });
@@ -421,162 +497,223 @@ describe("TUI2 Integration: Selectors", () => {
 // ============================================================================
 
 describe("TUI2 Integration: ViewModels", () => {
-  describe("toCardViewModel", () => {
-    it("transforms card state to view model", () => {
-      const card = mockCard("card-1", "Test Card", {
+  describe("toNodeViewModel", () => {
+    it("transforms TreeNodeState to NodeViewModel", () => {
+      const node = mockNode("test-id", "Test Node", [], {
         taskStatus: "wip",
-        childCount: 2,
+        color: "blue",
       });
-      const vm = toCardViewModel(card, false);
+      const foldedNodes = new Set<string>();
 
-      expect(vm.id).toBe("card-1");
-      expect(vm.title).toBe("Test Card");
-      expect(vm.taskStatus).toBe("wip");
-      expect(vm.childCount).toBe(2);
-      expect(vm.isFolded).toBe(false);
+      const viewModel = toNodeViewModel(node, foldedNodes);
+
+      expect(viewModel.id).toBe("test-id");
+      expect(viewModel.title).toBe("Test Node");
+      expect(viewModel.taskStatus).toBe("wip");
+      expect(viewModel.color).toBe("blue");
+      expect(viewModel.isFolded).toBe(false);
     });
 
-    it("includes fold state", () => {
-      const card = mockCard("card-1", "Test Card");
-      const vm = toCardViewModel(card, true);
+    it("reflects folded state in viewModel", () => {
+      const node = mockNode("test-id", "Test Node");
+      const foldedNodes = new Set<string>(["test-id"]);
 
-      expect(vm.isFolded).toBe(true);
-    });
-  });
+      const viewModel = toNodeViewModel(node, foldedNodes);
 
-  describe("toColumnViewModel", () => {
-    it("transforms column state to view model", () => {
-      const cards = [mockCard("c1", "Card 1"), mockCard("c2", "Card 2")];
-      const column = mockColumn("col-1", "Todo", cards, 5);
-      const vm = toColumnViewModel(column, new Set(), false);
-
-      expect(vm.id).toBe("col-1");
-      expect(vm.title).toBe("Todo");
-      expect(vm.count).toBe(2);
-      expect(vm.wipLimit).toBe(5);
-      expect(vm.isOverLimit).toBe(false);
-      expect(vm.isCollapsed).toBe(false);
-      expect(vm.cards).toHaveLength(2);
+      expect(viewModel.isFolded).toBe(true);
     });
 
-    it("marks column over WIP limit", () => {
-      const cards = [
-        mockCard("c1", "Card 1"),
-        mockCard("c2", "Card 2"),
-        mockCard("c3", "Card 3"),
-      ];
-      const column = mockColumn("col-1", "WIP", cards, 2);
-      const vm = toColumnViewModel(column, new Set(), false);
+    it("transforms children recursively", () => {
+      const child = mockNode("child-id", "Child Node", [], { depth: 1 });
+      const parent = mockNode("parent-id", "Parent Node", [child]);
+      const foldedNodes = new Set<string>();
 
-      expect(vm.isOverLimit).toBe(true);
-    });
+      const viewModel = toNodeViewModel(parent, foldedNodes);
 
-    it("propagates fold state to cards", () => {
-      const cards = [mockCard("c1", "Card 1"), mockCard("c2", "Card 2")];
-      const column = mockColumn("col-1", "Todo", cards);
-      const foldedCards = new Set(["c1"]);
-      const vm = toColumnViewModel(column, foldedCards, false);
-
-      expect(vm.cards[0].isFolded).toBe(true);
-      expect(vm.cards[1].isFolded).toBe(false);
+      expect(viewModel.children).toHaveLength(1);
+      expect(viewModel.children[0]?.id).toBe("child-id");
     });
   });
 
-  describe("toBoardViewModel", () => {
-    it("transforms full board state", () => {
-      const state = createTestBoard();
-      const vm = toBoardViewModel(state, "cards");
+  describe("toTreeViewModel", () => {
+    it("transforms TreeState to TreeViewModel", () => {
+      const state = createTestTree();
+      const viewModel = toTreeViewModel(state, "cards");
 
-      expect(vm.rootPath).toBe("/test/vault");
-      expect(vm.columns).toHaveLength(3);
-      expect(vm.selectedCol).toBe(0);
-      expect(vm.selectedCard).toBe(0);
-      expect(vm.viewMode).toBe("cards");
-      expect(vm.searchMode).toBe(false);
-      expect(vm.helpMode).toBe(false);
+      expect(viewModel.rootPath).toBe("/test/vault");
+      expect(viewModel.nodes).toHaveLength(3);
+      expect(viewModel.cursor).toEqual([0]);
+      expect(viewModel.viewMode).toBe("cards");
     });
 
-    it("includes search state", () => {
+    it("applies search filter", () => {
+      const state = { ...createTestTree(), searchQuery: "Todo" };
+      const viewModel = toTreeViewModel(state, "cards");
+
+      // Only "Todo" column matches
+      expect(viewModel.nodes).toHaveLength(1);
+      expect(viewModel.nodes[0]?.title).toBe("Todo");
+    });
+
+    it("preserves search state", () => {
       const state = {
-        ...createTestBoard(),
+        ...createTestTree(),
         searchMode: true,
         searchQuery: "test",
       };
-      const vm = toBoardViewModel(state, "list");
+      const viewModel = toTreeViewModel(state, "cards");
 
-      expect(vm.searchMode).toBe(true);
-      expect(vm.searchQuery).toBe("test");
-    });
-
-    it("includes collapsed columns", () => {
-      const state = createTestBoard();
-      state.collapsedColumns.add(1);
-      const vm = toBoardViewModel(state, "columns");
-
-      expect(vm.columns[0].isCollapsed).toBe(false);
-      expect(vm.columns[1].isCollapsed).toBe(true);
-      expect(vm.columns[2].isCollapsed).toBe(false);
+      expect(viewModel.searchMode).toBe(true);
+      expect(viewModel.searchQuery).toBe("test");
     });
   });
 });
 
 // ============================================================================
-// Full Flow Tests
+// Navigation History Tests
 // ============================================================================
 
-describe("TUI2 Integration: Full Flow", () => {
-  it("navigates through board and produces correct view model", () => {
-    // Start with fresh board
-    let state = createTestBoard();
+describe("TUI2 Integration: Navigation History", () => {
+  it("NAV_TO adds current location to history", () => {
+    const state = createTestTree();
+    const newNodes = [mockNode("new-root", "New Root")];
 
-    // Move right to "In Progress" column
-    state = boardReducer(state, { type: "MOVE_RIGHT" });
-    expect(getCurrentColumn(state)?.title).toBe("In Progress");
+    const newState = treeReducer(state, {
+      type: "NAV_TO",
+      rootId: "new-root",
+      nodes: newNodes,
+      rootPath: "/new/path",
+    });
 
-    // Move down to second card
-    state = boardReducer(state, { type: "MOVE_DOWN" });
-    expect(getCurrentCard(state)?.title).toBe("Fix bug #42");
-
-    // Fold the first card (which has children)
-    state = boardReducer(state, { type: "TOGGLE_FOLD", cardId: "card-4" });
-
-    // Collapse the Done column
-    state = boardReducer(state, { type: "TOGGLE_COLLAPSE", colIndex: 2 });
-
-    // Generate view model
-    const vm = toBoardViewModel(state, "cards");
-
-    // Verify all state changes reflected in view model
-    expect(vm.selectedCol).toBe(1);
-    expect(vm.selectedCard).toBe(1);
-    expect(vm.columns[1].cards[0].isFolded).toBe(true);
-    expect(vm.columns[2].isCollapsed).toBe(true);
+    expect(newState.navHistory).toHaveLength(1);
+    expect(newState.navHistory[0]?.rootId).toBe("tree-root");
   });
 
-  it("handles refresh while preserving selection", () => {
-    let state = createTestBoard();
+  it("NAV_BACK decrements history index", () => {
+    const state = {
+      ...createTestTree(),
+      navHistory: [{ rootId: "old-root", cursor: [0] as number[] }],
+      navHistoryIndex: 1,
+    };
 
-    // Navigate to position
-    state = boardReducer(state, { type: "MOVE_RIGHT" });
-    state = boardReducer(state, { type: "MOVE_DOWN" });
+    const newState = treeReducer(state, { type: "NAV_BACK" });
 
-    // Simulate refresh with updated columns
-    const newCards = [
-      mockCard("card-new-1", "New Card 1"),
-      mockCard("card-new-2", "New Card 2"),
-    ];
-    const newColumns: ColumnState[] = [
-      mockColumn("col-1", "Column 1", newCards),
-      mockColumn("col-2", "Column 2", [mockCard("c", "Card")]),
-    ];
+    expect(newState.navHistoryIndex).toBe(0);
+  });
 
-    state = boardReducer(state, { type: "REFRESH", columns: newColumns });
+  it("NAV_BACK does nothing when at start", () => {
+    const state = createTestTree();
 
-    // Selection should be clamped to valid range
-    expect(state.columns).toHaveLength(2);
-    expect(state.colIndex).toBeLessThanOrEqual(1);
-    expect(state.cardIndex).toBeLessThanOrEqual(
-      state.columns[state.colIndex]?.cards.length - 1 ?? 0,
-    );
+    const newState = treeReducer(state, { type: "NAV_BACK" });
+
+    expect(newState.navHistoryIndex).toBe(0);
+  });
+
+  it("NAV_FORWARD increments history index", () => {
+    const state = {
+      ...createTestTree(),
+      navHistory: [
+        { rootId: "root-1", cursor: [0] as number[] },
+        { rootId: "root-2", cursor: [1] as number[] },
+      ],
+      navHistoryIndex: 0,
+    };
+
+    const newState = treeReducer(state, { type: "NAV_FORWARD" });
+
+    expect(newState.navHistoryIndex).toBe(1);
+  });
+});
+
+// ============================================================================
+// Zoom Tests
+// ============================================================================
+
+describe("TUI2 Integration: Zoom", () => {
+  it("ZOOM_IN pushes to zoom stack", () => {
+    const state = createTestTree();
+    const zoomedNodes = [mockNode("zoomed-node", "Zoomed")];
+
+    const newState = treeReducer(state, {
+      type: "ZOOM_IN",
+      nodeId: "col-todo",
+      nodes: zoomedNodes,
+    });
+
+    expect(newState.zoomStack).toHaveLength(1);
+    expect(newState.zoomStack[0]?.rootId).toBe("tree-root");
+    expect(newState.rootId).toBe("col-todo");
+    expect(newState.cursor).toEqual([0]);
+  });
+
+  it("ZOOM_OUT pops from zoom stack", () => {
+    const state = {
+      ...createTestTree(),
+      rootId: "col-todo",
+      zoomStack: [{ rootId: "tree-root", cursor: [0] as number[] }],
+    };
+    const originalNodes = createTestTree().nodes;
+
+    const newState = treeReducer(state, {
+      type: "ZOOM_OUT",
+      nodes: originalNodes,
+    });
+
+    expect(newState.zoomStack).toHaveLength(0);
+    expect(newState.rootId).toBe("tree-root");
+    expect(newState.cursor).toEqual([0]);
+  });
+
+  it("ZOOM_OUT does nothing with empty stack", () => {
+    const state = createTestTree();
+    const newState = treeReducer(state, {
+      type: "ZOOM_OUT",
+      nodes: state.nodes,
+    });
+
+    expect(newState).toEqual(state);
+  });
+});
+
+// ============================================================================
+// Edge Cases and Error Handling
+// ============================================================================
+
+describe("TUI2 Integration: Edge Cases", () => {
+  it("handles empty tree gracefully", () => {
+    const state = createInitialTreeState([], null, null);
+
+    expect(state.nodes).toHaveLength(0);
+    expect(state.cursor).toEqual([]);
+  });
+
+  it("navigation on empty tree is no-op", () => {
+    const state = createInitialTreeState([], null, null);
+
+    const state1 = treeReducer(state, { type: "MOVE_DOWN" });
+    expect(state1.cursor).toEqual([]);
+
+    const state2 = treeReducer(state, { type: "MOVE_UP" });
+    expect(state2.cursor).toEqual([]);
+  });
+
+  it("REFRESH preserves valid cursor", () => {
+    const state = { ...createTestTree(), cursor: [1] };
+    const newState = treeReducer(state, {
+      type: "REFRESH",
+      nodes: state.nodes,
+    });
+
+    expect(newState.cursor).toEqual([1]);
+  });
+
+  it("REFRESH resets invalid cursor", () => {
+    const state = { ...createTestTree(), cursor: [10] }; // Invalid
+    const newState = treeReducer(state, {
+      type: "REFRESH",
+      nodes: state.nodes,
+    });
+
+    expect(newState.cursor).toEqual([0]); // Reset to first
   });
 });
