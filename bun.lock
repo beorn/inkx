@@ -35,6 +35,8 @@
         "@km/markdown": "workspace:*",
         "@km/shared": "workspace:*",
         "@km/store": "workspace:*",
+        "@km/tui-state": "workspace:*",
+        "@km/tui-viewmodels": "workspace:*",
         "@km/watch": "workspace:*",
         "chalk": "^5.4.1",
         "commander": "^13.1.0",
@@ -92,6 +94,15 @@
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
         "@km/query": "workspace:*",
+      },
+    },
+    "packages/km-tui-state": {
+      "name": "@km/tui-state",
+    },
+    "packages/km-tui-viewmodels": {
+      "name": "@km/tui-viewmodels",
+      "dependencies": {
+        "@km/tui-state": "workspace:*",
       },
     },
     "packages/km-watch": {
@@ -246,6 +257,10 @@
     "@km/shared": ["@km/shared@workspace:packages/km-shared"],
 
     "@km/store": ["@km/store@workspace:packages/km-store"],
+
+    "@km/tui-state": ["@km/tui-state@workspace:packages/km-tui-state"],
+
+    "@km/tui-viewmodels": ["@km/tui-viewmodels@workspace:packages/km-tui-viewmodels"],
 
     "@km/watch": ["@km/watch@workspace:packages/km-watch"],
 

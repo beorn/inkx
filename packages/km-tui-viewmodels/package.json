@@ -1,0 +1,13 @@
+{
+  "name": "@km/tui-viewmodels",
+  "description": "Shareable TUI view model transformations",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "@km/tui-state": "workspace:*"
+  }
+}

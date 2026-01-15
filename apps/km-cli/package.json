@@ -14,6 +14,8 @@
     "@km/markdown": "workspace:*",
     "@km/shared": "workspace:*",
     "@km/store": "workspace:*",
+    "@km/tui-state": "workspace:*",
+    "@km/tui-viewmodels": "workspace:*",
     "@km/watch": "workspace:*",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",

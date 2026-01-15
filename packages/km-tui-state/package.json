@@ -1,0 +1,10 @@
+{
+  "name": "@km/tui-state",
+  "description": "Shareable TUI state management - reducer, actions, selectors",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true
+}
