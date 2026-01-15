@@ -10,9 +10,9 @@
  * 4. Compare code complexity to Ink implementation
  */
 
-import { createCliRenderer } from "@opentui/core";
+import { createCliRenderer, type ScrollBoxRenderable } from "@opentui/core";
 import { createRoot, useKeyboard, useTerminalDimensions } from "@opentui/react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // Mock card data - similar structure to our real cards
 // Adding many more to test scrolling behavior
@@ -60,6 +60,9 @@ function Card({ title, isSelected }: { title: string; isSelected: boolean }) {
   );
 }
 
+// Estimated card height (border top + content + border bottom)
+const CARD_HEIGHT = 3;
+
 // Column with scrollbox - the key test!
 function Column({
   title,
@@ -72,6 +75,19 @@ function Column({
   selectedIndex: number;
   isActive: boolean;
 }) {
+  const scrollboxRef = useRef<ScrollBoxRenderable>(null);
+
+  // Scroll to keep selected card visible
+  useEffect(() => {
+    if (!isActive || !scrollboxRef.current) return;
+
+    const scrollbox = scrollboxRef.current;
+    const targetScrollTop = selectedIndex * CARD_HEIGHT;
+
+    // Simple scroll-to: center the selected card
+    scrollbox.scrollTo(targetScrollTop);
+  }, [selectedIndex, isActive]);
+
   return (
     <box flexDirection="column" flexGrow={1} height="100%">
       {/* Header */}
@@ -81,8 +97,8 @@ function Column({
         </text>
       </box>
 
-      {/* Scrollable content - THIS IS THE KEY TEST */}
-      <scrollbox flexGrow={1}>
+      {/* Scrollable content with ref for programmatic scrolling */}
+      <scrollbox ref={scrollboxRef} flexGrow={1}>
         {cards.map((card, i) => (
           <Card
             key={card.id}
