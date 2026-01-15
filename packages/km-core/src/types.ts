@@ -35,6 +35,14 @@ export type TaskStatus =
 // Task checkbox marks
 export type TaskMark = " " | "x" | "X" | "!" | "-" | "/";
 
+// Custom task marks (non-GFM) that km supports
+// GFM only recognizes [ ] and [x], but we extend with these
+export const CUSTOM_TASK_MARKS = ["/", "-", "!"] as const;
+
+// Regex character class for all supported task marks (for parsing)
+// Includes: space, x, X, /, -, !
+export const TASK_MARK_REGEX_CLASS = "[ xX/\\-!]";
+
 // Column/section rules (parsed from inline attributes like add="..." sync=...)
 export interface NodeRules {
   add?: string; // Query to auto-pull matching tasks
@@ -77,6 +85,11 @@ export interface Node {
   content?: string; // Text content (inline for small)
   content_hash?: string; // CAS reference for large content
   title?: string; // Display title (for sections: heading without rules)
+
+  // Embedding/transclusion source
+  // When set, this node came from an embedding (![[target]]) and should not be
+  // serialized directly - instead preserve the embedding reference
+  source_embedding?: string; // The original ![[...]] text that created this node
 
   // Column/section rules (parsed from inline attributes)
   rules?: NodeRules;

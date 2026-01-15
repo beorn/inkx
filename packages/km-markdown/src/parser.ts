@@ -8,6 +8,7 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmFromMarkdown } from "mdast-util-gfm";
 import { gfm } from "micromark-extension-gfm";
 import type { Root, Content, ListItem, Heading, Paragraph, List } from "mdast";
+import { TASK_MARK_REGEX_CLASS } from "@km/core";
 
 // Re-export types
 export type { Root, Content, ListItem, Heading, Paragraph, List };
@@ -16,7 +17,7 @@ export type { Root, Content, ListItem, Heading, Paragraph, List };
  * Extended ListItem with task mark
  */
 export interface TaskListItem extends ListItem {
-  taskMark?: string; // ' ' | 'x' | 'X' | '/' | '-' | '1' | '2' | '?'
+  taskMark?: string; // See TaskMark type in @km/core
 }
 
 /**
@@ -28,6 +29,8 @@ export interface WikiLink {
   section?: string;
   blockId?: string;
   alias?: string;
+  /** True for embeddings (![[...]]) which should transclude content */
+  embedded?: boolean;
 }
 
 /**
@@ -78,27 +81,33 @@ export function extractTaskMark(
     position.start.offset,
     position.start.offset + 20,
   );
-  const match = slice.match(/^\s*[-*+]\s*\[([ xX/\-12?])\]/);
+  // Build regex dynamically from the task mark character class constant
+  const regex = new RegExp(`^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\\]`);
+  const match = slice.match(regex);
 
   return match?.[1];
 }
 
 /**
  * Parse wikilinks from text
+ * Detects both regular links [[...]] and embeddings ![[...]]
  */
 export function parseWikiLinks(text: string): WikiLink[] {
   const links: WikiLink[] = [];
+  // Match optional ! prefix before [[
   const regex =
-    /\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g;
+    /(!?)\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g;
 
   let match;
   while ((match = regex.exec(text)) !== null) {
+    const isEmbedded = match[1] === "!";
     links.push({
       type: "wikiLink",
-      target: match[1],
-      section: match[2],
-      blockId: match[3],
-      alias: match[4],
+      target: match[2] ?? "",
+      section: match[3],
+      blockId: match[4],
+      alias: match[5],
+      embedded: isEmbedded || undefined, // Only set if true
     });
   }
 

@@ -173,6 +173,7 @@ tags: [a, b, c]
       expect(links.length).toBe(1);
       expect(links[0].target).toBe("Other Page");
       expect(links[0].alias).toBeUndefined();
+      expect(links[0].embedded).toBeUndefined();
     });
 
     test("should parse aliased wikilinks", () => {
@@ -193,6 +194,47 @@ tags: [a, b, c]
       const text = "No links here, just plain text.";
       const links = parseWikiLinks(text);
       expect(links.length).toBe(0);
+    });
+
+    test("should detect embedding wikilinks with ! prefix", () => {
+      const text = "Embed this: ![[Tasks/Todo]]";
+      const links = parseWikiLinks(text);
+      expect(links.length).toBe(1);
+      expect(links[0].target).toBe("Tasks/Todo");
+      expect(links[0].embedded).toBe(true);
+    });
+
+    test("should detect embedding with section anchor", () => {
+      const text = "![[Project#Tasks]]";
+      const links = parseWikiLinks(text);
+      expect(links.length).toBe(1);
+      expect(links[0].target).toBe("Project");
+      expect(links[0].section).toBe("Tasks");
+      expect(links[0].embedded).toBe(true);
+    });
+
+    test("should detect embedding with alias", () => {
+      const text = "![[Project/API|API Docs]]";
+      const links = parseWikiLinks(text);
+      expect(links.length).toBe(1);
+      expect(links[0].target).toBe("Project/API");
+      expect(links[0].alias).toBe("API Docs");
+      expect(links[0].embedded).toBe(true);
+    });
+
+    test("should distinguish embeddings from regular links in same text", () => {
+      const text = "See [[Regular Link]] and embed ![[Embedded Link]]";
+      const links = parseWikiLinks(text);
+      expect(links.length).toBe(2);
+
+      const regular = links.find((l) => l.target === "Regular Link");
+      const embedded = links.find((l) => l.target === "Embedded Link");
+
+      expect(regular).toBeDefined();
+      expect(regular!.embedded).toBeUndefined();
+
+      expect(embedded).toBeDefined();
+      expect(embedded!.embedded).toBe(true);
     });
   });
 
@@ -343,22 +385,29 @@ More content
       expect(statuses).toContain("done");
     });
 
-    test("should handle custom task marks when supported", () => {
-      // Current implementation: custom marks [/], [-], [?] are NOT recognized
-      // as tasks by the GFM parser. They become regular list items.
-      // This test documents the current behavior.
+    test("should handle custom task marks", () => {
+      // km extends GFM with custom task marks: [/], [-], [!]
+      // These are recognized as tasks with appropriate statuses
       const md = `
 - [/] In progress
 - [-] Cancelled
-- [?] Blocked
+- [!] Blocked
+- [?] Unknown mark (not supported)
 `;
       const nodes = parseMarkdownToNodes(md, "tasks.md");
       const tasks = nodes.filter((n) => n.type === "task");
       const listItems = nodes.filter((n) => n.type === "ul");
 
-      // GFM doesn't recognize these as tasks
-      expect(tasks.length).toBe(0);
-      expect(listItems.length).toBe(3);
+      // Custom marks [/], [-], [!] are recognized as tasks
+      expect(tasks.length).toBe(3);
+      // [?] is not a supported mark, so it's a regular list item
+      expect(listItems.length).toBe(1);
+
+      // Check statuses
+      const statuses = tasks.map((t) => t.task_status);
+      expect(statuses).toContain("wip"); // [/]
+      expect(statuses).toContain("dropped"); // [-]
+      expect(statuses).toContain("blocked"); // [!]
     });
   });
 

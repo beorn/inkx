@@ -7,7 +7,8 @@
 import { ulid } from "ulid";
 import type { Root, Content, Heading, List, ListItem, Paragraph } from "mdast";
 import { parse as parseYaml } from "yaml";
-import type { Node, NodeType, TaskStatus } from "@km/core";
+import type { Node, NodeType, TaskStatus, TaskMark } from "@km/core";
+import { CUSTOM_TASK_MARKS } from "@km/core";
 import {
   parseMarkdown,
   extractFrontmatter,
@@ -269,9 +270,22 @@ function convertListItem(
   const nodes: Node[] = [];
   const now = Date.now();
 
-  const isTask = item.checked !== null && item.checked !== undefined;
-  const text = nodeToText(item);
+  let text = nodeToText(item);
   const taskMark = extractTaskMark(sourceText, item.position);
+
+  // A task is either:
+  // 1. A GFM task list item (item.checked is boolean) - [ ] or [x]
+  // 2. A list item with a custom task mark - [/], [-], [!]
+  const isGfmTask = item.checked !== null && item.checked !== undefined;
+  const isCustomTask =
+    taskMark && (CUSTOM_TASK_MARKS as readonly string[]).includes(taskMark);
+  const isTask = isGfmTask || isCustomTask;
+
+  // For custom task marks, mdast includes the mark in the text (e.g., "[/] task content")
+  // Strip it to get the clean content
+  if (isCustomTask && !isGfmTask) {
+    text = text.replace(/^\[.\]\s*/, "");
+  }
 
   // Determine task status from mark
   let taskStatus: TaskStatus | undefined;
@@ -357,6 +371,19 @@ function convertListItem(
 }
 
 /**
+ * Check if text is purely an embedding (nothing but ![[...]])
+ * Returns the embedding text if so, null otherwise
+ */
+function getEmbeddingText(text: string): string | null {
+  const trimmed = text.trim();
+  // Match ![[...]] with optional section/blockId/alias
+  const match = trimmed.match(
+    /^!\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]$/,
+  );
+  return match ? trimmed : null;
+}
+
+/**
  * Convert a block element to a node
  */
 function convertBlock(
@@ -369,12 +396,19 @@ function convertBlock(
   let type: NodeType;
   let content: string | null = null;
   const data: Record<string, unknown> = {};
+  let sourceEmbedding: string | undefined;
 
   switch (block.type) {
-    case "paragraph":
+    case "paragraph": {
       type = "paragraph";
       content = nodeToText(block);
+      // Check if this paragraph is purely an embedding
+      const embeddingText = getEmbeddingText(content);
+      if (embeddingText) {
+        sourceEmbedding = embeddingText;
+      }
       break;
+    }
 
     case "blockquote":
       type = "quote";
@@ -420,6 +454,7 @@ function convertBlock(
     md_pos: block.position?.start.offset,
     content,
     content_hash: null,
+    source_embedding: sourceEmbedding,
     data,
     created_at: now,
     updated_at: now,

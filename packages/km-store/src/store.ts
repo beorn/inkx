@@ -23,6 +23,7 @@ import { join, dirname, basename, relative } from "path";
 import { ulid } from "ulid";
 import type { Node, NodeType, TaskStatus } from "@km/core";
 import { setKmDir, emitNodeMoved } from "@km/core";
+import { parseMarkdownToNodes } from "@km/markdown";
 
 /**
  * NodeStore interface - unified access to node storage
@@ -595,126 +596,59 @@ export class MemoryStore extends BaseStore {
         // Recurse
         this.scanDirectory(fullPath, folderId, 0);
       } else if (entry.isFile()) {
-        // Create file node for all files
-        const fileId = this.generateId(fullPath);
         const isMarkdown = entry.name.endsWith(".md");
 
-        this.insertNode({
-          id: fileId,
-          type: "file",
-          parent_id: parentId,
-          fs_path: fullPath,
-          content: isMarkdown ? entry.name.replace(/\.md$/, "") : entry.name,
-          parent_idx: order++,
-        });
-
-        // Parse markdown content (only for .md files)
         if (isMarkdown) {
-          this.parseMarkdownFile(fullPath, fileId);
+          // Use the full km-markdown parser for .md files
+          this.parseMarkdownFile(fullPath, parentId, order++);
+        } else {
+          // Create simple file node for non-markdown files
+          const fileId = this.generateId(fullPath);
+          this.insertNode({
+            id: fileId,
+            type: "file",
+            parent_id: parentId,
+            fs_path: fullPath,
+            content: entry.name,
+            parent_idx: order++,
+          });
         }
       }
     }
   }
 
   /**
-   * Parse a markdown file and create nodes for its content
+   * Parse a markdown file using the km-markdown parser and insert all nodes.
    *
-   * Note: H1 headings are merged into the file node (not created as separate sections).
-   * This matches the behavior of the full markdown parser in km-markdown.
+   * Uses parseMarkdownToNodes which handles:
+   * - Full markdown syntax (headings, tasks, lists)
+   * - Frontmatter parsing
+   * - H1 merging into file node
+   * - Wiki links and inline fields
+   * - Task metadata extraction
    */
-  private parseMarkdownFile(filePath: string, parentId: string): void {
+  private parseMarkdownFile(
+    filePath: string,
+    folderParentId: string | null,
+    sortOrder: number,
+  ): void {
     try {
       const content = readFileSync(filePath, "utf-8");
-      const lines = content.split("\n");
+      const nodes = parseMarkdownToNodes(content, filePath);
 
-      let currentSection: string | null = parentId;
-      const sectionStack: { id: string; depth: number }[] = [];
-      let h1Merged = false; // Track if we've merged an H1 into the file node
+      // The first node is always the file node
+      const fileNode = nodes[0];
+      if (!fileNode || fileNode.type !== "file") {
+        return;
+      }
 
-      for (let lineNum = 0; lineNum < lines.length; lineNum++) {
-        const line = lines[lineNum];
+      // Set the file node's parent to the folder
+      fileNode.parent_id = folderParentId;
+      fileNode.parent_idx = sortOrder;
 
-        // Check for heading
-        const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-        if (headingMatch) {
-          const depth = headingMatch[1].length;
-          const headingText = headingMatch[2].trim();
-
-          // Merge H1 into file node (instead of creating a separate section)
-          // This matches km-markdown's parseMarkdownWithLinks behavior
-          if (depth === 1 && !h1Merged) {
-            h1Merged = true;
-            // Update the file node's content to be the H1 title
-            this.db.run(
-              `UPDATE nodes SET content = ?, data = json_set(data, '$.depth', 1, '$.title', ?) WHERE id = ?`,
-              [headingText, headingText, parentId],
-            );
-            // The file node acts as the H1, so push it onto the stack
-            sectionStack.push({ id: parentId, depth: 1 });
-            currentSection = parentId;
-            continue;
-          }
-
-          // Pop sections until we find a parent at lower depth
-          while (
-            sectionStack.length > 0 &&
-            sectionStack[sectionStack.length - 1].depth >= depth
-          ) {
-            sectionStack.pop();
-          }
-
-          const sectionParent =
-            sectionStack.length > 0
-              ? sectionStack[sectionStack.length - 1].id
-              : parentId;
-
-          const sectionId = this.generateId(filePath, lineNum);
-          this.insertNode({
-            id: sectionId,
-            type: "section",
-            parent_id: sectionParent,
-            fs_path: filePath,
-            md_line: lineNum,
-            content: headingText,
-            data: { depth },
-            parent_idx: lineNum,
-          });
-
-          sectionStack.push({ id: sectionId, depth });
-          currentSection = sectionId;
-          continue;
-        }
-
-        // Check for task
-        const taskMatch = line.match(/^(\s*)-\s+\[(.)\]\s+(.+)$/);
-        if (taskMatch) {
-          const mark = taskMatch[2];
-          const taskContent = taskMatch[3].trim();
-          const taskId = this.generateId(filePath, lineNum);
-
-          let status: TaskStatus = "todo";
-          if (mark === "x" || mark === "X") {
-            status = "done";
-          } else if (mark === "/") {
-            status = "wip";
-          } else if (mark === "-") {
-            status = "dropped";
-          } else if (mark === "!") {
-            status = "blocked";
-          }
-
-          this.insertNode({
-            id: taskId,
-            type: "task",
-            parent_id: currentSection,
-            fs_path: filePath,
-            md_line: lineNum,
-            content: taskContent,
-            task_status: status,
-            task_mark: mark as Node["task_mark"],
-            parent_idx: lineNum,
-          });
-        }
+      // Insert all nodes
+      for (const node of nodes) {
+        this.insertNode(node);
       }
     } catch {
       // Skip files that can't be read
@@ -833,14 +767,16 @@ export class MemoryStore extends BaseStore {
     appendFileSync(fullPath, content);
 
     // Re-parse the file to update in-memory state
-    const parentNode = this.getNodeByPath(fullPath);
-    if (parentNode) {
-      // Remove old content nodes for this file
-      this.db.run(`DELETE FROM nodes WHERE fs_path = ? AND type = 'task'`, [
+    const existingFileNode = this.getNodeByPath(fullPath);
+    if (existingFileNode) {
+      // Remove the file node and all its children, then re-parse
+      this.db.run(`DELETE FROM nodes WHERE fs_path = ?`, [fullPath]);
+      // Re-parse with the same parent and sort order
+      this.parseMarkdownFile(
         fullPath,
-      ]);
-      // Re-parse
-      this.parseMarkdownFile(fullPath, parentNode.id);
+        existingFileNode.parent_id,
+        existingFileNode.parent_idx,
+      );
     }
   }
 

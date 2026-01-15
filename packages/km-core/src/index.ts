@@ -12,6 +12,9 @@ export type {
   NodeMovedData,
 } from "./types.ts";
 
+// Constants
+export { CUSTOM_TASK_MARKS, TASK_MARK_REGEX_CLASS } from "./types.ts";
+
 // Event emission
 export {
   emit,

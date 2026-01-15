@@ -136,14 +136,15 @@ Some content here.
     store.close();
   });
 
-  test("should create ephemeral IDs with path:line format", () => {
+  test("should create ULID IDs for parsed nodes", () => {
     const store = new MemoryStore(ROOT_DIR);
 
     const tasks = store.getAllTasks();
     const task = tasks.find((t) => t.content === "Open task");
 
     expect(task).toBeDefined();
-    expect(task!.id).toMatch(/^tasks\.md:\d+$/);
+    // ULIDs are 26 character alphanumeric strings
+    expect(task!.id).toMatch(/^[0-9A-Z]{26}$/);
 
     store.close();
   });
@@ -156,9 +157,10 @@ Some content here.
 
     // notes.md has "Notes" (H1 merged into file), "Section One", "Section Two" (H2s)
     // H1 is merged into file node, so only H2 sections exist as separate nodes
-    const noteSections = sections.filter(
-      (s) => s.fs_path && s.fs_path.includes("notes.md"),
-    );
+    // Sections are children of the file node, not marked with fs_path
+    const notesFile = store.getNodeByPath(join(ROOT_DIR, "notes.md"));
+    expect(notesFile).not.toBeNull();
+    const noteSections = sections.filter((s) => s.parent_id === notesFile!.id);
     expect(noteSections.length).toBe(2); // Section One, Section Two
 
     store.close();
