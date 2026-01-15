@@ -40,7 +40,7 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 
 ```bash
 bun fix              # MUST pass - auto-fix lint + format
-bun test             # MUST pass - all 351+ tests
+bun test             # MUST pass - all 1135+ tests
 ```
 
 **When implementing features:**
@@ -50,6 +50,12 @@ bun test             # MUST pass - all 351+ tests
 3. Test passes
 4. `bun fix` passes
 5. Commit
+
+**For detailed testing guidance**, see [specs/km-testing.md](specs/km-testing.md):
+- Which test type to use for each layer
+- How to use `km sh` + `mdtest` for TUI behavior tests
+- Anti-patterns to avoid
+- Coverage goals per layer
 
 ---
 
