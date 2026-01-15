@@ -834,3 +834,108 @@ Content at deepest level.`;
     expect(output).toContain("Dropped task");
   });
 });
+
+describe("Round-trip: Wiki Link Embeddings", () => {
+  test("should preserve simple embedding", () => {
+    const md = `![[Target Page]]`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("![[Target Page]]");
+  });
+
+  test("should preserve embedding with section anchor", () => {
+    const md = `![[Target Page#Section]]`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("![[Target Page#Section]]");
+  });
+
+  test("should preserve embedding with block ID", () => {
+    const md = `![[Target Page^block123]]`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("![[Target Page^block123]]");
+  });
+
+  test("should preserve embedding with alias", () => {
+    const md = `![[Target Page|Display Text]]`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("![[Target Page|Display Text]]");
+  });
+
+  test("should preserve embedding with section and alias", () => {
+    const md = `![[Projects/API#Auth|API Authentication]]`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("![[Projects/API#Auth|API Authentication]]");
+  });
+
+  test("should NOT convert regular wikilink to embedding", () => {
+    const md = `See [[Other Page]] for details.`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    // Should remain as regular wikilink, NOT become embedding
+    expect(output).toContain("[[Other Page]]");
+    expect(output).not.toContain("![[Other Page]]");
+  });
+
+  test("should mark embedding paragraph with source_embedding", () => {
+    const md = `![[Target]]`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const para = nodes.find((n) => n.type === "paragraph");
+
+    expect(para).toBeDefined();
+    expect(para!.source_embedding).toBe("![[Target]]");
+  });
+
+  test("should NOT mark mixed-content paragraph as embedding", () => {
+    const md = `Some text before ![[Target]] and after.`;
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const para = nodes.find((n) => n.type === "paragraph");
+
+    expect(para).toBeDefined();
+    // Mixed content should NOT have source_embedding set
+    expect(para!.source_embedding).toBeUndefined();
+  });
+
+  test("should preserve embedding in document with multiple elements", () => {
+    const md = `# Document
+
+## Tasks
+
+![[Projects/TaskList]]
+
+## Notes
+
+Regular paragraph here.`;
+
+    const nodes = parseMarkdownToNodes(md, "test.md");
+    const output = nodesToMarkdown(nodes);
+
+    expect(output).toContain("![[Projects/TaskList]]");
+    expect(output).toContain("Regular paragraph here");
+  });
+
+  test("should be stable after double round-trip", () => {
+    const original = `![[Projects/API#Auth|API Docs]]`;
+
+    // First round-trip
+    const nodes1 = parseMarkdownToNodes(original, "test.md");
+    const md1 = nodesToMarkdown(nodes1);
+
+    // Second round-trip
+    const nodes2 = parseMarkdownToNodes(md1, "test.md");
+    const md2 = nodesToMarkdown(nodes2);
+
+    // Should be stable
+    expect(normalizeMarkdown(md1)).toBe(normalizeMarkdown(md2));
+    expect(md2).toContain("![[Projects/API#Auth|API Docs]]");
+  });
+});

@@ -82,6 +82,10 @@ function serializeNode(
       return serializeSection(node, children, tree);
 
     case "paragraph":
+      // If this paragraph came from an embedding, preserve the embedding reference
+      if (node.source_embedding) {
+        return node.source_embedding + "\n\n";
+      }
       return (node.content ?? "") + "\n\n";
 
     case "quote":
