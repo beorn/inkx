@@ -306,6 +306,19 @@ bun storybook
 bun km view -r /tmp/tui-test-vault @next.md
 
 # Capture screenshots for comparison
+# Use small viewports (800,600 or 1000,700) - faster + tests overflow
 ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault @next.md &
-bun x playwright screenshot --viewport-size=1400,900 http://localhost:7681 /tmp/tui.png
+HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:7681 /tmp/tui.png
 ```
+
+### Viewport Size Guidelines
+
+Prefer smaller viewports for visual testing:
+
+| Size        | Use Case                                          |
+| ----------- | ------------------------------------------------- |
+| `800,600`   | Narrow - tests truncation, overflow, compact mode |
+| `1000,700`  | Medium - balanced default for most testing        |
+| `1400,900`  | Wide - only for multi-column layout testing       |
+
+Smaller viewports are faster (smaller screenshots) and better at exposing overflow/clipping bugs that hide at larger sizes.

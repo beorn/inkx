@@ -1,7 +1,7 @@
 ---
 description: Debug and fix TUI rendering issues using visual regression testing
 argument-hint: [issue] (describe the visual bug, or "explore" for full check)
-allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion, mcp__peekaboo__image, mcp__peekaboo__see
+allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion
 ---
 
 # Fix TUI Visual Rendering Issues
@@ -12,6 +12,69 @@ Debug and fix TUI rendering issues through exploratory and regression testing.
 
 **Uses**: Visual Testing skill (`.claude/skills/visual-test.md`) for capture methodology
 **Reference**: [Visual Testing Specs](.claude/docs/visual-testing.md) for verification checklists
+
+## IMPORTANT: Use Headless Testing Only
+
+**ALWAYS use headless methods (Storybook + Playwright/ttyd) for visual testing.**
+These methods run in the background and don't interfere with the user's desktop.
+
+**DO NOT use Peekaboo or any desktop capture** unless the user explicitly asks you to look at their Ghostty window or desktop. Peekaboo takes over the user's screen and prevents them from working.
+
+## IMPORTANT: Set Up for Success (Before Starting TUI)
+
+**Do all preparation BEFORE starting ttyd.** Once the TUI is running headlessly, you can only capture screenshots - you cannot navigate or interact. Plan ahead to avoid restart cycles.
+
+### Quick Setup Pattern
+
+```bash
+# 1. Prepare minimal test data that reproduces the issue
+rm -rf /tmp/tui-test-vault && mkdir -p /tmp/tui-test-vault
+cat > /tmp/tui-test-vault/test.md << 'EOF'
+# Test
+- [ ] Task that demonstrates the bug
+- [x] Done task for comparison
+EOF
+
+# 2. Start TUI in the right view with the right data
+pkill -f ttyd 2>/dev/null || true
+ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault test.md --view cards &
+sleep 3
+
+# 3. Capture - prefer small viewports (faster + tests overflow)
+HEADLESS=true bun x playwright screenshot --viewport-size=800,600 http://localhost:7681 /tmp/bug.png
+```
+
+**Viewport size guidelines** (see visual-test.md for details):
+- `800,600` - Narrow, tests truncation/overflow (default)
+- `1000,700` - Balanced view
+- `1400,900` - Wide, only for multi-column layout testing
+
+### Using Existing Fixtures
+
+```bash
+# Copy full test vault (has varied content for comprehensive testing)
+rm -rf /tmp/tui-test-vault
+cp -r apps/km-cli/tests/fixtures/tui-test-vault /tmp/tui-test-vault
+
+# Start at specific file with specific view
+ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault Projects/api-redesign.md --view tabs &
+```
+
+### Key Flags
+
+| Flag            | Purpose                                 | Example                  |
+| --------------- | --------------------------------------- | ------------------------ |
+| `-r <vault>`    | Set vault root                          | `-r /tmp/tui-test-vault` |
+| `--view <mode>` | Start in view (cards/columns/tabs/list) | `--view cards`           |
+| `<file>`        | Open specific file                      | `@next.md`               |
+
+**Before capturing**, determine:
+
+1. What view mode reproduces the issue? → Use `--view` flag
+2. What content triggers it? → Create minimal test data
+3. What terminal size? → Set `--viewport-size` in Playwright
+
+This avoids multiple capture-navigate-capture cycles that waste time.
 
 ## The Fix Loop
 
@@ -49,22 +112,22 @@ sleep 3
 mkdir -p /tmp/tui-visual-test
 ```
 
-## Step 2: Capture Screenshots
+## Step 2: Capture Screenshots (Headless)
 
-Use Playwright for headless capture (preferred):
+Use Playwright for headless capture:
 
 ```bash
-bun x playwright screenshot \
-  --viewport-size=1400,900 \
+# HEADLESS=true prevents browser window from appearing
+# Use 800,600 or 1000,700 for faster captures (see viewport guidelines above)
+HEADLESS=true bun x playwright screenshot \
+  --viewport-size=1000,700 \
   http://localhost:7681 \
   /tmp/tui-visual-test/tui-initial.png
 ```
 
-Or use Peekaboo MCP tool for interactive sessions:
-
-- `mcp__peekaboo__image` with `app_target: "Safari"` or `"Ghostty"`
-
 Then **read the screenshot** using the Read tool to analyze.
+
+**Note**: Do NOT use Peekaboo/desktop capture. Use ttyd + Playwright which runs headlessly in the background.
 
 ## Step 3: Exploratory Testing
 
@@ -170,8 +233,8 @@ bun storybook
 pkill -f ttyd 2>/dev/null || true
 ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault @next.md &
 sleep 3
-bun x playwright screenshot \
-  --viewport-size=1400,900 \
+HEADLESS=true bun x playwright screenshot \
+  --viewport-size=1000,700 \
   http://localhost:7681 \
   /tmp/tui-visual-test/tui-after-fix.png
 ```
@@ -211,7 +274,7 @@ To capture storybook output:
 pkill -f ttyd 2>/dev/null || true
 ttyd -W -p 7681 bash -c 'bun storybook; sleep 120' &
 sleep 5
-bun x playwright screenshot \
+HEADLESS=true bun x playwright screenshot \
   --viewport-size=1600,2400 \
   --full-page \
   http://localhost:7681 \

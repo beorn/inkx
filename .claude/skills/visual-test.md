@@ -22,6 +22,23 @@ Capture methods for visual testing of TUIs and CLI output running in a real term
 
 **Do all preparation BEFORE starting ttyd.** Once the TUI is running, you can only capture - you cannot navigate or interact. Plan ahead to avoid restart cycles.
 
+## Best Practice: Use Smaller Terminal Dimensions
+
+**Prefer smaller viewport sizes** (e.g., `800,600` or `1000,700`) over large ones:
+
+1. **Faster screenshots** - Smaller images = faster capture and analysis
+2. **Tests overflow behavior** - Narrow terminals trigger truncation, wrapping, and clipping that wide terminals hide
+3. **More realistic** - Many users have smaller terminal windows or splits
+
+```bash
+# Recommended sizes for different tests
+--viewport-size=800,600   # Narrow - tests truncation, overflow, compact mode
+--viewport-size=1000,700  # Medium - balanced view
+--viewport-size=1400,900  # Wide - only when testing multi-column layout
+```
+
+Only use wide viewports (`1400,900`) when specifically testing multi-column layouts or when the bug only reproduces at larger sizes.
+
 ### Example 1: Testing Cards View Truncation
 
 ```bash
@@ -39,7 +56,7 @@ pkill -f ttyd 2>/dev/null || true
 ttyd -W -p 7681 bun km view -r /tmp/test-vault test.md --view cards &
 sleep 3
 
-# 3. Capture at narrow width to trigger truncation (HEADLESS=true prevents browser window)
+# 3. Capture at small size (faster + tests overflow) - HEADLESS=true prevents browser window
 HEADLESS=true bun x playwright screenshot --viewport-size=800,600 http://localhost:7681 /tmp/cards-truncation.png
 ```
 
@@ -62,8 +79,8 @@ pkill -f ttyd 2>/dev/null || true
 ttyd -W -p 7681 bun km view -r /tmp/test-vault @next.md --view columns &
 sleep 3
 
-# 3. Capture wide to see all columns (HEADLESS=true prevents browser window)
-HEADLESS=true bun x playwright screenshot --viewport-size=1400,900 http://localhost:7681 /tmp/columns-statuses.png
+# 3. Capture - use 1000,700 for balanced view (HEADLESS=true prevents browser window)
+HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:7681 /tmp/columns-statuses.png
 ```
 
 ### Example 3: Testing with Existing Fixtures
@@ -78,8 +95,8 @@ pkill -f ttyd 2>/dev/null || true
 ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault Projects/api-redesign.md --view tabs &
 sleep 3
 
-# 3. Capture (HEADLESS=true prevents browser window)
-HEADLESS=true bun x playwright screenshot --viewport-size=1200,800 http://localhost:7681 /tmp/tabs-view.png
+# 3. Capture at medium size (HEADLESS=true prevents browser window)
+HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:7681 /tmp/tabs-view.png
 ```
 
 ### Key Flags
@@ -158,8 +175,9 @@ ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault @next.md &
 sleep 3
 
 # HEADLESS=true prevents browser window from appearing
+# Use 1000,700 for faster captures; 1400,900 only for multi-column layout testing
 HEADLESS=true bun x playwright screenshot \
-  --viewport-size=1400,900 \
+  --viewport-size=1000,700 \
   http://localhost:7681 \
   /tmp/tui-visual-test/tui.png
 ```
