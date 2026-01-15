@@ -268,15 +268,28 @@ export function App({
     [tree],
   );
 
+  // Derive current column and card from tree state
+  const currentColumn = useMemo(() => {
+    const colIndex = tree.state.cursor[0] ?? 0;
+    return tree.state.nodes[colIndex] ?? null;
+  }, [tree.state.nodes, tree.state.cursor]);
+
+  const currentCard = useMemo(() => {
+    const colIndex = tree.state.cursor[0] ?? 0;
+    const cardIndex = tree.state.cursor[1] ?? 0;
+    const column = tree.state.nodes[colIndex];
+    return column?.children[cardIndex] ?? null;
+  }, [tree.state.nodes, tree.state.cursor]);
+
   // Handle keyboard input
   // Note: KeyEvent from OpenTUI uses `name` for key identification, not `key`
   // Alt key is accessed via `meta` property in OpenTUI KeyEvent
   useKeyboard(({ name, shift, meta }) => {
     // ===== Help Mode =====
     // When help overlay is shown, only ? and Escape dismiss it
-    if (board.state.helpMode) {
+    if (tree.state.helpMode) {
       if (name === "escape" || name === "?" || (name === "/" && shift)) {
-        board.dispatch({ type: "TOGGLE_HELP_MODE" });
+        tree.dispatch({ type: "TOGGLE_HELP_MODE" });
       }
       // Ignore all other keys when help is shown
       return;
@@ -284,25 +297,25 @@ export function App({
 
     // ===== Search Mode Input =====
     // When in search mode, capture character input for the search query
-    if (board.state.searchMode) {
+    if (tree.state.searchMode) {
       // Escape - cancel search, clear query, exit search mode
       if (name === "escape") {
-        board.dispatch({ type: "SET_SEARCH_QUERY", query: "" });
-        board.dispatch({ type: "TOGGLE_SEARCH_MODE" });
+        tree.dispatch({ type: "SET_SEARCH_QUERY", query: "" });
+        tree.dispatch({ type: "TOGGLE_SEARCH_MODE" });
         return;
       }
 
       // Enter/Return - confirm search, exit search mode but keep query
       if (name === "return") {
-        board.dispatch({ type: "TOGGLE_SEARCH_MODE" });
+        tree.dispatch({ type: "TOGGLE_SEARCH_MODE" });
         return;
       }
 
       // Backspace - remove last character from query
       if (name === "backspace") {
-        const currentQuery = board.state.searchQuery;
+        const currentQuery = tree.state.searchQuery;
         if (currentQuery.length > 0) {
-          board.dispatch({
+          tree.dispatch({
             type: "SET_SEARCH_QUERY",
             query: currentQuery.slice(0, -1),
           });
@@ -313,9 +326,9 @@ export function App({
       // Character input (a-z, 0-9, space, and common punctuation)
       // Single character names that aren't special keys get appended to query
       if (name.length === 1 && !meta) {
-        board.dispatch({
+        tree.dispatch({
           type: "SET_SEARCH_QUERY",
-          query: board.state.searchQuery + name,
+          query: tree.state.searchQuery + name,
         });
         return;
       }
@@ -326,19 +339,19 @@ export function App({
 
     // ===== New Item Mode Input =====
     // When in new item mode, capture character input for the new task title
-    if (board.state.newItemMode) {
+    if (tree.state.newItemMode) {
       // Escape - cancel new item, clear text, exit new item mode
       if (name === "escape") {
-        board.dispatch({ type: "CLEAR_NEW_ITEM" });
+        tree.dispatch({ type: "CLEAR_NEW_ITEM" });
         return;
       }
 
       // Enter/Return - create the new task
       if (name === "return") {
-        const text = board.state.newItemText.trim();
-        if (text && board.currentColumn) {
+        const text = tree.state.newItemText.trim();
+        if (text && currentColumn) {
           // Get the current column's node to find the file to append to
-          const columnNode = getNode(board.currentColumn.nodeId);
+          const columnNode = getNode(currentColumn.nodeId);
           if (columnNode) {
             // Find the file path for this column
             let filePath: string | null = null;
@@ -346,7 +359,7 @@ export function App({
               filePath = columnNode.fs_path;
             } else {
               // Traverse ancestors to find the containing file
-              const ancestors = getAncestors(board.currentColumn.nodeId);
+              const ancestors = getAncestors(currentColumn.nodeId);
               for (const ancestor of ancestors.reverse()) {
                 if (ancestor.fs_path && ancestor.type === "file") {
                   filePath = ancestor.fs_path;
@@ -360,19 +373,19 @@ export function App({
               const store = getStore();
               store.appendTaskToFile(filePath, `\n- [ ] ${text}`);
               // Refresh to show the new task
-              refreshBoard();
+              refreshTree();
             }
           }
         }
-        board.dispatch({ type: "CLEAR_NEW_ITEM" });
+        tree.dispatch({ type: "CLEAR_NEW_ITEM" });
         return;
       }
 
       // Backspace - remove last character from text
       if (name === "backspace") {
-        const currentText = board.state.newItemText;
+        const currentText = tree.state.newItemText;
         if (currentText.length > 0) {
-          board.dispatch({
+          tree.dispatch({
             type: "SET_NEW_ITEM_TEXT",
             text: currentText.slice(0, -1),
           });
@@ -383,9 +396,9 @@ export function App({
       // Character input (a-z, 0-9, space, and common punctuation)
       // Single character names that aren't special keys get appended to text
       if (name.length === 1 && !meta) {
-        board.dispatch({
+        tree.dispatch({
           type: "SET_NEW_ITEM_TEXT",
-          text: board.state.newItemText + name,
+          text: tree.state.newItemText + name,
         });
         return;
       }
@@ -396,14 +409,14 @@ export function App({
 
     // ===== Project Picker Mode =====
     // When project picker is open, handle navigation and selection
-    if (board.state.projectPickerOpen) {
+    if (tree.state.projectPickerOpen) {
       // Get filtered projects for index bounds
       const allProjects = getChildren(null).map((node) => ({
         id: node.id,
         title: getNodeDisplayName(node),
         itemCount: getChildren(node.id).length,
       }));
-      const query = board.state.projectPickerQuery;
+      const query = tree.state.projectPickerQuery;
       const filteredProjects = query
         ? allProjects.filter((p) =>
             p.title.toLowerCase().includes(query.toLowerCase()),
@@ -412,24 +425,24 @@ export function App({
 
       // Escape - close picker
       if (name === "escape") {
-        board.dispatch({ type: "CLOSE_PROJECT_PICKER" });
+        tree.dispatch({ type: "CLOSE_PROJECT_PICKER" });
         return;
       }
 
       // Enter/Return - navigate to selected project
       if (name === "return") {
         const selectedProject =
-          filteredProjects[board.state.projectPickerIndex];
+          filteredProjects[tree.state.projectPickerIndex];
         if (selectedProject) {
           navigateToRoot(selectedProject.id);
         }
-        board.dispatch({ type: "CLOSE_PROJECT_PICKER" });
+        tree.dispatch({ type: "CLOSE_PROJECT_PICKER" });
         return;
       }
 
       // j or down - move selection down
       if (name === "j" || name === "down") {
-        board.dispatch({
+        tree.dispatch({
           type: "PROJECT_PICKER_DOWN",
           maxIndex: filteredProjects.length - 1,
         });
@@ -438,15 +451,15 @@ export function App({
 
       // k or up - move selection up
       if (name === "k" || name === "up") {
-        board.dispatch({ type: "PROJECT_PICKER_UP" });
+        tree.dispatch({ type: "PROJECT_PICKER_UP" });
         return;
       }
 
       // Backspace - remove last character from query
       if (name === "backspace") {
-        const currentQuery = board.state.projectPickerQuery;
+        const currentQuery = tree.state.projectPickerQuery;
         if (currentQuery.length > 0) {
-          board.dispatch({
+          tree.dispatch({
             type: "SET_PROJECT_PICKER_QUERY",
             query: currentQuery.slice(0, -1),
           });
@@ -456,9 +469,9 @@ export function App({
 
       // Character input - append to query
       if (name.length === 1 && !meta) {
-        board.dispatch({
+        tree.dispatch({
           type: "SET_PROJECT_PICKER_QUERY",
-          query: board.state.projectPickerQuery + name,
+          query: tree.state.projectPickerQuery + name,
         });
         return;
       }
@@ -471,8 +484,8 @@ export function App({
 
     // Escape - clear selection if any, otherwise quit
     if (name === "escape") {
-      if (board.state.selectedCards.size > 0) {
-        board.dispatch({ type: "CLEAR_SELECTION" });
+      if (tree.state.selectedNodes.size > 0) {
+        tree.dispatch({ type: "CLEAR_SELECTION" });
       } else {
         exitApp();
       }
@@ -486,42 +499,40 @@ export function App({
     // ===== Multi-Select (Shift+j/k) =====
     // Shift+j: Select current card and move down (range selection)
     if (name === "j" && shift && !meta) {
-      const card = board.currentCard;
-      if (card) {
-        board.dispatch({ type: "SELECT_CARD_ADD", nodeId: card.nodeId });
-        board.dispatch({ type: "MOVE_DOWN" });
+      if (currentCard) {
+        tree.dispatch({ type: "SELECT_NODE_ADD", nodeId: currentCard.nodeId });
+        tree.dispatch({ type: "MOVE_DOWN" });
       }
     }
     // Shift+k: Select current card and move up (range selection)
     else if (name === "k" && shift && !meta) {
-      const card = board.currentCard;
-      if (card) {
-        board.dispatch({ type: "SELECT_CARD_ADD", nodeId: card.nodeId });
-        board.dispatch({ type: "MOVE_UP" });
+      if (currentCard) {
+        tree.dispatch({ type: "SELECT_NODE_ADD", nodeId: currentCard.nodeId });
+        tree.dispatch({ type: "MOVE_UP" });
       }
     }
 
     // Navigation - use arrow key names or vim keys
     else if (name === "up" || (name === "k" && !shift && !meta)) {
-      board.dispatch({ type: "MOVE_UP" });
+      tree.dispatch({ type: "MOVE_UP" });
     } else if (name === "down" || (name === "j" && !shift && !meta)) {
-      board.dispatch({ type: "MOVE_DOWN" });
+      tree.dispatch({ type: "MOVE_DOWN" });
     } else if (name === "left" || name === "h") {
-      board.dispatch({ type: "MOVE_LEFT" });
+      tree.dispatch({ type: "MOVE_LEFT" });
     } else if (name === "right" || name === "l") {
-      board.dispatch({ type: "MOVE_RIGHT" });
+      tree.dispatch({ type: "MOVE_RIGHT" });
     } else if (name === "g" && !shift) {
-      board.dispatch({ type: "JUMP_TOP" });
+      tree.dispatch({ type: "JUMP_TOP" });
     } else if (name === "g" && shift) {
       // Shift+G = jump to bottom (capital G)
-      board.dispatch({ type: "JUMP_BOTTOM" });
+      tree.dispatch({ type: "JUMP_BOTTOM" });
     }
 
     // ===== Root Navigation =====
 
     // u - Navigate UP to parent node
     else if (name === "u") {
-      const currentRootId = board.state.rootId;
+      const currentRootId = tree.state.rootId;
       if (currentRootId) {
         // Get parent of current root
         const currentRoot = getNode(currentRootId);
@@ -536,20 +547,19 @@ export function App({
 
     // [ - Navigate BACK in history
     else if (name === "[") {
-      const { navHistory, navHistoryIndex } = board.state;
+      const { navHistory, navHistoryIndex } = tree.state;
       if (navHistoryIndex > 0) {
         const prevEntry = navHistory[navHistoryIndex - 1];
         if (prevEntry) {
           // Navigate to the previous history entry
-          const columns = buildColumns(prevEntry.rootId);
+          const nodes = buildNodes(prevEntry.rootId);
           // Dispatch NAV_BACK to decrement index, then restore state
-          board.dispatch({ type: "NAV_BACK" });
+          tree.dispatch({ type: "NAV_BACK" });
           // After NAV_BACK, restore the actual view
-          board.dispatch({ type: "REFRESH", columns });
-          board.dispatch({
-            type: "SELECT_CARD",
-            col: prevEntry.colIndex,
-            card: prevEntry.cardIndex,
+          tree.dispatch({ type: "REFRESH", nodes });
+          tree.dispatch({
+            type: "SELECT_POSITION",
+            path: prevEntry.cursor,
           });
         }
       }
@@ -557,20 +567,19 @@ export function App({
 
     // ] - Navigate FORWARD in history
     else if (name === "]") {
-      const { navHistory, navHistoryIndex } = board.state;
+      const { navHistory, navHistoryIndex } = tree.state;
       if (navHistoryIndex < navHistory.length - 1) {
         const nextEntry = navHistory[navHistoryIndex + 1];
         if (nextEntry) {
           // Navigate to the next history entry
-          const columns = buildColumns(nextEntry.rootId);
+          const nodes = buildNodes(nextEntry.rootId);
           // Dispatch NAV_FORWARD to increment index, then restore state
-          board.dispatch({ type: "NAV_FORWARD" });
+          tree.dispatch({ type: "NAV_FORWARD" });
           // After NAV_FORWARD, restore the actual view
-          board.dispatch({ type: "REFRESH", columns });
-          board.dispatch({
-            type: "SELECT_CARD",
-            col: nextEntry.colIndex,
-            card: nextEntry.cardIndex,
+          tree.dispatch({ type: "REFRESH", nodes });
+          tree.dispatch({
+            type: "SELECT_POSITION",
+            path: nextEntry.cursor,
           });
         }
       }
@@ -580,41 +589,43 @@ export function App({
     else if (name === "v") {
       const currentIndex = VIEW_MODES.indexOf(viewMode);
       const nextIndex = (currentIndex + 1) % VIEW_MODES.length;
-      setViewMode(VIEW_MODES[nextIndex]);
+      const nextMode = VIEW_MODES[nextIndex];
+      if (nextMode) {
+        setViewMode(nextMode);
+      }
     }
 
     // Help
     else if (name === "?" || (name === "/" && shift)) {
-      board.dispatch({ type: "TOGGLE_HELP_MODE" });
+      tree.dispatch({ type: "TOGGLE_HELP_MODE" });
     }
 
     // Search
     else if (name === "/" && !shift) {
-      board.dispatch({ type: "TOGGLE_SEARCH_MODE" });
+      tree.dispatch({ type: "TOGGLE_SEARCH_MODE" });
     }
 
     // New item
     else if (name === "n" && !shift && !meta) {
-      board.dispatch({ type: "TOGGLE_NEW_ITEM_MODE" });
+      tree.dispatch({ type: "TOGGLE_NEW_ITEM_MODE" });
     }
 
     // Project picker
     else if (name === "p" && !shift && !meta) {
-      board.dispatch({ type: "TOGGLE_PROJECT_PICKER" });
+      tree.dispatch({ type: "TOGGLE_PROJECT_PICKER" });
     }
 
     // Detail pane toggle
     else if (name === "i" && !shift && !meta) {
-      board.dispatch({ type: "TOGGLE_DETAIL_PANE" });
+      tree.dispatch({ type: "TOGGLE_DETAIL_PANE" });
     }
 
     // ===== Editor Integration =====
 
     // e - Edit current card in $EDITOR at its line
     else if (name === "e") {
-      const card = board.currentCard;
-      if (card) {
-        const { filePath, line } = getNodeSourceInfo(card.nodeId);
+      if (currentCard) {
+        const { filePath, line } = getNodeSourceInfo(currentCard.nodeId);
         if (filePath) {
           openInEditor(filePath, line);
         }
@@ -623,9 +634,8 @@ export function App({
 
     // o - Open source file in $EDITOR (without line number)
     else if (name === "o") {
-      const card = board.currentCard;
-      if (card) {
-        const { filePath } = getNodeSourceInfo(card.nodeId);
+      if (currentCard) {
+        const { filePath } = getNodeSourceInfo(currentCard.nodeId);
         if (filePath) {
           openInEditor(filePath);
         }
@@ -636,20 +646,24 @@ export function App({
 
     // z - Fold all cards in current column
     else if (name === "z" && !shift) {
-      board.dispatch({ type: "FOLD_COLUMN", colIndex: board.state.colIndex });
+      const colIndex = tree.state.cursor[0] ?? 0;
+      tree.dispatch({ type: "FOLD_LEVEL", depth: colIndex });
     }
 
     // Z - Unfold all cards in current column
     else if (name === "z" && shift) {
-      board.dispatch({ type: "UNFOLD_COLUMN", colIndex: board.state.colIndex });
+      const colIndex = tree.state.cursor[0] ?? 0;
+      tree.dispatch({ type: "UNFOLD_LEVEL", depth: colIndex });
     }
 
     // c - Toggle collapse current column
     else if (name === "c") {
-      board.dispatch({
-        type: "TOGGLE_COLLAPSE",
-        colIndex: board.state.colIndex,
-      });
+      if (currentColumn) {
+        tree.dispatch({
+          type: "TOGGLE_COLLAPSE",
+          nodeId: currentColumn.nodeId,
+        });
+      }
     }
 
     // ===== Multi-Select (A - progressive select all) =====
@@ -658,19 +672,18 @@ export function App({
     // First press: select all in current column
     // Second press: select all in all columns
     else if (name === "a" && shift) {
-      const currentColumn = board.currentColumn;
       if (currentColumn) {
         // Check if all cards in current column are already selected
-        const allColumnSelected = currentColumn.cards.every((card) =>
-          board.state.selectedCards.has(card.nodeId),
+        const allColumnSelected = currentColumn.children.every((child) =>
+          tree.state.selectedNodes.has(child.nodeId),
         );
 
         if (!allColumnSelected) {
-          // First press: select all in current column
-          board.dispatch({ type: "SELECT_ALL_COLUMN" });
+          // First press: select all in current column (siblings)
+          tree.dispatch({ type: "SELECT_ALL_SIBLINGS" });
         } else {
           // Second press: select all in all columns
-          board.dispatch({ type: "SELECT_ALL" });
+          tree.dispatch({ type: "SELECT_ALL" });
         }
       }
     }
@@ -691,8 +704,8 @@ export function App({
     // Shift+1-9: Jump cursor to column (terminal sends !@#$%^&*()
     else if (SHIFT_NUMBER_MAP[name] !== undefined) {
       const targetCol = SHIFT_NUMBER_MAP[name];
-      if (targetCol !== undefined && targetCol < board.state.columns.length) {
-        board.dispatch({ type: "SELECT_CARD", col: targetCol, card: 0 });
+      if (targetCol !== undefined && targetCol < tree.state.nodes.length) {
+        tree.dispatch({ type: "SELECT_POSITION", path: [targetCol, 0] });
       }
     }
 
@@ -700,53 +713,48 @@ export function App({
 
     // Space - Cycle task status (todo -> wip -> done -> dropped -> todo)
     else if (name === "space") {
-      const card = board.currentCard;
-      if (card?.isTask) {
-        const nextStatus = getNextStatus(card.taskStatus);
-        updateNode(card.nodeId, { task_status: nextStatus });
-        refreshBoard();
+      if (currentCard?.isTask) {
+        const nextStatus = getNextStatus(currentCard.taskStatus);
+        updateNode(currentCard.nodeId, { task_status: nextStatus });
+        refreshTree();
       }
     }
 
     // x - Toggle done (quick toggle: if done -> todo, else -> done)
     else if (name === "x") {
-      const card = board.currentCard;
-      if (card?.isTask) {
-        const newStatus = card.taskStatus === "done" ? "todo" : "done";
-        updateNode(card.nodeId, { task_status: newStatus });
-        refreshBoard();
+      if (currentCard?.isTask) {
+        const newStatus = currentCard.taskStatus === "done" ? "todo" : "done";
+        updateNode(currentCard.nodeId, { task_status: newStatus });
+        refreshTree();
       }
     }
 
     // d - Delete card
     else if (name === "d") {
-      const card = board.currentCard;
-      if (card) {
-        deleteNode(card.nodeId);
-        refreshBoard();
+      if (currentCard) {
+        deleteNode(currentCard.nodeId);
+        refreshTree();
       }
     }
 
     // Tab - Indent (make child of previous sibling)
     else if (name === "tab" && !shift) {
-      const card = board.currentCard;
-      const column = board.currentColumn;
-      if (card && column) {
-        const cardIndex = board.state.cardIndex;
+      if (currentCard && currentColumn) {
+        const cardIndex = tree.state.cursor[1] ?? 0;
         // Can only indent if there's a previous sibling
         if (cardIndex > 0) {
-          const prevSibling = column.cards[cardIndex - 1];
+          const prevSibling = currentColumn.children[cardIndex - 1];
           if (prevSibling) {
             // Get current children count of prev sibling to set parent_idx
             const prevSiblingChildren = getChildren(prevSibling.nodeId);
             // Move card to be last child of previous sibling
-            const node = getNode(card.nodeId);
+            const node = getNode(currentCard.nodeId);
             if (node) {
-              updateNode(card.nodeId, {
+              updateNode(currentCard.nodeId, {
                 parent_id: prevSibling.nodeId,
                 parent_idx: prevSiblingChildren.length,
               });
-              refreshBoard();
+              refreshTree();
             }
           }
         }
@@ -755,9 +763,8 @@ export function App({
 
     // Shift+Tab - Outdent (move to parent's level)
     else if (name === "tab" && shift) {
-      const card = board.currentCard;
-      if (card) {
-        const node = getNode(card.nodeId);
+      if (currentCard) {
+        const node = getNode(currentCard.nodeId);
         if (node && node.parent_id) {
           const parent = getNode(node.parent_id);
           if (parent && parent.parent_id !== undefined) {
@@ -767,11 +774,11 @@ export function App({
               (s: Node) => s.id === parent.id,
             );
             // Place after parent
-            updateNode(card.nodeId, {
+            updateNode(currentCard.nodeId, {
               parent_id: parent.parent_id,
               parent_idx: parentIdx + 1,
             });
-            refreshBoard();
+            refreshTree();
           }
         }
       }
@@ -781,16 +788,15 @@ export function App({
 
     // Enter - Zoom into current card (make it the new root)
     else if (name === "return") {
-      const card = board.currentCard;
-      if (card) {
-        // Build columns from the card's children
-        const newColumns = buildColumns(card.nodeId);
+      if (currentCard) {
+        // Build nodes from the card's children
+        const newNodes = buildNodes(currentCard.nodeId);
         // Only zoom if the card has children
-        if (newColumns.length > 0 || getChildren(card.nodeId).length > 0) {
-          board.dispatch({
+        if (newNodes.length > 0 || getChildren(currentCard.nodeId).length > 0) {
+          tree.dispatch({
             type: "ZOOM_IN",
-            nodeId: card.nodeId,
-            columns: newColumns,
+            nodeId: currentCard.nodeId,
+            nodes: newNodes,
           });
         }
       }
@@ -798,14 +804,13 @@ export function App({
 
     // Backspace - Zoom out (go back to previous root from zoomStack)
     else if (name === "backspace") {
-      if (board.state.zoomStack.length > 0) {
+      if (tree.state.zoomStack.length > 0) {
         // Get the previous root from the stack
-        const prevRootMarker =
-          board.state.zoomStack[board.state.zoomStack.length - 1];
-        const prevRootId =
-          prevRootMarker === "__ROOT__" ? null : prevRootMarker;
-        const newColumns = buildColumns(prevRootId ?? null);
-        board.dispatch({ type: "ZOOM_OUT", columns: newColumns });
+        const prevRootEntry =
+          tree.state.zoomStack[tree.state.zoomStack.length - 1];
+        const prevRootId = prevRootEntry?.rootId ?? null;
+        const newNodes = buildNodes(prevRootId);
+        tree.dispatch({ type: "ZOOM_OUT", nodes: newNodes });
       }
     }
 
@@ -813,22 +818,20 @@ export function App({
 
     // Alt+j - Move card down within column
     else if (name === "j" && meta) {
-      const card = board.currentCard;
-      const column = board.currentColumn;
-      if (card && column) {
-        const cardIndex = board.state.cardIndex;
-        if (cardIndex < column.cards.length - 1) {
+      if (currentCard && currentColumn) {
+        const cardIndex = tree.state.cursor[1] ?? 0;
+        if (cardIndex < currentColumn.children.length - 1) {
           // Get the next sibling to swap with
-          const nextCard = column.cards[cardIndex + 1];
+          const nextCard = currentColumn.children[cardIndex + 1];
           if (nextCard) {
-            const node = getNode(card.nodeId);
+            const node = getNode(currentCard.nodeId);
             const nextNode = getNode(nextCard.nodeId);
             if (node && nextNode) {
               // Move after next sibling by using its index + 0.5
               const nextIdx = nextNode.parent_idx ?? 0;
-              updateNode(card.nodeId, { parent_idx: nextIdx + 0.5 });
-              refreshBoard();
-              board.dispatch({ type: "MOVE_DOWN" });
+              updateNode(currentCard.nodeId, { parent_idx: nextIdx + 0.5 });
+              refreshTree();
+              tree.dispatch({ type: "MOVE_DOWN" });
             }
           }
         }
@@ -837,22 +840,20 @@ export function App({
 
     // Alt+k - Move card up within column
     else if (name === "k" && meta) {
-      const card = board.currentCard;
-      const column = board.currentColumn;
-      if (card && column) {
-        const cardIndex = board.state.cardIndex;
+      if (currentCard && currentColumn) {
+        const cardIndex = tree.state.cursor[1] ?? 0;
         if (cardIndex > 0) {
           // Get the previous sibling to swap with
-          const prevCard = column.cards[cardIndex - 1];
+          const prevCard = currentColumn.children[cardIndex - 1];
           if (prevCard) {
-            const node = getNode(card.nodeId);
+            const node = getNode(currentCard.nodeId);
             const prevNode = getNode(prevCard.nodeId);
             if (node && prevNode) {
               // Move before previous sibling
               const prevIdx = prevNode.parent_idx ?? 0;
-              updateNode(card.nodeId, { parent_idx: prevIdx - 0.5 });
-              refreshBoard();
-              board.dispatch({ type: "MOVE_UP" });
+              updateNode(currentCard.nodeId, { parent_idx: prevIdx - 0.5 });
+              refreshTree();
+              tree.dispatch({ type: "MOVE_UP" });
             }
           }
         }
@@ -861,10 +862,9 @@ export function App({
 
     // Alt+h - Move card to previous column
     else if (name === "h" && meta) {
-      const card = board.currentCard;
-      const colIndex = board.state.colIndex;
-      if (card && colIndex > 0) {
-        const prevColumn = board.state.columns[colIndex - 1];
+      const colIndex = tree.state.cursor[0] ?? 0;
+      if (currentCard && colIndex > 0) {
+        const prevColumn = tree.state.nodes[colIndex - 1];
         if (prevColumn) {
           // Move card to be a child of the previous column's node
           // Place at end of previous column
@@ -874,16 +874,15 @@ export function App({
               ? (prevColumnChildren[prevColumnChildren.length - 1]
                   ?.parent_idx ?? 0) + 1
               : 0;
-          updateNode(card.nodeId, {
+          updateNode(currentCard.nodeId, {
             parent_id: prevColumn.nodeId,
             parent_idx: newParentIdx,
           });
-          refreshBoard();
+          refreshTree();
           // Move cursor to the new column and to the end where card was placed
-          board.dispatch({
-            type: "SELECT_CARD",
-            col: colIndex - 1,
-            card: prevColumnChildren.length,
+          tree.dispatch({
+            type: "SELECT_POSITION",
+            path: [colIndex - 1, prevColumnChildren.length],
           });
         }
       }
@@ -891,10 +890,9 @@ export function App({
 
     // Alt+l - Move card to next column
     else if (name === "l" && meta) {
-      const card = board.currentCard;
-      const colIndex = board.state.colIndex;
-      if (card && colIndex < board.state.columns.length - 1) {
-        const nextColumn = board.state.columns[colIndex + 1];
+      const colIndex = tree.state.cursor[0] ?? 0;
+      if (currentCard && colIndex < tree.state.nodes.length - 1) {
+        const nextColumn = tree.state.nodes[colIndex + 1];
         if (nextColumn) {
           // Move card to be a child of the next column's node
           // Place at end of next column
@@ -904,16 +902,15 @@ export function App({
               ? (nextColumnChildren[nextColumnChildren.length - 1]
                   ?.parent_idx ?? 0) + 1
               : 0;
-          updateNode(card.nodeId, {
+          updateNode(currentCard.nodeId, {
             parent_id: nextColumn.nodeId,
             parent_idx: newParentIdx,
           });
-          refreshBoard();
+          refreshTree();
           // Move cursor to the new column and to the end where card was placed
-          board.dispatch({
-            type: "SELECT_CARD",
-            col: colIndex + 1,
-            card: nextColumnChildren.length,
+          tree.dispatch({
+            type: "SELECT_POSITION",
+            path: [colIndex + 1, nextColumnChildren.length],
           });
         }
       }
@@ -921,13 +918,12 @@ export function App({
 
     // Alt+1-9 - Move card to specific column
     else if (/^[1-9]$/.test(name) && meta) {
-      const card = board.currentCard;
       const targetColIndex = parseInt(name, 10) - 1; // Convert 1-9 to 0-8
-      if (card && targetColIndex < board.state.columns.length) {
-        const currentColIndex = board.state.colIndex;
+      if (currentCard && targetColIndex < tree.state.nodes.length) {
+        const currentColIndex = tree.state.cursor[0] ?? 0;
         // Don't move if already in target column
         if (targetColIndex !== currentColIndex) {
-          const targetColumn = board.state.columns[targetColIndex];
+          const targetColumn = tree.state.nodes[targetColIndex];
           if (targetColumn) {
             // Move card to be a child of the target column's node
             // Place at end of target column
@@ -937,16 +933,15 @@ export function App({
                 ? (targetColumnChildren[targetColumnChildren.length - 1]
                     ?.parent_idx ?? 0) + 1
                 : 0;
-            updateNode(card.nodeId, {
+            updateNode(currentCard.nodeId, {
               parent_id: targetColumn.nodeId,
               parent_idx: newParentIdx,
             });
-            refreshBoard();
+            refreshTree();
             // Move cursor to the target column and to the end where card was placed
-            board.dispatch({
-              type: "SELECT_CARD",
-              col: targetColIndex,
-              card: targetColumnChildren.length,
+            tree.dispatch({
+              type: "SELECT_POSITION",
+              path: [targetColIndex, targetColumnChildren.length],
             });
           }
         }
@@ -957,39 +952,33 @@ export function App({
 
     // < - Decrease outline depth (show fewer nesting levels)
     else if (name === "<") {
-      board.dispatch({ type: "DECREASE_OUTLINE_DEPTH" });
+      tree.dispatch({ type: "DECREASE_OUTLINE_DEPTH" });
     }
 
     // > - Increase outline depth (show more nesting levels)
     else if (name === ">") {
-      board.dispatch({ type: "INCREASE_OUTLINE_DEPTH" });
+      tree.dispatch({ type: "INCREASE_OUTLINE_DEPTH" });
     }
 
     // + - Increase content lines (show more content per card)
     else if (name === "+" || (name === "=" && shift)) {
-      board.dispatch({ type: "INCREASE_CONTENT_LINES" });
+      tree.dispatch({ type: "INCREASE_CONTENT_LINES" });
     }
 
     // - - Decrease content lines (show less content per card)
     else if (name === "-") {
-      board.dispatch({ type: "DECREASE_CONTENT_LINES" });
+      tree.dispatch({ type: "DECREASE_CONTENT_LINES" });
     }
   });
 
-  // Current column for status bar
-  const currentCol = board.currentColumn;
-
   // Detail pane configuration
   const detailPaneWidth = 40;
-  const detailPaneOpen = board.state.detailPaneOpen;
+  const detailPaneOpen = tree.state.detailPaneOpen;
   const mainViewWidth = detailPaneOpen ? width - detailPaneWidth : width;
 
   // Get full node data for detail pane
-  const selectedCardData = board.currentCard;
-  const selectedNode = selectedCardData
-    ? getNode(selectedCardData.nodeId)
-    : null;
-  const selectedChildCount = selectedCardData?.childCount ?? 0;
+  const selectedNode = currentCard ? getNode(currentCard.nodeId) : null;
+  const selectedChildCount = currentCard?.childCount ?? 0;
 
   return (
     <box flexDirection="column" width={width} height={height}>
@@ -1009,31 +998,15 @@ export function App({
           width={mainViewWidth}
           flexGrow={detailPaneOpen ? 0 : 1}
         >
-          {viewMode === "cards" && (
-            <CardsView
-              columns={viewModel.columns}
-              selectedCol={viewModel.selectedCol}
-              selectedCard={viewModel.selectedCard}
-              selectedCards={viewModel.selectedCards}
-            />
-          )}
+          {viewMode === "cards" && <CardsView viewModel={viewModel} />}
 
           {viewMode === "list" && (
-            <ListView
-              columns={viewModel.columns}
-              selectedCol={viewModel.selectedCol}
-              selectedCard={viewModel.selectedCard}
-              selectedCards={viewModel.selectedCards}
-              width={mainViewWidth}
-            />
+            <ListView viewModel={viewModel} width={mainViewWidth} />
           )}
 
           {viewMode === "columns" && (
             <ColumnsView
-              columns={viewModel.columns}
-              selectedCol={viewModel.selectedCol}
-              selectedCard={viewModel.selectedCard}
-              selectedCards={viewModel.selectedCards}
+              viewModel={viewModel}
               width={mainViewWidth}
               height={height - 3}
             />
@@ -1041,10 +1014,7 @@ export function App({
 
           {viewMode === "tabs" && (
             <TabsView
-              columns={viewModel.columns}
-              selectedCol={viewModel.selectedCol}
-              selectedCard={viewModel.selectedCard}
-              selectedCards={viewModel.selectedCards}
+              viewModel={viewModel}
               width={mainViewWidth}
               height={height - 3}
             />
@@ -1071,31 +1041,29 @@ export function App({
       <StatusBar
         width={width}
         height={height}
-        colIndex={board.state.colIndex}
-        colCount={board.state.columns.length}
-        cardIndex={board.state.cardIndex}
-        cardCount={currentCol?.cards.length ?? 0}
+        cursor={tree.state.cursor}
+        nodeCount={tree.state.nodes.length}
         viewMode={viewMode}
       />
 
       {/* Help overlay (shown when help mode is active) */}
-      {board.state.helpMode && <HelpOverlay width={width} height={height} />}
+      {tree.state.helpMode && <HelpOverlay width={width} height={height} />}
 
       {/* New item dialog (shown when new item mode is active) */}
-      {board.state.newItemMode && (
-        <NewItemDialog text={board.state.newItemText} width={width} />
+      {tree.state.newItemMode && (
+        <NewItemDialog text={tree.state.newItemText} width={width} />
       )}
 
       {/* Project picker (shown when project picker is open) */}
-      {board.state.projectPickerOpen && (
+      {tree.state.projectPickerOpen && (
         <ProjectPicker
           projects={getChildren(null).map((node) => ({
             id: node.id,
             title: getNodeDisplayName(node),
             itemCount: getChildren(node.id).length,
           }))}
-          query={board.state.projectPickerQuery}
-          selectedIndex={board.state.projectPickerIndex}
+          query={tree.state.projectPickerQuery}
+          selectedIndex={tree.state.projectPickerIndex}
           width={width}
           height={height}
         />
