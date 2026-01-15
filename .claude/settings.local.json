@@ -45,7 +45,14 @@
       "mcp__peekaboo__list",
       "mcp__peekaboo__see",
       "mcp__peekaboo__permissions",
-      "mcp__peekaboo__image"
+      "mcp__peekaboo__image",
+      "mcp__peekaboo__app",
+      "mcp__peekaboo__sleep",
+      "mcp__peekaboo__hotkey",
+      "mcp__peekaboo__type",
+      "mcp__peekaboo__click",
+      "mcp__peekaboo__agent",
+      "Skill(fix-tui)"
     ],
     "deny": [],
     "ask": []
