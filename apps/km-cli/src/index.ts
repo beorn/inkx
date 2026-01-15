@@ -28,6 +28,7 @@ import { moveCommand } from "./commands/move.ts";
 import { addCommand } from "./commands/add.ts";
 import { daemonCommand } from "./commands/daemon.ts";
 import { inboxCommand } from "./commands/inbox.ts";
+import { shCommand } from "./commands/sh.ts";
 
 const program = new Command();
 
@@ -181,6 +182,7 @@ program.addCommand(syncCommand); // km sync [--watch] - sync filesystem (with op
 program.addCommand(watchCommand); // km watch - deprecated, use 'km sync --watch' instead
 program.addCommand(rebuildCommand); // km rebuild - rebuild state
 program.addCommand(daemonCommand); // km daemon {start,stop,status} - background daemon
+program.addCommand(shCommand); // km sh [root] - scripting shell for TUI2 debugging
 
 // Handle unknown commands with helpful error message
 program.action((_options, command) => {

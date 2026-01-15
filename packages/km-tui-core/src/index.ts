@@ -48,3 +48,28 @@ export {
   toColumnViewModel,
   toBoardViewModel,
 } from "./transformers.ts";
+
+// Command Parser (for km-sh)
+export {
+  parseCommand,
+  parseKeySpec,
+  getCommandHelp,
+  getCommandNames,
+} from "./commandParser.ts";
+export type { ParseResult, ShellCommand } from "./commandParser.ts";
+
+// Shell Executor (for km-sh)
+export {
+  runShell,
+  executeCommand,
+  executeBoardAction,
+  executeShellCommand,
+  serializeState,
+  formatStateHuman,
+  renderAsciiView,
+} from "./shellExecutor.ts";
+export type {
+  OutputEvent,
+  SerializedState,
+  ShellContext,
+} from "./shellExecutor.ts";
