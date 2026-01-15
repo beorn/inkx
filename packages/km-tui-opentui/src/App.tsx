@@ -964,6 +964,28 @@ export function App({
         }
       }
     }
+
+    // ===== Outline Depth Control =====
+
+    // < - Decrease outline depth (show fewer nesting levels)
+    else if (name === "<") {
+      board.dispatch({ type: "DECREASE_OUTLINE_DEPTH" });
+    }
+
+    // > - Increase outline depth (show more nesting levels)
+    else if (name === ">") {
+      board.dispatch({ type: "INCREASE_OUTLINE_DEPTH" });
+    }
+
+    // + - Increase content lines (show more content per card)
+    else if (name === "+" || (name === "=" && shift)) {
+      board.dispatch({ type: "INCREASE_CONTENT_LINES" });
+    }
+
+    // - - Decrease content lines (show less content per card)
+    else if (name === "-") {
+      board.dispatch({ type: "DECREASE_CONTENT_LINES" });
+    }
   });
 
   // Current column for status bar

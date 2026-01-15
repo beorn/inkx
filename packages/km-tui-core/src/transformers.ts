@@ -37,7 +37,22 @@ export function toCardViewModel(
     hasBacklinks: card.hasBacklinks,
     refsCount: card.refsCount,
     content: card.content,
+    depth: card.depth,
   };
+}
+
+/**
+ * Filter cards by maximum outline depth
+ * Cards with depth > maxOutlineDepth are filtered out
+ */
+function filterCardsByDepth(
+  cards: CardState[],
+  maxOutlineDepth: number,
+): CardState[] {
+  return cards.filter((card) => {
+    const cardDepth = card.depth ?? 0;
+    return cardDepth <= maxOutlineDepth;
+  });
 }
 
 /**
@@ -47,16 +62,20 @@ export function toColumnViewModel(
   column: ColumnState,
   foldedCards: Set<string>,
   isCollapsed: boolean,
+  maxOutlineDepth: number = 99,
 ): ColumnViewModel {
+  // Filter cards by depth first
+  const filteredCards = filterCardsByDepth(column.cards, maxOutlineDepth);
+
   return {
     id: column.nodeId,
     title: column.title,
-    count: column.cards.length,
+    count: filteredCards.length,
     wipLimit: column.wipLimit,
     isOverLimit:
-      column.wipLimit !== undefined && column.cards.length > column.wipLimit,
+      column.wipLimit !== undefined && filteredCards.length > column.wipLimit,
     isCollapsed,
-    cards: column.cards.map((card) =>
+    cards: filteredCards.map((card) =>
       toCardViewModel(card, foldedCards.has(card.nodeId)),
     ),
   };
@@ -83,9 +102,14 @@ export function toBoardViewModel(
   state: BoardState,
   viewMode: ViewMode,
 ): BoardViewModel {
-  // Transform columns to view models
+  // Transform columns to view models, applying outline depth filter
   const columns = state.columns.map((col, i) =>
-    toColumnViewModel(col, state.foldedCards, state.collapsedColumns.has(i)),
+    toColumnViewModel(
+      col,
+      state.foldedCards,
+      state.collapsedColumns.has(i),
+      state.maxOutlineDepth,
+    ),
   );
 
   // Apply search filter if query is present

@@ -330,6 +330,34 @@ export function boardReducer(
       return { ...state, detailPaneOpen: !state.detailPaneOpen };
     }
 
+    // ===== Outline Depth Actions =====
+
+    case "INCREASE_OUTLINE_DEPTH": {
+      // Cap at 99 (effectively unlimited)
+      if (state.maxOutlineDepth >= 99) return state;
+      return { ...state, maxOutlineDepth: state.maxOutlineDepth + 1 };
+    }
+
+    case "DECREASE_OUTLINE_DEPTH": {
+      // Minimum 0 (only top-level cards)
+      if (state.maxOutlineDepth <= 0) return state;
+      return { ...state, maxOutlineDepth: state.maxOutlineDepth - 1 };
+    }
+
+    // ===== Content Lines Actions =====
+
+    case "INCREASE_CONTENT_LINES": {
+      // Cap at 10 lines max
+      if (state.maxContentLines >= 10) return state;
+      return { ...state, maxContentLines: state.maxContentLines + 1 };
+    }
+
+    case "DECREASE_CONTENT_LINES": {
+      // Minimum 0 (no content preview)
+      if (state.maxContentLines <= 0) return state;
+      return { ...state, maxContentLines: state.maxContentLines - 1 };
+    }
+
     default:
       return state;
   }
@@ -365,5 +393,7 @@ export function createInitialBoardState(
     projectPickerQuery: "",
     projectPickerIndex: 0,
     detailPaneOpen: false,
+    maxOutlineDepth: 99, // 99 = show all levels
+    maxContentLines: 2, // Default: show 2 lines of content
   };
 }

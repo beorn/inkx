@@ -45,6 +45,10 @@ export interface BoardState {
   projectPickerIndex: number;
   // Detail pane state
   detailPaneOpen: boolean;
+  // Outline depth control (99 = show all levels)
+  maxOutlineDepth: number;
+  // Content lines control (how many lines of content to show per card)
+  maxContentLines: number;
 }
 
 export interface ColumnState {
@@ -68,6 +72,8 @@ export interface CardState {
   hasBacklinks?: boolean; // Whether node has backlinks
   refsCount?: number; // Count of @mentions, #tags, [[wikilinks]]
   content?: string; // Full content text
+  // Depth within the column hierarchy (0 = direct child of column)
+  depth?: number;
 }
 
 export type BoardAction =
@@ -117,7 +123,13 @@ export type BoardAction =
   | { type: "PROJECT_PICKER_DOWN"; maxIndex: number }
   | { type: "CLOSE_PROJECT_PICKER" }
   // Detail pane actions
-  | { type: "TOGGLE_DETAIL_PANE" };
+  | { type: "TOGGLE_DETAIL_PANE" }
+  // Outline depth actions
+  | { type: "INCREASE_OUTLINE_DEPTH" }
+  | { type: "DECREASE_OUTLINE_DEPTH" }
+  // Content lines actions
+  | { type: "INCREASE_CONTENT_LINES" }
+  | { type: "DECREASE_CONTENT_LINES" };
 
 // ===== ViewModel Types =====
 
@@ -136,6 +148,8 @@ export interface CardViewModel {
   hasBacklinks?: boolean;
   refsCount?: number;
   content?: string;
+  // Depth within the column hierarchy (0 = direct child of column)
+  depth?: number;
 }
 
 export interface ColumnViewModel {

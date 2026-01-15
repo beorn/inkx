@@ -48,6 +48,8 @@ const shortcuts = [
       { key: "i", desc: "Toggle detail pane (show card info)" },
       { key: "z/Z", desc: "Fold/unfold all cards in column" },
       { key: "c", desc: "Toggle column collapse" },
+      { key: "</>", desc: "Decrease/increase outline depth" },
+      { key: "+/-", desc: "Increase/decrease content lines" },
     ],
   },
   {

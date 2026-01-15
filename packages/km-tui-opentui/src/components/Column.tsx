@@ -74,7 +74,7 @@ export function Column({
         </text>
       </box>
 
-      {/* Scrollable cards */}
+      {/* Scrollable cards - OpenTUI's scrollbox handles overflow */}
       <scrollbox ref={scrollboxRef} flexGrow={1}>
         {children}
       </scrollbox>
