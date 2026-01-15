@@ -40,5 +40,9 @@
     "react-devtools-core": "^7.0.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.1.73",
+    "@opentui/react": "^0.1.73"
   }
 }
