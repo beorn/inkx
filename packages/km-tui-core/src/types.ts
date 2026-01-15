@@ -36,6 +36,15 @@ export interface BoardState {
   // Navigation history for back/forward
   navHistory: NavHistoryEntry[];
   navHistoryIndex: number;
+  // New item dialog state
+  newItemMode: boolean;
+  newItemText: string;
+  // Project picker state
+  projectPickerOpen: boolean;
+  projectPickerQuery: string;
+  projectPickerIndex: number;
+  // Detail pane state
+  detailPaneOpen: boolean;
 }
 
 export interface ColumnState {
@@ -53,6 +62,12 @@ export interface CardState {
   taskStatus?: TaskStatus;
   color?: string;
   icon?: string;
+  // Rich task display fields
+  priority?: number; // 1-5 (P0-P5 style)
+  dueDate?: string; // ISO date string (YYYY-MM-DD)
+  hasBacklinks?: boolean; // Whether node has backlinks
+  refsCount?: number; // Count of @mentions, #tags, [[wikilinks]]
+  content?: string; // Full content text
 }
 
 export type BoardAction =
@@ -90,7 +105,19 @@ export type BoardAction =
   | { type: "SELECT_CARD_TOGGLE"; nodeId: string }
   | { type: "SELECT_ALL_COLUMN" }
   | { type: "SELECT_ALL" }
-  | { type: "CLEAR_SELECTION" };
+  | { type: "CLEAR_SELECTION" }
+  // New item dialog actions
+  | { type: "TOGGLE_NEW_ITEM_MODE" }
+  | { type: "SET_NEW_ITEM_TEXT"; text: string }
+  | { type: "CLEAR_NEW_ITEM" }
+  // Project picker actions
+  | { type: "TOGGLE_PROJECT_PICKER" }
+  | { type: "SET_PROJECT_PICKER_QUERY"; query: string }
+  | { type: "PROJECT_PICKER_UP" }
+  | { type: "PROJECT_PICKER_DOWN"; maxIndex: number }
+  | { type: "CLOSE_PROJECT_PICKER" }
+  // Detail pane actions
+  | { type: "TOGGLE_DETAIL_PANE" };
 
 // ===== ViewModel Types =====
 
@@ -103,6 +130,12 @@ export interface CardViewModel {
   color?: string;
   icon?: string;
   isFolded: boolean;
+  // Rich task display fields
+  priority?: number;
+  dueDate?: string;
+  hasBacklinks?: boolean;
+  refsCount?: number;
+  content?: string;
 }
 
 export interface ColumnViewModel {

@@ -51,7 +51,8 @@ export function ListView({
 
             {/* Cards in column */}
             {column.cards.map((card, cardIndex) => {
-              const isCardSelected = isColSelected && cardIndex === selectedCard;
+              const isCardSelected =
+                isColSelected && cardIndex === selectedCard;
 
               return (
                 <TreeNode
@@ -63,6 +64,10 @@ export function ListView({
                     taskStatus: card.taskStatus,
                     childCount: card.childCount,
                     color: card.color,
+                    priority: card.priority,
+                    dueDate: card.dueDate,
+                    hasBacklinks: card.hasBacklinks,
+                    refsCount: card.refsCount,
                   }}
                   depth={0}
                   width={width - 2}

@@ -105,6 +105,10 @@ export function TabsView({
                       taskStatus: card.taskStatus,
                       childCount: card.childCount,
                       color: card.color,
+                      priority: card.priority,
+                      dueDate: card.dueDate,
+                      hasBacklinks: card.hasBacklinks,
+                      refsCount: card.refsCount,
                     }}
                     depth={0}
                     width={width - 4}
@@ -115,7 +119,10 @@ export function TabsView({
                 );
               })}
               {needsScroll && scrollOffset + visibleCards.length < count && (
-                <text color="gray"> ▼ {count - scrollOffset - visibleCards.length} below</text>
+                <text color="gray">
+                  {" "}
+                  ▼ {count - scrollOffset - visibleCards.length} below
+                </text>
               )}
             </box>
           ) : (

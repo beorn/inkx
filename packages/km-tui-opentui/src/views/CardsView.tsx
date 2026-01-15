@@ -48,6 +48,10 @@ export function CardsView({
                 icon={card.icon}
                 isFolded={card.isFolded}
                 taskStatus={card.taskStatus}
+                priority={card.priority}
+                dueDate={card.dueDate}
+                hasBacklinks={card.hasBacklinks}
+                refsCount={card.refsCount}
               />
             ))}
           </Column>

@@ -73,12 +73,11 @@ function ColumnTree({
 
       {/* Cards area */}
       <box flexDirection="column" flexGrow={1}>
-        {scrollOffset > 0 && (
-          <text color="gray"> ▲ {scrollOffset} above</text>
-        )}
+        {scrollOffset > 0 && <text color="gray"> ▲ {scrollOffset} above</text>}
         {visibleCards.map((card, i) => {
           const actualCardIndex = scrollOffset + i;
-          const isCardSelected = isSelected && actualCardIndex === selectedCardIndex;
+          const isCardSelected =
+            isSelected && actualCardIndex === selectedCardIndex;
 
           return (
             <TreeNode
@@ -90,6 +89,10 @@ function ColumnTree({
                 taskStatus: card.taskStatus,
                 childCount: card.childCount,
                 color: card.color,
+                priority: card.priority,
+                dueDate: card.dueDate,
+                hasBacklinks: card.hasBacklinks,
+                refsCount: card.refsCount,
               }}
               depth={0}
               width={width}
@@ -99,11 +102,13 @@ function ColumnTree({
             />
           );
         })}
-        {needsScroll && scrollOffset + visibleCards.length < column.cards.length && (
-          <text color="gray">
-            {"  "}▼ {column.cards.length - scrollOffset - visibleCards.length} below
-          </text>
-        )}
+        {needsScroll &&
+          scrollOffset + visibleCards.length < column.cards.length && (
+            <text color="gray">
+              {"  "}▼ {column.cards.length - scrollOffset - visibleCards.length}{" "}
+              below
+            </text>
+          )}
       </box>
     </box>
   );
@@ -122,13 +127,19 @@ export function ColumnsView({
   // Calculate which columns are visible
   const hasLeftIndicator = scrollOffset > 0;
   const hasRightIndicator = scrollOffset + maxVisibleCols < columns.length;
-  const indicatorWidth = (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
+  const indicatorWidth =
+    (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
   const availableWidth = width - indicatorWidth;
 
   // Get visible columns
-  const visibleColumns = columns.slice(scrollOffset, scrollOffset + maxVisibleCols);
+  const visibleColumns = columns.slice(
+    scrollOffset,
+    scrollOffset + maxVisibleCols,
+  );
   const separatorCount = Math.max(0, visibleColumns.length - 1);
-  const colWidth = Math.floor((availableWidth - separatorCount) / Math.max(1, visibleColumns.length));
+  const colWidth = Math.floor(
+    (availableWidth - separatorCount) / Math.max(1, visibleColumns.length),
+  );
 
   return (
     <box flexDirection="row" width={width} height={height} flexGrow={1}>
@@ -162,7 +173,9 @@ export function ColumnsView({
               <box width={1} flexDirection="column">
                 <text> </text>
                 {Array.from({ length: height - 1 }).map((_, j) => (
-                  <text key={j} color="gray">│</text>
+                  <text key={j} color="gray">
+                    │
+                  </text>
                 ))}
               </box>
             )}

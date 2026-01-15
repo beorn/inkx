@@ -31,6 +31,12 @@ export function toCardViewModel(
     color: card.color,
     icon: card.icon,
     isFolded,
+    // Rich task display fields
+    priority: card.priority,
+    dueDate: card.dueDate,
+    hasBacklinks: card.hasBacklinks,
+    refsCount: card.refsCount,
+    content: card.content,
   };
 }
 
@@ -57,17 +63,43 @@ export function toColumnViewModel(
 }
 
 /**
+ * Filter cards by search query (case-insensitive title match)
+ */
+function filterCardsByQuery(
+  cards: CardViewModel[],
+  query: string,
+): CardViewModel[] {
+  if (!query) {
+    return cards;
+  }
+  const lowerQuery = query.toLowerCase();
+  return cards.filter((card) => card.title.toLowerCase().includes(lowerQuery));
+}
+
+/**
  * Transform full BoardState into BoardViewModel
  */
 export function toBoardViewModel(
   state: BoardState,
   viewMode: ViewMode,
 ): BoardViewModel {
+  // Transform columns to view models
+  const columns = state.columns.map((col, i) =>
+    toColumnViewModel(col, state.foldedCards, state.collapsedColumns.has(i)),
+  );
+
+  // Apply search filter if query is present
+  const filteredColumns = state.searchQuery
+    ? columns.map((col) => ({
+        ...col,
+        cards: filterCardsByQuery(col.cards, state.searchQuery),
+        count: filterCardsByQuery(col.cards, state.searchQuery).length,
+      }))
+    : columns;
+
   return {
     rootPath: state.rootPath,
-    columns: state.columns.map((col, i) =>
-      toColumnViewModel(col, state.foldedCards, state.collapsedColumns.has(i)),
-    ),
+    columns: filteredColumns,
     selectedCol: state.colIndex,
     selectedCard: state.cardIndex,
     selectedCards: state.selectedCards,

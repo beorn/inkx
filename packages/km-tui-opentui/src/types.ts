@@ -30,6 +30,11 @@ export interface CardProps {
   icon?: string;
   isFolded?: boolean;
   taskStatus?: "todo" | "wip" | "blocked" | "done" | "dropped";
+  // Rich task display fields
+  priority?: number; // 1-5 (P0-P5 style)
+  dueDate?: string; // ISO date string (YYYY-MM-DD)
+  hasBacklinks?: boolean;
+  refsCount?: number;
 }
 
 export interface ColumnProps {

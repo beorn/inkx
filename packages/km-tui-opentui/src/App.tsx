@@ -14,8 +14,26 @@ import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { useBoardState, createInitialBoardState } from "./hooks/index.ts";
 import { toBoardViewModel } from "@km/tui-core";
 import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
-import { Header, StatusBar } from "./components/index.ts";
-import { updateNode, deleteNode, getNode, getAncestors, getChildren, resolveNode } from "@km/store";
+import {
+  DetailPane,
+  Header,
+  HelpOverlay,
+  NewItemDialog,
+  ProjectPicker,
+  SearchInput,
+  StatusBar,
+} from "./components/index.ts";
+import {
+  updateNode,
+  deleteNode,
+  getNode,
+  getAncestors,
+  getChildren,
+  resolveNode,
+  getStore,
+  getBacklinks,
+  getOutgoingLinks,
+} from "@km/store";
 
 // Default favorites mapping (1-9 keys to @refs)
 const DEFAULT_FAVORITES: Record<string, string> = {
@@ -117,14 +135,29 @@ function openInEditor(filePath: string, line?: number | null): void {
  */
 function nodeToCardState(node: Node): CardState {
   const children = getChildren(node.id);
+
+  // Get backlinks count
+  const backlinks = getBacklinks(node.id);
+  const hasBacklinks = backlinks.length > 0;
+
+  // Get outgoing links count (refs)
+  const outgoingLinks = getOutgoingLinks(node.id);
+  const refsCount = outgoingLinks.length > 0 ? outgoingLinks.length : undefined;
+
   return {
     nodeId: node.id,
     title: getNodeDisplayName(node),
     childCount: children.length,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as CardState["taskStatus"],
-    color: undefined,
+    color: node.rules?.color,
     icon: undefined,
+    // Rich task display fields
+    priority: node.priority,
+    dueDate: node.due_date,
+    hasBacklinks: hasBacklinks || undefined,
+    refsCount,
+    content: node.content,
   };
 }
 
@@ -251,6 +284,203 @@ export function App({
   // Note: KeyEvent from OpenTUI uses `name` for key identification, not `key`
   // Alt key is accessed via `meta` property in OpenTUI KeyEvent
   useKeyboard(({ name, shift, meta }) => {
+    // ===== Help Mode =====
+    // When help overlay is shown, only ? and Escape dismiss it
+    if (board.state.helpMode) {
+      if (name === "escape" || name === "?" || (name === "/" && shift)) {
+        board.dispatch({ type: "TOGGLE_HELP_MODE" });
+      }
+      // Ignore all other keys when help is shown
+      return;
+    }
+
+    // ===== Search Mode Input =====
+    // When in search mode, capture character input for the search query
+    if (board.state.searchMode) {
+      // Escape - cancel search, clear query, exit search mode
+      if (name === "escape") {
+        board.dispatch({ type: "SET_SEARCH_QUERY", query: "" });
+        board.dispatch({ type: "TOGGLE_SEARCH_MODE" });
+        return;
+      }
+
+      // Enter/Return - confirm search, exit search mode but keep query
+      if (name === "return") {
+        board.dispatch({ type: "TOGGLE_SEARCH_MODE" });
+        return;
+      }
+
+      // Backspace - remove last character from query
+      if (name === "backspace") {
+        const currentQuery = board.state.searchQuery;
+        if (currentQuery.length > 0) {
+          board.dispatch({
+            type: "SET_SEARCH_QUERY",
+            query: currentQuery.slice(0, -1),
+          });
+        }
+        return;
+      }
+
+      // Character input (a-z, 0-9, space, and common punctuation)
+      // Single character names that aren't special keys get appended to query
+      if (name.length === 1 && !meta) {
+        board.dispatch({
+          type: "SET_SEARCH_QUERY",
+          query: board.state.searchQuery + name,
+        });
+        return;
+      }
+
+      // Ignore all other keys in search mode
+      return;
+    }
+
+    // ===== New Item Mode Input =====
+    // When in new item mode, capture character input for the new task title
+    if (board.state.newItemMode) {
+      // Escape - cancel new item, clear text, exit new item mode
+      if (name === "escape") {
+        board.dispatch({ type: "CLEAR_NEW_ITEM" });
+        return;
+      }
+
+      // Enter/Return - create the new task
+      if (name === "return") {
+        const text = board.state.newItemText.trim();
+        if (text && board.currentColumn) {
+          // Get the current column's node to find the file to append to
+          const columnNode = getNode(board.currentColumn.nodeId);
+          if (columnNode) {
+            // Find the file path for this column
+            let filePath: string | null = null;
+            if (columnNode.fs_path && columnNode.type === "file") {
+              filePath = columnNode.fs_path;
+            } else {
+              // Traverse ancestors to find the containing file
+              const ancestors = getAncestors(board.currentColumn.nodeId);
+              for (const ancestor of ancestors.reverse()) {
+                if (ancestor.fs_path && ancestor.type === "file") {
+                  filePath = ancestor.fs_path;
+                  break;
+                }
+              }
+            }
+
+            if (filePath) {
+              // Append the new task to the file
+              const store = getStore();
+              store.appendTaskToFile(filePath, `\n- [ ] ${text}`);
+              // Refresh to show the new task
+              refreshBoard();
+            }
+          }
+        }
+        board.dispatch({ type: "CLEAR_NEW_ITEM" });
+        return;
+      }
+
+      // Backspace - remove last character from text
+      if (name === "backspace") {
+        const currentText = board.state.newItemText;
+        if (currentText.length > 0) {
+          board.dispatch({
+            type: "SET_NEW_ITEM_TEXT",
+            text: currentText.slice(0, -1),
+          });
+        }
+        return;
+      }
+
+      // Character input (a-z, 0-9, space, and common punctuation)
+      // Single character names that aren't special keys get appended to text
+      if (name.length === 1 && !meta) {
+        board.dispatch({
+          type: "SET_NEW_ITEM_TEXT",
+          text: board.state.newItemText + name,
+        });
+        return;
+      }
+
+      // Ignore all other keys in new item mode
+      return;
+    }
+
+    // ===== Project Picker Mode =====
+    // When project picker is open, handle navigation and selection
+    if (board.state.projectPickerOpen) {
+      // Get filtered projects for index bounds
+      const allProjects = getChildren(null).map((node) => ({
+        id: node.id,
+        title: getNodeDisplayName(node),
+        itemCount: getChildren(node.id).length,
+      }));
+      const query = board.state.projectPickerQuery;
+      const filteredProjects = query
+        ? allProjects.filter((p) =>
+            p.title.toLowerCase().includes(query.toLowerCase()),
+          )
+        : allProjects;
+
+      // Escape - close picker
+      if (name === "escape") {
+        board.dispatch({ type: "CLOSE_PROJECT_PICKER" });
+        return;
+      }
+
+      // Enter/Return - navigate to selected project
+      if (name === "return") {
+        const selectedProject =
+          filteredProjects[board.state.projectPickerIndex];
+        if (selectedProject) {
+          navigateToRoot(selectedProject.id);
+        }
+        board.dispatch({ type: "CLOSE_PROJECT_PICKER" });
+        return;
+      }
+
+      // j or down - move selection down
+      if (name === "j" || name === "down") {
+        board.dispatch({
+          type: "PROJECT_PICKER_DOWN",
+          maxIndex: filteredProjects.length - 1,
+        });
+        return;
+      }
+
+      // k or up - move selection up
+      if (name === "k" || name === "up") {
+        board.dispatch({ type: "PROJECT_PICKER_UP" });
+        return;
+      }
+
+      // Backspace - remove last character from query
+      if (name === "backspace") {
+        const currentQuery = board.state.projectPickerQuery;
+        if (currentQuery.length > 0) {
+          board.dispatch({
+            type: "SET_PROJECT_PICKER_QUERY",
+            query: currentQuery.slice(0, -1),
+          });
+        }
+        return;
+      }
+
+      // Character input - append to query
+      if (name.length === 1 && !meta) {
+        board.dispatch({
+          type: "SET_PROJECT_PICKER_QUERY",
+          query: board.state.projectPickerQuery + name,
+        });
+        return;
+      }
+
+      // Ignore all other keys in project picker mode
+      return;
+    }
+
+    // ===== Normal Mode =====
+
     // Escape - clear selection if any, otherwise quit
     if (name === "escape") {
       if (board.state.selectedCards.size > 0) {
@@ -373,6 +603,21 @@ export function App({
     // Search
     else if (name === "/" && !shift) {
       board.dispatch({ type: "TOGGLE_SEARCH_MODE" });
+    }
+
+    // New item
+    else if (name === "n" && !shift && !meta) {
+      board.dispatch({ type: "TOGGLE_NEW_ITEM_MODE" });
+    }
+
+    // Project picker
+    else if (name === "p" && !shift && !meta) {
+      board.dispatch({ type: "TOGGLE_PROJECT_PICKER" });
+    }
+
+    // Detail pane toggle
+    else if (name === "i" && !shift && !meta) {
+      board.dispatch({ type: "TOGGLE_DETAIL_PANE" });
     }
 
     // ===== Editor Integration =====
@@ -638,8 +883,8 @@ export function App({
           const prevColumnChildren = getChildren(prevColumn.nodeId);
           const newParentIdx =
             prevColumnChildren.length > 0
-              ? (prevColumnChildren[prevColumnChildren.length - 1]?.parent_idx ??
-                  0) + 1
+              ? (prevColumnChildren[prevColumnChildren.length - 1]
+                  ?.parent_idx ?? 0) + 1
               : 0;
           updateNode(card.nodeId, {
             parent_id: prevColumn.nodeId,
@@ -668,8 +913,8 @@ export function App({
           const nextColumnChildren = getChildren(nextColumn.nodeId);
           const newParentIdx =
             nextColumnChildren.length > 0
-              ? (nextColumnChildren[nextColumnChildren.length - 1]?.parent_idx ??
-                  0) + 1
+              ? (nextColumnChildren[nextColumnChildren.length - 1]
+                  ?.parent_idx ?? 0) + 1
               : 0;
           updateNode(card.nodeId, {
             parent_id: nextColumn.nodeId,
@@ -702,7 +947,7 @@ export function App({
             const newParentIdx =
               targetColumnChildren.length > 0
                 ? (targetColumnChildren[targetColumnChildren.length - 1]
-                      ?.parent_idx ?? 0) + 1
+                    ?.parent_idx ?? 0) + 1
                 : 0;
             updateNode(card.nodeId, {
               parent_id: targetColumn.nodeId,
@@ -724,6 +969,18 @@ export function App({
   // Current column for status bar
   const currentCol = board.currentColumn;
 
+  // Detail pane configuration
+  const detailPaneWidth = 40;
+  const detailPaneOpen = board.state.detailPaneOpen;
+  const mainViewWidth = detailPaneOpen ? width - detailPaneWidth : width;
+
+  // Get full node data for detail pane
+  const selectedCardData = board.currentCard;
+  const selectedNode = selectedCardData
+    ? getNode(selectedCardData.nodeId)
+    : null;
+  const selectedChildCount = selectedCardData?.childCount ?? 0;
+
   return (
     <box flexDirection="column" width={width} height={height}>
       {/* Header */}
@@ -734,47 +991,71 @@ export function App({
         searchMode={viewModel.searchMode}
       />
 
-      {/* Main view area */}
-      {viewMode === "cards" && (
-        <CardsView
-          columns={viewModel.columns}
-          selectedCol={viewModel.selectedCol}
-          selectedCard={viewModel.selectedCard}
-          selectedCards={viewModel.selectedCards}
-        />
-      )}
+      {/* Main content area with optional detail pane */}
+      <box flexDirection="row" flexGrow={1}>
+        {/* Main view area */}
+        <box
+          flexDirection="column"
+          width={mainViewWidth}
+          flexGrow={detailPaneOpen ? 0 : 1}
+        >
+          {viewMode === "cards" && (
+            <CardsView
+              columns={viewModel.columns}
+              selectedCol={viewModel.selectedCol}
+              selectedCard={viewModel.selectedCard}
+              selectedCards={viewModel.selectedCards}
+            />
+          )}
 
-      {viewMode === "list" && (
-        <ListView
-          columns={viewModel.columns}
-          selectedCol={viewModel.selectedCol}
-          selectedCard={viewModel.selectedCard}
-          selectedCards={viewModel.selectedCards}
-          width={width}
-        />
-      )}
+          {viewMode === "list" && (
+            <ListView
+              columns={viewModel.columns}
+              selectedCol={viewModel.selectedCol}
+              selectedCard={viewModel.selectedCard}
+              selectedCards={viewModel.selectedCards}
+              width={mainViewWidth}
+            />
+          )}
 
-      {viewMode === "columns" && (
-        <ColumnsView
-          columns={viewModel.columns}
-          selectedCol={viewModel.selectedCol}
-          selectedCard={viewModel.selectedCard}
-          selectedCards={viewModel.selectedCards}
-          width={width}
-          height={height - 3}
-        />
-      )}
+          {viewMode === "columns" && (
+            <ColumnsView
+              columns={viewModel.columns}
+              selectedCol={viewModel.selectedCol}
+              selectedCard={viewModel.selectedCard}
+              selectedCards={viewModel.selectedCards}
+              width={mainViewWidth}
+              height={height - 3}
+            />
+          )}
 
-      {viewMode === "tabs" && (
-        <TabsView
-          columns={viewModel.columns}
-          selectedCol={viewModel.selectedCol}
-          selectedCard={viewModel.selectedCard}
-          selectedCards={viewModel.selectedCards}
-          width={width}
-          height={height - 3}
-        />
-      )}
+          {viewMode === "tabs" && (
+            <TabsView
+              columns={viewModel.columns}
+              selectedCol={viewModel.selectedCol}
+              selectedCard={viewModel.selectedCard}
+              selectedCards={viewModel.selectedCards}
+              width={mainViewWidth}
+              height={height - 3}
+            />
+          )}
+        </box>
+
+        {/* Detail pane (shown when toggled with 'i') */}
+        {detailPaneOpen && (
+          <DetailPane
+            node={selectedNode}
+            childCount={selectedChildCount}
+            width={detailPaneWidth}
+          />
+        )}
+      </box>
+
+      {/* Search input (shown when search mode is active) */}
+      <SearchInput
+        query={viewModel.searchQuery}
+        isActive={viewModel.searchMode}
+      />
 
       {/* Status bar */}
       <StatusBar
@@ -786,6 +1067,29 @@ export function App({
         cardCount={currentCol?.cards.length ?? 0}
         viewMode={viewMode}
       />
+
+      {/* Help overlay (shown when help mode is active) */}
+      {board.state.helpMode && <HelpOverlay width={width} height={height} />}
+
+      {/* New item dialog (shown when new item mode is active) */}
+      {board.state.newItemMode && (
+        <NewItemDialog text={board.state.newItemText} width={width} />
+      )}
+
+      {/* Project picker (shown when project picker is open) */}
+      {board.state.projectPickerOpen && (
+        <ProjectPicker
+          projects={getChildren(null).map((node) => ({
+            id: node.id,
+            title: getNodeDisplayName(node),
+            itemCount: getChildren(node.id).length,
+          }))}
+          query={board.state.projectPickerQuery}
+          selectedIndex={board.state.projectPickerIndex}
+          width={width}
+          height={height}
+        />
+      )}
     </box>
   );
 }

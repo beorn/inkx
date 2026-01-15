@@ -199,7 +199,7 @@ export function boardReducer(
       const newZoomStack = [...state.zoomStack];
       const prevRootId = newZoomStack.pop();
       // Convert marker back to null if needed
-      const newRootId = prevRootId === "__ROOT__" ? null : prevRootId ?? null;
+      const newRootId = prevRootId === "__ROOT__" ? null : (prevRootId ?? null);
       return {
         ...state,
         rootId: newRootId,
@@ -264,6 +264,72 @@ export function boardReducer(
       return { ...state, selectedCards: new Set() };
     }
 
+    // ===== New Item Dialog Actions =====
+
+    case "TOGGLE_NEW_ITEM_MODE": {
+      return {
+        ...state,
+        newItemMode: !state.newItemMode,
+        newItemText: state.newItemMode ? "" : state.newItemText,
+      };
+    }
+
+    case "SET_NEW_ITEM_TEXT": {
+      return { ...state, newItemText: action.text };
+    }
+
+    case "CLEAR_NEW_ITEM": {
+      return { ...state, newItemMode: false, newItemText: "" };
+    }
+
+    // ===== Project Picker Actions =====
+
+    case "TOGGLE_PROJECT_PICKER": {
+      return {
+        ...state,
+        projectPickerOpen: !state.projectPickerOpen,
+        projectPickerQuery: state.projectPickerOpen
+          ? ""
+          : state.projectPickerQuery,
+        projectPickerIndex: state.projectPickerOpen
+          ? 0
+          : state.projectPickerIndex,
+      };
+    }
+
+    case "SET_PROJECT_PICKER_QUERY": {
+      return {
+        ...state,
+        projectPickerQuery: action.query,
+        projectPickerIndex: 0, // Reset index when query changes
+      };
+    }
+
+    case "PROJECT_PICKER_UP": {
+      if (state.projectPickerIndex <= 0) return state;
+      return { ...state, projectPickerIndex: state.projectPickerIndex - 1 };
+    }
+
+    case "PROJECT_PICKER_DOWN": {
+      if (state.projectPickerIndex >= action.maxIndex) return state;
+      return { ...state, projectPickerIndex: state.projectPickerIndex + 1 };
+    }
+
+    case "CLOSE_PROJECT_PICKER": {
+      return {
+        ...state,
+        projectPickerOpen: false,
+        projectPickerQuery: "",
+        projectPickerIndex: 0,
+      };
+    }
+
+    // ===== Detail Pane Actions =====
+
+    case "TOGGLE_DETAIL_PANE": {
+      return { ...state, detailPaneOpen: !state.detailPaneOpen };
+    }
+
     default:
       return state;
   }
@@ -293,5 +359,11 @@ export function createInitialBoardState(
     zoomStack: [],
     navHistory: [],
     navHistoryIndex: 0,
+    newItemMode: false,
+    newItemText: "",
+    projectPickerOpen: false,
+    projectPickerQuery: "",
+    projectPickerIndex: 0,
+    detailPaneOpen: false,
   };
 }
