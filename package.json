@@ -24,7 +24,8 @@
     "test": "bun test",
     "test:e2e": "bun run vendor/beorn-mdtest/src/index.ts tests/*.test.md",
     "test:e2e:update": "bun run vendor/beorn-mdtest/src/index.ts --update tests/*.test.md",
-    "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node"
+    "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
+    "storybook": "bun run apps/km-cli/tests/tui/storybook.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

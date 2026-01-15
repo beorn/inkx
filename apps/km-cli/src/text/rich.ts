@@ -66,9 +66,13 @@ function extractLinkDisplay(linkContent: string): string {
 
 // Markdown formatting patterns
 const BOLD_REGEX = /\*\*([^*]+)\*\*/g; // **bold**
-const ITALIC_REGEX = /(?<!\*)\*([^*]+)\*(?!\*)/g; // *italic* (not part of **)
+const ITALIC_ASTERISK_REGEX = /(?<!\*)\*([^*]+)\*(?!\*)/g; // *italic* (not part of **)
+const ITALIC_UNDERSCORE_REGEX = /(?<![_\w])_([^_]+)_(?![_\w])/g; // _italic_ (word boundary)
 const CODE_REGEX = /`([^`]+)`/g; // `code`
 const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g; // ~~strikethrough~~
+
+// Markdown link patterns
+const MD_LINK_REGEX = /\[([^\]]+)\]\([^)]+\)/g; // [text](url) - keep text only
 
 /**
  * Render raw markdown text to a styled ANSI string.
@@ -92,6 +96,11 @@ export function renderRich(text: string): string {
   // Strip inline fields first
   let result = text.replace(INLINE_FIELD_REGEX, "");
 
+  // Strip markdown links [text](url) → text (styled as link)
+  result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => {
+    return chalk.dim.underline(linkText);
+  });
+
   // Style wiki links with chalk (dim + underline)
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
     const display = extractLinkDisplay(content);
@@ -103,10 +112,16 @@ export function renderRich(text: string): string {
     return chalk.bold(content);
   });
 
-  // Style italic text
-  result = result.replace(ITALIC_REGEX, (_match, content: string) => {
+  // Style italic text (*italic* or _italic_)
+  result = result.replace(ITALIC_ASTERISK_REGEX, (_match, content: string) => {
     return chalk.italic(content);
   });
+  result = result.replace(
+    ITALIC_UNDERSCORE_REGEX,
+    (_match, content: string) => {
+      return chalk.italic(content);
+    },
+  );
 
   // Style inline code
   result = result.replace(CODE_REGEX, (_match, content: string) => {
@@ -139,6 +154,11 @@ export function renderRich(text: string): string {
 export function renderPlain(text: string): string {
   // Strip inline fields
   let result = text.replace(INLINE_FIELD_REGEX, "");
+
+  // Strip markdown links [text](url) → text
+  result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => {
+    return linkText;
+  });
 
   // Strip wiki links (keep display text only)
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {

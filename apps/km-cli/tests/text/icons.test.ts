@@ -10,16 +10,12 @@ import {
 } from "../../src/text/icons.ts";
 
 describe("getStatusIcon", () => {
-  it("returns gray circle for open/todo", () => {
-    const icon = getStatusIcon("open");
+  // Actual statuses from km-core: todo, wip, blocked, done, dropped
+
+  it("returns gray circle for todo", () => {
+    const icon = getStatusIcon("todo");
     expect(icon.char).toBe("○");
     expect(icon.color).toBe("gray");
-  });
-
-  it("returns green checkmark for done", () => {
-    const icon = getStatusIcon("done");
-    expect(icon.char).toBe("✓");
-    expect(icon.color).toBe("green");
   });
 
   it("returns yellow half circle for wip", () => {
@@ -34,10 +30,10 @@ describe("getStatusIcon", () => {
     expect(icon.color).toBe("red");
   });
 
-  it("returns blue clock for waiting", () => {
-    const icon = getStatusIcon("waiting");
-    expect(icon.char).toBe("◷");
-    expect(icon.color).toBe("blue");
+  it("returns green checkmark for done", () => {
+    const icon = getStatusIcon("done");
+    expect(icon.char).toBe("✓");
+    expect(icon.color).toBe("green");
   });
 
   it("returns gray empty set for dropped", () => {
@@ -46,22 +42,25 @@ describe("getStatusIcon", () => {
     expect(icon.color).toBe("gray");
   });
 
-  it("handles null as open", () => {
+  it("returns inverted ? for null (error)", () => {
     const icon = getStatusIcon(null);
-    expect(icon.char).toBe("○");
-    expect(icon.color).toBe("gray");
+    expect(icon.char).toBe("?");
+    expect(icon.color).toBe("black");
+    expect(icon.backgroundColor).toBe("white");
   });
 
-  it("handles undefined as open", () => {
+  it("returns inverted ? for undefined (error)", () => {
     const icon = getStatusIcon(undefined);
-    expect(icon.char).toBe("○");
-    expect(icon.color).toBe("gray");
+    expect(icon.char).toBe("?");
+    expect(icon.color).toBe("black");
+    expect(icon.backgroundColor).toBe("white");
   });
 
-  it("handles unknown status as open", () => {
-    const icon = getStatusIcon("unknown");
-    expect(icon.char).toBe("○");
-    expect(icon.color).toBe("gray");
+  it("returns inverted ? for unrecognized status (error)", () => {
+    const icon = getStatusIcon("invalid");
+    expect(icon.char).toBe("?");
+    expect(icon.color).toBe("black");
+    expect(icon.backgroundColor).toBe("white");
   });
 });
 
@@ -82,12 +81,12 @@ describe("getTypeIcon", () => {
     expect(getTypeIcon("paragraph")).toBe("");
   });
 
-  it("returns backtick for code", () => {
-    expect(getTypeIcon("code")).toBe("`");
+  it("returns empty for code (rich text handles it)", () => {
+    expect(getTypeIcon("code")).toBe("");
   });
 
-  it("returns quote mark for quote", () => {
-    expect(getTypeIcon("quote")).toBe('"');
+  it("returns empty for quote (rich text handles it)", () => {
+    expect(getTypeIcon("quote")).toBe("");
   });
 
   it("returns middle dot for unknown types", () => {

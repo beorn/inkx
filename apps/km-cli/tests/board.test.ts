@@ -476,11 +476,13 @@ describe("Board Rendering", () => {
   });
 
   test("getStatusIcon returns correct icons", () => {
-    expect(getStatusIcon("done")).toContain("✓");
+    expect(getStatusIcon("todo")).toContain("○");
     expect(getStatusIcon("wip")).toContain("◐");
     expect(getStatusIcon("blocked")).toContain("⊘");
+    expect(getStatusIcon("done")).toContain("✓");
     expect(getStatusIcon("dropped")).toContain("∅");
-    expect(getStatusIcon(undefined)).toContain("○");
+    // undefined/null/invalid status shows error marker
+    expect(getStatusIcon(undefined)).toContain("?");
   });
 
   test("renderCard includes content", () => {

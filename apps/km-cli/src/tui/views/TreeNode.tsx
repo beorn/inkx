@@ -106,6 +106,7 @@ export function TreeNode({
   const indent = " ".repeat(depth);
   const iconChar = statusIcon ? statusIcon.char : typeIcon;
   const iconColor = statusIcon ? statusIcon.color : undefined;
+  const iconBgColor = statusIcon?.backgroundColor;
   const prefixBeforeIcon = `${indent}${foldIndicator}`;
   const prefixAfterIcon = " ";
   const prefixLength =
@@ -212,7 +213,10 @@ export function TreeNode({
         wrap="truncate"
       >
         {prefixBeforeIcon}
-        <Text color={isSelected || isMultiSelected ? textColor : iconColor}>
+        <Text
+          color={isSelected || isMultiSelected ? textColor : iconColor}
+          backgroundColor={isSelected || isMultiSelected ? undefined : iconBgColor}
+        >
           {iconChar}
         </Text>
         {prefixAfterIcon}

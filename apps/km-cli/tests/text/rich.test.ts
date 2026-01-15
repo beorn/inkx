@@ -135,6 +135,35 @@ describe("renderRich", () => {
     });
   });
 
+  describe("markdown link styling", () => {
+    it("renders [text](url) links - URL stripped", () => {
+      const result = renderRich("Click [Google](https://google.com)");
+      expect(stripAnsi(result)).toBe("Click Google");
+      // Should not contain raw link syntax
+      expect(result).not.toContain("https://");
+      expect(result).not.toContain("](");
+    });
+
+    it("handles links with complex URLs", () => {
+      const result = renderRich("See [docs](https://example.com/path?query=1)");
+      expect(stripAnsi(result)).toBe("See docs");
+    });
+
+    it("handles multiple markdown links", () => {
+      const result = renderRich("[one](url1) and [two](url2)");
+      expect(stripAnsi(result)).toBe("one and two");
+    });
+
+    it("handles links with title attribute", () => {
+      // [text](url "title") - common markdown extension
+      const result = renderRich(
+        'Check [Example](https://example.com "Example Site")',
+      );
+      // The title is part of the URL portion, so it gets stripped
+      expect(stripAnsi(result)).toBe("Check Example");
+    });
+  });
+
   describe("markdown formatting", () => {
     it("renders **bold** text - markers stripped", () => {
       const result = renderRich("This is **bold** text");
@@ -148,6 +177,18 @@ describe("renderRich", () => {
       expect(stripAnsi(result)).toBe("This is italic text");
       // Should not contain raw italic marker (but could contain ** from other tests)
       expect(stripAnsi(result)).not.toContain("*");
+    });
+
+    it("renders _italic_ text with underscores - markers stripped", () => {
+      const result = renderRich("This is _italic_ text");
+      expect(stripAnsi(result)).toBe("This is italic text");
+      // Should not contain raw underscore markers
+      expect(stripAnsi(result)).not.toContain("_");
+    });
+
+    it("handles mixed bold and underscore italic", () => {
+      const result = renderRich("**bold** text and _italic_ emphasis");
+      expect(stripAnsi(result)).toBe("bold text and italic emphasis");
     });
 
     it("renders `code` text - markers stripped", () => {
@@ -228,5 +269,15 @@ describe("renderPlain", () => {
     const result = renderPlain("**bold** and [[link]]");
     // Should not contain any ANSI escape codes
     expect(result).toBe(stripAnsi(result));
+  });
+
+  it("strips markdown links [text](url) → text", () => {
+    expect(renderPlain("Click [Google](https://google.com)")).toBe(
+      "Click Google",
+    );
+  });
+
+  it("handles multiple markdown links", () => {
+    expect(renderPlain("[one](url1) and [two](url2)")).toBe("one and two");
   });
 });

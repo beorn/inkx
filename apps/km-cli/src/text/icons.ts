@@ -8,32 +8,38 @@
 export interface StatusIcon {
   char: string;
   color: string;
+  backgroundColor?: string;
 }
 
 /**
  * Get status icon for tasks with color.
  *
- * Status values: open, done, wip, blocked, waiting, dropped
+ * Status values: todo, wip, blocked, done, dropped
+ * See km-core/src/types.ts for TaskStatus type.
  */
 export function getStatusIcon(status: string | null | undefined): StatusIcon {
   switch (status) {
-    case "done":
-      return { char: "\u2713", color: "green" }; // checkmark ✓
+    case "todo":
+      return { char: "\u25CB", color: "gray" }; // empty circle ○
     case "wip":
       return { char: "\u25D0", color: "yellow" }; // half circle ◐
     case "blocked":
       return { char: "\u2298", color: "red" }; // circled slash ⊘
-    case "waiting":
-      return { char: "\u25F7", color: "blue" }; // clock ◷
+    case "done":
+      return { char: "\u2713", color: "green" }; // checkmark ✓
     case "dropped":
       return { char: "\u2205", color: "gray" }; // empty set ∅
     default:
-      return { char: "\u25CB", color: "gray" }; // empty circle ○
+      // Unknown/null/undefined status is an error - show with inverted colors
+      return { char: "?", color: "black", backgroundColor: "white" };
   }
 }
 
 /**
  * Get type icon for non-task nodes.
+ *
+ * Note: code and quote blocks don't need icons - rich text rendering
+ * handles their visual distinction (backticks for code, italics for quotes).
  */
 export function getTypeIcon(type: string): string {
   switch (type) {
@@ -44,11 +50,9 @@ export function getTypeIcon(type: string): string {
     case "section":
       return "#"; // hash for section
     case "paragraph":
-      return ""; // empty - no icon
     case "code":
-      return "`"; // backtick for code
     case "quote":
-      return '"'; // quote mark
+      return ""; // empty - rely on rich text rendering
     default:
       return "\u00B7"; // middle dot · for list items
   }

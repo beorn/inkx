@@ -112,30 +112,38 @@ console.log();
 section("Layer 1: Status & Type Icons");
 
 subsection("Status Icons (Tasks)");
-const statuses = ["open", "done", "wip", "blocked", "waiting", "dropped", null];
+// Actual statuses from km-core/src/types.ts: todo, wip, blocked, done, dropped
+const statuses = ["todo", "wip", "blocked", "done", "dropped"];
 for (const status of statuses) {
   const icon = getStatusIcon(status);
   const colorFn = chalk[icon.color as keyof typeof chalk] as (
     s: string,
   ) => string;
-  const displayStatus = status === null ? "(null/undefined)" : status;
-  console.log(`  ${colorFn(icon.char)}  ${displayStatus}`);
+  console.log(`  ${colorFn(icon.char)}  ${status}`);
+}
+console.log();
+// Error cases - null/undefined/unknown should show inverted ? marker
+console.log(chalk.dim("Error cases (null/undefined/invalid):"));
+for (const status of [null, undefined, "invalid"]) {
+  const icon = getStatusIcon(status);
+  // Apply background color for error states
+  let styledChar = icon.char;
+  if (icon.backgroundColor) {
+    const bgFn = chalk[`bg${icon.backgroundColor.charAt(0).toUpperCase()}${icon.backgroundColor.slice(1)}` as keyof typeof chalk] as (s: string) => string;
+    const fgFn = chalk[icon.color as keyof typeof chalk] as (s: string) => string;
+    styledChar = bgFn(fgFn(icon.char));
+  }
+  const label = status === null ? "null" : status === undefined ? "undefined" : status;
+  console.log(`  ${styledChar}  ${label}`);
 }
 console.log();
 
 subsection("Type Icons (Non-Tasks)");
-const types = [
-  "folder",
-  "file",
-  "section",
-  "paragraph",
-  "code",
-  "quote",
-  "list-item",
-];
+// Note: code/quote return empty - rich text handles their visual styling
+const types = ["folder", "file", "section", "paragraph", "code", "quote", "list-item"];
 for (const type of types) {
   const icon = getTypeIcon(type);
-  console.log(`  ${icon || chalk.dim("(empty)")}  ${type}`);
+  console.log(`  ${icon || " "}  ${type}`);
 }
 console.log();
 
@@ -201,29 +209,37 @@ const pathSegments: PathSegment[] = [
   { name: "Sprint 1", sep: ">", isWithinBoard: true },
   { name: "Tasks", sep: "", isWithinBoard: true },
 ];
-console.log(chalk.dim("Full path:"));
-console.log(
-  "  " + pathSegments.map((s) => s.name + (s.sep ? ` ${s.sep} ` : "")).join(""),
-);
+const fullPath = pathSegments.map((s) => s.name + (s.sep ? ` ${s.sep} ` : "")).join("");
+console.log(chalk.dim(`Full path (length=${fullPath.length}):`));
+console.log(`  |${fullPath}|`);
 console.log();
 
 for (const w of [60, 40, 25]) {
   const result = renderPath(pathSegments, w);
-  const rendered = result
-    .map((s) => s.name + (s.sep ? ` ${s.sep} ` : ""))
-    .join("");
-  console.log(chalk.dim(`Width=${w}:`));
-  console.log(`  ${rendered}`);
+  const rendered = result.map((s) => s.name + (s.sep ? ` ${s.sep} ` : "")).join("");
+  console.log(chalk.dim(`Width=${w.toString().padStart(2)}: |${rendered}| (len=${rendered.length})`));
 }
 console.log();
 
-subsection("renderParentPath() - Right-Aligned Parent Context");
+subsection("renderParentPath() - Separate Line Context (compact/multi-line)");
+// Used when context is on a separate line (compact mode or multi-line content)
+// Right-aligns and truncates from left with "…"
 const parentPath = "Projects/Work/Tasks/Subtask";
-for (const w of [30, 20, 15]) {
+console.log(chalk.dim(`Input: "${parentPath}" (len=${parentPath.length})`));
+console.log();
+for (const w of [30, 25, 20, 15]) {
   const result = renderParentPath(parentPath, w);
-  console.log(chalk.dim(`Width=${w}:`));
-  console.log(`  |${result}|`);
+  console.log(chalk.dim(`Width=${w.toString().padStart(2)}:`) + ` |${result}| (len=${result.length})`);
 }
+console.log();
+
+subsection("Inline Context (wide mode, single-line)");
+// Used when context is inline: " < parentContext"
+console.log(chalk.dim("Format: ` < {context}` suffix on same line as content"));
+console.log();
+const inlineContext = "Projects/Tasks";
+console.log(`  ○ My task content ${chalk.dim(`< ${inlineContext}`)}`);
+console.log(`  ○ Another task ${chalk.dim(`< ${inlineContext.slice(0, 10)}…`)}`);
 console.log();
 
 // ============================================================================
