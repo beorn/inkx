@@ -1,6 +1,6 @@
 {
-  "name": "@km/tui",
-  "description": "TUI state management, selectors, and view model transformations",
+  "name": "@km/tui-core",
+  "description": "Core TUI state management, selectors, and view model transformations",
   "type": "module",
   "module": "src/index.ts",
   "exports": {

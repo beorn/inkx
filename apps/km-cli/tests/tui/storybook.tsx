@@ -240,7 +240,7 @@ function Layer1TagPills(): React.ReactElement {
 }
 
 function Layer1TaskStyling(): React.ReactElement {
-  // Status data: marker (CLI), icon (TUI), description
+  // Status data: marker (plain text), icon (TUI), description
   const statusTable = [
     { mark: " ", status: "todo", desc: "Not started" },
     { mark: "/", status: "wip", desc: "Work in progress" },
@@ -255,18 +255,24 @@ function Layer1TaskStyling(): React.ReactElement {
     { mark: "<", desc: "Waiting on external" },
   ];
 
-  // Color the marker based on status
-  const colorMark = (mark: string, status: string): string => {
+  // Render checkbox with colored marker: [x] with dim brackets
+  // Matches format.ts formatNode() logic for tasks
+  const renderCheckbox = (mark: string, status?: string): string => {
+    let coloredMark: string;
     switch (status) {
       case "done":
-        return chalk.green(mark);
+        coloredMark = chalk.green(mark);
+        break;
       case "wip":
-        return chalk.yellow(mark);
+        coloredMark = chalk.yellow(mark);
+        break;
       case "blocked":
-        return chalk.red(mark);
+        coloredMark = chalk.red(mark);
+        break;
       default:
-        return chalk.dim(mark);
+        coloredMark = chalk.dim(mark);
     }
+    return chalk.dim("[") + coloredMark + chalk.dim("]");
   };
 
   return (
@@ -274,8 +280,8 @@ function Layer1TaskStyling(): React.ReactElement {
       <SectionHeader title="Layer 1: Task Styling" />
 
       <SubsectionHeader title="Standard Status States" />
-      <Text dimColor> Marker Icon Description</Text>
-      <Text dimColor> ────── ──── ─────────────────────</Text>
+      <Text dimColor> Plain Icon Description</Text>
+      <Text dimColor> ───── ──── ─────────────────────</Text>
       {statusTable.map(({ mark, status, desc }) => {
         const icon = getStatusIcon(status);
         const isDoneOrDropped = status === "done" || status === "dropped";
@@ -285,9 +291,9 @@ function Layer1TaskStyling(): React.ReactElement {
 
         return (
           <Text key={status}>
-            {"   "}
-            {colorMark(mark, status)}
-            {"    "}
+            {" "}
+            {renderCheckbox(mark, status)}
+            {" "}
             {getChalkColor(icon.color)(icon.char)}
             {"    "}
             {styledDesc}
@@ -297,13 +303,13 @@ function Layer1TaskStyling(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="Custom Markers (inverted in TUI)" />
-      <Text dimColor> Marker Icon Description</Text>
-      <Text dimColor> ────── ──── ─────────────────────</Text>
+      <Text dimColor> Plain Icon Description</Text>
+      <Text dimColor> ───── ──── ─────────────────────</Text>
       {customMarkers.map(({ mark, desc }) => (
         <Text key={mark}>
-          {"   "}
-          {chalk.dim(mark)}
-          {"    "}
+          {" "}
+          {renderCheckbox(mark)}
+          {" "}
           {chalk.bgWhite.black(mark)}
           {"    "}
           {desc}
@@ -313,9 +319,9 @@ function Layer1TaskStyling(): React.ReactElement {
 
       <SubsectionHeader title="Error State" />
       <Text>
-        {"   "}
-        {chalk.dim("-")}
-        {"    "}
+        {" "}
+        {renderCheckbox("-")}
+        {" "}
         {chalk.red("⚠")}
         {"    "}
         Missing status (null/undefined)

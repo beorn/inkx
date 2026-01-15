@@ -6,10 +6,10 @@
 
 import type { Node, TaskStatus } from "@km/core";
 import { getNodeDisplayName } from "@km/shared";
-import type { CardState, ColumnState } from "@km/tui";
+import type { CardState, ColumnState } from "@km/tui-core";
 
 // Re-export shared transformers
-export { toCardViewModel, toColumnViewModel, toBoardViewModel } from "@km/tui";
+export { toCardViewModel, toColumnViewModel, toBoardViewModel } from "@km/tui-core";
 
 // Re-export domain types
 export type { Node, TaskStatus };

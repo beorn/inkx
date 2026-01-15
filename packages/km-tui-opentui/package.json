@@ -1,0 +1,19 @@
+{
+  "name": "@km/tui-opentui",
+  "description": "OpenTUI renderer components for km TUI",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "@km/tui-core": "workspace:*",
+    "@opentui/core": "^0.1.73",
+    "@opentui/react": "^0.1.73",
+    "react": "^19.2.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7"
+  }
+}

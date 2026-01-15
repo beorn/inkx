@@ -35,7 +35,8 @@
         "@km/markdown": "workspace:*",
         "@km/shared": "workspace:*",
         "@km/store": "workspace:*",
-        "@km/tui": "workspace:*",
+        "@km/tui-core": "workspace:*",
+        "@km/tui-opentui": "workspace:*",
         "@km/watch": "workspace:*",
         "chalk": "^5.4.1",
         "commander": "^13.1.0",
@@ -95,8 +96,20 @@
         "@km/query": "workspace:*",
       },
     },
-    "packages/km-tui": {
-      "name": "@km/tui",
+    "packages/km-tui-core": {
+      "name": "@km/tui-core",
+    },
+    "packages/km-tui-opentui": {
+      "name": "@km/tui-opentui",
+      "dependencies": {
+        "@km/tui-core": "workspace:*",
+        "@opentui/core": "^0.1.73",
+        "@opentui/react": "^0.1.73",
+        "react": "^19.2.3",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.7",
+      },
     },
     "packages/km-watch": {
       "name": "@km/watch",
@@ -251,7 +264,9 @@
 
     "@km/store": ["@km/store@workspace:packages/km-store"],
 
-    "@km/tui": ["@km/tui@workspace:packages/km-tui"],
+    "@km/tui-core": ["@km/tui-core@workspace:packages/km-tui-core"],
+
+    "@km/tui-opentui": ["@km/tui-opentui@workspace:packages/km-tui-opentui"],
 
     "@km/watch": ["@km/watch@workspace:packages/km-watch"],
 

@@ -1,7 +1,7 @@
 /**
- * TUI2 Types
+ * OpenTUI Renderer Types
  *
- * Re-exports from shared package plus renderer-specific types.
+ * Re-exports from @km/tui plus renderer-specific component props.
  */
 
 // Re-export types from shared package
@@ -19,7 +19,7 @@ export type {
   BoardViewModel,
 } from "@km/tui-core";
 
-// ===== Component Props (renderer-specific) =====
+// ===== Component Props (OpenTUI-specific) =====
 
 export interface CardProps {
   title: string;
