@@ -6,8 +6,9 @@
  * and outputs trace/state to stdout.
  *
  * Usage:
- *   echo 'move_down\nstate' | km sh ~/vault @inbox.md
- *   km sh --json ~/vault @inbox.md < commands.txt
+ *   km sh @inbox.md -c 'move_down; move_down; state'
+ *   echo 'move_down\nstate' | km sh @inbox.md
+ *   km sh --json @inbox.md < commands.txt
  */
 
 import { Command } from "commander";
@@ -105,10 +106,29 @@ async function readInputLines(inputFile?: string): Promise<string[]> {
   });
 }
 
+/**
+ * Parse commands from -c option
+ * Supports semicolon-separated commands: "move_down; move_down; state"
+ */
+function parseCommandString(cmdString: string): string[] {
+  return cmdString
+    .split(";")
+    .map((cmd) => cmd.trim())
+    .filter((cmd) => cmd.length > 0);
+}
+
 export const shCommand = new Command("sh")
   .description("Non-interactive shell for scripting and debugging TUI2")
   .argument("[root]", "Root node ID to start view from")
   .option("--json", "JSON mode: input and output as NDJSON")
+  .option(
+    "-c, --command <commands>",
+    "Execute commands (semicolon-separated)",
+  )
+  .option(
+    "-e, --exec <commands>",
+    "Execute commands (alias for -c)",
+  )
   .option(
     "-f, --file <path>",
     "Read commands from file instead of stdin",
@@ -143,8 +163,14 @@ export const shCommand = new Command("sh")
       store.rootPath,
     );
 
-    // Read input
-    const lines = await readInputLines(options.file);
+    // Read input: -c/-e takes priority, then -f, then stdin
+    const cmdString = options.command || options.exec;
+    let lines: string[];
+    if (cmdString) {
+      lines = parseCommandString(cmdString);
+    } else {
+      lines = await readInputLines(options.file);
+    }
 
     // Output function
     const output = (event: OutputEvent | string) => {

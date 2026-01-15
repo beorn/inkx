@@ -8,7 +8,7 @@
 |------|---------|---------|
 | `bun test` | Unit & integration tests | `bun test`, `bun test packages/km-store` |
 | `mdtest` | Golden file CLI tests | `bun run test:e2e tests/*.test.md` |
-| `km sh` | TUI state testing (headless) | `echo "move_down\nstate" \| km sh @root` |
+| `km sh` | TUI state testing (headless) | `km sh @root -c 'move_down; state'` |
 | Playwright | Visual TUI screenshots | `cd tests/tui && playwright test` |
 | Storybook | Component visual dev | `bun run storybook` |
 
