@@ -108,11 +108,11 @@ async function readInputLines(inputFile?: string): Promise<string[]> {
 
 /**
  * Parse commands from -c option
- * Supports semicolon-separated commands: "move_down; move_down; state"
+ * Supports semicolon or newline separated commands
  */
 function parseCommandString(cmdString: string): string[] {
   return cmdString
-    .split(";")
+    .split(/[;\n]/)
     .map((cmd) => cmd.trim())
     .filter((cmd) => cmd.length > 0);
 }
@@ -122,8 +122,8 @@ export const shCommand = new Command("sh")
   .argument("[root]", "Root node ID to start view from")
   .option("--json", "JSON mode: input and output as NDJSON")
   .option(
-    "-c, --command <commands>",
-    "Execute commands (semicolon-separated)",
+    "-c, --command <commands...>",
+    "Execute commands (repeatable, semicolon/newline separated)",
   )
   .option(
     "-f, --file <path>",
@@ -160,10 +160,11 @@ export const shCommand = new Command("sh")
     );
 
     // Read input: -c takes priority, then -f, then stdin
-    const cmdString = options.command;
+    const cmdStrings: string[] | undefined = options.command;
     let lines: string[];
-    if (cmdString) {
-      lines = parseCommandString(cmdString);
+    if (cmdStrings && cmdStrings.length > 0) {
+      // Flatten all -c arguments, each can have multiple commands
+      lines = cmdStrings.flatMap(parseCommandString);
     } else {
       lines = await readInputLines(options.file);
     }
