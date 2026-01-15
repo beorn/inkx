@@ -9,6 +9,7 @@ import { Box, Text } from "ink";
 import type { BoardState, ColumnState, SelectionKey } from "../types.ts";
 import { TreeNode, makeSelectionKey } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "@km/shared";
+import { getOwnColor } from "../board-pills.ts";
 
 interface ColumnsViewProps {
   state: BoardState;
@@ -64,8 +65,11 @@ function ColumnTree({
   const name = getNodeDisplayName(column.node);
   const count = column.cards.length;
 
-  // Available height for cards: column height - border (2) - header (1)
-  const contentHeight = Math.max(1, height - 3);
+  // Get column's own color for background
+  const ownColor = getOwnColor(column.node);
+
+  // Available height for cards: column height - blank line (1) - header (1)
+  const contentHeight = Math.max(1, height - 2);
   // Each card row takes ~1 line when folded, estimate generously
   const maxVisibleCards = Math.max(1, contentHeight);
 
@@ -89,32 +93,42 @@ function ColumnTree({
   // Column header is selected when at column level
   const isColumnHeaderSelected = isSelected && selectionLevel === "column";
 
-  // Inner width is width minus 2 for borders
-  const innerWidth = width - 2;
-  const headerText = `${name} (${count})`.padEnd(innerWidth);
+  // Header text color: bright yellow if selected, dim yellow otherwise
+  // Exception: if column has its own color, use appropriate text color
+  const headerTextColor = ownColor
+    ? ["red", "green", "blue", "magenta", "gray", "grey"].includes(ownColor)
+      ? "white"
+      : "black"
+    : isSelected
+      ? "yellow"
+      : "yellowBright";
+  const headerDimmed = !isSelected && !ownColor;
+
+  // Height for cards area: total height - blank line (1) - header (1)
+  const cardsHeight = Math.max(1, height - 2);
 
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      height={height}
-      borderStyle="single"
-      borderColor={isSelected ? "blueBright" : "blackBright"}
-    >
-      {/* Column header */}
-      <Text
-        bold
-        color={isColumnHeaderSelected ? "white" : "yellow"}
-        backgroundColor={isColumnHeaderSelected ? "blue" : undefined}
-        wrap="truncate"
-      >
-        {headerText}
-      </Text>
+    <Box flexDirection="column" width={width} height={height}>
+      {/* Header section: blank line + header, fixed 2-line height */}
+      <Box flexDirection="column" height={2} flexShrink={0}>
+        <Text> </Text>
+        <Text
+          bold={isSelected}
+          color={isColumnHeaderSelected ? "black" : headerTextColor}
+          dimColor={headerDimmed}
+          backgroundColor={
+            isColumnHeaderSelected ? "cyan" : ownColor ? ownColor : undefined
+          }
+          wrap="truncate"
+        >
+          {name} ({count})
+        </Text>
+      </Box>
 
-      {/* Cards as tree nodes */}
+      {/* Cards as tree nodes - fixed height with overflow hidden */}
       <Box
         flexDirection="column"
-        flexGrow={1}
+        height={cardsHeight}
         alignItems="flex-start"
         overflowY="hidden"
       >
@@ -135,7 +149,7 @@ function ColumnTree({
               key={card.node.id}
               node={card.node}
               depth={0}
-              width={width - 4}
+              width={width}
               isSelected={
                 cardSelected ||
                 (selectionLevel === "card" &&
@@ -194,8 +208,6 @@ export function ColumnsView({
   const indicatorWidth =
     (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
   const availableWidth = width - indicatorWidth;
-  const baseColWidth = Math.floor(availableWidth / effectiveMaxCols);
-  const remainder = availableWidth % effectiveMaxCols;
 
   return (
     <Box flexDirection="row" width={width} height={height}>
@@ -213,25 +225,44 @@ export function ColumnsView({
       {/* Columns with tree view inside */}
       {effectiveVisibleColumns.map((col, i) => {
         const actualColIndex = effectiveScrollOffset + i;
-        // Distribute extra pixels to the first 'remainder' columns
-        const colWidth = baseColWidth + (i < remainder ? 1 : 0);
+        const isLastCol = i === effectiveVisibleColumns.length - 1;
+        // Account for separator lines between columns
+        const separatorCount = effectiveVisibleColumns.length - 1;
+        const availWidthForCols = availableWidth - separatorCount;
+        const colBaseWidth = Math.floor(availWidthForCols / effectiveMaxCols);
+        const colRemainder = availWidthForCols % effectiveMaxCols;
+        // Distribute extra pixels to the first columns
+        const colWidth = colBaseWidth + (i < colRemainder ? 1 : 0);
         return (
-          <ColumnTree
-            key={col.node.id}
-            column={col}
-            colIndex={actualColIndex}
-            isSelected={actualColIndex === colIndex}
-            selectedCardIndex={cardIndex}
-            selectedSubIndex={subIndex}
-            width={colWidth}
-            height={height}
-            maxOutlineDepth={maxOutlineDepth}
-            foldedNodes={foldedNodes}
-            multiSelected={multiSelected}
-            inOutlineMode={inOutlineMode}
-            selectionLevel={selectionLevel}
-            maxContentLines={maxContentLines}
-          />
+          <React.Fragment key={col.node.id}>
+            <ColumnTree
+              column={col}
+              colIndex={actualColIndex}
+              isSelected={actualColIndex === colIndex}
+              selectedCardIndex={cardIndex}
+              selectedSubIndex={subIndex}
+              width={colWidth}
+              height={height}
+              maxOutlineDepth={maxOutlineDepth}
+              foldedNodes={foldedNodes}
+              multiSelected={multiSelected}
+              inOutlineMode={inOutlineMode}
+              selectionLevel={selectionLevel}
+              maxContentLines={maxContentLines}
+            />
+            {/* Separator line between columns */}
+            {!isLastCol && (
+              <Box flexDirection="column" width={1} height={height}>
+                {/* Blank line to align with column header spacing */}
+                <Text> </Text>
+                {Array.from({ length: height - 1 }).map((_, j) => (
+                  <Text key={j} color="gray">
+                    │
+                  </Text>
+                ))}
+              </Box>
+            )}
+          </React.Fragment>
         );
       })}
 

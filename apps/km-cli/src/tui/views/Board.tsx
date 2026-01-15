@@ -19,6 +19,7 @@ import type { Node, TaskStatus } from "@km/core";
 import {
   getChildren,
   getNode,
+  getStore,
   resolveNode,
   moveNode,
   updateNode,
@@ -46,7 +47,7 @@ import {
 } from "../mouse-handler.ts";
 import { makeSelectionKey } from "./TreeNode.tsx";
 import { renderPlain, getNodeIcon, getChalkColor } from "../../text/index.ts";
-import { getInheritedColor } from "../board-pills.ts";
+import { getInheritedColor, getOwnColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { tuiEvents } from "../tui.ts";
@@ -274,21 +275,38 @@ function Column({
   const count = column.cards.length;
   const wipLimit = column.wipLimit;
 
-  // Get colored icon for column header (shows inherited color)
-  const inheritedColor = getInheritedColor(column.node);
-  const columnIcon = inheritedColor ? getNodeIcon(null, inheritedColor) : null;
+  // Get column's own color (not inherited) for background
+  const ownColor = getOwnColor(column.node);
   const wipExceeded = wipLimit !== undefined && count > wipLimit;
 
-  // Available height for cards: column height - border (2) - header (1)
-  const baseContentHeight = Math.max(1, height - 3);
-  // Each card takes ~3 lines minimum (top border + content + bottom border)
-  const minCardHeight = 3;
+  // Available height for cards: column height - blank line (1) - header (1)
+  const baseContentHeight = Math.max(1, height - 2);
+  // Each card takes approximately:
+  // - 2 lines for border (top + bottom from borderStyle="round")
+  // - 1-3 lines for content (maxContentLines setting)
+  // - Some cards may have parent context or wrapped text
+  // Use maxContentLines + 3 as a conservative estimate to prevent overflow
+  const estimatedCardHeight = maxContentLines + 3;
 
-  // Calculate how many cards can fit - use generous estimate to avoid false overflow
-  const maxCards = Math.max(1, Math.floor(baseContentHeight / minCardHeight));
+  // Calculate how many cards can fit without overflow indicators
+  const maxCardsNoOverflow = Math.max(
+    1,
+    Math.floor(baseContentHeight / estimatedCardHeight),
+  );
 
-  // Only scroll/overflow if we actually have more cards than can fit
-  const needsScroll = column.cards.length > maxCards;
+  // Check if we'll need scrolling (more cards than can fit)
+  const needsScroll = column.cards.length > maxCardsNoOverflow;
+
+  // If scrolling is needed, reserve space for overflow indicators (1 line each)
+  // We'll always have at least one indicator (bottom) when scrolling starts
+  // and may have top indicator too once we scroll down
+  const reservedForIndicators = needsScroll ? 2 : 0; // Reserve for both top and bottom
+  const maxCards = Math.max(
+    1,
+    Math.floor(
+      (baseContentHeight - reservedForIndicators) / estimatedCardHeight,
+    ),
+  );
 
   // Scroll to keep selected card visible (only if scrolling needed)
   const scrollOffset = needsScroll
@@ -300,15 +318,13 @@ function Column({
         ),
       )
     : 0;
+
   const visibleCards = column.cards.slice(
     scrollOffset,
     scrollOffset + maxCards,
   );
 
-  // Content height is what's available (let Ink handle actual overflow)
-  const contentHeight = baseContentHeight;
-
-  // Determine actual overflow visibility - only show when actively scrolling
+  // Determine actual overflow visibility
   const hasTopOverflow = scrollOffset > 0;
   const hasBottomOverflow = scrollOffset + maxCards < column.cards.length;
 
@@ -318,43 +334,40 @@ function Column({
   const warningIndicator = wipExceeded ? " \u26A0" : ""; // Warning sign when WIP exceeded
   const collapsedIndicator = isCollapsed ? " \u25B8" : ""; // Right-pointing triangle when collapsed
 
-  // Determine border color: red if WIP exceeded, bright for selected, dim for unselected
-  const borderColor = wipExceeded
-    ? "red"
-    : isSelected
-      ? "blueBright"
-      : "blackBright";
-
   const isColumnSelected = isSelected && selectionLevel === "column";
+
+  // Header text color: bright yellow if this column is selected/has selected cards, dim yellow otherwise
+  // Exception: if column has its own color, use appropriate text color for that background
+  const headerTextColor = ownColor
+    ? ["red", "green", "blue", "magenta", "gray", "grey"].includes(ownColor)
+      ? "white"
+      : "black"
+    : isSelected
+      ? "yellow"
+      : "yellowBright";
+  const headerDimmed = !isSelected && !ownColor;
 
   return (
     <Box
       flexDirection="column"
       width={width}
       height={height}
-      borderStyle="single"
-      borderColor={borderColor}
       overflowY="hidden"
     >
+      {/* Blank line above header */}
+      <Text> </Text>
+
       <Text
-        bold
-        color={isColumnSelected ? "white" : "yellow"}
-        backgroundColor={isColumnSelected ? "blue" : undefined}
+        bold={isSelected}
+        color={headerTextColor}
+        dimColor={headerDimmed}
+        backgroundColor={
+          isColumnSelected ? "blue" : ownColor ? ownColor : undefined
+        }
         wrap="truncate"
       >
-        {columnIcon && (
-          <Text color={isColumnSelected ? "white" : columnIcon.color}>
-            {columnIcon.char}{" "}
-          </Text>
-        )}
         {name}
-        {typeSuffix ? (
-          <Text
-            color={isColumnSelected ? "white" : "gray"}
-          >{` ${typeSuffix}`}</Text>
-        ) : (
-          ""
-        )}
+        {typeSuffix ? <Text dimColor>{` ${typeSuffix}`}</Text> : ""}
         {wipExceeded ? (
           <Text color="red">
             {` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}
@@ -368,7 +381,7 @@ function Column({
         // Collapsed view: show only count summary
         <Box
           flexDirection="column"
-          height={contentHeight}
+          height={baseContentHeight}
           justifyContent="center"
           alignItems="center"
         >
@@ -376,13 +389,21 @@ function Column({
         </Box>
       ) : (
         // Normal view: show cards with overflow indicators
-        <>
+        // Wrap in a fixed-height Box to prevent content overflow
+        // flexShrink={0} prevents the box from growing beyond its height
+        <Box
+          flexDirection="column"
+          height={baseContentHeight}
+          flexShrink={0}
+          flexGrow={0}
+          overflowY="hidden"
+        >
           {/* Top overflow indicator - full width bar */}
           {hasTopOverflow && (
-            <Box width={Math.max(1, width - 2)}>
+            <Box width={width} flexShrink={0}>
               <Text backgroundColor="gray" color="white">
-                {" ".repeat(Math.max(0, Math.floor((width - 4) / 2)))}▲
-                {" ".repeat(Math.max(0, Math.ceil((width - 4) / 2)))}
+                {" ".repeat(Math.max(0, Math.floor((width - 2) / 2)))}▲
+                {" ".repeat(Math.max(0, Math.ceil((width - 2) / 2)))}
               </Text>
             </Box>
           )}
@@ -405,7 +426,7 @@ function Column({
                   card={card}
                   isSelected={cardIsSelected}
                   selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
-                  width={width - 2}
+                  width={width}
                   maxOutlineDepth={maxOutlineDepth}
                   foldedNodes={foldedNodes}
                   multiSelected={multiSelected}
@@ -423,14 +444,14 @@ function Column({
           </Box>
           {/* Bottom overflow indicator - full width bar */}
           {hasBottomOverflow && (
-            <Box width={Math.max(1, width - 2)}>
+            <Box width={width} flexShrink={0}>
               <Text backgroundColor="gray" color="white">
-                {" ".repeat(Math.max(0, Math.floor((width - 4) / 2)))}▼
-                {" ".repeat(Math.max(0, Math.ceil((width - 4) / 2)))}
+                {" ".repeat(Math.max(0, Math.floor((width - 2) / 2)))}▼
+                {" ".repeat(Math.max(0, Math.ceil((width - 2) / 2)))}
               </Text>
             </Box>
           )}
-        </>
+        </Box>
       )}
     </Box>
   );
@@ -508,14 +529,65 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   ]);
   const [navHistoryIndex, setNavHistoryIndex] = useState(0); // Current position in history
 
-  // Listen for terminal resize
+  // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
+  //
+  // Problem: On TUI startup, the top status bar line was missing until a key was pressed.
+  // This caused either a missing line or a visible flash/scroll when content appeared.
+  //
+  // Root cause: fullscreen-ink switches to the terminal's alternate screen buffer using
+  // escape sequences, then calls Ink's rerender(). However:
+  // 1. Ink's useStdout() returns stdout with undefined columns/rows on first render
+  // 2. The first render frame may be discarded during the alternate buffer switch
+  // 3. This causes the initial render to be incomplete or positioned incorrectly
+  //
+  // Solution: Delay rendering the actual UI until the terminal is fully ready:
+  // 1. Poll for valid stdout dimensions (columns/rows defined)
+  // 2. Wait an additional 50ms for alternate buffer to stabilize
+  // 3. Render an empty Box until ready, then render the full UI
+  //
+  // The 50ms delay is a balance between avoiding the race condition and minimizing
+  // perceived startup latency. Shorter delays may reintroduce the bug.
+  const [isReady, setIsReady] = useState(false);
+
+  // Sync terminal dimensions and handle the initial render delay
   useEffect(() => {
     if (!stdout) return;
+
     const handleResize = () => {
       setDimensions({ columns: stdout.columns, rows: stdout.rows });
     };
+
+    // Check if stdout has valid dimensions (not undefined)
+    const syncDimensions = () => {
+      if (stdout.columns !== undefined && stdout.rows !== undefined) {
+        setDimensions({ columns: stdout.columns, rows: stdout.rows });
+        return true;
+      }
+      return false;
+    };
+
+    // Try to sync immediately, otherwise poll until dimensions are available
+    if (!syncDimensions()) {
+      const interval = setInterval(() => {
+        if (syncDimensions()) {
+          clearInterval(interval);
+          // Delay before marking ready to ensure alternate buffer is stable
+          setTimeout(() => setIsReady(true), 50);
+        }
+      }, 10);
+      stdout.on("resize", handleResize);
+      return () => {
+        clearInterval(interval);
+        stdout.off("resize", handleResize);
+      };
+    }
+
+    // Dimensions available immediately - still delay to avoid race condition
+    const timeout = setTimeout(() => setIsReady(true), 50);
+
     stdout.on("resize", handleResize);
     return () => {
+      clearTimeout(timeout);
       stdout.off("resize", handleResize);
     };
   }, [stdout]);
@@ -2271,8 +2343,48 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       )
     : colScrollOffset;
 
-  // Build top bar - blue background when board is selected, white otherwise
+  // Build top bar - use board's color as background, or blue if selected/no color
   const isBoardSelected = selectionLevel === "board";
+
+  // Get board's own color for the top bar background (not inherited)
+  const boardNode = state.rootId ? getNode(state.rootId) : null;
+  const boardColor = boardNode ? getOwnColor(boardNode) : undefined;
+
+  // Determine background color: board's color if available, blue if selected, white otherwise
+  const getTopBarBg = () => {
+    if (boardColor) {
+      switch (boardColor) {
+        case "red":
+          return chalk.bgRed;
+        case "green":
+          return chalk.bgGreen;
+        case "yellow":
+          return chalk.bgYellow;
+        case "blue":
+          return chalk.bgBlue;
+        case "magenta":
+          return chalk.bgMagenta;
+        case "cyan":
+          return chalk.bgCyan;
+        case "white":
+          return chalk.bgWhite;
+        case "gray":
+        case "grey":
+          return chalk.bgGray;
+        default:
+          return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
+      }
+    }
+    return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
+  };
+  const topBarBgChalk = getTopBarBg();
+
+  // Determine text color based on background (dark bg = white text, light bg = black text)
+  const darkBgColors = ["red", "green", "blue", "magenta", "gray", "grey"];
+  const useWhiteText = boardColor
+    ? darkBgColors.includes(boardColor)
+    : isBoardSelected;
+
   const topBarContent = selectedPathSegments
     .map((seg, i) => {
       // Check if this is the boundary between board path and item path
@@ -2280,50 +2392,41 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       const isBoardBoundary =
         prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
 
-      // Get color icon for this segment if it has one
-      const segColor = seg.node ? getInheritedColor(seg.node) : undefined;
-      const segIcon = segColor ? getNodeIcon(null, segColor) : null;
-
-      if (isBoardSelected) {
-        // Blue background, white text when board is selected
-        const sepPart = seg.sep ? chalk.bgBlue.white(` ${seg.sep} `) : "";
-        // Show icon with its color even on blue background
-        const iconPart = segIcon
-          ? chalk.bgBlue(getChalkColor(segIcon.color)(segIcon.char)) + " "
-          : "";
-        const namePart = chalk.bgBlue.white.bold(seg.name);
-        return sepPart + iconPart + namePart;
+      // No more colored disc icons - the background IS the color now
+      if (useWhiteText) {
+        // Dark background, white text
+        const sepPart = seg.sep ? topBarBgChalk.white(` ${seg.sep} `) : "";
+        const namePart = topBarBgChalk.white.bold(seg.name);
+        return sepPart + namePart;
       } else {
-        // White background, black text normally
+        // Light background, black text
         const sepPart = seg.sep
           ? isBoardBoundary
-            ? chalk.bgWhite.blue.bold(` ${seg.sep} `)
-            : chalk.bgWhite.gray(` ${seg.sep} `)
+            ? topBarBgChalk.blue.bold(` ${seg.sep} `)
+            : topBarBgChalk.gray(` ${seg.sep} `)
           : "";
-        // Show icon with its color on white background
-        const iconPart = segIcon
-          ? chalk.bgWhite(getChalkColor(segIcon.color)(segIcon.char)) + " "
-          : "";
-        const namePart = chalk.bgWhite.black.bold(seg.name);
-        return sepPart + iconPart + namePart;
+        const namePart = topBarBgChalk.black.bold(seg.name);
+        return sepPart + namePart;
       }
     })
     .join("");
-  // Calculate visible length (without ANSI codes)
+  // Calculate visible length (without ANSI codes) - no more icon chars
   const visibleLen =
     1 +
     selectedPathSegments.reduce((acc, seg) => {
-      const segColor = seg.node ? getInheritedColor(seg.node) : undefined;
-      const iconLen = segColor ? 2 : 0; // icon char + space
-      return (
-        acc + seg.name.length + iconLen + (seg.sep ? seg.sep.length + 2 : 0)
-      );
+      return acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0);
     }, 0);
   const padding = " ".repeat(Math.max(0, termWidth - visibleLen));
 
   // Background color for the top bar
-  const topBarBg = isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
-  const topBarFg = isBoardSelected ? chalk.bgBlue.white : chalk.bgWhite.black;
+  const topBarBg = topBarBgChalk;
+  const topBarFg = useWhiteText ? topBarBgChalk.white : topBarBgChalk.black;
+
+  // Render empty placeholder until terminal is ready (see isReady comment above)
+  // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
+  if (!isReady) {
+    return <Box height={termHeight} width={termWidth} />;
+  }
 
   return (
     <Box flexDirection="column" height={termHeight} minHeight={3}>
@@ -2347,13 +2450,17 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             )}
             {effectiveVisibleColumns.map((col, i) => {
               const actualColIndex = effectiveScrollOffset + i;
+              const isLastCol = i === effectiveVisibleColumns.length - 1;
               // Reduce column width if scroll indicators are shown
               const hasLeftIndicator = effectiveScrollOffset > 0;
               const hasRightIndicator =
                 effectiveScrollOffset + effectiveMaxCols < state.columns.length;
               const indicatorWidth =
                 (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
-              const availableWidth = boardWidth - indicatorWidth;
+              // Account for separator lines between columns (1 char each, n-1 separators)
+              const separatorCount = effectiveVisibleColumns.length - 1;
+              const availableWidth =
+                boardWidth - indicatorWidth - separatorCount;
               const baseColWidth = Math.floor(
                 availableWidth / effectiveMaxCols,
               );
@@ -2361,22 +2468,39 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               // Distribute extra pixels to the first 'remainder' columns
               const adjustedColWidth = baseColWidth + (i < remainder ? 1 : 0);
               return (
-                <Column
-                  key={col.node.id}
-                  column={col}
-                  colIndex={actualColIndex}
-                  isSelected={actualColIndex === state.colIndex}
-                  isCollapsed={collapsedColumns.has(actualColIndex)}
-                  selectedCardIndex={state.cardIndex}
-                  selectedSubIndex={inOutlineMode ? subIndex : -1}
-                  width={adjustedColWidth}
-                  height={termHeight - 2}
-                  maxOutlineDepth={maxOutlineDepth}
-                  foldedNodes={foldedNodes}
-                  multiSelected={multiSelected}
-                  selectionLevel={selectionLevel}
-                  maxContentLines={maxContentLines}
-                />
+                <React.Fragment key={col.node.id}>
+                  <Column
+                    column={col}
+                    colIndex={actualColIndex}
+                    isSelected={actualColIndex === state.colIndex}
+                    isCollapsed={collapsedColumns.has(actualColIndex)}
+                    selectedCardIndex={state.cardIndex}
+                    selectedSubIndex={inOutlineMode ? subIndex : -1}
+                    width={adjustedColWidth}
+                    height={termHeight - 2}
+                    maxOutlineDepth={maxOutlineDepth}
+                    foldedNodes={foldedNodes}
+                    multiSelected={multiSelected}
+                    selectionLevel={selectionLevel}
+                    maxContentLines={maxContentLines}
+                  />
+                  {/* Separator line between columns */}
+                  {!isLastCol && (
+                    <Box
+                      flexDirection="column"
+                      width={1}
+                      height={termHeight - 2}
+                    >
+                      {/* Blank line to align with column header spacing */}
+                      <Text> </Text>
+                      {Array.from({ length: termHeight - 3 }).map((_, j) => (
+                        <Text key={j} color="gray">
+                          │
+                        </Text>
+                      ))}
+                    </Box>
+                  )}
+                </React.Fragment>
               );
             })}
             {/* Right scroll indicator - full height filled bar */}
@@ -2483,8 +2607,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         {/* Help overlay */}
         {showHelp && <HelpOverlay width={termWidth} height={termHeight - 2} />}
       </Box>
-      {/* Bottom bar: indicators right-aligned */}
-      <Box width={termWidth} justifyContent="flex-end" paddingX={1}>
+      {/* Bottom bar: mode indicator left, other indicators right */}
+      <Box width={termWidth} justifyContent="space-between" paddingX={1}>
+        {/* Left side: store mode indicator */}
+        <Text>
+          {(() => {
+            const store = getStore();
+            if (store.mode === "memory") {
+              return <Text color="yellow">MEM</Text>;
+            }
+            return <Text color="green">DISK</Text>;
+          })()}
+        </Text>
+        {/* Right side: status indicators */}
         <Text>
           {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
           {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}

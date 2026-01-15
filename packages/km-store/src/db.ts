@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync } from "fs";
 import type { Node, Event, TaskStatus, NodeType, NodeRules } from "@km/core";
 import { getKmDir, emit } from "@km/core";
 import { parseHeadingRules } from "@km/markdown";
+import { isExplicitPath } from "./path-utils.ts";
 
 // Singleton database instance
 let dbInstance: Database | null = null;
@@ -551,13 +552,17 @@ export function resolveNode(query: string, type?: string): Node | null {
   const typeFilter = type ? " AND type = ?" : "";
   const typeParams = type ? [type] : [];
 
-  // 0. Handle relative paths (./file.md, ../folder/file.md)
-  if (query.startsWith("./") || query.startsWith("../")) {
+  // 0. Handle explicit filesystem paths (/, ./, ../)
+  // Note: ~ is expanded by the shell before reaching this code
+  if (isExplicitPath(query)) {
     const absolutePath = resolve(process.cwd(), query);
     const row = db
       .query(`SELECT * FROM nodes WHERE fs_path = ?${typeFilter}`)
       .get(absolutePath, ...typeParams) as Record<string, unknown> | null;
     if (row) return rowToNode(row);
+    // Don't fall through for explicit paths - they should match exactly or not at all
+    // This prevents /some/path from accidentally matching an ID suffix
+    return null;
   }
 
   // 1. Exact ID match

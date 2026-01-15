@@ -93,3 +93,13 @@ export {
   parseWikiLinks,
   nodeToText,
 } from "@km/markdown";
+
+// Path utilities for filesystem-based node resolution
+export {
+  isExplicitPath,
+  findKmRootFromPath,
+  resolveFsPath,
+  getEffectiveRoot,
+} from "./path-utils.ts";
+
+export type { PathResolution } from "./path-utils.ts";

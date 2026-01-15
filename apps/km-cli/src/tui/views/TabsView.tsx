@@ -69,9 +69,6 @@ export function TabsView({
   // Column header is selected when at column level
   const isColumnHeaderSelected = selectionLevel === "column";
 
-  // Border color - match cards view style
-  const borderColor = isColumnHeaderSelected ? "blueBright" : "blackBright";
-
   return (
     <Box flexDirection="column" width={width} height={height - 2}>
       {/* Spacer line between top bar and tabs */}
@@ -101,12 +98,12 @@ export function TabsView({
           const showActiveHighlight = isActive && !isBoardLevel;
 
           // Tab text color:
-          // - Selected (column level): white on blue
+          // - Selected (column level): black on cyan (per design system)
           // - Active (card level): yellow
           // - Inactive: white (not dim)
           // - Board level: dim
           const textColor = isTabSelected
-            ? "white"
+            ? "black"
             : showActiveHighlight
               ? "yellow"
               : "white";
@@ -116,7 +113,7 @@ export function TabsView({
               <Text
                 bold={showActiveHighlight}
                 color={textColor}
-                backgroundColor={isTabSelected ? "blue" : undefined}
+                backgroundColor={isTabSelected ? "cyan" : undefined}
                 dimColor={!showActiveHighlight && selectionLevel === "board"}
               >
                 {truncatedName} ({colCount})
@@ -127,13 +124,14 @@ export function TabsView({
         })}
       </Box>
 
-      {/* Content area with full border */}
+      {/* Top border only */}
+      <Text dimColor>{"─".repeat(width)}</Text>
+
+      {/* Content area */}
       <Box
         flexDirection="column"
         width={width}
-        height={height - tabBarHeight - 2}
-        borderStyle="single"
-        borderColor={borderColor}
+        height={height - tabBarHeight - 3}
       >
         {currentColumn ? (
           count > 0 ? (

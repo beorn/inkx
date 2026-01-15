@@ -22,7 +22,7 @@ import {
   displayLength,
   styledUnderline,
 } from "../../text/index.ts";
-import { constrainText, renderParentPath } from "../layout/index.ts";
+import { constrainText } from "../layout/index.ts";
 import type { SelectionKey } from "../types.ts";
 import {
   getBoardPills,
@@ -87,12 +87,14 @@ export function TreeNode({
 
   // Build styled content using layered rendering
   const isTask = node.type === "task";
-  // Only nodes that define their own color get a colored icon
+  // Only nodes that define their own color get colored background (non-tasks) or colored status icon (tasks)
   // Tasks linked to boards show the board pill instead (right-aligned)
   const ownColor = getOwnColor(node);
-  // Use getNodeIcon which handles color inheritance and fallback circle for non-tasks with color
-  const nodeIcon = getNodeIcon(isTask ? node.task_status : null, ownColor);
-  const typeIcon = isTask ? "" : ownColor ? "" : getTypeIcon(node.type);
+  // For tasks: use status icon with optional color override
+  // For non-tasks with ownColor: use type icon (background will be the color)
+  // For non-tasks without ownColor: use type icon
+  const nodeIcon = isTask ? getNodeIcon(node.task_status, ownColor) : null;
+  const typeIcon = isTask ? "" : getTypeIcon(node.type);
   // For sections, use getNodeDisplayName which strips inline rules
   // For tasks and other types, use raw content
   const rawContent =
@@ -115,10 +117,10 @@ export function TreeNode({
   const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : " ";
   const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
   const indent = " ".repeat(depth);
-  // Use nodeIcon for tasks or colored non-tasks, otherwise fall back to typeIcon
-  const hasNodeIcon = isTask || ownColor;
-  const iconChar = hasNodeIcon ? nodeIcon.char : typeIcon;
-  const iconColor = hasNodeIcon ? nodeIcon.color : undefined;
+  // Use nodeIcon for tasks, otherwise fall back to typeIcon
+  // Non-tasks with ownColor now use background color instead of colored disc
+  const iconChar = nodeIcon ? nodeIcon.char : typeIcon;
+  const iconColor = nodeIcon ? nodeIcon.color : undefined;
   const iconBgColor = nodeIcon?.backgroundColor;
   const prefixBeforeIcon = `${indent}${foldIndicator}`;
   const prefixAfterIcon = " ";
@@ -183,40 +185,43 @@ export function TreeNode({
     : "";
 
   // Calculate available width for content
-  const fixedWidth =
-    prefixLength +
-    foldedCount.length +
-    infoSuffix.length +
-    contextSuffix.length;
-  const availWidth = Math.max(1, width - fixedWidth);
+  // Wrapped lines only need to account for the prefix (continuation indent)
+  // The first line also has infoSuffix, but we handle that separately
+  const wrapWidth = Math.max(1, width - prefixLength);
 
   // Layer 2: Constrain styled content to available width and lines
   const { lines: wrappedLines } = constrainText(
     styledContent,
-    availWidth,
+    wrapWidth,
     maxContentLines,
   );
 
   const firstLine = wrappedLines[0] ?? "";
   const additionalLines = wrappedLines.slice(1);
 
-  // Selection colors
+  // Selection colors and own color background
+  // Per design system: selection uses cyan bg + black fg
+  // Non-tasks with ownColor get the color as background instead of a colored disc
+  const darkBgColors = ["red", "green", "blue", "magenta", "gray", "grey"];
+  const hasColoredBg = !isTask && !!ownColor;
   let backgroundColor: string | undefined;
   let textColor: string | undefined;
-  if (isSelected) {
-    backgroundColor = "blue";
-    textColor = "white";
-  } else if (isMultiSelected) {
+  if (isSelected || isMultiSelected) {
+    // Design system: cyan background, black foreground for all selection states
     backgroundColor = "cyan";
     textColor = "black";
+  } else if (hasColoredBg && ownColor) {
+    backgroundColor = ownColor;
+    textColor = darkBgColors.includes(ownColor) ? "white" : "black";
   }
 
-  // Done/dropped tasks get dim + strikethrough
+  // Determine if content should be dimmed:
+  // - Done/dropped tasks are always dimmed
+  // - Children are dimmed when parent card is not active (cards view mode)
   const isDoneOrDropped =
     isTask && (node.task_status === "done" || node.task_status === "dropped");
-
-  // Dim children when this card is not active (cards view mode)
-  const shouldDim = dimInactiveChildren && depth > 0;
+  const isInactiveChild = dimInactiveChildren && depth > 0;
+  const shouldDim = isDoneOrDropped || isInactiveChild;
 
   // Track sub-indices for children
   let nextSubIndex = subIndex + 1;
@@ -232,9 +237,8 @@ export function TreeNode({
   // Multi-line context handling
   const isMultiLine = additionalLines.length > 0;
   const showInlineContext = !isMultiLine && truncatedContextInline;
-  // Show context on separate line if multi-line content OR if compact mode with context
-  const showSeparateContext =
-    (isMultiLine && parentContext) || (isCompact && parentContext);
+  // Show context on separate line only for embedded tasks (isEmbedded already gates parentContext)
+  const showSeparateContext = isEmbedded && parentContext;
 
   // Calculate padding needed to clear the rest of the line
   // This prevents old content from showing when re-rendering shorter lines
@@ -249,6 +253,17 @@ export function TreeNode({
 
   return (
     <Box flexDirection="column" width={width}>
+      {/* Parent context line (shown ABOVE task for embedded items) */}
+      {/* Italic + ↖ prefix to distinguish from dimmed done/dropped content */}
+      {showSeparateContext && parentContext && (
+        <Text dimColor italic wrap="truncate">
+          {continuationIndent}↖{" "}
+          {parentContext.length > width - prefixLength - 3
+            ? "…" + parentContext.slice(-(width - prefixLength - 4))
+            : parentContext}
+        </Text>
+      )}
+
       {/* First line */}
       <Text
         backgroundColor={backgroundColor}
@@ -266,12 +281,14 @@ export function TreeNode({
           {iconChar}
         </Text>
         {prefixAfterIcon}
-        <Text dimColor={isDoneOrDropped} strikethrough={isDoneOrDropped}>
-          {firstLine}
-        </Text>
+        {firstLine}
         {foldedCount}
         {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
-        {showInlineContext && <Text dimColor>{contextSuffix}</Text>}
+        {showInlineContext && (
+          <Text dimColor italic>
+            {contextSuffix}
+          </Text>
+        )}
         {firstLinePadding}
       </Text>
 
@@ -293,13 +310,6 @@ export function TreeNode({
           </Text>
         );
       })}
-
-      {/* Separate parent context line for multi-line content */}
-      {showSeparateContext && (
-        <Text dimColor wrap="truncate">
-          {renderParentPath(parentContext, width)}
-        </Text>
-      )}
 
       {/* Children */}
       {hasChildren && !isFolded && depth < maxDepth && (

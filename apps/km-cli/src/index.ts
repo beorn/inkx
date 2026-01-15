@@ -9,10 +9,10 @@
  */
 
 import { existsSync, statSync } from "fs";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
 import { Command } from "commander";
 import chalk from "chalk";
-import { ensureState } from "@km/store";
+import { ensureState, isExplicitPath, resolveFsPath } from "@km/store";
 import { getStore } from "@km/store";
 import { showCommand } from "./commands/show.ts";
 import { viewCommand } from "./commands/view.ts";
@@ -117,16 +117,41 @@ program.hook("preAction", (thisCommand, actionCommand) => {
 
   // Get root path from global options or env var
   const opts = thisCommand.opts() as { root?: string };
-  resolvedRootPath = getRootFromOptions(opts);
-  rootExplicitlySet = !!(opts.root || process.env.KM_ROOT);
+
+  // Check if any argument looks like an explicit filesystem path
+  // If so, and no --root is set, auto-detect the km root from the path
+  const args = actionCommand?.args || [];
+  const pathArg = args.find((arg) => isExplicitPath(arg));
+
+  if (pathArg && !opts.root && !process.env.KM_ROOT) {
+    // Auto-detect root from the path argument
+    const resolution = resolveFsPath(pathArg);
+    if (resolution.kmRoot) {
+      // Found a .km directory - use its parent as root
+      resolvedRootPath = dirname(resolution.kmRoot);
+      rootExplicitlySet = true; // Treat as explicit so we don't search ancestors
+    } else if (resolution.exists) {
+      // No .km found - use the path's directory for memory mode
+      resolvedRootPath = resolution.isFile
+        ? dirname(resolution.absolutePath)
+        : resolution.absolutePath;
+      rootExplicitlySet = true;
+    }
+    // If path doesn't exist, fall through to normal resolution
+    // (the command will error when it tries to resolve the node)
+  } else {
+    resolvedRootPath = getRootFromOptions(opts);
+    rootExplicitlySet = !!(opts.root || process.env.KM_ROOT);
+  }
 
   // ensureState will search for .km/ if no explicit root was set
   // If root was explicit, don't search ancestors - use the path directly
   ensureState(resolvedRootPath, !rootExplicitlySet);
 
   // Warn if using cwd in memory mode (no .km/ found, no explicit root)
+  // Skip warning if we auto-detected from a path (user knows what they're doing)
   const store = getStore();
-  if (!rootExplicitlySet && store.mode === "memory") {
+  if (!rootExplicitlySet && store.mode === "memory" && !pathArg) {
     console.error(chalk.yellow(`Using current directory: ${store.rootPath}`));
     console.error(
       chalk.yellow(

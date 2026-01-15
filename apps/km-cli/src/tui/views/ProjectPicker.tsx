@@ -306,8 +306,8 @@ export function ProjectPicker({
           return (
             <Text
               key={opt.node.id}
-              backgroundColor={isSelected ? "blue" : undefined}
-              color={isSelected ? "white" : undefined}
+              backgroundColor={isSelected ? "cyan" : undefined}
+              color={isSelected ? "black" : undefined}
               wrap="truncate"
             >
               {prefix}

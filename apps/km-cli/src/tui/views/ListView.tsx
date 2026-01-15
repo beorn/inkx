@@ -9,6 +9,7 @@ import { Box, Text } from "ink";
 import type { BoardState, SelectionKey } from "../types.ts";
 import { TreeNode, makeSelectionKey } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "@km/shared";
+import { getOwnColor } from "../board-pills.ts";
 
 interface ListViewProps {
   state: BoardState;
@@ -47,35 +48,51 @@ export function ListView({
   const colWidth = width;
 
   return (
-    <Box flexDirection="column" width={width} height={availableHeight}>
-      {/* Columns as bordered sections */}
+    <Box
+      flexDirection="column"
+      width={width}
+      height={availableHeight}
+      alignItems="flex-start"
+      overflowY="hidden"
+    >
+      {/* Blank line at top to separate from top bar */}
+      <Text> </Text>
+
+      {/* Columns as sections */}
       {state.columns.map((column, cIdx) => {
         const isColSelected = selectionLevel === "column" && colIndex === cIdx;
-        const isColumnActive = colIndex === cIdx;
+        const isSelected = colIndex === cIdx;
         const colName = getNodeDisplayName(column.node);
         const count = column.cards.length;
-        const borderColor = isColumnActive ? "blueBright" : "blackBright";
+        const ownColor = getOwnColor(column.node);
 
-        // Inner width is colWidth minus 2 for borders
-        const innerWidth = colWidth - 2;
-        const headerText = `${colName} (${count})`.padEnd(innerWidth);
+        // Header text color: bright yellow if selected, dim yellow otherwise
+        // Exception: if column has its own color, use appropriate text color
+        const headerTextColor = ownColor
+          ? ["red", "green", "blue", "magenta", "gray", "grey"].includes(
+              ownColor,
+            )
+            ? "white"
+            : "black"
+          : isSelected
+            ? "yellow"
+            : "yellowBright";
+        const headerDimmed = !isSelected && !ownColor;
 
         return (
-          <Box
-            key={column.node.id}
-            flexDirection="column"
-            width={colWidth}
-            borderStyle="single"
-            borderColor={borderColor}
-          >
-            {/* Column header - use inverse for full-width selection highlight */}
+          <React.Fragment key={column.node.id}>
+            {/* Blank line above section header (except first section) */}
+            {cIdx > 0 && <Text> </Text>}
+
+            {/* Column/section header */}
             <Text
-              bold
-              color={isColSelected ? "white" : "yellow"}
-              backgroundColor={isColSelected ? "blue" : undefined}
+              bold={isSelected}
+              color={isColSelected ? "black" : headerTextColor}
+              dimColor={headerDimmed}
+              backgroundColor={isColSelected ? "cyan" : ownColor || undefined}
               wrap="truncate"
             >
-              {headerText}
+              {colName} ({count})
             </Text>
 
             {/* Cards in column */}
@@ -93,7 +110,7 @@ export function ListView({
                   key={card.node.id}
                   node={card.node}
                   depth={0}
-                  width={colWidth - 4}
+                  width={colWidth - 2}
                   isSelected={
                     isCardSelected ||
                     (selectionLevel === "card" &&
@@ -116,7 +133,7 @@ export function ListView({
                 />
               );
             })}
-          </Box>
+          </React.Fragment>
         );
       })}
 
