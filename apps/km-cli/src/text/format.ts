@@ -62,15 +62,16 @@ export function formatNode(node: Node, showId: boolean): string {
     case "task": {
       const mark = node.task_mark ?? " ";
       const status = node.task_status ?? "todo";
-      const checkboxStr = `[${mark}]`;
-      const checkbox =
+      // Only color the marker character, not the brackets
+      const coloredMark =
         status === "done"
-          ? chalk.green(checkboxStr)
+          ? chalk.green(mark)
           : status === "wip"
-            ? chalk.yellow(checkboxStr)
+            ? chalk.yellow(mark)
             : status === "blocked"
-              ? chalk.red(checkboxStr)
-              : chalk.dim(checkboxStr);
+              ? chalk.red(mark)
+              : chalk.dim(mark);
+      const checkbox = chalk.dim("[") + coloredMark + chalk.dim("]");
       return prefix + checkbox + " " + (node.content ?? "(no content)");
     }
     case "paragraph":

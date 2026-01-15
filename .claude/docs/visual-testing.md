@@ -4,6 +4,7 @@ Specifications and verification checklists for TUI visual testing.
 
 **See also**:
 
+- [km-design-system.md](../../specs/km-design-system.md) - Visual language specification (colors, selection states, reserved colors)
 - `/fix-tui` command for debugging workflow
 - `.claude/skills/visual-test.md` for capture methods
 
@@ -102,15 +103,17 @@ Path segments have `isWithinBoard` flag:
 
 ### Layer 3: TreeNode States
 
-| State          | Visual              |
-| -------------- | ------------------- |
-| Normal         | Default colors      |
-| Selected       | Blue background     |
-| Multi-selected | Cyan background     |
-| Done           | Strikethrough + dim |
-| Dropped        | Strikethrough + dim |
-| Folded         | ▶ prefix            |
-| Expanded       | ▼ prefix            |
+| State          | Visual                       |
+| -------------- | ---------------------------- |
+| Normal         | Default colors               |
+| Selected       | Cyan background + black text |
+| Multi-selected | Cyan background + black text |
+| Done           | Strikethrough + dim          |
+| Dropped        | Strikethrough + dim          |
+| Folded         | ▶ prefix                     |
+| Expanded       | ▼ prefix                     |
+
+**Note**: Per design system, cyan background is reserved for ALL selection states.
 
 ### Layer 3: Views
 
@@ -153,8 +156,8 @@ Path segments have `isWithinBoard` flag:
 
 ### Selection & State
 
-- [ ] Selected item has blue background
-- [ ] Multi-selected items have cyan background
+- [ ] Selected item has cyan background + black text
+- [ ] Multi-selected items have cyan background + black text
 - [ ] Done tasks: strikethrough + dim
 - [ ] Dropped tasks: strikethrough + dim
 - [ ] Folded indicator: ▶
@@ -166,8 +169,9 @@ Path segments have `isWithinBoard` flag:
 - [ ] Columns view: tree with column headers
 - [ ] Tabs view: tab bar with active indicator
 - [ ] List view: full-width with sections
-- [ ] Column headers are yellow
-- [ ] Selected column border is blue
+- [ ] Column headers are yellow (selected) / yellowBright + dim (unselected)
+- [ ] Active panel border is cyanBright
+- [ ] Inactive panel border is blackBright
 
 ### Top Bar
 
@@ -238,9 +242,11 @@ Sections:
 1. Layer 1: Rich Text Rendering - inline fields, wiki links, markdown
 2. Layer 1: Board Pills - GTD colors, custom colors
 3. Layer 1: Status & Type Icons - all markers and types
-4. Layer 2: Layout Functions - wrap, truncate, pad, constrain, path
-5. Layer 3: TreeNode Component - different states
-6. Layer 3: All View Modes - Cards, Columns, Tabs, List
+4. Layer 1: CLI Checkbox Formatting - `km list` output (brackets dim, marker colored)
+5. Layer 2: Layout Functions - wrap, truncate, pad, constrain, path
+6. Layer 3: TreeNode Component - different states
+7. Layer 3: All View Modes - Cards, Columns, Tabs, List
+8. Visual Language - Design System reference
 
 ## Bug Patterns
 
@@ -315,10 +321,10 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 
 Prefer smaller viewports for visual testing:
 
-| Size        | Use Case                                          |
-| ----------- | ------------------------------------------------- |
-| `800,600`   | Narrow - tests truncation, overflow, compact mode |
-| `1000,700`  | Medium - balanced default for most testing        |
-| `1400,900`  | Wide - only for multi-column layout testing       |
+| Size       | Use Case                                          |
+| ---------- | ------------------------------------------------- |
+| `800,600`  | Narrow - tests truncation, overflow, compact mode |
+| `1000,700` | Medium - balanced default for most testing        |
+| `1400,900` | Wide - only for multi-column layout testing       |
 
 Smaller viewports are faster (smaller screenshots) and better at exposing overflow/clipping bugs that hide at larger sizes.

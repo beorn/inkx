@@ -19,7 +19,9 @@ import {
   getStatusIcon,
   getTypeIcon,
   colorize,
+  getChalkColor,
   GTD_BOARD_COLORS,
+  formatNode,
 } from "../../src/text/index.ts";
 import {
   wrapText,
@@ -287,8 +289,8 @@ function Layer1Icons(): React.ReactElement {
         return (
           <Text key={status}>
             {" "}
-            {marker.padEnd(8)}{" "}
-            {chalk[icon.color as keyof typeof chalk](icon.char)} {styledDesc}
+            {marker.padEnd(8)} {getChalkColor(icon.color)(icon.char)}{" "}
+            {styledDesc}
           </Text>
         );
       })}
@@ -337,6 +339,55 @@ function Layer1Icons(): React.ReactElement {
           </Text>
         );
       })}
+    </Box>
+  );
+}
+
+// ============================================================================
+// Layer 1: CLI Checkbox Formatting Component
+// ============================================================================
+
+function Layer1CLICheckboxes(): React.ReactElement {
+  // Create mock task nodes for different statuses
+  const todoTask = mockNode("cli-todo", "Task not yet started", "todo");
+  todoTask.task_mark = " ";
+
+  const wipTask = mockNode("cli-wip", "Task in progress", "wip");
+  wipTask.task_mark = "/";
+
+  const blockedTask = mockNode("cli-blocked", "Task is blocked", "blocked");
+  blockedTask.task_mark = "!";
+
+  const doneTask = mockNode("cli-done", "Task completed", "done");
+  doneTask.task_mark = "x";
+
+  const droppedTask = mockNode("cli-dropped", "Task abandoned", "dropped");
+  droppedTask.task_mark = "-";
+
+  return (
+    <Box flexDirection="column">
+      <SectionHeader title="Layer 1: CLI Checkbox Formatting" />
+      <Text dimColor>
+        {" "}
+        Used by `km list` command - brackets dim, only marker colored
+      </Text>
+      <Text> </Text>
+
+      <SubsectionHeader title="formatNode() - Task Checkboxes" />
+      <Text dimColor> Status Rendered Output</Text>
+      <Text dimColor> ──────── ─────────────────────────────────────────</Text>
+      <Text> todo {formatNode(todoTask, false)}</Text>
+      <Text> wip {formatNode(wipTask, false)}</Text>
+      <Text> blocked {formatNode(blockedTask, false)}</Text>
+      <Text> done {formatNode(doneTask, false)}</Text>
+      <Text> dropped {formatNode(droppedTask, false)}</Text>
+      <Text> </Text>
+
+      <Text dimColor>
+        {" "}
+        Note: Brackets are always dim, only the marker character
+      </Text>
+      <Text dimColor> gets the status color (green/yellow/red/gray)</Text>
     </Box>
   );
 }
@@ -578,7 +629,7 @@ function Layer3Views(): React.ReactElement {
         isMultiSelected={false}
       />
 
-      <Text bold>Selected (blue background):</Text>
+      <Text bold>Selected (cyan background):</Text>
       <TreeNode
         {...commonProps}
         node={todoTask}
@@ -586,7 +637,7 @@ function Layer3Views(): React.ReactElement {
         isMultiSelected={false}
       />
 
-      <Text bold>Multi-selected (cyan background):</Text>
+      <Text bold>Multi-selected (also cyan background):</Text>
       <TreeNode
         {...commonProps}
         node={todoTask}
@@ -908,6 +959,203 @@ function Layer3AllViews(): React.ReactElement {
 }
 
 // ============================================================================
+// Visual Language Section - Design System Reference
+// ============================================================================
+
+function VisualLanguageSection(): React.ReactElement {
+  const todoTask = mockNode("vl-1", "Example task content", "todo");
+  const wipTask = mockNode("vl-2", "Work in progress task", "wip");
+  const doneTask = mockNode("vl-3", "Completed task item", "done");
+
+  const commonProps = {
+    depth: 0,
+    width: 35,
+    foldedNodes: new Set<string>(),
+    maxDepth: 3,
+    colIndex: 0,
+    cardIndex: 0,
+    subIndex: 0,
+    currentSubIndex: 0,
+    multiSelected: new Set<SelectionKey>(),
+    inOutlineMode: false,
+    variant: "wide" as const,
+    maxContentLines: 1,
+    dimInactiveChildren: false,
+  };
+
+  return (
+    <Box flexDirection="column">
+      <SectionHeader title="Visual Language - Design System" />
+      <Text dimColor>Reference: specs/km-design-system.md</Text>
+      <Text> </Text>
+
+      <SubsectionHeader title="Selection States (RESERVED COLOR)" />
+      <Text dimColor>
+        {" "}
+        Cyan bg = selection ONLY (cursor, focused, multi-select)
+      </Text>
+      <Text> </Text>
+
+      <Box flexDirection="row" gap={2}>
+        <Box flexDirection="column" width={38}>
+          <Text bold>Normal (no selection):</Text>
+          <TreeNode
+            {...commonProps}
+            node={todoTask}
+            isSelected={false}
+            isMultiSelected={false}
+          />
+        </Box>
+        <Box flexDirection="column" width={38}>
+          <Text bold color="cyan">
+            Selected (cyan bg):
+          </Text>
+          <TreeNode
+            {...commonProps}
+            node={todoTask}
+            isSelected={true}
+            isMultiSelected={false}
+          />
+        </Box>
+      </Box>
+      <Text> </Text>
+
+      <SubsectionHeader title="Panel Focus States" />
+      <Box flexDirection="row" gap={2}>
+        <Box
+          flexDirection="column"
+          width={30}
+          borderStyle="round"
+          borderColor="cyanBright"
+          paddingX={1}
+        >
+          <Text bold color="yellow">
+            Active Panel
+          </Text>
+          <Text dimColor>borderColor: cyanBright</Text>
+          <Text dimColor>header: yellow + bold</Text>
+        </Box>
+        <Box
+          flexDirection="column"
+          width={30}
+          borderStyle="round"
+          borderColor="blackBright"
+          paddingX={1}
+        >
+          <Text bold color="yellowBright" dimColor>
+            Inactive Panel
+          </Text>
+          <Text dimColor>borderColor: blackBright</Text>
+          <Text dimColor>header: yellowBright + dim</Text>
+        </Box>
+      </Box>
+      <Text> </Text>
+
+      <SubsectionHeader title="Column Header States" />
+      <Box flexDirection="row" gap={4}>
+        <Box flexDirection="column">
+          <Text bold color="yellow">
+            Selected Column (4)
+          </Text>
+          <Text dimColor>color: yellow, bold: true</Text>
+        </Box>
+        <Box flexDirection="column">
+          <Text color="yellowBright" dimColor>
+            Unselected Column (2)
+          </Text>
+          <Text dimColor>color: yellowBright, dimColor: true</Text>
+        </Box>
+        <Box flexDirection="column">
+          <Text backgroundColor="cyan" color="black">
+            {" "}
+            Header at Cursor{" "}
+          </Text>
+          <Text dimColor>bg: cyan (cursor level)</Text>
+        </Box>
+      </Box>
+      <Text> </Text>
+
+      <SubsectionHeader title="Task Status States" />
+      <Box flexDirection="row" gap={2}>
+        <Box flexDirection="column" width={30}>
+          <Text bold>Active states:</Text>
+          <TreeNode
+            {...commonProps}
+            node={todoTask}
+            isSelected={false}
+            isMultiSelected={false}
+          />
+          <TreeNode
+            {...commonProps}
+            node={wipTask}
+            isSelected={false}
+            isMultiSelected={false}
+          />
+        </Box>
+        <Box flexDirection="column" width={38}>
+          <Text bold>Terminal states (dim + strike):</Text>
+          <TreeNode
+            {...commonProps}
+            node={doneTask}
+            isSelected={false}
+            isMultiSelected={false}
+          />
+          <TreeNode
+            {...commonProps}
+            node={mockNode("vl-4", "Dropped task item", "dropped")}
+            isSelected={false}
+            isMultiSelected={false}
+          />
+        </Box>
+      </Box>
+      <Text> </Text>
+
+      <SubsectionHeader title="Input & Mode Indicators" />
+      <Box flexDirection="row" gap={4}>
+        <Box flexDirection="column">
+          <Text>
+            Text input cursor: [search
+            <Text inverse> </Text>]
+          </Text>
+          <Text dimColor>Uses inverse video</Text>
+        </Box>
+        <Box flexDirection="column">
+          <Text>
+            Mode badge: <Text inverse> CARDS </Text>
+          </Text>
+          <Text dimColor>Uses inverse video</Text>
+        </Box>
+        <Box flexDirection="column">
+          <Text>
+            Selection prefix: <Text color="cyan">▸</Text> Selected item
+          </Text>
+          <Text dimColor>Arrow indicates focus</Text>
+        </Box>
+      </Box>
+      <Text> </Text>
+
+      <SubsectionHeader title="Due Date Urgency (underlines)" />
+      <Text dimColor>
+        {" "}
+        Uses 24-bit RGB colors - may not render in all terminals
+      </Text>
+      <Text> </Text>
+      <Text> {chalk.red("Overdue")}: red curly underline [255,80,80]</Text>
+      <Text>
+        {" "}
+        {chalk.rgb(255, 165, 0)("Today/Tomorrow")}: orange curly underline
+        [255,165,0]
+      </Text>
+      <Text>
+        {" "}
+        {chalk.yellow("This week")}: yellow single underline [255,255,0]
+      </Text>
+      <Text> Beyond 7 days: no underline</Text>
+    </Box>
+  );
+}
+
+// ============================================================================
 // Main Storybook Component
 // ============================================================================
 
@@ -917,9 +1165,11 @@ function Storybook(): React.ReactElement {
       <Layer1RichText />
       <Layer1BoardPills />
       <Layer1Icons />
+      <Layer1CLICheckboxes />
       <Layer2Layout />
       <Layer3Views />
       <Layer3AllViews />
+      <VisualLanguageSection />
 
       <SectionHeader title="Summary" />
       <Text>All components rendered successfully.</Text>

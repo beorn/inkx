@@ -155,19 +155,23 @@ git push                # Push to remote
 
 <!-- end-bv-agent-instructions -->
 
-## Screenshots
+## Visual Testing
 
-To capture screenshots for UI debugging, use peekaboo directly via bash (not the MCP server):
+**Default: Use headless methods** (ttyd + Playwright) for TUI/CLI visual testing. These run in the background without taking over the user's screen.
 
 ```bash
-# Capture frontmost window
-peekaboo image --path /tmp/screenshot.png
+# Start TUI in headless terminal
+pkill -f ttyd 2>/dev/null || true
+ttyd -W -p 7681 bun km view -r /tmp/test-vault @next.md &
+sleep 3
 
-# Capture specific app
-peekaboo image --app "Ghostty" --path /tmp/screenshot.png
+# Capture with Playwright (HEADLESS=true prevents browser window)
+HEADLESS=true bun x playwright screenshot --viewport-size=1400,900 http://localhost:7681 /tmp/tui.png
 
-# Capture full screen
-peekaboo image --target screen --path /tmp/screenshot.png
+# View the screenshot
+# Use Read tool on /tmp/tui.png
 ```
 
-Then use the Read tool to view the image.
+See `.claude/skills/visual-test.md` for full documentation.
+
+**Desktop capture (Peekaboo)**: Only use when the user EXPLICITLY asks you to check their Ghostty window or desktop. Do NOT use Peekaboo for general visual testing - it takes over the user's screen.
