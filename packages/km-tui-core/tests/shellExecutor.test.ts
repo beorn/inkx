@@ -191,6 +191,7 @@ describe("executeCommand", () => {
       output: (e: OutputEvent | string) => {
         if (typeof e === "string") outputs.push(e);
       },
+      actionLog: [],
     };
 
     const result = executeCommand("move_down", ctx);
@@ -206,6 +207,7 @@ describe("executeCommand", () => {
       jsonMode: false,
       verbose: false,
       output: () => {},
+      actionLog: [],
     };
 
     const result = executeCommand("quit", ctx);
@@ -223,6 +225,7 @@ describe("executeCommand", () => {
       output: (e: OutputEvent | string) => {
         if (typeof e === "string") outputs.push(e);
       },
+      actionLog: [],
     };
 
     const result = executeCommand("unknown_cmd", ctx);
@@ -239,6 +242,7 @@ describe("executeCommand", () => {
       jsonMode: false,
       verbose: false,
       output: () => {},
+      actionLog: [],
     };
 
     const result = executeCommand("key j", ctx);
@@ -254,6 +258,7 @@ describe("executeCommand", () => {
       jsonMode: false,
       verbose: false,
       output: () => {},
+      actionLog: [],
     };
 
     const result = executeCommand("key k", ctx);
