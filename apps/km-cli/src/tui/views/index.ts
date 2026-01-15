@@ -31,5 +31,5 @@ export { ProjectPicker } from "./ProjectPicker.tsx";
 export { TreeNode } from "./TreeNode.tsx";
 export type { TreeNodeProps } from "./TreeNode.tsx";
 
-// Utilities
-export { getStatusIcon, getTypeIcon } from "../render-icons.ts";
+// Re-export text utilities
+export { getStatusIcon, getTypeIcon } from "../../text/index.ts";

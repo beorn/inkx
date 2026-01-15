@@ -14,83 +14,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { getDb, getAncestors } from "@km/store";
 import type { Node } from "@km/core";
-import {
-  getNodeDisplayName,
-  collapseAncestorsWithTypes,
-  type CollapsedAncestor,
-} from "@km/shared";
-
-/**
- * Format a collapsed ancestor for display with its type suffix
- */
-function formatCollapsedAncestor(
-  ca: CollapsedAncestor,
-  showId: boolean,
-): string {
-  let prefix = "";
-  if (showId) {
-    prefix = chalk.dim(`[${ca.node.id.slice(0, 5)}] `);
-  }
-
-  const name = getNodeDisplayName(ca.node);
-  if (ca.typeSuffix) {
-    return prefix + name + chalk.gray(` ${ca.typeSuffix}`);
-  }
-  // No collapsed suffix - show individual type indicator
-  if (ca.node.type === "folder") {
-    return prefix + name + chalk.gray("/");
-  } else if (ca.node.type === "file") {
-    // Only add .md if name doesn't already end with it
-    return prefix + (name.endsWith(".md") ? name : name + chalk.gray(".md"));
-  } else if (ca.node.type === "section") {
-    const depth = (ca.node.data?.depth as number) ?? 1;
-    return prefix + chalk.gray("#".repeat(depth) + " ") + name;
-  }
-  return prefix + name;
-}
-
-/**
- * Format a node for display
- */
-function formatNode(node: Node, showId: boolean): string {
-  let prefix = "";
-  if (showId) {
-    prefix = chalk.dim(`[${node.id.slice(0, 5)}] `);
-  }
-
-  const name = getNodeDisplayName(node);
-
-  switch (node.type) {
-    case "folder":
-      return prefix + chalk.blue(name) + chalk.gray("/");
-    case "file":
-      return prefix + chalk.cyan(name);
-    case "section": {
-      const depth = (node.data?.depth as number) ?? 1;
-      return prefix + chalk.gray("#".repeat(depth) + " ") + chalk.yellow(name);
-    }
-    case "task": {
-      const mark = node.task_mark ?? " ";
-      const status = node.task_status ?? "todo";
-      const checkboxStr = `[${mark}]`;
-      const checkbox =
-        status === "done"
-          ? chalk.green(checkboxStr)
-          : status === "wip"
-            ? chalk.yellow(checkboxStr)
-            : status === "blocked"
-              ? chalk.red(checkboxStr)
-              : chalk.dim(checkboxStr);
-      return prefix + checkbox + " " + (node.content ?? "(no content)");
-    }
-    case "paragraph":
-      return prefix + chalk.dim("¶ ") + (node.content?.slice(0, 50) ?? "");
-    default:
-      return (
-        prefix + chalk.dim("• ") + (node.content?.slice(0, 50) ?? node.type)
-      );
-  }
-}
+import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/shared";
+import { formatNode, formatCollapsedAncestor } from "../text/index.ts";
 
 /**
  * Match a query against a node

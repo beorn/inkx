@@ -15,14 +15,14 @@ import { Box, Text } from "ink";
 import type { Node } from "@km/core";
 import { getChildren } from "@km/store";
 import { getNodeDisplayName, getParentContext } from "@km/shared";
-import { getStatusIcon, getTypeIcon } from "../render-icons.ts";
-import type { SelectionKey } from "../types.ts";
 import {
+  getStatusIcon,
+  getTypeIcon,
   renderRich,
-  constrainText,
-  renderParentPath,
   displayLength,
-} from "../render-text.ts";
+} from "../../text/index.ts";
+import { constrainText, renderParentPath } from "../layout/index.ts";
+import type { SelectionKey } from "../types.ts";
 
 // Selection key helper - exported for use by parent components
 export function makeSelectionKey(

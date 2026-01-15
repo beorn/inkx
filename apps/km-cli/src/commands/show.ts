@@ -16,6 +16,7 @@ import {
 } from "@km/store";
 import type { Node } from "@km/core";
 import type { Link } from "@km/store";
+import { formatStatus, formatNodeBrief } from "../text/index.ts";
 
 export const showCommand = new Command("show")
   .description("Show node details")
@@ -169,38 +170,6 @@ export const showCommand = new Command("show")
       }
     }
   });
-
-/**
- * Format status with color
- */
-function formatStatus(status: string): string {
-  switch (status) {
-    case "done":
-      return chalk.green(status);
-    case "wip":
-      return chalk.blue(status);
-    case "blocked":
-      return chalk.red(status);
-    default:
-      return status;
-  }
-}
-
-/**
- * Format a node briefly
- */
-function formatNodeBrief(node: Node): string {
-  const parts: string[] = [];
-
-  parts.push(chalk.dim(node.id.slice(0, 8)));
-  parts.push(chalk.cyan(node.type));
-
-  if (node.content) {
-    parts.push(node.content.slice(0, 50));
-  }
-
-  return parts.join("  ");
-}
 
 /**
  * Get indentation for tree display

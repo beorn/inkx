@@ -44,7 +44,8 @@ import {
   type MouseEvent as TermMouseEvent,
 } from "../mouse-handler.ts";
 import { makeSelectionKey } from "./TreeNode.tsx";
-import { renderPath, renderPlain } from "../render-text.ts";
+import { renderPlain } from "../../text/index.ts";
+import { renderPath } from "../layout/index.ts";
 import { TreeNode } from "./TreeNode.tsx";
 
 // Default favorites: common boards accessed via 1-9 keys

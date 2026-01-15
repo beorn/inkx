@@ -9,7 +9,7 @@ import type { TaskStatus } from "@km/core";
 import type { BoardState, CardState, RenderOptions } from "./types.ts";
 import { getNodeDisplayName } from "./state.ts";
 import { getNode } from "@km/store";
-import { getStatusIcon as getStatusIconBase } from "./render-icons.ts";
+import { getStatusIcon as getStatusIconBase } from "../text/index.ts";
 
 /**
  * Default render options

@@ -9,7 +9,8 @@ import { Box, Text } from "ink";
 import type { Node } from "@km/core";
 import { getChildren, getBacklinks, getNode } from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
-import { renderRich, wrapText } from "../render-text.ts";
+import { renderRich } from "../../text/index.ts";
+import { wrapText } from "../layout/index.ts";
 
 // Format date for display (e.g., "Jan 10" or "2026-01-10")
 function formatDate(dateStr: string | undefined): string {
