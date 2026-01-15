@@ -9,6 +9,9 @@
  * km init gtd          # Create .km/ plus GTD folder structure in cwd
  * km --root /path init # Uses --root as target directory
  * km -r ./path init gtd # Create .km/ and GTD structure in ./path
+ *
+ * Note: This command intentionally uses fs directly because it creates the
+ * .km/ directory before any store exists. This is the bootstrap operation.
  */
 
 import { Command } from "commander";
@@ -41,14 +44,14 @@ function findAncestorKmDir(startDir: string): string | undefined {
  * Boards are just .md files - the @ prefix is a naming convention.
  * Column rules (add=, sync=) are inline in the section heading.
  */
-const GTD_INBOX_MD = `# Inbox
+const GTD_INBOX_MD = `# Inbox color=white
 
 ## Unprocessed add="./inbox/**"
 
 ## Processing
 `;
 
-const GTD_NEXT_MD = `# Next Actions
+const GTD_NEXT_MD = `# Next Actions color=cyan
 
 ## Processing default=true
 
@@ -56,12 +59,12 @@ const GTD_NEXT_MD = `# Next Actions
 
 ## Doing
 
-## Waiting
+## Waiting color=yellow
 
-## Done collapse=true
+## Done collapse=true color=green
 `;
 
-const GTD_SOMEDAY_MD = `# Someday/Maybe
+const GTD_SOMEDAY_MD = `# Someday/Maybe color=gray
 
 ## Ideas
 
@@ -196,5 +199,5 @@ export const initCommand = new Command("init")
       chalk.cyan("  km sync    ") + chalk.dim("# Scan and import .md files"),
     );
     console.log(chalk.cyan("  km tasks   ") + chalk.dim("# List tasks"));
-    console.log(chalk.cyan("  km board   ") + chalk.dim("# Open kanban board"));
+    console.log(chalk.cyan("  km view    ") + chalk.dim("# Open kanban board"));
   });

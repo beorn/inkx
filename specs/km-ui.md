@@ -25,7 +25,7 @@ Collapsing happens only in ui-tree — km-tree preserves actual structure.
 | List  | `km list` / `km ls`          | No              | Flat node list               |
 | List  | `km ls --context`            | Yes (ancestors) | With ancestor paths          |
 | Tasks | `km tasks`                   | Yes (ancestors) | = `ls --type task --context` |
-| Board | `km board`                   | Yes (children)  | Kanban columns               |
+| Board | `km view`                    | Yes (children)  | Kanban columns               |
 | Tree  | `km show --tree`             | No              | Actual structure             |
 | Tree  | `km show --tree --collapsed` | Yes             | Compact view                 |
 
@@ -120,7 +120,7 @@ Uses `collapseAncestorsWithTypes(ancestors)`.
 ## Board View
 
 ```
-$ km board
+$ km view
 
 ┌─ Inbox ──────────┐ ┌─ In Progress ────┐ ┌─ Done ───────────┐
 │                  │ │                  │ │                  │

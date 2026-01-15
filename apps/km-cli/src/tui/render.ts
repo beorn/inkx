@@ -136,11 +136,18 @@ export function renderCard(
   const { node, children } = card;
 
   // Status icon and content - compact format: "○ Content"
-  const statusIcon = getStatusIcon(node.task_status);
-  const content = (node.content || getNodeDisplayName(node)).slice(
+  const statusIcon = renderStatusIcon(node.task_status);
+  const rawContent = (node.content || getNodeDisplayName(node)).slice(
     0,
     width - 3,
   );
+
+  // Done/dropped tasks get dim + strikethrough
+  const isDoneOrDropped =
+    node.task_status === "done" || node.task_status === "dropped";
+  const content = isDoneOrDropped
+    ? chalk.dim.strikethrough(rawContent)
+    : rawContent;
   let firstLine = `${statusIcon} ${content}`;
 
   // Apply styling
@@ -158,7 +165,7 @@ export function renderCard(
     const maxChildren = 3;
     const visibleChildren = children.slice(0, maxChildren);
     for (const child of visibleChildren) {
-      const childIcon = getStatusIcon(child.task_status);
+      const childIcon = renderStatusIcon(child.task_status);
       const childContent = (child.content || "").slice(0, width - 3);
       lines.push(
         chalk.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width),
@@ -285,10 +292,17 @@ export function renderBoardStatic(state: BoardState, width: number): string {
       const maxCards = 10; // Limit cards shown per column
       const visibleCards = col.cards.slice(0, maxCards);
       for (const card of visibleCards) {
-        const statusIcon = getStatusIcon(card.node.task_status);
+        const statusIcon = renderStatusIcon(card.node.task_status);
         const rawContent = card.node.content || getNodeDisplayName(card.node);
         const firstLine = rawContent.split("\n")[0] ?? rawContent;
-        const content = firstLine.slice(0, width - 4);
+        const truncContent = firstLine.slice(0, width - 4);
+        // Done/dropped tasks get dim + strikethrough
+        const isDoneOrDropped =
+          card.node.task_status === "done" ||
+          card.node.task_status === "dropped";
+        const content = isDoneOrDropped
+          ? chalk.dim.strikethrough(truncContent)
+          : truncContent;
         lines.push(`${statusIcon} ${content}`);
 
         // Show children (greyed out, indented)
@@ -296,7 +310,7 @@ export function renderBoardStatic(state: BoardState, width: number): string {
           const maxChildren = 3;
           const visibleChildren = card.children.slice(0, maxChildren);
           for (const child of visibleChildren) {
-            const childIcon = getStatusIcon(child.task_status);
+            const childIcon = renderStatusIcon(child.task_status);
             const childRaw = child.content || "";
             const childLine = childRaw.split("\n")[0] ?? childRaw;
             const childContent = childLine.slice(0, width - 6);
@@ -319,10 +333,15 @@ export function renderBoardStatic(state: BoardState, width: number): string {
 }
 
 /**
- * Get status icon with chalk coloring for static output
+ * Render status icon with chalk coloring for CLI/TUI output.
+ * Wraps the base getStatusIcon from icons.ts and applies chalk colors.
  */
-export function getStatusIcon(status?: TaskStatus): string {
+export function renderStatusIcon(status?: TaskStatus): string {
   const icon = getStatusIconBase(status);
+  // Handle custom markers with background color (inverted display)
+  if (icon.backgroundColor) {
+    return chalk.bgWhite.black(icon.char);
+  }
   // Apply chalk color based on the icon's color property
   switch (icon.color) {
     case "green":

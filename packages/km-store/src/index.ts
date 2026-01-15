@@ -83,3 +83,13 @@ export {
 } from "./query.ts";
 
 export type { QueryAST, QueryCondition, QueryRef, DateRange } from "./query.ts";
+
+// Re-export markdown parsing functions (to avoid CLI importing km-markdown directly)
+export {
+  parseTaskMetadata,
+  extractTags,
+  extractMentions,
+  extractProjects,
+  parseWikiLinks,
+  nodeToText,
+} from "@km/markdown";

@@ -21,12 +21,12 @@ Examples:
 ```bash
 km show --tree 01H5X        # Tree from node ID prefix
 km show ./README.md         # Show specific file by path
-km board @inbox             # Board by filename (resolves @inbox.md)
-km board @inbox.md          # Same, with extension
+km view @inbox              # Board by filename (resolves @inbox.md)
+km view @inbox.md           # Same, with extension
 km show "Next Actions"      # Show by content/title match
 ```
 
-This "smart resolution" applies to: `board`, `show`, `status`, and action commands.
+This "smart resolution" applies to: `view`, `show`, `status`, and action commands.
 
 ---
 
@@ -47,9 +47,9 @@ km show --tree <node>       # Show subtree structure
 km show --tree --collapsed  # With collapsing
 km show --id                # Show node IDs
 
-km board [node]             # Kanban board (TUI) - ID, path, or filename
-km board @inbox             # Open @inbox.md board by filename
-km board --id               # Show node IDs
+km view [node]              # Kanban board (TUI) - ID, path, or filename
+km view @inbox              # Open @inbox.md board by filename
+km view --id                # Show node IDs
 ```
 
 ### Task Commands
@@ -72,6 +72,18 @@ km add <target> <source...> # Add tasks to board/list
 km add @next TASKID         # Add task to @next board
 km add @next ./inbox/**     # Add all inbox tasks to @next
 km init                     # Create .km/ for persistence
+km move <node> <parent>     # Move node to new parent
+```
+
+### Sync & Maintenance
+
+```bash
+km sync                     # Sync filesystem changes to state.db
+km sync --watch             # Watch mode - continuous sync
+km rebuild                  # Rebuild state.db from events.jsonl
+km daemon start             # Start background sync daemon
+km daemon stop              # Stop background daemon
+km daemon status            # Check daemon status
 ```
 
 ### Output Formats

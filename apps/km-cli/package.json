@@ -9,6 +9,7 @@
     "km": "./src/index.ts"
   },
   "dependencies": {
+    "@beorn/chalkx": "workspace:*",
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/shared": "workspace:*",

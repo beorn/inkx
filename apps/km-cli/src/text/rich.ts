@@ -12,7 +12,7 @@
  */
 
 import chalk from "chalk";
-import { hyperlink, dashedUnderline } from "@beorn/chalkx";
+import { dashedUnderline } from "@beorn/chalkx";
 
 // ============================================================================
 // ANSI String Utilities
@@ -114,20 +114,22 @@ export function renderRich(text: string): string {
   // Strip inline fields first
   let result = text.replace(INLINE_FIELD_REGEX, "");
 
-  // Style markdown links [text](url) → clickable hyperlink
+  // Style markdown links [text](url) → underlined text
+  // NOTE: OSC 8 hyperlinks disabled due to wrap-ansi incompatibility
+  // Links are still visually indicated with underline
   result = result.replace(
     MD_LINK_REGEX,
-    (_match, linkText: string, url: string) => {
-      return chalk.underline(hyperlink(linkText, url));
+    (_match, linkText: string, _url: string) => {
+      return chalk.underline(linkText);
     },
   );
 
-  // Style wiki links: underlined and clickable via OSC 8 hyperlink
-  // Uses km:// protocol which the TUI can intercept for navigation
+  // Style wiki links: underlined text
+  // NOTE: OSC 8 hyperlinks disabled due to wrap-ansi incompatibility
+  // The km:// protocol would be intercepted for navigation, but wrapping breaks it
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
-    const { display, target } = extractLinkParts(content);
-    const url = `km://open/${encodeURIComponent(target)}`;
-    return chalk.underline(hyperlink(display, url));
+    const { display } = extractLinkParts(content);
+    return chalk.underline(display);
   });
 
   // Style bold text (must be before italic to avoid conflicts)

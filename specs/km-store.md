@@ -139,7 +139,7 @@ Used by CLI commands to accept IDs, paths, or filenames:
 
 ```bash
 km show 01H5X           # ID prefix
-km board @inbox         # Filename (resolves @inbox.md)
+km view @inbox          # Filename (resolves @inbox.md)
 km show --tree ./projects  # Path
 ```
 

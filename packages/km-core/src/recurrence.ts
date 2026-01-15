@@ -196,9 +196,9 @@ export function naturalToRRule(natural: string): string | null {
     return "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR";
   }
 
-  // "every monday" or "every mon"
+  // "every monday" or "every mon" (must be full match to avoid matching "month")
   const dayMatch = lower.match(
-    /every (monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)/,
+    /^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)$/,
   );
   if (dayMatch) {
     const dayName = dayMatch[1];

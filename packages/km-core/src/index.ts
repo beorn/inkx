@@ -25,7 +25,6 @@ export {
   setFsSync,
   clearDatabase,
   getEventsPath,
-  createEmitter,
   emitNodeCreated,
   emitNodeUpdated,
   emitNodeMoved,

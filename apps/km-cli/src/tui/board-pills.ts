@@ -23,19 +23,42 @@ export interface BoardPill {
 }
 
 /**
- * Get the effective color for a node, checking ancestors for inherited color
+ * Get the node's own color (not inherited from ancestors)
+ * For icon display - only the defining node should show a colored icon
+ *
+ * Note: For file nodes, H1 rules are stored in node.data.rules (not node.rules)
  */
-function getInheritedColor(node: Node): string | undefined {
-  // Check node's own rules first
+export function getOwnColor(node: Node): string | undefined {
+  // Check node's own rules (direct rules or data.rules for file nodes)
   if (node.rules?.color) {
     return node.rules.color;
+  }
+  const dataRules = node.data?.rules as { color?: string } | undefined;
+  if (dataRules?.color) {
+    return dataRules.color;
+  }
+  return undefined;
+}
+
+/**
+ * Get the effective color for a node, checking ancestors for inherited color
+ * Used for board pills and other displays that need inherited colors
+ *
+ * Note: For file nodes, H1 rules are stored in node.data.rules (not node.rules)
+ */
+export function getInheritedColor(node: Node): string | undefined {
+  // Check node's own color first
+  const ownColor = getOwnColor(node);
+  if (ownColor) {
+    return ownColor;
   }
 
   // Check ancestors for inherited color
   const ancestors = getAncestors(node.id);
   for (const ancestor of ancestors) {
-    if (ancestor.rules?.color) {
-      return ancestor.rules.color;
+    const ancestorColor = getOwnColor(ancestor);
+    if (ancestorColor) {
+      return ancestorColor;
     }
   }
 

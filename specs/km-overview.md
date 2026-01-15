@@ -109,7 +109,7 @@ km init               # Enable tracking (creates .km/, disk mode)
 km list [query]             # List nodes (alias: ls)
 km show <query>             # Show node details
 km show --tree <query>      # Show structure
-km board [query]            # Kanban board (TUI)
+km view [query]             # Kanban board (TUI)
 
 # Query can be: node ID, path pattern, or relative path
 km ls projects/             # Nodes under projects/

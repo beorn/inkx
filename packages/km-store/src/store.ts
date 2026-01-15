@@ -56,6 +56,12 @@ export interface NodeStore {
   ): void;
   cloneTask(sourceId: string, changes: Partial<Node>): string | null;
 
+  // Filesystem helpers (avoids CLI importing fs directly)
+  pathExists(relativePath: string): boolean;
+  getFileInfo(
+    relativePath: string,
+  ): { isDirectory: boolean; size: number } | null;
+
   // Lifecycle
   refresh(): void;
   close(): void;
@@ -305,6 +311,32 @@ abstract class BaseStore implements NodeStore {
   abstract cloneTask(sourceId: string, changes: Partial<Node>): string | null;
   abstract refresh(): void;
   abstract close(): void;
+
+  /**
+   * Check if a path exists relative to rootPath
+   */
+  pathExists(relativePath: string): boolean {
+    const fullPath = join(this.rootPath, relativePath);
+    return existsSync(fullPath);
+  }
+
+  /**
+   * Get file info for a path relative to rootPath
+   */
+  getFileInfo(
+    relativePath: string,
+  ): { isDirectory: boolean; size: number } | null {
+    const fullPath = join(this.rootPath, relativePath);
+    try {
+      const stats = statSync(fullPath);
+      return {
+        isDirectory: stats.isDirectory(),
+        size: stats.size,
+      };
+    } catch {
+      return null;
+    }
+  }
 
   /**
    * Get file path for a node by traversing up to its file ancestor

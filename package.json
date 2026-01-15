@@ -25,7 +25,7 @@
     "test:e2e": "bun run vendor/beorn-mdtest/src/index.ts tests/*.test.md",
     "test:e2e:update": "bun run vendor/beorn-mdtest/src/index.ts --update tests/*.test.md",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
-    "storybook": "bun run apps/km-cli/tests/tui/storybook.ts"
+    "storybook": "bun run apps/km-cli/tests/tui/storybook.tsx"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
@@ -35,6 +35,7 @@
     "eslint-plugin-promise": "^7.2.1",
     "ink-testing-library": "^4.0.0",
     "node-pty": "^1.1.0",
+    "playwright": "^1.57.0",
     "prettier": "^3.7.4",
     "react-devtools-core": "^7.0.1",
     "typescript": "^5.9.3",

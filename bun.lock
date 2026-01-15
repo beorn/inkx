@@ -12,6 +12,7 @@
         "eslint-plugin-promise": "^7.2.1",
         "ink-testing-library": "^4.0.0",
         "node-pty": "^1.1.0",
+        "playwright": "^1.57.0",
         "prettier": "^3.7.4",
         "react-devtools-core": "^7.0.1",
         "typescript": "^5.9.3",
@@ -25,6 +26,7 @@
         "km": "./src/index.ts",
       },
       "dependencies": {
+        "@beorn/chalkx": "workspace:*",
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
         "@km/shared": "workspace:*",
@@ -98,6 +100,13 @@
         "ulid": "^2.3.0",
       },
     },
+    "vendor/beorn-chalkx": {
+      "name": "@beorn/chalkx",
+      "version": "0.1.0",
+      "dependencies": {
+        "chalk": "^5.4.1",
+      },
+    },
     "vendor/beorn-mdtest": {
       "name": "@beorn/mdtest",
       "version": "0.1.0",
@@ -123,6 +132,8 @@
   },
   "packages": {
     "@alcalzone/ansi-tokenize": ["@alcalzone/ansi-tokenize@0.2.3", "", { "dependencies": { "ansi-styles": "^6.2.1", "is-fullwidth-code-point": "^5.0.0" } }, "sha512-jsElTJ0sQ4wHRz+C45tfect76BwbTbgkgKByOzpCN9xG61N5V6u/glvg1CsNJhq2xJIFpKHSwG3D2wPPuEYOrQ=="],
+
+    "@beorn/chalkx": ["@beorn/chalkx@workspace:vendor/beorn-chalkx"],
 
     "@beorn/mdtest": ["@beorn/mdtest@workspace:vendor/beorn-mdtest"],
 

@@ -8,18 +8,19 @@ Task management in km, inspired by Notational Velocity and Simplenote.
 
 ## Core Concepts
 
-### Four Statuses
+### Five Statuses
 
-Tasks have exactly four statuses:
+Tasks have exactly five statuses:
 
-| Mark  | Status    | Meaning              |
-| ----- | --------- | -------------------- |
-| `[ ]` | `open`    | Available to work on |
-| `[!]` | `blocked` | Waiting on something |
-| `[x]` | `done`    | Completed            |
-| `[-]` | `dropped` | Cancelled            |
+| Mark  | Status    | Meaning                  |
+| ----- | --------- | ------------------------ |
+| `[ ]` | `todo`    | Available to work on     |
+| `[/]` | `wip`     | Actively being worked on |
+| `[!]` | `blocked` | Waiting on something     |
+| `[x]` | `done`    | Completed                |
+| `[-]` | `dropped` | Cancelled                |
 
-Status answers one question: **Can I work on this?**
+Status answers: **Can I work on this?** and **What's the current state?**
 
 ### Boards = Organization
 
@@ -94,7 +95,8 @@ See [km-query.md](km-query.md) for full syntax.
 ### Setup
 
 ```bash
-km init gtd                        # Create GTD boards
+km init                            # Creates GTD boards by default
+km init --no-gtd                   # Skip GTD boards, just create .km/
 ```
 
 This creates: `@inbox`, `@next`, `@someday`, and the `inbox/` folder.

@@ -20,7 +20,6 @@ import {
   getNodeIcon,
   renderRich,
   displayLength,
-  dottedUnderline,
   styledUnderline,
 } from "../../text/index.ts";
 import { constrainText, renderParentPath } from "../layout/index.ts";
@@ -28,7 +27,7 @@ import type { SelectionKey } from "../types.ts";
 import {
   getBoardPills,
   formatBoardPills,
-  getInheritedColor,
+  getOwnColor,
 } from "../board-pills.ts";
 
 // Selection key helper - exported for use by parent components
@@ -88,13 +87,12 @@ export function TreeNode({
 
   // Build styled content using layered rendering
   const isTask = node.type === "task";
-  const inheritedColor = getInheritedColor(node);
+  // Only nodes that define their own color get a colored icon
+  // Tasks linked to boards show the board pill instead (right-aligned)
+  const ownColor = getOwnColor(node);
   // Use getNodeIcon which handles color inheritance and fallback circle for non-tasks with color
-  const nodeIcon = getNodeIcon(
-    isTask ? node.task_status : null,
-    inheritedColor,
-  );
-  const typeIcon = isTask ? "" : inheritedColor ? "" : getTypeIcon(node.type);
+  const nodeIcon = getNodeIcon(isTask ? node.task_status : null, ownColor);
+  const typeIcon = isTask ? "" : ownColor ? "" : getTypeIcon(node.type);
   // For sections, use getNodeDisplayName which strips inline rules
   // For tasks and other types, use raw content
   const rawContent =
@@ -106,25 +104,19 @@ export function TreeNode({
   const isEmbedded = node.symlink_to != null;
 
   // Layer 1: Render to styled ANSI string (strips [[links]], [fields::], applies styling)
-  // Embedded content gets dotted underline to indicate it's from another location
-  const renderedContent = renderRich(rawContent);
-  const styledContent = isEmbedded
-    ? dottedUnderline(renderedContent)
-    : renderedContent;
+  const styledContent = renderRich(rawContent);
 
-  // Parent context for embedded tasks
-  const contextDepth = isCompact ? 0 : 1;
+  // Parent context for embedded tasks - show at depth 0 (top-level cards) only
+  // This indicates where the task actually lives vs where it's embedded
   const parentContext =
-    depth === contextDepth && isTask && isEmbedded
-      ? getParentContext(node)
-      : null;
+    depth === 0 && isTask && isEmbedded ? getParentContext(node) : null;
 
   // Build prefix
   const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : " ";
   const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
   const indent = " ".repeat(depth);
   // Use nodeIcon for tasks or colored non-tasks, otherwise fall back to typeIcon
-  const hasNodeIcon = isTask || inheritedColor;
+  const hasNodeIcon = isTask || ownColor;
   const iconChar = hasNodeIcon ? nodeIcon.char : typeIcon;
   const iconColor = hasNodeIcon ? nodeIcon.color : undefined;
   const iconBgColor = nodeIcon?.backgroundColor;

@@ -1,27 +1,33 @@
 ---
-description: Debug and fix TUI rendering issues using visual regression testing with Playwright
+description: Debug and fix TUI rendering issues using visual regression testing
+argument-hint: [issue] (describe the visual bug, or "explore" for full check)
+allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion, mcp__peekaboo__image, mcp__peekaboo__see
 ---
 
 # Fix TUI Visual Rendering Issues
 
-Systematically inspect and fix TUI rendering issues using visual testing.
+Debug and fix TUI rendering issues through exploratory and regression testing.
+
+**Issue**: $ARGUMENTS
+
+**Uses**: Visual Testing skill (`.claude/skills/visual-test.md`) for capture methodology
+**Reference**: [Visual Testing Specs](.claude/docs/visual-testing.md) for verification checklists
 
 ## The Fix Loop
 
-This command implements an iterative verification loop:
-
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    FIX-TUI LOOP                         │
-│                                                         │
-│  1. CAPTURE → Take screenshots of TUI                   │
-│  2. ANALYZE → Read screenshots, identify issues         │
-│  3. COMPARE → Check against source files on disk        │
-│  4. VERIFY  → Match against rendering specs             │
-│  5. FIX     → Update rendering code                     │
-│  6. REPEAT  → Until all issues resolved                 │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      FIX-TUI LOOP                           │
+│                                                             │
+│  1. SETUP    → Start TUI with test fixtures                 │
+│  2. CAPTURE  → Screenshot the running TUI                   │
+│  3. EXPLORE  → Navigate views, check rendering              │
+│  4. COMPARE  → Verify against source files                  │
+│  5. FIX      → Update rendering code                        │
+│  6. REGRESS  → Re-test to confirm fix                       │
+│  7. CLEANUP  → Kill processes, remove temp files            │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Step 1: Setup Test Environment
@@ -30,11 +36,11 @@ This command implements an iterative verification loop:
 # Kill any existing ttyd
 pkill -f ttyd 2>/dev/null || true
 
-# Use test fixtures (copy to /tmp to avoid modifying repo)
+# Copy test fixtures to /tmp (avoid modifying repo)
 rm -rf /tmp/tui-test-vault
 cp -r apps/km-cli/tests/fixtures/tui-test-vault /tmp/tui-test-vault
 
-# Start ttyd server
+# Start TUI via ttyd
 cd /Users/beorn/Code/pim/km
 ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault @next.md &
 sleep 3
@@ -45,196 +51,171 @@ mkdir -p /tmp/tui-visual-test
 
 ## Step 2: Capture Screenshots
 
-Use Peekaboo to capture the TUI in Ghostty or other terminal:
+Use Playwright for headless capture (preferred):
 
 ```bash
-# If running in a visible terminal (Ghostty)
-peekaboo image --app "Ghostty" --path /tmp/tui-visual-test/capture.png
-
-# Or use the Playwright script for headless testing
-bun run /tmp/capture-tui.ts
+bun x playwright screenshot \
+  --viewport-size=1400,900 \
+  http://localhost:7681 \
+  /tmp/tui-visual-test/tui-initial.png
 ```
 
-## Step 3: Analyze Screenshots
+Or use Peekaboo MCP tool for interactive sessions:
 
-After capturing, read the screenshots to identify rendering issues:
+- `mcp__peekaboo__image` with `app_target: "Safari"` or `"Ghostty"`
 
-1. Use the Read tool to view `/tmp/tui-visual-test/*.png`
-2. Check for common issues (see checklist below)
-3. Document each issue found
+Then **read the screenshot** using the Read tool to analyze.
 
-## Step 4: Compare Against Source Files
+## Step 3: Exploratory Testing
 
-For each item visible in the TUI, verify it matches the source:
+Navigate through the TUI and capture each state. Test coverage:
+
+### Views to Check
+
+| View    | Key | What to Verify                                   |
+| ------- | --- | ------------------------------------------------ |
+| Columns | `2` | Column borders, headers yellow, tree indentation |
+| Cards   | `1` | Card borders, compact mode, selection highlight  |
+| Tabs    | `3` | Tab bar, active tab indicator                    |
+| List    | `4` | Full-width, section headers                      |
+
+### States to Check
+
+| State         | How to Trigger          | What to Verify                |
+| ------------- | ----------------------- | ----------------------------- |
+| Selection     | Arrow keys              | Blue background on selected   |
+| Multi-select  | `v` then arrows         | Cyan background on multi      |
+| Folded        | `z`                     | ▶ indicator, children hidden  |
+| Expanded      | `z` again               | ▼ indicator, children visible |
+| Done tasks    | Navigate to Done column | Strikethrough + dim           |
+| Dropped tasks | Navigate to Dropped     | Strikethrough + dim           |
+| Blocked tasks | Find `[!]` marker       | ⊘ icon, red color             |
+| WIP tasks     | Find `[/]` marker       | ◐ icon, yellow color          |
+
+### Content to Check
+
+| Content       | Source Example               | Expected Rendering        |
+| ------------- | ---------------------------- | ------------------------- |
+| Wiki links    | `[[Projects/API\|API docs]]` | Dim underlined "API docs" |
+| Inline fields | `[priority:: 1]`             | Hidden (stripped)         |
+| Bold          | `**bold**`                   | Bold text                 |
+| Italic        | `*italic*`                   | Italic text               |
+| Code          | `` `code` ``                 | Cyan monospace            |
+| Strike        | `~~strike~~`                 | Strikethrough             |
+
+## Step 4: Compare Against Source
+
+Read the source files to verify content matches:
 
 ```bash
-# Source files in test vault
 cat /tmp/tui-test-vault/@next.md
 cat /tmp/tui-test-vault/Inbox.md
 cat /tmp/tui-test-vault/Projects/*.md
 ```
 
-**Verification checklist:**
+Key verification points:
 
-- [ ] Task content matches source markdown
-- [ ] Parent context (for embedded tasks) shows correct source file
-- [ ] Status icons match checkbox marks in source: `[ ]`→○, `[x]`→✓, `[/]`→◐, `[!]`→⊘, `[-]`→∅
-- [ ] Wiki links `[[...]]` render as dim underlined text (link stripped)
-- [ ] Inline fields `[field:: value]` are stripped from display
-- [ ] Rich formatting preserved: **bold**, _italic_, `code`, ~~strikethrough~~
+- Task count in columns matches file content
+- Text content matches (minus inline fields)
+- Hierarchy/nesting preserved
+- Status markers → correct icons
 
-## Step 5: Verify Against Rendering Specs
+## Step 5: Diagnose and Fix
 
-Check rendering behavior against specs:
+### Quick Diagnostic
 
-### Expected Rendering Behavior
+If issue appears in `bun storybook` → Rendering code bug (Layers 1-3)
+If issue only in full TUI → Environment/terminal/Ink bug
 
-From [apps/km-cli/src/tui/README.md](apps/km-cli/src/tui/README.md):
+### Layer Mapping
 
-1. **Layered Rendering Pipeline:**
-   - `renderRich()` → converts raw content to styled ANSI string
-   - `constrainText()` → wraps and truncates using display length
-   - React components → render each line in `<Text>`
+| Symptom                       | Layer | Files to Check                  |
+| ----------------------------- | ----- | ------------------------------- |
+| Text not styled (bold/italic) | 1     | `src/text/rich.ts`              |
+| Wiki links not dim/underlined | 1     | `src/text/rich.ts`              |
+| Inline fields visible         | 1     | `src/text/rich.ts`              |
+| Wrong status icon             | 1     | `src/text/icons.ts`             |
+| Wrong icon color              | 1     | `src/text/icons.ts`             |
+| Text overlap                  | 2     | `src/tui/layout/truncate.ts`    |
+| Text not truncated            | 2     | `src/tui/layout/truncate.ts`    |
+| Bad wrapping                  | 2     | `src/tui/layout/wrap.ts`        |
+| Path rendering wrong          | 2     | `src/tui/layout/path.ts`        |
+| Selection not visible         | 3     | `src/tui/views/TreeNode.tsx`    |
+| Done not strikethrough        | 3     | `src/tui/views/TreeNode.tsx`    |
+| View layout broken            | 3     | `src/tui/views/*.tsx`           |
+| Column borders wrong          | 3     | `src/tui/views/ColumnsView.tsx` |
 
-2. **Status Icons** (from [render-icons.ts](apps/km-cli/src/tui/render-icons.ts)):
-   | Status | Icon | Color |
-   |--------|------|-------|
-   | open/todo | ○ | gray |
-   | done | ✓ | green |
-   | in_progress | ◐ | yellow |
-   | blocked | ⊘ | red |
-   | waiting | ◷ | blue |
-   | dropped | ∅ | gray |
+### Common Fixes
 
-3. **Type Icons:**
-   | Type | Icon |
-   |------|------|
-   | folder | 📁 |
-   | file | 📄 |
-   | section | # |
-   | paragraph | (empty) |
-   | code | ` |
-   | quote | " |
-   | list item | · |
+**Text overlap**: Check `displayLength()` handles ANSI codes correctly
+**Truncation wrong**: Check `truncateText()` uses display length not string length
+**Icon wrong**: Check status string mapping in `getStatusIcon()`
+**Strikethrough missing**: Check `isDoneOrDropped` logic in TreeNode
 
-4. **Parent Context:**
-   - For embedded (symlinked) tasks at depth 0-1
-   - Shown as dimmed text: `< parent-file`
-   - In compact mode: shown on separate line
-   - In wide mode: inline if single-line content
+## Step 6: Regression Testing
 
-5. **Line Padding:**
-   - All lines padded to full width to prevent overlap on re-render
-   - Uses `displayLength()` to measure styled text width
-
-## Step 6: Fix Issues
-
-Key files to modify:
-
-- [render-text.ts](apps/km-cli/src/tui/render-text.ts) - Text rendering, rich formatting
-- [render-icons.ts](apps/km-cli/src/tui/render-icons.ts) - Status/type icons
-- [TreeNode.tsx](apps/km-cli/src/tui/views/TreeNode.tsx) - Node rendering component
-- [ListView.tsx](apps/km-cli/src/tui/views/ListView.tsx) - List view
-- [ColumnsView.tsx](apps/km-cli/src/tui/views/ColumnsView.tsx) - Columns view
-- [Board.tsx](apps/km-cli/src/tui/views/Board.tsx) - Main board component
-
-## Step 7: Verify Fix and Repeat
+After fixing, verify the fix AND check for regressions:
 
 ```bash
-# Run tests
+# Run unit tests
 bun test
 
 # Run lint/format
 bun fix
 
-# Re-capture screenshots
-pkill -f ttyd || true
+# Quick visual check via storybook
+bun storybook
+
+# Full regression - restart TUI and re-capture
+pkill -f ttyd 2>/dev/null || true
 ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault @next.md &
 sleep 3
-# Capture again and verify fix
+bun x playwright screenshot \
+  --viewport-size=1400,900 \
+  http://localhost:7681 \
+  /tmp/tui-visual-test/tui-after-fix.png
 ```
 
-## Issues Checklist
+Compare before/after screenshots. Verify:
 
-### Text Rendering
+- [ ] Original issue fixed
+- [ ] No new visual regressions
+- [ ] All view modes still work
+- [ ] Selection/navigation still works
 
-- [ ] No text concatenation/overlap between items
-- [ ] Wiki links `[[link]]` rendered correctly (dim, underlined)
-- [ ] Inline fields stripped `[field:: value]` not shown
-- [ ] Long text truncated with ellipsis `…`
-- [ ] Multi-line content wraps properly
-- [ ] Rich text: **bold**, _italic_, `code`, ~~strikethrough~~
-- [ ] Parent context shows correct source for embedded tasks
-
-### Layout
-
-- [ ] Proper spacing between items
-- [ ] Column borders aligned
-- [ ] Selection highlighting visible (blue background)
-- [ ] Status bar shows correct view mode
-- [ ] No text overflow or clipping
-- [ ] Lines padded to prevent overlap on re-render
-
-### Icons
-
-- [ ] Task status icons colored correctly
-- [ ] Fold indicators: `▶` (folded), `▼` (expanded)
-- [ ] Type icons display properly
-
-### Colors
-
-- [ ] Column headers yellow
-- [ ] Selected item blue background
-- [ ] Dimmed text for context/metadata
-- [ ] Status icon colors: green=done, yellow=wip, red=blocked, blue=waiting
-
-## Bug Handling Guidelines
-
-### Upstream Package Bugs
-
-If you discover a bug in an upstream package (ink, ttyd, Playwright, etc.):
-
-1. **Create a bead** documenting the bug with:
-   - Package name and version
-   - Minimal reproducible example
-   - Expected vs actual behavior
-   - Potential workaround (if any)
-
-2. **Example bead creation:**
-
-   ```bash
-   bd create --title="ink: Text overflow on ANSI sequences" \
-     --type=bug --priority=3 \
-     --description="ink's Text component miscalculates width when..."
-   ```
-
-3. The reproducible example can be used to submit patches upstream
-
-### Adding Unit Tests for Bugs
-
-When you find a rendering bug:
-
-1. **Add a unit test** that reproduces the bug before fixing
-2. Test should fail initially, then pass after the fix
-3. Test files:
-   - `apps/km-cli/tests/render-text.test.ts` - text rendering
-   - `apps/km-cli/tests/render-icons.test.ts` - icon rendering
-   - `apps/km-cli/tests/board.test.ts` - board/TUI behavior
-
-4. **Example test:**
-   ```ts
-   test("wiki links with special chars render correctly", () => {
-     const result = renderPlain("Check [[Projects/API|API docs]]");
-     expect(result).toBe("Check API docs");
-   });
-   ```
-
-## Cleanup
+## Step 7: Cleanup
 
 ```bash
 pkill -f ttyd 2>/dev/null || true
 rm -rf /tmp/tui-test-vault
 rm -rf /tmp/tui-visual-test
+```
+
+## Quick Storybook Verification
+
+For isolated component testing without full TUI:
+
+```bash
+bun storybook
+```
+
+This renders all layers through ink-testing-library. Useful for:
+
+- Checking specific component rendering
+- Faster iteration when debugging Layer 1-2 issues
+- Verifying rich text and icon rendering in isolation
+
+To capture storybook output:
+
+```bash
+pkill -f ttyd 2>/dev/null || true
+ttyd -W -p 7681 bash -c 'bun storybook; sleep 120' &
+sleep 5
+bun x playwright screenshot \
+  --viewport-size=1600,2400 \
+  --full-page \
+  http://localhost:7681 \
+  /tmp/tui-visual-test/storybook.png
 ```
 
 ## Troubleshooting
@@ -246,14 +227,35 @@ pkill -f ttyd
 lsof -i :7681
 ```
 
-### No content showing in cards
+### No content showing
 
-- Check if content is being truncated due to insufficient width
-- Verify parent context isn't taking all available space
-- Run debug script: `bun run apps/km-cli/tests/tui-debug.ts`
+- Check terminal width (TUI needs ~80+ cols)
+- Run `bun storybook` to verify rendering code works
+- Check ttyd stderr for errors
 
 ### Text overlap
 
-- Check line padding in TreeNode.tsx
-- Verify `displayLength()` is calculating ANSI-aware width
-- Ensure all lines are padded to full width
+- Check `displayLength()` ANSI handling in `src/tui/layout/truncate.ts`
+- Verify `padText()` uses display length
+
+### Playwright not found
+
+```bash
+bun x playwright install chromium
+```
+
+### Colors not showing
+
+- Ensure `chalk.level = 3` is set
+- Check terminal supports 256 colors
+
+## Commit Checklist
+
+Before committing a fix:
+
+- [ ] `bun test` passes (all 350+ tests)
+- [ ] `bun fix` passes (lint + format)
+- [ ] `bun storybook` shows correct rendering
+- [ ] Full TUI tested with test fixtures
+- [ ] Added unit test reproducing the bug
+- [ ] Before/after screenshots compared

@@ -78,8 +78,9 @@ function getPathSegments(
   isWithinBoard: boolean;
   node: Node | null;
 }> {
-  if (!nodeId)
+  if (!nodeId) {
     return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
+  }
 
   // Collect all nodes from root to target
   const nodes: Node[] = [];
@@ -91,8 +92,9 @@ function getPathSegments(
     currentId = node.parent_id;
   }
 
-  if (nodes.length === 0)
+  if (nodes.length === 0) {
     return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
+  }
 
   // Find index where we enter the board (nodes after boardRootId)
   let boardRootIndex = -1;

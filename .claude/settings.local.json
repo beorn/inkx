@@ -52,7 +52,10 @@
       "mcp__peekaboo__type",
       "mcp__peekaboo__click",
       "mcp__peekaboo__agent",
-      "Skill(fix-tui)"
+      "Skill(fix-tui)",
+      "mcp__peekaboo__window",
+      "mcp__peekaboo__scroll",
+      "mcp__peekaboo__dock"
     ],
     "deny": [],
     "ask": []

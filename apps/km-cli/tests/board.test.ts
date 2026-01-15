@@ -28,6 +28,7 @@ import {
   getCurrentCard,
   getCurrentColumn,
 } from "../src/tui/state.ts";
+import { stripAnsi } from "../src/text/index.ts";
 
 import {
   renderBoard,
@@ -35,7 +36,7 @@ import {
   renderCard,
   renderStatusBar,
   renderHelp,
-  getStatusIcon,
+  renderStatusIcon,
   defaultRenderOptions,
 } from "../src/tui/render.ts";
 
@@ -475,14 +476,14 @@ describe("Board Rendering", () => {
     expect(output).toContain("Move to left column");
   });
 
-  test("getStatusIcon returns correct icons", () => {
-    expect(getStatusIcon("todo")).toContain("○");
-    expect(getStatusIcon("wip")).toContain("◐");
-    expect(getStatusIcon("blocked")).toContain("⊘");
-    expect(getStatusIcon("done")).toContain("✓");
-    expect(getStatusIcon("dropped")).toContain("∅");
+  test("renderStatusIcon returns correct icons", () => {
+    expect(renderStatusIcon("todo")).toContain("○");
+    expect(renderStatusIcon("wip")).toContain("◐");
+    expect(renderStatusIcon("blocked")).toContain("⊘");
+    expect(renderStatusIcon("done")).toContain("✓");
+    expect(renderStatusIcon("dropped")).toContain("∅");
     // undefined/null status shows red warning triangle
-    expect(getStatusIcon(undefined)).toContain("⚠");
+    expect(renderStatusIcon(undefined)).toContain("⚠");
   });
 
   test("renderCard includes content", () => {
@@ -1151,14 +1152,16 @@ describe("Wiki Link Rendering", () => {
     );
 
     const output = lastFrame() ?? "";
+    // Strip ANSI codes to check visible text (URLs are in OSC 8 hyperlink sequences)
+    const visibleText = stripAnsi(output);
 
     // Should show the alias, not the path
-    expect(output).toContain("task-system");
-    // Should NOT show the path
-    expect(output).not.toContain("MDTasks");
+    expect(visibleText).toContain("task-system");
+    // Should NOT show the path in visible text (it's hidden in the hyperlink URL)
+    expect(visibleText).not.toContain("MDTasks");
     // The brackets should not appear
-    expect(output).not.toContain("[[");
-    expect(output).not.toContain("]]");
+    expect(visibleText).not.toContain("[[");
+    expect(visibleText).not.toContain("]]");
   });
 });
 

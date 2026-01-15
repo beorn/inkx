@@ -53,8 +53,8 @@ function getPriorityDisplay(priority?: number): string {
   return `P${priority}`;
 }
 
-// Status icon for subtasks
-function getStatusIcon(status?: string): string {
+// Get checkbox mark for subtask display (markdown style)
+function getSubtaskCheckbox(status?: string): string {
   switch (status) {
     case "done":
       return "[x]";
@@ -354,7 +354,7 @@ export function DetailPane({
           {subtasks.slice(0, maxSubtasks).map((task) => (
             <Text key={task.id} wrap="truncate">
               <Text dimColor={task.task_status === "done"}>
-                {getStatusIcon(task.task_status)}{" "}
+                {getSubtaskCheckbox(task.task_status)}{" "}
               </Text>
               <Text dimColor={task.task_status === "done"}>
                 {task.content || getNodeDisplayName(task)}

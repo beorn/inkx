@@ -36,7 +36,11 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
     default:
       // Invalid/unknown status - show the actual value with inverted colors
       // This helps debug what invalid status was received
-      return { char: status.charAt(0), color: "black", backgroundColor: "white" };
+      return {
+        char: status.charAt(0),
+        color: "black",
+        backgroundColor: "white",
+      };
   }
 }
 
@@ -61,4 +65,55 @@ export function getTypeIcon(type: string): string {
     default:
       return "\u00B7"; // middle dot · for list items
   }
+}
+
+/**
+ * Default filled circle icon for nodes with color but no status
+ */
+export const COLORED_CIRCLE: StatusIcon = {
+  char: "\u25CF", // filled circle ●
+  color: "white",
+};
+
+/**
+ * Get a node icon with color override support.
+ *
+ * For nodes that define a color (via rules.color or inherited):
+ * - If it's a task: use the status icon shape but with the inherited color
+ * - If it's not a task: show a filled circle with the inherited color
+ *
+ * @param status - Task status (or null/undefined for non-tasks)
+ * @param inheritedColor - Color from node's rules or ancestors
+ * @returns StatusIcon with appropriate char and color
+ */
+export function getNodeIcon(
+  status: string | null | undefined,
+  inheritedColor?: string,
+): StatusIcon {
+  // For tasks, get the base status icon
+  if (status !== null && status !== undefined) {
+    const baseIcon = getStatusIcon(status);
+
+    // If there's an inherited color, override the icon color
+    if (inheritedColor) {
+      return {
+        char: baseIcon.char,
+        color: inheritedColor,
+        backgroundColor: baseIcon.backgroundColor,
+      };
+    }
+
+    return baseIcon;
+  }
+
+  // For non-tasks with an inherited color, show a colored circle
+  if (inheritedColor) {
+    return {
+      char: COLORED_CIRCLE.char,
+      color: inheritedColor,
+    };
+  }
+
+  // No status and no color - return default (warning icon for missing status)
+  return getStatusIcon(status);
 }

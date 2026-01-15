@@ -15,8 +15,9 @@ import {
   queryTasks,
   getTaskByIdPrefix,
   getNodeByIdPrefix,
+  parseTaskMetadata,
+  extractTags,
 } from "@km/store";
-import { parseTaskMetadata, extractTags } from "@km/markdown";
 import type { Node, TaskStatus } from "@km/core";
 import {
   getNodeDisplayName as getNodeDisplayNameBase,

@@ -7,9 +7,13 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "path";
-import { existsSync } from "fs";
-import { getStore, resolveNode } from "@km/store";
-import { parseTaskMetadata, extractTags, extractMentions } from "@km/markdown";
+import {
+  getStore,
+  resolveNode,
+  parseTaskMetadata,
+  extractTags,
+  extractMentions,
+} from "@km/store";
 
 /**
  * Format task metadata as inline fields
@@ -99,7 +103,7 @@ export const newCommand = new Command("new")
       if (parentNode && parentNode.fs_path) {
         targetPath = parentNode.fs_path;
         targetName = parentNode.fs_path.split("/").pop() || options.parent;
-      } else if (existsSync(join(store.rootPath, options.parent))) {
+      } else if (store.pathExists(options.parent)) {
         // Try as relative path
         targetPath = join(store.rootPath, options.parent);
         targetName = options.parent;

@@ -395,11 +395,41 @@ function Layer2Layout(): React.ReactElement {
       <SubsectionHeader title="renderPath() - Breadcrumb Truncation" />
       {(() => {
         const segments: PathSegment[] = [
-          { id: "proj-1", name: "Projects", sep: "/", isWithinBoard: false },
-          { id: "work-1", name: "Work", sep: "/", isWithinBoard: false },
-          { id: "q1-2024", name: "Q1-2024", sep: ">", isWithinBoard: true },
-          { id: "sprint-1", name: "Sprint 1", sep: ">", isWithinBoard: true },
-          { id: "tasks-1", name: "Tasks", sep: "", isWithinBoard: true },
+          {
+            id: "proj-1",
+            name: "Projects",
+            sep: "/",
+            isWithinBoard: false,
+            node: null,
+          },
+          {
+            id: "work-1",
+            name: "Work",
+            sep: "/",
+            isWithinBoard: false,
+            node: null,
+          },
+          {
+            id: "q1-2024",
+            name: "Q1-2024",
+            sep: ">",
+            isWithinBoard: true,
+            node: null,
+          },
+          {
+            id: "sprint-1",
+            name: "Sprint 1",
+            sep: ">",
+            isWithinBoard: true,
+            node: null,
+          },
+          {
+            id: "tasks-1",
+            name: "Tasks",
+            sep: "",
+            isWithinBoard: true,
+            node: null,
+          },
         ];
         // Helper to convert segments to string
         const segsToStr = (segs: PathSegment[]): string =>
@@ -689,7 +719,10 @@ function TopBar({ width }: { width: number }): React.ReactElement {
           ? chalk.bgWhite.blue.bold(` ${seg.sep} `) // Blue separator at boundary
           : chalk.bgWhite.gray(` ${seg.sep} `) // Gray separators elsewhere
         : "";
-      const namePart = chalk.bgWhite.black.bold(seg.name);
+      // Board path: black text, Item path (within board): blue text
+      const namePart = seg.isWithinBoard
+        ? chalk.bgWhite.blue(seg.name)
+        : chalk.bgWhite.black.bold(seg.name);
       return sepPart + namePart;
     })
     .join("");
@@ -808,8 +841,8 @@ function CardsViewDemo({
 
 function Layer3AllViews(): React.ReactElement {
   const mockState = createMockBoardState();
-  const viewWidth = 80;
-  const viewHeight = 14;
+  const viewWidth = 100; // Wider to accommodate 4 columns with readable card text
+  const viewHeight = 16;
 
   // Shared props for view components
   const commonViewProps = {

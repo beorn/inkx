@@ -5,7 +5,7 @@
 import { appendFileSync, existsSync, mkdirSync } from "fs";
 import { ulid } from "ulid";
 import { dirname, join } from "path";
-import type { Event, EventType } from "./types.ts";
+import type { Event } from "./types.ts";
 
 // Event hub for real-time broadcasting (set by km-code)
 let eventHub: { broadcast: (event: Event) => void } | null = null;
@@ -122,23 +122,6 @@ export function emit(
   }
 
   return full;
-}
-
-/**
- * Create a typed emit function for specific event types
- */
-export function createEmitter<T extends Record<string, unknown>>(
-  type: EventType,
-  actor: string,
-) {
-  return (data: T, target?: string): Event => {
-    return emit({
-      type,
-      actor,
-      target,
-      data,
-    });
-  };
 }
 
 /**

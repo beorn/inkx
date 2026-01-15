@@ -3,6 +3,9 @@
  *
  * Handles bracketed paste mode for detecting file drops in terminal.
  * Most terminals paste file paths as text when files are dropped.
+ *
+ * Note: This module intentionally uses fs directly (not km-store) because
+ * it checks arbitrary system paths from file drops, not store-relative paths.
  */
 
 import { existsSync, statSync } from "fs";

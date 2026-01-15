@@ -52,7 +52,7 @@ This directory contains technical specifications for implementation.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  CLI / TUI                                                      │
-│  km task, km board, km show, km agent                           │
+│  km task, km view, km show, km agent                            │
 └─────────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┼───────────────┐

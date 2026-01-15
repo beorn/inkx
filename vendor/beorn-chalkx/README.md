@@ -57,7 +57,7 @@ console.log(chalk.red(curlyUnderline("red text, wavy underline")));
 Visual demo of all features:
 
 ```bash
-bun vendor/beorn-chalkx/src/storybook.ts
+bun ./src/storybook.ts
 ```
 
 ---

@@ -136,13 +136,13 @@ describe("renderRich", () => {
   });
 
   describe("markdown link styling", () => {
-    it("renders [text](url) links as clickable hyperlinks", () => {
+    it("renders [text](url) links as underlined text", () => {
       const result = renderRich("Click [Google](https://google.com)");
       expect(stripAnsi(result)).toBe("Click Google");
       // Should not contain raw link syntax (brackets)
       expect(result).not.toContain("](");
-      // URL is embedded in OSC 8 hyperlink (invisible to users but present in string)
-      expect(result).toContain("\x1b]8;;https://google.com");
+      // Link text is underlined (OSC 8 hyperlinks disabled due to wrap-ansi incompatibility)
+      expect(result).toContain("\x1b[4m"); // underline start
     });
 
     it("handles links with complex URLs", () => {

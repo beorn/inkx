@@ -44,8 +44,20 @@ describe("renderPath", () => {
 
   it("returns all segments if no width specified", () => {
     const segments: PathSegment[] = [
-      { id: "1", name: "very-long-segment", sep: "/", isWithinBoard: false, node: null },
-      { id: "2", name: "another-long-one", sep: "", isWithinBoard: false, node: null },
+      {
+        id: "1",
+        name: "very-long-segment",
+        sep: "/",
+        isWithinBoard: false,
+        node: null,
+      },
+      {
+        id: "2",
+        name: "another-long-one",
+        sep: "",
+        isWithinBoard: false,
+        node: null,
+      },
     ];
     const result = renderPath(segments);
     expect(result).toEqual(segments);
