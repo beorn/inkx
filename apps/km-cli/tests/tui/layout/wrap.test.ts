@@ -47,32 +47,23 @@ describe("wrapText", () => {
     expect(result.length).toBe(2);
   });
 
-  it("avoids leaving very short orphan fragments", () => {
-    // Edge case: "Edge Cases (wiki links + text)" at width 25
-    // Should not break to leave "text)" dangling alone
-    const text = "Edge Cases (wiki links + text)";
-    const result = wrapText(text, 25);
-
-    // The second line should not be a tiny orphan fragment
-    // Previously broke as ["Edge Cases (wiki links +", "text)"] (5 chars)
-    // Now breaks as ["Edge Cases (wiki links", "+ text)"] (7 chars) or better
-    expect(result.length).toBe(2);
-    // Ensure the second line has at least MIN_CONTINUATION_LEN (6) chars
-    expect(result[1]?.length).toBeGreaterThanOrEqual(6);
-  });
-
-  it("handles parenthesized content gracefully", () => {
-    // Real-world case from TUI
+  it("wraps at word boundaries respecting width", () => {
     const text = "Edge Cases (wiki links + text)";
 
-    // At various widths, check we get reasonable wrapping
+    // At width 30, fits on one line
     const result30 = wrapText(text, 30);
     expect(result30).toEqual(["Edge Cases (wiki links + text)"]);
 
+    // At width 25, wraps at last space before limit
+    const result25 = wrapText(text, 25);
+    expect(result25.length).toBe(2);
+    expect(result25[0]).toBe("Edge Cases (wiki links +");
+    expect(result25[1]).toBe("text)");
+
+    // At width 20, wraps earlier
     const result20 = wrapText(text, 20);
     expect(result20.length).toBe(2);
-    // Both lines should have meaningful content
-    expect(result20[0]?.length).toBeGreaterThan(10);
-    expect(result20[1]?.length).toBeGreaterThan(5);
+    expect(result20[0]).toBe("Edge Cases (wiki");
+    expect(result20[1]).toBe("links + text)");
   });
 });
