@@ -57,7 +57,25 @@ program
   .option(
     "-r, --root <path>",
     "Root directory to operate on (overrides KM_ROOT env var)",
-  );
+  )
+  .allowUnknownOption(false)
+  .allowExcessArguments(false)
+  .showSuggestionAfterError(true)
+  .showHelpAfterError(true)
+  .configureOutput({
+    outputError: (str, write) => {
+      // Improve error messages for unknown commands
+      if (str.includes("too many arguments")) {
+        const args = process.argv.slice(2).filter((a) => !a.startsWith("-"));
+        if (args.length > 0) {
+          write(chalk.red(`error: unknown command '${args[0]}'\n`));
+          write(chalk.dim("Run 'km --help' for available commands.\n"));
+          return;
+        }
+      }
+      write(chalk.red(str));
+    },
+  });
 
 /**
  * Resolve a path argument to an absolute directory path
@@ -139,9 +157,29 @@ program.addCommand(watchCommand); // km watch - deprecated, use 'km sync --watch
 program.addCommand(rebuildCommand); // km rebuild - rebuild state
 program.addCommand(daemonCommand); // km daemon {start,stop,status} - background daemon
 
-// Default to help if no command specified
-program.action(() => {
-  program.outputHelp();
+// Handle unknown commands with helpful error message
+program.action((_options, command) => {
+  // If there are extra args, they're unknown commands
+  const unknownArgs = command.args;
+  if (unknownArgs.length > 0) {
+    const unknown = unknownArgs[0];
+    console.error(chalk.red(`error: unknown command '${unknown}'`));
+
+    // Try to suggest similar commands
+    const availableCommands = program.commands.map((cmd) => cmd.name());
+    const suggestion = availableCommands.find(
+      (cmd) =>
+        cmd.startsWith(unknown[0] ?? "") || unknown.startsWith(cmd[0] ?? ""),
+    );
+    if (suggestion) {
+      console.error(chalk.yellow(`\nDid you mean: km ${suggestion}?`));
+    }
+    console.error(chalk.dim("\nRun 'km --help' for available commands."));
+    process.exitCode = 1;
+  } else {
+    // No arguments - show help
+    program.outputHelp();
+  }
 });
 
 program.parse();

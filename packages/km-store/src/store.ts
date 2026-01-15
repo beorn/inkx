@@ -345,7 +345,9 @@ abstract class BaseStore implements NodeStore {
             ? "!"
             : newStatus === "dropped"
               ? "-"
-              : " "; // open
+              : newStatus === "wip"
+                ? "/"
+                : " "; // todo
 
       lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
 
@@ -463,7 +465,7 @@ export class DiskStore extends BaseStore {
     const parent_id = changes.parent_id ?? source.parent_id;
     const parent_idx = changes.parent_idx ?? source.parent_idx + 0.001;
     const symlink_to = null;
-    const task_status = changes.task_status ?? "open";
+    const task_status = changes.task_status ?? "todo";
     const task_mark = changes.task_mark ?? " ";
     const assigned_to = changes.assigned_to ?? source.assigned_to ?? null;
     const due_date = changes.due_date ?? source.due_date ?? null;
@@ -671,11 +673,15 @@ export class MemoryStore extends BaseStore {
           const taskContent = taskMatch[3].trim();
           const taskId = this.generateId(filePath, lineNum);
 
-          let status: TaskStatus = "open";
+          let status: TaskStatus = "todo";
           if (mark === "x" || mark === "X") {
             status = "done";
-          } else if (mark === "/" || mark === "-") {
-            status = "in_progress";
+          } else if (mark === "/") {
+            status = "wip";
+          } else if (mark === "-") {
+            status = "dropped";
+          } else if (mark === "!") {
+            status = "blocked";
           }
 
           this.insertNode({
@@ -832,7 +838,7 @@ export class MemoryStore extends BaseStore {
     const type = "task";
     const parent_id = changes.parent_id ?? source.parent_id;
     const parent_idx = changes.parent_idx ?? source.parent_idx + 0.001;
-    const task_status = changes.task_status ?? "open";
+    const task_status = changes.task_status ?? "todo";
     const task_mark = changes.task_mark ?? " ";
     const assigned_to = changes.assigned_to ?? source.assigned_to ?? null;
     const due_date = changes.due_date ?? source.due_date ?? null;

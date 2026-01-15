@@ -588,10 +588,10 @@ function cycleStatus(state: BoardState): void {
   const targets = getTargetCards(state);
 
   for (const card of targets) {
-    const currentStatus = card.node.task_status || "open";
+    const currentStatus = card.node.task_status || "todo";
     const currentIndex = STATUS_CYCLE.indexOf(currentStatus);
     const nextIndex = (currentIndex + 1) % STATUS_CYCLE.length;
-    const nextStatus = STATUS_CYCLE[nextIndex] ?? "open";
+    const nextStatus = STATUS_CYCLE[nextIndex] ?? "todo";
     const nextMark = STATUS_MARKS[nextStatus];
 
     emit({

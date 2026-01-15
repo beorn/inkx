@@ -477,9 +477,9 @@ describe("Board Rendering", () => {
 
   test("getStatusIcon returns correct icons", () => {
     expect(getStatusIcon("done")).toContain("✓");
-    expect(getStatusIcon("in_progress")).toContain("◐");
+    expect(getStatusIcon("wip")).toContain("◐");
     expect(getStatusIcon("blocked")).toContain("⊘");
-    expect(getStatusIcon("waiting")).toContain("◷");
+    expect(getStatusIcon("dropped")).toContain("∅");
     expect(getStatusIcon(undefined)).toContain("○");
   });
 

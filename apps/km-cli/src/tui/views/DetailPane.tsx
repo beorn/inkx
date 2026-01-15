@@ -35,16 +35,14 @@ function getStatusDisplay(status?: string): { text: string; color: string } {
   switch (status) {
     case "done":
       return { text: "done", color: "green" };
-    case "in_progress":
-      return { text: "in progress", color: "yellow" };
+    case "wip":
+      return { text: "wip", color: "yellow" };
     case "blocked":
       return { text: "blocked", color: "red" };
-    case "waiting":
-      return { text: "waiting", color: "cyan" };
     case "dropped":
       return { text: "dropped", color: "gray" };
     default:
-      return { text: "open", color: "blue" };
+      return { text: "todo", color: "blue" };
   }
 }
 
@@ -59,12 +57,10 @@ function getStatusIcon(status?: string): string {
   switch (status) {
     case "done":
       return "[x]";
-    case "in_progress":
+    case "wip":
       return "[/]";
     case "blocked":
       return "[!]";
-    case "waiting":
-      return "[?]";
     case "dropped":
       return "[-]";
     default:

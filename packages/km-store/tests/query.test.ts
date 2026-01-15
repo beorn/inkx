@@ -23,11 +23,11 @@ import {
 describe("Query Parser", () => {
   describe("parseQuery", () => {
     test("parses field:value conditions", () => {
-      const ast = parseQuery("status:open");
+      const ast = parseQuery("status:todo");
       expect(ast.conditions[0]).toMatchObject({
         field: "task_status",
         op: "=",
-        value: "open",
+        value: "todo",
         negated: false,
       });
     });
@@ -94,7 +94,7 @@ describe("Query Parser", () => {
     });
 
     test("parses mixed query", () => {
-      const ast = parseQuery("status:open @bjorn -status:done #urgent");
+      const ast = parseQuery("status:todo @bjorn -status:done #urgent");
       expect(ast.conditions.length).toBe(2);
       expect(ast.refs.length).toBe(2);
     });
@@ -125,12 +125,12 @@ describe("Query Parser", () => {
     });
 
     test("parses phrases with field filters", () => {
-      const ast = parseQuery('"budget review" status:open');
+      const ast = parseQuery('"budget review" status:todo');
       expect(ast.phrases).toEqual(["budget review"]);
       expect(ast.conditions[0]).toMatchObject({
         field: "task_status",
         op: "=",
-        value: "open",
+        value: "todo",
         negated: false,
       });
     });
@@ -152,11 +152,11 @@ describe("Query Parser", () => {
     });
 
     test("parses comma-separated values", () => {
-      const ast = parseQuery("status:open,blocked");
+      const ast = parseQuery("status:todo,blocked");
       expect(ast.conditions[0]).toMatchObject({
         field: "task_status",
         op: "=",
-        value: "open,blocked",
+        value: "todo,blocked",
         negated: false,
       });
     });
@@ -198,13 +198,13 @@ describe("Query Parser", () => {
     });
 
     test("parses mixed path patterns and conditions", () => {
-      const ast = parseQuery("./inbox/** status:open -status:done");
+      const ast = parseQuery("./inbox/** status:todo -status:done");
       expect(ast.paths.length).toBe(1);
       expect(ast.conditions.length).toBe(2);
     });
 
     test("tracks offsets for conditions", () => {
-      const ast = parseQuery("status:open");
+      const ast = parseQuery("status:todo");
       expect(ast.conditions[0]?.offset).toEqual({ start: 0, end: 11 });
     });
 
@@ -270,7 +270,7 @@ describe("Query Executor", () => {
       [
         "task1",
         "task",
-        "open",
+        "todo",
         1,
         "Task for @bjorn #urgent",
         '{"mentions":["bjorn"],"tags":["urgent"]}',
@@ -302,7 +302,7 @@ describe("Query Executor", () => {
       [
         "task3",
         "task",
-        "open",
+        "todo",
         null,
         "Another task +project-alpha",
         '{"projects":["project-alpha"]}',
@@ -321,10 +321,10 @@ describe("Query Executor", () => {
   });
 
   test("filters by status", () => {
-    const ast = parseQuery("status:open");
+    const ast = parseQuery("status:todo");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(2);
-    expect(results.every((r) => r.task_status === "open")).toBe(true);
+    expect(results.every((r) => r.task_status === "todo")).toBe(true);
   });
 
   test("filters by priority", () => {
@@ -363,27 +363,27 @@ describe("Query Executor", () => {
   });
 
   test("combines conditions", () => {
-    const ast = parseQuery("status:open @bjorn");
+    const ast = parseQuery("status:todo @bjorn");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
     expect(results[0].id).toBe("task1");
   });
 
   test("queryTasks helper works", () => {
-    const results = queryTasks("status:open");
+    const results = queryTasks("status:todo");
     expect(results.length).toBe(2);
   });
 
   test("filters with comma-separated values (IN clause)", () => {
-    // task1 is open, task2 is done, task3 is open
-    const results = queryTasks("status:open,done");
-    expect(results.length).toBe(3); // Should match all tasks (open OR done)
+    // task1 is todo, task2 is done, task3 is todo
+    const results = queryTasks("status:todo,done");
+    expect(results.length).toBe(3); // Should match all tasks (todo OR done)
   });
 
   test("excludes with negated comma-separated values (NOT IN clause)", () => {
-    // task1 is open, task2 is done, task3 is open
-    const results = queryTasks("-status:open,done");
-    expect(results.length).toBe(0); // Nothing left after excluding open and done
+    // task1 is todo, task2 is done, task3 is todo
+    const results = queryTasks("-status:todo,done");
+    expect(results.length).toBe(0); // Nothing left after excluding todo and done
   });
 });
 
@@ -425,7 +425,7 @@ describe("Path Pattern Query Execution", () => {
       [
         "inbox-task1",
         "task",
-        "open",
+        "todo",
         "Task in inbox",
         "/vault/inbox/tasks.md",
         "{}",
@@ -441,7 +441,7 @@ describe("Path Pattern Query Execution", () => {
       [
         "inbox-task2",
         "task",
-        "open",
+        "todo",
         "Another inbox task",
         "/vault/inbox/notes.md",
         "{}",
@@ -457,7 +457,7 @@ describe("Path Pattern Query Execution", () => {
       [
         "project-task1",
         "task",
-        "open",
+        "todo",
         "Task in project",
         "/vault/projects/alpha/tasks.md",
         "{}",
@@ -489,7 +489,7 @@ describe("Path Pattern Query Execution", () => {
       [
         "root-task1",
         "task",
-        "open",
+        "todo",
         "Task at root",
         "/vault/root-tasks.md",
         "{}",
@@ -537,10 +537,10 @@ describe("Path Pattern Query Execution", () => {
   });
 
   test("combines path pattern with status filter", () => {
-    const ast = parseQuery("./inbox/** status:open");
+    const ast = parseQuery("./inbox/** status:todo");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(2);
-    expect(results.every((r) => r.task_status === "open")).toBe(true);
+    expect(results.every((r) => r.task_status === "todo")).toBe(true);
     expect(results.every((r) => r.fs_path?.includes("/inbox"))).toBe(true);
   });
 });
@@ -655,7 +655,7 @@ describe("Date Query Execution", () => {
       [
         "task-today",
         "task",
-        "open",
+        "todo",
         today,
         "Task due today",
         "{}",
@@ -673,7 +673,7 @@ describe("Date Query Execution", () => {
       [
         "task-overdue",
         "task",
-        "open",
+        "todo",
         yesterdayStr,
         "Overdue task",
         "{}",
@@ -691,7 +691,7 @@ describe("Date Query Execution", () => {
       [
         "task-tomorrow",
         "task",
-        "open",
+        "todo",
         tomorrowStr,
         "Task due tomorrow",
         "{}",
@@ -709,7 +709,7 @@ describe("Date Query Execution", () => {
       [
         "task-nodue",
         "task",
-        "open",
+        "todo",
         null,
         "Task without due date",
         "{}",

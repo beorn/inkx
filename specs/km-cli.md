@@ -166,7 +166,7 @@ Add tasks to boards or lists. Moves tasks to a target container.
 km add <target> <source...>      # Add tasks to target board/list
 km add @next TASKID              # Add single task by ID
 km add @next ./inbox/**          # Add all inbox tasks via query
-km add @next status:open         # Add all open tasks
+km add @next status:todo         # Add all open tasks
 km add +project TASKID           # Add task to project
 km add @next --dry-run TASKID    # Preview without changes
 ```

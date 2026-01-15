@@ -45,9 +45,9 @@ km init gtd --dry-run      # Preview what would be created
 ```markdown
 # @next
 
-## today add="due:past status:open" add="start:past status:open"
+## today add="due:past status:todo" add="start:past status:todo"
 
-## this-week add="due:week status:open -due:past"
+## this-week add="due:week status:todo -due:past"
 
 ## waiting sync=status:blocked
 

@@ -19,7 +19,7 @@ import { emitNodeCreated } from "@km/core";
 export const addCommand = new Command("add")
   .description("Add tasks to a board or list")
   .argument("<target>", "Target board/list (ID, path, or filename like @next)")
-  .argument("<source...>", "Task IDs or query (e.g., ./inbox/**, status:open)")
+  .argument("<source...>", "Task IDs or query (e.g., ./inbox/**, status:todo)")
   .option("--dry-run", "Preview without making changes")
   .option("--json", "Output as JSON")
   .action((target, sources, options) => {

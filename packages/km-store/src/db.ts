@@ -363,21 +363,17 @@ function writeTaskStatusToFile(
     if (!line) return;
 
     // Map status to task mark
-    // Note: TaskStatus type is open/blocked/done/dropped, but we also handle
-    // extended statuses that may come from CLI (in_progress, waiting, cancelled)
     const statusStr = newStatus as string;
     const newMark =
       statusStr === "done"
         ? "x"
-        : statusStr === "in_progress"
+        : statusStr === "wip"
           ? "/"
           : statusStr === "blocked"
             ? "!"
-            : statusStr === "dropped" || statusStr === "cancelled"
+            : statusStr === "dropped"
               ? "-"
-              : statusStr === "waiting"
-                ? "?"
-                : " "; // open
+              : " "; // todo
 
     lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
 
@@ -413,7 +409,7 @@ function applyTaskClaimed(db: Database, event: Event): void {
   db.run(
     `
     UPDATE nodes
-    SET assigned_to = ?, task_status = 'in_progress', updated_at = ?, version = ?
+    SET assigned_to = ?, task_status = 'wip', updated_at = ?, version = ?
     WHERE id = ?
   `,
     [event.actor, event.ts, event.id, event.target],
@@ -426,7 +422,7 @@ function applyTaskReleased(db: Database, event: Event): void {
   db.run(
     `
     UPDATE nodes
-    SET assigned_to = NULL, task_status = 'open', updated_at = ?, version = ?
+    SET assigned_to = NULL, task_status = 'todo', updated_at = ?, version = ?
     WHERE id = ?
   `,
     [event.ts, event.id, event.target],

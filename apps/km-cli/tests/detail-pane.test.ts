@@ -129,9 +129,9 @@ describe("formatDate", () => {
 });
 
 describe("getStatusDisplay", () => {
-  test("returns open for undefined status", () => {
+  test("returns todo for undefined status", () => {
     const result = getStatusDisplay(undefined);
-    expect(result.text).toBe("open");
+    expect(result.text).toBe("todo");
     expect(result.color).toBe("blue");
   });
 
@@ -141,9 +141,9 @@ describe("getStatusDisplay", () => {
     expect(result.color).toBe("green");
   });
 
-  test("returns in progress with yellow color", () => {
-    const result = getStatusDisplay("in_progress");
-    expect(result.text).toBe("in progress");
+  test("returns wip with yellow color", () => {
+    const result = getStatusDisplay("wip");
+    expect(result.text).toBe("wip");
     expect(result.color).toBe("yellow");
   });
 
@@ -151,12 +151,6 @@ describe("getStatusDisplay", () => {
     const result = getStatusDisplay("blocked");
     expect(result.text).toBe("blocked");
     expect(result.color).toBe("red");
-  });
-
-  test("returns waiting with cyan color", () => {
-    const result = getStatusDisplay("waiting");
-    expect(result.text).toBe("waiting");
-    expect(result.color).toBe("cyan");
   });
 
   test("returns dropped with gray color", () => {
@@ -233,7 +227,7 @@ describe("DetailPane Component", () => {
     const { render } = await import("ink-testing-library");
 
     const taskId = createTestNode("task", "Review Q1 budget", null, {
-      task_status: "open",
+      task_status: "todo",
       due_date: "2026-01-10",
       priority: 2,
       assigned_to: "bjorn",
@@ -255,7 +249,7 @@ describe("DetailPane Component", () => {
 
     // Check status
     expect(output).toContain("Status:");
-    expect(output).toContain("open");
+    expect(output).toContain("todo");
 
     // Check due date
     expect(output).toContain("Due:");
@@ -275,7 +269,7 @@ describe("DetailPane Component", () => {
 
     const parentId = createTestNode("task", "Parent task");
     createTestNode("task", "Subtask 1", parentId, { task_status: "done" });
-    createTestNode("task", "Subtask 2", parentId, { task_status: "open" });
+    createTestNode("task", "Subtask 2", parentId, { task_status: "todo" });
 
     const parent = getNode(parentId)!;
 

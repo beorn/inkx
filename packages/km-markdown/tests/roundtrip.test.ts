@@ -619,7 +619,7 @@ describe("Round-trip: Content Preservation Verification", () => {
     const tasks = nodes.filter((n) => n.type === "task");
 
     expect(tasks.length).toBe(2);
-    expect(tasks[0].task_status).toBe("open");
+    expect(tasks[0].task_status).toBe("todo");
     expect(tasks[1].task_status).toBe("done");
 
     // After round-trip, statuses should be preserved
@@ -627,7 +627,7 @@ describe("Round-trip: Content Preservation Verification", () => {
     const nodes2 = parseMarkdownToNodes(output, "test.md");
     const tasks2 = nodes2.filter((n) => n.type === "task");
 
-    expect(tasks2[0].task_status).toBe("open");
+    expect(tasks2[0].task_status).toBe("todo");
     expect(tasks2[1].task_status).toBe("done");
   });
 

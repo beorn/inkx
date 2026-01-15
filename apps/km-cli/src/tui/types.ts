@@ -42,9 +42,10 @@ export interface CardState {
   children: Node[];
 }
 
-// Status cycle order (valid statuses only: open, blocked, done, dropped)
+// Status cycle order
 export const STATUS_CYCLE: TaskStatus[] = [
-  "open",
+  "todo",
+  "wip",
   "blocked",
   "done",
   "dropped",
@@ -52,7 +53,8 @@ export const STATUS_CYCLE: TaskStatus[] = [
 
 // Task marks by status
 export const STATUS_MARKS: Record<TaskStatus, TaskMark> = {
-  open: " ",
+  todo: " ",
+  wip: "/",
   blocked: "!",
   done: "x",
   dropped: "-",

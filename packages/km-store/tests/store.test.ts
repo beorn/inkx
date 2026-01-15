@@ -123,15 +123,15 @@ Some content here.
 
     const openTask = tasks.find((t) => t.content === "Open task");
     expect(openTask).toBeDefined();
-    expect(openTask!.task_status).toBe("open");
+    expect(openTask!.task_status).toBe("todo");
 
     const doneTask = tasks.find((t) => t.content === "Done task");
     expect(doneTask).toBeDefined();
     expect(doneTask!.task_status).toBe("done");
 
-    const inProgressTask = tasks.find((t) => t.content === "In progress task");
-    expect(inProgressTask).toBeDefined();
-    expect(inProgressTask!.task_status).toBe("in_progress");
+    const wipTask = tasks.find((t) => t.content === "In progress task");
+    expect(wipTask).toBeDefined();
+    expect(wipTask!.task_status).toBe("wip");
 
     store.close();
   });
@@ -213,14 +213,14 @@ Some content here.
   test("should get tasks by status", () => {
     const store = new MemoryStore(ROOT_DIR);
 
-    const openTasks = store.getTasksByStatus("open");
-    expect(openTasks.length).toBe(3); // Open task, Nested task, Project task
+    const todoTasks = store.getTasksByStatus("todo");
+    expect(todoTasks.length).toBe(3); // Open task, Nested task, Project task
 
     const doneTasks = store.getTasksByStatus("done");
     expect(doneTasks.length).toBe(1);
 
-    const multiStatus = store.getTasksByStatus(["open", "in_progress"]);
-    expect(multiStatus.length).toBe(4); // 3 open + 1 in_progress
+    const multiStatus = store.getTasksByStatus(["todo", "wip"]);
+    expect(multiStatus.length).toBe(4); // 3 todo + 1 wip
 
     store.close();
   });

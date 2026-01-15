@@ -48,12 +48,12 @@ A board is a markdown file with H2 columns containing embedded task references:
 ```markdown
 # @next.md
 
-## today add="due:past status:open"
+## today add="due:past status:todo"
 
 - ![[tasks/review-budget]]
 - ![[tasks/call-dentist]]
 
-## this-week add="due:week status:open -due:past"
+## this-week add="due:week status:todo -due:past"
 
 - ![[tasks/send-invoice]]
 
@@ -68,32 +68,44 @@ Boards are populated by **column rules** or **manual curation**. See [Board Syst
 
 ## Status Model
 
-### Four Statuses
+### Five Statuses
 
-| Mark  | Status    | Meaning                            |
-| ----- | --------- | ---------------------------------- |
-| `[ ]` | `open`    | Available to work on               |
-| `[!]` | `blocked` | Can't work on it (waiting/blocked) |
-| `[x]` | `done`    | Completed                          |
-| `[-]` | `dropped` | Cancelled, won't do                |
+| Mark  | Status    | Meaning                      |
+| ----- | --------- | ---------------------------- |
+| `[ ]` | `todo`    | Available to work on         |
+| `[/]` | `wip`     | Actively being worked on     |
+| `[!]` | `blocked` | Waiting on something/someone |
+| `[x]` | `done`    | Completed                    |
+| `[-]` | `dropped` | Cancelled, won't do          |
 
-### Why These Four?
+### Why These Five?
 
 Status answers one question: **Can I work on this?**
 
-- `open` — Yes
+- `todo` — Yes, ready to pick up
+- `wip` — Someone is actively working on it
 - `blocked` — No, waiting on something/someone
 - `done` — No, it's finished
-- `dropped` — No, I decided not to
+- `dropped` — No, decided not to do it
+
+### Status vs Board Position
+
+`wip` is a **status** (intrinsic to the task) rather than just board column position because:
+
+1. **Cross-board queries**: `status:wip` finds all in-progress tasks regardless of which board they're on
+2. **Multi-board consistency**: A task on `@next`, `+project`, and `@bjorn` has one status, not three column positions
+3. **Event semantics**: `task_claimed` → `wip`, `task_released` → `todo`
+
+Board columns can use `sync=status:wip` to auto-populate based on status.
 
 ### Status Flow
 
 ```
-open [ ] ──→ blocked [!] ──→ open [ ]
-  │              │
-  └──────────────┼──→ done [x]
-                 │
-                 └──→ dropped [-]
+todo [ ] ──→ wip [/] ──→ done [x]
+  │            │
+  │            └──→ blocked [!] ──→ wip [/]
+  │
+  └──────────────→ dropped [-]
 ```
 
 ### Column-Status Sync
@@ -151,7 +163,7 @@ interface Node {
   type: string; // file, folder, heading, list_item
 
   // Task fields (optional)
-  status?: "open" | "blocked" | "done" | "dropped";
+  status?: "todo" | "wip" | "blocked" | "done" | "dropped";
   owner?: string; // Extracted from first @ reference (without sigil)
   refs?: string[]; // All @, #, + references (with sigils)
   due?: string; // YYYY-MM-DD
@@ -195,11 +207,11 @@ If the board file doesn't exist, the reference is a broken link (like any wikili
 ```markdown
 # @next.md
 
-## today add="due:past status:open" add="start:past status:open"
+## today add="due:past status:todo" add="start:past status:todo"
 
 - ![[tasks/review-budget]]
 
-## this-week add="due:week status:open -due:past"
+## this-week add="due:week status:todo -due:past"
 
 - ![[tasks/send-invoice]]
 
@@ -242,7 +254,7 @@ Columns can have rules that control task membership and field synchronization.
 **`add="query"`** — Continuously pulls in matching tasks from anywhere:
 
 ```markdown
-## today add="due:past status:open" # Overdue open tasks appear here
+## today add="due:past status:todo" # Overdue open tasks appear here
 
 ## inbox add="./inbox/\*\*" # Files in inbox/ folder
 ```
@@ -284,7 +296,7 @@ See [km-query.md](km-query.md) for full query language specification.
 **Quick reference:**
 
 ```bash
-status:open @bjorn           # Field match + reference
+status:todo @bjorn           # Field match + reference
 ./inbox/** -status:done      # Path + negation
 +website due:week            # Project ref + date
 "budget"                     # Full-text search
@@ -344,7 +356,7 @@ Completed items can be moved to `archive/` (manual or via automation).
 | Contexts      | `@context` references                   |
 | Reference     | Nodes without status                    |
 
-**Key insight:** GTD "lists" are boards. Status (open/blocked/done/dropped) indicates whether you can work on it.
+**Key insight:** GTD "lists" are boards. Status (todo/wip/blocked/done/dropped) indicates whether you can work on it.
 
 ---
 

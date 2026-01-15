@@ -92,15 +92,13 @@ interface WikiLink {
 // Task extensions
 interface TaskItem extends ListItem {
   checked: boolean;
-  taskMark: " " | "x" | "X" | "/" | "-" | "1" | "2" | "?";
+  taskMark: " " | "x" | "X" | "/" | "-" | "!";
   // Extended marks:
-  // ' ' = open
+  // ' ' = todo
   // 'x'/'X' = done
-  // '/' = in progress
-  // '-' = cancelled
-  // '1' = priority 1
-  // '2' = priority 2
-  // '?' = question/blocked
+  // '/' = wip (work in progress)
+  // '!' = blocked
+  // '-' = dropped
 }
 
 // Frontmatter
@@ -224,7 +222,7 @@ function convertListItem(item: ListItem, parent: Node, ordered: boolean): Node {
     parent_idx: 0,
     md_pos: item.position?.start.offset,
     content: toString(item),
-    task_status: isTask ? (item.checked ? "done" : "open") : undefined,
+    task_status: isTask ? (item.checked ? "done" : "todo") : undefined,
     task_mark: getTaskMark(item),
     data: {},
     created_at: Date.now(),
@@ -423,7 +421,7 @@ Parsed into node data:
 {
   type: 'task',
   content: 'Task with due date',
-  task_status: 'open',
+  task_status: 'todo',
   due_date: '2024-01-15',
   data: {
     emoji_markers: ['📅 2024-01-15']

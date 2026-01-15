@@ -35,7 +35,7 @@ Test scenarios for task management workflows.
 
 ### Column Rules
 
-- `add="due:past status:open"`: task overdue → appears on @next/today
+- `add="due:past status:todo"`: task overdue → appears on @next/today
 - `add="./inbox/**"`: file in inbox/ → appears on @inbox
 - `sync=status:blocked`: drag to waiting → status=blocked
 - `sync=status:blocked`: status→blocked → moves to waiting
@@ -100,7 +100,7 @@ Test scenarios for task management workflows.
 
 ## CLI Operations
 
-- **Batch add**: `km @next add status:open due:today` → matching tasks on @next
+- **Batch add**: `km @next add status:todo due:today` → matching tasks on @next
 - **Add by path**: `km @next add ./projects/urgent/**` → path tasks on @next
 - **Query**: `km task +website -status:done` → list matching tasks
 - **Dry run**: `km @next add due:week --dry-run` → preview, no changes

@@ -26,15 +26,14 @@ export type NodeType =
 // Task status workflow
 // Status answers: "Can I work on this?" and "What's the current state?"
 export type TaskStatus =
-  | "open" // [ ] — available to work on (alias: todo)
-  | "in_progress" // [/] — actively being worked on (alias: wip)
+  | "todo" // [ ] — available to work on
+  | "wip" // [/] — actively being worked on
   | "blocked" // [!] — waiting on something/someone
-  | "waiting" // [◷] — paused, waiting for external input
   | "done" // [x] — completed
   | "dropped"; // [-] — cancelled, won't do
 
 // Task checkbox marks
-export type TaskMark = " " | "x" | "X" | "!" | "-" | "/" | "1" | "2";
+export type TaskMark = " " | "x" | "X" | "!" | "-" | "/";
 
 // Column/section rules (parsed from inline attributes like add="..." sync=...)
 export interface NodeRules {

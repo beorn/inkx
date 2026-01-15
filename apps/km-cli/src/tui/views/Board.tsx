@@ -1452,13 +1452,20 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       const targetNode = card.node.symlink_to
         ? getNode(card.node.symlink_to)
         : card.node;
-      const currentStatus = targetNode?.task_status || "open";
-      const statusCycle: TaskStatus[] = ["open", "blocked", "done", "dropped"];
+      const currentStatus = targetNode?.task_status || "todo";
+      const statusCycle: TaskStatus[] = [
+        "todo",
+        "wip",
+        "blocked",
+        "done",
+        "dropped",
+      ];
       const currentIndex = statusCycle.indexOf(currentStatus);
       const nextIndex = (currentIndex + 1) % statusCycle.length;
       const nextStatus = statusCycle[nextIndex] as TaskStatus;
       const markMap: Record<TaskStatus, string> = {
-        open: " ",
+        todo: " ",
+        wip: "/",
         blocked: "!",
         done: "x",
         dropped: "-",
@@ -1996,9 +2003,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           const targetNode = card.node.symlink_to
             ? getNode(card.node.symlink_to)
             : card.node;
-          const currentStatus = targetNode?.task_status || "open";
+          const currentStatus = targetNode?.task_status || "todo";
           const statusCycle: TaskStatus[] = [
-            "open",
+            "todo",
+            "wip",
             "blocked",
             "done",
             "dropped",
@@ -2007,7 +2015,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           const nextIndex = (currentIndex + 1) % statusCycle.length;
           const nextStatus = statusCycle[nextIndex] as TaskStatus;
           const markMap: Record<TaskStatus, string> = {
-            open: " ",
+            todo: " ",
+            wip: "/",
             blocked: "!",
             done: "x",
             dropped: "-",

@@ -62,7 +62,8 @@ type NodeType =
 
 ```typescript
 type TaskStatus =
-  | "open" // [ ] — available to work on
+  | "todo" // [ ] — available to work on
+  | "wip" // [/] — actively being worked on
   | "blocked" // [!] — waiting on something/someone
   | "done" // [x] — completed
   | "dropped"; // [-] — cancelled, won't do
@@ -70,15 +71,24 @@ type TaskStatus =
 
 Status answers one question: **Can I work on this?**
 
+- `todo` — Yes, ready to pick up
+- `wip` — Someone is actively working on it
+- `blocked` — No, waiting on something/someone
+- `done` — No, it's finished
+- `dropped` — No, decided not to do it
+
+The `task_claimed` event sets status to `wip`; `task_released` sets it back to `todo`. This enables cross-board queries for work-in-progress (`status:wip`).
+
 See [km-tasks-data.md](km-tasks-data.md#status-model) for details.
 
 ### Task Marks
 
 | Mark       | Status  | Display |
 | ---------- | ------- | ------- |
-| ` `        | open    | `[ ]`   |
-| `x` or `X` | done    | `[x]`   |
+| ` `        | todo    | `[ ]`   |
+| `/`        | wip     | `[/]`   |
 | `!`        | blocked | `[!]`   |
+| `x` or `X` | done    | `[x]`   |
 | `-`        | dropped | `[-]`   |
 
 ### Embeddings (Symlinks)

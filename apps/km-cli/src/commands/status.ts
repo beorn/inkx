@@ -5,7 +5,7 @@
  *
  * km status <id>              # View task status
  * km status <id> done         # Mark as done
- * km status <id> open         # Mark as open
+ * km status <id> todo         # Mark as todo
  * km status <id> blocked      # Mark as blocked
  */
 
@@ -22,6 +22,8 @@ function getMarkForStatus(status: TaskStatus): TaskMark {
   switch (status) {
     case "done":
       return "x";
+    case "wip":
+      return "/";
     case "blocked":
       return "!";
     case "dropped":
@@ -34,7 +36,7 @@ function getMarkForStatus(status: TaskStatus): TaskMark {
 export const statusCommand = new Command("status")
   .description("View or set task status")
   .argument("<id>", "Task ID, path, or filename")
-  .argument("[status]", "New status: open, blocked, done, dropped")
+  .argument("[status]", "New status: todo, wip, blocked, done, dropped")
   .option("--json", "Output as JSON")
   .action((id, newStatus, options) => {
     const node = resolveTask(id);
@@ -46,7 +48,7 @@ export const statusCommand = new Command("status")
 
     // View mode - just show current status
     if (!newStatus) {
-      const status = node.task_status ?? "open";
+      const status = node.task_status ?? "todo";
       const statusIcon =
         status === "done"
           ? chalk.green("✓")
@@ -75,7 +77,7 @@ export const statusCommand = new Command("status")
     }
 
     // Set mode - validate and update status
-    const validStatuses = ["open", "blocked", "done", "dropped"];
+    const validStatuses = ["todo", "wip", "blocked", "done", "dropped"];
     if (!validStatuses.includes(newStatus)) {
       console.error(chalk.red(`Invalid status: ${newStatus}`));
       console.error(chalk.dim(`Valid statuses: ${validStatuses.join(", ")}`));
@@ -102,7 +104,7 @@ export const statusCommand = new Command("status")
           // Clone the task with new due date
           const newId = store.cloneTask(node.id, {
             due_date: nextDue,
-            task_status: "open",
+            task_status: "todo",
             task_mark: " ",
           });
 

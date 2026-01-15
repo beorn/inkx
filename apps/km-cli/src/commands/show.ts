@@ -177,12 +177,10 @@ function formatStatus(status: string): string {
   switch (status) {
     case "done":
       return chalk.green(status);
-    case "in_progress":
+    case "wip":
       return chalk.blue(status);
     case "blocked":
       return chalk.red(status);
-    case "waiting":
-      return chalk.yellow(status);
     default:
       return status;
   }

@@ -27,6 +27,7 @@
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@steipete/peekaboo": "^3.0.0-beta3",
     "@types/bun": "^1.3.6",
     "eslint": "^9.39.2",

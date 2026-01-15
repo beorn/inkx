@@ -288,10 +288,10 @@ function convertListItem(
         taskStatus = "dropped";
         break;
       case "/":
-        taskStatus = "in_progress";
+        taskStatus = "wip";
         break;
       default:
-        taskStatus = "open";
+        taskStatus = "todo";
     }
   }
 
@@ -301,10 +301,8 @@ function convertListItem(
   const mentions = extractMentions(text);
   const projects = extractProjects(text);
 
-  // Determine priority from mark or metadata
-  let priority: number | undefined = metadata.priority;
-  if (taskMark === "1") priority = 1;
-  if (taskMark === "2") priority = 2;
+  // Priority from metadata only
+  const priority: number | undefined = metadata.priority;
 
   const node: Node = {
     id: ulid(),

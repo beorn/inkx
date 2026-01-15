@@ -71,12 +71,12 @@ function formatNode(node: Node, showId: boolean): string {
     }
     case "task": {
       const mark = node.task_mark ?? " ";
-      const status = node.task_status ?? "open";
+      const status = node.task_status ?? "todo";
       const checkboxStr = `[${mark}]`;
       const checkbox =
         status === "done"
           ? chalk.green(checkboxStr)
-          : status === "in_progress"
+          : status === "wip"
             ? chalk.yellow(checkboxStr)
             : status === "blocked"
               ? chalk.red(checkboxStr)
@@ -246,10 +246,7 @@ export const listCommand = new Command("list")
     "-t, --type <type>",
     "Filter by node type (task, section, file, folder)",
   )
-  .option(
-    "-s, --status <status>",
-    "Filter tasks by status (open, in_progress, done)",
-  )
+  .option("-s, --status <status>", "Filter tasks by status (todo, wip, done)")
   .option("-a, --all", "Show all (including done tasks)")
   .option("-c, --context", "Show ancestor paths (like tasks command)")
   .option("-i, --id", "Show node IDs")

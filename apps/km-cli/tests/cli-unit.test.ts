@@ -28,7 +28,7 @@ function createTask(content: string, options: Partial<Node> = {}): Node {
     id,
     type: "task",
     content,
-    task_status: "open",
+    task_status: "todo",
     created_at: now,
     updated_at: now,
     ...options,
@@ -73,11 +73,11 @@ describe("Task Status Filtering", () => {
   });
 
   test("should filter by single status", () => {
-    createTask("Open task", { task_status: "open" });
+    createTask("Open task", { task_status: "todo" });
     createTask("Done task", { task_status: "done" });
-    createTask("In progress", { task_status: "in_progress" });
+    createTask("In progress", { task_status: "wip" });
 
-    const openTasks = getTasksByStatus(["open"]);
+    const openTasks = getTasksByStatus(["todo"]);
     expect(openTasks.length).toBe(1);
     expect(openTasks[0].content).toBe("Open task");
 
@@ -87,18 +87,18 @@ describe("Task Status Filtering", () => {
   });
 
   test("should filter by multiple statuses", () => {
-    createTask("Open task", { task_status: "open" });
+    createTask("Open task", { task_status: "todo" });
     createTask("Done task", { task_status: "done" });
-    createTask("In progress", { task_status: "in_progress" });
+    createTask("In progress", { task_status: "wip" });
 
-    const tasks = getTasksByStatus(["open", "in_progress"]);
+    const tasks = getTasksByStatus(["todo", "wip"]);
     expect(tasks.length).toBe(2);
     expect(tasks.map((t) => t.content)).toContain("Open task");
     expect(tasks.map((t) => t.content)).toContain("In progress");
   });
 
   test("should return empty for no matches", () => {
-    createTask("Open task", { task_status: "open" });
+    createTask("Open task", { task_status: "todo" });
 
     const blockedTasks = getTasksByStatus(["blocked"]);
     expect(blockedTasks.length).toBe(0);
@@ -130,7 +130,7 @@ describe("Task Priority Sorting", () => {
     createTask("High priority", { priority: 1 });
     createTask("Medium priority", { priority: 3 });
 
-    const tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["todo"]);
     tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
 
     expect(tasks[0].content).toBe("High priority");
@@ -142,7 +142,7 @@ describe("Task Priority Sorting", () => {
     createTask("No priority");
     createTask("Has priority", { priority: 2 });
 
-    const tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["todo"]);
     tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
 
     expect(tasks[0].content).toBe("Has priority");
@@ -175,7 +175,7 @@ describe("Task Due Date Sorting", () => {
     createTask("Due today", { due_date: "2026-01-09" });
     createTask("Due next week", { due_date: "2026-01-16" });
 
-    const tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["todo"]);
     tasks.sort((a, b) => {
       if (!a.due_date && !b.due_date) return 0;
       if (!a.due_date) return 1;
@@ -192,7 +192,7 @@ describe("Task Due Date Sorting", () => {
     createTask("No due date");
     createTask("Has due date", { due_date: "2026-01-15" });
 
-    const tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["todo"]);
     tasks.sort((a, b) => {
       if (!a.due_date && !b.due_date) return 0;
       if (!a.due_date) return 1;
@@ -207,13 +207,12 @@ describe("Task Due Date Sorting", () => {
 
 describe("Task Status Validation", () => {
   const validStatuses: TaskStatus[] = [
-    "open",
-    "in_progress",
+    "todo",
+    "wip",
     "done",
     "blocked",
     "waiting",
-    "scheduled",
-    "cancelled",
+    "dropped",
   ];
 
   test("should accept valid status values", () => {
@@ -223,11 +222,17 @@ describe("Task Status Validation", () => {
   });
 
   test("should have correct status list", () => {
-    expect(validStatuses.length).toBe(7);
+    expect(validStatuses.length).toBe(6);
   });
 
   test("should reject invalid status values", () => {
-    const invalidStatuses = ["complete", "pending", "todo", "active"];
+    const invalidStatuses = [
+      "complete",
+      "pending",
+      "active",
+      "open",
+      "in_progress",
+    ];
     for (const status of invalidStatuses) {
       expect(validStatuses.includes(status as TaskStatus)).toBe(false);
     }
@@ -472,7 +477,7 @@ describe("Task Data Field", () => {
       id,
       "task",
       "Test task",
-      "open",
+      "todo",
       JSON.stringify(data),
       Date.now(),
       Date.now(),
@@ -518,7 +523,7 @@ describe("Overdue Detection", () => {
 
     createTask("Overdue task", { due_date: yesterdayStr });
 
-    const tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["todo"]);
     const overdue = tasks.filter((t) => {
       if (!t.due_date) return false;
       return new Date(t.due_date) < new Date();
@@ -535,7 +540,7 @@ describe("Overdue Detection", () => {
 
     createTask("Future task", { due_date: tomorrowStr });
 
-    const tasks = getTasksByStatus(["open"]);
+    const tasks = getTasksByStatus(["todo"]);
     const overdue = tasks.filter((t) => {
       if (!t.due_date) return false;
       return new Date(t.due_date) < new Date();

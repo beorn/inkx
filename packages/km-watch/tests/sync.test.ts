@@ -94,9 +94,9 @@ This is a paragraph.
       expect(tasks.length).toBe(2);
 
       // Verify task statuses
-      const openTask = tasks.find((t) => t.task_status === "open");
+      const todoTask = tasks.find((t) => t.task_status === "todo");
       const doneTask = tasks.find((t) => t.task_status === "done");
-      expect(openTask).toBeDefined();
+      expect(todoTask).toBeDefined();
       expect(doneTask).toBeDefined();
     });
 

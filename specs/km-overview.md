@@ -6,6 +6,82 @@ This spec covers the technical design of km's core: the node tree and two operat
 
 ---
 
+## Data Model Quick Reference
+
+### Everything is a Node
+
+Nodes form a tree:
+
+```
+vault/
+├── folder          # Directory
+├── file            # .md file
+│   ├── section     # # Heading
+│   └── task        # - [ ] checkbox
+└── ...             # paragraph, quote, code, etc.
+```
+
+**A node is a task if it has a status property.**
+
+### Status (5 values)
+
+| Mark  | Status    | Meaning                      |
+| ----- | --------- | ---------------------------- |
+| `[ ]` | `todo`    | Available to work on         |
+| `[/]` | `wip`     | Work in progress             |
+| `[!]` | `blocked` | Waiting on something/someone |
+| `[x]` | `done`    | Completed                    |
+| `[-]` | `dropped` | Cancelled                    |
+
+**Note:** `wip` enables cross-board queries for "what's being worked on" (`status:wip`). The `task_claimed` event sets status to `wip`; `task_released` sets it back to `todo`.
+
+### Links
+
+| Syntax        | Type       | Creates       |
+| ------------- | ---------- | ------------- |
+| `[[target]]`  | Wiki link  | Forward link  |
+| `![[target]]` | Embed link | Embedded node |
+| `@user`       | Sigil link | Forward link  |
+| `#tag`        | Sigil link | Forward link  |
+| `+project`    | Sigil link | Forward link  |
+| (reverse)     | Back link  | Auto-tracked  |
+
+### Node References
+
+| Syntax   | Example             | Description      |
+| -------- | ------------------- | ---------------- |
+| `^id`    | `^abc123`           | Partial ID match |
+| `name`   | `@inbox`            | Unique name      |
+| `./path` | `./inbox/task.md`   | Relative path    |
+| `/path`  | `/projects/work.md` | Absolute path    |
+
+### Query Language
+
+| Pattern       | Example          | Description            |
+| ------------- | ---------------- | ---------------------- |
+| `prop:value`  | `status:todo`    | Field equals value     |
+| `prop:func()` | `due:past()`     | Field matches function |
+| `-prop:value` | `-status:done`   | Negate match           |
+| `@ref #tag`   | `@bjorn #urgent` | Reference contains     |
+| `./path/*`    | `./inbox/**`     | Path pattern           |
+| `"text"`      | `"quarterly"`    | Full-text search       |
+
+### Board Sync Example
+
+```markdown
+# My Board
+
+## Ready {sync: {status: todo}}
+
+## In Progress {sync: {status: wip}}
+
+## Waiting {sync: {status: blocked}}
+
+## Done {sync: {status: done}}
+```
+
+---
+
 ## Two Modes
 
 | Mode       | Trigger       | Description                                                     |
@@ -44,7 +120,7 @@ km ls "search term"         # Full-text search
 
 # Task commands
 km task [query]             # = km ls --type task --context
-km status <id> [status]     # View or set task status (open, blocked, done, dropped)
+km status <id> [status]     # View or set task status (todo, wip, blocked, done, dropped)
 
 # Actions
 km init                     # Enable persistence

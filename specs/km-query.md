@@ -78,7 +78,7 @@ Match field values with `key:value`:
 
 | Field    | Values                              | Example        |
 | -------- | ----------------------------------- | -------------- |
-| `status` | open, blocked, done, dropped        | `status:open`  |
+| `status` | todo, wip, blocked, done, dropped   | `status:todo`  |
 | `due`    | today, past, week, none, YYYY-MM-DD | `due:past`     |
 | `start`  | past, today, YYYY-MM-DD             | `start:past`   |
 | `owner`  | name                                | `owner:bjorn$` |
@@ -114,10 +114,10 @@ Prefix any term with `-` to exclude:
 Terms are AND-ed (all must match):
 
 ```bash
-status:open due:week              # Open AND due this week
-+website status:open              # Has +website AND is open
+status:todo due:week              # Open AND due this week
++website status:todo              # Has +website AND is open
 ./inbox/** -status:done           # In inbox AND not done
-@bjorn$ status:open p:1           # Exactly bjorn, open, priority 1
+@bjorn$ status:todo p:1           # Exactly bjorn, open, priority 1
 ```
 
 ---
@@ -126,10 +126,10 @@ status:open due:week              # Open AND due this week
 
 ```bash
 # Find unorganized tasks
-status:open -@next -@someday
+status:todo -@next -@someday
 
 # Find project tasks not scheduled
-+website status:open due:none
++website status:todo due:none
 
 # Find blocked items
 status:blocked
@@ -153,7 +153,7 @@ In automation rules, queries appear in `match:`, `was:`, and `now:` fields:
 ```yaml
 - name: surface-overdue
   trigger: due.passed
-  match: "status:open"
+  match: "status:todo"
   actions:
     - board.add: "@next"
 
@@ -177,12 +177,12 @@ See [km-tasks-templates.md](km-tasks-templates.md) for GTD board templates.
 ```
 Query String → Parser → AST → SQL Generator → SQLite
      ↓
-"status:open @bjorn"
+"status:todo @bjorn"
      ↓
 [FieldTerm{status, open}, RefTerm{@, bjorn}]
      ↓
 SELECT * FROM nodes
-WHERE status = 'open'
+WHERE status = 'todo'
   AND id IN (SELECT node_id FROM refs WHERE ref LIKE '%bjorn%')
 ```
 
@@ -309,7 +309,7 @@ CREATE INDEX idx_refs_type ON refs(ref_type);
 
 | Query          | SQL                                                                      |
 | -------------- | ------------------------------------------------------------------------ |
-| `status:open`  | `WHERE status = 'open'`                                                  |
+| `status:todo`  | `WHERE status = 'todo'`                                                  |
 | `@bjorn`       | `WHERE id IN (SELECT node_id FROM refs WHERE ref LIKE '%bjorn%')`        |
 | `@bjorn$`      | `WHERE id IN (SELECT node_id FROM refs WHERE ref = '@bjorn')`            |
 | `-status:done` | `WHERE status != 'done' OR status IS NULL`                               |

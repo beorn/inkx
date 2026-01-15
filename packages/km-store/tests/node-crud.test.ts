@@ -177,13 +177,12 @@ describe("Node CRUD Operations", () => {
 
     test("should create task node with all statuses", () => {
       const statuses: TaskStatus[] = [
-        "open",
-        "in_progress",
+        "todo",
+        "wip",
         "done",
         "blocked",
         "waiting",
-        "scheduled",
-        "cancelled",
+        "dropped",
       ];
 
       for (const status of statuses) {
@@ -203,7 +202,7 @@ describe("Node CRUD Operations", () => {
 
     test("should create task with full metadata", () => {
       const event = createTestNode("task", "Complex task", null, {
-        task_status: "open",
+        task_status: "todo",
         task_mark: " ",
         assigned_to: "alice",
         due_date: "2025-03-15",
@@ -212,7 +211,7 @@ describe("Node CRUD Operations", () => {
       });
 
       const node = getNode(event.data.id as string);
-      expect(node!.task_status).toBe("open");
+      expect(node!.task_status).toBe("todo");
       expect(node!.assigned_to).toBe("alice");
       expect(node!.due_date).toBe("2025-03-15");
       expect(node!.scheduled_date).toBe("2025-03-10");
@@ -256,14 +255,14 @@ describe("Node CRUD Operations", () => {
     test("should create board node", () => {
       const event = createTestNode("board", undefined, null, {
         data: {
-          columns: ["open", "in_progress", "done"],
+          columns: ["todo", "wip", "done"],
           title: "Sprint Board",
         },
       });
 
       const node = getNode(event.data.id as string);
       expect(node!.type).toBe("board");
-      expect(node!.data.columns).toEqual(["open", "in_progress", "done"]);
+      expect(node!.data.columns).toEqual(["todo", "wip", "done"]);
     });
 
     test("should create nested hierarchy", () => {
@@ -361,20 +360,20 @@ describe("Node CRUD Operations", () => {
     });
 
     test("should get tasks by status", () => {
-      createTestNode("task", "Open 1", null, { task_status: "open" });
-      createTestNode("task", "Open 2", null, { task_status: "open" });
+      createTestNode("task", "Todo 1", null, { task_status: "todo" });
+      createTestNode("task", "Todo 2", null, { task_status: "todo" });
       createTestNode("task", "Done", null, { task_status: "done" });
       createTestNode("task", "Blocked", null, { task_status: "blocked" });
 
-      const openTasks = getTasksByStatus("open");
-      expect(openTasks.length).toBe(2);
+      const todoTasks = getTasksByStatus("todo");
+      expect(todoTasks.length).toBe(2);
 
-      const multiStatus = getTasksByStatus(["open", "blocked"]);
+      const multiStatus = getTasksByStatus(["todo", "blocked"]);
       expect(multiStatus.length).toBe(3);
     });
 
     test("should get all tasks", () => {
-      createTestNode("task", "Task 1", null, { task_status: "open" });
+      createTestNode("task", "Task 1", null, { task_status: "todo" });
       createTestNode("task", "Task 2", null, { task_status: "done" });
       createTestNode("paragraph", "Not a task");
 
@@ -386,7 +385,7 @@ describe("Node CRUD Operations", () => {
       createTestNode("paragraph", "The quick brown fox");
       createTestNode("paragraph", "The lazy dog");
       createTestNode("task", "Fix the fox issue", null, {
-        task_status: "open",
+        task_status: "todo",
       });
 
       const results = search("fox");
@@ -407,19 +406,19 @@ describe("Node CRUD Operations", () => {
 
     test("should update task status", () => {
       const event = createTestNode("task", "Test task", null, {
-        task_status: "open",
+        task_status: "todo",
       });
       const nodeId = event.data.id as string;
 
-      emitNodeUpdated("test-user", nodeId, { task_status: "in_progress" });
+      emitNodeUpdated("test-user", nodeId, { task_status: "wip" });
 
       const node = getNode(nodeId);
-      expect(node!.task_status).toBe("in_progress");
+      expect(node!.task_status).toBe("wip");
     });
 
     test("should update task metadata", () => {
       const event = createTestNode("task", "Test task", null, {
-        task_status: "open",
+        task_status: "todo",
       });
       const nodeId = event.data.id as string;
 
@@ -589,7 +588,7 @@ describe("Node CRUD Operations", () => {
   describe("Task Lifecycle Operations", () => {
     test("should claim task", () => {
       const task = createTestNode("task", "Unclaimed task", null, {
-        task_status: "open",
+        task_status: "todo",
       });
       const taskId = task.data.id as string;
 
@@ -597,12 +596,12 @@ describe("Node CRUD Operations", () => {
 
       const node = getNode(taskId);
       expect(node!.assigned_to).toBe("alice");
-      expect(node!.task_status).toBe("in_progress");
+      expect(node!.task_status).toBe("wip");
     });
 
     test("should release task", () => {
       const task = createTestNode("task", "Claimed task", null, {
-        task_status: "in_progress",
+        task_status: "wip",
         assigned_to: "alice",
       });
       const taskId = task.data.id as string;
@@ -611,12 +610,12 @@ describe("Node CRUD Operations", () => {
 
       const node = getNode(taskId);
       expect(node!.assigned_to).toBeNull();
-      expect(node!.task_status).toBe("open");
+      expect(node!.task_status).toBe("todo");
     });
 
     test("should complete task", () => {
       const task = createTestNode("task", "In progress task", null, {
-        task_status: "in_progress",
+        task_status: "wip",
         assigned_to: "alice",
       });
       const taskId = task.data.id as string;
@@ -680,19 +679,19 @@ describe("Node CRUD Operations", () => {
     test("should handle task workflow: create -> claim -> work -> complete", () => {
       // Create task
       const taskEvent = createTestNode("task", "Implement feature X", null, {
-        task_status: "open",
+        task_status: "todo",
         priority: 1,
         due_date: "2025-02-01",
       });
       const taskId = taskEvent.data.id as string;
 
       let task = getNode(taskId);
-      expect(task!.task_status).toBe("open");
+      expect(task!.task_status).toBe("todo");
 
       // Claim task
       emitTaskClaimed(taskId, "developer-1");
       task = getNode(taskId);
-      expect(task!.task_status).toBe("in_progress");
+      expect(task!.task_status).toBe("wip");
       expect(task!.assigned_to).toBe("developer-1");
 
       // Add some notes (update)
@@ -714,7 +713,7 @@ describe("Node CRUD Operations", () => {
     test("should maintain referential integrity with symlinks", () => {
       // Create original node
       const original = createTestNode("task", "Original task", null, {
-        task_status: "open",
+        task_status: "todo",
       });
       const originalId = original.data.id as string;
 
@@ -729,7 +728,7 @@ describe("Node CRUD Operations", () => {
 
     test("should handle concurrent-like updates (sequential simulation)", () => {
       const task = createTestNode("task", "Shared task", null, {
-        task_status: "open",
+        task_status: "todo",
       });
       const taskId = task.data.id as string;
 
@@ -759,7 +758,7 @@ describe("Node CRUD Operations", () => {
           content: "Test task",
           fs_path: testFile,
           md_line: 0,
-          task_status: "open",
+          task_status: "todo",
           task_mark: " ",
         },
       });
@@ -789,7 +788,7 @@ describe("Node CRUD Operations", () => {
           content: "Blocked task",
           fs_path: testFile,
           md_line: 0,
-          task_status: "open",
+          task_status: "todo",
           task_mark: " ",
         },
       });
@@ -817,7 +816,7 @@ describe("Node CRUD Operations", () => {
           content: "Dropped task",
           fs_path: testFile,
           md_line: 0,
-          task_status: "open",
+          task_status: "todo",
           task_mark: " ",
         },
       });

@@ -231,7 +231,7 @@ ${chalk.yellow("Selection")}
   v               Visual mode (multi-select)
 
 ${chalk.yellow("Actions")}
-  x               Cycle status (open → in_progress → done → ...)
+  x               Cycle status (todo → wip → blocked → done → ...)
   1-5             Set priority
   Tab             Fold/unfold card outline
 

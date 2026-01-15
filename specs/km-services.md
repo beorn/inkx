@@ -50,7 +50,7 @@ km daemon status             # Show daemon status
 
 # Shortcuts
 km sync --watch              # Start daemon (foreground, sync only)
-km hub                       # Start daemon + open TUI
+km hub                       # Start daemon + todo TUI
 ```
 
 ---
@@ -154,7 +154,7 @@ eventBus.on("node_updated", async (event) => {
     const node = getNode(event.target);
     if (node.data.recurrence) {
       const next = computeNextOccurrence(node);
-      await createNode({ ...node, task_status: "open", due_date: next });
+      await createNode({ ...node, task_status: "todo", due_date: next });
     }
   }
 });

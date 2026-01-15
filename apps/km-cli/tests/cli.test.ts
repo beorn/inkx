@@ -1060,8 +1060,8 @@ describe("Bidirectional sync - km status writes to markdown file", () => {
     content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [x] Another open task");
 
-    // Set back to open
-    await km(["status", task.id, "open"]);
+    // Set back to todo
+    await km(["status", task.id, "todo"]);
     content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [ ] Another open task");
   });
@@ -1087,8 +1087,8 @@ describe("Bidirectional sync - km status writes to markdown file", () => {
     content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [x] Open task");
 
-    // Set back to open
-    await km(["tasks", "status", task.id, "open"]);
+    // Set back to todo
+    await km(["tasks", "status", task.id, "todo"]);
     content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8");
     expect(content).toContain("- [ ] Open task");
   });
@@ -1179,18 +1179,18 @@ describe("Task mark types - parsing and status mapping", () => {
     );
 
     // Verify status mapping for standard marks
-    expect(openTask?.task_status).toBe("open");
+    expect(openTask?.task_status).toBe("todo");
     expect(doneTask?.task_status).toBe("done");
     expect(doneUpperTask?.task_status).toBe("done");
   });
 
-  test("km task (default) should only show open tasks", async () => {
+  test("km task (default) should only show todo tasks", async () => {
     const result = await km(["tasks", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
-    // Should only include open status tasks
-    const hasOpen = tasks.some(
+    // Should only include todo status tasks
+    const hasTodo = tasks.some(
       (t: { content: string }) =>
         t.content.includes("Open task") && !t.content.includes("Done"),
     );
@@ -1198,7 +1198,7 @@ describe("Task mark types - parsing and status mapping", () => {
       t.content.includes("Done task"),
     );
 
-    expect(hasOpen).toBe(true);
+    expect(hasTodo).toBe(true);
     expect(hasDone).toBe(false);
   });
 
@@ -1294,14 +1294,14 @@ describe("Query language integration - km task with queries", () => {
     ).toBe(true);
   });
 
-  test("should filter by status:open", async () => {
-    const result = await km(["tasks", "status:open", "--json"]);
+  test("should filter by status:todo", async () => {
+    const result = await km(["tasks", "status:todo", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
     expect(tasks.length).toBeGreaterThan(0);
     expect(
-      tasks.every((t: { task_status: string }) => t.task_status === "open"),
+      tasks.every((t: { task_status: string }) => t.task_status === "todo"),
     ).toBe(true);
   });
 
@@ -1343,15 +1343,15 @@ describe("Query language integration - km task with queries", () => {
   });
 
   test("should combine multiple conditions (AND)", async () => {
-    const result = await km(["tasks", "@bjorn", "status:open", "--json"]);
+    const result = await km(["tasks", "@bjorn", "status:todo", "--json"]);
     expect(result.exitCode).toBe(0);
     const tasks = JSON.parse(result.stdout);
 
-    // Should match only open tasks with @bjorn
+    // Should match only todo tasks with @bjorn
     expect(
       tasks.every(
         (t: { content: string; task_status: string }) =>
-          t.content.includes("@bjorn") && t.task_status === "open",
+          t.content.includes("@bjorn") && t.task_status === "todo",
       ),
     ).toBe(true);
   });

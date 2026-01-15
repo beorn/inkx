@@ -96,14 +96,14 @@ function formatTaskLine(
   options: { verbose?: boolean; showId?: boolean } = {},
 ): string {
   const mark = task.task_mark ?? " ";
-  const status = task.task_status ?? "open";
+  const status = task.task_status ?? "todo";
 
   // Color the checkbox based on status, using actual task mark
   const checkboxStr = `[${mark}]`;
   const checkbox =
     status === "done"
       ? chalk.green(checkboxStr)
-      : status === "in_progress"
+      : status === "wip"
         ? chalk.yellow(checkboxStr)
         : status === "blocked"
           ? chalk.red(checkboxStr)
@@ -190,16 +190,16 @@ export const taskCommand = new Command("tasks")
   .description("Task management - list, add, complete, and assign tasks")
   .argument(
     "[query...]",
-    "Query terms: @person, #tag, +project, status:open, ./path/**",
+    "Query terms: @person, #tag, +project, status:todo, ./path/**",
   )
   .option("-a, --all", "Show all tasks including done")
   .option(
     "-s, --status <status>",
-    "Filter by status (open, in_progress, done, blocked)",
+    "Filter by status (todo, wip, done, blocked)",
   )
   .option(
     "-q, --query <query>",
-    "Filter with query syntax (status:open @person #tag)",
+    "Filter with query syntax (status:todo @person #tag)",
   )
   .option("-v, --verbose", "Show more details")
   .option("-f, --flat", "Show path on single line")
@@ -255,17 +255,14 @@ export const taskCommand = new Command("tasks")
  *
  * km task status <id>              # View status
  * km task status <id> done         # Set status to done
- * km task status <id> open         # Set status to open
- * km task status <id> in_progress  # Set status to in_progress
+ * km task status <id> todo         # Set status to todo
+ * km task status <id> wip          # Set status to wip
  */
 taskCommand
   .command("status")
   .description("View or set task status")
   .argument("<id>", "Task ID or prefix")
-  .argument(
-    "[new-status]",
-    "New status (open, in_progress, done, blocked, cancelled)",
-  )
+  .argument("[new-status]", "New status (todo, wip, blocked, done, dropped)")
   .option("--json", "Output as JSON")
   .action((id, newStatus, options) => {
     const task = getTaskByIdPrefix(id);
@@ -281,7 +278,7 @@ taskCommand
         console.log(
           JSON.stringify({
             id: task.id,
-            status: task.task_status ?? "open",
+            status: task.task_status ?? "todo",
             mark: task.task_mark ?? " ",
             content: task.content,
           }),
@@ -289,11 +286,11 @@ taskCommand
         return;
       }
 
-      const status = task.task_status ?? "open";
+      const status = task.task_status ?? "todo";
       const statusIcon =
         status === "done"
           ? chalk.green("✓")
-          : status === "in_progress"
+          : status === "wip"
             ? chalk.yellow("●")
             : status === "blocked"
               ? chalk.red("✗")
@@ -306,14 +303,7 @@ taskCommand
     }
 
     // Set mode - update the status
-    const validStatuses = [
-      "open",
-      "in_progress",
-      "done",
-      "blocked",
-      "waiting",
-      "cancelled",
-    ];
+    const validStatuses = ["todo", "wip", "blocked", "done", "dropped"];
     if (!validStatuses.includes(newStatus)) {
       console.error(chalk.red(`Invalid status: ${newStatus}`));
       console.error(chalk.dim(`Valid statuses: ${validStatuses.join(", ")}`));
@@ -335,7 +325,7 @@ taskCommand
     const statusIcon =
       newStatus === "done"
         ? chalk.green("✓")
-        : newStatus === "in_progress"
+        : newStatus === "wip"
           ? chalk.yellow("●")
           : newStatus === "blocked"
             ? chalk.red("✗")
@@ -353,13 +343,11 @@ function getMarkForStatus(status: TaskStatus): string {
   switch (status) {
     case "done":
       return "x";
-    case "in_progress":
+    case "wip":
       return "/";
     case "blocked":
-      return "-";
-    case "waiting":
-      return "?";
-    case "cancelled":
+      return "!";
+    case "dropped":
       return "-";
     default:
       return " ";
@@ -568,7 +556,7 @@ function listTasks(
         sql += " AND task_status = ?";
         params.push(options.status);
       } else if (!options.all) {
-        sql += " AND task_status IN ('open', 'in_progress')";
+        sql += " AND task_status IN ('todo', 'wip')";
       }
 
       sql +=
@@ -587,7 +575,7 @@ function listTasks(
         tasks = tasks.filter((t) => t.task_status === options.status);
       } else if (!options.all) {
         tasks = tasks.filter(
-          (t) => t.task_status === "open" || t.task_status === "in_progress",
+          (t) => t.task_status === "todo" || t.task_status === "wip",
         );
       }
     }
@@ -600,7 +588,7 @@ function listTasks(
       sql += " AND task_status = ?";
       params.push(options.status);
     } else if (!options.all) {
-      sql += " AND task_status IN ('open', 'in_progress')";
+      sql += " AND task_status IN ('todo', 'wip')";
     }
 
     sql +=
@@ -719,7 +707,7 @@ function showTaskDetails(task: Node, options: { json?: boolean }): void {
   }
 
   console.log(chalk.bold("Task:"), task.id);
-  console.log(chalk.dim("Status:"), task.task_status ?? "open");
+  console.log(chalk.dim("Status:"), task.task_status ?? "todo");
   console.log(chalk.dim("Content:"), task.content ?? "(none)");
   if (task.due_date) console.log(chalk.dim("Due:"), task.due_date);
   if (task.scheduled_date) {
@@ -775,7 +763,7 @@ function addTask(
     type: "task",
     parent_id: parentId,
     content: content,
-    task_status: "open" as TaskStatus,
+    task_status: "todo" as TaskStatus,
     task_mark: " ",
     due_date: metadata.dueDate,
     scheduled_date: metadata.scheduledDate,
@@ -843,7 +831,7 @@ function claimTask(
   const actor = process.env.USER ?? "user";
   emitNodeUpdated(actor, task.id, {
     assigned_to: actor,
-    task_status: "in_progress",
+    task_status: "wip",
     task_mark: "/",
   });
 
@@ -851,7 +839,7 @@ function claimTask(
     console.log(
       JSON.stringify({
         id: task.id,
-        status: "in_progress",
+        status: "wip",
         assigned_to: actor,
       }),
     );
@@ -881,13 +869,13 @@ function releaseTask(
 
   emitNodeUpdated(process.env.USER ?? "user", task.id, {
     assigned_to: null,
-    task_status: "open" as TaskStatus,
+    task_status: "todo" as TaskStatus,
     task_mark: " ",
   });
 
   if (options.json) {
     console.log(
-      JSON.stringify({ id: task.id, status: "open", assigned_to: null }),
+      JSON.stringify({ id: task.id, status: "todo", assigned_to: null }),
     );
     return;
   }
@@ -939,7 +927,7 @@ taskCommand
   .argument("<id>", "Task ID or prefix")
   .argument(
     "<fields...>",
-    "Field:value pairs (due:2025-01-20, p:1, status:open)",
+    "Field:value pairs (due:2025-01-20, p:1, status:todo)",
   )
   .option("--json", "Output as JSON")
   .action((id, fields, options) => {

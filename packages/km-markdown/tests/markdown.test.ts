@@ -339,7 +339,7 @@ More content
       expect(tasks.length).toBe(3);
 
       const statuses = tasks.map((t) => t.task_status);
-      expect(statuses).toContain("open");
+      expect(statuses).toContain("todo");
       expect(statuses).toContain("done");
     });
 
@@ -416,7 +416,7 @@ describe("Nodes to Markdown", () => {
           parent_idx: 0,
           symlink_to: null,
           content: "Test task",
-          task_status: "open" as const,
+          task_status: "todo" as const,
           task_mark: " " as const,
           data: {},
           created_at: Date.now(),
@@ -461,7 +461,7 @@ describe("Nodes to Markdown", () => {
           parent_idx: 0,
           symlink_to: null,
           content: "Important task",
-          task_status: "open" as const,
+          task_status: "todo" as const,
           task_mark: " " as const,
           due_date: "2025-03-15",
           priority: 1,
@@ -613,7 +613,7 @@ describe("Fixture Files", () => {
 
     // Should have open and done task statuses (GFM only supports these)
     const statuses = new Set(tasks.map((t) => t.task_status));
-    expect(statuses.has("open")).toBe(true);
+    expect(statuses.has("todo")).toBe(true);
     expect(statuses.has("done")).toBe(true);
 
     // Should have code blocks
@@ -666,7 +666,7 @@ describe("Fixture Files", () => {
     expect(tasks.length).toBeGreaterThanOrEqual(8);
 
     // Check for open and completed tasks
-    const open = tasks.filter((t) => t.task_status === "open");
+    const open = tasks.filter((t) => t.task_status === "todo");
     const completed = tasks.filter((t) => t.task_status === "done");
 
     expect(open.length).toBeGreaterThan(0);
@@ -699,7 +699,7 @@ describe("Fixture Files", () => {
     // Task statuses (GFM only supports open and done)
     const tasks = nodes.filter((n) => n.type === "task");
     const statuses = new Set(tasks.map((t) => t.task_status));
-    expect(statuses.has("open")).toBe(true);
+    expect(statuses.has("todo")).toBe(true);
     expect(statuses.has("done")).toBe(true);
     // Note: in_progress, cancelled, blocked require custom parser extensions
 

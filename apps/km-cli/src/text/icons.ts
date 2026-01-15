@@ -1,5 +1,8 @@
 /**
- * Shared icon utilities for board TUI components
+ * Icon Utilities (Layer 1 - Shared)
+ *
+ * Status and type icons for nodes.
+ * Used by both CLI commands and TUI components.
  */
 
 export interface StatusIcon {
@@ -8,7 +11,9 @@ export interface StatusIcon {
 }
 
 /**
- * Get status icon for tasks with color
+ * Get status icon for tasks with color.
+ *
+ * Status values: open, done, wip, blocked, waiting, dropped
  */
 export function getStatusIcon(status: string | null | undefined): StatusIcon {
   switch (status) {
@@ -18,6 +23,8 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
       return { char: "\u25D0", color: "yellow" }; // half circle ◐
     case "blocked":
       return { char: "\u2298", color: "red" }; // circled slash ⊘
+    case "waiting":
+      return { char: "\u25F7", color: "blue" }; // clock ◷
     case "dropped":
       return { char: "\u2205", color: "gray" }; // empty set ∅
     default:
@@ -26,7 +33,7 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
 }
 
 /**
- * Get type icon for non-task nodes
+ * Get type icon for non-task nodes.
  */
 export function getTypeIcon(type: string): string {
   switch (type) {

@@ -135,7 +135,7 @@ export function NewItemDialog({
         parent_id: parentId,
         parent_idx: parentIdx,
         content: content.trim(),
-        task_status: isTask ? "open" : undefined,
+        task_status: isTask ? "todo" : undefined,
         task_mark: isTask ? " " : undefined,
       });
 

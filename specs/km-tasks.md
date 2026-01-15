@@ -28,7 +28,7 @@ Boards are markdown files with H2 columns containing task embeddings:
 ```markdown
 # @next
 
-## today add="due:past status:open"
+## today add="due:past status:todo"
 
 - ![[tasks/review-budget]]
 
@@ -59,7 +59,7 @@ Any reference can have a board — it's just a markdown file (`@bjorn.md`, `+web
 Space-separated terms, AND-ed together:
 
 ```bash
-km task @bjorn status:open         # Has @bjorn AND is open
+km task @bjorn status:todo         # Has @bjorn AND is open
 km task ./inbox/** -status:done    # In inbox AND not done
 km task "budget"                   # Full-text search
 ```
@@ -151,7 +151,7 @@ km @inbox                 # Process anything left
 km @next                  # Is everything current?
 km @next/waiting          # Follow up on blocked items
 km @someday               # Anything ready to activate?
-km task status:open       # Any orphaned tasks?
+km task status:todo       # Any orphaned tasks?
 ```
 
 ### 5. Do
@@ -178,8 +178,8 @@ Single input field:
 Add multiple tasks to boards:
 
 ```bash
-km @next add status:open due:today
-km @next/today add +website status:open
+km @next add status:todo due:today
+km @next/today add +website status:todo
 km @next add ./projects/website/**
 ```
 
@@ -238,7 +238,7 @@ favorites:
   - Board Templates — @inbox, @next, @someday
   - Manual Override — `auto:ignore`
 - **[km-query.md](km-query.md)** — Query Language
-  - Field queries — `status:open`, `due:week`
+  - Field queries — `status:todo`, `due:week`
   - Reference queries — `@bjorn`, `+project`
   - Path queries — `./inbox/**`
   - Full-text search — `"budget"`

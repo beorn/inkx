@@ -40,7 +40,7 @@ Space-separated terms, AND-ed together. See [km-query.md](km-query.md) for full 
 
 ```bash
 km task @bjorn                     # Has @bjorn reference
-km task +website status:open       # Has +website AND is open
+km task +website status:todo       # Has +website AND is open
 km task ./inbox/** -status:done    # In inbox AND not done
 km task "budget"                   # Full-text search
 ```
@@ -78,8 +78,8 @@ km '#finance'               # View tag board (quote in shell)
 
 ```bash
 # Add by node query
-km @next add status:open due:today
-km @next/today add +website status:open
+km @next add status:todo due:today
+km @next/today add +website status:todo
 km @next/waiting add @sarah
 
 # Add by path
@@ -255,7 +255,7 @@ Personal / Health
   {
     "id": "01HXY...",
     "content": "Review Q1 budget",
-    "status": "open",
+    "status": "todo",
     "due": "2025-01-15",
     "owner": "bjorn",
     "references": ["@bjorn", "#finance", "+q1"],
