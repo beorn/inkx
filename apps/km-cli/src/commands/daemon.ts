@@ -17,7 +17,7 @@ import { join, dirname } from "path";
 import { Command } from "commander";
 import chalk from "chalk";
 import { SyncManager } from "@km/watch";
-import { getKmDir, setEventHub } from "@km/core";
+import { getKmDir, setEventHub, setFsSync } from "@km/core";
 import type { Event } from "@km/core";
 import { EventEmitter } from "events";
 
@@ -280,6 +280,9 @@ class KmDaemon extends EventEmitter {
 
     // Set up event hub for broadcasting
     setEventHub({ broadcast: (event) => this.broadcast(event) });
+
+    // Wire up filesystem sync so events propagate to markdown files
+    setFsSync(this.sync);
 
     // Startup sweep - sync filesystem
     this.log("Starting filesystem sync...");

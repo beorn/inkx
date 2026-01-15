@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS links (
   section TEXT,                -- Optional section anchor (#section)
   block_id TEXT,               -- Optional block ID (^block)
   alias TEXT,                  -- Display alias (|alias)
+  embedded INTEGER DEFAULT 0,  -- 1 if this is an embedding (![[...]]), 0 otherwise
   created_at INTEGER,
   PRIMARY KEY (source_id, target_name, section, block_id)
 );
@@ -957,6 +958,7 @@ export interface Link {
   section: string | null;
   block_id: string | null;
   alias: string | null;
+  embedded: boolean;
   created_at: number;
 }
 
@@ -967,8 +969,8 @@ export function addLink(link: Omit<Link, "created_at">): void {
   const db = getDb();
   db.run(
     `
-    INSERT OR REPLACE INTO links (source_id, target_name, target_id, section, block_id, alias, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       link.source_id,
@@ -977,6 +979,7 @@ export function addLink(link: Omit<Link, "created_at">): void {
       link.section,
       link.block_id,
       link.alias,
+      link.embedded ? 1 : 0,
       Date.now(),
     ],
   );
@@ -1063,6 +1066,7 @@ function rowToLink(row: Record<string, unknown>): Link {
     section: row.section as string | null,
     block_id: row.block_id as string | null,
     alias: row.alias as string | null,
+    embedded: Boolean(row.embedded),
     created_at: row.created_at as number,
   };
 }

@@ -29,9 +29,14 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
       return { char: "\u2713", color: "green" }; // checkmark ✓
     case "dropped":
       return { char: "\u2205", color: "gray" }; // empty set ∅
+    case null:
+    case undefined:
+      // Missing status - show red warning triangle
+      return { char: "\u26A0", color: "red" }; // warning ⚠
     default:
-      // Unknown/null/undefined status is an error - show with inverted colors
-      return { char: "?", color: "black", backgroundColor: "white" };
+      // Invalid/unknown status - show the actual value with inverted colors
+      // This helps debug what invalid status was received
+      return { char: status.charAt(0), color: "black", backgroundColor: "white" };
   }
 }
 

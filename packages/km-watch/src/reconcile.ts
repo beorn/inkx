@@ -241,6 +241,7 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
         section: link.section ?? null,
         block_id: link.blockId ?? null,
         alias: link.alias ?? null,
+        embedded: link.embedded ?? false,
       });
     }
 
@@ -374,6 +375,7 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
       section: link.section ?? null,
       block_id: link.blockId ?? null,
       alias: link.alias ?? null,
+      embedded: link.embedded ?? false,
     });
   }
 }
