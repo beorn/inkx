@@ -7,6 +7,7 @@
 
 import { Command } from "commander";
 import { runBoard } from "../tui/tui.ts";
+import { runBoardTui2 } from "../tui2/tui2.tsx";
 import { getRootPath } from "../index.ts";
 import { getStore } from "@km/store";
 import type { ViewMode } from "../tui/types.ts";
@@ -17,6 +18,7 @@ export const viewCommand = new Command("view")
   .description("Interactive TUI view (press 'v' to cycle modes)")
   .argument("[root]", "Root node ID to start view from")
   .option("--no-tui", "Non-interactive mode, just print")
+  .option("--tui2", "Use OpenTUI renderer (experimental)")
   .option(
     "--as <mode>",
     `Initial view mode: ${VIEW_MODES.join(", ")} (default: cards)`,
@@ -26,7 +28,16 @@ export const viewCommand = new Command("view")
     // Get the filesystem root path - prefer explicit --root, fall back to store's rootPath
     const fsPath = getRootPath() || getStore().rootPath;
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
-    await runBoard(root, options.tui !== false, fsPath, {
-      initialViewMode: viewMode as ViewMode,
-    });
+
+    if (options.tui2) {
+      // Use OpenTUI renderer
+      await runBoardTui2(root, fsPath, {
+        initialViewMode: viewMode as ViewMode,
+      });
+    } else {
+      // Use Ink renderer (default)
+      await runBoard(root, options.tui !== false, fsPath, {
+        initialViewMode: viewMode as ViewMode,
+      });
+    }
   });

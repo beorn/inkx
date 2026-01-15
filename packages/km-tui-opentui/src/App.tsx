@@ -12,7 +12,7 @@ import { useState, useMemo } from "react";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { useBoardState, createInitialBoardState } from "./hooks/index.ts";
 import { toBoardViewModel } from "@km/tui-core";
-import { CardsView } from "./views/index.ts";
+import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
 import { Header, StatusBar } from "./components/index.ts";
 import type { ViewMode, ColumnState } from "./types.ts";
 
@@ -110,21 +110,33 @@ export function App({
         />
       )}
 
-      {/* Placeholder for other views */}
       {viewMode === "list" && (
-        <box flexGrow={1}>
-          <text color="yellow">ListView coming soon...</text>
-        </box>
+        <ListView
+          columns={viewModel.columns}
+          selectedCol={viewModel.selectedCol}
+          selectedCard={viewModel.selectedCard}
+          width={width}
+        />
       )}
+
       {viewMode === "columns" && (
-        <box flexGrow={1}>
-          <text color="yellow">ColumnsView coming soon...</text>
-        </box>
+        <ColumnsView
+          columns={viewModel.columns}
+          selectedCol={viewModel.selectedCol}
+          selectedCard={viewModel.selectedCard}
+          width={width}
+          height={height - 3}
+        />
       )}
+
       {viewMode === "tabs" && (
-        <box flexGrow={1}>
-          <text color="yellow">TabsView coming soon...</text>
-        </box>
+        <TabsView
+          columns={viewModel.columns}
+          selectedCol={viewModel.selectedCol}
+          selectedCard={viewModel.selectedCard}
+          width={width}
+          height={height - 3}
+        />
       )}
 
       {/* Status bar */}

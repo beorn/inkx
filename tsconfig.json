@@ -27,5 +27,12 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["node_modules", "dist", "**/dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/dist",
+    "packages/km-tui-opentui",
+    "apps/km-cli/src/tui/experiments",
+    "apps/km-cli/src/tui2"
+  ]
 }

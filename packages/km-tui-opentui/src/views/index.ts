@@ -5,4 +5,6 @@
  */
 
 export { CardsView } from "./CardsView.tsx";
-// Future: ListView, ColumnsView, TabsView
+export { ListView } from "./ListView.tsx";
+export { ColumnsView } from "./ColumnsView.tsx";
+export { TabsView } from "./TabsView.tsx";

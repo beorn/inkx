@@ -10,8 +10,8 @@ import { createRoot } from "@opentui/react";
 import { parseArgs } from "util";
 import { ensureState, getStore, getChildren, resolveNode } from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
-import { App } from "./App.tsx";
-import type { ColumnState, CardState, TaskStatus } from "./types.ts";
+import { App } from "@km/tui-opentui";
+import type { ColumnState, CardState, TaskStatus } from "@km/tui-opentui";
 import type { Node } from "@km/core";
 
 // Parse CLI args
@@ -46,8 +46,8 @@ function nodeToCardState(node: Node): CardState {
     nodeId: node.id,
     title: getNodeDisplayName(node),
     childCount: children.length,
-    isTask: !!node.task,
-    taskStatus: node.task?.status as TaskStatus | undefined,
+    isTask: node.task_status !== undefined,
+    taskStatus: node.task_status as TaskStatus | undefined,
     color: undefined,
     icon: undefined,
   };
