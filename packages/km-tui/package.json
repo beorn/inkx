@@ -1,6 +1,6 @@
 {
-  "name": "@km/tui-state",
-  "description": "Shareable TUI state management - reducer, actions, selectors",
+  "name": "@km/tui",
+  "description": "TUI state management, selectors, and view model transformations",
   "type": "module",
   "module": "src/index.ts",
   "exports": {

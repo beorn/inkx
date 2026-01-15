@@ -20,7 +20,6 @@ import {
   colorize,
   getChalkColor,
   GTD_BOARD_COLORS,
-  formatNode,
 } from "../../src/text/index.ts";
 import {
   wrapText,
@@ -241,80 +240,86 @@ function Layer1TagPills(): React.ReactElement {
 }
 
 function Layer1TaskStyling(): React.ReactElement {
-  // Status data for both TUI icons and CLI checkboxes
+  // Status data: marker (CLI), icon (TUI), description
   const statusTable = [
-    { marker: "[ ]", mark: " ", status: "todo", desc: "Not started" },
-    { marker: "[/]", mark: "/", status: "wip", desc: "Work in progress" },
-    { marker: "[!]", mark: "!", status: "blocked", desc: "Blocked" },
-    { marker: "[x]", mark: "x", status: "done", desc: "Completed" },
-    { marker: "[-]", mark: "-", status: "dropped", desc: "Dropped" },
+    { mark: " ", status: "todo", desc: "Not started" },
+    { mark: "/", status: "wip", desc: "Work in progress" },
+    { mark: "!", status: "blocked", desc: "Blocked" },
+    { mark: "x", status: "done", desc: "Completed" },
+    { mark: "-", status: "dropped", desc: "Dropped" },
   ];
 
   const customMarkers = [
-    { marker: "[?]", status: "?", desc: "Question/unknown" },
-    { marker: "[>]", status: ">", desc: "Forwarded/delegated" },
-    { marker: "[<]", status: "<", desc: "Waiting on external" },
+    { mark: "?", desc: "Question/unknown" },
+    { mark: ">", desc: "Forwarded/delegated" },
+    { mark: "<", desc: "Waiting on external" },
   ];
 
-  // Create mock nodes for CLI checkbox display
-  const taskNodes = statusTable.map(({ mark, status, desc }) => {
-    const node = mockNode(`task-${status}`, desc, status);
-    node.task_mark = mark as Node["task_mark"];
-    return { status, node };
-  });
+  // Color the marker based on status
+  const colorMark = (mark: string, status: string): string => {
+    switch (status) {
+      case "done":
+        return chalk.green(mark);
+      case "wip":
+        return chalk.yellow(mark);
+      case "blocked":
+        return chalk.red(mark);
+      default:
+        return chalk.dim(mark);
+    }
+  };
 
   return (
     <Box flexDirection="column">
       <SectionHeader title="Layer 1: Task Styling" />
-      <Text dimColor> TUI uses status icons, CLI uses checkbox markers</Text>
-      <Text> </Text>
 
       <SubsectionHeader title="Standard Status States" />
-      <Text dimColor> Marker TUI Icon CLI Checkbox</Text>
-      <Text dimColor> ──────── ──────── ─────────────────────────────────</Text>
-      {statusTable.map(({ marker, status, desc }) => {
+      <Text dimColor> Marker Icon Description</Text>
+      <Text dimColor> ────── ──── ─────────────────────</Text>
+      {statusTable.map(({ mark, status, desc }) => {
         const icon = getStatusIcon(status);
         const isDoneOrDropped = status === "done" || status === "dropped";
-        const taskNode = taskNodes.find((t) => t.status === status)?.node;
-        const cliOutput = taskNode ? formatNode(taskNode, false) : "";
+        const styledDesc = isDoneOrDropped
+          ? chalk.dim.strikethrough(desc)
+          : desc;
 
         return (
           <Text key={status}>
-            {" "}
-            {marker.padEnd(8)} {getChalkColor(icon.color)(icon.char)}{" "}
-            {isDoneOrDropped
-              ? chalk.dim.strikethrough(desc.padEnd(8))
-              : desc.padEnd(8)}{" "}
-            {cliOutput}
+            {"   "}
+            {colorMark(mark, status)}
+            {"    "}
+            {getChalkColor(icon.color)(icon.char)}
+            {"    "}
+            {styledDesc}
           </Text>
         );
       })}
       <Text> </Text>
 
-      <SubsectionHeader title="Custom Markers (inverted display)" />
-      <Text dimColor>
-        {" "}
-        Non-standard markers show first char inverted in TUI
-      </Text>
-      <Text dimColor> ──────── ──────── ─────────────────────────────────</Text>
-      {customMarkers.map(({ marker, status, desc }) => (
-        <Text key={status}>
-          {" "}
-          {marker.padEnd(8)} {chalk.bgWhite.black(status)} {desc}
+      <SubsectionHeader title="Custom Markers (inverted in TUI)" />
+      <Text dimColor> Marker Icon Description</Text>
+      <Text dimColor> ────── ──── ─────────────────────</Text>
+      {customMarkers.map(({ mark, desc }) => (
+        <Text key={mark}>
+          {"   "}
+          {chalk.dim(mark)}
+          {"    "}
+          {chalk.bgWhite.black(mark)}
+          {"    "}
+          {desc}
         </Text>
       ))}
       <Text> </Text>
 
       <SubsectionHeader title="Error State" />
       <Text>
-        {" "}
-        {chalk.dim("(none)").padEnd(8)} {chalk.red("⚠")} Missing status
-        (null/undefined)
+        {"   "}
+        {chalk.dim("-")}
+        {"    "}
+        {chalk.red("⚠")}
+        {"    "}
+        Missing status (null/undefined)
       </Text>
-      <Text> </Text>
-
-      <Text dimColor> Note: CLI brackets are always dim, only the marker</Text>
-      <Text dimColor> character gets the status color</Text>
     </Box>
   );
 }

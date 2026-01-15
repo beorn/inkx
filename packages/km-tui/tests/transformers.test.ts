@@ -9,12 +9,10 @@ import {
   toCardViewModel,
   toColumnViewModel,
   toBoardViewModel,
-} from "../src/index.ts";
-import {
   createInitialBoardState,
   type ColumnState,
   type CardState,
-} from "@km/tui-state";
+} from "../src/index.ts";
 
 describe("toCardViewModel", () => {
   test("transforms CardState to CardViewModel", () => {

@@ -1,25 +1,23 @@
 /**
  * TUI2 Types
  *
- * Re-exports from shared packages plus renderer-specific types.
+ * Re-exports from shared package plus renderer-specific types.
  */
 
-// Re-export state types from shared package
+// Re-export types from shared package
 export type {
+  // State types
   BoardState,
   BoardAction,
   ColumnState,
   CardState,
   TaskStatus,
   ViewMode,
-} from "@km/tui-state";
-
-// Re-export view model types from shared package
-export type {
+  // ViewModel types
   CardViewModel,
   ColumnViewModel,
   BoardViewModel,
-} from "@km/tui-viewmodels";
+} from "@km/tui";
 
 // ===== Component Props (renderer-specific) =====
 

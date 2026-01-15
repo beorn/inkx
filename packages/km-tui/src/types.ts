@@ -1,9 +1,11 @@
 /**
- * TUI State Types
+ * TUI Types
  *
- * Core state types for TUI board management.
+ * Core state and view model types for TUI board management.
  * These are shareable across different renderers (OpenTUI, React DOM).
  */
+
+// ===== State Types =====
 
 export type TaskStatus = "todo" | "wip" | "blocked" | "done" | "dropped";
 
@@ -57,3 +59,37 @@ export type BoardAction =
   | { type: "TOGGLE_SEARCH_MODE" }
   | { type: "TOGGLE_HELP_MODE" }
   | { type: "REFRESH"; columns: ColumnState[] };
+
+// ===== ViewModel Types =====
+
+export interface CardViewModel {
+  id: string;
+  title: string;
+  childCount: number;
+  isTask: boolean;
+  taskStatus?: TaskStatus;
+  color?: string;
+  icon?: string;
+  isFolded: boolean;
+}
+
+export interface ColumnViewModel {
+  id: string;
+  title: string;
+  count: number;
+  wipLimit?: number;
+  isOverLimit: boolean;
+  isCollapsed: boolean;
+  cards: CardViewModel[];
+}
+
+export interface BoardViewModel {
+  rootPath: string | null;
+  columns: ColumnViewModel[];
+  selectedCol: number;
+  selectedCard: number;
+  viewMode: ViewMode;
+  searchQuery: string;
+  searchMode: boolean;
+  helpMode: boolean;
+}

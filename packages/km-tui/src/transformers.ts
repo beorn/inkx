@@ -10,8 +10,6 @@ import type {
   ColumnState,
   CardState,
   ViewMode,
-} from "@km/tui-state";
-import type {
   CardViewModel,
   ColumnViewModel,
   BoardViewModel,

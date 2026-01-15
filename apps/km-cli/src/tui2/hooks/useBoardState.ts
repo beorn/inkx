@@ -19,7 +19,7 @@ import {
   type BoardAction,
   type ColumnState,
   type CardState,
-} from "@km/tui-state";
+} from "@km/tui";
 
 // Re-export for backwards compatibility
 export { boardReducer, createInitialBoardState };
