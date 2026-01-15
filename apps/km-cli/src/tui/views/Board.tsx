@@ -207,6 +207,7 @@ function Card({
   return (
     <Box
       flexDirection="column"
+      flexShrink={0}
       width={width}
       borderStyle="round"
       borderColor={isSelected ? "cyanBright" : "blackBright"}
@@ -385,7 +386,12 @@ function Column({
               </Text>
             </Box>
           )}
-          <Box flexDirection="column" height={contentHeight} overflowY="hidden">
+          <Box
+            flexDirection="column"
+            flexGrow={1}
+            alignItems="flex-start"
+            overflowY="hidden"
+          >
             {visibleCards.map((card, i) => {
               const actualCardIndex = scrollOffset + i;
               // Card is only selected when at card level (not column or board level)

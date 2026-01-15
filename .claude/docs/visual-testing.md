@@ -269,6 +269,7 @@ Sections:
 **Key difference**: Storybook uses `ink-testing-library` (no height constraint), while live TUI uses `withFullScreen` (height constrained to terminal).
 
 **Debugging approach**:
+
 1. If storybook works but live TUI doesn't → issue is with height/overflow handling in Ink
 2. If both fail → issue is in text rendering code (Layers 1-2)
 3. Use `bun storybook` first to isolate whether rendering code is correct
@@ -276,6 +277,7 @@ Sections:
 ### Ink Flexbox Height Constraints
 
 When Ink's Box has explicit `height` + `overflowY="hidden"`:
+
 - Content that doesn't fit may be clipped
 - Clipping can show BOTTOM of content instead of TOP (unexpected behavior)
 - This causes text to show last words instead of first words
@@ -283,10 +285,12 @@ When Ink's Box has explicit `height` + `overflowY="hidden"`:
 **Symptoms**: Cards showing `@alice` instead of `Code review for PR #123 @alice`
 
 **Files involved**:
+
 - `Board.tsx` lines 329-336: Column outer Box with `height` and `overflowY="hidden"`
 - `Board.tsx` line 388: Content Box with `height={contentHeight}` and `overflowY="hidden"`
 
 **Investigation approach**:
+
 1. Compare storybook CardsViewDemo (no height constraints) with live Column component
 2. Check if removing explicit height from inner content Box fixes the issue
 3. Try `flexShrink={0}` on cards to prevent compression
