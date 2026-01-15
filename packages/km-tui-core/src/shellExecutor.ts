@@ -38,6 +38,15 @@ export interface SerializedState {
 }
 
 /**
+ * Action log entry for log/logs commands
+ */
+export interface ActionLogEntry {
+  action: TreeAction;
+  cursor: CursorPath;
+  ts: number;
+}
+
+/**
  * Shell execution context
  */
 export interface ShellContext {
@@ -46,6 +55,8 @@ export interface ShellContext {
   verbose: boolean;
   output: (event: OutputEvent | string) => void;
   stdlog?: (line: string) => void;
+  /** Action log for log command (optional, created on demand) */
+  actionLog?: ActionLogEntry[];
 }
 
 /**
@@ -187,6 +198,31 @@ export function executeShellCommand(
       return { quit: false };
     }
 
+    case "LOG": {
+      // Output last n actions (default: all)
+      const log = ctx.actionLog ?? [];
+      if (log.length === 0) {
+        if (ctx.jsonMode) {
+          ctx.output({ event: "output", text: "(no actions)", ts });
+        } else {
+          ctx.output("(no actions)");
+        }
+      } else {
+        const count = command.count ?? log.length;
+        const entries = log.slice(-count);
+        const lines = entries.map(
+          (entry) =>
+            `${entry.action.type} → cursor=[${entry.cursor.join(",")}]`,
+        );
+        if (ctx.jsonMode) {
+          ctx.output({ event: "output", text: lines.join("\n"), ts });
+        } else {
+          ctx.output(lines.join("\n"));
+        }
+      }
+      return { quit: false };
+    }
+
     case "QUIT":
       return { quit: true };
   }
@@ -210,6 +246,15 @@ export function executeTreeAction(
 
   // Execute the action
   const newState = treeReducer(ctx.state, action);
+
+  // Record in action log for log command
+  if (ctx.actionLog) {
+    ctx.actionLog.push({
+      action,
+      cursor: newState.cursor,
+      ts,
+    });
+  }
 
   // Log state change if something changed
   const changed =
@@ -246,47 +291,47 @@ export function executeCommand(
   const ts = Date.now();
   const result = parseCommand(line);
 
+  // Key map used for KEY: and KEYS: markers
+  const keyMap: Record<string, TreeAction> = {
+    // Navigation - vim style
+    j: { type: "MOVE_DOWN" },
+    k: { type: "MOVE_UP" },
+    h: { type: "MOVE_LEFT" },
+    l: { type: "MOVE_RIGHT" },
+    g: { type: "JUMP_TOP" },
+    G: { type: "JUMP_BOTTOM" },
+    Enter: { type: "NAV_CHILD" },
+    Backspace: { type: "NAV_PARENT" },
+    u: { type: "NAV_PARENT" },
+
+    // History navigation
+    "[": { type: "NAV_BACK" },
+    "]": { type: "NAV_FORWARD" },
+
+    // Selection
+    A: { type: "SELECT_ALL_SIBLINGS" },
+    Escape: { type: "CLEAR_SELECTION" },
+
+    // View controls
+    z: { type: "FOLD_LEVEL", depth: 1 },
+    Z: { type: "UNFOLD_LEVEL", depth: 1 },
+    "<": { type: "DECREASE_OUTLINE_DEPTH" },
+    ">": { type: "INCREASE_OUTLINE_DEPTH" },
+    "+": { type: "INCREASE_CONTENT_LINES" },
+    "-": { type: "DECREASE_CONTENT_LINES" },
+
+    // Modals
+    "/": { type: "TOGGLE_SEARCH_MODE" },
+    "?": { type: "TOGGLE_HELP_MODE" },
+    n: { type: "TOGGLE_NEW_ITEM_MODE" },
+    p: { type: "TOGGLE_PROJECT_PICKER" },
+    i: { type: "TOGGLE_DETAIL_PANE" },
+  };
+
   if (!result.ok) {
-    // Check for special KEY: marker
+    // Check for special KEY: marker (single key)
     if (result.error.startsWith("KEY:")) {
       const key = result.error.slice(4);
-      // Map common keys to actions
-      const keyMap: Record<string, TreeAction> = {
-        // Navigation - vim style
-        j: { type: "MOVE_DOWN" },
-        k: { type: "MOVE_UP" },
-        h: { type: "MOVE_LEFT" },
-        l: { type: "MOVE_RIGHT" },
-        g: { type: "JUMP_TOP" },
-        G: { type: "JUMP_BOTTOM" },
-        Enter: { type: "NAV_CHILD" },
-        Backspace: { type: "NAV_PARENT" },
-        u: { type: "NAV_PARENT" },
-
-        // History navigation
-        "[": { type: "NAV_BACK" },
-        "]": { type: "NAV_FORWARD" },
-
-        // Selection
-        A: { type: "SELECT_ALL_SIBLINGS" },
-        Escape: { type: "CLEAR_SELECTION" },
-
-        // View controls
-        z: { type: "FOLD_LEVEL", depth: 1 },
-        Z: { type: "UNFOLD_LEVEL", depth: 1 },
-        "<": { type: "DECREASE_OUTLINE_DEPTH" },
-        ">": { type: "INCREASE_OUTLINE_DEPTH" },
-        "+": { type: "INCREASE_CONTENT_LINES" },
-        "-": { type: "DECREASE_CONTENT_LINES" },
-
-        // Modals
-        "/": { type: "TOGGLE_SEARCH_MODE" },
-        "?": { type: "TOGGLE_HELP_MODE" },
-        n: { type: "TOGGLE_NEW_ITEM_MODE" },
-        p: { type: "TOGGLE_PROJECT_PICKER" },
-        i: { type: "TOGGLE_DETAIL_PANE" },
-      };
-
       const action = keyMap[key];
       if (action) {
         const newState = executeTreeAction(action, ctx);
@@ -299,6 +344,27 @@ export function executeCommand(
         }
         return { state: ctx.state, quit: false };
       }
+    }
+
+    // Check for special KEYS: marker (key sequence)
+    if (result.error.startsWith("KEYS:")) {
+      const keys = result.error.slice(5).split(",");
+      let currentState = ctx.state;
+      for (const key of keys) {
+        const action = keyMap[key];
+        if (action) {
+          ctx.state = currentState;
+          currentState = executeTreeAction(action, ctx);
+        } else {
+          if (ctx.jsonMode) {
+            ctx.output({ event: "error", error: `Unknown key: ${key}`, ts });
+          } else {
+            ctx.output(`error: Unknown key: ${key}`);
+          }
+          return { state: currentState, quit: false };
+        }
+      }
+      return { state: currentState, quit: false };
     }
 
     // Skip empty lines/comments silently
@@ -358,6 +424,7 @@ export function runShell(
     verbose,
     output,
     stdlog,
+    actionLog: [],
   };
 
   for (const line of lines) {

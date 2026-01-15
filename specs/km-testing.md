@@ -975,6 +975,35 @@ bun test <your-changes>    # Focused test run
 
 For use in mdtest golden files:
 
+### Key Input Shortcuts
+
+**Single-char commands** (can be used without `key` prefix):
+
+```
+j; k; l; h            # navigation (down, up, right, left)
+g; G                  # jump top/bottom
+/; ?; n; p; i         # modals (search, help, new, picker, detail)
++; -; <; >            # view controls
+z; Z                  # fold/unfold level
+```
+
+**Quoted key sequences** (send multiple keys):
+
+```
+"jjk"                 # sends j, j, k
+key "jjkl"            # same thing with key prefix
+```
+
+**Special keys** (use `key` with name):
+
+```
+key esc               # Escape
+key enter             # Enter
+key tab               # Tab
+key backspace         # Backspace
+key space             # Space
+```
+
 ### Navigation Commands
 
 | Command       | Action                    |
@@ -1009,24 +1038,34 @@ For use in mdtest golden files:
 
 ### Shell Commands
 
-| Command      | Action              |
-| ------------ | ------------------- |
-| `state`      | Print current state |
-| `view`       | Render ASCII view   |
-| `help [cmd]` | Show help           |
-| `quit`       | Exit shell          |
+| Command      | Action                              |
+| ------------ | ----------------------------------- |
+| `state`      | Print current state                 |
+| `view`       | Render ASCII view                   |
+| `log`        | Show action history (all actions)   |
+| `log <n>`    | Show last n actions (e.g., `log 1`) |
+| `help [cmd]` | Show help                           |
+| `quit`       | Exit shell                          |
 
-### Key Commands
+### Example Usage
 
-| Command       | Action                |
-| ------------- | --------------------- |
-| `key j`       | Same as `move_down`   |
-| `key k`       | Same as `move_up`     |
-| `key h`       | Same as `move_left`   |
-| `key l`       | Same as `move_right`  |
-| `key g`       | Same as `jump_top`    |
-| `key G`       | Same as `jump_bottom` |
-| `key <Enter>` | Special key           |
+```console
+# Navigate and check state
+$ km sh board.md -c '"jjk"; state'
+cursor: [0,1]
+node: Task B
+...
+
+# Use log to see action trace
+$ km sh board.md -c '"jjk"; log'
+MOVE_DOWN → cursor=[0,0]
+MOVE_DOWN → cursor=[0,1]
+MOVE_UP → cursor=[0,0]
+
+# Just show last action
+$ km sh board.md -c '"jjkl"; log 1'
+MOVE_RIGHT → cursor=[0,0,0]
+```
 
 ---
 

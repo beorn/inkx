@@ -25,6 +25,7 @@ export type ShellCommand =
   | { type: "STATE" } // Dump current state
   | { type: "VIEW" } // Render current view as ASCII
   | { type: "HELP"; topic?: string } // Show help
+  | { type: "LOG"; count?: number } // Dump last n actions (default: all)
   | { type: "QUIT" }; // Exit shell
 
 /**
@@ -70,6 +71,7 @@ const SIMPLE_ACTIONS: Record<string, TreeAction> = {
 
 /**
  * Shell commands (not TreeActions)
+ * Note: 'log' is handled specially in parseCommand to support optional count arg
  */
 const SHELL_COMMANDS: Record<string, ShellCommand> = {
   state: { type: "STATE" },
@@ -78,6 +80,75 @@ const SHELL_COMMANDS: Record<string, ShellCommand> = {
   quit: { type: "QUIT" },
   exit: { type: "QUIT" },
   q: { type: "QUIT" },
+};
+
+/**
+ * Single-char commands mapped to actions or special handling
+ * These can be used directly without the "key" prefix
+ */
+const SINGLE_CHAR_MAP: Record<string, TreeAction | "KEY"> = {
+  // Navigation - vim style
+  j: { type: "MOVE_DOWN" },
+  k: { type: "MOVE_UP" },
+  h: { type: "MOVE_LEFT" },
+  l: { type: "MOVE_RIGHT" },
+  g: { type: "JUMP_TOP" },
+  G: { type: "JUMP_BOTTOM" },
+  u: { type: "NAV_PARENT" },
+
+  // History navigation
+  "[": { type: "NAV_BACK" },
+  "]": { type: "NAV_FORWARD" },
+
+  // Selection
+  A: { type: "SELECT_ALL_SIBLINGS" },
+
+  // View controls
+  z: { type: "FOLD_LEVEL", depth: 1 },
+  Z: { type: "UNFOLD_LEVEL", depth: 1 },
+  "<": { type: "DECREASE_OUTLINE_DEPTH" },
+  ">": { type: "INCREASE_OUTLINE_DEPTH" },
+  "+": { type: "INCREASE_CONTENT_LINES" },
+  "-": { type: "DECREASE_CONTENT_LINES" },
+
+  // Modals
+  "/": { type: "TOGGLE_SEARCH_MODE" },
+  "?": { type: "TOGGLE_HELP_MODE" },
+  n: { type: "TOGGLE_NEW_ITEM_MODE" },
+  p: { type: "TOGGLE_PROJECT_PICKER" },
+  i: { type: "TOGGLE_DETAIL_PANE" },
+};
+
+/**
+ * Parse a quoted string like "jjk" into individual characters
+ * Simple: just splits the string into characters
+ */
+export function parseQuotedString(input: string): string[] | null {
+  // Must start and end with quotes
+  if (
+    !(
+      (input.startsWith('"') && input.endsWith('"')) ||
+      (input.startsWith("'") && input.endsWith("'"))
+    )
+  ) {
+    return null;
+  }
+
+  const content = input.slice(1, -1);
+  return content.split("");
+}
+
+/**
+ * Map of special key names (case-insensitive) to canonical form
+ */
+const SPECIAL_KEYS: Record<string, string> = {
+  esc: "Escape",
+  escape: "Escape",
+  enter: "Enter",
+  return: "Enter",
+  tab: "Tab",
+  backspace: "Backspace",
+  space: " ",
 };
 
 /**
@@ -110,6 +181,19 @@ export function parseCommand(input: string): ParseResult {
     return { ok: false, error: "empty" };
   }
 
+  // Quoted key sequence: "jjk" or 'jjk'
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    const keys = parseQuotedString(trimmed);
+    if (keys && keys.length > 0) {
+      // Return special marker for key sequence
+      return { ok: false, error: `KEYS:${keys.join(",")}` };
+    }
+    return { ok: false, error: `Invalid key sequence: ${trimmed}` };
+  }
+
   // JSON mode: starts with {
   if (trimmed.startsWith("{")) {
     try {
@@ -135,7 +219,7 @@ export function parseCommand(input: string): ParseResult {
   const cmd = firstPart.toLowerCase();
   const args = parts.slice(1);
 
-  // Check shell commands first
+  // Check shell commands first (including 'q' for quit)
   const shellCmd = SHELL_COMMANDS[cmd];
   if (shellCmd) {
     if (shellCmd.type === "HELP" && args.length > 0) {
@@ -150,24 +234,63 @@ export function parseCommand(input: string): ParseResult {
     return { ok: true, action: simpleAction };
   }
 
+  // Single character command (without arguments) - after checking shell/simple commands
+  if (trimmed.length === 1) {
+    const singleCharAction = SINGLE_CHAR_MAP[trimmed];
+    if (singleCharAction && singleCharAction !== "KEY") {
+      return { ok: true, action: singleCharAction };
+    }
+    // Treat as key press
+    return { ok: false, error: `KEY:${trimmed}` };
+  }
+
   // Parameterized commands
   switch (cmd) {
+    // log [n] - show last n actions (default: all)
+    case "log": {
+      const countArg = args[0];
+      if (countArg) {
+        const count = parseInt(countArg, 10);
+        if (isNaN(count) || count < 1) {
+          return { ok: false, error: "log count must be a positive number" };
+        }
+        return { ok: true, command: { type: "LOG", count } };
+      }
+      return { ok: true, command: { type: "LOG" } };
+    }
+
     // key <keyspec> - raw key input
+    // Supports: key j, key esc, key enter, key "jjk"
     case "key": {
       if (args.length === 0) {
         return { ok: false, error: "key command requires a key argument" };
       }
-      const keySpec = args.join(" "); // Allow "key Ctrl-z" or "key <Ctrl-z>"
+      const keySpec = args.join(" ");
+
+      // Check if it's a quoted string: key "jjk"
+      if (
+        (keySpec.startsWith('"') && keySpec.endsWith('"')) ||
+        (keySpec.startsWith("'") && keySpec.endsWith("'"))
+      ) {
+        const keys = parseQuotedString(keySpec);
+        if (keys && keys.length > 0) {
+          return { ok: false, error: `KEYS:${keys.join(",")}` };
+        }
+        return { ok: false, error: `Invalid key sequence: ${keySpec}` };
+      }
+
+      // Check if it's a special key name (esc, enter, tab, etc.)
+      const specialKey = SPECIAL_KEYS[keySpec.toLowerCase()];
+      if (specialKey) {
+        return { ok: false, error: `KEY:${specialKey}` };
+      }
+
+      // Single character or use parseKeySpec for <Name> format
       const key = parseKeySpec(keySpec);
       if (!key) {
         return { ok: false, error: `Invalid key specification: ${keySpec}` };
       }
-      // Key presses need to be mapped to actions by the caller
-      // We return a special marker that the executor will handle
-      return {
-        ok: false,
-        error: `KEY:${key}`, // Special marker for key handling
-      };
+      return { ok: false, error: `KEY:${key}` };
     }
 
     // toggle_fold <nodeId>
