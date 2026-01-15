@@ -126,10 +126,6 @@ export const shCommand = new Command("sh")
     "Execute commands (semicolon-separated)",
   )
   .option(
-    "-e, --exec <commands>",
-    "Execute commands (alias for -c)",
-  )
-  .option(
     "-f, --file <path>",
     "Read commands from file instead of stdin",
   )
@@ -163,8 +159,8 @@ export const shCommand = new Command("sh")
       store.rootPath,
     );
 
-    // Read input: -c/-e takes priority, then -f, then stdin
-    const cmdString = options.command || options.exec;
+    // Read input: -c takes priority, then -f, then stdin
+    const cmdString = options.command;
     let lines: string[];
     if (cmdString) {
       lines = parseCommandString(cmdString);
