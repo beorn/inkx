@@ -136,12 +136,13 @@ describe("renderRich", () => {
   });
 
   describe("markdown link styling", () => {
-    it("renders [text](url) links - URL stripped", () => {
+    it("renders [text](url) links as clickable hyperlinks", () => {
       const result = renderRich("Click [Google](https://google.com)");
       expect(stripAnsi(result)).toBe("Click Google");
-      // Should not contain raw link syntax
-      expect(result).not.toContain("https://");
+      // Should not contain raw link syntax (brackets)
       expect(result).not.toContain("](");
+      // URL is embedded in OSC 8 hyperlink (invisible to users but present in string)
+      expect(result).toContain("\x1b]8;;https://google.com");
     });
 
     it("handles links with complex URLs", () => {

@@ -16,14 +16,20 @@ import type { Node } from "@km/core";
 import { getChildren } from "@km/store";
 import { getNodeDisplayName, getParentContext } from "@km/shared";
 import {
-  getStatusIcon,
   getTypeIcon,
+  getNodeIcon,
   renderRich,
   displayLength,
+  dottedUnderline,
+  styledUnderline,
 } from "../../text/index.ts";
 import { constrainText, renderParentPath } from "../layout/index.ts";
 import type { SelectionKey } from "../types.ts";
-import { getBoardPills, formatBoardPills } from "../board-pills.ts";
+import {
+  getBoardPills,
+  formatBoardPills,
+  getInheritedColor,
+} from "../board-pills.ts";
 
 // Selection key helper - exported for use by parent components
 export function makeSelectionKey(
@@ -82,8 +88,13 @@ export function TreeNode({
 
   // Build styled content using layered rendering
   const isTask = node.type === "task";
-  const statusIcon = isTask ? getStatusIcon(node.task_status) : null;
-  const typeIcon = isTask ? "" : getTypeIcon(node.type);
+  const inheritedColor = getInheritedColor(node);
+  // Use getNodeIcon which handles color inheritance and fallback circle for non-tasks with color
+  const nodeIcon = getNodeIcon(
+    isTask ? node.task_status : null,
+    inheritedColor,
+  );
+  const typeIcon = isTask ? "" : inheritedColor ? "" : getTypeIcon(node.type);
   // For sections, use getNodeDisplayName which strips inline rules
   // For tasks and other types, use raw content
   const rawContent =
@@ -91,11 +102,15 @@ export function TreeNode({
       ? getNodeDisplayName(node)
       : node.content || getNodeDisplayName(node);
 
-  // Layer 1: Render to styled ANSI string (strips [[links]], [fields::], applies styling)
-  const styledContent = renderRich(rawContent);
-
   // Check if embedded (symlink to another node)
   const isEmbedded = node.symlink_to != null;
+
+  // Layer 1: Render to styled ANSI string (strips [[links]], [fields::], applies styling)
+  // Embedded content gets dotted underline to indicate it's from another location
+  const renderedContent = renderRich(rawContent);
+  const styledContent = isEmbedded
+    ? dottedUnderline(renderedContent)
+    : renderedContent;
 
   // Parent context for embedded tasks
   const contextDepth = isCompact ? 0 : 1;
@@ -108,9 +123,11 @@ export function TreeNode({
   const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : " ";
   const foldedCount = hasChildren && isFolded ? ` (${children.length})` : "";
   const indent = " ".repeat(depth);
-  const iconChar = statusIcon ? statusIcon.char : typeIcon;
-  const iconColor = statusIcon ? statusIcon.color : undefined;
-  const iconBgColor = statusIcon?.backgroundColor;
+  // Use nodeIcon for tasks or colored non-tasks, otherwise fall back to typeIcon
+  const hasNodeIcon = isTask || inheritedColor;
+  const iconChar = hasNodeIcon ? nodeIcon.char : typeIcon;
+  const iconColor = hasNodeIcon ? nodeIcon.color : undefined;
+  const iconBgColor = nodeIcon?.backgroundColor;
   const prefixBeforeIcon = `${indent}${foldIndicator}`;
   const prefixAfterIcon = " ";
   const prefixLength =
@@ -128,8 +145,26 @@ export function TreeNode({
     if (node.priority) infoParts.push(`P${node.priority}`);
     if (node.assigned_to) infoParts.push(`@${node.assigned_to}`);
     if (node.due_date) {
-      const dueStr = new Date(node.due_date).toISOString().slice(5, 10);
-      infoParts.push(`⏰${dueStr}`);
+      const dueDate = new Date(node.due_date);
+      const dueStr = dueDate.toISOString().slice(5, 10);
+      const now = new Date();
+      const daysUntilDue = Math.floor(
+        (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      // Color based on urgency: red (overdue/today), orange (1-2 days), yellow (3-7 days), green (>7 days)
+      let dueDisplay = `⏰${dueStr}`;
+      if (daysUntilDue < 0) {
+        // Overdue - red curly underline
+        dueDisplay = styledUnderline("curly", [255, 80, 80], dueDisplay);
+      } else if (daysUntilDue <= 1) {
+        // Due today or tomorrow - orange underline
+        dueDisplay = styledUnderline("curly", [255, 165, 0], dueDisplay);
+      } else if (daysUntilDue <= 7) {
+        // Due within a week - yellow underline
+        dueDisplay = styledUnderline("single", [255, 255, 0], dueDisplay);
+      }
+      // No underline for dates > 7 days out
+      infoParts.push(dueDisplay);
     } else if (node.scheduled_date) {
       const schedStr = new Date(node.scheduled_date).toISOString().slice(5, 10);
       infoParts.push(`▶${schedStr}`);

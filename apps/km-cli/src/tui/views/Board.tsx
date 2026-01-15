@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { withFullScreen } from "fullscreen-ink";
 import chalk from "chalk";
+import { hyperlink, styledUnderline } from "@beorn/chalkx";
 import type {
   BoardState,
   CardState,
@@ -44,7 +45,8 @@ import {
   type MouseEvent as TermMouseEvent,
 } from "../mouse-handler.ts";
 import { makeSelectionKey } from "./TreeNode.tsx";
-import { renderPlain } from "../../text/index.ts";
+import { renderPlain, getNodeIcon, getChalkColor } from "../../text/index.ts";
+import { getInheritedColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { tuiEvents } from "../tui.ts";
@@ -64,13 +66,20 @@ const DEFAULT_FAVORITES: Record<string, string> = {
 };
 
 // Build path segments for colorized display
-// Returns segments with: { name, sep, isWithinBoard }
+// Returns segments with: { id, name, sep, isWithinBoard }
 // isWithinBoard distinguishes the board root path from path within the board
 function getPathSegments(
   nodeId: string | null,
   boardRootId: string | null,
-): Array<{ name: string; sep: string; isWithinBoard: boolean }> {
-  if (!nodeId) return [{ name: "/", sep: "", isWithinBoard: false }];
+): Array<{
+  id: string | null;
+  name: string;
+  sep: string;
+  isWithinBoard: boolean;
+  node: Node | null;
+}> {
+  if (!nodeId)
+    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
 
   // Collect all nodes from root to target
   const nodes: Node[] = [];
@@ -82,7 +91,8 @@ function getPathSegments(
     currentId = node.parent_id;
   }
 
-  if (nodes.length === 0) return [{ name: "/", sep: "", isWithinBoard: false }];
+  if (nodes.length === 0)
+    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
 
   // Find index where we enter the board (nodes after boardRootId)
   let boardRootIndex = -1;
@@ -91,8 +101,13 @@ function getPathSegments(
   }
 
   // Build segments with separators
-  const segments: Array<{ name: string; sep: string; isWithinBoard: boolean }> =
-    [];
+  const segments: Array<{
+    id: string | null;
+    name: string;
+    sep: string;
+    isWithinBoard: boolean;
+    node: Node | null;
+  }> = [];
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
     if (!node) continue;
@@ -103,29 +118,39 @@ function getPathSegments(
 
     if (node.type === "folder" || node.type === "file") {
       segments.push({
+        id: node.id,
         name,
         sep: segments.length > 0 ? "/" : "",
         isWithinBoard,
+        node,
       });
     } else if (node.type === "section") {
-      segments.push({ name, sep: "#", isWithinBoard });
+      segments.push({ id: node.id, name, sep: "#", isWithinBoard, node });
     } else if (node.type === "board") {
       if (segments.length === 0) {
-        segments.push({ name, sep: "", isWithinBoard: false });
+        segments.push({
+          id: node.id,
+          name,
+          sep: "",
+          isWithinBoard: false,
+          node,
+        });
       }
     } else {
       // Other types (paragraph, task, etc.)
       segments.push({
+        id: node.id,
         name,
         sep: segments.length > 0 ? "/" : "",
         isWithinBoard,
+        node,
       });
     }
   }
 
   return segments.length > 0
     ? segments
-    : [{ name: "/", sep: "", isWithinBoard: false }];
+    : [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
 }
 
 // Helper to count visible descendants for flat indexing
@@ -245,6 +270,10 @@ function Column({
   const typeSuffix = getCollapsedTypeSuffix(column.node);
   const count = column.cards.length;
   const wipLimit = column.wipLimit;
+
+  // Get colored icon for column header (shows inherited color)
+  const inheritedColor = getInheritedColor(column.node);
+  const columnIcon = inheritedColor ? getNodeIcon(null, inheritedColor) : null;
   const wipExceeded = wipLimit !== undefined && count > wipLimit;
 
   // Available height for cards: column height - border (2) - header (1)
@@ -310,6 +339,11 @@ function Column({
         backgroundColor={isColumnSelected ? "blue" : undefined}
         wrap="truncate"
       >
+        {columnIcon && (
+          <Text color={isColumnSelected ? "white" : columnIcon.color}>
+            {columnIcon.char}{" "}
+          </Text>
+        )}
         {name}
         {typeSuffix ? (
           <Text
@@ -319,7 +353,9 @@ function Column({
           ""
         )}
         {wipExceeded ? (
-          <Text color="red">{` ${countDisplay}${warningIndicator}`}</Text>
+          <Text color="red">
+            {` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}
+          </Text>
         ) : (
           ` ${countDisplay}`
         )}
@@ -2236,11 +2272,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       const isBoardBoundary =
         prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
 
+      // Get color icon for this segment if it has one
+      const segColor = seg.node ? getInheritedColor(seg.node) : undefined;
+      const segIcon = segColor ? getNodeIcon(null, segColor) : null;
+
       if (isBoardSelected) {
         // Blue background, white text when board is selected
         const sepPart = seg.sep ? chalk.bgBlue.white(` ${seg.sep} `) : "";
+        // Show icon with its color even on blue background
+        const iconPart = segIcon
+          ? chalk.bgBlue(getChalkColor(segIcon.color)(segIcon.char)) + " "
+          : "";
         const namePart = chalk.bgBlue.white.bold(seg.name);
-        return sepPart + namePart;
+        return sepPart + iconPart + namePart;
       } else {
         // White background, black text normally
         const sepPart = seg.sep
@@ -2248,18 +2292,25 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             ? chalk.bgWhite.blue.bold(` ${seg.sep} `)
             : chalk.bgWhite.gray(` ${seg.sep} `)
           : "";
+        // Show icon with its color on white background
+        const iconPart = segIcon
+          ? chalk.bgWhite(getChalkColor(segIcon.color)(segIcon.char)) + " "
+          : "";
         const namePart = chalk.bgWhite.black.bold(seg.name);
-        return sepPart + namePart;
+        return sepPart + iconPart + namePart;
       }
     })
     .join("");
   // Calculate visible length (without ANSI codes)
   const visibleLen =
     1 +
-    selectedPathSegments.reduce(
-      (acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0),
-      0,
-    );
+    selectedPathSegments.reduce((acc, seg) => {
+      const segColor = seg.node ? getInheritedColor(seg.node) : undefined;
+      const iconLen = segColor ? 2 : 0; // icon char + space
+      return (
+        acc + seg.name.length + iconLen + (seg.sep ? seg.sep.length + 2 : 0)
+      );
+    }, 0);
   const padding = " ".repeat(Math.max(0, termWidth - visibleLen));
 
   // Background color for the top bar
@@ -2514,21 +2565,34 @@ export function InkBoardTestable({
     : getPathSegments(initialState.rootId, initialState.rootId);
 
   // Build top bar with consistent white background, varying foreground colors
+  // Path segments are clickable hyperlinks for navigation (km://root/<id>)
   const testTopBarContent = selectedPathSegments
     .map((seg) => {
       const sepPart = seg.sep ? chalk.bgWhite.gray(` ${seg.sep} `) : "";
+      // Get color icon for this segment if it has one
+      const segColor = seg.node ? getInheritedColor(seg.node) : undefined;
+      const segIcon = segColor ? getNodeIcon(null, segColor) : null;
+      const iconPart = segIcon
+        ? chalk.bgWhite(getChalkColor(segIcon.color)(segIcon.char)) + " "
+        : "";
+      // Make segment name a clickable hyperlink to navigate to that node
+      const url = seg.id ? `km://root/${seg.id}` : "";
+      const linkedName = seg.id ? hyperlink(seg.name, url) : seg.name;
       const namePart = seg.isWithinBoard
-        ? chalk.bgWhite.blue(seg.name)
-        : chalk.bgWhite.black(seg.name);
-      return sepPart + namePart;
+        ? chalk.bgWhite.blue(linkedName)
+        : chalk.bgWhite.black(linkedName);
+      return sepPart + iconPart + namePart;
     })
     .join("");
   const testVisibleLen =
     1 +
-    selectedPathSegments.reduce(
-      (acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0),
-      0,
-    );
+    selectedPathSegments.reduce((acc, seg) => {
+      const segColor = seg.node ? getInheritedColor(seg.node) : undefined;
+      const iconLen = segColor ? 2 : 0; // icon char + space
+      return (
+        acc + seg.name.length + iconLen + (seg.sep ? seg.sep.length + 2 : 0)
+      );
+    }, 0);
   const testPadding = " ".repeat(Math.max(0, termWidth - testVisibleLen));
 
   return (

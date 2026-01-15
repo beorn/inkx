@@ -17,8 +17,8 @@ describe("calcPathLength", () => {
 
   it("calculates length with separators", () => {
     const segments: PathSegment[] = [
-      { name: "foo", sep: "/", isWithinBoard: false },
-      { name: "bar", sep: "", isWithinBoard: false },
+      { id: "1", name: "foo", sep: "/", isWithinBoard: false, node: null },
+      { id: "2", name: "bar", sep: "", isWithinBoard: false, node: null },
     ];
     // "foo" + " / " (3) + "bar" = 3 + 3 + 3 = 9
     expect(calcPathLength(segments)).toBe(9);
@@ -26,7 +26,7 @@ describe("calcPathLength", () => {
 
   it("handles segment without separator", () => {
     const segments: PathSegment[] = [
-      { name: "only", sep: "", isWithinBoard: false },
+      { id: "1", name: "only", sep: "", isWithinBoard: false, node: null },
     ];
     expect(calcPathLength(segments)).toBe(4);
   });
@@ -35,8 +35,8 @@ describe("calcPathLength", () => {
 describe("renderPath", () => {
   it("returns all segments if they fit", () => {
     const segments: PathSegment[] = [
-      { name: "a", sep: "/", isWithinBoard: false },
-      { name: "b", sep: "", isWithinBoard: false },
+      { id: "1", name: "a", sep: "/", isWithinBoard: false, node: null },
+      { id: "2", name: "b", sep: "", isWithinBoard: false, node: null },
     ];
     const result = renderPath(segments, 100);
     expect(result).toEqual(segments);
@@ -44,8 +44,8 @@ describe("renderPath", () => {
 
   it("returns all segments if no width specified", () => {
     const segments: PathSegment[] = [
-      { name: "very-long-segment", sep: "/", isWithinBoard: false },
-      { name: "another-long-one", sep: "", isWithinBoard: false },
+      { id: "1", name: "very-long-segment", sep: "/", isWithinBoard: false, node: null },
+      { id: "2", name: "another-long-one", sep: "", isWithinBoard: false, node: null },
     ];
     const result = renderPath(segments);
     expect(result).toEqual(segments);
@@ -53,9 +53,9 @@ describe("renderPath", () => {
 
   it("truncates within-board segments first", () => {
     const segments: PathSegment[] = [
-      { name: "root", sep: "/", isWithinBoard: false },
-      { name: "child1", sep: "/", isWithinBoard: true },
-      { name: "child2", sep: "", isWithinBoard: true },
+      { id: "1", name: "root", sep: "/", isWithinBoard: false, node: null },
+      { id: "2", name: "child1", sep: "/", isWithinBoard: true, node: null },
+      { id: "3", name: "child2", sep: "", isWithinBoard: true, node: null },
     ];
     const result = renderPath(segments, 20);
     // Should truncate board segments before root
@@ -64,9 +64,9 @@ describe("renderPath", () => {
 
   it("adds ellipsis when truncating", () => {
     const segments: PathSegment[] = [
-      { name: "one", sep: "/", isWithinBoard: false },
-      { name: "two", sep: "/", isWithinBoard: false },
-      { name: "three", sep: "", isWithinBoard: false },
+      { id: "1", name: "one", sep: "/", isWithinBoard: false, node: null },
+      { id: "2", name: "two", sep: "/", isWithinBoard: false, node: null },
+      { id: "3", name: "three", sep: "", isWithinBoard: false, node: null },
     ];
     const result = renderPath(segments, 10);
     expect(result.some((s) => s.name.includes("…"))).toBe(true);

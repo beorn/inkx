@@ -4,13 +4,17 @@
  * Smart breadcrumb path rendering with truncation.
  */
 
+import type { Node } from "@km/core";
+
 /**
  * Path segment for breadcrumb rendering.
  */
 export interface PathSegment {
+  id: string | null;
   name: string;
   sep: string;
   isWithinBoard: boolean;
+  node: Node | null;
 }
 
 /**

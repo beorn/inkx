@@ -1,0 +1,34 @@
+{
+  "name": "@beorn/chalkx",
+  "version": "0.1.0",
+  "description": "Extended chalk with modern terminal features (curly/dotted/dashed underlines, underline color, hyperlinks)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "storybook": "bun src/storybook.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beorn/chalkx.git"
+  },
+  "homepage": "https://github.com/beorn/chalkx#readme",
+  "keywords": [
+    "chalk",
+    "terminal",
+    "ansi",
+    "underline",
+    "hyperlink",
+    "osc8",
+    "curly",
+    "dotted",
+    "dashed"
+  ],
+  "author": "Beorn",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.4.1"
+  }
+}

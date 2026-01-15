@@ -20,15 +20,6 @@ import {
   getTypeIcon,
   colorize,
   GTD_BOARD_COLORS,
-  curlyUnderline,
-  dottedUnderline,
-  dashedUnderline,
-  doubleUnderline,
-  underlineColor,
-  styledUnderline,
-  hyperlink,
-  supportsExtendedUnderline,
-  setExtendedUnderlineSupport,
 } from "../../src/text/index.ts";
 import {
   wrapText,
@@ -404,11 +395,11 @@ function Layer2Layout(): React.ReactElement {
       <SubsectionHeader title="renderPath() - Breadcrumb Truncation" />
       {(() => {
         const segments: PathSegment[] = [
-          { name: "Projects", sep: "/", isWithinBoard: false },
-          { name: "Work", sep: "/", isWithinBoard: false },
-          { name: "Q1-2024", sep: ">", isWithinBoard: true },
-          { name: "Sprint 1", sep: ">", isWithinBoard: true },
-          { name: "Tasks", sep: "", isWithinBoard: true },
+          { id: "proj-1", name: "Projects", sep: "/", isWithinBoard: false },
+          { id: "work-1", name: "Work", sep: "/", isWithinBoard: false },
+          { id: "q1-2024", name: "Q1-2024", sep: ">", isWithinBoard: true },
+          { id: "sprint-1", name: "Sprint 1", sep: ">", isWithinBoard: true },
+          { id: "tasks-1", name: "Tasks", sep: "", isWithinBoard: true },
         ];
         // Helper to convert segments to string
         const segsToStr = (segs: PathSegment[]): string =>
@@ -672,27 +663,50 @@ function createMockBoardState(): BoardState {
   };
 }
 
-// Top bar component showing breadcrumb path
-function TopBar({
-  path,
-  width,
-  isSelected = false,
-}: {
-  path: string;
-  width: number;
-  isSelected?: boolean;
-}): React.ReactElement {
-  const padding = " ".repeat(Math.max(0, width - path.length - 2));
+// Top bar component showing breadcrumb path with proper board/item path styling
+function TopBar({ width }: { width: number }): React.ReactElement {
+  // Simulate path segments like the real Board.tsx does
+  // Board path: Projects / webapp (gray separators, black text)
+  // Item path: # In Progress > Implement auth flow (blue separator at boundary)
+  const segments: Array<{ name: string; sep: string; isWithinBoard: boolean }> =
+    [
+      { name: "Projects", sep: "", isWithinBoard: false },
+      { name: "webapp", sep: "/", isWithinBoard: false },
+      { name: "In Progress", sep: "#", isWithinBoard: true }, // boundary - blue separator
+      { name: "Implement auth flow", sep: ">", isWithinBoard: true },
+    ];
+
+  // Build styled path like Board.tsx does
+  const topBarContent = segments
+    .map((seg, i) => {
+      const prevSeg = i > 0 ? segments[i - 1] : null;
+      const isBoardBoundary =
+        prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
+
+      // White background, varying foreground colors
+      const sepPart = seg.sep
+        ? isBoardBoundary
+          ? chalk.bgWhite.blue.bold(` ${seg.sep} `) // Blue separator at boundary
+          : chalk.bgWhite.gray(` ${seg.sep} `) // Gray separators elsewhere
+        : "";
+      const namePart = chalk.bgWhite.black.bold(seg.name);
+      return sepPart + namePart;
+    })
+    .join("");
+
+  // Calculate visible length for padding
+  const visibleLen =
+    1 +
+    segments.reduce(
+      (acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0),
+      0,
+    );
+  const padding = " ".repeat(Math.max(0, width - visibleLen));
+
   return (
     <Box height={1} width={width}>
-      <Text
-        backgroundColor={isSelected ? "blue" : "white"}
-        color={isSelected ? "white" : "black"}
-        bold
-      >
-        {" "}
-        {path}
-        {padding}
+      <Text>
+        {chalk.bgWhite.black(" ") + topBarContent + chalk.bgWhite(padding)}
       </Text>
     </Box>
   );
@@ -738,10 +752,7 @@ function CardsViewDemo({
 
   return (
     <Box flexDirection="column" width={width}>
-      <TopBar
-        path="Projects / webapp # In Progress > Implement auth flow"
-        width={width}
-      />
+      <TopBar width={width} />
       <Box flexDirection="row" width={width} height={height}>
         {state.columns.slice(0, 4).map((column, cIdx) => {
           const isColSelected = cIdx === state.colIndex;
@@ -824,8 +835,6 @@ function Layer3AllViews(): React.ReactElement {
     effectiveVisibleColumns: mockState.columns,
   };
 
-  const topBarPath = "Projects / webapp # In Progress > Implement auth flow";
-
   return (
     <Box flexDirection="column">
       <SectionHeader title="Layer 3: All View Modes" />
@@ -848,17 +857,17 @@ function Layer3AllViews(): React.ReactElement {
       </ViewBox>
 
       <ViewBox title="View 2: Columns (Tree within columns)">
-        <TopBar path={topBarPath} width={viewWidth} />
+        <TopBar width={viewWidth} />
         <ColumnsView {...columnsViewProps} />
       </ViewBox>
 
       <ViewBox title="View 3: Tabs (One column at a time)">
-        <TopBar path={topBarPath} width={viewWidth} />
+        <TopBar width={viewWidth} />
         <TabsView {...commonViewProps} />
       </ViewBox>
 
       <ViewBox title="View 4: List (Full-width hierarchical)">
-        <TopBar path={topBarPath} width={viewWidth} />
+        <TopBar width={viewWidth} />
         <ListView {...commonViewProps} />
       </ViewBox>
     </Box>

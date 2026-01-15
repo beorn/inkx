@@ -20,7 +20,13 @@ export {
 } from "./rich.ts";
 
 // Icon utilities
-export { getStatusIcon, getTypeIcon, type StatusIcon } from "./icons.ts";
+export {
+  getStatusIcon,
+  getTypeIcon,
+  getNodeIcon,
+  COLORED_CIRCLE,
+  type StatusIcon,
+} from "./icons.ts";
 
 // Node formatting
 export {
@@ -30,7 +36,7 @@ export {
   formatCollapsedAncestor,
 } from "./format.ts";
 
-// Extended ANSI features (chalk-x)
+// Extended ANSI features (chalkx)
 export {
   chalkX,
   chalk,
@@ -44,7 +50,7 @@ export {
   supportsExtendedUnderline,
   setExtendedUnderlineSupport,
   type UnderlineStyle,
-} from "./chalk-x.ts";
+} from "@beorn/chalkx";
 
 // Board color system
 export {

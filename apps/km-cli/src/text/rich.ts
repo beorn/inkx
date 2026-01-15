@@ -12,6 +12,7 @@
  */
 
 import chalk from "chalk";
+import { hyperlink, dashedUnderline } from "@beorn/chalkx";
 
 // ============================================================================
 // ANSI String Utilities
@@ -19,9 +20,12 @@ import chalk from "chalk";
 
 /**
  * ANSI escape code pattern for stripping.
- * Matches escape sequences like \x1b[31m (red) or \x1b[0m (reset).
+ * Matches:
+ * - SGR escape sequences like \x1b[31m (red), \x1b[0m (reset)
+ * - Extended SGR codes like \x1b[4:3m (curly underline) or \x1b[58:2::r:g:bm (underline color)
+ * - OSC 8 hyperlink sequences: \x1b]8;;<url>\x1b\\ (opening) and \x1b]8;;\x1b\\ (closing)
  */
-export const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
+export const ANSI_REGEX = /\x1b\[[0-9;:]*m|\x1b\]8;;[^\x1b]*\x1b\\/g;
 
 /**
  * Get the display length of a string, excluding ANSI escape codes.
@@ -54,14 +58,22 @@ const INLINE_FIELD_REGEX = /\[(\w+)::\s*([^\]]*)\]/g;
 const WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g;
 
 /**
- * Extract display text from a wiki link content.
- * For [[path|alias]], returns "alias". For [[text]], returns "text".
+ * Extract display text and target from a wiki link content.
+ * For [[path|alias]], returns { display: "alias", target: "path" }.
+ * For [[text]], returns { display: "text", target: "text" }.
  */
-function extractLinkDisplay(linkContent: string): string {
+function extractLinkParts(linkContent: string): {
+  display: string;
+  target: string;
+} {
   if (linkContent.includes("|")) {
-    return linkContent.split("|").pop() ?? linkContent;
+    const parts = linkContent.split("|");
+    return {
+      target: parts[0] ?? linkContent,
+      display: parts[1] ?? linkContent,
+    };
   }
-  return linkContent;
+  return { display: linkContent, target: linkContent };
 }
 
 // Markdown formatting patterns
@@ -71,8 +83,11 @@ const ITALIC_UNDERSCORE_REGEX = /(?<![_\w])_([^_]+)_(?![_\w])/g; // _italic_ (wo
 const CODE_REGEX = /`([^`]+)`/g; // `code`
 const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g; // ~~strikethrough~~
 
-// Markdown link patterns
-const MD_LINK_REGEX = /\[([^\]]+)\]\([^)]+\)/g; // [text](url) - keep text only
+// Markdown link patterns - capture both text and URL
+const MD_LINK_REGEX = /\[([^\]]+)\]\(([^)]+)\)/g; // [text](url)
+
+// Draft/tentative content patterns - styled with dashed underline
+const DRAFT_PREFIX_REGEX = /^(Draft|WIP|TODO|FIXME):\s*/i;
 
 /**
  * Render raw markdown text to a styled ANSI string.
@@ -93,18 +108,26 @@ const MD_LINK_REGEX = /\[([^\]]+)\]\([^)]+\)/g; // [text](url) - keep text only
  * // Returns: "Task \x1b[2m\x1b[4mMy Project\x1b[0m"
  */
 export function renderRich(text: string): string {
+  // Check if content starts with a draft prefix (Draft:, WIP:, TODO:, FIXME:)
+  const isDraft = DRAFT_PREFIX_REGEX.test(text);
+
   // Strip inline fields first
   let result = text.replace(INLINE_FIELD_REGEX, "");
 
-  // Strip markdown links [text](url) → text (styled as link)
-  result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => {
-    return chalk.dim.underline(linkText);
-  });
+  // Style markdown links [text](url) → clickable hyperlink
+  result = result.replace(
+    MD_LINK_REGEX,
+    (_match, linkText: string, url: string) => {
+      return chalk.underline(hyperlink(linkText, url));
+    },
+  );
 
-  // Style wiki links with chalk (dim + underline)
+  // Style wiki links: underlined and clickable via OSC 8 hyperlink
+  // Uses km:// protocol which the TUI can intercept for navigation
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
-    const display = extractLinkDisplay(content);
-    return chalk.dim.underline(display);
+    const { display, target } = extractLinkParts(content);
+    const url = `km://open/${encodeURIComponent(target)}`;
+    return chalk.underline(hyperlink(display, url));
   });
 
   // Style bold text (must be before italic to avoid conflicts)
@@ -134,7 +157,14 @@ export function renderRich(text: string): string {
   });
 
   // Clean up whitespace
-  return result.replace(/  +/g, " ").trim();
+  result = result.replace(/  +/g, " ").trim();
+
+  // Apply dashed underline to draft/tentative content
+  if (isDraft) {
+    result = dashedUnderline(result);
+  }
+
+  return result;
 }
 
 /**
@@ -162,7 +192,7 @@ export function renderPlain(text: string): string {
 
   // Strip wiki links (keep display text only)
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
-    return extractLinkDisplay(content);
+    return extractLinkParts(content).display;
   });
 
   // Clean up whitespace
