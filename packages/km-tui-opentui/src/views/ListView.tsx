@@ -30,8 +30,9 @@ export function ListView({
       {/* Columns as sections */}
       {nodes.map((node: NodeViewModel, colIndex: number) => {
         const isColSelected = colIndex === selectedCol;
+        // Design system: selected headers cyan bg+black fg, unselected yellowBright+dim
         const headerBg = isColSelected ? "cyan" : undefined;
-        const headerColor = isColSelected ? "black" : "yellow";
+        const headerColor = isColSelected ? "black" : "yellowBright";
 
         return (
           <box key={node.id} flexDirection="column">
@@ -41,6 +42,7 @@ export function ListView({
             {/* Column header */}
             <text
               bold={isColSelected}
+              dim={!isColSelected}
               color={headerColor}
               backgroundColor={headerBg}
             >

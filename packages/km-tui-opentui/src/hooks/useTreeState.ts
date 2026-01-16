@@ -3,9 +3,10 @@
  *
  * React hook wrapper around the generic tree state reducer.
  * Provides path-based navigation with computed selectors.
+ * Includes undo/redo capability for state mutations.
  */
 
-import { useReducer, useMemo } from "react";
+import { useReducer, useMemo, useCallback, useState } from "react";
 import {
   treeReducer,
   createInitialTreeState,
@@ -20,6 +21,29 @@ import {
 // Re-export for convenience
 export { treeReducer, createInitialTreeState };
 export type { TreeState, TreeAction, TreeNodeState, CursorPath };
+
+// Maximum undo history size
+const MAX_UNDO_HISTORY = 50;
+
+// Actions that should be tracked in undo history (state mutations)
+// Navigation and modal toggles are NOT undoable
+const UNDOABLE_ACTIONS = new Set([
+  "TOGGLE_FOLD",
+  "TOGGLE_COLLAPSE",
+  "FOLD_LEVEL",
+  "UNFOLD_LEVEL",
+  "ZOOM_IN",
+  "ZOOM_OUT",
+  "SELECT_NODE_ADD",
+  "SELECT_NODE_REMOVE",
+  "SELECT_NODE_TOGGLE",
+  "SELECT_ALL_SIBLINGS",
+  "SELECT_ALL",
+  "CLEAR_SELECTION",
+  // Note: REFRESH is triggered by external mutations (store changes)
+  // so it's tracked as undoable to allow reverting to previous state
+  "REFRESH",
+]);
 
 /**
  * Tree state hook with selectors
@@ -40,6 +64,12 @@ export interface TreeStateHook {
   canNavigateDown: boolean;
   canNavigateParent: boolean;
   canNavigateChild: boolean;
+
+  // Undo/redo
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 /**
@@ -58,7 +88,71 @@ function getSiblings(
 }
 
 export function useTreeState(initialState: TreeState): TreeStateHook {
-  const [state, dispatch] = useReducer(treeReducer, initialState);
+  const [state, baseDispatch] = useReducer(treeReducer, initialState);
+
+  // Undo/redo history stacks
+  const [undoStack, setUndoStack] = useState<TreeState[]>([]);
+  const [redoStack, setRedoStack] = useState<TreeState[]>([]);
+
+  // Wrapped dispatch that tracks undo history for undoable actions
+  const dispatch = useCallback(
+    (action: TreeAction) => {
+      if (UNDOABLE_ACTIONS.has(action.type)) {
+        // Save current state to undo stack before applying action
+        setUndoStack((prev) => {
+          const newStack = [...prev, state];
+          // Limit history size
+          if (newStack.length > MAX_UNDO_HISTORY) {
+            return newStack.slice(-MAX_UNDO_HISTORY);
+          }
+          return newStack;
+        });
+        // Clear redo stack when new action is performed
+        setRedoStack([]);
+      }
+      baseDispatch(action);
+    },
+    [state],
+  );
+
+  // Undo - restore previous state from undo stack
+  const undo = useCallback(() => {
+    if (undoStack.length === 0) return;
+
+    const newUndoStack = [...undoStack];
+    const prevState = newUndoStack.pop();
+    if (!prevState) return;
+
+    // Save current state to redo stack
+    setRedoStack((prev) => [...prev, state]);
+    setUndoStack(newUndoStack);
+
+    // Restore previous state by dispatching a special restore action
+    // We need to directly restore the full state, so we use REFRESH with the old nodes
+    // and NAV_TO_PATH to restore cursor position
+    baseDispatch({ type: "REFRESH", nodes: prevState.nodes });
+    baseDispatch({ type: "NAV_TO_PATH", path: prevState.cursor });
+  }, [undoStack, state]);
+
+  // Redo - restore next state from redo stack
+  const redo = useCallback(() => {
+    if (redoStack.length === 0) return;
+
+    const newRedoStack = [...redoStack];
+    const nextState = newRedoStack.pop();
+    if (!nextState) return;
+
+    // Save current state to undo stack
+    setUndoStack((prev) => [...prev, state]);
+    setRedoStack(newRedoStack);
+
+    // Restore next state
+    baseDispatch({ type: "REFRESH", nodes: nextState.nodes });
+    baseDispatch({ type: "NAV_TO_PATH", path: nextState.cursor });
+  }, [redoStack, state]);
+
+  const canUndo = undoStack.length > 0;
+  const canRedo = redoStack.length > 0;
 
   // Current node at cursor path
   const currentNode = useMemo(
@@ -108,6 +202,10 @@ export function useTreeState(initialState: TreeState): TreeStateHook {
     canNavigateDown,
     canNavigateParent,
     canNavigateChild,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   };
 }
 

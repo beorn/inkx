@@ -44,7 +44,12 @@ export function Column({
   }, [selectedIndex, isActive, cardHeight]);
 
   // Build header text
-  const headerColor = isActive ? "cyan" : isOverLimit ? "red" : "white";
+  // Design system: selected headers are yellow+bold, unselected are yellowBright+dim
+  const headerColor = isActive
+    ? "yellow"
+    : isOverLimit
+      ? "red"
+      : "yellowBright";
   let headerText = title;
   if (wipLimit !== undefined) {
     headerText = `${title} (${count}/${wipLimit})`;
@@ -57,7 +62,11 @@ export function Column({
     return (
       <box flexDirection="column" width={3}>
         <box paddingLeft={1}>
-          <text bold color={headerColor}>
+          <text
+            bold={isActive}
+            dim={!isActive && !isOverLimit}
+            color={headerColor}
+          >
             {count}
           </text>
         </box>
@@ -67,9 +76,13 @@ export function Column({
 
   return (
     <box flexDirection="column" flexGrow={1} height="100%">
-      {/* Header */}
+      {/* Header - design system: yellow bold (active), yellowBright dim (inactive) */}
       <box paddingLeft={1}>
-        <text bold color={headerColor}>
+        <text
+          bold={isActive}
+          dim={!isActive && !isOverLimit}
+          color={headerColor}
+        >
           {headerText}
         </text>
       </box>

@@ -354,7 +354,7 @@ export function App({
   // Handle keyboard input
   // Note: KeyEvent from OpenTUI uses `name` for key identification, not `key`
   // Alt key is accessed via `meta` property in OpenTUI KeyEvent
-  useKeyboard(({ name, shift, meta }) => {
+  useKeyboard(({ name, shift, meta, ctrl }) => {
     // ===== Help Mode =====
     // When help overlay is shown, only ? and Escape dismiss it
     if (tree.state.helpMode) {
@@ -711,6 +711,15 @@ export function App({
       tree.dispatch({ type: "TOGGLE_PROJECT_PICKER" });
     }
 
+    // Quick add shortcuts (open picker with prefix pre-populated)
+    // @ - filter by @refs (people, contacts, references)
+    // # - filter by #tags (categories, labels)
+    // Note: + conflicts with INCREASE_CONTENT_LINES so not used here
+    else if (name === "@" || name === "#") {
+      tree.dispatch({ type: "TOGGLE_PROJECT_PICKER" });
+      tree.dispatch({ type: "SET_PROJECT_PICKER_QUERY", query: name });
+    }
+
     // Detail pane toggle
     else if (name === "i" && !shift && !meta) {
       tree.dispatch({ type: "TOGGLE_DETAIL_PANE" });
@@ -1065,6 +1074,18 @@ export function App({
     else if (name === "-") {
       tree.dispatch({ type: "DECREASE_CONTENT_LINES" });
     }
+
+    // ===== Undo/Redo =====
+
+    // Ctrl+Z - Undo
+    else if (name === "z" && ctrl && !shift) {
+      tree.undo();
+    }
+
+    // Ctrl+Shift+Z or Ctrl+Y - Redo
+    else if ((name === "z" && ctrl && shift) || (name === "y" && ctrl)) {
+      tree.redo();
+    }
   });
 
   // Detail pane configuration
@@ -1081,9 +1102,9 @@ export function App({
       {/* Header */}
       <Header
         rootPath={viewModel.rootPath}
-        viewMode={viewMode}
         searchQuery={viewModel.searchQuery}
         searchMode={viewModel.searchMode}
+        width={width}
       />
 
       {/* Main content area with optional detail pane */}
@@ -1094,7 +1115,9 @@ export function App({
           width={mainViewWidth}
           flexGrow={detailPaneOpen ? 0 : 1}
         >
-          {viewMode === "cards" && <CardsView viewModel={viewModel} />}
+          {viewMode === "cards" && (
+            <CardsView viewModel={viewModel} height={height - 3} />
+          )}
 
           {viewMode === "list" && (
             <ListView viewModel={viewModel} width={mainViewWidth} />

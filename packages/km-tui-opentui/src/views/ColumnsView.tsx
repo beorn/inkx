@@ -36,9 +36,9 @@ function ColumnTree({
   width,
   height,
 }: ColumnTreeProps): ReactElement {
-  // Header colors
+  // Header colors - design system: selected cyan bg+black fg, unselected yellowBright+dim
   const headerBg = isSelected ? "cyan" : undefined;
-  const headerColor = isSelected ? "black" : "yellow";
+  const headerColor = isSelected ? "black" : "yellowBright";
 
   // Calculate visible cards with scrolling
   const contentHeight = Math.max(1, height - 3);
@@ -63,7 +63,12 @@ function ColumnTree({
       {/* Header section */}
       <box flexDirection="column" height={2}>
         <text> </text>
-        <text bold={isSelected} color={headerColor} backgroundColor={headerBg}>
+        <text
+          bold={isSelected}
+          dim={!isSelected}
+          color={headerColor}
+          backgroundColor={headerBg}
+        >
           {node.title} ({node.childCount})
         </text>
       </box>

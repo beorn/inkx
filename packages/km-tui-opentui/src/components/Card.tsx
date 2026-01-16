@@ -104,7 +104,8 @@ export function Card({
   // isSelected = cursor position (current focus)
   // isMultiSelected = part of multi-selection set
   const hasSelection = isSelected || isMultiSelected;
-  const borderColor = hasSelection ? "cyan" : color || "white";
+  // TUI1 uses: cyanBright for selected, blackBright (gray) for unselected
+  const borderColor = hasSelection ? "cyanBright" : color || "blackBright";
 
   // Get status icon (colored circle) for tasks
   const statusIcon = taskStatus ? getStatusIcon(taskStatus) : null;
@@ -135,7 +136,7 @@ export function Card({
     return (
       <box
         border
-        borderStyle="single"
+        borderStyle="round"
         borderColor={borderColor}
         width="100%"
         paddingLeft={1}
@@ -188,7 +189,7 @@ export function Card({
   return (
     <box
       border
-      borderStyle="single"
+      borderStyle="round"
       borderColor={borderColor}
       width="100%"
       paddingLeft={1}

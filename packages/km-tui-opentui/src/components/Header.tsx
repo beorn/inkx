@@ -2,42 +2,40 @@
  * Header Component
  *
  * Top bar showing board path, view mode, and search query.
+ * Styled as full-width inverted bar (white background, black text) to match TUI1.
  */
-
-import type { ViewMode } from "../types.ts";
 
 interface HeaderProps {
   rootPath: string | null;
-  viewMode: ViewMode;
   searchQuery: string;
   searchMode: boolean;
+  width?: number;
 }
-
-const VIEW_MODE_LABELS: Record<ViewMode, string> = {
-  cards: "Cards",
-  list: "List",
-  columns: "Columns",
-  tabs: "Tabs",
-};
 
 export function Header({
   rootPath,
-  viewMode,
   searchQuery,
   searchMode,
+  width,
 }: HeaderProps) {
+  // TUI1 style: full-width inverted bar with white background
   return (
-    <box paddingLeft={1}>
-      <text bold>{rootPath || "/"}</text>
-      <text color="gray"> | </text>
-      <text color="cyan">{VIEW_MODE_LABELS[viewMode]}</text>
+    <box width={width || "100%"} backgroundColor="white">
+      <text backgroundColor="white" color="black" bold>
+        {" "}
+        {rootPath || "/"}
+      </text>
       {searchMode && (
         <>
-          <text color="gray"> | Search: </text>
-          <text color="yellow">{searchQuery || "_"}</text>
+          <text backgroundColor="white" color="gray">
+            {" "}
+            /{" "}
+          </text>
+          <text backgroundColor="white" color="blue" bold>
+            {searchQuery || "_"}
+          </text>
         </>
       )}
-      <text color="gray"> | q:quit v:view ?:help</text>
     </box>
   );
 }
