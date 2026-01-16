@@ -215,7 +215,9 @@ describe("formatVCard", () => {
     const contact = {
       uid: "with-phones",
       fullName: "Bob Smith",
-      phones: [{ value: "+1-555-123-4567", type: "cell" as const, primary: true }],
+      phones: [
+        { value: "+1-555-123-4567", type: "cell" as const, primary: true },
+      ],
     };
 
     const vcard = formatVCard(contact);

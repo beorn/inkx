@@ -2,24 +2,24 @@
  * Query Executor
  *
  * Executes parsed queries against the SQLite database.
- * Parsing is done by @km/query package.
+ * Parsing is done by @km/core query module.
  */
 
 import { getDb } from "./db.ts";
-import type { Node } from "@km/core";
 import {
   parseQuery as parse,
   resolveDateQuery as resolveDate,
   isDateShortcut,
   isDateField,
+  type Node,
   type QueryAST,
   type QueryCondition,
   type QueryRef,
   type QueryPath,
   type DateRange,
-} from "@km/query";
+} from "@km/core";
 
-// Re-export parsing types and functions from @km/query
+// Re-export parsing types and functions from @km/core
 export {
   parse as parseQuery,
   resolveDate as resolveDateQuery,

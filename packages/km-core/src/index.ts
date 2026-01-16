@@ -50,3 +50,22 @@ export {
 
 // Board layer: Use @km/board directly for visual navigation state
 // The board reducer and types have been consolidated there
+
+// Query language parser (merged from @km/query)
+export {
+  parseQuery,
+  mapFieldName,
+  resolveDateQuery,
+  isDateShortcut,
+  isDateField,
+} from "./query/index.ts";
+export type {
+  QueryAST,
+  QueryCondition,
+  QueryRef,
+  QueryPath,
+  QueryOffset,
+  QueryText,
+  QueryPhrase,
+  DateRange,
+} from "./query/index.ts";

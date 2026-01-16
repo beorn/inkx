@@ -81,14 +81,29 @@ export type {
   ShellContext,
 } from "./shellExecutor.ts";
 
-// Icon utilities (re-exported from @km/shared)
+// Icon utilities (merged from @km/shared)
 export {
   getStatusIcon,
   getTypeIcon,
   getNodeIcon,
   COLORED_CIRCLE,
   type StatusIcon,
-} from "@km/shared";
+} from "./icons.ts";
+
+// Tree utilities (merged from @km/shared)
+export {
+  getNodeDisplayName,
+  getTypeIndicator,
+  normalizeName,
+  namesAreSimilar,
+  getCollapsedTypeSuffix,
+  collapseRedundantAncestors,
+  collapseAncestorsWithTypes,
+  getParentContext,
+  type CollapsedAncestor,
+  type GetChildrenFn,
+  type GetNodeFn,
+} from "./tree.ts";
 
 // Plain text utilities (for OpenTUI - no ANSI codes)
 export { renderPlain, displayLength } from "./text.ts";

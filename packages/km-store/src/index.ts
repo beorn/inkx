@@ -112,3 +112,34 @@ export {
 } from "./path-utils.ts";
 
 export type { PathResolution } from "./path-utils.ts";
+
+// Watch and sync (merged from @km/watch)
+export {
+  FileSystemWatcher,
+  scanDirectory,
+  scanDirectoryRecursive,
+  SyncManager,
+  reconcileDirectory,
+  applyReconcileOps,
+  getParentNodeId,
+  DEFAULT_IGNORE_PATTERNS,
+  HIDDEN_FILE_PATTERN,
+  readGitignore,
+  readKmignore,
+  readObsidianIgnore,
+  getIgnorePatterns,
+  matchesPattern,
+  shouldIgnore,
+  isHiddenFile,
+  WriteQueue,
+  shouldApplyToFs,
+} from "./watch/index.ts";
+
+export type {
+  WatcherConfig,
+  FileChange,
+  SyncConfig,
+  ReconcileOp,
+  PendingWrite,
+  WriteQueueConfig,
+} from "./watch/index.ts";

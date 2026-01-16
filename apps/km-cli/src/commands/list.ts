@@ -14,8 +14,11 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { getDb, getAncestors } from "@km/store";
 import type { Node } from "@km/core";
-import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/shared";
-import { formatNode, formatCollapsedAncestor } from "../text/index.ts";
+import {
+  collapseAncestorsWithTypes,
+  type CollapsedAncestor,
+} from "@km/tui-core";
+import { formatNode, formatCollapsedAncestor } from "@km/tui-ink";
 
 /**
  * Match a query against a node

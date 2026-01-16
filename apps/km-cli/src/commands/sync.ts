@@ -6,7 +6,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { SyncManager } from "@km/watch";
+import { SyncManager } from "@km/store";
 import { getKmDir } from "@km/core";
 import { dirname } from "path";
 

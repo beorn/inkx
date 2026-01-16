@@ -11,7 +11,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { resolveNode, getDb, getStore, getChildren } from "@km/store";
-import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/shared";
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
 
 // Bound version with store dependency
 const getNodeDisplayName = (

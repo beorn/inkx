@@ -16,7 +16,7 @@ import {
 } from "@km/store";
 import type { Node } from "@km/core";
 import type { Link } from "@km/store";
-import { formatStatus, formatNodeBrief } from "../text/index.ts";
+import { formatStatus, formatNodeBrief } from "@km/tui-ink";
 
 export const showCommand = new Command("show")
   .description("Show node details")

@@ -33,18 +33,14 @@
         "@beorn/chalkx": "workspace:*",
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
-        "@km/shared": "workspace:*",
         "@km/store": "workspace:*",
         "@km/tui": "workspace:*",
         "@km/tui-core": "workspace:*",
-        "@km/watch": "workspace:*",
+        "@km/tui-ink": "workspace:*",
         "chalk": "^5.4.1",
         "commander": "^13.1.0",
-        "fullscreen-ink": "^0.1.0",
-        "ink": "^6.6.0",
         "ink-select-input": "^6.2.0",
         "react": "^19.2.3",
-        "wrap-ansi": "^9.0.2",
       },
       "devDependencies": {
         "@types/react": "^19.2.7",
@@ -84,22 +80,11 @@
         "yaml": "^2.7.1",
       },
     },
-    "packages/km-query": {
-      "name": "@km/query",
-    },
-    "packages/km-shared": {
-      "name": "@km/shared",
-      "dependencies": {
-        "@km/core": "workspace:*",
-        "@km/store": "workspace:*",
-      },
-    },
     "packages/km-store": {
       "name": "@km/store",
       "dependencies": {
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
-        "@km/query": "workspace:*",
       },
     },
     "packages/km-tree": {
@@ -126,16 +111,23 @@
       "name": "@km/tui-core",
       "dependencies": {
         "@km/core": "workspace:*",
-        "@km/shared": "workspace:*",
       },
     },
-    "packages/km-watch": {
-      "name": "@km/watch",
+    "packages/km-tui-ink": {
+      "name": "@km/tui-ink",
       "dependencies": {
+        "@beorn/chalkx": "workspace:*",
         "@km/core": "workspace:*",
         "@km/store": "workspace:*",
-        "chokidar": "^4.0.3",
-        "ulid": "^2.3.0",
+        "@km/tui-core": "workspace:*",
+        "chalk": "^5.4.1",
+        "fullscreen-ink": "^0.1.0",
+        "ink": "^6.6.0",
+        "react": "^19.2.3",
+        "wrap-ansi": "^9.0.2",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.7",
       },
     },
     "vendor/beorn-chalkx": {
@@ -277,10 +269,6 @@
 
     "@km/markdown": ["@km/markdown@workspace:packages/km-markdown"],
 
-    "@km/query": ["@km/query@workspace:packages/km-query"],
-
-    "@km/shared": ["@km/shared@workspace:packages/km-shared"],
-
     "@km/store": ["@km/store@workspace:packages/km-store"],
 
     "@km/tree": ["@km/tree@workspace:packages/km-tree"],
@@ -289,7 +277,7 @@
 
     "@km/tui-core": ["@km/tui-core@workspace:packages/km-tui-core"],
 
-    "@km/watch": ["@km/watch@workspace:packages/km-watch"],
+    "@km/tui-ink": ["@km/tui-ink@workspace:packages/km-tui-ink"],
 
     "@opentui/core": ["@opentui/core@0.1.73", "", { "dependencies": { "bun-ffi-structs": "0.1.2", "diff": "8.0.2", "jimp": "1.6.0", "yoga-layout": "3.2.1" }, "optionalDependencies": { "@dimforge/rapier2d-simd-compat": "^0.17.3", "@opentui/core-darwin-arm64": "0.1.73", "@opentui/core-darwin-x64": "0.1.73", "@opentui/core-linux-arm64": "0.1.73", "@opentui/core-linux-x64": "0.1.73", "@opentui/core-win32-arm64": "0.1.73", "@opentui/core-win32-x64": "0.1.73", "bun-webgpu": "0.1.4", "planck": "^1.4.2", "three": "0.177.0" }, "peerDependencies": { "web-tree-sitter": "0.25.10" } }, "sha512-1OqLlArzUh3QjrYXGro5WKNgoCcacGJaaFvwOHg5lAOoSigFQRiqEUEEJLbSo3pyV8u7XEdC3M0rOP6K+oThzw=="],
 
@@ -408,8 +396,6 @@
     "chalk": ["chalk@5.6.2", "", {}, "sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA=="],
 
     "character-entities": ["character-entities@2.0.2", "", {}, "sha512-shx7oQ0Awen/BRIdkjkvz54PnEEI/EjwXDSIZp86/KKdbafHh1Df/RYGBhn4hbe2+uKC9FnT5UCEdyPz3ai9hQ=="],
-
-    "chokidar": ["chokidar@4.0.3", "", { "dependencies": { "readdirp": "^4.0.1" } }, "sha512-Qgzu8kfBvo+cA4962jnP1KkS6Dop5NS6g7R5LFYJr4b8Ub94PPQXUksCw9PvXoeXPRRddRNC5C1JQUR2SMGtnA=="],
 
     "cli-boxes": ["cli-boxes@3.0.0", "", {}, "sha512-/lzGpEWL/8PfI0BmBOPRwp0c/wFNX1RdUML3jK/RcSBA9T8mZDdQpqYBKtCFTOfQbwPqWEOpjqW+Fnayc0969g=="],
 
@@ -736,8 +722,6 @@
     "readable-stream": ["readable-stream@4.7.0", "", { "dependencies": { "abort-controller": "^3.0.0", "buffer": "^6.0.3", "events": "^3.3.0", "process": "^0.11.10", "string_decoder": "^1.3.0" } }, "sha512-oIGGmcpTLwPga8Bn6/Z75SVaH1z5dUut2ibSyAMVhmUggWpmDn2dapB0n7f8nwaSiRtepAsfJyfXIO5DCVAODg=="],
 
     "readable-web-to-node-stream": ["readable-web-to-node-stream@3.0.4", "", { "dependencies": { "readable-stream": "^4.7.0" } }, "sha512-9nX56alTf5bwXQ3ZDipHJhusu9NTQJ/CVPtb/XHAJCXihZeitfJvIRS4GqQ/mfIoOE3IelHMrpayVrosdHBuLw=="],
-
-    "readdirp": ["readdirp@4.1.2", "", {}, "sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg=="],
 
     "remark-parse": ["remark-parse@11.0.0", "", { "dependencies": { "@types/mdast": "^4.0.0", "mdast-util-from-markdown": "^2.0.0", "micromark-util-types": "^2.0.0", "unified": "^11.0.0" } }, "sha512-FCxlKLNGknS5ba/1lmpYijMUzX2esxW5xQqjWxw2eHFfS2MSdaHVINFmhjo+qN1WhZhNimq0dZATN9pH0IDrpA=="],
 

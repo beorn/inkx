@@ -62,7 +62,7 @@ const SHIFT_NUMBER_MAP: Record<string, number> = {
   "*": 7,
   "(": 8,
 };
-import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/shared";
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
 
 // Bound version with store dependency
 const getNodeDisplayName = (

@@ -12,18 +12,14 @@
     "@beorn/chalkx": "workspace:*",
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",
-    "@km/shared": "workspace:*",
     "@km/store": "workspace:*",
     "@km/tui": "workspace:*",
     "@km/tui-core": "workspace:*",
-    "@km/watch": "workspace:*",
+    "@km/tui-ink": "workspace:*",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
-    "fullscreen-ink": "^0.1.0",
-    "ink": "^6.6.0",
     "ink-select-input": "^6.2.0",
-    "react": "^19.2.3",
-    "wrap-ansi": "^9.0.2"
+    "react": "^19.2.3"
   },
   "devDependencies": {
     "@types/react": "^19.2.7"
