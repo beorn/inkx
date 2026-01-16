@@ -136,6 +136,27 @@ Move selected node(s) in visual direction:
 
 ---
 
+## Moving (m + destination)
+
+Move selected node(s) to arbitrary location via cursor-based targeting:
+
+| Key      | Action                                     |
+| -------- | ------------------------------------------ |
+| `m`      | Enter move mode with selected node(s)      |
+| `hjkl`   | Navigate to destination (normal cursoring) |
+| `Enter`  | Confirm move to current cursor position    |
+| `Escape` | Cancel move mode, restore original cursor  |
+
+**Flow:**
+
+1. Select node(s) to move (or current cursor node if none selected)
+2. Press `m` to enter move mode
+3. Navigate with `hjkl` to destination
+4. Press `Enter` to move node(s) after the cursor position
+5. Or press `Escape` to cancel
+
+---
+
 ## Rules
 
 1. **Only visible** items navigable (folded = hidden)

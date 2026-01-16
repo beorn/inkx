@@ -656,6 +656,54 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
       return state;
     }
 
+    // ===== Moving (m + destination) =====
+    case "ENTER_MOVE_MODE": {
+      // Enter move mode with currently selected nodes (or cursor node if none selected)
+      const currentNode = getNodeAtPath(state.nodes, state.cursor);
+      let nodesToMove: string[] = [];
+
+      if (state.selectedNodes.size > 0) {
+        nodesToMove = Array.from(state.selectedNodes);
+      } else if (currentNode) {
+        nodesToMove = [currentNode.nodeId];
+      }
+
+      if (nodesToMove.length === 0) return state;
+
+      return {
+        ...state,
+        moveMode: true,
+        moveSourceNodes: nodesToMove,
+        moveSourceCursor: [...state.cursor],
+      };
+    }
+
+    case "CONFIRM_MOVE": {
+      // Actual move handled by TUI via store API
+      // Reducer just exits move mode
+      return {
+        ...state,
+        moveMode: false,
+        moveSourceNodes: [],
+        moveSourceCursor: [],
+        selectedNodes: new Set(), // Clear selection after move
+      };
+    }
+
+    case "CANCEL_MOVE": {
+      // Cancel move mode, restore original cursor position
+      return {
+        ...state,
+        moveMode: false,
+        moveSourceNodes: [],
+        cursor:
+          state.moveSourceCursor.length > 0
+            ? state.moveSourceCursor
+            : state.cursor,
+        moveSourceCursor: [],
+      };
+    }
+
     // ===== Modals =====
 
     case "TOGGLE_SEARCH_MODE": {
@@ -851,5 +899,8 @@ export function createInitialTreeState(
     commandPaletteOpen: false,
     commandPaletteQuery: "",
     commandPaletteIndex: 0,
+    moveMode: false,
+    moveSourceNodes: [],
+    moveSourceCursor: [],
   };
 }

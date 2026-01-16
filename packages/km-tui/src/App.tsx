@@ -623,6 +623,65 @@ export function App({
       return;
     }
 
+    // ===== Move Mode =====
+    // When in move mode, navigate to destination and confirm/cancel
+    if (tree.state.moveMode) {
+      // Escape - cancel move, restore original cursor
+      if (name === "escape") {
+        tree.dispatch({ type: "CANCEL_MOVE" });
+        return;
+      }
+
+      // Enter/Return - confirm move to current cursor position
+      if (name === "return") {
+        // Get destination (current cursor position's parent node)
+        const destPath = tree.state.cursor;
+        if (destPath.length > 0) {
+          const destParentPath = destPath.slice(0, -1);
+          const destIndex = destPath[destPath.length - 1] ?? 0;
+
+          // Determine destination parent
+          let destParentId: string | null = null;
+          if (destParentPath.length === 0) {
+            // Moving to top level under current root
+            destParentId = tree.state.rootId;
+          } else {
+            const destParentNode = tree.state.nodes[destParentPath[0] ?? 0];
+            if (destParentPath.length === 1 && destParentNode) {
+              destParentId = destParentNode.nodeId;
+            } else if (destParentPath.length > 1 && destParentNode) {
+              // Navigate to get the parent node
+              let node = destParentNode;
+              for (let i = 1; i < destParentPath.length; i++) {
+                const idx = destParentPath[i];
+                if (idx !== undefined && node.children[idx]) {
+                  node = node.children[idx];
+                }
+              }
+              destParentId = node.nodeId;
+            }
+          }
+
+          // Move each source node to destination
+          for (const nodeId of tree.state.moveSourceNodes) {
+            // Calculate new parent_idx based on destination position
+            updateNode(nodeId, {
+              parent_id: destParentId,
+              parent_idx: destIndex + 0.5, // Insert after the destination node
+            });
+          }
+
+          refreshTree();
+        }
+
+        tree.dispatch({ type: "CONFIRM_MOVE" });
+        return;
+      }
+
+      // Navigation keys work normally in move mode (hjkl, etc.)
+      // Fall through to normal navigation handling below
+    }
+
     // ===== Normal Mode =====
 
     // Escape - clear selection if any, otherwise quit
@@ -804,6 +863,11 @@ export function App({
     // Command palette
     else if (name === ":" || (name === "p" && ctrl)) {
       tree.dispatch({ type: "TOGGLE_COMMAND_PALETTE" });
+    }
+
+    // Move mode - m to enter, navigate to destination, Enter to confirm
+    else if (name === "m" && !shift && !meta) {
+      tree.dispatch({ type: "ENTER_MOVE_MODE" });
     }
 
     // ===== Editor Integration =====

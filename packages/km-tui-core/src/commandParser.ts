@@ -73,11 +73,16 @@ const SIMPLE_ACTIONS: Record<string, TreeAction> = {
   extend_select_left: { type: "EXTEND_SELECT_LEFT" },
   extend_select_right: { type: "EXTEND_SELECT_RIGHT" },
 
-  // Shifting (opt+direction) - move nodes
+  // Shifting (opt+direction) - move nodes visually
   shift_up: { type: "SHIFT_UP" },
   shift_down: { type: "SHIFT_DOWN" },
   shift_left: { type: "SHIFT_LEFT" },
   shift_right: { type: "SHIFT_RIGHT" },
+
+  // Moving (m + destination) - move nodes to arbitrary location
+  enter_move_mode: { type: "ENTER_MOVE_MODE" },
+  confirm_move: { type: "CONFIRM_MOVE" },
+  cancel_move: { type: "CANCEL_MOVE" },
 
   // Modes
   toggle_search: { type: "TOGGLE_SEARCH_MODE" },

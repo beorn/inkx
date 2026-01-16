@@ -95,6 +95,11 @@ export interface TreeState {
   commandPaletteOpen: boolean;
   commandPaletteQuery: string;
   commandPaletteIndex: number;
+
+  // Move mode (m + destination)
+  moveMode: boolean;
+  moveSourceNodes: string[]; // Node IDs being moved
+  moveSourceCursor: CursorPath; // Original cursor position
 }
 
 // ===== Tree Actions =====
@@ -176,6 +181,11 @@ export type TreeAction =
   | { type: "SHIFT_DOWN" }
   | { type: "SHIFT_LEFT" }
   | { type: "SHIFT_RIGHT" }
+
+  // Moving (m + destination) - move nodes to arbitrary location
+  | { type: "ENTER_MOVE_MODE" } // 'm' - enter move mode with selected nodes
+  | { type: "CONFIRM_MOVE" } // Enter - move to current cursor position
+  | { type: "CANCEL_MOVE" } // Escape - cancel move mode
 
   // Modals
   | { type: "TOGGLE_SEARCH_MODE" }

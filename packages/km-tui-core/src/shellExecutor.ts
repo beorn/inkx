@@ -758,6 +758,9 @@ export function executeCommand(
     n: { type: "TOGGLE_NEW_ITEM_MODE" },
     p: { type: "TOGGLE_PROJECT_PICKER" },
     i: { type: "TOGGLE_DETAIL_PANE" },
+
+    // Moving (m + destination)
+    m: { type: "ENTER_MOVE_MODE" },
   };
 
   if (!result.ok) {

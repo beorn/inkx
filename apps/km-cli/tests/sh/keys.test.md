@@ -451,6 +451,35 @@ node: Task A
 topLevel: 2 nodes
 ```
 
+## Move Mode Keys
+
+### m enters move mode
+
+```console
+$ km sh board.md -c 'm; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+### enter_move_mode command enters move mode
+
+```console
+$ km sh board.md -c 'enter_move_mode; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+### cancel_move command exits move mode
+
+```console
+$ km sh board.md -c 'enter_move_mode; cancel_move; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
 ## Unknown Key
 
 ### Unknown key shows error
