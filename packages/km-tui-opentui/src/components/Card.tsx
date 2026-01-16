@@ -5,22 +5,15 @@
  * No hooks, no store access - pure presentation.
  *
  * Rich task display includes:
+ * - Status icon (colored circles from shared utilities)
  * - Priority badge (colored by level)
  * - Due date with urgency indication
  * - Backlinks indicator
  * - Refs count
  */
 
-import type { CardProps, TaskStatus } from "../types.ts";
-
-// Task status indicators
-const STATUS_ICONS: Record<TaskStatus, string> = {
-  todo: "[ ]",
-  wip: "[/]",
-  blocked: "[!]",
-  done: "[x]",
-  dropped: "[-]",
-};
+import type { CardProps } from "../types.ts";
+import { getStatusIcon, renderPlain } from "@km/tui-core";
 
 // Priority colors (P0-P5 style, using 1-5 internally)
 // P0/1: critical/high (red/magenta)
@@ -113,18 +106,11 @@ export function Card({
   const hasSelection = isSelected || isMultiSelected;
   const borderColor = hasSelection ? "cyan" : color || "white";
 
-  // Build first line: [Priority] [Status] Title [childCount]
-  const parts: string[] = [];
+  // Get status icon (colored circle) for tasks
+  const statusIcon = taskStatus ? getStatusIcon(taskStatus) : null;
 
-  if (icon) {
-    parts.push(icon);
-  }
-  if (taskStatus) {
-    parts.push(STATUS_ICONS[taskStatus]);
-  }
-  parts.push(title);
-
-  const displayTitle = parts.join(" ");
+  // Clean title using renderPlain to strip [[wikilinks]], [fields::], etc.
+  const cleanTitle = renderPlain(title);
 
   // Show child count and fold indicator
   let childSuffix = "";
@@ -135,15 +121,17 @@ export function Card({
   // Format due date if present
   const dueDateInfo = dueDate ? formatDueDate(dueDate) : null;
 
+  // Check for priority (both null and undefined)
+  const hasPriority = priority != null;
+
   // Build metadata line (second line if any metadata present)
-  const hasMetadata = priority !== undefined || dueDate || hasBacklinks;
+  const hasMetadata = hasPriority || dueDate || hasBacklinks;
 
   // Determine text color based on selection and task status
   const isDoneOrDropped = taskStatus === "done" || taskStatus === "dropped";
-  const baseTextColor = isSelected ? "cyan" : "white";
 
-  // For multi-selected, use cyan background with black text
-  if (isMultiSelected) {
+  // For selection, use cyan background with black text (per design system)
+  if (hasSelection) {
     return (
       <box
         border
@@ -155,15 +143,19 @@ export function Card({
         backgroundColor="cyan"
         flexDirection="column"
       >
-        {/* First line: priority badge + title */}
+        {/* First line: status icon + priority badge + title */}
         <box flexDirection="row">
-          {priority !== undefined && (
+          {/* Status icon (colored circle) */}
+          {statusIcon && <text color="black">{statusIcon.char} </text>}
+          {/* Custom icon if provided */}
+          {icon && !statusIcon && <text color="black">{icon} </text>}
+          {hasPriority && (
             <text color="black" bold>
               [{getPriorityLabel(priority)}]{" "}
             </text>
           )}
           <text color="black" dim={isDoneOrDropped}>
-            {displayTitle}
+            {cleanTitle}
             {childSuffix}
           </text>
         </box>
@@ -192,6 +184,7 @@ export function Card({
     );
   }
 
+  // Non-selected state
   return (
     <box
       border
@@ -202,15 +195,19 @@ export function Card({
       paddingRight={1}
       flexDirection="column"
     >
-      {/* First line: priority badge + title */}
+      {/* First line: status icon + priority badge + title */}
       <box flexDirection="row">
-        {priority !== undefined && (
+        {/* Status icon (colored circle) */}
+        {statusIcon && <text color={statusIcon.color}>{statusIcon.char} </text>}
+        {/* Custom icon if provided */}
+        {icon && !statusIcon && <text color={color || "white"}>{icon} </text>}
+        {hasPriority && (
           <text color={getPriorityColor(priority)} bold>
             [{getPriorityLabel(priority)}]{" "}
           </text>
         )}
-        <text color={baseTextColor} dim={isDoneOrDropped}>
-          {displayTitle}
+        <text color="white" dim={isDoneOrDropped}>
+          {cleanTitle}
           {childSuffix}
         </text>
       </box>

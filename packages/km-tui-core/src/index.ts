@@ -80,3 +80,15 @@ export type {
   SerializedState,
   ShellContext,
 } from "./shellExecutor.ts";
+
+// Icon utilities (shared across TUI implementations)
+export {
+  getStatusIcon,
+  getTypeIcon,
+  getNodeIcon,
+  COLORED_CIRCLE,
+  type StatusIcon,
+} from "./icons.ts";
+
+// Plain text utilities (for OpenTUI - no ANSI codes)
+export { renderPlain, displayLength } from "./text.ts";

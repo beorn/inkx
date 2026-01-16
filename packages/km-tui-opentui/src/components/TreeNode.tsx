@@ -5,6 +5,7 @@
  * Used by ListView, ColumnsView, and TabsView.
  *
  * Rich task display includes:
+ * - Status icon (colored circles from shared utilities)
  * - Priority badge (colored by level)
  * - Due date with urgency indication
  * - Backlinks indicator
@@ -12,13 +13,14 @@
  */
 
 import type { ReactElement, ReactNode } from "react";
+import { getStatusIcon, renderPlain, type TaskStatus } from "@km/tui-core";
 
 export interface TreeNodeData {
   id: string;
   title: string;
   children?: TreeNodeData[];
   isTask?: boolean;
-  taskStatus?: "todo" | "wip" | "blocked" | "done" | "dropped";
+  taskStatus?: TaskStatus;
   childCount?: number;
   color?: string;
   // Rich task display fields
@@ -37,26 +39,6 @@ export interface TreeNodeProps {
   isFolded?: boolean;
   maxDepth?: number;
   variant?: "compact" | "wide";
-}
-
-// Task status markers
-function getStatusMarker(
-  status?: "todo" | "wip" | "blocked" | "done" | "dropped",
-): string {
-  switch (status) {
-    case "todo":
-      return "[ ]";
-    case "wip":
-      return "[/]";
-    case "blocked":
-      return "[!]";
-    case "done":
-      return "[x]";
-    case "dropped":
-      return "[-]";
-    default:
-      return "";
-  }
 }
 
 // Priority colors (P0-P5 style, using 1-5 internally)
@@ -134,8 +116,14 @@ export function TreeNode({
   const hasChildren =
     (node.children?.length ?? 0) > 0 || (node.childCount ?? 0) > 0;
   const indent = "  ".repeat(depth);
-  const foldIndicator = hasChildren ? (isFolded ? ">" : "v") : " ";
-  const statusMarker = node.isTask ? getStatusMarker(node.taskStatus) : "";
+  const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : " ";
+
+  // Get status icon (colored circle) for tasks
+  const statusIcon = node.isTask ? getStatusIcon(node.taskStatus) : null;
+
+  // Clean title using renderPlain to strip [[wikilinks]], [fields::], etc.
+  const cleanTitle = renderPlain(node.title);
+
   const childCountDisplay =
     hasChildren && isFolded
       ? ` (${node.children?.length ?? node.childCount})`
@@ -151,11 +139,11 @@ export function TreeNode({
     node.isTask &&
     (node.taskStatus === "done" || node.taskStatus === "dropped");
 
-  // Build priority prefix
-  const priorityPrefix =
-    node.priority !== undefined ? `[${getPriorityLabel(node.priority)}] ` : "";
-  const priorityColor =
-    node.priority !== undefined ? getPriorityColor(node.priority) : undefined;
+  // Priority color (check for both null and undefined)
+  const hasPriority = node.priority != null;
+  const priorityColor = hasPriority
+    ? getPriorityColor(node.priority!)
+    : undefined;
 
   // Format due date if present
   const dueDateInfo = node.dueDate ? formatDueDate(node.dueDate) : null;
@@ -171,23 +159,22 @@ export function TreeNode({
   if (node.refsCount !== undefined && node.refsCount > 0) {
     metadataParts.push(`@${node.refsCount}`);
   }
-  const metadataSuffix =
-    metadataParts.length > 0 ? ` [${metadataParts.join(" ")}]` : "";
 
   // Calculate available width for title
+  const statusIconLen = statusIcon ? 2 : 0; // icon char + space
   const prefixLen =
     indent.length +
-    2 +
-    priorityPrefix.length +
-    (statusMarker ? statusMarker.length + 1 : 0);
-  const suffixLen = childCountDisplay.length + metadataSuffix.length;
+    2 + // fold indicator + space
+    statusIconLen +
+    (hasPriority ? `[P${node.priority}] `.length : 0);
+  const suffixLen = childCountDisplay.length;
   const availableWidth = Math.max(10, width - prefixLen - suffixLen);
 
   // Truncate title if needed
   const title =
-    node.title.length > availableWidth
-      ? node.title.slice(0, availableWidth - 1) + "..."
-      : node.title;
+    cleanTitle.length > availableWidth
+      ? cleanTitle.slice(0, availableWidth - 1) + "…"
+      : cleanTitle;
 
   // Build children nodes
   const childNodes: ReactNode[] = [];
@@ -227,38 +214,28 @@ export function TreeNode({
     // Two-line display for wide variant with metadata
     return (
       <box flexDirection="column" width={width}>
-        {/* First line: fold + priority + status + title + child count */}
-        <box flexDirection="row">
-          <text
-            backgroundColor={bgColor}
-            color={textColor}
-            dim={isDoneOrDropped}
-          >
+        {/* First line: fold + status icon + priority + title + child count */}
+        <box flexDirection="row" backgroundColor={bgColor}>
+          <text color={textColor} dim={isDoneOrDropped}>
             {indent}
             {foldIndicator}{" "}
           </text>
-          {node.priority !== undefined && (
-            <text
-              backgroundColor={bgColor}
-              color={hasSelection ? "black" : priorityColor}
-              bold
-            >
-              [{getPriorityLabel(node.priority)}]{" "}
+          {/* Status icon (colored circle) */}
+          {statusIcon && (
+            <text color={hasSelection ? "black" : statusIcon.color}>
+              {statusIcon.char}{" "}
             </text>
           )}
-          <text
-            backgroundColor={bgColor}
-            color={textColor}
-            dim={isDoneOrDropped}
-          >
-            {statusMarker && `${statusMarker} `}
+          {hasPriority && (
+            <text color={hasSelection ? "black" : priorityColor} bold>
+              [{getPriorityLabel(node.priority!)}]{" "}
+            </text>
+          )}
+          <text color={textColor} dim={isDoneOrDropped}>
             {title}
           </text>
           {childCountDisplay && (
-            <text
-              backgroundColor={bgColor}
-              color={hasSelection ? "black" : "gray"}
-            >
+            <text color={hasSelection ? "black" : "gray"}>
               {childCountDisplay}
             </text>
           )}
@@ -294,29 +271,27 @@ export function TreeNode({
   // Single-line display (compact variant or no metadata)
   return (
     <box flexDirection="column" width={width}>
-      <box flexDirection="row">
-        <text backgroundColor={bgColor} color={textColor} dim={isDoneOrDropped}>
+      <box flexDirection="row" backgroundColor={bgColor}>
+        <text color={textColor} dim={isDoneOrDropped}>
           {indent}
           {foldIndicator}{" "}
         </text>
-        {node.priority !== undefined && (
-          <text
-            backgroundColor={bgColor}
-            color={hasSelection ? "black" : priorityColor}
-            bold
-          >
-            [{getPriorityLabel(node.priority)}]{" "}
+        {/* Status icon (colored circle) */}
+        {statusIcon && (
+          <text color={hasSelection ? "black" : statusIcon.color}>
+            {statusIcon.char}{" "}
           </text>
         )}
-        <text backgroundColor={bgColor} color={textColor} dim={isDoneOrDropped}>
-          {statusMarker && `${statusMarker} `}
+        {hasPriority && (
+          <text color={hasSelection ? "black" : priorityColor} bold>
+            [{getPriorityLabel(node.priority!)}]{" "}
+          </text>
+        )}
+        <text color={textColor} dim={isDoneOrDropped}>
           {title}
         </text>
         {childCountDisplay && (
-          <text
-            backgroundColor={bgColor}
-            color={hasSelection ? "black" : "gray"}
-          >
+          <text color={hasSelection ? "black" : "gray"}>
             {childCountDisplay}
           </text>
         )}
