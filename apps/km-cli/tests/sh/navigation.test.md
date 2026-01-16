@@ -39,7 +39,7 @@ Syncing: ...
 
 Using persistent subprocess mode to test state across commands:
 
-```console cmd="km sh board.md" startupDelay=500
+```console cmd="km sh board.md"
 $ state
 cursor: [0,0]
 node: Task Alpha
@@ -58,7 +58,7 @@ topLevel: 1 nodes
 
 ### Boundary: k at top stays at top
 
-```console cmd="km sh board.md" startupDelay=500
+```console cmd="km sh board.md"
 $ k
 $ state
 cursor: [0,0]
@@ -68,7 +68,7 @@ topLevel: 1 nodes
 
 ### Boundary: j at bottom stays at bottom
 
-```console cmd="km sh board.md" startupDelay=500
+```console cmd="km sh board.md"
 $ j
 $ j
 $ j
@@ -80,7 +80,7 @@ topLevel: 1 nodes
 
 ## Jump Commands
 
-```console cmd="km sh board.md" startupDelay=500
+```console cmd="km sh board.md"
 $ j
 $ j
 $ g
@@ -97,7 +97,7 @@ topLevel: 1 nodes
 
 ## Log Command
 
-```console cmd="km sh board.md" startupDelay=500
+```console cmd="km sh board.md"
 $ j
 $ k
 $ log
@@ -119,13 +119,13 @@ km-sh commands:
 
 ### quit exits the shell immediately
 
-```console cmd="km sh board.md" startupDelay=500
+```console cmd="km sh board.md"
 $ q
 ```
 
 ## View Command
 
-```console cmd="km sh board.md" startupDelay=500
+```console cmd="km sh board.md"
 $ view
 Path: [...]
 
@@ -136,7 +136,7 @@ Path: [...]
 
 ## Error Handling
 
-```console cmd="km sh board.md" startupDelay=500
+```console cmd="km sh board.md"
 $ unknown_command
 error: Unknown command: unknown_command
 $ state

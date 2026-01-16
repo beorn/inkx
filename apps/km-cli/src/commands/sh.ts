@@ -29,6 +29,26 @@ import {
 } from "@km/tui-core";
 import type { Node } from "@km/core";
 
+// OSC 133 Shell Integration Protocol (Kitty, WezTerm, iTerm2, VS Code)
+// Emitted automatically when running in a real TTY, or when TERM_SHELL_INTEGRATION=1
+const OSC_133_A = "\x1b]133;A\x07"; // Prompt start (ready for input)
+const OSC_133_C = "\x1b]133;C\x07"; // Command start (execution beginning)
+const osc133D = (exitCode: number) => `\x1b]133;D;${exitCode}\x07`; // Command end
+
+/**
+ * Determine if we should emit OSC 133 sequences
+ * - Auto-enabled when stdout is a real TTY (interactive terminal)
+ * - Force-enabled via TERM_SHELL_INTEGRATION=1 (for mdtest PTY mode)
+ * - Force-disabled via TERM_SHELL_INTEGRATION=0
+ */
+function shouldEmitOsc133(): boolean {
+  const envFlag = process.env.TERM_SHELL_INTEGRATION;
+  if (envFlag === "1") return true;
+  if (envFlag === "0") return false;
+  // Auto-detect: emit if running in a real TTY
+  return process.stdout.isTTY === true;
+}
+
 /**
  * Convert Node to TreeNodeState (recursive)
  */
@@ -209,15 +229,38 @@ export const shCommand = new Command("sh")
         actionLog: [],
       };
 
+      // OSC 133 shell integration - auto-enabled in TTY or via env var
+      const useOsc133 = shouldEmitOsc133();
+
       const rl = createInterface({
         input: process.stdin,
         crlfDelay: Infinity,
       });
 
+      // Signal prompt ready
+      if (useOsc133) {
+        process.stdout.write(OSC_133_A);
+      }
+
       await new Promise<void>((resolve) => {
         rl.on("line", (line) => {
+          // Signal command start
+          if (useOsc133) {
+            process.stdout.write(OSC_133_C);
+          }
+
           const { state, quit } = executeCommand(line, ctx);
           ctx.state = state;
+
+          // Signal command end (exit code 0 - shell commands don't have exit codes yet)
+          if (useOsc133) {
+            process.stdout.write(osc133D(0));
+            // Signal next prompt ready (unless quitting)
+            if (!quit) {
+              process.stdout.write(OSC_133_A);
+            }
+          }
+
           if (quit) {
             rl.close();
           }
