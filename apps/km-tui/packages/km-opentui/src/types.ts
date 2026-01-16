@@ -4,20 +4,38 @@
  * Re-exports from @km/board plus renderer-specific component props and view models.
  */
 
-// Re-export types from shared package
+// Re-export board types
 export type {
   // State types
   TaskStatus,
   ViewMode,
-  // Tree types
-  TreeState,
-  TreeAction,
+  // Board types
+  BoardState,
+  BoardAction,
   TNode,
-  TreeCursorPath as CursorPath,
+  TPath,
   ViewLevelConfig,
   // ViewModel types
   NodeViewModel,
-  TreeViewModel,
+  BoardViewModel,
+} from "@km/board";
+
+// Re-export app state types
+export type {
+  AppState,
+  AppAction,
+  AppUIState,
+  AppUIAction,
+} from "./appState.ts";
+
+// Legacy aliases for backward compatibility
+export type {
+  AppState as TreeState,
+  AppAction as TreeAction,
+} from "./appState.ts";
+export type {
+  TPath as CursorPath,
+  BoardViewModel as TreeViewModel,
 } from "@km/board";
 
 // ===== View Model Types (for Views) =====

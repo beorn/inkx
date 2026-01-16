@@ -2,7 +2,7 @@
  * Board Types
  *
  * Core state types for board navigation and view models.
- * Split into BoardState (core navigation) and AppUIState (modal/dialog state).
+ * Does NOT include app-specific UI state (modals, dialogs) - that belongs in each app.
  */
 
 // Import types from @km/tree
@@ -14,20 +14,15 @@ export type { TaskStatus } from "@km/tree";
 
 export type ViewMode = "cards" | "list" | "columns" | "tabs";
 
-// ===== Path-based Navigation =====
-
-/** Path-based cursor position in the tree */
-export type CursorPath = TPath;
-
-// Re-export TNode from @km/tree
-export type { TNode } from "@km/tree";
+// Re-export TNode and TPath from @km/tree
+export type { TNode, TPath } from "@km/tree";
 
 // ===== Board State (Core Navigation) =====
 
 /**
  * Core board navigation state.
  * Handles cursor, selection, fold/collapse, zoom, and history.
- * Does NOT include modal/dialog state - that belongs in AppUIState.
+ * Does NOT include modal/dialog state - that belongs in app layer.
  */
 export interface BoardState {
   // Root context
@@ -38,7 +33,7 @@ export interface BoardState {
   nodes: TNode[]; // Top-level nodes
 
   // Path-based navigation
-  cursor: CursorPath; // Current selection path
+  cursor: TPath; // Current selection path
 
   // Selection state
   selectedNodes: Set<string>;
@@ -48,66 +43,21 @@ export interface BoardState {
   // Zoom stack (with cursor memory)
   zoomStack: Array<{
     rootId: string | null;
-    cursor: CursorPath;
+    cursor: TPath;
   }>;
 
   // Navigation history
   navHistory: Array<{
     rootId: string | null;
-    cursor: CursorPath;
+    cursor: TPath;
   }>;
   navHistoryIndex: number;
 
   // Move mode (m + destination)
   moveMode: boolean;
   moveSourceNodes: string[]; // Node IDs being moved
-  moveSourceCursor: CursorPath; // Original cursor position
+  moveSourceCursor: TPath; // Original cursor position
 }
-
-// ===== App UI State (Modal/Dialog State) =====
-
-/**
- * Application-specific UI state for modals and dialogs.
- * This state is specific to TUI applications and should be managed
- * in the app layer, not in the shared @km/board package.
- */
-export interface AppUIState {
-  // Search
-  searchQuery: string;
-  searchMode: boolean;
-
-  // Help
-  helpMode: boolean;
-
-  // View configuration
-  maxOutlineDepth: number;
-  maxContentLines: number;
-
-  // New item dialog
-  newItemMode: boolean;
-  newItemText: string;
-
-  // Project picker
-  projectPickerOpen: boolean;
-  projectPickerQuery: string;
-  projectPickerIndex: number;
-
-  // Detail pane
-  detailPaneOpen: boolean;
-
-  // Command palette
-  commandPaletteOpen: boolean;
-  commandPaletteQuery: string;
-  commandPaletteIndex: number;
-}
-
-// ===== Combined Tree State =====
-
-/**
- * Full tree state combining board navigation and app UI state.
- * Used by TUI applications that need both navigation and modal state.
- */
-export interface TreeState extends BoardState, AppUIState {}
 
 // ===== Board Actions (Core Navigation) =====
 
@@ -142,7 +92,7 @@ export type BoardAction =
   | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" }
   | { type: "NAV_PARENT" }
   | { type: "NAV_CHILD" }
-  | { type: "NAV_TO_PATH"; path: CursorPath }
+  | { type: "NAV_TO_PATH"; path: TPath }
 
   // Node operations
   | { type: "TOGGLE_FOLD"; nodeId: string }
@@ -192,55 +142,6 @@ export type BoardAction =
   | { type: "CONFIRM_MOVE" }
   | { type: "CANCEL_MOVE" };
 
-// ===== App UI Actions (Modal/Dialog State) =====
-
-/**
- * Actions for application-specific UI state (modals, dialogs, view config).
- */
-export type AppUIAction =
-  // Search
-  | { type: "TOGGLE_SEARCH_MODE" }
-  | { type: "SET_SEARCH_QUERY"; query: string }
-
-  // Help
-  | { type: "TOGGLE_HELP_MODE" }
-
-  // New item dialog
-  | { type: "TOGGLE_NEW_ITEM_MODE" }
-  | { type: "SET_NEW_ITEM_TEXT"; text: string }
-  | { type: "CLEAR_NEW_ITEM" }
-
-  // Project picker
-  | { type: "TOGGLE_PROJECT_PICKER" }
-  | { type: "SET_PROJECT_PICKER_QUERY"; query: string }
-  | { type: "PROJECT_PICKER_UP" }
-  | { type: "PROJECT_PICKER_DOWN"; maxIndex: number }
-  | { type: "CLOSE_PROJECT_PICKER" }
-
-  // Detail pane
-  | { type: "TOGGLE_DETAIL_PANE" }
-
-  // Command palette
-  | { type: "TOGGLE_COMMAND_PALETTE" }
-  | { type: "SET_COMMAND_PALETTE_QUERY"; query: string }
-  | { type: "COMMAND_PALETTE_UP" }
-  | { type: "COMMAND_PALETTE_DOWN"; maxIndex: number }
-  | { type: "CLOSE_COMMAND_PALETTE" }
-
-  // View configuration
-  | { type: "INCREASE_OUTLINE_DEPTH" }
-  | { type: "DECREASE_OUTLINE_DEPTH" }
-  | { type: "INCREASE_CONTENT_LINES" }
-  | { type: "DECREASE_CONTENT_LINES" };
-
-// ===== Combined Tree Action =====
-
-/**
- * All tree actions (board + app UI).
- * Used by TUI applications that need the full reducer.
- */
-export type TreeAction = BoardAction | AppUIAction;
-
 // ===== View Level Configuration =====
 
 /**
@@ -277,7 +178,8 @@ export const VIEW_LEVEL_PRESETS: Record<ViewMode, ViewLevelConfig> = {
  */
 export interface NodeViewModel {
   id: string;
-  title: string;
+  name: string; // Stable identifier (filename/slug)
+  title: string; // Display text (may have formatting)
   childCount: number;
   isTask: boolean;
   taskStatus?: TaskStatus;
@@ -288,21 +190,18 @@ export interface NodeViewModel {
   dueDate?: string;
   hasBacklinks?: boolean;
   refsCount?: number;
-  content?: string;
+  body?: string; // Text content below the title (renamed from 'content')
   depth: number;
   children: NodeViewModel[];
 }
 
 /**
- * Tree view model for rendering.
+ * Board view model for rendering.
  */
-export interface TreeViewModel {
+export interface BoardViewModel {
   rootPath: string | null;
   nodes: NodeViewModel[];
-  cursor: CursorPath;
+  cursor: TPath;
   selectedNodes: Set<string>;
   viewMode: ViewMode;
-  searchQuery: string;
-  searchMode: boolean;
-  helpMode: boolean;
 }

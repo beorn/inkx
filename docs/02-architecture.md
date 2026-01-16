@@ -63,7 +63,7 @@ apps/
 
 ---
 
-## Four-Layer Architecture
+## Five-Layer Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -78,10 +78,10 @@ apps/
                                 │ board actions
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  BOARD LAYER (@km/board)                                     │
+│  BOARD LAYER (@km/board)                                        │
 │                                                                  │
 │  • BoardState - cursor, selection, fold, zoom, history          │
-│  • treeReducer - CURSOR_*, selection, navigation                │
+│  • boardReducer - CURSOR_*, selection, navigation               │
 │  • Selectors, transformers, collapse utilities                  │
 │                                                                  │
 │  Owns: Visual navigation state, selection, algorithms           │
@@ -92,34 +92,78 @@ apps/
 │  TREE LAYER (@km/tree)                                          │
 │                                                                  │
 │  • TNode - recursive node (id, title, children[], depth)        │
-│  • TreePath - path-based navigation                             │
+│  • TPath - path-based navigation indices                        │
+│  • TAction - content manipulation (add, move, delete, update)   │
 │  • Queries - getNodeAtPath, getSiblings, findPathByNodeId       │
-│  • Display names - getNodeDisplayName, normalizeName            │
 │                                                                  │
 │  Owns: Tree data structure, queries (NO visual state)           │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │ DBNode CRUD
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STORAGE LAYER (@km/storage)                                    │
+│  DB LAYER (@km/storage)                                         │
 │                                                                  │
 │  • DBNode - flat record (id, parent_id, content, etc.)          │
 │  • SQLite operations, events, file sync                         │
 │                                                                  │
 │  Owns: Persistence, file sync, database                         │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ parse/write
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  FS LAYER (filesystem)                                          │
+│                                                                  │
+│  • Folders - directories containing markdown files              │
+│  • Files - *.md files with frontmatter, content, tasks          │
+│  • @km/markdown - parser (markdown ↔ DBNode)                    │
+│                                                                  │
+│  Owns: Source of truth (plain markdown files)                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Type Hierarchy
+## Layer Model
 
-| Layer | Type         | Description                                     |
-| ----- | ------------ | ----------------------------------------------- |
-| DB    | `DBNode`     | Flat record with `parent_id` (stored in SQLite) |
-| Tree  | `TNode`      | Recursive with `children[]` (for navigation)    |
-| Board | `BoardState` | Visual state: cursor, selection, fold           |
-| App   | `AppState`   | App-specific: modals, search, view mode         |
+Each layer has its own data types, state, actions, and responsibilities:
+
+| Layer | Package      | Data Type | State        | Actions       | Responsibilities                    |
+| ----- | ------------ | --------- | ------------ | ------------- | ----------------------------------- |
+| App   | apps/\*      | -         | `AppState`   | `AppAction`   | Modals, dialogs, rendering          |
+| Board | @km/board    | `TNode`\* | `BoardState` | `BoardAction` | Cursor, selection, fold, zoom       |
+| Tree  | @km/tree     | `TNode`   | (stateless)  | `TAction`     | Tree structure, queries, transforms |
+| DB    | @km/storage  | `DBNode`  | (SQLite)     | (functions)   | Persistence, events, file sync      |
+| FS    | (filesystem) | File      | (filesystem) | (fs ops)      | Source of truth (markdown files)    |
+
+\* Board layer uses `TNode` from Tree layer directly
+
+### Data Type Transformations
+
+```
+FS → DB:      File content   → DBNode    (parse markdown, extract metadata)
+DB → Tree:    DBNode[]       → TNode[]   (build recursive tree from flat records)
+Tree → Board: TNode[]        → uses as-is (visual state tracks Sets, not per-node)
+Board → App:  BoardState     → AppState  (combine with app-specific UI state)
+```
+
+### Type Details
+
+| Type         | Description                                     |
+| ------------ | ----------------------------------------------- |
+| `File`       | Markdown file with frontmatter, content, tasks  |
+| `DBNode`     | Flat record with `parent_id` (stored in SQLite) |
+| `TNode`      | Recursive with `children[]` (for navigation)    |
+| `TPath`      | Array of indices for path-based navigation      |
+| `BoardState` | Visual state: cursor, selection, fold, zoom     |
+| `AppState`   | BoardState + app-specific: modals, search       |
+
+### Action Types
+
+| Type          | Description                                           |
+| ------------- | ----------------------------------------------------- |
+| `TAction`     | Content manipulation: T_ADD_NODE, T_MOVE_NODE, etc.   |
+| `BoardAction` | Navigation: CURSOR*\*, NAV*\*, SELECT\_\*, FOLD, etc. |
+| `AppAction`   | App UI: TOGGLE_SEARCH_MODE, TOGGLE_HELP_MODE, etc.    |
 
 ---
 
@@ -129,47 +173,41 @@ apps/
 ┌───────────────────────────────────────────────────────────────┐
 │  App Layer              (apps/)                               │
 │  • @km/tui-app, @km/sh-app, @km/cli-app                       │
-│  • App-specific state (modals, search)                        │
-│  • User input → actions                                       │
+│  • AppState = BoardState + AppUIState (modals, search)        │
+│  • appReducer handles AppAction, delegates to boardReducer    │
 └───────────────────────────────────────────────────────────────┘
-                              │
+                              │ AppAction → BoardAction
                               ▼
 ┌───────────────────────────────────────────────────────────────┐
-│  Board Layer            (@km/board)                        │
-│  • Visual navigation state                                    │
-│  • Cursor, selection, fold, zoom                              │
-│  • Returns BoardState                                         │
+│  Board Layer            (@km/board)                           │
+│  • BoardState: cursor, selection, fold, zoom, history         │
+│  • boardReducer handles BoardAction, passes TAction through   │
+│  • Selectors, transformers for view models                    │
 └───────────────────────────────────────────────────────────────┘
-                              │
+                              │ TAction → @km/storage functions
                               ▼
 ┌───────────────────────────────────────────────────────────────┐
 │  Tree Layer             (@km/tree)                            │
 │  • TNode (recursive tree structure)                           │
-│  • Tree queries, traversal                                    │
-│  • Display name computation                                   │
+│  • TAction describes content intent (add, move, delete)       │
+│  • Tree queries, traversal, display names                     │
 └───────────────────────────────────────────────────────────────┘
-                              │
+                              │ DBNode CRUD
                               ▼
 ┌───────────────────────────────────────────────────────────────┐
-│  Storage Layer          (@km/storage)                         │
-│  • DBNode CRUD operations                                     │
-│  • Event emission (disk mode)                                 │
+│  DB Layer               (@km/storage)                         │
+│  • DBNode - flat record with parent_id                        │
+│  • SQLite CRUD operations, event emission                     │
 │  • Filesystem ↔ DB synchronization                            │
 └───────────────────────────────────────────────────────────────┘
-                              │
+                              │ parse/write via @km/markdown
                               ▼
 ┌───────────────────────────────────────────────────────────────┐
-│  Parser Layer           (@km/markdown)                        │
-│  • Markdown → AST → DBNode                                    │
-│  • DBNode → Markdown                                          │
-│  • Extracts: frontmatter, tasks, refs, fields                 │
-└───────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────┐
-│  Filesystem             (plain markdown files)                │
-│  • Source of truth in memory mode                             │
-│  • Synchronized with model in disk mode                       │
+│  FS Layer               (filesystem)                          │
+│  • Folders - directories (become parent nodes)                │
+│  • Files - *.md files (become file nodes)                     │
+│  • Content - frontmatter, sections, tasks, paragraphs         │
+│  • Source of truth (plain markdown files)                     │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -178,7 +216,8 @@ apps/
 - Each layer only calls the layer directly below it
 - UI never touches filesystem directly
 - Model changes MUST propagate to filesystem (bidirectional)
-- Parser is stateless — pure transformation
+- Parser (@km/markdown) is stateless — pure transformation
+- Visual state (fold, selection) is tracked in Sets, not per-node
 
 ---
 
@@ -260,22 +299,25 @@ User edits markdown file
 | @km/tui-app | TUI rendering, modal state    |
 | @km/sh-app  | Shell REPL, command execution |
 
-**Owns:** App-specific state, rendering, user input handling
+**State:** `AppState = BoardState & AppUIState`
+**Actions:** `AppAction = BoardAction | AppUIAction`
+**Owns:** App-specific state (modals, search), rendering, user input handling
 
 ### Board Layer (@km/board)
 
-| Concern            | Examples                     |
-| ------------------ | ---------------------------- |
-| Cursor position    | CursorPath = [col, card]     |
-| Selection          | selectedNodes: Set<string>   |
-| Visual state       | foldedNodes, collapsedNodes  |
-| Navigation history | zoomStack, navHistory        |
-| Spatial algorithms | calculateCrossColumnPath()   |
-| Navigation logic   | treeReducer                  |
-| Selectors          | getCurrentNode, isNodeFolded |
-| Transformers       | toNodeViewModel              |
-| Collapse utils     | collapseRedundantAncestors   |
+| Concern            | Examples                          |
+| ------------------ | --------------------------------- |
+| Cursor position    | TPath = [col, card]               |
+| Selection          | selectedNodes: Set<string>        |
+| Visual state       | foldedNodes, collapsedNodes       |
+| Navigation history | zoomStack, navHistory             |
+| Spatial algorithms | getNextVisiblePath()              |
+| Navigation logic   | boardReducer                      |
+| Selectors          | getCurrentNode, isNodeFolded      |
+| Transformers       | toNodeViewModel, toBoardViewModel |
 
+**State:** `BoardState`
+**Actions:** `BoardAction` (CURSOR*\*, NAV*\*, SELECT\_\*, FOLD, ZOOM)
 **Does NOT own:** App-specific state, rendering, DBNode mutations
 
 ### Tree Layer (@km/tree)
@@ -283,13 +325,16 @@ User edits markdown file
 | Concern         | Examples                      |
 | --------------- | ----------------------------- |
 | Tree structure  | TNode { id, title, children } |
+| Path navigation | TPath = number[]              |
+| Content actions | TAction (T_ADD_NODE, etc.)    |
 | Tree queries    | getNodeAtPath(nodes, path)    |
-| Tree transforms | filter, flatten               |
 | Display names   | getNodeDisplayName            |
 
+**Data:** `TNode`, `TPath`
+**Actions:** `TAction` (T_ADD_NODE, T_MOVE_NODE, T_DELETE_NODE, T_UPDATE_NODE)
 **Does NOT own:** Visual state, DBNode storage
 
-### Storage Layer (@km/storage)
+### DB Layer (@km/storage)
 
 | Concern     | Examples                 |
 | ----------- | ------------------------ |
@@ -299,7 +344,20 @@ User edits markdown file
 | File sync   | Markdown ↔ DB sync       |
 | Query lang  | parseQuery, executeQuery |
 
+**Data:** `DBNode` (flat record with parent_id)
 **Does NOT own:** Tree structure, navigation, rendering
+
+### FS Layer (filesystem)
+
+| Concern | Examples                         |
+| ------- | -------------------------------- |
+| Folders | Directories → parent nodes       |
+| Files   | \*.md files → file nodes         |
+| Content | Frontmatter, sections, tasks     |
+| Parser  | @km/markdown (markdown ↔ DBNode) |
+
+**Data:** Files and folders (plain markdown)
+**Owns:** Source of truth for content
 
 ---
 

@@ -9,6 +9,10 @@
 export type { TNode, TPath } from "./types.ts";
 export type { TaskStatus } from "./types.ts";
 
+// Actions
+export type { TAction } from "./actions.ts";
+export { isTAction } from "./actions.ts";
+
 // Queries
 export {
   getNodeAtPath,

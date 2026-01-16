@@ -5,14 +5,16 @@
  * to view models. Verifies the architecture layers work together:
  *
  * Store Layer (km-storage) -> State Layer (km-board) -> View Layer (km-ink/km-opentui)
+ *
+ * Note: Tests for app-specific UI actions (search, help, outline depth) use
+ * the combined app reducer from km-opentui, while board navigation tests use
+ * the board reducer directly from @km/board.
  */
 
 import { describe, it, expect } from "bun:test";
 
-// Import from @km/board - the shared state management layer
+// Import board-level types and selectors from @km/board
 import {
-  treeReducer,
-  createInitialTreeState,
   getCurrentNode,
   getParentNode,
   getSiblings,
@@ -24,10 +26,17 @@ import {
   isNodeCollapsed,
   getTotalNodeCount,
   toNodeViewModel,
-  toTreeViewModel,
-  type TreeState,
+  toBoardViewModel,
   type TNode,
 } from "@km/board";
+
+// Import app-level types and functions from km-opentui
+// This includes the combined reducer that handles both board and app UI actions
+import {
+  treeReducer,
+  createInitialTreeState,
+  type TreeState,
+} from "@km/opentui";
 
 // ============================================================================
 // Test Helpers
@@ -44,6 +53,7 @@ function mockNode(
 ): TNode {
   return {
     nodeId: id,
+    name: id,
     title,
     children,
     childCount: children.length,
@@ -558,10 +568,10 @@ describe("TUI2 Integration: ViewModels", () => {
     });
   });
 
-  describe("toTreeViewModel", () => {
-    it("transforms TreeState to TreeViewModel", () => {
+  describe("toBoardViewModel", () => {
+    it("transforms BoardState to BoardViewModel", () => {
       const state = createTestTree();
-      const viewModel = toTreeViewModel(state, "cards");
+      const viewModel = toBoardViewModel(state, "cards");
 
       expect(viewModel.rootPath).toBe("/test/vault");
       expect(viewModel.nodes).toHaveLength(3);
@@ -570,25 +580,27 @@ describe("TUI2 Integration: ViewModels", () => {
       expect(viewModel.viewMode).toBe("cards");
     });
 
-    it("applies search filter", () => {
-      const state = { ...createTestTree(), searchQuery: "Todo" };
-      const viewModel = toTreeViewModel(state, "cards");
-
-      // Only "Todo" column matches
-      expect(viewModel.nodes).toHaveLength(1);
-      expect(viewModel.nodes[0]?.title).toBe("Todo");
-    });
-
-    it("preserves search state", () => {
+    it("includes selection state", () => {
       const state = {
         ...createTestTree(),
-        searchMode: true,
-        searchQuery: "test",
+        selectedNodes: new Set(["item-1", "item-2"]),
       };
-      const viewModel = toTreeViewModel(state, "cards");
+      const viewModel = toBoardViewModel(state, "cards");
 
-      expect(viewModel.searchMode).toBe(true);
-      expect(viewModel.searchQuery).toBe("test");
+      expect(viewModel.selectedNodes.has("item-1")).toBe(true);
+      expect(viewModel.selectedNodes.has("item-2")).toBe(true);
+    });
+
+    it("preserves folded state in node view models", () => {
+      const state = {
+        ...createTestTree(),
+        foldedNodes: new Set(["col-todo"]),
+      };
+      const viewModel = toBoardViewModel(state, "cards");
+
+      // First node (col-todo) should be folded in the view model
+      expect(viewModel.nodes[0]?.isFolded).toBe(true);
+      expect(viewModel.nodes[1]?.isFolded).toBe(false);
     });
   });
 });

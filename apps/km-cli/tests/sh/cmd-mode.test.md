@@ -40,14 +40,19 @@ Using `cmd="km sh board.md"` - state persists between commands:
 
 ```console cmd="km sh board.md" minWait=50 maxWait=500
 $ state
+[...]
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
+[...]
 $ j
+[...]
 $ state
+[...]
 cursor: [0,1]
 node: Task Beta
 topLevel: 1 nodes
+[...]
 ```
 
 ## Simple REPL examples

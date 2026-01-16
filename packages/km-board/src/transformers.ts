@@ -6,12 +6,12 @@
  */
 
 import type {
-  TreeState,
+  BoardState,
   TNode,
   ViewMode,
   NodeViewModel,
-  TreeViewModel,
-} from "./treeTypes.ts";
+  BoardViewModel,
+} from "./boardTypes.ts";
 
 /**
  * Transform a TNode into a NodeViewModel
@@ -40,44 +40,30 @@ export function toNodeViewModel(
 }
 
 /**
- * Filter nodes by search query (case-insensitive title match)
+ * Transform BoardState into BoardViewModel
  */
-function filterNodesByQuery(
-  nodes: NodeViewModel[],
-  query: string,
-): NodeViewModel[] {
-  if (!query) {
-    return nodes;
-  }
-  const lowerQuery = query.toLowerCase();
-  return nodes.filter((node) => node.title.toLowerCase().includes(lowerQuery));
-}
-
-/**
- * Transform full TreeState into TreeViewModel
- */
-export function toTreeViewModel(
-  state: TreeState,
+export function toBoardViewModel(
+  state: BoardState,
   viewMode: ViewMode,
-): TreeViewModel {
+): BoardViewModel {
   // Transform nodes to view models
   const nodes = state.nodes.map((node) =>
     toNodeViewModel(node, state.foldedNodes),
   );
 
-  // Apply search filter if query is present
-  const filteredNodes = state.searchQuery
-    ? filterNodesByQuery(nodes, state.searchQuery)
-    : nodes;
-
   return {
     rootPath: state.rootPath,
-    nodes: filteredNodes,
+    nodes,
     cursor: state.cursor,
     selectedNodes: state.selectedNodes,
     viewMode,
-    searchQuery: state.searchQuery,
-    searchMode: state.searchMode,
-    helpMode: state.helpMode,
   };
 }
+
+// ===== Legacy alias for backward compatibility =====
+// TODO: Remove after migrating consumers
+
+/**
+ * @deprecated Use toBoardViewModel instead
+ */
+export const toTreeViewModel = toBoardViewModel;

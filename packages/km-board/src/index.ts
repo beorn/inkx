@@ -1,39 +1,34 @@
 /**
- * @km/board - Visual Board State
+ * @km/board - Board Navigation State
  *
- * Visual navigation state for TUI board navigation.
+ * Visual navigation state for board navigation.
  * Manages cursor, selection, fold/collapse, zoom, and history.
- * NO UI rendering - that's in @km/tui.
+ * Does NOT include app-specific UI state (modals, dialogs).
  */
 
-// Board-specific types (column/card navigation)
-export type { BoardState, BoardAction, CursorPath } from "./types.ts";
-export { createInitialBoardState } from "./types.ts";
-export { boardReducer, validateCursor } from "./boardReducer.ts";
-
-// Tree types (path-based navigation)
+// ===== Board Types =====
 export type {
-  TaskStatus,
-  ViewMode,
-  CursorPath as TreeCursorPath,
-  TreeState,
-  TreeAction,
+  BoardState,
+  BoardAction,
   TNode,
+  TPath,
+  ViewMode,
+  TaskStatus,
   ViewLevelConfig,
   NodeViewModel,
-  TreeViewModel,
-} from "./treeTypes.ts";
-export { VIEW_LEVEL_PRESETS } from "./treeTypes.ts";
+  BoardViewModel,
+} from "./boardTypes.ts";
+export { VIEW_LEVEL_PRESETS } from "./boardTypes.ts";
 
-// Tree reducer
+// ===== Board Reducer =====
 export {
-  treeReducer,
-  createInitialTreeState,
+  boardReducer,
+  createInitialBoardState,
   getNodeAtPath,
   getSiblingCount,
-} from "./treeReducer.ts";
+} from "./boardReducer.ts";
 
-// Selectors
+// ===== Selectors =====
 export {
   getCurrentNode,
   getParentNode,
@@ -51,5 +46,51 @@ export {
   getBreadcrumbs,
 } from "./selectors.ts";
 
-// Transformers
-export { toNodeViewModel, toTreeViewModel } from "./transformers.ts";
+// ===== Transformers =====
+export {
+  toNodeViewModel,
+  toBoardViewModel,
+  toTreeViewModel,
+} from "./transformers.ts";
+
+// ===== Legacy Exports (Backward Compatibility) =====
+// These are deprecated and will be removed in a future version.
+// Apps should migrate to BoardState/BoardAction and manage their own AppUIState.
+
+// Re-export TPath as TreeCursorPath for backward compatibility
+import type { TPath } from "./boardTypes.ts";
+/** @deprecated Use TPath instead */
+export type TreeCursorPath = TPath;
+/** @deprecated Use TPath instead */
+export type CursorPath = TPath;
+
+// Legacy aliases
+import type { BoardState, BoardAction, BoardViewModel } from "./boardTypes.ts";
+import { boardReducer, createInitialBoardState } from "./boardReducer.ts";
+
+/**
+ * @deprecated Use BoardState instead. TreeState included app-specific UI fields
+ * that should now be managed in the app layer.
+ */
+export type TreeState = BoardState;
+
+/**
+ * @deprecated Use BoardAction instead. TreeAction included app-specific UI actions
+ * that should now be handled in the app layer.
+ */
+export type TreeAction = BoardAction;
+
+/**
+ * @deprecated Use BoardViewModel instead.
+ */
+export type TreeViewModel = BoardViewModel;
+
+/**
+ * @deprecated Use boardReducer instead.
+ */
+export const treeReducer = boardReducer;
+
+/**
+ * @deprecated Use createInitialBoardState instead.
+ */
+export const createInitialTreeState = createInitialBoardState;

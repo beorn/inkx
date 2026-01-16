@@ -18,7 +18,8 @@ export type { TaskStatus } from "@km/core";
  */
 export interface TNode {
   nodeId: string;
-  title: string;
+  name: string; // Stable identifier (filename/slug)
+  title: string; // Display text (may have formatting)
   children: TNode[]; // Recursive children
   childCount: number; // Total children (may exceed loaded children.length)
 
@@ -31,7 +32,7 @@ export interface TNode {
   dueDate?: string;
   hasBacklinks?: boolean;
   refsCount?: number;
-  content?: string;
+  body?: string; // Text content below the title (renamed from 'content')
 
   // Tree metadata
   depth: number; // Depth from current view root (0 = top level)

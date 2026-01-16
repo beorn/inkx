@@ -636,10 +636,22 @@ export function resolveNode(query: string, type?: string): DBNode | null {
   // Note: ~ is expanded by the shell before reaching this code
   if (isExplicitPath(query)) {
     const absolutePath = resolve(process.cwd(), query);
-    const row = db
+    // Try exact absolute path match first
+    let row = db
       .query(`SELECT * FROM nodes WHERE fs_path = ?${typeFilter}`)
       .get(absolutePath, ...typeParams) as Record<string, unknown> | null;
     if (row) return rowToNode(row);
+
+    // Also try matching by filename suffix (handles relative paths in DB)
+    // When DB stores "board.md" but query is "/tmp/vault/board.md"
+    row = db
+      .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${typeFilter}`)
+      .get(`%${absolutePath.split("/").pop()}`, ...typeParams) as Record<
+      string,
+      unknown
+    > | null;
+    if (row) return rowToNode(row);
+
     // Don't fall through for explicit paths - they should match exactly or not at all
     // This prevents /some/path from accidentally matching an ID suffix
     return null;

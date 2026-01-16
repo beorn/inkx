@@ -1,26 +1,39 @@
 /**
  * useTreeState Hook
  *
- * React hook wrapper around the generic tree state reducer.
+ * React hook wrapper around the combined app state reducer.
  * Provides path-based navigation with computed selectors.
  * Includes undo/redo capability for state mutations.
  */
 
 import { useReducer, useMemo, useCallback, useState } from "react";
 import {
-  treeReducer,
-  createInitialTreeState,
+  boardReducer,
+  createInitialBoardState,
   getNodeAtPath,
   getSiblingCount,
-  type TreeState,
-  type TreeAction,
+  type BoardState,
+  type BoardAction,
   type TNode,
-  type TreeCursorPath as CursorPath,
+  type TPath,
 } from "@km/board";
+import {
+  appUIReducer,
+  createInitialAppUIState,
+  isAppUIAction,
+  type AppState,
+  type AppAction,
+  type AppUIState,
+} from "../appState.ts";
 
 // Re-export for convenience
-export { treeReducer, createInitialTreeState };
-export type { TreeState, TreeAction, TNode, CursorPath };
+export { boardReducer, createInitialBoardState };
+export type { AppState, AppAction, TNode };
+
+// Legacy aliases for backward compatibility
+export type TreeState = AppState;
+export type TreeAction = AppAction;
+export type CursorPath = TPath;
 
 // Maximum undo history size
 const MAX_UNDO_HISTORY = 50;
@@ -46,11 +59,75 @@ const UNDOABLE_ACTIONS = new Set([
 ]);
 
 /**
+ * Combined app reducer that handles both board and app UI actions.
+ */
+function appReducer(state: AppState, action: AppAction): AppState {
+  // Check if it's an app UI action
+  if (isAppUIAction(action)) {
+    // Extract app UI state, apply app UI reducer, merge back
+    const appUIState: AppUIState = {
+      searchQuery: state.searchQuery,
+      searchMode: state.searchMode,
+      helpMode: state.helpMode,
+      maxOutlineDepth: state.maxOutlineDepth,
+      maxContentLines: state.maxContentLines,
+      newItemMode: state.newItemMode,
+      newItemText: state.newItemText,
+      projectPickerOpen: state.projectPickerOpen,
+      projectPickerQuery: state.projectPickerQuery,
+      projectPickerIndex: state.projectPickerIndex,
+      detailPaneOpen: state.detailPaneOpen,
+      commandPaletteOpen: state.commandPaletteOpen,
+      commandPaletteQuery: state.commandPaletteQuery,
+      commandPaletteIndex: state.commandPaletteIndex,
+    };
+    const newAppUIState = appUIReducer(appUIState, action);
+    return { ...state, ...newAppUIState };
+  }
+
+  // Otherwise it's a board action
+  const boardState: BoardState = {
+    rootId: state.rootId,
+    rootPath: state.rootPath,
+    nodes: state.nodes,
+    cursor: state.cursor,
+    selectedNodes: state.selectedNodes,
+    foldedNodes: state.foldedNodes,
+    collapsedNodes: state.collapsedNodes,
+    zoomStack: state.zoomStack,
+    navHistory: state.navHistory,
+    navHistoryIndex: state.navHistoryIndex,
+    moveMode: state.moveMode,
+    moveSourceNodes: state.moveSourceNodes,
+    moveSourceCursor: state.moveSourceCursor,
+  };
+  const newBoardState = boardReducer(boardState, action as BoardAction);
+  return { ...state, ...newBoardState };
+}
+
+/**
+ * Create initial combined app state.
+ */
+export function createInitialAppState(
+  nodes: TNode[],
+  rootId: string | null = null,
+  rootPath: string | null = null,
+): AppState {
+  const boardState = createInitialBoardState(nodes, rootId, rootPath);
+  const appUIState = createInitialAppUIState();
+  return { ...boardState, ...appUIState };
+}
+
+// Legacy alias
+export const treeReducer = appReducer;
+export const createInitialTreeState = createInitialAppState;
+
+/**
  * Tree state hook with selectors
  */
 export interface TreeStateHook {
-  state: TreeState;
-  dispatch: (action: TreeAction) => void;
+  state: AppState;
+  dispatch: (action: AppAction) => void;
 
   // Computed selectors
   currentNode: TNode | null;
@@ -75,7 +152,7 @@ export interface TreeStateHook {
 /**
  * Get siblings at current cursor level
  */
-function getSiblings(nodes: TNode[], path: CursorPath): TNode[] {
+function getSiblings(nodes: TNode[], path: TPath): TNode[] {
   if (path.length === 0) return [];
   if (path.length === 1) return nodes;
 
@@ -84,16 +161,16 @@ function getSiblings(nodes: TNode[], path: CursorPath): TNode[] {
   return parent?.children ?? [];
 }
 
-export function useTreeState(initialState: TreeState): TreeStateHook {
-  const [state, baseDispatch] = useReducer(treeReducer, initialState);
+export function useTreeState(initialState: AppState): TreeStateHook {
+  const [state, baseDispatch] = useReducer(appReducer, initialState);
 
   // Undo/redo history stacks
-  const [undoStack, setUndoStack] = useState<TreeState[]>([]);
-  const [redoStack, setRedoStack] = useState<TreeState[]>([]);
+  const [undoStack, setUndoStack] = useState<AppState[]>([]);
+  const [redoStack, setRedoStack] = useState<AppState[]>([]);
 
   // Wrapped dispatch that tracks undo history for undoable actions
   const dispatch = useCallback(
-    (action: TreeAction) => {
+    (action: AppAction) => {
       if (UNDOABLE_ACTIONS.has(action.type)) {
         // Save current state to undo stack before applying action
         setUndoStack((prev) => {
