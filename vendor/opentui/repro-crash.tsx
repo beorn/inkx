@@ -4,7 +4,7 @@
  * Bug: Using an invalid borderStyle value (e.g., "round" instead of "rounded")
  * causes a segmentation fault on macOS Apple Silicon.
  *
- * Run with: bun run packages/km-tui-opentui/src/repro-crash.tsx [test-number]
+ * Run with: bun run vendor/opentui/repro-crash.tsx [test-number]
  *
  * Environment:
  * - macOS (Apple Silicon) - Darwin arm64
@@ -13,9 +13,9 @@
  * - @opentui/react 0.1.73
  *
  * Tests:
- *   bun run packages/km-tui-opentui/src/repro-crash.tsx 1  # "single" - works
- *   bun run packages/km-tui-opentui/src/repro-crash.tsx 2  # "rounded" - works or crashes?
- *   bun run packages/km-tui-opentui/src/repro-crash.tsx 3  # "round" (invalid) - crashes
+ *   bun run vendor/opentui/repro-crash.tsx 1  # "single" - works
+ *   bun run vendor/opentui/repro-crash.tsx 2  # "rounded" - works or crashes?
+ *   bun run vendor/opentui/repro-crash.tsx 3  # "round" (invalid) - crashes
  */
 
 import { createCliRenderer } from "@opentui/core";
