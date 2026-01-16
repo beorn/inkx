@@ -9,13 +9,13 @@ import { Command } from "commander";
 import { runBoard, type ViewMode } from "@km/tui-ink";
 import { runBoardTui2 } from "../tui2/tui2.tsx";
 import { getRootPath } from "../index.ts";
-import { getStore } from "@km/store";
+import { resolvePathArg } from "@km/store";
 
 const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"];
 
 export const viewCommand = new Command("view")
   .description("Interactive TUI view (press 'v' to cycle modes)")
-  .argument("[root]", "Root node ID to start view from")
+  .argument("[root]", "Root node ID, filesystem path, or directory to view")
   .option("--no-tui", "Non-interactive mode, just print")
   .option("--tui2", "Use OpenTUI renderer (experimental)")
   .option(
@@ -24,19 +24,24 @@ export const viewCommand = new Command("view")
     "cards",
   )
   .action(async (root, options) => {
-    // Get the filesystem root path - prefer explicit --root, fall back to store's rootPath
-    const fsPath = getRootPath() || getStore().rootPath;
+    // Resolve path argument - handles directory paths, file paths, and node IDs
+    const resolved = resolvePathArg(root, getRootPath());
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
 
     if (options.tui2) {
       // Use OpenTUI renderer
-      await runBoardTui2(root, fsPath, {
+      await runBoardTui2(resolved.nodeRef ?? undefined, resolved.vaultRoot, {
         initialViewMode: viewMode as ViewMode,
       });
     } else {
       // Use Ink renderer (default)
-      await runBoard(root, options.tui !== false, fsPath, {
-        initialViewMode: viewMode as ViewMode,
-      });
+      await runBoard(
+        resolved.nodeRef ?? undefined,
+        options.tui !== false,
+        resolved.vaultRoot,
+        {
+          initialViewMode: viewMode as ViewMode,
+        },
+      );
     }
   });

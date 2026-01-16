@@ -10,7 +10,15 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { resolveNode, getDb, getStore, getChildren } from "@km/store";
+import {
+  resolveNode,
+  getDb,
+  getStore,
+  getChildren,
+  resolvePathArg,
+  ensureState,
+} from "@km/store";
+import { getRootPath } from "../index.ts";
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
 
 // Bound version with store dependency
@@ -70,8 +78,17 @@ export const moveCommand = new Command("move")
   .option("--to-root", "Move to root level (no parent)")
   .option("--json", "Output as JSON")
   .action((nodeArg, parentArg, options) => {
+    // Resolve the node argument - may detect vault root from path
+    const resolvedNode = resolvePathArg(nodeArg, getRootPath());
+    ensureState(resolvedNode.vaultRoot, false);
+
+    if (!resolvedNode.nodeRef) {
+      console.error(chalk.red(`Cannot move a directory`));
+      process.exit(1);
+    }
+
     // Find the node to move
-    const node = resolveNode(nodeArg);
+    const node = resolveNode(resolvedNode.nodeRef);
     if (!node) {
       console.error(chalk.red(`Node not found: ${nodeArg}`));
       process.exit(1);
@@ -93,8 +110,14 @@ export const moveCommand = new Command("move")
       }
       targetParentId = targetParent.id;
     } else if (parentArg) {
+      // Resolve parent path argument
+      const resolvedParent = resolvePathArg(parentArg, resolvedNode.vaultRoot);
+      if (!resolvedParent.nodeRef) {
+        console.error(chalk.red(`Cannot use a directory as parent`));
+        process.exit(1);
+      }
       // Find parent by ID/path/filename
-      targetParent = resolveNode(parentArg);
+      targetParent = resolveNode(resolvedParent.nodeRef);
       if (!targetParent) {
         console.error(chalk.red(`Parent not found: ${parentArg}`));
         process.exit(1);

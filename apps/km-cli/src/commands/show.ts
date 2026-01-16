@@ -13,7 +13,10 @@ import {
   getBacklinks,
   getOutgoingLinks,
   getNode,
+  resolvePathArg,
+  ensureState,
 } from "@km/store";
+import { getRootPath } from "../index.ts";
 import type { Node } from "@km/core";
 import type { Link } from "@km/store";
 import { formatStatus, formatNodeBrief } from "@km/tui-ink";
@@ -26,7 +29,19 @@ export const showCommand = new Command("show")
   .option("-l, --links", "Show links (outgoing and backlinks)")
   .option("--json", "Output as JSON")
   .action((id, options) => {
-    const node = resolveNode(id);
+    // Resolve path argument - may initialize store with detected vault root
+    const resolved = resolvePathArg(id, getRootPath());
+    ensureState(resolved.vaultRoot, false);
+
+    // Directory paths don't resolve to a specific node
+    if (!resolved.nodeRef) {
+      console.error(
+        chalk.red(`Cannot show a directory. Use 'km ls' to list contents.`),
+      );
+      process.exit(1);
+    }
+
+    const node = resolveNode(resolved.nodeRef);
 
     if (!node) {
       console.error(chalk.red(`Node not found: ${id}`));

@@ -13,22 +13,16 @@
 
 import { Command } from "commander";
 import { createInterface } from "readline";
-import {
-  createReadStream,
-  existsSync,
-  readFileSync,
-  appendFileSync,
-  statSync,
-} from "fs";
+import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs";
 import { homedir } from "os";
-import { join, resolve } from "path";
+import { join } from "path";
 import { getRootPath } from "../index.ts";
 import {
   ensureState,
   getStore,
   getChildren,
   resolveNode,
-  isExplicitPath,
+  resolvePathArg,
 } from "@km/store";
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
 
@@ -158,76 +152,37 @@ export const shCommand = new Command("sh")
   .option("-f, --file <path>", "Read commands from file instead of stdin")
   .option("-v, --verbose", "Output JSON action event for each command")
   .action(async (root, options) => {
-    // Handle filesystem paths in the root argument
-    let fsPath = getRootPath();
-    let nodeId: string | null = null;
+    // Resolve the root argument - handles directory paths, file paths, and node IDs
+    const resolved = resolvePathArg(root, getRootPath());
 
-    if (root && isExplicitPath(root)) {
-      const absolutePath = resolve(process.cwd(), root);
-      if (existsSync(absolutePath)) {
-        const stat = statSync(absolutePath);
-        if (stat.isDirectory()) {
-          // Directory path - use as vault root
-          fsPath = absolutePath;
-        } else {
-          // File path - initialize store first, then resolve to node
-          // The file's parent directory chain should contain the vault root
-          // For now, require -r to be set for file paths, or use the file to find vault
-          if (!fsPath) {
-            // Try to find .km directory in ancestors
-            let dir = absolutePath;
-            while (dir !== "/") {
-              dir = join(dir, "..");
-              if (existsSync(join(dir, ".km"))) {
-                fsPath = dir;
-                break;
-              }
-            }
-          }
-          // We'll resolve the node after initializing the store
-          nodeId = absolutePath;
-        }
-      }
-    } else if (root) {
-      // Non-path argument - treat as node ID
-      nodeId = root;
-    }
-
-    // Fall back to store's root path if not set
-    if (!fsPath) {
-      fsPath = getStore().rootPath;
-    }
-
-    // Ensure store is initialized
-    if (fsPath) {
-      ensureState(fsPath, false);
-    }
+    // Ensure store is initialized with the vault root
+    ensureState(resolved.vaultRoot, false);
 
     const store = getStore();
 
-    // If nodeId is a filesystem path, resolve it to a node ID now that store is initialized
+    // Resolve the node reference if provided
     let resolvedNodeId: string | null = null;
-    if (nodeId) {
-      const node = resolveNode(nodeId);
+    if (resolved.nodeRef) {
+      const node = resolveNode(resolved.nodeRef);
       if (node) {
         resolvedNodeId = node.id;
-      } else if (isExplicitPath(nodeId)) {
+      } else if (resolved.wasExplicitPath) {
         // Explicit path that didn't resolve - error
         if (options.json) {
           console.log(
             JSON.stringify({
               event: "error",
-              error: `No node found for path: ${nodeId}`,
+              error: `No node found for path: ${resolved.nodeRef}`,
               ts: Date.now(),
             }),
           );
         } else {
-          console.error(`error: No node found for path: ${nodeId}`);
+          console.error(`error: No node found for path: ${resolved.nodeRef}`);
         }
         process.exit(1);
       } else {
         // Non-path that didn't resolve - could be invalid ID
-        resolvedNodeId = nodeId; // Let buildNodes handle it
+        resolvedNodeId = resolved.nodeRef; // Let buildNodes handle it
       }
     }
 

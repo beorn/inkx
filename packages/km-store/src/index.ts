@@ -109,9 +109,10 @@ export {
   findKmRootFromPath,
   resolveFsPath,
   getEffectiveRoot,
+  resolvePathArg,
 } from "./path-utils.ts";
 
-export type { PathResolution } from "./path-utils.ts";
+export type { PathResolution, ResolvedPathArg } from "./path-utils.ts";
 
 // Watch and sync (merged from @km/watch)
 export {

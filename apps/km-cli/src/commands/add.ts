@@ -12,9 +12,16 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { ulid } from "ulid";
-import { resolveNode, queryTasks, getChildren } from "@km/store";
+import {
+  resolveNode,
+  queryTasks,
+  getChildren,
+  resolvePathArg,
+  ensureState,
+} from "@km/store";
 import type { Node } from "@km/core";
 import { emitNodeCreated } from "@km/core";
+import { getRootPath } from "../index.ts";
 
 export const addCommand = new Command("add")
   .description("Add tasks to a board or list")
@@ -23,8 +30,17 @@ export const addCommand = new Command("add")
   .option("--dry-run", "Preview without making changes")
   .option("--json", "Output as JSON")
   .action((target, sources, options) => {
+    // Resolve target path argument - may detect vault root
+    const resolvedTarget = resolvePathArg(target, getRootPath());
+    ensureState(resolvedTarget.vaultRoot, false);
+
+    if (!resolvedTarget.nodeRef) {
+      console.error(chalk.red(`Cannot add to a directory`));
+      process.exit(1);
+    }
+
     // Resolve target board/container
-    const targetNode = resolveNode(target);
+    const targetNode = resolveNode(resolvedTarget.nodeRef);
     if (!targetNode) {
       console.error(chalk.red(`Target not found: ${target}`));
       console.error(
@@ -37,8 +53,12 @@ export const addCommand = new Command("add")
     const tasksToAdd: Node[] = [];
 
     for (const source of sources) {
-      // Try as node ID first
-      const node = resolveNode(source, "task");
+      // Resolve source path if it's a filesystem path
+      const resolvedSource = resolvePathArg(source, resolvedTarget.vaultRoot);
+
+      // Try as node ID/path first
+      const nodeRef = resolvedSource.nodeRef || source;
+      const node = resolveNode(nodeRef, "task");
       if (node) {
         tasksToAdd.push(node);
         continue;
