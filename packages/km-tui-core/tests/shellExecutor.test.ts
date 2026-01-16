@@ -354,6 +354,155 @@ describe("runShell", () => {
   });
 });
 
+describe("REPL filesystem commands", () => {
+  // Helper to capture outputs
+  function runWithOutput(
+    commands: string[],
+    state: TreeState,
+  ): { finalState: TreeState; outputs: string[] } {
+    const outputs: string[] = [];
+    const finalState = runShell(commands, state, {
+      jsonMode: false,
+      output: (e) => {
+        if (typeof e === "string") outputs.push(e);
+      },
+    });
+    return { finalState, outputs };
+  }
+
+  it("pwd shows current path", () => {
+    const state = createTestState();
+    state.cursor = [0, 1]; // Todo/Task 2
+    const { outputs } = runWithOutput(["pwd"], state);
+
+    expect(outputs[0]).toBe("Todo/Task 2");
+  });
+
+  it("pwd shows root path when cursor at top level", () => {
+    const state = createTestState();
+    state.cursor = [0]; // Todo column
+    const { outputs } = runWithOutput(["pwd"], state);
+
+    expect(outputs[0]).toBe("Todo");
+  });
+
+  it("ls shows children of current node", () => {
+    const state = createTestState();
+    state.cursor = [0]; // Todo column
+    const { outputs } = runWithOutput(["ls"], state);
+
+    // Should list Task 1, Task 2, Task 3 with task status icons
+    expect(outputs[0]).toContain("Task 1");
+    expect(outputs[0]).toContain("Task 2");
+    expect(outputs[0]).toContain("Task 3");
+  });
+
+  it("ls shows (empty) for node without children", () => {
+    const state = createTestState();
+    state.cursor = [0, 0]; // Task 1 (no children)
+    const { outputs } = runWithOutput(["ls"], state);
+
+    expect(outputs[0]).toBe("(empty)");
+  });
+
+  it("ls with path argument lists specified node children", () => {
+    const state = createTestState();
+    state.cursor = [0, 0]; // Start at Task 1
+    const { outputs } = runWithOutput(["ls .."], state);
+
+    // Should list Todo's children (siblings of Task 1)
+    expect(outputs[0]).toContain("Task 1");
+    expect(outputs[0]).toContain("Task 2");
+  });
+
+  it("cd changes cursor position", () => {
+    const state = createTestState();
+    state.cursor = [0]; // Todo column
+    // Navigate to child "Task 2" using slugified name (no spaces)
+    const { finalState } = runWithOutput(["cd task-2"], state);
+
+    expect(finalState.cursor).toEqual([0, 1]); // Task 2
+  });
+
+  it("cd .. goes to parent", () => {
+    const state = createTestState();
+    state.cursor = [0, 1]; // Todo/Task 2
+    const { finalState } = runWithOutput(["cd .."], state);
+
+    expect(finalState.cursor).toEqual([0]); // Back to Todo
+  });
+
+  it("cd reports error for non-existent path", () => {
+    const state = createTestState();
+    const { outputs } = runWithOutput(["cd nonexistent"], state);
+
+    expect(outputs[0]).toContain("cd:");
+    expect(outputs[0]).toContain("No such node");
+  });
+
+  it("tree shows hierarchical structure", () => {
+    const state = createTestState();
+    state.cursor = [0]; // Todo column
+    const { outputs } = runWithOutput(["tree"], state);
+
+    const output = outputs[0];
+    expect(output).toContain("Todo");
+    expect(output).toContain("├──");
+    expect(output).toContain("└──");
+    expect(output).toContain("Task 1");
+    expect(output).toContain("Task 3");
+  });
+
+  it("tree with depth limit truncates output", () => {
+    const state = createTestState();
+    state.cursor = [0];
+    const { outputs } = runWithOutput(["tree 1"], state);
+
+    const output = outputs[0];
+    expect(output).toContain("Todo");
+    // Should show children at depth 1 with (+N) suffix if they have children
+  });
+
+  it("cat shows node details", () => {
+    const state = createTestState();
+    state.cursor = [0, 0]; // Task 1
+    const { outputs } = runWithOutput(["cat"], state);
+
+    const output = outputs[0];
+    expect(output).toContain("# Task 1");
+    expect(output).toContain("id: card-1");
+    expect(output).toContain("status: todo");
+  });
+
+  it("cat with path shows specified node", () => {
+    const state = createTestState();
+    state.cursor = [0, 0]; // Task 1
+    const { outputs } = runWithOutput(["cat ../task-3"], state);
+
+    const output = outputs[0];
+    expect(output).toContain("# Task 3");
+    expect(output).toContain("id: card-3");
+  });
+
+  it("path resolution by slug works", () => {
+    const state = createTestState();
+    state.cursor = [0]; // Todo
+    // "In Progress" should match "in-progress" slug
+    const { finalState } = runWithOutput(["cd ../in-progress"], state);
+
+    // Should navigate to "In Progress" column
+    expect(finalState.cursor).toEqual([1]);
+  });
+
+  it("absolute path from root works", () => {
+    const state = createTestState();
+    state.cursor = [0, 2]; // Deep in the tree
+    const { finalState } = runWithOutput(["cd /in-progress"], state);
+
+    expect(finalState.cursor).toEqual([1]);
+  });
+});
+
 describe("runShell - integration scenarios", () => {
   it("navigates around the tree", () => {
     const state = createTestState();
