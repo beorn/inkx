@@ -20,10 +20,12 @@ import { getNodeDisplayName } from "@km/shared";
 import {
   createInitialTreeState,
   runShell,
+  executeCommand,
   serializeState,
   type TreeNodeState,
   type TaskStatus,
   type OutputEvent,
+  type ShellContext,
 } from "@km/tui-core";
 import type { Node } from "@km/core";
 
@@ -149,16 +151,6 @@ export const shCommand = new Command("sh")
       store.rootPath,
     );
 
-    // Read input: -c takes priority, then -f, then stdin
-    const cmdStrings: string[] | undefined = options.command;
-    let lines: string[];
-    if (cmdStrings && cmdStrings.length > 0) {
-      // Flatten all -c arguments, each can have multiple commands
-      lines = cmdStrings.flatMap(parseCommandString);
-    } else {
-      lines = await readInputLines(options.file);
-    }
-
     // Output function
     const output = (event: OutputEvent | string) => {
       if (typeof event === "string") {
@@ -168,21 +160,82 @@ export const shCommand = new Command("sh")
       }
     };
 
-    // Run the shell
-    const finalState = runShell(lines, initialState, {
-      jsonMode: options.json ?? false,
-      verbose: options.verbose ?? false,
-      output,
-    });
+    // Read input: -c takes priority, then -f, then stdin (REPL mode)
+    const cmdStrings: string[] | undefined = options.command;
 
-    // In JSON mode, output final state
-    if (options.json) {
-      console.log(
-        JSON.stringify({
-          event: "final",
-          state: serializeState(finalState),
-          ts: Date.now(),
-        }),
-      );
+    if (cmdStrings && cmdStrings.length > 0) {
+      // Batch mode: -c flag with commands
+      const lines = cmdStrings.flatMap(parseCommandString);
+      const finalState = runShell(lines, initialState, {
+        jsonMode: options.json ?? false,
+        verbose: options.verbose ?? false,
+        output,
+      });
+
+      if (options.json) {
+        console.log(
+          JSON.stringify({
+            event: "final",
+            state: serializeState(finalState),
+            ts: Date.now(),
+          }),
+        );
+      }
+    } else if (options.file) {
+      // Batch mode: -f flag with file
+      const lines = await readInputLines(options.file);
+      const finalState = runShell(lines, initialState, {
+        jsonMode: options.json ?? false,
+        verbose: options.verbose ?? false,
+        output,
+      });
+
+      if (options.json) {
+        console.log(
+          JSON.stringify({
+            event: "final",
+            state: serializeState(finalState),
+            ts: Date.now(),
+          }),
+        );
+      }
+    } else {
+      // REPL mode: read from stdin line by line, execute immediately
+      const ctx: ShellContext = {
+        state: initialState,
+        jsonMode: options.json ?? false,
+        verbose: options.verbose ?? false,
+        output,
+        actionLog: [],
+      };
+
+      const rl = createInterface({
+        input: process.stdin,
+        crlfDelay: Infinity,
+      });
+
+      await new Promise<void>((resolve) => {
+        rl.on("line", (line) => {
+          const { state, quit } = executeCommand(line, ctx);
+          ctx.state = state;
+          if (quit) {
+            rl.close();
+          }
+        });
+
+        rl.on("close", () => {
+          resolve();
+        });
+      });
+
+      if (options.json) {
+        console.log(
+          JSON.stringify({
+            event: "final",
+            state: serializeState(ctx.state),
+            ts: Date.now(),
+          }),
+        );
+      }
     }
   });

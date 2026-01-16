@@ -2,6 +2,54 @@
 
 Demonstrates the `cmd="..."` feature for testing REPLs where state persists between commands.
 
+## Setup
+
+```console
+$ beforeAll() {
+>   export TEST_ROOT="$(mktemp -d)"
+>   cd "$TEST_ROOT"
+>   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
+>   export -f km
+>   mkdir -p .km
+> }
+$ afterAll() {
+>   rm -rf "$TEST_ROOT"
+> }
+```
+
+Create a test board:
+
+```console
+$ cat > board.md << 'EOF'
+> # Test Board
+> ## Tasks
+> - [ ] Task Alpha
+> - [ ] Task Beta
+> EOF
+```
+
+```console
+$ km sync
+Syncing: ...
+[...]
+```
+
+## km sh with cmd mode
+
+Using `cmd="km sh board.md"` - state persists between commands:
+
+```console cmd="km sh board.md" minWait=50 maxWait=500
+$ state
+cursor: [0,0]
+node: Task Alpha
+topLevel: 1 nodes
+$ j
+$ state
+cursor: [0,1]
+node: Task Beta
+topLevel: 1 nodes
+```
+
 ## Simple REPL examples
 
 ### cat as echo REPL
@@ -23,32 +71,4 @@ Variables and state persist between commands:
 $ export FOO=bar
 $ echo "FOO is $FOO"
 FOO is bar
-$ export BAZ=123
-$ echo "$FOO and $BAZ"
-bar and 123
 ```
-
-### Working directory persists
-
-```console cmd="bash" minWait=50 maxWait=500
-$ cd /tmp
-$ pwd
-/tmp
-$ cd /
-$ pwd
-/
-```
-
-## Note on km sh
-
-The `km sh` command currently reads all input lines at once before processing,
-rather than operating as an interactive REPL. For km sh testing, use the `-c`
-flag with semicolon-separated commands:
-
-```console
-$ echo "test" | cat
-test
-```
-
-A future enhancement could add true interactive REPL mode to km sh to support
-the `cmd="km sh board.md"` syntax.
