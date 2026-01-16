@@ -13,7 +13,9 @@
 
 import { Command } from "commander";
 import { createInterface } from "readline";
-import { createReadStream, existsSync } from "fs";
+import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 import { getRootPath } from "../index.ts";
 import { ensureState, getStore, getChildren, resolveNode } from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
@@ -22,6 +24,7 @@ import {
   runShell,
   executeCommand,
   serializeState,
+  getCommandNames,
   type TreeNodeState,
   type TaskStatus,
   type OutputEvent,
@@ -232,9 +235,42 @@ export const shCommand = new Command("sh")
       // OSC 133 shell integration - auto-enabled in TTY or via env var
       const useOsc133 = shouldEmitOsc133();
 
+      // History file path
+      const historyPath = join(homedir(), ".km_history");
+
+      // Load history from file
+      let history: string[] = [];
+      try {
+        const historyContent = readFileSync(historyPath, "utf-8");
+        history = historyContent
+          .split("\n")
+          .filter((line) => line.trim().length > 0);
+      } catch {
+        // No history file yet, that's fine
+      }
+
+      // Get all command names for completion
+      const commandNames = getCommandNames();
+
+      // Tab completion function
+      const completer = (line: string): [string[], string] => {
+        // Complete command names
+        const hits = commandNames.filter((cmd) =>
+          cmd.startsWith(line.toLowerCase()),
+        );
+        // Show all completions if none found
+        return [hits.length ? hits : commandNames, line];
+      };
+
       const rl = createInterface({
         input: process.stdin,
+        output: process.stdout,
+        completer,
+        history,
+        historySize: 1000,
         crlfDelay: Infinity,
+        terminal: process.stdin.isTTY ?? false,
+        prompt: "",
       });
 
       // Signal prompt ready
@@ -251,6 +287,15 @@ export const shCommand = new Command("sh")
 
           const { state, quit } = executeCommand(line, ctx);
           ctx.state = state;
+
+          // Append to history file (only non-empty lines)
+          if (line.trim().length > 0) {
+            try {
+              appendFileSync(historyPath, line + "\n");
+            } catch {
+              // Ignore history write errors
+            }
+          }
 
           // Signal command end (exit code 0 - shell commands don't have exit codes yet)
           if (useOsc133) {

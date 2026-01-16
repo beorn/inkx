@@ -5,7 +5,13 @@
  * Supports both JSON and line (human-readable) output modes.
  */
 
-import type { TreeState, TreeAction, CursorPath } from "./types.ts";
+import type {
+  TreeState,
+  TreeAction,
+  CursorPath,
+  TreeNodeState,
+  TaskStatus,
+} from "./types.ts";
 import { treeReducer, getNodeAtPath } from "./treeReducer.ts";
 import { parseCommand, getCommandHelp } from "./commandParser.ts";
 import type { ShellCommand } from "./commandParser.ts";
@@ -159,6 +165,359 @@ export function renderAsciiView(state: TreeState): string {
   return lines.join("\n");
 }
 
+// ===== Filesystem-like command helpers =====
+
+/**
+ * Slugify a node title for path display
+ * Converts "My Project" to "my-project"
+ */
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/**
+ * Get the current path as a string of node titles
+ * e.g., "projects/km/inbox"
+ */
+function getPathAsString(state: TreeState): string {
+  if (state.cursor.length === 0) {
+    return state.rootPath ? state.rootPath : "/";
+  }
+
+  const parts: string[] = [];
+  let nodes = state.nodes;
+
+  for (const idx of state.cursor) {
+    const node = nodes[idx];
+    if (!node) break;
+    parts.push(node.title);
+    nodes = node.children;
+  }
+
+  return parts.join("/") || "/";
+}
+
+/**
+ * Find a child node by title or slug (case-insensitive)
+ */
+function findChildByName(
+  nodes: TreeNodeState[],
+  name: string,
+): { node: TreeNodeState; index: number } | null {
+  const lowerName = name.toLowerCase();
+  const slugName = slugify(name);
+
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (!node) continue;
+
+    // Match by exact title (case-insensitive)
+    if (node.title.toLowerCase() === lowerName) {
+      return { node, index: i };
+    }
+
+    // Match by slugified title
+    if (slugify(node.title) === slugName) {
+      return { node, index: i };
+    }
+
+    // Match by nodeId
+    if (node.nodeId === name) {
+      return { node, index: i };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Resolve a path string to a cursor path
+ * Supports: /, .., relative paths, absolute paths from root
+ */
+function resolvePath(
+  state: TreeState,
+  pathStr: string,
+): { cursor: CursorPath; error?: string } {
+  const parts = pathStr.split("/").filter((p) => p.length > 0);
+
+  // Start from root or current position
+  let cursor: CursorPath = pathStr.startsWith("/") ? [] : [...state.cursor];
+  let nodes = state.nodes;
+
+  // Navigate to the position indicated by cursor
+  if (cursor.length > 0 && !pathStr.startsWith("/")) {
+    for (const idx of cursor.slice(0, -1)) {
+      const node = nodes[idx];
+      if (!node) {
+        return { cursor: [], error: "Invalid current path" };
+      }
+      nodes = node.children;
+    }
+    // Get the current node's children for relative navigation
+    const lastIdx = cursor[cursor.length - 1];
+    if (lastIdx !== undefined) {
+      const currentNode = nodes[lastIdx];
+      if (currentNode) {
+        nodes = currentNode.children;
+      }
+    }
+  }
+
+  for (const part of parts) {
+    if (part === "..") {
+      // Go up one level
+      if (cursor.length > 0) {
+        cursor = cursor.slice(0, -1);
+        // Recalculate nodes for the new position
+        nodes = state.nodes;
+        for (const idx of cursor) {
+          const node = nodes[idx];
+          if (node) {
+            nodes = node.children;
+          }
+        }
+      }
+    } else if (part === ".") {
+      // Stay at current position
+      continue;
+    } else {
+      // Find child by name
+      const found = findChildByName(nodes, part);
+      if (!found) {
+        return { cursor, error: `No such node: ${part}` };
+      }
+      cursor = [...cursor, found.index];
+      nodes = found.node.children;
+    }
+  }
+
+  return { cursor };
+}
+
+/**
+ * Navigate to a path and return the new cursor or error
+ */
+function navigateToPath(
+  state: TreeState,
+  pathStr: string,
+): { newCursor?: CursorPath; error?: string } {
+  const result = resolvePath(state, pathStr);
+
+  if (result.error) {
+    return { error: result.error };
+  }
+
+  // Validate the cursor points to a valid node (or root)
+  if (result.cursor.length === 0) {
+    // Root - valid if we have nodes
+    if (state.nodes.length > 0) {
+      return { newCursor: [0] }; // Navigate to first top-level node
+    }
+    return { error: "No nodes at root" };
+  }
+
+  const node = getNodeAtPath(state.nodes, result.cursor);
+  if (!node) {
+    return { error: "Path not found" };
+  }
+
+  return { newCursor: result.cursor };
+}
+
+/**
+ * List children of current or specified node
+ */
+function listNodes(state: TreeState, pathStr?: string): string {
+  let nodes: TreeNodeState[];
+
+  if (pathStr) {
+    const result = resolvePath(state, pathStr);
+    if (result.error) {
+      return `ls: ${result.error}`;
+    }
+
+    if (result.cursor.length === 0) {
+      // Root level
+      nodes = state.nodes;
+    } else {
+      const node = getNodeAtPath(state.nodes, result.cursor);
+      if (!node) {
+        return "ls: path not found";
+      }
+      nodes = node.children;
+    }
+  } else {
+    // List children of current node
+    const currentNode = getNodeAtPath(state.nodes, state.cursor);
+    if (currentNode) {
+      nodes = currentNode.children;
+    } else if (state.cursor.length === 0) {
+      nodes = state.nodes;
+    } else {
+      return "ls: invalid cursor position";
+    }
+  }
+
+  if (nodes.length === 0) {
+    return "(empty)";
+  }
+
+  // Status icons map
+  const statusIcons: Record<TaskStatus, string> = {
+    todo: "○",
+    wip: "◐",
+    blocked: "⊘",
+    done: "✓",
+    dropped: "∅",
+  };
+
+  // Format output like ls
+  const items = nodes.map((node) => {
+    const suffix = node.children.length > 0 ? "/" : "";
+    const taskMark = node.taskStatus ? statusIcons[node.taskStatus] + " " : "";
+    return `${taskMark}${node.title}${suffix}`;
+  });
+
+  return items.join("  ");
+}
+
+/**
+ * Render tree output with box-drawing characters
+ */
+function renderTreeCommand(
+  state: TreeState,
+  pathStr?: string,
+  maxDepth?: number,
+): string {
+  let startNodes: TreeNodeState[];
+  let rootTitle: string;
+
+  if (pathStr) {
+    const result = resolvePath(state, pathStr);
+    if (result.error) {
+      return `tree: ${result.error}`;
+    }
+
+    if (result.cursor.length === 0) {
+      startNodes = state.nodes;
+      rootTitle = state.rootPath || ".";
+    } else {
+      const node = getNodeAtPath(state.nodes, result.cursor);
+      if (!node) {
+        return "tree: path not found";
+      }
+      startNodes = [node];
+      rootTitle = node.title;
+    }
+  } else {
+    // Tree from current node
+    const currentNode = getNodeAtPath(state.nodes, state.cursor);
+    if (currentNode) {
+      startNodes = [currentNode];
+      rootTitle = currentNode.title;
+    } else {
+      startNodes = state.nodes;
+      rootTitle = state.rootPath || ".";
+    }
+  }
+
+  const lines: string[] = [rootTitle];
+  const depth = maxDepth ?? 99;
+
+  // Status icons map
+  const statusIcons: Record<TaskStatus, string> = {
+    todo: "○",
+    wip: "◐",
+    blocked: "⊘",
+    done: "✓",
+    dropped: "∅",
+  };
+
+  function renderNode(
+    nodes: TreeNodeState[],
+    prefix: string,
+    currentDepth: number,
+  ) {
+    if (currentDepth > depth) return;
+
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (!node) continue;
+
+      const isLast = i === nodes.length - 1;
+      const connector = isLast ? "└── " : "├── ";
+      const childPrefix = isLast ? "    " : "│   ";
+
+      const taskMark = node.taskStatus
+        ? statusIcons[node.taskStatus] + " "
+        : "";
+
+      const suffix =
+        node.children.length > 0 && currentDepth >= depth
+          ? ` (+${node.childCount})`
+          : "";
+
+      lines.push(`${prefix}${connector}${taskMark}${node.title}${suffix}`);
+
+      if (node.children.length > 0 && currentDepth < depth) {
+        renderNode(node.children, prefix + childPrefix, currentDepth + 1);
+      }
+    }
+  }
+
+  // If we're showing a single node, render its children
+  if (startNodes.length === 1 && startNodes[0]) {
+    renderNode(startNodes[0].children, "", 1);
+  } else {
+    // Render all top-level nodes
+    renderNode(startNodes, "", 1);
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Show node content/details (cat command)
+ */
+function catNode(state: TreeState, pathStr?: string): string {
+  let node: TreeNodeState | null;
+
+  if (pathStr) {
+    const result = resolvePath(state, pathStr);
+    if (result.error) {
+      return `cat: ${result.error}`;
+    }
+    node = getNodeAtPath(state.nodes, result.cursor);
+  } else {
+    node = getNodeAtPath(state.nodes, state.cursor);
+  }
+
+  if (!node) {
+    return "cat: no node selected";
+  }
+
+  const lines: string[] = [];
+  lines.push(`# ${node.title}`);
+  lines.push(`id: ${node.nodeId}`);
+
+  if (node.taskStatus) {
+    lines.push(`status: ${node.taskStatus}`);
+  }
+
+  if (node.childCount > 0) {
+    lines.push(`children: ${node.childCount}`);
+  }
+
+  // If there's content on the node (stored in TreeNodeState), show it
+  // Note: TreeNodeState doesn't typically store full content, just metadata
+  // For full content, we'd need access to the store
+
+  return lines.join("\n");
+}
+
 /**
  * Execute a shell command (not a TreeAction)
  */
@@ -225,6 +584,69 @@ export function executeShellCommand(
 
     case "QUIT":
       return { quit: true };
+
+    // === Filesystem-like commands (REPL mode) ===
+
+    case "PWD": {
+      const path = getPathAsString(ctx.state);
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: path, ts });
+      } else {
+        ctx.output(path);
+      }
+      return { quit: false };
+    }
+
+    case "LS": {
+      const result = listNodes(ctx.state, command.path);
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: result, ts });
+      } else {
+        ctx.output(result);
+      }
+      return { quit: false };
+    }
+
+    case "CD": {
+      const result = navigateToPath(ctx.state, command.path);
+      if (result.error) {
+        if (ctx.jsonMode) {
+          ctx.output({ event: "error", error: result.error, ts });
+        } else {
+          ctx.output(`cd: ${result.error}`);
+        }
+      } else if (result.newCursor) {
+        // Update state cursor
+        ctx.state = { ...ctx.state, cursor: result.newCursor };
+        if (ctx.jsonMode) {
+          ctx.output({ event: "state", state: serializeState(ctx.state), ts });
+        } else if (ctx.verbose) {
+          const node = getNodeAtPath(ctx.state.nodes, result.newCursor);
+          ctx.output(`cd: ${node?.title ?? "(unknown)"}`);
+        }
+      }
+      return { quit: false };
+    }
+
+    case "TREE": {
+      const result = renderTreeCommand(ctx.state, command.path, command.depth);
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: result, ts });
+      } else {
+        ctx.output(result);
+      }
+      return { quit: false };
+    }
+
+    case "CAT": {
+      const result = catNode(ctx.state, command.path);
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: result, ts });
+      } else {
+        ctx.output(result);
+      }
+      return { quit: false };
+    }
   }
 }
 
@@ -300,6 +722,8 @@ export function executeCommand(
     k: { type: "NAV_PREV_SIBLING" },
     h: { type: "NAV_PARENT" }, // h always goes to parent (no cross-column in shell)
     l: { type: "NAV_CHILD" }, // l always goes to child
+    H: { type: "NAV_CROSS_COLUMN", direction: "left" },
+    L: { type: "NAV_CROSS_COLUMN", direction: "right" },
     g: { type: "NAV_FIRST_SIBLING" },
     G: { type: "NAV_LAST_SIBLING" },
     Enter: { type: "NAV_CHILD" },

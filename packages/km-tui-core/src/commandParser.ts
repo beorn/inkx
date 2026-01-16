@@ -26,7 +26,13 @@ export type ShellCommand =
   | { type: "VIEW" } // Render current view as ASCII
   | { type: "HELP"; topic?: string } // Show help
   | { type: "LOG"; count?: number } // Dump last n actions (default: all)
-  | { type: "QUIT" }; // Exit shell
+  | { type: "QUIT" } // Exit shell
+  // Filesystem-like commands (REPL mode)
+  | { type: "PWD" } // Show current path as slugs
+  | { type: "LS"; path?: string } // List children
+  | { type: "CD"; path: string } // Change to node
+  | { type: "TREE"; path?: string; depth?: number } // Hierarchical listing
+  | { type: "CAT"; path?: string }; // Show node content/details
 
 /**
  * Map of snake_case command names to TreeAction types
@@ -39,6 +45,10 @@ const SIMPLE_ACTIONS: Record<string, TreeAction> = {
   nav_last_sibling: { type: "NAV_LAST_SIBLING" },
   nav_parent: { type: "NAV_PARENT" },
   nav_child: { type: "NAV_CHILD" },
+
+  // Cross-column navigation (preserves Y position)
+  nav_cross_column_left: { type: "NAV_CROSS_COLUMN", direction: "left" },
+  nav_cross_column_right: { type: "NAV_CROSS_COLUMN", direction: "right" },
 
   // Legacy aliases (for backwards compatibility)
   move_up: { type: "NAV_PREV_SIBLING" },
@@ -73,7 +83,7 @@ const SIMPLE_ACTIONS: Record<string, TreeAction> = {
 
 /**
  * Shell commands (not TreeActions)
- * Note: 'log' is handled specially in parseCommand to support optional count arg
+ * Note: 'log', 'ls', 'cd', 'tree', 'cat' are handled specially in parseCommand to support args
  */
 const SHELL_COMMANDS: Record<string, ShellCommand> = {
   state: { type: "STATE" },
@@ -82,6 +92,7 @@ const SHELL_COMMANDS: Record<string, ShellCommand> = {
   quit: { type: "QUIT" },
   exit: { type: "QUIT" },
   q: { type: "QUIT" },
+  pwd: { type: "PWD" },
 };
 
 /**
@@ -94,6 +105,8 @@ const SINGLE_CHAR_MAP: Record<string, TreeAction | "KEY"> = {
   k: { type: "NAV_PREV_SIBLING" },
   h: { type: "NAV_PARENT" },
   l: { type: "NAV_CHILD" },
+  H: { type: "NAV_CROSS_COLUMN", direction: "left" },
+  L: { type: "NAV_CROSS_COLUMN", direction: "right" },
   g: { type: "NAV_FIRST_SIBLING" },
   G: { type: "NAV_LAST_SIBLING" },
   u: { type: "NAV_PARENT" },
@@ -446,6 +459,56 @@ export function parseCommand(input: string): ParseResult {
       return { ok: true, action: { type: "SET_PROJECT_PICKER_QUERY", query } };
     }
 
+    // === Filesystem-like commands (REPL mode) ===
+
+    // ls [path] - list children of current or specified node
+    case "ls": {
+      const path = args[0];
+      return { ok: true, command: { type: "LS", path } };
+    }
+
+    // cd <path> - change to node (supports .., /, relative paths)
+    case "cd": {
+      const path = args[0];
+      if (!path) {
+        return { ok: false, error: "cd requires a path argument" };
+      }
+      return { ok: true, command: { type: "CD", path } };
+    }
+
+    // tree [path] [depth] - hierarchical listing with box-drawing
+    case "tree": {
+      const pathOrDepth = args[0];
+      const depthArg = args[1];
+
+      // tree (no args) - tree from current node
+      if (!pathOrDepth) {
+        return { ok: true, command: { type: "TREE" } };
+      }
+
+      // Check if first arg is a number (depth only)
+      const firstAsNum = parseInt(pathOrDepth, 10);
+      if (!isNaN(firstAsNum) && String(firstAsNum) === pathOrDepth) {
+        return { ok: true, command: { type: "TREE", depth: firstAsNum } };
+      }
+
+      // tree <path> [depth]
+      let depth: number | undefined;
+      if (depthArg) {
+        depth = parseInt(depthArg, 10);
+        if (isNaN(depth)) {
+          return { ok: false, error: "tree depth must be a number" };
+        }
+      }
+      return { ok: true, command: { type: "TREE", path: pathOrDepth, depth } };
+    }
+
+    // cat [path] - show node content/details
+    case "cat": {
+      const path = args[0];
+      return { ok: true, command: { type: "CAT", path } };
+    }
+
     default:
       return { ok: false, error: `Unknown command: ${cmd}` };
   }
@@ -479,6 +542,12 @@ export function getCommandHelp(topic?: string): string {
       view: "Render current view as ASCII",
       help: "help [command] - Show help",
       quit: "Exit the shell",
+      // Filesystem-like commands
+      pwd: "Show current path as node titles (e.g., projects/km/inbox)",
+      ls: "ls [path] - List children of current or specified node",
+      cd: "cd <path> - Navigate to node (supports .., /, relative paths)",
+      tree: "tree [path] [depth] - Hierarchical listing with box-drawing",
+      cat: "cat [path] - Show node content/details",
     };
     return helpText[topic] || `Unknown command: ${topic}`;
   }
@@ -490,6 +559,7 @@ Structural Navigation (prev/next/in/out):
   nav_prev_sibling, nav_next_sibling  (k/j)
   nav_first_sibling, nav_last_sibling (g/G)
   nav_parent, nav_child               (h/l, u, Enter, Backspace)
+  nav_cross_column_left/right         (H/L) - preserves Y position
   nav_to_path <path>                  (e.g., 0,1,2)
   nav_back, nav_forward               ([/])
 
@@ -521,6 +591,13 @@ Shell:
   help [command] - show help
   quit, exit, q - exit shell
 
+Filesystem (REPL mode):
+  pwd - show current path as node titles
+  ls [path] - list children of current/specified node
+  cd <path> - navigate to node (supports .., /, relative)
+  tree [path] [depth] - hierarchical listing
+  cat [path] - show node content/details
+
 Key input:
   key <char> - single key (e.g., key j)
   key <Name> - special key (e.g., key Enter, key Escape)
@@ -550,5 +627,10 @@ export function getCommandNames(): string[] {
     "set_new_item_text",
     "set_project_picker_query",
     "key",
+    // Filesystem-like commands
+    "ls",
+    "cd",
+    "tree",
+    "cat",
   ];
 }
