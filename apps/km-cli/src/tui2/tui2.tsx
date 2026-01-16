@@ -22,7 +22,7 @@ const getNodeDisplayName = (
 import { App } from "@km/opentui";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import type { TreeNodeState, TaskStatus, ViewMode } from "@km/board";
+import type { TNode, TaskStatus, ViewMode } from "@km/board";
 import type { DBNode } from "@km/core";
 
 /**
@@ -57,9 +57,9 @@ export interface Tui2Options {
 }
 
 /**
- * Convert Node to TreeNodeState (recursive)
+ * Convert Node to TNode (recursive)
  */
-function nodeToTreeNodeState(node: Node, depth: number): TreeNodeState {
+function nodeToTNode(node: Node, depth: number): TNode {
   const children = getChildren(node.id);
   const backlinks = getBacklinks(node.id);
   const outgoingLinks = getOutgoingLinks(node.id);
@@ -77,17 +77,17 @@ function nodeToTreeNodeState(node: Node, depth: number): TreeNodeState {
     hasBacklinks: backlinks.length > 0 || undefined,
     refsCount: outgoingLinks.length > 0 ? outgoingLinks.length : undefined,
     content: node.content,
-    children: children.map((child) => nodeToTreeNodeState(child, depth + 1)),
+    children: children.map((child) => nodeToTNode(child, depth + 1)),
   };
 }
 
 /**
  * Build tree nodes from root node
  */
-function buildTreeNodes(rootId: string | null): TreeNodeState[] {
+function buildTreeNodes(rootId: string | null): TNode[] {
   if (!rootId) {
     const roots = getChildren(null);
-    return roots.map((node) => nodeToTreeNodeState(node, 0));
+    return roots.map((node) => nodeToTNode(node, 0));
   }
 
   const node = resolveNode(rootId);
@@ -96,7 +96,7 @@ function buildTreeNodes(rootId: string | null): TreeNodeState[] {
   }
 
   const children = getChildren(node.id);
-  return children.map((child) => nodeToTreeNodeState(child, 0));
+  return children.map((child) => nodeToTNode(child, 0));
 }
 
 /**

@@ -7,17 +7,17 @@
 
 import type {
   TreeState,
-  TreeNodeState,
+  TNode,
   ViewMode,
   NodeViewModel,
   TreeViewModel,
 } from "./treeTypes.ts";
 
 /**
- * Transform a TreeNodeState into a NodeViewModel
+ * Transform a TNode into a NodeViewModel
  */
 export function toNodeViewModel(
-  node: TreeNodeState,
+  node: TNode,
   foldedNodes: Set<string>,
 ): NodeViewModel {
   return {

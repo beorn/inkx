@@ -252,7 +252,7 @@ export function boardReducer(
       return { ...state, cursor: newPath };
     }
 
-    // Legacy directional navigation (for backwards compatibility)
+    // Directional navigation aliases
     case "MOVE_UP": {
       return boardReducer(state, { type: "NAV_PREV_SIBLING" }, nodes);
     }

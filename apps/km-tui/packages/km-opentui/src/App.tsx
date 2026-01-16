@@ -69,12 +69,7 @@ const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
 ) => getNodeDisplayNameBase(node, getChildren);
 import type { DBNode } from "@km/core";
-import type {
-  ViewMode,
-  TaskStatus,
-  TreeNodeState,
-  CursorPath,
-} from "./types.ts";
+import type { ViewMode, TaskStatus, TNode, CursorPath } from "./types.ts";
 
 // Task status cycle order for Space key
 const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "done", "dropped"];
@@ -87,7 +82,7 @@ const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "done", "dropped"];
 function calculateCrossColumnPath(
   direction: "left" | "right",
   cursor: CursorPath,
-  nodes: TreeNodeState[],
+  nodes: TNode[],
 ): CursorPath | null {
   // Only works at depth 2+ (card level: [colIndex, cardIndex, ...])
   if (cursor.length < 2) return null;
@@ -108,7 +103,7 @@ function calculateCrossColumnPath(
 
   // Calculate card height based on whether it has metadata
   // Card renders as: border(1) + title(1) + [metadata(1)] + border(1) = 3 or 4 lines
-  const getCardHeight = (node: TreeNodeState): number => {
+  const getCardHeight = (node: TNode): number => {
     const hasMetadata =
       node.priority !== undefined || node.dueDate || node.hasBacklinks;
     return hasMetadata ? 4 : 3;
@@ -208,9 +203,9 @@ function openInEditor(filePath: string, line?: number | null): void {
 }
 
 /**
- * Convert Node to TreeNodeState (recursive)
+ * Convert Node to TNode (recursive)
  */
-function nodeToTreeNodeState(node: Node, depth: number = 0): TreeNodeState {
+function nodeToTNode(node: Node, depth: number = 0): TNode {
   const children = getChildren(node.id);
 
   // Get backlinks count
@@ -224,10 +219,10 @@ function nodeToTreeNodeState(node: Node, depth: number = 0): TreeNodeState {
   return {
     nodeId: node.id,
     title: getNodeDisplayName(node),
-    children: children.map((child) => nodeToTreeNodeState(child, depth + 1)),
+    children: children.map((child) => nodeToTNode(child, depth + 1)),
     childCount: children.length,
     isTask: node.task_status !== undefined,
-    taskStatus: node.task_status as TreeNodeState["taskStatus"],
+    taskStatus: node.task_status as TNode["taskStatus"],
     color: node.rules?.color,
     icon: undefined,
     priority: node.priority,
@@ -242,13 +237,13 @@ function nodeToTreeNodeState(node: Node, depth: number = 0): TreeNodeState {
 /**
  * Build tree nodes from root node
  */
-function buildNodes(rootId: string | null): TreeNodeState[] {
+function buildNodes(rootId: string | null): TNode[] {
   if (!rootId) {
     const roots = getChildren(null);
     if (roots.length === 0) {
       return [];
     }
-    return roots.map((node) => nodeToTreeNodeState(node, 0));
+    return roots.map((node) => nodeToTNode(node, 0));
   }
 
   const node = getNode(rootId);
@@ -257,11 +252,11 @@ function buildNodes(rootId: string | null): TreeNodeState[] {
   }
 
   const children = getChildren(node.id);
-  return children.map((child) => nodeToTreeNodeState(child, 0));
+  return children.map((child) => nodeToTNode(child, 0));
 }
 
 interface AppProps {
-  initialNodes: TreeNodeState[];
+  initialNodes: TNode[];
   rootId?: string | null;
   rootPath?: string | null;
   initialViewMode?: ViewMode;

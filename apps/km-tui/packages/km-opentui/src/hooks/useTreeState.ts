@@ -14,13 +14,13 @@ import {
   getSiblingCount,
   type TreeState,
   type TreeAction,
-  type TreeNodeState,
+  type TNode,
   type TreeCursorPath as CursorPath,
 } from "@km/board";
 
 // Re-export for convenience
 export { treeReducer, createInitialTreeState };
-export type { TreeState, TreeAction, TreeNodeState, CursorPath };
+export type { TreeState, TreeAction, TNode, CursorPath };
 
 // Maximum undo history size
 const MAX_UNDO_HISTORY = 50;
@@ -53,9 +53,9 @@ export interface TreeStateHook {
   dispatch: (action: TreeAction) => void;
 
   // Computed selectors
-  currentNode: TreeNodeState | null;
-  parentNode: TreeNodeState | null;
-  siblings: TreeNodeState[];
+  currentNode: TNode | null;
+  parentNode: TNode | null;
+  siblings: TNode[];
   siblingCount: number;
   cursorDepth: number;
 
@@ -75,10 +75,7 @@ export interface TreeStateHook {
 /**
  * Get siblings at current cursor level
  */
-function getSiblings(
-  nodes: TreeNodeState[],
-  path: CursorPath,
-): TreeNodeState[] {
+function getSiblings(nodes: TNode[], path: CursorPath): TNode[] {
   if (path.length === 0) return [];
   if (path.length === 1) return nodes;
 

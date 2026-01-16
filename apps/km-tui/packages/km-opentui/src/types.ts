@@ -12,7 +12,7 @@ export type {
   // Tree types
   TreeState,
   TreeAction,
-  TreeNodeState,
+  TNode,
   TreeCursorPath as CursorPath,
   ViewLevelConfig,
   // ViewModel types

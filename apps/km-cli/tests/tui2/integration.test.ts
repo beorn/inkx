@@ -26,7 +26,7 @@ import {
   toNodeViewModel,
   toTreeViewModel,
   type TreeState,
-  type TreeNodeState,
+  type TNode,
 } from "@km/board";
 
 // ============================================================================
@@ -39,9 +39,9 @@ import {
 function mockNode(
   id: string,
   title: string,
-  children: TreeNodeState[] = [],
-  options: Partial<TreeNodeState> = {},
-): TreeNodeState {
+  children: TNode[] = [],
+  options: Partial<TNode> = {},
+): TNode {
   return {
     nodeId: id,
     title,
@@ -83,7 +83,7 @@ function createTestTree(): TreeState {
     mockNode("item-7", "Add tests", [], { taskStatus: "done", depth: 1 }),
   ];
 
-  const nodes: TreeNodeState[] = [
+  const nodes: TNode[] = [
     mockNode("col-todo", "Todo", todoItems, { depth: 0 }),
     mockNode("col-wip", "In Progress", wipItems, { depth: 0 }),
     mockNode("col-done", "Done", doneItems, { depth: 0 }),
@@ -521,7 +521,7 @@ describe("TUI2 Integration: Selectors", () => {
 
 describe("TUI2 Integration: ViewModels", () => {
   describe("toNodeViewModel", () => {
-    it("transforms TreeNodeState to NodeViewModel", () => {
+    it("transforms TNode to NodeViewModel", () => {
       const node = mockNode("test-id", "Test Node", [], {
         taskStatus: "wip",
         color: "blue",

@@ -5,20 +5,20 @@
  * No side effects, no React imports - pure TypeScript.
  */
 
-import type { TreeState, TreeNodeState } from "./treeTypes.ts";
+import type { TreeState, TNode } from "./treeTypes.ts";
 import { getNodeAtPath, getSiblingCount } from "./treeReducer.ts";
 
 /**
  * Get the currently selected node
  */
-export function getCurrentNode(state: TreeState): TreeNodeState | null {
+export function getCurrentNode(state: TreeState): TNode | null {
   return getNodeAtPath(state.nodes, state.cursor);
 }
 
 /**
  * Get the parent of the currently selected node
  */
-export function getParentNode(state: TreeState): TreeNodeState | null {
+export function getParentNode(state: TreeState): TNode | null {
   if (state.cursor.length <= 1) return null;
   const parentPath = state.cursor.slice(0, -1);
   return getNodeAtPath(state.nodes, parentPath);
@@ -27,7 +27,7 @@ export function getParentNode(state: TreeState): TreeNodeState | null {
 /**
  * Get siblings at the current cursor level
  */
-export function getSiblings(state: TreeState): TreeNodeState[] {
+export function getSiblings(state: TreeState): TNode[] {
   if (state.cursor.length === 0) return [];
   if (state.cursor.length === 1) return state.nodes;
 
@@ -93,7 +93,7 @@ export function isNodeCollapsed(state: TreeState, nodeId: string): boolean {
  * Get total node count (recursive)
  */
 export function getTotalNodeCount(state: TreeState): number {
-  function countNodes(nodes: TreeNodeState[]): number {
+  function countNodes(nodes: TNode[]): number {
     return nodes.reduce((sum, node) => sum + 1 + countNodes(node.children), 0);
   }
   return countNodes(state.nodes);
@@ -116,8 +116,8 @@ export function getCursorDepth(state: TreeState): number {
 /**
  * Get breadcrumb trail from root to current node
  */
-export function getBreadcrumbs(state: TreeState): TreeNodeState[] {
-  const crumbs: TreeNodeState[] = [];
+export function getBreadcrumbs(state: TreeState): TNode[] {
+  const crumbs: TNode[] = [];
   let current = state.nodes;
 
   for (const idx of state.cursor) {

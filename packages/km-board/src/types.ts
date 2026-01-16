@@ -7,7 +7,7 @@
 
 import type { TPath } from "@km/tree";
 
-// Re-export TPath as CursorPath for backwards compatibility
+/** Path-based cursor position in the tree */
 export type CursorPath = TPath;
 
 /**
@@ -63,12 +63,12 @@ export type BoardAction =
   | { type: "NAV_NEXT_SIBLING" }
   | { type: "NAV_FIRST_SIBLING" }
   | { type: "NAV_LAST_SIBLING" }
-  | { type: "JUMP_TOP" } // alias for NAV_FIRST_SIBLING
-  | { type: "JUMP_BOTTOM" } // alias for NAV_LAST_SIBLING
-  | { type: "MOVE_UP" } // legacy alias for NAV_PREV_SIBLING
-  | { type: "MOVE_DOWN" } // legacy alias for NAV_NEXT_SIBLING
-  | { type: "MOVE_LEFT" } // legacy: parent when deep, prev column at top
-  | { type: "MOVE_RIGHT" } // legacy: next column at top, child when deep
+  | { type: "JUMP_TOP" }
+  | { type: "JUMP_BOTTOM" }
+  | { type: "MOVE_UP" }
+  | { type: "MOVE_DOWN" }
+  | { type: "MOVE_LEFT" }
+  | { type: "MOVE_RIGHT" }
   | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" } // move between columns preserving Y
   | { type: "NAV_PARENT" } // out
   | { type: "NAV_CHILD" } // in

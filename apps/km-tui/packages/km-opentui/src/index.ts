@@ -15,7 +15,7 @@ export type {
   // From @km/tui-core
   TreeState,
   TreeAction,
-  TreeNodeState,
+  TNode,
   CursorPath,
   ViewLevelConfig,
   TaskStatus,

@@ -37,7 +37,7 @@ import {
   serializeState,
   getCommandNames,
   getPromptPath,
-  type TreeNodeState,
+  type TNode,
   type TaskStatus,
   type OutputEvent,
   type ShellContext,
@@ -83,15 +83,15 @@ function getNodeSlug(node: DBNode): string | undefined {
 }
 
 /**
- * Convert Node to TreeNodeState (recursive)
+ * Convert Node to TNode (recursive)
  */
-function nodeToTreeNodeState(node: Node, depth: number): TreeNodeState {
+function nodeToTNode(node: Node, depth: number): TNode {
   const children = getChildren(node.id);
   return {
     nodeId: node.id,
     title: getNodeDisplayName(node),
     slug: getNodeSlug(node),
-    children: children.map((child) => nodeToTreeNodeState(child, depth + 1)),
+    children: children.map((child) => nodeToTNode(child, depth + 1)),
     childCount: children.length,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as TaskStatus | undefined,
@@ -104,13 +104,13 @@ function nodeToTreeNodeState(node: Node, depth: number): TreeNodeState {
 /**
  * Build tree nodes from root
  */
-function buildNodes(rootId: string | null): TreeNodeState[] {
+function buildNodes(rootId: string | null): TNode[] {
   if (!rootId) {
     const roots = getChildren(null);
     if (roots.length === 0) {
       return [];
     }
-    return roots.map((node) => nodeToTreeNodeState(node, 0));
+    return roots.map((node) => nodeToTNode(node, 0));
   }
 
   const node = resolveNode(rootId);
@@ -119,7 +119,7 @@ function buildNodes(rootId: string | null): TreeNodeState[] {
   }
 
   const children = getChildren(node.id);
-  return children.map((child) => nodeToTreeNodeState(child, 0));
+  return children.map((child) => nodeToTNode(child, 0));
 }
 
 /**

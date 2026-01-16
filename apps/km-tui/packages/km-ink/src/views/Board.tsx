@@ -174,7 +174,6 @@ function countVisibleDescendants(
   return count;
 }
 
-// Re-export makeSelectionKey for backwards compatibility
 export { makeSelectionKey } from "./TreeNode.tsx";
 
 interface CardProps {

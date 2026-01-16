@@ -50,7 +50,7 @@ const SIMPLE_ACTIONS: Record<string, TreeAction> = {
   nav_cross_column_left: { type: "NAV_CROSS_COLUMN", direction: "left" },
   nav_cross_column_right: { type: "NAV_CROSS_COLUMN", direction: "right" },
 
-  // Legacy aliases (for backwards compatibility)
+  // Directional aliases
   move_up: { type: "NAV_PREV_SIBLING" },
   move_down: { type: "NAV_NEXT_SIBLING" },
   move_left: { type: "NAV_PARENT" },

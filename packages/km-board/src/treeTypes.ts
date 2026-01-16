@@ -8,7 +8,6 @@
 // Import types from @km/tree
 import type { TNode, TPath, TaskStatus } from "@km/tree";
 
-// Re-export for backwards compatibility
 export type { TaskStatus } from "@km/tree";
 
 // ===== Base Types =====
@@ -17,19 +16,11 @@ export type ViewMode = "cards" | "list" | "columns" | "tabs";
 
 // ===== Path-based Navigation =====
 
-/**
- * Path-based cursor position.
- * Re-exported from @km/tree for convenience.
- */
+/** Path-based cursor position in the tree */
 export type CursorPath = TPath;
 
-// ===== Tree Node State =====
-
-/**
- * Generic tree node for TUI state.
- * Alias for @km/tree's TNode.
- */
-export type TreeNodeState = TNode;
+// Re-export TNode from @km/tree
+export type { TNode } from "@km/tree";
 
 // ===== Tree State =====
 
@@ -43,7 +34,7 @@ export interface TreeState {
   rootPath: string | null;
 
   // Tree data
-  nodes: TreeNodeState[]; // Top-level nodes
+  nodes: TNode[]; // Top-level nodes
 
   // Path-based navigation
   cursor: CursorPath; // Current selection path
@@ -121,12 +112,12 @@ export type TreeAction =
   | { type: "NAV_NEXT_SIBLING" }
   | { type: "NAV_FIRST_SIBLING" }
   | { type: "NAV_LAST_SIBLING" }
-  | { type: "JUMP_TOP" } // alias for NAV_FIRST_SIBLING
-  | { type: "JUMP_BOTTOM" } // alias for NAV_LAST_SIBLING
-  | { type: "MOVE_UP" } // legacy alias for NAV_PREV_SIBLING
-  | { type: "MOVE_DOWN" } // legacy alias for NAV_NEXT_SIBLING
-  | { type: "MOVE_LEFT" } // legacy: parent when deep, prev column at top
-  | { type: "MOVE_RIGHT" } // legacy: next column at top, child when deep
+  | { type: "JUMP_TOP" }
+  | { type: "JUMP_BOTTOM" }
+  | { type: "MOVE_UP" }
+  | { type: "MOVE_DOWN" }
+  | { type: "MOVE_LEFT" }
+  | { type: "MOVE_RIGHT" }
   | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" } // move between columns preserving Y
   | { type: "NAV_PARENT" } // out
   | { type: "NAV_CHILD" } // in
@@ -139,11 +130,11 @@ export type TreeAction =
   | { type: "UNFOLD_LEVEL"; depth: number }
 
   // Navigating (zoom/root change)
-  | { type: "ZOOM_IN"; nodeId: string; nodes: TreeNodeState[] }
-  | { type: "ZOOM_OUT"; nodes: TreeNodeState[] }
+  | { type: "ZOOM_IN"; nodeId: string; nodes: TNode[] }
+  | { type: "ZOOM_OUT"; nodes: TNode[] }
 
   // Refresh
-  | { type: "REFRESH"; nodes: TreeNodeState[] }
+  | { type: "REFRESH"; nodes: TNode[] }
 
   // Navigation history
   | { type: "NAV_BACK" }
@@ -151,7 +142,7 @@ export type TreeAction =
   | {
       type: "NAV_TO";
       rootId: string | null;
-      nodes: TreeNodeState[];
+      nodes: TNode[];
       rootPath: string | null;
     }
 

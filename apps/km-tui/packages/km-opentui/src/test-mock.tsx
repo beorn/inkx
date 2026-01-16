@@ -8,7 +8,7 @@
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { App } from "./App.tsx";
-import type { TreeNodeState } from "./types.ts";
+import type { TNode } from "./types.ts";
 
 // Mock child node data
 function mockChild(
@@ -16,7 +16,7 @@ function mockChild(
   title: string,
   isTask = false,
   taskStatus?: "todo" | "wip" | "blocked" | "done" | "dropped",
-): TreeNodeState {
+): TNode {
   return {
     nodeId: id,
     title,
@@ -31,11 +31,7 @@ function mockChild(
 }
 
 // Mock column/parent nodes (depth 0)
-function mockColumn(
-  id: string,
-  title: string,
-  children: TreeNodeState[],
-): TreeNodeState {
+function mockColumn(id: string, title: string, children: TNode[]): TNode {
   return {
     nodeId: id,
     title,
@@ -47,7 +43,7 @@ function mockColumn(
 }
 
 // Mock tree nodes (columns with children)
-const mockNodes: TreeNodeState[] = [
+const mockNodes: TNode[] = [
   mockColumn("col1", "Inbox", [
     mockChild("card1", "Review pull request #234"),
     mockChild("card2", "Update documentation"),

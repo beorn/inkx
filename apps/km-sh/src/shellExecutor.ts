@@ -9,7 +9,7 @@ import type {
   TreeState,
   TreeAction,
   TreeCursorPath as CursorPath,
-  TreeNodeState,
+  TNode,
   TaskStatus,
 } from "@km/board";
 import { treeReducer, getNodeAtPath } from "@km/board";
@@ -231,9 +231,9 @@ export function getPromptPath(state: TreeState, rootSlugPath?: string): string {
  * Find a child node by title or slug (case-insensitive)
  */
 function findChildByName(
-  nodes: TreeNodeState[],
+  nodes: TNode[],
   name: string,
-): { node: TreeNodeState; index: number } | null {
+): { node: TNode; index: number } | null {
   const lowerName = name.toLowerCase();
   const slugName = slugify(name);
 
@@ -358,7 +358,7 @@ function navigateToPath(
  * List children of current or specified node
  */
 function listNodes(state: TreeState, pathStr?: string): string {
-  let nodes: TreeNodeState[];
+  let nodes: TNode[];
 
   if (pathStr) {
     const result = resolvePath(state, pathStr);
@@ -419,7 +419,7 @@ function renderTreeCommand(
   pathStr?: string,
   maxDepth?: number,
 ): string {
-  let startNodes: TreeNodeState[];
+  let startNodes: TNode[];
   let rootTitle: string;
 
   if (pathStr) {
@@ -463,11 +463,7 @@ function renderTreeCommand(
     dropped: "∅",
   };
 
-  function renderNode(
-    nodes: TreeNodeState[],
-    prefix: string,
-    currentDepth: number,
-  ) {
+  function renderNode(nodes: TNode[], prefix: string, currentDepth: number) {
     if (currentDepth > depth) return;
 
     for (let i = 0; i < nodes.length; i++) {
@@ -510,7 +506,7 @@ function renderTreeCommand(
  * Show node content/details (cat command)
  */
 function catNode(state: TreeState, pathStr?: string): string {
-  let node: TreeNodeState | null;
+  let node: TNode | null;
 
   if (pathStr) {
     const result = resolvePath(state, pathStr);
@@ -538,8 +534,8 @@ function catNode(state: TreeState, pathStr?: string): string {
     lines.push(`children: ${node.childCount}`);
   }
 
-  // If there's content on the node (stored in TreeNodeState), show it
-  // Note: TreeNodeState doesn't typically store full content, just metadata
+  // If there's content on the node (stored in TNode), show it
+  // Note: TNode doesn't typically store full content, just metadata
   // For full content, we'd need access to the store
 
   return lines.join("\n");

@@ -5,27 +5,19 @@
  * Supports arbitrary depth with CursorPath instead of fixed (colIndex, cardIndex).
  */
 
-import type {
-  TreeState,
-  TreeAction,
-  TreeNodeState,
-  CursorPath,
-} from "./treeTypes.ts";
+import type { TreeState, TreeAction, TNode, CursorPath } from "./treeTypes.ts";
 
 // ===== Helper Functions =====
 
 /**
  * Get node at a given cursor path
  */
-export function getNodeAtPath(
-  nodes: TreeNodeState[],
-  path: CursorPath,
-): TreeNodeState | null {
+export function getNodeAtPath(nodes: TNode[], path: CursorPath): TNode | null {
   if (path.length === 0) return null;
 
   const firstIdx = path[0];
   if (firstIdx === undefined) return null;
-  let current: TreeNodeState | undefined = nodes[firstIdx];
+  let current: TNode | undefined = nodes[firstIdx];
   for (let i = 1; i < path.length && current; i++) {
     const idx = path[i];
     if (idx === undefined) break;
@@ -37,10 +29,7 @@ export function getNodeAtPath(
 /**
  * Get sibling count at the current path level
  */
-export function getSiblingCount(
-  nodes: TreeNodeState[],
-  path: CursorPath,
-): number {
+export function getSiblingCount(nodes: TNode[], path: CursorPath): number {
   if (path.length === 0) return 0;
   if (path.length === 1) return nodes.length;
 
@@ -61,7 +50,7 @@ function getCurrentIndex(path: CursorPath): number {
 /**
  * Recursively collect all node IDs from a tree
  */
-function collectAllNodeIds(nodes: TreeNodeState[]): string[] {
+function collectAllNodeIds(nodes: TNode[]): string[] {
   const ids: string[] = [];
   for (const node of nodes) {
     ids.push(node.nodeId);
@@ -75,10 +64,7 @@ function collectAllNodeIds(nodes: TreeNodeState[]): string[] {
 /**
  * Get sibling nodes at the current cursor level
  */
-function getSiblings(
-  nodes: TreeNodeState[],
-  path: CursorPath,
-): TreeNodeState[] {
+function getSiblings(nodes: TNode[], path: CursorPath): TNode[] {
   if (path.length === 0) return [];
   if (path.length === 1) return nodes;
 
@@ -101,7 +87,7 @@ function _isNodeVisible(nodeId: string, foldedNodes: Set<string>): boolean {
  * Returns the path to the deepest last child that's visible.
  */
 function getLastVisibleDescendantPath(
-  nodes: TreeNodeState[],
+  nodes: TNode[],
   path: CursorPath,
   foldedNodes: Set<string>,
 ): CursorPath {
@@ -124,7 +110,7 @@ function getLastVisibleDescendantPath(
  * Order: first child (if visible) -> next sibling -> parent's next sibling -> ...
  */
 function getNextVisiblePath(
-  nodes: TreeNodeState[],
+  nodes: TNode[],
   path: CursorPath,
   foldedNodes: Set<string>,
 ): CursorPath | null {
@@ -172,7 +158,7 @@ function getNextVisiblePath(
  * Order: previous sibling's last descendant -> previous sibling -> parent
  */
 function getPrevVisiblePath(
-  nodes: TreeNodeState[],
+  nodes: TNode[],
   path: CursorPath,
   foldedNodes: Set<string>,
 ): CursorPath | null {
@@ -262,7 +248,7 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
       return { ...state, cursor: newPath };
     }
 
-    // Legacy directional navigation (for backwards compatibility)
+    // Directional navigation aliases
     case "MOVE_UP": {
       return treeReducer(state, { type: "NAV_PREV_SIBLING" });
     }
@@ -343,7 +329,7 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
     case "FOLD_LEVEL": {
       // Fold all nodes at a specific depth
       const newFolded = new Set(state.foldedNodes);
-      const addNodeAtDepth = (nodes: TreeNodeState[], currentDepth: number) => {
+      const addNodeAtDepth = (nodes: TNode[], currentDepth: number) => {
         for (const node of nodes) {
           if (currentDepth === action.depth) {
             newFolded.add(node.nodeId);
@@ -360,10 +346,7 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
     case "UNFOLD_LEVEL": {
       // Unfold all nodes at a specific depth
       const newFolded = new Set(state.foldedNodes);
-      const removeNodeAtDepth = (
-        nodes: TreeNodeState[],
-        currentDepth: number,
-      ) => {
+      const removeNodeAtDepth = (nodes: TNode[], currentDepth: number) => {
         for (const node of nodes) {
           if (currentDepth === action.depth) {
             newFolded.delete(node.nodeId);
@@ -863,7 +846,7 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
  * otherwise [0] (first column) if there are nodes, otherwise empty.
  */
 export function createInitialTreeState(
-  nodes: TreeNodeState[],
+  nodes: TNode[],
   rootId: string | null = null,
   rootPath: string | null = null,
 ): TreeState {

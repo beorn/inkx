@@ -18,7 +18,7 @@ export type {
   CursorPath as TreeCursorPath,
   TreeState,
   TreeAction,
-  TreeNodeState,
+  TNode,
   ViewLevelConfig,
   NodeViewModel,
   TreeViewModel,
