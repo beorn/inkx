@@ -1,0 +1,7 @@
+[test]
+# Run tests concurrently by default for faster execution
+# Tests that share state should use describe.serial() or test.serial()
+concurrent = true
+
+# Set reasonable timeout (2 minutes)
+timeout = 120000

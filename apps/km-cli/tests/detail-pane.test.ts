@@ -50,7 +50,7 @@ function createTestNode(
   return id;
 }
 
-describe("extractReferences", () => {
+describe.serial("extractReferences", () => {
   test("extracts @mentions", () => {
     const refs = extractReferences("Contact @john and @jane about this");
     expect(refs.mentions).toEqual(["john", "jane"]);
@@ -105,7 +105,7 @@ describe("extractReferences", () => {
   });
 });
 
-describe("formatDate", () => {
+describe.serial("formatDate", () => {
   test("returns empty string for undefined", () => {
     expect(formatDate(undefined)).toBe("");
   });
@@ -129,7 +129,7 @@ describe("formatDate", () => {
   });
 });
 
-describe("getStatusDisplay", () => {
+describe.serial("getStatusDisplay", () => {
   test("returns todo for undefined status", () => {
     const result = getStatusDisplay(undefined);
     expect(result.text).toBe("todo");
@@ -161,7 +161,7 @@ describe("getStatusDisplay", () => {
   });
 });
 
-describe("getProjectPath", () => {
+describe.serial("getProjectPath", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -206,7 +206,7 @@ describe("getProjectPath", () => {
   });
 });
 
-describe("DetailPane Component", () => {
+describe.serial("DetailPane Component", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -368,7 +368,7 @@ describe("DetailPane Component", () => {
   });
 });
 
-describe("DetailPane with Backlinks", () => {
+describe.serial("DetailPane with Backlinks", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });

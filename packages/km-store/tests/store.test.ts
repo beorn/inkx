@@ -11,7 +11,7 @@ import { initStore, closeStore, MemoryStore, DiskStore } from "../src/store.ts";
 
 const TEST_DIR = join("/tmp", "kmtest-store");
 
-describe("MemoryStore", () => {
+describe.serial("MemoryStore", () => {
   const ROOT_DIR = join(TEST_DIR, "memory-root");
 
   beforeEach(() => {
@@ -275,7 +275,7 @@ Some content here.
   });
 });
 
-describe("DiskStore", () => {
+describe.serial("DiskStore", () => {
   const ROOT_DIR = join(TEST_DIR, "disk-root");
   const KM_DIR = join(ROOT_DIR, ".km");
 
@@ -307,7 +307,7 @@ describe("DiskStore", () => {
   });
 });
 
-describe("initStore mode detection", () => {
+describe.serial("initStore mode detection", () => {
   // Use /tmp to avoid ancestor .km detection from project directory
   const TEST_ROOT = "/tmp/km-store-mode-test";
   const MEMORY_DIR = join(TEST_ROOT, "memory");

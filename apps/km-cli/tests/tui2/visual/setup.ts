@@ -18,6 +18,8 @@
  */
 
 import { spawn, type ChildProcess } from "child_process";
+import { mkdir, writeFile, rm } from "fs/promises";
+import { join } from "path";
 
 // ============================================================================
 // Types
@@ -229,9 +231,6 @@ export async function compareScreenshots(
  * @returns Path to the created vault
  */
 export async function createTestVault(basePath: string): Promise<string> {
-  const { mkdir, writeFile } = await import("fs/promises");
-  const { join } = await import("path");
-
   const vaultPath = join(basePath, "test-vault");
 
   // Create vault directory
@@ -273,8 +272,6 @@ export async function createTestVault(basePath: string): Promise<string> {
  * @param vaultPath - Path to the vault to remove
  */
 export async function cleanupTestVault(vaultPath: string): Promise<void> {
-  const { rm } = await import("fs/promises");
-
   await rm(vaultPath, { recursive: true, force: true });
 }
 

@@ -52,7 +52,7 @@ function createTask(content: string, options: Partial<Node> = {}): Node {
   return node;
 }
 
-describe("Task Status Filtering", () => {
+describe.serial("Task Status Filtering", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -105,7 +105,7 @@ describe("Task Status Filtering", () => {
   });
 });
 
-describe("Task Priority Sorting", () => {
+describe.serial("Task Priority Sorting", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -150,7 +150,7 @@ describe("Task Priority Sorting", () => {
   });
 });
 
-describe("Task Due Date Sorting", () => {
+describe.serial("Task Due Date Sorting", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -205,7 +205,7 @@ describe("Task Due Date Sorting", () => {
   });
 });
 
-describe("Task Status Validation", () => {
+describe.serial("Task Status Validation", () => {
   const validStatuses: TaskStatus[] = [
     "todo",
     "wip",
@@ -239,7 +239,7 @@ describe("Task Status Validation", () => {
   });
 });
 
-describe("Node ID Prefix Matching", () => {
+describe.serial("Node ID Prefix Matching", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -288,7 +288,7 @@ describe("Node ID Prefix Matching", () => {
   });
 });
 
-describe("Task Assignment", () => {
+describe.serial("Task Assignment", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -338,7 +338,7 @@ describe("Task Assignment", () => {
   });
 });
 
-describe("Task Content Parsing", () => {
+describe.serial("Task Content Parsing", () => {
   // These tests verify that task content can contain metadata markers
   // The actual parsing happens in md/parser.ts which is tested elsewhere
 
@@ -385,7 +385,7 @@ describe("Task Content Parsing", () => {
   });
 });
 
-describe("Search Functionality", () => {
+describe.serial("Search Functionality", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -445,7 +445,7 @@ describe("Search Functionality", () => {
   });
 });
 
-describe("Task Data Field", () => {
+describe.serial("Task Data Field", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -496,7 +496,7 @@ describe("Task Data Field", () => {
   });
 });
 
-describe("Overdue Detection", () => {
+describe.serial("Overdue Detection", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -550,7 +550,7 @@ describe("Overdue Detection", () => {
   });
 });
 
-describe("Timestamp Handling", () => {
+describe.serial("Timestamp Handling", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });

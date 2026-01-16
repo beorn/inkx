@@ -95,9 +95,50 @@ export async function runBoardTui2(
     process.exit(1);
   }
 
-  // Create renderer and render App
+  // Track if we've already started cleanup to prevent double-exit
+  let isExiting = false;
+
+  // Clean exit handler - ensures terminal state is restored
+  const cleanExit = (code: number = 0) => {
+    if (isExiting) return;
+    isExiting = true;
+    renderer.destroy();
+    process.exit(code);
+  };
+
+  // Create renderer with:
+  // - exitOnCtrlC: OpenTUI handles Ctrl+C -> destroy() -> exit
+  // - onDestroy: Called after destroy() completes, we exit the process
+  // - exitSignals: OpenTUI handles SIGINT, SIGTERM, SIGQUIT, SIGABRT by default
   const renderer = await createCliRenderer({
     exitOnCtrlC: true,
+    onDestroy: () => {
+      // This is called after renderer.destroy() completes
+      // Exit cleanly (OpenTUI has already restored terminal state)
+      if (!isExiting) {
+        isExiting = true;
+        process.exit(0);
+      }
+    },
+  });
+
+  // Handle uncaught exceptions - try to clean up terminal before crashing
+  const handleUncaughtError = (error: Error) => {
+    // Attempt cleanup before crash
+    try {
+      renderer.destroy();
+    } catch {
+      // Ignore cleanup errors during crash
+    }
+    console.error("Uncaught error:", error);
+    process.exit(1);
+  };
+
+  process.on("uncaughtException", handleUncaughtError);
+  process.on("unhandledRejection", (reason) => {
+    handleUncaughtError(
+      reason instanceof Error ? reason : new Error(String(reason)),
+    );
   });
 
   createRoot(renderer).render(
@@ -106,6 +147,7 @@ export async function runBoardTui2(
       rootId={rootId ?? null}
       rootPath={rootPath ?? null}
       initialViewMode={options?.initialViewMode}
+      onExit={() => cleanExit(0)}
     />,
   );
 }

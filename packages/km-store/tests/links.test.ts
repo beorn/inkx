@@ -11,7 +11,7 @@ import { MemoryStore } from "../src/store.ts";
 
 const TEST_DIR = join("/tmp", "kmtest-links");
 
-describe("Links and Backlinks", () => {
+describe.serial("Links and Backlinks", () => {
   let store: MemoryStore | null = null;
 
   beforeEach(() => {
@@ -31,7 +31,7 @@ describe("Links and Backlinks", () => {
     }
   });
 
-  describe("Wikilink Parsing in Content", () => {
+  describe.serial("Wikilink Parsing in Content", () => {
     test("should parse simple wikilinks from task content", () => {
       writeFileSync(
         join(TEST_DIR, "tasks.md"),
@@ -91,7 +91,7 @@ describe("Links and Backlinks", () => {
     });
   });
 
-  describe("Node Resolution by Path", () => {
+  describe.serial("Node Resolution by Path", () => {
     test("should find nodes by file path", () => {
       writeFileSync(join(TEST_DIR, "target.md"), "# Target\n\nContent here.");
 
@@ -112,7 +112,7 @@ describe("Links and Backlinks", () => {
     });
   });
 
-  describe("Node Hierarchy", () => {
+  describe.serial("Node Hierarchy", () => {
     test("should track parent-child relationships", () => {
       writeFileSync(
         join(TEST_DIR, "parent.md"),

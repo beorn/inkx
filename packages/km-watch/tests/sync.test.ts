@@ -28,7 +28,7 @@ import {
 import { setKmDir, setDatabase } from "@km/core";
 import { SyncManager } from "../src/sync.ts";
 
-describe("Sync Integration", () => {
+describe.serial("Sync Integration", () => {
   beforeEach(() => {
     // Clean up test directories
     if (existsSync(TEST_DIR)) {
@@ -53,7 +53,7 @@ describe("Sync Integration", () => {
     }
   });
 
-  describe("syncFromFs", () => {
+  describe.serial("syncFromFs", () => {
     test("should sync a simple markdown file to database", async () => {
       // Create a test markdown file
       const testFile = join(VAULT_DIR, "test.md");
@@ -315,7 +315,7 @@ code
     });
   });
 
-  describe("Event format validation", () => {
+  describe.serial("Event format validation", () => {
     test("events should have actor as string, not object", async () => {
       const testFile = join(VAULT_DIR, "event-test.md");
       writeFileSync(testFile, "# Test\n");
@@ -359,7 +359,7 @@ code
     });
   });
 
-  describe("Folder hierarchy", () => {
+  describe.serial("Folder hierarchy", () => {
     test("should create folder nodes for parent directories", async () => {
       // Create nested folder structure
       const subFolder = join(VAULT_DIR, "projects");

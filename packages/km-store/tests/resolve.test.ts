@@ -17,7 +17,7 @@ import { ulid } from "ulid";
 
 const TEST_DIR = join("/tmp", "kmtest-resolve");
 
-describe("resolveNode", () => {
+describe.serial("resolveNode", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });

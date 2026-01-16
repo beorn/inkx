@@ -22,7 +22,7 @@ import {
 
 const TEST_DIR = join("/tmp", "kmtest-ignore");
 
-describe("Ignore Patterns", () => {
+describe.serial("Ignore Patterns", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -36,7 +36,7 @@ describe("Ignore Patterns", () => {
     }
   });
 
-  describe("DEFAULT_IGNORE_PATTERNS", () => {
+  describe.serial("DEFAULT_IGNORE_PATTERNS", () => {
     test("should include common non-content directories", () => {
       expect(DEFAULT_IGNORE_PATTERNS).toContain("**/.git/**");
       expect(DEFAULT_IGNORE_PATTERNS).toContain("**/node_modules/**");
@@ -64,7 +64,7 @@ describe("Ignore Patterns", () => {
     });
   });
 
-  describe("matchesPattern", () => {
+  describe.serial("matchesPattern", () => {
     test("should match exact paths", () => {
       expect(matchesPattern("foo.md", "foo.md")).toBe(true);
       expect(matchesPattern("foo.md", "bar.md")).toBe(false);
@@ -102,7 +102,7 @@ describe("Ignore Patterns", () => {
     });
   });
 
-  describe("shouldIgnore", () => {
+  describe.serial("shouldIgnore", () => {
     test("should match basename for simple patterns", () => {
       // shouldIgnore also tries basename matching
       const patterns = ["*.log"];
@@ -125,7 +125,7 @@ describe("Ignore Patterns", () => {
     });
   });
 
-  describe("isHiddenFile", () => {
+  describe.serial("isHiddenFile", () => {
     test("should identify hidden files by basename", () => {
       expect(isHiddenFile(".gitignore")).toBe(true);
       expect(isHiddenFile(".env")).toBe(true);
@@ -150,7 +150,7 @@ describe("Ignore Patterns", () => {
     });
   });
 
-  describe("readGitignore", () => {
+  describe.serial("readGitignore", () => {
     test("should return empty array if .gitignore doesn't exist", () => {
       const patterns = readGitignore(TEST_DIR);
       expect(patterns).toEqual([]);
@@ -210,7 +210,7 @@ dist/
     });
   });
 
-  describe("readKmignore", () => {
+  describe.serial("readKmignore", () => {
     test("should return empty array if .kmignore doesn't exist", () => {
       const patterns = readKmignore(TEST_DIR);
       expect(patterns).toEqual([]);
@@ -232,7 +232,7 @@ dist/
     });
   });
 
-  describe("readObsidianIgnore", () => {
+  describe.serial("readObsidianIgnore", () => {
     test("should return empty array if .obsidianignore doesn't exist", () => {
       const patterns = readObsidianIgnore(TEST_DIR);
       expect(patterns).toEqual([]);
@@ -255,7 +255,7 @@ Archive/
     });
   });
 
-  describe("getIgnorePatterns", () => {
+  describe.serial("getIgnorePatterns", () => {
     test("should return default patterns when no ignore files exist", () => {
       const patterns = getIgnorePatterns(TEST_DIR);
 
@@ -286,7 +286,7 @@ Archive/
     });
   });
 
-  describe("Integration: Common Ignore Scenarios", () => {
+  describe.serial("Integration: Common Ignore Scenarios", () => {
     test("should ignore files with simple extension patterns", () => {
       // These patterns work via basename matching in shouldIgnore
       const logPatterns = ["*.log"];

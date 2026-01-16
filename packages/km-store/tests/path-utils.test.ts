@@ -21,7 +21,7 @@ import {
 // Use /tmp to avoid finding the actual .km directory in the codebase
 const TEST_DIR = "/tmp/km-test-path-utils";
 
-describe("isExplicitPath", () => {
+describe.serial("isExplicitPath", () => {
   test("returns true for absolute paths", () => {
     expect(isExplicitPath("/usr/local/bin")).toBe(true);
     expect(isExplicitPath("/home/user/file.md")).toBe(true);
@@ -54,7 +54,7 @@ describe("isExplicitPath", () => {
   });
 });
 
-describe("findKmRootFromPath", () => {
+describe.serial("findKmRootFromPath", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -94,7 +94,7 @@ describe("findKmRootFromPath", () => {
   });
 });
 
-describe("resolveFsPath", () => {
+describe.serial("resolveFsPath", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -143,7 +143,7 @@ describe("resolveFsPath", () => {
   });
 });
 
-describe("getEffectiveRoot", () => {
+describe.serial("getEffectiveRoot", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });

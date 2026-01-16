@@ -93,7 +93,7 @@ function createStandardBoard(): {
   };
 }
 
-describe("Board Move - Fresh Disk-Based Repo", () => {
+describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   beforeEach(() => {
     // Ensure clean state - close any existing db first
     try {
@@ -337,7 +337,7 @@ describe("Board Move - Fresh Disk-Based Repo", () => {
   });
 });
 
-describe("Board Move - In-Memory Mode", () => {
+describe.serial("Board Move - In-Memory Mode", () => {
   let localDb: Database;
 
   beforeEach(() => {
@@ -479,7 +479,7 @@ describe("Board Move - In-Memory Mode", () => {
   });
 });
 
-describe("Board Move - Multi-card Selection", () => {
+describe.serial("Board Move - Multi-card Selection", () => {
   beforeEach(() => {
     // Ensure clean state - close any existing db first
     try {
@@ -539,7 +539,7 @@ describe("Board Move - Multi-card Selection", () => {
   });
 });
 
-describe("Board Move - Edge Cases", () => {
+describe.serial("Board Move - Edge Cases", () => {
   beforeEach(() => {
     // Ensure clean state - close any existing db first
     try {

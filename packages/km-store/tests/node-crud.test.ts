@@ -59,7 +59,7 @@ function createTestNode(
   });
 }
 
-describe("Node CRUD Operations", () => {
+describe.serial("Node CRUD Operations", () => {
   beforeEach(() => {
     // Clean up test directory
     if (existsSync(TEST_DIR)) {
@@ -82,7 +82,7 @@ describe("Node CRUD Operations", () => {
     }
   });
 
-  describe("Create Operations", () => {
+  describe.serial("Create Operations", () => {
     test("should create folder node", () => {
       const event = createTestNode("folder", undefined, null, {
         fs_path: "/test/folder",
@@ -316,7 +316,7 @@ describe("Node CRUD Operations", () => {
     });
   });
 
-  describe("Read Operations", () => {
+  describe.serial("Read Operations", () => {
     test("should get node by ID", () => {
       const event = createTestNode("paragraph", "Test content");
       const node = getNode(event.data.id as string);
@@ -393,7 +393,7 @@ describe("Node CRUD Operations", () => {
     });
   });
 
-  describe("Update Operations", () => {
+  describe.serial("Update Operations", () => {
     test("should update node content", () => {
       const event = createTestNode("paragraph", "Original content");
       const nodeId = event.data.id as string;
@@ -467,7 +467,7 @@ describe("Node CRUD Operations", () => {
     });
   });
 
-  describe("Move Operations", () => {
+  describe.serial("Move Operations", () => {
     test("should move node to new parent", () => {
       const folder1 = createTestNode("folder");
       const folder2 = createTestNode("folder");
@@ -553,7 +553,7 @@ describe("Node CRUD Operations", () => {
     });
   });
 
-  describe("Delete Operations", () => {
+  describe.serial("Delete Operations", () => {
     test("should delete node", () => {
       const event = createTestNode("paragraph", "To be deleted");
       const nodeId = event.data.id as string;
@@ -585,7 +585,7 @@ describe("Node CRUD Operations", () => {
     });
   });
 
-  describe("Task Lifecycle Operations", () => {
+  describe.serial("Task Lifecycle Operations", () => {
     test("should claim task", () => {
       const task = createTestNode("task", "Unclaimed task", null, {
         task_status: "todo",
@@ -628,7 +628,7 @@ describe("Node CRUD Operations", () => {
     });
   });
 
-  describe("Complex Scenarios", () => {
+  describe.serial("Complex Scenarios", () => {
     test("should handle rapid create-update-delete cycle", () => {
       const ids: string[] = [];
 
@@ -742,7 +742,7 @@ describe("Node CRUD Operations", () => {
     });
   });
 
-  describe("Bidirectional Sync", () => {
+  describe.serial("Bidirectional Sync", () => {
     test("should write task status change back to markdown file", async () => {
       // Create a test markdown file with a task
       const testFile = join(TEST_DIR, "test-task.md");

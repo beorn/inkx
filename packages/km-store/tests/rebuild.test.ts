@@ -21,7 +21,7 @@ import { closeDb, getDb, resetDb } from "../src/db.ts";
 const TEST_DIR = join("/tmp", "kmtest-rebuild");
 const KM_DIR = join(TEST_DIR, ".km");
 
-describe("rebuild.ts", () => {
+describe.serial("rebuild.ts", () => {
   beforeEach(() => {
     // Clean up and create test directory structure
     if (existsSync(TEST_DIR)) {
@@ -38,7 +38,7 @@ describe("rebuild.ts", () => {
     }
   });
 
-  describe("readEvents", () => {
+  describe.serial("readEvents", () => {
     test("returns empty array when events file doesn't exist", () => {
       const events = readEvents();
       expect(events).toEqual([]);
@@ -99,7 +99,7 @@ describe("rebuild.ts", () => {
     });
   });
 
-  describe("needsRebuild", () => {
+  describe.serial("needsRebuild", () => {
     test("returns true when state.db doesn't exist", () => {
       writeFileSync(getEventsPath(), "");
       expect(needsRebuild()).toBe(true);
@@ -116,7 +116,7 @@ describe("rebuild.ts", () => {
     });
   });
 
-  describe("rebuildState", () => {
+  describe.serial("rebuildState", () => {
     test("rebuilds state from events", () => {
       const eventsPath = getEventsPath();
       writeFileSync(
@@ -149,7 +149,7 @@ describe("rebuild.ts", () => {
     });
   });
 
-  describe("fullReset", () => {
+  describe.serial("fullReset", () => {
     test("deletes state.db and rebuilds", () => {
       // Create initial state
       const eventsPath = getEventsPath();
@@ -182,7 +182,7 @@ describe("rebuild.ts", () => {
     });
   });
 
-  describe("freshStart", () => {
+  describe.serial("freshStart", () => {
     test("clears .km directory contents", () => {
       // Create some files in .km
       writeFileSync(join(KM_DIR, "events.jsonl"), "test");

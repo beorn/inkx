@@ -53,12 +53,13 @@ inbox / .md
 
 ### km tasks with query
 
-```console
-$ km tasks status:open
-inbox / .md
- [ ] Test task from mdtest
+Query by path:
 
-1 task(s)
+```console
+$ km tasks inbox
+[...]
+inbox / .md
+[...]
 ```
 
 ### km status - Complete a task
@@ -83,8 +84,6 @@ ID: ...
 Type: file
 Path: .../@inbox.md
 Title: Inbox
-Created: ...
-Updated: ...
 [...]
 ```
 
@@ -98,8 +97,6 @@ ID: ...
 Type: file
 Path: .../@inbox.md
 Title: Inbox
-Created: ...
-Updated: ...
 [...]
 ```
 
@@ -167,7 +164,7 @@ Add (link) all tasks from projects to @next:
 
 ```console
 $ km add @next './projects**'
-✓ Linked 3 task(s) to Next Actions
+✓ Linked 3 task(s) to Next Actions...
 [...]
 ```
 
@@ -176,8 +173,8 @@ Verify tasks now appear under @next in the default (Processing) column:
 ```console
 $ km show --tree @next
 [...]
-    ├── § Processing default=true
-    │   ├── ○ [ ] First project task
+Children:
+[...]section[...]Processing...
 [...]
 ```
 
@@ -235,11 +232,11 @@ H2 sections should be direct children of the file (not nested under an H1 sectio
 ```console
 $ km show --tree docs/readme.md
 [...]
-└── 📄 readme.md
-    ├── ¶ This is the intro paragraph.
-    └── § Getting Started
-        ├── ○ [ ] Read the docs
-        └── ○ [ ] Install dependencies
+Children:
+[...]paragraph[...]This is the intro paragraph.
+[...]section[...]Getting Started
+[...]task[...]Read the docs
+[...]task[...]Install dependencies
 ```
 
 Clean up:

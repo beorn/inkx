@@ -36,20 +36,42 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 
 ### 5. Test-Driven Development
 
+**Test commands:**
+
+```bash
+bun run test:fast    # ⚡ USE THIS for fast iteration (~4s)
+bun test             # All unit tests including slow (~45s)
+bun run test:all     # ALL tests - unit + mdtest (~2min, run before committing)
+bun run test:mdtest  # Only mdtest integration tests (*.test.md)
+```
+
+**⚡ IMPORTANT: Use `bun run test:fast` during development!**
+
+- `test:fast` takes ~4 seconds - use this while iterating
+- `bun test` takes ~45 seconds - includes slow integration tests
+- Only run `test:all` before committing
+
 **BEFORE committing any code changes:**
 
 ```bash
 bun fix              # MUST pass - auto-fix lint + format
-bun test             # MUST pass - all 1135+ tests
+bun run test:all     # MUST pass - all tests including mdtest
+```
+
+**During development:**
+
+```bash
+bun run test:fast    # Run this frequently - 4 second feedback loop
 ```
 
 **When implementing features:**
 
 1. Write acceptance test first (should fail)
 2. Implement feature
-3. Test passes
+3. `bun run test:fast` passes (iterate here!)
 4. `bun fix` passes
-5. Commit
+5. `bun run test:all` passes (final check before commit)
+6. Commit
 
 **For detailed testing guidance**, see [specs/km-testing.md](specs/km-testing.md):
 

@@ -50,7 +50,7 @@ function createTestNode(
   return id;
 }
 
-describe("getNodeDisplayName", () => {
+describe.serial("getNodeDisplayName", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -161,7 +161,7 @@ describe("getNodeDisplayName", () => {
   });
 });
 
-describe("getTypeIndicator", () => {
+describe.serial("getTypeIndicator", () => {
   test("returns / for folders", () => {
     expect(getTypeIndicator("folder")).toBe("/");
   });
@@ -181,7 +181,7 @@ describe("getTypeIndicator", () => {
   });
 });
 
-describe("normalizeName", () => {
+describe.serial("normalizeName", () => {
   test("lowercases names", () => {
     expect(normalizeName("PROJECT")).toBe("project");
     expect(normalizeName("My Project")).toBe("my project");
@@ -218,7 +218,7 @@ describe("normalizeName", () => {
   });
 });
 
-describe("namesAreSimilar", () => {
+describe.serial("namesAreSimilar", () => {
   test("matches identical names", () => {
     expect(namesAreSimilar("Project", "Project")).toBe(true);
   });
@@ -249,7 +249,7 @@ describe("namesAreSimilar", () => {
   });
 });
 
-describe("getCollapsedTypeSuffix", () => {
+describe.serial("getCollapsedTypeSuffix", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -337,7 +337,7 @@ describe("getCollapsedTypeSuffix", () => {
   });
 });
 
-describe("collapseRedundantAncestors", () => {
+describe.serial("collapseRedundantAncestors", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -458,7 +458,7 @@ describe("collapseRedundantAncestors", () => {
   });
 });
 
-describe("getParentContext", () => {
+describe.serial("getParentContext", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });

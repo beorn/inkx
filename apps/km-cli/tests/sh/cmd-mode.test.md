@@ -70,5 +70,7 @@ Variables and state persist between commands:
 ```console cmd="bash" minWait=50 maxWait=500
 $ export FOO=bar
 $ echo "FOO is $FOO"
+[...]
 FOO is bar
+[...]
 ```

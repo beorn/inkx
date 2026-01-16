@@ -64,7 +64,7 @@ function createTestNode(
   return id;
 }
 
-describe("Board State", () => {
+describe.serial("Board State", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -198,7 +198,7 @@ describe("Board State", () => {
   });
 });
 
-describe("Board Key Handling", () => {
+describe.serial("Board Key Handling", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -320,7 +320,7 @@ describe("Board Key Handling", () => {
   });
 });
 
-describe("Board Search", () => {
+describe.serial("Board Search", () => {
   test("handleSearchKey adds characters", () => {
     const state = createEmptyState();
     state.searchMode = true;
@@ -418,7 +418,7 @@ describe("Board Search", () => {
   });
 });
 
-describe("Board Rendering", () => {
+describe.serial("Board Rendering", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -593,7 +593,7 @@ describe("Board Rendering", () => {
   });
 });
 
-describe("Board Zoom Navigation", () => {
+describe.serial("Board Zoom Navigation", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -653,7 +653,7 @@ describe("Board Zoom Navigation", () => {
   });
 });
 
-describe("Ink Board Rendering", () => {
+describe.serial("Ink Board Rendering", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -743,7 +743,7 @@ describe("Ink Board Rendering", () => {
   });
 });
 
-describe("Ink Board TUI Rendering", () => {
+describe.serial("Ink Board TUI Rendering", () => {
   // Tests using ink-testing-library to test the ACTUAL Ink components
 
   beforeEach(() => {
@@ -913,7 +913,7 @@ describe("Ink Board TUI Rendering", () => {
   });
 });
 
-describe("Navigation History with Selection", () => {
+describe.serial("Navigation History with Selection", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -1052,7 +1052,7 @@ describe("Navigation History with Selection", () => {
   });
 });
 
-describe("Wiki Link Rendering", () => {
+describe.serial("Wiki Link Rendering", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
@@ -1129,7 +1129,7 @@ describe("Wiki Link Rendering", () => {
   });
 });
 
-describe("New Item Dialog", () => {
+describe.serial("New Item Dialog", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });

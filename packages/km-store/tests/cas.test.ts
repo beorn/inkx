@@ -22,7 +22,7 @@ import {
 const TEST_DIR = join("/tmp", "kmtest-cas");
 const KM_DIR = join(TEST_DIR, ".km");
 
-describe("cas.ts", () => {
+describe.serial("cas.ts", () => {
   beforeEach(() => {
     // Clean up and create test directory structure
     if (existsSync(TEST_DIR)) {
@@ -38,14 +38,14 @@ describe("cas.ts", () => {
     }
   });
 
-  describe("getBlobsPath", () => {
+  describe.serial("getBlobsPath", () => {
     test("returns path to blobs directory", () => {
       const path = getBlobsPath();
       expect(path).toBe(join(KM_DIR, "blobs"));
     });
   });
 
-  describe("hashContent", () => {
+  describe.serial("hashContent", () => {
     test("returns SHA-256 hash of content", () => {
       const hash = hashContent("hello world");
       // Known SHA-256 hash of "hello world"
@@ -67,7 +67,7 @@ describe("cas.ts", () => {
     });
   });
 
-  describe("storeContent / loadContent", () => {
+  describe.serial("storeContent / loadContent", () => {
     test("stores and retrieves content by hash", () => {
       const content = "test content to store";
       const hash = storeContent(content);
@@ -102,7 +102,7 @@ describe("cas.ts", () => {
     });
   });
 
-  describe("hasContent", () => {
+  describe.serial("hasContent", () => {
     test("returns true when content exists", () => {
       const content = "stored content";
       const hash = storeContent(content);
@@ -119,7 +119,7 @@ describe("cas.ts", () => {
     });
   });
 
-  describe("shouldStoreInCas", () => {
+  describe.serial("shouldStoreInCas", () => {
     test("returns false for small content", () => {
       const smallContent = "small";
       expect(shouldStoreInCas(smallContent)).toBe(false);
@@ -139,7 +139,7 @@ describe("cas.ts", () => {
     });
   });
 
-  describe("storeContentAuto", () => {
+  describe.serial("storeContentAuto", () => {
     test("stores small content inline", () => {
       const smallContent = "small content";
       const result = storeContentAuto(smallContent);
@@ -158,7 +158,7 @@ describe("cas.ts", () => {
     });
   });
 
-  describe("loadContentAuto", () => {
+  describe.serial("loadContentAuto", () => {
     test("returns inline content when available", () => {
       const content = "inline content";
       const result = loadContentAuto(content, null);
