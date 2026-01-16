@@ -75,12 +75,12 @@ node: Tasks
 topLevel: 2 nodes
 ```
 
-### l at column level moves to next column
+### l at column level enters first card (NAV_CHILD)
 
 ```console
 $ km sh board.md -c 'h; l; state'
-cursor: [1]
-node: Done
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
