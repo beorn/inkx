@@ -1,4 +1,4 @@
-import { ensureState, getNode } from "@km/store";
+import { ensureState, getNode } from "@km/storage";
 import {
   initBoardState,
   getNodeDisplayName,

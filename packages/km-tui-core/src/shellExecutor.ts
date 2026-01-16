@@ -201,6 +201,36 @@ function getPathAsString(state: TreeState): string {
 }
 
 /**
+ * Get the current path for shell prompt using node slugs
+ * e.g., "/inbox/task-1" or "/" at root
+ * @param state - TreeState with cursor position
+ * @param rootSlugPath - Optional slug path prefix for the view root (e.g., "@inbox" when viewing inside @inbox.md)
+ */
+export function getPromptPath(
+  state: TreeState,
+  rootSlugPath?: string,
+): string {
+  const parts: string[] = [];
+
+  // Add root path prefix if viewing a subset of the tree
+  if (rootSlugPath) {
+    parts.push(rootSlugPath);
+  }
+
+  // Add cursor path
+  let nodes = state.nodes;
+  for (const idx of state.cursor) {
+    const node = nodes[idx];
+    if (!node) break;
+    // Use slug if available, otherwise fall back to slugified title
+    parts.push(node.slug || slugify(node.title));
+    nodes = node.children;
+  }
+
+  return "/" + parts.join("/");
+}
+
+/**
  * Find a child node by title or slug (case-insensitive)
  */
 function findChildByName(

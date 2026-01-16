@@ -6,7 +6,7 @@
  *
  * NOTE: Functions that need to traverse the tree (getNodeDisplayName for files,
  * getCollapsedTypeSuffix, getParentContext) accept optional lookup functions.
- * Callers from TUI/CLI should pass getChildren/getNode from @km/store.
+ * Callers from TUI/CLI should pass getChildren/getNode from @km/storage.
  * This keeps km-shared free of runtime store dependencies.
  */
 
@@ -14,7 +14,7 @@ import type { Node } from "@km/core";
 
 /**
  * Lookup function types for dependency injection.
- * These allow tree traversal without importing @km/store directly.
+ * These allow tree traversal without importing @km/storage directly.
  */
 export type GetChildrenFn = (nodeId: string) => Node[];
 export type GetNodeFn = (nodeId: string) => Node | null | undefined;

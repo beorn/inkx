@@ -15,11 +15,11 @@ import {
   getNode,
   resolvePathArg,
   ensureState,
-} from "@km/store";
+} from "@km/storage";
 import { getRootPath } from "../index.ts";
 import type { Node } from "@km/core";
-import type { Link } from "@km/store";
-import { formatStatus, formatNodeBrief } from "@km/tui-ink";
+import type { Link } from "@km/storage";
+import { formatStatus, formatNodeBrief } from "@km/ink";
 
 export const showCommand = new Command("show")
   .description("Show node details")

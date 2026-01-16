@@ -182,7 +182,7 @@ km/
 │
 ├── packages/
 │   ├── km-core/          # Core types & events (@km/core)
-│   ├── km-store/         # Database & storage (@km/store)
+│   ├── km-store/         # Database & storage (@km/storage)
 │   ├── km-markdown/      # Markdown parsing (@km/markdown)
 │   ├── km-watch/         # File system watching (@km/watch)
 │   └── km-shared/        # Shared utilities (@km/shared)
@@ -195,7 +195,7 @@ km/
 ```
 @km/core ──────────────────────────────┐
     │                                  │
-    ├──→ @km/store                     │
+    ├──→ @km/storage                     │
     ├──→ @km/markdown                  │
     └──→ @km/shared                    │
             │                          │

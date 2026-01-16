@@ -36,9 +36,10 @@ This directory contains technical specifications for implementation.
 
 | Term              | Definition                                                                       |
 | ----------------- | -------------------------------------------------------------------------------- |
+| **DBNode**        | Flat database record with `parent_id`. Stored in SQLite (@km/storage).           |
+| **TNode**         | Recursive tree structure with `children[]`. For navigation (@km/tree).           |
+| **BoardState**    | Visual navigation state: cursor, selection, fold (@km/board).                    |
 | **fs-tree**       | Raw filesystem: folders, files, markdown content. Source of truth.               |
-| **km-tree**       | Unified node hierarchy in SQLite. Queryable.                                     |
-| **ui-tree**       | Render-time transformation with collapsing and formatting.                       |
 | **node**          | Everything is a node: folder, file, section, task, paragraph, etc.               |
 | **collapsing**    | Unifying same-named folder/file/section into one display line.                   |
 | **memory mode**   | No `.km/`. SQLite in RAM. Rebuilt each run. Ephemeral IDs.                       |
@@ -57,37 +58,68 @@ This directory contains technical specifications for implementation.
 
 ## Architecture
 
+### Package Structure
+
+```
+packages/                          # Shared libraries
+  @km/storage    - DBNode, SQLite, queries, events, sync
+  @km/markdown   - Parser (markdown ↔ DBNode)
+  @km/tree       - TNode, tree queries, display names
+  @km/board      - BoardState, cursor, selection, fold
+
+apps/
+  km-cli/        → @km/cli-app     CLI commands
+  km-tui/        → @km/tui-app     TUI application
+    packages/
+      km-ink/    → @km/ink         React/Ink renderer
+      km-opentui/                  OpenTUI renderer
+  km-sh/         → @km/sh-app      Shell application
+```
+
+### Data Flow
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  CLI / TUI                                                      │
-│  km task, km view, km show, km agent                            │
+│  apps/                                                          │
+│  @km/cli-app       CLI commands (km task, km view, km show)     │
+│  @km/tui-app       TUI application (km view)                    │
+│  @km/sh-app        Shell application (km sh)                    │
 └─────────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
 ┌─────────────────────┐ ┌───────────────────────────────────────┐
-│  Agent Runtime      │ │  Display Layer        (km-ui.md)      │
-│  (km-agents.md)     │ │  Collapsing, formatting               │
+│  Agent Runtime      │ │  @km/board          Visual navigation │
+│  (km-agents.md)     │ │  Cursor, selection, fold, zoom        │
 │  Harnesses, queues  │ └───────────────────────────────────────┘
 └─────────────────────┘               │
               │                       ▼
               │       ┌───────────────────────────────────────┐
-              │       │  Store Layer            (km-store.md) │
-              └──────►│  MemoryStore | DiskStore              │
+              │       │  @km/tree             Tree data model │
+              └──────►│  TNode, queries, display names        │
                       └───────────────────────────────────────┘
                                       │
                                       ▼
               ┌───────────────────────────────────────────────┐
-              │  km-tree                (km-data-model.md)    │
-              │  Unified nodes in SQLite                      │
+              │  @km/storage          (km-store.md)           │
+              │  DBNode, SQLite, events, sync                 │
               └───────────────────────────────────────────────┘
                                       │
                                       ▼
               ┌───────────────────────────────────────────────┐
-              │  fs-tree                (km-markdown.md)      │
-              │  Markdown files on disk                       │
+              │  @km/markdown         (km-markdown.md)        │
+              │  Markdown files ↔ DBNode                      │
               └───────────────────────────────────────────────┘
 ```
+
+### Type Hierarchy
+
+| Layer | Type | Description |
+|-------|------|-------------|
+| DB | `DBNode` | Flat record with `parent_id` (stored in SQLite) |
+| Tree | `TNode` | Recursive with `children[]` (for navigation) |
+| Board | `BoardState` | Visual state: cursor, selection, fold |
+| App | `AppState` | App-specific: modals, search, view mode |
 
 ---
 
@@ -99,41 +131,41 @@ These principles are non-negotiable. All code changes MUST adhere to them.
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│  UI Layer               (km-cli, TUI components)              │
-│  • Renders nodes for display                                  │
-│  • User input → commands                                      │
-│  • NO direct filesystem access                                │
+│  App Layer              (apps/)                               │
+│  • @km/tui-app, @km/sh-app, @km/cli-app                       │
+│  • App-specific state (modals, search)                        │
+│  • User input → actions                                       │
 └───────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌───────────────────────────────────────────────────────────────┐
-│  Query Layer            (km-store queries)                    │
-│  • SQL queries on km-tree                                     │
-│  • Filtering, sorting, aggregation                            │
-│  • Returns Node objects                                       │
+│  Board Layer            (@km/board)                           │
+│  • Visual navigation state                                    │
+│  • Cursor, selection, fold, zoom                              │
+│  • Returns BoardState                                         │
 └───────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌───────────────────────────────────────────────────────────────┐
-│  Model Layer            (km-store, km-core)                   │
-│  • Node CRUD operations                                       │
+│  Tree Layer             (@km/tree)                            │
+│  • TNode (recursive tree structure)                           │
+│  • Tree queries, traversal                                    │
+│  • Display name computation                                   │
+└───────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────┐
+│  Storage Layer          (@km/storage)                         │
+│  • DBNode CRUD operations                                     │
 │  • Event emission (disk mode)                                 │
-│  • Bidirectional sync coordination                            │
+│  • Filesystem ↔ DB synchronization                            │
 └───────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌───────────────────────────────────────────────────────────────┐
-│  Sync Layer             (km-watch)                            │
-│  • Filesystem ↔ Model synchronization                         │
-│  • Conflict detection & resolution                            │
-│  • Change debouncing                                          │
-└───────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────┐
-│  Parser Layer           (km-markdown)                         │
-│  • Markdown → AST → Nodes (parseMarkdownToNodes)              │
-│  • Nodes → Markdown (nodesToMarkdown)                         │
+│  Parser Layer           (@km/markdown)                        │
+│  • Markdown → AST → DBNode                                    │
+│  • DBNode → Markdown                                          │
 │  • Extracts: frontmatter, tasks, refs, fields                 │
 └───────────────────────────────────────────────────────────────┘
                               │

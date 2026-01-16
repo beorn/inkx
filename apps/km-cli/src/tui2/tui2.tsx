@@ -11,7 +11,7 @@ import {
   ensureState,
   getBacklinks,
   getOutgoingLinks,
-} from "@km/store";
+} from "@km/storage";
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
 
 // Bound version with store dependency
@@ -19,7 +19,7 @@ const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
 ) => getNodeDisplayNameBase(node, getChildren);
 
-import { App } from "@km/tui";
+import { App } from "@km/opentui";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import type { TreeNodeState, TaskStatus, ViewMode } from "@km/tui-core";

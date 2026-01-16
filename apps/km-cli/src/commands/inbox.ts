@@ -6,7 +6,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getStore, resolveNode, getChildren, queryTasks } from "@km/store";
+import { getStore, resolveNode, getChildren, queryTasks } from "@km/storage";
 import * as readline from "readline";
 
 /**

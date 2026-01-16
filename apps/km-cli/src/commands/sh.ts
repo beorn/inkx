@@ -23,7 +23,7 @@ import {
   getChildren,
   resolveNode,
   resolvePathArg,
-} from "@km/store";
+} from "@km/storage";
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
 
 // Bound version with store dependency
@@ -36,6 +36,7 @@ import {
   executeCommand,
   serializeState,
   getCommandNames,
+  getPromptPath,
   type TreeNodeState,
   type TaskStatus,
   type OutputEvent,
@@ -64,6 +65,24 @@ function shouldEmitOsc133(): boolean {
 }
 
 /**
+ * Extract slug from a Node - uses filename for files, md_slug for sections
+ */
+function getNodeSlug(node: Node): string | undefined {
+  // For file nodes, use the filename
+  if (node.fs_path) {
+    const filename = node.fs_path.split("/").pop();
+    if (filename) {
+      return filename.replace(/\.md$/, "");
+    }
+  }
+  // For sections/headings, use md_slug
+  if (node.md_slug) {
+    return node.md_slug;
+  }
+  return undefined;
+}
+
+/**
  * Convert Node to TreeNodeState (recursive)
  */
 function nodeToTreeNodeState(node: Node, depth: number): TreeNodeState {
@@ -71,6 +90,7 @@ function nodeToTreeNodeState(node: Node, depth: number): TreeNodeState {
   return {
     nodeId: node.id,
     title: getNodeDisplayName(node),
+    slug: getNodeSlug(node),
     children: children.map((child) => nodeToTreeNodeState(child, depth + 1)),
     childCount: children.length,
     isTask: node.task_status !== undefined,
@@ -203,6 +223,16 @@ export const shCommand = new Command("sh")
       process.exit(1);
     }
 
+    // Compute the root node's slug path for prompt display
+    // e.g., if viewing @inbox.md, this will be "@inbox"
+    let rootSlugPath: string | undefined;
+    if (resolvedNodeId) {
+      const rootNode = resolveNode(resolvedNodeId);
+      if (rootNode) {
+        rootSlugPath = getNodeSlug(rootNode);
+      }
+    }
+
     // Create initial state
     const initialState = createInitialTreeState(
       nodes,
@@ -298,6 +328,9 @@ export const shCommand = new Command("sh")
         return [hits.length ? hits : commandNames, line];
       };
 
+      // Build prompt showing current path (including root node path)
+      const buildPrompt = () => `${getPromptPath(ctx.state, rootSlugPath)}> `;
+
       const rl = createInterface({
         input: process.stdin,
         output: process.stdout,
@@ -306,13 +339,14 @@ export const shCommand = new Command("sh")
         historySize: 1000,
         crlfDelay: Infinity,
         terminal: process.stdin.isTTY ?? false,
-        prompt: "",
+        prompt: buildPrompt(),
       });
 
-      // Signal prompt ready
+      // Signal prompt ready and show initial prompt
       if (useOsc133) {
         process.stdout.write(OSC_133_A);
       }
+      rl.prompt();
 
       await new Promise<void>((resolve) => {
         rl.on("line", (line) => {
@@ -344,6 +378,10 @@ export const shCommand = new Command("sh")
 
           if (quit) {
             rl.close();
+          } else {
+            // Update prompt with new path and show it
+            rl.setPrompt(buildPrompt());
+            rl.prompt();
           }
         });
 

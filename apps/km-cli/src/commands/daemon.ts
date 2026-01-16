@@ -16,8 +16,7 @@ import {
 import { join, dirname } from "path";
 import { Command } from "commander";
 import chalk from "chalk";
-import { SyncManager } from "@km/store";
-import { getKmDir, setEventHub, setFsSync } from "@km/core";
+import { SyncManager, getKmDir, setEventHub, setFsSync } from "@km/storage";
 import type { Event } from "@km/core";
 import { EventEmitter } from "events";
 

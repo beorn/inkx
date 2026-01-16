@@ -54,7 +54,12 @@ export interface NodeRules {
 }
 
 /**
- * Core Node interface - everything is a node
+ * DBNode - flat database record
+ *
+ * This is the storage-layer representation of a node, stored in SQLite.
+ * It uses `parent_id` for the flat parent-child relationship.
+ *
+ * For tree navigation, use `TNode` from @km/tree which has recursive `children[]`.
  *
  * ## Task Definition
  *
@@ -71,7 +76,7 @@ export interface NodeRules {
  * This allows sections, files, or other nodes to have status for tracking
  * completion without being parsed from checkbox syntax.
  */
-export interface Node {
+export interface DBNode {
   id: string; // ULID
   type: NodeType;
   parent_id: string | null;
@@ -244,3 +249,7 @@ export interface KmConfig {
   };
   editor: string;
 }
+
+// Deprecated alias for backwards compatibility during migration
+/** @deprecated Use DBNode instead */
+export type Node = DBNode;

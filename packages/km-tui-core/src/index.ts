@@ -74,6 +74,7 @@ export {
   serializeState,
   formatStateHuman,
   renderAsciiView,
+  getPromptPath,
 } from "./shellExecutor.ts";
 export type {
   OutputEvent,

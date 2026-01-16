@@ -6,8 +6,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { SyncManager } from "@km/store";
-import { getKmDir } from "@km/core";
+import { SyncManager, getKmDir } from "@km/storage";
 import { dirname } from "path";
 
 /**

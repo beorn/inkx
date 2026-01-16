@@ -17,7 +17,7 @@ import {
   getChildren,
   resolvePathArg,
   ensureState,
-} from "@km/store";
+} from "@km/storage";
 import { getRootPath } from "../index.ts";
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
 

@@ -9,13 +9,17 @@
 export type { TaskStatus } from "@km/core";
 
 /**
- * Tree node structure.
- * Represents any node in the content hierarchy.
+ * TNode - recursive tree node
+ *
+ * This is the tree-layer representation of a node, with recursive `children[]`.
+ * Used for navigation and display. Built from DBNode via buildTree().
+ *
+ * For storage-layer operations, use `DBNode` from @km/core.
  */
-export interface TreeNode {
+export interface TNode {
   nodeId: string;
   title: string;
-  children: TreeNode[]; // Recursive children
+  children: TNode[]; // Recursive children
   childCount: number; // Total children (may exceed loaded children.length)
 
   // Content properties
@@ -40,5 +44,8 @@ export interface TreeNode {
 export type TreePath = number[];
 
 // Legacy aliases for backwards compatibility during migration
-export type NodeState = TreeNode;
+/** @deprecated Use TNode instead */
+export type TreeNode = TNode;
+/** @deprecated Use TNode instead */
+export type NodeState = TNode;
 export type CursorPath = TreePath;

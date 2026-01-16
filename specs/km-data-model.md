@@ -1,18 +1,18 @@
 # Data Model Specification
 
-Node schema, events, and storage for km.
+DBNode schema, events, and storage for km.
 
 ---
 
-## Node Schema
+## DBNode Schema
 
-Everything is a node. The unified schema:
+Everything is a node. The unified schema stored in SQLite:
 
 ```typescript
-interface Node {
+interface DBNode {
   id: string; // ULID (persisted) or path:line (memory)
   type: NodeType;
-  parent_id: string | null;
+  parent_id: string | null; // Flat structure - parent reference
   parent_idx: number;
 
   // Location (for write-back)
@@ -32,6 +32,8 @@ interface Node {
   updated_at: number;
 }
 ```
+
+**Note:** `DBNode` is a flat record with `parent_id`. For tree navigation, use `TNode` from @km/tree which has recursive `children[]`.
 
 ### Node Types
 
@@ -96,7 +98,7 @@ See [km-tasks-data.md](km-tasks-data.md#status-model) for details.
 Nodes can be **embedded** to appear in multiple locations. An embedding is a lightweight reference (symlink) to another node:
 
 ```typescript
-interface Node {
+interface DBNode {
   // ... other fields ...
   symlink_to?: string; // ID of target node (if this is a symlink)
 }
@@ -250,7 +252,7 @@ async function rebuildState(): Promise<Database> {
 
 ```typescript
 // Get children
-function getChildren(parentId: string | null): Node[] {
+function getChildren(parentId: string | null): DBNode[] {
   return db.all(
     `
     SELECT * FROM nodes
@@ -262,7 +264,7 @@ function getChildren(parentId: string | null): Node[] {
 }
 
 // Get ancestors (root to node)
-function getAncestors(nodeId: string): Node[] {
+function getAncestors(nodeId: string): DBNode[] {
   return db.all(
     `
     WITH RECURSIVE ancestors AS (
@@ -278,7 +280,7 @@ function getAncestors(nodeId: string): Node[] {
 }
 
 // Get all tasks
-function getTasks(): Node[] {
+function getTasks(): DBNode[] {
   return db.all(`
     SELECT * FROM nodes
     WHERE type = 'task'

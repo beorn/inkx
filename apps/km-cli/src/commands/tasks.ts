@@ -7,8 +7,9 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { ulid } from "ulid";
-import { emitNodeCreated, emitNodeUpdated } from "@km/core";
 import {
+  emitNodeCreated,
+  emitNodeUpdated,
   getNodeByPath,
   getAncestors,
   getDb,
@@ -18,7 +19,7 @@ import {
   parseTaskMetadata,
   extractTags,
   getChildren,
-} from "@km/store";
+} from "@km/storage";
 import type { Node, TaskStatus } from "@km/core";
 import {
   getNodeDisplayName as getNodeDisplayNameRaw,

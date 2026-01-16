@@ -18,9 +18,9 @@ import {
   getChildren,
   resolvePathArg,
   ensureState,
-} from "@km/store";
+  emitNodeCreated,
+} from "@km/storage";
 import type { Node } from "@km/core";
-import { emitNodeCreated } from "@km/core";
 import { getRootPath } from "../index.ts";
 
 export const addCommand = new Command("add")

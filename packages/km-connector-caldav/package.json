@@ -9,6 +9,6 @@
   "private": true,
   "dependencies": {
     "@km/core": "workspace:*",
-    "@km/store": "workspace:*"
+    "@km/storage": "workspace:*"
   }
 }

@@ -9,8 +9,7 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
-import { setKmDir, clearDatabase } from "@km/core";
-import { getDb, closeDb, resetDb, getNode, getTasksByStatus } from "@km/store";
+import { setKmDir, clearDatabase, getDb, closeDb, resetDb, getNode, getTasksByStatus } from "@km/storage";
 import type { Node, TaskStatus } from "@km/core";
 
 // Test directory

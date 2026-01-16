@@ -1,0 +1,14 @@
+{
+  "name": "@km/tui-app",
+  "description": "TUI application for km",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "@km/ink": "workspace:*",
+    "@km/opentui": "workspace:*"
+  }
+}

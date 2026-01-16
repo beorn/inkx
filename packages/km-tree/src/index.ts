@@ -6,7 +6,13 @@
  */
 
 // Types
-export type { TreeNode, TreePath, NodeState, CursorPath } from "./types.ts";
+export type {
+  TNode,
+  TreeNode, // Deprecated alias for TNode
+  TreePath,
+  NodeState, // Deprecated alias for TNode
+  CursorPath,
+} from "./types.ts";
 export type { TaskStatus } from "./types.ts";
 
 // Queries
