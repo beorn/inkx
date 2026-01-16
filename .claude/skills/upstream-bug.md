@@ -51,6 +51,8 @@ If the fix is in a PR but not released:
 
 ### 4. If No Fix Exists - File Bug Report
 
+**Important**: Always ask the user for permission before posting issues or PRs to external repositories.
+
 Create a high-quality bug report:
 
 ```bash
@@ -116,6 +118,8 @@ cp -r node_modules/<package> vendor/<package>
 ```
 
 ### 7. Submit PR Upstream
+
+**Important**: Always ask the user for permission before submitting PRs to external repositories.
 
 If you've fixed it:
 
