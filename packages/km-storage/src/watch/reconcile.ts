@@ -49,7 +49,7 @@ export function reconcileDirectory(
   // Get filesystem state
   const fsEntries = scanDirectory(dirPath);
 
-  // Get database state for this directory (using km-store abstraction)
+  // Get database state for this directory (using km-storage abstraction)
   const dbNodes = getNodesUnderPath(dirPath);
 
   // Index by inode and path for efficient lookup
@@ -247,7 +247,7 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
   }
 }
 
-// Use km-store's findFileByName for link resolution (aliased as findNodeByName for local use)
+// Use km-storage's findFileByName for link resolution (aliased as findNodeByName for local use)
 const findNodeByName = findFileByName;
 
 /**
@@ -261,7 +261,7 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
   const content = readFileSync(op.path, "utf-8");
   const contentHash = hashContent(content);
 
-  // Use km-store abstraction to get content hash
+  // Use km-storage abstraction to get content hash
   const existingHash = getNodeContentHash(op.nodeId);
 
   // Skip if content hasn't actually changed
@@ -269,7 +269,7 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     return;
   }
 
-  // Get existing nodes for this file using km-store abstraction
+  // Get existing nodes for this file using km-storage abstraction
   const existingNodes = getFileWithChildren(op.path);
 
   // Parse new content with wikilinks

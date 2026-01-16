@@ -3,9 +3,6 @@
  *
  * Core state and view model types for TUI tree navigation.
  * Uses a generic node model supporting arbitrary depth.
- *
- * @deprecated This file is kept for backward compatibility.
- * Import from @km/board instead.
  */
 
 // Import types from @km/tree

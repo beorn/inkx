@@ -23,3 +23,5 @@ export * from "./text/index.ts";
 
 // Export layout utilities
 export * from "./layout/index.ts";
+
+// Note: Icons are exported via ./text/index.ts

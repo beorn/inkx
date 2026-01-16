@@ -12,7 +12,7 @@ This directory contains technical specifications for implementation.
 | --- | ------------------------------ | ------------------------------------------------ |
 | 1   | [Overview](km-overview.md)     | Design principles, architecture, quick reference |
 | 2   | [Data Model](km-data-model.md) | Nodes, events, storage schema                    |
-| 3   | [Store](km-store.md)           | Persisted vs in-memory modes                     |
+| 3   | [Storage](km-storage.md)       | Persisted vs in-memory modes                     |
 | 4   | [UI](km-ui.md)                 | Views, collapsing, formatting                    |
 | 5   | [CLI](km-cli.md)               | Commands and TUI                                 |
 
@@ -101,7 +101,7 @@ apps/
                                       │
                                       ▼
               ┌───────────────────────────────────────────────┐
-              │  @km/storage          (km-store.md)           │
+              │  @km/storage          (km-storage.md)         │
               │  DBNode, SQLite, events, sync                 │
               └───────────────────────────────────────────────┘
                                       │
@@ -114,12 +114,12 @@ apps/
 
 ### Type Hierarchy
 
-| Layer | Type | Description |
-|-------|------|-------------|
-| DB | `DBNode` | Flat record with `parent_id` (stored in SQLite) |
-| Tree | `TNode` | Recursive with `children[]` (for navigation) |
-| Board | `BoardState` | Visual state: cursor, selection, fold |
-| App | `AppState` | App-specific: modals, search, view mode |
+| Layer | Type         | Description                                     |
+| ----- | ------------ | ----------------------------------------------- |
+| DB    | `DBNode`     | Flat record with `parent_id` (stored in SQLite) |
+| Tree  | `TNode`      | Recursive with `children[]` (for navigation)    |
+| Board | `BoardState` | Visual state: cursor, selection, fold           |
+| App   | `AppState`   | App-specific: modals, search, view mode         |
 
 ---
 

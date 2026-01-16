@@ -203,7 +203,7 @@ export class SyncManager extends EventEmitter {
   private handleNodeDeleted(event: Event): void {
     if (!event.target) return;
 
-    // Get node before deletion (using km-store abstraction)
+    // Get node before deletion (using km-storage abstraction)
     const node = getNode(event.target);
 
     if (node?.fs_path && (node.type === "file" || node.type === "folder")) {

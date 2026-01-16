@@ -19,7 +19,7 @@ import {
   ensureState,
 } from "@km/storage";
 import { getRootPath } from "../index.ts";
-import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree";
 
 // Bound version with store dependency
 const getNodeDisplayName = (

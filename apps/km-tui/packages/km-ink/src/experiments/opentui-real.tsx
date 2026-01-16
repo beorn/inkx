@@ -1,7 +1,7 @@
 /**
  * OpenTUI Real Data Prototype
  *
- * Tests OpenTUI with actual km-store data to evaluate production viability.
+ * Tests OpenTUI with actual km-storage data to evaluate production viability.
  *
  * Run with: nix develop -c bun apps/km-cli/src/tui/experiments/opentui-real.tsx -r <vault> [file]
  */
@@ -11,7 +11,7 @@ import { createRoot, useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { useState, useRef, useEffect } from "react";
 import { parseArgs } from "util";
 
-// Import km-store functions
+// Import km-storage functions
 import { ensureState, getStore } from "@km/storage";
 import {
   initBoardState,

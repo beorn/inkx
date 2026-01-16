@@ -245,6 +245,6 @@ All names differ — no collapsing.
 
 ## See Also
 
-- [Store](km-store.md) — Where km-tree comes from
+- [Storage](km-storage.md) — Where km-tree comes from
 - [CLI](km-cli.md) — Command reference
 - [Data Model](km-data-model.md) — Node schema

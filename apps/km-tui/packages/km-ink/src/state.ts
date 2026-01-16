@@ -13,12 +13,18 @@ import type {
   ColumnRules,
 } from "./types.ts";
 import { STATUS_CYCLE, STATUS_MARKS } from "./types.ts";
-import { getChildren, getNode, resolveNode, queryNodes, emit } from "@km/storage";
+import {
+  getChildren,
+  getNode,
+  resolveNode,
+  queryNodes,
+  emit,
+} from "@km/storage";
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
   getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,
   getParentContext as getParentContextBase,
-} from "@km/tui-core";
+} from "@km/tree";
 
 // Bound versions that inject store dependencies
 // These are the primary exports for TUI components

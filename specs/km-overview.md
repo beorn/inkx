@@ -208,7 +208,7 @@ See [km-agents.md](km-agents.md) for details.
 
 - [README](README.md) — Reading order, glossary
 - [Data Model](km-data-model.md) — Node schema, events
-- [Store](km-store.md) — Mode detection, interfaces
+- [Storage](km-storage.md) — Mode detection, interfaces
 - [UI](km-ui.md) — Views, collapsing
 - [CLI](km-cli.md) — Commands
 - [Tasks](km-tasks.md) — Task management, GTD workflow

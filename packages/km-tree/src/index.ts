@@ -27,3 +27,18 @@ export {
   countVisibleNodes,
   findPathByNodeId,
 } from "./queries.ts";
+
+// Display utilities (moved from @km/tui-core)
+export {
+  getNodeDisplayName,
+  getTypeIndicator,
+  normalizeName,
+  namesAreSimilar,
+  getCollapsedTypeSuffix,
+  collapseRedundantAncestors,
+  collapseAncestorsWithTypes,
+  getParentContext,
+  type GetChildrenFn,
+  type GetNodeFn,
+  type CollapsedAncestor,
+} from "./display.ts";

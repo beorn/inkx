@@ -19,14 +19,14 @@ export {
   ANSI_REGEX,
 } from "./rich.ts";
 
-// Icon utilities (re-exported from @km/tui-core)
+// Icon utilities (moved from @km/tui-core)
 export {
   getStatusIcon,
   getTypeIcon,
   getNodeIcon,
   COLORED_CIRCLE,
   type StatusIcon,
-} from "@km/tui-core";
+} from "../icons.ts";
 
 // Node formatting
 export {

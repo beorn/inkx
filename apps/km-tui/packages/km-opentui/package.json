@@ -9,6 +9,7 @@
   "private": true,
   "dependencies": {
     "@km/board": "workspace:*",
+    "@km/core": "workspace:*",
     "@km/tree": "workspace:*",
     "@km/tui-core": "workspace:*",
     "@opentui/core": "0.1.73",

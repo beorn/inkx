@@ -7,8 +7,8 @@ Before writing ANY code, you MUST understand and follow these rules. See [specs/
 ### 1. Clear Layering
 
 ```
-UI Layer (km-cli)     → Query Layer (km-store)
-                      → Model Layer (km-store, km-core)
+UI Layer (km-cli)     → Query Layer (km-storage)
+                      → Model Layer (km-storage, km-core)
                       → Sync Layer (km-watch)
                       → Parser Layer (km-markdown)
                       → Filesystem (markdown files)

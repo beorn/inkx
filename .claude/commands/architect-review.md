@@ -15,7 +15,7 @@ Systematically review km codebase through 3 refinement iterations. Think careful
 ## Architecture
 
 ```
-UI (km-cli) → Query (km-store) → Model (km-core) → Sync (km-watch) → Parser (km-markdown) → Filesystem
+UI (km-cli) → Query (km-storage) → Model (km-core) → Sync (km-watch) → Parser (km-markdown) → Filesystem
 ```
 
 Rules: layers call only below, UI never touches fs, parser is stateless.

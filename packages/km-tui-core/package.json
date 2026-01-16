@@ -8,6 +8,8 @@
   },
   "private": true,
   "dependencies": {
-    "@km/core": "workspace:*"
+    "@km/board": "workspace:*",
+    "@km/core": "workspace:*",
+    "@km/tree": "workspace:*"
   }
 }

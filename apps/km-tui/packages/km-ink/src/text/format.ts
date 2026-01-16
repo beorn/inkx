@@ -10,7 +10,7 @@ import type { Node } from "@km/core";
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
   type CollapsedAncestor,
-} from "@km/tui-core";
+} from "@km/tree";
 import { getChildren } from "@km/storage";
 
 // Bound version with store dependency

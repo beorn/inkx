@@ -5,14 +5,19 @@
  * Pure TypeScript - no React, no renderer dependencies.
  *
  * Uses a generic tree model with path-based navigation.
+ *
+ * NOTE: Tree state (TreeState, treeReducer, selectors, transformers)
+ * is now implemented in @km/board and re-exported here for backward compatibility.
  */
+
+// ====== Re-exports from @km/board (canonical location) ======
 
 // Types
 export type {
   // Base types
   TaskStatus,
   ViewMode,
-  CursorPath,
+  TreeCursorPath as CursorPath,
   // State types
   TreeState,
   TreeAction,
@@ -22,10 +27,10 @@ export type {
   // ViewModel types
   NodeViewModel,
   TreeViewModel,
-} from "./types.ts";
+} from "@km/board";
 
 // View level presets
-export { VIEW_LEVEL_PRESETS } from "./types.ts";
+export { VIEW_LEVEL_PRESETS } from "@km/board";
 
 // Reducer
 export {
@@ -33,7 +38,7 @@ export {
   createInitialTreeState,
   getNodeAtPath,
   getSiblingCount,
-} from "./treeReducer.ts";
+} from "@km/board";
 
 // Selectors
 export {
@@ -51,10 +56,12 @@ export {
   getTopLevelCount,
   getCursorDepth,
   getBreadcrumbs,
-} from "./selectors.ts";
+} from "@km/board";
 
 // Transformers
-export { toNodeViewModel, toTreeViewModel } from "./transformers.ts";
+export { toNodeViewModel, toTreeViewModel } from "@km/board";
+
+// ====== Local implementations (shell, icons, commands) ======
 
 // Command Parser (for km-sh)
 export {
@@ -82,7 +89,7 @@ export type {
   ShellContext,
 } from "./shellExecutor.ts";
 
-// Icon utilities (merged from @km/shared)
+// Icon utilities
 export {
   getStatusIcon,
   getTypeIcon,
@@ -91,7 +98,7 @@ export {
   type StatusIcon,
 } from "./icons.ts";
 
-// Tree utilities (merged from @km/shared)
+// Tree utilities (re-exported from @km/tree)
 export {
   getNodeDisplayName,
   getTypeIndicator,

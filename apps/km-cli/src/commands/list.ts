@@ -14,10 +14,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { getDb, getAncestors } from "@km/storage";
 import type { Node } from "@km/core";
-import {
-  collapseAncestorsWithTypes,
-  type CollapsedAncestor,
-} from "@km/tui-core";
+import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree";
 import { formatNode, formatCollapsedAncestor } from "@km/ink";
 
 /**

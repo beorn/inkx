@@ -206,10 +206,7 @@ function getPathAsString(state: TreeState): string {
  * @param state - TreeState with cursor position
  * @param rootSlugPath - Optional slug path prefix for the view root (e.g., "@inbox" when viewing inside @inbox.md)
  */
-export function getPromptPath(
-  state: TreeState,
-  rootSlugPath?: string,
-): string {
+export function getPromptPath(state: TreeState, rootSlugPath?: string): string {
   const parts: string[] = [];
 
   // Add root path prefix if viewing a subset of the tree

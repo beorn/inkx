@@ -167,7 +167,7 @@ Recursive tree node for navigation:
 interface TNode {
   nodeId: string;
   title: string;
-  children: TNode[];      // Recursive children
+  children: TNode[]; // Recursive children
   childCount: number;
   depth: number;
 
@@ -195,7 +195,7 @@ Flat database record:
 interface DBNode {
   id: string;
   type: NodeType;
-  parent_id: string | null;  // Flat structure
+  parent_id: string | null; // Flat structure
   parent_idx: number;
   fs_path: string | null;
   content: string | null;
@@ -213,9 +213,7 @@ type TreePath = number[];
 type CursorPath = TreePath;
 
 // Examples:
-[0]        // First top-level node
-[0, 2]     // Column 0, card 2
-[0, 2, 1]  // Column 0, card 2, subcard 1
+[0][(0, 2)][(0, 2, 1)]; // First top-level node // Column 0, card 2 // Column 0, card 2, subcard 1
 ```
 
 ---
@@ -379,27 +377,27 @@ interface ViewLevelConfig {
 
 ### App Layer (apps/)
 
-| Package | Concern |
-|---------|---------|
-| @km/cli-app | CLI commands, app launchers |
-| @km/tui-app | TUI rendering, modal state |
-| @km/sh-app | Shell REPL, command execution |
+| Package     | Concern                       |
+| ----------- | ----------------------------- |
+| @km/cli-app | CLI commands, app launchers   |
+| @km/tui-app | TUI rendering, modal state    |
+| @km/sh-app  | Shell REPL, command execution |
 
 **Owns:** App-specific state, rendering, user input handling
 
 ### Board Layer (@km/board)
 
-| Concern            | Examples                    |
-| ------------------ | --------------------------- |
-| Cursor position    | CursorPath = [col, card]    |
-| Selection          | selectedNodes: Set<string>  |
-| Visual state       | foldedNodes, collapsedNodes |
-| Navigation history | zoomStack, navHistory       |
-| Spatial algorithms | calculateCrossColumnPath()  |
-| Navigation logic   | boardReducer                |
+| Concern            | Examples                     |
+| ------------------ | ---------------------------- |
+| Cursor position    | CursorPath = [col, card]     |
+| Selection          | selectedNodes: Set<string>   |
+| Visual state       | foldedNodes, collapsedNodes  |
+| Navigation history | zoomStack, navHistory        |
+| Spatial algorithms | calculateCrossColumnPath()   |
+| Navigation logic   | boardReducer                 |
 | Selectors          | getCurrentNode, isNodeFolded |
-| Transformers       | toNodeViewModel             |
-| Collapse utils     | collapseRedundantAncestors  |
+| Transformers       | toNodeViewModel              |
+| Collapse utils     | collapseRedundantAncestors   |
 
 **Does NOT own:** App-specific state, rendering, DBNode mutations
 
@@ -416,12 +414,12 @@ interface ViewLevelConfig {
 
 ### Storage Layer (@km/storage)
 
-| Concern     | Examples           |
-| ----------- | ------------------ |
-| DBNode CRUD | getNode, updateNode |
-| Persistence | SQLite operations  |
-| Events      | emit, emitNodeUpdated |
-| File sync   | Markdown ↔ DB sync |
+| Concern     | Examples                 |
+| ----------- | ------------------------ |
+| DBNode CRUD | getNode, updateNode      |
+| Persistence | SQLite operations        |
+| Events      | emit, emitNodeUpdated    |
+| File sync   | Markdown ↔ DB sync       |
 | Query lang  | parseQuery, executeQuery |
 
 **Does NOT own:** Tree structure, navigation, rendering

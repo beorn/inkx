@@ -293,7 +293,7 @@ function getTasks(): DBNode[] {
 
 ## See Also
 
-- [Store](km-store.md) — Persisted vs in-memory modes
+- [Storage](km-storage.md) — Persisted vs in-memory modes
 - [Markdown](km-markdown.md) — Parsing .md to nodes
 - [Overview](km-overview.md) — Quick start
 - [Tasks Data Model](km-tasks-data.md) — Task-specific fields and boards

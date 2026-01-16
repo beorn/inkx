@@ -26,7 +26,7 @@ import {
   normalizeName,
   collapseAncestorsWithTypes,
   type CollapsedAncestor,
-} from "@km/tui-core";
+} from "@km/tree";
 
 // Bound version with store dependency
 const getNodeDisplayNameBase = (

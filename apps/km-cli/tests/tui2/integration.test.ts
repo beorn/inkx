@@ -4,7 +4,7 @@
  * Tests the full flow from store data through state management
  * to view models. Verifies the architecture layers work together:
  *
- * Store Layer (km-store) -> State Layer (km-tui-core) -> View Layer (km-tui-opentui)
+ * Store Layer (km-storage) -> State Layer (km-tui-core) -> View Layer (km-tui-opentui)
  */
 
 import { describe, it, expect } from "bun:test";

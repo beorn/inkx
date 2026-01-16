@@ -4,13 +4,13 @@
 
 ## Quick Reference
 
-| Tool       | Purpose                      | Command                                  |
-| ---------- | ---------------------------- | ---------------------------------------- |
-| `bun test` | Unit & integration tests     | `bun test`, `bun test packages/km-store` |
-| `mdtest`   | Golden file CLI tests        | `bun run test:e2e tests/*.test.md`       |
-| `km sh`    | TUI state testing (headless) | `km sh @root -c 'move_down; state'`      |
-| Playwright | Visual TUI screenshots       | `cd tests/tui && playwright test`        |
-| Storybook  | Component visual dev         | `bun run storybook`                      |
+| Tool       | Purpose                      | Command                                    |
+| ---------- | ---------------------------- | ------------------------------------------ |
+| `bun test` | Unit & integration tests     | `bun test`, `bun test packages/km-storage` |
+| `mdtest`   | Golden file CLI tests        | `bun run test:e2e tests/*.test.md`         |
+| `km sh`    | TUI state testing (headless) | `km sh @root -c 'move_down; state'`        |
+| Playwright | Visual TUI screenshots       | `cd tests/tui && playwright test`          |
+| Storybook  | Component visual dev         | `bun run storybook`                        |
 
 **Quality gates (MUST pass before commit):**
 
@@ -76,7 +76,7 @@ The km codebase uses a **layered testing strategy** aligned with its architectur
 
 ---
 
-### Layer 2: Model/Store (`packages/km-store`, `packages/km-core`)
+### Layer 2: Model/Store (`packages/km-storage`, `packages/km-core`)
 
 **Responsibility**: CRUD operations, queries, event sourcing, node resolution
 
@@ -100,7 +100,7 @@ The km codebase uses a **layered testing strategy** aligned with its architectur
 - Filesystem watching (that's Layer 3)
 - How nodes render (Layers 4-5)
 
-**Files**: `packages/km-store/tests/*.test.ts`
+**Files**: `packages/km-storage/tests/*.test.ts`
 
 ---
 
@@ -654,7 +654,7 @@ test("reducer moves down", () => {
 ### File Naming
 
 ```
-packages/km-store/
+packages/km-storage/
 ├── src/
 │   ├── query.ts
 │   └── store.ts
@@ -686,7 +686,7 @@ describe("Module or Feature", () => {
 ```bash
 bun test                    # Run all tests
 bun test --coverage         # With coverage report
-bun test packages/km-store  # Specific package
+bun test packages/km-storage  # Specific package
 ```
 
 ### Filtered Tests
@@ -913,7 +913,7 @@ DEBUG='mdtest:*' bun run test:e2e test.test.md
 | Package        | Test Files | Tests     | Lines       |
 | -------------- | ---------- | --------- | ----------- |
 | km-cli         | 13         | ~400      | 3,408       |
-| km-store       | 8          | ~250      | 3,104       |
+| km-storage     | 8          | ~250      | 3,104       |
 | km-markdown    | 2          | ~150      | 2,680       |
 | km-tui-core    | 5          | ~100      | 1,500       |
 | km-tui-opentui | 4          | ~30       | 400         |
@@ -942,7 +942,7 @@ When adding a new feature, ensure you have tests for:
 ### Layer-Appropriate Tests
 
 - [ ] **Parser changes?** → Unit tests in `km-markdown/tests/`
-- [ ] **Store changes?** → Integration tests in `km-store/tests/`
+- [ ] **Store changes?** → Integration tests in `km-storage/tests/`
 - [ ] **New TreeAction?** → Unit test in `km-tui-core/tests/treeReducer.test.ts`
 - [ ] **New command?** → CLI integration test + mdtest golden file
 - [ ] **Visual change?** → Storybook story + optional Playwright test

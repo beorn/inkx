@@ -11,7 +11,12 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { resolveTask, getStore, getNextOccurrence, naturalToRRule } from "@km/storage";
+import {
+  resolveTask,
+  getStore,
+  getNextOccurrence,
+  naturalToRRule,
+} from "@km/storage";
 import type { TaskStatus, TaskMark } from "@km/core";
 
 /**

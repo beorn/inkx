@@ -1,5 +1,5 @@
 {
-  "name": "@km/app-cli",
+  "name": "@km/cli-app",
   "description": "CLI application for km",
   "version": "0.1.0",
   "private": true,
@@ -13,6 +13,7 @@
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/storage": "workspace:*",
+    "@km/tree": "workspace:*",
     "@km/opentui": "workspace:*",
     "@km/tui-core": "workspace:*",
     "@km/ink": "workspace:*",

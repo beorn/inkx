@@ -24,7 +24,7 @@
       },
     },
     "apps/km-cli": {
-      "name": "@km/app-cli",
+      "name": "@km/cli-app",
       "version": "0.1.0",
       "bin": {
         "km": "./src/index.ts",
@@ -36,6 +36,7 @@
         "@km/markdown": "workspace:*",
         "@km/opentui": "workspace:*",
         "@km/storage": "workspace:*",
+        "@km/tree": "workspace:*",
         "@km/tui-core": "workspace:*",
         "chalk": "^5.4.1",
         "commander": "^13.1.0",
@@ -44,6 +45,14 @@
       },
       "devDependencies": {
         "@types/react": "^19.2.7",
+      },
+    },
+    "apps/km-sh": {
+      "name": "@km/sh-app",
+      "dependencies": {
+        "@km/core": "workspace:*",
+        "@km/tree": "workspace:*",
+        "@km/tui-core": "workspace:*",
       },
     },
     "apps/km-tui": {
@@ -59,6 +68,7 @@
         "@beorn/chalkx": "workspace:*",
         "@km/core": "workspace:*",
         "@km/storage": "workspace:*",
+        "@km/tree": "workspace:*",
         "@km/tui-core": "workspace:*",
         "chalk": "^5.4.1",
         "fullscreen-ink": "^0.1.0",
@@ -74,6 +84,7 @@
       "name": "@km/opentui",
       "dependencies": {
         "@km/board": "workspace:*",
+        "@km/core": "workspace:*",
         "@km/tree": "workspace:*",
         "@km/tui-core": "workspace:*",
         "@opentui/core": "0.1.73",
@@ -134,7 +145,9 @@
     "packages/km-tui-core": {
       "name": "@km/tui-core",
       "dependencies": {
+        "@km/board": "workspace:*",
         "@km/core": "workspace:*",
+        "@km/tree": "workspace:*",
       },
     },
     "vendor/beorn-chalkx": {
@@ -266,9 +279,9 @@
 
     "@jimp/utils": ["@jimp/utils@1.6.0", "", { "dependencies": { "@jimp/types": "1.6.0", "tinycolor2": "^1.6.0" } }, "sha512-gqFTGEosKbOkYF/WFj26jMHOI5OH2jeP1MmC/zbK6BF6VJBf8rIC5898dPfSzZEbSA0wbbV5slbntWVc5PKLFA=="],
 
-    "@km/app-cli": ["@km/app-cli@workspace:apps/km-cli"],
-
     "@km/board": ["@km/board@workspace:packages/km-board"],
+
+    "@km/cli-app": ["@km/cli-app@workspace:apps/km-cli"],
 
     "@km/connector-caldav": ["@km/connector-caldav@workspace:packages/km-connector-caldav"],
 
@@ -279,6 +292,8 @@
     "@km/markdown": ["@km/markdown@workspace:packages/km-markdown"],
 
     "@km/opentui": ["@km/opentui@workspace:apps/km-tui/packages/km-opentui"],
+
+    "@km/sh-app": ["@km/sh-app@workspace:apps/km-sh"],
 
     "@km/storage": ["@km/storage@workspace:packages/km-storage"],
 
@@ -858,7 +873,7 @@
 
     "@isaacs/cliui/wrap-ansi": ["wrap-ansi@8.1.0", "", { "dependencies": { "ansi-styles": "^6.1.0", "string-width": "^5.0.1", "strip-ansi": "^7.0.1" } }, "sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ=="],
 
-    "@km/app-cli/commander": ["commander@13.1.0", "", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
+    "@km/cli-app/commander": ["commander@13.1.0", "", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
 
     "@opentui/react/ws": ["ws@8.19.0", "", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg=="],
 
