@@ -1,0 +1,13 @@
+{
+  "name": "@km/tree",
+  "description": "Tree data model - node structure and queries (no visual state)",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "@km/core": "workspace:*"
+  }
+}

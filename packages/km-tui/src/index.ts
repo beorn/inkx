@@ -1,8 +1,13 @@
 /**
- * @km/tui-opentui
+ * @km/tui
  *
  * OpenTUI renderer for km TUI.
  * Provides components, views, and hooks for OpenTUI-based rendering.
+ *
+ * Architecture:
+ * - @km/tree: Tree data model (node structure, queries)
+ * - @km/board: Visual board state (cursor, selection, fold)
+ * - @km/tui: UI rendering (this package)
  */
 
 // Types

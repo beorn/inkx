@@ -349,6 +349,53 @@ describe("treeReducer", () => {
       });
       expect(next.cursor).toEqual([0]); // Unchanged
     });
+
+    test("navigates to column level when target column is empty", () => {
+      // Create nodes with an empty column
+      const nodesWithEmptyColumn: TreeNodeState[] = [
+        {
+          nodeId: "col1",
+          title: "Column 1",
+          depth: 0,
+          childCount: 2,
+          isTask: false,
+          children: [
+            {
+              nodeId: "card1",
+              title: "Card 1",
+              depth: 1,
+              childCount: 0,
+              isTask: false,
+              children: [],
+            },
+            {
+              nodeId: "card2",
+              title: "Card 2",
+              depth: 1,
+              childCount: 0,
+              isTask: false,
+              children: [],
+            },
+          ],
+        },
+        {
+          nodeId: "col2",
+          title: "Empty Column",
+          depth: 0,
+          childCount: 0,
+          isTask: false,
+          children: [], // Empty column
+        },
+      ];
+      const state = createInitialTreeState(nodesWithEmptyColumn);
+      state.cursor = [0, 1]; // card2 in col1
+      const next = treeReducer(state, {
+        type: "NAV_CROSS_COLUMN",
+        direction: "right",
+      });
+      // Should navigate to column level since col2 is empty
+      expect(next.cursor).toEqual([1]);
+    });
   });
 
   describe("JUMP_TOP", () => {

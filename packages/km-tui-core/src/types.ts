@@ -102,11 +102,21 @@ export interface TreeState {
 /**
  * Actions for tree state transitions.
  *
- * Navigation uses structural terms (prev/next/in/out/to) not spatial (up/down/left/right).
- * The container (App.tsx) translates spatial keys to structural actions,
- * computing paths for cross-column navigation via NAV_TO_PATH.
+ * Visual/Spatial Navigation (CURSOR_*):
+ *   Moves to visually adjacent block. May traverse tree structure arbitrarily.
+ *   See specs/km-board-navigation.md for the visual navigation model.
+ *
+ * Structural Navigation (NAV_*):
+ *   Moves within tree structure (prev/next sibling, parent/child).
  */
 export type TreeAction =
+  // Visual/spatial navigation (cursor-select)
+  // These move to the visually adjacent block, which may cross tree structure
+  | { type: "CURSOR_UP" } // previous visible block above
+  | { type: "CURSOR_DOWN" } // next visible block below
+  | { type: "CURSOR_LEFT" } // cross-column left (at card level)
+  | { type: "CURSOR_RIGHT" } // cross-column right (at card level)
+
   // Structural navigation (prev/next within siblings, in/out for depth)
   | { type: "NAV_PREV_SIBLING" }
   | { type: "NAV_NEXT_SIBLING" }

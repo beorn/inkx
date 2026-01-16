@@ -44,6 +44,7 @@ gh search issues --repo <owner>/<repo> "<keywords>"
 ```
 
 Also check:
+
 - Open issues on the repo
 - Recent releases/changelogs for fixes
 - Discussions or related projects
@@ -61,6 +62,7 @@ bun add <package>@<version>
 ```
 
 If the fix is in a PR but not released:
+
 - Consider vendorizing (see below)
 - Or wait for release and apply workaround
 
@@ -166,6 +168,7 @@ gh pr create --repo <owner>/<repo> \
 **Bug**: Invalid `borderStyle` value causes segfault in native Zig library.
 
 **Steps taken**:
+
 1. Isolated via binary search testing
 2. Searched GitHub - no existing report
 3. Created repro: `packages/km-tui-opentui/src/repro-crash.tsx`

@@ -8,9 +8,10 @@ Technical specification for TUI state management across three packages.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  ENTRY POINT (apps/km-cli/view)                                 │
+│  ENTRY POINT (apps/km-cli)                                      │
 │                                                                  │
-│  • Existing view command - imports @km/tui                      │
+│  • view command - imports @km/tui                               │
+│  • sh command - imports @km/tui-core for shell                  │
 │                                                                  │
 │  Owns: CLI integration                                          │
 └───────────────────────────────┬─────────────────────────────────┘
@@ -19,36 +20,38 @@ Technical specification for TUI state management across three packages.
 ┌─────────────────────────────────────────────────────────────────┐
 │  TUI LAYER (@km/tui)                                            │
 │                                                                  │
-│  • app/ - App.tsx, appState, appReducer, key handling           │
+│  • App.tsx - main component, key handling                       │
 │  • views/ - CardsView, ListView, ColumnsView, etc.              │
 │  • components/ - Card, Column, TreeNode, etc.                   │
 │                                                                  │
 │  Owns: Modal state, view config, rendering, design system       │
 └───────────────────────────────┬─────────────────────────────────┘
-                                │ model actions
+                                │ board actions
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  MODEL LAYER (@km/core)                                         │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  BOARD LAYER (@km/core/board)                             │  │
-│  │  • boardReducer - cursor, selection, fold, zoom, history  │  │
-│  │  • spatialNav - cross-column algorithm (height callback)  │  │
-│  │  Owns: Visual navigation state, selection, algorithms     │  │
-│  └───────────────────────────────┬───────────────────────────┘  │
-│                                  │ node queries                 │
-│                                  ▼                              │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  NODE LAYER (@km/core/node)                               │  │
-│  │  • NodeState - node structure (id, title, children, etc.) │  │
-│  │  • Node queries - getNodeAtPath, filter, flatten          │  │
-│  │  • nodeReducer - add, remove, move, update                │  │
-│  │  Owns: Tree data structure, queries, transformations      │  │
-│  └───────────────────────────────────────────────────────────┘  │
+│  BOARD LAYER (@km/board)                                        │
+│                                                                  │
+│  • BoardState - cursor, selection, fold, zoom, history          │
+│  • boardReducer - CURSOR_*, selection, navigation               │
+│  • Visual navigation algorithms                                 │
+│                                                                  │
+│  Owns: Visual navigation state, selection, algorithms           │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ tree queries
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  TREE LAYER (@km/tree)                                          │
+│                                                                  │
+│  • TreeNode - node structure (id, title, children, etc.)        │
+│  • TreePath - path-based navigation                             │
+│  • Queries - getNodeAtPath, getSiblings, findPathByNodeId       │
+│                                                                  │
+│  Owns: Tree data structure, queries (NO visual state)           │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │ node CRUD
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STORAGE LAYER (@km/storage)                                    │
+│  STORAGE LAYER (@km/store)                                      │
 │                                                                  │
 │  Owns: Persistence, file sync, database                         │
 └─────────────────────────────────────────────────────────────────┘
@@ -61,15 +64,14 @@ Technical specification for TUI state management across three packages.
 ```
 apps/
 └── km-cli/
-    └── src/commands/view.ts      # Entry point - imports @km/tui
+    └── src/
+        ├── tui2/tui2.tsx        # Entry point - imports @km/tui
+        └── commands/sh.ts       # Shell - imports @km/tui-core
 
 packages/
 ├── km-tui/                # @km/tui - TUI layer (app + rendering)
 │   ├── src/
-│   │   ├── app/              # App layer
-│   │   │   ├── App.tsx          # Main component, key handling
-│   │   │   ├── appState.ts      # AppState, AppAction
-│   │   │   └── appReducer.ts    # Modal toggling, view config
+│   │   ├── App.tsx           # Main component, key handling
 │   │   ├── views/            # View components
 │   │   │   ├── CardsView.tsx
 │   │   │   ├── ListView.tsx
@@ -80,20 +82,28 @@ packages/
 │   │       └── TreeNode.tsx
 │   └── tests/
 │
-├── km-core/               # @km/core - Model layer
+├── km-board/              # @km/board - Visual board state
 │   ├── src/
-│   │   ├── node/             # Node layer (structural)
-│   │   │   ├── types.ts         # NodeState
-│   │   │   ├── queries.ts       # getNodeAtPath, filter, flatten
-│   │   │   └── nodeReducer.ts   # Add, remove, move nodes
-│   │   ├── board/            # Board layer (visual)
-│   │   │   ├── types.ts         # BoardState, CursorPath
-│   │   │   ├── boardReducer.ts  # Navigation, selection
-│   │   │   └── spatialNav.ts    # Cross-column algorithms
+│   │   ├── types.ts          # BoardState, BoardAction, CursorPath
+│   │   ├── boardReducer.ts   # Navigation, selection, CURSOR_*
 │   │   └── index.ts          # Re-exports
+│   └── package.json
+│
+├── km-tree/               # @km/tree - Tree data model
+│   ├── src/
+│   │   ├── types.ts          # TreeNode, TreePath
+│   │   ├── queries.ts        # getNodeAtPath, getSiblings, etc.
+│   │   └── index.ts          # Re-exports
+│   └── package.json
+│
+├── km-tui-core/           # @km/tui-core - Shell and CLI support
+│   ├── src/                  # (pending consolidation)
+│   │   ├── commandParser.ts  # Command parsing
+│   │   ├── shellExecutor.ts  # Shell execution
+│   │   └── treeReducer.ts    # (duplicate - to be removed)
 │   └── tests/
 │
-└── km-storage/            # @km/storage - Storage layer (exists)
+└── km-store/              # @km/store - Storage layer
     ├── src/
     │   ├── db.ts             # SQLite operations
     │   └── sync.ts           # File ↔ DB sync
@@ -120,7 +130,7 @@ interface AppState {
 }
 ```
 
-### BoardState (@km/core)
+### BoardState (@km/board)
 
 Navigation and selection state:
 
@@ -148,9 +158,9 @@ interface BoardState {
 }
 ```
 
-### NodeState (@km/core)
+### TreeNode (@km/tree)
 
-Unified node for any tree level:
+Unified node for any tree level (aliased as NodeState for compatibility):
 
 ```typescript
 interface NodeState {
@@ -173,7 +183,7 @@ interface NodeState {
 }
 ```
 
-### CursorPath (@km/core)
+### TreePath / CursorPath (@km/tree)
 
 Variable-length path for navigation:
 
@@ -188,7 +198,7 @@ type CursorPath = number[];
 
 ## Actions
 
-### BoardAction (@km/core/board)
+### BoardAction (@km/board)
 
 ```typescript
 type BoardAction =

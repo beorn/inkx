@@ -126,7 +126,7 @@ export function TreeNode({
 
   const childCountDisplay =
     hasChildren && isFolded
-      ? ` (${node.children?.length ?? node.childCount})`
+      ? ` (${(node.children?.length ?? 0) || node.childCount})`
       : "";
 
   // Selection colors: both cursor selection and multi-selection use cyan background
@@ -141,9 +141,10 @@ export function TreeNode({
 
   // Priority color (check for both null and undefined)
   const hasPriority = node.priority != null;
-  const priorityColor = hasPriority
-    ? getPriorityColor(node.priority!)
-    : undefined;
+  const priorityColor =
+    hasPriority && node.priority !== undefined
+      ? getPriorityColor(node.priority)
+      : undefined;
 
   // Format due date if present
   const dueDateInfo = node.dueDate ? formatDueDate(node.dueDate) : null;
@@ -226,9 +227,9 @@ export function TreeNode({
               {statusIcon.char}{" "}
             </text>
           )}
-          {hasPriority && (
+          {hasPriority && node.priority !== undefined && (
             <text color={hasSelection ? "black" : priorityColor} bold>
-              [{getPriorityLabel(node.priority!)}]{" "}
+              [{getPriorityLabel(node.priority)}]{" "}
             </text>
           )}
           <text color={textColor} dim={isDoneOrDropped}>
@@ -282,9 +283,9 @@ export function TreeNode({
             {statusIcon.char}{" "}
           </text>
         )}
-        {hasPriority && (
+        {hasPriority && node.priority !== undefined && (
           <text color={hasSelection ? "black" : priorityColor} bold>
-            [{getPriorityLabel(node.priority!)}]{" "}
+            [{getPriorityLabel(node.priority)}]{" "}
           </text>
         )}
         <text color={textColor} dim={isDoneOrDropped}>

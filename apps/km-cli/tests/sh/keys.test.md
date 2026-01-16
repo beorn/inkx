@@ -131,6 +131,100 @@ node: Task D
 topLevel: 2 nodes
 ```
 
+## Cross-Column Navigation (H/L)
+
+Cross-column navigation moves between columns while preserving the vertical position.
+
+### L moves right to adjacent column preserving Y position
+
+```console
+$ km sh board.md -c 'j; L; state'
+cursor: [1,0]
+node: Task D
+topLevel: 2 nodes
+```
+
+### H moves left to adjacent column preserving Y position
+
+```console
+$ km sh board.md -c 'j; L; H; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+### L clamps Y position when target column is shorter
+
+```console
+$ km sh board.md -c 'j; j; L; state'
+cursor: [1,0]
+node: Task D
+topLevel: 2 nodes
+```
+
+### nav_cross_column_right command works like L key
+
+```console
+$ km sh board.md -c 'nav_cross_column_right; state'
+cursor: [1,0]
+node: Task D
+topLevel: 2 nodes
+```
+
+### nav_cross_column_left command works like H key
+
+```console
+$ km sh board.md -c 'L; nav_cross_column_left; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+### H at first column is no-op
+
+```console
+$ km sh board.md -c 'H; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+### L at last column is no-op
+
+```console
+$ km sh board.md -c 'L; L; state'
+cursor: [1,0]
+node: Task D
+topLevel: 2 nodes
+```
+
+### L to empty column navigates to column level
+
+Create a board with an empty column:
+
+```console
+$ cat > empty-col.md << 'EOF'
+> # Board
+> ## Tasks
+> - [ ] Task A
+> - [ ] Task B
+> ## Empty
+> EOF
+```
+
+```console
+$ km sync
+Syncing: ...
+[...]
+```
+
+```console
+$ km sh empty-col.md -c 'L; state'
+cursor: [1]
+node: Empty
+topLevel: 2 nodes
+```
+
 ## Jump Commands
 
 ### g moves to first sibling

@@ -1,0 +1,13 @@
+{
+  "name": "@km/board",
+  "description": "Visual board state - cursor, selection, fold, zoom (no UI rendering)",
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "@km/tree": "workspace:*"
+  }
+}

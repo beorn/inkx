@@ -115,7 +115,7 @@ export function CommandPalette({
           No matching commands
         </text>
       ) : (
-        displayItems.map((item, displayIndex) => {
+        displayItems.map((item, _displayIndex) => {
           if (item.type === "category") {
             // Category header
             return (
@@ -125,8 +125,9 @@ export function CommandPalette({
             );
           }
 
-          // Command item
-          const cmd = item.command!;
+          // Command item - command is always defined for non-category items
+          if (!item.command) return null;
+          const cmd = item.command;
           const isSelected = item.index === selectedIndex;
 
           // Format shortcut for display

@@ -17,7 +17,7 @@
         "ink-testing-library": "^4.0.0",
         "node-pty": "^1.1.0",
         "playwright": "^1.57.0",
-        "prettier": "^3.7.4",
+        "prettier": "^3.8.0",
         "react-devtools-core": "^7.0.1",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.53.0",
@@ -35,8 +35,8 @@
         "@km/markdown": "workspace:*",
         "@km/shared": "workspace:*",
         "@km/store": "workspace:*",
+        "@km/tui": "workspace:*",
         "@km/tui-core": "workspace:*",
-        "@km/tui-opentui": "workspace:*",
         "@km/watch": "workspace:*",
         "chalk": "^5.4.1",
         "commander": "^13.1.0",
@@ -48,6 +48,12 @@
       },
       "devDependencies": {
         "@types/react": "^19.2.7",
+      },
+    },
+    "packages/km-board": {
+      "name": "@km/board",
+      "dependencies": {
+        "@km/tree": "workspace:*",
       },
     },
     "packages/km-connector-caldav": {
@@ -96,15 +102,17 @@
         "@km/query": "workspace:*",
       },
     },
-    "packages/km-tui-core": {
-      "name": "@km/tui-core",
+    "packages/km-tree": {
+      "name": "@km/tree",
       "dependencies": {
         "@km/core": "workspace:*",
       },
     },
-    "packages/km-tui-opentui": {
-      "name": "@km/tui-opentui",
+    "packages/km-tui": {
+      "name": "@km/tui",
       "dependencies": {
+        "@km/board": "workspace:*",
+        "@km/tree": "workspace:*",
         "@km/tui-core": "workspace:*",
         "@opentui/core": "0.1.73",
         "@opentui/react": "0.1.73",
@@ -112,6 +120,12 @@
       },
       "devDependencies": {
         "@types/react": "^19.2.7",
+      },
+    },
+    "packages/km-tui-core": {
+      "name": "@km/tui-core",
+      "dependencies": {
+        "@km/core": "workspace:*",
       },
     },
     "packages/km-watch": {
@@ -255,6 +269,8 @@
 
     "@km/app-cli": ["@km/app-cli@workspace:apps/km-cli"],
 
+    "@km/board": ["@km/board@workspace:packages/km-board"],
+
     "@km/connector-caldav": ["@km/connector-caldav@workspace:packages/km-connector-caldav"],
 
     "@km/core": ["@km/core@workspace:packages/km-core"],
@@ -267,9 +283,11 @@
 
     "@km/store": ["@km/store@workspace:packages/km-store"],
 
-    "@km/tui-core": ["@km/tui-core@workspace:packages/km-tui-core"],
+    "@km/tree": ["@km/tree@workspace:packages/km-tree"],
 
-    "@km/tui-opentui": ["@km/tui-opentui@workspace:packages/km-tui-opentui"],
+    "@km/tui": ["@km/tui@workspace:packages/km-tui"],
+
+    "@km/tui-core": ["@km/tui-core@workspace:packages/km-tui-core"],
 
     "@km/watch": ["@km/watch@workspace:packages/km-watch"],
 

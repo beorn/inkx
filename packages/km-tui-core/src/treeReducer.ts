@@ -82,6 +82,116 @@ function getSiblings(
   return parent?.children ?? [];
 }
 
+// ===== Visual Navigation Helpers =====
+
+/**
+ * Check if a node is visible (not folded)
+ */
+function isNodeVisible(nodeId: string, foldedNodes: Set<string>): boolean {
+  return !foldedNodes.has(nodeId);
+}
+
+/**
+ * Get the last visible descendant of a node (for CURSOR_UP navigation).
+ * Returns the path to the deepest last child that's visible.
+ */
+function getLastVisibleDescendantPath(
+  nodes: TreeNodeState[],
+  path: CursorPath,
+  foldedNodes: Set<string>,
+): CursorPath {
+  const node = getNodeAtPath(nodes, path);
+  if (!node) return path;
+
+  // If node is folded or has no children, return the node itself
+  if (foldedNodes.has(node.nodeId) || node.children.length === 0) {
+    return path;
+  }
+
+  // Go to last child and recurse
+  const lastChildIdx = node.children.length - 1;
+  const childPath = [...path, lastChildIdx];
+  return getLastVisibleDescendantPath(nodes, childPath, foldedNodes);
+}
+
+/**
+ * Get the next visible block below the current position (CURSOR_DOWN).
+ * Order: first child (if visible) -> next sibling -> parent's next sibling -> ...
+ */
+function getNextVisiblePath(
+  nodes: TreeNodeState[],
+  path: CursorPath,
+  foldedNodes: Set<string>,
+): CursorPath | null {
+  if (path.length === 0) {
+    // At root level, go to first top-level node
+    return nodes.length > 0 ? [0] : null;
+  }
+
+  const node = getNodeAtPath(nodes, path);
+  if (!node) return null;
+
+  // 1. Try to enter first child (if not folded and has children)
+  if (!foldedNodes.has(node.nodeId) && node.children.length > 0) {
+    return [...path, 0];
+  }
+
+  // 2. Try next sibling at current level, or bubble up to parent's next sibling
+  let currentPath = [...path];
+  while (currentPath.length > 0) {
+    const idx = currentPath[currentPath.length - 1];
+    if (idx === undefined) break;
+
+    const siblings =
+      currentPath.length === 1
+        ? nodes
+        : (getNodeAtPath(nodes, currentPath.slice(0, -1))?.children ?? []);
+
+    // If there's a next sibling, go there
+    if (idx < siblings.length - 1) {
+      const newPath = [...currentPath];
+      newPath[newPath.length - 1] = idx + 1;
+      return newPath;
+    }
+
+    // No next sibling, go up one level and try again
+    currentPath = currentPath.slice(0, -1);
+  }
+
+  // No more nodes below
+  return null;
+}
+
+/**
+ * Get the previous visible block above the current position (CURSOR_UP).
+ * Order: previous sibling's last descendant -> previous sibling -> parent
+ */
+function getPrevVisiblePath(
+  nodes: TreeNodeState[],
+  path: CursorPath,
+  foldedNodes: Set<string>,
+): CursorPath | null {
+  if (path.length === 0) return null;
+
+  const idx = path[path.length - 1];
+  if (idx === undefined) return null;
+
+  // 1. If there's a previous sibling, go to its last visible descendant
+  if (idx > 0) {
+    const newPath = [...path];
+    newPath[newPath.length - 1] = idx - 1;
+    return getLastVisibleDescendantPath(nodes, newPath, foldedNodes);
+  }
+
+  // 2. No previous sibling, go to parent
+  if (path.length > 1) {
+    return path.slice(0, -1);
+  }
+
+  // At first top-level node, no previous
+  return null;
+}
+
 // ===== Reducer =====
 
 /**

@@ -35,7 +35,7 @@ switch (test) {
     createRoot(renderer).render(
       <box border borderStyle="single" width={30} height={5}>
         <text>Test 1: single - works</text>
-      </box>
+      </box>,
     );
     break;
 
@@ -44,7 +44,7 @@ switch (test) {
     createRoot(renderer).render(
       <box border borderStyle="rounded" width={30} height={5}>
         <text>Test 2: rounded - valid</text>
-      </box>
+      </box>,
     );
     break;
 
@@ -55,7 +55,7 @@ switch (test) {
       // @ts-expect-error - intentionally using invalid value to reproduce crash
       <box border borderStyle="round" width={30} height={5}>
         <text>Test 3: round (invalid) - crashes</text>
-      </box>
+      </box>,
     );
     break;
 }

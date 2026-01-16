@@ -13,7 +13,7 @@ import {
   getOutgoingLinks,
 } from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
-import { App } from "@km/tui-opentui";
+import { App } from "@km/tui";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import type { TreeNodeState, TaskStatus, ViewMode } from "@km/tui-core";
