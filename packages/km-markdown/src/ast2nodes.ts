@@ -65,6 +65,10 @@ export function parseMarkdownWithLinks(
   const ast = parseMarkdown(body);
   const now = Date.now();
 
+  // Extract name from filesystem path (filename without .md)
+  const filename = fsPath.split("/").pop() || "";
+  const name = filename.replace(/\.md$/i, "");
+
   // Create file node
   const fileNode: Node = {
     id: ulid(),
@@ -74,6 +78,7 @@ export function parseMarkdownWithLinks(
     symlink_to: null,
     fs_path: fsPath,
     fs_ino: fsIno,
+    name, // Slug/identifier derived from filename
     content: null,
     content_hash: null,
     data: frontmatter ? parseFrontmatter(frontmatter) : {},
@@ -198,6 +203,7 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): DBNode[] {
       const text = nodeToText(heading);
       const { title, rules } = parseHeadingRules(text);
       const hasRules = Object.keys(rules).length > 0;
+      const sectionName = slugify(title);
 
       const sectionNode: Node = {
         id: ulid(),
@@ -208,8 +214,9 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): DBNode[] {
             : fileNode.id,
         parent_idx: sortOrder++,
         symlink_to: null,
+        name: sectionName, // Slug/identifier derived from heading
         md_pos: heading.position?.start.offset,
-        md_slug: slugify(title),
+        md_slug: sectionName, // Keep for backwards compatibility
         content: text, // Keep original content for serialization
         content_hash: null,
         title, // Clean title without rules

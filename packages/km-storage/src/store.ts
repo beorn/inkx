@@ -84,6 +84,10 @@ CREATE TABLE IF NOT EXISTS nodes (
   fs_ino INTEGER,
   md_line INTEGER,
 
+  -- Identity
+  name TEXT,
+  title TEXT,
+
   -- Markdown
   md_pos INTEGER,
   md_slug TEXT,
@@ -148,6 +152,7 @@ function rowToNode(row: Record<string, unknown>): Node {
     symlink_to: row.symlink_to as string | null,
     fs_path: row.fs_path as string | undefined,
     fs_ino: row.fs_ino as number | undefined,
+    name: row.name as string | undefined,
     md_pos: row.md_pos as number | undefined,
     md_slug: row.md_slug as string | undefined,
     md_line: row.md_line as number | undefined,
@@ -159,6 +164,7 @@ function rowToNode(row: Record<string, unknown>): Node {
     priority: row.priority as number | undefined,
     content: row.content as string | undefined,
     content_hash: row.content_hash as string | undefined,
+    title: row.title as string | undefined,
     data:
       typeof row.data === "string"
         ? (JSON.parse(row.data) as Record<string, unknown>)

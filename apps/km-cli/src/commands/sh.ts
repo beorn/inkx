@@ -65,38 +65,45 @@ function shouldEmitOsc133(): boolean {
 }
 
 /**
- * Extract slug from a Node - uses filename for files, md_slug for sections
+ * Get node name (slug identifier)
+ * Uses node.name if available, otherwise derives from fs_path/md_slug
  */
-function getNodeSlug(node: DBNode): string | undefined {
-  // For file nodes, use the filename
+function getNodeName(node: DBNode): string {
+  // Prefer the stored name
+  if (node.name) {
+    return node.name;
+  }
+  // Fallback: derive from fs_path for files
   if (node.fs_path) {
     const filename = node.fs_path.split("/").pop();
     if (filename) {
       return filename.replace(/\.md$/, "");
     }
   }
-  // For sections/headings, use md_slug
+  // Fallback: use md_slug for sections
   if (node.md_slug) {
     return node.md_slug;
   }
-  return undefined;
+  // Last resort: short ID
+  return node.id.slice(0, 8);
 }
 
 /**
- * Convert Node to TNode (recursive)
+ * Convert DBNode to TNode (recursive)
  */
-function nodeToTNode(node: Node, depth: number): TNode {
+function nodeToTNode(node: DBNode, depth: number): TNode {
   const children = getChildren(node.id);
   return {
     nodeId: node.id,
+    name: getNodeName(node),
     title: getNodeDisplayName(node),
-    slug: getNodeSlug(node),
     children: children.map((child) => nodeToTNode(child, depth + 1)),
     childCount: children.length,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as TaskStatus | undefined,
     color: undefined,
     icon: undefined,
+    body: node.content,
     depth,
   };
 }
@@ -229,7 +236,7 @@ export const shCommand = new Command("sh")
     if (resolvedNodeId) {
       const rootNode = resolveNode(resolvedNodeId);
       if (rootNode) {
-        rootSlugPath = getNodeSlug(rootNode);
+        rootSlugPath = getNodeName(rootNode);
       }
     }
 

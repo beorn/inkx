@@ -219,8 +219,8 @@ export function getPromptPath(state: TreeState, rootSlugPath?: string): string {
   for (const idx of state.cursor) {
     const node = nodes[idx];
     if (!node) break;
-    // Use slug if available, otherwise fall back to slugified title
-    parts.push(node.slug || slugify(node.title));
+    // Use name if available, otherwise fall back to slugified title
+    parts.push(node.name || slugify(node.title));
     nodes = node.children;
   }
 

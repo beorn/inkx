@@ -87,10 +87,13 @@ export interface DBNode {
   fs_path?: string;
   fs_ino?: number; // Inode for rename detection
 
+  // Identity
+  name?: string; // Slug/identifier (filename without .md, or md_slug for sections)
+
   // Markdown mapping (for sections/blocks)
   md_pos?: number; // Byte offset in file
   md_line?: number; // Line number in file (0-indexed)
-  md_slug?: string; // Heading slug (for sections)
+  md_slug?: string; // Heading slug (for sections) - DEPRECATED: use name instead
 
   // Task properties (can be set on any node type, not just type: "task")
   // A node with task_status is considered a "task" for workflow purposes
@@ -165,6 +168,7 @@ export interface NodeCreatedData {
   symlink_to?: string | null;
   fs_path?: string;
   fs_ino?: number;
+  name?: string;
   md_pos?: number;
   md_line?: number;
   md_slug?: string;
@@ -174,9 +178,9 @@ export interface NodeCreatedData {
   due_date?: string;
   scheduled_date?: string;
   priority?: number;
+  title?: string;
   content?: string;
   content_hash?: string;
-  title?: string;
   rules?: NodeRules;
   data?: Record<string, unknown>;
 }

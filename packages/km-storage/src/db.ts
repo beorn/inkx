@@ -33,6 +33,10 @@ CREATE TABLE IF NOT EXISTS nodes (
   fs_path TEXT,
   fs_ino INTEGER,
 
+  -- Identity
+  name TEXT,
+  title TEXT,
+
   -- Markdown
   md_pos INTEGER,
   md_line INTEGER,
@@ -240,13 +244,13 @@ function applyNodeCreated(db: Database, event: Event): void {
     `
     INSERT INTO nodes (
       id, type, parent_id, symlink_to, parent_idx,
-      fs_path, fs_ino, md_pos, md_line, md_slug,
+      fs_path, fs_ino, name, title, md_pos, md_line, md_slug,
       task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
       ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?
@@ -260,6 +264,8 @@ function applyNodeCreated(db: Database, event: Event): void {
       (data.parent_idx as number) ?? 0,
       (data.fs_path as string) ?? null,
       (data.fs_ino as number) ?? null,
+      (data.name as string) ?? null,
+      (data.title as string) ?? null,
       (data.md_pos as number) ?? null,
       (data.md_line as number) ?? null,
       (data.md_slug as string) ?? null,
@@ -1022,6 +1028,7 @@ function rowToNode(row: Record<string, unknown>): Node {
     symlink_to: row.symlink_to as string | null,
     fs_path: row.fs_path as string | undefined,
     fs_ino: row.fs_ino as number | undefined,
+    name: row.name as string | undefined,
     md_pos: row.md_pos as number | undefined,
     md_slug: row.md_slug as string | undefined,
     task_status: row.task_status as TaskStatus | undefined,
@@ -1032,7 +1039,7 @@ function rowToNode(row: Record<string, unknown>): Node {
     priority: row.priority as number | undefined,
     content,
     content_hash: row.content_hash as string | undefined,
-    title,
+    title: (row.title as string | undefined) ?? title,
     rules,
     data:
       typeof row.data === "string"
