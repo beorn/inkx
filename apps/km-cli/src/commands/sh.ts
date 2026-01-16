@@ -13,11 +13,23 @@
 
 import { Command } from "commander";
 import { createInterface } from "readline";
-import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs";
+import {
+  createReadStream,
+  existsSync,
+  readFileSync,
+  appendFileSync,
+  statSync,
+} from "fs";
 import { homedir } from "os";
-import { join } from "path";
+import { join, resolve } from "path";
 import { getRootPath } from "../index.ts";
-import { ensureState, getStore, getChildren, resolveNode } from "@km/store";
+import {
+  ensureState,
+  getStore,
+  getChildren,
+  resolveNode,
+  isExplicitPath,
+} from "@km/store";
 import { getNodeDisplayName } from "@km/shared";
 import {
   createInitialTreeState,
@@ -132,7 +144,7 @@ function parseCommandString(cmdString: string): string[] {
 
 export const shCommand = new Command("sh")
   .description("Non-interactive shell for scripting and debugging TUI")
-  .argument("[root]", "Root node ID to start view from")
+  .argument("[root]", "Root node ID, filesystem path, or directory to view")
   .option("--json", "JSON mode: input and output as NDJSON")
   .option(
     "-c, --command <commands...>",
@@ -141,8 +153,45 @@ export const shCommand = new Command("sh")
   .option("-f, --file <path>", "Read commands from file instead of stdin")
   .option("-v, --verbose", "Output JSON action event for each command")
   .action(async (root, options) => {
-    // Get the filesystem root path
-    const fsPath = getRootPath() || getStore().rootPath;
+    // Handle filesystem paths in the root argument
+    let fsPath = getRootPath();
+    let nodeId: string | null = null;
+
+    if (root && isExplicitPath(root)) {
+      const absolutePath = resolve(process.cwd(), root);
+      if (existsSync(absolutePath)) {
+        const stat = statSync(absolutePath);
+        if (stat.isDirectory()) {
+          // Directory path - use as vault root
+          fsPath = absolutePath;
+        } else {
+          // File path - initialize store first, then resolve to node
+          // The file's parent directory chain should contain the vault root
+          // For now, require -r to be set for file paths, or use the file to find vault
+          if (!fsPath) {
+            // Try to find .km directory in ancestors
+            let dir = absolutePath;
+            while (dir !== "/") {
+              dir = join(dir, "..");
+              if (existsSync(join(dir, ".km"))) {
+                fsPath = dir;
+                break;
+              }
+            }
+          }
+          // We'll resolve the node after initializing the store
+          nodeId = absolutePath;
+        }
+      }
+    } else if (root) {
+      // Non-path argument - treat as node ID
+      nodeId = root;
+    }
+
+    // Fall back to store's root path if not set
+    if (!fsPath) {
+      fsPath = getStore().rootPath;
+    }
 
     // Ensure store is initialized
     if (fsPath) {
@@ -150,7 +199,34 @@ export const shCommand = new Command("sh")
     }
 
     const store = getStore();
-    const nodes = buildNodes(root || null);
+
+    // If nodeId is a filesystem path, resolve it to a node ID now that store is initialized
+    let resolvedNodeId: string | null = null;
+    if (nodeId) {
+      const node = resolveNode(nodeId);
+      if (node) {
+        resolvedNodeId = node.id;
+      } else if (isExplicitPath(nodeId)) {
+        // Explicit path that didn't resolve - error
+        if (options.json) {
+          console.log(
+            JSON.stringify({
+              event: "error",
+              error: `No node found for path: ${nodeId}`,
+              ts: Date.now(),
+            }),
+          );
+        } else {
+          console.error(`error: No node found for path: ${nodeId}`);
+        }
+        process.exit(1);
+      } else {
+        // Non-path that didn't resolve - could be invalid ID
+        resolvedNodeId = nodeId; // Let buildNodes handle it
+      }
+    }
+
+    const nodes = buildNodes(resolvedNodeId);
 
     if (nodes.length === 0) {
       if (options.json) {
@@ -170,7 +246,7 @@ export const shCommand = new Command("sh")
     // Create initial state
     const initialState = createInitialTreeState(
       nodes,
-      root || null,
+      resolvedNodeId,
       store.rootPath,
     );
 
