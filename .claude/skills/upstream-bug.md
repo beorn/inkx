@@ -4,6 +4,21 @@ When encountering a bug in an upstream dependency, follow this systematic workfl
 
 ## Workflow
 
+### 0. Update Dependencies First
+
+Before investigating, ensure you're on the latest version - the bug may already be fixed:
+
+```bash
+# Update to latest version
+bun update <package>@latest
+
+# Run tests to verify nothing broke
+bun test
+
+# Try to reproduce the issue again
+# If it's fixed, you're done!
+```
+
 ### 1. Isolate and Confirm the Bug
 
 First, confirm the bug is in the upstream package, not your code:
