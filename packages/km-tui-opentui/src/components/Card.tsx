@@ -136,7 +136,7 @@ export function Card({
     return (
       <box
         border
-        borderStyle="round"
+        borderStyle="single"
         borderColor={borderColor}
         width="100%"
         paddingLeft={1}
@@ -189,7 +189,7 @@ export function Card({
   return (
     <box
       border
-      borderStyle="round"
+      borderStyle="single"
       borderColor={borderColor}
       width="100%"
       paddingLeft={1}
