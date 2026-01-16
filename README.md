@@ -213,6 +213,24 @@ bun fix              # Lint + format
 bun run km           # Run CLI
 ```
 
+## Known Issues
+
+### Terminal corruption after TUI crash (macOS Apple Silicon)
+
+Bun 1.3.5 has a bug ([oven-sh/bun#25666](https://github.com/oven-sh/bun/issues/25666)) that can cause SIGTRAP crashes on Apple Silicon during process exit. This may leave your terminal in a broken state (no cursor, raw mode, etc.).
+
+**Quick fix:** Run `reset` to restore your terminal.
+
+**Workaround:** Use the safe wrapper script:
+
+```bash
+./scripts/km-safe.sh view --tui2 @next.md   # Instead of: bun km view --tui2 @next.md
+# Or via npm script:
+bun run km:safe view --tui2 @next.md
+```
+
+This will be resolved once Bun releases a fix.
+
 ## Docs
 
 - [ROADMAP.md](ROADMAP.md) — Implementation phases

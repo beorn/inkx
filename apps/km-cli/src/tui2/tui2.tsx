@@ -19,6 +19,33 @@ import { createRoot } from "@opentui/react";
 import type { TreeNodeState, TaskStatus, ViewMode } from "@km/tui-core";
 import type { Node } from "@km/core";
 
+/**
+ * Emergency terminal restore - writes ANSI escape sequences directly
+ * to restore terminal to a usable state even if OpenTUI cleanup fails.
+ *
+ * This handles the case where Bun crashes with SIGTRAP during exit,
+ * leaving the terminal in raw mode with hidden cursor, etc.
+ */
+function emergencyTerminalRestore(): void {
+  try {
+    const stdout = process.stdout;
+    // Show cursor
+    stdout.write("\x1b[?25h");
+    // Leave alternate screen buffer
+    stdout.write("\x1b[?1049l");
+    // Reset all attributes
+    stdout.write("\x1b[0m");
+    // Clear from cursor to end of screen
+    stdout.write("\x1b[J");
+    // Disable raw mode if possible
+    if (process.stdin.isTTY && process.stdin.setRawMode) {
+      process.stdin.setRawMode(false);
+    }
+  } catch {
+    // Ignore errors during emergency restore
+  }
+}
+
 export interface Tui2Options {
   initialViewMode?: ViewMode;
 }
@@ -128,7 +155,8 @@ export async function runBoardTui2(
     try {
       renderer.destroy();
     } catch {
-      // Ignore cleanup errors during crash
+      // Fallback to emergency restore if OpenTUI cleanup fails
+      emergencyTerminalRestore();
     }
     console.error("Uncaught error:", error);
     process.exit(1);
@@ -139,6 +167,19 @@ export async function runBoardTui2(
     handleUncaughtError(
       reason instanceof Error ? reason : new Error(String(reason)),
     );
+  });
+
+  // Handle SIGTRAP - Bun 1.3.5 on Apple Silicon has a bug where it crashes
+  // with SIGTRAP during process exit. Try to restore terminal state first.
+  // Note: SIGTRAP may not be catchable in all cases, but this helps when it is.
+  process.on("SIGTRAP", () => {
+    emergencyTerminalRestore();
+    process.exit(128 + 5); // 133 = 128 + SIGTRAP(5)
+  });
+
+  // Also handle beforeExit to ensure terminal is restored
+  process.on("beforeExit", () => {
+    emergencyTerminalRestore();
   });
 
   createRoot(renderer).render(
