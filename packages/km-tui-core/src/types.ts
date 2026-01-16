@@ -139,7 +139,7 @@ export type TreeAction =
   | { type: "FOLD_LEVEL"; depth: number }
   | { type: "UNFOLD_LEVEL"; depth: number }
 
-  // Zoom
+  // Navigating (zoom/root change)
   | { type: "ZOOM_IN"; nodeId: string; nodes: TreeNodeState[] }
   | { type: "ZOOM_OUT"; nodes: TreeNodeState[] }
 
@@ -163,6 +163,19 @@ export type TreeAction =
   | { type: "SELECT_ALL_SIBLINGS" }
   | { type: "SELECT_ALL" }
   | { type: "CLEAR_SELECTION" }
+
+  // Extend-select (shift+hjkl) - add nodes to selection while cursoring
+  | { type: "EXTEND_SELECT_UP" }
+  | { type: "EXTEND_SELECT_DOWN" }
+  | { type: "EXTEND_SELECT_LEFT" }
+  | { type: "EXTEND_SELECT_RIGHT" }
+
+  // Shifting (opt+hjkl) - move selected nodes in visual direction
+  // Note: These require store integration to actually modify the tree
+  | { type: "SHIFT_UP" }
+  | { type: "SHIFT_DOWN" }
+  | { type: "SHIFT_LEFT" }
+  | { type: "SHIFT_RIGHT" }
 
   // Modals
   | { type: "TOGGLE_SEARCH_MODE" }

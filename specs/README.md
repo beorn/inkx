@@ -18,33 +18,40 @@ This directory contains technical specifications for implementation.
 
 ### Supporting Specs
 
-| Spec                         | Description                   | Status         |
-| ---------------------------- | ----------------------------- | -------------- |
-| [Markdown](km-markdown.md)   | Parsing, AST conversion       | Implemented    |
-| [Watch](km-watch.md)         | Bidirectional filesystem sync | Persisted mode |
-| [Daemon](km-services.md)     | Background sync & automation  | Design         |
-| [Agents](km-agents.md)       | AI agent orchestration        | Future         |
-| [Tasks](km-tasks.md)         | Task management system        | Implemented    |
-| [TUI State](km-tui-state.md) | TUI state architecture        | Phase 1        |
-| [Roadmap](../ROADMAP.md)     | Implementation phases         | Current        |
+| Spec                                       | Description                        | Status         |
+| ------------------------------------------ | ---------------------------------- | -------------- |
+| [Markdown](km-markdown.md)                 | Parsing, AST conversion            | Implemented    |
+| [Watch](km-watch.md)                       | Bidirectional filesystem sync      | Persisted mode |
+| [Daemon](km-services.md)                   | Background sync & automation       | Design         |
+| [Agents](km-agents.md)                     | AI agent orchestration             | Future         |
+| [Tasks](km-tasks.md)                       | Task management system             | Implemented    |
+| [TUI State](km-tui-state.md)               | TUI state architecture             | Phase 1        |
+| [Board Navigation](km-board-navigation.md) | Visual cursor, selection, shifting | Implemented    |
+| [Design System](km-design-system.md)       | Colors, styling, visual hierarchy  | Implemented    |
+| [Roadmap](../ROADMAP.md)                   | Implementation phases              | Current        |
 
 ---
 
 ## Glossary
 
-| Term            | Definition                                                                       |
-| --------------- | -------------------------------------------------------------------------------- |
-| **fs-tree**     | Raw filesystem: folders, files, markdown content. Source of truth.               |
-| **km-tree**     | Unified node hierarchy in SQLite. Queryable.                                     |
-| **ui-tree**     | Render-time transformation with collapsing and formatting.                       |
-| **node**        | Everything is a node: folder, file, section, task, paragraph, etc.               |
-| **collapsing**  | Unifying same-named folder/file/section into one display line.                   |
-| **memory mode** | No `.km/`. SQLite in RAM. Rebuilt each run. Ephemeral IDs.                       |
-| **disk mode**   | `.km/` exists. SQLite on disk. Full tracking: events, history, stable IDs, sync. |
-| **agent**       | An AI agent that can claim and execute tasks.                                    |
-| **harness**     | A preconfigured set of tools and data connectors for an agent.                   |
-| **queue**       | Tasks assigned to an agent, awaiting execution.                                  |
-| **Kimmi**       | The default built-in agent / assistant.                                          |
+| Term              | Definition                                                                       |
+| ----------------- | -------------------------------------------------------------------------------- |
+| **fs-tree**       | Raw filesystem: folders, files, markdown content. Source of truth.               |
+| **km-tree**       | Unified node hierarchy in SQLite. Queryable.                                     |
+| **ui-tree**       | Render-time transformation with collapsing and formatting.                       |
+| **node**          | Everything is a node: folder, file, section, task, paragraph, etc.               |
+| **collapsing**    | Unifying same-named folder/file/section into one display line.                   |
+| **memory mode**   | No `.km/`. SQLite in RAM. Rebuilt each run. Ephemeral IDs.                       |
+| **disk mode**     | `.km/` exists. SQLite on disk. Full tracking: events, history, stable IDs, sync. |
+| **agent**         | An AI agent that can claim and execute tasks.                                    |
+| **harness**       | A preconfigured set of tools and data connectors for an agent.                   |
+| **queue**         | Tasks assigned to an agent, awaiting execution.                                  |
+| **Kimmi**         | The default built-in agent / assistant.                                          |
+| **cursoring**     | Moving cursor to visually adjacent block (hjkl keys).                            |
+| **navigating**    | Changing board root via zoom (u/Enter/Backspace/[/]).                            |
+| **extend-select** | Extending selection in visual direction (shift+hjkl).                            |
+| **shifting**      | Moving selected nodes in visual direction (opt+hjkl).                            |
+| **moving**        | Relocating nodes to arbitrary destination (m + destination).                     |
 
 ---
 

@@ -639,24 +639,26 @@ export function App({
       exitApp();
     }
 
-    // ===== Multi-Select (Shift+j/k) =====
-    // Shift+j: Select current card and move down (range selection)
+    // ===== Extend-Select (Shift+hjkl) =====
+    // Shift+j: Extend selection down
     if (name === "j" && shift && !meta) {
-      if (currentCard) {
-        tree.dispatch({ type: "SELECT_NODE_ADD", nodeId: currentCard.nodeId });
-        tree.dispatch({ type: "NAV_NEXT_SIBLING" });
-      }
+      tree.dispatch({ type: "EXTEND_SELECT_DOWN" });
     }
-    // Shift+k: Select current card and move up (range selection)
+    // Shift+k: Extend selection up
     else if (name === "k" && shift && !meta) {
-      if (currentCard) {
-        tree.dispatch({ type: "SELECT_NODE_ADD", nodeId: currentCard.nodeId });
-        tree.dispatch({ type: "NAV_PREV_SIBLING" });
-      }
+      tree.dispatch({ type: "EXTEND_SELECT_UP" });
+    }
+    // Shift+h: Extend selection left (cross-column)
+    else if (name === "h" && shift && !meta) {
+      tree.dispatch({ type: "EXTEND_SELECT_LEFT" });
+    }
+    // Shift+l: Extend selection right (cross-column)
+    else if (name === "l" && shift && !meta) {
+      tree.dispatch({ type: "EXTEND_SELECT_RIGHT" });
     }
 
-    // Navigation - use arrow key names or vim keys
-    // j/down = next sibling, k/up = prev sibling
+    // ===== Cursor-Select (hjkl / arrows) =====
+    // j/down = cursor down, k/up = cursor up
     else if (name === "up" || (name === "k" && !shift && !meta)) {
       tree.dispatch({ type: "NAV_PREV_SIBLING" });
     } else if (name === "down" || (name === "j" && !shift && !meta)) {
@@ -698,9 +700,9 @@ export function App({
       tree.dispatch({ type: "NAV_LAST_SIBLING" });
     }
 
-    // ===== Root Navigation =====
+    // ===== Navigating (zoom/root change) =====
 
-    // u - Navigate UP to parent node
+    // u - Navigate up (zoom out to parent root)
     else if (name === "u") {
       const currentRootId = tree.state.rootId;
       if (currentRootId) {
@@ -715,7 +717,7 @@ export function App({
       // If already at root (null), do nothing
     }
 
-    // [ - Navigate BACK in history
+    // [ - Navigate back in history (navigating)
     else if (name === "[") {
       const { navHistory, navHistoryIndex } = tree.state;
       if (navHistoryIndex > 0) {
@@ -735,7 +737,7 @@ export function App({
       }
     }
 
-    // ] - Navigate FORWARD in history
+    // ] - Navigate forward in history (navigating)
     else if (name === "]") {
       const { navHistory, navHistoryIndex } = tree.state;
       if (navHistoryIndex < navHistory.length - 1) {
@@ -968,9 +970,9 @@ export function App({
       }
     }
 
-    // ===== Zoom Navigation =====
+    // ===== Navigating: Zoom In/Out =====
 
-    // Enter - Zoom into current card (make it the new root)
+    // Enter - Zoom in (navigate into current card, make it new root)
     else if (name === "return") {
       if (currentCard) {
         // Build nodes from the card's children
@@ -986,7 +988,7 @@ export function App({
       }
     }
 
-    // Backspace - Zoom out (go back to previous root from zoomStack)
+    // Backspace - Zoom out (navigate back to previous root from zoomStack)
     else if (name === "backspace") {
       if (tree.state.zoomStack.length > 0) {
         // Get the previous root from the stack
@@ -998,9 +1000,10 @@ export function App({
       }
     }
 
-    // ===== Card Movement (Alt+hjkl, Alt+1-9) =====
+    // ===== Shifting (opt+hjkl) - move nodes in visual direction =====
+    // See km-board-navigation.md spec for terminology
 
-    // Alt+j - Move card down within column
+    // opt+j - Shift down (swap with next sibling)
     else if (name === "j" && meta) {
       if (currentCard && currentColumn) {
         const cardIndex = tree.state.cursor[1] ?? 0;
@@ -1022,7 +1025,7 @@ export function App({
       }
     }
 
-    // Alt+k - Move card up within column
+    // opt+k - Shift up (swap with previous sibling)
     else if (name === "k" && meta) {
       if (currentCard && currentColumn) {
         const cardIndex = tree.state.cursor[1] ?? 0;
@@ -1044,7 +1047,7 @@ export function App({
       }
     }
 
-    // Alt+h - Move card to previous column
+    // opt+h - Shift left (move to previous column / outdent)
     else if (name === "h" && meta) {
       const colIndex = tree.state.cursor[0] ?? 0;
       if (currentCard && colIndex > 0) {
@@ -1072,7 +1075,7 @@ export function App({
       }
     }
 
-    // Alt+l - Move card to next column
+    // opt+l - Shift right (move to next column / indent)
     else if (name === "l" && meta) {
       const colIndex = tree.state.cursor[0] ?? 0;
       if (currentCard && colIndex < tree.state.nodes.length - 1) {

@@ -715,9 +715,9 @@ export function executeCommand(
   const result = parseCommand(line);
 
   // Key map used for KEY: and KEYS: markers
-  // Uses structural navigation (prev/next/in/out) - no spatial logic here
+  // Shell uses structural navigation (prev/next/in/out) - no visual cursor logic
   const keyMap: Record<string, TreeAction> = {
-    // Navigation - vim style (structural actions)
+    // Cursor-select (vim style keys) - structural in shell, visual in TUI
     j: { type: "NAV_NEXT_SIBLING" },
     k: { type: "NAV_PREV_SIBLING" },
     h: { type: "NAV_PARENT" }, // h always goes to parent (no cross-column in shell)
@@ -726,17 +726,23 @@ export function executeCommand(
     L: { type: "NAV_CROSS_COLUMN", direction: "right" },
     g: { type: "NAV_FIRST_SIBLING" },
     G: { type: "NAV_LAST_SIBLING" },
+
+    // Navigating (zoom/root change)
     Enter: { type: "NAV_CHILD" },
     Backspace: { type: "NAV_PARENT" },
     u: { type: "NAV_PARENT" },
-
-    // History navigation
     "[": { type: "NAV_BACK" },
     "]": { type: "NAV_FORWARD" },
 
     // Selection
     A: { type: "SELECT_ALL_SIBLINGS" },
     Escape: { type: "CLEAR_SELECTION" },
+
+    // Extend-select (shift+hjkl)
+    J: { type: "EXTEND_SELECT_DOWN" },
+    K: { type: "EXTEND_SELECT_UP" },
+    // Note: H/L are used for cross-column nav, so extend-select left/right
+    // would need different key bindings in a real TUI
 
     // View controls
     z: { type: "FOLD_LEVEL", depth: 1 },

@@ -498,6 +498,164 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
       return { ...state, selectedNodes: new Set() };
     }
 
+    // ===== Extend-Select (shift+hjkl) =====
+
+    case "EXTEND_SELECT_DOWN": {
+      // Add current node to selection and move down
+      const currentNode = getNodeAtPath(state.nodes, state.cursor);
+      if (!currentNode) return state;
+
+      const newSelected = new Set(state.selectedNodes);
+      newSelected.add(currentNode.nodeId);
+
+      // Get next visible path
+      const nextPath = getNextVisiblePath(
+        state.nodes,
+        state.cursor,
+        state.foldedNodes,
+      );
+      if (!nextPath) {
+        // No next path, just add current to selection
+        return { ...state, selectedNodes: newSelected };
+      }
+
+      // Add the new node to selection
+      const nextNode = getNodeAtPath(state.nodes, nextPath);
+      if (nextNode) {
+        newSelected.add(nextNode.nodeId);
+      }
+
+      return { ...state, cursor: nextPath, selectedNodes: newSelected };
+    }
+
+    case "EXTEND_SELECT_UP": {
+      // Add current node to selection and move up
+      const currentNode = getNodeAtPath(state.nodes, state.cursor);
+      if (!currentNode) return state;
+
+      const newSelected = new Set(state.selectedNodes);
+      newSelected.add(currentNode.nodeId);
+
+      // Get previous visible path
+      const prevPath = getPrevVisiblePath(
+        state.nodes,
+        state.cursor,
+        state.foldedNodes,
+      );
+      if (!prevPath) {
+        // No prev path, just add current to selection
+        return { ...state, selectedNodes: newSelected };
+      }
+
+      // Add the new node to selection
+      const prevNode = getNodeAtPath(state.nodes, prevPath);
+      if (prevNode) {
+        newSelected.add(prevNode.nodeId);
+      }
+
+      return { ...state, cursor: prevPath, selectedNodes: newSelected };
+    }
+
+    case "EXTEND_SELECT_LEFT": {
+      // Add current node to selection and move left (cross-column)
+      const currentNode = getNodeAtPath(state.nodes, state.cursor);
+      if (!currentNode) return state;
+
+      const newSelected = new Set(state.selectedNodes);
+      newSelected.add(currentNode.nodeId);
+
+      // Cross-column navigation left
+      if (state.cursor.length < 2) {
+        // At column level, can't go left - just add to selection
+        return { ...state, selectedNodes: newSelected };
+      }
+
+      const colIdx = state.cursor[0] ?? 0;
+      const rowIdx = state.cursor[1] ?? 0;
+      const newColIdx = colIdx - 1;
+
+      if (newColIdx < 0) {
+        // Already at first column
+        return { ...state, selectedNodes: newSelected };
+      }
+
+      const targetCol = state.nodes[newColIdx];
+      if (!targetCol) {
+        return { ...state, selectedNodes: newSelected };
+      }
+
+      let newPath: CursorPath;
+      if (targetCol.children.length === 0) {
+        newPath = [newColIdx];
+        newSelected.add(targetCol.nodeId);
+      } else {
+        const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
+        newPath = [newColIdx, clampedRow];
+        const targetNode = targetCol.children[clampedRow];
+        if (targetNode) {
+          newSelected.add(targetNode.nodeId);
+        }
+      }
+
+      return { ...state, cursor: newPath, selectedNodes: newSelected };
+    }
+
+    case "EXTEND_SELECT_RIGHT": {
+      // Add current node to selection and move right (cross-column)
+      const currentNode = getNodeAtPath(state.nodes, state.cursor);
+      if (!currentNode) return state;
+
+      const newSelected = new Set(state.selectedNodes);
+      newSelected.add(currentNode.nodeId);
+
+      // Cross-column navigation right
+      if (state.cursor.length < 2) {
+        // At column level, can't go right for extend-select
+        return { ...state, selectedNodes: newSelected };
+      }
+
+      const colIdx = state.cursor[0] ?? 0;
+      const rowIdx = state.cursor[1] ?? 0;
+      const newColIdx = colIdx + 1;
+
+      if (newColIdx >= state.nodes.length) {
+        // Already at last column
+        return { ...state, selectedNodes: newSelected };
+      }
+
+      const targetCol = state.nodes[newColIdx];
+      if (!targetCol) {
+        return { ...state, selectedNodes: newSelected };
+      }
+
+      let newPath: CursorPath;
+      if (targetCol.children.length === 0) {
+        newPath = [newColIdx];
+        newSelected.add(targetCol.nodeId);
+      } else {
+        const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
+        newPath = [newColIdx, clampedRow];
+        const targetNode = targetCol.children[clampedRow];
+        if (targetNode) {
+          newSelected.add(targetNode.nodeId);
+        }
+      }
+
+      return { ...state, cursor: newPath, selectedNodes: newSelected };
+    }
+
+    // ===== Shifting (opt+hjkl) =====
+    // Note: These are "intent" actions - actual tree mutation happens in the TUI/store layer
+    // The reducer just returns current state; TUI intercepts and handles via store API
+    case "SHIFT_UP":
+    case "SHIFT_DOWN":
+    case "SHIFT_LEFT":
+    case "SHIFT_RIGHT": {
+      // No-op in reducer - handled by TUI via store integration
+      // The TUI will catch these actions and call the appropriate store methods
+      return state;
+    }
+
     // ===== Modals =====
 
     case "TOGGLE_SEARCH_MODE": {

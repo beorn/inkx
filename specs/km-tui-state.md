@@ -200,9 +200,17 @@ type CursorPath = number[];
 
 ### BoardAction (@km/board)
 
+See [km-board-navigation.md](km-board-navigation.md) for terminology and behavior.
+
 ```typescript
 type BoardAction =
-  // Navigation
+  // Cursor-select (cursoring) - visual navigation (hjkl)
+  | { type: "CURSOR_UP" } // previous visible block above
+  | { type: "CURSOR_DOWN" } // next visible block below
+  | { type: "CURSOR_LEFT" } // cross-column left
+  | { type: "CURSOR_RIGHT" } // cross-column right
+
+  // Structural navigation (internal use)
   | { type: "NAV_PREV_SIBLING" }
   | { type: "NAV_NEXT_SIBLING" }
   | { type: "NAV_PARENT" }
@@ -210,24 +218,47 @@ type BoardAction =
   | { type: "NAV_TO_PATH"; path: CursorPath }
   | { type: "NAV_FIRST_SIBLING" }
   | { type: "NAV_LAST_SIBLING" }
+  | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" }
+
   // Selection
   | { type: "SELECT_NODE_ADD"; nodeId: string }
   | { type: "SELECT_NODE_TOGGLE"; nodeId: string }
   | { type: "SELECT_ALL_SIBLINGS" }
   | { type: "SELECT_ALL" }
   | { type: "CLEAR_SELECTION" }
+
+  // Extend-select (shift+hjkl) - add to selection while cursoring
+  | { type: "EXTEND_SELECT_UP" }
+  | { type: "EXTEND_SELECT_DOWN" }
+  | { type: "EXTEND_SELECT_LEFT" }
+  | { type: "EXTEND_SELECT_RIGHT" }
+
+  // Shifting (opt+hjkl) - move nodes in visual direction
+  | { type: "SHIFT_UP" }
+  | { type: "SHIFT_DOWN" }
+  | { type: "SHIFT_LEFT" }
+  | { type: "SHIFT_RIGHT" }
+
   // Fold/Collapse
   | { type: "TOGGLE_FOLD"; nodeId: string }
   | { type: "TOGGLE_COLLAPSE"; nodeId: string }
+  | { type: "FOLD_LEVEL"; depth: number }
+  | { type: "UNFOLD_LEVEL"; depth: number }
+
   // Filter
   | { type: "SET_SEARCH_QUERY"; query: string }
-  // Zoom
-  | { type: "ZOOM_IN"; nodeId: string }
-  | { type: "ZOOM_OUT" }
-  // History
+
+  // Navigating (zoom/root change)
+  | { type: "ZOOM_IN"; nodeId: string; nodes: NodeState[] }
+  | { type: "ZOOM_OUT"; nodes: NodeState[] }
   | { type: "NAV_BACK" }
   | { type: "NAV_FORWARD" }
-  | { type: "SET_ROOT"; rootId: string | null; rootPath: string | null };
+  | {
+      type: "NAV_TO";
+      rootId: string | null;
+      nodes: NodeState[];
+      rootPath: string | null;
+    };
 ```
 
 ### AppAction (@km/tui)
@@ -381,6 +412,7 @@ Two internal sub-layers with clear separation:
 
 ## See Also
 
-- [km-tasks-tui.md](km-tasks-tui.md) — TUI layout and keybindings
+- [km-board-navigation.md](km-board-navigation.md) — Visual cursor, selection, shifting model
 - [km-design-system.md](km-design-system.md) — Visual styling rules
+- [km-tasks-tui.md](km-tasks-tui.md) — TUI layout and keybindings
 - [README.md](README.md) — Architecture overview

@@ -67,6 +67,18 @@ const SIMPLE_ACTIONS: Record<string, TreeAction> = {
   select_all_siblings: { type: "SELECT_ALL_SIBLINGS" },
   clear_selection: { type: "CLEAR_SELECTION" },
 
+  // Extend-select (shift+direction)
+  extend_select_up: { type: "EXTEND_SELECT_UP" },
+  extend_select_down: { type: "EXTEND_SELECT_DOWN" },
+  extend_select_left: { type: "EXTEND_SELECT_LEFT" },
+  extend_select_right: { type: "EXTEND_SELECT_RIGHT" },
+
+  // Shifting (opt+direction) - move nodes
+  shift_up: { type: "SHIFT_UP" },
+  shift_down: { type: "SHIFT_DOWN" },
+  shift_left: { type: "SHIFT_LEFT" },
+  shift_right: { type: "SHIFT_RIGHT" },
+
   // Modes
   toggle_search: { type: "TOGGLE_SEARCH_MODE" },
   toggle_help: { type: "TOGGLE_HELP_MODE" },
@@ -100,7 +112,7 @@ const SHELL_COMMANDS: Record<string, ShellCommand> = {
  * These can be used directly without the "key" prefix
  */
 const SINGLE_CHAR_MAP: Record<string, TreeAction | "KEY"> = {
-  // Navigation - vim style (structural actions)
+  // Cursor-select (vim style keys map to structural actions in shell)
   j: { type: "NAV_NEXT_SIBLING" },
   k: { type: "NAV_PREV_SIBLING" },
   h: { type: "NAV_PARENT" },
@@ -111,7 +123,7 @@ const SINGLE_CHAR_MAP: Record<string, TreeAction | "KEY"> = {
   G: { type: "NAV_LAST_SIBLING" },
   u: { type: "NAV_PARENT" },
 
-  // History navigation
+  // Navigating (history)
   "[": { type: "NAV_BACK" },
   "]": { type: "NAV_FORWARD" },
 

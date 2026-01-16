@@ -37,7 +37,7 @@ Syncing: ...
 [...]
 ```
 
-## Navigation Keys
+## Cursor-Select Keys (hjkl)
 
 ### Initial state starts at first card
 
@@ -48,7 +48,7 @@ node: Task A
 topLevel: 2 nodes
 ```
 
-### j moves down within column
+### j cursors down within column
 
 ```console
 $ km sh board.md -c 'j; state'
@@ -57,7 +57,7 @@ node: Task B
 topLevel: 2 nodes
 ```
 
-### k moves up within column
+### k cursors up within column
 
 ```console
 $ km sh board.md -c 'j; k; state'
@@ -66,7 +66,7 @@ node: Task A
 topLevel: 2 nodes
 ```
 
-### h at card level moves to parent column
+### h at card level navigates to parent column
 
 ```console
 $ km sh board.md -c 'h; state'
@@ -75,7 +75,7 @@ node: Tasks
 topLevel: 2 nodes
 ```
 
-### l at column level enters first card (NAV_CHILD)
+### l at column level navigates to first card (NAV_CHILD)
 
 ```console
 $ km sh board.md -c 'h; l; state'
@@ -84,7 +84,7 @@ node: Task A
 topLevel: 2 nodes
 ```
 
-### Enter at column level enters first card
+### Enter at column level navigates to first card
 
 ```console
 $ km sh board.md -c 'h; key enter; state'
@@ -93,7 +93,7 @@ node: Task A
 topLevel: 2 nodes
 ```
 
-### u goes up to parent
+### u navigates up to parent
 
 ```console
 $ km sh board.md -c 'u; state'
@@ -102,7 +102,7 @@ node: Tasks
 topLevel: 2 nodes
 ```
 
-### Backspace goes up to parent
+### Backspace navigates up to parent
 
 ```console
 $ km sh board.md -c 'key backspace; state'
@@ -111,9 +111,9 @@ node: Tasks
 topLevel: 2 nodes
 ```
 
-## Column Navigation
+## Column-Level Cursor-Select
 
-### At column level j moves to next column
+### At column level j cursors to next column
 
 ```console
 $ km sh board.md -c 'h; j; state'
@@ -122,7 +122,7 @@ node: Done
 topLevel: 2 nodes
 ```
 
-### At column level l enters first card
+### At column level l navigates to first card
 
 ```console
 $ km sh board.md -c 'h; j; l; state'
@@ -131,11 +131,11 @@ node: Task D
 topLevel: 2 nodes
 ```
 
-## Cross-Column Navigation (H/L)
+## Cross-Column Cursor-Select (H/L)
 
-Cross-column navigation moves between columns while preserving the vertical position.
+Cross-column cursor-select moves between columns while preserving the vertical position.
 
-### L moves right to adjacent column preserving Y position
+### L cursors right to adjacent column preserving Y position
 
 ```console
 $ km sh board.md -c 'j; L; state'
@@ -144,7 +144,7 @@ node: Task D
 topLevel: 2 nodes
 ```
 
-### H moves left to adjacent column preserving Y position
+### H cursors left to adjacent column preserving Y position
 
 ```console
 $ km sh board.md -c 'j; L; H; state'
@@ -153,7 +153,7 @@ node: Task A
 topLevel: 2 nodes
 ```
 
-### L clamps Y position when target column is shorter
+### L cursors with Y clamped when target column is shorter
 
 ```console
 $ km sh board.md -c 'j; j; L; state'
@@ -198,7 +198,7 @@ node: Task D
 topLevel: 2 nodes
 ```
 
-### L to empty column navigates to column level
+### L to empty column cursors to column level
 
 Create a board with an empty column:
 
@@ -225,9 +225,9 @@ node: Empty
 topLevel: 2 nodes
 ```
 
-## Jump Commands
+## Jump Commands (Cursor-Select)
 
-### g moves to first sibling
+### g jumps to first sibling
 
 ```console
 $ km sh board.md -c 'j; j; g; state'
@@ -236,7 +236,7 @@ node: Task A
 topLevel: 2 nodes
 ```
 
-### G moves to last sibling
+### G jumps to last sibling
 
 ```console
 $ km sh board.md -c 'G; state'
@@ -245,7 +245,7 @@ node: Task C
 topLevel: 2 nodes
 ```
 
-## History Navigation Keys
+## Navigating Keys (History)
 
 ### nav_back at start does nothing
 
@@ -265,7 +265,25 @@ node: Task A
 topLevel: 2 nodes
 ```
 
-## Selection Keys
+### [ key navigates back (same as nav_back)
+
+```console
+$ km sh board.md -c 'key [; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+### ] key navigates forward (same as nav_forward)
+
+```console
+$ km sh board.md -c 'key ]; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+## Command-Select Keys
 
 ### A selects all siblings
 
@@ -284,6 +302,48 @@ $ km sh board.md -c 'A; key esc; state'
 cursor: [0,0]
 node: Task A
 topLevel: 2 nodes
+```
+
+## Extend-Select Keys (Shift+jk)
+
+### J (Shift+j) extends selection down
+
+```console
+$ km sh board.md -c 'J; state'
+cursor: [0,1]
+node: Task B
+topLevel: 2 nodes
+selected: 2 nodes
+```
+
+### K (Shift+k) extends selection up
+
+```console
+$ km sh board.md -c 'j; K; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+selected: 2 nodes
+```
+
+### extend_select_down command adds to selection
+
+```console
+$ km sh board.md -c 'extend_select_down; state'
+cursor: [0,1]
+node: Task B
+topLevel: 2 nodes
+selected: 2 nodes
+```
+
+### extend_select_up command adds to selection
+
+```console
+$ km sh board.md -c 'j; extend_select_up; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+selected: 2 nodes
 ```
 
 ## View Control Keys
