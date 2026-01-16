@@ -37,48 +37,42 @@ Syncing: ...
 
 ## Basic Navigation
 
-### Initial state starts at first card
+Using persistent subprocess mode to test state across commands:
 
-With single-column boards, cursor starts at first card [0,0].
-
-```console
-$ km sh board.md -c 'state'
+```console cmd="km sh board.md" minWait=50 maxWait=500
+$ state
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
-```
-
-### j moves to next sibling
-
-```console
-$ km sh board.md -c 'j; state'
+$ j
+$ state
 cursor: [0,1]
 node: Task Beta
 topLevel: 1 nodes
-```
-
-### k moves to previous sibling
-
-```console
-$ km sh board.md -c 'j; k; state'
+$ k
+$ state
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
 ```
 
-### k at top stays at top
+### Boundary: k at top stays at top
 
-```console
-$ km sh board.md -c 'k; state'
+```console cmd="km sh board.md" minWait=50 maxWait=500
+$ k
+$ state
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
 ```
 
-### j at bottom stays at bottom
+### Boundary: j at bottom stays at bottom
 
-```console
-$ km sh board.md -c 'j; j; j; state'
+```console cmd="km sh board.md" minWait=50 maxWait=500
+$ j
+$ j
+$ j
+$ state
 cursor: [0,2]
 node: Task Gamma
 topLevel: 1 nodes
@@ -86,19 +80,16 @@ topLevel: 1 nodes
 
 ## Jump Commands
 
-### g moves to first sibling
-
-```console
-$ km sh board.md -c 'j; j; g; state'
+```console cmd="km sh board.md" minWait=50 maxWait=500
+$ j
+$ j
+$ g
+$ state
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
-```
-
-### G moves to last sibling
-
-```console
-$ km sh board.md -c 'G; state'
+$ G
+$ state
 cursor: [0,2]
 node: Task Gamma
 topLevel: 1 nodes
@@ -106,18 +97,13 @@ topLevel: 1 nodes
 
 ## Log Command
 
-### log shows action trace
-
-```console
-$ km sh board.md -c 'j; k; log'
+```console cmd="km sh board.md" minWait=50 maxWait=500
+$ j
+$ k
+$ log
 MOVE_DOWN → cursor=[0,1]
 MOVE_UP → cursor=[0,0]
-```
-
-### log 1 shows last action only
-
-```console
-$ km sh board.md -c 'j; k; log 1'
+$ log 1
 MOVE_UP → cursor=[0,0]
 ```
 
@@ -133,19 +119,14 @@ km-sh commands:
 
 ### quit exits the shell immediately
 
-The `q` shorthand exits the shell.
-
-```console
-$ km sh board.md -c 'q; state' && echo "exited"
-exited
+```console cmd="km sh board.md" minWait=50 maxWait=500
+$ q
 ```
 
 ## View Command
 
-### view renders ASCII tree
-
-```console
-$ km sh board.md -c 'view'
+```console cmd="km sh board.md" minWait=50 maxWait=500
+$ view
 Path: [...]
 
      Tasks (+3)
@@ -155,17 +136,10 @@ Path: [...]
 
 ## Error Handling
 
-### Unknown command shows error
-
-```console
-$ km sh board.md -c 'unknown_command'
+```console cmd="km sh board.md" minWait=50 maxWait=500
+$ unknown_command
 error: Unknown command: unknown_command
-```
-
-### Empty command is ignored
-
-```console
-$ km sh board.md -c '; ; state'
+$ state
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
