@@ -8,7 +8,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { Node } from "@km/core";
 import { getChildren, getBacklinks, getNode } from "@km/store";
-import { getNodeDisplayName } from "@km/shared";
+import { getNodeDisplayName } from "../state.ts";
 import { renderRich } from "../../text/index.ts";
 import { wrapText } from "../layout/index.ts";
 

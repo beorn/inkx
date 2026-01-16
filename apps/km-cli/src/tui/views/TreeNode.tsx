@@ -14,7 +14,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { Node } from "@km/core";
 import { getChildren } from "@km/store";
-import { getNodeDisplayName, getParentContext } from "@km/shared";
+import { getNodeDisplayName, getParentContext } from "../state.ts";
 import {
   getTypeIcon,
   getNodeIcon,

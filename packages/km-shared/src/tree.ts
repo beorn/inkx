@@ -3,10 +3,21 @@
  *
  * Shared utilities for tree display, node unification, and type indicators.
  * Used by board TUI, tasks CLI, and any other tree-based views.
+ *
+ * NOTE: Functions that need to traverse the tree (getNodeDisplayName for files,
+ * getCollapsedTypeSuffix, getParentContext) accept optional lookup functions.
+ * Callers from TUI/CLI should pass getChildren/getNode from @km/store.
+ * This keeps km-shared free of runtime store dependencies.
  */
 
 import type { Node } from "@km/core";
-import { getChildren, getNode } from "@km/store";
+
+/**
+ * Lookup function types for dependency injection.
+ * These allow tree traversal without importing @km/store directly.
+ */
+export type GetChildrenFn = (nodeId: string) => Node[];
+export type GetNodeFn = (nodeId: string) => Node | null | undefined;
 
 /**
  * Strip inline section rules from a string
@@ -41,8 +52,14 @@ function stripInlineRules(text: string): string {
  * 4. node.content (first line, for tasks)
  * 5. filename (without .md extension)
  * 6. short ID
+ *
+ * @param node The node to get display name for
+ * @param getChildren Optional function to get children (needed for file nodes to find H1)
  */
-export function getNodeDisplayName(node: Node): string {
+export function getNodeDisplayName(
+  node: Node,
+  getChildren?: GetChildrenFn,
+): string {
   // 1. Frontmatter title takes priority
   if (node.data?.name) {
     return node.data.name as string;
@@ -59,9 +76,9 @@ export function getNodeDisplayName(node: Node): string {
   }
 
   // 3. For file nodes, use first section's title or content (H1 heading)
-  if (node.type === "file") {
+  if (node.type === "file" && getChildren) {
     const children = getChildren(node.id);
-    const firstSection = children.find((c) => c.type === "section");
+    const firstSection = children.find((c: Node) => c.type === "section");
     if (firstSection) {
       // Use pre-parsed title if available (node.title or data.title)
       if (firstSection.title) {
@@ -148,8 +165,14 @@ export function namesAreSimilar(a: string, b: string): boolean {
  * we show one entry with type indicators: "Project Name / .md #"
  *
  * Returns empty string if no unification (single type only)
+ *
+ * @param node The node to get collapsed type suffix for
+ * @param getChildren Function to get children of a node (required for traversal)
  */
-export function getCollapsedTypeSuffix(node: Node): string {
+export function getCollapsedTypeSuffix(
+  node: Node,
+  getChildren?: GetChildrenFn,
+): string {
   const indicators: string[] = [];
 
   // Add this node's type indicator
@@ -158,15 +181,21 @@ export function getCollapsedTypeSuffix(node: Node): string {
     indicators.push(thisIndicator);
   }
 
+  // Without getChildren, we can't traverse - return just this node's indicator
+  if (!getChildren) {
+    return "";
+  }
+
   // Follow children with matching normalized name
-  const nodeName = normalizeName(getNodeDisplayName(node));
+  const nodeName = normalizeName(getNodeDisplayName(node, getChildren));
   let current: Node | undefined = node;
 
   while (current) {
-    const children = getChildren(current.id);
+    const children: Node[] = getChildren(current.id);
     // Find a child with the same normalized name
-    const matchingChild = children.find(
-      (c) => normalizeName(getNodeDisplayName(c)) === nodeName,
+    const matchingChild: Node | undefined = children.find(
+      (c: Node) =>
+        normalizeName(getNodeDisplayName(c, getChildren)) === nodeName,
     );
     if (!matchingChild) break;
 
@@ -261,12 +290,17 @@ export function collapseAncestorsWithTypes(
  *
  * @param node The node to get context for
  * @param skipParentId Optional parent ID to skip (e.g., current column)
+ * @param getNode Function to get a node by ID (required for traversal)
  * @returns The parent context string, or null if at root or no meaningful context
  */
 export function getParentContext(
   node: Node,
   skipParentId?: string | null,
+  getNode?: GetNodeFn,
 ): string | null {
+  // Without getNode, we can't traverse
+  if (!getNode) return null;
+
   // For symlinked nodes (transclusions), follow the symlink to get original context
   // This allows board items to show their original location even when displayed on a board
   let targetNode = node;

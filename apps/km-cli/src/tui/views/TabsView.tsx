@@ -8,7 +8,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { BoardState, SelectionKey } from "../types.ts";
 import { TreeNode, makeSelectionKey } from "./TreeNode.tsx";
-import { getNodeDisplayName } from "@km/shared";
+import { getNodeDisplayName } from "../state.ts";
 
 interface TabsViewProps {
   state: BoardState;

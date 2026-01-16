@@ -30,7 +30,12 @@ import {
   resolveNode,
   isExplicitPath,
 } from "@km/store";
-import { getNodeDisplayName } from "@km/shared";
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/shared";
+
+// Bound version with store dependency
+const getNodeDisplayName = (
+  node: Parameters<typeof getNodeDisplayNameBase>[0],
+) => getNodeDisplayNameBase(node, getChildren);
 import {
   createInitialTreeState,
   runShell,

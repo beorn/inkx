@@ -32,6 +32,16 @@ import {
   getParentContext,
 } from "../src/tree.ts";
 
+// Wrapper functions that inject store dependencies for testing
+const getDisplayName = (node: Parameters<typeof getNodeDisplayName>[0]) =>
+  getNodeDisplayName(node, getChildren);
+const getTypeSuffix = (node: Parameters<typeof getCollapsedTypeSuffix>[0]) =>
+  getCollapsedTypeSuffix(node, getChildren);
+const getContext = (
+  node: Parameters<typeof getParentContext>[0],
+  skipParentId?: string | null,
+) => getParentContext(node, skipParentId, getNode);
+
 // Test helpers
 function createTestNode(
   type: NodeType,
@@ -71,7 +81,7 @@ describe.serial("getNodeDisplayName", () => {
   test("returns content for nodes with content", () => {
     const id = createTestNode("task", "Test Task");
     const node = getNode(id)!;
-    expect(getNodeDisplayName(node)).toBe("Test Task");
+    expect(getDisplayName(node)).toBe("Test Task");
   });
 
   test("returns data.name if present", () => {
@@ -79,27 +89,27 @@ describe.serial("getNodeDisplayName", () => {
       data: { name: "My Folder" },
     });
     const node = getNode(id)!;
-    expect(getNodeDisplayName(node)).toBe("My Folder");
+    expect(getDisplayName(node)).toBe("My Folder");
   });
 
   test("truncates long content", () => {
     const longContent = "A".repeat(100);
     const id = createTestNode("task", longContent);
     const node = getNode(id)!;
-    const name = getNodeDisplayName(node);
+    const name = getDisplayName(node);
     expect(name.length).toBeLessThanOrEqual(50);
   });
 
   test("uses first line of multi-line content", () => {
     const id = createTestNode("section", "First Line\nSecond Line\nThird Line");
     const node = getNode(id)!;
-    expect(getNodeDisplayName(node)).toBe("First Line");
+    expect(getDisplayName(node)).toBe("First Line");
   });
 
   test("returns id prefix for nodes without content or name", () => {
     const id = createTestNode("paragraph", undefined, null);
     const node = getNode(id)!;
-    expect(getNodeDisplayName(node)).toBe(id.slice(0, 8));
+    expect(getDisplayName(node)).toBe(id.slice(0, 8));
   });
 
   test("strips rules from section display name", () => {
@@ -110,7 +120,7 @@ describe.serial("getNodeDisplayName", () => {
       null,
     );
     const node = getNode(id)!;
-    expect(getNodeDisplayName(node)).toBe("Done");
+    expect(getDisplayName(node)).toBe("Done");
     expect(node.title).toBe("Done");
     expect(node.rules?.sync).toBe("status:done");
     expect(node.rules?.collapse).toBe(true);
@@ -124,7 +134,7 @@ describe.serial("getNodeDisplayName", () => {
     createTestNode("section", "Next Actions", fileId);
 
     const file = getNode(fileId)!;
-    expect(getNodeDisplayName(file)).toBe("Next Actions");
+    expect(getDisplayName(file)).toBe("Next Actions");
   });
 
   test("strips column rules from H1 heading", () => {
@@ -135,7 +145,7 @@ describe.serial("getNodeDisplayName", () => {
     createTestNode("section", 'Today add="due:past status:open"', fileId);
 
     const file = getNode(fileId)!;
-    expect(getNodeDisplayName(file)).toBe("Today");
+    expect(getDisplayName(file)).toBe("Today");
   });
 
   test("falls back to filename without .md for files with no H1", () => {
@@ -145,7 +155,7 @@ describe.serial("getNodeDisplayName", () => {
     });
 
     const file = getNode(fileId)!;
-    expect(getNodeDisplayName(file)).toBe("@inbox");
+    expect(getDisplayName(file)).toBe("@inbox");
   });
 
   test("frontmatter title takes priority over H1", () => {
@@ -157,7 +167,7 @@ describe.serial("getNodeDisplayName", () => {
     createTestNode("section", "H1 Heading", fileId);
 
     const file = getNode(fileId)!;
-    expect(getNodeDisplayName(file)).toBe("My Custom Title");
+    expect(getDisplayName(file)).toBe("My Custom Title");
   });
 });
 
@@ -274,7 +284,7 @@ describe.serial("getCollapsedTypeSuffix", () => {
     createTestNode("file", undefined, folderId, { data: { name: "Other" } });
 
     const folder = getNode(folderId)!;
-    expect(getCollapsedTypeSuffix(folder)).toBe("");
+    expect(getTypeSuffix(folder)).toBe("");
   });
 
   test("returns / .md for folder with same-name file", () => {
@@ -284,7 +294,7 @@ describe.serial("getCollapsedTypeSuffix", () => {
     createTestNode("file", undefined, folderId, { data: { name: "Projects" } });
 
     const folder = getNode(folderId)!;
-    expect(getCollapsedTypeSuffix(folder)).toBe("/ .md");
+    expect(getTypeSuffix(folder)).toBe("/ .md");
   });
 
   test("returns / .md # for folder -> file -> section chain", () => {
@@ -297,7 +307,7 @@ describe.serial("getCollapsedTypeSuffix", () => {
     createTestNode("section", "# Projects", fileId);
 
     const folder = getNode(folderId)!;
-    expect(getCollapsedTypeSuffix(folder)).toBe("/ .md #");
+    expect(getTypeSuffix(folder)).toBe("/ .md #");
   });
 
   test("handles underscore/space variants in name matching", () => {
@@ -310,7 +320,7 @@ describe.serial("getCollapsedTypeSuffix", () => {
     createTestNode("section", "# 2025 Taxes", fileId);
 
     const folder = getNode(folderId)!;
-    expect(getCollapsedTypeSuffix(folder)).toBe("/ .md #");
+    expect(getTypeSuffix(folder)).toBe("/ .md #");
   });
 
   test("returns .md # for file with same-name section", () => {
@@ -320,7 +330,7 @@ describe.serial("getCollapsedTypeSuffix", () => {
     createTestNode("section", "# README", fileId);
 
     const file = getNode(fileId)!;
-    expect(getCollapsedTypeSuffix(file)).toBe(".md #");
+    expect(getTypeSuffix(file)).toBe(".md #");
   });
 
   test("only follows matching names, not all children", () => {
@@ -333,7 +343,7 @@ describe.serial("getCollapsedTypeSuffix", () => {
     createTestNode("file", undefined, folderId, { data: { name: "Another" } });
 
     const folder = getNode(folderId)!;
-    expect(getCollapsedTypeSuffix(folder)).toBe("");
+    expect(getTypeSuffix(folder)).toBe("");
   });
 });
 
@@ -366,7 +376,7 @@ describe.serial("collapseRedundantAncestors", () => {
     const node = getNode(id)!;
     const result = collapseRedundantAncestors([node]);
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(id);
+    expect(result[0]!.id).toBe(id);
   });
 
   test("collapses folder -> file with same name", () => {
@@ -418,7 +428,7 @@ describe.serial("collapseRedundantAncestors", () => {
     const result = collapseRedundantAncestors([folder, file, section]);
     // folder and file collapse, section is different
     expect(result).toHaveLength(2);
-    expect(result[1].id).toBe(sectionId);
+    expect(result[1]!.id).toBe(sectionId);
   });
 
   test("handles underscore/space variants", () => {
@@ -479,7 +489,7 @@ describe.serial("getParentContext", () => {
   test("returns null for node at root", () => {
     const taskId = createTestNode("task", "Root task");
     const task = getNode(taskId)!;
-    expect(getParentContext(task)).toBeNull();
+    expect(getContext(task)).toBeNull();
   });
 
   test("returns file name for task in a file", () => {
@@ -490,7 +500,7 @@ describe.serial("getParentContext", () => {
     const taskId = createTestNode("task", "Renew passport", fileId);
 
     const task = getNode(taskId)!;
-    expect(getParentContext(task)).toBe("Green card");
+    expect(getContext(task)).toBe("Green card");
   });
 
   test("returns section name for task in a section without rules", () => {
@@ -502,7 +512,7 @@ describe.serial("getParentContext", () => {
     const taskId = createTestNode("task", "Do something", sectionId);
 
     const task = getNode(taskId)!;
-    expect(getParentContext(task)).toBe("Phase 1");
+    expect(getContext(task)).toBe("Phase 1");
   });
 
   test("skips board column (section with rules) and returns file", () => {
@@ -520,7 +530,7 @@ describe.serial("getParentContext", () => {
 
     const task = getNode(taskId)!;
     // Skip the column (has rules) and return the file name
-    expect(getParentContext(task, columnId)).toBe("Next Actions");
+    expect(getContext(task, columnId)).toBe("Next Actions");
   });
 
   test("returns null when only board columns in ancestry", () => {
@@ -532,7 +542,7 @@ describe.serial("getParentContext", () => {
 
     const task = getNode(taskId)!;
     // Skip the column, board type doesn't match file/section
-    expect(getParentContext(task, columnId)).toBeNull();
+    expect(getContext(task, columnId)).toBeNull();
   });
 
   test("returns file name even when task is nested deep", () => {
@@ -546,6 +556,6 @@ describe.serial("getParentContext", () => {
 
     const task = getNode(taskId)!;
     // Returns first meaningful section
-    expect(getParentContext(task)).toBe("Part A");
+    expect(getContext(task)).toBe("Part A");
   });
 });

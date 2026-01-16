@@ -9,7 +9,7 @@ export {
   getParentContext,
 } from "./tree.ts";
 
-export type { CollapsedAncestor } from "./tree.ts";
+export type { CollapsedAncestor, GetChildrenFn, GetNodeFn } from "./tree.ts";
 
 export {
   getStatusIcon,

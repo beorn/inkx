@@ -8,7 +8,7 @@ import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import type { Node } from "@km/core";
 import { getAllNodes, getNode } from "@km/store";
-import { getNodeDisplayName } from "@km/shared";
+import { getNodeDisplayName } from "../state.ts";
 
 /**
  * Simple fuzzy match - check if query chars appear in order in target

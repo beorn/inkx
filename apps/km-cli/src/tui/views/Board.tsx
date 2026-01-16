@@ -25,7 +25,7 @@ import {
   updateNode,
   deleteNode,
 } from "@km/store";
-import { getNodeDisplayName, getCollapsedTypeSuffix } from "@km/shared";
+import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
 import { HelpOverlay } from "./HelpOverlay.tsx";

@@ -10,7 +10,7 @@
 
 import type { Node } from "@km/core";
 import { getSymlinksTo, getNode, getAncestors } from "@km/store";
-import { getNodeDisplayName } from "@km/shared";
+import { getNodeDisplayName } from "./state.ts";
 import {
   GTD_BOARD_COLORS,
   normalizeBoardName,

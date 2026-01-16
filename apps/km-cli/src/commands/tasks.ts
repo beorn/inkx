@@ -17,14 +17,20 @@ import {
   getNodeByIdPrefix,
   parseTaskMetadata,
   extractTags,
+  getChildren,
 } from "@km/store";
 import type { Node, TaskStatus } from "@km/core";
 import {
-  getNodeDisplayName as getNodeDisplayNameBase,
+  getNodeDisplayName as getNodeDisplayNameRaw,
   normalizeName,
   collapseAncestorsWithTypes,
   type CollapsedAncestor,
 } from "@km/shared";
+
+// Bound version with store dependency
+const getNodeDisplayNameBase = (
+  node: Parameters<typeof getNodeDisplayNameRaw>[0],
+) => getNodeDisplayNameRaw(node, getChildren);
 
 /**
  * Format a collapsed ancestor for display with its type suffix

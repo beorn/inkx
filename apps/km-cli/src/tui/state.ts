@@ -15,10 +15,24 @@ import type {
 import { STATUS_CYCLE, STATUS_MARKS } from "./types.ts";
 import { getChildren, getNode, resolveNode, queryNodes } from "@km/store";
 import { emit } from "@km/core";
-import { getNodeDisplayName } from "@km/shared";
+import {
+  getNodeDisplayName as getNodeDisplayNameBase,
+  getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,
+  getParentContext as getParentContextBase,
+} from "@km/shared";
 
-// Re-export for backwards compatibility
-export { getNodeDisplayName };
+// Bound versions that inject store dependencies
+// These are the primary exports for TUI components
+export const getNodeDisplayName = (
+  node: Parameters<typeof getNodeDisplayNameBase>[0],
+) => getNodeDisplayNameBase(node, getChildren);
+export const getCollapsedTypeSuffix = (
+  node: Parameters<typeof getCollapsedTypeSuffixBase>[0],
+) => getCollapsedTypeSuffixBase(node, getChildren);
+export const getParentContext = (
+  node: Parameters<typeof getParentContextBase>[0],
+  skipParentId?: string | null,
+) => getParentContextBase(node, skipParentId, getNode);
 
 /**
  * Create an empty board state

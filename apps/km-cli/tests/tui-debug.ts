@@ -1,6 +1,9 @@
 import { ensureState, getNode } from "@km/store";
-import { getNodeDisplayName, getParentContext } from "@km/shared";
-import { initBoardState } from "../src/tui/state.ts";
+import {
+  initBoardState,
+  getNodeDisplayName,
+  getParentContext,
+} from "../src/tui/state.ts";
 import { renderRich, constrainText } from "../src/tui/render-text.ts";
 
 async function debug() {

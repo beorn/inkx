@@ -10,8 +10,13 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { resolveNode, getDb, getStore } from "@km/store";
-import { getNodeDisplayName } from "@km/shared";
+import { resolveNode, getDb, getStore, getChildren } from "@km/store";
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/shared";
+
+// Bound version with store dependency
+const getNodeDisplayName = (
+  node: Parameters<typeof getNodeDisplayNameBase>[0],
+) => getNodeDisplayNameBase(node, getChildren);
 import type { Node } from "@km/core";
 
 /**

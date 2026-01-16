@@ -10,7 +10,7 @@ import { ulid } from "ulid";
 import type { Node } from "@km/core";
 import { emitNodeCreated } from "@km/core";
 import { getNode, getChildren } from "@km/store";
-import { getNodeDisplayName } from "@km/shared";
+import { getNodeDisplayName } from "../state.ts";
 
 export interface NewItemDialogProps {
   /** The currently selected node (for context/defaults) */

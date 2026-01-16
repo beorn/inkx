@@ -7,7 +7,16 @@
 
 import chalk from "chalk";
 import type { Node } from "@km/core";
-import { getNodeDisplayName, type CollapsedAncestor } from "@km/shared";
+import {
+  getNodeDisplayName as getNodeDisplayNameBase,
+  type CollapsedAncestor,
+} from "@km/shared";
+import { getChildren } from "@km/store";
+
+// Bound version with store dependency
+const getNodeDisplayName = (
+  node: Parameters<typeof getNodeDisplayNameBase>[0],
+) => getNodeDisplayNameBase(node, getChildren);
 
 /**
  * Format a collapsed ancestor for display with its type suffix.

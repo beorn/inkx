@@ -62,7 +62,12 @@ const SHIFT_NUMBER_MAP: Record<string, number> = {
   "*": 7,
   "(": 8,
 };
-import { getNodeDisplayName } from "@km/shared";
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/shared";
+
+// Bound version with store dependency
+const getNodeDisplayName = (
+  node: Parameters<typeof getNodeDisplayNameBase>[0],
+) => getNodeDisplayNameBase(node, getChildren);
 import type { Node } from "@km/core";
 import type {
   ViewMode,
