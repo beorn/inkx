@@ -15,7 +15,7 @@
   "scripts": {
     "km": "bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
-    "update-all": "nix flake update && bun update && bun test",
+    "update-all": "bun upgrade && nix flake update && bun update && bun test",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
