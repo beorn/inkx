@@ -8,17 +8,19 @@ Package structure, layering, data flow, and architectural principles.
 
 ```
 packages/                          # Shared libraries
+  @km/core       - Shared types, utilities
   @km/storage    - DBNode, SQLite, queries, events, sync
   @km/markdown   - Parser (markdown ↔ DBNode)
   @km/tree       - TNode, tree queries, display names
-  @km/tui-core   - BoardState, cursor, selection, fold
+  @km/board      - BoardState, cursor, selection, fold
 
 apps/
   km-cli/        → @km/cli-app     CLI commands
+  km-sh/         → @km/sh-app      Shell application
   km-tui/        → @km/tui-app     TUI application
     packages/
       km-ink/    → @km/ink         React/Ink renderer
-  km-sh/         → @km/sh-app      Shell application
+      km-opentui/→ @km/opentui     OpenTUI renderer (experimental)
 ```
 
 ---
@@ -36,7 +38,7 @@ apps/
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
 ┌─────────────────────┐ ┌───────────────────────────────────────┐
-│  Agent Runtime      │ │  @km/tui-core       Visual navigation │
+│  Agent Runtime      │ │  @km/board          Visual navigation │
 │  (12-agents.md)     │ │  Cursor, selection, fold, zoom        │
 │  Harnesses, queues  │ └───────────────────────────────────────┘
 └─────────────────────┘               │
@@ -76,7 +78,7 @@ apps/
                                 │ board actions
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  BOARD LAYER (@km/tui-core)                                     │
+│  BOARD LAYER (@km/board)                                     │
 │                                                                  │
 │  • BoardState - cursor, selection, fold, zoom, history          │
 │  • treeReducer - CURSOR_*, selection, navigation                │
@@ -133,7 +135,7 @@ apps/
                               │
                               ▼
 ┌───────────────────────────────────────────────────────────────┐
-│  Board Layer            (@km/tui-core)                        │
+│  Board Layer            (@km/board)                        │
 │  • Visual navigation state                                    │
 │  • Cursor, selection, fold, zoom                              │
 │  • Returns BoardState                                         │
@@ -260,7 +262,7 @@ User edits markdown file
 
 **Owns:** App-specific state, rendering, user input handling
 
-### Board Layer (@km/tui-core)
+### Board Layer (@km/board)
 
 | Concern            | Examples                     |
 | ------------------ | ---------------------------- |
@@ -317,7 +319,7 @@ User edits markdown file
 | ----------------- | -------------------------------------------------------------------------------- |
 | **DBNode**        | Flat database record with `parent_id`. Stored in SQLite (@km/storage).           |
 | **TNode**         | Recursive tree structure with `children[]`. For navigation (@km/tree).           |
-| **BoardState**    | Visual navigation state: cursor, selection, fold (@km/tui-core).                 |
+| **BoardState**    | Visual navigation state: cursor, selection, fold (@km/board).                    |
 | **fs-tree**       | Raw filesystem: folders, files, markdown content. Source of truth.               |
 | **node**          | Everything is a node: folder, file, section, task, paragraph, etc.               |
 | **collapsing**    | Unifying same-named folder/file/section into one display line.                   |

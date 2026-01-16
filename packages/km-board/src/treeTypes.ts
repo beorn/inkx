@@ -1,8 +1,8 @@
 /**
- * TUI Types
+ * Board Types
  *
- * Core state and view model types for TUI tree navigation.
- * Uses a generic node model supporting arbitrary depth.
+ * Core state types for board navigation and view models.
+ * Split into BoardState (core navigation) and AppUIState (modal/dialog state).
  */
 
 // Import types from @km/tree
@@ -22,13 +22,14 @@ export type CursorPath = TPath;
 // Re-export TNode from @km/tree
 export type { TNode } from "@km/tree";
 
-// ===== Tree State =====
+// ===== Board State (Core Navigation) =====
 
 /**
- * Tree state with path-based navigation.
- * Primary state model for TUI.
+ * Core board navigation state.
+ * Handles cursor, selection, fold/collapse, zoom, and history.
+ * Does NOT include modal/dialog state - that belongs in AppUIState.
  */
-export interface TreeState {
+export interface BoardState {
   // Root context
   rootId: string | null;
   rootPath: string | null;
@@ -44,13 +45,6 @@ export interface TreeState {
   foldedNodes: Set<string>;
   collapsedNodes: Set<string>; // Top-level nodes that are collapsed
 
-  // Search
-  searchQuery: string;
-  searchMode: boolean;
-
-  // Help
-  helpMode: boolean;
-
   // Zoom stack (with cursor memory)
   zoomStack: Array<{
     rootId: string | null;
@@ -64,33 +58,61 @@ export interface TreeState {
   }>;
   navHistoryIndex: number;
 
-  // View configuration
-  maxOutlineDepth: number;
-  maxContentLines: number;
-
-  // Modal states
-  newItemMode: boolean;
-  newItemText: string;
-  projectPickerOpen: boolean;
-  projectPickerQuery: string;
-  projectPickerIndex: number;
-  detailPaneOpen: boolean;
-
-  // Command palette
-  commandPaletteOpen: boolean;
-  commandPaletteQuery: string;
-  commandPaletteIndex: number;
-
   // Move mode (m + destination)
   moveMode: boolean;
   moveSourceNodes: string[]; // Node IDs being moved
   moveSourceCursor: CursorPath; // Original cursor position
 }
 
-// ===== Tree Actions =====
+// ===== App UI State (Modal/Dialog State) =====
 
 /**
- * Actions for tree state transitions.
+ * Application-specific UI state for modals and dialogs.
+ * This state is specific to TUI applications and should be managed
+ * in the app layer, not in the shared @km/board package.
+ */
+export interface AppUIState {
+  // Search
+  searchQuery: string;
+  searchMode: boolean;
+
+  // Help
+  helpMode: boolean;
+
+  // View configuration
+  maxOutlineDepth: number;
+  maxContentLines: number;
+
+  // New item dialog
+  newItemMode: boolean;
+  newItemText: string;
+
+  // Project picker
+  projectPickerOpen: boolean;
+  projectPickerQuery: string;
+  projectPickerIndex: number;
+
+  // Detail pane
+  detailPaneOpen: boolean;
+
+  // Command palette
+  commandPaletteOpen: boolean;
+  commandPaletteQuery: string;
+  commandPaletteIndex: number;
+}
+
+// ===== Combined Tree State =====
+
+/**
+ * Full tree state combining board navigation and app UI state.
+ * Used by TUI applications that need both navigation and modal state.
+ */
+export interface TreeState extends BoardState, AppUIState {}
+
+// ===== Board Actions (Core Navigation) =====
+
+/**
+ * Actions for board navigation state transitions.
  *
  * Visual/Spatial Navigation (CURSOR_*):
  *   Moves to visually adjacent block. May traverse tree structure arbitrarily.
@@ -99,15 +121,14 @@ export interface TreeState {
  * Structural Navigation (NAV_*):
  *   Moves within tree structure (prev/next sibling, parent/child).
  */
-export type TreeAction =
+export type BoardAction =
   // Visual/spatial navigation (cursor-select)
-  // These move to the visually adjacent block, which may cross tree structure
-  | { type: "CURSOR_UP" } // previous visible block above
-  | { type: "CURSOR_DOWN" } // next visible block below
-  | { type: "CURSOR_LEFT" } // cross-column left (at card level)
-  | { type: "CURSOR_RIGHT" } // cross-column right (at card level)
+  | { type: "CURSOR_UP" }
+  | { type: "CURSOR_DOWN" }
+  | { type: "CURSOR_LEFT" }
+  | { type: "CURSOR_RIGHT" }
 
-  // Structural navigation (prev/next within siblings, in/out for depth)
+  // Structural navigation
   | { type: "NAV_PREV_SIBLING" }
   | { type: "NAV_NEXT_SIBLING" }
   | { type: "NAV_FIRST_SIBLING" }
@@ -118,10 +139,10 @@ export type TreeAction =
   | { type: "MOVE_DOWN" }
   | { type: "MOVE_LEFT" }
   | { type: "MOVE_RIGHT" }
-  | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" } // move between columns preserving Y
-  | { type: "NAV_PARENT" } // out
-  | { type: "NAV_CHILD" } // in
-  | { type: "NAV_TO_PATH"; path: CursorPath } // absolute positioning
+  | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" }
+  | { type: "NAV_PARENT" }
+  | { type: "NAV_CHILD" }
+  | { type: "NAV_TO_PATH"; path: CursorPath }
 
   // Node operations
   | { type: "TOGGLE_FOLD"; nodeId: string }
@@ -129,7 +150,7 @@ export type TreeAction =
   | { type: "FOLD_LEVEL"; depth: number }
   | { type: "UNFOLD_LEVEL"; depth: number }
 
-  // Navigating (zoom/root change)
+  // Zoom/root change
   | { type: "ZOOM_IN"; nodeId: string; nodes: TNode[] }
   | { type: "ZOOM_OUT"; nodes: TNode[] }
 
@@ -154,36 +175,49 @@ export type TreeAction =
   | { type: "SELECT_ALL" }
   | { type: "CLEAR_SELECTION" }
 
-  // Extend-select (shift+hjkl) - add nodes to selection while cursoring
+  // Extend-select
   | { type: "EXTEND_SELECT_UP" }
   | { type: "EXTEND_SELECT_DOWN" }
   | { type: "EXTEND_SELECT_LEFT" }
   | { type: "EXTEND_SELECT_RIGHT" }
 
-  // Shifting (opt+hjkl) - move selected nodes in visual direction
-  // Note: These require store integration to actually modify the tree
+  // Shifting (move selected nodes)
   | { type: "SHIFT_UP" }
   | { type: "SHIFT_DOWN" }
   | { type: "SHIFT_LEFT" }
   | { type: "SHIFT_RIGHT" }
 
-  // Moving (m + destination) - move nodes to arbitrary location
-  | { type: "ENTER_MOVE_MODE" } // 'm' - enter move mode with selected nodes
-  | { type: "CONFIRM_MOVE" } // Enter - move to current cursor position
-  | { type: "CANCEL_MOVE" } // Escape - cancel move mode
+  // Move mode
+  | { type: "ENTER_MOVE_MODE" }
+  | { type: "CONFIRM_MOVE" }
+  | { type: "CANCEL_MOVE" };
 
-  // Modals
+// ===== App UI Actions (Modal/Dialog State) =====
+
+/**
+ * Actions for application-specific UI state (modals, dialogs, view config).
+ */
+export type AppUIAction =
+  // Search
   | { type: "TOGGLE_SEARCH_MODE" }
   | { type: "SET_SEARCH_QUERY"; query: string }
+
+  // Help
   | { type: "TOGGLE_HELP_MODE" }
+
+  // New item dialog
   | { type: "TOGGLE_NEW_ITEM_MODE" }
   | { type: "SET_NEW_ITEM_TEXT"; text: string }
   | { type: "CLEAR_NEW_ITEM" }
+
+  // Project picker
   | { type: "TOGGLE_PROJECT_PICKER" }
   | { type: "SET_PROJECT_PICKER_QUERY"; query: string }
   | { type: "PROJECT_PICKER_UP" }
   | { type: "PROJECT_PICKER_DOWN"; maxIndex: number }
   | { type: "CLOSE_PROJECT_PICKER" }
+
+  // Detail pane
   | { type: "TOGGLE_DETAIL_PANE" }
 
   // Command palette
@@ -198,6 +232,14 @@ export type TreeAction =
   | { type: "DECREASE_OUTLINE_DEPTH" }
   | { type: "INCREASE_CONTENT_LINES" }
   | { type: "DECREASE_CONTENT_LINES" };
+
+// ===== Combined Tree Action =====
+
+/**
+ * All tree actions (board + app UI).
+ * Used by TUI applications that need the full reducer.
+ */
+export type TreeAction = BoardAction | AppUIAction;
 
 // ===== View Level Configuration =====
 

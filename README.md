@@ -184,10 +184,10 @@ km/
 │   ├── km-core/          # Core types & events (@km/core)
 │   ├── km-storage/       # Database & storage (@km/storage)
 │   ├── km-markdown/      # Markdown parsing (@km/markdown)
-│   ├── km-watch/         # File system watching (@km/watch)
-│   └── km-shared/        # Shared utilities (@km/shared)
+│   ├── km-tree/          # Tree queries & display (@km/tree)
+│   └── km-board/         # Board state & navigation (@km/board)
 │
-└── specs/                # Architecture docs
+└── docs/                 # Architecture docs
 ```
 
 **Dependency Graph:**
@@ -234,9 +234,9 @@ This will be resolved once Bun releases a fix.
 ## Docs
 
 - [ROADMAP.md](ROADMAP.md) — Implementation phases
-- [specs/README.md](specs/README.md) — Architecture & principles
-- [specs/km-overview.md](specs/km-overview.md) — Design overview
-- [specs/km-tasks.md](specs/km-tasks.md) — Task management
+- [docs/README.md](docs/README.md) — Architecture & principles
+- [docs/01-concepts.md](docs/01-concepts.md) — Design overview
+- [docs/10-tasks.md](docs/10-tasks.md) — Task management
 - [CLAUDE.md](CLAUDE.md) — Agent development instructions
 
 Inspired by [Beads](https://github.com/steveyegge/beads) and [Gas Town](https://github.com/steveyegge/gastown).

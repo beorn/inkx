@@ -2,15 +2,15 @@
 
 ## Architectural Rules (MUST FOLLOW)
 
-Before writing ANY code, you MUST understand and follow these rules. See [specs/README.md](specs/README.md) for full details.
+Before writing ANY code, you MUST understand and follow these rules. See [docs/README.md](docs/README.md) for full details.
 
 ### 1. Clear Layering
 
 ```
-UI Layer (km-cli)     → Query Layer (km-storage)
-                      → Model Layer (km-storage, km-core)
-                      → Sync Layer (km-watch)
-                      → Parser Layer (km-markdown)
+App Layer (apps/)     → Board Layer (@km/board)
+                      → Tree Layer (@km/tree)
+                      → Storage Layer (@km/storage)
+                      → Parser Layer (@km/markdown)
                       → Filesystem (markdown files)
 ```
 
@@ -27,7 +27,7 @@ ALL task edits MUST flow both directions:
 
 ### 4. TUI Design System
 
-When modifying TUI styling (colors, selection states, visual hierarchy), you MUST consult [specs/km-design-system.md](specs/km-design-system.md). Key rules:
+When modifying TUI styling (colors, selection states, visual hierarchy), you MUST consult [docs/08-ui.md](docs/08-ui.md). Key rules:
 
 - **Selection**: `cyan` background + `black` foreground (NEVER blue/white)
 - **Reserved colors**: `cyan` bg = selection only, `inverse` = input cursor only
@@ -73,11 +73,10 @@ bun run test:fast    # Run this frequently - 4 second feedback loop
 5. `bun run test:all` passes (final check before commit)
 6. Commit
 
-**For detailed testing guidance**, see [specs/km-testing.md](specs/km-testing.md):
+**For detailed testing guidance**, see [docs/dev/testing.md](docs/dev/testing.md):
 
 - Which test type to use for each layer
 - How to use `km sh` + `mdtest` for TUI behavior tests
-- Anti-patterns to avoid
 - Coverage goals per layer
 
 ---
