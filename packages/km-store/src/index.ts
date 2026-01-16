@@ -11,6 +11,10 @@ export {
   getNodeByIdPrefix,
   getTaskByIdPrefix,
   getNodeByPath,
+  getNodesUnderPath,
+  getFileWithChildren,
+  getNodeContentHash,
+  findFileByName,
   resolveNode,
   resolveTask,
   getChildren,
@@ -84,7 +88,7 @@ export {
 
 export type { QueryAST, QueryCondition, QueryRef, DateRange } from "./query.ts";
 
-// Re-export markdown parsing functions (to avoid CLI importing km-markdown directly)
+// Re-export markdown parsing functions (to avoid other layers importing km-markdown directly)
 export {
   parseTaskMetadata,
   extractTags,
@@ -92,7 +96,12 @@ export {
   extractProjects,
   parseWikiLinks,
   nodeToText,
+  // For km-watch sync layer
+  parseMarkdownWithLinks,
+  nodesToMarkdown,
 } from "@km/markdown";
+
+export type { ParseResult, ParseWarning } from "@km/markdown";
 
 // Path utilities for filesystem-based node resolution
 export {

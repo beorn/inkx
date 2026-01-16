@@ -14,15 +14,14 @@ import { getIgnorePatterns } from "./ignore.ts";
 import type { Event, Node } from "@km/core";
 import { setDatabase } from "@km/core";
 import {
-  getDb,
   getAllNodes,
   getNode,
   getSubtree,
   applyEvent,
   dbApplyEvent,
   readEvents,
+  nodesToMarkdown,
 } from "@km/store";
-import { nodesToMarkdown } from "@km/markdown";
 
 export interface SyncConfig {
   vaultPath: string;
@@ -204,11 +203,8 @@ export class SyncManager extends EventEmitter {
   private handleNodeDeleted(event: Event): void {
     if (!event.target) return;
 
-    // Get node before deletion
-    const db = getDb();
-    const node = db
-      .prepare("SELECT * FROM nodes WHERE id = ?")
-      .get(event.target) as Node | undefined;
+    // Get node before deletion (using km-store abstraction)
+    const node = getNode(event.target);
 
     if (node?.fs_path && (node.type === "file" || node.type === "folder")) {
       this.writeQueue.queueDelete(node.fs_path, event.id);

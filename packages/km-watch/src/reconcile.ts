@@ -15,15 +15,18 @@ import {
   emitNodeDeleted,
 } from "@km/core";
 import {
-  getDb,
   getNodeByPath,
+  getNodesUnderPath,
+  getFileWithChildren,
+  getNodeContentHash,
+  findFileByName,
   getChildren,
   addLink,
   removeLinksFromSource,
   resolveLinks,
   hashContent,
+  parseMarkdownWithLinks,
 } from "@km/store";
-import { parseMarkdownWithLinks } from "@km/markdown";
 import { scanDirectory } from "./watcher.ts";
 
 export interface ReconcileOp {
@@ -42,32 +45,23 @@ export function reconcileDirectory(
   vaultRoot: string,
 ): ReconcileOp[] {
   const ops: ReconcileOp[] = [];
-  const db = getDb();
 
   // Get filesystem state
   const fsEntries = scanDirectory(dirPath);
 
-  // Get database state for this directory
-  const dbNodes = db
-    .prepare(
-      `
-      SELECT * FROM nodes
-      WHERE fs_path LIKE ? || '%'
-      AND (type = 'folder' OR type = 'file')
-    `,
-    )
-    .all(dirPath) as Array<Record<string, unknown>>;
+  // Get database state for this directory (using km-store abstraction)
+  const dbNodes = getNodesUnderPath(dirPath);
 
   // Index by inode and path for efficient lookup
-  const dbByIno = new Map<number, Record<string, unknown>>();
-  const dbByPath = new Map<string, Record<string, unknown>>();
+  const dbByIno = new Map<number, Node>();
+  const dbByPath = new Map<string, Node>();
 
   for (const node of dbNodes) {
     if (node.fs_ino) {
-      dbByIno.set(node.fs_ino as number, node);
+      dbByIno.set(node.fs_ino, node);
     }
     if (node.fs_path) {
-      dbByPath.set(node.fs_path as string, node);
+      dbByPath.set(node.fs_path, node);
     }
   }
 
@@ -76,12 +70,12 @@ export function reconcileDirectory(
     const existingByIno = dbByIno.get(entry.ino);
     const existingByPath = dbByPath.get(entry.path);
 
-    if (existingByIno && (existingByIno.fs_path as string) !== entry.path) {
+    if (existingByIno && existingByIno.fs_path !== entry.path) {
       // Renamed (same inode, different path)
       ops.push({
         type: "rename",
-        nodeId: existingByIno.id as string,
-        oldPath: existingByIno.fs_path as string,
+        nodeId: existingByIno.id,
+        oldPath: existingByIno.fs_path,
         path: entry.path,
         ino: entry.ino,
       });
@@ -92,11 +86,11 @@ export function reconcileDirectory(
         path: entry.path,
         ino: entry.ino,
       });
-    } else if (entry.mtime > (existingByPath.updated_at as number)) {
+    } else if (entry.mtime > existingByPath.updated_at) {
       // Modified (mtime is newer)
       ops.push({
         type: "update",
-        nodeId: existingByPath.id as string,
+        nodeId: existingByPath.id,
         path: entry.path,
       });
     }
@@ -111,7 +105,7 @@ export function reconcileDirectory(
     if (dirname(path) === dirPath) {
       ops.push({
         type: "delete",
-        nodeId: node.id as string,
+        nodeId: node.id,
         path,
       });
     }
@@ -253,48 +247,8 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
   }
 }
 
-/**
- * Find a node by name (for link resolution)
- */
-function findNodeByName(name: string): Node | null {
-  const db = getDb();
-  const normalizedName = name.toLowerCase().replace(/\.md$/, "");
-
-  // Try to find by filename or content
-  const row = db
-    .query(
-      `
-    SELECT * FROM nodes
-    WHERE type = 'file'
-    AND (
-      LOWER(REPLACE(fs_path, '.md', '')) LIKE '%' || ? || '%'
-      OR LOWER(json_extract(data, '$.name')) = ?
-    )
-    LIMIT 1
-  `,
-    )
-    .get(normalizedName, normalizedName) as Record<string, unknown> | null;
-
-  if (!row) return null;
-
-  return {
-    id: row.id as string,
-    type: row.type as Node["type"],
-    parent_id: row.parent_id as string | null,
-    parent_idx: row.parent_idx as number,
-    symlink_to: row.symlink_to as string | null,
-    fs_path: row.fs_path as string | undefined,
-    fs_ino: row.fs_ino as number | undefined,
-    content: row.content as string | undefined,
-    data:
-      typeof row.data === "string"
-        ? (JSON.parse(row.data) as Record<string, unknown>)
-        : ((row.data as Record<string, unknown>) ?? {}),
-    created_at: row.created_at as number,
-    updated_at: row.updated_at as number,
-    version: row.version as string,
-  };
-}
+// Use km-store's findFileByName for link resolution (aliased as findNodeByName for local use)
+const findNodeByName = findFileByName;
 
 /**
  * Handle file modification
@@ -307,27 +261,16 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
   const content = readFileSync(op.path, "utf-8");
   const contentHash = hashContent(content);
 
-  const db = getDb();
-  const existing = db
-    .prepare("SELECT content_hash FROM nodes WHERE id = ?")
-    .get(op.nodeId) as { content_hash: string | null } | undefined;
+  // Use km-store abstraction to get content hash
+  const existingHash = getNodeContentHash(op.nodeId);
 
   // Skip if content hasn't actually changed
-  if (existing?.content_hash === contentHash) {
+  if (existingHash === contentHash) {
     return;
   }
 
-  // Get existing nodes for this file
-  const existingNodes = db
-    .prepare(
-      `
-      SELECT * FROM nodes
-      WHERE fs_path = ? OR parent_id IN (
-        SELECT id FROM nodes WHERE fs_path = ?
-      )
-    `,
-    )
-    .all(op.path, op.path) as Array<Record<string, unknown>>;
+  // Get existing nodes for this file using km-store abstraction
+  const existingNodes = getFileWithChildren(op.path);
 
   // Parse new content with wikilinks
   const stat = statSync(op.path);
@@ -410,17 +353,14 @@ interface NodeChange {
   changes?: Record<string, unknown>;
 }
 
-function diffNodes(
-  existing: Array<Record<string, unknown>>,
-  newNodes: Node[],
-): NodeChange[] {
+function diffNodes(existing: Node[], newNodes: Node[]): NodeChange[] {
   const changes: NodeChange[] = [];
 
   // Index existing by position (for matching)
-  const existingByPos = new Map<number, Record<string, unknown>>();
+  const existingByPos = new Map<number, Node>();
   for (const node of existing) {
     if (node.md_pos !== undefined) {
-      existingByPos.set(node.md_pos as number, node);
+      existingByPos.set(node.md_pos, node);
     }
   }
 
@@ -461,7 +401,7 @@ function diffNodes(
       if (Object.keys(nodeChanges).length > 0) {
         changes.push({
           type: "updated",
-          nodeId: existingNode.id as string,
+          nodeId: existingNode.id,
           changes: nodeChanges,
         });
       }
@@ -474,7 +414,7 @@ function diffNodes(
   for (const [, node] of existingByPos) {
     changes.push({
       type: "deleted",
-      nodeId: node.id as string,
+      nodeId: node.id,
     });
   }
 

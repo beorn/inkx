@@ -81,14 +81,14 @@ export type {
   ShellContext,
 } from "./shellExecutor.ts";
 
-// Icon utilities (shared across TUI implementations)
+// Icon utilities (re-exported from @km/shared)
 export {
   getStatusIcon,
   getTypeIcon,
   getNodeIcon,
   COLORED_CIRCLE,
   type StatusIcon,
-} from "./icons.ts";
+} from "@km/shared";
 
 // Plain text utilities (for OpenTUI - no ANSI codes)
 export { renderPlain, displayLength } from "./text.ts";

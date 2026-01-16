@@ -1,11 +1,9 @@
 /**
- * Status Icon Utilities
+ * Icon Utilities
  *
- * Shared status icons for task rendering.
- * Used by both Ink TUI and OpenTUI.
+ * Status and type icons for nodes.
+ * Used by both CLI commands and TUI components.
  */
-
-import type { TaskStatus } from "./types.ts";
 
 export interface StatusIcon {
   char: string;
@@ -17,10 +15,9 @@ export interface StatusIcon {
  * Get status icon for tasks with color.
  *
  * Status values: todo, wip, blocked, done, dropped
+ * See km-core/src/types.ts for TaskStatus type.
  */
-export function getStatusIcon(
-  status: TaskStatus | null | undefined,
-): StatusIcon {
+export function getStatusIcon(status: string | null | undefined): StatusIcon {
   switch (status) {
     case "todo":
       return { char: "\u25CB", color: "gray" }; // empty circle ○
@@ -38,6 +35,7 @@ export function getStatusIcon(
       return { char: "\u26A0", color: "red" }; // warning ⚠
     default:
       // Invalid/unknown status - show the actual value with inverted colors
+      // This helps debug what invalid status was received
       return {
         char: (status as string).charAt(0),
         color: "black",
@@ -48,6 +46,9 @@ export function getStatusIcon(
 
 /**
  * Get type icon for non-task nodes.
+ *
+ * Note: code and quote blocks don't need icons - rich text rendering
+ * handles their visual distinction (backticks for code, italics for quotes).
  */
 export function getTypeIcon(type: string): string {
   switch (type) {
@@ -86,7 +87,7 @@ export const COLORED_CIRCLE: StatusIcon = {
  * @returns StatusIcon with appropriate char and color
  */
 export function getNodeIcon(
-  status: TaskStatus | null | undefined,
+  status: string | null | undefined,
   inheritedColor?: string,
 ): StatusIcon {
   // For tasks, get the base status icon

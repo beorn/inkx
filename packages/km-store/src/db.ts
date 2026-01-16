@@ -532,6 +532,80 @@ export function getNodeByPath(fsPath: string): Node | null {
 }
 
 /**
+ * Get all folder/file nodes under a directory path (for reconciliation)
+ */
+export function getNodesUnderPath(dirPath: string): Node[] {
+  const db = getDb();
+  const rows = db
+    .query(
+      `
+      SELECT * FROM nodes
+      WHERE fs_path LIKE ? || '%'
+      AND (type = 'folder' OR type = 'file')
+    `,
+    )
+    .all(dirPath) as Record<string, unknown>[];
+
+  return rows.map(rowToNode);
+}
+
+/**
+ * Get a file node and its children (sections, tasks, etc.)
+ */
+export function getFileWithChildren(fsPath: string): Node[] {
+  const db = getDb();
+  const rows = db
+    .query(
+      `
+      SELECT * FROM nodes
+      WHERE fs_path = ? OR parent_id IN (
+        SELECT id FROM nodes WHERE fs_path = ?
+      )
+    `,
+    )
+    .all(fsPath, fsPath) as Record<string, unknown>[];
+
+  return rows.map(rowToNode);
+}
+
+/**
+ * Get content hash for a node (for change detection)
+ */
+export function getNodeContentHash(nodeId: string): string | null {
+  const db = getDb();
+  const row = db
+    .query("SELECT content_hash FROM nodes WHERE id = ?")
+    .get(nodeId) as { content_hash: string | null } | undefined;
+
+  return row?.content_hash ?? null;
+}
+
+/**
+ * Find a file node by name (for wikilink resolution)
+ */
+export function findFileByName(name: string): Node | null {
+  const db = getDb();
+  const normalizedName = name.toLowerCase().replace(/\.md$/, "");
+
+  const row = db
+    .query(
+      `
+    SELECT * FROM nodes
+    WHERE type = 'file'
+    AND (
+      LOWER(REPLACE(fs_path, '.md', '')) LIKE '%' || ? || '%'
+      OR LOWER(json_extract(data, '$.name')) = ?
+    )
+    LIMIT 1
+  `,
+    )
+    .get(normalizedName, normalizedName) as Record<string, unknown> | null;
+
+  if (!row) return null;
+  return rowToNode(row);
+}
+
+/**
  * Smart node resolver - finds a node by various identifiers.
  *
  * Resolution order:

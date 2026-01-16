@@ -3,11 +3,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import {
-  getStatusIcon,
-  getTypeIcon,
-  type StatusIcon,
-} from "../../src/text/icons.ts";
+import { getStatusIcon, getTypeIcon, type StatusIcon } from "@km/shared";
 
 describe("getStatusIcon", () => {
   // Actual statuses from km-core: todo, wip, blocked, done, dropped

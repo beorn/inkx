@@ -126,13 +126,13 @@
       "name": "@km/tui-core",
       "dependencies": {
         "@km/core": "workspace:*",
+        "@km/shared": "workspace:*",
       },
     },
     "packages/km-watch": {
       "name": "@km/watch",
       "dependencies": {
         "@km/core": "workspace:*",
-        "@km/markdown": "workspace:*",
         "@km/store": "workspace:*",
         "chokidar": "^4.0.3",
         "ulid": "^2.3.0",

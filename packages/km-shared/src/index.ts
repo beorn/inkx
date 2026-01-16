@@ -10,3 +10,12 @@ export {
 } from "./tree.ts";
 
 export type { CollapsedAncestor } from "./tree.ts";
+
+export {
+  getStatusIcon,
+  getTypeIcon,
+  getNodeIcon,
+  COLORED_CIRCLE,
+} from "./icons.ts";
+
+export type { StatusIcon } from "./icons.ts";

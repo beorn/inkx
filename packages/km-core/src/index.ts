@@ -38,6 +38,7 @@ export {
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts";
 
 // Node layer (TUI view models)
+// Note: These are deprecated - use @km/tree instead
 export type { NodeState, CursorPath } from "./node/index.ts";
 export {
   getNodeAtPath,
@@ -47,10 +48,5 @@ export {
   getSiblings,
 } from "./node/index.ts";
 
-// Board layer (visual navigation state)
-export type { BoardState, BoardAction } from "./board/index.ts";
-export {
-  createInitialBoardState,
-  boardReducer,
-  validateCursor,
-} from "./board/index.ts";
+// Board layer: Use @km/board directly for visual navigation state
+// The board reducer and types have been consolidated there
