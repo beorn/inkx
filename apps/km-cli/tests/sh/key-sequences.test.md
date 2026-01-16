@@ -1,0 +1,145 @@
+# km sh - Key Sequence Tests
+
+Tests for quoted key sequences and special key handling.
+
+## Setup
+
+```console
+$ beforeAll() {
+>   export TEST_ROOT="$(mktemp -d)"
+>   cd "$TEST_ROOT"
+>   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
+>   export -f km
+>   mkdir -p .km
+> }
+$ afterAll() {
+>   rm -rf "$TEST_ROOT"
+> }
+```
+
+Create a test board:
+
+```console
+$ cat > board.md << 'EOF'
+> # Test Board
+> ## Column A
+> - [ ] Task A1
+> - [ ] Task A2
+> - [ ] Task A3
+> ## Column B
+> - [ ] Task B1
+> - [ ] Task B2
+> EOF
+```
+
+```console
+$ km sync
+Syncing: ...
+[...]
+```
+
+## Quoted Key Sequences
+
+### Double-quoted key sequence sends multiple keys
+
+Navigate into Column A then down twice using "jj":
+
+```console
+$ km sh board.md -c 'key enter; "jj"; state'
+cursor: [0,2]
+node: Task A3
+topLevel: 2 nodes
+```
+
+### Single-quoted key sequence works too
+
+```console
+$ km sh board.md -c "key enter; 'jjk'; state"
+cursor: [0,1]
+node: Task A2
+topLevel: 2 nodes
+```
+
+### Multiple keys then jump to top
+
+```console
+$ km sh board.md -c 'key enter; "jjg"; state'
+cursor: [0,0]
+node: Task A1
+topLevel: 2 nodes
+```
+
+### key command with quoted sequence
+
+```console
+$ km sh board.md -c 'key enter; key "jjk"; state'
+cursor: [0,1]
+node: Task A2
+topLevel: 2 nodes
+```
+
+## Special Key Names
+
+### key enter drills into children
+
+```console
+$ km sh board.md -c 'key enter; state'
+cursor: [0,0]
+node: Task A1
+topLevel: 2 nodes
+```
+
+### key esc clears selection
+
+```console
+$ km sh board.md -c 'key enter; A; key esc; state'
+cursor: [0,0]
+node: Task A1
+topLevel: 2 nodes
+```
+
+### key backspace goes to parent
+
+```console
+$ km sh board.md -c 'key enter; key backspace; state'
+cursor: [0]
+node: Column A
+topLevel: 2 nodes
+```
+
+### key tab is unsupported (unknown)
+
+```console
+$ km sh board.md -c 'key tab'
+error: Unknown key: Tab
+```
+
+### key space is unsupported (unknown)
+
+```console
+$ km sh board.md -c 'key space'
+error: Unknown key:
+```
+
+## Error Cases
+
+### Empty quoted string is ignored
+
+```console
+$ km sh board.md -c '""'
+error: Invalid key sequence: ""
+```
+
+### Unmatched quotes fail
+
+```console
+$ km sh board.md -c '"jj'
+error: Unknown command: "jj
+```
+
+### Unknown key shows error
+
+```console
+$ km sh board.md -c 'key X'
+error: Unknown key: X
+```

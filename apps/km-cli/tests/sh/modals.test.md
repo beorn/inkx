@@ -40,10 +40,9 @@ Syncing: ...
 ### / toggles search mode on
 
 ```console
-$ km sh board.md -c 'key /; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '/; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 search: ""
 ```
@@ -51,11 +50,9 @@ search: ""
 ### / twice toggles search mode off
 
 ```console
-$ km sh board.md -c 'key /; key /; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '/; /; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -63,9 +60,8 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_search; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 search: ""
 ```
@@ -74,10 +70,8 @@ search: ""
 
 ```console
 $ km sh board.md -c 'toggle_search; set_search_query hello; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 search: "hello"
 ```
@@ -87,21 +81,18 @@ search: "hello"
 ### ? toggles help mode on
 
 ```console
-$ km sh board.md -c 'key ?; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '?; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### ? twice toggles help mode off
 
 ```console
-$ km sh board.md -c 'key ?; key ?; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '?; ?; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -109,9 +100,8 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_help; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -120,21 +110,18 @@ topLevel: 1 nodes
 ### n toggles new item mode on
 
 ```console
-$ km sh board.md -c 'key n; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'n; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### n twice toggles new item mode off
 
 ```console
-$ km sh board.md -c 'key n; key n; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'n; n; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -142,9 +129,8 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_new_item; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -152,9 +138,8 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_new_item; set_new_item_text new task; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -162,10 +147,8 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_new_item; set_new_item_text test; clear_new_item; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -174,31 +157,27 @@ topLevel: 1 nodes
 ### p toggles project picker
 
 ```console
-$ km sh board.md -c 'key p; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'p; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### p twice closes project picker
 
 ```console
-$ km sh board.md -c 'key p; key p; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'p; p; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### set_project_picker_query sets query
 
 ```console
-$ km sh board.md -c 'key p; set_project_picker_query inbox; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'p; set_project_picker_query inbox; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -207,21 +186,18 @@ topLevel: 1 nodes
 ### i toggles detail pane
 
 ```console
-$ km sh board.md -c 'key i; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'i; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### i twice closes detail pane
 
 ```console
-$ km sh board.md -c 'key i; key i; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'i; i; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -229,8 +205,7 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_detail_pane; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```

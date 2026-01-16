@@ -6,9 +6,14 @@ Tests for TUI selection and multi-select commands using `km sh`.
 
 ```console
 $ beforeAll() {
+>   export TEST_ROOT="$(mktemp -d)"
+>   cd "$TEST_ROOT"
 >   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
 >   export -f km
 >   mkdir -p .km
+> }
+$ afterAll() {
+>   rm -rf "$TEST_ROOT"
 > }
 ```
 
@@ -32,80 +37,66 @@ Syncing: ...
 [...]
 ```
 
-## Card Selection by Index
+## Navigation to Children
 
-### select_card moves to specific position
+### Navigate into children then down
 
 ```console
-$ km sh board.md -c 'select_card 0 2; state'
-state: col=0 card=2 "Tasks"
-position: col=0 card=2
-column: Tasks (5 cards)
-card: Task C
+$ km sh board.md -c 'key enter; j; state'
+cursor: [0,1]
+node: Task B
+topLevel: 1 nodes
 ```
 
-### select_card 0 0 moves to first card
+### Navigate to first child then back to top
 
 ```console
-$ km sh board.md -c 'move_down; move_down; select_card 0 0; state'
-state: col=0 card=1 "Tasks"
-state: col=0 card=2 "Tasks"
-state: col=0 card=0 "Tasks"
-position: col=0 card=0
-column: Tasks (5 cards)
-card: Task A
+$ km sh board.md -c 'key enter; j; g; state'
+cursor: [0,0]
+node: Task A
+topLevel: 1 nodes
 ```
 
 ## Multi-select Mode
 
-### select_all_column selects all cards in current column
+### A selects all siblings
 
 ```console
-$ km sh board.md -c 'select_all_column; state'
-state: col=0 card=0 "Tasks"
-position: col=0 card=0
-column: Tasks (5 cards)
-card: Task A
-selected: 5 cards
+$ km sh board.md -c 'key enter; A; state'
+cursor: [0,0]
+node: Task A
+topLevel: 1 nodes
+selected: 5 nodes
 ```
 
-### clear_selection clears all selected cards
+### Escape clears selection
 
 ```console
-$ km sh board.md -c 'select_all_column; clear_selection; state'
-state: col=0 card=0 "Tasks"
-state: col=0 card=0 "Tasks"
-position: col=0 card=0
-column: Tasks (5 cards)
-card: Task A
+$ km sh board.md -c 'key enter; A; key esc; state'
+cursor: [0,0]
+node: Task A
+topLevel: 1 nodes
 ```
 
 ## Error Handling
 
-### select_card with invalid indices
+### select_node_add requires nodeId
 
 ```console
-$ km sh board.md -c 'select_card abc def'
-error: select_card requires two numeric arguments: col card
+$ km sh board.md -c 'select_node_add'
+error: select_node_add requires a nodeId argument
 ```
 
-### select_card_add requires nodeId
+### select_node_remove requires nodeId
 
 ```console
-$ km sh board.md -c 'select_card_add'
-error: select_card_add requires a nodeId argument
+$ km sh board.md -c 'select_node_remove'
+error: select_node_remove requires a nodeId argument
 ```
 
-### select_card_remove requires nodeId
+### select_node_toggle requires nodeId
 
 ```console
-$ km sh board.md -c 'select_card_remove'
-error: select_card_remove requires a nodeId argument
-```
-
-### select_card_toggle requires nodeId
-
-```console
-$ km sh board.md -c 'select_card_toggle'
-error: select_card_toggle requires a nodeId argument
+$ km sh board.md -c 'select_node_toggle'
+error: select_node_toggle requires a nodeId argument
 ```

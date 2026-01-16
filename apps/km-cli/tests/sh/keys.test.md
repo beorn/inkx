@@ -17,7 +17,7 @@ $ afterAll() {
 > }
 ```
 
-Create a test board:
+Create a test board with two columns:
 
 ```console
 $ cat > board.md << 'EOF'
@@ -39,22 +39,55 @@ Syncing: ...
 
 ## Navigation Keys
 
-### h moves left (to parent or prev column)
+### Initial state starts at first card
 
 ```console
-$ km sh board.md -c 'move_down; key h; state'
-state: cursor=[0,0] "Task A"
-state: cursor=[0] "Tasks"
+$ km sh board.md -c 'state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+### j moves down within column
+
+```console
+$ km sh board.md -c 'j; state'
+cursor: [0,1]
+node: Task B
+topLevel: 2 nodes
+```
+
+### k moves up within column
+
+```console
+$ km sh board.md -c 'j; k; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+### h at card level moves to parent column
+
+```console
+$ km sh board.md -c 'h; state'
 cursor: [0]
 node: Tasks
 topLevel: 2 nodes
 ```
 
-### l moves right (to child or next column)
+### l at column level moves to next column
 
 ```console
-$ km sh board.md -c 'key l; state'
-state: cursor=[0,0] "Task A"
+$ km sh board.md -c 'h; l; state'
+cursor: [1]
+node: Done
+topLevel: 2 nodes
+```
+
+### Enter at column level enters first card
+
+```console
+$ km sh board.md -c 'h; key enter; state'
 cursor: [0,0]
 node: Task A
 topLevel: 2 nodes
@@ -63,9 +96,7 @@ topLevel: 2 nodes
 ### u goes up to parent
 
 ```console
-$ km sh board.md -c 'move_down; key u; state'
-state: cursor=[0,0] "Task A"
-state: cursor=[0] "Tasks"
+$ km sh board.md -c 'u; state'
 cursor: [0]
 node: Tasks
 topLevel: 2 nodes
@@ -74,41 +105,69 @@ topLevel: 2 nodes
 ### Backspace goes up to parent
 
 ```console
-$ km sh board.md -c 'move_down; key Backspace; state'
-state: cursor=[0,0] "Task A"
-state: cursor=[0] "Tasks"
+$ km sh board.md -c 'key backspace; state'
 cursor: [0]
 node: Tasks
 topLevel: 2 nodes
 ```
 
-### Enter drills into child
+## Column Navigation
+
+### At column level j moves to next column
 
 ```console
-$ km sh board.md -c 'key Enter; state'
-state: cursor=[0,0] "Task A"
+$ km sh board.md -c 'h; j; state'
+cursor: [1]
+node: Done
+topLevel: 2 nodes
+```
+
+### At column level l enters first card
+
+```console
+$ km sh board.md -c 'h; j; l; state'
+cursor: [1,0]
+node: Task D
+topLevel: 2 nodes
+```
+
+## Jump Commands
+
+### g moves to first sibling
+
+```console
+$ km sh board.md -c 'j; j; g; state'
 cursor: [0,0]
 node: Task A
 topLevel: 2 nodes
 ```
 
-## History Navigation Keys
-
-### [ navigates back in history
+### G moves to last sibling
 
 ```console
-$ km sh board.md -c 'nav_back; state'
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'G; state'
+cursor: [0,2]
+node: Task C
 topLevel: 2 nodes
 ```
 
-### ] navigates forward in history
+## History Navigation Keys
+
+### nav_back at start does nothing
+
+```console
+$ km sh board.md -c 'nav_back; state'
+cursor: [0,0]
+node: Task A
+topLevel: 2 nodes
+```
+
+### nav_forward at start does nothing
 
 ```console
 $ km sh board.md -c 'nav_forward; state'
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
@@ -117,9 +176,7 @@ topLevel: 2 nodes
 ### A selects all siblings
 
 ```console
-$ km sh board.md -c 'move_down; key A; state'
-state: cursor=[0,0] "Task A"
-state: cursor=[0,0] "Task A"
+$ km sh board.md -c 'A; state'
 cursor: [0,0]
 node: Task A
 topLevel: 2 nodes
@@ -129,10 +186,7 @@ selected: 3 nodes
 ### Escape clears selection
 
 ```console
-$ km sh board.md -c 'move_down; key A; key Escape; state'
-state: cursor=[0,0] "Task A"
-state: cursor=[0,0] "Task A"
-state: cursor=[0,0] "Task A"
+$ km sh board.md -c 'A; key esc; state'
 cursor: [0,0]
 node: Task A
 topLevel: 2 nodes
@@ -140,67 +194,58 @@ topLevel: 2 nodes
 
 ## View Control Keys
 
-### z folds at level 1
+### z folds current depth
 
 ```console
-$ km sh board.md -c 'key z; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'z; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
-folded: 2 nodes
+folded: 4 nodes
 ```
 
-### Z unfolds at level 1
+### Z unfolds all
 
 ```console
-$ km sh board.md -c 'key z; key Z; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'z; Z; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
 ### < decreases outline depth
 
 ```console
-$ km sh board.md -c 'key <; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '<; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
 ### > increases outline depth
 
 ```console
-$ km sh board.md -c 'key <; key >; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '<; >; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
 ### + increases content lines
 
 ```console
-$ km sh board.md -c 'key +; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '+; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
 ### - decreases content lines
 
 ```console
-$ km sh board.md -c 'key +; key -; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '+; -; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
@@ -209,10 +254,9 @@ topLevel: 2 nodes
 ### / toggles search mode
 
 ```console
-$ km sh board.md -c 'key /; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '/; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 search: ""
 ```
@@ -220,40 +264,36 @@ search: ""
 ### ? toggles help mode
 
 ```console
-$ km sh board.md -c 'key ?; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '?; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
 ### n toggles new item mode
 
 ```console
-$ km sh board.md -c 'key n; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'n; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
 ### p toggles project picker
 
 ```console
-$ km sh board.md -c 'key p; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'p; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 
 ### i toggles detail pane
 
 ```console
-$ km sh board.md -c 'key i; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'i; state'
+cursor: [0,0]
+node: Task A
 topLevel: 2 nodes
 ```
 

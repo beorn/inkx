@@ -6,9 +6,14 @@ Tests for TUI view modes and folding commands using `km sh`.
 
 ```console
 $ beforeAll() {
+>   export TEST_ROOT="$(mktemp -d)"
+>   cd "$TEST_ROOT"
 >   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
 >   export -f km
 >   mkdir -p .km
+> }
+$ afterAll() {
+>   rm -rf "$TEST_ROOT"
 > }
 ```
 
@@ -30,146 +35,69 @@ Syncing: ...
 [...]
 ```
 
-## View Mode Commands
+## Folding Commands
 
-### set_view_mode cards
-
-```console
-$ km sh board.md -c 'set_view_mode cards; state'
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
-```
-
-### set_view_mode list
-
-```console
-$ km sh board.md -c 'set_view_mode list; state'
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
-```
-
-### set_view_mode columns
-
-```console
-$ km sh board.md -c 'set_view_mode columns; state'
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
-```
-
-### set_view_mode tabs
-
-```console
-$ km sh board.md -c 'set_view_mode tabs; state'
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
-```
-
-### Invalid view mode shows error
-
-```console
-$ km sh board.md -c 'set_view_mode invalid'
-error: Invalid view mode: invalid. Valid: cards, list, columns, tabs
-```
-
-## Column Folding
-
-### fold_column requires numeric index
-
-```console
-$ km sh board.md -c 'fold_column abc'
-error: fold_column requires a numeric column index
-```
-
-### unfold_column requires numeric index
-
-```console
-$ km sh board.md -c 'unfold_column abc'
-error: unfold_column requires a numeric column index
-```
-
-### toggle_collapse requires numeric index
-
-```console
-$ km sh board.md -c 'toggle_collapse abc'
-error: toggle_collapse requires a numeric column index
-```
-
-### toggle_collapse 0 collapses first column
-
-```console
-$ km sh board.md -c 'toggle_collapse 0; state'
-state: col=0 card=0 "Tasks"
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
-collapsed: 1 columns
-```
-
-### toggle_collapse twice uncollapses
-
-```console
-$ km sh board.md -c 'toggle_collapse 0; toggle_collapse 0; state'
-state: col=0 card=0 "Tasks"
-state: col=0 card=0 "Tasks"
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
-```
-
-## Card Folding
-
-### toggle_fold requires cardId
+### toggle_fold requires nodeId
 
 ```console
 $ km sh board.md -c 'toggle_fold'
-error: toggle_fold requires a cardId argument
+error: toggle_fold requires a nodeId argument
 ```
 
-### toggle_fold with cardId
+### toggle_fold with nodeId
 
 ```console
-$ km sh board.md -c 'toggle_fold test-card-id; state'
-state: col=0 card=0 "Tasks"
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
-folded: 1 cards
+$ km sh board.md -c 'toggle_fold test-id; state'
+cursor: [0,0]
+node: Task 1
+topLevel: 1 nodes
+folded: 1 nodes
+```
+
+### toggle_collapse requires nodeId
+
+```console
+$ km sh board.md -c 'toggle_collapse'
+error: toggle_collapse requires a nodeId argument
+```
+
+### toggle_collapse with nodeId
+
+```console
+$ km sh board.md -c 'toggle_collapse test-id; state'
+cursor: [0,0]
+node: Task 1
+topLevel: 1 nodes
+collapsed: 1 nodes
 ```
 
 ## Mode Toggles
 
-### toggle_search enters search mode
+### / toggles search mode
 
 ```console
-$ km sh board.md -c 'toggle_search; state'
-state: col=0 card=0 "Tasks"
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
+$ km sh board.md -c '/; state'
+cursor: [0,0]
+node: Task 1
+topLevel: 1 nodes
 search: ""
 ```
 
-### toggle_help enters help mode
+### ? toggles help mode
 
 ```console
-$ km sh board.md -c 'toggle_help; state'
-state: col=0 card=0 "Tasks"
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
+$ km sh board.md -c '?; state'
+cursor: [0,0]
+node: Task 1
+topLevel: 1 nodes
 ```
 
 ### set_search_query sets search text
 
 ```console
-$ km sh board.md -c 'toggle_search; set_search_query hello world; state'
-state: col=0 card=0 "Tasks"
-position: col=0 card=0
-column: Tasks (3 cards)
-card: Task 1
+$ km sh board.md -c '/; set_search_query hello world; state'
+cursor: [0,0]
+node: Task 1
+topLevel: 1 nodes
 search: "hello world"
 ```

@@ -17,15 +17,13 @@ $ afterAll() {
 > }
 ```
 
-Create a test board with nested tasks:
+Create a test board with flat tasks:
 
 ```console
 $ cat > board.md << 'EOF'
 > # Test Board
 > ## Tasks
 > - [ ] Task A
->   - [ ] Subtask A1
->   - [ ] Subtask A2
 > - [ ] Task B
 > - [ ] Task C
 > EOF
@@ -42,44 +40,38 @@ Syncing: ...
 ### z folds current level
 
 ```console
-$ km sh board.md -c 'key z; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'z; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
-folded: 1 nodes
+folded: 3 nodes
 ```
 
 ### Z unfolds all
 
 ```console
-$ km sh board.md -c 'key z; key Z; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'z; Z; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### fold_level command folds specific depth
 
 ```console
-$ km sh board.md -c 'fold_level 0; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'fold_level 1; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
-folded: 1 nodes
+folded: 3 nodes
 ```
 
 ### unfold_level command unfolds specific depth
 
 ```console
-$ km sh board.md -c 'fold_level 0; unfold_level 0; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c 'fold_level 1; unfold_level 1; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -89,9 +81,8 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'decrease_outline_depth; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -99,29 +90,26 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'increase_outline_depth; state'
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### key < decreases outline depth
 
 ```console
-$ km sh board.md -c 'key <; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '<; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### key > increases outline depth
 
 ```console
-$ km sh board.md -c 'key <; key >; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '<; >; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -131,9 +119,8 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'increase_content_lines; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -141,30 +128,26 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'decrease_content_lines; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### key + increases content lines
 
 ```console
-$ km sh board.md -c 'key +; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '+; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
 ### key - decreases content lines
 
 ```console
-$ km sh board.md -c 'key +; key -; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+$ km sh board.md -c '+; -; state'
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -181,9 +164,8 @@ error: toggle_fold requires a nodeId argument
 
 ```console
 $ km sh board.md -c 'toggle_fold test-id; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 folded: 1 nodes
 ```
@@ -192,10 +174,8 @@ folded: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_fold test-id; toggle_fold test-id; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```
 
@@ -212,9 +192,8 @@ error: toggle_collapse requires a nodeId argument
 
 ```console
 $ km sh board.md -c 'toggle_collapse test-id; state'
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 collapsed: 1 nodes
 ```
@@ -223,9 +202,7 @@ collapsed: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_collapse test-id; toggle_collapse test-id; state'
-state: cursor=[0] "Tasks"
-state: cursor=[0] "Tasks"
-cursor: [0]
-node: Tasks
+cursor: [0,0]
+node: Task A
 topLevel: 1 nodes
 ```

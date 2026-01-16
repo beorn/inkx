@@ -6,9 +6,14 @@ Tests for `km sh --json` mode which outputs NDJSON for automation.
 
 ```console
 $ beforeAll() {
+>   export TEST_ROOT="$(mktemp -d)"
+>   cd "$TEST_ROOT"
 >   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
 >   export -f km
 >   mkdir -p .km
+> }
+$ afterAll() {
+>   rm -rf "$TEST_ROOT"
 > }
 ```
 
@@ -48,15 +53,17 @@ $ km sh --json board.md -c 'state' 2>&1 | tail -1
 ### JSON mode action outputs action event
 
 ```console
-$ km sh --json board.md -c 'move_down' 2>&1 | grep '"event":"action"'
+$ km sh --json board.md -c 'move_down; state' 2>&1 | grep '"event":"action"'
 {"event":"action","action":{"type":"MOVE_DOWN"},[...]}
 ```
 
 ### JSON mode state changes output state event
 
+The `state` command outputs its own state event.
+
 ```console
-$ km sh --json board.md -c 'move_down' 2>&1 | grep '"event":"state"'
-{"event":"state","state":{[...]}
+$ km sh --json board.md -c 'state' 2>&1 | grep -c '"event":"state"'
+1
 ```
 
 ## JSON Input Mode
@@ -71,7 +78,7 @@ $ echo '{"type":"MOVE_DOWN"}' | km sh --json board.md 2>&1 | grep '"event":"acti
 ### Multiple JSON actions work
 
 ```console
-$ echo -e '{"type":"MOVE_DOWN"}\n{"type":"MOVE_DOWN"}' | km sh --json board.md 2>&1 | grep -c '"event":"action"'
+$ echo -e '{"type":"MOVE_DOWN"}\n{"type":"MOVE_UP"}' | km sh --json board.md 2>&1 | grep -c '"event":"action"'
 2
 ```
 
@@ -91,25 +98,25 @@ $ echo '{"foo":"bar"}' | km sh --json board.md 2>&1 | grep '"event":"error"'
 
 ## Final State Structure
 
-### Final state includes position
+### Final state includes cursor
 
 ```console
-$ km sh --json board.md -c 'move_down' 2>&1 | tail -1 | grep '"cardIndex":1'
-[...]"cardIndex":1[...]
+$ km sh --json board.md -c 'state' 2>&1 | tail -1 | grep '"cursor"'
+[...]"cursor":[0,0][...]
 ```
 
-### Final state includes column count
+### Final state includes node count
 
 ```console
-$ km sh --json board.md -c 'state' 2>&1 | tail -1 | grep '"columnCount"'
-[...]"columnCount":1[...]
+$ km sh --json board.md -c 'state' 2>&1 | tail -1 | grep '"nodeCount"'
+[...]"nodeCount":3[...]
 ```
 
-### Final state includes card counts
+### Final state includes top level count
 
 ```console
-$ km sh --json board.md -c 'state' 2>&1 | tail -1 | grep '"cardCounts"'
-[...]"cardCounts":[2][...]
+$ km sh --json board.md -c 'state' 2>&1 | tail -1 | grep '"topLevelCount"'
+[...]"topLevelCount":1[...]
 ```
 
 ## Mixed Mode (Line Commands with JSON Output)
