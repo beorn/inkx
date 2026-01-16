@@ -12,7 +12,7 @@ import {
   getBacklinks,
   getOutgoingLinks,
 } from "@km/storage";
-import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree";
 
 // Bound version with store dependency
 const getNodeDisplayName = (
@@ -22,8 +22,8 @@ const getNodeDisplayName = (
 import { App } from "@km/opentui";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import type { TreeNodeState, TaskStatus, ViewMode } from "@km/tui-core";
-import type { Node } from "@km/core";
+import type { TreeNodeState, TaskStatus, ViewMode } from "@km/board";
+import type { DBNode } from "@km/core";
 
 /**
  * Emergency terminal restore - writes ANSI escape sequences directly

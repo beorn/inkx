@@ -6,8 +6,8 @@
  * Commands are grouped by category with keyboard shortcut hints.
  */
 
-import type { CommandDef, CommandCategory } from "@km/tui-core";
-import { filterCommands } from "@km/tui-core";
+import type { CommandDef, CommandCategory } from "@km/sh-app";
+import { filterCommands } from "@km/sh-app";
 
 interface CommandPaletteProps {
   query: string;

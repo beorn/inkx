@@ -20,7 +20,7 @@ import {
   ensureState,
   emitNodeCreated,
 } from "@km/storage";
-import type { Node } from "@km/core";
+import type { DBNode } from "@km/core";
 import { getRootPath } from "../index.ts";
 
 export const addCommand = new Command("add")
@@ -50,7 +50,7 @@ export const addCommand = new Command("add")
     }
 
     // Collect tasks to add (store full node for symlink creation)
-    const tasksToAdd: Node[] = [];
+    const tasksToAdd: DBNode[] = [];
 
     for (const source of sources) {
       // Resolve source path if it's a filesystem path
@@ -88,7 +88,7 @@ export const addCommand = new Command("add")
     // Find the default column (section with data.rules.default=true)
     // Search recursively through children to find the first default section
     let actualTarget = targetNode;
-    const findDefaultSection = (parentId: string): Node | undefined => {
+    const findDefaultSection = (parentId: string): DBNode | undefined => {
       const children = getChildren(parentId);
       for (const child of children) {
         if (child.type === "section") {

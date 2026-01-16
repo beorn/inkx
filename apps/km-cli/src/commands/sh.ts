@@ -41,8 +41,8 @@ import {
   type TaskStatus,
   type OutputEvent,
   type ShellContext,
-} from "@km/tui-core";
-import type { Node } from "@km/core";
+} from "@km/sh-app";
+import type { DBNode } from "@km/core";
 
 // OSC 133 Shell Integration Protocol (Kitty, WezTerm, iTerm2, VS Code)
 // Emitted automatically when running in a real TTY, or when TERM_SHELL_INTEGRATION=1
@@ -67,7 +67,7 @@ function shouldEmitOsc133(): boolean {
 /**
  * Extract slug from a Node - uses filename for files, md_slug for sections
  */
-function getNodeSlug(node: Node): string | undefined {
+function getNodeSlug(node: DBNode): string | undefined {
   // For file nodes, use the filename
   if (node.fs_path) {
     const filename = node.fs_path.split("/").pop();

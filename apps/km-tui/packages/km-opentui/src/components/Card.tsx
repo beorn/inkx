@@ -13,7 +13,8 @@
  */
 
 import type { CardProps } from "../types.ts";
-import { getStatusIcon, renderPlain } from "@km/tui-core";
+import { getStatusIcon } from "@km/ink";
+import { renderPlain } from "@km/sh-app";
 
 // Priority colors (P0-P5 style, using 1-5 internally)
 // P0/1: critical/high (red/magenta)

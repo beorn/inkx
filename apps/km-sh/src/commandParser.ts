@@ -8,7 +8,7 @@
  * - JSON actions: {"type": "MOVE_DOWN"}
  */
 
-import type { TreeAction } from "./types.ts";
+import type { TreeAction } from "@km/board";
 
 /**
  * Result of parsing a command

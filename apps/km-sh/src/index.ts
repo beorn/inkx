@@ -4,8 +4,6 @@
  * Non-interactive shell for scripting and debugging TUI state.
  * Reads commands from stdin, executes them against TreeState,
  * and outputs trace/state to stdout.
- *
- * Re-exports shell functionality from @km/tui-core for standalone use.
  */
 
 // Command Parser
@@ -16,7 +14,7 @@ export {
   getCommandNames,
   type ParseResult,
   type ShellCommand,
-} from "@km/tui-core";
+} from "./commandParser.ts";
 
 // Shell Executor
 export {
@@ -31,7 +29,7 @@ export {
   type OutputEvent,
   type SerializedState,
   type ShellContext,
-} from "@km/tui-core";
+} from "./shellExecutor.ts";
 
 // Command Registry
 export {
@@ -42,16 +40,17 @@ export {
   fuzzyMatch,
   type CommandDef,
   type CommandCategory,
-} from "@km/tui-core";
+} from "./commands.ts";
 
 // Plain text utilities (for OpenTUI - no ANSI codes)
-export { renderPlain, displayLength } from "@km/tui-core";
+export { renderPlain, displayLength } from "./text.ts";
 
-// Re-export tree state types for convenience
+// Re-export tree state types from @km/board for convenience
 export type {
   TreeState,
   TreeAction,
   TreeNodeState,
-  CursorPath,
-} from "@km/tui-core";
-export { treeReducer, createInitialTreeState } from "@km/tui-core";
+  TreeCursorPath as CursorPath,
+  TaskStatus,
+} from "@km/board";
+export { treeReducer, createInitialTreeState } from "@km/board";

@@ -18,7 +18,7 @@ import {
   getNode,
   getTasksByStatus,
 } from "@km/storage";
-import type { Node, TaskStatus } from "@km/core";
+import type { DBNode, TaskStatus } from "@km/core";
 
 // Test directory
 const TEST_DIR = join("/tmp", "kmtest-cli-unit");
@@ -26,7 +26,7 @@ const TEST_DIR = join("/tmp", "kmtest-cli-unit");
 /**
  * Helper to create a task directly in the database
  */
-function createTask(content: string, options: Partial<Node> = {}): Node {
+function createTask(content: string, options: Partial<DBNode> = {}): Node {
   const db = getDb();
   const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const now = Date.now();

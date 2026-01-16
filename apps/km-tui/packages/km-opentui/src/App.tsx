@@ -12,7 +12,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import type { EventEmitter } from "events";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { useTreeState, createInitialTreeState } from "./hooks/index.ts";
-import { toTreeViewModel } from "@km/tui-core";
+import { toTreeViewModel } from "@km/board";
 import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
 import {
   CommandPalette,
@@ -24,7 +24,7 @@ import {
   SearchInput,
   StatusBar,
 } from "./components/index.ts";
-import { filterCommands } from "@km/tui-core";
+import { filterCommands } from "@km/sh-app";
 import {
   updateNode,
   deleteNode,
@@ -62,13 +62,13 @@ const SHIFT_NUMBER_MAP: Record<string, number> = {
   "*": 7,
   "(": 8,
 };
-import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tui-core";
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree";
 
 // Bound version with store dependency
 const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
 ) => getNodeDisplayNameBase(node, getChildren);
-import type { Node } from "@km/core";
+import type { DBNode } from "@km/core";
 import type {
   ViewMode,
   TaskStatus,
@@ -1026,7 +1026,7 @@ export function App({
             // Get siblings of parent to determine new parent_idx
             const parentSiblings = getChildren(parent.parent_id);
             const parentIdx = parentSiblings.findIndex(
-              (s: Node) => s.id === parent.id,
+              (s: DBNode) => s.id === parent.id,
             );
             // Place after parent
             updateNode(currentCard.nodeId, {

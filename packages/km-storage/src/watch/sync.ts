@@ -11,7 +11,7 @@ import { FileSystemWatcher, scanDirectoryRecursive } from "./watcher.ts";
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts";
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts";
 import { getIgnorePatterns } from "./ignore.ts";
-import type { Event, Node } from "@km/core";
+import type { Event, DBNode } from "@km/core";
 import { setDatabase } from "../emit.ts";
 import {
   getAllNodes,
@@ -178,7 +178,7 @@ export class SyncManager extends EventEmitter {
    * Handle node created event
    */
   private handleNodeCreated(event: Event): void {
-    const data = event.data as Partial<Node>;
+    const data = event.data as Partial<DBNode>;
 
     if (data.type === "folder" && data.fs_path) {
       // Create directory
@@ -311,7 +311,7 @@ export class SyncManager extends EventEmitter {
 /**
  * Find the file node that contains a given node
  */
-function findFileNode(node: Node): Node | null {
+function findFileNode(node: DBNode): DBNode | null {
   if (node.type === "file") {
     return node;
   }

@@ -17,7 +17,7 @@ import {
   ensureState,
 } from "@km/storage";
 import { getRootPath } from "../index.ts";
-import type { Node } from "@km/core";
+import type { DBNode } from "@km/core";
 import type { Link } from "@km/storage";
 import { formatStatus, formatNodeBrief } from "@km/ink";
 

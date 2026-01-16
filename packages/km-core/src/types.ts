@@ -249,7 +249,3 @@ export interface KmConfig {
   };
   editor: string;
 }
-
-// Deprecated alias for backwards compatibility during migration
-/** @deprecated Use DBNode instead */
-export type Node = DBNode;

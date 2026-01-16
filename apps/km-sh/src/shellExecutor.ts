@@ -8,11 +8,11 @@
 import type {
   TreeState,
   TreeAction,
-  CursorPath,
+  TreeCursorPath as CursorPath,
   TreeNodeState,
   TaskStatus,
-} from "./types.ts";
-import { treeReducer, getNodeAtPath } from "./treeReducer.ts";
+} from "@km/board";
+import { treeReducer, getNodeAtPath } from "@km/board";
 import { parseCommand, getCommandHelp } from "./commandParser.ts";
 import type { ShellCommand } from "./commandParser.ts";
 

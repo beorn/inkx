@@ -31,13 +31,14 @@
       },
       "dependencies": {
         "@beorn/chalkx": "workspace:*",
+        "@km/board": "workspace:*",
         "@km/core": "workspace:*",
         "@km/ink": "workspace:*",
         "@km/markdown": "workspace:*",
         "@km/opentui": "workspace:*",
+        "@km/sh-app": "workspace:*",
         "@km/storage": "workspace:*",
         "@km/tree": "workspace:*",
-        "@km/tui-core": "workspace:*",
         "chalk": "^5.4.1",
         "commander": "^13.1.0",
         "ink-select-input": "^6.2.0",
@@ -50,9 +51,7 @@
     "apps/km-sh": {
       "name": "@km/sh-app",
       "dependencies": {
-        "@km/core": "workspace:*",
-        "@km/tree": "workspace:*",
-        "@km/tui-core": "workspace:*",
+        "@km/board": "workspace:*",
       },
     },
     "apps/km-tui": {
@@ -66,10 +65,10 @@
       "name": "@km/ink",
       "dependencies": {
         "@beorn/chalkx": "workspace:*",
+        "@km/board": "workspace:*",
         "@km/core": "workspace:*",
         "@km/storage": "workspace:*",
         "@km/tree": "workspace:*",
-        "@km/tui-core": "workspace:*",
         "chalk": "^5.4.1",
         "fullscreen-ink": "^0.1.0",
         "ink": "^6.6.0",
@@ -85,8 +84,10 @@
       "dependencies": {
         "@km/board": "workspace:*",
         "@km/core": "workspace:*",
+        "@km/ink": "workspace:*",
+        "@km/sh-app": "workspace:*",
+        "@km/storage": "workspace:*",
         "@km/tree": "workspace:*",
-        "@km/tui-core": "workspace:*",
         "@opentui/core": "0.1.73",
         "@opentui/react": "0.1.73",
         "react": "^19.2.3",
@@ -140,14 +141,6 @@
       "name": "@km/tree",
       "dependencies": {
         "@km/core": "workspace:*",
-      },
-    },
-    "packages/km-tui-core": {
-      "name": "@km/tui-core",
-      "dependencies": {
-        "@km/board": "workspace:*",
-        "@km/core": "workspace:*",
-        "@km/tree": "workspace:*",
       },
     },
     "vendor/beorn-chalkx": {
@@ -300,8 +293,6 @@
     "@km/tree": ["@km/tree@workspace:packages/km-tree"],
 
     "@km/tui-app": ["@km/tui-app@workspace:apps/km-tui"],
-
-    "@km/tui-core": ["@km/tui-core@workspace:packages/km-tui-core"],
 
     "@opentui/core": ["@opentui/core@0.1.73", "", { "dependencies": { "bun-ffi-structs": "0.1.2", "diff": "8.0.2", "jimp": "1.6.0", "yoga-layout": "3.2.1" }, "optionalDependencies": { "@dimforge/rapier2d-simd-compat": "^0.17.3", "@opentui/core-darwin-arm64": "0.1.73", "@opentui/core-darwin-x64": "0.1.73", "@opentui/core-linux-arm64": "0.1.73", "@opentui/core-linux-x64": "0.1.73", "@opentui/core-win32-arm64": "0.1.73", "@opentui/core-win32-x64": "0.1.73", "bun-webgpu": "0.1.4", "planck": "^1.4.2", "three": "0.177.0" }, "peerDependencies": { "web-tree-sitter": "0.25.10" } }, "sha512-1OqLlArzUh3QjrYXGro5WKNgoCcacGJaaFvwOHg5lAOoSigFQRiqEUEEJLbSo3pyV8u7XEdC3M0rOP6K+oThzw=="],
 

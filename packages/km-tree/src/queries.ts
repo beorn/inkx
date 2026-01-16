@@ -5,12 +5,12 @@
  * NO visual state (cursor, selection) - that's in @km/board.
  */
 
-import type { TNode, TreePath } from "./types.ts";
+import type { TNode, TPath } from "./types.ts";
 
 /**
  * Get node at a given path
  */
-export function getNodeAtPath(nodes: TNode[], path: TreePath): TNode | null {
+export function getNodeAtPath(nodes: TNode[], path: TPath): TNode | null {
   if (path.length === 0) return null;
 
   const firstIdx = path[0];
@@ -27,7 +27,7 @@ export function getNodeAtPath(nodes: TNode[], path: TreePath): TNode | null {
 /**
  * Get sibling count at the given path level
  */
-export function getSiblingCount(nodes: TNode[], path: TreePath): number {
+export function getSiblingCount(nodes: TNode[], path: TPath): number {
   if (path.length === 0) return 0;
   if (path.length === 1) return nodes.length;
 
@@ -39,7 +39,7 @@ export function getSiblingCount(nodes: TNode[], path: TreePath): number {
 /**
  * Get the current index (last element of path)
  */
-export function getCurrentIndex(path: TreePath): number {
+export function getCurrentIndex(path: TPath): number {
   if (path.length === 0) return 0;
   const lastIdx = path[path.length - 1];
   return lastIdx ?? 0;
@@ -62,7 +62,7 @@ export function collectAllNodeIds(nodes: TNode[]): string[] {
 /**
  * Get sibling nodes at the given path level
  */
-export function getSiblings(nodes: TNode[], path: TreePath): TNode[] {
+export function getSiblings(nodes: TNode[], path: TPath): TNode[] {
   if (path.length === 0) return [];
   if (path.length === 1) return nodes;
 
@@ -74,7 +74,7 @@ export function getSiblings(nodes: TNode[], path: TreePath): TNode[] {
 /**
  * Get parent path (path with last element removed)
  */
-export function getParentPath(path: TreePath): TreePath | null {
+export function getParentPath(path: TPath): TPath | null {
   if (path.length <= 1) return null;
   return path.slice(0, -1);
 }
@@ -82,10 +82,7 @@ export function getParentPath(path: TreePath): TreePath | null {
 /**
  * Get path to first child of node at path
  */
-export function getFirstChildPath(
-  nodes: TNode[],
-  path: TreePath,
-): TreePath | null {
+export function getFirstChildPath(nodes: TNode[], path: TPath): TPath | null {
   const node = getNodeAtPath(nodes, path);
   if (!node || node.children.length === 0) return null;
   return [...path, 0];
@@ -114,8 +111,8 @@ export function countVisibleNodes(
 export function findPathByNodeId(
   nodes: TNode[],
   nodeId: string,
-  currentPath: TreePath = [],
-): TreePath | null {
+  currentPath: TPath = [],
+): TPath | null {
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
     if (!node) continue;

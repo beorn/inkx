@@ -1,7 +1,7 @@
 /**
  * OpenTUI Renderer Types
  *
- * Re-exports from @km/tui-core plus renderer-specific component props and view models.
+ * Re-exports from @km/board plus renderer-specific component props and view models.
  */
 
 // Re-export types from shared package
@@ -13,12 +13,12 @@ export type {
   TreeState,
   TreeAction,
   TreeNodeState,
-  CursorPath,
+  TreeCursorPath as CursorPath,
   ViewLevelConfig,
   // ViewModel types
   NodeViewModel,
   TreeViewModel,
-} from "@km/tui-core";
+} from "@km/board";
 
 // ===== View Model Types (for Views) =====
 

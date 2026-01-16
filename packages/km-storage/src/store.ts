@@ -21,7 +21,7 @@ import {
 } from "fs";
 import { join, dirname, basename, relative } from "path";
 import { ulid } from "ulid";
-import type { Node, NodeType, TaskStatus } from "@km/core";
+import type { DBNode, NodeType, TaskStatus } from "@km/core";
 import { setKmDir, emitNodeMoved } from "./emit.ts";
 import { parseMarkdownToNodes } from "@km/markdown";
 
@@ -36,25 +36,25 @@ export interface NodeStore {
   getDatabase(): Database;
 
   // Read operations
-  getNode(id: string): Node | null;
-  getNodeByPath(fsPath: string): Node | null;
-  getChildren(parentId: string | null): Node[];
-  getAncestors(nodeId: string): Node[];
-  getSubtree(rootId: string): Node[];
-  getAllNodes(): Node[];
-  getAllTasks(): Node[];
-  getTasksByStatus(status: TaskStatus | TaskStatus[]): Node[];
-  search(query: string, limit?: number): Node[];
+  getNode(id: string): DBNode | null;
+  getNodeByPath(fsPath: string): DBNode | null;
+  getChildren(parentId: string | null): DBNode[];
+  getAncestors(nodeId: string): DBNode[];
+  getSubtree(rootId: string): DBNode[];
+  getAllNodes(): DBNode[];
+  getAllTasks(): DBNode[];
+  getTasksByStatus(status: TaskStatus | TaskStatus[]): DBNode[];
+  search(query: string, limit?: number): DBNode[];
 
   // Write operations
-  updateNode(id: string, changes: Partial<Node>): void;
+  updateNode(id: string, changes: Partial<DBNode>): void;
   moveNode(id: string, newParentId: string | null, parentIdx?: number): void;
   appendTaskToFile(
     filePath: string,
     content: string,
     options?: { ensure?: boolean },
   ): void;
-  cloneTask(sourceId: string, changes: Partial<Node>): string | null;
+  cloneTask(sourceId: string, changes: Partial<DBNode>): string | null;
 
   // Filesystem helpers (avoids CLI importing fs directly)
   pathExists(relativePath: string): boolean;
@@ -181,21 +181,21 @@ abstract class BaseStore implements NodeStore {
     return this.db;
   }
 
-  getNode(id: string): Node | null {
+  getNode(id: string): DBNode | null {
     const row = this.db
       .query("SELECT * FROM nodes WHERE id = ?")
       .get(id) as Record<string, unknown> | null;
     return row ? rowToNode(row) : null;
   }
 
-  getNodeByPath(fsPath: string): Node | null {
+  getNodeByPath(fsPath: string): DBNode | null {
     const row = this.db
       .query("SELECT * FROM nodes WHERE fs_path = ?")
       .get(fsPath) as Record<string, unknown> | null;
     return row ? rowToNode(row) : null;
   }
 
-  getChildren(parentId: string | null): Node[] {
+  getChildren(parentId: string | null): DBNode[] {
     let rows: Record<string, unknown>[];
     if (parentId === null) {
       rows = this.db
@@ -213,7 +213,7 @@ abstract class BaseStore implements NodeStore {
     return rows.map(rowToNode);
   }
 
-  getAncestors(nodeId: string): Node[] {
+  getAncestors(nodeId: string): DBNode[] {
     const rows = this.db
       .query(
         `
@@ -230,7 +230,7 @@ abstract class BaseStore implements NodeStore {
     return rows.map(rowToNode).reverse();
   }
 
-  getSubtree(rootId: string): Node[] {
+  getSubtree(rootId: string): DBNode[] {
     const rows = this.db
       .query(
         `
@@ -247,7 +247,7 @@ abstract class BaseStore implements NodeStore {
     return rows.map(rowToNode);
   }
 
-  getAllNodes(): Node[] {
+  getAllNodes(): DBNode[] {
     const rows = this.db.query("SELECT * FROM nodes").all() as Record<
       string,
       unknown
@@ -255,7 +255,7 @@ abstract class BaseStore implements NodeStore {
     return rows.map(rowToNode);
   }
 
-  getAllTasks(): Node[] {
+  getAllTasks(): DBNode[] {
     const rows = this.db
       .query(
         `SELECT * FROM nodes WHERE type = 'task'
@@ -265,7 +265,7 @@ abstract class BaseStore implements NodeStore {
     return rows.map(rowToNode);
   }
 
-  getTasksByStatus(status: TaskStatus | TaskStatus[]): Node[] {
+  getTasksByStatus(status: TaskStatus | TaskStatus[]): DBNode[] {
     const statuses = Array.isArray(status) ? status : [status];
     const placeholders = statuses.map(() => "?").join(", ");
     const rows = this.db
@@ -277,7 +277,7 @@ abstract class BaseStore implements NodeStore {
     return rows.map(rowToNode);
   }
 
-  search(query: string, limit = 50): Node[] {
+  search(query: string, limit = 50): DBNode[] {
     try {
       const rows = this.db
         .query(
@@ -297,7 +297,7 @@ abstract class BaseStore implements NodeStore {
     }
   }
 
-  abstract updateNode(id: string, changes: Partial<Node>): void;
+  abstract updateNode(id: string, changes: Partial<DBNode>): void;
   abstract moveNode(
     id: string,
     newParentId: string | null,
@@ -308,7 +308,7 @@ abstract class BaseStore implements NodeStore {
     content: string,
     options?: { ensure?: boolean },
   ): void;
-  abstract cloneTask(sourceId: string, changes: Partial<Node>): string | null;
+  abstract cloneTask(sourceId: string, changes: Partial<DBNode>): string | null;
   abstract refresh(): void;
   abstract close(): void;
 
@@ -341,8 +341,8 @@ abstract class BaseStore implements NodeStore {
   /**
    * Get file path for a node by traversing up to its file ancestor
    */
-  protected getFilePathForNode(node: Node): string | null {
-    let current: Node | null = node;
+  protected getFilePathForNode(node: DBNode): string | null {
+    let current: DBNode | null = node;
     while (current) {
       if (current.fs_path && current.type === "file") {
         return current.fs_path;
@@ -408,7 +408,7 @@ export class DiskStore extends BaseStore {
     this.db.exec(SCHEMA);
   }
 
-  updateNode(id: string, changes: Partial<Node>): void {
+  updateNode(id: string, changes: Partial<DBNode>): void {
     const node = this.getNode(id);
     if (!node) return;
 
@@ -484,7 +484,7 @@ export class DiskStore extends BaseStore {
     appendFileSync(fullPath, content);
   }
 
-  cloneTask(sourceId: string, changes: Partial<Node>): string | null {
+  cloneTask(sourceId: string, changes: Partial<DBNode>): string | null {
     const source = this.getNode(sourceId);
     if (!source || source.type !== "task") return null;
 
@@ -701,7 +701,7 @@ export class MemoryStore extends BaseStore {
   /**
    * Insert a node into the in-memory database
    */
-  private insertNode(node: Partial<Node>): void {
+  private insertNode(node: Partial<DBNode>): void {
     const now = Date.now();
     this.db.run(
       `INSERT INTO nodes (
@@ -728,7 +728,7 @@ export class MemoryStore extends BaseStore {
   /**
    * Update a node and write through to the markdown file
    */
-  updateNode(id: string, changes: Partial<Node>): void {
+  updateNode(id: string, changes: Partial<DBNode>): void {
     const node = this.getNode(id);
     if (!node) return;
 
@@ -812,7 +812,7 @@ export class MemoryStore extends BaseStore {
     }
   }
 
-  cloneTask(sourceId: string, changes: Partial<Node>): string | null {
+  cloneTask(sourceId: string, changes: Partial<DBNode>): string | null {
     const source = this.getNode(sourceId);
     if (!source || source.type !== "task") return null;
 

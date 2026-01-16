@@ -5,10 +5,10 @@
  * Manages cursor, selection, fold/collapse, zoom, and history.
  */
 
-import type { TreePath } from "@km/tree";
+import type { TPath } from "@km/tree";
 
-// Re-export TreePath as CursorPath for backwards compatibility
-export type CursorPath = TreePath;
+// Re-export TPath as CursorPath for backwards compatibility
+export type CursorPath = TPath;
 
 /**
  * Board state with path-based navigation.

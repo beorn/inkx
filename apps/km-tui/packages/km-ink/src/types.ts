@@ -4,7 +4,7 @@
  * Shared types for the boardliner TUI
  */
 
-import type { Node, TaskStatus, TaskMark } from "@km/core";
+import type { DBNode, TaskStatus, TaskMark } from "@km/core";
 
 export interface BoardState {
   rootId: string | null;
@@ -39,7 +39,7 @@ export interface ColumnState {
 
 export interface CardState {
   node: Node;
-  children: Node[];
+  children: DBNode[];
 }
 
 // Status cycle order

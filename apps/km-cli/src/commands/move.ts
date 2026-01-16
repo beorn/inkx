@@ -25,12 +25,12 @@ import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree";
 const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
 ) => getNodeDisplayNameBase(node, getChildren);
-import type { Node } from "@km/core";
+import type { DBNode } from "@km/core";
 
 /**
  * Find a project by name (searches folders and files with matching name/content)
  */
-function findProject(name: string): Node | null {
+function findProject(name: string): DBNode | null {
   const db = getDb();
 
   // Search for folders or files whose name matches
@@ -95,7 +95,7 @@ export const moveCommand = new Command("move")
     }
 
     // Determine target parent
-    let targetParent: Node | null = null;
+    let targetParent: DBNode | null = null;
     let targetParentId: string | null = null;
 
     if (options.toRoot) {

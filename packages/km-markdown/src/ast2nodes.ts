@@ -7,7 +7,7 @@
 import { ulid } from "ulid";
 import type { Root, Content, Heading, List, ListItem, Paragraph } from "mdast";
 import { parse as parseYaml } from "yaml";
-import type { Node, NodeType, TaskStatus, TaskMark } from "@km/core";
+import type { DBNode, NodeType, TaskStatus, TaskMark } from "@km/core";
 import { CUSTOM_TASK_MARKS } from "@km/core";
 import {
   parseMarkdown,
@@ -37,7 +37,7 @@ export interface ParseWarning {
  * Result of parsing markdown with wikilinks
  */
 export interface ParseResult {
-  nodes: Node[];
+  nodes: DBNode[];
   wikilinks: Array<{ nodeId: string; link: WikiLink }>;
   warnings: ParseWarning[];
 }
@@ -49,7 +49,7 @@ export function parseMarkdownToNodes(
   content: string,
   fsPath: string,
   fsIno?: number,
-): Node[] {
+): DBNode[] {
   return parseMarkdownWithLinks(content, fsPath, fsIno).nodes;
 }
 
@@ -175,8 +175,8 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
 /**
  * Convert AST children to km nodes
  */
-function astToNodes(ast: Root, fileNode: Node, sourceText: string): Node[] {
-  const nodes: Node[] = [];
+function astToNodes(ast: Root, fileNode: Node, sourceText: string): DBNode[] {
+  const nodes: DBNode[] = [];
   const sectionStack: Array<{ depth: number; node: Node }> = [];
   let currentParent = fileNode;
   let sortOrder = 0;
@@ -266,8 +266,8 @@ function convertListItem(
   ordered: boolean,
   sortOrder: number,
   sourceText: string,
-): Node[] {
-  const nodes: Node[] = [];
+): DBNode[] {
+  const nodes: DBNode[] = [];
   const now = Date.now();
 
   let text = nodeToText(item);
@@ -390,7 +390,7 @@ function convertBlock(
   block: Content,
   parent: Node,
   sortOrder: number,
-): Node | null {
+): DBNode | null {
   const now = Date.now();
 
   let type: NodeType;
@@ -465,8 +465,8 @@ function convertBlock(
 /**
  * Build a tree structure from flat nodes
  */
-export function buildNodeTree(nodes: Node[]): Map<string, Node[]> {
-  const tree = new Map<string, Node[]>();
+export function buildNodeTree(nodes: DBNode[]): Map<string, DBNode[]> {
+  const tree = new Map<string, DBNode[]>();
 
   for (const node of nodes) {
     const parentId = node.parent_id ?? "__root__";

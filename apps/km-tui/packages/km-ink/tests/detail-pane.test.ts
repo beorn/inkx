@@ -23,7 +23,7 @@ import {
   setKmDir,
   setDatabase,
 } from "@km/storage";
-import type { NodeType, Node } from "@km/core";
+import type { NodeType, DBNode } from "@km/core";
 import { ulid } from "ulid";
 
 import {

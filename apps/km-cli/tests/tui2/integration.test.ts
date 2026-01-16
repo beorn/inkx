@@ -4,12 +4,12 @@
  * Tests the full flow from store data through state management
  * to view models. Verifies the architecture layers work together:
  *
- * Store Layer (km-storage) -> State Layer (km-tui-core) -> View Layer (km-tui-opentui)
+ * Store Layer (km-storage) -> State Layer (km-board) -> View Layer (km-ink/km-opentui)
  */
 
 import { describe, it, expect } from "bun:test";
 
-// Import from @km/tui-core - the shared state management layer
+// Import from @km/board - the shared state management layer
 import {
   treeReducer,
   createInitialTreeState,
@@ -25,9 +25,9 @@ import {
   getTotalNodeCount,
   toNodeViewModel,
   toTreeViewModel,
-} from "@km/tui-core";
-
-import type { TreeState, TreeNodeState } from "@km/tui-core";
+  type TreeState,
+  type TreeNodeState,
+} from "@km/board";
 
 // ============================================================================
 // Test Helpers

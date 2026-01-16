@@ -11,7 +11,6 @@
 // Types
 export type {
   DBNode,
-  Node, // Deprecated alias for DBNode
   NodeType,
   NodeRules,
   TaskStatus,

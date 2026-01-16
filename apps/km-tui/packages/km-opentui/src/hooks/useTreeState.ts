@@ -15,8 +15,8 @@ import {
   type TreeState,
   type TreeAction,
   type TreeNodeState,
-  type CursorPath,
-} from "@km/tui-core";
+  type TreeCursorPath as CursorPath,
+} from "@km/board";
 
 // Re-export for convenience
 export { treeReducer, createInitialTreeState };

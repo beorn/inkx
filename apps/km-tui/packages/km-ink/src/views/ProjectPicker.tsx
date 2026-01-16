@@ -6,7 +6,7 @@
  */
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
-import type { Node } from "@km/core";
+import type { DBNode } from "@km/core";
 import { getAllNodes, getNode } from "@km/storage";
 import { getNodeDisplayName } from "../state.ts";
 
@@ -76,9 +76,9 @@ function fuzzyScore(query: string, target: string): number {
 /**
  * Get project path from a node (folder/file ancestors)
  */
-function getProjectPath(node: Node): string {
+function getProjectPath(node: DBNode): string {
   const parts: string[] = [];
-  let current: Node | null = node;
+  let current: DBNode | null = node;
 
   while (current) {
     if (current.type === "folder" || current.type === "file") {
@@ -93,7 +93,7 @@ function getProjectPath(node: Node): string {
 /**
  * Get parent display name for context
  */
-function getParentName(node: Node): string | null {
+function getParentName(node: DBNode): string | null {
   if (!node.parent_id) return null;
   const parent = getNode(node.parent_id);
   if (!parent) return null;
@@ -143,7 +143,7 @@ function getProjectOptions(recentIds?: string[]): ProjectOption[] {
 }
 
 export interface ProjectPickerProps {
-  onSelect: (targetNode: Node) => void;
+  onSelect: (targetNode: DBNode) => void;
   onCancel: () => void;
   width: number;
   height: number;

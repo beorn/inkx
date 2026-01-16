@@ -6,7 +6,7 @@
  */
 
 import type { BoardState, BoardAction, CursorPath } from "./types.ts";
-import type { TreeNode, TreePath } from "@km/tree";
+import type { TreeNode, TPath } from "@km/tree";
 import {
   getNodeAtPath,
   getSiblingCount,
@@ -21,9 +21,9 @@ import {
  */
 function getNextVisiblePath(
   nodes: TreeNode[],
-  path: TreePath,
+  path: TPath,
   foldedNodes: Set<string>,
-): TreePath | null {
+): TPath | null {
   if (path.length === 0) {
     return nodes.length > 0 ? [0] : null;
   }
@@ -45,8 +45,8 @@ function getNextVisiblePath(
  */
 function getNextSiblingOrAncestor(
   nodes: TreeNode[],
-  path: TreePath,
-): TreePath | null {
+  path: TPath,
+): TPath | null {
   if (path.length === 0) return null;
 
   const idx = getCurrentIndex(path);
@@ -72,9 +72,9 @@ function getNextSiblingOrAncestor(
  */
 function getPrevVisiblePath(
   nodes: TreeNode[],
-  path: TreePath,
+  path: TPath,
   foldedNodes: Set<string>,
-): TreePath | null {
+): TPath | null {
   if (path.length === 0) return null;
 
   const idx = getCurrentIndex(path);
@@ -100,9 +100,9 @@ function getPrevVisiblePath(
  */
 function getLastVisibleDescendantPath(
   nodes: TreeNode[],
-  path: TreePath,
+  path: TPath,
   foldedNodes: Set<string>,
-): TreePath {
+): TPath {
   const node = getNodeAtPath(nodes, path);
   if (!node) return path;
 

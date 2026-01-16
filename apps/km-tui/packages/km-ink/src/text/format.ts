@@ -6,7 +6,7 @@
  */
 
 import chalk from "chalk";
-import type { Node } from "@km/core";
+import type { DBNode } from "@km/core";
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
   type CollapsedAncestor,
@@ -113,7 +113,7 @@ export function formatStatus(status: string): string {
 /**
  * Format a node briefly (for tree/children displays).
  */
-export function formatNodeBrief(node: Node): string {
+export function formatNodeBrief(node: DBNode): string {
   const parts: string[] = [];
 
   parts.push(chalk.dim(node.id.slice(0, 8)));

@@ -5,14 +5,14 @@
  * Moved from @km/tui-core to @km/tree during architecture restructuring.
  */
 
-import type { Node } from "@km/core";
+import type { DBNode } from "@km/core";
 
 /**
  * Lookup function types for dependency injection.
  * These allow tree traversal without importing @km/storage directly.
  */
 export type GetChildrenFn = (nodeId: string) => Node[];
-export type GetNodeFn = (nodeId: string) => Node | null | undefined;
+export type GetNodeFn = (nodeId: string) => DBNode | null | undefined;
 
 /**
  * Strip inline section rules from a string
@@ -73,7 +73,7 @@ export function getNodeDisplayName(
   // 3. For file nodes, use first section's title or content (H1 heading)
   if (node.type === "file" && getChildren) {
     const children = getChildren(node.id);
-    const firstSection = children.find((c: Node) => c.type === "section");
+    const firstSection = children.find((c: DBNode) => c.type === "section");
     if (firstSection) {
       // Use pre-parsed title if available (node.title or data.title)
       if (firstSection.title) {
@@ -183,13 +183,13 @@ export function getCollapsedTypeSuffix(
 
   // Follow children with matching normalized name
   const nodeName = normalizeName(getNodeDisplayName(node, getChildren));
-  let current: Node | undefined = node;
+  let current: DBNode | undefined = node;
 
   while (current) {
-    const children: Node[] = getChildren(current.id);
+    const children: DBNode[] = getChildren(current.id);
     // Find a child with the same normalized name
-    const matchingChild: Node | undefined = children.find(
-      (c: Node) =>
+    const matchingChild: DBNode | undefined = children.find(
+      (c: DBNode) =>
         normalizeName(getNodeDisplayName(c, getChildren)) === nodeName,
     );
     if (!matchingChild) break;
@@ -222,7 +222,7 @@ export interface CollapsedAncestor {
  * Example: Given path [projects/, projects.md, # Projects, ## Subtask]
  * Returns: [{node: projects/, suffix: "/ .md #"}, {node: ## Subtask, suffix: ""}]
  */
-export function collapseRedundantAncestors(ancestors: Node[]): Node[] {
+export function collapseRedundantAncestors(ancestors: DBNode[]): DBNode[] {
   return collapseAncestorsWithTypes(ancestors).map((ca) => ca.node);
 }
 
@@ -230,7 +230,7 @@ export function collapseRedundantAncestors(ancestors: Node[]): Node[] {
  * Collapse ancestors and return type suffix information
  */
 export function collapseAncestorsWithTypes(
-  ancestors: Node[],
+  ancestors: DBNode[],
 ): CollapsedAncestor[] {
   if (ancestors.length === 0) return [];
 

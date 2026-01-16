@@ -9,10 +9,10 @@
   "private": true,
   "dependencies": {
     "@beorn/chalkx": "workspace:*",
+    "@km/board": "workspace:*",
     "@km/core": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
-    "@km/tui-core": "workspace:*",
     "chalk": "^5.4.1",
     "fullscreen-ink": "^0.1.0",
     "ink": "^6.6.0",

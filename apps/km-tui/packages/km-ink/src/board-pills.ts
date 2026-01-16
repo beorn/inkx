@@ -8,7 +8,7 @@
  * 3. Inherited from parent section
  */
 
-import type { Node } from "@km/core";
+import type { DBNode } from "@km/core";
 import { getSymlinksTo, getNode, getAncestors } from "@km/storage";
 import { getNodeDisplayName } from "./state.ts";
 import {
@@ -28,7 +28,7 @@ export interface BoardPill {
  *
  * Note: For file nodes, H1 rules are stored in node.data.rules (not node.rules)
  */
-export function getOwnColor(node: Node): string | undefined {
+export function getOwnColor(node: DBNode): string | undefined {
   // Check node's own rules (direct rules or data.rules for file nodes)
   if (node.rules?.color) {
     return node.rules.color;
@@ -46,7 +46,7 @@ export function getOwnColor(node: Node): string | undefined {
  *
  * Note: For file nodes, H1 rules are stored in node.data.rules (not node.rules)
  */
-export function getInheritedColor(node: Node): string | undefined {
+export function getInheritedColor(node: DBNode): string | undefined {
   // Check node's own color first
   const ownColor = getOwnColor(node);
   if (ownColor) {
@@ -69,7 +69,7 @@ export function getInheritedColor(node: Node): string | undefined {
  * Get the board (column parent) for a symlink node
  * Returns the first section/file ancestor that represents a board column
  */
-function getBoardForSymlink(symlinkNode: Node): Node | null {
+function getBoardForSymlink(symlinkNode: DBNode): DBNode | null {
   if (!symlinkNode.parent_id) return null;
 
   const parent = getNode(symlinkNode.parent_id);

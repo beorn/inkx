@@ -10,8 +10,10 @@
   "dependencies": {
     "@km/board": "workspace:*",
     "@km/core": "workspace:*",
+    "@km/ink": "workspace:*",
+    "@km/sh-app": "workspace:*",
+    "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
-    "@km/tui-core": "workspace:*",
     "@opentui/core": "0.1.73",
     "@opentui/react": "0.1.73",
     "react": "^19.2.3"

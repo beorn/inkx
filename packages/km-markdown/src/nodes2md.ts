@@ -5,13 +5,13 @@
  */
 
 import { stringify as stringifyYaml } from "yaml";
-import type { Node } from "@km/core";
+import type { DBNode } from "@km/core";
 import { buildNodeTree } from "./ast2nodes.ts";
 
 /**
  * Convert nodes to markdown
  */
-export function nodesToMarkdown(nodes: Node[]): string {
+export function nodesToMarkdown(nodes: DBNode[]): string {
   if (nodes.length === 0) {
     return "";
   }
@@ -35,7 +35,7 @@ export function nodesToMarkdown(nodes: Node[]): string {
  * The file node may have H1 properties merged in (content, title, rules).
  * We serialize the H1 heading first, then frontmatter (minus depth), then children.
  */
-function serializeFile(node: Node, tree: Map<string, Node[]>): string {
+function serializeFile(node: Node, tree: Map<string, DBNode[]>): string {
   let md = "";
 
   // Frontmatter - exclude depth (it's internal for H1 merge tracking)
@@ -69,7 +69,7 @@ function serializeFile(node: Node, tree: Map<string, Node[]>): string {
  */
 function serializeNode(
   node: Node,
-  tree: Map<string, Node[]>,
+  tree: Map<string, DBNode[]>,
   indent: number,
 ): string {
   const children = tree.get(node.id) ?? [];
@@ -122,8 +122,8 @@ function serializeNode(
  */
 function serializeSection(
   node: Node,
-  children: Node[],
-  tree: Map<string, Node[]>,
+  children: DBNode[],
+  tree: Map<string, DBNode[]>,
 ): string {
   const depth = (node.data?.depth as number) ?? 1;
   const prefix = "#".repeat(depth);
@@ -139,7 +139,7 @@ function serializeSection(
 /**
  * Serialize a blockquote
  */
-function serializeQuote(node: Node): string {
+function serializeQuote(node: DBNode): string {
   const content = node.content ?? "";
   const lines = content.split("\n");
   return lines.map((l) => "> " + l).join("\n") + "\n\n";
@@ -148,7 +148,7 @@ function serializeQuote(node: Node): string {
 /**
  * Serialize a code block
  */
-function serializeCode(node: Node): string {
+function serializeCode(node: DBNode): string {
   const lang = (node.data?.lang as string) ?? "";
   const meta = (node.data?.meta as string) ?? "";
   const header = lang + (meta ? " " + meta : "");
@@ -160,8 +160,8 @@ function serializeCode(node: Node): string {
  */
 function serializeListItem(
   node: Node,
-  children: Node[],
-  tree: Map<string, Node[]>,
+  children: DBNode[],
+  tree: Map<string, DBNode[]>,
   indent: number,
   ordered: boolean,
 ): string {
@@ -189,8 +189,8 @@ function serializeListItem(
  */
 function serializeTask(
   node: Node,
-  children: Node[],
-  tree: Map<string, Node[]>,
+  children: DBNode[],
+  tree: Map<string, DBNode[]>,
   indent: number,
 ): string {
   const indentStr = "  ".repeat(indent);
@@ -238,7 +238,7 @@ function serializeTask(
 /**
  * Regenerate a file's markdown from its nodes
  */
-export function regenerateFile(fileNodeId: string, allNodes: Node[]): string {
+export function regenerateFile(fileNodeId: string, allNodes: DBNode[]): string {
   // Filter to just this file's nodes
   const fileNodes = getFileSubtree(fileNodeId, allNodes);
   return nodesToMarkdown(fileNodes);
@@ -247,8 +247,8 @@ export function regenerateFile(fileNodeId: string, allNodes: Node[]): string {
 /**
  * Get all nodes belonging to a file
  */
-function getFileSubtree(fileId: string, allNodes: Node[]): Node[] {
-  const result: Node[] = [];
+function getFileSubtree(fileId: string, allNodes: DBNode[]): DBNode[] {
+  const result: DBNode[] = [];
   const nodeMap = new Map(allNodes.map((n) => [n.id, n]));
 
   function addWithDescendants(nodeId: string) {

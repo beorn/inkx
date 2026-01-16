@@ -41,11 +41,4 @@ export interface TNode {
  * Path-based position in tree.
  * Variable-length array of indices: [2, 0, 3] = node 2, child 0, grandchild 3
  */
-export type TreePath = number[];
-
-// Legacy aliases for backwards compatibility during migration
-/** @deprecated Use TNode instead */
-export type TreeNode = TNode;
-/** @deprecated Use TNode instead */
-export type NodeState = TNode;
-export type CursorPath = TreePath;
+export type TPath = number[];

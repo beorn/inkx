@@ -13,7 +13,9 @@
  */
 
 import type { ReactElement, ReactNode } from "react";
-import { getStatusIcon, renderPlain, type TaskStatus } from "@km/tui-core";
+import { getStatusIcon } from "@km/ink";
+import { renderPlain } from "@km/sh-app";
+import type { TaskStatus } from "@km/board";
 
 export interface TreeNodeData {
   id: string;

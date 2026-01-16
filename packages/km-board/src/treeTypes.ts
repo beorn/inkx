@@ -6,7 +6,7 @@
  */
 
 // Import types from @km/tree
-import type { TNode, CursorPath as TreeCursorPath, TaskStatus } from "@km/tree";
+import type { TNode, TPath, TaskStatus } from "@km/tree";
 
 // Re-export for backwards compatibility
 export type { TaskStatus } from "@km/tree";
@@ -21,7 +21,7 @@ export type ViewMode = "cards" | "list" | "columns" | "tabs";
  * Path-based cursor position.
  * Re-exported from @km/tree for convenience.
  */
-export type CursorPath = TreeCursorPath;
+export type CursorPath = TPath;
 
 // ===== Tree Node State =====
 

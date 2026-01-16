@@ -9,7 +9,7 @@
  * - Keyboard handler (reference)
  */
 
-import type { TreeAction } from "./types.ts";
+import type { TreeAction } from "@km/board";
 
 /**
  * Command definition for the palette and help system.

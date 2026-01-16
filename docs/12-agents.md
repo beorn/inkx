@@ -1,0 +1,285 @@
+# Agents
+
+> **Status: Future** — Not yet implemented.
+
+AI agent orchestration for km.
+
+---
+
+## Overview
+
+Agents are AI-powered workers that can claim tasks, execute sessions, and communicate with each other. Each agent is equipped with a **harness** — a preconfigured set of tools and data connectors.
+
+### Design Principles
+
+1. **Agents are pure functions**: Events in → Events out. No hidden side effects.
+2. **Agents are nodes**: Agent identity and config stored in the node tree
+3. **Harnesses equip agents**: Tools + connectors + constraints bundled together
+4. **Work queues via hierarchy**: Agent's children (or symlinks) define its queue
+5. **Session logging**: Full conversation transcripts recorded as events
+6. **Simple IPC**: Unix socket for real-time notifications
+7. **Hub for orchestration**: `km hub` provides a TUI dashboard for coordinating multiple agents
+
+### Pure Function Guarantee
+
+Agents produce events, not side effects. This enables:
+
+- **Undo** — Replay events up to a point, or emit compensating events
+- **Replay** — Reproduce any agent run with the same inputs
+- **Approval gates** — Effect handlers can require human approval before executing
+- **Dry-run mode** — See what an agent would do without doing it
+- **Audit trail** — Every action is logged with timestamp and source
+
+Effect handlers at the edge turn events into real actions (send email, push notification, etc.).
+
+### Kimmi: The Default Agent
+
+**Kimmi** is the Knowledge Machine's built-in agent — the assistant you interact with by default. Kimmi comes with a general-purpose harness and can be customized or extended.
+
+---
+
+## Architecture
+
+```
+.km/
+├── events.jsonl      # Source of truth (includes session logs)
+├── events.sock       # Unix socket for IPC (runtime only)
+└── state.db          # SQLite snapshot (gitignored)
+```
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Agent Runtime                                              │
+│                                                             │
+│  Agent ──► claim task ──► emit() ──► events.jsonl           │
+│    │                                      │                 │
+│    │                                      ▼                 │
+│    │                               Unix socket              │
+│    │                                      │                 │
+│    ▼                                      ▼                 │
+│  Execute session                    Other agents            │
+│    │                               (subscribers)            │
+│    ▼                                                        │
+│  emit(session_message, session_tool_call, ...)              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Harnesses
+
+A **harness** is a preconfigured bundle that equips an agent with:
+
+- **Tools**: What the agent can do (read files, write code, run tests, etc.)
+- **Connectors**: External services the agent can access (GitHub, Linear, Slack, etc.)
+- **Constraints**: Limits on the agent's behavior (read-only, max files, etc.)
+
+### Harness Definition
+
+```yaml
+# .km/harnesses/code-reviewer.yaml
+harness:
+  name: code-reviewer
+  description: "Reviews code for quality and correctness"
+
+  tools:
+    - read_file
+    - write_file
+    - run_tests
+    - search_codebase
+
+  connectors:
+    - github:
+        permissions: [read, comment]
+    - linear:
+        permissions: [read, update]
+
+  constraints:
+    read_only: false
+    max_files_per_session: 20
+    allowed_paths:
+      - "src/**"
+      - "tests/**"
+```
+
+### Built-in Harnesses
+
+| Harness         | Description               | Tools               |
+| --------------- | ------------------------- | ------------------- |
+| `general`       | Default harness for Kimmi | All tools           |
+| `code-reviewer` | Code review and feedback  | read, comment, test |
+| `researcher`    | Information gathering     | read, search, web   |
+| `writer`        | Documentation and content | read, write         |
+
+---
+
+## Agent Data Model
+
+### Agent Node Structure
+
+```typescript
+const agent: Node = {
+  id: "agent-1",
+  type: "agent",
+  parent_id: "agents",
+  data: {
+    name: "Auth Agent",
+    model: "claude-sonnet-4",
+    harness: "code-reviewer",
+    workdir: ".agents/agent-1",
+  },
+};
+
+const kimmi: Node = {
+  id: "kimmi",
+  type: "agent",
+  parent_id: "agents",
+  data: {
+    name: "Kimmi",
+    model: "claude-sonnet-4",
+    harness: "general",
+    description: "Knowledge Machine's built-in agent",
+  },
+};
+```
+
+### Agent Work Queue
+
+An agent's work queue is its children (direct or symlinks):
+
+```
+Agent "agent-1" (node)
+├── Task A (child)
+├── Task B (symlink → /projects/auth/task-b)
+└── Board X (symlink → /boards/sprint-1)
+    ├── Task C
+    └── Task D
+```
+
+---
+
+## Session Events
+
+### Session Lifecycle
+
+```typescript
+// Session start
+{ type: 'session_started', actor: 'agent-1', target: 'task-123', data: {
+    session_id: 'sess-abc',
+    model: 'claude-sonnet-4',
+    system_prompt_hash: 'sha256:...'
+}}
+
+// Each conversation turn
+{ type: 'session_message', actor: 'agent-1', data: {
+    session_id: 'sess-abc',
+    role: 'assistant',
+    content: 'I will implement the auth flow by...',
+    tokens: 523
+}}
+
+// Each tool invocation
+{ type: 'session_tool_call', actor: 'agent-1', data: {
+    session_id: 'sess-abc',
+    tool: 'edit_file',
+    args: { path: 'src/auth.ts', content: '...' },
+    result: { success: true },
+    tokens: 150
+}}
+
+// Session end
+{ type: 'session_ended', actor: 'agent-1', target: 'task-123', data: {
+    session_id: 'sess-abc',
+    status: 'success',
+    total_tokens: 15000,
+    cost_usd: 0.45,
+    summary: 'Implemented OAuth login flow'
+}}
+```
+
+---
+
+## CLI Commands
+
+### Agent Commands
+
+```bash
+km agent ls                 # List agents
+km agent create <spec.yaml> # Create agent
+km agent run <agent_id>     # Run continuously
+km agent run <agent_id> "task"  # One-shot
+km agent stop <agent_id>    # Stop agent
+km agent queue <agent_id>   # View queue
+```
+
+### Session Commands
+
+```bash
+km session <session_id>          # View transcript
+km session ls --agent <agent_id> # List sessions
+```
+
+### Hub Commands
+
+The **hub** is the central coordination point for agent orchestration:
+
+```bash
+km hub                      # Launch interactive TUI
+km hub start                # Start daemon (background IPC)
+km hub stop                 # Stop daemon
+km hub status               # Show status
+km hub message <agent> "..."  # Send message
+```
+
+---
+
+## Hub TUI
+
+`km hub` launches an interactive dashboard:
+
+```
+┌─ km hub ───────────────────────────────────────────────────┐
+│                                                            │
+│  AGENTS              WORK QUEUE         RECENT EVENTS      │
+│  ───────             ──────────         ─────────────      │
+│  ● claude-1          P0: Fix auth bug   12:01 claude-1     │
+│    └─ km-a3f           ↳ in_progress      claimed km-a3f   │
+│  ● claude-2          P1: Add tests      12:03 claude-2     │
+│    └─ km-b7c         P1: Update docs      completed km-b7c │
+│  ○ claude-3 (idle)   P2: Refactor DB    12:05 system       │
+│                      ...                  spawned claude-3 │
+│                                                            │
+│  [S]pawn  [K]ill  [A]ssign  [Q]ueue  [L]ogs  [?]Help      │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Keybindings:**
+
+| Key     | Action               |
+| ------- | -------------------- |
+| `s`     | Spawn new agent      |
+| `k`     | Kill selected agent  |
+| `a`     | Assign task to agent |
+| `q`     | View work queue      |
+| `l`     | View logs/sessions   |
+| `Enter` | Expand/drill into    |
+| `?`     | Help                 |
+| `Esc`   | Back / Quit          |
+
+---
+
+## Future Considerations
+
+- **Session compaction**: Archive full transcripts, keep summaries
+- **Multi-machine**: Distributed event bus over network
+- **Agent coordination**: Explicit handoff protocols
+- **Resource limits**: Token budgets, concurrent task limits
+
+---
+
+## See Also
+
+- [03-storage.md](03-storage.md) — Events and storage model
+- [10-tasks.md](10-tasks.md) — Task management
+- [09-cli.md](09-cli.md) — CLI commands

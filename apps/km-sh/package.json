@@ -8,8 +8,6 @@
   },
   "private": true,
   "dependencies": {
-    "@km/core": "workspace:*",
-    "@km/tree": "workspace:*",
-    "@km/tui-core": "workspace:*"
+    "@km/board": "workspace:*"
   }
 }
