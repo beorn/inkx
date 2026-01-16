@@ -3,11 +3,21 @@
  *
  * Core state and view model types for TUI tree navigation.
  * Uses a generic node model supporting arbitrary depth.
+ *
+ * Node and Board types are imported from @km/core for consistency.
  */
 
-// ===== Base Types =====
+// Import core types from @km/core
+import type {
+  NodeState as CoreNodeState,
+  CursorPath as CoreCursorPath,
+  TaskStatus,
+} from "@km/core";
 
-export type TaskStatus = "todo" | "wip" | "blocked" | "done" | "dropped";
+// Re-export for backwards compatibility
+export type { TaskStatus } from "@km/core";
+
+// ===== Base Types =====
 
 export type ViewMode = "cards" | "list" | "columns" | "tabs";
 
@@ -15,36 +25,17 @@ export type ViewMode = "cards" | "list" | "columns" | "tabs";
 
 /**
  * Path-based cursor position.
- * Variable-length array of indices: [2, 0, 3] = node 2, child 0, grandchild 3
+ * Re-exported from @km/core for convenience.
  */
-export type CursorPath = number[];
+export type CursorPath = CoreCursorPath;
 
 // ===== Tree Node State =====
 
 /**
  * Generic tree node for TUI state.
- * Unified structure for all tree levels (replaces Column/Card distinction).
+ * Alias for @km/core's NodeState.
  */
-export interface TreeNodeState {
-  nodeId: string;
-  title: string;
-  children: TreeNodeState[]; // Recursive children
-  childCount: number; // Total children (may exceed loaded children.length)
-
-  // Content properties
-  isTask: boolean;
-  taskStatus?: TaskStatus;
-  color?: string;
-  icon?: string;
-  priority?: number;
-  dueDate?: string;
-  hasBacklinks?: boolean;
-  refsCount?: number;
-  content?: string;
-
-  // Tree metadata
-  depth: number; // Depth from current view root (0 = top level)
-}
+export type TreeNodeState = CoreNodeState;
 
 // ===== Tree State =====
 

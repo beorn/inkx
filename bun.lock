@@ -98,13 +98,16 @@
     },
     "packages/km-tui-core": {
       "name": "@km/tui-core",
+      "dependencies": {
+        "@km/core": "workspace:*",
+      },
     },
     "packages/km-tui-opentui": {
       "name": "@km/tui-opentui",
       "dependencies": {
         "@km/tui-core": "workspace:*",
-        "@opentui/core": "^0.1.73",
-        "@opentui/react": "^0.1.73",
+        "@opentui/core": "0.1.73",
+        "@opentui/react": "0.1.73",
         "react": "^19.2.3",
       },
       "devDependencies": {

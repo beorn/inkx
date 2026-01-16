@@ -36,3 +36,21 @@ export {
 
 // Recurrence utilities
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts";
+
+// Node layer (TUI view models)
+export type { NodeState, CursorPath } from "./node/index.ts";
+export {
+  getNodeAtPath,
+  getSiblingCount,
+  getCurrentIndex,
+  collectAllNodeIds,
+  getSiblings,
+} from "./node/index.ts";
+
+// Board layer (visual navigation state)
+export type { BoardState, BoardAction } from "./board/index.ts";
+export {
+  createInitialBoardState,
+  boardReducer,
+  validateCursor,
+} from "./board/index.ts";
