@@ -102,7 +102,8 @@ describe("TUI2 Integration: State Management", () => {
       const state = createTestTree();
 
       expect(state.nodes).toHaveLength(3);
-      expect(state.cursor).toEqual([0]); // First top-level node
+      // Cursor starts at [0, 0] (first card in first column) when children exist
+      expect(state.cursor).toEqual([0, 0]);
       expect(state.rootId).toBe("tree-root");
       expect(state.rootPath).toBe("/test/vault");
     });
@@ -126,21 +127,24 @@ describe("TUI2 Integration: State Management", () => {
 
   describe("treeReducer navigation", () => {
     it("MOVE_DOWN moves to next sibling at same level", () => {
+      // createTestTree now starts at [0, 0] (card level)
       const state = createTestTree();
       const newState = treeReducer(state, { type: "MOVE_DOWN" });
 
-      expect(newState.cursor).toEqual([1]); // Second top-level node
+      // At card level, moves to next card in column
+      expect(newState.cursor).toEqual([0, 1]);
     });
 
     it("MOVE_UP moves to previous sibling at same level", () => {
-      const state = { ...createTestTree(), cursor: [2] };
+      const state = { ...createTestTree(), cursor: [0, 2] };
       const newState = treeReducer(state, { type: "MOVE_UP" });
 
-      expect(newState.cursor).toEqual([1]);
+      expect(newState.cursor).toEqual([0, 1]);
     });
 
     it("NAV_CHILD drills into children", () => {
-      const state = createTestTree();
+      // Start at column level to test drilling into children
+      const state = { ...createTestTree(), cursor: [0] };
       const newState = treeReducer(state, { type: "NAV_CHILD" });
 
       expect(newState.cursor).toEqual([0, 0]); // First child of first node
@@ -154,37 +158,42 @@ describe("TUI2 Integration: State Management", () => {
     });
 
     it("JUMP_TOP goes to first sibling", () => {
-      const state = { ...createTestTree(), cursor: [2] };
+      const state = { ...createTestTree(), cursor: [0, 2] };
       const newState = treeReducer(state, { type: "JUMP_TOP" });
 
-      expect(newState.cursor).toEqual([0]);
+      expect(newState.cursor).toEqual([0, 0]);
     });
 
     it("JUMP_BOTTOM goes to last sibling", () => {
+      // createTestTree starts at [0, 0] (first card in first column)
+      // First column has 3 cards (items), so JUMP_BOTTOM goes to [0, 2]
       const state = createTestTree();
       const newState = treeReducer(state, { type: "JUMP_BOTTOM" });
 
-      expect(newState.cursor).toEqual([2]); // Last top-level node
+      expect(newState.cursor).toEqual([0, 2]); // Last card in first column
     });
   });
 
   describe("treeReducer boundaries", () => {
     it("MOVE_UP at first sibling stays", () => {
-      const state = createTestTree(); // cursor = [0]
+      // createTestTree now starts at [0, 0] (first card)
+      const state = createTestTree();
       const newState = treeReducer(state, { type: "MOVE_UP" });
 
-      expect(newState.cursor).toEqual([0]);
+      expect(newState.cursor).toEqual([0, 0]);
     });
 
     it("MOVE_DOWN at last sibling stays", () => {
-      const state = { ...createTestTree(), cursor: [2] }; // last node
+      // Last card in first column is [0, 2] (3 cards total)
+      const state = { ...createTestTree(), cursor: [0, 2] };
       const newState = treeReducer(state, { type: "MOVE_DOWN" });
 
-      expect(newState.cursor).toEqual([2]);
+      expect(newState.cursor).toEqual([0, 2]);
     });
 
     it("NAV_PARENT at top level stays", () => {
-      const state = createTestTree(); // cursor = [0]
+      // At column level [0], NAV_PARENT should stay
+      const state = { ...createTestTree(), cursor: [0] };
       const newState = treeReducer(state, { type: "NAV_PARENT" });
 
       expect(newState.cursor).toEqual([0]);
@@ -370,7 +379,15 @@ describe("TUI2 Integration: State Management", () => {
 describe("TUI2 Integration: Selectors", () => {
   describe("getCurrentNode", () => {
     it("returns the node at cursor", () => {
+      // createTestTree now starts at [0, 0] (first card)
       const state = createTestTree();
+      const node = getCurrentNode(state);
+
+      expect(node?.nodeId).toBe("item-1"); // First card
+    });
+
+    it("returns column node when at column level", () => {
+      const state = { ...createTestTree(), cursor: [0] };
       const node = getCurrentNode(state);
 
       expect(node?.nodeId).toBe("col-todo");
@@ -400,7 +417,8 @@ describe("TUI2 Integration: Selectors", () => {
     });
 
     it("returns null at top level", () => {
-      const state = createTestTree();
+      // Explicitly set cursor to column level
+      const state = { ...createTestTree(), cursor: [0] };
       const parent = getParentNode(state);
 
       expect(parent).toBeNull();
@@ -416,7 +434,7 @@ describe("TUI2 Integration: Selectors", () => {
     });
 
     it("returns top-level nodes when at top level", () => {
-      const state = createTestTree();
+      const state = { ...createTestTree(), cursor: [0] };
       const siblings = getSiblings(state);
 
       expect(siblings).toHaveLength(3);
@@ -425,27 +443,31 @@ describe("TUI2 Integration: Selectors", () => {
 
   describe("navigation predicates", () => {
     it("canNavigateUp returns false at first sibling", () => {
+      // createTestTree now starts at [0, 0] (first card)
       const state = createTestTree();
       expect(canNavigateUp(state)).toBe(false);
     });
 
     it("canNavigateUp returns true when not at first sibling", () => {
-      const state = { ...createTestTree(), cursor: [1] };
+      const state = { ...createTestTree(), cursor: [0, 1] };
       expect(canNavigateUp(state)).toBe(true);
     });
 
     it("canNavigateDown returns false at last sibling", () => {
-      const state = { ...createTestTree(), cursor: [2] };
+      // Last card in first column
+      const state = { ...createTestTree(), cursor: [0, 2] };
       expect(canNavigateDown(state)).toBe(false);
     });
 
     it("canNavigateDown returns true when not at last sibling", () => {
+      // createTestTree now starts at [0, 0] (first card, 2 more cards after)
       const state = createTestTree();
       expect(canNavigateDown(state)).toBe(true);
     });
 
     it("canNavigateParent returns false at top level", () => {
-      const state = createTestTree();
+      // Explicitly set cursor to column level
+      const state = { ...createTestTree(), cursor: [0] };
       expect(canNavigateParent(state)).toBe(false);
     });
 
@@ -455,7 +477,8 @@ describe("TUI2 Integration: Selectors", () => {
     });
 
     it("canNavigateChild returns true when node has children", () => {
-      const state = createTestTree(); // First node (col-todo) has children
+      // Explicitly set cursor to column level (column has children)
+      const state = { ...createTestTree(), cursor: [0] };
       expect(canNavigateChild(state)).toBe(true);
     });
 
@@ -542,7 +565,8 @@ describe("TUI2 Integration: ViewModels", () => {
 
       expect(viewModel.rootPath).toBe("/test/vault");
       expect(viewModel.nodes).toHaveLength(3);
-      expect(viewModel.cursor).toEqual([0]);
+      // createTestTree now starts cursor at [0, 0] (card level)
+      expect(viewModel.cursor).toEqual([0, 0]);
       expect(viewModel.viewMode).toBe("cards");
     });
 

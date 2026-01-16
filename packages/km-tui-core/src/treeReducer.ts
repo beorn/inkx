@@ -164,6 +164,31 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
       return treeReducer(state, { type: "NAV_CHILD" });
     }
 
+    case "NAV_CROSS_COLUMN": {
+      // Cross-column navigation with Y-position preservation
+      // Only works at depth 2 (card level: [colIndex, cardIndex])
+      if (state.cursor.length < 2) return state;
+
+      const colIndex = state.cursor[0];
+      const cardIndex = state.cursor[1];
+      if (colIndex === undefined || cardIndex === undefined) return state;
+
+      const targetCol =
+        action.direction === "left" ? colIndex - 1 : colIndex + 1;
+
+      // Bounds check for column
+      if (targetCol < 0 || targetCol >= state.nodes.length) return state;
+
+      // Get target column and clamp card index to its bounds
+      const targetColumn = state.nodes[targetCol];
+      if (!targetColumn) return state;
+
+      const maxCardIndex = Math.max(0, targetColumn.children.length - 1);
+      const clampedCardIndex = Math.min(cardIndex, maxCardIndex);
+
+      return { ...state, cursor: [targetCol, clampedCardIndex] };
+    }
+
     case "JUMP_TOP": {
       if (state.cursor.length === 0) return state;
       const newPath = [...state.cursor];
@@ -472,17 +497,32 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
 
 /**
  * Create initial tree state
+ *
+ * Cursor starts at [0, 0] (first card in first column) if there are children,
+ * otherwise [0] (first column) if there are nodes, otherwise empty.
  */
 export function createInitialTreeState(
   nodes: TreeNodeState[],
   rootId: string | null = null,
   rootPath: string | null = null,
 ): TreeState {
+  // Determine initial cursor position
+  // Prefer starting at card level [0, 0] if first node has children
+  let cursor: CursorPath = [];
+  if (nodes.length > 0) {
+    const firstNode = nodes[0];
+    if (firstNode && firstNode.children.length > 0) {
+      cursor = [0, 0]; // Start at first card in first column
+    } else {
+      cursor = [0]; // Start at first column (no children)
+    }
+  }
+
   return {
     rootId,
     rootPath,
     nodes,
-    cursor: nodes.length > 0 ? [0] : [],
+    cursor,
     selectedNodes: new Set(),
     foldedNodes: new Set(),
     collapsedNodes: new Set(),

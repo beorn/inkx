@@ -269,7 +269,8 @@ export function executeTreeAction(
   if (changed) {
     if (ctx.jsonMode) {
       ctx.output({ event: "state", state: serializeState(newState), ts });
-    } else {
+    } else if (ctx.verbose) {
+      // Only output intermediate state changes in verbose mode
       const node = getNodeAtPath(newState.nodes, newState.cursor);
       ctx.output(
         `state: cursor=[${newState.cursor.join(",")}]${node ? ` "${node.title}"` : ""}`,

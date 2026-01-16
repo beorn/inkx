@@ -286,6 +286,71 @@ describe("treeReducer", () => {
     });
   });
 
+  describe("NAV_CROSS_COLUMN", () => {
+    test("moves right to adjacent column preserving Y position", () => {
+      const state = createInitialTreeState(createTestNodes());
+      state.cursor = [0, 1]; // col1, card2
+      const next = treeReducer(state, {
+        type: "NAV_CROSS_COLUMN",
+        direction: "right",
+      });
+      // col2 has 2 cards (card4, card5), so position 1 is valid
+      expect(next.cursor).toEqual([1, 1]);
+    });
+
+    test("moves left to adjacent column preserving Y position", () => {
+      const state = createInitialTreeState(createTestNodes());
+      state.cursor = [1, 1]; // col2, card5
+      const next = treeReducer(state, {
+        type: "NAV_CROSS_COLUMN",
+        direction: "left",
+      });
+      // col1 has 3 cards, position 1 is valid
+      expect(next.cursor).toEqual([0, 1]);
+    });
+
+    test("clamps Y position when target column is shorter", () => {
+      const state = createInitialTreeState(createTestNodes());
+      state.cursor = [0, 2]; // col1, card3 (last card)
+      const next = treeReducer(state, {
+        type: "NAV_CROSS_COLUMN",
+        direction: "right",
+      });
+      // col2 only has 2 cards (indices 0, 1), so clamp to index 1
+      expect(next.cursor).toEqual([1, 1]);
+    });
+
+    test("is no-op at first column moving left", () => {
+      const state = createInitialTreeState(createTestNodes());
+      state.cursor = [0, 1]; // col1
+      const next = treeReducer(state, {
+        type: "NAV_CROSS_COLUMN",
+        direction: "left",
+      });
+      expect(next.cursor).toEqual([0, 1]); // Unchanged
+    });
+
+    test("is no-op at last column moving right", () => {
+      const state = createInitialTreeState(createTestNodes());
+      state.cursor = [1, 0]; // col2 (last column)
+      const next = treeReducer(state, {
+        type: "NAV_CROSS_COLUMN",
+        direction: "right",
+      });
+      expect(next.cursor).toEqual([1, 0]); // Unchanged
+    });
+
+    test("is no-op when not at card level (depth < 2)", () => {
+      const state = createInitialTreeState(createTestNodes());
+      state.cursor = [0]; // column level only
+      const next = treeReducer(state, {
+        type: "NAV_CROSS_COLUMN",
+        direction: "right",
+      });
+      expect(next.cursor).toEqual([0]); // Unchanged
+    });
+  });
+
   describe("JUMP_TOP", () => {
     test("jumps to first sibling", () => {
       const state = createInitialTreeState(createTestNodes());
@@ -451,7 +516,8 @@ describe("createInitialTreeState", () => {
     const state = createInitialTreeState(nodes);
 
     expect(state.nodes).toBe(nodes);
-    expect(state.cursor).toEqual([0]);
+    // Cursor starts at [0, 0] (first card in first column) when children exist
+    expect(state.cursor).toEqual([0, 0]);
     expect(state.rootId).toBe(null);
     expect(state.rootPath).toBe(null);
     expect(state.selectedNodes.size).toBe(0);
@@ -468,5 +534,20 @@ describe("createInitialTreeState", () => {
     expect(state.rootId).toBe("root-123");
     expect(state.rootPath).toBe("/path/to/tree");
     expect(state.cursor).toEqual([]); // Empty for empty nodes
+  });
+
+  test("starts at column level when first node has no children", () => {
+    const nodesWithoutChildren: TreeNodeState[] = [
+      {
+        nodeId: "col1",
+        title: "Empty Column",
+        depth: 0,
+        childCount: 0,
+        isTask: false,
+        children: [],
+      },
+    ];
+    const state = createInitialTreeState(nodesWithoutChildren);
+    expect(state.cursor).toEqual([0]); // Column level when no children
   });
 });

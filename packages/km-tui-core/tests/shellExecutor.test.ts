@@ -112,7 +112,8 @@ describe("formatStateHuman", () => {
     const output = formatStateHuman(state);
 
     expect(output).toContain("cursor:");
-    expect(output).toContain("Todo");
+    // Cursor now starts at [0, 0] (card level) so we see the first card
+    expect(output).toContain("Task 1");
   });
 
   it("shows selected nodes count", () => {

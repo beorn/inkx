@@ -122,6 +122,9 @@ export type TreeAction =
   | { type: "JUMP_TOP" }
   | { type: "JUMP_BOTTOM" }
 
+  // Spatial navigation (cross-column with Y-preservation)
+  | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" }
+
   // Select specific position
   | { type: "SELECT_POSITION"; path: CursorPath }
 
