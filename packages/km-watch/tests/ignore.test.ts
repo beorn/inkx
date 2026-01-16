@@ -20,7 +20,7 @@ import {
   getIgnorePatterns,
 } from "../src/ignore.ts";
 
-const TEST_DIR = join(import.meta.dir, ".test-ignore");
+const TEST_DIR = join("/tmp", "kmtest-ignore");
 
 describe("Ignore Patterns", () => {
   beforeEach(() => {

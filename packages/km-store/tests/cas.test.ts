@@ -19,7 +19,7 @@ import {
   loadContentAuto,
 } from "../src/cas.ts";
 
-const TEST_DIR = join(import.meta.dir, ".test-cas");
+const TEST_DIR = join("/tmp", "kmtest-cas");
 const KM_DIR = join(TEST_DIR, ".km");
 
 describe("cas.ts", () => {

@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 import { initStore, closeStore, MemoryStore, DiskStore } from "../src/store.ts";
 
-const TEST_DIR = join(import.meta.dir, ".test-store");
+const TEST_DIR = join("/tmp", "kmtest-store");
 
 describe("MemoryStore", () => {
   const ROOT_DIR = join(TEST_DIR, "memory-root");

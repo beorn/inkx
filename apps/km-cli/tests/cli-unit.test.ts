@@ -14,7 +14,7 @@ import { getDb, closeDb, resetDb, getNode, getTasksByStatus } from "@km/store";
 import type { Node, TaskStatus } from "@km/core";
 
 // Test directory
-const TEST_DIR = join(import.meta.dir, ".test-cli-unit");
+const TEST_DIR = join("/tmp", "kmtest-cli-unit");
 
 /**
  * Helper to create a task directly in the database

@@ -6,11 +6,11 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { rmSync, mkdirSync, existsSync, writeFileSync } from "fs";
+import { rmSync, mkdirSync, existsSync, writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 
 // Test directories - KM_DIR is set in beforeEach via setKmDir()
-const TEST_DIR = join(import.meta.dir, ".test-sync");
+const TEST_DIR = join("/tmp", "kmtest-sync");
 const VAULT_DIR = join(TEST_DIR, "vault");
 const KM_DIR = join(TEST_DIR, ".km");
 
@@ -330,9 +330,7 @@ code
       await manager.syncFromFs();
 
       // Read events file directly
-      const { readFileSync } = await import("fs");
-      const { join: pathJoin } = await import("path");
-      const eventsPath = pathJoin(TEST_DIR, ".km", "events.jsonl");
+      const eventsPath = join(TEST_DIR, ".km", "events.jsonl");
 
       if (existsSync(eventsPath)) {
         const content = readFileSync(eventsPath, "utf-8");

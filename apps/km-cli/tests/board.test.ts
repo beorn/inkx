@@ -7,9 +7,11 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
+import { render } from "ink-testing-library";
+import React from "react";
 
-// Test directories - KM_DIR is set in beforeEach via setKmDir()
-const TEST_DIR = join(import.meta.dir, ".test-board");
+// Test directories in /tmp/ to avoid polluting source tree
+const TEST_DIR = join("/tmp", "km-test-board");
 
 import { resetDb, closeDb, getNode, getChildren, applyEvent } from "@km/store";
 
@@ -41,6 +43,8 @@ import {
 } from "../src/tui/render.ts";
 
 import type { BoardState, CardState, ColumnState } from "../src/tui/types.ts";
+import { InkBoardTestable } from "../src/tui/views/Board.tsx";
+import { NewItemDialog } from "../src/tui/views/NewItemDialog.tsx";
 
 // Test helpers
 function createTestNode(
@@ -760,10 +764,6 @@ describe("Ink Board TUI Rendering", () => {
   });
 
   test("ink board shows header path on first render", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     const rootId = createTestNode("board", "Test Board");
     const colId = createTestNode("folder", "Column", rootId);
     createTestNode("task", "Task 1", colId);
@@ -792,10 +792,6 @@ describe("Ink Board TUI Rendering", () => {
   });
 
   test("ink board card content does not overflow into borders", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     const rootId = createTestNode("board", "Board");
     const colId = createTestNode("folder", "Column", rootId);
     createTestNode("task", "Stretching exercises for morning routine", colId);
@@ -826,10 +822,6 @@ describe("Ink Board TUI Rendering", () => {
   });
 
   test("ink board cards have minimal padding", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     const rootId = createTestNode("board", "Board");
     const colId = createTestNode("folder", "Column", rootId);
     createTestNode("task", "TestContent", colId);
@@ -864,10 +856,6 @@ describe("Ink Board TUI Rendering", () => {
   });
 
   test("ink board columns show side by side", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     const rootId = createTestNode("board", "Board");
     createTestNode("folder", "Todo", rootId);
     createTestNode("folder", "InProgress", rootId);
@@ -902,10 +890,6 @@ describe("Ink Board TUI Rendering", () => {
   });
 
   test("ink board shows card count in column header", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     const rootId = createTestNode("board", "Board");
     const colId = createTestNode("folder", "MyColumn", rootId);
     createTestNode("task", "Task 1", colId);
@@ -948,10 +932,6 @@ describe("Navigation History with Selection", () => {
   });
 
   test("navigation history stores selection state", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     // Create a board with nested structure for navigation
     const rootId = createTestNode("board", "Root Board");
     const col1Id = createTestNode("folder", "Column 1", rootId);
@@ -996,10 +976,6 @@ describe("Navigation History with Selection", () => {
   });
 
   test("navigation history preserves subIndex on restore", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     // Create a board with a card that has children (for outline mode)
     const rootId = createTestNode("board", "Board");
     const colId = createTestNode("folder", "Column", rootId);
@@ -1040,10 +1016,6 @@ describe("Navigation History with Selection", () => {
   });
 
   test("forward navigation with ] restores selection", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     const rootId = createTestNode("board", "Board");
     const colId = createTestNode("folder", "Column", rootId);
     const cardId = createTestNode("task", "Card with children", colId);
@@ -1099,10 +1071,6 @@ describe("Wiki Link Rendering", () => {
   });
 
   test("wiki links are rendered without brackets", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     const rootId = createTestNode("board", "Board");
     const colId = createTestNode("folder", "Column", rootId);
     // Create a task with wiki link in content
@@ -1128,10 +1096,6 @@ describe("Wiki Link Rendering", () => {
   });
 
   test("aliased wiki links show only the alias", async () => {
-    const { render } = await import("ink-testing-library");
-    const { InkBoardTestable } = await import("../src/tui/views/Board.tsx");
-    const React = await import("react");
-
     const rootId = createTestNode("board", "Board");
     const colId = createTestNode("folder", "Column", rootId);
     // Create a task with aliased wiki link: [[path|alias]]
@@ -1184,11 +1148,6 @@ describe("New Item Dialog", () => {
   });
 
   test("NewItemDialog renders with cursor context", async () => {
-    const { render } = await import("ink-testing-library");
-    const { NewItemDialog } =
-      await import("../src/tui/views/NewItemDialog.tsx");
-    const React = await import("react");
-
     // Create test nodes
     const rootId = createTestNode("board", "Board");
     const colId = createTestNode("folder", "Column", rootId);
@@ -1216,11 +1175,6 @@ describe("New Item Dialog", () => {
   });
 
   test("NewItemDialog calls onCancel on Escape", async () => {
-    const { render } = await import("ink-testing-library");
-    const { NewItemDialog } =
-      await import("../src/tui/views/NewItemDialog.tsx");
-    const React = await import("react");
-
     let cancelled = false;
     const onCancel = () => {
       cancelled = true;

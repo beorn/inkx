@@ -9,7 +9,7 @@ import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { MemoryStore } from "../src/store.ts";
 
-const TEST_DIR = join(import.meta.dir, ".test-links");
+const TEST_DIR = join("/tmp", "kmtest-links");
 
 describe("Links and Backlinks", () => {
   let store: MemoryStore | null = null;

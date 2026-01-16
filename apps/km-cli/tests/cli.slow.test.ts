@@ -12,7 +12,7 @@ import { $ } from "bun";
 
 // Set test environment before imports
 // KM_DIR should be inside the vault so sync defaults to correct directory
-const TEST_DIR = join(import.meta.dir, ".test-cli");
+const TEST_DIR = join("/tmp", "kmtest-cli");
 const VAULT_DIR = join(TEST_DIR, "vault");
 const KM_DIR = join(VAULT_DIR, ".km"); // .km inside vault, not sibling
 
@@ -513,7 +513,7 @@ describe("km task status", () => {
 });
 
 describe("km init", () => {
-  const INIT_TEST_DIR = join(import.meta.dir, ".test-init");
+  const INIT_TEST_DIR = join("/tmp", "kmtest-init");
 
   beforeEach(() => {
     // Use a completely separate directory for init tests

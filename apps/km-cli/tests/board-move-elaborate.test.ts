@@ -34,7 +34,7 @@ import { ulid } from "ulid";
 import { Database } from "bun:sqlite";
 
 // Test directory for disk-based tests
-const TEST_DIR = join(import.meta.dir, ".test-board-move-elaborate");
+const TEST_DIR = join("/tmp", "kmtest-board-move-elaborate");
 
 // Helper to create nodes via emit
 function createTestNode(

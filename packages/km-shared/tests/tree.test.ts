@@ -13,7 +13,7 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
-const TEST_DIR = join(import.meta.dir, ".test-tree");
+const TEST_DIR = join("/tmp", "kmtest-tree");
 
 import { resetDb, closeDb, getNode, getChildren, applyEvent } from "@km/store";
 

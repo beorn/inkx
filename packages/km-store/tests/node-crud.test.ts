@@ -9,7 +9,7 @@ import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 
 // Test directory - KM_DIR is set in beforeEach via setKmDir()
-const TEST_DIR = join(import.meta.dir, ".test-km");
+const TEST_DIR = join("/tmp", "kmtest-km");
 
 import {
   getDb,

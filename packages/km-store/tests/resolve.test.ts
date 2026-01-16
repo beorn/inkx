@@ -15,7 +15,7 @@ import { closeDb, resolveNode, resetDb, applyEvent } from "../src/db.ts";
 import { emitNodeCreated, setKmDir, setDatabase } from "@km/core";
 import { ulid } from "ulid";
 
-const TEST_DIR = join(import.meta.dir, ".test-resolve");
+const TEST_DIR = join("/tmp", "kmtest-resolve");
 
 describe("resolveNode", () => {
   beforeEach(() => {

@@ -8,8 +8,9 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import React from "react";
+import { render } from "ink-testing-library";
 
-const TEST_DIR = join(import.meta.dir, ".test-detail-pane");
+const TEST_DIR = join("/tmp", "kmtest-detail-pane");
 
 import {
   resetDb,
@@ -224,8 +225,6 @@ describe("DetailPane Component", () => {
   });
 
   test("renders with all task fields", async () => {
-    const { render } = await import("ink-testing-library");
-
     const taskId = createTestNode("task", "Review Q1 budget", null, {
       task_status: "todo",
       due_date: "2026-01-10",
@@ -265,8 +264,6 @@ describe("DetailPane Component", () => {
   });
 
   test("shows subtasks", async () => {
-    const { render } = await import("ink-testing-library");
-
     const parentId = createTestNode("task", "Parent task");
     createTestNode("task", "Subtask 1", parentId, { task_status: "done" });
     createTestNode("task", "Subtask 2", parentId, { task_status: "todo" });
@@ -289,8 +286,6 @@ describe("DetailPane Component", () => {
   });
 
   test("shows references from content", async () => {
-    const { render } = await import("ink-testing-library");
-
     const taskId = createTestNode(
       "task",
       "Talk to @john about #budget for +work project [[Meeting Notes]]",
@@ -315,8 +310,6 @@ describe("DetailPane Component", () => {
   });
 
   test("shows project path", async () => {
-    const { render } = await import("ink-testing-library");
-
     const folderId = createTestNode("folder", "Work");
     const subfolderId = createTestNode("folder", "Finance", folderId);
     const taskId = createTestNode("task", "Review budget", subfolderId);
@@ -338,8 +331,6 @@ describe("DetailPane Component", () => {
   });
 
   test("shows keybindings hint", async () => {
-    const { render } = await import("ink-testing-library");
-
     const taskId = createTestNode("task", "Simple task");
     const task = getNode(taskId)!;
 
@@ -358,8 +349,6 @@ describe("DetailPane Component", () => {
   });
 
   test("handles task with done status", async () => {
-    const { render } = await import("ink-testing-library");
-
     const taskId = createTestNode("task", "Completed task", null, {
       task_status: "done",
     });
@@ -398,8 +387,6 @@ describe("DetailPane with Backlinks", () => {
   });
 
   test("shows backlinks when present", async () => {
-    const { render } = await import("ink-testing-library");
-
     // Create target node
     const targetId = createTestNode("task", "Target task");
     const target = getNode(targetId)!;

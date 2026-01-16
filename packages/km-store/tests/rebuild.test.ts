@@ -18,7 +18,7 @@ import {
 } from "../src/rebuild.ts";
 import { closeDb, getDb, resetDb } from "../src/db.ts";
 
-const TEST_DIR = join(import.meta.dir, ".test-rebuild");
+const TEST_DIR = join("/tmp", "kmtest-rebuild");
 const KM_DIR = join(TEST_DIR, ".km");
 
 describe("rebuild.ts", () => {
