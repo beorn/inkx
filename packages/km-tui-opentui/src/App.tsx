@@ -15,6 +15,7 @@ import { useTreeState, createInitialTreeState } from "./hooks/index.ts";
 import { toTreeViewModel } from "@km/tui-core";
 import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
 import {
+  CommandPalette,
   DetailPane,
   Header,
   HelpOverlay,
@@ -23,6 +24,7 @@ import {
   SearchInput,
   StatusBar,
 } from "./components/index.ts";
+import { filterCommands } from "@km/tui-core";
 import {
   updateNode,
   deleteNode,
@@ -549,6 +551,78 @@ export function App({
       return;
     }
 
+    // ===== Command Palette Mode =====
+    // When command palette is open, handle navigation and execution
+    if (tree.state.commandPaletteOpen) {
+      // Get filtered commands for index bounds
+      const query = tree.state.commandPaletteQuery;
+      const filteredCommands = filterCommands(query);
+
+      // Escape - close palette
+      if (name === "escape") {
+        tree.dispatch({ type: "CLOSE_COMMAND_PALETTE" });
+        return;
+      }
+
+      // Enter/Return - execute selected command
+      if (name === "return") {
+        const selectedCommand =
+          filteredCommands[tree.state.commandPaletteIndex];
+        if (selectedCommand && selectedCommand.action) {
+          // Close palette first
+          tree.dispatch({ type: "CLOSE_COMMAND_PALETTE" });
+          // Then execute the command
+          tree.dispatch(selectedCommand.action);
+        } else if (selectedCommand && selectedCommand.needsContext) {
+          // Command needs context - close palette and let user know
+          tree.dispatch({ type: "CLOSE_COMMAND_PALETTE" });
+          // For now, just close - context-dependent commands need the current node
+        } else {
+          tree.dispatch({ type: "CLOSE_COMMAND_PALETTE" });
+        }
+        return;
+      }
+
+      // j or down - move selection down
+      if (name === "j" || name === "down") {
+        tree.dispatch({
+          type: "COMMAND_PALETTE_DOWN",
+          maxIndex: filteredCommands.length - 1,
+        });
+        return;
+      }
+
+      // k or up - move selection up
+      if (name === "k" || name === "up") {
+        tree.dispatch({ type: "COMMAND_PALETTE_UP" });
+        return;
+      }
+
+      // Backspace - remove last character from query
+      if (name === "backspace") {
+        const currentQuery = tree.state.commandPaletteQuery;
+        if (currentQuery.length > 0) {
+          tree.dispatch({
+            type: "SET_COMMAND_PALETTE_QUERY",
+            query: currentQuery.slice(0, -1),
+          });
+        }
+        return;
+      }
+
+      // Character input - append to query
+      if (name.length === 1 && !meta) {
+        tree.dispatch({
+          type: "SET_COMMAND_PALETTE_QUERY",
+          query: tree.state.commandPaletteQuery + name,
+        });
+        return;
+      }
+
+      // Ignore all other keys in command palette mode
+      return;
+    }
+
     // ===== Normal Mode =====
 
     // Escape - clear selection if any, otherwise quit
@@ -723,6 +797,11 @@ export function App({
     // Detail pane toggle
     else if (name === "i" && !shift && !meta) {
       tree.dispatch({ type: "TOGGLE_DETAIL_PANE" });
+    }
+
+    // Command palette
+    else if (name === ":" || (name === "p" && ctrl)) {
+      tree.dispatch({ type: "TOGGLE_COMMAND_PALETTE" });
     }
 
     // ===== Editor Integration =====
@@ -1183,6 +1262,16 @@ export function App({
           }))}
           query={tree.state.projectPickerQuery}
           selectedIndex={tree.state.projectPickerIndex}
+          width={width}
+          height={height}
+        />
+      )}
+
+      {/* Command palette (shown when command palette is open) */}
+      {tree.state.commandPaletteOpen && (
+        <CommandPalette
+          query={tree.state.commandPaletteQuery}
+          selectedIndex={tree.state.commandPaletteIndex}
           width={width}
           height={height}
         />

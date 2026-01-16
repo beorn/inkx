@@ -6,6 +6,7 @@
 
 export { Card } from "./Card.tsx";
 export { Column } from "./Column.tsx";
+export { CommandPalette } from "./CommandPalette.tsx";
 export { DetailPane } from "./DetailPane.tsx";
 export { Header } from "./Header.tsx";
 export { HelpOverlay } from "./HelpOverlay.tsx";

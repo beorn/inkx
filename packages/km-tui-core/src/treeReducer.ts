@@ -191,7 +191,12 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
 
       // Get child count of target column
       const targetCol = state.nodes[newColIdx];
-      if (!targetCol || targetCol.children.length === 0) return state;
+      if (!targetCol) return state;
+
+      // If target column is empty, navigate to column level
+      if (targetCol.children.length === 0) {
+        return { ...state, cursor: [newColIdx] };
+      }
 
       // Clamp row index to target column's children
       const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
@@ -461,6 +466,48 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
       return { ...state, detailPaneOpen: !state.detailPaneOpen };
     }
 
+    // ===== Command Palette =====
+
+    case "TOGGLE_COMMAND_PALETTE": {
+      return {
+        ...state,
+        commandPaletteOpen: !state.commandPaletteOpen,
+        commandPaletteQuery: state.commandPaletteOpen
+          ? ""
+          : state.commandPaletteQuery,
+        commandPaletteIndex: state.commandPaletteOpen
+          ? 0
+          : state.commandPaletteIndex,
+      };
+    }
+
+    case "SET_COMMAND_PALETTE_QUERY": {
+      return {
+        ...state,
+        commandPaletteQuery: action.query,
+        commandPaletteIndex: 0,
+      };
+    }
+
+    case "COMMAND_PALETTE_UP": {
+      if (state.commandPaletteIndex <= 0) return state;
+      return { ...state, commandPaletteIndex: state.commandPaletteIndex - 1 };
+    }
+
+    case "COMMAND_PALETTE_DOWN": {
+      if (state.commandPaletteIndex >= action.maxIndex) return state;
+      return { ...state, commandPaletteIndex: state.commandPaletteIndex + 1 };
+    }
+
+    case "CLOSE_COMMAND_PALETTE": {
+      return {
+        ...state,
+        commandPaletteOpen: false,
+        commandPaletteQuery: "",
+        commandPaletteIndex: 0,
+      };
+    }
+
     // ===== Outline Depth =====
 
     case "INCREASE_OUTLINE_DEPTH": {
@@ -533,5 +580,8 @@ export function createInitialTreeState(
     projectPickerQuery: "",
     projectPickerIndex: 0,
     detailPaneOpen: false,
+    commandPaletteOpen: false,
+    commandPaletteQuery: "",
+    commandPaletteIndex: 0,
   };
 }

@@ -90,6 +90,11 @@ export interface TreeState {
   projectPickerQuery: string;
   projectPickerIndex: number;
   detailPaneOpen: boolean;
+
+  // Command palette
+  commandPaletteOpen: boolean;
+  commandPaletteQuery: string;
+  commandPaletteIndex: number;
 }
 
 // ===== Tree Actions =====
@@ -162,6 +167,13 @@ export type TreeAction =
   | { type: "PROJECT_PICKER_DOWN"; maxIndex: number }
   | { type: "CLOSE_PROJECT_PICKER" }
   | { type: "TOGGLE_DETAIL_PANE" }
+
+  // Command palette
+  | { type: "TOGGLE_COMMAND_PALETTE" }
+  | { type: "SET_COMMAND_PALETTE_QUERY"; query: string }
+  | { type: "COMMAND_PALETTE_UP" }
+  | { type: "COMMAND_PALETTE_DOWN"; maxIndex: number }
+  | { type: "CLOSE_COMMAND_PALETTE" }
 
   // View configuration
   | { type: "INCREASE_OUTLINE_DEPTH" }

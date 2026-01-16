@@ -92,3 +92,13 @@ export {
 
 // Plain text utilities (for OpenTUI - no ANSI codes)
 export { renderPlain, displayLength } from "./text.ts";
+
+// Command registry (for command palette)
+export {
+  commands,
+  getCommandsByCategory,
+  getCommandById,
+  filterCommands,
+  fuzzyMatch,
+} from "./commands.ts";
+export type { CommandDef, CommandCategory } from "./commands.ts";
