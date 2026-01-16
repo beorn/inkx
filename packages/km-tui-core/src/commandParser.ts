@@ -32,19 +32,21 @@ export type ShellCommand =
  * Map of snake_case command names to TreeAction types
  */
 const SIMPLE_ACTIONS: Record<string, TreeAction> = {
-  // Navigation (path-based)
+  // Structural navigation (prev/next/in/out)
   nav_prev_sibling: { type: "NAV_PREV_SIBLING" },
   nav_next_sibling: { type: "NAV_NEXT_SIBLING" },
+  nav_first_sibling: { type: "NAV_FIRST_SIBLING" },
+  nav_last_sibling: { type: "NAV_LAST_SIBLING" },
   nav_parent: { type: "NAV_PARENT" },
   nav_child: { type: "NAV_CHILD" },
 
-  // Legacy navigation (mapped to path-based)
-  move_up: { type: "MOVE_UP" },
-  move_down: { type: "MOVE_DOWN" },
-  move_left: { type: "MOVE_LEFT" },
-  move_right: { type: "MOVE_RIGHT" },
-  jump_top: { type: "JUMP_TOP" },
-  jump_bottom: { type: "JUMP_BOTTOM" },
+  // Legacy aliases (for backwards compatibility)
+  move_up: { type: "NAV_PREV_SIBLING" },
+  move_down: { type: "NAV_NEXT_SIBLING" },
+  move_left: { type: "NAV_PARENT" },
+  move_right: { type: "NAV_CHILD" },
+  jump_top: { type: "NAV_FIRST_SIBLING" },
+  jump_bottom: { type: "NAV_LAST_SIBLING" },
 
   // History navigation
   nav_back: { type: "NAV_BACK" },
@@ -87,13 +89,13 @@ const SHELL_COMMANDS: Record<string, ShellCommand> = {
  * These can be used directly without the "key" prefix
  */
 const SINGLE_CHAR_MAP: Record<string, TreeAction | "KEY"> = {
-  // Navigation - vim style
-  j: { type: "MOVE_DOWN" },
-  k: { type: "MOVE_UP" },
-  h: { type: "MOVE_LEFT" },
-  l: { type: "MOVE_RIGHT" },
-  g: { type: "JUMP_TOP" },
-  G: { type: "JUMP_BOTTOM" },
+  // Navigation - vim style (structural actions)
+  j: { type: "NAV_NEXT_SIBLING" },
+  k: { type: "NAV_PREV_SIBLING" },
+  h: { type: "NAV_PARENT" },
+  l: { type: "NAV_CHILD" },
+  g: { type: "NAV_FIRST_SIBLING" },
+  G: { type: "NAV_LAST_SIBLING" },
   u: { type: "NAV_PARENT" },
 
   // History navigation
@@ -368,7 +370,7 @@ export function parseCommand(input: string): ParseResult {
       return { ok: true, action: { type: "NAV_TO_PATH", path } };
     }
 
-    // select_position <path> - select specific position
+    // select_position <path> - select specific position (alias for nav_to_path)
     case "select_position": {
       const pathArg = args[0];
       if (!pathArg) {
@@ -381,7 +383,7 @@ export function parseCommand(input: string): ParseResult {
           error: "select_position requires comma-separated numeric indices",
         };
       }
-      return { ok: true, action: { type: "SELECT_POSITION", path } };
+      return { ok: true, action: { type: "NAV_TO_PATH", path } };
     }
 
     // select_node_add <nodeId>
@@ -484,18 +486,19 @@ export function getCommandHelp(topic?: string): string {
   // General help
   return `km-sh commands:
 
-Navigation (path-based):
-  nav_prev_sibling, nav_next_sibling
-  nav_parent, nav_child
-  nav_to_path <path> (e.g., 0,1,2)
-  nav_back, nav_forward
+Structural Navigation (prev/next/in/out):
+  nav_prev_sibling, nav_next_sibling  (k/j)
+  nav_first_sibling, nav_last_sibling (g/G)
+  nav_parent, nav_child               (h/l, u, Enter, Backspace)
+  nav_to_path <path>                  (e.g., 0,1,2)
+  nav_back, nav_forward               ([/])
 
-Navigation (legacy, mapped to path-based):
+Legacy aliases (for backwards compatibility):
   move_up, move_down, move_left, move_right
   jump_top, jump_bottom
 
 Selection:
-  select_position <path>
+  select_position <path> (alias for nav_to_path)
   select_node_add <nodeId>
   select_node_remove <nodeId>
   select_node_toggle <nodeId>
@@ -523,7 +526,7 @@ Key input:
   key <Name> - special key (e.g., key Enter, key Escape)
 
 JSON mode:
-  {"type": "MOVE_DOWN"} - any valid TreeAction as JSON
+  {"type": "NAV_NEXT_SIBLING"} - any valid TreeAction as JSON
 `;
 }
 

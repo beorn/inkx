@@ -62,10 +62,80 @@ const SHIFT_NUMBER_MAP: Record<string, number> = {
 };
 import { getNodeDisplayName } from "@km/shared";
 import type { Node } from "@km/core";
-import type { ViewMode, TaskStatus, TreeNodeState } from "./types.ts";
+import type {
+  ViewMode,
+  TaskStatus,
+  TreeNodeState,
+  CursorPath,
+} from "./types.ts";
 
 // Task status cycle order for Space key
 const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "done", "dropped"];
+
+/**
+ * Calculate target path for cross-column navigation.
+ * Preserves Y position when moving between columns based on card heights.
+ * Returns null if navigation is not possible.
+ */
+function calculateCrossColumnPath(
+  direction: "left" | "right",
+  cursor: CursorPath,
+  nodes: TreeNodeState[],
+): CursorPath | null {
+  // Only works at depth 2+ (card level: [colIndex, cardIndex, ...])
+  if (cursor.length < 2) return null;
+
+  const colIndex = cursor[0];
+  const cardIndex = cursor[1];
+  if (colIndex === undefined || cardIndex === undefined) return null;
+
+  const targetCol = direction === "left" ? colIndex - 1 : colIndex + 1;
+
+  // Bounds check for column
+  if (targetCol < 0 || targetCol >= nodes.length) return null;
+
+  const sourceColumn = nodes[colIndex];
+  const targetColumn = nodes[targetCol];
+  if (!sourceColumn || !targetColumn) return null;
+  if (targetColumn.children.length === 0) return null;
+
+  // Calculate card height based on whether it has metadata
+  // Card renders as: border(1) + title(1) + [metadata(1)] + border(1) = 3 or 4 lines
+  const getCardHeight = (node: TreeNodeState): number => {
+    const hasMetadata =
+      node.priority !== undefined || node.dueDate || node.hasBacklinks;
+    return hasMetadata ? 4 : 3;
+  };
+
+  // Calculate Y position of current card's title (line 1 within the card)
+  let sourceY = 0;
+  for (let i = 0; i < cardIndex; i++) {
+    const card = sourceColumn.children[i];
+    if (card) sourceY += getCardHeight(card);
+  }
+  // Title is on line 1 (after top border)
+  sourceY += 1;
+
+  // Find card at that Y position in target column
+  let targetY = 0;
+  let targetCardIndex = 0;
+  for (let i = 0; i < targetColumn.children.length; i++) {
+    const card = targetColumn.children[i];
+    if (!card) continue;
+    const cardHeight = getCardHeight(card);
+    const cardStart = targetY;
+    const cardEnd = targetY + cardHeight;
+    // Check if sourceY falls within this card's range
+    if (sourceY >= cardStart && sourceY < cardEnd) {
+      targetCardIndex = i;
+      break;
+    }
+    targetY += cardHeight;
+    targetCardIndex = i; // Default to last card if we go past
+  }
+
+  return [targetCol, targetCardIndex];
+}
 
 /**
  * Get next status in cycle
@@ -431,8 +501,7 @@ export function App({
 
       // Enter/Return - navigate to selected project
       if (name === "return") {
-        const selectedProject =
-          filteredProjects[tree.state.projectPickerIndex];
+        const selectedProject = filteredProjects[tree.state.projectPickerIndex];
         if (selectedProject) {
           navigateToRoot(selectedProject.id);
         }
@@ -501,31 +570,58 @@ export function App({
     if (name === "j" && shift && !meta) {
       if (currentCard) {
         tree.dispatch({ type: "SELECT_NODE_ADD", nodeId: currentCard.nodeId });
-        tree.dispatch({ type: "MOVE_DOWN" });
+        tree.dispatch({ type: "NAV_NEXT_SIBLING" });
       }
     }
     // Shift+k: Select current card and move up (range selection)
     else if (name === "k" && shift && !meta) {
       if (currentCard) {
         tree.dispatch({ type: "SELECT_NODE_ADD", nodeId: currentCard.nodeId });
-        tree.dispatch({ type: "MOVE_UP" });
+        tree.dispatch({ type: "NAV_PREV_SIBLING" });
       }
     }
 
     // Navigation - use arrow key names or vim keys
+    // j/down = next sibling, k/up = prev sibling
     else if (name === "up" || (name === "k" && !shift && !meta)) {
-      tree.dispatch({ type: "MOVE_UP" });
+      tree.dispatch({ type: "NAV_PREV_SIBLING" });
     } else if (name === "down" || (name === "j" && !shift && !meta)) {
-      tree.dispatch({ type: "MOVE_DOWN" });
+      tree.dispatch({ type: "NAV_NEXT_SIBLING" });
     } else if (name === "left" || name === "h") {
-      tree.dispatch({ type: "MOVE_LEFT" });
+      // At card level (depth 2+), use cross-column navigation to preserve Y position
+      if (tree.state.cursor.length >= 2) {
+        const targetPath = calculateCrossColumnPath(
+          "left",
+          tree.state.cursor,
+          tree.state.nodes,
+        );
+        if (targetPath) {
+          tree.dispatch({ type: "NAV_TO_PATH", path: targetPath });
+        }
+      } else {
+        // At column level (depth 1), move to previous sibling column
+        tree.dispatch({ type: "NAV_PREV_SIBLING" });
+      }
     } else if (name === "right" || name === "l") {
-      tree.dispatch({ type: "MOVE_RIGHT" });
+      // At card level (depth 2+), use cross-column navigation to preserve Y position
+      if (tree.state.cursor.length >= 2) {
+        const targetPath = calculateCrossColumnPath(
+          "right",
+          tree.state.cursor,
+          tree.state.nodes,
+        );
+        if (targetPath) {
+          tree.dispatch({ type: "NAV_TO_PATH", path: targetPath });
+        }
+      } else {
+        // At column level (depth 1), move to next sibling column
+        tree.dispatch({ type: "NAV_NEXT_SIBLING" });
+      }
     } else if (name === "g" && !shift) {
-      tree.dispatch({ type: "JUMP_TOP" });
+      tree.dispatch({ type: "NAV_FIRST_SIBLING" });
     } else if (name === "g" && shift) {
-      // Shift+G = jump to bottom (capital G)
-      tree.dispatch({ type: "JUMP_BOTTOM" });
+      // Shift+G = jump to last sibling
+      tree.dispatch({ type: "NAV_LAST_SIBLING" });
     }
 
     // ===== Root Navigation =====
@@ -558,7 +654,7 @@ export function App({
           // After NAV_BACK, restore the actual view
           tree.dispatch({ type: "REFRESH", nodes });
           tree.dispatch({
-            type: "SELECT_POSITION",
+            type: "NAV_TO_PATH",
             path: prevEntry.cursor,
           });
         }
@@ -578,7 +674,7 @@ export function App({
           // After NAV_FORWARD, restore the actual view
           tree.dispatch({ type: "REFRESH", nodes });
           tree.dispatch({
-            type: "SELECT_POSITION",
+            type: "NAV_TO_PATH",
             path: nextEntry.cursor,
           });
         }
@@ -705,7 +801,7 @@ export function App({
     else if (SHIFT_NUMBER_MAP[name] !== undefined) {
       const targetCol = SHIFT_NUMBER_MAP[name];
       if (targetCol !== undefined && targetCol < tree.state.nodes.length) {
-        tree.dispatch({ type: "SELECT_POSITION", path: [targetCol, 0] });
+        tree.dispatch({ type: "NAV_TO_PATH", path: [targetCol, 0] });
       }
     }
 
@@ -831,7 +927,7 @@ export function App({
               const nextIdx = nextNode.parent_idx ?? 0;
               updateNode(currentCard.nodeId, { parent_idx: nextIdx + 0.5 });
               refreshTree();
-              tree.dispatch({ type: "MOVE_DOWN" });
+              tree.dispatch({ type: "NAV_NEXT_SIBLING" });
             }
           }
         }
@@ -853,7 +949,7 @@ export function App({
               const prevIdx = prevNode.parent_idx ?? 0;
               updateNode(currentCard.nodeId, { parent_idx: prevIdx - 0.5 });
               refreshTree();
-              tree.dispatch({ type: "MOVE_UP" });
+              tree.dispatch({ type: "NAV_PREV_SIBLING" });
             }
           }
         }
@@ -881,7 +977,7 @@ export function App({
           refreshTree();
           // Move cursor to the new column and to the end where card was placed
           tree.dispatch({
-            type: "SELECT_POSITION",
+            type: "NAV_TO_PATH",
             path: [colIndex - 1, prevColumnChildren.length],
           });
         }
@@ -909,7 +1005,7 @@ export function App({
           refreshTree();
           // Move cursor to the new column and to the end where card was placed
           tree.dispatch({
-            type: "SELECT_POSITION",
+            type: "NAV_TO_PATH",
             path: [colIndex + 1, nextColumnChildren.length],
           });
         }
@@ -940,7 +1036,7 @@ export function App({
             refreshTree();
             // Move cursor to the target column and to the end where card was placed
             tree.dispatch({
-              type: "SELECT_POSITION",
+              type: "NAV_TO_PATH",
               path: [targetColIndex, targetColumnChildren.length],
             });
           }

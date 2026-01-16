@@ -90,15 +90,12 @@ $ km sh board.md -c 'nav_to_path a,b,c'
 error: nav_to_path requires comma-separated numeric indices
 ```
 
-### select_position is not implemented yet
-
-The SELECT_POSITION action is defined but not handled in the reducer.
-This test documents the current behavior (no-op).
+### select_position navigates to specific position (alias for nav_to_path)
 
 ```console
 $ km sh board.md -c 'select_position 0,2; state'
-cursor: [0,0]
-node: Task A1
+cursor: [0,2]
+node: Task A3
 topLevel: 2 nodes
 ```
 
@@ -153,9 +150,12 @@ node: Section A
 topLevel: 2 nodes
 ```
 
-## Column Navigation with l/h
+## Structural Navigation with l/h
 
-### h at card level moves to parent column
+In km-sh, l/h use purely structural navigation (in/out, not spatial).
+For spatial cross-column navigation, use `nav_to_path`.
+
+### h at card level moves to parent (column level)
 
 ```console
 $ km sh board.md -c 'h; state'
@@ -164,19 +164,19 @@ node: Section A
 topLevel: 2 nodes
 ```
 
-### l at column level moves to next column
+### l at column level moves into first child
 
 ```console
 $ km sh board.md -c 'h; l; state'
-cursor: [1]
-node: Section B
+cursor: [0,0]
+node: Task A1
 topLevel: 2 nodes
 ```
 
-### h at column level moves to previous column
+### h at column level stays in place (already at root)
 
 ```console
-$ km sh board.md -c 'h; l; h; state'
+$ km sh board.md -c 'h; h; state'
 cursor: [0]
 node: Section A
 topLevel: 2 nodes
@@ -190,5 +190,14 @@ At [0,0] (Task A1 with no children), l has no effect.
 $ km sh board.md -c 'l; state'
 cursor: [0,0]
 node: Task A1
+topLevel: 2 nodes
+```
+
+### nav_next_sibling at column level moves to next column
+
+```console
+$ km sh board.md -c 'h; nav_next_sibling; state'
+cursor: [1]
+node: Section B
 topLevel: 2 nodes
 ```

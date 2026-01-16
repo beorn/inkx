@@ -54,7 +54,7 @@ $ km sh --json board.md -c 'state' 2>&1 | tail -1
 
 ```console
 $ km sh --json board.md -c 'move_down; state' 2>&1 | grep '"event":"action"'
-{"event":"action","action":{"type":"MOVE_DOWN"},[...]}
+{"event":"action","action":{"type":"NAV_NEXT_SIBLING"},[...]}
 ```
 
 ### JSON mode state changes output state event
@@ -71,14 +71,14 @@ $ km sh --json board.md -c 'state' 2>&1 | grep -c '"event":"state"'
 ### JSON actions can be used as input
 
 ```console
-$ echo '{"type":"MOVE_DOWN"}' | km sh --json board.md 2>&1 | grep '"event":"action"'
-{"event":"action","action":{"type":"MOVE_DOWN"},[...]}
+$ echo '{"type":"NAV_NEXT_SIBLING"}' | km sh --json board.md 2>&1 | grep '"event":"action"'
+{"event":"action","action":{"type":"NAV_NEXT_SIBLING"},[...]}
 ```
 
 ### Multiple JSON actions work
 
 ```console
-$ echo -e '{"type":"MOVE_DOWN"}\n{"type":"MOVE_UP"}' | km sh --json board.md 2>&1 | grep -c '"event":"action"'
+$ echo -e '{"type":"NAV_NEXT_SIBLING"}\n{"type":"NAV_PREV_SIBLING"}' | km sh --json board.md 2>&1 | grep -c '"event":"action"'
 2
 ```
 
@@ -125,7 +125,7 @@ $ km sh --json board.md -c 'state' 2>&1 | tail -1 | grep '"topLevelCount"'
 
 ```console
 $ km sh --json board.md -c 'move_down; state' 2>&1 | grep '"event":"action"'
-{"event":"action","action":{"type":"MOVE_DOWN"},[...]}
+{"event":"action","action":{"type":"NAV_NEXT_SIBLING"},[...]}
 ```
 
 ### State command outputs state event in JSON mode

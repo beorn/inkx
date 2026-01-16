@@ -293,14 +293,15 @@ export function executeCommand(
   const result = parseCommand(line);
 
   // Key map used for KEY: and KEYS: markers
+  // Uses structural navigation (prev/next/in/out) - no spatial logic here
   const keyMap: Record<string, TreeAction> = {
-    // Navigation - vim style
-    j: { type: "MOVE_DOWN" },
-    k: { type: "MOVE_UP" },
-    h: { type: "MOVE_LEFT" },
-    l: { type: "MOVE_RIGHT" },
-    g: { type: "JUMP_TOP" },
-    G: { type: "JUMP_BOTTOM" },
+    // Navigation - vim style (structural actions)
+    j: { type: "NAV_NEXT_SIBLING" },
+    k: { type: "NAV_PREV_SIBLING" },
+    h: { type: "NAV_PARENT" }, // h always goes to parent (no cross-column in shell)
+    l: { type: "NAV_CHILD" }, // l always goes to child
+    g: { type: "NAV_FIRST_SIBLING" },
+    G: { type: "NAV_LAST_SIBLING" },
     Enter: { type: "NAV_CHILD" },
     Backspace: { type: "NAV_PARENT" },
     u: { type: "NAV_PARENT" },

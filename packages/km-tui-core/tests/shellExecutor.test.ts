@@ -361,10 +361,10 @@ describe("runShell - integration scenarios", () => {
 
     const finalState = runShell(
       [
-        "move_down", // card-1 -> card-2
-        "move_down", // card-2 -> card-3
+        "nav_next_sibling", // card-1 -> card-2
+        "nav_next_sibling", // card-2 -> card-3
         "nav_parent", // card-3 -> col-1
-        "move_right", // col-1 -> col-2
+        "nav_next_sibling", // col-1 -> col-2
       ],
       state,
       { output: () => {} },
@@ -412,7 +412,7 @@ describe("runShell - integration scenarios", () => {
     state.cursor = [0, 0];
 
     const finalState = runShell(
-      ['{"type": "MOVE_DOWN"}', '{"type": "MOVE_DOWN"}'],
+      ['{"type": "NAV_NEXT_SIBLING"}', '{"type": "NAV_NEXT_SIBLING"}'],
       state,
       { jsonMode: true, output: () => {} },
     );

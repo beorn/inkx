@@ -129,80 +129,73 @@ export function treeReducer(state: TreeState, action: TreeAction): TreeState {
       return { ...state, cursor: action.path };
     }
 
-    // ===== Legacy 2D Navigation (mapped to path-based) =====
-
-    case "MOVE_UP":
-      return treeReducer(state, { type: "NAV_PREV_SIBLING" });
-
-    case "MOVE_DOWN":
-      return treeReducer(state, { type: "NAV_NEXT_SIBLING" });
-
-    case "MOVE_LEFT": {
-      // At depth > 1: move to parent
-      // At depth 1 (top level): move to previous sibling
-      if (state.cursor.length > 1) {
-        return treeReducer(state, { type: "NAV_PARENT" });
-      }
-      const leftIdx = state.cursor[0];
-      if (state.cursor.length === 1 && leftIdx !== undefined && leftIdx > 0) {
-        return { ...state, cursor: [leftIdx - 1] };
-      }
-      return state;
-    }
-
-    case "MOVE_RIGHT": {
-      // At depth 1 (top level): move to next sibling (column)
-      // Otherwise: try to move into child
-      const rightIdx = state.cursor[0];
-      if (state.cursor.length === 1 && rightIdx !== undefined) {
-        if (rightIdx < state.nodes.length - 1) {
-          return { ...state, cursor: [rightIdx + 1] };
-        }
-        // If at last column, try to drill into children
-        return treeReducer(state, { type: "NAV_CHILD" });
-      }
-      return treeReducer(state, { type: "NAV_CHILD" });
-    }
-
-    case "NAV_CROSS_COLUMN": {
-      // Cross-column navigation with Y-position preservation
-      // Only works at depth 2 (card level: [colIndex, cardIndex])
-      if (state.cursor.length < 2) return state;
-
-      const colIndex = state.cursor[0];
-      const cardIndex = state.cursor[1];
-      if (colIndex === undefined || cardIndex === undefined) return state;
-
-      const targetCol =
-        action.direction === "left" ? colIndex - 1 : colIndex + 1;
-
-      // Bounds check for column
-      if (targetCol < 0 || targetCol >= state.nodes.length) return state;
-
-      // Get target column and clamp card index to its bounds
-      const targetColumn = state.nodes[targetCol];
-      if (!targetColumn) return state;
-
-      const maxCardIndex = Math.max(0, targetColumn.children.length - 1);
-      const clampedCardIndex = Math.min(cardIndex, maxCardIndex);
-
-      return { ...state, cursor: [targetCol, clampedCardIndex] };
-    }
-
-    case "JUMP_TOP": {
+    case "JUMP_TOP":
+    case "NAV_FIRST_SIBLING": {
       if (state.cursor.length === 0) return state;
       const newPath = [...state.cursor];
       newPath[newPath.length - 1] = 0;
       return { ...state, cursor: newPath };
     }
 
-    case "JUMP_BOTTOM": {
+    case "JUMP_BOTTOM":
+    case "NAV_LAST_SIBLING": {
       if (state.cursor.length === 0) return state;
       const siblingCount = getSiblingCount(state.nodes, state.cursor);
       if (siblingCount === 0) return state;
       const newPath = [...state.cursor];
       newPath[newPath.length - 1] = siblingCount - 1;
       return { ...state, cursor: newPath };
+    }
+
+    // Legacy directional navigation (for backwards compatibility)
+    case "MOVE_UP": {
+      return treeReducer(state, { type: "NAV_PREV_SIBLING" });
+    }
+
+    case "MOVE_DOWN": {
+      return treeReducer(state, { type: "NAV_NEXT_SIBLING" });
+    }
+
+    case "MOVE_LEFT": {
+      // At top level (depth 1), move to previous column
+      if (state.cursor.length === 1) {
+        const idx = getCurrentIndex(state.cursor);
+        if (idx <= 0) return state;
+        return { ...state, cursor: [idx - 1] };
+      }
+      // Deeper: go to parent
+      return treeReducer(state, { type: "NAV_PARENT" });
+    }
+
+    case "MOVE_RIGHT": {
+      // At top level (depth 1), move to next column
+      if (state.cursor.length === 1) {
+        const idx = getCurrentIndex(state.cursor);
+        const siblingCount = getSiblingCount(state.nodes, state.cursor);
+        if (idx >= siblingCount - 1) return state;
+        return { ...state, cursor: [idx + 1] };
+      }
+      // Deeper: enter child
+      return treeReducer(state, { type: "NAV_CHILD" });
+    }
+
+    case "NAV_CROSS_COLUMN": {
+      // Move horizontally between columns, preserving Y position within column
+      if (state.cursor.length < 2) return state; // Must be at card level [col, row]
+      const colIdx = state.cursor[0] ?? 0;
+      const rowIdx = state.cursor[1] ?? 0;
+      const newColIdx = action.direction === "right" ? colIdx + 1 : colIdx - 1;
+
+      // Check if target column exists
+      if (newColIdx < 0 || newColIdx >= state.nodes.length) return state;
+
+      // Get child count of target column
+      const targetCol = state.nodes[newColIdx];
+      if (!targetCol || targetCol.children.length === 0) return state;
+
+      // Clamp row index to target column's children
+      const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
+      return { ...state, cursor: [newColIdx, clampedRow] };
     }
 
     // ===== Node Operations =====

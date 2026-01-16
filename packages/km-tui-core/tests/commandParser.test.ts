@@ -33,30 +33,31 @@ describe("parseKeySpec", () => {
 });
 
 describe("parseCommand - simple actions", () => {
-  it("parses navigation commands", () => {
+  it("parses legacy navigation commands (mapped to structural)", () => {
+    // Legacy commands are mapped to structural equivalents
     expect(parseCommand("move_up")).toEqual({
       ok: true,
-      action: { type: "MOVE_UP" },
+      action: { type: "NAV_PREV_SIBLING" },
     });
     expect(parseCommand("move_down")).toEqual({
       ok: true,
-      action: { type: "MOVE_DOWN" },
+      action: { type: "NAV_NEXT_SIBLING" },
     });
     expect(parseCommand("move_left")).toEqual({
       ok: true,
-      action: { type: "MOVE_LEFT" },
+      action: { type: "NAV_PARENT" },
     });
     expect(parseCommand("move_right")).toEqual({
       ok: true,
-      action: { type: "MOVE_RIGHT" },
+      action: { type: "NAV_CHILD" },
     });
     expect(parseCommand("jump_top")).toEqual({
       ok: true,
-      action: { type: "JUMP_TOP" },
+      action: { type: "NAV_FIRST_SIBLING" },
     });
     expect(parseCommand("jump_bottom")).toEqual({
       ok: true,
-      action: { type: "JUMP_BOTTOM" },
+      action: { type: "NAV_LAST_SIBLING" },
     });
   });
 
@@ -134,11 +135,11 @@ describe("parseCommand - simple actions", () => {
   it("is case insensitive", () => {
     expect(parseCommand("MOVE_UP")).toEqual({
       ok: true,
-      action: { type: "MOVE_UP" },
+      action: { type: "NAV_PREV_SIBLING" },
     });
     expect(parseCommand("Move_Down")).toEqual({
       ok: true,
-      action: { type: "MOVE_DOWN" },
+      action: { type: "NAV_NEXT_SIBLING" },
     });
   });
 });
@@ -188,10 +189,10 @@ describe("parseCommand - parameterized actions", () => {
     });
   });
 
-  it("parses select_position with path", () => {
+  it("parses select_position with path (alias for nav_to_path)", () => {
     expect(parseCommand("select_position 1,2")).toEqual({
       ok: true,
-      action: { type: "SELECT_POSITION", path: [1, 2] },
+      action: { type: "NAV_TO_PATH", path: [1, 2] },
     });
   });
 
@@ -264,9 +265,9 @@ describe("parseCommand - shell commands", () => {
 
 describe("parseCommand - JSON mode", () => {
   it("parses JSON actions", () => {
-    expect(parseCommand('{"type": "MOVE_DOWN"}')).toEqual({
+    expect(parseCommand('{"type": "NAV_NEXT_SIBLING"}')).toEqual({
       ok: true,
-      action: { type: "MOVE_DOWN" },
+      action: { type: "NAV_NEXT_SIBLING" },
     });
   });
 
@@ -344,7 +345,7 @@ describe("parseCommand - edge cases", () => {
   it("trims whitespace", () => {
     expect(parseCommand("  move_up  ")).toEqual({
       ok: true,
-      action: { type: "MOVE_UP" },
+      action: { type: "NAV_PREV_SIBLING" },
     });
   });
 });
