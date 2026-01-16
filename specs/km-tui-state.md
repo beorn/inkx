@@ -17,27 +17,27 @@ Technical specification for TUI state management across three packages.
 │                                                                  │
 │  Owns: Modal state, view config, rendering, key mapping         │
 └───────────────────────────────┬─────────────────────────────────┘
-                                │ board actions
+                                │ tree actions
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  BOARD LAYER (@km/tui)                                          │
+│  TREE LAYER (@km/tui)                                           │
 │                                                                  │
-│  • boardReducer - cursor, selection, fold, zoom, navHistory     │
+│  • treeReducer - cursor, selection, fold, zoom, navHistory      │
 │  • spatialNav - cross-column algorithm (with height callback)   │
-│  • boardTypes - BoardState, BoardAction, CursorPath             │
+│  • types - TreeState, TreeAction, CursorPath                    │
 │                                                                  │
 │  Owns: Visual navigation state, selection, spatial algorithms   │
 └───────────────────────────────┬─────────────────────────────────┘
-                                │ tree queries
+                                │ node queries
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  TREE LAYER (@km/tree)                                          │
+│  NODE LAYER (@km/tree)                                          │
 │                                                                  │
 │  • TreeNodeState - node structure (id, title, children, etc.)   │
-│  • Tree queries - getNodeAtPath, getChildren, search/filter     │
-│  • Tree transforms - flatten, filter, sort                      │
+│  • Node queries - getNodeAtPath, getChildren, search/filter     │
+│  • Node transforms - flatten, filter, sort                      │
 │                                                                  │
-│  Owns: Tree data structure, queries, transformations            │
+│  Owns: Node data structure, queries, transformations            │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │ node CRUD
                                 ▼
@@ -58,8 +58,8 @@ packages/
 │   ├── src/
 │   │   ├── App.tsx           # Main component, key handling
 │   │   ├── appState.ts       # AppState, AppAction, appReducer
-│   │   ├── boardState.ts     # BoardState, BoardAction
-│   │   ├── boardReducer.ts   # Navigation, selection
+│   │   ├── types.ts          # TreeState, TreeAction
+│   │   ├── treeReducer.ts    # Navigation, selection
 │   │   ├── spatialNav.ts     # Cross-column algorithms
 │   │   ├── views/            # CardsView, ListView, etc.
 │   │   └── components/       # Card, Column, etc.
@@ -99,12 +99,12 @@ interface AppState {
 }
 ```
 
-### BoardState (@km/tui)
+### TreeState (@km/tui)
 
 Navigation and selection state:
 
 ```typescript
-interface BoardState {
+interface TreeState {
   // Current position in tree
   cursor: CursorPath;
   rootId: string | null;
@@ -170,10 +170,10 @@ type CursorPath = number[];
 
 ## Actions
 
-### BoardAction (@km/tui)
+### TreeAction (@km/tui)
 
 ```typescript
-type BoardAction =
+type TreeAction =
   // Navigation
   | { type: "NAV_PREV_SIBLING" }
   | { type: "NAV_NEXT_SIBLING" }
@@ -228,14 +228,14 @@ type AppAction =
 
 ## Reducer Signature
 
-The board reducer receives nodes from the tree layer:
+The tree reducer receives nodes from the tree layer:
 
 ```typescript
-function boardReducer(
-  state: BoardState,
-  action: BoardAction,
+function treeReducer(
+  state: TreeState,
+  action: TreeAction,
   nodes: TreeNodeState[],  // from tree layer
-): BoardState {
+): TreeState {
   switch (action.type) {
     case "NAV_NEXT_SIBLING": {
       const siblingCount = getSiblingCount(nodes, state.cursor);
@@ -279,13 +279,13 @@ interface ViewLevelConfig {
 |---------|----------|
 | Modal state | helpOpen, searchOpen, newItemText |
 | View config | maxOutlineDepth, maxContentLines |
-| Key handling | Map keys → board/tree actions |
+| Key handling | Map keys → tree actions |
 | Height calculation | getCardHeight(node) => 3 or 4 |
 | Rendering | React components |
 
 **Does NOT own:** Cursor, selection, tree structure
 
-### Board Layer (@km/tui)
+### Tree Layer (@km/tui)
 
 | Concern | Examples |
 |---------|----------|
@@ -295,15 +295,15 @@ interface ViewLevelConfig {
 | Navigation history | zoomStack, navHistory |
 | Spatial algorithms | calculateCrossColumnPath() |
 
-**Does NOT own:** Modal state, rendering, tree content
+**Does NOT own:** Modal state, rendering, node content
 
-### Tree Layer (@km/tree)
+### Node Layer (@km/tree)
 
 | Concern | Examples |
 |---------|----------|
 | Node structure | TreeNodeState { id, title, children } |
-| Tree queries | getNodeAtPath(nodes, path) |
-| Tree transforms | filter(nodes, query), flatten(nodes) |
+| Node queries | getNodeAtPath(nodes, path) |
+| Node transforms | filter(nodes, query), flatten(nodes) |
 
 **Does NOT own:** Cursor position, selection, visual state
 
