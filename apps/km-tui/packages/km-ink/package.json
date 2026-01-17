@@ -16,10 +16,10 @@
     "chalk": "^5.4.1",
     "fullscreen-ink": "^0.1.0",
     "ink": "^6.6.0",
-    "react": "^19.2.3",
+    "react": "catalog:",
     "wrap-ansi": "^9.0.2"
   },
   "devDependencies": {
-    "@types/react": "^19.2.7"
+    "@types/react": "catalog:"
   }
 }

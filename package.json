@@ -4,6 +4,12 @@
   "description": "Knowledge Machine - The agentic work desk",
   "private": true,
   "type": "module",
+  "catalog": {
+    "@opentui/core": "^0.1.74",
+    "@opentui/react": "^0.1.74",
+    "react": "^19.2.3",
+    "@types/react": "^19.2.7"
+  },
   "workspaces": [
     "packages/*",
     "apps/*",
@@ -48,7 +54,7 @@
     "typescript-eslint": "^8.53.0"
   },
   "dependencies": {
-    "@opentui/core": "^0.1.74",
-    "@opentui/react": "^0.1.74"
+    "@opentui/core": "catalog:",
+    "@opentui/react": "catalog:"
   }
 }

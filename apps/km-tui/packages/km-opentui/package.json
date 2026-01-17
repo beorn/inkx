@@ -14,11 +14,11 @@
     "@km/sh-app": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
-    "@opentui/core": "0.1.73",
-    "@opentui/react": "0.1.73",
-    "react": "^19.2.3"
+    "@opentui/core": "catalog:",
+    "@opentui/react": "catalog:",
+    "react": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "^19.2.7"
+    "@types/react": "catalog:"
   }
 }
