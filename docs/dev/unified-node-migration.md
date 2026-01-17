@@ -95,7 +95,7 @@ CREATE TABLE nodes (
   props TEXT NOT NULL DEFAULT '{}'
   -- Task: {taskStatus, priority, dueDate, scheduledDate, taskMark, assignedTo, recurrence}
   -- Section: {rules}
-  -- Symlink: {symlinkTo}
+  -- Link: {linkTo}
   -- etc.
 );
 
@@ -157,8 +157,8 @@ interface KNode {
   // Section properties
   rules?: NodeRules;
 
-  // Symlink properties
-  symlinkTo?: string;
+  // Link properties
+  linkTo?: string;
 
   // ... other type-specific fields accessed via props
 }
@@ -250,7 +250,7 @@ Full path = `getAncestors(node).map(n => n.name).join("/")` + vault root
 | `assignedTo`    | task          | Rarely used                        |
 | `recurrence`    | task          | iCal RRULE format                  |
 | `rules`         | section       | Parsed inline attributes           |
-| `symlinkTo`     | any           | Rare: symlink target               |
+| `linkTo`        | any           | Rare: link/symlink target          |
 
 ### Remove (compute on demand)
 
