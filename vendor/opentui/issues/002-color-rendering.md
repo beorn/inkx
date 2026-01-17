@@ -3,7 +3,7 @@
 ## Tracking
 
 - **Upstream**: Not yet filed
-- **Status**: Investigating
+- **Status**: Confirmed (still present in 0.1.74)
 - **Filed**: N/A
 - **Local bead**: km-3fmv (BLOCKED)
 
@@ -87,6 +87,6 @@ named color lookup table.
 
 1. [x] Create minimal reproduction
 2. [x] Search upstream for existing reports - none found
-3. [ ] Run repro in real TTY to capture screenshot
+3. [x] Update to latest (0.1.74) and verify bug persists - confirmed
 4. [ ] File issue on anomalyco/opentui (need user permission)
 5. [ ] Consider investigating the Zig renderer source

@@ -7,7 +7,7 @@ This folder tracks OpenTUI bugs encountered in the km project, with reproduction
 | ID | Title | Upstream | Status | Workaround |
 |----|-------|----------|--------|------------|
 | [001](./001-borderstyle-segfault.md) | Invalid borderStyle causes segfault | [#543](https://github.com/anomalyco/opentui/issues/543) | Open | Use valid borderStyle values |
-| [002](./002-color-rendering.md) | Named colors render incorrectly | Not filed | Investigating | Use `inverse` styling |
+| [002](./002-color-rendering.md) | Named colors render incorrectly | Not filed | Confirmed | Use `inverse` styling |
 
 ## Environment
 
