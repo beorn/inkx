@@ -34,54 +34,71 @@ const renderer = await createCliRenderer({
 // Test component showing various color approaches
 function ColorTest() {
   return (
-    <box flexDirection="column" width={60} height={20}>
-      <text bold>OpenTUI Color Rendering Test</text>
+    <box flexDirection="column" width={70} height={30}>
+      <text bold>OpenTUI Color Rendering Bug - Reproduction</text>
       <text dimColor>Press Ctrl+C to exit</text>
       <text> </text>
 
-      {/* Reference: What cyan bg + black fg should look like */}
-      <text bold>Expected: Black text on cyan background</text>
-      <text> </text>
-
-      {/* Test 1: Named colors */}
-      <text>Test 1 - Named colors:</text>
-      <text backgroundColor="cyan" color="black">
-        {" "}
-        color="black" backgroundColor="cyan"{" "}
+      {/* Working examples - colors WITHOUT background */}
+      <text bold underline>WORKING: Colors without backgroundColor</text>
+      <text>
+        <text color="red"> red </text>
+        <text color="green"> green </text>
+        <text color="blue"> blue </text>
+        <text color="yellow"> yellow </text>
+        <text color="cyan"> cyan </text>
+        <text color="magenta"> magenta </text>
       </text>
       <text> </text>
 
-      {/* Test 2: Hex colors */}
-      <text>Test 2 - Hex colors:</text>
-      <text backgroundColor="#00ffff" color="#000000">
-        {" "}
-        color="#000000" backgroundColor="#00ffff"{" "}
+      {/* Bug: colors WITH background */}
+      <text bold underline>BUG: Colors with backgroundColor (all render white)</text>
+      <text> </text>
+
+      <text>With backgroundColor="cyan":</text>
+      <text>
+        <text backgroundColor="cyan" color="black">
+          {" "}black{" "}
+        </text>
+        <text backgroundColor="cyan" color="red">
+          {" "}red{" "}
+        </text>
+        <text backgroundColor="cyan" color="blue">
+          {" "}blue{" "}
+        </text>
+        <text backgroundColor="cyan" color="green">
+          {" "}green{" "}
+        </text>
+      </text>
+      <text dimColor>  ^ All should be different colors, but all appear white</text>
+      <text> </text>
+
+      <text>With backgroundColor="yellow":</text>
+      <text>
+        <text backgroundColor="yellow" color="black">
+          {" "}black{" "}
+        </text>
+        <text backgroundColor="yellow" color="red">
+          {" "}red{" "}
+        </text>
+        <text backgroundColor="yellow" color="blue">
+          {" "}blue{" "}
+        </text>
       </text>
       <text> </text>
 
-      {/* Test 3: Inverse (workaround) */}
-      <text>Test 3 - Inverse styling (workaround):</text>
-      <text inverse> inverse={"{true}"} </text>
+      <text>Hex colors (also broken):</text>
+      <text>
+        <text backgroundColor="#00ffff" color="#000000">
+          {" "}#000000 on #00ffff{" "}
+        </text>
+      </text>
       <text> </text>
 
-      {/* Test 4: Just black text (no background) */}
-      <text>Test 4 - Just black text, no background:</text>
-      <text color="black"> color="black" (no bg) </text>
-      <text> </text>
-
-      {/* Test 5: Other colors on cyan */}
-      <text>Test 5 - Other colors on cyan:</text>
-      <text backgroundColor="cyan" color="white">
-        {" "}
-        color="white"{" "}
-      </text>
-      <text backgroundColor="cyan" color="red">
-        {" "}
-        color="red"{" "}
-      </text>
-      <text backgroundColor="cyan" color="blue">
-        {" "}
-        color="blue"{" "}
+      {/* Workaround */}
+      <text bold underline>WORKAROUND: inverse styling</text>
+      <text>
+        <text inverse> inverse=true (swaps fg/bg) </text>
       </text>
     </box>
   );
