@@ -7,17 +7,17 @@
 
 import type {
   BoardState,
-  TNode,
+  TreeNode,
   ViewMode,
   NodeViewModel,
   BoardViewModel,
 } from "./boardTypes.ts";
 
 /**
- * Transform a TNode into a NodeViewModel
+ * Transform a TreeNode into a NodeViewModel
  */
 export function toNodeViewModel(
-  node: TNode,
+  node: TreeNode,
   foldedNodes: Set<string>,
 ): NodeViewModel {
   return {

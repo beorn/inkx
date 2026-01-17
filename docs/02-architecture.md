@@ -17,16 +17,16 @@ km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This 
 │             State: BoardState    Actions: BoardAction               │
 ├─────────────────────────────────────────────────────────────────────┤
 │  TREE       @km/tree                                                │
-│             TNode (recursive), queries, display names               │
-│             Data: TNode, TPath   Actions: TAction                   │
+│             TreeNode (recursive), queries, display names            │
+│             Data: TreeNode, TPath   Actions: TAction                │
 ├─────────────────────────────────────────────────────────────────────┤
 │  STORAGE    @km/storage                                             │
-│             DBNode (flat), SQLite, events, file sync                │
-│             Data: DBNode         Functions: CRUD + emit()           │
+│             KNode (flat), SQLite, events, file sync                 │
+│             Data: KNode          Functions: CRUD + emit()           │
 ├─────────────────────────────────────────────────────────────────────┤
 │  FS         filesystem + @km/markdown                               │
 │             Folders, .md files — source of truth                    │
-│             Parser: markdown ↔ DBNode (stateless)                   │
+│             Parser: markdown ↔ KNode (stateless)                    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -41,19 +41,19 @@ km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This 
 ## Data Types
 
 ```
-FS → Storage:    File content  → DBNode    (parse markdown)
-Storage → Tree:  DBNode[]      → TNode[]   (build recursive tree)
-Tree → Board:    TNode[]       → (used as-is, visual state in Sets)
+FS → Storage:    File content  → KNode     (parse markdown)
+Storage → Tree:  KNode[]       → TreeNode[] (build recursive tree)
+Tree → Board:    TreeNode[]    → (used as-is, visual state in Sets)
 Board → App:     BoardState    → AppState  (add modals, search)
 ```
 
-| Type         | Package     | Description                            |
-| ------------ | ----------- | -------------------------------------- |
-| `DBNode`     | @km/storage | Flat record with `parent_id` (SQLite)  |
-| `TNode`      | @km/tree    | Recursive with `children[]`            |
-| `TPath`      | @km/tree    | Array of indices `[col, row, ...]`     |
-| `BoardState` | @km/board   | cursor, selection, fold, zoom, history |
-| `AppState`   | apps/       | BoardState + modals, search, etc.      |
+| Type         | Package   | Description                            |
+| ------------ | --------- | -------------------------------------- |
+| `KNode`      | @km/core  | Flat record with `parent_id` (SQLite)  |
+| `TreeNode`   | @km/core  | Recursive with `children[]`            |
+| `TPath`      | @km/tree  | Array of indices `[col, row, ...]`     |
+| `BoardState` | @km/board | cursor, selection, fold, zoom, history |
+| `AppState`   | apps/     | BoardState + modals, search, etc.      |
 
 | Action Type   | Package   | Examples                          |
 | ------------- | --------- | --------------------------------- |
@@ -184,10 +184,10 @@ See [03-storage.md](03-storage.md) for details on how @km/storage implements bid
 
 ```
 packages/
-  @km/core       - Shared types, utilities
-  @km/storage    - DBNode, SQLite, events, sync
-  @km/markdown   - Parser (markdown ↔ DBNode)
-  @km/tree       - TNode, queries, display names
+  @km/core       - KNode, TreeNode, shared types
+  @km/storage    - SQLite, events, sync
+  @km/markdown   - Parser (markdown ↔ KNode)
+  @km/tree       - Tree queries, display names
   @km/board      - BoardState, cursor, selection, fold
 
 apps/
@@ -202,8 +202,8 @@ apps/
 
 | Term            | Definition                                               |
 | --------------- | -------------------------------------------------------- |
-| **DBNode**      | Flat record with `parent_id`. Stored in SQLite.          |
-| **TNode**       | Recursive tree with `children[]`. For navigation.        |
+| **KNode**       | Flat record with `parent_id`. Stored in SQLite.          |
+| **TreeNode**    | Recursive tree with `children[]`. For navigation.        |
 | **BoardState**  | Visual state: cursor, selection, fold, zoom.             |
 | **memory mode** | No `.km/`. SQLite in RAM. Ephemeral IDs.                 |
 | **disk mode**   | `.km/` exists. SQLite on disk. Stable IDs, events, sync. |

@@ -7,7 +7,7 @@ import { Database } from "bun:sqlite";
 import { join, resolve } from "path";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { ulid } from "ulid";
-import type { DBNode, Event, TaskStatus, NodeType, NodeRules } from "@km/core";
+import type { KNode, Event, TaskStatus, NodeType, NodeRules } from "@km/core";
 import { getKmDir, emit } from "./emit.ts";
 import { parseHeadingRules } from "@km/markdown";
 import { isExplicitPath } from "./path-utils.ts";
@@ -454,7 +454,7 @@ function applyTaskCompleted(db: Database, event: Event): void {
 /**
  * Get a node by ID
  */
-export function getNode(id: string): DBNode | null {
+export function getNode(id: string): KNode | null {
   const db = getDb();
   const row = db.query("SELECT * FROM nodes WHERE id = ?").get(id) as Record<
     string,
@@ -477,7 +477,7 @@ export function getNode(id: string): DBNode | null {
 function getNodeByIdPrefixWithType(
   idPrefix: string,
   typeFilter?: string,
-): DBNode | null {
+): KNode | null {
   const db = getDb();
   const typeClause = typeFilter ? " AND type = ?" : "";
   const params = typeFilter ? [idPrefix, typeFilter] : [idPrefix];
@@ -514,21 +514,21 @@ function getNodeByIdPrefixWithType(
 /**
  * Get a node by ID prefix or suffix (for CLI convenience)
  */
-export function getNodeByIdPrefix(idPrefix: string): DBNode | null {
+export function getNodeByIdPrefix(idPrefix: string): KNode | null {
   return getNodeByIdPrefixWithType(idPrefix);
 }
 
 /**
  * Get a task by ID prefix or suffix (for CLI convenience)
  */
-export function getTaskByIdPrefix(idPrefix: string): DBNode | null {
+export function getTaskByIdPrefix(idPrefix: string): KNode | null {
   return getNodeByIdPrefixWithType(idPrefix, "task");
 }
 
 /**
  * Get a node by filesystem path
  */
-export function getNodeByPath(fsPath: string): DBNode | null {
+export function getNodeByPath(fsPath: string): KNode | null {
   const db = getDb();
   const row = db
     .query("SELECT * FROM nodes WHERE fs_path = ?")
@@ -541,7 +541,7 @@ export function getNodeByPath(fsPath: string): DBNode | null {
 /**
  * Get all folder/file nodes under a directory path (for reconciliation)
  */
-export function getNodesUnderPath(dirPath: string): DBNode[] {
+export function getNodesUnderPath(dirPath: string): KNode[] {
   const db = getDb();
   const rows = db
     .query(
@@ -559,7 +559,7 @@ export function getNodesUnderPath(dirPath: string): DBNode[] {
 /**
  * Get a file node and its children (sections, tasks, etc.)
  */
-export function getFileWithChildren(fsPath: string): DBNode[] {
+export function getFileWithChildren(fsPath: string): KNode[] {
   const db = getDb();
   const rows = db
     .query(
@@ -590,7 +590,7 @@ export function getNodeContentHash(nodeId: string): string | null {
 /**
  * Find a file node by name (for wikilink resolution)
  */
-export function findFileByName(name: string): DBNode | null {
+export function findFileByName(name: string): KNode | null {
   const db = getDb();
   const normalizedName = name.toLowerCase().replace(/\.md$/, "");
 
@@ -628,7 +628,7 @@ export function findFileByName(name: string): DBNode | null {
  * @param type - Optional type filter (e.g., "task", "file")
  * @returns The matching node, or null if not found
  */
-export function resolveNode(query: string, type?: string): DBNode | null {
+export function resolveNode(query: string, type?: string): KNode | null {
   const db = getDb();
   const typeFilter = type ? " AND type = ?" : "";
   const typeParams = type ? [type] : [];
@@ -723,14 +723,14 @@ export function resolveNode(query: string, type?: string): DBNode | null {
  * @param query - ID, path, or filename to search for
  * @returns The matching task node, or null if not found
  */
-export function resolveTask(query: string): DBNode | null {
+export function resolveTask(query: string): KNode | null {
   return resolveNode(query, "task");
 }
 
 /**
  * Get children of a node
  */
-export function getChildren(parentId: string | null): DBNode[] {
+export function getChildren(parentId: string | null): KNode[] {
   const db = getDb();
 
   let rows: Record<string, unknown>[];
@@ -762,7 +762,7 @@ export function getChildren(parentId: string | null): DBNode[] {
 /**
  * Get subtree (recursive)
  */
-export function getSubtree(rootId: string): DBNode[] {
+export function getSubtree(rootId: string): KNode[] {
   const db = getDb();
   const rows = db
     .query(
@@ -786,7 +786,7 @@ export function getSubtree(rootId: string): DBNode[] {
  * Get ancestors of a node (from root to parent)
  * Returns array from root down to immediate parent (excludes the node itself)
  */
-export function getAncestors(nodeId: string): DBNode[] {
+export function getAncestors(nodeId: string): KNode[] {
   const db = getDb();
   const rows = db
     .query(
@@ -809,7 +809,7 @@ export function getAncestors(nodeId: string): DBNode[] {
 /**
  * Get tasks by status
  */
-export function getTasksByStatus(status: TaskStatus | TaskStatus[]): DBNode[] {
+export function getTasksByStatus(status: TaskStatus | TaskStatus[]): KNode[] {
   const db = getDb();
   const statuses = Array.isArray(status) ? status : [status];
   const placeholders = statuses.map(() => "?").join(", ");
@@ -830,7 +830,7 @@ export function getTasksByStatus(status: TaskStatus | TaskStatus[]): DBNode[] {
 /**
  * Get all tasks
  */
-export function getAllTasks(): DBNode[] {
+export function getAllTasks(): KNode[] {
   const db = getDb();
   const rows = db
     .query(
@@ -849,7 +849,7 @@ export function getAllTasks(): DBNode[] {
  * Get all symlinks pointing to a given node
  * Used to find which boards/sections contain a task
  */
-export function getSymlinksTo(nodeId: string): DBNode[] {
+export function getSymlinksTo(nodeId: string): KNode[] {
   const db = getDb();
   const rows = db
     .query(
@@ -907,7 +907,7 @@ export function toFts5Query(query: string): string {
 /**
  * Full-text search
  */
-export function search(query: string, limit = 50): DBNode[] {
+export function search(query: string, limit = 50): KNode[] {
   const db = getDb();
   const ftsQuery = toFts5Query(query);
 
@@ -1004,7 +1004,7 @@ export function getLastEventId(): string | null {
 /**
  * Get all nodes (for debugging/export)
  */
-export function getAllNodes(): DBNode[] {
+export function getAllNodes(): KNode[] {
   const db = getDb();
   const rows = db.query("SELECT * FROM nodes").all() as Record<
     string,
@@ -1292,10 +1292,7 @@ export function deleteNode(nodeId: string): void {
  * @param node - Partial node data (id will be generated if not provided)
  * @returns The created node's ID
  */
-export function addNode(
-  parentId: string | null,
-  node: Partial<DBNode>,
-): string {
+export function addNode(parentId: string | null, node: Partial<KNode>): string {
   const nodeId = node.id ?? ulid();
   const now = Date.now();
 

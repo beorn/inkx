@@ -15,7 +15,7 @@ import type {
   SelectionKey,
 } from "../types.ts";
 import { buildBoardState, initBoardState } from "../state.ts";
-import type { DBNode, TaskStatus } from "@km/core";
+import type { KNode, TaskStatus } from "@km/core";
 import {
   getChildren,
   getNode,
@@ -77,14 +77,14 @@ function getPathSegments(
   name: string;
   sep: string;
   isWithinBoard: boolean;
-  node: DBNode | null;
+  node: KNode | null;
 }> {
   if (!nodeId) {
     return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
   }
 
   // Collect all nodes from root to target
-  const nodes: DBNode[] = [];
+  const nodes: KNode[] = [];
   let currentId: string | null = nodeId;
   while (currentId) {
     const node = getNode(currentId);
@@ -109,7 +109,7 @@ function getPathSegments(
     name: string;
     sep: string;
     isWithinBoard: boolean;
-    node: DBNode | null;
+    node: KNode | null;
   }> = [];
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
@@ -2227,7 +2227,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Handle project picker selection
   // For symlinked nodes (transclusions), re-parent the TARGET node, not the symlink
   // This moves the original task to the new project
-  const handleProjectSelect = (targetNode: DBNode) => {
+  const handleProjectSelect = (targetNode: KNode) => {
     const card = state.columns[state.colIndex]?.cards[state.cardIndex];
     if (!card) {
       setShowProjectPicker(false);

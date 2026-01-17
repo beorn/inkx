@@ -20,7 +20,7 @@ import {
   extractTags,
   getChildren,
 } from "@km/storage";
-import type { DBNode, TaskStatus } from "@km/core";
+import type { KNode, TaskStatus } from "@km/core";
 import {
   getNodeDisplayName as getNodeDisplayNameRaw,
   normalizeName,
@@ -148,7 +148,7 @@ function formatTaskLine(
  * Find a node by path or ID prefix/suffix
  * Returns the node if found, null otherwise
  */
-function findNodeByPathOrId(pathOrId: string): DBNode | null {
+function findNodeByPathOrId(pathOrId: string): KNode | null {
   // Try ID match (exact, prefix, or suffix)
   const node = getNodeByIdPrefix(pathOrId);
   if (node) return node;
@@ -172,7 +172,7 @@ function findNodeByPathOrId(pathOrId: string): DBNode | null {
 /**
  * Get all tasks under a root node (recursive)
  */
-function getTasksUnderNode(rootId: string): DBNode[] {
+function getTasksUnderNode(rootId: string): KNode[] {
   const db = getDb();
 
   // Use recursive CTE to get all descendants
@@ -379,7 +379,7 @@ function getAncestorKey(ca: CollapsedAncestor): string {
   return normalizeName(getNodeDisplayNameBase(ca.node));
 }
 
-function buildTaskTree(tasks: DBNode[]): TaskWithAncestors[] {
+function buildTaskTree(tasks: KNode[]): TaskWithAncestors[] {
   return tasks.map((task) => {
     const rawAncestors = getAncestors(task.id);
     const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors);
@@ -435,7 +435,7 @@ function segmentMatches(
  * - For sections: the content (heading text)
  * - For tasks: the content
  */
-function getNodeSegmentName(node: DBNode): string | null {
+function getNodeSegmentName(node: KNode): string | null {
   if (node.fs_path) {
     // Get basename from path
     return node.fs_path.split("/").pop() ?? null;
@@ -521,8 +521,8 @@ function listTasks(
   },
 ): void {
   const db = getDb();
-  let tasks: DBNode[];
-  let rootNode: DBNode | null = null;
+  let tasks: KNode[];
+  let rootNode: KNode | null = null;
   let pathFilter: string | null = null;
 
   // Handle query option first (takes precedence)

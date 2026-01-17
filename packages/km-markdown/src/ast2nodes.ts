@@ -7,7 +7,7 @@
 import { ulid } from "ulid";
 import type { Root, Content, Heading, List, ListItem, Paragraph } from "mdast";
 import { parse as parseYaml } from "yaml";
-import type { DBNode, NodeType, TaskStatus, TaskMark } from "@km/core";
+import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core";
 import { CUSTOM_TASK_MARKS } from "@km/core";
 import {
   parseMarkdown,
@@ -37,7 +37,7 @@ export interface ParseWarning {
  * Result of parsing markdown with wikilinks
  */
 export interface ParseResult {
-  nodes: DBNode[];
+  nodes: KNode[];
   wikilinks: Array<{ nodeId: string; link: WikiLink }>;
   warnings: ParseWarning[];
 }
@@ -49,7 +49,7 @@ export function parseMarkdownToNodes(
   content: string,
   fsPath: string,
   fsIno?: number,
-): DBNode[] {
+): KNode[] {
   return parseMarkdownWithLinks(content, fsPath, fsIno).nodes;
 }
 
@@ -180,8 +180,8 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
 /**
  * Convert AST children to km nodes
  */
-function astToNodes(ast: Root, fileNode: Node, sourceText: string): DBNode[] {
-  const nodes: DBNode[] = [];
+function astToNodes(ast: Root, fileNode: Node, sourceText: string): KNode[] {
+  const nodes: KNode[] = [];
   const sectionStack: Array<{ depth: number; node: Node }> = [];
   let currentParent = fileNode;
   let sortOrder = 0;
@@ -273,8 +273,8 @@ function convertListItem(
   ordered: boolean,
   sortOrder: number,
   sourceText: string,
-): DBNode[] {
-  const nodes: DBNode[] = [];
+): KNode[] {
+  const nodes: KNode[] = [];
   const now = Date.now();
 
   let text = nodeToText(item);
@@ -397,7 +397,7 @@ function convertBlock(
   block: Content,
   parent: Node,
   sortOrder: number,
-): DBNode | null {
+): KNode | null {
   const now = Date.now();
 
   let type: NodeType;
@@ -472,8 +472,8 @@ function convertBlock(
 /**
  * Build a tree structure from flat nodes
  */
-export function buildNodeTree(nodes: DBNode[]): Map<string, DBNode[]> {
-  const tree = new Map<string, DBNode[]>();
+export function buildNodeTree(nodes: KNode[]): Map<string, KNode[]> {
+  const tree = new Map<string, KNode[]>();
 
   for (const node of nodes) {
     const parentId = node.parent_id ?? "__root__";

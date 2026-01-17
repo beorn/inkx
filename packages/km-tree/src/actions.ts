@@ -11,7 +11,7 @@
  * - Actions use simple names without prefixes (UPDATE_NODE, not T_UPDATE_NODE)
  */
 
-import type { DBNode } from "@km/core";
+import type { KNode } from "@km/core";
 
 /**
  * Tree content manipulation actions.
@@ -22,7 +22,7 @@ import type { DBNode } from "@km/core";
  *          NOT { type: "TOGGLE_TASK_STATUS" }
  */
 export type TAction =
-  | { type: "ADD_NODE"; parentId: string | null; node: Partial<DBNode> }
+  | { type: "ADD_NODE"; parentId: string | null; node: Partial<KNode> }
   | {
       type: "MOVE_NODE";
       nodeId: string;
@@ -30,7 +30,7 @@ export type TAction =
       newIndex: number;
     }
   | { type: "DELETE_NODE"; nodeId: string }
-  | { type: "UPDATE_NODE"; nodeId: string; updates: Partial<DBNode> };
+  | { type: "UPDATE_NODE"; nodeId: string; updates: Partial<KNode> };
 
 /** Action type constants for tree actions */
 export const TActionTypes = {

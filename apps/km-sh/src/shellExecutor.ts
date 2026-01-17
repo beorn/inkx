@@ -9,7 +9,7 @@ import type {
   BoardState,
   BoardAction,
   TPath,
-  TNode,
+  TreeNode,
   TaskStatus,
 } from "@km/board";
 import { boardReducer, getNodeAtPath } from "@km/board";
@@ -225,9 +225,9 @@ export function getPromptPath(
  * Find a child node by title or slug (case-insensitive)
  */
 function findChildByName(
-  nodes: TNode[],
+  nodes: TreeNode[],
   name: string,
-): { node: TNode; index: number } | null {
+): { node: TreeNode; index: number } | null {
   const lowerName = name.toLowerCase();
   const slugName = slugify(name);
 
@@ -352,7 +352,7 @@ function navigateToPath(
  * List children of current or specified node
  */
 function listNodes(state: BoardState, pathStr?: string): string {
-  let nodes: TNode[];
+  let nodes: TreeNode[];
 
   if (pathStr) {
     const result = resolvePath(state, pathStr);
@@ -413,7 +413,7 @@ function renderTreeCommand(
   pathStr?: string,
   maxDepth?: number,
 ): string {
-  let startNodes: TNode[];
+  let startNodes: TreeNode[];
   let rootTitle: string;
 
   if (pathStr) {
@@ -457,7 +457,7 @@ function renderTreeCommand(
     dropped: "∅",
   };
 
-  function renderNode(nodes: TNode[], prefix: string, currentDepth: number) {
+  function renderNode(nodes: TreeNode[], prefix: string, currentDepth: number) {
     if (currentDepth > depth) return;
 
     for (let i = 0; i < nodes.length; i++) {
@@ -500,7 +500,7 @@ function renderTreeCommand(
  * Show node content/details (cat command)
  */
 function catNode(state: BoardState, pathStr?: string): string {
-  let node: TNode | null;
+  let node: TreeNode | null;
 
   if (pathStr) {
     const result = resolvePath(state, pathStr);
@@ -528,8 +528,8 @@ function catNode(state: BoardState, pathStr?: string): string {
     lines.push(`children: ${node.childCount}`);
   }
 
-  // If there's content on the node (stored in TNode), show it
-  // Note: TNode doesn't typically store full content, just metadata
+  // If there's content on the node (stored in TreeNode), show it
+  // Note: TreeNode doesn't typically store full content, just metadata
   // For full content, we'd need access to the store
 
   return lines.join("\n");

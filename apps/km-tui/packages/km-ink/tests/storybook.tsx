@@ -34,7 +34,7 @@ import { TreeNode } from "../src/views/TreeNode.tsx";
 import { ListView } from "../src/views/ListView.tsx";
 import { ColumnsView } from "../src/views/ColumnsView.tsx";
 import { TabsView } from "../src/views/TabsView.tsx";
-import type { DBNode } from "@km/core";
+import type { KNode } from "@km/core";
 import type {
   BoardState,
   ColumnState,
@@ -586,7 +586,7 @@ function Layer3Views(): React.ReactElement {
 // ============================================================================
 
 // Helper to create mock CardState with children
-function mockCard(node: Node, children: DBNode[] = []): CardState {
+function mockCard(node: Node, children: KNode[] = []): CardState {
   return { node, children };
 }
 

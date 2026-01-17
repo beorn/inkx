@@ -10,7 +10,9 @@
 
 // Types
 export type {
-  DBNode,
+  KNode,
+  TreeNode,
+  Source,
   NodeType,
   NodeRules,
   TaskStatus,

@@ -7,13 +7,13 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { ulid } from "ulid";
-import type { DBNode } from "@km/core";
+import type { KNode } from "@km/core";
 import { getNode, getChildren, emitNodeCreated } from "@km/storage";
 import { getNodeDisplayName } from "../state.ts";
 
 export interface NewItemDialogProps {
   /** The currently selected node (for context/defaults) */
-  cursorNode: DBNode | null;
+  cursorNode: KNode | null;
   /** Callback when item is created */
   onCreate: (newNodeId: string) => void;
   /** Callback when dialog is cancelled */
@@ -27,7 +27,7 @@ export interface NewItemDialogProps {
  * Get the parent to insert into based on cursor node
  * For tasks, insert as sibling. For sections/files/folders, insert as child.
  */
-function getInsertParentId(cursorNode: DBNode | null): string | null {
+function getInsertParentId(cursorNode: KNode | null): string | null {
   if (!cursorNode) return null;
 
   // For tasks, insert as sibling (same parent)
@@ -52,7 +52,7 @@ function getInsertParentId(cursorNode: DBNode | null): string | null {
  * Calculate parent_idx to insert above current item
  */
 function getInsertIdx(
-  cursorNode: DBNode | null,
+  cursorNode: KNode | null,
   parentId: string | null,
 ): number {
   if (!cursorNode || !parentId) return 0;
@@ -75,7 +75,7 @@ function getInsertIdx(
  * Get display context for the insertion point
  */
 function getInsertContext(
-  cursorNode: DBNode | null,
+  cursorNode: KNode | null,
   parentId: string | null,
 ): string {
   if (!parentId) return "root";

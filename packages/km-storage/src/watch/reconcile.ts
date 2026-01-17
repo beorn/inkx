@@ -7,7 +7,7 @@
 import { statSync, readFileSync, existsSync } from "fs";
 import { dirname, basename, relative } from "path";
 import { ulid } from "ulid";
-import type { DBNode } from "@km/core";
+import type { KNode } from "@km/core";
 import {
   emitNodeCreated,
   emitNodeUpdated,
@@ -353,7 +353,7 @@ interface NodeChange {
   changes?: Record<string, unknown>;
 }
 
-function diffNodes(existing: DBNode[], newNodes: DBNode[]): NodeChange[] {
+function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
   const changes: NodeChange[] = [];
 
   // Index existing by position (for matching)

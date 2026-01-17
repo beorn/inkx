@@ -6,10 +6,10 @@
 
 import { describe, it, expect } from "bun:test";
 import { boardReducer, createBoardState, getNodeAtPath } from "../src/index.ts";
-import type { BoardState, TNode } from "../src/index.ts";
+import type { BoardState, TreeNode } from "../src/index.ts";
 
 // Helper to create test nodes
-function createNode(nodeId: string, children: TNode[] = []): TNode {
+function createNode(nodeId: string, children: TreeNode[] = []): TreeNode {
   return {
     nodeId,
     name: nodeId,
@@ -30,7 +30,7 @@ function createNode(nodeId: string, children: TNode[] = []): TNode {
 //   - Card 2 (card-2)
 // - Column B (col-b)
 //   - Card 3 (card-3)
-const testNodes: TNode[] = [
+const testNodes: TreeNode[] = [
   createNode("col-a", [createNode("card-1"), createNode("card-2")]),
   createNode("col-b", [createNode("card-3")]),
 ];

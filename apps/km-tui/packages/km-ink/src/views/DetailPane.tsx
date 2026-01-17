@@ -6,7 +6,7 @@
  */
 import React from "react";
 import { Box, Text } from "ink";
-import type { DBNode } from "@km/core";
+import type { KNode } from "@km/core";
 import { getChildren, getBacklinks, getNode } from "@km/storage";
 import { getNodeDisplayName } from "../state.ts";
 import { renderRich } from "../text/index.ts";
@@ -124,7 +124,7 @@ function extractReferences(content: string | undefined): References {
 }
 
 // Build project path (ancestors to root)
-function getProjectPath(node: DBNode): string[] {
+function getProjectPath(node: KNode): string[] {
   const path: string[] = [];
   let currentId = node.parent_id;
 
@@ -194,7 +194,7 @@ export function DetailPane({
 
   // Get backlinks
   const backlinks = getBacklinks(node.id);
-  const backlinkNodes: DBNode[] = [];
+  const backlinkNodes: KNode[] = [];
   for (const link of backlinks) {
     const sourceNode = getNode(link.source_id);
     if (sourceNode) {

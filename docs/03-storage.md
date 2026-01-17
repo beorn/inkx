@@ -1,6 +1,6 @@
 # Storage
 
-Modes, DBNode schema, events, and bidirectional sync.
+Modes, KNode schema, events, and bidirectional sync.
 
 ---
 
@@ -89,12 +89,12 @@ Search for .km/ in ancestors
 
 ---
 
-## DBNode Schema
+## KNode Schema
 
 Everything is a node. The unified schema stored in SQLite:
 
 ```typescript
-interface DBNode {
+interface KNode {
   id: string; // ULID (persisted) or path:line (memory)
   type: NodeType;
   parent_id: string | null; // Flat structure - parent reference
@@ -118,7 +118,7 @@ interface DBNode {
 }
 ```
 
-**Note:** `DBNode` is a flat record with `parent_id`. For tree navigation, use `TNode` from @km/tree which has recursive `children[]`.
+**Note:** `KNode` is a flat record with `parent_id`. For tree navigation, use `TreeNode` from @km/core which extends `KNode` with recursive `children[]`.
 
 ### Node Types
 
@@ -171,7 +171,7 @@ type TaskStatus =
 Nodes can be **embedded** to appear in multiple locations:
 
 ```typescript
-interface DBNode {
+interface KNode {
   // ... other fields ...
   symlink_to?: string; // ID of target node (if this is a symlink)
 }

@@ -4,7 +4,7 @@
  * Pure functions for managing board state - fully testable
  */
 
-import type { DBNode } from "@km/core";
+import type { KNode } from "@km/core";
 import type {
   BoardState,
   ColumnState,
@@ -83,7 +83,7 @@ export function initBoardState(rootId?: string): BoardState | null {
   }
 
   // Group roots by display name
-  const groups = new Map<string, DBNode[]>();
+  const groups = new Map<string, KNode[]>();
   for (const root of roots) {
     const name = getNodeDisplayName(root);
     if (!groups.has(name)) {
@@ -101,7 +101,7 @@ export function initBoardState(rootId?: string): BoardState | null {
     // Collect all children from all roots in this group
     // Deduplicate by display name to avoid showing the same card multiple times
     const seenNames = new Set<string>();
-    const uniqueCardNodes: DBNode[] = [];
+    const uniqueCardNodes: KNode[] = [];
     for (const root of groupRoots) {
       for (const child of getChildren(root.id)) {
         const cardName = getNodeDisplayName(child);
@@ -140,7 +140,7 @@ export function initBoardState(rootId?: string): BoardState | null {
  * Extract WIP limits from frontmatter columns config
  * Frontmatter format: columns: { column_name: { limit: number } }
  */
-function extractWipLimits(rootNode: DBNode | null): Map<string, number> {
+function extractWipLimits(rootNode: KNode | null): Map<string, number> {
   const limits = new Map<string, number>();
   if (!rootNode?.data?.columns) return limits;
 

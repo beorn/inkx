@@ -12,7 +12,7 @@
  */
 import React from "react";
 import { Box, Text } from "ink";
-import type { DBNode } from "@km/core";
+import type { KNode } from "@km/core";
 import { getChildren } from "@km/storage";
 import { getNodeDisplayName, getParentContext } from "../state.ts";
 import {

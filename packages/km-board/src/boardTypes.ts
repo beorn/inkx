@@ -5,17 +5,17 @@
  * Does NOT include app-specific UI state (modals, dialogs) - that belongs in each app.
  */
 
-// Import types from @km/tree
-import type { TNode, TPath, TaskStatus } from "@km/tree";
+// Import types from @km/core and @km/tree
+import type { TreeNode } from "@km/core";
+import type { TPath, TaskStatus } from "@km/tree";
 
 export type { TaskStatus } from "@km/tree";
+export type { TreeNode } from "@km/core";
+export type { TPath } from "@km/tree";
 
 // ===== Base Types =====
 
 export type ViewMode = "cards" | "list" | "columns" | "tabs";
-
-// Re-export TNode and TPath from @km/tree
-export type { TNode, TPath } from "@km/tree";
 
 // ===== Board State (Core Navigation) =====
 
@@ -30,7 +30,7 @@ export interface BoardState {
   rootPath: string | null;
 
   // Tree data
-  nodes: TNode[]; // Top-level nodes
+  nodes: TreeNode[]; // Top-level nodes
 
   // Path-based navigation
   cursor: TPath; // Current selection path
@@ -112,11 +112,11 @@ export type BoardAction =
   | { type: "UNFOLD_LEVEL"; depth: number }
 
   // Zoom/root change
-  | { type: "ZOOM_IN"; nodeId: string; nodes: TNode[] }
-  | { type: "ZOOM_OUT"; nodes: TNode[] }
+  | { type: "ZOOM_IN"; nodeId: string; nodes: TreeNode[] }
+  | { type: "ZOOM_OUT"; nodes: TreeNode[] }
 
   // Refresh
-  | { type: "REFRESH"; nodes: TNode[] }
+  | { type: "REFRESH"; nodes: TreeNode[] }
 
   // Navigation history
   | { type: "NAV_BACK" }
@@ -124,7 +124,7 @@ export type BoardAction =
   | {
       type: "NAV_TO";
       rootId: string | null;
-      nodes: TNode[];
+      nodes: TreeNode[];
       rootPath: string | null;
     }
 

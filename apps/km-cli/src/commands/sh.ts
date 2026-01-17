@@ -37,12 +37,12 @@ import {
   serializeState,
   getCommandNames,
   getPromptPath,
-  type TNode,
+  type TreeNode,
   type TaskStatus,
   type OutputEvent,
   type ShellContext,
 } from "@km/sh-app";
-import type { DBNode } from "@km/core";
+import type { KNode } from "@km/core";
 
 // OSC 133 Shell Integration Protocol (Kitty, WezTerm, iTerm2, VS Code)
 // Emitted automatically when running in a real TTY, or when TERM_SHELL_INTEGRATION=1
@@ -68,7 +68,7 @@ function shouldEmitOsc133(): boolean {
  * Get node name (slug identifier)
  * Uses node.name if available, otherwise derives from fs_path/md_slug
  */
-function getNodeName(node: DBNode): string {
+function getNodeName(node: KNode): string {
   // Prefer the stored name
   if (node.name) {
     return node.name;
@@ -89,19 +89,19 @@ function getNodeName(node: DBNode): string {
 }
 
 /**
- * Convert DBNode to TNode (recursive)
+ * Convert KNode to TreeNode (recursive)
  */
-function nodeToTNode(node: DBNode, depth: number): TNode {
+function nodeToTreeNode(node: KNode, depth: number): TreeNode {
   const children = getChildren(node.id);
   return {
     nodeId: node.id,
     name: getNodeName(node),
     title: getNodeDisplayName(node),
     children: children.map((child, idx) => {
-      const childTNode = nodeToTNode(child, depth + 1);
-      childTNode.parentId = node.id;
-      childTNode.parentIndex = child.parent_idx ?? idx;
-      return childTNode;
+      const childTreeNode = nodeToTreeNode(child, depth + 1);
+      childTreeNode.parentId = node.id;
+      childTreeNode.parentIndex = child.parent_idx ?? idx;
+      return childTreeNode;
     }),
     childCount: children.length,
     parentId: node.parent_id ?? null,
@@ -114,7 +114,7 @@ function nodeToTNode(node: DBNode, depth: number): TNode {
     dueDate: node.due_date,
     scheduledDate: node.scheduled_date,
     body: node.content,
-    nodeType: node.type as TNode["nodeType"],
+    nodeType: node.type as TreeNode["nodeType"],
     depth,
   };
 }
@@ -122,13 +122,13 @@ function nodeToTNode(node: DBNode, depth: number): TNode {
 /**
  * Build tree nodes from root
  */
-function buildNodes(rootId: string | null): TNode[] {
+function buildNodes(rootId: string | null): TreeNode[] {
   if (!rootId) {
     const roots = getChildren(null);
     if (roots.length === 0) {
       return [];
     }
-    return roots.map((node) => nodeToTNode(node, 0));
+    return roots.map((node) => nodeToTreeNode(node, 0));
   }
 
   const node = resolveNode(rootId);
@@ -137,7 +137,7 @@ function buildNodes(rootId: string | null): TNode[] {
   }
 
   const children = getChildren(node.id);
-  return children.map((child) => nodeToTNode(child, 0));
+  return children.map((child) => nodeToTreeNode(child, 0));
 }
 
 /**

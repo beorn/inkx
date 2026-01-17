@@ -1,9 +1,12 @@
 /**
  * km Node Types
- * Core type definitions for the event-sourced data model
+ * Core type definitions for the unified node model
  */
 
-// Node type hierarchy
+// =============================================================================
+// Node Type Hierarchy
+// =============================================================================
+
 export type NodeType =
   // Items (have children, navigable)
   | "folder"
@@ -23,8 +26,10 @@ export type NodeType =
   | "agent"
   | "board";
 
-// Task status workflow
-// Status answers: "Can I work on this?" and "What's the current state?"
+// =============================================================================
+// Task Status and Marks
+// =============================================================================
+
 export type TaskStatus =
   | "todo" // [ ] — available to work on
   | "wip" // [/] — actively being worked on
@@ -32,18 +37,30 @@ export type TaskStatus =
   | "done" // [x] — completed
   | "dropped"; // [-] — cancelled, won't do
 
-// Task checkbox marks
 export type TaskMark = " " | "x" | "X" | "!" | "-" | "/";
 
-// Custom task marks (non-GFM) that km supports
-// GFM only recognizes [ ] and [x], but we extend with these
 export const CUSTOM_TASK_MARKS = ["/", "-", "!"] as const;
-
-// Regex character class for all supported task marks (for parsing)
-// Includes: space, x, X, /, -, !
 export const TASK_MARK_REGEX_CLASS = "[ xX/\\-!]";
 
-// Column/section rules (parsed from inline attributes like add="..." sync=...)
+// =============================================================================
+// Source Type - Where a node comes from
+// =============================================================================
+
+/**
+ * Source indicates where a node originates.
+ * Full path is derived from tree structure via `name` fields - no redundant storage.
+ */
+export type Source =
+  | { type: "folder"; ino?: number } // Directory
+  | { type: "file"; ino?: number } // File (binary or md root)
+  | { type: "md"; line: number; pos?: number }; // Position within markdown file
+// Future: { type: "sync"; uri: string; etag?: string }  // CalDAV/CardDAV
+// Future: { type: "api"; endpoint: string; id: string } // External API
+
+// =============================================================================
+// Node Rules
+// =============================================================================
+
 export interface NodeRules {
   add?: string; // Query to auto-pull matching tasks
   sync?: string; // Bidirectional field sync (e.g., "status:blocked")
@@ -53,13 +70,17 @@ export interface NodeRules {
   color?: string; // Board/section color (cyan, yellow, magenta, etc.)
 }
 
+// =============================================================================
+// KNode - Unified Node Type
+// =============================================================================
+
 /**
- * DBNode - flat database record
+ * KNode - the unified node type for km
  *
- * This is the storage-layer representation of a node, stored in SQLite.
- * It uses `parent_id` for the flat parent-child relationship.
- *
- * For tree navigation, use `TNode` from @km/tree which has recursive `children[]`.
+ * This is the single node type used across all layers:
+ * - Storage: stored in SQLite with snake_case columns
+ * - Tree: extended with `children[]` and `depth` as TreeNode
+ * - Board: used directly with foldedNodes/selectedNodes Sets for UI state
  *
  * ## Task Definition
  *
@@ -72,11 +93,8 @@ export interface NodeRules {
  * Query behavior:
  * - `type:task` - only checkbox-originated nodes
  * - `status:todo` or `task_status:todo` - any node with that status
- *
- * This allows sections, files, or other nodes to have status for tracking
- * completion without being parsed from checkbox syntax.
  */
-export interface DBNode {
+export interface KNode {
   id: string; // ULID
   type: NodeType;
   parent_id: string | null;
@@ -112,8 +130,6 @@ export interface DBNode {
   title?: string; // Display title (for sections: heading without rules)
 
   // Embedding/transclusion source
-  // When set, this node came from an embedding (![[target]]) and should not be
-  // serialized directly - instead preserve the embedding reference
   source_embedding?: string; // The original ![[...]] text that created this node
 
   // Column/section rules (parsed from inline attributes)
@@ -126,7 +142,27 @@ export interface DBNode {
   version: string; // Last event ID that modified this
 }
 
-// Event types
+// =============================================================================
+// TreeNode - KNode with recursive children
+// =============================================================================
+
+/**
+ * TreeNode - KNode extended with tree structure for navigation and display.
+ * Used in @km/tree and @km/board layers.
+ */
+export interface TreeNode extends KNode {
+  children: TreeNode[];
+  depth: number; // Depth from current view root (0 = top level)
+
+  // Computed display properties
+  childCount: number; // Total children (may exceed loaded children.length)
+  isTask: boolean; // Computed: task_status !== undefined
+}
+
+// =============================================================================
+// Event Types
+// =============================================================================
+
 export type EventType =
   // Node lifecycle
   | "node_created"

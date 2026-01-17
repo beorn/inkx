@@ -7,7 +7,7 @@
  * Does NOT handle app-specific UI state (modals, dialogs) - that belongs in app layer.
  */
 
-import type { BoardState, BoardAction, TNode, TPath } from "./boardTypes.ts";
+import type { BoardState, BoardAction, TreeNode, TPath } from "./boardTypes.ts";
 import { isTAction } from "@km/tree";
 
 // ===== Helper Functions =====
@@ -15,12 +15,12 @@ import { isTAction } from "@km/tree";
 /**
  * Get node at a given cursor path
  */
-export function getNodeAtPath(nodes: TNode[], path: TPath): TNode | null {
+export function getNodeAtPath(nodes: TreeNode[], path: TPath): TreeNode | null {
   if (path.length === 0) return null;
 
   const firstIdx = path[0];
   if (firstIdx === undefined) return null;
-  let current: TNode | undefined = nodes[firstIdx];
+  let current: TreeNode | undefined = nodes[firstIdx];
   for (let i = 1; i < path.length && current; i++) {
     const idx = path[i];
     if (idx === undefined) break;
@@ -32,7 +32,7 @@ export function getNodeAtPath(nodes: TNode[], path: TPath): TNode | null {
 /**
  * Get sibling count at the current path level
  */
-export function getSiblingCount(nodes: TNode[], path: TPath): number {
+export function getSiblingCount(nodes: TreeNode[], path: TPath): number {
   if (path.length === 0) return 0;
   if (path.length === 1) return nodes.length;
 
@@ -53,7 +53,7 @@ function getCurrentIndex(path: TPath): number {
 /**
  * Recursively collect all node IDs from a tree
  */
-function collectAllNodeIds(nodes: TNode[]): string[] {
+function collectAllNodeIds(nodes: TreeNode[]): string[] {
   const ids: string[] = [];
   for (const node of nodes) {
     ids.push(node.nodeId);
@@ -67,7 +67,7 @@ function collectAllNodeIds(nodes: TNode[]): string[] {
 /**
  * Get sibling nodes at the current cursor level
  */
-function getSiblings(nodes: TNode[], path: TPath): TNode[] {
+function getSiblings(nodes: TreeNode[], path: TPath): TreeNode[] {
   if (path.length === 0) return [];
   if (path.length === 1) return nodes;
 
@@ -83,7 +83,7 @@ function getSiblings(nodes: TNode[], path: TPath): TNode[] {
  * Returns the path to the deepest last child that's visible.
  */
 function getLastVisibleDescendantPath(
-  nodes: TNode[],
+  nodes: TreeNode[],
   path: TPath,
   foldedNodes: Set<string>,
 ): TPath {
@@ -106,7 +106,7 @@ function getLastVisibleDescendantPath(
  * Order: first child (if visible) -> next sibling -> parent's next sibling -> ...
  */
 function getNextVisiblePath(
-  nodes: TNode[],
+  nodes: TreeNode[],
   path: TPath,
   foldedNodes: Set<string>,
 ): TPath | null {
@@ -154,7 +154,7 @@ function getNextVisiblePath(
  * Order: previous sibling's last descendant -> previous sibling -> parent
  */
 function getPrevVisiblePath(
-  nodes: TNode[],
+  nodes: TreeNode[],
   path: TPath,
   foldedNodes: Set<string>,
 ): TPath | null {
@@ -358,7 +358,7 @@ export function boardReducer(
     case "FOLD_LEVEL": {
       // Fold all nodes at a specific depth
       const newFolded = new Set(state.foldedNodes);
-      const addNodeAtDepth = (nodes: TNode[], currentDepth: number) => {
+      const addNodeAtDepth = (nodes: TreeNode[], currentDepth: number) => {
         for (const node of nodes) {
           if (currentDepth === action.depth) {
             newFolded.add(node.nodeId);
@@ -375,7 +375,7 @@ export function boardReducer(
     case "UNFOLD_LEVEL": {
       // Unfold all nodes at a specific depth
       const newFolded = new Set(state.foldedNodes);
-      const removeNodeAtDepth = (nodes: TNode[], currentDepth: number) => {
+      const removeNodeAtDepth = (nodes: TreeNode[], currentDepth: number) => {
         for (const node of nodes) {
           if (currentDepth === action.depth) {
             newFolded.delete(node.nodeId);
@@ -753,7 +753,7 @@ export function boardReducer(
  * otherwise [0] (first column) if there are nodes, otherwise empty.
  */
 export function createBoardState(
-  nodes: TNode[],
+  nodes: TreeNode[],
   rootId: string | null = null,
   rootPath: string | null = null,
 ): BoardState {

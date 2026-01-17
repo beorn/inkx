@@ -11,7 +11,7 @@ export type {
   BoardState,
   BoardAction,
   NodeDirection,
-  TNode,
+  TreeNode,
   TPath,
   ViewMode,
   TaskStatus,

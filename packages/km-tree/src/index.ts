@@ -6,7 +6,7 @@
  */
 
 // Types
-export type { TNode, TPath } from "./types.ts";
+export type { TreeNode, TPath } from "./types.ts";
 export type { TaskStatus } from "./types.ts";
 
 // Actions

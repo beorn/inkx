@@ -13,7 +13,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { getDb, getAncestors } from "@km/storage";
-import type { DBNode } from "@km/core";
+import type { KNode } from "@km/core";
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree";
 import { formatNode, formatCollapsedAncestor } from "@km/ink";
 
@@ -21,7 +21,7 @@ import { formatNode, formatCollapsedAncestor } from "@km/ink";
  * Match a query against a node
  * Query can be: node ID prefix, path pattern, or relative path
  */
-function matchesQuery(node: Node, query: string, ancestors: DBNode[]): boolean {
+function matchesQuery(node: Node, query: string, ancestors: KNode[]): boolean {
   // ID prefix match
   if (node.id.toLowerCase().startsWith(query.toLowerCase())) {
     return true;
@@ -53,7 +53,7 @@ function getFilteredNodes(options: {
   query?: string;
   status?: string;
   all?: boolean;
-}): DBNode[] {
+}): KNode[] {
   const db = getDb();
 
   let sql = "SELECT * FROM nodes WHERE 1=1";
@@ -96,7 +96,7 @@ function getFilteredNodes(options: {
  * Display nodes with context (ancestor paths)
  */
 function displayWithContext(
-  nodes: DBNode[],
+  nodes: KNode[],
   options: { showId: boolean; flat: boolean },
 ): void {
   // Group nodes by their collapsed ancestor paths
@@ -157,7 +157,7 @@ function displayWithContext(
 /**
  * Display nodes without context (simple list)
  */
-function displaySimple(nodes: DBNode[], options: { showId: boolean }): void {
+function displaySimple(nodes: KNode[], options: { showId: boolean }): void {
   for (const node of nodes) {
     console.log(formatNode(node, options.showId));
   }

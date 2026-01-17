@@ -76,6 +76,7 @@
     "packages/km-board": {
       "name": "@km/board",
       "dependencies": {
+        "@km/core": "workspace:*",
         "@km/tree": "workspace:*",
       },
     },

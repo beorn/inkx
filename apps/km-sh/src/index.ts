@@ -49,7 +49,7 @@ export { renderPlain, displayLength } from "./text.ts";
 export type {
   BoardState,
   BoardAction,
-  TNode,
+  TreeNode,
   TPath,
   TaskStatus,
 } from "@km/board";
