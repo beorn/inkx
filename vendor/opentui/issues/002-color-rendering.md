@@ -9,11 +9,13 @@
 
 ## Summary
 
-Named color values like `"black"` are ignored when used as text foreground colors
-with a background color - text renders as white regardless of the `color` prop.
+Text color and backgroundColor props appear to be completely ignored in the CLI renderer.
+All text renders as white regardless of the `color` prop, and backgrounds don't show.
 
 This affects selection styling where we need `backgroundColor="cyan"` with `color="black"`
-for readable text, but the text renders as white instead of black.
+for readable text, but the text renders as white with no background instead.
+
+See [002-screenshot.png](./002-screenshot.png) for visual evidence.
 
 ## Environment
 
