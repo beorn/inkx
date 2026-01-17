@@ -10,7 +10,6 @@ import {
   resolveNode,
   ensureState,
   getBacklinks,
-  getOutgoingLinks,
 } from "@km/storage";
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree";
 
@@ -62,7 +61,7 @@ export interface Tui2Options {
 function nodeToTNode(node: DBNode, depth: number): TNode {
   const children = getChildren(node.id);
   const backlinks = getBacklinks(node.id);
-  const outgoingLinks = getOutgoingLinks(node.id);
+  // Note: outgoing links are not displayed - only backlinks are useful to show
 
   return {
     nodeId: node.id,
@@ -70,6 +69,8 @@ function nodeToTNode(node: DBNode, depth: number): TNode {
     title: getNodeDisplayName(node),
     depth,
     childCount: children.length,
+    parentId: node.parent_id ?? null,
+    parentIndex: node.parent_idx ?? 0,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as TaskStatus | undefined,
     color: node.rules?.color,
@@ -78,10 +79,18 @@ function nodeToTNode(node: DBNode, depth: number): TNode {
     dueDate: node.due_date,
     scheduledDate: node.scheduled_date,
     hasBacklinks: backlinks.length > 0 || undefined,
-    refsCount: outgoingLinks.length > 0 ? outgoingLinks.length : undefined,
+    // Don't display outgoing links count - only backlinks are useful to show
+    // refsCount: outgoingLinks.length > 0 ? outgoingLinks.length : undefined,
     body: node.content,
+    fsPath: node.fs_path,
+    mdLine: node.md_line,
     nodeType: node.type as TNode["nodeType"],
-    children: children.map((child) => nodeToTNode(child, depth + 1)),
+    children: children.map((child, idx) => {
+      const childTNode = nodeToTNode(child, depth + 1);
+      childTNode.parentId = node.id;
+      childTNode.parentIndex = child.parent_idx ?? idx;
+      return childTNode;
+    }),
   };
 }
 

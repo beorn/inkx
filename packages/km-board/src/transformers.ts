@@ -22,6 +22,7 @@ export function toNodeViewModel(
 ): NodeViewModel {
   return {
     id: node.nodeId,
+    name: node.name,
     title: node.title,
     childCount: node.childCount,
     isTask: node.isTask,
@@ -33,7 +34,7 @@ export function toNodeViewModel(
     dueDate: node.dueDate,
     hasBacklinks: node.hasBacklinks,
     refsCount: node.refsCount,
-    content: node.content,
+    body: node.body,
     depth: node.depth,
     children: node.children.map((child) => toNodeViewModel(child, foldedNodes)),
   };

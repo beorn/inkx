@@ -32,11 +32,7 @@ function getViewModeLabel(mode: ViewMode): string {
   }
 }
 
-export function StatusBar({
-  width,
-  rootPath,
-  viewMode,
-}: StatusBarProps) {
+export function StatusBar({ width, rootPath, viewMode }: StatusBarProps) {
   // TUI1 format: "DISK REPO /path" on left, "[VIEW MODE]" on right
   const leftPart = `DISK REPO ${rootPath || "/"}`;
   const viewLabel = `[${getViewModeLabel(viewMode)}]`;
@@ -47,19 +43,10 @@ export function StatusBar({
 
   return (
     <box width={width} flexDirection="row">
-      <text color="green">
-        {" "}
-        {leftPart}
-      </text>
-      <text>
-        {" ".repeat(padding)}
-      </text>
-      <text inverse>
-        {viewLabel}
-      </text>
-      <text>
-        {" "}
-      </text>
+      <text color="green"> {leftPart}</text>
+      <text>{" ".repeat(padding)}</text>
+      <text inverse>{viewLabel}</text>
+      <text> </text>
     </box>
   );
 }

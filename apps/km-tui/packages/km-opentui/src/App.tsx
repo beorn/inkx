@@ -72,10 +72,7 @@ const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
 ) => getNodeDisplayNameBase(node, getChildren);
 import type { DBNode } from "@km/core";
-import type { ViewMode, TaskStatus, TNode, TPath } from "./types.ts";
-
-// Task status cycle order for Space key
-const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "done", "dropped"];
+import type { ViewMode, TNode, TPath } from "./types.ts";
 
 /**
  * Calculate target path for cross-column navigation.
@@ -143,39 +140,28 @@ function calculateCrossColumnPath(
 }
 
 /**
- * Get next status in cycle
- */
-function getNextStatus(current: TaskStatus | undefined): TaskStatus {
-  const currentStatus: TaskStatus = current || "todo";
-  const currentIdx = STATUS_CYCLE.indexOf(currentStatus);
-  const nextStatus = STATUS_CYCLE[(currentIdx + 1) % STATUS_CYCLE.length];
-  return nextStatus ?? "todo";
-}
-
-/**
  * Get the source file path and line number for a node.
- * Traverses ancestors to find the file containing this node.
+ * Uses TNode data when available, falls back to storage lookup for ancestors.
+ *
+ * Note: This still uses getAncestors() for nodes that don't have fsPath directly.
+ * A future optimization would be to include ancestor file path in TNode.
  */
-function getNodeSourceInfo(nodeId: string): {
+function getNodeSourceInfo(node: TNode): {
   filePath: string | null;
   line: number | null;
 } {
-  const node = getNode(nodeId);
-  if (!node) {
-    return { filePath: null, line: null };
-  }
-
-  // If this node has fs_path, it's a file/folder itself
-  if (node.fs_path) {
-    return { filePath: node.fs_path, line: node.md_line ?? null };
+  // If this node has fsPath, it's a file/folder itself
+  if (node.fsPath) {
+    return { filePath: node.fsPath, line: node.mdLine ?? null };
   }
 
   // Otherwise traverse ancestors to find the containing file
-  const ancestors = getAncestors(nodeId);
+  // This is the only remaining storage call for this function
+  const ancestors = getAncestors(node.nodeId);
   for (const ancestor of ancestors.reverse()) {
     if (ancestor.fs_path) {
       // Found the containing file - return its path with the node's line number
-      return { filePath: ancestor.fs_path, line: node.md_line ?? null };
+      return { filePath: ancestor.fs_path, line: node.mdLine ?? null };
     }
   }
 
@@ -207,6 +193,9 @@ function openInEditor(filePath: string, line?: number | null): void {
 
 /**
  * Convert DBNode to TNode (recursive)
+ *
+ * This is the ONLY place where DBNode → TNode conversion happens in App.
+ * All other code should use TNode, never accessing DBNode directly.
  */
 function nodeToTNode(node: DBNode, depth: number = 0): TNode {
   const children = getChildren(node.id);
@@ -223,8 +212,17 @@ function nodeToTNode(node: DBNode, depth: number = 0): TNode {
     nodeId: node.id,
     name: node.name || node.title || node.id, // Stable identifier
     title: getNodeDisplayName(node),
-    children: children.map((child) => nodeToTNode(child, depth + 1)),
+    children: children.map((child, idx) => {
+      const childTNode = nodeToTNode(child, depth + 1);
+      // Override parentId and parentIndex for children
+      childTNode.parentId = node.id;
+      childTNode.parentIndex = child.parent_idx ?? idx;
+      return childTNode;
+    }),
     childCount: children.length,
+    // Parent info (for move operations)
+    parentId: node.parent_id ?? null,
+    parentIndex: node.parent_idx ?? 0,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as TNode["taskStatus"],
     color: node.rules?.color,
@@ -235,30 +233,53 @@ function nodeToTNode(node: DBNode, depth: number = 0): TNode {
     hasBacklinks: hasBacklinks || undefined,
     refsCount,
     body: node.content,
+    // File/location info (for editor integration)
+    fsPath: node.fs_path,
+    mdLine: node.md_line,
     nodeType: node.type as TNode["nodeType"],
     depth,
   };
 }
 
 /**
- * Build tree nodes from root node
+ * Result of building tree nodes from a root.
  */
-function buildNodes(rootId: string | null): TNode[] {
+interface BuildNodesResult {
+  nodes: TNode[];
+  rootPath: string | null;
+  rootParentId: string | null; // Parent of the root (for "navigate up" operation)
+}
+
+/**
+ * Build tree nodes from root node.
+ * Returns the nodes, root's filesystem path, and root's parent ID.
+ *
+ * This is ONE of the allowed DBNode access points (nodeToTNode conversion layer).
+ */
+function buildNodes(rootId: string | null): BuildNodesResult {
   if (!rootId) {
     const roots = getChildren(null);
     if (roots.length === 0) {
-      return [];
+      return { nodes: [], rootPath: null, rootParentId: null };
     }
-    return roots.map((node) => nodeToTNode(node, 0));
+    return {
+      nodes: roots.map((node) => nodeToTNode(node, 0)),
+      rootPath: null,
+      rootParentId: null,
+    };
   }
 
   const node = getNode(rootId);
   if (!node) {
-    return [];
+    return { nodes: [], rootPath: null, rootParentId: null };
   }
 
   const children = getChildren(node.id);
-  return children.map((child) => nodeToTNode(child, 0));
+  return {
+    nodes: children.map((child) => nodeToTNode(child, 0)),
+    rootPath: node.fs_path ?? null,
+    rootParentId: node.parent_id ?? null,
+  };
 }
 
 interface AppProps {
@@ -345,7 +366,7 @@ export function App({
 
   // Refresh tree data from store
   const refreshTree = useCallback(() => {
-    const nodes = buildNodes(tree.state.rootId);
+    const { nodes } = buildNodes(tree.state.rootId);
     if (nodes.length > 0) {
       tree.dispatch({ type: "REFRESH", nodes });
     }
@@ -369,17 +390,15 @@ export function App({
   }, [refreshEmitter, refreshTree]);
 
   // Navigate to a new root node (pushes to history)
+  // Uses buildNodes which returns both nodes and rootPath, eliminating getNode() call
   const navigateToRoot = useCallback(
     (newRootId: string | null) => {
-      const newNodes = buildNodes(newRootId);
-      // Get root path from node if available
-      const node = newRootId ? getNode(newRootId) : null;
-      const newRootPath = node?.fs_path ?? null;
+      const { nodes, rootPath } = buildNodes(newRootId);
       tree.dispatch({
         type: "NAV_TO",
         rootId: newRootId,
-        nodes: newNodes,
-        rootPath: newRootPath,
+        nodes,
+        rootPath,
       });
     },
     [tree],
@@ -507,31 +526,28 @@ export function App({
       if (name === "return") {
         const text = tree.state.newItemText.trim();
         if (text && currentColumn) {
-          // Get the current column's node to find the file to append to
-          const columnNode = getNode(currentColumn.nodeId);
-          if (columnNode) {
-            // Find the file path for this column
-            let filePath: string | null = null;
-            if (columnNode.fs_path && columnNode.type === "file") {
-              filePath = columnNode.fs_path;
-            } else {
-              // Traverse ancestors to find the containing file
-              const ancestors = getAncestors(currentColumn.nodeId);
-              for (const ancestor of ancestors.reverse()) {
-                if (ancestor.fs_path && ancestor.type === "file") {
-                  filePath = ancestor.fs_path;
-                  break;
-                }
+          // Find the file path for this column using TNode data
+          let filePath: string | null = null;
+          if (currentColumn.fsPath && currentColumn.nodeType === "file") {
+            filePath = currentColumn.fsPath;
+          } else {
+            // Traverse ancestors to find the containing file
+            // This is one of the few remaining storage calls
+            const ancestors = getAncestors(currentColumn.nodeId);
+            for (const ancestor of ancestors.reverse()) {
+              if (ancestor.fs_path && ancestor.type === "file") {
+                filePath = ancestor.fs_path;
+                break;
               }
             }
+          }
 
-            if (filePath) {
-              // Append the new task to the file
-              const store = getStore();
-              store.appendTaskToFile(filePath, `\n- [ ] ${text}`);
-              // Refresh to show the new task
-              refreshTree();
-            }
+          if (filePath) {
+            // Append the new task to the file
+            const store = getStore();
+            store.appendTaskToFile(filePath, `\n- [ ] ${text}`);
+            // Refresh to show the new task
+            refreshTree();
           }
         }
         tree.dispatch({ type: "CLEAR_NEW_ITEM" });
@@ -852,13 +868,11 @@ export function App({
     else if (name === "u") {
       const currentRootId = tree.state.rootId;
       if (currentRootId) {
-        // Get parent of current root
-        const currentRoot = getNode(currentRootId);
-        if (currentRoot) {
-          // Navigate to parent (or null if at top level)
-          const parentId = currentRoot.parent_id ?? null;
-          navigateToRoot(parentId);
-        }
+        // Get parent of current root by using buildNodes (the conversion layer)
+        // This reuses the existing allowed DBNode access point
+        const { rootParentId } = buildNodes(currentRootId);
+        // Navigate to parent (or null if at top level)
+        navigateToRoot(rootParentId);
       }
       // If already at root (null), do nothing
     }
@@ -870,7 +884,7 @@ export function App({
         const prevEntry = navHistory[navHistoryIndex - 1];
         if (prevEntry) {
           // Navigate to the previous history entry
-          const nodes = buildNodes(prevEntry.rootId);
+          const { nodes } = buildNodes(prevEntry.rootId);
           // Dispatch NAV_BACK to decrement index, then restore state
           tree.dispatch({ type: "NAV_BACK" });
           // After NAV_BACK, restore the actual view
@@ -890,7 +904,7 @@ export function App({
         const nextEntry = navHistory[navHistoryIndex + 1];
         if (nextEntry) {
           // Navigate to the next history entry
-          const nodes = buildNodes(nextEntry.rootId);
+          const { nodes } = buildNodes(nextEntry.rootId);
           // Dispatch NAV_FORWARD to increment index, then restore state
           tree.dispatch({ type: "NAV_FORWARD" });
           // After NAV_FORWARD, restore the actual view
@@ -962,7 +976,7 @@ export function App({
     // e - Edit current card in $EDITOR at its line
     else if (name === "e") {
       if (currentCard) {
-        const { filePath, line } = getNodeSourceInfo(currentCard.nodeId);
+        const { filePath, line } = getNodeSourceInfo(currentCard);
         if (filePath) {
           openInEditor(filePath, line);
         }
@@ -972,7 +986,7 @@ export function App({
     // o - Open source file in $EDITOR (without line number)
     else if (name === "o") {
       if (currentCard) {
-        const { filePath } = getNodeSourceInfo(currentCard.nodeId);
+        const { filePath } = getNodeSourceInfo(currentCard);
         if (filePath) {
           openInEditor(filePath);
         }
@@ -1068,7 +1082,7 @@ export function App({
     }
 
     // Tab - Indent (make child of previous sibling)
-    // TODO: Convert to command system - needs richer context with storage access
+    // Uses TNode.childCount to avoid storage lookups
     else if (name === "tab" && !shift) {
       if (currentCard && currentColumn) {
         const cardIndex = tree.state.cursor[1] ?? 0;
@@ -1076,44 +1090,33 @@ export function App({
         if (cardIndex > 0) {
           const prevSibling = currentColumn.children[cardIndex - 1];
           if (prevSibling) {
-            // Get current children count of prev sibling to set parent_idx
-            const prevSiblingChildren = getChildren(prevSibling.nodeId);
-            // Move card to be last child of previous sibling
-            const node = getNode(currentCard.nodeId);
-            if (node) {
-              tree.dispatch({
-                type: "MOVE_NODE",
-                nodeId: currentCard.nodeId,
-                newParentId: prevSibling.nodeId,
-                newIndex: prevSiblingChildren.length,
-              });
-            }
+            // Move card to be last child of previous sibling (use TNode childCount)
+            tree.dispatch({
+              type: "MOVE_NODE",
+              nodeId: currentCard.nodeId,
+              newParentId: prevSibling.nodeId,
+              newIndex: prevSibling.childCount,
+            });
           }
         }
       }
     }
 
     // Shift+Tab - Outdent (move to parent's level)
-    // TODO: Convert to command system - needs richer context with storage access
+    // Uses TNode.parentId and parentIndex to avoid storage lookups
     else if (name === "tab" && shift) {
-      if (currentCard) {
-        const node = getNode(currentCard.nodeId);
-        if (node && node.parent_id) {
-          const parent = getNode(node.parent_id);
-          if (parent && parent.parent_id !== undefined) {
-            // Get siblings of parent to determine new parent_idx
-            const parentSiblings = getChildren(parent.parent_id);
-            const parentIdx = parentSiblings.findIndex(
-              (s: DBNode) => s.id === parent.id,
-            );
-            // Place after parent
-            tree.dispatch({
-              type: "MOVE_NODE",
-              nodeId: currentCard.nodeId,
-              newParentId: parent.parent_id,
-              newIndex: parentIdx + 1,
-            });
-          }
+      if (currentCard && currentColumn) {
+        // currentColumn is the parent of currentCard
+        // We want to move currentCard to be a sibling of currentColumn
+        const grandparentId = currentColumn.parentId;
+        if (grandparentId !== null) {
+          // Place after the current column (parent) using its parentIndex
+          tree.dispatch({
+            type: "MOVE_NODE",
+            nodeId: currentCard.nodeId,
+            newParentId: grandparentId,
+            newIndex: currentColumn.parentIndex + 1,
+          });
         }
       }
     }
@@ -1124,9 +1127,9 @@ export function App({
     else if (name === "return") {
       if (currentCard) {
         // Build nodes from the card's children
-        const newNodes = buildNodes(currentCard.nodeId);
-        // Only zoom if the card has children
-        if (newNodes.length > 0 || getChildren(currentCard.nodeId).length > 0) {
+        const { nodes: newNodes } = buildNodes(currentCard.nodeId);
+        // Only zoom if the card has children (check TNode childCount, not storage)
+        if (newNodes.length > 0 || currentCard.childCount > 0) {
           tree.dispatch({
             type: "ZOOM_IN",
             nodeId: currentCard.nodeId,
@@ -1143,34 +1146,30 @@ export function App({
         const prevRootEntry =
           tree.state.zoomStack[tree.state.zoomStack.length - 1];
         const prevRootId = prevRootEntry?.rootId ?? null;
-        const newNodes = buildNodes(prevRootId);
+        const { nodes: newNodes } = buildNodes(prevRootId);
         tree.dispatch({ type: "ZOOM_OUT", nodes: newNodes });
       }
     }
 
     // ===== Shifting (opt+hjkl) - move nodes in visual direction =====
     // See km-board-navigation.md spec for terminology
+    // These operations use TNode.parentIndex to avoid storage lookups
 
     // opt+j - Shift down (swap with next sibling)
     else if (name === "j" && meta) {
       if (currentCard && currentColumn) {
         const cardIndex = tree.state.cursor[1] ?? 0;
         if (cardIndex < currentColumn.children.length - 1) {
-          // Get the next sibling to swap with
+          // Get the next sibling to swap with (from TNode)
           const nextCard = currentColumn.children[cardIndex + 1];
           if (nextCard) {
-            const node = getNode(currentCard.nodeId);
-            const nextNode = getNode(nextCard.nodeId);
-            if (node && nextNode) {
-              // Move after next sibling by using its index + 0.5
-              const nextIdx = nextNode.parent_idx ?? 0;
-              tree.dispatch({
-                type: "UPDATE_NODE",
-                nodeId: currentCard.nodeId,
-                updates: { parent_idx: nextIdx + 0.5 },
-              });
-              tree.dispatch({ type: "CURSOR_MOVE", dir: "next" });
-            }
+            // Move after next sibling by using its parentIndex + 0.5
+            tree.dispatch({
+              type: "UPDATE_NODE",
+              nodeId: currentCard.nodeId,
+              updates: { parent_idx: nextCard.parentIndex + 0.5 },
+            });
+            tree.dispatch({ type: "CURSOR_MOVE", dir: "next" });
           }
         }
       }
@@ -1181,21 +1180,16 @@ export function App({
       if (currentCard && currentColumn) {
         const cardIndex = tree.state.cursor[1] ?? 0;
         if (cardIndex > 0) {
-          // Get the previous sibling to swap with
+          // Get the previous sibling to swap with (from TNode)
           const prevCard = currentColumn.children[cardIndex - 1];
           if (prevCard) {
-            const node = getNode(currentCard.nodeId);
-            const prevNode = getNode(prevCard.nodeId);
-            if (node && prevNode) {
-              // Move before previous sibling
-              const prevIdx = prevNode.parent_idx ?? 0;
-              tree.dispatch({
-                type: "UPDATE_NODE",
-                nodeId: currentCard.nodeId,
-                updates: { parent_idx: prevIdx - 0.5 },
-              });
-              tree.dispatch({ type: "CURSOR_MOVE", dir: "prev" });
-            }
+            // Move before previous sibling using its parentIndex - 0.5
+            tree.dispatch({
+              type: "UPDATE_NODE",
+              nodeId: currentCard.nodeId,
+              updates: { parent_idx: prevCard.parentIndex - 0.5 },
+            });
+            tree.dispatch({ type: "CURSOR_MOVE", dir: "prev" });
           }
         }
       }
@@ -1208,18 +1202,17 @@ export function App({
         const prevColumn = tree.state.nodes[colIndex - 1];
         if (prevColumn) {
           // Move card to be a child of the previous column's node
-          // Place at end of previous column
-          const prevColumnChildren = getChildren(prevColumn.nodeId);
+          // Place at end of previous column (use TNode childCount)
           tree.dispatch({
             type: "MOVE_NODE",
             nodeId: currentCard.nodeId,
             newParentId: prevColumn.nodeId,
-            newIndex: prevColumnChildren.length,
+            newIndex: prevColumn.childCount,
           });
           // Move cursor to the new column and to the end where card was placed
           tree.dispatch({
             type: "NAV_TO_PATH",
-            path: [colIndex - 1, prevColumnChildren.length],
+            path: [colIndex - 1, prevColumn.childCount],
           });
         }
       }
@@ -1232,18 +1225,17 @@ export function App({
         const nextColumn = tree.state.nodes[colIndex + 1];
         if (nextColumn) {
           // Move card to be a child of the next column's node
-          // Place at end of next column
-          const nextColumnChildren = getChildren(nextColumn.nodeId);
+          // Place at end of next column (use TNode childCount)
           tree.dispatch({
             type: "MOVE_NODE",
             nodeId: currentCard.nodeId,
             newParentId: nextColumn.nodeId,
-            newIndex: nextColumnChildren.length,
+            newIndex: nextColumn.childCount,
           });
           // Move cursor to the new column and to the end where card was placed
           tree.dispatch({
             type: "NAV_TO_PATH",
-            path: [colIndex + 1, nextColumnChildren.length],
+            path: [colIndex + 1, nextColumn.childCount],
           });
         }
       }
@@ -1259,18 +1251,17 @@ export function App({
           const targetColumn = tree.state.nodes[targetColIndex];
           if (targetColumn) {
             // Move card to be a child of the target column's node
-            // Place at end of target column
-            const targetColumnChildren = getChildren(targetColumn.nodeId);
+            // Place at end of target column (use TNode childCount)
             tree.dispatch({
               type: "MOVE_NODE",
               nodeId: currentCard.nodeId,
               newParentId: targetColumn.nodeId,
-              newIndex: targetColumnChildren.length,
+              newIndex: targetColumn.childCount,
             });
             // Move cursor to the target column and to the end where card was placed
             tree.dispatch({
               type: "NAV_TO_PATH",
-              path: [targetColIndex, targetColumnChildren.length],
+              path: [targetColIndex, targetColumn.childCount],
             });
           }
         }

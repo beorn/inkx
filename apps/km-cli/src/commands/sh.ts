@@ -97,8 +97,15 @@ function nodeToTNode(node: DBNode, depth: number): TNode {
     nodeId: node.id,
     name: getNodeName(node),
     title: getNodeDisplayName(node),
-    children: children.map((child) => nodeToTNode(child, depth + 1)),
+    children: children.map((child, idx) => {
+      const childTNode = nodeToTNode(child, depth + 1);
+      childTNode.parentId = node.id;
+      childTNode.parentIndex = child.parent_idx ?? idx;
+      return childTNode;
+    }),
     childCount: children.length,
+    parentId: node.parent_id ?? null,
+    parentIndex: node.parent_idx ?? 0,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as TaskStatus | undefined,
     color: node.rules?.color,
@@ -107,6 +114,8 @@ function nodeToTNode(node: DBNode, depth: number): TNode {
     dueDate: node.due_date,
     scheduledDate: node.scheduled_date,
     body: node.content,
+    fsPath: node.fs_path,
+    mdLine: node.md_line,
     nodeType: node.type as TNode["nodeType"],
     depth,
   };
