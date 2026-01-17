@@ -21,6 +21,10 @@ export type {
 } from "./boardTypes.ts";
 export { VIEW_LEVEL_PRESETS } from "./boardTypes.ts";
 
+// ===== Tree Actions (re-exported for convenience) =====
+export type { TAction } from "@km/tree";
+export { isTAction, TActionTypes } from "@km/tree";
+
 // ===== Board Reducer =====
 export {
   boardReducer,

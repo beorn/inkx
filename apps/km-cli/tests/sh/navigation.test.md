@@ -41,70 +41,100 @@ Using persistent subprocess mode to test state across commands:
 
 ```console cmd="km sh board.md" minWait=50 maxWait=500
 $ state
+[...]
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
+[...]
 $ j
+[...]
 $ state
+[...]
 cursor: [0,1]
 node: Task Beta
 topLevel: 1 nodes
+[...]
 $ k
+[...]
 $ state
+[...]
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
+[...]
 ```
 
 ### Boundary: k at top stays at top
 
 ```console cmd="km sh board.md" minWait=50 maxWait=500
 $ k
+[...]
 $ state
+[...]
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
+[...]
 ```
 
 ### Boundary: j at bottom stays at bottom
 
 ```console cmd="km sh board.md" minWait=50 maxWait=500
 $ j
+[...]
 $ j
+[...]
 $ j
+[...]
 $ state
+[...]
 cursor: [0,2]
 node: Task Gamma
 topLevel: 1 nodes
+[...]
 ```
 
 ## Jump Commands
 
 ```console cmd="km sh board.md" minWait=50 maxWait=500
 $ j
+[...]
 $ j
+[...]
 $ g
+[...]
 $ state
+[...]
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
+[...]
 $ G
+[...]
 $ state
+[...]
 cursor: [0,2]
 node: Task Gamma
 topLevel: 1 nodes
+[...]
 ```
 
 ## Log Command
 
 ```console cmd="km sh board.md" minWait=50 maxWait=500
 $ j
+[...]
 $ k
+[...]
 $ log
-CURSOR_NEXT → cursor=[0,1]
-CURSOR_PREV → cursor=[0,0]
+[...]
+CURSOR_MOVE → cursor=[0,1]
+CURSOR_MOVE → cursor=[0,0]
+[...]
 $ log 1
-CURSOR_PREV → cursor=[0,0]
+[...]
+CURSOR_MOVE → cursor=[0,0]
+[...]
 ```
 
 ## Shell Commands
@@ -138,9 +168,13 @@ Path: [...]
 
 ```console cmd="km sh board.md" minWait=50 maxWait=500
 $ unknown_command
+[...]
 error: Unknown command: unknown_command
+[...]
 $ state
+[...]
 cursor: [0,0]
 node: Task Alpha
 topLevel: 1 nodes
+[...]
 ```
