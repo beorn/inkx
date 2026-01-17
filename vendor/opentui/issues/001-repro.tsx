@@ -4,7 +4,7 @@
  * Bug: Using an invalid borderStyle value (e.g., "round" instead of "rounded")
  * causes a segmentation fault on macOS Apple Silicon.
  *
- * Run with: bun run vendor/opentui/issues/001-repro.tsx [test-number]
+ * Run with: bun run ./001-repro.tsx [test-number]
  *
  * Upstream issue: https://github.com/anomalyco/opentui/issues/543
  *
@@ -15,9 +15,9 @@
  * - @opentui/react 0.1.73
  *
  * Tests:
- *   bun run vendor/opentui/issues/001-repro.tsx 1  # "single" - works
- *   bun run vendor/opentui/issues/001-repro.tsx 2  # "rounded" - works
- *   bun run vendor/opentui/issues/001-repro.tsx 3  # "round" (invalid) - crashes
+ *   bun run ./001-repro.tsx 1  # "single" - works
+ *   bun run ./001-repro.tsx 2  # "rounded" - works
+ *   bun run ./001-repro.tsx 3  # "round" (invalid) - crashes
  */
 
 import { createCliRenderer } from "@opentui/core";

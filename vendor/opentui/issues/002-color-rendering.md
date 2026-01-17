@@ -19,13 +19,13 @@ for readable text, but the black text renders as red/magenta instead.
 
 - macOS (Apple Silicon) - Darwin arm64
 - Bun 1.3.6
-- @opentui/core 0.1.73
-- @opentui/react 0.1.73
+- @opentui/core 0.1.74 (updated 2026-01-16)
+- @opentui/react 0.1.74
 
 ## Reproduction
 
 ```bash
-bun run vendor/opentui/issues/002-repro.tsx
+bun run ./002-repro.tsx
 ```
 
 ```tsx

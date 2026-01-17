@@ -4,15 +4,15 @@
  * Bug: Named colors (especially "black") render as incorrect colors when used
  * as text foreground on colored backgrounds.
  *
- * Run with: bun run vendor/opentui/issues/002-repro.tsx
+ * Run with: bun run ./002-repro.tsx
  *
  * Upstream issue: Not yet filed
  *
  * Environment:
  * - macOS (Apple Silicon) - Darwin arm64
  * - Bun 1.3.6
- * - @opentui/core 0.1.73
- * - @opentui/react 0.1.73
+ * - @opentui/core 0.1.74
+ * - @opentui/react 0.1.74
  *
  * Expected: All lines should show black text on cyan background
  * Actual: Text appears red/magenta instead of black

@@ -23,7 +23,7 @@ falling back to a default style.
 ## Reproduction
 
 ```bash
-bun run vendor/opentui/issues/001-repro.tsx 3  # crashes with segfault
+bun run ./001-repro.tsx 3  # crashes with segfault
 ```
 
 ```tsx
