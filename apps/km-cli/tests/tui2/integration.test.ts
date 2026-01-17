@@ -32,11 +32,7 @@ import {
 
 // Import app-level types and functions from km-opentui
 // This includes the combined reducer that handles both board and app UI actions
-import {
-  treeReducer,
-  createInitialTreeState,
-  type TreeState,
-} from "@km/opentui";
+import { appReducer, createAppState, type AppState } from "@km/opentui";
 
 // ============================================================================
 // Test Helpers
@@ -66,7 +62,7 @@ function mockNode(
 /**
  * Create a sample tree state for testing (mimics board/column/card structure)
  */
-function createTestTree(): TreeState {
+function createTestTree(): AppState {
   const todoItems = [
     mockNode("item-1", "Setup CI pipeline", [], {
       taskStatus: "todo",
@@ -99,7 +95,7 @@ function createTestTree(): TreeState {
     mockNode("col-done", "Done", doneItems, { depth: 0 }),
   ];
 
-  return createInitialTreeState(nodes, "tree-root", "/test/vault");
+  return createAppState(nodes, "tree-root", "/test/vault");
 }
 
 // ============================================================================
@@ -107,7 +103,7 @@ function createTestTree(): TreeState {
 // ============================================================================
 
 describe("TUI2 Integration: State Management", () => {
-  describe("createInitialTreeState", () => {
+  describe("createAppState", () => {
     it("creates state with nodes", () => {
       const state = createTestTree();
 
@@ -135,92 +131,92 @@ describe("TUI2 Integration: State Management", () => {
     });
   });
 
-  describe("treeReducer navigation", () => {
-    it("MOVE_DOWN moves to next sibling at same level", () => {
+  describe("appReducer navigation", () => {
+    it("CURSOR_NEXT moves to next sibling at same level", () => {
       // createTestTree now starts at [0, 0] (card level)
       const state = createTestTree();
-      const newState = treeReducer(state, { type: "MOVE_DOWN" });
+      const newState = appReducer(state, { type: "CURSOR_NEXT" });
 
       // At card level, moves to next card in column
       expect(newState.cursor).toEqual([0, 1]);
     });
 
-    it("MOVE_UP moves to previous sibling at same level", () => {
+    it("CURSOR_PREV moves to previous sibling at same level", () => {
       const state = { ...createTestTree(), cursor: [0, 2] };
-      const newState = treeReducer(state, { type: "MOVE_UP" });
+      const newState = appReducer(state, { type: "CURSOR_PREV" });
 
       expect(newState.cursor).toEqual([0, 1]);
     });
 
-    it("NAV_CHILD drills into children", () => {
+    it("CURSOR_IN drills into children", () => {
       // Start at column level to test drilling into children
       const state = { ...createTestTree(), cursor: [0] };
-      const newState = treeReducer(state, { type: "NAV_CHILD" });
+      const newState = appReducer(state, { type: "CURSOR_IN" });
 
       expect(newState.cursor).toEqual([0, 0]); // First child of first node
     });
 
-    it("NAV_PARENT goes up one level", () => {
+    it("CURSOR_OUT goes up one level", () => {
       const state = { ...createTestTree(), cursor: [0, 1] };
-      const newState = treeReducer(state, { type: "NAV_PARENT" });
+      const newState = appReducer(state, { type: "CURSOR_OUT" });
 
       expect(newState.cursor).toEqual([0]);
     });
 
-    it("JUMP_TOP goes to first sibling", () => {
+    it("CURSOR_FIRST goes to first sibling", () => {
       const state = { ...createTestTree(), cursor: [0, 2] };
-      const newState = treeReducer(state, { type: "JUMP_TOP" });
+      const newState = appReducer(state, { type: "CURSOR_FIRST" });
 
       expect(newState.cursor).toEqual([0, 0]);
     });
 
-    it("JUMP_BOTTOM goes to last sibling", () => {
+    it("CURSOR_LAST goes to last sibling", () => {
       // createTestTree starts at [0, 0] (first card in first column)
-      // First column has 3 cards (items), so JUMP_BOTTOM goes to [0, 2]
+      // First column has 3 cards (items), so CURSOR_LAST goes to [0, 2]
       const state = createTestTree();
-      const newState = treeReducer(state, { type: "JUMP_BOTTOM" });
+      const newState = appReducer(state, { type: "CURSOR_LAST" });
 
       expect(newState.cursor).toEqual([0, 2]); // Last card in first column
     });
   });
 
-  describe("treeReducer boundaries", () => {
-    it("MOVE_UP at first sibling stays", () => {
+  describe("appReducer boundaries", () => {
+    it("CURSOR_PREV at first sibling stays", () => {
       // createTestTree now starts at [0, 0] (first card)
       const state = createTestTree();
-      const newState = treeReducer(state, { type: "MOVE_UP" });
+      const newState = appReducer(state, { type: "CURSOR_PREV" });
 
       expect(newState.cursor).toEqual([0, 0]);
     });
 
-    it("MOVE_DOWN at last sibling stays", () => {
+    it("CURSOR_NEXT at last sibling stays", () => {
       // Last card in first column is [0, 2] (3 cards total)
       const state = { ...createTestTree(), cursor: [0, 2] };
-      const newState = treeReducer(state, { type: "MOVE_DOWN" });
+      const newState = appReducer(state, { type: "CURSOR_NEXT" });
 
       expect(newState.cursor).toEqual([0, 2]);
     });
 
-    it("NAV_PARENT at top level stays", () => {
-      // At column level [0], NAV_PARENT should stay
+    it("CURSOR_OUT at top level stays", () => {
+      // At column level [0], CURSOR_OUT should stay
       const state = { ...createTestTree(), cursor: [0] };
-      const newState = treeReducer(state, { type: "NAV_PARENT" });
+      const newState = appReducer(state, { type: "CURSOR_OUT" });
 
       expect(newState.cursor).toEqual([0]);
     });
 
-    it("NAV_CHILD on leaf node stays", () => {
+    it("CURSOR_IN on leaf node stays", () => {
       const state = { ...createTestTree(), cursor: [0, 0] }; // leaf node
-      const newState = treeReducer(state, { type: "NAV_CHILD" });
+      const newState = appReducer(state, { type: "CURSOR_IN" });
 
       expect(newState.cursor).toEqual([0, 0]);
     });
   });
 
-  describe("treeReducer folding and collapse", () => {
+  describe("appReducer folding and collapse", () => {
     it("TOGGLE_FOLD adds node to foldedNodes", () => {
       const state = createTestTree();
-      const newState = treeReducer(state, {
+      const newState = appReducer(state, {
         type: "TOGGLE_FOLD",
         nodeId: "item-4",
       });
@@ -232,7 +228,7 @@ describe("TUI2 Integration: State Management", () => {
       const state = createTestTree();
       state.foldedNodes.add("item-4");
 
-      const newState = treeReducer(state, {
+      const newState = appReducer(state, {
         type: "TOGGLE_FOLD",
         nodeId: "item-4",
       });
@@ -242,7 +238,7 @@ describe("TUI2 Integration: State Management", () => {
 
     it("TOGGLE_COLLAPSE adds node to collapsedNodes", () => {
       const state = createTestTree();
-      const newState = treeReducer(state, {
+      const newState = appReducer(state, {
         type: "TOGGLE_COLLAPSE",
         nodeId: "col-wip",
       });
@@ -254,7 +250,7 @@ describe("TUI2 Integration: State Management", () => {
       const state = createTestTree();
       state.collapsedNodes.add("col-wip");
 
-      const newState = treeReducer(state, {
+      const newState = appReducer(state, {
         type: "TOGGLE_COLLAPSE",
         nodeId: "col-wip",
       });
@@ -263,10 +259,10 @@ describe("TUI2 Integration: State Management", () => {
     });
   });
 
-  describe("treeReducer search and modes", () => {
+  describe("appReducer search and modes", () => {
     it("SET_SEARCH_QUERY updates query", () => {
       const state = createTestTree();
-      const newState = treeReducer(state, {
+      const newState = appReducer(state, {
         type: "SET_SEARCH_QUERY",
         query: "test",
       });
@@ -276,7 +272,7 @@ describe("TUI2 Integration: State Management", () => {
 
     it("TOGGLE_SEARCH_MODE enables search", () => {
       const state = createTestTree();
-      const newState = treeReducer(state, { type: "TOGGLE_SEARCH_MODE" });
+      const newState = appReducer(state, { type: "TOGGLE_SEARCH_MODE" });
 
       expect(newState.searchMode).toBe(true);
     });
@@ -287,7 +283,7 @@ describe("TUI2 Integration: State Management", () => {
         searchMode: true,
         searchQuery: "test",
       };
-      const newState = treeReducer(state, { type: "TOGGLE_SEARCH_MODE" });
+      const newState = appReducer(state, { type: "TOGGLE_SEARCH_MODE" });
 
       expect(newState.searchMode).toBe(false);
       expect(newState.searchQuery).toBe("");
@@ -295,16 +291,16 @@ describe("TUI2 Integration: State Management", () => {
 
     it("TOGGLE_HELP_MODE toggles help", () => {
       const state = createTestTree();
-      const newState = treeReducer(state, { type: "TOGGLE_HELP_MODE" });
+      const newState = appReducer(state, { type: "TOGGLE_HELP_MODE" });
 
       expect(newState.helpMode).toBe(true);
     });
   });
 
-  describe("treeReducer selection", () => {
+  describe("appReducer selection", () => {
     it("SELECT_NODE_ADD adds node to selection", () => {
       const state = createTestTree();
-      const newState = treeReducer(state, {
+      const newState = appReducer(state, {
         type: "SELECT_NODE_ADD",
         nodeId: "item-1",
       });
@@ -316,7 +312,7 @@ describe("TUI2 Integration: State Management", () => {
       const state = createTestTree();
       state.selectedNodes.add("item-1");
 
-      const newState = treeReducer(state, {
+      const newState = appReducer(state, {
         type: "SELECT_NODE_REMOVE",
         nodeId: "item-1",
       });
@@ -326,13 +322,13 @@ describe("TUI2 Integration: State Management", () => {
 
     it("SELECT_NODE_TOGGLE toggles selection", () => {
       const state = createTestTree();
-      const state1 = treeReducer(state, {
+      const state1 = appReducer(state, {
         type: "SELECT_NODE_TOGGLE",
         nodeId: "item-1",
       });
       expect(state1.selectedNodes.has("item-1")).toBe(true);
 
-      const state2 = treeReducer(state1, {
+      const state2 = appReducer(state1, {
         type: "SELECT_NODE_TOGGLE",
         nodeId: "item-1",
       });
@@ -344,38 +340,38 @@ describe("TUI2 Integration: State Management", () => {
       state.selectedNodes.add("item-1");
       state.selectedNodes.add("item-2");
 
-      const newState = treeReducer(state, { type: "CLEAR_SELECTION" });
+      const newState = appReducer(state, { type: "CLEAR_SELECTION" });
 
       expect(newState.selectedNodes.size).toBe(0);
     });
 
     it("SELECT_ALL selects all nodes recursively", () => {
       const state = createTestTree();
-      const newState = treeReducer(state, { type: "SELECT_ALL" });
+      const newState = appReducer(state, { type: "SELECT_ALL" });
 
       // 3 top-level nodes + 3 todo items + 2 wip items + 2 done items = 10
       expect(newState.selectedNodes.size).toBe(10);
     });
   });
 
-  describe("treeReducer outline depth", () => {
+  describe("appReducer outline depth", () => {
     it("INCREASE_OUTLINE_DEPTH increments depth", () => {
       const state = { ...createTestTree(), maxOutlineDepth: 2 };
-      const newState = treeReducer(state, { type: "INCREASE_OUTLINE_DEPTH" });
+      const newState = appReducer(state, { type: "INCREASE_OUTLINE_DEPTH" });
 
       expect(newState.maxOutlineDepth).toBe(3);
     });
 
     it("DECREASE_OUTLINE_DEPTH decrements depth", () => {
       const state = { ...createTestTree(), maxOutlineDepth: 2 };
-      const newState = treeReducer(state, { type: "DECREASE_OUTLINE_DEPTH" });
+      const newState = appReducer(state, { type: "DECREASE_OUTLINE_DEPTH" });
 
       expect(newState.maxOutlineDepth).toBe(1);
     });
 
     it("DECREASE_OUTLINE_DEPTH does not go below 0", () => {
       const state = { ...createTestTree(), maxOutlineDepth: 0 };
-      const newState = treeReducer(state, { type: "DECREASE_OUTLINE_DEPTH" });
+      const newState = appReducer(state, { type: "DECREASE_OUTLINE_DEPTH" });
 
       expect(newState.maxOutlineDepth).toBe(0);
     });
@@ -614,7 +610,7 @@ describe("TUI2 Integration: Navigation History", () => {
     const state = createTestTree();
     const newNodes = [mockNode("new-root", "New Root")];
 
-    const newState = treeReducer(state, {
+    const newState = appReducer(state, {
       type: "NAV_TO",
       rootId: "new-root",
       nodes: newNodes,
@@ -632,7 +628,7 @@ describe("TUI2 Integration: Navigation History", () => {
       navHistoryIndex: 1,
     };
 
-    const newState = treeReducer(state, { type: "NAV_BACK" });
+    const newState = appReducer(state, { type: "NAV_BACK" });
 
     expect(newState.navHistoryIndex).toBe(0);
   });
@@ -640,7 +636,7 @@ describe("TUI2 Integration: Navigation History", () => {
   it("NAV_BACK does nothing when at start", () => {
     const state = createTestTree();
 
-    const newState = treeReducer(state, { type: "NAV_BACK" });
+    const newState = appReducer(state, { type: "NAV_BACK" });
 
     expect(newState.navHistoryIndex).toBe(0);
   });
@@ -655,7 +651,7 @@ describe("TUI2 Integration: Navigation History", () => {
       navHistoryIndex: 0,
     };
 
-    const newState = treeReducer(state, { type: "NAV_FORWARD" });
+    const newState = appReducer(state, { type: "NAV_FORWARD" });
 
     expect(newState.navHistoryIndex).toBe(1);
   });
@@ -670,7 +666,7 @@ describe("TUI2 Integration: Zoom", () => {
     const state = createTestTree();
     const zoomedNodes = [mockNode("zoomed-node", "Zoomed")];
 
-    const newState = treeReducer(state, {
+    const newState = appReducer(state, {
       type: "ZOOM_IN",
       nodeId: "col-todo",
       nodes: zoomedNodes,
@@ -690,7 +686,7 @@ describe("TUI2 Integration: Zoom", () => {
     };
     const originalNodes = createTestTree().nodes;
 
-    const newState = treeReducer(state, {
+    const newState = appReducer(state, {
       type: "ZOOM_OUT",
       nodes: originalNodes,
     });
@@ -702,7 +698,7 @@ describe("TUI2 Integration: Zoom", () => {
 
   it("ZOOM_OUT does nothing with empty stack", () => {
     const state = createTestTree();
-    const newState = treeReducer(state, {
+    const newState = appReducer(state, {
       type: "ZOOM_OUT",
       nodes: state.nodes,
     });
@@ -717,25 +713,25 @@ describe("TUI2 Integration: Zoom", () => {
 
 describe("TUI2 Integration: Edge Cases", () => {
   it("handles empty tree gracefully", () => {
-    const state = createInitialTreeState([], null, null);
+    const state = createAppState([], null, null);
 
     expect(state.nodes).toHaveLength(0);
     expect(state.cursor).toEqual([]);
   });
 
   it("navigation on empty tree is no-op", () => {
-    const state = createInitialTreeState([], null, null);
+    const state = createAppState([], null, null);
 
-    const state1 = treeReducer(state, { type: "MOVE_DOWN" });
+    const state1 = appReducer(state, { type: "CURSOR_NEXT" });
     expect(state1.cursor).toEqual([]);
 
-    const state2 = treeReducer(state, { type: "MOVE_UP" });
+    const state2 = appReducer(state, { type: "CURSOR_PREV" });
     expect(state2.cursor).toEqual([]);
   });
 
   it("REFRESH preserves valid cursor", () => {
     const state = { ...createTestTree(), cursor: [1] };
-    const newState = treeReducer(state, {
+    const newState = appReducer(state, {
       type: "REFRESH",
       nodes: state.nodes,
     });
@@ -745,7 +741,7 @@ describe("TUI2 Integration: Edge Cases", () => {
 
   it("REFRESH resets invalid cursor", () => {
     const state = { ...createTestTree(), cursor: [10] }; // Invalid
-    const newState = treeReducer(state, {
+    const newState = appReducer(state, {
       type: "REFRESH",
       nodes: state.nodes,
     });

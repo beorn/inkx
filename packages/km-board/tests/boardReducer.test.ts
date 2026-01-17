@@ -1,15 +1,11 @@
 /**
  * Board Reducer Tests
  *
- * Tests for boardReducer(), createInitialBoardState().
+ * Tests for boardReducer(), createBoardState().
  */
 
 import { describe, it, expect } from "bun:test";
-import {
-  boardReducer,
-  createInitialBoardState,
-  getNodeAtPath,
-} from "../src/index.ts";
+import { boardReducer, createBoardState, getNodeAtPath } from "../src/index.ts";
 import type { BoardState, TNode } from "../src/index.ts";
 
 // Helper to create test nodes
@@ -36,9 +32,9 @@ const testNodes: TNode[] = [
   createNode("col-b", [createNode("card-3")]),
 ];
 
-describe("createInitialBoardState", () => {
+describe("createBoardState", () => {
   it("creates state with default values for empty nodes", () => {
-    const state = createInitialBoardState([]);
+    const state = createBoardState([]);
     expect(state.rootId).toBeNull();
     expect(state.rootPath).toBeNull();
     expect(state.cursor).toEqual([]);
@@ -49,7 +45,7 @@ describe("createInitialBoardState", () => {
   });
 
   it("creates state with cursor at first card when nodes have children", () => {
-    const state = createInitialBoardState(testNodes);
+    const state = createBoardState(testNodes);
     expect(state.rootId).toBeNull();
     expect(state.rootPath).toBeNull();
     expect(state.cursor).toEqual([0, 0]); // First card in first column
@@ -57,7 +53,7 @@ describe("createInitialBoardState", () => {
   });
 
   it("accepts custom root values", () => {
-    const state = createInitialBoardState(testNodes, "root-1", "/path/to/root");
+    const state = createBoardState(testNodes, "root-1", "/path/to/root");
     expect(state.rootId).toBe("root-1");
     expect(state.rootPath).toBe("/path/to/root");
   });
@@ -66,7 +62,7 @@ describe("createInitialBoardState", () => {
 describe("boardReducer", () => {
   function createTestState(cursor: number[]): BoardState {
     return {
-      ...createInitialBoardState(testNodes),
+      ...createBoardState(testNodes),
       cursor,
     };
   }
@@ -98,28 +94,28 @@ describe("boardReducer", () => {
     });
   });
 
-  describe("structural navigation", () => {
-    it("NAV_PREV_SIBLING moves to previous sibling", () => {
+  describe("structural cursor movement", () => {
+    it("CURSOR_PREV moves to previous sibling", () => {
       const state = createTestState([0, 1]);
-      const newState = boardReducer(state, { type: "NAV_PREV_SIBLING" });
+      const newState = boardReducer(state, { type: "CURSOR_PREV" });
       expect(newState.cursor).toEqual([0, 0]);
     });
 
-    it("NAV_NEXT_SIBLING moves to next sibling", () => {
+    it("CURSOR_NEXT moves to next sibling", () => {
       const state = createTestState([0, 0]);
-      const newState = boardReducer(state, { type: "NAV_NEXT_SIBLING" });
+      const newState = boardReducer(state, { type: "CURSOR_NEXT" });
       expect(newState.cursor).toEqual([0, 1]);
     });
 
-    it("NAV_PARENT moves to parent", () => {
+    it("CURSOR_OUT moves to parent", () => {
       const state = createTestState([0, 0]);
-      const newState = boardReducer(state, { type: "NAV_PARENT" });
+      const newState = boardReducer(state, { type: "CURSOR_OUT" });
       expect(newState.cursor).toEqual([0]); // card-1 -> col-a
     });
 
-    it("NAV_CHILD moves to first child", () => {
+    it("CURSOR_IN moves to first child", () => {
       const state = createTestState([0]);
-      const newState = boardReducer(state, { type: "NAV_CHILD" });
+      const newState = boardReducer(state, { type: "CURSOR_IN" });
       expect(newState.cursor).toEqual([0, 0]); // col-a -> card-1
     });
 
@@ -131,30 +127,16 @@ describe("boardReducer", () => {
       });
       expect(newState.cursor).toEqual([1, 0]);
     });
-  });
 
-  describe("jump navigation", () => {
-    it("NAV_FIRST_SIBLING jumps to first sibling", () => {
+    it("CURSOR_FIRST jumps to first sibling", () => {
       const state = createTestState([0, 1]);
-      const newState = boardReducer(state, { type: "NAV_FIRST_SIBLING" });
+      const newState = boardReducer(state, { type: "CURSOR_FIRST" });
       expect(newState.cursor).toEqual([0, 0]);
     });
 
-    it("NAV_LAST_SIBLING jumps to last sibling", () => {
+    it("CURSOR_LAST jumps to last sibling", () => {
       const state = createTestState([0, 0]);
-      const newState = boardReducer(state, { type: "NAV_LAST_SIBLING" });
-      expect(newState.cursor).toEqual([0, 1]);
-    });
-
-    it("JUMP_TOP is alias for NAV_FIRST_SIBLING", () => {
-      const state = createTestState([0, 1]);
-      const newState = boardReducer(state, { type: "JUMP_TOP" });
-      expect(newState.cursor).toEqual([0, 0]);
-    });
-
-    it("JUMP_BOTTOM is alias for NAV_LAST_SIBLING", () => {
-      const state = createTestState([0, 0]);
-      const newState = boardReducer(state, { type: "JUMP_BOTTOM" });
+      const newState = boardReducer(state, { type: "CURSOR_LAST" });
       expect(newState.cursor).toEqual([0, 1]);
     });
   });

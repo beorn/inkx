@@ -198,9 +198,10 @@ export function boardReducer(
   }
 
   switch (action.type) {
-    // ===== Path-based Navigation =====
+    // ===== Structural Cursor Movement (hjkl) =====
 
-    case "NAV_PREV_SIBLING": {
+    case "CURSOR_PREV": {
+      // Previous sibling (k)
       if (state.cursor.length === 0) return state;
       const idx = getCurrentIndex(state.cursor);
       if (idx <= 0) return state;
@@ -209,7 +210,8 @@ export function boardReducer(
       return { ...state, cursor: newPath };
     }
 
-    case "NAV_NEXT_SIBLING": {
+    case "CURSOR_NEXT": {
+      // Next sibling (j)
       if (state.cursor.length === 0) return state;
       const idx = getCurrentIndex(state.cursor);
       const siblingCount = getSiblingCount(state.nodes, state.cursor);
@@ -219,35 +221,29 @@ export function boardReducer(
       return { ...state, cursor: newPath };
     }
 
-    case "NAV_PARENT": {
+    case "CURSOR_OUT": {
+      // To parent (h)
       if (state.cursor.length <= 1) return state;
       return { ...state, cursor: state.cursor.slice(0, -1) };
     }
 
-    case "NAV_CHILD": {
+    case "CURSOR_IN": {
+      // Into first child (l)
       const currentNode = getNodeAtPath(state.nodes, state.cursor);
       if (!currentNode || currentNode.children.length === 0) return state;
       return { ...state, cursor: [...state.cursor, 0] };
     }
 
-    case "NAV_TO_PATH": {
-      // Validate path exists
-      if (action.path.length === 0) return state;
-      const node = getNodeAtPath(state.nodes, action.path);
-      if (!node) return state;
-      return { ...state, cursor: action.path };
-    }
-
-    case "JUMP_TOP":
-    case "NAV_FIRST_SIBLING": {
+    case "CURSOR_FIRST": {
+      // First sibling (g)
       if (state.cursor.length === 0) return state;
       const newPath = [...state.cursor];
       newPath[newPath.length - 1] = 0;
       return { ...state, cursor: newPath };
     }
 
-    case "JUMP_BOTTOM":
-    case "NAV_LAST_SIBLING": {
+    case "CURSOR_LAST": {
+      // Last sibling (G)
       if (state.cursor.length === 0) return state;
       const siblingCount = getSiblingCount(state.nodes, state.cursor);
       if (siblingCount === 0) return state;
@@ -256,36 +252,14 @@ export function boardReducer(
       return { ...state, cursor: newPath };
     }
 
-    // Directional navigation aliases
-    case "MOVE_UP": {
-      return boardReducer(state, { type: "NAV_PREV_SIBLING" });
-    }
+    // ===== Jump Navigation =====
 
-    case "MOVE_DOWN": {
-      return boardReducer(state, { type: "NAV_NEXT_SIBLING" });
-    }
-
-    case "MOVE_LEFT": {
-      // At top level (depth 1), move to previous column
-      if (state.cursor.length === 1) {
-        const idx = getCurrentIndex(state.cursor);
-        if (idx <= 0) return state;
-        return { ...state, cursor: [idx - 1] };
-      }
-      // Deeper: go to parent
-      return boardReducer(state, { type: "NAV_PARENT" });
-    }
-
-    case "MOVE_RIGHT": {
-      // At top level (depth 1), move to next column
-      if (state.cursor.length === 1) {
-        const idx = getCurrentIndex(state.cursor);
-        const siblingCount = getSiblingCount(state.nodes, state.cursor);
-        if (idx >= siblingCount - 1) return state;
-        return { ...state, cursor: [idx + 1] };
-      }
-      // Deeper: enter child
-      return boardReducer(state, { type: "NAV_CHILD" });
+    case "NAV_TO_PATH": {
+      // Validate path exists
+      if (action.path.length === 0) return state;
+      const node = getNodeAtPath(state.nodes, action.path);
+      if (!node) return state;
+      return { ...state, cursor: action.path };
     }
 
     case "NAV_CROSS_COLUMN": {
@@ -312,9 +286,10 @@ export function boardReducer(
       return { ...state, cursor: [newColIdx, clampedRow] };
     }
 
-    // ===== Visual Navigation (cursor-select) =====
+    // ===== Visual/Spatial Cursor Movement (arrows) =====
 
     case "CURSOR_UP": {
+      // Previous visible block above (may cross tree levels)
       const prevPath = getPrevVisiblePath(
         state.nodes,
         state.cursor,
@@ -325,6 +300,7 @@ export function boardReducer(
     }
 
     case "CURSOR_DOWN": {
+      // Next visible block below (may cross tree levels)
       const nextPath = getNextVisiblePath(
         state.nodes,
         state.cursor,
@@ -335,22 +311,19 @@ export function boardReducer(
     }
 
     case "CURSOR_LEFT": {
-      // Go to parent (structural, but used as visual "left")
-      if (state.cursor.length <= 1) return state;
-      return { ...state, cursor: state.cursor.slice(0, -1) };
+      // Cross-column left (visual horizontal movement)
+      return boardReducer(state, {
+        type: "NAV_CROSS_COLUMN",
+        direction: "left",
+      });
     }
 
     case "CURSOR_RIGHT": {
-      // Go to first child (structural, but used as visual "right")
-      const currentNode = getNodeAtPath(state.nodes, state.cursor);
-      if (
-        !currentNode ||
-        currentNode.children.length === 0 ||
-        state.foldedNodes.has(currentNode.nodeId)
-      ) {
-        return state;
-      }
-      return { ...state, cursor: [...state.cursor, 0] };
+      // Cross-column right (visual horizontal movement)
+      return boardReducer(state, {
+        type: "NAV_CROSS_COLUMN",
+        direction: "right",
+      });
     }
 
     // ===== Node Operations =====
@@ -740,6 +713,27 @@ export function boardReducer(
       };
     }
 
+    // ===== View Configuration =====
+    case "INCREASE_OUTLINE_DEPTH": {
+      if (state.maxOutlineDepth >= 99) return state;
+      return { ...state, maxOutlineDepth: state.maxOutlineDepth + 1 };
+    }
+
+    case "DECREASE_OUTLINE_DEPTH": {
+      if (state.maxOutlineDepth <= 0) return state;
+      return { ...state, maxOutlineDepth: state.maxOutlineDepth - 1 };
+    }
+
+    case "INCREASE_CONTENT_LINES": {
+      if (state.maxContentLines >= 10) return state;
+      return { ...state, maxContentLines: state.maxContentLines + 1 };
+    }
+
+    case "DECREASE_CONTENT_LINES": {
+      if (state.maxContentLines <= 0) return state;
+      return { ...state, maxContentLines: state.maxContentLines - 1 };
+    }
+
     default:
       return state;
   }
@@ -751,7 +745,7 @@ export function boardReducer(
  * Cursor starts at [0, 0] (first card in first column) if there are children,
  * otherwise [0] (first column) if there are nodes, otherwise empty.
  */
-export function createInitialBoardState(
+export function createBoardState(
   nodes: TNode[],
   rootId: string | null = null,
   rootPath: string | null = null,
@@ -782,5 +776,7 @@ export function createInitialBoardState(
     moveMode: false,
     moveSourceNodes: [],
     moveSourceCursor: [],
+    maxOutlineDepth: 99,
+    maxContentLines: 2,
   };
 }

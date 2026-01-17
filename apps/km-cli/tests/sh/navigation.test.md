@@ -101,10 +101,10 @@ topLevel: 1 nodes
 $ j
 $ k
 $ log
-NAV_NEXT_SIBLING → cursor=[0,1]
-NAV_PREV_SIBLING → cursor=[0,0]
+CURSOR_NEXT → cursor=[0,1]
+CURSOR_PREV → cursor=[0,0]
 $ log 1
-NAV_PREV_SIBLING → cursor=[0,0]
+CURSOR_PREV → cursor=[0,0]
 ```
 
 ## Shell Commands

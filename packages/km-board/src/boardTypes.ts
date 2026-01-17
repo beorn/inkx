@@ -57,6 +57,10 @@ export interface BoardState {
   moveMode: boolean;
   moveSourceNodes: string[]; // Node IDs being moved
   moveSourceCursor: TPath; // Original cursor position
+
+  // View configuration
+  maxOutlineDepth: number;
+  maxContentLines: number;
 }
 
 // ===== Board Actions (Core Navigation) =====
@@ -64,34 +68,30 @@ export interface BoardState {
 /**
  * Actions for board navigation state transitions.
  *
- * Visual/Spatial Navigation (CURSOR_*):
- *   Moves to visually adjacent block. May traverse tree structure arbitrarily.
- *   See specs/km-board-navigation.md for the visual navigation model.
+ * Cursor Movement (CURSOR_*):
+ *   - Visual/spatial: UP/DOWN/LEFT/RIGHT - moves to visually adjacent block
+ *   - Structural: PREV/NEXT/IN/OUT - moves within tree structure
+ *   - Boundary: FIRST/LAST - jumps to first/last sibling
  *
- * Structural Navigation (NAV_*):
- *   Moves within tree structure (prev/next sibling, parent/child).
+ * See docs/07-navigation.md for the visual navigation model.
  */
 export type BoardAction =
-  // Visual/spatial navigation (cursor-select)
-  | { type: "CURSOR_UP" }
-  | { type: "CURSOR_DOWN" }
-  | { type: "CURSOR_LEFT" }
-  | { type: "CURSOR_RIGHT" }
+  // Visual/spatial cursor movement (arrows)
+  | { type: "CURSOR_UP" } // Previous visible block above
+  | { type: "CURSOR_DOWN" } // Next visible block below
+  | { type: "CURSOR_LEFT" } // Cross-column left
+  | { type: "CURSOR_RIGHT" } // Cross-column right
 
-  // Structural navigation
-  | { type: "NAV_PREV_SIBLING" }
-  | { type: "NAV_NEXT_SIBLING" }
-  | { type: "NAV_FIRST_SIBLING" }
-  | { type: "NAV_LAST_SIBLING" }
-  | { type: "JUMP_TOP" }
-  | { type: "JUMP_BOTTOM" }
-  | { type: "MOVE_UP" }
-  | { type: "MOVE_DOWN" }
-  | { type: "MOVE_LEFT" }
-  | { type: "MOVE_RIGHT" }
+  // Structural cursor movement (hjkl)
+  | { type: "CURSOR_PREV" } // Previous sibling (k)
+  | { type: "CURSOR_NEXT" } // Next sibling (j)
+  | { type: "CURSOR_IN" } // Into first child (l)
+  | { type: "CURSOR_OUT" } // To parent (h)
+  | { type: "CURSOR_FIRST" } // First sibling (g)
+  | { type: "CURSOR_LAST" } // Last sibling (G)
+
+  // Jump navigation (not cursor movement)
   | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" }
-  | { type: "NAV_PARENT" }
-  | { type: "NAV_CHILD" }
   | { type: "NAV_TO_PATH"; path: TPath }
 
   // Node operations
@@ -140,7 +140,13 @@ export type BoardAction =
   // Move mode
   | { type: "ENTER_MOVE_MODE" }
   | { type: "CONFIRM_MOVE" }
-  | { type: "CANCEL_MOVE" };
+  | { type: "CANCEL_MOVE" }
+
+  // View configuration
+  | { type: "INCREASE_OUTLINE_DEPTH" }
+  | { type: "DECREASE_OUTLINE_DEPTH" }
+  | { type: "INCREASE_CONTENT_LINES" }
+  | { type: "DECREASE_CONTENT_LINES" };
 
 // ===== View Level Configuration =====
 

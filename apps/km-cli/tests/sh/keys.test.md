@@ -75,7 +75,7 @@ node: Tasks
 topLevel: 2 nodes
 ```
 
-### l at column level navigates to first card (NAV_CHILD)
+### l at column level navigates to first card (CURSOR_IN)
 
 ```console
 $ km sh board.md -c 'h; l; state'

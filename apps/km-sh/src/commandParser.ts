@@ -1,25 +1,25 @@
 /**
  * Command Parser for km-sh
  *
- * Parses command strings (line mode or JSON mode) into TreeAction objects.
+ * Parses command strings (line mode or JSON mode) into BoardAction objects.
  * Supports:
- * - snake_case commands: move_down, jump_top, toggle_fold
+ * - snake_case commands: cursor_next, cursor_prev, toggle_fold
  * - Key commands: key j, key <Enter>
- * - JSON actions: {"type": "MOVE_DOWN"}
+ * - JSON actions: {"type": "CURSOR_NEXT"}
  */
 
-import type { TreeAction } from "@km/board";
+import type { BoardAction } from "@km/board";
 
 /**
  * Result of parsing a command
  */
 export type ParseResult =
-  | { ok: true; action: TreeAction }
+  | { ok: true; action: BoardAction }
   | { ok: true; command: ShellCommand }
   | { ok: false; error: string };
 
 /**
- * Shell-specific commands (not TreeActions)
+ * Shell-specific commands (not BoardActions)
  */
 export type ShellCommand =
   | { type: "STATE" } // Dump current state
@@ -35,28 +35,26 @@ export type ShellCommand =
   | { type: "CAT"; path?: string }; // Show node content/details
 
 /**
- * Map of snake_case command names to TreeAction types
+ * Map of snake_case command names to BoardAction types
  */
-const SIMPLE_ACTIONS: Record<string, TreeAction> = {
-  // Structural navigation (prev/next/in/out)
-  nav_prev_sibling: { type: "NAV_PREV_SIBLING" },
-  nav_next_sibling: { type: "NAV_NEXT_SIBLING" },
-  nav_first_sibling: { type: "NAV_FIRST_SIBLING" },
-  nav_last_sibling: { type: "NAV_LAST_SIBLING" },
-  nav_parent: { type: "NAV_PARENT" },
-  nav_child: { type: "NAV_CHILD" },
+const SIMPLE_ACTIONS: Record<string, BoardAction> = {
+  // Structural cursor movement (prev/next/in/out)
+  cursor_prev: { type: "CURSOR_PREV" },
+  cursor_next: { type: "CURSOR_NEXT" },
+  cursor_in: { type: "CURSOR_IN" },
+  cursor_out: { type: "CURSOR_OUT" },
+  cursor_first: { type: "CURSOR_FIRST" },
+  cursor_last: { type: "CURSOR_LAST" },
+
+  // Visual cursor movement (up/down/left/right)
+  cursor_up: { type: "CURSOR_UP" },
+  cursor_down: { type: "CURSOR_DOWN" },
+  cursor_left: { type: "CURSOR_LEFT" },
+  cursor_right: { type: "CURSOR_RIGHT" },
 
   // Cross-column navigation (preserves Y position)
   nav_cross_column_left: { type: "NAV_CROSS_COLUMN", direction: "left" },
   nav_cross_column_right: { type: "NAV_CROSS_COLUMN", direction: "right" },
-
-  // Directional aliases
-  move_up: { type: "NAV_PREV_SIBLING" },
-  move_down: { type: "NAV_NEXT_SIBLING" },
-  move_left: { type: "NAV_PARENT" },
-  move_right: { type: "NAV_CHILD" },
-  jump_top: { type: "NAV_FIRST_SIBLING" },
-  jump_bottom: { type: "NAV_LAST_SIBLING" },
 
   // History navigation
   nav_back: { type: "NAV_BACK" },
@@ -84,14 +82,7 @@ const SIMPLE_ACTIONS: Record<string, TreeAction> = {
   confirm_move: { type: "CONFIRM_MOVE" },
   cancel_move: { type: "CANCEL_MOVE" },
 
-  // Modes
-  toggle_search: { type: "TOGGLE_SEARCH_MODE" },
-  toggle_help: { type: "TOGGLE_HELP_MODE" },
-  toggle_new_item: { type: "TOGGLE_NEW_ITEM_MODE" },
-  clear_new_item: { type: "CLEAR_NEW_ITEM" },
-  toggle_detail_pane: { type: "TOGGLE_DETAIL_PANE" },
-
-  // Outline depth
+  // View configuration
   increase_outline_depth: { type: "INCREASE_OUTLINE_DEPTH" },
   decrease_outline_depth: { type: "DECREASE_OUTLINE_DEPTH" },
   increase_content_lines: { type: "INCREASE_CONTENT_LINES" },
@@ -99,7 +90,7 @@ const SIMPLE_ACTIONS: Record<string, TreeAction> = {
 };
 
 /**
- * Shell commands (not TreeActions)
+ * Shell commands (not BoardActions)
  * Note: 'log', 'ls', 'cd', 'tree', 'cat' are handled specially in parseCommand to support args
  */
 const SHELL_COMMANDS: Record<string, ShellCommand> = {
@@ -116,39 +107,36 @@ const SHELL_COMMANDS: Record<string, ShellCommand> = {
  * Single-char commands mapped to actions or special handling
  * These can be used directly without the "key" prefix
  */
-const SINGLE_CHAR_MAP: Record<string, TreeAction | "KEY"> = {
-  // Cursor-select (vim style keys map to structural actions in shell)
-  j: { type: "NAV_NEXT_SIBLING" },
-  k: { type: "NAV_PREV_SIBLING" },
-  h: { type: "NAV_PARENT" },
-  l: { type: "NAV_CHILD" },
+const SINGLE_CHAR_MAP: Record<string, BoardAction | "KEY"> = {
+  // Structural cursor movement (vim style hjkl)
+  j: { type: "CURSOR_NEXT" }, // Next sibling
+  k: { type: "CURSOR_PREV" }, // Previous sibling
+  h: { type: "CURSOR_OUT" }, // To parent
+  l: { type: "CURSOR_IN" }, // Into child
+  g: { type: "CURSOR_FIRST" }, // First sibling
+  G: { type: "CURSOR_LAST" }, // Last sibling
+  u: { type: "CURSOR_OUT" }, // Alias for h
+
+  // Cross-column navigation
   H: { type: "NAV_CROSS_COLUMN", direction: "left" },
   L: { type: "NAV_CROSS_COLUMN", direction: "right" },
-  g: { type: "NAV_FIRST_SIBLING" },
-  G: { type: "NAV_LAST_SIBLING" },
-  u: { type: "NAV_PARENT" },
 
-  // Navigating (history)
+  // History navigation
   "[": { type: "NAV_BACK" },
   "]": { type: "NAV_FORWARD" },
 
   // Selection
   A: { type: "SELECT_ALL_SIBLINGS" },
 
-  // View controls
+  // Fold controls
   z: { type: "FOLD_LEVEL", depth: 1 },
   Z: { type: "UNFOLD_LEVEL", depth: 1 },
+
+  // View configuration
   "<": { type: "DECREASE_OUTLINE_DEPTH" },
   ">": { type: "INCREASE_OUTLINE_DEPTH" },
   "+": { type: "INCREASE_CONTENT_LINES" },
   "-": { type: "DECREASE_CONTENT_LINES" },
-
-  // Modals
-  "/": { type: "TOGGLE_SEARCH_MODE" },
-  "?": { type: "TOGGLE_HELP_MODE" },
-  n: { type: "TOGGLE_NEW_ITEM_MODE" },
-  p: { type: "TOGGLE_PROJECT_PICKER" },
-  i: { type: "TOGGLE_DETAIL_PANE" },
 };
 
 /**
@@ -203,7 +191,7 @@ export function parseKeySpec(spec: string): string | null {
 }
 
 /**
- * Parse a command string into a TreeAction or ShellCommand
+ * Parse a command string into a BoardAction or ShellCommand
  */
 export function parseCommand(input: string): ParseResult {
   const trimmed = input.trim();
@@ -233,7 +221,7 @@ export function parseCommand(input: string): ParseResult {
       if (!parsed.type) {
         return { ok: false, error: "JSON action missing 'type' field" };
       }
-      return { ok: true, action: parsed as TreeAction };
+      return { ok: true, action: parsed as BoardAction };
     } catch (e) {
       return {
         ok: false,
@@ -458,24 +446,6 @@ export function parseCommand(input: string): ParseResult {
       };
     }
 
-    // set_search_query <query>
-    case "set_search_query": {
-      const query = args.join(" ");
-      return { ok: true, action: { type: "SET_SEARCH_QUERY", query } };
-    }
-
-    // set_new_item_text <text>
-    case "set_new_item_text": {
-      const text = args.join(" ");
-      return { ok: true, action: { type: "SET_NEW_ITEM_TEXT", text } };
-    }
-
-    // set_project_picker_query <query>
-    case "set_project_picker_query": {
-      const query = args.join(" ");
-      return { ok: true, action: { type: "SET_PROJECT_PICKER_QUERY", query } };
-    }
-
     // === Filesystem-like commands (REPL mode) ===
 
     // ls [path] - list children of current or specified node
@@ -538,16 +508,16 @@ export function getCommandHelp(topic?: string): string {
   if (topic) {
     // Specific command help
     const helpText: Record<string, string> = {
-      nav_prev_sibling: "Move to previous sibling at same level",
-      nav_next_sibling: "Move to next sibling at same level",
-      nav_parent: "Move up one level to parent",
-      nav_child: "Move down into first child",
-      move_up: "Move cursor up (alias for nav_prev_sibling)",
-      move_down: "Move cursor down (alias for nav_next_sibling)",
-      move_left: "Move cursor left (parent or prev column)",
-      move_right: "Move cursor right (child or next column)",
-      jump_top: "Jump to first sibling",
-      jump_bottom: "Jump to last sibling",
+      cursor_prev: "Move to previous sibling (k)",
+      cursor_next: "Move to next sibling (j)",
+      cursor_out: "Move to parent (h, u)",
+      cursor_in: "Move into first child (l)",
+      cursor_first: "Jump to first sibling (g)",
+      cursor_last: "Jump to last sibling (G)",
+      cursor_up: "Move to previous visible block (arrow up)",
+      cursor_down: "Move to next visible block (arrow down)",
+      cursor_left: "Cross-column left (arrow left)",
+      cursor_right: "Cross-column right (arrow right)",
       toggle_fold: "toggle_fold <nodeId> - Toggle fold state of a node",
       toggle_collapse: "toggle_collapse <nodeId> - Toggle collapse state",
       fold_level: "fold_level <depth> - Fold all nodes at depth",
@@ -555,7 +525,7 @@ export function getCommandHelp(topic?: string): string {
       nav_to_path: "nav_to_path <path> - Navigate to path (e.g., 0,1,2)",
       select_position: "select_position <path> - Select specific position",
       key: "key <keyspec> - Send raw key (e.g., key j, key <Enter>)",
-      state: "Dump current TreeState as JSON",
+      state: "Dump current BoardState as JSON",
       view: "Render current view as ASCII",
       help: "help [command] - Show help",
       quit: "Exit the shell",
@@ -572,55 +542,51 @@ export function getCommandHelp(topic?: string): string {
   // General help
   return `km-sh commands:
 
-Structural Navigation (prev/next/in/out):
-  nav_prev_sibling, nav_next_sibling  (k/j)
-  nav_first_sibling, nav_last_sibling (g/G)
-  nav_parent, nav_child               (h/l, u, Enter, Backspace)
-  nav_cross_column_left/right         (H/L) - preserves Y position
-  nav_to_path <path>                  (e.g., 0,1,2)
-  nav_back, nav_forward               ([/])
+Cursor Movement (structural - hjkl):
+  cursor_prev, cursor_next    (k/j) - previous/next sibling
+  cursor_out, cursor_in       (h/l) - to parent / into child
+  cursor_first, cursor_last   (g/G) - first/last sibling
 
-Legacy aliases (for backwards compatibility):
-  move_up, move_down, move_left, move_right
-  jump_top, jump_bottom
+Cursor Movement (visual - arrows):
+  cursor_up, cursor_down      - previous/next visible block
+  cursor_left, cursor_right   - cross-column movement
+
+Navigation:
+  nav_cross_column_left/right (H/L) - cross-column preserving Y
+  nav_to_path <path>          - go to path (e.g., 0,1,2)
+  nav_back, nav_forward       ([/]) - history navigation
 
 Selection:
-  select_position <path> (alias for nav_to_path)
-  select_node_add <nodeId>
-  select_node_remove <nodeId>
-  select_node_toggle <nodeId>
+  select_position <path>
+  select_node_add/remove/toggle <nodeId>
   select_all, select_all_siblings, clear_selection
 
 View:
   toggle_fold <nodeId>
   toggle_collapse <nodeId>
   fold_level <depth>, unfold_level <depth>
-  increase_outline_depth, decrease_outline_depth
-  increase_content_lines, decrease_content_lines
-
-Search:
-  toggle_search
-  set_search_query <query>
+  increase/decrease_outline_depth  (</>)
+  increase/decrease_content_lines  (+/-)
 
 Shell:
-  state - dump TreeState as JSON
+  state - dump BoardState as JSON
   view - render ASCII view
   help [command] - show help
   quit, exit, q - exit shell
 
 Filesystem (REPL mode):
   pwd - show current path as node titles
-  ls [path] - list children of current/specified node
-  cd <path> - navigate to node (supports .., /, relative)
+  ls [path] - list children
+  cd <path> - navigate to node
   tree [path] [depth] - hierarchical listing
-  cat [path] - show node content/details
+  cat [path] - show node content
 
 Key input:
   key <char> - single key (e.g., key j)
-  key <Name> - special key (e.g., key Enter, key Escape)
+  key <Name> - special key (e.g., key Enter)
 
 JSON mode:
-  {"type": "NAV_NEXT_SIBLING"} - any valid TreeAction as JSON
+  {"type": "CURSOR_NEXT"} - any valid BoardAction
 `;
 }
 
@@ -640,9 +606,6 @@ export function getCommandNames(): string[] {
     "select_node_add",
     "select_node_remove",
     "select_node_toggle",
-    "set_search_query",
-    "set_new_item_text",
-    "set_project_picker_query",
     "key",
     // Filesystem-like commands
     "ls",
