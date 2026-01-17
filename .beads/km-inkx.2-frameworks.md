@@ -32,17 +32,20 @@ auto grid = gridbox({
 ### Flexbox Configuration
 
 FTXUI provides `FlexboxConfig` with:
+
 - **Direction**: Row, column, row-reverse, column-reverse
 - **Wrap**: No-wrap, wrap, wrap-reverse
 - **Justify content**: Flex-start, flex-end, center, space-between, space-around, space-evenly
 - **Align items/content**: Similar to CSS flexbox
 
 ### Key Features
+
 - Pipe operator for decorators: `element | bold | color(Color::Red)`
 - Responsive to terminal dimensions
 - Cross-platform (Linux, macOS, Windows, WebAssembly)
 
 ### Assessment
+
 **Pros**: Proper flexbox, functional style, performant
 **Cons**: C++ only, different ecosystem
 **Relevance**: Shows flexbox can work in terminal - Ink uses Yoga but doesn't expose computed sizes
@@ -70,15 +73,18 @@ rsx! {
 ```
 
 ### Key Features
+
 - CSS-like inline styles
 - HTML-like semantic structure
 - No JavaScript runtime dependency
 - Event handling similar to React
 
 ### Status
+
 **Archived** in June 2023, moved to main Dioxus package. The README notes "some bugs in the flexbox implementation might be quirky at times."
 
 ### Assessment
+
 **Pros**: Familiar React patterns, no JS runtime
 **Cons**: Rust only, archived/moved, flexbox bugs
 **Relevance**: Validates React-like approach works, but Rust ecosystem
@@ -122,11 +128,13 @@ BoxView::new(view).squishable()
 ```
 
 ### Key Features
+
 - Explicit constraint methods: `fixed_size`, `min_width`, `max_width`, `full_width`, etc.
 - "Squishable" concept - allows views to shrink below preferred size when space is tight
 - Event bubbling through view hierarchy
 
 ### Assessment
+
 **Pros**: Explicit constraints, squishable concept useful
 **Cons**: Rust only, widget-based (not declarative)
 **Relevance**: `min_width`/`max_width`/`squishable` pattern could inform Ink wrapper design
@@ -150,11 +158,13 @@ ncplane_resize(plane, keepy, keepx, keepleny, keeplenx, ...);
 ```
 
 ### Key Concepts
+
 - **Planes**: Rectangular regions with z-ordering
 - **Piles**: Independent rendering contexts (thread-safe)
 - **No automatic layout**: Manual positioning and sizing
 
 ### Assessment
+
 **Pros**: Extremely performant, thread-safe, multimedia support
 **Cons**: Low-level, manual layout, C only
 **Relevance**: Different paradigm (immediate mode), not applicable to our needs
@@ -180,7 +190,9 @@ From Will McGugan's blog post ["7 Things I've Learned Building a Modern TUI Fram
 6. **Unicode/emoji are problematic** - Multi-codepoint emoji render inconsistently. Stick to Unicode 9 emoji.
 
 ### Assessment
+
 **Relevance**: These insights directly applicable to Ink constraint system:
+
 - Cache layout calculations
 - Use fractions/integers for width distribution
 - Avoid floating point
@@ -213,6 +225,7 @@ Three-pass algorithm (from ["How to Write a Flexbox Layout Engine"](https://tcha
 ### What Ink Exposes
 
 Ink exposes Yoga's properties on `<Box>`:
+
 - `flexDirection`, `flexGrow`, `flexShrink`, `flexBasis`
 - `alignItems`, `alignSelf`, `justifyContent`
 - `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`
@@ -225,9 +238,11 @@ Ink exposes Yoga's properties on `<Box>`:
 - **measureElement timing**: Returns 0 until after first render
 
 ### Assessment
+
 **Key Insight**: Yoga already does the hard work. Ink just doesn't expose the results.
 
 A constraint system could potentially:
+
 1. Hook into Yoga's output somehow, or
 2. Implement a parallel constraint solver that mirrors Yoga's behavior
 
@@ -235,15 +250,15 @@ A constraint system could potentially:
 
 ## Summary Table
 
-| Framework | Language | Layout Approach | Constraint Types | Computed Size Access |
-|-----------|----------|-----------------|------------------|---------------------|
-| FTXUI | C++ | Flexbox | flex decorator, direction, wrap | Via callbacks |
-| Dioxus-TUI | Rust | Flexbox (CSS-like) | inline styles | Implicit |
-| Cursive | Rust | LinearLayout + BoxView | min/max/fixed/full | Squishable concept |
-| Notcurses | C | Manual planes | None (absolute) | Manual |
-| Textual | Python | CSS Grid + Flexbox | fr units, grid-size | Via CSS queries |
-| Yoga | C++ | Flexbox | Full CSS flexbox | **Yes** (internally) |
-| Ink | JS | Yoga (partial) | Yoga props | **No** |
+| Framework  | Language | Layout Approach        | Constraint Types                | Computed Size Access |
+| ---------- | -------- | ---------------------- | ------------------------------- | -------------------- |
+| FTXUI      | C++      | Flexbox                | flex decorator, direction, wrap | Via callbacks        |
+| Dioxus-TUI | Rust     | Flexbox (CSS-like)     | inline styles                   | Implicit             |
+| Cursive    | Rust     | LinearLayout + BoxView | min/max/fixed/full              | Squishable concept   |
+| Notcurses  | C        | Manual planes          | None (absolute)                 | Manual               |
+| Textual    | Python   | CSS Grid + Flexbox     | fr units, grid-size             | Via CSS queries      |
+| Yoga       | C++      | Flexbox                | Full CSS flexbox                | **Yes** (internally) |
+| Ink        | JS       | Yoga (partial)         | Yoga props                      | **No**               |
 
 ---
 
@@ -269,6 +284,7 @@ Yoga performs three-pass layout with caching. Ink uses Yoga. The problem is **ex
 ### 4. What We Actually Need
 
 For Ink, we need a thin layer that:
+
 1. Provides terminal dimensions to the component tree
 2. Allows declaring constraints (min/max/flex/fixed)
 3. Computes and distributes remaining space

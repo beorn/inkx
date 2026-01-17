@@ -109,25 +109,55 @@ describe.serial("extractReferences", () => {
 
 describe.serial("formatDate", () => {
   test("returns empty string for undefined", () => {
-    expect(formatDate(undefined)).toBe("");
+    expect(formatDate(undefined).text).toBe("");
   });
 
   test("returns raw date for invalid date", () => {
-    expect(formatDate("not-a-date")).toBe("not-a-date");
+    expect(formatDate("not-a-date").text).toBe("not-a-date");
   });
 
   test("formats date in current year as short form", () => {
     const now = new Date();
     const dateStr = `${now.getFullYear()}-01-15`;
     const formatted = formatDate(dateStr);
-    expect(formatted).toContain("Jan");
-    expect(formatted).toContain("15");
+    expect(formatted.text).toContain("Jan");
+    expect(formatted.text).toContain("15");
   });
 
   test("returns full date for different year", () => {
     const formatted = formatDate("2020-06-15");
     // Should return the original date string for different years
-    expect(formatted).toBe("2020-06-15");
+    expect(formatted.text).toBe("2020-06-15");
+    // Past date should be overdue
+    expect(formatted.urgency).toBe("overdue");
+  });
+
+  test("returns overdue urgency for past dates", () => {
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - 5);
+    const formatted = formatDate(pastDate.toISOString().slice(0, 10));
+    expect(formatted.urgency).toBe("overdue");
+  });
+
+  test("returns urgent urgency for dates due tomorrow", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const formatted = formatDate(tomorrow.toISOString().slice(0, 10));
+    expect(formatted.urgency).toBe("urgent");
+  });
+
+  test("returns soon urgency for dates due within 3 days", () => {
+    const soonDate = new Date();
+    soonDate.setDate(soonDate.getDate() + 3);
+    const formatted = formatDate(soonDate.toISOString().slice(0, 10));
+    expect(formatted.urgency).toBe("soon");
+  });
+
+  test("returns normal urgency for future dates", () => {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 10);
+    const formatted = formatDate(futureDate.toISOString().slice(0, 10));
+    expect(formatted.urgency).toBe("normal");
   });
 });
 

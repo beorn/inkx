@@ -12,22 +12,46 @@ import { getNodeDisplayName } from "../state.ts";
 import { renderRich } from "../text/index.ts";
 import { wrapText } from "../layout/index.ts";
 
-// Format date for display (e.g., "Jan 10" or "2026-01-10")
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return "";
+// Due date urgency levels
+type DueUrgency = "overdue" | "urgent" | "soon" | "normal";
+
+// Format date for display (e.g., "Jan 10" or "2026-01-10") with urgency info
+function formatDate(dateStr: string | undefined): {
+  text: string;
+  urgency: DueUrgency;
+} {
+  if (!dateStr) return { text: "", urgency: "normal" };
   try {
     const date = new Date(dateStr);
     const now = new Date();
-    const sameYear = date.getFullYear() === now.getFullYear();
-    if (sameYear) {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
+
+    // Calculate days until due
+    const daysUntilDue = Math.floor(
+      (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    // Determine urgency
+    let urgency: DueUrgency = "normal";
+    if (daysUntilDue < 0) {
+      urgency = "overdue";
+    } else if (daysUntilDue <= 1) {
+      urgency = "urgent"; // Due today or tomorrow
+    } else if (daysUntilDue <= 3) {
+      urgency = "soon"; // Due within 3 days
     }
-    return dateStr;
+
+    // Format display text
+    const sameYear = date.getFullYear() === now.getFullYear();
+    const text = sameYear
+      ? date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })
+      : dateStr;
+
+    return { text, urgency };
   } catch {
-    return dateStr;
+    return { text: dateStr, urgency: "normal" };
   }
 }
 
@@ -259,10 +283,25 @@ export function DetailPane({
           <Text dimColor>Status: </Text>
           <Text color={statusInfo.color}>{statusInfo.text}</Text>
         </Text>
-        {dueDate && (
+        {dueDate.text && (
           <Text>
             <Text dimColor>Due: </Text>
-            <Text>{dueDate}</Text>
+            <Text
+              color={
+                dueDate.urgency === "overdue"
+                  ? "red"
+                  : dueDate.urgency === "urgent"
+                    ? "yellow"
+                    : undefined
+              }
+              underline={
+                dueDate.urgency === "overdue" ||
+                dueDate.urgency === "urgent" ||
+                dueDate.urgency === "soon"
+              }
+            >
+              {dueDate.text}
+            </Text>
           </Text>
         )}
       </Box>

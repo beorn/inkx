@@ -9,18 +9,23 @@ A constraint-based layout system for Ink that exposes computed dimensions to chi
 ## Design Principles
 
 ### 1. Incremental Adoption
+
 Components can be migrated one at a time. Constraint components work alongside regular Ink components.
 
 ### 2. No Yoga Replacement
+
 Yoga (used by Ink) already does layout. We add a dimension-exposure layer, not a replacement.
 
 ### 3. React Patterns
+
 Uses context, hooks, and composition - familiar to React/Ink developers.
 
 ### 4. Integer Math
+
 Use fractions/integers for width distribution, not floats. Avoids rounding errors that cause 1-character gaps.
 
 ### 5. Caching
+
 Layout calculations cached. Only recompute on terminal resize or constraint changes.
 
 ---
@@ -56,12 +61,12 @@ Layout calculations cached. Only recompute on terminal resize or constraint chan
 ```typescript
 /** Constraint specification for a dimension */
 type SizeConstraint =
-  | number                          // Fixed: exactly N characters
-  | `${number}%`                    // Percentage: N% of parent
-  | 'auto'                          // Auto: size to content
-  | 'fill'                          // Fill: take remaining space
-  | { min?: number; max?: number }  // Range: between min and max
-  | { flex: number }                // Flex: proportional to other flex items
+  | number // Fixed: exactly N characters
+  | `${number}%` // Percentage: N% of parent
+  | "auto" // Auto: size to content
+  | "fill" // Fill: take remaining space
+  | { min?: number; max?: number } // Range: between min and max
+  | { flex: number }; // Flex: proportional to other flex items
 
 /** Computed dimensions passed via context */
 interface ComputedSize {
@@ -136,6 +141,7 @@ function ConstraintRoot({ children, padding = 0 }: ConstraintRootProps) {
 ```
 
 **Usage:**
+
 ```typescript
 render(
   <ConstraintRoot padding={1}>
@@ -198,6 +204,7 @@ function resolveConstraint(constraint: SizeConstraint, available: number): numbe
 ```
 
 **Usage:**
+
 ```typescript
 <Constrained width={40} height="50%">
   <Card />
@@ -322,6 +329,7 @@ function distributeSpace(
 ```
 
 **FlexItem wrapper (optional, for prop extraction):**
+
 ```typescript
 interface FlexItemProps extends FlexItemConfig {
   children: React.ReactNode;
@@ -335,6 +343,7 @@ function FlexItem({ children }: FlexItemProps) {
 ```
 
 **Usage:**
+
 ```typescript
 <FlexRow gap={1}>
   <FlexItem width={10}><Prefix /></FlexItem>
@@ -405,6 +414,7 @@ function constrainText(
 ```
 
 **Usage:**
+
 ```typescript
 // Automatically uses width from context
 <TruncatedText>{node.title}</TruncatedText>
@@ -503,6 +513,7 @@ function ScrollableList<T>({
 ```
 
 **Usage:**
+
 ```typescript
 <ScrollableList
   items={cards}
@@ -529,7 +540,9 @@ Access the full constraint context.
 function useConstraintContext(): ConstraintContextValue {
   const context = useContext(ConstraintContext);
   if (!context) {
-    throw new Error('useConstraintContext must be used within a ConstraintRoot');
+    throw new Error(
+      "useConstraintContext must be used within a ConstraintRoot",
+    );
   }
   return context;
 }
@@ -647,16 +660,19 @@ function Column({ column }: { column: TColumn }) {
 ## Implementation Phases
 
 ### Phase 1: Foundation (1 day)
+
 - `ConstraintContext` and `ConstraintRoot`
 - `useConstraintContext`, `useComputedSize`, `useTerminalSize` hooks
 - Basic tests
 
 ### Phase 2: TruncatedText (1 day)
+
 - `TruncatedText` component
 - Integration with existing `constrainText` function
 - Tests with ANSI-styled content
 
 ### Phase 3: FlexRow/FlexItem (2 days)
+
 - `FlexRow` and `FlexColumn` components
 - `FlexItem` marker component
 - `distributeSpace` algorithm with integer math
@@ -664,12 +680,14 @@ function Column({ column }: { column: TColumn }) {
 - Extensive tests for edge cases
 
 ### Phase 4: ScrollableList (2 days)
+
 - `ScrollableList` component
 - Scroll position calculation
 - Overflow indicators
 - Tests with varying heights
 
 ### Phase 5: Integration (1-2 days)
+
 - Refactor `TreeNode` to use constraint components
 - Refactor `ColumnsView` to use `FlexRow`
 - Refactor `Board` columns to use `ScrollableList`
@@ -684,29 +702,23 @@ function Column({ column }: { column: TColumn }) {
 ### Unit Tests
 
 ```typescript
-describe('distributeSpace', () => {
-  it('distributes equally among flex items', () => {
-    const widths = distributeSpace(100, [
-      { flex: 1 },
-      { flex: 1 },
-      { flex: 1 },
-    ], 0);
+describe("distributeSpace", () => {
+  it("distributes equally among flex items", () => {
+    const widths = distributeSpace(
+      100,
+      [{ flex: 1 }, { flex: 1 }, { flex: 1 }],
+      0,
+    );
     expect(widths).toEqual([34, 33, 33]); // 100 = 34 + 33 + 33 (integer division)
   });
 
-  it('respects fixed widths', () => {
-    const widths = distributeSpace(100, [
-      { width: 20 },
-      { flex: 1 },
-    ], 0);
+  it("respects fixed widths", () => {
+    const widths = distributeSpace(100, [{ width: 20 }, { flex: 1 }], 0);
     expect(widths).toEqual([20, 80]);
   });
 
-  it('handles gaps', () => {
-    const widths = distributeSpace(100, [
-      { flex: 1 },
-      { flex: 1 },
-    ], 2);
+  it("handles gaps", () => {
+    const widths = distributeSpace(100, [{ flex: 1 }, { flex: 1 }], 2);
     expect(widths).toEqual([49, 49]); // 100 - 2 = 98, split evenly
   });
 });
@@ -717,7 +729,7 @@ describe('distributeSpace', () => {
 Use existing ttyd + Playwright infrastructure:
 
 ```typescript
-it('FlexRow distributes space correctly', async () => {
+it("FlexRow distributes space correctly", async () => {
   // Render test component
   // Capture screenshot
   // Compare to baseline
