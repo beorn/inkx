@@ -89,11 +89,11 @@ Re-render
 
 Commands are named operations that can be triggered from multiple sources:
 
-| Source | Example | Resolution |
-| ------ | ------- | ---------- |
-| Keyboard | `x` | keymap → `toggle_task_status` |
+| Source          | Example                       | Resolution                    |
+| --------------- | ----------------------------- | ----------------------------- |
+| Keyboard        | `x`                           | keymap → `toggle_task_status` |
 | Command palette | `Cmd+Shift+P` → "Toggle Task" | search → `toggle_task_status` |
-| CLI | `km status <id> done` | parser → `toggle_task_status` |
+| CLI             | `km status <id> done`         | parser → `toggle_task_status` |
 
 The command registry maps all inputs to the same command names, which then create typed actions:
 
@@ -104,13 +104,15 @@ const commands = {
   toggle_task_done: (ctx) => ({
     type: "UPDATE_NODE",
     nodeId: ctx.currentNode.id,
-    updates: { task_status: ctx.currentNode.taskStatus === "done" ? "todo" : "done" }
+    updates: {
+      task_status: ctx.currentNode.taskStatus === "done" ? "todo" : "done",
+    },
   }),
   // Direct set commands are also available (idempotent)
   set_task_done: (ctx) => ({
     type: "UPDATE_NODE",
     nodeId: ctx.currentNode.id,
-    updates: { task_status: "done" }
+    updates: { task_status: "done" },
   }),
   cursor_down: () => ({ type: "CURSOR_MOVE", dir: "down" }),
   cursor_up: () => ({ type: "CURSOR_MOVE", dir: "up" }),
@@ -121,6 +123,7 @@ const commands = {
 **Idempotency principle:** Actions at the reducer/storage level should be idempotent (set to a value, not toggle). Toggle logic belongs in commands, which read current state and compute the target value.
 
 This enables:
+
 - **Discoverability**: Command palette shows all available commands
 - **Customization**: Users can rebind keys to any command
 - **Consistency**: Same command works from keyboard, palette, or CLI

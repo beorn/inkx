@@ -30,11 +30,13 @@ export interface TNode {
   icon?: string;
   priority?: number;
   dueDate?: string;
+  scheduledDate?: string; // Scheduled date (YYYY-MM-DD)
   hasBacklinks?: boolean;
   refsCount?: number;
   body?: string; // Text content below the title (renamed from 'content')
 
-  // Tree metadata
+  // Node metadata
+  nodeType: "folder" | "file" | "section" | "task" | "item" | "link"; // Storage node type
   depth: number; // Depth from current view root (0 = top level)
 }
 

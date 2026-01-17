@@ -12,7 +12,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import type { EventEmitter } from "events";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { useAppState, createAppState } from "./hooks/index.ts";
-import { toTreeViewModel } from "@km/board";
+import { toTreeViewModel, type TAction } from "@km/board";
 import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
 import {
   CommandPalette,
@@ -25,9 +25,11 @@ import {
   StatusBar,
 } from "./components/index.ts";
 import { filterCommands } from "@km/sh-app";
+import { executeCommand, type CommandContext } from "./commands.ts";
 import {
   updateNode,
   deleteNode,
+  addNode,
   getNode,
   getAncestors,
   getChildren,
@@ -203,9 +205,9 @@ function openInEditor(filePath: string, line?: number | null): void {
 }
 
 /**
- * Convert Node to TNode (recursive)
+ * Convert DBNode to TNode (recursive)
  */
-function nodeToTNode(node: Node, depth: number = 0): TNode {
+function nodeToTNode(node: DBNode, depth: number = 0): TNode {
   const children = getChildren(node.id);
 
   // Get backlinks count
@@ -218,6 +220,7 @@ function nodeToTNode(node: Node, depth: number = 0): TNode {
 
   return {
     nodeId: node.id,
+    name: node.name || node.title || node.id, // Stable identifier
     title: getNodeDisplayName(node),
     children: children.map((child) => nodeToTNode(child, depth + 1)),
     childCount: children.length,
@@ -227,9 +230,11 @@ function nodeToTNode(node: Node, depth: number = 0): TNode {
     icon: undefined,
     priority: node.priority,
     dueDate: node.due_date,
+    scheduledDate: node.scheduled_date,
     hasBacklinks: hasBacklinks || undefined,
     refsCount,
-    content: node.content,
+    body: node.content,
+    nodeType: node.type as TNode["nodeType"],
     depth,
   };
 }
@@ -293,7 +298,43 @@ export function App({
     [], // Only compute once
   );
 
-  const tree = useAppState(initialState);
+  // Mutable ref for refreshTree to avoid circular dependency
+  const refreshTreeRef = { current: () => {} };
+
+  /**
+   * Effect layer callback: Handle TActions (content mutations).
+   *
+   * This is the bridge between the reducer (pure state) and storage (side effects).
+   * When a TAction is dispatched:
+   * 1. Reducer passes it through unchanged
+   * 2. This callback persists to storage
+   * 3. refreshTree() reloads the tree from storage
+   *
+   * Architecture: Command → Action → Reducer → Effect Layer → Storage
+   */
+  const handleTAction = useCallback((action: TAction) => {
+    switch (action.type) {
+      case "UPDATE_NODE":
+        updateNode(action.nodeId, action.updates);
+        break;
+      case "DELETE_NODE":
+        deleteNode(action.nodeId);
+        break;
+      case "ADD_NODE":
+        addNode(action.parentId, action.node);
+        break;
+      case "MOVE_NODE":
+        updateNode(action.nodeId, {
+          parent_id: action.newParentId,
+          parent_idx: action.newIndex,
+        });
+        break;
+    }
+    // Refresh tree after storage mutation
+    refreshTreeRef.current();
+  }, []);
+
+  const tree = useAppState(initialState, { onTAction: handleTAction });
 
   // Transform state to view model
   const viewModel = useMemo(
@@ -308,6 +349,9 @@ export function App({
       tree.dispatch({ type: "REFRESH", nodes });
     }
   }, [tree]);
+
+  // Update ref so handleTAction can call refreshTree
+  refreshTreeRef.current = refreshTree;
 
   // Subscribe to external refresh events (filesystem changes)
   useEffect(() => {
@@ -352,6 +396,46 @@ export function App({
     const column = tree.state.nodes[colIndex];
     return column?.children[cardIndex] ?? null;
   }, [tree.state.nodes, tree.state.cursor]);
+
+  /**
+   * Build CommandContext from current state.
+   *
+   * Commands read this context to determine what action to create.
+   * This decouples commands from specific UI state shape.
+   */
+  const getCommandContext = useCallback((): CommandContext => {
+    const cardIndex = tree.state.cursor[1] ?? 0;
+    return {
+      currentNode: currentCard,
+      currentNodeId: currentCard?.nodeId ?? null,
+      currentTaskStatus: currentCard?.taskStatus ?? null,
+      isTask: currentCard?.isTask ?? false,
+      parentNodeId: currentColumn?.nodeId ?? null,
+      siblingCount: currentColumn?.children.length ?? 0,
+      currentIndex: cardIndex,
+      depth: tree.state.cursor.length,
+    };
+  }, [currentCard, currentColumn, tree.state.cursor]);
+
+  /**
+   * Execute a command by name.
+   *
+   * This is the entry point for the command system:
+   * 1. Build context from current state
+   * 2. Command reads context and creates action
+   * 3. Action is dispatched to reducer
+   * 4. Effect layer persists TActions to storage
+   */
+  const runCommand = useCallback(
+    (commandId: string) => {
+      const ctx = getCommandContext();
+      const action = executeCommand(commandId, ctx);
+      if (action) {
+        tree.dispatch(action);
+      }
+    },
+    [getCommandContext, tree],
+  );
 
   // Handle keyboard input
   // Note: KeyEvent from OpenTUI uses `name` for key identification, not `key`
@@ -662,16 +746,18 @@ export function App({
             }
           }
 
-          // Move each source node to destination
-          for (const nodeId of tree.state.moveSourceNodes) {
-            // Calculate new parent_idx based on destination position
-            updateNode(nodeId, {
-              parent_id: destParentId,
-              parent_idx: destIndex + 0.5, // Insert after the destination node
-            });
+          // Move each source node to destination via TAction
+          for (let i = 0; i < tree.state.moveSourceNodes.length; i++) {
+            const nodeId = tree.state.moveSourceNodes[i];
+            if (nodeId) {
+              tree.dispatch({
+                type: "MOVE_NODE",
+                nodeId,
+                newParentId: destParentId,
+                newIndex: destIndex + i, // Insert in order after destination
+              });
+            }
           }
-
-          refreshTree();
         }
 
         tree.dispatch({ type: "CONFIRM_MOVE" });
@@ -960,34 +1046,28 @@ export function App({
     }
 
     // ===== Card Mutations =====
+    //
+    // These use the command system: Command → Action → Reducer → Effect Layer
+    // Toggle/cycle logic lives in commands (they read state, compute target value)
+    // Actions are idempotent (they set to a value, never toggle)
 
     // Space - Cycle task status (todo -> wip -> done -> dropped -> todo)
     else if (name === "space") {
-      if (currentCard?.isTask) {
-        const nextStatus = getNextStatus(currentCard.taskStatus);
-        updateNode(currentCard.nodeId, { task_status: nextStatus });
-        refreshTree();
-      }
+      runCommand("cycle_task_status");
     }
 
     // x - Toggle done (quick toggle: if done -> todo, else -> done)
     else if (name === "x") {
-      if (currentCard?.isTask) {
-        const newStatus = currentCard.taskStatus === "done" ? "todo" : "done";
-        updateNode(currentCard.nodeId, { task_status: newStatus });
-        refreshTree();
-      }
+      runCommand("toggle_task_done");
     }
 
     // d - Delete card
     else if (name === "d") {
-      if (currentCard) {
-        deleteNode(currentCard.nodeId);
-        refreshTree();
-      }
+      runCommand("delete_node");
     }
 
     // Tab - Indent (make child of previous sibling)
+    // TODO: Convert to command system - needs richer context with storage access
     else if (name === "tab" && !shift) {
       if (currentCard && currentColumn) {
         const cardIndex = tree.state.cursor[1] ?? 0;
@@ -1000,11 +1080,12 @@ export function App({
             // Move card to be last child of previous sibling
             const node = getNode(currentCard.nodeId);
             if (node) {
-              updateNode(currentCard.nodeId, {
-                parent_id: prevSibling.nodeId,
-                parent_idx: prevSiblingChildren.length,
+              tree.dispatch({
+                type: "MOVE_NODE",
+                nodeId: currentCard.nodeId,
+                newParentId: prevSibling.nodeId,
+                newIndex: prevSiblingChildren.length,
               });
-              refreshTree();
             }
           }
         }
@@ -1012,6 +1093,7 @@ export function App({
     }
 
     // Shift+Tab - Outdent (move to parent's level)
+    // TODO: Convert to command system - needs richer context with storage access
     else if (name === "tab" && shift) {
       if (currentCard) {
         const node = getNode(currentCard.nodeId);
@@ -1024,11 +1106,12 @@ export function App({
               (s: DBNode) => s.id === parent.id,
             );
             // Place after parent
-            updateNode(currentCard.nodeId, {
-              parent_id: parent.parent_id,
-              parent_idx: parentIdx + 1,
+            tree.dispatch({
+              type: "MOVE_NODE",
+              nodeId: currentCard.nodeId,
+              newParentId: parent.parent_id,
+              newIndex: parentIdx + 1,
             });
-            refreshTree();
           }
         }
       }
@@ -1080,8 +1163,11 @@ export function App({
             if (node && nextNode) {
               // Move after next sibling by using its index + 0.5
               const nextIdx = nextNode.parent_idx ?? 0;
-              updateNode(currentCard.nodeId, { parent_idx: nextIdx + 0.5 });
-              refreshTree();
+              tree.dispatch({
+                type: "UPDATE_NODE",
+                nodeId: currentCard.nodeId,
+                updates: { parent_idx: nextIdx + 0.5 },
+              });
               tree.dispatch({ type: "CURSOR_MOVE", dir: "next" });
             }
           }
@@ -1102,8 +1188,11 @@ export function App({
             if (node && prevNode) {
               // Move before previous sibling
               const prevIdx = prevNode.parent_idx ?? 0;
-              updateNode(currentCard.nodeId, { parent_idx: prevIdx - 0.5 });
-              refreshTree();
+              tree.dispatch({
+                type: "UPDATE_NODE",
+                nodeId: currentCard.nodeId,
+                updates: { parent_idx: prevIdx - 0.5 },
+              });
               tree.dispatch({ type: "CURSOR_MOVE", dir: "prev" });
             }
           }
@@ -1120,16 +1209,12 @@ export function App({
           // Move card to be a child of the previous column's node
           // Place at end of previous column
           const prevColumnChildren = getChildren(prevColumn.nodeId);
-          const newParentIdx =
-            prevColumnChildren.length > 0
-              ? (prevColumnChildren[prevColumnChildren.length - 1]
-                  ?.parent_idx ?? 0) + 1
-              : 0;
-          updateNode(currentCard.nodeId, {
-            parent_id: prevColumn.nodeId,
-            parent_idx: newParentIdx,
+          tree.dispatch({
+            type: "MOVE_NODE",
+            nodeId: currentCard.nodeId,
+            newParentId: prevColumn.nodeId,
+            newIndex: prevColumnChildren.length,
           });
-          refreshTree();
           // Move cursor to the new column and to the end where card was placed
           tree.dispatch({
             type: "NAV_TO_PATH",
@@ -1148,16 +1233,12 @@ export function App({
           // Move card to be a child of the next column's node
           // Place at end of next column
           const nextColumnChildren = getChildren(nextColumn.nodeId);
-          const newParentIdx =
-            nextColumnChildren.length > 0
-              ? (nextColumnChildren[nextColumnChildren.length - 1]
-                  ?.parent_idx ?? 0) + 1
-              : 0;
-          updateNode(currentCard.nodeId, {
-            parent_id: nextColumn.nodeId,
-            parent_idx: newParentIdx,
+          tree.dispatch({
+            type: "MOVE_NODE",
+            nodeId: currentCard.nodeId,
+            newParentId: nextColumn.nodeId,
+            newIndex: nextColumnChildren.length,
           });
-          refreshTree();
           // Move cursor to the new column and to the end where card was placed
           tree.dispatch({
             type: "NAV_TO_PATH",
@@ -1179,16 +1260,12 @@ export function App({
             // Move card to be a child of the target column's node
             // Place at end of target column
             const targetColumnChildren = getChildren(targetColumn.nodeId);
-            const newParentIdx =
-              targetColumnChildren.length > 0
-                ? (targetColumnChildren[targetColumnChildren.length - 1]
-                    ?.parent_idx ?? 0) + 1
-                : 0;
-            updateNode(currentCard.nodeId, {
-              parent_id: targetColumn.nodeId,
-              parent_idx: newParentIdx,
+            tree.dispatch({
+              type: "MOVE_NODE",
+              nodeId: currentCard.nodeId,
+              newParentId: targetColumn.nodeId,
+              newIndex: targetColumnChildren.length,
             });
-            refreshTree();
             // Move cursor to the target column and to the end where card was placed
             tree.dispatch({
               type: "NAV_TO_PATH",

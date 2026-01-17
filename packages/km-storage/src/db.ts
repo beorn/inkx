@@ -6,6 +6,7 @@
 import { Database } from "bun:sqlite";
 import { join, resolve } from "path";
 import { existsSync, mkdirSync, readFileSync } from "fs";
+import { ulid } from "ulid";
 import type { DBNode, Event, TaskStatus, NodeType, NodeRules } from "@km/core";
 import { getKmDir, emit } from "./emit.ts";
 import { parseHeadingRules } from "@km/markdown";
@@ -1278,4 +1279,99 @@ export function deleteNode(nodeId: string): void {
       data: {},
     });
   }
+}
+
+/**
+ * Add a new node to the database.
+ * Handles both memory mode (direct SQL) and disk mode (via emit).
+ *
+ * This is the proper store-layer API for creating nodes.
+ * UI components should use this instead of raw SQL or appendTaskToFile.
+ *
+ * @param parentId - Parent node ID (or null for root level)
+ * @param node - Partial node data (id will be generated if not provided)
+ * @returns The created node's ID
+ */
+export function addNode(
+  parentId: string | null,
+  node: Partial<DBNode>,
+): string {
+  const nodeId = node.id ?? ulid();
+  const now = Date.now();
+
+  const nodeData = {
+    id: nodeId,
+    type: node.type ?? "task",
+    parent_id: parentId,
+    parent_idx: node.parent_idx ?? now,
+    symlink_to: node.symlink_to ?? null,
+    fs_path: node.fs_path ?? null,
+    fs_ino: node.fs_ino ?? null,
+    name: node.name ?? null,
+    title: node.title ?? null,
+    md_pos: node.md_pos ?? null,
+    md_line: node.md_line ?? null,
+    md_slug: node.md_slug ?? null,
+    task_status: node.task_status ?? (node.type === "task" ? "todo" : null),
+    task_mark: node.task_mark ?? (node.type === "task" ? " " : null),
+    assigned_to: node.assigned_to ?? null,
+    due_date: node.due_date ?? null,
+    scheduled_date: node.scheduled_date ?? null,
+    priority: node.priority ?? null,
+    content: node.content ?? null,
+    content_hash: node.content_hash ?? null,
+    data: node.data ?? {},
+    created_at: now,
+    updated_at: now,
+  };
+
+  if (isMemoryMode()) {
+    const db = getDb();
+    db.run(
+      `INSERT INTO nodes (
+        id, type, parent_id, parent_idx, symlink_to,
+        fs_path, fs_ino, name, title, md_pos, md_line, md_slug,
+        task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+        content, content_hash, data, created_at, updated_at
+      ) VALUES (
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?
+      )`,
+      [
+        nodeData.id,
+        nodeData.type,
+        nodeData.parent_id,
+        nodeData.parent_idx,
+        nodeData.symlink_to,
+        nodeData.fs_path,
+        nodeData.fs_ino,
+        nodeData.name,
+        nodeData.title,
+        nodeData.md_pos,
+        nodeData.md_line,
+        nodeData.md_slug,
+        nodeData.task_status,
+        nodeData.task_mark,
+        nodeData.assigned_to,
+        nodeData.due_date,
+        nodeData.scheduled_date,
+        nodeData.priority,
+        nodeData.content,
+        nodeData.content_hash,
+        JSON.stringify(nodeData.data),
+        nodeData.created_at,
+        nodeData.updated_at,
+      ],
+    );
+  } else {
+    emit({
+      type: "node_created",
+      actor: "user",
+      data: nodeData,
+    });
+  }
+
+  return nodeId;
 }

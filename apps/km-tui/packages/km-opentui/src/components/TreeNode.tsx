@@ -132,9 +132,12 @@ export function TreeNode({
       : "";
 
   // Selection colors: both cursor selection and multi-selection use cyan background
+  // Per docs/08-ui.md: cyan bg + black fg for selection
   const hasSelection = isSelected || isMultiSelected;
   const bgColor = hasSelection ? "cyan" : undefined;
-  const textColor = hasSelection ? "black" : undefined;
+  // IMPORTANT: Use "white" as default (not undefined) to ensure contrast
+  // OpenTUI may not properly inherit colors when undefined is used
+  const textColor = hasSelection ? "black" : "white";
 
   // Dim done/dropped tasks
   const isDoneOrDropped =

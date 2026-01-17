@@ -39,6 +39,7 @@ export {
   moveNode,
   updateNode,
   deleteNode,
+  addNode,
 } from "./db.ts";
 
 export type { Link, SearchResult } from "./db.ts";

@@ -8,7 +8,7 @@
  *   App (this file) → Board (@km/board) → Tree (@km/tree) → DB (@km/storage)
  */
 
-import type { BoardState, BoardAction, TNode } from "@km/board";
+import type { BoardState, BoardAction, TNode, TAction } from "@km/board";
 import { createBoardState } from "@km/board";
 
 // ===== App UI State =====
@@ -87,10 +87,13 @@ export type AppUIAction =
 export interface AppState extends BoardState, AppUIState {}
 
 /**
- * All app actions (board + app UI).
+ * All app actions (board + app UI + tree mutations).
  * Used by the combined app reducer.
+ *
+ * TActions (tree mutations) pass through the reducer unchanged -
+ * the effect layer in useAppState handles persistence.
  */
-export type AppAction = BoardAction | AppUIAction;
+export type AppAction = BoardAction | AppUIAction | TAction;
 
 // ===== App UI Reducer =====
 
@@ -291,3 +294,6 @@ export function isAppUIAction(action: { type: string }): action is AppUIAction {
   ]);
   return appUIActionTypes.has(action.type);
 }
+
+// Re-export isTAction for convenience
+export { isTAction } from "@km/board";

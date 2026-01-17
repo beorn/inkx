@@ -3,19 +3,72 @@
  *
  * React hook wrapper around the combined app state reducer.
  * Provides path-based navigation with computed selectors.
- * Includes undo/redo capability for state mutations.
+ * Includes undo/redo capability and effect layer for side effects.
+ *
+ * ## Architecture: Command → Action → Reducer → Effect
+ *
+ * This hook is the central state management layer that connects:
+ *
+ * ```
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │  1. COMMAND LAYER (commands.ts)                                        │
+ * │     - Commands have semantic names (toggle_task_done, cursor_down)     │
+ * │     - Commands read context and CREATE actions                         │
+ * │     - Toggle/cycle logic lives here (reads state, computes target)     │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *                                    ↓
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │  2. ACTION LAYER (appState.ts, boardTypes.ts, actions.ts)              │
+ * │     - Actions are idempotent (set to value, never toggle)              │
+ * │     - Three action types:                                              │
+ * │       • BoardAction: navigation state (cursor, fold, zoom)             │
+ * │       • AppUIAction: modal/dialog state (search, help, palette)        │
+ * │       • TAction: content mutations (UPDATE_NODE, DELETE_NODE)          │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *                                    ↓
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │  3. REDUCER LAYER (appReducer in this file)                            │
+ * │     - Pure functions, no side effects                                  │
+ * │     - Computes new state from current state + action                   │
+ * │     - Chains: appReducer → appUIReducer OR boardReducer                │
+ * │     - TActions pass through unchanged (effect layer handles them)      │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *                                    ↓
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │  4. EFFECT LAYER (dispatch wrapper in this hook)                       │
+ * │     - Intercepts TActions after reducer                                │
+ * │     - Calls onTAction callback for storage operations                  │
+ * │     - Storage layer persists to SQLite and syncs to filesystem         │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * ## Why This Architecture?
+ *
+ * 1. **Testability**: Reducers are pure, easy to test
+ * 2. **Undo/Redo**: All state changes flow through dispatch
+ * 3. **Consistency**: Same pattern for navigation AND mutations
+ * 4. **Command Palette**: Commands are discoverable and searchable
+ * 5. **Multi-window Sync**: Actions can be broadcast to other windows
  */
 
-import { useReducer, useMemo, useCallback, useState } from "react";
+import {
+  useReducer,
+  useMemo,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import {
   boardReducer,
   createBoardState,
   getNodeAtPath,
   getSiblingCount,
+  isTAction,
   type BoardState,
   type BoardAction,
   type TNode,
   type TPath,
+  type TAction,
 } from "@km/board";
 import {
   appUIReducer,
@@ -33,33 +86,49 @@ export type { AppState, AppAction, TNode };
 // Maximum undo history size
 const MAX_UNDO_HISTORY = 50;
 
-// Actions that should be tracked in undo history (state mutations)
-// Navigation and modal toggles are NOT undoable
+/**
+ * Actions that should be tracked in undo history.
+ *
+ * Board state changes (fold, zoom, selection) are undoable.
+ * Navigation (cursor movement) is NOT undoable.
+ * TActions (content mutations) are handled by the effect layer
+ * and tracked via storage events, not reducer undo.
+ */
 const UNDOABLE_ACTIONS = new Set([
+  // Board state mutations
   "TOGGLE_FOLD",
   "TOGGLE_COLLAPSE",
   "FOLD_LEVEL",
   "UNFOLD_LEVEL",
   "ZOOM_IN",
   "ZOOM_OUT",
+  // Selection
   "SELECT_NODE_ADD",
   "SELECT_NODE_REMOVE",
   "SELECT_NODE_TOGGLE",
   "SELECT_ALL_SIBLINGS",
   "SELECT_ALL",
   "CLEAR_SELECTION",
-  // Note: REFRESH is triggered by external mutations (store changes)
-  // so it's tracked as undoable to allow reverting to previous state
+  // Tree refresh (from external changes)
   "REFRESH",
+  // TActions (content mutations) - tracked for undo
+  "UPDATE_NODE",
+  "DELETE_NODE",
+  "ADD_NODE",
+  "MOVE_NODE",
 ]);
 
 /**
- * Combined app reducer that handles both board and app UI actions.
+ * Combined app reducer that handles board, app UI, and tree actions.
+ *
+ * Routing logic:
+ * 1. AppUIAction → appUIReducer (modal/dialog state)
+ * 2. TAction → pass through unchanged (effect layer handles persistence)
+ * 3. BoardAction → boardReducer (navigation state)
  */
 function appReducer(state: AppState, action: AppAction): AppState {
-  // Check if it's an app UI action
+  // Route 1: App UI actions (modals, dialogs)
   if (isAppUIAction(action)) {
-    // Extract app UI state, apply app UI reducer, merge back
     const appUIState: AppUIState = {
       searchQuery: state.searchQuery,
       searchMode: state.searchMode,
@@ -78,7 +147,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
     return { ...state, ...newAppUIState };
   }
 
-  // Otherwise it's a board action
+  // Route 2: TActions pass through (effect layer handles persistence)
+  // The reducer doesn't modify state for TActions - the effect layer
+  // will call storage and then refresh the tree.
+  if (isTAction(action)) {
+    return state;
+  }
+
+  // Route 3: Board actions (navigation state)
   const boardState: BoardState = {
     rootId: state.rootId,
     rootPath: state.rootPath,
@@ -101,7 +177,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 }
 
 /**
- * Create combined app state.
+ * Create combined app state from tree nodes.
  */
 export function createAppState(
   nodes: TNode[],
@@ -117,7 +193,19 @@ export function createAppState(
 export { appReducer };
 
 /**
- * App state hook with selectors
+ * App state hook configuration.
+ */
+export interface UseAppStateConfig {
+  /**
+   * Callback when a TAction is dispatched.
+   * The effect layer calls this to persist content mutations to storage.
+   * After storage updates, caller should call refreshTree() to update UI.
+   */
+  onTAction?: (action: TAction) => void;
+}
+
+/**
+ * App state hook return type.
  */
 export interface AppStateHook {
   state: AppState;
@@ -144,7 +232,7 @@ export interface AppStateHook {
 }
 
 /**
- * Get siblings at current cursor level
+ * Get siblings at current cursor level.
  */
 function getSiblings(nodes: TNode[], path: TPath): TNode[] {
   if (path.length === 0) return [];
@@ -155,33 +243,93 @@ function getSiblings(nodes: TNode[], path: TPath): TNode[] {
   return parent?.children ?? [];
 }
 
-export function useAppState(initialState: AppState): AppStateHook {
+/**
+ * App state management hook.
+ *
+ * @param initialState - Initial app state
+ * @param config - Optional configuration including onTAction callback
+ *
+ * ## Usage
+ *
+ * ```tsx
+ * const tree = useAppState(initialState, {
+ *   onTAction: (action) => {
+ *     // Effect layer: persist content mutations to storage
+ *     switch (action.type) {
+ *       case "UPDATE_NODE":
+ *         updateNode(action.nodeId, action.updates);
+ *         break;
+ *       case "DELETE_NODE":
+ *         deleteNode(action.nodeId);
+ *         break;
+ *     }
+ *     refreshTree(); // Reload tree from storage
+ *   }
+ * });
+ *
+ * // Dispatch actions (commands create these)
+ * tree.dispatch({ type: "CURSOR_MOVE", dir: "next" });
+ * tree.dispatch({ type: "UPDATE_NODE", nodeId: "...", updates: {...} });
+ * ```
+ */
+export function useAppState(
+  initialState: AppState,
+  config: UseAppStateConfig = {},
+): AppStateHook {
+  const { onTAction } = config;
   const [state, baseDispatch] = useReducer(appReducer, initialState);
 
   // Undo/redo history stacks
   const [undoStack, setUndoStack] = useState<AppState[]>([]);
   const [redoStack, setRedoStack] = useState<AppState[]>([]);
 
-  // Wrapped dispatch that tracks undo history for undoable actions
+  // Track pending TActions for effect layer
+  const pendingTAction = useRef<TAction | null>(null);
+
+  /**
+   * Wrapped dispatch that:
+   * 1. Tracks undo history for undoable actions
+   * 2. Routes TActions to effect layer after reducer
+   */
   const dispatch = useCallback(
     (action: AppAction) => {
+      // Track undoable actions in history
       if (UNDOABLE_ACTIONS.has(action.type)) {
-        // Save current state to undo stack before applying action
         setUndoStack((prev) => {
           const newStack = [...prev, state];
-          // Limit history size
           if (newStack.length > MAX_UNDO_HISTORY) {
             return newStack.slice(-MAX_UNDO_HISTORY);
           }
           return newStack;
         });
-        // Clear redo stack when new action is performed
         setRedoStack([]);
       }
+
+      // Dispatch to reducer
       baseDispatch(action);
+
+      // Queue TActions for effect layer
+      if (isTAction(action)) {
+        pendingTAction.current = action;
+      }
     },
     [state],
   );
+
+  /**
+   * Effect layer: Execute side effects for TActions.
+   *
+   * TActions represent content mutations that need to be persisted
+   * to storage. The reducer doesn't handle these - it just passes
+   * them through. This effect runs after render and calls the
+   * onTAction callback to actually persist the change.
+   */
+  useEffect(() => {
+    if (pendingTAction.current && onTAction) {
+      onTAction(pendingTAction.current);
+      pendingTAction.current = null;
+    }
+  });
 
   // Undo - restore previous state from undo stack
   const undo = useCallback(() => {
@@ -191,13 +339,9 @@ export function useAppState(initialState: AppState): AppStateHook {
     const prevState = newUndoStack.pop();
     if (!prevState) return;
 
-    // Save current state to redo stack
     setRedoStack((prev) => [...prev, state]);
     setUndoStack(newUndoStack);
 
-    // Restore previous state by dispatching a special restore action
-    // We need to directly restore the full state, so we use REFRESH with the old nodes
-    // and NAV_TO_PATH to restore cursor position
     baseDispatch({ type: "REFRESH", nodes: prevState.nodes });
     baseDispatch({ type: "NAV_TO_PATH", path: prevState.cursor });
   }, [undoStack, state]);
@@ -210,11 +354,9 @@ export function useAppState(initialState: AppState): AppStateHook {
     const nextState = newRedoStack.pop();
     if (!nextState) return;
 
-    // Save current state to undo stack
     setUndoStack((prev) => [...prev, state]);
     setRedoStack(newRedoStack);
 
-    // Restore next state
     baseDispatch({ type: "REFRESH", nodes: nextState.nodes });
     baseDispatch({ type: "NAV_TO_PATH", path: nextState.cursor });
   }, [redoStack, state]);
@@ -222,37 +364,33 @@ export function useAppState(initialState: AppState): AppStateHook {
   const canUndo = undoStack.length > 0;
   const canRedo = redoStack.length > 0;
 
-  // Current node at cursor path
+  // Computed selectors
   const currentNode = useMemo(
     () => getNodeAtPath(state.nodes, state.cursor),
     [state.nodes, state.cursor],
   );
 
-  // Parent node (one level up from cursor)
   const parentNode = useMemo(() => {
     if (state.cursor.length <= 1) return null;
     const parentPath = state.cursor.slice(0, -1);
     return getNodeAtPath(state.nodes, parentPath);
   }, [state.nodes, state.cursor]);
 
-  // Siblings at current level
   const siblings = useMemo(
     () => getSiblings(state.nodes, state.cursor),
     [state.nodes, state.cursor],
   );
 
-  // Total sibling count
   const siblingCount = useMemo(
     () => getSiblingCount(state.nodes, state.cursor),
     [state.nodes, state.cursor],
   );
 
-  // Cursor depth
   const cursorDepth = state.cursor.length;
 
   // Navigation availability
   const currentIndex =
-    state.cursor.length > 0 ? state.cursor[state.cursor.length - 1] : 0;
+    state.cursor.length > 0 ? (state.cursor[state.cursor.length - 1] ?? 0) : 0;
   const canNavigateUp = currentIndex > 0;
   const canNavigateDown = currentIndex < siblingCount - 1;
   const canNavigateParent = state.cursor.length > 1;

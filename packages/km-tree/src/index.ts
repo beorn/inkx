@@ -11,7 +11,7 @@ export type { TaskStatus } from "./types.ts";
 
 // Actions
 export type { TAction } from "./actions.ts";
-export { isTAction } from "./actions.ts";
+export { isTAction, TActionTypes } from "./actions.ts";
 
 // Queries
 export {
