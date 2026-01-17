@@ -5,8 +5,7 @@
  * Displays full title, status, priority, due dates, content, and child count.
  */
 
-import type { DBNode } from "@km/core";
-import type { TaskStatus } from "../types.ts";
+import type { TNode, TaskStatus } from "../types.ts";
 
 // Status display configuration per design system
 const STATUS_CONFIG: Record<
@@ -33,7 +32,7 @@ function formatDate(dateStr: string | undefined): string | null {
 }
 
 interface DetailPaneProps {
-  node: DBNode | null;
+  node: TNode | null;
   childCount: number;
   width?: number;
 }

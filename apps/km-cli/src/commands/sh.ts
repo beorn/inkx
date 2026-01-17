@@ -101,9 +101,13 @@ function nodeToTNode(node: DBNode, depth: number): TNode {
     childCount: children.length,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as TaskStatus | undefined,
-    color: undefined,
+    color: node.rules?.color,
     icon: undefined,
+    priority: node.priority,
+    dueDate: node.due_date,
+    scheduledDate: node.scheduled_date,
     body: node.content,
+    nodeType: node.type as TNode["nodeType"],
     depth,
   };
 }

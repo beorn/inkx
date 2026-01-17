@@ -57,26 +57,30 @@ export interface Tui2Options {
 }
 
 /**
- * Convert Node to TNode (recursive)
+ * Convert DBNode to TNode (recursive)
  */
-function nodeToTNode(node: Node, depth: number): TNode {
+function nodeToTNode(node: DBNode, depth: number): TNode {
   const children = getChildren(node.id);
   const backlinks = getBacklinks(node.id);
   const outgoingLinks = getOutgoingLinks(node.id);
 
   return {
     nodeId: node.id,
+    name: node.name || node.title || node.id,
     title: getNodeDisplayName(node),
     depth,
     childCount: children.length,
     isTask: node.task_status !== undefined,
     taskStatus: node.task_status as TaskStatus | undefined,
     color: node.rules?.color,
+    icon: undefined,
     priority: node.priority,
     dueDate: node.due_date,
+    scheduledDate: node.scheduled_date,
     hasBacklinks: backlinks.length > 0 || undefined,
     refsCount: outgoingLinks.length > 0 ? outgoingLinks.length : undefined,
-    content: node.content,
+    body: node.content,
+    nodeType: node.type as TNode["nodeType"],
     children: children.map((child) => nodeToTNode(child, depth + 1)),
   };
 }
