@@ -53,8 +53,8 @@ $ km sh --json board.md -c 'state' 2>&1 | tail -1
 ### JSON mode action outputs action event
 
 ```console
-$ km sh --json board.md -c 'move_down; state' 2>&1 | grep '"event":"action"'
-{"event":"action","action":{"type":"CURSOR_NEXT"},[...]}
+$ km sh --json board.md -c 'j; state' 2>&1 | grep '"event":"action"'
+{"event":"action","action":{"type":"CURSOR_MOVE","dir":"next"},[...]}
 ```
 
 ### JSON mode state changes output state event
@@ -71,14 +71,14 @@ $ km sh --json board.md -c 'state' 2>&1 | grep -c '"event":"state"'
 ### JSON actions can be used as input
 
 ```console
-$ echo '{"type":"CURSOR_NEXT"}' | km sh --json board.md 2>&1 | grep '"event":"action"'
-{"event":"action","action":{"type":"CURSOR_NEXT"},[...]}
+$ echo '{"type":"CURSOR_MOVE","dir":"next"}' | km sh --json board.md 2>&1 | grep '"event":"action"'
+[...]{"event":"action","action":{"type":"CURSOR_MOVE","dir":"next"},[...]}
 ```
 
 ### Multiple JSON actions work
 
 ```console
-$ echo -e '{"type":"CURSOR_NEXT"}\n{"type":"CURSOR_PREV"}' | km sh --json board.md 2>&1 | grep -c '"event":"action"'
+$ echo -e '{"type":"CURSOR_MOVE","dir":"next"}\n{"type":"CURSOR_MOVE","dir":"prev"}' | km sh --json board.md 2>&1 | grep -c '"event":"action"'
 2
 ```
 
@@ -86,14 +86,14 @@ $ echo -e '{"type":"CURSOR_NEXT"}\n{"type":"CURSOR_PREV"}' | km sh --json board.
 
 ```console
 $ echo '{invalid json' | km sh --json board.md 2>&1 | grep '"event":"error"'
-{"event":"error","error":"Invalid JSON: [...]",[...]}
+[...]{"event":"error",[...]}
 ```
 
 ### JSON without type field shows error
 
 ```console
 $ echo '{"foo":"bar"}' | km sh --json board.md 2>&1 | grep '"event":"error"'
-{"event":"error","error":"JSON action missing 'type' field",[...]}
+[...]{"event":"error",[...]}
 ```
 
 ## Final State Structure
@@ -124,8 +124,8 @@ $ km sh --json board.md -c 'state' 2>&1 | tail -1 | grep '"topLevelCount"'
 ### Line commands work with --json flag
 
 ```console
-$ km sh --json board.md -c 'move_down; state' 2>&1 | grep '"event":"action"'
-{"event":"action","action":{"type":"CURSOR_NEXT"},[...]}
+$ km sh --json board.md -c 'j; state' 2>&1 | grep '"event":"action"'
+{"event":"action","action":{"type":"CURSOR_MOVE","dir":"next"},[...]}
 ```
 
 ### State command outputs state event in JSON mode

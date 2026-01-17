@@ -101,21 +101,21 @@ topLevel: 2 nodes
 
 ## Sibling Navigation
 
-### nav_next_sibling moves to next within column
+### cursor_next moves to next within column
 
 Starting at [0,0], moves to [0,1].
 
 ```console
-$ km sh board.md -c 'nav_next_sibling; state'
+$ km sh board.md -c 'cursor_next; state'
 cursor: [0,1]
 node: Task A2
 topLevel: 2 nodes
 ```
 
-### nav_prev_sibling moves to previous
+### cursor_prev moves to previous
 
 ```console
-$ km sh board.md -c 'nav_next_sibling; nav_prev_sibling; state'
+$ km sh board.md -c 'cursor_next; cursor_prev; state'
 cursor: [0,0]
 node: Task A1
 topLevel: 2 nodes
@@ -193,10 +193,10 @@ node: Task A1
 topLevel: 2 nodes
 ```
 
-### nav_next_sibling at column level moves to next column
+### cursor_next at column level moves to next column
 
 ```console
-$ km sh board.md -c 'h; nav_next_sibling; state'
+$ km sh board.md -c 'h; cursor_next; state'
 cursor: [1]
 node: Section B
 topLevel: 2 nodes

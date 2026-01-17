@@ -157,6 +157,7 @@ $ q
 
 ```console cmd="km sh board.md" minWait=50 maxWait=500
 $ view
+[...]
 Path: [...]
 
      Tasks (+3)

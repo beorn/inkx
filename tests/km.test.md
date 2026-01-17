@@ -47,7 +47,6 @@ Syncing filesystem → database...
 $ km tasks
 inbox / .md
  [ ] Test task from mdtest
-
 1 task(s)
 ```
 
@@ -114,7 +113,6 @@ Initialized km in ...
   Created: @inbox.md
   Created: @next.md
   Created: @someday.md
-
 Next steps:
 [...]
 
