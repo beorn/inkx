@@ -11,6 +11,7 @@ Ink's fundamental problem is **no automatic layout negotiation between parent an
 ### The Core Issue
 
 In browser CSS, layout happens in two passes:
+
 1. **Measure pass**: Children declare min/max/flex preferences
 2. **Render pass**: Parent distributes space, children receive their calculated dimensions
 
@@ -28,12 +29,12 @@ function TreeNode({ width }: { width: number }) {  // ← manually passed
 
 ### Historical Issues
 
-| Issue | Date | Status | Summary |
-|-------|------|--------|---------|
-| [#5](https://github.com/vadimdemedes/ink/issues/5) | 2016 | Closed | "ProgressBar needs to know how much space Label takes" - proposed x/y coords, never implemented |
-| [#78](https://github.com/vadimdemedes/ink/issues/78) | 2018 | Closed | Full-screen layouts - maintainer said "use react-blessed instead" |
-| [#168](https://github.com/vadimdemedes/ink/issues/168) | 2019 | Closed | Get width of Box - led to measureElement() |
-| [#307](https://github.com/vadimdemedes/ink/pull/307) | 2020 | Merged | Added `measureElement()` API |
+| Issue                                                  | Date | Status | Summary                                                                                         |
+| ------------------------------------------------------ | ---- | ------ | ----------------------------------------------------------------------------------------------- |
+| [#5](https://github.com/vadimdemedes/ink/issues/5)     | 2016 | Closed | "ProgressBar needs to know how much space Label takes" - proposed x/y coords, never implemented |
+| [#78](https://github.com/vadimdemedes/ink/issues/78)   | 2018 | Closed | Full-screen layouts - maintainer said "use react-blessed instead"                               |
+| [#168](https://github.com/vadimdemedes/ink/issues/168) | 2019 | Closed | Get width of Box - led to measureElement()                                                      |
+| [#307](https://github.com/vadimdemedes/ink/pull/307)   | 2020 | Merged | Added `measureElement()` API                                                                    |
 
 ### measureElement() - Partial Solution
 
@@ -53,6 +54,7 @@ return <Box ref={ref}><Content width={width} /></Box>;  // ← Still threading w
 ```
 
 **Limitations:**
+
 - Returns 0 on initial render (layout not yet calculated)
 - Requires useEffect + state (re-render after measurement)
 - Still need manual width prop threading
@@ -98,22 +100,23 @@ Full CSS-like layout engine with grid, flexbox, docking.
 
 ```css
 Screen {
-    layout: grid;
-    grid-size: 3 2;
-    grid-gutter: 1;
+  layout: grid;
+  grid-size: 3 2;
+  grid-gutter: 1;
 }
 
 #sidebar {
-    dock: left;
-    width: 20;
+  dock: left;
+  width: 20;
 }
 
 .content {
-    width: 1fr;  /* Fractional unit - takes remaining space */
+  width: 1fr; /* Fractional unit - takes remaining space */
 }
 ```
 
 **Key features:**
+
 - `fr` units for flexible space distribution
 - `grid-size`, `grid-columns`, `grid-rows` for complex layouts
 - `dock: left|right|top|bottom` for fixed positioning
@@ -153,6 +156,7 @@ element! {
 ### OpenTUI (TypeScript) - Ink Alternative
 
 Has layout improvements but **blocking bugs** (tested in km-tui-eval):
+
 - Color rendering broken (black on cyan fails)
 - Bracket/space rendering issues (`[P1] ` → `[P1`)
 - borderStyle typos cause segfaults
@@ -167,11 +171,11 @@ Older, widget-based approach with explicit positioning:
 
 ```javascript
 var box = blessed.box({
-  top: 'center',
-  left: 'center',
-  width: '50%',
-  height: '50%',
-  content: 'Hello!'
+  top: "center",
+  left: "center",
+  width: "50%",
+  height: "50%",
+  content: "Hello!",
 });
 ```
 
@@ -181,15 +185,15 @@ Uses a painter's algorithm with damage buffers. Layout system is "experimental" 
 
 ### Comparison Table
 
-| Framework | Language | Layout System | Constraint Solver | Effort to Adopt |
-|-----------|----------|--------------|-------------------|-----------------|
-| Ratatui | Rust | Cassowary constraints | Yes (kasuari) | Rewrite in Rust |
-| Textual | Python | CSS Grid/Flexbox | Yes (internal) | Rewrite in Python |
-| Bubble Tea | Go | Manual / BubbleLayout | Optional | Rewrite in Go |
-| iocraft | Rust | Flexbox | Partial | Rewrite in Rust |
-| OpenTUI | TypeScript | Flexbox | Partial | Migration possible, blocking bugs |
-| blessed | Node.js | Widget positioning | No | Different paradigm |
-| **Ink** | TypeScript | Yoga Flexbox | **No** | Current |
+| Framework  | Language   | Layout System         | Constraint Solver | Effort to Adopt                   |
+| ---------- | ---------- | --------------------- | ----------------- | --------------------------------- |
+| Ratatui    | Rust       | Cassowary constraints | Yes (kasuari)     | Rewrite in Rust                   |
+| Textual    | Python     | CSS Grid/Flexbox      | Yes (internal)    | Rewrite in Python                 |
+| Bubble Tea | Go         | Manual / BubbleLayout | Optional          | Rewrite in Go                     |
+| iocraft    | Rust       | Flexbox               | Partial           | Rewrite in Rust                   |
+| OpenTUI    | TypeScript | Flexbox               | Partial           | Migration possible, blocking bugs |
+| blessed    | Node.js    | Widget positioning    | No                | Different paradigm                |
+| **Ink**    | TypeScript | Yoga Flexbox          | **No**            | Current                           |
 
 ---
 
@@ -209,7 +213,7 @@ Uses a painter's algorithm with damage buffers. Layout system is "experimental" 
 ### Kiwi.js Example
 
 ```typescript
-import * as kiwi from 'kiwi.js';
+import * as kiwi from "kiwi.js";
 
 const solver = new kiwi.Solver();
 
@@ -219,23 +223,20 @@ const rightWidth = new kiwi.Variable();
 const totalWidth = 80;
 
 // Add constraints
-solver.addConstraint(new kiwi.Constraint(
-  leftWidth.plus(rightWidth),
-  kiwi.Operator.Eq,
-  totalWidth
-));
-solver.addConstraint(new kiwi.Constraint(
-  leftWidth,
-  kiwi.Operator.Ge,
-  20,
-  kiwi.Strength.required
-));
-solver.addConstraint(new kiwi.Constraint(
-  rightWidth,
-  kiwi.Operator.Ge,
-  leftWidth,
-  kiwi.Strength.strong
-));
+solver.addConstraint(
+  new kiwi.Constraint(leftWidth.plus(rightWidth), kiwi.Operator.Eq, totalWidth),
+);
+solver.addConstraint(
+  new kiwi.Constraint(leftWidth, kiwi.Operator.Ge, 20, kiwi.Strength.required),
+);
+solver.addConstraint(
+  new kiwi.Constraint(
+    rightWidth,
+    kiwi.Operator.Ge,
+    leftWidth,
+    kiwi.Strength.strong,
+  ),
+);
 
 solver.updateVariables();
 // leftWidth.value() → 20
@@ -464,6 +465,7 @@ function ScrollableList<T>({ items, selectedIndex, itemHeight, renderItem, rende
 ### Usage Example
 
 **Before (current Ink):**
+
 ```typescript
 function TreeNode({ node, width, isSelected }: Props) {
   const prefix = getPrefix(node);
@@ -486,6 +488,7 @@ function TreeNode({ node, width, isSelected }: Props) {
 ```
 
 **After (with constraint system):**
+
 ```typescript
 function TreeNode({ node, isSelected }: Props) {
   return (
@@ -506,12 +509,12 @@ function TreeNode({ node, isSelected }: Props) {
 
 ### Implementation Phases
 
-| Phase | Components | Effort | Benefit |
-|-------|------------|--------|---------|
-| 1 | TruncatedText, useComputedDimensions | 1 day | Remove displayLength calls from components |
-| 2 | FlexRow, FlexItem | 2 days | Automatic horizontal space distribution |
-| 3 | ScrollableList | 2 days | Reusable scroll logic |
-| 4 | ConstraintBox (full Cassowary) | 3 days | Full constraint solving |
+| Phase | Components                           | Effort | Benefit                                    |
+| ----- | ------------------------------------ | ------ | ------------------------------------------ |
+| 1     | TruncatedText, useComputedDimensions | 1 day  | Remove displayLength calls from components |
+| 2     | FlexRow, FlexItem                    | 2 days | Automatic horizontal space distribution    |
+| 3     | ScrollableList                       | 2 days | Reusable scroll logic                      |
+| 4     | ConstraintBox (full Cassowary)       | 3 days | Full constraint solving                    |
 
 **Total: 5-8 days** (matches existing estimate in km-tui1 epic)
 
@@ -552,6 +555,7 @@ function TreeNode({ node, isSelected }: Props) {
 ## Sources
 
 ### Ink
+
 - [Ink GitHub](https://github.com/vadimdemedes/ink)
 - [Issue #5 - Terminal space](https://github.com/vadimdemedes/ink/issues/5)
 - [Issue #78 - Full screen layouts](https://github.com/vadimdemedes/ink/issues/78)
@@ -560,6 +564,7 @@ function TreeNode({ node, isSelected }: Props) {
 - [Ink 3 Release](https://vadimdemedes.com/posts/ink-3)
 
 ### Alternatives
+
 - [Ratatui Layout](https://ratatui.rs/concepts/layout/)
 - [Ratatui Constraint API](https://docs.rs/ratatui/latest/ratatui/layout/enum.Constraint.html)
 - [Textual Layout Guide](https://textual.textualize.io/guide/layout/)
@@ -570,11 +575,13 @@ function TreeNode({ node, isSelected }: Props) {
 - [blessed](https://github.com/chjj/blessed)
 
 ### Constraint Solvers
+
 - [kiwi.js](https://github.com/IjzerenHein/kiwi.js)
 - [cassowary.js](https://github.com/slightlyoff/cassowary.js)
-- [Cassowary Wikipedia](https://en.wikipedia.org/wiki/Cassowary_(software))
+- [Cassowary Wikipedia](<https://en.wikipedia.org/wiki/Cassowary_(software)>)
 
 ### Comparisons
+
 - [7 TUI Libraries - LogRocket](https://blog.logrocket.com/7-tui-libraries-interactive-terminal-apps/)
 - [awesome-tuis](https://github.com/rothgar/awesome-tuis)
 - [Hacker News Discussion](https://news.ycombinator.com/item?id=42016639)
