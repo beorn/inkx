@@ -11,7 +11,7 @@ import {
   resolveDateQuery as resolveDate,
   isDateShortcut,
   isDateField,
-  type Node,
+  type KNode,
   type QueryAST,
   type QueryCondition,
   type QueryRef,
@@ -33,7 +33,7 @@ export {
 /**
  * Execute a query against the database
  */
-export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
+export function executeQuery(ast: QueryAST, baseType?: string): KNode[] {
   const db = getDb();
 
   // Check if we need path filtering (requires CTE for ancestor lookup)
@@ -257,14 +257,14 @@ export function executeQuery(ast: QueryAST, baseType?: string): Node[] {
 
   sql += " ORDER BY parent_idx ASC, created_at DESC";
 
-  const rows = db.prepare(sql).all(...params) as Node[];
+  const rows = db.prepare(sql).all(...params) as KNode[];
   return rows;
 }
 
 /**
  * Query tasks with a string query
  */
-export function queryTasks(query: string): Node[] {
+export function queryTasks(query: string): KNode[] {
   const ast = parse(query);
   return executeQuery(ast, "task");
 }
@@ -272,7 +272,7 @@ export function queryTasks(query: string): Node[] {
 /**
  * Query all nodes with a string query
  */
-export function queryNodes(query: string, type?: string): Node[] {
+export function queryNodes(query: string, type?: string): KNode[] {
   const ast = parse(query);
   return executeQuery(ast, type);
 }

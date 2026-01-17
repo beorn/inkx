@@ -53,8 +53,8 @@ export function reconcileDirectory(
   const dbNodes = getNodesUnderPath(dirPath);
 
   // Index by inode and path for efficient lookup
-  const dbByIno = new Map<number, Node>();
-  const dbByPath = new Map<string, Node>();
+  const dbByIno = new Map<number, KNode>();
+  const dbByPath = new Map<string, KNode>();
 
   for (const node of dbNodes) {
     if (node.fs_ino) {
@@ -349,7 +349,7 @@ function handleDelete(op: ReconcileOp): void {
 interface NodeChange {
   type: "created" | "updated" | "deleted";
   nodeId?: string;
-  node?: Node;
+  node?: KNode;
   changes?: Record<string, unknown>;
 }
 
@@ -357,7 +357,7 @@ function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
   const changes: NodeChange[] = [];
 
   // Index existing by position (for matching)
-  const existingByPos = new Map<number, Node>();
+  const existingByPos = new Map<number, KNode>();
   for (const node of existing) {
     if (node.md_pos !== undefined) {
       existingByPos.set(node.md_pos, node);
@@ -365,7 +365,7 @@ function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
   }
 
   // Index new by position
-  const newByPos = new Map<number, Node>();
+  const newByPos = new Map<number, KNode>();
   for (const node of newNodes) {
     if (node.md_pos !== undefined) {
       newByPos.set(node.md_pos, node);

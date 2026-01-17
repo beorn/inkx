@@ -930,7 +930,7 @@ export function search(query: string, limit = 50): KNode[] {
  * Search result with snippet highlighting
  */
 export interface SearchResult {
-  node: Node;
+  node: KNode;
   snippet: string;
 }
 
@@ -1014,10 +1014,10 @@ export function getAllNodes(): KNode[] {
 }
 
 /**
- * Convert database row to Node object
+ * Convert database row to KNode object
  * For section nodes, computes title and rules from content on-the-fly
  */
-function rowToNode(row: Record<string, unknown>): Node {
+function rowToNode(row: Record<string, unknown>): KNode {
   const type = row.type as NodeType;
   const content = row.content as string | undefined;
 
@@ -1045,7 +1045,7 @@ function rowToNode(row: Record<string, unknown>): Node {
     md_pos: row.md_pos as number | undefined,
     md_slug: row.md_slug as string | undefined,
     task_status: row.task_status as TaskStatus | undefined,
-    task_mark: row.task_mark as Node["task_mark"],
+    task_mark: row.task_mark as KNode["task_mark"],
     assigned_to: row.assigned_to as string | undefined,
     due_date: row.due_date as string | undefined,
     scheduled_date: row.scheduled_date as string | undefined,

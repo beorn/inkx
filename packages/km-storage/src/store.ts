@@ -141,9 +141,9 @@ END;
 `;
 
 /**
- * Convert database row to Node object
+ * Convert database row to KNode object
  */
-function rowToNode(row: Record<string, unknown>): Node {
+function rowToNode(row: Record<string, unknown>): KNode {
   return {
     id: row.id as string,
     type: row.type as NodeType,
@@ -157,7 +157,7 @@ function rowToNode(row: Record<string, unknown>): Node {
     md_slug: row.md_slug as string | undefined,
     md_line: row.md_line as number | undefined,
     task_status: row.task_status as TaskStatus | undefined,
-    task_mark: row.task_mark as Node["task_mark"],
+    task_mark: row.task_mark as KNode["task_mark"],
     assigned_to: row.assigned_to as string | undefined,
     due_date: row.due_date as string | undefined,
     scheduled_date: row.scheduled_date as string | undefined,
