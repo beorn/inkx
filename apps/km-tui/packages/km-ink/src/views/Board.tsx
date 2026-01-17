@@ -2438,10 +2438,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const topBarBg = topBarBgChalk;
   const topBarFg = useWhiteText ? topBarBgChalk.white : topBarBgChalk.black;
 
-  // Render empty placeholder until terminal is ready (see isReady comment above)
+  // Render loading indicator until terminal is ready (see isReady comment above)
   // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
   if (!isReady) {
-    return <Box height={termHeight} width={termWidth} />;
+    return (
+      <Box
+        height={termHeight}
+        width={termWidth}
+        justifyContent="center"
+        alignItems="center"
+      >
+        <Text color="gray">Loading...</Text>
+      </Box>
+    );
   }
 
   return (
