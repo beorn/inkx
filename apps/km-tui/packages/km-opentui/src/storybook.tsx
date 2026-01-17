@@ -1,5 +1,8 @@
 #!/usr/bin/env bun
 /**
+ * @jsxImportSource @opentui/react
+ */
+/**
  * OpenTUI Storybook - Visual Component Catalog
  *
  * Renders all TUI components in various states for visual inspection.

@@ -4,7 +4,9 @@
  * Bug: Named colors (especially "black") render as incorrect colors when used
  * as text foreground on colored backgrounds.
  *
- * Run with: bun run vendor/opentui/repro-color.tsx
+ * Run with: bun run vendor/opentui/issues/002-repro.tsx
+ *
+ * Upstream issue: Not yet filed
  *
  * Environment:
  * - macOS (Apple Silicon) - Darwin arm64
