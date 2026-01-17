@@ -1405,6 +1405,7 @@ export function App({
         cursor={tree.state.cursor}
         nodeCount={tree.state.nodes.length}
         viewMode={viewMode}
+        rootPath={tree.state.rootPath}
       />
 
       {/* Help overlay (shown when help mode is active) */}

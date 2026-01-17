@@ -12,7 +12,7 @@
 
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import { Column, Card, TreeNode, StatusBar } from "./components/index.ts";
+import { Column, Card, TreeNode } from "./components/index.ts";
 import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
 import { getStatusIcon, GTD_BOARD_COLORS, colorize, getChalkColor } from "@km/ink";
 import {
