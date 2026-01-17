@@ -21,7 +21,7 @@ export function toNodeViewModel(
   foldedNodes: Set<string>,
 ): NodeViewModel {
   return {
-    id: node.nodeId,
+    id: node.id,
     name: node.name,
     title: node.title,
     childCount: node.childCount,
@@ -29,7 +29,7 @@ export function toNodeViewModel(
     taskStatus: node.taskStatus,
     color: node.color,
     icon: node.icon,
-    isFolded: foldedNodes.has(node.nodeId),
+    isFolded: foldedNodes.has(node.id),
     priority: node.priority,
     dueDate: node.dueDate,
     hasBacklinks: node.hasBacklinks,

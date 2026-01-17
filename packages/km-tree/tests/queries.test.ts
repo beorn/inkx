@@ -19,15 +19,22 @@ import {
 import type { TreeNode } from "../src/types.ts";
 
 // Helper to create test nodes
-function createNode(nodeId: string, children: TreeNode[] = []): TreeNode {
+function createNode(id: string, children: TreeNode[] = []): TreeNode {
   return {
-    nodeId,
-    title: nodeId,
+    id,
+    type: "section",
+    parent_id: null,
+    parent_idx: 0,
+    symlink_to: null,
+    title: id,
     children,
     childCount: children.length,
     isTask: false,
-    isFolded: false,
     depth: 0,
+    data: {},
+    created_at: 0,
+    updated_at: 0,
+    version: "",
   };
 }
 
@@ -54,17 +61,17 @@ describe("getNodeAtPath", () => {
 
   it("gets top-level node", () => {
     const node = getNodeAtPath(testNodes, [0]);
-    expect(node?.nodeId).toBe("col-a");
+    expect(node?.id).toBe("col-a");
   });
 
   it("gets nested node", () => {
     const node = getNodeAtPath(testNodes, [0, 0]);
-    expect(node?.nodeId).toBe("card-1");
+    expect(node?.id).toBe("card-1");
   });
 
   it("gets deeply nested node", () => {
     const node = getNodeAtPath(testNodes, [0, 0, 1]);
-    expect(node?.nodeId).toBe("item-1-2");
+    expect(node?.id).toBe("item-1-2");
   });
 
   it("returns null for invalid path", () => {
@@ -74,7 +81,7 @@ describe("getNodeAtPath", () => {
 
   it("works with second column", () => {
     const node = getNodeAtPath(testNodes, [1, 0]);
-    expect(node?.nodeId).toBe("card-3");
+    expect(node?.id).toBe("card-3");
   });
 });
 
@@ -142,22 +149,22 @@ describe("getSiblings", () => {
   it("returns top-level nodes for depth-1 path", () => {
     const siblings = getSiblings(testNodes, [0]);
     expect(siblings).toHaveLength(2);
-    expect(siblings[0]?.nodeId).toBe("col-a");
-    expect(siblings[1]?.nodeId).toBe("col-b");
+    expect(siblings[0]?.id).toBe("col-a");
+    expect(siblings[1]?.id).toBe("col-b");
   });
 
   it("returns siblings for nested path", () => {
     const siblings = getSiblings(testNodes, [0, 0]);
     expect(siblings).toHaveLength(2);
-    expect(siblings[0]?.nodeId).toBe("card-1");
-    expect(siblings[1]?.nodeId).toBe("card-2");
+    expect(siblings[0]?.id).toBe("card-1");
+    expect(siblings[1]?.id).toBe("card-2");
   });
 
   it("returns deeply nested siblings", () => {
     const siblings = getSiblings(testNodes, [0, 0, 0]);
     expect(siblings).toHaveLength(2);
-    expect(siblings[0]?.nodeId).toBe("item-1-1");
-    expect(siblings[1]?.nodeId).toBe("item-1-2");
+    expect(siblings[0]?.id).toBe("item-1-1");
+    expect(siblings[1]?.id).toBe("item-1-2");
   });
 });
 

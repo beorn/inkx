@@ -51,7 +51,7 @@ export function getCurrentIndex(path: TPath): number {
 export function collectAllNodeIds(nodes: TreeNode[]): string[] {
   const ids: string[] = [];
   for (const node of nodes) {
-    ids.push(node.nodeId);
+    ids.push(node.id);
     if (node.children.length > 0) {
       ids.push(...collectAllNodeIds(node.children));
     }
@@ -101,7 +101,7 @@ export function countVisibleNodes(
   let count = 0;
   for (const node of nodes) {
     count++;
-    if (!foldedNodes.has(node.nodeId) && node.children.length > 0) {
+    if (!foldedNodes.has(node.id) && node.children.length > 0) {
       count += countVisibleNodes(node.children, foldedNodes);
     }
   }
@@ -120,7 +120,7 @@ export function findPathByNodeId(
     const node = nodes[i];
     if (!node) continue;
     const path = [...currentPath, i];
-    if (node.nodeId === nodeId) {
+    if (node.id === nodeId) {
       return path;
     }
     if (node.children.length > 0) {

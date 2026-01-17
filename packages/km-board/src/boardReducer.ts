@@ -56,7 +56,7 @@ function getCurrentIndex(path: TPath): number {
 function collectAllNodeIds(nodes: TreeNode[]): string[] {
   const ids: string[] = [];
   for (const node of nodes) {
-    ids.push(node.nodeId);
+    ids.push(node.id);
     if (node.children.length > 0) {
       ids.push(...collectAllNodeIds(node.children));
     }
@@ -91,7 +91,7 @@ function getLastVisibleDescendantPath(
   if (!node) return path;
 
   // If node is folded or has no children, return the node itself
-  if (foldedNodes.has(node.nodeId) || node.children.length === 0) {
+  if (foldedNodes.has(node.id) || node.children.length === 0) {
     return path;
   }
 
@@ -119,7 +119,7 @@ function getNextVisiblePath(
   if (!node) return null;
 
   // 1. Try to enter first child (if not folded and has children)
-  if (!foldedNodes.has(node.nodeId) && node.children.length > 0) {
+  if (!foldedNodes.has(node.id) && node.children.length > 0) {
     return [...path, 0];
   }
 
@@ -361,7 +361,7 @@ export function boardReducer(
       const addNodeAtDepth = (nodes: TreeNode[], currentDepth: number) => {
         for (const node of nodes) {
           if (currentDepth === action.depth) {
-            newFolded.add(node.nodeId);
+            newFolded.add(node.id);
           }
           if (node.children.length > 0) {
             addNodeAtDepth(node.children, currentDepth + 1);
@@ -378,7 +378,7 @@ export function boardReducer(
       const removeNodeAtDepth = (nodes: TreeNode[], currentDepth: number) => {
         for (const node of nodes) {
           if (currentDepth === action.depth) {
-            newFolded.delete(node.nodeId);
+            newFolded.delete(node.id);
           }
           if (node.children.length > 0) {
             removeNodeAtDepth(node.children, currentDepth + 1);
@@ -501,7 +501,7 @@ export function boardReducer(
       const siblings = getSiblings(state.nodes, state.cursor);
       const newSelected = new Set(state.selectedNodes);
       for (const sibling of siblings) {
-        newSelected.add(sibling.nodeId);
+        newSelected.add(sibling.id);
       }
       return { ...state, selectedNodes: newSelected };
     }
@@ -523,7 +523,7 @@ export function boardReducer(
       if (!currentNode) return state;
 
       const newSelected = new Set(state.selectedNodes);
-      newSelected.add(currentNode.nodeId);
+      newSelected.add(currentNode.id);
 
       // Get next visible path
       const nextPath = getNextVisiblePath(
@@ -539,7 +539,7 @@ export function boardReducer(
       // Add the new node to selection
       const nextNode = getNodeAtPath(state.nodes, nextPath);
       if (nextNode) {
-        newSelected.add(nextNode.nodeId);
+        newSelected.add(nextNode.id);
       }
 
       return { ...state, cursor: nextPath, selectedNodes: newSelected };
@@ -551,7 +551,7 @@ export function boardReducer(
       if (!currentNode) return state;
 
       const newSelected = new Set(state.selectedNodes);
-      newSelected.add(currentNode.nodeId);
+      newSelected.add(currentNode.id);
 
       // Get previous visible path
       const prevPath = getPrevVisiblePath(
@@ -567,7 +567,7 @@ export function boardReducer(
       // Add the new node to selection
       const prevNode = getNodeAtPath(state.nodes, prevPath);
       if (prevNode) {
-        newSelected.add(prevNode.nodeId);
+        newSelected.add(prevNode.id);
       }
 
       return { ...state, cursor: prevPath, selectedNodes: newSelected };
@@ -579,7 +579,7 @@ export function boardReducer(
       if (!currentNode) return state;
 
       const newSelected = new Set(state.selectedNodes);
-      newSelected.add(currentNode.nodeId);
+      newSelected.add(currentNode.id);
 
       // Cross-column navigation left
       if (state.cursor.length < 2) {
@@ -604,13 +604,13 @@ export function boardReducer(
       let newPath: TPath;
       if (targetCol.children.length === 0) {
         newPath = [newColIdx];
-        newSelected.add(targetCol.nodeId);
+        newSelected.add(targetCol.id);
       } else {
         const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
         newPath = [newColIdx, clampedRow];
         const targetNode = targetCol.children[clampedRow];
         if (targetNode) {
-          newSelected.add(targetNode.nodeId);
+          newSelected.add(targetNode.id);
         }
       }
 
@@ -623,7 +623,7 @@ export function boardReducer(
       if (!currentNode) return state;
 
       const newSelected = new Set(state.selectedNodes);
-      newSelected.add(currentNode.nodeId);
+      newSelected.add(currentNode.id);
 
       // Cross-column navigation right
       if (state.cursor.length < 2) {
@@ -648,13 +648,13 @@ export function boardReducer(
       let newPath: TPath;
       if (targetCol.children.length === 0) {
         newPath = [newColIdx];
-        newSelected.add(targetCol.nodeId);
+        newSelected.add(targetCol.id);
       } else {
         const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
         newPath = [newColIdx, clampedRow];
         const targetNode = targetCol.children[clampedRow];
         if (targetNode) {
-          newSelected.add(targetNode.nodeId);
+          newSelected.add(targetNode.id);
         }
       }
 
@@ -681,7 +681,7 @@ export function boardReducer(
       if (state.selectedNodes.size > 0) {
         nodesToMove = Array.from(state.selectedNodes);
       } else if (currentNode) {
-        nodesToMove = [currentNode.nodeId];
+        nodesToMove = [currentNode.id];
       }
 
       if (nodesToMove.length === 0) return state;

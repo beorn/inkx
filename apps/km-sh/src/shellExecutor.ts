@@ -133,7 +133,7 @@ export function renderAsciiView(state: BoardState): string {
         state.cursor.length === nodePath.length &&
         state.cursor.every((v, idx) => v === nodePath[idx]);
       const marker = isSelected ? "→" : " ";
-      const foldMarker = state.foldedNodes.has(node.nodeId) ? "▸" : " ";
+      const foldMarker = state.foldedNodes.has(node.id) ? "▸" : " ";
       const statusIcon = node.taskStatus
         ? { todo: "○", wip: "◐", blocked: "⊘", done: "✓", dropped: "∅" }[
             node.taskStatus
@@ -145,7 +145,7 @@ export function renderAsciiView(state: BoardState): string {
       );
 
       // Render children if not folded
-      if (node.children.length > 0 && !state.foldedNodes.has(node.nodeId)) {
+      if (node.children.length > 0 && !state.foldedNodes.has(node.id)) {
         renderNodes(node.children, nodePath, indent + "  ");
       }
     }
@@ -246,7 +246,7 @@ function findChildByName(
     }
 
     // Match by nodeId
-    if (node.nodeId === name) {
+    if (node.id === name) {
       return { node, index: i };
     }
   }
@@ -518,7 +518,7 @@ function catNode(state: BoardState, pathStr?: string): string {
 
   const lines: string[] = [];
   lines.push(`# ${node.title}`);
-  lines.push(`id: ${node.nodeId}`);
+  lines.push(`id: ${node.id}`);
 
   if (node.taskStatus) {
     lines.push(`status: ${node.taskStatus}`);

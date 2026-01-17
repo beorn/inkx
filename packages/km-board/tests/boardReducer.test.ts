@@ -9,18 +9,23 @@ import { boardReducer, createBoardState, getNodeAtPath } from "../src/index.ts";
 import type { BoardState, TreeNode } from "../src/index.ts";
 
 // Helper to create test nodes
-function createNode(nodeId: string, children: TreeNode[] = []): TreeNode {
+function createNode(id: string, children: TreeNode[] = []): TreeNode {
   return {
-    nodeId,
-    name: nodeId,
-    title: nodeId,
+    id,
+    type: "section",
+    parent_id: null,
+    parent_idx: 0,
+    symlink_to: null,
+    name: id,
+    title: id,
     children,
     childCount: children.length,
-    parentId: null,
-    parentIndex: 0,
     isTask: false,
-    nodeType: "section",
     depth: 0,
+    data: {},
+    created_at: 0,
+    updated_at: 0,
+    version: "",
   };
 }
 
@@ -279,7 +284,7 @@ describe("boardReducer", () => {
 describe("getNodeAtPath", () => {
   it("returns node at valid path", () => {
     const node = getNodeAtPath(testNodes, [0, 0]);
-    expect(node?.nodeId).toBe("card-1");
+    expect(node?.id).toBe("card-1");
   });
 
   it("returns null for invalid path", () => {
