@@ -81,21 +81,26 @@ interface KNodeBase extends CommonProps {
 
 // === Node types (discriminated union) ===
 
-// Container nodes (have children)
-interface FolderNode extends KNodeBase { type: "folder"; }
-interface FileNode extends KNodeBase { type: "file"; title?: string; }
+// Empty containers (no extra properties)
+interface ContainerNode extends KNodeBase { type: "folder" | "ul"; }
+
+// Containers with title
+interface TitledContainerNode extends KNodeBase { type: "file" | "task"; title?: string; body?: string; }
+
+// Section (has rules)
 interface SectionNode extends KNodeBase { type: "section"; title?: string; rules?: NodeRules; }
-interface UlNode extends KNodeBase { type: "ul"; }
+
+// Ordered list (has start)
 interface OlNode extends KNodeBase { type: "ol"; start?: number; }
 
-// Content nodes (leaves)
-interface ParagraphNode extends KNodeBase { type: "paragraph"; body?: string; }
-interface QuoteNode extends KNodeBase { type: "quote"; body?: string; }
+// Body-only content
+interface BodyNode extends KNodeBase { type: "paragraph" | "quote" | "table" | "html"; body?: string; }
+
+// Code (has lang)
 interface CodeNode extends KNodeBase { type: "code"; body?: string; lang?: string; }
-interface TaskNode extends KNodeBase { type: "task"; title?: string; body?: string; }
-interface TableNode extends KNodeBase { type: "table"; body?: string; }
+
+// Empty content
 interface HrNode extends KNodeBase { type: "hr"; }
-interface HtmlNode extends KNodeBase { type: "html"; body?: string; }
 
 // Special nodes
 interface AgentNode extends KNodeBase { type: "agent"; model?: string; }
@@ -106,13 +111,13 @@ interface LinkNode extends KNodeBase { type: "link"; linkTo: ULID; }
 interface BlobNode extends KNodeBase { type: "blob"; hash: string; }
 
 type KNode =
-  | FolderNode | FileNode | SectionNode | UlNode | OlNode
-  | ParagraphNode | QuoteNode | CodeNode | TaskNode | TableNode | HrNode | HtmlNode
+  | ContainerNode | TitledContainerNode | SectionNode | OlNode
+  | BodyNode | CodeNode | HrNode
   | AgentNode | BoardNode
   | LinkNode | BlobNode;
 ```
 
-All current `NodeType` values are supported. Each has a dedicated interface for type-safe property access.
+Types with identical structure are combined using union types (e.g., `"folder" | "ul"`).
 
 ### TreeNode Extension
 
