@@ -41,7 +41,7 @@ import {
   type TaskStatus,
   type OutputEvent,
   type ShellContext,
-} from "@km/sh-app";
+} from "@km/repl";
 import type { KNode } from "@km/core";
 
 // OSC 133 Shell Integration Protocol (Kitty, WezTerm, iTerm2, VS Code)

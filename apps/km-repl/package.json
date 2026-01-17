@@ -1,6 +1,6 @@
 {
-  "name": "@km/sh-app",
-  "description": "Shell application for km - non-interactive scripting and debugging",
+  "name": "@km/repl",
+  "description": "REPL application for km - interactive command interface for scripting and debugging",
   "type": "module",
   "module": "src/index.ts",
   "exports": {

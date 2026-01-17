@@ -31,7 +31,7 @@
         "@km/core": "workspace:*",
         "@km/ink": "workspace:*",
         "@km/markdown": "workspace:*",
-        "@km/sh-app": "workspace:*",
+        "@km/repl": "workspace:*",
         "@km/storage": "workspace:*",
         "@km/tree": "workspace:*",
         "chalk": "^5.4.1",
@@ -43,8 +43,8 @@
         "@types/react": "catalog:",
       },
     },
-    "apps/km-sh": {
-      "name": "@km/sh-app",
+    "apps/km-repl": {
+      "name": "@km/repl",
       "dependencies": {
         "@km/board": "workspace:*",
       },
@@ -209,7 +209,7 @@
 
     "@km/markdown": ["@km/markdown@workspace:packages/km-markdown"],
 
-    "@km/sh-app": ["@km/sh-app@workspace:apps/km-sh"],
+    "@km/repl": ["@km/repl@workspace:apps/km-repl"],
 
     "@km/storage": ["@km/storage@workspace:packages/km-storage"],
 

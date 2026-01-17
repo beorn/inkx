@@ -13,7 +13,7 @@
     "@km/board": "workspace:*",
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",
-    "@km/sh-app": "workspace:*",
+    "@km/repl": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "@km/ink": "workspace:*",

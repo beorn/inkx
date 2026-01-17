@@ -1,7 +1,8 @@
 /**
- * @km/sh-app - Shell Application
+ * @km/repl - REPL Application
  *
- * Non-interactive shell for scripting and debugging board state.
+ * Read-Eval-Print-Loop for km commands.
+ * Supports both interactive and scripted usage for debugging board state.
  * Reads commands from stdin, executes them against BoardState,
  * and outputs trace/state to stdout.
  */

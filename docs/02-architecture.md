@@ -8,7 +8,7 @@ km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  APP        apps/ (@km/cli-app, @km/tui-app, @km/sh-app)            │
+│  APP        apps/ (@km/cli-app, @km/tui-app, @km/repl)              │
 │             Rendering, modals, user input                           │
 │             State: AppState = BoardState + AppUIState               │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -192,7 +192,7 @@ packages/
 
 apps/
   km-cli/        → @km/cli-app     CLI commands
-  km-sh/         → @km/sh-app      Shell REPL
+  km-repl/       → @km/repl        REPL application
   km-tui/        → @km/tui-app     TUI application
 ```
 
