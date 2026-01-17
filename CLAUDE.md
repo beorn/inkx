@@ -202,4 +202,4 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1400,900 http://localh
 
 See `.claude/skills/visual-test.md` for full documentation.
 
-**Desktop capture (Peekaboo)**: Only use when the user EXPLICITLY asks you to check their Ghostty window or desktop. Do NOT use Peekaboo for general visual testing - it takes over the user's screen.
+**Desktop capture (Peekaboo)**: ALWAYS use AskUserQuestion to get explicit approval BEFORE using any Peekaboo MCP tools. The user must confirm they are ready since Peekaboo takes over their screen. Never assume you can use Peekaboo without asking first, even if the user previously mentioned desktop capture.

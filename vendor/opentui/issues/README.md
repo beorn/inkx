@@ -7,7 +7,7 @@ This folder tracks OpenTUI bugs encountered in the km project, with reproduction
 | ID | Title | Upstream | Status | Workaround |
 |----|-------|----------|--------|------------|
 | [001](./001-borderstyle-segfault.md) | Invalid borderStyle causes segfault | [#543](https://github.com/anomalyco/opentui/issues/543) | Open | Use valid borderStyle values |
-| [002](./002-color-rendering.md) | Named colors render incorrectly | Not filed | Confirmed | Use `inverse` styling |
+| [002](./002-color-rendering.md) | Text color ignored when backgroundColor set | Not filed | Confirmed | Use `inverse` styling |
 
 ## Environment
 
@@ -15,6 +15,18 @@ This folder tracks OpenTUI bugs encountered in the km project, with reproduction
 - Bun 1.3.6
 - @opentui/core 0.1.74
 - @opentui/react 0.1.74
+
+## Headless Testing (ttyd/xterm.js)
+
+OpenTUI works with ttyd when configured correctly:
+
+```bash
+COLORTERM=truecolor \
+OTUI_USE_ALTERNATE_SCREEN=false \
+ttyd -W -p 7681 bun km view -r /tmp/vault @next.md &
+```
+
+See `.claude/skills/visual-test.md` for full documentation.
 
 ## Workflow
 

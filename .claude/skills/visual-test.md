@@ -192,22 +192,28 @@ HEADLESS=true bun x playwright screenshot \
 
 **Best for**: Testing actual terminal rendering, regression testing, before/after comparisons, CI pipelines.
 
-## Method 3: Interactive (Peekaboo) - USER REQUEST ONLY
+## Method 3: Interactive (Peekaboo) - REQUIRES USER APPROVAL
 
-⚠️ **DO NOT USE THIS METHOD UNLESS THE USER EXPLICITLY ASKS** ⚠️
+⚠️ **ALWAYS ASK FOR USER APPROVAL BEFORE USING PEEKABOO** ⚠️
 
 Peekaboo captures the user's actual desktop/screen, which:
 
 - Takes over their display
 - Prevents them from using their computer
-- Should ONLY be used when the user says something like:
-  - "Check my Ghostty window"
-  - "Look at what's on my screen"
-  - "Capture my desktop"
+- Requires the user to be ready at that moment
 
-If the user hasn't explicitly asked for desktop inspection, **use headless methods instead**.
+**MANDATORY: Before using ANY Peekaboo MCP tool, you MUST use AskUserQuestion to get explicit approval:**
 
-### Via MCP Tools (only when explicitly requested)
+```
+AskUserQuestion: "I need to use Peekaboo to capture your screen. This will interact with your desktop. Are you ready?"
+Options: ["Yes, I'm ready", "No, use headless instead"]
+```
+
+Only proceed with Peekaboo if the user confirms they are ready. If they decline or if you haven't asked, **use headless methods instead**.
+
+Even if the user previously mentioned wanting desktop capture, always confirm before the actual capture since they may have switched context.
+
+### Via MCP Tools (only after user approval)
 
 Use the `mcp__peekaboo__image` tool:
 
@@ -219,7 +225,7 @@ Use the `mcp__peekaboo__image` tool:
 }
 ```
 
-### Via CLI (only when explicitly requested)
+### Via CLI (only after user approval)
 
 ```bash
 # Capture specific app
@@ -229,7 +235,7 @@ peekaboo image --app "Ghostty" --path /tmp/capture.png
 peekaboo image --path /tmp/capture.png
 ```
 
-**When to use**: ONLY when user explicitly requests you to check their desktop/running app.
+**When to use**: ONLY after user confirms via AskUserQuestion that they are ready for desktop capture.
 
 ## Viewing Screenshots
 
@@ -319,3 +325,90 @@ nix-install nixpkgs#ttyd
 
 - Ensure `chalk.level = 3` in code
 - ttyd preserves colors by default
+
+## OpenTUI + ttyd/xterm.js Compatibility
+
+**OpenTUI works with ttyd/xterm.js** but requires specific configuration.
+
+### The Problem
+
+By default, OpenTUI uses the terminal's alternate screen buffer, which xterm.js (ttyd's terminal emulator) handles differently than native terminals. This causes blank screenshots.
+
+### The Solution
+
+Set `OTUI_USE_ALTERNATE_SCREEN=false` to render in the main screen buffer:
+
+```bash
+# Working configuration for OpenTUI + ttyd
+COLORTERM=truecolor \
+TERM=xterm-256color \
+OTUI_USE_ALTERNATE_SCREEN=false \
+ttyd -W -p 7681 bun km view -r /tmp/test-vault @next.md &
+```
+
+### Full Capture Example
+
+```bash
+# 1. Kill any existing ttyd
+pkill -f ttyd 2>/dev/null || true
+
+# 2. Prepare test data
+rm -rf /tmp/test-vault && mkdir -p /tmp/test-vault
+cat > /tmp/test-vault/@next.md << 'EOF'
+# Next
+- [ ] Test task 1
+- [/] In progress
+- [x] Completed
+EOF
+
+# 3. Start ttyd with OpenTUI-compatible settings
+COLORTERM=truecolor \
+TERM=xterm-256color \
+OTUI_USE_ALTERNATE_SCREEN=false \
+ttyd -W -p 7681 bun km view -r /tmp/test-vault @next.md &
+sleep 5  # OpenTUI needs more startup time than Ink
+
+# 4. Capture with proper wait for xterm.js rendering
+HEADLESS=true bun x playwright screenshot \
+  --viewport-size=1000,700 \
+  --wait-for-timeout=2000 \
+  http://localhost:7681 \
+  /tmp/opentui-capture.png
+
+# 5. View the screenshot
+# Use Read tool on /tmp/opentui-capture.png
+```
+
+### Key Environment Variables
+
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `OTUI_USE_ALTERNATE_SCREEN` | `false` | **Required** - Renders in main buffer |
+| `COLORTERM` | `truecolor` | Signals 24-bit color support |
+| `TERM` | `xterm-256color` | Standard terminal type (default) |
+
+### Other OpenTUI Variables (optional)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OPENTUI_FORCE_UNICODE` | `false` | Force Mode 2026 Unicode |
+| `OPENTUI_FORCE_WCWIDTH` | `false` | Use wcwidth for char width |
+| `OPENTUI_NO_GRAPHICS` | `false` | Disable Kitty graphics |
+| `OTUI_DEBUG` | `false` | Enable debug logging |
+| `OTUI_NO_NATIVE_RENDER` | `false` | Disable Zig rendering (debugging only) |
+
+### Timing Considerations
+
+OpenTUI takes longer to initialize than Ink-based TUIs:
+
+- **Startup**: Use `sleep 5` after launching ttyd (vs `sleep 3` for Ink)
+- **Rendering**: Use `--wait-for-timeout=2000` in Playwright
+- **Capability detection**: OpenTUI queries terminal capabilities on startup (5s timeout)
+
+### xterm.js True Color Support
+
+xterm.js **fully supports 24-bit true color** (since v3.13.0). The blank screen issue is NOT a color limitation - it's the alternate screen buffer handling.
+
+### No Compatibility Mode
+
+OpenTUI has **no built-in compatibility mode** that restricts to standard ANSI sequences. However, `OTUI_USE_ALTERNATE_SCREEN=false` is sufficient for xterm.js compatibility.
