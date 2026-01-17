@@ -66,29 +66,40 @@ export interface BoardState {
 // ===== Board Actions (Core Navigation) =====
 
 /**
+ * Direction for node-relative operations (cursor movement, selection, etc.)
+ *
+ * Visual/spatial directions (arrow key semantics):
+ *   - up/down: moves to visually adjacent block (may cross tree levels)
+ *   - left/right: cross-column horizontal movement
+ *
+ * Structural directions (tree navigation):
+ *   - prev/next: sibling navigation within same parent
+ *   - in/out: child/parent navigation
+ *   - first/last: jump to first/last sibling
+ *
+ * See docs/06-ui.md for the visual navigation model.
+ */
+export type NodeDirection =
+  // Visual/spatial (arrows)
+  | "up"
+  | "down"
+  | "left"
+  | "right"
+  // Structural (hjkl)
+  | "prev"
+  | "next"
+  | "in"
+  | "out"
+  | "first"
+  | "last";
+
+/**
  * Actions for board navigation state transitions.
- *
- * Cursor Movement (CURSOR_*):
- *   - Visual/spatial: UP/DOWN/LEFT/RIGHT - moves to visually adjacent block
- *   - Structural: PREV/NEXT/IN/OUT - moves within tree structure
- *   - Boundary: FIRST/LAST - jumps to first/last sibling
- *
- * See docs/07-navigation.md for the visual navigation model.
+ * See docs/06-ui.md for the visual navigation model.
  */
 export type BoardAction =
-  // Visual/spatial cursor movement (arrows)
-  | { type: "CURSOR_UP" } // Previous visible block above
-  | { type: "CURSOR_DOWN" } // Next visible block below
-  | { type: "CURSOR_LEFT" } // Cross-column left
-  | { type: "CURSOR_RIGHT" } // Cross-column right
-
-  // Structural cursor movement (hjkl)
-  | { type: "CURSOR_PREV" } // Previous sibling (k)
-  | { type: "CURSOR_NEXT" } // Next sibling (j)
-  | { type: "CURSOR_IN" } // Into first child (l)
-  | { type: "CURSOR_OUT" } // To parent (h)
-  | { type: "CURSOR_FIRST" } // First sibling (g)
-  | { type: "CURSOR_LAST" } // Last sibling (G)
+  // Cursor movement (parameterized)
+  | { type: "CURSOR_MOVE"; dir: NodeDirection }
 
   // Jump navigation (not cursor movement)
   | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" }

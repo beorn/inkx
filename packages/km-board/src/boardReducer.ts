@@ -198,58 +198,105 @@ export function boardReducer(
   }
 
   switch (action.type) {
-    // ===== Structural Cursor Movement (hjkl) =====
+    // ===== Cursor Movement (parameterized) =====
 
-    case "CURSOR_PREV": {
-      // Previous sibling (k)
-      if (state.cursor.length === 0) return state;
-      const idx = getCurrentIndex(state.cursor);
-      if (idx <= 0) return state;
-      const newPath = [...state.cursor];
-      newPath[newPath.length - 1] = idx - 1;
-      return { ...state, cursor: newPath };
-    }
+    case "CURSOR_MOVE": {
+      switch (action.dir) {
+        // Structural directions (hjkl)
+        case "prev": {
+          // Previous sibling (k)
+          if (state.cursor.length === 0) return state;
+          const idx = getCurrentIndex(state.cursor);
+          if (idx <= 0) return state;
+          const newPath = [...state.cursor];
+          newPath[newPath.length - 1] = idx - 1;
+          return { ...state, cursor: newPath };
+        }
 
-    case "CURSOR_NEXT": {
-      // Next sibling (j)
-      if (state.cursor.length === 0) return state;
-      const idx = getCurrentIndex(state.cursor);
-      const siblingCount = getSiblingCount(state.nodes, state.cursor);
-      if (idx >= siblingCount - 1) return state;
-      const newPath = [...state.cursor];
-      newPath[newPath.length - 1] = idx + 1;
-      return { ...state, cursor: newPath };
-    }
+        case "next": {
+          // Next sibling (j)
+          if (state.cursor.length === 0) return state;
+          const idx = getCurrentIndex(state.cursor);
+          const siblingCount = getSiblingCount(state.nodes, state.cursor);
+          if (idx >= siblingCount - 1) return state;
+          const newPath = [...state.cursor];
+          newPath[newPath.length - 1] = idx + 1;
+          return { ...state, cursor: newPath };
+        }
 
-    case "CURSOR_OUT": {
-      // To parent (h)
-      if (state.cursor.length <= 1) return state;
-      return { ...state, cursor: state.cursor.slice(0, -1) };
-    }
+        case "out": {
+          // To parent (h)
+          if (state.cursor.length <= 1) return state;
+          return { ...state, cursor: state.cursor.slice(0, -1) };
+        }
 
-    case "CURSOR_IN": {
-      // Into first child (l)
-      const currentNode = getNodeAtPath(state.nodes, state.cursor);
-      if (!currentNode || currentNode.children.length === 0) return state;
-      return { ...state, cursor: [...state.cursor, 0] };
-    }
+        case "in": {
+          // Into first child (l)
+          const currentNode = getNodeAtPath(state.nodes, state.cursor);
+          if (!currentNode || currentNode.children.length === 0) return state;
+          return { ...state, cursor: [...state.cursor, 0] };
+        }
 
-    case "CURSOR_FIRST": {
-      // First sibling (g)
-      if (state.cursor.length === 0) return state;
-      const newPath = [...state.cursor];
-      newPath[newPath.length - 1] = 0;
-      return { ...state, cursor: newPath };
-    }
+        case "first": {
+          // First sibling (g)
+          if (state.cursor.length === 0) return state;
+          const newPath = [...state.cursor];
+          newPath[newPath.length - 1] = 0;
+          return { ...state, cursor: newPath };
+        }
 
-    case "CURSOR_LAST": {
-      // Last sibling (G)
-      if (state.cursor.length === 0) return state;
-      const siblingCount = getSiblingCount(state.nodes, state.cursor);
-      if (siblingCount === 0) return state;
-      const newPath = [...state.cursor];
-      newPath[newPath.length - 1] = siblingCount - 1;
-      return { ...state, cursor: newPath };
+        case "last": {
+          // Last sibling (G)
+          if (state.cursor.length === 0) return state;
+          const siblingCount = getSiblingCount(state.nodes, state.cursor);
+          if (siblingCount === 0) return state;
+          const newPath = [...state.cursor];
+          newPath[newPath.length - 1] = siblingCount - 1;
+          return { ...state, cursor: newPath };
+        }
+
+        // Visual/spatial directions (arrows)
+        case "up": {
+          // Previous visible block above (may cross tree levels)
+          const prevPath = getPrevVisiblePath(
+            state.nodes,
+            state.cursor,
+            state.foldedNodes,
+          );
+          if (!prevPath) return state;
+          return { ...state, cursor: prevPath };
+        }
+
+        case "down": {
+          // Next visible block below (may cross tree levels)
+          const nextPath = getNextVisiblePath(
+            state.nodes,
+            state.cursor,
+            state.foldedNodes,
+          );
+          if (!nextPath) return state;
+          return { ...state, cursor: nextPath };
+        }
+
+        case "left": {
+          // Cross-column left (visual horizontal movement)
+          return boardReducer(state, {
+            type: "NAV_CROSS_COLUMN",
+            direction: "left",
+          });
+        }
+
+        case "right": {
+          // Cross-column right (visual horizontal movement)
+          return boardReducer(state, {
+            type: "NAV_CROSS_COLUMN",
+            direction: "right",
+          });
+        }
+
+        default:
+          return state;
+      }
     }
 
     // ===== Jump Navigation =====
@@ -284,46 +331,6 @@ export function boardReducer(
       // Clamp row index to target column's children
       const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
       return { ...state, cursor: [newColIdx, clampedRow] };
-    }
-
-    // ===== Visual/Spatial Cursor Movement (arrows) =====
-
-    case "CURSOR_UP": {
-      // Previous visible block above (may cross tree levels)
-      const prevPath = getPrevVisiblePath(
-        state.nodes,
-        state.cursor,
-        state.foldedNodes,
-      );
-      if (!prevPath) return state;
-      return { ...state, cursor: prevPath };
-    }
-
-    case "CURSOR_DOWN": {
-      // Next visible block below (may cross tree levels)
-      const nextPath = getNextVisiblePath(
-        state.nodes,
-        state.cursor,
-        state.foldedNodes,
-      );
-      if (!nextPath) return state;
-      return { ...state, cursor: nextPath };
-    }
-
-    case "CURSOR_LEFT": {
-      // Cross-column left (visual horizontal movement)
-      return boardReducer(state, {
-        type: "NAV_CROSS_COLUMN",
-        direction: "left",
-      });
-    }
-
-    case "CURSOR_RIGHT": {
-      // Cross-column right (visual horizontal movement)
-      return boardReducer(state, {
-        type: "NAV_CROSS_COLUMN",
-        direction: "right",
-      });
     }
 
     // ===== Node Operations =====

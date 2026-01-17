@@ -100,15 +100,25 @@ The command registry maps all inputs to the same command names, which then creat
 ```typescript
 // Command registry (shared across apps)
 const commands = {
-  toggle_task_status: (ctx) => ({
-    type: "T_UPDATE_NODE",
+  // Toggle logic lives in the command, action is idempotent
+  toggle_task_done: (ctx) => ({
+    type: "UPDATE_NODE",
     nodeId: ctx.currentNode.id,
     updates: { task_status: ctx.currentNode.taskStatus === "done" ? "todo" : "done" }
   }),
-  cursor_down: () => ({ type: "CURSOR_DOWN" }),
+  // Direct set commands are also available (idempotent)
+  set_task_done: (ctx) => ({
+    type: "UPDATE_NODE",
+    nodeId: ctx.currentNode.id,
+    updates: { task_status: "done" }
+  }),
+  cursor_down: () => ({ type: "CURSOR_MOVE", dir: "down" }),
+  cursor_up: () => ({ type: "CURSOR_MOVE", dir: "up" }),
   // ...
 };
 ```
+
+**Idempotency principle:** Actions at the reducer/storage level should be idempotent (set to a value, not toggle). Toggle logic belongs in commands, which read current state and compute the target value.
 
 This enables:
 - **Discoverability**: Command palette shows all available commands
@@ -142,7 +152,7 @@ This enables:
 
 ```
 1. Input      User presses `x`
-2. Handler    Creates T_UPDATE_NODE action with {task_status: "done"}
+2. Handler    Creates UPDATE_NODE action with {task_status: "done"}
 3. dispatch   Action flows through reducer chain
 4. Effect     Effect layer detects TAction, calls storage.updateNode()
 5. Storage    Updates SQLite + syncs to filesystem

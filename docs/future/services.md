@@ -70,6 +70,5 @@ connectors:
 
 ## See Also
 
-- [03-storage.md](03-storage.md) — Events and sync model
-- [04-sync.md](04-sync.md) — Filesystem sync patterns
-- [12-agents.md](12-agents.md) — Agent connectors
+- [../03-storage.md](../03-storage.md) — Events and sync model
+- [agents.md](agents.md) — Agent connectors

@@ -12,16 +12,21 @@
 
 // Types
 export type {
-  // From @km/tui-core
-  TreeState,
-  TreeAction,
+  // Board types (re-exported from @km/board)
+  BoardState,
+  BoardAction,
   TNode,
-  CursorPath,
+  TPath,
   ViewLevelConfig,
   TaskStatus,
   ViewMode,
   NodeViewModel,
-  TreeViewModel,
+  BoardViewModel,
+  // App state types
+  AppState,
+  AppAction,
+  AppUIState,
+  AppUIAction,
   // OpenTUI-specific props
   CardProps,
   ColumnProps,
@@ -38,11 +43,24 @@ export { CardsView } from "./views/index.ts";
 
 // Hooks
 export {
-  useTreeState,
-  treeReducer,
-  createInitialTreeState,
-  type TreeStateHook,
+  useAppState,
+  appReducer,
+  createAppState,
+  type AppStateHook,
 } from "./hooks/index.ts";
+
+// App state
+export { appUIReducer, createAppUIState, isAppUIAction } from "./appState.ts";
+
+// App commands
+export {
+  appCommands,
+  getAppCommandsByCategory,
+  getAppCommandById,
+  filterAppCommands,
+  type AppCommandDef,
+  type AppCommandCategory,
+} from "./commands.ts";
 
 // App component
 export { App } from "./App.tsx";

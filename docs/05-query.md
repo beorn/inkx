@@ -186,5 +186,4 @@ In automation rules, queries appear in `match:`, `was:`, and `now:` fields:
 ## See Also
 
 - [03-storage.md](03-storage.md) — SQLite schema
-- [10-tasks.md](10-tasks.md) — Task management
-- [11-templates.md](11-templates.md) — GTD and other templates
+- [07-tasks.md](07-tasks.md) — Task management, GTD workflow

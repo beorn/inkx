@@ -1,5 +1,5 @@
 /**
- * useTreeState Hook
+ * useAppState Hook
  *
  * React hook wrapper around the combined app state reducer.
  * Provides path-based navigation with computed selectors.
@@ -9,7 +9,7 @@
 import { useReducer, useMemo, useCallback, useState } from "react";
 import {
   boardReducer,
-  createInitialBoardState,
+  createBoardState,
   getNodeAtPath,
   getSiblingCount,
   type BoardState,
@@ -19,7 +19,7 @@ import {
 } from "@km/board";
 import {
   appUIReducer,
-  createInitialAppUIState,
+  createAppUIState,
   isAppUIAction,
   type AppState,
   type AppAction,
@@ -27,13 +27,8 @@ import {
 } from "../appState.ts";
 
 // Re-export for convenience
-export { boardReducer, createInitialBoardState };
+export { boardReducer, createBoardState };
 export type { AppState, AppAction, TNode };
-
-// Legacy aliases for backward compatibility
-export type TreeState = AppState;
-export type TreeAction = AppAction;
-export type CursorPath = TPath;
 
 // Maximum undo history size
 const MAX_UNDO_HISTORY = 50;
@@ -69,8 +64,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
       searchQuery: state.searchQuery,
       searchMode: state.searchMode,
       helpMode: state.helpMode,
-      maxOutlineDepth: state.maxOutlineDepth,
-      maxContentLines: state.maxContentLines,
       newItemMode: state.newItemMode,
       newItemText: state.newItemText,
       projectPickerOpen: state.projectPickerOpen,
@@ -100,32 +93,33 @@ function appReducer(state: AppState, action: AppAction): AppState {
     moveMode: state.moveMode,
     moveSourceNodes: state.moveSourceNodes,
     moveSourceCursor: state.moveSourceCursor,
+    maxOutlineDepth: state.maxOutlineDepth,
+    maxContentLines: state.maxContentLines,
   };
   const newBoardState = boardReducer(boardState, action as BoardAction);
   return { ...state, ...newBoardState };
 }
 
 /**
- * Create initial combined app state.
+ * Create combined app state.
  */
-export function createInitialAppState(
+export function createAppState(
   nodes: TNode[],
   rootId: string | null = null,
   rootPath: string | null = null,
 ): AppState {
-  const boardState = createInitialBoardState(nodes, rootId, rootPath);
-  const appUIState = createInitialAppUIState();
+  const boardState = createBoardState(nodes, rootId, rootPath);
+  const appUIState = createAppUIState();
   return { ...boardState, ...appUIState };
 }
 
-// Legacy alias
-export const treeReducer = appReducer;
-export const createInitialTreeState = createInitialAppState;
+// Export app reducer
+export { appReducer };
 
 /**
- * Tree state hook with selectors
+ * App state hook with selectors
  */
-export interface TreeStateHook {
+export interface AppStateHook {
   state: AppState;
   dispatch: (action: AppAction) => void;
 
@@ -161,7 +155,7 @@ function getSiblings(nodes: TNode[], path: TPath): TNode[] {
   return parent?.children ?? [];
 }
 
-export function useTreeState(initialState: AppState): TreeStateHook {
+export function useAppState(initialState: AppState): AppStateHook {
   const [state, baseDispatch] = useReducer(appReducer, initialState);
 
   // Undo/redo history stacks
@@ -283,4 +277,4 @@ export function useTreeState(initialState: AppState): TreeStateHook {
   };
 }
 
-export default useTreeState;
+export default useAppState;

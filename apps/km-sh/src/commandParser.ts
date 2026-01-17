@@ -39,18 +39,18 @@ export type ShellCommand =
  */
 const SIMPLE_ACTIONS: Record<string, BoardAction> = {
   // Structural cursor movement (prev/next/in/out)
-  cursor_prev: { type: "CURSOR_PREV" },
-  cursor_next: { type: "CURSOR_NEXT" },
-  cursor_in: { type: "CURSOR_IN" },
-  cursor_out: { type: "CURSOR_OUT" },
-  cursor_first: { type: "CURSOR_FIRST" },
-  cursor_last: { type: "CURSOR_LAST" },
+  cursor_prev: { type: "CURSOR_MOVE", dir: "prev" },
+  cursor_next: { type: "CURSOR_MOVE", dir: "next" },
+  cursor_in: { type: "CURSOR_MOVE", dir: "in" },
+  cursor_out: { type: "CURSOR_MOVE", dir: "out" },
+  cursor_first: { type: "CURSOR_MOVE", dir: "first" },
+  cursor_last: { type: "CURSOR_MOVE", dir: "last" },
 
   // Visual cursor movement (up/down/left/right)
-  cursor_up: { type: "CURSOR_UP" },
-  cursor_down: { type: "CURSOR_DOWN" },
-  cursor_left: { type: "CURSOR_LEFT" },
-  cursor_right: { type: "CURSOR_RIGHT" },
+  cursor_up: { type: "CURSOR_MOVE", dir: "up" },
+  cursor_down: { type: "CURSOR_MOVE", dir: "down" },
+  cursor_left: { type: "CURSOR_MOVE", dir: "left" },
+  cursor_right: { type: "CURSOR_MOVE", dir: "right" },
 
   // Cross-column navigation (preserves Y position)
   nav_cross_column_left: { type: "NAV_CROSS_COLUMN", direction: "left" },
@@ -109,13 +109,13 @@ const SHELL_COMMANDS: Record<string, ShellCommand> = {
  */
 const SINGLE_CHAR_MAP: Record<string, BoardAction | "KEY"> = {
   // Structural cursor movement (vim style hjkl)
-  j: { type: "CURSOR_NEXT" }, // Next sibling
-  k: { type: "CURSOR_PREV" }, // Previous sibling
-  h: { type: "CURSOR_OUT" }, // To parent
-  l: { type: "CURSOR_IN" }, // Into child
-  g: { type: "CURSOR_FIRST" }, // First sibling
-  G: { type: "CURSOR_LAST" }, // Last sibling
-  u: { type: "CURSOR_OUT" }, // Alias for h
+  j: { type: "CURSOR_MOVE", dir: "next" }, // Next sibling
+  k: { type: "CURSOR_MOVE", dir: "prev" }, // Previous sibling
+  h: { type: "CURSOR_MOVE", dir: "out" }, // To parent
+  l: { type: "CURSOR_MOVE", dir: "in" }, // Into child
+  g: { type: "CURSOR_MOVE", dir: "first" }, // First sibling
+  G: { type: "CURSOR_MOVE", dir: "last" }, // Last sibling
+  u: { type: "CURSOR_MOVE", dir: "out" }, // Alias for h
 
   // Cross-column navigation
   H: { type: "NAV_CROSS_COLUMN", direction: "left" },
@@ -586,7 +586,7 @@ Key input:
   key <Name> - special key (e.g., key Enter)
 
 JSON mode:
-  {"type": "CURSOR_NEXT"} - any valid BoardAction
+  {"type": "CURSOR_MOVE", "dir": "next"} - any valid BoardAction
 `;
 }
 

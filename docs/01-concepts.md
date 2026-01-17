@@ -1,6 +1,27 @@
 # Concepts
 
-Core concepts of km: the node tree, two operating modes, and the query language.
+Core concepts of km: the node tree, properties, modes, and queries.
+
+---
+
+## Core Insight
+
+km is a **PIM/PKM engine** that transforms a directory of markdown files into a manipulable semantic tree.
+
+```
+Your Files                    km's View
+─────────────────────         ─────────────────────
+projects/                     Node (folder)
+├── website.md         →      └── Node (file + H1 merged)
+│   # Launch Plan                 ├── Node (task, status:todo)
+│   - [ ] Design                  └── Node (task, status:done)
+│   - [x] Research
+```
+
+**Currently implements:** Tasks with GTD workflow
+**Planned:** Notes, contacts, calendar events, custom content types
+
+Any node can have properties. A node with a `status` property is a task. A node with `email` and `phone` properties could be a contact. The tree is the universal primitive.
 
 ---
 
@@ -11,8 +32,8 @@ Nodes form a tree representing your markdown files and their content:
 ```
 vault/
 ├── folder          # Directory
-├── file            # .md file
-│   ├── section     # # Heading
+├── file            # .md file (merged with H1 if names match)
+│   ├── section     # ## Heading (H2+)
 │   └── task        # - [ ] checkbox
 └── ...             # paragraph, quote, code, etc.
 ```
@@ -25,8 +46,8 @@ vault/
 node
 ├── structural
 │   ├── folder          # Directory
-│   ├── file            # .md file
-│   └── section         # Heading (# ## ###)
+│   ├── file            # .md file (merged with H1 if names match)
+│   └── section         # Heading (H2+ when H1 merged)
 └── content
     ├── task            # - [ ] checkbox
     ├── paragraph       # Text block
@@ -38,9 +59,9 @@ node
 
 ---
 
-## Status Model
+## Task Model
 
-Tasks have one of five statuses:
+A node becomes a task when it has a `status` property. Tasks have one of five statuses:
 
 | Mark  | Status    | Meaning                      |
 | ----- | --------- | ---------------------------- |
@@ -127,7 +148,7 @@ km init               # Enable tracking (creates .km/, disk mode)
 | `./path/*`    | `./inbox/**`     | Path pattern           |
 | `"text"`      | `"quarterly"`    | Full-text search       |
 
-See [06-query.md](06-query.md) for full query language specification.
+See [05-query.md](05-query.md) for full query language specification.
 
 ---
 
@@ -141,12 +162,12 @@ Taxes/                      →    Taxes / .md #
     # Taxes
 ```
 
-The `/ .md #` suffix shows what was collapsed. See [08-ui.md](08-ui.md).
+The `/ .md #` suffix shows what was collapsed. See [06-ui.md](06-ui.md).
 
 ---
 
 ## See Also
 
-- [02-architecture.md](02-architecture.md) — Package structure, data flow
-- [03-storage.md](03-storage.md) — Mode detection, SQLite schema
-- [10-tasks.md](10-tasks.md) — Task management, GTD workflow
+- [02-architecture.md](02-architecture.md) — Package structure, data flow, event system
+- [03-storage.md](03-storage.md) — Mode detection, SQLite schema, sync
+- [07-tasks.md](07-tasks.md) — Task management, GTD workflow

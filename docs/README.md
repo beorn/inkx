@@ -1,6 +1,34 @@
 # km Documentation
 
-Knowledge Machine — a markdown-native task and knowledge management system.
+**km** is a PIM/PKM engine that turns markdown files into a semantic tree.
+
+---
+
+## What km Does
+
+km transforms a directory of markdown files into a **unified node tree** that can be:
+
+- Queried (find tasks, filter by status, search content)
+- Navigated (board view, tree view, list view)
+- Edited (changes sync bidirectionally to files)
+- Extended (custom content types via frontmatter)
+
+**Currently implements:** Task management with GTD workflow
+**Planned:** Notes, contacts, calendar events, custom content types
+
+### Core Insight
+
+```
+File tree (folders, .md files)
+       ↓ parse
+Semantic tree (nodes with properties)
+       ↓ render
+Any UI (TUI, CLI, web)
+       ↓ edit
+Events → DB → File (bidirectional sync)
+```
+
+Your data stays in plain markdown. km adds queryability and navigation without lock-in.
 
 ---
 
@@ -17,51 +45,43 @@ km init                    # Enable persistence (stable IDs, history)
 
 ## Documentation
 
-### Core Concepts
+### Understand (Start Here)
 
 | Doc                                      | Description                                |
 | ---------------------------------------- | ------------------------------------------ |
 | [01-concepts.md](01-concepts.md)         | Core concepts: nodes, modes, status, links |
-| [02-architecture.md](02-architecture.md) | Package structure, layers, data flow       |
-| [03-storage.md](03-storage.md)           | SQLite schema, modes, events               |
+| [02-architecture.md](02-architecture.md) | Layers, data flow, event system            |
 
-### Data & Sync
+### Build (How It Works)
 
-| Doc                              | Description                        |
-| -------------------------------- | ---------------------------------- |
-| [04-sync.md](04-sync.md)         | Bidirectional filesystem sync      |
-| [05-markdown.md](05-markdown.md) | Markdown parsing and serialization |
-| [06-query.md](06-query.md)       | Query language for filtering nodes |
+| Doc                              | Description                |
+| -------------------------------- | -------------------------- |
+| [03-storage.md](03-storage.md)   | SQLite schema, modes, sync |
+| [04-markdown.md](04-markdown.md) | Markdown parsing           |
+| [05-query.md](05-query.md)       | Query language             |
 
-### User Interface
+### Use (User-Facing)
 
-| Doc                                  | Description                      |
-| ------------------------------------ | -------------------------------- |
-| [07-navigation.md](07-navigation.md) | Visual navigation model          |
-| [08-ui.md](08-ui.md)                 | Views, collapsing, design system |
-| [09-cli.md](09-cli.md)               | CLI commands and keybindings     |
+| Doc                        | Description                      |
+| -------------------------- | -------------------------------- |
+| [06-ui.md](06-ui.md)       | Views, navigation, design system |
+| [07-tasks.md](07-tasks.md) | Tasks, boards, GTD workflow      |
+| [08-cli.md](08-cli.md)     | CLI commands                     |
 
-### Task Management
+### Extend (Future)
 
-| Doc                                | Description                           |
-| ---------------------------------- | ------------------------------------- |
-| [10-tasks.md](10-tasks.md)         | Task data model, boards, GTD workflow |
-| [11-templates.md](11-templates.md) | GTD and other templates               |
-
-### Future
-
-| Doc                              | Description                          |
-| -------------------------------- | ------------------------------------ |
-| [12-agents.md](12-agents.md)     | AI agent orchestration (planned)     |
-| [13-services.md](13-services.md) | CalDAV, CardDAV connectors (planned) |
+| Doc                                      | Description                          |
+| ---------------------------------------- | ------------------------------------ |
+| [future/agents.md](future/agents.md)     | AI agent orchestration (planned)     |
+| [future/services.md](future/services.md) | CalDAV, CardDAV connectors (planned) |
 
 ### Developer Guides
 
-| Doc                                  | Description                             |
-| ------------------------------------ | --------------------------------------- |
-| [dev/testing.md](dev/testing.md)     | Testing strategy and patterns           |
-| [dev/prior-art.md](dev/prior-art.md) | Research on metadata syntax, recurrence |
-| [dev/use-cases.md](dev/use-cases.md) | Test scenarios and workflows            |
+| Doc                                  | Description      |
+| ------------------------------------ | ---------------- |
+| [dev/testing.md](dev/testing.md)     | Testing strategy |
+| [dev/prior-art.md](dev/prior-art.md) | Research notes   |
+| [dev/use-cases.md](dev/use-cases.md) | Test scenarios   |
 
 ---
 
@@ -84,26 +104,6 @@ km init                    # Enable persistence (stable IDs, history)
 
 Memory mode: SQLite in RAM, rebuilt each run. Great for quick access.
 Disk mode: SQLite persisted, full event history. Enable with `km init`.
-
----
-
-## Architecture Overview
-
-```
-packages/                          # Shared libraries
-  @km/storage    - DBNode, SQLite, queries, events
-  @km/markdown   - Parser (markdown ↔ DBNode)
-  @km/tree       - TNode, tree queries, display names
-  @km/board      - BoardState, cursor, selection, fold
-
-apps/
-  km-cli/        → @km/cli-app     CLI commands
-  km-sh/         → @km/sh-app      Shell application
-  km-tui/        → @km/tui-app     TUI application
-    packages/
-      km-ink/    → @km/ink         React/Ink renderer
-      km-opentui/→ @km/opentui     OpenTUI renderer
-```
 
 ---
 

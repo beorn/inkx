@@ -70,34 +70,3 @@ node: Task 1
 topLevel: 1 nodes
 collapsed: 1 nodes
 ```
-
-## Mode Toggles
-
-### / toggles search mode
-
-```console
-$ km sh board.md -c '/; state'
-cursor: [0,0]
-node: Task 1
-topLevel: 1 nodes
-search: ""
-```
-
-### ? toggles help mode
-
-```console
-$ km sh board.md -c '?; state'
-cursor: [0,0]
-node: Task 1
-topLevel: 1 nodes
-```
-
-### set_search_query sets search text
-
-```console
-$ km sh board.md -c '/; set_search_query hello world; state'
-cursor: [0,0]
-node: Task 1
-topLevel: 1 nodes
-search: "hello world"
-```

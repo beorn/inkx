@@ -11,7 +11,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import type { EventEmitter } from "events";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
-import { useTreeState, createInitialTreeState } from "./hooks/index.ts";
+import { useAppState, createAppState } from "./hooks/index.ts";
 import { toTreeViewModel } from "@km/board";
 import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
 import {
@@ -69,7 +69,7 @@ const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
 ) => getNodeDisplayNameBase(node, getChildren);
 import type { DBNode } from "@km/core";
-import type { ViewMode, TaskStatus, TNode, CursorPath } from "./types.ts";
+import type { ViewMode, TaskStatus, TNode, TPath } from "./types.ts";
 
 // Task status cycle order for Space key
 const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "done", "dropped"];
@@ -81,9 +81,9 @@ const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "done", "dropped"];
  */
 function calculateCrossColumnPath(
   direction: "left" | "right",
-  cursor: CursorPath,
+  cursor: TPath,
   nodes: TNode[],
-): CursorPath | null {
+): TPath | null {
   // Only works at depth 2+ (card level: [colIndex, cardIndex, ...])
   if (cursor.length < 2) return null;
 
@@ -287,13 +287,13 @@ export function App({
   const { width, height } = useTerminalDimensions();
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
 
-  // Initialize tree state
+  // Initialize app state
   const initialState = useMemo(
-    () => createInitialTreeState(initialNodes, rootId, rootPath),
+    () => createAppState(initialNodes, rootId, rootPath),
     [], // Only compute once
   );
 
-  const tree = useTreeState(initialState);
+  const tree = useAppState(initialState);
 
   // Transform state to view model
   const viewModel = useMemo(
@@ -719,9 +719,9 @@ export function App({
     // ===== Cursor-Select (hjkl / arrows) =====
     // j/down = cursor down, k/up = cursor up
     else if (name === "up" || (name === "k" && !shift && !meta)) {
-      tree.dispatch({ type: "NAV_PREV_SIBLING" });
+      tree.dispatch({ type: "CURSOR_MOVE", dir: "prev" });
     } else if (name === "down" || (name === "j" && !shift && !meta)) {
-      tree.dispatch({ type: "NAV_NEXT_SIBLING" });
+      tree.dispatch({ type: "CURSOR_MOVE", dir: "next" });
     } else if (name === "left" || name === "h") {
       // At card level (depth 2+), use cross-column navigation to preserve Y position
       if (tree.state.cursor.length >= 2) {
@@ -735,7 +735,7 @@ export function App({
         }
       } else {
         // At column level (depth 1), move to previous sibling column
-        tree.dispatch({ type: "NAV_PREV_SIBLING" });
+        tree.dispatch({ type: "CURSOR_MOVE", dir: "prev" });
       }
     } else if (name === "right" || name === "l") {
       // At card level (depth 2+), use cross-column navigation to preserve Y position
@@ -750,13 +750,13 @@ export function App({
         }
       } else {
         // At column level (depth 1), move to next sibling column
-        tree.dispatch({ type: "NAV_NEXT_SIBLING" });
+        tree.dispatch({ type: "CURSOR_MOVE", dir: "next" });
       }
     } else if (name === "g" && !shift) {
-      tree.dispatch({ type: "NAV_FIRST_SIBLING" });
+      tree.dispatch({ type: "CURSOR_MOVE", dir: "first" });
     } else if (name === "g" && shift) {
       // Shift+G = jump to last sibling
-      tree.dispatch({ type: "NAV_LAST_SIBLING" });
+      tree.dispatch({ type: "CURSOR_MOVE", dir: "last" });
     }
 
     // ===== Navigating (zoom/root change) =====
@@ -1082,7 +1082,7 @@ export function App({
               const nextIdx = nextNode.parent_idx ?? 0;
               updateNode(currentCard.nodeId, { parent_idx: nextIdx + 0.5 });
               refreshTree();
-              tree.dispatch({ type: "NAV_NEXT_SIBLING" });
+              tree.dispatch({ type: "CURSOR_MOVE", dir: "next" });
             }
           }
         }
@@ -1104,7 +1104,7 @@ export function App({
               const prevIdx = prevNode.parent_idx ?? 0;
               updateNode(currentCard.nodeId, { parent_idx: prevIdx - 0.5 });
               refreshTree();
-              tree.dispatch({ type: "NAV_PREV_SIBLING" });
+              tree.dispatch({ type: "CURSOR_MOVE", dir: "prev" });
             }
           }
         }

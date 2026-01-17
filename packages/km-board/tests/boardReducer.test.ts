@@ -67,55 +67,55 @@ describe("boardReducer", () => {
     };
   }
 
-  describe("cursor navigation", () => {
-    it("CURSOR_DOWN moves to next visible node", () => {
+  describe("cursor navigation (visual)", () => {
+    it("CURSOR_MOVE down moves to next visible node", () => {
       const state = createTestState([0, 0]);
-      const newState = boardReducer(state, { type: "CURSOR_DOWN" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "down" });
       expect(newState.cursor).toEqual([0, 1]); // card-1 -> card-2
     });
 
-    it("CURSOR_UP moves to previous visible node", () => {
+    it("CURSOR_MOVE up moves to previous visible node", () => {
       const state = createTestState([0, 1]);
-      const newState = boardReducer(state, { type: "CURSOR_UP" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "up" });
       expect(newState.cursor).toEqual([0, 0]); // card-2 -> card-1
     });
 
-    it("CURSOR_UP from first card goes to parent column", () => {
+    it("CURSOR_MOVE up from first card goes to parent column", () => {
       const state = createTestState([0, 0]);
-      const newState = boardReducer(state, { type: "CURSOR_UP" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "up" });
       expect(newState.cursor).toEqual([0]); // card-1 -> col-a
     });
 
-    it("CURSOR_DOWN at boundary returns same state", () => {
+    it("CURSOR_MOVE down at boundary returns same state", () => {
       // At last node in tree
       const state = createTestState([1, 0]);
-      const newState = boardReducer(state, { type: "CURSOR_DOWN" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "down" });
       expect(newState.cursor).toEqual([1, 0]); // stays at card-3
     });
   });
 
-  describe("structural cursor movement", () => {
-    it("CURSOR_PREV moves to previous sibling", () => {
+  describe("cursor navigation (structural)", () => {
+    it("CURSOR_MOVE prev moves to previous sibling", () => {
       const state = createTestState([0, 1]);
-      const newState = boardReducer(state, { type: "CURSOR_PREV" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "prev" });
       expect(newState.cursor).toEqual([0, 0]);
     });
 
-    it("CURSOR_NEXT moves to next sibling", () => {
+    it("CURSOR_MOVE next moves to next sibling", () => {
       const state = createTestState([0, 0]);
-      const newState = boardReducer(state, { type: "CURSOR_NEXT" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "next" });
       expect(newState.cursor).toEqual([0, 1]);
     });
 
-    it("CURSOR_OUT moves to parent", () => {
+    it("CURSOR_MOVE out moves to parent", () => {
       const state = createTestState([0, 0]);
-      const newState = boardReducer(state, { type: "CURSOR_OUT" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "out" });
       expect(newState.cursor).toEqual([0]); // card-1 -> col-a
     });
 
-    it("CURSOR_IN moves to first child", () => {
+    it("CURSOR_MOVE in moves to first child", () => {
       const state = createTestState([0]);
-      const newState = boardReducer(state, { type: "CURSOR_IN" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "in" });
       expect(newState.cursor).toEqual([0, 0]); // col-a -> card-1
     });
 
@@ -128,15 +128,15 @@ describe("boardReducer", () => {
       expect(newState.cursor).toEqual([1, 0]);
     });
 
-    it("CURSOR_FIRST jumps to first sibling", () => {
+    it("CURSOR_MOVE first jumps to first sibling", () => {
       const state = createTestState([0, 1]);
-      const newState = boardReducer(state, { type: "CURSOR_FIRST" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "first" });
       expect(newState.cursor).toEqual([0, 0]);
     });
 
-    it("CURSOR_LAST jumps to last sibling", () => {
+    it("CURSOR_MOVE last jumps to last sibling", () => {
       const state = createTestState([0, 0]);
-      const newState = boardReducer(state, { type: "CURSOR_LAST" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "last" });
       expect(newState.cursor).toEqual([0, 1]);
     });
   });
@@ -210,12 +210,12 @@ describe("boardReducer", () => {
       expect(newState.foldedNodes.has("col-a")).toBe(false);
     });
 
-    it("CURSOR_DOWN skips children of folded nodes", () => {
+    it("CURSOR_MOVE down skips children of folded nodes", () => {
       const state = {
         ...createTestState([0]),
         foldedNodes: new Set(["col-a"]),
       };
-      const newState = boardReducer(state, { type: "CURSOR_DOWN" });
+      const newState = boardReducer(state, { type: "CURSOR_MOVE", dir: "down" });
       // Should skip col-a's children and go to col-b
       expect(newState.cursor).toEqual([1]);
     });

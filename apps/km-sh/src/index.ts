@@ -1,8 +1,8 @@
 /**
  * @km/sh-app - Shell Application
  *
- * Non-interactive shell for scripting and debugging TUI state.
- * Reads commands from stdin, executes them against TreeState,
+ * Non-interactive shell for scripting and debugging board state.
+ * Reads commands from stdin, executes them against BoardState,
  * and outputs trace/state to stdout.
  */
 
@@ -20,7 +20,7 @@ export {
 export {
   runShell,
   executeCommand,
-  executeTreeAction,
+  executeBoardAction,
   executeShellCommand,
   serializeState,
   formatStateHuman,
@@ -45,12 +45,12 @@ export {
 // Plain text utilities (for OpenTUI - no ANSI codes)
 export { renderPlain, displayLength } from "./text.ts";
 
-// Re-export tree state types from @km/board for convenience
+// Re-export board state types from @km/board for convenience
 export type {
-  TreeState,
-  TreeAction,
+  BoardState,
+  BoardAction,
   TNode,
-  TreeCursorPath as CursorPath,
+  TPath,
   TaskStatus,
 } from "@km/board";
-export { treeReducer, createInitialTreeState } from "@km/board";
+export { boardReducer, createBoardState } from "@km/board";

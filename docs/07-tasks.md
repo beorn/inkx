@@ -368,9 +368,52 @@ On `@next/waiting` → status auto-set to `blocked`.
 
 ---
 
+## GTD Template
+
+The built-in GTD template creates standard boards:
+
+```bash
+km init gtd                # Create GTD boards/folders
+km init gtd --dry-run      # Preview what would be created
+```
+
+### What Gets Created
+
+**Folders:** `inbox/`, `archive/`
+
+**Boards:**
+
+```markdown
+# @inbox.md
+
+## unprocessed add="./inbox/\*\*"
+```
+
+```markdown
+# @next.md
+
+## today add="due:past status:todo" add="start:past status:todo"
+
+## this-week add="due:week status:todo -due:past"
+
+## waiting sync=status:blocked
+
+## done sync=status:done collapse=true
+```
+
+```markdown
+# @someday.md
+
+## maybe
+
+## review
+```
+
+`km init gtd` is idempotent — safe to run multiple times.
+
+---
+
 ## See Also
 
-- [06-query.md](06-query.md) — Query language
-- [09-cli.md](09-cli.md) — Task CLI commands
-- [11-templates.md](11-templates.md) — GTD and other templates
+- [05-query.md](05-query.md) — Query language
 - [03-storage.md](03-storage.md) — Node schema details

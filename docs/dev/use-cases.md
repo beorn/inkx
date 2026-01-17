@@ -105,6 +105,5 @@ km @next add due:week --dry-run         # preview without changes
 
 ## See Also
 
-- [../10-tasks.md](../10-tasks.md) — Task management
-- [../09-cli.md](../09-cli.md) — CLI commands
-- [../11-templates.md](../11-templates.md) — GTD templates
+- [../07-tasks.md](../07-tasks.md) — Task management
+- [../08-cli.md](../08-cli.md) — CLI commands

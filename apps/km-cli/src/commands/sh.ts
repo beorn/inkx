@@ -2,7 +2,7 @@
  * Shell Command - km sh
  *
  * Non-interactive shell for scripting and debugging TUI.
- * Reads commands from stdin (or file), executes them against TreeState,
+ * Reads commands from stdin (or file), executes them against BoardState,
  * and outputs trace/state to stdout.
  *
  * Usage:
@@ -31,7 +31,7 @@ const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
 ) => getNodeDisplayNameBase(node, getChildren);
 import {
-  createInitialTreeState,
+  createBoardState,
   runShell,
   executeCommand,
   serializeState,
@@ -241,7 +241,7 @@ export const shCommand = new Command("sh")
     }
 
     // Create initial state
-    const initialState = createInitialTreeState(
+    const initialState = createBoardState(
       nodes,
       resolvedNodeId,
       store.rootPath,

@@ -1,18 +1,18 @@
 /**
  * Shell Executor for km-sh
  *
- * Executes commands against a TreeState and produces output.
+ * Executes commands against a BoardState and produces output.
  * Supports both JSON and line (human-readable) output modes.
  */
 
 import type {
-  TreeState,
-  TreeAction,
-  TreeCursorPath as CursorPath,
+  BoardState,
+  BoardAction,
+  TPath,
   TNode,
   TaskStatus,
 } from "@km/board";
-import { treeReducer, getNodeAtPath } from "@km/board";
+import { boardReducer, getNodeAtPath } from "@km/board";
 import { parseCommand, getCommandHelp } from "./commandParser.ts";
 import type { ShellCommand } from "./commandParser.ts";
 
@@ -21,7 +21,7 @@ import type { ShellCommand } from "./commandParser.ts";
  */
 export type OutputEvent =
   | { event: "init"; state: SerializedState; ts: number }
-  | { event: "action"; action: TreeAction; ts: number }
+  | { event: "action"; action: BoardAction; ts: number }
   | { event: "state"; state: SerializedState; ts: number }
   | { event: "error"; error: string; ts: number }
   | { event: "output"; text: string; ts: number };
@@ -32,13 +32,10 @@ export type OutputEvent =
 export interface SerializedState {
   rootId: string | null;
   rootPath: string | null;
-  cursor: CursorPath;
+  cursor: TPath;
   selectedNodes: string[];
   foldedNodes: string[];
   collapsedNodes: string[];
-  searchQuery: string;
-  searchMode: boolean;
-  helpMode: boolean;
   nodeCount: number;
   topLevelCount: number;
 }
@@ -47,8 +44,8 @@ export interface SerializedState {
  * Action log entry for log/logs commands
  */
 export interface ActionLogEntry {
-  action: TreeAction;
-  cursor: CursorPath;
+  action: BoardAction;
+  cursor: TPath;
   ts: number;
 }
 
@@ -56,7 +53,7 @@ export interface ActionLogEntry {
  * Shell execution context
  */
 export interface ShellContext {
-  state: TreeState;
+  state: BoardState;
   jsonMode: boolean;
   verbose: boolean;
   output: (event: OutputEvent | string) => void;
@@ -66,11 +63,11 @@ export interface ShellContext {
 }
 
 /**
- * Serialize TreeState for JSON output
+ * Serialize BoardState for JSON output
  */
-export function serializeState(state: TreeState): SerializedState {
+export function serializeState(state: BoardState): SerializedState {
   // Count total nodes recursively
-  function countNodes(nodes: TreeState["nodes"]): number {
+  function countNodes(nodes: BoardState["nodes"]): number {
     return nodes.reduce((sum, node) => sum + 1 + countNodes(node.children), 0);
   }
 
@@ -81,9 +78,6 @@ export function serializeState(state: TreeState): SerializedState {
     selectedNodes: Array.from(state.selectedNodes),
     foldedNodes: Array.from(state.foldedNodes),
     collapsedNodes: Array.from(state.collapsedNodes),
-    searchQuery: state.searchQuery,
-    searchMode: state.searchMode,
-    helpMode: state.helpMode,
     nodeCount: countNodes(state.nodes),
     topLevelCount: state.nodes.length,
   };
@@ -92,7 +86,7 @@ export function serializeState(state: TreeState): SerializedState {
 /**
  * Format state for human-readable output
  */
-export function formatStateHuman(state: TreeState): string {
+export function formatStateHuman(state: BoardState): string {
   const currentNode = getNodeAtPath(state.nodes, state.cursor);
   const lines: string[] = [
     `cursor: [${state.cursor.join(",")}]`,
@@ -102,9 +96,6 @@ export function formatStateHuman(state: TreeState): string {
 
   if (state.selectedNodes.size > 0) {
     lines.push(`selected: ${state.selectedNodes.size} nodes`);
-  }
-  if (state.searchMode) {
-    lines.push(`search: "${state.searchQuery}"`);
   }
   if (state.foldedNodes.size > 0) {
     lines.push(`folded: ${state.foldedNodes.size} nodes`);
@@ -119,7 +110,7 @@ export function formatStateHuman(state: TreeState): string {
 /**
  * Render a simple ASCII view of the tree
  */
-export function renderAsciiView(state: TreeState): string {
+export function renderAsciiView(state: BoardState): string {
   const lines: string[] = [];
 
   // Header
@@ -130,8 +121,8 @@ export function renderAsciiView(state: TreeState): string {
 
   // Render nodes recursively with indentation
   function renderNodes(
-    nodes: TreeState["nodes"],
-    path: CursorPath,
+    nodes: BoardState["nodes"],
+    path: TPath,
     indent: string,
   ) {
     for (let i = 0; i < nodes.length; i++) {
@@ -182,7 +173,7 @@ function slugify(title: string): string {
  * Get the current path as a string of node titles
  * e.g., "projects/km/inbox"
  */
-function getPathAsString(state: TreeState): string {
+function getPathAsString(state: BoardState): string {
   if (state.cursor.length === 0) {
     return state.rootPath ? state.rootPath : "/";
   }
@@ -203,10 +194,13 @@ function getPathAsString(state: TreeState): string {
 /**
  * Get the current path for shell prompt using node slugs
  * e.g., "/inbox/task-1" or "/" at root
- * @param state - TreeState with cursor position
+ * @param state - BoardState with cursor position
  * @param rootSlugPath - Optional slug path prefix for the view root (e.g., "@inbox" when viewing inside @inbox.md)
  */
-export function getPromptPath(state: TreeState, rootSlugPath?: string): string {
+export function getPromptPath(
+  state: BoardState,
+  rootSlugPath?: string,
+): string {
   const parts: string[] = [];
 
   // Add root path prefix if viewing a subset of the tree
@@ -265,13 +259,13 @@ function findChildByName(
  * Supports: /, .., relative paths, absolute paths from root
  */
 function resolvePath(
-  state: TreeState,
+  state: BoardState,
   pathStr: string,
-): { cursor: CursorPath; error?: string } {
+): { cursor: TPath; error?: string } {
   const parts = pathStr.split("/").filter((p) => p.length > 0);
 
   // Start from root or current position
-  let cursor: CursorPath = pathStr.startsWith("/") ? [] : [...state.cursor];
+  let cursor: TPath = pathStr.startsWith("/") ? [] : [...state.cursor];
   let nodes = state.nodes;
 
   // Navigate to the position indicated by cursor
@@ -328,9 +322,9 @@ function resolvePath(
  * Navigate to a path and return the new cursor or error
  */
 function navigateToPath(
-  state: TreeState,
+  state: BoardState,
   pathStr: string,
-): { newCursor?: CursorPath; error?: string } {
+): { newCursor?: TPath; error?: string } {
   const result = resolvePath(state, pathStr);
 
   if (result.error) {
@@ -357,7 +351,7 @@ function navigateToPath(
 /**
  * List children of current or specified node
  */
-function listNodes(state: TreeState, pathStr?: string): string {
+function listNodes(state: BoardState, pathStr?: string): string {
   let nodes: TNode[];
 
   if (pathStr) {
@@ -415,7 +409,7 @@ function listNodes(state: TreeState, pathStr?: string): string {
  * Render tree output with box-drawing characters
  */
 function renderTreeCommand(
-  state: TreeState,
+  state: BoardState,
   pathStr?: string,
   maxDepth?: number,
 ): string {
@@ -505,7 +499,7 @@ function renderTreeCommand(
 /**
  * Show node content/details (cat command)
  */
-function catNode(state: TreeState, pathStr?: string): string {
+function catNode(state: BoardState, pathStr?: string): string {
   let node: TNode | null;
 
   if (pathStr) {
@@ -542,7 +536,7 @@ function catNode(state: TreeState, pathStr?: string): string {
 }
 
 /**
- * Execute a shell command (not a TreeAction)
+ * Execute a shell command (not a BoardAction)
  */
 export function executeShellCommand(
   command: ShellCommand,
@@ -674,12 +668,12 @@ export function executeShellCommand(
 }
 
 /**
- * Execute a TreeAction
+ * Execute a BoardAction
  */
-export function executeTreeAction(
-  action: TreeAction,
+export function executeBoardAction(
+  action: BoardAction,
   ctx: ShellContext,
-): TreeState {
+): BoardState {
   const ts = Date.now();
 
   // Log the action (JSON mode to stdout, verbose mode to stderr via stdlog)
@@ -690,7 +684,7 @@ export function executeTreeAction(
   }
 
   // Execute the action
-  const newState = treeReducer(ctx.state, action);
+  const newState = boardReducer(ctx.state, action);
 
   // Record in action log for log command
   if (ctx.actionLog) {
@@ -704,9 +698,9 @@ export function executeTreeAction(
   // Log state change if something changed
   const changed =
     newState.cursor.length !== ctx.state.cursor.length ||
-    !newState.cursor.every((v, i) => v === ctx.state.cursor[i]) ||
-    newState.searchMode !== ctx.state.searchMode ||
-    newState.helpMode !== ctx.state.helpMode ||
+    !newState.cursor.every(
+      (v: number, i: number) => v === ctx.state.cursor[i],
+    ) ||
     newState.foldedNodes.size !== ctx.state.foldedNodes.size ||
     newState.collapsedNodes.size !== ctx.state.collapsedNodes.size ||
     newState.selectedNodes.size !== ctx.state.selectedNodes.size;
@@ -733,27 +727,28 @@ export function executeTreeAction(
 export function executeCommand(
   line: string,
   ctx: ShellContext,
-): { state: TreeState; quit: boolean } {
+): { state: BoardState; quit: boolean } {
   const ts = Date.now();
   const result = parseCommand(line);
 
   // Key map used for KEY: and KEYS: markers
   // Shell uses structural navigation (prev/next/in/out) - no visual cursor logic
-  const keyMap: Record<string, TreeAction> = {
-    // Cursor-select (vim style keys) - structural in shell, visual in TUI
-    j: { type: "NAV_NEXT_SIBLING" },
-    k: { type: "NAV_PREV_SIBLING" },
-    h: { type: "NAV_PARENT" }, // h always goes to parent (no cross-column in shell)
-    l: { type: "NAV_CHILD" }, // l always goes to child
+  // Note: App-specific actions (modals, search, help) are not available in km-sh
+  const keyMap: Record<string, BoardAction> = {
+    // Structural cursor movement (vim style keys)
+    j: { type: "CURSOR_MOVE", dir: "next" },
+    k: { type: "CURSOR_MOVE", dir: "prev" },
+    h: { type: "CURSOR_MOVE", dir: "out" }, // h always goes to parent
+    l: { type: "CURSOR_MOVE", dir: "in" }, // l always goes to child
     H: { type: "NAV_CROSS_COLUMN", direction: "left" },
     L: { type: "NAV_CROSS_COLUMN", direction: "right" },
-    g: { type: "NAV_FIRST_SIBLING" },
-    G: { type: "NAV_LAST_SIBLING" },
+    g: { type: "CURSOR_MOVE", dir: "first" },
+    G: { type: "CURSOR_MOVE", dir: "last" },
 
-    // Navigating (zoom/root change)
-    Enter: { type: "NAV_CHILD" },
-    Backspace: { type: "NAV_PARENT" },
-    u: { type: "NAV_PARENT" },
+    // Navigation
+    Enter: { type: "CURSOR_MOVE", dir: "in" },
+    Backspace: { type: "CURSOR_MOVE", dir: "out" },
+    u: { type: "CURSOR_MOVE", dir: "out" },
     "[": { type: "NAV_BACK" },
     "]": { type: "NAV_FORWARD" },
 
@@ -767,20 +762,9 @@ export function executeCommand(
     // Note: H/L are used for cross-column nav, so extend-select left/right
     // would need different key bindings in a real TUI
 
-    // View controls
+    // View controls (fold only - outline depth is app-level)
     z: { type: "FOLD_LEVEL", depth: 1 },
     Z: { type: "UNFOLD_LEVEL", depth: 1 },
-    "<": { type: "DECREASE_OUTLINE_DEPTH" },
-    ">": { type: "INCREASE_OUTLINE_DEPTH" },
-    "+": { type: "INCREASE_CONTENT_LINES" },
-    "-": { type: "DECREASE_CONTENT_LINES" },
-
-    // Modals
-    "/": { type: "TOGGLE_SEARCH_MODE" },
-    "?": { type: "TOGGLE_HELP_MODE" },
-    n: { type: "TOGGLE_NEW_ITEM_MODE" },
-    p: { type: "TOGGLE_PROJECT_PICKER" },
-    i: { type: "TOGGLE_DETAIL_PANE" },
 
     // Moving (m + destination)
     m: { type: "ENTER_MOVE_MODE" },
@@ -792,7 +776,7 @@ export function executeCommand(
       const key = result.error.slice(4);
       const action = keyMap[key];
       if (action) {
-        const newState = executeTreeAction(action, ctx);
+        const newState = executeBoardAction(action, ctx);
         return { state: newState, quit: false };
       } else {
         if (ctx.jsonMode) {
@@ -812,7 +796,7 @@ export function executeCommand(
         const action = keyMap[key];
         if (action) {
           ctx.state = currentState;
-          currentState = executeTreeAction(action, ctx);
+          currentState = executeBoardAction(action, ctx);
         } else {
           if (ctx.jsonMode) {
             ctx.output({ event: "error", error: `Unknown key: ${key}`, ts });
@@ -844,7 +828,7 @@ export function executeCommand(
     const { quit } = executeShellCommand(result.command, ctx);
     return { state: ctx.state, quit };
   } else {
-    const newState = executeTreeAction(result.action, ctx);
+    const newState = executeBoardAction(result.action, ctx);
     return { state: newState, quit: false };
   }
 }
@@ -855,14 +839,14 @@ export function executeCommand(
  */
 export function runShell(
   lines: string[],
-  initialState: TreeState,
+  initialState: BoardState,
   options: {
     jsonMode?: boolean;
     verbose?: boolean;
     output?: (event: OutputEvent | string) => void;
     stdlog?: (line: string) => void;
   } = {},
-): TreeState {
+): BoardState {
   const jsonMode = options.jsonMode ?? false;
   const verbose = options.verbose ?? false;
   const output =

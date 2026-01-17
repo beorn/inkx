@@ -360,6 +360,5 @@ function parseMarkdown(content: string): Root {
 
 ## See Also
 
-- [03-storage.md](03-storage.md) — Node storage
-- [04-sync.md](04-sync.md) — Bidirectional sync
-- [06-query.md](06-query.md) — Query language
+- [03-storage.md](03-storage.md) — Node storage, sync
+- [05-query.md](05-query.md) — Query language

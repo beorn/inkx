@@ -121,30 +121,30 @@ node: Task A1
 topLevel: 2 nodes
 ```
 
-### nav_child from column level enters first child
+### cursor_in from column level enters first child
 
-First go to column level with h, then nav_child.
+First go to column level with h, then cursor_in.
 
 ```console
-$ km sh board.md -c 'h; nav_child; state'
+$ km sh board.md -c 'h; cursor_in; state'
 cursor: [0,0]
 node: Task A1
 topLevel: 2 nodes
 ```
 
-### nav_child on second section
+### cursor_in on second section
 
 ```console
-$ km sh board.md -c 'nav_to_path 1; nav_child; state'
+$ km sh board.md -c 'nav_to_path 1; cursor_in; state'
 cursor: [1,0]
 node: Task B1
 topLevel: 2 nodes
 ```
 
-### nav_parent goes up one level
+### cursor_out goes up one level
 
 ```console
-$ km sh board.md -c 'nav_parent; state'
+$ km sh board.md -c 'cursor_out; state'
 cursor: [0]
 node: Section A
 topLevel: 2 nodes

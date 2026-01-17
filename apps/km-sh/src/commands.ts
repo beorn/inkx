@@ -9,10 +9,11 @@
  * - Keyboard handler (reference)
  */
 
-import type { TreeAction } from "@km/board";
+import type { BoardAction } from "@km/board";
 
 /**
  * Command definition for the palette and help system.
+ * Board-level commands only - app-level commands are in km-opentui.
  */
 export interface CommandDef {
   /** Unique identifier (snake_case) */
@@ -26,19 +27,12 @@ export interface CommandDef {
   /** Category for grouping */
   category: CommandCategory;
   /** The action to dispatch (or null if requires context) */
-  action: TreeAction | null;
+  action: BoardAction | null;
   /** Whether this command needs additional context (like nodeId) */
   needsContext?: boolean;
 }
 
-export type CommandCategory =
-  | "Navigation"
-  | "Selection"
-  | "Folding"
-  | "View"
-  | "Search"
-  | "Edit"
-  | "Modal";
+export type CommandCategory = "Navigation" | "Selection" | "Folding" | "View";
 
 /**
  * All registered commands.
@@ -248,50 +242,6 @@ export const commands: CommandDef[] = [
     shortcut: "-",
     category: "View",
     action: { type: "DECREASE_CONTENT_LINES" },
-  },
-  {
-    id: "toggle_detail_pane",
-    name: "Toggle Detail Pane",
-    description: "Show/hide detail pane",
-    shortcut: "i",
-    category: "View",
-    action: { type: "TOGGLE_DETAIL_PANE" },
-  },
-
-  // === Search ===
-  {
-    id: "toggle_search",
-    name: "Search",
-    description: "Toggle search mode",
-    shortcut: "/",
-    category: "Search",
-    action: { type: "TOGGLE_SEARCH_MODE" },
-  },
-
-  // === Modal ===
-  {
-    id: "toggle_help",
-    name: "Help",
-    description: "Show keyboard shortcuts",
-    shortcut: "?",
-    category: "Modal",
-    action: { type: "TOGGLE_HELP_MODE" },
-  },
-  {
-    id: "toggle_new_item",
-    name: "New Item",
-    description: "Create new item",
-    shortcut: "n",
-    category: "Modal",
-    action: { type: "TOGGLE_NEW_ITEM_MODE" },
-  },
-  {
-    id: "toggle_project_picker",
-    name: "Project Picker",
-    description: "Switch projects",
-    shortcut: "p",
-    category: "Modal",
-    action: { type: "TOGGLE_PROJECT_PICKER" },
   },
 ];
 

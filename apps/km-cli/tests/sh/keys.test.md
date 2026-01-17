@@ -403,54 +403,6 @@ node: Task A
 topLevel: 2 nodes
 ```
 
-## Modal Keys
-
-### / toggles search mode
-
-```console
-$ km sh board.md -c '/; state'
-cursor: [0,0]
-node: Task A
-topLevel: 2 nodes
-search: ""
-```
-
-### ? toggles help mode
-
-```console
-$ km sh board.md -c '?; state'
-cursor: [0,0]
-node: Task A
-topLevel: 2 nodes
-```
-
-### n toggles new item mode
-
-```console
-$ km sh board.md -c 'n; state'
-cursor: [0,0]
-node: Task A
-topLevel: 2 nodes
-```
-
-### p toggles project picker
-
-```console
-$ km sh board.md -c 'p; state'
-cursor: [0,0]
-node: Task A
-topLevel: 2 nodes
-```
-
-### i toggles detail pane
-
-```console
-$ km sh board.md -c 'i; state'
-cursor: [0,0]
-node: Task A
-topLevel: 2 nodes
-```
-
 ## Move Mode Keys
 
 ### m enters move mode

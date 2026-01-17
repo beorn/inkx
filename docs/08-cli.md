@@ -179,52 +179,7 @@ km ls --json                # Works on all views
 
 ## TUI Keybindings
 
-### Navigation
-
-| Key     | Action                 |
-| ------- | ---------------------- |
-| `h` `l` | Move between columns   |
-| `j` `k` | Move between cards     |
-| `g` `G` | First / last item      |
-| `Enter` | Zoom in / expand       |
-| `u`     | Zoom out               |
-| `[` `]` | History back / forward |
-
-### Actions
-
-| Key | Action                     |
-| --- | -------------------------- |
-| `x` | Toggle task done           |
-| `n` | New task                   |
-| `p` | Project picker (re-parent) |
-| `d` | Delete (with confirmation) |
-| `m` | Move mode                  |
-
-### Selection
-
-| Key      | Action              |
-| -------- | ------------------- |
-| `v`      | Multi-select mode   |
-| `⇧+hjkl` | Extend selection    |
-| `A`      | Select all siblings |
-| `Escape` | Clear selection     |
-
-### View Modes
-
-| Key | Action         |
-| --- | -------------- |
-| `o` | Toggle outline |
-| `?` | Help           |
-| `/` | Search         |
-| `q` | Quit           |
-
-### Outline Mode
-
-| Key         | Action             |
-| ----------- | ------------------ |
-| `Enter`     | Toggle fold        |
-| `Tab`       | Move into children |
-| `Shift+Tab` | Move to parent     |
+See [06-ui.md](06-ui.md#keybindings) for full TUI keybinding reference.
 
 ---
 
@@ -296,7 +251,6 @@ Favorites: Number keys `1-6` open favorite boards.
 
 ## See Also
 
-- [06-query.md](06-query.md) — Query language
-- [07-navigation.md](07-navigation.md) — Visual navigation model
-- [08-ui.md](08-ui.md) — TUI design system
-- [10-tasks.md](10-tasks.md) — Task management
+- [05-query.md](05-query.md) — Query language
+- [06-ui.md](06-ui.md) — Views, navigation, design system
+- [07-tasks.md](07-tasks.md) — Task management

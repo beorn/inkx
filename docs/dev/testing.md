@@ -197,4 +197,4 @@ Is it a pure function?
 ## See Also
 
 - [../02-architecture.md](../02-architecture.md) — Layer responsibilities
-- [../09-cli.md](../09-cli.md) — CLI commands
+- [../08-cli.md](../08-cli.md) — CLI commands

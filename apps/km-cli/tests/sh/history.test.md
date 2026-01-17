@@ -93,19 +93,19 @@ node: Tasks
 topLevel: 1 nodes
 ```
 
-### nav_parent command
+### cursor_out command
 
 ```console
-$ km sh board.md -c 'key enter; nav_parent; state'
+$ km sh board.md -c 'key enter; cursor_out; state'
 cursor: [0]
 node: Tasks
 topLevel: 1 nodes
 ```
 
-### nav_child command
+### cursor_in command
 
 ```console
-$ km sh board.md -c 'nav_child; state'
+$ km sh board.md -c 'cursor_in; state'
 cursor: [0,0]
 node: Task A
 topLevel: 1 nodes

@@ -5,8 +5,8 @@
  */
 
 export {
-  useTreeState,
-  treeReducer,
-  createInitialTreeState,
-  type TreeStateHook,
-} from "./useTreeState.ts";
+  useAppState,
+  appReducer,
+  createAppState,
+  type AppStateHook,
+} from "./useAppState.ts";

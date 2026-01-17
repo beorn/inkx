@@ -135,7 +135,7 @@ describe("TUI2 Integration: State Management", () => {
     it("CURSOR_NEXT moves to next sibling at same level", () => {
       // createTestTree now starts at [0, 0] (card level)
       const state = createTestTree();
-      const newState = appReducer(state, { type: "CURSOR_NEXT" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "next" });
 
       // At card level, moves to next card in column
       expect(newState.cursor).toEqual([0, 1]);
@@ -143,7 +143,7 @@ describe("TUI2 Integration: State Management", () => {
 
     it("CURSOR_PREV moves to previous sibling at same level", () => {
       const state = { ...createTestTree(), cursor: [0, 2] };
-      const newState = appReducer(state, { type: "CURSOR_PREV" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "prev" });
 
       expect(newState.cursor).toEqual([0, 1]);
     });
@@ -151,21 +151,21 @@ describe("TUI2 Integration: State Management", () => {
     it("CURSOR_IN drills into children", () => {
       // Start at column level to test drilling into children
       const state = { ...createTestTree(), cursor: [0] };
-      const newState = appReducer(state, { type: "CURSOR_IN" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "in" });
 
       expect(newState.cursor).toEqual([0, 0]); // First child of first node
     });
 
     it("CURSOR_OUT goes up one level", () => {
       const state = { ...createTestTree(), cursor: [0, 1] };
-      const newState = appReducer(state, { type: "CURSOR_OUT" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "out" });
 
       expect(newState.cursor).toEqual([0]);
     });
 
     it("CURSOR_FIRST goes to first sibling", () => {
       const state = { ...createTestTree(), cursor: [0, 2] };
-      const newState = appReducer(state, { type: "CURSOR_FIRST" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "first" });
 
       expect(newState.cursor).toEqual([0, 0]);
     });
@@ -174,7 +174,7 @@ describe("TUI2 Integration: State Management", () => {
       // createTestTree starts at [0, 0] (first card in first column)
       // First column has 3 cards (items), so CURSOR_LAST goes to [0, 2]
       const state = createTestTree();
-      const newState = appReducer(state, { type: "CURSOR_LAST" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "last" });
 
       expect(newState.cursor).toEqual([0, 2]); // Last card in first column
     });
@@ -184,7 +184,7 @@ describe("TUI2 Integration: State Management", () => {
     it("CURSOR_PREV at first sibling stays", () => {
       // createTestTree now starts at [0, 0] (first card)
       const state = createTestTree();
-      const newState = appReducer(state, { type: "CURSOR_PREV" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "prev" });
 
       expect(newState.cursor).toEqual([0, 0]);
     });
@@ -192,7 +192,7 @@ describe("TUI2 Integration: State Management", () => {
     it("CURSOR_NEXT at last sibling stays", () => {
       // Last card in first column is [0, 2] (3 cards total)
       const state = { ...createTestTree(), cursor: [0, 2] };
-      const newState = appReducer(state, { type: "CURSOR_NEXT" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "next" });
 
       expect(newState.cursor).toEqual([0, 2]);
     });
@@ -200,14 +200,14 @@ describe("TUI2 Integration: State Management", () => {
     it("CURSOR_OUT at top level stays", () => {
       // At column level [0], CURSOR_OUT should stay
       const state = { ...createTestTree(), cursor: [0] };
-      const newState = appReducer(state, { type: "CURSOR_OUT" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "out" });
 
       expect(newState.cursor).toEqual([0]);
     });
 
     it("CURSOR_IN on leaf node stays", () => {
       const state = { ...createTestTree(), cursor: [0, 0] }; // leaf node
-      const newState = appReducer(state, { type: "CURSOR_IN" });
+      const newState = appReducer(state, { type: "CURSOR_MOVE", dir: "in" });
 
       expect(newState.cursor).toEqual([0, 0]);
     });
@@ -722,10 +722,10 @@ describe("TUI2 Integration: Edge Cases", () => {
   it("navigation on empty tree is no-op", () => {
     const state = createAppState([], null, null);
 
-    const state1 = appReducer(state, { type: "CURSOR_NEXT" });
+    const state1 = appReducer(state, { type: "CURSOR_MOVE", dir: "next" });
     expect(state1.cursor).toEqual([]);
 
-    const state2 = appReducer(state, { type: "CURSOR_PREV" });
+    const state2 = appReducer(state, { type: "CURSOR_MOVE", dir: "prev" });
     expect(state2.cursor).toEqual([]);
   });
 

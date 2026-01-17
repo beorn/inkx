@@ -280,6 +280,6 @@ km hub message <agent> "..."  # Send message
 
 ## See Also
 
-- [03-storage.md](03-storage.md) — Events and storage model
-- [10-tasks.md](10-tasks.md) — Task management
-- [09-cli.md](09-cli.md) — CLI commands
+- [../03-storage.md](../03-storage.md) — Events and storage model
+- [../07-tasks.md](../07-tasks.md) — Task management
+- [../08-cli.md](../08-cli.md) — CLI commands

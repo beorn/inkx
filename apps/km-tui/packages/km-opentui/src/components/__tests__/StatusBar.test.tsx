@@ -8,13 +8,13 @@
 import { describe, it, expect } from "bun:test";
 import React from "react";
 import { StatusBar } from "../StatusBar.tsx";
-import type { ViewMode, CursorPath } from "../../types.ts";
+import type { ViewMode, TPath } from "../../types.ts";
 
 // Test helper to create StatusBar props
 interface StatusBarProps {
   width: number;
   height: number;
-  cursor: CursorPath;
+  cursor: TPath;
   nodeCount: number;
   viewMode: ViewMode;
 }

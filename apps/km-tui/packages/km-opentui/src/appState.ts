@@ -9,7 +9,7 @@
  */
 
 import type { BoardState, BoardAction, TNode } from "@km/board";
-import { createInitialBoardState } from "@km/board";
+import { createBoardState } from "@km/board";
 
 // ===== App UI State =====
 
@@ -24,10 +24,6 @@ export interface AppUIState {
 
   // Help
   helpMode: boolean;
-
-  // View configuration
-  maxOutlineDepth: number;
-  maxContentLines: number;
 
   // New item dialog
   newItemMode: boolean;
@@ -80,13 +76,7 @@ export type AppUIAction =
   | { type: "SET_COMMAND_PALETTE_QUERY"; query: string }
   | { type: "COMMAND_PALETTE_UP" }
   | { type: "COMMAND_PALETTE_DOWN"; maxIndex: number }
-  | { type: "CLOSE_COMMAND_PALETTE" }
-
-  // View configuration
-  | { type: "INCREASE_OUTLINE_DEPTH" }
-  | { type: "DECREASE_OUTLINE_DEPTH" }
-  | { type: "INCREASE_CONTENT_LINES" }
-  | { type: "DECREASE_CONTENT_LINES" };
+  | { type: "CLOSE_COMMAND_PALETTE" };
 
 // ===== Combined App State =====
 
@@ -234,27 +224,6 @@ export function appUIReducer(
       };
     }
 
-    // ===== View Configuration =====
-    case "INCREASE_OUTLINE_DEPTH": {
-      if (state.maxOutlineDepth >= 99) return state;
-      return { ...state, maxOutlineDepth: state.maxOutlineDepth + 1 };
-    }
-
-    case "DECREASE_OUTLINE_DEPTH": {
-      if (state.maxOutlineDepth <= 0) return state;
-      return { ...state, maxOutlineDepth: state.maxOutlineDepth - 1 };
-    }
-
-    case "INCREASE_CONTENT_LINES": {
-      if (state.maxContentLines >= 10) return state;
-      return { ...state, maxContentLines: state.maxContentLines + 1 };
-    }
-
-    case "DECREASE_CONTENT_LINES": {
-      if (state.maxContentLines <= 0) return state;
-      return { ...state, maxContentLines: state.maxContentLines - 1 };
-    }
-
     default:
       return state;
   }
@@ -263,15 +232,13 @@ export function appUIReducer(
 // ===== Initial State Factories =====
 
 /**
- * Create initial app UI state with default values.
+ * Create app UI state with default values.
  */
-export function createInitialAppUIState(): AppUIState {
+export function createAppUIState(): AppUIState {
   return {
     searchQuery: "",
     searchMode: false,
     helpMode: false,
-    maxOutlineDepth: 99,
-    maxContentLines: 2,
     newItemMode: false,
     newItemText: "",
     projectPickerOpen: false,
@@ -285,15 +252,15 @@ export function createInitialAppUIState(): AppUIState {
 }
 
 /**
- * Create initial app state combining board state and app UI state.
+ * Create app state combining board state and app UI state.
  */
-export function createInitialAppState(
+export function createAppState(
   nodes: TNode[],
   rootId: string | null = null,
   rootPath: string | null = null,
 ): AppState {
-  const boardState = createInitialBoardState(nodes, rootId, rootPath);
-  const appUIState = createInitialAppUIState();
+  const boardState = createBoardState(nodes, rootId, rootPath);
+  const appUIState = createAppUIState();
   return { ...boardState, ...appUIState };
 }
 
@@ -321,22 +288,6 @@ export function isAppUIAction(action: { type: string }): action is AppUIAction {
     "COMMAND_PALETTE_UP",
     "COMMAND_PALETTE_DOWN",
     "CLOSE_COMMAND_PALETTE",
-    "INCREASE_OUTLINE_DEPTH",
-    "DECREASE_OUTLINE_DEPTH",
-    "INCREASE_CONTENT_LINES",
-    "DECREASE_CONTENT_LINES",
   ]);
   return appUIActionTypes.has(action.type);
 }
-
-// ===== Legacy Exports (Backward Compatibility) =====
-
-/**
- * @deprecated Use AppState instead.
- */
-export type TreeState = AppState;
-
-/**
- * @deprecated Use AppAction instead.
- */
-export type TreeAction = AppAction;

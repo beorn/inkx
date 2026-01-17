@@ -4,12 +4,12 @@
  * Bottom bar showing terminal size, position, and status info.
  */
 
-import type { ViewMode, CursorPath } from "../types.ts";
+import type { ViewMode, TPath } from "../types.ts";
 
 interface StatusBarProps {
   width: number;
   height: number;
-  cursor: CursorPath;
+  cursor: TPath;
   nodeCount: number;
   viewMode: ViewMode;
 }

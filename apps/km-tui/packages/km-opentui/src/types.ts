@@ -28,16 +28,6 @@ export type {
   AppUIAction,
 } from "./appState.ts";
 
-// Legacy aliases for backward compatibility
-export type {
-  AppState as TreeState,
-  AppAction as TreeAction,
-} from "./appState.ts";
-export type {
-  TPath as CursorPath,
-  BoardViewModel as TreeViewModel,
-} from "@km/board";
-
 // ===== View Model Types (for Views) =====
 
 /**

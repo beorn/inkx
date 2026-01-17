@@ -1,6 +1,6 @@
 # Storage
 
-Memory vs disk modes, DBNode schema, events, and SQLite.
+Modes, DBNode schema, events, and bidirectional sync.
 
 ---
 
@@ -126,8 +126,8 @@ interface DBNode {
 type NodeType =
   // Structural
   | "folder" // Directory
-  | "file" // .md file
-  | "section" // Heading
+  | "file" // .md file (merged with H1 if names match)
+  | "section" // Heading (H2+ when H1 merged with file)
 
   // Content
   | "task" // - [ ] item
@@ -235,7 +235,32 @@ CREATE INDEX idx_task_status ON nodes(task_status);
 
 ## Events (Disk Mode Only)
 
-Events are append-only records in `.km/events.jsonl`.
+Events are append-only records in `.km/events.jsonl`. The `emit()` function is the central mutation path in @km/storage.
+
+### The 4-Path Multiplexer
+
+Every mutation flows through `emit()`, which triggers four parallel operations:
+
+```
+emit(event)
+    ├─ Persist   → events.jsonl   (immutable audit log)
+    ├─ Project   → state.db       (SQLite cache)
+    ├─ Broadcast → WebSocket      (real-time to other clients)
+    └─ Sync      → filesystem     (write back to .md files)
+```
+
+### Actor-Based Routing
+
+The `actor` field controls which paths fire:
+
+| Actor      | Persist | Project | Broadcast | File Sync |
+| ---------- | :-----: | :-----: | :-------: | :-------: |
+| `user`     |    ✓    |    ✓    |     ✓     |     ✓     |
+| `fs-watch` |    ✓    |    ✓    |     ✓     |     ✗     |
+| `agent-*`  |    ✓    |    ✓    |     ✓     |     ✓     |
+| `system`   |    ✓    |    ✓    |     ✓     |     ✗     |
+
+`fs-watch` skips file sync to prevent write-back loops.
 
 ### Event Structure
 
@@ -350,8 +375,71 @@ km show --tree ./projects  # Path
 
 ---
 
+## Bidirectional Sync (Disk Mode)
+
+In disk mode, km maintains sync between filesystem, SQLite, and event log.
+
+### Sync Flow
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  Filesystem                                                │
+│      │                                                     │
+│      ▼                                                     │
+│  FSWatcher ──► Debounce 5s ──► Reconcile ──► emit()       │
+│                                                   │        │
+│                                                   ▼        │
+│                                              state.db      │
+│                                                   │        │
+│                                                   ▼        │
+│  Write ◄── Debounce 3s ◄── Pending ◄─────────────┘        │
+│      │                                                     │
+│      ▼                                                     │
+│  Filesystem                                                │
+└────────────────────────────────────────────────────────────┘
+```
+
+### Round-Trip Prevention
+
+Three mechanisms prevent infinite loops:
+
+1. **In-flight tracking** — Watcher ignores files we're currently writing
+2. **Actor filtering** — `fs-watch` events don't trigger file writes (see Actor-Based Routing above)
+3. **Content hashing** — Skip re-parse if file content unchanged
+
+### Conflict Resolution
+
+When file changes in both filesystem and database:
+
+| Strategy          | Behavior                            |
+| ----------------- | ----------------------------------- |
+| `last_write_wins` | Use whichever changed more recently |
+| `fs_wins`         | Filesystem always wins              |
+| `db_wins`         | Database always wins                |
+| `merge`           | Attempt three-way merge             |
+
+Configuration in `.km/config.yaml`:
+
+```yaml
+watch:
+  debounce_fs: 5000 # ms before processing FS changes
+  debounce_apply: 3000 # ms before applying DB changes to FS
+  conflict_strategy: last_write_wins
+```
+
+### CLI Commands
+
+```bash
+km watch              # Start watch daemon
+km sync               # One-time sync
+km rebuild --from-fs  # Rebuild state from filesystem
+km rebuild --from-db  # Rebuild filesystem from state
+```
+
+---
+
 ## See Also
 
 - [01-concepts.md](01-concepts.md) — Core concepts, two modes overview
-- [04-sync.md](04-sync.md) — Bidirectional filesystem sync
-- [05-markdown.md](05-markdown.md) — Parsing .md to nodes
+- [02-architecture.md](02-architecture.md) — Event system, data flow
+- [04-markdown.md](04-markdown.md) — Parsing .md to nodes

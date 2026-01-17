@@ -89,5 +89,4 @@ Recurring task is a "series" node with child instances.
 
 ## See Also
 
-- [../10-tasks.md](../10-tasks.md) — Task data model
-- [../11-templates.md](../11-templates.md) — GTD templates
+- [../07-tasks.md](../07-tasks.md) — Task data model, GTD workflow
