@@ -2,382 +2,534 @@
 /**
  * OpenTUI Storybook - Visual Component Catalog
  *
- * Renders visual examples of TUI component styling using chalk.
- * Since OpenTUI's test renderer doesn't support ANSI output capture,
- * this storybook outputs styled text directly to stdout.
+ * Renders all TUI components in various states for visual inspection.
+ * Uses actual OpenTUI components so styling matches the real TUI.
  *
  * Run: bun run storybook2
  */
 
-import { getStatusIcon, GTD_BOARD_COLORS } from "@km/ink";
-import { wrapText, truncateText, padText, constrainText } from "@km/ink";
-import chalk, { type ChalkInstance } from "chalk";
-import type { TaskStatus } from "@km/board";
+import { createCliRenderer } from "@opentui/core";
+import { createRoot } from "@opentui/react";
+import { Card, Column, TreeNode, Header, StatusBar } from "./components/index.ts";
+import type { BreadcrumbSegment } from "./components/Header.tsx";
+import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
+import type { NodeViewModel } from "./types.ts";
 
-// Force chalk colors in terminal
-chalk.level = 3;
+// TreeViewModel expected by views (nodes, cursor, selectedNodes)
+interface TreeViewModel {
+  nodes: NodeViewModel[];
+  cursor: [number, number];
+  selectedNodes: Set<string>;
+  rootPath: string | null;
+}
 
-// Helper to safely get chalk color function by name
-function getChalkColorFn(color: string): ChalkInstance {
-  const colorMap: Record<string, ChalkInstance> = {
-    green: chalk.green,
-    yellow: chalk.yellow,
-    red: chalk.red,
-    blue: chalk.blue,
-    cyan: chalk.cyan,
-    magenta: chalk.magenta,
-    white: chalk.white,
-    gray: chalk.gray,
-    dim: chalk.dim,
+// ============================================================================
+// Section Header Components
+// ============================================================================
+
+function SectionHeader({ title }: { title: string }) {
+  const divider = "═".repeat(70);
+  return (
+    <box flexDirection="column" marginTop={1} marginBottom={1}>
+      <text color="cyan" bold>
+        {divider}
+      </text>
+      <text color="cyan" bold>
+        {" "}
+        {title}
+      </text>
+      <text color="cyan" bold>
+        {divider}
+      </text>
+    </box>
+  );
+}
+
+function SubsectionHeader({ title }: { title: string }) {
+  const subDivider = "─".repeat(50);
+  return (
+    <box flexDirection="column" marginTop={1}>
+      <text dim>{subDivider}</text>
+      <text bold>{title}</text>
+      <text> </text>
+    </box>
+  );
+}
+
+// ============================================================================
+// Layer 3: Card Component Showcase
+// ============================================================================
+
+function Layer3Cards() {
+  return (
+    <box flexDirection="column">
+      <SectionHeader title="Layer 3: Card Component" />
+
+      <SubsectionHeader title="Task Status States" />
+      <box flexDirection="row">
+        <box flexDirection="column" width={22} marginRight={1}>
+          <text bold>Todo:</text>
+          <Card title="Setup CI pipeline" isSelected={false} childCount={0} taskStatus="todo" />
+        </box>
+        <box flexDirection="column" width={22} marginRight={1}>
+          <text bold>WIP:</text>
+          <Card title="Review PR #42" isSelected={false} childCount={0} taskStatus="wip" />
+        </box>
+        <box flexDirection="column" width={22} marginRight={1}>
+          <text bold>Blocked:</text>
+          <Card title="Wait on API" isSelected={false} childCount={0} taskStatus="blocked" />
+        </box>
+      </box>
+      <box flexDirection="row" marginTop={1}>
+        <box flexDirection="column" width={22} marginRight={1}>
+          <text bold>Done:</text>
+          <Card title="Implement auth" isSelected={false} childCount={0} taskStatus="done" />
+        </box>
+        <box flexDirection="column" width={22} marginRight={1}>
+          <text bold>Dropped:</text>
+          <Card title="Old approach" isSelected={false} childCount={0} taskStatus="dropped" />
+        </box>
+      </box>
+
+      <SubsectionHeader title="Selection States" />
+      <box flexDirection="row">
+        <box flexDirection="column" width={30} marginRight={1}>
+          <text bold>Normal (not selected):</text>
+          <Card title="Example task content" isSelected={false} childCount={0} taskStatus="todo" />
+        </box>
+        <box flexDirection="column" width={30} marginRight={1}>
+          <text bold color="cyan">Selected (cyan bg):</text>
+          <Card title="Example task content" isSelected={true} childCount={0} taskStatus="todo" />
+        </box>
+      </box>
+
+      <SubsectionHeader title="With Children" />
+      <box flexDirection="row">
+        <box flexDirection="column" width={25} marginRight={1}>
+          <text bold>No children:</text>
+          <Card title="Leaf task" isSelected={false} childCount={0} taskStatus="todo" />
+        </box>
+        <box flexDirection="column" width={25} marginRight={1}>
+          <text bold>With children:</text>
+          <Card title="Parent task" isSelected={false} childCount={3} taskStatus="todo" />
+        </box>
+        <box flexDirection="column" width={25} marginRight={1}>
+          <text bold>Folded:</text>
+          <Card title="Folded task" isSelected={false} childCount={5} isFolded={true} taskStatus="todo" />
+        </box>
+      </box>
+
+      <SubsectionHeader title="Rich Task Display" />
+      <box flexDirection="row">
+        <box flexDirection="column" width={30} marginRight={1}>
+          <text bold>With Priority:</text>
+          <Card title="High priority" isSelected={false} childCount={0} taskStatus="todo" priority={1} />
+        </box>
+        <box flexDirection="column" width={30} marginRight={1}>
+          <text bold>With Due Date:</text>
+          <Card title="Has deadline" isSelected={false} childCount={0} taskStatus="wip" dueDate="2025-01-20" />
+        </box>
+      </box>
+    </box>
+  );
+}
+
+// ============================================================================
+// Layer 3: TreeNode Component Showcase
+// ============================================================================
+
+function Layer3TreeNodes() {
+  return (
+    <box flexDirection="column">
+      <SectionHeader title="Layer 3: TreeNode Component" />
+
+      <SubsectionHeader title="Task Status States (width=45)" />
+      <box flexDirection="column">
+        <text bold>Todo:</text>
+        <TreeNode
+          node={{ id: "1", title: "Setup CI pipeline", isTask: true, taskStatus: "todo" }}
+          depth={0}
+          width={45}
+          isSelected={false}
+        />
+        <text bold>WIP:</text>
+        <TreeNode
+          node={{ id: "2", title: "Review PR #42", isTask: true, taskStatus: "wip" }}
+          depth={0}
+          width={45}
+          isSelected={false}
+        />
+        <text bold>Blocked:</text>
+        <TreeNode
+          node={{ id: "3", title: "Wait on API", isTask: true, taskStatus: "blocked" }}
+          depth={0}
+          width={45}
+          isSelected={false}
+        />
+        <text bold>Done (dim):</text>
+        <TreeNode
+          node={{ id: "4", title: "Implement auth", isTask: true, taskStatus: "done" }}
+          depth={0}
+          width={45}
+          isSelected={false}
+        />
+        <text bold>Dropped (dim):</text>
+        <TreeNode
+          node={{ id: "5", title: "Old approach", isTask: true, taskStatus: "dropped" }}
+          depth={0}
+          width={45}
+          isSelected={false}
+        />
+      </box>
+
+      <SubsectionHeader title="Selection States" />
+      <box flexDirection="column">
+        <text bold>Normal (not selected):</text>
+        <TreeNode
+          node={{ id: "n1", title: "Example task content", isTask: true, taskStatus: "todo" }}
+          depth={0}
+          width={45}
+          isSelected={false}
+        />
+        <text bold color="cyan">Selected (cyan background):</text>
+        <TreeNode
+          node={{ id: "s1", title: "Example task content", isTask: true, taskStatus: "todo" }}
+          depth={0}
+          width={45}
+          isSelected={true}
+        />
+        <text bold color="cyan">Multi-selected:</text>
+        <TreeNode
+          node={{ id: "m1", title: "Example task content", isTask: true, taskStatus: "todo" }}
+          depth={0}
+          width={45}
+          isSelected={false}
+          isMultiSelected={true}
+        />
+      </box>
+    </box>
+  );
+}
+
+// ============================================================================
+// Layer 3: Column Component Showcase
+// ============================================================================
+
+function Layer3Columns() {
+  return (
+    <box flexDirection="column">
+      <SectionHeader title="Layer 3: Column Component" />
+
+      <SubsectionHeader title="Column States" />
+      <box flexDirection="row">
+        <box marginRight={2}>
+          <Column title="Active Column" count={3} isActive={true} isCollapsed={false} selectedIndex={0}>
+            <Card title="Task in active column" isSelected={true} childCount={0} taskStatus="todo" />
+            <Card title="Another task" isSelected={false} childCount={0} taskStatus="wip" />
+            <Card title="Third task" isSelected={false} childCount={0} taskStatus="done" />
+          </Column>
+        </box>
+        <box marginRight={2}>
+          <Column title="Inactive Column" count={2} isActive={false} isCollapsed={false} selectedIndex={-1}>
+            <Card title="Unselected task" isSelected={false} childCount={0} taskStatus="todo" />
+            <Card title="Another unselected" isSelected={false} childCount={0} taskStatus="blocked" />
+          </Column>
+        </box>
+        <box>
+          <Column title="Collapsed" count={5} isActive={false} isCollapsed={true} selectedIndex={-1}>
+            <text>Hidden when collapsed</text>
+          </Column>
+        </box>
+      </box>
+    </box>
+  );
+}
+
+// ============================================================================
+// Layer 3: All View Modes
+// ============================================================================
+
+function createMockViewModel(): TreeViewModel {
+  // Helper to create a complete NodeViewModel
+  const node = (
+    id: string,
+    title: string,
+    children: NodeViewModel[] = [],
+    opts: Partial<NodeViewModel> = {},
+  ): NodeViewModel => ({
+    id,
+    name: id,
+    title,
+    childCount: children.length,
+    isTask: opts.taskStatus !== undefined,
+    isFolded: false,
+    depth: 0,
+    children,
+    ...opts,
+  });
+
+  const nodes: NodeViewModel[] = [
+    node("col1", "Backlog", [
+      node("bl1", "Review architecture", [], { taskStatus: "todo", depth: 1 }),
+      node("bl2", "Plan sprint goals", [], { taskStatus: "todo", depth: 1 }),
+      node("bl3", "Update settings", [], { taskStatus: "todo", childCount: 2, depth: 1 }),
+    ]),
+    node("col2", "In Progress", [
+      node("wip1", "Implement auth", [], { taskStatus: "wip", priority: 1, childCount: 3, depth: 1 }),
+      node("wip2", "Fix bug #42", [], { taskStatus: "wip", dueDate: "2025-01-18", depth: 1 }),
+      node("wip3", "Refactor DB layer", [], { taskStatus: "wip", childCount: 1, depth: 1 }),
+    ]),
+    node("col3", "Blocked", [
+      node("blk1", "Deploy to staging", [], { taskStatus: "blocked", childCount: 1, depth: 1 }),
+      node("blk2", "Payment integration", [], { taskStatus: "blocked", depth: 1 }),
+    ]),
+    node("col4", "Done", [
+      node("done1", "Setup project", [], { taskStatus: "done", depth: 1 }),
+      node("done2", "Create tests", [], { taskStatus: "done", childCount: 2, depth: 1 }),
+      node("drop1", "Old migration", [], { taskStatus: "dropped", depth: 1 }),
+    ]),
+  ];
+
+  return {
+    nodes,
+    cursor: [1, 0], // Select "In Progress" column, first card
+    selectedNodes: new Set<string>(),
+    rootPath: "/Projects/webapp",
   };
-  return colorMap[color] ?? chalk.white;
 }
 
-// ============================================================================
-// Section Header Functions
-// ============================================================================
+function Layer3AllViews() {
+  const mockViewModel = createMockViewModel();
+  const viewWidth = 85;
+  const viewHeight = 10;
 
-function sectionHeader(title: string): string {
-  const divider = "═".repeat(60);
-  return [
-    "",
-    chalk.cyan.bold(divider),
-    chalk.cyan.bold(` ${title}`),
-    chalk.cyan.bold(divider),
-  ].join("\n");
-}
-
-function subsectionHeader(title: string): string {
-  const subDivider = "─".repeat(40);
-  return ["", chalk.dim(subDivider), chalk.bold(title), ""].join("\n");
-}
-
-// ============================================================================
-// Layer 1: Rich Text Rendering
-// ============================================================================
-
-function layer1RichText(): string {
-  const lines: string[] = [];
-  lines.push(sectionHeader("Layer 1: Rich Text Rendering"));
-
-  lines.push(subsectionHeader("Inline Field Examples (stripped in display)"));
-  const inlineFields = [
-    "Task with due date [due:: 2024-01-15]",
-    "Task [priority:: 1] [status:: wip] with multiple fields",
-    "No inline fields here",
-  ];
-  for (const text of inlineFields) {
-    lines.push(chalk.dim(`input: ${text}`));
-    lines.push("output: [field-free version shown in Card/TreeNode]");
-    lines.push("");
-  }
-
-  lines.push(subsectionHeader("Wiki Link Examples (styled in display)"));
-  const wikiLinks = [
-    "See [[note]] for details",
-    "Link to [[path/to/document|Document Title]]",
-    "Multiple [[link1]] and [[link2|Second Link]]",
-  ];
-  for (const text of wikiLinks) {
-    lines.push(chalk.dim(`input: ${text}`));
-    lines.push(chalk.blue("[links rendered in blue]"));
-    lines.push("");
-  }
-
-  lines.push(subsectionHeader("Markdown Formatting Examples"));
-  const markdown = [
-    "This has **bold** text",
-    "This has *italic* text",
-    "This has `inline code` text",
-    "This has ~~strikethrough~~ text",
-    "**Bold** and *italic* and `code` together",
-  ];
-  for (const text of markdown) {
-    lines.push(chalk.dim("input: ") + text);
-  }
-
-  return lines.join("\n");
-}
-
-// ============================================================================
-// Layer 1: Tag Pills / Board Colors
-// ============================================================================
-
-function layer1TagPills(): string {
-  const lines: string[] = [];
-  lines.push(sectionHeader("Layer 1: Tag Pills / Board Colors"));
-
-  lines.push(subsectionHeader("GTD Board Colors (preset tag colors)"));
-  lines.push(chalk.dim(" Tag Name    Color    Description"));
-  lines.push(chalk.dim(" ──────────  ───────  ─────────────────────"));
-
-  const presetTags = [
-    { name: "inbox", desc: "Uncategorized items" },
-    { name: "next", desc: "Ready to work on" },
-    { name: "waiting", desc: "Blocked on external" },
-    { name: "someday", desc: "Future consideration" },
-    { name: "done", desc: "Completed" },
-    { name: "blocked", desc: "Cannot proceed" },
+  // Mock breadcrumbs for header
+  const breadcrumbs: BreadcrumbSegment[] = [
+    { id: "col2", title: "In Progress", isWithinBoard: true },
+    { id: "wip1", title: "Implement auth", isWithinBoard: true },
   ];
 
-  for (const { name, desc } of presetTags) {
-    const color = GTD_BOARD_COLORS[name] || "white";
-    const colorFn = getChalkColorFn(color);
-    lines.push(
-      ` ${colorFn(`@${name.padEnd(10)}`)} ${chalk.dim(color.padEnd(7))} ${chalk.dim(`← ${desc}`)}`,
-    );
-  }
-  lines.push("");
+  return (
+    <box flexDirection="column">
+      <SectionHeader title="Layer 3: All View Modes" />
+      <text dim>Each view renders the same data with different layouts:</text>
+      <text> </text>
 
-  lines.push(subsectionHeader("Custom Tag Colors (via color= attribute)"));
-  lines.push(
-    chalk.dim(" Custom colors override presets using color=value in headings"),
+      <SubsectionHeader title="View 1: Cards (Kanban-style)" />
+      <box border borderColor="magenta" borderStyle="single" width={viewWidth}>
+        <box flexDirection="column" width={viewWidth - 2}>
+          <Header
+            rootPath={mockViewModel.rootPath}
+            breadcrumbs={breadcrumbs}
+            searchQuery=""
+            searchMode={false}
+            width={viewWidth - 2}
+          />
+          <CardsView viewModel={mockViewModel} height={viewHeight} />
+        </box>
+      </box>
+
+      <SubsectionHeader title="View 2: List (Full-width hierarchical)" />
+      <box border borderColor="magenta" borderStyle="single" width={viewWidth}>
+        <box flexDirection="column" width={viewWidth - 2} height={viewHeight + 2}>
+          <Header
+            rootPath={mockViewModel.rootPath}
+            breadcrumbs={breadcrumbs}
+            searchQuery=""
+            searchMode={false}
+            width={viewWidth - 2}
+          />
+          <ListView viewModel={mockViewModel} width={viewWidth - 4} />
+        </box>
+      </box>
+
+      <SubsectionHeader title="View 3: Columns (Tree within columns)" />
+      <box border borderColor="magenta" borderStyle="single" width={viewWidth}>
+        <box flexDirection="column" width={viewWidth - 2}>
+          <Header
+            rootPath={mockViewModel.rootPath}
+            breadcrumbs={breadcrumbs}
+            searchQuery=""
+            searchMode={false}
+            width={viewWidth - 2}
+          />
+          <ColumnsView viewModel={mockViewModel} width={viewWidth - 2} height={viewHeight} />
+        </box>
+      </box>
+
+      <SubsectionHeader title="View 4: Tabs (One column at a time)" />
+      <box border borderColor="magenta" borderStyle="single" width={viewWidth}>
+        <box flexDirection="column" width={viewWidth - 2}>
+          <Header
+            rootPath={mockViewModel.rootPath}
+            breadcrumbs={breadcrumbs}
+            searchQuery=""
+            searchMode={false}
+            width={viewWidth - 2}
+          />
+          <TabsView viewModel={mockViewModel} width={viewWidth - 2} height={viewHeight} />
+        </box>
+      </box>
+    </box>
   );
-  const customTags = [
-    { name: "Sprint", color: "magenta" },
-    { name: "Urgent", color: "red" },
-    { name: "Research", color: "blue" },
-  ];
-  for (const { name, color } of customTags) {
-    const colorFn = getChalkColorFn(color);
-    lines.push(` ${colorFn(`@${name}`)} ${chalk.dim(`← color=${color}`)}`);
-  }
-
-  return lines.join("\n");
 }
 
 // ============================================================================
-// Layer 1: Task Status Styling
+// Visual Language Section
 // ============================================================================
 
-function layer1TaskStyling(): string {
-  const lines: string[] = [];
-  lines.push(sectionHeader("Layer 1: Task Status Styling"));
+function VisualLanguageSection() {
+  return (
+    <box flexDirection="column">
+      <SectionHeader title="Visual Language - Design System" />
+      <text dim>Reference: docs/08-ui.md</text>
+      <text> </text>
 
-  lines.push(subsectionHeader("Standard Status States"));
-  lines.push(chalk.dim(" Plain  Icon  Description"));
-  lines.push(chalk.dim(" ─────  ────  ─────────────────────"));
+      <SubsectionHeader title="Selection = Cyan Background (RESERVED)" />
+      <text dim>Cyan bg is ONLY for selection (cursor, focused, multi-select)</text>
+      <text> </text>
+      <box flexDirection="row">
+        <box flexDirection="column" width={35}>
+          <text bold>Normal:</text>
+          <TreeNode
+            node={{ id: "vl1", title: "Not selected", isTask: true, taskStatus: "todo" }}
+            depth={0}
+            width={30}
+            isSelected={false}
+          />
+        </box>
+        <box flexDirection="column" width={35}>
+          <text bold color="cyan">Selected:</text>
+          <TreeNode
+            node={{ id: "vl2", title: "Selected item", isTask: true, taskStatus: "todo" }}
+            depth={0}
+            width={30}
+            isSelected={true}
+          />
+        </box>
+      </box>
 
-  const statusTable: Array<{ mark: string; status: TaskStatus; desc: string }> =
-    [
-      { mark: " ", status: "todo", desc: "Not started" },
-      { mark: "/", status: "wip", desc: "Work in progress" },
-      { mark: "!", status: "blocked", desc: "Blocked" },
-      { mark: "x", status: "done", desc: "Completed" },
-      { mark: "-", status: "dropped", desc: "Dropped" },
-    ];
+      <SubsectionHeader title="Column Header Styling" />
+      <box flexDirection="row">
+        <box flexDirection="column" width={25}>
+          <text bold color="yellow">Active Column (4)</text>
+          <text dim>yellow + bold</text>
+        </box>
+        <box flexDirection="column" width={25}>
+          <text color="yellowBright" dim>Inactive Column (2)</text>
+          <text dim>yellowBright + dim</text>
+        </box>
+        <box flexDirection="column" width={25}>
+          <text backgroundColor="cyan" color="black"> Cursor Level </text>
+          <text dim>cyan bg</text>
+        </box>
+      </box>
 
-  for (const { mark, status, desc } of statusTable) {
-    const icon = getStatusIcon(status);
-    const colorFn = getChalkColorFn(icon.color);
-    const isDoneOrDropped = status === "done" || status === "dropped";
-    const descText = isDoneOrDropped ? chalk.dim(desc) : desc;
-    lines.push(` [${mark}]   ${colorFn(icon.char)}     ${descText}`);
-  }
-  lines.push("");
-
-  lines.push(subsectionHeader("Status Icons in Cards"));
-  lines.push(chalk.bold("Todo (open):"));
-  lines.push(`  ${chalk.green("○")} Setup CI pipeline`);
-  lines.push(chalk.bold("WIP (in progress):"));
-  lines.push(`  ${chalk.yellow("◐")} Review PR #42`);
-  lines.push(chalk.bold("Blocked:"));
-  lines.push(`  ${chalk.red("⊘")} Wait on API`);
-  lines.push(chalk.bold("Done:"));
-  lines.push(`  ${chalk.dim.green("✓")} ${chalk.dim("Implement auth")}`);
-
-  return lines.join("\n");
-}
-
-// ============================================================================
-// Layer 2: Layout Functions
-// ============================================================================
-
-function layer2Layout(): string {
-  const lines: string[] = [];
-  lines.push(sectionHeader("Layer 2: Layout Functions"));
-
-  const longText =
-    "This is a longer text that needs to be wrapped at a certain width to fit in a column";
-  const truncText = "This is text that might be truncated";
-
-  lines.push(subsectionHeader("wrapText() - Word Wrapping"));
-  lines.push(chalk.dim("Width 30:"));
-  for (const line of wrapText(longText, 30)) {
-    lines.push(` |${line}|`);
-  }
-  lines.push("");
-
-  lines.push(subsectionHeader("truncateText() - Truncation with Ellipsis"));
-  lines.push(` width=50: |${truncateText(truncText, 50)}|`);
-  lines.push(` width=30: |${truncateText(truncText, 30)}|`);
-  lines.push(` width=20: |${truncateText(truncText, 20)}|`);
-  lines.push(` width=10: |${truncateText(truncText, 10)}|`);
-  lines.push("");
-
-  lines.push(subsectionHeader("padText() - Padding to Width"));
-  lines.push(` |${padText("Hi", 15)}| (length 15)`);
-  lines.push(` |${padText("Hello", 15)}| (length 15)`);
-  lines.push(` |${padText("Hello World", 15)}| (length 15)`);
-  lines.push("");
-
-  lines.push(
-    subsectionHeader("constrainText() - Wrap + Truncate + Limit Lines"),
+      <SubsectionHeader title="Status Bar" />
+      <StatusBar
+        width={70}
+        height={24}
+        cursor={[1, 0]}
+        nodeCount={4}
+        viewMode="cards"
+        rootPath="/Projects/webapp"
+      />
+    </box>
   );
-  lines.push(chalk.dim("Width=25, maxLines=2:"));
-  const constrained = constrainText(
-    "This is a longer piece of text that needs both wrapping and line limiting",
-    25,
-    2,
-  );
-  for (const line of constrained.lines) {
-    lines.push(` |${line}|`);
-  }
-  lines.push(` truncated: ${constrained.truncated}`);
-
-  return lines.join("\n");
-}
-
-// ============================================================================
-// Layer 3: TreeNode Component (simulated with chalk)
-// ============================================================================
-
-function renderTreeNode(
-  title: string,
-  status: TaskStatus,
-  isSelected: boolean,
-): string {
-  const icon = getStatusIcon(status);
-  const colorFn = getChalkColorFn(icon.color);
-  const isDoneOrDropped = status === "done" || status === "dropped";
-
-  let line = `  ${colorFn(icon.char)} ${title}`;
-  if (isDoneOrDropped) {
-    line = chalk.dim(line);
-  }
-  if (isSelected) {
-    line = chalk.bgCyan.black(line);
-  }
-  return line;
-}
-
-function layer3TreeNode(): string {
-  const lines: string[] = [];
-  lines.push(sectionHeader("Layer 3: TreeNode Component"));
-
-  lines.push(subsectionHeader("TreeNode - Different Task States"));
-  lines.push(chalk.dim("Each node rendered at width=40:"));
-  lines.push("");
-
-  lines.push(chalk.bold("Todo (open):"));
-  lines.push(renderTreeNode("Setup CI pipeline", "todo", false));
-
-  lines.push(chalk.bold("WIP (in progress):"));
-  lines.push(renderTreeNode("Review PR #42", "wip", false));
-
-  lines.push(chalk.bold("Blocked:"));
-  lines.push(renderTreeNode("Wait on API", "blocked", false));
-
-  lines.push(chalk.bold("Done (dim):"));
-  lines.push(renderTreeNode("Implement auth", "done", false));
-
-  lines.push(chalk.bold("Dropped (dim):"));
-  lines.push(renderTreeNode("Old approach", "dropped", false));
-
-  lines.push("");
-  lines.push(subsectionHeader("TreeNode - Selection States"));
-
-  lines.push(chalk.bold("Normal (not selected):"));
-  lines.push(renderTreeNode("Example task content", "todo", false));
-
-  lines.push(chalk.bold.cyan("Selected (cyan background):"));
-  lines.push(renderTreeNode("Example task content", "todo", true));
-
-  return lines.join("\n");
-}
-
-// ============================================================================
-// Visual Language Section - Design System Reference
-// ============================================================================
-
-function visualLanguageSection(): string {
-  const lines: string[] = [];
-  lines.push(sectionHeader("Visual Language - Design System"));
-  lines.push(chalk.dim("Reference: docs/08-ui.md"));
-  lines.push("");
-
-  lines.push(subsectionHeader("Selection States (RESERVED COLOR)"));
-  lines.push(
-    chalk.dim(" Cyan bg = selection ONLY (cursor, focused, multi-select)"),
-  );
-  lines.push("");
-
-  lines.push(chalk.bold("Normal (no selection):"));
-  lines.push(renderTreeNode("Example task content", "todo", false));
-  lines.push(chalk.bold.cyan("Selected (cyan bg):"));
-  lines.push(renderTreeNode("Example task content", "todo", true));
-  lines.push("");
-
-  lines.push(subsectionHeader("Column Header States"));
-  lines.push(
-    chalk.bold.yellow("Selected Column (4)") +
-      "     " +
-      chalk.dim("color: yellow, bold: true"),
-  );
-  lines.push(
-    chalk.yellowBright.dim("Unselected Column (2)") +
-      "  " +
-      chalk.dim("color: yellowBright, dim: true"),
-  );
-  lines.push(
-    chalk.bgCyan.black(" Header at Cursor ") +
-      "  " +
-      chalk.dim("bg: cyan (cursor level)"),
-  );
-  lines.push("");
-
-  lines.push(subsectionHeader("Task Status States"));
-  lines.push(chalk.bold("Active states:"));
-  lines.push(renderTreeNode("Example task content", "todo", false));
-  lines.push(renderTreeNode("Work in progress task", "wip", false));
-  lines.push(chalk.bold("Terminal states (dim):"));
-  lines.push(renderTreeNode("Completed task item", "done", false));
-  lines.push(renderTreeNode("Dropped task item", "dropped", false));
-  lines.push("");
-
-  lines.push(subsectionHeader("Due Date Urgency Colors"));
-  lines.push("");
-  lines.push(chalk.red(" Overdue: red"));
-  lines.push(chalk.red(" Today/Tomorrow: red"));
-  lines.push(chalk.yellow(" Within 3 days: yellow"));
-  lines.push(chalk.gray(" Beyond 7 days: gray (no urgency)"));
-
-  return lines.join("\n");
 }
 
 // ============================================================================
 // Summary
 // ============================================================================
 
-function summary(): string {
-  const lines: string[] = [];
-  lines.push(sectionHeader("Summary"));
-  lines.push("All OpenTUI visual styles demonstrated.");
-  lines.push("");
-  lines.push("To verify TUI components with real data, use:");
-  lines.push(chalk.cyan(" bun km view @next"));
-  lines.push("");
-  return lines.join("\n");
+function Summary() {
+  return (
+    <box flexDirection="column">
+      <SectionHeader title="Summary" />
+      <text>All OpenTUI components rendered with actual styling.</text>
+      <text> </text>
+      <text>To run the interactive TUI with real data:</text>
+      <text color="cyan"> bun km view @next --tui2</text>
+      <text> </text>
+      <text dim>Press Ctrl+C to exit this storybook.</text>
+      <text> </text>
+    </box>
+  );
 }
 
 // ============================================================================
-// Main Output
+// Main Storybook Component
 // ============================================================================
 
-console.log(layer1RichText());
-console.log(layer1TagPills());
-console.log(layer1TaskStyling());
-console.log(layer2Layout());
-console.log(layer3TreeNode());
-console.log(visualLanguageSection());
-console.log(summary());
+function Storybook() {
+  return (
+    <box flexDirection="column">
+      <Layer3Cards />
+      <Layer3TreeNodes />
+      <Layer3Columns />
+      <Layer3AllViews />
+      <VisualLanguageSection />
+      <Summary />
+    </box>
+  );
+}
+
+// ============================================================================
+// Render
+// ============================================================================
+
+/**
+ * Emergency terminal restore
+ */
+function emergencyTerminalRestore(): void {
+  try {
+    const stdout = process.stdout;
+    stdout.write("\x1b[?25h"); // Show cursor
+    stdout.write("\x1b[?1049l"); // Leave alternate screen
+    stdout.write("\x1b[0m"); // Reset attributes
+    stdout.write("\x1b[J"); // Clear to end
+    if (process.stdin.isTTY && process.stdin.setRawMode) {
+      process.stdin.setRawMode(false);
+    }
+  } catch {
+    // Ignore
+  }
+}
+
+let isExiting = false;
+
+const renderer = await createCliRenderer({
+  exitOnCtrlC: true,
+  onDestroy: () => {
+    if (!isExiting) {
+      isExiting = true;
+      process.exit(0);
+    }
+  },
+});
+
+const handleUncaughtError = (error: Error) => {
+  try {
+    renderer.destroy();
+  } catch {
+    emergencyTerminalRestore();
+  }
+  console.error("Uncaught error:", error);
+  process.exit(1);
+};
+
+process.on("uncaughtException", handleUncaughtError);
+process.on("unhandledRejection", (reason) => {
+  handleUncaughtError(reason instanceof Error ? reason : new Error(String(reason)));
+});
+
+process.on("SIGTRAP", () => {
+  emergencyTerminalRestore();
+  process.exit(128 + 5);
+});
+
+process.on("beforeExit", () => {
+  emergencyTerminalRestore();
+});
+
+createRoot(renderer).render(<Storybook />);
