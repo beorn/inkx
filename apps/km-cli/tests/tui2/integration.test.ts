@@ -54,6 +54,7 @@ function mockNode(
     children,
     childCount: children.length,
     isTask: true,
+    nodeType: "task",
     depth: 0,
     ...options,
   };

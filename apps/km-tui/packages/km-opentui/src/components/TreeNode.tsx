@@ -278,33 +278,28 @@ export function TreeNode({
   // Use separate render paths for selected vs non-selected to ensure proper color handling
   if (hasSelection) {
     // Selected state: cyan background, all black text
+    // Use hex colors for better OpenTUI compatibility
+    const selBg = "#00ffff"; // cyan
+    const selFg = "#000000"; // black
     return (
       <box flexDirection="column" width={width}>
-        <box flexDirection="row" backgroundColor="cyan">
-          <text color="black" dim={isDoneOrDropped}>
+        <box flexDirection="row" backgroundColor={selBg}>
+          <text color={selFg} dim={isDoneOrDropped}>
             {indent}
             {foldIndicator}{" "}
           </text>
-          {statusIcon && (
-            <text color="black">
-              {statusIcon.char}{" "}
-            </text>
-          )}
+          {statusIcon && <text color={selFg}>{statusIcon.char} </text>}
           {hasPriority && node.priority !== undefined && (
-            <text color="black" bold>
+            <text color={selFg} bold>
               [{getPriorityLabel(node.priority)}]{" "}
             </text>
           )}
-          <text color="black" dim={isDoneOrDropped}>
+          <text color={selFg} dim={isDoneOrDropped}>
             {title}
           </text>
-          {childCountDisplay && (
-            <text color="black">
-              {childCountDisplay}
-            </text>
-          )}
+          {childCountDisplay && <text color={selFg}>{childCountDisplay}</text>}
           {variant === "compact" && metadataParts.length > 0 && (
-            <text color="black" dim>
+            <text color={selFg} dim>
               {" "}
               [{metadataParts.join(" ")}]
             </text>
@@ -323,11 +318,7 @@ export function TreeNode({
           {indent}
           {foldIndicator}{" "}
         </text>
-        {statusIcon && (
-          <text color={statusIcon.color}>
-            {statusIcon.char}{" "}
-          </text>
-        )}
+        {statusIcon && <text color={statusIcon.color}>{statusIcon.char} </text>}
         {hasPriority && node.priority !== undefined && (
           <text color={priorityColor} bold>
             [{getPriorityLabel(node.priority)}]{" "}
@@ -336,11 +327,7 @@ export function TreeNode({
         <text color="white" dim={isDoneOrDropped}>
           {title}
         </text>
-        {childCountDisplay && (
-          <text color="gray">
-            {childCountDisplay}
-          </text>
-        )}
+        {childCountDisplay && <text color="gray">{childCountDisplay}</text>}
         {variant === "compact" && metadataParts.length > 0 && (
           <text color="gray" dim>
             {" "}

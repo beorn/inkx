@@ -12,7 +12,8 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import type { EventEmitter } from "events";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { useAppState, createAppState } from "./hooks/index.ts";
-import { toTreeViewModel, type TAction } from "@km/board";
+import { toTreeViewModel, getBreadcrumbs, type TAction } from "@km/board";
+import type { BreadcrumbSegment } from "./components/Header.tsx";
 import { CardsView, ListView, ColumnsView, TabsView } from "./views/index.ts";
 import {
   CommandPalette,
@@ -1320,13 +1321,31 @@ export function App({
   const selectedNode = tree.currentNode;
   const selectedChildCount = tree.currentNode?.childCount ?? 0;
 
+  // Compute breadcrumbs for header
+  // The first node (depth 0) is the board root, subsequent nodes are within the board
+  const rawBreadcrumbs = useMemo(
+    () => getBreadcrumbs(tree.state),
+    [tree.state],
+  );
+  const breadcrumbs: BreadcrumbSegment[] = useMemo(
+    () =>
+      rawBreadcrumbs.map((node, idx) => ({
+        id: node.nodeId,
+        title: node.title,
+        // First node is board name, rest are within board (columns, cards)
+        isWithinBoard: idx > 0,
+      })),
+    [rawBreadcrumbs],
+  );
+
   return (
     <box flexDirection="column" width={width} height={height}>
       {/* Header */}
       <Header
         rootPath={viewModel.rootPath}
-        searchQuery={viewModel.searchQuery}
-        searchMode={viewModel.searchMode}
+        breadcrumbs={breadcrumbs}
+        searchQuery={tree.state.searchQuery}
+        searchMode={tree.state.searchMode}
         width={width}
       />
 

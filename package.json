@@ -31,7 +31,7 @@
     "test:all": "bun test && bun run test:mdtest",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
     "storybook": "bun run apps/km-tui/packages/km-ink/tests/storybook.tsx",
-    "storybook2": "bun run apps/km-tui/packages/km-opentui/src/test-mock.tsx"
+    "storybook2": "bun run apps/km-tui/packages/km-opentui/src/storybook.tsx"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

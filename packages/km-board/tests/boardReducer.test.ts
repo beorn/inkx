@@ -17,6 +17,7 @@ function createNode(nodeId: string, children: TNode[] = []): TNode {
     children,
     childCount: children.length,
     isTask: false,
+    nodeType: "section",
     depth: 0,
   };
 }
