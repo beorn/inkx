@@ -56,24 +56,51 @@ function ColorTest() {
 
       <text>With backgroundColor="cyan":</text>
       <box flexDirection="row">
-        <text backgroundColor="cyan" color="black"> black </text>
-        <text backgroundColor="cyan" color="red"> red </text>
-        <text backgroundColor="cyan" color="blue"> blue </text>
-        <text backgroundColor="cyan" color="green"> green </text>
+        <text backgroundColor="cyan" color="black">
+          {" "}
+          black{" "}
+        </text>
+        <text backgroundColor="cyan" color="red">
+          {" "}
+          red{" "}
+        </text>
+        <text backgroundColor="cyan" color="blue">
+          {" "}
+          blue{" "}
+        </text>
+        <text backgroundColor="cyan" color="green">
+          {" "}
+          green{" "}
+        </text>
       </box>
-      <text dimColor>  ^ All should be different colors, but all appear white</text>
+      <text dimColor>
+        {" "}
+        ^ All should be different colors, but all appear white
+      </text>
       <text> </text>
 
       <text>With backgroundColor="yellow":</text>
       <box flexDirection="row">
-        <text backgroundColor="yellow" color="black"> black </text>
-        <text backgroundColor="yellow" color="red"> red </text>
-        <text backgroundColor="yellow" color="blue"> blue </text>
+        <text backgroundColor="yellow" color="black">
+          {" "}
+          black{" "}
+        </text>
+        <text backgroundColor="yellow" color="red">
+          {" "}
+          red{" "}
+        </text>
+        <text backgroundColor="yellow" color="blue">
+          {" "}
+          blue{" "}
+        </text>
       </box>
       <text> </text>
 
       <text>Hex colors (also broken):</text>
-      <text backgroundColor="#00ffff" color="#000000"> #000000 on #00ffff </text>
+      <text backgroundColor="#00ffff" color="#000000">
+        {" "}
+        #000000 on #00ffff{" "}
+      </text>
       <text> </text>
 
       {/* Workaround */}

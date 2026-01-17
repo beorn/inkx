@@ -17,6 +17,7 @@ specified foreground color.
 The bug only manifests when both foreground and background colors are specified together.
 
 See [002-screenshot.png](./002-screenshot.png) for visual evidence showing:
+
 - WORKING: `<text color="red">` renders red text correctly
 - BUG: `<text backgroundColor="cyan" color="black">` renders white text (not black)
 
@@ -37,18 +38,20 @@ bun run ./002-repro.tsx
 ```tsx
 // Expected: black text on cyan background
 // Actual: white text on cyan background (color prop ignored)
-<text backgroundColor="cyan" color="black">Should be black on cyan</text>
+<text backgroundColor="cyan" color="black">
+  Should be black on cyan
+</text>
 ```
 
 ## Tested Approaches (All Failed)
 
-| Approach | Code | Result |
-|----------|------|--------|
-| Named color | `color="black"` | White text (ignored) |
-| Variable | `color={textColor}` where `textColor = "black"` | White text (ignored) |
-| Hex color | `color="#000000"` | White text (ignored) |
-| Different bg | `backgroundColor="white" color="black"` | White text (ignored) |
-| Other colors | `color="red"`, `color="blue"` | All render as white |
+| Approach     | Code                                            | Result               |
+| ------------ | ----------------------------------------------- | -------------------- |
+| Named color  | `color="black"`                                 | White text (ignored) |
+| Variable     | `color={textColor}` where `textColor = "black"` | White text (ignored) |
+| Hex color    | `color="#000000"`                               | White text (ignored) |
+| Different bg | `backgroundColor="white" color="black"`         | White text (ignored) |
+| Other colors | `color="red"`, `color="blue"`                   | All render as white  |
 
 ## Workaround
 
@@ -81,6 +84,7 @@ The `color` prop appears to be completely ignored when `backgroundColor` is set.
 All text renders as white regardless of the specified foreground color.
 
 This suggests the Zig renderer may be:
+
 1. Not applying the foreground color when a background is set
 2. Overwriting the foreground with a default (white) after setting background
 3. Using incorrect ANSI sequence ordering
@@ -100,10 +104,10 @@ color support), so it's not a terminal capability issue.
 
 ### Related Upstream Issues
 
-| Issue | Title | Relevance |
-|-------|-------|-----------|
-| #496 | Box background bleeding | Different issue - about borders, not text color |
-| #543 | Invalid borderStyle segfault | Related renderer bug (our issue 001) |
+| Issue | Title                        | Relevance                                       |
+| ----- | ---------------------------- | ----------------------------------------------- |
+| #496  | Box background bleeding      | Different issue - about borders, not text color |
+| #543  | Invalid borderStyle segfault | Related renderer bug (our issue 001)            |
 
 No existing issues found matching this exact bug (foreground color ignored when
 background is set).
@@ -142,6 +146,7 @@ may be:
 3. Setting foreground to default/white after setting background
 
 The ANSI sequence for colored text with background should be:
+
 ```
 \x1b[38;2;R;G;Bm  # Set foreground to RGB
 \x1b[48;2;R;G;Bm  # Set background to RGB

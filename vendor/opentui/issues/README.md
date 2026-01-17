@@ -4,10 +4,10 @@ This folder tracks OpenTUI bugs encountered in the km project, with reproduction
 
 ## Issue Index
 
-| ID | Title | Upstream | Status | Workaround |
-|----|-------|----------|--------|------------|
-| [001](./001-borderstyle-segfault.md) | Invalid borderStyle causes segfault | [#543](https://github.com/anomalyco/opentui/issues/543) | Open | Use valid borderStyle values |
-| [002](./002-color-rendering.md) | Text color ignored when backgroundColor set | Not filed | Confirmed | Use `inverse` styling |
+| ID                                   | Title                                       | Upstream                                                | Status    | Workaround                   |
+| ------------------------------------ | ------------------------------------------- | ------------------------------------------------------- | --------- | ---------------------------- |
+| [001](./001-borderstyle-segfault.md) | Invalid borderStyle causes segfault         | [#543](https://github.com/anomalyco/opentui/issues/543) | Open      | Use valid borderStyle values |
+| [002](./002-color-rendering.md)      | Text color ignored when backgroundColor set | Not filed                                               | Confirmed | Use `inverse` styling        |
 
 ## Environment
 
@@ -40,6 +40,7 @@ When encountering a new OpenTUI bug:
 6. Update this README index
 
 Run repros from this directory:
+
 ```bash
 cd vendor/opentui/issues
 bun run ./001-repro.tsx

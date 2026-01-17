@@ -381,20 +381,20 @@ HEADLESS=true bun x playwright screenshot \
 
 ### Key Environment Variables
 
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `OTUI_USE_ALTERNATE_SCREEN` | `false` | **Required** - Renders in main buffer |
-| `COLORTERM` | `truecolor` | Signals 24-bit color support |
-| `TERM` | `xterm-256color` | Standard terminal type (default) |
+| Variable                    | Value            | Purpose                               |
+| --------------------------- | ---------------- | ------------------------------------- |
+| `OTUI_USE_ALTERNATE_SCREEN` | `false`          | **Required** - Renders in main buffer |
+| `COLORTERM`                 | `truecolor`      | Signals 24-bit color support          |
+| `TERM`                      | `xterm-256color` | Standard terminal type (default)      |
 
 ### Other OpenTUI Variables (optional)
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `OPENTUI_FORCE_UNICODE` | `false` | Force Mode 2026 Unicode |
-| `OPENTUI_FORCE_WCWIDTH` | `false` | Use wcwidth for char width |
-| `OPENTUI_NO_GRAPHICS` | `false` | Disable Kitty graphics |
-| `OTUI_DEBUG` | `false` | Enable debug logging |
+| Variable                | Default | Purpose                                |
+| ----------------------- | ------- | -------------------------------------- |
+| `OPENTUI_FORCE_UNICODE` | `false` | Force Mode 2026 Unicode                |
+| `OPENTUI_FORCE_WCWIDTH` | `false` | Use wcwidth for char width             |
+| `OPENTUI_NO_GRAPHICS`   | `false` | Disable Kitty graphics                 |
+| `OTUI_DEBUG`            | `false` | Enable debug logging                   |
 | `OTUI_NO_NATIVE_RENDER` | `false` | Disable Zig rendering (debugging only) |
 
 ### Timing Considerations
@@ -412,3 +412,107 @@ xterm.js **fully supports 24-bit true color** (since v3.13.0). The blank screen 
 ### No Compatibility Mode
 
 OpenTUI has **no built-in compatibility mode** that restricts to standard ANSI sequences. However, `OTUI_USE_ALTERNATE_SCREEN=false` is sufficient for xterm.js compatibility.
+
+---
+
+## Rendering Specifications
+
+Reference for what to verify in screenshots.
+
+### Architecture Layers
+
+```
+Layer 1: Text Rendering
+├── rich.ts      → renderRich(), stripInlineFields(), styleWikiLinks()
+└── icons.ts     → getStatusIcon(), getTypeIcon(), colorize()
+
+Layer 2: Layout
+├── truncate.ts  → truncateText(), displayLength()
+├── wrap.ts      → wrapText()
+├── constrain.ts → constrainText(), padText()
+└── path.ts      → renderPath(), renderParentPath()
+
+Layer 3: Components
+├── TreeNode.tsx    → Task rendering, selection, fold state
+├── ListView.tsx    → Full-width hierarchical view
+├── ColumnsView.tsx → Multi-column tree view
+├── TabsView.tsx    → Tabbed single-column view
+└── Board.tsx       → Main board container, top bar
+```
+
+### Status Icons
+
+| Marker | Status  | Icon | Color  |
+| ------ | ------- | ---- | ------ |
+| `[ ]`  | todo    | ○    | gray   |
+| `[x]`  | done    | ✓    | green  |
+| `[/]`  | wip     | ◐    | yellow |
+| `[!]`  | blocked | ⊘    | red    |
+| `[-]`  | dropped | ∅    | gray   |
+
+### Rich Text Rendering
+
+| Input                     | Output                 |
+| ------------------------- | ---------------------- |
+| `[field:: value]`         | (removed)              |
+| `[[note]]`                | dim underlined "note"  |
+| `[[path/to/note\|Title]]` | dim underlined "Title" |
+| `**bold**`                | **bold**               |
+| `*italic*`                | _italic_               |
+| `` `code` ``              | cyan monospace         |
+| `~~strike~~`              | ~~strikethrough~~      |
+
+### Selection & States
+
+| State          | Visual                       |
+| -------------- | ---------------------------- |
+| Normal         | Default colors               |
+| Selected       | Cyan background + black text |
+| Multi-selected | Cyan background + black text |
+| Done           | Strikethrough + dim          |
+| Dropped        | Strikethrough + dim          |
+| Folded         | ▶ prefix                     |
+| Expanded       | ▼ prefix                     |
+
+### Views
+
+| View    | Key | Layout                     |
+| ------- | --- | -------------------------- |
+| Cards   | `1` | Kanban cards in columns    |
+| Columns | `2` | Tree outline in columns    |
+| Tabs    | `3` | Single column with tab bar |
+| List    | `4` | Full-width hierarchical    |
+
+## Verification Checklist
+
+Quick checklist for visual testing:
+
+- [ ] Status icons: correct shape and color for each marker
+- [ ] Rich text: bold, italic, code, strikethrough rendered
+- [ ] Wiki links: dim + underlined, aliases show title only
+- [ ] Inline fields: `[key:: value]` stripped (not visible)
+- [ ] Selection: cyan background + black text
+- [ ] Done/dropped: strikethrough + dim
+- [ ] Column headers: yellow (selected) / yellowBright+dim (unselected)
+- [ ] No text overlap between columns
+- [ ] Text truncates with `…` when too long
+
+## Test Fixtures
+
+Location: `apps/km-cli/tests/fixtures/tui-test-vault/`
+
+The `@next.md` file includes all status types, wiki links, inline fields, nested tasks, and rich text for comprehensive testing.
+
+## Bug Diagnosis
+
+| Symptom                       | Layer | Files to Check               |
+| ----------------------------- | ----- | ---------------------------- |
+| Text not styled (bold/italic) | 1     | `src/text/rich.ts`           |
+| Wiki links not dim/underlined | 1     | `src/text/rich.ts`           |
+| Inline fields visible         | 1     | `src/text/rich.ts`           |
+| Wrong status icon/color       | 1     | `src/text/icons.ts`          |
+| Text overlap                  | 2     | `src/tui/layout/truncate.ts` |
+| Bad truncation                | 2     | `src/tui/layout/truncate.ts` |
+| Selection not visible         | 3     | `src/tui/views/TreeNode.tsx` |
+| Done not strikethrough        | 3     | `src/tui/views/TreeNode.tsx` |
+| View layout broken            | 3     | `src/tui/views/*.tsx`        |
