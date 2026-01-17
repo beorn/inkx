@@ -14,8 +14,8 @@
  * - @opentui/core 0.1.74
  * - @opentui/react 0.1.74
  *
- * Expected: All lines should show black text on cyan background
- * Actual: Text appears red/magenta instead of black
+ * Expected: Text should render in the specified color on cyan background
+ * Actual: All text renders as white - color prop is ignored when backgroundColor is set
  */
 
 import { createCliRenderer } from "@opentui/core";

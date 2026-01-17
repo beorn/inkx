@@ -9,11 +9,11 @@
 
 ## Summary
 
-Named color values like `"black"` render as incorrect colors (red/magenta) when used
-as text foreground colors, particularly when combined with background colors.
+Named color values like `"black"` are ignored when used as text foreground colors
+with a background color - text renders as white regardless of the `color` prop.
 
 This affects selection styling where we need `backgroundColor="cyan"` with `color="black"`
-for readable text, but the black text renders as red/magenta instead.
+for readable text, but the text renders as white instead of black.
 
 ## Environment
 
@@ -30,7 +30,7 @@ bun run ./002-repro.tsx
 
 ```tsx
 // Expected: black text on cyan background
-// Actual: red/magenta text on cyan background
+// Actual: white text on cyan background (color prop ignored)
 <text backgroundColor="cyan" color="black">Should be black on cyan</text>
 ```
 
@@ -38,10 +38,11 @@ bun run ./002-repro.tsx
 
 | Approach | Code | Result |
 |----------|------|--------|
-| Named color | `color="black"` | Red/magenta text |
-| Variable | `color={textColor}` where `textColor = "black"` | Red/magenta text |
-| Hex color | `color="#000000"` | Red/magenta text |
-| Different bg | `backgroundColor="white" color="black"` | Same issue |
+| Named color | `color="black"` | White text (ignored) |
+| Variable | `color={textColor}` where `textColor = "black"` | White text (ignored) |
+| Hex color | `color="#000000"` | White text (ignored) |
+| Different bg | `backgroundColor="white" color="black"` | White text (ignored) |
+| Other colors | `color="red"`, `color="blue"` | All render as white |
 
 ## Workaround
 
@@ -70,12 +71,13 @@ selection text color.
 
 ## Investigation Notes
 
-The issue appears to be in OpenTUI's color rendering pipeline. Named colors are
-mapped to ANSI codes, and something in that mapping or the underlying Zig renderer
-is producing incorrect results for certain color combinations.
+The `color` prop appears to be completely ignored when `backgroundColor` is set.
+All text renders as white regardless of the specified foreground color.
 
-Hex colors (#000000) also fail, suggesting the issue is deeper than just the
-named color lookup table.
+This suggests the Zig renderer may be:
+1. Not applying the foreground color when a background is set
+2. Overwriting the foreground with a default (white) after setting background
+3. Using incorrect ANSI sequence ordering
 
 ## Upstream Search
 
