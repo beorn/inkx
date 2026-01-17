@@ -53,4 +53,21 @@ describe("constrainText", () => {
     expect(result.lines).toEqual([]);
     expect(result.truncated).toBe(false);
   });
+
+  it("handles ANSI-styled text correctly", () => {
+    // ANSI codes should not count towards display length
+    const styled = "\x1b[31mred\x1b[0m text"; // "red text" with red styling
+    const result = constrainText(styled, 10, 1);
+    // Should fit in one line since display length is 8 ("red text")
+    expect(result.lines.length).toBe(1);
+    expect(result.truncated).toBe(false);
+  });
+
+  it("wraps ANSI-styled text at correct display width", () => {
+    const styled = "\x1b[1mhello\x1b[0m \x1b[31mworld\x1b[0m"; // "hello world" styled
+    const result = constrainText(styled, 6, 5);
+    // Should wrap between words at display width 6
+    expect(result.lines.length).toBe(2);
+    expect(result.truncated).toBe(false);
+  });
 });
