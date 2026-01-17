@@ -89,14 +89,14 @@ export function DetailPane({ node, childCount, width = 40 }: DetailPaneProps) {
     );
   }
 
-  // Get display values
-  const title = node.title || node.content || "(untitled)";
-  const status = node.task_status as TaskStatus | undefined;
+  // Get display values (using TNode property names)
+  const title = node.title || node.body || "(untitled)";
+  const status = node.taskStatus;
   const statusConfig = status ? STATUS_CONFIG[status] : null;
   const priority = formatPriority(node.priority);
-  const dueDate = formatDate(node.due_date);
-  const scheduledDate = formatDate(node.scheduled_date);
-  const content = node.content || "";
+  const dueDate = formatDate(node.dueDate);
+  const scheduledDate = formatDate(node.scheduledDate);
+  const content = node.body || "";
 
   // Wrap title for display
   const titleLines = wrapText(title, contentWidth);
@@ -209,7 +209,8 @@ export function DetailPane({ node, childCount, width = 40 }: DetailPaneProps) {
       {/* Node type and ID (metadata) */}
       <box paddingLeft={1} paddingTop={1}>
         <text dimColor>
-          {node.type} | {truncate(node.id, contentWidth - node.type.length - 3)}
+          {node.nodeType} |{" "}
+          {truncate(node.nodeId, contentWidth - node.nodeType.length - 3)}
         </text>
       </box>
 

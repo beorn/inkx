@@ -1316,9 +1316,9 @@ export function App({
   const detailPaneOpen = tree.state.detailPaneOpen;
   const mainViewWidth = detailPaneOpen ? width - detailPaneWidth : width;
 
-  // Get full node data for detail pane
-  const selectedNode = currentCard ? getNode(currentCard.nodeId) : null;
-  const selectedChildCount = currentCard?.childCount ?? 0;
+  // Get TNode for detail pane (use currentNode from tree state, not DBNode)
+  const selectedNode = tree.currentNode;
+  const selectedChildCount = tree.currentNode?.childCount ?? 0;
 
   return (
     <box flexDirection="column" width={width} height={height}>

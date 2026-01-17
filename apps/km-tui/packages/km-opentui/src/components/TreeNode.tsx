@@ -275,35 +275,74 @@ export function TreeNode({
   }
 
   // Single-line display (compact variant or no metadata)
+  // Use separate render paths for selected vs non-selected to ensure proper color handling
+  if (hasSelection) {
+    // Selected state: cyan background, all black text
+    return (
+      <box flexDirection="column" width={width}>
+        <box flexDirection="row" backgroundColor="cyan">
+          <text color="black" dim={isDoneOrDropped}>
+            {indent}
+            {foldIndicator}{" "}
+          </text>
+          {statusIcon && (
+            <text color="black">
+              {statusIcon.char}{" "}
+            </text>
+          )}
+          {hasPriority && node.priority !== undefined && (
+            <text color="black" bold>
+              [{getPriorityLabel(node.priority)}]{" "}
+            </text>
+          )}
+          <text color="black" dim={isDoneOrDropped}>
+            {title}
+          </text>
+          {childCountDisplay && (
+            <text color="black">
+              {childCountDisplay}
+            </text>
+          )}
+          {variant === "compact" && metadataParts.length > 0 && (
+            <text color="black" dim>
+              {" "}
+              [{metadataParts.join(" ")}]
+            </text>
+          )}
+        </box>
+        {childNodes}
+      </box>
+    );
+  }
+
+  // Non-selected state
   return (
     <box flexDirection="column" width={width}>
-      <box flexDirection="row" backgroundColor={bgColor}>
-        <text color={textColor} dim={isDoneOrDropped}>
+      <box flexDirection="row">
+        <text color="white" dim={isDoneOrDropped}>
           {indent}
           {foldIndicator}{" "}
         </text>
-        {/* Status icon (colored circle) */}
         {statusIcon && (
-          <text color={hasSelection ? "black" : statusIcon.color}>
+          <text color={statusIcon.color}>
             {statusIcon.char}{" "}
           </text>
         )}
         {hasPriority && node.priority !== undefined && (
-          <text color={hasSelection ? "black" : priorityColor} bold>
+          <text color={priorityColor} bold>
             [{getPriorityLabel(node.priority)}]{" "}
           </text>
         )}
-        <text color={textColor} dim={isDoneOrDropped}>
+        <text color="white" dim={isDoneOrDropped}>
           {title}
         </text>
         {childCountDisplay && (
-          <text color={hasSelection ? "black" : "gray"}>
+          <text color="gray">
             {childCountDisplay}
           </text>
         )}
-        {/* Compact metadata on same line */}
         {variant === "compact" && metadataParts.length > 0 && (
-          <text color={hasSelection ? "black" : "gray"} dim>
+          <text color="gray" dim>
             {" "}
             [{metadataParts.join(" ")}]
           </text>
