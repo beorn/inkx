@@ -30,7 +30,9 @@ export async function runBoardTUI(
   const stdout = process.stdout;
 
   // Check if we're in a TTY - if not, fall back to static mode
-  if (!stdin.isTTY || !stdout.isTTY) {
+  // FORCE_TTY=1 bypasses TTY check for headless testing (ttyd + Playwright)
+  const forceTTY = process.env.FORCE_TTY === "1";
+  if (!forceTTY && (!stdin.isTTY || !stdout.isTTY)) {
     console.log(chalk.yellow("Not running in a TTY, using static mode"));
     const width = process.stdout.columns || 80;
     console.log(renderBoardStatic(initialState, width));
