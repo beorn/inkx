@@ -20,6 +20,7 @@
     "wrap-ansi": "^9.0.2"
   },
   "devDependencies": {
-    "@types/react": "catalog:"
+    "@types/react": "catalog:",
+    "string-width": "^8.1.0"
   }
 }

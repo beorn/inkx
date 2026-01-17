@@ -13,6 +13,7 @@
 
 import chalk from "chalk";
 import { dashedUnderline } from "@beorn/chalkx";
+import stringWidth from "string-width";
 
 // ============================================================================
 // ANSI String Utilities
@@ -30,9 +31,14 @@ export const ANSI_REGEX = /\x1b\[[0-9;:]*m|\x1b\]8;;[^\x1b]*\x1b\\/g;
 /**
  * Get the display length of a string, excluding ANSI escape codes.
  * Use this instead of string.length when measuring styled text.
+ *
+ * Uses string-width package for proper Unicode/emoji handling:
+ * - CJK characters count as 2 cells
+ * - Emoji count as 2 cells
+ * - ANSI escape codes are stripped
  */
 export function displayLength(text: string): number {
-  return text.replace(ANSI_REGEX, "").length;
+  return stringWidth(text);
 }
 
 /**
