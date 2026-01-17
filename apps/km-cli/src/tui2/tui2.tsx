@@ -123,9 +123,11 @@ export async function runBoardTui2(
   const stdin = process.stdin;
   const stdout = process.stdout;
 
-  // Check if we're in a TTY
-  if (!stdin.isTTY || !stdout.isTTY) {
-    console.error("TUI2 requires a TTY");
+  // Check if we're in a TTY (bypass with FORCE_TTY=1 for headless testing)
+  if (!process.env.FORCE_TTY && (!stdin.isTTY || !stdout.isTTY)) {
+    console.error(
+      "TUI2 requires a TTY (set FORCE_TTY=1 to bypass for testing)",
+    );
     process.exit(1);
   }
 

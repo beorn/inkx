@@ -14,8 +14,8 @@
 
 import type { ReactElement, ReactNode } from "react";
 import { getStatusIcon } from "@km/ink";
-import { renderPlain } from "@km/sh-app";
 import type { TaskStatus } from "@km/board";
+import { renderRichJsx, richTextPlain } from "../text/index.ts";
 
 export interface TreeNodeData {
   id: string;
@@ -123,8 +123,8 @@ export function TreeNode({
   // Get status icon (colored circle) for tasks
   const statusIcon = node.isTask ? getStatusIcon(node.taskStatus) : null;
 
-  // Clean title using renderPlain to strip [[wikilinks]], [fields::], etc.
-  const cleanTitle = renderPlain(node.title);
+  // Clean title using richTextPlain to strip [[wikilinks]], [fields::], etc.
+  const cleanTitle = richTextPlain(node.title);
 
   const childCountDisplay =
     hasChildren && isFolded
@@ -177,10 +177,13 @@ export function TreeNode({
   const availableWidth = Math.max(10, width - prefixLen - suffixLen);
 
   // Truncate title if needed
-  const title =
-    cleanTitle.length > availableWidth
-      ? cleanTitle.slice(0, availableWidth - 1) + "…"
-      : cleanTitle;
+  // Use plain text for truncation, rich JSX for full display
+  const needsTruncation = cleanTitle.length > availableWidth;
+  const truncatedTitle = needsTruncation
+    ? cleanTitle.slice(0, availableWidth - 1) + "…"
+    : cleanTitle;
+  // Render rich text (bold, italic, code, wikilinks) when not truncated
+  const richTitle = needsTruncation ? null : renderRichJsx(node.title);
 
   // Build children nodes
   const childNodes: ReactNode[] = [];
@@ -222,7 +225,11 @@ export function TreeNode({
       <box flexDirection="column" width={width}>
         {/* First line: fold + status icon + priority + title + child count */}
         <box flexDirection="row" backgroundColor={bgColor}>
-          <text color={textColor} dim={isDoneOrDropped}>
+          <text
+            color={textColor}
+            dim={isDoneOrDropped}
+            strikethrough={isDoneOrDropped}
+          >
             {indent}
             {foldIndicator}{" "}
           </text>
@@ -237,8 +244,12 @@ export function TreeNode({
               [{getPriorityLabel(node.priority)}]{" "}
             </text>
           )}
-          <text color={textColor} dim={isDoneOrDropped}>
-            {title}
+          <text
+            color={textColor}
+            dim={isDoneOrDropped}
+            strikethrough={isDoneOrDropped}
+          >
+            {richTitle || truncatedTitle}
           </text>
           {childCountDisplay && (
             <text color={hasSelection ? "black" : "gray"}>
@@ -284,7 +295,11 @@ export function TreeNode({
     return (
       <box flexDirection="column" width={width}>
         <box flexDirection="row" backgroundColor={selBg}>
-          <text color={selFg} dim={isDoneOrDropped}>
+          <text
+            color={selFg}
+            dim={isDoneOrDropped}
+            strikethrough={isDoneOrDropped}
+          >
             {indent}
             {foldIndicator}{" "}
           </text>
@@ -294,8 +309,12 @@ export function TreeNode({
               [{getPriorityLabel(node.priority)}]{" "}
             </text>
           )}
-          <text color={selFg} dim={isDoneOrDropped}>
-            {title}
+          <text
+            color={selFg}
+            dim={isDoneOrDropped}
+            strikethrough={isDoneOrDropped}
+          >
+            {richTitle || truncatedTitle}
           </text>
           {childCountDisplay && <text color={selFg}>{childCountDisplay}</text>}
           {variant === "compact" && metadataParts.length > 0 && (
@@ -314,7 +333,11 @@ export function TreeNode({
   return (
     <box flexDirection="column" width={width}>
       <box flexDirection="row">
-        <text color="white" dim={isDoneOrDropped}>
+        <text
+          color="white"
+          dim={isDoneOrDropped}
+          strikethrough={isDoneOrDropped}
+        >
           {indent}
           {foldIndicator}{" "}
         </text>
@@ -324,8 +347,12 @@ export function TreeNode({
             [{getPriorityLabel(node.priority)}]{" "}
           </text>
         )}
-        <text color="white" dim={isDoneOrDropped}>
-          {title}
+        <text
+          color="white"
+          dim={isDoneOrDropped}
+          strikethrough={isDoneOrDropped}
+        >
+          {richTitle || truncatedTitle}
         </text>
         {childCountDisplay && <text color="gray">{childCountDisplay}</text>}
         {variant === "compact" && metadataParts.length > 0 && (

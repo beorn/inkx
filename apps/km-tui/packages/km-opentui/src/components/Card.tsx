@@ -14,7 +14,7 @@
 
 import type { CardProps } from "../types.ts";
 import { getStatusIcon } from "@km/ink";
-import { renderPlain } from "@km/sh-app";
+import { richTextPlain } from "../text/index.ts";
 
 // Priority colors (P0-P5 style, using 1-5 internally)
 // P0/1: critical/high (red/magenta)
@@ -111,8 +111,8 @@ export function Card({
   // Get status icon (colored circle) for tasks
   const statusIcon = taskStatus ? getStatusIcon(taskStatus) : null;
 
-  // Clean title using renderPlain to strip [[wikilinks]], [fields::], etc.
-  const cleanTitle = renderPlain(title);
+  // Clean title using richTextPlain to strip [[wikilinks]], [fields::], etc.
+  const cleanTitle = richTextPlain(title);
 
   // Show child count and fold indicator
   let childSuffix = "";
@@ -156,7 +156,11 @@ export function Card({
               [{getPriorityLabel(priority)}]{" "}
             </text>
           )}
-          <text color="black" dim={isDoneOrDropped}>
+          <text
+            color="black"
+            dim={isDoneOrDropped}
+            strikethrough={isDoneOrDropped}
+          >
             {cleanTitle}
             {childSuffix}
           </text>
@@ -208,7 +212,11 @@ export function Card({
             [{getPriorityLabel(priority)}]{" "}
           </text>
         )}
-        <text color="white" dim={isDoneOrDropped}>
+        <text
+          color="white"
+          dim={isDoneOrDropped}
+          strikethrough={isDoneOrDropped}
+        >
           {cleanTitle}
           {childSuffix}
         </text>
