@@ -1,5 +1,86 @@
 # TUI Rendering Architecture
 
+## Component Hierarchy
+
+```
+Board.tsx (main container)
+├── Header
+│   └── Path segments (clickable breadcrumbs)
+│
+├── Views (one active at a time based on viewMode)
+│   ├── CardsView (inline in Board) - kanban cards in columns
+│   │   ├── Column (header + cards)
+│   │   └── Card (bordered TreeNode)
+│   ├── ColumnsView - tree structure within columns
+│   │   └── ColumnTree
+│   ├── ListView - full-width hierarchical tree
+│   └── TabsView - tabbed single column
+│
+├── Overlays (conditionally rendered)
+│   ├── DetailPane (right panel)
+│   ├── ProjectPicker (modal)
+│   ├── HelpOverlay (modal)
+│   └── NewItemDialog (modal)
+│
+└── StatusBar (bottom info line)
+
+All tree rendering uses TreeNode with variants:
+- "compact": columns/cards (limited children, no info columns)
+- "wide": list view (full info columns, unlimited children)
+```
+
+## Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ User Input (keyboard/mouse)                                         │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ useInput() handler in Board.tsx                                     │
+│ - Navigation commands → setState (local state)                      │
+│ - Data mutations → Storage API → emit events                        │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+            ┌─────────────────────┼─────────────────────┐
+            ▼                     ▼                     ▼
+   ┌────────────────┐  ┌─────────────────────┐  ┌──────────────┐
+   │ Local State    │  │ Storage (@km/storage)│  │ SyncManager  │
+   │ - cursor pos   │  │ - CRUD operations   │  │ - FS writes  │
+   │ - view mode    │  │ - SQLite queries    │  │ - FS watch   │
+   │ - selection    │  └─────────────────────┘  └──────────────┘
+   │ - folded nodes │            │                     │
+   └────────────────┘            │                     │
+            │                    ▼                     ▼
+            └──────────► Re-render ◄───────── tuiEvents.emit("refresh")
+```
+
+## State Management
+
+### Local State (React useState)
+
+These are managed inside `Board.tsx`:
+
+| State              | Purpose                              |
+| ------------------ | ------------------------------------ |
+| `state`            | BoardState (columns, cursor, etc.)   |
+| `foldedNodes`      | Set of folded node IDs               |
+| `multiSelected`    | Set of selected item keys            |
+| `viewMode`         | "cards" / "columns" / "list" / "tabs"|
+| `showDetailPane`   | Detail pane visibility               |
+| `showHelp`         | Help overlay visibility              |
+| `inOutlineMode`    | Whether navigating within card       |
+| `subIndex`         | Position within card outline         |
+
+### Persistent State (Storage Layer)
+
+| Data               | Storage                              |
+| ------------------ | ------------------------------------ |
+| Node content       | SQLite → Markdown files              |
+| Task status        | SQLite → Markdown checkboxes         |
+| Node hierarchy     | SQLite parent_id → File structure    |
+
 ## Layered Rendering
 
 ```
@@ -12,26 +93,17 @@ Raw markdown → renderRich() → styled ANSI → constrainText() → <Text>
 
 Key principle: **Render before truncate** - always convert to styled strings before any width calculations.
 
-## View Hierarchy
-
-```
-Board.tsx (main container)
-├── CardsView (inline) - kanban cards in columns
-├── ColumnsView - tree within columns
-├── ListView - full-width tree
-└── TabsView - tabbed single column
-
-All tree rendering uses TreeNode with variants:
-- "compact": columns/cards (limited children, no info columns)
-- "wide": list view (full info columns, unlimited children)
-```
-
 ## Key Files
 
-- `render-text.ts` - Core rendering utilities (renderRich, constrainText, displayLength)
-- `views/TreeNode.tsx` - Unified tree node component
-- `views/Board.tsx` - Main board container and view switching
-- `tui.ts` - Entry point, sync manager lifecycle
+| File                  | Purpose                                          |
+| --------------------- | ------------------------------------------------ |
+| `tui.ts`              | Entry point, sync manager lifecycle              |
+| `views/Board.tsx`     | Main container, state, keyboard handling         |
+| `views/TreeNode.tsx`  | Unified tree node rendering                      |
+| `views/DetailPane.tsx`| Task detail view with fields                     |
+| `text/rich.ts`        | renderRich(), constrainText(), displayLength()   |
+| `state.ts`            | BoardState building and manipulation             |
+| `types.ts`            | Type definitions for all TUI components          |
 
 ## Automatic Sync
 
