@@ -5,8 +5,6 @@
   "private": true,
   "type": "module",
   "catalog": {
-    "@opentui/core": "^0.1.74",
-    "@opentui/react": "^0.1.74",
     "react": "^19.2.3",
     "@types/react": "^19.2.7"
   },
@@ -36,8 +34,7 @@
     "test:mdtest:update": "bun run vendor/beorn-mdtest/src/index.ts --update $(find . -name '*.test.md' ! -path '*/node_modules/*' 2>/dev/null)",
     "test:all": "bun test && bun run test:mdtest",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
-    "storybook": "bun run apps/km-tui/packages/km-ink/tests/storybook.tsx",
-    "storybook2": "bun run apps/km-tui/packages/km-opentui/src/storybook.tsx"
+    "storybook": "bun run apps/km-tui/packages/km-ink/tests/storybook.tsx"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
@@ -53,8 +50,5 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0"
   },
-  "dependencies": {
-    "@opentui/core": "catalog:",
-    "@opentui/react": "catalog:"
-  }
+  "dependencies": {}
 }

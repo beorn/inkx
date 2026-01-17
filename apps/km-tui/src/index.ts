@@ -2,7 +2,7 @@
  * @km/tui-app
  *
  * TUI application entry point.
- * Delegates to @km/ink (Ink-based renderer) or @km/opentui (experimental).
+ * Uses @km/ink (Ink-based renderer).
  */
 
 // Re-export the primary TUI implementation

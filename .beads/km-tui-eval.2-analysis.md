@@ -33,6 +33,7 @@ This document assesses the 3 known OpenTUI bugs with 5 alternative resolution ap
 ```
 
 **Assessment**:
+
 - **Pros**: Works today; simple change
 - **Cons**: Can't control exact colors; elements within selection (icons) can't have different colors; doesn't work for colored status icons on selection background
 - **Verdict**: Partial workaround - breaks for complex content
@@ -49,6 +50,7 @@ const reset = '\x1b[0m';
 ```
 
 **Assessment**:
+
 - **Pros**: Full control over colors
 - **Cons**: Bypasses OpenTUI's styling system; may conflict with renderer; ugly code; defeats purpose of using JSX
 - **Verdict**: Hack - not a real solution
@@ -58,6 +60,7 @@ const reset = '\x1b[0m';
 **Concept**: Report bug to anomalyco/opentui, wait for fix.
 
 **Assessment**:
+
 - **Pros**: Proper fix at the source; benefits everyone
 - **Cons**: Unknown timeline; OpenTUI is active but this is a core renderer bug; could take weeks/months
 - **Verdict**: Should do this regardless, but can't rely on timeline
@@ -67,6 +70,7 @@ const reset = '\x1b[0m';
 **Concept**: Investigate Zig renderer source, submit PR.
 
 **Assessment**:
+
 - **Pros**: Control over timeline; contributes to open source
 - **Cons**: Zig expertise required; OpenTUI renderer is complex; significant time investment (1-2 weeks); may not be accepted
 - **Verdict**: High effort, uncertain outcome
@@ -83,6 +87,7 @@ const reset = '\x1b[0m';
 ```
 
 **Assessment**:
+
 - **Pros**: Works with current OpenTUI
 - **Cons**: Violates design system (cyan bg = selection); less visible; inconsistent with TUI1
 - **Verdict**: UX regression - not acceptable
@@ -119,6 +124,7 @@ const reset = '\x1b[0m';
 ```
 
 **Assessment**:
+
 - **Pros**: Works around the bug; simple change
 - **Cons**: Less readable JSX; harder to style individual parts; may not work if issue is character clipping
 - **Verdict**: Try first - may solve it
@@ -136,6 +142,7 @@ const reset = '\x1b[0m';
 ```
 
 **Assessment**:
+
 - **Pros**: Explicit structure; each element styled separately
 - **Cons**: More verbose; may have same bug if it's width calculation issue
 - **Verdict**: Worth testing
@@ -149,6 +156,7 @@ const reset = '\x1b[0m';
 ```
 
 **Assessment**:
+
 - **Pros**: Different character might avoid bug
 - **Cons**: May affect text selection; could have other rendering issues
 - **Verdict**: Unlikely to help if it's a width issue
@@ -158,6 +166,7 @@ const reset = '\x1b[0m';
 **Concept**: Debug OpenTUI's text measurement to find root cause.
 
 **Assessment**:
+
 - **Pros**: Understanding root cause enables proper fix
 - **Cons**: Time consuming; may be in Zig code (harder to debug)
 - **Verdict**: Good for upstream contribution
@@ -173,6 +182,7 @@ const reset = '\x1b[0m';
 ```
 
 **Assessment**:
+
 - **Pros**: Avoids text content issue
 - **Cons**: Adds complexity; may not work in all layouts
 - **Verdict**: Possible workaround
@@ -209,6 +219,7 @@ const reset = '\x1b[0m';
 ```
 
 **Assessment**:
+
 - **Pros**: Works; simple
 - **Cons**: Fragile; easy to make typos; no TypeScript protection
 - **Verdict**: Current solution - acceptable
@@ -226,6 +237,7 @@ function Box({ borderStyle }: { borderStyle?: BorderStyle }) {
 ```
 
 **Assessment**:
+
 - **Pros**: Compile-time safety; IDE autocomplete
 - **Cons**: Need to wrap OpenTUI components; maintenance overhead
 - **Verdict**: Good improvement
@@ -247,6 +259,7 @@ function SafeBox({ borderStyle, ...props }) {
 ```
 
 **Assessment**:
+
 - **Pros**: Prevents crash; logs warning; graceful degradation
 - **Cons**: Extra code; performance overhead (minimal)
 - **Verdict**: Good defensive approach
@@ -256,6 +269,7 @@ function SafeBox({ borderStyle, ...props }) {
 **Concept**: Issue is already filed and assigned.
 
 **Assessment**:
+
 - **Pros**: Proper fix; no maintenance burden
 - **Cons**: Unknown timeline
 - **Verdict**: Will happen eventually; workaround sufficient for now
@@ -265,6 +279,7 @@ function SafeBox({ borderStyle, ...props }) {
 **Concept**: Add input validation to Zig renderer.
 
 **Assessment**:
+
 - **Pros**: Fixes for everyone; proper solution
 - **Cons**: Zig expertise needed; PR review process
 - **Verdict**: Good contribution if skilled in Zig
@@ -284,12 +299,12 @@ function SafeBox({ borderStyle, ...props }) {
 
 Based on [GitHub releases](https://github.com/anomalyco/opentui/releases):
 
-| Version | Date | Notes |
-|---------|------|-------|
-| 0.1.74 | Jan 16, 2026 | CI improvements |
-| 0.1.73 | Jan 15, 2026 | Multiple fixes |
-| 0.1.70 | Jan 14, 2026 | Alpha/transparency fix |
-| 0.1.67 | Jan 13, 2026 | Cursor visibility fix |
+| Version | Date         | Notes                  |
+| ------- | ------------ | ---------------------- |
+| 0.1.74  | Jan 16, 2026 | CI improvements        |
+| 0.1.73  | Jan 15, 2026 | Multiple fixes         |
+| 0.1.70  | Jan 14, 2026 | Alpha/transparency fix |
+| 0.1.67  | Jan 13, 2026 | Cursor visibility fix  |
 
 **Conclusion**: Very active - multiple releases per week.
 
@@ -303,11 +318,11 @@ Based on [GitHub releases](https://github.com/anomalyco/opentui/releases):
 
 ### Related Upstream Issues
 
-| Issue | Title | Status | Relevance |
-|-------|-------|--------|-----------|
-| #543 | borderStyle segfault | Open, assigned | Our issue 001 |
-| #5295 | Text selection contrast | Open | Similar to our color issue |
-| #3731 | System theme support | Open | Theme-related rendering |
+| Issue | Title                   | Status         | Relevance                  |
+| ----- | ----------------------- | -------------- | -------------------------- |
+| #543  | borderStyle segfault    | Open, assigned | Our issue 001              |
+| #5295 | Text selection contrast | Open           | Similar to our color issue |
+| #3731 | System theme support    | Open           | Theme-related rendering    |
 
 **Conclusion**: Color/theme issues are known patterns in OpenTUI.
 
@@ -315,11 +330,11 @@ Based on [GitHub releases](https://github.com/anomalyco/opentui/releases):
 
 ## Summary Table
 
-| Bug | Severity | Workaround Available | Upstream Filed | Self-Fix Effort |
-|-----|----------|---------------------|----------------|-----------------|
-| Color rendering (002) | BLOCKING | Partial (inverse) | No | 1-2 weeks |
-| Bracket/space (003) | BLOCKING | Maybe (concatenation) | No | Unknown |
-| borderStyle (001) | Low | Yes (valid values) | Yes (#543) | N/A |
+| Bug                   | Severity | Workaround Available  | Upstream Filed | Self-Fix Effort |
+| --------------------- | -------- | --------------------- | -------------- | --------------- |
+| Color rendering (002) | BLOCKING | Partial (inverse)     | No             | 1-2 weeks       |
+| Bracket/space (003)   | BLOCKING | Maybe (concatenation) | No             | Unknown         |
+| borderStyle (001)     | Low      | Yes (valid values)    | Yes (#543)     | N/A             |
 
 ## Overall Assessment
 

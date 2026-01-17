@@ -16,7 +16,6 @@
     "@km/sh-app": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
-    "@km/opentui": "workspace:*",
     "@km/ink": "workspace:*",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",

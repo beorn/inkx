@@ -71,11 +71,11 @@ selection text color.
 
 ## Affected Code
 
-- `apps/km-tui/packages/km-opentui/src/components/TreeNode.tsx`
+- `archive/km-opentui/src/components/TreeNode.tsx` (archived)
   - Selection state renders with wrong text color
   - Lines 276-308: Uses hex colors as attempted workaround (still broken)
 
-- `apps/km-tui/packages/km-opentui/src/components/Header.tsx`
+- `archive/km-opentui/src/components/Header.tsx` (archived)
   - Workaround applied: Uses `inverse` styling instead of explicit colors
 
 ## Investigation Notes

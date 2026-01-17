@@ -107,9 +107,9 @@ export default [
       "*.bundle.js",
       ".DS_Store",
       // Directories excluded from tsconfig.json (not type-checked)
-      "packages/km-tui-opentui/",
+      "archive/",
       "apps/km-cli/src/tui/experiments/",
-      "apps/km-cli/src/tui2/",
+      "vendor/opentui/issues/",
     ],
   },
 ];

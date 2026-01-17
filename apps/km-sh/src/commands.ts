@@ -13,7 +13,7 @@ import type { BoardAction } from "@km/board";
 
 /**
  * Command definition for the palette and help system.
- * Board-level commands only - app-level commands are in km-opentui.
+ * Board-level commands only - app-level commands are in km-ink.
  */
 export interface CommandDef {
   /** Unique identifier (snake_case) */

@@ -31,8 +31,8 @@
     "node_modules",
     "dist",
     "**/dist",
-    "packages/km-tui-opentui",
+    "archive",
     "apps/km-cli/src/tui/experiments",
-    "apps/km-cli/src/tui2"
+    "vendor/opentui/issues"
   ]
 }

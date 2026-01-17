@@ -22,6 +22,7 @@ TUI1 (Ink-based) has known layout pain points:
 5. **fullscreen-ink race condition** - Startup delay workaround
 
 OpenTUI promised better layout with:
+
 - Flexbox-like declarative layout
 - Native text measurement
 - Built-in scroll handling
@@ -30,32 +31,34 @@ OpenTUI promised better layout with:
 
 **OpenTUI has blocking bugs:**
 
-| Bug | Severity | Workaround |
-|-----|----------|------------|
-| Color rendering (002) | BLOCKING | Partial (inverse only) |
-| Bracket/space rendering (003) | BLOCKING | Maybe (untested) |
-| borderStyle segfault (001) | Low | Use valid values |
+| Bug                           | Severity | Workaround             |
+| ----------------------------- | -------- | ---------------------- |
+| Color rendering (002)         | BLOCKING | Partial (inverse only) |
+| Bracket/space rendering (003) | BLOCKING | Maybe (untested)       |
+| borderStyle segfault (001)    | Low      | Use valid values       |
 
 **TUI1 pain points are manageable:**
 
-| Pain Point | Severity | Improvement Path |
-|------------|----------|------------------|
-| Manual width management | Annoying | Constraint Components |
-| Custom layout module | Acceptable | Keep or swap displayLength |
-| displayLength complexity | Annoying | Use string-width package |
-| Board overflow handling | Annoying | ScrollableList component |
-| fullscreen-ink race | Acceptable | Keep workaround |
+| Pain Point               | Severity   | Improvement Path           |
+| ------------------------ | ---------- | -------------------------- |
+| Manual width management  | Annoying   | Constraint Components      |
+| Custom layout module     | Acceptable | Keep or swap displayLength |
+| displayLength complexity | Annoying   | Use string-width package   |
+| Board overflow handling  | Annoying   | ScrollableList component   |
+| fullscreen-ink race      | Acceptable | Keep workaround            |
 
 ## Options Considered
 
 ### Option 1: Complete TUI2 Migration
 
 **Pros:**
+
 - Better declarative layout
 - Active upstream development
 - Modern architecture
 
 **Cons:**
+
 - 2 blocking bugs with no reliable workaround
 - 16 open issues in km-tui2 epic
 - Uncertain fix timeline (weeks to months)
@@ -66,12 +69,14 @@ OpenTUI promised better layout with:
 ### Option 2: Stay with TUI1, Improve Layout
 
 **Pros:**
+
 - Working today
 - Battle-tested (used by Claude Code, GitHub Copilot CLI)
 - Known pain points have solutions
 - Lower risk
 
 **Cons:**
+
 - Layout code remains verbose
 - No declarative layout benefits
 
@@ -80,9 +85,11 @@ OpenTUI promised better layout with:
 ### Option 3: Wait for OpenTUI Fixes
 
 **Pros:**
+
 - Eventually get OpenTUI benefits
 
 **Cons:**
+
 - Uncertain timeline
 - Blocks other TUI work
 - May have more bugs

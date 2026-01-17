@@ -11,12 +11,18 @@ This document analyzes the 5 known TUI1 pain points with 5 alternative approache
 **Observation**: Every component manually tracks available width, passes it down through props, and calculates available space for content.
 
 **Example from TreeNode.tsx lines 187-190**:
+
 ```typescript
 const wrapWidth = Math.max(1, width - prefixLength);
-const { lines: wrappedLines } = constrainText(styledContent, wrapWidth, maxContentLines);
+const { lines: wrappedLines } = constrainText(
+  styledContent,
+  wrapWidth,
+  maxContentLines,
+);
 ```
 
 **Example from ColumnsView.tsx lines 229-235**:
+
 ```typescript
 const separatorCount = effectiveVisibleColumns.length - 1;
 const availWidthForCols = availableWidth - separatorCount;
@@ -41,6 +47,7 @@ function Column({ children }) {
 ```
 
 **Assessment**:
+
 - **Pros**: Reduces prop drilling, cleaner component signatures
 - **Cons**: Context updates trigger full subtree re-renders; Ink's flexbox model doesn't expose calculated widths to children automatically
 - **Verdict**: Partial improvement - still need to calculate widths at container level
@@ -56,6 +63,7 @@ function Column({ children }) {
 ```
 
 **Assessment**:
+
 - **Pros**: Declarative, Ink handles math
 - **Cons**: `wrap="truncate"` doesn't give ellipsis control; ANSI-aware truncation still needs manual displayLength; can't style truncation indicator
 - **Verdict**: Limited - Ink's truncate is too basic for our needs (no custom ellipsis, no ANSI awareness for styled text)
@@ -73,6 +81,7 @@ function TreeNode() {
 ```
 
 **Assessment**:
+
 - **Pros**: No prop drilling for terminal dimensions
 - **Cons**: Components still need to know their position in layout to calculate available width; terminal dimensions ≠ component dimensions
 - **Verdict**: Doesn't solve the problem - we need component-local width, not terminal width
@@ -92,6 +101,7 @@ function TreeNode() {
 ```
 
 **Assessment**:
+
 - **Pros**: Encapsulates width logic; reusable; cleaner component code
 - **Cons**: Still need to calculate initial width somewhere; adds abstraction layer; may complicate debugging
 - **Verdict**: Best option - abstracts the boilerplate while keeping control
@@ -112,6 +122,7 @@ function useMeasuredLayout(children) {
 ```
 
 **Assessment**:
+
 - **Pros**: Accurate measurements
 - **Cons**: Ink doesn't support refs for measurement; double-render causes flicker; terminal doesn't have a layout engine like DOM
 - **Verdict**: Not feasible in terminal environment
@@ -129,6 +140,7 @@ function useMeasuredLayout(children) {
 **Observation**: Entire module with truncate.ts, wrap.ts, constrain.ts, path.ts to handle text layout.
 
 **Key functions**:
+
 - `truncateText()` - ANSI-aware truncation with ellipsis
 - `displayLength()` - character count excluding ANSI codes
 - `constrainText()` - wrap + truncate + limit
@@ -141,14 +153,15 @@ function useMeasuredLayout(children) {
 **Concept**: Replace custom code with established npm packages.
 
 ```typescript
-import wrapAnsi from 'wrap-ansi';
-import sliceAnsi from 'slice-ansi';
+import wrapAnsi from "wrap-ansi";
+import sliceAnsi from "slice-ansi";
 
-const truncated = sliceAnsi(text, 0, width - 1) + '…';
+const truncated = sliceAnsi(text, 0, width - 1) + "…";
 const wrapped = wrapAnsi(text, width, { hard: true });
 ```
 
 **Assessment**:
+
 - **Pros**: Battle-tested; maintained; handles edge cases
 - **Cons**: wrap-ansi had issues with OSC 8 hyperlinks (why we disabled them); slice-ansi doesn't handle all ANSI sequences our code does
 - **Verdict**: Partial - we tried this, hit edge cases, wrote custom code
@@ -158,11 +171,12 @@ const wrapped = wrapAnsi(text, width, { hard: true });
 **Concept**: Use chalk's built-in string-width for display length.
 
 ```typescript
-import stringWidth from 'string-width';
+import stringWidth from "string-width";
 const len = stringWidth(styledText); // Handles ANSI + Unicode width
 ```
 
 **Assessment**:
+
 - **Pros**: Handles Unicode width (CJK characters = 2 cells); well maintained
 - **Cons**: Doesn't handle slicing/truncation; still need custom truncate
 - **Verdict**: Could replace displayLength() but not the full module
@@ -175,10 +189,11 @@ const len = stringWidth(styledText); // Handles ANSI + Unicode width
 const { plain, styles } = parseStyled("Hello **world**");
 // plain: "Hello world"
 // styles: [{start: 6, end: 11, style: 'bold'}]
-const truncated = applyStyles(plain.slice(0, 8) + '…', styles);
+const truncated = applyStyles(plain.slice(0, 8) + "…", styles);
 ```
 
 **Assessment**:
+
 - **Pros**: Truncation operates on simple strings; styles re-applied after
 - **Cons**: Complex to implement correctly; style boundaries at cut point; more code not less
 - **Verdict**: Adds complexity, not worth it
@@ -195,8 +210,9 @@ return <Text>{styled}</Text>;
 ```
 
 **Assessment**:
+
 - **Pros**: Layout is simple (plain strings); styling is separate concern
-- **Cons**: Styles may be cut at wrong points ("**bo" instead of "**bold**" → "bo" bold); loses semantic styling
+- **Cons**: Styles may be cut at wrong points ("**bo" instead of "**bold\*\*" → "bo" bold); loses semantic styling
 - **Verdict**: Doesn't work well - styling needs to be ANSI-aware
 
 #### Approach 5: Accept Ink's Limitations
@@ -208,6 +224,7 @@ return <Text>{styled}</Text>;
 ```
 
 **Assessment**:
+
 - **Pros**: Zero custom code; Ink handles everything
 - **Cons**: Loses rich text (wiki links, inline code, etc.); no custom ellipsis; less visual richness
 - **Verdict**: Unacceptable UX regression
@@ -225,6 +242,7 @@ return <Text>{styled}</Text>;
 **Observation**: Must calculate visible characters excluding ANSI codes everywhere.
 
 **Current implementation (rich.ts:34-36)**:
+
 ```typescript
 export function displayLength(text: string): number {
   return text.replace(ANSI_REGEX, "").length;
@@ -238,11 +256,12 @@ export function displayLength(text: string): number {
 **Concept**: Use battle-tested npm package that handles ANSI + Unicode.
 
 ```typescript
-import stringWidth from 'string-width';
+import stringWidth from "string-width";
 const len = stringWidth(text);
 ```
 
 **Assessment**:
+
 - **Pros**: Handles ANSI, Unicode width (CJK = 2), emoji; well maintained
 - **Cons**: Slight overhead; may have different edge case behavior
 - **Verdict**: Good replacement - more robust than our regex
@@ -262,6 +281,7 @@ function displayLength(text: string): number {
 ```
 
 **Assessment**:
+
 - **Pros**: Faster for repeated calculations
 - **Cons**: Memory overhead; cache invalidation; strings rarely repeated exactly
 - **Verdict**: Premature optimization - not a real bottleneck
@@ -278,6 +298,7 @@ function renderRich(text: string): { styled: string; length: number } {
 ```
 
 **Assessment**:
+
 - **Pros**: No separate calculation needed; always accurate
 - **Cons**: Changes API; all callers need updating; more complex renderRich
 - **Verdict**: Significant refactor for marginal benefit
@@ -291,6 +312,7 @@ const len = stripAnsi(text).length;
 ```
 
 **Assessment**:
+
 - **Pros**: Explicit; easy to understand
 - **Cons**: Creates intermediate string; this is exactly what displayLength does
 - **Verdict**: No improvement over current
@@ -307,6 +329,7 @@ const len = stripAnsi(text).length;
 ```
 
 **Assessment**:
+
 - **Pros**: Declarative; no calculations
 - **Cons**: Ink's truncate doesn't give us control; still need length for status bars, info columns
 - **Verdict**: Not fully possible - we need explicit control in many places
@@ -324,6 +347,7 @@ const len = stripAnsi(text).length;
 **Observation**: Manual maxVisibleCards calculation with complex math.
 
 **Example from Board.tsx lines 287-308**:
+
 ```typescript
 const estimatedCardHeight = maxContentLines + 3;
 const maxCardsNoOverflow = Math.max(1, Math.floor(baseContentHeight / estimatedCardHeight));
@@ -348,6 +372,7 @@ import { FixedSizeList } from 'react-window';
 ```
 
 **Assessment**:
+
 - **Pros**: Battle-tested scrolling; handles edge cases; efficient
 - **Cons**: react-window is DOM-based, not terminal-compatible; Ink doesn't support this pattern
 - **Verdict**: Not applicable to terminal environment
@@ -363,6 +388,7 @@ import { FixedSizeList } from 'react-window';
 ```
 
 **Assessment**:
+
 - **Pros**: Declarative; Ink handles clipping
 - **Cons**: No scroll indicators; no keyboard navigation awareness; items just get cut off
 - **Verdict**: Too basic - we need scroll position awareness and indicators
@@ -383,6 +409,7 @@ import { FixedSizeList } from 'react-window';
 ```
 
 **Assessment**:
+
 - **Pros**: Encapsulates scroll logic; reusable across views; cleaner component code
 - **Cons**: Still need the math somewhere; abstraction adds indirection
 - **Verdict**: Good - moves complexity to one place
@@ -401,6 +428,7 @@ const { visibleItems, scrollOffset, hasOverflow } = useScrollState({
 ```
 
 **Assessment**:
+
 - **Pros**: Separates scroll logic from rendering; testable; reusable
 - **Cons**: Still need to calculate heights; hook + component vs component only
 - **Verdict**: Good - clean separation of concerns
@@ -412,10 +440,11 @@ const { visibleItems, scrollOffset, hasOverflow } = useScrollState({
 ```typescript
 // Current: estimatedCardHeight = maxContentLines + 3
 // Better: measure first render, cache heights
-const cardHeights = cards.map(c => measureCard(c));
+const cardHeights = cards.map((c) => measureCard(c));
 ```
 
 **Assessment**:
+
 - **Pros**: Accurate; handles variable height cards
 - **Cons**: Ink doesn't support measurement; terminal can't query rendered height
 - **Verdict**: Not feasible in terminal
@@ -433,6 +462,7 @@ const cardHeights = cards.map(c => measureCard(c));
 **Observation**: Startup requires polling and 50ms delays due to alternate screen buffer timing issues.
 
 **Current workaround (Board.tsx lines 531-584)**:
+
 ```typescript
 // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
 // Solution: Delay rendering the actual UI until the terminal is fully ready
@@ -452,6 +482,7 @@ render(<Board />);
 ```
 
 **Assessment**:
+
 - **Pros**: No race condition; simpler startup
 - **Cons**: Scrollback gets filled with TUI output; exit leaves content on screen; less "app-like" feel
 - **Verdict**: Acceptable trade-off for some use cases
@@ -470,6 +501,7 @@ render(<Board />);
 ```
 
 **Assessment**:
+
 - **Pros**: Full control over timing
 - **Cons**: Duplicates fullscreen-ink functionality; fragile; terminal-specific
 - **Verdict**: Worse than current workaround
@@ -488,6 +520,7 @@ const { rerender, cleanup } = render(<Board />);
 ```
 
 **Assessment**:
+
 - **Pros**: No dependency on fullscreen-ink; simpler
 - **Cons**: Doesn't use alternate buffer (same as approach 1); or need to reimplement it
 - **Verdict**: Partial solution
@@ -503,6 +536,7 @@ if (!isReady) {
 ```
 
 **Assessment**:
+
 - **Pros**: Better UX during delay; no blank screen
 - **Cons**: Flash still occurs; doesn't fix root cause
 - **Verdict**: UX improvement but not a fix
@@ -512,6 +546,7 @@ if (!isReady) {
 **Concept**: fullscreen-ink is the issue; wait for them to fix it.
 
 **Assessment**:
+
 - **Pros**: Proper fix at the source
 - **Cons**: External dependency; uncertain timeline; may never be fixed
 - **Verdict**: Long-term option but can't rely on it
@@ -526,13 +561,13 @@ if (!isReady) {
 
 ## Summary Table
 
-| Pain Point | Severity | Best Approach | Effort |
-|------------|----------|---------------|--------|
-| Manual width management | Annoying | Constraint Components | 2-3 days |
-| Custom layout module | Acceptable | Keep as-is, maybe swap displayLength | 0-1 day |
-| displayLength complexity | Annoying | Use string-width package | 0.5 days |
-| Board overflow handling | Annoying | ScrollableList or useScrollState | 2-3 days |
-| fullscreen-ink race | Acceptable | Keep workaround + loading state | 0.5 days |
+| Pain Point               | Severity   | Best Approach                        | Effort   |
+| ------------------------ | ---------- | ------------------------------------ | -------- |
+| Manual width management  | Annoying   | Constraint Components                | 2-3 days |
+| Custom layout module     | Acceptable | Keep as-is, maybe swap displayLength | 0-1 day  |
+| displayLength complexity | Annoying   | Use string-width package             | 0.5 days |
+| Board overflow handling  | Annoying   | ScrollableList or useScrollState     | 2-3 days |
+| fullscreen-ink race      | Acceptable | Keep workaround + loading state      | 0.5 days |
 
 **Total estimated effort for improvements**: 5-8 days
 

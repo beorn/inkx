@@ -114,8 +114,6 @@ function nodeToTNode(node: DBNode, depth: number): TNode {
     dueDate: node.due_date,
     scheduledDate: node.scheduled_date,
     body: node.content,
-    fsPath: node.fs_path,
-    mdLine: node.md_line,
     nodeType: node.type as TNode["nodeType"],
     depth,
   };

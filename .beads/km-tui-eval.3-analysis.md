@@ -53,20 +53,20 @@ const LayoutContext = createContext<LayoutContext | null>(null);
 
 function useLayout() {
   const ctx = useContext(LayoutContext);
-  if (!ctx) throw new Error('useLayout requires LayoutProvider');
+  if (!ctx) throw new Error("useLayout requires LayoutProvider");
   return ctx;
 }
 ```
 
 ### Assessment
 
-| Criterion | Score | Notes |
-|-----------|-------|-------|
-| Reduces boilerplate | ⭐⭐⭐ | Moderate - still need calculations |
-| Ease of adoption | ⭐⭐ | Requires wrapping app + updating all components |
-| Performance | ⭐⭐⭐ | Context updates may cause excess re-renders |
-| Debugging | ⭐⭐ | State in context harder to inspect |
-| Flexibility | ⭐⭐⭐⭐ | Can handle complex layouts |
+| Criterion           | Score    | Notes                                           |
+| ------------------- | -------- | ----------------------------------------------- |
+| Reduces boilerplate | ⭐⭐⭐   | Moderate - still need calculations              |
+| Ease of adoption    | ⭐⭐     | Requires wrapping app + updating all components |
+| Performance         | ⭐⭐⭐   | Context updates may cause excess re-renders     |
+| Debugging           | ⭐⭐     | State in context harder to inspect              |
+| Flexibility         | ⭐⭐⭐⭐ | Can handle complex layouts                      |
 
 **Verdict**: Medium value - helps but doesn't eliminate the core problem.
 
@@ -134,13 +134,13 @@ function FlexRow({ width, children }: FlexRowProps) {
 
 ### Assessment
 
-| Criterion | Score | Notes |
-|-----------|-------|-------|
+| Criterion           | Score    | Notes                               |
+| ------------------- | -------- | ----------------------------------- |
 | Reduces boilerplate | ⭐⭐⭐⭐ | Good - encapsulates common patterns |
-| Ease of adoption | ⭐⭐⭐⭐ | Can adopt incrementally |
-| Performance | ⭐⭐⭐⭐ | Minimal overhead |
-| Debugging | ⭐⭐⭐⭐ | Components are inspectable |
-| Flexibility | ⭐⭐⭐ | May need variants for edge cases |
+| Ease of adoption    | ⭐⭐⭐⭐ | Can adopt incrementally             |
+| Performance         | ⭐⭐⭐⭐ | Minimal overhead                    |
+| Debugging           | ⭐⭐⭐⭐ | Components are inspectable          |
+| Flexibility         | ⭐⭐⭐   | May need variants for edge cases    |
 
 **Verdict**: High value - best balance of abstraction and control.
 
@@ -172,14 +172,22 @@ return <Layout spec={layout} data={state} />;
 
 ```typescript
 interface LayoutSpec {
-  type: 'row' | 'column' | 'text' | 'separator';
+  type: "row" | "column" | "text" | "separator";
   width?: number;
   flex?: number;
   children?: LayoutSpec[];
   render?: (width: number, data: any) => React.ReactNode;
 }
 
-function Layout({ spec, width, data }: { spec: LayoutSpec; width: number; data: any }) {
+function Layout({
+  spec,
+  width,
+  data,
+}: {
+  spec: LayoutSpec;
+  width: number;
+  data: any;
+}) {
   // Resolve widths
   const resolvedSpec = resolveWidths(spec, width);
   // Render tree
@@ -189,13 +197,13 @@ function Layout({ spec, width, data }: { spec: LayoutSpec; width: number; data: 
 
 ### Assessment
 
-| Criterion | Score | Notes |
-|-----------|-------|-------|
-| Reduces boilerplate | ⭐⭐⭐⭐⭐ | Excellent - declarative |
-| Ease of adoption | ⭐ | Requires rewriting all layouts |
-| Performance | ⭐⭐⭐ | Compilation overhead |
-| Debugging | ⭐⭐ | Spec → component mapping unclear |
-| Flexibility | ⭐⭐ | DSL may not cover all cases |
+| Criterion           | Score      | Notes                            |
+| ------------------- | ---------- | -------------------------------- |
+| Reduces boilerplate | ⭐⭐⭐⭐⭐ | Excellent - declarative          |
+| Ease of adoption    | ⭐         | Requires rewriting all layouts   |
+| Performance         | ⭐⭐⭐     | Compilation overhead             |
+| Debugging           | ⭐⭐       | Spec → component mapping unclear |
+| Flexibility         | ⭐⭐       | DSL may not cover all cases      |
 
 **Verdict**: Over-engineered for the problem size.
 
@@ -231,13 +239,13 @@ function TreeNode({ node, __width }) {
 
 ### Assessment
 
-| Criterion | Score | Notes |
-|-----------|-------|-------|
-| Reduces boilerplate | ⭐⭐⭐⭐⭐ | Excellent - invisible to developer |
-| Ease of adoption | ⭐ | Requires build tooling; magic behavior |
-| Performance | ⭐⭐⭐⭐ | Compile-time; no runtime cost |
-| Debugging | ⭐ | Hard to understand transformed code |
-| Flexibility | ⭐⭐ | Limited to what transform can detect |
+| Criterion           | Score      | Notes                                  |
+| ------------------- | ---------- | -------------------------------------- |
+| Reduces boilerplate | ⭐⭐⭐⭐⭐ | Excellent - invisible to developer     |
+| Ease of adoption    | ⭐         | Requires build tooling; magic behavior |
+| Performance         | ⭐⭐⭐⭐   | Compile-time; no runtime cost          |
+| Debugging           | ⭐         | Hard to understand transformed code    |
+| Flexibility         | ⭐⭐       | Limited to what transform can detect   |
 
 **Verdict**: Too magical - debugging would be nightmare.
 
@@ -272,13 +280,13 @@ function TreeNode() {
 
 ### Assessment
 
-| Criterion | Score | Notes |
-|-----------|-------|-------|
-| Reduces boilerplate | ⭐⭐⭐⭐⭐ | Excellent - automatic |
-| Ease of adoption | ⭐⭐ | Requires Ink internals knowledge |
-| Performance | ⭐⭐⭐ | Middleware overhead |
-| Debugging | ⭐ | Hidden behavior; hard to trace |
-| Flexibility | ⭐⭐⭐ | Limited by what middleware can intercept |
+| Criterion           | Score      | Notes                                    |
+| ------------------- | ---------- | ---------------------------------------- |
+| Reduces boilerplate | ⭐⭐⭐⭐⭐ | Excellent - automatic                    |
+| Ease of adoption    | ⭐⭐       | Requires Ink internals knowledge         |
+| Performance         | ⭐⭐⭐     | Middleware overhead                      |
+| Debugging           | ⭐         | Hidden behavior; hard to trace           |
+| Flexibility         | ⭐⭐⭐     | Limited by what middleware can intercept |
 
 **Verdict**: Not feasible - Ink doesn't expose this extension point.
 
@@ -286,13 +294,13 @@ function TreeNode() {
 
 ## Comparison Matrix
 
-| Approach | Boilerplate | Adoption | Performance | Debugging | Flexibility | Overall |
-|----------|-------------|----------|-------------|-----------|-------------|---------|
-| 1. LayoutContext | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | 14/25 |
-| 2. Constraint Components | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | 19/25 |
-| 3. Layout DSL | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐ | 13/25 |
-| 4. Auto-Injection | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐⭐ | ⭐ | ⭐⭐ | 13/25 |
-| 5. Ink Plugin | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐ | ⭐⭐⭐ | 14/25 |
+| Approach                 | Boilerplate | Adoption | Performance | Debugging | Flexibility | Overall |
+| ------------------------ | ----------- | -------- | ----------- | --------- | ----------- | ------- |
+| 1. LayoutContext         | ⭐⭐⭐      | ⭐⭐     | ⭐⭐⭐      | ⭐⭐      | ⭐⭐⭐⭐    | 14/25   |
+| 2. Constraint Components | ⭐⭐⭐⭐    | ⭐⭐⭐⭐ | ⭐⭐⭐⭐    | ⭐⭐⭐⭐  | ⭐⭐⭐      | 19/25   |
+| 3. Layout DSL            | ⭐⭐⭐⭐⭐  | ⭐       | ⭐⭐⭐      | ⭐⭐      | ⭐⭐        | 13/25   |
+| 4. Auto-Injection        | ⭐⭐⭐⭐⭐  | ⭐       | ⭐⭐⭐⭐    | ⭐        | ⭐⭐        | 13/25   |
+| 5. Ink Plugin            | ⭐⭐⭐⭐⭐  | ⭐⭐     | ⭐⭐⭐      | ⭐        | ⭐⭐⭐      | 14/25   |
 
 ## Recommended Approach: Constraint Components
 
@@ -306,17 +314,18 @@ function TreeNode() {
 
 ### Proposed Component Set
 
-| Component | Purpose | Priority |
-|-----------|---------|----------|
-| `TruncatedText` | ANSI-aware text truncation | High |
-| `FlexRow` | Distribute width among children | High |
-| `ScrollableList` | Virtualized scrolling with indicators | Medium |
-| `ConstrainedColumn` | Column in multi-column layout | Medium |
-| `WidthProvider` | Context for passing dimensions | Low |
+| Component           | Purpose                               | Priority |
+| ------------------- | ------------------------------------- | -------- |
+| `TruncatedText`     | ANSI-aware text truncation            | High     |
+| `FlexRow`           | Distribute width among children       | High     |
+| `ScrollableList`    | Virtualized scrolling with indicators | Medium   |
+| `ConstrainedColumn` | Column in multi-column layout         | Medium   |
+| `WidthProvider`     | Context for passing dimensions        | Low      |
 
 ### Example Refactor (TreeNode)
 
 **Before** (current code):
+
 ```typescript
 function TreeNode({ node, width, ... }) {
   const prefixLength = indent.length + foldIndicator.length + iconChar.length + 2;
@@ -327,6 +336,7 @@ function TreeNode({ node, width, ... }) {
 ```
 
 **After** (with Constraint Components):
+
 ```typescript
 function TreeNode({ node, width, ... }) {
   return (

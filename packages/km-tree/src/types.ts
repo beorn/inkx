@@ -39,10 +39,6 @@ export interface TNode {
   refsCount?: number;
   body?: string; // Text content below the title (renamed from 'content')
 
-  // File/location metadata (for editor integration)
-  fsPath?: string; // Filesystem path (for file/folder nodes)
-  mdLine?: number; // Line number in markdown file (0-indexed)
-
   // Node metadata
   nodeType: "folder" | "file" | "section" | "task" | "item" | "link"; // Storage node type
   depth: number; // Depth from current view root (0 = top level)
