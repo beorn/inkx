@@ -16,6 +16,7 @@ import {
   resolveFsPath,
   findKmRootFromPath,
   getEffectiveRoot,
+  resolvePathArg,
 } from "../src/path-utils.ts";
 
 // Use /tmp to avoid finding the actual .km directory in the codebase
@@ -176,5 +177,75 @@ describe.serial("getEffectiveRoot", () => {
     const resolution = resolveFsPath(join(TEST_DIR, "no-vault"));
     const root = getEffectiveRoot(resolution);
     expect(root).toBe(join(TEST_DIR, "no-vault"));
+  });
+});
+
+describe.serial("resolvePathArg", () => {
+  beforeEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    // Create vault structure: /tmp/.../vault/.km and /tmp/.../vault/Projects/
+    mkdirSync(join(TEST_DIR, "vault/.km"), { recursive: true });
+    mkdirSync(join(TEST_DIR, "vault/Projects"), { recursive: true });
+    writeFileSync(join(TEST_DIR, "vault/Projects.md"), "# Projects");
+    writeFileSync(join(TEST_DIR, "vault/inbox.md"), "# Inbox");
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("no argument returns fallback root with null nodeRef", () => {
+    const result = resolvePathArg(undefined, "/fallback");
+    expect(result.vaultRoot).toBe("/fallback");
+    expect(result.nodeRef).toBeNull();
+    expect(result.wasExplicitPath).toBe(false);
+  });
+
+  test("file path returns vault root and file as nodeRef", () => {
+    const filePath = join(TEST_DIR, "vault/inbox.md");
+    const result = resolvePathArg(filePath);
+    expect(result.vaultRoot).toBe(join(TEST_DIR, "vault"));
+    expect(result.nodeRef).toBe(filePath);
+    expect(result.wasExplicitPath).toBe(true);
+  });
+
+  test("directory inside vault returns vault root and directory as nodeRef", () => {
+    // This is the key test - a subdirectory of a vault should:
+    // 1. Find the vault root (parent of .km)
+    // 2. Pass the directory path as nodeRef for resolution
+    const dirPath = join(TEST_DIR, "vault/Projects");
+    const result = resolvePathArg(dirPath);
+    expect(result.vaultRoot).toBe(join(TEST_DIR, "vault"));
+    expect(result.nodeRef).toBe(dirPath);
+    expect(result.wasExplicitPath).toBe(true);
+  });
+
+  test("vault root directory returns itself with null nodeRef", () => {
+    // When pointing directly at a vault root, show all nodes
+    const vaultPath = join(TEST_DIR, "vault");
+    const result = resolvePathArg(vaultPath);
+    expect(result.vaultRoot).toBe(vaultPath);
+    expect(result.nodeRef).toBeNull();
+    expect(result.wasExplicitPath).toBe(true);
+  });
+
+  test("directory outside any vault returns itself as root with null nodeRef", () => {
+    mkdirSync(join(TEST_DIR, "standalone"), { recursive: true });
+    const dirPath = join(TEST_DIR, "standalone");
+    const result = resolvePathArg(dirPath);
+    expect(result.vaultRoot).toBe(dirPath);
+    expect(result.nodeRef).toBeNull();
+    expect(result.wasExplicitPath).toBe(true);
+  });
+
+  test("non-path argument passes through as nodeRef", () => {
+    const result = resolvePathArg("@inbox", "/fallback");
+    expect(result.vaultRoot).toBe("/fallback");
+    expect(result.nodeRef).toBe("@inbox");
+    expect(result.wasExplicitPath).toBe(false);
   });
 });

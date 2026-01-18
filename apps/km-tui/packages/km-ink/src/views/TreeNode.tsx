@@ -149,9 +149,9 @@ export function TreeNode({
       {/* Parent context line (shown ABOVE task for embedded items) */}
       {showSeparateContext && parentContext && (
         <Text dimColor italic wrap="truncate">
-          {continuationIndent}↖{" "}
-          {parentContext.length > width - prefix.length - 3
-            ? "…" + parentContext.slice(-(width - prefix.length - 4))
+          {continuationIndent}
+          {parentContext.length > width - prefix.length
+            ? "…" + parentContext.slice(-(width - prefix.length - 1))
             : parentContext}
         </Text>
       )}
@@ -161,6 +161,7 @@ export function TreeNode({
         backgroundColor={style.backgroundColor}
         color={style.textColor}
         dimColor={style.shouldDim}
+        strikethrough={style.shouldStrikethrough}
         wrap="truncate"
       >
         {prefix.beforeIcon}
@@ -193,6 +194,7 @@ export function TreeNode({
           backgroundColor={style.backgroundColor}
           color={style.textColor}
           dimColor={style.shouldDim}
+          strikethrough={style.shouldStrikethrough}
           wrap="truncate"
         >
           {continuationIndent}

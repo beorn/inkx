@@ -156,7 +156,26 @@ export function resolvePathArg(
     const resolution = resolveFsPath(arg);
 
     if (resolution.exists && resolution.isDirectory) {
-      // Directory path - use as vault root, show all top-level nodes
+      // Directory path - check if it's within a vault (has .km ancestor)
+      if (resolution.kmRoot) {
+        const vaultRoot = dirname(resolution.kmRoot);
+        // Check if this directory IS the vault root
+        if (resolution.absolutePath === vaultRoot) {
+          // Pointing at vault root - show all top-level nodes
+          return {
+            vaultRoot,
+            nodeRef: null,
+            wasExplicitPath: true,
+          };
+        }
+        // Subdirectory of a vault - use directory path as node ref
+        return {
+          vaultRoot,
+          nodeRef: resolution.absolutePath,
+          wasExplicitPath: true,
+        };
+      }
+      // No .km found - treat directory itself as vault root
       return {
         vaultRoot: resolution.absolutePath,
         nodeRef: null,

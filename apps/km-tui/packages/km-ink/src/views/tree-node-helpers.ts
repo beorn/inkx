@@ -40,6 +40,7 @@ export interface NodeStyleResult {
   backgroundColor: string | undefined;
   textColor: string | undefined;
   shouldDim: boolean;
+  shouldStrikethrough: boolean;
   icon: {
     char: string;
     color: string | undefined;
@@ -49,7 +50,7 @@ export interface NodeStyleResult {
 
 /**
  * Compute all styling for a node in one place.
- * Handles selection, own color, task status icons, and dim state.
+ * Handles selection, own color, task status icons, dim state, and strikethrough.
  */
 export function getNodeStyle(
   node: KNode,
@@ -84,13 +85,14 @@ export function getNodeStyle(
     textColor = DARK_BG_COLORS.includes(ownColor) ? "white" : "black";
   }
 
-  // Dim state
+  // Dim state for done/dropped tasks (no strikethrough per design)
   const isDoneOrDropped =
     isTask && (node.task_status === "done" || node.task_status === "dropped");
   const isInactiveChild = dimInactiveChildren && depth > 0;
   const shouldDim = isDoneOrDropped || isInactiveChild;
+  const shouldStrikethrough = false; // Disabled per design decision
 
-  return { backgroundColor, textColor, shouldDim, icon };
+  return { backgroundColor, textColor, shouldDim, shouldStrikethrough, icon };
 }
 
 // =============================================================================

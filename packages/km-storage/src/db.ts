@@ -645,6 +645,28 @@ export function resolveNode(query: string, type?: string): KNode | null {
       .get(absolutePath, ...typeParams) as Record<string, unknown> | null;
     if (row) return rowToNode(row);
 
+    // For directory paths, try finding the corresponding .md file
+    // e.g., /vault/Projects → /vault/Projects.md or /vault/Projects/index.md
+    if (!absolutePath.endsWith(".md")) {
+      // Try sibling .md file (Projects → Projects.md)
+      row = db
+        .query(`SELECT * FROM nodes WHERE fs_path = ?${typeFilter}`)
+        .get(`${absolutePath}.md`, ...typeParams) as Record<
+        string,
+        unknown
+      > | null;
+      if (row) return rowToNode(row);
+
+      // Try index.md inside the directory
+      row = db
+        .query(`SELECT * FROM nodes WHERE fs_path = ?${typeFilter}`)
+        .get(`${absolutePath}/index.md`, ...typeParams) as Record<
+        string,
+        unknown
+      > | null;
+      if (row) return rowToNode(row);
+    }
+
     // Also try matching by filename suffix (handles relative paths in DB)
     // When DB stores "board.md" but query is "/tmp/vault/board.md"
     row = db
