@@ -38,7 +38,6 @@ import {
   renderRich,
   getStatusIcon,
   colorize,
-  getChalkColor,
   GTD_BOARD_COLORS,
 } from "../src/text/index.ts";
 import {
@@ -54,10 +53,95 @@ import { TreeNode } from "../src/views/TreeNode.tsx";
 import { ListView } from "../src/views/ListView.tsx";
 import { ColumnsView } from "../src/views/ColumnsView.tsx";
 import { TabsView } from "../src/views/TabsView.tsx";
+import { TopBar } from "../src/views/TopBar.tsx";
 import type { KNode } from "@km/core";
 import type { BoardState, ColumnState, CardState } from "../src/types.ts";
 import { UIProvider } from "../src/ui-context.tsx";
 import { createInitialUIState } from "../src/ui-reducer.ts";
+import { setDb } from "@km/storage";
+import Database from "bun:sqlite";
+
+// Initialize an empty in-memory database for storybook rendering
+// This is still needed for functions like getBoardPills() that query the DB.
+// TreeNode's children/parentContext use DI props instead.
+const db = new Database(":memory:");
+db.exec(`
+  CREATE TABLE IF NOT EXISTS nodes (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    parent_id TEXT,
+    link_to TEXT,
+    link_alias TEXT,
+    parent_idx REAL DEFAULT 0,
+    fs_path TEXT,
+    fs_ino INTEGER,
+    md_line INTEGER,
+    name TEXT,
+    title TEXT,
+    md_pos INTEGER,
+    md_slug TEXT,
+    task_status TEXT,
+    task_mark TEXT,
+    assigned_to TEXT,
+    due_date TEXT,
+    scheduled_date TEXT,
+    priority INTEGER,
+    content TEXT,
+    data TEXT DEFAULT '{}',
+    created_at INTEGER,
+    updated_at INTEGER,
+    version TEXT DEFAULT '1'
+  );
+  CREATE TABLE IF NOT EXISTS meta (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  );
+  CREATE TABLE IF NOT EXISTS links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_id TEXT NOT NULL,
+    target_name TEXT NOT NULL,
+    alias TEXT,
+    UNIQUE(source_id, target_name)
+  );
+`);
+setDb(db);
+
+// In-memory node store for storybook - supplements the DB for DI props
+// TreeNode now accepts children/getChildren props for DI
+const nodeStore = new Map<string, KNode>();
+const childrenStore = new Map<string, KNode[]>(); // parentId -> children
+
+// Register a node in the store and track its parent relationship
+function registerNode(node: KNode): void {
+  nodeStore.set(node.id, node);
+  if (node.parent_id) {
+    const siblings = childrenStore.get(node.parent_id) ?? [];
+    // Avoid duplicates if called multiple times
+    if (!siblings.find((n) => n.id === node.id)) {
+      siblings.push(node);
+      childrenStore.set(node.parent_id, siblings);
+    }
+  }
+}
+
+// Get children from the in-memory store
+function getChildrenFromStore(id: string): KNode[] {
+  return childrenStore.get(id) ?? [];
+}
+
+// Get parent context for embedded tasks (simplified for storybook)
+function getParentContextFromStore(node: KNode): string | null {
+  if (!node.link_to) return null;
+  const linkedNode = nodeStore.get(node.link_to);
+  if (!linkedNode?.parent_id) return null;
+  const parent = nodeStore.get(linkedNode.parent_id);
+  return parent?.content ?? parent?.name ?? null;
+}
+
+// Get board pills for a task (storybook returns empty - no board context)
+function getBoardPillsFromStore(): [] {
+  return [];
+}
 
 // Create a mock UI state for storybook rendering
 const mockUIState = createInitialUIState("cards", [], {
@@ -221,7 +305,7 @@ function Layer1TagPills(): React.ReactElement {
           <Text key={name}>
             {" "}
             {name.padEnd(10)} {color.padEnd(6)} {colorize(`@${name}`, color)}{" "}
-            {chalk.dim(`← ${desc}`)}
+            <Text dimColor>← {desc}</Text>
           </Text>
         );
       })}
@@ -237,7 +321,7 @@ function Layer1TagPills(): React.ReactElement {
       {customTags.map(({ name, color }) => (
         <Text key={name}>
           {" "}
-          {colorize(`@${name}`, color)} {chalk.dim(`← color=${color}`)}
+          {colorize(`@${name}`, color)} <Text dimColor>← color={color}</Text>
         </Text>
       ))}
       <Text> </Text>
@@ -279,24 +363,20 @@ function Layer1TaskStyling(): React.ReactElement {
     { mark: "<", desc: "Waiting on external" },
   ];
 
-  // Render checkbox with colored marker: [x] with dim brackets
-  // Matches format.ts formatNode() logic for tasks
-  const renderCheckbox = (mark: string, status?: string): string => {
-    let coloredMark: string;
+  // Helper to get marker color based on status (uses Ink color names)
+  const getMarkerColor = (
+    status?: string,
+  ): "green" | "yellow" | "red" | undefined => {
     switch (status) {
       case "done":
-        coloredMark = chalk.green(mark);
-        break;
+        return "green";
       case "wip":
-        coloredMark = chalk.yellow(mark);
-        break;
+        return "yellow";
       case "blocked":
-        coloredMark = chalk.red(mark);
-        break;
+        return "red";
       default:
-        coloredMark = chalk.dim(mark);
+        return undefined;
     }
-    return chalk.dim("[") + coloredMark + chalk.dim("]");
   };
 
   return (
@@ -309,17 +389,18 @@ function Layer1TaskStyling(): React.ReactElement {
       {statusTable.map(({ mark, status, desc }) => {
         const icon = getStatusIcon(status);
         const isDoneOrDropped = status === "done" || status === "dropped";
-        const styledDesc = isDoneOrDropped
-          ? chalk.dim.strikethrough(desc)
-          : desc;
+        const markerColor = getMarkerColor(status);
 
         return (
           <Text key={status}>
             {" "}
-            {renderCheckbox(mark, status)}{" "}
-            {getChalkColor(icon.color)(icon.char)}
+            <Text dimColor>[</Text>
+            <Text color={markerColor} dimColor={!markerColor}>
+              {mark}
+            </Text>
+            <Text dimColor>]</Text> <Text color={icon.color}>{icon.char}</Text>
             {"    "}
-            {styledDesc}
+            <Text dimColor={isDoneOrDropped}>{desc}</Text>
           </Text>
         );
       })}
@@ -331,7 +412,12 @@ function Layer1TaskStyling(): React.ReactElement {
       {customMarkers.map(({ mark, desc }) => (
         <Text key={mark}>
           {" "}
-          {renderCheckbox(mark)} {chalk.bgWhite.black(mark)}
+          <Text dimColor>[</Text>
+          <Text dimColor>{mark}</Text>
+          <Text dimColor>]</Text>{" "}
+          <Text backgroundColor="white" color="black">
+            {mark}
+          </Text>
           {"    "}
           {desc}
         </Text>
@@ -341,7 +427,9 @@ function Layer1TaskStyling(): React.ReactElement {
       <SubsectionHeader title="Error State" />
       <Text>
         {" "}
-        {renderCheckbox("-")} {chalk.red("⚠")}
+        <Text dimColor>[</Text>
+        <Text dimColor>-</Text>
+        <Text dimColor>]</Text> <Text color="red">⚠</Text>
         {"    "}
         Missing status (null/undefined)
       </Text>
@@ -482,18 +570,21 @@ function Layer2Layout(): React.ReactElement {
 // ============================================================================
 
 // Helper to create mock nodes for demonstration
+// Options: { parentId, linkTo, linkAlias } for embedded/linked tasks
 function mockNode(
   id: string,
   content: string,
   status?: string,
   type: string = "task",
+  options?: { parentId?: string; linkTo?: string; linkAlias?: string },
 ): KNode {
-  return {
+  const node: KNode = {
     id,
     type: type as KNode["type"],
-    parent_id: null,
+    parent_id: options?.parentId ?? null,
     parent_idx: 0,
-    link_to: null,
+    link_to: options?.linkTo ?? null,
+    link_alias: options?.linkAlias,
     content,
     task_status: status as KNode["task_status"],
     data: {},
@@ -501,6 +592,11 @@ function mockNode(
     updated_at: Date.now(),
     version: "1",
   };
+
+  // Register in the in-memory store so getChildrenFromStore() works
+  registerNode(node);
+
+  return node;
 }
 
 function Layer3Views(): React.ReactElement {
@@ -512,7 +608,8 @@ function Layer3Views(): React.ReactElement {
   const droppedTask = mockNode("dropped-1", "Old approach", "dropped");
 
   // TreeNode now gets foldedNodes, maxDepth, maxContentLines, inOutlineMode,
-  // currentSubIndex, variant, and multiSelected from context
+  // currentSubIndex, variant, and multiSelected from context.
+  // DI props (getChildren, getParentContext) use the in-memory store.
   const commonProps = {
     depth: 0,
     width: 40,
@@ -520,6 +617,9 @@ function Layer3Views(): React.ReactElement {
     cardIndex: 0,
     subIndex: 0,
     dimInactiveChildren: false,
+    getChildren: getChildrenFromStore,
+    getParentContext: getParentContextFromStore,
+    getBoardPills: getBoardPillsFromStore,
   };
 
   return (
@@ -531,71 +631,31 @@ function Layer3Views(): React.ReactElement {
       <Text> </Text>
 
       <Text bold>Todo (open):</Text>
-      <TreeNode
-        {...commonProps}
-        node={todoTask}
-        isSelected={false}
-        isMultiSelected={false}
-      />
+      <TreeNode {...commonProps} node={todoTask} isSelected={false} />
 
       <Text bold>WIP (in progress):</Text>
-      <TreeNode
-        {...commonProps}
-        node={wipTask}
-        isSelected={false}
-        isMultiSelected={false}
-      />
+      <TreeNode {...commonProps} node={wipTask} isSelected={false} />
 
       <Text bold>Blocked:</Text>
-      <TreeNode
-        {...commonProps}
-        node={blockedTask}
-        isSelected={false}
-        isMultiSelected={false}
-      />
+      <TreeNode {...commonProps} node={blockedTask} isSelected={false} />
 
       <Text bold>Done (strikethrough + dim):</Text>
-      <TreeNode
-        {...commonProps}
-        node={doneTask}
-        isSelected={false}
-        isMultiSelected={false}
-      />
+      <TreeNode {...commonProps} node={doneTask} isSelected={false} />
 
       <Text bold>Dropped (strikethrough + dim):</Text>
-      <TreeNode
-        {...commonProps}
-        node={droppedTask}
-        isSelected={false}
-        isMultiSelected={false}
-      />
+      <TreeNode {...commonProps} node={droppedTask} isSelected={false} />
 
       <Text> </Text>
       <SubsectionHeader title="TreeNode - Selection States" />
 
       <Text bold>Normal (not selected):</Text>
-      <TreeNode
-        {...commonProps}
-        node={todoTask}
-        isSelected={false}
-        isMultiSelected={false}
-      />
+      <TreeNode {...commonProps} node={todoTask} isSelected={false} />
 
       <Text bold>Selected (cyan background):</Text>
-      <TreeNode
-        {...commonProps}
-        node={todoTask}
-        isSelected={true}
-        isMultiSelected={false}
-      />
+      <TreeNode {...commonProps} node={todoTask} isSelected={true} />
 
       <Text bold>Multi-selected (also cyan background):</Text>
-      <TreeNode
-        {...commonProps}
-        node={todoTask}
-        isSelected={false}
-        isMultiSelected={true}
-      />
+      <TreeNode {...commonProps} node={todoTask} isSelected={false} />
     </Box>
   );
 }
@@ -605,7 +665,16 @@ function Layer3Views(): React.ReactElement {
 // ============================================================================
 
 // Helper to create mock CardState with children
-function mockCard(node: KNode, children: KNode[] = []): CardState {
+// Children are created with proper parent_id for getChildren() to work
+function mockCard(
+  node: KNode,
+  childDefs: Array<{ content: string; status?: string }> = [],
+): CardState {
+  const children = childDefs.map((def, i) =>
+    mockNode(`${node.id}-child-${i}`, def.content, def.status, "task", {
+      parentId: node.id,
+    }),
+  );
   return { node, children };
 }
 
@@ -618,73 +687,155 @@ function mockColumn(name: string, cards: CardState[]): ColumnState {
 }
 
 // Create a rich mock BoardState with varied content for view demos
+// This demonstrates ALL styling scenarios:
+// - Task statuses: todo, wip, blocked, done, dropped
+// - Done/dropped tasks: dimmed styling
+// - Inactive children: dimmed when parent card not selected (depth > 0)
+// - Parent context: italic + dim on separate line for embedded/linked tasks
+// - Rich text: **bold**, *italic*, `code`, [[wiki links]], ~~strike~~
 function createMockBoardState(): BoardState {
-  // Backlog column: tasks with wiki links, inline fields, rich text
-  const backlogCards: CardState[] = [
+  // Create a source hierarchy for embedded tasks to link to
+  // The parent context shows the PARENT of the linked task, so we need:
+  //   source-file (file) → source-section (section) → source-task (task)
+  // When we link to source-task, it shows "source-section" as the parent context
+
+  // File level (grandparent - not shown in context)
+  mockNode("source-file-api", "projects/api.md", undefined, "file");
+  mockNode("source-file-design", "projects/design.md", undefined, "file");
+  mockNode("source-file-infra", "projects/infra.md", undefined, "file");
+
+  // Section level (parent - THIS is shown in context as "{section name}")
+  mockNode("source-api", "API Integration Project", undefined, "section", {
+    parentId: "source-file-api",
+  });
+  mockNode("source-design", "Design System Work", undefined, "section", {
+    parentId: "source-file-design",
+  });
+  mockNode("source-infra", "Infrastructure Tasks", undefined, "section", {
+    parentId: "source-file-infra",
+  });
+
+  // Original tasks (these are what we link TO from the board)
+  // The embedded tasks in the board will link to these, and show their parent (section) as context
+  mockNode("orig-api-endpoints", "Implement REST endpoints", "wip", "task", {
+    parentId: "source-api",
+  });
+  mockNode("orig-design-buttons", "Create button components", "todo", "task", {
+    parentId: "source-design",
+  });
+  mockNode("orig-infra-cicd", "Setup CI/CD pipeline", "done", "task", {
+    parentId: "source-infra",
+  });
+  mockNode("orig-infra-db", "Database migrations", "wip", "task", {
+    parentId: "source-infra",
+  });
+  mockNode("orig-infra-logging", "Configure logging", "done", "task", {
+    parentId: "source-infra",
+  });
+  mockNode("orig-api-review", "Review PR #42", "todo", "task", {
+    parentId: "source-api",
+  });
+
+  // Column 1 - Active Tasks with CHILDREN (shows inactive children dimming)
+  // When this column is NOT selected, children at depth > 0 are dimmed
+  const activeCards: CardState[] = [
+    // WIP task WITH CHILDREN - children show inactive dimming when not selected
+    mockCard(mockNode("act1", "Implement **auth flow**", "wip"), [
+      { content: "Setup OAuth provider", status: "done" }, // done = always dimmed
+      { content: "Add login endpoint", status: "wip" },
+      { content: "Create session middleware", status: "todo" },
+    ]),
+    // Another task with children
+    mockCard(mockNode("act2", "Build user dashboard", "todo"), [
+      { content: "Create layout components", status: "todo" },
+      { content: "Add data fetching", status: "todo" },
+    ]),
+    // Simple task without children
+    mockCard(mockNode("act3", "Review [[architecture]] docs", "todo")),
+    // Blocked task
+    mockCard(mockNode("act4", "Deploy to staging", "blocked")),
+  ];
+
+  // Column 2 - EMBEDDED/LINKED Tasks (shows parent context with prefix)
+  // These tasks have link_to set, pointing to ORIGINAL tasks in other files
+  // The parent context shows the PARENT of the original task (the section)
+  const embeddedCards: CardState[] = [
+    // Embedded task from API project - shows "API Integration Project"
     mockCard(
-      mockNode(
-        "bl1",
-        "Review [[architecture]] docs [due:: 2024-02-15]",
-        "todo",
-      ),
+      mockNode("emb1", "Implement REST endpoints", "wip", "task", {
+        linkTo: "orig-api-endpoints", // Links to original task, shows its parent section
+      }),
     ),
-    mockCard(mockNode("bl2", "Plan **Q2** sprint goals", "todo")),
-    mockCard(mockNode("bl3", "Update `config.ts` settings", "todo"), [
-      mockNode("bl3-1", "Add new env vars", "todo"),
-      mockNode("bl3-2", "Document changes in [[README]]", "todo"),
-    ]),
-    mockCard(mockNode("bl4", "~~Old approach~~ Try new method", "todo")),
-  ];
-
-  // In Progress column: WIP tasks with children and various types
-  const wipCards: CardState[] = [
-    mockCard(mockNode("wip1", "Implement auth flow [priority:: 1]", "wip"), [
-      mockNode("wip1-1", "Setup OAuth provider", "done"),
-      mockNode("wip1-2", "Add login endpoint", "wip"),
-      mockNode("wip1-3", "Create session middleware", "todo"),
-    ]),
-    mockCard(mockNode("wip2", "Fix **critical** bug #42", "wip")),
-    mockCard(mockNode("wip3", "Refactor [[database]] layer", "wip"), [
-      mockNode(
-        "wip3-note",
-        "Consider using *connection pooling*",
-        undefined,
-        "paragraph",
-      ),
-    ]),
-  ];
-
-  // Blocked column: blocked tasks with reasons
-  const blockedCards: CardState[] = [
+    // Embedded task from Design System - shows "Design System Work"
     mockCard(
-      mockNode("blk1", "Deploy to staging [blocked:: API down]", "blocked"),
-      [mockNode("blk1-1", "Waiting on infra team", "blocked")],
+      mockNode("emb2", "Create button components", "todo", "task", {
+        linkTo: "orig-design-buttons",
+      }),
     ),
-    mockCard(mockNode("blk2", "Integrate payment system", "blocked")),
+    // Embedded task from Infrastructure - shows "Infrastructure Tasks"
+    mockCard(
+      mockNode("emb3", "Setup CI/CD pipeline", "done", "task", {
+        linkTo: "orig-infra-cicd",
+      }),
+    ),
+    // Embedded task with children AND parent context
+    mockCard(
+      mockNode("emb4", "Database migrations", "wip", "task", {
+        linkTo: "orig-infra-db",
+      }),
+      [
+        { content: "Create schema", status: "done" },
+        { content: "Write seed data", status: "wip" },
+      ],
+    ),
+    // Another embedded with alias
+    mockCard(
+      mockNode("emb5", "Review PR #42", "todo", "task", {
+        linkTo: "orig-api-review",
+        linkAlias: "API Review",
+      }),
+    ),
   ];
 
-  // Done column: completed and dropped tasks
-  const doneCards: CardState[] = [
-    mockCard(mockNode("done1", "Setup project structure", "done")),
-    mockCard(mockNode("done2", "Create initial tests", "done"), [
-      mockNode("done2-1", "Unit tests for `utils.ts`", "done"),
-      mockNode("done2-2", "Integration tests", "done"),
+  // Column 3 - Completed (done/dropped = ALL dimmed)
+  const completedCards: CardState[] = [
+    mockCard(mockNode("cmp1", "Setup project structure", "done")),
+    mockCard(mockNode("cmp2", "Create initial tests", "done"), [
+      { content: "Unit tests for `utils.ts`", status: "done" },
+      { content: "Integration tests", status: "done" },
     ]),
-    mockCard(mockNode("drop1", "Old migration script", "dropped")),
-    mockCard(mockNode("done3", "Configure [[CI/CD]] pipeline", "done")),
+    mockCard(mockNode("cmp3", "Old migration script", "dropped")),
+    // Embedded + done = dimmed with parent context
+    mockCard(
+      mockNode("cmp4", "Configure logging", "done", "task", {
+        linkTo: "orig-infra-logging",
+      }),
+    ),
+  ];
+
+  // Column 4 - Rich Text formatting showcase
+  const formattingCards: CardState[] = [
+    mockCard(mockNode("fmt1", "Task with **bold** text", "todo")),
+    mockCard(mockNode("fmt2", "Task with *italic* text", "todo")),
+    mockCard(mockNode("fmt3", "Task with `inline code`", "todo")),
+    mockCard(mockNode("fmt4", "Task with [[wiki link]]", "todo")),
+    mockCard(mockNode("fmt5", "~~Strikethrough~~ in markdown", "todo")),
+    mockCard(
+      mockNode("fmt6", "**Bold** and *italic* and `code` together", "wip"),
+    ),
   ];
 
   return {
     rootId: "board-root",
     rootPath: "/Projects/webapp",
     columns: [
-      mockColumn("Backlog", backlogCards),
-      mockColumn("In Progress", wipCards),
-      mockColumn("Blocked", blockedCards),
-      mockColumn("Done", doneCards),
+      mockColumn("Active", activeCards),
+      mockColumn("Embedded", embeddedCards), // NEW: Shows parent context
+      mockColumn("Completed", completedCards),
+      mockColumn("Formatting", formattingCards),
     ],
-    colIndex: 1, // Select "In Progress" column
-    cardIndex: 0, // Select first card
+    colIndex: 0, // Select "Active" column - other columns show inactive children
+    cardIndex: 0, // Select first card with children
     selectedCards: new Set<string>(),
     visualMode: false,
     foldedCards: new Set<string>(),
@@ -696,57 +847,22 @@ function createMockBoardState(): BoardState {
   };
 }
 
-// Top bar component showing breadcrumb path with proper board/item path styling
-function TopBar({ width }: { width: number }): React.ReactElement {
-  // Simulate path segments like the real Board.tsx does
-  // Board path: Projects / webapp (gray separators, black text)
-  // Item path: # In Progress > Implement auth flow (blue separator at boundary)
-  const segments: Array<{ name: string; sep: string; isWithinBoard: boolean }> =
-    [
-      { name: "Projects", sep: "", isWithinBoard: false },
-      { name: "webapp", sep: "/", isWithinBoard: false },
-      { name: "In Progress", sep: "#", isWithinBoard: true }, // boundary - blue separator
-      { name: "Implement auth flow", sep: ">", isWithinBoard: true },
-    ];
-
-  // Build styled path like Board.tsx does
-  const topBarContent = segments
-    .map((seg, i) => {
-      const prevSeg = i > 0 ? segments[i - 1] : null;
-      const isBoardBoundary =
-        prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
-
-      // White background, varying foreground colors
-      const sepPart = seg.sep
-        ? isBoardBoundary
-          ? chalk.bgWhite.blue.bold(` ${seg.sep} `) // Blue separator at boundary
-          : chalk.bgWhite.gray(` ${seg.sep} `) // Gray separators elsewhere
-        : "";
-      // Board path: black text, Item path (within board): blue text
-      const namePart = seg.isWithinBoard
-        ? chalk.bgWhite.blue(seg.name)
-        : chalk.bgWhite.black.bold(seg.name);
-      return sepPart + namePart;
-    })
-    .join("");
-
-  // Calculate visible length for padding
-  const visibleLen =
-    1 +
-    segments.reduce(
-      (acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0),
-      0,
-    );
-  const padding = " ".repeat(Math.max(0, width - visibleLen));
-
-  return (
-    <Box height={1} width={width}>
-      <Text>
-        {chalk.bgWhite.black(" ") + topBarContent + chalk.bgWhite(padding)}
-      </Text>
-    </Box>
-  );
-}
+// Sample path segments for TopBar demos - uses production TopBar component
+// Separators per production Board.tsx getPathSegments():
+//   "/" = filesystem path (folder/file)
+//   "#" = section (markdown heading)
+//   tasks/other types also use "/" when in path
+const demoPathSegments: PathSegment[] = [
+  { id: "proj", name: "Projects", sep: "", isWithinBoard: false, node: null },
+  { id: "webapp", name: "webapp", sep: "/", isWithinBoard: false, node: null },
+  {
+    id: "inprog",
+    name: "In Progress",
+    sep: "#",
+    isWithinBoard: true,
+    node: null,
+  },
+];
 
 // Wrapper component with border and title
 function ViewBox({
@@ -775,59 +891,71 @@ function ViewBox({
 }
 
 // Cards View - render cards in columns (simplified version of Board's Card/Column)
+// Uses vertical line separators between columns like production Board.tsx
 function CardsViewDemo({
   state,
   width,
-  height,
 }: {
   state: BoardState;
   width: number;
-  height: number;
 }): React.ReactElement {
-  const colWidth = Math.floor(width / Math.min(state.columns.length, 4));
+  const numCols = Math.min(state.columns.length, 4);
+  // Account for separator lines (1 char each) between columns
+  const separatorWidth = numCols - 1;
+  const colWidth = Math.floor((width - separatorWidth) / numCols);
 
+  // NOTE: Do NOT use height={height} on the row Box!
+  // Ink clips bordered Box content from TOP (not bottom) when height is constrained.
+  // See bead km-2yys for details on this Ink quirk.
   return (
     <Box flexDirection="column" width={width}>
-      <TopBar width={width} />
-      <Box flexDirection="row" width={width} height={height}>
+      <TopBar segments={demoPathSegments} width={width} />
+      <Box flexDirection="row" width={width}>
         {state.columns.slice(0, 4).map((column, cIdx) => {
           const isColSelected = cIdx === state.colIndex;
+          const isLastCol = cIdx === numCols - 1;
           return (
-            <Box
-              key={column.node.id}
-              flexDirection="column"
-              width={colWidth}
-              borderStyle="single"
-              borderColor={isColSelected ? "blueBright" : "blackBright"}
-            >
-              <Text bold color="yellow">
-                {column.node.content} ({column.cards.length})
-              </Text>
-              {column.cards.slice(0, 3).map((card, cardIdx) => {
-                const isCardSelected =
-                  isColSelected && cardIdx === state.cardIndex;
-                return (
-                  <Box
-                    key={card.node.id}
-                    borderStyle="round"
-                    borderColor={isCardSelected ? "cyanBright" : "blackBright"}
-                    marginY={0}
-                  >
-                    <TreeNode
-                      node={card.node}
-                      depth={0}
-                      width={colWidth - 4}
-                      isSelected={isCardSelected}
-                      isMultiSelected={false}
-                      colIndex={cIdx}
-                      cardIndex={cardIdx}
-                      subIndex={0}
-                      dimInactiveChildren={!isCardSelected}
-                    />
-                  </Box>
-                );
-              })}
-            </Box>
+            <React.Fragment key={column.node.id}>
+              <Box flexDirection="column" width={colWidth}>
+                <Text bold color={isColSelected ? "yellow" : "yellowBright"}>
+                  {column.node.content} ({column.cards.length})
+                </Text>
+                {column.cards.slice(0, 3).map((card, cardIdx) => {
+                  const isCardSelected =
+                    isColSelected && cardIdx === state.cardIndex;
+                  // Card border uses 2 chars (1 left + 1 right), so inner content is width - 2
+                  const innerWidth = Math.max(5, colWidth - 2);
+                  return (
+                    <Box
+                      key={card.node.id}
+                      borderStyle="round"
+                      borderColor={
+                        isCardSelected ? "cyanBright" : "blackBright"
+                      }
+                    >
+                      <TreeNode
+                        node={card.node}
+                        depth={0}
+                        width={innerWidth}
+                        isSelected={isCardSelected}
+                        colIndex={cIdx}
+                        cardIndex={cardIdx}
+                        subIndex={0}
+                        dimInactiveChildren={!isCardSelected}
+                        getChildren={getChildrenFromStore}
+                        getParentContext={getParentContextFromStore}
+                      />
+                    </Box>
+                  );
+                })}
+              </Box>
+              {/* Vertical separator between columns */}
+              {!isLastCol && (
+                <Box flexDirection="column" width={1}>
+                  <Text color="gray">│</Text>
+                </Box>
+              )}
+            </React.Fragment>
           );
         })}
       </Box>
@@ -842,20 +970,48 @@ function Layer3AllViews(): React.ReactElement {
   const viewWidth = 96; // Fits within ViewBox (100 - 4 for border/padding)
   const viewHeight = 16;
 
-  // Shared props for view components (foldedNodes, multiSelected, etc. now come from context)
-  const commonViewProps = {
+  // Different selection levels to show variety across views:
+  // - View 1 (Cards): card level - shows card selection + inactive children dimming
+  // - View 2 (Columns): column level - shows column header selection
+  // - View 3 (Tabs): card level in tab view
+  // - View 4 (List): outline level - shows sub-item selection within card
+
+  // Card-level selection (column 0, card 0 selected)
+  const cardLevelProps = {
     state: mockState,
     width: viewWidth,
     height: viewHeight,
-    colIndex: mockState.colIndex,
-    cardIndex: mockState.cardIndex,
+    colIndex: 0,
+    cardIndex: 0,
+    subIndex: 0,
+    selectionLevel: "card" as const,
+  };
+
+  // Column-level selection (selecting column header, not specific card)
+  const columnLevelProps = {
+    state: mockState,
+    width: viewWidth,
+    height: viewHeight,
+    colIndex: 1, // Select "Embedded" column to show linked tasks
+    cardIndex: 0,
+    subIndex: 0,
+    selectionLevel: "column" as const,
+  };
+
+  // List view with card selection in different column
+  const listViewProps = {
+    state: mockState,
+    width: viewWidth,
+    height: viewHeight,
+    colIndex: 2, // Select "Completed" column to show done/dropped dimming
+    cardIndex: 1, // Select second card (has children)
     subIndex: 0,
     selectionLevel: "card" as const,
   };
 
   // ColumnsView needs these extra props
   const columnsViewProps = {
-    ...commonViewProps,
+    ...columnLevelProps,
     effectiveScrollOffset: 0,
     effectiveMaxCols: 4,
     effectiveVisibleColumns: mockState.columns,
@@ -871,30 +1027,29 @@ function Layer3AllViews(): React.ReactElement {
       <Text dimColor>
         • Rich text: **bold**, *italic*, `code`, ~~strike~~, [[links]]
       </Text>
-      <Text dimColor>• Inline fields stripped: [due:: date] → (hidden)</Text>
-      <Text dimColor>• Embedded children shown under parent tasks</Text>
+      <Text dimColor>• Inactive children: dimmed when card not selected</Text>
+      <Text dimColor>• Embedded tasks: show parent context prefix</Text>
+      <Text dimColor>
+        • Selection levels: column → card → outline (sub-items)
+      </Text>
 
-      <ViewBox title="View 1: Cards (Kanban-style cards in columns)">
-        <CardsViewDemo
-          state={mockState}
-          width={viewWidth}
-          height={viewHeight}
-        />
+      <ViewBox title="View 1: Cards (card level - first card selected)">
+        <CardsViewDemo state={mockState} width={viewWidth} />
       </ViewBox>
 
-      <ViewBox title="View 2: Columns (Tree within columns)">
-        <TopBar width={viewWidth} />
+      <ViewBox title="View 2: Columns (column level - 'Embedded' column selected)">
+        <TopBar segments={demoPathSegments} width={viewWidth} />
         <ColumnsView {...columnsViewProps} />
       </ViewBox>
 
-      <ViewBox title="View 3: Tabs (One column at a time)">
-        <TopBar width={viewWidth} />
-        <TabsView {...commonViewProps} />
+      <ViewBox title="View 3: Tabs (card level - shows Active column)">
+        <TopBar segments={demoPathSegments} width={viewWidth} />
+        <TabsView {...cardLevelProps} />
       </ViewBox>
 
-      <ViewBox title="View 4: List (Full-width hierarchical)">
-        <TopBar width={viewWidth} />
-        <ListView {...commonViewProps} />
+      <ViewBox title="View 4: List (card level - 'Completed' column, 2nd card)">
+        <TopBar segments={demoPathSegments} width={viewWidth} />
+        <ListView {...listViewProps} />
       </ViewBox>
     </Box>
   );
@@ -909,7 +1064,8 @@ function VisualLanguageSection(): React.ReactElement {
   const wipTask = mockNode("vl-2", "Work in progress task", "wip");
   const doneTask = mockNode("vl-3", "Completed task item", "done");
 
-  // TreeNode now gets most props from context
+  // TreeNode now gets most props from context.
+  // DI props (getChildren, getParentContext) use the in-memory store.
   const commonProps = {
     depth: 0,
     width: 35,
@@ -917,6 +1073,9 @@ function VisualLanguageSection(): React.ReactElement {
     cardIndex: 0,
     subIndex: 0,
     dimInactiveChildren: false,
+    getChildren: getChildrenFromStore,
+    getParentContext: getParentContextFromStore,
+    getBoardPills: getBoardPillsFromStore,
   };
 
   return (
@@ -935,23 +1094,13 @@ function VisualLanguageSection(): React.ReactElement {
       <Box flexDirection="row" gap={2}>
         <Box flexDirection="column" width={38}>
           <Text bold>Normal (no selection):</Text>
-          <TreeNode
-            {...commonProps}
-            node={todoTask}
-            isSelected={false}
-            isMultiSelected={false}
-          />
+          <TreeNode {...commonProps} node={todoTask} isSelected={false} />
         </Box>
         <Box flexDirection="column" width={38}>
           <Text bold color="cyan">
             Selected (cyan bg):
           </Text>
-          <TreeNode
-            {...commonProps}
-            node={todoTask}
-            isSelected={true}
-            isMultiSelected={false}
-          />
+          <TreeNode {...commonProps} node={todoTask} isSelected={true} />
         </Box>
       </Box>
       <Text> </Text>
@@ -1015,32 +1164,16 @@ function VisualLanguageSection(): React.ReactElement {
       <Box flexDirection="row" gap={2}>
         <Box flexDirection="column" width={30}>
           <Text bold>Active states:</Text>
-          <TreeNode
-            {...commonProps}
-            node={todoTask}
-            isSelected={false}
-            isMultiSelected={false}
-          />
-          <TreeNode
-            {...commonProps}
-            node={wipTask}
-            isSelected={false}
-            isMultiSelected={false}
-          />
+          <TreeNode {...commonProps} node={todoTask} isSelected={false} />
+          <TreeNode {...commonProps} node={wipTask} isSelected={false} />
         </Box>
         <Box flexDirection="column" width={38}>
-          <Text bold>Terminal states (dim + strike):</Text>
-          <TreeNode
-            {...commonProps}
-            node={doneTask}
-            isSelected={false}
-            isMultiSelected={false}
-          />
+          <Text bold>Terminal states (dim only):</Text>
+          <TreeNode {...commonProps} node={doneTask} isSelected={false} />
           <TreeNode
             {...commonProps}
             node={mockNode("vl-4", "Dropped task item", "dropped")}
             isSelected={false}
-            isMultiSelected={false}
           />
         </Box>
       </Box>
@@ -1076,15 +1209,19 @@ function VisualLanguageSection(): React.ReactElement {
         Uses 24-bit RGB colors - may not render in all terminals
       </Text>
       <Text> </Text>
-      <Text> {chalk.red("Overdue")}: red curly underline [255,80,80]</Text>
       <Text>
         {" "}
-        {chalk.rgb(255, 165, 0)("Today/Tomorrow")}: orange curly underline
+        <Text color="red">Overdue</Text>: red curly underline [255,80,80]
+      </Text>
+      <Text>
+        {" "}
+        <Text color="#FFA500">Today/Tomorrow</Text>: orange curly underline
         [255,165,0]
       </Text>
       <Text>
         {" "}
-        {chalk.yellow("This week")}: yellow single underline [255,255,0]
+        <Text color="yellow">This week</Text>: yellow single underline
+        [255,255,0]
       </Text>
       <Text> Beyond 7 days: no underline</Text>
     </Box>

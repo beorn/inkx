@@ -54,6 +54,7 @@ inkz/
 Ink uses AVA with 31 test files. Our approach:
 
 **Step 1: Clone and Adapt**
+
 ```bash
 # Fetch Ink's test suite
 git clone --depth=1 https://github.com/vadimdemedes/ink.git /tmp/ink
@@ -65,23 +66,25 @@ find tests/compat/ink -name "*.tsx" -exec sed -i '' \
 ```
 
 **Step 2: Track Compatibility Progress**
+
 ```typescript
 // tests/compat/ink/compat-status.ts
 export const COMPAT_STATUS = {
   // Phase 1 - Must pass for MVP
-  'flex.test.tsx': 'passing',
-  'flex-direction.test.tsx': 'passing',
-  'flex-justify-content.test.tsx': 'passing',
-  'text.test.tsx': 'passing',
-  'render.test.tsx': 'partial',  // 12/15 passing
+  "flex.test.tsx": "passing",
+  "flex-direction.test.tsx": "passing",
+  "flex-justify-content.test.tsx": "passing",
+  "text.test.tsx": "passing",
+  "render.test.tsx": "partial", // 12/15 passing
 
   // Phase 2 - Nice to have
-  'focus.test.tsx': 'skipped',
-  'screen-reader.test.tsx': 'skipped',
+  "focus.test.tsx": "skipped",
+  "screen-reader.test.tsx": "skipped",
 } as const;
 ```
 
 **Step 3: CI Dashboard**
+
 ```yaml
 # .github/workflows/compat.yml
 - name: Run Ink compatibility tests
@@ -91,6 +94,7 @@ export const COMPAT_STATUS = {
 ```
 
 Output:
+
 ```
 Ink Compatibility Report
 ========================
@@ -168,6 +172,7 @@ test('basic layout renders correctly', () => {
 ```
 
 Snapshot format (with ANSI codes visible):
+
 ```
 // __snapshots__/visual.test.ts.snap
 exports[`basic layout renders correctly 1`] = `
@@ -182,18 +187,18 @@ Different terminals render ANSI differently. Use PTY-based testing:
 
 ```typescript
 // tests/visual/terminals/cross-terminal.test.ts
-import { spawn } from 'node-pty';
-import { toMatchImageSnapshot } from 'jest-image-snapshot';
+import { spawn } from "node-pty";
+import { toMatchImageSnapshot } from "jest-image-snapshot";
 
 const TERMINALS = [
-  { name: 'xterm', env: { TERM: 'xterm-256color' } },
-  { name: 'vt100', env: { TERM: 'vt100' } },
-  { name: 'dumb', env: { TERM: 'dumb' } },
+  { name: "xterm", env: { TERM: "xterm-256color" } },
+  { name: "vt100", env: { TERM: "vt100" } },
+  { name: "dumb", env: { TERM: "dumb" } },
 ];
 
 for (const terminal of TERMINALS) {
   test(`renders correctly in ${terminal.name}`, async () => {
-    const pty = spawn('node', ['fixtures/test-app.js'], {
+    const pty = spawn("node", ["fixtures/test-app.js"], {
       env: { ...process.env, ...terminal.env },
       cols: 80,
       rows: 24,
@@ -211,19 +216,19 @@ Use Microsoft's tui-test for comprehensive E2E testing:
 
 ```typescript
 // tests/visual/e2e.test.ts
-import { Terminal } from '@anthropic-ai/tui-test';
+import { Terminal } from "@anthropic-ai/tui-test";
 
-test('interactive app works end-to-end', async () => {
+test("interactive app works end-to-end", async () => {
   const terminal = new Terminal({
-    command: 'node',
-    args: ['./fixtures/interactive-app.js'],
+    command: "node",
+    args: ["./fixtures/interactive-app.js"],
     cols: 80,
     rows: 24,
   });
 
-  await terminal.waitForText('Select an option:');
-  await terminal.write('j'); // Move down
-  await terminal.write('\r'); // Enter
+  await terminal.waitForText("Select an option:");
+  await terminal.write("j"); // Move down
+  await terminal.write("\r"); // Enter
 
   await expect(terminal).toMatchSnapshot();
 });
@@ -291,14 +296,14 @@ await run({ avg: true, json: true });
 
 ### 4.2 Performance Targets
 
-| Metric | Target | Ink Baseline |
-|--------|--------|--------------|
-| Initial render (simple) | < 5ms | 3ms |
-| Initial render (complex) | < 20ms | 15ms |
-| Re-render (diff) | < 2ms | 2ms |
-| Layout (100 nodes) | < 1ms | 0.5ms |
-| Memory (idle) | < 10MB | 8MB |
-| Memory (1000 nodes) | < 50MB | 40MB |
+| Metric                   | Target | Ink Baseline |
+| ------------------------ | ------ | ------------ |
+| Initial render (simple)  | < 5ms  | 3ms          |
+| Initial render (complex) | < 20ms | 15ms         |
+| Re-render (diff)         | < 2ms  | 2ms          |
+| Layout (100 nodes)       | < 1ms  | 0.5ms        |
+| Memory (idle)            | < 10MB | 8MB          |
+| Memory (1000 nodes)      | < 50MB | 40MB         |
 
 ### 4.3 Performance Regression Detection
 
@@ -322,17 +327,17 @@ await run({ avg: true, json: true });
 // Run nightly, track trends over time
 
 const METRICS = [
-  'render_simple_p50',
-  'render_complex_p50',
-  'memory_peak',
-  'layout_100_nodes',
+  "render_simple_p50",
+  "render_complex_p50",
+  "memory_peak",
+  "layout_100_nodes",
 ];
 
 async function recordMetrics() {
   const results = await runBenchmarks();
 
   // Store in SQLite or JSON for trending
-  await db.insert('perf_metrics', {
+  await db.insert("perf_metrics", {
     timestamp: new Date(),
     commit: process.env.GITHUB_SHA,
     ...results,
@@ -342,7 +347,9 @@ async function recordMetrics() {
   const baseline = await db.getBaseline();
   for (const metric of METRICS) {
     if (results[metric] > baseline[metric] * 1.2) {
-      console.error(`REGRESSION: ${metric} is ${results[metric]}ms (was ${baseline[metric]}ms)`);
+      console.error(
+        `REGRESSION: ${metric} is ${results[metric]}ms (was ${baseline[metric]}ms)`,
+      );
       process.exit(1);
     }
   }
@@ -359,7 +366,7 @@ Provide a testing library compatible with ink-testing-library:
 
 ```typescript
 // packages/inkz-testing/src/index.ts
-import { createRenderer } from 'inkz';
+import { createRenderer } from "inkz";
 
 export function render(element: React.ReactElement) {
   const frames: string[] = [];
@@ -388,13 +395,13 @@ export { render as createInkTester };
 
 ```typescript
 // tests/fixtures/index.ts
-export { SimpleBox } from './simple-box';
-export { ComplexLayout } from './complex-layout';
-export { NestedFlex } from './nested-flex';
-export { InteractiveForm } from './interactive-form';
-export { LargeList } from './large-list';  // 1000+ items
-export { UnicodeContent } from './unicode-content';
-export { ChalkStyledContent } from './chalk-styled';
+export { SimpleBox } from "./simple-box";
+export { ComplexLayout } from "./complex-layout";
+export { NestedFlex } from "./nested-flex";
+export { InteractiveForm } from "./interactive-form";
+export { LargeList } from "./large-list"; // 1000+ items
+export { UnicodeContent } from "./unicode-content";
+export { ChalkStyledContent } from "./chalk-styled";
 ```
 
 ### 5.3 CI Pipeline

@@ -7,9 +7,10 @@
 import type { KNode } from "@km/core";
 import { getTypeIcon, getNodeIcon, styledUnderline } from "../text/index.ts";
 import {
-  getBoardPills,
+  getBoardPills as getBoardPillsFromStorage,
   formatBoardPills,
   getOwnColor,
+  type BoardPill,
 } from "../board-pills.ts";
 
 // =============================================================================
@@ -173,14 +174,23 @@ function formatDueDate(dueDate: Date): string {
   return dueDisplay;
 }
 
+/** Type for getBoardPills callback */
+export type GetBoardPillsFn = (
+  node: KNode,
+  excludeBoardIds: Set<string>,
+) => BoardPill[];
+
 /**
  * Build the info suffix for a node (priority, assignee, due date, board pills).
  * In compact mode, only shows board pill dots.
+ *
+ * @param getBoardPills - Optional callback to get board pills (defaults to storage lookup)
  */
 export function formatInfoSuffix(
   node: KNode,
   isCompact: boolean,
   excludeBoardIds: Set<string>,
+  getBoardPills: GetBoardPillsFn = getBoardPillsFromStorage,
 ): string {
   const isTask = node.type === "task";
 

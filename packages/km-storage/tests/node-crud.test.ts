@@ -710,7 +710,7 @@ describe.serial("Node CRUD Operations", () => {
       expect(task!.task_mark).toBe("x");
     });
 
-    test("should maintain referential integrity with symlinks", () => {
+    test("should maintain referential integrity with links", () => {
       // Create original node
       const original = createTestNode("task", "Original task", null, {
         task_status: "todo",

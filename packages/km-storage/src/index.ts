@@ -22,7 +22,7 @@ export {
   getAncestors,
   getTasksByStatus,
   getAllTasks,
-  getSymlinksTo,
+  getLinksTo,
   search,
   searchWithSnippet,
   toFts5Query,

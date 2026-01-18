@@ -57,7 +57,62 @@ if (!isReady) return <Box />;
 
 **Solution:** Constraint Components pattern (see below).
 
-### 3. ANSI-aware Text Length
+### 3. Height Constraints Clip from TOP (Critical!)
+
+**Problem:** When a Box has a `height` constraint and content overflows, Ink/Yoga clips from the TOP, not the bottom. This is counterintuitive and can cause critical content to disappear.
+
+**Location:** Discovered while debugging [storybook.tsx](../../apps/km-tui/packages/km-ink/tests/storybook.tsx) - see bead km-2yys.
+
+**Example of the bug:**
+
+```tsx
+// DON'T do this - first line of bordered content will be clipped!
+<Box flexDirection="row" height={6}>
+  <Box flexDirection="column" width={20}>
+    <Text>Header</Text>
+    <Box borderStyle="round">
+      <Box flexDirection="column">
+        <Text>Line 1 (WILL BE CLIPPED!)</Text>
+        <Text>Line 2</Text>
+        <Text>Line 3</Text>
+      </Box>
+    </Box>
+  </Box>
+</Box>
+```
+
+When the bordered box has 5 lines (top border + 3 content + bottom border) plus header = 6 lines, but something causes overflow, Ink clips the FIRST content line ("Line 1"), not the last.
+
+**Solution options:**
+
+1. **Remove height constraint** - Let the container grow naturally:
+
+   ```tsx
+   // GOOD: No height constraint, content flows naturally
+   <Box flexDirection="row">
+     <Box flexDirection="column" width={20}>
+       {/* Content will not be clipped from top */}
+     </Box>
+   </Box>
+   ```
+
+2. **Use `overflowY="hidden"`** on inner containers to explicitly control clipping:
+
+   ```tsx
+   <Box flexDirection="row" height={10}>
+     <Box flexDirection="column" overflowY="hidden">
+       {/* Clips from BOTTOM as expected */}
+     </Box>
+   </Box>
+   ```
+
+3. **Calculate exact heights** to avoid overflow entirely.
+
+4. **Use virtualization** (ScrollableList) to only render items that fit.
+
+**Rule:** Never assume Ink will clip from the bottom. Always test height-constrained layouts with content that exceeds the available space.
+
+### 4. ANSI-aware Text Length
 
 **Problem:** `String.length` counts ANSI escape codes, breaking layout calculations for styled text.
 

@@ -870,10 +870,10 @@ export function getAllTasks(): KNode[] {
 }
 
 /**
- * Get all symlinks pointing to a given node
+ * Get all links pointing to a given node
  * Used to find which boards/sections contain a task
  */
-export function getSymlinksTo(nodeId: string): KNode[] {
+export function getLinksTo(nodeId: string): KNode[] {
   const db = getDb();
   const rows = db
     .query(

@@ -39,7 +39,7 @@ const shortcuts = [
       { key: "p", desc: "Open project picker (move to project)" },
       { key: "Space", desc: "Cycle task status" },
       { key: "1-5", desc: "Set priority (in detail pane)" },
-      { key: "D", desc: "Delete card (symlinks: remove from board only)" },
+      { key: "D", desc: "Delete card (links: remove from board only)" },
     ],
   },
   {

@@ -1,7 +1,7 @@
 /**
  * Board Pills - Show which boards a task is on
  *
- * Tasks symlinked to boards show colored pills indicating board membership.
+ * Tasks linked to boards show colored pills indicating board membership.
  * Color comes from:
  * 1. Board's rules.color attribute (custom override)
  * 2. GTD default colors (inbox=white, next=cyan, waiting=yellow, etc.)
@@ -9,7 +9,7 @@
  */
 
 import type { KNode } from "@km/core";
-import { getSymlinksTo, getNode, getAncestors } from "@km/storage";
+import { getLinksTo, getNode, getAncestors } from "@km/storage";
 import { getNodeDisplayName } from "./state.ts";
 import {
   GTD_BOARD_COLORS,
@@ -66,23 +66,23 @@ export function getInheritedColor(node: KNode): string | undefined {
 }
 
 /**
- * Get the board (column parent) for a symlink node
+ * Get the board (column parent) for a link node
  * Returns the first section/file ancestor that represents a board column
  */
-function getBoardForSymlink(symlinkNode: KNode): KNode | null {
-  if (!symlinkNode.parent_id) return null;
+function getBoardForLink(linkNode: KNode): KNode | null {
+  if (!linkNode.parent_id) return null;
 
-  const parent = getNode(symlinkNode.parent_id);
+  const parent = getNode(linkNode.parent_id);
   if (!parent) return null;
 
-  // The symlink's parent is typically the board column (a section)
+  // The link's parent is typically the board column (a section)
   // If the parent is a section or file, that's our board
   if (parent.type === "section" || parent.type === "file") {
     return parent;
   }
 
   // Otherwise, look up ancestors to find the board
-  const ancestors = getAncestors(symlinkNode.id);
+  const ancestors = getAncestors(linkNode.id);
   for (const ancestor of ancestors) {
     if (ancestor.type === "section" || ancestor.type === "file") {
       return ancestor;
@@ -106,15 +106,15 @@ export function getBoardPills(
   // Only tasks can be on boards
   if (taskNode.type !== "task") return [];
 
-  // Find all symlinks pointing to this task
-  const symlinks = getSymlinksTo(taskNode.id);
-  if (symlinks.length === 0) return [];
+  // Find all links pointing to this task
+  const links = getLinksTo(taskNode.id);
+  if (links.length === 0) return [];
 
   const pills: BoardPill[] = [];
   const seenBoards = new Set<string>();
 
-  for (const symlink of symlinks) {
-    const board = getBoardForSymlink(symlink);
+  for (const link of links) {
+    const board = getBoardForLink(link);
     if (!board) continue;
 
     // Skip if this board is excluded (we're viewing it)

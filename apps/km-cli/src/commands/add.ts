@@ -1,7 +1,7 @@
 /**
  * Add Command
  *
- * Add tasks to boards/lists via transclusion (symlink).
+ * Add tasks to boards/lists via transclusion (link).
  * Tasks are linked to the board without changing their original location.
  *
  * km add @next TASKID          # Link task to @next board
@@ -49,7 +49,7 @@ export const addCommand = new Command("add")
       process.exit(1);
     }
 
-    // Collect tasks to add (store full node for symlink creation)
+    // Collect tasks to add (store full node for link creation)
     const tasksToAdd: KNode[] = [];
 
     for (const source of sources) {
@@ -126,7 +126,7 @@ export const addCommand = new Command("add")
       return;
     }
 
-    // Create symlink nodes in the target (transclusion - tasks stay in original location)
+    // Create link nodes in the target (transclusion - tasks stay in original location)
     for (const task of tasksToAdd) {
       // Create a link node that points to the original task
       const linkId = ulid();

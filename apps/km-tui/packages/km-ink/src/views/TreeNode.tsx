@@ -27,6 +27,7 @@ import {
   formatInfoSuffix,
   truncateContext,
   VARIANT_CONFIG,
+  type GetBoardPillsFn,
 } from "./tree-node-helpers.ts";
 
 export interface TreeNodeProps {
@@ -47,6 +48,8 @@ export interface TreeNodeProps {
   getChildren?: (id: string) => KNode[];
   /** Callback to get parent context for nested embedded tasks (optional) */
   getParentContext?: (node: KNode) => string | null;
+  /** Callback to get board pills for info suffix (optional - defaults to storage lookup) */
+  getBoardPills?: GetBoardPillsFn;
 }
 
 export function TreeNode({
@@ -62,6 +65,7 @@ export function TreeNode({
   parentContext: parentContextProp,
   getChildren: getChildrenProp,
   getParentContext: getParentContextProp,
+  getBoardPills: getBoardPillsProp,
 }: TreeNodeProps): React.ReactElement {
   // Get UI state from context
   const {
@@ -127,7 +131,12 @@ export function TreeNode({
   const additionalLines = wrappedLines.slice(1);
 
   // Info suffix and context
-  const infoSuffix = formatInfoSuffix(node, isCompact, excludeBoardIds);
+  const infoSuffix = formatInfoSuffix(
+    node,
+    isCompact,
+    excludeBoardIds,
+    getBoardPillsProp,
+  );
   // Use provided parentContext or compute it (for embedded tasks at depth 0)
   const resolvedGetParentContext =
     getParentContextProp ?? getParentContextFromState;
@@ -239,6 +248,7 @@ export function TreeNode({
           hiddenCount={hiddenCount}
           getChildren={resolvedGetChildren}
           getParentContext={resolvedGetParentContext}
+          getBoardPills={getBoardPillsProp}
         />
       )}
     </Box>
@@ -264,6 +274,8 @@ interface NodeChildrenProps {
   getChildren?: (id: string) => KNode[];
   /** Callback to get parent context for nested embedded tasks */
   getParentContext?: (node: KNode) => string | null;
+  /** Callback to get board pills for info suffix */
+  getBoardPills?: GetBoardPillsFn;
 }
 
 function NodeChildren({
@@ -279,6 +291,7 @@ function NodeChildren({
   hiddenCount,
   getChildren,
   getParentContext,
+  getBoardPills,
 }: NodeChildrenProps): React.ReactElement {
   const indent = " ".repeat(depth);
 
@@ -302,6 +315,7 @@ function NodeChildren({
             dimInactiveChildren={dimInactiveChildren}
             getChildren={getChildren}
             getParentContext={getParentContext}
+            getBoardPills={getBoardPills}
           />
         );
       })}
