@@ -104,7 +104,7 @@ function getParentName(node: KNode): string | null {
  * Project option for the picker
  */
 interface ProjectOption {
-  node: Node;
+  node: KNode;
   title: string; // Display name of the node
   parentContext: string | null; // Parent name for context
   path: string; // Full path for searching

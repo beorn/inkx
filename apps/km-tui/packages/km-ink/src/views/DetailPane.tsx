@@ -12,162 +12,8 @@ import { getNodeDisplayName } from "../state.ts";
 import { renderRich } from "../text/index.ts";
 import { wrapText } from "../layout/index.ts";
 
-// Due date urgency levels
-type DueUrgency = "overdue" | "urgent" | "soon" | "normal";
-
-// Format date for display (e.g., "Jan 10" or "2026-01-10") with urgency info
-function formatDate(dateStr: string | undefined): {
-  text: string;
-  urgency: DueUrgency;
-} {
-  if (!dateStr) return { text: "", urgency: "normal" };
-  try {
-    const date = new Date(dateStr);
-    const now = new Date();
-
-    // Calculate days until due
-    const daysUntilDue = Math.floor(
-      (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-    );
-
-    // Determine urgency
-    let urgency: DueUrgency = "normal";
-    if (daysUntilDue < 0) {
-      urgency = "overdue";
-    } else if (daysUntilDue <= 1) {
-      urgency = "urgent"; // Due today or tomorrow
-    } else if (daysUntilDue <= 3) {
-      urgency = "soon"; // Due within 3 days
-    }
-
-    // Format display text
-    const sameYear = date.getFullYear() === now.getFullYear();
-    const text = sameYear
-      ? date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        })
-      : dateStr;
-
-    return { text, urgency };
-  } catch {
-    return { text: dateStr, urgency: "normal" };
-  }
-}
-
-// Status display with color
-function getStatusDisplay(status?: string): { text: string; color: string } {
-  switch (status) {
-    case "done":
-      return { text: "done", color: "green" };
-    case "wip":
-      return { text: "wip", color: "yellow" };
-    case "blocked":
-      return { text: "blocked", color: "red" };
-    case "dropped":
-      return { text: "dropped", color: "gray" };
-    default:
-      return { text: "todo", color: "blue" };
-  }
-}
-
-// Priority display
-function getPriorityDisplay(priority?: number): string {
-  if (!priority) return "";
-  return `P${priority}`;
-}
-
-// Get checkbox mark for subtask display (markdown style)
-function getSubtaskCheckbox(status?: string): string {
-  switch (status) {
-    case "done":
-      return "[x]";
-    case "wip":
-      return "[/]";
-    case "blocked":
-      return "[!]";
-    case "dropped":
-      return "[-]";
-    default:
-      return "[ ]";
-  }
-}
-
-// Extract references from content
-interface References {
-  mentions: string[];
-  tags: string[];
-  projects: string[];
-  wikilinks: string[];
-}
-
-function extractReferences(content: string | undefined): References {
-  const refs: References = {
-    mentions: [],
-    tags: [],
-    projects: [],
-    wikilinks: [],
-  };
-
-  if (!content) return refs;
-
-  // @mentions
-  const mentionPattern = /@(\w+)/g;
-  let match;
-  while ((match = mentionPattern.exec(content)) !== null) {
-    if (match[1] && !refs.mentions.includes(match[1])) {
-      refs.mentions.push(match[1]);
-    }
-  }
-
-  // #tags
-  const tagPattern = /#(\w+)/g;
-  while ((match = tagPattern.exec(content)) !== null) {
-    if (match[1] && !refs.tags.includes(match[1])) {
-      refs.tags.push(match[1]);
-    }
-  }
-
-  // +projects
-  const projectPattern = /\+(\w+)/g;
-  while ((match = projectPattern.exec(content)) !== null) {
-    if (match[1] && !refs.projects.includes(match[1])) {
-      refs.projects.push(match[1]);
-    }
-  }
-
-  // [[wikilinks]]
-  const wikilinkPattern = /\[\[([^\]]+)\]\]/g;
-  while ((match = wikilinkPattern.exec(content)) !== null) {
-    if (match[1] && !refs.wikilinks.includes(match[1])) {
-      refs.wikilinks.push(match[1]);
-    }
-  }
-
-  return refs;
-}
-
-// Build project path (ancestors to root)
-function getProjectPath(node: KNode): string[] {
-  const path: string[] = [];
-  let currentId = node.parent_id;
-
-  while (currentId) {
-    const parent = getNode(currentId);
-    if (!parent) break;
-
-    // Only include folders and files (not sections or the board root)
-    if (parent.type === "folder" || parent.type === "file") {
-      path.unshift(getNodeDisplayName(parent));
-    }
-    currentId = parent.parent_id;
-  }
-
-  return path;
-}
-
 export interface DetailPaneProps {
-  node: Node;
+  node: KNode;
   width: number;
   height: number;
 }
@@ -435,6 +281,164 @@ export function DetailPane({
       </Box>
     </Box>
   );
+}
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+// Due date urgency levels
+type DueUrgency = "overdue" | "urgent" | "soon" | "normal";
+
+// Format date for display (e.g., "Jan 10" or "2026-01-10") with urgency info
+function formatDate(dateStr: string | undefined): {
+  text: string;
+  urgency: DueUrgency;
+} {
+  if (!dateStr) return { text: "", urgency: "normal" };
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+
+    // Calculate days until due
+    const daysUntilDue = Math.floor(
+      (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    // Determine urgency
+    let urgency: DueUrgency = "normal";
+    if (daysUntilDue < 0) {
+      urgency = "overdue";
+    } else if (daysUntilDue <= 1) {
+      urgency = "urgent"; // Due today or tomorrow
+    } else if (daysUntilDue <= 3) {
+      urgency = "soon"; // Due within 3 days
+    }
+
+    // Format display text
+    const sameYear = date.getFullYear() === now.getFullYear();
+    const text = sameYear
+      ? date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })
+      : dateStr;
+
+    return { text, urgency };
+  } catch {
+    return { text: dateStr, urgency: "normal" };
+  }
+}
+
+// Status display with color
+function getStatusDisplay(status?: string): { text: string; color: string } {
+  switch (status) {
+    case "done":
+      return { text: "done", color: "green" };
+    case "wip":
+      return { text: "wip", color: "yellow" };
+    case "blocked":
+      return { text: "blocked", color: "red" };
+    case "dropped":
+      return { text: "dropped", color: "gray" };
+    default:
+      return { text: "todo", color: "blue" };
+  }
+}
+
+// Priority display
+function getPriorityDisplay(priority?: number): string {
+  if (!priority) return "";
+  return `P${priority}`;
+}
+
+// Get checkbox mark for subtask display (markdown style)
+function getSubtaskCheckbox(status?: string): string {
+  switch (status) {
+    case "done":
+      return "[x]";
+    case "wip":
+      return "[/]";
+    case "blocked":
+      return "[!]";
+    case "dropped":
+      return "[-]";
+    default:
+      return "[ ]";
+  }
+}
+
+// Extract references from content
+interface References {
+  mentions: string[];
+  tags: string[];
+  projects: string[];
+  wikilinks: string[];
+}
+
+function extractReferences(content: string | undefined): References {
+  const refs: References = {
+    mentions: [],
+    tags: [],
+    projects: [],
+    wikilinks: [],
+  };
+
+  if (!content) return refs;
+
+  // @mentions
+  const mentionPattern = /@(\w+)/g;
+  let match;
+  while ((match = mentionPattern.exec(content)) !== null) {
+    if (match[1] && !refs.mentions.includes(match[1])) {
+      refs.mentions.push(match[1]);
+    }
+  }
+
+  // #tags
+  const tagPattern = /#(\w+)/g;
+  while ((match = tagPattern.exec(content)) !== null) {
+    if (match[1] && !refs.tags.includes(match[1])) {
+      refs.tags.push(match[1]);
+    }
+  }
+
+  // +projects
+  const projectPattern = /\+(\w+)/g;
+  while ((match = projectPattern.exec(content)) !== null) {
+    if (match[1] && !refs.projects.includes(match[1])) {
+      refs.projects.push(match[1]);
+    }
+  }
+
+  // [[wikilinks]]
+  const wikilinkPattern = /\[\[([^\]]+)\]\]/g;
+  while ((match = wikilinkPattern.exec(content)) !== null) {
+    if (match[1] && !refs.wikilinks.includes(match[1])) {
+      refs.wikilinks.push(match[1]);
+    }
+  }
+
+  return refs;
+}
+
+// Build project path (ancestors to root)
+function getProjectPath(node: KNode): string[] {
+  const path: string[] = [];
+  let currentId = node.parent_id;
+
+  while (currentId) {
+    const parent = getNode(currentId);
+    if (!parent) break;
+
+    // Only include folders and files (not sections or the board root)
+    if (parent.type === "folder" || parent.type === "file") {
+      path.unshift(getNodeDisplayName(parent));
+    }
+    currentId = parent.parent_id;
+  }
+
+  return path;
 }
 
 // Export for testing

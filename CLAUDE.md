@@ -43,60 +43,47 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 
 ### 5. Code Structure Style
 
-**Important logic first, details later.** Structure code so the core narrative is readable at a glance:
+**Important logic first, details later.**
 
-- Put the main logic/flow at the top of functions and components
-- **Avoid long arrow functions** in the main body of a function
-- Extract long callbacks, handlers, and helper logic into **named functions**
-- Place named functions **after the return statement** in React components (function hoisting makes this work)
+#### File Layout
+
+1. Imports
+2. Exports / re-exports
+3. **Main components/functions** (core logic)
+4. Helper functions (pure utilities)
+5. Constants/config
+
+#### Function Layout
+
+- Main logic at top, helpers after `return` (hoisting makes this work)
+- Pure functions that don't need closure → move to module level
+- Functions needing closure but not part of main flow → after return statement
 
 ```tsx
-// Good: Core logic readable at top, details at bottom
 function Component() {
   useEffect(handleRefresh, []);
-  useEffect(syncDimensions, [stdout]);
   useInput(handleKeyboardInput);
-
-  const result = computeResult();
 
   return <Box>...</Box>;
 
-  // Named functions hoisted here - details out of the way
+  // Hoisted helpers (need closure access)
   function handleRefresh() {
-    // ... 20+ lines of logic
-  }
-  function syncDimensions() {
-    // ... 15+ lines of logic
+    /* ... */
   }
   function handleKeyboardInput(input: string, key: Key) {
-    // ... keyboard handling logic
-  }
-  function computeResult() {
-    // ... complex computation
+    /* ... */
   }
 }
 
-// Bad: Long inline arrow functions obscure the structure
-function Component() {
-  useEffect(() => {
-    // 20 lines of refresh logic buried inline...
-  }, []);
-
-  const handleClick = () => {
-    // 30 lines of click handling...
-  };
-
-  const computeResult = () => {
-    // Complex computation mixed with declarations...
-  };
-  // ...
+// Pure helpers at module level
+function formatDate(d: Date): string {
+  /* ... */
 }
 ```
 
-**Exception**: Very short lambdas (1-3 lines) can stay inline:
+**Short lambdas (1-3 lines) are fine inline:**
 
 ```tsx
-// Fine: short enough to read at a glance
 useEffect(() => dispatch(setRootId(id)), [id]);
 const doubled = items.map((x) => x * 2);
 ```

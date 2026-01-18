@@ -51,130 +51,13 @@ import { Column } from "./CardColumn.tsx";
 import { tuiEvents } from "../tui.ts";
 import { UIProvider } from "../ui-context.tsx";
 import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
-
-// Default favorites: common boards accessed via 1-9 keys
-// These are resolved at runtime using the same resolution as CLI commands
-const DEFAULT_FAVORITES: Record<string, string> = {
-  "1": "@inbox", // Inbox
-  "2": "@next", // Next actions
-  "3": "@waiting", // Waiting for
-  "4": "@someday", // Someday/maybe
-  "5": "@projects", // Projects
-  "6": "@areas", // Areas of responsibility
-  "7": "@archive", // Archive
-  "8": "@reference", // Reference
-  "9": "@goals", // Goals
-};
-
-// Build path segments for colorized display
-// Returns segments with: { id, name, sep, isWithinBoard }
-// isWithinBoard distinguishes the board root path from path within the board
-function getPathSegments(
-  nodeId: string | null,
-  boardRootId: string | null,
-): Array<{
-  id: string | null;
-  name: string;
-  sep: string;
-  isWithinBoard: boolean;
-  node: KNode | null;
-}> {
-  if (!nodeId) {
-    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
-  }
-
-  // Collect all nodes from root to target
-  const nodes: KNode[] = [];
-  let currentId: string | null = nodeId;
-  while (currentId) {
-    const node = getNode(currentId);
-    if (!node) break;
-    nodes.unshift(node);
-    currentId = node.parent_id;
-  }
-
-  if (nodes.length === 0) {
-    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
-  }
-
-  // Find index where we enter the board (nodes after boardRootId)
-  let boardRootIndex = -1;
-  if (boardRootId) {
-    boardRootIndex = nodes.findIndex((n) => n.id === boardRootId);
-  }
-
-  // Build segments with separators
-  const segments: Array<{
-    id: string | null;
-    name: string;
-    sep: string;
-    isWithinBoard: boolean;
-    node: KNode | null;
-  }> = [];
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i];
-    if (!node) continue;
-    // Strip wiki link brackets and show alias for display
-    const rawName = getNodeDisplayName(node);
-    const name = renderPlain(rawName);
-    const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex;
-
-    if (node.type === "folder" || node.type === "file") {
-      segments.push({
-        id: node.id,
-        name,
-        sep: segments.length > 0 ? "/" : "",
-        isWithinBoard,
-        node,
-      });
-    } else if (node.type === "section") {
-      segments.push({ id: node.id, name, sep: "#", isWithinBoard, node });
-    } else if (node.type === "board") {
-      if (segments.length === 0) {
-        segments.push({
-          id: node.id,
-          name,
-          sep: "",
-          isWithinBoard: false,
-          node,
-        });
-      }
-    } else {
-      // Other types (paragraph, task, etc.)
-      segments.push({
-        id: node.id,
-        name,
-        sep: segments.length > 0 ? "/" : "",
-        isWithinBoard,
-        node,
-      });
-    }
-  }
-
-  return segments.length > 0
-    ? segments
-    : [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
-}
-
-// Helper to count visible descendants for flat indexing
-function countVisibleDescendants(
-  node: KNode,
-  depth: number,
-  maxDepth: number,
-  foldedNodes: Set<string>,
-): number {
-  if (depth > maxDepth || foldedNodes.has(node.id)) {
-    return 0;
-  }
-  const children = getChildren(node.id).slice(0, 10);
-  let count = children.length;
-  for (const child of children) {
-    count += countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
-  }
-  return count;
-}
+import { useBoardDialogs } from "./use-board-dialogs.ts";
 
 export { makeSelectionKey } from "./TreeNode.tsx";
+
+// =============================================================================
+// Main Board Component
+// =============================================================================
 
 interface BoardProps {
   initialState: BoardState;
@@ -235,6 +118,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     isReady,
     dimensions,
   } = ui;
+
+  // Dialog handlers (extracted to separate hook for maintainability)
+  const {
+    handleProjectSelect,
+    handleProjectCancel,
+    handleNewItemCreate,
+    handleNewItemCancel,
+  } = useBoardDialogs({ state, dispatch, setState });
 
   // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
   //
@@ -299,6 +190,353 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Card/node manipulation functions are hoisted below the return statement
 
   useInput(handleKeyboardInput);
+
+  // Handle detail pane navigation (j/k to move cards while pane is open)
+  useInput(handleDetailPaneInput, { isActive: showDetailPane });
+
+  // Handlers defined after return (hoisted)
+
+  // Build selected item path segments for colorized top bar
+  // Shows full path from filesystem root to selected item based on selection level
+  const selectedCol = state.columns[state.colIndex];
+  const selectedCard = selectedCol?.cards[state.cardIndex];
+
+  // Determine which node to show path to based on selection level
+  const selectedPathSegments = (() => {
+    if (selectionLevel === "board" || !selectedCol) {
+      // At board level or no column - show path to board root
+      return getPathSegments(state.rootId, state.rootId);
+    } else if (selectionLevel === "column") {
+      // At column level - show path to selected column
+      return renderPath(
+        getPathSegments(selectedCol.node.id, state.rootId),
+        termWidth - 4,
+      );
+    } else if (selectedCard) {
+      // At card level with a card selected - show path to card
+      return renderPath(
+        getPathSegments(selectedCard.node.id, state.rootId),
+        termWidth - 4,
+      );
+    } else {
+      // At card level but no card (empty column) - show path to column
+      return renderPath(
+        getPathSegments(selectedCol.node.id, state.rootId),
+        termWidth - 4,
+      );
+    }
+  })();
+
+  // Calculate widths for split view
+  const detailPaneWidth = showDetailPane ? Math.floor(termWidth * 0.4) : 0;
+  const boardWidth = termWidth - detailPaneWidth;
+
+  // Recalculate columns when detail pane is shown
+  const effectiveMaxCols = showDetailPane
+    ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
+    : maxCols;
+  const effectiveVisibleColumns = showDetailPane
+    ? state.columns.slice(
+        Math.max(
+          0,
+          Math.min(
+            state.colIndex - Math.floor(effectiveMaxCols / 2),
+            Math.max(0, state.columns.length - effectiveMaxCols),
+          ),
+        ),
+        Math.max(
+          0,
+          Math.min(
+            state.colIndex - Math.floor(effectiveMaxCols / 2),
+            Math.max(0, state.columns.length - effectiveMaxCols),
+          ),
+        ) + effectiveMaxCols,
+      )
+    : visibleColumns;
+  const effectiveScrollOffset = showDetailPane
+    ? Math.max(
+        0,
+        Math.min(
+          state.colIndex - Math.floor(effectiveMaxCols / 2),
+          Math.max(0, state.columns.length - effectiveMaxCols),
+        ),
+      )
+    : colScrollOffset;
+
+  // Build top bar - use board's color as background, or blue if selected/no color
+  const isBoardSelected = selectionLevel === "board";
+
+  // Get board's own color for the top bar background (not inherited)
+  const boardNode = state.rootId ? getNode(state.rootId) : null;
+  const boardColor = boardNode ? getOwnColor(boardNode) : undefined;
+
+  // Determine background color: board's color if available, blue if selected, white otherwise
+  const topBarBgChalk = getTopBarBgChalk(boardColor, isBoardSelected);
+
+  // Determine text color based on background (dark bg = white text, light bg = black text)
+  const darkBgColors = ["red", "green", "blue", "magenta", "gray", "grey"];
+  const useWhiteText = boardColor
+    ? darkBgColors.includes(boardColor)
+    : isBoardSelected;
+
+  const topBarContent = selectedPathSegments
+    .map((seg, i) => {
+      // Check if this is the boundary between board path and item path
+      const prevSeg = i > 0 ? selectedPathSegments[i - 1] : null;
+      const isBoardBoundary =
+        prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
+
+      // No more colored disc icons - the background IS the color now
+      if (useWhiteText) {
+        // Dark background, white text
+        const sepPart = seg.sep ? topBarBgChalk.white(` ${seg.sep} `) : "";
+        const namePart = topBarBgChalk.white.bold(seg.name);
+        return sepPart + namePart;
+      } else {
+        // Light background, black text
+        const sepPart = seg.sep
+          ? isBoardBoundary
+            ? topBarBgChalk.blue.bold(` ${seg.sep} `)
+            : topBarBgChalk.gray(` ${seg.sep} `)
+          : "";
+        const namePart = topBarBgChalk.black.bold(seg.name);
+        return sepPart + namePart;
+      }
+    })
+    .join("");
+  // Calculate visible length (without ANSI codes) - no more icon chars
+  const visibleLen =
+    1 +
+    selectedPathSegments.reduce((acc, seg) => {
+      return acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0);
+    }, 0);
+  const padding = " ".repeat(Math.max(0, termWidth - visibleLen));
+
+  // Background color for the top bar
+  const topBarBg = topBarBgChalk;
+  const topBarFg = useWhiteText ? topBarBgChalk.white : topBarBgChalk.black;
+
+  // Render loading indicator until terminal is ready (see isReady comment above)
+  // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
+  if (!isReady) {
+    return (
+      <Box
+        height={termHeight}
+        width={termWidth}
+        justifyContent="center"
+        alignItems="center"
+      >
+        <Text color="gray">Loading...</Text>
+      </Box>
+    );
+  }
+
+  return (
+    <UIProvider state={ui} dispatch={dispatch}>
+      <Box flexDirection="column" height={termHeight} minHeight={3}>
+        {/* Top bar: full path from root to selected item, inverted full width */}
+        <Box height={1} width={termWidth}>
+          <Text>{topBarFg(" ") + topBarContent + topBarBg(padding)}</Text>
+        </Box>
+        <Box flexGrow={1} flexDirection="row" height={termHeight - 2}>
+          {/* Cards, Columns, or List view */}
+          {viewMode === "cards" ? (
+            <Box flexDirection="row" width={boardWidth} height={termHeight - 2}>
+              {/* Left scroll indicator - full height filled bar */}
+              {effectiveScrollOffset > 0 && (
+                <Box flexDirection="column" width={1} height={termHeight - 3}>
+                  {Array.from({ length: termHeight - 3 }).map((_, i) => (
+                    <Text key={i} backgroundColor="gray" color="white">
+                      {i === Math.floor((termHeight - 3) / 2) ? "‹" : " "}
+                    </Text>
+                  ))}
+                </Box>
+              )}
+              {effectiveVisibleColumns.map((col, i) => {
+                const actualColIndex = effectiveScrollOffset + i;
+                const isLastCol = i === effectiveVisibleColumns.length - 1;
+                // Reduce column width if scroll indicators are shown
+                const hasLeftIndicator = effectiveScrollOffset > 0;
+                const hasRightIndicator =
+                  effectiveScrollOffset + effectiveMaxCols <
+                  state.columns.length;
+                const indicatorWidth =
+                  (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
+                // Account for separator lines between columns (1 char each, n-1 separators)
+                const separatorCount = effectiveVisibleColumns.length - 1;
+                const availableWidth =
+                  boardWidth - indicatorWidth - separatorCount;
+                const baseColWidth = Math.floor(
+                  availableWidth / effectiveMaxCols,
+                );
+                const remainder = availableWidth % effectiveMaxCols;
+                // Distribute extra pixels to the first 'remainder' columns
+                const adjustedColWidth = baseColWidth + (i < remainder ? 1 : 0);
+                return (
+                  <React.Fragment key={col.node.id}>
+                    <Column
+                      column={col}
+                      colIndex={actualColIndex}
+                      isSelected={actualColIndex === state.colIndex}
+                      isCollapsed={collapsedColumns.has(actualColIndex)}
+                      selectedCardIndex={state.cardIndex}
+                      selectedSubIndex={inOutlineMode ? subIndex : -1}
+                      width={adjustedColWidth}
+                      height={termHeight - 2}
+                      selectionLevel={selectionLevel}
+                    />
+                    {/* Separator line between columns */}
+                    {!isLastCol && (
+                      <Box
+                        flexDirection="column"
+                        width={1}
+                        height={termHeight - 2}
+                      >
+                        {/* Blank line to align with column header spacing */}
+                        <Text> </Text>
+                        {Array.from({ length: termHeight - 3 }).map((_, j) => (
+                          <Text key={j} color="gray">
+                            │
+                          </Text>
+                        ))}
+                      </Box>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+              {/* Right scroll indicator - full height filled bar */}
+              {effectiveScrollOffset + effectiveMaxCols <
+                state.columns.length && (
+                <Box flexDirection="column" width={1} height={termHeight - 3}>
+                  {Array.from({ length: termHeight - 3 }).map((_, i) => (
+                    <Text key={i} backgroundColor="gray" color="white">
+                      {i === Math.floor((termHeight - 3) / 2) ? "›" : " "}
+                    </Text>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          ) : viewMode === "columns" ? (
+            <ColumnsView
+              state={state}
+              width={boardWidth}
+              height={termHeight - 2}
+              colIndex={state.colIndex}
+              cardIndex={state.cardIndex}
+              subIndex={subIndex}
+              effectiveScrollOffset={effectiveScrollOffset}
+              effectiveMaxCols={effectiveMaxCols}
+              effectiveVisibleColumns={effectiveVisibleColumns}
+              selectionLevel={selectionLevel}
+            />
+          ) : viewMode === "list" ? (
+            <ListView
+              state={state}
+              width={boardWidth}
+              height={termHeight - 2}
+              colIndex={state.colIndex}
+              cardIndex={state.cardIndex}
+              subIndex={subIndex}
+              selectionLevel={selectionLevel}
+            />
+          ) : (
+            <TabsView
+              state={state}
+              width={boardWidth}
+              height={termHeight - 2}
+              colIndex={state.colIndex}
+              cardIndex={state.cardIndex}
+              subIndex={subIndex}
+              selectionLevel={selectionLevel}
+            />
+          )}
+          {/* Detail pane */}
+          {showDetailPane && selectedCard && (
+            <DetailPane
+              node={selectedCard.node}
+              width={detailPaneWidth}
+              height={termHeight - 2}
+            />
+          )}
+          {/* Project picker modal */}
+          {showProjectPicker && (
+            <Box
+              position="absolute"
+              marginLeft={Math.floor(termWidth / 4)}
+              marginTop={Math.floor(termHeight / 4)}
+            >
+              <ProjectPicker
+                onSelect={handleProjectSelect}
+                onCancel={handleProjectCancel}
+                width={Math.floor(termWidth / 2)}
+                height={Math.floor(termHeight / 2)}
+                recentProjectIds={recentProjectIds}
+              />
+            </Box>
+          )}
+          {/* New item dialog modal */}
+          {showNewItemDialog && (
+            <Box
+              position="absolute"
+              marginLeft={Math.floor(termWidth / 4)}
+              marginTop={Math.floor(termHeight / 3)}
+            >
+              <NewItemDialog
+                cursorNode={selectedCard?.node ?? null}
+                onCreate={handleNewItemCreate}
+                onCancel={handleNewItemCancel}
+                width={Math.floor(termWidth / 2)}
+                height={10}
+              />
+            </Box>
+          )}
+          {/* Help overlay */}
+          {showHelp && (
+            <HelpOverlay width={termWidth} height={termHeight - 2} />
+          )}
+        </Box>
+        {/* Bottom bar: mode indicator left, other indicators right */}
+        <Box width={termWidth} justifyContent="space-between" paddingX={1}>
+          {/* Left side: store mode indicator and path */}
+          <Text>
+            {(() => {
+              const store = getStore();
+              if (store.mode === "memory") {
+                return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
+              }
+              return <Text color="green">DISK REPO {store.rootPath}</Text>;
+            })()}
+          </Text>
+          {/* Right side: status indicators */}
+          <Text>
+            {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
+            {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
+            {showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
+            {showDropNotification && droppedFiles.length > 0 && (
+              <Text color="green">
+                {`[Dropped: ${droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
+              </Text>
+            )}
+            {isMouseDragging && mouseSelection && (
+              <Text color="blue">{`[Select: ${mouseSelection.startY}-${mouseSelection.endY}] `}</Text>
+            )}
+            {multiSelected.size > 0 && (
+              <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
+            )}
+            {inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
+            {selectionLevel !== "card" && (
+              <Text color="magenta">{`${selectionLevel.toUpperCase()} `}</Text>
+            )}
+            <Text inverse>{` ${viewMode.toUpperCase()} VIEW `}</Text>
+          </Text>
+        </Box>
+      </Box>
+    </UIProvider>
+  );
+
+  // ===========================================================================
+  // Input Handlers (hoisted for readability)
+  // ===========================================================================
 
   function handleKeyboardInput(
     input: string,
@@ -1195,9 +1433,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     });
   }
 
-  // Handle detail pane navigation (j/k to move cards while pane is open)
-  useInput(handleDetailPaneInput, { isActive: showDetailPane });
-
   function handleDetailPaneInput(
     input: string,
     key: {
@@ -1327,435 +1562,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       return;
     }
   }
-
-  // Handle project picker selection
-  // For linked nodes (transclusions), re-parent the TARGET node, not the link
-  // This moves the original task to the new project
-  const handleProjectSelect = (targetNode: KNode) => {
-    const card = state.columns[state.colIndex]?.cards[state.cardIndex];
-    if (!card) {
-      dispatch(actions.hideProjectPicker());
-      return;
-    }
-
-    // Resolve link target: if this is a link, operate on the target
-    const nodeToMove = card.node.link_to || card.node.id;
-
-    // Calculate sort order (add at end of target)
-    const targetChildren = getChildren(targetNode.id);
-    const lastChild = targetChildren[targetChildren.length - 1];
-    const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0;
-
-    // Update database via store layer (handles memory/disk mode)
-    moveNode(nodeToMove, targetNode.id, newSortOrder);
-
-    // Track as recent project
-    dispatch(actions.addRecentProject(targetNode.id));
-
-    // Close picker and rebuild board
-    dispatch(actions.hideProjectPicker());
-
-    setTimeout(() => {
-      const newState = state.rootId
-        ? buildBoardState(state.rootId)
-        : initBoardState();
-
-      if (newState) {
-        newState.zoomStack = state.zoomStack;
-        newState.rootPath = state.rootPath;
-        // Reset to first card if current no longer exists
-        newState.colIndex = Math.min(
-          state.colIndex,
-          Math.max(0, newState.columns.length - 1),
-        );
-        const col = newState.columns[newState.colIndex];
-        newState.cardIndex = Math.min(
-          state.cardIndex,
-          Math.max(0, (col?.cards.length ?? 1) - 1),
-        );
-        setState(newState);
-      }
-    }, 50);
-  };
-
-  const handleProjectCancel = () => {
-    dispatch(actions.hideProjectPicker());
-  };
-
-  // Handler for new item creation
-  const handleNewItemCreate = (_newNodeId: string) => {
-    dispatch(actions.hideNewItemDialog());
-    // Refresh the board to show the new item
-    setState((s) => (s.rootId ? buildBoardState(s.rootId) : s));
-  };
-
-  const handleNewItemCancel = () => {
-    dispatch(actions.hideNewItemDialog());
-  };
-
-  // Build selected item path segments for colorized top bar
-  // Shows full path from filesystem root to selected item based on selection level
-  const selectedCol = state.columns[state.colIndex];
-  const selectedCard = selectedCol?.cards[state.cardIndex];
-
-  // Determine which node to show path to based on selection level
-  const selectedPathSegments = (() => {
-    if (selectionLevel === "board" || !selectedCol) {
-      // At board level or no column - show path to board root
-      return getPathSegments(state.rootId, state.rootId);
-    } else if (selectionLevel === "column") {
-      // At column level - show path to selected column
-      return renderPath(
-        getPathSegments(selectedCol.node.id, state.rootId),
-        termWidth - 4,
-      );
-    } else if (selectedCard) {
-      // At card level with a card selected - show path to card
-      return renderPath(
-        getPathSegments(selectedCard.node.id, state.rootId),
-        termWidth - 4,
-      );
-    } else {
-      // At card level but no card (empty column) - show path to column
-      return renderPath(
-        getPathSegments(selectedCol.node.id, state.rootId),
-        termWidth - 4,
-      );
-    }
-  })();
-
-  // Calculate widths for split view
-  const detailPaneWidth = showDetailPane ? Math.floor(termWidth * 0.4) : 0;
-  const boardWidth = termWidth - detailPaneWidth;
-
-  // Recalculate columns when detail pane is shown
-  const effectiveMaxCols = showDetailPane
-    ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
-    : maxCols;
-  const effectiveVisibleColumns = showDetailPane
-    ? state.columns.slice(
-        Math.max(
-          0,
-          Math.min(
-            state.colIndex - Math.floor(effectiveMaxCols / 2),
-            Math.max(0, state.columns.length - effectiveMaxCols),
-          ),
-        ),
-        Math.max(
-          0,
-          Math.min(
-            state.colIndex - Math.floor(effectiveMaxCols / 2),
-            Math.max(0, state.columns.length - effectiveMaxCols),
-          ),
-        ) + effectiveMaxCols,
-      )
-    : visibleColumns;
-  const effectiveScrollOffset = showDetailPane
-    ? Math.max(
-        0,
-        Math.min(
-          state.colIndex - Math.floor(effectiveMaxCols / 2),
-          Math.max(0, state.columns.length - effectiveMaxCols),
-        ),
-      )
-    : colScrollOffset;
-
-  // Build top bar - use board's color as background, or blue if selected/no color
-  const isBoardSelected = selectionLevel === "board";
-
-  // Get board's own color for the top bar background (not inherited)
-  const boardNode = state.rootId ? getNode(state.rootId) : null;
-  const boardColor = boardNode ? getOwnColor(boardNode) : undefined;
-
-  // Determine background color: board's color if available, blue if selected, white otherwise
-  const getTopBarBg = () => {
-    if (boardColor) {
-      switch (boardColor) {
-        case "red":
-          return chalk.bgRed;
-        case "green":
-          return chalk.bgGreen;
-        case "yellow":
-          return chalk.bgYellow;
-        case "blue":
-          return chalk.bgBlue;
-        case "magenta":
-          return chalk.bgMagenta;
-        case "cyan":
-          return chalk.bgCyan;
-        case "white":
-          return chalk.bgWhite;
-        case "gray":
-        case "grey":
-          return chalk.bgGray;
-        default:
-          return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
-      }
-    }
-    return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
-  };
-  const topBarBgChalk = getTopBarBg();
-
-  // Determine text color based on background (dark bg = white text, light bg = black text)
-  const darkBgColors = ["red", "green", "blue", "magenta", "gray", "grey"];
-  const useWhiteText = boardColor
-    ? darkBgColors.includes(boardColor)
-    : isBoardSelected;
-
-  const topBarContent = selectedPathSegments
-    .map((seg, i) => {
-      // Check if this is the boundary between board path and item path
-      const prevSeg = i > 0 ? selectedPathSegments[i - 1] : null;
-      const isBoardBoundary =
-        prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
-
-      // No more colored disc icons - the background IS the color now
-      if (useWhiteText) {
-        // Dark background, white text
-        const sepPart = seg.sep ? topBarBgChalk.white(` ${seg.sep} `) : "";
-        const namePart = topBarBgChalk.white.bold(seg.name);
-        return sepPart + namePart;
-      } else {
-        // Light background, black text
-        const sepPart = seg.sep
-          ? isBoardBoundary
-            ? topBarBgChalk.blue.bold(` ${seg.sep} `)
-            : topBarBgChalk.gray(` ${seg.sep} `)
-          : "";
-        const namePart = topBarBgChalk.black.bold(seg.name);
-        return sepPart + namePart;
-      }
-    })
-    .join("");
-  // Calculate visible length (without ANSI codes) - no more icon chars
-  const visibleLen =
-    1 +
-    selectedPathSegments.reduce((acc, seg) => {
-      return acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0);
-    }, 0);
-  const padding = " ".repeat(Math.max(0, termWidth - visibleLen));
-
-  // Background color for the top bar
-  const topBarBg = topBarBgChalk;
-  const topBarFg = useWhiteText ? topBarBgChalk.white : topBarBgChalk.black;
-
-  // Render loading indicator until terminal is ready (see isReady comment above)
-  // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
-  if (!isReady) {
-    return (
-      <Box
-        height={termHeight}
-        width={termWidth}
-        justifyContent="center"
-        alignItems="center"
-      >
-        <Text color="gray">Loading...</Text>
-      </Box>
-    );
-  }
-
-  return (
-    <UIProvider state={ui} dispatch={dispatch}>
-      <Box flexDirection="column" height={termHeight} minHeight={3}>
-        {/* Top bar: full path from root to selected item, inverted full width */}
-        <Box height={1} width={termWidth}>
-          <Text>{topBarFg(" ") + topBarContent + topBarBg(padding)}</Text>
-        </Box>
-        <Box flexGrow={1} flexDirection="row" height={termHeight - 2}>
-          {/* Cards, Columns, or List view */}
-          {viewMode === "cards" ? (
-            <Box flexDirection="row" width={boardWidth} height={termHeight - 2}>
-              {/* Left scroll indicator - full height filled bar */}
-              {effectiveScrollOffset > 0 && (
-                <Box flexDirection="column" width={1} height={termHeight - 3}>
-                  {Array.from({ length: termHeight - 3 }).map((_, i) => (
-                    <Text key={i} backgroundColor="gray" color="white">
-                      {i === Math.floor((termHeight - 3) / 2) ? "‹" : " "}
-                    </Text>
-                  ))}
-                </Box>
-              )}
-              {effectiveVisibleColumns.map((col, i) => {
-                const actualColIndex = effectiveScrollOffset + i;
-                const isLastCol = i === effectiveVisibleColumns.length - 1;
-                // Reduce column width if scroll indicators are shown
-                const hasLeftIndicator = effectiveScrollOffset > 0;
-                const hasRightIndicator =
-                  effectiveScrollOffset + effectiveMaxCols <
-                  state.columns.length;
-                const indicatorWidth =
-                  (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
-                // Account for separator lines between columns (1 char each, n-1 separators)
-                const separatorCount = effectiveVisibleColumns.length - 1;
-                const availableWidth =
-                  boardWidth - indicatorWidth - separatorCount;
-                const baseColWidth = Math.floor(
-                  availableWidth / effectiveMaxCols,
-                );
-                const remainder = availableWidth % effectiveMaxCols;
-                // Distribute extra pixels to the first 'remainder' columns
-                const adjustedColWidth = baseColWidth + (i < remainder ? 1 : 0);
-                return (
-                  <React.Fragment key={col.node.id}>
-                    <Column
-                      column={col}
-                      colIndex={actualColIndex}
-                      isSelected={actualColIndex === state.colIndex}
-                      isCollapsed={collapsedColumns.has(actualColIndex)}
-                      selectedCardIndex={state.cardIndex}
-                      selectedSubIndex={inOutlineMode ? subIndex : -1}
-                      width={adjustedColWidth}
-                      height={termHeight - 2}
-                      selectionLevel={selectionLevel}
-                    />
-                    {/* Separator line between columns */}
-                    {!isLastCol && (
-                      <Box
-                        flexDirection="column"
-                        width={1}
-                        height={termHeight - 2}
-                      >
-                        {/* Blank line to align with column header spacing */}
-                        <Text> </Text>
-                        {Array.from({ length: termHeight - 3 }).map((_, j) => (
-                          <Text key={j} color="gray">
-                            │
-                          </Text>
-                        ))}
-                      </Box>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-              {/* Right scroll indicator - full height filled bar */}
-              {effectiveScrollOffset + effectiveMaxCols <
-                state.columns.length && (
-                <Box flexDirection="column" width={1} height={termHeight - 3}>
-                  {Array.from({ length: termHeight - 3 }).map((_, i) => (
-                    <Text key={i} backgroundColor="gray" color="white">
-                      {i === Math.floor((termHeight - 3) / 2) ? "›" : " "}
-                    </Text>
-                  ))}
-                </Box>
-              )}
-            </Box>
-          ) : viewMode === "columns" ? (
-            <ColumnsView
-              state={state}
-              width={boardWidth}
-              height={termHeight - 2}
-              colIndex={state.colIndex}
-              cardIndex={state.cardIndex}
-              subIndex={subIndex}
-              effectiveScrollOffset={effectiveScrollOffset}
-              effectiveMaxCols={effectiveMaxCols}
-              effectiveVisibleColumns={effectiveVisibleColumns}
-              selectionLevel={selectionLevel}
-            />
-          ) : viewMode === "list" ? (
-            <ListView
-              state={state}
-              width={boardWidth}
-              height={termHeight - 2}
-              colIndex={state.colIndex}
-              cardIndex={state.cardIndex}
-              subIndex={subIndex}
-              selectionLevel={selectionLevel}
-            />
-          ) : (
-            <TabsView
-              state={state}
-              width={boardWidth}
-              height={termHeight - 2}
-              colIndex={state.colIndex}
-              cardIndex={state.cardIndex}
-              subIndex={subIndex}
-              selectionLevel={selectionLevel}
-            />
-          )}
-          {/* Detail pane */}
-          {showDetailPane && selectedCard && (
-            <DetailPane
-              node={selectedCard.node}
-              width={detailPaneWidth}
-              height={termHeight - 2}
-            />
-          )}
-          {/* Project picker modal */}
-          {showProjectPicker && (
-            <Box
-              position="absolute"
-              marginLeft={Math.floor(termWidth / 4)}
-              marginTop={Math.floor(termHeight / 4)}
-            >
-              <ProjectPicker
-                onSelect={handleProjectSelect}
-                onCancel={handleProjectCancel}
-                width={Math.floor(termWidth / 2)}
-                height={Math.floor(termHeight / 2)}
-                recentProjectIds={recentProjectIds}
-              />
-            </Box>
-          )}
-          {/* New item dialog modal */}
-          {showNewItemDialog && (
-            <Box
-              position="absolute"
-              marginLeft={Math.floor(termWidth / 4)}
-              marginTop={Math.floor(termHeight / 3)}
-            >
-              <NewItemDialog
-                cursorNode={selectedCard?.node ?? null}
-                onCreate={handleNewItemCreate}
-                onCancel={handleNewItemCancel}
-                width={Math.floor(termWidth / 2)}
-                height={10}
-              />
-            </Box>
-          )}
-          {/* Help overlay */}
-          {showHelp && (
-            <HelpOverlay width={termWidth} height={termHeight - 2} />
-          )}
-        </Box>
-        {/* Bottom bar: mode indicator left, other indicators right */}
-        <Box width={termWidth} justifyContent="space-between" paddingX={1}>
-          {/* Left side: store mode indicator and path */}
-          <Text>
-            {(() => {
-              const store = getStore();
-              if (store.mode === "memory") {
-                return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
-              }
-              return <Text color="green">DISK REPO {store.rootPath}</Text>;
-            })()}
-          </Text>
-          {/* Right side: status indicators */}
-          <Text>
-            {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
-            {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
-            {showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
-            {showDropNotification && droppedFiles.length > 0 && (
-              <Text color="green">
-                {`[Dropped: ${droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
-              </Text>
-            )}
-            {isMouseDragging && mouseSelection && (
-              <Text color="blue">{`[Select: ${mouseSelection.startY}-${mouseSelection.endY}] `}</Text>
-            )}
-            {multiSelected.size > 0 && (
-              <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
-            )}
-            {inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
-            {selectionLevel !== "card" && (
-              <Text color="magenta">{`${selectionLevel.toUpperCase()} `}</Text>
-            )}
-            <Text inverse>{` ${viewMode.toUpperCase()} VIEW `}</Text>
-          </Text>
-        </Box>
-      </Box>
-    </UIProvider>
-  );
 
   // ===========================================================================
   // Effect Handlers (hoisted for readability)
@@ -2571,4 +2377,161 @@ export function InkBoardTestable({
       </Box>
     </UIProvider>
   );
+}
+
+// =============================================================================
+// Module-Level Helper Functions
+// =============================================================================
+
+// Default favorites: common boards accessed via 1-9 keys
+// These are resolved at runtime using the same resolution as CLI commands
+const DEFAULT_FAVORITES: Record<string, string> = {
+  "1": "@inbox", // Inbox
+  "2": "@next", // Next actions
+  "3": "@waiting", // Waiting for
+  "4": "@someday", // Someday/maybe
+  "5": "@projects", // Projects
+  "6": "@areas", // Areas of responsibility
+  "7": "@archive", // Archive
+  "8": "@reference", // Reference
+  "9": "@goals", // Goals
+};
+
+// Build path segments for colorized display
+// Returns segments with: { id, name, sep, isWithinBoard }
+// isWithinBoard distinguishes the board root path from path within the board
+function getPathSegments(
+  nodeId: string | null,
+  boardRootId: string | null,
+): Array<{
+  id: string | null;
+  name: string;
+  sep: string;
+  isWithinBoard: boolean;
+  node: KNode | null;
+}> {
+  if (!nodeId) {
+    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
+  }
+
+  // Collect all nodes from root to target
+  const nodes: KNode[] = [];
+  let currentId: string | null = nodeId;
+  while (currentId) {
+    const node = getNode(currentId);
+    if (!node) break;
+    nodes.unshift(node);
+    currentId = node.parent_id;
+  }
+
+  if (nodes.length === 0) {
+    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
+  }
+
+  // Find index where we enter the board (nodes after boardRootId)
+  let boardRootIndex = -1;
+  if (boardRootId) {
+    boardRootIndex = nodes.findIndex((n) => n.id === boardRootId);
+  }
+
+  // Build segments with separators
+  const segments: Array<{
+    id: string | null;
+    name: string;
+    sep: string;
+    isWithinBoard: boolean;
+    node: KNode | null;
+  }> = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (!node) continue;
+    // Strip wiki link brackets and show alias for display
+    const rawName = getNodeDisplayName(node);
+    const name = renderPlain(rawName);
+    const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex;
+
+    if (node.type === "folder" || node.type === "file") {
+      segments.push({
+        id: node.id,
+        name,
+        sep: segments.length > 0 ? "/" : "",
+        isWithinBoard,
+        node,
+      });
+    } else if (node.type === "section") {
+      segments.push({ id: node.id, name, sep: "#", isWithinBoard, node });
+    } else if (node.type === "board") {
+      if (segments.length === 0) {
+        segments.push({
+          id: node.id,
+          name,
+          sep: "",
+          isWithinBoard: false,
+          node,
+        });
+      }
+    } else {
+      // Other types (paragraph, task, etc.)
+      segments.push({
+        id: node.id,
+        name,
+        sep: segments.length > 0 ? "/" : "",
+        isWithinBoard,
+        node,
+      });
+    }
+  }
+
+  return segments.length > 0
+    ? segments
+    : [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
+}
+
+// Helper to count visible descendants for flat indexing
+function countVisibleDescendants(
+  node: KNode,
+  depth: number,
+  maxDepth: number,
+  foldedNodes: Set<string>,
+): number {
+  if (depth > maxDepth || foldedNodes.has(node.id)) {
+    return 0;
+  }
+  const children = getChildren(node.id).slice(0, 10);
+  let count = children.length;
+  for (const child of children) {
+    count += countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
+  }
+  return count;
+}
+
+// Get chalk function for top bar background based on board color
+function getTopBarBgChalk(
+  boardColor: string | undefined,
+  isBoardSelected: boolean,
+) {
+  if (boardColor) {
+    switch (boardColor) {
+      case "red":
+        return chalk.bgRed;
+      case "green":
+        return chalk.bgGreen;
+      case "yellow":
+        return chalk.bgYellow;
+      case "blue":
+        return chalk.bgBlue;
+      case "magenta":
+        return chalk.bgMagenta;
+      case "cyan":
+        return chalk.bgCyan;
+      case "white":
+        return chalk.bgWhite;
+      case "gray":
+      case "grey":
+        return chalk.bgGray;
+      default:
+        return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
+    }
+  }
+  return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
 }
