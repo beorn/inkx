@@ -8,8 +8,11 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { KNode } from "@km/core";
-import { getChildren } from "@km/storage";
-import { getNodeDisplayName, getParentContext } from "../state.ts";
+import { getChildren as getChildrenFromStorage } from "@km/storage";
+import {
+  getNodeDisplayName,
+  getParentContext as getParentContextFromState,
+} from "../state.ts";
 import { renderRich, displayLength } from "../text/index.ts";
 import { constrainText } from "../layout/index.ts";
 import { makeSelectionKey } from "../types.ts";
@@ -26,9 +29,6 @@ import {
   VARIANT_CONFIG,
 } from "./tree-node-helpers.ts";
 
-// Re-export for backward compatibility
-export { makeSelectionKey } from "../types.ts";
-
 export interface TreeNodeProps {
   node: KNode;
   depth: number;
@@ -39,6 +39,14 @@ export interface TreeNodeProps {
   subIndex: number;
   /** Dim child items when this subtree is not the active card (for cards view) */
   dimInactiveChildren?: boolean;
+  /** Pre-loaded children (optional - if not provided, fetched from storage) */
+  children?: KNode[];
+  /** Pre-computed parent context for embedded tasks (optional) */
+  parentContext?: string | null;
+  /** Callback to fetch children on unfold (optional - defaults to storage lookup) */
+  getChildren?: (id: string) => KNode[];
+  /** Callback to get parent context for nested embedded tasks (optional) */
+  getParentContext?: (node: KNode) => string | null;
 }
 
 export function TreeNode({
@@ -50,6 +58,10 @@ export function TreeNode({
   cardIndex,
   subIndex,
   dimInactiveChildren = false,
+  children: childrenProp,
+  parentContext: parentContextProp,
+  getChildren: getChildrenProp,
+  getParentContext: getParentContextProp,
 }: TreeNodeProps): React.ReactElement {
   // Get UI state from context
   const {
@@ -71,7 +83,9 @@ export function TreeNode({
     : new Set<string>();
 
   const isCompact = variant === "compact";
-  const children = getChildren(node.id);
+  // Use provided children or fetch from storage
+  const resolvedGetChildren = getChildrenProp ?? getChildrenFromStorage;
+  const children = childrenProp ?? resolvedGetChildren(node.id);
   const hasChildren = children.length > 0;
   const isFolded = foldedNodes.has(node.id);
   const isEmbedded = node.link_to != null;
@@ -114,8 +128,15 @@ export function TreeNode({
 
   // Info suffix and context
   const infoSuffix = formatInfoSuffix(node, isCompact, excludeBoardIds);
+  // Use provided parentContext or compute it (for embedded tasks at depth 0)
+  const resolvedGetParentContext =
+    getParentContextProp ?? getParentContextFromState;
   const parentContext =
-    depth === 0 && isTask && isEmbedded ? getParentContext(node) : null;
+    parentContextProp !== undefined
+      ? parentContextProp
+      : depth === 0 && isTask && isEmbedded
+        ? resolvedGetParentContext(node)
+        : null;
   const truncatedContext = !isCompact
     ? truncateContext(parentContext, 20)
     : null;
@@ -216,6 +237,8 @@ export function TreeNode({
           currentSubIndex={currentSubIndex}
           dimInactiveChildren={dimInactiveChildren}
           hiddenCount={hiddenCount}
+          getChildren={resolvedGetChildren}
+          getParentContext={resolvedGetParentContext}
         />
       )}
     </Box>
@@ -237,6 +260,10 @@ interface NodeChildrenProps {
   currentSubIndex: number;
   dimInactiveChildren: boolean;
   hiddenCount: number;
+  /** Callback to fetch children for nested nodes */
+  getChildren?: (id: string) => KNode[];
+  /** Callback to get parent context for nested embedded tasks */
+  getParentContext?: (node: KNode) => string | null;
 }
 
 function NodeChildren({
@@ -250,6 +277,8 @@ function NodeChildren({
   currentSubIndex,
   dimInactiveChildren,
   hiddenCount,
+  getChildren,
+  getParentContext,
 }: NodeChildrenProps): React.ReactElement {
   const indent = " ".repeat(depth);
 
@@ -271,6 +300,8 @@ function NodeChildren({
             cardIndex={cardIndex}
             subIndex={childSubIndex}
             dimInactiveChildren={dimInactiveChildren}
+            getChildren={getChildren}
+            getParentContext={getParentContext}
           />
         );
       })}

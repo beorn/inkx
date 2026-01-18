@@ -9,7 +9,7 @@ import type { KNode, TaskStatus } from "@km/core";
 import type { BoardState, CardState, SelectionKey } from "./types.ts";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";
-import { makeSelectionKey } from "./views/TreeNode.tsx";
+import { makeSelectionKey } from "./types.ts";
 import {
   getNode,
   getChildren,

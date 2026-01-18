@@ -339,57 +339,10 @@ const uiSlice = createSlice({
 // Export actions object for namespace import: `import { actions } from ...`
 export const actions = uiSlice.actions;
 
-// Export individual actions for backward compatibility
-export const {
-  cycleViewMode,
-  setViewMode,
-  toggleHelp,
-  showHelp,
-  hideHelp,
-  showProjectPicker,
-  hideProjectPicker,
-  showNewItemDialog,
-  hideNewItemDialog,
-  toggleDetailPane,
-  setDetailPane,
-  increaseOutlineDepth,
-  decreaseOutlineDepth,
-  increaseContentLines,
-  decreaseContentLines,
-  setSelectionLevel,
-  enterOutlineMode,
-  exitOutlineMode,
-  setInOutlineMode,
-  setSubIndex,
-  setMultiSelected,
-  clearMultiSelection,
-  setSelectionAnchor,
-  setSelectAllLevel,
-  toggleColumnCollapse,
-  setCollapsedColumns,
-  toggleFold,
-  setFoldedNodes,
-  foldAll,
-  unfoldAll,
-  setMouseSelection,
-  setMouseDragging,
-  setDroppedFiles,
-  showDropNotification,
-  hideDropNotification,
-  pushNavHistory,
-  navBack,
-  navForward,
-  setNavHistoryIndex,
-  addRecentProject,
-  setReady,
-  setDimensions,
-  setRootBoardId,
-} = uiSlice.actions;
-
 // Export reducer
 export const uiReducer = uiSlice.reducer;
 
-// Legacy type export for gradual migration
+// Action union type for dispatch signatures
 export type UIAction = ReturnType<
   (typeof uiSlice.actions)[keyof typeof uiSlice.actions]
 >;

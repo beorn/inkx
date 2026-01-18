@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { makeSelectionKey } from "../../src/views/TreeNode.tsx";
+import { makeSelectionKey } from "../../src/types.ts";
 
 describe("makeSelectionKey", () => {
   it("creates key from col, card, sub indices", () => {

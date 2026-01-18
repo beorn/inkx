@@ -44,7 +44,7 @@ import { UIProvider } from "../ui-context.tsx";
 import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
 
-export { makeSelectionKey } from "./TreeNode.tsx";
+export { makeSelectionKey } from "../types.ts";
 
 // =============================================================================
 // Main Board Component
