@@ -12,7 +12,6 @@ export type {
   BoardAction,
   NodeDirection,
   TNode,
-  TreeNode, // @deprecated - use TNode
   TPath,
   ViewMode,
   TaskStatus,

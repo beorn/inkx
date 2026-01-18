@@ -79,7 +79,7 @@ export interface NodeRules {
  *
  * This is the single node type used across all layers:
  * - Storage: stored in SQLite with snake_case columns
- * - Tree: extended with `children[]` and `depth` as TreeNode
+ * - Tree: extended with `children[]` and `depth` as TNode
  * - Board: used directly with foldedNodes/selectedNodes Sets for UI state
  *
  * ## Task Definition
@@ -160,9 +160,6 @@ export interface TNode extends KNode {
   childCount: number; // Total children (may exceed loaded children.length)
   isTask: boolean; // Computed: task_status !== undefined
 }
-
-/** @deprecated Use TNode instead */
-export type TreeNode = TNode;
 
 // =============================================================================
 // Event Types

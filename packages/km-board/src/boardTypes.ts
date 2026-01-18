@@ -10,7 +10,7 @@ import type { TNode } from "@km/core";
 import type { TPath, TaskStatus } from "@km/tree";
 
 export type { TaskStatus } from "@km/tree";
-export type { TNode, TreeNode } from "@km/core";
+export type { TNode } from "@km/core";
 export type { TPath } from "@km/tree";
 
 // ===== Base Types =====

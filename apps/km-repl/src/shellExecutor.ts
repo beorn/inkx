@@ -134,9 +134,9 @@ export function renderAsciiView(state: BoardState): string {
         state.cursor.every((v, idx) => v === nodePath[idx]);
       const marker = isSelected ? "→" : " ";
       const foldMarker = state.foldedNodes.has(node.id) ? "▸" : " ";
-      const statusIcon = node.taskStatus
+      const statusIcon = node.task_status
         ? { todo: "○", wip: "◐", blocked: "⊘", done: "✓", dropped: "∅" }[
-            node.taskStatus
+            node.task_status
           ]
         : " ";
 
@@ -398,7 +398,9 @@ function listNodes(state: BoardState, pathStr?: string): string {
   // Format output like ls
   const items = nodes.map((node) => {
     const suffix = node.children.length > 0 ? "/" : "";
-    const taskMark = node.taskStatus ? statusIcons[node.taskStatus] + " " : "";
+    const taskMark = node.task_status
+      ? statusIcons[node.task_status] + " "
+      : "";
     return `${taskMark}${node.title}${suffix}`;
   });
 
@@ -468,8 +470,8 @@ function renderTreeCommand(
       const connector = isLast ? "└── " : "├── ";
       const childPrefix = isLast ? "    " : "│   ";
 
-      const taskMark = node.taskStatus
-        ? statusIcons[node.taskStatus] + " "
+      const taskMark = node.task_status
+        ? statusIcons[node.task_status] + " "
         : "";
 
       const suffix =
@@ -520,8 +522,8 @@ function catNode(state: BoardState, pathStr?: string): string {
   lines.push(`# ${node.title}`);
   lines.push(`id: ${node.id}`);
 
-  if (node.taskStatus) {
-    lines.push(`status: ${node.taskStatus}`);
+  if (node.task_status) {
+    lines.push(`status: ${node.task_status}`);
   }
 
   if (node.childCount > 0) {

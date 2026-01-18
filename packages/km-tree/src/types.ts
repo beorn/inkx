@@ -6,7 +6,7 @@
  */
 
 // Re-export TNode and TaskStatus from @km/core
-export type { TNode, TreeNode, TaskStatus } from "@km/core";
+export type { TNode, TaskStatus } from "@km/core";
 
 /**
  * Path-based position in tree.

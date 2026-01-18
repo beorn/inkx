@@ -5,10 +5,10 @@
  * - compact: For column views (shorter context, no info columns, limited children)
  * - wide: For full-width views (longer context, info columns, unlimited children)
  *
- * Uses the layered rendering approach:
+ * Uses the constraint system for layout:
  * 1. renderRich() - convert raw content to styled ANSI string
- * 2. constrainText() - wrap and truncate using display length
- * 3. Render each line in <Text>
+ * 2. TruncatedText - ANSI-aware truncation using computed width
+ * 3. FlexRow - distribute space between prefix and content
  */
 import React from "react";
 import { Box, Text } from "ink";
@@ -23,6 +23,8 @@ import {
   styledUnderline,
 } from "../text/index.ts";
 import { constrainText } from "../layout/index.ts";
+// Future: use useTruncatedText hook when we refactor to constraint system
+// import { useTruncatedText } from "../constraints/index.ts";
 import type { SelectionKey } from "../types.ts";
 import {
   getBoardPills,
@@ -40,7 +42,7 @@ export function makeSelectionKey(
 }
 
 export interface TreeNodeProps {
-  node: Node;
+  node: KNode;
   depth: number;
   width: number;
   isSelected: boolean;

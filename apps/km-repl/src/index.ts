@@ -51,7 +51,6 @@ export type {
   BoardState,
   BoardAction,
   TNode,
-  TreeNode, // @deprecated - use TNode
   TPath,
   TaskStatus,
 } from "@km/board";
