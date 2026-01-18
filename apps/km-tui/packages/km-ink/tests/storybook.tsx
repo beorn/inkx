@@ -35,12 +35,16 @@ import { ListView } from "../src/views/ListView.tsx";
 import { ColumnsView } from "../src/views/ColumnsView.tsx";
 import { TabsView } from "../src/views/TabsView.tsx";
 import type { KNode } from "@km/core";
-import type {
-  BoardState,
-  ColumnState,
-  CardState,
-  SelectionKey,
-} from "../src/types.ts";
+import type { BoardState, ColumnState, CardState } from "../src/types.ts";
+import { UIProvider } from "../src/ui-context.tsx";
+import { createInitialUIState } from "../src/ui-reducer.ts";
+
+// Create a mock UI state for storybook rendering
+const mockUIState = createInitialUIState("cards", [], {
+  columns: 120,
+  rows: 40,
+});
+const noopDispatch = () => {};
 
 // Force chalk colors
 chalk.level = 3;
@@ -463,15 +467,15 @@ function mockNode(
   content: string,
   status?: string,
   type: string = "task",
-): Node {
+): KNode {
   return {
     id,
-    type: type as Node["type"],
+    type: type as KNode["type"],
     parent_id: null,
     parent_idx: 0,
     symlink_to: null,
     content,
-    task_status: status as Node["task_status"],
+    task_status: status as KNode["task_status"],
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -487,19 +491,14 @@ function Layer3Views(): React.ReactElement {
   const blockedTask = mockNode("blocked-1", "Wait on API", "blocked");
   const droppedTask = mockNode("dropped-1", "Old approach", "dropped");
 
+  // TreeNode now gets foldedNodes, maxDepth, maxContentLines, inOutlineMode,
+  // currentSubIndex, variant, and multiSelected from context
   const commonProps = {
     depth: 0,
     width: 40,
-    foldedNodes: new Set<string>(),
-    maxDepth: 3,
     colIndex: 0,
     cardIndex: 0,
     subIndex: 0,
-    currentSubIndex: 0,
-    multiSelected: new Set<SelectionKey>(),
-    inOutlineMode: false,
-    variant: "wide" as const,
-    maxContentLines: 1,
     dimInactiveChildren: false,
   };
 
@@ -586,7 +585,7 @@ function Layer3Views(): React.ReactElement {
 // ============================================================================
 
 // Helper to create mock CardState with children
-function mockCard(node: Node, children: KNode[] = []): CardState {
+function mockCard(node: KNode, children: KNode[] = []): CardState {
   return { node, children };
 }
 
@@ -800,16 +799,9 @@ function CardsViewDemo({
                       width={colWidth - 6}
                       isSelected={isCardSelected}
                       isMultiSelected={false}
-                      foldedNodes={new Set<string>()}
-                      maxDepth={2}
                       colIndex={cIdx}
                       cardIndex={cardIdx}
                       subIndex={0}
-                      currentSubIndex={0}
-                      multiSelected={new Set<SelectionKey>()}
-                      inOutlineMode={isCardSelected}
-                      variant="compact"
-                      maxContentLines={2}
                       dimInactiveChildren={!isCardSelected}
                     />
                   </Box>
@@ -828,20 +820,15 @@ function Layer3AllViews(): React.ReactElement {
   const viewWidth = 100; // Wider to accommodate 4 columns with readable card text
   const viewHeight = 16;
 
-  // Shared props for view components
+  // Shared props for view components (foldedNodes, multiSelected, etc. now come from context)
   const commonViewProps = {
     state: mockState,
     width: viewWidth,
     height: viewHeight,
-    foldedNodes: new Set<string>(),
-    maxOutlineDepth: 2,
-    multiSelected: new Set<SelectionKey>(),
     colIndex: mockState.colIndex,
     cardIndex: mockState.cardIndex,
     subIndex: 0,
-    inOutlineMode: false,
     selectionLevel: "card" as const,
-    maxContentLines: 2,
   };
 
   // ColumnsView needs these extra props
@@ -900,19 +887,13 @@ function VisualLanguageSection(): React.ReactElement {
   const wipTask = mockNode("vl-2", "Work in progress task", "wip");
   const doneTask = mockNode("vl-3", "Completed task item", "done");
 
+  // TreeNode now gets most props from context
   const commonProps = {
     depth: 0,
     width: 35,
-    foldedNodes: new Set<string>(),
-    maxDepth: 3,
     colIndex: 0,
     cardIndex: 0,
     subIndex: 0,
-    currentSubIndex: 0,
-    multiSelected: new Set<SelectionKey>(),
-    inOutlineMode: false,
-    variant: "wide" as const,
-    maxContentLines: 1,
     dimInactiveChildren: false,
   };
 
@@ -1094,21 +1075,23 @@ function VisualLanguageSection(): React.ReactElement {
 
 function Storybook(): React.ReactElement {
   return (
-    <Box flexDirection="column">
-      <Layer1RichText />
-      <Layer1TagPills />
-      <Layer1TaskStyling />
-      <Layer2Layout />
-      <Layer3Views />
-      <Layer3AllViews />
-      <VisualLanguageSection />
+    <UIProvider state={mockUIState} dispatch={noopDispatch}>
+      <Box flexDirection="column">
+        <Layer1RichText />
+        <Layer1TagPills />
+        <Layer1TaskStyling />
+        <Layer2Layout />
+        <Layer3Views />
+        <Layer3AllViews />
+        <VisualLanguageSection />
 
-      <SectionHeader title="Summary" />
-      <Text>All components rendered successfully.</Text>
-      <Text> </Text>
-      <Text>To verify TUI components with real data, use:</Text>
-      <Text color="cyan"> bun km view @next</Text>
-    </Box>
+        <SectionHeader title="Summary" />
+        <Text>All components rendered successfully.</Text>
+        <Text> </Text>
+        <Text>To verify TUI components with real data, use:</Text>
+        <Text color="cyan"> bun km view @next</Text>
+      </Box>
+    </UIProvider>
   );
 }
 

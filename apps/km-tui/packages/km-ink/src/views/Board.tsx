@@ -41,7 +41,6 @@ import {
   createMouseHandler,
   supportsMouseMode,
   SelectionManager,
-  type SelectionRange,
   type MouseEvent as TermMouseEvent,
 } from "../mouse-handler.ts";
 import { makeSelectionKey } from "./TreeNode.tsx";
@@ -62,23 +61,19 @@ import {
   hideProjectPicker,
   showNewItemDialog as showNewItemDialogAction,
   hideNewItemDialog as hideNewItemDialogAction,
-  toggleDetailPane,
   setDetailPane,
   increaseOutlineDepth,
   decreaseOutlineDepth,
   increaseContentLines,
   decreaseContentLines,
   setSelectionLevel,
-  enterOutlineMode,
   exitOutlineMode,
   setInOutlineMode,
   setSubIndex,
   setMultiSelected,
-  clearMultiSelection,
   setSelectionAnchor,
   setSelectAllLevel,
   toggleColumnCollapse,
-  toggleFold,
   foldAll,
   unfoldAll,
   setMouseSelection,
@@ -199,7 +194,7 @@ function getPathSegments(
 
 // Helper to count visible descendants for flat indexing
 function countVisibleDescendants(
-  node: Node,
+  node: KNode,
   depth: number,
   maxDepth: number,
   foldedNodes: Set<string>,
@@ -249,7 +244,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     viewMode,
     showDetailPane,
     maxOutlineDepth,
-    maxContentLines,
     showHelp,
     showProjectPicker,
     showNewItemDialog,
