@@ -86,6 +86,7 @@ import {
   addRecentProject,
   setReady,
   setDimensions,
+  setRootBoardId,
 } from "../ui-reducer.ts";
 
 // Default favorites: common boards accessed via 1-9 keys
@@ -228,12 +229,18 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       initialViewMode,
       collapsedColumns: [...(initialState.collapsedColumns ?? [])],
       stdout,
+      rootBoardId: initialState.rootId,
     },
     (init) =>
-      createInitialUIState(init.initialViewMode, init.collapsedColumns, {
-        columns: init.stdout?.columns ?? 80,
-        rows: init.stdout?.rows ?? 24,
-      }),
+      createInitialUIState(
+        init.initialViewMode,
+        init.collapsedColumns,
+        {
+          columns: init.stdout?.columns ?? 80,
+          rows: init.stdout?.rows ?? 24,
+        },
+        init.rootBoardId,
+      ),
   );
 
   // Board state (navigation) - still useState for now, could migrate to boardReducer
@@ -327,6 +334,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       stdout.off("resize", handleResize);
     };
   }, [stdout]);
+
+  // Sync rootBoardId in UI state when board navigation changes
+  useEffect(() => {
+    dispatch(setRootBoardId(state.rootId));
+  }, [state.rootId]);
 
   // Handle file drops via bracketed paste
   useEffect(() => {

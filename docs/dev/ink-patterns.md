@@ -220,10 +220,20 @@ it("renders correctly", () => {
 Visual testing with [storybook.tsx](../../apps/km-tui/packages/km-ink/tests/storybook.tsx):
 
 ```bash
-bun run storybook
+bun storybook
 ```
 
 Displays all components in various states for visual verification.
+
+**Important:** The storybook must use production rendering code exclusively. It should never use `chalk` or raw Ink primitives (`<Text color=...>`) to implement styling directly. Instead:
+
+- Use production components: `TreeNode`, `ListView`, `ColumnsView`, `TabsView`
+- Use production functions: `renderRich()`, `getStatusIcon()`, `colorize()`
+- Use production layout helpers: `wrapText()`, `truncateText()`, `constrainText()`
+
+**Why?** If storybook implements its own styling, it shows output that doesn't match the actual app. Bugs in production rendering go undetected (e.g., the storybook might claim done tasks have strikethrough while the actual TreeNode doesn't apply it).
+
+If a component is hard to use in storybook, that's a signal to refactor the component to be more reusable—extract it, reduce its dependencies, or make it accept data as props instead of fetching internally.
 
 ### Visual Regression Testing
 

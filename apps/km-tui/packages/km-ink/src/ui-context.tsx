@@ -132,6 +132,7 @@ const selectMaxOutlineDepth = (state: UIState) => state.maxOutlineDepth;
 const selectMaxContentLines = (state: UIState) => state.maxContentLines;
 const selectViewMode = (state: UIState) => state.viewMode;
 const selectSelectionLevel = (state: UIState) => state.selectionLevel;
+const selectRootBoardId = (state: UIState) => state.rootBoardId;
 
 /**
  * Check if a node is folded
@@ -208,4 +209,11 @@ export function useSelectionState() {
       }),
     ),
   );
+}
+
+/**
+ * Get the current board's root ID (for excluding from board pills)
+ */
+export function useRootBoardId(): string | null {
+  return useUISelector(selectRootBoardId);
 }

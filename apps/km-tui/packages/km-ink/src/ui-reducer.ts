@@ -20,6 +20,9 @@ export interface UIState {
   maxOutlineDepth: number;
   maxContentLines: number;
 
+  // Board context
+  rootBoardId: string | null;
+
   // Overlays/dialogs
   showHelp: boolean;
   showProjectPicker: boolean;
@@ -74,12 +77,15 @@ export function createInitialUIState(
   initialViewMode: ViewMode,
   collapsedColumns: number[],
   dimensions: { columns: number; rows: number },
+  rootBoardId: string | null = null,
 ): UIState {
   return {
     viewMode: initialViewMode,
     showDetailPane: initialViewMode === "list",
     maxOutlineDepth: 2,
     maxContentLines: 3,
+
+    rootBoardId,
 
     showHelp: false,
     showProjectPicker: false,
@@ -322,6 +328,11 @@ const uiSlice = createSlice({
     ) => {
       state.dimensions = action.payload;
     },
+
+    // Board context
+    setRootBoardId: (state, action: PayloadAction<string | null>) => {
+      state.rootBoardId = action.payload;
+    },
   },
 });
 
@@ -369,6 +380,7 @@ export const {
   addRecentProject,
   setReady,
   setDimensions,
+  setRootBoardId,
 } = uiSlice.actions;
 
 // Export reducer

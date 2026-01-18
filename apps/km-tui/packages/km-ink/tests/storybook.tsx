@@ -3,10 +3,30 @@
  * TUI Storybook - Visual Component Catalog
  *
  * Renders all TUI components in various states for visual inspection.
- * Run: bun run apps/km-cli/tests/tui/storybook.tsx
+ * Run: bun storybook
  *
- * Uses ink-testing-library to render actual React/Ink components,
- * ensuring the storybook exercises the real rendering pipeline.
+ * ## IMPORTANT: Production Code Only
+ *
+ * This storybook MUST use production rendering code exclusively.
+ * DO NOT use chalk or Ink primitives directly for styling.
+ *
+ * ✓ DO: Use production components (TreeNode, ListView, ColumnsView, etc.)
+ * ✓ DO: Use production functions (renderRich, getStatusIcon, colorize, etc.)
+ * ✓ DO: Use production layout helpers (wrapText, truncateText, etc.)
+ *
+ * ✗ DON'T: Use chalk.* for styling (except displayLength demo)
+ * ✗ DON'T: Reimplement component styling with raw <Text> props
+ * ✗ DON'T: Create custom rendering that doesn't match production
+ *
+ * Why? If storybook implements its own styling, it shows output that
+ * doesn't match the actual app. Bugs in production rendering go undetected,
+ * and the storybook gives false confidence that things work correctly.
+ *
+ * If a component is hard to use here, refactor it to be more reusable.
+ * See: docs/dev/ink-patterns.md, bead km-80j2
+ *
+ * TODO: Several sections still use chalk directly and need refactoring.
+ * See bead km-80j2 for the full plan.
  */
 
 import React from "react";

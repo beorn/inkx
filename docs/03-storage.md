@@ -166,24 +166,26 @@ type TaskStatus =
 | `x` or `X` | done    | `[x]`   |
 | `-`        | dropped | `[-]`   |
 
-### Embeddings (Symlinks)
+### Links (Embeddings)
 
-Nodes can be **embedded** to appear in multiple locations:
+Nodes can be **linked** to appear in multiple locations (e.g., `![[Target]]` embeddings):
 
 ```typescript
 interface KNode {
   // ... other fields ...
-  symlink_to?: string; // ID of target node (if this is a symlink)
+  link_to?: string;     // ID of target node (if this is a link)
+  link_alias?: string;  // Optional display alias from |alias syntax
 }
 ```
 
 **Key rules:**
 
-1. **Embeddings are positional references** — they exist in the tree but point elsewhere
+1. **Links are positional references** — they exist in the tree but point elsewhere
 2. **Content operations apply to target** — status, priority changes affect the linked node
-3. **Positional operations apply to symlink** — moving within a board moves the symlink
-4. **Display reads from target** — symlinks show the target's content
-5. **Delete removes symlink only** — deleting a symlink does not delete the target
+3. **Positional operations apply to link** — moving within a board moves the link node
+4. **Display reads from target** — links show the target's content
+5. **Delete removes link only** — deleting a link does not delete the target
+6. **Serialization reconstructs syntax** — `![[path|alias]]` rebuilt from `link_to` + `link_alias`
 
 ---
 
