@@ -10,6 +10,7 @@ import type { BoardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { useTreeConfig } from "../ui-context.tsx";
+import { calcScrollOffset } from "../constraints/index.ts";
 
 interface TabsViewProps {
   state: BoardState;
@@ -45,13 +46,7 @@ export function TabsView({
   const maxVisibleCards = Math.max(1, contentHeight);
   const needsScroll = count > maxVisibleCards;
   const scrollOffset = needsScroll
-    ? Math.max(
-        0,
-        Math.min(
-          cardIndex - Math.floor(maxVisibleCards / 2),
-          Math.max(0, count - maxVisibleCards),
-        ),
-      )
+    ? calcScrollOffset(cardIndex, maxVisibleCards, count)
     : 0;
 
   const visibleCards = currentColumn

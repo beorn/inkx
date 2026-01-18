@@ -1,77 +1,111 @@
 ---
 description: Systematic code simplification and consistency review
-argument-hint: [file-or-directory]
+argument-hint: [file-or-directory] [--dry-run]
 ---
 
 # Refactor for Simplicity
 
-Perform a systematic review and refactoring of the codebase (or specified files) to improve simplicity, conciseness, and consistency.
+Systematic review and refactoring for simplicity, conciseness, and consistency.
 
 ## Target
 
 $ARGUMENTS
 
-If no target specified, review all UI components or the most recently modified files.
+If no target specified, review recently modified files or prompt for scope.
 
-## Review Criteria
+Options:
 
-### 1. Simplification Opportunities
+- `--dry-run`: Analyze only, don't implement changes
+- Directory path: Review all files in directory
+- File path: Review single file
 
-Look for these patterns to simplify:
+## Phase 1: Analysis
 
-- **Switch statements** → Replace with lookup objects/Maps when mapping values
-- **Verbose conditionals** → Simplify with ternaries or early returns
-- **IIFEs** → Simplify to direct expressions or helper functions
-- **Repeated patterns** → Extract to shared utilities (but avoid premature abstraction)
-- **Nested type checks** → Use Set.has() or type guards
-- **Complex destructuring** → Use dot notation if cleaner (e.g., `ui.prop` vs destructuring 20 properties)
+Use the Task tool with subagent_type=Explore to analyze files in parallel when reviewing a directory.
 
-### 2. Narrative Flow
+Catalog opportunities in these categories:
 
-Organize code for readability:
+### Simplification Patterns
 
-- **Most important code first**: Main component/function at top, helpers below
-- **Public exports before private helpers**
-- **Related code grouped together**
-- **Constants at module level**, not inline
+| Pattern                | Replace With      | Example                                                             |
+| ---------------------- | ----------------- | ------------------------------------------------------------------- |
+| Switch on value        | Lookup object     | `switch(x){case 'a': return 1}` → `{a:1}[x] ?? default`             |
+| Multi-condition if     | Set.has()         | `if(x==='a'\|\|x==='b')` → `new Set(['a','b']).has(x)`              |
+| IIFE for derivation    | Direct expression | `const x = (() => {...})()` → ternary chain or named helper         |
+| Repeated regex matches | Extract helper    | 4x identical `while(match.exec())` → `extractMatches(str, pattern)` |
+| Large destructure      | Dot notation      | `const {a,b,c,d,e,f} = obj` → use `obj.prop` throughout             |
+| Verbose conditionals   | Early returns     | Nested if/else → guard clauses at top                               |
 
-### 3. Consistency
+### Narrative Flow
 
-Check against project patterns:
+- **Top**: Main export (the "what")
+- **Middle**: Implementation details
+- **Bottom**: Helper functions, constants, types
+- Group related code; separate with section comments if large
 
-- Follow existing naming conventions
-- Match established patterns in sibling files
-- Align with design docs if present (@docs/08-ui.md for TUI, etc.)
+### Consistency Checks
 
-### 4. Avoid Over-Engineering
+- Match patterns in sibling files
+- Follow design docs (e.g., @docs/08-ui.md for TUI)
+- Use established utilities (check imports in similar files)
+- Preserve public API (exports, function signatures)
 
-Do NOT:
+## Phase 2: Present Findings
 
-- Create abstractions for single-use code
-- Add configurability that isn't needed
-- Extract helpers for 3 lines of code
-- Add type gymnastics that reduce readability
+Summarize with impact assessment:
 
-## Process
+```markdown
+## Analysis: [directory/file]
 
-1. **Analyze**: Read each file and identify simplification opportunities
-2. **Plan**: List all changes with before/after code snippets
-3. **Review**: Re-evaluate the list - remove changes that are marginal or add complexity
-4. **Implement**: Apply remaining changes systematically
-5. **Verify**: Run tests to ensure nothing broke
+### Implement (high value)
 
-## Output
+- **file.ts:30-70**: Switch → lookup object (saves 35 lines)
+- **file.ts:120**: Extract shared scroll calc (DRY across 3 files)
 
-For each file, provide:
+### Implement (medium value)
 
-```
-## [filename]
+- **file.ts:200**: Simplify nested ternary (clearer intent)
 
-### Changes Made
-1. [Change description]: [Before] → [After]
+### Skip (low value / risk)
 
-### Skipped (marginal benefit)
-- [Pattern]: [Reason for skipping]
+- **file.ts:50**: Minor, saves 2 lines
+- **file.ts:180**: Would change export signature
 ```
 
-**Keywords**: refactor, simplify, cleanup, clean up, code review, consistency
+**Stop here if `--dry-run`**. Otherwise, ask for confirmation before Phase 3.
+
+## Phase 3: Implementation
+
+1. Create todo list with TodoWrite for tracking
+2. Apply one logical change at a time
+3. After each file: verify no type errors (IDE diagnostics)
+4. Run `bun run test:fast` periodically (every 2-3 files)
+
+### Preserving API
+
+- Keep function signatures unchanged unless explicitly refactoring API
+- Re-export moved utilities from original location if needed
+- Update imports in consuming files
+
+## Phase 4: Verification
+
+```bash
+bun fix            # Lint + format (must pass)
+bun run test:fast  # Fast tests (must pass)
+```
+
+If all tests pass, summarize changes:
+
+- Files modified: N
+- Lines removed: ~X
+- Patterns applied: [list]
+
+## Anti-Patterns (Do NOT)
+
+- Extract helpers for single-use code (3 similar lines is fine)
+- Create abstractions "for future flexibility"
+- Add type complexity that hurts readability
+- Remove comments that explain "why" (keep the narrative)
+- Change behavior while simplifying (refactor ≠ rewrite)
+
+**Keywords**: refactor, simplify, cleanup, clean up, code review, consistency, refactoring, simplification

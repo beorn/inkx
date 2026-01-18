@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useReducer } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { withFullScreen } from "fullscreen-ink";
-import chalk from "chalk";
+import chalk, { type ChalkInstance } from "chalk";
 import { hyperlink } from "@beorn/chalkx";
 import type {
   BoardState,
@@ -221,31 +221,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     ? darkBgColors.includes(boardColor)
     : isBoardSelected;
 
-  const topBarContent = selectedPathSegments
-    .map((seg, i) => {
-      // Check if this is the boundary between board path and item path
-      const prevSeg = i > 0 ? selectedPathSegments[i - 1] : null;
-      const isBoardBoundary =
-        prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
-
-      // No more colored disc icons - the background IS the color now
-      if (useWhiteText) {
-        // Dark background, white text
-        const sepPart = seg.sep ? topBarBgChalk.white(` ${seg.sep} `) : "";
-        const namePart = topBarBgChalk.white.bold(seg.name);
-        return sepPart + namePart;
-      } else {
-        // Light background, black text
-        const sepPart = seg.sep
-          ? isBoardBoundary
-            ? topBarBgChalk.blue.bold(` ${seg.sep} `)
-            : topBarBgChalk.gray(` ${seg.sep} `)
-          : "";
-        const namePart = topBarBgChalk.black.bold(seg.name);
-        return sepPart + namePart;
-      }
-    })
-    .join("");
+  const topBarContent = renderTopBarSegments(
+    selectedPathSegments,
+    topBarBgChalk,
+    useWhiteText,
+  );
   // Calculate visible length (without ANSI codes) - no more icon chars
   const visibleLen =
     1 +
@@ -1661,7 +1641,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     const card = col?.cards[state.cardIndex];
     if (!card) return 0;
     return (
-      1 + countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ui.foldedNodes)
+      1 +
+      countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ui.foldedNodes)
     );
   }
 
@@ -1671,7 +1652,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     const newSelected = new Set<SelectionKey>();
 
     // For simplicity, only support selection within same column and card for now
-    if (ui.selectionAnchor.col === toCol && ui.selectionAnchor.card === toCard) {
+    if (
+      ui.selectionAnchor.col === toCol &&
+      ui.selectionAnchor.card === toCard
+    ) {
       const minSub = Math.min(ui.selectionAnchor.sub, toSub);
       const maxSub = Math.max(ui.selectionAnchor.sub, toSub);
       for (let s = minSub; s <= maxSub; s++) {
@@ -1687,7 +1671,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         if (card) {
           const maxItems =
             1 +
-            countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
+            countVisibleDescendants(
+              card.node,
+              0,
+              ui.maxOutlineDepth,
+              ui.foldedNodes,
+            );
           for (let s = 0; s < maxItems; s++) {
             newSelected.add(makeSelectionKey(toCol, c, s));
           }
@@ -2127,7 +2116,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       // Select all sub-items in current card
       const newSelected = new Set<SelectionKey>();
       const maxItems =
-        1 + countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
+        1 +
+        countVisibleDescendants(
+          card.node,
+          0,
+          ui.maxOutlineDepth,
+          ui.foldedNodes,
+        );
       for (let s = 0; s < maxItems; s++) {
         newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, s));
       }
@@ -2141,7 +2136,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         if (c) {
           const maxItems =
             1 +
-            countVisibleDescendants(c.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
+            countVisibleDescendants(
+              c.node,
+              0,
+              ui.maxOutlineDepth,
+              ui.foldedNodes,
+            );
           for (let s = 0; s < maxItems; s++) {
             newSelected.add(makeSelectionKey(state.colIndex, cardIdx, s));
           }
@@ -2442,7 +2442,12 @@ function countVisibleDescendants(
   const children = getChildren(node.id).slice(0, 10);
   let count = children.length;
   for (const child of children) {
-    count += countVisibleDescendants(child, depth + 1, maxDepth, ui.foldedNodes);
+    count += countVisibleDescendants(
+      child,
+      depth + 1,
+      maxDepth,
+      ui.foldedNodes,
+    );
   }
   return count;
 }
@@ -2491,4 +2496,33 @@ function calcScrollOffset(
       Math.max(0, totalCount - maxVisible),
     ),
   );
+}
+
+// Render top bar path segments with appropriate colors
+function renderTopBarSegments(
+  segments: ReturnType<typeof renderPath>,
+  bgChalk: ChalkInstance,
+  useWhiteText: boolean,
+): string {
+  return segments
+    .map((seg, i) => {
+      const prevSeg = i > 0 ? segments[i - 1] : null;
+      const isBoardBoundary =
+        prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
+
+      if (useWhiteText) {
+        // Dark background: white text
+        const sepPart = seg.sep ? bgChalk.white(` ${seg.sep} `) : "";
+        return sepPart + bgChalk.white.bold(seg.name);
+      } else {
+        // Light background: black text, blue separator at board boundary
+        const sepPart = seg.sep
+          ? isBoardBoundary
+            ? bgChalk.blue.bold(` ${seg.sep} `)
+            : bgChalk.gray(` ${seg.sep} `)
+          : "";
+        return sepPart + bgChalk.black.bold(seg.name);
+      }
+    })
+    .join("");
 }

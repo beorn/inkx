@@ -11,6 +11,7 @@ import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { useTreeConfig } from "../ui-context.tsx";
+import { calcScrollOffset } from "../constraints/index.ts";
 
 // =============================================================================
 // ColumnTree Subcomponent
@@ -50,13 +51,7 @@ function ColumnTree({
   // Only scroll if we actually have more cards than can fit
   const needsScroll = column.cards.length > maxVisibleCards;
   const scrollOffset = needsScroll
-    ? Math.max(
-        0,
-        Math.min(
-          selectedCardIndex - Math.floor(maxVisibleCards / 2),
-          Math.max(0, column.cards.length - maxVisibleCards),
-        ),
-      )
+    ? calcScrollOffset(selectedCardIndex, maxVisibleCards, column.cards.length)
     : 0;
 
   const visibleCards = column.cards.slice(
