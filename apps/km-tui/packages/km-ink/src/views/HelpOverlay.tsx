@@ -114,12 +114,7 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
 
       {/* Header */}
       <Text backgroundColor="black" color="cyan" bold>
-        {bgLine(
-          "Keyboard Shortcuts"
-            .padStart(Math.floor((contentWidth + 18) / 2))
-            .padEnd(contentWidth),
-          0,
-        )}
+        {bgLine(centerText("Keyboard Shortcuts"), 0)}
       </Text>
       <Text backgroundColor="black">{bgLine("", 0)}</Text>
 
@@ -148,12 +143,7 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
       ))}
 
       <Text backgroundColor="black" dimColor>
-        {bgLine(
-          "Press ? or Esc to close"
-            .padStart(Math.floor((contentWidth + 22) / 2))
-            .padEnd(contentWidth),
-          0,
-        )}
+        {bgLine(centerText("Press ? or Esc to close"), 0)}
       </Text>
 
       {/* Bottom padding */}

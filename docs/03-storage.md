@@ -173,8 +173,8 @@ Nodes can be **linked** to appear in multiple locations (e.g., `![[Target]]` emb
 ```typescript
 interface KNode {
   // ... other fields ...
-  link_to?: string;     // ID of target node (if this is a link)
-  link_alias?: string;  // Optional display alias from |alias syntax
+  link_to?: string; // ID of target node (if this is a link)
+  link_alias?: string; // Optional display alias from |alias syntax
 }
 ```
 

@@ -128,14 +128,14 @@ export const addCommand = new Command("add")
 
     // Create symlink nodes in the target (transclusion - tasks stay in original location)
     for (const task of tasksToAdd) {
-      // Create a symlink node that points to the original task
-      const symlinkId = ulid();
+      // Create a link node that points to the original task
+      const linkId = ulid();
       emitNodeCreated("cli:add", {
-        id: symlinkId,
+        id: linkId,
         type: "task",
         parent_id: actualTarget.id,
         parent_idx: nextIdx++,
-        symlink_to: task.id, // Points to the original task
+        link_to: task.id, // Points to the original task
         // Copy some properties for display purposes
         content: task.content,
         task_status: task.task_status,
