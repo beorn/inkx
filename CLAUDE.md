@@ -41,7 +41,67 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 - ANSI-aware text length calculations
 - Text truncation and wrapping patterns
 
-### 5. Test-Driven Development
+### 5. Code Structure Style
+
+**Important logic first, details later.** Structure code so the core narrative is readable at a glance:
+
+- Put the main logic/flow at the top of functions and components
+- **Avoid long arrow functions** in the main body of a function
+- Extract long callbacks, handlers, and helper logic into **named functions**
+- Place named functions **after the return statement** in React components (function hoisting makes this work)
+
+```tsx
+// Good: Core logic readable at top, details at bottom
+function Component() {
+  useEffect(handleRefresh, []);
+  useEffect(syncDimensions, [stdout]);
+  useInput(handleKeyboardInput);
+
+  const result = computeResult();
+
+  return <Box>...</Box>;
+
+  // Named functions hoisted here - details out of the way
+  function handleRefresh() {
+    // ... 20+ lines of logic
+  }
+  function syncDimensions() {
+    // ... 15+ lines of logic
+  }
+  function handleKeyboardInput(input: string, key: Key) {
+    // ... keyboard handling logic
+  }
+  function computeResult() {
+    // ... complex computation
+  }
+}
+
+// Bad: Long inline arrow functions obscure the structure
+function Component() {
+  useEffect(() => {
+    // 20 lines of refresh logic buried inline...
+  }, []);
+
+  const handleClick = () => {
+    // 30 lines of click handling...
+  };
+
+  const computeResult = () => {
+    // Complex computation mixed with declarations...
+  };
+  // ...
+}
+```
+
+**Exception**: Very short lambdas (1-3 lines) can stay inline:
+
+```tsx
+// Fine: short enough to read at a glance
+useEffect(() => dispatch(setRootId(id)), [id]);
+const doubled = items.map((x) => x * 2);
+```
+
+### 6. Test-Driven Development
 
 **Test commands:**
 
