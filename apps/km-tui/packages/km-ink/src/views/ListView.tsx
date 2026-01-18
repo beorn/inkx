@@ -10,7 +10,7 @@ import { Box, Text } from "ink";
 import type { BoardState, SelectionKey, CardState } from "../types.ts";
 import { TreeNode, makeSelectionKey } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
-import { getOwnColor } from "../board-pills.ts";
+import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { calculateScrollState } from "../constraints/index.ts";
 
 interface ListViewProps {
@@ -123,25 +123,19 @@ export function ListView({
           const colName = getNodeDisplayName(column.node);
           const count = column.cards.length;
           const ownColor = getOwnColor(column.node);
-
-          const headerTextColor = ownColor
-            ? ["red", "green", "blue", "magenta", "gray", "grey"].includes(
-                ownColor,
-              )
-              ? "white"
-              : "black"
-            : isSelected
-              ? "yellow"
-              : "yellowBright";
-          const headerDimmed = !isSelected && !ownColor;
+          const headerStyle = getHeaderStyle(
+            ownColor,
+            isSelected,
+            isColSelected,
+          );
 
           return (
             <Text
               key={`header-${column.node.id}`}
               bold={isSelected}
-              color={isColSelected ? "black" : headerTextColor}
-              dimColor={headerDimmed}
-              backgroundColor={isColSelected ? "cyan" : ownColor || undefined}
+              color={headerStyle.color}
+              dimColor={headerStyle.dimColor}
+              backgroundColor={headerStyle.backgroundColor}
               wrap="truncate"
             >
               {colName} ({count})

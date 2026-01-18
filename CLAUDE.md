@@ -34,6 +34,13 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 - **Headers**: `yellow` (selected) / `yellowBright` + dim (unselected)
 - **Status icons**: Use both color AND shape (colorblind-safe)
 
+**Ink Framework Patterns**: When working on TUI code using Ink, you MUST read [docs/dev/ink-patterns.md](docs/dev/ink-patterns.md). This documents critical workarounds for Ink's layout limitations including:
+
+- Fullscreen initialization race condition (50ms delay fix)
+- Manual width management and constraint propagation
+- ANSI-aware text length calculations
+- Text truncation and wrapping patterns
+
 ### 5. Test-Driven Development
 
 **Test commands:**

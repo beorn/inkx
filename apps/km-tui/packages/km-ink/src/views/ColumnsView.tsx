@@ -9,7 +9,7 @@ import { Box, Text } from "ink";
 import type { BoardState, ColumnState, SelectionKey } from "../types.ts";
 import { TreeNode, makeSelectionKey } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
-import { getOwnColor } from "../board-pills.ts";
+import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 
 interface ColumnsViewProps {
   state: BoardState;
@@ -92,17 +92,11 @@ function ColumnTree({
 
   // Column header is selected when at column level
   const isColumnHeaderSelected = isSelected && selectionLevel === "column";
-
-  // Header text color: bright yellow if selected, dim yellow otherwise
-  // Exception: if column has its own color, use appropriate text color
-  const headerTextColor = ownColor
-    ? ["red", "green", "blue", "magenta", "gray", "grey"].includes(ownColor)
-      ? "white"
-      : "black"
-    : isSelected
-      ? "yellow"
-      : "yellowBright";
-  const headerDimmed = !isSelected && !ownColor;
+  const headerStyle = getHeaderStyle(
+    ownColor,
+    isSelected,
+    isColumnHeaderSelected,
+  );
 
   // Height for cards area: total height - blank line (1) - header (1)
   const cardsHeight = Math.max(1, height - 2);
@@ -114,11 +108,9 @@ function ColumnTree({
         <Text> </Text>
         <Text
           bold={isSelected}
-          color={isColumnHeaderSelected ? "black" : headerTextColor}
-          dimColor={headerDimmed}
-          backgroundColor={
-            isColumnHeaderSelected ? "cyan" : ownColor ? ownColor : undefined
-          }
+          color={headerStyle.color}
+          dimColor={headerStyle.dimColor}
+          backgroundColor={headerStyle.backgroundColor}
           wrap="truncate"
         >
           {name} ({count})

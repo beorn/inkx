@@ -160,3 +160,41 @@ export function formatBoardPills(
     return pills.map((p) => colorize(`@${p.name}`, p.color)).join(" ");
   }
 }
+
+// Colors that need white text for contrast
+const DARK_COLORS = ["red", "green", "blue", "magenta", "gray", "grey"];
+
+/**
+ * Get header text styling for column/section headers
+ * Handles own color, selection state, and accessibility
+ */
+export function getHeaderStyle(
+  ownColor: string | undefined,
+  isSelected: boolean,
+  isActiveSelection: boolean,
+): { color: string; backgroundColor: string | undefined; dimColor: boolean } {
+  // When actively selected (highlight mode), use cyan background
+  if (isActiveSelection) {
+    return {
+      color: "black",
+      backgroundColor: "cyan",
+      dimColor: false,
+    };
+  }
+
+  // When header has its own color
+  if (ownColor) {
+    return {
+      color: DARK_COLORS.includes(ownColor) ? "white" : "black",
+      backgroundColor: ownColor,
+      dimColor: false,
+    };
+  }
+
+  // Default: yellow styling based on selection
+  return {
+    color: isSelected ? "yellow" : "yellowBright",
+    backgroundColor: undefined,
+    dimColor: !isSelected,
+  };
+}
