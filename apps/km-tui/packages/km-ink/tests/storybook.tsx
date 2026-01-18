@@ -493,7 +493,7 @@ function mockNode(
     type: type as KNode["type"],
     parent_id: null,
     parent_idx: 0,
-    symlink_to: null,
+    link_to: null,
     content,
     task_status: status as KNode["task_status"],
     data: {},

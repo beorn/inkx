@@ -8,12 +8,11 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import type { BoardState, CardState } from "../types.ts";
-import { makeSelectionKey } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
-import { useTreeConfig, useUISelector } from "../ui-context.tsx";
+import { useTreeConfig } from "../ui-context.tsx";
 import { calculateScrollState } from "../constraints/index.ts";
 
 interface ListViewProps {
@@ -37,7 +36,6 @@ export function ListView({
 }: ListViewProps): React.ReactElement {
   // Get UI state from context
   const { maxContentLines, inOutlineMode } = useTreeConfig();
-  const multiSelected = useUISelector((s) => s.multiSelected);
 
   const availableHeight = height - 2;
   const colWidth = width;
@@ -139,8 +137,6 @@ export function ListView({
           colIndex === cIdx &&
           cardIndex === cardIdx &&
           !inOutlineMode;
-        const cardKey = makeSelectionKey(cIdx, cardIdx, 0);
-        const isCardMultiSelected = multiSelected.has(cardKey);
 
         return (
           <TreeNode
@@ -156,7 +152,6 @@ export function ListView({
                 cardIndex === cardIdx &&
                 subIndex === 0)
             }
-            isMultiSelected={isCardMultiSelected}
             colIndex={cIdx}
             cardIndex={cardIdx}
             subIndex={0}

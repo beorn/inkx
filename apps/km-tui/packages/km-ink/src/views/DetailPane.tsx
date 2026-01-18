@@ -331,41 +331,32 @@ function formatDate(dateStr: string | undefined): {
 }
 
 // Status display with color
+const STATUS_DISPLAY: Record<string, { text: string; color: string }> = {
+  done: { text: "done", color: "green" },
+  wip: { text: "wip", color: "yellow" },
+  blocked: { text: "blocked", color: "red" },
+  dropped: { text: "dropped", color: "gray" },
+};
+
 function getStatusDisplay(status?: string): { text: string; color: string } {
-  switch (status) {
-    case "done":
-      return { text: "done", color: "green" };
-    case "wip":
-      return { text: "wip", color: "yellow" };
-    case "blocked":
-      return { text: "blocked", color: "red" };
-    case "dropped":
-      return { text: "dropped", color: "gray" };
-    default:
-      return { text: "todo", color: "blue" };
-  }
+  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "blue" };
 }
 
 // Priority display
 function getPriorityDisplay(priority?: number): string {
-  if (!priority) return "";
-  return `P${priority}`;
+  return priority ? `P${priority}` : "";
 }
 
-// Get checkbox mark for subtask display (markdown style)
+// Checkbox marks for subtask display (markdown style)
+const CHECKBOX_MARKS: Record<string, string> = {
+  done: "[x]",
+  wip: "[/]",
+  blocked: "[!]",
+  dropped: "[-]",
+};
+
 function getSubtaskCheckbox(status?: string): string {
-  switch (status) {
-    case "done":
-      return "[x]";
-    case "wip":
-      return "[/]";
-    case "blocked":
-      return "[!]";
-    case "dropped":
-      return "[-]";
-    default:
-      return "[ ]";
-  }
+  return CHECKBOX_MARKS[status ?? ""] ?? "[ ]";
 }
 
 // Extract references from content
@@ -376,50 +367,26 @@ interface References {
   wikilinks: string[];
 }
 
-function extractReferences(content: string | undefined): References {
-  const refs: References = {
-    mentions: [],
-    tags: [],
-    projects: [],
-    wikilinks: [],
-  };
-
-  if (!content) return refs;
-
-  // @mentions
-  const mentionPattern = /@(\w+)/g;
+// Extract unique matches from content using a regex pattern
+function extractMatches(content: string, pattern: RegExp): string[] {
+  const matches = new Set<string>();
   let match;
-  while ((match = mentionPattern.exec(content)) !== null) {
-    if (match[1] && !refs.mentions.includes(match[1])) {
-      refs.mentions.push(match[1]);
-    }
+  while ((match = pattern.exec(content)) !== null) {
+    if (match[1]) matches.add(match[1]);
   }
+  return [...matches];
+}
 
-  // #tags
-  const tagPattern = /#(\w+)/g;
-  while ((match = tagPattern.exec(content)) !== null) {
-    if (match[1] && !refs.tags.includes(match[1])) {
-      refs.tags.push(match[1]);
-    }
+function extractReferences(content: string | undefined): References {
+  if (!content) {
+    return { mentions: [], tags: [], projects: [], wikilinks: [] };
   }
-
-  // +projects
-  const projectPattern = /\+(\w+)/g;
-  while ((match = projectPattern.exec(content)) !== null) {
-    if (match[1] && !refs.projects.includes(match[1])) {
-      refs.projects.push(match[1]);
-    }
-  }
-
-  // [[wikilinks]]
-  const wikilinkPattern = /\[\[([^\]]+)\]\]/g;
-  while ((match = wikilinkPattern.exec(content)) !== null) {
-    if (match[1] && !refs.wikilinks.includes(match[1])) {
-      refs.wikilinks.push(match[1]);
-    }
-  }
-
-  return refs;
+  return {
+    mentions: extractMatches(content, /@(\w+)/g),
+    tags: extractMatches(content, /#(\w+)/g),
+    projects: extractMatches(content, /\+(\w+)/g),
+    wikilinks: extractMatches(content, /\[\[([^\]]+)\]\]/g),
+  };
 }
 
 // Build project path (ancestors to root)

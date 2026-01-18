@@ -92,33 +92,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Board state (navigation) - still useState for now, could migrate to boardReducer
   const [state, setState] = useState(initialState);
 
-  // Destructure UI state for easier access (maintains compatibility with existing code)
-  const {
-    viewMode,
-    showDetailPane,
-    maxOutlineDepth,
-    showHelp,
-    showProjectPicker,
-    showNewItemDialog,
-    selectionLevel,
-    subIndex,
-    inOutlineMode,
-    multiSelected,
-    selectionAnchor,
-    selectAllLevel,
-    collapsedColumns,
-    foldedNodes,
-    mouseSelection,
-    isMouseDragging,
-    droppedFiles,
-    showDropNotification,
-    navHistory,
-    navHistoryIndex,
-    recentProjectIds,
-    isReady,
-    dimensions,
-  } = ui;
-
   // Dialog handlers (extracted to separate hook for maintainability)
   const {
     handleProjectSelect,
@@ -139,14 +112,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // 3. This causes the initial render to be incomplete or positioned incorrectly
   //
   // Solution: Delay rendering the actual UI until the terminal is fully ready:
-  // 1. Poll for valid stdout dimensions (columns/rows defined)
+  // 1. Poll for valid stdout ui.dimensions (columns/rows defined)
   // 2. Wait an additional 50ms for alternate buffer to stabilize
   // 3. Render an empty Box until ready, then render the full UI
   //
   // The 50ms delay is a balance between avoiding the race condition and minimizing
   // perceived startup latency. Shorter delays may reintroduce the bug.
 
-  // Sync terminal dimensions and handle the initial render delay
+  // Sync terminal ui.dimensions and handle the initial render delay
   useEffect(syncTerminalDimensions, [stdout]);
 
   // Sync rootBoardId in UI state when board navigation changes
@@ -159,13 +132,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   useEffect(setupFileDropHandler, []);
 
   // Handle mouse drag-select
-  useEffect(setupMouseHandler, [mouseSelection]);
+  useEffect(setupMouseHandler, [ui.mouseSelection]);
 
   // Subscribe to external refresh events (filesystem changes)
   useEffect(setupRefreshHandler, []);
 
-  const termWidth = dimensions.columns;
-  const termHeight = dimensions.rows;
+  const termWidth = ui.dimensions.columns;
+  const termHeight = ui.dimensions.rows;
 
   const maxCols = Math.min(
     state.columns.length,
@@ -173,12 +146,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   );
 
   // Horizontal scrolling for columns
-  const colScrollOffset = Math.max(
-    0,
-    Math.min(
-      state.colIndex - Math.floor(maxCols / 2),
-      Math.max(0, state.columns.length - maxCols),
-    ),
+  const colScrollOffset = calcScrollOffset(
+    state.colIndex,
+    maxCols,
+    state.columns.length,
   );
   const visibleColumns = state.columns.slice(
     colScrollOffset,
@@ -192,7 +163,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   useInput(handleKeyboardInput);
 
   // Handle detail pane navigation (j/k to move cards while pane is open)
-  useInput(handleDetailPaneInput, { isActive: showDetailPane });
+  useInput(handleDetailPaneInput, { isActive: ui.showDetailPane });
 
   // Handlers defined after return (hoisted)
 
@@ -202,69 +173,40 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const selectedCard = selectedCol?.cards[state.cardIndex];
 
   // Determine which node to show path to based on selection level
-  const selectedPathSegments = (() => {
-    if (selectionLevel === "board" || !selectedCol) {
-      // At board level or no column - show path to board root
-      return getPathSegments(state.rootId, state.rootId);
-    } else if (selectionLevel === "column") {
-      // At column level - show path to selected column
-      return renderPath(
-        getPathSegments(selectedCol.node.id, state.rootId),
-        termWidth - 4,
-      );
-    } else if (selectedCard) {
-      // At card level with a card selected - show path to card
-      return renderPath(
-        getPathSegments(selectedCard.node.id, state.rootId),
-        termWidth - 4,
-      );
-    } else {
-      // At card level but no card (empty column) - show path to column
-      return renderPath(
-        getPathSegments(selectedCol.node.id, state.rootId),
-        termWidth - 4,
-      );
-    }
-  })();
+  // Card level shows card path (or column if no card), column shows column, board shows root
+  const pathNodeId =
+    ui.selectionLevel === "board" || !selectedCol
+      ? state.rootId
+      : ui.selectionLevel === "column" || !selectedCard
+        ? selectedCol.node.id
+        : selectedCard.node.id;
+  const selectedPathSegments = renderPath(
+    getPathSegments(pathNodeId, state.rootId),
+    termWidth - 4,
+  );
 
   // Calculate widths for split view
-  const detailPaneWidth = showDetailPane ? Math.floor(termWidth * 0.4) : 0;
+  const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0;
   const boardWidth = termWidth - detailPaneWidth;
 
-  // Recalculate columns when detail pane is shown
-  const effectiveMaxCols = showDetailPane
+  // Recalculate columns when detail pane is shown (narrower view)
+  const effectiveMaxCols = ui.showDetailPane
     ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
     : maxCols;
-  const effectiveVisibleColumns = showDetailPane
+  const effectiveScrollOffset = calcScrollOffset(
+    state.colIndex,
+    effectiveMaxCols,
+    state.columns.length,
+  );
+  const effectiveVisibleColumns = ui.showDetailPane
     ? state.columns.slice(
-        Math.max(
-          0,
-          Math.min(
-            state.colIndex - Math.floor(effectiveMaxCols / 2),
-            Math.max(0, state.columns.length - effectiveMaxCols),
-          ),
-        ),
-        Math.max(
-          0,
-          Math.min(
-            state.colIndex - Math.floor(effectiveMaxCols / 2),
-            Math.max(0, state.columns.length - effectiveMaxCols),
-          ),
-        ) + effectiveMaxCols,
+        effectiveScrollOffset,
+        effectiveScrollOffset + effectiveMaxCols,
       )
     : visibleColumns;
-  const effectiveScrollOffset = showDetailPane
-    ? Math.max(
-        0,
-        Math.min(
-          state.colIndex - Math.floor(effectiveMaxCols / 2),
-          Math.max(0, state.columns.length - effectiveMaxCols),
-        ),
-      )
-    : colScrollOffset;
 
   // Build top bar - use board's color as background, or blue if selected/no color
-  const isBoardSelected = selectionLevel === "board";
+  const isBoardSelected = ui.selectionLevel === "board";
 
   // Get board's own color for the top bar background (not inherited)
   const boardNode = state.rootId ? getNode(state.rootId) : null;
@@ -316,9 +258,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const topBarBg = topBarBgChalk;
   const topBarFg = useWhiteText ? topBarBgChalk.white : topBarBgChalk.black;
 
-  // Render loading indicator until terminal is ready (see isReady comment above)
+  // Render loading indicator until terminal is ready (see ui.isReady comment above)
   // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
-  if (!isReady) {
+  if (!ui.isReady) {
     return (
       <Box
         height={termHeight}
@@ -340,7 +282,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         </Box>
         <Box flexGrow={1} flexDirection="row" height={termHeight - 2}>
           {/* Cards, Columns, or List view */}
-          {viewMode === "cards" ? (
+          {ui.viewMode === "cards" ? (
             <Box flexDirection="row" width={boardWidth} height={termHeight - 2}>
               {/* Left scroll indicator - full height filled bar */}
               {effectiveScrollOffset > 0 && (
@@ -378,12 +320,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                       column={col}
                       colIndex={actualColIndex}
                       isSelected={actualColIndex === state.colIndex}
-                      isCollapsed={collapsedColumns.has(actualColIndex)}
+                      isCollapsed={ui.collapsedColumns.has(actualColIndex)}
                       selectedCardIndex={state.cardIndex}
-                      selectedSubIndex={inOutlineMode ? subIndex : -1}
+                      selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
                       width={adjustedColWidth}
                       height={termHeight - 2}
-                      selectionLevel={selectionLevel}
+                      selectionLevel={ui.selectionLevel}
                     />
                     {/* Separator line between columns */}
                     {!isLastCol && (
@@ -416,28 +358,28 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 </Box>
               )}
             </Box>
-          ) : viewMode === "columns" ? (
+          ) : ui.viewMode === "columns" ? (
             <ColumnsView
               state={state}
               width={boardWidth}
               height={termHeight - 2}
               colIndex={state.colIndex}
               cardIndex={state.cardIndex}
-              subIndex={subIndex}
+              subIndex={ui.subIndex}
               effectiveScrollOffset={effectiveScrollOffset}
               effectiveMaxCols={effectiveMaxCols}
               effectiveVisibleColumns={effectiveVisibleColumns}
-              selectionLevel={selectionLevel}
+              selectionLevel={ui.selectionLevel}
             />
-          ) : viewMode === "list" ? (
+          ) : ui.viewMode === "list" ? (
             <ListView
               state={state}
               width={boardWidth}
               height={termHeight - 2}
               colIndex={state.colIndex}
               cardIndex={state.cardIndex}
-              subIndex={subIndex}
-              selectionLevel={selectionLevel}
+              subIndex={ui.subIndex}
+              selectionLevel={ui.selectionLevel}
             />
           ) : (
             <TabsView
@@ -446,12 +388,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               height={termHeight - 2}
               colIndex={state.colIndex}
               cardIndex={state.cardIndex}
-              subIndex={subIndex}
-              selectionLevel={selectionLevel}
+              subIndex={ui.subIndex}
+              selectionLevel={ui.selectionLevel}
             />
           )}
           {/* Detail pane */}
-          {showDetailPane && selectedCard && (
+          {ui.showDetailPane && selectedCard && (
             <DetailPane
               node={selectedCard.node}
               width={detailPaneWidth}
@@ -459,7 +401,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             />
           )}
           {/* Project picker modal */}
-          {showProjectPicker && (
+          {ui.showProjectPicker && (
             <Box
               position="absolute"
               marginLeft={Math.floor(termWidth / 4)}
@@ -470,12 +412,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 onCancel={handleProjectCancel}
                 width={Math.floor(termWidth / 2)}
                 height={Math.floor(termHeight / 2)}
-                recentProjectIds={recentProjectIds}
+                recentProjectIds={ui.recentProjectIds}
               />
             </Box>
           )}
           {/* New item dialog modal */}
-          {showNewItemDialog && (
+          {ui.showNewItemDialog && (
             <Box
               position="absolute"
               marginLeft={Math.floor(termWidth / 4)}
@@ -491,7 +433,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             </Box>
           )}
           {/* Help overlay */}
-          {showHelp && (
+          {ui.showHelp && (
             <HelpOverlay width={termWidth} height={termHeight - 2} />
           )}
         </Box>
@@ -509,25 +451,25 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           </Text>
           {/* Right side: status indicators */}
           <Text>
-            {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
-            {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
-            {showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
-            {showDropNotification && droppedFiles.length > 0 && (
+            {ui.showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
+            {ui.showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
+            {ui.showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
+            {ui.showDropNotification && ui.droppedFiles.length > 0 && (
               <Text color="green">
-                {`[Dropped: ${droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
+                {`[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
               </Text>
             )}
-            {isMouseDragging && mouseSelection && (
-              <Text color="blue">{`[Select: ${mouseSelection.startY}-${mouseSelection.endY}] `}</Text>
+            {ui.isMouseDragging && ui.mouseSelection && (
+              <Text color="blue">{`[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `}</Text>
             )}
-            {multiSelected.size > 0 && (
-              <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
+            {ui.multiSelected.size > 0 && (
+              <Text color="yellow">{`[${ui.multiSelected.size} sel] `}</Text>
             )}
-            {inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
-            {selectionLevel !== "card" && (
-              <Text color="magenta">{`${selectionLevel.toUpperCase()} `}</Text>
+            {ui.inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
+            {ui.selectionLevel !== "card" && (
+              <Text color="magenta">{`${ui.selectionLevel.toUpperCase()} `}</Text>
             )}
-            <Text inverse>{` ${viewMode.toUpperCase()} VIEW `}</Text>
+            <Text inverse>{` ${ui.viewMode.toUpperCase()} VIEW `}</Text>
           </Text>
         </Box>
       </Box>
@@ -565,13 +507,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     }
 
     // Close help with Escape
-    if (showHelp && key.escape) {
+    if (ui.showHelp && key.escape) {
       dispatch(actions.hideHelp());
       return;
     }
 
     // Ignore other keys when help is shown
-    if (showHelp) {
+    if (ui.showHelp) {
       return;
     }
 
@@ -613,8 +555,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     const shiftColIndex = shiftNumberMap[input];
     if (
       shiftColIndex !== undefined &&
-      !showDetailPane &&
-      !inOutlineMode &&
+      !ui.showDetailPane &&
+      !ui.inOutlineMode &&
       shiftColIndex < state.columns.length
     ) {
       setState((s) => ({
@@ -634,8 +576,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     // Note: Alt+1-9 for moving is handled below with key.meta check
     if (
       /^[1-9]$/.test(input) &&
-      !showDetailPane &&
-      !inOutlineMode &&
+      !ui.showDetailPane &&
+      !ui.inOutlineMode &&
       !key.meta // Not Alt+number (move)
     ) {
       const favoriteRef = DEFAULT_FAVORITES[input];
@@ -649,9 +591,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             state.rootId,
             state.colIndex,
             state.cardIndex,
-            subIndex,
-            multiSelected,
-            inOutlineMode,
+            ui.subIndex,
+            ui.multiSelected,
+            ui.inOutlineMode,
           );
           dispatch(actions.exitOutlineMode());
           dispatch(actions.setSubIndex(0));
@@ -709,7 +651,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         return;
       }
       // Alt+1-9: move card to column (at top)
-      if (/^[1-9]$/.test(input) && !showDetailPane) {
+      if (/^[1-9]$/.test(input) && !ui.showDetailPane) {
         const targetCol = parseInt(input, 10) - 1;
         if (targetCol < state.columns.length) {
           moveCardToColumnByIndex(card, targetCol);
@@ -721,12 +663,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     // Escape: close UI elements progressively, then quit
     if (key.escape) {
       // If detail pane is open, close it
-      if (showDetailPane) {
+      if (ui.showDetailPane) {
         dispatch(actions.setDetailPane(false));
         return;
       }
       // If in outline mode, exit outline mode
-      if (inOutlineMode) {
+      if (ui.inOutlineMode) {
         dispatch(actions.exitOutlineMode());
         dispatch(actions.setSubIndex(0));
         clearSelection();
@@ -739,11 +681,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // 'u': Go up the physical path (parent of current root)
     if (input === "u") {
-      if (showDetailPane) {
+      if (ui.showDetailPane) {
         dispatch(actions.setDetailPane(false));
         return;
       }
-      if (inOutlineMode) {
+      if (ui.inOutlineMode) {
         dispatch(actions.exitOutlineMode());
         dispatch(actions.setSubIndex(0));
         clearSelection();
@@ -763,9 +705,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               state.rootId,
               state.colIndex,
               state.cardIndex,
-              subIndex,
-              multiSelected,
-              inOutlineMode,
+              ui.subIndex,
+              ui.multiSelected,
+              ui.inOutlineMode,
             );
             setState(zoomed);
             clearSelection();
@@ -779,9 +721,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               state.rootId,
               state.colIndex,
               state.cardIndex,
-              subIndex,
-              multiSelected,
-              inOutlineMode,
+              ui.subIndex,
+              ui.multiSelected,
+              ui.inOutlineMode,
             );
             setState(rootView);
             clearSelection();
@@ -796,8 +738,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // '[': Navigate back in history
     if (input === "[") {
-      if (navHistoryIndex > 0) {
-        const prevEntry = navHistory[navHistoryIndex - 1];
+      if (ui.navHistoryIndex > 0) {
+        const prevEntry = ui.navHistory[ui.navHistoryIndex - 1];
         if (prevEntry) {
           const newState = prevEntry.rootId
             ? buildBoardState(prevEntry.rootId)
@@ -806,7 +748,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             newState.colIndex = prevEntry.colIndex;
             newState.cardIndex = prevEntry.cardIndex;
             setState(newState);
-            dispatch(actions.setNavHistoryIndex(navHistoryIndex - 1));
+            dispatch(actions.setNavHistoryIndex(ui.navHistoryIndex - 1));
             // Restore selection state from history entry
             dispatch(actions.setSubIndex(prevEntry.subIndex));
             dispatch(
@@ -826,8 +768,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // ']': Navigate forward in history
     if (input === "]") {
-      if (navHistoryIndex < navHistory.length - 1) {
-        const nextEntry = navHistory[navHistoryIndex + 1];
+      if (ui.navHistoryIndex < ui.navHistory.length - 1) {
+        const nextEntry = ui.navHistory[ui.navHistoryIndex + 1];
         if (nextEntry) {
           const newState = nextEntry.rootId
             ? buildBoardState(nextEntry.rootId)
@@ -836,7 +778,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             newState.colIndex = nextEntry.colIndex;
             newState.cardIndex = nextEntry.cardIndex;
             setState(newState);
-            dispatch(actions.setNavHistoryIndex(navHistoryIndex + 1));
+            dispatch(actions.setNavHistoryIndex(ui.navHistoryIndex + 1));
             // Restore selection state from history entry
             dispatch(actions.setSubIndex(nextEntry.subIndex));
             dispatch(
@@ -988,20 +930,20 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     // Shift+J/K or Shift+Down/Up for range selection
     // Works in both outline mode (sub-item selection) and card mode (card selection)
     if (input === "J" || (key.shift && key.downArrow)) {
-      if (inOutlineMode) {
+      if (ui.inOutlineMode) {
         // Start or extend selection downward within card
-        if (!selectionAnchor) {
+        if (!ui.selectionAnchor) {
           dispatch(
             actions.setSelectionAnchor({
               col: state.colIndex,
               card: state.cardIndex,
-              sub: subIndex,
+              sub: ui.subIndex,
             }),
           );
         }
         const maxSub = getMaxSubIndex();
-        if (subIndex < maxSub - 1) {
-          const newSubIndex = subIndex + 1;
+        if (ui.subIndex < maxSub - 1) {
+          const newSubIndex = ui.subIndex + 1;
           dispatch(actions.setSubIndex(newSubIndex));
           updateSelectionRange(state.colIndex, state.cardIndex, newSubIndex);
         } else {
@@ -1016,7 +958,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         }
       } else {
         // Card-level selection: extend selection to include next card
-        if (!selectionAnchor) {
+        if (!ui.selectionAnchor) {
           dispatch(
             actions.setSelectionAnchor({
               col: state.colIndex,
@@ -1032,8 +974,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               countVisibleDescendants(
                 currentCard.node,
                 0,
-                maxOutlineDepth,
-                foldedNodes,
+                ui.maxOutlineDepth,
+                ui.foldedNodes,
               );
             const newSelected = new Set<SelectionKey>();
             for (let s = 0; s < maxItems; s++) {
@@ -1054,19 +996,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       return;
     }
     if (input === "K" || (key.shift && key.upArrow)) {
-      if (inOutlineMode) {
+      if (ui.inOutlineMode) {
         // Start or extend selection upward within card
-        if (!selectionAnchor) {
+        if (!ui.selectionAnchor) {
           dispatch(
             actions.setSelectionAnchor({
               col: state.colIndex,
               card: state.cardIndex,
-              sub: subIndex,
+              sub: ui.subIndex,
             }),
           );
         }
-        if (subIndex > 0) {
-          const newSubIndex = subIndex - 1;
+        if (ui.subIndex > 0) {
+          const newSubIndex = ui.subIndex - 1;
           dispatch(actions.setSubIndex(newSubIndex));
           updateSelectionRange(state.colIndex, state.cardIndex, newSubIndex);
         } else {
@@ -1080,8 +1022,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 countVisibleDescendants(
                   prevCard.node,
                   0,
-                  maxOutlineDepth,
-                  foldedNodes,
+                  ui.maxOutlineDepth,
+                  ui.foldedNodes,
                 );
               setState((s) => ({ ...s, cardIndex: newCardIndex }));
               dispatch(actions.setSubIndex(maxSub - 1));
@@ -1091,7 +1033,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         }
       } else {
         // Card-level selection: extend selection to include previous card
-        if (!selectionAnchor) {
+        if (!ui.selectionAnchor) {
           dispatch(
             actions.setSelectionAnchor({
               col: state.colIndex,
@@ -1107,8 +1049,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               countVisibleDescendants(
                 currentCard.node,
                 0,
-                maxOutlineDepth,
-                foldedNodes,
+                ui.maxOutlineDepth,
+                ui.foldedNodes,
               );
             const newSelected = new Set<SelectionKey>();
             for (let s = 0; s < maxItems; s++) {
@@ -1133,7 +1075,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       // Currently H is used for moving cards. For now, Shift+Left extends selection.
       // In the future, could remap card movement to Alt+H/L
       if (state.colIndex > 0) {
-        if (!selectionAnchor) {
+        if (!ui.selectionAnchor) {
           dispatch(
             actions.setSelectionAnchor({
               col: state.colIndex,
@@ -1158,7 +1100,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     }
     if (input === "L" || (key.shift && key.rightArrow)) {
       if (state.colIndex < state.columns.length - 1) {
-        if (!selectionAnchor) {
+        if (!ui.selectionAnchor) {
           dispatch(
             actions.setSelectionAnchor({
               col: state.colIndex,
@@ -1184,24 +1126,24 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     if (input === "j" || key.downArrow) {
       clearSelection();
       // Handle selection level transitions
-      if (selectionLevel === "board") {
+      if (ui.selectionLevel === "board") {
         // From board level, go to column level (first column)
         dispatch(actions.setSelectionLevel("column"));
         setState((s) => ({ ...s, colIndex: 0 }));
         return;
       }
-      if (selectionLevel === "column") {
+      if (ui.selectionLevel === "column") {
         // From column level, go to card level (first card in column)
         dispatch(actions.setSelectionLevel("card"));
         setState((s) => ({ ...s, cardIndex: 0 }));
         return;
       }
       // At card level
-      if (inOutlineMode) {
+      if (ui.inOutlineMode) {
         // In outline mode: navigate within card, then to next card
         const maxSub = getMaxSubIndex();
-        if (subIndex < maxSub - 1) {
-          dispatch(actions.setSubIndex(subIndex + 1));
+        if (ui.subIndex < maxSub - 1) {
+          dispatch(actions.setSubIndex(ui.subIndex + 1));
         } else {
           // Move to next card's first item
           const currentCol = state.columns[state.colIndex];
@@ -1229,11 +1171,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     if (input === "k" || key.upArrow) {
       clearSelection();
       // Handle selection level transitions
-      if (selectionLevel === "card") {
-        if (inOutlineMode) {
+      if (ui.selectionLevel === "card") {
+        if (ui.inOutlineMode) {
           // In outline mode: navigate within card, then to previous card, then to column
-          if (subIndex > 0) {
-            dispatch(actions.setSubIndex(subIndex - 1));
+          if (ui.subIndex > 0) {
+            dispatch(actions.setSubIndex(ui.subIndex - 1));
             return;
           } else if (state.cardIndex > 0) {
             // Move to previous card's last item
@@ -1247,8 +1189,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 countVisibleDescendants(
                   prevCard.node,
                   0,
-                  maxOutlineDepth,
-                  foldedNodes,
+                  ui.maxOutlineDepth,
+                  ui.foldedNodes,
                 );
               dispatch(actions.setSubIndex(maxSub - 1));
             }
@@ -1271,7 +1213,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           return;
         }
       }
-      if (selectionLevel === "column") {
+      if (ui.selectionLevel === "column") {
         // From column level, go to board level
         dispatch(actions.setSelectionLevel("board"));
         return;
@@ -1297,13 +1239,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
       // Horizontal navigation - behavior depends on selection level
       if (input === "h" || key.leftArrow) {
-        if (selectionLevel === "board") {
+        if (ui.selectionLevel === "board") {
           // At board level, h/l does nothing (could navigate between boards in future)
           return s;
         }
         const newColIndex = Math.max(0, s.colIndex - 1);
         newState.colIndex = newColIndex;
-        if (selectionLevel === "card") {
+        if (ui.selectionLevel === "card") {
           const targetCol = s.columns[newColIndex];
           if (!targetCol || targetCol.cards.length === 0) {
             // Empty column - switch to column level
@@ -1317,13 +1259,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         dispatch(actions.setSubIndex(0));
         clearSelection();
       } else if (input === "l" || key.rightArrow) {
-        if (selectionLevel === "board") {
+        if (ui.selectionLevel === "board") {
           // At board level, h/l does nothing
           return s;
         }
         const newColIndex = Math.min(s.columns.length - 1, s.colIndex + 1);
         newState.colIndex = newColIndex;
-        if (selectionLevel === "card") {
+        if (ui.selectionLevel === "card") {
           const targetCol = s.columns[newColIndex];
           if (!targetCol || targetCol.cards.length === 0) {
             // Empty column - switch to column level
@@ -1407,9 +1349,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           s.rootId,
           s.colIndex,
           s.cardIndex,
-          subIndex,
-          multiSelected,
-          inOutlineMode,
+          ui.subIndex,
+          ui.multiSelected,
+          ui.inOutlineMode,
         );
 
         dispatch(actions.exitOutlineMode());
@@ -1450,7 +1392,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       meta?: boolean;
     },
   ) {
-    if (!showDetailPane) return;
+    if (!ui.showDetailPane) return;
 
     const col = state.columns[state.colIndex];
 
@@ -1576,7 +1518,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       );
     };
 
-    // Check if stdout has valid dimensions (not undefined)
+    // Check if stdout has valid ui.dimensions (not undefined)
     const syncDimensions = () => {
       if (stdout.columns !== undefined && stdout.rows !== undefined) {
         dispatch(
@@ -1587,7 +1529,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       return false;
     };
 
-    // Try to sync immediately, otherwise poll until dimensions are available
+    // Try to sync immediately, otherwise poll until ui.dimensions are available
     if (!syncDimensions()) {
       const interval = setInterval(() => {
         if (syncDimensions()) {
@@ -1666,7 +1608,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       // Convert screen coordinates to board items
       // This is a simplified version - full implementation would map
       // coordinates to specific cards/items in the board
-      if (event.type === "up" && mouseSelection) {
+      if (event.type === "up" && ui.mouseSelection) {
         // Selection complete - could trigger multi-select of items
         // within the selection range
       }
@@ -1719,33 +1661,33 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     const card = col?.cards[state.cardIndex];
     if (!card) return 0;
     return (
-      1 + countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes)
+      1 + countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ui.foldedNodes)
     );
   }
 
   // Update multi-selection range from anchor to current position
   function updateSelectionRange(toCol: number, toCard: number, toSub: number) {
-    if (!selectionAnchor) return;
+    if (!ui.selectionAnchor) return;
     const newSelected = new Set<SelectionKey>();
 
     // For simplicity, only support selection within same column and card for now
-    if (selectionAnchor.col === toCol && selectionAnchor.card === toCard) {
-      const minSub = Math.min(selectionAnchor.sub, toSub);
-      const maxSub = Math.max(selectionAnchor.sub, toSub);
+    if (ui.selectionAnchor.col === toCol && ui.selectionAnchor.card === toCard) {
+      const minSub = Math.min(ui.selectionAnchor.sub, toSub);
+      const maxSub = Math.max(ui.selectionAnchor.sub, toSub);
       for (let s = minSub; s <= maxSub; s++) {
         newSelected.add(makeSelectionKey(toCol, toCard, s));
       }
-    } else if (selectionAnchor.col === toCol) {
+    } else if (ui.selectionAnchor.col === toCol) {
       // Selection across cards in same column
-      const minCard = Math.min(selectionAnchor.card, toCard);
-      const maxCard = Math.max(selectionAnchor.card, toCard);
+      const minCard = Math.min(ui.selectionAnchor.card, toCard);
+      const maxCard = Math.max(ui.selectionAnchor.card, toCard);
       for (let c = minCard; c <= maxCard; c++) {
         // Select all visible items in each card
         const card = state.columns[toCol]?.cards[c];
         if (card) {
           const maxItems =
             1 +
-            countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes);
+            countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
           for (let s = 0; s < maxItems; s++) {
             newSelected.add(makeSelectionKey(toCol, c, s));
           }
@@ -1764,9 +1706,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Get unique selected card indices from multi-selection
   function getSelectedCardIndices(): number[] {
-    if (multiSelected.size === 0) return [];
+    if (ui.multiSelected.size === 0) return [];
     const indices = new Set<number>();
-    for (const key of multiSelected) {
+    for (const key of ui.multiSelected) {
       const [colStr, cardStr] = key.split(":");
       const col = parseInt(colStr ?? "0", 10);
       const card = parseInt(cardStr ?? "0", 10);
@@ -2176,16 +2118,16 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     const card = col?.cards[state.cardIndex];
 
     // Determine current selection level based on what's already selected
-    const currentLevel = selectAllLevel;
+    const currentLevel = ui.selectAllLevel;
 
     // Level 0: Select all sub-items in current card (if in outline mode)
     // Level 1: Select all cards in current column
     // Level 2: Select all cards in all columns (entire board)
-    if (currentLevel === 0 && inOutlineMode && card) {
+    if (currentLevel === 0 && ui.inOutlineMode && card) {
       // Select all sub-items in current card
       const newSelected = new Set<SelectionKey>();
       const maxItems =
-        1 + countVisibleDescendants(card.node, 0, maxOutlineDepth, foldedNodes);
+        1 + countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
       for (let s = 0; s < maxItems; s++) {
         newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, s));
       }
@@ -2199,7 +2141,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         if (c) {
           const maxItems =
             1 +
-            countVisibleDescendants(c.node, 0, maxOutlineDepth, foldedNodes);
+            countVisibleDescendants(c.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
           for (let s = 0; s < maxItems; s++) {
             newSelected.add(makeSelectionKey(state.colIndex, cardIdx, s));
           }
@@ -2221,8 +2163,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 countVisibleDescendants(
                   c.node,
                   0,
-                  maxOutlineDepth,
-                  foldedNodes,
+                  ui.maxOutlineDepth,
+                  ui.foldedNodes,
                 );
               for (let s = 0; s < maxItems; s++) {
                 newSelected.add(makeSelectionKey(colIdx, cardIdx, s));
@@ -2250,7 +2192,7 @@ export function renderInkBoard(
   ).start();
 }
 
-// Testable version of Board component with fixed dimensions for testing
+// Testable version of Board component with fixed ui.dimensions for testing
 interface TestBoardProps {
   initialState: BoardState;
   testWidth: number;
@@ -2268,7 +2210,7 @@ export function InkBoardTestable({
     rows: testHeight,
   });
 
-  // Use fixed test dimensions instead of stdout
+  // Use fixed test ui.dimensions instead of stdout
   const termWidth = testWidth;
   const termHeight = testHeight;
 
@@ -2494,13 +2436,13 @@ function countVisibleDescendants(
   maxDepth: number,
   foldedNodes: Set<string>,
 ): number {
-  if (depth > maxDepth || foldedNodes.has(node.id)) {
+  if (depth > maxDepth || ui.foldedNodes.has(node.id)) {
     return 0;
   }
   const children = getChildren(node.id).slice(0, 10);
   let count = children.length;
   for (const child of children) {
-    count += countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
+    count += countVisibleDescendants(child, depth + 1, maxDepth, ui.foldedNodes);
   }
   return count;
 }
@@ -2534,4 +2476,19 @@ function getTopBarBgChalk(
     }
   }
   return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
+}
+
+// Calculate scroll offset to center selected column
+function calcScrollOffset(
+  selectedIndex: number,
+  maxVisible: number,
+  totalCount: number,
+): number {
+  return Math.max(
+    0,
+    Math.min(
+      selectedIndex - Math.floor(maxVisible / 2),
+      Math.max(0, totalCount - maxVisible),
+    ),
+  );
 }

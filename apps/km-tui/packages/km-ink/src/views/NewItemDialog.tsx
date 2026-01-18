@@ -23,29 +23,18 @@ export interface NewItemDialogProps {
   height: number;
 }
 
+// Types that act as containers (insert as child, not sibling)
+const CONTAINER_TYPES = new Set(["section", "file", "folder"]);
+
 /**
  * Get the parent to insert into based on cursor node
- * For tasks, insert as sibling. For sections/files/folders, insert as child.
+ * For containers, insert as child. Otherwise insert as sibling.
  */
 function getInsertParentId(cursorNode: KNode | null): string | null {
   if (!cursorNode) return null;
-
-  // For tasks, insert as sibling (same parent)
-  if (cursorNode.type === "task") {
-    return cursorNode.parent_id;
-  }
-
-  // For sections/files/folders, insert as child
-  if (
-    cursorNode.type === "section" ||
-    cursorNode.type === "file" ||
-    cursorNode.type === "folder"
-  ) {
-    return cursorNode.id;
-  }
-
-  // Default: insert as sibling
-  return cursorNode.parent_id;
+  return CONTAINER_TYPES.has(cursorNode.type)
+    ? cursorNode.id
+    : cursorNode.parent_id;
 }
 
 /**

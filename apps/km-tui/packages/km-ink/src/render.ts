@@ -1,7 +1,15 @@
 /**
  * Board Rendering
  *
- * Pure functions that render board state to strings - fully testable
+ * Pure functions that render board state to strings - fully testable.
+ *
+ * Uses the text layer (text/index.ts) for:
+ * - Content rendering: renderRich() for markdown-aware styling
+ * - Status icons: renderStatusIcon() with colorize()
+ *
+ * Uses chalk directly for UI chrome only:
+ * - Headers, borders, status bars
+ * - Selection/current highlighting (bgBlue, bgYellow)
  */
 
 import chalk from "chalk";
@@ -9,7 +17,11 @@ import type { TaskStatus } from "@km/core";
 import type { BoardState, CardState, RenderOptions } from "./types.ts";
 import { getNodeDisplayName } from "./state.ts";
 import { getNode } from "@km/storage";
-import { getStatusIcon as getStatusIconBase } from "./text/index.ts";
+import {
+  getStatusIcon as getStatusIconBase,
+  renderRich,
+  colorize,
+} from "./text/index.ts";
 
 /**
  * Default render options
@@ -142,12 +154,13 @@ export function renderCard(
     width - 3,
   );
 
-  // Done/dropped tasks get dim + strikethrough
+  // Apply markdown styling via renderRich, then dim+strikethrough for done/dropped
   const isDoneOrDropped =
     node.task_status === "done" || node.task_status === "dropped";
+  const styledContent = renderRich(rawContent);
   const content = isDoneOrDropped
-    ? chalk.dim.strikethrough(rawContent)
-    : rawContent;
+    ? chalk.dim.strikethrough(styledContent)
+    : styledContent;
   let firstLine = `${statusIcon} ${content}`;
 
   // Apply styling
@@ -166,7 +179,8 @@ export function renderCard(
     const visibleChildren = children.slice(0, maxChildren);
     for (const child of visibleChildren) {
       const childIcon = renderStatusIcon(child.task_status);
-      const childContent = (child.content || "").slice(0, width - 3);
+      const childRaw = (child.content || "").slice(0, width - 3);
+      const childContent = renderRich(childRaw);
       lines.push(
         chalk.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width),
       );
@@ -296,13 +310,14 @@ export function renderBoardStatic(state: BoardState, width: number): string {
         const rawContent = card.node.content || getNodeDisplayName(card.node);
         const firstLine = rawContent.split("\n")[0] ?? rawContent;
         const truncContent = firstLine.slice(0, width - 4);
-        // Done/dropped tasks get dim + strikethrough
+        // Apply markdown styling, then dim+strikethrough for done/dropped
         const isDoneOrDropped =
           card.node.task_status === "done" ||
           card.node.task_status === "dropped";
+        const styledContent = renderRich(truncContent);
         const content = isDoneOrDropped
-          ? chalk.dim.strikethrough(truncContent)
-          : truncContent;
+          ? chalk.dim.strikethrough(styledContent)
+          : styledContent;
         lines.push(`${statusIcon} ${content}`);
 
         // Show children (greyed out, indented)
@@ -313,7 +328,7 @@ export function renderBoardStatic(state: BoardState, width: number): string {
             const childIcon = renderStatusIcon(child.task_status);
             const childRaw = child.content || "";
             const childLine = childRaw.split("\n")[0] ?? childRaw;
-            const childContent = childLine.slice(0, width - 6);
+            const childContent = renderRich(childLine.slice(0, width - 6));
             lines.push(chalk.dim(`  ${childIcon} ${childContent}`));
           }
           if (card.children.length > maxChildren) {
@@ -333,8 +348,8 @@ export function renderBoardStatic(state: BoardState, width: number): string {
 }
 
 /**
- * Render status icon with chalk coloring for CLI/TUI output.
- * Wraps the base getStatusIcon from icons.ts and applies chalk colors.
+ * Render status icon with coloring for CLI/TUI output.
+ * Wraps the base getStatusIcon from icons.ts and applies colors via colorize().
  */
 export function renderStatusIcon(status?: TaskStatus): string {
   const icon = getStatusIconBase(status);
@@ -342,19 +357,11 @@ export function renderStatusIcon(status?: TaskStatus): string {
   if (icon.backgroundColor) {
     return chalk.bgWhite.black(icon.char);
   }
-  // Apply chalk color based on the icon's color property
-  switch (icon.color) {
-    case "green":
-      return chalk.green(icon.char);
-    case "yellow":
-      return chalk.yellow(icon.char);
-    case "red":
-      return chalk.red(icon.char);
-    case "blue":
-      return chalk.cyan(icon.char);
-    case "gray":
-      return chalk.gray(icon.char);
-    default:
-      return chalk.dim(icon.char);
-  }
+  // Map icon color to colorize-compatible color
+  // Note: "blue" in icon.color maps to "cyan" for visibility
+  const colorMap: Record<string, string> = {
+    blue: "cyan",
+  };
+  const color = colorMap[icon.color ?? ""] ?? icon.color;
+  return colorize(icon.char, color);
 }

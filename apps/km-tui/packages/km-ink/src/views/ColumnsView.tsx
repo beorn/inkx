@@ -7,11 +7,10 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { BoardState, ColumnState } from "../types.ts";
-import { makeSelectionKey } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
-import { useTreeConfig, useUISelector } from "../ui-context.tsx";
+import { useTreeConfig } from "../ui-context.tsx";
 
 // =============================================================================
 // ColumnTree Subcomponent
@@ -39,7 +38,6 @@ function ColumnTree({
   selectionLevel,
 }: ColumnTreeProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
-  const multiSelected = useUISelector((s) => s.multiSelected);
 
   const name = getNodeDisplayName(column.node);
   const count = column.cards.length;
@@ -103,13 +101,11 @@ function ColumnTree({
         {scrollOffset > 0 && <Text dimColor> ▲ {scrollOffset} above</Text>}
         {visibleCards.map((card, i) => {
           const actualCardIndex = scrollOffset + i;
-          const cardKey = makeSelectionKey(colIndex, actualCardIndex, 0);
           const cardSelected =
             selectionLevel === "card" &&
             isSelected &&
             actualCardIndex === selectedCardIndex &&
             !inOutlineMode;
-          const cardMultiSelected = multiSelected.has(cardKey);
 
           return (
             <TreeNode
@@ -125,7 +121,6 @@ function ColumnTree({
                   actualCardIndex === selectedCardIndex &&
                   selectedSubIndex === 0)
               }
-              isMultiSelected={cardMultiSelected}
               colIndex={colIndex}
               cardIndex={actualCardIndex}
               subIndex={0}

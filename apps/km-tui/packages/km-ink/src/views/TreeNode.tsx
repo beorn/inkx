@@ -12,8 +12,12 @@ import { getChildren } from "@km/storage";
 import { getNodeDisplayName, getParentContext } from "../state.ts";
 import { renderRich, displayLength } from "../text/index.ts";
 import { constrainText } from "../layout/index.ts";
-import { makeSelectionKey, type SelectionKey } from "../types.ts";
-import { useTreeConfig, useUISelector } from "../ui-context.tsx";
+import { makeSelectionKey } from "../types.ts";
+import {
+  useTreeConfig,
+  useUISelector,
+  useRootBoardId,
+} from "../ui-context.tsx";
 import {
   getNodeStyle,
   buildPrefix,
@@ -30,14 +34,11 @@ export interface TreeNodeProps {
   depth: number;
   width: number;
   isSelected: boolean;
-  isMultiSelected: boolean;
   colIndex: number;
   cardIndex: number;
   subIndex: number;
   /** Dim child items when this subtree is not the active card (for cards view) */
   dimInactiveChildren?: boolean;
-  /** Board IDs to exclude from pills (e.g., current board being viewed) */
-  excludeBoardIds?: Set<string>;
 }
 
 export function TreeNode({
@@ -45,12 +46,10 @@ export function TreeNode({
   depth,
   width,
   isSelected,
-  isMultiSelected,
   colIndex,
   cardIndex,
   subIndex,
   dimInactiveChildren = false,
-  excludeBoardIds = new Set(),
 }: TreeNodeProps): React.ReactElement {
   // Get UI state from context
   const {
@@ -62,12 +61,20 @@ export function TreeNode({
   } = useTreeConfig();
   const foldedNodes = useUISelector((state) => state.foldedNodes);
   const multiSelected = useUISelector((state) => state.multiSelected);
+  const rootBoardId = useRootBoardId();
+
+  // Compute derived state from context
+  const selectionKey = makeSelectionKey(colIndex, cardIndex, subIndex);
+  const isMultiSelected = multiSelected.has(selectionKey);
+  const excludeBoardIds = rootBoardId
+    ? new Set([rootBoardId])
+    : new Set<string>();
 
   const isCompact = variant === "compact";
   const children = getChildren(node.id);
   const hasChildren = children.length > 0;
   const isFolded = foldedNodes.has(node.id);
-  const isEmbedded = node.symlink_to != null;
+  const isEmbedded = node.link_to != null;
   const isTask = node.type === "task";
 
   // Get all styling from helper
@@ -205,9 +212,7 @@ export function TreeNode({
           depth={depth}
           inOutlineMode={inOutlineMode}
           currentSubIndex={currentSubIndex}
-          multiSelected={multiSelected}
           dimInactiveChildren={dimInactiveChildren}
-          excludeBoardIds={excludeBoardIds}
           hiddenCount={hiddenCount}
         />
       )}
@@ -228,9 +233,7 @@ interface NodeChildrenProps {
   depth: number;
   inOutlineMode: boolean;
   currentSubIndex: number;
-  multiSelected: Set<SelectionKey>;
   dimInactiveChildren: boolean;
-  excludeBoardIds: Set<string>;
   hiddenCount: number;
 }
 
@@ -243,9 +246,7 @@ function NodeChildren({
   depth,
   inOutlineMode,
   currentSubIndex,
-  multiSelected,
   dimInactiveChildren,
-  excludeBoardIds,
   hiddenCount,
 }: NodeChildrenProps): React.ReactElement {
   const indent = " ".repeat(depth);
@@ -254,10 +255,8 @@ function NodeChildren({
     <Box flexDirection="column">
       {children.map((child, i) => {
         const childSubIndex = startSubIndex + i;
-        const childKey = makeSelectionKey(colIndex, cardIndex, childSubIndex);
         const childSelected =
           inOutlineMode && currentSubIndex === childSubIndex;
-        const childMultiSelected = multiSelected.has(childKey);
 
         return (
           <TreeNode
@@ -266,12 +265,10 @@ function NodeChildren({
             depth={depth + 1}
             width={width}
             isSelected={childSelected}
-            isMultiSelected={childMultiSelected}
             colIndex={colIndex}
             cardIndex={cardIndex}
             subIndex={childSubIndex}
             dimInactiveChildren={dimInactiveChildren}
-            excludeBoardIds={excludeBoardIds}
           />
         );
       })}

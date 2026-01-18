@@ -7,10 +7,9 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { BoardState } from "../types.ts";
-import { makeSelectionKey } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
-import { useTreeConfig, useUISelector } from "../ui-context.tsx";
+import { useTreeConfig } from "../ui-context.tsx";
 
 interface TabsViewProps {
   state: BoardState;
@@ -32,7 +31,6 @@ export function TabsView({
   selectionLevel,
 }: TabsViewProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
-  const multiSelected = useUISelector((s) => s.multiSelected);
 
   // Tab bar height (1 line for spacing + 1 for tabs)
   const tabBarHeight = 2;
@@ -129,12 +127,10 @@ export function TabsView({
               )}
               {visibleCards.map((card, i) => {
                 const actualCardIndex = scrollOffset + i;
-                const cardKey = makeSelectionKey(colIndex, actualCardIndex, 0);
                 const cardSelected =
                   selectionLevel === "card" &&
                   actualCardIndex === cardIndex &&
                   !inOutlineMode;
-                const cardMultiSelected = multiSelected.has(cardKey);
 
                 return (
                   <TreeNode
@@ -149,7 +145,6 @@ export function TabsView({
                         actualCardIndex === cardIndex &&
                         subIndex === 0)
                     }
-                    isMultiSelected={cardMultiSelected}
                     colIndex={colIndex}
                     cardIndex={actualCardIndex}
                     subIndex={0}

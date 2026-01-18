@@ -88,18 +88,16 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
   // Content width inside the border (with internal padding)
   const contentWidth = boxWidth - 4; // Account for border + internal padding
 
-  // Helper to create a full-width line with black background and internal padding
-  const bgLine = (text: string, indent: number = 1) => {
-    const prefix = " ".repeat(indent);
-    const availableWidth = contentWidth - indent;
-    const content =
-      text.length <= availableWidth ? text : text.slice(0, availableWidth);
-    const padded =
-      prefix +
-      content +
-      " ".repeat(Math.max(0, availableWidth - content.length + 1));
-    return padded;
+  // Create full-width line with black background
+  const bgLine = (text: string, indent = 1) => {
+    const w = contentWidth - indent;
+    const content = text.slice(0, w);
+    return " ".repeat(indent) + content.padEnd(w + 1);
   };
+
+  // Center text within contentWidth
+  const centerText = (text: string) =>
+    text.padStart((contentWidth + text.length) / 2).padEnd(contentWidth);
 
   return (
     <Box

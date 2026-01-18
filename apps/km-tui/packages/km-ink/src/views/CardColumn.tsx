@@ -7,11 +7,10 @@ import React from "react";
 import { Box, Text } from "ink";
 import { styledUnderline } from "@beorn/chalkx";
 import type { CardState, ColumnState } from "../types.ts";
-import { makeSelectionKey } from "../types.ts";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { TreeNode } from "./TreeNode.tsx";
-import { useTreeConfig, useUISelector } from "../ui-context.tsx";
+import { useTreeConfig } from "../ui-context.tsx";
 import { calculateScrollState } from "../constraints/index.ts";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";
 
@@ -36,8 +35,6 @@ export function Card({
   colIndex,
   cardIndex,
 }: CardProps): React.ReactElement {
-  const multiSelected = useUISelector((state) => state.multiSelected);
-
   // Card border uses 2 chars (1 left + 1 right), so inner content is width - 2
   const innerWidth = Math.max(5, width - 2);
 
@@ -55,9 +52,6 @@ export function Card({
         depth={0}
         width={innerWidth}
         isSelected={isSelected && selectedSubIndex === 0}
-        isMultiSelected={multiSelected.has(
-          makeSelectionKey(colIndex, cardIndex, 0),
-        )}
         colIndex={colIndex}
         cardIndex={cardIndex}
         subIndex={0}
