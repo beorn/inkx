@@ -1913,50 +1913,38 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // Stay in current column and select the next card that took this spot
     // (or the previous card if we were at the end)
-    const newCardIndex = Math.min(
+    const expectedCardIndex = Math.min(
       state.cardIndex,
       Math.max(0, col.cards.length - cardsToMove.length - 1),
     );
 
-    // Rebuild board state
-    setTimeout(() => {
-      const newState = state.rootId
-        ? buildBoardState(state.rootId)
-        : initBoardState();
+    // Rebuild board state (store mutations are synchronous)
+    const newState = refreshBoardState({
+      cardIndex: (col) =>
+        Math.min(
+          expectedCardIndex,
+          Math.max(0, (col?.cards.length ?? 1) - 1),
+        ),
+    });
 
-      if (newState) {
-        newState.zoomStack = state.zoomStack;
-        newState.rootPath = state.rootPath;
-        newState.colIndex = state.colIndex; // Stay in same column
-        newState.cardIndex = Math.min(
-          newCardIndex,
-          Math.max(
-            0,
-            (newState.columns[state.colIndex]?.cards.length ?? 1) - 1,
-          ),
-        );
-        setState(newState);
-
-        // Re-select moved cards in their new positions (target column)
-        if (movedCardIds.length > 0) {
-          const newSelected = new Set<SelectionKey>();
-          const targetColumnState = newState.columns[targetColIndex];
-          if (targetColumnState) {
-            for (
-              let cardIdx = 0;
-              cardIdx < targetColumnState.cards.length;
-              cardIdx++
-            ) {
-              const c = targetColumnState.cards[cardIdx];
-              if (c && movedCardIds.includes(c.node.id)) {
-                newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
-              }
-            }
+    // Re-select moved cards in their new positions (target column)
+    if (newState && movedCardIds.length > 0) {
+      const newSelected = new Set<SelectionKey>();
+      const targetColumnState = newState.columns[targetColIndex];
+      if (targetColumnState) {
+        for (
+          let cardIdx = 0;
+          cardIdx < targetColumnState.cards.length;
+          cardIdx++
+        ) {
+          const c = targetColumnState.cards[cardIdx];
+          if (c && movedCardIds.includes(c.node.id)) {
+            newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
           }
-          dispatch(actions.setMultiSelected(newSelected));
         }
       }
-    }, 50);
+      dispatch(actions.setMultiSelected(newSelected));
+    }
   }
 
   // Indent node: make it a child of the sibling above it
@@ -1982,21 +1970,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     // Update database via store layer (handles memory/disk mode)
     moveNode(card.node.id, siblingAbove.node.id, newSortOrder);
 
-    // Rebuild board state
-    setTimeout(() => {
-      const newState = state.rootId
-        ? buildBoardState(state.rootId)
-        : initBoardState();
-
-      if (newState) {
-        newState.zoomStack = state.zoomStack;
-        newState.rootPath = state.rootPath;
-        newState.colIndex = state.colIndex;
-        // Stay at same card index (will now point to different card)
-        newState.cardIndex = Math.max(0, cardIndex - 1);
-        setState(newState);
-      }
-    }, 50);
+    // Rebuild board state (store mutations are synchronous)
+    // Stay at same card index (will now point to different card)
+    refreshBoardState({ cardIndex: Math.max(0, cardIndex - 1) });
   }
 
   // Outdent node: make it a sibling of its parent
