@@ -400,6 +400,19 @@ function optimizeCursorMoves(changes: CellChange[]): string {
 
 ## 7. Implementation Plan
 
+### Phase 0: Test Infrastructure (Week 0)
+
+- [ ] Set up test harness with Bun test
+- [ ] Clone Ink test suite (31 files) and adapt imports
+- [ ] Clone Chalk test suite (6 files) and adapt imports
+- [ ] Create `inkz-testing-library` with ink-testing-library compatible API
+- [ ] Set up visual snapshot infrastructure
+- [ ] Set up performance benchmark suite (mitata)
+- [ ] Create compatibility tracking dashboard
+
+**Entry criteria**: Can run Ink's tests (all failing is expected)
+**Exit criteria**: Test infrastructure runs, compatibility status visible
+
 ### Phase 1: Foundation (1 week)
 
 - [ ] Custom React renderer skeleton
@@ -407,6 +420,7 @@ function optimizeCursorMoves(changes: CellChange[]): string {
 - [ ] Basic `<Box>` with flexbox subset
 - [ ] Basic `<Text>` without auto-truncation
 - [ ] Simple output (no diffing)
+- [ ] **Target**: flex.test.tsx, flex-direction.test.tsx passing
 
 ### Phase 2: Layout Feedback (1 week)
 
@@ -414,20 +428,23 @@ function optimizeCursorMoves(changes: CellChange[]): string {
 - [ ] `useLayout()` hook
 - [ ] `onLayout` callback for `<Box>`
 - [ ] Auto-truncating `<Text>`
+- [ ] **Target**: width-height.test.tsx, measure-element.test.tsx passing
 
 ### Phase 3: Compatibility (1 week)
 
 - [ ] Remaining Ink components (`<Spacer>`, `<Newline>`, `<Static>`)
 - [ ] `useInput()` hook
-- [ ] Full Ink test suite passing
-- [ ] Chalk integration tests
+- [ ] Full Ink test suite passing (80%+ of 31 files)
+- [ ] Chalk integration tests (100% of 6 files)
+- [ ] **Target**: Compatibility dashboard shows 80%+
 
 ### Phase 4: Polish (1 week)
 
 - [ ] Cell-based diffing
 - [ ] Cursor optimization
 - [ ] `<Scroll>` component
-- [ ] Performance benchmarks
+- [ ] Performance benchmarks pass (no regression vs Ink)
+- [ ] Cross-terminal visual tests pass
 
 ### Phase 5: km Integration (1 week)
 
@@ -437,6 +454,8 @@ function optimizeCursorMoves(changes: CellChange[]): string {
 - [ ] Performance parity or better
 
 **Total: 5 weeks** (could be compressed with focus)
+
+See **[km-inkz.4-testing.md](.beads/km-inkz.4-testing.md)** for detailed testing strategy.
 
 ---
 
