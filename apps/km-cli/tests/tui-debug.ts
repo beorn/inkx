@@ -40,10 +40,10 @@ async function debug() {
     console.log("Node type:", node.type);
     console.log("Node content:", JSON.stringify(node.content?.slice(0, 50)));
     console.log("Display name:", getNodeDisplayName(node));
-    console.log("Is symlink:", !!node.symlink_to);
+    console.log("Is link:", !!node.link_to);
 
-    if (node.symlink_to) {
-      const originalNode = getNode(node.symlink_to);
+    if (node.link_to) {
+      const originalNode = getNode(node.link_to);
       console.log(
         "Original content:",
         JSON.stringify(originalNode?.content?.slice(0, 50)),
