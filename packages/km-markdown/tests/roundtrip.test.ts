@@ -886,23 +886,26 @@ describe("Round-trip: Wiki Link Embeddings", () => {
     expect(output).not.toContain("![[Other Page]]");
   });
 
-  test("should mark embedding paragraph with source_embedding", () => {
+  test("should preserve embedding syntax in paragraph content", () => {
     const md = `![[Target]]`;
     const nodes = parseMarkdownToNodes(md, "test.md");
     const para = nodes.find((n) => n.type === "paragraph");
 
     expect(para).toBeDefined();
-    expect(para!.source_embedding).toBe("![[Target]]");
+    // Content preserves the embedding syntax for later target resolution
+    expect(para!.content).toBe("![[Target]]");
+    // link_to will be set during target resolution (Phase 2 of km-xexz)
+    expect(para!.link_to).toBeNull();
   });
 
-  test("should NOT mark mixed-content paragraph as embedding", () => {
+  test("should preserve mixed-content paragraph with embedding", () => {
     const md = `Some text before ![[Target]] and after.`;
     const nodes = parseMarkdownToNodes(md, "test.md");
     const para = nodes.find((n) => n.type === "paragraph");
 
     expect(para).toBeDefined();
-    // Mixed content should NOT have source_embedding set
-    expect(para!.source_embedding).toBeUndefined();
+    // Mixed content preserves the full text
+    expect(para!.content).toBe("Some text before ![[Target]] and after.");
   });
 
   test("should preserve embedding in document with multiple elements", () => {

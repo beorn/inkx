@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS nodes (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL,
   parent_id TEXT,
-  symlink_to TEXT,
+  link_to TEXT,
+  link_alias TEXT,
   parent_idx REAL DEFAULT 0,
 
   -- Filesystem
@@ -244,13 +245,13 @@ function applyNodeCreated(db: Database, event: Event): void {
   db.run(
     `
     INSERT INTO nodes (
-      id, type, parent_id, symlink_to, parent_idx,
+      id, type, parent_id, link_to, link_alias, parent_idx,
       fs_path, fs_ino, name, title, md_pos, md_line, md_slug,
       task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
-      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?,
@@ -261,7 +262,8 @@ function applyNodeCreated(db: Database, event: Event): void {
       data.id as string,
       data.type as string,
       (data.parent_id as string) ?? null,
-      (data.symlink_to as string) ?? null,
+      (data.link_to as string) ?? null,
+      (data.link_alias as string) ?? null,
       (data.parent_idx as number) ?? 0,
       (data.fs_path as string) ?? null,
       (data.fs_ino as number) ?? null,
@@ -855,7 +857,7 @@ export function getSymlinksTo(nodeId: string): KNode[] {
     .query(
       `
     SELECT * FROM nodes
-    WHERE symlink_to = ?
+    WHERE link_to = ?
     ORDER BY parent_idx ASC
   `,
     )
@@ -1038,7 +1040,8 @@ function rowToNode(row: Record<string, unknown>): KNode {
     type,
     parent_id: row.parent_id as string | null,
     parent_idx: row.parent_idx as number,
-    symlink_to: row.symlink_to as string | null,
+    link_to: row.link_to as string | null,
+    link_alias: row.link_alias as string | undefined,
     fs_path: row.fs_path as string | undefined,
     fs_ino: row.fs_ino as number | undefined,
     name: row.name as string | undefined,
@@ -1301,7 +1304,8 @@ export function addNode(parentId: string | null, node: Partial<KNode>): string {
     type: node.type ?? "task",
     parent_id: parentId,
     parent_idx: node.parent_idx ?? now,
-    symlink_to: node.symlink_to ?? null,
+    link_to: node.link_to ?? null,
+    link_alias: node.link_alias ?? null,
     fs_path: node.fs_path ?? null,
     fs_ino: node.fs_ino ?? null,
     name: node.name ?? null,
@@ -1326,12 +1330,12 @@ export function addNode(parentId: string | null, node: Partial<KNode>): string {
     const db = getDb();
     db.run(
       `INSERT INTO nodes (
-        id, type, parent_id, parent_idx, symlink_to,
+        id, type, parent_id, parent_idx, link_to, link_alias,
         fs_path, fs_ino, name, title, md_pos, md_line, md_slug,
         task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
         content, content_hash, data, created_at, updated_at
       ) VALUES (
-        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?
@@ -1341,7 +1345,8 @@ export function addNode(parentId: string | null, node: Partial<KNode>): string {
         nodeData.type,
         nodeData.parent_id,
         nodeData.parent_idx,
-        nodeData.symlink_to,
+        nodeData.link_to,
+        nodeData.link_alias,
         nodeData.fs_path,
         nodeData.fs_ino,
         nodeData.name,

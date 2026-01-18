@@ -717,13 +717,13 @@ describe.serial("Node CRUD Operations", () => {
       });
       const originalId = original.data.id as string;
 
-      // Create symlink to original
-      const symlink = createTestNode("task", undefined, null, {
-        symlink_to: originalId,
+      // Create link to original
+      const linkNode = createTestNode("task", undefined, null, {
+        link_to: originalId,
       });
 
-      const symlinkNode = getNode(symlink.data.id as string);
-      expect(symlinkNode!.symlink_to).toBe(originalId);
+      const loadedLinkNode = getNode(linkNode.data.id as string);
+      expect(loadedLinkNode!.link_to).toBe(originalId);
     });
 
     test("should handle concurrent-like updates (sequential simulation)", () => {

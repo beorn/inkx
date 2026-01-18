@@ -70,17 +70,17 @@ export function parseMarkdownWithLinks(
   const name = filename.replace(/\.md$/i, "");
 
   // Create file node
-  const fileNode: Node = {
+  const fileNode: KNode = {
     id: ulid(),
     type: "file",
     parent_id: null, // Will be set based on folder structure
     parent_idx: 0,
-    symlink_to: null,
+    link_to: null,
     fs_path: fsPath,
     fs_ino: fsIno,
     name, // Slug/identifier derived from filename
-    content: null,
-    content_hash: null,
+    content: undefined,
+    content_hash: undefined,
     data: frontmatter ? parseFrontmatter(frontmatter) : {},
     created_at: now,
     updated_at: now,
@@ -180,9 +180,9 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
 /**
  * Convert AST children to km nodes
  */
-function astToNodes(ast: Root, fileNode: Node, sourceText: string): KNode[] {
+function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
   const nodes: KNode[] = [];
-  const sectionStack: Array<{ depth: number; node: Node }> = [];
+  const sectionStack: Array<{ depth: number; node: KNode }> = [];
   let currentParent = fileNode;
   let sortOrder = 0;
   const now = Date.now();
@@ -205,7 +205,7 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): KNode[] {
       const hasRules = Object.keys(rules).length > 0;
       const sectionName = slugify(title);
 
-      const sectionNode: Node = {
+      const sectionNode: KNode = {
         id: ulid(),
         type: "section",
         parent_id:
@@ -213,12 +213,12 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): KNode[] {
             ? sectionStack[sectionStack.length - 1].node.id
             : fileNode.id,
         parent_idx: sortOrder++,
-        symlink_to: null,
+        link_to: null,
         name: sectionName, // Slug/identifier derived from heading
         md_pos: heading.position?.start.offset,
         md_slug: sectionName, // Keep for backwards compatibility
         content: text, // Keep original content for serialization
-        content_hash: null,
+        content_hash: undefined,
         title, // Clean title without rules
         rules: hasRules ? rules : undefined, // Only set if rules exist
         data: {
@@ -269,7 +269,7 @@ function astToNodes(ast: Root, fileNode: Node, sourceText: string): KNode[] {
  */
 function convertListItem(
   item: ListItem,
-  parent: Node,
+  parent: KNode,
   ordered: boolean,
   sortOrder: number,
   sourceText: string,
@@ -325,20 +325,20 @@ function convertListItem(
   // Priority from metadata only
   const priority: number | undefined = metadata.priority;
 
-  const node: Node = {
+  const node: KNode = {
     id: ulid(),
     type: isTask ? "task" : ordered ? "ol" : "ul",
     parent_id: parent.id,
     parent_idx: sortOrder,
-    symlink_to: null,
+    link_to: null,
     md_pos: item.position?.start.offset,
     md_line: item.position?.start.line
       ? item.position.start.line - 1
       : undefined, // Convert 1-indexed to 0-indexed
     content: text,
-    content_hash: null,
+    content_hash: undefined,
     task_status: taskStatus,
-    task_mark: taskMark,
+    task_mark: taskMark as KNode["task_mark"],
     due_date: metadata.dueDate,
     scheduled_date: metadata.scheduledDate,
     priority,
@@ -380,7 +380,10 @@ function convertListItem(
 /**
  * Check if text is purely an embedding (nothing but ![[...]])
  * Returns the embedding text if so, null otherwise
+ *
+ * TODO: Used in Phase 2 of km-xexz for target resolution
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getEmbeddingText(text: string): string | null {
   const trimmed = text.trim();
   // Match ![[...]] with optional section/blockId/alias
@@ -395,7 +398,7 @@ function getEmbeddingText(text: string): string | null {
  */
 function convertBlock(
   block: Content,
-  parent: Node,
+  parent: KNode,
   sortOrder: number,
 ): KNode | null {
   const now = Date.now();
@@ -403,17 +406,13 @@ function convertBlock(
   let type: NodeType;
   let content: string | null = null;
   const data: Record<string, unknown> = {};
-  let sourceEmbedding: string | undefined;
 
   switch (block.type) {
     case "paragraph": {
       type = "paragraph";
       content = nodeToText(block);
-      // Check if this paragraph is purely an embedding
-      const embeddingText = getEmbeddingText(content);
-      if (embeddingText) {
-        sourceEmbedding = embeddingText;
-      }
+      // TODO: When embedding detected (getEmbeddingText), resolve target and set link_to
+      // This requires Phase 2 of km-xexz (target resolution)
       break;
     }
 
@@ -457,11 +456,10 @@ function convertBlock(
     type,
     parent_id: parent.id,
     parent_idx: sortOrder,
-    symlink_to: null,
+    link_to: null,
     md_pos: block.position?.start.offset,
-    content,
-    content_hash: null,
-    source_embedding: sourceEmbedding,
+    content: content ?? undefined,
+    content_hash: undefined,
     data,
     created_at: now,
     updated_at: now,

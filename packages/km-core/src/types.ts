@@ -99,7 +99,8 @@ export interface KNode {
   type: NodeType;
   parent_id: string | null;
   parent_idx: number;
-  symlink_to: string | null; // Reference to another node
+  link_to: string | null; // Target node ID for embeddings (![[...]])
+  link_alias?: string; // Optional display alias from |alias syntax
 
   // Filesystem mapping (for folder/file)
   fs_path?: string;
@@ -128,9 +129,6 @@ export interface KNode {
   content?: string; // Text content (inline for small)
   content_hash?: string; // CAS reference for large content
   title?: string; // Display title (for sections: heading without rules)
-
-  // Embedding/transclusion source
-  source_embedding?: string; // The original ![[...]] text that created this node
 
   // Column/section rules (parsed from inline attributes)
   rules?: NodeRules;
@@ -203,7 +201,8 @@ export interface NodeCreatedData {
   type: NodeType;
   parent_id?: string | null;
   parent_idx?: number;
-  symlink_to?: string | null;
+  link_to?: string | null;
+  link_alias?: string;
   fs_path?: string;
   fs_ino?: number;
   name?: string;

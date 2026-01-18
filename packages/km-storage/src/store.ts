@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS nodes (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL,
   parent_id TEXT,
-  symlink_to TEXT,
+  link_to TEXT,
+  link_alias TEXT,
   parent_idx REAL DEFAULT 0,
 
   -- Filesystem
@@ -149,7 +150,8 @@ function rowToNode(row: Record<string, unknown>): KNode {
     type: row.type as NodeType,
     parent_id: row.parent_id as string | null,
     parent_idx: row.parent_idx as number,
-    symlink_to: row.symlink_to as string | null,
+    link_to: row.link_to as string | null,
+    link_alias: row.link_alias as string | undefined,
     fs_path: row.fs_path as string | undefined,
     fs_ino: row.fs_ino as number | undefined,
     name: row.name as string | undefined,
@@ -503,7 +505,7 @@ export class DiskStore extends BaseStore {
     const type = "task";
     const parent_id = changes.parent_id ?? source.parent_id;
     const parent_idx = changes.parent_idx ?? source.parent_idx + 0.001;
-    const symlink_to = null;
+    const link_to = null;
     const task_status = changes.task_status ?? "todo";
     const task_mark = changes.task_mark ?? " ";
     const assigned_to = changes.assigned_to ?? source.assigned_to ?? null;
@@ -520,7 +522,7 @@ export class DiskStore extends BaseStore {
 
     // Insert into database
     this.db.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, symlink_to,
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, link_to,
         task_status, task_mark, assigned_to, due_date, scheduled_date,
         priority, content, data, created_at, updated_at, version)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -529,7 +531,7 @@ export class DiskStore extends BaseStore {
         type,
         parent_id,
         parent_idx,
-        symlink_to,
+        link_to,
         task_status,
         task_mark,
         assigned_to,
