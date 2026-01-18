@@ -2014,20 +2014,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     // Update database via store layer (handles memory/disk mode)
     moveNode(card.node.id, grandparentId, newSortOrder);
 
-    // Rebuild board state
-    setTimeout(() => {
-      const newState = state.rootId
-        ? buildBoardState(state.rootId)
-        : initBoardState();
-
-      if (newState) {
-        newState.zoomStack = state.zoomStack;
-        newState.rootPath = state.rootPath;
-        newState.colIndex = state.colIndex;
-        newState.cardIndex = state.cardIndex;
-        setState(newState);
-      }
-    }, 50);
+    // Rebuild board state (store mutations are synchronous)
+    refreshBoardState();
   }
 
   // Progressive select all with Shift+A
