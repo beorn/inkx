@@ -796,7 +796,7 @@ function CardsViewDemo({
                     <TreeNode
                       node={card.node}
                       depth={0}
-                      width={colWidth - 6}
+                      width={colWidth - 4}
                       isSelected={isCardSelected}
                       isMultiSelected={false}
                       colIndex={cIdx}
@@ -817,7 +817,9 @@ function CardsViewDemo({
 
 function Layer3AllViews(): React.ReactElement {
   const mockState = createMockBoardState();
-  const viewWidth = 100; // Wider to accommodate 4 columns with readable card text
+  // ViewBox has: border (2 chars) + paddingX (2 chars) = 4 chars overhead
+  // Inner content width is outerWidth - 4
+  const viewWidth = 96; // Fits within ViewBox (100 - 4 for border/padding)
   const viewHeight = 16;
 
   // Shared props for view components (foldedNodes, multiSelected, etc. now come from context)

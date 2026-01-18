@@ -120,12 +120,7 @@ export function TabsView({
       >
         {currentColumn ? (
           count > 0 ? (
-            <Box
-              flexDirection="column"
-              flexGrow={1}
-              alignItems="flex-start"
-              overflowY="hidden"
-            >
+            <Box flexDirection="column" flexGrow={1} overflowY="hidden">
               {scrollOffset > 0 && (
                 <Text dimColor>
                   {" "}
@@ -146,7 +141,7 @@ export function TabsView({
                     key={card.node.id}
                     node={card.node}
                     depth={0}
-                    width={width - 4}
+                    width={width}
                     isSelected={
                       cardSelected ||
                       (selectionLevel === "card" &&

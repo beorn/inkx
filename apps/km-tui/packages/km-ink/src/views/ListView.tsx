@@ -87,7 +87,6 @@ export function ListView({
       flexDirection="column"
       width={width}
       height={availableHeight}
-      alignItems="flex-start"
       overflowY="hidden"
     >
       {/* Blank line at top */}
@@ -148,7 +147,7 @@ export function ListView({
             key={card.node.id}
             node={card.node}
             depth={0}
-            width={colWidth - 2}
+            width={colWidth}
             isSelected={
               isCardSelected ||
               (selectionLevel === "card" &&
