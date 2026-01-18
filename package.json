@@ -51,6 +51,7 @@
     "typescript-eslint": "^8.53.0"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "^2.11.2"
+    "@reduxjs/toolkit": "^2.11.2",
+    "reselect": "^5.1.1"
   }
 }

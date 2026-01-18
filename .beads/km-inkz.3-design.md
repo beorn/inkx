@@ -29,6 +29,7 @@ React render() → Build Yoga tree → Yoga computes layout → Write to termina
 ### Concrete Impact on km
 
 Our TUI has **147 lines** of constraint-threading code:
+
 - `ConstraintContext` (30 lines)
 - `useConstraint` hook usage (50+ instances)
 - Manual `width` prop passing (100+ occurrences)
@@ -43,13 +44,14 @@ Ink's `render` function is synchronous:
 // ink/src/render.ts (simplified)
 function render(element) {
   const yogaNode = buildYogaTree(element);
-  yogaNode.calculateLayout();  // Dimensions computed here
-  const output = renderToString(element);  // But element already rendered!
+  yogaNode.calculateLayout(); // Dimensions computed here
+  const output = renderToString(element); // But element already rendered!
   stdout.write(output);
 }
 ```
 
-The element renders *before* layout is computed. Fixing this requires:
+The element renders _before_ layout is computed. Fixing this requires:
+
 1. Render to collect constraints (not content)
 2. Compute layout
 3. Re-render with dimensions
@@ -61,17 +63,20 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 ## 2. Design Goals
 
 ### Must Have
+
 1. **Ink API compatibility** - `<Box>`, `<Text>`, `render()`, `useInput()` work unchanged
 2. **Chalk compatibility** - ANSI strings from Chalk just work
 3. **Layout feedback** - Components can access their computed dimensions
 4. **Auto-truncation** - Text truncates to available width by default
 
 ### Should Have
+
 5. **Native scrolling** - `<Scroll>` component with overflow handling
 6. **Content-aware sizing** - `width="fit-content"` for shrink-to-fit
 7. **Better performance** - Incremental layout, smarter diffing
 
 ### Nice to Have
+
 8. **Modern terminal features** - OSC 8 links, true color detection
 9. **Mouse support** - Click handlers, hover states
 10. **Image protocols** - Sixel, Kitty graphics
@@ -130,10 +135,10 @@ Components have two render modes:
 ```typescript
 interface LayoutSpec {
   // Constraints (Phase 1)
-  width?: number | string | 'auto' | 'fit-content';
-  height?: number | string | 'auto' | 'fit-content';
+  width?: number | string | "auto" | "fit-content";
+  height?: number | string | "auto" | "fit-content";
   flex?: number;
-  flexDirection?: 'row' | 'column';
+  flexDirection?: "row" | "column";
   // ... other flexbox props
 
   // Content renderer (Phase 3)
@@ -143,7 +148,7 @@ interface LayoutSpec {
 interface ComputedLayout {
   width: number;
   height: number;
-  x: number;  // Position relative to parent
+  x: number; // Position relative to parent
   y: number;
 }
 ```
@@ -300,7 +305,7 @@ const caps = useTerminalCapabilities();
 // { trueColor: boolean, unicode: boolean, sixel: boolean, ... }
 
 // Derived from useLayout
-const { width } = useWidth();   // Just the width
+const { width } = useWidth(); // Just the width
 const { height } = useHeight(); // Just the height
 ```
 
@@ -337,16 +342,16 @@ import chalk from 'chalk';
 
 ```typescript
 interface Cell {
-  char: string;        // Single grapheme
-  fg: Color | null;    // Foreground color
-  bg: Color | null;    // Background color
-  attrs: Set<Attr>;    // bold, italic, underline, etc.
+  char: string; // Single grapheme
+  fg: Color | null; // Foreground color
+  bg: Color | null; // Background color
+  attrs: Set<Attr>; // bold, italic, underline, etc.
 }
 
-type TerminalBuffer = Cell[][];  // [y][x]
+type TerminalBuffer = Cell[][]; // [y][x]
 
 function diff(prev: TerminalBuffer, next: TerminalBuffer): string {
-  let output = '';
+  let output = "";
   for (let y = 0; y < next.length; y++) {
     for (let x = 0; x < next[y].length; x++) {
       if (!cellEqual(prev[y]?.[x], next[y][x])) {
@@ -368,8 +373,9 @@ function optimizeCursorMoves(changes: CellChange[]): string {
   // Sort by position
   changes.sort((a, b) => a.y - b.y || a.x - b.x);
 
-  let output = '';
-  let cursorX = 0, cursorY = 0;
+  let output = "";
+  let cursorX = 0,
+    cursorY = 0;
 
   for (const { x, y, cell } of changes) {
     if (y === cursorY && x === cursorX) {
@@ -377,7 +383,7 @@ function optimizeCursorMoves(changes: CellChange[]): string {
     } else if (y === cursorY && x === cursorX + 1) {
       // Adjacent, no move needed (cursor advances after write)
     } else if (y === cursorY + 1 && x === 0) {
-      output += '\n';  // Newline cheaper than absolute move
+      output += "\n"; // Newline cheaper than absolute move
     } else {
       output += moveCursor(x, y);
     }
@@ -471,13 +477,13 @@ createRenderer().render(<App />);
 
 ## 9. Risk Analysis
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Yoga doesn't expose what we need | Low | High | Yoga API is sufficient; we just need to call it before render |
-| React reconciler complexity | Medium | Medium | Start with ink's reconciler as reference |
-| Performance regression from 2-pass | Medium | Medium | Benchmark early; layout is fast, render is the slow part |
-| Edge cases in Ink compatibility | High | Low | Comprehensive test suite; accept minor differences |
-| Scope creep (images, mouse, etc.) | High | Medium | Strict phase gates; v1 = layout feedback only |
+| Risk                               | Likelihood | Impact | Mitigation                                                    |
+| ---------------------------------- | ---------- | ------ | ------------------------------------------------------------- |
+| Yoga doesn't expose what we need   | Low        | High   | Yoga API is sufficient; we just need to call it before render |
+| React reconciler complexity        | Medium     | Medium | Start with ink's reconciler as reference                      |
+| Performance regression from 2-pass | Medium     | Medium | Benchmark early; layout is fast, render is the slow part      |
+| Edge cases in Ink compatibility    | High       | Low    | Comprehensive test suite; accept minor differences            |
+| Scope creep (images, mouse, etc.)  | High       | Medium | Strict phase gates; v1 = layout feedback only                 |
 
 ---
 
@@ -486,6 +492,7 @@ createRenderer().render(<App />);
 ### A. Patch Ink Directly
 
 Fork Ink and modify the reconciler. Rejected because:
+
 - Ink's codebase is tightly coupled
 - Would need to maintain fork indefinitely
 - Architecture change is invasive
@@ -493,12 +500,14 @@ Fork Ink and modify the reconciler. Rejected because:
 ### B. Build on Terminal-Kit
 
 Terminal-kit provides low-level primitives. Rejected because:
+
 - No React - would need to build component model
 - Different paradigm (imperative vs declarative)
 
 ### C. Port Textual to JavaScript
 
 Textual (Python) has the right architecture. Rejected because:
+
 - Significant porting effort
 - Different language idioms
 - Would lose Ink ecosystem compatibility
@@ -506,6 +515,7 @@ Textual (Python) has the right architecture. Rejected because:
 ### D. Use Taffy (Rust) via WASM
 
 Taffy is a better flexbox than Yoga. Considered but deferred:
+
 - Additional complexity (WASM bundling)
 - Yoga is sufficient for MVP
 - Can switch layout engine later if needed

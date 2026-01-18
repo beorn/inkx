@@ -24,11 +24,13 @@ Parent renders → Yoga computes layout → Children render (but don't know thei
 ### Why Ink Can't Fix This Easily
 
 The fix requires a **two-pass render**:
+
 1. First pass: Components declare size preferences
 2. Layout engine resolves constraints
 3. Second pass: Components render with final dimensions
 
 Ink's architecture assumes single-pass rendering. Changing this would:
+
 - Break the existing API
 - Require new lifecycle hooks
 - Potentially hurt performance
@@ -40,10 +42,12 @@ Ink's architecture assumes single-pass rendering. Changing this would:
 ### Option A: Contribute to Ink Upstream
 
 **Pros:**
+
 - Existing ecosystem, community, maintenance
 - No migration for users
 
 **Cons:**
+
 - Fundamental architecture change required
 - Maintainer may reject breaking changes
 - Ink's last major release was 2021; slower development pace
@@ -53,11 +57,13 @@ Ink's architecture assumes single-pass rendering. Changing this would:
 ### Option B: Create New Package
 
 **Pros:**
+
 - Clean slate architecture
 - Can target modern terminals (sixel, kitty graphics, OSC 8 links)
 - Opportunity to fix multiple issues at once
 
 **Cons:**
+
 - New maintenance burden
 - Community fragmentation
 - Need to reimplement ecosystem (ink-testing-library, etc.)
@@ -67,10 +73,12 @@ Ink's architecture assumes single-pass rendering. Changing this would:
 ### Option C: Fork Ink
 
 **Pros:**
+
 - Start with working codebase
 - Can be API-compatible for simple cases
 
 **Cons:**
+
 - Inherit technical debt
 - Yoga integration is deep; hard to change layout system
 
@@ -118,7 +126,7 @@ interface SizeConstraint {
   min?: number;
   preferred?: number;
   max?: number;
-  flex?: number;  // Flex grow factor
+  flex?: number; // Flex grow factor
 }
 
 interface LayoutNode {

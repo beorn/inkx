@@ -24,6 +24,7 @@ Components can set `width="50%"` but can never ask "what width did I actually ge
 ### Why This Matters
 
 Without computed dimensions, components can't:
+
 1. **Truncate text intelligently** - must guess or receive width as prop
 2. **Implement virtual scrolling** - don't know visible area
 3. **Do content-aware sizing** - "shrink to fit" is impossible
@@ -32,10 +33,12 @@ Without computed dimensions, components can't:
 ### Why Ink Can't Fix This
 
 **Attempt 1: Add `measureElement()`** (Ink 3.0)
-- Only works *after* render, causing flash/rerender
+
+- Only works _after_ render, causing flash/rerender
 - Doesn't help during initial render
 
 **Attempt 2: Context for dimensions**
+
 - Would require parent to know child's computed size before child renders
 - Chicken-and-egg: Yoga needs component tree to compute layout
 
@@ -55,13 +58,13 @@ This breaks Ink's API contract - components would render twice with different av
 
 ### Existing Solutions
 
-| Package | Approach | Layout Model | React? | Active? |
-|---------|----------|--------------|--------|---------|
-| **Ink** | React + Yoga | Flexbox (no feedback) | Yes | Slow |
-| **blessed** | Custom widgets | Absolute + relative | No | Abandoned |
-| **terminal-kit** | Direct drawing | Manual | No | Active |
-| **Textual** (Python) | CSS-like | Constraint solver | No | Very active |
-| **Ratatui** (Rust) | Immediate mode | Manual rects | No | Very active |
+| Package              | Approach       | Layout Model          | React? | Active?     |
+| -------------------- | -------------- | --------------------- | ------ | ----------- |
+| **Ink**              | React + Yoga   | Flexbox (no feedback) | Yes    | Slow        |
+| **blessed**          | Custom widgets | Absolute + relative   | No     | Abandoned   |
+| **terminal-kit**     | Direct drawing | Manual                | No     | Active      |
+| **Textual** (Python) | CSS-like       | Constraint solver     | No     | Very active |
+| **Ratatui** (Rust)   | Immediate mode | Manual rects          | No     | Very active |
 
 ### Key Insight from Textual
 
@@ -156,7 +159,7 @@ function MyComponent() {
 Use `react-reconciler` to build a custom renderer:
 
 ```typescript
-import Reconciler from 'react-reconciler';
+import Reconciler from "react-reconciler";
 
 const hostConfig = {
   createInstance(type, props) {
@@ -313,6 +316,7 @@ Minimum viable to validate the approach:
 ### Success Criteria
 
 Replace km-ink's `Board.tsx` with:
+
 - No manual width props
 - No `ConstraintContext`
 - Equivalent visual output
@@ -321,13 +325,13 @@ Replace km-ink's `Board.tsx` with:
 
 ## 7. Risk Analysis
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Performance regression | Medium | High | Benchmark early, optimize hot paths |
-| API incompatibility edge cases | High | Medium | Comprehensive test suite against Ink |
-| Yoga limitations block features | Medium | Medium | Custom solver as fallback |
-| Maintenance burden | High | Medium | Keep scope minimal, document well |
-| Community ignores it | High | Low | Build for km first, open source later |
+| Risk                            | Likelihood | Impact | Mitigation                            |
+| ------------------------------- | ---------- | ------ | ------------------------------------- |
+| Performance regression          | Medium     | High   | Benchmark early, optimize hot paths   |
+| API incompatibility edge cases  | High       | Medium | Comprehensive test suite against Ink  |
+| Yoga limitations block features | Medium     | Medium | Custom solver as fallback             |
+| Maintenance burden              | High       | Medium | Keep scope minimal, document well     |
+| Community ignores it            | High       | Low    | Build for km first, open source later |
 
 ---
 

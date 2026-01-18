@@ -50,6 +50,7 @@ import { getInheritedColor, getOwnColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
 import { Column } from "./CardColumn.tsx";
 import { tuiEvents } from "../tui.ts";
+import { UIProvider } from "../ui-context.tsx";
 import {
   uiReducer,
   createInitialUIState,
@@ -77,6 +78,9 @@ import {
   setSelectionAnchor,
   setSelectAllLevel,
   toggleColumnCollapse,
+  toggleFold,
+  foldAll,
+  unfoldAll,
   setMouseSelection,
   setMouseDragging,
   setDroppedFiles,
@@ -239,7 +243,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Board state (navigation) - still useState for now, could migrate to boardReducer
   const [state, setState] = useState(initialState);
-  const [foldedNodes, setFoldedNodes] = useState<Set<string>>(new Set());
 
   // Destructure UI state for easier access (maintains compatibility with existing code)
   const {
@@ -257,6 +260,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     selectionAnchor,
     selectAllLevel,
     collapsedColumns,
+    foldedNodes,
     mouseSelection,
     isMouseDragging,
     droppedFiles,
@@ -1300,25 +1304,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     // Fold all / unfold all
     if (input === "z") {
       if (col) {
-        setFoldedNodes((prev) => {
-          const next = new Set(prev);
-          for (const c of col.cards) {
-            next.add(c.node.id);
-          }
-          return next;
-        });
+        dispatch(foldAll(col.cards.map((c) => c.node.id)));
       }
       return;
     }
     if (input === "Z") {
       if (col) {
-        setFoldedNodes((prev) => {
-          const next = new Set(prev);
-          for (const c of col.cards) {
-            next.delete(c.node.id);
-          }
-          return next;
-        });
+        dispatch(unfoldAll(col.cards.map((c) => c.node.id)));
       }
       return;
     }
@@ -2189,220 +2181,206 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   }
 
   return (
-    <Box flexDirection="column" height={termHeight} minHeight={3}>
-      {/* Top bar: full path from root to selected item, inverted full width */}
-      <Box height={1} width={termWidth}>
-        <Text>{topBarFg(" ") + topBarContent + topBarBg(padding)}</Text>
-      </Box>
-      <Box flexGrow={1} flexDirection="row" height={termHeight - 2}>
-        {/* Cards, Columns, or List view */}
-        {viewMode === "cards" ? (
-          <Box flexDirection="row" width={boardWidth} height={termHeight - 2}>
-            {/* Left scroll indicator - full height filled bar */}
-            {effectiveScrollOffset > 0 && (
-              <Box flexDirection="column" width={1} height={termHeight - 3}>
-                {Array.from({ length: termHeight - 3 }).map((_, i) => (
-                  <Text key={i} backgroundColor="gray" color="white">
-                    {i === Math.floor((termHeight - 3) / 2) ? "‹" : " "}
-                  </Text>
-                ))}
-              </Box>
-            )}
-            {effectiveVisibleColumns.map((col, i) => {
-              const actualColIndex = effectiveScrollOffset + i;
-              const isLastCol = i === effectiveVisibleColumns.length - 1;
-              // Reduce column width if scroll indicators are shown
-              const hasLeftIndicator = effectiveScrollOffset > 0;
-              const hasRightIndicator =
-                effectiveScrollOffset + effectiveMaxCols < state.columns.length;
-              const indicatorWidth =
-                (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
-              // Account for separator lines between columns (1 char each, n-1 separators)
-              const separatorCount = effectiveVisibleColumns.length - 1;
-              const availableWidth =
-                boardWidth - indicatorWidth - separatorCount;
-              const baseColWidth = Math.floor(
-                availableWidth / effectiveMaxCols,
-              );
-              const remainder = availableWidth % effectiveMaxCols;
-              // Distribute extra pixels to the first 'remainder' columns
-              const adjustedColWidth = baseColWidth + (i < remainder ? 1 : 0);
-              return (
-                <React.Fragment key={col.node.id}>
-                  <Column
-                    column={col}
-                    colIndex={actualColIndex}
-                    isSelected={actualColIndex === state.colIndex}
-                    isCollapsed={collapsedColumns.has(actualColIndex)}
-                    selectedCardIndex={state.cardIndex}
-                    selectedSubIndex={inOutlineMode ? subIndex : -1}
-                    width={adjustedColWidth}
-                    height={termHeight - 2}
-                    maxOutlineDepth={maxOutlineDepth}
-                    foldedNodes={foldedNodes}
-                    multiSelected={multiSelected}
-                    selectionLevel={selectionLevel}
-                    maxContentLines={maxContentLines}
-                  />
-                  {/* Separator line between columns */}
-                  {!isLastCol && (
-                    <Box
-                      flexDirection="column"
-                      width={1}
+    <UIProvider state={ui} dispatch={dispatch}>
+      <Box flexDirection="column" height={termHeight} minHeight={3}>
+        {/* Top bar: full path from root to selected item, inverted full width */}
+        <Box height={1} width={termWidth}>
+          <Text>{topBarFg(" ") + topBarContent + topBarBg(padding)}</Text>
+        </Box>
+        <Box flexGrow={1} flexDirection="row" height={termHeight - 2}>
+          {/* Cards, Columns, or List view */}
+          {viewMode === "cards" ? (
+            <Box flexDirection="row" width={boardWidth} height={termHeight - 2}>
+              {/* Left scroll indicator - full height filled bar */}
+              {effectiveScrollOffset > 0 && (
+                <Box flexDirection="column" width={1} height={termHeight - 3}>
+                  {Array.from({ length: termHeight - 3 }).map((_, i) => (
+                    <Text key={i} backgroundColor="gray" color="white">
+                      {i === Math.floor((termHeight - 3) / 2) ? "‹" : " "}
+                    </Text>
+                  ))}
+                </Box>
+              )}
+              {effectiveVisibleColumns.map((col, i) => {
+                const actualColIndex = effectiveScrollOffset + i;
+                const isLastCol = i === effectiveVisibleColumns.length - 1;
+                // Reduce column width if scroll indicators are shown
+                const hasLeftIndicator = effectiveScrollOffset > 0;
+                const hasRightIndicator =
+                  effectiveScrollOffset + effectiveMaxCols <
+                  state.columns.length;
+                const indicatorWidth =
+                  (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
+                // Account for separator lines between columns (1 char each, n-1 separators)
+                const separatorCount = effectiveVisibleColumns.length - 1;
+                const availableWidth =
+                  boardWidth - indicatorWidth - separatorCount;
+                const baseColWidth = Math.floor(
+                  availableWidth / effectiveMaxCols,
+                );
+                const remainder = availableWidth % effectiveMaxCols;
+                // Distribute extra pixels to the first 'remainder' columns
+                const adjustedColWidth = baseColWidth + (i < remainder ? 1 : 0);
+                return (
+                  <React.Fragment key={col.node.id}>
+                    <Column
+                      column={col}
+                      colIndex={actualColIndex}
+                      isSelected={actualColIndex === state.colIndex}
+                      isCollapsed={collapsedColumns.has(actualColIndex)}
+                      selectedCardIndex={state.cardIndex}
+                      selectedSubIndex={inOutlineMode ? subIndex : -1}
+                      width={adjustedColWidth}
                       height={termHeight - 2}
-                    >
-                      {/* Blank line to align with column header spacing */}
-                      <Text> </Text>
-                      {Array.from({ length: termHeight - 3 }).map((_, j) => (
-                        <Text key={j} color="gray">
-                          │
-                        </Text>
-                      ))}
-                    </Box>
-                  )}
-                </React.Fragment>
-              );
-            })}
-            {/* Right scroll indicator - full height filled bar */}
-            {effectiveScrollOffset + effectiveMaxCols <
-              state.columns.length && (
-              <Box flexDirection="column" width={1} height={termHeight - 3}>
-                {Array.from({ length: termHeight - 3 }).map((_, i) => (
-                  <Text key={i} backgroundColor="gray" color="white">
-                    {i === Math.floor((termHeight - 3) / 2) ? "›" : " "}
-                  </Text>
-                ))}
-              </Box>
+                      selectionLevel={selectionLevel}
+                    />
+                    {/* Separator line between columns */}
+                    {!isLastCol && (
+                      <Box
+                        flexDirection="column"
+                        width={1}
+                        height={termHeight - 2}
+                      >
+                        {/* Blank line to align with column header spacing */}
+                        <Text> </Text>
+                        {Array.from({ length: termHeight - 3 }).map((_, j) => (
+                          <Text key={j} color="gray">
+                            │
+                          </Text>
+                        ))}
+                      </Box>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+              {/* Right scroll indicator - full height filled bar */}
+              {effectiveScrollOffset + effectiveMaxCols <
+                state.columns.length && (
+                <Box flexDirection="column" width={1} height={termHeight - 3}>
+                  {Array.from({ length: termHeight - 3 }).map((_, i) => (
+                    <Text key={i} backgroundColor="gray" color="white">
+                      {i === Math.floor((termHeight - 3) / 2) ? "›" : " "}
+                    </Text>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          ) : viewMode === "columns" ? (
+            <ColumnsView
+              state={state}
+              width={boardWidth}
+              height={termHeight - 2}
+              colIndex={state.colIndex}
+              cardIndex={state.cardIndex}
+              subIndex={subIndex}
+              effectiveScrollOffset={effectiveScrollOffset}
+              effectiveMaxCols={effectiveMaxCols}
+              effectiveVisibleColumns={effectiveVisibleColumns}
+              selectionLevel={selectionLevel}
+            />
+          ) : viewMode === "list" ? (
+            <ListView
+              state={state}
+              width={boardWidth}
+              height={termHeight - 2}
+              colIndex={state.colIndex}
+              cardIndex={state.cardIndex}
+              subIndex={subIndex}
+              selectionLevel={selectionLevel}
+            />
+          ) : (
+            <TabsView
+              state={state}
+              width={boardWidth}
+              height={termHeight - 2}
+              colIndex={state.colIndex}
+              cardIndex={state.cardIndex}
+              subIndex={subIndex}
+              selectionLevel={selectionLevel}
+            />
+          )}
+          {/* Detail pane */}
+          {showDetailPane && selectedCard && (
+            <DetailPane
+              node={selectedCard.node}
+              width={detailPaneWidth}
+              height={termHeight - 2}
+            />
+          )}
+          {/* Project picker modal */}
+          {showProjectPicker && (
+            <Box
+              position="absolute"
+              marginLeft={Math.floor(termWidth / 4)}
+              marginTop={Math.floor(termHeight / 4)}
+            >
+              <ProjectPicker
+                onSelect={handleProjectSelect}
+                onCancel={handleProjectCancel}
+                width={Math.floor(termWidth / 2)}
+                height={Math.floor(termHeight / 2)}
+                recentProjectIds={recentProjectIds}
+              />
+            </Box>
+          )}
+          {/* New item dialog modal */}
+          {showNewItemDialog && (
+            <Box
+              position="absolute"
+              marginLeft={Math.floor(termWidth / 4)}
+              marginTop={Math.floor(termHeight / 3)}
+            >
+              <NewItemDialog
+                cursorNode={selectedCard?.node ?? null}
+                onCreate={handleNewItemCreate}
+                onCancel={handleNewItemCancel}
+                width={Math.floor(termWidth / 2)}
+                height={10}
+              />
+            </Box>
+          )}
+          {/* Help overlay */}
+          {showHelp && (
+            <HelpOverlay width={termWidth} height={termHeight - 2} />
+          )}
+        </Box>
+        {/* Bottom bar: mode indicator left, other indicators right */}
+        <Box width={termWidth} justifyContent="space-between" paddingX={1}>
+          {/* Left side: store mode indicator and path */}
+          <Text>
+            {(() => {
+              const store = getStore();
+              if (store.mode === "memory") {
+                return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
+              }
+              return <Text color="green">DISK REPO {store.rootPath}</Text>;
+            })()}
+          </Text>
+          {/* Right side: status indicators */}
+          <Text>
+            {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
+            {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
+            {showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
+            {showDropNotification && droppedFiles.length > 0 && (
+              <Text color="green">
+                {`[Dropped: ${droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
+              </Text>
             )}
-          </Box>
-        ) : viewMode === "columns" ? (
-          <ColumnsView
-            state={state}
-            width={boardWidth}
-            height={termHeight - 2}
-            foldedNodes={foldedNodes}
-            maxOutlineDepth={maxOutlineDepth}
-            multiSelected={multiSelected}
-            colIndex={state.colIndex}
-            cardIndex={state.cardIndex}
-            subIndex={subIndex}
-            inOutlineMode={inOutlineMode}
-            effectiveScrollOffset={effectiveScrollOffset}
-            effectiveMaxCols={effectiveMaxCols}
-            effectiveVisibleColumns={effectiveVisibleColumns}
-            selectionLevel={selectionLevel}
-            maxContentLines={maxContentLines}
-          />
-        ) : viewMode === "list" ? (
-          <ListView
-            state={state}
-            width={boardWidth}
-            height={termHeight - 2}
-            foldedNodes={foldedNodes}
-            maxOutlineDepth={maxOutlineDepth}
-            multiSelected={multiSelected}
-            colIndex={state.colIndex}
-            cardIndex={state.cardIndex}
-            subIndex={subIndex}
-            inOutlineMode={inOutlineMode}
-            selectionLevel={selectionLevel}
-            maxContentLines={maxContentLines}
-          />
-        ) : (
-          <TabsView
-            state={state}
-            width={boardWidth}
-            height={termHeight - 2}
-            foldedNodes={foldedNodes}
-            maxOutlineDepth={maxOutlineDepth}
-            multiSelected={multiSelected}
-            colIndex={state.colIndex}
-            cardIndex={state.cardIndex}
-            subIndex={subIndex}
-            inOutlineMode={inOutlineMode}
-            selectionLevel={selectionLevel}
-            maxContentLines={maxContentLines}
-          />
-        )}
-        {/* Detail pane */}
-        {showDetailPane && selectedCard && (
-          <DetailPane
-            node={selectedCard.node}
-            width={detailPaneWidth}
-            height={termHeight - 2}
-          />
-        )}
-        {/* Project picker modal */}
-        {showProjectPicker && (
-          <Box
-            position="absolute"
-            marginLeft={Math.floor(termWidth / 4)}
-            marginTop={Math.floor(termHeight / 4)}
-          >
-            <ProjectPicker
-              onSelect={handleProjectSelect}
-              onCancel={handleProjectCancel}
-              width={Math.floor(termWidth / 2)}
-              height={Math.floor(termHeight / 2)}
-              recentProjectIds={recentProjectIds}
-            />
-          </Box>
-        )}
-        {/* New item dialog modal */}
-        {showNewItemDialog && (
-          <Box
-            position="absolute"
-            marginLeft={Math.floor(termWidth / 4)}
-            marginTop={Math.floor(termHeight / 3)}
-          >
-            <NewItemDialog
-              cursorNode={selectedCard?.node ?? null}
-              onCreate={handleNewItemCreate}
-              onCancel={handleNewItemCancel}
-              width={Math.floor(termWidth / 2)}
-              height={10}
-            />
-          </Box>
-        )}
-        {/* Help overlay */}
-        {showHelp && <HelpOverlay width={termWidth} height={termHeight - 2} />}
+            {isMouseDragging && mouseSelection && (
+              <Text color="blue">{`[Select: ${mouseSelection.startY}-${mouseSelection.endY}] `}</Text>
+            )}
+            {multiSelected.size > 0 && (
+              <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
+            )}
+            {inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
+            {selectionLevel !== "card" && (
+              <Text color="magenta">{`${selectionLevel.toUpperCase()} `}</Text>
+            )}
+            <Text inverse>{` ${viewMode.toUpperCase()} VIEW `}</Text>
+          </Text>
+        </Box>
       </Box>
-      {/* Bottom bar: mode indicator left, other indicators right */}
-      <Box width={termWidth} justifyContent="space-between" paddingX={1}>
-        {/* Left side: store mode indicator and path */}
-        <Text>
-          {(() => {
-            const store = getStore();
-            if (store.mode === "memory") {
-              return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
-            }
-            return <Text color="green">DISK REPO {store.rootPath}</Text>;
-          })()}
-        </Text>
-        {/* Right side: status indicators */}
-        <Text>
-          {showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
-          {showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
-          {showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
-          {showDropNotification && droppedFiles.length > 0 && (
-            <Text color="green">
-              {`[Dropped: ${droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
-            </Text>
-          )}
-          {isMouseDragging && mouseSelection && (
-            <Text color="blue">{`[Select: ${mouseSelection.startY}-${mouseSelection.endY}] `}</Text>
-          )}
-          {multiSelected.size > 0 && (
-            <Text color="yellow">{`[${multiSelected.size} sel] `}</Text>
-          )}
-          {inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
-          {selectionLevel !== "card" && (
-            <Text color="magenta">{`${selectionLevel.toUpperCase()} `}</Text>
-          )}
-          <Text inverse>{` ${viewMode.toUpperCase()} VIEW `}</Text>
-        </Text>
-      </Box>
-    </Box>
+    </UIProvider>
   );
 }
 
@@ -2431,10 +2409,11 @@ export function InkBoardTestable({
   testWidth,
   testHeight,
 }: TestBoardProps): React.ReactElement {
-  const foldedNodes = new Set<string>();
-  const maxOutlineDepth = 2;
-  const maxContentLines = 3;
-  const multiSelected = new Set<SelectionKey>();
+  // Create a mock UI state for testing
+  const mockUIState = createInitialUIState("cards", [], {
+    columns: testWidth,
+    rows: testHeight,
+  });
 
   // Use fixed test dimensions instead of stdout
   const termWidth = testWidth;
@@ -2498,50 +2477,51 @@ export function InkBoardTestable({
     }, 0);
   const testPadding = " ".repeat(Math.max(0, termWidth - testVisibleLen));
 
+  // No-op dispatch for static test render
+  const noopDispatch = () => {};
+
   return (
-    <Box flexDirection="column" height={termHeight} minHeight={3}>
-      {/* Top bar: full path */}
-      <Box height={1} width={termWidth}>
-        <Text>
-          {chalk.bgWhite.black(" ") +
-            testTopBarContent +
-            chalk.bgWhite(testPadding)}
-        </Text>
+    <UIProvider state={mockUIState} dispatch={noopDispatch}>
+      <Box flexDirection="column" height={termHeight} minHeight={3}>
+        {/* Top bar: full path */}
+        <Box height={1} width={termWidth}>
+          <Text>
+            {chalk.bgWhite.black(" ") +
+              testTopBarContent +
+              chalk.bgWhite(testPadding)}
+          </Text>
+        </Box>
+        <Box flexGrow={1}>
+          {visibleColumns.map((col, i) => {
+            const actualColIndex = colScrollOffset + i;
+            return (
+              <Column
+                key={col.node.id}
+                column={col}
+                colIndex={actualColIndex}
+                isSelected={actualColIndex === initialState.colIndex}
+                isCollapsed={initialState.collapsedColumns.has(actualColIndex)}
+                selectedCardIndex={initialState.cardIndex}
+                selectedSubIndex={-1}
+                width={colWidth}
+                height={termHeight - 2}
+                selectionLevel="card"
+              />
+            );
+          })}
+        </Box>
+        {/* Bottom bar: indicators right-aligned */}
+        <Box width={termWidth} justifyContent="flex-end" paddingX={1}>
+          <Text>
+            {initialState.columns.length > maxCols && (
+              <Text dimColor>
+                {`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${initialState.columns.length}] `}
+              </Text>
+            )}
+            <Text inverse>{" BOARD "}</Text>
+          </Text>
+        </Box>
       </Box>
-      <Box flexGrow={1}>
-        {visibleColumns.map((col, i) => {
-          const actualColIndex = colScrollOffset + i;
-          return (
-            <Column
-              key={col.node.id}
-              column={col}
-              colIndex={actualColIndex}
-              isSelected={actualColIndex === initialState.colIndex}
-              isCollapsed={initialState.collapsedColumns.has(actualColIndex)}
-              selectedCardIndex={initialState.cardIndex}
-              selectedSubIndex={-1}
-              width={colWidth}
-              height={termHeight - 2}
-              maxOutlineDepth={maxOutlineDepth}
-              foldedNodes={foldedNodes}
-              multiSelected={multiSelected}
-              selectionLevel="card"
-              maxContentLines={maxContentLines}
-            />
-          );
-        })}
-      </Box>
-      {/* Bottom bar: indicators right-aligned */}
-      <Box width={termWidth} justifyContent="flex-end" paddingX={1}>
-        <Text>
-          {initialState.columns.length > maxCols && (
-            <Text dimColor>
-              {`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${initialState.columns.length}] `}
-            </Text>
-          )}
-          <Text inverse>{" BOARD "}</Text>
-        </Text>
-      </Box>
-    </Box>
+    </UIProvider>
   );
 }

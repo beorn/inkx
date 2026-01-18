@@ -6,24 +6,26 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { styledUnderline } from "@beorn/chalkx";
-import type { CardState, ColumnState, SelectionKey } from "../types.ts";
+import type { CardState, ColumnState } from "../types.ts";
+import { makeSelectionKey } from "../types.ts";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
-import { getOwnColor } from "../board-pills.ts";
-import { TreeNode, makeSelectionKey } from "./TreeNode.tsx";
+import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
+import { TreeNode } from "./TreeNode.tsx";
+import { useTreeConfig, useUISelector } from "../ui-context.tsx";
 import { calculateScrollState } from "../constraints/index.ts";
+import { OverflowIndicator } from "./OverflowIndicator.tsx";
+
+// =============================================================================
+// Card Component
+// =============================================================================
 
 export interface CardProps {
   card: CardState;
   isSelected: boolean;
-  selectedSubIndex: number; // Which sub-item within this card is selected (-1 = card header)
+  selectedSubIndex: number;
   width: number;
-  maxOutlineDepth: number;
-  foldedNodes: Set<string>;
-  multiSelected: Set<SelectionKey>; // Set of selected sub-item keys within this card
   colIndex: number;
   cardIndex: number;
-  /** Maximum lines of content to display per item */
-  maxContentLines: number;
 }
 
 export function Card({
@@ -31,15 +33,14 @@ export function Card({
   isSelected,
   selectedSubIndex,
   width,
-  maxOutlineDepth,
-  foldedNodes,
-  multiSelected,
   colIndex,
   cardIndex,
-  maxContentLines,
 }: CardProps): React.ReactElement {
+  const multiSelected = useUISelector((state) => state.multiSelected);
+
   // Card border uses 2 chars (1 left + 1 right), so inner content is width - 2
   const innerWidth = Math.max(5, width - 2);
+
   return (
     <Box
       flexDirection="column"
@@ -52,42 +53,34 @@ export function Card({
       <TreeNode
         node={card.node}
         depth={0}
-        maxDepth={maxOutlineDepth}
         width={innerWidth}
-        foldedNodes={foldedNodes}
         isSelected={isSelected && selectedSubIndex === 0}
         isMultiSelected={multiSelected.has(
           makeSelectionKey(colIndex, cardIndex, 0),
         )}
-        subIndex={0}
-        currentSubIndex={selectedSubIndex}
-        multiSelected={multiSelected}
         colIndex={colIndex}
         cardIndex={cardIndex}
-        inOutlineMode={isSelected}
-        variant="compact"
-        maxContentLines={maxContentLines}
+        subIndex={0}
         dimInactiveChildren={!isSelected}
       />
     </Box>
   );
 }
 
+// =============================================================================
+// Column Component
+// =============================================================================
+
 export interface ColumnProps {
   column: ColumnState;
   colIndex: number;
   isSelected: boolean;
-  isCollapsed: boolean; // Whether column shows only header with count
+  isCollapsed: boolean;
   selectedCardIndex: number;
-  selectedSubIndex: number; // Which sub-item within the selected card (0 = card header)
+  selectedSubIndex: number;
   width: number;
   height: number;
-  maxOutlineDepth: number;
-  foldedNodes: Set<string>;
-  multiSelected: Set<SelectionKey>;
-  selectionLevel: "board" | "column" | "card"; // Current selection level
-  /** Maximum lines of content to display per item */
-  maxContentLines: number;
+  selectionLevel: "board" | "column" | "card";
 }
 
 export function Column({
@@ -99,12 +92,10 @@ export function Column({
   selectedSubIndex,
   width,
   height,
-  maxOutlineDepth,
-  foldedNodes,
-  multiSelected,
   selectionLevel,
-  maxContentLines,
 }: ColumnProps): React.ReactElement {
+  const { maxContentLines } = useTreeConfig();
+
   const name = getNodeDisplayName(column.node);
   const typeSuffix = getCollapsedTypeSuffix(column.node);
   const count = column.cards.length;
@@ -116,44 +107,26 @@ export function Column({
 
   // Available height for cards: column height - blank line (1) - header (1)
   const baseContentHeight = Math.max(1, height - 2);
-  // Each card takes approximately:
-  // - 2 lines for border (top + bottom from borderStyle="round")
-  // - 1-3 lines for content (maxContentLines setting)
-  // - Some cards may have parent context or wrapped text
-  // Use maxContentLines + 3 as a conservative estimate to prevent overflow
   const estimatedCardHeight = maxContentLines + 3;
 
-  // Use constraint system's scroll calculation for consistent behavior
+  // Use constraint system's scroll calculation
   const scrollState = calculateScrollState(
     column.cards,
     selectedCardIndex,
     baseContentHeight,
     estimatedCardHeight,
-    0, // gap
-    true, // hasOverflowIndicator
+    0,
+    true,
   );
 
-  const hasTopOverflow = scrollState.overflowTop > 0;
-  const hasBottomOverflow = scrollState.overflowBottom > 0;
-
-  // Build count display: "(3)" or "(4/3)" with WIP limit
+  // Build count display
   const countDisplay =
     wipLimit !== undefined ? `(${count}/${wipLimit})` : `(${count})`;
-  const warningIndicator = wipExceeded ? " \u26A0" : ""; // Warning sign when WIP exceeded
-  const collapsedIndicator = isCollapsed ? " \u25B8" : ""; // Right-pointing triangle when collapsed
+  const warningIndicator = wipExceeded ? " \u26A0" : "";
+  const collapsedIndicator = isCollapsed ? " \u25B8" : "";
 
   const isColumnSelected = isSelected && selectionLevel === "column";
-
-  // Header text color: bright yellow if this column is selected/has selected cards, dim yellow otherwise
-  // Exception: if column has its own color, use appropriate text color for that background
-  const headerTextColor = ownColor
-    ? ["red", "green", "blue", "magenta", "gray", "grey"].includes(ownColor)
-      ? "white"
-      : "black"
-    : isSelected
-      ? "yellow"
-      : "yellowBright";
-  const headerDimmed = !isSelected && !ownColor;
+  const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnSelected);
 
   return (
     <Box
@@ -165,13 +138,12 @@ export function Column({
       {/* Blank line above header */}
       <Text> </Text>
 
+      {/* Column header */}
       <Text
         bold={isSelected}
-        color={headerTextColor}
-        dimColor={headerDimmed}
-        backgroundColor={
-          isColumnSelected ? "blue" : ownColor ? ownColor : undefined
-        }
+        color={headerStyle.color}
+        dimColor={headerStyle.dimColor}
+        backgroundColor={headerStyle.backgroundColor}
         wrap="truncate"
       >
         {name}
@@ -185,8 +157,8 @@ export function Column({
         )}
         {collapsedIndicator}
       </Text>
+
       {isCollapsed ? (
-        // Collapsed view: show only count summary
         <Box
           flexDirection="column"
           height={baseContentHeight}
@@ -196,9 +168,6 @@ export function Column({
           <Text dimColor>[collapsed - {count}]</Text>
         </Box>
       ) : (
-        // Normal view: show cards with overflow indicators
-        // Wrap in a fixed-height Box to prevent content overflow
-        // flexShrink={0} prevents the box from growing beyond its height
         <Box
           flexDirection="column"
           height={baseContentHeight}
@@ -206,15 +175,12 @@ export function Column({
           flexGrow={0}
           overflowY="hidden"
         >
-          {/* Top overflow indicator - full width bar */}
-          {hasTopOverflow && (
-            <Box width={width} flexShrink={0}>
-              <Text backgroundColor="gray" color="white">
-                {" ".repeat(Math.max(0, Math.floor((width - 2) / 2)))}▲
-                {" ".repeat(Math.max(0, Math.ceil((width - 2) / 2)))}
-              </Text>
-            </Box>
-          )}
+          <OverflowIndicator
+            direction="up"
+            count={scrollState.overflowTop}
+            width={width}
+          />
+
           <Box
             flexDirection="column"
             flexGrow={1}
@@ -223,7 +189,6 @@ export function Column({
           >
             {scrollState.visible.map(
               ({ item: card, index: actualCardIndex }) => {
-                // Card is only selected when at card level (not column or board level)
                 const cardIsSelected =
                   isSelected &&
                   actualCardIndex === selectedCardIndex &&
@@ -235,12 +200,8 @@ export function Column({
                     isSelected={cardIsSelected}
                     selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
                     width={width}
-                    maxOutlineDepth={maxOutlineDepth}
-                    foldedNodes={foldedNodes}
-                    multiSelected={multiSelected}
                     colIndex={colIndex}
                     cardIndex={actualCardIndex}
-                    maxContentLines={maxContentLines}
                   />
                 );
               },
@@ -251,15 +212,12 @@ export function Column({
               </Box>
             )}
           </Box>
-          {/* Bottom overflow indicator - full width bar */}
-          {hasBottomOverflow && (
-            <Box width={width} flexShrink={0}>
-              <Text backgroundColor="gray" color="white">
-                {" ".repeat(Math.max(0, Math.floor((width - 2) / 2)))}▼
-                {" ".repeat(Math.max(0, Math.ceil((width - 2) / 2)))}
-              </Text>
-            </Box>
-          )}
+
+          <OverflowIndicator
+            direction="down"
+            count={scrollState.overflowBottom}
+            width={width}
+          />
         </Box>
       )}
     </Box>

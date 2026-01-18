@@ -36,6 +36,9 @@ export interface UIState {
   // Column state
   collapsedColumns: Set<number>;
 
+  // Node fold state (which tree nodes are collapsed)
+  foldedNodes: Set<string>;
+
   // Mouse state
   mouseSelection: SelectionRange | null;
   isMouseDragging: boolean;
@@ -90,6 +93,8 @@ export function createInitialUIState(
     selectAllLevel: 0,
 
     collapsedColumns: new Set(collapsedColumns),
+
+    foldedNodes: new Set(),
 
     mouseSelection: null,
     isMouseDragging: false,
@@ -222,6 +227,29 @@ const uiSlice = createSlice({
       state.collapsedColumns = action.payload;
     },
 
+    // Node folding
+    toggleFold: (state, action: PayloadAction<string>) => {
+      const nodeId = action.payload;
+      if (state.foldedNodes.has(nodeId)) {
+        state.foldedNodes.delete(nodeId);
+      } else {
+        state.foldedNodes.add(nodeId);
+      }
+    },
+    setFoldedNodes: (state, action: PayloadAction<Set<string>>) => {
+      state.foldedNodes = action.payload;
+    },
+    foldAll: (state, action: PayloadAction<string[]>) => {
+      for (const nodeId of action.payload) {
+        state.foldedNodes.add(nodeId);
+      }
+    },
+    unfoldAll: (state, action: PayloadAction<string[]>) => {
+      for (const nodeId of action.payload) {
+        state.foldedNodes.delete(nodeId);
+      }
+    },
+
     // Mouse
     setMouseSelection: (
       state,
@@ -325,6 +353,10 @@ export const {
   setSelectAllLevel,
   toggleColumnCollapse,
   setCollapsedColumns,
+  toggleFold,
+  setFoldedNodes,
+  foldAll,
+  unfoldAll,
   setMouseSelection,
   setMouseDragging,
   setDroppedFiles,

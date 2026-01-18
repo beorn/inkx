@@ -6,40 +6,34 @@
  */
 import React from "react";
 import { Box, Text } from "ink";
-import type { BoardState, SelectionKey } from "../types.ts";
-import { TreeNode, makeSelectionKey } from "./TreeNode.tsx";
+import type { BoardState } from "../types.ts";
+import { makeSelectionKey } from "../types.ts";
+import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
+import { useTreeConfig, useUISelector } from "../ui-context.tsx";
 
 interface TabsViewProps {
   state: BoardState;
   width: number;
   height: number;
-  foldedNodes: Set<string>;
-  maxOutlineDepth: number;
-  multiSelected: Set<SelectionKey>;
   colIndex: number;
   cardIndex: number;
   subIndex: number;
-  inOutlineMode: boolean;
   selectionLevel: "board" | "column" | "card";
-  /** Maximum lines of content to display per node */
-  maxContentLines: number;
 }
 
 export function TabsView({
   state,
   width,
   height,
-  foldedNodes,
-  maxOutlineDepth,
-  multiSelected,
   colIndex,
   cardIndex,
   subIndex,
-  inOutlineMode,
   selectionLevel,
-  maxContentLines,
 }: TabsViewProps): React.ReactElement {
+  const { inOutlineMode } = useTreeConfig();
+  const multiSelected = useUISelector((s) => s.multiSelected);
+
   // Tab bar height (1 line for spacing + 1 for tabs)
   const tabBarHeight = 2;
   // Content height: total - tab bar - border (2)
@@ -88,20 +82,11 @@ export function TabsView({
               ? colName.slice(0, maxTabWidth - 1) + "\u2026"
               : colName;
 
-          // Style like cards view column headers:
-          // - Active + column level selected: white on blue
-          // - Active + card level: yellow, bold
-          // - Active + board level: dim (no selection highlight)
-          // - Inactive: dim
+          // Style like cards view column headers
           const isTabSelected = isActive && isColumnHeaderSelected;
           const isBoardLevel = selectionLevel === "board";
           const showActiveHighlight = isActive && !isBoardLevel;
 
-          // Tab text color:
-          // - Selected (column level): black on cyan (per design system)
-          // - Active (card level): yellow
-          // - Inactive: white (not dim)
-          // - Board level: dim
           const textColor = isTabSelected
             ? "black"
             : showActiveHighlight
@@ -170,16 +155,9 @@ export function TabsView({
                         subIndex === 0)
                     }
                     isMultiSelected={cardMultiSelected}
-                    foldedNodes={foldedNodes}
-                    maxDepth={maxOutlineDepth}
                     colIndex={colIndex}
                     cardIndex={actualCardIndex}
                     subIndex={0}
-                    multiSelected={multiSelected}
-                    inOutlineMode={inOutlineMode}
-                    currentSubIndex={subIndex}
-                    variant="wide"
-                    maxContentLines={maxContentLines}
                   />
                 );
               })}

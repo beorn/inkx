@@ -87,6 +87,17 @@ export type ViewMode = "cards" | "list" | "columns" | "tabs";
  */
 export type SelectionKey = `${number}:${number}:${number}`;
 
+/**
+ * Create a selection key from column, card, and sub indices.
+ */
+export function makeSelectionKey(
+  col: number,
+  card: number,
+  sub: number,
+): SelectionKey {
+  return `${col}:${card}:${sub}`;
+}
+
 export interface RenderOptions {
   width: number;
   height: number;
