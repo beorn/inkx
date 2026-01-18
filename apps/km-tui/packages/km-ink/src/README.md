@@ -1,5 +1,7 @@
 # TUI Rendering Architecture
 
+> **Development Guide**: See [docs/dev/ink-patterns.md](../../../../../../../docs/dev/ink-patterns.md) for Ink workarounds and patterns (fullscreen race condition, manual width management, ANSI-aware text length).
+
 ## Component Hierarchy
 
 ```

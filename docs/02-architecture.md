@@ -17,8 +17,8 @@ km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This 
 │             State: BoardState    Actions: BoardAction               │
 ├─────────────────────────────────────────────────────────────────────┤
 │  TREE       @km/tree                                                │
-│             TreeNode (recursive), queries, display names            │
-│             Data: TreeNode, TPath   Actions: TAction                │
+│             TNode (recursive), queries, display names               │
+│             Data: TNode, TPath   Actions: TAction                   │
 ├─────────────────────────────────────────────────────────────────────┤
 │  STORAGE    @km/storage                                             │
 │             KNode (flat), SQLite, events, file sync                 │
@@ -42,15 +42,15 @@ km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This 
 
 ```
 FS → Storage:    File content  → KNode     (parse markdown)
-Storage → Tree:  KNode[]       → TreeNode[] (build recursive tree)
-Tree → Board:    TreeNode[]    → (used as-is, visual state in Sets)
+Storage → Tree:  KNode[]       → TNode[] (build recursive tree)
+Tree → Board:    TNode[]    → (used as-is, visual state in Sets)
 Board → App:     BoardState    → AppState  (add modals, search)
 ```
 
 | Type         | Package   | Description                            |
 | ------------ | --------- | -------------------------------------- |
 | `KNode`      | @km/core  | Flat record with `parent_id` (SQLite)  |
-| `TreeNode`   | @km/core  | Recursive with `children[]`            |
+| `TNode`      | @km/core  | Recursive with `children[]`            |
 | `TPath`      | @km/tree  | Array of indices `[col, row, ...]`     |
 | `BoardState` | @km/board | cursor, selection, fold, zoom, history |
 | `AppState`   | apps/     | BoardState + modals, search, etc.      |
@@ -184,7 +184,7 @@ See [03-storage.md](03-storage.md) for details on how @km/storage implements bid
 
 ```
 packages/
-  @km/core       - KNode, TreeNode, shared types
+  @km/core       - KNode, TNode, shared types
   @km/storage    - SQLite, events, sync
   @km/markdown   - Parser (markdown ↔ KNode)
   @km/tree       - Tree queries, display names
@@ -203,7 +203,7 @@ apps/
 | Term            | Definition                                               |
 | --------------- | -------------------------------------------------------- |
 | **KNode**       | Flat record with `parent_id`. Stored in SQLite.          |
-| **TreeNode**    | Recursive tree with `children[]`. For navigation.        |
+| **TNode**       | Recursive tree with `children[]`. For navigation.        |
 | **BoardState**  | Visual state: cursor, selection, fold, zoom.             |
 | **memory mode** | No `.km/`. SQLite in RAM. Ephemeral IDs.                 |
 | **disk mode**   | `.km/` exists. SQLite on disk. Stable IDs, events, sync. |

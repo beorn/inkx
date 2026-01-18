@@ -146,3 +146,4 @@ OpenTUI promised better layout with:
 - [km-tui-eval.2 Analysis](.beads/km-tui-eval.2-analysis.md) - OpenTUI bugs
 - [km-tui-eval.3 Analysis](.beads/km-tui-eval.3-analysis.md) - Abstraction approaches
 - [vendor/opentui/issues/](vendor/opentui/issues/) - Bug documentation
+- [docs/dev/ink-patterns.md](../dev/ink-patterns.md) - Ink workarounds and patterns guide
