@@ -5,58 +5,24 @@
  * Pure functions - no side effects, no React, no domain imports.
  */
 
-import type {
-  BoardState,
-  TreeNode,
-  ViewMode,
-  NodeViewModel,
-  BoardViewModel,
-} from "./boardTypes.ts";
-
-/**
- * Transform a TreeNode into a NodeViewModel
- */
-export function toNodeViewModel(
-  node: TreeNode,
-  foldedNodes: Set<string>,
-): NodeViewModel {
-  return {
-    id: node.id,
-    name: node.name,
-    title: node.title,
-    childCount: node.childCount,
-    isTask: node.isTask,
-    taskStatus: node.taskStatus,
-    color: node.color,
-    icon: node.icon,
-    isFolded: foldedNodes.has(node.id),
-    priority: node.priority,
-    dueDate: node.dueDate,
-    hasBacklinks: node.hasBacklinks,
-    refsCount: node.refsCount,
-    body: node.body,
-    depth: node.depth,
-    children: node.children.map((child) => toNodeViewModel(child, foldedNodes)),
-  };
-}
+import type { BoardState, ViewMode, BoardViewModel } from "./boardTypes.ts";
 
 /**
  * Transform BoardState into BoardViewModel
+ *
+ * No node transformation needed - TNode is used directly.
+ * UI state (selection, folding) is passed through as Sets.
  */
 export function toBoardViewModel(
   state: BoardState,
   viewMode: ViewMode,
 ): BoardViewModel {
-  // Transform nodes to view models
-  const nodes = state.nodes.map((node) =>
-    toNodeViewModel(node, state.foldedNodes),
-  );
-
   return {
     rootPath: state.rootPath,
-    nodes,
+    nodes: state.nodes,
     cursor: state.cursor,
     selectedNodes: state.selectedNodes,
+    foldedNodes: state.foldedNodes,
     viewMode,
   };
 }

@@ -11,12 +11,12 @@ export type {
   BoardState,
   BoardAction,
   NodeDirection,
-  TreeNode,
+  TNode,
+  TreeNode, // @deprecated - use TNode
   TPath,
   ViewMode,
   TaskStatus,
   ViewLevelConfig,
-  NodeViewModel,
   BoardViewModel,
 } from "./boardTypes.ts";
 export { VIEW_LEVEL_PRESETS } from "./boardTypes.ts";
@@ -52,8 +52,4 @@ export {
 } from "./selectors.ts";
 
 // ===== Transformers =====
-export {
-  toNodeViewModel,
-  toBoardViewModel,
-  toTreeViewModel,
-} from "./transformers.ts";
+export { toBoardViewModel, toTreeViewModel } from "./transformers.ts";

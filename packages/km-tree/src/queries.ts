@@ -5,17 +5,17 @@
  * NO visual state (cursor, selection) - that's in @km/board.
  */
 
-import type { TreeNode, TPath } from "./types.ts";
+import type { TNode, TPath } from "./types.ts";
 
 /**
  * Get node at a given path
  */
-export function getNodeAtPath(nodes: TreeNode[], path: TPath): TreeNode | null {
+export function getNodeAtPath(nodes: TNode[], path: TPath): TNode | null {
   if (path.length === 0) return null;
 
   const firstIdx = path[0];
   if (firstIdx === undefined) return null;
-  let current: TreeNode | undefined = nodes[firstIdx];
+  let current: TNode | undefined = nodes[firstIdx];
   for (let i = 1; i < path.length && current; i++) {
     const idx = path[i];
     if (idx === undefined) break;
@@ -27,7 +27,7 @@ export function getNodeAtPath(nodes: TreeNode[], path: TPath): TreeNode | null {
 /**
  * Get sibling count at the given path level
  */
-export function getSiblingCount(nodes: TreeNode[], path: TPath): number {
+export function getSiblingCount(nodes: TNode[], path: TPath): number {
   if (path.length === 0) return 0;
   if (path.length === 1) return nodes.length;
 
@@ -48,7 +48,7 @@ export function getCurrentIndex(path: TPath): number {
 /**
  * Recursively collect all node IDs from a tree
  */
-export function collectAllNodeIds(nodes: TreeNode[]): string[] {
+export function collectAllNodeIds(nodes: TNode[]): string[] {
   const ids: string[] = [];
   for (const node of nodes) {
     ids.push(node.id);
@@ -62,7 +62,7 @@ export function collectAllNodeIds(nodes: TreeNode[]): string[] {
 /**
  * Get sibling nodes at the given path level
  */
-export function getSiblings(nodes: TreeNode[], path: TPath): TreeNode[] {
+export function getSiblings(nodes: TNode[], path: TPath): TNode[] {
   if (path.length === 0) return [];
   if (path.length === 1) return nodes;
 
@@ -82,10 +82,7 @@ export function getParentPath(path: TPath): TPath | null {
 /**
  * Get path to first child of node at path
  */
-export function getFirstChildPath(
-  nodes: TreeNode[],
-  path: TPath,
-): TPath | null {
+export function getFirstChildPath(nodes: TNode[], path: TPath): TPath | null {
   const node = getNodeAtPath(nodes, path);
   if (!node || node.children.length === 0) return null;
   return [...path, 0];
@@ -95,7 +92,7 @@ export function getFirstChildPath(
  * Count total visible nodes in tree (respecting fold state)
  */
 export function countVisibleNodes(
-  nodes: TreeNode[],
+  nodes: TNode[],
   foldedNodes: Set<string>,
 ): number {
   let count = 0;
@@ -112,7 +109,7 @@ export function countVisibleNodes(
  * Find path to node by ID
  */
 export function findPathByNodeId(
-  nodes: TreeNode[],
+  nodes: TNode[],
   nodeId: string,
   currentPath: TPath = [],
 ): TPath | null {

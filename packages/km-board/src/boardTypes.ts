@@ -6,11 +6,11 @@
  */
 
 // Import types from @km/core and @km/tree
-import type { TreeNode } from "@km/core";
+import type { TNode } from "@km/core";
 import type { TPath, TaskStatus } from "@km/tree";
 
 export type { TaskStatus } from "@km/tree";
-export type { TreeNode } from "@km/core";
+export type { TNode, TreeNode } from "@km/core";
 export type { TPath } from "@km/tree";
 
 // ===== Base Types =====
@@ -30,7 +30,7 @@ export interface BoardState {
   rootPath: string | null;
 
   // Tree data
-  nodes: TreeNode[]; // Top-level nodes
+  nodes: TNode[]; // Top-level nodes
 
   // Path-based navigation
   cursor: TPath; // Current selection path
@@ -112,11 +112,11 @@ export type BoardAction =
   | { type: "UNFOLD_LEVEL"; depth: number }
 
   // Zoom/root change
-  | { type: "ZOOM_IN"; nodeId: string; nodes: TreeNode[] }
-  | { type: "ZOOM_OUT"; nodes: TreeNode[] }
+  | { type: "ZOOM_IN"; nodeId: string; nodes: TNode[] }
+  | { type: "ZOOM_OUT"; nodes: TNode[] }
 
   // Refresh
-  | { type: "REFRESH"; nodes: TreeNode[] }
+  | { type: "REFRESH"; nodes: TNode[] }
 
   // Navigation history
   | { type: "NAV_BACK" }
@@ -124,7 +124,7 @@ export type BoardAction =
   | {
       type: "NAV_TO";
       rootId: string | null;
-      nodes: TreeNode[];
+      nodes: TNode[];
       rootPath: string | null;
     }
 
@@ -191,34 +191,14 @@ export const VIEW_LEVEL_PRESETS: Record<ViewMode, ViewLevelConfig> = {
 // ===== ViewModel Types =====
 
 /**
- * Node view model for rendering.
- */
-export interface NodeViewModel {
-  id: string;
-  name: string; // Stable identifier (filename/slug)
-  title: string; // Display text (may have formatting)
-  childCount: number;
-  isTask: boolean;
-  taskStatus?: TaskStatus;
-  color?: string;
-  icon?: string;
-  isFolded: boolean;
-  priority?: number;
-  dueDate?: string;
-  hasBacklinks?: boolean;
-  refsCount?: number;
-  body?: string; // Text content below the title (renamed from 'content')
-  depth: number;
-  children: NodeViewModel[];
-}
-
-/**
  * Board view model for rendering.
+ * Uses TNode[] directly - UI state (selection, folding) is in BoardState Sets.
  */
 export interface BoardViewModel {
   rootPath: string | null;
-  nodes: NodeViewModel[];
+  nodes: TNode[];
   cursor: TPath;
   selectedNodes: Set<string>;
+  foldedNodes: Set<string>;
   viewMode: ViewMode;
 }

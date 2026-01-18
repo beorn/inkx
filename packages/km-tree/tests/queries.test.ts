@@ -16,10 +16,10 @@ import {
   countVisibleNodes,
   findPathByNodeId,
 } from "../src/queries.ts";
-import type { TreeNode } from "../src/types.ts";
+import type { TNode } from "../src/types.ts";
 
 // Helper to create test nodes
-function createNode(id: string, children: TreeNode[] = []): TreeNode {
+function createNode(id: string, children: TNode[] = []): TNode {
   return {
     id,
     type: "section",
@@ -46,7 +46,7 @@ function createNode(id: string, children: TreeNode[] = []): TreeNode {
 //   - Card 2 (card-2)
 // - Column B (col-b)
 //   - Card 3 (card-3)
-const testNodes: TreeNode[] = [
+const testNodes: TNode[] = [
   createNode("col-a", [
     createNode("card-1", [createNode("item-1-1"), createNode("item-1-2")]),
     createNode("card-2"),

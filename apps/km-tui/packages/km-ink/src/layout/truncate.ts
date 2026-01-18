@@ -13,15 +13,21 @@ import { displayLength, ANSI_REGEX } from "../text/index.ts";
  *
  * @param text - Text to truncate (may contain ANSI codes)
  * @param width - Maximum display width
- * @returns Truncated text with "…" suffix if truncated
+ * @param ellipsis - Custom ellipsis character (default: "…")
+ * @returns Truncated text with ellipsis suffix if truncated
  */
-export function truncateText(text: string, width: number): string {
+export function truncateText(
+  text: string,
+  width: number,
+  ellipsis = "…",
+): string {
   if (displayLength(text) <= width) {
     return text;
   }
 
-  // Need to truncate - find position for width-1 chars (leave room for …)
-  const targetWidth = width - 1;
+  // Need to truncate - find position for width-N chars (leave room for ellipsis)
+  const ellipsisLen = displayLength(ellipsis);
+  const targetWidth = Math.max(0, width - ellipsisLen);
 
   // Find all ANSI sequences and their positions
   const ansiMatches: Array<{ start: number; end: number; seq: string }> = [];
@@ -75,7 +81,7 @@ export function truncateText(text: string, width: number): string {
     resultParts.push("\x1b]8;;\x1b\\");
   }
 
-  return resultParts.join("") + chalk.reset("") + "…";
+  return resultParts.join("") + chalk.reset("") + ellipsis;
 }
 
 /**

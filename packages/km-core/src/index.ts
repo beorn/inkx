@@ -11,7 +11,8 @@
 // Types
 export type {
   KNode,
-  TreeNode,
+  TNode,
+  TreeNode, // @deprecated - use TNode
   Source,
   NodeType,
   NodeRules,

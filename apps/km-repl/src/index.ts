@@ -50,7 +50,8 @@ export { renderPlain, displayLength } from "./text.ts";
 export type {
   BoardState,
   BoardAction,
-  TreeNode,
+  TNode,
+  TreeNode, // @deprecated - use TNode
   TPath,
   TaskStatus,
 } from "@km/board";

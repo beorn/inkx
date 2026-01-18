@@ -37,7 +37,7 @@ import {
   serializeState,
   getCommandNames,
   getPromptPath,
-  type TreeNode,
+  type TNode,
   type TaskStatus,
   type OutputEvent,
   type ShellContext,
@@ -89,32 +89,43 @@ function getNodeName(node: KNode): string {
 }
 
 /**
- * Convert KNode to TreeNode (recursive)
+ * Convert KNode to TNode (recursive)
  */
-function nodeToTreeNode(node: KNode, depth: number): TreeNode {
+function kNodeToTNode(node: KNode, depth: number): TNode {
   const children = getChildren(node.id);
   return {
-    nodeId: node.id,
+    // KNode base properties
+    id: node.id,
+    type: node.type,
+    parent_id: node.parent_id ?? null,
+    parent_idx: node.parent_idx ?? 0,
+    symlink_to: node.symlink_to ?? null,
     name: getNodeName(node),
     title: getNodeDisplayName(node),
+    task_status: node.task_status,
+    task_mark: node.task_mark,
+    priority: node.priority,
+    due_date: node.due_date,
+    scheduled_date: node.scheduled_date,
+    content: node.content,
+    rules: node.rules,
+    data: node.data ?? {},
+    created_at: node.created_at ?? 0,
+    updated_at: node.updated_at ?? 0,
+    version: node.version ?? "",
+
+    // TNode tree properties
     children: children.map((child, idx) => {
-      const childTreeNode = nodeToTreeNode(child, depth + 1);
-      childTreeNode.parentId = node.id;
-      childTreeNode.parentIndex = child.parent_idx ?? idx;
-      return childTreeNode;
+      const childNode = kNodeToTNode(child, depth + 1);
+      // Update parent reference for the child
+      return {
+        ...childNode,
+        parent_id: node.id,
+        parent_idx: child.parent_idx ?? idx,
+      };
     }),
     childCount: children.length,
-    parentId: node.parent_id ?? null,
-    parentIndex: node.parent_idx ?? 0,
     isTask: node.task_status !== undefined,
-    taskStatus: node.task_status as TaskStatus | undefined,
-    color: node.rules?.color,
-    icon: undefined,
-    priority: node.priority,
-    dueDate: node.due_date,
-    scheduledDate: node.scheduled_date,
-    body: node.content,
-    nodeType: node.type as TreeNode["nodeType"],
     depth,
   };
 }
@@ -122,13 +133,13 @@ function nodeToTreeNode(node: KNode, depth: number): TreeNode {
 /**
  * Build tree nodes from root
  */
-function buildNodes(rootId: string | null): TreeNode[] {
+function buildNodes(rootId: string | null): TNode[] {
   if (!rootId) {
     const roots = getChildren(null);
     if (roots.length === 0) {
       return [];
     }
-    return roots.map((node) => nodeToTreeNode(node, 0));
+    return roots.map((node) => kNodeToTNode(node, 0));
   }
 
   const node = resolveNode(rootId);
@@ -137,7 +148,7 @@ function buildNodes(rootId: string | null): TreeNode[] {
   }
 
   const children = getChildren(node.id);
-  return children.map((child) => nodeToTreeNode(child, 0));
+  return children.map((child) => kNodeToTNode(child, 0));
 }
 
 /**

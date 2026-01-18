@@ -62,24 +62,24 @@ All tree rendering uses TreeNode with variants:
 
 These are managed inside `Board.tsx`:
 
-| State              | Purpose                              |
-| ------------------ | ------------------------------------ |
-| `state`            | BoardState (columns, cursor, etc.)   |
-| `foldedNodes`      | Set of folded node IDs               |
-| `multiSelected`    | Set of selected item keys            |
-| `viewMode`         | "cards" / "columns" / "list" / "tabs"|
-| `showDetailPane`   | Detail pane visibility               |
-| `showHelp`         | Help overlay visibility              |
-| `inOutlineMode`    | Whether navigating within card       |
-| `subIndex`         | Position within card outline         |
+| State            | Purpose                               |
+| ---------------- | ------------------------------------- |
+| `state`          | BoardState (columns, cursor, etc.)    |
+| `foldedNodes`    | Set of folded node IDs                |
+| `multiSelected`  | Set of selected item keys             |
+| `viewMode`       | "cards" / "columns" / "list" / "tabs" |
+| `showDetailPane` | Detail pane visibility                |
+| `showHelp`       | Help overlay visibility               |
+| `inOutlineMode`  | Whether navigating within card        |
+| `subIndex`       | Position within card outline          |
 
 ### Persistent State (Storage Layer)
 
-| Data               | Storage                              |
-| ------------------ | ------------------------------------ |
-| Node content       | SQLite → Markdown files              |
-| Task status        | SQLite → Markdown checkboxes         |
-| Node hierarchy     | SQLite parent_id → File structure    |
+| Data           | Storage                           |
+| -------------- | --------------------------------- |
+| Node content   | SQLite → Markdown files           |
+| Task status    | SQLite → Markdown checkboxes      |
+| Node hierarchy | SQLite parent_id → File structure |
 
 ## Layered Rendering
 
@@ -95,15 +95,15 @@ Key principle: **Render before truncate** - always convert to styled strings bef
 
 ## Key Files
 
-| File                  | Purpose                                          |
-| --------------------- | ------------------------------------------------ |
-| `tui.ts`              | Entry point, sync manager lifecycle              |
-| `views/Board.tsx`     | Main container, state, keyboard handling         |
-| `views/TreeNode.tsx`  | Unified tree node rendering                      |
-| `views/DetailPane.tsx`| Task detail view with fields                     |
-| `text/rich.ts`        | renderRich(), constrainText(), displayLength()   |
-| `state.ts`            | BoardState building and manipulation             |
-| `types.ts`            | Type definitions for all TUI components          |
+| File                   | Purpose                                        |
+| ---------------------- | ---------------------------------------------- |
+| `tui.ts`               | Entry point, sync manager lifecycle            |
+| `views/Board.tsx`      | Main container, state, keyboard handling       |
+| `views/TreeNode.tsx`   | Unified tree node rendering                    |
+| `views/DetailPane.tsx` | Task detail view with fields                   |
+| `text/rich.ts`         | renderRich(), constrainText(), displayLength() |
+| `state.ts`             | BoardState building and manipulation           |
+| `types.ts`             | Type definitions for all TUI components        |
 
 ## Automatic Sync
 

@@ -5,20 +5,20 @@
  * No side effects, no React imports - pure TypeScript.
  */
 
-import type { BoardState, TreeNode } from "./boardTypes.ts";
+import type { BoardState, TNode } from "./boardTypes.ts";
 import { getNodeAtPath, getSiblingCount } from "./boardReducer.ts";
 
 /**
  * Get the currently selected node
  */
-export function getCurrentNode(state: BoardState): TreeNode | null {
+export function getCurrentNode(state: BoardState): TNode | null {
   return getNodeAtPath(state.nodes, state.cursor);
 }
 
 /**
  * Get the parent of the currently selected node
  */
-export function getParentNode(state: BoardState): TreeNode | null {
+export function getParentNode(state: BoardState): TNode | null {
   if (state.cursor.length <= 1) return null;
   const parentPath = state.cursor.slice(0, -1);
   return getNodeAtPath(state.nodes, parentPath);
@@ -27,7 +27,7 @@ export function getParentNode(state: BoardState): TreeNode | null {
 /**
  * Get siblings at the current cursor level
  */
-export function getSiblings(state: BoardState): TreeNode[] {
+export function getSiblings(state: BoardState): TNode[] {
   if (state.cursor.length === 0) return [];
   if (state.cursor.length === 1) return state.nodes;
 
@@ -93,7 +93,7 @@ export function isNodeCollapsed(state: BoardState, nodeId: string): boolean {
  * Get total node count (recursive)
  */
 export function getTotalNodeCount(state: BoardState): number {
-  function countNodes(nodes: TreeNode[]): number {
+  function countNodes(nodes: TNode[]): number {
     return nodes.reduce((sum, node) => sum + 1 + countNodes(node.children), 0);
   }
   return countNodes(state.nodes);
@@ -116,8 +116,8 @@ export function getCursorDepth(state: BoardState): number {
 /**
  * Get breadcrumb trail from root to current node
  */
-export function getBreadcrumbs(state: BoardState): TreeNode[] {
-  const crumbs: TreeNode[] = [];
+export function getBreadcrumbs(state: BoardState): TNode[] {
+  const crumbs: TNode[] = [];
   let current = state.nodes;
 
   for (const idx of state.cursor) {

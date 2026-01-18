@@ -1,12 +1,12 @@
 /**
  * Tree Layer Types
  *
- * Re-exports TreeNode from @km/core and defines tree-specific types.
+ * Re-exports TNode from @km/core and defines tree-specific types.
  * NO visual state (cursor, selection, fold) - that's in @km/board.
  */
 
-// Re-export TreeNode and TaskStatus from @km/core
-export type { TreeNode, TaskStatus } from "@km/core";
+// Re-export TNode and TaskStatus from @km/core
+export type { TNode, TreeNode, TaskStatus } from "@km/core";
 
 /**
  * Path-based position in tree.

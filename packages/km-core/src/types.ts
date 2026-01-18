@@ -143,21 +143,26 @@ export interface KNode {
 }
 
 // =============================================================================
-// TreeNode - KNode with recursive children
+// TNode - KNode with recursive children (tree structure)
 // =============================================================================
 
 /**
- * TreeNode - KNode extended with tree structure for navigation and display.
+ * TNode - KNode extended with tree structure for navigation and display.
  * Used in @km/tree and @km/board layers.
+ *
+ * UI state (selection, folding) is NOT stored on nodes - it's in BoardState Sets.
  */
-export interface TreeNode extends KNode {
-  children: TreeNode[];
+export interface TNode extends KNode {
+  children: TNode[];
   depth: number; // Depth from current view root (0 = top level)
 
   // Computed display properties
   childCount: number; // Total children (may exceed loaded children.length)
   isTask: boolean; // Computed: task_status !== undefined
 }
+
+/** @deprecated Use TNode instead */
+export type TreeNode = TNode;
 
 // =============================================================================
 // Event Types
