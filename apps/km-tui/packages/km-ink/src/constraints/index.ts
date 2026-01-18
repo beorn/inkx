@@ -69,3 +69,21 @@ export {
   type ScrollableListProps,
   type ScrollState,
 } from "./ScrollableList.tsx";
+
+/**
+ * Simple scroll offset calculator for centering selected item in view.
+ * Use calculateScrollState for full virtualized list handling.
+ */
+export function calcScrollOffset(
+  selectedIndex: number,
+  maxVisible: number,
+  totalCount: number,
+): number {
+  return Math.max(
+    0,
+    Math.min(
+      selectedIndex - Math.floor(maxVisible / 2),
+      Math.max(0, totalCount - maxVisible),
+    ),
+  );
+}
