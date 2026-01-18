@@ -18,6 +18,8 @@ export type ParseResult =
   | { ok: true; command: ShellCommand }
   | { ok: false; error: string };
 
+import type { TaskStatus } from "@km/board";
+
 /**
  * Shell-specific commands (not BoardActions)
  */
@@ -32,7 +34,11 @@ export type ShellCommand =
   | { type: "LS"; path?: string } // List children
   | { type: "CD"; path: string } // Change to node
   | { type: "TREE"; path?: string; depth?: number } // Hierarchical listing
-  | { type: "CAT"; path?: string }; // Show node content/details
+  | { type: "CAT"; path?: string } // Show node content/details
+  // Mutation commands (require storage integration)
+  | { type: "SET_STATUS"; status: TaskStatus } // Set task status
+  | { type: "DELETE" } // Delete current node
+  | { type: "SHIFT"; direction: "up" | "down" }; // Move node within siblings
 
 /**
  * Map of snake_case command names to BoardAction types
@@ -72,8 +78,9 @@ const SIMPLE_ACTIONS: Record<string, BoardAction> = {
   extend_select_right: { type: "EXTEND_SELECT_RIGHT" },
 
   // Shifting (opt+direction) - move nodes visually
-  shift_up: { type: "SHIFT_UP" },
-  shift_down: { type: "SHIFT_DOWN" },
+  // NOTE: shift_up/shift_down are mutation commands (ShellCommand),
+  // handled in the switch statement below, not here as BoardActions.
+  // They require storage integration to persist changes.
   shift_left: { type: "SHIFT_LEFT" },
   shift_right: { type: "SHIFT_RIGHT" },
 
@@ -496,6 +503,43 @@ export function parseCommand(input: string): ParseResult {
       return { ok: true, command: { type: "CAT", path } };
     }
 
+    // === Mutation commands ===
+
+    // set_status <status> - set task status
+    case "set_status": {
+      const statusArg = args[0]?.toLowerCase();
+      const validStatuses: TaskStatus[] = [
+        "todo",
+        "wip",
+        "blocked",
+        "done",
+        "dropped",
+      ];
+      if (!statusArg || !validStatuses.includes(statusArg as TaskStatus)) {
+        return {
+          ok: false,
+          error: `set_status requires a status: ${validStatuses.join(", ")}`,
+        };
+      }
+      return {
+        ok: true,
+        command: { type: "SET_STATUS", status: statusArg as TaskStatus },
+      };
+    }
+
+    // delete - delete current node
+    case "delete": {
+      return { ok: true, command: { type: "DELETE" } };
+    }
+
+    // shift_up / shift_down - move node within siblings
+    case "shift_up": {
+      return { ok: true, command: { type: "SHIFT", direction: "up" } };
+    }
+    case "shift_down": {
+      return { ok: true, command: { type: "SHIFT", direction: "down" } };
+    }
+
     default:
       return { ok: false, error: `Unknown command: ${cmd}` };
   }
@@ -535,6 +579,12 @@ export function getCommandHelp(topic?: string): string {
       cd: "cd <path> - Navigate to node (supports .., /, relative paths)",
       tree: "tree [path] [depth] - Hierarchical listing with box-drawing",
       cat: "cat [path] - Show node content/details",
+      // Mutation commands
+      set_status:
+        "set_status <status> - Set task status (todo, wip, blocked, done, dropped)",
+      delete: "delete - Delete current node",
+      shift_up: "shift_up - Move node up within siblings",
+      shift_down: "shift_down - Move node down within siblings",
     };
     return helpText[topic] || `Unknown command: ${topic}`;
   }
@@ -581,6 +631,11 @@ Filesystem (REPL mode):
   tree [path] [depth] - hierarchical listing
   cat [path] - show node content
 
+Mutations:
+  set_status <status>   - set task status (todo/wip/blocked/done/dropped)
+  delete                - delete current node
+  shift_up, shift_down  - move node within siblings
+
 Key input:
   key <char> - single key (e.g., key j)
   key <Name> - special key (e.g., key Enter)
@@ -612,5 +667,10 @@ export function getCommandNames(): string[] {
     "cd",
     "tree",
     "cat",
+    // Mutation commands
+    "set_status",
+    "delete",
+    "shift_up",
+    "shift_down",
   ];
 }

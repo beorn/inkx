@@ -30,6 +30,8 @@ export {
   type OutputEvent,
   type SerializedState,
   type ShellContext,
+  type MutationResult,
+  type MutationHandler,
 } from "./shellExecutor.ts";
 
 // Command Registry

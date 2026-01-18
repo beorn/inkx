@@ -50,6 +50,26 @@ export interface ActionLogEntry {
 }
 
 /**
+ * Mutation result from storage operations
+ */
+export interface MutationResult {
+  /** Whether the mutation succeeded */
+  ok: boolean;
+  /** Error message if failed */
+  error?: string;
+  /** Updated state after mutation (if ok) */
+  newState?: BoardState;
+}
+
+/**
+ * Mutation handler callback - provided by CLI layer for storage operations
+ */
+export type MutationHandler = (
+  command: ShellCommand,
+  state: BoardState,
+) => MutationResult;
+
+/**
  * Shell execution context
  */
 export interface ShellContext {
@@ -60,6 +80,8 @@ export interface ShellContext {
   stdlog?: (line: string) => void;
   /** Action log for log command (optional, created on demand) */
   actionLog?: ActionLogEntry[];
+  /** Mutation handler for storage operations (optional, provided by CLI) */
+  onMutation?: MutationHandler;
 }
 
 /**
@@ -666,6 +688,46 @@ export function executeShellCommand(
       }
       return { quit: false };
     }
+
+    // === Mutation commands (require onMutation handler) ===
+
+    case "SET_STATUS":
+    case "DELETE":
+    case "SHIFT": {
+      if (!ctx.onMutation) {
+        const msg = "Mutation commands require storage integration";
+        if (ctx.jsonMode) {
+          ctx.output({ event: "error", error: msg, ts });
+        } else {
+          ctx.output(`error: ${msg}`);
+        }
+        return { quit: false };
+      }
+
+      const result = ctx.onMutation(command, ctx.state);
+      if (!result.ok) {
+        if (ctx.jsonMode) {
+          ctx.output({
+            event: "error",
+            error: result.error ?? "Unknown error",
+            ts,
+          });
+        } else {
+          ctx.output(`error: ${result.error ?? "Unknown error"}`);
+        }
+      } else if (result.newState) {
+        ctx.state = result.newState;
+        if (ctx.jsonMode) {
+          ctx.output({ event: "state", state: serializeState(ctx.state), ts });
+        } else if (ctx.verbose) {
+          const node = getNodeAtPath(ctx.state.nodes, ctx.state.cursor);
+          ctx.output(
+            `mutation: ${command.type} → ${node?.title ?? "(cursor moved)"}`,
+          );
+        }
+      }
+      return { quit: false };
+    }
   }
 }
 
@@ -847,6 +909,7 @@ export function runShell(
     verbose?: boolean;
     output?: (event: OutputEvent | string) => void;
     stdlog?: (line: string) => void;
+    onMutation?: MutationHandler;
   } = {},
 ): BoardState {
   const jsonMode = options.jsonMode ?? false;
@@ -869,6 +932,7 @@ export function runShell(
     output,
     stdlog,
     actionLog: [],
+    onMutation: options.onMutation,
   };
 
   for (const line of lines) {

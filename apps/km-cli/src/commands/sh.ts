@@ -41,6 +41,9 @@ import {
   type TaskStatus,
   type OutputEvent,
   type ShellContext,
+  type MutationHandler,
+  type ShellCommand,
+  type BoardState,
 } from "@km/repl";
 import type { KNode } from "@km/core";
 
@@ -99,7 +102,8 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
     type: node.type,
     parent_id: node.parent_id ?? null,
     parent_idx: node.parent_idx ?? 0,
-    symlink_to: node.symlink_to ?? null,
+    link_to: node.link_to ?? null,
+    link_alias: node.link_alias,
     name: getNodeName(node),
     title: getNodeDisplayName(node),
     task_status: node.task_status,
@@ -190,6 +194,105 @@ function parseCommandString(cmdString: string): string[] {
     .filter((cmd) => cmd.length > 0);
 }
 
+/**
+ * Get node at current cursor position
+ */
+function getNodeAtCursor(state: BoardState): TNode | null {
+  let nodes = state.nodes;
+  for (let i = 0; i < state.cursor.length; i++) {
+    const idx = state.cursor[i];
+    if (idx === undefined || idx >= nodes.length) return null;
+    const node = nodes[idx];
+    if (!node) return null;
+    if (i === state.cursor.length - 1) return node;
+    nodes = node.children;
+  }
+  return nodes[0] ?? null;
+}
+
+/**
+ * Create mutation handler that integrates with storage layer
+ * Uses the store's methods which handle filesystem writes synchronously
+ */
+function createMutationHandler(
+  rootId: string | null,
+  rootPath: string,
+): MutationHandler {
+  return (command: ShellCommand, state: BoardState) => {
+    const currentNode = getNodeAtCursor(state);
+    if (!currentNode) {
+      return { ok: false, error: "No node at cursor" };
+    }
+
+    const store = getStore();
+
+    try {
+      switch (command.type) {
+        case "SET_STATUS": {
+          // Use store's updateNode which writes to filesystem synchronously
+          store.updateNode(currentNode.id, { task_status: command.status });
+          break;
+        }
+        case "DELETE": {
+          // TODO: Implement delete - requires regenerating markdown file
+          return { ok: false, error: "delete command not yet implemented" };
+        }
+        case "SHIFT": {
+          // TODO: Implement shift - requires regenerating markdown file
+          return {
+            ok: false,
+            error: "shift_up/shift_down commands not yet implemented",
+          };
+        }
+        default:
+          return {
+            ok: false,
+            error: `Unknown mutation: ${(command as ShellCommand).type}`,
+          };
+      }
+
+      // Rebuild state from storage after mutation
+      const newNodes = buildNodes(rootId);
+      const newState = createBoardState(newNodes, rootId, rootPath);
+
+      // Preserve cursor position if valid, otherwise reset
+      let newCursor = state.cursor;
+      let testNodes = newState.nodes;
+      for (let i = 0; i < newCursor.length; i++) {
+        const idx = newCursor[i];
+        if (idx === undefined || idx >= testNodes.length) {
+          // Cursor invalid, truncate
+          newCursor = newCursor.slice(0, i);
+          break;
+        }
+        const node = testNodes[idx];
+        if (!node) {
+          newCursor = newCursor.slice(0, i);
+          break;
+        }
+        testNodes = node.children;
+      }
+
+      return {
+        ok: true,
+        newState: {
+          ...newState,
+          cursor: newCursor.length > 0 ? newCursor : [0],
+          // Preserve UI state
+          foldedNodes: state.foldedNodes,
+          collapsedNodes: state.collapsedNodes,
+          selectedNodes: new Set(), // Clear selection after mutation
+        },
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  };
+}
+
 export const shCommand = new Command("sh")
   .description("Non-interactive shell for scripting and debugging TUI")
   .argument("[root]", "Root node ID, filesystem path, or directory to view")
@@ -269,6 +372,9 @@ export const shCommand = new Command("sh")
       store.rootPath,
     );
 
+    // Create mutation handler for storage operations
+    const onMutation = createMutationHandler(resolvedNodeId, store.rootPath);
+
     // Output function
     const output = (event: OutputEvent | string) => {
       if (typeof event === "string") {
@@ -288,6 +394,7 @@ export const shCommand = new Command("sh")
         jsonMode: options.json ?? false,
         verbose: options.verbose ?? false,
         output,
+        onMutation,
       });
 
       if (options.json) {
@@ -306,6 +413,7 @@ export const shCommand = new Command("sh")
         jsonMode: options.json ?? false,
         verbose: options.verbose ?? false,
         output,
+        onMutation,
       });
 
       if (options.json) {
@@ -325,6 +433,7 @@ export const shCommand = new Command("sh")
         verbose: options.verbose ?? false,
         output,
         actionLog: [],
+        onMutation,
       };
 
       // OSC 133 shell integration - auto-enabled in TTY or via env var
