@@ -2,7 +2,7 @@
  * Ink-based Board TUI Component
  * Full-screen board view with columns and cards
  */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { withFullScreen } from "fullscreen-ink";
 import chalk from "chalk";
@@ -48,8 +48,9 @@ import { makeSelectionKey } from "./TreeNode.tsx";
 import { renderPlain, getNodeIcon, getChalkColor } from "../text/index.ts";
 import { getInheritedColor, getOwnColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
-import { Card, Column } from "./CardColumn.tsx";
+import { Column } from "./CardColumn.tsx";
 import { tuiEvents } from "../tui.ts";
+import { uiReducer, createInitialUIState } from "../ui-reducer.ts";
 
 // Default favorites: common boards accessed via 1-9 keys
 // These are resolved at runtime using the same resolution as CLI commands
@@ -183,69 +184,202 @@ interface BoardProps {
 function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
-  const [dimensions, setDimensions] = useState({
-    columns: stdout?.columns ?? 80,
-    rows: stdout?.rows ?? 24,
-  });
+
+  // UI state managed by reducer (enables extracting input handlers)
+  const [ui, dispatch] = useReducer(
+    uiReducer,
+    {
+      initialViewMode,
+      collapsedColumns: [...(initialState.collapsedColumns ?? [])],
+      stdout,
+    },
+    (init) =>
+      createInitialUIState(init.initialViewMode, init.collapsedColumns, {
+        columns: init.stdout?.columns ?? 80,
+        rows: init.stdout?.rows ?? 24,
+      }),
+  );
+
+  // Board state (navigation) - still useState for now, could migrate to boardReducer
   const [state, setState] = useState(initialState);
   const [foldedNodes, setFoldedNodes] = useState<Set<string>>(new Set());
-  const [maxOutlineDepth, setMaxOutlineDepth] = useState(2); // Default 2 levels
-  const [maxContentLines, setMaxContentLines] = useState(3); // Default 3 lines of content per card
-  const [subIndex, setSubIndex] = useState(0); // Sub-item index within selected card (0 = card header)
-  const [inOutlineMode, setInOutlineMode] = useState(false); // Whether navigating within card outline
-  const [multiSelected, setMultiSelected] = useState<Set<SelectionKey>>(
-    new Set(),
-  ); // Multi-selected items
-  const [selectionAnchor, setSelectionAnchor] = useState<{
-    col: number;
-    card: number;
-    sub: number;
-  } | null>(null);
-  const [showDetailPane, setShowDetailPane] = useState(
-    initialViewMode === "list",
-  ); // Detail pane visible by default in list view
-  const [collapsedColumns, setCollapsedColumns] = useState<Set<number>>(
-    new Set(initialState.collapsedColumns),
-  ); // Column indices that are collapsed
-  const [showProjectPicker, setShowProjectPicker] = useState(false); // Whether project picker is visible
-  const [showNewItemDialog, setShowNewItemDialog] = useState(false); // Whether new item dialog is visible
-  const [recentProjectIds, setRecentProjectIds] = useState<string[]>([]); // Recently used project targets
-  const [droppedFiles, setDroppedFiles] = useState<string[]>([]); // Files dropped via drag-and-drop
-  const [showDropNotification, setShowDropNotification] = useState(false); // Show drop notification
-  const [mouseSelection, setMouseSelection] = useState<SelectionRange | null>(
-    null,
-  ); // Mouse drag selection range
-  const [isMouseDragging, setIsMouseDragging] = useState(false); // Whether mouse drag is active
-  const [showHelp, setShowHelp] = useState(false); // Whether help overlay is visible
-  const [selectAllLevel, setSelectAllLevel] = useState(0); // Track selection level for progressive Shift+A
-  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode); // cards, list, or columns view
-  // Selection level: "card" (default), "column" (column header selected), "board" (entire board selected)
-  const [selectionLevel, setSelectionLevel] = useState<
-    "board" | "column" | "card"
-  >("card");
 
-  // Navigation history for [ and ] keys (separate from zoom stack which is physical parent chain)
-  // Each entry stores the root ID, cursor position, and selection state at that view
-  const [navHistory, setNavHistory] = useState<
-    Array<{
-      rootId: string | null;
-      colIndex: number;
-      cardIndex: number;
-      subIndex: number;
-      multiSelected: Set<SelectionKey>;
-      inOutlineMode: boolean;
-    }>
-  >([
-    {
-      rootId: initialState.rootId,
-      colIndex: 0,
-      cardIndex: 0,
-      subIndex: 0,
-      multiSelected: new Set(),
-      inOutlineMode: false,
-    },
-  ]);
-  const [navHistoryIndex, setNavHistoryIndex] = useState(0); // Current position in history
+  // Destructure UI state for easier access (maintains compatibility with existing code)
+  const {
+    viewMode,
+    showDetailPane,
+    maxOutlineDepth,
+    maxContentLines,
+    showHelp,
+    showProjectPicker,
+    showNewItemDialog,
+    selectionLevel,
+    subIndex,
+    inOutlineMode,
+    multiSelected,
+    selectionAnchor,
+    selectAllLevel,
+    collapsedColumns,
+    mouseSelection,
+    isMouseDragging,
+    droppedFiles,
+    showDropNotification,
+    navHistory,
+    navHistoryIndex,
+    recentProjectIds,
+    isReady,
+    dimensions,
+  } = ui;
+
+  // Legacy setters that dispatch to reducer (maintains compatibility during migration)
+  const setViewMode = (mode: ViewMode | ((prev: ViewMode) => ViewMode)) => {
+    if (typeof mode === "function") {
+      dispatch({ type: "SET_VIEW_MODE", mode: mode(viewMode) });
+    } else {
+      dispatch({ type: "SET_VIEW_MODE", mode });
+    }
+  };
+  const setShowDetailPane = (show: boolean | ((prev: boolean) => boolean)) => {
+    if (typeof show === "function") {
+      dispatch({ type: "SET_DETAIL_PANE", show: show(showDetailPane) });
+    } else {
+      dispatch({ type: "SET_DETAIL_PANE", show });
+    }
+  };
+  const setMaxOutlineDepth = (depth: number | ((prev: number) => number)) => {
+    if (typeof depth === "function") {
+      const newDepth = depth(maxOutlineDepth);
+      if (newDepth > maxOutlineDepth) {
+        dispatch({ type: "INCREASE_OUTLINE_DEPTH" });
+      } else if (newDepth < maxOutlineDepth) {
+        dispatch({ type: "DECREASE_OUTLINE_DEPTH" });
+      }
+    } else {
+      // For direct set, use increase/decrease repeatedly (not ideal but works)
+      while (depth > maxOutlineDepth) {
+        dispatch({ type: "INCREASE_OUTLINE_DEPTH" });
+      }
+      while (depth < maxOutlineDepth) {
+        dispatch({ type: "DECREASE_OUTLINE_DEPTH" });
+      }
+    }
+  };
+  const setMaxContentLines = (lines: number | ((prev: number) => number)) => {
+    if (typeof lines === "function") {
+      const newLines = lines(maxContentLines);
+      if (newLines > maxContentLines) {
+        dispatch({ type: "INCREASE_CONTENT_LINES" });
+      } else if (newLines < maxContentLines) {
+        dispatch({ type: "DECREASE_CONTENT_LINES" });
+      }
+    }
+  };
+  const setShowHelp = (show: boolean | ((prev: boolean) => boolean)) => {
+    if (typeof show === "function") {
+      if (show(showHelp) !== showHelp) dispatch({ type: "TOGGLE_HELP" });
+    } else {
+      dispatch(show ? { type: "SHOW_HELP" } : { type: "HIDE_HELP" });
+    }
+  };
+  const setShowProjectPicker = (show: boolean) => {
+    dispatch(
+      show ? { type: "SHOW_PROJECT_PICKER" } : { type: "HIDE_PROJECT_PICKER" },
+    );
+  };
+  const setShowNewItemDialog = (show: boolean) => {
+    dispatch(
+      show
+        ? { type: "SHOW_NEW_ITEM_DIALOG" }
+        : { type: "HIDE_NEW_ITEM_DIALOG" },
+    );
+  };
+  const setSelectionLevel = (level: "board" | "column" | "card") => {
+    dispatch({ type: "SET_SELECTION_LEVEL", level });
+  };
+  const setSubIndex = (index: number | ((prev: number) => number)) => {
+    const newIndex = typeof index === "function" ? index(subIndex) : index;
+    dispatch({ type: "SET_SUB_INDEX", index: newIndex });
+  };
+  const setInOutlineMode = (mode: boolean) => {
+    dispatch(
+      mode ? { type: "ENTER_OUTLINE_MODE" } : { type: "EXIT_OUTLINE_MODE" },
+    );
+  };
+  const setMultiSelected = (
+    selected:
+      | Set<SelectionKey>
+      | ((prev: Set<SelectionKey>) => Set<SelectionKey>),
+  ) => {
+    const newSelected =
+      typeof selected === "function" ? selected(multiSelected) : selected;
+    dispatch({ type: "SET_MULTI_SELECTED", selected: newSelected });
+  };
+  const setSelectionAnchor = (
+    anchor: { col: number; card: number; sub: number } | null,
+  ) => {
+    dispatch({ type: "SET_SELECTION_ANCHOR", anchor });
+  };
+  const setSelectAllLevel = (level: number) => {
+    dispatch({ type: "SET_SELECT_ALL_LEVEL", level });
+  };
+  const setCollapsedColumns = (
+    cols: Set<number> | ((prev: Set<number>) => Set<number>),
+  ) => {
+    const newCols = typeof cols === "function" ? cols(collapsedColumns) : cols;
+    dispatch({ type: "SET_COLLAPSED_COLUMNS", columns: newCols });
+  };
+  const setMouseSelection = (sel: SelectionRange | null) => {
+    dispatch({ type: "SET_MOUSE_SELECTION", selection: sel });
+  };
+  const setIsMouseDragging = (dragging: boolean) => {
+    dispatch({ type: "SET_MOUSE_DRAGGING", dragging });
+  };
+  const setDroppedFiles = (files: string[]) => {
+    dispatch({ type: "SET_DROPPED_FILES", files });
+  };
+  const setShowDropNotification = (show: boolean) => {
+    dispatch(
+      show
+        ? { type: "SHOW_DROP_NOTIFICATION" }
+        : { type: "HIDE_DROP_NOTIFICATION" },
+    );
+  };
+  const setNavHistory = (
+    history:
+      | typeof navHistory
+      | ((prev: typeof navHistory) => typeof navHistory),
+  ) => {
+    // For now, just update via full replacement - could optimize later
+    const newHistory =
+      typeof history === "function" ? history(navHistory) : history;
+    // Push the last entry if it's new
+    if (newHistory.length > navHistory.length) {
+      const lastEntry = newHistory[newHistory.length - 1];
+      if (lastEntry) dispatch({ type: "PUSH_NAV_HISTORY", entry: lastEntry });
+    }
+  };
+  const setNavHistoryIndex = (index: number | ((prev: number) => number)) => {
+    const newIndex =
+      typeof index === "function" ? index(navHistoryIndex) : index;
+    dispatch({ type: "SET_NAV_HISTORY_INDEX", index: newIndex });
+  };
+  const setRecentProjectIds = (
+    ids: string[] | ((prev: string[]) => string[]),
+  ) => {
+    const newIds = typeof ids === "function" ? ids(recentProjectIds) : ids;
+    // Add each new ID
+    for (const id of newIds) {
+      if (!recentProjectIds.includes(id)) {
+        dispatch({ type: "ADD_RECENT_PROJECT", projectId: id });
+      }
+    }
+  };
+  const setIsReady = (ready: boolean) => {
+    dispatch({ type: "SET_READY", ready });
+  };
+  const setDimensions = (dims: { columns: number; rows: number }) => {
+    dispatch({ type: "SET_DIMENSIONS", dimensions: dims });
+  };
 
   // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
   //
@@ -265,7 +399,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   //
   // The 50ms delay is a balance between avoiding the race condition and minimizing
   // perceived startup latency. Shorter delays may reintroduce the bug.
-  const [isReady, setIsReady] = useState(false);
 
   // Sync terminal dimensions and handle the initial render delay
   useEffect(() => {
@@ -335,6 +468,32 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     const cleanup = createMouseHandler((event: TermMouseEvent) => {
       selectionManager.handleMouseEvent(event);
+
+      // Handle scroll wheel events
+      if (event.type === "scroll" && event.scrollDirection) {
+        setState((s) => {
+          const col = s.columns[s.colIndex];
+          if (!col) return s;
+
+          const maxCard = col.cards.length - 1;
+          if (event.scrollDirection === "down") {
+            // Scroll down = move to next card
+            const newCardIndex = Math.min(maxCard, s.cardIndex + 1);
+            return { ...s, cardIndex: newCardIndex };
+          } else {
+            // Scroll up = move to previous card
+            const newCardIndex = Math.max(0, s.cardIndex - 1);
+            return { ...s, cardIndex: newCardIndex };
+          }
+        });
+        return;
+      }
+
+      // Handle double-click to drill in
+      if (event.type === "down" && event.button === "left") {
+        // TODO: Track double-click timing for drill-in
+        // For now, single click just selects
+      }
 
       // Convert screen coordinates to board items
       // This is a simplified version - full implementation would map
