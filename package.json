@@ -50,5 +50,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.11.2"
+  }
 }

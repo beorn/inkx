@@ -50,7 +50,44 @@ import { getInheritedColor, getOwnColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
 import { Column } from "./CardColumn.tsx";
 import { tuiEvents } from "../tui.ts";
-import { uiReducer, createInitialUIState } from "../ui-reducer.ts";
+import {
+  uiReducer,
+  createInitialUIState,
+  // RTK action creators
+  cycleViewMode,
+  toggleHelp,
+  hideHelp,
+  showProjectPicker as showProjectPickerAction,
+  hideProjectPicker,
+  showNewItemDialog as showNewItemDialogAction,
+  hideNewItemDialog as hideNewItemDialogAction,
+  toggleDetailPane,
+  setDetailPane,
+  increaseOutlineDepth,
+  decreaseOutlineDepth,
+  increaseContentLines,
+  decreaseContentLines,
+  setSelectionLevel,
+  enterOutlineMode,
+  exitOutlineMode,
+  setInOutlineMode,
+  setSubIndex,
+  setMultiSelected,
+  clearMultiSelection,
+  setSelectionAnchor,
+  setSelectAllLevel,
+  toggleColumnCollapse,
+  setMouseSelection,
+  setMouseDragging,
+  setDroppedFiles,
+  showDropNotification as showDropNotificationAction,
+  hideDropNotification as hideDropNotificationAction,
+  pushNavHistory,
+  setNavHistoryIndex,
+  addRecentProject,
+  setReady,
+  setDimensions,
+} from "../ui-reducer.ts";
 
 // Default favorites: common boards accessed via 1-9 keys
 // These are resolved at runtime using the same resolution as CLI commands
@@ -231,156 +268,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     dimensions,
   } = ui;
 
-  // Legacy setters that dispatch to reducer (maintains compatibility during migration)
-  const setViewMode = (mode: ViewMode | ((prev: ViewMode) => ViewMode)) => {
-    if (typeof mode === "function") {
-      dispatch({ type: "SET_VIEW_MODE", mode: mode(viewMode) });
-    } else {
-      dispatch({ type: "SET_VIEW_MODE", mode });
-    }
-  };
-  const setShowDetailPane = (show: boolean | ((prev: boolean) => boolean)) => {
-    if (typeof show === "function") {
-      dispatch({ type: "SET_DETAIL_PANE", show: show(showDetailPane) });
-    } else {
-      dispatch({ type: "SET_DETAIL_PANE", show });
-    }
-  };
-  const setMaxOutlineDepth = (depth: number | ((prev: number) => number)) => {
-    if (typeof depth === "function") {
-      const newDepth = depth(maxOutlineDepth);
-      if (newDepth > maxOutlineDepth) {
-        dispatch({ type: "INCREASE_OUTLINE_DEPTH" });
-      } else if (newDepth < maxOutlineDepth) {
-        dispatch({ type: "DECREASE_OUTLINE_DEPTH" });
-      }
-    } else {
-      // For direct set, use increase/decrease repeatedly (not ideal but works)
-      while (depth > maxOutlineDepth) {
-        dispatch({ type: "INCREASE_OUTLINE_DEPTH" });
-      }
-      while (depth < maxOutlineDepth) {
-        dispatch({ type: "DECREASE_OUTLINE_DEPTH" });
-      }
-    }
-  };
-  const setMaxContentLines = (lines: number | ((prev: number) => number)) => {
-    if (typeof lines === "function") {
-      const newLines = lines(maxContentLines);
-      if (newLines > maxContentLines) {
-        dispatch({ type: "INCREASE_CONTENT_LINES" });
-      } else if (newLines < maxContentLines) {
-        dispatch({ type: "DECREASE_CONTENT_LINES" });
-      }
-    }
-  };
-  const setShowHelp = (show: boolean | ((prev: boolean) => boolean)) => {
-    if (typeof show === "function") {
-      if (show(showHelp) !== showHelp) dispatch({ type: "TOGGLE_HELP" });
-    } else {
-      dispatch(show ? { type: "SHOW_HELP" } : { type: "HIDE_HELP" });
-    }
-  };
-  const setShowProjectPicker = (show: boolean) => {
-    dispatch(
-      show ? { type: "SHOW_PROJECT_PICKER" } : { type: "HIDE_PROJECT_PICKER" },
-    );
-  };
-  const setShowNewItemDialog = (show: boolean) => {
-    dispatch(
-      show
-        ? { type: "SHOW_NEW_ITEM_DIALOG" }
-        : { type: "HIDE_NEW_ITEM_DIALOG" },
-    );
-  };
-  const setSelectionLevel = (level: "board" | "column" | "card") => {
-    dispatch({ type: "SET_SELECTION_LEVEL", level });
-  };
-  const setSubIndex = (index: number | ((prev: number) => number)) => {
-    const newIndex = typeof index === "function" ? index(subIndex) : index;
-    dispatch({ type: "SET_SUB_INDEX", index: newIndex });
-  };
-  const setInOutlineMode = (mode: boolean) => {
-    dispatch(
-      mode ? { type: "ENTER_OUTLINE_MODE" } : { type: "EXIT_OUTLINE_MODE" },
-    );
-  };
-  const setMultiSelected = (
-    selected:
-      | Set<SelectionKey>
-      | ((prev: Set<SelectionKey>) => Set<SelectionKey>),
-  ) => {
-    const newSelected =
-      typeof selected === "function" ? selected(multiSelected) : selected;
-    dispatch({ type: "SET_MULTI_SELECTED", selected: newSelected });
-  };
-  const setSelectionAnchor = (
-    anchor: { col: number; card: number; sub: number } | null,
-  ) => {
-    dispatch({ type: "SET_SELECTION_ANCHOR", anchor });
-  };
-  const setSelectAllLevel = (level: number) => {
-    dispatch({ type: "SET_SELECT_ALL_LEVEL", level });
-  };
-  const setCollapsedColumns = (
-    cols: Set<number> | ((prev: Set<number>) => Set<number>),
-  ) => {
-    const newCols = typeof cols === "function" ? cols(collapsedColumns) : cols;
-    dispatch({ type: "SET_COLLAPSED_COLUMNS", columns: newCols });
-  };
-  const setMouseSelection = (sel: SelectionRange | null) => {
-    dispatch({ type: "SET_MOUSE_SELECTION", selection: sel });
-  };
-  const setIsMouseDragging = (dragging: boolean) => {
-    dispatch({ type: "SET_MOUSE_DRAGGING", dragging });
-  };
-  const setDroppedFiles = (files: string[]) => {
-    dispatch({ type: "SET_DROPPED_FILES", files });
-  };
-  const setShowDropNotification = (show: boolean) => {
-    dispatch(
-      show
-        ? { type: "SHOW_DROP_NOTIFICATION" }
-        : { type: "HIDE_DROP_NOTIFICATION" },
-    );
-  };
-  const setNavHistory = (
-    history:
-      | typeof navHistory
-      | ((prev: typeof navHistory) => typeof navHistory),
-  ) => {
-    // For now, just update via full replacement - could optimize later
-    const newHistory =
-      typeof history === "function" ? history(navHistory) : history;
-    // Push the last entry if it's new
-    if (newHistory.length > navHistory.length) {
-      const lastEntry = newHistory[newHistory.length - 1];
-      if (lastEntry) dispatch({ type: "PUSH_NAV_HISTORY", entry: lastEntry });
-    }
-  };
-  const setNavHistoryIndex = (index: number | ((prev: number) => number)) => {
-    const newIndex =
-      typeof index === "function" ? index(navHistoryIndex) : index;
-    dispatch({ type: "SET_NAV_HISTORY_INDEX", index: newIndex });
-  };
-  const setRecentProjectIds = (
-    ids: string[] | ((prev: string[]) => string[]),
-  ) => {
-    const newIds = typeof ids === "function" ? ids(recentProjectIds) : ids;
-    // Add each new ID
-    for (const id of newIds) {
-      if (!recentProjectIds.includes(id)) {
-        dispatch({ type: "ADD_RECENT_PROJECT", projectId: id });
-      }
-    }
-  };
-  const setIsReady = (ready: boolean) => {
-    dispatch({ type: "SET_READY", ready });
-  };
-  const setDimensions = (dims: { columns: number; rows: number }) => {
-    dispatch({ type: "SET_DIMENSIONS", dimensions: dims });
-  };
-
   // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
   //
   // Problem: On TUI startup, the top status bar line was missing until a key was pressed.
@@ -423,7 +310,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         if (syncDimensions()) {
           clearInterval(interval);
           // Delay before marking ready to ensure alternate buffer is stable
-          setTimeout(() => setIsReady(true), 50);
+          setTimeout(() => dispatch(setReady(true)), 50);
         }
       }, 10);
       stdout.on("resize", handleResize);
@@ -434,7 +321,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     }
 
     // Dimensions available immediately - still delay to avoid race condition
-    const timeout = setTimeout(() => setIsReady(true), 50);
+    const timeout = setTimeout(() => dispatch(setReady(true)), 50);
 
     stdout.on("resize", handleResize);
     return () => {
@@ -448,10 +335,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     if (!supportsFileDrop()) return;
 
     const cleanup = createPasteHandler((files) => {
-      setDroppedFiles(files);
-      setShowDropNotification(true);
+      dispatch(setDroppedFiles(files));
+      dispatch(showDropNotificationAction());
       // Auto-hide notification after 3 seconds
-      setTimeout(() => setShowDropNotification(false), 3000);
+      setTimeout(() => dispatch(hideDropNotificationAction()), 3000);
     });
 
     return cleanup;
@@ -462,8 +349,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     if (!supportsMouseMode()) return;
 
     const selectionManager = new SelectionManager((range) => {
-      setMouseSelection(range);
-      setIsMouseDragging(range !== null);
+      dispatch(setMouseSelection(range));
+      dispatch(setMouseDragging(range !== null));
     });
 
     const cleanup = createMouseHandler((event: TermMouseEvent) => {
@@ -543,7 +430,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Push a new entry to navigation history (truncating any forward history)
   // Captures current selection state so it can be restored when navigating back
-  const pushNavHistory = (
+  const pushNavHistoryEntry = (
     rootId: string | null,
     colIndex: number,
     cardIndex: number,
@@ -551,22 +438,16 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     currentMultiSelected: Set<SelectionKey>,
     currentInOutlineMode: boolean,
   ) => {
-    setNavHistory((prev) => {
-      // Truncate forward history if we're not at the end
-      const truncated = prev.slice(0, navHistoryIndex + 1);
-      return [
-        ...truncated,
-        {
-          rootId,
-          colIndex,
-          cardIndex,
-          subIndex: currentSubIndex,
-          multiSelected: new Set(currentMultiSelected),
-          inOutlineMode: currentInOutlineMode,
-        },
-      ];
-    });
-    setNavHistoryIndex((prev) => prev + 1);
+    dispatch(
+      pushNavHistory({
+        rootId,
+        colIndex,
+        cardIndex,
+        subIndex: currentSubIndex,
+        multiSelected: new Set(currentMultiSelected),
+        inOutlineMode: currentInOutlineMode,
+      }),
+    );
   };
 
   // Calculate max sub-items in current card
@@ -1094,13 +975,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // Toggle help with '?'
     if (input === "?") {
-      setShowHelp((prev) => !prev);
+      dispatch(toggleHelp());
       return;
     }
 
     // Close help with Escape
     if (showHelp && key.escape) {
-      setShowHelp(false);
+      dispatch(hideHelp());
       return;
     }
 
@@ -1111,30 +992,17 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // Cycle view mode with 'v': cards -> columns -> list -> tabs -> cards
     if (input === "v") {
-      setViewMode((prev) => {
-        switch (prev) {
-          case "cards":
-            return "columns";
-          case "columns":
-            return "list";
-          case "list":
-            return "tabs";
-          case "tabs":
-            return "cards";
-          default:
-            return "cards";
-        }
-      });
+      dispatch(cycleViewMode());
       return;
     }
 
     // Open new item dialog with 'n' key
     if (input === "n") {
-      setShowNewItemDialog(true);
-      setInOutlineMode(false);
+      dispatch(showNewItemDialogAction());
+      dispatch(exitOutlineMode());
       setSubIndex(0);
       clearSelection();
-      setShowDetailPane(false);
+      dispatch(setDetailPane(false));
       return;
     }
 
@@ -1192,7 +1060,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           const zoomed = buildBoardState(resolved.id);
           zoomed.zoomStack = [...state.zoomStack, state.rootId || ""];
           // Push current location to navigation history before navigating
-          pushNavHistory(
+          pushNavHistoryEntry(
             state.rootId,
             state.colIndex,
             state.cardIndex,
@@ -1200,10 +1068,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             multiSelected,
             inOutlineMode,
           );
-          setInOutlineMode(false);
+          dispatch(exitOutlineMode());
           setSubIndex(0);
           clearSelection();
-          setShowDetailPane(false);
+          dispatch(setDetailPane(false));
           setState(zoomed);
         } else {
           // Favorite not found - beep
@@ -1269,12 +1137,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     if (key.escape) {
       // If detail pane is open, close it
       if (showDetailPane) {
-        setShowDetailPane(false);
+        dispatch(setDetailPane(false));
         return;
       }
       // If in outline mode, exit outline mode
       if (inOutlineMode) {
-        setInOutlineMode(false);
+        dispatch(exitOutlineMode());
         setSubIndex(0);
         clearSelection();
         return;
@@ -1287,11 +1155,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     // 'u': Go up the physical path (parent of current root)
     if (input === "u") {
       if (showDetailPane) {
-        setShowDetailPane(false);
+        dispatch(setDetailPane(false));
         return;
       }
       if (inOutlineMode) {
-        setInOutlineMode(false);
+        dispatch(exitOutlineMode());
         setSubIndex(0);
         clearSelection();
         return;
@@ -1306,7 +1174,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           if (parentNode) {
             const zoomed = buildBoardState(parentNode.id);
             // Push current location to history before navigating
-            pushNavHistory(
+            pushNavHistoryEntry(
               state.rootId,
               state.colIndex,
               state.cardIndex,
@@ -1322,7 +1190,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           // No parent_id means this is a root-level node - go to root view
           const rootView = initBoardState();
           if (rootView) {
-            pushNavHistory(
+            pushNavHistoryEntry(
               state.rootId,
               state.colIndex,
               state.cardIndex,
@@ -1353,13 +1221,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             newState.colIndex = prevEntry.colIndex;
             newState.cardIndex = prevEntry.cardIndex;
             setState(newState);
-            setNavHistoryIndex(navHistoryIndex - 1);
+            dispatch(setNavHistoryIndex(navHistoryIndex - 1));
             // Restore selection state from history entry
-            setSubIndex(prevEntry.subIndex);
-            setMultiSelected(new Set(prevEntry.multiSelected));
-            setSelectionAnchor(null);
-            setSelectAllLevel(0);
-            setInOutlineMode(prevEntry.inOutlineMode);
+            dispatch(setSubIndex(prevEntry.subIndex));
+            dispatch(setMultiSelected(new Set(prevEntry.multiSelected)));
+            dispatch(setSelectionAnchor(null));
+            dispatch(setSelectAllLevel(0));
+            dispatch(setInOutlineMode(prevEntry.inOutlineMode));
           }
         }
       } else {
@@ -1381,13 +1249,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             newState.colIndex = nextEntry.colIndex;
             newState.cardIndex = nextEntry.cardIndex;
             setState(newState);
-            setNavHistoryIndex(navHistoryIndex + 1);
+            dispatch(setNavHistoryIndex(navHistoryIndex + 1));
             // Restore selection state from history entry
-            setSubIndex(nextEntry.subIndex);
-            setMultiSelected(new Set(nextEntry.multiSelected));
-            setSelectionAnchor(null);
-            setSelectAllLevel(0);
-            setInOutlineMode(nextEntry.inOutlineMode);
+            dispatch(setSubIndex(nextEntry.subIndex));
+            dispatch(setMultiSelected(new Set(nextEntry.multiSelected)));
+            dispatch(setSelectionAnchor(null));
+            dispatch(setSelectAllLevel(0));
+            dispatch(setInOutlineMode(nextEntry.inOutlineMode));
           }
         }
       } else {
@@ -1411,21 +1279,21 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // Adjust content lines with +/- (how many lines of wrapped text to show per item)
     if (input === "+" || input === "=") {
-      setMaxContentLines((n) => Math.min(10, n + 1));
+      dispatch(increaseContentLines());
       return;
     }
     if (input === "-" || input === "_") {
-      setMaxContentLines((n) => Math.max(1, n - 1));
+      dispatch(decreaseContentLines());
       return;
     }
 
     // Adjust outline depth with < and > (how many levels of children to show)
     if (input === ">") {
-      setMaxOutlineDepth((d) => Math.min(5, d + 1));
+      dispatch(increaseOutlineDepth());
       return;
     }
     if (input === "<") {
-      setMaxOutlineDepth((d) => Math.max(0, d - 1));
+      dispatch(decreaseOutlineDepth());
       return;
     }
 
@@ -1457,15 +1325,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // Toggle column collapse (c key)
     if (input === "c") {
-      setCollapsedColumns((prev) => {
-        const next = new Set(prev);
-        if (next.has(state.colIndex)) {
-          next.delete(state.colIndex);
-        } else {
-          next.add(state.colIndex);
-        }
-        return next;
-      });
+      dispatch(toggleColumnCollapse(state.colIndex));
       return;
     }
 
@@ -1864,7 +1724,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             newState.cardIndex = findSamePositionCard(newColIndex, s.cardIndex);
           }
         }
-        setInOutlineMode(false);
+        dispatch(exitOutlineMode());
         setSubIndex(0);
         clearSelection();
       } else if (input === "l" || key.rightArrow) {
@@ -1884,26 +1744,26 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             newState.cardIndex = findSamePositionCard(newColIndex, s.cardIndex);
           }
         }
-        setInOutlineMode(false);
+        dispatch(exitOutlineMode());
         setSubIndex(0);
         clearSelection();
       } else if (input === "g") {
         newState.cardIndex = 0;
-        setInOutlineMode(false);
+        dispatch(exitOutlineMode());
         setSubIndex(0);
         clearSelection();
       } else if (input === "G") {
         const currentCol = s.columns[s.colIndex];
         newState.cardIndex = Math.max(0, (currentCol?.cards.length || 1) - 1);
-        setInOutlineMode(false);
+        dispatch(exitOutlineMode());
         setSubIndex(0);
         clearSelection();
       }
 
       // Enter opens detail pane
       if (key.return && card) {
-        setShowDetailPane(true);
-        setInOutlineMode(false);
+        dispatch(setDetailPane(true));
+        dispatch(exitOutlineMode());
         setSubIndex(0);
         clearSelection();
         return s; // Don't change board state, just show pane
@@ -1954,7 +1814,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         zoomed.cardIndex = foundCard;
 
         // Push current location to navigation history before navigating
-        pushNavHistory(
+        pushNavHistoryEntry(
           s.rootId,
           s.colIndex,
           s.cardIndex,
@@ -1963,20 +1823,20 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           inOutlineMode,
         );
 
-        setInOutlineMode(false);
+        dispatch(exitOutlineMode());
         setSubIndex(0);
         clearSelection();
-        setShowDetailPane(false);
+        dispatch(setDetailPane(false));
         return zoomed;
       }
 
       // Open project picker with 'p' key
       if (input === "p" && card) {
-        setShowProjectPicker(true);
-        setInOutlineMode(false);
+        dispatch(showProjectPickerAction());
+        dispatch(exitOutlineMode());
         setSubIndex(0);
         clearSelection();
-        setShowDetailPane(false);
+        dispatch(setDetailPane(false));
         return s; // Don't change board state, just show picker
       }
 
@@ -1993,7 +1853,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
       // Close detail pane with 'h' key
       if (input === "h") {
-        setShowDetailPane(false);
+        dispatch(setDetailPane(false));
         return;
       }
 
@@ -2108,7 +1968,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const handleProjectSelect = (targetNode: KNode) => {
     const card = state.columns[state.colIndex]?.cards[state.cardIndex];
     if (!card) {
-      setShowProjectPicker(false);
+      dispatch(hideProjectPicker());
       return;
     }
 
@@ -2124,13 +1984,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     moveNode(nodeToMove, targetNode.id, newSortOrder);
 
     // Track as recent project
-    setRecentProjectIds((prev) => {
-      const filtered = prev.filter((id) => id !== targetNode.id);
-      return [targetNode.id, ...filtered].slice(0, 5); // Keep last 5
-    });
+    dispatch(addRecentProject(targetNode.id));
 
     // Close picker and rebuild board
-    setShowProjectPicker(false);
+    dispatch(hideProjectPicker());
 
     setTimeout(() => {
       const newState = state.rootId
@@ -2156,18 +2013,18 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   };
 
   const handleProjectCancel = () => {
-    setShowProjectPicker(false);
+    dispatch(hideProjectPicker());
   };
 
   // Handler for new item creation
   const handleNewItemCreate = (_newNodeId: string) => {
-    setShowNewItemDialog(false);
+    dispatch(hideNewItemDialogAction());
     // Refresh the board to show the new item
     setState((s) => (s.rootId ? buildBoardState(s.rootId) : s));
   };
 
   const handleNewItemCancel = () => {
-    setShowNewItemDialog(false);
+    dispatch(hideNewItemDialogAction());
   };
 
   // Build selected item path segments for colorized top bar
