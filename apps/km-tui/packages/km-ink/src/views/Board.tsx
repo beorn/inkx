@@ -7,16 +7,24 @@ import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { withFullScreen } from "fullscreen-ink";
 import chalk, { type ChalkInstance } from "chalk";
 import { hyperlink } from "@beorn/chalkx";
-import type { BoardState, ViewMode } from "../types.ts";
-import { buildBoardState } from "../state.ts";
-import type { KNode } from "@km/core";
-import { getChildren, getNode, getStore } from "@km/storage";
+import type { BoardState, ViewMode, SelectionKey } from "../types.ts";
+import { makeSelectionKey } from "../types.ts";
+import { buildBoardState, initBoardState, getNodeDisplayName } from "../state.ts";
+import type { KNode, TaskStatus } from "@km/core";
+import { getChildren, getNode, getStore, updateNode, deleteNode } from "@km/storage";
 import {
   handleKeyboardInput as handleKeyboardWrapper,
   handleDetailPaneInput as handleDetailPaneWrapper,
   type KeyboardContext,
 } from "../keyboard-handler.ts";
-import { getNodeDisplayName } from "../state.ts";
+import {
+  clearSelection,
+  getMaxSubIndex,
+  pushNavHistoryEntry,
+  updateSelectionRange,
+  refreshBoardState,
+  progressiveSelectAll,
+} from "../keyboard-helpers.ts";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
 import { HelpOverlay } from "./HelpOverlay.tsx";
@@ -43,12 +51,7 @@ import { tuiEvents } from "../tui.ts";
 import { UIProvider } from "../ui-context.tsx";
 import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
-import {
-  ConstraintRoot,
-  ConstraintContext,
-  useComputedSize,
-  type ComputedSize,
-} from "../constraints/index.ts";
+import { ConstraintRoot } from "../constraints/index.ts";
 import {
   processKeyThroughCommands,
   ensureCommandSystemInitialized,
@@ -179,28 +182,50 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Main keyboard input handler - routes through @km/commands first
   useInput((input, key) => {
-    // Skip command processing for dialogs/input modes
+    // Dialog modes bypass command system entirely
     if (ui.showNewItemDialog || ui.showProjectPicker) {
       handleKeyboardWrapper(keyboardContext, input, key);
       return;
     }
 
-    // Try command system first
+    // TUI-specific keys not in command system: handled directly by keyboard-handler
+    // - n: new item dialog
+    // - q: quit
+    // - p: project picker
+    // - 1-9: favorites jump
+    // - Shift+1-9: column jump
+    // - Enter: open detail pane
+    // - Meta+arrows/hjkl: move cards between columns
+    // - Shift+Tab: indent/outdent (Tab without shift is fold, handled by commands)
+    // - Escape: close dialogs/outline mode/quit
+    const isTuiSpecificKey =
+      input === "n" ||
+      input === "q" ||
+      input === "p" ||
+      /^[1-9]$/.test(input) ||
+      /^[!@#$%^&*(]$/.test(input) || // Shift+1-9 chars
+      key.return ||
+      key.meta ||
+      (key.tab && key.shift) ||
+      key.escape;
+
+    if (isTuiSpecificKey) {
+      handleKeyboardWrapper(keyboardContext, input, key);
+      return;
+    }
+
+    // Try command system for all other keys
     const result = processKeyThroughCommands(input, key, state, ui);
 
     if (result.handled && result.actions) {
-      // Process the action(s) returned by the command
       const actionList = Array.isArray(result.actions)
         ? result.actions
         : [result.actions];
       for (const action of actionList) {
         handleCommandAction(action);
       }
-      return;
     }
-
-    // Fall back to legacy keyboard handler for unhandled keys
-    handleKeyboardWrapper(keyboardContext, input, key);
+    // Unhandled keys are silently ignored (no fallback)
   });
 
   // Handle detail pane navigation (j/k to move cards while pane is open)
@@ -212,9 +237,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   );
 
   // Handler for command system actions (hoisted)
+  // All navigation logic is implemented here - no delegation to keyboard-handler.ts
   function handleCommandAction(action: CommandAction) {
+    const col = state.columns[state.colIndex];
+    const card = col?.cards[state.cardIndex];
+
     if (isUIAction(action)) {
-      // UI actions dispatch to uiReducer
       switch (action.type) {
         case "CYCLE_VIEW_MODE":
           dispatch(actions.cycleViewMode());
@@ -232,71 +260,59 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           dispatch(actions.setDetailPane(false));
           break;
         case "GO_UP_PATH":
-          // Delegate to keyboard handler for complex navigation logic
-          handleKeyboardWrapper(keyboardContext, "u", {});
+          handleGoUpPath();
           break;
-        case "DELETE_NODE": {
-          // Delegate to keyboard handler for delete logic
-          handleKeyboardWrapper(keyboardContext, "D", {});
+        case "DELETE_NODE":
+          handleDeleteNode();
           break;
-        }
         case "SELECT_ALL_PROGRESSIVE":
-          // Delegate to keyboard handler for progressive select
-          handleKeyboardWrapper(keyboardContext, "A", {});
+          progressiveSelectAll(keyboardContext);
           break;
       }
     } else if (isTaskStatusAction(action)) {
-      // Task status changes - delegate to keyboard handler
-      handleKeyboardWrapper(keyboardContext, " ", {});
+      handleTaskStatusCycle();
     } else if (isHistoryAction(action)) {
-      // Undo/redo - not yet implemented, beep
-      process.stdout.write("\x07");
+      process.stdout.write("\x07"); // Undo/redo not yet implemented
     } else if (isBoardAction(action)) {
-      // Board actions - for now delegate complex ones to keyboard handler
-      // These will be handled by boardReducer once fully migrated
       switch (action.type) {
         case "CURSOR_MOVE":
-          delegateCursorMove(action.dir);
+          handleCursorMove(action.dir);
           break;
         case "TOGGLE_FOLD":
-          handleKeyboardWrapper(keyboardContext, "", { tab: true });
+          handleToggleFold();
           break;
         case "FOLD_LEVEL":
-          // z = fold all in column
-          handleKeyboardWrapper(keyboardContext, "z", {});
+          if (col) dispatch(actions.foldAll(col.cards.map((c) => c.node.id)));
           break;
         case "UNFOLD_LEVEL":
-          // Z = unfold all in column
-          handleKeyboardWrapper(keyboardContext, "Z", {});
+          if (col) dispatch(actions.unfoldAll(col.cards.map((c) => c.node.id)));
           break;
         case "TOGGLE_COLLAPSE":
-          handleKeyboardWrapper(keyboardContext, "c", {});
+          dispatch(actions.toggleColumnCollapse(state.colIndex));
           break;
         case "NAV_BACK":
-          handleKeyboardWrapper(keyboardContext, "[", {});
+          handleNavBack();
           break;
         case "NAV_FORWARD":
-          handleKeyboardWrapper(keyboardContext, "]", {});
+          handleNavForward();
           break;
         case "ZOOM_IN":
-          handleKeyboardWrapper(keyboardContext, "o", {});
+          handleZoomIn();
           break;
         case "CLEAR_SELECTION":
-          dispatch(actions.setMultiSelected(new Set()));
-          dispatch(actions.setSelectionAnchor(null));
-          dispatch(actions.setSelectAllLevel(0));
+          clearSelection(keyboardContext);
           break;
-        case "SELECT_NODE_TOGGLE":
-        case "SELECT_NODE_ADD":
-        case "SELECT_NODE_REMOVE":
-        case "SELECT_ALL":
-        case "SELECT_ALL_SIBLINGS":
         case "EXTEND_SELECT_UP":
+          handleExtendSelectVertical("up");
+          break;
         case "EXTEND_SELECT_DOWN":
+          handleExtendSelectVertical("down");
+          break;
         case "EXTEND_SELECT_LEFT":
+          handleExtendSelectHorizontal("left");
+          break;
         case "EXTEND_SELECT_RIGHT":
-          // Selection actions - delegate to keyboard handler
-          delegateSelectionAction(action.type);
+          handleExtendSelectHorizontal("right");
           break;
         case "INCREASE_OUTLINE_DEPTH":
           dispatch(actions.increaseOutlineDepth());
@@ -310,55 +326,339 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         case "DECREASE_CONTENT_LINES":
           dispatch(actions.decreaseContentLines());
           break;
-        default:
-          // Other board actions - log for debugging
-          // console.log("Unhandled board action:", action.type);
+      }
+    }
+
+    // --- Implementation functions (hoisted) ---
+
+    function handleGoUpPath() {
+      if (ui.showDetailPane) {
+        dispatch(actions.setDetailPane(false));
+        return;
+      }
+      if (ui.inOutlineMode) {
+        dispatch(actions.exitOutlineMode());
+        dispatch(actions.setSubIndex(0));
+        clearSelection(keyboardContext);
+        return;
+      }
+      if (state.rootId) {
+        const currentRoot = getNode(state.rootId);
+        if (currentRoot?.parent_id) {
+          const parentNode = getNode(currentRoot.parent_id);
+          if (parentNode) {
+            const zoomed = buildBoardState(parentNode.id);
+            pushNavHistoryEntry(dispatch, state.rootId, state.colIndex, state.cardIndex, ui.subIndex, ui.multiSelected, ui.inOutlineMode);
+            setState(zoomed);
+            clearSelection(keyboardContext);
+            return;
+          }
+        } else {
+          const rootView = initBoardState();
+          if (rootView) {
+            pushNavHistoryEntry(dispatch, state.rootId, state.colIndex, state.cardIndex, ui.subIndex, ui.multiSelected, ui.inOutlineMode);
+            setState(rootView);
+            clearSelection(keyboardContext);
+            return;
+          }
+        }
+      }
+      process.stdout.write("\x07");
+    }
+
+    function handleDeleteNode() {
+      if (!card) return;
+      deleteNode(card.node.id);
+      refreshBoardState(keyboardContext, {
+        cardIndex: (col) => Math.min(state.cardIndex, Math.max(0, (col?.cards.length ?? 1) - 1)),
+      });
+    }
+
+    function handleTaskStatusCycle() {
+      if (!card) return;
+      const targetId = card.node.link_to || card.node.id;
+      const targetNode = card.node.link_to ? getNode(card.node.link_to) : card.node;
+      const currentStatus = targetNode?.task_status || "todo";
+      const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"];
+      const currentIndex = statusCycle.indexOf(currentStatus);
+      const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus;
+      const markMap: Record<TaskStatus, string> = { todo: " ", wip: "/", blocked: "!", done: "x", dropped: "-" };
+      updateNode(targetId, { task_status: nextStatus, task_mark: markMap[nextStatus] });
+      refreshBoardState(keyboardContext);
+    }
+
+    function handleCursorMove(dir: string) {
+      clearSelection(keyboardContext);
+
+      switch (dir) {
+        case "up":
+        case "prev":
+          if (ui.selectionLevel === "card") {
+            if (ui.inOutlineMode) {
+              if (ui.subIndex > 0) {
+                dispatch(actions.setSubIndex(ui.subIndex - 1));
+              } else if (state.cardIndex > 0) {
+                const prevCardIndex = state.cardIndex - 1;
+                setState((s) => ({ ...s, cardIndex: prevCardIndex }));
+                const prevCard = col?.cards[prevCardIndex];
+                if (prevCard) {
+                  const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
+                  dispatch(actions.setSubIndex(maxSub - 1));
+                }
+              } else {
+                dispatch(actions.setSelectionLevel("column"));
+                dispatch(actions.setSubIndex(0));
+              }
+            } else {
+              if (state.cardIndex > 0) {
+                setState((s) => ({ ...s, cardIndex: s.cardIndex - 1 }));
+              } else {
+                dispatch(actions.setSelectionLevel("column"));
+              }
+            }
+          } else if (ui.selectionLevel === "column") {
+            dispatch(actions.setSelectionLevel("board"));
+          }
+          break;
+
+        case "down":
+        case "next":
+          if (ui.selectionLevel === "board") {
+            dispatch(actions.setSelectionLevel("column"));
+            setState((s) => ({ ...s, colIndex: 0 }));
+          } else if (ui.selectionLevel === "column") {
+            dispatch(actions.setSelectionLevel("card"));
+            setState((s) => ({ ...s, cardIndex: 0 }));
+          } else if (ui.inOutlineMode) {
+            const maxSub = getMaxSubIndex(keyboardContext);
+            if (ui.subIndex < maxSub - 1) {
+              dispatch(actions.setSubIndex(ui.subIndex + 1));
+            } else if (col && state.cardIndex < col.cards.length - 1) {
+              setState((s) => ({ ...s, cardIndex: s.cardIndex + 1 }));
+              dispatch(actions.setSubIndex(0));
+            }
+          } else if (col && state.cardIndex < col.cards.length - 1) {
+            setState((s) => ({ ...s, cardIndex: s.cardIndex + 1 }));
+          }
+          break;
+
+        case "left":
+          if (ui.selectionLevel !== "board" && state.colIndex > 0) {
+            const newColIndex = state.colIndex - 1;
+            const targetCol = state.columns[newColIndex];
+            setState((s) => ({
+              ...s,
+              colIndex: newColIndex,
+              cardIndex: ui.selectionLevel === "card" && targetCol
+                ? Math.min(s.cardIndex, Math.max(0, targetCol.cards.length - 1))
+                : s.cardIndex,
+            }));
+            if (ui.selectionLevel === "card" && (!targetCol || targetCol.cards.length === 0)) {
+              dispatch(actions.setSelectionLevel("column"));
+            }
+            dispatch(actions.exitOutlineMode());
+            dispatch(actions.setSubIndex(0));
+          }
+          break;
+
+        case "right":
+          if (ui.selectionLevel !== "board" && state.colIndex < state.columns.length - 1) {
+            const newColIndex = state.colIndex + 1;
+            const targetCol = state.columns[newColIndex];
+            setState((s) => ({
+              ...s,
+              colIndex: newColIndex,
+              cardIndex: ui.selectionLevel === "card" && targetCol
+                ? Math.min(s.cardIndex, Math.max(0, targetCol.cards.length - 1))
+                : s.cardIndex,
+            }));
+            if (ui.selectionLevel === "card" && (!targetCol || targetCol.cards.length === 0)) {
+              dispatch(actions.setSelectionLevel("column"));
+            }
+            dispatch(actions.exitOutlineMode());
+            dispatch(actions.setSubIndex(0));
+          }
+          break;
+
+        case "first":
+          setState((s) => ({ ...s, cardIndex: 0 }));
+          dispatch(actions.exitOutlineMode());
+          dispatch(actions.setSubIndex(0));
+          break;
+
+        case "last":
+          setState((s) => ({
+            ...s,
+            cardIndex: Math.max(0, (col?.cards.length ?? 1) - 1),
+          }));
+          dispatch(actions.exitOutlineMode());
+          dispatch(actions.setSubIndex(0));
           break;
       }
     }
-  }
 
-  // Delegate cursor movement to keyboard handler
-  function delegateCursorMove(dir: string) {
-    switch (dir) {
-      case "up":
-      case "prev":
-        handleKeyboardWrapper(keyboardContext, "k", {});
-        break;
-      case "down":
-      case "next":
-        handleKeyboardWrapper(keyboardContext, "j", {});
-        break;
-      case "left":
-        handleKeyboardWrapper(keyboardContext, "h", {});
-        break;
-      case "right":
-        handleKeyboardWrapper(keyboardContext, "l", {});
-        break;
-      case "first":
-        handleKeyboardWrapper(keyboardContext, "g", {});
-        break;
-      case "last":
-        handleKeyboardWrapper(keyboardContext, "G", {});
-        break;
+    function handleToggleFold() {
+      if (!card) return;
+      // Tab toggles fold on current card, Shift+Tab does indent/outdent
+      // which is handled by keyboard-handler for now (TUI-specific)
+      const nodeId = card.node.id;
+      dispatch(actions.toggleFold(nodeId));
     }
-  }
 
-  // Delegate selection actions to keyboard handler
-  function delegateSelectionAction(type: string) {
-    switch (type) {
-      case "EXTEND_SELECT_UP":
-        handleKeyboardWrapper(keyboardContext, "K", { shift: true });
-        break;
-      case "EXTEND_SELECT_DOWN":
-        handleKeyboardWrapper(keyboardContext, "J", { shift: true });
-        break;
-      case "EXTEND_SELECT_LEFT":
-        handleKeyboardWrapper(keyboardContext, "H", { shift: true });
-        break;
-      case "EXTEND_SELECT_RIGHT":
-        handleKeyboardWrapper(keyboardContext, "L", { shift: true });
-        break;
+    function handleNavBack() {
+      if (ui.navHistoryIndex > 0) {
+        const prevEntry = ui.navHistory[ui.navHistoryIndex - 1];
+        if (prevEntry) {
+          const newState = prevEntry.rootId ? buildBoardState(prevEntry.rootId) : initBoardState();
+          if (newState) {
+            newState.colIndex = prevEntry.colIndex;
+            newState.cardIndex = prevEntry.cardIndex;
+            setState(newState);
+            dispatch(actions.setNavHistoryIndex(ui.navHistoryIndex - 1));
+            dispatch(actions.setSubIndex(prevEntry.subIndex));
+            dispatch(actions.setMultiSelected(new Set(prevEntry.multiSelected)));
+            dispatch(actions.setSelectionAnchor(null));
+            dispatch(actions.setSelectAllLevel(0));
+            dispatch(actions.setInOutlineMode(prevEntry.inOutlineMode));
+          }
+        }
+      } else {
+        process.stdout.write("\x07");
+      }
+    }
+
+    function handleNavForward() {
+      if (ui.navHistoryIndex < ui.navHistory.length - 1) {
+        const nextEntry = ui.navHistory[ui.navHistoryIndex + 1];
+        if (nextEntry) {
+          const newState = nextEntry.rootId ? buildBoardState(nextEntry.rootId) : initBoardState();
+          if (newState) {
+            newState.colIndex = nextEntry.colIndex;
+            newState.cardIndex = nextEntry.cardIndex;
+            setState(newState);
+            dispatch(actions.setNavHistoryIndex(ui.navHistoryIndex + 1));
+            dispatch(actions.setSubIndex(nextEntry.subIndex));
+            dispatch(actions.setMultiSelected(new Set(nextEntry.multiSelected)));
+            dispatch(actions.setSelectionAnchor(null));
+            dispatch(actions.setSelectAllLevel(0));
+            dispatch(actions.setInOutlineMode(nextEntry.inOutlineMode));
+          }
+        }
+      } else {
+        process.stdout.write("\x07");
+      }
+    }
+
+    function handleZoomIn() {
+      if (!card) return;
+      const targetId = card.node.link_to || card.node.id;
+      const targetNode = getNode(targetId);
+      if (!targetNode) return;
+
+      let rootId = targetId;
+      const parentNode = targetNode.parent_id ? getNode(targetNode.parent_id) : null;
+      const grandparentNode = parentNode?.parent_id ? getNode(parentNode.parent_id) : null;
+
+      if (grandparentNode) rootId = grandparentNode.id;
+      else if (parentNode) rootId = parentNode.id;
+
+      const zoomed = buildBoardState(rootId);
+      zoomed.zoomStack = [...state.zoomStack, state.rootId || ""];
+
+      // Find the target card in the zoomed view
+      let foundCol = 0, foundCard = 0;
+      for (let cIdx = 0; cIdx < zoomed.columns.length; cIdx++) {
+        const c = zoomed.columns[cIdx];
+        if (!c) continue;
+        for (let cardIdx = 0; cardIdx < c.cards.length; cardIdx++) {
+          if (c.cards[cardIdx]?.node.id === targetId) {
+            foundCol = cIdx;
+            foundCard = cardIdx;
+            break;
+          }
+        }
+      }
+      zoomed.colIndex = foundCol;
+      zoomed.cardIndex = foundCard;
+
+      pushNavHistoryEntry(dispatch, state.rootId, state.colIndex, state.cardIndex, ui.subIndex, ui.multiSelected, ui.inOutlineMode);
+      dispatch(actions.exitOutlineMode());
+      dispatch(actions.setSubIndex(0));
+      clearSelection(keyboardContext);
+      dispatch(actions.setDetailPane(false));
+      setState(zoomed);
+    }
+
+    function handleExtendSelectVertical(direction: "up" | "down") {
+      if (ui.inOutlineMode) {
+        if (!ui.selectionAnchor) {
+          dispatch(actions.setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: ui.subIndex }));
+        }
+        if (direction === "down") {
+          const maxSub = getMaxSubIndex(keyboardContext);
+          if (ui.subIndex < maxSub - 1) {
+            const newSubIndex = ui.subIndex + 1;
+            dispatch(actions.setSubIndex(newSubIndex));
+            updateSelectionRange(keyboardContext, state.colIndex, state.cardIndex, newSubIndex);
+          } else if (col && state.cardIndex < col.cards.length - 1) {
+            const newCardIndex = state.cardIndex + 1;
+            setState((s) => ({ ...s, cardIndex: newCardIndex }));
+            dispatch(actions.setSubIndex(0));
+            updateSelectionRange(keyboardContext, state.colIndex, newCardIndex, 0);
+          }
+        } else {
+          if (ui.subIndex > 0) {
+            const newSubIndex = ui.subIndex - 1;
+            dispatch(actions.setSubIndex(newSubIndex));
+            updateSelectionRange(keyboardContext, state.colIndex, state.cardIndex, newSubIndex);
+          } else if (state.cardIndex > 0) {
+            const newCardIndex = state.cardIndex - 1;
+            const prevCard = col?.cards[newCardIndex];
+            if (prevCard) {
+              const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
+              setState((s) => ({ ...s, cardIndex: newCardIndex }));
+              dispatch(actions.setSubIndex(maxSub - 1));
+              updateSelectionRange(keyboardContext, state.colIndex, newCardIndex, maxSub - 1);
+            }
+          }
+        }
+      } else {
+        if (!ui.selectionAnchor) {
+          dispatch(actions.setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: 0 }));
+          if (card) {
+            const maxItems = 1 + countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
+            const newSelected = new Set<SelectionKey>();
+            for (let s = 0; s < maxItems; s++) {
+              newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, s));
+            }
+            dispatch(actions.setMultiSelected(newSelected));
+          }
+        }
+        if (direction === "down" && col && state.cardIndex < col.cards.length - 1) {
+          const newCardIndex = state.cardIndex + 1;
+          setState((s) => ({ ...s, cardIndex: newCardIndex }));
+          updateSelectionRange(keyboardContext, state.colIndex, newCardIndex, 0);
+        } else if (direction === "up" && state.cardIndex > 0) {
+          const newCardIndex = state.cardIndex - 1;
+          setState((s) => ({ ...s, cardIndex: newCardIndex }));
+          updateSelectionRange(keyboardContext, state.colIndex, newCardIndex, 0);
+        }
+      }
+    }
+
+    function handleExtendSelectHorizontal(direction: "left" | "right") {
+      const targetColIndex = direction === "left" ? state.colIndex - 1 : state.colIndex + 1;
+      if (targetColIndex < 0 || targetColIndex >= state.columns.length) return;
+
+      if (!ui.selectionAnchor) {
+        dispatch(actions.setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: 0 }));
+      }
+      const targetCol = state.columns[targetColIndex];
+      setState((s) => ({
+        ...s,
+        colIndex: targetColIndex,
+        cardIndex: Math.min(s.cardIndex, Math.max(0, (targetCol?.cards.length || 1) - 1)),
+      }));
     }
   }
 
