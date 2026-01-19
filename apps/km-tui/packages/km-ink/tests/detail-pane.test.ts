@@ -260,7 +260,6 @@ describe.serial("DetailPane Component", () => {
     const taskId = createTestNode("task", "Review Q1 budget", null, {
       task_status: "todo",
       due_date: "2026-01-10",
-      priority: 2,
       assigned_to: "bjorn",
     });
     const task = getNode(taskId)!;
@@ -285,10 +284,6 @@ describe.serial("DetailPane Component", () => {
     // Check due date
     expect(output).toContain("Due:");
     expect(output).toContain("Jan");
-
-    // Check priority
-    expect(output).toContain("Priority:");
-    expect(output).toContain("P2");
 
     // Check assigned
     expect(output).toContain("Assigned:");

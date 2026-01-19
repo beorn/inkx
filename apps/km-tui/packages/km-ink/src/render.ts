@@ -253,7 +253,6 @@ ${chalk.yellow("Selection")}
 
 ${chalk.yellow("Actions")}
   x               Cycle status (todo → wip → blocked → done → ...)
-  1-5             Set priority
   Tab             Fold/unfold card outline
 
 ${chalk.yellow("Card Movement")}

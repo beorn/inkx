@@ -38,7 +38,6 @@ const shortcuts = [
       { key: "Shift+Tab", desc: "Outdent (make sibling of parent)" },
       { key: "p", desc: "Open project picker (move to project)" },
       { key: "Space", desc: "Cycle task status" },
-      { key: "1-5", desc: "Set priority (in detail pane)" },
       { key: "D", desc: "Delete card (links: remove from board only)" },
     ],
   },

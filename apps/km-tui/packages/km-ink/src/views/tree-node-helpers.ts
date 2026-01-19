@@ -181,7 +181,7 @@ export type GetBoardPillsFn = (
 ) => BoardPill[];
 
 /**
- * Build the info suffix for a node (priority, assignee, due date, board pills).
+ * Build the info suffix for a node (assignee, due date, board pills).
  * In compact mode, only shows board pill dots.
  *
  * @param getBoardPills - Optional callback to get board pills (defaults to storage lookup)
@@ -201,7 +201,6 @@ export function formatInfoSuffix(
   if (!isCompact) {
     const infoParts: string[] = [];
 
-    if (node.priority) infoParts.push(`P${node.priority}`);
     if (node.assigned_to) infoParts.push(`@${node.assigned_to}`);
 
     if (node.due_date) {

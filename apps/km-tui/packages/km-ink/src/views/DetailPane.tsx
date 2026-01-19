@@ -29,7 +29,6 @@ export function DetailPane({
   // Get fields
   const statusInfo = getStatusDisplay(node.task_status);
   const dueDate = formatDate(node.due_date);
-  const priority = getPriorityDisplay(node.priority);
   const assignedTo = node.assigned_to;
 
   // Get project path
@@ -152,20 +151,12 @@ export function DetailPane({
         )}
       </Box>
 
-      {(priority || assignedTo) && (
+      {assignedTo && (
         <Box paddingX={1} flexDirection="row" gap={2}>
-          {priority && (
-            <Text>
-              <Text dimColor>Priority: </Text>
-              <Text color="yellow">{priority}</Text>
-            </Text>
-          )}
-          {assignedTo && (
-            <Text>
-              <Text dimColor>Assigned: </Text>
-              <Text color="magenta">@{assignedTo}</Text>
-            </Text>
-          )}
+          <Text>
+            <Text dimColor>Assigned: </Text>
+            <Text color="magenta">@{assignedTo}</Text>
+          </Text>
         </Box>
       )}
 
@@ -277,7 +268,7 @@ export function DetailPane({
       {/* Keybindings hint */}
       <Box flexGrow={1} />
       <Box paddingX={1}>
-        <Text dimColor>h/Esc:close Space:status 1-5:priority</Text>
+        <Text dimColor>h/Esc:close Space:status</Text>
       </Box>
     </Box>
   );
@@ -340,11 +331,6 @@ const STATUS_DISPLAY: Record<string, { text: string; color: string }> = {
 
 function getStatusDisplay(status?: string): { text: string; color: string } {
   return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "blue" };
-}
-
-// Priority display
-function getPriorityDisplay(priority?: number): string {
-  return priority ? `P${priority}` : "";
 }
 
 // Checkbox marks for subtask display (markdown style)

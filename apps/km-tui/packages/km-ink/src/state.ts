@@ -474,15 +474,6 @@ export function handleKey(
       cycleStatus(state);
       return { state: newState, action: "refresh" };
 
-    // Priority 1-5
-    case "1":
-    case "2":
-    case "3":
-    case "4":
-    case "5":
-      setPriority(state, parseInt(key, 10));
-      return { state: newState, action: "refresh" };
-
     // Move card to prev/next column
     case "H":
       if (card && state.colIndex > 0) {
@@ -621,22 +612,6 @@ function cycleStatus(state: BoardState): void {
         task_status: nextStatus,
         task_mark: nextMark,
       },
-    });
-  }
-}
-
-/**
- * Set priority for selected cards
- */
-function setPriority(state: BoardState, priority: number): void {
-  const targets = getTargetCards(state);
-
-  for (const card of targets) {
-    emit({
-      type: "node_updated",
-      actor: "user",
-      target: card.node.id,
-      data: { priority },
     });
   }
 }

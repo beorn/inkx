@@ -522,22 +522,6 @@ describe.serial("Board Move - Multi-card Selection", () => {
     expect(node1?.task_status).toBe("wip");
     expect(node2?.task_status).toBe("wip");
   });
-
-  it("sets priority for multiple selected cards", () => {
-    const { rootId, card1Id, card2Id } = createStandardBoard();
-
-    const state = buildBoardState(rootId);
-    state.selectedCards.add(card1Id);
-    state.selectedCards.add(card2Id);
-
-    // Set priority 1
-    handleKey(state, "1");
-
-    const node1 = getNode(card1Id);
-    const node2 = getNode(card2Id);
-    expect(node1?.priority).toBe(1);
-    expect(node2?.priority).toBe(1);
-  });
 });
 
 describe.serial("Board Move - Edge Cases", () => {

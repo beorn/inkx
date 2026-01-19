@@ -127,6 +127,38 @@ bun run test:fast    # Run this frequently - 4 second feedback loop
 5. `bun run test:all` passes (final check before commit)
 6. Commit
 
+### 7. New Package Checklist (MUST FOLLOW)
+
+When creating a new package under `packages/`:
+
+**Before Merging:**
+
+1. **Tests exist** - At minimum, test public API functions. No package ships with 0 tests.
+2. **Exports are minimal** - Only export what consumers need. Don't export internal helpers.
+3. **No duplicate utilities** - Check if `fuzzyMatch`, `formatDate`, etc. already exist in `@km/core`.
+4. **Types match docs** - If you write documentation with interfaces, verify impl matches exactly.
+5. **No TODO comments in production paths** - `// TODO: wire this up` means it's not done.
+
+**Quality Bar:**
+
+- Every public function has at least one test
+- Type definitions in docs match actual types (run `tsc` to verify)
+- No hardcoded placeholder values (e.g., `inMoveMode: false // TODO`)
+
+### 8. Documentation Hygiene
+
+**Write docs AFTER implementation, not before:**
+
+- Speculative documentation drifts from reality
+- Write docs by reading the actual code, not from memory
+- If you update an interface, grep for doc references and update them
+
+**When docs exist:**
+
+- Before modifying a type, check if it's documented (grep for type name in `docs/`)
+- After modifying, update docs in the SAME commit
+- If docs and code disagree, code is truth - update docs to match
+
 **For detailed testing guidance**, see [docs/dev/testing.md](docs/dev/testing.md):
 
 - Which test type to use for each layer
@@ -260,33 +292,58 @@ See `.claude/skills/visual-test.md` for full documentation.
 
 ### Visual Bug Fixing Process (MANDATORY)
 
-**CRITICAL: Do NOT close visual bugs without completing ALL steps below.**
+**CRITICAL: You CANNOT fix what you cannot see. Do NOT attempt fixes without reproduction.**
 
-Visual bugs have been incorrectly marked as fixed multiple times. Follow this strict process:
+Visual bugs have been incorrectly marked as fixed multiple times. This process is BLOCKING - you cannot proceed without completing each step.
 
-#### 1. Reproduce the Bug First
+#### Step 0: STOP if You Cannot Reproduce
+
+**If you cannot visually reproduce the bug, you MUST:**
+
+1. Ask the user for help reproducing it
+2. Request specific test data, vault paths, or steps
+3. DO NOT guess at fixes or make changes based on code reading alone
+4. DO NOT proceed until you have a BEFORE screenshot showing the actual bug
+
+**Why this matters:** Code changes that "should fix" a bug often don't. Without visual confirmation, you're just guessing.
+
+#### 1. Reproduce the Bug First (BLOCKING)
+
 ```bash
 # Create/use test data that EXERCISES the specific bug
 # For layout bugs: need data that overflows, has multi-line items, etc.
 # CAPTURE BEFORE screenshot showing the bug exists
 ```
 
+**You MUST see the bug with your own eyes (via screenshot) before proceeding.**
+
+If your test data doesn't trigger the bug:
+
+- Ask the user what conditions trigger it
+- Request their vault or specific test data
+- DO NOT PROCEED until reproduction succeeds
+
 #### 2. Create Proper Test Data
+
 For TUI layout bugs, test data MUST include:
+
 - **Vertical overflow**: Enough items to exceed screen height
 - **Multi-line items**: Long text that wraps, items with children
 - **Edge cases**: Empty columns, very long text, nested structures
 
 Example multi-line test data:
+
 ```markdown
 ## Processing
+
 - [ ] Task with a very long description that will definitely wrap to multiple lines in any reasonable terminal width
   - Subtask that adds more lines
   - Another subtask for good measure
 - [ ] Second task also with long content to ensure wrapping behavior is tested properly
 ```
 
-#### 3. Capture BEFORE Screenshot
+#### 3. Capture BEFORE Screenshot (BLOCKING)
+
 ```bash
 # MUST capture and view screenshot BEFORE attempting fix
 ttyd -W -p 7681 bun km view -r /tmp/test-repo @test-board.md &
@@ -296,9 +353,14 @@ bun x playwright screenshot http://localhost:7681 /tmp/bug-BEFORE.png
 # READ the screenshot to verify bug is visible
 ```
 
+**If the bug is NOT visible in your BEFORE screenshot, STOP and ask for help.**
+
 #### 4. Implement Fix
 
+Only after you have visual proof of the bug.
+
 #### 5. Capture AFTER Screenshot
+
 ```bash
 # MUST capture and view screenshot AFTER fix
 bun x playwright screenshot http://localhost:7681 /tmp/bug-AFTER.png
@@ -306,14 +368,18 @@ bun x playwright screenshot http://localhost:7681 /tmp/bug-AFTER.png
 ```
 
 #### 6. Verify Fix is Real
+
 - Compare BEFORE and AFTER screenshots
 - Bug must be visibly fixed in AFTER screenshot
 - If uncertain, DO NOT close the bug
 
 #### 7. Request User Confirmation
+
 For recurring bugs (reported multiple times):
+
 - Do NOT close until user explicitly confirms fix
 - Show user the AFTER screenshot
 - Wait for user approval before closing bead
 
 **NEVER assume a visual bug is fixed without visual verification.**
+**NEVER attempt to fix a bug you cannot reproduce.**

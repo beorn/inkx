@@ -1460,17 +1460,5 @@ export function handleDetailPaneInput(
     return true;
   }
 
-  // Priority setting in detail pane (1-5)
-  if (["1", "2", "3", "4", "5"].includes(input)) {
-    const card =
-      ctx.state.columns[ctx.state.colIndex]?.cards[ctx.state.cardIndex];
-    if (card) {
-      const targetId = card.node.link_to || card.node.id;
-      updateNode(targetId, { priority: parseInt(input, 10) });
-      refreshBoardState(ctx);
-    }
-    return true;
-  }
-
   return false;
 }
