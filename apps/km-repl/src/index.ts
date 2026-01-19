@@ -48,6 +48,17 @@ export {
 // Plain text utilities (for OpenTUI - no ANSI codes)
 export { renderPlain, displayLength } from "./text.ts";
 
+// Command Adapter (unified @km/commands integration)
+export {
+  initShellCommands,
+  getRegisteredCommandIds,
+  getCommandInfo,
+  buildShellContext,
+  tryExecuteRegisteredCommand,
+  isRegisteredCommand,
+  getCommandsByCategory as getUnifiedCommandsByCategory,
+} from "./command-adapter.ts";
+
 // Re-export board state types from @km/board for convenience
 export type {
   BoardState,

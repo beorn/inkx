@@ -51,6 +51,7 @@
       "name": "@km/repl",
       "dependencies": {
         "@km/board": "workspace:*",
+        "@km/commands": "workspace:*",
       },
     },
     "apps/km-tui": {
