@@ -1,0 +1,275 @@
+# InkZ Migration Guide
+
+## Overview
+
+This guide helps you migrate from Ink to InkZ. Most apps require only an import change, but there are behavioral differences to be aware of.
+
+---
+
+## Quick Start
+
+### Step 1: Install InkZ
+
+```bash
+# Replace ink with inkz
+bun remove ink ink-testing-library
+bun add inkz inkz-testing-library
+```
+
+### Step 2: Update Imports
+
+```diff
+- import { Box, Text, render, useInput, useApp } from 'ink';
++ import { Box, Text, render, useInput, useApp } from 'inkz';
+
+- import { render } from 'ink-testing-library';
++ import { render } from 'inkz-testing-library';
+```
+
+### Step 3: Run Tests
+
+```bash
+bun test
+```
+
+Most apps should work at this point. Read on for known differences.
+
+---
+
+## What Works Identically
+
+These APIs are 100% compatible:
+
+| Category       | APIs                                                                     |
+| -------------- | ------------------------------------------------------------------------ |
+| **Components** | `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, `<Static>`                   |
+| **Hooks**      | `useInput()`, `useApp()`, `useStdout()`, `useStdin()`                    |
+| **Render**     | `render()`, `render(element, options)`                                   |
+| **Styling**    | All Chalk styles work unchanged                                          |
+| **Flexbox**    | All flexbox props (direction, justify, align, wrap, grow, shrink, basis) |
+| **Borders**    | All border styles (single, double, round, bold, etc.)                    |
+
+---
+
+## What's Different
+
+### 1. Components Know Their Size (The Big Win)
+
+**Ink**: Components don't know their computed dimensions.
+
+```typescript
+// Ink: Must manually thread width
+function Card({ width }: { width: number }) {
+  return <Text>{truncate(title, width)}</Text>;
+}
+
+// Parent must pass width down
+<Card width={availableWidth - padding * 2} />
+```
+
+**InkZ**: Components can ask for their size.
+
+```typescript
+// InkZ: Components know their size
+function Card() {
+  const { width } = useLayout();
+  return <Text>{truncate(title, width)}</Text>;
+}
+
+// No prop threading needed
+<Card />
+```
+
+### 2. Text Auto-Truncates by Default
+
+**Ink**: Text overflows its container.
+
+```typescript
+// Ink: Text overflows, breaks layout
+<Box width={10}>
+  <Text>This is a very long text that overflows</Text>
+</Box>
+// Output: "This is a very long text that overflows" (broken layout)
+```
+
+**InkZ**: Text truncates to fit.
+
+```typescript
+// InkZ: Text truncates automatically
+<Box width={10}>
+  <Text>This is a very long text that overflows</Text>
+</Box>
+// Output: "This is a…"
+
+// Opt out with wrap={false}
+<Box width={10}>
+  <Text wrap={false}>This overflows intentionally</Text>
+</Box>
+```
+
+**Migration**: If you rely on overflow behavior, add `wrap={false}`.
+
+### 3. First Render May Show Zeros
+
+**Ink**: Components render once with final output.
+
+**InkZ**: Components using `useLayout()` render twice:
+
+1. First render: dimensions are `{ width: 0, height: 0 }`
+2. Second render: dimensions are correct
+
+```typescript
+function Header() {
+  const { width } = useLayout();
+  // First render: width=0, renders ""
+  // Second render: width=80, renders "=" × 80
+  return <Text>{'='.repeat(width)}</Text>;
+}
+```
+
+**Migration**: This is usually invisible (both renders happen before first paint). But if you have logic that breaks on `width=0`, add a guard:
+
+```typescript
+function Header() {
+  const { width } = useLayout();
+  if (width === 0) return null; // Or <Text>Loading...</Text>
+  return <Text>{'='.repeat(width)}</Text>;
+}
+```
+
+### 4. measureElement() Still Works But useLayout() Is Better
+
+**Ink**: Use `measureElement()` to get dimensions after render.
+
+```typescript
+// Ink: Measure after render
+const ref = useRef();
+const { width } = measureElement(ref.current);
+// Need to manually trigger re-render if you want to use width
+```
+
+**InkZ**: `measureElement()` works for compatibility, but `useLayout()` is simpler.
+
+```typescript
+// InkZ: Just use the hook
+const { width } = useLayout();
+// Automatically re-renders with correct dimensions
+```
+
+**Migration**: Replace `measureElement()` + manual re-render with `useLayout()`.
+
+---
+
+## Known Incompatibilities
+
+### Won't Fix
+
+These behaviors differ by design:
+
+| Behavior                | Ink       | InkZ      | Reason                       |
+| ----------------------- | --------- | --------- | ---------------------------- |
+| Text overflow           | Overflows | Truncates | Better default for TUIs      |
+| First render dimensions | N/A       | Zeros     | Required for layout feedback |
+| Internal APIs           | Exposed   | Hidden    | Not part of public API       |
+
+### Edge Cases
+
+These might cause issues in rare cases:
+
+| Issue                   | Symptoms                | Workaround                                 |
+| ----------------------- | ----------------------- | ------------------------------------------ |
+| Rapid re-renders        | Flicker on fast updates | InkZ coalesces frames; usually not visible |
+| Very deep nesting       | Slower layout           | Flatten component tree if possible         |
+| Custom reconciler usage | Breaks                  | Not supported; use standard components     |
+
+---
+
+## Codemod (Planned)
+
+A codemod will be available to automate common migrations:
+
+```bash
+# Future: Auto-migrate
+npx inkz-codemod ./src
+
+# What it does:
+# 1. Updates imports from 'ink' to 'inkz'
+# 2. Replaces measureElement() with useLayout()
+# 3. Adds wrap={false} where overflow was intentional
+# 4. Warns about potential issues
+```
+
+---
+
+## Testing Your Migration
+
+### 1. Visual Regression
+
+Compare output before and after:
+
+```bash
+# Before migration
+bun run your-app > before.txt
+
+# After migration
+bun run your-app > after.txt
+
+# Diff
+diff before.txt after.txt
+```
+
+### 2. Run Ink's Test Suite
+
+If you have tests using ink-testing-library:
+
+```typescript
+// They should still pass
+import { render } from 'inkz-testing-library';
+
+test('my component', () => {
+  const { lastFrame } = render(<MyComponent />);
+  expect(lastFrame()).toMatchSnapshot();
+});
+```
+
+### 3. Check for useLayout() Opportunities
+
+Search for manual width/height props:
+
+```bash
+# Find candidates for useLayout()
+grep -r "width={" src/
+grep -r "height={" src/
+```
+
+---
+
+## FAQ
+
+### Q: Can I use Ink and InkZ in the same project?
+
+**A**: No. They both try to control the terminal. Pick one.
+
+### Q: Will InkZ track Ink's updates?
+
+**A**: InkZ targets Ink 4.x API. We'll add new Ink features if they're useful, but we're not a fork—we're a compatible reimplementation.
+
+### Q: What about ink-\* community packages?
+
+**A**: Most should work unchanged. If they use Ink internals, they may need updates. File an issue if you find incompatibilities.
+
+### Q: Is InkZ faster than Ink?
+
+**A**: Similar performance for most apps. InkZ may be slightly slower on first render (two-phase), but faster on updates (smarter diffing). Benchmark your specific app.
+
+### Q: Can I contribute to InkZ?
+
+**A**: Yes! See [km-inkz.7-internals.md](.beads/km-inkz.7-internals.md) for architecture details.
+
+---
+
+## Getting Help
+
+- **GitHub Issues**: Report bugs or request features
+- **Migration Problems**: Tag issue with `migration`
+- **Performance Issues**: Include benchmark data

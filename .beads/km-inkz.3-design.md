@@ -146,6 +146,7 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 ### Key Insight: Deferred Content Rendering
 
 Unlike Ink (which renders content during React reconciliation), InkZ separates:
+
 - **Structure** (React reconciliation) - builds the layout tree
 - **Content** (Phase 3) - renders text/graphics with known dimensions
 
@@ -267,6 +268,7 @@ function Header() {
 ```
 
 This is the key difference from Ink's `measureElement()`:
+
 - Ink: You call `measureElement()`, get dimensions, manually trigger re-render
 - InkZ: `useLayout()` automatically re-renders when dimensions are ready
 
@@ -478,8 +480,8 @@ function textToCells(text: string): Cell[] {
 
 ```typescript
 interface InkZNode {
-  layoutDirty: boolean;   // Structure changed, needs re-layout
-  contentDirty: boolean;  // Content changed, layout unchanged
+  layoutDirty: boolean; // Structure changed, needs re-layout
+  contentDirty: boolean; // Content changed, layout unchanged
 }
 
 // On state change:
@@ -533,9 +535,71 @@ function updateYogaNode(node: InkZNode, prevProps: Props, nextProps: Props) {
 - [ ] Set up visual snapshot infrastructure
 - [ ] Set up performance benchmark suite (mitata)
 - [ ] Create compatibility tracking dashboard
+- [ ] Triage Ink tests into Tier 1/2/3/4 (see testing doc)
 
 **Entry criteria**: Can run Ink's tests (all failing is expected)
-**Exit criteria**: Test infrastructure runs, compatibility status visible
+**Exit criteria**: Test infrastructure runs, compatibility status visible, triage complete
+
+### Week 1 Demo (Milestone)
+
+**Goal**: A developer can run this and see InkZ working:
+
+```bash
+# Clone the demo
+git clone https://github.com/example/inkz-demo
+cd inkz-demo
+bun install
+bun run dev
+
+# See a TUI that:
+# 1. Uses <Box> and <Text> (basic layout works)
+# 2. Uses useLayout() to get dimensions
+# 3. Shows text that auto-truncates
+```
+
+**Demo app code**:
+
+```typescript
+// demo/index.tsx
+import { render, Box, Text, useLayout } from 'inkz';
+
+function App() {
+  return (
+    <Box flexDirection="column" borderStyle="single" padding={1}>
+      <Header />
+      <Content />
+    </Box>
+  );
+}
+
+function Header() {
+  const { width } = useLayout();
+  return (
+    <Box>
+      <Text color="cyan" bold>InkZ Demo</Text>
+      <Text dimColor> - Width: {width}px</Text>
+    </Box>
+  );
+}
+
+function Content() {
+  const { width, height } = useLayout();
+  return (
+    <Box flexDirection="column">
+      <Text>This box is {width}×{height}</Text>
+      <Text>This very long text will automatically truncate when it exceeds the available width...</Text>
+    </Box>
+  );
+}
+
+render(<App />);
+```
+
+**Success criteria**:
+
+- `useLayout()` returns correct dimensions (not zeros after first render)
+- Text truncates without manual width threading
+- Works in at least 3 terminals (iTerm, VS Code, xterm)
 
 ### Phase 1: Foundation (1 week)
 
@@ -558,9 +622,11 @@ function updateYogaNode(node: InkZNode, prevProps: Props, nextProps: Props) {
 
 - [ ] Remaining Ink components (`<Spacer>`, `<Newline>`, `<Static>`)
 - [ ] `useInput()` hook
-- [ ] Full Ink test suite passing (80%+ of 31 files)
+- [ ] Full Ink test suite passing (80%+ of Tier 1+2 = 144 tests)
 - [ ] Chalk integration tests (100% of 6 files)
-- [ ] **Target**: Compatibility dashboard shows 80%+
+- [ ] Write migration guide (see [km-inkz.6-migration.md](.beads/km-inkz.6-migration.md))
+- [ ] Document known incompatibilities
+- [ ] **Target**: Compatibility dashboard shows 80%+ of Tier 1+2
 
 ### Phase 4: Polish (1 week)
 
@@ -655,18 +721,18 @@ Explicit expectations for what works and what doesn't:
 
 ## 10. Risk Analysis
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Yoga doesn't expose what we need | Low | High | Yoga API is sufficient; verified in research |
-| React reconciler complexity | Medium | Medium | Start with Ink's reconciler as reference |
-| Performance regression from multi-phase | Medium | Medium | Benchmark early; layout is fast, render is the slow part |
-| Two-phase render causes visual flicker | Medium | High | First render shows zeros gracefully; add loading states |
-| Edge cases in Ink compatibility | High | Low | Comprehensive test suite; accept minor documented differences |
-| Scope creep (images, mouse, etc.) | High | Medium | Strict phase gates; v1 = layout feedback only |
-| Yoga WASM bundle too large | Low | Medium | yoga-wasm-web is ~200KB; can lazy-load if needed |
-| React 19 breaks reconciler | Medium | High | Pin to React 18; add React version integration tests |
-| Memory leaks from callbacks | Medium | Medium | Use WeakMap; test with long-running apps |
-| Unicode edge cases | High | Low | Use graphemer; comprehensive Unicode test fixtures |
+| Risk                                    | Likelihood | Impact | Mitigation                                                    |
+| --------------------------------------- | ---------- | ------ | ------------------------------------------------------------- |
+| Yoga doesn't expose what we need        | Low        | High   | Yoga API is sufficient; verified in research                  |
+| React reconciler complexity             | Medium     | Medium | Start with Ink's reconciler as reference                      |
+| Performance regression from multi-phase | Medium     | Medium | Benchmark early; layout is fast, render is the slow part      |
+| Two-phase render causes visual flicker  | Medium     | High   | First render shows zeros gracefully; add loading states       |
+| Edge cases in Ink compatibility         | High       | Low    | Comprehensive test suite; accept minor documented differences |
+| Scope creep (images, mouse, etc.)       | High       | Medium | Strict phase gates; v1 = layout feedback only                 |
+| Yoga WASM bundle too large              | Low        | Medium | yoga-wasm-web is ~200KB; can lazy-load if needed              |
+| React 19 breaks reconciler              | Medium     | High   | Pin to React 18; add React version integration tests          |
+| Memory leaks from callbacks             | Medium     | Medium | Use WeakMap; test with long-running apps                      |
+| Unicode edge cases                      | High       | Low    | Use graphemer; comprehensive Unicode test fixtures            |
 
 ---
 

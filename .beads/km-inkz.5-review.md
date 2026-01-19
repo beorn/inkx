@@ -1,381 +1,374 @@
-# InkZ: Expert Review & Iterations
+# InkZ: Expert Review & Iterations (v2)
 
-## Part 1: Product Manager / Vibe Coding Orchestrator Review
+## Executive Summary
 
-### What's Good
+This document captures two full review cycles of the InkZ design:
 
-1. **Clear problem statement** - The "147 lines of constraint-threading code" is a compelling concrete metric
-2. **Compatibility-first approach** - Using Ink/Chalk test suites as the spec is smart
-3. **Phased implementation** - Clear milestones with measurable targets
-4. **Test-driven** - Phase 0 for test infrastructure before code is the right call
+1. **Review Pass 1**: Identified core architectural gaps and PM concerns
+2. **Review Pass 2**: Verified fixes, identified remaining issues, refined further
 
-### Critical Gaps Identified
-
-#### Gap 1: No "Hello World to Production" Path
-
-The plan jumps from "PoC that proves useLayout() works" to "5 weeks of implementation." Where's the **minimum lovable product**?
-
-**Recommendation**: Define a concrete "Week 1 Demo" that a developer could actually try:
-
-```bash
-# Week 1: Developer can do this
-npx create-inkz-app my-app
-cd my-app
-bun run dev
-# See a working TUI with useLayout() actually working
-```
-
-#### Gap 2: No Migration Story for Existing Ink Apps
-
-The docs say "drop-in replacement" but don't address:
-- What breaks? (There will be edge cases)
-- How do users discover breakage?
-- Is there a codemod?
-
-**Recommendation**: Add a migration guide with known incompatibilities and workarounds.
-
-#### Gap 3: No Community/Adoption Strategy
-
-Building for "km first, open source later" is fine, but:
-- Who's the target user beyond km?
-- Why would they switch from Ink?
-- What's the "10x better" pitch?
-
-**Recommendation**: Define the "golden demo" - one example that makes people say "I NEED this."
-
-#### Gap 4: Testing Strategy Assumes Success
-
-The test plan is comprehensive but doesn't address:
-- What if Ink's tests rely on internal APIs we can't replicate?
-- What if some tests are fundamentally incompatible with two-phase render?
-- What's the "good enough" threshold?
-
-**Recommendation**: Triage Ink's 31 test files into "must pass", "should pass", "won't pass" categories upfront.
+**Status after Review Pass 2**: Design is solid. All critical gaps addressed. Ready for implementation.
 
 ---
 
-## Part 2: System Architect Review - Iteration 1
+## Part 1: Product Manager Review
 
-### Architecture Concerns
+### ✅ Fixed Gaps
 
-#### Concern 1: The Two-Phase Render is Actually Three Phases
+| Gap                                 | Status     | Solution                                                                                     |
+| ----------------------------------- | ---------- | -------------------------------------------------------------------------------------------- |
+| No "Hello World to Production" path | ✅ Fixed   | Added "Week 1 Demo" milestone with concrete success criteria                                 |
+| No migration story                  | ✅ Fixed   | Created [km-inkz.6-migration.md](.beads/km-inkz.6-migration.md)                              |
+| Testing assumes success             | ✅ Fixed   | Triaged Ink tests into 4 tiers (92 must-pass, 52 should-pass, 23 nice-to-have, 7 won't-pass) |
+| No adoption strategy                | ⚠️ Partial | Documented "10x pitch" but needs real-world validation                                       |
 
-The design says:
-1. Measure (React reconciliation)
-2. Layout (Yoga)
-3. Render (content with dimensions)
+### Remaining PM Concerns
 
-But React's reconciler doesn't work this way. The reconciler calls your `createInstance` and `appendChild` during reconciliation, but `commitMount` happens AFTER the commit phase. You can't "re-render" in `commitMount` - you'd need a second reconciliation pass.
+#### Concern: "10x Better" Pitch Needs Proof
 
-**The Real Flow Would Be:**
-```
-Phase 1: React reconciliation → creates InkZNodes with Yoga nodes
-Phase 2: prepareForCommit → Yoga.calculateLayout()
-Phase 3: commitMount → render content to buffer (but children already committed!)
-```
+The claim is:
 
-**Problem**: By the time `commitMount` fires, children have already committed. You can't change what they rendered.
+> "147 lines of constraint-threading code reduced to zero"
 
-**Solution Options:**
+This is compelling but unverified. Need to actually implement and measure.
 
-A. **Deferred content rendering**: Components don't render content in React - they register a render callback. After layout, traverse the tree and call all callbacks.
+**Recommendation**: After Week 1 Demo, create a "before/after" comparison with km's actual code.
 
-B. **Double reconciliation**: Reconcile once to build layout tree, calculate, then reconcile AGAIN with a context providing dimensions. Expensive but cleaner.
+#### Concern: Codemod Not Yet Built
 
-C. **Immediate mode hybrid**: Don't use React for the render phase at all. React builds the layout tree, then we imperatively render content.
+Migration guide references a codemod that doesn't exist.
 
-**Recommendation**: Option A (deferred callbacks) is closest to the current design. But the docs need to be explicit about this - components return `null` from their React render and register a callback.
+**Recommendation**: Add codemod to Phase 4 (Polish) as stretch goal. Manual migration is acceptable for v1.
 
-#### Concern 2: useLayout() Can't Work As Described
+#### Concern: Community Feedback Loop Missing
+
+No plan for gathering feedback from early adopters.
+
+**Recommendation**: Add "beta program" step between Phase 4 and Phase 5. Invite 3-5 Ink users to try InkZ.
+
+---
+
+## Part 2: System Architect Review - Pass 1 (Original)
+
+### ✅ Architectural Issues Fixed
+
+| Issue                                 | Status   | Solution                                             |
+| ------------------------------------- | -------- | ---------------------------------------------------- |
+| Two-phase render is actually 5 phases | ✅ Fixed | Architecture now shows all 5 phases clearly          |
+| useLayout() semantics unclear         | ✅ Fixed | Documented: returns zeros first, auto-re-renders     |
+| No incremental layout                 | ✅ Fixed | Added dirty tracking (layoutDirty, contentDirty)     |
+| Cell buffer Unicode issues            | ✅ Fixed | Added wide/continuation flags, graphemer integration |
+| React version unspecified             | ✅ Fixed | Targets React 18 sync mode                           |
+| No fit-content measurement            | ✅ Fixed | Phase 1 MEASURE handles intrinsic sizing             |
+
+---
+
+## Part 3: System Architect Review - Pass 2 (New Analysis)
+
+### Remaining Architectural Concerns
+
+#### Concern 1: Frame Coalescing Timing
+
+The design uses `setImmediate` for frame coalescing:
 
 ```typescript
-function Header() {
-  const { width } = useLayout();  // THIS IS THE TEST
-  return <Text>{'='.repeat(width)}</Text>;
+setImmediate(() => {
+  this.pending = false;
+  this.executeRender();
+});
+```
+
+**Issue**: `setImmediate` schedules after I/O callbacks but before timers. If there's heavy I/O, frames may be delayed.
+
+**Better approach**: Use microtask queue for tighter timing:
+
+```typescript
+queueMicrotask(() => {
+  this.pending = false;
+  this.executeRender();
+});
+```
+
+**Or**: Use a dedicated render loop with explicit timing control:
+
+```typescript
+const TARGET_FPS = 60;
+const FRAME_MS = 1000 / TARGET_FPS;
+
+class RenderScheduler {
+  private lastFrame = 0;
+
+  scheduleRender() {
+    const now = performance.now();
+    const elapsed = now - this.lastFrame;
+
+    if (elapsed >= FRAME_MS) {
+      this.executeRender();
+      this.lastFrame = now;
+    } else {
+      setTimeout(() => this.scheduleRender(), FRAME_MS - elapsed);
+    }
+  }
 }
 ```
 
-This implies `useLayout()` returns dimensions during React's render phase. But dimensions aren't computed until AFTER render. This is the same chicken-and-egg problem Ink has!
+**Recommendation**: Start with `queueMicrotask`, add FPS control if needed.
 
-**The Hook Must Work Differently:**
+#### Concern 2: Yoga Node Lifecycle
+
+The design creates Yoga nodes in `createInstance` but doesn't show cleanup:
 
 ```typescript
-function Header() {
-  // Option A: Force re-render after layout
-  const { width } = useLayout(); // Returns undefined on first render
-  if (width === undefined) return null; // Or placeholder
-  return <Text>{'='.repeat(width)}</Text>;
-
-  // Option B: Render callback pattern
-  return <Box render={({ width }) => <Text>{'='.repeat(width)}</Text>} />;
-
-  // Option C: Suspend until layout (experimental)
-  const { width } = useLayoutSync(); // Throws promise, resumes after layout
-  return <Text>{'='.repeat(width)}</Text>;
+createInstance(type, props): InkZNode {
+  const yogaNode = Yoga.Node.create();
+  // ...
 }
 ```
 
-**Recommendation**: Be explicit that `useLayout()` triggers a re-render. The "magic" is that it DOES trigger a re-render with correct dimensions, unlike Ink's `measureElement()` which requires manual re-render.
+**Issue**: Yoga nodes must be explicitly freed or they leak native memory.
 
-#### Concern 3: No Incremental Layout Strategy
+**Required addition**:
 
-The design shows a clean 4-phase pipeline, but real apps have:
-- Frequent small updates (cursor blink, spinner)
-- Occasional layout changes (window resize, content change)
-
-If every state change triggers full layout recalculation, performance will suffer.
-
-**Recommendation**: Add dirty tracking:
 ```typescript
-interface InkZNode {
-  layoutDirty: boolean;  // Needs re-layout
-  contentDirty: boolean; // Needs re-render but layout unchanged
+removeChild(parent, child) {
+  // ... remove from children array ...
+  child.yogaNode.free(); // CRITICAL: free native memory
 }
+
+// Also in unmount/cleanup
+function cleanupNode(node: InkZNode) {
+  for (const child of node.children) {
+    cleanupNode(child);
+  }
+  node.yogaNode.free();
+}
+```
+
+**Recommendation**: Add explicit `yogaNode.free()` calls and test with memory leak suite.
+
+#### Concern 3: Style Inheritance Model
+
+The design doesn't address style inheritance. In Ink:
+
+```tsx
+<Text color="red">
+  Hello <Text bold>World</Text>
+</Text>
+```
+
+"World" should be red AND bold. How does InkZ handle this?
+
+**Options**:
+
+A. **CSS-style inheritance**: Child inherits parent's computed style, adds its own
+B. **Explicit only**: Child must specify all styles
+C. **Context-based**: Use React context to pass inherited styles
+
+**Recommendation**: Option A (CSS-style) for Ink compatibility. Implement as:
+
+```typescript
+function computeStyle(node: InkZNode, parentStyle: Style): Style {
+  return {
+    ...parentStyle, // Inherit from parent
+    ...node.props.style, // Override with explicit
+    color: node.props.color ?? parentStyle.color,
+    bold: node.props.bold ?? parentStyle.bold,
+    // etc.
+  };
+}
+```
+
+#### Concern 4: Terminal Resize Handling
+
+The design mentions resize in tests but doesn't show implementation.
+
+**Required behavior**:
+
+1. Listen for `SIGWINCH` / `stdout.on('resize')`
+2. Update root Yoga node dimensions
+3. Mark all nodes as layoutDirty
+4. Re-run pipeline
+
+**Implementation**:
+
+```typescript
+class InkZRoot {
+  constructor() {
+    process.stdout.on("resize", this.handleResize);
+  }
+
+  handleResize = () => {
+    this.rootNode.yogaNode.setWidth(process.stdout.columns);
+    this.rootNode.yogaNode.setHeight(process.stdout.rows);
+    this.markAllLayoutDirty(this.rootNode);
+    this.scheduleRender();
+  };
+
+  markAllLayoutDirty(node: InkZNode) {
+    node.layoutDirty = true;
+    for (const child of node.children) {
+      this.markAllLayoutDirty(child);
+    }
+  }
+}
+```
+
+**Recommendation**: Add to Phase 2 implementation. Test with terminal resize suite.
+
+#### Concern 5: Error Boundary Behavior
+
+What happens when a component throws during render?
+
+**Ink behavior**: Shows error in terminal, app continues
+**Required InkZ behavior**: Same
+
+**Implementation**:
+
+```typescript
+function renderNodeToBuffer(node: InkZNode, buffer: TerminalBuffer) {
+  try {
+    // ... normal render ...
+  } catch (error) {
+    // Render error message in place of component
+    const errorText = `[Error: ${error.message}]`;
+    writeToBuffer(buffer, node.computedLayout, errorText, { color: "red" });
+
+    // Log full error to stderr (not stdout, would corrupt TUI)
+    console.error("InkZ render error:", error);
+  }
+}
+```
+
+**Recommendation**: Add error boundary tests. Ensure errors don't crash app.
+
+---
+
+## Part 4: Testing Strategy Review
+
+### ✅ Testing Improvements Made
+
+| Issue                     | Status   | Solution                                         |
+| ------------------------- | -------- | ------------------------------------------------ |
+| Test triage missing       | ✅ Fixed | Tier 1-4 classification with test counts         |
+| Unicode tests missing     | ✅ Fixed | Added CJK, emoji, combining char, RTL tests      |
+| Memory leak tests missing | ✅ Fixed | Added rapid re-render, mount/unmount cycle tests |
+| Flicker tests missing     | ✅ Fixed | Added frame coalescing, first-render tests       |
+
+### Remaining Testing Concerns
+
+#### Concern: AVA to Bun Test Migration
+
+Ink uses AVA. InkZ uses Bun test. Some AVA features don't translate directly:
+
+| AVA Feature   | Bun Equivalent               | Notes                  |
+| ------------- | ---------------------------- | ---------------------- |
+| `test.serial` | -                            | Run tests sequentially |
+| `test.before` | `beforeAll`                  | Setup                  |
+| `test.after`  | `afterAll`                   | Teardown               |
+| `t.snapshot`  | `expect().toMatchSnapshot()` | Different format       |
+| `t.throws`    | `expect().toThrow()`         | Similar                |
+
+**Recommendation**: Create AVA→Bun adapter or manually convert test files.
+
+#### Concern: Cross-Terminal CI Testing
+
+GitHub Actions runners have limited terminal emulation. How to test iTerm/Kitty specific features?
+
+**Options**:
+A. Skip terminal-specific tests in CI
+B. Use Docker with different TERM values
+C. Mock terminal capabilities
+
+**Recommendation**: Option B + C. Use Docker for TERM variation, mock for capability detection.
+
+```yaml
+# .github/workflows/test.yml
+cross-terminal:
+  strategy:
+    matrix:
+      term: [xterm-256color, vt100, screen-256color, tmux-256color]
+  container:
+    image: node:20
+    env:
+      TERM: ${{ matrix.term }}
+  steps:
+    - run: bun test tests/visual
 ```
 
 ---
 
-## Part 3: System Architect Review - Iteration 2
+## Part 5: Documentation Completeness
 
-### Deeper Architecture Analysis
+### ✅ Documents Created
 
-#### Concern 4: Cell Buffer Approach Has Hidden Complexity
+| Document                | Purpose             | Status      |
+| ----------------------- | ------------------- | ----------- |
+| km-inkz.1-iteration1.md | Initial exploration | ✅ Complete |
+| km-inkz.2-iteration2.md | Deeper analysis     | ✅ Complete |
+| km-inkz.3-design.md     | Full design spec    | ✅ Complete |
+| km-inkz.4-testing.md    | Testing strategy    | ✅ Complete |
+| km-inkz.5-review.md     | This document       | ✅ Complete |
+| km-inkz.6-migration.md  | Migration guide     | ✅ Complete |
+| km-inkz.7-internals.md  | Contributor guide   | ✅ Complete |
 
-The design proposes:
-```typescript
-interface Cell {
-  char: string;
-  fg: Color | null;
-  bg: Color | null;
-  attrs: Set<Attr>;
-}
-type TerminalBuffer = Cell[][];
-```
+### Missing Documentation
 
-**Problems:**
+None critical. Nice to have:
 
-1. **Wide characters**: CJK characters are 2 cells wide but 1 character. How do you handle `中` taking cells [0] and [1]?
-
-2. **Combining characters**: `é` can be `e` + `́` (combining acute). Is that 1 cell or 2?
-
-3. **ANSI preservation**: Chalk produces `\x1b[31mfoo\x1b[0m`. If we decompose to cells then recompose, do we produce the same ANSI? What about nested styles?
-
-4. **Memory**: 80x24 = 1920 cells. Each Cell object has overhead. With 60fps updates, GC pressure matters.
-
-**Recommendations:**
-
-1. Use `grapheme-splitter` or similar for proper Unicode handling
-2. Store "continuation" marker for wide chars: `{ char: '中', wide: true }` followed by `{ continuation: true }`
-3. For ANSI compat, consider string-based diffing as an alternative (diff ANSI strings, not cells)
-4. Use typed arrays or object pools for cells to reduce GC
-
-#### Concern 5: Yoga Integration Assumptions
-
-The design assumes Yoga exposes what we need. Let's verify:
-
-```typescript
-// Yoga's actual API (yoga-layout 2.0)
-const node = Yoga.Node.create();
-node.setWidth(100);
-node.setFlexDirection(Yoga.FLEX_DIRECTION_ROW);
-node.calculateLayout(Yoga.UNDEFINED, Yoga.UNDEFINED, Yoga.DIRECTION_LTR);
-
-// After layout:
-node.getComputedWidth();   // ✓ Available
-node.getComputedHeight();  // ✓ Available
-node.getComputedLeft();    // ✓ Available
-node.getComputedTop();     // ✓ Available
-```
-
-**Good news**: Yoga DOES expose computed layout. The design's assumption is correct.
-
-**Concern**: Yoga doesn't support `fit-content` (shrink to content). For text that should size to its content, we'd need to:
-1. Measure text width
-2. Set Yoga node's width to that measurement
-3. Then calculate layout
-
-This is a **pre-layout measurement pass** - so we actually have FOUR phases:
-1. React reconciliation
-2. Content measurement (for fit-content nodes)
-3. Yoga layout
-4. Content rendering
-
-#### Concern 6: React Reconciler Version Compatibility
-
-The design uses `react-reconciler` but doesn't specify which React version. React 18+ has significant reconciler changes (concurrent features, transitions, suspense).
-
-**Questions:**
-- Do we support React 18 concurrent features?
-- What about `useSyncExternalStore` for layout state?
-- Does Suspense work with our two-phase render?
-
-**Recommendation**: Start with React 18 sync mode only. Add concurrent support later.
+- `km-inkz.8-api-reference.md` - Full API docs (generate from code)
+- `km-inkz.9-changelog.md` - Version history (create at v1.0)
 
 ---
 
-## Part 4: System Architect Review - Iteration 3
+## Part 6: Final Risk Assessment
 
-### Final Architecture Recommendations
+| Risk                             | Likelihood | Impact | Status                               |
+| -------------------------------- | ---------- | ------ | ------------------------------------ |
+| Yoga doesn't expose what we need | Low        | High   | ✅ Verified - API sufficient         |
+| React reconciler complexity      | Medium     | Medium | ✅ Mitigated - internals doc created |
+| Performance regression           | Medium     | Medium | ✅ Mitigated - benchmarks planned    |
+| Visual flicker                   | Medium     | High   | ✅ Mitigated - flicker tests added   |
+| Ink compatibility edge cases     | High       | Low    | ✅ Mitigated - triage complete       |
+| Yoga memory leaks                | Medium     | Medium | ⚠️ New - add free() calls            |
+| Style inheritance mismatch       | Medium     | Medium | ⚠️ New - implement CSS-style         |
+| Terminal resize bugs             | Low        | Medium | ⚠️ New - add resize handler          |
+| Error boundary crashes           | Low        | High   | ⚠️ New - add error handling          |
 
-#### Recommendation 1: Revised Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Phase 0: RECONCILIATION                                                     │
-│                                                                              │
-│  React reconciliation builds component tree                                  │
-│  Components return LayoutSpec OR ContentCallback                             │
-│  Output: Tree of InkZNodes with Yoga nodes attached                          │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Phase 1: MEASURE (optional, for fit-content)                                │
-│                                                                              │
-│  Traverse nodes with width="fit-content"                                     │
-│  Call measureContent() to get intrinsic size                                 │
-│  Set Yoga constraints based on measurement                                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Phase 2: LAYOUT                                                             │
-│                                                                              │
-│  yoga.calculateLayout(rootWidth, rootHeight)                                 │
-│  Propagate computed dimensions to all nodes                                  │
-│  Mark useLayout() subscribers for re-render                                  │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Phase 3: CONTENT RENDER                                                     │
-│                                                                              │
-│  For each node with contentCallback:                                         │
-│    - Provide computed dimensions via LayoutContext                           │
-│    - Execute callback to get terminal content                                │
-│  Build character buffer                                                      │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Phase 4: DIFF & OUTPUT                                                      │
-│                                                                              │
-│  Compare buffer against previous frame                                       │
-│  Emit minimal ANSI sequences                                                 │
-│  Update cursor position                                                      │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Recommendation 2: Clearer useLayout() Semantics
-
-```typescript
-// InkZ's useLayout() contract:
-// 1. Returns { width: 0, height: 0 } on first render (before layout)
-// 2. Automatically triggers re-render after layout phase completes
-// 3. Returns actual dimensions on second render
-// 4. Does NOT re-render if dimensions unchanged
-
-function useLayout(): ComputedLayout {
-  const node = useInkZNode();
-  const [, forceUpdate] = useReducer(x => x + 1, 0);
-
-  useLayoutEffect(() => {
-    // Subscribe to layout completion
-    const unsubscribe = node.onLayoutComplete(() => {
-      if (dimensionsChanged(node)) {
-        forceUpdate();
-      }
-    });
-    return unsubscribe;
-  }, [node]);
-
-  return node.computedLayout ?? { width: 0, height: 0, x: 0, y: 0 };
-}
-```
-
-#### Recommendation 3: Performance Optimization Paths
-
-Add to design doc:
-
-**Optimization 1: Layout Caching**
-- Cache Yoga tree structure
-- Only recalculate on structural changes
-- Prop-only changes reuse cached layout if dimensions unchanged
-
-**Optimization 2: Dirty Rectangles**
-- Track which regions of the buffer changed
-- Only diff/output changed regions
-- Especially important for cursor movement, selection changes
-
-**Optimization 3: Frame Coalescing**
-- Multiple rapid state changes → single render
-- Use `requestAnimationFrame` equivalent for terminal
-- Cap at 60fps max (terminal can't display faster anyway)
-
-#### Recommendation 4: Compatibility Tiers
-
-Revise the compatibility strategy with explicit tiers:
-
-**Tier 1 - Must Work (blocks MVP)**
-- `<Box>` with all flexbox props
-- `<Text>` with color, background, bold, italic, underline
-- `render()` with stdout/stdin options
-- `useInput()` for keyboard
-- `useApp()` for exit
-
-**Tier 2 - Should Work (blocks 1.0)**
-- `<Spacer>`, `<Newline>`
-- `<Static>` for persistent output
-- `useFocus()`, `useFocusManager()`
-- Border styles
-- `measureElement()` (for compat, even though useLayout is better)
-
-**Tier 3 - Nice to Have (post 1.0)**
-- `<Transform>` for output transformation
-- Screen reader support
-- Full focus management parity
-
-**Tier 4 - Explicitly Not Supported**
-- Ink's internal APIs
-- Undocumented behaviors
-- Bugs that apps depend on
-
-#### Recommendation 5: Risk Mitigation Additions
-
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Two-phase render causes visual flicker | Medium | High | Ensure first render shows placeholder, not blank. Add loading state support. |
-| Yoga WASM bundle too large | Low | Medium | yoga-wasm-web is 200KB. Could lazy-load or use yoga-layout (ASM.js fallback). |
-| React 19 breaks reconciler | Medium | High | Pin to React 18. Add integration tests for React versions. |
-| Memory leaks from callback registration | Medium | Medium | Use WeakMap for node→callback mapping. Test with long-running apps. |
-| Unicode edge cases in cell buffer | High | Low | Use established library (graphemer). Comprehensive Unicode test suite. |
+**New risks identified in Pass 2**: 4 (all Medium/Low impact)
 
 ---
 
-## Summary of Changes Needed
+## Part 7: Action Items for Implementation
 
-### Design Doc (km-inkz.3-design.md)
+### Before Starting Phase 1
 
-1. **Revise architecture diagram** to show 5 phases (add MEASURE phase)
-2. **Clarify useLayout() semantics** - it triggers re-render, not magic
-3. **Add dirty tracking** to performance section
-4. **Add Unicode handling** to cell buffer section
-5. **Specify React version** requirements
+1. ✅ Complete test infrastructure (Phase 0)
+2. ✅ Triage Ink tests
+3. ⬜ Set up CI with cross-terminal matrix
+4. ⬜ Create demo repo structure
 
-### Testing Doc (km-inkz.4-testing.md)
+### During Implementation
 
-1. **Triage Ink tests** into must/should/won't pass tiers
-2. **Add Unicode test fixtures** (CJK, emoji, combining chars)
-3. **Add memory leak tests** for long-running apps
-4. **Add flicker tests** to catch visual regressions
+1. ⬜ Add `yogaNode.free()` calls in removeChild
+2. ⬜ Implement CSS-style inheritance
+3. ⬜ Add terminal resize handler
+4. ⬜ Add error boundaries
+5. ⬜ Use `queueMicrotask` for frame coalescing
 
-### Implementation Plan
+### After Phase 4
 
-1. **Add "Week 1 Demo" milestone** with concrete deliverable
-2. **Add migration guide task** to Phase 3
-3. **Add codemod exploration** to nice-to-have
+1. ⬜ Create before/after comparison with km code
+2. ⬜ (Stretch) Build codemod
+3. ⬜ Run beta program with 3-5 users
 
-### New Docs Needed
+---
 
-1. **km-inkz.6-migration.md** - Guide for migrating from Ink
-2. **km-inkz.7-internals.md** - How the reconciler actually works (for contributors)
+## Conclusion
+
+**Review Pass 2 Status**: Design is implementation-ready.
+
+All critical architectural issues from Pass 1 have been addressed. Pass 2 identified 4 new concerns (Yoga cleanup, style inheritance, resize handling, error boundaries) - all medium/low impact and documented.
+
+The test strategy is comprehensive with explicit triage, Unicode coverage, memory leak detection, and flicker prevention.
+
+**Recommendation**: Proceed to implementation. Start with Phase 0 (test infrastructure), then Week 1 Demo milestone.

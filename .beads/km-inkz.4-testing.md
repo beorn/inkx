@@ -49,11 +49,70 @@ inkz/
 
 ## 2. Compatibility Testing Strategy
 
-### 2.1 Ink Test Suite Adoption
+### 2.1 Ink Test Suite Triage
 
-Ink uses AVA with 31 test files. Our approach:
+Ink has 31 test files. We triage them into categories based on feasibility:
 
-**Step 1: Clone and Adapt**
+#### Tier 1: Must Pass (MVP Blockers) - 14 files
+
+| File                            | Tests | Notes                       |
+| ------------------------------- | ----- | --------------------------- |
+| `flex.test.tsx`                 | 12    | Core flexbox                |
+| `flex-direction.test.tsx`       | 4     | Row/column                  |
+| `flex-justify-content.test.tsx` | 5     | Main axis alignment         |
+| `flex-align-items.test.tsx`     | 5     | Cross axis alignment        |
+| `flex-align-self.test.tsx`      | 4     | Override alignment          |
+| `flex-wrap.test.tsx`            | 3     | Wrapping                    |
+| `text.test.tsx`                 | 8     | Text rendering              |
+| `text-width.test.tsx`           | 4     | Text width calculation      |
+| `render.test.tsx`               | 15    | Core render API             |
+| `components.test.tsx`           | 10    | Box, Text, Newline, Spacer  |
+| `hooks.test.tsx`                | 8     | useInput, useApp, useStdout |
+| `width-height.test.tsx`         | 6     | Dimension props             |
+| `margin.test.tsx`               | 4     | Spacing                     |
+| `padding.test.tsx`              | 4     | Spacing                     |
+
+**Total: 92 tests must pass**
+
+#### Tier 2: Should Pass (1.0 Blockers) - 10 files
+
+| File                       | Tests | Notes                   |
+| -------------------------- | ----- | ----------------------- |
+| `borders.test.tsx`         | 8     | Border styles           |
+| `background.test.tsx`      | 3     | Background colors       |
+| `display.test.tsx`         | 4     | Display none            |
+| `overflow.test.tsx`        | 3     | Overflow handling       |
+| `gap.test.tsx`             | 3     | Flex gap                |
+| `focus.test.tsx`           | 12    | Focus management        |
+| `measure-element.test.tsx` | 5     | measureElement() compat |
+| `measure-text.test.tsx`    | 4     | Text measurement        |
+| `static.test.tsx`          | 6     | Static component        |
+| `exit.test.tsx`            | 4     | App exit                |
+
+**Total: 52 tests should pass**
+
+#### Tier 3: Nice to Have (Post 1.0) - 5 files
+
+| File                       | Tests | Notes                  |
+| -------------------------- | ----- | ---------------------- |
+| `errors.test.tsx`          | 5     | Error boundaries       |
+| `log-update.test.tsx`      | 3     | Log update integration |
+| `terminal-resize.test.tsx` | 4     | Resize handling        |
+| `screen-reader.test.tsx`   | 3     | Accessibility          |
+| `reconciler.test.tsx`      | 8     | Internal reconciler    |
+
+**Total: 23 tests nice to have**
+
+#### Tier 4: Won't Pass (By Design) - 2 files
+
+| File                 | Tests | Reason                        |
+| -------------------- | ----- | ----------------------------- |
+| `transform.test.tsx` | 4     | Different internal model      |
+| `key.test.tsx`       | 3     | React key handling (internal) |
+
+**Total: 7 tests won't pass**
+
+### 2.2 Clone and Adapt Process
 
 ```bash
 # Fetch Ink's test suite
@@ -65,21 +124,27 @@ find tests/compat/ink -name "*.tsx" -exec sed -i '' \
   's/from '\''ink'\''/from '\''inkz'\''/g' {} \;
 ```
 
-**Step 2: Track Compatibility Progress**
+### 2.3 Track Compatibility Progress
 
 ```typescript
 // tests/compat/ink/compat-status.ts
 export const COMPAT_STATUS = {
-  // Phase 1 - Must pass for MVP
+  // Tier 1 - Must pass (MVP)
   "flex.test.tsx": "passing",
   "flex-direction.test.tsx": "passing",
   "flex-justify-content.test.tsx": "passing",
-  "text.test.tsx": "passing",
+  "text.test.tsx": "partial", // 6/8 passing
   "render.test.tsx": "partial", // 12/15 passing
 
-  // Phase 2 - Nice to have
-  "focus.test.tsx": "skipped",
+  // Tier 2 - Should pass (1.0)
+  "borders.test.tsx": "pending",
+  "focus.test.tsx": "pending",
+
+  // Tier 3 - Nice to have
   "screen-reader.test.tsx": "skipped",
+
+  // Tier 4 - Won't pass
+  "transform.test.tsx": "wont-pass",
 } as const;
 ```
 
@@ -561,7 +626,310 @@ Create a live dashboard showing test status:
 
 ---
 
-## 8. References
+## 8. Additional Test Categories
+
+### 8.1 Unicode Test Suite
+
+Terminal Unicode handling is complex. Test comprehensively:
+
+```typescript
+// tests/unicode/unicode.test.ts
+describe('Unicode handling', () => {
+  describe('Wide characters (CJK)', () => {
+    test('Chinese characters take 2 cells', () => {
+      const { lastFrame } = render(
+        <Box width={10}>
+          <Text>你好世界</Text>
+        </Box>
+      );
+      // "你好世界" = 8 cells (4 chars × 2)
+      expect(lastFrame()).toMatchSnapshot();
+    });
+
+    test('Mixed ASCII and CJK', () => {
+      const { lastFrame } = render(
+        <Box width={10}>
+          <Text>Hi你好</Text>
+        </Box>
+      );
+      // "Hi" = 2 cells, "你好" = 4 cells = 6 total
+      expect(lastFrame()).toMatchSnapshot();
+    });
+
+    test('CJK truncation respects cell width', () => {
+      const { lastFrame } = render(
+        <Box width={5}>
+          <Text>你好世界</Text>
+        </Box>
+      );
+      // Can fit 2 CJK chars (4 cells) + ellipsis
+      expect(lastFrame()).toMatchSnapshot();
+    });
+  });
+
+  describe('Emoji', () => {
+    test('Basic emoji', () => {
+      const { lastFrame } = render(<Text>Hello 👋</Text>);
+      expect(lastFrame()).toContain('👋');
+    });
+
+    test('Emoji with skin tone', () => {
+      const { lastFrame } = render(<Text>👋🏽</Text>);
+      expect(lastFrame()).toMatchSnapshot();
+    });
+
+    test('Emoji ZWJ sequence', () => {
+      const { lastFrame } = render(<Text>👨‍👩‍👧‍👦</Text>);
+      // Family emoji is single grapheme
+      expect(lastFrame()).toMatchSnapshot();
+    });
+
+    test('Flag emoji', () => {
+      const { lastFrame } = render(<Text>🇺🇸🇬🇧</Text>);
+      expect(lastFrame()).toMatchSnapshot();
+    });
+  });
+
+  describe('Combining characters', () => {
+    test('Combining acute accent', () => {
+      const { lastFrame } = render(<Text>café</Text>);
+      // é can be e + combining acute
+      expect(lastFrame()).toBe('café');
+    });
+
+    test('Multiple combining marks', () => {
+      const { lastFrame } = render(<Text>ḁ̴̢̛</Text>);
+      // Heavily combined character
+      expect(lastFrame()).toMatchSnapshot();
+    });
+  });
+
+  describe('RTL text', () => {
+    test('Arabic text', () => {
+      const { lastFrame } = render(<Text>مرحبا</Text>);
+      expect(lastFrame()).toMatchSnapshot();
+    });
+
+    test('Hebrew text', () => {
+      const { lastFrame } = render(<Text>שלום</Text>);
+      expect(lastFrame()).toMatchSnapshot();
+    });
+  });
+});
+```
+
+### 8.2 Memory Leak Tests
+
+Long-running TUI apps must not leak:
+
+```typescript
+// tests/memory/memory.test.ts
+import { render } from 'inkz';
+
+describe('Memory management', () => {
+  test('no leak on rapid re-renders', async () => {
+    const initialMemory = process.memoryUsage().heapUsed;
+
+    const { rerender, unmount } = render(<Box><Text>Initial</Text></Box>);
+
+    // Rapid re-renders
+    for (let i = 0; i < 10000; i++) {
+      rerender(<Box><Text>Render {i}</Text></Box>);
+    }
+
+    // Force GC
+    if (global.gc) global.gc();
+
+    const finalMemory = process.memoryUsage().heapUsed;
+    const growth = finalMemory - initialMemory;
+
+    // Allow some growth, but not unbounded
+    expect(growth).toBeLessThan(10 * 1024 * 1024); // 10MB max
+
+    unmount();
+  });
+
+  test('no leak on mount/unmount cycles', async () => {
+    const initialMemory = process.memoryUsage().heapUsed;
+
+    for (let i = 0; i < 1000; i++) {
+      const { unmount } = render(
+        <Box>
+          <Text>Mount {i}</Text>
+          <Box><Text>Nested</Text></Box>
+        </Box>
+      );
+      unmount();
+    }
+
+    if (global.gc) global.gc();
+
+    const finalMemory = process.memoryUsage().heapUsed;
+    const growth = finalMemory - initialMemory;
+
+    expect(growth).toBeLessThan(5 * 1024 * 1024); // 5MB max
+
+  });
+
+  test('useLayout subscriptions cleaned up', async () => {
+    function LayoutUser() {
+      const { width } = useLayout();
+      return <Text>{width}</Text>;
+    }
+
+    const initialMemory = process.memoryUsage().heapUsed;
+
+    for (let i = 0; i < 1000; i++) {
+      const { unmount } = render(<LayoutUser />);
+      unmount();
+    }
+
+    if (global.gc) global.gc();
+
+    const finalMemory = process.memoryUsage().heapUsed;
+    const growth = finalMemory - initialMemory;
+
+    expect(growth).toBeLessThan(2 * 1024 * 1024); // 2MB max
+  });
+});
+```
+
+### 8.3 Flicker Tests
+
+Detect visual regressions from double-render:
+
+```typescript
+// tests/visual/flicker.test.ts
+describe('No visual flicker', () => {
+  test('useLayout components render without flicker', async () => {
+    const frames: string[] = [];
+
+    function Header() {
+      const { width } = useLayout();
+      return <Text>{'='.repeat(width || 0)}</Text>;
+    }
+
+    const { lastFrame } = render(<Header />, {
+      onRender: (frame) => frames.push(frame),
+    });
+
+    // Wait for layout
+    await new Promise(r => setTimeout(r, 50));
+
+    // First frame might be empty (width=0), but should not be visible
+    // Only the final frame should be "painted"
+    const visibleFrames = frames.filter(f => f.trim() !== '');
+
+    // Should have exactly one visible frame
+    expect(visibleFrames.length).toBe(1);
+    expect(visibleFrames[0]).toMatch(/={10,}/);
+  });
+
+  test('rapid state changes coalesce', async () => {
+    const frames: string[] = [];
+    let count = 0;
+
+    function Counter() {
+      return <Text>Count: {count}</Text>;
+    }
+
+    const { rerender } = render(<Counter />, {
+      onRender: (frame) => frames.push(frame),
+    });
+
+    // Synchronous rapid updates
+    for (let i = 0; i < 100; i++) {
+      count = i;
+      rerender(<Counter />);
+    }
+
+    // Wait for coalescing
+    await new Promise(r => setTimeout(r, 50));
+
+    // Should NOT have 100 frames
+    expect(frames.length).toBeLessThan(10);
+
+    // Final frame should show 99
+    expect(frames[frames.length - 1]).toContain('99');
+  });
+
+  test('first render shows content, not zeros', async () => {
+    const frames: string[] = [];
+
+    function Card() {
+      const { width } = useLayout();
+      // Graceful degradation for width=0
+      if (width === 0) return null;
+      return <Text>{'#'.repeat(width)}</Text>;
+    }
+
+    render(
+      <Box width={10}>
+        <Card />
+      </Box>,
+      { onRender: (frame) => frames.push(frame) }
+    );
+
+    await new Promise(r => setTimeout(r, 50));
+
+    // No frame should show literal "0" from width
+    const badFrames = frames.filter(f => f.includes('width: 0') || f === '');
+    expect(badFrames.length).toBe(0);
+  });
+});
+```
+
+### 8.4 Long-Running App Tests
+
+Test stability over time:
+
+```typescript
+// tests/stability/long-running.test.ts
+describe('Long-running stability', () => {
+  test('runs for 60 seconds without crash', async () => {
+    let ticks = 0;
+
+    function Clock() {
+      const [time, setTime] = useState(Date.now());
+
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setTime(Date.now());
+          ticks++;
+        }, 100);
+        return () => clearInterval(interval);
+      }, []);
+
+      return <Text>{new Date(time).toISOString()}</Text>;
+    }
+
+    const { unmount } = render(<Clock />);
+
+    // Run for 60 seconds
+    await new Promise(r => setTimeout(r, 60000));
+
+    expect(ticks).toBeGreaterThan(500); // Should have ticked ~600 times
+
+    unmount();
+  }, 70000); // 70s timeout
+
+  test('handles terminal resize', async () => {
+    const { stdout } = render(<Box width="100%"><Text>Resize me</Text></Box>);
+
+    // Simulate resize
+    process.stdout.emit('resize');
+
+    await new Promise(r => setTimeout(r, 100));
+
+    // Should not crash
+    expect(true).toBe(true);
+  });
+});
+```
+
+---
+
+## 9. References
 
 - [Ink Test Suite](https://github.com/vadimdemedes/ink/tree/master/test) - 31 test files
 - [Ink Testing Library](https://github.com/vadimdemedes/ink-testing-library) - Test utilities
