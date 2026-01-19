@@ -85,34 +85,48 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 
 ## 3. Architecture
 
-### High-Level Flow
+### High-Level Flow (5 Phases)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  Phase 1: MEASURE                                                    │
+│  Phase 0: RECONCILIATION                                             │
 │                                                                      │
 │  React reconciliation builds component tree                          │
-│  Components return LayoutSpec (constraints, not content)             │
+│  Components register content callbacks (not rendered content)        │
 │                                                                      │
-│  Output: Tree of LayoutSpec nodes                                    │
+│  Output: Tree of InkZNodes with Yoga nodes + callbacks               │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Phase 1: MEASURE (for fit-content nodes)                            │
+│                                                                      │
+│  Traverse nodes with width="fit-content"                             │
+│  Call measureContent() to get intrinsic size                         │
+│  Set Yoga constraints based on measurement                           │
+│                                                                      │
+│  Output: Yoga tree with all constraints set                          │
 └─────────────────────────────────────────────────────────────────────┘
                                   │
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Phase 2: LAYOUT                                                     │
 │                                                                      │
-│  Yoga/Taffy computes layout from constraints                         │
-│  Each node gets computed { x, y, width, height }                     │
+│  yoga.calculateLayout(rootWidth, rootHeight)                         │
+│  Propagate computed dimensions to all nodes                          │
+│  Notify useLayout() subscribers (triggers selective re-render)       │
 │                                                                      │
-│  Output: LayoutResult tree with computed dimensions                  │
+│  Output: All nodes have computed { x, y, width, height }             │
 └─────────────────────────────────────────────────────────────────────┘
                                   │
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  Phase 3: RENDER                                                     │
+│  Phase 3: CONTENT RENDER                                             │
 │                                                                      │
-│  Components render content using computed dimensions                 │
-│  Text truncation, scrolling offsets, etc.                            │
+│  For each node with contentCallback:                                 │
+│    - Provide computed dimensions via LayoutContext                   │
+│    - Execute callback to produce terminal content                    │
+│  Handle text truncation, scrolling, styling                          │
 │                                                                      │
 │  Output: Character buffer (2D array of styled cells)                 │
 └─────────────────────────────────────────────────────────────────────┘
@@ -121,12 +135,21 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Phase 4: DIFF & OUTPUT                                              │
 │                                                                      │
-│  Compare against previous frame                                      │
+│  Compare buffer against previous frame                               │
 │  Emit minimal ANSI sequences for changed cells                       │
+│  Optimize cursor movement                                            │
 │                                                                      │
 │  Output: Terminal escape sequences                                   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+### Key Insight: Deferred Content Rendering
+
+Unlike Ink (which renders content during React reconciliation), InkZ separates:
+- **Structure** (React reconciliation) - builds the layout tree
+- **Content** (Phase 3) - renders text/graphics with known dimensions
+
+This is why `useLayout()` works - dimensions are available BEFORE content renders.
 
 ### Key Innovation: Split Render
 
@@ -206,26 +229,46 @@ function propagateComputedLayout(node: InkZNode, parentX = 0, parentY = 0) {
 
 ### The useLayout Hook
 
+**Important**: `useLayout()` works differently than you might expect:
+
+1. On **first render** (before layout): returns `{ width: 0, height: 0, x: 0, y: 0 }`
+2. After **layout completes**: automatically triggers re-render with actual dimensions
+3. On **subsequent renders**: returns cached dimensions (no re-render unless dimensions change)
+
 ```typescript
 const LayoutContext = createContext<ComputedLayout | null>(null);
 
 function useLayout(): ComputedLayout {
-  const layout = useContext(LayoutContext);
-  if (!layout) {
-    throw new Error('useLayout must be used within a rendered component');
-  }
-  return layout;
+  const node = useInkZNode();
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
+
+  // Subscribe to layout completion
+  useLayoutEffect(() => {
+    const unsubscribe = node.onLayoutComplete(() => {
+      // Only re-render if dimensions actually changed
+      if (dimensionsChanged(node.prevLayout, node.computedLayout)) {
+        forceUpdate();
+      }
+    });
+    return unsubscribe;
+  }, [node]);
+
+  // Return current dimensions (may be zeros on first render)
+  return node.computedLayout ?? { width: 0, height: 0, x: 0, y: 0 };
 }
 
-// Provider wraps each component during Phase 3
-function renderNode(node: InkZNode): TerminalContent {
-  return (
-    <LayoutContext.Provider value={node.computedLayout}>
-      {node.props.children}
-    </LayoutContext.Provider>
-  );
+// Usage - component handles the initial zero state gracefully
+function Header() {
+  const { width } = useLayout();
+  // On first render, width=0, so this renders empty string
+  // After layout, re-renders with actual width
+  return <Text>{'='.repeat(width)}</Text>;
 }
 ```
+
+This is the key difference from Ink's `measureElement()`:
+- Ink: You call `measureElement()`, get dimensions, manually trigger re-render
+- InkZ: `useLayout()` automatically re-renders when dimensions are ready
 
 ---
 
@@ -396,6 +439,87 @@ function optimizeCursorMoves(changes: CellChange[]): string {
 }
 ```
 
+### Unicode Handling
+
+Terminal cells have complex Unicode requirements:
+
+```typescript
+interface Cell {
+  char: string;          // Single grapheme cluster
+  fg: Color | null;
+  bg: Color | null;
+  attrs: Set<Attr>;
+  wide: boolean;         // Is this a wide character (CJK)?
+  continuation: boolean; // Is this the 2nd cell of a wide char?
+}
+
+// Use graphemer for proper Unicode segmentation
+import Graphemer from 'graphemer';
+const splitter = new Graphemer();
+
+function textToCells(text: string): Cell[] {
+  const graphemes = splitter.splitGraphemes(text);
+  const cells: Cell[] = [];
+
+  for (const grapheme of graphemes) {
+    const width = getCharWidth(grapheme); // 1 or 2
+    cells.push({ char: grapheme, wide: width === 2, continuation: false, ... });
+    if (width === 2) {
+      cells.push({ char: '', wide: false, continuation: true, ... });
+    }
+  }
+  return cells;
+}
+```
+
+### Performance Optimizations
+
+**Dirty Tracking**: Not every state change needs full re-layout.
+
+```typescript
+interface InkZNode {
+  layoutDirty: boolean;   // Structure changed, needs re-layout
+  contentDirty: boolean;  // Content changed, layout unchanged
+}
+
+// On state change:
+// - If only content changed: skip Phases 0-2, go straight to Phase 3
+// - If layout changed: full pipeline
+```
+
+**Frame Coalescing**: Batch rapid updates.
+
+```typescript
+class RenderScheduler {
+  private pending = false;
+
+  scheduleRender() {
+    if (this.pending) return;
+    this.pending = true;
+
+    // Use setImmediate to batch synchronous state changes
+    setImmediate(() => {
+      this.pending = false;
+      this.executeRender();
+    });
+  }
+}
+```
+
+**Layout Caching**: Reuse Yoga tree structure.
+
+```typescript
+// Don't recreate Yoga nodes on every render
+// Only update changed props and recalculate
+function updateYogaNode(node: InkZNode, prevProps: Props, nextProps: Props) {
+  if (prevProps.width !== nextProps.width) {
+    node.yogaNode.setWidth(nextProps.width);
+    node.layoutDirty = true;
+  }
+  // ... only update what changed
+}
+```
+
 ---
 
 ## 7. Implementation Plan
@@ -494,19 +618,59 @@ createRenderer().render(<App />);
 
 ---
 
-## 9. Risk Analysis
+## 9. Compatibility Tiers
 
-| Risk                               | Likelihood | Impact | Mitigation                                                    |
-| ---------------------------------- | ---------- | ------ | ------------------------------------------------------------- |
-| Yoga doesn't expose what we need   | Low        | High   | Yoga API is sufficient; we just need to call it before render |
-| React reconciler complexity        | Medium     | Medium | Start with ink's reconciler as reference                      |
-| Performance regression from 2-pass | Medium     | Medium | Benchmark early; layout is fast, render is the slow part      |
-| Edge cases in Ink compatibility    | High       | Low    | Comprehensive test suite; accept minor differences            |
-| Scope creep (images, mouse, etc.)  | High       | Medium | Strict phase gates; v1 = layout feedback only                 |
+Explicit expectations for what works and what doesn't:
+
+### Tier 1 - Must Work (blocks MVP)
+
+- `<Box>` with all flexbox props (direction, justify, align, wrap, grow, shrink)
+- `<Text>` with color, backgroundColor, bold, italic, underline, strikethrough
+- `render()` with stdout/stdin options
+- `useInput()` for keyboard handling
+- `useApp()` for exit control
+- Chalk integration (ANSI strings preserved)
+
+### Tier 2 - Should Work (blocks 1.0)
+
+- `<Spacer>`, `<Newline>`
+- `<Static>` for persistent output above dynamic content
+- `useFocus()`, `useFocusManager()`
+- Border styles (single, double, round, etc.)
+- `measureElement()` for backward compatibility
+
+### Tier 3 - Nice to Have (post 1.0)
+
+- `<Transform>` for output transformation
+- Screen reader support
+- Full focus traversal parity with Ink
+
+### Tier 4 - Explicitly Not Supported
+
+- Ink's internal/private APIs
+- Undocumented Ink behaviors
+- Bug-compatibility (if Ink has bugs apps rely on)
 
 ---
 
-## 10. Alternatives Considered
+## 10. Risk Analysis
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Yoga doesn't expose what we need | Low | High | Yoga API is sufficient; verified in research |
+| React reconciler complexity | Medium | Medium | Start with Ink's reconciler as reference |
+| Performance regression from multi-phase | Medium | Medium | Benchmark early; layout is fast, render is the slow part |
+| Two-phase render causes visual flicker | Medium | High | First render shows zeros gracefully; add loading states |
+| Edge cases in Ink compatibility | High | Low | Comprehensive test suite; accept minor documented differences |
+| Scope creep (images, mouse, etc.) | High | Medium | Strict phase gates; v1 = layout feedback only |
+| Yoga WASM bundle too large | Low | Medium | yoga-wasm-web is ~200KB; can lazy-load if needed |
+| React 19 breaks reconciler | Medium | High | Pin to React 18; add React version integration tests |
+| Memory leaks from callbacks | Medium | Medium | Use WeakMap; test with long-running apps |
+| Unicode edge cases | High | Low | Use graphemer; comprehensive Unicode test fixtures |
+
+---
+
+## 11. Alternatives Considered
 
 ### A. Patch Ink Directly
 
@@ -541,7 +705,7 @@ Taffy is a better flexbox than Yoga. Considered but deferred:
 
 ---
 
-## 11. Open Questions
+## 12. Open Questions
 
 1. **Naming**: "InkZ" is a placeholder. Options: ink-next, termink, rink (taken), terminus
 2. **Monorepo or separate packages**: `inkz` vs `@inkz/core`, `@inkz/testing`, etc.
@@ -550,7 +714,7 @@ Taffy is a better flexbox than Yoga. Considered but deferred:
 
 ---
 
-## 12. Conclusion
+## 13. Conclusion
 
 InkZ is feasible and would eliminate the biggest pain point in Ink development. The core innovation - exposing Yoga's computed layout to React components - is straightforward to implement. The challenge is maintaining API compatibility while making this architectural change.
 
