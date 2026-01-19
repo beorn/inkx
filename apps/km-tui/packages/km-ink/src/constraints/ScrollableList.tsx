@@ -14,8 +14,10 @@ export interface ScrollableListProps<T> {
   items: T[];
   /** Currently selected item index */
   selectedIndex: number;
-  /** Height of each item in lines (characters) */
+  /** Height of each item in lines (characters) - used when getItemHeight not provided */
   itemHeight?: number;
+  /** Get height of specific item (overrides itemHeight when provided) */
+  getItemHeight?: (item: T, index: number) => number;
   /** Render function for each item */
   renderItem: (item: T, index: number, isSelected: boolean) => React.ReactNode;
   /** Custom overflow indicator renderer */
@@ -66,6 +68,8 @@ function DefaultOverflow({
  * 2. Reserve space for overflow indicators if needed
  * 3. Center the selected item when possible
  * 4. Clamp scroll offset to valid range
+ *
+ * Supports variable-height items via getItemHeight callback.
  */
 export function calculateScrollState<T>(
   items: T[],
@@ -74,6 +78,7 @@ export function calculateScrollState<T>(
   itemHeight: number,
   gap: number,
   hasOverflowIndicator: boolean,
+  getItemHeight?: (item: T, index: number) => number,
 ): ScrollState<T> {
   if (items.length === 0) {
     return {
@@ -84,8 +89,22 @@ export function calculateScrollState<T>(
     };
   }
 
-  const effectiveItemHeight = itemHeight + gap;
   const indicatorHeight = hasOverflowIndicator ? 1 : 0;
+
+  // If using variable heights, we need a different algorithm
+  if (getItemHeight) {
+    return calculateVariableHeightScrollState(
+      items,
+      selectedIndex,
+      availableHeight,
+      gap,
+      indicatorHeight,
+      getItemHeight,
+    );
+  }
+
+  // Fixed height algorithm (original)
+  const effectiveItemHeight = itemHeight + gap;
 
   // First pass: how many items fit without any indicators?
   const maxWithoutIndicators = Math.floor(
@@ -152,6 +171,149 @@ export function calculateScrollState<T>(
 }
 
 /**
+ * Calculate scroll state for variable-height items.
+ * Uses cumulative heights to determine which items fit.
+ */
+function calculateVariableHeightScrollState<T>(
+  items: T[],
+  selectedIndex: number,
+  availableHeight: number,
+  gap: number,
+  indicatorHeight: number,
+  getItemHeight: (item: T, index: number) => number,
+): ScrollState<T> {
+  // Calculate heights for all items (guaranteed same length as items)
+  const heights: number[] = items.map(
+    (item, i) => getItemHeight(item, i) + gap,
+  );
+  const totalHeight = heights.reduce((sum, h) => sum + h, 0);
+
+  // Check if all items fit
+  if (totalHeight <= availableHeight) {
+    return {
+      visible: items.map((item, index) => ({ item, index })),
+      scrollOffset: 0,
+      overflowTop: 0,
+      overflowBottom: 0,
+    };
+  }
+
+  // Need scrolling - find a window that includes selectedIndex
+  // Strategy: center the selected item, then adjust
+  const safeSelectedIndex = Math.min(selectedIndex, items.length - 1);
+  const selectedHeight = heights[safeSelectedIndex] ?? 1;
+  let heightBefore = 0;
+  for (let i = 0; i < safeSelectedIndex; i++) {
+    heightBefore += heights[i] ?? 0;
+  }
+
+  // Target: selected item roughly centered
+  const targetScrollTop = heightBefore - (availableHeight - selectedHeight) / 2;
+
+  // Find scroll offset (first visible item index) based on target scroll position
+  let scrollOffset = 0;
+  let cumulativeHeight = 0;
+  for (let i = 0; i < items.length; i++) {
+    if (cumulativeHeight >= targetScrollTop) {
+      scrollOffset = i;
+      break;
+    }
+    cumulativeHeight += heights[i] ?? 0;
+    scrollOffset = i + 1;
+  }
+  scrollOffset = Math.max(0, Math.min(scrollOffset, items.length - 1));
+
+  // Determine which indicators will show
+  const willShowTop = scrollOffset > 0;
+  let effectiveHeight = availableHeight - (willShowTop ? indicatorHeight : 0);
+
+  // Find how many items fit starting from scrollOffset
+  let usedHeight = 0;
+  let endIndex = scrollOffset;
+  for (let i = scrollOffset; i < items.length; i++) {
+    const itemH = heights[i] ?? 1;
+    // Reserve space for bottom indicator if more items remain
+    const needsBottomIndicator = i + 1 < items.length;
+    const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0;
+
+    if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
+      usedHeight += itemH;
+      endIndex = i + 1;
+    } else {
+      break;
+    }
+  }
+
+  // Ensure selected item is visible - adjust if needed
+  if (safeSelectedIndex < scrollOffset) {
+    // Selected item is above visible area - scroll up
+    scrollOffset = safeSelectedIndex;
+    // Recalculate visible items
+    usedHeight = 0;
+    endIndex = scrollOffset;
+    effectiveHeight =
+      availableHeight - (scrollOffset > 0 ? indicatorHeight : 0);
+    for (let i = scrollOffset; i < items.length; i++) {
+      const itemH = heights[i] ?? 1;
+      const needsBottomIndicator = i + 1 < items.length;
+      const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0;
+      if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
+        usedHeight += itemH;
+        endIndex = i + 1;
+      } else {
+        break;
+      }
+    }
+  } else if (safeSelectedIndex >= endIndex) {
+    // Selected item is below visible area - scroll down
+    // Work backwards from selected to find scroll offset
+    usedHeight = heights[safeSelectedIndex] ?? 1;
+    scrollOffset = safeSelectedIndex;
+    const hasBottom = safeSelectedIndex + 1 < items.length;
+    effectiveHeight =
+      availableHeight - indicatorHeight - (hasBottom ? indicatorHeight : 0);
+    for (let i = safeSelectedIndex - 1; i >= 0; i--) {
+      const h = heights[i] ?? 0;
+      if (usedHeight + h <= effectiveHeight) {
+        usedHeight += h;
+        scrollOffset = i;
+      } else {
+        break;
+      }
+    }
+    // Recalculate end index
+    usedHeight = 0;
+    endIndex = scrollOffset;
+    effectiveHeight =
+      availableHeight - (scrollOffset > 0 ? indicatorHeight : 0);
+    for (let i = scrollOffset; i < items.length; i++) {
+      const itemH = heights[i] ?? 1;
+      const needsBottomIndicator = i + 1 < items.length;
+      const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0;
+      if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
+        usedHeight += itemH;
+        endIndex = i + 1;
+      } else {
+        break;
+      }
+    }
+  }
+
+  // Build visible items list
+  const visible = items.slice(scrollOffset, endIndex).map((item, i) => ({
+    item,
+    index: scrollOffset + i,
+  }));
+
+  return {
+    visible,
+    scrollOffset,
+    overflowTop: scrollOffset,
+    overflowBottom: Math.max(0, items.length - endIndex),
+  };
+}
+
+/**
  * Hook to calculate scroll state from context.
  */
 export function useScrollState<T>(
@@ -214,6 +376,7 @@ export function ScrollableList<T>({
   items,
   selectedIndex,
   itemHeight = 1,
+  getItemHeight,
   renderItem,
   renderOverflow,
   gap = 0,
@@ -233,6 +396,7 @@ export function ScrollableList<T>({
         itemHeight,
         gap,
         hasOverflowIndicator,
+        getItemHeight,
       ),
     [
       items,
@@ -241,6 +405,7 @@ export function ScrollableList<T>({
       itemHeight,
       gap,
       hasOverflowIndicator,
+      getItemHeight,
     ],
   );
 

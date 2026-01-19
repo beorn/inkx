@@ -7,15 +7,17 @@
  *
  * Uses the constraint system for reliable layout.
  */
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { Box, Text } from "ink";
 import type { BoardState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";
-import { getNodeDisplayName } from "../state.ts";
+import { getNodeDisplayName, getParentContext } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
-import { useTreeConfig } from "../ui-context.tsx";
+import { useTreeConfig, useUISelector } from "../ui-context.tsx";
 import { ConstraintContext, ScrollableList } from "../constraints/index.ts";
+import { getChildren } from "@km/storage";
+import { estimateTreeNodeHeight, VARIANT_CONFIG } from "./tree-node-helpers.ts";
 
 // Type for flattened list items
 type FlatItem =
@@ -54,10 +56,22 @@ export function ListView({
   selectionLevel,
 }: ListViewProps): React.ReactElement {
   // Get UI state from context
-  const { maxContentLines, inOutlineMode } = useTreeConfig();
+  const { inOutlineMode, maxContentLines, maxOutlineDepth } = useTreeConfig();
+  const foldedNodes = useUISelector((state) => state.foldedNodes);
 
   // Full height minus 1 for top spacer line
   const availableHeight = height - 1;
+
+  // Height estimation config for TreeNodes
+  const heightConfig = useMemo(
+    () => ({
+      maxContentLines,
+      maxOutlineDepth,
+      maxChildren: VARIANT_CONFIG.wide.maxChildren,
+      availableWidth: width,
+    }),
+    [maxContentLines, maxOutlineDepth, width],
+  );
 
   // Flatten all cards into a single list for virtualization
   const flatItems = useMemo(() => {
@@ -171,8 +185,26 @@ export function ListView({
     );
   }
 
-  // Item height (maxContentLines + 1 for spacing)
-  const itemHeight = maxContentLines + 1;
+  // Get item height for variable-height virtualization
+  const getItemHeight = useCallback(
+    (item: FlatItem, _index: number): number => {
+      if (item.type === "header") {
+        return 1; // Headers are always 1 line
+      }
+      // Estimate TreeNode height based on content and children
+      const node = item.card.node;
+      const parentContext = getParentContext(node);
+      return estimateTreeNodeHeight(
+        node,
+        0, // depth
+        heightConfig,
+        getChildren,
+        foldedNodes,
+        parentContext,
+      );
+    },
+    [heightConfig, foldedNodes],
+  );
 
   // Content height after top spacer
   const contentHeight = availableHeight - 1;
@@ -197,7 +229,7 @@ export function ListView({
         <ScrollableList
           items={flatItems}
           selectedIndex={selectedFlatIndex}
-          itemHeight={itemHeight}
+          getItemHeight={getItemHeight}
           height={contentHeight}
           renderItem={renderItem}
           renderOverflow={renderOverflow}
