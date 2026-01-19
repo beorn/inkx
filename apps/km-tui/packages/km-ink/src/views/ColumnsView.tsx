@@ -4,14 +4,17 @@
  * Tree/outline view within each column - combines the columnar structure
  * with hierarchical display of cards and their children.
  */
-import React from "react";
+import React, { useMemo, useCallback } from "react";
 import { Box, Text } from "ink";
-import type { BoardState, ColumnState } from "../types.ts";
+import type { BoardState, ColumnState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
-import { useTreeConfig } from "../ui-context.tsx";
-import { calcScrollOffset } from "../constraints/index.ts";
+import { useTreeConfig, useUISelector } from "../ui-context.tsx";
+import { ConstraintContext, ScrollableList } from "../constraints/index.ts";
+import { getChildren } from "@km/storage";
+import { estimateTreeNodeHeight, VARIANT_CONFIG } from "./tree-node-helpers.ts";
+import { OverflowIndicator } from "./OverflowIndicator.tsx";
 
 // =============================================================================
 // ColumnTree Subcomponent
@@ -38,26 +41,12 @@ function ColumnTree({
   height,
   selectionLevel,
 }: ColumnTreeProps): React.ReactElement {
-  const { inOutlineMode } = useTreeConfig();
+  const { inOutlineMode, maxContentLines, maxOutlineDepth } = useTreeConfig();
+  const foldedNodes = useUISelector((state) => state.foldedNodes);
 
   const name = getNodeDisplayName(column.node);
   const count = column.cards.length;
   const ownColor = getOwnColor(column.node);
-
-  // Available height for cards: column height - blank line (1) - header (1)
-  const contentHeight = Math.max(1, height - 2);
-  const maxVisibleCards = Math.max(1, contentHeight);
-
-  // Only scroll if we actually have more cards than can fit
-  const needsScroll = column.cards.length > maxVisibleCards;
-  const scrollOffset = needsScroll
-    ? calcScrollOffset(selectedCardIndex, maxVisibleCards, column.cards.length)
-    : 0;
-
-  const visibleCards = column.cards.slice(
-    scrollOffset,
-    scrollOffset + maxVisibleCards,
-  );
 
   // Column header is selected when at column level
   const isColumnHeaderSelected = isSelected && selectionLevel === "column";
@@ -67,8 +56,87 @@ function ColumnTree({
     isColumnHeaderSelected,
   );
 
-  // Height for cards area
-  const cardsHeight = Math.max(1, height - 2);
+  // Available height for cards: column height - blank line (1) - header (1)
+  const contentHeight = Math.max(1, height - 2);
+
+  // Height estimation config for TreeNodes (compact mode for columns)
+  const heightConfig = useMemo(
+    () => ({
+      maxContentLines,
+      maxOutlineDepth,
+      maxChildren: VARIANT_CONFIG.compact.maxChildren,
+      availableWidth: width,
+    }),
+    [maxContentLines, maxOutlineDepth, width],
+  );
+
+  // Get item height for variable-height virtualization
+  const getItemHeight = useCallback(
+    (card: CardState, _index: number): number => {
+      return estimateTreeNodeHeight(
+        card.node,
+        0, // depth
+        heightConfig,
+        getChildren,
+        foldedNodes,
+      );
+    },
+    [heightConfig, foldedNodes],
+  );
+
+  // Render function for ScrollableList
+  const renderItem = useCallback(
+    (card: CardState, index: number, _isSelected: boolean): React.ReactNode => {
+      const cardSelected =
+        selectionLevel === "card" &&
+        isSelected &&
+        index === selectedCardIndex &&
+        !inOutlineMode;
+
+      return (
+        <TreeNode
+          key={card.node.id}
+          node={card.node}
+          depth={0}
+          width={width}
+          isSelected={
+            cardSelected ||
+            (selectionLevel === "card" &&
+              inOutlineMode &&
+              isSelected &&
+              index === selectedCardIndex &&
+              selectedSubIndex === 0)
+          }
+          colIndex={colIndex}
+          cardIndex={index}
+          subIndex={0}
+        />
+      );
+    },
+    [
+      selectionLevel,
+      isSelected,
+      selectedCardIndex,
+      selectedSubIndex,
+      inOutlineMode,
+      colIndex,
+      width,
+    ],
+  );
+
+  // Custom overflow renderer
+  const renderOverflow = useCallback(
+    (direction: "top" | "bottom", count: number): React.ReactNode => {
+      return (
+        <OverflowIndicator
+          direction={direction === "top" ? "up" : "down"}
+          count={count}
+          width={width}
+        />
+      );
+    },
+    [width],
+  );
 
   return (
     <Box flexDirection="column" width={width} height={height}>
@@ -86,51 +154,22 @@ function ColumnTree({
         </Text>
       </Box>
 
-      {/* Cards as tree nodes */}
-      <Box
-        flexDirection="column"
-        width={width}
-        height={cardsHeight}
-        alignItems="flex-start"
-        overflowY="hidden"
+      {/* Cards as virtualized tree nodes */}
+      <ConstraintContext.Provider
+        value={{
+          terminal: { columns: width, rows: contentHeight },
+          parent: { width, height: contentHeight },
+        }}
       >
-        {scrollOffset > 0 && <Text dimColor> ▲ {scrollOffset} above</Text>}
-        {visibleCards.map((card, i) => {
-          const actualCardIndex = scrollOffset + i;
-          const cardSelected =
-            selectionLevel === "card" &&
-            isSelected &&
-            actualCardIndex === selectedCardIndex &&
-            !inOutlineMode;
-
-          return (
-            <TreeNode
-              key={card.node.id}
-              node={card.node}
-              depth={0}
-              width={width}
-              isSelected={
-                cardSelected ||
-                (selectionLevel === "card" &&
-                  inOutlineMode &&
-                  isSelected &&
-                  actualCardIndex === selectedCardIndex &&
-                  selectedSubIndex === 0)
-              }
-              colIndex={colIndex}
-              cardIndex={actualCardIndex}
-              subIndex={0}
-            />
-          );
-        })}
-        {needsScroll &&
-          scrollOffset + visibleCards.length < column.cards.length && (
-            <Text dimColor>
-              {"  "}▼ {column.cards.length - scrollOffset - visibleCards.length}{" "}
-              below
-            </Text>
-          )}
-      </Box>
+        <ScrollableList
+          items={column.cards}
+          selectedIndex={selectedCardIndex}
+          getItemHeight={getItemHeight}
+          height={contentHeight}
+          renderItem={renderItem}
+          renderOverflow={renderOverflow}
+        />
+      </ConstraintContext.Provider>
     </Box>
   );
 }

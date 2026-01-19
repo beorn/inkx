@@ -168,11 +168,12 @@ import { TruncatedText } from "../constraints";
 
 ### ScrollableList
 
-Handles overflow with scrolling, without complex math:
+Handles overflow with scrolling and virtualization:
 
 ```tsx
 import { ScrollableList } from "../constraints";
 
+// Simple fixed-height items (1 line per item)
 <ScrollableList
   items={nodes}
   selectedIndex={cursorIndex}
@@ -181,13 +182,27 @@ import { ScrollableList } from "../constraints";
     <TreeNode node={node} isSelected={isSelected} />
   )}
 />;
+
+// Variable-height items (REQUIRED for multi-line content)
+<ScrollableList
+  items={cards}
+  selectedIndex={cursorIndex}
+  height={availableHeight}
+  getItemHeight={(card, index) =>
+    estimateTreeNodeHeight(card.node, 0, config, getChildren, foldedNodes)
+  }
+  renderItem={(card, index, isSelected) => <TreeNode node={card.node} />}
+  renderOverflow={(direction, count) => (
+    <OverflowIndicator direction={direction} count={count} />
+  )}
+/>;
 ```
 
 **Features:**
 
 - Auto-scrolls to keep selected item visible
 - Supports custom overflow indicators
-- Handles variable-height items
+- **Variable-height items** via `getItemHeight` callback (critical for multi-line content!)
 
 ### FlexRow
 
@@ -337,9 +352,67 @@ useInput((input, key) => {
 });
 ```
 
+## Critical Pattern: Variable-Height Lists
+
+**Problem:** Assuming "1 item = 1 line" when calculating how many items fit in a container causes overflow bugs. Items with wrapped text, subtasks, or nested children take multiple lines.
+
+**Example of the bug (km-al93):**
+
+```typescript
+// WRONG: Assumes each card is exactly 1 line
+const maxVisibleCards = Math.max(1, contentHeight);
+const needsScroll = column.cards.length > maxVisibleCards;
+const visibleCards = column.cards.slice(0, maxVisibleCards);
+```
+
+If you have 20 cards and 42 lines of height, this shows all 20 cards. But if those cards actually render to 50+ lines, they overflow past the container boundary.
+
+**Solution:** Always use `ScrollableList` with `getItemHeight` for lists that may contain multi-line items:
+
+```typescript
+// CORRECT: Calculate actual height per item
+const getItemHeight = useCallback(
+  (card: CardState, _index: number): number => {
+    const estimated = estimateTreeNodeHeight(
+      card.node,
+      0, // depth
+      heightConfig,
+      getChildren,
+      foldedNodes,
+    );
+    // Add buffer for multi-line items (text wrapping is imprecise)
+    return estimated > 1 ? estimated + 1 : estimated;
+  },
+  [heightConfig, foldedNodes],
+);
+
+<ScrollableList
+  items={column.cards}
+  selectedIndex={selectedCardIndex}
+  getItemHeight={getItemHeight}
+  height={contentHeight}
+  renderItem={renderItem}
+  renderOverflow={renderOverflow}
+/>
+```
+
+**Key points:**
+
+1. **Use `estimateTreeNodeHeight`** - accounts for content wrapping, children, and nesting
+2. **Add a +1 buffer for multi-line items** - text wrapping estimation is imprecise
+3. **Always provide `renderOverflow`** - shows "▼ N more below" indicators
+4. **Wrap in `ConstraintContext.Provider`** - provides width/height to ScrollableList
+
+**Where this pattern is used:**
+
+- `ListView.tsx` - list view virtualization
+- `ColumnsView.tsx` - column card virtualization
+- `CardColumn.tsx` - cards view virtualization
+
 ## Debugging Tips
 
 1. **Dimension issues:** Log `stdout.columns` and `stdout.rows` - they may be `undefined` on first render
 2. **Layout overflow:** Check `displayLength()` vs `String.length` usage
 3. **Missing content:** Verify `isReady` state for fullscreen-ink race condition
 4. **Style bleeding:** Ensure ANSI reset codes are preserved after truncation
+5. **Overflow past boundaries:** Check if you're using fixed-height assumption for variable-height content - use `getItemHeight` callback with `ScrollableList`

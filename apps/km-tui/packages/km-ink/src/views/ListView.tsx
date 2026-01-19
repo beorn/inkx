@@ -165,7 +165,6 @@ export function ListView({
         direction={direction === "top" ? "up" : "down"}
         count={count}
         width={width}
-        variant="text"
       />
     );
   };
@@ -206,8 +205,8 @@ export function ListView({
     [heightConfig, foldedNodes],
   );
 
-  // Content height after top spacer
-  const contentHeight = availableHeight - 1;
+  // Content height after top spacer (availableHeight already accounts for the spacer)
+  const contentHeight = availableHeight;
 
   return (
     <Box

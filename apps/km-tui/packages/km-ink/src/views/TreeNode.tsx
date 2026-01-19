@@ -146,15 +146,21 @@ export function TreeNode({
       : depth === 0 && isTask && isEmbedded
         ? resolvedGetParentContext(node)
         : null;
+  // Calculate available space for context suffix
+  // Reserve: prefix + first line content + info suffix + " < " + some minimum padding
+  const firstLineLen = displayLength(firstLine);
+  const usedWidth = prefix.length + firstLineLen + infoSuffix.length + 4; // 4 = " < " + buffer
+  const contextMaxWidth = Math.max(10, Math.floor((width - usedWidth) * 0.8)); // Use 80% of remaining space
   const truncatedContext = !isCompact
-    ? truncateContext(parentContext, 20)
+    ? truncateContext(parentContext, contextMaxWidth)
     : null;
   const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
 
   // Multi-line context handling
   const isMultiLine = additionalLines.length > 0;
   const showInlineContext = !isMultiLine && truncatedContext;
-  const showSeparateContext = isEmbedded && parentContext;
+  // Only show separate context above if we have multi-line content (inline context won't work)
+  const showSeparateContext = isMultiLine && isEmbedded && parentContext;
 
   // Calculate padding to clear line
   const firstLineDisplayLen =

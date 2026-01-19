@@ -43,7 +43,7 @@ export interface ScrollState<T = unknown> {
 }
 
 /**
- * Default overflow indicator
+ * Default overflow indicator - matches unified OverflowIndicator style (inverse)
  */
 function DefaultOverflow({
   direction,
@@ -53,9 +53,10 @@ function DefaultOverflow({
   count: number;
 }): React.ReactElement {
   const arrow = direction === "top" ? "▲" : "▼";
+  const text = `${arrow} ${count} more`;
   return (
-    <Text dimColor>
-      {arrow} {count} more
+    <Text backgroundColor="gray" color="white">
+      {text}
     </Text>
   );
 }
@@ -188,8 +189,9 @@ function calculateVariableHeightScrollState<T>(
   );
   const totalHeight = heights.reduce((sum, h) => sum + h, 0);
 
-  // Check if all items fit
-  if (totalHeight <= availableHeight) {
+  // Check if all items fit (use strict inequality to avoid edge cases where
+  // estimation error causes overflow when totalHeight == availableHeight)
+  if (totalHeight < availableHeight) {
     return {
       visible: items.map((item, index) => ({ item, index })),
       scrollOffset: 0,

@@ -10,6 +10,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { BoardState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
+import { OverflowIndicator } from "./OverflowIndicator.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { useTreeConfig } from "../ui-context.tsx";
 import { ConstraintContext, ScrollableList } from "../constraints/index.ts";
@@ -81,23 +82,17 @@ export function TabsView({
     );
   };
 
-  // Custom overflow renderer matching original style
+  // Custom overflow renderer using unified OverflowIndicator
   const renderOverflow = (
     direction: "top" | "bottom",
-    overflowCount: number,
+    count: number,
   ): React.ReactNode => {
-    if (direction === "top") {
-      return (
-        <Text dimColor>
-          {" "}
-          {"\u25B2"} {overflowCount} above
-        </Text>
-      );
-    }
     return (
-      <Text dimColor>
-        {" \u25BC"} {overflowCount} below
-      </Text>
+      <OverflowIndicator
+        direction={direction === "top" ? "up" : "down"}
+        count={count}
+        width={width}
+      />
     );
   };
 
