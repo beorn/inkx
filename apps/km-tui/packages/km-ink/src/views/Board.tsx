@@ -256,10 +256,16 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     <UIProvider state={ui} dispatch={dispatch}>
       <Box flexDirection="column" height={termHeight} minHeight={3}>
         {/* Top bar: full path from root to selected item, inverted full width */}
-        <Box height={1} width={termWidth}>
+        {/* flexShrink={0} prevents Ink/Yoga from clipping this when content overflows */}
+        <Box height={1} width={termWidth} flexShrink={0}>
           <Text>{topBarFg(" ") + topBarContent + topBarBg(padding)}</Text>
         </Box>
-        <Box flexGrow={1} flexDirection="row" height={termHeight - 2}>
+        <Box
+          flexGrow={1}
+          flexDirection="row"
+          height={termHeight - 2}
+          overflowY="hidden"
+        >
           {/* Cards, Columns, or List view */}
           {ui.viewMode === "cards" ? (
             <Box flexDirection="row" width={boardWidth} height={termHeight - 2}>

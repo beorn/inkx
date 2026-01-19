@@ -89,6 +89,7 @@ function ColumnTree({
       {/* Cards as tree nodes */}
       <Box
         flexDirection="column"
+        width={width}
         height={cardsHeight}
         alignItems="flex-start"
         overflowY="hidden"
