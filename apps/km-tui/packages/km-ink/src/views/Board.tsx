@@ -2,7 +2,7 @@
  * Ink-based Board TUI Component
  * Full-screen board view with columns and cards
  */
-import React, { useState, useEffect, useReducer } from "react";
+import React, { useEffect, useReducer, useMemo } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { withFullScreen } from "fullscreen-ink";
 import chalk, { type ChalkInstance } from "chalk";
@@ -12,11 +12,8 @@ import { makeSelectionKey } from "../types.ts";
 import { buildBoardState, initBoardState, getNodeDisplayName } from "../state.ts";
 import type { KNode, TaskStatus } from "@km/core";
 import { getChildren, getNode, getStore, updateNode, deleteNode } from "@km/storage";
-import {
-  handleKeyboardInput as handleKeyboardWrapper,
-  handleDetailPaneInput as handleDetailPaneWrapper,
-  type KeyboardContext,
-} from "../keyboard-handler.ts";
+import type { KeyboardContext } from "../keyboard-types.ts";
+import { DEFAULT_FAVORITES } from "../keyboard-types.ts";
 import {
   clearSelection,
   getMaxSubIndex,
@@ -25,6 +22,12 @@ import {
   refreshBoardState,
   progressiveSelectAll,
 } from "../keyboard-helpers.ts";
+import {
+  moveCardInColumn,
+  moveCardToColumn,
+  outdentNode,
+} from "../keyboard-card-ops.ts";
+import { resolveNode } from "@km/storage";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
 import { HelpOverlay } from "./HelpOverlay.tsx";
@@ -53,14 +56,21 @@ import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
 import { ConstraintRoot } from "../constraints/index.ts";
 import {
-  processKeyThroughCommands,
+  processKeyWithContext,
   ensureCommandSystemInitialized,
   isUIAction,
+  isTUIAction,
   isBoardAction,
   isTaskStatusAction,
   isHistoryAction,
 } from "../command-bridge.ts";
+import { buildTUIContext, toKeyboardContext, type TUIContext } from "../tui-context.ts";
 import type { CommandAction } from "@km/commands";
+import { boardReducer } from "@km/board";
+import {
+  tuiStateToTreeState,
+  deriveColumnsLayout,
+} from "../board-adapter.ts";
 
 export { makeSelectionKey } from "../types.ts";
 
@@ -98,8 +108,81 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       ),
   );
 
-  // Board state (navigation) - still useState for now, could migrate to boardReducer
-  const [state, setState] = useState(initialState);
+  // Convert initial TUI state to tree-based state for boardReducer
+  // Uses initialState in deps to ensure it's captured on mount
+  const initialTreeState = useMemo(
+    () =>
+      tuiStateToTreeState(initialState, {
+        foldedNodes: new Set<string>(),
+        navHistory: [],
+        navHistoryIndex: 0,
+      }),
+    [initialState],
+  );
+
+  // Board navigation state managed by @km/board's boardReducer
+  const [boardState, dispatchBoard] = useReducer(boardReducer, initialTreeState);
+
+  // Derive column layout from tree state for rendering
+  // This bridges the tree-based boardReducer to column-based rendering
+  const columnsLayout = useMemo(
+    () => deriveColumnsLayout(boardState),
+    [boardState],
+  );
+
+  // Legacy state accessor for compatibility during migration
+  // Components still expect the old BoardState shape
+  const state: BoardState = useMemo(
+    () => ({
+      rootId: boardState.rootId,
+      rootPath: boardState.rootPath,
+      columns: columnsLayout.columns,
+      colIndex: columnsLayout.colIndex,
+      cardIndex: columnsLayout.cardIndex,
+      selectedCards: new Set<string>(),
+      visualMode: false,
+      foldedCards: boardState.foldedNodes,
+      collapsedColumns: new Set<number>(),
+      searchQuery: "",
+      searchMode: false,
+      helpMode: false,
+      zoomStack: boardState.zoomStack.map((z) => z.rootId ?? ""),
+    }),
+    [boardState, columnsLayout],
+  );
+
+  // setState wrapper that dispatches to boardReducer
+  // This enables gradual migration - callers still use setState pattern
+  const setState = (
+    updater: BoardState | ((prev: BoardState) => BoardState),
+  ) => {
+    // For now, we need to handle setState calls by rebuilding tree state
+    // This is a bridge during migration - eventually all callers will dispatch directly
+    const newState = typeof updater === "function" ? updater(state) : updater;
+
+    // If rootId changed, we need a full refresh
+    if (newState.rootId !== state.rootId) {
+      const newTreeState = tuiStateToTreeState(newState, {
+        foldedNodes: ui.foldedNodes,
+        navHistory: ui.navHistory,
+        navHistoryIndex: ui.navHistoryIndex,
+      });
+      dispatchBoard({ type: "REFRESH", nodes: newTreeState.nodes });
+      return;
+    }
+
+    // For cursor changes, dispatch NAV_TO_PATH
+    if (
+      newState.colIndex !== state.colIndex ||
+      newState.cardIndex !== state.cardIndex
+    ) {
+      const newPath =
+        newState.cardIndex >= 0
+          ? [newState.colIndex, newState.cardIndex]
+          : [newState.colIndex];
+      dispatchBoard({ type: "NAV_TO_PATH", path: newPath });
+    }
+  };
 
   // Dialog handlers (extracted to separate hook for maintainability)
   const {
@@ -165,57 +248,36 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     colScrollOffset + maxCols,
   );
 
-  // Create keyboard context for the extracted handlers
-  const keyboardContext: KeyboardContext = {
+  // Build unified TUI context once - passed to all handlers
+  const tuiContext: TUIContext = buildTUIContext({
     state,
+    boardState,
     ui,
-    setState,
+    layout: columnsLayout,
     dispatch,
+    dispatchBoard,
+    setState,
     exit,
     countVisibleDescendants,
-  };
+  });
+
+  // Legacy keyboard context for backward compatibility during migration
+  const keyboardContext: KeyboardContext = toKeyboardContext(tuiContext);
 
   // Initialize command system on first render
   useEffect(() => {
     ensureCommandSystemInitialized();
   }, []);
 
-  // Main keyboard input handler - routes through @km/commands first
+  // Main keyboard input handler - ALL keys go through @km/commands
   useInput((input, key) => {
-    // Dialog modes bypass command system entirely
+    // Dialog modes have their own input handling via dialog components
     if (ui.showNewItemDialog || ui.showProjectPicker) {
-      handleKeyboardWrapper(keyboardContext, input, key);
       return;
     }
 
-    // TUI-specific keys not in command system: handled directly by keyboard-handler
-    // - n: new item dialog
-    // - q: quit
-    // - p: project picker
-    // - 1-9: favorites jump
-    // - Shift+1-9: column jump
-    // - Enter: open detail pane
-    // - Meta+arrows/hjkl: move cards between columns
-    // - Shift+Tab: indent/outdent (Tab without shift is fold, handled by commands)
-    // - Escape: close dialogs/outline mode/quit
-    const isTuiSpecificKey =
-      input === "n" ||
-      input === "q" ||
-      input === "p" ||
-      /^[1-9]$/.test(input) ||
-      /^[!@#$%^&*(]$/.test(input) || // Shift+1-9 chars
-      key.return ||
-      key.meta ||
-      (key.tab && key.shift) ||
-      key.escape;
-
-    if (isTuiSpecificKey) {
-      handleKeyboardWrapper(keyboardContext, input, key);
-      return;
-    }
-
-    // Try command system for all other keys
-    const result = processKeyThroughCommands(input, key, state, ui);
+    // Route ALL keys through the command system
+    const result = processKeyWithContext(input, key, tuiContext);
 
     if (result.handled && result.actions) {
       const actionList = Array.isArray(result.actions)
@@ -230,7 +292,30 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Handle detail pane navigation (j/k to move cards while pane is open)
   useInput(
-    (input, key) => handleDetailPaneWrapper(keyboardContext, input, key),
+    (input, key) => {
+      // Detail pane has limited navigation: j/k/arrows for cards, h/q to close
+      if (input === "h") {
+        dispatch(actions.setDetailPane(false));
+        return;
+      }
+      if (input === "q") {
+        exit();
+        return;
+      }
+      const col = state.columns[state.colIndex];
+      if (input === "j" || key.downArrow) {
+        if (col && state.cardIndex < col.cards.length - 1) {
+          setState((s) => ({ ...s, cardIndex: s.cardIndex + 1 }));
+        }
+        return;
+      }
+      if (input === "k" || key.upArrow) {
+        if (state.cardIndex > 0) {
+          setState((s) => ({ ...s, cardIndex: s.cardIndex - 1 }));
+        }
+        return;
+      }
+    },
     {
       isActive: ui.showDetailPane,
     },
@@ -242,7 +327,43 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     const col = state.columns[state.colIndex];
     const card = col?.cards[state.cardIndex];
 
-    if (isUIAction(action)) {
+    // Check TUI-specific actions first (with proper type narrowing)
+    if (isTUIAction(action)) {
+      switch (action.type) {
+        case "QUIT":
+          exit();
+          break;
+        case "SHOW_NEW_ITEM_DIALOG":
+          dispatch(actions.showNewItemDialog());
+          dispatch(actions.exitOutlineMode());
+          dispatch(actions.setSubIndex(0));
+          clearSelection(keyboardContext);
+          dispatch(actions.setDetailPane(false));
+          break;
+        case "SHOW_PROJECT_PICKER":
+          if (card) {
+            dispatch(actions.showProjectPicker());
+            dispatch(actions.exitOutlineMode());
+            dispatch(actions.setSubIndex(0));
+            clearSelection(keyboardContext);
+            dispatch(actions.setDetailPane(false));
+          }
+          break;
+        case "JUMP_TO_FAVORITE":
+          handleJumpToFavorite(action.favoriteNumber);
+          break;
+        case "JUMP_TO_COLUMN":
+          handleJumpToColumn(action.columnNumber);
+          break;
+        case "CLOSE_OR_QUIT":
+          handleCloseOrQuit();
+          break;
+        case "OUTDENT_NODE":
+          if (card) outdentNode(keyboardContext, card);
+          break;
+      }
+    } else if (isUIAction(action)) {
+      // Non-TUI UI actions
       switch (action.type) {
         case "CYCLE_VIEW_MODE":
           dispatch(actions.cycleViewMode());
