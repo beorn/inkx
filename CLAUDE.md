@@ -257,3 +257,63 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1400,900 http://localh
 See `.claude/skills/visual-test.md` for full documentation.
 
 **Desktop capture (Peekaboo)**: ALWAYS use AskUserQuestion to get explicit approval BEFORE using any Peekaboo MCP tools. The user must confirm they are ready since Peekaboo takes over their screen. Never assume you can use Peekaboo without asking first, even if the user previously mentioned desktop capture.
+
+### Visual Bug Fixing Process (MANDATORY)
+
+**CRITICAL: Do NOT close visual bugs without completing ALL steps below.**
+
+Visual bugs have been incorrectly marked as fixed multiple times. Follow this strict process:
+
+#### 1. Reproduce the Bug First
+```bash
+# Create/use test data that EXERCISES the specific bug
+# For layout bugs: need data that overflows, has multi-line items, etc.
+# CAPTURE BEFORE screenshot showing the bug exists
+```
+
+#### 2. Create Proper Test Data
+For TUI layout bugs, test data MUST include:
+- **Vertical overflow**: Enough items to exceed screen height
+- **Multi-line items**: Long text that wraps, items with children
+- **Edge cases**: Empty columns, very long text, nested structures
+
+Example multi-line test data:
+```markdown
+## Processing
+- [ ] Task with a very long description that will definitely wrap to multiple lines in any reasonable terminal width
+  - Subtask that adds more lines
+  - Another subtask for good measure
+- [ ] Second task also with long content to ensure wrapping behavior is tested properly
+```
+
+#### 3. Capture BEFORE Screenshot
+```bash
+# MUST capture and view screenshot BEFORE attempting fix
+ttyd -W -p 7681 bun km view -r /tmp/test-repo @test-board.md &
+sleep 5
+# Navigate to problematic view
+bun x playwright screenshot http://localhost:7681 /tmp/bug-BEFORE.png
+# READ the screenshot to verify bug is visible
+```
+
+#### 4. Implement Fix
+
+#### 5. Capture AFTER Screenshot
+```bash
+# MUST capture and view screenshot AFTER fix
+bun x playwright screenshot http://localhost:7681 /tmp/bug-AFTER.png
+# READ the screenshot to verify bug is fixed
+```
+
+#### 6. Verify Fix is Real
+- Compare BEFORE and AFTER screenshots
+- Bug must be visibly fixed in AFTER screenshot
+- If uncertain, DO NOT close the bug
+
+#### 7. Request User Confirmation
+For recurring bugs (reported multiple times):
+- Do NOT close until user explicitly confirms fix
+- Show user the AFTER screenshot
+- Wait for user approval before closing bead
+
+**NEVER assume a visual bug is fixed without visual verification.**
