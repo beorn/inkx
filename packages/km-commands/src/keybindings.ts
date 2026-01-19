@@ -96,7 +96,7 @@ export const defaultKeybindings: Keybinding[] = [
   // NOTE: 'v' is NOT select_toggle in TUI - it cycles view mode
   // Progressive select all with Shift+A
   { key: "A", commandId: "select_all_progressive" },
-  { key: "Escape", commandId: "clear_selection" },
+  // NOTE: Escape is handled by close_or_quit in TUI section below
 
   // Extend selection with Shift+movement
   { key: "ArrowUp", shift: true, commandId: "extend_select_up" },
@@ -124,9 +124,10 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "h", meta: true, commandId: "shift_left" },
   { key: "l", meta: true, commandId: "shift_right" },
 
-  // Indent/Outdent with Tab (same as shift left/right)
-  { key: "Tab", commandId: "shift_right" },
-  { key: "Tab", shift: true, commandId: "shift_left" },
+  // Tab toggles fold on current card (TUI behavior)
+  { key: "Tab", commandId: "toggle_fold" },
+  // Shift+Tab outdents node
+  { key: "Tab", shift: true, commandId: "outdent" },
 
   // === Task ===
   { key: " ", commandId: "cycle_task_status" },
@@ -153,6 +154,37 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "z", ctrl: true, commandId: "undo" },
   { key: "z", ctrl: true, shift: true, commandId: "redo" },
   { key: "y", ctrl: true, commandId: "redo" },
+
+  // === TUI-specific ===
+  { key: "q", commandId: "quit" },
+  { key: "n", commandId: "new_item" },
+  { key: "p", commandId: "project_picker" },
+
+  // Favorites (1-9) - jump to favorite boards
+  { key: "1", commandId: "favorite_1" },
+  { key: "2", commandId: "favorite_2" },
+  { key: "3", commandId: "favorite_3" },
+  { key: "4", commandId: "favorite_4" },
+  { key: "5", commandId: "favorite_5" },
+  { key: "6", commandId: "favorite_6" },
+  { key: "7", commandId: "favorite_7" },
+  { key: "8", commandId: "favorite_8" },
+  { key: "9", commandId: "favorite_9" },
+
+  // Column jump (Shift+1-9 produces these characters)
+  { key: "!", commandId: "column_1" },
+  { key: "@", commandId: "column_2" },
+  { key: "#", commandId: "column_3" },
+  { key: "$", commandId: "column_4" },
+  { key: "%", commandId: "column_5" },
+  { key: "^", commandId: "column_6" },
+  { key: "&", commandId: "column_7" },
+  { key: "*", commandId: "column_8" },
+  { key: "(", commandId: "column_9" },
+
+  // Contextual close/quit (Escape)
+  // Closes dialogs, panes, modes, or quits if nothing to close
+  { key: "Escape", commandId: "close_or_quit" },
 ];
 
 // Initialize with defaults

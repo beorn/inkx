@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from "bun:test";
 import React from "react";
-import { render } from "ink-testing-library";
+import { render } from "inkx/testing";
 import { OverflowIndicator } from "../../src/views/OverflowIndicator.tsx";
 
 describe("OverflowIndicator", () => {

@@ -8,7 +8,7 @@
  * Uses the constraint system for reliable layout.
  */
 import React, { useMemo, useCallback } from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "inkx";
 import type { BoardState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";

@@ -5,7 +5,7 @@
  * Uses context from the cursor item for defaults.
  */
 import React, { useState } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "inkx";
 import { ulid } from "ulid";
 import type { KNode } from "@km/core";
 import { getNode, getChildren, emitNodeCreated } from "@km/storage";

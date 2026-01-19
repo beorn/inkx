@@ -9,7 +9,6 @@
 
 import type { KNode } from "@km/core";
 import type { BoardState as TreeBoardState, NodeMap } from "@km/board";
-import { createNodeMap } from "@km/board";
 import type { BoardState, CardState, ColumnState } from "./types.ts";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";
@@ -93,6 +92,8 @@ export interface BuildTUIContextParams {
   boardState: TreeBoardState;
   ui: UIState;
   layout: ColumnsLayout;
+  /** Pre-computed nodeMap (use useMemo in caller to avoid O(n) rebuild per render) */
+  nodeMap: NodeMap;
   dispatch: TUIContext["dispatch"];
   dispatchBoard: TUIContext["dispatchBoard"];
   setState: TUIContext["setState"];
@@ -103,18 +104,16 @@ export interface BuildTUIContextParams {
 /**
  * Build unified TUI context from component state.
  *
- * Call this once per input event, then pass to all handlers.
+ * Call this once per render, then pass to all handlers.
+ * The nodeMap should be created via useMemo to avoid O(n) rebuild on every render.
  */
 export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
-  const { state, boardState, ui, layout } = params;
+  const { state, boardState, ui, layout, nodeMap } = params;
 
   // Derive current column and card from layout
   const column = layout.columns[layout.colIndex];
   const card = column?.cards[layout.cardIndex];
   const selectedNode = card?.node;
-
-  // Build O(1) node lookup map
-  const nodeMap = createNodeMap(boardState.nodes);
 
   return {
     state,

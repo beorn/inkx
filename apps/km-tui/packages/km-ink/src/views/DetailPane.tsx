@@ -5,7 +5,7 @@
  * Displays content, fields, references, subtasks, and backlinks.
  */
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "inkx";
 import type { KNode } from "@km/core";
 import { getChildren, getBacklinks, getNode } from "@km/storage";
 import { getNodeDisplayName } from "../state.ts";

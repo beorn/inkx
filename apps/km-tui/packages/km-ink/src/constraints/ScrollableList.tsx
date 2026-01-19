@@ -6,7 +6,7 @@
  */
 
 import React, { useMemo } from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "inkx";
 import { useConstraintContext } from "./context.tsx";
 
 export interface ScrollableListProps<T> {

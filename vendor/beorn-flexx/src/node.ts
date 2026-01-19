@@ -631,7 +631,7 @@ function layoutNode(
 
 		// Calculate gaps
 		const totalGaps = relativeChildren.length > 1 ? mainGap * (relativeChildren.length - 1) : 0;
-		let freeSpace = mainAxisSize - totalBaseMain - totalGaps;
+		const freeSpace = mainAxisSize - totalBaseMain - totalGaps;
 
 		// Grow algorithm (based on flexbox.js SizeGrower)
 		if (freeSpace > 0) {

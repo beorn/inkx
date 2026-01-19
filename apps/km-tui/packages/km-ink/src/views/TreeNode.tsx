@@ -6,7 +6,7 @@
  * - wide: For full-width views (longer context, info columns, unlimited children)
  */
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "inkx";
 import type { KNode } from "@km/core";
 import { getChildren as getChildrenFromStorage } from "@km/storage";
 import {

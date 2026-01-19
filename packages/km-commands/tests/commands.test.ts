@@ -13,6 +13,7 @@ import { editCommands } from "../src/commands/edit.ts";
 import { taskCommands } from "../src/commands/task.ts";
 import { viewCommands } from "../src/commands/view.ts";
 import { historyCommands } from "../src/commands/history.ts";
+import { tuiCommands } from "../src/commands/tui.ts";
 import type {
   CommandContext,
   TNode,
@@ -139,7 +140,8 @@ describe("allCommands", () => {
       editCommands.length +
       taskCommands.length +
       viewCommands.length +
-      historyCommands.length;
+      historyCommands.length +
+      tuiCommands.length;
 
     expect(allCommands.length).toBe(expectedCount);
   });

@@ -3,8 +3,7 @@
  * Full-screen board view with columns and cards
  */
 import React, { useEffect, useReducer, useMemo } from "react";
-import { Box, Text, useInput, useApp, useStdout } from "ink";
-import { withFullScreen } from "fullscreen-ink";
+import { Box, Text, useInput, useApp, useStdout, render } from "inkx";
 import chalk, { type ChalkInstance } from "chalk";
 import { hyperlink } from "@beorn/chalkx";
 import type { BoardState, ViewMode, SelectionKey } from "../types.ts";
@@ -66,7 +65,7 @@ import {
 } from "../command-bridge.ts";
 import { buildTUIContext, toKeyboardContext, type TUIContext } from "../tui-context.ts";
 import type { CommandAction } from "@km/commands";
-import { boardReducer } from "@km/board";
+import { boardReducer, createNodeMap } from "@km/board";
 import {
   tuiStateToTreeState,
   deriveColumnsLayout,
@@ -128,6 +127,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const columnsLayout = useMemo(
     () => deriveColumnsLayout(boardState),
     [boardState],
+  );
+
+  // Build nodeMap once when nodes change (O(n) only on tree changes, not every render)
+  const nodeMap = useMemo(
+    () => createNodeMap(boardState.nodes),
+    [boardState.nodes],
   );
 
   // Legacy state accessor for compatibility during migration
@@ -446,6 +451,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           break;
         case "DECREASE_CONTENT_LINES":
           dispatch(actions.decreaseContentLines());
+          break;
+        // Card shifting (Alt+arrows)
+        case "SHIFT_UP":
+          handleShiftCard("up");
+          break;
+        case "SHIFT_DOWN":
+          handleShiftCard("down");
+          break;
+        case "SHIFT_LEFT":
+          handleShiftCard("left");
+          break;
+        case "SHIFT_RIGHT":
+          handleShiftCard("right");
           break;
       }
     }
@@ -780,6 +798,66 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         colIndex: targetColIndex,
         cardIndex: Math.min(s.cardIndex, Math.max(0, (targetCol?.cards.length || 1) - 1)),
       }));
+    }
+
+    // TUI-specific handler functions
+
+    function handleJumpToFavorite(favoriteNumber: number) {
+      if (ui.showDetailPane || ui.inOutlineMode) return;
+      const favoriteRef = DEFAULT_FAVORITES[favoriteNumber.toString()];
+      if (favoriteRef) {
+        const resolved = resolveNode(favoriteRef);
+        if (resolved) {
+          const zoomed = buildBoardState(resolved.id);
+          zoomed.zoomStack = [...state.zoomStack, state.rootId || ""];
+          pushNavHistoryEntry(dispatch, state.rootId, state.colIndex, state.cardIndex, ui.subIndex, ui.multiSelected, ui.inOutlineMode);
+          dispatch(actions.exitOutlineMode());
+          dispatch(actions.setSubIndex(0));
+          clearSelection(keyboardContext);
+          dispatch(actions.setDetailPane(false));
+          setState(zoomed);
+        } else {
+          process.stdout.write("\x07");
+        }
+      }
+    }
+
+    function handleJumpToColumn(columnNumber: number) {
+      if (ui.showDetailPane || ui.inOutlineMode) return;
+      const targetColIndex = columnNumber - 1; // 1-9 maps to 0-8
+      if (targetColIndex >= 0 && targetColIndex < state.columns.length) {
+        setState((s) => ({
+          ...s,
+          colIndex: targetColIndex,
+          cardIndex: Math.min(s.cardIndex, Math.max(0, (s.columns[targetColIndex]?.cards.length ?? 1) - 1)),
+        }));
+        clearSelection(keyboardContext);
+        dispatch(actions.setSelectAllLevel(0));
+      }
+    }
+
+    function handleCloseOrQuit() {
+      // Contextual close: detail pane → outline mode → quit
+      if (ui.showDetailPane) {
+        dispatch(actions.setDetailPane(false));
+        return;
+      }
+      if (ui.inOutlineMode) {
+        dispatch(actions.exitOutlineMode());
+        dispatch(actions.setSubIndex(0));
+        clearSelection(keyboardContext);
+        return;
+      }
+      exit();
+    }
+
+    function handleShiftCard(direction: "up" | "down" | "left" | "right") {
+      if (!card) return;
+      if (direction === "up" || direction === "down") {
+        moveCardInColumn(keyboardContext, card, direction);
+      } else {
+        moveCardToColumn(keyboardContext, card, direction);
+      }
     }
   }
 
@@ -1231,10 +1309,10 @@ function exitAlternateBuffer(): void {
   process.stdout.write("\x1b[?1049l");
 }
 
-export function renderInkBoard(
+export async function renderInkBoard(
   state: BoardState,
   initialViewMode?: ViewMode,
-): void {
+): Promise<void> {
   // Register error handlers to clean up terminal on crash
   // This ensures the alternate buffer is exited even on unhandled errors
   const handleError = (error: Error) => {
@@ -1251,13 +1329,16 @@ export function renderInkBoard(
     );
   });
 
-  void withFullScreen(
+  const { waitUntilExit } = await render(
     <Board initialState={state} initialViewMode={initialViewMode} />,
     {
       exitOnCtrlC: true,
       patchConsole: true,
+      alternateScreen: true,
     },
-  ).start();
+  );
+
+  await waitUntilExit();
 }
 
 // Testable version of Board component with fixed ui.dimensions for testing

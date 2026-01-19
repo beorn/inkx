@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo } from "react";
-import { Text } from "ink";
+import { Text } from "inkx";
 import { useComputedSize, type ComputedSize } from "./context.tsx";
 import { constrainText } from "../layout/constrain.ts";
 

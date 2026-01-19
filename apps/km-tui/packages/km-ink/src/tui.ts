@@ -39,8 +39,8 @@ export async function runBoardTUI(
     return;
   }
 
-  // Use Ink for interactive TUI
-  renderInkBoard(initialState, options?.initialViewMode);
+  // Use Inkx for interactive TUI
+  await renderInkBoard(initialState, options?.initialViewMode);
 }
 
 /**

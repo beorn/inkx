@@ -475,8 +475,8 @@ describe("initDefaultKeybindings", () => {
     expect(resolveKeybinding("v", {}, ctx)).toBe("cycle_view_mode");
     // Shift+A for progressive select all
     expect(resolveKeybinding("A", {}, ctx)).toBe("select_all_progressive");
-    // Escape clears selection
-    expect(resolveKeybinding("Escape", {}, ctx)).toBe("clear_selection");
+    // Escape is close_or_quit (contextual: clears selection, closes dialogs, or quits)
+    expect(resolveKeybinding("Escape", {}, ctx)).toBe("close_or_quit");
   });
 
   it("includes mode-specific keybindings", () => {
@@ -494,9 +494,10 @@ describe("initDefaultKeybindings", () => {
     // TUI: 'o' is zoom in
     expect(resolveKeybinding("o", {}, normalCtx)).toBe("zoom_in");
 
-    // Note: Escape without mode = clear_selection (defined first, matches any mode)
-    expect(resolveKeybinding("Escape", {}, normalCtx)).toBe("clear_selection");
-    expect(resolveKeybinding("Escape", {}, moveCtx)).toBe("clear_selection");
+    // TUI: Escape is close_or_quit (contextual) in normal mode
+    expect(resolveKeybinding("Escape", {}, normalCtx)).toBe("close_or_quit");
+    // In move mode, Escape cancels move (mode-specific binding takes precedence)
+    expect(resolveKeybinding("Escape", {}, moveCtx)).toBe("cancel_move");
   });
 
   it("includes shift keybindings with meta modifier", () => {
@@ -575,7 +576,8 @@ describe("defaultKeybindings", () => {
 
     // Selection
     expect(commandIds).toContain("select_all_progressive");
-    expect(commandIds).toContain("clear_selection");
+    // Note: clear_selection is handled by close_or_quit (contextual)
+    expect(commandIds).toContain("close_or_quit");
 
     // Edit
     expect(commandIds).toContain("enter_move_mode");

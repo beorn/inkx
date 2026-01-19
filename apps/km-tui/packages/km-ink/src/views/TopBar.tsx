@@ -5,7 +5,7 @@
  * Uses board's color as background when available, with appropriate text contrast.
  */
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "inkx";
 import chalk, { type ChalkInstance } from "chalk";
 import type { PathSegment } from "../layout/index.ts";
 

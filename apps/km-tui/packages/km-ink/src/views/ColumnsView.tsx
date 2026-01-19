@@ -5,7 +5,7 @@
  * with hierarchical display of cards and their children.
  */
 import React, { useMemo, useCallback } from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "inkx";
 import type { BoardState, ColumnState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";

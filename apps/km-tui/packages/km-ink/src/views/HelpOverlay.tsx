@@ -4,7 +4,7 @@
  * Displays keyboard shortcuts for the board TUI
  */
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "inkx";
 
 interface HelpOverlayProps {
   width: number;

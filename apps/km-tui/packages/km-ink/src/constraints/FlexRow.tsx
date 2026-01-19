@@ -6,7 +6,7 @@
  */
 
 import React, { useMemo } from "react";
-import { Box } from "ink";
+import { Box } from "inkx";
 import {
   ConstraintContext,
   useConstraintContext,

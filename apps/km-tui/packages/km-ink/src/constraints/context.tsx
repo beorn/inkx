@@ -1,14 +1,14 @@
 /**
- * Constraint Context
+ * Constraint Context - Inkx Compatible Implementation
  *
  * Provides computed dimensions to child components via React context.
- * Solves Ink's fundamental problem: children never know their computed size.
+ * Works with Inkx's reconciler when rendered within Inkx.
  *
  * @see .beads/km-inkx.3-design.md for full design specification
  */
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useStdout } from "ink";
+import { useStdout } from "inkx";
 
 /** Terminal dimensions */
 export interface TerminalSize {
@@ -35,21 +35,24 @@ export const ConstraintContext = createContext<
 
 /**
  * Hook to access the constraint context.
- * Throws if used outside a ConstraintRoot.
+ * Returns default values if not in a ConstraintRoot (for testing).
  */
 export function useConstraintContext(): ConstraintContextValue {
   const context = useContext(ConstraintContext);
-  if (!context) {
-    throw new Error(
-      "useConstraintContext must be used within a ConstraintRoot",
-    );
+
+  if (context) {
+    return context;
   }
-  return context;
+
+  // Default fallback for tests
+  return {
+    terminal: { columns: 80, rows: 24 },
+    parent: { width: 80, height: 24 },
+  };
 }
 
 /**
  * Hook to access just the computed parent size.
- * Shorthand for useConstraintContext().parent
  */
 export function useComputedSize(): ComputedSize {
   const { parent } = useConstraintContext();

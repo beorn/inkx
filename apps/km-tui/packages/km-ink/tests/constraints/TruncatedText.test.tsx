@@ -4,8 +4,8 @@
 
 import { describe, it, expect } from "bun:test";
 import React from "react";
-import { render } from "ink-testing-library";
-import { Box, Text } from "ink";
+import { render } from "inkx/testing";
+import { Box, Text } from "inkx";
 import {
   TruncatedText,
   useTruncatedText,

@@ -92,6 +92,46 @@ export interface SelectAllProgressiveAction {
   type: "SELECT_ALL_PROGRESSIVE";
 }
 
+// TUI-specific actions (dialogs, quit, favorites)
+export interface QuitAction {
+  type: "QUIT";
+}
+
+export interface ShowNewItemDialogAction {
+  type: "SHOW_NEW_ITEM_DIALOG";
+}
+
+export interface ShowProjectPickerAction {
+  type: "SHOW_PROJECT_PICKER";
+}
+
+export interface JumpToFavoriteAction {
+  type: "JUMP_TO_FAVORITE";
+  favoriteNumber: number; // 1-9
+}
+
+export interface JumpToColumnAction {
+  type: "JUMP_TO_COLUMN";
+  columnNumber: number; // 1-9 (maps to column index 0-8)
+}
+
+export interface CloseOrQuitAction {
+  type: "CLOSE_OR_QUIT"; // Contextual: close dialog/pane/mode, or quit
+}
+
+export interface OutdentNodeAction {
+  type: "OUTDENT_NODE";
+}
+
+export type TUIAction =
+  | QuitAction
+  | ShowNewItemDialogAction
+  | ShowProjectPickerAction
+  | JumpToFavoriteAction
+  | JumpToColumnAction
+  | CloseOrQuitAction
+  | OutdentNodeAction;
+
 export type UIAction =
   | GoUpPathAction
   | OpenDetailPaneAction
@@ -100,7 +140,8 @@ export type UIAction =
   | HideHelpAction
   | CycleViewModeAction
   | DeleteNodeAction
-  | SelectAllProgressiveAction;
+  | SelectAllProgressiveAction
+  | TUIAction;
 
 // Combined action type that commands can return
 export type CommandAction =

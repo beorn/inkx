@@ -7,7 +7,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
-import { render } from "ink-testing-library";
+import { render } from "inkx/testing";
 import React from "react";
 
 // Test directories in /tmp/ to avoid polluting source tree

@@ -7,7 +7,7 @@
  * Design: Inverse text (white on gray) with centered arrow and count.
  */
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "inkx";
 
 export interface OverflowIndicatorProps {
   direction: "up" | "down";

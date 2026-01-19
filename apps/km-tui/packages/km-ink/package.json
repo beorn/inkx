@@ -15,8 +15,7 @@
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "chalk": "^5.4.1",
-    "fullscreen-ink": "^0.1.0",
-    "ink": "^6.6.0",
+    "inkx": "workspace:*",
     "react": "catalog:",
     "wrap-ansi": "^9.0.2"
   },

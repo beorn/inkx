@@ -4,7 +4,7 @@
  * Extracted from Board.tsx to reduce file size.
  */
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "inkx";
 import { styledUnderline } from "@beorn/chalkx";
 import type { CardState, ColumnState } from "../types.ts";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";

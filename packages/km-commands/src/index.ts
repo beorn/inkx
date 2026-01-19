@@ -18,6 +18,15 @@ export type {
   CycleViewModeAction,
   DeleteNodeAction,
   SelectAllProgressiveAction,
+  // TUI-specific action types
+  TUIAction,
+  QuitAction,
+  ShowNewItemDialogAction,
+  ShowProjectPickerAction,
+  JumpToFavoriteAction,
+  JumpToColumnAction,
+  CloseOrQuitAction,
+  OutdentNodeAction,
   BoardAction,
   BoardState,
   TNode,
@@ -61,6 +70,7 @@ export {
   editCommands,
   taskCommands,
   historyCommands,
+  tuiCommands,
   allCommands,
   type TaskAction,
 } from "./commands/index.ts";

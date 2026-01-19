@@ -5,7 +5,7 @@
  * Press 'p' on a task to open, search to filter, Enter to move.
  */
 import React, { useState, useMemo } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "inkx";
 import type { KNode } from "@km/core";
 import { getAllNodes, getNode } from "@km/storage";
 import { getNodeDisplayName } from "../state.ts";
