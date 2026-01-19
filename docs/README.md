@@ -62,11 +62,12 @@ km init                    # Enable persistence (stable IDs, history)
 
 ### Use (User-Facing)
 
-| Doc                        | Description                      |
-| -------------------------- | -------------------------------- |
-| [06-ui.md](06-ui.md)       | Views, navigation, design system |
-| [07-tasks.md](07-tasks.md) | Tasks, boards, GTD workflow      |
-| [08-cli.md](08-cli.md)     | CLI commands                     |
+| Doc                              | Description                          |
+| -------------------------------- | ------------------------------------ |
+| [06-ui.md](06-ui.md)             | Views, navigation, design system     |
+| [07-tasks.md](07-tasks.md)       | Tasks, boards, GTD workflow          |
+| [08-cli.md](08-cli.md)           | CLI commands                         |
+| [09-commands.md](09-commands.md) | Unified command system, keybindings  |
 
 ### Extend (Future)
 
