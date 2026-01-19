@@ -13,7 +13,7 @@
  *   const node = nodeMap.getOrNull(id);  // O(1) lookup, returns null if not found
  */
 
-import type { TNode, TPath } from "./boardTypes.ts";
+import type { TNode, TPath } from "./board-types.ts";
 
 /**
  * Entry in the node map containing both the node and its path.

@@ -7,7 +7,7 @@
  * Does NOT handle app-specific UI state (modals, dialogs) - that belongs in app layer.
  */
 
-import type { BoardState, BoardAction, TNode, TPath } from "./boardTypes.ts";
+import type { BoardState, BoardAction, TNode, TPath } from "./board-types.ts";
 import { isTAction } from "@km/tree";
 
 // ===== Helper Functions =====

@@ -5,8 +5,8 @@
  * No side effects, no React imports - pure TypeScript.
  */
 
-import type { BoardState, TNode } from "./boardTypes.ts";
-import { getNodeAtPath, getSiblingCount } from "./boardReducer.ts";
+import type { BoardState, TNode } from "./board-types.ts";
+import { getNodeAtPath, getSiblingCount } from "./board-reducer.ts";
 
 /**
  * Get the currently selected node

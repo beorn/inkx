@@ -17,8 +17,8 @@ export type {
   TaskStatus,
   ViewLevelConfig,
   BoardViewModel,
-} from "./boardTypes.ts";
-export { VIEW_LEVEL_PRESETS } from "./boardTypes.ts";
+} from "./board-types.ts";
+export { VIEW_LEVEL_PRESETS } from "./board-types.ts";
 
 // ===== Tree Actions (re-exported for convenience) =====
 export type { TAction } from "@km/tree";
@@ -30,7 +30,7 @@ export {
   createBoardState,
   getNodeAtPath,
   getSiblingCount,
-} from "./boardReducer.ts";
+} from "./board-reducer.ts";
 
 // ===== Selectors =====
 export {
@@ -68,5 +68,5 @@ export {
   CachedNodeMap,
   getNodeById,
   getNodeEntryById,
-} from "./nodeMap.ts";
-export type { NodeMap, NodeMapEntry } from "./nodeMap.ts";
+} from "./node-map.ts";
+export type { NodeMap, NodeMapEntry } from "./node-map.ts";

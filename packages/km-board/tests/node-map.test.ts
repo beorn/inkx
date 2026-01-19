@@ -4,8 +4,8 @@ import {
   CachedNodeMap,
   getNodeById,
   getNodeEntryById,
-} from "../src/nodeMap.ts";
-import type { TNode } from "../src/boardTypes.ts";
+} from "../src/node-map.ts";
+import type { TNode } from "../src/board-types.ts";
 
 // Helper to create test nodes
 function node(id: string, children: TNode[] = []): TNode {

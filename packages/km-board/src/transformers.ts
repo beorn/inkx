@@ -5,7 +5,7 @@
  * Pure functions - no side effects, no React, no domain imports.
  */
 
-import type { BoardState, ViewMode, BoardViewModel } from "./boardTypes.ts";
+import type { BoardState, ViewMode, BoardViewModel } from "./board-types.ts";
 
 /**
  * Transform BoardState into BoardViewModel
