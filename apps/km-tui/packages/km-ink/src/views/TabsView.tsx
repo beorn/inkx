@@ -4,16 +4,14 @@
  * Similar to list view but with tab-based navigation between columns.
  * Only shows one column at a time with tabs at the top for switching.
  *
- * Uses the constraint system (ScrollableList) for reliable card layout.
+ * Uses inkx overflow="scroll" for native scrolling support.
  */
 import React from "react";
 import { Box, Text } from "inkx";
 import type { BoardState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
-import { OverflowIndicator } from "./OverflowIndicator.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { useTreeConfig } from "../ui-context.tsx";
-import { ConstraintContext, ScrollableList } from "../constraints/index.ts";
 
 interface TabsViewProps {
   state: BoardState;
@@ -50,51 +48,6 @@ export function TabsView({
 
   // Column header is selected when at column level
   const isColumnHeaderSelected = selectionLevel === "column";
-
-  // Render function for ScrollableList
-  const renderCard = (
-    card: CardState,
-    actualCardIndex: number,
-    _isSelected: boolean,
-  ): React.ReactNode => {
-    const cardSelected =
-      selectionLevel === "card" &&
-      actualCardIndex === cardIndex &&
-      !inOutlineMode;
-
-    return (
-      <TreeNode
-        key={card.node.id}
-        node={card.node}
-        depth={0}
-        width={width}
-        isSelected={
-          cardSelected ||
-          (selectionLevel === "card" &&
-            inOutlineMode &&
-            actualCardIndex === cardIndex &&
-            subIndex === 0)
-        }
-        colIndex={colIndex}
-        cardIndex={actualCardIndex}
-        subIndex={0}
-      />
-    );
-  };
-
-  // Custom overflow renderer using unified OverflowIndicator
-  const renderOverflow = (
-    direction: "top" | "bottom",
-    count: number,
-  ): React.ReactNode => {
-    return (
-      <OverflowIndicator
-        direction={direction === "top" ? "up" : "down"}
-        count={count}
-        width={width}
-      />
-    );
-  };
 
   return (
     <Box flexDirection="column" width={width} height={height}>
@@ -145,32 +98,42 @@ export function TabsView({
       {/* Top border only */}
       <Text dimColor>{"─".repeat(width)}</Text>
 
-      {/* Content area with ScrollableList */}
+      {/* Content area with inkx native scrolling */}
       <Box flexDirection="column" width={width} height={contentHeight}>
         {currentColumn ? (
           count > 0 ? (
-            <ConstraintContext.Provider
-              value={{
-                terminal: { columns: width, rows: contentHeight },
-                parent: { width, height: contentHeight },
-              }}
+            <Box
+              flexDirection="column"
+              height={contentHeight}
+              overflow="scroll"
+              scrollTo={cardIndex}
             >
-              <Box
-                flexDirection="column"
-                flexGrow={1}
-                height={contentHeight}
-                overflowY="hidden"
-              >
-                <ScrollableList
-                  items={currentColumn.cards}
-                  selectedIndex={cardIndex}
-                  itemHeight={1}
-                  height={contentHeight}
-                  renderItem={renderCard}
-                  renderOverflow={renderOverflow}
-                />
-              </Box>
-            </ConstraintContext.Provider>
+              {currentColumn.cards.map((card, actualCardIndex) => {
+                const cardSelected =
+                  selectionLevel === "card" &&
+                  actualCardIndex === cardIndex &&
+                  !inOutlineMode;
+
+                return (
+                  <TreeNode
+                    key={card.node.id}
+                    node={card.node}
+                    depth={0}
+                    width={width}
+                    isSelected={
+                      cardSelected ||
+                      (selectionLevel === "card" &&
+                        inOutlineMode &&
+                        actualCardIndex === cardIndex &&
+                        subIndex === 0)
+                    }
+                    colIndex={colIndex}
+                    cardIndex={actualCardIndex}
+                    subIndex={0}
+                  />
+                );
+              })}
+            </Box>
           ) : (
             <Box marginLeft={1}>
               <Text dimColor>(empty)</Text>

@@ -1,7 +1,7 @@
 /**
  * Card and Column components for the Board view
  *
- * Extracted from Board.tsx to reduce file size.
+ * Uses inkx overflow="scroll" for native scrolling support.
  */
 import React from "react";
 import { Box, Text } from "inkx";
@@ -10,8 +10,6 @@ import type { CardState, ColumnState } from "../types.ts";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { TreeNode } from "./TreeNode.tsx";
-import { calculateScrollState } from "../constraints/index.ts";
-import { OverflowIndicator } from "./OverflowIndicator.tsx";
 
 // =============================================================================
 // Card Component
@@ -44,7 +42,6 @@ export function Card({
       width={width}
       borderStyle="round"
       borderColor={isSelected ? "cyanBright" : "blackBright"}
-      overflowX="hidden"
     >
       <TreeNode
         node={card.node}
@@ -97,20 +94,7 @@ export function Column({
   const wipExceeded = wipLimit !== undefined && count > wipLimit;
 
   // Available height for cards: column height - blank line (1) - header (1)
-  const baseContentHeight = Math.max(1, height - 2);
-  // Card height: border (2 lines) + content (1 to maxContentLines)
-  // Use minimum content height of 1 line for estimation
-  const estimatedCardHeight = 1 + 2; // 1 line content + 2 border = 3 lines minimum
-
-  // Use constraint system's scroll calculation
-  const scrollState = calculateScrollState(
-    column.cards,
-    selectedCardIndex,
-    baseContentHeight,
-    estimatedCardHeight,
-    0,
-    true,
-  );
+  const contentHeight = Math.max(1, height - 2);
 
   // Build count display
   const countDisplay =
@@ -122,12 +106,7 @@ export function Column({
   const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnSelected);
 
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      height={height}
-      overflowY="hidden"
-    >
+    <Box flexDirection="column" width={width} height={height}>
       {/* Blank line above header */}
       <Text> </Text>
 
@@ -154,7 +133,7 @@ export function Column({
       {isCollapsed ? (
         <Box
           flexDirection="column"
-          height={baseContentHeight}
+          height={contentHeight}
           justifyContent="center"
           alignItems="center"
         >
@@ -163,54 +142,33 @@ export function Column({
       ) : (
         <Box
           flexDirection="column"
-          height={baseContentHeight}
-          flexShrink={0}
-          flexGrow={0}
-          overflowY="hidden"
+          height={contentHeight}
+          overflow="scroll"
+          scrollTo={selectedCardIndex}
         >
-          <OverflowIndicator
-            direction="up"
-            count={scrollState.overflowTop}
-            width={width}
-          />
-
-          <Box
-            flexDirection="column"
-            flexGrow={1}
-            alignItems="flex-start"
-            overflowY="hidden"
-          >
-            {scrollState.visible.map(
-              ({ item: card, index: actualCardIndex }) => {
-                const cardIsSelected =
-                  isSelected &&
-                  actualCardIndex === selectedCardIndex &&
-                  selectionLevel === "card";
-                return (
-                  <Card
-                    key={card.node.id}
-                    card={card}
-                    isSelected={cardIsSelected}
-                    selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
-                    width={width}
-                    colIndex={colIndex}
-                    cardIndex={actualCardIndex}
-                  />
-                );
-              },
-            )}
-            {column.cards.length === 0 && (
-              <Box marginTop={1}>
-                <Text dimColor>(empty)</Text>
-              </Box>
-            )}
-          </Box>
-
-          <OverflowIndicator
-            direction="down"
-            count={scrollState.overflowBottom}
-            width={width}
-          />
+          {column.cards.length === 0 ? (
+            <Box marginTop={1}>
+              <Text dimColor>(empty)</Text>
+            </Box>
+          ) : (
+            column.cards.map((card: CardState, index: number) => {
+              const cardIsSelected =
+                isSelected &&
+                index === selectedCardIndex &&
+                selectionLevel === "card";
+              return (
+                <Card
+                  key={card.node.id}
+                  card={card}
+                  isSelected={cardIsSelected}
+                  selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
+                  width={width}
+                  colIndex={colIndex}
+                  cardIndex={index}
+                />
+              );
+            })
+          )}
         </Box>
       )}
     </Box>
