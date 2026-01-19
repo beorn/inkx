@@ -10,6 +10,7 @@
   "dependencies": {
     "@beorn/chalkx": "workspace:*",
     "@km/board": "workspace:*",
+    "@km/commands": "workspace:*",
     "@km/core": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",

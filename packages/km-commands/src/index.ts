@@ -51,3 +51,15 @@ export {
   allCommands,
   type TaskAction,
 } from "./commands/index.ts";
+
+// Ink Adapter (for TUI integration)
+export {
+  initCommandSystem,
+  inkKeyToString,
+  inkKeyToModifiers,
+  processInkKey,
+  buildKeybindingContext,
+  wouldHandleKey,
+  type InkKeyEvent,
+  type InkCommandResult,
+} from "./ink-adapter.ts";
