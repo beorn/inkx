@@ -58,21 +58,27 @@ interface CommandDef {
   execute: (ctx: CommandContext) => CommandAction | CommandAction[] | null;
 }
 
-type CommandCategory = "Navigation" | "Selection" | "Edit" | "Task" | "Fold" | "View";
+type CommandCategory =
+  | "Navigation"
+  | "Selection"
+  | "Edit"
+  | "Task"
+  | "Fold"
+  | "View";
 type CommandMode = "normal" | "move" | "search" | "input";
 ```
 
 ### Field Details
 
-| Field         | Purpose                                          |
-| ------------- | ------------------------------------------------ |
-| `id`          | Unique identifier, snake_case for shell/CLI use  |
-| `name`        | Human-readable name for palette/help             |
-| `description` | Longer description for documentation             |
-| `category`    | Grouping for organization and filtering          |
-| `shortcuts`   | Optional array of default key bindings           |
-| `modes`       | Optional array of modes where command is active  |
-| `execute`     | Pure function that produces actions              |
+| Field         | Purpose                                         |
+| ------------- | ----------------------------------------------- |
+| `id`          | Unique identifier, snake_case for shell/CLI use |
+| `name`        | Human-readable name for palette/help            |
+| `description` | Longer description for documentation            |
+| `category`    | Grouping for organization and filtering         |
+| `shortcuts`   | Optional array of default key bindings          |
+| `modes`       | Optional array of modes where command is active |
+| `execute`     | Pure function that produces actions             |
 
 ### Execute Return Values
 
@@ -124,71 +130,71 @@ Commands never mutate state directly. They return actions that describe _what sh
 
 Cursor movement, zoom, history navigation.
 
-| Command                   | Description                           |
-| ------------------------- | ------------------------------------- |
-| `cursor_next`             | Move to next sibling                  |
-| `cursor_prev`             | Move to previous sibling              |
-| `cursor_in`               | Move into first child                 |
-| `cursor_out`              | Move to parent                        |
-| `cursor_first`            | Move to first sibling                 |
-| `cursor_last`             | Move to last sibling                  |
-| `cursor_up`               | Move up visually                      |
-| `cursor_down`             | Move down visually                    |
-| `cursor_left`             | Move left (cross-column)              |
-| `cursor_right`            | Move right (cross-column)             |
-| `nav_cross_column_left`   | Navigate to column on left            |
-| `nav_cross_column_right`  | Navigate to column on right           |
-| `nav_back`                | Navigate history back                 |
-| `nav_forward`             | Navigate history forward              |
-| `zoom_in`                 | Zoom into current node                |
-| `zoom_out`                | Zoom out to parent                    |
+| Command                  | Description                 |
+| ------------------------ | --------------------------- |
+| `cursor_next`            | Move to next sibling        |
+| `cursor_prev`            | Move to previous sibling    |
+| `cursor_in`              | Move into first child       |
+| `cursor_out`             | Move to parent              |
+| `cursor_first`           | Move to first sibling       |
+| `cursor_last`            | Move to last sibling        |
+| `cursor_up`              | Move up visually            |
+| `cursor_down`            | Move down visually          |
+| `cursor_left`            | Move left (cross-column)    |
+| `cursor_right`           | Move right (cross-column)   |
+| `nav_cross_column_left`  | Navigate to column on left  |
+| `nav_cross_column_right` | Navigate to column on right |
+| `nav_back`               | Navigate history back       |
+| `nav_forward`            | Navigate history forward    |
+| `zoom_in`                | Zoom into current node      |
+| `zoom_out`               | Zoom out to parent          |
 
 ### Selection
 
 Single, multi, and range selection.
 
-| Command               | Description                    |
-| --------------------- | ------------------------------ |
-| `select_toggle`       | Toggle selection on node       |
-| `select_add`          | Add current node to selection  |
-| `select_remove`       | Remove node from selection     |
-| `select_all_siblings` | Select all siblings            |
-| `select_all`          | Select all visible nodes       |
-| `clear_selection`     | Clear all selections           |
-| `extend_select_up`    | Extend selection upward        |
-| `extend_select_down`  | Extend selection downward      |
-| `extend_select_left`  | Extend selection leftward      |
-| `extend_select_right` | Extend selection rightward     |
+| Command               | Description                   |
+| --------------------- | ----------------------------- |
+| `select_toggle`       | Toggle selection on node      |
+| `select_add`          | Add current node to selection |
+| `select_remove`       | Remove node from selection    |
+| `select_all_siblings` | Select all siblings           |
+| `select_all`          | Select all visible nodes      |
+| `clear_selection`     | Clear all selections          |
+| `extend_select_up`    | Extend selection upward       |
+| `extend_select_down`  | Extend selection downward     |
+| `extend_select_left`  | Extend selection leftward     |
+| `extend_select_right` | Extend selection rightward    |
 
 ### Edit
 
 Mutations and move mode commands.
 
-| Command           | Description                        |
-| ----------------- | ---------------------------------- |
-| `enter_move_mode` | Start moving selected nodes        |
-| `confirm_move`    | Confirm node movement (move mode)  |
-| `cancel_move`     | Cancel move operation (move mode)  |
-| `shift_up`        | Move node up among siblings        |
-| `shift_down`      | Move node down among siblings      |
-| `shift_left`      | Move node to parent level (outdent)|
-| `shift_right`     | Move node under sibling (indent)   |
-| `undo`            | Undo the last action               |
-| `redo`            | Redo the last undone action        |
+| Command           | Description                         |
+| ----------------- | ----------------------------------- |
+| `enter_move_mode` | Start moving selected nodes         |
+| `confirm_move`    | Confirm node movement (move mode)   |
+| `cancel_move`     | Cancel move operation (move mode)   |
+| `shift_up`        | Move node up among siblings         |
+| `shift_down`      | Move node down among siblings       |
+| `shift_left`      | Move node to parent level (outdent) |
+| `shift_right`     | Move node under sibling (indent)    |
+| `undo`            | Undo the last action                |
+| `redo`            | Redo the last undone action         |
 
 ### Task
 
 Task-specific status changes.
 
-| Command             | Description                          |
-| ------------------- | ------------------------------------ |
-| `cycle_task_status` | Cycle through statuses (todo/wip/done/dropped) |
-| `toggle_task_done`  | Toggle between done and todo         |
-| `set_status_todo`   | Set task status to todo              |
-| `set_status_wip`    | Set task status to work in progress  |
-| `set_status_blocked`| Set task status to blocked           |
-| `set_status_done`   | Mark task as done                    |
-| `set_status_dropped`| Mark task as dropped/cancelled       |
+| Command              | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `cycle_task_status`  | Cycle through statuses (todo/wip/done/dropped) |
+| `toggle_task_done`   | Toggle between done and todo                   |
+| `set_status_todo`    | Set task status to todo                        |
+| `set_status_wip`     | Set task status to work in progress            |
+| `set_status_blocked` | Set task status to blocked                     |
+| `set_status_done`    | Mark task as done                              |
+| `set_status_dropped` | Mark task as dropped/cancelled                 |
 
 ### Fold
 
@@ -205,12 +211,12 @@ Expand/collapse tree nodes.
 
 Display settings.
 
-| Command                   | Description                |
-| ------------------------- | -------------------------- |
-| `increase_outline_depth`  | Show more nested levels    |
-| `decrease_outline_depth`  | Show fewer nested levels   |
-| `increase_content_lines`  | Show more content preview  |
-| `decrease_content_lines`  | Show less content preview  |
+| Command                  | Description               |
+| ------------------------ | ------------------------- |
+| `increase_outline_depth` | Show more nested levels   |
+| `decrease_outline_depth` | Show fewer nested levels  |
+| `increase_content_lines` | Show more content preview |
+| `decrease_content_lines` | Show less content preview |
 
 ---
 
@@ -251,84 +257,84 @@ interface Keybinding {
 
 #### Navigation
 
-| Key             | Command                   | Description                   |
-| --------------- | ------------------------- | ----------------------------- |
-| `j`             | `cursor_next`             | Move to next sibling          |
-| `k`             | `cursor_prev`             | Move to previous sibling      |
-| `h`             | `cursor_out`              | Move to parent                |
-| `l`             | `cursor_in`               | Move into first child         |
-| `g`             | `cursor_first`            | Move to first sibling         |
-| `G`             | `cursor_last`             | Move to last sibling          |
-| `ArrowDown`     | `cursor_down`             | Move down visually            |
-| `ArrowUp`       | `cursor_up`               | Move up visually              |
-| `ArrowLeft`     | `cursor_left`             | Move left (cross-column)      |
-| `ArrowRight`    | `cursor_right`            | Move right (cross-column)     |
-| `H`             | `nav_cross_column_left`   | Navigate to column on left    |
-| `L`             | `nav_cross_column_right`  | Navigate to column on right   |
-| `[`             | `nav_back`                | Navigate back in history      |
-| `]`             | `nav_forward`             | Navigate forward in history   |
-| `Enter`         | `zoom_in`                 | Zoom into node (normal mode)  |
-| `Backspace`     | `zoom_out`                | Zoom out to parent            |
-| `u`             | `zoom_out`                | Zoom out to parent            |
+| Key          | Command                  | Description                  |
+| ------------ | ------------------------ | ---------------------------- |
+| `j`          | `cursor_next`            | Move to next sibling         |
+| `k`          | `cursor_prev`            | Move to previous sibling     |
+| `h`          | `cursor_out`             | Move to parent               |
+| `l`          | `cursor_in`              | Move into first child        |
+| `g`          | `cursor_first`           | Move to first sibling        |
+| `G`          | `cursor_last`            | Move to last sibling         |
+| `ArrowDown`  | `cursor_down`            | Move down visually           |
+| `ArrowUp`    | `cursor_up`              | Move up visually             |
+| `ArrowLeft`  | `cursor_left`            | Move left (cross-column)     |
+| `ArrowRight` | `cursor_right`           | Move right (cross-column)    |
+| `H`          | `nav_cross_column_left`  | Navigate to column on left   |
+| `L`          | `nav_cross_column_right` | Navigate to column on right  |
+| `[`          | `nav_back`               | Navigate back in history     |
+| `]`          | `nav_forward`            | Navigate forward in history  |
+| `Enter`      | `zoom_in`                | Zoom into node (normal mode) |
+| `Backspace`  | `zoom_out`               | Zoom out to parent           |
+| `u`          | `zoom_out`               | Zoom out to parent           |
 
 #### Selection
 
-| Key              | Command               | Description              |
-| ---------------- | --------------------- | ------------------------ |
-| `v`              | `select_toggle`       | Toggle selection         |
-| `V`              | `select_all_siblings` | Select all siblings      |
-| `Ctrl+A`         | `select_all`          | Select all               |
-| `Escape`         | `clear_selection`     | Clear selection          |
-| `Shift+Up`       | `extend_select_up`    | Extend selection up      |
-| `Shift+Down`     | `extend_select_down`  | Extend selection down    |
-| `Shift+Left`     | `extend_select_left`  | Extend selection left    |
-| `Shift+Right`    | `extend_select_right` | Extend selection right   |
+| Key           | Command               | Description            |
+| ------------- | --------------------- | ---------------------- |
+| `v`           | `select_toggle`       | Toggle selection       |
+| `V`           | `select_all_siblings` | Select all siblings    |
+| `Ctrl+A`      | `select_all`          | Select all             |
+| `Escape`      | `clear_selection`     | Clear selection        |
+| `Shift+Up`    | `extend_select_up`    | Extend selection up    |
+| `Shift+Down`  | `extend_select_down`  | Extend selection down  |
+| `Shift+Left`  | `extend_select_left`  | Extend selection left  |
+| `Shift+Right` | `extend_select_right` | Extend selection right |
 
 #### Edit
 
-| Key              | Command           | Description                  |
-| ---------------- | ----------------- | ---------------------------- |
-| `m`              | `enter_move_mode` | Start move mode              |
-| `Enter` (move)   | `confirm_move`    | Confirm move (move mode)     |
-| `Escape` (move)  | `cancel_move`     | Cancel move (move mode)      |
-| `Alt+Up`         | `shift_up`        | Move node up                 |
-| `Alt+Down`       | `shift_down`      | Move node down               |
-| `Alt+Left`       | `shift_left`      | Outdent node                 |
-| `Alt+Right`      | `shift_right`     | Indent node                  |
-| `Alt+k`          | `shift_up`        | Move node up                 |
-| `Alt+j`          | `shift_down`      | Move node down               |
-| `Alt+h`          | `shift_left`      | Outdent node                 |
-| `Alt+l`          | `shift_right`     | Indent node                  |
-| `Tab`            | `shift_right`     | Indent node                  |
-| `Shift+Tab`      | `shift_left`      | Outdent node                 |
-| `Ctrl+Z`         | `undo`            | Undo last action             |
-| `Ctrl+Shift+Z`   | `redo`            | Redo undone action           |
-| `Ctrl+Y`         | `redo`            | Redo undone action           |
+| Key             | Command           | Description              |
+| --------------- | ----------------- | ------------------------ |
+| `m`             | `enter_move_mode` | Start move mode          |
+| `Enter` (move)  | `confirm_move`    | Confirm move (move mode) |
+| `Escape` (move) | `cancel_move`     | Cancel move (move mode)  |
+| `Alt+Up`        | `shift_up`        | Move node up             |
+| `Alt+Down`      | `shift_down`      | Move node down           |
+| `Alt+Left`      | `shift_left`      | Outdent node             |
+| `Alt+Right`     | `shift_right`     | Indent node              |
+| `Alt+k`         | `shift_up`        | Move node up             |
+| `Alt+j`         | `shift_down`      | Move node down           |
+| `Alt+h`         | `shift_left`      | Outdent node             |
+| `Alt+l`         | `shift_right`     | Indent node              |
+| `Tab`           | `shift_right`     | Indent node              |
+| `Shift+Tab`     | `shift_left`      | Outdent node             |
+| `Ctrl+Z`        | `undo`            | Undo last action         |
+| `Ctrl+Shift+Z`  | `redo`            | Redo undone action       |
+| `Ctrl+Y`        | `redo`            | Redo undone action       |
 
 #### Task
 
-| Key     | Command             | Description               |
-| ------- | ------------------- | ------------------------- |
-| `Space` | `cycle_task_status` | Cycle through statuses    |
-| `x`     | `toggle_task_done`  | Toggle between done/todo  |
+| Key     | Command             | Description              |
+| ------- | ------------------- | ------------------------ |
+| `Space` | `cycle_task_status` | Cycle through statuses   |
+| `x`     | `toggle_task_done`  | Toggle between done/todo |
 
 #### Fold
 
-| Key       | Command           | Description              |
-| --------- | ----------------- | ------------------------ |
-| `z`       | `toggle_fold`     | Toggle fold              |
-| `c`       | `toggle_collapse` | Toggle column collapse   |
-| `Z`       | `fold_all`        | Fold all nodes           |
-| `Shift+Z` | `unfold_all`      | Unfold all nodes         |
+| Key       | Command           | Description            |
+| --------- | ----------------- | ---------------------- |
+| `z`       | `toggle_fold`     | Toggle fold            |
+| `c`       | `toggle_collapse` | Toggle column collapse |
+| `Z`       | `fold_all`        | Fold all nodes         |
+| `Shift+Z` | `unfold_all`      | Unfold all nodes       |
 
 #### View
 
-| Key     | Command                   | Description              |
-| ------- | ------------------------- | ------------------------ |
-| `<`     | `decrease_outline_depth`  | Decrease visible depth   |
-| `>`     | `increase_outline_depth`  | Increase visible depth   |
-| `+`/`=` | `increase_content_lines`  | Show more content        |
-| `-`/`_` | `decrease_content_lines`  | Show less content        |
+| Key     | Command                  | Description            |
+| ------- | ------------------------ | ---------------------- |
+| `<`     | `decrease_outline_depth` | Decrease visible depth |
+| `>`     | `increase_outline_depth` | Increase visible depth |
+| `+`/`=` | `increase_content_lines` | Show more content      |
+| `-`/`_` | `decrease_content_lines` | Show less content      |
 
 ---
 

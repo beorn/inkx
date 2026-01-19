@@ -40,7 +40,7 @@ export function getAllKeybindings(): Keybinding[] {
 export function resolveKeybinding(
   key: string,
   modifiers: { ctrl?: boolean; meta?: boolean; shift?: boolean; alt?: boolean },
-  ctx: KeybindingContext
+  ctx: KeybindingContext,
 ): string | null {
   for (const binding of keybindings) {
     // Check key match

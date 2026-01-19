@@ -163,7 +163,9 @@ export function isTaskStatusAction(
 /**
  * Check if a command action is a history action (undo/redo).
  */
-export function isHistoryAction(action: CommandAction): action is HistoryAction {
+export function isHistoryAction(
+  action: CommandAction,
+): action is HistoryAction {
   return action.type === "HISTORY_UNDO" || action.type === "HISTORY_REDO";
 }
 

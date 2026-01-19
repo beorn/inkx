@@ -22,7 +22,7 @@ function createCommand(
   id: string,
   category: CommandCategory = "Navigation",
   name?: string,
-  description?: string
+  description?: string,
 ): CommandDef {
   return {
     id,
@@ -235,11 +235,31 @@ describe("filterCommands", () => {
   beforeEach(() => {
     clearRegistry();
     registerCommands([
-      createCommand("cursor_next", "Navigation", "Move to Next", "Move cursor to next sibling"),
-      createCommand("cursor_prev", "Navigation", "Move to Previous", "Move cursor to previous sibling"),
-      createCommand("select_toggle", "Selection", "Toggle Selection", "Toggle selection on current node"),
+      createCommand(
+        "cursor_next",
+        "Navigation",
+        "Move to Next",
+        "Move cursor to next sibling",
+      ),
+      createCommand(
+        "cursor_prev",
+        "Navigation",
+        "Move to Previous",
+        "Move cursor to previous sibling",
+      ),
+      createCommand(
+        "select_toggle",
+        "Selection",
+        "Toggle Selection",
+        "Toggle selection on current node",
+      ),
       createCommand("task_done", "Task", "Mark Done", "Mark task as done"),
-      createCommand("zoom_in", "Navigation", "Zoom In", "Focus on current node"),
+      createCommand(
+        "zoom_in",
+        "Navigation",
+        "Zoom In",
+        "Focus on current node",
+      ),
     ]);
   });
 

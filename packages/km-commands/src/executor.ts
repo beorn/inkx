@@ -1,9 +1,15 @@
-import type { CommandContext, CommandAction, BoardState, TNode, ViewMode } from "./types.ts";
+import type {
+  CommandContext,
+  CommandAction,
+  BoardState,
+  TNode,
+  ViewMode,
+} from "./types.ts";
 import { getCommand } from "./registry.ts";
 
 export function executeCommand(
   id: string,
-  ctx: CommandContext
+  ctx: CommandContext,
 ): CommandAction | CommandAction[] | null {
   const cmd = getCommand(id);
   if (!cmd) return null;
@@ -13,7 +19,7 @@ export function executeCommand(
 export function buildContext(
   boardState: BoardState,
   viewMode: ViewMode,
-  extras?: Partial<CommandContext>
+  extras?: Partial<CommandContext>,
 ): CommandContext {
   const cursor = boardState.cursor;
   const nodes = boardState.nodes;

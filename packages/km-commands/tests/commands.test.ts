@@ -13,10 +13,19 @@ import { editCommands } from "../src/commands/edit.ts";
 import { taskCommands } from "../src/commands/task.ts";
 import { viewCommands } from "../src/commands/view.ts";
 import { historyCommands } from "../src/commands/history.ts";
-import type { CommandContext, TNode, BoardState, CommandAction } from "../src/types.ts";
+import type {
+  CommandContext,
+  TNode,
+  BoardState,
+  CommandAction,
+} from "../src/types.ts";
 
 // Helper to create minimal TNode
-function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): TNode {
+function createNode(
+  id: string,
+  children: TNode[] = [],
+  opts?: Partial<TNode>,
+): TNode {
   return {
     id,
     type: "section",
@@ -81,7 +90,9 @@ function createContext(overrides?: Partial<CommandContext>): CommandContext {
 }
 
 // Helper to create context with task node
-function createTaskContext(status?: "todo" | "wip" | "done" | "dropped" | "blocked"): CommandContext {
+function createTaskContext(
+  status?: "todo" | "wip" | "done" | "dropped" | "blocked",
+): CommandContext {
   const taskNode = createNode("task-node", [], {
     isTask: true,
     task_status: status ?? "todo",
@@ -198,14 +209,18 @@ describe("navigationCommands", () => {
 
   describe("cross-column navigation", () => {
     it("nav_cross_column_left returns NAV_CROSS_COLUMN direction=left", () => {
-      const cmd = navigationCommands.find((c) => c.id === "nav_cross_column_left");
+      const cmd = navigationCommands.find(
+        (c) => c.id === "nav_cross_column_left",
+      );
       const result = cmd!.execute(createContext());
 
       expect(result).toEqual({ type: "NAV_CROSS_COLUMN", direction: "left" });
     });
 
     it("nav_cross_column_right returns NAV_CROSS_COLUMN direction=right", () => {
-      const cmd = navigationCommands.find((c) => c.id === "nav_cross_column_right");
+      const cmd = navigationCommands.find(
+        (c) => c.id === "nav_cross_column_right",
+      );
       const result = cmd!.execute(createContext());
 
       expect(result).toEqual({ type: "NAV_CROSS_COLUMN", direction: "right" });
@@ -427,7 +442,12 @@ describe("taskCommands", () => {
     });
 
     it("cycles through statuses: todo -> wip -> done -> dropped -> todo", () => {
-      const statuses: Array<"todo" | "wip" | "done" | "dropped"> = ["todo", "wip", "done", "dropped"];
+      const statuses: Array<"todo" | "wip" | "done" | "dropped"> = [
+        "todo",
+        "wip",
+        "done",
+        "dropped",
+      ];
       const expectedNext = ["wip", "done", "dropped", "todo"];
 
       for (let i = 0; i < statuses.length; i++) {
@@ -555,7 +575,10 @@ describe("viewCommands (fold and view config)", () => {
       const cmd = viewCommands.find((c) => c.id === "toggle_collapse");
       const result = cmd!.execute(ctx);
 
-      expect(result).toEqual({ type: "TOGGLE_COLLAPSE", nodeId: "collapse-target" });
+      expect(result).toEqual({
+        type: "TOGGLE_COLLAPSE",
+        nodeId: "collapse-target",
+      });
     });
 
     it("fold_all returns FOLD_LEVEL with depth 1", () => {

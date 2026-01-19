@@ -41,7 +41,9 @@ function createNode(id: string, opts?: Partial<TNode>): TNode {
 }
 
 // Helper to create keybinding context
-function createContext(overrides?: Partial<KeybindingContext>): KeybindingContext {
+function createContext(
+  overrides?: Partial<KeybindingContext>,
+): KeybindingContext {
   return {
     mode: "normal",
     hasSelection: false,
@@ -205,7 +207,9 @@ describe("resolveKeybinding", () => {
       });
 
       const ctx = createContext();
-      expect(resolveKeybinding("z", { ctrl: true, shift: true }, ctx)).toBe("redo");
+      expect(resolveKeybinding("z", { ctrl: true, shift: true }, ctx)).toBe(
+        "redo",
+      );
       expect(resolveKeybinding("z", { ctrl: true }, ctx)).toBeNull();
       expect(resolveKeybinding("z", { shift: true }, ctx)).toBeNull();
     });
@@ -215,7 +219,9 @@ describe("resolveKeybinding", () => {
 
       const ctx = createContext();
       // Extra shift modifier should not match
-      expect(resolveKeybinding("z", { ctrl: true, shift: true }, ctx)).toBeNull();
+      expect(
+        resolveKeybinding("z", { ctrl: true, shift: true }, ctx),
+      ).toBeNull();
     });
 
     it("treats undefined and false modifiers the same", () => {
@@ -223,7 +229,9 @@ describe("resolveKeybinding", () => {
 
       const ctx = createContext();
       expect(resolveKeybinding("a", {}, ctx)).toBe("cmd_a");
-      expect(resolveKeybinding("a", { ctrl: false, shift: false }, ctx)).toBe("cmd_a");
+      expect(resolveKeybinding("a", { ctrl: false, shift: false }, ctx)).toBe(
+        "cmd_a",
+      );
     });
   });
 
@@ -257,8 +265,12 @@ describe("resolveKeybinding", () => {
         modes: [],
       });
 
-      expect(resolveKeybinding("j", {}, createContext({ mode: "normal" }))).toBe("cursor_next");
-      expect(resolveKeybinding("j", {}, createContext({ mode: "move" }))).toBe("cursor_next");
+      expect(
+        resolveKeybinding("j", {}, createContext({ mode: "normal" })),
+      ).toBe("cursor_next");
+      expect(resolveKeybinding("j", {}, createContext({ mode: "move" }))).toBe(
+        "cursor_next",
+      );
     });
 
     it("matches any mode when modes is undefined", () => {
@@ -267,9 +279,15 @@ describe("resolveKeybinding", () => {
         commandId: "cursor_next",
       });
 
-      expect(resolveKeybinding("j", {}, createContext({ mode: "normal" }))).toBe("cursor_next");
-      expect(resolveKeybinding("j", {}, createContext({ mode: "move" }))).toBe("cursor_next");
-      expect(resolveKeybinding("j", {}, createContext({ mode: "search" }))).toBe("cursor_next");
+      expect(
+        resolveKeybinding("j", {}, createContext({ mode: "normal" })),
+      ).toBe("cursor_next");
+      expect(resolveKeybinding("j", {}, createContext({ mode: "move" }))).toBe(
+        "cursor_next",
+      );
+      expect(
+        resolveKeybinding("j", {}, createContext({ mode: "search" })),
+      ).toBe("cursor_next");
     });
 
     it("supports multiple allowed modes", () => {
@@ -354,17 +372,29 @@ describe("resolveKeybinding", () => {
 
       // Mode match + condition match
       expect(
-        resolveKeybinding("Enter", {}, createContext({ mode: "normal", currentNode: node }))
+        resolveKeybinding(
+          "Enter",
+          {},
+          createContext({ mode: "normal", currentNode: node }),
+        ),
       ).toBe("zoom_in");
 
       // Mode match + condition fail
       expect(
-        resolveKeybinding("Enter", {}, createContext({ mode: "normal", currentNode: null }))
+        resolveKeybinding(
+          "Enter",
+          {},
+          createContext({ mode: "normal", currentNode: null }),
+        ),
       ).toBeNull();
 
       // Mode fail + condition match
       expect(
-        resolveKeybinding("Enter", {}, createContext({ mode: "move", currentNode: node }))
+        resolveKeybinding(
+          "Enter",
+          {},
+          createContext({ mode: "move", currentNode: node }),
+        ),
       ).toBeNull();
     });
   });
@@ -470,9 +500,15 @@ describe("initDefaultKeybindings", () => {
     const ctx = createContext({ mode: "normal" });
 
     expect(resolveKeybinding("ArrowUp", { alt: true }, ctx)).toBe("shift_up");
-    expect(resolveKeybinding("ArrowDown", { alt: true }, ctx)).toBe("shift_down");
-    expect(resolveKeybinding("ArrowLeft", { alt: true }, ctx)).toBe("shift_left");
-    expect(resolveKeybinding("ArrowRight", { alt: true }, ctx)).toBe("shift_right");
+    expect(resolveKeybinding("ArrowDown", { alt: true }, ctx)).toBe(
+      "shift_down",
+    );
+    expect(resolveKeybinding("ArrowLeft", { alt: true }, ctx)).toBe(
+      "shift_left",
+    );
+    expect(resolveKeybinding("ArrowRight", { alt: true }, ctx)).toBe(
+      "shift_right",
+    );
   });
 
   it("includes undo/redo keybindings", () => {
@@ -481,7 +517,9 @@ describe("initDefaultKeybindings", () => {
     const ctx = createContext({ mode: "normal" });
 
     expect(resolveKeybinding("z", { ctrl: true }, ctx)).toBe("undo");
-    expect(resolveKeybinding("z", { ctrl: true, shift: true }, ctx)).toBe("redo");
+    expect(resolveKeybinding("z", { ctrl: true, shift: true }, ctx)).toBe(
+      "redo",
+    );
     expect(resolveKeybinding("y", { ctrl: true }, ctx)).toBe("redo");
   });
 
@@ -490,10 +528,18 @@ describe("initDefaultKeybindings", () => {
 
     const ctx = createContext({ mode: "normal" });
 
-    expect(resolveKeybinding("ArrowUp", { shift: true }, ctx)).toBe("extend_select_up");
-    expect(resolveKeybinding("ArrowDown", { shift: true }, ctx)).toBe("extend_select_down");
-    expect(resolveKeybinding("ArrowLeft", { shift: true }, ctx)).toBe("extend_select_left");
-    expect(resolveKeybinding("ArrowRight", { shift: true }, ctx)).toBe("extend_select_right");
+    expect(resolveKeybinding("ArrowUp", { shift: true }, ctx)).toBe(
+      "extend_select_up",
+    );
+    expect(resolveKeybinding("ArrowDown", { shift: true }, ctx)).toBe(
+      "extend_select_down",
+    );
+    expect(resolveKeybinding("ArrowLeft", { shift: true }, ctx)).toBe(
+      "extend_select_left",
+    );
+    expect(resolveKeybinding("ArrowRight", { shift: true }, ctx)).toBe(
+      "extend_select_right",
+    );
   });
 });
 

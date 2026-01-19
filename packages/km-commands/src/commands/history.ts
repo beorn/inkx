@@ -9,7 +9,11 @@
  * HISTORY_REDO by re-applying a previously undone action.
  */
 
-import type { CommandDef, HistoryUndoAction, HistoryRedoAction } from "../types.ts";
+import type {
+  CommandDef,
+  HistoryUndoAction,
+  HistoryRedoAction,
+} from "../types.ts";
 
 export const undoCommand: CommandDef = {
   id: "undo",

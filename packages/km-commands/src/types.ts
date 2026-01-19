@@ -1,4 +1,11 @@
-import type { BoardAction, BoardState, TNode, TPath, ViewMode, TaskStatus } from "@km/board";
+import type {
+  BoardAction,
+  BoardState,
+  TNode,
+  TPath,
+  ViewMode,
+  TaskStatus,
+} from "@km/board";
 
 export type CommandCategory =
   | "Navigation"

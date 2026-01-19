@@ -5,7 +5,12 @@
  * This allows gradual migration from keyboard-handler.ts.
  */
 
-import type { CommandContext, CommandAction, ViewMode, TNode } from "./types.ts";
+import type {
+  CommandContext,
+  CommandAction,
+  ViewMode,
+  TNode,
+} from "./types.ts";
 import type { KeybindingContext } from "./keybindings.ts";
 import { resolveKeybinding, initDefaultKeybindings } from "./keybindings.ts";
 import { executeCommand } from "./executor.ts";

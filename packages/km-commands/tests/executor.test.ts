@@ -6,11 +6,25 @@
 
 import { describe, it, expect, beforeEach } from "bun:test";
 import { executeCommand, buildContext } from "../src/executor.ts";
-import { registerCommand, registerCommands, clearRegistry } from "../src/registry.ts";
-import type { CommandDef, CommandContext, TNode, BoardState, ViewMode } from "../src/types.ts";
+import {
+  registerCommand,
+  registerCommands,
+  clearRegistry,
+} from "../src/registry.ts";
+import type {
+  CommandDef,
+  CommandContext,
+  TNode,
+  BoardState,
+  ViewMode,
+} from "../src/types.ts";
 
 // Helper to create minimal TNode
-function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): TNode {
+function createNode(
+  id: string,
+  children: TNode[] = [],
+  opts?: Partial<TNode>,
+): TNode {
   return {
     id,
     type: "section",
@@ -298,7 +312,10 @@ describe("buildContext", () => {
 
   describe("selectedNodes conversion", () => {
     it("converts Set to Array", () => {
-      const boardState = createBoardState([createNode("a"), createNode("b")], [0]);
+      const boardState = createBoardState(
+        [createNode("a"), createNode("b")],
+        [0],
+      );
       boardState.selectedNodes = new Set(["a", "b"]);
 
       const ctx = buildContext(boardState, "cards");
@@ -341,7 +358,9 @@ describe("buildContext", () => {
         customField: "custom-value",
       } as Partial<CommandContext> & { customField: string });
 
-      expect((ctx as CommandContext & { customField: string }).customField).toBe("custom-value");
+      expect(
+        (ctx as CommandContext & { customField: string }).customField,
+      ).toBe("custom-value");
     });
   });
 });
