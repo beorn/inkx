@@ -4,6 +4,8 @@
  * Full-width tree/outline view of the board hierarchy.
  * Shows the same data as board view but in a hierarchical list format.
  * Uses virtualization for performance with large lists.
+ *
+ * Uses the constraint system for reliable layout.
  */
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
@@ -13,7 +15,24 @@ import { OverflowIndicator } from "./OverflowIndicator.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { useTreeConfig } from "../ui-context.tsx";
-import { calculateScrollState } from "../constraints/index.ts";
+import { ConstraintContext, ScrollableList } from "../constraints/index.ts";
+
+// Type for flattened list items
+type FlatItem =
+  | {
+      type: "header";
+      colIdx: number;
+      cardIdx: -1;
+      column: BoardState["columns"][0];
+      card?: undefined;
+    }
+  | {
+      type: "card";
+      colIdx: number;
+      cardIdx: number;
+      column: BoardState["columns"][0];
+      card: CardState;
+    };
 
 interface ListViewProps {
   state: BoardState;
@@ -38,17 +57,10 @@ export function ListView({
   const { maxContentLines, inOutlineMode } = useTreeConfig();
 
   const availableHeight = height - 2;
-  const colWidth = width;
 
   // Flatten all cards into a single list for virtualization
   const flatItems = useMemo(() => {
-    const items: Array<{
-      type: "header" | "card";
-      colIdx: number;
-      cardIdx: number;
-      column: (typeof state.columns)[0];
-      card?: CardState;
-    }> = [];
+    const items: FlatItem[] = [];
 
     state.columns.forEach((column, cIdx) => {
       items.push({ type: "header", colIdx: cIdx, cardIdx: -1, column });
@@ -69,16 +81,97 @@ export function ListView({
     return selectionLevel === "column" ? idx : idx + 1 + cardIndex;
   }, [colIndex, cardIndex, selectionLevel, state.columns]);
 
-  // Virtualize: only render visible items
+  // Render function for ScrollableList
+  const renderItem = (
+    item: FlatItem,
+    _index: number,
+    _isSelected: boolean,
+  ): React.ReactNode => {
+    if (item.type === "header") {
+      const column = item.column;
+      const cIdx = item.colIdx;
+      const isColSelected = selectionLevel === "column" && colIndex === cIdx;
+      const isSelected = colIndex === cIdx;
+      const ownColor = getOwnColor(column.node);
+      const headerStyle = getHeaderStyle(ownColor, isSelected, isColSelected);
+
+      return (
+        <Text
+          key={`header-${column.node.id}`}
+          bold={isSelected}
+          color={headerStyle.color}
+          dimColor={headerStyle.dimColor}
+          backgroundColor={headerStyle.backgroundColor}
+          wrap="truncate"
+        >
+          {getNodeDisplayName(column.node)} ({column.cards.length})
+        </Text>
+      );
+    }
+
+    // Card item
+    const card = item.card;
+    const cIdx = item.colIdx;
+    const cardIdx = item.cardIdx;
+    const isCardSelected =
+      selectionLevel === "card" &&
+      colIndex === cIdx &&
+      cardIndex === cardIdx &&
+      !inOutlineMode;
+
+    return (
+      <TreeNode
+        key={card.node.id}
+        node={card.node}
+        depth={0}
+        width={width}
+        isSelected={
+          isCardSelected ||
+          (selectionLevel === "card" &&
+            inOutlineMode &&
+            colIndex === cIdx &&
+            cardIndex === cardIdx &&
+            subIndex === 0)
+        }
+        colIndex={cIdx}
+        cardIndex={cardIdx}
+        subIndex={0}
+      />
+    );
+  };
+
+  // Custom overflow renderer
+  const renderOverflow = (
+    direction: "top" | "bottom",
+    count: number,
+  ): React.ReactNode => {
+    return (
+      <OverflowIndicator
+        direction={direction === "top" ? "up" : "down"}
+        count={count}
+        width={width}
+        variant="text"
+      />
+    );
+  };
+
+  // Empty state
+  if (state.columns.length === 0) {
+    return (
+      <Box
+        flexDirection="column"
+        width={width}
+        height={availableHeight}
+        overflowY="hidden"
+      >
+        <Text> </Text>
+        <Text dimColor>No columns to display</Text>
+      </Box>
+    );
+  }
+
+  // Item height (maxContentLines + 1 for spacing)
   const itemHeight = maxContentLines + 1;
-  const scrollState = calculateScrollState(
-    flatItems,
-    selectedFlatIndex,
-    availableHeight - 1,
-    itemHeight,
-    0,
-    true,
-  );
 
   return (
     <Box
@@ -90,85 +183,22 @@ export function ListView({
       {/* Blank line at top */}
       <Text> </Text>
 
-      <OverflowIndicator
-        direction="up"
-        count={scrollState.overflowTop}
-        width={width}
-        variant="text"
-      />
-
-      {/* Virtualized items */}
-      {scrollState.visible.map(({ item }) => {
-        if (item.type === "header") {
-          const column = item.column;
-          const cIdx = item.colIdx;
-          const isColSelected =
-            selectionLevel === "column" && colIndex === cIdx;
-          const isSelected = colIndex === cIdx;
-          const ownColor = getOwnColor(column.node);
-          const headerStyle = getHeaderStyle(
-            ownColor,
-            isSelected,
-            isColSelected,
-          );
-
-          return (
-            <Text
-              key={`header-${column.node.id}`}
-              bold={isSelected}
-              color={headerStyle.color}
-              dimColor={headerStyle.dimColor}
-              backgroundColor={headerStyle.backgroundColor}
-              wrap="truncate"
-            >
-              {getNodeDisplayName(column.node)} ({column.cards.length})
-            </Text>
-          );
-        }
-
-        // Card item
-        const card = item.card;
-        if (!card) return null;
-
-        const cIdx = item.colIdx;
-        const cardIdx = item.cardIdx;
-        const isCardSelected =
-          selectionLevel === "card" &&
-          colIndex === cIdx &&
-          cardIndex === cardIdx &&
-          !inOutlineMode;
-
-        return (
-          <TreeNode
-            key={card.node.id}
-            node={card.node}
-            depth={0}
-            width={colWidth}
-            isSelected={
-              isCardSelected ||
-              (selectionLevel === "card" &&
-                inOutlineMode &&
-                colIndex === cIdx &&
-                cardIndex === cardIdx &&
-                subIndex === 0)
-            }
-            colIndex={cIdx}
-            cardIndex={cardIdx}
-            subIndex={0}
-          />
-        );
-      })}
-
-      <OverflowIndicator
-        direction="down"
-        count={scrollState.overflowBottom}
-        width={width}
-        variant="text"
-      />
-
-      {state.columns.length === 0 && (
-        <Text dimColor>No columns to display</Text>
-      )}
+      {/* Virtualized list using ScrollableList */}
+      <ConstraintContext.Provider
+        value={{
+          terminal: { columns: width, rows: availableHeight - 1 },
+          parent: { width, height: availableHeight - 1 },
+        }}
+      >
+        <ScrollableList
+          items={flatItems}
+          selectedIndex={selectedFlatIndex}
+          itemHeight={itemHeight}
+          height={availableHeight - 1}
+          renderItem={renderItem}
+          renderOverflow={renderOverflow}
+        />
+      </ConstraintContext.Provider>
     </Box>
   );
 }

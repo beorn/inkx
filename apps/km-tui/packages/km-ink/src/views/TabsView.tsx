@@ -3,14 +3,16 @@
  *
  * Similar to list view but with tab-based navigation between columns.
  * Only shows one column at a time with tabs at the top for switching.
+ *
+ * Uses the constraint system (ScrollableList) for reliable card layout.
  */
 import React from "react";
 import { Box, Text } from "ink";
-import type { BoardState } from "../types.ts";
+import type { BoardState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { useTreeConfig } from "../ui-context.tsx";
-import { calcScrollOffset } from "../constraints/index.ts";
+import { ConstraintContext, ScrollableList } from "../constraints/index.ts";
 
 interface TabsViewProps {
   state: BoardState;
@@ -35,26 +37,66 @@ export function TabsView({
 
   // Tab bar height (1 line for spacing + 1 for tabs)
   const tabBarHeight = 2;
-  // Content height: total - tab bar - border (2)
+  // Content height: total - tab bar - border (1) - spacer (1)
   const contentHeight = Math.max(1, height - tabBarHeight - 4);
 
   // Get current column
   const currentColumn = state.columns[colIndex];
   const count = currentColumn?.cards.length ?? 0;
 
-  // Calculate visible cards with scrolling
-  const maxVisibleCards = Math.max(1, contentHeight);
-  const needsScroll = count > maxVisibleCards;
-  const scrollOffset = needsScroll
-    ? calcScrollOffset(cardIndex, maxVisibleCards, count)
-    : 0;
-
-  const visibleCards = currentColumn
-    ? currentColumn.cards.slice(scrollOffset, scrollOffset + maxVisibleCards)
-    : [];
-
   // Column header is selected when at column level
   const isColumnHeaderSelected = selectionLevel === "column";
+
+  // Render function for ScrollableList
+  const renderCard = (
+    card: CardState,
+    actualCardIndex: number,
+    _isSelected: boolean,
+  ): React.ReactNode => {
+    const cardSelected =
+      selectionLevel === "card" &&
+      actualCardIndex === cardIndex &&
+      !inOutlineMode;
+
+    return (
+      <TreeNode
+        key={card.node.id}
+        node={card.node}
+        depth={0}
+        width={width}
+        isSelected={
+          cardSelected ||
+          (selectionLevel === "card" &&
+            inOutlineMode &&
+            actualCardIndex === cardIndex &&
+            subIndex === 0)
+        }
+        colIndex={colIndex}
+        cardIndex={actualCardIndex}
+        subIndex={0}
+      />
+    );
+  };
+
+  // Custom overflow renderer matching original style
+  const renderOverflow = (
+    direction: "top" | "bottom",
+    overflowCount: number,
+  ): React.ReactNode => {
+    if (direction === "top") {
+      return (
+        <Text dimColor>
+          {" "}
+          {"\u25B2"} {overflowCount} above
+        </Text>
+      );
+    }
+    return (
+      <Text dimColor>
+        {" \u25BC"} {overflowCount} below
+      </Text>
+    );
+  };
 
   return (
     <Box flexDirection="column" width={width} height={height - 2}>
@@ -105,7 +147,7 @@ export function TabsView({
       {/* Top border only */}
       <Text dimColor>{"─".repeat(width)}</Text>
 
-      {/* Content area */}
+      {/* Content area with ScrollableList */}
       <Box
         flexDirection="column"
         width={width}
@@ -113,45 +155,28 @@ export function TabsView({
       >
         {currentColumn ? (
           count > 0 ? (
-            <Box flexDirection="column" flexGrow={1} overflowY="hidden">
-              {scrollOffset > 0 && (
-                <Text dimColor>
-                  {" "}
-                  {"\u25B2"} {scrollOffset} above
-                </Text>
-              )}
-              {visibleCards.map((card, i) => {
-                const actualCardIndex = scrollOffset + i;
-                const cardSelected =
-                  selectionLevel === "card" &&
-                  actualCardIndex === cardIndex &&
-                  !inOutlineMode;
-
-                return (
-                  <TreeNode
-                    key={card.node.id}
-                    node={card.node}
-                    depth={0}
-                    width={width}
-                    isSelected={
-                      cardSelected ||
-                      (selectionLevel === "card" &&
-                        inOutlineMode &&
-                        actualCardIndex === cardIndex &&
-                        subIndex === 0)
-                    }
-                    colIndex={colIndex}
-                    cardIndex={actualCardIndex}
-                    subIndex={0}
-                  />
-                );
-              })}
-              {needsScroll && scrollOffset + visibleCards.length < count && (
-                <Text dimColor>
-                  {" \u25BC"} {count - scrollOffset - visibleCards.length} below
-                </Text>
-              )}
-            </Box>
+            <ConstraintContext.Provider
+              value={{
+                terminal: { columns: width, rows: contentHeight },
+                parent: { width, height: contentHeight },
+              }}
+            >
+              <Box
+                flexDirection="column"
+                flexGrow={1}
+                height={contentHeight}
+                overflowY="hidden"
+              >
+                <ScrollableList
+                  items={currentColumn.cards}
+                  selectedIndex={cardIndex}
+                  itemHeight={1}
+                  height={contentHeight}
+                  renderItem={renderCard}
+                  renderOverflow={renderOverflow}
+                />
+              </Box>
+            </ConstraintContext.Provider>
           ) : (
             <Box marginLeft={1}>
               <Text dimColor>(empty)</Text>

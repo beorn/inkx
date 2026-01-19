@@ -3,15 +3,24 @@
  *
  * Tree/outline view within each column - combines the columnar structure
  * with hierarchical display of cards and their children.
+ *
+ * Uses the constraint system (FlexRow, ScrollableList) for reliable layout
+ * without manual width calculations that can cause gaps or overlaps.
  */
 import React from "react";
 import { Box, Text } from "ink";
-import type { BoardState, ColumnState } from "../types.ts";
+import type { BoardState, ColumnState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { useTreeConfig } from "../ui-context.tsx";
-import { calcScrollOffset } from "../constraints/index.ts";
+import {
+  ConstraintContext,
+  FlexRow,
+  FlexItem,
+  ScrollableList,
+  useConstraintContext,
+} from "../constraints/index.ts";
 
 // =============================================================================
 // ColumnTree Subcomponent
@@ -23,8 +32,6 @@ interface ColumnTreeProps {
   isSelected: boolean;
   selectedCardIndex: number;
   selectedSubIndex: number;
-  width: number;
-  height: number;
   selectionLevel: "board" | "column" | "card";
 }
 
@@ -34,30 +41,16 @@ function ColumnTree({
   isSelected,
   selectedCardIndex,
   selectedSubIndex,
-  width,
-  height,
   selectionLevel,
 }: ColumnTreeProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
+  const { parent } = useConstraintContext();
+  const width = parent.width;
+  const height = parent.height;
 
   const name = getNodeDisplayName(column.node);
   const count = column.cards.length;
   const ownColor = getOwnColor(column.node);
-
-  // Available height for cards: column height - blank line (1) - header (1)
-  const contentHeight = Math.max(1, height - 2);
-  const maxVisibleCards = Math.max(1, contentHeight);
-
-  // Only scroll if we actually have more cards than can fit
-  const needsScroll = column.cards.length > maxVisibleCards;
-  const scrollOffset = needsScroll
-    ? calcScrollOffset(selectedCardIndex, maxVisibleCards, column.cards.length)
-    : 0;
-
-  const visibleCards = column.cards.slice(
-    scrollOffset,
-    scrollOffset + maxVisibleCards,
-  );
 
   // Column header is selected when at column level
   const isColumnHeaderSelected = isSelected && selectionLevel === "column";
@@ -67,12 +60,60 @@ function ColumnTree({
     isColumnHeaderSelected,
   );
 
-  // Height for cards area
+  // Height for cards area: total height - header section (2 lines)
   const cardsHeight = Math.max(1, height - 2);
+
+  // Render function for ScrollableList
+  const renderCard = (
+    card: CardState,
+    actualCardIndex: number,
+    _isSelectedItem: boolean,
+  ): React.ReactNode => {
+    const cardSelected =
+      selectionLevel === "card" &&
+      isSelected &&
+      actualCardIndex === selectedCardIndex &&
+      !inOutlineMode;
+
+    return (
+      <TreeNode
+        key={card.node.id}
+        node={card.node}
+        depth={0}
+        width={width}
+        isSelected={
+          cardSelected ||
+          (selectionLevel === "card" &&
+            inOutlineMode &&
+            isSelected &&
+            actualCardIndex === selectedCardIndex &&
+            selectedSubIndex === 0)
+        }
+        colIndex={colIndex}
+        cardIndex={actualCardIndex}
+        subIndex={0}
+      />
+    );
+  };
+
+  // Custom overflow renderer matching original style
+  const renderOverflow = (
+    direction: "top" | "bottom",
+    overflowCount: number,
+  ): React.ReactNode => {
+    if (direction === "top") {
+      return <Text dimColor> ▲ {overflowCount} above</Text>;
+    }
+    return (
+      <Text dimColor>
+        {"  "}▼ {overflowCount} below
+      </Text>
+    );
+  };
 
   return (
     <Box flexDirection="column" width={width} height={height}>
-      {/* Header section */}
+      {/* Header section - fixed 2 lines */}
       <Box flexDirection="column" height={2} flexShrink={0}>
         <Text> </Text>
         <Text
@@ -86,51 +127,77 @@ function ColumnTree({
         </Text>
       </Box>
 
-      {/* Cards as tree nodes */}
-      <Box
-        flexDirection="column"
-        width={width}
-        height={cardsHeight}
-        alignItems="flex-start"
-        overflowY="hidden"
+      {/* Cards as tree nodes using ScrollableList */}
+      <ConstraintContext.Provider
+        value={{
+          terminal: { columns: width, rows: cardsHeight },
+          parent: { width, height: cardsHeight },
+        }}
       >
-        {scrollOffset > 0 && <Text dimColor> ▲ {scrollOffset} above</Text>}
-        {visibleCards.map((card, i) => {
-          const actualCardIndex = scrollOffset + i;
-          const cardSelected =
-            selectionLevel === "card" &&
-            isSelected &&
-            actualCardIndex === selectedCardIndex &&
-            !inOutlineMode;
+        <Box
+          flexDirection="column"
+          width={width}
+          height={cardsHeight}
+          overflowY="hidden"
+        >
+          <ScrollableList
+            items={column.cards}
+            selectedIndex={isSelected ? selectedCardIndex : -1}
+            itemHeight={1}
+            height={cardsHeight}
+            renderItem={renderCard}
+            renderOverflow={renderOverflow}
+          />
+        </Box>
+      </ConstraintContext.Provider>
+    </Box>
+  );
+}
 
-          return (
-            <TreeNode
-              key={card.node.id}
-              node={card.node}
-              depth={0}
-              width={width}
-              isSelected={
-                cardSelected ||
-                (selectionLevel === "card" &&
-                  inOutlineMode &&
-                  isSelected &&
-                  actualCardIndex === selectedCardIndex &&
-                  selectedSubIndex === 0)
-              }
-              colIndex={colIndex}
-              cardIndex={actualCardIndex}
-              subIndex={0}
-            />
-          );
-        })}
-        {needsScroll &&
-          scrollOffset + visibleCards.length < column.cards.length && (
-            <Text dimColor>
-              {"  "}▼ {column.cards.length - scrollOffset - visibleCards.length}{" "}
-              below
-            </Text>
-          )}
-      </Box>
+// =============================================================================
+// Scroll Indicator Component
+// =============================================================================
+
+interface ScrollIndicatorProps {
+  direction: "left" | "right";
+  height: number;
+}
+
+function ScrollIndicator({
+  direction,
+  height,
+}: ScrollIndicatorProps): React.ReactElement {
+  const arrow = direction === "left" ? "‹" : "›";
+  const midPoint = Math.floor((height - 1) / 2);
+
+  return (
+    <Box flexDirection="column" width={1} height={height - 1}>
+      {Array.from({ length: height - 1 }).map((_, i) => (
+        <Text key={i} backgroundColor="gray" color="white">
+          {i === midPoint ? arrow : " "}
+        </Text>
+      ))}
+    </Box>
+  );
+}
+
+// =============================================================================
+// Column Separator Component
+// =============================================================================
+
+interface ColumnSeparatorProps {
+  height: number;
+}
+
+function ColumnSeparator({ height }: ColumnSeparatorProps): React.ReactElement {
+  return (
+    <Box flexDirection="column" width={1} height={height}>
+      <Text> </Text>
+      {Array.from({ length: height - 1 }).map((_, j) => (
+        <Text key={j} color="gray">
+          │
+        </Text>
+      ))}
     </Box>
   );
 }
@@ -164,77 +231,80 @@ export function ColumnsView({
   effectiveVisibleColumns,
   selectionLevel,
 }: ColumnsViewProps): React.ReactElement {
-  // Calculate column widths
   const hasLeftIndicator = effectiveScrollOffset > 0;
   const hasRightIndicator =
     effectiveScrollOffset + effectiveMaxCols < state.columns.length;
   const indicatorWidth =
     (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
-  const availableWidth = width - indicatorWidth;
+
+  // Width available for columns (after indicators)
+  const columnsWidth = width - indicatorWidth;
+  // Account for separators between columns
+  const separatorCount = Math.max(0, effectiveVisibleColumns.length - 1);
+  const availableForColumns = columnsWidth - separatorCount;
+
+  // Empty state
+  if (state.columns.length === 0) {
+    return (
+      <Box flexDirection="row" width={width} height={height}>
+        <Text dimColor>No columns to display</Text>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="row" width={width} height={height}>
       {/* Left scroll indicator */}
-      {hasLeftIndicator && (
-        <Box flexDirection="column" width={1} height={height - 1}>
-          {Array.from({ length: height - 1 }).map((_, i) => (
-            <Text key={i} backgroundColor="gray" color="white">
-              {i === Math.floor((height - 1) / 2) ? "‹" : " "}
-            </Text>
-          ))}
-        </Box>
-      )}
+      {hasLeftIndicator && <ScrollIndicator direction="left" height={height} />}
 
-      {/* Columns with tree view inside */}
-      {effectiveVisibleColumns.map((col, i) => {
-        const actualColIndex = effectiveScrollOffset + i;
-        const isLastCol = i === effectiveVisibleColumns.length - 1;
-        const separatorCount = effectiveVisibleColumns.length - 1;
-        const availWidthForCols = availableWidth - separatorCount;
-        const colBaseWidth = Math.floor(availWidthForCols / effectiveMaxCols);
-        const colRemainder = availWidthForCols % effectiveMaxCols;
-        const colWidth = colBaseWidth + (i < colRemainder ? 1 : 0);
+      {/* Columns container with FlexRow for integer-based width distribution */}
+      <ConstraintContext.Provider
+        value={{
+          terminal: { columns: availableForColumns, rows: height },
+          parent: { width: availableForColumns, height },
+        }}
+      >
+        <FlexRow>
+          {effectiveVisibleColumns.map((col, i) => {
+            const actualColIndex = effectiveScrollOffset + i;
 
-        return (
-          <React.Fragment key={col.node.id}>
-            <ColumnTree
-              column={col}
-              colIndex={actualColIndex}
-              isSelected={actualColIndex === colIndex}
-              selectedCardIndex={cardIndex}
-              selectedSubIndex={subIndex}
-              width={colWidth}
-              height={height}
-              selectionLevel={selectionLevel}
-            />
-            {/* Separator line between columns */}
-            {!isLastCol && (
-              <Box flexDirection="column" width={1} height={height}>
-                <Text> </Text>
-                {Array.from({ length: height - 1 }).map((_, j) => (
-                  <Text key={j} color="gray">
-                    │
-                  </Text>
-                ))}
-              </Box>
-            )}
-          </React.Fragment>
-        );
-      })}
+            return (
+              <React.Fragment key={col.node.id}>
+                <FlexItem flex={1}>
+                  <ColumnTree
+                    column={col}
+                    colIndex={actualColIndex}
+                    isSelected={actualColIndex === colIndex}
+                    selectedCardIndex={cardIndex}
+                    selectedSubIndex={subIndex}
+                    selectionLevel={selectionLevel}
+                  />
+                </FlexItem>
+              </React.Fragment>
+            );
+          })}
+        </FlexRow>
+      </ConstraintContext.Provider>
+
+      {/* Separators rendered separately to maintain clean layout */}
+      {effectiveVisibleColumns.length > 1 &&
+        effectiveVisibleColumns.slice(0, -1).map((col, i) => (
+          <Box
+            key={`sep-${col.node.id}`}
+            position="absolute"
+            marginLeft={
+              (hasLeftIndicator ? 1 : 0) +
+              Math.floor((availableForColumns / effectiveMaxCols) * (i + 1)) +
+              i
+            }
+          >
+            <ColumnSeparator height={height} />
+          </Box>
+        ))}
 
       {/* Right scroll indicator */}
       {hasRightIndicator && (
-        <Box flexDirection="column" width={1} height={height - 1}>
-          {Array.from({ length: height - 1 }).map((_, i) => (
-            <Text key={i} backgroundColor="gray" color="white">
-              {i === Math.floor((height - 1) / 2) ? "›" : " "}
-            </Text>
-          ))}
-        </Box>
-      )}
-
-      {state.columns.length === 0 && (
-        <Text dimColor>No columns to display</Text>
+        <ScrollIndicator direction="right" height={height} />
       )}
     </Box>
   );

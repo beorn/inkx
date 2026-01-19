@@ -43,6 +43,12 @@ import { tuiEvents } from "../tui.ts";
 import { UIProvider } from "../ui-context.tsx";
 import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
+import {
+  ConstraintRoot,
+  ConstraintContext,
+  useComputedSize,
+  type ComputedSize,
+} from "../constraints/index.ts";
 
 export { makeSelectionKey } from "../types.ts";
 
@@ -253,212 +259,234 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   }
 
   return (
-    <UIProvider state={ui} dispatch={dispatch}>
-      <Box flexDirection="column" height={termHeight} minHeight={3}>
-        {/* Top bar: full path from root to selected item, inverted full width */}
-        {/* flexShrink={0} prevents Ink/Yoga from clipping this when content overflows */}
-        <Box height={1} width={termWidth} flexShrink={0}>
-          <Text>{topBarFg(" ") + topBarContent + topBarBg(padding)}</Text>
-        </Box>
+    <ConstraintRoot>
+      <UIProvider state={ui} dispatch={dispatch}>
         <Box
-          flexGrow={1}
-          flexDirection="row"
-          height={termHeight - 2}
+          flexDirection="column"
+          height={termHeight}
+          minHeight={3}
           overflowY="hidden"
         >
-          {/* Cards, Columns, or List view */}
-          {ui.viewMode === "cards" ? (
-            <Box flexDirection="row" width={boardWidth} height={termHeight - 2}>
-              {/* Left scroll indicator - full height filled bar */}
-              {effectiveScrollOffset > 0 && (
-                <Box flexDirection="column" width={1} height={termHeight - 3}>
-                  {Array.from({ length: termHeight - 3 }).map((_, i) => (
-                    <Text key={i} backgroundColor="gray" color="white">
-                      {i === Math.floor((termHeight - 3) / 2) ? "‹" : " "}
-                    </Text>
-                  ))}
-                </Box>
-              )}
-              {effectiveVisibleColumns.map((col, i) => {
-                const actualColIndex = effectiveScrollOffset + i;
-                const isLastCol = i === effectiveVisibleColumns.length - 1;
-                // Reduce column width if scroll indicators are shown
-                const hasLeftIndicator = effectiveScrollOffset > 0;
-                const hasRightIndicator =
-                  effectiveScrollOffset + effectiveMaxCols <
-                  state.columns.length;
-                const indicatorWidth =
-                  (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
-                // Account for separator lines between columns (1 char each, n-1 separators)
-                const separatorCount = effectiveVisibleColumns.length - 1;
-                const availableWidth =
-                  boardWidth - indicatorWidth - separatorCount;
-                const baseColWidth = Math.floor(
-                  availableWidth / effectiveMaxCols,
-                );
-                const remainder = availableWidth % effectiveMaxCols;
-                // Distribute extra pixels to the first 'remainder' columns
-                const adjustedColWidth = baseColWidth + (i < remainder ? 1 : 0);
-                return (
-                  <React.Fragment key={col.node.id}>
-                    <Column
-                      column={col}
-                      colIndex={actualColIndex}
-                      isSelected={actualColIndex === state.colIndex}
-                      isCollapsed={ui.collapsedColumns.has(actualColIndex)}
-                      selectedCardIndex={state.cardIndex}
-                      selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
-                      width={adjustedColWidth}
-                      height={termHeight - 2}
-                      selectionLevel={ui.selectionLevel}
-                    />
-                    {/* Separator line between columns */}
-                    {!isLastCol && (
-                      <Box
-                        flexDirection="column"
-                        width={1}
+          {/* Top bar: full path from root to selected item, inverted full width */}
+          {/* flexShrink={0} prevents Ink/Yoga from clipping this when content overflows */}
+          <Box height={1} width={termWidth} flexShrink={0}>
+            <Text>{topBarFg(" ") + topBarContent + topBarBg(padding)}</Text>
+          </Box>
+          <Box
+            flexGrow={1}
+            flexDirection="row"
+            height={termHeight - 2}
+            overflowY="hidden"
+          >
+            {/* Cards, Columns, or List view */}
+            {ui.viewMode === "cards" ? (
+              <Box
+                flexDirection="row"
+                width={boardWidth}
+                height={termHeight - 2}
+              >
+                {/* Left scroll indicator - full height filled bar */}
+                {effectiveScrollOffset > 0 && (
+                  <Box flexDirection="column" width={1} height={termHeight - 3}>
+                    {Array.from({ length: termHeight - 3 }).map((_, i) => (
+                      <Text key={i} backgroundColor="gray" color="white">
+                        {i === Math.floor((termHeight - 3) / 2) ? "‹" : " "}
+                      </Text>
+                    ))}
+                  </Box>
+                )}
+                {effectiveVisibleColumns.map((col, i) => {
+                  const actualColIndex = effectiveScrollOffset + i;
+                  const isLastCol = i === effectiveVisibleColumns.length - 1;
+                  // Reduce column width if scroll indicators are shown
+                  const hasLeftIndicator = effectiveScrollOffset > 0;
+                  const hasRightIndicator =
+                    effectiveScrollOffset + effectiveMaxCols <
+                    state.columns.length;
+                  const indicatorWidth =
+                    (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
+                  // Account for separator lines between columns (1 char each, n-1 separators)
+                  const separatorCount = effectiveVisibleColumns.length - 1;
+                  const availableWidth =
+                    boardWidth - indicatorWidth - separatorCount;
+                  const baseColWidth = Math.floor(
+                    availableWidth / effectiveMaxCols,
+                  );
+                  const remainder = availableWidth % effectiveMaxCols;
+                  // Distribute extra pixels to the first 'remainder' columns
+                  const adjustedColWidth =
+                    baseColWidth + (i < remainder ? 1 : 0);
+                  return (
+                    <React.Fragment key={col.node.id}>
+                      <Column
+                        column={col}
+                        colIndex={actualColIndex}
+                        isSelected={actualColIndex === state.colIndex}
+                        isCollapsed={ui.collapsedColumns.has(actualColIndex)}
+                        selectedCardIndex={state.cardIndex}
+                        selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
+                        width={adjustedColWidth}
                         height={termHeight - 2}
-                      >
-                        {/* Blank line to align with column header spacing */}
-                        <Text> </Text>
-                        {Array.from({ length: termHeight - 3 }).map((_, j) => (
-                          <Text key={j} color="gray">
-                            │
-                          </Text>
-                        ))}
-                      </Box>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-              {/* Right scroll indicator - full height filled bar */}
-              {effectiveScrollOffset + effectiveMaxCols <
-                state.columns.length && (
-                <Box flexDirection="column" width={1} height={termHeight - 3}>
-                  {Array.from({ length: termHeight - 3 }).map((_, i) => (
-                    <Text key={i} backgroundColor="gray" color="white">
-                      {i === Math.floor((termHeight - 3) / 2) ? "›" : " "}
-                    </Text>
-                  ))}
-                </Box>
+                        selectionLevel={ui.selectionLevel}
+                      />
+                      {/* Separator line between columns */}
+                      {!isLastCol && (
+                        <Box
+                          flexDirection="column"
+                          width={1}
+                          height={termHeight - 2}
+                        >
+                          {/* Blank line to align with column header spacing */}
+                          <Text> </Text>
+                          {Array.from({ length: termHeight - 3 }).map(
+                            (_, j) => (
+                              <Text key={j} color="gray">
+                                │
+                              </Text>
+                            ),
+                          )}
+                        </Box>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+                {/* Right scroll indicator - full height filled bar */}
+                {effectiveScrollOffset + effectiveMaxCols <
+                  state.columns.length && (
+                  <Box flexDirection="column" width={1} height={termHeight - 3}>
+                    {Array.from({ length: termHeight - 3 }).map((_, i) => (
+                      <Text key={i} backgroundColor="gray" color="white">
+                        {i === Math.floor((termHeight - 3) / 2) ? "›" : " "}
+                      </Text>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            ) : ui.viewMode === "columns" ? (
+              <ColumnsView
+                state={state}
+                width={boardWidth}
+                height={termHeight - 2}
+                colIndex={state.colIndex}
+                cardIndex={state.cardIndex}
+                subIndex={ui.subIndex}
+                effectiveScrollOffset={effectiveScrollOffset}
+                effectiveMaxCols={effectiveMaxCols}
+                effectiveVisibleColumns={effectiveVisibleColumns}
+                selectionLevel={ui.selectionLevel}
+              />
+            ) : ui.viewMode === "list" ? (
+              <ListView
+                state={state}
+                width={boardWidth}
+                height={termHeight - 2}
+                colIndex={state.colIndex}
+                cardIndex={state.cardIndex}
+                subIndex={ui.subIndex}
+                selectionLevel={ui.selectionLevel}
+              />
+            ) : (
+              <TabsView
+                state={state}
+                width={boardWidth}
+                height={termHeight - 2}
+                colIndex={state.colIndex}
+                cardIndex={state.cardIndex}
+                subIndex={ui.subIndex}
+                selectionLevel={ui.selectionLevel}
+              />
+            )}
+            {/* Detail pane */}
+            {ui.showDetailPane && selectedCard && (
+              <DetailPane
+                node={selectedCard.node}
+                width={detailPaneWidth}
+                height={termHeight - 2}
+              />
+            )}
+            {/* Project picker modal */}
+            {ui.showProjectPicker && (
+              <Box
+                position="absolute"
+                marginLeft={Math.floor(termWidth / 4)}
+                marginTop={Math.floor(termHeight / 4)}
+              >
+                <ProjectPicker
+                  onSelect={handleProjectSelect}
+                  onCancel={handleProjectCancel}
+                  width={Math.floor(termWidth / 2)}
+                  height={Math.floor(termHeight / 2)}
+                  recentProjectIds={ui.recentProjectIds}
+                />
+              </Box>
+            )}
+            {/* New item dialog modal */}
+            {ui.showNewItemDialog && (
+              <Box
+                position="absolute"
+                marginLeft={Math.floor(termWidth / 4)}
+                marginTop={Math.floor(termHeight / 3)}
+              >
+                <NewItemDialog
+                  cursorNode={selectedCard?.node ?? null}
+                  onCreate={handleNewItemCreate}
+                  onCancel={handleNewItemCancel}
+                  width={Math.floor(termWidth / 2)}
+                  height={10}
+                />
+              </Box>
+            )}
+            {/* Help overlay */}
+            {ui.showHelp && (
+              <HelpOverlay width={termWidth} height={termHeight - 2} />
+            )}
+          </Box>
+          {/* Bottom bar: mode indicator left, other indicators right */}
+          {/* flexShrink={0} prevents this bar from being clipped when content overflows */}
+          <Box
+            width={termWidth}
+            justifyContent="space-between"
+            paddingX={1}
+            flexShrink={0}
+          >
+            {/* Left side: store mode indicator and path */}
+            <Text>
+              {(() => {
+                const store = getStore();
+                if (store.mode === "memory") {
+                  return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
+                }
+                return <Text color="green">DISK REPO {store.rootPath}</Text>;
+              })()}
+            </Text>
+            {/* Right side: status indicators */}
+            <Text>
+              {ui.showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
+              {ui.showProjectPicker && (
+                <Text color="green">{`[PROJECT] `}</Text>
               )}
-            </Box>
-          ) : ui.viewMode === "columns" ? (
-            <ColumnsView
-              state={state}
-              width={boardWidth}
-              height={termHeight - 2}
-              colIndex={state.colIndex}
-              cardIndex={state.cardIndex}
-              subIndex={ui.subIndex}
-              effectiveScrollOffset={effectiveScrollOffset}
-              effectiveMaxCols={effectiveMaxCols}
-              effectiveVisibleColumns={effectiveVisibleColumns}
-              selectionLevel={ui.selectionLevel}
-            />
-          ) : ui.viewMode === "list" ? (
-            <ListView
-              state={state}
-              width={boardWidth}
-              height={termHeight - 2}
-              colIndex={state.colIndex}
-              cardIndex={state.cardIndex}
-              subIndex={ui.subIndex}
-              selectionLevel={ui.selectionLevel}
-            />
-          ) : (
-            <TabsView
-              state={state}
-              width={boardWidth}
-              height={termHeight - 2}
-              colIndex={state.colIndex}
-              cardIndex={state.cardIndex}
-              subIndex={ui.subIndex}
-              selectionLevel={ui.selectionLevel}
-            />
-          )}
-          {/* Detail pane */}
-          {ui.showDetailPane && selectedCard && (
-            <DetailPane
-              node={selectedCard.node}
-              width={detailPaneWidth}
-              height={termHeight - 2}
-            />
-          )}
-          {/* Project picker modal */}
-          {ui.showProjectPicker && (
-            <Box
-              position="absolute"
-              marginLeft={Math.floor(termWidth / 4)}
-              marginTop={Math.floor(termHeight / 4)}
-            >
-              <ProjectPicker
-                onSelect={handleProjectSelect}
-                onCancel={handleProjectCancel}
-                width={Math.floor(termWidth / 2)}
-                height={Math.floor(termHeight / 2)}
-                recentProjectIds={ui.recentProjectIds}
-              />
-            </Box>
-          )}
-          {/* New item dialog modal */}
-          {ui.showNewItemDialog && (
-            <Box
-              position="absolute"
-              marginLeft={Math.floor(termWidth / 4)}
-              marginTop={Math.floor(termHeight / 3)}
-            >
-              <NewItemDialog
-                cursorNode={selectedCard?.node ?? null}
-                onCreate={handleNewItemCreate}
-                onCancel={handleNewItemCancel}
-                width={Math.floor(termWidth / 2)}
-                height={10}
-              />
-            </Box>
-          )}
-          {/* Help overlay */}
-          {ui.showHelp && (
-            <HelpOverlay width={termWidth} height={termHeight - 2} />
-          )}
+              {ui.showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
+              {ui.showDropNotification && ui.droppedFiles.length > 0 && (
+                <Text color="green">
+                  {`[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
+                </Text>
+              )}
+              {ui.isMouseDragging && ui.mouseSelection && (
+                <Text color="blue">{`[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `}</Text>
+              )}
+              {ui.multiSelected.size > 0 && (
+                <Text color="yellow">{`[${ui.multiSelected.size} sel] `}</Text>
+              )}
+              {ui.inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
+              {ui.selectionLevel !== "card" && (
+                <Text color="magenta">{`${ui.selectionLevel.toUpperCase()} `}</Text>
+              )}
+              <Text inverse>{` ${ui.viewMode.toUpperCase()} VIEW `}</Text>
+            </Text>
+          </Box>
         </Box>
-        {/* Bottom bar: mode indicator left, other indicators right */}
-        <Box width={termWidth} justifyContent="space-between" paddingX={1}>
-          {/* Left side: store mode indicator and path */}
-          <Text>
-            {(() => {
-              const store = getStore();
-              if (store.mode === "memory") {
-                return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
-              }
-              return <Text color="green">DISK REPO {store.rootPath}</Text>;
-            })()}
-          </Text>
-          {/* Right side: status indicators */}
-          <Text>
-            {ui.showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
-            {ui.showProjectPicker && <Text color="green">{`[PROJECT] `}</Text>}
-            {ui.showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
-            {ui.showDropNotification && ui.droppedFiles.length > 0 && (
-              <Text color="green">
-                {`[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
-              </Text>
-            )}
-            {ui.isMouseDragging && ui.mouseSelection && (
-              <Text color="blue">{`[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `}</Text>
-            )}
-            {ui.multiSelected.size > 0 && (
-              <Text color="yellow">{`[${ui.multiSelected.size} sel] `}</Text>
-            )}
-            {ui.inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
-            {ui.selectionLevel !== "card" && (
-              <Text color="magenta">{`${ui.selectionLevel.toUpperCase()} `}</Text>
-            )}
-            <Text inverse>{` ${ui.viewMode.toUpperCase()} VIEW `}</Text>
-          </Text>
-        </Box>
-      </Box>
-    </UIProvider>
+      </UIProvider>
+    </ConstraintRoot>
   );
 
   // ===========================================================================
