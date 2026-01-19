@@ -40,8 +40,19 @@ export interface TaskSetStatusAction {
   status: TaskStatus;
 }
 
+// History actions for undo/redo (handled at app level, not board reducer)
+export interface HistoryUndoAction {
+  type: "HISTORY_UNDO";
+}
+
+export interface HistoryRedoAction {
+  type: "HISTORY_REDO";
+}
+
+export type HistoryAction = HistoryUndoAction | HistoryRedoAction;
+
 // Combined action type that commands can return
-export type CommandAction = BoardAction | TaskSetStatusAction;
+export type CommandAction = BoardAction | TaskSetStatusAction | HistoryAction;
 
 // Re-export for convenience
 export type { BoardAction, BoardState, TNode, TPath, ViewMode, TaskStatus };

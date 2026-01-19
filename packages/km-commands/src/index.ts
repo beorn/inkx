@@ -6,6 +6,9 @@ export type {
   CommandContext,
   CommandAction,
   TaskSetStatusAction,
+  HistoryAction,
+  HistoryUndoAction,
+  HistoryRedoAction,
   BoardAction,
   BoardState,
   TNode,
@@ -48,6 +51,7 @@ export {
   viewCommands,
   editCommands,
   taskCommands,
+  historyCommands,
   allCommands,
   type TaskAction,
 } from "./commands/index.ts";

@@ -141,6 +141,11 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "=", commandId: "increase_content_lines" },
   { key: "-", commandId: "decrease_content_lines" },
   { key: "_", commandId: "decrease_content_lines" },
+
+  // === History (Undo/Redo) ===
+  { key: "z", ctrl: true, commandId: "undo" },
+  { key: "z", ctrl: true, shift: true, commandId: "redo" },
+  { key: "y", ctrl: true, commandId: "redo" },
 ];
 
 // Initialize with defaults

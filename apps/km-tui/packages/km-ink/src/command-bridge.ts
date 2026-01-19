@@ -25,6 +25,7 @@ import {
   type InkCommandResult,
   type CommandAction,
   type TaskSetStatusAction,
+  type HistoryAction,
   type BoardAction,
   type BoardState as CmdBoardState,
   type TNode,
@@ -153,8 +154,19 @@ export function isTaskStatusAction(
 }
 
 /**
+ * Check if a command action is a history action (undo/redo).
+ */
+export function isHistoryAction(action: CommandAction): action is HistoryAction {
+  return action.type === "HISTORY_UNDO" || action.type === "HISTORY_REDO";
+}
+
+/**
  * Check if a command action is a board action (can go to boardReducer).
  */
 export function isBoardAction(action: CommandAction): action is BoardAction {
-  return action.type !== "TASK_SET_STATUS";
+  return (
+    action.type !== "TASK_SET_STATUS" &&
+    action.type !== "HISTORY_UNDO" &&
+    action.type !== "HISTORY_REDO"
+  );
 }
