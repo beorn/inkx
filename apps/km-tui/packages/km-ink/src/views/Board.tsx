@@ -243,15 +243,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Render loading indicator until terminal is ready (see ui.isReady comment above)
   // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
+  // Note: Don't use centered layout here - it causes scroll issues when transitioning to the board
   if (!ui.isReady) {
     return (
-      <Box
-        height={termHeight}
-        width={termWidth}
-        justifyContent="center"
-        alignItems="center"
-      >
-        <Text color="gray">Loading...</Text>
+      <Box flexDirection="column" height={termHeight} width={termWidth}>
+        <Text color="gray"> Loading...</Text>
       </Box>
     );
   }

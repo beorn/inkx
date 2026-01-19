@@ -1471,3 +1471,121 @@ describe.serial("km move - re-parent nodes", () => {
     expect(result.stderr).toContain("Specify a parent");
   });
 });
+
+describe.serial("km view - state initialization", () => {
+  beforeEach(async () => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+    mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(VAULT_DIR, { recursive: true });
+    mkdirSync(KM_DIR, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_DIR)) {
+      rmSync(TEST_DIR, { recursive: true });
+    }
+  });
+
+  test("km view should work after km add modifies database", async () => {
+    // This test verifies the fix for the issue where km view would fail
+    // with "No board found" after km add had linked tasks to a board.
+    // The root cause was that view.ts wasn't calling ensureState() to
+    // replay events from events.jsonl before accessing the database.
+
+    // Create a board file
+    writeFileSync(
+      join(VAULT_DIR, "@next.md"),
+      `# Next Actions
+
+## Tasks
+`,
+    );
+
+    // Create tasks in a separate folder
+    const projectDir = join(VAULT_DIR, "projects");
+    mkdirSync(projectDir, { recursive: true });
+    writeFileSync(
+      join(projectDir, "work.md"),
+      `# Work
+
+- [ ] Task A
+- [ ] Task B
+`,
+    );
+
+    // Sync to populate database
+    const syncResult = await km(["sync"]);
+    expect(syncResult.exitCode).toBe(0);
+
+    // Use km add to link tasks to the board
+    const addResult = await km(["add", "@next", "./projects/**"]);
+    expect(addResult.exitCode).toBe(0);
+    expect(addResult.stdout).toContain("Linked");
+
+    // Now km view should work (non-interactive mode to avoid TTY issues)
+    // The bug was that view would fail with "No board found" because
+    // it didn't call ensureState() to replay the add events
+    const viewResult = await km(["view", "@next.md", "--no-tui"]);
+    expect(viewResult.exitCode).toBe(0);
+    // Should display the board content (static mode output shows columns)
+    expect(viewResult.stdout).toContain("Tasks");
+  });
+
+  test("km view should find board after km sync and km add in sequence", async () => {
+    // Create initial structure with board
+    writeFileSync(
+      join(VAULT_DIR, "@inbox.md"),
+      `# Inbox
+
+## Unprocessed
+`,
+    );
+
+    const inboxDir = join(VAULT_DIR, "inbox");
+    mkdirSync(inboxDir, { recursive: true });
+    writeFileSync(
+      join(inboxDir, "new.md"),
+      `# New Items
+
+- [ ] Review email
+- [ ] Check calendar
+`,
+    );
+
+    // Sync first
+    await km(["sync"]);
+
+    // Add tasks to board
+    const addResult = await km(["add", "@inbox", "./inbox/**"]);
+    expect(addResult.exitCode).toBe(0);
+
+    // View should work and show the board
+    const viewResult = await km(["view", "@inbox.md", "--no-tui"]);
+    expect(viewResult.exitCode).toBe(0);
+    // Static mode shows column headings
+    expect(viewResult.stdout).toContain("Unprocessed");
+  });
+
+  test("km view should work with filesystem path to board", async () => {
+    // Create board file
+    const boardPath = join(VAULT_DIR, "board.md");
+    writeFileSync(
+      boardPath,
+      `# My Board
+
+## Column A
+- [ ] Task 1
+`,
+    );
+
+    await km(["sync"]);
+
+    // View using absolute path
+    const viewResult = await km(["view", boardPath, "--no-tui"]);
+    expect(viewResult.exitCode).toBe(0);
+    // Static mode shows column headings and tasks
+    expect(viewResult.stdout).toContain("Column A");
+  });
+});

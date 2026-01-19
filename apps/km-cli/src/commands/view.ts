@@ -8,7 +8,7 @@
 import { Command } from "commander";
 import { runBoard, type ViewMode } from "@km/ink";
 import { getRootPath } from "../index.ts";
-import { resolvePathArg } from "@km/storage";
+import { resolvePathArg, ensureState } from "@km/storage";
 
 const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"];
 
@@ -24,6 +24,10 @@ export const viewCommand = new Command("view")
   .action(async (root, options) => {
     // Resolve path argument - handles directory paths, file paths, and node IDs
     const resolved = resolvePathArg(root, getRootPath());
+
+    // Initialize database state (replay events) before accessing nodes
+    ensureState(resolved.vaultRoot, false);
+
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
 
     await runBoard(

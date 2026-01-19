@@ -6,7 +6,7 @@
  */
 
 import { existsSync, statSync } from "fs";
-import { resolve, dirname, join } from "path";
+import { resolve, dirname, join, basename } from "path";
 
 export interface PathResolution {
   /** Resolved absolute path */
@@ -193,11 +193,25 @@ export function resolvePathArg(
       };
     } else {
       // Path doesn't exist - still treat as explicit path
-      // Let resolveNode fail with appropriate error
-      const vaultRoot = fallbackRoot || process.cwd();
+      // Use detected vault root if available (e.g., /tmp/repo/@next.md -> /tmp/repo)
+      const vaultRoot = resolution.kmRoot
+        ? dirname(resolution.kmRoot)
+        : fallbackRoot || process.cwd();
+
+      // If we found a vault root, extract the filename as a node reference
+      // This handles cases like `/tmp/repo/@next.md` -> nodeRef becomes `@next`
+      // (without .md) so it can be resolved by title/content matching
+      let nodeRef = resolution.kmRoot ? basename(resolution.absolutePath) : arg;
+
+      // Strip .md extension for node reference matching
+      // e.g., `@next.md` -> `@next` to match on content/title field
+      if (nodeRef.endsWith(".md")) {
+        nodeRef = nodeRef.slice(0, -3);
+      }
+
       return {
         vaultRoot,
-        nodeRef: arg,
+        nodeRef,
         wasExplicitPath: true,
       };
     }

@@ -86,22 +86,28 @@ export const addCommand = new Command("add")
     }
 
     // Find the default column (section with data.rules.default=true)
-    // Search recursively through children to find the first default section
+    // Falls back to the first section if no explicit default is set
     let actualTarget = targetNode;
     const findDefaultSection = (parentId: string): KNode | undefined => {
       const children = getChildren(parentId);
+      let firstSection: KNode | undefined;
       for (const child of children) {
         if (child.type === "section") {
+          // Track first section as fallback
+          if (!firstSection) {
+            firstSection = child;
+          }
           const rules = child.data?.rules as { default?: boolean } | undefined;
           if (rules?.default) {
             return child;
           }
-          // Search deeper
+          // Search deeper for explicit default
           const found = findDefaultSection(child.id);
           if (found) return found;
         }
       }
-      return undefined;
+      // No explicit default found, return first section as fallback
+      return firstSection;
     };
     const defaultColumn = findDefaultSection(targetNode.id);
     if (defaultColumn) {

@@ -87,26 +87,51 @@ export function calculateScrollState<T>(
   const effectiveItemHeight = itemHeight + gap;
   const indicatorHeight = hasOverflowIndicator ? 1 : 0;
 
-  // First pass: how many items fit without indicators?
-  let maxVisible = Math.floor(availableHeight / effectiveItemHeight);
+  // First pass: how many items fit without any indicators?
+  const maxWithoutIndicators = Math.floor(
+    availableHeight / effectiveItemHeight,
+  );
 
-  // If we need to scroll, reserve space for indicators
-  if (items.length > maxVisible && hasOverflowIndicator) {
-    const adjustedHeight = availableHeight - indicatorHeight * 2;
-    maxVisible = Math.floor(adjustedHeight / effectiveItemHeight);
+  // If all items fit, no scrolling needed
+  if (items.length <= maxWithoutIndicators) {
+    return {
+      visible: items.map((item, index) => ({ item, index })),
+      scrollOffset: 0,
+      overflowTop: 0,
+      overflowBottom: 0,
+    };
   }
 
-  maxVisible = Math.max(1, maxVisible);
+  // Need scrolling - calculate scroll offset first to know which indicators show
+  // Start by estimating maxVisible with space for both indicators
+  let maxVisible = Math.max(
+    1,
+    Math.floor((availableHeight - indicatorHeight * 2) / effectiveItemHeight),
+  );
 
-  // Calculate scroll offset to keep selected item visible
-  let scrollOffset = 0;
+  // Calculate scroll offset to keep selected item visible (centered when possible)
+  const halfVisible = Math.floor(maxVisible / 2);
+  let scrollOffset = Math.max(0, selectedIndex - halfVisible);
+  scrollOffset = Math.min(scrollOffset, items.length - maxVisible);
 
-  if (items.length > maxVisible) {
-    // Try to center the selected item
-    const halfVisible = Math.floor(maxVisible / 2);
-    scrollOffset = Math.max(0, selectedIndex - halfVisible);
+  // Now we know which indicators will show based on scroll position
+  const willShowTop = scrollOffset > 0;
+  const willShowBottom = scrollOffset + maxVisible < items.length;
+  const actualIndicatorSpace =
+    (willShowTop ? indicatorHeight : 0) +
+    (willShowBottom ? indicatorHeight : 0);
 
-    // Clamp to valid range
+  // Recalculate maxVisible with actual indicator space needed
+  if (hasOverflowIndicator) {
+    maxVisible = Math.max(
+      1,
+      Math.floor(
+        (availableHeight - actualIndicatorSpace) / effectiveItemHeight,
+      ),
+    );
+
+    // Recalculate scroll offset with new maxVisible
+    scrollOffset = Math.max(0, selectedIndex - Math.floor(maxVisible / 2));
     scrollOffset = Math.min(scrollOffset, items.length - maxVisible);
   }
 

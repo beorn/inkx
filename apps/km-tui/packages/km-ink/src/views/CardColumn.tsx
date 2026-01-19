@@ -10,7 +10,6 @@ import type { CardState, ColumnState } from "../types.ts";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { TreeNode } from "./TreeNode.tsx";
-import { useTreeConfig } from "../ui-context.tsx";
 import { calculateScrollState } from "../constraints/index.ts";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";
 
@@ -88,8 +87,6 @@ export function Column({
   height,
   selectionLevel,
 }: ColumnProps): React.ReactElement {
-  const { maxContentLines } = useTreeConfig();
-
   const name = getNodeDisplayName(column.node);
   const typeSuffix = getCollapsedTypeSuffix(column.node);
   const count = column.cards.length;
@@ -101,7 +98,9 @@ export function Column({
 
   // Available height for cards: column height - blank line (1) - header (1)
   const baseContentHeight = Math.max(1, height - 2);
-  const estimatedCardHeight = maxContentLines + 3;
+  // Card height: border (2 lines) + content (1 to maxContentLines)
+  // Use minimum content height of 1 line for estimation
+  const estimatedCardHeight = 1 + 2; // 1 line content + 2 border = 3 lines minimum
 
   // Use constraint system's scroll calculation
   const scrollState = calculateScrollState(
