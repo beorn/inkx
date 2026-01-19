@@ -1,3 +1,6 @@
 [submodule "vendor/beorn-mdtest"]
 	path = vendor/beorn-mdtest
 	url = git@github.com:beorn/mdtest.git
+[submodule "vendor/beorn-inkz"]
+	path = vendor/beorn-inkz
+	url = git@github.com:beorn/inkz.git
