@@ -50,22 +50,29 @@ Action Dispatcher (routes to reducers + storage)
 ```typescript
 interface CommandDef {
   id: string; // snake_case: "cursor_next"
-  name: string; // "Move Down"
+  name: string; // "Move to Next"
   description: string; // "Move cursor to next sibling"
   category: CommandCategory;
-  execute: (ctx: CommandContext) => BoardAction | BoardAction[] | null;
+  shortcuts?: string[]; // Optional: default keybindings
+  modes?: CommandMode[]; // Optional: active only in these modes
+  execute: (ctx: CommandContext) => CommandAction | CommandAction[] | null;
 }
+
+type CommandCategory = "Navigation" | "Selection" | "Edit" | "Task" | "Fold" | "View";
+type CommandMode = "normal" | "move" | "search" | "input";
 ```
 
 ### Field Details
 
-| Field         | Purpose                                         |
-| ------------- | ----------------------------------------------- |
-| `id`          | Unique identifier, snake_case for shell/CLI use |
-| `name`        | Human-readable name for palette/help            |
-| `description` | Longer description for documentation            |
-| `category`    | Grouping for organization and filtering         |
-| `execute`     | Pure function that produces actions             |
+| Field         | Purpose                                          |
+| ------------- | ------------------------------------------------ |
+| `id`          | Unique identifier, snake_case for shell/CLI use  |
+| `name`        | Human-readable name for palette/help             |
+| `description` | Longer description for documentation             |
+| `category`    | Grouping for organization and filtering          |
+| `shortcuts`   | Optional array of default key bindings           |
+| `modes`       | Optional array of modes where command is active  |
+| `execute`     | Pure function that produces actions              |
 
 ### Execute Return Values
 
@@ -81,14 +88,13 @@ Commands receive a read-only context describing the current state:
 
 ```typescript
 interface CommandContext {
-  // Current cursor position
-  currentNode: KMNode | null;
+  // Current node and cursor
+  currentNode: TNode | null;
   currentNodeId: string | null;
-  cursor: number;
+  cursor: TPath; // Array of indices representing path from root
 
   // Selection state
   selectedNodes: string[];
-  selectionMode: "single" | "multi" | "range";
 
   // Board state (read-only snapshot)
   boardState: BoardState;
@@ -99,12 +105,6 @@ interface CommandContext {
   siblingIndex: number;
   columnIndex: number;
   columnCount: number;
-
-  // Tree context
-  parentId: string | null;
-  depth: number;
-  isExpanded: boolean;
-  hasChildren: boolean;
 }
 ```
 
@@ -124,84 +124,93 @@ Commands never mutate state directly. They return actions that describe _what sh
 
 Cursor movement, zoom, history navigation.
 
-| Command           | Description              |
-| ----------------- | ------------------------ |
-| `cursor_next`     | Move to next sibling     |
-| `cursor_prev`     | Move to previous sibling |
-| `cursor_parent`   | Move to parent           |
-| `cursor_child`    | Move to first child      |
-| `cursor_first`    | Move to first sibling    |
-| `cursor_last`     | Move to last sibling     |
-| `zoom_in`         | Zoom into current node   |
-| `zoom_out`        | Zoom out to parent       |
-| `history_back`    | Navigate history back    |
-| `history_forward` | Navigate history forward |
+| Command                   | Description                           |
+| ------------------------- | ------------------------------------- |
+| `cursor_next`             | Move to next sibling                  |
+| `cursor_prev`             | Move to previous sibling              |
+| `cursor_in`               | Move into first child                 |
+| `cursor_out`              | Move to parent                        |
+| `cursor_first`            | Move to first sibling                 |
+| `cursor_last`             | Move to last sibling                  |
+| `cursor_up`               | Move up visually                      |
+| `cursor_down`             | Move down visually                    |
+| `cursor_left`             | Move left (cross-column)              |
+| `cursor_right`            | Move right (cross-column)             |
+| `nav_cross_column_left`   | Navigate to column on left            |
+| `nav_cross_column_right`  | Navigate to column on right           |
+| `nav_back`                | Navigate history back                 |
+| `nav_forward`             | Navigate history forward              |
+| `zoom_in`                 | Zoom into current node                |
+| `zoom_out`                | Zoom out to parent                    |
 
 ### Selection
 
 Single, multi, and range selection.
 
-| Command           | Description               |
-| ----------------- | ------------------------- |
-| `select_toggle`   | Toggle selection on node  |
-| `select_range`    | Select range from anchor  |
-| `select_all`      | Select all visible nodes  |
-| `select_none`     | Clear selection           |
-| `select_children` | Select all children       |
-| `select_extend`   | Extend selection by one   |
-| `select_shrink`   | Shrink selection by one   |
+| Command               | Description                    |
+| --------------------- | ------------------------------ |
+| `select_toggle`       | Toggle selection on node       |
+| `select_add`          | Add current node to selection  |
+| `select_remove`       | Remove node from selection     |
+| `select_all_siblings` | Select all siblings            |
+| `select_all`          | Select all visible nodes       |
+| `clear_selection`     | Clear all selections           |
+| `extend_select_up`    | Extend selection upward        |
+| `extend_select_down`  | Extend selection downward      |
+| `extend_select_left`  | Extend selection leftward      |
+| `extend_select_right` | Extend selection rightward     |
 
 ### Edit
 
-Mutations that return TAction for storage sync.
+Mutations and move mode commands.
 
-| Command         | Description                 |
-| --------------- | --------------------------- |
-| `delete`        | Delete selected nodes       |
-| `move_up`       | Move node up in siblings    |
-| `move_down`     | Move node down in siblings  |
-| `indent`        | Indent node (make child)    |
-| `outdent`       | Outdent node (make sibling) |
-| `edit_title`    | Enter edit mode for title   |
-| `edit_content`  | Enter edit mode for content |
+| Command           | Description                        |
+| ----------------- | ---------------------------------- |
+| `enter_move_mode` | Start moving selected nodes        |
+| `confirm_move`    | Confirm node movement (move mode)  |
+| `cancel_move`     | Cancel move operation (move mode)  |
+| `shift_up`        | Move node up among siblings        |
+| `shift_down`      | Move node down among siblings      |
+| `shift_left`      | Move node to parent level (outdent)|
+| `shift_right`     | Move node under sibling (indent)   |
+| `undo`            | Undo the last action               |
+| `redo`            | Redo the last undone action        |
 
 ### Task
 
 Task-specific status changes.
 
-| Command             | Description             |
-| ------------------- | ----------------------- |
-| `task_toggle`       | Toggle done/todo        |
-| `task_cancel`       | Mark task cancelled     |
-| `task_set_priority` | Set task priority       |
-| `task_set_status`   | Set arbitrary status    |
+| Command             | Description                          |
+| ------------------- | ------------------------------------ |
+| `cycle_task_status` | Cycle through statuses (todo/wip/done/dropped) |
+| `toggle_task_done`  | Toggle between done and todo         |
+| `set_status_todo`   | Set task status to todo              |
+| `set_status_wip`    | Set task status to work in progress  |
+| `set_status_blocked`| Set task status to blocked           |
+| `set_status_done`   | Mark task as done                    |
+| `set_status_dropped`| Mark task as dropped/cancelled       |
 
 ### Fold
 
 Expand/collapse tree nodes.
 
-| Command          | Description            |
-| ---------------- | ---------------------- |
-| `fold_toggle`    | Toggle fold state      |
-| `fold_expand`    | Expand node            |
-| `fold_collapse`  | Collapse node          |
-| `fold_all`       | Collapse all nodes     |
-| `unfold_all`     | Expand all nodes       |
-| `fold_level`     | Fold to specific level |
+| Command           | Description                    |
+| ----------------- | ------------------------------ |
+| `toggle_fold`     | Toggle fold state              |
+| `toggle_collapse` | Toggle column collapse (board) |
+| `fold_all`        | Fold all nodes at depth 1      |
+| `unfold_all`      | Unfold all nodes               |
 
 ### View
 
 Display settings.
 
-| Command             | Description                |
-| ------------------- | -------------------------- |
-| `view_depth_inc`    | Increase visible depth     |
-| `view_depth_dec`    | Decrease visible depth     |
-| `view_content_more` | Show more content lines    |
-| `view_content_less` | Show fewer content lines   |
-| `view_mode_tree`    | Switch to tree view        |
-| `view_mode_board`   | Switch to board view       |
-| `view_mode_list`    | Switch to list view        |
+| Command                   | Description                |
+| ------------------------- | -------------------------- |
+| `increase_outline_depth`  | Show more nested levels    |
+| `decrease_outline_depth`  | Show fewer nested levels   |
+| `increase_content_lines`  | Show more content preview  |
+| `decrease_content_lines`  | Show less content preview  |
 
 ---
 
@@ -219,10 +228,13 @@ Keybindings are **separate from commands**. This enables:
 ```typescript
 interface Keybinding {
   key: string; // "j", "ArrowDown", "Enter"
-  command: string; // Command ID to execute
-  mode?: Mode; // Optional: only active in this mode
-  modifiers?: Modifier[]; // ctrl, meta, shift, alt
-  when?: (ctx: CommandContext) => boolean; // Conditional binding
+  commandId: string; // Command ID to execute
+  ctrl?: boolean; // Ctrl modifier
+  meta?: boolean; // Cmd/Meta modifier
+  shift?: boolean; // Shift modifier
+  alt?: boolean; // Alt/Option modifier
+  modes?: CommandMode[]; // Optional: only active in these modes
+  when?: (ctx: KeybindingContext) => boolean; // Conditional binding
 }
 ```
 
@@ -239,41 +251,59 @@ interface Keybinding {
 
 #### Navigation
 
-| Key             | Command         | Description              |
-| --------------- | --------------- | ------------------------ |
-| `j`, `Down`     | `cursor_next`   | Move to next sibling     |
-| `k`, `Up`       | `cursor_prev`   | Move to previous sibling |
-| `h`, `Left`     | `cursor_parent` | Move to parent           |
-| `l`, `Right`    | `cursor_child`  | Move to first child      |
-| `g`             | `cursor_first`  | Move to first sibling    |
-| `G`             | `cursor_last`   | Move to last sibling     |
-| `H`             | `column_prev`   | Previous column (board)  |
-| `L`             | `column_next`   | Next column (board)      |
-| `[`             | `history_back`  | Navigate back in history |
-| `]`             | `history_fwd`   | Navigate forward         |
-| `Enter`         | `zoom_in`       | Zoom into node           |
-| `Backspace`     | `zoom_out`      | Zoom out to parent       |
-
-#### Edit
-
-| Key              | Command     | Description       |
-| ---------------- | ----------- | ----------------- |
-| `Alt+Up`         | `move_up`   | Move node up      |
-| `Alt+Down`       | `move_down` | Move node down    |
-| `Tab`            | `indent`    | Indent node       |
-| `Shift+Tab`      | `outdent`   | Outdent node      |
-| `d`              | `delete`    | Delete node       |
+| Key             | Command                   | Description                   |
+| --------------- | ------------------------- | ----------------------------- |
+| `j`             | `cursor_next`             | Move to next sibling          |
+| `k`             | `cursor_prev`             | Move to previous sibling      |
+| `h`             | `cursor_out`              | Move to parent                |
+| `l`             | `cursor_in`               | Move into first child         |
+| `g`             | `cursor_first`            | Move to first sibling         |
+| `G`             | `cursor_last`             | Move to last sibling          |
+| `ArrowDown`     | `cursor_down`             | Move down visually            |
+| `ArrowUp`       | `cursor_up`               | Move up visually              |
+| `ArrowLeft`     | `cursor_left`             | Move left (cross-column)      |
+| `ArrowRight`    | `cursor_right`            | Move right (cross-column)     |
+| `H`             | `nav_cross_column_left`   | Navigate to column on left    |
+| `L`             | `nav_cross_column_right`  | Navigate to column on right   |
+| `[`             | `nav_back`                | Navigate back in history      |
+| `]`             | `nav_forward`             | Navigate forward in history   |
+| `Enter`         | `zoom_in`                 | Zoom into node (normal mode)  |
+| `Backspace`     | `zoom_out`                | Zoom out to parent            |
+| `u`             | `zoom_out`                | Zoom out to parent            |
 
 #### Selection
 
-| Key              | Command         | Description          |
-| ---------------- | --------------- | -------------------- |
-| `v`              | `select_toggle` | Toggle selection     |
-| `V`              | `select_range`  | Range select         |
-| `Ctrl+A`         | `select_all`    | Select all           |
-| `Escape`         | `select_none`   | Clear selection      |
-| `Shift+Down`     | `select_extend` | Extend selection     |
-| `Shift+Up`       | `select_shrink` | Shrink selection     |
+| Key              | Command               | Description              |
+| ---------------- | --------------------- | ------------------------ |
+| `v`              | `select_toggle`       | Toggle selection         |
+| `V`              | `select_all_siblings` | Select all siblings      |
+| `Ctrl+A`         | `select_all`          | Select all               |
+| `Escape`         | `clear_selection`     | Clear selection          |
+| `Shift+Up`       | `extend_select_up`    | Extend selection up      |
+| `Shift+Down`     | `extend_select_down`  | Extend selection down    |
+| `Shift+Left`     | `extend_select_left`  | Extend selection left    |
+| `Shift+Right`    | `extend_select_right` | Extend selection right   |
+
+#### Edit
+
+| Key              | Command           | Description                  |
+| ---------------- | ----------------- | ---------------------------- |
+| `m`              | `enter_move_mode` | Start move mode              |
+| `Enter` (move)   | `confirm_move`    | Confirm move (move mode)     |
+| `Escape` (move)  | `cancel_move`     | Cancel move (move mode)      |
+| `Alt+Up`         | `shift_up`        | Move node up                 |
+| `Alt+Down`       | `shift_down`      | Move node down               |
+| `Alt+Left`       | `shift_left`      | Outdent node                 |
+| `Alt+Right`      | `shift_right`     | Indent node                  |
+| `Alt+k`          | `shift_up`        | Move node up                 |
+| `Alt+j`          | `shift_down`      | Move node down               |
+| `Alt+h`          | `shift_left`      | Outdent node                 |
+| `Alt+l`          | `shift_right`     | Indent node                  |
+| `Tab`            | `shift_right`     | Indent node                  |
+| `Shift+Tab`      | `shift_left`      | Outdent node                 |
+| `Ctrl+Z`         | `undo`            | Undo last action             |
+| `Ctrl+Shift+Z`   | `redo`            | Redo undone action           |
+| `Ctrl+Y`         | `redo`            | Redo undone action           |
 
 #### Task
 
@@ -282,30 +312,23 @@ interface Keybinding {
 | `Space` | `cycle_task_status` | Cycle through statuses    |
 | `x`     | `toggle_task_done`  | Toggle between done/todo  |
 
-#### Edit
+#### Fold
 
-| Key              | Command        | Description       |
-| ---------------- | -------------- | ----------------- |
-| `m`              | `enter_move_mode` | Start move mode |
-| `Alt+Up`         | `shift_up`     | Move node up      |
-| `Alt+Down`       | `shift_down`   | Move node down    |
-| `Alt+Left`       | `shift_left`   | Outdent node      |
-| `Alt+Right`      | `shift_right`  | Indent node       |
-| `Tab`            | `shift_right`  | Indent node       |
-| `Shift+Tab`      | `shift_left`   | Outdent node      |
-| `Ctrl+Z`         | `undo`         | Undo last action  |
-| `Ctrl+Shift+Z`   | `redo`         | Redo undone action|
+| Key       | Command           | Description              |
+| --------- | ----------------- | ------------------------ |
+| `z`       | `toggle_fold`     | Toggle fold              |
+| `c`       | `toggle_collapse` | Toggle column collapse   |
+| `Z`       | `fold_all`        | Fold all nodes           |
+| `Shift+Z` | `unfold_all`      | Unfold all nodes         |
 
 #### View
 
-| Key | Command             | Description            |
-| --- | ------------------- | ---------------------- |
-| `<` | `view_depth_dec`    | Decrease visible depth |
-| `>` | `view_depth_inc`    | Increase visible depth |
-| `+` | `view_content_more` | Show more content      |
-| `-` | `view_content_less` | Show less content      |
-| `z` | `fold_toggle`       | Toggle fold            |
-| `Z` | `fold_all`          | Fold all               |
+| Key     | Command                   | Description              |
+| ------- | ------------------------- | ------------------------ |
+| `<`     | `decrease_outline_depth`  | Decrease visible depth   |
+| `>`     | `increase_outline_depth`  | Increase visible depth   |
+| `+`/`=` | `increase_content_lines`  | Show more content        |
+| `-`/`_` | `decrease_content_lines`  | Show less content        |
 
 ---
 
@@ -316,12 +339,13 @@ interface Keybinding {
 Create the command definition in the appropriate category file:
 
 ```typescript
-// packages/km-commands/src/navigation.ts
+// packages/km-commands/src/commands/navigation.ts
 export const cursorJumpToLine: CommandDef = {
   id: "cursor_jump_to_line",
   name: "Jump to Line",
   description: "Jump cursor to a specific line number",
-  category: "navigation",
+  category: "Navigation",
+  shortcuts: [":"],
   execute: (ctx) => {
     // Commands should be pure - return action or null
     if (!ctx.targetLine) return null;
@@ -350,12 +374,12 @@ If the command should have a keyboard shortcut:
 
 ```typescript
 // packages/km-commands/src/keybindings.ts
-export const keybindings: Keybinding[] = [
+export const defaultKeybindings: Keybinding[] = [
   // ... existing bindings
   {
     key: ":",
-    command: "cursor_jump_to_line",
-    mode: "normal",
+    commandId: "cursor_jump_to_line",
+    modes: ["normal"],
   },
 ];
 ```

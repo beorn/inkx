@@ -85,12 +85,18 @@ export function boardStateToCommandContext(
         return col?.node.id ?? "";
       }),
     ),
+    // zoomStack cursor positions are not tracked in Board.tsx state,
+    // so we use [0] as a placeholder - zoom operations will recalculate
     zoomStack: state.zoomStack.map((id) => ({
       rootId: id,
       cursor: [0] as [number, ...number[]],
     })),
-    navHistory: [],
-    navHistoryIndex: 0,
+    // Map navHistory from UIState - convert from columns-based to tree-based cursor
+    navHistory: ui.navHistory.map((entry) => ({
+      rootId: entry.rootId,
+      cursor: [entry.colIndex, entry.cardIndex] as [number, ...number[]],
+    })),
+    navHistoryIndex: ui.navHistoryIndex,
     moveMode: false,
     moveSourceNodes: [],
     moveSourceCursor: [0],
@@ -121,9 +127,10 @@ export function processKeyThroughCommands(
   const { boardState, currentNode } = boardStateToCommandContext(state, ui);
 
   // Build keybinding context from UI state
+  // Note: moveMode is not yet implemented in TUI - will be false until move mode feature is added
   const kbCtx = buildKeybindingContext({
-    inMoveMode: false, // TODO: map from ui state
-    inSearchMode: false,
+    inMoveMode: false,
+    inSearchMode: state.searchMode,
     inInputMode: ui.showNewItemDialog || ui.showProjectPicker,
     hasSelection: ui.multiSelected.size > 0,
     isInDetailPane: ui.showDetailPane,

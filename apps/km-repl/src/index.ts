@@ -34,12 +34,13 @@ export {
   type MutationHandler,
 } from "./shellExecutor.ts";
 
-// Command Registry
+// Command Registry (legacy - use @km/commands directly for new code)
+// These re-exports are for backwards compatibility
 export {
   commands,
-  getCommandsByCategory,
+  getCommandsByCategory as getLegacyCommandsByCategory,
   getCommandById,
-  filterCommands,
+  filterCommands as filterLegacyCommands,
   fuzzyMatch,
   type CommandDef,
   type CommandCategory,
@@ -48,7 +49,7 @@ export {
 // Plain text utilities (for OpenTUI - no ANSI codes)
 export { renderPlain, displayLength } from "./text.ts";
 
-// Command Adapter (unified @km/commands integration)
+// Command Adapter (unified @km/commands integration - preferred over legacy)
 export {
   initShellCommands,
   getRegisteredCommandIds,
@@ -56,7 +57,9 @@ export {
   buildShellContext,
   tryExecuteRegisteredCommand,
   isRegisteredCommand,
-  getCommandsByCategory as getUnifiedCommandsByCategory,
+  getCommandsByCategory,
+  type CommandAction,
+  type CommandContext,
 } from "./command-adapter.ts";
 
 // Re-export board state types from @km/board for convenience

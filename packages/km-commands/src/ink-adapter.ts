@@ -8,7 +8,7 @@
 import type { CommandContext, CommandAction, ViewMode, TNode } from "./types.ts";
 import type { KeybindingContext } from "./keybindings.ts";
 import { resolveKeybinding, initDefaultKeybindings } from "./keybindings.ts";
-import { executeCommand, buildContext } from "./executor.ts";
+import { executeCommand } from "./executor.ts";
 import { registerCommands, clearRegistry } from "./registry.ts";
 import { allCommands } from "./commands/index.ts";
 

@@ -129,9 +129,12 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "x", commandId: "toggle_task_done" },
 
   // === Fold ===
-  { key: "z", commandId: "toggle_fold" },
-  { key: "Z", commandId: "fold_all" },
-  { key: "Z", shift: true, commandId: "unfold_all" },
+  // Note: z/Z behavior matches keyboard-handler.ts:
+  // - z (lowercase) = fold all cards in column
+  // - Z (Shift+z, uppercase) = unfold all cards in column
+  // toggle_fold is bound to a different key or not bound by default
+  { key: "z", commandId: "fold_all" },
+  { key: "Z", commandId: "unfold_all" },
   { key: "c", commandId: "toggle_collapse" },
 
   // === View ===
