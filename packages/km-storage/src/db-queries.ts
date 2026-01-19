@@ -6,7 +6,6 @@
  */
 
 import type { KNode, TaskStatus, NodeType, NodeRules } from "@km/core";
-import { parseHeadingRules } from "@km/markdown";
 import { getDb } from "./db-instance.ts";
 import { isExplicitPath } from "./path-utils.ts";
 import { resolve } from "path";
@@ -625,23 +624,20 @@ export function getAllNodes(): KNode[] {
 
 /**
  * Convert database row to KNode object
- * For section nodes, computes title and rules from content on-the-fly
+ * Title and rules are read from stored values (data.title, data.rules)
  */
 export function rowToNode(row: Record<string, unknown>): KNode {
   const type = row.type as NodeType;
   const content = row.content as string | undefined;
 
-  // For sections, compute title and rules from content (first line only)
-  let title: string | undefined;
-  let rules: NodeRules | undefined;
-  if (type === "section" && content) {
-    const firstLine = content.split("\n")[0] ?? content;
-    const parsed = parseHeadingRules(firstLine);
-    title = parsed.title;
-    if (Object.keys(parsed.rules).length > 0) {
-      rules = parsed.rules;
-    }
-  }
+  // Parse data JSON
+  const data =
+    typeof row.data === "string"
+      ? (JSON.parse(row.data) as Record<string, unknown>)
+      : ((row.data as Record<string, unknown>) ?? {});
+
+  // Extract rules from data.rules (stored by parser during sync)
+  const rules = data.rules as NodeRules | undefined;
 
   return {
     id: row.id as string,
@@ -663,12 +659,9 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     priority: row.priority as number | undefined,
     content,
     content_hash: row.content_hash as string | undefined,
-    title: (row.title as string | undefined) ?? title,
+    title: row.title as string | undefined,
     rules,
-    data:
-      typeof row.data === "string"
-        ? (JSON.parse(row.data) as Record<string, unknown>)
-        : ((row.data as Record<string, unknown>) ?? {}),
+    data,
     created_at: row.created_at as number,
     updated_at: row.updated_at as number,
     version: row.version as string,
