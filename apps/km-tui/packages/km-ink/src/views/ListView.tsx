@@ -56,7 +56,8 @@ export function ListView({
   // Get UI state from context
   const { maxContentLines, inOutlineMode } = useTreeConfig();
 
-  const availableHeight = height - 2;
+  // Full height minus 1 for top spacer line
+  const availableHeight = height - 1;
 
   // Flatten all cards into a single list for virtualization
   const flatItems = useMemo(() => {
@@ -161,7 +162,7 @@ export function ListView({
       <Box
         flexDirection="column"
         width={width}
-        height={availableHeight}
+        height={height}
         overflowY="hidden"
       >
         <Text> </Text>
@@ -173,11 +174,14 @@ export function ListView({
   // Item height (maxContentLines + 1 for spacing)
   const itemHeight = maxContentLines + 1;
 
+  // Content height after top spacer
+  const contentHeight = availableHeight - 1;
+
   return (
     <Box
       flexDirection="column"
       width={width}
-      height={availableHeight}
+      height={height}
       overflowY="hidden"
     >
       {/* Blank line at top */}
@@ -186,15 +190,15 @@ export function ListView({
       {/* Virtualized list using ScrollableList */}
       <ConstraintContext.Provider
         value={{
-          terminal: { columns: width, rows: availableHeight - 1 },
-          parent: { width, height: availableHeight - 1 },
+          terminal: { columns: width, rows: contentHeight },
+          parent: { width, height: contentHeight },
         }}
       >
         <ScrollableList
           items={flatItems}
           selectedIndex={selectedFlatIndex}
           itemHeight={itemHeight}
-          height={availableHeight - 1}
+          height={contentHeight}
           renderItem={renderItem}
           renderOverflow={renderOverflow}
         />

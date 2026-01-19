@@ -35,10 +35,13 @@ export function TabsView({
 }: TabsViewProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
 
-  // Tab bar height (1 line for spacing + 1 for tabs)
-  const tabBarHeight = 2;
-  // Content height: total - tab bar - border (1) - spacer (1)
-  const contentHeight = Math.max(1, height - tabBarHeight - 4);
+  // Layout breakdown:
+  // - 1 line: top spacer
+  // - 1 line: tab bar
+  // - 1 line: border
+  // - rest: content
+  const headerHeight = 3;
+  const contentHeight = Math.max(1, height - headerHeight);
 
   // Get current column
   const currentColumn = state.columns[colIndex];
@@ -99,7 +102,7 @@ export function TabsView({
   };
 
   return (
-    <Box flexDirection="column" width={width} height={height - 2}>
+    <Box flexDirection="column" width={width} height={height}>
       {/* Spacer line between top bar and tabs */}
       <Box height={1} />
 
@@ -148,11 +151,7 @@ export function TabsView({
       <Text dimColor>{"─".repeat(width)}</Text>
 
       {/* Content area with ScrollableList */}
-      <Box
-        flexDirection="column"
-        width={width}
-        height={height - tabBarHeight - 3}
-      >
+      <Box flexDirection="column" width={width} height={contentHeight}>
         {currentColumn ? (
           count > 0 ? (
             <ConstraintContext.Provider
