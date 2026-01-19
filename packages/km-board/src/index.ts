@@ -48,7 +48,16 @@ export {
   getTopLevelCount,
   getCursorDepth,
   getBreadcrumbs,
+  // TPath <-> Column/Card index conversion
+  pathToColumnIndices,
+  columnIndicesToPath,
+  getCursorColumnIndices,
+  getCurrentColumn,
+  getCurrentCard,
+  getCurrentColumnCardCount,
 } from "./selectors.ts";
+
+export type { ColumnIndices } from "./selectors.ts";
 
 // ===== Transformers =====
 export { toBoardViewModel, toTreeViewModel } from "./transformers.ts";

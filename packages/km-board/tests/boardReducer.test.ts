@@ -302,3 +302,132 @@ describe("getNodeAtPath", () => {
     expect(node).toBeNull();
   });
 });
+
+describe("TPath <-> ColumnIndices conversion", () => {
+  // Import functions under test
+  const {
+    pathToColumnIndices,
+    columnIndicesToPath,
+    getCursorColumnIndices,
+    getCurrentColumn,
+    getCurrentCard,
+    getCurrentColumnCardCount,
+  } = require("../src/selectors.ts");
+
+  describe("pathToColumnIndices", () => {
+    it("returns -1 indices for empty path", () => {
+      const result = pathToColumnIndices([]);
+      expect(result.colIndex).toBe(-1);
+      expect(result.cardIndex).toBe(-1);
+      expect(result.subPath).toEqual([]);
+      expect(result.isAtCardLevel).toBe(false);
+      expect(result.isInOutlineMode).toBe(false);
+    });
+
+    it("extracts column index from path[0]", () => {
+      const result = pathToColumnIndices([2]);
+      expect(result.colIndex).toBe(2);
+      expect(result.cardIndex).toBe(-1);
+      expect(result.isAtCardLevel).toBe(false);
+      expect(result.isInOutlineMode).toBe(false);
+    });
+
+    it("extracts card index from path[1]", () => {
+      const result = pathToColumnIndices([1, 3]);
+      expect(result.colIndex).toBe(1);
+      expect(result.cardIndex).toBe(3);
+      expect(result.subPath).toEqual([]);
+      expect(result.isAtCardLevel).toBe(true);
+      expect(result.isInOutlineMode).toBe(false);
+    });
+
+    it("extracts subPath from path[2+] in outline mode", () => {
+      const result = pathToColumnIndices([1, 2, 0, 1]);
+      expect(result.colIndex).toBe(1);
+      expect(result.cardIndex).toBe(2);
+      expect(result.subPath).toEqual([0, 1]);
+      expect(result.isAtCardLevel).toBe(true);
+      expect(result.isInOutlineMode).toBe(true);
+    });
+  });
+
+  describe("columnIndicesToPath", () => {
+    it("returns empty path for negative colIndex", () => {
+      expect(columnIndicesToPath(-1)).toEqual([]);
+    });
+
+    it("returns [colIndex] for column-level cursor", () => {
+      expect(columnIndicesToPath(2)).toEqual([2]);
+      expect(columnIndicesToPath(0, -1)).toEqual([0]);
+    });
+
+    it("returns [colIndex, cardIndex] for card-level cursor", () => {
+      expect(columnIndicesToPath(1, 3)).toEqual([1, 3]);
+      expect(columnIndicesToPath(0, 0)).toEqual([0, 0]);
+    });
+
+    it("returns [colIndex, cardIndex, ...subPath] for outline mode", () => {
+      expect(columnIndicesToPath(1, 2, [0, 1])).toEqual([1, 2, 0, 1]);
+      expect(columnIndicesToPath(0, 0, [0])).toEqual([0, 0, 0]);
+    });
+
+    it("round-trips correctly with pathToColumnIndices", () => {
+      const paths = [[], [0], [1, 2], [0, 0, 3, 1]];
+      for (const path of paths) {
+        const indices = pathToColumnIndices(path);
+        const reconstructed = columnIndicesToPath(
+          indices.colIndex,
+          indices.cardIndex,
+          indices.subPath,
+        );
+        expect(reconstructed).toEqual(path);
+      }
+    });
+  });
+
+  describe("BoardState selectors", () => {
+    function createTestStateWithCursor(cursor: number[]): BoardState {
+      return {
+        ...createBoardState(testNodes),
+        cursor,
+      };
+    }
+
+    it("getCursorColumnIndices extracts indices from state.cursor", () => {
+      const state = createTestStateWithCursor([1, 0]);
+      const indices = getCursorColumnIndices(state);
+      expect(indices.colIndex).toBe(1);
+      expect(indices.cardIndex).toBe(0);
+    });
+
+    it("getCurrentColumn returns column node at cursor", () => {
+      const state = createTestStateWithCursor([1, 0]);
+      const column = getCurrentColumn(state);
+      expect(column?.id).toBe("col-b");
+    });
+
+    it("getCurrentColumn returns null for empty cursor", () => {
+      const state = createTestStateWithCursor([]);
+      expect(getCurrentColumn(state)).toBeNull();
+    });
+
+    it("getCurrentCard returns card node at cursor", () => {
+      const state = createTestStateWithCursor([0, 1]);
+      const card = getCurrentCard(state);
+      expect(card?.id).toBe("card-2");
+    });
+
+    it("getCurrentCard returns null when not at card level", () => {
+      const state = createTestStateWithCursor([0]);
+      expect(getCurrentCard(state)).toBeNull();
+    });
+
+    it("getCurrentColumnCardCount returns card count in current column", () => {
+      const state = createTestStateWithCursor([0, 0]);
+      expect(getCurrentColumnCardCount(state)).toBe(2); // col-a has card-1, card-2
+
+      const state2 = createTestStateWithCursor([1, 0]);
+      expect(getCurrentColumnCardCount(state2)).toBe(1); // col-b has card-3
+    });
+  });
+});

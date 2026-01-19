@@ -31,14 +31,14 @@ export interface WipConfig {
 }
 
 export interface ColumnState {
-  node: Node;
+  node: KNode;
   cards: CardState[];
   wipLimit?: number; // Optional WIP limit from frontmatter
   rules?: ColumnRules; // Optional column rules parsed from heading
 }
 
 export interface CardState {
-  node: Node;
+  node: KNode;
   children: KNode[];
 }
 

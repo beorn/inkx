@@ -130,3 +130,104 @@ export function getBreadcrumbs(state: BoardState): TNode[] {
 
   return crumbs;
 }
+
+// ===== TPath <-> Column/Card Index Conversion =====
+
+/**
+ * Column indices derived from a TPath.
+ * Used by TUI to map between tree-based cursor and column-based rendering.
+ *
+ * In the TUI's column view:
+ * - path[0] = column index (depth 0 nodes are columns)
+ * - path[1] = card index (depth 1 nodes are cards within a column)
+ * - path[2+] = outline sub-item path (depth 2+ are nested within cards)
+ */
+export interface ColumnIndices {
+  /** Column index (path[0]), or -1 if path is empty */
+  colIndex: number;
+  /** Card index within column (path[1]), or -1 if not at card level */
+  cardIndex: number;
+  /** Sub-item path within card (path[2+]), empty if at column or card level */
+  subPath: number[];
+  /** True if cursor is at card level (path.length >= 2) */
+  isAtCardLevel: boolean;
+  /** True if cursor is in outline mode (path.length > 2) */
+  isInOutlineMode: boolean;
+}
+
+/**
+ * Extract column/card indices from a TPath.
+ * This is the primary conversion from tree-based to column-based indexing.
+ */
+export function pathToColumnIndices(path: number[]): ColumnIndices {
+  if (path.length === 0) {
+    return {
+      colIndex: -1,
+      cardIndex: -1,
+      subPath: [],
+      isAtCardLevel: false,
+      isInOutlineMode: false,
+    };
+  }
+
+  const colIndex = path[0] ?? -1;
+  const cardIndex = path.length >= 2 ? (path[1] ?? -1) : -1;
+  const subPath = path.length > 2 ? path.slice(2) : [];
+
+  return {
+    colIndex,
+    cardIndex,
+    subPath,
+    isAtCardLevel: path.length >= 2,
+    isInOutlineMode: path.length > 2,
+  };
+}
+
+/**
+ * Convert column/card indices back to a TPath.
+ */
+export function columnIndicesToPath(
+  colIndex: number,
+  cardIndex: number = -1,
+  subPath: number[] = [],
+): number[] {
+  if (colIndex < 0) return [];
+  if (cardIndex < 0) return [colIndex];
+  if (subPath.length === 0) return [colIndex, cardIndex];
+  return [colIndex, cardIndex, ...subPath];
+}
+
+/**
+ * Get column indices from BoardState.
+ * Convenience wrapper around pathToColumnIndices using state.cursor.
+ */
+export function getCursorColumnIndices(state: BoardState): ColumnIndices {
+  return pathToColumnIndices(state.cursor);
+}
+
+/**
+ * Get the column node at cursor position (depth 0).
+ */
+export function getCurrentColumn(state: BoardState): TNode | null {
+  const { colIndex } = pathToColumnIndices(state.cursor);
+  if (colIndex < 0) return null;
+  return state.nodes[colIndex] ?? null;
+}
+
+/**
+ * Get the card node at cursor position (depth 1).
+ */
+export function getCurrentCard(state: BoardState): TNode | null {
+  const { colIndex, cardIndex } = pathToColumnIndices(state.cursor);
+  if (colIndex < 0 || cardIndex < 0) return null;
+  const column = state.nodes[colIndex];
+  return column?.children[cardIndex] ?? null;
+}
+
+/**
+ * Get card count in the current column.
+ */
+export function getCurrentColumnCardCount(state: BoardState): number {
+  const column = getCurrentColumn(state);
+  return column?.children.length ?? 0;
+}
