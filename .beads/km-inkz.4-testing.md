@@ -1,8 +1,8 @@
-# InkX: Test-Driven Development Strategy
+# Inkx: Test-Driven Development Strategy
 
 ## Philosophy
 
-Since InkX targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
+Since Inkx targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
 
 **Core principle**: If Ink's tests pass, we're compatible. If they don't, we know exactly what's broken.
 
@@ -39,7 +39,7 @@ inkx/
 │   │   ├── diff.bench.ts
 │   │   └── memory.bench.ts
 │   │
-│   └── unit/                  # InkX-specific unit tests
+│   └── unit/                  # Inkx-specific unit tests
 │       ├── layout-hook.test.ts
 │       ├── two-phase.test.ts
 │       └── ...
@@ -304,11 +304,11 @@ test("interactive app works end-to-end", async () => {
 Create a visual diff utility for manual inspection:
 
 ```bash
-# Compare InkX output vs Ink output side-by-side
+# Compare Inkx output vs Ink output side-by-side
 bun run visual-diff tests/fixtures/complex-layout.tsx
 
 ┌─────────────────────────────────────┬─────────────────────────────────────┐
-│ Ink (reference)                     │ InkX (current)                      │
+│ Ink (reference)                     │ Inkx (current)                      │
 ├─────────────────────────────────────┼─────────────────────────────────────┤
 │ ┌────────────────────────────────┐  │ ┌────────────────────────────────┐  │
 │ │ Header                         │  │ │ Header                         │  │
@@ -334,14 +334,14 @@ import { ComplexLayout } from './fixtures/complex-layout';
 
 group('Initial render', () => {
   bench('Ink', () => inkRender(<ComplexLayout />));
-  bench('InkX', () => inkxRender(<ComplexLayout />));
+  bench('Inkx', () => inkxRender(<ComplexLayout />));
 });
 
 group('Re-render (state change)', () => {
   // Setup: render once, then benchmark updates
   const { rerender } = inkxRender(<ComplexLayout count={0} />);
 
-  bench('InkX rerender', () => {
+  bench('Inkx rerender', () => {
     rerender(<ComplexLayout count={Math.random()} />);
   });
 });
@@ -569,7 +569,7 @@ bun run dev:visual
 
 # Opens split-pane terminal:
 # Left: Ink rendering
-# Right: InkX rendering
+# Right: Inkx rendering
 # Bottom: Diff status
 ```
 
@@ -596,7 +596,7 @@ Create a live dashboard showing test status:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  InkX Compatibility Dashboard                                       v0.1.0  │
+│  Inkx Compatibility Dashboard                                       v0.1.0  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  Ink API Compatibility                                                      │
@@ -617,9 +617,9 @@ Create a live dashboard showing test status:
 │  Performance vs Ink                                                         │
 │  ═══════════════════════════════════════════════════════════════════════   │
 │                                                                             │
-│  Initial Render    [█████████░░░░░░░░░░░]  0.9x  (InkX: 4.5ms, Ink: 5ms)   │
-│  Re-render         [████████████████████]  1.2x  (InkX: 1.5ms, Ink: 1.8ms) │
-│  Memory            [██████████████░░░░░░]  1.1x  (InkX: 11MB, Ink: 10MB)   │
+│  Initial Render    [█████████░░░░░░░░░░░]  0.9x  (Inkx: 4.5ms, Ink: 5ms)   │
+│  Re-render         [████████████████████]  1.2x  (Inkx: 1.5ms, Ink: 1.8ms) │
+│  Memory            [██████████████░░░░░░]  1.1x  (Inkx: 11MB, Ink: 10MB)   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

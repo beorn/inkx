@@ -1,8 +1,8 @@
-# InkX: Expert Review & Iterations (v2)
+# Inkx: Expert Review & Iterations (v2)
 
 ## Executive Summary
 
-This document captures two full review cycles of the InkX design:
+This document captures two full review cycles of the Inkx design:
 
 1. **Review Pass 1**: Identified core architectural gaps and PM concerns
 2. **Review Pass 2**: Verified fixes, identified remaining issues, refined further
@@ -44,7 +44,7 @@ Migration guide references a codemod that doesn't exist.
 
 No plan for gathering feedback from early adopters.
 
-**Recommendation**: Add "beta program" step between Phase 4 and Phase 5. Invite 3-5 Ink users to try InkX.
+**Recommendation**: Add "beta program" step between Phase 4 and Phase 5. Invite 3-5 Ink users to try Inkx.
 
 ---
 
@@ -119,7 +119,7 @@ class RenderScheduler {
 The design creates Yoga nodes in `createInstance` but doesn't show cleanup:
 
 ```typescript
-createInstance(type, props): InkXNode {
+createInstance(type, props): InkxNode {
   const yogaNode = Yoga.Node.create();
   // ...
 }
@@ -136,7 +136,7 @@ removeChild(parent, child) {
 }
 
 // Also in unmount/cleanup
-function cleanupNode(node: InkXNode) {
+function cleanupNode(node: InkxNode) {
   for (const child of node.children) {
     cleanupNode(child);
   }
@@ -156,7 +156,7 @@ The design doesn't address style inheritance. In Ink:
 </Text>
 ```
 
-"World" should be red AND bold. How does InkX handle this?
+"World" should be red AND bold. How does Inkx handle this?
 
 **Options**:
 
@@ -167,7 +167,7 @@ C. **Context-based**: Use React context to pass inherited styles
 **Recommendation**: Option A (CSS-style) for Ink compatibility. Implement as:
 
 ```typescript
-function computeStyle(node: InkXNode, parentStyle: Style): Style {
+function computeStyle(node: InkxNode, parentStyle: Style): Style {
   return {
     ...parentStyle, // Inherit from parent
     ...node.props.style, // Override with explicit
@@ -192,7 +192,7 @@ The design mentions resize in tests but doesn't show implementation.
 **Implementation**:
 
 ```typescript
-class InkXRoot {
+class InkxRoot {
   constructor() {
     process.stdout.on("resize", this.handleResize);
   }
@@ -204,7 +204,7 @@ class InkXRoot {
     this.scheduleRender();
   };
 
-  markAllLayoutDirty(node: InkXNode) {
+  markAllLayoutDirty(node: InkxNode) {
     node.layoutDirty = true;
     for (const child of node.children) {
       this.markAllLayoutDirty(child);
@@ -220,12 +220,12 @@ class InkXRoot {
 What happens when a component throws during render?
 
 **Ink behavior**: Shows error in terminal, app continues
-**Required InkX behavior**: Same
+**Required Inkx behavior**: Same
 
 **Implementation**:
 
 ```typescript
-function renderNodeToBuffer(node: InkXNode, buffer: TerminalBuffer) {
+function renderNodeToBuffer(node: InkxNode, buffer: TerminalBuffer) {
   try {
     // ... normal render ...
   } catch (error) {
@@ -234,7 +234,7 @@ function renderNodeToBuffer(node: InkXNode, buffer: TerminalBuffer) {
     writeToBuffer(buffer, node.computedLayout, errorText, { color: "red" });
 
     // Log full error to stderr (not stdout, would corrupt TUI)
-    console.error("InkX render error:", error);
+    console.error("Inkx render error:", error);
   }
 }
 ```
@@ -258,7 +258,7 @@ function renderNodeToBuffer(node: InkXNode, buffer: TerminalBuffer) {
 
 #### Concern: AVA to Bun Test Migration
 
-Ink uses AVA. InkX uses Bun test. Some AVA features don't translate directly:
+Ink uses AVA. Inkx uses Bun test. Some AVA features don't translate directly:
 
 | AVA Feature   | Bun Equivalent               | Notes                  |
 | ------------- | ---------------------------- | ---------------------- |

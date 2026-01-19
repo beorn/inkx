@@ -1,6 +1,6 @@
-# InkX Internals: How the Reconciler Works
+# Inkx Internals: How the Reconciler Works
 
-This document explains InkX's architecture for contributors. Read this if you want to understand how layout feedback actually works.
+This document explains Inkx's architecture for contributors. Read this if you want to understand how layout feedback actually works.
 
 ---
 
@@ -21,18 +21,18 @@ The problem: Components execute (return JSX) **before** Yoga calculates layout. 
 
 ---
 
-## InkX's Solution: Deferred Content Rendering
+## Inkx's Solution: Deferred Content Rendering
 
-InkX separates **structure** from **content**:
+Inkx separates **structure** from **content**:
 
 ```
 React.render(<App />)
   → React calls component functions
   → Components return STRUCTURE (layout constraints)
-  → InkX builds Yoga tree
+  → Inkx builds Yoga tree
   → Yoga.calculateLayout()
-  → InkX calls CONTENT CALLBACKS with dimensions
-  → InkX writes to terminal
+  → Inkx calls CONTENT CALLBACKS with dimensions
+  → Inkx writes to terminal
 ```
 
 The key insight: React components don't render terminal content directly. They declare layout constraints and register callbacks that render content later.
@@ -43,13 +43,13 @@ The key insight: React components don't render terminal content directly. They d
 
 ### Phase 0: Reconciliation
 
-React's reconciler builds the component tree. Our custom reconciler creates `InkXNode` objects:
+React's reconciler builds the component tree. Our custom reconciler creates `InkxNode` objects:
 
 ```typescript
-interface InkXNode {
+interface InkxNode {
   type: "box" | "text" | "root";
   props: BoxProps | TextProps;
-  children: InkXNode[];
+  children: InkxNode[];
 
   // Yoga integration
   yogaNode: Yoga.Node;
@@ -72,7 +72,7 @@ The reconciler hooks:
 
 ```typescript
 const hostConfig: HostConfig = {
-  createInstance(type, props): InkXNode {
+  createInstance(type, props): InkxNode {
     const yogaNode = Yoga.Node.create();
     applyFlexboxProps(yogaNode, props);
 
@@ -137,7 +137,7 @@ const hostConfig: HostConfig = {
 Some nodes need content measurement before layout:
 
 ```typescript
-function measurePhase(root: InkXNode) {
+function measurePhase(root: InkxNode) {
   traverseTree(root, (node) => {
     if (
       node.props.width === "fit-content" ||
@@ -155,7 +155,7 @@ function measurePhase(root: InkXNode) {
   });
 }
 
-function measureIntrinsicSize(node: InkXNode): {
+function measureIntrinsicSize(node: InkxNode): {
   width: number;
   height: number;
 } {
@@ -190,7 +190,7 @@ Calculate layout for the entire tree:
 
 ```typescript
 function layoutPhase(
-  root: InkXNode,
+  root: InkxNode,
   terminalWidth: number,
   terminalHeight: number,
 ) {
@@ -213,7 +213,7 @@ function layoutPhase(
   notifyLayoutSubscribers(root);
 }
 
-function propagateLayout(node: InkXNode, parentX: number, parentY: number) {
+function propagateLayout(node: InkxNode, parentX: number, parentY: number) {
   const yoga = node.yogaNode;
 
   node.prevLayout = node.computedLayout;
@@ -236,7 +236,7 @@ function propagateLayout(node: InkXNode, parentX: number, parentY: number) {
   }
 }
 
-function notifyLayoutSubscribers(node: InkXNode) {
+function notifyLayoutSubscribers(node: InkxNode) {
   if (!layoutEqual(node.prevLayout, node.computedLayout)) {
     for (const subscriber of node.layoutSubscribers) {
       subscriber(); // Triggers React re-render
@@ -254,7 +254,7 @@ function notifyLayoutSubscribers(node: InkXNode) {
 Render actual terminal content:
 
 ```typescript
-function contentPhase(root: InkXNode): TerminalBuffer {
+function contentPhase(root: InkxNode): TerminalBuffer {
   const buffer = createBuffer(
     root.computedLayout.width,
     root.computedLayout.height,
@@ -265,7 +265,7 @@ function contentPhase(root: InkXNode): TerminalBuffer {
   return buffer;
 }
 
-function renderNodeToBuffer(node: InkXNode, buffer: TerminalBuffer) {
+function renderNodeToBuffer(node: InkxNode, buffer: TerminalBuffer) {
   if (!node.contentDirty && !node.layoutDirty) {
     // Content unchanged, skip
     return;
@@ -297,7 +297,7 @@ function renderNodeToBuffer(node: InkXNode, buffer: TerminalBuffer) {
 }
 
 function renderTextContent(
-  node: InkXNode,
+  node: InkxNode,
   availableWidth: number,
 ): StyledString {
   const text = node.props.children;
@@ -391,16 +391,16 @@ function changesToAnsi(changes: CellChange[]): string {
 The hook subscribes to layout completion:
 
 ```typescript
-const NodeContext = createContext<InkXNode | null>(null);
+const NodeContext = createContext<InkxNode | null>(null);
 
-function useInkXNode(): InkXNode {
+function useInkxNode(): InkxNode {
   const node = useContext(NodeContext);
-  if (!node) throw new Error("useLayout must be used within InkX");
+  if (!node) throw new Error("useLayout must be used within Inkx");
   return node;
 }
 
 function useLayout(): ComputedLayout {
-  const node = useInkXNode();
+  const node = useInkxNode();
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
   useLayoutEffect(() => {
@@ -441,7 +441,7 @@ Batches rapid updates:
 ```typescript
 class RenderScheduler {
   private pending = false;
-  private root: InkXNode;
+  private root: InkxNode;
   private stdout: NodeJS.WriteStream;
   private prevBuffer: TerminalBuffer | null = null;
 
@@ -583,7 +583,7 @@ function writeTextToBuffer(
 Graceful degradation:
 
 ```typescript
-function runPipeline(root: InkXNode) {
+function runPipeline(root: InkxNode) {
   try {
     measurePhase(root);
     layoutPhase(root, process.stdout.columns, process.stdout.rows);
@@ -593,7 +593,7 @@ function runPipeline(root: InkXNode) {
     prevBuffer = buffer;
   } catch (error) {
     // Don't crash the app on render errors
-    console.error("InkX render error:", error);
+    console.error("Inkx render error:", error);
 
     // Try to show error in terminal
     process.stdout.write("\x1b[0m\x1b[31mRender error (see console)\x1b[0m");
