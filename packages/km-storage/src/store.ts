@@ -24,6 +24,7 @@ import { ulid } from "ulid";
 import type { KNode, NodeType, TaskStatus } from "@km/core";
 import { setKmDir, emitNodeMoved } from "./emit.ts";
 import { parseMarkdownToNodes } from "@km/markdown";
+import { SCHEMA } from "./schema.ts";
 
 /**
  * NodeStore interface - unified access to node storage
@@ -66,80 +67,6 @@ export interface NodeStore {
   refresh(): void;
   close(): void;
 }
-
-/**
- * SQL schema (shared between modes)
- */
-const SCHEMA = `
--- Core node table
-CREATE TABLE IF NOT EXISTS nodes (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
-  parent_id TEXT,
-  link_to TEXT,
-  link_alias TEXT,
-  parent_idx REAL DEFAULT 0,
-
-  -- Filesystem
-  fs_path TEXT,
-  fs_ino INTEGER,
-  md_line INTEGER,
-
-  -- Identity
-  name TEXT,
-  title TEXT,
-
-  -- Markdown
-  md_pos INTEGER,
-  md_slug TEXT,
-
-  -- Task
-  task_status TEXT,
-  task_mark TEXT,
-  assigned_to TEXT,
-  due_date TEXT,
-  scheduled_date TEXT,
-  priority INTEGER,
-
-  -- Content
-  content TEXT,
-  content_hash TEXT,
-
-  -- Metadata
-  data JSON DEFAULT '{}',
-  created_at INTEGER,
-  updated_at INTEGER,
-  version TEXT
-);
-
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_nodes_parent ON nodes(parent_id);
-CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
-CREATE INDEX IF NOT EXISTS idx_nodes_fs_path ON nodes(fs_path);
-CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
-
--- Full-text search
-CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
-  id,
-  content,
-  content='nodes',
-  content_rowid='rowid'
-);
-
--- Triggers to keep FTS in sync
-CREATE TRIGGER IF NOT EXISTS nodes_ai AFTER INSERT ON nodes BEGIN
-  INSERT INTO nodes_fts(rowid, id, content) VALUES (new.rowid, new.id, new.content);
-END;
-
-CREATE TRIGGER IF NOT EXISTS nodes_ad AFTER DELETE ON nodes BEGIN
-  INSERT INTO nodes_fts(nodes_fts, rowid, id, content) VALUES('delete', old.rowid, old.id, old.content);
-END;
-
-CREATE TRIGGER IF NOT EXISTS nodes_au AFTER UPDATE ON nodes BEGIN
-  INSERT INTO nodes_fts(nodes_fts, rowid, id, content) VALUES('delete', old.rowid, old.id, old.content);
-  INSERT INTO nodes_fts(rowid, id, content) VALUES (new.rowid, new.id, new.content);
-END;
-`;
 
 /**
  * Convert database row to KNode object
