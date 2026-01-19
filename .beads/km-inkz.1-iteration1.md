@@ -143,7 +143,7 @@ interface LayoutNode {
 
 ```typescript
 // Ink-compatible API
-import { Box, Text, render } from 'inkz';
+import { Box, Text, render } from 'inkx';
 
 // Works exactly like Ink
 render(

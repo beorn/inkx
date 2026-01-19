@@ -207,7 +207,7 @@ Existing Ink code should work with minimal changes:
 
 ```typescript
 // This should Just Work™
-import { Box, Text, render, useInput } from 'inkz';
+import { Box, Text, render, useInput } from 'inkx';
 
 function App() {
   useInput((input, key) => { /* same API */ });
@@ -271,7 +271,7 @@ Our `<Text>` just needs to preserve ANSI codes when measuring/truncating (which 
 
 ```diff
 - import { Box, Text, render } from 'ink';
-+ import { Box, Text, render } from 'inkz';
++ import { Box, Text, render } from 'inkx';
 ```
 
 Existing apps work unchanged. No new features yet.
@@ -279,7 +279,7 @@ Existing apps work unchanged. No new features yet.
 ### Phase 2: Opt-in Layout Hooks
 
 ```typescript
-import { Box, Text, useLayout } from 'inkz';
+import { Box, Text, useLayout } from 'inkx';
 
 function Card({ title }) {
   const { width } = useLayout();  // Now available!
@@ -290,7 +290,7 @@ function Card({ title }) {
 ### Phase 3: Enhanced Components
 
 ```typescript
-import { Scroll, Table, FitBox } from 'inkz';
+import { Scroll, Table, FitBox } from 'inkx';
 
 // Replace manual scroll implementations
 <Scroll height={10}>...</Scroll>

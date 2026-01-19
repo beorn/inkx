@@ -1,8 +1,8 @@
-# InkZ: Expert Review & Iterations (v2)
+# InkX: Expert Review & Iterations (v2)
 
 ## Executive Summary
 
-This document captures two full review cycles of the InkZ design:
+This document captures two full review cycles of the InkX design:
 
 1. **Review Pass 1**: Identified core architectural gaps and PM concerns
 2. **Review Pass 2**: Verified fixes, identified remaining issues, refined further
@@ -18,7 +18,7 @@ This document captures two full review cycles of the InkZ design:
 | Gap                                 | Status     | Solution                                                                                     |
 | ----------------------------------- | ---------- | -------------------------------------------------------------------------------------------- |
 | No "Hello World to Production" path | ✅ Fixed   | Added "Week 1 Demo" milestone with concrete success criteria                                 |
-| No migration story                  | ✅ Fixed   | Created [km-inkz.6-migration.md](.beads/km-inkz.6-migration.md)                              |
+| No migration story                  | ✅ Fixed   | Created [km-inkx.6-migration.md](.beads/km-inkx.6-migration.md)                              |
 | Testing assumes success             | ✅ Fixed   | Triaged Ink tests into 4 tiers (92 must-pass, 52 should-pass, 23 nice-to-have, 7 won't-pass) |
 | No adoption strategy                | ⚠️ Partial | Documented "10x pitch" but needs real-world validation                                       |
 
@@ -44,7 +44,7 @@ Migration guide references a codemod that doesn't exist.
 
 No plan for gathering feedback from early adopters.
 
-**Recommendation**: Add "beta program" step between Phase 4 and Phase 5. Invite 3-5 Ink users to try InkZ.
+**Recommendation**: Add "beta program" step between Phase 4 and Phase 5. Invite 3-5 Ink users to try InkX.
 
 ---
 
@@ -119,7 +119,7 @@ class RenderScheduler {
 The design creates Yoga nodes in `createInstance` but doesn't show cleanup:
 
 ```typescript
-createInstance(type, props): InkZNode {
+createInstance(type, props): InkXNode {
   const yogaNode = Yoga.Node.create();
   // ...
 }
@@ -136,7 +136,7 @@ removeChild(parent, child) {
 }
 
 // Also in unmount/cleanup
-function cleanupNode(node: InkZNode) {
+function cleanupNode(node: InkXNode) {
   for (const child of node.children) {
     cleanupNode(child);
   }
@@ -156,7 +156,7 @@ The design doesn't address style inheritance. In Ink:
 </Text>
 ```
 
-"World" should be red AND bold. How does InkZ handle this?
+"World" should be red AND bold. How does InkX handle this?
 
 **Options**:
 
@@ -167,7 +167,7 @@ C. **Context-based**: Use React context to pass inherited styles
 **Recommendation**: Option A (CSS-style) for Ink compatibility. Implement as:
 
 ```typescript
-function computeStyle(node: InkZNode, parentStyle: Style): Style {
+function computeStyle(node: InkXNode, parentStyle: Style): Style {
   return {
     ...parentStyle, // Inherit from parent
     ...node.props.style, // Override with explicit
@@ -192,7 +192,7 @@ The design mentions resize in tests but doesn't show implementation.
 **Implementation**:
 
 ```typescript
-class InkZRoot {
+class InkXRoot {
   constructor() {
     process.stdout.on("resize", this.handleResize);
   }
@@ -204,7 +204,7 @@ class InkZRoot {
     this.scheduleRender();
   };
 
-  markAllLayoutDirty(node: InkZNode) {
+  markAllLayoutDirty(node: InkXNode) {
     node.layoutDirty = true;
     for (const child of node.children) {
       this.markAllLayoutDirty(child);
@@ -220,12 +220,12 @@ class InkZRoot {
 What happens when a component throws during render?
 
 **Ink behavior**: Shows error in terminal, app continues
-**Required InkZ behavior**: Same
+**Required InkX behavior**: Same
 
 **Implementation**:
 
 ```typescript
-function renderNodeToBuffer(node: InkZNode, buffer: TerminalBuffer) {
+function renderNodeToBuffer(node: InkXNode, buffer: TerminalBuffer) {
   try {
     // ... normal render ...
   } catch (error) {
@@ -234,7 +234,7 @@ function renderNodeToBuffer(node: InkZNode, buffer: TerminalBuffer) {
     writeToBuffer(buffer, node.computedLayout, errorText, { color: "red" });
 
     // Log full error to stderr (not stdout, would corrupt TUI)
-    console.error("InkZ render error:", error);
+    console.error("InkX render error:", error);
   }
 }
 ```
@@ -258,7 +258,7 @@ function renderNodeToBuffer(node: InkZNode, buffer: TerminalBuffer) {
 
 #### Concern: AVA to Bun Test Migration
 
-Ink uses AVA. InkZ uses Bun test. Some AVA features don't translate directly:
+Ink uses AVA. InkX uses Bun test. Some AVA features don't translate directly:
 
 | AVA Feature   | Bun Equivalent               | Notes                  |
 | ------------- | ---------------------------- | ---------------------- |
@@ -303,20 +303,20 @@ cross-terminal:
 
 | Document                | Purpose             | Status      |
 | ----------------------- | ------------------- | ----------- |
-| km-inkz.1-iteration1.md | Initial exploration | ✅ Complete |
-| km-inkz.2-iteration2.md | Deeper analysis     | ✅ Complete |
-| km-inkz.3-design.md     | Full design spec    | ✅ Complete |
-| km-inkz.4-testing.md    | Testing strategy    | ✅ Complete |
-| km-inkz.5-review.md     | This document       | ✅ Complete |
-| km-inkz.6-migration.md  | Migration guide     | ✅ Complete |
-| km-inkz.7-internals.md  | Contributor guide   | ✅ Complete |
+| km-inkx.1-iteration1.md | Initial exploration | ✅ Complete |
+| km-inkx.2-iteration2.md | Deeper analysis     | ✅ Complete |
+| km-inkx.3-design.md     | Full design spec    | ✅ Complete |
+| km-inkx.4-testing.md    | Testing strategy    | ✅ Complete |
+| km-inkx.5-review.md     | This document       | ✅ Complete |
+| km-inkx.6-migration.md  | Migration guide     | ✅ Complete |
+| km-inkx.7-internals.md  | Contributor guide   | ✅ Complete |
 
 ### Missing Documentation
 
 None critical. Nice to have:
 
-- `km-inkz.8-api-reference.md` - Full API docs (generate from code)
-- `km-inkz.9-changelog.md` - Version history (create at v1.0)
+- `km-inkx.8-api-reference.md` - Full API docs (generate from code)
+- `km-inkx.9-changelog.md` - Version history (create at v1.0)
 
 ---
 

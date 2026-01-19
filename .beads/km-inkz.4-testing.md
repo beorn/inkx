@@ -1,8 +1,8 @@
-# InkZ: Test-Driven Development Strategy
+# InkX: Test-Driven Development Strategy
 
 ## Philosophy
 
-Since InkZ targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
+Since InkX targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
 
 **Core principle**: If Ink's tests pass, we're compatible. If they don't, we know exactly what's broken.
 
@@ -11,7 +11,7 @@ Since InkZ targets API compatibility with Ink and Chalk, we have a **golden spec
 ## 1. Test Suite Architecture
 
 ```
-inkz/
+inkx/
 ├── tests/
 │   ├── compat/                 # Compatibility tests (from Ink/Chalk)
 │   │   ├── ink/               # Ink test suite (adapted)
@@ -39,7 +39,7 @@ inkz/
 │   │   ├── diff.bench.ts
 │   │   └── memory.bench.ts
 │   │
-│   └── unit/                  # InkZ-specific unit tests
+│   └── unit/                  # InkX-specific unit tests
 │       ├── layout-hook.test.ts
 │       ├── two-phase.test.ts
 │       └── ...
@@ -121,7 +121,7 @@ cp -r /tmp/ink/test/* tests/compat/ink/
 
 # Adapt imports
 find tests/compat/ink -name "*.tsx" -exec sed -i '' \
-  's/from '\''ink'\''/from '\''inkz'\''/g' {} \;
+  's/from '\''ink'\''/from '\''inkx'\''/g' {} \;
 ```
 
 ### 2.3 Track Compatibility Progress
@@ -177,7 +177,7 @@ Chalk tests are simpler - pure ANSI output assertions:
 // tests/compat/chalk/chalk.test.ts
 import { test, expect } from 'bun:test';
 import chalk from 'chalk';
-import { Text, renderToString } from 'inkz';
+import { Text, renderToString } from 'inkx';
 
 test('chalk.red produces correct ANSI', () => {
   const output = renderToString(<Text>{chalk.red('foo')}</Text>);
@@ -197,9 +197,9 @@ test('nested styles close correctly', () => {
 For maximum confidence, run the **original** Ink/Chalk tests:
 
 ```bash
-# Create test harness that aliases inkz → ink
+# Create test harness that aliases inkx → ink
 mkdir -p node_modules/ink
-echo 'export * from "inkz";' > node_modules/ink/index.js
+echo 'export * from "inkx";' > node_modules/ink/index.js
 
 # Run Ink's original tests
 cd /tmp/ink && npm test
@@ -218,8 +218,8 @@ Use `ink-testing-library` pattern with enhanced snapshots:
 
 ```typescript
 // tests/visual/visual.test.ts
-import { render } from 'inkz/testing';
-import { Box, Text } from 'inkz';
+import { render } from 'inkx/testing';
+import { Box, Text } from 'inkx';
 
 test('basic layout renders correctly', () => {
   const { lastFrame } = render(
@@ -304,11 +304,11 @@ test("interactive app works end-to-end", async () => {
 Create a visual diff utility for manual inspection:
 
 ```bash
-# Compare InkZ output vs Ink output side-by-side
+# Compare InkX output vs Ink output side-by-side
 bun run visual-diff tests/fixtures/complex-layout.tsx
 
 ┌─────────────────────────────────────┬─────────────────────────────────────┐
-│ Ink (reference)                     │ InkZ (current)                      │
+│ Ink (reference)                     │ InkX (current)                      │
 ├─────────────────────────────────────┼─────────────────────────────────────┤
 │ ┌────────────────────────────────┐  │ ┌────────────────────────────────┐  │
 │ │ Header                         │  │ │ Header                         │  │
@@ -329,19 +329,19 @@ bun run visual-diff tests/fixtures/complex-layout.tsx
 // tests/perf/render.bench.ts
 import { bench, group, run } from 'mitata';
 import { render as inkRender } from 'ink';
-import { render as inkzRender } from 'inkz';
+import { render as inkxRender } from 'inkx';
 import { ComplexLayout } from './fixtures/complex-layout';
 
 group('Initial render', () => {
   bench('Ink', () => inkRender(<ComplexLayout />));
-  bench('InkZ', () => inkzRender(<ComplexLayout />));
+  bench('InkX', () => inkxRender(<ComplexLayout />));
 });
 
 group('Re-render (state change)', () => {
   // Setup: render once, then benchmark updates
-  const { rerender } = inkzRender(<ComplexLayout count={0} />);
+  const { rerender } = inkxRender(<ComplexLayout count={0} />);
 
-  bench('InkZ rerender', () => {
+  bench('InkX rerender', () => {
     rerender(<ComplexLayout count={Math.random()} />);
   });
 });
@@ -425,13 +425,13 @@ async function recordMetrics() {
 
 ## 5. Test Infrastructure
 
-### 5.1 inkz-testing-library
+### 5.1 inkx-testing-library
 
 Provide a testing library compatible with ink-testing-library:
 
 ```typescript
-// packages/inkz-testing/src/index.ts
-import { createRenderer } from "inkz";
+// packages/inkx-testing/src/index.ts
+import { createRenderer } from "inkx";
 
 export function render(element: React.ReactElement) {
   const frames: string[] = [];
@@ -569,7 +569,7 @@ bun run dev:visual
 
 # Opens split-pane terminal:
 # Left: Ink rendering
-# Right: InkZ rendering
+# Right: InkX rendering
 # Bottom: Diff status
 ```
 
@@ -596,7 +596,7 @@ Create a live dashboard showing test status:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  InkZ Compatibility Dashboard                                       v0.1.0  │
+│  InkX Compatibility Dashboard                                       v0.1.0  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  Ink API Compatibility                                                      │
@@ -617,9 +617,9 @@ Create a live dashboard showing test status:
 │  Performance vs Ink                                                         │
 │  ═══════════════════════════════════════════════════════════════════════   │
 │                                                                             │
-│  Initial Render    [█████████░░░░░░░░░░░]  0.9x  (InkZ: 4.5ms, Ink: 5ms)   │
-│  Re-render         [████████████████████]  1.2x  (InkZ: 1.5ms, Ink: 1.8ms) │
-│  Memory            [██████████████░░░░░░]  1.1x  (InkZ: 11MB, Ink: 10MB)   │
+│  Initial Render    [█████████░░░░░░░░░░░]  0.9x  (InkX: 4.5ms, Ink: 5ms)   │
+│  Re-render         [████████████████████]  1.2x  (InkX: 1.5ms, Ink: 1.8ms) │
+│  Memory            [██████████████░░░░░░]  1.1x  (InkX: 11MB, Ink: 10MB)   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -724,7 +724,7 @@ Long-running TUI apps must not leak:
 
 ```typescript
 // tests/memory/memory.test.ts
-import { render } from 'inkz';
+import { render } from 'inkx';
 
 describe('Memory management', () => {
   test('no leak on rapid re-renders', async () => {

@@ -1,8 +1,8 @@
-# InkZ: Next-Generation Terminal UI Renderer
+# InkX: Next-Generation Terminal UI Renderer
 
 ## Executive Summary
 
-Ink's single-pass rendering architecture prevents components from knowing their computed size, forcing pervasive width-prop threading in every application. This document designs **InkZ** - a terminal UI renderer that maintains Ink/Chalk API compatibility while solving the layout feedback problem through a two-phase render architecture.
+Ink's single-pass rendering architecture prevents components from knowing their computed size, forcing pervasive width-prop threading in every application. This document designs **InkX** - a terminal UI renderer that maintains Ink/Chalk API compatibility while solving the layout feedback problem through a two-phase render architecture.
 
 **Key insight**: The fix isn't complex algorithms - it's exposing what Yoga already computes back to React components.
 
@@ -94,7 +94,7 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 │  React reconciliation builds component tree                          │
 │  Components register content callbacks (not rendered content)        │
 │                                                                      │
-│  Output: Tree of InkZNodes with Yoga nodes + callbacks               │
+│  Output: Tree of InkXNodes with Yoga nodes + callbacks               │
 └─────────────────────────────────────────────────────────────────────┘
                                   │
                                   ▼
@@ -145,7 +145,7 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 
 ### Key Insight: Deferred Content Rendering
 
-Unlike Ink (which renders content during React reconciliation), InkZ separates:
+Unlike Ink (which renders content during React reconciliation), InkX separates:
 
 - **Structure** (React reconciliation) - builds the layout tree
 - **Content** (Phase 3) - renders text/graphics with known dimensions
@@ -182,16 +182,16 @@ interface ComputedLayout {
 ```typescript
 import Reconciler from 'react-reconciler';
 
-interface InkZNode {
+interface InkXNode {
   type: string;
   props: Record<string, unknown>;
-  children: InkZNode[];
+  children: InkXNode[];
   yogaNode: yoga.Node;
   computedLayout?: ComputedLayout;
 }
 
 const hostConfig: HostConfig<...> = {
-  createInstance(type, props): InkZNode {
+  createInstance(type, props): InkXNode {
     const yogaNode = yoga.Node.create();
     applyFlexboxProps(yogaNode, props);
     return { type, props, children: [], yogaNode };
@@ -214,7 +214,7 @@ const hostConfig: HostConfig<...> = {
   },
 };
 
-function propagateComputedLayout(node: InkZNode, parentX = 0, parentY = 0) {
+function propagateComputedLayout(node: InkXNode, parentX = 0, parentY = 0) {
   const layout = node.yogaNode.getComputedLayout();
   node.computedLayout = {
     width: layout.width,
@@ -240,7 +240,7 @@ function propagateComputedLayout(node: InkZNode, parentX = 0, parentY = 0) {
 const LayoutContext = createContext<ComputedLayout | null>(null);
 
 function useLayout(): ComputedLayout {
-  const node = useInkZNode();
+  const node = useInkXNode();
   const [, forceUpdate] = useReducer(x => x + 1, 0);
 
   // Subscribe to layout completion
@@ -270,7 +270,7 @@ function Header() {
 This is the key difference from Ink's `measureElement()`:
 
 - Ink: You call `measureElement()`, get dimensions, manually trigger re-render
-- InkZ: `useLayout()` automatically re-renders when dimensions are ready
+- InkX: `useLayout()` automatically re-renders when dimensions are ready
 
 ---
 
@@ -479,7 +479,7 @@ function textToCells(text: string): Cell[] {
 **Dirty Tracking**: Not every state change needs full re-layout.
 
 ```typescript
-interface InkZNode {
+interface InkXNode {
   layoutDirty: boolean; // Structure changed, needs re-layout
   contentDirty: boolean; // Content changed, layout unchanged
 }
@@ -513,7 +513,7 @@ class RenderScheduler {
 ```typescript
 // Don't recreate Yoga nodes on every render
 // Only update changed props and recalculate
-function updateYogaNode(node: InkZNode, prevProps: Props, nextProps: Props) {
+function updateYogaNode(node: InkXNode, prevProps: Props, nextProps: Props) {
   if (prevProps.width !== nextProps.width) {
     node.yogaNode.setWidth(nextProps.width);
     node.layoutDirty = true;
@@ -531,7 +531,7 @@ function updateYogaNode(node: InkZNode, prevProps: Props, nextProps: Props) {
 - [ ] Set up test harness with Bun test
 - [ ] Clone Ink test suite (31 files) and adapt imports
 - [ ] Clone Chalk test suite (6 files) and adapt imports
-- [ ] Create `inkz-testing-library` with ink-testing-library compatible API
+- [ ] Create `inkx-testing-library` with ink-testing-library compatible API
 - [ ] Set up visual snapshot infrastructure
 - [ ] Set up performance benchmark suite (mitata)
 - [ ] Create compatibility tracking dashboard
@@ -542,12 +542,12 @@ function updateYogaNode(node: InkZNode, prevProps: Props, nextProps: Props) {
 
 ### Week 1 Demo (Milestone)
 
-**Goal**: A developer can run this and see InkZ working:
+**Goal**: A developer can run this and see InkX working:
 
 ```bash
 # Clone the demo
-git clone https://github.com/example/inkz-demo
-cd inkz-demo
+git clone https://github.com/example/inkx-demo
+cd inkx-demo
 bun install
 bun run dev
 
@@ -561,7 +561,7 @@ bun run dev
 
 ```typescript
 // demo/index.tsx
-import { render, Box, Text, useLayout } from 'inkz';
+import { render, Box, Text, useLayout } from 'inkx';
 
 function App() {
   return (
@@ -576,7 +576,7 @@ function Header() {
   const { width } = useLayout();
   return (
     <Box>
-      <Text color="cyan" bold>InkZ Demo</Text>
+      <Text color="cyan" bold>InkX Demo</Text>
       <Text dimColor> - Width: {width}px</Text>
     </Box>
   );
@@ -624,7 +624,7 @@ render(<App />);
 - [ ] `useInput()` hook
 - [ ] Full Ink test suite passing (80%+ of Tier 1+2 = 144 tests)
 - [ ] Chalk integration tests (100% of 6 files)
-- [ ] Write migration guide (see [km-inkz.6-migration.md](.beads/km-inkz.6-migration.md))
+- [ ] Write migration guide (see [km-inkx.6-migration.md](.beads/km-inkx.6-migration.md))
 - [ ] Document known incompatibilities
 - [ ] **Target**: Compatibility dashboard shows 80%+ of Tier 1+2
 
@@ -638,14 +638,14 @@ render(<App />);
 
 ### Phase 5: km Integration (1 week)
 
-- [ ] Replace km-ink with inkz
+- [ ] Replace km-ink with inkx
 - [ ] Remove `ConstraintContext` and width threading
 - [ ] Visual regression tests pass
 - [ ] Performance parity or better
 
 **Total: 5 weeks** (could be compressed with focus)
 
-See **[km-inkz.4-testing.md](.beads/km-inkz.4-testing.md)** for detailed testing strategy.
+See **[km-inkx.4-testing.md](.beads/km-inkx.4-testing.md)** for detailed testing strategy.
 
 ---
 
@@ -773,8 +773,8 @@ Taffy is a better flexbox than Yoga. Considered but deferred:
 
 ## 12. Open Questions
 
-1. **Naming**: "InkZ" is a placeholder. Options: ink-next, termink, rink (taken), terminus
-2. **Monorepo or separate packages**: `inkz` vs `@inkz/core`, `@inkz/testing`, etc.
+1. **Naming**: "InkX" is a placeholder. Options: ink-next, termink, rink (taken), terminus
+2. **Monorepo or separate packages**: `inkx` vs `@inkx/core`, `@inkx/testing`, etc.
 3. **Ink version compatibility**: Target Ink 3.x API? Include Ink 4.x features?
 4. **License**: MIT (like Ink)? Something else?
 
@@ -782,7 +782,7 @@ Taffy is a better flexbox than Yoga. Considered but deferred:
 
 ## 13. Conclusion
 
-InkZ is feasible and would eliminate the biggest pain point in Ink development. The core innovation - exposing Yoga's computed layout to React components - is straightforward to implement. The challenge is maintaining API compatibility while making this architectural change.
+InkX is feasible and would eliminate the biggest pain point in Ink development. The core innovation - exposing Yoga's computed layout to React components - is straightforward to implement. The challenge is maintaining API compatibility while making this architectural change.
 
 **Recommendation**: Build the PoC (1 week). If `useLayout()` works as designed, proceed with full implementation. If unforeseen blockers emerge, document and re-evaluate.
 
