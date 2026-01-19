@@ -277,10 +277,24 @@ interface Keybinding {
 
 #### Task
 
-| Key     | Command       | Description      |
-| ------- | ------------- | ---------------- |
-| `Space` | `task_toggle` | Toggle done/todo |
-| `x`     | `task_cancel` | Cancel task      |
+| Key     | Command             | Description               |
+| ------- | ------------------- | ------------------------- |
+| `Space` | `cycle_task_status` | Cycle through statuses    |
+| `x`     | `toggle_task_done`  | Toggle between done/todo  |
+
+#### Edit
+
+| Key              | Command        | Description       |
+| ---------------- | -------------- | ----------------- |
+| `m`              | `enter_move_mode` | Start move mode |
+| `Alt+Up`         | `shift_up`     | Move node up      |
+| `Alt+Down`       | `shift_down`   | Move node down    |
+| `Alt+Left`       | `shift_left`   | Outdent node      |
+| `Alt+Right`      | `shift_right`  | Indent node       |
+| `Tab`            | `shift_right`  | Indent node       |
+| `Shift+Tab`      | `shift_left`   | Outdent node      |
+| `Ctrl+Z`         | `undo`         | Undo last action  |
+| `Ctrl+Shift+Z`   | `redo`         | Redo undone action|
 
 #### View
 
