@@ -259,6 +259,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     boardState,
     ui,
     layout: columnsLayout,
+    nodeMap,
     dispatch,
     dispatchBoard,
     setState,
