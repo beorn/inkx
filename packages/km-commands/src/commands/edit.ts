@@ -67,6 +67,18 @@ export const shiftRight: CommandDef = {
   execute: () => ({ type: "SHIFT_RIGHT" }),
 };
 
+export const deleteNode: CommandDef = {
+  id: "delete_node",
+  name: "Delete Node",
+  description: "Delete current node",
+  category: "Edit",
+  shortcuts: ["D"],
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null;
+    return { type: "DELETE_NODE", nodeId: ctx.currentNodeId };
+  },
+};
+
 export const editCommands: CommandDef[] = [
   enterMoveMode,
   confirmMove,
@@ -75,4 +87,5 @@ export const editCommands: CommandDef[] = [
   shiftDown,
   shiftLeft,
   shiftRight,
+  deleteNode,
 ];

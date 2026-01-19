@@ -257,38 +257,38 @@ interface Keybinding {
 
 #### Navigation
 
-| Key          | Command                  | Description                  |
-| ------------ | ------------------------ | ---------------------------- |
-| `j`          | `cursor_next`            | Move to next sibling         |
-| `k`          | `cursor_prev`            | Move to previous sibling     |
-| `h`          | `cursor_out`             | Move to parent               |
-| `l`          | `cursor_in`              | Move into first child        |
-| `g`          | `cursor_first`           | Move to first sibling        |
-| `G`          | `cursor_last`            | Move to last sibling         |
-| `ArrowDown`  | `cursor_down`            | Move down visually           |
-| `ArrowUp`    | `cursor_up`              | Move up visually             |
-| `ArrowLeft`  | `cursor_left`            | Move left (cross-column)     |
-| `ArrowRight` | `cursor_right`           | Move right (cross-column)    |
-| `H`          | `nav_cross_column_left`  | Navigate to column on left   |
-| `L`          | `nav_cross_column_right` | Navigate to column on right  |
-| `[`          | `nav_back`               | Navigate back in history     |
-| `]`          | `nav_forward`            | Navigate forward in history  |
-| `Enter`      | `zoom_in`                | Zoom into node (normal mode) |
-| `Backspace`  | `zoom_out`               | Zoom out to parent           |
-| `u`          | `zoom_out`               | Zoom out to parent           |
+| Key          | Command            | Description                   |
+| ------------ | ------------------ | ----------------------------- |
+| `j`          | `cursor_next`      | Move to next sibling          |
+| `k`          | `cursor_prev`      | Move to previous sibling      |
+| `h`          | `cursor_left`      | Move left (cross-column)      |
+| `l`          | `cursor_right`     | Move right (cross-column)     |
+| `g`          | `cursor_first`     | Move to first sibling         |
+| `G`          | `cursor_last`      | Move to last sibling          |
+| `ArrowDown`  | `cursor_down`      | Move down visually            |
+| `ArrowUp`    | `cursor_up`        | Move up visually              |
+| `ArrowLeft`  | `cursor_left`      | Move left (cross-column)      |
+| `ArrowRight` | `cursor_right`     | Move right (cross-column)     |
+| `[`          | `nav_back`         | Navigate back in history      |
+| `]`          | `nav_forward`      | Navigate forward in history   |
+| `o`          | `zoom_in`          | Zoom into current node        |
+| `u`          | `go_up_path`       | Go up to parent path          |
+| `Enter`      | `open_detail_pane` | Open detail pane (normal mode)|
 
 #### Selection
 
-| Key           | Command               | Description            |
-| ------------- | --------------------- | ---------------------- |
-| `v`           | `select_toggle`       | Toggle selection       |
-| `V`           | `select_all_siblings` | Select all siblings    |
-| `Ctrl+A`      | `select_all`          | Select all             |
-| `Escape`      | `clear_selection`     | Clear selection        |
-| `Shift+Up`    | `extend_select_up`    | Extend selection up    |
-| `Shift+Down`  | `extend_select_down`  | Extend selection down  |
-| `Shift+Left`  | `extend_select_left`  | Extend selection left  |
-| `Shift+Right` | `extend_select_right` | Extend selection right |
+| Key           | Command                  | Description                 |
+| ------------- | ------------------------ | --------------------------- |
+| `A`           | `select_all_progressive` | Progressive select all      |
+| `Escape`      | `clear_selection`        | Clear selection             |
+| `Shift+Up`    | `extend_select_up`       | Extend selection up         |
+| `Shift+Down`  | `extend_select_down`     | Extend selection down       |
+| `Shift+Left`  | `extend_select_left`     | Extend selection left       |
+| `Shift+Right` | `extend_select_right`    | Extend selection right      |
+| `K`           | `extend_select_up`       | Extend selection up         |
+| `J`           | `extend_select_down`     | Extend selection down       |
+| `H`           | `extend_select_left`     | Extend selection left       |
+| `L`           | `extend_select_right`    | Extend selection right      |
 
 #### Edit
 
@@ -297,14 +297,15 @@ interface Keybinding {
 | `m`             | `enter_move_mode` | Start move mode          |
 | `Enter` (move)  | `confirm_move`    | Confirm move (move mode) |
 | `Escape` (move) | `cancel_move`     | Cancel move (move mode)  |
-| `Alt+Up`        | `shift_up`        | Move node up             |
-| `Alt+Down`      | `shift_down`      | Move node down           |
-| `Alt+Left`      | `shift_left`      | Outdent node             |
-| `Alt+Right`     | `shift_right`     | Indent node              |
-| `Alt+k`         | `shift_up`        | Move node up             |
-| `Alt+j`         | `shift_down`      | Move node down           |
-| `Alt+h`         | `shift_left`      | Outdent node             |
-| `Alt+l`         | `shift_right`     | Indent node              |
+| `D`             | `delete_node`     | Delete with confirmation |
+| `Cmd+Up`        | `shift_up`        | Move node up             |
+| `Cmd+Down`      | `shift_down`      | Move node down           |
+| `Cmd+Left`      | `shift_left`      | Outdent node             |
+| `Cmd+Right`     | `shift_right`     | Indent node              |
+| `Cmd+k`         | `shift_up`        | Move node up             |
+| `Cmd+j`         | `shift_down`      | Move node down           |
+| `Cmd+h`         | `shift_left`      | Outdent node             |
+| `Cmd+l`         | `shift_right`     | Indent node              |
 | `Tab`           | `shift_right`     | Indent node              |
 | `Shift+Tab`     | `shift_left`      | Outdent node             |
 | `Ctrl+Z`        | `undo`            | Undo last action         |
@@ -313,28 +314,28 @@ interface Keybinding {
 
 #### Task
 
-| Key     | Command             | Description              |
-| ------- | ------------------- | ------------------------ |
-| `Space` | `cycle_task_status` | Cycle through statuses   |
-| `x`     | `toggle_task_done`  | Toggle between done/todo |
+| Key     | Command             | Description            |
+| ------- | ------------------- | ---------------------- |
+| `Space` | `cycle_task_status` | Cycle through statuses |
 
 #### Fold
 
-| Key       | Command           | Description            |
-| --------- | ----------------- | ---------------------- |
-| `z`       | `toggle_fold`     | Toggle fold            |
-| `c`       | `toggle_collapse` | Toggle column collapse |
-| `Z`       | `fold_all`        | Fold all nodes         |
-| `Shift+Z` | `unfold_all`      | Unfold all nodes       |
+| Key | Command           | Description                       |
+| --- | ----------------- | --------------------------------- |
+| `z` | `fold_all`        | Fold all cards in current column  |
+| `Z` | `unfold_all`      | Unfold all cards in current column|
+| `c` | `toggle_collapse` | Toggle column collapse            |
 
 #### View
 
-| Key     | Command                  | Description            |
-| ------- | ------------------------ | ---------------------- |
-| `<`     | `decrease_outline_depth` | Decrease visible depth |
-| `>`     | `increase_outline_depth` | Increase visible depth |
-| `+`/`=` | `increase_content_lines` | Show more content      |
-| `-`/`_` | `decrease_content_lines` | Show less content      |
+| Key     | Command                  | Description              |
+| ------- | ------------------------ | ------------------------ |
+| `v`     | `cycle_view_mode`        | Cycle through view modes |
+| `?`     | `show_help`              | Toggle help overlay      |
+| `<`     | `decrease_outline_depth` | Decrease visible depth   |
+| `>`     | `increase_outline_depth` | Increase visible depth   |
+| `+`/`=` | `increase_content_lines` | Show more content        |
+| `-`/`_` | `decrease_content_lines` | Show less content        |
 
 ---
 

@@ -58,8 +58,56 @@ export interface HistoryRedoAction {
 
 export type HistoryAction = HistoryUndoAction | HistoryRedoAction;
 
+// UI actions (handled by TUI, not board reducer)
+export interface GoUpPathAction {
+  type: "GO_UP_PATH";
+}
+
+export interface OpenDetailPaneAction {
+  type: "OPEN_DETAIL_PANE";
+}
+
+export interface CloseDetailPaneAction {
+  type: "CLOSE_DETAIL_PANE";
+}
+
+export interface ShowHelpAction {
+  type: "SHOW_HELP";
+}
+
+export interface HideHelpAction {
+  type: "HIDE_HELP";
+}
+
+export interface CycleViewModeAction {
+  type: "CYCLE_VIEW_MODE";
+}
+
+export interface DeleteNodeAction {
+  type: "DELETE_NODE";
+  nodeId: string;
+}
+
+export interface SelectAllProgressiveAction {
+  type: "SELECT_ALL_PROGRESSIVE";
+}
+
+export type UIAction =
+  | GoUpPathAction
+  | OpenDetailPaneAction
+  | CloseDetailPaneAction
+  | ShowHelpAction
+  | HideHelpAction
+  | CycleViewModeAction
+  | DeleteNodeAction
+  | SelectAllProgressiveAction;
+
 // Combined action type that commands can return
-export type CommandAction = BoardAction | TaskSetStatusAction | HistoryAction;
+export type CommandAction =
+  | BoardAction
+  | TaskSetStatusAction
+  | HistoryAction
+  | UIAction;
 
 // Re-export for convenience
 export type { BoardAction, BoardState, TNode, TPath, ViewMode, TaskStatus };

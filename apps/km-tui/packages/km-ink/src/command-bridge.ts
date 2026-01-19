@@ -26,6 +26,7 @@ import {
   type CommandAction,
   type TaskSetStatusAction,
   type HistoryAction,
+  type UIAction,
   type BoardAction,
   type BoardState as CmdBoardState,
   type TNode,
@@ -170,12 +171,28 @@ export function isHistoryAction(
 }
 
 /**
+ * Check if a command action is a UI action (handled by TUI directly).
+ */
+export function isUIAction(action: CommandAction): action is UIAction {
+  return (
+    action.type === "GO_UP_PATH" ||
+    action.type === "OPEN_DETAIL_PANE" ||
+    action.type === "CLOSE_DETAIL_PANE" ||
+    action.type === "SHOW_HELP" ||
+    action.type === "HIDE_HELP" ||
+    action.type === "CYCLE_VIEW_MODE" ||
+    action.type === "DELETE_NODE" ||
+    action.type === "SELECT_ALL_PROGRESSIVE"
+  );
+}
+
+/**
  * Check if a command action is a board action (can go to boardReducer).
  */
 export function isBoardAction(action: CommandAction): action is BoardAction {
   return (
-    action.type !== "TASK_SET_STATUS" &&
-    action.type !== "HISTORY_UNDO" &&
-    action.type !== "HISTORY_REDO"
+    !isTaskStatusAction(action) &&
+    !isHistoryAction(action) &&
+    !isUIAction(action)
   );
 }

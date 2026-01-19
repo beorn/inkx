@@ -1,5 +1,24 @@
 import type { CommandDef } from "../types.ts";
 
+// View mode
+export const cycleViewMode: CommandDef = {
+  id: "cycle_view_mode",
+  name: "Cycle View Mode",
+  description: "Cycle through view modes (columns, list, detail)",
+  category: "View",
+  shortcuts: ["v"],
+  execute: () => ({ type: "CYCLE_VIEW_MODE" }),
+};
+
+export const showHelp: CommandDef = {
+  id: "show_help",
+  name: "Show Help",
+  description: "Toggle help overlay",
+  category: "View",
+  shortcuts: ["?"],
+  execute: () => ({ type: "SHOW_HELP" }),
+};
+
 // Fold commands
 export const toggleFold: CommandDef = {
   id: "toggle_fold",
@@ -81,6 +100,8 @@ export const decreaseContentLines: CommandDef = {
 };
 
 export const viewCommands: CommandDef[] = [
+  cycleViewMode,
+  showHelp,
   toggleFold,
   toggleCollapse,
   foldAll,

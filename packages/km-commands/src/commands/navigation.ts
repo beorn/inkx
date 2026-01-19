@@ -92,25 +92,6 @@ export const cursorRight: CommandDef = {
   execute: () => ({ type: "CURSOR_MOVE", dir: "right" }),
 };
 
-// Cross-column navigation (preserves Y position)
-export const navCrossColumnLeft: CommandDef = {
-  id: "nav_cross_column_left",
-  name: "Column Left",
-  description: "Navigate to column on left",
-  category: "Navigation",
-  shortcuts: ["H"],
-  execute: () => ({ type: "NAV_CROSS_COLUMN", direction: "left" }),
-};
-
-export const navCrossColumnRight: CommandDef = {
-  id: "nav_cross_column_right",
-  name: "Column Right",
-  description: "Navigate to column on right",
-  category: "Navigation",
-  shortcuts: ["L"],
-  execute: () => ({ type: "NAV_CROSS_COLUMN", direction: "right" }),
-};
-
 // History navigation
 export const navBack: CommandDef = {
   id: "nav_back",
@@ -136,7 +117,7 @@ export const zoomIn: CommandDef = {
   name: "Zoom In",
   description: "Focus on current node as root",
   category: "Navigation",
-  shortcuts: ["Enter"],
+  shortcuts: ["o"], // TUI uses 'o' for zoom in
   execute: (ctx) => {
     if (!ctx.currentNode) return null;
     return {
@@ -150,12 +131,33 @@ export const zoomIn: CommandDef = {
 export const zoomOut: CommandDef = {
   id: "zoom_out",
   name: "Zoom Out",
-  description: "Return to parent context",
+  description: "Return to previous zoom level (from zoom stack)",
   category: "Navigation",
-  shortcuts: ["Backspace"],
+  shortcuts: [], // Not directly bound - see goUpPath
   execute: (ctx) => {
     return { type: "ZOOM_OUT", nodes: ctx.boardState.nodes };
   },
+};
+
+// Go up physical path - different from zoomOut
+// This navigates to the parent of the current root node
+export const goUpPath: CommandDef = {
+  id: "go_up_path",
+  name: "Go Up Path",
+  description: "Navigate to parent of current root",
+  category: "Navigation",
+  shortcuts: ["u"],
+  execute: () => ({ type: "GO_UP_PATH" }),
+};
+
+// Open detail pane for current node
+export const openDetailPane: CommandDef = {
+  id: "open_detail_pane",
+  name: "Open Detail",
+  description: "Open detail pane for current node",
+  category: "Navigation",
+  shortcuts: ["Enter"],
+  execute: () => ({ type: "OPEN_DETAIL_PANE" }),
 };
 
 // All navigation commands
@@ -170,10 +172,10 @@ export const navigationCommands: CommandDef[] = [
   cursorDown,
   cursorLeft,
   cursorRight,
-  navCrossColumnLeft,
-  navCrossColumnRight,
   navBack,
   navForward,
   zoomIn,
   zoomOut,
+  goUpPath,
+  openDetailPane,
 ];

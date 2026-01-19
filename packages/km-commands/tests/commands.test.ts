@@ -207,26 +207,6 @@ describe("navigationCommands", () => {
     }
   });
 
-  describe("cross-column navigation", () => {
-    it("nav_cross_column_left returns NAV_CROSS_COLUMN direction=left", () => {
-      const cmd = navigationCommands.find(
-        (c) => c.id === "nav_cross_column_left",
-      );
-      const result = cmd!.execute(createContext());
-
-      expect(result).toEqual({ type: "NAV_CROSS_COLUMN", direction: "left" });
-    });
-
-    it("nav_cross_column_right returns NAV_CROSS_COLUMN direction=right", () => {
-      const cmd = navigationCommands.find(
-        (c) => c.id === "nav_cross_column_right",
-      );
-      const result = cmd!.execute(createContext());
-
-      expect(result).toEqual({ type: "NAV_CROSS_COLUMN", direction: "right" });
-    });
-  });
-
   describe("history navigation", () => {
     it("nav_back returns NAV_BACK action", () => {
       const cmd = navigationCommands.find((c) => c.id === "nav_back");
@@ -342,10 +322,10 @@ describe("selectionCommands", () => {
 
   describe("extend selection", () => {
     const extendCommands = [
-      { id: "extend_select_up", type: "EXTEND_SELECT_UP" },
-      { id: "extend_select_down", type: "EXTEND_SELECT_DOWN" },
-      { id: "extend_select_left", type: "EXTEND_SELECT_LEFT" },
-      { id: "extend_select_right", type: "EXTEND_SELECT_RIGHT" },
+      { id: "extend_select_up", type: "EXTEND_SELECT_UP" as const },
+      { id: "extend_select_down", type: "EXTEND_SELECT_DOWN" as const },
+      { id: "extend_select_left", type: "EXTEND_SELECT_LEFT" as const },
+      { id: "extend_select_right", type: "EXTEND_SELECT_RIGHT" as const },
     ];
 
     for (const { id, type } of extendCommands) {
@@ -393,10 +373,10 @@ describe("editCommands", () => {
 
   describe("shift commands", () => {
     const shiftCommands = [
-      { id: "shift_up", type: "SHIFT_UP" },
-      { id: "shift_down", type: "SHIFT_DOWN" },
-      { id: "shift_left", type: "SHIFT_LEFT" },
-      { id: "shift_right", type: "SHIFT_RIGHT" },
+      { id: "shift_up", type: "SHIFT_UP" as const },
+      { id: "shift_down", type: "SHIFT_DOWN" as const },
+      { id: "shift_left", type: "SHIFT_LEFT" as const },
+      { id: "shift_right", type: "SHIFT_RIGHT" as const },
     ];
 
     for (const { id, type } of shiftCommands) {

@@ -66,78 +66,82 @@ export function resolveKeybinding(
 }
 
 // Default keybindings
+// NOTE: These match the actual TUI keyboard-handler.ts behavior
 export const defaultKeybindings: Keybinding[] = [
   // === Navigation ===
-  // Structural (hjkl)
-  { key: "j", commandId: "cursor_next" },
-  { key: "k", commandId: "cursor_prev" },
-  { key: "h", commandId: "cursor_out" },
-  { key: "l", commandId: "cursor_in" },
-  { key: "g", commandId: "cursor_first" },
-  { key: "G", commandId: "cursor_last" },
+  // Structural (hjkl) - move within tree structure
+  { key: "j", commandId: "cursor_next" }, // Move to next sibling / down in list
+  { key: "k", commandId: "cursor_prev" }, // Move to previous sibling / up in list
+  { key: "h", commandId: "cursor_left" }, // Move left (column) - TUI: also closes detail pane contextually
+  { key: "l", commandId: "cursor_right" }, // Move right (column)
+  { key: "g", commandId: "cursor_first" }, // Move to first item in list
+  { key: "G", commandId: "cursor_last" }, // Move to last item in list
 
-  // Visual (arrows)
+  // Visual (arrows) - same as hjkl
   { key: "ArrowDown", commandId: "cursor_down" },
   { key: "ArrowUp", commandId: "cursor_up" },
   { key: "ArrowLeft", commandId: "cursor_left" },
   { key: "ArrowRight", commandId: "cursor_right" },
 
-  // Cross-column
-  { key: "H", commandId: "nav_cross_column_left" },
-  { key: "L", commandId: "nav_cross_column_right" },
-
-  // History
+  // History navigation
   { key: "[", commandId: "nav_back" },
   { key: "]", commandId: "nav_forward" },
 
-  // Zoom
-  { key: "Enter", commandId: "zoom_in", modes: ["normal"] },
-  { key: "Backspace", commandId: "zoom_out" },
-  { key: "u", commandId: "zoom_out" },
+  // Zoom/Navigate
+  { key: "o", commandId: "zoom_in" }, // TUI uses 'o' for zoom in
+  { key: "u", commandId: "go_up_path" }, // Go up physical path (parent of root)
+  { key: "Enter", commandId: "open_detail_pane", modes: ["normal"] }, // Open detail view
 
   // === Selection ===
-  { key: "v", commandId: "select_toggle" },
-  { key: "V", commandId: "select_all_siblings" },
-  { key: "a", ctrl: true, commandId: "select_all" },
+  // NOTE: 'v' is NOT select_toggle in TUI - it cycles view mode
+  // Progressive select all with Shift+A
+  { key: "A", commandId: "select_all_progressive" },
   { key: "Escape", commandId: "clear_selection" },
 
-  // Extend selection
+  // Extend selection with Shift+movement
   { key: "ArrowUp", shift: true, commandId: "extend_select_up" },
   { key: "ArrowDown", shift: true, commandId: "extend_select_down" },
   { key: "ArrowLeft", shift: true, commandId: "extend_select_left" },
   { key: "ArrowRight", shift: true, commandId: "extend_select_right" },
+  { key: "K", commandId: "extend_select_up" }, // Shift+K
+  { key: "J", commandId: "extend_select_down" }, // Shift+J
+  { key: "H", commandId: "extend_select_left" }, // Shift+H
+  { key: "L", commandId: "extend_select_right" }, // Shift+L
 
   // === Edit ===
   { key: "m", commandId: "enter_move_mode" },
   { key: "Enter", commandId: "confirm_move", modes: ["move"] },
   { key: "Escape", commandId: "cancel_move", modes: ["move"] },
+  { key: "D", commandId: "delete_node" }, // Delete with confirmation
 
-  // Shifting (Alt+direction)
-  { key: "ArrowUp", alt: true, commandId: "shift_up" },
-  { key: "ArrowDown", alt: true, commandId: "shift_down" },
-  { key: "ArrowLeft", alt: true, commandId: "shift_left" },
-  { key: "ArrowRight", alt: true, commandId: "shift_right" },
-  { key: "k", alt: true, commandId: "shift_up" },
-  { key: "j", alt: true, commandId: "shift_down" },
-  { key: "h", alt: true, commandId: "shift_left" },
-  { key: "l", alt: true, commandId: "shift_right" },
+  // Shifting (Alt/Meta+direction) - move nodes in tree
+  { key: "ArrowUp", meta: true, commandId: "shift_up" },
+  { key: "ArrowDown", meta: true, commandId: "shift_down" },
+  { key: "ArrowLeft", meta: true, commandId: "shift_left" },
+  { key: "ArrowRight", meta: true, commandId: "shift_right" },
+  { key: "k", meta: true, commandId: "shift_up" },
+  { key: "j", meta: true, commandId: "shift_down" },
+  { key: "h", meta: true, commandId: "shift_left" },
+  { key: "l", meta: true, commandId: "shift_right" },
+
+  // Indent/Outdent with Tab (same as shift left/right)
   { key: "Tab", commandId: "shift_right" },
   { key: "Tab", shift: true, commandId: "shift_left" },
 
   // === Task ===
   { key: " ", commandId: "cycle_task_status" },
-  { key: "x", commandId: "toggle_task_done" },
 
   // === Fold ===
-  // Note: z/Z behavior matches keyboard-handler.ts:
-  // - z (lowercase) = fold all cards in column
-  // - Z (Shift+z, uppercase) = unfold all cards in column
-  // toggle_fold is bound to a different key or not bound by default
+  // z/Z behavior from keyboard-handler.ts:
+  // - z (lowercase) = fold all cards in current column
+  // - Z (uppercase) = unfold all cards in current column
   { key: "z", commandId: "fold_all" },
   { key: "Z", commandId: "unfold_all" },
-  { key: "c", commandId: "toggle_collapse" },
+  { key: "c", commandId: "toggle_collapse" }, // Toggle column collapse
 
   // === View ===
+  { key: "v", commandId: "cycle_view_mode" }, // TUI: cycles through view modes
+  { key: "?", commandId: "show_help" }, // Toggle help overlay
   { key: "<", commandId: "decrease_outline_depth" },
   { key: ">", commandId: "increase_outline_depth" },
   { key: "+", commandId: "increase_content_lines" },

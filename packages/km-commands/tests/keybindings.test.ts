@@ -448,8 +448,9 @@ describe("initDefaultKeybindings", () => {
 
     expect(resolveKeybinding("j", {}, ctx)).toBe("cursor_next");
     expect(resolveKeybinding("k", {}, ctx)).toBe("cursor_prev");
-    expect(resolveKeybinding("h", {}, ctx)).toBe("cursor_out");
-    expect(resolveKeybinding("l", {}, ctx)).toBe("cursor_in");
+    // TUI uses h/l for left/right column movement, not in/out
+    expect(resolveKeybinding("h", {}, ctx)).toBe("cursor_left");
+    expect(resolveKeybinding("l", {}, ctx)).toBe("cursor_right");
     expect(resolveKeybinding("g", {}, ctx)).toBe("cursor_first");
     expect(resolveKeybinding("G", {}, ctx)).toBe("cursor_last");
   });
@@ -470,9 +471,12 @@ describe("initDefaultKeybindings", () => {
 
     const ctx = createContext({ mode: "normal" });
 
-    expect(resolveKeybinding("v", {}, ctx)).toBe("select_toggle");
-    expect(resolveKeybinding("V", {}, ctx)).toBe("select_all_siblings");
-    expect(resolveKeybinding("a", { ctrl: true }, ctx)).toBe("select_all");
+    // TUI: 'v' cycles view mode, not select toggle
+    expect(resolveKeybinding("v", {}, ctx)).toBe("cycle_view_mode");
+    // Shift+A for progressive select all
+    expect(resolveKeybinding("A", {}, ctx)).toBe("select_all_progressive");
+    // Escape clears selection
+    expect(resolveKeybinding("Escape", {}, ctx)).toBe("clear_selection");
   });
 
   it("includes mode-specific keybindings", () => {
@@ -481,32 +485,34 @@ describe("initDefaultKeybindings", () => {
     const normalCtx = createContext({ mode: "normal" });
     const moveCtx = createContext({ mode: "move" });
 
-    // Enter in normal mode = zoom_in
-    expect(resolveKeybinding("Enter", {}, normalCtx)).toBe("zoom_in");
+    // TUI: Enter in normal mode opens detail pane
+    expect(resolveKeybinding("Enter", {}, normalCtx)).toBe("open_detail_pane");
 
     // Enter in move mode = confirm_move (defined with modes: ["move"])
     expect(resolveKeybinding("Enter", {}, moveCtx)).toBe("confirm_move");
 
+    // TUI: 'o' is zoom in
+    expect(resolveKeybinding("o", {}, normalCtx)).toBe("zoom_in");
+
     // Note: Escape without mode = clear_selection (defined first, matches any mode)
-    // The cancel_move binding with modes: ["move"] is defined later but
-    // clear_selection has no mode restriction, so it matches first
     expect(resolveKeybinding("Escape", {}, normalCtx)).toBe("clear_selection");
     expect(resolveKeybinding("Escape", {}, moveCtx)).toBe("clear_selection");
   });
 
-  it("includes shift keybindings with alt modifier", () => {
+  it("includes shift keybindings with meta modifier", () => {
     initDefaultKeybindings();
 
     const ctx = createContext({ mode: "normal" });
 
-    expect(resolveKeybinding("ArrowUp", { alt: true }, ctx)).toBe("shift_up");
-    expect(resolveKeybinding("ArrowDown", { alt: true }, ctx)).toBe(
+    // TUI uses meta (Alt/Opt on Mac) for shifting nodes
+    expect(resolveKeybinding("ArrowUp", { meta: true }, ctx)).toBe("shift_up");
+    expect(resolveKeybinding("ArrowDown", { meta: true }, ctx)).toBe(
       "shift_down",
     );
-    expect(resolveKeybinding("ArrowLeft", { alt: true }, ctx)).toBe(
+    expect(resolveKeybinding("ArrowLeft", { meta: true }, ctx)).toBe(
       "shift_left",
     );
-    expect(resolveKeybinding("ArrowRight", { alt: true }, ctx)).toBe(
+    expect(resolveKeybinding("ArrowRight", { meta: true }, ctx)).toBe(
       "shift_right",
     );
   });
@@ -564,14 +570,17 @@ describe("defaultKeybindings", () => {
     // Navigation
     expect(commandIds).toContain("cursor_next");
     expect(commandIds).toContain("cursor_prev");
+    expect(commandIds).toContain("zoom_in");
+    expect(commandIds).toContain("go_up_path");
 
     // Selection
-    expect(commandIds).toContain("select_toggle");
+    expect(commandIds).toContain("select_all_progressive");
     expect(commandIds).toContain("clear_selection");
 
     // Edit
     expect(commandIds).toContain("enter_move_mode");
     expect(commandIds).toContain("shift_up");
+    expect(commandIds).toContain("delete_node");
 
     // Task
     expect(commandIds).toContain("cycle_task_status");
@@ -580,6 +589,8 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("fold_all");
 
     // View
+    expect(commandIds).toContain("cycle_view_mode");
+    expect(commandIds).toContain("show_help");
     expect(commandIds).toContain("increase_outline_depth");
   });
 });

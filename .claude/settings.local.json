@@ -55,7 +55,9 @@
       "Skill(fix-tui)",
       "mcp__peekaboo__window",
       "mcp__peekaboo__scroll",
-      "mcp__peekaboo__dock"
+      "mcp__peekaboo__dock",
+      "Skill(architect-review)",
+      "Skill(architect-review:*)"
     ],
     "deny": [],
     "ask": []

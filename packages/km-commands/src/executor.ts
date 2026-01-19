@@ -32,7 +32,7 @@ export function buildContext(
     const idx = cursor[i];
     if (idx !== undefined && idx < siblings.length) {
       currentNode = siblings[idx] ?? null;
-      if (i < cursor.length - 1 && currentNode) {
+      if (i < cursor.length - 1 && currentNode && currentNode.children) {
         siblings = currentNode.children;
       }
     }

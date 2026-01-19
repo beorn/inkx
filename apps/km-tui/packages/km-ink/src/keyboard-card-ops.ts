@@ -1,0 +1,290 @@
+/**
+ * Card Operations for Keyboard Handler
+ *
+ * Functions for moving, indenting, and outdenting cards.
+ */
+
+import type { CardState, SelectionKey } from "./types.ts";
+import { makeSelectionKey } from "./types.ts";
+import { actions } from "./ui-reducer.ts";
+import { getNode, getChildren, moveNode } from "@km/storage";
+import type { KeyboardContext } from "./keyboard-types.ts";
+import { getSelectedCardIndices, refreshBoardState } from "./keyboard-helpers.ts";
+
+// =============================================================================
+// Card Movement
+// =============================================================================
+
+/** Move card within column (up/down) */
+export function moveCardInColumn(
+  ctx: KeyboardContext,
+  card: CardState,
+  direction: "up" | "down",
+): void {
+  const col = ctx.state.columns[ctx.state.colIndex];
+  if (!col) return;
+
+  const selectedIndices = getSelectedCardIndices(ctx);
+  const cardsToMove =
+    selectedIndices.length > 0
+      ? selectedIndices.map((i: number) => ({ index: i, card: col.cards[i] }))
+      : [{ index: ctx.state.cardIndex, card }];
+
+  const validCards = cardsToMove.filter(
+    (c): c is { index: number; card: CardState } => c.card !== undefined,
+  );
+  if (validCards.length === 0) return;
+
+  const sortedCards =
+    direction === "up"
+      ? validCards.sort(
+          (a: { index: number }, b: { index: number }) => a.index - b.index,
+        )
+      : validCards.sort(
+          (a: { index: number }, b: { index: number }) => b.index - a.index,
+        );
+
+  const firstToMove = sortedCards[0];
+  if (!firstToMove) return;
+  const targetIndex =
+    direction === "up" ? firstToMove.index - 1 : firstToMove.index + 1;
+  if (targetIndex < 0 || targetIndex >= col.cards.length) return;
+
+  const getEffectiveSortOrder = (cardIndex: number): number => {
+    const c = col.cards[cardIndex];
+    return c
+      ? c.node.parent_idx === 0
+        ? cardIndex
+        : c.node.parent_idx
+      : cardIndex;
+  };
+
+  for (const { index: currentIndex, card: cardToMove } of sortedCards) {
+    const cardTargetIndex =
+      direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+    if (cardTargetIndex < 0 || cardTargetIndex >= col.cards.length) continue;
+
+    let newSortOrder: number;
+    if (direction === "up") {
+      if (cardTargetIndex === 0) {
+        const firstOrder = getEffectiveSortOrder(0);
+        newSortOrder = firstOrder - 1;
+      } else {
+        const prevOrder = getEffectiveSortOrder(cardTargetIndex - 1);
+        const targetOrder = getEffectiveSortOrder(cardTargetIndex);
+        newSortOrder = (prevOrder + targetOrder) / 2;
+      }
+    } else {
+      if (cardTargetIndex >= col.cards.length - 1) {
+        const lastOrder = getEffectiveSortOrder(col.cards.length - 1);
+        newSortOrder = lastOrder + 1;
+      } else {
+        const targetOrder = getEffectiveSortOrder(cardTargetIndex);
+        const nextOrder = getEffectiveSortOrder(cardTargetIndex + 1);
+        newSortOrder = (targetOrder + nextOrder) / 2;
+      }
+    }
+
+    moveNode(cardToMove.node.id, col.node.id, newSortOrder);
+  }
+
+  const movedCardIds = validCards.map((c) => c.card.node.id);
+  const newCardIndex =
+    direction === "up" ? ctx.state.cardIndex - 1 : ctx.state.cardIndex + 1;
+
+  const newState = refreshBoardState(ctx, { cardIndex: newCardIndex });
+
+  if (newState && movedCardIds.length > 1) {
+    const newSelected = new Set<SelectionKey>();
+    const newCol = newState.columns[ctx.state.colIndex];
+    if (newCol) {
+      for (let cardIdx = 0; cardIdx < newCol.cards.length; cardIdx++) {
+        const c = newCol.cards[cardIdx];
+        if (c && movedCardIds.includes(c.node.id)) {
+          newSelected.add(makeSelectionKey(ctx.state.colIndex, cardIdx, 0));
+        }
+      }
+    }
+    ctx.dispatch(actions.setMultiSelected(newSelected));
+  }
+}
+
+/** Move card to different column (left/right) */
+export function moveCardToColumn(
+  ctx: KeyboardContext,
+  card: CardState,
+  direction: "left" | "right",
+): void {
+  const col = ctx.state.columns[ctx.state.colIndex];
+  if (!col) return;
+
+  const targetColIndex =
+    direction === "left" ? ctx.state.colIndex - 1 : ctx.state.colIndex + 1;
+  if (targetColIndex < 0 || targetColIndex >= ctx.state.columns.length) return;
+
+  const targetCol = ctx.state.columns[targetColIndex];
+  if (!targetCol) return;
+
+  const selectedIndices = getSelectedCardIndices(ctx);
+  const cardsToMove: CardState[] =
+    selectedIndices.length > 0
+      ? selectedIndices
+          .map((i: number) => col.cards[i])
+          .filter((c): c is CardState => c !== undefined)
+      : [card];
+
+  if (cardsToMove.length === 0) return;
+
+  let newSortOrder =
+    targetCol.cards.length > 0
+      ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1
+      : 0;
+
+  for (const cardToMove of cardsToMove) {
+    moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder);
+    newSortOrder++;
+  }
+
+  const movedCardIds = cardsToMove.map((c) => c.node.id);
+  const expectedCardIndex = targetCol.cards.length;
+
+  const newState = refreshBoardState(ctx, {
+    colIndex: targetColIndex,
+    cardIndex: (col) => Math.min(expectedCardIndex, col?.cards.length || 0),
+  });
+
+  if (newState && movedCardIds.length > 0) {
+    const newSelected = new Set<SelectionKey>();
+    const newCol = newState.columns[targetColIndex];
+    if (newCol) {
+      for (let cardIdx = 0; cardIdx < newCol.cards.length; cardIdx++) {
+        const c = newCol.cards[cardIdx];
+        if (c && movedCardIds.includes(c.node.id)) {
+          newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
+        }
+      }
+    }
+    ctx.dispatch(actions.setMultiSelected(newSelected));
+  }
+}
+
+/** Move card to a specific column by index (for Opt+1-9) */
+export function moveCardToColumnByIndex(
+  ctx: KeyboardContext,
+  card: CardState,
+  targetColIndex: number,
+): void {
+  const col = ctx.state.columns[ctx.state.colIndex];
+  if (!col) return;
+
+  if (targetColIndex < 0 || targetColIndex >= ctx.state.columns.length) return;
+  if (targetColIndex === ctx.state.colIndex) return;
+
+  const targetCol = ctx.state.columns[targetColIndex];
+  if (!targetCol) return;
+
+  const selectedIndices = getSelectedCardIndices(ctx);
+  const cardsToMove: CardState[] =
+    selectedIndices.length > 0
+      ? selectedIndices
+          .map((i: number) => col.cards[i])
+          .filter((c): c is CardState => c !== undefined)
+      : [card];
+
+  if (cardsToMove.length === 0) return;
+
+  let newSortOrder =
+    targetCol.cards.length > 0
+      ? (targetCol.cards[0]?.node.parent_idx ?? 0) - cardsToMove.length
+      : 0;
+
+  for (const cardToMove of cardsToMove) {
+    moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder);
+    newSortOrder++;
+  }
+
+  const movedCardIds = cardsToMove.map((c) => c.node.id);
+  const expectedCardIndex = Math.min(
+    ctx.state.cardIndex,
+    Math.max(0, col.cards.length - cardsToMove.length - 1),
+  );
+
+  const newState = refreshBoardState(ctx, {
+    cardIndex: (col) =>
+      Math.min(expectedCardIndex, Math.max(0, (col?.cards.length ?? 1) - 1)),
+  });
+
+  if (newState && movedCardIds.length > 0) {
+    const newSelected = new Set<SelectionKey>();
+    const targetColumnState = newState.columns[targetColIndex];
+    if (targetColumnState) {
+      for (
+        let cardIdx = 0;
+        cardIdx < targetColumnState.cards.length;
+        cardIdx++
+      ) {
+        const c = targetColumnState.cards[cardIdx];
+        if (c && movedCardIds.includes(c.node.id)) {
+          newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
+        }
+      }
+    }
+    ctx.dispatch(actions.setMultiSelected(newSelected));
+  }
+}
+
+// =============================================================================
+// Indent/Outdent
+// =============================================================================
+
+/** Indent node: make it a child of the sibling above it */
+export function indentNode(ctx: KeyboardContext, card: CardState): void {
+  const col = ctx.state.columns[ctx.state.colIndex];
+  if (!col) return;
+
+  const cardIndex = col.cards.findIndex((c) => c.node.id === card.node.id);
+  if (cardIndex <= 0) {
+    process.stdout.write("\x07");
+    return;
+  }
+
+  const siblingAbove = col.cards[cardIndex - 1];
+  if (!siblingAbove) return;
+
+  const newSortOrder = Date.now();
+  moveNode(card.node.id, siblingAbove.node.id, newSortOrder);
+  refreshBoardState(ctx, { cardIndex: Math.max(0, cardIndex - 1) });
+}
+
+/** Outdent node: make it a sibling of its parent */
+export function outdentNode(ctx: KeyboardContext, card: CardState): void {
+  const parentId = card.node.parent_id;
+  if (!parentId) {
+    process.stdout.write("\x07");
+    return;
+  }
+
+  const parent = getNode(parentId);
+  const grandparentId = parent?.parent_id;
+  if (!parent || !grandparentId) {
+    process.stdout.write("\x07");
+    return;
+  }
+
+  const grandparentChildren = getChildren(grandparentId);
+  const parentIndex = grandparentChildren.findIndex((c) => c.id === parentId);
+
+  let newSortOrder: number;
+  if (parentIndex === grandparentChildren.length - 1) {
+    newSortOrder = parent.parent_idx + 1;
+  } else {
+    const nextSibling = grandparentChildren[parentIndex + 1];
+    newSortOrder =
+      (parent.parent_idx + (nextSibling?.parent_idx ?? parent.parent_idx + 2)) /
+      2;
+  }
+
+  moveNode(card.node.id, grandparentId, newSortOrder);
+  refreshBoardState(ctx);
+}

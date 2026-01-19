@@ -49,6 +49,15 @@ import {
   useComputedSize,
   type ComputedSize,
 } from "../constraints/index.ts";
+import {
+  processKeyThroughCommands,
+  ensureCommandSystemInitialized,
+  isUIAction,
+  isBoardAction,
+  isTaskStatusAction,
+  isHistoryAction,
+} from "../command-bridge.ts";
+import type { CommandAction } from "@km/commands";
 
 export { makeSelectionKey } from "../types.ts";
 
@@ -163,8 +172,36 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     countVisibleDescendants,
   };
 
-  // Main keyboard input handler (uses extracted logic)
-  useInput((input, key) => handleKeyboardWrapper(keyboardContext, input, key));
+  // Initialize command system on first render
+  useEffect(() => {
+    ensureCommandSystemInitialized();
+  }, []);
+
+  // Main keyboard input handler - routes through @km/commands first
+  useInput((input, key) => {
+    // Skip command processing for dialogs/input modes
+    if (ui.showNewItemDialog || ui.showProjectPicker) {
+      handleKeyboardWrapper(keyboardContext, input, key);
+      return;
+    }
+
+    // Try command system first
+    const result = processKeyThroughCommands(input, key, state, ui);
+
+    if (result.handled && result.actions) {
+      // Process the action(s) returned by the command
+      const actionList = Array.isArray(result.actions)
+        ? result.actions
+        : [result.actions];
+      for (const action of actionList) {
+        handleCommandAction(action);
+      }
+      return;
+    }
+
+    // Fall back to legacy keyboard handler for unhandled keys
+    handleKeyboardWrapper(keyboardContext, input, key);
+  });
 
   // Handle detail pane navigation (j/k to move cards while pane is open)
   useInput(
@@ -173,6 +210,157 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       isActive: ui.showDetailPane,
     },
   );
+
+  // Handler for command system actions (hoisted)
+  function handleCommandAction(action: CommandAction) {
+    if (isUIAction(action)) {
+      // UI actions dispatch to uiReducer
+      switch (action.type) {
+        case "CYCLE_VIEW_MODE":
+          dispatch(actions.cycleViewMode());
+          break;
+        case "SHOW_HELP":
+          dispatch(actions.showHelp());
+          break;
+        case "HIDE_HELP":
+          dispatch(actions.hideHelp());
+          break;
+        case "OPEN_DETAIL_PANE":
+          dispatch(actions.setDetailPane(true));
+          break;
+        case "CLOSE_DETAIL_PANE":
+          dispatch(actions.setDetailPane(false));
+          break;
+        case "GO_UP_PATH":
+          // Delegate to keyboard handler for complex navigation logic
+          handleKeyboardWrapper(keyboardContext, "u", {});
+          break;
+        case "DELETE_NODE": {
+          // Delegate to keyboard handler for delete logic
+          handleKeyboardWrapper(keyboardContext, "D", {});
+          break;
+        }
+        case "SELECT_ALL_PROGRESSIVE":
+          // Delegate to keyboard handler for progressive select
+          handleKeyboardWrapper(keyboardContext, "A", {});
+          break;
+      }
+    } else if (isTaskStatusAction(action)) {
+      // Task status changes - delegate to keyboard handler
+      handleKeyboardWrapper(keyboardContext, " ", {});
+    } else if (isHistoryAction(action)) {
+      // Undo/redo - not yet implemented, beep
+      process.stdout.write("\x07");
+    } else if (isBoardAction(action)) {
+      // Board actions - for now delegate complex ones to keyboard handler
+      // These will be handled by boardReducer once fully migrated
+      switch (action.type) {
+        case "CURSOR_MOVE":
+          delegateCursorMove(action.dir);
+          break;
+        case "TOGGLE_FOLD":
+          handleKeyboardWrapper(keyboardContext, "", { tab: true });
+          break;
+        case "FOLD_LEVEL":
+          // z = fold all in column
+          handleKeyboardWrapper(keyboardContext, "z", {});
+          break;
+        case "UNFOLD_LEVEL":
+          // Z = unfold all in column
+          handleKeyboardWrapper(keyboardContext, "Z", {});
+          break;
+        case "TOGGLE_COLLAPSE":
+          handleKeyboardWrapper(keyboardContext, "c", {});
+          break;
+        case "NAV_BACK":
+          handleKeyboardWrapper(keyboardContext, "[", {});
+          break;
+        case "NAV_FORWARD":
+          handleKeyboardWrapper(keyboardContext, "]", {});
+          break;
+        case "ZOOM_IN":
+          handleKeyboardWrapper(keyboardContext, "o", {});
+          break;
+        case "CLEAR_SELECTION":
+          dispatch(actions.setMultiSelected(new Set()));
+          dispatch(actions.setSelectionAnchor(null));
+          dispatch(actions.setSelectAllLevel(0));
+          break;
+        case "SELECT_NODE_TOGGLE":
+        case "SELECT_NODE_ADD":
+        case "SELECT_NODE_REMOVE":
+        case "SELECT_ALL":
+        case "SELECT_ALL_SIBLINGS":
+        case "EXTEND_SELECT_UP":
+        case "EXTEND_SELECT_DOWN":
+        case "EXTEND_SELECT_LEFT":
+        case "EXTEND_SELECT_RIGHT":
+          // Selection actions - delegate to keyboard handler
+          delegateSelectionAction(action.type);
+          break;
+        case "INCREASE_OUTLINE_DEPTH":
+          dispatch(actions.increaseOutlineDepth());
+          break;
+        case "DECREASE_OUTLINE_DEPTH":
+          dispatch(actions.decreaseOutlineDepth());
+          break;
+        case "INCREASE_CONTENT_LINES":
+          dispatch(actions.increaseContentLines());
+          break;
+        case "DECREASE_CONTENT_LINES":
+          dispatch(actions.decreaseContentLines());
+          break;
+        default:
+          // Other board actions - log for debugging
+          // console.log("Unhandled board action:", action.type);
+          break;
+      }
+    }
+  }
+
+  // Delegate cursor movement to keyboard handler
+  function delegateCursorMove(dir: string) {
+    switch (dir) {
+      case "up":
+      case "prev":
+        handleKeyboardWrapper(keyboardContext, "k", {});
+        break;
+      case "down":
+      case "next":
+        handleKeyboardWrapper(keyboardContext, "j", {});
+        break;
+      case "left":
+        handleKeyboardWrapper(keyboardContext, "h", {});
+        break;
+      case "right":
+        handleKeyboardWrapper(keyboardContext, "l", {});
+        break;
+      case "first":
+        handleKeyboardWrapper(keyboardContext, "g", {});
+        break;
+      case "last":
+        handleKeyboardWrapper(keyboardContext, "G", {});
+        break;
+    }
+  }
+
+  // Delegate selection actions to keyboard handler
+  function delegateSelectionAction(type: string) {
+    switch (type) {
+      case "EXTEND_SELECT_UP":
+        handleKeyboardWrapper(keyboardContext, "K", { shift: true });
+        break;
+      case "EXTEND_SELECT_DOWN":
+        handleKeyboardWrapper(keyboardContext, "J", { shift: true });
+        break;
+      case "EXTEND_SELECT_LEFT":
+        handleKeyboardWrapper(keyboardContext, "H", { shift: true });
+        break;
+      case "EXTEND_SELECT_RIGHT":
+        handleKeyboardWrapper(keyboardContext, "L", { shift: true });
+        break;
+    }
+  }
 
   // Handlers defined after return (hoisted)
 
@@ -614,10 +802,34 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   }
 }
 
+/**
+ * Exit the terminal alternate buffer.
+ * Call this to ensure the terminal is restored to normal mode.
+ */
+function exitAlternateBuffer(): void {
+  process.stdout.write("\x1b[?1049l");
+}
+
 export function renderInkBoard(
   state: BoardState,
   initialViewMode?: ViewMode,
 ): void {
+  // Register error handlers to clean up terminal on crash
+  // This ensures the alternate buffer is exited even on unhandled errors
+  const handleError = (error: Error) => {
+    exitAlternateBuffer();
+    console.error("\n\nTUI crashed with error:", error.message);
+    console.error(error.stack);
+    process.exit(1);
+  };
+
+  process.on("uncaughtException", handleError);
+  process.on("unhandledRejection", (reason) => {
+    handleError(
+      reason instanceof Error ? reason : new Error(String(reason)),
+    );
+  });
+
   void withFullScreen(
     <Board initialState={state} initialViewMode={initialViewMode} />,
     {
