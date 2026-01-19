@@ -10,6 +10,7 @@ export {
   parseTaskMetadata,
   parseHeadingRules,
   nodeToText,
+  listItemToText,
   slugify,
 } from "./parser.ts";
 

@@ -14,6 +14,7 @@ import {
   extractFrontmatter,
   extractTaskMark,
   nodeToText,
+  listItemToText,
   slugify,
   parseTaskMetadata,
   extractTags,
@@ -277,7 +278,7 @@ function convertListItem(
   const nodes: KNode[] = [];
   const now = Date.now();
 
-  let text = nodeToText(item);
+  let text = listItemToText(item);
   const taskMark = extractTaskMark(sourceText, item.position);
 
   // A task is either:

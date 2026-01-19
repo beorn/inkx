@@ -312,6 +312,22 @@ export function nodeToText(node: Content | Root): string {
 }
 
 /**
+ * Extract text content from a list item, excluding nested lists.
+ * Only extracts text from direct paragraph/text content, not from child lists.
+ */
+export function listItemToText(item: Content): string {
+  if (!("children" in item) || !Array.isArray(item.children)) {
+    return nodeToText(item);
+  }
+
+  // Only process direct content (paragraphs, text), not nested lists
+  return item.children
+    .filter((child: Content) => child.type !== "list")
+    .map((child: Content) => nodeToText(child))
+    .join("");
+}
+
+/**
  * Generate a URL-safe slug from heading text
  */
 export function slugify(text: string): string {

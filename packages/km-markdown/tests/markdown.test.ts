@@ -409,6 +409,30 @@ More content
       expect(statuses).toContain("dropped"); // [-]
       expect(statuses).toContain("blocked"); // [!]
     });
+
+    test("should not include nested list content in parent task content (km-4u2w)", () => {
+      // Bug fix: nested list items were being concatenated into parent content
+      const md = `- [ ] Parent task with description
+  - Subtask 1A
+  - Subtask 1B
+`;
+      const nodes = parseMarkdownToNodes(md, "nested.md");
+      const tasks = nodes.filter((n) => n.type === "task");
+      const listItems = nodes.filter((n) => n.type === "ul");
+
+      // Parent is a task, children are list items
+      expect(tasks.length).toBe(1);
+      expect(listItems.length).toBe(2);
+
+      // Critical: parent content should NOT include child content
+      const parentTask = tasks[0];
+      expect(parentTask!.content).toBe("Parent task with description");
+      expect(parentTask!.content).not.toContain("Subtask");
+
+      // Children have their own content
+      expect(listItems[0]!.content).toBe("Subtask 1A");
+      expect(listItems[1]!.content).toBe("Subtask 1B");
+    });
   });
 
   describe("buildNodeTree", () => {
