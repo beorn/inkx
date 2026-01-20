@@ -6,7 +6,7 @@
 
 import { EventEmitter } from "events";
 import chalk from "chalk";
-import type { BoardState, TuiOptions, ViewMode } from "./types.ts";
+import type { BoardState, TuiEngine, TuiOptions } from "./types.ts";
 import { initBoardState } from "./state.ts";
 import { renderBoardStatic } from "./render.ts";
 import { renderInkBoard } from "./views/index.ts";
@@ -19,7 +19,7 @@ import { setFsSync, SyncManager } from "@km/storage";
 export const tuiEvents = new EventEmitter();
 
 /**
- * Run the interactive board TUI using Ink
+ * Run the interactive board TUI using the specified engine
  * Returns when the user quits
  */
 export async function runBoardTUI(
@@ -39,7 +39,23 @@ export async function runBoardTUI(
     return;
   }
 
-  // Use Inkx for interactive TUI
+  const engine: TuiEngine = options?.engine ?? "ink";
+
+  // Currently all TUI code uses inkx (custom Ink fork).
+  // The --tui flag prepares for future engine switching:
+  // - ink: Would use original Ink library (requires parallel component set)
+  // - inkx: Current actual implementation - custom fork with double-buffering
+  // - inkx-flexx: Custom fork with pure JS flexbox (replaces yoga-wasm)
+  //
+  // For now, log a notice if the user requests something other than the current implementation
+  if (engine !== "inkx") {
+    console.error(
+      chalk.yellow(
+        `Note: --tui=${engine} requested but currently only inkx is implemented. Using inkx.`,
+      ),
+    );
+  }
+
   await renderInkBoard(initialState, options?.initialViewMode);
 }
 
