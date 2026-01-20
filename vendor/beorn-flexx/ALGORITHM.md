@@ -76,6 +76,7 @@ This is a simplification from the full CSS spec but works for most cases.
 ## ItemPositioner (justify-content)
 
 The ItemPositioner handles:
+
 - flex-start (default): items at start
 - flex-end: items at end
 - center: items centered

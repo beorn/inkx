@@ -25,7 +25,7 @@ ALL task edits MUST flow both directions:
 - TUI edit → Model → File
 - File edit → Model → TUI re-render
 
-### 4. TUI Design System
+### 3. TUI Design System
 
 When modifying TUI styling (colors, selection states, visual hierarchy), you MUST consult [docs/08-ui.md](docs/08-ui.md). Key rules:
 
@@ -41,7 +41,7 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 - ANSI-aware text length calculations
 - Text truncation and wrapping patterns
 
-### 5. Code Structure Style
+### 4. Code Structure Style
 
 **Important logic first, details later.**
 
@@ -88,21 +88,21 @@ useEffect(() => dispatch(setRootId(id)), [id]);
 const doubled = items.map((x) => x * 2);
 ```
 
-### 6. Test-Driven Development
+### 5. Test-Driven Development
 
 **Test commands:**
 
 ```bash
 bun run test:fast    # ⚡ USE THIS for fast iteration (~4s)
-bun test             # All unit tests including slow (~45s)
 bun run test:all     # ALL tests - unit + mdtest (~2min, run before committing)
 bun run test:mdtest  # Only mdtest integration tests (*.test.md)
 ```
 
+**⚠️ NEVER use bare `bun test`** - it picks up archived tests in `archive/` and takes forever. Always use the npm scripts above.
+
 **⚡ IMPORTANT: Use `bun run test:fast` during development!**
 
 - `test:fast` takes ~4 seconds - use this while iterating
-- `bun test` takes ~45 seconds - includes slow integration tests
 - Only run `test:all` before committing
 
 **BEFORE committing any code changes:**
@@ -127,7 +127,7 @@ bun run test:fast    # Run this frequently - 4 second feedback loop
 5. `bun run test:all` passes (final check before commit)
 6. Commit
 
-### 7. New Package Checklist (MUST FOLLOW)
+### 6. New Package Checklist (MUST FOLLOW)
 
 When creating a new package under `packages/`:
 
@@ -145,7 +145,7 @@ When creating a new package under `packages/`:
 - Type definitions in docs match actual types (run `tsc` to verify)
 - No hardcoded placeholder values (e.g., `inMoveMode: false // TODO`)
 
-### 8. Documentation Hygiene
+### 7. Documentation Hygiene
 
 **Write docs AFTER implementation, not before:**
 
@@ -167,219 +167,68 @@ When creating a new package under `packages/`:
 
 ---
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+### 8. Beads Issue Tracking
 
-## Quick Reference
+This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
 
 ```bash
-bd ready              # Find available work
+bd ready              # Find available work (no blockers)
 bd show <id>          # View issue details
 bd update <id> --status in_progress  # Claim work
 bd close <id>         # Complete work
-bd sync               # Sync with git
+bd create --title="..." --type=task --priority=2
+bd sync               # Commit beads changes
 ```
 
-## Landing the Plane (Session Completion)
+**Workflow:** `bd ready` → claim → work → `bd close` → `bd sync`
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**Key concepts:**
 
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-
-<!-- bv-agent-instructions-v1 -->
+- Priority: P0=critical, P1=high, P2=medium, P3=low, P4=backlog
+- Types: task, bug, feature, epic, question, docs
+- Dependencies: `bd dep add <issue> <depends-on>`
 
 ---
 
-## Beads Workflow Integration
+### 9. Session Completion (MANDATORY)
 
-This project uses [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
-
-### Essential Commands
+**When ending a session**, complete ALL steps. Work is NOT complete until `git push` succeeds.
 
 ```bash
-# View issues (launches TUI - avoid in automated sessions)
-bv
+# 1. File issues for remaining work
+bd create --title="..." --type=task
 
-# CLI commands for agents (use these instead)
-bd ready              # Show issues ready to work (no blockers)
-bd list --status=open # All open issues
-bd show <id>          # Full issue details with dependencies
-bd create --title="..." --type=task --priority=2
-bd update <id> --status=in_progress
-bd close <id> --reason="Completed"
-bd close <id1> <id2>  # Close multiple issues at once
-bd sync               # Commit and push changes
+# 2. Run quality gates (if code changed)
+bun fix && bun run test:all
+
+# 3. Update issue status
+bd close <id>
+
+# 4. Push to remote (MANDATORY)
+git pull --rebase && bd sync && git push
+git status  # MUST show "up to date with origin"
 ```
 
-### Workflow Pattern
+**CRITICAL:** NEVER stop before pushing. If push fails, resolve and retry.
 
-1. **Start**: Run `bd ready` to find actionable work
-2. **Claim**: Use `bd update <id> --status=in_progress`
-3. **Work**: Implement the task
-4. **Complete**: Use `bd close <id>`
-5. **Sync**: Always run `bd sync` at session end
+---
 
-### Key Concepts
+### 10. Visual Testing
 
-- **Dependencies**: Issues can block other issues. `bd ready` shows only unblocked work.
-- **Priority**: P0=critical, P1=high, P2=medium, P3=low, P4=backlog (use numbers, not words)
-- **Types**: task, bug, feature, epic, question, docs
-- **Blocking**: `bd dep add <issue> <depends-on>` to add dependencies
-
-### Session Protocol
-
-**Before ending any session, run this checklist:**
+Use headless methods (ttyd + Playwright) by default. See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for full documentation.
 
 ```bash
-git status              # Check what changed
-git add <files>         # Stage code changes
-bd sync                 # Commit beads changes
-git commit -m "..."     # Commit code
-bd sync                 # Commit any new beads changes
-git push                # Push to remote
-```
-
-### Best Practices
-
-- Check `bd ready` at session start to find available work
-- Update status as you work (in_progress → closed)
-- Create new issues with `bd create` when you discover tasks
-- Use descriptive titles and set appropriate priority/type
-- Always `bd sync` before ending session
-
-<!-- end-bv-agent-instructions -->
-
-## Visual Testing
-
-**Default: Use headless methods** (ttyd + Playwright) for TUI/CLI visual testing. These run in the background without taking over the user's screen.
-
-```bash
-# Start TUI in headless terminal
 pkill -f ttyd 2>/dev/null || true
 ttyd -W -p 7681 bun km view -r /tmp/test-vault @next.md &
 sleep 3
-
-# Capture with Playwright (HEADLESS=true prevents browser window)
 HEADLESS=true bun x playwright screenshot --viewport-size=1400,900 http://localhost:7681 /tmp/tui.png
-
-# View the screenshot
-# Use Read tool on /tmp/tui.png
 ```
 
-See `.claude/skills/visual-test.md` for full documentation.
+**Peekaboo (desktop capture):** ALWAYS use AskUserQuestion to get explicit approval BEFORE using Peekaboo MCP tools.
 
-**Desktop capture (Peekaboo)**: ALWAYS use AskUserQuestion to get explicit approval BEFORE using any Peekaboo MCP tools. The user must confirm they are ready since Peekaboo takes over their screen. Never assume you can use Peekaboo without asking first, even if the user previously mentioned desktop capture.
+**Visual Bug Fixing:** You CANNOT fix what you cannot see. BEFORE attempting any fix:
 
-### Visual Bug Fixing Process (MANDATORY)
-
-**CRITICAL: You CANNOT fix what you cannot see. Do NOT attempt fixes without reproduction.**
-
-Visual bugs have been incorrectly marked as fixed multiple times. This process is BLOCKING - you cannot proceed without completing each step.
-
-#### Step 0: STOP if You Cannot Reproduce
-
-**If you cannot visually reproduce the bug, you MUST:**
-
-1. Ask the user for help reproducing it
-2. Request specific test data, vault paths, or steps
-3. DO NOT guess at fixes or make changes based on code reading alone
-4. DO NOT proceed until you have a BEFORE screenshot showing the actual bug
-
-**Why this matters:** Code changes that "should fix" a bug often don't. Without visual confirmation, you're just guessing.
-
-#### 1. Reproduce the Bug First (BLOCKING)
-
-```bash
-# Create/use test data that EXERCISES the specific bug
-# For layout bugs: need data that overflows, has multi-line items, etc.
-# CAPTURE BEFORE screenshot showing the bug exists
-```
-
-**You MUST see the bug with your own eyes (via screenshot) before proceeding.**
-
-If your test data doesn't trigger the bug:
-
-- Ask the user what conditions trigger it
-- Request their vault or specific test data
-- DO NOT PROCEED until reproduction succeeds
-
-#### 2. Create Proper Test Data
-
-For TUI layout bugs, test data MUST include:
-
-- **Vertical overflow**: Enough items to exceed screen height
-- **Multi-line items**: Long text that wraps, items with children
-- **Edge cases**: Empty columns, very long text, nested structures
-
-Example multi-line test data:
-
-```markdown
-## Processing
-
-- [ ] Task with a very long description that will definitely wrap to multiple lines in any reasonable terminal width
-  - Subtask that adds more lines
-  - Another subtask for good measure
-- [ ] Second task also with long content to ensure wrapping behavior is tested properly
-```
-
-#### 3. Capture BEFORE Screenshot (BLOCKING)
-
-```bash
-# MUST capture and view screenshot BEFORE attempting fix
-ttyd -W -p 7681 bun km view -r /tmp/test-repo @test-board.md &
-sleep 5
-# Navigate to problematic view
-bun x playwright screenshot http://localhost:7681 /tmp/bug-BEFORE.png
-# READ the screenshot to verify bug is visible
-```
-
-**If the bug is NOT visible in your BEFORE screenshot, STOP and ask for help.**
-
-#### 4. Implement Fix
-
-Only after you have visual proof of the bug.
-
-#### 5. Capture AFTER Screenshot
-
-```bash
-# MUST capture and view screenshot AFTER fix
-bun x playwright screenshot http://localhost:7681 /tmp/bug-AFTER.png
-# READ the screenshot to verify bug is fixed
-```
-
-#### 6. Verify Fix is Real
-
-- Compare BEFORE and AFTER screenshots
-- Bug must be visibly fixed in AFTER screenshot
-- If uncertain, DO NOT close the bug
-
-#### 7. Request User Confirmation
-
-For recurring bugs (reported multiple times):
-
-- Do NOT close until user explicitly confirms fix
-- Show user the AFTER screenshot
-- Wait for user approval before closing bead
-
-**NEVER assume a visual bug is fixed without visual verification.**
-**NEVER attempt to fix a bug you cannot reproduce.**
+1. Reproduce the bug visually (screenshot showing the issue)
+2. If you can't reproduce, ask user for help - DO NOT guess at fixes
+3. After fix, capture AFTER screenshot and compare
+4. For recurring bugs, wait for user confirmation before closing

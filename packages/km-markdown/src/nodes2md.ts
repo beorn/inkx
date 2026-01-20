@@ -188,7 +188,10 @@ function serializeListItem(
  * Derive the checkbox mark from task_status.
  * This ensures edits to task_status are reflected in the serialized output.
  */
-function statusToMark(status: string | undefined, existingMark?: string): string {
+function statusToMark(
+  status: string | undefined,
+  existingMark?: string,
+): string {
   switch (status) {
     case "done":
       return "x";

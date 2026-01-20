@@ -59,12 +59,7 @@ export {
 } from "./db-links.ts";
 
 // Write operations
-export {
-  moveNode,
-  updateNode,
-  deleteNode,
-  addNode,
-} from "./db-ops.ts";
+export { moveNode, updateNode, deleteNode, addNode } from "./db-ops.ts";
 
 // Event application
 export { applyEvent, dbApplyEvent } from "./db-events.ts";

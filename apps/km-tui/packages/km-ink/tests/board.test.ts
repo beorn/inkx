@@ -7,7 +7,9 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
-import { render } from "inkx/testing";
+import { createTestRenderer } from "inkx/testing";
+
+const render = createTestRenderer();
 import React from "react";
 
 // Test directories in /tmp/ to avoid polluting source tree
@@ -870,13 +872,14 @@ describe.serial("Ink Board TUI Rendering", () => {
 
     const state = buildBoardState(rootId);
 
-    // Wide enough for 3 columns
+    // Wide enough for 3 columns - must set both testWidth and render columns
     const { lastFrame } = render(
       React.createElement(InkBoardTestable, {
         initialState: state,
         testWidth: 120,
         testHeight: 24,
       }),
+      { columns: 120, rows: 24 },
     );
 
     const output = lastFrame() ?? "";

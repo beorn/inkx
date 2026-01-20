@@ -63,7 +63,8 @@ export function processKeyWithContext(
     inMoveMode: boardState.moveMode,
     inSearchMode: false,
     inInputMode: ui.showNewItemDialog || ui.showProjectPicker,
-    hasSelection: boardState.selectedNodes.size > 0 || ui.multiSelected.size > 0,
+    hasSelection:
+      boardState.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
     currentNode: (selectedNode as TNode) ?? null,
@@ -74,12 +75,16 @@ export function processKeyWithContext(
   const columnNode = boardState.nodes[colIndex];
 
   // Build command context
-  const cmdCtx = buildContext(boardState as unknown as CmdBoardState, ui.viewMode, {
-    siblingCount: columnNode?.children.length ?? 0,
-    siblingIndex: cardIndex >= 0 ? cardIndex : 0,
-    columnIndex: colIndex >= 0 ? colIndex : 0,
-    columnCount: boardState.nodes.length,
-  });
+  const cmdCtx = buildContext(
+    boardState as unknown as CmdBoardState,
+    ui.viewMode,
+    {
+      siblingCount: columnNode?.children.length ?? 0,
+      siblingIndex: cardIndex >= 0 ? cardIndex : 0,
+      columnIndex: colIndex >= 0 ? colIndex : 0,
+      columnCount: boardState.nodes.length,
+    },
+  );
 
   return processInkKey(input, key, cmdCtx, kbCtx);
 }
@@ -111,7 +116,8 @@ export function processKeyWithBoardState(
     inMoveMode: boardState.moveMode,
     inSearchMode: false, // searchMode not in tree state yet
     inInputMode: ui.showNewItemDialog || ui.showProjectPicker,
-    hasSelection: boardState.selectedNodes.size > 0 || ui.multiSelected.size > 0,
+    hasSelection:
+      boardState.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
     currentNode: currentNode as TNode | null,
@@ -122,12 +128,16 @@ export function processKeyWithBoardState(
 
   // Build command context
   const columnNode = boardState.nodes[colIndex];
-  const ctx = buildContext(boardState as unknown as CmdBoardState, ui.viewMode, {
-    siblingCount: columnNode?.children.length ?? 0,
-    siblingIndex: cardIndex >= 0 ? cardIndex : 0,
-    columnIndex: colIndex >= 0 ? colIndex : 0,
-    columnCount: boardState.nodes.length,
-  });
+  const ctx = buildContext(
+    boardState as unknown as CmdBoardState,
+    ui.viewMode,
+    {
+      siblingCount: columnNode?.children.length ?? 0,
+      siblingIndex: cardIndex >= 0 ? cardIndex : 0,
+      columnIndex: colIndex >= 0 ? colIndex : 0,
+      columnCount: boardState.nodes.length,
+    },
+  );
 
   // Process key through command system
   return processInkKey(input, key, ctx, kbCtx);

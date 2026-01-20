@@ -57,7 +57,9 @@
       "mcp__peekaboo__scroll",
       "mcp__peekaboo__dock",
       "Skill(architect-review)",
-      "Skill(architect-review:*)"
+      "Skill(architect-review:*)",
+      "Skill(max)",
+      "Skill(max:*)"
     ],
     "deny": [],
     "ask": []

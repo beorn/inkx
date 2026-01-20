@@ -8,6 +8,7 @@
 import React, {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useSyncExternalStore,
@@ -52,13 +53,17 @@ export function UIProvider({
   const stateRef = useRef(state);
   const listenersRef = useRef(new Set<() => void>());
 
-  // Update ref and notify listeners when state changes
-  if (stateRef.current !== state) {
-    stateRef.current = state;
+  // Update ref synchronously so getState() returns current value
+  stateRef.current = state;
+
+  // Notify listeners AFTER render completes to avoid "Cannot update component
+  // while rendering" React error. This is critical for inkx which re-renders
+  // more aggressively than stock ink.
+  useEffect(() => {
     for (const listener of listenersRef.current) {
       listener();
     }
-  }
+  }, [state]);
 
   const value = useMemo(
     () => ({

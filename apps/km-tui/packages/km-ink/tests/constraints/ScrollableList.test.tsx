@@ -4,7 +4,9 @@
 
 import { describe, it, expect } from "bun:test";
 import React from "react";
-import { render } from "inkx/testing";
+import { createTestRenderer } from "inkx/testing";
+
+const render = createTestRenderer();
 import { Text } from "inkx";
 import {
   ScrollableList,

@@ -78,11 +78,12 @@ km init                    # Enable persistence (stable IDs, history)
 
 ### Developer Guides
 
-| Doc                                  | Description      |
-| ------------------------------------ | ---------------- |
-| [dev/testing.md](dev/testing.md)     | Testing strategy |
-| [dev/prior-art.md](dev/prior-art.md) | Research notes   |
-| [dev/use-cases.md](dev/use-cases.md) | Test scenarios   |
+| Doc                                        | Description                |
+| ------------------------------------------ | -------------------------- |
+| [dev/testing.md](dev/testing.md)           | Testing strategy           |
+| [dev/ink-patterns.md](dev/ink-patterns.md) | Ink TUI framework patterns |
+| [dev/prior-art.md](dev/prior-art.md)       | Research notes             |
+| [dev/use-cases.md](dev/use-cases.md)       | Test scenarios             |
 
 ---
 

@@ -30,7 +30,9 @@
  */
 
 import React from "react";
-import { render } from "inkx/testing";
+import { createTestRenderer } from "inkx/testing";
+
+const render = createTestRenderer();
 import { Box, Text } from "inkx";
 import chalk from "chalk";
 

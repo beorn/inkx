@@ -8,7 +8,9 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import React from "react";
-import { render } from "inkx/testing";
+import { createTestRenderer } from "inkx/testing";
+
+const render = createTestRenderer();
 
 const TEST_DIR = join("/tmp", "kmtest-detail-pane");
 

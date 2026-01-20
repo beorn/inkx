@@ -9,7 +9,10 @@ import { makeSelectionKey } from "./types.ts";
 import { actions } from "./ui-reducer.ts";
 import { getNode, getChildren, moveNode } from "@km/storage";
 import type { KeyboardContext } from "./keyboard-types.ts";
-import { getSelectedCardIndices, refreshBoardState } from "./keyboard-helpers.ts";
+import {
+  getSelectedCardIndices,
+  refreshBoardState,
+} from "./keyboard-helpers.ts";
 
 // =============================================================================
 // Card Movement
@@ -21,14 +24,14 @@ export function moveCardInColumn(
   card: CardState,
   direction: "up" | "down",
 ): void {
-  const col = ctx.state.columns[ctx.state.colIndex];
+  const col = ctx.layout.columns[ctx.layout.colIndex];
   if (!col) return;
 
   const selectedIndices = getSelectedCardIndices(ctx);
   const cardsToMove =
     selectedIndices.length > 0
       ? selectedIndices.map((i: number) => ({ index: i, card: col.cards[i] }))
-      : [{ index: ctx.state.cardIndex, card }];
+      : [{ index: ctx.layout.cardIndex, card }];
 
   const validCards = cardsToMove.filter(
     (c): c is { index: number; card: CardState } => c.card !== undefined,
@@ -91,18 +94,18 @@ export function moveCardInColumn(
 
   const movedCardIds = validCards.map((c) => c.card.node.id);
   const newCardIndex =
-    direction === "up" ? ctx.state.cardIndex - 1 : ctx.state.cardIndex + 1;
+    direction === "up" ? ctx.layout.cardIndex - 1 : ctx.layout.cardIndex + 1;
 
   const newState = refreshBoardState(ctx, { cardIndex: newCardIndex });
 
   if (newState && movedCardIds.length > 1) {
     const newSelected = new Set<SelectionKey>();
-    const newCol = newState.columns[ctx.state.colIndex];
+    const newCol = newState.columns[ctx.layout.colIndex];
     if (newCol) {
       for (let cardIdx = 0; cardIdx < newCol.cards.length; cardIdx++) {
         const c = newCol.cards[cardIdx];
         if (c && movedCardIds.includes(c.node.id)) {
-          newSelected.add(makeSelectionKey(ctx.state.colIndex, cardIdx, 0));
+          newSelected.add(makeSelectionKey(ctx.layout.colIndex, cardIdx, 0));
         }
       }
     }
@@ -116,14 +119,14 @@ export function moveCardToColumn(
   card: CardState,
   direction: "left" | "right",
 ): void {
-  const col = ctx.state.columns[ctx.state.colIndex];
+  const col = ctx.layout.columns[ctx.layout.colIndex];
   if (!col) return;
 
   const targetColIndex =
-    direction === "left" ? ctx.state.colIndex - 1 : ctx.state.colIndex + 1;
-  if (targetColIndex < 0 || targetColIndex >= ctx.state.columns.length) return;
+    direction === "left" ? ctx.layout.colIndex - 1 : ctx.layout.colIndex + 1;
+  if (targetColIndex < 0 || targetColIndex >= ctx.layout.columns.length) return;
 
-  const targetCol = ctx.state.columns[targetColIndex];
+  const targetCol = ctx.layout.columns[targetColIndex];
   if (!targetCol) return;
 
   const selectedIndices = getSelectedCardIndices(ctx);
@@ -175,13 +178,13 @@ export function moveCardToColumnByIndex(
   card: CardState,
   targetColIndex: number,
 ): void {
-  const col = ctx.state.columns[ctx.state.colIndex];
+  const col = ctx.layout.columns[ctx.layout.colIndex];
   if (!col) return;
 
-  if (targetColIndex < 0 || targetColIndex >= ctx.state.columns.length) return;
-  if (targetColIndex === ctx.state.colIndex) return;
+  if (targetColIndex < 0 || targetColIndex >= ctx.layout.columns.length) return;
+  if (targetColIndex === ctx.layout.colIndex) return;
 
-  const targetCol = ctx.state.columns[targetColIndex];
+  const targetCol = ctx.layout.columns[targetColIndex];
   if (!targetCol) return;
 
   const selectedIndices = getSelectedCardIndices(ctx);
@@ -206,7 +209,7 @@ export function moveCardToColumnByIndex(
 
   const movedCardIds = cardsToMove.map((c) => c.node.id);
   const expectedCardIndex = Math.min(
-    ctx.state.cardIndex,
+    ctx.layout.cardIndex,
     Math.max(0, col.cards.length - cardsToMove.length - 1),
   );
 
@@ -240,7 +243,7 @@ export function moveCardToColumnByIndex(
 
 /** Indent node: make it a child of the sibling above it */
 export function indentNode(ctx: KeyboardContext, card: CardState): void {
-  const col = ctx.state.columns[ctx.state.colIndex];
+  const col = ctx.layout.columns[ctx.layout.colIndex];
   if (!col) return;
 
   const cardIndex = col.cards.findIndex((c) => c.node.id === card.node.id);

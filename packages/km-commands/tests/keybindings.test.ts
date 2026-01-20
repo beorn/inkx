@@ -453,6 +453,8 @@ describe("initDefaultKeybindings", () => {
     expect(resolveKeybinding("l", {}, ctx)).toBe("cursor_right");
     expect(resolveKeybinding("g", {}, ctx)).toBe("cursor_first");
     expect(resolveKeybinding("G", {}, ctx)).toBe("cursor_last");
+    // Capital G with shift modifier (as Ink reports it) should also work
+    expect(resolveKeybinding("G", { shift: true }, ctx)).toBe("cursor_last");
   });
 
   it("includes arrow key navigation", () => {

@@ -8,13 +8,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import {
-  rmSync,
-  mkdirSync,
-  existsSync,
-  writeFileSync,
-  readFileSync,
-} from "fs";
+import { rmSync, mkdirSync, existsSync, writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 import { EventEmitter } from "events";
 

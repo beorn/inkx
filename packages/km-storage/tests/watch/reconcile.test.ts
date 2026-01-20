@@ -11,6 +11,7 @@ import {
   rmSync,
   writeFileSync,
   statSync,
+  utimesSync,
 } from "fs";
 import { join } from "path";
 import { setKmDir } from "../../src/emit.ts";
@@ -132,9 +133,10 @@ describe.serial("reconcile.ts", () => {
       const node = getNodeByPath(filePath);
       expect(node).not.toBeNull();
 
-      // Wait a moment and modify the file
-      Bun.sleepSync(50); // Ensure mtime is different
+      // Modify the file and set mtime to future to ensure reconcile detects it
       writeFileSync(filePath, "# Modified Content");
+      const futureTime = new Date(Date.now() + 1000);
+      utimesSync(filePath, futureTime, futureTime);
 
       // Reconcile should detect the modification
       const updateOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);

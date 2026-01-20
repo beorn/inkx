@@ -257,38 +257,38 @@ interface Keybinding {
 
 #### Navigation
 
-| Key          | Command            | Description                   |
-| ------------ | ------------------ | ----------------------------- |
-| `j`          | `cursor_next`      | Move to next sibling          |
-| `k`          | `cursor_prev`      | Move to previous sibling      |
-| `h`          | `cursor_left`      | Move left (cross-column)      |
-| `l`          | `cursor_right`     | Move right (cross-column)     |
-| `g`          | `cursor_first`     | Move to first sibling         |
-| `G`          | `cursor_last`      | Move to last sibling          |
-| `ArrowDown`  | `cursor_down`      | Move down visually            |
-| `ArrowUp`    | `cursor_up`        | Move up visually              |
-| `ArrowLeft`  | `cursor_left`      | Move left (cross-column)      |
-| `ArrowRight` | `cursor_right`     | Move right (cross-column)     |
-| `[`          | `nav_back`         | Navigate back in history      |
-| `]`          | `nav_forward`      | Navigate forward in history   |
-| `o`          | `zoom_in`          | Zoom into current node        |
-| `u`          | `go_up_path`       | Go up to parent path          |
-| `Enter`      | `open_detail_pane` | Open detail pane (normal mode)|
+| Key          | Command            | Description                    |
+| ------------ | ------------------ | ------------------------------ |
+| `j`          | `cursor_next`      | Move to next sibling           |
+| `k`          | `cursor_prev`      | Move to previous sibling       |
+| `h`          | `cursor_left`      | Move left (cross-column)       |
+| `l`          | `cursor_right`     | Move right (cross-column)      |
+| `g`          | `cursor_first`     | Move to first sibling          |
+| `G`          | `cursor_last`      | Move to last sibling           |
+| `ArrowDown`  | `cursor_down`      | Move down visually             |
+| `ArrowUp`    | `cursor_up`        | Move up visually               |
+| `ArrowLeft`  | `cursor_left`      | Move left (cross-column)       |
+| `ArrowRight` | `cursor_right`     | Move right (cross-column)      |
+| `[`          | `nav_back`         | Navigate back in history       |
+| `]`          | `nav_forward`      | Navigate forward in history    |
+| `o`          | `zoom_in`          | Zoom into current node         |
+| `u`          | `go_up_path`       | Go up to parent path           |
+| `Enter`      | `open_detail_pane` | Open detail pane (normal mode) |
 
 #### Selection
 
-| Key           | Command                  | Description                 |
-| ------------- | ------------------------ | --------------------------- |
-| `A`           | `select_all_progressive` | Progressive select all      |
-| `Escape`      | `clear_selection`        | Clear selection             |
-| `Shift+Up`    | `extend_select_up`       | Extend selection up         |
-| `Shift+Down`  | `extend_select_down`     | Extend selection down       |
-| `Shift+Left`  | `extend_select_left`     | Extend selection left       |
-| `Shift+Right` | `extend_select_right`    | Extend selection right      |
-| `K`           | `extend_select_up`       | Extend selection up         |
-| `J`           | `extend_select_down`     | Extend selection down       |
-| `H`           | `extend_select_left`     | Extend selection left       |
-| `L`           | `extend_select_right`    | Extend selection right      |
+| Key           | Command                  | Description            |
+| ------------- | ------------------------ | ---------------------- |
+| `A`           | `select_all_progressive` | Progressive select all |
+| `Escape`      | `clear_selection`        | Clear selection        |
+| `Shift+Up`    | `extend_select_up`       | Extend selection up    |
+| `Shift+Down`  | `extend_select_down`     | Extend selection down  |
+| `Shift+Left`  | `extend_select_left`     | Extend selection left  |
+| `Shift+Right` | `extend_select_right`    | Extend selection right |
+| `K`           | `extend_select_up`       | Extend selection up    |
+| `J`           | `extend_select_down`     | Extend selection down  |
+| `H`           | `extend_select_left`     | Extend selection left  |
+| `L`           | `extend_select_right`    | Extend selection right |
 
 #### Edit
 
@@ -320,11 +320,11 @@ interface Keybinding {
 
 #### Fold
 
-| Key | Command           | Description                       |
-| --- | ----------------- | --------------------------------- |
-| `z` | `fold_all`        | Fold all cards in current column  |
-| `Z` | `unfold_all`      | Unfold all cards in current column|
-| `c` | `toggle_collapse` | Toggle column collapse            |
+| Key | Command           | Description                        |
+| --- | ----------------- | ---------------------------------- |
+| `z` | `fold_all`        | Fold all cards in current column   |
+| `Z` | `unfold_all`      | Unfold all cards in current column |
+| `c` | `toggle_collapse` | Toggle column collapse             |
 
 #### View
 

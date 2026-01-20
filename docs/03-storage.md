@@ -98,27 +98,97 @@ interface KNode {
   id: string; // ULID (persisted) or path:line (memory)
   type: NodeType;
   parent_id: string | null; // Flat structure - parent reference
-  parent_idx: number;
+  parent_idx: number; // Fractional index for ordering among siblings
+  link_to: string | null; // Target node ID for embeddings (![[...]])
+  link_alias?: string; // Optional display alias from |alias syntax
 
-  // Location (for write-back)
-  fs_path: string | null; // Absolute path to .md file
-  md_line: number | null; // Line number (0-indexed)
+  // Filesystem mapping (for folder/file nodes)
+  fs_path?: string; // Absolute path to .md file or directory
+  fs_ino?: number; // Inode number for rename detection
+
+  // Identity
+  name?: string; // Slug/identifier (filename without .md, or heading slug)
+
+  // Markdown mapping (for sections/blocks)
+  md_pos?: number; // Byte offset in file
+  md_line?: number; // Line number in file (0-indexed)
+  md_slug?: string; // Heading slug (DEPRECATED: use name instead)
+
+  // Task properties (can be set on any node type, not just type: "task")
+  task_status?: TaskStatus;
+  task_mark?: TaskMark; // ' ', 'x', '/', etc. (only for type: "task")
+  assigned_to?: string; // User/agent assigned to task
+  due_date?: string; // YYYY-MM-DD format
+  scheduled_date?: string; // YYYY-MM-DD format
+  priority?: number; // 1-5 (1 = highest)
+  recurrence?: string; // iCal RRULE format (e.g., "FREQ=DAILY")
+  recur_prev?: string; // Previous recurrence instance ID
 
   // Content
-  content: string | null; // Display text
+  content?: string; // Text content (inline for small)
+  content_hash?: string; // CAS reference for large content
+  title?: string; // Display title (for sections: heading without rules)
 
-  // Task properties
-  task_status: TaskStatus | null;
-  task_mark: string | null; // ' ', 'x', '/', etc.
+  // Column/section rules (parsed from inline attributes)
+  rules?: NodeRules;
 
   // Metadata
   data: Record<string, unknown>; // Frontmatter, custom fields
-  created_at: number;
-  updated_at: number;
+  created_at: number; // Unix timestamp (ms)
+  updated_at: number; // Unix timestamp (ms)
+  version: string; // Last event ID that modified this node
 }
 ```
 
-**Note:** `KNode` is a flat record with `parent_id`. For tree navigation, use `TreeNode` from @km/core which extends `KNode` with recursive `children[]`.
+**Note:** `KNode` is a flat record with `parent_id`. For tree navigation, use `TNode` from @km/core which extends `KNode` with recursive `children[]` and `depth`.
+
+### Field Reference
+
+| Field            | Type           | Description                                   |
+| ---------------- | -------------- | --------------------------------------------- |
+| `id`             | string         | ULID (disk mode) or `path:line` (memory mode) |
+| `type`           | NodeType       | Node classification (see Node Types below)    |
+| `parent_id`      | string \| null | ID of parent node (null for root)             |
+| `parent_idx`     | number         | Fractional index for sibling ordering         |
+| `link_to`        | string \| null | Target node ID if this is an embedding        |
+| `link_alias`     | string         | Display alias from `\|alias` syntax           |
+| `fs_path`        | string         | Absolute filesystem path                      |
+| `fs_ino`         | number         | Filesystem inode (for rename detection)       |
+| `name`           | string         | Identifier slug (filename or heading slug)    |
+| `md_pos`         | number         | Byte offset in markdown file                  |
+| `md_line`        | number         | Line number (0-indexed)                       |
+| `md_slug`        | string         | **DEPRECATED**: Use `name` instead            |
+| `task_status`    | TaskStatus     | Task workflow status                          |
+| `task_mark`      | TaskMark       | Checkbox character                            |
+| `assigned_to`    | string         | Assignee (user or agent ID)                   |
+| `due_date`       | string         | Due date in YYYY-MM-DD format                 |
+| `scheduled_date` | string         | Scheduled date in YYYY-MM-DD format           |
+| `priority`       | number         | Priority 1-5 (1 = highest)                    |
+| `recurrence`     | string         | iCal RRULE (e.g., `FREQ=WEEKLY;BYDAY=MO`)     |
+| `recur_prev`     | string         | Links to previous recurrence instance         |
+| `content`        | string         | Node text content                             |
+| `content_hash`   | string         | CAS hash for large content                    |
+| `title`          | string         | Display title (for sections)                  |
+| `rules`          | NodeRules      | Column/section behavior rules                 |
+| `data`           | object         | Frontmatter and custom fields                 |
+| `created_at`     | number         | Creation timestamp (Unix ms)                  |
+| `updated_at`     | number         | Last update timestamp (Unix ms)               |
+| `version`        | string         | Event ID of last modification                 |
+
+### NodeRules
+
+Rules control column/section behavior in boards:
+
+```typescript
+interface NodeRules {
+  add?: string; // Query to auto-pull matching tasks
+  sync?: string; // Bidirectional field sync (e.g., "status:blocked")
+  collapse?: boolean; // Start collapsed
+  limit?: number; // WIP limit
+  default?: boolean; // Default column for new items
+  color?: string; // Board/section color (cyan, yellow, magenta, etc.)
+}
+```
 
 ### Node Types
 
@@ -202,36 +272,132 @@ Memory IDs are session-local. Write-back uses `fs_path` + `md_line`, not ID.
 
 ## SQLite Schema
 
+### nodes table
+
+The main table storing all nodes:
+
 ```sql
 CREATE TABLE nodes (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL,
   parent_id TEXT,
-  parent_idx REAL DEFAULT 0,
+  link_to TEXT,                  -- Target node ID for embeddings
+  link_alias TEXT,               -- Display alias
+  parent_idx REAL DEFAULT 0,     -- Fractional ordering
 
-  -- Location
-  fs_path TEXT,
-  md_line INTEGER,
+  -- Filesystem
+  fs_path TEXT,                  -- Absolute path
+  fs_ino INTEGER,                -- Inode for rename detection
 
-  -- Content
-  content TEXT,
+  -- Identity
+  name TEXT,                     -- Slug identifier
+  title TEXT,                    -- Display title
+
+  -- Markdown
+  md_pos INTEGER,                -- Byte offset
+  md_line INTEGER,               -- Line number (0-indexed)
+  md_slug TEXT,                  -- DEPRECATED: use name
 
   -- Task
-  task_status TEXT,
-  task_mark TEXT,
+  task_status TEXT,              -- todo/wip/blocked/done/dropped
+  task_mark TEXT,                -- ' ', 'x', '/', '-', '!'
+  assigned_to TEXT,              -- Assignee
+  due_date TEXT,                 -- YYYY-MM-DD
+  scheduled_date TEXT,           -- YYYY-MM-DD
+  priority INTEGER,              -- 1-5
+
+  -- Content
+  content TEXT,                  -- Inline text
+  content_hash TEXT,             -- CAS reference
 
   -- Metadata
-  data JSON,
-  created_at INTEGER,
-  updated_at INTEGER
+  data JSON DEFAULT '{}',        -- Frontmatter, custom fields
+  created_at INTEGER,            -- Unix ms
+  updated_at INTEGER,            -- Unix ms
+  version TEXT                   -- Last event ID
 );
 
--- Indexes
-CREATE INDEX idx_parent ON nodes(parent_id);
-CREATE INDEX idx_type ON nodes(type);
-CREATE INDEX idx_fs_path ON nodes(fs_path);
-CREATE INDEX idx_task_status ON nodes(task_status);
+-- Indexes for common queries
+CREATE INDEX idx_nodes_parent ON nodes(parent_id);
+CREATE INDEX idx_nodes_type ON nodes(type);
+CREATE INDEX idx_nodes_fs_path ON nodes(fs_path);
+CREATE INDEX idx_nodes_fs_ino ON nodes(fs_ino);
+CREATE INDEX idx_nodes_task_status ON nodes(task_status);
+CREATE INDEX idx_nodes_assigned ON nodes(assigned_to);
+CREATE INDEX idx_nodes_due ON nodes(due_date);
 ```
+
+### nodes_fts virtual table
+
+Full-text search using SQLite FTS5:
+
+```sql
+CREATE VIRTUAL TABLE nodes_fts USING fts5(
+  id,
+  content,
+  content='nodes',          -- Content from nodes table
+  content_rowid='rowid'     -- Sync with nodes.rowid
+);
+```
+
+Triggers automatically sync FTS with node changes:
+
+```sql
+-- Insert trigger
+CREATE TRIGGER nodes_ai AFTER INSERT ON nodes BEGIN
+  INSERT INTO nodes_fts(rowid, id, content)
+  VALUES (new.rowid, new.id, new.content);
+END;
+
+-- Delete trigger
+CREATE TRIGGER nodes_ad AFTER DELETE ON nodes BEGIN
+  INSERT INTO nodes_fts(nodes_fts, rowid, id, content)
+  VALUES('delete', old.rowid, old.id, old.content);
+END;
+
+-- Update trigger
+CREATE TRIGGER nodes_au AFTER UPDATE ON nodes BEGIN
+  INSERT INTO nodes_fts(nodes_fts, rowid, id, content)
+  VALUES('delete', old.rowid, old.id, old.content);
+  INSERT INTO nodes_fts(rowid, id, content)
+  VALUES (new.rowid, new.id, new.content);
+END;
+```
+
+### links table
+
+Tracks wikilinks for bidirectional linking:
+
+```sql
+CREATE TABLE links (
+  source_id TEXT NOT NULL,       -- Node containing the link
+  target_name TEXT NOT NULL,     -- Target filename/slug from [[target]]
+  target_id TEXT,                -- Resolved target node ID (null if unresolved)
+  section TEXT,                  -- Optional section anchor (#section)
+  block_id TEXT,                 -- Optional block ID (^block)
+  alias TEXT,                    -- Display alias (|alias)
+  embedded INTEGER DEFAULT 0,    -- 1 if embedding (![[...]]), 0 otherwise
+  created_at INTEGER,
+  PRIMARY KEY (source_id, target_name, section, block_id)
+);
+
+CREATE INDEX idx_links_source ON links(source_id);
+CREATE INDEX idx_links_target_name ON links(target_name);
+CREATE INDEX idx_links_target_id ON links(target_id);
+```
+
+### meta table
+
+Key-value store for system metadata:
+
+```sql
+CREATE TABLE meta (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+```
+
+Used for tracking event replay cursor and other internal state.
 
 ---
 

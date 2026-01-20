@@ -49,7 +49,11 @@ export function resolveKeybinding(
     // Check modifiers
     if (!!binding.ctrl !== !!modifiers.ctrl) continue;
     if (!!binding.meta !== !!modifiers.meta) continue;
-    if (!!binding.shift !== !!modifiers.shift) continue;
+    // For single uppercase letters (A-Z), the shift key is implicit in the character
+    // Don't require explicit shift: true in the binding for capital letters
+    const isUppercaseLetter =
+      key.length === 1 && key >= "A" && key <= "Z" && !binding.shift;
+    if (!isUppercaseLetter && !!binding.shift !== !!modifiers.shift) continue;
     if (!!binding.alt !== !!modifiers.alt) continue;
 
     // Check mode

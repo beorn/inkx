@@ -51,7 +51,10 @@ export const tuiCommands: CommandDef[] = [
     description: "Jump to favorite board 1",
     category: "Navigation",
     shortcuts: ["1"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_FAVORITE", favoriteNumber: 1 }),
+    execute: (): CommandAction => ({
+      type: "JUMP_TO_FAVORITE",
+      favoriteNumber: 1,
+    }),
   },
   {
     id: "favorite_2",
@@ -59,7 +62,10 @@ export const tuiCommands: CommandDef[] = [
     description: "Jump to favorite board 2",
     category: "Navigation",
     shortcuts: ["2"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_FAVORITE", favoriteNumber: 2 }),
+    execute: (): CommandAction => ({
+      type: "JUMP_TO_FAVORITE",
+      favoriteNumber: 2,
+    }),
   },
   {
     id: "favorite_3",
@@ -67,7 +73,10 @@ export const tuiCommands: CommandDef[] = [
     description: "Jump to favorite board 3",
     category: "Navigation",
     shortcuts: ["3"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_FAVORITE", favoriteNumber: 3 }),
+    execute: (): CommandAction => ({
+      type: "JUMP_TO_FAVORITE",
+      favoriteNumber: 3,
+    }),
   },
   {
     id: "favorite_4",
@@ -75,7 +84,10 @@ export const tuiCommands: CommandDef[] = [
     description: "Jump to favorite board 4",
     category: "Navigation",
     shortcuts: ["4"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_FAVORITE", favoriteNumber: 4 }),
+    execute: (): CommandAction => ({
+      type: "JUMP_TO_FAVORITE",
+      favoriteNumber: 4,
+    }),
   },
   {
     id: "favorite_5",
@@ -83,7 +95,10 @@ export const tuiCommands: CommandDef[] = [
     description: "Jump to favorite board 5",
     category: "Navigation",
     shortcuts: ["5"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_FAVORITE", favoriteNumber: 5 }),
+    execute: (): CommandAction => ({
+      type: "JUMP_TO_FAVORITE",
+      favoriteNumber: 5,
+    }),
   },
   {
     id: "favorite_6",
@@ -91,7 +106,10 @@ export const tuiCommands: CommandDef[] = [
     description: "Jump to favorite board 6",
     category: "Navigation",
     shortcuts: ["6"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_FAVORITE", favoriteNumber: 6 }),
+    execute: (): CommandAction => ({
+      type: "JUMP_TO_FAVORITE",
+      favoriteNumber: 6,
+    }),
   },
   {
     id: "favorite_7",
@@ -99,7 +117,10 @@ export const tuiCommands: CommandDef[] = [
     description: "Jump to favorite board 7",
     category: "Navigation",
     shortcuts: ["7"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_FAVORITE", favoriteNumber: 7 }),
+    execute: (): CommandAction => ({
+      type: "JUMP_TO_FAVORITE",
+      favoriteNumber: 7,
+    }),
   },
   {
     id: "favorite_8",
@@ -107,7 +128,10 @@ export const tuiCommands: CommandDef[] = [
     description: "Jump to favorite board 8",
     category: "Navigation",
     shortcuts: ["8"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_FAVORITE", favoriteNumber: 8 }),
+    execute: (): CommandAction => ({
+      type: "JUMP_TO_FAVORITE",
+      favoriteNumber: 8,
+    }),
   },
   {
     id: "favorite_9",
@@ -115,7 +139,10 @@ export const tuiCommands: CommandDef[] = [
     description: "Jump to favorite board 9",
     category: "Navigation",
     shortcuts: ["9"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_FAVORITE", favoriteNumber: 9 }),
+    execute: (): CommandAction => ({
+      type: "JUMP_TO_FAVORITE",
+      favoriteNumber: 9,
+    }),
   },
 
   // Column jump (Shift+1-9)

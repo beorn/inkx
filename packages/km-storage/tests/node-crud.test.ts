@@ -43,6 +43,30 @@ import type { NodeType, TaskStatus, Event } from "@km/core";
 import { ulid } from "ulid";
 
 // Test helpers
+
+/**
+ * Wait for a file to have expected content.
+ * Polls until condition is met or timeout expires.
+ */
+async function waitForFileContent(
+  filePath: string,
+  expected: string,
+  { timeout = 1000, interval = 10 } = {},
+): Promise<void> {
+  const start = Date.now();
+  while (true) {
+    const content = await Bun.file(filePath).text();
+    if (content === expected) {
+      return;
+    }
+    if (Date.now() - start > timeout) {
+      throw new Error(
+        `waitForFileContent timed out after ${timeout}ms. Expected:\n${expected}\nGot:\n${content}`,
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+}
 function createTestNode(
   type: NodeType,
   content?: string,
@@ -767,12 +791,8 @@ describe.serial("Node CRUD Operations", () => {
       // Update task status to done
       emitNodeUpdated("test-user", taskId, { task_status: "done" });
 
-      // Wait for async file write
-      await Bun.sleep(50);
-
-      // Verify file content changed
-      const content = await Bun.file(testFile).text();
-      expect(content).toBe("- [x] Test task\n");
+      // Wait for async file write to complete
+      await waitForFileContent(testFile, "- [x] Test task\n");
     });
 
     test("should write blocked status to markdown file", async () => {
@@ -797,10 +817,8 @@ describe.serial("Node CRUD Operations", () => {
         task_status: "blocked",
       });
 
-      await Bun.sleep(50);
-
-      const content = await Bun.file(testFile).text();
-      expect(content).toBe("- [!] Blocked task\n");
+      // Wait for async file write to complete
+      await waitForFileContent(testFile, "- [!] Blocked task\n");
     });
 
     test("should write dropped status to markdown file", async () => {
@@ -825,10 +843,8 @@ describe.serial("Node CRUD Operations", () => {
         task_status: "dropped",
       });
 
-      await Bun.sleep(50);
-
-      const content = await Bun.file(testFile).text();
-      expect(content).toBe("- [-] Dropped task\n");
+      // Wait for async file write to complete
+      await waitForFileContent(testFile, "- [-] Dropped task\n");
     });
   });
 });

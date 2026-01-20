@@ -1,5 +1,7 @@
 import React from "react";
-import { render } from "inkx/testing";
+import { createTestRenderer } from "inkx/testing";
+
+const render = createTestRenderer();
 import { Box, Text } from "inkx";
 
 // Test: height constraint clips first line of bordered content

@@ -11,7 +11,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { render } from "inkx/testing";
+import { createTestRenderer } from "inkx/testing";
+
+const render = createTestRenderer();
 import React from "react";
 import { rmSync, mkdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
