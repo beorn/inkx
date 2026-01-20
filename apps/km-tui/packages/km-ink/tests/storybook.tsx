@@ -925,8 +925,6 @@ function CardsViewDemo({
                 {column.cards.slice(0, 3).map((card, cardIdx) => {
                   const isCardSelected =
                     isColSelected && cardIdx === state.cardIndex;
-                  // Card border uses 2 chars (1 left + 1 right), so inner content is width - 2
-                  const innerWidth = Math.max(5, colWidth - 2);
                   return (
                     <Box
                       key={card.node.id}
@@ -938,7 +936,6 @@ function CardsViewDemo({
                       <TreeNode
                         node={card.node}
                         depth={0}
-                        width={innerWidth}
                         isSelected={isCardSelected}
                         colIndex={cIdx}
                         cardIndex={cardIdx}

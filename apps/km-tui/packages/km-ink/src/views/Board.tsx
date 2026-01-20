@@ -1237,18 +1237,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       <UIProvider state={ui} dispatch={dispatch}>
         <Box
           flexDirection="column"
+          width={termWidth}
           height={termHeight}
           minHeight={3}
           overflow="hidden"
         >
-          {/* Top bar: full path from root to selected item, inverted full width */}
-          {/* Uses inkx Box backgroundColor to ensure background spans full width */}
-          <Box
-            height={1}
-            width={termWidth}
-            flexShrink={0}
-            backgroundColor={topBarBgColor}
-          >
+          {/* Top bar: full path from root to selected item, auto layout */}
+          <Box flexShrink={0} alignSelf="stretch" backgroundColor={topBarBgColor}>
             <Text color={topBarTextColor} bold>
               {" "}
               {selectedPathSegments
@@ -1408,51 +1403,50 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <HelpOverlay width={termWidth} height={contentHeight} />
             )}
           </Box>
-          {/* Bottom bar: uses inkx Box backgroundColor for full-width fill */}
+          {/* Bottom bar: auto layout with space-between */}
           <Box
-            height={1}
-            width={termWidth}
             flexShrink={0}
+            alignSelf="stretch"
             backgroundColor="black"
             justifyContent="space-between"
           >
-            {/* Left side: repo info */}
+            {/* Left side: repo info - use chalk for styling */}
             <Text>
               {" "}
               {(() => {
                 const store = getStore();
-                return store.mode === "memory" ? (
-                  <Text color="yellow">MEM REPO {store.rootPath}</Text>
-                ) : (
-                  <Text color="green">DISK REPO {store.rootPath}</Text>
-                );
+                return store.mode === "memory"
+                  ? chalk.yellow(`MEM REPO ${store.rootPath}`)
+                  : chalk.green(`DISK REPO ${store.rootPath}`);
               })()}
             </Text>
-            {/* Right side: indicators */}
+            {/* Right side: indicators - use chalk for styling to avoid nested Text issues */}
+            {/* flexGrow pushes this to the right edge */}
+            <Box flexGrow={1} />
             <Text>
-              {ui.showHelp && <Text color="cyan">[HELP ?] </Text>}
-              {ui.showProjectPicker && <Text color="green">[PROJECT] </Text>}
-              {ui.showNewItemDialog && <Text color="green">[NEW] </Text>}
-              {ui.showDropNotification && ui.droppedFiles.length > 0 && (
-                <Text color="green">
-                  [Dropped:{" "}
-                  {ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}]{" "}
-                </Text>
-              )}
-              {ui.isMouseDragging && ui.mouseSelection && (
-                <Text color="blue">
-                  [Select: {ui.mouseSelection.startY}-{ui.mouseSelection.endY}]{" "}
-                </Text>
-              )}
-              {ui.multiSelected.size > 0 && (
-                <Text color="yellow">[{ui.multiSelected.size} sel] </Text>
-              )}
-              {ui.inOutlineMode && <Text color="cyan">OUTLINE </Text>}
-              {ui.selectionLevel !== "card" && (
-                <Text color="magenta">{ui.selectionLevel.toUpperCase()} </Text>
-              )}
-              <Text inverse> {ui.viewMode.toUpperCase()} VIEW </Text>
-            </Text>
+              {[
+                ui.showHelp && chalk.cyan("[HELP ?] "),
+                ui.showProjectPicker && chalk.green("[PROJECT] "),
+                ui.showNewItemDialog && chalk.green("[NEW] "),
+                ui.showDropNotification &&
+                  ui.droppedFiles.length > 0 &&
+                  chalk.green(
+                    `[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `,
+                  ),
+                ui.isMouseDragging &&
+                  ui.mouseSelection &&
+                  chalk.blue(
+                    `[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `,
+                  ),
+                ui.multiSelected.size > 0 &&
+                  chalk.yellow(`[${ui.multiSelected.size} sel] `),
+                ui.inOutlineMode && chalk.cyan("OUTLINE "),
+                ui.selectionLevel !== "card" &&
+                  chalk.magenta(`${ui.selectionLevel.toUpperCase()} `),
+                chalk.inverse(` ${ui.viewMode.toUpperCase()} VIEW `),
+              ]
+                .filter(Boolean)
+                .join("")}{" "}</Text>
           </Box>
         </Box>
       </UIProvider>

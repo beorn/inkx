@@ -28,8 +28,6 @@ interface ColumnTreeProps {
   isSelected: boolean;
   selectedCardIndex: number;
   selectedSubIndex: number;
-  width: number;
-  height: number;
   selectionLevel: "board" | "column" | "card";
 }
 
@@ -39,8 +37,6 @@ function ColumnTree({
   isSelected,
   selectedCardIndex,
   selectedSubIndex,
-  width,
-  height,
   selectionLevel,
 }: ColumnTreeProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
@@ -58,12 +54,7 @@ function ColumnTree({
   );
 
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      maxHeight={height}
-      overflow="hidden"
-    >
+    <Box flexDirection="column" flexGrow={1} overflow="hidden">
       {/* Header section */}
       <Box flexDirection="column" height={2} flexShrink={0}>
         <Text> </Text>
@@ -98,7 +89,6 @@ function ColumnTree({
               key={card.node.id}
               node={card.node}
               depth={0}
-              width={width}
               isSelected={
                 cardSelected ||
                 (selectionLevel === "card" &&
@@ -147,20 +137,9 @@ export function ColumnsView({
   effectiveVisibleColumns,
   selectionLevel,
 }: ColumnsViewProps): React.ReactElement {
-  // Calculate column widths using integer math
   const hasLeftIndicator = effectiveScrollOffset > 0;
   const hasRightIndicator =
     effectiveScrollOffset + effectiveMaxCols < state.columns.length;
-  const indicatorWidth =
-    (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
-
-  // Account for separator lines between columns (1 char each, n-1 separators)
-  const separatorCount = Math.max(0, effectiveVisibleColumns.length - 1);
-  const availableWidth = width - indicatorWidth - separatorCount;
-
-  // Use integer math to distribute width evenly without floating-point errors
-  const colBaseWidth = Math.floor(availableWidth / effectiveMaxCols);
-  const colRemainder = availableWidth % effectiveMaxCols;
 
   return (
     <Box flexDirection="row" width={width} height={height}>
@@ -172,8 +151,6 @@ export function ColumnsView({
         const actualColIndex = effectiveScrollOffset + i;
         const isLastCol = i === effectiveVisibleColumns.length - 1;
         // Distribute extra pixels to the first 'remainder' columns
-        const colWidth = colBaseWidth + (i < colRemainder ? 1 : 0);
-
         return (
           <React.Fragment key={col.node.id}>
             <ColumnTree
@@ -182,8 +159,6 @@ export function ColumnsView({
               isSelected={actualColIndex === colIndex}
               selectedCardIndex={cardIndex}
               selectedSubIndex={subIndex}
-              width={colWidth}
-              height={height}
               selectionLevel={selectionLevel}
             />
             {/* Separator line between columns */}

@@ -25,6 +25,7 @@ console.log(chalk.red(curlyUnderline("Error: typo detected")));
 - **Extended underline styles** - curly (wavy), dotted, dashed, double
 - **Independent underline color** - set underline color separately from text color
 - **Hyperlinks** - clickable OSC 8 terminal hyperlinks
+- **InkX compatibility** - `bgOverride()` for safe chalk bg usage with inkx
 - **Graceful fallback** - degrades to regular underlines on unsupported terminals
 - **ANSI utilities** - `stripAnsi()`, `displayLength()`
 
@@ -69,6 +70,31 @@ console.log(hyperlink("Click me", "https://example.com"));
 // Works with chalk for text color
 console.log(chalk.red(curlyUnderline("red text, wavy underline")));
 ```
+
+## InkX Background Override
+
+When using chalk with [inkx](https://github.com/beorn/inkx) (a React terminal UI framework), mixing chalk backgrounds with inkx `backgroundColor` props causes visual artifacts. InkX detects this and throws by default.
+
+Use `bgOverride()` to explicitly allow this when you know what you're doing:
+
+```tsx
+import { bgOverride, chalk } from "@beorn/chalkx";
+import { Box, Text } from "inkx";
+
+// Without bgOverride - throws by default!
+<Box backgroundColor="cyan">
+  <Text>{chalk.bgBlack("text")}</Text>  // Error: background conflict
+</Box>
+
+// With bgOverride - explicitly allowed
+<Box backgroundColor="cyan">
+  <Text>{bgOverride(chalk.bgBlack("text"))}</Text>  // OK
+</Box>
+```
+
+The `bgOverride()` function wraps text with a private SGR marker that inkx recognizes, suppressing the conflict detection for that text.
+
+Control inkx detection via `INKX_BG_CONFLICT` env var: `throw` (default), `warn`, or `ignore`.
 
 ## Run the Storybook
 

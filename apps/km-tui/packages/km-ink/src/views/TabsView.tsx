@@ -114,7 +114,6 @@ export function TabsView({
                     key={card.node.id}
                     node={card.node}
                     depth={0}
-                    width={width}
                     isSelected={
                       cardSelected ||
                       (selectionLevel === "card" &&

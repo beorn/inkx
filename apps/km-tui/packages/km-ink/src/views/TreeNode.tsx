@@ -13,8 +13,7 @@ import {
   getNodeDisplayName,
   getParentContext as getParentContextFromState,
 } from "../state.ts";
-import { renderRich, displayLength } from "../text/index.ts";
-import { constrainText } from "../layout/index.ts";
+import { renderRich } from "../text/index.ts";
 import { makeSelectionKey } from "../types.ts";
 import {
   useTreeConfig,
@@ -33,7 +32,6 @@ import {
 export interface TreeNodeProps {
   node: KNode;
   depth: number;
-  width: number;
   isSelected: boolean;
   colIndex: number;
   cardIndex: number;
@@ -55,7 +53,6 @@ export interface TreeNodeProps {
 export function TreeNode({
   node,
   depth,
-  width,
   isSelected,
   colIndex,
   cardIndex,
@@ -70,7 +67,6 @@ export function TreeNode({
   // Get UI state from context
   const {
     maxOutlineDepth: maxDepth,
-    maxContentLines,
     inOutlineMode,
     currentSubIndex,
     variant,
@@ -120,24 +116,15 @@ export function TreeNode({
       : node.content || getNodeDisplayName(node);
   const styledContent = renderRich(rawContent);
 
-  // Constrain content to available width
-  const wrapWidth = Math.max(1, width - prefix.length);
-  const { lines: wrappedLines } = constrainText(
-    styledContent,
-    wrapWidth,
-    maxContentLines,
-  );
-  const firstLine = wrappedLines[0] ?? "";
-  const additionalLines = wrappedLines.slice(1);
-
-  // Info suffix and context
+  // Info suffix
   const infoSuffix = formatInfoSuffix(
     node,
     isCompact,
     excludeBoardIds,
     getBoardPillsProp,
   );
-  // Use provided parentContext or compute it (for embedded tasks at depth 0)
+
+  // Parent context for embedded tasks
   const resolvedGetParentContext =
     getParentContextProp ?? getParentContextFromState;
   const parentContext =
@@ -146,34 +133,16 @@ export function TreeNode({
       : depth === 0 && isTask && isEmbedded
         ? resolvedGetParentContext(node)
         : null;
-  // Calculate available space for context suffix
-  // Reserve: prefix + first line content + info suffix + " < " + some minimum padding
-  const firstLineLen = displayLength(firstLine);
-  const usedWidth = prefix.length + firstLineLen + infoSuffix.length + 4; // 4 = " < " + buffer
-  const contextMaxWidth = Math.max(10, Math.floor((width - usedWidth) * 0.8)); // Use 80% of remaining space
-  const truncatedContext = !isCompact
-    ? truncateContext(parentContext, contextMaxWidth)
-    : null;
-  const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
-
-  // Multi-line context handling
-  const isMultiLine = additionalLines.length > 0;
-  const showInlineContext = !isMultiLine && truncatedContext;
-  // Only show separate context above if we have multi-line content (inline context won't work)
-  const showSeparateContext = isMultiLine && isEmbedded && parentContext;
-
-  // Calculate padding to clear line
-  const firstLineDisplayLen =
-    prefix.length +
-    displayLength(firstLine) +
-    prefix.foldedCount.length +
-    (showInlineContext
-      ? infoSuffix.length + contextSuffix.length
-      : infoSuffix.length);
-  const firstLinePadding = " ".repeat(Math.max(0, width - firstLineDisplayLen));
 
   // Continuation indent for wrapped lines
   const continuationIndent = " ".repeat(prefix.length);
+
+  // Context suffix (truncated to reasonable length when shown inline)
+  const truncatedContext = !isCompact
+    ? truncateContext(parentContext, 40) // Fixed max context width
+    : null;
+  const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
+  const showInlineContext = truncatedContext !== null;
 
   // Child rendering
   const { maxChildren } = VARIANT_CONFIG[variant];
@@ -181,63 +150,45 @@ export function TreeNode({
   const hiddenCount = children.length - visibleChildren.length;
 
   return (
-    <Box flexDirection="column" width={width}>
+    <Box flexDirection="column">
       {/* Parent context line (shown ABOVE task for embedded items) */}
-      {showSeparateContext && parentContext && (
+      {isEmbedded && parentContext && (
         <Text dimColor italic wrap="truncate">
           {continuationIndent}
-          {parentContext.length > width - prefix.length
-            ? "…" + parentContext.slice(-(width - prefix.length - 1))
-            : parentContext}
+          {parentContext}
         </Text>
       )}
 
-      {/* First line */}
-      <Text
-        backgroundColor={style.backgroundColor}
-        color={style.textColor}
-        dimColor={style.shouldDim}
-        strikethrough={style.shouldStrikethrough}
-        wrap="truncate"
-      >
-        {prefix.beforeIcon}
+      {/* Main content line - uses Box for background color fill */}
+      <Box backgroundColor={style.backgroundColor}>
         <Text
-          color={
-            isSelected || isMultiSelected ? style.textColor : prefix.iconColor
-          }
-          backgroundColor={
-            isSelected || isMultiSelected ? undefined : prefix.iconBgColor
-          }
-        >
-          {prefix.iconChar}
-        </Text>
-        {prefix.afterIcon}
-        {firstLine}
-        {prefix.foldedCount}
-        {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
-        {showInlineContext && (
-          <Text dimColor italic>
-            {contextSuffix}
-          </Text>
-        )}
-        {firstLinePadding}
-      </Text>
-
-      {/* Additional wrapped lines */}
-      {additionalLines.map((line, i) => (
-        <Text
-          key={`wrap-${i}`}
-          backgroundColor={style.backgroundColor}
           color={style.textColor}
           dimColor={style.shouldDim}
           strikethrough={style.shouldStrikethrough}
           wrap="truncate"
         >
-          {continuationIndent}
-          {line}
-          {" ".repeat(Math.max(0, width - prefix.length - displayLength(line)))}
+          {prefix.beforeIcon}
+          <Text
+            color={
+              isSelected || isMultiSelected ? style.textColor : prefix.iconColor
+            }
+            backgroundColor={
+              isSelected || isMultiSelected ? undefined : prefix.iconBgColor
+            }
+          >
+            {prefix.iconChar}
+          </Text>
+          {prefix.afterIcon}
+          {styledContent}
+          {prefix.foldedCount}
+          {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
+          {showInlineContext && (
+            <Text dimColor italic>
+              {contextSuffix}
+            </Text>
+          )}
         </Text>
-      ))}
+      </Box>
 
       {/* Children */}
       {hasChildren && !isFolded && depth < maxDepth && (
@@ -246,7 +197,6 @@ export function TreeNode({
           colIndex={colIndex}
           cardIndex={cardIndex}
           startSubIndex={subIndex + 1}
-          width={width}
           depth={depth}
           inOutlineMode={inOutlineMode}
           currentSubIndex={currentSubIndex}
@@ -270,7 +220,6 @@ interface NodeChildrenProps {
   colIndex: number;
   cardIndex: number;
   startSubIndex: number;
-  width: number;
   depth: number;
   inOutlineMode: boolean;
   currentSubIndex: number;
@@ -289,7 +238,6 @@ function NodeChildren({
   colIndex,
   cardIndex,
   startSubIndex,
-  width,
   depth,
   inOutlineMode,
   currentSubIndex,
@@ -299,6 +247,7 @@ function NodeChildren({
   getParentContext,
   getBoardPills,
 }: NodeChildrenProps): React.ReactElement {
+
   const indent = " ".repeat(depth);
 
   return (
@@ -313,7 +262,6 @@ function NodeChildren({
             key={child.id}
             node={child}
             depth={depth + 1}
-            width={width}
             isSelected={childSelected}
             colIndex={colIndex}
             cardIndex={cardIndex}
@@ -327,7 +275,7 @@ function NodeChildren({
       })}
       {hiddenCount > 0 && (
         <Text dimColor wrap="truncate">
-          {`${indent} +${hiddenCount} more`.padEnd(width)}
+          {indent} +{hiddenCount} more
         </Text>
       )}
     </Box>

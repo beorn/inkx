@@ -32,9 +32,6 @@ export function Card({
   colIndex,
   cardIndex,
 }: CardProps): React.ReactElement {
-  // Card border uses 2 chars (1 left + 1 right), so inner content is width - 2
-  const innerWidth = Math.max(5, width - 2);
-
   return (
     <Box
       flexDirection="column"
@@ -47,7 +44,6 @@ export function Card({
       <TreeNode
         node={card.node}
         depth={0}
-        width={innerWidth}
         isSelected={isSelected && selectedSubIndex === 0}
         colIndex={colIndex}
         cardIndex={cardIndex}

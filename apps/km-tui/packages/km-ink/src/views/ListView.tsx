@@ -143,7 +143,6 @@ export function ListView({
               key={card.node.id}
               node={card.node}
               depth={0}
-              width={width}
               isSelected={
                 isCardSelected ||
                 (selectionLevel === "card" &&
