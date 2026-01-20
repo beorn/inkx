@@ -130,24 +130,29 @@ Commands never mutate state directly. They return actions that describe _what sh
 
 Cursor movement, zoom, history navigation.
 
-| Command                  | Description                 |
-| ------------------------ | --------------------------- |
-| `cursor_next`            | Move to next sibling        |
-| `cursor_prev`            | Move to previous sibling    |
-| `cursor_in`              | Move into first child       |
-| `cursor_out`             | Move to parent              |
-| `cursor_first`           | Move to first sibling       |
-| `cursor_last`            | Move to last sibling        |
-| `cursor_up`              | Move up visually            |
-| `cursor_down`            | Move down visually          |
-| `cursor_left`            | Move left (cross-column)    |
-| `cursor_right`           | Move right (cross-column)   |
-| `nav_cross_column_left`  | Navigate to column on left  |
-| `nav_cross_column_right` | Navigate to column on right |
-| `nav_back`               | Navigate history back       |
-| `nav_forward`            | Navigate history forward    |
-| `zoom_in`                | Zoom into current node      |
-| `zoom_out`               | Zoom out to parent          |
+| Command                  | Description                       |
+| ------------------------ | --------------------------------- |
+| `cursor_next`            | Move to next sibling              |
+| `cursor_prev`            | Move to previous sibling          |
+| `cursor_in`              | Move into first child             |
+| `cursor_out`             | Move to parent                    |
+| `cursor_first`           | Move to first sibling             |
+| `cursor_last`            | Move to last sibling              |
+| `cursor_up`              | Move up visually                  |
+| `cursor_down`            | Move down visually                |
+| `cursor_left`            | Move left (cross-column)          |
+| `cursor_right`           | Move right (cross-column)         |
+| `page_down`              | Jump cursor down half a page      |
+| `page_up`                | Jump cursor up half a page        |
+| `nav_back`               | Navigate history back             |
+| `nav_forward`            | Navigate history forward          |
+| `zoom_in`                | Zoom into current node            |
+| `zoom_out`               | Zoom out to parent                |
+| `go_up_path`             | Navigate to parent of current root|
+| `enter_node`             | Enter current node as board       |
+| `sibling_board_next`     | Navigate to next sibling board    |
+| `sibling_board_prev`     | Navigate to previous sibling board|
+| `open_detail_pane`       | Open detail pane for current node |
 
 ### Selection
 
@@ -209,14 +214,31 @@ Expand/collapse tree nodes.
 
 ### View
 
-Display settings.
+Display settings and UI actions.
 
 | Command                  | Description               |
 | ------------------------ | ------------------------- |
+| `cycle_view_mode`        | Cycle through view modes  |
+| `show_help`              | Toggle help overlay       |
 | `increase_outline_depth` | Show more nested levels   |
 | `decrease_outline_depth` | Show fewer nested levels  |
 | `increase_content_lines` | Show more content preview |
 | `decrease_content_lines` | Show less content preview |
+
+### TUI-Specific
+
+Commands specific to the terminal user interface.
+
+| Command           | Description                               |
+| ----------------- | ----------------------------------------- |
+| `quit`            | Exit the TUI                              |
+| `new_item`        | Open new item dialog                      |
+| `project_picker`  | Open project picker                       |
+| `close_or_quit`   | Contextual: close dialog/pane, or quit    |
+| `outdent`         | Move item to parent level (outdent)       |
+| `delete_node`     | Delete current node with confirmation     |
+| `favorite_1`-`9`  | Jump to favorite board 1-9                |
+| `column_1`-`9`    | Jump to column 1-9                        |
 
 ---
 
@@ -257,38 +279,45 @@ interface Keybinding {
 
 #### Navigation
 
-| Key          | Command            | Description                    |
-| ------------ | ------------------ | ------------------------------ |
-| `j`          | `cursor_next`      | Move to next sibling           |
-| `k`          | `cursor_prev`      | Move to previous sibling       |
-| `h`          | `cursor_left`      | Move left (cross-column)       |
-| `l`          | `cursor_right`     | Move right (cross-column)      |
-| `g`          | `cursor_first`     | Move to first sibling          |
-| `G`          | `cursor_last`      | Move to last sibling           |
-| `ArrowDown`  | `cursor_down`      | Move down visually             |
-| `ArrowUp`    | `cursor_up`        | Move up visually               |
-| `ArrowLeft`  | `cursor_left`      | Move left (cross-column)       |
-| `ArrowRight` | `cursor_right`     | Move right (cross-column)      |
-| `[`          | `nav_back`         | Navigate back in history       |
-| `]`          | `nav_forward`      | Navigate forward in history    |
-| `o`          | `zoom_in`          | Zoom into current node         |
-| `u`          | `go_up_path`       | Go up to parent path           |
-| `Enter`      | `open_detail_pane` | Open detail pane (normal mode) |
+| Key          | Command               | Description                      |
+| ------------ | --------------------- | -------------------------------- |
+| `j`          | `cursor_next`         | Move to next sibling             |
+| `k`          | `cursor_prev`         | Move to previous sibling         |
+| `h`          | `cursor_left`         | Move left (cross-column)         |
+| `l`          | `cursor_right`        | Move right (cross-column)        |
+| `g`          | `cursor_first`        | Move to first sibling            |
+| `G`          | `cursor_last`         | Move to last sibling             |
+| `ArrowDown`  | `cursor_down`         | Move down visually               |
+| `ArrowUp`    | `cursor_up`           | Move up visually                 |
+| `ArrowLeft`  | `cursor_left`         | Move left (cross-column)         |
+| `ArrowRight` | `cursor_right`        | Move right (cross-column)        |
+| `Ctrl+D`     | `page_down`           | Jump cursor down half a page     |
+| `Ctrl+U`     | `page_up`             | Jump cursor up half a page       |
+| `[`          | `nav_back`            | Navigate back in history         |
+| `]`          | `nav_forward`         | Navigate forward in history      |
+| `o`          | `zoom_in`             | Zoom into current node           |
+| `i`          | `enter_node`          | Enter current node as board      |
+| `u`          | `go_up_path`          | Go up to parent path             |
+| `Ctrl+J`     | `sibling_board_next`  | Navigate to next sibling board   |
+| `Ctrl+K`     | `sibling_board_prev`  | Navigate to prev sibling board   |
+| `Enter`      | `open_detail_pane`    | Open detail pane (normal mode)   |
 
 #### Selection
 
-| Key           | Command                  | Description            |
-| ------------- | ------------------------ | ---------------------- |
-| `A`           | `select_all_progressive` | Progressive select all |
-| `Escape`      | `clear_selection`        | Clear selection        |
-| `Shift+Up`    | `extend_select_up`       | Extend selection up    |
-| `Shift+Down`  | `extend_select_down`     | Extend selection down  |
-| `Shift+Left`  | `extend_select_left`     | Extend selection left  |
-| `Shift+Right` | `extend_select_right`    | Extend selection right |
-| `K`           | `extend_select_up`       | Extend selection up    |
-| `J`           | `extend_select_down`     | Extend selection down  |
-| `H`           | `extend_select_left`     | Extend selection left  |
-| `L`           | `extend_select_right`    | Extend selection right |
+| Key           | Command                  | Description                          |
+| ------------- | ------------------------ | ------------------------------------ |
+| `A`           | `select_all_progressive` | Progressive select all               |
+| `Escape`      | `close_or_quit`          | Clear selection / close / quit       |
+| `Shift+Up`    | `extend_select_up`       | Extend selection up                  |
+| `Shift+Down`  | `extend_select_down`     | Extend selection down                |
+| `Shift+Left`  | `extend_select_left`     | Extend selection left                |
+| `Shift+Right` | `extend_select_right`    | Extend selection right               |
+| `K`           | `extend_select_up`       | Extend selection up (Shift+K)        |
+| `J`           | `extend_select_down`     | Extend selection down (Shift+J)      |
+| `H`           | `extend_select_left`     | Extend selection left (Shift+H)      |
+| `L`           | `extend_select_right`    | Extend selection right (Shift+L)     |
+
+> **Note**: `Escape` maps to `close_or_quit` which is contextual - it clears selection, closes dialogs/panes, or quits depending on current state.
 
 #### Edit
 
@@ -306,8 +335,8 @@ interface Keybinding {
 | `Cmd+j`         | `shift_down`      | Move node down           |
 | `Cmd+h`         | `shift_left`      | Outdent node             |
 | `Cmd+l`         | `shift_right`     | Indent node              |
-| `Tab`           | `shift_right`     | Indent node              |
-| `Shift+Tab`     | `shift_left`      | Outdent node             |
+| `Tab`           | `toggle_fold`     | Toggle fold on card      |
+| `Shift+Tab`     | `outdent`         | Outdent node             |
 | `Ctrl+Z`        | `undo`            | Undo last action         |
 | `Ctrl+Shift+Z`  | `redo`            | Redo undone action       |
 | `Ctrl+Y`        | `redo`            | Redo undone action       |
@@ -336,6 +365,18 @@ interface Keybinding {
 | `>`     | `increase_outline_depth` | Increase visible depth   |
 | `+`/`=` | `increase_content_lines` | Show more content        |
 | `-`/`_` | `decrease_content_lines` | Show less content        |
+
+#### TUI-Specific
+
+| Key         | Command          | Description                    |
+| ----------- | ---------------- | ------------------------------ |
+| `q`         | `quit`           | Exit the TUI                   |
+| `n`         | `new_item`       | Open new item dialog           |
+| `p`         | `project_picker` | Open project picker            |
+| `1`-`9`     | `favorite_1`-`9` | Jump to favorite board 1-9     |
+| `!@#$%^&*(` | `column_1`-`9`   | Jump to column 1-9 (Shift+1-9) |
+
+> **Favorite boards**: 1=@inbox, 2=@next, 3=@waiting, 4=@someday, 5=@projects, 6=@areas, 7=@archive, 8=@reference, 9=@goals
 
 ---
 
