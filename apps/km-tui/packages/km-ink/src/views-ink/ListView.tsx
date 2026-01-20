@@ -1,30 +1,23 @@
 /**
- * List View Component (Stock Ink Version)
+ * List View Component
  *
  * Full-width tree/outline view of the board hierarchy.
  * Shows the same data as board view but in a hierarchical list format.
  * Uses virtualization for performance with large lists.
  *
- * Uses the constraint system for reliable layout
- * (stock ink doesn't support overflow="scroll").
+ * Uses the constraint system for reliable layout.
  */
 import React, { useMemo, useCallback } from "react";
 import { Box, Text } from "ink";
-import type { BoardState, CardState } from "../../../types.ts";
+import type { BoardState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";
-import { getNodeDisplayName, getParentContext } from "../../../state.ts";
-import { getOwnColor, getHeaderStyle } from "../../../board-pills.ts";
-import { useTreeConfig, useUISelector } from "../../../ui-context.tsx";
-import {
-  ConstraintContext,
-  ScrollableList,
-} from "../../../constraints/index.ts";
+import { getNodeDisplayName, getParentContext } from "../state.ts";
+import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
+import { useTreeConfig, useUISelector } from "../ui-context.tsx";
+import { ConstraintContext, ScrollableList } from "../constraints-ink/index.ts";
 import { getChildren } from "@km/storage";
-import {
-  estimateTreeNodeHeight,
-  VARIANT_CONFIG,
-} from "../../../views/tree-node-helpers.ts";
+import { estimateTreeNodeHeight, VARIANT_CONFIG } from "./tree-node-helpers.ts";
 
 // Type for flattened list items
 type FlatItem =

@@ -1,29 +1,20 @@
 /**
- * Columns View Component (Stock Ink Version)
+ * Columns View Component
  *
  * Tree/outline view within each column - combines the columnar structure
  * with hierarchical display of cards and their children.
- *
- * Uses ScrollableList constraint component for virtualized scrolling
- * (stock ink doesn't support overflow="scroll").
  */
 import React, { useMemo, useCallback } from "react";
 import { Box, Text } from "ink";
-import type { BoardState, ColumnState, CardState } from "../../../types.ts";
+import type { BoardState, ColumnState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
-import { OverflowIndicator } from "./OverflowIndicator.tsx";
-import { getNodeDisplayName } from "../../../state.ts";
-import { getOwnColor, getHeaderStyle } from "../../../board-pills.ts";
-import { useTreeConfig, useUISelector } from "../../../ui-context.tsx";
-import {
-  ConstraintContext,
-  ScrollableList,
-} from "../../../constraints/index.ts";
+import { getNodeDisplayName } from "../state.ts";
+import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
+import { useTreeConfig, useUISelector } from "../ui-context.tsx";
+import { ConstraintContext, ScrollableList } from "../constraints-ink/index.ts";
 import { getChildren } from "@km/storage";
-import {
-  estimateTreeNodeHeight,
-  VARIANT_CONFIG,
-} from "../../../views/tree-node-helpers.ts";
+import { estimateTreeNodeHeight, VARIANT_CONFIG } from "./tree-node-helpers.ts";
+import { OverflowIndicator } from "./OverflowIndicator.tsx";
 
 // =============================================================================
 // ColumnTree Subcomponent
@@ -163,7 +154,7 @@ function ColumnTree({
         </Text>
       </Box>
 
-      {/* Cards as virtualized tree nodes via ScrollableList */}
+      {/* Cards as virtualized tree nodes */}
       <ConstraintContext.Provider
         value={{
           terminal: { columns: width, rows: contentHeight },

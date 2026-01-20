@@ -15,10 +15,10 @@ import { TabsView as InkxTabsView } from "../views/TabsView.tsx";
 import { Column as InkxColumn } from "../views/CardColumn.tsx";
 
 // Import ink views (for stock ink engine)
-import { ColumnsView as InkColumnsView } from "./ink/views/ColumnsView.tsx";
-import { ListView as InkListView } from "./ink/views/ListView.tsx";
-import { TabsView as InkTabsView } from "./ink/views/TabsView.tsx";
-import { Column as InkColumn } from "./ink/views/CardColumn.tsx";
+import { ColumnsView as InkColumnsView } from "../views-ink/ColumnsView.tsx";
+import { ListView as InkListView } from "../views-ink/ListView.tsx";
+import { TabsView as InkTabsView } from "../views-ink/TabsView.tsx";
+import { Column as InkColumn } from "../views-ink/CardColumn.tsx";
 
 /**
  * View components provided by the engine

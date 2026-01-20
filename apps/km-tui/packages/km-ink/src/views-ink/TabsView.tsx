@@ -1,23 +1,19 @@
 /**
- * Tabs View Component (Stock Ink Version)
+ * Tabs View Component
  *
  * Similar to list view but with tab-based navigation between columns.
  * Only shows one column at a time with tabs at the top for switching.
  *
- * Uses the constraint system (ScrollableList) for reliable card layout
- * (stock ink doesn't support overflow="scroll").
+ * Uses the constraint system (ScrollableList) for reliable card layout.
  */
 import React from "react";
 import { Box, Text } from "ink";
-import type { BoardState, CardState } from "../../../types.ts";
+import type { BoardState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";
-import { getNodeDisplayName } from "../../../state.ts";
-import { useTreeConfig } from "../../../ui-context.tsx";
-import {
-  ConstraintContext,
-  ScrollableList,
-} from "../../../constraints/index.ts";
+import { getNodeDisplayName } from "../state.ts";
+import { useTreeConfig } from "../ui-context.tsx";
+import { ConstraintContext, ScrollableList } from "../constraints-ink/index.ts";
 
 interface TabsViewProps {
   state: BoardState;

@@ -1,23 +1,17 @@
 /**
- * Card and Column components for the Board view (Stock Ink Version)
- *
- * Uses the constraint system (calculateScrollState) for scrolling
- * (stock ink doesn't support overflow="scroll").
+ * Card and Column components for the Board view
  *
  * Extracted from Board.tsx to reduce file size.
  */
 import React from "react";
 import { Box, Text } from "ink";
 import { styledUnderline } from "@beorn/chalkx";
-import type { CardState, ColumnState } from "../../../types.ts";
-import {
-  getNodeDisplayName,
-  getCollapsedTypeSuffix,
-} from "../../../state.ts";
-import { getOwnColor, getHeaderStyle } from "../../../board-pills.ts";
+import type { CardState, ColumnState } from "../types.ts";
+import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
+import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { TreeNode } from "./TreeNode.tsx";
+import { calculateScrollState } from "../constraints-ink/index.ts";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";
-import { calculateScrollState } from "../../../constraints/index.ts";
 
 // =============================================================================
 // Card Component

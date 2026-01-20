@@ -6,4 +6,4 @@
  */
 
 export { inkEngine } from "./render.ts";
-export * from "./views/index.ts";
+// Views are in /views-ink/ and exported via main index

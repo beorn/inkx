@@ -9,7 +9,9 @@ import chalk from "chalk";
 import type { BoardState, TuiEngine, TuiOptions } from "./types.ts";
 import { initBoardState } from "./state.ts";
 import { renderBoardStatic } from "./render.ts";
-import { renderInkBoard } from "./views/index.ts";
+// Separate view implementations for ink vs inkx
+import { renderInkBoard } from "./views-ink/index.ts";
+import { renderInkxBoard } from "./views/index.ts";
 import { setFsSync, SyncManager } from "@km/storage";
 
 /**
@@ -39,24 +41,18 @@ export async function runBoardTUI(
     return;
   }
 
-  const engine: TuiEngine = options?.engine ?? "ink";
+  const engine: TuiEngine = options?.engine ?? "inkx";
 
-  // Currently all TUI code uses inkx (custom Ink fork).
-  // The --tui flag prepares for future engine switching:
-  // - ink: Would use original Ink library (requires parallel component set)
-  // - inkx: Current actual implementation - custom fork with double-buffering
-  // - inkx-flexx: Custom fork with pure JS flexbox (replaces yoga-wasm)
-  //
-  // For now, log a notice if the user requests something other than the current implementation
-  if (engine !== "inkx") {
-    console.error(
-      chalk.yellow(
-        `Note: --tui=${engine} requested but currently only inkx is implemented. Using inkx.`,
-      ),
-    );
+  // Supported TUI engines:
+  // - ink: Original Ink library with fullscreen-ink wrapper and ScrollableList constraint system
+  // - inkx: Custom Ink fork with double-buffering and native overflow="scroll" support
+  // - inkx-flexx: inkx with pure JS flexbox (replaces yoga-wasm)
+
+  if (engine === "ink") {
+    await renderInkBoard(initialState, options?.initialViewMode);
+  } else {
+    await renderInkxBoard(initialState, options?.initialViewMode, engine);
   }
-
-  await renderInkBoard(initialState, options?.initialViewMode);
 }
 
 /**

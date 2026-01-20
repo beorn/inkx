@@ -1,8 +1,8 @@
 /**
- * Overflow Indicator Component (Stock Ink Version)
+ * Overflow Indicator Component
  *
  * Shows scroll overflow indicators (▲/▼) for virtualized lists.
- * This version imports from "ink" instead of "inkx".
+ * Unified component used by all views (CardColumn, ListView, ColumnsView, TabsView).
  *
  * Design: Inverse text (white on gray) with centered arrow and count.
  */

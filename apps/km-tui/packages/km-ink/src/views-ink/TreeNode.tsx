@@ -1,8 +1,5 @@
 /**
- * TreeNode Component (Stock Ink Version)
- *
- * Shared TreeNode component for tree/outline views.
- * This version imports from "ink" instead of "inkx".
+ * Shared TreeNode component for tree/outline views
  *
  * Two variants:
  * - compact: For column views (shorter context, no info columns, limited children)
@@ -15,15 +12,15 @@ import { getChildren as getChildrenFromStorage } from "@km/storage";
 import {
   getNodeDisplayName,
   getParentContext as getParentContextFromState,
-} from "../../../state.ts";
-import { renderRich, displayLength } from "../../../text/index.ts";
-import { constrainText } from "../../../layout/index.ts";
-import { makeSelectionKey } from "../../../types.ts";
+} from "../state.ts";
+import { renderRich, displayLength } from "../text/index.ts";
+import { constrainText } from "../layout/index.ts";
+import { makeSelectionKey } from "../types.ts";
 import {
   useTreeConfig,
   useUISelector,
   useRootBoardId,
-} from "../../../ui-context.tsx";
+} from "../ui-context.tsx";
 import {
   getNodeStyle,
   buildPrefix,
@@ -31,7 +28,7 @@ import {
   truncateContext,
   VARIANT_CONFIG,
   type GetBoardPillsFn,
-} from "../../../views/tree-node-helpers.ts";
+} from "./tree-node-helpers.ts";
 
 export interface TreeNodeProps {
   node: KNode;

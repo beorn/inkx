@@ -3,11 +3,11 @@
  * Full-screen board view with columns and cards
  */
 import React, { useEffect, useReducer, useMemo } from "react";
-import { Box, Text, useInput, useApp, useStdout } from "inkx";
-import { getEngine } from "../engines/index.ts";
+import { Box, Text, useInput, useApp, useStdout } from "ink";
+import { withFullScreen } from "fullscreen-ink";
 import chalk, { type ChalkInstance } from "chalk";
 import { hyperlink } from "@beorn/chalkx";
-import type { BoardState, ViewMode, SelectionKey, TuiEngine } from "../types.ts";
+import type { BoardState, ViewMode, SelectionKey } from "../types.ts";
 import { makeSelectionKey } from "../types.ts";
 import { buildBoardState, initBoardState, getNodeDisplayName } from "../state.ts";
 import type { KNode, TaskStatus } from "@km/core";
@@ -32,8 +32,9 @@ import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
 import { HelpOverlay } from "./HelpOverlay.tsx";
 import { NewItemDialog } from "./NewItemDialog.tsx";
-import { Column as InkxColumn } from "./CardColumn.tsx"; // For InkBoardTestable
-import { useEngineViews, EngineProvider } from "../engines/index.ts";
+import { ListView } from "./ListView.tsx";
+import { ColumnsView } from "./ColumnsView.tsx";
+import { TabsView } from "./TabsView.tsx";
 import {
   createPasteHandler,
   getFileInfo,
@@ -48,11 +49,12 @@ import {
 import { renderPlain, getNodeIcon, getChalkColor } from "../text/index.ts";
 import { getInheritedColor, getOwnColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
+import { Column } from "./CardColumn.tsx";
 import { tuiEvents } from "../tui.ts";
 import { UIProvider } from "../ui-context.tsx";
 import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
-import { ConstraintRoot } from "../constraints/index.ts";
+import { ConstraintRoot } from "../constraints-ink/index.ts";
 import {
   processKeyWithContext,
   ensureCommandSystemInitialized,
@@ -84,9 +86,6 @@ interface BoardProps {
 function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
-
-  // Get engine-specific view components
-  const { ColumnsView, ListView, TabsView, Column } = useEngineViews();
 
   // UI state managed by reducer (enables extracting input handlers)
   const [ui, dispatch] = useReducer(
@@ -454,19 +453,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           break;
         case "DECREASE_CONTENT_LINES":
           dispatch(actions.decreaseContentLines());
-          break;
-        // Card shifting (Alt+arrows)
-        case "SHIFT_UP":
-          handleShiftCard("up");
-          break;
-        case "SHIFT_DOWN":
-          handleShiftCard("down");
-          break;
-        case "SHIFT_LEFT":
-          handleShiftCard("left");
-          break;
-        case "SHIFT_RIGHT":
-          handleShiftCard("right");
           break;
       }
     }
@@ -852,15 +838,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         return;
       }
       exit();
-    }
-
-    function handleShiftCard(direction: "up" | "down" | "left" | "right") {
-      if (!card) return;
-      if (direction === "up" || direction === "down") {
-        moveCardInColumn(keyboardContext, card, direction);
-      } else {
-        moveCardToColumn(keyboardContext, card, direction);
-      }
     }
   }
 
@@ -1312,26 +1289,36 @@ function exitAlternateBuffer(): void {
   process.stdout.write("\x1b[?1049l");
 }
 
-export async function renderInkxBoard(
+export async function renderInkBoard(
   state: BoardState,
   initialViewMode?: ViewMode,
-  engine: TuiEngine = "inkx",
 ): Promise<void> {
-  // Wrap Board with EngineProvider to inject the right view components
-  const app = (
-    <EngineProvider engine={engine}>
-      <Board initialState={state} initialViewMode={initialViewMode} />
-    </EngineProvider>
-  );
+  // Register error handlers to clean up terminal on crash
+  // This ensures the alternate buffer is exited even on unhandled errors
+  const handleError = (error: Error) => {
+    exitAlternateBuffer();
+    console.error("\n\nTUI crashed with error:", error.message);
+    console.error(error.stack);
+    process.exit(1);
+  };
 
-  // Use the engine-specific render function
-  const engineApi = getEngine(engine);
-  const { waitUntilExit } = await engineApi.render(app, {
-    exitOnCtrlC: true,
-    patchConsole: true,
+  process.on("uncaughtException", handleError);
+  process.on("unhandledRejection", (reason) => {
+    handleError(
+      reason instanceof Error ? reason : new Error(String(reason)),
+    );
   });
 
-  await waitUntilExit();
+  const ink = withFullScreen(
+    <Board initialState={state} initialViewMode={initialViewMode} />,
+    {
+      exitOnCtrlC: true,
+      patchConsole: true,
+    },
+  );
+
+  await ink.start();
+  await ink.waitUntilExit();
 }
 
 // Testable version of Board component with fixed ui.dimensions for testing
@@ -1432,7 +1419,7 @@ export function InkBoardTestable({
           {visibleColumns.map((col, i) => {
             const actualColIndex = colScrollOffset + i;
             return (
-              <InkxColumn
+              <Column
                 key={col.node.id}
                 column={col}
                 colIndex={actualColIndex}

@@ -13,10 +13,13 @@ export * from "./tui.ts";
 
 // Export views
 export {
-  renderInkBoard,
+  renderInkxBoard,
   InkBoardTestable,
   makeSelectionKey,
 } from "./views/index.ts";
+
+// Export ink-specific views
+export { renderInkBoard } from "./views-ink/index.ts";
 
 // Export text utilities
 export * from "./text/index.ts";

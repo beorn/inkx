@@ -16,7 +16,7 @@
 
 // Main board component and views
 export {
-  renderInkxBoard,
+  renderInkBoard,
   InkBoardTestable,
   makeSelectionKey,
 } from "./Board.tsx";
