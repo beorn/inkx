@@ -112,7 +112,7 @@ export type BoardAction =
   | { type: "UNFOLD_LEVEL"; depth: number }
 
   // Zoom/root change
-  | { type: "ZOOM_IN"; nodeId: string; nodes: TNode[] }
+  | { type: "ZOOM_IN"; nodeId: string; nodes: TNode[]; cursor?: TPath }
   | { type: "ZOOM_OUT"; nodes: TNode[] }
 
   // Refresh

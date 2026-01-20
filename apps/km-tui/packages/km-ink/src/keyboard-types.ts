@@ -5,9 +5,11 @@
  */
 
 import type { KNode } from "@km/core";
+import type { BoardState as TreeBoardState, BoardAction } from "@km/board";
 import type { BoardState, SelectionKey } from "./types.ts";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";
+import type { ColumnsLayout } from "./board-adapter.ts";
 
 // =============================================================================
 // Types
@@ -29,10 +31,17 @@ export interface KeyEvent {
 }
 
 export interface KeyboardContext {
+  /** @deprecated Use layout instead - state is derived from boardReducer */
   state: BoardState;
+  /** Tree-based board state from boardReducer */
+  boardState: TreeBoardState;
+  /** Derived column layout from tree state */
+  layout: ColumnsLayout;
   ui: UIState;
   setState: React.Dispatch<React.SetStateAction<BoardState>>;
   dispatch: React.Dispatch<ReturnType<(typeof actions)[keyof typeof actions]>>;
+  /** Dispatch to boardReducer for navigation state changes */
+  dispatchBoard: (action: BoardAction) => void;
   exit: () => void;
   countVisibleDescendants: (
     node: KNode,

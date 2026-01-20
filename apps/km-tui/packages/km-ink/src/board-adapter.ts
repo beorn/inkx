@@ -16,15 +16,9 @@
 
 import type { TNode } from "@km/core";
 import type { KNode } from "@km/core";
-import type {
-  BoardState as TreeBoardState,
-  ColumnIndices,
-} from "@km/board";
-import {
-  pathToColumnIndices,
-  columnIndicesToPath,
-} from "@km/board";
-import { getChildren } from "@km/storage";
+import type { BoardState as TreeBoardState, ColumnIndices } from "@km/board";
+import { pathToColumnIndices, columnIndicesToPath } from "@km/board";
+import { getChildren, getStore } from "@km/storage";
 import type { ColumnState, CardState, ColumnRules } from "./types.ts";
 import { parseColumnRules } from "./state.ts";
 
@@ -101,7 +95,9 @@ function extractWipLimits(nodes: TNode[]): Map<string, number> {
   // WIP limits are typically in the root file's frontmatter
   // For now, extract from any node that has columns config in data
   for (const node of nodes) {
-    const columnsConfig = (node.data as { columns?: Record<string, { limit?: number }> })?.columns;
+    const columnsConfig = (
+      node.data as { columns?: Record<string, { limit?: number }> }
+    )?.columns;
     if (!columnsConfig) continue;
 
     for (const [colName, config] of Object.entries(columnsConfig)) {
@@ -124,7 +120,9 @@ export function deriveColumnsLayout(state: TreeBoardState): ColumnsLayout {
   const indices = pathToColumnIndices(state.cursor);
 
   // Convert tree nodes to column layout
-  const columns = state.nodes.map((node) => tNodeToColumnState(node, wipLimits));
+  const columns = state.nodes.map((node) =>
+    tNodeToColumnState(node, wipLimits),
+  );
 
   return {
     columns,
@@ -290,9 +288,10 @@ export function tuiStateToTreeState(
   const nodes: TNode[] = tuiState.columns.map((col) => columnToTNode(col));
 
   // Convert cursor from (colIndex, cardIndex) to TPath
-  const cursor: number[] = tuiState.cardIndex >= 0
-    ? [tuiState.colIndex, tuiState.cardIndex]
-    : [tuiState.colIndex];
+  const cursor: number[] =
+    tuiState.cardIndex >= 0
+      ? [tuiState.colIndex, tuiState.cardIndex]
+      : [tuiState.colIndex];
 
   // Merge foldedCards and uiState.foldedNodes
   const foldedNodes = new Set<string>([
@@ -416,6 +415,41 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
     task_mark: node.task_mark,
     content: node.content,
   };
+}
+
+// ===== Direct Tree Building =====
+
+/**
+ * Build TNode[] directly from storage, bypassing legacy BoardState.
+ * Use this for navigation operations (zoom, nav to) instead of buildBoardState.
+ *
+ * @param rootId - Root node ID to load children from
+ * @returns TNode[] for immediate children of root
+ */
+export function buildTreeNodes(rootId: string): TNode[] {
+  const columnNodes = getChildren(rootId);
+  return columnNodes.map((node) => kNodeToTNode(node, 0));
+}
+
+/**
+ * Build root-level TNode[] for the entire vault (no specific root).
+ * Used when starting without a root ID.
+ */
+export function buildRootTreeNodes(): TNode[] | null {
+  // Get root node from store
+  const store = getStore();
+  if (!store) return null;
+
+  const rootPath = store.rootPath;
+  if (!rootPath) return null;
+
+  // Find root node by path
+  const rootNode = getChildren("").find(
+    (n) => n.fs_path === rootPath || n.name === rootPath.replace(/\.md$/, ""),
+  );
+  if (!rootNode) return null;
+
+  return buildTreeNodes(rootNode.id);
 }
 
 // ===== Re-exports for convenience =====

@@ -9,9 +9,15 @@ import chalk, { type ChalkInstance } from "chalk";
 import { hyperlink } from "@beorn/chalkx";
 import type { BoardState, ViewMode, SelectionKey } from "../types.ts";
 import { makeSelectionKey } from "../types.ts";
-import { buildBoardState, initBoardState, getNodeDisplayName } from "../state.ts";
+import { initBoardState, getNodeDisplayName } from "../state.ts";
 import type { KNode, TaskStatus } from "@km/core";
-import { getChildren, getNode, getStore, updateNode, deleteNode } from "@km/storage";
+import {
+  getChildren,
+  getNode,
+  getStore,
+  updateNode,
+  deleteNode,
+} from "@km/storage";
 import type { KeyboardContext } from "../keyboard-types.ts";
 import { DEFAULT_FAVORITES } from "../keyboard-types.ts";
 import {
@@ -64,12 +70,17 @@ import {
   isTaskStatusAction,
   isHistoryAction,
 } from "../command-bridge.ts";
-import { buildTUIContext, toKeyboardContext, type TUIContext } from "../tui-context.ts";
+import {
+  buildTUIContext,
+  toKeyboardContext,
+  type TUIContext,
+} from "../tui-context.ts";
 import type { CommandAction } from "@km/commands";
 import { boardReducer, createNodeMap } from "@km/board";
 import {
   tuiStateToTreeState,
   deriveColumnsLayout,
+  buildTreeNodes,
 } from "../board-adapter.ts";
 
 export { makeSelectionKey } from "../types.ts";
@@ -121,7 +132,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   );
 
   // Board navigation state managed by @km/board's boardReducer
-  const [boardState, dispatchBoard] = useReducer(boardReducer, initialTreeState);
+  const [boardState, dispatchBoard] = useReducer(
+    boardReducer,
+    initialTreeState,
+  );
 
   // Derive column layout from tree state for rendering
   // This bridges the tree-based boardReducer to column-based rendering
@@ -196,7 +210,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     handleProjectCancel,
     handleNewItemCreate,
     handleNewItemCancel,
-  } = useBoardDialogs({ state, dispatch, setState });
+  } = useBoardDialogs({ state, boardState, dispatch, dispatchBoard });
 
   // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
   //
@@ -312,13 +326,15 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       const col = state.columns[state.colIndex];
       if (input === "j" || key.downArrow) {
         if (col && state.cardIndex < col.cards.length - 1) {
-          setState((s) => ({ ...s, cardIndex: s.cardIndex + 1 }));
+          // Dispatch directly to boardReducer
+          dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
         }
         return;
       }
       if (input === "k" || key.upArrow) {
         if (state.cardIndex > 0) {
-          setState((s) => ({ ...s, cardIndex: s.cardIndex - 1 }));
+          // Dispatch directly to boardReducer
+          dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
         }
         return;
       }
@@ -454,6 +470,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         case "DECREASE_CONTENT_LINES":
           dispatch(actions.decreaseContentLines());
           break;
+        // Card shifting (Alt+arrows)
+        case "SHIFT_UP":
+          handleShiftCard("up");
+          break;
+        case "SHIFT_DOWN":
+          handleShiftCard("down");
+          break;
+        case "SHIFT_LEFT":
+          handleShiftCard("left");
+          break;
+        case "SHIFT_RIGHT":
+          handleShiftCard("right");
+          break;
       }
     }
 
@@ -470,22 +499,57 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         clearSelection(keyboardContext);
         return;
       }
-      if (state.rootId) {
-        const currentRoot = getNode(state.rootId);
+      if (boardState.rootId) {
+        const currentRoot = getNode(boardState.rootId);
         if (currentRoot?.parent_id) {
           const parentNode = getNode(currentRoot.parent_id);
           if (parentNode) {
-            const zoomed = buildBoardState(parentNode.id);
-            pushNavHistoryEntry(dispatch, state.rootId, state.colIndex, state.cardIndex, ui.subIndex, ui.multiSelected, ui.inOutlineMode);
-            setState(zoomed);
+            // Build tree nodes directly
+            const nodes = buildTreeNodes(parentNode.id);
+
+            pushNavHistoryEntry(
+              dispatch,
+              boardState.rootId,
+              columnsLayout.colIndex,
+              columnsLayout.cardIndex,
+              ui.subIndex,
+              ui.multiSelected,
+              ui.inOutlineMode,
+            );
+
+            // Dispatch zoom action to navigate up
+            dispatchBoard({
+              type: "ZOOM_IN",
+              nodeId: parentNode.id,
+              nodes,
+              cursor: [0, 0],
+            });
             clearSelection(keyboardContext);
             return;
           }
         } else {
+          // At top level with a root - zoom out to absolute root
           const rootView = initBoardState();
-          if (rootView) {
-            pushNavHistoryEntry(dispatch, state.rootId, state.colIndex, state.cardIndex, ui.subIndex, ui.multiSelected, ui.inOutlineMode);
-            setState(rootView);
+          if (rootView && rootView.rootId) {
+            const nodes = buildTreeNodes(rootView.rootId);
+
+            pushNavHistoryEntry(
+              dispatch,
+              boardState.rootId,
+              columnsLayout.colIndex,
+              columnsLayout.cardIndex,
+              ui.subIndex,
+              ui.multiSelected,
+              ui.inOutlineMode,
+            );
+
+            // Navigate to root view
+            dispatchBoard({
+              type: "ZOOM_IN",
+              nodeId: rootView.rootId,
+              nodes,
+              cursor: [0, 0],
+            });
             clearSelection(keyboardContext);
             return;
           }
@@ -498,20 +562,40 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       if (!card) return;
       deleteNode(card.node.id);
       refreshBoardState(keyboardContext, {
-        cardIndex: (col) => Math.min(state.cardIndex, Math.max(0, (col?.cards.length ?? 1) - 1)),
+        cardIndex: (col) =>
+          Math.min(state.cardIndex, Math.max(0, (col?.cards.length ?? 1) - 1)),
       });
     }
 
     function handleTaskStatusCycle() {
       if (!card) return;
       const targetId = card.node.link_to || card.node.id;
-      const targetNode = card.node.link_to ? getNode(card.node.link_to) : card.node;
+      const targetNode = card.node.link_to
+        ? getNode(card.node.link_to)
+        : card.node;
       const currentStatus = targetNode?.task_status || "todo";
-      const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"];
+      const statusCycle: TaskStatus[] = [
+        "todo",
+        "wip",
+        "blocked",
+        "done",
+        "dropped",
+      ];
       const currentIndex = statusCycle.indexOf(currentStatus);
-      const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus;
-      const markMap: Record<TaskStatus, string> = { todo: " ", wip: "/", blocked: "!", done: "x", dropped: "-" };
-      updateNode(targetId, { task_status: nextStatus, task_mark: markMap[nextStatus] });
+      const nextStatus = statusCycle[
+        (currentIndex + 1) % statusCycle.length
+      ] as TaskStatus;
+      const markMap: Record<TaskStatus, string> = {
+        todo: " ",
+        wip: "/",
+        blocked: "!",
+        done: "x",
+        dropped: "-",
+      };
+      updateNode(targetId, {
+        task_status: nextStatus,
+        task_mark: markMap[nextStatus],
+      });
       refreshBoardState(keyboardContext);
     }
 
@@ -527,10 +611,18 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 dispatch(actions.setSubIndex(ui.subIndex - 1));
               } else if (state.cardIndex > 0) {
                 const prevCardIndex = state.cardIndex - 1;
-                setState((s) => ({ ...s, cardIndex: prevCardIndex }));
+                // Dispatch directly to boardReducer
+                dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
                 const prevCard = col?.cards[prevCardIndex];
                 if (prevCard) {
-                  const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
+                  const maxSub =
+                    1 +
+                    countVisibleDescendants(
+                      prevCard.node,
+                      0,
+                      ui.maxOutlineDepth,
+                      ui.foldedNodes,
+                    );
                   dispatch(actions.setSubIndex(maxSub - 1));
                 }
               } else {
@@ -539,7 +631,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               }
             } else {
               if (state.cardIndex > 0) {
-                setState((s) => ({ ...s, cardIndex: s.cardIndex - 1 }));
+                // Dispatch directly to boardReducer
+                dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
               } else {
                 dispatch(actions.setSelectionLevel("column"));
               }
@@ -553,35 +646,34 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         case "next":
           if (ui.selectionLevel === "board") {
             dispatch(actions.setSelectionLevel("column"));
-            setState((s) => ({ ...s, colIndex: 0 }));
+            dispatchBoard({ type: "NAV_TO_PATH", path: [0] });
           } else if (ui.selectionLevel === "column") {
             dispatch(actions.setSelectionLevel("card"));
-            setState((s) => ({ ...s, cardIndex: 0 }));
+            dispatchBoard({ type: "NAV_TO_PATH", path: [state.colIndex, 0] });
           } else if (ui.inOutlineMode) {
             const maxSub = getMaxSubIndex(keyboardContext);
             if (ui.subIndex < maxSub - 1) {
               dispatch(actions.setSubIndex(ui.subIndex + 1));
             } else if (col && state.cardIndex < col.cards.length - 1) {
-              setState((s) => ({ ...s, cardIndex: s.cardIndex + 1 }));
+              // Dispatch directly to boardReducer
+              dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
               dispatch(actions.setSubIndex(0));
             }
           } else if (col && state.cardIndex < col.cards.length - 1) {
-            setState((s) => ({ ...s, cardIndex: s.cardIndex + 1 }));
+            // Dispatch directly to boardReducer
+            dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
           }
           break;
 
         case "left":
           if (ui.selectionLevel !== "board" && state.colIndex > 0) {
-            const newColIndex = state.colIndex - 1;
-            const targetCol = state.columns[newColIndex];
-            setState((s) => ({
-              ...s,
-              colIndex: newColIndex,
-              cardIndex: ui.selectionLevel === "card" && targetCol
-                ? Math.min(s.cardIndex, Math.max(0, targetCol.cards.length - 1))
-                : s.cardIndex,
-            }));
-            if (ui.selectionLevel === "card" && (!targetCol || targetCol.cards.length === 0)) {
+            const targetCol = state.columns[state.colIndex - 1];
+            // Dispatch directly to boardReducer for cross-column movement
+            dispatchBoard({ type: "CURSOR_MOVE", dir: "left" });
+            if (
+              ui.selectionLevel === "card" &&
+              (!targetCol || targetCol.cards.length === 0)
+            ) {
               dispatch(actions.setSelectionLevel("column"));
             }
             dispatch(actions.exitOutlineMode());
@@ -590,17 +682,17 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           break;
 
         case "right":
-          if (ui.selectionLevel !== "board" && state.colIndex < state.columns.length - 1) {
-            const newColIndex = state.colIndex + 1;
-            const targetCol = state.columns[newColIndex];
-            setState((s) => ({
-              ...s,
-              colIndex: newColIndex,
-              cardIndex: ui.selectionLevel === "card" && targetCol
-                ? Math.min(s.cardIndex, Math.max(0, targetCol.cards.length - 1))
-                : s.cardIndex,
-            }));
-            if (ui.selectionLevel === "card" && (!targetCol || targetCol.cards.length === 0)) {
+          if (
+            ui.selectionLevel !== "board" &&
+            state.colIndex < state.columns.length - 1
+          ) {
+            const targetCol = state.columns[state.colIndex + 1];
+            // Dispatch directly to boardReducer for cross-column movement
+            dispatchBoard({ type: "CURSOR_MOVE", dir: "right" });
+            if (
+              ui.selectionLevel === "card" &&
+              (!targetCol || targetCol.cards.length === 0)
+            ) {
               dispatch(actions.setSelectionLevel("column"));
             }
             dispatch(actions.exitOutlineMode());
@@ -609,16 +701,15 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           break;
 
         case "first":
-          setState((s) => ({ ...s, cardIndex: 0 }));
+          // Dispatch directly to boardReducer
+          dispatchBoard({ type: "CURSOR_MOVE", dir: "first" });
           dispatch(actions.exitOutlineMode());
           dispatch(actions.setSubIndex(0));
           break;
 
         case "last":
-          setState((s) => ({
-            ...s,
-            cardIndex: Math.max(0, (col?.cards.length ?? 1) - 1),
-          }));
+          // Dispatch directly to boardReducer
+          dispatchBoard({ type: "CURSOR_MOVE", dir: "last" });
           dispatch(actions.exitOutlineMode());
           dispatch(actions.setSubIndex(0));
           break;
@@ -636,19 +727,25 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     function handleNavBack() {
       if (ui.navHistoryIndex > 0) {
         const prevEntry = ui.navHistory[ui.navHistoryIndex - 1];
-        if (prevEntry) {
-          const newState = prevEntry.rootId ? buildBoardState(prevEntry.rootId) : initBoardState();
-          if (newState) {
-            newState.colIndex = prevEntry.colIndex;
-            newState.cardIndex = prevEntry.cardIndex;
-            setState(newState);
-            dispatch(actions.setNavHistoryIndex(ui.navHistoryIndex - 1));
-            dispatch(actions.setSubIndex(prevEntry.subIndex));
-            dispatch(actions.setMultiSelected(new Set(prevEntry.multiSelected)));
-            dispatch(actions.setSelectionAnchor(null));
-            dispatch(actions.setSelectAllLevel(0));
-            dispatch(actions.setInOutlineMode(prevEntry.inOutlineMode));
-          }
+        if (prevEntry && prevEntry.rootId) {
+          // Build tree nodes directly
+          const nodes = buildTreeNodes(prevEntry.rootId);
+
+          // Navigate to the previous location
+          dispatchBoard({
+            type: "ZOOM_IN",
+            nodeId: prevEntry.rootId,
+            nodes,
+            cursor: [prevEntry.colIndex, prevEntry.cardIndex],
+          });
+
+          // Restore UI state
+          dispatch(actions.setNavHistoryIndex(ui.navHistoryIndex - 1));
+          dispatch(actions.setSubIndex(prevEntry.subIndex));
+          dispatch(actions.setMultiSelected(new Set(prevEntry.multiSelected)));
+          dispatch(actions.setSelectionAnchor(null));
+          dispatch(actions.setSelectAllLevel(0));
+          dispatch(actions.setInOutlineMode(prevEntry.inOutlineMode));
         }
       } else {
         process.stdout.write("\x07");
@@ -658,19 +755,25 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     function handleNavForward() {
       if (ui.navHistoryIndex < ui.navHistory.length - 1) {
         const nextEntry = ui.navHistory[ui.navHistoryIndex + 1];
-        if (nextEntry) {
-          const newState = nextEntry.rootId ? buildBoardState(nextEntry.rootId) : initBoardState();
-          if (newState) {
-            newState.colIndex = nextEntry.colIndex;
-            newState.cardIndex = nextEntry.cardIndex;
-            setState(newState);
-            dispatch(actions.setNavHistoryIndex(ui.navHistoryIndex + 1));
-            dispatch(actions.setSubIndex(nextEntry.subIndex));
-            dispatch(actions.setMultiSelected(new Set(nextEntry.multiSelected)));
-            dispatch(actions.setSelectionAnchor(null));
-            dispatch(actions.setSelectAllLevel(0));
-            dispatch(actions.setInOutlineMode(nextEntry.inOutlineMode));
-          }
+        if (nextEntry && nextEntry.rootId) {
+          // Build tree nodes directly
+          const nodes = buildTreeNodes(nextEntry.rootId);
+
+          // Navigate to the next location
+          dispatchBoard({
+            type: "ZOOM_IN",
+            nodeId: nextEntry.rootId,
+            nodes,
+            cursor: [nextEntry.colIndex, nextEntry.cardIndex],
+          });
+
+          // Restore UI state
+          dispatch(actions.setNavHistoryIndex(ui.navHistoryIndex + 1));
+          dispatch(actions.setSubIndex(nextEntry.subIndex));
+          dispatch(actions.setMultiSelected(new Set(nextEntry.multiSelected)));
+          dispatch(actions.setSelectionAnchor(null));
+          dispatch(actions.setSelectAllLevel(0));
+          dispatch(actions.setInOutlineMode(nextEntry.inOutlineMode));
         }
       } else {
         process.stdout.write("\x07");
@@ -683,110 +786,197 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       const targetNode = getNode(targetId);
       if (!targetNode) return;
 
+      // Determine root: prefer grandparent > parent > target
       let rootId = targetId;
-      const parentNode = targetNode.parent_id ? getNode(targetNode.parent_id) : null;
-      const grandparentNode = parentNode?.parent_id ? getNode(parentNode.parent_id) : null;
+      const parentNode = targetNode.parent_id
+        ? getNode(targetNode.parent_id)
+        : null;
+      const grandparentNode = parentNode?.parent_id
+        ? getNode(parentNode.parent_id)
+        : null;
 
       if (grandparentNode) rootId = grandparentNode.id;
       else if (parentNode) rootId = parentNode.id;
 
-      const zoomed = buildBoardState(rootId);
-      zoomed.zoomStack = [...state.zoomStack, state.rootId || ""];
+      // Build tree nodes directly (bypass legacy BoardState)
+      const nodes = buildTreeNodes(rootId);
 
-      // Find the target card in the zoomed view
-      let foundCol = 0, foundCard = 0;
-      for (let cIdx = 0; cIdx < zoomed.columns.length; cIdx++) {
-        const c = zoomed.columns[cIdx];
-        if (!c) continue;
-        for (let cardIdx = 0; cardIdx < c.cards.length; cardIdx++) {
-          if (c.cards[cardIdx]?.node.id === targetId) {
+      // Find the target card position in the new tree
+      let foundCol = 0,
+        foundCard = 0;
+      for (let cIdx = 0; cIdx < nodes.length; cIdx++) {
+        const colNode = nodes[cIdx];
+        if (!colNode) continue;
+        for (let cardIdx = 0; cardIdx < colNode.children.length; cardIdx++) {
+          if (colNode.children[cardIdx]?.id === targetId) {
             foundCol = cIdx;
             foundCard = cardIdx;
             break;
           }
         }
       }
-      zoomed.colIndex = foundCol;
-      zoomed.cardIndex = foundCard;
 
-      pushNavHistoryEntry(dispatch, state.rootId, state.colIndex, state.cardIndex, ui.subIndex, ui.multiSelected, ui.inOutlineMode);
+      // Push nav history before changing state
+      pushNavHistoryEntry(
+        dispatch,
+        boardState.rootId,
+        columnsLayout.colIndex,
+        columnsLayout.cardIndex,
+        ui.subIndex,
+        ui.multiSelected,
+        ui.inOutlineMode,
+      );
+
+      // Reset UI state
       dispatch(actions.exitOutlineMode());
       dispatch(actions.setSubIndex(0));
       clearSelection(keyboardContext);
       dispatch(actions.setDetailPane(false));
-      setState(zoomed);
+
+      // Dispatch zoom action directly to boardReducer
+      dispatchBoard({
+        type: "ZOOM_IN",
+        nodeId: rootId,
+        nodes,
+        cursor: [foundCol, foundCard],
+      });
     }
 
     function handleExtendSelectVertical(direction: "up" | "down") {
       if (ui.inOutlineMode) {
         if (!ui.selectionAnchor) {
-          dispatch(actions.setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: ui.subIndex }));
+          dispatch(
+            actions.setSelectionAnchor({
+              col: state.colIndex,
+              card: state.cardIndex,
+              sub: ui.subIndex,
+            }),
+          );
         }
         if (direction === "down") {
           const maxSub = getMaxSubIndex(keyboardContext);
           if (ui.subIndex < maxSub - 1) {
             const newSubIndex = ui.subIndex + 1;
             dispatch(actions.setSubIndex(newSubIndex));
-            updateSelectionRange(keyboardContext, state.colIndex, state.cardIndex, newSubIndex);
+            updateSelectionRange(
+              keyboardContext,
+              state.colIndex,
+              state.cardIndex,
+              newSubIndex,
+            );
           } else if (col && state.cardIndex < col.cards.length - 1) {
             const newCardIndex = state.cardIndex + 1;
-            setState((s) => ({ ...s, cardIndex: newCardIndex }));
+            dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
             dispatch(actions.setSubIndex(0));
-            updateSelectionRange(keyboardContext, state.colIndex, newCardIndex, 0);
+            updateSelectionRange(
+              keyboardContext,
+              state.colIndex,
+              newCardIndex,
+              0,
+            );
           }
         } else {
           if (ui.subIndex > 0) {
             const newSubIndex = ui.subIndex - 1;
             dispatch(actions.setSubIndex(newSubIndex));
-            updateSelectionRange(keyboardContext, state.colIndex, state.cardIndex, newSubIndex);
+            updateSelectionRange(
+              keyboardContext,
+              state.colIndex,
+              state.cardIndex,
+              newSubIndex,
+            );
           } else if (state.cardIndex > 0) {
             const newCardIndex = state.cardIndex - 1;
             const prevCard = col?.cards[newCardIndex];
             if (prevCard) {
-              const maxSub = 1 + countVisibleDescendants(prevCard.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
-              setState((s) => ({ ...s, cardIndex: newCardIndex }));
+              const maxSub =
+                1 +
+                countVisibleDescendants(
+                  prevCard.node,
+                  0,
+                  ui.maxOutlineDepth,
+                  ui.foldedNodes,
+                );
+              dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
               dispatch(actions.setSubIndex(maxSub - 1));
-              updateSelectionRange(keyboardContext, state.colIndex, newCardIndex, maxSub - 1);
+              updateSelectionRange(
+                keyboardContext,
+                state.colIndex,
+                newCardIndex,
+                maxSub - 1,
+              );
             }
           }
         }
       } else {
         if (!ui.selectionAnchor) {
-          dispatch(actions.setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: 0 }));
+          dispatch(
+            actions.setSelectionAnchor({
+              col: state.colIndex,
+              card: state.cardIndex,
+              sub: 0,
+            }),
+          );
           if (card) {
-            const maxItems = 1 + countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ui.foldedNodes);
+            const maxItems =
+              1 +
+              countVisibleDescendants(
+                card.node,
+                0,
+                ui.maxOutlineDepth,
+                ui.foldedNodes,
+              );
             const newSelected = new Set<SelectionKey>();
             for (let s = 0; s < maxItems; s++) {
-              newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, s));
+              newSelected.add(
+                makeSelectionKey(state.colIndex, state.cardIndex, s),
+              );
             }
             dispatch(actions.setMultiSelected(newSelected));
           }
         }
-        if (direction === "down" && col && state.cardIndex < col.cards.length - 1) {
+        if (
+          direction === "down" &&
+          col &&
+          state.cardIndex < col.cards.length - 1
+        ) {
           const newCardIndex = state.cardIndex + 1;
-          setState((s) => ({ ...s, cardIndex: newCardIndex }));
-          updateSelectionRange(keyboardContext, state.colIndex, newCardIndex, 0);
+          dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
+          updateSelectionRange(
+            keyboardContext,
+            state.colIndex,
+            newCardIndex,
+            0,
+          );
         } else if (direction === "up" && state.cardIndex > 0) {
           const newCardIndex = state.cardIndex - 1;
-          setState((s) => ({ ...s, cardIndex: newCardIndex }));
-          updateSelectionRange(keyboardContext, state.colIndex, newCardIndex, 0);
+          dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
+          updateSelectionRange(
+            keyboardContext,
+            state.colIndex,
+            newCardIndex,
+            0,
+          );
         }
       }
     }
 
     function handleExtendSelectHorizontal(direction: "left" | "right") {
-      const targetColIndex = direction === "left" ? state.colIndex - 1 : state.colIndex + 1;
+      const targetColIndex =
+        direction === "left" ? state.colIndex - 1 : state.colIndex + 1;
       if (targetColIndex < 0 || targetColIndex >= state.columns.length) return;
 
       if (!ui.selectionAnchor) {
-        dispatch(actions.setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: 0 }));
+        dispatch(
+          actions.setSelectionAnchor({
+            col: state.colIndex,
+            card: state.cardIndex,
+            sub: 0,
+          }),
+        );
       }
-      const targetCol = state.columns[targetColIndex];
-      setState((s) => ({
-        ...s,
-        colIndex: targetColIndex,
-        cardIndex: Math.min(s.cardIndex, Math.max(0, (targetCol?.cards.length || 1) - 1)),
-      }));
+      // Dispatch to boardReducer for horizontal movement
+      dispatchBoard({ type: "CURSOR_MOVE", dir: direction });
     }
 
     // TUI-specific handler functions
@@ -797,14 +987,30 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       if (favoriteRef) {
         const resolved = resolveNode(favoriteRef);
         if (resolved) {
-          const zoomed = buildBoardState(resolved.id);
-          zoomed.zoomStack = [...state.zoomStack, state.rootId || ""];
-          pushNavHistoryEntry(dispatch, state.rootId, state.colIndex, state.cardIndex, ui.subIndex, ui.multiSelected, ui.inOutlineMode);
+          // Build tree nodes directly
+          const nodes = buildTreeNodes(resolved.id);
+
+          pushNavHistoryEntry(
+            dispatch,
+            boardState.rootId,
+            columnsLayout.colIndex,
+            columnsLayout.cardIndex,
+            ui.subIndex,
+            ui.multiSelected,
+            ui.inOutlineMode,
+          );
           dispatch(actions.exitOutlineMode());
           dispatch(actions.setSubIndex(0));
           clearSelection(keyboardContext);
           dispatch(actions.setDetailPane(false));
-          setState(zoomed);
+
+          // Dispatch zoom action directly to boardReducer
+          dispatchBoard({
+            type: "ZOOM_IN",
+            nodeId: resolved.id,
+            nodes,
+            cursor: [0, 0],
+          });
         } else {
           process.stdout.write("\x07");
         }
@@ -815,11 +1021,18 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       if (ui.showDetailPane || ui.inOutlineMode) return;
       const targetColIndex = columnNumber - 1; // 1-9 maps to 0-8
       if (targetColIndex >= 0 && targetColIndex < state.columns.length) {
-        setState((s) => ({
-          ...s,
-          colIndex: targetColIndex,
-          cardIndex: Math.min(s.cardIndex, Math.max(0, (s.columns[targetColIndex]?.cards.length ?? 1) - 1)),
-        }));
+        // Clamp card index to target column's card count
+        const targetCol = state.columns[targetColIndex];
+        const clampedCardIndex = Math.min(
+          state.cardIndex,
+          Math.max(0, (targetCol?.cards.length ?? 1) - 1),
+        );
+
+        // Dispatch directly to boardReducer
+        dispatchBoard({
+          type: "NAV_TO_PATH",
+          path: [targetColIndex, clampedCardIndex],
+        });
         clearSelection(keyboardContext);
         dispatch(actions.setSelectAllLevel(0));
       }
@@ -838,6 +1051,15 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         return;
       }
       exit();
+    }
+
+    function handleShiftCard(direction: "up" | "down" | "left" | "right") {
+      if (!card) return;
+      if (direction === "up" || direction === "down") {
+        moveCardInColumn(keyboardContext, card, direction);
+      } else {
+        moveCardToColumn(keyboardContext, card, direction);
+      }
     }
   }
 
@@ -1232,21 +1454,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
       // Handle scroll wheel events
       if (event.type === "scroll" && event.scrollDirection) {
-        setState((s) => {
-          const col = s.columns[s.colIndex];
-          if (!col) return s;
-
-          const maxCard = col.cards.length - 1;
-          if (event.scrollDirection === "down") {
-            // Scroll down = move to next card
-            const newCardIndex = Math.min(maxCard, s.cardIndex + 1);
-            return { ...s, cardIndex: newCardIndex };
-          } else {
-            // Scroll up = move to previous card
-            const newCardIndex = Math.max(0, s.cardIndex - 1);
-            return { ...s, cardIndex: newCardIndex };
-          }
-        });
+        // Dispatch directly to boardReducer for scroll navigation
+        if (event.scrollDirection === "down") {
+          dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
+        } else {
+          dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
+        }
         return;
       }
 
@@ -1270,8 +1483,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   function setupRefreshHandler() {
     const handleRefresh = () => {
-      // Rebuild board state from database (which was updated by sync manager)
-      setState((s) => (s.rootId ? buildBoardState(s.rootId) : s));
+      // Rebuild tree nodes from database (which was updated by sync manager)
+      if (boardState.rootId) {
+        const nodes = buildTreeNodes(boardState.rootId);
+        dispatchBoard({ type: "REFRESH", nodes });
+      }
     };
 
     tuiEvents.on("refresh", handleRefresh);
@@ -1304,9 +1520,7 @@ export async function renderInkBoard(
 
   process.on("uncaughtException", handleError);
   process.on("unhandledRejection", (reason) => {
-    handleError(
-      reason instanceof Error ? reason : new Error(String(reason)),
-    );
+    handleError(reason instanceof Error ? reason : new Error(String(reason)));
   });
 
   const ink = withFullScreen(

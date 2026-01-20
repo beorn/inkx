@@ -4,10 +4,10 @@
  * Utility functions for keyboard handling.
  */
 
-import type { BoardState, CardState, SelectionKey } from "./types.ts";
+import type { CardState, SelectionKey } from "./types.ts";
 import { makeSelectionKey } from "./types.ts";
 import { actions } from "./ui-reducer.ts";
-import { buildBoardState, initBoardState } from "./state.ts";
+import { buildTreeNodes } from "./board-adapter.ts";
 import type { KeyboardContext } from "./keyboard-types.ts";
 
 // =============================================================================
@@ -42,8 +42,8 @@ export function pushNavHistoryEntry(
 
 /** Calculate max sub-items in current card */
 export function getMaxSubIndex(ctx: KeyboardContext): number {
-  const col = ctx.state.columns[ctx.state.colIndex];
-  const card = col?.cards[ctx.state.cardIndex];
+  const col = ctx.layout.columns[ctx.layout.colIndex];
+  const card = col?.cards[ctx.layout.cardIndex];
   if (!card) return 0;
   return (
     1 +
@@ -79,7 +79,7 @@ export function updateSelectionRange(
     const minCard = Math.min(ctx.ui.selectionAnchor.card, toCard);
     const maxCard = Math.max(ctx.ui.selectionAnchor.card, toCard);
     for (let c = minCard; c <= maxCard; c++) {
-      const card = ctx.state.columns[toCol]?.cards[c];
+      const card = ctx.layout.columns[toCol]?.cards[c];
       if (card) {
         const maxItems =
           1 +
@@ -113,7 +113,7 @@ export function getSelectedCardIndices(ctx: KeyboardContext): number[] {
     const [colStr, cardStr] = key.split(":");
     const col = parseInt(colStr ?? "0", 10);
     const card = parseInt(cardStr ?? "0", 10);
-    if (col === ctx.state.colIndex) {
+    if (col === ctx.layout.colIndex) {
       indices.add(card);
     }
   }
@@ -131,26 +131,41 @@ export function refreshBoardState(
     colIndex?: number;
     cardIndex?: number | ((col: { cards: CardState[] } | undefined) => number);
   },
-): BoardState | null {
-  const newState = ctx.state.rootId
-    ? buildBoardState(ctx.state.rootId)
-    : initBoardState();
+): void {
+  if (!ctx.boardState.rootId) return;
 
-  if (newState) {
-    newState.zoomStack = ctx.state.zoomStack;
-    newState.rootPath = ctx.state.rootPath;
-    newState.colIndex = options?.colIndex ?? ctx.state.colIndex;
+  // Build tree nodes directly and dispatch to boardReducer
+  const nodes = buildTreeNodes(ctx.boardState.rootId);
 
-    const col = newState.columns[newState.colIndex];
-    if (typeof options?.cardIndex === "function") {
-      newState.cardIndex = options.cardIndex(col);
-    } else {
-      newState.cardIndex = options?.cardIndex ?? ctx.state.cardIndex;
-    }
+  // Calculate new cursor position
+  const colIndex = options?.colIndex ?? ctx.layout.colIndex;
+  const colNode = nodes[colIndex];
+  let cardIndex: number;
 
-    ctx.setState(newState);
+  if (typeof options?.cardIndex === "function") {
+    // Function receives a simplified column shape for compatibility
+    const colShape = colNode
+      ? { cards: colNode.children.map((c) => ({ node: c, children: [] })) }
+      : undefined;
+    cardIndex = options.cardIndex(colShape);
+  } else {
+    cardIndex = options?.cardIndex ?? ctx.layout.cardIndex;
   }
-  return newState;
+
+  // Clamp card index to valid range
+  const maxCardIndex = Math.max(0, (colNode?.children.length ?? 1) - 1);
+  cardIndex = Math.min(cardIndex, maxCardIndex);
+
+  // Dispatch refresh with updated cursor
+  ctx.dispatchBoard({ type: "REFRESH", nodes });
+
+  // If cursor changed, also dispatch navigation
+  if (colIndex !== ctx.layout.colIndex || cardIndex !== ctx.layout.cardIndex) {
+    ctx.dispatchBoard({
+      type: "NAV_TO_PATH",
+      path: cardIndex >= 0 ? [colIndex, cardIndex] : [colIndex],
+    });
+  }
 }
 
 // =============================================================================
@@ -159,8 +174,8 @@ export function refreshBoardState(
 
 /** Progressive select all with Shift+A */
 export function progressiveSelectAll(ctx: KeyboardContext): void {
-  const col = ctx.state.columns[ctx.state.colIndex];
-  const card = col?.cards[ctx.state.cardIndex];
+  const col = ctx.layout.columns[ctx.layout.colIndex];
+  const card = col?.cards[ctx.layout.cardIndex];
 
   const currentLevel = ctx.ui.selectAllLevel;
 
@@ -176,7 +191,7 @@ export function progressiveSelectAll(ctx: KeyboardContext): void {
       );
     for (let s = 0; s < maxItems; s++) {
       newSelected.add(
-        makeSelectionKey(ctx.state.colIndex, ctx.state.cardIndex, s),
+        makeSelectionKey(ctx.layout.colIndex, ctx.layout.cardIndex, s),
       );
     }
     ctx.dispatch(actions.setMultiSelected(newSelected));
@@ -195,7 +210,7 @@ export function progressiveSelectAll(ctx: KeyboardContext): void {
             ctx.ui.foldedNodes,
           );
         for (let s = 0; s < maxItems; s++) {
-          newSelected.add(makeSelectionKey(ctx.state.colIndex, cardIdx, s));
+          newSelected.add(makeSelectionKey(ctx.layout.colIndex, cardIdx, s));
         }
       }
     }
@@ -203,8 +218,8 @@ export function progressiveSelectAll(ctx: KeyboardContext): void {
     ctx.dispatch(actions.setSelectAllLevel(2));
   } else {
     const newSelected = new Set<SelectionKey>();
-    for (let colIdx = 0; colIdx < ctx.state.columns.length; colIdx++) {
-      const column = ctx.state.columns[colIdx];
+    for (let colIdx = 0; colIdx < ctx.layout.columns.length; colIdx++) {
+      const column = ctx.layout.columns[colIdx];
       if (column) {
         for (let cardIdx = 0; cardIdx < column.cards.length; cardIdx++) {
           const c = column.cards[cardIdx];

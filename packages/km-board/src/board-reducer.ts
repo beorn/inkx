@@ -404,7 +404,7 @@ export function boardReducer(
         ...state,
         rootId: action.nodeId,
         nodes: action.nodes,
-        cursor: [0],
+        cursor: action.cursor ?? [0],
         zoomStack: newZoomStack,
       };
     }

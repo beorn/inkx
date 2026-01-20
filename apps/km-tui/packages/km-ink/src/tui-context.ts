@@ -133,6 +133,42 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
 }
 
 // =============================================================================
+// Cursor Helpers (for Phase 6 migration)
+// =============================================================================
+
+/**
+ * Get subIndex from cursor path.
+ * cursor[2] is the sub-item index within outline mode.
+ * Returns 0 if not in outline mode.
+ */
+export function getSubIndex(ctx: TUIContext): number {
+  return ctx.boardState.cursor[2] ?? 0;
+}
+
+/**
+ * Check if cursor is in outline mode (depth > 2).
+ */
+export function isInOutlineMode(ctx: TUIContext): boolean {
+  return ctx.boardState.cursor.length > 2;
+}
+
+/**
+ * Build a new cursor path with updated subIndex.
+ * Preserves colIndex and cardIndex, sets depth 2 element.
+ */
+export function cursorWithSubIndex(ctx: TUIContext, subIndex: number): number[] {
+  const [colIndex, cardIndex] = ctx.boardState.cursor;
+  if (colIndex === undefined || cardIndex === undefined) {
+    return ctx.boardState.cursor;
+  }
+  if (subIndex === 0) {
+    // Exit outline mode - return to card level
+    return [colIndex, cardIndex];
+  }
+  return [colIndex, cardIndex, subIndex];
+}
+
+// =============================================================================
 // Backward Compatibility
 // =============================================================================
 
@@ -146,9 +182,12 @@ export function toKeyboardContext(
 ): import("./keyboard-types.ts").KeyboardContext {
   return {
     state: ctx.state,
+    boardState: ctx.boardState,
+    layout: ctx.layout,
     ui: ctx.ui,
     setState: ctx.setState,
     dispatch: ctx.dispatch,
+    dispatchBoard: ctx.dispatchBoard,
     exit: ctx.exit,
     countVisibleDescendants: ctx.countVisibleDescendants,
   };

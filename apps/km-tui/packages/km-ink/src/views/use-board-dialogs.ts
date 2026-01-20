@@ -7,8 +7,9 @@
 import { useCallback } from "react";
 import type { KNode } from "@km/core";
 import type { BoardState } from "../types.ts";
+import type { BoardState as TreeBoardState, BoardAction } from "@km/board";
 import { getChildren, moveNode } from "@km/storage";
-import { buildBoardState, initBoardState } from "../state.ts";
+import { buildTreeNodes } from "../board-adapter.ts";
 import { actions } from "../ui-reducer.ts";
 
 // =============================================================================
@@ -17,10 +18,11 @@ import { actions } from "../ui-reducer.ts";
 
 interface UseBoardDialogsParams {
   state: BoardState;
+  boardState: TreeBoardState;
   dispatch: (
     action: ReturnType<(typeof actions)[keyof typeof actions]>,
   ) => void;
-  setState: React.Dispatch<React.SetStateAction<BoardState>>;
+  dispatchBoard: (action: BoardAction) => void;
 }
 
 interface BoardDialogHandlers {
@@ -40,8 +42,9 @@ interface BoardDialogHandlers {
  */
 export function useBoardDialogs({
   state,
+  boardState,
   dispatch,
-  setState,
+  dispatchBoard,
 }: UseBoardDialogsParams): BoardDialogHandlers {
   // Handle project picker selection
   // For linked nodes (transclusions), re-parent the TARGET node, not the link
@@ -71,28 +74,14 @@ export function useBoardDialogs({
       dispatch(actions.hideProjectPicker());
 
       setTimeout(() => {
-        const newState = state.rootId
-          ? buildBoardState(state.rootId)
-          : initBoardState();
-
-        if (newState) {
-          newState.zoomStack = state.zoomStack;
-          newState.rootPath = state.rootPath;
-          // Reset to first card if current no longer exists
-          newState.colIndex = Math.min(
-            state.colIndex,
-            Math.max(0, newState.columns.length - 1),
-          );
-          const col = newState.columns[newState.colIndex];
-          newState.cardIndex = Math.min(
-            state.cardIndex,
-            Math.max(0, (col?.cards.length ?? 1) - 1),
-          );
-          setState(newState);
+        if (boardState.rootId) {
+          // Build tree nodes directly and dispatch to boardReducer
+          const nodes = buildTreeNodes(boardState.rootId);
+          dispatchBoard({ type: "REFRESH", nodes });
         }
       }, 50);
     },
-    [state, dispatch, setState],
+    [state, boardState, dispatch, dispatchBoard],
   );
 
   const handleProjectCancel = useCallback(() => {
@@ -104,9 +93,12 @@ export function useBoardDialogs({
     (_newNodeId: string) => {
       dispatch(actions.hideNewItemDialog());
       // Refresh the board to show the new item
-      setState((s) => (s.rootId ? buildBoardState(s.rootId) : s));
+      if (boardState.rootId) {
+        const nodes = buildTreeNodes(boardState.rootId);
+        dispatchBoard({ type: "REFRESH", nodes });
+      }
     },
-    [dispatch, setState],
+    [boardState, dispatch, dispatchBoard],
   );
 
   const handleNewItemCancel = useCallback(() => {
