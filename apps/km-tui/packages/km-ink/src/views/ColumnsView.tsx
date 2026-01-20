@@ -53,11 +53,8 @@ function ColumnTree({
     isColumnHeaderSelected,
   );
 
-  // Available height for cards: column height - blank line (1) - header (1)
-  const contentHeight = Math.max(1, height - 2);
-
   return (
-    <Box flexDirection="column" width={width} height={height}>
+    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
       {/* Header section */}
       <Box flexDirection="column" height={2} flexShrink={0}>
         <Text> </Text>
@@ -75,7 +72,8 @@ function ColumnTree({
       {/* Cards with inkx native scrolling */}
       <Box
         flexDirection="column"
-        height={contentHeight}
+        flexGrow={1}
+        minHeight={1}
         overflow="scroll"
         scrollTo={selectedCardIndex}
       >

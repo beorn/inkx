@@ -16,7 +16,7 @@ export {
   constrainText,
   ANSI_REGEX,
   calcScrollOffset,
-} from "ink-measure";
+} from "@beorn/ink-measure";
 
 // Inkx-specific context (wraps ink-measure with inkx's useStdout)
 export {

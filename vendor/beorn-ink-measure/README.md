@@ -1,4 +1,4 @@
-# ink-measure
+# @beorn/ink-measure
 
 Constraint-based layout system for [Ink](https://github.com/vadimdemedes/ink). Add dimension awareness to existing Ink apps incrementally via React context.
 
@@ -9,26 +9,26 @@ Constraint-based layout system for [Ink](https://github.com/vadimdemedes/ink). A
 - **Variable-height virtualized scrolling** - Efficient rendering of long lists
 - **Context-based dimensions** - Components automatically know their available width/height
 
-## When to use ink-measure vs inkx
+## When to use @beorn/ink-measure vs inkx
 
 | Use Case | Package |
 |----------|---------|
-| Existing Ink app - add dimension awareness incrementally | **ink-measure** |
+| Existing Ink app - add dimension awareness incrementally | **@beorn/ink-measure** |
 | New TUI app or full migration - layout-first rendering | [inkx](https://github.com/beorn/inkx) |
 
 ## Installation
 
 ```bash
-npm install ink-measure
+npm install @beorn/ink-measure
 # or
-bun add ink-measure
+bun add @beorn/ink-measure
 ```
 
 ## Quick Start
 
 ```tsx
 import { render, useStdout, Text, Box } from "ink";
-import { ConstraintRoot, TruncatedText, useComputedSize } from "ink-measure";
+import { ConstraintRoot, TruncatedText, useComputedSize } from "@beorn/ink-measure";
 
 function App() {
   const { stdout } = useStdout();
@@ -153,7 +153,7 @@ import {
   truncateText,    // Truncate with ellipsis
   padText,         // Pad to width
   constrainText,   // Wrap + truncate + pad
-} from "ink-measure";
+} from "@beorn/ink-measure";
 
 // Get display width (handles ANSI, emoji, CJK)
 displayLength("\x1b[31mHello\x1b[0m"); // 5

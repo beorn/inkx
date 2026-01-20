@@ -15,7 +15,7 @@ import {
   type ConstraintContextValue,
   type ComputedSize,
   type TerminalSize,
-} from "ink-measure";
+} from "@beorn/ink-measure";
 
 // Re-export everything from ink-measure for local imports
 export {

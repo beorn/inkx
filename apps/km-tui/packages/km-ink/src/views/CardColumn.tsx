@@ -39,6 +39,7 @@ export function Card({
     <Box
       flexDirection="column"
       flexShrink={0}
+      minHeight={3}
       width={width}
       borderStyle="round"
       borderColor={isSelected ? "cyanBright" : "blackBright"}
@@ -93,9 +94,6 @@ export function Column({
   const ownColor = getOwnColor(column.node);
   const wipExceeded = wipLimit !== undefined && count > wipLimit;
 
-  // Available height for cards: column height - blank line (1) - header (1)
-  const contentHeight = Math.max(1, height - 2);
-
   // Build count display
   const countDisplay =
     wipLimit !== undefined ? `(${count}/${wipLimit})` : `(${count})`;
@@ -106,34 +104,39 @@ export function Column({
   const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnSelected);
 
   return (
-    <Box flexDirection="column" width={width} height={height}>
+    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
       {/* Blank line above header */}
-      <Text> </Text>
+      <Box height={1} flexShrink={0}>
+        <Text> </Text>
+      </Box>
 
       {/* Column header */}
-      <Text
-        bold={isSelected}
-        color={headerStyle.color}
-        dimColor={headerStyle.dimColor}
-        backgroundColor={headerStyle.backgroundColor}
-        wrap="truncate"
-      >
-        {name}
-        {typeSuffix ? <Text dimColor>{` ${typeSuffix}`}</Text> : ""}
-        {wipExceeded ? (
-          <Text color="red">
-            {` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}
-          </Text>
-        ) : (
-          ` ${countDisplay}`
-        )}
-        {collapsedIndicator}
-      </Text>
+      <Box height={1} flexShrink={0}>
+        <Text
+          bold={isSelected}
+          color={headerStyle.color}
+          dimColor={headerStyle.dimColor}
+          backgroundColor={headerStyle.backgroundColor}
+          wrap="truncate"
+        >
+          {name}
+          {typeSuffix ? <Text dimColor>{` ${typeSuffix}`}</Text> : ""}
+          {wipExceeded ? (
+            <Text color="red">
+              {` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}
+            </Text>
+          ) : (
+            ` ${countDisplay}`
+          )}
+          {collapsedIndicator}
+        </Text>
+      </Box>
 
       {isCollapsed ? (
         <Box
           flexDirection="column"
-          height={contentHeight}
+          flexGrow={1}
+          minHeight={1}
           justifyContent="center"
           alignItems="center"
         >
@@ -142,7 +145,8 @@ export function Column({
       ) : (
         <Box
           flexDirection="column"
-          height={contentHeight}
+          flexGrow={1}
+          minHeight={1}
           overflow="scroll"
           scrollTo={selectedCardIndex}
         >

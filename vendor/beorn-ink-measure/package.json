@@ -1,5 +1,5 @@
 {
-  "name": "ink-measure",
+  "name": "@beorn/ink-measure",
   "version": "0.1.0",
   "description": "Constraint-based layout system for Ink - add dimension awareness to existing apps",
   "type": "module",

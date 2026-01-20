@@ -52,9 +52,6 @@ export function ListView({
 }: ListViewProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
 
-  // Full height minus 1 for top spacer line
-  const contentHeight = height - 1;
-
   // Flatten all cards into a single list
   const flatItems = useMemo(() => {
     const items: FlatItem[] = [];
@@ -89,14 +86,17 @@ export function ListView({
   }
 
   return (
-    <Box flexDirection="column" width={width} height={height}>
+    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
       {/* Blank line at top */}
-      <Text> </Text>
+      <Box height={1} flexShrink={0}>
+        <Text> </Text>
+      </Box>
 
       {/* Scrollable list using inkx native scrolling */}
       <Box
         flexDirection="column"
-        height={contentHeight}
+        flexGrow={1}
+        minHeight={1}
         overflow="scroll"
         scrollTo={selectedFlatIndex}
       >

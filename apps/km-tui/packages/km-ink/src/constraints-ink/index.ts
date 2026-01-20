@@ -1,39 +1,24 @@
 /**
- * Constraint System for Ink
+ * Constraint System for Vanilla Ink
  *
- * A constraint-based layout system that exposes computed dimensions to child
- * components, eliminating manual width threading.
+ * Re-exports from @beorn/ink-measure with ink-specific adapters.
  *
- * @see .beads/km-inkx.3-design.md for full design specification
- *
- * ## Usage
- *
- * ```tsx
- * import {
- *   ConstraintRoot,
- *   TruncatedText,
- *   useComputedSize,
- * } from "../constraints/index.ts";
- *
- * // Wrap your app in ConstraintRoot
- * <ConstraintRoot padding={1}>
- *   <MyComponent />
- * </ConstraintRoot>
- *
- * // Components automatically know their available width
- * function MyComponent() {
- *   return <TruncatedText maxLines={2}>{longText}</TruncatedText>;
- * }
- *
- * // Or access size directly
- * function CustomComponent() {
- *   const { width, height } = useComputedSize();
- *   return <Text>Available: {width}x{height}</Text>;
- * }
- * ```
+ * @see @beorn/ink-measure for the standalone package
  */
 
-// Context and hooks
+// Re-export text utilities from @beorn/ink-measure
+export {
+  displayLength,
+  stripAnsi,
+  wrapText,
+  truncateText,
+  padText,
+  constrainText,
+  ANSI_REGEX,
+  calcScrollOffset,
+} from "@beorn/ink-measure";
+
+// Ink-specific context (wraps @beorn/ink-measure with ink's useStdout)
 export {
   ConstraintRoot,
   ConstraintContext,
@@ -46,7 +31,7 @@ export {
   type TerminalSize,
 } from "./context.tsx";
 
-// Components
+// Ink-specific components
 export {
   TruncatedText,
   useTruncatedText,
@@ -69,21 +54,3 @@ export {
   type ScrollableListProps,
   type ScrollState,
 } from "./ScrollableList.tsx";
-
-/**
- * Simple scroll offset calculator for centering selected item in view.
- * Use calculateScrollState for full virtualized list handling.
- */
-export function calcScrollOffset(
-  selectedIndex: number,
-  maxVisible: number,
-  totalCount: number,
-): number {
-  return Math.max(
-    0,
-    Math.min(
-      selectedIndex - Math.floor(maxVisible / 2),
-      Math.max(0, totalCount - maxVisible),
-    ),
-  );
-}

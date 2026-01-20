@@ -1,16 +1,13 @@
 /**
- * TruncatedText Component
+ * TruncatedText Component - Vanilla Ink Version
  *
  * ANSI-aware text truncation that uses width from constraint context.
- * Eliminates the need to manually thread width props through components.
- *
- * @see .beads/km-inkx.3-design.md for design specification
+ * Uses @beorn/ink-measure's constrainText, renders with ink Text.
  */
 
 import React, { useMemo } from "react";
 import { Text } from "ink";
-import { useComputedSize, type ComputedSize } from "./context.tsx";
-import { constrainText } from "../layout/constrain.ts";
+import { useComputedSize, constrainText, type ComputedSize } from "@beorn/ink-measure";
 
 export interface TruncatedTextProps {
   /** The text content to display (can include ANSI escape codes) */
@@ -63,7 +60,7 @@ export function TruncatedText({
 
   const width = widthOverride ?? contextSize?.width ?? 80;
 
-  const { lines, truncated } = useMemo(
+  const { lines } = useMemo(
     () => constrainText(children, width, maxLines, pad, ellipsis),
     [children, width, maxLines, pad, ellipsis],
   );

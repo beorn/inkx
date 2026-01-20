@@ -9,7 +9,7 @@
 
 import React, { useMemo } from "react";
 import { Text } from "inkx";
-import { useComputedSize, constrainText, type ComputedSize } from "ink-measure";
+import { useComputedSize, constrainText, type ComputedSize } from "@beorn/ink-measure";
 
 export interface TruncatedTextProps {
   /** The text content to display (can include ANSI escape codes) */

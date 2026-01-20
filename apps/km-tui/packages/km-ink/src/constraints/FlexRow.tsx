@@ -15,7 +15,7 @@ import {
 import {
   distributeSpace,
   type FlexItemConfig,
-} from "ink-measure";
+} from "@beorn/ink-measure";
 
 // Re-export for backwards compatibility
 export { distributeSpace, type FlexItemConfig };

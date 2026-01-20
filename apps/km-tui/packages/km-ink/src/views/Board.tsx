@@ -1191,7 +1191,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const topBarBgChalk = getTopBarBgChalk(boardColor, isBoardSelected);
 
   // Determine text color based on background (dark bg = white text, light bg = black text)
-  const darkBgColors = ["red", "green", "blue", "magenta", "gray", "grey"];
+  const darkBgColors = ["red", "green", "blue", "magenta", "gray", "grey", "black"];
   const useWhiteText = boardColor
     ? darkBgColors.includes(boardColor)
     : isBoardSelected;
@@ -1883,6 +1883,9 @@ function getTopBarBgChalk(
         return chalk.bgWhite;
       case "gray":
       case "grey":
+        return chalk.bgGray;
+      case "black":
+        // Black background - use dark gray to ensure visibility
         return chalk.bgGray;
       default:
         return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;

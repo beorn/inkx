@@ -34,14 +34,6 @@ export function TabsView({
 }: TabsViewProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
 
-  // Layout breakdown:
-  // - 1 line: top spacer
-  // - 1 line: tab bar
-  // - 1 line: border
-  // - rest: content
-  const headerHeight = 3;
-  const contentHeight = Math.max(1, height - headerHeight);
-
   // Get current column
   const currentColumn = state.columns[colIndex];
   const count = currentColumn?.cards.length ?? 0;
@@ -50,12 +42,12 @@ export function TabsView({
   const isColumnHeaderSelected = selectionLevel === "column";
 
   return (
-    <Box flexDirection="column" width={width} height={height}>
+    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
       {/* Spacer line between top bar and tabs */}
-      <Box height={1} />
+      <Box height={1} flexShrink={0} />
 
       {/* Tab bar - simple pipe-separated tabs */}
-      <Box flexDirection="row" width={width} height={1}>
+      <Box flexDirection="row" width={width} height={1} flexShrink={0}>
         {state.columns.map((column, cIdx) => {
           const isActive = cIdx === colIndex;
           const colName = getNodeDisplayName(column.node);
@@ -96,15 +88,18 @@ export function TabsView({
       </Box>
 
       {/* Top border only */}
-      <Text dimColor>{"─".repeat(width)}</Text>
+      <Box height={1} flexShrink={0}>
+        <Text dimColor>{"─".repeat(width)}</Text>
+      </Box>
 
       {/* Content area with inkx native scrolling */}
-      <Box flexDirection="column" width={width} height={contentHeight}>
+      <Box flexDirection="column" width={width} flexGrow={1} minHeight={1}>
         {currentColumn ? (
           count > 0 ? (
             <Box
               flexDirection="column"
-              height={contentHeight}
+              flexGrow={1}
+              minHeight={1}
               overflow="scroll"
               scrollTo={cardIndex}
             >
