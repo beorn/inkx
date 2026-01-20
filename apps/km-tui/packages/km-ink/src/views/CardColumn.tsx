@@ -36,7 +36,6 @@ export function Card({
     <Box
       flexDirection="column"
       flexShrink={0}
-      minHeight={3}
       width={width}
       borderStyle="round"
       borderColor={isSelected ? "cyanBright" : "blackBright"}

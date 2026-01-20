@@ -1407,53 +1407,55 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <HelpOverlay width={termWidth} height={contentHeight} />
             )}
           </Box>
-          {/* Bottom bar: mode indicator left, other indicators right */}
-          {/* flexDirection="row" is REQUIRED for justifyContent="space-between" to work horizontally */}
+          {/* Bottom bar: auto-flex layout with all indicators */}
           <Box
             flexDirection="row"
             flexShrink={0}
             alignSelf="stretch"
             backgroundColor="black"
-            justifyContent="space-between"
           >
-            {/* Left side: repo info - use chalk for styling */}
-            <Text>
-              {" "}
-              {(() => {
-                const store = getStore();
-                return store.mode === "memory"
-                  ? chalk.yellow(`MEM REPO ${store.rootPath}`)
-                  : chalk.green(`DISK REPO ${store.rootPath}`);
-              })()}
-            </Text>
-            {/* Right side: indicators - use chalk for styling to avoid nested Text issues */}
-            {/* flexGrow pushes this to the right edge */}
+            {/* Left side: repo info - use flexShrink=0 to preserve */}
+            <Box flexShrink={0}>
+              <Text>
+                {" "}
+                {(() => {
+                  const store = getStore();
+                  return store.mode === "memory"
+                    ? chalk.yellow(`MEM REPO ${store.rootPath}`)
+                    : chalk.green(`DISK REPO ${store.rootPath}`);
+                })()}
+              </Text>
+            </Box>
+            {/* Flexible spacer */}
             <Box flexGrow={1} />
-            <Text>
-              {[
-                ui.showHelp && chalk.cyan("[HELP ?] "),
-                ui.showProjectPicker && chalk.green("[PROJECT] "),
-                ui.showNewItemDialog && chalk.green("[NEW] "),
-                ui.showDropNotification &&
-                  ui.droppedFiles.length > 0 &&
-                  chalk.green(
-                    `[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `,
-                  ),
-                ui.isMouseDragging &&
-                  ui.mouseSelection &&
-                  chalk.blue(
-                    `[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `,
-                  ),
-                ui.multiSelected.size > 0 &&
-                  chalk.yellow(`[${ui.multiSelected.size} sel] `),
-                ui.inOutlineMode && chalk.cyan("OUTLINE "),
-                ui.selectionLevel !== "card" &&
-                  chalk.magenta(`${ui.selectionLevel.toUpperCase()} `),
-                chalk.inverse(` ${ui.viewMode.toUpperCase()} VIEW `),
-              ]
-                .filter(Boolean)
-                .join("")}{" "}
-            </Text>
+            {/* Right side: indicators - flexShrink=1 allows truncation if needed */}
+            <Box flexShrink={1}>
+              <Text wrap="truncate">
+                {[
+                  ui.showHelp && chalk.cyan("[HELP ?] "),
+                  ui.showProjectPicker && chalk.green("[PROJECT] "),
+                  ui.showNewItemDialog && chalk.green("[NEW] "),
+                  ui.showDropNotification &&
+                    ui.droppedFiles.length > 0 &&
+                    chalk.green(
+                      `[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `,
+                    ),
+                  ui.isMouseDragging &&
+                    ui.mouseSelection &&
+                    chalk.blue(
+                      `[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `,
+                    ),
+                  ui.multiSelected.size > 0 &&
+                    chalk.yellow(`[${ui.multiSelected.size} sel] `),
+                  ui.inOutlineMode && chalk.cyan("OUTLINE "),
+                  ui.selectionLevel !== "card" &&
+                    chalk.magenta(`${ui.selectionLevel.toUpperCase()} `),
+                  chalk.inverse(` ${ui.viewMode.toUpperCase()} VIEW `),
+                ]
+                  .filter(Boolean)
+                  .join("")}{" "}
+              </Text>
+            </Box>
           </Box>
         </Box>
       </UIProvider>

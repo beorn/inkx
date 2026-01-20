@@ -100,7 +100,7 @@ function getBoardForLink(linkNode: KNode): KNode | null {
  * @returns Array of board pills with name and color
  */
 export function getBoardPills(
-  taskNode: Node,
+  taskNode: KNode,
   excludeBoardIds: Set<string> = new Set(),
 ): BoardPill[] {
   // Only tasks can be on boards
@@ -167,13 +167,18 @@ const DARK_COLORS = ["red", "green", "blue", "magenta", "gray", "grey"];
 /**
  * Get header text styling for column/section headers
  * Handles own color, selection state, and accessibility
+ *
+ * Design system (see docs/06-ui.md):
+ * - Default: white text (not dimmed)
+ * - Cursor in column: yellow foreground
+ * - Column selected (selectionLevel=column): cyan background + black text
  */
 export function getHeaderStyle(
   ownColor: string | undefined,
   isSelected: boolean,
   isActiveSelection: boolean,
 ): { color: string; backgroundColor: string | undefined; dimColor: boolean } {
-  // When actively selected (highlight mode), use cyan background
+  // When actively selected (column is the selection cursor), use cyan background
   if (isActiveSelection) {
     return {
       color: "black",
@@ -191,10 +196,12 @@ export function getHeaderStyle(
     };
   }
 
-  // Default: yellow styling based on selection
+  // Default styling:
+  // - Yellow when cursor is in this column (isSelected)
+  // - White when cursor is elsewhere
   return {
-    color: isSelected ? "yellow" : "yellowBright",
+    color: isSelected ? "yellow" : "white",
     backgroundColor: undefined,
-    dimColor: !isSelected,
+    dimColor: false,
   };
 }
