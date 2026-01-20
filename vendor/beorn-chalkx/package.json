@@ -44,6 +44,7 @@
   "author": "Beorn",
   "license": "MIT",
   "dependencies": {
-    "chalk": "^5.4.1"
+    "chalk": "^5.4.1",
+    "string-width": "^7.0.0"
   }
 }

@@ -74,10 +74,11 @@ export { hyperlink } from "./hyperlink.js";
 // =============================================================================
 
 /**
- * Private SGR code recognized by inkx to signal intentional bg override.
+ * SGR code recognized by inkx to signal intentional bg override.
  * When text is wrapped with this, inkx won't warn/throw about chalk bg + inkx bg conflicts.
+ * Exported for inkx to detect this marker in text content.
  */
-const BG_OVERRIDE_CODE = 9999;
+export const BG_OVERRIDE_CODE = 9999;
 
 /**
  * Wrap text with a marker that tells inkx this background color is intentional.

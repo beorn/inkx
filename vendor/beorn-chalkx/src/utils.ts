@@ -1,9 +1,11 @@
 /**
- * ANSI string utilities - chalk-free, zero dependencies.
+ * ANSI string utilities.
  *
  * This module can be imported separately via `@beorn/chalkx/utils`
  * for projects that only need ANSI stripping without chalk.
  */
+
+import stringWidth from "string-width";
 
 // =============================================================================
 // ANSI Regex Pattern
@@ -40,21 +42,19 @@ export function stripAnsi(text: string): string {
 }
 
 /**
- * Get the display length of a string, excluding ANSI escape codes.
- * Use this instead of string.length when measuring styled text.
+ * Get the display width of a string, excluding ANSI escape codes.
+ * Correctly handles CJK characters, emoji, and other wide characters.
  *
  * @param text - String potentially containing ANSI codes
- * @returns Number of visible characters
+ * @returns Number of terminal columns the text will occupy
  *
  * @example
  * ```ts
  * displayLength('\x1b[31mhello\x1b[0m') // 5
  * displayLength('hello') // 5
+ * displayLength('한글') // 4 (2 chars × 2 cells each)
  * ```
- *
- * @note This is a simple implementation that counts characters.
- * For accurate width with CJK/emoji, consider using a library like `string-width`.
  */
 export function displayLength(text: string): number {
-  return stripAnsi(text).length;
+  return stringWidth(stripAnsi(text));
 }

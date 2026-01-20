@@ -124,12 +124,13 @@ describe("ANSI utilities", () => {
       expect(stripAnsi(malformed)).toBe("\x1bhello");
     });
 
-    it("handles unicode characters", () => {
-      // Note: displayLength is a simple character count, not display width
-      // For accurate terminal width with CJK/emoji, use string-width library
-      expect(displayLength("こんにちは")).toBe(5);
-      // Emoji are counted as they appear in the string (may be more than visual count)
-      expect(displayLength("🎉🎊🎈")).toBeGreaterThanOrEqual(3);
+    it("handles CJK and emoji with correct display width", () => {
+      // CJK characters are 2 cells wide each
+      expect(displayLength("こんにちは")).toBe(10); // 5 chars × 2 cells
+      expect(displayLength("한글")).toBe(4); // 2 chars × 2 cells
+      // Emoji are 2 cells wide
+      expect(displayLength("🎉🎊🎈")).toBe(6); // 3 emoji × 2 cells
+      expect(displayLength("👋")).toBe(2);
     });
   });
 });
