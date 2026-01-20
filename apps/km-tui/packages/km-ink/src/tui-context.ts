@@ -50,8 +50,6 @@ export interface TUIContext {
   dispatch: React.Dispatch<ReturnType<(typeof actions)[keyof typeof actions]>>;
   /** Dispatch to board reducer */
   dispatchBoard: React.Dispatch<import("@km/board").BoardAction>;
-  /** Legacy setState for gradual migration */
-  setState: React.Dispatch<React.SetStateAction<BoardState>>;
   /** Exit the application */
   exit: () => void;
 
@@ -96,7 +94,6 @@ export interface BuildTUIContextParams {
   nodeMap: NodeMap;
   dispatch: TUIContext["dispatch"];
   dispatchBoard: TUIContext["dispatchBoard"];
-  setState: TUIContext["setState"];
   exit: TUIContext["exit"];
   countVisibleDescendants: TUIContext["countVisibleDescendants"];
 }
@@ -126,7 +123,6 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
     nodeMap,
     dispatch: params.dispatch,
     dispatchBoard: params.dispatchBoard,
-    setState: params.setState,
     exit: params.exit,
     countVisibleDescendants: params.countVisibleDescendants,
   };
@@ -181,11 +177,9 @@ export function toKeyboardContext(
   ctx: TUIContext,
 ): import("./keyboard-types.ts").KeyboardContext {
   return {
-    state: ctx.state,
     boardState: ctx.boardState,
     layout: ctx.layout,
     ui: ctx.ui,
-    setState: ctx.setState,
     dispatch: ctx.dispatch,
     dispatchBoard: ctx.dispatchBoard,
     exit: ctx.exit,

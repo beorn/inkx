@@ -171,39 +171,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     [boardState, columnsLayout],
   );
 
-  // setState wrapper that dispatches to boardReducer
-  // This enables gradual migration - callers still use setState pattern
-  const setState = (
-    updater: BoardState | ((prev: BoardState) => BoardState),
-  ) => {
-    // For now, we need to handle setState calls by rebuilding tree state
-    // This is a bridge during migration - eventually all callers will dispatch directly
-    const newState = typeof updater === "function" ? updater(state) : updater;
-
-    // If rootId changed, we need a full refresh
-    if (newState.rootId !== state.rootId) {
-      const newTreeState = tuiStateToTreeState(newState, {
-        foldedNodes: ui.foldedNodes,
-        navHistory: ui.navHistory,
-        navHistoryIndex: ui.navHistoryIndex,
-      });
-      dispatchBoard({ type: "REFRESH", nodes: newTreeState.nodes });
-      return;
-    }
-
-    // For cursor changes, dispatch NAV_TO_PATH
-    if (
-      newState.colIndex !== state.colIndex ||
-      newState.cardIndex !== state.cardIndex
-    ) {
-      const newPath =
-        newState.cardIndex >= 0
-          ? [newState.colIndex, newState.cardIndex]
-          : [newState.colIndex];
-      dispatchBoard({ type: "NAV_TO_PATH", path: newPath });
-    }
-  };
-
   // Dialog handlers (extracted to separate hook for maintainability)
   const {
     handleProjectSelect,
@@ -277,7 +244,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     nodeMap,
     dispatch,
     dispatchBoard,
-    setState,
     exit,
     countVisibleDescendants,
   });
