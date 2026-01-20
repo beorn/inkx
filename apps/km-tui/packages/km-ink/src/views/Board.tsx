@@ -1213,6 +1213,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const topBarBg = topBarBgChalk;
   const topBarFg = useWhiteText ? topBarBgChalk.white : topBarBgChalk.black;
 
+
   // Render loading indicator until terminal is ready (see ui.isReady comment above)
   // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
   // Note: Don't use centered layout here - it causes scroll issues when transitioning to the board
@@ -1229,7 +1230,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           flexDirection="column"
           height={termHeight}
           minHeight={3}
-          overflowY="hidden"
+          overflow="hidden"
         >
           {/* Top bar: full path from root to selected item, inverted full width */}
           {/* flexShrink={0} prevents Ink/Yoga from clipping this when content overflows */}
@@ -1240,7 +1241,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             flexGrow={1}
             flexDirection="row"
             height={termHeight - 2}
-            overflowY="hidden"
+            overflow="hidden"
           >
             {/* Cards, Columns, or List view */}
             {ui.viewMode === "cards" ? (
@@ -1405,47 +1406,62 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <HelpOverlay width={termWidth} height={termHeight - 2} />
             )}
           </Box>
-          {/* Bottom bar: mode indicator left, other indicators right */}
-          {/* flexShrink={0} prevents this bar from being clipped when content overflows */}
-          {/* height={1} ensures consistent sizing like top bar */}
-          <Box
-            width={termWidth}
-            height={1}
-            justifyContent="space-between"
-            paddingX={1}
-            flexShrink={0}
-          >
-            {/* Left side: store mode indicator and path */}
-            {(() => {
-              const store = getStore();
-              if (store.mode === "memory") {
-                return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
-              }
-              return <Text color="green">DISK REPO {store.rootPath}</Text>;
-            })()}
-            {/* Right side: status indicators */}
+          {/* Bottom bar: fill entire line to prevent artifacts */}
+          <Box height={1} width={termWidth} flexShrink={0}>
             <Text>
-              {ui.showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
-              {ui.showProjectPicker && (
-                <Text color="green">{`[PROJECT] `}</Text>
-              )}
-              {ui.showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
-              {ui.showDropNotification && ui.droppedFiles.length > 0 && (
-                <Text color="green">
-                  {`[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
-                </Text>
-              )}
-              {ui.isMouseDragging && ui.mouseSelection && (
-                <Text color="blue">{`[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `}</Text>
-              )}
-              {ui.multiSelected.size > 0 && (
-                <Text color="yellow">{`[${ui.multiSelected.size} sel] `}</Text>
-              )}
-              {ui.inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
-              {ui.selectionLevel !== "card" && (
-                <Text color="magenta">{`${ui.selectionLevel.toUpperCase()} `}</Text>
-              )}
-              <Text inverse>{` ${ui.viewMode.toUpperCase()} VIEW `}</Text>
+              {(() => {
+                // Build entire bottom bar as single string with explicit full-width fill
+                const store = getStore();
+                const left =
+                  " " +
+                  (store.mode === "memory"
+                    ? chalk.yellow(`MEM REPO ${store.rootPath}`)
+                    : chalk.green(`DISK REPO ${store.rootPath}`));
+                const rightParts = [
+                  ui.showHelp ? chalk.cyan("[HELP ?] ") : "",
+                  ui.showProjectPicker ? chalk.green("[PROJECT] ") : "",
+                  ui.showNewItemDialog ? chalk.green("[NEW] ") : "",
+                  ui.showDropNotification && ui.droppedFiles.length > 0
+                    ? chalk.green(
+                        `[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `,
+                      )
+                    : "",
+                  ui.isMouseDragging && ui.mouseSelection
+                    ? chalk.blue(
+                        `[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `,
+                      )
+                    : "",
+                  ui.multiSelected.size > 0
+                    ? chalk.yellow(`[${ui.multiSelected.size} sel] `)
+                    : "",
+                  ui.inOutlineMode ? chalk.cyan("OUTLINE ") : "",
+                  ui.selectionLevel !== "card"
+                    ? chalk.magenta(`${ui.selectionLevel.toUpperCase()} `)
+                    : "",
+                  chalk.inverse(` ${ui.viewMode.toUpperCase()} VIEW `),
+                ].join("");
+                // Calculate visible lengths (without ANSI codes)
+                const leftVisLen =
+                  1 +
+                  (store.mode === "memory" ? 9 : 10) +
+                  store.rootPath.length;
+                const rightVisLen =
+                  (ui.showHelp ? 9 : 0) +
+                  (ui.showProjectPicker ? 10 : 0) +
+                  (ui.showNewItemDialog ? 6 : 0) +
+                  (ui.multiSelected.size > 0
+                    ? `[${ui.multiSelected.size} sel] `.length
+                    : 0) +
+                  (ui.inOutlineMode ? 8 : 0) +
+                  (ui.selectionLevel !== "card"
+                    ? ui.selectionLevel.length + 1
+                    : 0) +
+                  ui.viewMode.length +
+                  7;
+                // Fill middle with spaces - ensure it spans full width
+                const middleLen = Math.max(1, termWidth - leftVisLen - rightVisLen);
+                return left + " ".repeat(middleLen) + rightParts;
+              })()}
             </Text>
           </Box>
         </Box>
