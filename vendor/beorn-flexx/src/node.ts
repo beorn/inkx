@@ -393,6 +393,107 @@ export class Node {
     this._style.overflow = overflow;
     this.markDirty();
   }
+
+  // ============================================================================
+  // Style Getters
+  // ============================================================================
+
+  getWidth(): Value {
+    return this._style.width;
+  }
+
+  getHeight(): Value {
+    return this._style.height;
+  }
+
+  getMinWidth(): Value {
+    return this._style.minWidth;
+  }
+
+  getMinHeight(): Value {
+    return this._style.minHeight;
+  }
+
+  getMaxWidth(): Value {
+    return this._style.maxWidth;
+  }
+
+  getMaxHeight(): Value {
+    return this._style.maxHeight;
+  }
+
+  getFlexGrow(): number {
+    return this._style.flexGrow;
+  }
+
+  getFlexShrink(): number {
+    return this._style.flexShrink;
+  }
+
+  getFlexBasis(): Value {
+    return this._style.flexBasis;
+  }
+
+  getFlexDirection(): number {
+    return this._style.flexDirection;
+  }
+
+  getFlexWrap(): number {
+    return this._style.flexWrap;
+  }
+
+  getAlignItems(): number {
+    return this._style.alignItems;
+  }
+
+  getAlignSelf(): number {
+    return this._style.alignSelf;
+  }
+
+  getAlignContent(): number {
+    return this._style.alignContent;
+  }
+
+  getJustifyContent(): number {
+    return this._style.justifyContent;
+  }
+
+  getPadding(edge: number): Value {
+    return getEdgeValue(this._style.padding, edge);
+  }
+
+  getMargin(edge: number): Value {
+    return getEdgeValue(this._style.margin, edge);
+  }
+
+  getBorder(edge: number): number {
+    return getEdgeBorderValue(this._style.border, edge);
+  }
+
+  getPosition(edge: number): Value {
+    return getEdgeValue(this._style.position, edge);
+  }
+
+  getPositionType(): number {
+    return this._style.positionType;
+  }
+
+  getDisplay(): number {
+    return this._style.display;
+  }
+
+  getOverflow(): number {
+    return this._style.overflow;
+  }
+
+  getGap(gutter: number): number {
+    if (gutter === C.GUTTER_COLUMN) {
+      return this._style.gap[0];
+    } else if (gutter === C.GUTTER_ROW) {
+      return this._style.gap[1];
+    }
+    return this._style.gap[0]; // Default to column gap
+  }
 }
 
 // ============================================================================
@@ -468,6 +569,36 @@ function setEdgeBorder(
       arr[2] = value;
       arr[3] = value;
       break;
+  }
+}
+
+function getEdgeValue(arr: [Value, Value, Value, Value], edge: number): Value {
+  switch (edge) {
+    case C.EDGE_LEFT:
+      return arr[0];
+    case C.EDGE_TOP:
+      return arr[1];
+    case C.EDGE_RIGHT:
+      return arr[2];
+    case C.EDGE_BOTTOM:
+      return arr[3];
+    default:
+      return arr[0]; // Default to left
+  }
+}
+
+function getEdgeBorderValue(arr: [number, number, number, number], edge: number): number {
+  switch (edge) {
+    case C.EDGE_LEFT:
+      return arr[0];
+    case C.EDGE_TOP:
+      return arr[1];
+    case C.EDGE_RIGHT:
+      return arr[2];
+    case C.EDGE_BOTTOM:
+      return arr[3];
+    default:
+      return arr[0]; // Default to left
   }
 }
 

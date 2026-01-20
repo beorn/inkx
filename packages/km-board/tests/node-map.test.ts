@@ -1,10 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import {
-  createNodeMap,
-  CachedNodeMap,
-  getNodeById,
-  getNodeEntryById,
-} from "../src/node-map.ts";
+import { createNodeMap } from "../src/node-map.ts";
 import type { TNode } from "../src/board-types.ts";
 
 // Helper to create test nodes
@@ -84,69 +79,3 @@ describe("createNodeMap", () => {
   });
 });
 
-describe("CachedNodeMap", () => {
-  it("should cache map for same nodes reference", () => {
-    const cache = new CachedNodeMap();
-    const nodes = [node("a"), node("b")];
-
-    const map1 = cache.getMap(nodes);
-    const map2 = cache.getMap(nodes);
-
-    // Same reference means cache hit
-    expect(map1).toBe(map2);
-  });
-
-  it("should rebuild map when nodes reference changes", () => {
-    const cache = new CachedNodeMap();
-    const nodes1 = [node("a")];
-    const nodes2 = [node("a"), node("b")];
-
-    const map1 = cache.getMap(nodes1);
-    const map2 = cache.getMap(nodes2);
-
-    // Different reference means cache miss
-    expect(map1).not.toBe(map2);
-    expect(map1.size).toBe(1);
-    expect(map2.size).toBe(2);
-  });
-
-  it("should provide convenience methods", () => {
-    const cache = new CachedNodeMap();
-    const nodes = [node("a", [node("b")])];
-
-    expect(cache.get(nodes, "a").id).toBe("a");
-    expect(cache.getOrNull(nodes, "b")?.id).toBe("b");
-    expect(cache.getOrNull(nodes, "missing")).toBeNull();
-    expect(cache.getEntry(nodes, "b")?.path).toEqual([0, 0]);
-  });
-
-  it("should invalidate cache on demand", () => {
-    const cache = new CachedNodeMap();
-    const nodes = [node("a")];
-
-    const map1 = cache.getMap(nodes);
-    cache.invalidate();
-    const map2 = cache.getMap(nodes);
-
-    // After invalidation, new map is created even for same reference
-    expect(map1).not.toBe(map2);
-  });
-});
-
-describe("global convenience functions", () => {
-  it("getNodeById should return node or null", () => {
-    const nodes = [node("a", [node("b")])];
-
-    expect(getNodeById(nodes, "a")?.id).toBe("a");
-    expect(getNodeById(nodes, "b")?.id).toBe("b");
-    expect(getNodeById(nodes, "missing")).toBeNull();
-  });
-
-  it("getNodeEntryById should return node and path", () => {
-    const nodes = [node("col", [node("card")])];
-
-    const entry = getNodeEntryById(nodes, "card");
-    expect(entry?.node.id).toBe("card");
-    expect(entry?.path).toEqual([0, 0]);
-  });
-});

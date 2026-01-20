@@ -27,6 +27,9 @@ export type {
 // Constants
 export { CUSTOM_TASK_MARKS, TASK_MARK_REGEX_CLASS } from "./types.ts";
 
+// Task utilities
+export { getMarkForStatus } from "./types.ts";
+
 // Query language parser (pure parsing, no DB)
 export {
   parseQuery,

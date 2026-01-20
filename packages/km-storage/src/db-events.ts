@@ -7,6 +7,7 @@
 
 import type { Database } from "bun:sqlite";
 import { readFileSync } from "fs";
+import { getMarkForStatus } from "@km/core";
 import type { Event, TaskStatus } from "@km/core";
 import { getDb } from "./db-instance.ts";
 
@@ -198,18 +199,7 @@ function writeTaskStatusToFile(
     const line = lines[mdLine];
     if (!line) return;
 
-    // Map status to task mark
-    const statusStr = newStatus as string;
-    const newMark =
-      statusStr === "done"
-        ? "x"
-        : statusStr === "wip"
-          ? "/"
-          : statusStr === "blocked"
-            ? "!"
-            : statusStr === "dropped"
-              ? "-"
-              : " "; // todo
+    const newMark = getMarkForStatus(newStatus);
 
     lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
 

@@ -311,9 +311,12 @@ export function boardReducer(
 
     case "NAV_CROSS_COLUMN": {
       // Move horizontally between columns, preserving Y position within column
-      if (state.cursor.length < 2) return state; // Must be at card level [col, row]
+      // Cursor can be column-level [col] or card-level [col, row]
+      if (state.cursor.length === 0) return state;
+
       const colIdx = state.cursor[0] ?? 0;
-      const rowIdx = state.cursor[1] ?? 0;
+      // Use row index 0 if at column level (cursor length 1)
+      const rowIdx = state.cursor.length >= 2 ? (state.cursor[1] ?? 0) : 0;
       const newColIdx = action.direction === "right" ? colIdx + 1 : colIdx - 1;
 
       // Check if target column exists

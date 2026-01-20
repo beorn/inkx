@@ -5,7 +5,7 @@ export const selectToggle: CommandDef = {
   name: "Toggle Selection",
   description: "Toggle selection on current node",
   category: "Selection",
-  shortcuts: ["v"],
+  // Note: No default shortcut - 'v' is used for cycle_view_mode in TUI
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null;
     return { type: "SELECT_NODE_TOGGLE", nodeId: ctx.currentNodeId };

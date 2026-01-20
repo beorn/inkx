@@ -60,13 +60,8 @@ export {
 export type { ColumnIndices } from "./selectors.ts";
 
 // ===== Transformers =====
-export { toBoardViewModel, toTreeViewModel } from "./transformers.ts";
+export { toBoardViewModel } from "./transformers.ts";
 
 // ===== Node Map (O(1) ID Lookup) =====
-export {
-  createNodeMap,
-  CachedNodeMap,
-  getNodeById,
-  getNodeEntryById,
-} from "./node-map.ts";
+export { createNodeMap } from "./node-map.ts";
 export type { NodeMap, NodeMapEntry } from "./node-map.ts";

@@ -437,7 +437,7 @@ export const defaultKeybindings: Keybinding[] = [
 Ensure the board reducer handles the new action type:
 
 ```typescript
-// packages/km-board/src/boardReducer.ts
+// packages/km-board/src/board-reducer.ts
 case "CURSOR_SET":
   return { ...state, cursor: action.payload.line };
 ```

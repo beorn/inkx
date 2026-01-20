@@ -21,10 +21,12 @@ import {
 } from "fs";
 import { join, dirname, basename, relative } from "path";
 import { ulid } from "ulid";
-import type { KNode, NodeType, TaskStatus } from "@km/core";
+import { getMarkForStatus } from "@km/core";
+import type { KNode, TaskStatus } from "@km/core";
 import { setKmDir, emitNodeMoved } from "./emit.ts";
 import { parseMarkdownToNodes } from "@km/markdown";
 import { SCHEMA } from "./schema.ts";
+import { rowToNode } from "./db-queries.ts";
 
 /**
  * NodeStore interface - unified access to node storage
@@ -68,41 +70,6 @@ export interface NodeStore {
   close(): void;
 }
 
-/**
- * Convert database row to KNode object
- */
-function rowToNode(row: Record<string, unknown>): KNode {
-  return {
-    id: row.id as string,
-    type: row.type as NodeType,
-    parent_id: row.parent_id as string | null,
-    parent_idx: row.parent_idx as number,
-    link_to: row.link_to as string | null,
-    link_alias: row.link_alias as string | undefined,
-    fs_path: row.fs_path as string | undefined,
-    fs_ino: row.fs_ino as number | undefined,
-    name: row.name as string | undefined,
-    md_pos: row.md_pos as number | undefined,
-    md_slug: row.md_slug as string | undefined,
-    md_line: row.md_line as number | undefined,
-    task_status: row.task_status as TaskStatus | undefined,
-    task_mark: row.task_mark as KNode["task_mark"],
-    assigned_to: row.assigned_to as string | undefined,
-    due_date: row.due_date as string | undefined,
-    scheduled_date: row.scheduled_date as string | undefined,
-    priority: row.priority as number | undefined,
-    content: row.content as string | undefined,
-    content_hash: row.content_hash as string | undefined,
-    title: row.title as string | undefined,
-    data:
-      typeof row.data === "string"
-        ? (JSON.parse(row.data) as Record<string, unknown>)
-        : ((row.data as Record<string, unknown>) ?? {}),
-    created_at: row.created_at as number,
-    updated_at: row.updated_at as number,
-    version: row.version as string,
-  };
-}
 
 /**
  * Base store implementation with shared query methods
@@ -305,17 +272,7 @@ abstract class BaseStore implements NodeStore {
       const line = lines[mdLine];
       if (!line) return;
 
-      // Map status to task mark
-      const newMark =
-        newStatus === "done"
-          ? "x"
-          : newStatus === "blocked"
-            ? "!"
-            : newStatus === "dropped"
-              ? "-"
-              : newStatus === "wip"
-                ? "/"
-                : " "; // todo
+      const newMark = getMarkForStatus(newStatus);
 
       lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
 

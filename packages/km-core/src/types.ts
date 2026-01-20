@@ -42,6 +42,25 @@ export type TaskMark = " " | "x" | "X" | "!" | "-" | "/";
 export const CUSTOM_TASK_MARKS = ["/", "-", "!"] as const;
 export const TASK_MARK_REGEX_CLASS = "[ xX/\\-!]";
 
+/**
+ * Get the markdown checkbox mark for a task status.
+ * Maps TaskStatus → TaskMark for markdown rendering.
+ */
+export function getMarkForStatus(status: TaskStatus): TaskMark {
+  switch (status) {
+    case "done":
+      return "x";
+    case "wip":
+      return "/";
+    case "blocked":
+      return "!";
+    case "dropped":
+      return "-";
+    default:
+      return " ";
+  }
+}
+
 // =============================================================================
 // Source Type - Where a node comes from
 // =============================================================================

@@ -278,6 +278,75 @@ describe("boardReducer", () => {
       // col-b only has 1 card, so clamp to 0
       expect(newState.cursor).toEqual([1, 0]);
     });
+
+    // Test for bug km-n29q: empty column navigation
+    describe("empty column navigation", () => {
+      // Tree with empty column:
+      // - Column A (col-a): has cards
+      // - Column B (col-empty): empty
+      // - Column C (col-c): has cards
+      const nodesWithEmptyCol: TNode[] = [
+        createNode("col-a", [createNode("card-1"), createNode("card-2")]),
+        createNode("col-empty", []), // Empty column
+        createNode("col-c", [createNode("card-3")]),
+      ];
+
+      function createEmptyColState(cursor: number[]): BoardState {
+        return {
+          ...createBoardState(nodesWithEmptyCol),
+          cursor,
+        };
+      }
+
+      it("navigates into empty column (sets column-level cursor)", () => {
+        const state = createEmptyColState([0, 0]); // At card in col-a
+        const newState = boardReducer(state, {
+          type: "NAV_CROSS_COLUMN",
+          direction: "right",
+        });
+        // Should be at column level in empty column
+        expect(newState.cursor).toEqual([1]);
+      });
+
+      it("navigates back from empty column to previous column", () => {
+        const state = createEmptyColState([1]); // At empty column (column-level)
+        const newState = boardReducer(state, {
+          type: "NAV_CROSS_COLUMN",
+          direction: "left",
+        });
+        // Should be at first card in col-a (row 0 since coming from column level)
+        expect(newState.cursor).toEqual([0, 0]);
+      });
+
+      it("navigates forward from empty column to next column", () => {
+        const state = createEmptyColState([1]); // At empty column (column-level)
+        const newState = boardReducer(state, {
+          type: "NAV_CROSS_COLUMN",
+          direction: "right",
+        });
+        // Should be at first card in col-c
+        expect(newState.cursor).toEqual([2, 0]);
+      });
+
+      it("navigates through empty column (col-a -> col-empty -> col-c)", () => {
+        // Start at col-a
+        let state = createEmptyColState([0, 0]);
+
+        // Navigate right to empty col
+        state = boardReducer(state, {
+          type: "NAV_CROSS_COLUMN",
+          direction: "right",
+        });
+        expect(state.cursor).toEqual([1]); // Empty column, column-level
+
+        // Navigate right again to col-c
+        state = boardReducer(state, {
+          type: "NAV_CROSS_COLUMN",
+          direction: "right",
+        });
+        expect(state.cursor).toEqual([2, 0]); // col-c, first card
+      });
+    });
   });
 });
 
@@ -305,6 +374,7 @@ describe("getNodeAtPath", () => {
 
 describe("TPath <-> ColumnIndices conversion", () => {
   // Import functions under test
+  // Using dynamic import for selectors due to module structure
   const {
     pathToColumnIndices,
     columnIndicesToPath,
@@ -312,6 +382,7 @@ describe("TPath <-> ColumnIndices conversion", () => {
     getCurrentColumn,
     getCurrentCard,
     getCurrentColumnCardCount,
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
   } = require("../src/selectors.ts");
 
   describe("pathToColumnIndices", () => {

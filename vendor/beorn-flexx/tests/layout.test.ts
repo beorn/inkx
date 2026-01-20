@@ -3,7 +3,11 @@ import {
   ALIGN_CENTER,
   ALIGN_FLEX_END,
   ALIGN_FLEX_START,
+  ALIGN_STRETCH,
+  createDefaultStyle,
+  createValue,
   DIRECTION_LTR,
+  DISPLAY_FLEX,
   EDGE_ALL,
   EDGE_BOTTOM,
   EDGE_LEFT,
@@ -14,12 +18,19 @@ import {
   GUTTER_ALL,
   JUSTIFY_CENTER,
   JUSTIFY_FLEX_END,
+  JUSTIFY_FLEX_START,
   JUSTIFY_SPACE_BETWEEN,
   MEASURE_MODE_AT_MOST,
   MEASURE_MODE_EXACTLY,
   MEASURE_MODE_UNDEFINED,
   Node,
   POSITION_TYPE_ABSOLUTE,
+  POSITION_TYPE_RELATIVE,
+  UNIT_AUTO,
+  UNIT_PERCENT,
+  UNIT_POINT,
+  UNIT_UNDEFINED,
+  WRAP_NO_WRAP,
 } from "../src/index.js";
 
 describe("Flexx Layout Engine", () => {
@@ -462,6 +473,190 @@ describe("Flexx Layout Engine", () => {
       root.removeChild(child1);
       expect(root.getChildCount()).toBe(1);
       expect(root.getChild(0)).toBe(child2);
+    });
+  });
+
+  describe("Style Getters", () => {
+    it("should get width value after setting", () => {
+      const node = Node.create();
+      node.setWidth(100);
+      expect(node.getWidth()).toEqual({ value: 100, unit: UNIT_POINT });
+    });
+
+    it("should get width percent after setting", () => {
+      const node = Node.create();
+      node.setWidthPercent(50);
+      expect(node.getWidth()).toEqual({ value: 50, unit: UNIT_PERCENT });
+    });
+
+    it("should get width auto after setting", () => {
+      const node = Node.create();
+      node.setWidthAuto();
+      expect(node.getWidth()).toEqual({ value: 0, unit: UNIT_AUTO });
+    });
+
+    it("should get height value after setting", () => {
+      const node = Node.create();
+      node.setHeight(200);
+      expect(node.getHeight()).toEqual({ value: 200, unit: UNIT_POINT });
+    });
+
+    it("should get flex grow after setting", () => {
+      const node = Node.create();
+      node.setFlexGrow(2);
+      expect(node.getFlexGrow()).toBe(2);
+    });
+
+    it("should get flex shrink after setting", () => {
+      const node = Node.create();
+      node.setFlexShrink(0.5);
+      expect(node.getFlexShrink()).toBe(0.5);
+    });
+
+    it("should get flex direction after setting", () => {
+      const node = Node.create();
+      node.setFlexDirection(FLEX_DIRECTION_ROW);
+      expect(node.getFlexDirection()).toBe(FLEX_DIRECTION_ROW);
+    });
+
+    it("should get flex wrap after setting", () => {
+      const node = Node.create();
+      node.setFlexWrap(WRAP_NO_WRAP);
+      expect(node.getFlexWrap()).toBe(WRAP_NO_WRAP);
+    });
+
+    it("should get align items after setting", () => {
+      const node = Node.create();
+      node.setAlignItems(ALIGN_CENTER);
+      expect(node.getAlignItems()).toBe(ALIGN_CENTER);
+    });
+
+    it("should get align self after setting", () => {
+      const node = Node.create();
+      node.setAlignSelf(ALIGN_FLEX_END);
+      expect(node.getAlignSelf()).toBe(ALIGN_FLEX_END);
+    });
+
+    it("should get justify content after setting", () => {
+      const node = Node.create();
+      node.setJustifyContent(JUSTIFY_SPACE_BETWEEN);
+      expect(node.getJustifyContent()).toBe(JUSTIFY_SPACE_BETWEEN);
+    });
+
+    it("should get padding after setting", () => {
+      const node = Node.create();
+      node.setPadding(EDGE_LEFT, 10);
+      expect(node.getPadding(EDGE_LEFT)).toEqual({ value: 10, unit: UNIT_POINT });
+    });
+
+    it("should get margin after setting", () => {
+      const node = Node.create();
+      node.setMargin(EDGE_TOP, 5);
+      expect(node.getMargin(EDGE_TOP)).toEqual({ value: 5, unit: UNIT_POINT });
+    });
+
+    it("should get border after setting", () => {
+      const node = Node.create();
+      node.setBorder(EDGE_ALL, 1);
+      expect(node.getBorder(EDGE_LEFT)).toBe(1);
+      expect(node.getBorder(EDGE_RIGHT)).toBe(1);
+    });
+
+    it("should get position type after setting", () => {
+      const node = Node.create();
+      node.setPositionType(POSITION_TYPE_ABSOLUTE);
+      expect(node.getPositionType()).toBe(POSITION_TYPE_ABSOLUTE);
+    });
+
+    it("should have correct default values", () => {
+      const node = Node.create();
+      // Default flex shrink is 1 (Yoga default)
+      expect(node.getFlexShrink()).toBe(1);
+      // Default flex grow is 0
+      expect(node.getFlexGrow()).toBe(0);
+      // Default flex direction is column
+      expect(node.getFlexDirection()).toBe(FLEX_DIRECTION_COLUMN);
+      // Default align items is stretch
+      expect(node.getAlignItems()).toBe(ALIGN_STRETCH);
+      // Default justify content is flex start
+      expect(node.getJustifyContent()).toBe(JUSTIFY_FLEX_START);
+      // Default position type is relative
+      expect(node.getPositionType()).toBe(POSITION_TYPE_RELATIVE);
+    });
+  });
+
+  describe("Utility Functions", () => {
+    describe("createValue", () => {
+      it("should create a value with default parameters", () => {
+        const value = createValue();
+        expect(value).toEqual({ value: 0, unit: UNIT_UNDEFINED });
+      });
+
+      it("should create a value with specified value", () => {
+        const value = createValue(100);
+        expect(value).toEqual({ value: 100, unit: UNIT_UNDEFINED });
+      });
+
+      it("should create a value with specified value and unit", () => {
+        const value = createValue(50, UNIT_PERCENT);
+        expect(value).toEqual({ value: 50, unit: UNIT_PERCENT });
+      });
+
+      it("should create a point value", () => {
+        const value = createValue(200, UNIT_POINT);
+        expect(value).toEqual({ value: 200, unit: UNIT_POINT });
+      });
+
+      it("should create an auto value", () => {
+        const value = createValue(0, UNIT_AUTO);
+        expect(value).toEqual({ value: 0, unit: UNIT_AUTO });
+      });
+    });
+
+    describe("createDefaultStyle", () => {
+      it("should create a style object with correct defaults", () => {
+        const style = createDefaultStyle();
+
+        // Display and position
+        expect(style.display).toBe(DISPLAY_FLEX);
+        expect(style.positionType).toBe(POSITION_TYPE_RELATIVE);
+
+        // Flex properties
+        expect(style.flexDirection).toBe(FLEX_DIRECTION_COLUMN);
+        expect(style.flexGrow).toBe(0);
+        expect(style.flexShrink).toBe(1); // Yoga default
+        expect(style.flexBasis).toEqual({ value: 0, unit: UNIT_AUTO });
+
+        // Alignment
+        expect(style.alignItems).toBe(ALIGN_STRETCH);
+        expect(style.justifyContent).toBe(JUSTIFY_FLEX_START);
+
+        // Dimensions default to auto
+        expect(style.width).toEqual({ value: 0, unit: UNIT_AUTO });
+        expect(style.height).toEqual({ value: 0, unit: UNIT_AUTO });
+
+        // Min/max dimensions default to undefined
+        expect(style.minWidth).toEqual({ value: 0, unit: UNIT_UNDEFINED });
+        expect(style.maxWidth).toEqual({ value: 0, unit: UNIT_UNDEFINED });
+
+        // Spacing defaults to zero/undefined
+        expect(style.padding).toHaveLength(4);
+        expect(style.margin).toHaveLength(4);
+        expect(style.border).toEqual([0, 0, 0, 0]);
+        expect(style.gap).toEqual([0, 0]);
+      });
+
+      it("should create independent style objects", () => {
+        const style1 = createDefaultStyle();
+        const style2 = createDefaultStyle();
+
+        // Modifying one shouldn't affect the other
+        style1.flexGrow = 5;
+        expect(style2.flexGrow).toBe(0);
+
+        style1.padding[0] = { value: 10, unit: UNIT_POINT };
+        expect(style2.padding[0]).toEqual({ value: 0, unit: UNIT_UNDEFINED });
+      });
     });
   });
 });

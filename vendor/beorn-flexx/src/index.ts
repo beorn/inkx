@@ -95,3 +95,6 @@ export {
 
 // Types
 export type { Layout, MeasureFunc, Style, Value } from "./types.js";
+
+// Utility functions
+export { createDefaultStyle, createValue } from "./types.js";

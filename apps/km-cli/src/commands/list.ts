@@ -12,7 +12,10 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getDb, getAncestors } from "@km/storage";
+import {
+  getAncestors,
+  getFilteredNodes as storageGetFilteredNodes,
+} from "@km/storage";
 import type { KNode } from "@km/core";
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree";
 import { formatNode, formatCollapsedAncestor } from "@km/ink";
@@ -21,7 +24,7 @@ import { formatNode, formatCollapsedAncestor } from "@km/ink";
  * Match a query against a node
  * Query can be: node ID prefix, path pattern, or relative path
  */
-function matchesQuery(node: Node, query: string, ancestors: KNode[]): boolean {
+function matchesQuery(node: KNode, query: string, ancestors: KNode[]): boolean {
   // ID prefix match
   if (node.id.toLowerCase().startsWith(query.toLowerCase())) {
     return true;
@@ -48,37 +51,18 @@ function matchesQuery(node: Node, query: string, ancestors: KNode[]): boolean {
 /**
  * Get nodes filtered by type and query
  */
-function getFilteredNodes(options: {
+function getFilteredNodesWithQuery(options: {
   type?: string;
   query?: string;
   status?: string;
   all?: boolean;
 }): KNode[] {
-  const db = getDb();
-
-  let sql = "SELECT * FROM nodes WHERE 1=1";
-  const params: string[] = [];
-
-  // Filter by type
-  if (options.type) {
-    sql += " AND type = ?";
-    params.push(options.type);
-  }
-
-  // Filter by status (for tasks)
-  if (options.type === "task" && !options.all) {
-    if (options.status) {
-      sql += " AND task_status = ?";
-      params.push(options.status);
-    } else {
-      // By default, exclude done tasks
-      sql += " AND (task_status IS NULL OR task_status != 'done')";
-    }
-  }
-
-  sql += " ORDER BY parent_idx ASC, created_at DESC";
-
-  let nodes = db.prepare(sql).all(...params) as Node[];
+  // Use storage API for the base filtering
+  let nodes = storageGetFilteredNodes({
+    type: options.type,
+    status: options.status,
+    excludeDone: options.type === "task" && !options.all && !options.status,
+  });
 
   // Apply query filter if provided
   if (options.query) {
@@ -178,7 +162,7 @@ export const listCommand = new Command("list")
   .option("-f, --flat", "Flat output with path prefixes")
   .option("--json", "Output as JSON")
   .action((query, options) => {
-    const nodes = getFilteredNodes({
+    const nodes = getFilteredNodesWithQuery({
       type: options.type,
       query,
       status: options.status,

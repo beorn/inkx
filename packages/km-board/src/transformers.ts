@@ -27,10 +27,3 @@ export function toBoardViewModel(
   };
 }
 
-// ===== Legacy alias for backward compatibility =====
-// TODO: Remove after migrating consumers
-
-/**
- * @deprecated Use toBoardViewModel instead
- */
-export const toTreeViewModel = toBoardViewModel;

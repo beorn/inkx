@@ -12,11 +12,11 @@ import { Command } from "commander";
 import chalk from "chalk";
 import {
   resolveNode,
-  getDb,
   getStore,
   getChildren,
   resolvePathArg,
   ensureState,
+  findProject,
 } from "@km/storage";
 import { getRootPath } from "../index.ts";
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree";
@@ -26,49 +26,6 @@ const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
 ) => getNodeDisplayNameBase(node, getChildren);
 import type { KNode } from "@km/core";
-
-/**
- * Find a project by name (searches folders and files with matching name/content)
- */
-function findProject(name: string): KNode | null {
-  const db = getDb();
-
-  // Search for folders or files whose name matches
-  const normalizedName = name.toLowerCase();
-
-  // Search by content (for sections/notes) or fs_path basename
-  const nodes = db
-    .query(
-      `
-    SELECT * FROM nodes
-    WHERE type IN ('folder', 'file', 'section')
-    AND (
-      LOWER(content) = ?
-      OR LOWER(content) LIKE ?
-      OR fs_path LIKE ?
-    )
-    LIMIT 10
-  `,
-    )
-    .all(
-      normalizedName,
-      `%${normalizedName}%`,
-      `%/${normalizedName}%`,
-    ) as Node[];
-
-  // Prefer exact match
-  for (const node of nodes) {
-    if (node.content?.toLowerCase() === normalizedName) {
-      return node;
-    }
-    if (node.fs_path?.split("/").pop()?.toLowerCase() === normalizedName) {
-      return node;
-    }
-  }
-
-  // Otherwise return first match
-  return nodes[0] ?? null;
-}
 
 export const moveCommand = new Command("move")
   .description("Move a node to a different parent")
