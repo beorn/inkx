@@ -96,6 +96,7 @@ export function ListView({
       <Box
         flexDirection="column"
         flexGrow={1}
+        width={width}
         minHeight={1}
         overflow="scroll"
         scrollTo={selectedFlatIndex}
@@ -115,16 +116,21 @@ export function ListView({
             );
 
             return (
-              <Text
-                key={`header-${column.node.id}`}
-                bold={isSelected}
-                color={headerStyle.color}
-                dimColor={headerStyle.dimColor}
-                backgroundColor={headerStyle.backgroundColor}
-                wrap="truncate"
-              >
-                {getNodeDisplayName(column.node)} ({column.cards.length})
-              </Text>
+              <Box key={`header-${column.node.id}`} flexDirection="column">
+                <Text
+                  bold={isSelected}
+                  color={headerStyle.color}
+                  dimColor={headerStyle.dimColor}
+                  backgroundColor={headerStyle.backgroundColor}
+                  wrap="truncate"
+                >
+                  {" "}
+                  {getNodeDisplayName(column.node)} ({column.cards.length})
+                </Text>
+                <Text dimColor wrap="truncate">
+                  {"─".repeat(100)}
+                </Text>
+              </Box>
             );
           }
 

@@ -294,8 +294,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Handle detail pane navigation (j/k to move cards while pane is open)
   useInput(
     (input, key) => {
-      // Detail pane has limited navigation: j/k/arrows for cards, h/q to close
-      if (input === "h") {
+      // Detail pane has limited navigation: j/k/arrows for cards, h/Esc to close, q to quit
+      if (input === "h" || key.escape) {
         dispatch(actions.setDetailPane(false));
         return;
       }
@@ -1243,7 +1243,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           overflow="hidden"
         >
           {/* Top bar: full path from root to selected item, auto layout */}
-          <Box flexShrink={0} alignSelf="stretch" backgroundColor={topBarBgColor}>
+          <Box
+            flexShrink={0}
+            alignSelf="stretch"
+            backgroundColor={topBarBgColor}
+          >
             <Text color={topBarTextColor} bold>
               {" "}
               {selectedPathSegments
@@ -1403,8 +1407,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <HelpOverlay width={termWidth} height={contentHeight} />
             )}
           </Box>
-          {/* Bottom bar: auto layout with space-between */}
+          {/* Bottom bar: mode indicator left, other indicators right */}
+          {/* flexDirection="row" is REQUIRED for justifyContent="space-between" to work horizontally */}
           <Box
+            flexDirection="row"
             flexShrink={0}
             alignSelf="stretch"
             backgroundColor="black"
@@ -1446,7 +1452,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 chalk.inverse(` ${ui.viewMode.toUpperCase()} VIEW `),
               ]
                 .filter(Boolean)
-                .join("")}{" "}</Text>
+                .join("")}{" "}
+            </Text>
           </Box>
         </Box>
       </UIProvider>

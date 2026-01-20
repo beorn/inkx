@@ -280,8 +280,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Handle detail pane navigation (j/k to move cards while pane is open)
   useInput(
     (input, key) => {
-      // Detail pane has limited navigation: j/k/arrows for cards, h/q to close
-      if (input === "h") {
+      // Detail pane has limited navigation: j/k/arrows for cards, h/Esc to close, q to quit
+      if (input === "h" || key.escape) {
         dispatch(actions.setDetailPane(false));
         return;
       }
@@ -1046,8 +1046,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       const currentIdx = siblings.findIndex((s) => s.id === currentRoot.id);
       if (currentIdx < 0) return;
 
-      const targetIdx =
-        direction === "next" ? currentIdx + 1 : currentIdx - 1;
+      const targetIdx = direction === "next" ? currentIdx + 1 : currentIdx - 1;
       if (targetIdx < 0 || targetIdx >= siblings.length) {
         process.stdout.write("\x07"); // Beep at boundary
         return;
@@ -1401,8 +1400,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             )}
           </Box>
           {/* Bottom bar: mode indicator left, other indicators right */}
-          {/* flexShrink={0} prevents this bar from being clipped when content overflows */}
+          {/* flexDirection="row" is REQUIRED for justifyContent="space-between" to work horizontally */}
           <Box
+            flexDirection="row"
             width={termWidth}
             justifyContent="space-between"
             paddingX={1}

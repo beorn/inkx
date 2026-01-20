@@ -56,7 +56,7 @@ function ColumnTree({
   return (
     <Box flexDirection="column" flexGrow={1} overflow="hidden">
       {/* Header section */}
-      <Box flexDirection="column" height={2} flexShrink={0}>
+      <Box flexDirection="column" height={3} flexShrink={0}>
         <Text> </Text>
         <Text
           bold={isSelected}
@@ -65,7 +65,11 @@ function ColumnTree({
           backgroundColor={headerStyle.backgroundColor}
           wrap="truncate"
         >
+          {" "}
           {name} ({count})
+        </Text>
+        <Text dimColor wrap="truncate">
+          {"─".repeat(100)}
         </Text>
       </Box>
 

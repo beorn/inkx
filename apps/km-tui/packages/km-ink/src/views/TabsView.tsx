@@ -72,17 +72,18 @@ export function TabsView({
               : "white";
 
           return (
-            <Box key={column.node.id} marginRight={1}>
+            <React.Fragment key={column.node.id}>
               <Text
                 bold={showActiveHighlight}
                 color={textColor}
                 backgroundColor={isTabSelected ? "cyan" : undefined}
                 dimColor={!showActiveHighlight && selectionLevel === "board"}
               >
+                {" "}
                 {truncatedName} ({colCount})
               </Text>
               {cIdx < state.columns.length - 1 && <Text dimColor> │</Text>}
-            </Box>
+            </React.Fragment>
           );
         })}
       </Box>

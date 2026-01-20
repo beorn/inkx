@@ -159,8 +159,10 @@ export function TreeNode({
   // Multi-line context handling
   const isMultiLine = additionalLines.length > 0;
   const showInlineContext = !isMultiLine && truncatedContext;
-  // Only show separate context above if we have multi-line content (inline context won't work)
-  const showSeparateContext = isMultiLine && isEmbedded && parentContext;
+  // Only show separate context above in wide mode when content is multi-line (inline context won't work)
+  // Compact mode (columns view) never shows separate context line to keep items compact
+  const showSeparateContext =
+    !isCompact && isMultiLine && isEmbedded && parentContext;
 
   // Calculate padding to clear line
   const firstLineDisplayLen =

@@ -134,9 +134,6 @@ export function TreeNode({
         ? resolvedGetParentContext(node)
         : null;
 
-  // Continuation indent for wrapped lines
-  const continuationIndent = " ".repeat(prefix.length);
-
   // Context suffix (truncated to reasonable length when shown inline)
   const truncatedContext = !isCompact
     ? truncateContext(parentContext, 40) // Fixed max context width
@@ -151,10 +148,10 @@ export function TreeNode({
 
   return (
     <Box flexDirection="column">
-      {/* Parent context line (shown ABOVE task for embedded items) */}
-      {isEmbedded && parentContext && (
+      {/* Parent context line (shown ABOVE task for embedded items, wide mode only) */}
+      {!isCompact && isEmbedded && parentContext && (
         <Text dimColor italic wrap="truncate">
-          {continuationIndent}
+          {"< "}
           {parentContext}
         </Text>
       )}

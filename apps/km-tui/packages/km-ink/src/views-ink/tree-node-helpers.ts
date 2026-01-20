@@ -110,9 +110,23 @@ export interface PrefixResult {
   foldedCount: string;
 }
 
+/** Width reserved for icon in the margin (accounts for emoji width) */
+const ICON_SLOT_WIDTH = 2;
+
 /**
  * Build the prefix portion of a tree node line.
- * Returns indent + fold indicator + icon info.
+ *
+ * Uses "hanging bullet" style: content starts at a consistent position,
+ * with fold indicator and icon "hanging" in the left margin.
+ *
+ * Layout (positions are 0-indexed from after indent):
+ *   Position 0: fold indicator (▶/▼) or space
+ *   Position 1-2: icon slot (2 chars reserved for emoji width)
+ *   Position 3: space (separator before content)
+ *   Position 4+: content starts here
+ *
+ * This ensures content aligns consistently regardless of whether
+ * there's a fold indicator or what icon is used.
  */
 export function buildPrefix(
   depth: number,
@@ -129,8 +143,16 @@ export function buildPrefix(
   const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : " ";
   const foldedCount = hasChildren && isFolded ? ` (${childCount})` : "";
 
+  // Calculate icon display width (emojis are 2, single chars are 1, empty is 0)
+  const iconDisplayWidth = getIconDisplayWidth(icon.char);
+  // Pad after icon to maintain consistent content start position
+  const iconPadding = " ".repeat(
+    Math.max(0, ICON_SLOT_WIDTH - iconDisplayWidth),
+  );
+
+  // Hanging bullet: fold indicator is in the margin, icon follows with padding
   const beforeIcon = `${indent}${foldIndicator}`;
-  const afterIcon = " ";
+  const afterIcon = `${iconPadding} `; // padding + space separator
   const length = beforeIcon.length + icon.char.length + afterIcon.length;
 
   return {
@@ -142,6 +164,17 @@ export function buildPrefix(
     length,
     foldedCount,
   };
+}
+
+/**
+ * Get display width of an icon character.
+ * Emojis (folder/file) are 2 columns, single chars are 1, empty is 0.
+ */
+function getIconDisplayWidth(iconChar: string): number {
+  if (iconChar === "") return 0;
+  // Folder (📁) and file (📄) emojis are surrogate pairs, display as 2 columns
+  if (iconChar.length > 1) return 2;
+  return 1;
 }
 
 // =============================================================================
@@ -253,11 +286,12 @@ export interface TreeNodeHeightConfig {
  * Estimate the rendered height (in lines) of a TreeNode.
  *
  * This accounts for:
- * - Parent context line (if embedded task at depth 0)
+ * - Parent context line (if embedded task at depth 0, wide mode only)
  * - Content lines (can wrap up to maxContentLines)
  * - Children (recursive, capped by maxOutlineDepth and maxChildren)
  *
  * Used by ListView and ColumnsView to properly calculate how many items fit.
+ * Note: Compact mode (columns view) never shows separate parent context line.
  */
 export function estimateTreeNodeHeight(
   node: KNode,
@@ -266,22 +300,26 @@ export function estimateTreeNodeHeight(
   getChildren: (id: string) => KNode[],
   foldedNodes: Set<string>,
   parentContext?: string | null,
+  isCompact = false,
 ): number {
   const { maxContentLines, maxOutlineDepth, maxChildren, availableWidth } =
     config;
 
   let height = 0;
 
-  // Parent context line for embedded tasks at depth 0
+  // Parent context line for embedded tasks at depth 0 (wide mode only)
+  // Compact mode never shows separate context line to keep items compact
   const isEmbedded = node.link_to != null;
-  const showSeparateContext = depth === 0 && isEmbedded && parentContext;
+  const showSeparateContext =
+    !isCompact && depth === 0 && isEmbedded && parentContext;
   if (showSeparateContext) {
     height += 1;
   }
 
   // Content lines: estimate based on content length vs available width
   const content = node.content || node.title || "";
-  const prefixLength = depth + 3; // indent + fold indicator + icon + space
+  // Prefix: indent + fold indicator (1) + icon slot (2) + space (1)
+  const prefixLength = depth + 1 + ICON_SLOT_WIDTH + 1;
   const contentWidth = Math.max(1, availableWidth - prefixLength);
   const estimatedLines = Math.min(
     maxContentLines,
@@ -303,6 +341,8 @@ export function estimateTreeNodeHeight(
         config,
         getChildren,
         foldedNodes,
+        undefined, // parentContext
+        isCompact,
       );
     }
 

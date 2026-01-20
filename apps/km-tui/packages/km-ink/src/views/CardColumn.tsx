@@ -115,6 +115,7 @@ export function Column({
           backgroundColor={headerStyle.backgroundColor}
           wrap="truncate"
         >
+          {" "}
           {name}
           {typeSuffix ? <Text dimColor>{` ${typeSuffix}`}</Text> : ""}
           {wipExceeded ? (
