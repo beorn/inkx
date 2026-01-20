@@ -182,7 +182,10 @@ export function isUIAction(action: CommandAction): action is UIAction {
     action.type === "JUMP_TO_FAVORITE" ||
     action.type === "JUMP_TO_COLUMN" ||
     action.type === "CLOSE_OR_QUIT" ||
-    action.type === "OUTDENT_NODE"
+    action.type === "OUTDENT_NODE" ||
+    action.type === "NAV_SIBLING_BOARD" ||
+    action.type === "ENTER_NODE" ||
+    action.type === "PAGE_JUMP"
   );
 }
 
@@ -197,7 +200,10 @@ export function isTUIAction(action: CommandAction): action is TUIAction {
     action.type === "JUMP_TO_FAVORITE" ||
     action.type === "JUMP_TO_COLUMN" ||
     action.type === "CLOSE_OR_QUIT" ||
-    action.type === "OUTDENT_NODE"
+    action.type === "OUTDENT_NODE" ||
+    action.type === "NAV_SIBLING_BOARD" ||
+    action.type === "ENTER_NODE" ||
+    action.type === "PAGE_JUMP"
   );
 }
 

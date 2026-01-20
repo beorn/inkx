@@ -356,6 +356,15 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         case "OUTDENT_NODE":
           if (card) outdentNode(keyboardContext, card);
           break;
+        case "NAV_SIBLING_BOARD":
+          handleNavSiblingBoard(action.direction);
+          break;
+        case "ENTER_NODE":
+          handleEnterNode();
+          break;
+        case "PAGE_JUMP":
+          handlePageJump(action.direction);
+          break;
       }
     } else if (isUIAction(action)) {
       // Non-TUI UI actions
@@ -1032,6 +1041,101 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         moveCardInColumn(keyboardContext, card, direction);
       } else {
         moveCardToColumn(keyboardContext, card, direction);
+      }
+    }
+
+    function handleNavSiblingBoard(direction: "next" | "prev") {
+      if (!boardState.rootId) return;
+      const currentRoot = getNode(boardState.rootId);
+      if (!currentRoot?.parent_id) return;
+
+      const siblings = getChildren(currentRoot.parent_id);
+      const currentIdx = siblings.findIndex((s) => s.id === currentRoot.id);
+      if (currentIdx < 0) return;
+
+      const targetIdx =
+        direction === "next" ? currentIdx + 1 : currentIdx - 1;
+      if (targetIdx < 0 || targetIdx >= siblings.length) {
+        process.stdout.write("\x07"); // Beep at boundary
+        return;
+      }
+
+      const targetSibling = siblings[targetIdx];
+      if (!targetSibling) return;
+
+      const nodes = buildTreeNodes(targetSibling.id);
+
+      pushNavHistoryEntry(
+        dispatch,
+        boardState.rootId,
+        columnsLayout.colIndex,
+        columnsLayout.cardIndex,
+        ui.subIndex,
+        ui.multiSelected,
+        ui.inOutlineMode,
+      );
+      dispatch(actions.exitOutlineMode());
+      dispatch(actions.setSubIndex(0));
+      clearSelection(keyboardContext);
+      dispatch(actions.setDetailPane(false));
+
+      dispatchBoard({
+        type: "ZOOM_IN",
+        nodeId: targetSibling.id,
+        nodes,
+        cursor: [0, 0],
+      });
+    }
+
+    function handleEnterNode() {
+      if (ui.showDetailPane || ui.inOutlineMode) return;
+      if (!card) return;
+
+      const targetId = card.node.link_to || card.node.id;
+      const nodes = buildTreeNodes(targetId);
+
+      pushNavHistoryEntry(
+        dispatch,
+        boardState.rootId,
+        columnsLayout.colIndex,
+        columnsLayout.cardIndex,
+        ui.subIndex,
+        ui.multiSelected,
+        ui.inOutlineMode,
+      );
+      dispatch(actions.exitOutlineMode());
+      dispatch(actions.setSubIndex(0));
+      clearSelection(keyboardContext);
+      dispatch(actions.setDetailPane(false));
+
+      dispatchBoard({
+        type: "ZOOM_IN",
+        nodeId: targetId,
+        nodes,
+        cursor: [0, 0],
+      });
+    }
+
+    function handlePageJump(direction: "up" | "down") {
+      // Jump by approximately half the visible card count
+      const col = state.columns[state.colIndex];
+      if (!col) return;
+
+      const pageSize = Math.max(1, Math.floor(col.cards.length / 2));
+      const currentIdx = state.cardIndex;
+      let targetIdx: number;
+
+      if (direction === "down") {
+        targetIdx = Math.min(col.cards.length - 1, currentIdx + pageSize);
+      } else {
+        targetIdx = Math.max(0, currentIdx - pageSize);
+      }
+
+      if (targetIdx !== currentIdx) {
+        dispatchBoard({
+          type: "NAV_TO_PATH",
+          path: [state.colIndex, targetIdx],
+        });
       }
     }
   }

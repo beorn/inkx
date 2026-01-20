@@ -160,6 +160,54 @@ export const openDetailPane: CommandDef = {
   execute: () => ({ type: "OPEN_DETAIL_PANE" }),
 };
 
+// Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
+export const pageDown: CommandDef = {
+  id: "page_down",
+  name: "Page Down",
+  description: "Jump cursor down half a page",
+  category: "Navigation",
+  shortcuts: ["Ctrl+D"],
+  execute: () => ({ type: "PAGE_JUMP", direction: "down" }),
+};
+
+export const pageUp: CommandDef = {
+  id: "page_up",
+  name: "Page Up",
+  description: "Jump cursor up half a page",
+  category: "Navigation",
+  shortcuts: ["Ctrl+U"],
+  execute: () => ({ type: "PAGE_JUMP", direction: "up" }),
+};
+
+// Sibling board navigation (Ctrl+J/Ctrl+K)
+export const siblingBoardNext: CommandDef = {
+  id: "sibling_board_next",
+  name: "Next Sibling Board",
+  description: "Navigate to next sibling board",
+  category: "Navigation",
+  shortcuts: ["Ctrl+J"],
+  execute: () => ({ type: "NAV_SIBLING_BOARD", direction: "next" }),
+};
+
+export const siblingBoardPrev: CommandDef = {
+  id: "sibling_board_prev",
+  name: "Previous Sibling Board",
+  description: "Navigate to previous sibling board",
+  category: "Navigation",
+  shortcuts: ["Ctrl+K"],
+  execute: () => ({ type: "NAV_SIBLING_BOARD", direction: "prev" }),
+};
+
+// Enter node as board (like zoom but TUI-specific)
+export const enterNode: CommandDef = {
+  id: "enter_node",
+  name: "Enter Node",
+  description: "Enter current node as a board",
+  category: "Navigation",
+  shortcuts: ["i"],
+  execute: () => ({ type: "ENTER_NODE" }),
+};
+
 // All navigation commands
 export const navigationCommands: CommandDef[] = [
   cursorPrev,
@@ -178,4 +226,9 @@ export const navigationCommands: CommandDef[] = [
   zoomOut,
   goUpPath,
   openDetailPane,
+  pageDown,
+  pageUp,
+  siblingBoardNext,
+  siblingBoardPrev,
+  enterNode,
 ];

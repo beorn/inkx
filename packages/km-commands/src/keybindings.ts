@@ -91,8 +91,17 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "[", commandId: "nav_back" },
   { key: "]", commandId: "nav_forward" },
 
+  // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
+  { key: "d", ctrl: true, commandId: "page_down" },
+  { key: "u", ctrl: true, commandId: "page_up" },
+
+  // Sibling board navigation
+  { key: "j", ctrl: true, commandId: "sibling_board_next" },
+  { key: "k", ctrl: true, commandId: "sibling_board_prev" },
+
   // Zoom/Navigate
   { key: "o", commandId: "zoom_in" }, // TUI uses 'o' for zoom in
+  { key: "i", commandId: "enter_node" }, // Enter node as board
   { key: "u", commandId: "go_up_path" }, // Go up physical path (parent of root)
   { key: "Enter", commandId: "open_detail_pane", modes: ["normal"] }, // Open detail view
 

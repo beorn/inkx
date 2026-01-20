@@ -123,6 +123,20 @@ export interface OutdentNodeAction {
   type: "OUTDENT_NODE";
 }
 
+export interface NavSiblingBoardAction {
+  type: "NAV_SIBLING_BOARD";
+  direction: "next" | "prev";
+}
+
+export interface EnterNodeAction {
+  type: "ENTER_NODE"; // Like zoom_in but stays in board view
+}
+
+export interface PageJumpAction {
+  type: "PAGE_JUMP";
+  direction: "up" | "down";
+}
+
 export type TUIAction =
   | QuitAction
   | ShowNewItemDialogAction
@@ -130,7 +144,10 @@ export type TUIAction =
   | JumpToFavoriteAction
   | JumpToColumnAction
   | CloseOrQuitAction
-  | OutdentNodeAction;
+  | OutdentNodeAction
+  | NavSiblingBoardAction
+  | EnterNodeAction
+  | PageJumpAction;
 
 export type UIAction =
   | GoUpPathAction

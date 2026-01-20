@@ -104,6 +104,7 @@ export type BoardAction =
   // Jump navigation (not cursor movement)
   | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" }
   | { type: "NAV_TO_PATH"; path: TPath }
+  | { type: "NAV_PAGE"; direction: "up" | "down"; pageSize: number }
 
   // Node operations
   | { type: "TOGGLE_FOLD"; nodeId: string }
