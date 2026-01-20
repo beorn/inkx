@@ -1416,32 +1416,34 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             <Text>
               {(() => {
                 // Build entire bottom bar as single string with explicit full-width fill
+                // Use bgBlack wrapper to ensure consistent background across all segments
                 const store = getStore();
+                const bg = chalk.bgBlack;
                 const left =
                   " " +
                   (store.mode === "memory"
-                    ? chalk.yellow(`MEM REPO ${store.rootPath}`)
-                    : chalk.green(`DISK REPO ${store.rootPath}`));
+                    ? bg.yellow(`MEM REPO ${store.rootPath}`)
+                    : bg.green(`DISK REPO ${store.rootPath}`));
                 const rightParts = [
-                  ui.showHelp ? chalk.cyan("[HELP ?] ") : "",
-                  ui.showProjectPicker ? chalk.green("[PROJECT] ") : "",
-                  ui.showNewItemDialog ? chalk.green("[NEW] ") : "",
+                  ui.showHelp ? bg.cyan("[HELP ?] ") : "",
+                  ui.showProjectPicker ? bg.green("[PROJECT] ") : "",
+                  ui.showNewItemDialog ? bg.green("[NEW] ") : "",
                   ui.showDropNotification && ui.droppedFiles.length > 0
-                    ? chalk.green(
+                    ? bg.green(
                         `[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `,
                       )
                     : "",
                   ui.isMouseDragging && ui.mouseSelection
-                    ? chalk.blue(
+                    ? bg.blue(
                         `[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `,
                       )
                     : "",
                   ui.multiSelected.size > 0
-                    ? chalk.yellow(`[${ui.multiSelected.size} sel] `)
+                    ? bg.yellow(`[${ui.multiSelected.size} sel] `)
                     : "",
-                  ui.inOutlineMode ? chalk.cyan("OUTLINE ") : "",
+                  ui.inOutlineMode ? bg.cyan("OUTLINE ") : "",
                   ui.selectionLevel !== "card"
-                    ? chalk.magenta(`${ui.selectionLevel.toUpperCase()} `)
+                    ? bg.magenta(`${ui.selectionLevel.toUpperCase()} `)
                     : "",
                   chalk.inverse(` ${ui.viewMode.toUpperCase()} VIEW `),
                 ].join("");
@@ -1468,7 +1470,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                   1,
                   termWidth - leftVisLen - rightVisLen,
                 );
-                return left + " ".repeat(middleLen) + rightParts;
+                return bg(left + " ".repeat(middleLen)) + rightParts;
               })()}
             </Text>
           </Box>
