@@ -1407,22 +1407,22 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           </Box>
           {/* Bottom bar: mode indicator left, other indicators right */}
           {/* flexShrink={0} prevents this bar from being clipped when content overflows */}
+          {/* height={1} ensures consistent sizing like top bar */}
           <Box
             width={termWidth}
+            height={1}
             justifyContent="space-between"
             paddingX={1}
             flexShrink={0}
           >
             {/* Left side: store mode indicator and path */}
-            <Text>
-              {(() => {
-                const store = getStore();
-                if (store.mode === "memory") {
-                  return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
-                }
-                return <Text color="green">DISK REPO {store.rootPath}</Text>;
-              })()}
-            </Text>
+            {(() => {
+              const store = getStore();
+              if (store.mode === "memory") {
+                return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
+              }
+              return <Text color="green">DISK REPO {store.rootPath}</Text>;
+            })()}
             {/* Right side: status indicators */}
             <Text>
               {ui.showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
