@@ -4,26 +4,70 @@
  * Layout functions for the TUI that operate on styled ANSI strings.
  * These are TUI-specific and not needed by CLI commands.
  *
- * ## Modules
- * - `wrap` - Word-wrap styled text
- * - `truncate` - Truncate and pad styled text
- * - `constrain` - Combine wrap + truncate with limits
- * - `path` - Smart breadcrumb path rendering
+ * ## Text utilities (from @beorn/tui-measure)
+ * - `wrapText` - Word-wrap styled text
+ * - `truncateText`, `padText` - Truncate and pad styled text
+ * - `constrainText` - Combine wrap + truncate with limits
+ * - `displayLength`, `stripAnsi` - ANSI-aware string measurement
+ *
+ * ## Path rendering (km-ink specific)
+ * - `renderPath`, `renderParentPath` - Smart breadcrumb path rendering
+ *
+ * ## Constraint components (inkx-bound)
+ * - `ConstraintRoot` - Provides terminal dimensions via context
+ * - `FlexRow`, `FlexItem` - Horizontal space distribution
+ * - `TruncatedText` - Auto-truncating text component
+ * - `ScrollableList` - Virtualized scrolling list
  */
 
-// Text wrapping
-export { wrapText } from "./wrap.ts";
+// Text utilities from tui-measure
+export {
+  wrapText,
+  truncateText,
+  padText,
+  constrainText,
+  displayLength,
+  stripAnsi,
+  calcScrollOffset,
+  ANSI_REGEX,
+} from "@beorn/tui-measure";
 
-// Text truncation and padding
-export { truncateText, padText } from "./truncate.ts";
-
-// Text constraining (wrap + truncate + limit)
-export { constrainText } from "./constrain.ts";
-
-// Path rendering
+// Path rendering (km-ink specific)
 export {
   renderPath,
   renderParentPath,
   calcPathLength,
   type PathSegment,
 } from "./path.ts";
+
+// Constraint components and hooks (inkx-bound by default)
+export {
+  // Components
+  ConstraintRoot,
+  FlexRow,
+  FlexItem,
+  TruncatedText,
+  ScrollableList,
+  // Hooks
+  useConstraintContext,
+  useComputedSize,
+  useTerminalSize,
+  useTruncatedText,
+  useScrollState,
+  // Pure functions
+  distributeSpace,
+  calculateScrollState,
+  // Context (for advanced usage)
+  ConstraintContext,
+  // Types
+  type ConstraintRootProps,
+  type FlexRowProps,
+  type FlexItemProps,
+  type TruncatedTextProps,
+  type ScrollableListProps,
+  type ConstraintContextValue,
+  type ComputedSize,
+  type TerminalSize,
+  type FlexItemConfig,
+  type ScrollState,
+} from "./inkx.ts";

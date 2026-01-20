@@ -24,8 +24,8 @@ export const viewCommand = new Command("view")
   )
   .option(
     "--tui <engine>",
-    `TUI rendering engine: ${TUI_ENGINES.join(", ")} (default: ink)`,
-    "ink",
+    `TUI rendering engine: ${TUI_ENGINES.join(", ")} (default: inkx-flexx)`,
+    "inkx-flexx",
   )
   .action(async (root, options) => {
     // Resolve path argument - handles directory paths, file paths, and node IDs

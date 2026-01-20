@@ -4,7 +4,6 @@
  * Functions for measuring, truncating, wrapping, and padding styled terminal strings.
  */
 
-import chalk from "chalk";
 import stringWidth from "string-width";
 import wrapAnsi from "wrap-ansi";
 
@@ -38,11 +37,21 @@ export function stripAnsi(text: string): string {
 /**
  * Word-wrap text to fit within a given width.
  * Works correctly with ANSI-styled strings.
+ *
+ * Note: Strips trailing empty lines (from trailing newlines in input)
+ * but preserves empty lines in the middle (intentional paragraph breaks).
  */
 export function wrapText(text: string, width: number): string[] {
   if (!text) return [];
   const wrapped = wrapAnsi(text, width, { hard: true, trim: true });
-  return wrapped.split("\n");
+  const lines = wrapped.split("\n");
+
+  // Strip trailing empty lines (but preserve middle ones for paragraph breaks)
+  while (lines.length > 0 && lines[lines.length - 1] === "") {
+    lines.pop();
+  }
+
+  return lines;
 }
 
 /**
@@ -107,7 +116,8 @@ export function truncateText(
     resultParts.push("\x1b]8;;\x1b\\");
   }
 
-  return resultParts.join("") + chalk.reset("") + ellipsis;
+  // Reset ANSI styles before ellipsis to ensure clean output
+  return resultParts.join("") + "\x1b[0m" + ellipsis;
 }
 
 /**

@@ -1,34 +1,29 @@
-# @beorn/ink-measure
+# @beorn/tui-measure
 
-Constraint-based layout system for [Ink](https://github.com/vadimdemedes/ink). Add dimension awareness to existing Ink apps incrementally via React context.
+Framework-agnostic text measurement and constraint-based layout for terminal UIs.
+
+Works with Ink, inkx, or any React-based TUI framework.
 
 ## Features
 
 - **Integer-math flex distribution** - Avoids 1-char gap bugs from floating-point errors
-- **ANSI-aware text truncation** - Properly handles styled strings with escape codes
+- **ANSI-aware text utilities** - Measure, truncate, wrap styled strings with escape codes
 - **Variable-height virtualized scrolling** - Efficient rendering of long lists
-- **Context-based dimensions** - Components automatically know their available width/height
-
-## When to use @beorn/ink-measure vs inkx
-
-| Use Case | Package |
-|----------|---------|
-| Existing Ink app - add dimension awareness incrementally | **@beorn/ink-measure** |
-| New TUI app or full migration - layout-first rendering | [inkx](https://github.com/beorn/inkx) |
+- **Framework-agnostic** - Render props pattern lets you plug in any UI framework
 
 ## Installation
 
 ```bash
-npm install @beorn/ink-measure
+npm install @beorn/tui-measure
 # or
-bun add @beorn/ink-measure
+bun add @beorn/tui-measure
 ```
 
 ## Quick Start
 
 ```tsx
 import { render, useStdout, Text, Box } from "ink";
-import { ConstraintRoot, TruncatedText, useComputedSize } from "@beorn/ink-measure";
+import { ConstraintRoot, TruncatedText, useComputedSize } from "@beorn/tui-measure";
 
 function App() {
   const { stdout } = useStdout();
@@ -153,7 +148,7 @@ import {
   truncateText,    // Truncate with ellipsis
   padText,         // Pad to width
   constrainText,   // Wrap + truncate + pad
-} from "@beorn/ink-measure";
+} from "@beorn/tui-measure";
 
 // Get display width (handles ANSI, emoji, CJK)
 displayLength("\x1b[31mHello\x1b[0m"); // 5

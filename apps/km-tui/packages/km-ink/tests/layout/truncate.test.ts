@@ -3,8 +3,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { truncateText, padText } from "../../src/layout/truncate.ts";
-import { displayLength } from "../../src/text/rich.ts";
+import { truncateText, padText, displayLength } from "@beorn/tui-measure";
 
 describe("truncateText", () => {
   it("returns unchanged if text fits", () => {

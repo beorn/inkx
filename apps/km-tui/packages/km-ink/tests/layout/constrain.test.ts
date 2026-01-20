@@ -3,8 +3,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { constrainText } from "../../src/layout/constrain.ts";
-import { displayLength } from "../../src/text/rich.ts";
+import { constrainText, displayLength } from "@beorn/tui-measure";
 
 describe("constrainText", () => {
   it("returns single line for short text", () => {

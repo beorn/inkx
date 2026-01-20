@@ -10,7 +10,7 @@ import type { CardState, ColumnState } from "../types.ts";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { TreeNode } from "./TreeNode.tsx";
-import { calculateScrollState } from "../constraints-ink/index.ts";
+import { calculateScrollState } from "../layout/ink.ts";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";
 
 // =============================================================================

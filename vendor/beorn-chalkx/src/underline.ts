@@ -1,0 +1,138 @@
+/**
+ * Extended underline style functions.
+ *
+ * Provides curly, dotted, dashed, and double underline styles
+ * with graceful fallback to standard underline on unsupported terminals.
+ */
+
+import chalk from "chalk";
+import {
+  UNDERLINE_CODES,
+  UNDERLINE_COLOR_RESET,
+  UNDERLINE_STANDARD,
+  UNDERLINE_RESET_STANDARD,
+  buildUnderlineColorCode,
+} from "./constants.js";
+import { supportsExtendedUnderline } from "./detection.js";
+import type { UnderlineStyle, RGB } from "./types.js";
+
+// =============================================================================
+// Extended Underline Functions
+// =============================================================================
+
+/**
+ * Apply an extended underline style to text.
+ * Falls back to regular underline on unsupported terminals.
+ *
+ * @param text - Text to underline
+ * @param style - Underline style (default: "single")
+ * @returns Styled text with ANSI codes
+ */
+export function underline(
+  text: string,
+  style: UnderlineStyle = "single",
+): string {
+  if (!supportsExtendedUnderline() || style === "single") {
+    return chalk.underline(text);
+  }
+
+  return `${UNDERLINE_CODES[style]}${text}${UNDERLINE_CODES.reset}`;
+}
+
+/**
+ * Apply curly/wavy underline to text.
+ * Commonly used for spell check errors in IDEs.
+ * Falls back to regular underline on unsupported terminals.
+ *
+ * @param text - Text to underline
+ * @returns Styled text with curly underline
+ */
+export function curlyUnderline(text: string): string {
+  return underline(text, "curly");
+}
+
+/**
+ * Apply dotted underline to text.
+ * Falls back to regular underline on unsupported terminals.
+ *
+ * @param text - Text to underline
+ * @returns Styled text with dotted underline
+ */
+export function dottedUnderline(text: string): string {
+  return underline(text, "dotted");
+}
+
+/**
+ * Apply dashed underline to text.
+ * Falls back to regular underline on unsupported terminals.
+ *
+ * @param text - Text to underline
+ * @returns Styled text with dashed underline
+ */
+export function dashedUnderline(text: string): string {
+  return underline(text, "dashed");
+}
+
+/**
+ * Apply double underline to text.
+ * Falls back to regular underline on unsupported terminals.
+ *
+ * @param text - Text to underline
+ * @returns Styled text with double underline
+ */
+export function doubleUnderline(text: string): string {
+  return underline(text, "double");
+}
+
+// =============================================================================
+// Underline Color Functions
+// =============================================================================
+
+/**
+ * Set underline color independently of text color.
+ * On unsupported terminals, the color is ignored but underline still applies.
+ *
+ * @param r - Red component (0-255)
+ * @param g - Green component (0-255)
+ * @param b - Blue component (0-255)
+ * @param text - Text to style
+ * @returns Styled text with colored underline
+ */
+export function underlineColor(
+  r: number,
+  g: number,
+  b: number,
+  text: string,
+): string {
+  if (!supportsExtendedUnderline()) {
+    // Fallback: just apply regular underline, ignore color
+    return chalk.underline(text);
+  }
+
+  const colorCode = buildUnderlineColorCode(r, g, b);
+  return `${UNDERLINE_STANDARD}${colorCode}${text}${UNDERLINE_COLOR_RESET}${UNDERLINE_RESET_STANDARD}`;
+}
+
+/**
+ * Combine underline style with underline color.
+ *
+ * @param style - Underline style
+ * @param rgb - Color as [r, g, b] tuple (0-255 each)
+ * @param text - Text to style
+ * @returns Styled text with colored underline in specified style
+ */
+export function styledUnderline(
+  style: UnderlineStyle,
+  rgb: RGB,
+  text: string,
+): string {
+  if (!supportsExtendedUnderline()) {
+    return chalk.underline(text);
+  }
+
+  const [r, g, b] = rgb;
+  const styleCode = UNDERLINE_CODES[style];
+  const colorCode = buildUnderlineColorCode(r, g, b);
+
+  return `${styleCode}${colorCode}${text}${UNDERLINE_CODES.reset}${UNDERLINE_COLOR_RESET}`;
+}

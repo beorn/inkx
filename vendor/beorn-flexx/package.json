@@ -19,6 +19,8 @@
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bench": "bun bench/run.ts",
+    "bench:compare": "bun bench/compare.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -32,6 +34,7 @@
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.7.3",
-    "vitest": "^3.0.4"
+    "vitest": "^3.0.4",
+    "yoga-wasm-web": "^0.3.3"
   }
 }

@@ -71,7 +71,7 @@ import { tuiEvents } from "../tui.ts";
 import { UIProvider } from "../ui-context.tsx";
 import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
-import { ConstraintRoot } from "../constraints/index.ts";
+import { ConstraintRoot } from "../layout/index.ts";
 import {
   processKeyWithContext,
   ensureCommandSystemInitialized,

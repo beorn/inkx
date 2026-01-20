@@ -27,12 +27,13 @@ ALL task edits MUST flow both directions:
 
 ### 3. TUI Design System
 
-When modifying TUI styling (colors, selection states, visual hierarchy), you MUST consult [docs/08-ui.md](docs/08-ui.md). Key rules:
+When modifying TUI styling (colors, selection states, visual hierarchy), you MUST consult [docs/06-ui.md](docs/06-ui.md). Key rules:
 
 - **Selection**: `cyan` background + `black` foreground (NEVER blue/white)
 - **Reserved colors**: `cyan` bg = selection only, `inverse` = input cursor only
 - **Headers**: `yellow` (selected) / `yellowBright` + dim (unselected)
 - **Status icons**: Use both color AND shape (colorblind-safe)
+- **Background colors**: Use inkx `backgroundColor` OR chalk.bg*, never both on same element (throws by default)
 
 **Ink Framework Patterns**: When working on TUI code using Ink, you MUST read [docs/dev/ink-patterns.md](docs/dev/ink-patterns.md). This documents critical workarounds for Ink's layout limitations including:
 

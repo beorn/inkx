@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { wrapText } from "../../src/layout/wrap.ts";
+import { wrapText } from "@beorn/tui-measure";
 
 describe("wrapText", () => {
   it("returns empty array for empty input", () => {

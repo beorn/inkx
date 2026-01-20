@@ -66,7 +66,7 @@
       "name": "@km/ink",
       "dependencies": {
         "@beorn/chalkx": "workspace:*",
-        "@beorn/ink-measure": "workspace:*",
+        "@beorn/tui-measure": "workspace:*",
         "@km/board": "workspace:*",
         "@km/commands": "workspace:*",
         "@km/core": "workspace:*",
@@ -152,40 +152,16 @@
       "devDependencies": {
         "typescript": "^5.7.3",
         "vitest": "^3.0.4",
+        "yoga-wasm-web": "^0.3.3",
       },
-    },
-    "vendor/beorn-ink-measure": {
-      "name": "@beorn/ink-measure",
-      "version": "0.1.0",
-      "dependencies": {
-        "chalk": "^5.3.0",
-        "string-width": "^7.0.0",
-        "wrap-ansi": "^9.0.0",
-      },
-      "devDependencies": {
-        "@types/react": "^19.0.0",
-        "ink": "^6.0.0",
-        "react": "^19.0.0",
-        "typescript": "^5.5.0",
-      },
-      "peerDependencies": {
-        "ink": "^5.0.0 || ^6.0.0",
-        "react": "^18.0.0 || ^19.0.0",
-      },
-      "optionalPeers": [
-        "ink",
-      ],
     },
     "vendor/beorn-inkx": {
       "name": "inkx",
       "version": "0.0.1",
       "dependencies": {
-        "@beorn/flexx": "workspace:*",
-        "chalk": "^5.3.0",
         "graphemer": "^1.4.0",
         "react-reconciler": "^0.33.0",
         "string-width": "^7.0.0",
-        "yoga-wasm-web": "^0.3.3",
       },
       "devDependencies": {
         "@biomejs/biome": "^1.9.0",
@@ -198,8 +174,14 @@
         "vitepress-plugin-llms": "^1.0.0",
       },
       "peerDependencies": {
+        "@beorn/flexx": "workspace:*",
         "react": "^18.0.0 || ^19.0.0",
+        "yoga-wasm-web": "^0.3.3",
       },
+      "optionalPeers": [
+        "@beorn/flexx",
+        "yoga-wasm-web",
+      ],
     },
     "vendor/beorn-mdtest": {
       "name": "@beorn/mdtest",
@@ -221,6 +203,22 @@
         "@types/debug": "^4.1.12",
         "commander": "^14.0.1",
         "typescript": "latest",
+      },
+    },
+    "vendor/beorn-tui-measure": {
+      "name": "@beorn/tui-measure",
+      "version": "0.1.0",
+      "dependencies": {
+        "string-width": "^7.0.0",
+        "wrap-ansi": "^9.0.0",
+      },
+      "devDependencies": {
+        "@types/react": "^19.0.0",
+        "react": "^19.0.0",
+        "typescript": "^5.5.0",
+      },
+      "peerDependencies": {
+        "react": "^18.0.0 || ^19.0.0",
       },
     },
   },
@@ -279,9 +277,9 @@
 
     "@beorn/flexx": ["@beorn/flexx@workspace:vendor/beorn-flexx"],
 
-    "@beorn/ink-measure": ["@beorn/ink-measure@workspace:vendor/beorn-ink-measure"],
-
     "@beorn/mdtest": ["@beorn/mdtest@workspace:vendor/beorn-mdtest"],
+
+    "@beorn/tui-measure": ["@beorn/tui-measure@workspace:vendor/beorn-tui-measure"],
 
     "@biomejs/biome": ["@biomejs/biome@1.9.4", "", { "optionalDependencies": { "@biomejs/cli-darwin-arm64": "1.9.4", "@biomejs/cli-darwin-x64": "1.9.4", "@biomejs/cli-linux-arm64": "1.9.4", "@biomejs/cli-linux-arm64-musl": "1.9.4", "@biomejs/cli-linux-x64": "1.9.4", "@biomejs/cli-linux-x64-musl": "1.9.4", "@biomejs/cli-win32-arm64": "1.9.4", "@biomejs/cli-win32-x64": "1.9.4" }, "bin": { "biome": "bin/biome" } }, "sha512-1rkd7G70+o9KkTn5KLmDYXihGoTaIGO9PIIN2ZB7UJxFrWw04CZHPYiMRjYsaDvVV7hP1dYNRLxSANLaBFGpog=="],
 

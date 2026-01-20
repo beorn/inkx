@@ -60,7 +60,7 @@ import { tuiEvents } from "../tui.ts";
 import { UIProvider } from "../ui-context.tsx";
 import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
-import { ConstraintRoot } from "../constraints-ink/index.ts";
+import { ConstraintRoot } from "../layout/ink.ts";
 import {
   processKeyWithContext,
   ensureCommandSystemInitialized,

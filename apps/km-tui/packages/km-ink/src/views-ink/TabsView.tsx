@@ -13,7 +13,7 @@ import { TreeNode } from "./TreeNode.tsx";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { useTreeConfig } from "../ui-context.tsx";
-import { ConstraintContext, ScrollableList } from "../constraints-ink/index.ts";
+import { ConstraintContext, ScrollableList } from "../layout/ink.ts";
 
 interface TabsViewProps {
   state: BoardState;

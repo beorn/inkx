@@ -1,6 +1,24 @@
 # @beorn/chalkx
 
-Extended chalk with modern terminal features: curly/dotted/dashed underlines, independent underline color, and OSC 8 hyperlinks.
+[![npm version](https://img.shields.io/npm/v/@beorn/chalkx.svg)](https://www.npmjs.com/package/@beorn/chalkx)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Extended chalk with modern terminal features that chalk doesn't support: curly/dotted/dashed underlines, independent underline color, and OSC 8 hyperlinks.
+
+## Quick Start
+
+```typescript
+import { curlyUnderline, hyperlink, chalk } from "@beorn/chalkx";
+
+// Spell-check style wavy underline
+console.log(curlyUnderline("mispelled"));
+
+// Clickable terminal link
+console.log(hyperlink("Open docs", "https://example.com/docs"));
+
+// Combine with chalk colors
+console.log(chalk.red(curlyUnderline("Error: typo detected")));
+```
 
 ## Features
 
@@ -359,6 +377,28 @@ setExtendedUnderlineSupport(null); // Re-detect
 
 ---
 
-# License
+## Documentation
+
+- [Design Document](docs/design.md) - Architecture decisions and rationale
+- [Chalk Comparison](docs/chalk-comparison.md) - Feature comparison with other libraries
+
+## Examples
+
+Run the examples to see chalkx in action:
+
+```bash
+bun examples/basic/index.ts           # Basic feature demo
+bun examples/spelling-checker/index.ts  # IDE-style error highlighting
+```
+
+## Contributing
+
+Contributions are welcome! Please ensure:
+
+1. Tests pass: `bun test`
+2. Types check: `bun run typecheck`
+3. Code follows existing patterns
+
+## License
 
 MIT

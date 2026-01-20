@@ -140,8 +140,12 @@ export function createBoardHandlers(ctx: HandlerContext): BoardHandlers {
           dispatch(actions.setSelectionLevel("column"));
           dispatchBoard({ type: "NAV_TO_PATH", path: [0] });
         } else if (ui.selectionLevel === "column") {
-          dispatch(actions.setSelectionLevel("card"));
-          dispatchBoard({ type: "NAV_TO_PATH", path: [state.colIndex, 0] });
+          // Only go to card level if column has cards (fixes km-n29q)
+          if (col && col.cards.length > 0) {
+            dispatch(actions.setSelectionLevel("card"));
+            dispatchBoard({ type: "NAV_TO_PATH", path: [state.colIndex, 0] });
+          }
+          // If column is empty, stay at column level (no-op)
         } else if (ui.inOutlineMode) {
           const maxSub = getMaxSubIndex(keyboardContext);
           if (ui.subIndex < maxSub - 1) {
@@ -159,11 +163,11 @@ export function createBoardHandlers(ctx: HandlerContext): BoardHandlers {
         if (ui.selectionLevel !== "board" && state.colIndex > 0) {
           const targetCol = state.columns[state.colIndex - 1];
           dispatchBoard({ type: "CURSOR_MOVE", dir: "left" });
-          if (
-            ui.selectionLevel === "card" &&
-            (!targetCol || targetCol.cards.length === 0)
-          ) {
+          // Update selection level based on target column content (fixes km-n29q)
+          if (!targetCol || targetCol.cards.length === 0) {
             dispatch(actions.setSelectionLevel("column"));
+          } else {
+            dispatch(actions.setSelectionLevel("card"));
           }
           dispatch(actions.exitOutlineMode());
           dispatch(actions.setSubIndex(0));
@@ -177,11 +181,11 @@ export function createBoardHandlers(ctx: HandlerContext): BoardHandlers {
         ) {
           const targetCol = state.columns[state.colIndex + 1];
           dispatchBoard({ type: "CURSOR_MOVE", dir: "right" });
-          if (
-            ui.selectionLevel === "card" &&
-            (!targetCol || targetCol.cards.length === 0)
-          ) {
+          // Update selection level based on target column content (fixes km-n29q)
+          if (!targetCol || targetCol.cards.length === 0) {
             dispatch(actions.setSelectionLevel("column"));
+          } else {
+            dispatch(actions.setSelectionLevel("card"));
           }
           dispatch(actions.exitOutlineMode());
           dispatch(actions.setSubIndex(0));

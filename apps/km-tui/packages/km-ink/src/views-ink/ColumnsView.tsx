@@ -11,7 +11,7 @@ import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { useTreeConfig, useUISelector } from "../ui-context.tsx";
-import { ConstraintContext, ScrollableList } from "../constraints-ink/index.ts";
+import { ConstraintContext, ScrollableList } from "../layout/ink.ts";
 import { getChildren } from "@km/storage";
 import { estimateTreeNodeHeight, VARIANT_CONFIG } from "./tree-node-helpers.ts";
 import { OverflowIndicator } from "./OverflowIndicator.tsx";

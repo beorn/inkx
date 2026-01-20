@@ -1,193 +1,163 @@
 /**
- * Tests for chalk-x extended ANSI features
+ * Integration tests for @beorn/chalkx
+ *
+ * Tests the main index exports work correctly together.
+ * Detailed unit tests are in separate files:
+ * - detection.test.ts
+ * - underline.test.ts
+ * - hyperlink.test.ts
+ * - utils.test.ts
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+
+// Test that all exports are accessible from main index
 import {
+  // Types
+  type UnderlineStyle,
+  type RGB,
+  // Utilities
+  ANSI_REGEX,
+  stripAnsi,
+  displayLength,
+  // Detection
+  supportsExtendedUnderline,
+  setExtendedUnderlineSupport,
+  resetDetectionCache,
+  // Underline functions
+  underline,
   curlyUnderline,
   dottedUnderline,
   dashedUnderline,
   doubleUnderline,
   underlineColor,
   styledUnderline,
+  // Hyperlinks
   hyperlink,
-  supportsExtendedUnderline,
-  setExtendedUnderlineSupport,
-  stripAnsi,
-  displayLength,
-} from "../src/index.ts";
+  // InkX compatibility
+  bgOverride,
+  // Chalk re-export
+  chalk,
+  // Convenience object
+  chalkX,
+} from "../src/index.js";
 
-describe("chalk-x", () => {
-  describe("terminal detection", () => {
-    afterEach(() => {
-      // Reset detection cache after each test
-      setExtendedUnderlineSupport(null);
+describe("@beorn/chalkx integration", () => {
+  beforeEach(() => {
+    setExtendedUnderlineSupport(true);
+    // Force chalk to output colors in test environment
+    chalk.level = 3;
+  });
+
+  afterEach(() => {
+    resetDetectionCache();
+  });
+
+  describe("exports", () => {
+    it("exports all expected functions", () => {
+      expect(typeof curlyUnderline).toBe("function");
+      expect(typeof dottedUnderline).toBe("function");
+      expect(typeof dashedUnderline).toBe("function");
+      expect(typeof doubleUnderline).toBe("function");
+      expect(typeof underline).toBe("function");
+      expect(typeof underlineColor).toBe("function");
+      expect(typeof styledUnderline).toBe("function");
+      expect(typeof hyperlink).toBe("function");
+      expect(typeof bgOverride).toBe("function");
+      expect(typeof stripAnsi).toBe("function");
+      expect(typeof displayLength).toBe("function");
+      expect(typeof supportsExtendedUnderline).toBe("function");
+      expect(typeof setExtendedUnderlineSupport).toBe("function");
+      expect(typeof resetDetectionCache).toBe("function");
     });
 
-    it("detects support via TERM=xterm-ghostty", () => {
-      const originalTerm = process.env.TERM;
-      process.env.TERM = "xterm-ghostty";
-      setExtendedUnderlineSupport(null); // Clear cache
-
-      expect(supportsExtendedUnderline()).toBe(true);
-
-      process.env.TERM = originalTerm;
+    it("exports chalk", () => {
+      expect(chalk).toBeDefined();
+      expect(typeof chalk.red).toBe("function");
+      expect(typeof chalk.bold).toBe("function");
     });
 
-    it("detects support via TERM=xterm-kitty", () => {
-      const originalTerm = process.env.TERM;
-      process.env.TERM = "xterm-kitty";
-      setExtendedUnderlineSupport(null);
-
-      expect(supportsExtendedUnderline()).toBe(true);
-
-      process.env.TERM = originalTerm;
+    it("exports chalkX convenience object", () => {
+      expect(chalkX).toBeDefined();
+      expect(typeof chalkX.curlyUnderline).toBe("function");
+      expect(typeof chalkX.hyperlink).toBe("function");
+      expect(typeof chalkX.bgOverride).toBe("function");
+      // Note: chalk methods on chalkX may not work due to proxy limitations
+      // Use chalk directly for color methods
+      expect(typeof chalkX.stripAnsi).toBe("function");
     });
 
-    it("detects support via KITTY_WINDOW_ID", () => {
-      const originalEnv = process.env.KITTY_WINDOW_ID;
-      const originalTerm = process.env.TERM;
-      process.env.TERM = "xterm-256color";
-      process.env.KITTY_WINDOW_ID = "1";
-      setExtendedUnderlineSupport(null);
-
-      expect(supportsExtendedUnderline()).toBe(true);
-
-      process.env.KITTY_WINDOW_ID = originalEnv;
-      process.env.TERM = originalTerm;
+    it("exports ANSI_REGEX", () => {
+      expect(ANSI_REGEX).toBeInstanceOf(RegExp);
     });
   });
 
-  describe("extended underlines with support enabled", () => {
-    beforeEach(() => {
-      setExtendedUnderlineSupport(true);
+  describe("chalk integration", () => {
+    it("chalk colors work correctly", () => {
+      const red = chalk.red("error");
+      expect(red).toContain("\x1b[31m");
+      expect(stripAnsi(red)).toBe("error");
     });
 
-    afterEach(() => {
-      setExtendedUnderlineSupport(null);
+    it("can combine chalk colors with extended underlines", () => {
+      const styled = chalk.red(curlyUnderline("error message"));
+      expect(styled).toContain("\x1b[31m"); // Red
+      expect(styled).toContain("\x1b[4:3m"); // Curly
+      expect(stripAnsi(styled)).toBe("error message");
+    });
+  });
+
+  describe("end-to-end styling", () => {
+    it("creates a complete styled output", () => {
+      // Simulate IDE-style error display
+      const errorLine = `${chalk.red(curlyUnderline("typo"))} in ${hyperlink("file.ts:10", "vscode://file/path/to/file.ts:10")}`;
+
+      // Verify structure
+      expect(errorLine).toContain("\x1b[31m"); // Red color
+      expect(errorLine).toContain("\x1b[4:3m"); // Curly underline
+      expect(errorLine).toContain("\x1b]8;;"); // Hyperlink
+
+      // Verify readable text
+      const text = stripAnsi(errorLine);
+      expect(text).toBe("typo in file.ts:10");
     });
 
-    it("curlyUnderline applies SGR 4:3", () => {
-      const result = curlyUnderline("wavy");
-      expect(result).toContain("\x1b[4:3m");
-      expect(result).toContain("wavy");
-      expect(result).toContain("\x1b[4:0m"); // Reset
+    it("displayLength works with complex styled text", () => {
+      const styled = `${chalk.bold(curlyUnderline("Hello"))} ${underlineColor(255, 0, 0, "World")}!`;
+      expect(displayLength(styled)).toBe(12); // "Hello World!"
+    });
+  });
+
+  describe("type safety", () => {
+    it("UnderlineStyle type works", () => {
+      const style: UnderlineStyle = "curly";
+      const result = underline("text", style);
+      expect(stripAnsi(result)).toBe("text");
     });
 
-    it("dottedUnderline applies SGR 4:4", () => {
-      const result = dottedUnderline("dots");
-      expect(result).toContain("\x1b[4:4m");
-      expect(stripAnsi(result)).toBe("dots");
+    it("RGB type works", () => {
+      const color: RGB = [255, 128, 64];
+      const result = styledUnderline("dashed", color, "text");
+      expect(stripAnsi(result)).toBe("text");
+    });
+  });
+
+  describe("bgOverride", () => {
+    it("wraps text with private SGR code 9999", () => {
+      const result = bgOverride("test");
+      expect(result).toBe("\x1b[9999mtest");
     });
 
-    it("dashedUnderline applies SGR 4:5", () => {
-      const result = dashedUnderline("dashes");
-      expect(result).toContain("\x1b[4:5m");
-      expect(stripAnsi(result)).toBe("dashes");
-    });
-
-    it("doubleUnderline applies SGR 4:2", () => {
-      const result = doubleUnderline("double");
-      expect(result).toContain("\x1b[4:2m");
-      expect(stripAnsi(result)).toBe("double");
-    });
-
-    it("underlineColor applies SGR 58 with RGB", () => {
-      const result = underlineColor(255, 0, 128, "colored");
-      expect(result).toContain("\x1b[58:2::255:0:128m");
-      expect(result).toContain("\x1b[59m"); // Color reset
-      expect(stripAnsi(result)).toBe("colored");
-    });
-
-    it("styledUnderline combines style and color", () => {
-      const result = styledUnderline("curly", [0, 255, 0], "styled");
-      expect(result).toContain("\x1b[4:3m"); // Curly
-      expect(result).toContain("\x1b[58:2::0:255:0m"); // Green
+    it("works with chalk backgrounds", () => {
+      const result = bgOverride(chalk.bgBlack("styled"));
+      expect(result).toContain("\x1b[9999m");
+      expect(result).toContain("\x1b[40m"); // bgBlack code
       expect(stripAnsi(result)).toBe("styled");
     });
-  });
 
-  describe("fallback behavior with support disabled", () => {
-    beforeEach(() => {
-      setExtendedUnderlineSupport(false);
-    });
-
-    afterEach(() => {
-      setExtendedUnderlineSupport(null);
-    });
-
-    it("curlyUnderline falls back to regular underline (no extended codes)", () => {
-      const result = curlyUnderline("text");
-      // Should NOT use extended underline codes
-      expect(result).not.toContain("\x1b[4:3m");
-      // Text should be preserved
-      expect(stripAnsi(result)).toBe("text");
-    });
-
-    it("dottedUnderline falls back to regular underline (no extended codes)", () => {
-      const result = dottedUnderline("text");
-      expect(result).not.toContain("\x1b[4:4m");
-      expect(stripAnsi(result)).toBe("text");
-    });
-
-    it("underlineColor falls back to regular underline (no color)", () => {
-      const result = underlineColor(255, 0, 0, "text");
-      // Should NOT use extended color codes
-      expect(result).not.toContain("\x1b[58:");
-      expect(stripAnsi(result)).toBe("text");
-    });
-
-    it("styledUnderline falls back to regular underline", () => {
-      const result = styledUnderline("dashed", [255, 128, 0], "text");
-      expect(result).not.toContain("\x1b[4:5m");
-      expect(result).not.toContain("\x1b[58:");
-      expect(stripAnsi(result)).toBe("text");
-    });
-  });
-
-  describe("hyperlink", () => {
-    it("creates OSC 8 hyperlink", () => {
-      const result = hyperlink("Click here", "https://example.com");
-      expect(result).toContain("\x1b]8;;https://example.com\x1b\\");
-      expect(result).toContain("Click here");
-      expect(result).toContain("\x1b]8;;\x1b\\"); // Closing tag
-    });
-
-    it("preserves text content", () => {
-      const result = hyperlink("Link Text", "https://test.com");
-      // Strip OSC 8 sequences (different from ANSI SGR)
-      const textOnly = result.replace(/\x1b\]8;;[^\x1b]*\x1b\\/g, "");
-      expect(textOnly).toBe("Link Text");
-    });
-  });
-
-  describe("ANSI utilities", () => {
-    beforeEach(() => {
-      setExtendedUnderlineSupport(true);
-    });
-
-    afterEach(() => {
-      setExtendedUnderlineSupport(null);
-    });
-
-    it("stripAnsi removes extended underline codes", () => {
-      const styled = curlyUnderline("hello");
-      expect(stripAnsi(styled)).toBe("hello");
-    });
-
-    it("stripAnsi removes underline color codes", () => {
-      const styled = underlineColor(100, 100, 100, "world");
-      expect(stripAnsi(styled)).toBe("world");
-    });
-
-    it("displayLength calculates correct length excluding ANSI codes", () => {
-      const styled = curlyUnderline("hello");
-      expect(displayLength(styled)).toBe(5);
-    });
-
-    it("displayLength works with underline color", () => {
-      const styled = underlineColor(255, 0, 0, "test");
-      expect(displayLength(styled)).toBe(4);
+    it("is available on chalkX", () => {
+      const result = chalkX.bgOverride("test");
+      expect(result).toBe("\x1b[9999mtest");
     });
   });
 });
