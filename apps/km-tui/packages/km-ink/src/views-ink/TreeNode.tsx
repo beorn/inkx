@@ -2,8 +2,8 @@
  * Shared TreeNode component for tree/outline views
  *
  * Two variants:
- * - compact: For column views (shorter context, no info columns, limited children)
- * - wide: For full-width views (longer context, info columns, unlimited children)
+ * - oneliner: Title + parent context inline on one line, truncated (for list/columns/tabs)
+ * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
 import React from "react";
 import { Box, Text } from "ink";
@@ -86,7 +86,7 @@ export function TreeNode({
     ? new Set([rootBoardId])
     : new Set<string>();
 
-  const isCompact = variant === "compact";
+  const isOneliner = variant === "oneliner";
   // Use provided children or fetch from storage
   const resolvedGetChildren = getChildrenProp ?? getChildrenFromStorage;
   const children = childrenProp ?? resolvedGetChildren(node.id);
@@ -130,10 +130,10 @@ export function TreeNode({
   const firstLine = wrappedLines[0] ?? "";
   const additionalLines = wrappedLines.slice(1);
 
-  // Info suffix and context
+  // Info suffix and context (oneliner shows full info, multiline shows compact dots only)
   const infoSuffix = formatInfoSuffix(
     node,
-    isCompact,
+    !isOneliner, // multiline uses compact info (just dots)
     excludeBoardIds,
     getBoardPillsProp,
   );

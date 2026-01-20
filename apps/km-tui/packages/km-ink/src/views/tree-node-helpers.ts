@@ -27,10 +27,14 @@ export const DARK_BG_COLORS = [
   "grey",
 ];
 
-/** Variant-specific configuration */
+/**
+ * TreeNode display variants:
+ * - oneliner: Title + parent context inline, truncated to one line
+ * - multiline: Parent context above title, content can wrap multiple lines
+ */
 export const VARIANT_CONFIG = {
-  compact: { maxChildren: 8, showInfoColumns: false },
-  wide: { maxChildren: Infinity, showInfoColumns: true },
+  oneliner: { maxChildren: Infinity, showInfoColumns: true },
+  multiline: { maxChildren: 8, showInfoColumns: false },
 } as const;
 
 // =============================================================================

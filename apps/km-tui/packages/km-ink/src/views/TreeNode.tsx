@@ -2,8 +2,8 @@
  * Shared TreeNode component for tree/outline views
  *
  * Two variants:
- * - compact: For column views (shorter context, no info columns, limited children)
- * - wide: For full-width views (longer context, info columns, unlimited children)
+ * - oneliner: Title + parent context inline on one line, truncated (for list/columns/tabs)
+ * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
 import React from "react";
 import { Box, Text } from "inkx";
@@ -82,7 +82,7 @@ export function TreeNode({
     ? new Set([rootBoardId])
     : new Set<string>();
 
-  const isCompact = variant === "compact";
+  const isOneliner = variant === "oneliner";
   // Use provided children or fetch from storage
   const resolvedGetChildren = getChildrenProp ?? getChildrenFromStorage;
   const children = childrenProp ?? resolvedGetChildren(node.id);
@@ -116,10 +116,10 @@ export function TreeNode({
       : node.content || getNodeDisplayName(node);
   const styledContent = renderRich(rawContent);
 
-  // Info suffix
+  // Info suffix (oneliner shows full info, multiline shows compact dots only)
   const infoSuffix = formatInfoSuffix(
     node,
-    isCompact,
+    !isOneliner, // multiline uses compact info (just dots)
     excludeBoardIds,
     getBoardPillsProp,
   );
@@ -134,8 +134,8 @@ export function TreeNode({
         ? resolvedGetParentContext(node)
         : null;
 
-  // Context suffix (truncated to reasonable length when shown inline)
-  const truncatedContext = !isCompact
+  // Context suffix (shown inline for oneliner variant only)
+  const truncatedContext = isOneliner
     ? truncateContext(parentContext, 40) // Fixed max context width
     : null;
   const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
@@ -148,8 +148,8 @@ export function TreeNode({
 
   return (
     <Box flexDirection="column">
-      {/* Parent context line (shown ABOVE task for embedded items, wide mode only) */}
-      {!isCompact && isEmbedded && parentContext && (
+      {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
+      {!isOneliner && isEmbedded && parentContext && (
         <Text dimColor italic wrap="truncate">
           {"< "}
           {parentContext}

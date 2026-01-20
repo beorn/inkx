@@ -157,8 +157,8 @@ export const makeSelectIsMultiSelected = (key: SelectionKey) =>
  * Get tree rendering config (commonly used together)
  *
  * View-mode specific behavior:
- * - Cards view: Uses user-configured maxContentLines (multi-line cards)
- * - Other views (list, columns, tabs): Forces maxContentLines=1 (one-liner items)
+ * - Cards view: multiline variant (parent context above, content can wrap)
+ * - Other views (list, columns, tabs): oneliner variant (inline context, truncate)
  */
 export const selectTreeConfig = createSelector(
   [
@@ -170,11 +170,14 @@ export const selectTreeConfig = createSelector(
   ],
   (maxOutlineDepth, maxContentLines, inOutlineMode, subIndex, viewMode) => ({
     maxOutlineDepth,
-    // Cards view uses multi-line, other views force one-liner
+    // Cards view allows multi-line content, other views truncate to one line
     maxContentLines: viewMode === "cards" ? maxContentLines : 1,
     inOutlineMode,
     currentSubIndex: subIndex,
-    variant: (viewMode === "cards" ? "compact" : "wide") as "compact" | "wide",
+    // Cards view uses multiline (parent above), other views use oneliner (inline)
+    variant: (viewMode === "cards" ? "multiline" : "oneliner") as
+      | "oneliner"
+      | "multiline",
   }),
 );
 
