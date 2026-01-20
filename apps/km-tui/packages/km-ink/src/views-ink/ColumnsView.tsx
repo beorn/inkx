@@ -215,7 +215,10 @@ export function ColumnsView({
   const availableWidth = width - indicatorWidth - separatorCount;
 
   // Use integer math to distribute width evenly without floating-point errors
-  const colBaseWidth = Math.floor(availableWidth / effectiveMaxCols);
+  // Cap at maxColWidth to prevent overly wide columns (similar to cards view)
+  const maxColWidth = 60;
+  const rawColWidth = Math.floor(availableWidth / effectiveMaxCols);
+  const colBaseWidth = Math.min(rawColWidth, maxColWidth);
   const colRemainder = availableWidth % effectiveMaxCols;
 
   return (

@@ -151,7 +151,7 @@ export function TreeNode({
   const firstLineLen = displayLength(firstLine);
   const usedWidth = prefix.length + firstLineLen + infoSuffix.length + 4; // 4 = " < " + buffer
   const contextMaxWidth = Math.max(10, Math.floor((width - usedWidth) * 0.8)); // Use 80% of remaining space
-  const truncatedContext = !isCompact
+  const truncatedContext = isOneliner
     ? truncateContext(parentContext, contextMaxWidth)
     : null;
   const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
@@ -159,10 +159,10 @@ export function TreeNode({
   // Multi-line context handling
   const isMultiLine = additionalLines.length > 0;
   const showInlineContext = !isMultiLine && truncatedContext;
-  // Only show separate context above in wide mode when content is multi-line (inline context won't work)
-  // Compact mode (columns view) never shows separate context line to keep items compact
+  // Only show separate context above in multiline mode when content is multi-line (inline context won't work)
+  // Oneliner mode never shows separate context line to keep items compact
   const showSeparateContext =
-    !isCompact && isMultiLine && isEmbedded && parentContext;
+    !isOneliner && isMultiLine && isEmbedded && parentContext;
 
   // Calculate padding to clear line
   const firstLineDisplayLen =

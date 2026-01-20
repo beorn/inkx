@@ -53,8 +53,11 @@ function ColumnTree({
     isColumnHeaderSelected,
   );
 
+  // Maximum column width to prevent overly wide columns (similar to cards view)
+  const maxColWidth = 60;
+
   return (
-    <Box flexDirection="column" flexGrow={1} overflow="hidden">
+    <Box flexDirection="column" flexGrow={1} maxWidth={maxColWidth} overflow="hidden">
       {/* Header section */}
       <Box flexDirection="column" height={3} flexShrink={0}>
         <Text> </Text>

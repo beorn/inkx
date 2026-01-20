@@ -1399,49 +1399,53 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <HelpOverlay width={termWidth} height={termHeight - 2} />
             )}
           </Box>
-          {/* Bottom bar: mode indicator left, other indicators right */}
-          {/* flexDirection="row" is REQUIRED for justifyContent="space-between" to work horizontally */}
+          {/* Bottom bar: auto-flex layout with all indicators */}
           <Box
             flexDirection="row"
             width={termWidth}
-            justifyContent="space-between"
             paddingX={1}
             flexShrink={0}
           >
-            {/* Left side: store mode indicator and path */}
-            <Text>
-              {(() => {
-                const store = getStore();
-                if (store.mode === "memory") {
-                  return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
-                }
-                return <Text color="green">DISK REPO {store.rootPath}</Text>;
-              })()}
-            </Text>
-            {/* Right side: status indicators */}
-            <Text>
-              {ui.showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
-              {ui.showProjectPicker && (
-                <Text color="green">{`[PROJECT] `}</Text>
-              )}
-              {ui.showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
-              {ui.showDropNotification && ui.droppedFiles.length > 0 && (
-                <Text color="green">
-                  {`[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
-                </Text>
-              )}
-              {ui.isMouseDragging && ui.mouseSelection && (
-                <Text color="blue">{`[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `}</Text>
-              )}
-              {ui.multiSelected.size > 0 && (
-                <Text color="yellow">{`[${ui.multiSelected.size} sel] `}</Text>
-              )}
-              {ui.inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
-              {ui.selectionLevel !== "card" && (
-                <Text color="magenta">{`${ui.selectionLevel.toUpperCase()} `}</Text>
-              )}
-              <Text inverse>{` ${ui.viewMode.toUpperCase()} VIEW `}</Text>
-            </Text>
+            {/* Left side: store mode indicator and path - flexShrink=0 to preserve */}
+            <Box flexShrink={0}>
+              <Text>
+                {(() => {
+                  const store = getStore();
+                  if (store.mode === "memory") {
+                    return <Text color="yellow">MEM REPO {store.rootPath}</Text>;
+                  }
+                  return <Text color="green">DISK REPO {store.rootPath}</Text>;
+                })()}
+              </Text>
+            </Box>
+            {/* Flexible spacer */}
+            <Box flexGrow={1} />
+            {/* Right side: status indicators - flexShrink=1 allows truncation */}
+            <Box flexShrink={1}>
+              <Text wrap="truncate">
+                {ui.showHelp && <Text color="cyan">{`[HELP ?] `}</Text>}
+                {ui.showProjectPicker && (
+                  <Text color="green">{`[PROJECT] `}</Text>
+                )}
+                {ui.showNewItemDialog && <Text color="green">{`[NEW] `}</Text>}
+                {ui.showDropNotification && ui.droppedFiles.length > 0 && (
+                  <Text color="green">
+                    {`[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `}
+                  </Text>
+                )}
+                {ui.isMouseDragging && ui.mouseSelection && (
+                  <Text color="blue">{`[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `}</Text>
+                )}
+                {ui.multiSelected.size > 0 && (
+                  <Text color="yellow">{`[${ui.multiSelected.size} sel] `}</Text>
+                )}
+                {ui.inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
+                {ui.selectionLevel !== "card" && (
+                  <Text color="magenta">{`${ui.selectionLevel.toUpperCase()} `}</Text>
+                )}
+                <Text inverse>{` ${ui.viewMode.toUpperCase()} VIEW `}</Text>
+              </Text>
+            </Box>
           </Box>
         </Box>
       </UIProvider>
