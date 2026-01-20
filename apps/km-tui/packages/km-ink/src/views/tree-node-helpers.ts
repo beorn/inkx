@@ -147,17 +147,12 @@ export function buildPrefix(
   const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : " ";
   const foldedCount = hasChildren && isFolded ? ` (${childCount})` : "";
 
-  // Calculate icon display width (emojis are 2, single chars are 1, empty is 0)
-  const iconDisplayWidth = getIconDisplayWidth(icon.char);
-  // Pad after icon to maintain consistent content start position
-  const iconPadding = " ".repeat(
-    Math.max(0, ICON_SLOT_WIDTH - iconDisplayWidth),
-  );
-
-  // Hanging bullet: fold indicator is in the margin, icon follows with padding
+  // Hanging bullet: fold indicator is in the margin, icon follows
+  // Layout: [indent][fold][icon][space] where icon slot is ICON_SLOT_WIDTH
   const beforeIcon = `${indent}${foldIndicator}`;
-  const afterIcon = `${iconPadding} `; // padding + space separator
-  const length = beforeIcon.length + icon.char.length + afterIcon.length;
+  // Single space after icon (icon slot width handled by Box in TreeNode)
+  const afterIcon = " ";
+  const length = beforeIcon.length + ICON_SLOT_WIDTH + afterIcon.length;
 
   return {
     beforeIcon,
@@ -168,17 +163,6 @@ export function buildPrefix(
     length,
     foldedCount,
   };
-}
-
-/**
- * Get display width of an icon character.
- * Emojis (folder/file) are 2 columns, single chars are 1, empty is 0.
- */
-function getIconDisplayWidth(iconChar: string): number {
-  if (iconChar === "") return 0;
-  // Folder (📁) and file (📄) emojis are surrogate pairs, display as 2 columns
-  if (iconChar.length > 1) return 2;
-  return 1;
 }
 
 // =============================================================================
