@@ -5,7 +5,7 @@
 import React, { useEffect, useReducer, useMemo } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "inkx";
 import { getEngine } from "../engines/index.ts";
-import chalk, { type ChalkInstance } from "chalk";
+import chalk from "chalk";
 import { hyperlink } from "@beorn/chalkx";
 import type {
   BoardState,
@@ -1204,8 +1204,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const boardNode = state.rootId ? getNode(state.rootId) : null;
   const boardColor = boardNode ? getOwnColor(boardNode) : undefined;
 
-  // Determine background color: board's color if available, blue if selected, white otherwise
-  const topBarBgChalk = getTopBarBgChalk(boardColor, isBoardSelected);
+  // Determine background color for inkx Box (fills entire area)
+  const topBarBgColor = getTopBarBgColor(boardColor, isBoardSelected);
 
   // Determine text color based on background (dark bg = white text, light bg = black text)
   const darkBgColors = [
@@ -1213,6 +1213,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     "green",
     "blue",
     "magenta",
+    "cyan",
     "gray",
     "grey",
     "black",
@@ -1220,23 +1221,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const useWhiteText = boardColor
     ? darkBgColors.includes(boardColor)
     : isBoardSelected;
-
-  const topBarContent = renderTopBarSegments(
-    selectedPathSegments,
-    topBarBgChalk,
-    useWhiteText,
-  );
-  // Calculate visible length (without ANSI codes) - no more icon chars
-  const visibleLen =
-    1 +
-    selectedPathSegments.reduce((acc, seg) => {
-      return acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0);
-    }, 0);
-  const padding = " ".repeat(Math.max(0, termWidth - visibleLen));
-
-  // Background color for the top bar
-  const topBarBg = topBarBgChalk;
-  const topBarFg = useWhiteText ? topBarBgChalk.white : topBarBgChalk.black;
+  const topBarTextColor = useWhiteText ? "white" : "black";
 
   // Render loading indicator until terminal is ready (see ui.isReady comment above)
   // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
@@ -1257,9 +1242,29 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           overflow="hidden"
         >
           {/* Top bar: full path from root to selected item, inverted full width */}
-          {/* flexShrink={0} prevents Ink/Yoga from clipping this when content overflows */}
-          <Box height={1} width={termWidth} flexShrink={0}>
-            <Text>{topBarFg(" ") + topBarContent + topBarBg(padding)}</Text>
+          {/* Uses inkx Box backgroundColor to ensure background spans full width */}
+          <Box
+            height={1}
+            width={termWidth}
+            flexShrink={0}
+            backgroundColor={topBarBgColor}
+          >
+            <Text color={topBarTextColor} bold>
+              {" "}
+              {selectedPathSegments
+                .map((seg, i) => {
+                  const prevSeg = i > 0 ? selectedPathSegments[i - 1] : null;
+                  const isBoardBoundary =
+                    prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
+                  const sepPart = seg.sep
+                    ? isBoardBoundary && !useWhiteText
+                      ? ` ${seg.sep} `
+                      : ` ${seg.sep} `
+                    : "";
+                  return sepPart + seg.name;
+                })
+                .join("")}
+            </Text>
           </Box>
           <Box
             flexGrow={1}
@@ -1403,67 +1408,50 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <HelpOverlay width={termWidth} height={contentHeight} />
             )}
           </Box>
-          {/* Bottom bar: fill entire line to prevent artifacts */}
-          <Box height={1} width={termWidth} flexShrink={0}>
+          {/* Bottom bar: uses inkx Box backgroundColor for full-width fill */}
+          <Box
+            height={1}
+            width={termWidth}
+            flexShrink={0}
+            backgroundColor="black"
+            justifyContent="space-between"
+          >
+            {/* Left side: repo info */}
             <Text>
+              {" "}
               {(() => {
-                // Build entire bottom bar as single string with explicit full-width fill
-                // Use bgBlack wrapper to ensure consistent background across all segments
                 const store = getStore();
-                const bg = chalk.bgBlack;
-                const left =
-                  " " +
-                  (store.mode === "memory"
-                    ? bg.yellow(`MEM REPO ${store.rootPath}`)
-                    : bg.green(`DISK REPO ${store.rootPath}`));
-                const rightParts = [
-                  ui.showHelp ? bg.cyan("[HELP ?] ") : "",
-                  ui.showProjectPicker ? bg.green("[PROJECT] ") : "",
-                  ui.showNewItemDialog ? bg.green("[NEW] ") : "",
-                  ui.showDropNotification && ui.droppedFiles.length > 0
-                    ? bg.green(
-                        `[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `,
-                      )
-                    : "",
-                  ui.isMouseDragging && ui.mouseSelection
-                    ? bg.blue(
-                        `[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `,
-                      )
-                    : "",
-                  ui.multiSelected.size > 0
-                    ? bg.yellow(`[${ui.multiSelected.size} sel] `)
-                    : "",
-                  ui.inOutlineMode ? bg.cyan("OUTLINE ") : "",
-                  ui.selectionLevel !== "card"
-                    ? bg.magenta(`${ui.selectionLevel.toUpperCase()} `)
-                    : "",
-                  chalk.inverse(` ${ui.viewMode.toUpperCase()} VIEW `),
-                ].join("");
-                // Calculate visible lengths (without ANSI codes)
-                const leftVisLen =
-                  1 +
-                  (store.mode === "memory" ? 9 : 10) +
-                  store.rootPath.length;
-                const rightVisLen =
-                  (ui.showHelp ? 9 : 0) +
-                  (ui.showProjectPicker ? 10 : 0) +
-                  (ui.showNewItemDialog ? 6 : 0) +
-                  (ui.multiSelected.size > 0
-                    ? `[${ui.multiSelected.size} sel] `.length
-                    : 0) +
-                  (ui.inOutlineMode ? 8 : 0) +
-                  (ui.selectionLevel !== "card"
-                    ? ui.selectionLevel.length + 1
-                    : 0) +
-                  ui.viewMode.length +
-                  7;
-                // Fill middle with spaces - ensure it spans full width
-                const middleLen = Math.max(
-                  1,
-                  termWidth - leftVisLen - rightVisLen,
+                return store.mode === "memory" ? (
+                  <Text color="yellow">MEM REPO {store.rootPath}</Text>
+                ) : (
+                  <Text color="green">DISK REPO {store.rootPath}</Text>
                 );
-                return bg(left + " ".repeat(middleLen)) + rightParts;
               })()}
+            </Text>
+            {/* Right side: indicators */}
+            <Text>
+              {ui.showHelp && <Text color="cyan">[HELP ?] </Text>}
+              {ui.showProjectPicker && <Text color="green">[PROJECT] </Text>}
+              {ui.showNewItemDialog && <Text color="green">[NEW] </Text>}
+              {ui.showDropNotification && ui.droppedFiles.length > 0 && (
+                <Text color="green">
+                  [Dropped:{" "}
+                  {ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}]{" "}
+                </Text>
+              )}
+              {ui.isMouseDragging && ui.mouseSelection && (
+                <Text color="blue">
+                  [Select: {ui.mouseSelection.startY}-{ui.mouseSelection.endY}]{" "}
+                </Text>
+              )}
+              {ui.multiSelected.size > 0 && (
+                <Text color="yellow">[{ui.multiSelected.size} sel] </Text>
+              )}
+              {ui.inOutlineMode && <Text color="cyan">OUTLINE </Text>}
+              {ui.selectionLevel !== "card" && (
+                <Text color="magenta">{ui.selectionLevel.toUpperCase()} </Text>
+              )}
+              <Text inverse> {ui.viewMode.toUpperCase()} VIEW </Text>
             </Text>
           </Box>
         </Box>
@@ -1588,14 +1576,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       tuiEvents.off("refresh", handleRefresh);
     };
   }
-}
-
-/**
- * Exit the terminal alternate buffer.
- * Call this to ensure the terminal is restored to normal mode.
- */
-function exitAlternateBuffer(): void {
-  process.stdout.write("\x1b[?1049l");
 }
 
 export async function renderInkxBoard(
@@ -1862,38 +1842,32 @@ function countVisibleDescendants(
   return count;
 }
 
-// Get chalk function for top bar background based on board color
-function getTopBarBgChalk(
+// Get background color name for top bar (for inkx Box backgroundColor)
+function getTopBarBgColor(
   boardColor: string | undefined,
   isBoardSelected: boolean,
-) {
+): string {
   if (boardColor) {
     switch (boardColor) {
       case "red":
-        return chalk.bgRed;
       case "green":
-        return chalk.bgGreen;
       case "yellow":
-        return chalk.bgYellow;
       case "blue":
-        return chalk.bgBlue;
       case "magenta":
-        return chalk.bgMagenta;
       case "cyan":
-        return chalk.bgCyan;
       case "white":
-        return chalk.bgWhite;
+        return boardColor;
       case "gray":
       case "grey":
-        return chalk.bgGray;
+        return "gray";
       case "black":
         // Black background - use dark gray to ensure visibility
-        return chalk.bgGray;
+        return "gray";
       default:
-        return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
+        return isBoardSelected ? "blue" : "white";
     }
   }
-  return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
+  return isBoardSelected ? "blue" : "white";
 }
 
 // Calculate scroll offset to center selected column
@@ -1911,31 +1885,5 @@ function calcScrollOffset(
   );
 }
 
-// Render top bar path segments with appropriate colors
-function renderTopBarSegments(
-  segments: ReturnType<typeof renderPath>,
-  bgChalk: ChalkInstance,
-  useWhiteText: boolean,
-): string {
-  return segments
-    .map((seg, i) => {
-      const prevSeg = i > 0 ? segments[i - 1] : null;
-      const isBoardBoundary =
-        prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
-
-      if (useWhiteText) {
-        // Dark background: white text
-        const sepPart = seg.sep ? bgChalk.white(` ${seg.sep} `) : "";
-        return sepPart + bgChalk.white.bold(seg.name);
-      } else {
-        // Light background: black text, blue separator at board boundary
-        const sepPart = seg.sep
-          ? isBoardBoundary
-            ? bgChalk.blue.bold(` ${seg.sep} `)
-            : bgChalk.gray(` ${seg.sep} `)
-          : "";
-        return sepPart + bgChalk.black.bold(seg.name);
-      }
-    })
-    .join("");
-}
+// NOTE: renderTopBarSegments removed - top bar now uses pure inkx styling
+// See bead for chalk+inkx styling consolidation
