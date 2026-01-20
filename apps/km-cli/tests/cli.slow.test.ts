@@ -1527,7 +1527,7 @@ describe.serial("km view - state initialization", () => {
     // Now km view should work (non-interactive mode to avoid TTY issues)
     // The bug was that view would fail with "No board found" because
     // it didn't call ensureState() to replay the add events
-    const viewResult = await km(["view", "@next.md", "--no-tui"]);
+    const viewResult = await km(["view", "@next.md", "--no-interactive"]);
     expect(viewResult.exitCode).toBe(0);
     // Should display the board content (static mode output shows columns)
     expect(viewResult.stdout).toContain("Tasks");
@@ -1562,7 +1562,7 @@ describe.serial("km view - state initialization", () => {
     expect(addResult.exitCode).toBe(0);
 
     // View should work and show the board
-    const viewResult = await km(["view", "@inbox.md", "--no-tui"]);
+    const viewResult = await km(["view", "@inbox.md", "--no-interactive"]);
     expect(viewResult.exitCode).toBe(0);
     // Static mode shows column headings
     expect(viewResult.stdout).toContain("Unprocessed");
@@ -1583,7 +1583,7 @@ describe.serial("km view - state initialization", () => {
     await km(["sync"]);
 
     // View using absolute path
-    const viewResult = await km(["view", boardPath, "--no-tui"]);
+    const viewResult = await km(["view", boardPath, "--no-interactive"]);
     expect(viewResult.exitCode).toBe(0);
     // Static mode shows column headings and tasks
     expect(viewResult.stdout).toContain("Column A");

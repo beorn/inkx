@@ -532,6 +532,36 @@ describe("initDefaultKeybindings", () => {
     expect(resolveKeybinding("y", { ctrl: true }, ctx)).toBe("redo");
   });
 
+  it("includes page jump keybindings (Ctrl+D/U)", () => {
+    initDefaultKeybindings();
+
+    const ctx = createContext({ mode: "normal" });
+
+    expect(resolveKeybinding("d", { ctrl: true }, ctx)).toBe("page_down");
+    expect(resolveKeybinding("u", { ctrl: true }, ctx)).toBe("page_up");
+  });
+
+  it("includes sibling board navigation keybindings (Ctrl+J/K)", () => {
+    initDefaultKeybindings();
+
+    const ctx = createContext({ mode: "normal" });
+
+    expect(resolveKeybinding("j", { ctrl: true }, ctx)).toBe(
+      "sibling_board_next",
+    );
+    expect(resolveKeybinding("k", { ctrl: true }, ctx)).toBe(
+      "sibling_board_prev",
+    );
+  });
+
+  it("includes enter node keybinding (i)", () => {
+    initDefaultKeybindings();
+
+    const ctx = createContext({ mode: "normal" });
+
+    expect(resolveKeybinding("i", {}, ctx)).toBe("enter_node");
+  });
+
   it("includes extend selection with shift+arrows", () => {
     initDefaultKeybindings();
 
@@ -596,5 +626,12 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("cycle_view_mode");
     expect(commandIds).toContain("show_help");
     expect(commandIds).toContain("increase_outline_depth");
+
+    // Page navigation and board navigation
+    expect(commandIds).toContain("page_down");
+    expect(commandIds).toContain("page_up");
+    expect(commandIds).toContain("sibling_board_next");
+    expect(commandIds).toContain("sibling_board_prev");
+    expect(commandIds).toContain("enter_node");
   });
 });
