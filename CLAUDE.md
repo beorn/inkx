@@ -213,7 +213,19 @@ git status  # MUST show "up to date with origin"
 
 ---
 
-### 10. Visual Testing
+### 10. Bug Reports
+
+When a user reports a bug, follow [.claude/skills/bug-report.md](.claude/skills/bug-report.md). Key rules:
+
+1. **Create bead immediately** - `bd create --type=bug` so nothing gets lost
+2. **Reproduce before fixing** - You must SEE the bug before attempting fixes
+3. **Write failing test** - Proves understanding, prevents regression
+4. **Verify with evidence** - Tests pass + visual confirmation for TUI bugs
+5. **User confirms closure** - For non-trivial bugs, user decides when done
+
+**Never claim "fixed" without verification. Never close a bug bead without evidence.**
+
+### 11. Visual Testing
 
 Use headless methods (ttyd + Playwright) by default. See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for full documentation.
 

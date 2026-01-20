@@ -3,13 +3,11 @@
  *
  * ANSI-aware text truncation that uses width from constraint context.
  * Eliminates the need to manually thread width props through components.
- *
- * @see .beads/km-inkx.3-design.md for design specification
  */
 
-import React, { useMemo } from "react";
-import { Text } from "inkx";
-import { useComputedSize, constrainText, type ComputedSize } from "ink-measure";
+import React, { useMemo, type ReactElement, type ReactNode } from "react";
+import { useComputedSize, type ComputedSize } from "./context.tsx";
+import { constrainText } from "./text.ts";
 
 export interface TruncatedTextProps {
   /** The text content to display (can include ANSI escape codes) */
@@ -22,6 +20,19 @@ export interface TruncatedTextProps {
   width?: number;
   /** Whether to pad lines to full width (default: false) */
   pad?: boolean;
+  /**
+   * Render function for each line.
+   * Default just returns the line string.
+   *
+   * @example
+   * ```tsx
+   * // With Ink Text
+   * <TruncatedText renderLine={(line, i) => <Text key={i}>{line}</Text>}>
+   *   {longText}
+   * </TruncatedText>
+   * ```
+   */
+  renderLine?: (line: string, index: number) => ReactNode;
 }
 
 /**
@@ -34,6 +45,11 @@ export interface TruncatedTextProps {
  * ```tsx
  * // Uses width from ConstraintRoot/parent
  * <TruncatedText>{node.title}</TruncatedText>
+ *
+ * // With Ink Text rendering
+ * <TruncatedText renderLine={(line, i) => <Text key={i}>{line}</Text>}>
+ *   {node.title}
+ * </TruncatedText>
  *
  * // With explicit max lines
  * <TruncatedText maxLines={3}>{node.description}</TruncatedText>
@@ -51,8 +67,8 @@ export function TruncatedText({
   maxLines = 1,
   width: widthOverride,
   pad = false,
-}: TruncatedTextProps): React.ReactElement {
-  // Try to get width from context, fall back to override or default
+  renderLine,
+}: TruncatedTextProps): ReactElement {
   let contextSize: ComputedSize | null = null;
   try {
     contextSize = useComputedSize();
@@ -62,18 +78,17 @@ export function TruncatedText({
 
   const width = widthOverride ?? contextSize?.width ?? 80;
 
-  const { lines, truncated } = useMemo(
+  const { lines } = useMemo(
     () => constrainText(children, width, maxLines, pad, ellipsis),
     [children, width, maxLines, pad, ellipsis],
   );
 
-  return (
-    <>
-      {lines.map((line, i) => (
-        <Text key={i}>{line}</Text>
-      ))}
-    </>
-  );
+  if (renderLine) {
+    return <>{lines.map((line, i) => renderLine(line, i))}</>;
+  }
+
+  // Default: join lines with newlines
+  return <>{lines.join("\n")}</>;
 }
 
 /**
@@ -89,7 +104,12 @@ export function useTruncatedText(
     ellipsis?: string;
   } = {},
 ): { lines: string[]; truncated: boolean } {
-  const { maxLines = 1, width: widthOverride, pad = false, ellipsis } = options;
+  const {
+    maxLines = 1,
+    width: widthOverride,
+    pad = false,
+    ellipsis,
+  } = options;
 
   let contextSize: ComputedSize | null = null;
   try {

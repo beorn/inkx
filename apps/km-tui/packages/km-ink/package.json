@@ -9,6 +9,7 @@
   "private": true,
   "dependencies": {
     "@beorn/chalkx": "workspace:*",
+    "ink-measure": "workspace:*",
     "@km/board": "workspace:*",
     "@km/commands": "workspace:*",
     "@km/core": "workspace:*",

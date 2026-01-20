@@ -1,8 +1,8 @@
 /**
- * FlexRow Component
+ * FlexRow Component - Inkx Version
  *
  * Distributes horizontal space among children using flex semantics.
- * Uses integer math to avoid floating-point errors that cause 1-char gaps.
+ * Uses ink-measure's distributeSpace for the core algorithm, renders with inkx Box.
  */
 
 import React, { useMemo } from "react";
@@ -12,20 +12,13 @@ import {
   useConstraintContext,
   type ComputedSize,
 } from "./context.tsx";
+import {
+  distributeSpace,
+  type FlexItemConfig,
+} from "ink-measure";
 
-/** Configuration for a flex item */
-export interface FlexItemConfig {
-  /** Flex grow factor (default 1 for FlexItem, 0 for raw children) */
-  flex?: number;
-  /** Fixed width (takes precedence over flex) */
-  width?: number;
-  /** Minimum width */
-  minWidth?: number;
-  /** Maximum width */
-  maxWidth?: number;
-  /** Allow shrinking below minWidth when necessary */
-  squish?: boolean;
-}
+// Re-export for backwards compatibility
+export { distributeSpace, type FlexItemConfig };
 
 export interface FlexRowProps {
   children: React.ReactNode;
@@ -114,93 +107,4 @@ export function FlexRow({
       })}
     </Box>
   );
-}
-
-/**
- * Distribute available space among items using integer math.
- * Avoids floating-point errors that cause 1-char gaps.
- *
- * Algorithm:
- * 1. Subtract gap space from total
- * 2. Allocate fixed-width items first
- * 3. Distribute remaining space proportionally to flex items
- * 4. Apply min/max constraints
- * 5. Distribute remainder chars one at a time to flex items
- */
-export function distributeSpace(
-  total: number,
-  configs: FlexItemConfig[],
-  gap: number,
-): number[] {
-  if (configs.length === 0) {
-    return [];
-  }
-
-  // Account for gaps between items
-  const gapTotal = Math.max(0, configs.length - 1) * gap;
-  let available = Math.max(0, total - gapTotal);
-
-  const widths: number[] = new Array(configs.length).fill(0);
-
-  // Pass 1: Allocate fixed widths
-  let flexTotal = 0;
-  let flexItemCount = 0;
-
-  configs.forEach((config, i) => {
-    if (config.width !== undefined) {
-      widths[i] = config.width;
-      available -= config.width;
-    } else {
-      const flex = config.flex ?? 1;
-      flexTotal += flex;
-      flexItemCount++;
-    }
-  });
-
-  // Ensure available doesn't go negative
-  available = Math.max(0, available);
-
-  // Pass 2: Distribute remaining space to flex items using integer division
-  if (flexTotal > 0 && available > 0) {
-    let remaining = available;
-
-    configs.forEach((config, i) => {
-      if (config.width === undefined) {
-        const flex = config.flex ?? 1;
-        // Integer division: floor(available * flex / flexTotal)
-        const share = Math.floor((available * flex) / flexTotal);
-        widths[i] = share;
-        remaining -= share;
-      }
-    });
-
-    // Distribute remainder to first flex items (1 char each)
-    // This ensures we use exactly all available space
-    for (let i = 0; remaining > 0 && i < configs.length; i++) {
-      if (configs[i]?.width === undefined) {
-        widths[i]++;
-        remaining--;
-      }
-    }
-  }
-
-  // Pass 3: Apply min/max constraints
-  // Note: This may violate the total width if constraints conflict
-  // A more sophisticated implementation would iterate until stable
-  configs.forEach((config, i) => {
-    const currentWidth = widths[i] ?? 0;
-
-    if (config.minWidth !== undefined && currentWidth < config.minWidth) {
-      // Only enforce minWidth if not squishable or if we have room
-      if (!config.squish) {
-        widths[i] = config.minWidth;
-      }
-    }
-
-    if (config.maxWidth !== undefined && currentWidth > config.maxWidth) {
-      widths[i] = config.maxWidth;
-    }
-  });
-
-  return widths;
 }

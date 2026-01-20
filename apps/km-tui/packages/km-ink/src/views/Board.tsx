@@ -1240,7 +1240,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           <Box
             flexGrow={1}
             flexDirection="row"
-            height={termHeight - 2}
+            minHeight={1}
+            maxHeight={termHeight - 2}
             overflow="hidden"
           >
             {/* Cards, Columns, or List view */}

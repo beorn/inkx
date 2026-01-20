@@ -1,75 +1,34 @@
 /**
  * Constraint Context - Inkx Compatible Implementation
  *
- * Provides computed dimensions to child components via React context.
- * Works with Inkx's reconciler when rendered within Inkx.
- *
- * @see .beads/km-inkx.3-design.md for full design specification
+ * Re-exports ink-measure core types and hooks, plus an inkx-specific ConstraintRoot.
  */
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React from "react";
 import { useStdout } from "inkx";
+import {
+  ConstraintRoot as BaseConstraintRoot,
+  ConstraintContext,
+  useConstraintContext,
+  useComputedSize,
+  useTerminalSize,
+  type ConstraintContextValue,
+  type ComputedSize,
+  type TerminalSize,
+} from "ink-measure";
 
-/** Terminal dimensions */
-export interface TerminalSize {
-  columns: number;
-  rows: number;
-}
+// Re-export everything from ink-measure for local imports
+export {
+  ConstraintContext,
+  useConstraintContext,
+  useComputedSize,
+  useTerminalSize,
+  type ConstraintContextValue,
+  type ComputedSize,
+  type TerminalSize,
+};
 
-/** Computed dimensions passed via context */
-export interface ComputedSize {
-  width: number;
-  height: number;
-}
-
-/** Context value */
-export interface ConstraintContextValue {
-  terminal: TerminalSize;
-  parent: ComputedSize;
-}
-
-/** The context - starts undefined, must be wrapped in ConstraintRoot */
-export const ConstraintContext = createContext<
-  ConstraintContextValue | undefined
->(undefined);
-
-/**
- * Hook to access the constraint context.
- * Returns default values if not in a ConstraintRoot (for testing).
- */
-export function useConstraintContext(): ConstraintContextValue {
-  const context = useContext(ConstraintContext);
-
-  if (context) {
-    return context;
-  }
-
-  // Default fallback for tests
-  return {
-    terminal: { columns: 80, rows: 24 },
-    parent: { width: 80, height: 24 },
-  };
-}
-
-/**
- * Hook to access just the computed parent size.
- */
-export function useComputedSize(): ComputedSize {
-  const { parent } = useConstraintContext();
-  return parent;
-}
-
-/**
- * Hook to access terminal dimensions.
- */
-export function useTerminalSize(): TerminalSize {
-  const { terminal } = useConstraintContext();
-  return terminal;
-}
-
-/**
- * Props for ConstraintRoot
- */
+/** Props for ConstraintRoot (inkx version) */
 export interface ConstraintRootProps {
   children: React.ReactNode;
   /** Padding from terminal edges */
@@ -78,7 +37,7 @@ export interface ConstraintRootProps {
 
 /**
  * Root component that provides terminal dimensions and initiates the constraint tree.
- * Wrap your entire TUI application in this component.
+ * This version uses inkx's useStdout hook.
  *
  * @example
  * ```tsx
@@ -94,41 +53,10 @@ export function ConstraintRoot({
   padding = 0,
 }: ConstraintRootProps): React.ReactElement {
   const { stdout } = useStdout();
-  const [terminal, setTerminal] = useState<TerminalSize>({
-    columns: stdout?.columns ?? 80,
-    rows: stdout?.rows ?? 24,
-  });
-
-  // Update on resize
-  useEffect(() => {
-    const handle = () => {
-      setTerminal({
-        columns: stdout?.columns ?? 80,
-        rows: stdout?.rows ?? 24,
-      });
-    };
-
-    // Initial size
-    handle();
-
-    stdout?.on("resize", handle);
-    return () => {
-      stdout?.off("resize", handle);
-    };
-  }, [stdout]);
-
-  // Calculate available space after padding
-  const px = typeof padding === "number" ? padding : (padding.x ?? 0);
-  const py = typeof padding === "number" ? padding : (padding.y ?? 0);
-
-  const parent: ComputedSize = {
-    width: Math.max(1, terminal.columns - px * 2),
-    height: Math.max(1, terminal.rows - py * 2),
-  };
 
   return (
-    <ConstraintContext.Provider value={{ terminal, parent }}>
+    <BaseConstraintRoot stdout={stdout ?? undefined} padding={padding}>
       {children}
-    </ConstraintContext.Provider>
+    </BaseConstraintRoot>
   );
 }
