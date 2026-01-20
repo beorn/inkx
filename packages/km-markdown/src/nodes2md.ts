@@ -185,6 +185,28 @@ function serializeListItem(
 }
 
 /**
+ * Derive the checkbox mark from task_status.
+ * This ensures edits to task_status are reflected in the serialized output.
+ */
+function statusToMark(status: string | undefined, existingMark?: string): string {
+  switch (status) {
+    case "done":
+      return "x";
+    case "blocked":
+      return "!";
+    case "dropped":
+      return "-";
+    case "wip":
+      return "/";
+    case "todo":
+      return " ";
+    default:
+      // If no status, use existing mark or default to space
+      return existingMark ?? " ";
+  }
+}
+
+/**
  * Serialize a task item
  */
 function serializeTask(
@@ -194,7 +216,9 @@ function serializeTask(
   indent: number,
 ): string {
   const indentStr = "  ".repeat(indent);
-  const mark = node.task_mark ?? " ";
+  // Derive mark from task_status (which may have been updated)
+  // Fall back to task_mark for backwards compatibility
+  const mark = statusToMark(node.task_status, node.task_mark);
   let content = node.content ?? "";
 
   // Add task metadata if not already in content
