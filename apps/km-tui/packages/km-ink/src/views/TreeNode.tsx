@@ -149,11 +149,10 @@ export function TreeNode({
   return (
     <Box flexDirection="column">
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
-      {/* Indented to align with title text */}
+      {/* Indented to align with title text, dimmed without "< " prefix */}
       {!isOneliner && isEmbedded && parentContext && (
         <Text dimColor italic wrap="truncate">
           {" ".repeat(prefix.length)}
-          {"< "}
           {parentContext}
         </Text>
       )}

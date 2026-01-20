@@ -114,23 +114,21 @@ export interface PrefixResult {
   foldedCount: string;
 }
 
-/** Width reserved for icon in the margin (accounts for emoji width) */
-const ICON_SLOT_WIDTH = 2;
+/** Width reserved for icon (single char status icons, no emoji padding needed) */
+const ICON_SLOT_WIDTH = 1;
 
 /**
  * Build the prefix portion of a tree node line.
  *
- * Uses "hanging bullet" style: content starts at a consistent position,
- * with fold indicator and icon "hanging" in the left margin.
+ * Uses compact "hanging bullet" style for maximum content space:
  *
  * Layout (positions are 0-indexed from after indent):
- *   Position 0: fold indicator (▶/▼) or space
- *   Position 1-2: icon slot (2 chars reserved for emoji width)
- *   Position 3: space (separator before content)
- *   Position 4+: content starts here
+ *   Position 0: fold indicator (▶/▼) or space (only if has children)
+ *   Position 1: icon (status icon like ○, ◐, ✓)
+ *   Position 2: space (separator before content)
+ *   Position 3+: content starts here
  *
- * This ensures content aligns consistently regardless of whether
- * there's a fold indicator or what icon is used.
+ * For leaf nodes (no children), fold indicator is omitted to save space.
  */
 export function buildPrefix(
   depth: number,
@@ -144,14 +142,13 @@ export function buildPrefix(
   },
 ): PrefixResult {
   const indent = " ".repeat(depth);
-  const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : " ";
+  // Only show fold indicator if node has children (saves 1 char for leaves)
+  const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : "";
   const foldedCount = hasChildren && isFolded ? ` (${childCount})` : "";
 
-  // Hanging bullet: fold indicator is in the margin, icon follows
-  // Layout: [indent][fold][icon][space] where icon slot is ICON_SLOT_WIDTH
+  // Compact layout: [indent][fold?][icon][space]
   const beforeIcon = `${indent}${foldIndicator}`;
-  // Single space after icon (icon slot width handled by Box in TreeNode)
-  const afterIcon = " ";
+  const afterIcon = " "; // Single space before content
   const length = beforeIcon.length + ICON_SLOT_WIDTH + afterIcon.length;
 
   return {
@@ -306,7 +303,8 @@ export function estimateTreeNodeHeight(
 
   // Content lines: estimate based on content length vs available width
   const content = node.content || node.title || "";
-  // Prefix: indent + fold indicator (1) + icon slot (2) + space (1)
+  // Prefix: indent + fold indicator (0-1) + icon (1) + space (1)
+  // Using depth + 2 as conservative estimate (assumes fold indicator present)
   const prefixLength = depth + 1 + ICON_SLOT_WIDTH + 1;
   const contentWidth = Math.max(1, availableWidth - prefixLength);
   const estimatedLines = Math.min(
