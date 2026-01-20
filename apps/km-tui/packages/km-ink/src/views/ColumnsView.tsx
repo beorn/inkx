@@ -162,18 +162,10 @@ export function ColumnsView({
   const colBaseWidth = Math.floor(availableWidth / effectiveMaxCols);
   const colRemainder = availableWidth % effectiveMaxCols;
 
-  // Scroll indicators are slightly shorter (skip the header row area)
-  const scrollIndicatorHeight = height - 1;
-
   return (
     <Box flexDirection="row" width={width} height={height}>
       {/* Left scroll indicator */}
-      {hasLeftIndicator && (
-        <VerticalScrollIndicator
-          direction="left"
-          height={scrollIndicatorHeight}
-        />
-      )}
+      {hasLeftIndicator && <VerticalScrollIndicator direction="left" />}
 
       {/* Columns with tree view inside */}
       {effectiveVisibleColumns.map((col, i) => {
@@ -195,18 +187,13 @@ export function ColumnsView({
               selectionLevel={selectionLevel}
             />
             {/* Separator line between columns */}
-            {!isLastCol && <ColumnSeparator height={height} />}
+            {!isLastCol && <ColumnSeparator />}
           </React.Fragment>
         );
       })}
 
       {/* Right scroll indicator */}
-      {hasRightIndicator && (
-        <VerticalScrollIndicator
-          direction="right"
-          height={scrollIndicatorHeight}
-        />
-      )}
+      {hasRightIndicator && <VerticalScrollIndicator direction="right" />}
 
       {state.columns.length === 0 && (
         <Text dimColor>No columns to display</Text>

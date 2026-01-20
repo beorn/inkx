@@ -1180,8 +1180,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Calculate content area height - space between top and bottom bars
   const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT;
-  // Scroll indicators are shorter than content (they don't have the column header row)
-  const scrollIndicatorHeight = contentHeight - 1;
 
   // Recalculate columns when detail pane is shown (narrower view)
   const effectiveMaxCols = ui.showDetailPane
@@ -1279,10 +1277,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               >
                 {/* Left scroll indicator - full height filled bar */}
                 {effectiveScrollOffset > 0 && (
-                  <VerticalScrollIndicator
-                    direction="left"
-                    height={scrollIndicatorHeight}
-                  />
+                  <VerticalScrollIndicator direction="left" />
                 )}
                 {effectiveVisibleColumns.map((col, i) => {
                   const actualColIndex = effectiveScrollOffset + i;
@@ -1319,17 +1314,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                         selectionLevel={ui.selectionLevel}
                       />
                       {/* Separator line between columns */}
-                      {!isLastCol && <ColumnSeparator height={contentHeight} />}
+                      {!isLastCol && <ColumnSeparator />}
                     </React.Fragment>
                   );
                 })}
                 {/* Right scroll indicator - full height filled bar */}
                 {effectiveScrollOffset + effectiveMaxCols <
                   state.columns.length && (
-                  <VerticalScrollIndicator
-                    direction="right"
-                    height={scrollIndicatorHeight}
-                  />
+                  <VerticalScrollIndicator direction="right" />
                 )}
               </Box>
             ) : ui.viewMode === "columns" ? (
