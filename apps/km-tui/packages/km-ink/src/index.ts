@@ -18,9 +18,6 @@ export {
   makeSelectionKey,
 } from "./views/index.ts";
 
-// Export ink-specific views
-export { renderInkBoard } from "./views-ink/index.ts";
-
 // Export text utilities
 export * from "./text/index.ts";
 

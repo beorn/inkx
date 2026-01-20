@@ -106,11 +106,10 @@ export interface RenderOptions {
 
 /**
  * TUI rendering engine
- * - ink: Original Ink library (default, most stable)
- * - inkx: Custom fork with double-buffering
- * - inkx-flexx: Custom fork with pure JS flexbox layout
+ * - inkx: Custom Ink fork with double-buffering
+ * - inkx-flexx: inkx with pure JS flexbox layout (default)
  */
-export type TuiEngine = "ink" | "inkx" | "inkx-flexx";
+export type TuiEngine = "inkx" | "inkx-flexx";
 
 /**
  * Options for running the TUI

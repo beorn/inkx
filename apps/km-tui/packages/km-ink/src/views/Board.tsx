@@ -1846,6 +1846,7 @@ function countVisibleDescendants(
 }
 
 // Get background color name for top bar (for inkx Box backgroundColor)
+// Note: cyan is reserved for selection per design system (docs/06-ui.md)
 function getTopBarBgColor(
   boardColor: string | undefined,
   isBoardSelected: boolean,
@@ -1857,9 +1858,11 @@ function getTopBarBgColor(
       case "yellow":
       case "blue":
       case "magenta":
-      case "cyan":
       case "white":
         return boardColor;
+      case "cyan":
+        // Cyan is reserved for selection - use blue instead
+        return "blue";
       case "gray":
       case "grey":
         return "gray";

@@ -11,7 +11,7 @@ import { getRootPath } from "../index.ts";
 import { resolvePathArg, ensureState } from "@km/storage";
 
 const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"];
-const TUI_ENGINES: TuiEngine[] = ["ink", "inkx", "inkx-flexx"];
+const TUI_ENGINES: TuiEngine[] = ["inkx", "inkx-flexx"];
 
 export const viewCommand = new Command("view")
   .description("Interactive TUI view (press 'v' to cycle modes)")
@@ -35,7 +35,7 @@ export const viewCommand = new Command("view")
     ensureState(resolved.vaultRoot, false);
 
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
-    const engine = TUI_ENGINES.includes(options.tui) ? options.tui : "ink";
+    const engine = TUI_ENGINES.includes(options.tui) ? options.tui : "inkx";
 
     await runBoard(
       resolved.nodeRef ?? undefined,

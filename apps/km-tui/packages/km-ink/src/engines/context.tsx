@@ -2,32 +2,25 @@
  * Engine Context
  *
  * Provides engine-specific view components to the Board component tree.
- * This allows Board.tsx to work with either ink or inkx views.
  */
 
 import React, { createContext, useContext } from "react";
 import type { TuiEngine } from "../types.ts";
 
 // Import inkx views (for inkx and inkx-flexx engines)
-import { ColumnsView as InkxColumnsView } from "../views/ColumnsView.tsx";
-import { ListView as InkxListView } from "../views/ListView.tsx";
-import { TabsView as InkxTabsView } from "../views/TabsView.tsx";
-import { Column as InkxColumn } from "../views/CardColumn.tsx";
-
-// Import ink views (for stock ink engine)
-import { ColumnsView as InkColumnsView } from "../views-ink/ColumnsView.tsx";
-import { ListView as InkListView } from "../views-ink/ListView.tsx";
-import { TabsView as InkTabsView } from "../views-ink/TabsView.tsx";
-import { Column as InkColumn } from "../views-ink/CardColumn.tsx";
+import { ColumnsView } from "../views/ColumnsView.tsx";
+import { ListView } from "../views/ListView.tsx";
+import { TabsView } from "../views/TabsView.tsx";
+import { Column } from "../views/CardColumn.tsx";
 
 /**
  * View components provided by the engine
  */
 export interface EngineViews {
-  ColumnsView: typeof InkxColumnsView;
-  ListView: typeof InkxListView;
-  TabsView: typeof InkxTabsView;
-  Column: typeof InkxColumn;
+  ColumnsView: typeof ColumnsView;
+  ListView: typeof ListView;
+  TabsView: typeof TabsView;
+  Column: typeof Column;
 }
 
 /**
@@ -48,10 +41,10 @@ export function useEngineViews(): EngineViews {
   if (!context) {
     // Default to inkx views if no context (for backwards compatibility)
     return {
-      ColumnsView: InkxColumnsView,
-      ListView: InkxListView,
-      TabsView: InkxTabsView,
-      Column: InkxColumn,
+      ColumnsView,
+      ListView,
+      TabsView,
+      Column,
     };
   }
   return context.views;
@@ -66,24 +59,14 @@ export function useEngineName(): TuiEngine {
 }
 
 /**
- * Get views for a specific engine
+ * Get views for a specific engine (inkx and inkx-flexx use the same views)
  */
-function getViewsForEngine(engine: TuiEngine): EngineViews {
-  if (engine === "ink") {
-    // Stock ink views (import from "ink" package)
-    return {
-      ColumnsView: InkColumnsView,
-      ListView: InkListView,
-      TabsView: InkTabsView,
-      Column: InkColumn,
-    };
-  }
-  // inkx and inkx-flexx use inkx views
+function getViewsForEngine(_engine: TuiEngine): EngineViews {
   return {
-    ColumnsView: InkxColumnsView,
-    ListView: InkxListView,
-    TabsView: InkxTabsView,
-    Column: InkxColumn,
+    ColumnsView,
+    ListView,
+    TabsView,
+    Column,
   };
 }
 

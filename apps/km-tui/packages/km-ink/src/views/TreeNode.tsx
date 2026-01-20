@@ -149,42 +149,60 @@ export function TreeNode({
   return (
     <Box flexDirection="column">
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
+      {/* Indented to align with title text */}
       {!isOneliner && isEmbedded && parentContext && (
         <Text dimColor italic wrap="truncate">
+          {" ".repeat(prefix.length)}
           {"< "}
           {parentContext}
         </Text>
       )}
 
-      {/* Main content line - uses Box for background color fill */}
-      <Box backgroundColor={style.backgroundColor}>
-        <Text
-          color={style.textColor}
-          dimColor={style.shouldDim}
-          strikethrough={style.shouldStrikethrough}
-          wrap="truncate"
-        >
-          {prefix.beforeIcon}
+      {/* Main row: two-column layout for hanging bullet */}
+      <Box
+        flexDirection="row"
+        alignItems="flex-start"
+        backgroundColor={style.backgroundColor}
+      >
+        {/* Prefix column: fold indicator + icon (fixed width, top-aligned) */}
+        <Box width={prefix.length} flexShrink={0}>
           <Text
-            color={
-              isSelected || isMultiSelected ? style.textColor : prefix.iconColor
-            }
-            backgroundColor={
-              isSelected || isMultiSelected ? undefined : prefix.iconBgColor
-            }
+            color={style.textColor}
+            dimColor={style.shouldDim}
           >
-            {prefix.iconChar}
-          </Text>
-          {prefix.afterIcon}
-          {styledContent}
-          {prefix.foldedCount}
-          {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
-          {showInlineContext && (
-            <Text dimColor italic>
-              {contextSuffix}
+            {prefix.beforeIcon}
+            <Text
+              color={
+                isSelected || isMultiSelected ? style.textColor : prefix.iconColor
+              }
+              backgroundColor={
+                isSelected || isMultiSelected ? undefined : prefix.iconBgColor
+              }
+            >
+              {prefix.iconChar}
             </Text>
-          )}
-        </Text>
+            {prefix.afterIcon}
+          </Text>
+        </Box>
+
+        {/* Content column: wraps naturally to remaining space */}
+        <Box flexGrow={1}>
+          <Text
+            color={style.textColor}
+            dimColor={style.shouldDim}
+            strikethrough={style.shouldStrikethrough}
+            wrap={isOneliner ? "truncate" : "wrap"}
+          >
+            {styledContent}
+            {prefix.foldedCount}
+            {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
+            {showInlineContext && (
+              <Text dimColor italic>
+                {contextSuffix}
+              </Text>
+            )}
+          </Text>
+        </Box>
       </Box>
 
       {/* Children */}

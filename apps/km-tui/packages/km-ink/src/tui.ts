@@ -9,8 +9,6 @@ import chalk from "chalk";
 import type { BoardState, TuiEngine, TuiOptions } from "./types.ts";
 import { initBoardState } from "./state.ts";
 import { renderBoardStatic } from "./render.ts";
-// Separate view implementations for ink vs inkx
-import { renderInkBoard } from "./views-ink/index.ts";
 import { renderInkxBoard } from "./views/index.ts";
 import { setFsSync, SyncManager } from "@km/storage";
 
@@ -44,15 +42,10 @@ export async function runBoardTUI(
   const engine: TuiEngine = options?.engine ?? "inkx";
 
   // Supported TUI engines:
-  // - ink: Original Ink library with fullscreen-ink wrapper and ScrollableList constraint system
   // - inkx: Custom Ink fork with double-buffering and native overflow="scroll" support
   // - inkx-flexx: inkx with pure JS flexbox (replaces yoga-wasm)
 
-  if (engine === "ink") {
-    await renderInkBoard(initialState, options?.initialViewMode);
-  } else {
-    await renderInkxBoard(initialState, options?.initialViewMode, engine);
-  }
+  await renderInkxBoard(initialState, options?.initialViewMode, engine);
 }
 
 /**
