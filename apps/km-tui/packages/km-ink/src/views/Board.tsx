@@ -44,6 +44,14 @@ import { ProjectPicker } from "./ProjectPicker.tsx";
 import { HelpOverlay } from "./HelpOverlay.tsx";
 import { NewItemDialog } from "./NewItemDialog.tsx";
 import { Column as InkxColumn } from "./CardColumn.tsx"; // For InkBoardTestable
+import {
+  VerticalScrollIndicator,
+  ColumnSeparator,
+} from "./VerticalScrollIndicator.tsx";
+
+// Layout constants - centralized to avoid magic numbers scattered through rendering code
+const TOP_BAR_HEIGHT = 1;
+const BOTTOM_BAR_HEIGHT = 1;
 import { useEngineViews, EngineProvider } from "../engines/index.ts";
 import {
   createPasteHandler,
@@ -629,8 +637,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             dispatch(actions.setSelectionLevel("column"));
             dispatchBoard({ type: "NAV_TO_PATH", path: [0] });
           } else if (ui.selectionLevel === "column") {
-            dispatch(actions.setSelectionLevel("card"));
-            dispatchBoard({ type: "NAV_TO_PATH", path: [state.colIndex, 0] });
+            // Only go to card level if column has cards (fixes km-n29q)
+            if (col && col.cards.length > 0) {
+              dispatch(actions.setSelectionLevel("card"));
+              dispatchBoard({ type: "NAV_TO_PATH", path: [state.colIndex, 0] });
+            }
+            // If column is empty, stay at column level (no-op)
           } else if (ui.inOutlineMode) {
             const maxSub = getMaxSubIndex(keyboardContext);
             if (ui.subIndex < maxSub - 1) {
@@ -651,11 +663,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             const targetCol = state.columns[state.colIndex - 1];
             // Dispatch directly to boardReducer for cross-column movement
             dispatchBoard({ type: "CURSOR_MOVE", dir: "left" });
-            if (
-              ui.selectionLevel === "card" &&
-              (!targetCol || targetCol.cards.length === 0)
-            ) {
+            // Update selection level based on target column content (fixes km-n29q)
+            if (!targetCol || targetCol.cards.length === 0) {
               dispatch(actions.setSelectionLevel("column"));
+            } else {
+              dispatch(actions.setSelectionLevel("card"));
             }
             dispatch(actions.exitOutlineMode());
             dispatch(actions.setSubIndex(0));
@@ -1004,7 +1016,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     function handleJumpToColumn(columnNumber: number) {
       if (ui.showDetailPane || ui.inOutlineMode) return;
       const targetColIndex = columnNumber - 1; // 1-9 maps to 0-8
-      if (targetColIndex >= 0 && targetColIndex < columnsLayout.columns.length) {
+      if (
+        targetColIndex >= 0 &&
+        targetColIndex < columnsLayout.columns.length
+      ) {
         const targetCol = columnsLayout.columns[targetColIndex];
         const clampedCardIndex = Math.min(
           columnsLayout.cardIndex,
@@ -1053,8 +1068,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       const currentIdx = siblings.findIndex((s) => s.id === currentRoot.id);
       if (currentIdx < 0) return;
 
-      const targetIdx =
-        direction === "next" ? currentIdx + 1 : currentIdx - 1;
+      const targetIdx = direction === "next" ? currentIdx + 1 : currentIdx - 1;
       if (targetIdx < 0 || targetIdx >= siblings.length) {
         process.stdout.write("\x07"); // Beep at boundary
         return;
@@ -1164,6 +1178,11 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0;
   const boardWidth = termWidth - detailPaneWidth;
 
+  // Calculate content area height - space between top and bottom bars
+  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT;
+  // Scroll indicators are shorter than content (they don't have the column header row)
+  const scrollIndicatorHeight = contentHeight - 1;
+
   // Recalculate columns when detail pane is shown (narrower view)
   const effectiveMaxCols = ui.showDetailPane
     ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
@@ -1191,7 +1210,15 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const topBarBgChalk = getTopBarBgChalk(boardColor, isBoardSelected);
 
   // Determine text color based on background (dark bg = white text, light bg = black text)
-  const darkBgColors = ["red", "green", "blue", "magenta", "gray", "grey", "black"];
+  const darkBgColors = [
+    "red",
+    "green",
+    "blue",
+    "magenta",
+    "gray",
+    "grey",
+    "black",
+  ];
   const useWhiteText = boardColor
     ? darkBgColors.includes(boardColor)
     : isBoardSelected;
@@ -1212,7 +1239,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Background color for the top bar
   const topBarBg = topBarBgChalk;
   const topBarFg = useWhiteText ? topBarBgChalk.white : topBarBgChalk.black;
-
 
   // Render loading indicator until terminal is ready (see ui.isReady comment above)
   // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
@@ -1241,7 +1267,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             flexGrow={1}
             flexDirection="row"
             minHeight={1}
-            maxHeight={termHeight - 2}
+            maxHeight={contentHeight}
             overflow="hidden"
           >
             {/* Cards, Columns, or List view */}
@@ -1249,17 +1275,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <Box
                 flexDirection="row"
                 width={boardWidth}
-                height={termHeight - 2}
+                height={contentHeight}
               >
                 {/* Left scroll indicator - full height filled bar */}
                 {effectiveScrollOffset > 0 && (
-                  <Box flexDirection="column" width={1} height={termHeight - 3}>
-                    {Array.from({ length: termHeight - 3 }).map((_, i) => (
-                      <Text key={i} backgroundColor="gray" color="white">
-                        {i === Math.floor((termHeight - 3) / 2) ? "‹" : " "}
-                      </Text>
-                    ))}
-                  </Box>
+                  <VerticalScrollIndicator
+                    direction="left"
+                    height={scrollIndicatorHeight}
+                  />
                 )}
                 {effectiveVisibleColumns.map((col, i) => {
                   const actualColIndex = effectiveScrollOffset + i;
@@ -1292,47 +1315,28 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                         selectedCardIndex={state.cardIndex}
                         selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
                         width={adjustedColWidth}
-                        height={termHeight - 2}
+                        height={contentHeight}
                         selectionLevel={ui.selectionLevel}
                       />
                       {/* Separator line between columns */}
-                      {!isLastCol && (
-                        <Box
-                          flexDirection="column"
-                          width={1}
-                          height={termHeight - 2}
-                        >
-                          {/* Blank line to align with column header spacing */}
-                          <Text> </Text>
-                          {Array.from({ length: termHeight - 3 }).map(
-                            (_, j) => (
-                              <Text key={j} color="gray">
-                                │
-                              </Text>
-                            ),
-                          )}
-                        </Box>
-                      )}
+                      {!isLastCol && <ColumnSeparator height={contentHeight} />}
                     </React.Fragment>
                   );
                 })}
                 {/* Right scroll indicator - full height filled bar */}
                 {effectiveScrollOffset + effectiveMaxCols <
                   state.columns.length && (
-                  <Box flexDirection="column" width={1} height={termHeight - 3}>
-                    {Array.from({ length: termHeight - 3 }).map((_, i) => (
-                      <Text key={i} backgroundColor="gray" color="white">
-                        {i === Math.floor((termHeight - 3) / 2) ? "›" : " "}
-                      </Text>
-                    ))}
-                  </Box>
+                  <VerticalScrollIndicator
+                    direction="right"
+                    height={scrollIndicatorHeight}
+                  />
                 )}
               </Box>
             ) : ui.viewMode === "columns" ? (
               <ColumnsView
                 state={state}
                 width={boardWidth}
-                height={termHeight - 2}
+                height={contentHeight}
                 colIndex={state.colIndex}
                 cardIndex={state.cardIndex}
                 subIndex={ui.subIndex}
@@ -1345,7 +1349,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <ListView
                 state={state}
                 width={boardWidth}
-                height={termHeight - 2}
+                height={contentHeight}
                 colIndex={state.colIndex}
                 cardIndex={state.cardIndex}
                 subIndex={ui.subIndex}
@@ -1355,7 +1359,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <TabsView
                 state={state}
                 width={boardWidth}
-                height={termHeight - 2}
+                height={contentHeight}
                 colIndex={state.colIndex}
                 cardIndex={state.cardIndex}
                 subIndex={ui.subIndex}
@@ -1367,7 +1371,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <DetailPane
                 node={selectedCard.node}
                 width={detailPaneWidth}
-                height={termHeight - 2}
+                height={contentHeight}
               />
             )}
             {/* Project picker modal */}
@@ -1375,13 +1379,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <Box
                 position="absolute"
                 marginLeft={Math.floor(termWidth / 4)}
-                marginTop={Math.floor(termHeight / 4)}
+                marginTop={Math.floor(contentHeight / 2)}
               >
                 <ProjectPicker
                   onSelect={handleProjectSelect}
                   onCancel={handleProjectCancel}
                   width={Math.floor(termWidth / 2)}
-                  height={Math.floor(termHeight / 2)}
+                  height={Math.floor(contentHeight / 2)}
                   recentProjectIds={ui.recentProjectIds}
                 />
               </Box>
@@ -1391,7 +1395,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <Box
                 position="absolute"
                 marginLeft={Math.floor(termWidth / 4)}
-                marginTop={Math.floor(termHeight / 3)}
+                marginTop={Math.floor(contentHeight / 3)}
               >
                 <NewItemDialog
                   cursorNode={selectedCard?.node ?? null}
@@ -1404,7 +1408,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             )}
             {/* Help overlay */}
             {ui.showHelp && (
-              <HelpOverlay width={termWidth} height={termHeight - 2} />
+              <HelpOverlay width={termWidth} height={contentHeight} />
             )}
           </Box>
           {/* Bottom bar: fill entire line to prevent artifacts */}
@@ -1460,7 +1464,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                   ui.viewMode.length +
                   7;
                 // Fill middle with spaces - ensure it spans full width
-                const middleLen = Math.max(1, termWidth - leftVisLen - rightVisLen);
+                const middleLen = Math.max(
+                  1,
+                  termWidth - leftVisLen - rightVisLen,
+                );
                 return left + " ".repeat(middleLen) + rightParts;
               })()}
             </Text>
@@ -1640,6 +1647,7 @@ export function InkBoardTestable({
   // Use fixed test ui.dimensions instead of stdout
   const termWidth = testWidth;
   const termHeight = testHeight;
+  const testContentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT;
 
   const maxCols = Math.min(
     initialState.columns.length,
@@ -1726,7 +1734,7 @@ export function InkBoardTestable({
                 selectedCardIndex={initialState.cardIndex}
                 selectedSubIndex={-1}
                 width={colWidth}
-                height={termHeight - 2}
+                height={testContentHeight}
                 selectionLevel="card"
               />
             );

@@ -13,6 +13,10 @@ import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { useTreeConfig } from "../ui-context.tsx";
+import {
+  VerticalScrollIndicator,
+  ColumnSeparator,
+} from "./VerticalScrollIndicator.tsx";
 
 // =============================================================================
 // ColumnTree Subcomponent
@@ -54,7 +58,12 @@ function ColumnTree({
   );
 
   return (
-    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
+    <Box
+      flexDirection="column"
+      width={width}
+      maxHeight={height}
+      overflow="hidden"
+    >
       {/* Header section */}
       <Box flexDirection="column" height={2} flexShrink={0}>
         <Text> </Text>
@@ -153,17 +162,17 @@ export function ColumnsView({
   const colBaseWidth = Math.floor(availableWidth / effectiveMaxCols);
   const colRemainder = availableWidth % effectiveMaxCols;
 
+  // Scroll indicators are slightly shorter (skip the header row area)
+  const scrollIndicatorHeight = height - 1;
+
   return (
     <Box flexDirection="row" width={width} height={height}>
       {/* Left scroll indicator */}
       {hasLeftIndicator && (
-        <Box flexDirection="column" width={1} height={height - 1}>
-          {Array.from({ length: height - 1 }).map((_, i) => (
-            <Text key={i} backgroundColor="gray" color="white">
-              {i === Math.floor((height - 1) / 2) ? "‹" : " "}
-            </Text>
-          ))}
-        </Box>
+        <VerticalScrollIndicator
+          direction="left"
+          height={scrollIndicatorHeight}
+        />
       )}
 
       {/* Columns with tree view inside */}
@@ -186,29 +195,17 @@ export function ColumnsView({
               selectionLevel={selectionLevel}
             />
             {/* Separator line between columns */}
-            {!isLastCol && (
-              <Box flexDirection="column" width={1} height={height}>
-                <Text> </Text>
-                {Array.from({ length: height - 1 }).map((_, j) => (
-                  <Text key={j} color="gray">
-                    │
-                  </Text>
-                ))}
-              </Box>
-            )}
+            {!isLastCol && <ColumnSeparator height={height} />}
           </React.Fragment>
         );
       })}
 
       {/* Right scroll indicator */}
       {hasRightIndicator && (
-        <Box flexDirection="column" width={1} height={height - 1}>
-          {Array.from({ length: height - 1 }).map((_, i) => (
-            <Text key={i} backgroundColor="gray" color="white">
-              {i === Math.floor((height - 1) / 2) ? "›" : " "}
-            </Text>
-          ))}
-        </Box>
+        <VerticalScrollIndicator
+          direction="right"
+          height={scrollIndicatorHeight}
+        />
       )}
 
       {state.columns.length === 0 && (
