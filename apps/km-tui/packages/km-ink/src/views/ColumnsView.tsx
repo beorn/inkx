@@ -205,8 +205,7 @@ function ColumnTree({
   return (
     <Box flexDirection="column" width={width} overflow="hidden">
       {/* Header section */}
-      <Box flexDirection="column" height={3} flexShrink={0}>
-        <Text> </Text>
+      <Box flexDirection="column" height={2} flexShrink={0}>
         {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
         <Box>
           <Text
@@ -274,8 +273,9 @@ export function ColumnsView({
   const hasRightIndicator =
     effectiveScrollOffset + effectiveMaxCols < state.columns.length;
 
-  // Calculate column widths with max width constraint (similar to cards view)
-  const maxColWidth = 70;
+  // Calculate column widths with max width constraint
+  // Tighter than cards view to prevent columns from being too wide
+  const maxColWidth = 50;
   const indicatorWidth = (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
   const separatorCount = effectiveVisibleColumns.length - 1;
   const availableWidth = width - indicatorWidth - separatorCount;

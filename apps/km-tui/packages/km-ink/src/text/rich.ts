@@ -176,24 +176,25 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
         return "";
       }
       // Use sigil's color if provided, otherwise dim white
+      // Always dim the sigil to keep it subtle - color + dim for toned-down appearance
       const color = sigilColors.get(sigil);
       if (color) {
-        // Use the sigil node's color
+        // Use the sigil node's color, but dimmed for subtlety
         switch (color) {
           case "red":
-            return chalk.red(sigil);
+            return chalk.dim.red(sigil);
           case "green":
-            return chalk.green(sigil);
+            return chalk.dim.green(sigil);
           case "yellow":
-            return chalk.yellow(sigil);
+            return chalk.dim.yellow(sigil);
           case "blue":
-            return chalk.blue(sigil);
+            return chalk.dim.blue(sigil);
           case "magenta":
-            return chalk.magenta(sigil);
+            return chalk.dim.magenta(sigil);
           case "cyan":
-            return chalk.cyan(sigil);
+            return chalk.dim.cyan(sigil);
           case "white":
-            return chalk.white(sigil);
+            return chalk.dim.white(sigil);
           case "gray":
           case "grey":
             return chalk.gray(sigil);

@@ -24,7 +24,7 @@ Test scenarios for task management workflows.
 ```bash
 km new "Buy groceries"              # → inbox/, on @inbox
 km new "Fix bug" -n                 # → on @next/today
-km new "Review @bjorn due:fri"      # → owner=bjorn, due=friday
+km new "Review @bjorn due:fri"      # → assigned_to=bjorn, due=friday
 km new "Call vendor +website"       # → on +website board
 ```
 

@@ -81,7 +81,7 @@ Match field values with `key:value`:
 | `status` | todo, wip, blocked, done, dropped   | `status:todo`  |
 | `due`    | today, past, week, none, YYYY-MM-DD | `due:past`     |
 | `start`  | past, today, YYYY-MM-DD             | `start:past`   |
-| `owner`  | name                                | `owner:bjorn$` |
+| `assigned` | name                              | `assigned:bjorn$` |
 | `p`      | 1-5                                 | `p:1`          |
 
 ### Date Values

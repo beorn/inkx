@@ -71,7 +71,7 @@ Any reference can have a board — it's just a markdown file (`@bjorn.md`, `+web
 - **People** (`@bjorn`, `@sarah`): Delegation, collaboration, agenda items
 - **Contexts** (`@phone`, `@computer`, `@errands`): GTD contexts — where/how to do the task
 
-All references create links to boards. The first `@` becomes the **owner** (assignee).
+All references create links to boards. The first `@` becomes the **assigned person** (assignee).
 
 ---
 
@@ -93,7 +93,7 @@ interface Node {
 
   // Task fields (optional)
   status?: "todo" | "wip" | "blocked" | "done" | "dropped";
-  owner?: string; // First @ reference (without sigil)
+  assigned_to?: string; // First @ reference (without sigil)
   refs?: string[]; // All @, #, + references (with sigils)
   due?: string; // YYYY-MM-DD
   start?: string; // YYYY-MM-DD (defer until)
