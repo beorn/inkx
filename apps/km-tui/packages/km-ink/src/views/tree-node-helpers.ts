@@ -5,7 +5,7 @@
  */
 
 import type { KNode } from "@km/core";
-import { getTypeIcon, getNodeIcon, styledUnderline } from "../text/index.ts";
+import { getNodeIcon, styledUnderline } from "../text/index.ts";
 import {
   getBoardPills as getBoardPillsFromStorage,
   formatBoardPills,
@@ -67,28 +67,33 @@ export function getNodeStyle(
   const isTask = node.type === "task";
   const ownColor = getOwnColor(node);
 
-  // Icon: tasks use status icon, others use type icon
-  const nodeIcon = isTask ? getNodeIcon(node.task_status, ownColor) : null;
-  const typeIcon = isTask ? "" : getTypeIcon(node.type);
+  // Icon: all nodes now use getNodeIcon for consistent bullet styling
+  // - Tasks: status icon (○ ◐ ✓ etc.) with optional color override
+  // - Non-tasks with color: filled disc (●) in that color
+  // - Non-tasks without color: small bullet (·)
+  const nodeIcon = getNodeIcon(
+    isTask ? node.task_status : null,
+    ownColor,
+    isTask,
+  );
   const icon = {
-    char: nodeIcon ? nodeIcon.char : typeIcon,
-    color: nodeIcon?.color,
-    bgColor: nodeIcon?.backgroundColor,
+    char: nodeIcon.char,
+    color: nodeIcon.color,
+    bgColor: nodeIcon.backgroundColor,
   };
 
   // Background/text colors
+  // Node colors only affect the disc/marker icon, NOT the background
+  // Only selection state affects background (yellow bg, black text)
   let backgroundColor: string | undefined;
   let textColor: string | undefined;
-  const hasColoredBg = !isTask && !!ownColor;
 
   if (isSelected || isMultiSelected) {
-    // Design system: cyan background, black foreground for selection
-    backgroundColor = "cyan";
+    // Design system: yellow background, black foreground for selection
+    backgroundColor = "yellow";
     textColor = "black";
-  } else if (hasColoredBg && ownColor) {
-    backgroundColor = ownColor;
-    textColor = DARK_BG_COLORS.includes(ownColor) ? "white" : "black";
   }
+  // No colored background for nodes with ownColor - color only applies to icon
 
   // Dim state for done/dropped tasks (no strikethrough per design)
   const isDoneOrDropped =
@@ -120,18 +125,16 @@ const ICON_SLOT_WIDTH = 1;
 /**
  * Build the prefix portion of a tree node line.
  *
- * Uses compact "hanging bullet" style for maximum content space:
+ * Layout: [foldPart][icon][space]
+ *   - foldPart: fold indicator (▶/▼) or space (for alignment)
+ *   - icon: status icon (○, ◐, ✓, ·, ●)
+ *   - space: single space before content
  *
- * Layout (positions are 0-indexed from after indent):
- *   Position 0: fold indicator (▶/▼) or space (only if has children)
- *   Position 1: icon (status icon like ○, ◐, ✓)
- *   Position 2: space (separator before content)
- *   Position 3+: content starts here
- *
- * For leaf nodes (no children), fold indicator is omitted to save space.
+ * Note: Depth-based indentation is handled by Box paddingLeft in TreeNode,
+ * not by text spaces in the prefix. This avoids wrap-ansi trimming issues.
  */
 export function buildPrefix(
-  depth: number,
+  _depth: number, // Kept for API compatibility, but not used for indent
   hasChildren: boolean,
   isFolded: boolean,
   childCount: number,
@@ -141,13 +144,12 @@ export function buildPrefix(
     bgColor: string | undefined;
   },
 ): PrefixResult {
-  const indent = " ".repeat(depth);
-  // Only show fold indicator if node has children (saves 1 char for leaves)
-  const foldIndicator = hasChildren ? (isFolded ? "▶" : "▼") : "";
+  // Fold indicator, or just space for leaves to align icons
+  const foldPart = hasChildren ? (isFolded ? "▶" : "▼") : " ";
   const foldedCount = hasChildren && isFolded ? ` (${childCount})` : "";
 
-  // Compact layout: [indent][fold?][icon][space]
-  const beforeIcon = `${indent}${foldIndicator}`;
+  // Layout: [foldPart][icon][space] - no depth indent (handled by Box)
+  const beforeIcon = foldPart;
   const afterIcon = " "; // Single space before content
   const length = beforeIcon.length + ICON_SLOT_WIDTH + afterIcon.length;
 
@@ -303,9 +305,9 @@ export function estimateTreeNodeHeight(
 
   // Content lines: estimate based on content length vs available width
   const content = node.content || node.title || "";
-  // Prefix: indent + fold indicator (0-1) + icon (1) + space (1)
-  // Using depth + 2 as conservative estimate (assumes fold indicator present)
-  const prefixLength = depth + 1 + ICON_SLOT_WIDTH + 1;
+  // Prefix: leftPad (1) + indent + fold indicator (0-1) + icon (1) + space (1)
+  // Using depth + 3 as conservative estimate (assumes fold indicator present)
+  const prefixLength = 1 + depth + 1 + ICON_SLOT_WIDTH + 1;
   const contentWidth = Math.max(1, availableWidth - prefixLength);
   const estimatedLines = Math.min(
     maxContentLines,

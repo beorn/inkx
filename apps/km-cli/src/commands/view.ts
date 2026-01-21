@@ -5,7 +5,10 @@
  * Press 'v' to cycle between views interactively.
  */
 
+import createDebug from "debug";
 import { Command } from "commander";
+
+const debug = createDebug("km:cli:view");
 import { runBoard, type ViewMode, type TuiEngine } from "@km/ink";
 import { getRootPath } from "../index.ts";
 import { resolvePathArg, ensureState } from "@km/storage";
@@ -28,22 +31,42 @@ export const viewCommand = new Command("view")
     "inkx-flexx",
   )
   .action(async (root, options) => {
+    debug("view command: root=%s, as=%s, tui=%s", root, options.as, options.tui);
+
     // Resolve path argument - handles directory paths, file paths, and node IDs
     const resolved = resolvePathArg(root, getRootPath());
-
-    // Initialize database state (replay events) before accessing nodes
-    ensureState(resolved.vaultRoot, false);
+    debug("resolved: vaultRoot=%s, nodeRef=%s", resolved.vaultRoot, resolved.nodeRef);
 
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
     const engine = TUI_ENGINES.includes(options.tui) ? options.tui : "inkx";
 
-    await runBoard(
-      resolved.nodeRef ?? undefined,
-      options.interactive !== false,
-      resolved.vaultRoot,
-      {
-        initialViewMode: viewMode as ViewMode,
-        engine: engine as TuiEngine,
-      },
-    );
+    // For interactive mode, pass ensureState as callback so TUI can show loading indicator
+    // For non-interactive mode, ensure state synchronously before rendering
+    if (options.interactive !== false) {
+      debug("launching TUI with deferred state initialization: mode=%s, engine=%s", viewMode, engine);
+      await runBoard(
+        resolved.nodeRef ?? undefined,
+        true,
+        resolved.vaultRoot,
+        {
+          initialViewMode: viewMode as ViewMode,
+          engine: engine as TuiEngine,
+          // Deferred loading: TUI will call this and show spinner while it runs
+          initializeState: () => ensureState(resolved.vaultRoot, false),
+        },
+      );
+    } else {
+      // Non-interactive mode: load state first, then render
+      ensureState(resolved.vaultRoot, false);
+      debug("launching static view: mode=%s", viewMode);
+      await runBoard(
+        resolved.nodeRef ?? undefined,
+        false,
+        resolved.vaultRoot,
+        {
+          initialViewMode: viewMode as ViewMode,
+          engine: engine as TuiEngine,
+        },
+      );
+    }
   });

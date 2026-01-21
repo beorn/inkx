@@ -1,3 +1,4 @@
+import createDebug from "debug";
 import type {
   CommandContext,
   CommandAction,
@@ -7,13 +8,21 @@ import type {
 } from "./types.ts";
 import { getCommand } from "./registry.ts";
 
+const debug = createDebug("km:commands:executor");
+
 export function executeCommand(
   id: string,
   ctx: CommandContext,
 ): CommandAction | CommandAction[] | null {
   const cmd = getCommand(id);
-  if (!cmd) return null;
-  return cmd.execute(ctx);
+  if (!cmd) {
+    debug("command not found: %s", id);
+    return null;
+  }
+  debug("executing: %s", id);
+  const result = cmd.execute(ctx);
+  debug("executed %s → %O", id, Array.isArray(result) ? result.map(r => r.type) : result?.type);
+  return result;
 }
 
 export function buildContext(

@@ -5,7 +5,10 @@
  * Operations handle both memory mode (direct SQL) and disk mode (via emit).
  */
 
+import createDebug from "debug";
 import { ulid } from "ulid";
+
+const debug = createDebug("km:storage:db:ops");
 import type { KNode } from "@km/core";
 import { getDb, isMemoryMode } from "./db-instance.ts";
 import { emit } from "./emit.ts";
@@ -26,6 +29,7 @@ export function moveNode(
   newParentId: string,
   newParentIdx: number,
 ): void {
+  debug("moveNode: %s → parent=%s idx=%d", nodeId, newParentId, newParentIdx);
   if (isMemoryMode()) {
     const db = getDb();
     db.run(
@@ -56,6 +60,7 @@ export function updateNode(
   nodeId: string,
   updates: Record<string, unknown>,
 ): void {
+  debug("updateNode: %s keys=%o", nodeId, Object.keys(updates));
   if (isMemoryMode()) {
     const db = getDb();
     const sets: string[] = [];
@@ -90,6 +95,7 @@ export function updateNode(
  * UI components should use this instead of raw SQL.
  */
 export function deleteNode(nodeId: string): void {
+  debug("deleteNode: %s", nodeId);
   if (isMemoryMode()) {
     const db = getDb();
     db.run("DELETE FROM nodes WHERE id = ?", [nodeId]);
@@ -116,6 +122,7 @@ export function deleteNode(nodeId: string): void {
  */
 export function addNode(parentId: string | null, node: Partial<KNode>): string {
   const nodeId = node.id ?? ulid();
+  debug("addNode: %s type=%s parent=%s", nodeId, node.type ?? "task", parentId);
   const now = Date.now();
 
   const nodeData = {

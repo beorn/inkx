@@ -71,12 +71,34 @@ export interface QueryPhrase {
 }
 
 /**
+ * Property condition for inline property queries
+ */
+export interface QueryPropCondition {
+  prop: string;
+  op: "exists" | "=" | "!=" | ">" | "<" | ">=" | "<=";
+  value?: string | number;
+  negated?: boolean;
+  offset?: QueryOffset;
+}
+
+/**
+ * Special query conditions (blocked, etc.)
+ */
+export interface QuerySpecial {
+  type: "blocked";
+  value: boolean;
+  offset?: QueryOffset;
+}
+
+/**
  * Parsed query AST
  */
 export interface QueryAST {
   conditions: QueryCondition[];
   refs: QueryRef[];
   paths: QueryPath[]; // Path pattern filters
+  propConditions: QueryPropCondition[]; // Inline property queries
+  specials: QuerySpecial[]; // Special conditions like blocked:true
   text: string[]; // Backwards compatible - plain text values
   phrases: string[]; // Backwards compatible - plain phrase values
   textTerms: QueryText[]; // Text with offsets
@@ -122,6 +144,8 @@ export function parseQuery(query: string): QueryAST {
     conditions: [],
     refs: [],
     paths: [],
+    propConditions: [],
+    specials: [],
     text: [],
     phrases: [],
     textTerms: [],
@@ -237,6 +261,47 @@ export function parseQuery(query: string): QueryAST {
         pattern,
         recursive,
         negated,
+        offset,
+      });
+      continue;
+    }
+
+    // Property queries: prop::* (exists), prop::value (equals)
+    // Pattern: name::value where :: distinguishes from field:value
+    const propMatch = term.match(/^([a-z][a-z0-9_-]*)::(.*)$/i);
+    if (propMatch) {
+      const [, propName, propValue] = propMatch;
+
+      if (propValue === "*") {
+        // Existence check: prop::*
+        ast.propConditions.push({
+          prop: propName?.toLowerCase() ?? "",
+          op: "exists",
+          negated,
+          offset,
+        });
+      } else {
+        // Value match: prop::value
+        // Check if it's a number
+        const numValue = parseFloat(propValue ?? "");
+        const isNumber = !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "");
+
+        ast.propConditions.push({
+          prop: propName?.toLowerCase() ?? "",
+          op: negated ? "!=" : "=",
+          value: isNumber ? numValue : (propValue ?? ""),
+          negated,
+          offset,
+        });
+      }
+      continue;
+    }
+
+    // Special queries: blocked:true/false
+    if (term.toLowerCase() === "blocked:true" || term.toLowerCase() === "blocked:false") {
+      ast.specials.push({
+        type: "blocked",
+        value: term.toLowerCase() === "blocked:true",
         offset,
       });
       continue;

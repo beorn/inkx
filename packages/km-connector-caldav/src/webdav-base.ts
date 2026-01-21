@@ -4,6 +4,10 @@
  * Shared functionality for CalDAV and CardDAV clients.
  */
 
+import createDebug from "debug";
+
+const debug = createDebug("km:webdav:base");
+
 export interface WebDAVConfig {
   url: string;
   username: string;
@@ -31,6 +35,7 @@ export async function webdavRequest(
   body?: string,
   headers?: Record<string, string>,
 ): Promise<Response> {
+  debug("%s %s", method, url);
   const response = await fetch(url, {
     method,
     headers: {
@@ -42,11 +47,13 @@ export async function webdavRequest(
   });
 
   if (!response.ok && response.status !== 207) {
+    debug("%s %s failed: %d %s", method, url, response.status, response.statusText);
     throw new Error(
       `WebDAV request failed: ${response.status} ${response.statusText}`,
     );
   }
 
+  debug("%s %s → %d", method, url, response.status);
   return response;
 }
 
@@ -76,5 +83,7 @@ export async function discoverPrincipal(
 
   const text = await response.text();
   const principalMatch = text.match(/<D:href>([^<]+)<\/D:href>/);
-  return principalMatch ? principalMatch[1] : null;
+  const result = principalMatch?.[1] ?? null;
+  debug("discoverPrincipal: %s → %s", baseUrl, result ?? "(not found)");
+  return result;
 }

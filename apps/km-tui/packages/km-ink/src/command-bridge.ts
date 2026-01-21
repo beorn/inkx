@@ -185,7 +185,9 @@ export function isUIAction(action: CommandAction): action is UIAction {
     action.type === "OUTDENT_NODE" ||
     action.type === "NAV_SIBLING_BOARD" ||
     action.type === "ENTER_NODE" ||
-    action.type === "PAGE_JUMP"
+    action.type === "PAGE_JUMP" ||
+    action.type === "ZOOM_INWARDS" ||
+    action.type === "ZOOM_OUTWARDS"
   );
 }
 
@@ -202,7 +204,7 @@ export function isTUIAction(action: CommandAction): action is TUIAction {
     action.type === "CLOSE_OR_QUIT" ||
     action.type === "OUTDENT_NODE" ||
     action.type === "NAV_SIBLING_BOARD" ||
-    action.type === "ENTER_NODE" ||
+    action.type === "ZOOM_INWARDS" ||
     action.type === "PAGE_JUMP"
   );
 }

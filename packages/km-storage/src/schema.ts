@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS nodes (
   -- Filesystem
   fs_path TEXT,
   fs_ino INTEGER,
+  fs_mtime INTEGER,  -- File modification time at last sync (milliseconds)
 
   -- Identity
   name TEXT,

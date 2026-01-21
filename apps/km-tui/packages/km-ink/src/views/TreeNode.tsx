@@ -157,22 +157,21 @@ export function TreeNode({
         </Text>
       )}
 
-      {/* Main row: two-column layout for hanging bullet */}
-      <Box
-        flexDirection="row"
-        alignItems="flex-start"
-        backgroundColor={style.backgroundColor}
-      >
-        {/* Prefix column: fold indicator + icon (fixed width, top-aligned) */}
+      {/* Main row: Box with paddingLeft for depth indentation */}
+      {/* paddingLeft={depth + 1} gives 1-char left margin at depth 0, increasing per level */}
+      <Box flexDirection="row" backgroundColor={style.backgroundColor} paddingLeft={depth + 1}>
+        {/* Fixed-width prefix box (fold indicator + icon) */}
         <Box width={prefix.length} flexShrink={0}>
           <Text
             color={style.textColor}
             dimColor={style.shouldDim}
+            strikethrough={style.shouldStrikethrough}
+            wrap="truncate"
           >
             {prefix.beforeIcon}
             <Text
               color={
-                isSelected || isMultiSelected ? style.textColor : prefix.iconColor
+                prefix.iconColor ?? (isSelected || isMultiSelected ? style.textColor : undefined)
               }
               backgroundColor={
                 isSelected || isMultiSelected ? undefined : prefix.iconBgColor
@@ -183,9 +182,8 @@ export function TreeNode({
             {prefix.afterIcon}
           </Text>
         </Box>
-
-        {/* Content column: wraps naturally to remaining space */}
-        <Box flexGrow={1}>
+        {/* Flexible content box */}
+        <Box flexGrow={1} flexShrink={1} overflow="hidden">
           <Text
             color={style.textColor}
             dimColor={style.shouldDim}

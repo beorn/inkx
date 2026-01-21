@@ -117,4 +117,10 @@ export type TuiEngine = "inkx" | "inkx-flexx";
 export interface TuiOptions {
   initialViewMode?: ViewMode;
   engine?: TuiEngine;
+  /**
+   * Optional callback to initialize database state (replay events).
+   * If provided, TUI will show loading indicator while this runs.
+   * This enables deferred loading for large vaults.
+   */
+  initializeState?: () => void;
 }

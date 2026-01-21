@@ -5,7 +5,10 @@
  * All functions return KNode objects or arrays of them.
  */
 
+import createDebug from "debug";
 import type { KNode, TaskStatus, NodeType, NodeRules } from "@km/core";
+
+const debug = createDebug("km:storage:db:queries");
 import { getDb } from "./db-instance.ts";
 import { isExplicitPath } from "./path-utils.ts";
 import { resolve } from "path";
@@ -196,6 +199,7 @@ export function findFileByName(name: string): KNode | null {
  * @returns The matching node, or null if not found
  */
 export function resolveNode(query: string, type?: string): KNode | null {
+  debug("resolveNode: %s (type=%s)", query, type ?? "any");
   const db = getDb();
   const typeFilter = type ? " AND type = ?" : "";
   const typeParams = type ? [type] : [];
@@ -301,8 +305,12 @@ export function resolveNode(query: string, type?: string): KNode | null {
   row = db
     .query(`SELECT * FROM nodes WHERE content = ?${typeFilter}`)
     .get(query, ...typeParams) as Record<string, unknown> | null;
-  if (row) return rowToNode(row);
+  if (row) {
+    debug("resolveNode: matched by content");
+    return rowToNode(row);
+  }
 
+  debug("resolveNode: no match found");
   return null;
 }
 
@@ -642,6 +650,8 @@ export function search(query: string, limit = 50): KNode[] {
   const db = getDb();
   const ftsQuery = toFts5Query(query);
 
+  debug("search: %s → fts5: %s", query, ftsQuery);
+
   const rows = db
     .query(
       `
@@ -654,6 +664,7 @@ export function search(query: string, limit = 50): KNode[] {
     )
     .all(ftsQuery, limit) as Record<string, unknown>[];
 
+  debug("search: found %d results", rows.length);
   return rows.map(rowToNode);
 }
 
@@ -778,6 +789,7 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     link_alias: row.link_alias as string | undefined,
     fs_path: row.fs_path as string | undefined,
     fs_ino: row.fs_ino as number | undefined,
+    fs_mtime: row.fs_mtime as number | undefined,
     name: row.name as string | undefined,
     md_pos: row.md_pos as number | undefined,
     md_slug: row.md_slug as string | undefined,

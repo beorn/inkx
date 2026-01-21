@@ -39,16 +39,22 @@ export function findKmRootFromPath(startPath: string): string | null {
   // Resolve to absolute path first
   const absolutePath = resolve(startPath);
 
-  // If the path is a file, start from its parent directory
+  // Determine starting directory:
+  // - If path is a file, start from its parent
+  // - If path doesn't exist, start from its parent (e.g., /vault/@next -> /vault)
+  // - If path is a directory, start from that directory
   let current: string;
   try {
-    if (existsSync(absolutePath) && statSync(absolutePath).isFile()) {
+    if (!existsSync(absolutePath)) {
+      // Path doesn't exist - start from parent directory
+      current = dirname(absolutePath);
+    } else if (statSync(absolutePath).isFile()) {
       current = dirname(absolutePath);
     } else {
       current = absolutePath;
     }
   } catch {
-    // Path doesn't exist or can't be accessed
+    // Error accessing path - start from parent
     current = dirname(absolutePath);
   }
 

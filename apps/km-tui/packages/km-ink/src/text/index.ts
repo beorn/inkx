@@ -25,6 +25,7 @@ export {
   getTypeIcon,
   getNodeIcon,
   COLORED_CIRCLE,
+  SMALL_BULLET,
   type StatusIcon,
 } from "../icons.ts";
 

@@ -18,6 +18,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
+import { SyncManager } from "@km/storage";
 
 /**
  * Search for .km/ in ancestors of the given directory
@@ -121,7 +122,8 @@ export const initCommand = new Command("init")
   .argument("[path]", "Target directory")
   .option("-f, --force", "Overwrite existing files")
   .option("--no-gtd", "Skip GTD folder structure")
-  .action((pathArg, options, command) => {
+  .option("--no-sync", "Skip initial sync")
+  .action(async (pathArg, options, command) => {
     // Priority: --root from parent > path arg > KM_ROOT env > cwd
     const globalRoot = command.parent?.opts()?.root || process.env.KM_ROOT;
     let targetDir: string;
@@ -193,11 +195,26 @@ export const initCommand = new Command("init")
       createGtdStructure(targetDir, options.force);
     }
 
+    // Sync by default (unless --no-sync)
+    if (options.sync !== false) {
+      console.log();
+      console.log(chalk.dim("Syncing filesystem → database..."));
+      const manager = new SyncManager({
+        vaultPath: targetDir,
+        debounceFs: 0,
+        debounceApply: 0,
+        conflictStrategy: "last_write_wins",
+      });
+      try {
+        const result = await manager.syncFromFs();
+        console.log(chalk.green("✓"), `Synced ${result.processed} file(s)`);
+      } catch (error) {
+        console.error("Sync failed:", error);
+      }
+    }
+
     console.log();
     console.log("Next steps:");
-    console.log(
-      chalk.cyan("  km sync    ") + chalk.dim("# Scan and import .md files"),
-    );
     console.log(chalk.cyan("  km tasks   ") + chalk.dim("# List tasks"));
     console.log(chalk.cyan("  km view    ") + chalk.dim("# Open kanban board"));
   });

@@ -7,7 +7,10 @@
  * - Database initialization and reset
  */
 
+import createDebug from "debug";
 import { Database } from "bun:sqlite";
+
+const debug = createDebug("km:storage:db:instance");
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 import { getKmDir } from "./emit.ts";
@@ -40,10 +43,12 @@ export function getDb(): Database {
   }
 
   const dbPath = getDbPath();
+  debug("opening database: %s", dbPath);
   dbInstance = new Database(dbPath);
 
   // Initialize schema
   dbInstance.exec(SCHEMA);
+  debug("database initialized");
 
   return dbInstance;
 }
@@ -53,6 +58,7 @@ export function getDb(): Database {
  */
 export function closeDb(): void {
   if (dbInstance) {
+    debug("closing database (injected=%s)", dbInjected);
     // Only close if we own it (not injected from external store)
     if (!dbInjected) {
       dbInstance.close();

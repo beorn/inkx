@@ -161,37 +161,28 @@ export function formatBoardPills(
   }
 }
 
-// Colors that need white text for contrast
-const DARK_COLORS = ["red", "green", "blue", "magenta", "gray", "grey"];
-
 /**
  * Get header text styling for column/section headers
  * Handles own color, selection state, and accessibility
  *
- * Design system (see docs/06-ui.md):
- * - Default: white text (not dimmed)
- * - Cursor in column: yellow foreground
- * - Column selected (selectionLevel=column): cyan background + black text
+ * Design system:
+ * - All headers are bold
+ * - Default: white text on no background, with grey marker
+ * - Cursor in column: yellow text, marker uses node's color (if defined)
+ * - Column selected (selectionLevel=column): inverse yellow (yellow bg + black text)
+ *
+ * Note: The colored marker is rendered separately by the column component
  */
 export function getHeaderStyle(
-  ownColor: string | undefined,
+  _ownColor: string | undefined,
   isSelected: boolean,
   isActiveSelection: boolean,
 ): { color: string; backgroundColor: string | undefined; dimColor: boolean } {
-  // When actively selected (column is the selection cursor), use cyan background
+  // When actively selected (column is the selection cursor), use inverse yellow
   if (isActiveSelection) {
     return {
       color: "black",
-      backgroundColor: "cyan",
-      dimColor: false,
-    };
-  }
-
-  // When header has its own color
-  if (ownColor) {
-    return {
-      color: DARK_COLORS.includes(ownColor) ? "white" : "black",
-      backgroundColor: ownColor,
+      backgroundColor: "yellow",
       dimColor: false,
     };
   }
@@ -199,6 +190,7 @@ export function getHeaderStyle(
   // Default styling:
   // - Yellow when cursor is in this column (isSelected)
   // - White when cursor is elsewhere
+  // Note: headers are always bold (handled by component)
   return {
     color: isSelected ? "yellow" : "white",
     backgroundColor: undefined,

@@ -164,8 +164,11 @@ export function renderRich(text: string): string {
     return chalk.dim.strikethrough(content);
   });
 
-  // Clean up whitespace
-  result = result.replace(/  +/g, " ").trim();
+  // Clean up whitespace: collapse multiple spaces and newlines
+  result = result
+    .replace(/\n{2,}/g, "\n") // Collapse multiple newlines to single
+    .replace(/  +/g, " ") // Collapse multiple spaces
+    .trim();
 
   // Apply dashed underline to draft/tentative content
   if (isDraft) {

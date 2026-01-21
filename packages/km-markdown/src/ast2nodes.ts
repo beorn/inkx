@@ -4,7 +4,10 @@
  * Converts mdast AST into km nodes
  */
 
+import createDebug from "debug";
 import { ulid } from "ulid";
+
+const debug = createDebug("km:markdown:parser");
 import type { Root, Content, Heading, List, ListItem, Paragraph } from "mdast";
 import { parse as parseYaml } from "yaml";
 import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core";
@@ -22,6 +25,7 @@ import {
   extractProjects,
   parseWikiLinks,
   parseHeadingRules,
+  parseInlineProperties,
 } from "./parser.ts";
 import type { WikiLink } from "./parser.ts";
 
@@ -61,7 +65,11 @@ export function parseMarkdownWithLinks(
   content: string,
   fsPath: string,
   fsIno?: number,
+  fsMtime?: number,
 ): ParseResult {
+  debug("parsing %s (%d bytes)", fsPath, content.length);
+  const start = Date.now();
+
   const { frontmatter, body } = extractFrontmatter(content);
   const ast = parseMarkdown(body);
   const now = Date.now();
@@ -79,6 +87,7 @@ export function parseMarkdownWithLinks(
     link_to: null,
     fs_path: fsPath,
     fs_ino: fsIno,
+    fs_mtime: fsMtime,
     name, // Slug/identifier derived from filename
     content: undefined,
     content_hash: undefined,
@@ -162,6 +171,9 @@ export function parseMarkdownWithLinks(
       line: secondH1?.md_line,
     });
   }
+
+  debug("parsed %s: %d nodes, %d wikilinks, %d warnings in %dms",
+    fsPath, allNodes.length, wikilinks.length, warnings.length, Date.now() - start);
 
   return { nodes: allNodes, wikilinks, warnings };
 }
@@ -322,6 +334,7 @@ function convertListItem(
   const tags = extractTags(text);
   const mentions = extractMentions(text);
   const projects = extractProjects(text);
+  const parsedProps = parseInlineProperties(text);
 
   // Priority from metadata only
   const priority: number | undefined = metadata.priority;
@@ -348,6 +361,12 @@ function convertListItem(
       ...(mentions.length > 0 ? { mentions } : {}),
       ...(projects.length > 0 ? { projects } : {}),
       ...(metadata.recurrence ? { recurrence: metadata.recurrence } : {}),
+      ...(Object.keys(parsedProps.props).length > 0
+        ? { props: parsedProps.props }
+        : {}),
+      ...(Object.keys(parsedProps.propsRaw).length > 0
+        ? { propsRaw: parsedProps.propsRaw }
+        : {}),
     },
     created_at: now,
     updated_at: now,

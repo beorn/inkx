@@ -7,6 +7,10 @@
  * - Hyperlinks (OSC 8)
  */
 
+import createDebug from "debug";
+
+const debug = createDebug("chalkx:detect");
+
 // =============================================================================
 // Terminal Detection
 // =============================================================================
@@ -38,8 +42,11 @@ function detectExtendedUnderlineSupport(): boolean {
   const term = process.env.TERM ?? "";
   const termProgram = process.env.TERM_PROGRAM ?? "";
 
+  debug("detecting: TERM=%s, TERM_PROGRAM=%s", term, termProgram);
+
   // Check TERM variable for known modern terminals
   if (SUPPORTED_TERMS.some((t) => term.includes(t))) {
+    debug("extended underline: true (TERM match)");
     return true;
   }
 
@@ -47,17 +54,21 @@ function detectExtendedUnderlineSupport(): boolean {
   if (SUPPORTED_PROGRAMS.some((p) => termProgram.includes(p))) {
     // Apple Terminal doesn't actually support extended underlines
     if (termProgram === "Apple_Terminal") {
+      debug("extended underline: false (Apple_Terminal)");
       return false;
     }
+    debug("extended underline: true (TERM_PROGRAM match)");
     return true;
   }
 
   // Kitty sets KITTY_WINDOW_ID
   if (process.env.KITTY_WINDOW_ID) {
+    debug("extended underline: true (KITTY_WINDOW_ID)");
     return true;
   }
 
   // Default to false for unknown terminals
+  debug("extended underline: false (unknown terminal)");
   return false;
 }
 

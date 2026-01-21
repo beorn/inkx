@@ -13,6 +13,7 @@ import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { useTreeConfig } from "../ui-context.tsx";
+import { getNodeIcon, renderPlain } from "../text/index.ts";
 
 // Type for flattened list items
 type FlatItem =
@@ -115,21 +116,44 @@ export function ListView({
               isColSelected,
             );
 
+            // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
+            const icon = getNodeIcon(null, ownColor, false);
+            const iconColor = isColSelected ? "black" : icon.color;
+
+            // Render header with wiki links stripped: [[target|alias]] → "alias"
+            const headerText = renderPlain(getNodeDisplayName(column.node));
+            const countText = ` (${column.cards.length})`;
+            // Calculate padding to fill full width: " [icon] headerText countText" = 3 + headerText + countText
+            const headerContentLen = 3 + headerText.length + countText.length;
+            const headerPadding = " ".repeat(Math.max(0, width - headerContentLen));
+
             return (
-              <Box key={`header-${column.node.id}`} flexDirection="column">
-                <Text
-                  bold={isSelected}
-                  color={headerStyle.color}
-                  dimColor={headerStyle.dimColor}
-                  backgroundColor={headerStyle.backgroundColor}
-                  wrap="truncate"
-                >
-                  {" "}
-                  {getNodeDisplayName(column.node)} ({column.cards.length})
-                </Text>
-                <Text dimColor wrap="truncate">
-                  {"─".repeat(100)}
-                </Text>
+              <Box key={`header-${column.node.id}`} flexDirection="column" width={width}>
+                {/* Blank line above (except first header) */}
+                {cIdx > 0 && (
+                  <Box height={1}>
+                    <Text> </Text>
+                  </Box>
+                )}
+                <Box width={width}>
+                  <Text
+                    bold
+                    color={headerStyle.color}
+                    dimColor={headerStyle.dimColor}
+                    backgroundColor={headerStyle.backgroundColor}
+                    wrap="truncate"
+                  >
+                    {" "}
+                    <Text color={iconColor}>{icon.char}</Text>
+                    {" "}
+                    {headerText}
+                    <Text color={isColSelected ? "gray" : undefined} dimColor={!isColSelected}>{countText}</Text>
+                    {headerPadding}
+                  </Text>
+                </Box>
+                <Box width={width}>
+                  <Text dimColor>{"─".repeat(width)}</Text>
+                </Box>
               </Box>
             );
           }

@@ -559,7 +559,7 @@ describe("initDefaultKeybindings", () => {
 
     const ctx = createContext({ mode: "normal" });
 
-    expect(resolveKeybinding("i", {}, ctx)).toBe("enter_node");
+    expect(resolveKeybinding("i", {}, ctx)).toBe("zoom_inwards");
   });
 
   it("includes extend selection with shift+arrows", () => {
@@ -604,7 +604,7 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("cursor_next");
     expect(commandIds).toContain("cursor_prev");
     expect(commandIds).toContain("zoom_in");
-    expect(commandIds).toContain("go_up_path");
+    expect(commandIds).toContain("zoom_outwards");
 
     // Selection
     expect(commandIds).toContain("select_all_progressive");
@@ -632,6 +632,6 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("page_up");
     expect(commandIds).toContain("sibling_board_next");
     expect(commandIds).toContain("sibling_board_prev");
-    expect(commandIds).toContain("enter_node");
+    expect(commandIds).toContain("zoom_inwards");
   });
 });

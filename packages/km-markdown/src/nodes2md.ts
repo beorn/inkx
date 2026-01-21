@@ -4,14 +4,18 @@
  * Serializes km nodes back to markdown format
  */
 
+import createDebug from "debug";
 import { stringify as stringifyYaml } from "yaml";
 import type { KNode } from "@km/core";
 import { buildNodeTree } from "./ast2nodes.ts";
+
+const debug = createDebug("km:markdown:nodes2md");
 
 /**
  * Convert nodes to markdown
  */
 export function nodesToMarkdown(nodes: KNode[]): string {
+  debug("nodesToMarkdown: %d nodes", nodes.length);
   if (nodes.length === 0) {
     return "";
   }
@@ -268,6 +272,7 @@ function serializeTask(
 export function regenerateFile(fileNodeId: string, allNodes: KNode[]): string {
   // Filter to just this file's nodes
   const fileNodes = getFileSubtree(fileNodeId, allNodes);
+  debug("regenerateFile: %s → %d nodes", fileNodeId, fileNodes.length);
   return nodesToMarkdown(fileNodes);
 }
 

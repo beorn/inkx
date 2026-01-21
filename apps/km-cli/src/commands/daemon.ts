@@ -4,7 +4,10 @@
  * Manages the km daemon - a background process for sync and automation
  */
 
+import createDebug from "debug";
 import { createServer, connect, type Server, type Socket } from "net";
+
+const debug = createDebug("km:cli:daemon");
 import {
   existsSync,
   readFileSync,
@@ -65,6 +68,7 @@ class KmDaemon extends EventEmitter {
 
   constructor(vaultPath: string, kmDir: string) {
     super();
+    debug("creating daemon for vault: %s", vaultPath);
     this.vaultPath = vaultPath;
     this.paths = getDaemonPaths(kmDir);
 
@@ -256,6 +260,7 @@ class KmDaemon extends EventEmitter {
    * Start the daemon
    */
   async start(): Promise<void> {
+    debug("start: checking for existing daemon");
     // Check for existing daemon
     if (this.isRunning()) {
       throw new Error("Daemon already running");
@@ -294,6 +299,7 @@ class KmDaemon extends EventEmitter {
 
     // Start file watching
     this.sync.start();
+    debug("start: daemon running, pid=%d", process.pid);
     this.log(`Daemon started, watching: ${this.vaultPath}`);
 
     // Handle shutdown signals
@@ -305,6 +311,7 @@ class KmDaemon extends EventEmitter {
    * Stop the daemon
    */
   async stop(): Promise<void> {
+    debug("stop: shutting down");
     this.log("Stopping daemon...");
 
     // Stop sync

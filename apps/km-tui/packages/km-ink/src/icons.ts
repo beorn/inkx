@@ -76,19 +76,31 @@ export const COLORED_CIRCLE: StatusIcon = {
 };
 
 /**
+ * Small bullet for non-task items without color
+ */
+export const SMALL_BULLET: StatusIcon = {
+  char: "\u00B7", // middle dot ·
+  color: "gray",
+};
+
+/**
  * Get a node icon with color override support.
  *
  * For nodes that define a color (via rules.color or inherited):
  * - If it's a task: use the status icon shape but with the inherited color
  * - If it's not a task: show a filled circle with the inherited color
  *
+ * For non-task items without color, show a small bullet.
+ *
  * @param status - Task status (or null/undefined for non-tasks)
  * @param inheritedColor - Color from node's rules or ancestors
+ * @param isTask - Whether this node is a task (helps distinguish null status)
  * @returns StatusIcon with appropriate char and color
  */
 export function getNodeIcon(
   status: string | null | undefined,
   inheritedColor?: string,
+  isTask = true,
 ): StatusIcon {
   // For tasks, get the base status icon
   if (status !== null && status !== undefined) {
@@ -114,6 +126,11 @@ export function getNodeIcon(
     };
   }
 
-  // No status and no color - return default (warning icon for missing status)
+  // Non-task without color - show small bullet
+  if (!isTask) {
+    return SMALL_BULLET;
+  }
+
+  // Task with null/undefined status - show warning
   return getStatusIcon(status);
 }

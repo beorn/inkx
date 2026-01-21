@@ -8,6 +8,7 @@ import React from "react";
 import { Box, Text } from "inkx";
 import chalk, { type ChalkInstance } from "chalk";
 import type { PathSegment } from "../layout/index.ts";
+import { getNodeIcon } from "../text/index.ts";
 
 // =============================================================================
 // Types
@@ -28,52 +29,32 @@ export interface TopBarProps {
 // Color Helpers
 // =============================================================================
 
-/** Colors that require white text for adequate contrast */
-const DARK_BG_COLORS = ["red", "green", "blue", "magenta", "gray", "grey"];
-
 /**
  * Get chalk function for top bar background based on board color.
- * If boardColor is set, uses that color.
- * Otherwise, uses blue if board is selected, white if not.
+ * Default is dark grey background. Uses inverse yellow when board is selected.
  */
 export function getTopBarBgChalk(
-  boardColor: string | undefined,
+  _boardColor: string | undefined,
   isBoardSelected: boolean,
 ): ChalkInstance {
-  if (boardColor) {
-    switch (boardColor) {
-      case "red":
-        return chalk.bgRed;
-      case "green":
-        return chalk.bgGreen;
-      case "yellow":
-        return chalk.bgYellow;
-      case "blue":
-        return chalk.bgBlue;
-      case "magenta":
-        return chalk.bgMagenta;
-      case "cyan":
-        return chalk.bgCyan;
-      case "white":
-        return chalk.bgWhite;
-      case "gray":
-      case "grey":
-        return chalk.bgGray;
-      default:
-        return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
-    }
+  // When board itself is selected, use inverse yellow
+  if (isBoardSelected) {
+    return chalk.bgYellow;
   }
-  return isBoardSelected ? chalk.bgBlue : chalk.bgWhite;
+  // Default: dark grey background
+  return chalk.bgGray;
 }
 
 /**
  * Determine if white text is needed for contrast on the given background.
+ * Dark grey bg needs white text; yellow bg (selected) needs black text.
  */
 export function needsWhiteText(
-  boardColor: string | undefined,
+  _boardColor: string | undefined,
   isBoardSelected: boolean,
 ): boolean {
-  return boardColor ? DARK_BG_COLORS.includes(boardColor) : isBoardSelected;
+  // Yellow bg (selected) needs black text, grey bg needs white text
+  return !isBoardSelected;
 }
 
 // =============================================================================
@@ -82,31 +63,67 @@ export function needsWhiteText(
 
 /**
  * Render top bar path segments with appropriate colors.
- * Handles board boundary highlighting (blue separator between file path and board path).
+ *
+ * Styling rules:
+ * - Entire title is bold
+ * - Pre-board path (file path leading up to board): dimmed
+ * - Board root (last segment before isWithinBoard becomes true): NOT dimmed
+ * - Within-board breadcrumb (segments with isWithinBoard=true): dimmed
+ * - Board boundary marked with blue separator (on light backgrounds)
  */
 export function renderTopBarSegments(
   segments: PathSegment[],
   bgChalk: ChalkInstance,
   useWhiteText: boolean,
 ): string {
+  // Find the board root index:
+  // - If there are isWithinBoard segments, board root is the one just before them
+  // - If no isWithinBoard segments, the last segment is the board root (we're at board level)
+  const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard);
+  const boardRootIdx =
+    firstWithinBoardIdx > 0
+      ? firstWithinBoardIdx - 1
+      : firstWithinBoardIdx === -1
+        ? segments.length - 1
+        : 0;
+
   return segments
     .map((seg, i) => {
       const prevSeg = i > 0 ? segments[i - 1] : null;
       const isBoardBoundary =
         prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
 
+      // Determine if this segment should be dimmed:
+      // - Pre-board path (before boardRootIdx): dimmed
+      // - Board root (i === boardRootIdx): NOT dimmed
+      // - Within-board breadcrumb (after boardRootIdx / isWithinBoard=true): dimmed
+      const isBoardRoot = i === boardRootIdx;
+      const shouldDim = !isBoardRoot;
+
       if (useWhiteText) {
         // Dark background: white text
-        const sepPart = seg.sep ? bgChalk.white(` ${seg.sep} `) : "";
-        return sepPart + bgChalk.white.bold(seg.name);
+        const sepPart = seg.sep
+          ? shouldDim
+            ? bgChalk.white.dim(` ${seg.sep} `)
+            : bgChalk.white(` ${seg.sep} `)
+          : "";
+        const namePart = shouldDim
+          ? bgChalk.white.bold.dim(seg.name)
+          : bgChalk.white.bold(seg.name);
+        return sepPart + namePart;
       } else {
         // Light background: black text, blue separator at board boundary
         const sepPart = seg.sep
           ? isBoardBoundary
             ? bgChalk.blue.bold(` ${seg.sep} `)
-            : bgChalk.gray(` ${seg.sep} `)
+            : shouldDim
+              ? bgChalk.gray.dim(` ${seg.sep} `)
+              : bgChalk.gray(` ${seg.sep} `)
           : "";
-        return sepPart + bgChalk.black.bold(seg.name);
+        const namePart = shouldDim
+          ? bgChalk.black.bold.dim(seg.name)
+          : bgChalk.black.bold(seg.name);
+        return sepPart + namePart;
       }
     })
     .join("");
@@ -114,10 +131,11 @@ export function renderTopBarSegments(
 
 /**
  * Calculate the visible display length of path segments (for padding calculation).
+ * Accounts for: space + disc + space + segments
  */
 export function calcTopBarVisibleLength(segments: PathSegment[]): number {
   return (
-    1 + // Leading space
+    3 + // Leading space + disc + space
     segments.reduce((acc, seg) => {
       return acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0);
     }, 0)
@@ -155,12 +173,19 @@ export function TopBar({
   const padding = " ".repeat(Math.max(0, width - visibleLen));
 
   // Build the full top bar string
+  // Start with space + bullet (using getNodeIcon for consistent styling) + space
+  // - With boardColor: filled circle (●) in that color
+  // - Without boardColor: small bullet (·)
   const fgChalk = useWhiteText ? bgChalk.white : bgChalk.black;
-  const topBarString = fgChalk(" ") + content + bgChalk(padding);
+  const icon = getNodeIcon(null, boardColor, false);
+  const iconColor = isBoardSelected ? "black" : icon.color;
+  const iconChalk = chalk[iconColor as keyof typeof chalk] as ChalkInstance;
+  const disc = iconChalk ? bgChalk(iconChalk(icon.char)) : bgChalk.gray(icon.char);
+  const topBarString = fgChalk(" ") + disc + fgChalk(" ") + content + bgChalk(padding);
 
   return (
     <Box height={1} width={width}>
-      <Text>{topBarString}</Text>
+      <Text wrap="truncate">{topBarString}</Text>
     </Box>
   );
 }

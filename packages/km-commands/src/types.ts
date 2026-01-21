@@ -59,8 +59,8 @@ export interface HistoryRedoAction {
 export type HistoryAction = HistoryUndoAction | HistoryRedoAction;
 
 // UI actions (handled by TUI, not board reducer)
-export interface GoUpPathAction {
-  type: "GO_UP_PATH";
+export interface ZoomOutwardsAction {
+  type: "ZOOM_OUTWARDS";
 }
 
 export interface OpenDetailPaneAction {
@@ -128,8 +128,8 @@ export interface NavSiblingBoardAction {
   direction: "next" | "prev";
 }
 
-export interface EnterNodeAction {
-  type: "ENTER_NODE"; // Like zoom_in but stays in board view
+export interface ZoomInwardsAction {
+  type: "ZOOM_INWARDS"; // Zoom in one level closer to selected node
 }
 
 export interface PageJumpAction {
@@ -146,11 +146,11 @@ export type TUIAction =
   | CloseOrQuitAction
   | OutdentNodeAction
   | NavSiblingBoardAction
-  | EnterNodeAction
+  | ZoomInwardsAction
   | PageJumpAction;
 
 export type UIAction =
-  | GoUpPathAction
+  | ZoomOutwardsAction
   | OpenDetailPaneAction
   | CloseDetailPaneAction
   | ShowHelpAction

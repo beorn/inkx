@@ -124,6 +124,7 @@ export interface KNode {
   // Filesystem mapping (for folder/file)
   fs_path?: string;
   fs_ino?: number; // Inode for rename detection
+  fs_mtime?: number; // File modification time at last sync (milliseconds)
 
   // Identity
   name?: string; // Slug/identifier (filename without .md, or md_slug for sections)
@@ -224,6 +225,7 @@ export interface NodeCreatedData {
   link_alias?: string;
   fs_path?: string;
   fs_ino?: number;
+  fs_mtime?: number;
   name?: string;
   md_pos?: number;
   md_line?: number;

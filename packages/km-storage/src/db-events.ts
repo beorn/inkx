@@ -5,7 +5,10 @@
  * Events are the source of truth for all state changes.
  */
 
+import createDebug from "debug";
 import type { Database } from "bun:sqlite";
+
+const debug = createDebug("km:storage:db:events");
 import { readFileSync } from "fs";
 import { getMarkForStatus } from "@km/core";
 import type { Event, TaskStatus } from "@km/core";
@@ -20,6 +23,8 @@ import { getDb } from "./db-instance.ts";
  */
 export function applyEvent(event: Event): void {
   const db = getDb();
+
+  debug("applying %s: %s", event.type, event.target ?? event.id.slice(-8));
 
   switch (event.type) {
     case "node_created":
@@ -72,13 +77,13 @@ function applyNodeCreated(db: Database, event: Event): void {
     `
     INSERT INTO nodes (
       id, type, parent_id, link_to, link_alias, parent_idx,
-      fs_path, fs_ino, name, title, md_pos, md_line, md_slug,
+      fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
       task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?
@@ -93,6 +98,7 @@ function applyNodeCreated(db: Database, event: Event): void {
       (data.parent_idx as number) ?? 0,
       (data.fs_path as string) ?? null,
       (data.fs_ino as number) ?? null,
+      (data.fs_mtime as number) ?? null,
       (data.name as string) ?? null,
       (data.title as string) ?? null,
       (data.md_pos as number) ?? null,

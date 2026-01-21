@@ -25,7 +25,6 @@ import {
   resetDb,
   getNodeByPath,
   getChildren,
-  getDb,
 } from "../../src/db.ts";
 import { rebuildState } from "../../src/rebuild.ts";
 
@@ -119,7 +118,7 @@ describe.serial("reconcile.ts", () => {
       expect(deleteOps[0].nodeId).toBe(node!.id);
     });
 
-    test("detects modified files by mtime", () => {
+    test("detects modified files by mtime (forward)", () => {
       // Create a file and sync it
       const filePath = join(VAULT_DIR, "modify-me.md");
       writeFileSync(filePath, "# Original");
@@ -139,6 +138,35 @@ describe.serial("reconcile.ts", () => {
       utimesSync(filePath, futureTime, futureTime);
 
       // Reconcile should detect the modification
+      const updateOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);
+      expect(updateOps.length).toBe(1);
+      expect(updateOps[0].type).toBe("update");
+      expect(updateOps[0].path).toBe(filePath);
+      expect(updateOps[0].nodeId).toBe(node!.id);
+    });
+
+    test("detects modified files by mtime (backward - restored from backup)", () => {
+      // Create a file and sync it
+      const filePath = join(VAULT_DIR, "backup-restore.md");
+      writeFileSync(filePath, "# Original");
+
+      // Create the node
+      const createOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);
+      void applyReconcileOps(createOps, VAULT_DIR);
+      rebuildState();
+
+      // Verify node exists
+      const node = getNodeByPath(filePath);
+      expect(node).not.toBeNull();
+      expect(node!.fs_mtime).toBeDefined();
+
+      // Simulate file restored from backup with OLDER timestamp
+      // This is the key scenario - file changes but mtime is older than what we recorded
+      writeFileSync(filePath, "# Restored from backup with different content");
+      const pastTime = new Date(Date.now() - 86400000); // 1 day in the past
+      utimesSync(filePath, pastTime, pastTime);
+
+      // Reconcile should still detect the modification because mtime changed
       const updateOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);
       expect(updateOps.length).toBe(1);
       expect(updateOps[0].type).toBe("update");
@@ -188,15 +216,8 @@ describe.serial("reconcile.ts", () => {
       void applyReconcileOps(createOps, VAULT_DIR);
       rebuildState();
 
-      // Reconcile again without changes - use the same mtime
-      // We need to trick the test by touching the node's updated_at to be >= file mtime
-      const db = getDb();
-      const stat = statSync(filePath);
-      db.run("UPDATE nodes SET updated_at = ? WHERE fs_path = ?", [
-        stat.mtimeMs,
-        filePath,
-      ]);
-
+      // Reconcile again without changes - fs_mtime should already match
+      // since we just synced and the file hasn't changed
       const ops = reconcileDirectory(VAULT_DIR, VAULT_DIR);
       expect(ops.length).toBe(0);
     });

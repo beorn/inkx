@@ -4,7 +4,10 @@
  * Yoga-compatible Node class for flexbox layout.
  */
 
+import createDebug from "debug";
 import * as C from "./constants.js";
+
+const debug = createDebug("flexx:layout");
 import {
   type Layout,
   type MeasureFunc,
@@ -139,7 +142,13 @@ export class Node {
     height: number,
     _direction: number = C.DIRECTION_LTR,
   ): void {
-    if (!this._isDirty) return;
+    if (!this._isDirty) {
+      debug("layout skip (not dirty)");
+      return;
+    }
+
+    const start = Date.now();
+    const nodeCount = countNodes(this);
 
     // Run the layout algorithm
     computeLayout(this, width, height);
@@ -148,6 +157,8 @@ export class Node {
     this._isDirty = false;
     this._hasNewLayout = true;
     markSubtreeLayoutSeen(this);
+
+    debug("layout: %dx%d, %d nodes in %dms", width, height, nodeCount, Date.now() - start);
   }
 
   // ============================================================================
@@ -607,6 +618,14 @@ function markSubtreeLayoutSeen(node: Node): void {
     (child as Node)["_hasNewLayout"] = true;
     markSubtreeLayoutSeen(child);
   }
+}
+
+function countNodes(node: Node): number {
+  let count = 1;
+  for (const child of node.children) {
+    count += countNodes(child);
+  }
+  return count;
 }
 
 // ============================================================================

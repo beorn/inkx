@@ -74,6 +74,7 @@ km init                    # Enable persistence (stable IDs, history)
 | Doc                                      | Description                          |
 | ---------------------------------------- | ------------------------------------ |
 | [future/agents.md](future/agents.md)     | AI agent orchestration (planned)     |
+| [future/beads.md](future/beads.md)       | Beads issue tracking integration     |
 | [future/services.md](future/services.md) | CalDAV, CardDAV connectors (planned) |
 
 ### Developer Guides

@@ -4,15 +4,18 @@
  * Coordinates bidirectional sync between filesystem and database
  */
 
+import createDebug from "debug";
 import { mkdirSync } from "fs";
-import { dirname } from "path";
+
+const debug = createDebug("km:storage:watch:sync");
+import { dirname, join } from "path";
 import { EventEmitter } from "events";
 import { FileSystemWatcher, scanDirectoryRecursive } from "./watcher.ts";
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts";
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts";
 import { getIgnorePatterns } from "./ignore.ts";
 import type { Event, KNode } from "@km/core";
-import { setDatabase } from "../emit.ts";
+import { setDatabase, setKmDir } from "../emit.ts";
 import {
   getAllNodes,
   getNode,
@@ -78,6 +81,7 @@ export class SyncManager extends EventEmitter {
    * Start watching and syncing
    */
   start(): void {
+    debug("starting sync manager for %s", this.config.vaultPath);
     this.watcher.start(this.config.vaultPath);
     this.emit("started");
   }
@@ -86,6 +90,7 @@ export class SyncManager extends EventEmitter {
    * Stop watching and syncing
    */
   async stop(): Promise<void> {
+    debug("stopping sync manager");
     await this.watcher.stop();
     this.writeQueue.clear();
     this.emit("stopped");
@@ -105,25 +110,33 @@ export class SyncManager extends EventEmitter {
     paths: string[];
     directories: string[];
   }): Promise<void> {
-    this.state = "reconciling";
-    this.emit("state-change", this.state);
+    debug("fs sync triggered: %d paths, %d directories", data.paths.length, data.directories.length);
+    this.setState("reconciling");
 
     try {
       for (const dir of data.directories) {
         const ops = reconcileDirectory(dir, this.config.vaultPath);
+        debug("reconciled %s: %d ops", dir, ops.length);
 
         if (ops.length > 0) {
-          this.state = "emitting";
-          this.emit("state-change", this.state);
+          this.setState("emitting");
           await applyReconcileOps(ops, this.config.vaultPath);
         }
       }
     } catch (error) {
+      debug("fs sync error: %O", error);
       this.emit("error", error);
     }
 
-    this.state = "idle";
-    this.emit("state-change", this.state);
+    this.setState("idle");
+  }
+
+  private setState(newState: SyncState): void {
+    if (this.state !== newState) {
+      debug("state: %s → %s", this.state, newState);
+      this.state = newState;
+      this.emit("state-change", this.state);
+    }
   }
 
   /**
@@ -131,8 +144,11 @@ export class SyncManager extends EventEmitter {
    */
   applyEventToFs(event: Event): void {
     if (!shouldApplyToFs(event.actor)) {
+      debug("skipping fs apply for actor=%s event=%s", event.actor, event.type);
       return;
     }
+
+    debug("applying %s to fs: %s", event.type, event.target ?? "no-target");
 
     switch (event.type) {
       case "node_updated":
@@ -239,6 +255,12 @@ export class SyncManager extends EventEmitter {
    * Force sync from filesystem
    */
   async syncFromFs(): Promise<{ processed: number }> {
+    debug("syncFromFs: scanning %s", this.config.vaultPath);
+    const start = Date.now();
+
+    // Set kmDir to vault's .km directory so database operations use correct path
+    setKmDir(join(this.config.vaultPath, ".km"));
+
     // Enable immediate event application so folder nodes are visible during sync
     setDatabase(dbApplyEvent);
 
@@ -250,6 +272,8 @@ export class SyncManager extends EventEmitter {
       (path) => path.endsWith(".md"),
       ignorePatterns,
     );
+
+    debug("syncFromFs: found %d entries", entries.length);
 
     // Group by directory
     const dirs = new Set<string>();
@@ -265,6 +289,7 @@ export class SyncManager extends EventEmitter {
       processed += ops.length;
     }
 
+    debug("syncFromFs: processed %d ops in %dms", processed, Date.now() - start);
     return { processed };
   }
 
@@ -272,8 +297,16 @@ export class SyncManager extends EventEmitter {
    * Force sync to filesystem
    */
   async syncToFs(): Promise<{ written: number }> {
+    debug("syncToFs: starting");
+    const start = Date.now();
+
+    // Set kmDir to vault's .km directory so database operations use correct path
+    setKmDir(join(this.config.vaultPath, ".km"));
+
     const nodes = getAllNodes();
     const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path);
+
+    debug("syncToFs: writing %d files", fileNodes.length);
 
     for (const fileNode of fileNodes) {
       if (!fileNode.fs_path) continue;
@@ -289,6 +322,7 @@ export class SyncManager extends EventEmitter {
 
     await this.writeQueue.forceFlush();
 
+    debug("syncToFs: wrote %d files in %dms", fileNodes.length, Date.now() - start);
     return { written: fileNodes.length };
   }
 

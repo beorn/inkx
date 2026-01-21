@@ -9,6 +9,8 @@
   "private": true,
   "dependencies": {
     "@km/core": "workspace:*",
-    "@km/markdown": "workspace:*"
+    "@km/markdown": "workspace:*",
+    "cosmiconfig": "^9.0.0",
+    "yaml": "^2.8.2"
   }
 }

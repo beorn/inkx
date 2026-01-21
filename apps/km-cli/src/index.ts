@@ -32,6 +32,8 @@ import { addCommand } from "./commands/add.ts";
 import { daemonCommand } from "./commands/daemon.ts";
 import { inboxCommand } from "./commands/inbox.ts";
 import { shCommand } from "./commands/sh.ts";
+import { bdCommand } from "./commands/bd.ts";
+import { agentCommand } from "./commands/agent.ts";
 
 const program = new Command();
 
@@ -186,6 +188,8 @@ program.addCommand(watchCommand); // km watch - deprecated, use 'km sync --watch
 program.addCommand(rebuildCommand); // km rebuild - rebuild state
 program.addCommand(daemonCommand); // km daemon {start,stop,status} - background daemon
 program.addCommand(shCommand); // km sh [root] - scripting shell for TUI2 debugging
+program.addCommand(bdCommand); // km bd - issue tracking (beads-compatible)
+program.addCommand(agentCommand); // km agent - AI agent management
 
 // Handle unknown commands with helpful error message
 program.action((_options, command) => {

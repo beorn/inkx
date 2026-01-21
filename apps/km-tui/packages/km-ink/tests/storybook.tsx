@@ -32,7 +32,7 @@
 import React from "react";
 import { createTestRenderer } from "inkx/testing";
 
-const render = createTestRenderer();
+const render = createTestRenderer({ rows: 500 });
 import { Box, Text } from "inkx";
 import chalk from "chalk";
 

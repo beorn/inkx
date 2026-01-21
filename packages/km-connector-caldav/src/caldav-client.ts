@@ -5,6 +5,7 @@
  * Implements RFC 4791 (CalDAV) and RFC 6578 (WebDAV Sync).
  */
 
+import createDebug from "debug";
 import type {
   CalDAVConfig,
   CalendarEvent,
@@ -13,6 +14,8 @@ import type {
 } from "./types.ts";
 import { parseICalendar, formatICalendar } from "./icalendar.ts";
 import { createBasicAuthHeader, webdavRequest } from "./webdav-base.ts";
+
+const debug = createDebug("km:caldav:client");
 
 /**
  * CalDAV client for syncing calendar events
@@ -43,8 +46,10 @@ export class CalDAVClient {
    * Discover the calendar URL using PROPFIND
    */
   async discover(): Promise<string> {
+    debug("discover: starting for %s", this.config.url);
     if (this.config.calendarPath) {
       this.calendarUrl = `${this.config.url}${this.config.calendarPath}`;
+      debug("discover: using configured path %s", this.calendarUrl);
       return this.calendarUrl;
     }
 
@@ -97,6 +102,7 @@ export class CalDAVClient {
    * Get all calendar events
    */
   async getEvents(): Promise<CalendarEvent[]> {
+    debug("getEvents: fetching from %s", this.calendarUrl ?? "(discovering)");
     if (!this.calendarUrl) {
       await this.discover();
     }
@@ -148,6 +154,7 @@ export class CalDAVClient {
       }
     }
 
+    debug("getEvents: found %d events", events.length);
     return events;
   }
 
@@ -155,6 +162,7 @@ export class CalDAVClient {
    * Create a new calendar event
    */
   async createEvent(event: CalendarEvent): Promise<void> {
+    debug("createEvent: %s", event.uid);
     if (!this.calendarUrl) {
       await this.discover();
     }
@@ -172,6 +180,7 @@ export class CalDAVClient {
    * Update an existing calendar event
    */
   async updateEvent(event: CalendarEvent): Promise<void> {
+    debug("updateEvent: %s (etag=%s)", event.uid, event.etag ?? "none");
     if (!this.calendarUrl) {
       await this.discover();
     }
@@ -193,6 +202,7 @@ export class CalDAVClient {
    * Delete a calendar event
    */
   async deleteEvent(uid: string, etag?: string): Promise<void> {
+    debug("deleteEvent: %s (etag=%s)", uid, etag ?? "none");
     if (!this.calendarUrl) {
       await this.discover();
     }
@@ -210,6 +220,7 @@ export class CalDAVClient {
    * Sync calendar using WebDAV sync (RFC 6578)
    */
   async sync(state?: SyncState): Promise<SyncResult> {
+    debug("sync: starting (hasToken=%s)", !!state?.syncToken);
     if (!this.calendarUrl) {
       await this.discover();
     }
@@ -306,6 +317,7 @@ export class CalDAVClient {
       result.state.lastSync = Date.now();
     }
 
+    debug("sync: added=%d modified=%d deleted=%d", result.added.length, result.modified.length, result.deleted.length);
     return result;
   }
 }

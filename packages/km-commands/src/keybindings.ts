@@ -100,9 +100,9 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "k", ctrl: true, commandId: "sibling_board_prev" },
 
   // Zoom/Navigate
-  { key: "o", commandId: "zoom_in" }, // TUI uses 'o' for zoom in
-  { key: "i", commandId: "enter_node" }, // Enter node as board
-  { key: "u", commandId: "go_up_path" }, // Go up physical path (parent of root)
+  { key: "o", commandId: "zoom_in" }, // TUI uses 'o' for zoom in (focus on node)
+  { key: "i", commandId: "zoom_inwards" }, // Zoom in one level closer to selected node
+  { key: "u", commandId: "zoom_outwards" }, // Zoom out one level (parent of root)
   { key: "Enter", commandId: "open_detail_pane", modes: ["normal"] }, // Open detail view
 
   // === Selection ===

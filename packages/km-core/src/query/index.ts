@@ -15,6 +15,8 @@ export {
   type QueryOffset,
   type QueryText,
   type QueryPhrase,
+  type QueryPropCondition,
+  type QuerySpecial,
 } from "./parser.ts";
 
 export {

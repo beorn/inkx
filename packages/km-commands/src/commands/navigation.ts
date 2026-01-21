@@ -139,15 +139,14 @@ export const zoomOut: CommandDef = {
   },
 };
 
-// Go up physical path - different from zoomOut
-// This navigates to the parent of the current root node
-export const goUpPath: CommandDef = {
-  id: "go_up_path",
-  name: "Go Up Path",
-  description: "Navigate to parent of current root",
+// Zoom outwards one level (to parent of current root)
+export const zoomOutwards: CommandDef = {
+  id: "zoom_outwards",
+  name: "Zoom Outwards",
+  description: "Zoom out one level (to parent of current root)",
   category: "Navigation",
   shortcuts: ["u"],
-  execute: () => ({ type: "GO_UP_PATH" }),
+  execute: () => ({ type: "ZOOM_OUTWARDS" }),
 };
 
 // Open detail pane for current node
@@ -198,14 +197,14 @@ export const siblingBoardPrev: CommandDef = {
   execute: () => ({ type: "NAV_SIBLING_BOARD", direction: "prev" }),
 };
 
-// Enter node as board (like zoom but TUI-specific)
-export const enterNode: CommandDef = {
-  id: "enter_node",
-  name: "Enter Node",
-  description: "Enter current node as a board",
+// Zoom inwards one level closer to selected node
+export const zoomInwards: CommandDef = {
+  id: "zoom_inwards",
+  name: "Zoom Inwards",
+  description: "Zoom in one level closer to selected node",
   category: "Navigation",
   shortcuts: ["i"],
-  execute: () => ({ type: "ENTER_NODE" }),
+  execute: () => ({ type: "ZOOM_INWARDS" }),
 };
 
 // All navigation commands
@@ -224,11 +223,11 @@ export const navigationCommands: CommandDef[] = [
   navForward,
   zoomIn,
   zoomOut,
-  goUpPath,
+  zoomOutwards,
   openDetailPane,
   pageDown,
   pageUp,
   siblingBoardNext,
   siblingBoardPrev,
-  enterNode,
+  zoomInwards,
 ];

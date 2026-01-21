@@ -339,3 +339,132 @@ export function slugify(text: string): string {
     .replace(/-+/g, "-") // Collapse multiple dashes
     .replace(/^-|-$/g, ""); // Remove leading/trailing dashes
 }
+
+// =============================================================================
+// Inline Properties (Logseq-style property:: value syntax)
+// =============================================================================
+
+/**
+ * Parsed property value with type information
+ */
+export type PropertyValue =
+  | { type: "link"; target: string; alias?: string }
+  | { type: "number"; value: number }
+  | { type: "date"; value: string } // ISO date string YYYY-MM-DD
+  | { type: "text"; value: string }
+  | { type: "list"; values: PropertyValue[] };
+
+/**
+ * Result of parsing inline properties from text
+ */
+export interface ParsedProperties {
+  /** Parsed property values keyed by property name */
+  props: Record<string, PropertyValue>;
+  /** Original raw strings for each property (for round-trip preservation) */
+  propsRaw: Record<string, string>;
+  /** Text with properties removed */
+  cleanText: string;
+}
+
+/**
+ * Parse inline properties from text (Logseq-style property:: value syntax)
+ *
+ * Supports:
+ * - Links: property:: [[target]] or property:: [[target|alias]]
+ * - Numbers: property:: 42 or property:: 3.14
+ * - Dates: property:: 2024-01-15
+ * - Text: property:: any text value
+ * - Lists: property:: [[a]], [[b]], [[c]] (comma-separated)
+ *
+ * @example
+ * parseInlineProperties("Task blocked-by:: [[other]] rating:: 5")
+ * // Returns:
+ * // {
+ * //   props: {
+ * //     "blocked-by": { type: "link", target: "other" },
+ * //     "rating": { type: "number", value: 5 }
+ * //   },
+ * //   propsRaw: {
+ * //     "blocked-by": "[[other]]",
+ * //     "rating": "5"
+ * //   },
+ * //   cleanText: "Task"
+ * // }
+ */
+export function parseInlineProperties(text: string): ParsedProperties {
+  const props: Record<string, PropertyValue> = {};
+  const propsRaw: Record<string, string> = {};
+
+  // Match property:: value patterns
+  // Property name: lowercase letter followed by alphanumeric, underscore, or hyphen
+  // Value: everything until next property or end of string
+  const propPattern = /([a-z][a-z0-9_-]*)::[ ]*(.+?)(?=\s+[a-z][a-z0-9_-]*::|$)/gi;
+
+  let cleanText = text;
+  let match;
+
+  while ((match = propPattern.exec(text)) !== null) {
+    const [fullMatch, name, rawValue] = match;
+    if (!name || rawValue === undefined) continue;
+
+    const propName = name.toLowerCase();
+    const trimmedValue = rawValue.trim();
+
+    propsRaw[propName] = trimmedValue;
+    props[propName] = parsePropertyValue(trimmedValue);
+
+    // Remove the property from clean text
+    cleanText = cleanText.replace(fullMatch, "");
+  }
+
+  return {
+    props,
+    propsRaw,
+    cleanText: cleanText.trim(),
+  };
+}
+
+/**
+ * Parse a property value string into a typed PropertyValue
+ */
+function parsePropertyValue(value: string): PropertyValue {
+  // Check for comma-separated list of links: [[a]], [[b]], [[c]]
+  const listLinks = value.match(/\[\[[^\]]+\]\]/g);
+  if (listLinks && listLinks.length > 1) {
+    return {
+      type: "list",
+      values: listLinks.map((link) => parseSingleValue(link)),
+    };
+  }
+
+  return parseSingleValue(value);
+}
+
+/**
+ * Parse a single (non-list) property value
+ */
+function parseSingleValue(value: string): PropertyValue {
+  // Check for wikilink: [[target]] or [[target|alias]]
+  const linkMatch = value.match(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/);
+  if (linkMatch) {
+    return {
+      type: "link",
+      target: linkMatch[1] ?? "",
+      alias: linkMatch[2],
+    };
+  }
+
+  // Check for date: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return { type: "date", value };
+  }
+
+  // Check for number (integer or decimal)
+  const num = parseFloat(value);
+  if (!isNaN(num) && /^-?\d+(\.\d+)?$/.test(value)) {
+    return { type: "number", value: num };
+  }
+
+  // Default to text
+  return { type: "text", value };
+}

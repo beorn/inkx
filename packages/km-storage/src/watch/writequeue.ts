@@ -4,6 +4,7 @@
  * Manages pending filesystem writes with debouncing
  */
 
+import createDebug from "debug";
 import {
   writeFileSync,
   mkdirSync,
@@ -11,6 +12,8 @@ import {
   renameSync,
   existsSync,
 } from "fs";
+
+const debug = createDebug("km:storage:watch:writequeue");
 import { dirname } from "path";
 import { EventEmitter } from "events";
 import { FileSystemWatcher } from "./watcher.ts";
@@ -60,6 +63,7 @@ export class WriteQueue extends EventEmitter {
    * Queue a write operation
    */
   queue(write: PendingWrite): void {
+    debug("queuing write: %s (%d bytes)", write.path, write.content.length);
     // Coalesce writes to same file
     this.pending.set(write.path, {
       type: "write",
@@ -74,6 +78,7 @@ export class WriteQueue extends EventEmitter {
    * Queue a delete operation
    */
   queueDelete(path: string, sourceEventId: string): void {
+    debug("queuing delete: %s", path);
     this.pending.set(path, {
       type: "delete",
       path,
@@ -86,6 +91,7 @@ export class WriteQueue extends EventEmitter {
    * Queue a rename operation
    */
   queueRename(oldPath: string, newPath: string, sourceEventId: string): void {
+    debug("queuing rename: %s → %s", oldPath, newPath);
     this.pending.set(oldPath, {
       type: "rename",
       path: oldPath,
@@ -121,8 +127,12 @@ export class WriteQueue extends EventEmitter {
     this.pending.clear();
 
     if (writes.length === 0) {
+      debug("flush: nothing pending");
       return;
     }
+
+    debug("flushing %d operations", writes.length);
+    const start = Date.now();
 
     // Mark paths as in-flight to prevent watch triggering re-sync
     for (const write of writes) {
@@ -175,9 +185,11 @@ export class WriteQueue extends EventEmitter {
 
     // Emit events
     if (errors.length > 0) {
+      debug("flush errors: %O", errors.map(e => ({ path: e.path, error: e.error.message })));
       this.emit("errors", errors);
     }
 
+    debug("flushed %d ops in %dms (%d errors)", writes.length, Date.now() - start, errors.length);
     this.emit("flushed", { count: writes.length, errors: errors.length });
   }
 

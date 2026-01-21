@@ -13,6 +13,7 @@ import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { useTreeConfig } from "../ui-context.tsx";
+import { getNodeIcon, renderPlain } from "../text/index.ts";
 import {
   VerticalScrollIndicator,
   ColumnSeparator,
@@ -29,6 +30,7 @@ interface ColumnTreeProps {
   selectedCardIndex: number;
   selectedSubIndex: number;
   selectionLevel: "board" | "column" | "card";
+  width: number;
 }
 
 function ColumnTree({
@@ -41,7 +43,8 @@ function ColumnTree({
 }: ColumnTreeProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
 
-  const name = getNodeDisplayName(column.node);
+  // Render name with wiki links stripped: [[target|alias]] → "alias"
+  const name = renderPlain(getNodeDisplayName(column.node));
   const count = column.cards.length;
   const ownColor = getOwnColor(column.node);
 
@@ -53,6 +56,10 @@ function ColumnTree({
     isColumnHeaderSelected,
   );
 
+  // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
+  const icon = getNodeIcon(null, ownColor, false);
+  const iconColor = isColumnHeaderSelected ? "black" : icon.color;
+
   // Maximum column width to prevent overly wide columns (similar to cards view)
   const maxColWidth = 60;
 
@@ -61,16 +68,21 @@ function ColumnTree({
       {/* Header section */}
       <Box flexDirection="column" height={3} flexShrink={0}>
         <Text> </Text>
-        <Text
-          bold={isSelected}
-          color={headerStyle.color}
-          dimColor={headerStyle.dimColor}
-          backgroundColor={headerStyle.backgroundColor}
-          wrap="truncate"
-        >
-          {" "}
-          {name} ({count})
-        </Text>
+        {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
+        <Box>
+          <Text
+            bold={isSelected}
+            color={headerStyle.color}
+            backgroundColor={headerStyle.backgroundColor}
+            wrap="truncate"
+          >
+            {" "}
+            <Text color={iconColor}>{icon.char}</Text>
+            {" "}
+            {name}
+            <Text color={isColumnHeaderSelected ? "gray" : undefined} dimColor={!isColumnHeaderSelected}>{` (${count})`}</Text>
+          </Text>
+        </Box>
         <Text dimColor wrap="truncate">
           {"─".repeat(100)}
         </Text>

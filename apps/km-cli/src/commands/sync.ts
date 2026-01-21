@@ -4,15 +4,19 @@
  * One-time sync between filesystem and database, or continuous watch mode
  */
 
+import createDebug from "debug";
 import { Command } from "commander";
 import chalk from "chalk";
-import { SyncManager, getKmDir } from "@km/storage";
-import { dirname } from "path";
+
+const debug = createDebug("km:cli:sync");
+import { SyncManager, findKmRootFromPath } from "@km/storage";
+import { dirname, resolve } from "path";
 
 /**
  * Start the continuous filesystem watcher
  */
 function startWatch(vaultPath: string, debounceMs: number): void {
+  debug("starting watch: %s (debounce=%dms)", vaultPath, debounceMs);
   console.log(chalk.dim(`Watching: ${vaultPath}`));
   console.log(chalk.dim(`Debounce: ${debounceMs}ms`));
   console.log(chalk.dim("Press Ctrl+C to stop\n"));
@@ -71,6 +75,7 @@ async function runSync(
   vaultPath: string,
   options: { toFs?: boolean; dryRun?: boolean },
 ): Promise<void> {
+  debug("runSync: %s (toFs=%s, dryRun=%s)", vaultPath, options.toFs, options.dryRun);
   console.log(chalk.dim(`Syncing: ${vaultPath}`));
 
   if (options.dryRun) {
@@ -116,7 +121,18 @@ export const syncCommand = new Command("sync")
     "5000",
   )
   .action(async (path, options) => {
-    const vaultPath = path ?? dirname(getKmDir());
+    // Resolve vault path from argument or current directory
+    const searchPath = path ? resolve(path) : process.cwd();
+    const kmRoot = findKmRootFromPath(searchPath);
+
+    if (!kmRoot) {
+      console.error(`No .km directory found in ${searchPath} or ancestors.`);
+      console.error("Run 'km init' to initialize a vault.");
+      process.exit(1);
+    }
+
+    const vaultPath = dirname(kmRoot);
+    debug("resolved vault path: %s (from kmRoot: %s)", vaultPath, kmRoot);
 
     if (options.watch) {
       const debounceMs = parseInt(options.debounce, 10);

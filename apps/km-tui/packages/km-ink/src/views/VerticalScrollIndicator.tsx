@@ -39,20 +39,19 @@ export function VerticalScrollIndicator({
 
 /**
  * Vertical separator line between columns.
- * Uses flexGrow to fill available height. Shows blank line at top
- * then vertical line characters filling the rest.
+ * Uses a Box with borderLeft to draw a full-height vertical line.
+ * The border automatically spans the full height of the container.
  */
 export function ColumnSeparator(): React.ReactElement {
   return (
-    <Box flexDirection="column" width={1} flexGrow={1}>
-      {/* Blank line to align with column header spacing */}
-      <Box height={1} flexShrink={0}>
-        <Text> </Text>
-      </Box>
-      {/* Vertical line fills remaining space */}
-      <Box flexGrow={1} flexDirection="column" overflow="hidden">
-        <Text color="gray">│</Text>
-      </Box>
-    </Box>
+    <Box
+      flexGrow={1}
+      borderStyle="single"
+      borderLeft
+      borderRight={false}
+      borderTop={false}
+      borderBottom={false}
+      borderColor="gray"
+    />
   );
 }

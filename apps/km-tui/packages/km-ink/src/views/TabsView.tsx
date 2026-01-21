@@ -73,16 +73,20 @@ export function TabsView({
 
           return (
             <React.Fragment key={column.node.id}>
-              <Text
-                bold={showActiveHighlight}
-                color={textColor}
-                backgroundColor={isTabSelected ? "cyan" : undefined}
-                dimColor={!showActiveHighlight && selectionLevel === "board"}
-              >
-                {" "}
-                {truncatedName} ({colCount})
-              </Text>
-              {cIdx < state.columns.length - 1 && <Text dimColor> │</Text>}
+              {/* Tab with background spanning padding on both sides */}
+              <Box backgroundColor={isTabSelected ? "yellow" : undefined}>
+                <Text
+                  bold
+                  color={textColor}
+                  dimColor={!showActiveHighlight && selectionLevel === "board"}
+                >
+                  {" "}
+                  {truncatedName}
+                  <Text dimColor>{` (${colCount})`}</Text>
+                  {" "}
+                </Text>
+              </Box>
+              {cIdx < state.columns.length - 1 && <Text dimColor>│</Text>}
             </React.Fragment>
           );
         })}

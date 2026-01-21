@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@beorn/chalkx": "workspace:*",
+    "@km/agent": "workspace:*",
+    "@km/beads": "workspace:*",
     "@km/board": "workspace:*",
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",

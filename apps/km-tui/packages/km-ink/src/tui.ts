@@ -6,11 +6,14 @@
 
 import { EventEmitter } from "events";
 import chalk from "chalk";
+import createDebug from "debug";
 import type { BoardState, TuiEngine, TuiOptions } from "./types.ts";
 import { initBoardState } from "./state.ts";
 import { renderBoardStatic } from "./render.ts";
-import { renderInkxBoard } from "./views/index.ts";
+import { renderInkxBoard, renderDeferredBoard } from "./views/index.ts";
 import { setFsSync, SyncManager } from "@km/storage";
+
+const debug = createDebug("km:tui");
 
 /**
  * Global event emitter for TUI refresh events
@@ -65,7 +68,70 @@ export async function runBoard(
   rootPath?: string,
   options?: TuiOptions,
 ): Promise<void> {
+  debug("runBoard start");
+
+  // For interactive mode, use deferred loading to show spinner while vault loads
+  if (interactive) {
+    // Initialize filesystem sync if we have a vault path
+    let syncManager: SyncManager | null = null;
+    if (rootPath) {
+      debug("Creating SyncManager for: %s", rootPath);
+      syncManager = new SyncManager({
+        vaultPath: rootPath,
+        debounceFs: 2000, // Debounce external changes (2s)
+        debounceApply: 100, // Small debounce for batching TUI changes
+        conflictStrategy: "last_write_wins",
+      });
+
+      // Wire up TUI changes → filesystem
+      setFsSync(syncManager);
+
+      // Wire up filesystem changes → TUI refresh
+      syncManager.on("state-change", (newState) => {
+        // When sync manager finishes reconciling external changes, refresh TUI
+        if (newState === "idle") {
+          tuiEvents.emit("refresh");
+        }
+      });
+
+      // Start watching for filesystem changes
+      debug("Starting syncManager...");
+      syncManager.start();
+      debug("syncManager started");
+    }
+
+    try {
+      debug("Starting interactive TUI with deferred loading");
+      // Pass the loader function so UI can show spinner while loading
+      // This includes both ensureState (sync vault) and initBoardState (build tree)
+      const loadBoardState = () => {
+        // First, initialize database state if callback provided (this is the slow part)
+        if (options?.initializeState) {
+          debug("Calling initializeState callback");
+          options.initializeState();
+          debug("initializeState callback complete");
+        }
+        // Then build the board state from the database
+        const state = initBoardState(rootId);
+        if (state && rootPath) {
+          state.rootPath = rootPath;
+        }
+        return state;
+      };
+      await renderDeferredBoard(loadBoardState, options?.initialViewMode, options?.engine);
+    } finally {
+      // Clean up sync manager
+      if (syncManager) {
+        setFsSync(null);
+        await syncManager.stop();
+      }
+    }
+    return;
+  }
+
+  // Non-interactive mode: load state synchronously
   const state = initBoardState(rootId);
+  debug("initBoardState complete");
 
   if (!state) {
     console.error(
@@ -74,50 +140,9 @@ export async function runBoard(
     process.exit(1);
   }
 
-  // Set the filesystem path for display in the TUI header
   if (rootPath) {
     state.rootPath = rootPath;
   }
 
-  // Initialize filesystem sync if we have a vault path
-  // This enables bidirectional sync:
-  // - TUI changes are written back to .md files (via setFsSync)
-  // - External .md changes trigger TUI refresh (via syncManager.start())
-  let syncManager: SyncManager | null = null;
-  if (rootPath) {
-    syncManager = new SyncManager({
-      vaultPath: rootPath,
-      debounceFs: 2000, // Debounce external changes (2s)
-      debounceApply: 100, // Small debounce for batching TUI changes
-      conflictStrategy: "last_write_wins",
-    });
-
-    // Wire up TUI changes → filesystem
-    setFsSync(syncManager);
-
-    // Wire up filesystem changes → TUI refresh
-    syncManager.on("state-change", (newState) => {
-      // When sync manager finishes reconciling external changes, refresh TUI
-      if (newState === "idle") {
-        tuiEvents.emit("refresh");
-      }
-    });
-
-    // Start watching for filesystem changes
-    syncManager.start();
-  }
-
-  try {
-    if (interactive) {
-      await runBoardTUI(state, options);
-    } else {
-      runBoardStatic(state);
-    }
-  } finally {
-    // Clean up sync manager
-    if (syncManager) {
-      setFsSync(null);
-      await syncManager.stop();
-    }
-  }
+  runBoardStatic(state);
 }

@@ -4,7 +4,10 @@
  * Compares filesystem state to database state and generates operations
  */
 
+import createDebug from "debug";
 import { statSync, readFileSync, existsSync } from "fs";
+
+const debug = createDebug("km:storage:watch:reconcile");
 import { dirname, basename, relative } from "path";
 import { ulid } from "ulid";
 import type { KNode } from "@km/core";
@@ -35,6 +38,7 @@ export interface ReconcileOp {
   nodeId?: string;
   oldPath?: string;
   ino?: number;
+  mtime?: number;
 }
 
 /**
@@ -51,6 +55,8 @@ export function reconcileDirectory(
 
   // Get database state for this directory (using km-storage abstraction)
   const dbNodes = getNodesUnderPath(dirPath);
+
+  debug("reconciling %s: %d fs entries, %d db nodes", dirPath, fsEntries.length, dbNodes.length);
 
   // Index by inode and path for efficient lookup
   const dbByIno = new Map<number, KNode>();
@@ -85,13 +91,15 @@ export function reconcileDirectory(
         type: "create",
         path: entry.path,
         ino: entry.ino,
+        mtime: entry.mtime,
       });
-    } else if (entry.mtime > existingByPath.updated_at) {
-      // Modified (mtime is newer)
+    } else if (entry.mtime !== existingByPath.fs_mtime) {
+      // Modified (mtime changed - works for both forward and backward time changes)
       ops.push({
         type: "update",
         nodeId: existingByPath.id,
         path: entry.path,
+        mtime: entry.mtime,
       });
     }
 
@@ -111,6 +119,10 @@ export function reconcileDirectory(
     }
   }
 
+  if (ops.length > 0) {
+    debug("generated %d ops: %O", ops.length, ops.map(o => ({ type: o.type, path: o.path })));
+  }
+
   return ops;
 }
 
@@ -121,7 +133,11 @@ export async function applyReconcileOps(
   ops: ReconcileOp[],
   vaultRoot: string,
 ): Promise<void> {
+  debug("applying %d reconcile ops", ops.length);
+  const start = Date.now();
+
   for (const op of ops) {
+    debug("applying op: %s %s", op.type, op.path);
     switch (op.type) {
       case "create":
         await handleCreate(op, vaultRoot);
@@ -137,6 +153,8 @@ export async function applyReconcileOps(
         break;
     }
   }
+
+  debug("applied %d ops in %dms", ops.length, Date.now() - start);
 }
 
 /**
@@ -173,6 +191,7 @@ function ensureFolderHierarchy(path: string, vaultRoot: string): string | null {
       type: "folder",
       fs_path: parentPath,
       fs_ino: stat.ino,
+      fs_mtime: stat.mtimeMs,
       parent_id: grandparentId,
       content: basename(parentPath),
       data: { name: basename(parentPath) },
@@ -200,6 +219,7 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
       type: "folder",
       fs_path: op.path,
       fs_ino: op.ino,
+      fs_mtime: op.mtime ?? stat.mtimeMs,
       parent_id: parentId,
       content: basename(op.path),
       data: { name: basename(op.path) },
@@ -211,6 +231,7 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
       content,
       op.path,
       op.ino,
+      op.mtime ?? stat.mtimeMs,
     );
 
     // Set parent for file node
@@ -274,10 +295,12 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
 
   // Parse new content with wikilinks
   const stat = statSync(op.path);
+  const newMtime = op.mtime ?? stat.mtimeMs;
   const { nodes: newNodes, wikilinks } = parseMarkdownWithLinks(
     content,
     op.path,
     stat.ino,
+    newMtime,
   );
 
   // Diff and emit changes
@@ -302,6 +325,11 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
         if (change.nodeId) emitNodeDeleted("fs-watch", change.nodeId);
         break;
     }
+  }
+
+  // Always update the file node's fs_mtime to track the last synced mtime
+  if (op.nodeId) {
+    emitNodeUpdated("fs-watch", op.nodeId, { fs_mtime: newMtime });
   }
 
   // Update wikilinks: remove old links and add new ones

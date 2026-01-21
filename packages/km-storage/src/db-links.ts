@@ -8,7 +8,10 @@
  * - Resolving unresolved links
  */
 
+import createDebug from "debug";
 import { getDb } from "./db-instance.ts";
+
+const debug = createDebug("km:storage:db:links");
 
 // =============================================================================
 // Types
@@ -36,6 +39,7 @@ export interface Link {
  * Add a link from source to target
  */
 export function addLink(link: Omit<Link, "created_at">): void {
+  debug("addLink: %s → %s", link.source_id, link.target_name);
   const db = getDb();
   db.run(
     `
@@ -59,6 +63,7 @@ export function addLink(link: Omit<Link, "created_at">): void {
  * Remove all links from a source node
  */
 export function removeLinksFromSource(sourceId: string): void {
+  debug("removeLinksFromSource: %s", sourceId);
   const db = getDb();
   db.run("DELETE FROM links WHERE source_id = ?", [sourceId]);
 }
@@ -79,6 +84,7 @@ export function resolveLinks(targetId: string, targetName: string): number {
   `,
     [targetId, normalizedName],
   );
+  debug("resolveLinks: %s (%s) → %d resolved", targetName, targetId, result.changes);
   return result.changes;
 }
 

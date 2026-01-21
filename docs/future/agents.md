@@ -159,6 +159,54 @@ Agent "agent-1" (node)
 
 ---
 
+## Beads Integration
+
+Agents integrate with beads issue tracking as workers:
+
+### Work Discovery
+
+Agents find work the same way humans do:
+
+```bash
+bd ready                    # Shows issues ready to work on
+bd agent claim agent-1      # Agent claims next ready issue
+```
+
+### Work Assignment
+
+Issues can be assigned to agents:
+
+```bash
+bd agent assign agent-1 km-a1b2    # Assign issue to agent
+bd agent queue agent-1             # View agent's assigned issues
+```
+
+### Work Completion
+
+Agents close issues like humans:
+
+```bash
+# Agent internally runs:
+bd update km-a1b2 --status wip --assignee agent-1
+# ... does work ...
+bd close km-a1b2 --reason "Agent: Implemented feature X"
+```
+
+### Session → Issue Linkage
+
+Sessions are linked to issues via the `target` field:
+
+```typescript
+{ type: 'session_started', actor: 'agent-1', target: 'km-a1b2', data: {
+    session_id: 'sess-abc',
+    model: 'claude-sonnet-4'
+}}
+```
+
+This enables queries like "Show all sessions for issue km-a1b2".
+
+---
+
 ## Session Events
 
 ### Session Lifecycle
@@ -202,34 +250,78 @@ Agent "agent-1" (node)
 
 ## CLI Commands
 
-### Agent Commands
+Agents are managed through two complementary command namespaces:
+
+| Namespace | Purpose | Focus |
+|-----------|---------|-------|
+| `km agent` | Agent lifecycle & runtime | Spawn, run, stop, sessions |
+| `bd agent` | Work queue integration | Assign issues, view queues |
+
+### `km agent` — Lifecycle & Runtime
 
 ```bash
-km agent ls                 # List agents
-km agent create <spec.yaml> # Create agent
-km agent run <agent_id>     # Run continuously
-km agent run <agent_id> "task"  # One-shot
-km agent stop <agent_id>    # Stop agent
-km agent queue <agent_id>   # View queue
+# Lifecycle
+km agent ls                       # List all agents
+km agent spawn <name>             # Create new agent
+  -m, --model <model>             #   LLM model (default: claude-sonnet-4)
+  -h, --harness <name>            #   Harness (default: general)
+  --id <custom>                   #   Custom short ID
+km agent stop <id>                # Graceful stop
+km agent kill <id>                # Force kill
+
+# Execution
+km agent run <id> [prompt]        # One-shot: run with prompt
+  --task <issue-id>               #   Work on specific issue
+  --continuous                    #   Process queue continuously
+  --max-tasks <n>                 #   Limit in continuous mode
+  --dry-run                       #   Show plan without executing
+km agent chat <id>                # Interactive chat session
+
+# Sessions
+km agent sessions [agent-id]      # List sessions
+km agent session <session-id>     # View transcript
+km agent replay <session-id>      # Replay session (dry-run)
 ```
 
-### Session Commands
+### `bd agent` — Beads Integration
+
+Agents work on issues via the beads system:
 
 ```bash
-km session <session_id>          # View transcript
-km session ls --agent <agent_id> # List sessions
+# Work queue management
+bd agent queue <agent-id>             # Show agent's assigned issues
+bd agent assign <agent-id> <issue-id> # Assign issue to agent
+bd agent unassign <agent-id> <issue>  # Remove assignment
+bd agent claim <agent-id>             # Claim next ready issue
+
+# Convenience aliases (delegate to km agent)
+bd agent ls                           # → km agent ls
+bd agent run <agent-id>               # → km agent run --continuous
 ```
+
+### Why Two Namespaces?
+
+**`km agent`** is for general agent management:
+- Creating and destroying agents
+- Running agents with arbitrary prompts
+- Session inspection and debugging
+- Interactive chat
+
+**`bd agent`** is for issue-centric workflows:
+- Assigning issues to agent work queues
+- Viewing what each agent is working on
+- Integration with `/pm` skill
+- Treating agents as "workers" on beads
 
 ### Hub Commands
 
 The **hub** is the central coordination point for agent orchestration:
 
 ```bash
-km hub                      # Launch interactive TUI
+km agent hub                # Launch interactive TUI
 km hub start                # Start daemon (background IPC)
 km hub stop                 # Stop daemon
 km hub status               # Show status
-km hub message <agent> "..."  # Send message
 ```
 
 ---

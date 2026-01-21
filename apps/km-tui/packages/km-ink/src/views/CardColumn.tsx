@@ -10,6 +10,7 @@ import type { CardState, ColumnState } from "../types.ts";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { TreeNode } from "./TreeNode.tsx";
+import { getNodeIcon, renderPlain } from "../text/index.ts";
 
 // =============================================================================
 // Card Component
@@ -38,7 +39,7 @@ export function Card({
       flexShrink={0}
       width={width}
       borderStyle="round"
-      borderColor={isSelected ? "cyanBright" : "blackBright"}
+      borderColor={isSelected ? "yellow" : "blackBright"}
     >
       <TreeNode
         node={card.node}
@@ -80,7 +81,8 @@ export function Column({
   height,
   selectionLevel,
 }: ColumnProps): React.ReactElement {
-  const name = getNodeDisplayName(column.node);
+  // Render name with wiki links stripped: [[target|alias]] → "alias"
+  const name = renderPlain(getNodeDisplayName(column.node));
   const typeSuffix = getCollapsedTypeSuffix(column.node);
   const count = column.cards.length;
   const wipLimit = column.wipLimit;
@@ -98,6 +100,13 @@ export function Column({
   const isColumnSelected = isSelected && selectionLevel === "column";
   const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnSelected);
 
+  // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
+  // - Non-tasks with color: filled circle (●) in that color
+  // - Non-tasks without color: small bullet (·)
+  const icon = getNodeIcon(null, ownColor, false);
+  // When column is selected, icon should be black on yellow bg
+  const iconColor = isColumnSelected ? "black" : icon.color;
+
   return (
     <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
       {/* Blank line above header */}
@@ -105,26 +114,34 @@ export function Column({
         <Text> </Text>
       </Box>
 
-      {/* Column header */}
-      <Box height={1} flexShrink={0}>
+      {/* Column header with background spanning full width */}
+      {/* Bold text, bullet uses getNodeIcon for consistent styling with TreeNode */}
+      {/* Note: backgroundColor on Text (not Box) ensures fg color applies correctly */}
+      <Box height={1} flexShrink={0} width={width}>
         <Text
-          bold={isSelected}
+          bold
           color={headerStyle.color}
-          dimColor={headerStyle.dimColor}
           backgroundColor={headerStyle.backgroundColor}
+          dimColor={headerStyle.dimColor}
           wrap="truncate"
         >
           {" "}
+          <Text color={iconColor}>{icon.char}</Text>
+          {" "}
           {name}
-          {typeSuffix ? <Text dimColor>{` ${typeSuffix}`}</Text> : ""}
+          {typeSuffix ? (
+            <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${typeSuffix}`}</Text>
+          ) : ""}
           {wipExceeded ? (
             <Text color="red">
               {` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}
             </Text>
           ) : (
-            ` ${countDisplay}`
+            <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${countDisplay}`}</Text>
           )}
           {collapsedIndicator}
+          {/* Pad to full column width */}
+          {" ".repeat(Math.max(0, width - 4 - name.length - countDisplay.length - (typeSuffix?.length ?? 0) - (collapsedIndicator?.length ?? 0)))}
         </Text>
       </Box>
 

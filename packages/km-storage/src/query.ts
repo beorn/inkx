@@ -5,7 +5,10 @@
  * Parsing is done by @km/core query module.
  */
 
+import createDebug from "debug";
 import { getDb } from "./db.ts";
+
+const debug = createDebug("km:storage:query");
 import {
   parseQuery as parse,
   resolveDateQuery as resolveDate,
@@ -16,6 +19,8 @@ import {
   type QueryCondition,
   type QueryRef,
   type QueryPath,
+  type QueryPropCondition,
+  type QuerySpecial,
   type DateRange,
 } from "@km/core";
 
@@ -175,6 +180,55 @@ export function executeQuery(ast: QueryAST, baseType?: string): KNode[] {
     }
   }
 
+  // Apply property conditions (data.props queries)
+  for (const propCond of ast.propConditions) {
+    const { prop, op, value, negated } = propCond;
+    const jsonPath = `$.props.${prop}`;
+
+    if (op === "exists") {
+      if (negated) {
+        // Property does not exist
+        sql += ` AND (data IS NULL OR json_extract(data, ?) IS NULL)`;
+      } else {
+        // Property exists
+        sql += ` AND json_extract(data, ?) IS NOT NULL`;
+      }
+      params.push(jsonPath);
+    } else if ((op === "=" || op === "!=") && value !== undefined) {
+      const effectiveOp = negated ? (op === "=" ? "!=" : "=") : op;
+      if (effectiveOp === "=") {
+        // For link values, check if the value is in an array or equals directly
+        sql += ` AND (json_extract(data, ?) = ? OR json_extract(data, ?) LIKE ?)`;
+        params.push(jsonPath, value, jsonPath, `%"${value}"%`);
+      } else {
+        sql += ` AND (json_extract(data, ?) IS NULL OR (json_extract(data, ?) != ? AND json_extract(data, ?) NOT LIKE ?))`;
+        params.push(jsonPath, jsonPath, value, jsonPath, `%"${value}"%`);
+      }
+    } else if ((op === ">" || op === "<" || op === ">=" || op === "<=") && value !== undefined) {
+      // Numeric comparison
+      sql += ` AND CAST(json_extract(data, ?) AS REAL) ${op} ?`;
+      params.push(jsonPath, value);
+    }
+  }
+
+  // Apply special conditions (blocked:true/false)
+  for (const special of ast.specials) {
+    if (special.type === "blocked") {
+      if (special.value) {
+        // blocked:true - has blocked-by property with at least one unresolved blocker
+        // A node is blocked if it has blocked-by:: with targets that are not done
+        sql += ` AND json_extract(data, '$.props.blocked-by') IS NOT NULL`;
+        // Note: Full blocked check (checking if blockers are done) requires a subquery
+        // For now, just check if blocked-by property exists
+        // TODO: Add subquery to check blocker statuses
+      } else {
+        // blocked:false - no blocked-by property OR all blockers are done
+        sql += ` AND (json_extract(data, '$.props.blocked-by') IS NULL)`;
+        // Note: Full unblocked check would need to verify all blockers are done
+      }
+    }
+  }
+
   // Apply text search
   if (ast.text.length > 0) {
     for (const term of ast.text) {
@@ -257,7 +311,10 @@ export function executeQuery(ast: QueryAST, baseType?: string): KNode[] {
 
   sql += " ORDER BY parent_idx ASC, created_at DESC";
 
+  const start = Date.now();
   const rows = db.prepare(sql).all(...params) as KNode[];
+  debug("executeQuery: %d results in %dms (type=%s, conditions=%d, paths=%d)",
+    rows.length, Date.now() - start, baseType ?? "any", ast.conditions.length, ast.paths.length);
   return rows;
 }
 

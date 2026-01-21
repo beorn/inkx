@@ -4,7 +4,10 @@
  * Functions for measuring, truncating, wrapping, and padding styled terminal strings.
  */
 
+import createDebug from "debug";
 import stringWidth from "string-width";
+
+const debug = createDebug("tui-measure:text");
 import wrapAnsi from "wrap-ansi";
 
 /**
@@ -170,6 +173,8 @@ export function constrainText(
   if (pad) {
     lines = lines.map((line) => padText(line, width));
   }
+
+  debug("constrain: %d chars → %d/%d lines (truncated=%s)", text.length, lines.length, allLines.length, truncated);
 
   return { lines, truncated };
 }

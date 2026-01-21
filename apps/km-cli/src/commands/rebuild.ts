@@ -4,8 +4,11 @@
  * Rebuild state.db from events.jsonl
  */
 
+import createDebug from "debug";
 import { Command } from "commander";
 import chalk from "chalk";
+
+const debug = createDebug("km:cli:rebuild");
 import {
   rebuildState,
   fullReset,
@@ -38,6 +41,7 @@ export const rebuildCommand = new Command("rebuild")
       return;
     }
 
+    debug("rebuild: starting (full=%s)", !!options.full);
     console.log(chalk.dim("Rebuilding state..."));
 
     try {
@@ -53,6 +57,7 @@ export const rebuildCommand = new Command("rebuild")
       }
 
       const elapsed = Date.now() - startTime;
+      debug("rebuild: complete in %dms, events=%d nodes=%d", elapsed, result.eventCount, result.nodeCount);
 
       console.log(chalk.green("✓"), "Rebuild complete");
       console.log(chalk.dim(`  Events: ${result.eventCount}`));
