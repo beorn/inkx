@@ -81,12 +81,8 @@ import { ConstraintRoot } from "../layout/index.ts";
 import {
   processKeyWithContext,
   ensureCommandSystemInitialized,
-  isUIAction,
-  isTUIAction,
-  isBoardAction,
-  isTaskStatusAction,
-  isHistoryAction,
 } from "../command-bridge.ts";
+import { assertNever, beepUnimplemented } from "../action-handlers.ts";
 import {
   buildTUIContext,
   toKeyboardContext,
@@ -339,154 +335,191 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   );
 
   // Handler for command system actions (hoisted)
-  // All navigation logic is implemented here - no delegation to keyboard-handler.ts
+  // Uses exhaustive switch - TypeScript errors if any action type is missing
+  // See km-y00m for why this pattern replaced the layered type guard approach
   function handleCommandAction(action: CommandAction) {
     const col = state.columns[state.colIndex];
     const card = col?.cards[state.cardIndex];
 
-    // Check TUI-specific actions first (with proper type narrowing)
-    if (isTUIAction(action)) {
-      switch (action.type) {
-        case "QUIT":
-          exit();
-          break;
-        case "SHOW_NEW_ITEM_DIALOG":
-          dispatch(actions.showNewItemDialog());
+    switch (action.type) {
+      // === TUI-specific actions ===
+      case "QUIT":
+        exit();
+        break;
+      case "SHOW_NEW_ITEM_DIALOG":
+        dispatch(actions.showNewItemDialog());
+        dispatch(actions.exitOutlineMode());
+        dispatch(actions.setSubIndex(0));
+        clearSelection(keyboardContext);
+        dispatch(actions.setDetailPane(false));
+        break;
+      case "SHOW_PROJECT_PICKER":
+        if (card) {
+          dispatch(actions.showProjectPicker());
           dispatch(actions.exitOutlineMode());
           dispatch(actions.setSubIndex(0));
           clearSelection(keyboardContext);
           dispatch(actions.setDetailPane(false));
-          break;
-        case "SHOW_PROJECT_PICKER":
-          if (card) {
-            dispatch(actions.showProjectPicker());
-            dispatch(actions.exitOutlineMode());
-            dispatch(actions.setSubIndex(0));
-            clearSelection(keyboardContext);
-            dispatch(actions.setDetailPane(false));
-          }
-          break;
-        case "JUMP_TO_FAVORITE":
-          handleJumpToFavorite(action.favoriteNumber);
-          break;
-        case "JUMP_TO_COLUMN":
-          handleJumpToColumn(action.columnNumber);
-          break;
-        case "CLOSE_OR_QUIT":
-          handleCloseOrQuit();
-          break;
-        case "OUTDENT_NODE":
-          if (card) outdentNode(keyboardContext, card);
-          break;
-        case "NAV_SIBLING_BOARD":
-          handleNavSiblingBoard(action.direction);
-          break;
-        case "ZOOM_INWARDS":
-          handleZoomInwards();
-          break;
-        case "PAGE_JUMP":
-          handlePageJump(action.direction);
-          break;
-      }
-    } else if (isUIAction(action)) {
-      // Non-TUI UI actions
-      switch (action.type) {
-        case "CYCLE_VIEW_MODE":
-          dispatch(actions.cycleViewMode());
-          break;
-        case "SHOW_HELP":
-          dispatch(actions.showHelp());
-          break;
-        case "HIDE_HELP":
-          dispatch(actions.hideHelp());
-          break;
-        case "OPEN_DETAIL_PANE":
-          dispatch(actions.setDetailPane(true));
-          break;
-        case "CLOSE_DETAIL_PANE":
-          dispatch(actions.setDetailPane(false));
-          break;
-        case "ZOOM_OUTWARDS":
-          handleZoomOutwards();
-          break;
-        case "DELETE_NODE":
-          handleDeleteNode();
-          break;
-        case "SELECT_ALL_PROGRESSIVE":
-          progressiveSelectAll(keyboardContext);
-          break;
-      }
-    } else if (isTaskStatusAction(action)) {
-      handleTaskStatusCycle();
-    } else if (isHistoryAction(action)) {
-      process.stdout.write("\x07"); // Undo/redo not yet implemented
-    } else if (isBoardAction(action)) {
-      switch (action.type) {
-        case "CURSOR_MOVE":
-          handleCursorMove(action.dir);
-          break;
-        case "TOGGLE_FOLD":
-          handleToggleFold();
-          break;
-        case "FOLD_LEVEL":
-          if (col) dispatch(actions.foldAll(col.cards.map((c) => c.node.id)));
-          break;
-        case "UNFOLD_LEVEL":
-          if (col) dispatch(actions.unfoldAll(col.cards.map((c) => c.node.id)));
-          break;
-        case "TOGGLE_COLLAPSE":
-          dispatch(actions.toggleColumnCollapse(state.colIndex));
-          break;
-        case "NAV_BACK":
-          handleNavBack();
-          break;
-        case "NAV_FORWARD":
-          handleNavForward();
-          break;
-        case "ZOOM_IN":
-          handleZoomIn();
-          break;
-        case "CLEAR_SELECTION":
-          clearSelection(keyboardContext);
-          break;
-        case "EXTEND_SELECT_UP":
-          handleExtendSelectVertical("up");
-          break;
-        case "EXTEND_SELECT_DOWN":
-          handleExtendSelectVertical("down");
-          break;
-        case "EXTEND_SELECT_LEFT":
-          handleExtendSelectHorizontal("left");
-          break;
-        case "EXTEND_SELECT_RIGHT":
-          handleExtendSelectHorizontal("right");
-          break;
-        case "INCREASE_OUTLINE_DEPTH":
-          dispatch(actions.increaseOutlineDepth());
-          break;
-        case "DECREASE_OUTLINE_DEPTH":
-          dispatch(actions.decreaseOutlineDepth());
-          break;
-        case "INCREASE_CONTENT_LINES":
-          dispatch(actions.increaseContentLines());
-          break;
-        case "DECREASE_CONTENT_LINES":
-          dispatch(actions.decreaseContentLines());
-          break;
-        // Card shifting (Alt+arrows)
-        case "SHIFT_UP":
-          handleShiftCard("up");
-          break;
-        case "SHIFT_DOWN":
-          handleShiftCard("down");
-          break;
-        case "SHIFT_LEFT":
-          handleShiftCard("left");
-          break;
-        case "SHIFT_RIGHT":
-          handleShiftCard("right");
-          break;
-      }
+        }
+        break;
+      case "JUMP_TO_FAVORITE":
+        handleJumpToFavorite(action.favoriteNumber);
+        break;
+      case "JUMP_TO_COLUMN":
+        handleJumpToColumn(action.columnNumber);
+        break;
+      case "CLOSE_OR_QUIT":
+        handleCloseOrQuit();
+        break;
+      case "OUTDENT_NODE":
+        if (card) outdentNode(keyboardContext, card);
+        break;
+      case "NAV_SIBLING_BOARD":
+        handleNavSiblingBoard(action.direction);
+        break;
+      case "ZOOM_INWARDS":
+        handleZoomInwards();
+        break;
+      case "PAGE_JUMP":
+        handlePageJump(action.direction);
+        break;
+
+      // === UI actions ===
+      case "CYCLE_VIEW_MODE":
+        dispatch(actions.cycleViewMode());
+        break;
+      case "SHOW_HELP":
+        dispatch(actions.showHelp());
+        break;
+      case "HIDE_HELP":
+        dispatch(actions.hideHelp());
+        break;
+      case "OPEN_DETAIL_PANE":
+        dispatch(actions.setDetailPane(true));
+        break;
+      case "CLOSE_DETAIL_PANE":
+        dispatch(actions.setDetailPane(false));
+        break;
+      case "ZOOM_OUTWARDS":
+        handleZoomOutwards();
+        break;
+      case "DELETE_NODE":
+        handleDeleteNode();
+        break;
+      case "SELECT_ALL_PROGRESSIVE":
+        progressiveSelectAll(keyboardContext);
+        break;
+
+      // === Task actions ===
+      case "TASK_SET_STATUS":
+        handleTaskStatusCycle();
+        break;
+
+      // === History actions (not yet implemented) ===
+      case "HISTORY_UNDO":
+      case "HISTORY_REDO":
+        beepUnimplemented();
+        break;
+
+      // === Board/navigation actions ===
+      case "CURSOR_MOVE":
+        handleCursorMove(action.dir);
+        break;
+      case "TOGGLE_FOLD":
+        handleToggleFold();
+        break;
+      case "FOLD_LEVEL":
+        if (col) dispatch(actions.foldAll(col.cards.map((c) => c.node.id)));
+        break;
+      case "UNFOLD_LEVEL":
+        if (col) dispatch(actions.unfoldAll(col.cards.map((c) => c.node.id)));
+        break;
+      case "TOGGLE_COLLAPSE":
+        dispatch(actions.toggleColumnCollapse(state.colIndex));
+        break;
+      case "NAV_BACK":
+        handleNavBack();
+        break;
+      case "NAV_FORWARD":
+        handleNavForward();
+        break;
+      case "ZOOM_IN":
+        handleZoomIn();
+        break;
+      case "ZOOM_OUT":
+        // Handled via ZOOM_OUTWARDS UI action
+        handleZoomOutwards();
+        break;
+      case "CLEAR_SELECTION":
+        clearSelection(keyboardContext);
+        break;
+      case "EXTEND_SELECT_UP":
+        handleExtendSelectVertical("up");
+        break;
+      case "EXTEND_SELECT_DOWN":
+        handleExtendSelectVertical("down");
+        break;
+      case "EXTEND_SELECT_LEFT":
+        handleExtendSelectHorizontal("left");
+        break;
+      case "EXTEND_SELECT_RIGHT":
+        handleExtendSelectHorizontal("right");
+        break;
+      case "INCREASE_OUTLINE_DEPTH":
+        dispatch(actions.increaseOutlineDepth());
+        break;
+      case "DECREASE_OUTLINE_DEPTH":
+        dispatch(actions.decreaseOutlineDepth());
+        break;
+      case "INCREASE_CONTENT_LINES":
+        dispatch(actions.increaseContentLines());
+        break;
+      case "DECREASE_CONTENT_LINES":
+        dispatch(actions.decreaseContentLines());
+        break;
+      case "SHIFT_UP":
+        handleShiftCard("up");
+        break;
+      case "SHIFT_DOWN":
+        handleShiftCard("down");
+        break;
+      case "SHIFT_LEFT":
+        handleShiftCard("left");
+        break;
+      case "SHIFT_RIGHT":
+        handleShiftCard("right");
+        break;
+
+      // === Selection actions ===
+      case "SELECT_NODE_ADD":
+      case "SELECT_NODE_REMOVE":
+      case "SELECT_NODE_TOGGLE":
+      case "SELECT_ALL_SIBLINGS":
+      case "SELECT_ALL":
+        // These are handled by boardReducer or have specialized handlers
+        beepUnimplemented();
+        break;
+
+      // === Navigation actions not yet wired ===
+      case "NAV_CROSS_COLUMN":
+      case "NAV_TO_PATH":
+      case "NAV_PAGE":
+      case "NAV_TO":
+      case "REFRESH":
+        // These are typically dispatched directly to boardReducer, not through commands
+        beepUnimplemented();
+        break;
+
+      // === Move mode actions ===
+      case "ENTER_MOVE_MODE":
+      case "CONFIRM_MOVE":
+      case "CANCEL_MOVE":
+        beepUnimplemented();
+        break;
+
+      // Exhaustiveness check - TypeScript will error if any action type is missing
+      default:
+        assertNever(action);
     }
 
     // --- Implementation functions (hoisted) ---

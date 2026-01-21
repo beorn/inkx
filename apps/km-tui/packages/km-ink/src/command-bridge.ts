@@ -15,12 +15,6 @@ import {
   buildContext,
   type InkKeyEvent,
   type InkCommandResult,
-  type CommandAction,
-  type TaskSetStatusAction,
-  type HistoryAction,
-  type UIAction,
-  type TUIAction,
-  type BoardAction,
   type BoardState as CmdBoardState,
   type TNode,
 } from "@km/commands";
@@ -143,79 +137,11 @@ export function processKeyWithBoardState(
   return processInkKey(input, key, ctx, kbCtx);
 }
 
-/**
- * Check if a command action is a task status action (requires storage update).
- */
-export function isTaskStatusAction(
-  action: CommandAction,
-): action is TaskSetStatusAction {
-  return action.type === "TASK_SET_STATUS";
-}
-
-/**
- * Check if a command action is a history action (undo/redo).
- */
-export function isHistoryAction(
-  action: CommandAction,
-): action is HistoryAction {
-  return action.type === "HISTORY_UNDO" || action.type === "HISTORY_REDO";
-}
-
-/**
- * Check if a command action is a UI action (handled by TUI directly).
- * Includes both UI actions and TUI-specific actions (quit, dialogs, etc).
- */
-export function isUIAction(action: CommandAction): action is UIAction {
-  return (
-    action.type === "GO_UP_PATH" ||
-    action.type === "OPEN_DETAIL_PANE" ||
-    action.type === "CLOSE_DETAIL_PANE" ||
-    action.type === "SHOW_HELP" ||
-    action.type === "HIDE_HELP" ||
-    action.type === "CYCLE_VIEW_MODE" ||
-    action.type === "DELETE_NODE" ||
-    action.type === "SELECT_ALL_PROGRESSIVE" ||
-    // TUI-specific actions
-    action.type === "QUIT" ||
-    action.type === "SHOW_NEW_ITEM_DIALOG" ||
-    action.type === "SHOW_PROJECT_PICKER" ||
-    action.type === "JUMP_TO_FAVORITE" ||
-    action.type === "JUMP_TO_COLUMN" ||
-    action.type === "CLOSE_OR_QUIT" ||
-    action.type === "OUTDENT_NODE" ||
-    action.type === "NAV_SIBLING_BOARD" ||
-    action.type === "ENTER_NODE" ||
-    action.type === "PAGE_JUMP" ||
-    action.type === "ZOOM_INWARDS" ||
-    action.type === "ZOOM_OUTWARDS"
-  );
-}
-
-/**
- * Check if a command action is a TUI-specific action (quit, dialogs, favorites, etc).
- */
-export function isTUIAction(action: CommandAction): action is TUIAction {
-  return (
-    action.type === "QUIT" ||
-    action.type === "SHOW_NEW_ITEM_DIALOG" ||
-    action.type === "SHOW_PROJECT_PICKER" ||
-    action.type === "JUMP_TO_FAVORITE" ||
-    action.type === "JUMP_TO_COLUMN" ||
-    action.type === "CLOSE_OR_QUIT" ||
-    action.type === "OUTDENT_NODE" ||
-    action.type === "NAV_SIBLING_BOARD" ||
-    action.type === "ZOOM_INWARDS" ||
-    action.type === "PAGE_JUMP"
-  );
-}
-
-/**
- * Check if a command action is a board action (can go to boardReducer).
- */
-export function isBoardAction(action: CommandAction): action is BoardAction {
-  return (
-    !isTaskStatusAction(action) &&
-    !isHistoryAction(action) &&
-    !isUIAction(action)
-  );
-}
+// NOTE: Type guard functions (isTaskStatusAction, isHistoryAction, isUIAction,
+// isTUIAction, isBoardAction) have been removed in favor of exhaustive switch
+// statements in Board.tsx. See issue km-y00m for details.
+//
+// The old approach required manually keeping type guards in sync with switch
+// statements, leading to silent failures when new action types were added.
+// The new approach uses a single exhaustive switch with assertNever() in the
+// default case, so TypeScript catches missing handlers at compile time.
