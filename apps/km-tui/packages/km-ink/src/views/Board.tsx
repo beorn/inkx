@@ -1715,118 +1715,17 @@ export async function renderInkxBoard(
 }
 
 // =============================================================================
-// Deferred Loading Component
+// Render Entry Points
 // =============================================================================
-
-const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-const RENDER_FRAMES_BEFORE_LOAD = 5; // Number of renders before starting expensive load
-const SHOW_TIME_AFTER_SECONDS = 2; // Only show elapsed time if loading takes >2s
-
-interface DeferredBoardLoaderProps {
-  loadState: () => BoardState | null;
-  initialViewMode?: ViewMode;
-  onError: (msg: string) => void;
-}
-
-/**
- * Component that loads board state asynchronously and shows a spinner if it takes >2s.
- *
- * Strategy: Show spinner immediately, start loading after a few render frames.
- * The spinner is visible while loading, but we only count elapsed time from when
- * the load actually starts. This way the user sees feedback during the blocking load.
- */
-function DeferredBoardLoader({
-  loadState,
-  initialViewMode = "cards",
-  onError,
-}: DeferredBoardLoaderProps): React.ReactElement {
-  const { stdout } = useStdout();
-  const { exit } = useApp();
-  const [boardState, setBoardState] = React.useState<BoardState | null>(null);
-  const [spinnerFrame, setSpinnerFrame] = React.useState(0);
-  const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
-  const [renderCount, setRenderCount] = React.useState(0);
-  const loadStartTime = React.useRef(Date.now());
-  const loadStarted = React.useRef(false);
-
-  // Increment render count to force re-render and flush spinner to screen
-  useEffect(() => {
-    if (renderCount < RENDER_FRAMES_BEFORE_LOAD) {
-      // Force a few renders to ensure spinner is visible before blocking load
-      setImmediate(() => setRenderCount((c) => c + 1));
-    }
-  }, [renderCount]);
-
-  // Load board state after spinner has rendered and flushed to terminal
-  useEffect(() => {
-    if (renderCount < RENDER_FRAMES_BEFORE_LOAD || loadStarted.current) return;
-    loadStarted.current = true;
-
-    // Use setTimeout with small delay to ensure terminal output is flushed
-    // The delay allows the render loop to complete and Ink to write to stdout
-    setTimeout(() => {
-      const state = loadState();
-      if (!state) {
-        onError("No board found. Create a board node or specify a root ID.");
-        exit();
-        return;
-      }
-      setBoardState(state);
-      const elapsed = Date.now() - loadStartTime.current;
-      debug("Board state loaded in %dms", elapsed);
-    }, 200); // 200ms delay to ensure spinner is visible and flushed to terminal
-  }, [renderCount, loadState, onError, exit]);
-
-  // Update elapsed time counter every second while loading
-  useEffect(() => {
-    if (boardState) return;
-
-    const interval = setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - loadStartTime.current) / 1000));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [boardState]);
-
-  // Animate spinner
-  useEffect(() => {
-    if (boardState) return;
-
-    const interval = setInterval(() => {
-      setSpinnerFrame((f) => (f + 1) % SPINNER_FRAMES.length);
-    }, 80);
-
-    return () => clearInterval(interval);
-  }, [boardState]);
-
-  const termWidth = stdout?.columns ?? 80;
-  const termHeight = stdout?.rows ?? 24;
-
-  // Show loading indicator while loading
-  // Only show elapsed time if > 2s to avoid flash for fast loads
-  if (!boardState) {
-    const spinner = SPINNER_FRAMES[spinnerFrame] ?? "⠋";
-    const timeText = elapsedSeconds >= SHOW_TIME_AFTER_SECONDS ? ` (${elapsedSeconds}s)` : "";
-    const loadingText = `${spinner} Loading vault...${timeText}`;
-    // Center the text manually since flexbox centering may not work during initial renders
-    const padding = Math.max(0, Math.floor((termWidth - loadingText.length) / 2));
-    const verticalPadding = Math.max(0, Math.floor(termHeight / 2));
-    return (
-      <Box flexDirection="column" height={termHeight} width={termWidth}>
-        {/* Vertical spacing to center */}
-        {verticalPadding > 0 && <Box height={verticalPadding} />}
-        <Text color="cyan">{" ".repeat(padding)}{loadingText}</Text>
-      </Box>
-    );
-  }
-
-  // Board loaded - render the actual board
-  return <Board initialState={boardState} initialViewMode={initialViewMode} />;
-}
 
 /**
  * Render the board TUI with deferred loading.
- * Shows a spinner if loading the vault takes more than 2 seconds.
+ * Loads state synchronously, then renders the board.
+ * Shows a loading indicator during the synchronous load.
+ *
+ * Note: Originally used useEffect for loading with a spinner, but inkx's
+ * React reconciler doesn't flush passive effects reliably in all environments.
+ * We now use direct stdout writes for the loading indicator.
  */
 export async function renderDeferredBoard(
   loadState: () => BoardState | null,
@@ -1835,15 +1734,29 @@ export async function renderDeferredBoard(
 ): Promise<void> {
   debug("renderDeferredBoard start, engine=%s", engine);
 
-  let errorMessage: string | null = null;
+  const stdout = process.stdout;
 
-  const app = (
-    <DeferredBoardLoader
-      loadState={loadState}
-      initialViewMode={initialViewMode}
-      onError={(msg) => { errorMessage = msg; }}
-    />
-  );
+  // Show loading indicator immediately (will be visible for slow loads)
+  stdout.write("\x1b[?25l"); // Hide cursor
+  stdout.write("\x1b[2J\x1b[H"); // Clear screen, move to top-left
+  stdout.write("Loading...");
+
+  // Load state synchronously before rendering
+  const startTime = Date.now();
+  const state = loadState();
+  const loadTime = Date.now() - startTime;
+  debug("Board state loaded in %dms", loadTime);
+
+  // Clear loading indicator before rendering board
+  stdout.write("\x1b[2J\x1b[H");
+
+  if (!state) {
+    stdout.write("\x1b[?25h"); // Show cursor before exit
+    console.error("No board found. Create a board node or specify a root ID.");
+    process.exit(1);
+  }
+
+  const app = <Board initialState={state} initialViewMode={initialViewMode} />;
 
   const engineApi = getEngine(engine);
   debug("Got engine API");
@@ -1855,12 +1768,6 @@ export async function renderDeferredBoard(
   debug("Render complete, awaiting exit");
 
   await waitUntilExit();
-
-  // Show error after UI exits if there was one
-  if (errorMessage) {
-    console.error(errorMessage);
-    process.exit(1);
-  }
 }
 
 // Testable version of Board component with fixed ui.dimensions for testing

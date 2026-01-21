@@ -115,7 +115,9 @@ export function createInitialUIState(
 
     recentProjectIds: [],
 
-    isReady: false,
+    // Start as ready if dimensions are valid (not the default 80x24 placeholder)
+    // This avoids waiting for useEffect to fire which may not happen in all environments
+    isReady: dimensions.columns > 0 && dimensions.rows > 0,
     dimensions,
 
     isLoading: false,
