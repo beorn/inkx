@@ -28,8 +28,7 @@ export interface UIState {
   showProjectPicker: boolean;
   showNewItemDialog: boolean;
 
-  // Selection state
-  selectionLevel: "board" | "column" | "card";
+  // Selection state (selectionLevel is now derived from cursor depth in Board.tsx)
   subIndex: number;
   inOutlineMode: boolean;
   multiSelected: Set<SelectionKey>;
@@ -67,6 +66,10 @@ export interface UIState {
   // Terminal state
   isReady: boolean;
   dimensions: { columns: number; rows: number };
+
+  // Loading state (for large vaults)
+  isLoading: boolean;
+  loadingStartTime: number | null;
 }
 
 // =============================================================================
@@ -91,7 +94,6 @@ export function createInitialUIState(
     showProjectPicker: false,
     showNewItemDialog: false,
 
-    selectionLevel: "card",
     subIndex: 0,
     inOutlineMode: false,
     multiSelected: new Set(),
@@ -115,6 +117,9 @@ export function createInitialUIState(
 
     isReady: false,
     dimensions,
+
+    isLoading: false,
+    loadingStartTime: null,
   };
 }
 
@@ -182,13 +187,7 @@ const uiSlice = createSlice({
       state.maxContentLines = Math.max(1, state.maxContentLines - 1);
     },
 
-    // Selection level
-    setSelectionLevel: (
-      state,
-      action: PayloadAction<"board" | "column" | "card">,
-    ) => {
-      state.selectionLevel = action.payload;
-    },
+    // Outline mode (selectionLevel is now derived from cursor depth in Board.tsx)
     enterOutlineMode: (state) => {
       state.inOutlineMode = true;
     },
@@ -332,6 +331,16 @@ const uiSlice = createSlice({
     // Board context
     setRootBoardId: (state, action: PayloadAction<string | null>) => {
       state.rootBoardId = action.payload;
+    },
+
+    // Loading state
+    startLoading: (state) => {
+      state.isLoading = true;
+      state.loadingStartTime = Date.now();
+    },
+    stopLoading: (state) => {
+      state.isLoading = false;
+      state.loadingStartTime = null;
     },
   },
 });

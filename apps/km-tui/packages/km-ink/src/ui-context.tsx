@@ -136,7 +136,7 @@ const selectInOutlineMode = (state: UIState) => state.inOutlineMode;
 const selectMaxOutlineDepth = (state: UIState) => state.maxOutlineDepth;
 const selectMaxContentLines = (state: UIState) => state.maxContentLines;
 const selectViewMode = (state: UIState) => state.viewMode;
-const selectSelectionLevel = (state: UIState) => state.selectionLevel;
+// Note: selectionLevel is now derived from cursor depth in Board.tsx, not stored in UIState
 const selectRootBoardId = (state: UIState) => state.rootBoardId;
 
 /**

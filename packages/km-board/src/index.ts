@@ -68,3 +68,7 @@ export { toBoardViewModel } from "./transformers.ts";
 // ===== Node Map (O(1) ID Lookup) =====
 export { createNodeMap } from "./node-map.ts";
 export type { NodeMap, NodeMapEntry } from "./node-map.ts";
+
+// ===== Visual-to-Structural Navigation =====
+export { visualToStructural, canMove } from "./navigation.ts";
+export type { VisualDir, StructuralAction } from "./navigation.ts";

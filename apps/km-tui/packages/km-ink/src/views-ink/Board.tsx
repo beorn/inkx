@@ -12,6 +12,7 @@ import { makeSelectionKey } from "../types.ts";
 import { initBoardState, getNodeDisplayName } from "../state.ts";
 import type { KNode, TaskStatus } from "@km/core";
 import {
+  getAncestors,
   getChildren,
   getNode,
   getStore,
@@ -76,7 +77,7 @@ import {
   type TUIContext,
 } from "../tui-context.ts";
 import type { CommandAction } from "@km/commands";
-import { boardReducer, createNodeMap } from "@km/board";
+import { boardReducer, createNodeMap, visualToStructural, type VisualDir } from "@km/board";
 import {
   tuiStateToTreeState,
   deriveColumnsLayout,
@@ -84,6 +85,31 @@ import {
 } from "../board-adapter.ts";
 
 export { makeSelectionKey } from "../types.ts";
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Map direction strings from command system to VisualDir.
+ * Returns undefined for non-visual directions (first, last).
+ */
+function mapDirToVisual(dir: string): VisualDir | undefined {
+  switch (dir) {
+    case "up":
+    case "prev":
+      return "up";
+    case "down":
+    case "next":
+      return "down";
+    case "left":
+      return "left";
+    case "right":
+      return "right";
+    default:
+      return undefined;
+  }
+}
 
 // =============================================================================
 // Main Board Component
@@ -143,6 +169,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     () => deriveColumnsLayout(boardState),
     [boardState],
   );
+
+  // Derive cursor depth and selection level from cursor path
+  // Replaces stored selectionLevel - now always in sync with cursor
+  const cursorDepth = boardState.cursor.length;
+  const derivedSelectionLevel: "board" | "column" | "card" =
+    cursorDepth === 0 ? "board" : cursorDepth === 1 ? "column" : "card";
 
   // Build nodeMap once when nodes change (O(n) only on tree changes, not every render)
   const nodeMap = useMemo(
@@ -353,8 +385,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         case "NAV_SIBLING_BOARD":
           handleNavSiblingBoard(action.direction);
           break;
-        case "ENTER_NODE":
-          handleEnterNode();
+        case "ZOOM_INWARDS":
+          handleZoomInwards();
           break;
         case "PAGE_JUMP":
           handlePageJump(action.direction);
@@ -378,8 +410,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         case "CLOSE_DETAIL_PANE":
           dispatch(actions.setDetailPane(false));
           break;
-        case "GO_UP_PATH":
-          handleGoUpPath();
+        case "ZOOM_OUTWARDS":
+          handleZoomOutwards();
           break;
         case "DELETE_NODE":
           handleDeleteNode();
@@ -463,7 +495,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // --- Implementation functions (hoisted) ---
 
-    function handleGoUpPath() {
+    function handleZoomOutwards() {
       if (ui.showDetailPane) {
         dispatch(actions.setDetailPane(false));
         return;
@@ -492,12 +524,35 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               ui.inOutlineMode,
             );
 
-            // Dispatch zoom action to navigate up
+            // Find where the currently selected node ends up in the new view
+            // The current root becomes a column, and the selected card becomes nested
+            const selectedNodeId = card?.node.id;
+            const childrenOfParent = getChildren(parentNode.id);
+
+            // Find which column the current root becomes
+            const cursorColIndex = childrenOfParent.findIndex(
+              (c) => c.id === currentRoot.id,
+            );
+
+            // Find where the selected card is in that column
+            let cursorCardIndex = 0;
+            if (selectedNodeId && cursorColIndex >= 0) {
+              const cardsInCol = getChildren(currentRoot.id);
+              const cardIdx = cardsInCol.findIndex(
+                (c) => c.id === selectedNodeId,
+              );
+              if (cardIdx >= 0) cursorCardIndex = cardIdx;
+            }
+
+            // Dispatch zoom action to navigate up, keeping selection
             dispatchBoard({
               type: "ZOOM_IN",
               nodeId: parentNode.id,
               nodes,
-              cursor: [0, 0],
+              cursor: [
+                cursorColIndex >= 0 ? cursorColIndex : 0,
+                cursorCardIndex,
+              ],
             });
             clearSelection(keyboardContext);
             return;
@@ -505,7 +560,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         } else {
           // At top level with a root - zoom out to absolute root
           const rootView = initBoardState();
-          if (rootView && rootView.rootId) {
+          if (rootView && rootView.rootId && rootView.rootId !== boardState.rootId) {
             const nodes = buildTreeNodes(rootView.rootId);
 
             pushNavHistoryEntry(
@@ -518,12 +573,18 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               ui.inOutlineMode,
             );
 
-            // Navigate to root view
+            // Find where current root ends up as a column
+            const childrenOfRoot = getChildren(rootView.rootId);
+            const cursorColIndex = childrenOfRoot.findIndex(
+              (c) => c.id === boardState.rootId,
+            );
+
+            // Navigate to root view, selecting the column that was the previous root
             dispatchBoard({
               type: "ZOOM_IN",
               nodeId: rootView.rootId,
               nodes,
-              cursor: [0, 0],
+              cursor: [cursorColIndex >= 0 ? cursorColIndex : 0, 0],
             });
             clearSelection(keyboardContext);
             return;
@@ -577,116 +638,119 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     function handleCursorMove(dir: string) {
       clearSelection(keyboardContext);
 
-      switch (dir) {
-        case "up":
-        case "prev":
-          if (ui.selectionLevel === "card") {
-            if (ui.inOutlineMode) {
-              if (ui.subIndex > 0) {
-                dispatch(actions.setSubIndex(ui.subIndex - 1));
-              } else if (state.cardIndex > 0) {
-                const prevCardIndex = state.cardIndex - 1;
-                // Dispatch directly to boardReducer
-                dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
-                const prevCard = col?.cards[prevCardIndex];
-                if (prevCard) {
-                  const maxSub =
-                    1 +
-                    countVisibleDescendants(
-                      prevCard.node,
-                      0,
-                      ui.maxOutlineDepth,
-                      ui.foldedNodes,
-                    );
-                  dispatch(actions.setSubIndex(maxSub - 1));
-                }
-              } else {
-                dispatch(actions.setSelectionLevel("column"));
-                dispatch(actions.setSubIndex(0));
-              }
-            } else {
-              if (state.cardIndex > 0) {
-                // Dispatch directly to boardReducer
-                dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
-              } else {
-                dispatch(actions.setSelectionLevel("column"));
+      // Derive cursorDepth from cursor path length (replaces stored selectionLevel)
+      // depth 0 = board level, depth 1 = column level, depth 2+ = card level
+      const cursorDepth = boardState.cursor.length;
+
+      // Handle first/last separately (not direction-based)
+      if (dir === "first" || dir === "last") {
+        dispatchBoard({ type: "CURSOR_MOVE", dir });
+        dispatch(actions.exitOutlineMode());
+        dispatch(actions.setSubIndex(0));
+        return;
+      }
+
+      // Map direction strings to VisualDir
+      const visualDir = mapDirToVisual(dir);
+      if (!visualDir) return;
+
+      // Get structural action from visual direction based on cursor depth
+      const action = visualToStructural(cursorDepth, visualDir, {
+        cardIndex: state.cardIndex,
+        cardCount: col?.cards.length ?? 0,
+        colIndex: state.colIndex,
+        colCount: state.columns.length,
+      });
+
+      switch (action.action) {
+        case "noop":
+          break;
+
+        case "enter_column":
+          // Board → Column: move cursor to first column
+          dispatchBoard({ type: "NAV_TO_PATH", path: [action.target] });
+          break;
+
+        case "enter_card":
+          // Column → Card: move cursor to first card (if column has cards)
+          if (col && col.cards.length > 0) {
+            dispatchBoard({
+              type: "NAV_TO_PATH",
+              path: [state.colIndex, action.target],
+            });
+          }
+          // If column is empty, stay at column level (no-op)
+          break;
+
+        case "exit_to_board":
+          // Column → Board: clear cursor path
+          dispatchBoard({ type: "NAV_TO_PATH", path: [] });
+          break;
+
+        case "exit_to_column":
+          // Card → Column: move cursor to column level
+          dispatchBoard({ type: "NAV_TO_PATH", path: [state.colIndex] });
+          dispatch(actions.exitOutlineMode());
+          dispatch(actions.setSubIndex(0));
+          break;
+
+        case "prev_sibling":
+          // At card level, move to previous card
+          if (ui.inOutlineMode) {
+            // In outline mode: first move within outline, then to prev card
+            if (ui.subIndex > 0) {
+              dispatch(actions.setSubIndex(ui.subIndex - 1));
+            } else if (state.cardIndex > 0) {
+              const prevCardIndex = state.cardIndex - 1;
+              dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
+              const prevCard = col?.cards[prevCardIndex];
+              if (prevCard) {
+                const maxSub =
+                  1 +
+                  countVisibleDescendants(
+                    prevCard.node,
+                    0,
+                    ui.maxOutlineDepth,
+                    ui.foldedNodes,
+                  );
+                dispatch(actions.setSubIndex(maxSub - 1));
               }
             }
-          } else if (ui.selectionLevel === "column") {
-            dispatch(actions.setSelectionLevel("board"));
+          } else {
+            dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
           }
           break;
 
-        case "down":
-        case "next":
-          if (ui.selectionLevel === "board") {
-            dispatch(actions.setSelectionLevel("column"));
-            dispatchBoard({ type: "NAV_TO_PATH", path: [0] });
-          } else if (ui.selectionLevel === "column") {
-            dispatch(actions.setSelectionLevel("card"));
-            dispatchBoard({ type: "NAV_TO_PATH", path: [state.colIndex, 0] });
-          } else if (ui.inOutlineMode) {
+        case "next_sibling":
+          // At card level, move to next card
+          if (ui.inOutlineMode) {
+            // In outline mode: first move within outline, then to next card
             const maxSub = getMaxSubIndex(keyboardContext);
             if (ui.subIndex < maxSub - 1) {
               dispatch(actions.setSubIndex(ui.subIndex + 1));
             } else if (col && state.cardIndex < col.cards.length - 1) {
-              // Dispatch directly to boardReducer
               dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
               dispatch(actions.setSubIndex(0));
             }
           } else if (col && state.cardIndex < col.cards.length - 1) {
-            // Dispatch directly to boardReducer
             dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
           }
           break;
 
-        case "left":
-          if (ui.selectionLevel !== "board" && state.colIndex > 0) {
-            const targetCol = state.columns[state.colIndex - 1];
-            // Dispatch directly to boardReducer for cross-column movement
+        case "prev_column":
+          if (state.colIndex > 0) {
             dispatchBoard({ type: "CURSOR_MOVE", dir: "left" });
-            if (
-              ui.selectionLevel === "card" &&
-              (!targetCol || targetCol.cards.length === 0)
-            ) {
-              dispatch(actions.setSelectionLevel("column"));
-            }
             dispatch(actions.exitOutlineMode());
             dispatch(actions.setSubIndex(0));
           }
           break;
 
-        case "right":
-          if (
-            ui.selectionLevel !== "board" &&
-            state.colIndex < state.columns.length - 1
-          ) {
-            const targetCol = state.columns[state.colIndex + 1];
-            // Dispatch directly to boardReducer for cross-column movement
+        case "next_column":
+          if (state.colIndex < state.columns.length - 1) {
             dispatchBoard({ type: "CURSOR_MOVE", dir: "right" });
-            if (
-              ui.selectionLevel === "card" &&
-              (!targetCol || targetCol.cards.length === 0)
-            ) {
-              dispatch(actions.setSelectionLevel("column"));
-            }
             dispatch(actions.exitOutlineMode());
             dispatch(actions.setSubIndex(0));
           }
-          break;
-
-        case "first":
-          // Dispatch directly to boardReducer
-          dispatchBoard({ type: "CURSOR_MOVE", dir: "first" });
-          dispatch(actions.exitOutlineMode());
-          dispatch(actions.setSubIndex(0));
-          break;
-
-        case "last":
-          // Dispatch directly to boardReducer
-          dispatchBoard({ type: "CURSOR_MOVE", dir: "last" });
-          dispatch(actions.exitOutlineMode());
-          dispatch(actions.setSubIndex(0));
           break;
       }
     }
@@ -1080,12 +1144,81 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       });
     }
 
-    function handleEnterNode() {
-      if (ui.showDetailPane || ui.inOutlineMode) return;
+    function handleZoomInwards() {
+      // Zoom in one level closer to the selected node
+      // The selected node should remain selected even as it changes from card to column
+      if (ui.showDetailPane) return;
       if (!card) return;
 
       const targetId = card.node.link_to || card.node.id;
-      const nodes = buildTreeNodes(targetId);
+
+      // Get full path from root to target: ancestors + target itself
+      const ancestors = getAncestors(targetId);
+      const fullPath = [...ancestors, { id: targetId }];
+
+      // Find where current root is in the path
+      const rootIdx = boardState.rootId
+        ? fullPath.findIndex((a) => a.id === boardState.rootId)
+        : -1;
+
+      // Determine the next root (one level closer to target)
+      let nextRootId: string;
+      let cursorColIndex = 0;
+      let cursorCardIndex: number | null = 0; // null means column-level cursor
+
+      if (rootIdx === -1) {
+        // Current root not in path - fall back to making current column the new root
+        const col = columnsLayout.columns[columnsLayout.colIndex];
+        if (!col) return;
+        nextRootId = col.node.id;
+        cursorCardIndex = columnsLayout.cardIndex;
+      } else if (rootIdx >= fullPath.length - 1) {
+        // Root is the target itself or target's parent - can't zoom in further
+        // Make the target the new root
+        nextRootId = targetId;
+        cursorCardIndex = null;
+      } else {
+        // Root is further up - zoom to next level (node after root in path)
+        const nextAncestor = fullPath[rootIdx + 1];
+        if (!nextAncestor) return;
+        nextRootId = nextAncestor.id;
+
+        // The path from nextRoot to target
+        const pathAfterNextRoot = fullPath.slice(rootIdx + 2);
+        const childrenOfNext = getChildren(nextRootId);
+
+        if (pathAfterNextRoot.length === 0) {
+          // Target IS the nextRoot - it becomes the board, cursor at first column
+          cursorColIndex = 0;
+          cursorCardIndex = null;
+        } else if (pathAfterNextRoot.length === 1) {
+          // Target is a direct child of nextRoot - becomes a column
+          cursorColIndex = childrenOfNext.findIndex(
+            (c) => c.id === pathAfterNextRoot[0]?.id,
+          );
+          if (cursorColIndex === -1) cursorColIndex = 0;
+          cursorCardIndex = null; // Target becomes a column
+        } else {
+          // Target is deeper - find column and card
+          const columnInPath = pathAfterNextRoot[0];
+          cursorColIndex = childrenOfNext.findIndex(
+            (c) => c.id === columnInPath?.id,
+          );
+          if (cursorColIndex === -1) cursorColIndex = 0;
+
+          const cardInPath = pathAfterNextRoot[1];
+          const colNode = childrenOfNext[cursorColIndex];
+          if (colNode && cardInPath) {
+            const cardsInCol = getChildren(colNode.id);
+            cursorCardIndex = cardsInCol.findIndex(
+              (c) => c.id === cardInPath.id,
+            );
+            if (cursorCardIndex === -1) cursorCardIndex = 0;
+          }
+        }
+      }
+
+      const nodes = buildTreeNodes(nextRootId);
 
       pushNavHistoryEntry(
         dispatch,
@@ -1101,11 +1234,17 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       clearSelection(keyboardContext);
       dispatch(actions.setDetailPane(false));
 
+      // Build cursor: column-only if target became a column, otherwise column+card
+      const cursor: number[] =
+        cursorCardIndex === null
+          ? [cursorColIndex]
+          : [cursorColIndex, cursorCardIndex];
+
       dispatchBoard({
         type: "ZOOM_IN",
-        nodeId: targetId,
+        nodeId: nextRootId,
         nodes,
-        cursor: [0, 0],
+        cursor,
       });
     }
 
@@ -1143,9 +1282,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Determine which node to show path to based on selection level
   // Card level shows card path (or column if no card), column shows column, board shows root
   const pathNodeId =
-    ui.selectionLevel === "board" || !selectedCol
+    derivedSelectionLevel === "board" || !selectedCol
       ? state.rootId
-      : ui.selectionLevel === "column" || !selectedCard
+      : derivedSelectionLevel === "column" || !selectedCard
         ? selectedCol.node.id
         : selectedCard.node.id;
   const selectedPathSegments = renderPath(
@@ -1174,7 +1313,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     : visibleColumns;
 
   // Build top bar - use board's color as background, or blue if selected/no color
-  const isBoardSelected = ui.selectionLevel === "board";
+  const isBoardSelected = derivedSelectionLevel === "board";
 
   // Get board's own color for the top bar background (not inherited)
   const boardNode = state.rootId ? getNode(state.rootId) : null;
@@ -1286,7 +1425,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                         selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
                         width={adjustedColWidth}
                         height={termHeight - 2}
-                        selectionLevel={ui.selectionLevel}
+                        selectionLevel={derivedSelectionLevel}
                       />
                       {/* Separator line between columns */}
                       {!isLastCol && (
@@ -1332,7 +1471,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 effectiveScrollOffset={effectiveScrollOffset}
                 effectiveMaxCols={effectiveMaxCols}
                 effectiveVisibleColumns={effectiveVisibleColumns}
-                selectionLevel={ui.selectionLevel}
+                selectionLevel={derivedSelectionLevel}
               />
             ) : ui.viewMode === "list" ? (
               <ListView
@@ -1342,7 +1481,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 colIndex={state.colIndex}
                 cardIndex={state.cardIndex}
                 subIndex={ui.subIndex}
-                selectionLevel={ui.selectionLevel}
+                selectionLevel={derivedSelectionLevel}
               />
             ) : (
               <TabsView
@@ -1352,7 +1491,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 colIndex={state.colIndex}
                 cardIndex={state.cardIndex}
                 subIndex={ui.subIndex}
-                selectionLevel={ui.selectionLevel}
+                selectionLevel={derivedSelectionLevel}
               />
             )}
             {/* Detail pane */}
@@ -1437,8 +1576,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 <Text color="yellow">{`[${ui.multiSelected.size} sel] `}</Text>
               )}
               {ui.inOutlineMode && <Text color="cyan">{`OUTLINE `}</Text>}
-              {ui.selectionLevel !== "card" && (
-                <Text color="magenta">{`${ui.selectionLevel.toUpperCase()} `}</Text>
+              {derivedSelectionLevel !== "card" && (
+                <Text color="magenta">{`${derivedSelectionLevel.toUpperCase()} `}</Text>
               )}
               <Text inverse>{` ${ui.viewMode.toUpperCase()} VIEW `}</Text>
             </Text>
@@ -1512,6 +1651,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   }
 
   function setupMouseHandler() {
+    // TODO: Fix mouse integration - not working properly yet
+    // Disable for now until scroll wheel and click-to-select work correctly
+    return;
+
     if (!supportsMouseMode()) return;
 
     const selectionManager = new SelectionManager((range) => {

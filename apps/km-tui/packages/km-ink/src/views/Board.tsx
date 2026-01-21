@@ -91,7 +91,12 @@ import {
   type TUIContext,
 } from "../tui-context.ts";
 import type { CommandAction } from "@km/commands";
-import { boardReducer, createNodeMap } from "@km/board";
+import {
+  boardReducer,
+  createNodeMap,
+  visualToStructural,
+  type VisualDir,
+} from "@km/board";
 import {
   tuiStateToTreeState,
   deriveColumnsLayout,
@@ -167,6 +172,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     () => createNodeMap(boardState.nodes),
     [boardState.nodes],
   );
+
+  // Derive cursorDepth from cursor path length (replaces stored selectionLevel)
+  // depth 0 = board level, depth 1 = column level, depth 2+ = card level
+  const cursorDepth = boardState.cursor.length;
+  const derivedSelectionLevel: "board" | "column" | "card" =
+    cursorDepth === 0 ? "board" : cursorDepth === 1 ? "column" : "card";
 
   // Legacy state accessor for compatibility during migration
   // Components still expect the old BoardState shape
@@ -598,8 +609,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       }
 
       // Try moving from column level to board level (select all columns)
-      if (ui.selectionLevel === "column") {
-        dispatch(actions.setSelectionLevel("board"));
+      if (derivedSelectionLevel === "column") {
+        dispatchBoard({ type: "NAV_TO_PATH", path: [] });
         return;
       }
 
@@ -650,121 +661,140 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     function handleCursorMove(dir: string) {
       clearSelection(keyboardContext);
 
-      switch (dir) {
-        case "up":
-        case "prev":
-          if (ui.selectionLevel === "card") {
-            if (ui.inOutlineMode) {
-              if (ui.subIndex > 0) {
-                dispatch(actions.setSubIndex(ui.subIndex - 1));
-              } else if (state.cardIndex > 0) {
-                const prevCardIndex = state.cardIndex - 1;
-                // Dispatch directly to boardReducer
-                dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
-                const prevCard = col?.cards[prevCardIndex];
-                if (prevCard) {
-                  const maxSub =
-                    1 +
-                    countVisibleDescendants(
-                      prevCard.node,
-                      0,
-                      ui.maxOutlineDepth,
-                      ui.foldedNodes,
-                    );
-                  dispatch(actions.setSubIndex(maxSub - 1));
-                }
-              } else {
-                dispatch(actions.setSelectionLevel("column"));
-                dispatch(actions.setSubIndex(0));
-              }
-            } else {
-              if (state.cardIndex > 0) {
-                // Dispatch directly to boardReducer
-                dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
-              } else {
-                dispatch(actions.setSelectionLevel("column"));
+      // Derive cursorDepth from cursor path length (replaces stored selectionLevel)
+      // depth 0 = board level, depth 1 = column level, depth 2+ = card level
+      const cursorDepth = boardState.cursor.length;
+
+      // Handle first/last separately (not direction-based)
+      if (dir === "first" || dir === "last") {
+        dispatchBoard({ type: "CURSOR_MOVE", dir });
+        dispatch(actions.exitOutlineMode());
+        dispatch(actions.setSubIndex(0));
+        return;
+      }
+
+      // Map direction strings to VisualDir
+      const visualDir = mapDirToVisual(dir);
+      if (!visualDir) return;
+
+      // Get structural action from visual direction based on cursor depth
+      const action = visualToStructural(cursorDepth, visualDir, {
+        cardIndex: state.cardIndex,
+        cardCount: col?.cards.length ?? 0,
+        colIndex: state.colIndex,
+        colCount: state.columns.length,
+      });
+
+      switch (action.action) {
+        case "noop":
+          break;
+
+        case "enter_column":
+          // Board → Column: move cursor to first column
+          dispatchBoard({ type: "NAV_TO_PATH", path: [action.target] });
+          break;
+
+        case "enter_card":
+          // Column → Card: move cursor to first card (if column has cards)
+          if (col && col.cards.length > 0) {
+            dispatchBoard({
+              type: "NAV_TO_PATH",
+              path: [state.colIndex, action.target],
+            });
+          }
+          // If column is empty, stay at column level (no-op)
+          break;
+
+        case "exit_to_board":
+          // Column → Board: clear cursor path
+          dispatchBoard({ type: "NAV_TO_PATH", path: [] });
+          break;
+
+        case "exit_to_column":
+          // Card → Column: move cursor to column level
+          dispatchBoard({ type: "NAV_TO_PATH", path: [state.colIndex] });
+          dispatch(actions.exitOutlineMode());
+          dispatch(actions.setSubIndex(0));
+          break;
+
+        case "prev_sibling":
+          // At card level, move to previous card
+          if (ui.inOutlineMode) {
+            // In outline mode: first move within outline, then to prev card
+            if (ui.subIndex > 0) {
+              dispatch(actions.setSubIndex(ui.subIndex - 1));
+            } else if (state.cardIndex > 0) {
+              const prevCardIndex = state.cardIndex - 1;
+              dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
+              const prevCard = col?.cards[prevCardIndex];
+              if (prevCard) {
+                const maxSub =
+                  1 +
+                  countVisibleDescendants(
+                    prevCard.node,
+                    0,
+                    ui.maxOutlineDepth,
+                    ui.foldedNodes,
+                  );
+                dispatch(actions.setSubIndex(maxSub - 1));
               }
             }
-          } else if (ui.selectionLevel === "column") {
-            dispatch(actions.setSelectionLevel("board"));
+          } else {
+            dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
           }
           break;
 
-        case "down":
-        case "next":
-          if (ui.selectionLevel === "board") {
-            dispatch(actions.setSelectionLevel("column"));
-            dispatchBoard({ type: "NAV_TO_PATH", path: [0] });
-          } else if (ui.selectionLevel === "column") {
-            // Only go to card level if column has cards (fixes km-n29q)
-            if (col && col.cards.length > 0) {
-              dispatch(actions.setSelectionLevel("card"));
-              dispatchBoard({ type: "NAV_TO_PATH", path: [state.colIndex, 0] });
-            }
-            // If column is empty, stay at column level (no-op)
-          } else if (ui.inOutlineMode) {
+        case "next_sibling":
+          // At card level, move to next card
+          if (ui.inOutlineMode) {
+            // In outline mode: first move within outline, then to next card
             const maxSub = getMaxSubIndex(keyboardContext);
             if (ui.subIndex < maxSub - 1) {
               dispatch(actions.setSubIndex(ui.subIndex + 1));
             } else if (col && state.cardIndex < col.cards.length - 1) {
-              // Dispatch directly to boardReducer
               dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
               dispatch(actions.setSubIndex(0));
             }
           } else if (col && state.cardIndex < col.cards.length - 1) {
-            // Dispatch directly to boardReducer
             dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
           }
           break;
 
-        case "left":
-          if (ui.selectionLevel !== "board" && state.colIndex > 0) {
-            const targetCol = state.columns[state.colIndex - 1];
-            // Dispatch directly to boardReducer for cross-column movement
+        case "prev_column":
+          // Move to previous column (preserving card position where possible)
+          if (cursorDepth > 0 && state.colIndex > 0) {
             dispatchBoard({ type: "CURSOR_MOVE", dir: "left" });
-            // Update selection level based on target column content (fixes km-n29q)
-            if (!targetCol || targetCol.cards.length === 0) {
-              dispatch(actions.setSelectionLevel("column"));
-            } else {
-              dispatch(actions.setSelectionLevel("card"));
-            }
             dispatch(actions.exitOutlineMode());
             dispatch(actions.setSubIndex(0));
           }
           break;
 
-        case "right":
-          if (
-            ui.selectionLevel !== "board" &&
-            state.colIndex < state.columns.length - 1
-          ) {
-            const targetCol = state.columns[state.colIndex + 1];
-            // Dispatch directly to boardReducer for cross-column movement
+        case "next_column":
+          // Move to next column (preserving card position where possible)
+          if (cursorDepth > 0 && state.colIndex < state.columns.length - 1) {
             dispatchBoard({ type: "CURSOR_MOVE", dir: "right" });
-            if (
-              ui.selectionLevel === "card" &&
-              (!targetCol || targetCol.cards.length === 0)
-            ) {
-              dispatch(actions.setSelectionLevel("column"));
-            }
             dispatch(actions.exitOutlineMode());
             dispatch(actions.setSubIndex(0));
           }
           break;
+      }
 
-        case "first":
-          // Dispatch directly to boardReducer
-          dispatchBoard({ type: "CURSOR_MOVE", dir: "first" });
-          dispatch(actions.exitOutlineMode());
-          dispatch(actions.setSubIndex(0));
-          break;
-
-        case "last":
-          // Dispatch directly to boardReducer
-          dispatchBoard({ type: "CURSOR_MOVE", dir: "last" });
-          dispatch(actions.exitOutlineMode());
-          dispatch(actions.setSubIndex(0));
-          break;
+      // Helper to map direction strings to VisualDir
+      function mapDirToVisual(d: string): VisualDir | null {
+        switch (d) {
+          case "up":
+          case "prev":
+            return "up";
+          case "down":
+          case "next":
+            return "down";
+          case "left":
+            return "left";
+          case "right":
+            return "right";
+          default:
+            return null;
+        }
       }
     }
 
@@ -1224,13 +1254,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
       // Dispatch zoom action WITHOUT cursor - selectedNodeId is preserved
       // deriveColumnsLayout will compute the cursor path from selectedNodeId
-      // and will determine the correct selection level (column vs card)
       dispatchBoard({
         type: "ZOOM_IN",
         nodeId: nextRootId,
         nodes,
         // NO cursor parameter - let selectedNodeId drive the selection
       });
+
+      // selectionLevel is now derived from cursor depth, no need to set it manually
     }
 
     function handlePageJump(direction: "up" | "down") {
@@ -1267,9 +1298,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Determine which node to show path to based on selection level
   // Card level shows card path (or column if no card), column shows column, board shows root
   const pathNodeId =
-    ui.selectionLevel === "board" || !selectedCol
+    derivedSelectionLevel === "board" || !selectedCol
       ? state.rootId
-      : ui.selectionLevel === "column" || !selectedCard
+      : derivedSelectionLevel === "column" || !selectedCard
         ? selectedCol.node.id
         : selectedCard.node.id;
   const selectedPathSegments = renderPath(
@@ -1301,7 +1332,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     : visibleColumns;
 
   // Build top bar - use board's color as background, or blue if selected/no color
-  const isBoardSelected = ui.selectionLevel === "board";
+  const isBoardSelected = derivedSelectionLevel === "board";
 
   // Render loading indicator until terminal is ready (see ui.isReady comment above)
   // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
@@ -1384,7 +1415,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                         selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
                         width={adjustedColWidth}
                         height={contentHeight}
-                        selectionLevel={ui.selectionLevel}
+                        selectionLevel={derivedSelectionLevel}
                       />
                       {/* Separator line between columns */}
                       {!isLastCol && <ColumnSeparator />}
@@ -1408,7 +1439,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 effectiveScrollOffset={effectiveScrollOffset}
                 effectiveMaxCols={effectiveMaxCols}
                 effectiveVisibleColumns={effectiveVisibleColumns}
-                selectionLevel={ui.selectionLevel}
+                selectionLevel={derivedSelectionLevel}
               />
             ) : ui.viewMode === "list" ? (
               <ListView
@@ -1418,7 +1449,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 colIndex={state.colIndex}
                 cardIndex={state.cardIndex}
                 subIndex={ui.subIndex}
-                selectionLevel={ui.selectionLevel}
+                selectionLevel={derivedSelectionLevel}
               />
             ) : (
               <TabsView
@@ -1428,7 +1459,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 colIndex={state.colIndex}
                 cardIndex={state.cardIndex}
                 subIndex={ui.subIndex}
-                selectionLevel={ui.selectionLevel}
+                selectionLevel={derivedSelectionLevel}
               />
             )}
             {/* Detail pane */}
