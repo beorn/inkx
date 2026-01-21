@@ -21,16 +21,11 @@ if (logPath) {
     }
   };
 
-  // Clean up on exit
+  // Clean up on exit - only close stream, don't call process.exit()
+  // Other signal handlers (like TUI terminal restoration) need to run first
   process.on("exit", () => stream?.end());
-  process.on("SIGINT", () => {
-    stream?.end();
-    process.exit(0);
-  });
-  process.on("SIGTERM", () => {
-    stream?.end();
-    process.exit(0);
-  });
+  process.on("SIGINT", () => stream?.end());
+  process.on("SIGTERM", () => stream?.end());
 }
 
 export { stream as debugLogStream };
