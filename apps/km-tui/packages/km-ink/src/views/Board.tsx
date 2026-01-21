@@ -1204,9 +1204,23 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       // Zoom in one level closer to the selected node
       // The selected node should remain selected even as it changes from card to column
       if (ui.showDetailPane) return;
-      if (!card) return;
 
-      const targetId = card.node.link_to || card.node.id;
+      // Determine target based on cursor depth
+      // depth 1 = column level → zoom into selected column
+      // depth 2+ = card level → zoom into selected card
+      const cursorDepth = boardState.cursor.length;
+      const col = columnsLayout.columns[columnsLayout.colIndex];
+
+      let targetId: string;
+      if (cursorDepth === 1) {
+        // Column level: zoom into the selected column
+        if (!col) return;
+        targetId = col.node.link_to || col.node.id;
+      } else {
+        // Card level: zoom into the selected card
+        if (!card) return;
+        targetId = card.node.link_to || card.node.id;
+      }
 
       // Get full path from root to target: ancestors + target itself
       const ancestors = getAncestors(targetId);
@@ -1222,7 +1236,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
       if (rootIdx === -1) {
         // Current root not in path - fall back to making current column the new root
-        const col = columnsLayout.columns[columnsLayout.colIndex];
         if (!col) return;
         nextRootId = col.node.id;
       } else if (rootIdx >= fullPath.length - 1) {

@@ -591,6 +591,58 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           }
         }
       }
+
+      // Already at root level - try to move cursor to parent of current selection
+      if (card?.node.parent_id) {
+        const parentNode = getNode(card.node.parent_id);
+        if (parentNode) {
+          // Find the parent in the current view
+          const nodes = boardState.nodes;
+
+          // Check if parent is a column (top-level)
+          const colIdx = nodes.findIndex((n) => n.id === parentNode.id);
+          if (colIdx >= 0) {
+            // Parent is a column - move to column level
+            dispatchBoard({
+              type: "NAV_TO_PATH",
+              path: [colIdx],
+            });
+            clearSelection(keyboardContext);
+            return;
+          }
+
+          // Check if parent is a card within a column
+          for (let cIdx = 0; cIdx < nodes.length; cIdx++) {
+            const colNode = nodes[cIdx];
+            if (!colNode) continue;
+            const cardIdx = colNode.children.findIndex((c) => c.id === parentNode.id);
+            if (cardIdx >= 0) {
+              dispatchBoard({
+                type: "NAV_TO_PATH",
+                path: [cIdx, cardIdx],
+              });
+              clearSelection(keyboardContext);
+              return;
+            }
+          }
+        }
+      }
+
+      // Try moving from card to column level
+      if (columnsLayout.cardIndex >= 0) {
+        dispatchBoard({
+          type: "NAV_TO_PATH",
+          path: [columnsLayout.colIndex],
+        });
+        return;
+      }
+
+      // Try moving from column level to board level
+      if (derivedSelectionLevel === "column") {
+        dispatchBoard({ type: "NAV_TO_PATH", path: [] });
+        return;
+      }
+
       process.stdout.write("\x07");
     }
 
@@ -1148,9 +1200,23 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       // Zoom in one level closer to the selected node
       // The selected node should remain selected even as it changes from card to column
       if (ui.showDetailPane) return;
-      if (!card) return;
 
-      const targetId = card.node.link_to || card.node.id;
+      // Determine target based on cursor depth
+      // depth 1 = column level → zoom into selected column
+      // depth 2+ = card level → zoom into selected card
+      const cursorDepth = boardState.cursor.length;
+      const col = columnsLayout.columns[columnsLayout.colIndex];
+
+      let targetId: string;
+      if (cursorDepth === 1) {
+        // Column level: zoom into the selected column
+        if (!col) return;
+        targetId = col.node.link_to || col.node.id;
+      } else {
+        // Card level: zoom into the selected card
+        if (!card) return;
+        targetId = card.node.link_to || card.node.id;
+      }
 
       // Get full path from root to target: ancestors + target itself
       const ancestors = getAncestors(targetId);
@@ -1168,7 +1234,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
       if (rootIdx === -1) {
         // Current root not in path - fall back to making current column the new root
-        const col = columnsLayout.columns[columnsLayout.colIndex];
         if (!col) return;
         nextRootId = col.node.id;
         cursorCardIndex = columnsLayout.cardIndex;
