@@ -147,6 +147,51 @@ export function parseMarkdownWithLinks(
     }
   }
 
+  // Aggregate mentions, tags, projects from all child nodes to file node
+  // This enables queries like @issue to find files where any child has that mention
+  const aggregatedMentions = new Set<string>();
+  const aggregatedTags = new Set<string>();
+  const aggregatedProjects = new Set<string>();
+
+  for (const node of childNodes) {
+    if (node.content) {
+      for (const m of extractMentions(node.content)) aggregatedMentions.add(m);
+      for (const t of extractTags(node.content)) aggregatedTags.add(t);
+      for (const p of extractProjects(node.content)) aggregatedProjects.add(p);
+    }
+    // Also include from node's own data (for list items that already extracted these)
+    const nodeData = node.data as Record<string, unknown> | undefined;
+    if (nodeData?.mentions) {
+      for (const m of nodeData.mentions as string[]) aggregatedMentions.add(m);
+    }
+    if (nodeData?.tags) {
+      for (const t of nodeData.tags as string[]) aggregatedTags.add(t);
+    }
+    if (nodeData?.projects) {
+      for (const p of nodeData.projects as string[]) aggregatedProjects.add(p);
+    }
+  }
+
+  // Merge aggregated refs into file node's data, preserving existing values
+  const fileData = fileNode.data as Record<string, unknown>;
+  const existingMentions = (fileData.mentions as string[] | undefined) || [];
+  const existingTags = (fileData.tags as string[] | undefined) || [];
+  const existingProjects = (fileData.projects as string[] | undefined) || [];
+
+  for (const m of existingMentions) aggregatedMentions.add(m);
+  for (const t of existingTags) aggregatedTags.add(t);
+  for (const p of existingProjects) aggregatedProjects.add(p);
+
+  if (aggregatedMentions.size > 0) {
+    fileData.mentions = [...aggregatedMentions];
+  }
+  if (aggregatedTags.size > 0) {
+    fileData.tags = [...aggregatedTags];
+  }
+  if (aggregatedProjects.size > 0) {
+    fileData.projects = [...aggregatedProjects];
+  }
+
   // Validate H1 headings - each file should have exactly one
   const warnings: ParseWarning[] = [];
   const h1Count = childNodes.filter(
