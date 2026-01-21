@@ -40,6 +40,7 @@ function ColumnTree({
   selectedCardIndex,
   selectedSubIndex,
   selectionLevel,
+  width,
 }: ColumnTreeProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
 
@@ -60,11 +61,8 @@ function ColumnTree({
   const icon = getNodeIcon(null, ownColor, false);
   const iconColor = isColumnHeaderSelected ? "black" : icon.color;
 
-  // Maximum column width to prevent overly wide columns (similar to cards view)
-  const maxColWidth = 60;
-
   return (
-    <Box flexDirection="column" flexGrow={1} maxWidth={maxColWidth} overflow="hidden">
+    <Box flexDirection="column" width={width} overflow="hidden">
       {/* Header section */}
       <Box flexDirection="column" height={3} flexShrink={0}>
         <Text> </Text>
@@ -160,6 +158,14 @@ export function ColumnsView({
   const hasRightIndicator =
     effectiveScrollOffset + effectiveMaxCols < state.columns.length;
 
+  // Calculate column widths with max width constraint (similar to cards view)
+  const maxColWidth = 70;
+  const indicatorWidth = (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
+  const separatorCount = effectiveVisibleColumns.length - 1;
+  const availableWidth = width - indicatorWidth - separatorCount;
+  const baseColWidth = Math.floor(availableWidth / effectiveMaxCols);
+  const remainder = availableWidth % effectiveMaxCols;
+
   return (
     <Box flexDirection="row" width={width} height={height}>
       {/* Left scroll indicator */}
@@ -169,7 +175,9 @@ export function ColumnsView({
       {effectiveVisibleColumns.map((col, i) => {
         const actualColIndex = effectiveScrollOffset + i;
         const isLastCol = i === effectiveVisibleColumns.length - 1;
-        // Distribute extra pixels to the first 'remainder' columns
+        // Distribute extra pixels to the first 'remainder' columns, then cap at maxColWidth
+        const rawColWidth = baseColWidth + (i < remainder ? 1 : 0);
+        const colWidth = Math.min(rawColWidth, maxColWidth);
         return (
           <React.Fragment key={col.node.id}>
             <ColumnTree
@@ -179,6 +187,7 @@ export function ColumnsView({
               selectedCardIndex={cardIndex}
               selectedSubIndex={subIndex}
               selectionLevel={selectionLevel}
+              width={colWidth}
             />
             {/* Separator line between columns */}
             {!isLastCol && <ColumnSeparator />}

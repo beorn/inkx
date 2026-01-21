@@ -183,7 +183,8 @@ export function TreeNode({
           </Text>
         </Box>
         {/* Flexible content box */}
-        <Box flexGrow={1} flexShrink={1} overflow="hidden">
+        {/* overflow="hidden" only for oneliner to enable truncation; removed for multiline to allow wrap */}
+        <Box flexGrow={1} flexShrink={1} overflow={isOneliner ? "hidden" : undefined}>
           <Text
             color={style.textColor}
             dimColor={style.shouldDim}

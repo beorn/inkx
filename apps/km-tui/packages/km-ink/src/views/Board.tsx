@@ -1556,9 +1556,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                   .join("")}
               </Text>
             </Box>
-            {/* Right side: view mode indicator only (removed COLUMN/BOARD) */}
+            {/* Right side: column position + view mode indicator */}
             <Box flexShrink={0}>
-              <Text dimColor wrap="truncate-end">{` ${ui.viewMode.toUpperCase()} VIEW `}</Text>
+              <Text dimColor wrap="truncate-end">
+                {state.columns.length > 1 && ` Col ${state.colIndex + 1}/${state.columns.length}`}
+                {` ${ui.viewMode.toUpperCase()} VIEW `}
+              </Text>
             </Box>
           </Box>
         </Box>

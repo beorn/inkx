@@ -46,19 +46,25 @@ export function TabsView({
       {/* Spacer line between top bar and tabs */}
       <Box height={1} flexShrink={0} />
 
-      {/* Tab bar - simple pipe-separated tabs */}
+      {/* Tab bar - horizontal tabs with content-based widths */}
+      {/* Each tab width = max(10, content length) + padding, extra space goes to right */}
       <Box flexDirection="row" width={width} height={1} flexShrink={0}>
         {state.columns.map((column, cIdx) => {
           const isActive = cIdx === colIndex;
           const colName = getNodeDisplayName(column.node);
           const colCount = column.cards.length;
-          // Truncate tab name if needed
-          const maxTabWidth =
-            Math.floor((width - 4) / Math.max(state.columns.length, 1)) - 3;
-          const truncatedName =
-            colName.length > maxTabWidth
-              ? colName.slice(0, maxTabWidth - 1) + "\u2026"
-              : colName;
+          const countStr = ` (${colCount})`;
+
+          // Tab content: " name (count) " with min width of 10 chars for the name
+          const minNameWidth = 10;
+          const displayName = colName.length > minNameWidth
+            ? colName
+            : colName;
+          // Truncate if name exceeds reasonable width (20 chars)
+          const maxNameWidth = 20;
+          const truncatedName = displayName.length > maxNameWidth
+            ? displayName.slice(0, maxNameWidth - 1) + "\u2026"
+            : displayName;
 
           // Style like cards view column headers
           const isTabSelected = isActive && isColumnHeaderSelected;
@@ -73,7 +79,7 @@ export function TabsView({
 
           return (
             <React.Fragment key={column.node.id}>
-              {/* Tab with background spanning padding on both sides */}
+              {/* Tab with background - content-based width */}
               <Box backgroundColor={isTabSelected ? "yellow" : undefined}>
                 <Text
                   bold
@@ -82,14 +88,17 @@ export function TabsView({
                 >
                   {" "}
                   {truncatedName}
-                  <Text dimColor>{` (${colCount})`}</Text>
+                  <Text dimColor={!isTabSelected}>{countStr}</Text>
                   {" "}
                 </Text>
               </Box>
-              {cIdx < state.columns.length - 1 && <Text dimColor>│</Text>}
+              {/* Separator with space padding */}
+              {cIdx < state.columns.length - 1 && <Text dimColor> │ </Text>}
             </React.Fragment>
           );
         })}
+        {/* Flex space on the right */}
+        <Box flexGrow={1} />
       </Box>
 
       {/* Top border only */}
