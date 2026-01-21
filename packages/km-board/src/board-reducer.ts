@@ -476,6 +476,9 @@ export function boardReducer(
       // nodeId can be null (root level) or a string
       // IMPORTANT: cursorNodeId is PRESERVED across zoom - the same node stays selected
       // The cursor path changes (relative to new root), but the actual node is the same
+      //
+      // Special case: if cursorNodeId IS the new root, the cursor becomes board level
+      // (the selected node is now "the whole view" not a visible column/card)
       const newZoomStack = [
         ...state.zoomStack,
         {
@@ -494,7 +497,13 @@ export function boardReducer(
       } else {
         // No cursor provided - preserve cursorNodeId and derive cursor from it
         newCursorNodeId = state.cursorNodeId;
-        if (newCursorNodeId) {
+
+        // Special case: selected node is now the root
+        // The root isn't visible as a column, so cursor goes to board level
+        if (newCursorNodeId && newCursorNodeId === action.nodeId) {
+          newCursor = []; // Board level - no column selected
+          // cursorNodeId stays the same (it's the root now)
+        } else if (newCursorNodeId) {
           // Find where the cursor node is in the new tree
           const derivedPath = findPathToNode(action.nodes, newCursorNodeId);
           newCursor = derivedPath ?? [0]; // Fall back to [0] if not found

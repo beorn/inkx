@@ -141,6 +141,36 @@ describe("ZOOM_IN cursor preservation", () => {
     expect(result.cursorNodeId).toBe("card-X");
   });
 
+  it("moves cursor to board level when selected node becomes the new root", () => {
+    // When cursor is on a column and we zoom INTO that column,
+    // the column becomes the new root. Since the root isn't visible
+    // as a column/card, cursor should be at board level.
+    const initialNodes = [
+      createNode("col-A", [createNode("card-A1")]),
+      createNode("col-B", [createNode("card-B1"), createNode("card-B2")]),
+    ];
+    const initialState: BoardState = {
+      ...createBoardState(initialNodes, "grandparent"),
+      cursor: [1], // cursor on col-B (column level)
+      cursorNodeId: "col-B",
+    };
+
+    // Zoom into col-B - col-B becomes the new root
+    const newNodes = [createNode("card-B1"), createNode("card-B2")];
+    const result = boardReducer(initialState, {
+      type: "ZOOM_IN",
+      nodeId: "col-B", // col-B is the new root
+      nodes: newNodes, // children of col-B
+      // NO cursor - let cursorNodeId drive
+    });
+
+    // Cursor should be board level (empty) because cursorNodeId IS the root
+    expect(result.cursor).toEqual([]);
+    // cursorNodeId is preserved - it's the root now
+    expect(result.cursorNodeId).toBe("col-B");
+    expect(result.rootId).toBe("col-B");
+  });
+
 });
 
 describe("cursorNodeId-based cursor derivation", () => {
