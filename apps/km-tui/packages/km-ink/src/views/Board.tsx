@@ -1206,9 +1206,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       if (ui.showDetailPane) return;
 
       // Determine target based on cursor depth
+      // depth 0 = board level → no-op (nothing selected to zoom into)
       // depth 1 = column level → zoom into selected column
       // depth 2+ = card level → zoom into selected card
       const cursorDepth = boardState.cursor.length;
+      if (cursorDepth === 0) return; // Board level: nothing to zoom into
+
       const col = columnsLayout.columns[columnsLayout.colIndex];
 
       let targetId: string;
