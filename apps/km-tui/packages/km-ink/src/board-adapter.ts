@@ -17,7 +17,11 @@
 import type { TNode } from "@km/core";
 import type { KNode } from "@km/core";
 import type { BoardState as TreeBoardState, ColumnIndices } from "@km/board";
-import { pathToColumnIndices, columnIndicesToPath } from "@km/board";
+import {
+  pathToColumnIndices,
+  columnIndicesToPath,
+  findPathToNode,
+} from "@km/board";
 import { getChildren, getStore } from "@km/storage";
 import type { ColumnState, CardState, ColumnRules } from "./types.ts";
 import { parseColumnRules } from "./state.ts";
@@ -114,10 +118,29 @@ function extractWipLimits(nodes: TNode[]): Map<string, number> {
 /**
  * Derive column layout from @km/board's tree state.
  * This is the main conversion function called on each render.
+ *
+ * Priority for cursor derivation:
+ * 1. If selectedNodeId is set and found in tree, derive path from it
+ * 2. Otherwise fall back to stored cursor path
+ *
+ * This ensures the cursor follows the selected node across zoom operations.
  */
 export function deriveColumnsLayout(state: TreeBoardState): ColumnsLayout {
   const wipLimits = extractWipLimits(state.nodes);
-  const indices = pathToColumnIndices(state.cursor);
+
+  // Derive cursor path from selectedNodeId if available
+  // This is the key to making zoom preserve selection
+  let cursorPath = state.cursor;
+  if (state.selectedNodeId) {
+    const derivedPath = findPathToNode(state.nodes, state.selectedNodeId);
+    if (derivedPath) {
+      cursorPath = derivedPath;
+    }
+    // If selectedNodeId not found in tree, keep using stored cursor
+    // (node might be outside visible tree after zoom)
+  }
+
+  const indices = pathToColumnIndices(cursorPath);
 
   // Convert tree nodes to column layout
   const columns = state.nodes.map((node) =>
@@ -127,7 +150,8 @@ export function deriveColumnsLayout(state: TreeBoardState): ColumnsLayout {
   return {
     columns,
     colIndex: Math.max(0, indices.colIndex),
-    cardIndex: Math.max(0, indices.cardIndex),
+    // Preserve -1 for column-level selection (no card selected)
+    cardIndex: indices.cardIndex,
     subPath: indices.subPath,
     isAtCardLevel: indices.isAtCardLevel,
     isInOutlineMode: indices.isInOutlineMode,
@@ -293,6 +317,19 @@ export function tuiStateToTreeState(
       ? [tuiState.colIndex, tuiState.cardIndex]
       : [tuiState.colIndex];
 
+  // Derive selectedNodeId from cursor
+  let selectedNodeId: string | null = null;
+  if (cursor.length >= 2) {
+    // Card level
+    const col = tuiState.columns[cursor[0] ?? 0];
+    const card = col?.cards[cursor[1] ?? 0];
+    selectedNodeId = card?.node.id ?? null;
+  } else if (cursor.length === 1) {
+    // Column level
+    const col = tuiState.columns[cursor[0] ?? 0];
+    selectedNodeId = col?.node.id ?? null;
+  }
+
   // Merge foldedCards and uiState.foldedNodes
   const foldedNodes = new Set<string>([
     ...(tuiState.foldedCards ?? []),
@@ -324,6 +361,7 @@ export function tuiStateToTreeState(
     rootId: tuiState.rootId,
     rootPath: tuiState.rootPath,
     nodes,
+    selectedNodeId,
     cursor,
     selectedNodes: new Set<string>(),
     foldedNodes,
@@ -423,10 +461,10 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
  * Build TNode[] directly from storage, bypassing legacy BoardState.
  * Use this for navigation operations (zoom, nav to) instead of buildBoardState.
  *
- * @param rootId - Root node ID to load children from
+ * @param rootId - Root node ID to load children from (null for root level)
  * @returns TNode[] for immediate children of root
  */
-export function buildTreeNodes(rootId: string): TNode[] {
+export function buildTreeNodes(rootId: string | null): TNode[] {
   const columnNodes = getChildren(rootId);
   return columnNodes.map((node) => kNodeToTNode(node, 0));
 }

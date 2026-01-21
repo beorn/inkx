@@ -7,7 +7,10 @@
  * Does NOT handle app-specific UI state (modals, dialogs) - that belongs in app layer.
  */
 
+import createDebug from "debug";
 import type { BoardState, BoardAction, TNode, TPath } from "./board-types.ts";
+
+const debug = createDebug("km:board:reducer");
 import { isTAction } from "@km/tree";
 
 // ===== Helper Functions =====
@@ -74,6 +77,29 @@ function getSiblings(nodes: TNode[], path: TPath): TNode[] {
   const parentPath = path.slice(0, -1);
   const parent = getNodeAtPath(nodes, parentPath);
   return parent?.children ?? [];
+}
+
+/**
+ * Get node ID at a given cursor path.
+ * Returns null if path is empty or node doesn't exist.
+ */
+function getNodeIdAtPath(nodes: TNode[], path: TPath): string | null {
+  const node = getNodeAtPath(nodes, path);
+  return node?.id ?? null;
+}
+
+/**
+ * Helper to update both cursor and selectedNodeId together.
+ * This ensures they stay in sync during the migration period.
+ */
+function updateCursor(
+  state: BoardState,
+  newCursor: TPath,
+): Pick<BoardState, "cursor" | "selectedNodeId"> {
+  return {
+    cursor: newCursor,
+    selectedNodeId: getNodeIdAtPath(state.nodes, newCursor),
+  };
 }
 
 // ===== Visual Navigation Helpers =====
@@ -197,6 +223,8 @@ export function boardReducer(
     return state;
   }
 
+  debug("action: %s", action.type);
+
   switch (action.type) {
     // ===== Cursor Movement (parameterized) =====
 
@@ -210,7 +238,7 @@ export function boardReducer(
           if (idx <= 0) return state;
           const newPath = [...state.cursor];
           newPath[newPath.length - 1] = idx - 1;
-          return { ...state, cursor: newPath };
+          return { ...state, ...updateCursor(state, newPath) };
         }
 
         case "next": {
@@ -221,20 +249,20 @@ export function boardReducer(
           if (idx >= siblingCount - 1) return state;
           const newPath = [...state.cursor];
           newPath[newPath.length - 1] = idx + 1;
-          return { ...state, cursor: newPath };
+          return { ...state, ...updateCursor(state, newPath) };
         }
 
         case "out": {
           // To parent (h)
           if (state.cursor.length <= 1) return state;
-          return { ...state, cursor: state.cursor.slice(0, -1) };
+          return { ...state, ...updateCursor(state, state.cursor.slice(0, -1)) };
         }
 
         case "in": {
           // Into first child (l)
           const currentNode = getNodeAtPath(state.nodes, state.cursor);
           if (!currentNode || currentNode.children.length === 0) return state;
-          return { ...state, cursor: [...state.cursor, 0] };
+          return { ...state, ...updateCursor(state, [...state.cursor, 0]) };
         }
 
         case "first": {
@@ -242,7 +270,7 @@ export function boardReducer(
           if (state.cursor.length === 0) return state;
           const newPath = [...state.cursor];
           newPath[newPath.length - 1] = 0;
-          return { ...state, cursor: newPath };
+          return { ...state, ...updateCursor(state, newPath) };
         }
 
         case "last": {
@@ -252,7 +280,7 @@ export function boardReducer(
           if (siblingCount === 0) return state;
           const newPath = [...state.cursor];
           newPath[newPath.length - 1] = siblingCount - 1;
-          return { ...state, cursor: newPath };
+          return { ...state, ...updateCursor(state, newPath) };
         }
 
         // Visual/spatial directions (arrows)
@@ -264,7 +292,7 @@ export function boardReducer(
             state.foldedNodes,
           );
           if (!prevPath) return state;
-          return { ...state, cursor: prevPath };
+          return { ...state, ...updateCursor(state, prevPath) };
         }
 
         case "down": {
@@ -275,7 +303,7 @@ export function boardReducer(
             state.foldedNodes,
           );
           if (!nextPath) return state;
-          return { ...state, cursor: nextPath };
+          return { ...state, ...updateCursor(state, nextPath) };
         }
 
         case "left": {
@@ -306,7 +334,7 @@ export function boardReducer(
       if (action.path.length === 0) return state;
       const node = getNodeAtPath(state.nodes, action.path);
       if (!node) return state;
-      return { ...state, cursor: action.path };
+      return { ...state, ...updateCursor(state, action.path) };
     }
 
     case "NAV_CROSS_COLUMN": {
@@ -328,12 +356,12 @@ export function boardReducer(
 
       // If target column is empty, navigate to column level
       if (targetCol.children.length === 0) {
-        return { ...state, cursor: [newColIdx] };
+        return { ...state, ...updateCursor(state, [newColIdx]) };
       }
 
       // Clamp row index to target column's children
       const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
-      return { ...state, cursor: [newColIdx, clampedRow] };
+      return { ...state, ...updateCursor(state, [newColIdx, clampedRow]) };
     }
 
     // ===== Node Operations =====
@@ -395,7 +423,9 @@ export function boardReducer(
     // ===== Zoom =====
 
     case "ZOOM_IN": {
-      if (!action.nodeId) return state;
+      // nodeId can be null (root level) or a string
+      // IMPORTANT: selectedNodeId is PRESERVED across zoom - the same node stays selected
+      // The cursor path changes (relative to new root), but the actual node is the same
       const newZoomStack = [
         ...state.zoomStack,
         {
@@ -403,11 +433,18 @@ export function boardReducer(
           cursor: state.cursor,
         },
       ];
+      const newCursor = action.cursor ?? [0];
+      // Preserve selectedNodeId if not explicitly provided via cursor
+      // If cursor is provided, derive selectedNodeId from it (backward compat)
+      const newSelectedNodeId = action.cursor
+        ? getNodeIdAtPath(action.nodes, newCursor)
+        : state.selectedNodeId; // Keep same node selected!
       return {
         ...state,
         rootId: action.nodeId,
         nodes: action.nodes,
-        cursor: action.cursor ?? [0],
+        cursor: newCursor,
+        selectedNodeId: newSelectedNodeId,
         zoomStack: newZoomStack,
       };
     }
@@ -417,11 +454,14 @@ export function boardReducer(
       const newZoomStack = [...state.zoomStack];
       const prev = newZoomStack.pop();
       if (!prev) return state; // Shouldn't happen, but satisfies lint
+      // IMPORTANT: selectedNodeId is PRESERVED across zoom
+      // The cursor path is restored, but selectedNodeId stays the same
       return {
         ...state,
         rootId: prev.rootId,
         nodes: action.nodes,
         cursor: prev.cursor,
+        // selectedNodeId stays unchanged - same node remains selected
         zoomStack: newZoomStack,
       };
     }
@@ -436,7 +476,13 @@ export function boardReducer(
       }
       // Cursor invalid, reset to safe position
       const safeCursor: TPath = action.nodes.length > 0 ? [0] : [];
-      return { ...state, nodes: action.nodes, cursor: safeCursor };
+      const safeNodeId = getNodeIdAtPath(action.nodes, safeCursor);
+      return {
+        ...state,
+        nodes: action.nodes,
+        cursor: safeCursor,
+        selectedNodeId: safeNodeId,
+      };
     }
 
     // ===== Navigation History =====
@@ -449,12 +495,14 @@ export function boardReducer(
           cursor: state.cursor,
         },
       ];
+      const newCursor: TPath = [0];
       return {
         ...state,
         rootId: action.rootId,
         rootPath: action.rootPath,
         nodes: action.nodes,
-        cursor: [0],
+        cursor: newCursor,
+        selectedNodeId: getNodeIdAtPath(action.nodes, newCursor),
         navHistory: newHistory,
         navHistoryIndex: newHistory.length,
       };
@@ -545,7 +593,11 @@ export function boardReducer(
         newSelected.add(nextNode.id);
       }
 
-      return { ...state, cursor: nextPath, selectedNodes: newSelected };
+      return {
+        ...state,
+        ...updateCursor(state, nextPath),
+        selectedNodes: newSelected,
+      };
     }
 
     case "EXTEND_SELECT_UP": {
@@ -573,7 +625,11 @@ export function boardReducer(
         newSelected.add(prevNode.id);
       }
 
-      return { ...state, cursor: prevPath, selectedNodes: newSelected };
+      return {
+        ...state,
+        ...updateCursor(state, prevPath),
+        selectedNodes: newSelected,
+      };
     }
 
     case "EXTEND_SELECT_LEFT": {
@@ -617,7 +673,11 @@ export function boardReducer(
         }
       }
 
-      return { ...state, cursor: newPath, selectedNodes: newSelected };
+      return {
+        ...state,
+        ...updateCursor(state, newPath),
+        selectedNodes: newSelected,
+      };
     }
 
     case "EXTEND_SELECT_RIGHT": {
@@ -661,7 +721,11 @@ export function boardReducer(
         }
       }
 
-      return { ...state, cursor: newPath, selectedNodes: newSelected };
+      return {
+        ...state,
+        ...updateCursor(state, newPath),
+        selectedNodes: newSelected,
+      };
     }
 
     // ===== Shifting (opt+hjkl) =====
@@ -711,14 +775,15 @@ export function boardReducer(
 
     case "CANCEL_MOVE": {
       // Cancel move mode, restore original cursor position
+      const restoredCursor =
+        state.moveSourceCursor.length > 0
+          ? state.moveSourceCursor
+          : state.cursor;
       return {
         ...state,
         moveMode: false,
         moveSourceNodes: [],
-        cursor:
-          state.moveSourceCursor.length > 0
-            ? state.moveSourceCursor
-            : state.cursor,
+        ...updateCursor(state, restoredCursor),
         moveSourceCursor: [],
       };
     }
@@ -744,8 +809,11 @@ export function boardReducer(
       return { ...state, maxContentLines: state.maxContentLines - 1 };
     }
 
-    default:
-      return state;
+    default: {
+      // Throw on unhandled actions - catches routing bugs immediately
+      const unhandled = action as { type: string };
+      throw new Error(`[km:board] Unhandled action: ${unhandled.type}`);
+    }
   }
 }
 
@@ -760,15 +828,19 @@ export function createBoardState(
   rootId: string | null = null,
   rootPath: string | null = null,
 ): BoardState {
-  // Determine initial cursor position
+  // Determine initial cursor position and selected node
   // Prefer starting at card level [0, 0] if first node has children
   let cursor: TPath = [];
+  let selectedNodeId: string | null = null;
+
   if (nodes.length > 0) {
     const firstNode = nodes[0];
     if (firstNode && firstNode.children.length > 0) {
       cursor = [0, 0]; // Start at first card in first column
-    } else {
+      selectedNodeId = firstNode.children[0]?.id ?? null;
+    } else if (firstNode) {
       cursor = [0]; // Start at first column (no children)
+      selectedNodeId = firstNode.id;
     }
   }
 
@@ -776,6 +848,7 @@ export function createBoardState(
     rootId,
     rootPath,
     nodes,
+    selectedNodeId,
     cursor,
     selectedNodes: new Set(),
     foldedNodes: new Set(),

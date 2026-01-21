@@ -32,8 +32,13 @@ export interface BoardState {
   // Tree data
   nodes: TNode[]; // Top-level nodes
 
-  // Path-based navigation
-  cursor: TPath; // Current selection path
+  // Node cursor - the ACTUAL selected node (stable across zoom)
+  // This is the single source of truth for which node is selected
+  selectedNodeId: string | null;
+
+  // Path-based navigation (DERIVED from selectedNodeId for backward compatibility)
+  // TODO: Remove cursor once selectedNodeId is fully adopted
+  cursor: TPath; // Current selection path (relative to rootId)
 
   // Selection state
   selectedNodes: Set<string>;
@@ -113,7 +118,7 @@ export type BoardAction =
   | { type: "UNFOLD_LEVEL"; depth: number }
 
   // Zoom/root change
-  | { type: "ZOOM_IN"; nodeId: string; nodes: TNode[]; cursor?: TPath }
+  | { type: "ZOOM_IN"; nodeId: string | null; nodes: TNode[]; cursor?: TPath }
   | { type: "ZOOM_OUT"; nodes: TNode[] }
 
   // Refresh

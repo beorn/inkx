@@ -48,6 +48,9 @@ export {
   getTopLevelCount,
   getCursorDepth,
   getBreadcrumbs,
+  // Node ID to path lookup (for selectedNodeId -> cursor derivation)
+  findPathToNode,
+  isNodeInTree,
   // TPath <-> Column/Card index conversion
   pathToColumnIndices,
   columnIndicesToPath,

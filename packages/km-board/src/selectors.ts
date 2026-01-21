@@ -131,6 +131,50 @@ export function getBreadcrumbs(state: BoardState): TNode[] {
   return crumbs;
 }
 
+// ===== Node ID to Path Lookup =====
+
+/**
+ * Find the path to a node by its ID.
+ * Returns null if the node is not found in the tree.
+ *
+ * This is the key function for the selectedNodeId -> cursor derivation.
+ * It searches the tree depth-first and returns the path as soon as found.
+ */
+export function findPathToNode(
+  nodes: TNode[],
+  nodeId: string,
+): number[] | null {
+  function search(currentNodes: TNode[], currentPath: number[]): number[] | null {
+    for (let i = 0; i < currentNodes.length; i++) {
+      const node = currentNodes[i];
+      if (!node) continue;
+
+      const pathToHere = [...currentPath, i];
+
+      // Found the node
+      if (node.id === nodeId) {
+        return pathToHere;
+      }
+
+      // Search children
+      if (node.children.length > 0) {
+        const childResult = search(node.children, pathToHere);
+        if (childResult) return childResult;
+      }
+    }
+    return null;
+  }
+
+  return search(nodes, []);
+}
+
+/**
+ * Check if a node is visible (exists) in the current tree.
+ */
+export function isNodeInTree(nodes: TNode[], nodeId: string): boolean {
+  return findPathToNode(nodes, nodeId) !== null;
+}
+
 // ===== TPath <-> Column/Card Index Conversion =====
 
 /**

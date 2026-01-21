@@ -7,6 +7,9 @@ import { Box, Text, useInput, useApp, useStdout } from "inkx";
 import { getEngine } from "../engines/index.ts";
 import chalk from "chalk";
 import { hyperlink } from "@beorn/chalkx";
+import createDebug from "debug";
+
+const debug = createDebug("km:board");
 import type {
   BoardState,
   ViewMode,
@@ -17,6 +20,7 @@ import { makeSelectionKey } from "../types.ts";
 import { initBoardState, getNodeDisplayName } from "../state.ts";
 import type { KNode, TaskStatus } from "@km/core";
 import {
+  getAncestors,
   getChildren,
   getNode,
   getStore,
@@ -65,7 +69,7 @@ import {
   type MouseEvent as TermMouseEvent,
 } from "../mouse-handler.ts";
 import { renderPlain, getNodeIcon, getChalkColor } from "../text/index.ts";
-import { getInheritedColor, getOwnColor } from "../board-pills.ts";
+import { getInheritedColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
 import { tuiEvents } from "../tui.ts";
 import { UIProvider } from "../ui-context.tsx";
@@ -367,8 +371,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         case "NAV_SIBLING_BOARD":
           handleNavSiblingBoard(action.direction);
           break;
-        case "ENTER_NODE":
-          handleEnterNode();
+        case "ZOOM_INWARDS":
+          handleZoomInwards();
           break;
         case "PAGE_JUMP":
           handlePageJump(action.direction);
@@ -392,8 +396,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         case "CLOSE_DETAIL_PANE":
           dispatch(actions.setDetailPane(false));
           break;
-        case "GO_UP_PATH":
-          handleGoUpPath();
+        case "ZOOM_OUTWARDS":
+          handleZoomOutwards();
           break;
         case "DELETE_NODE":
           handleDeleteNode();
@@ -477,7 +481,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
     // --- Implementation functions (hoisted) ---
 
-    function handleGoUpPath() {
+    function handleZoomOutwards() {
       if (ui.showDetailPane) {
         dispatch(actions.setDetailPane(false));
         return;
@@ -506,20 +510,23 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               ui.inOutlineMode,
             );
 
-            // Dispatch zoom action to navigate up
+            // Dispatch zoom action WITHOUT cursor - selectedNodeId is preserved
+            // deriveColumnsLayout will compute the cursor path from selectedNodeId
             dispatchBoard({
               type: "ZOOM_IN",
               nodeId: parentNode.id,
               nodes,
-              cursor: [0, 0],
+              // NO cursor parameter - let selectedNodeId drive the selection
             });
             clearSelection(keyboardContext);
             return;
           }
         } else {
-          // At top level with a root - zoom out to absolute root
+          // At top level with a root - zoom out to absolute root (rootId: null)
           const rootView = initBoardState();
-          if (rootView && rootView.rootId) {
+          // rootView.rootId is null for true root level, which is valid
+          if (rootView && rootView.rootId !== boardState.rootId) {
+            // buildTreeNodes now accepts null for root level
             const nodes = buildTreeNodes(rootView.rootId);
 
             pushNavHistoryEntry(
@@ -532,18 +539,64 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               ui.inOutlineMode,
             );
 
-            // Navigate to root view
+            // Dispatch zoom action WITHOUT cursor - selectedNodeId is preserved
             dispatchBoard({
               type: "ZOOM_IN",
               nodeId: rootView.rootId,
               nodes,
-              cursor: [0, 0],
+              // NO cursor parameter - let selectedNodeId drive the selection
             });
             clearSelection(keyboardContext);
             return;
           }
         }
       }
+
+      // Already at root level - try to move cursor to parent of current selection
+      if (card?.node.parent_id) {
+        const parentNode = getNode(card.node.parent_id);
+        if (parentNode) {
+          // Find the parent in the current view
+          const nodes = boardState.nodes;
+
+          // Check if parent is a column (top-level)
+          const colIdx = nodes.findIndex((n) => n.id === parentNode.id);
+          if (colIdx >= 0) {
+            // Parent is a column - move to column level
+            dispatchBoard({
+              type: "NAV_TO_PATH",
+              path: [colIdx],
+            });
+            clearSelection(keyboardContext);
+            return;
+          }
+
+          // Check if parent is a card within a column
+          for (let cIdx = 0; cIdx < nodes.length; cIdx++) {
+            const colNode = nodes[cIdx];
+            if (!colNode) continue;
+            const cardIdx = colNode.children.findIndex((c) => c.id === parentNode.id);
+            if (cardIdx >= 0) {
+              dispatchBoard({
+                type: "NAV_TO_PATH",
+                path: [cIdx, cardIdx],
+              });
+              clearSelection(keyboardContext);
+              return;
+            }
+          }
+        }
+      }
+
+      // Also try moving from card to column level
+      if (columnsLayout.cardIndex >= 0) {
+        dispatchBoard({
+          type: "NAV_TO_PATH",
+          path: [columnsLayout.colIndex],
+        });
+        return;
+      }
+
       process.stdout.write("\x07");
     }
 
@@ -725,6 +778,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           const nodes = buildTreeNodes(prevEntry.rootId);
 
           // Navigate to the previous location
+          // Note: Nav history is a special case - we DO want to restore the exact cursor position
+          // since the user is navigating to a specific remembered location, not just changing view
           dispatchBoard({
             type: "ZOOM_IN",
             nodeId: prevEntry.rootId,
@@ -753,6 +808,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           const nodes = buildTreeNodes(nextEntry.rootId);
 
           // Navigate to the next location
+          // Note: Nav history is a special case - we DO want to restore the exact cursor position
           dispatchBoard({
             type: "ZOOM_IN",
             nodeId: nextEntry.rootId,
@@ -774,13 +830,26 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     }
 
     function handleZoomIn() {
-      if (!card) return;
-      const targetId = card.node.link_to || card.node.id;
+      // Get target: either the selected card, or the selected column if at column level
+      const col = state.columns[state.colIndex];
+      let targetId: string | null = null;
+
+      if (card) {
+        // At card level - zoom into the card
+        targetId = card.node.link_to || card.node.id;
+      } else if (col) {
+        // At column level - zoom into the column
+        targetId = col.node.id;
+      }
+
+      if (!targetId) return;
       const targetNode = getNode(targetId);
       if (!targetNode) return;
 
-      // Determine root: prefer grandparent > parent > target
-      let rootId = targetId;
+      // Determine root for zoom-in:
+      // - If target has children, make parent the root (target becomes column)
+      // - If target has no children, make grandparent the root (zoom in one level)
+      const targetChildren = getChildren(targetId);
       const parentNode = targetNode.parent_id
         ? getNode(targetNode.parent_id)
         : null;
@@ -788,26 +857,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         ? getNode(parentNode.parent_id)
         : null;
 
-      if (grandparentNode) rootId = grandparentNode.id;
-      else if (parentNode) rootId = parentNode.id;
+      let rootId = targetId;
+      if (targetChildren.length > 0 && parentNode) {
+        // Target has children - make parent root so target becomes column
+        rootId = parentNode.id;
+      } else if (grandparentNode) {
+        // No children - zoom in one level (grandparent becomes root)
+        rootId = grandparentNode.id;
+      } else if (parentNode) {
+        rootId = parentNode.id;
+      }
 
       // Build tree nodes directly (bypass legacy BoardState)
       const nodes = buildTreeNodes(rootId);
-
-      // Find the target card position in the new tree
-      let foundCol = 0,
-        foundCard = 0;
-      for (let cIdx = 0; cIdx < nodes.length; cIdx++) {
-        const colNode = nodes[cIdx];
-        if (!colNode) continue;
-        for (let cardIdx = 0; cardIdx < colNode.children.length; cardIdx++) {
-          if (colNode.children[cardIdx]?.id === targetId) {
-            foundCol = cIdx;
-            foundCard = cardIdx;
-            break;
-          }
-        }
-      }
 
       // Push nav history before changing state
       pushNavHistoryEntry(
@@ -826,12 +888,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       clearSelection(keyboardContext);
       dispatch(actions.setDetailPane(false));
 
-      // Dispatch zoom action directly to boardReducer
+      // Dispatch zoom action WITHOUT cursor - selectedNodeId is preserved
+      // deriveColumnsLayout will compute the cursor path from selectedNodeId
       dispatchBoard({
         type: "ZOOM_IN",
         nodeId: rootId,
         nodes,
-        cursor: [foundCol, foundCard],
+        // NO cursor parameter - let selectedNodeId drive the selection
       });
     }
 
@@ -1101,12 +1164,43 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       });
     }
 
-    function handleEnterNode() {
-      if (ui.showDetailPane || ui.inOutlineMode) return;
+    function handleZoomInwards() {
+      // Zoom in one level closer to the selected node
+      // The selected node should remain selected even as it changes from card to column
+      if (ui.showDetailPane) return;
       if (!card) return;
 
       const targetId = card.node.link_to || card.node.id;
-      const nodes = buildTreeNodes(targetId);
+
+      // Get full path from root to target: ancestors + target itself
+      const ancestors = getAncestors(targetId);
+      const fullPath = [...ancestors, { id: targetId }];
+
+      // Find where current root is in the path
+      const rootIdx = boardState.rootId
+        ? fullPath.findIndex((a) => a.id === boardState.rootId)
+        : -1;
+
+      // Determine the next root (one level closer to target)
+      let nextRootId: string;
+
+      if (rootIdx === -1) {
+        // Current root not in path - fall back to making current column the new root
+        const col = columnsLayout.columns[columnsLayout.colIndex];
+        if (!col) return;
+        nextRootId = col.node.id;
+      } else if (rootIdx >= fullPath.length - 1) {
+        // Root is the target itself or target's parent - can't zoom in further
+        // Make the target the new root
+        nextRootId = targetId;
+      } else {
+        // Root is further up - zoom to next level (node after root in path)
+        const nextAncestor = fullPath[rootIdx + 1];
+        if (!nextAncestor) return;
+        nextRootId = nextAncestor.id;
+      }
+
+      const nodes = buildTreeNodes(nextRootId);
 
       pushNavHistoryEntry(
         dispatch,
@@ -1122,11 +1216,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       clearSelection(keyboardContext);
       dispatch(actions.setDetailPane(false));
 
+      // Dispatch zoom action WITHOUT cursor - selectedNodeId is preserved
+      // deriveColumnsLayout will compute the cursor path from selectedNodeId
+      // and will determine the correct selection level (column vs card)
       dispatchBoard({
         type: "ZOOM_IN",
-        nodeId: targetId,
+        nodeId: nextRootId,
         nodes,
-        cursor: [0, 0],
+        // NO cursor parameter - let selectedNodeId drive the selection
       });
     }
 
@@ -1200,29 +1297,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Build top bar - use board's color as background, or blue if selected/no color
   const isBoardSelected = ui.selectionLevel === "board";
 
-  // Get board's own color for the top bar background (not inherited)
-  const boardNode = state.rootId ? getNode(state.rootId) : null;
-  const boardColor = boardNode ? getOwnColor(boardNode) : undefined;
-
-  // Determine background color for inkx Box (fills entire area)
-  const topBarBgColor = getTopBarBgColor(boardColor, isBoardSelected);
-
-  // Determine text color based on background (dark bg = white text, light bg = black text)
-  const darkBgColors = [
-    "red",
-    "green",
-    "blue",
-    "magenta",
-    "cyan",
-    "gray",
-    "grey",
-    "black",
-  ];
-  const useWhiteText = boardColor
-    ? darkBgColors.includes(boardColor)
-    : isBoardSelected;
-  const topBarTextColor = useWhiteText ? "white" : "black";
-
   // Render loading indicator until terminal is ready (see ui.isReady comment above)
   // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
   // Note: Don't use centered layout here - it causes scroll issues when transitioning to the board
@@ -1242,27 +1316,16 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           minHeight={3}
           overflow="hidden"
         >
-          {/* Top bar: full path from root to selected item, auto layout */}
+          {/* Top bar: full path from root to selected item, spans full width */}
+          {/* Board root is bold, other segments are dimmed */}
+          {/* backgroundColor on Box ensures full width fill */}
           <Box
             flexShrink={0}
-            alignSelf="stretch"
-            backgroundColor={topBarBgColor}
+            width={termWidth}
+            backgroundColor={isBoardSelected ? "yellow" : "white"}
           >
-            <Text color={topBarTextColor} bold>
-              {" "}
-              {selectedPathSegments
-                .map((seg, i) => {
-                  const prevSeg = i > 0 ? selectedPathSegments[i - 1] : null;
-                  const isBoardBoundary =
-                    prevSeg && !prevSeg.isWithinBoard && seg.isWithinBoard;
-                  const sepPart = seg.sep
-                    ? isBoardBoundary && !useWhiteText
-                      ? ` ${seg.sep} `
-                      : ` ${seg.sep} `
-                    : "";
-                  return sepPart + seg.name;
-                })
-                .join("")}
+            <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
+              {renderTopBarContent(selectedPathSegments, isBoardSelected)}
             </Text>
           </Box>
           <Box
@@ -1407,54 +1470,43 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <HelpOverlay width={termWidth} height={contentHeight} />
             )}
           </Box>
-          {/* Bottom bar: auto-flex layout with all indicators */}
-          <Box
-            flexDirection="row"
-            flexShrink={0}
-            alignSelf="stretch"
-            backgroundColor="black"
-          >
-            {/* Left side: repo info - use flexShrink=0 to preserve */}
+          {/* Bottom bar: all grey text, no background colors */}
+          <Box flexDirection="row" flexShrink={0} alignSelf="stretch">
+            {/* Left side: repo info */}
             <Box flexShrink={0}>
-              <Text>
+              <Text dimColor>
                 {" "}
                 {(() => {
                   const store = getStore();
                   return store.mode === "memory"
-                    ? chalk.yellow(`MEM REPO ${store.rootPath}`)
-                    : chalk.green(`DISK REPO ${store.rootPath}`);
+                    ? `MEM REPO ${store.rootPath}`
+                    : `DISK REPO ${store.rootPath}`;
                 })()}
               </Text>
             </Box>
-            {/* Flexible spacer */}
-            <Box flexGrow={1} />
-            {/* Right side: indicators - flexShrink=1 allows truncation if needed */}
-            <Box flexShrink={1}>
-              <Text wrap="truncate">
+            {/* Middle: flexible indicators that can be truncated */}
+            <Box flexGrow={1} flexBasis={0}>
+              <Text dimColor wrap="truncate">
                 {[
-                  ui.showHelp && chalk.cyan("[HELP ?] "),
-                  ui.showProjectPicker && chalk.green("[PROJECT] "),
-                  ui.showNewItemDialog && chalk.green("[NEW] "),
+                  ui.showHelp && " [HELP ?]",
+                  ui.showProjectPicker && " [PROJECT]",
+                  ui.showNewItemDialog && " [NEW]",
                   ui.showDropNotification &&
                     ui.droppedFiles.length > 0 &&
-                    chalk.green(
-                      `[Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}] `,
-                    ),
+                    ` [Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}]`,
                   ui.isMouseDragging &&
                     ui.mouseSelection &&
-                    chalk.blue(
-                      `[Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}] `,
-                    ),
-                  ui.multiSelected.size > 0 &&
-                    chalk.yellow(`[${ui.multiSelected.size} sel] `),
-                  ui.inOutlineMode && chalk.cyan("OUTLINE "),
-                  ui.selectionLevel !== "card" &&
-                    chalk.magenta(`${ui.selectionLevel.toUpperCase()} `),
-                  chalk.inverse(` ${ui.viewMode.toUpperCase()} VIEW `),
+                    ` [Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}]`,
+                  ui.multiSelected.size > 0 && ` [${ui.multiSelected.size} sel]`,
+                  ui.inOutlineMode && " OUTLINE",
                 ]
                   .filter(Boolean)
-                  .join("")}{" "}
+                  .join("")}
               </Text>
+            </Box>
+            {/* Right side: view mode indicator only (removed COLUMN/BOARD) */}
+            <Box flexShrink={0}>
+              <Text dimColor>{` ${ui.viewMode.toUpperCase()} VIEW `}</Text>
             </Box>
           </Box>
         </Box>
@@ -1526,6 +1578,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   }
 
   function setupMouseHandler() {
+    // TODO: Fix mouse integration - not working properly yet
+    // Disable for now until scroll wheel and click-to-select work correctly
+    return;
+
     if (!supportsMouseMode()) return;
 
     const selectionManager = new SelectionManager((range) => {
@@ -1586,6 +1642,8 @@ export async function renderInkxBoard(
   initialViewMode?: ViewMode,
   engine: TuiEngine = "inkx",
 ): Promise<void> {
+  debug("renderInkxBoard start, engine=%s", engine);
+
   // Wrap Board with EngineProvider to inject the right view components
   const app = (
     <EngineProvider engine={engine}>
@@ -1595,12 +1653,166 @@ export async function renderInkxBoard(
 
   // Use the engine-specific render function
   const engineApi = getEngine(engine);
+  debug("Got engine API");
+
+  const { waitUntilExit } = await engineApi.render(app, {
+    exitOnCtrlC: true,
+    patchConsole: false,
+  });
+  debug("Render complete, awaiting exit");
+
+  await waitUntilExit();
+}
+
+// =============================================================================
+// Deferred Loading Component
+// =============================================================================
+
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const RENDER_FRAMES_BEFORE_LOAD = 5; // Number of renders before starting expensive load
+const SHOW_TIME_AFTER_SECONDS = 2; // Only show elapsed time if loading takes >2s
+
+interface DeferredBoardLoaderProps {
+  loadState: () => BoardState | null;
+  initialViewMode?: ViewMode;
+  onError: (msg: string) => void;
+}
+
+/**
+ * Component that loads board state asynchronously and shows a spinner if it takes >2s.
+ *
+ * Strategy: Show spinner immediately, start loading after a few render frames.
+ * The spinner is visible while loading, but we only count elapsed time from when
+ * the load actually starts. This way the user sees feedback during the blocking load.
+ */
+function DeferredBoardLoader({
+  loadState,
+  initialViewMode = "cards",
+  onError,
+}: DeferredBoardLoaderProps): React.ReactElement {
+  const { stdout } = useStdout();
+  const { exit } = useApp();
+  const [boardState, setBoardState] = React.useState<BoardState | null>(null);
+  const [spinnerFrame, setSpinnerFrame] = React.useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
+  const [renderCount, setRenderCount] = React.useState(0);
+  const loadStartTime = React.useRef(Date.now());
+  const loadStarted = React.useRef(false);
+
+  // Increment render count to force re-render and flush spinner to screen
+  useEffect(() => {
+    if (renderCount < RENDER_FRAMES_BEFORE_LOAD) {
+      // Force a few renders to ensure spinner is visible before blocking load
+      setImmediate(() => setRenderCount((c) => c + 1));
+    }
+  }, [renderCount]);
+
+  // Load board state after spinner has rendered and flushed to terminal
+  useEffect(() => {
+    if (renderCount < RENDER_FRAMES_BEFORE_LOAD || loadStarted.current) return;
+    loadStarted.current = true;
+
+    // Use setTimeout with small delay to ensure terminal output is flushed
+    // The delay allows the render loop to complete and Ink to write to stdout
+    setTimeout(() => {
+      const state = loadState();
+      if (!state) {
+        onError("No board found. Create a board node or specify a root ID.");
+        exit();
+        return;
+      }
+      setBoardState(state);
+      const elapsed = Date.now() - loadStartTime.current;
+      debug("Board state loaded in %dms", elapsed);
+    }, 200); // 200ms delay to ensure spinner is visible and flushed to terminal
+  }, [renderCount, loadState, onError, exit]);
+
+  // Update elapsed time counter every second while loading
+  useEffect(() => {
+    if (boardState) return;
+
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - loadStartTime.current) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [boardState]);
+
+  // Animate spinner
+  useEffect(() => {
+    if (boardState) return;
+
+    const interval = setInterval(() => {
+      setSpinnerFrame((f) => (f + 1) % SPINNER_FRAMES.length);
+    }, 80);
+
+    return () => clearInterval(interval);
+  }, [boardState]);
+
+  const termWidth = stdout?.columns ?? 80;
+  const termHeight = stdout?.rows ?? 24;
+
+  // Show loading indicator while loading
+  // Only show elapsed time if > 2s to avoid flash for fast loads
+  if (!boardState) {
+    const spinner = SPINNER_FRAMES[spinnerFrame] ?? "⠋";
+    const timeText = elapsedSeconds >= SHOW_TIME_AFTER_SECONDS ? ` (${elapsedSeconds}s)` : "";
+    const loadingText = `${spinner} Loading vault...${timeText}`;
+    // Center the text manually since flexbox centering may not work during initial renders
+    const padding = Math.max(0, Math.floor((termWidth - loadingText.length) / 2));
+    const verticalPadding = Math.max(0, Math.floor(termHeight / 2));
+    return (
+      <Box flexDirection="column" height={termHeight} width={termWidth}>
+        {/* Vertical spacing to center */}
+        {verticalPadding > 0 && <Box height={verticalPadding} />}
+        <Text color="cyan">{" ".repeat(padding)}{loadingText}</Text>
+      </Box>
+    );
+  }
+
+  // Board loaded - render the actual board
+  return <Board initialState={boardState} initialViewMode={initialViewMode} />;
+}
+
+/**
+ * Render the board TUI with deferred loading.
+ * Shows a spinner if loading the vault takes more than 2 seconds.
+ */
+export async function renderDeferredBoard(
+  loadState: () => BoardState | null,
+  initialViewMode?: ViewMode,
+  engine: TuiEngine = "inkx",
+): Promise<void> {
+  debug("renderDeferredBoard start, engine=%s", engine);
+
+  let errorMessage: string | null = null;
+
+  const app = (
+    <EngineProvider engine={engine}>
+      <DeferredBoardLoader
+        loadState={loadState}
+        initialViewMode={initialViewMode}
+        onError={(msg) => { errorMessage = msg; }}
+      />
+    </EngineProvider>
+  );
+
+  const engineApi = getEngine(engine);
+  debug("Got engine API");
+
   const { waitUntilExit } = await engineApi.render(app, {
     exitOnCtrlC: true,
     patchConsole: true,
   });
+  debug("Render complete, awaiting exit");
 
   await waitUntilExit();
+
+  // Show error after UI exits if there was one
+  if (errorMessage) {
+    console.error(errorMessage);
+    process.exit(1);
+  }
 }
 
 // Testable version of Board component with fixed ui.dimensions for testing
@@ -1740,6 +1952,7 @@ export function InkBoardTestable({
 // Build path segments for colorized display
 // Returns segments with: { id, name, sep, isWithinBoard }
 // isWithinBoard distinguishes the board root path from path within the board
+// Always includes a repo root segment (🏠) at the start
 function getPathSegments(
   nodeId: string | null,
   boardRootId: string | null,
@@ -1750,8 +1963,17 @@ function getPathSegments(
   isWithinBoard: boolean;
   node: KNode | null;
 }> {
+  // Repo root segment - always present (folder icon)
+  const repoRootSegment = {
+    id: null,
+    name: "\uD83D\uDCC1", // folder 📁
+    sep: "",
+    isWithinBoard: false,
+    node: null,
+  };
+
   if (!nodeId) {
-    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
+    return [repoRootSegment];
   }
 
   // Collect all nodes from root to target
@@ -1822,9 +2044,22 @@ function getPathSegments(
     }
   }
 
-  return segments.length > 0
-    ? segments
-    : [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
+  // Update first segment to have "/" separator (since it follows repo root)
+  if (segments.length > 0) {
+    const first = segments[0];
+    if (first && first.sep === "") {
+      segments[0] = {
+        id: first.id,
+        name: first.name,
+        sep: "/",
+        isWithinBoard: first.isWithinBoard,
+        node: first.node,
+      };
+    }
+  }
+
+  // Always prepend repo root segment (folder icon)
+  return [repoRootSegment, ...segments];
 }
 
 // Helper to count visible descendants for flat indexing
@@ -1845,35 +2080,46 @@ function countVisibleDescendants(
   return count;
 }
 
-// Get background color name for top bar (for inkx Box backgroundColor)
-// Note: cyan is reserved for selection per design system (docs/06-ui.md)
-function getTopBarBgColor(
-  boardColor: string | undefined,
+// Render top bar content as plain string (no chalk styling)
+// Color is controlled by the parent Text component's color prop
+// Board root segment gets special formatting via chalk.bold
+function renderTopBarContent(
+  segments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>,
   isBoardSelected: boolean,
 ): string {
-  if (boardColor) {
-    switch (boardColor) {
-      case "red":
-      case "green":
-      case "yellow":
-      case "blue":
-      case "magenta":
-      case "white":
-        return boardColor;
-      case "cyan":
-        // Cyan is reserved for selection - use blue instead
-        return "blue";
-      case "gray":
-      case "grey":
-        return "gray";
-      case "black":
-        // Black background - use dark gray to ensure visibility
-        return "gray";
-      default:
-        return isBoardSelected ? "blue" : "white";
+  // Find the board root index:
+  // - If there are isWithinBoard segments, board root is the last one before them
+  // - If no isWithinBoard segments, the last segment is the board root
+  const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard);
+  const boardRootIdx =
+    firstWithinBoardIdx > 0
+      ? firstWithinBoardIdx - 1
+      : firstWithinBoardIdx === -1
+        ? segments.length - 1
+        : 0;
+
+  // Build content: " ● " prefix + segments
+  // Use chalk only for bold (board root) and dim (other segments)
+  // Base color is inherited from parent Text component
+  const boldChalk = isBoardSelected ? chalk.black.bold : chalk.gray.bold;
+  const dimChalk = isBoardSelected ? chalk.black.dim : chalk.gray.dim;
+
+  let content = " ● ";
+
+  segments.forEach((seg, idx) => {
+    const sepPart = seg.sep ? ` ${seg.sep} ` : "";
+    const isBoardRoot = idx === boardRootIdx;
+
+    if (isBoardRoot) {
+      // Board root: bold, prominent (sep is dimmed)
+      content += dimChalk(sepPart) + boldChalk(seg.name);
+    } else {
+      // Path segments before/after board root: dimmed
+      content += dimChalk(sepPart + seg.name);
     }
-  }
-  return isBoardSelected ? "blue" : "white";
+  });
+
+  return content;
 }
 
 // Calculate scroll offset to center selected column
