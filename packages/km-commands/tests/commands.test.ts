@@ -37,6 +37,7 @@ function createNode(
     title: id,
     children,
     childCount: children.length,
+    childrenLoaded: true,
     isTask: opts?.isTask ?? false,
     depth: 0,
     data: {},

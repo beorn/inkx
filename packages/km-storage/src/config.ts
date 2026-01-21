@@ -23,8 +23,14 @@ export interface BeadsConfig {
   prefix?: string;
 }
 
+export interface TuiConfig {
+  /** Enable file watching for live sync (default: true). Disable on large vaults for faster startup. */
+  watch?: boolean;
+}
+
 export interface KmConfig {
   beads?: BeadsConfig;
+  tui?: TuiConfig;
 }
 
 /** Original beads config format from .beads/config.yaml */
@@ -132,5 +138,15 @@ export function getBeadsConfig(searchFrom?: string): Required<BeadsConfig> {
     board: config.beads?.board ?? "issue",
     parent: config.beads?.parent ?? "issue/",
     prefix: config.beads?.prefix ?? "km",
+  };
+}
+
+/**
+ * Get TUI-specific configuration with defaults applied.
+ */
+export function getTuiConfig(searchFrom?: string): Required<TuiConfig> {
+  const config = loadConfig(searchFrom);
+  return {
+    watch: config.tui?.watch ?? true,
   };
 }

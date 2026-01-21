@@ -2,8 +2,9 @@
  * Card and Column components for the Board view
  *
  * Uses inkx overflow="scroll" for native scrolling support.
+ * Implements React-level virtualization for large card lists.
  */
-import React from "react";
+import React, { useMemo } from "react";
 import { Box, Text } from "inkx";
 import { styledUnderline } from "@beorn/chalkx";
 import type { CardState, ColumnState } from "../types.ts";
@@ -11,6 +12,22 @@ import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeIcon, renderPlain } from "../text/index.ts";
+
+// =============================================================================
+// Virtualization Constants
+// =============================================================================
+
+// Approximate card height (border + content + padding)
+// Used to calculate which cards to render
+const ESTIMATED_CARD_HEIGHT = 4;
+
+// Number of extra cards to render above and below visible area
+// This provides smooth scrolling without visible gaps
+const OVERSCAN = 5;
+
+// Maximum number of cards to render at once
+// Beyond this, use placeholder to avoid overwhelming React
+const MAX_RENDERED_CARDS = 50;
 
 // =============================================================================
 // Card Component
@@ -50,6 +67,134 @@ export function Card({
         subIndex={0}
         dimInactiveChildren={!isSelected}
       />
+    </Box>
+  );
+}
+
+// =============================================================================
+// Virtualized Card List Component
+// =============================================================================
+
+interface VirtualizedCardListProps {
+  cards: CardState[];
+  selectedCardIndex: number;
+  selectedSubIndex: number;
+  isSelected: boolean;
+  selectionLevel: "board" | "column" | "card";
+  width: number;
+  height: number;
+  colIndex: number;
+}
+
+/**
+ * Virtualized card list that only renders cards near the visible area.
+ *
+ * For large card lists (100+), rendering all cards causes significant
+ * delays as React/Yoga must process every element. This component:
+ * 1. Calculates which cards are likely visible based on height
+ * 2. Renders only those cards plus a buffer (OVERSCAN)
+ * 3. Uses placeholder elements to maintain scroll position
+ */
+function VirtualizedCardList({
+  cards,
+  selectedCardIndex,
+  selectedSubIndex,
+  isSelected,
+  selectionLevel,
+  width,
+  height,
+  colIndex,
+}: VirtualizedCardListProps): React.ReactElement {
+  // Calculate virtualization window
+  const { startIndex, endIndex, topPlaceholderHeight, bottomPlaceholderHeight } = useMemo(() => {
+    const totalCards = cards.length;
+
+    // For small lists, render everything
+    if (totalCards <= MAX_RENDERED_CARDS) {
+      return {
+        startIndex: 0,
+        endIndex: totalCards,
+        topPlaceholderHeight: 0,
+        bottomPlaceholderHeight: 0,
+      };
+    }
+
+    // Center the window around the selected card
+    const halfWindow = Math.floor(MAX_RENDERED_CARDS / 2);
+    let start = Math.max(0, selectedCardIndex - halfWindow);
+    let end = Math.min(totalCards, start + MAX_RENDERED_CARDS);
+
+    // Adjust start if we hit the end
+    if (end === totalCards) {
+      start = Math.max(0, end - MAX_RENDERED_CARDS);
+    }
+
+    // Add overscan
+    start = Math.max(0, start - OVERSCAN);
+    end = Math.min(totalCards, end + OVERSCAN);
+
+    // Calculate placeholder heights
+    const topHeight = start * ESTIMATED_CARD_HEIGHT;
+    const bottomHeight = (totalCards - end) * ESTIMATED_CARD_HEIGHT;
+
+    return {
+      startIndex: start,
+      endIndex: end,
+      topPlaceholderHeight: topHeight,
+      bottomPlaceholderHeight: bottomHeight,
+    };
+  }, [cards.length, selectedCardIndex, height]);
+
+  if (cards.length === 0) {
+    return (
+      <Box flexDirection="column" flexGrow={1} minHeight={1}>
+        <Box marginTop={1}>
+          <Text dimColor>(empty)</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Get the slice of cards to render
+  const visibleCards = cards.slice(startIndex, endIndex);
+
+  return (
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      minHeight={1}
+      overflow="scroll"
+      scrollTo={selectedCardIndex - startIndex} // Adjust for virtualization offset
+    >
+      {/* Top placeholder for cards above visible range */}
+      {topPlaceholderHeight > 0 && (
+        <Box height={topPlaceholderHeight} flexShrink={0} />
+      )}
+
+      {/* Render visible cards */}
+      {visibleCards.map((card: CardState, i: number) => {
+        const actualIndex = startIndex + i;
+        const cardIsSelected =
+          isSelected &&
+          actualIndex === selectedCardIndex &&
+          selectionLevel === "card";
+        return (
+          <Card
+            key={card.node.id}
+            card={card}
+            isSelected={cardIsSelected}
+            selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
+            width={width}
+            colIndex={colIndex}
+            cardIndex={actualIndex}
+          />
+        );
+      })}
+
+      {/* Bottom placeholder for cards below visible range */}
+      {bottomPlaceholderHeight > 0 && (
+        <Box height={bottomPlaceholderHeight} flexShrink={0} />
+      )}
     </Box>
   );
 }
@@ -156,37 +301,16 @@ export function Column({
           <Text dimColor>[collapsed - {count}]</Text>
         </Box>
       ) : (
-        <Box
-          flexDirection="column"
-          flexGrow={1}
-          minHeight={1}
-          overflow="scroll"
-          scrollTo={selectedCardIndex}
-        >
-          {column.cards.length === 0 ? (
-            <Box marginTop={1}>
-              <Text dimColor>(empty)</Text>
-            </Box>
-          ) : (
-            column.cards.map((card: CardState, index: number) => {
-              const cardIsSelected =
-                isSelected &&
-                index === selectedCardIndex &&
-                selectionLevel === "card";
-              return (
-                <Card
-                  key={card.node.id}
-                  card={card}
-                  isSelected={cardIsSelected}
-                  selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
-                  width={width}
-                  colIndex={colIndex}
-                  cardIndex={index}
-                />
-              );
-            })
-          )}
-        </Box>
+        <VirtualizedCardList
+          cards={column.cards}
+          selectedCardIndex={selectedCardIndex}
+          selectedSubIndex={selectedSubIndex}
+          isSelected={isSelected}
+          selectionLevel={selectionLevel}
+          width={width}
+          height={height - 2} // Subtract header height
+          colIndex={colIndex}
+        />
       )}
     </Box>
   );

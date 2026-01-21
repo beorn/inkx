@@ -489,12 +489,12 @@ describe.serial("Board Rendering", () => {
     expect(output).toContain("Move to left column");
   });
 
-  test("renderStatusIcon returns correct icons", () => {
-    expect(renderStatusIcon("todo")).toContain("○");
-    expect(renderStatusIcon("wip")).toContain("◐");
-    expect(renderStatusIcon("blocked")).toContain("⊘");
-    expect(renderStatusIcon("done")).toContain("✓");
-    expect(renderStatusIcon("dropped")).toContain("∅");
+  test("renderStatusIcon returns correct icons (ballot box style)", () => {
+    expect(renderStatusIcon("todo")).toContain("☐"); // ballot box (white)
+    expect(renderStatusIcon("wip")).toContain("☐"); // ballot box (yellow)
+    expect(renderStatusIcon("blocked")).toContain("☒"); // ballot box with X (red)
+    expect(renderStatusIcon("done")).toContain("☑"); // ballot box with check (green)
+    expect(renderStatusIcon("dropped")).toContain("☒"); // ballot box with X (gray)
     // undefined/null status shows red warning triangle
     expect(renderStatusIcon(undefined)).toContain("⚠");
   });

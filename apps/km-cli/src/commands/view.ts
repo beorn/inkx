@@ -11,7 +11,7 @@ import { Command } from "commander";
 const debug = createDebug("km:cli:view");
 import { runBoard, type ViewMode, type TuiEngine } from "@km/ink";
 import { getRootPath } from "../index.ts";
-import { resolvePathArg, ensureState } from "@km/storage";
+import { resolvePathArg, ensureState, getTuiConfig } from "@km/storage";
 
 const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"];
 const TUI_ENGINES: TuiEngine[] = ["inkx", "inkx-flexx"];
@@ -30,8 +30,9 @@ export const viewCommand = new Command("view")
     `TUI rendering engine: ${TUI_ENGINES.join(", ")} (default: inkx-flexx)`,
     "inkx-flexx",
   )
+  .option("--no-watch", "Disable file watching (faster startup on large vaults)")
   .action(async (root, options) => {
-    debug("view command: root=%s, as=%s, tui=%s", root, options.as, options.tui);
+    debug("view command: root=%s, as=%s, tui=%s, watch=%s", root, options.as, options.tui, options.watch);
 
     // Resolve path argument - handles directory paths, file paths, and node IDs
     const resolved = resolvePathArg(root, getRootPath());
@@ -40,10 +41,16 @@ export const viewCommand = new Command("view")
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
     const engine = TUI_ENGINES.includes(options.tui) ? options.tui : "inkx";
 
+    // Watch option: CLI flag > config > default (true)
+    // --no-watch flag sets options.watch to false
+    const tuiConfig = getTuiConfig(resolved.vaultRoot);
+    const watchEnabled = options.watch !== false ? tuiConfig.watch : false;
+    debug("watchEnabled=%s (cli=%s, config=%s)", watchEnabled, options.watch, tuiConfig.watch);
+
     // For interactive mode, pass ensureState as callback so TUI can show loading indicator
     // For non-interactive mode, ensure state synchronously before rendering
     if (options.interactive !== false) {
-      debug("launching TUI with deferred state initialization: mode=%s, engine=%s", viewMode, engine);
+      debug("launching TUI with deferred state initialization: mode=%s, engine=%s, watch=%s", viewMode, engine, watchEnabled);
       await runBoard(
         resolved.nodeRef ?? undefined,
         true,
@@ -51,6 +58,7 @@ export const viewCommand = new Command("view")
         {
           initialViewMode: viewMode as ViewMode,
           engine: engine as TuiEngine,
+          watch: watchEnabled,
           // Deferred loading: TUI will call this and show spinner while it runs
           initializeState: () => ensureState(resolved.vaultRoot, false),
         },

@@ -40,6 +40,8 @@ export interface ColumnState {
 export interface CardState {
   node: KNode;
   children: KNode[];
+  /** Child count for lazy loading (may be > 0 even when children array is empty) */
+  childCount?: number;
 }
 
 // Status cycle order
@@ -123,4 +125,10 @@ export interface TuiOptions {
    * This enables deferred loading for large vaults.
    */
   initializeState?: () => void;
+  /**
+   * Enable file watching for live sync (default: true).
+   * Set to false to disable watching - faster startup on large vaults.
+   * Can also be set via config (tui.watch) or KM_NO_WATCH=1 env var.
+   */
+  watch?: boolean;
 }

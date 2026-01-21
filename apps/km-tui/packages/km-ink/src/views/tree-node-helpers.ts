@@ -5,13 +5,39 @@
  */
 
 import type { KNode } from "@km/core";
-import { getNodeIcon, styledUnderline } from "../text/index.ts";
+import { extractTitleTaskMark } from "@km/markdown";
+import {
+  getFoldMarker,
+  getStatusIcon,
+  styledUnderline,
+  type StatusIcon,
+} from "../text/index.ts";
 import {
   getBoardPills as getBoardPillsFromStorage,
   formatBoardPills,
   getOwnColor,
   type BoardPill,
 } from "../board-pills.ts";
+
+// =============================================================================
+// Content Helpers
+// =============================================================================
+
+/**
+ * Strip markdown task mark from the beginning of text.
+ * Uses the shared extractTitleTaskMark from @km/markdown.
+ *
+ * Used to remove [x], [ ], [/], etc. from displayed content since
+ * the task status is shown via the icon instead.
+ *
+ * @example
+ * stripTaskMark("[x] Done task") => "Done task"
+ * stripTaskMark("[ ] Todo task") => "Todo task"
+ * stripTaskMark("Regular text") => "Regular text"
+ */
+export function stripTaskMark(text: string): string {
+  return extractTitleTaskMark(text).cleanText;
+}
 
 // =============================================================================
 // Constants
@@ -46,16 +72,19 @@ export interface NodeStyleResult {
   textColor: string | undefined;
   shouldDim: boolean;
   shouldStrikethrough: boolean;
-  icon: {
-    char: string;
-    color: string | undefined;
-    bgColor: string | undefined;
-  };
+  /** Task status icon to prepend to content (null for non-tasks) */
+  taskStatusIcon: StatusIcon | null;
+  /** Node's own color (for fold marker) */
+  ownColor: string | undefined;
 }
 
 /**
  * Compute all styling for a node in one place.
  * Handles selection, own color, task status icons, dim state, and strikethrough.
+ *
+ * New cards style:
+ * - Fold marker (●/•/·) is separate and handled by buildPrefix
+ * - Task status icon (▢/◧/■/▣) is prepended to content
  */
 export function getNodeStyle(
   node: KNode,
@@ -64,26 +93,15 @@ export function getNodeStyle(
   dimInactiveChildren: boolean,
   depth: number,
 ): NodeStyleResult {
-  const isTask = node.type === "task";
+  // A node is a task if it has task_status set, regardless of structural type
+  const isTask = node.task_status != null;
   const ownColor = getOwnColor(node);
 
-  // Icon: all nodes now use getNodeIcon for consistent bullet styling
-  // - Tasks: status icon (○ ◐ ✓ etc.) with optional color override
-  // - Non-tasks with color: filled disc (●) in that color
-  // - Non-tasks without color: small bullet (·)
-  const nodeIcon = getNodeIcon(
-    isTask ? node.task_status : null,
-    ownColor,
-    isTask,
-  );
-  const icon = {
-    char: nodeIcon.char,
-    color: nodeIcon.color,
-    bgColor: nodeIcon.backgroundColor,
-  };
+  // Task status icon: prepended to content for tasks
+  const taskStatusIcon = isTask ? getStatusIcon(node.task_status) : null;
 
   // Background/text colors
-  // Node colors only affect the disc/marker icon, NOT the background
+  // Node colors only affect the fold marker icon, NOT the background
   // Only selection state affects background (yellow bg, black text)
   let backgroundColor: string | undefined;
   let textColor: string | undefined;
@@ -93,7 +111,7 @@ export function getNodeStyle(
     backgroundColor = "yellow";
     textColor = "black";
   }
-  // No colored background for nodes with ownColor - color only applies to icon
+  // No colored background for nodes with ownColor - color only applies to fold marker
 
   // Dim state for done/dropped tasks (no strikethrough per design)
   const isDoneOrDropped =
@@ -102,7 +120,14 @@ export function getNodeStyle(
   const shouldDim = isDoneOrDropped || isInactiveChild;
   const shouldStrikethrough = false; // Disabled per design decision
 
-  return { backgroundColor, textColor, shouldDim, shouldStrikethrough, icon };
+  return {
+    backgroundColor,
+    textColor,
+    shouldDim,
+    shouldStrikethrough,
+    taskStatusIcon,
+    ownColor,
+  };
 }
 
 // =============================================================================
@@ -110,55 +135,55 @@ export function getNodeStyle(
 // =============================================================================
 
 export interface PrefixResult {
-  beforeIcon: string;
-  afterIcon: string;
-  iconChar: string;
-  iconColor: string | undefined;
-  iconBgColor: string | undefined;
+  /** The fold marker character (●/•/·) */
+  markerChar: string;
+  /** Color for the fold marker */
+  markerColor: string | undefined;
+  /** Space after marker */
+  afterMarker: string;
+  /** Total prefix length in characters */
   length: number;
+  /** Folded count suffix e.g. " (5)" */
   foldedCount: string;
 }
 
-/** Width reserved for icon (single char status icons, no emoji padding needed) */
-const ICON_SLOT_WIDTH = 1;
+/** Width reserved for fold marker (single char) */
+const MARKER_SLOT_WIDTH = 1;
 
 /**
  * Build the prefix portion of a tree node line.
  *
- * Layout: [foldPart][icon][space]
- *   - foldPart: fold indicator (▶/▼) or space (for alignment)
- *   - icon: status icon (○, ◐, ✓, ·, ●)
+ * New cards style layout: [marker][space]
+ *   - marker: fold state indicator (● folded, • unfolded, · empty)
  *   - space: single space before content
  *
  * Note: Depth-based indentation is handled by Box paddingLeft in TreeNode,
  * not by text spaces in the prefix. This avoids wrap-ansi trimming issues.
+ *
+ * @param hasChildren - Whether the node has children
+ * @param isFolded - Whether children are hidden
+ * @param childCount - Number of children (for fold count display)
+ * @param ownColor - Node's own color (applies to marker)
  */
 export function buildPrefix(
   _depth: number, // Kept for API compatibility, but not used for indent
   hasChildren: boolean,
   isFolded: boolean,
   childCount: number,
-  icon: {
-    char: string;
-    color: string | undefined;
-    bgColor: string | undefined;
-  },
+  ownColor: string | undefined,
 ): PrefixResult {
-  // Fold indicator, or just space for leaves to align icons
-  const foldPart = hasChildren ? (isFolded ? "▶" : "▼") : " ";
+  // Get fold marker based on children state
+  const marker = getFoldMarker(hasChildren, isFolded, ownColor);
   const foldedCount = hasChildren && isFolded ? ` (${childCount})` : "";
 
-  // Layout: [foldPart][icon][space] - no depth indent (handled by Box)
-  const beforeIcon = foldPart;
-  const afterIcon = " "; // Single space before content
-  const length = beforeIcon.length + ICON_SLOT_WIDTH + afterIcon.length;
+  // Layout: [marker][space] - no depth indent (handled by Box)
+  const afterMarker = " "; // Single space before content
+  const length = MARKER_SLOT_WIDTH + afterMarker.length;
 
   return {
-    beforeIcon,
-    afterIcon,
-    iconChar: icon.char,
-    iconColor: icon.color,
-    iconBgColor: icon.bgColor,
+    markerChar: marker.char,
+    markerColor: marker.color,
+    afterMarker,
     length,
     foldedCount,
   };
@@ -212,7 +237,8 @@ export function formatInfoSuffix(
   excludeBoardIds: Set<string>,
   getBoardPills: GetBoardPillsFn = getBoardPillsFromStorage,
 ): string {
-  const isTask = node.type === "task";
+  // A node is a task if it has task_status set, regardless of structural type
+  const isTask = node.task_status != null;
 
   // Board pills - show which boards this task is on
   const boardPills = isTask ? getBoardPills(node, excludeBoardIds) : [];
@@ -305,9 +331,9 @@ export function estimateTreeNodeHeight(
 
   // Content lines: estimate based on content length vs available width
   const content = node.content || node.title || "";
-  // Prefix: leftPad (1) + indent + fold indicator (0-1) + icon (1) + space (1)
-  // Using depth + 3 as conservative estimate (assumes fold indicator present)
-  const prefixLength = 1 + depth + 1 + ICON_SLOT_WIDTH + 1;
+  // Prefix: leftPad (depth) + marker (1) + space (1) + optional status icon (2 for tasks)
+  // Using depth + 4 as conservative estimate
+  const prefixLength = depth + MARKER_SLOT_WIDTH + 1 + 2;
   const contentWidth = Math.max(1, availableWidth - prefixLength);
   const estimatedLines = Math.min(
     maxContentLines,

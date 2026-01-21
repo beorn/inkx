@@ -95,12 +95,33 @@ const MD_LINK_REGEX = /\[([^\]]+)\]\(([^)]+)\)/g; // [text](url)
 // Draft/tentative content patterns - styled with dashed underline
 const DRAFT_PREFIX_REGEX = /^(Draft|WIP|TODO|FIXME):\s*/i;
 
+// Sigil patterns for @ mentions, # tags, and + projects
+const SIGIL_REGEX = /([@#\+])([a-zA-Z0-9_-]+)/g;
+
+/**
+ * Options for rich text rendering
+ */
+export interface RenderRichOptions {
+  /**
+   * Sigils to exclude from display (e.g., ["@issue"] when viewing the @issue board).
+   * Include the full sigil with prefix (e.g., "@issue", "#feature", "+project").
+   */
+  excludeSigils?: string[];
+  /**
+   * Map of sigil to color (e.g., { "@next": "cyan", "#urgent": "red" }).
+   * Sigils with a color are displayed in that color; others use dim white.
+   */
+  sigilColors?: Map<string, string>;
+}
+
 /**
  * Render raw markdown text to a styled ANSI string.
  *
  * Transformations:
  * - Strips inline fields: [due:: 2024-01-15] → ""
  * - Styles wiki links: [[note]] → dim underlined "note"
+ * - Styles sigils: @mention, #tag, +project → cyan underlined
+ * - Filters out excluded sigils (e.g., @issue when viewing @issue board)
  * - Styles **bold** → bold
  * - Styles *italic* → italic
  * - Styles `code` → cyan
@@ -112,8 +133,14 @@ const DRAFT_PREFIX_REGEX = /^(Draft|WIP|TODO|FIXME):\s*/i;
  * @example
  * renderRich("Task [[project|My Project]] [due:: 2024-01-15]")
  * // Returns: "Task \x1b[2m\x1b[4mMy Project\x1b[0m"
+ *
+ * @example
+ * renderRich("Fix bug @issue #P1", { excludeSigils: ["@issue"] })
+ * // Returns: "Fix bug \x1b[36m\x1b[4m#P1\x1b[0m" (without @issue)
  */
-export function renderRich(text: string): string {
+export function renderRich(text: string, options?: RenderRichOptions): string {
+  const excludeSigils = new Set(options?.excludeSigils ?? []);
+  const sigilColors = options?.sigilColors ?? new Map<string, string>();
   // Check if content starts with a draft prefix (Draft:, WIP:, TODO:, FIXME:)
   const isDraft = DRAFT_PREFIX_REGEX.test(text);
 
@@ -137,6 +164,47 @@ export function renderRich(text: string): string {
     const { display } = extractLinkParts(content);
     return chalk.underline(display);
   });
+
+  // Style sigils (@mention, #tag, +project) - use node color if available, else dim
+  // Filter out excluded sigils (e.g., @issue when viewing the @issue board)
+  result = result.replace(
+    SIGIL_REGEX,
+    (_match, prefix: string, name: string) => {
+      const sigil = `${prefix}${name}`;
+      // If this sigil should be excluded, remove it entirely (including surrounding space)
+      if (excludeSigils.has(sigil)) {
+        return "";
+      }
+      // Use sigil's color if provided, otherwise dim white
+      const color = sigilColors.get(sigil);
+      if (color) {
+        // Use the sigil node's color
+        switch (color) {
+          case "red":
+            return chalk.red(sigil);
+          case "green":
+            return chalk.green(sigil);
+          case "yellow":
+            return chalk.yellow(sigil);
+          case "blue":
+            return chalk.blue(sigil);
+          case "magenta":
+            return chalk.magenta(sigil);
+          case "cyan":
+            return chalk.cyan(sigil);
+          case "white":
+            return chalk.white(sigil);
+          case "gray":
+          case "grey":
+            return chalk.gray(sigil);
+          default:
+            return chalk.dim(sigil);
+        }
+      }
+      // Default: subtle dim text
+      return chalk.dim(sigil);
+    },
+  );
 
   // Style bold text (must be before italic to avoid conflicts)
   result = result.replace(BOLD_REGEX, (_match, content: string) => {

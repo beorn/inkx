@@ -22,7 +22,7 @@ import {
   columnIndicesToPath,
   findPathToNode,
 } from "@km/board";
-import { getChildren, getStore } from "@km/storage";
+import { getChildren, getChildCount, getStore } from "@km/storage";
 import type { ColumnState, CardState, ColumnRules } from "./types.ts";
 import { parseColumnRules } from "./state.ts";
 
@@ -67,6 +67,7 @@ function tNodeToColumnState(
   const cards: CardState[] = node.children.map((child) => ({
     node: child as KNode,
     children: getChildrenFromTNode(child),
+    childCount: child.childCount,
   }));
 
   return {
@@ -78,16 +79,14 @@ function tNodeToColumnState(
 }
 
 /**
- * Get children from a TNode, falling back to storage for grandchildren.
+ * Get children from a TNode for rendering.
+ * NEVER queries the database - only returns already-loaded children.
+ * This is critical for performance during renders.
  */
 function getChildrenFromTNode(node: TNode): KNode[] {
-  // TNode.children contains immediate children
-  // For deeper nesting, we may need to query storage
-  if (node.children.length > 0) {
-    return node.children as KNode[];
-  }
-  // Fall back to storage for lazy loading
-  return getChildren(node.id);
+  // Only return already-loaded children
+  // Never query database during render - that blocks the event loop
+  return node.children as KNode[];
 }
 
 /**
@@ -404,6 +403,7 @@ function columnToTNode(col: ColumnState): TNode {
 
 /**
  * Convert a CardState to a TNode.
+ * Uses shallow loading for children to avoid recursive database queries.
  */
 function cardToTNode(card: CardState): TNode {
   return {
@@ -414,8 +414,10 @@ function cardToTNode(card: CardState): TNode {
     link_to: card.node.link_to ?? null,
     name: card.node.name ?? card.node.title ?? "",
     title: card.node.title ?? "",
-    children: card.children.map((child) => kNodeToTNode(child, 2)),
+    // Use shallow loading to avoid O(n^2) recursive queries
+    children: card.children.map((child) => kNodeToTNodeShallow(child, 2)),
     childCount: card.children.length,
+    childrenLoaded: true,
     isTask: card.node.type === "task",
     depth: 1,
     data: card.node.data ?? {},
@@ -430,10 +432,10 @@ function cardToTNode(card: CardState): TNode {
 }
 
 /**
- * Convert a KNode to a TNode.
+ * Convert a KNode to a shallow TNode (children not loaded).
+ * Use for fast initial load and refresh.
  */
-function kNodeToTNode(node: KNode, depth: number): TNode {
-  const children = getChildren(node.id);
+function kNodeToTNodeShallow(node: KNode, depth: number): TNode {
   return {
     id: node.id,
     type: node.type,
@@ -442,8 +444,9 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
     link_to: node.link_to ?? null,
     name: node.name ?? node.title ?? "",
     title: node.title ?? "",
-    children: children.map((child) => kNodeToTNode(child, depth + 1)),
-    childCount: children.length,
+    children: [],
+    childCount: getChildCount(node.id),
+    childrenLoaded: false,
     isTask: node.type === "task",
     depth,
     data: node.data ?? {},
@@ -456,18 +459,71 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
   };
 }
 
+/**
+ * Convert a KNode to a TNode with children loaded (one level deep).
+ * Children are loaded as shallow nodes.
+ */
+function kNodeToTNodeWithChildren(node: KNode, depth: number): TNode {
+  const children = getChildren(node.id);
+  return {
+    id: node.id,
+    type: node.type,
+    parent_id: node.parent_id,
+    parent_idx: node.parent_idx,
+    link_to: node.link_to ?? null,
+    name: node.name ?? node.title ?? "",
+    title: node.title ?? "",
+    children: children.map((child) => kNodeToTNodeShallow(child, depth + 1)),
+    childCount: children.length,
+    childrenLoaded: true,
+    isTask: node.type === "task",
+    depth,
+    data: node.data ?? {},
+    created_at: node.created_at,
+    updated_at: node.updated_at,
+    version: node.version ?? "",
+    task_status: node.task_status,
+    task_mark: node.task_mark,
+    content: node.content,
+  };
+}
+
+
 // ===== Direct Tree Building =====
 
 /**
- * Build TNode[] directly from storage, bypassing legacy BoardState.
- * Use this for navigation operations (zoom, nav to) instead of buildBoardState.
+ * Build TNode[] directly from storage.
  *
  * @param rootId - Root node ID to load children from (null for root level)
+ * @param loadChildren - If true, load children one level deep. If false, shallow load only.
  * @returns TNode[] for immediate children of root
  */
-export function buildTreeNodes(rootId: string | null): TNode[] {
+export function buildTreeNodes(
+  rootId: string | null,
+  loadChildren: boolean = true,
+): TNode[] {
   const columnNodes = getChildren(rootId);
-  return columnNodes.map((node) => kNodeToTNode(node, 0));
+  return columnNodes.map((node) =>
+    loadChildren
+      ? kNodeToTNodeWithChildren(node, 0)
+      : kNodeToTNodeShallow(node, 0),
+  );
+}
+
+/**
+ * Load children for a node that has childrenLoaded: false.
+ * Returns the node with children populated (one level deep).
+ */
+export function loadNodeChildren(node: TNode): TNode {
+  if (node.childrenLoaded) return node;
+
+  const children = getChildren(node.id);
+  return {
+    ...node,
+    children: children.map((child) => kNodeToTNodeShallow(child, node.depth + 1)),
+    childCount: children.length,
+    childrenLoaded: true,
+  };
 }
 
 /**

@@ -15,6 +15,7 @@ import type {
 import { STATUS_CYCLE, STATUS_MARKS } from "./types.ts";
 import {
   getChildren,
+  getChildCountsBatch,
   getNode,
   resolveNode,
   queryNodes,
@@ -92,8 +93,10 @@ export function initBoardState(rootId?: string): BoardState | null {
     groups.get(name)?.push(root);
   }
 
-  // Build columns from grouped roots
-  const columns: ColumnState[] = [];
+  // First pass: collect all unique card nodes and their IDs
+  const allCardIds: string[] = [];
+  const columnData: Array<{ colNode: KNode; cardNodes: KNode[] }> = [];
+
   for (const [_name, groupRoots] of groups) {
     const colNode = groupRoots[0];
     if (!colNode) continue;
@@ -108,13 +111,24 @@ export function initBoardState(rootId?: string): BoardState | null {
         if (!seenNames.has(cardName)) {
           seenNames.add(cardName);
           uniqueCardNodes.push(child);
+          allCardIds.push(child.id);
         }
       }
     }
 
-    const cards: CardState[] = uniqueCardNodes.map((cardNode) => ({
+    columnData.push({ colNode, cardNodes: uniqueCardNodes });
+  }
+
+  // Single batch query for all child counts - avoids N+1 problem
+  const childCounts = getChildCountsBatch(allCardIds);
+
+  // Second pass: build columns with pre-fetched child counts
+  const columns: ColumnState[] = [];
+  for (const { colNode, cardNodes } of columnData) {
+    const cards: CardState[] = cardNodes.map((cardNode) => ({
       node: cardNode,
-      children: getChildren(cardNode.id),
+      children: [], // Don't load grandchildren eagerly (lazy loading)
+      childCount: childCounts.get(cardNode.id) ?? 0,
     }));
     columns.push({ node: colNode, cards });
   }
@@ -205,30 +219,6 @@ export function parseColumnRules(content: string): ColumnRules {
 }
 
 /**
- * Apply add= rule to pull in matching tasks
- */
-function applyAddRule(
-  addQuery: string,
-  existingCardIds: Set<string>,
-): CardState[] {
-  const matchingNodes = queryNodes(addQuery, "task");
-  const newCards: CardState[] = [];
-
-  for (const node of matchingNodes) {
-    // Skip if already in the column
-    if (existingCardIds.has(node.id)) continue;
-
-    // Add as a card
-    newCards.push({
-      node,
-      children: getChildren(node.id),
-    });
-  }
-
-  return newCards;
-}
-
-/**
  * Build board state from a specific root ID
  *
  * Board hierarchy:
@@ -241,31 +231,76 @@ function applyAddRule(
 export function buildBoardState(rootId: string): BoardState {
   const rootNode = getNode(rootId);
   const wipLimits = extractWipLimits(rootNode);
-  const columns: ColumnState[] = [];
   const collapsedColumns = new Set<number>();
 
   // Get direct children as columns
-  const columnNodes = getChildren(rootId);
+  // Filter out content nodes (paragraphs, code blocks, quotes) that aren't columns
+  const allChildren = getChildren(rootId);
+  const nonColumnTypes = new Set(["paragraph", "code", "quote"]);
+  const columnNodes = allChildren.filter((n) => !nonColumnTypes.has(n.type));
+
+  // First pass: collect all card IDs across all columns for batch child count query
+  const columnCardNodes: KNode[][] = [];
+  const allCardIds: string[] = [];
+  const addRuleResults: Map<number, KNode[]> = new Map();
 
   for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
     const colNode = columnNodes[colIdx];
     if (!colNode) continue;
 
-    // Use pre-parsed rules from node, fallback to parsing content for compatibility
+    const cardNodes = getChildren(colNode.id);
+    columnCardNodes[colIdx] = cardNodes;
+
+    // Collect IDs for batch query
+    for (const cardNode of cardNodes) {
+      allCardIds.push(cardNode.id);
+    }
+
+    // Check for add= rule and collect those IDs too
+    const rules = colNode.rules ?? parseColumnRules(colNode.content || "");
+    if (rules.add) {
+      const existingCardIds = new Set(cardNodes.map((c) => c.id));
+      const matchingNodes = queryNodes(rules.add);
+      const additionalNodes: KNode[] = [];
+      for (const node of matchingNodes) {
+        if (!existingCardIds.has(node.id)) {
+          additionalNodes.push(node);
+          allCardIds.push(node.id);
+        }
+      }
+      addRuleResults.set(colIdx, additionalNodes);
+    }
+  }
+
+  // Single batch query for all child counts - avoids N+1 problem
+  const childCounts = getChildCountsBatch(allCardIds);
+
+  // Second pass: build columns with the pre-fetched child counts
+  const columns: ColumnState[] = [];
+  for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
+    const colNode = columnNodes[colIdx];
+    if (!colNode) continue;
+
+    const cardNodes = columnCardNodes[colIdx] ?? [];
     const rules = colNode.rules ?? parseColumnRules(colNode.content || "");
 
-    // Get existing cards in the column
-    const cardNodes = getChildren(colNode.id);
-    const existingCardIds = new Set(cardNodes.map((c) => c.id));
-    let cards: CardState[] = cardNodes.map((cardNode) => ({
+    // Build cards with pre-fetched child counts
+    const cards: CardState[] = cardNodes.map((cardNode) => ({
       node: cardNode,
-      children: getChildren(cardNode.id),
+      children: [], // Don't load grandchildren eagerly - blocks event loop
+      childCount: childCounts.get(cardNode.id) ?? 0,
     }));
 
-    // Apply add= rule to pull in matching tasks
-    if (rules.add) {
-      const additionalCards = applyAddRule(rules.add, existingCardIds);
-      cards = [...cards, ...additionalCards];
+    // Add cards from add= rule (already collected in first pass)
+    const additionalNodes = addRuleResults.get(colIdx);
+    if (additionalNodes) {
+      for (const node of additionalNodes) {
+        cards.push({
+          node,
+          children: [],
+          childCount: childCounts.get(node.id) ?? 0,
+        });
+      }
     }
 
     // Look up WIP limit (from rules or frontmatter)
@@ -419,7 +454,8 @@ export function handleKey(
     // Zoom into card
     case "\r": // Enter
     case "o":
-      if (card && card.children.length > 0 && state.rootId) {
+      // Use childCount for hasChildren check (children array may be empty due to lazy loading)
+      if (card && (card.childCount ?? card.children.length) > 0 && state.rootId) {
         const zoomed = buildBoardState(card.node.id);
         zoomed.zoomStack = [...state.zoomStack, state.rootId];
         return { state: zoomed, action: null };

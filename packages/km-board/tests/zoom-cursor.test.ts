@@ -30,6 +30,7 @@ function createNode(
     title: id,
     children,
     childCount: children.length,
+    childrenLoaded: true,
     isTask: false,
     depth: 0,
     data: {},

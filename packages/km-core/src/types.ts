@@ -177,6 +177,9 @@ export interface TNode extends KNode {
   // Computed display properties
   childCount: number; // Total children (may exceed loaded children.length)
   isTask: boolean; // Computed: task_status !== undefined
+
+  // Lazy loading state
+  childrenLoaded: boolean; // true = children array is populated, false = only childCount known
 }
 
 // =============================================================================

@@ -64,45 +64,50 @@ export function readBeadsIssues(beadsDir: string): BeadsIssue[] {
 }
 
 /**
- * Convert beads status to km task status
+ * Convert beads status to task mark
  */
-function convertStatus(status: BeadsIssue["status"]): string {
+function statusToMark(status: BeadsIssue["status"]): string {
   switch (status) {
     case "open":
-      return "todo";
+      return " ";
     case "in_progress":
-      return "wip";
+      return "/";
     case "closed":
-      return "done";
+      return "x";
     case "blocked":
-      return "blocked";
+      return "!";
     default:
-      return "todo";
+      return " ";
   }
 }
 
 /**
  * Convert beads issue to markdown content
+ *
+ * Format: Status expressed via task mark in heading, type/priority via tags
+ *
+ * ```markdown
+ * ---
+ * id: km-01c
+ * created_by: beorn
+ * created_at: 2024-01-15T...
+ * ---
+ *
+ * # [x] Title @issue #feature #P2
+ *
+ * Description...
+ * ```
  */
 export function issueToMarkdown(issue: BeadsIssue, boardTag?: string): string {
   const lines: string[] = [];
 
-  // Frontmatter with metadata
+  // Frontmatter - only essential metadata (status/type/priority now in heading)
   lines.push("---");
   lines.push(`id: ${issue.id}`);
-  lines.push(`status: ${convertStatus(issue.status)}`);
-  lines.push(`priority: ${issue.priority}`);
-  if (issue.issue_type) {
-    lines.push(`type: ${issue.issue_type}`);
-  }
-  if (issue.assignee) {
-    lines.push(`assignee: ${issue.assignee}`);
-  }
   if (issue.created_by) {
     lines.push(`created_by: ${issue.created_by}`);
   }
   lines.push(`created_at: ${issue.created_at}`);
-  lines.push(`updated_at: ${issue.updated_at}`);
   if (issue.closed_at) {
     lines.push(`closed_at: ${issue.closed_at}`);
   }
@@ -118,11 +123,7 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string): string {
   lines.push("---");
   lines.push("");
 
-  // Title as h1
-  lines.push(`# ${issue.title}`);
-  lines.push("");
-
-  // Tags line
+  // Build tags for heading
   const tags: string[] = [];
   if (boardTag) {
     tags.push(`@${boardTag}`);
@@ -134,10 +135,15 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string): string {
   if (issue.labels) {
     tags.push(...issue.labels.map((l) => `#${l}`));
   }
-  if (tags.length > 0) {
-    lines.push(tags.join(" "));
-    lines.push("");
+  if (issue.assignee) {
+    tags.push(`@${issue.assignee}`);
   }
+
+  // Title as h1 with task mark and tags
+  const mark = statusToMark(issue.status);
+  const tagStr = tags.length > 0 ? ` ${tags.join(" ")}` : "";
+  lines.push(`# [${mark}] ${issue.title}${tagStr}`);
+  lines.push("");
 
   // Description
   if (issue.description) {

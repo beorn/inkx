@@ -431,6 +431,8 @@ describe.serial("DetailPane with Backlinks", () => {
       section: null,
       block_id: null,
       alias: null,
+      embedded: false,
+      relationship: null,
     });
 
     const { lastFrame } = render(

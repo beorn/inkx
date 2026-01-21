@@ -89,6 +89,36 @@ export function extractTaskMark(
 }
 
 /**
+ * Extract task mark from node title text (works for headings, list items, etc.)
+ * Supports: [x], [ ], [/], [!], [-] at the start of text
+ *
+ * Examples:
+ *   "[ ] Todo task" → { mark: " ", cleanText: "Todo task" }
+ *   "[x] Done task" → { mark: "x", cleanText: "Done task" }
+ *   "Regular text" → { mark: undefined, cleanText: "Regular text" }
+ */
+export function extractTitleTaskMark(text: string): {
+  mark: string | undefined;
+  cleanText: string;
+} {
+  // Match [x], [ ], [/], [!], [-] at the start of text
+  const regex = new RegExp(`^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`);
+  const match = text.match(regex);
+
+  if (match) {
+    return {
+      mark: match[1],
+      cleanText: text.slice(match[0].length),
+    };
+  }
+
+  return {
+    mark: undefined,
+    cleanText: text,
+  };
+}
+
+/**
  * Parse wikilinks from text
  * Detects both regular links [[...]] and embeddings ![[...]]
  */

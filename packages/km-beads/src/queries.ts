@@ -142,7 +142,7 @@ export async function isBlocked(issue: Issue): Promise<boolean> {
 
   // Check if any blocker is not done
   for (const blockerId of issue.blockedBy) {
-    const blockers = queryNodes(`short_id:${blockerId}`, "task");
+    const blockers = queryNodes(`short_id:${blockerId}`);
     if (blockers.length > 0) {
       const blocker = nodeToIssue(blockers[0]!);
       if (blocker.status !== "done" && blocker.status !== "dropped") {
@@ -181,7 +181,8 @@ export function queryReady(filter?: Partial<IssueFilter>, scopePath?: string, bo
     query += ` #P${filter.priority}`;
   }
 
-  const nodes = queryNodes(query, "task");
+  // Don't filter by type='task' - issues can be file nodes with task_status
+  const nodes = queryNodes(query);
   let issues = nodes.map(nodeToIssue);
 
   // Apply path scope filter after query (since path: syntax not supported)
@@ -232,7 +233,8 @@ export function queryIssues(filter?: IssueFilter, scopePath?: string, boardTag?:
     query += ` #P${filter.priority}`;
   }
 
-  const nodes = queryNodes(query.trim() || "*", "task");
+  // Don't filter by type='task' - issues can be file nodes with task_status
+  const nodes = queryNodes(query.trim() || "*");
   let issues = nodes.map(nodeToIssue);
 
   // Apply path scope filter after query (since path: syntax not supported)
@@ -257,7 +259,8 @@ export function queryIssues(filter?: IssueFilter, scopePath?: string, boardTag?:
  */
 export function getIssue(shortId: string): Issue | null {
   // Try to find by short_id in data
-  const nodes = queryNodes(`@issue`, "task");
+  // Don't filter by type='task' - issues can be file nodes with task_status
+  const nodes = queryNodes(`@issue`);
 
   for (const node of nodes) {
     const data = node.data as Record<string, unknown> | undefined;

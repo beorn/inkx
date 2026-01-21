@@ -17,6 +17,7 @@ export {
   displayLength,
   stripAnsi,
   ANSI_REGEX,
+  type RenderRichOptions,
 } from "./rich.ts";
 
 // Icon utilities (moved from @km/tui-core)
@@ -24,8 +25,12 @@ export {
   getStatusIcon,
   getTypeIcon,
   getNodeIcon,
+  getFoldMarker,
   COLORED_CIRCLE,
   SMALL_BULLET,
+  FOLDED_MARKER,
+  UNFOLDED_MARKER,
+  EMPTY_MARKER,
   type StatusIcon,
 } from "../icons.ts";
 

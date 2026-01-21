@@ -74,6 +74,7 @@
         "@km/board": "workspace:*",
         "@km/commands": "workspace:*",
         "@km/core": "workspace:*",
+        "@km/markdown": "workspace:*",
         "@km/storage": "workspace:*",
         "@km/tree": "workspace:*",
         "chalk": "^5.4.1",

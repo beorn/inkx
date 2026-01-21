@@ -41,7 +41,8 @@ export function getSiblingCount(nodes: TNode[], path: TPath): number {
 
   const parentPath = path.slice(0, -1);
   const parent = getNodeAtPath(nodes, parentPath);
-  return parent?.children.length ?? 0;
+  // Use childCount for bounds (supports lazy loading)
+  return parent?.childCount ?? 0;
 }
 
 /**
@@ -155,12 +156,13 @@ function getLastVisibleDescendantPath(
   if (!node) return path;
 
   // If node is folded or has no children, return the node itself
-  if (foldedNodes.has(node.id) || node.children.length === 0) {
+  // Use childCount for bounds (supports lazy loading)
+  if (foldedNodes.has(node.id) || node.childCount === 0) {
     return path;
   }
 
   // Go to last child and recurse
-  const lastChildIdx = node.children.length - 1;
+  const lastChildIdx = node.childCount - 1;
   const childPath = [...path, lastChildIdx];
   return getLastVisibleDescendantPath(nodes, childPath, foldedNodes);
 }
@@ -183,7 +185,8 @@ function getNextVisiblePath(
   if (!node) return null;
 
   // 1. Try to enter first child (if not folded and has children)
-  if (!foldedNodes.has(node.id) && node.children.length > 0) {
+  // Use childCount for bounds (supports lazy loading)
+  if (!foldedNodes.has(node.id) && node.childCount > 0) {
     return [...path, 0];
   }
 
@@ -299,7 +302,8 @@ export function boardReducer(
         case "in": {
           // Into first child (l)
           const currentNode = getNodeAtPath(state.nodes, state.cursor);
-          if (!currentNode || currentNode.children.length === 0) return state;
+          // Use childCount for bounds (supports lazy loading)
+          if (!currentNode || currentNode.childCount === 0) return state;
           return { ...state, ...updateCursor(state, [...state.cursor, 0]) };
         }
 
@@ -404,13 +408,14 @@ export function boardReducer(
 
       // At card level: navigate to card in target column
       // If target column is empty, stay at column level
-      if (targetCol.children.length === 0) {
+      // Use childCount for bounds (supports lazy loading)
+      if (targetCol.childCount === 0) {
         return { ...state, ...updateCursor(state, [newColIdx]) };
       }
 
       // Clamp row index to target column's children
       const rowIdx = state.cursor[1] ?? 0;
-      const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
+      const clampedRow = Math.min(rowIdx, targetCol.childCount - 1);
       return { ...state, ...updateCursor(state, [newColIdx, clampedRow]) };
     }
 
@@ -743,11 +748,11 @@ export function boardReducer(
       }
 
       let newPath: TPath;
-      if (targetCol.children.length === 0) {
+      if (targetCol.childCount === 0) {
         newPath = [newColIdx];
         newSelected.add(targetCol.id);
       } else {
-        const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
+        const clampedRow = Math.min(rowIdx, targetCol.childCount - 1);
         newPath = [newColIdx, clampedRow];
         const targetNode = targetCol.children[clampedRow];
         if (targetNode) {
@@ -791,11 +796,11 @@ export function boardReducer(
       }
 
       let newPath: TPath;
-      if (targetCol.children.length === 0) {
+      if (targetCol.childCount === 0) {
         newPath = [newColIdx];
         newSelected.add(targetCol.id);
       } else {
-        const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
+        const clampedRow = Math.min(rowIdx, targetCol.childCount - 1);
         newPath = [newColIdx, clampedRow];
         const targetNode = targetCol.children[clampedRow];
         if (targetNode) {
@@ -917,7 +922,7 @@ export function createBoardState(
 
   if (nodes.length > 0) {
     const firstNode = nodes[0];
-    if (firstNode && firstNode.children.length > 0) {
+    if (firstNode && firstNode.childCount > 0) {
       cursor = [0, 0]; // Start at first card in first column
       cursorNodeId = firstNode.children[0]?.id ?? null;
     } else if (firstNode) {

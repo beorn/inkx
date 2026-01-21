@@ -5,8 +5,9 @@
  * with hierarchical display of cards and their children.
  *
  * Uses inkx overflow="scroll" for native scrolling support.
+ * Implements React-level virtualization for large card lists.
  */
-import React from "react";
+import React, { useMemo } from "react";
 import { Box, Text } from "inkx";
 import type { BoardState, ColumnState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
@@ -18,6 +19,146 @@ import {
   VerticalScrollIndicator,
   ColumnSeparator,
 } from "./VerticalScrollIndicator.tsx";
+
+// =============================================================================
+// Virtualization Constants
+// =============================================================================
+
+// Approximate row height for tree items
+const ESTIMATED_ROW_HEIGHT = 1;
+
+// Number of extra items to render above and below visible area
+const OVERSCAN = 10;
+
+// Maximum number of items to render at once
+const MAX_RENDERED_ITEMS = 100;
+
+// =============================================================================
+// Virtualized Tree Card List Component
+// =============================================================================
+
+interface VirtualizedTreeCardListProps {
+  cards: CardState[];
+  selectedCardIndex: number;
+  selectedSubIndex: number;
+  isSelected: boolean;
+  selectionLevel: "board" | "column" | "card";
+  colIndex: number;
+  inOutlineMode: boolean;
+}
+
+/**
+ * Virtualized list of tree cards that only renders items near the visible area.
+ */
+function VirtualizedTreeCardList({
+  cards,
+  selectedCardIndex,
+  selectedSubIndex,
+  isSelected,
+  selectionLevel,
+  colIndex,
+  inOutlineMode,
+}: VirtualizedTreeCardListProps): React.ReactElement {
+  // Calculate virtualization window
+  const { startIndex, endIndex, topPlaceholderHeight, bottomPlaceholderHeight } = useMemo(() => {
+    const totalCards = cards.length;
+
+    // For small lists, render everything
+    if (totalCards <= MAX_RENDERED_ITEMS) {
+      return {
+        startIndex: 0,
+        endIndex: totalCards,
+        topPlaceholderHeight: 0,
+        bottomPlaceholderHeight: 0,
+      };
+    }
+
+    // Center the window around the selected card
+    const halfWindow = Math.floor(MAX_RENDERED_ITEMS / 2);
+    let start = Math.max(0, selectedCardIndex - halfWindow);
+    let end = Math.min(totalCards, start + MAX_RENDERED_ITEMS);
+
+    // Adjust start if we hit the end
+    if (end === totalCards) {
+      start = Math.max(0, end - MAX_RENDERED_ITEMS);
+    }
+
+    // Add overscan
+    start = Math.max(0, start - OVERSCAN);
+    end = Math.min(totalCards, end + OVERSCAN);
+
+    // Calculate placeholder heights
+    const topHeight = start * ESTIMATED_ROW_HEIGHT;
+    const bottomHeight = (totalCards - end) * ESTIMATED_ROW_HEIGHT;
+
+    return {
+      startIndex: start,
+      endIndex: end,
+      topPlaceholderHeight: topHeight,
+      bottomPlaceholderHeight: bottomHeight,
+    };
+  }, [cards.length, selectedCardIndex]);
+
+  if (cards.length === 0) {
+    return (
+      <Box flexDirection="column" flexGrow={1} minHeight={1}>
+        <Text dimColor>(empty)</Text>
+      </Box>
+    );
+  }
+
+  // Get the slice of cards to render
+  const visibleCards = cards.slice(startIndex, endIndex);
+
+  return (
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      minHeight={1}
+      overflow="scroll"
+      scrollTo={selectedCardIndex - startIndex}
+    >
+      {/* Top placeholder */}
+      {topPlaceholderHeight > 0 && (
+        <Box height={topPlaceholderHeight} flexShrink={0} />
+      )}
+
+      {/* Render visible cards */}
+      {visibleCards.map((card: CardState, i: number) => {
+        const actualIndex = startIndex + i;
+        const cardSelected =
+          selectionLevel === "card" &&
+          isSelected &&
+          actualIndex === selectedCardIndex &&
+          !inOutlineMode;
+
+        return (
+          <TreeNode
+            key={card.node.id}
+            node={card.node}
+            depth={0}
+            isSelected={
+              cardSelected ||
+              (selectionLevel === "card" &&
+                inOutlineMode &&
+                isSelected &&
+                actualIndex === selectedCardIndex &&
+                selectedSubIndex === 0)
+            }
+            colIndex={colIndex}
+            cardIndex={actualIndex}
+            subIndex={0}
+          />
+        );
+      })}
+
+      {/* Bottom placeholder */}
+      {bottomPlaceholderHeight > 0 && (
+        <Box height={bottomPlaceholderHeight} flexShrink={0} />
+      )}
+    </Box>
+  );
+}
 
 // =============================================================================
 // ColumnTree Subcomponent
@@ -86,41 +227,16 @@ function ColumnTree({
         </Text>
       </Box>
 
-      {/* Cards with inkx native scrolling */}
-      <Box
-        flexDirection="column"
-        flexGrow={1}
-        minHeight={1}
-        overflow="scroll"
-        scrollTo={selectedCardIndex}
-      >
-        {column.cards.map((card: CardState, index: number) => {
-          const cardSelected =
-            selectionLevel === "card" &&
-            isSelected &&
-            index === selectedCardIndex &&
-            !inOutlineMode;
-
-          return (
-            <TreeNode
-              key={card.node.id}
-              node={card.node}
-              depth={0}
-              isSelected={
-                cardSelected ||
-                (selectionLevel === "card" &&
-                  inOutlineMode &&
-                  isSelected &&
-                  index === selectedCardIndex &&
-                  selectedSubIndex === 0)
-              }
-              colIndex={colIndex}
-              cardIndex={index}
-              subIndex={0}
-            />
-          );
-        })}
-      </Box>
+      {/* Cards with virtualized rendering */}
+      <VirtualizedTreeCardList
+        cards={column.cards}
+        selectedCardIndex={selectedCardIndex}
+        selectedSubIndex={selectedSubIndex}
+        isSelected={isSelected}
+        selectionLevel={selectionLevel}
+        colIndex={colIndex}
+        inOutlineMode={inOutlineMode}
+      />
     </Box>
   );
 }

@@ -18,6 +18,8 @@ export {
   resolveNode,
   resolveTask,
   getChildren,
+  getChildCount,
+  getChildCountsBatch,
   getSubtree,
   getAncestors,
   getTasksByStatus,
@@ -182,8 +184,9 @@ export {
   getConfigPath,
   clearConfigCache,
   getBeadsConfig,
+  getTuiConfig,
   getOriginalBeadsConfig,
   getOriginalBeadsConfigPath,
 } from "./config.ts";
 
-export type { KmConfig, BeadsConfig, OriginalBeadsConfig } from "./config.ts";
+export type { KmConfig, BeadsConfig, TuiConfig, OriginalBeadsConfig } from "./config.ts";

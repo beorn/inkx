@@ -33,6 +33,8 @@ export {
   resolveNode,
   resolveTask,
   getChildren,
+  getChildCount,
+  getChildCountsBatch,
   getSubtree,
   getAncestors,
   getTasksByStatus,

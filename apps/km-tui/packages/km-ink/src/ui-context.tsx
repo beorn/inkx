@@ -230,3 +230,59 @@ export function useSelectionState() {
 export function useRootBoardId(): string | null {
   return useUISelector(selectRootBoardId);
 }
+
+/**
+ * Get the board's excluded sigils (for filtering from card content).
+ *
+ * For boards named with sigil patterns (e.g., @issue.md, @next.md),
+ * returns the sigil to exclude from card rendering.
+ *
+ * @returns Array of sigils to exclude (e.g., ["@issue"])
+ */
+export function useExcludedSigils(): string[] {
+  const rootBoardId = useRootBoardId();
+  return useMemo(() => {
+    if (!rootBoardId) return [];
+
+    // Import getNode lazily to avoid circular dependencies
+    const { getNode } = require("@km/storage");
+    const node = getNode(rootBoardId);
+    if (!node?.fs_path) return [];
+
+    // Extract filename without extension (e.g., "@issue.md" → "@issue")
+    const filename = node.fs_path.split("/").pop() || "";
+    const name = filename.replace(/\.md$/, "");
+
+    // If the filename starts with a sigil (@, #, +), include it
+    if (/^[@#\+]/.test(name)) {
+      return [name];
+    }
+
+    return [];
+  }, [rootBoardId]);
+}
+
+/**
+ * GTD board default colors for sigils
+ * These are used when rendering sigils in card content
+ */
+const GTD_SIGIL_COLORS: Record<string, string> = {
+  "@inbox": "white",
+  "@next": "cyan",
+  "@waiting": "yellow",
+  "@someday": "gray",
+  "@done": "green",
+  "@dropped": "gray",
+  "@blocked": "red",
+};
+
+/**
+ * Get colors for sigils based on GTD defaults or node colors.
+ *
+ * @returns Map of sigil to color (e.g., { "@next": "cyan" })
+ */
+export function useSigilColors(): Map<string, string> {
+  // Return static GTD colors for now
+  // Future: could look up actual node colors from storage
+  return useMemo(() => new Map(Object.entries(GTD_SIGIL_COLORS)), []);
+}

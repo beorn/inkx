@@ -14,6 +14,7 @@ function node(id: string, children: TNode[] = []): TNode {
     title: id,
     children,
     childCount: children.length,
+    childrenLoaded: true,
     isTask: true,
     depth: 0,
     data: {},

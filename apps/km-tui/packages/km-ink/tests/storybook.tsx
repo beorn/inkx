@@ -39,8 +39,12 @@ import chalk from "chalk";
 import {
   renderRich,
   getStatusIcon,
+  getFoldMarker,
   colorize,
   GTD_BOARD_COLORS,
+  FOLDED_MARKER,
+  UNFOLDED_MARKER,
+  EMPTY_MARKER,
 } from "../src/text/index.ts";
 import {
   wrapText,
@@ -351,12 +355,13 @@ function Layer1TagPills(): React.ReactElement {
 
 function Layer1TaskStyling(): React.ReactElement {
   // Status data: marker (plain text), icon (TUI), description
+  // New cards style uses SQUARE icons
   const statusTable = [
-    { mark: " ", status: "todo", desc: "Not started" },
-    { mark: "/", status: "wip", desc: "Work in progress" },
-    { mark: "!", status: "blocked", desc: "Blocked" },
-    { mark: "x", status: "done", desc: "Completed" },
-    { mark: "-", status: "dropped", desc: "Dropped" },
+    { mark: " ", status: "todo", desc: "Not started", icon: "▢" },
+    { mark: "/", status: "wip", desc: "Work in progress", icon: "◧" },
+    { mark: "!", status: "blocked", desc: "Blocked", icon: "■" },
+    { mark: "x", status: "done", desc: "Completed", icon: "▣" },
+    { mark: "-", status: "dropped", desc: "Dropped", icon: "■" },
   ];
 
   const customMarkers = [
@@ -383,7 +388,7 @@ function Layer1TaskStyling(): React.ReactElement {
 
   return (
     <Box flexDirection="column">
-      <SectionHeader title="Layer 1: Task Styling" />
+      <SectionHeader title="Layer 1: Task Styling (Square Icons)" />
 
       <SubsectionHeader title="Standard Status States" />
       <Text dimColor> Plain Icon Description</Text>
@@ -434,6 +439,98 @@ function Layer1TaskStyling(): React.ReactElement {
         <Text dimColor>]</Text> <Text color="red">⚠</Text>
         {"    "}
         Missing status (null/undefined)
+      </Text>
+    </Box>
+  );
+}
+
+function Layer1FoldMarkers(): React.ReactElement {
+  // Fold marker system - new cards style
+  // Single marker indicates fold state, not task status
+  const foldStates = [
+    { hasChildren: true, isFolded: true, desc: "Folded (has hidden children)" },
+    { hasChildren: true, isFolded: false, desc: "Unfolded (children visible)" },
+    { hasChildren: false, isFolded: false, desc: "Empty (no children)" },
+  ];
+
+  const colors = ["white", "cyan", "red", "green", "yellow", "magenta", "blue"];
+
+  return (
+    <Box flexDirection="column">
+      <SectionHeader title="Layer 1: Fold Markers (Cards Style)" />
+
+      <SubsectionHeader title="Fold State Indicators" />
+      <Text dimColor> Marker Description</Text>
+      <Text dimColor> ────── ─────────────────────────────</Text>
+      {foldStates.map(({ hasChildren, isFolded, desc }, i) => {
+        const marker = getFoldMarker(hasChildren, isFolded);
+        return (
+          <Text key={i}>
+            {" "}
+            <Text color={marker.color}>{marker.char}</Text>
+            {"      "}
+            {desc}
+          </Text>
+        );
+      })}
+      <Text> </Text>
+
+      <SubsectionHeader title="Marker Constants" />
+      <Text>
+        {" "}
+        <Text color={FOLDED_MARKER.color}>{FOLDED_MARKER.char}</Text> FOLDED_MARKER (● U+25CF) - big filled circle
+      </Text>
+      <Text>
+        {" "}
+        <Text color={UNFOLDED_MARKER.color}>{UNFOLDED_MARKER.char}</Text> UNFOLDED_MARKER (• U+2022) - medium bullet
+      </Text>
+      <Text>
+        {" "}
+        <Text color={EMPTY_MARKER.color}>{EMPTY_MARKER.char}</Text> EMPTY_MARKER (· U+00B7) - tiny dot
+      </Text>
+      <Text> </Text>
+
+      <SubsectionHeader title="Colored Fold Markers (node color inheritance)" />
+      <Text dimColor> When a node has a color, the marker inherits it:</Text>
+      <Text> </Text>
+      {colors.map((color) => {
+        const folded = getFoldMarker(true, true, color);
+        const unfolded = getFoldMarker(true, false, color);
+        const empty = getFoldMarker(false, false, color);
+        return (
+          <Text key={color}>
+            {" "}
+            <Text color={folded.color}>{folded.char}</Text>{" "}
+            <Text color={unfolded.color}>{unfolded.char}</Text>{" "}
+            <Text color={empty.color}>{empty.char}</Text>
+            {"  "}
+            <Text dimColor>color={color}</Text>
+          </Text>
+        );
+      })}
+      <Text> </Text>
+
+      <SubsectionHeader title="Combined: Fold Marker + Task Status" />
+      <Text dimColor> New cards style: marker indicates fold, status in title</Text>
+      <Text> </Text>
+      <Text>
+        {" "}
+        <Text>{FOLDED_MARKER.char}</Text>{" "}
+        <Text color="gray">▢</Text> Folded todo task (5)
+      </Text>
+      <Text>
+        {" "}
+        <Text>{UNFOLDED_MARKER.char}</Text>{" "}
+        <Text color="yellow">◧</Text> Unfolded WIP task
+      </Text>
+      <Text>
+        {" "}
+        <Text color="gray">{EMPTY_MARKER.char}</Text>{" "}
+        <Text color="green">▣</Text> Leaf done task
+      </Text>
+      <Text>
+        {" "}
+        <Text color="gray">{EMPTY_MARKER.char}</Text> Regular note (no status)
       </Text>
     </Box>
   );
@@ -1022,7 +1119,8 @@ function Layer3AllViews(): React.ReactElement {
       <Text dimColor>
         Each view renders the same BoardState with varied content:
       </Text>
-      <Text dimColor>• Tasks: todo ○, wip ◐, blocked ⊘, done ✓, dropped ∅</Text>
+      <Text dimColor>• Fold markers: ● folded, • unfolded, · empty (size variation)</Text>
+      <Text dimColor>• Task status: ▢ todo, ◧ wip, ■ blocked, ▣ done (square style)</Text>
       <Text dimColor>
         • Rich text: **bold**, *italic*, `code`, ~~strike~~, [[links]]
       </Text>
@@ -1238,6 +1336,7 @@ function Storybook(): React.ReactElement {
         <Layer1RichText />
         <Layer1TagPills />
         <Layer1TaskStyling />
+        <Layer1FoldMarkers />
         <Layer2Layout />
         <Layer3Views />
         <Layer3AllViews />
@@ -1258,4 +1357,16 @@ function Storybook(): React.ReactElement {
 // ============================================================================
 
 const { lastFrame } = render(<Storybook />);
-console.log(lastFrame());
+// Clean up output from 500-row buffer:
+// 1. Remove trailing whitespace from each line
+// 2. Remove trailing blank/ANSI-only lines
+const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
+const rawOutput = lastFrame() ?? "";
+const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")); // trim trailing whitespace
+// Find last line with visible content (not just ANSI codes and whitespace)
+let lastContentLine = lines.length - 1;
+while (lastContentLine >= 0 && lines[lastContentLine]!.replace(ANSI_REGEX, "").trim() === "") {
+  lastContentLine--;
+}
+const output = lines.slice(0, lastContentLine + 1).join("\n");
+console.log(output);

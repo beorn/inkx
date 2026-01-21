@@ -1679,8 +1679,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   function setupRefreshHandler() {
     const handleRefresh = () => {
       // Rebuild tree nodes from database (which was updated by sync manager)
+      // Use shallow loading (false) to only refresh metadata, preserving loaded children
       if (boardState.rootId) {
-        const nodes = buildTreeNodes(boardState.rootId);
+        const nodes = buildTreeNodes(boardState.rootId, false);
         dispatchBoard({ type: "REFRESH", nodes });
       }
     };

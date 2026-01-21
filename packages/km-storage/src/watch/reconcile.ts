@@ -246,7 +246,7 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     }
 
     // Store wikilinks and try to resolve them
-    for (const { nodeId, link } of wikilinks) {
+    for (const { nodeId, link, relationship } of wikilinks) {
       // Try to find target node by name
       const targetNode = findNodeByName(link.target);
       addLink({
@@ -257,6 +257,7 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
         block_id: link.blockId ?? null,
         alias: link.alias ?? null,
         embedded: link.embedded ?? false,
+        relationship: relationship ?? null,
       });
     }
 
@@ -337,7 +338,7 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     removeLinksFromSource(node.id);
   }
 
-  for (const { nodeId, link } of wikilinks) {
+  for (const { nodeId, link, relationship } of wikilinks) {
     const targetNode = findNodeByName(link.target);
     addLink({
       source_id: nodeId,
@@ -347,6 +348,7 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
       block_id: link.blockId ?? null,
       alias: link.alias ?? null,
       embedded: link.embedded ?? false,
+      relationship: relationship ?? null,
     });
   }
 }
@@ -424,6 +426,12 @@ function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
       }
       if (node.task_mark !== existingNode.task_mark) {
         nodeChanges.task_mark = node.task_mark;
+      }
+      // Compare data field for mentions, tags, projects changes
+      const newData = JSON.stringify(node.data ?? {});
+      const existingData = JSON.stringify(existingNode.data ?? {});
+      if (newData !== existingData) {
+        nodeChanges.data = node.data;
       }
 
       if (Object.keys(nodeChanges).length > 0) {

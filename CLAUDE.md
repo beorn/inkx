@@ -340,7 +340,9 @@ bun debug view /path/to/vault
 
 ### 13. Visual Testing
 
-Use headless methods (ttyd + Playwright) by default. See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for full documentation.
+**Preferred method: ttyd + Playwright (headless).** Try this first and fix issues before asking user to use Peekaboo.
+
+See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for full documentation.
 
 ```bash
 pkill -f ttyd 2>/dev/null || true
@@ -349,7 +351,10 @@ sleep 3
 HEADLESS=true bun x playwright screenshot --viewport-size=1400,900 http://localhost:7681 /tmp/tui.png
 ```
 
-**Peekaboo (desktop capture):** ALWAYS use AskUserQuestion to get explicit approval BEFORE using Peekaboo MCP tools.
+**Peekaboo (desktop capture):** Only use when ttyd/Playwright doesn't work. When using Peekaboo:
+- **Target Ghostty** - always use `app_target: "Ghostty"` (user's default terminal)
+- **Large screenshots** - use `mcp__peekaboo__image` with specific window targeting for full-size captures, or use `mcp__peekaboo__see` with specific window ID
+- **No OpenAI calls** - the `question` parameter on image tools uses OpenAI which isn't configured; use `Read` tool to view captured images instead
 
 **Visual Bug Fixing:** You CANNOT fix what you cannot see. BEFORE attempting any fix:
 

@@ -19,12 +19,15 @@ import {
   useTreeConfig,
   useUISelector,
   useRootBoardId,
+  useExcludedSigils,
+  useSigilColors,
 } from "../ui-context.tsx";
 import {
   getNodeStyle,
   buildPrefix,
   formatInfoSuffix,
   truncateContext,
+  stripTaskMark,
   VARIANT_CONFIG,
   type GetBoardPillsFn,
 } from "./tree-node-helpers.ts";
@@ -74,6 +77,8 @@ export function TreeNode({
   const foldedNodes = useUISelector((state) => state.foldedNodes);
   const multiSelected = useUISelector((state) => state.multiSelected);
   const rootBoardId = useRootBoardId();
+  const excludedSigils = useExcludedSigils();
+  const sigilColors = useSigilColors();
 
   // Compute derived state from context
   const selectionKey = makeSelectionKey(colIndex, cardIndex, subIndex);
@@ -89,7 +94,8 @@ export function TreeNode({
   const hasChildren = children.length > 0;
   const isFolded = foldedNodes.has(node.id);
   const isEmbedded = node.link_to != null;
-  const isTask = node.type === "task";
+  // A node is a task if it has task_status set, regardless of structural type
+  const isTask = node.task_status != null;
 
   // Get all styling from helper
   const style = getNodeStyle(
@@ -100,21 +106,25 @@ export function TreeNode({
     depth,
   );
 
-  // Build prefix from helper
+  // Build prefix from helper (new cards style: just fold marker)
   const prefix = buildPrefix(
     depth,
     hasChildren,
     isFolded,
     children.length,
-    style.icon,
+    style.ownColor,
   );
 
-  // Get content
+  // Get content, stripping task marks for nodes with task_status
+  // The task mark is displayed via the icon, so we don't need it in the text
   const rawContent =
     node.type === "section"
       ? getNodeDisplayName(node)
       : node.content || getNodeDisplayName(node);
-  const styledContent = renderRich(rawContent);
+  const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent;
+  // Filter out the current board's sigil (e.g., @issue when viewing @issue board)
+  // Apply GTD colors to known sigils (e.g., @next=cyan, @waiting=yellow)
+  const styledContent = renderRich(cleanContent, { excludeSigils: excludedSigils, sigilColors });
 
   // Info suffix (oneliner shows full info, multiline shows compact dots only)
   const infoSuffix = formatInfoSuffix(
@@ -158,10 +168,11 @@ export function TreeNode({
       )}
 
       {/* Main row: Box with paddingLeft for depth indentation */}
-      {/* paddingLeft={depth + 1} gives 1-char left margin at depth 0, increasing per level */}
+      {/* paddingLeft={depth} makes marker flush with border at depth 0 */}
       {/* alignItems="flex-start" prevents row from stretching to match content height */}
-      <Box flexDirection="row" alignItems="flex-start" backgroundColor={style.backgroundColor} paddingLeft={depth + 1}>
-        {/* Fixed-width prefix box (fold indicator + icon) */}
+      {/* backgroundColor on Box (not Text) to fill row background properly */}
+      <Box flexDirection="row" alignItems="flex-start" paddingLeft={depth} backgroundColor={style.backgroundColor}>
+        {/* Fixed-width prefix box (fold marker only - new cards style) */}
         <Box width={prefix.length} flexShrink={0}>
           <Text
             color={style.textColor}
@@ -169,18 +180,14 @@ export function TreeNode({
             strikethrough={style.shouldStrikethrough}
             wrap="truncate"
           >
-            {prefix.beforeIcon}
             <Text
               color={
-                prefix.iconColor ?? (isSelected || isMultiSelected ? style.textColor : undefined)
-              }
-              backgroundColor={
-                isSelected || isMultiSelected ? undefined : prefix.iconBgColor
+                isSelected || isMultiSelected ? style.textColor : prefix.markerColor
               }
             >
-              {prefix.iconChar}
+              {prefix.markerChar}
             </Text>
-            {prefix.afterIcon}
+            {prefix.afterMarker}
           </Text>
         </Box>
         {/* Flexible content box */}
@@ -192,6 +199,18 @@ export function TreeNode({
             strikethrough={style.shouldStrikethrough}
             wrap={isOneliner ? "truncate" : "wrap"}
           >
+            {/* Task status icon prepended to content (new cards style) */}
+            {style.taskStatusIcon && (
+              <Text
+                color={
+                  isSelected || isMultiSelected
+                    ? style.textColor
+                    : style.taskStatusIcon.color
+                }
+              >
+                {style.taskStatusIcon.char}{" "}
+              </Text>
+            )}
             {styledContent}
             {prefix.foldedCount}
             {infoSuffix && <Text dimColor>{infoSuffix}</Text>}

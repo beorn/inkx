@@ -103,8 +103,8 @@ export function getBoardPills(
   taskNode: KNode,
   excludeBoardIds: Set<string> = new Set(),
 ): BoardPill[] {
-  // Only tasks can be on boards
-  if (taskNode.type !== "task") return [];
+  // Only nodes with task_status can be on boards (regardless of structural type)
+  if (taskNode.task_status == null) return [];
 
   // Find all links pointing to this task
   const links = getLinksTo(taskNode.id);

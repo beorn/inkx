@@ -96,7 +96,8 @@ export function getAgentQueue(agentId: string): AgentQueueItem[] {
 
   // Query tasks assigned to this agent
   // Issues are assigned via the assignee field matching agent.shortId
-  const nodes = queryNodes(`@${agent.shortId}`, "task");
+  // Don't filter by type='task' - issues can be file nodes with task_status
+  const nodes = queryNodes(`@${agent.shortId}`);
 
   return nodes.map((node) => {
     const data = node.data ?? {};

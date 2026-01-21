@@ -20,6 +20,7 @@ function createNode(id: string, children: TNode[] = []): TNode {
     title: id,
     children,
     childCount: children.length,
+    childrenLoaded: true,
     isTask: false,
     depth: 0,
     data: {},

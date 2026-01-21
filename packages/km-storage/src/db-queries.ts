@@ -86,9 +86,14 @@ export function getNodeByIdPrefix(idPrefix: string): KNode | null {
 
 /**
  * Get a task by ID prefix or suffix (for CLI convenience)
+ * A "task" is any node with task_status set, regardless of structural type.
  */
 export function getTaskByIdPrefix(idPrefix: string): KNode | null {
-  return getNodeByIdPrefixWithType(idPrefix, "task");
+  const node = getNodeByIdPrefixWithType(idPrefix);
+  if (node && node.task_status) {
+    return node;
+  }
+  return null;
 }
 
 /**
@@ -315,18 +320,76 @@ export function resolveNode(query: string, type?: string): KNode | null {
 }
 
 /**
- * Smart task resolver - like resolveNode but only returns tasks.
+ * Smart task resolver - like resolveNode but only returns nodes with task_status.
+ * A "task" is any node with task_status set, regardless of structural type.
  *
  * @param query - ID, path, or filename to search for
  * @returns The matching task node, or null if not found
  */
 export function resolveTask(query: string): KNode | null {
-  return resolveNode(query, "task");
+  // Use resolveNode without type filter, then check task_status
+  const node = resolveNode(query);
+  if (node && node.task_status) {
+    return node;
+  }
+  return null;
 }
 
 // =============================================================================
 // Tree Queries
 // =============================================================================
+
+/**
+ * Get count of children for a node (cheap COUNT query for lazy loading)
+ */
+export function getChildCount(parentId: string | null): number {
+  const db = getDb();
+
+  if (parentId === null) {
+    const result = db
+      .query("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL")
+      .get() as { count: number } | null;
+    return result?.count ?? 0;
+  }
+
+  const result = db
+    .query("SELECT COUNT(*) as count FROM nodes WHERE parent_id = ?")
+    .get(parentId) as { count: number } | null;
+  return result?.count ?? 0;
+}
+
+/**
+ * Get child counts for multiple nodes in a single query.
+ * Returns a Map of parentId → count.
+ * This is much more efficient than calling getChildCount() N times.
+ */
+export function getChildCountsBatch(parentIds: string[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  if (parentIds.length === 0) return counts;
+
+  const db = getDb();
+
+  // SQLite doesn't have native array parameters, so we build a query with placeholders
+  const placeholders = parentIds.map(() => "?").join(",");
+  const rows = db
+    .query(
+      `SELECT parent_id, COUNT(*) as count FROM nodes WHERE parent_id IN (${placeholders}) GROUP BY parent_id`,
+    )
+    .all(...parentIds) as Array<{ parent_id: string; count: number }>;
+
+  for (const row of rows) {
+    counts.set(row.parent_id, row.count);
+  }
+
+  // Set 0 for any parentIds not in results (nodes with no children)
+  for (const id of parentIds) {
+    if (!counts.has(id)) {
+      counts.set(id, 0);
+    }
+  }
+
+  return counts;
+}
 
 /**
  * Get children of a node
@@ -413,6 +476,7 @@ export function getAncestors(nodeId: string): KNode[] {
 
 /**
  * Get tasks by status
+ * A "task" is any node with task_status set, regardless of structural type.
  */
 export function getTasksByStatus(status: TaskStatus | TaskStatus[]): KNode[] {
   const db = getDb();
@@ -423,7 +487,7 @@ export function getTasksByStatus(status: TaskStatus | TaskStatus[]): KNode[] {
     .query(
       `
     SELECT * FROM nodes
-    WHERE type = 'task' AND task_status IN (${placeholders})
+    WHERE task_status IN (${placeholders})
     ORDER BY priority ASC, due_date ASC, created_at ASC
   `,
     )
@@ -434,6 +498,7 @@ export function getTasksByStatus(status: TaskStatus | TaskStatus[]): KNode[] {
 
 /**
  * Get all tasks
+ * A "task" is any node with task_status set, regardless of structural type.
  */
 export function getAllTasks(): KNode[] {
   const db = getDb();
@@ -441,7 +506,7 @@ export function getAllTasks(): KNode[] {
     .query(
       `
     SELECT * FROM nodes
-    WHERE type = 'task'
+    WHERE task_status IS NOT NULL
     ORDER BY task_status, priority ASC, due_date ASC, created_at ASC
   `,
     )
@@ -471,6 +536,7 @@ export function getLinksTo(nodeId: string): KNode[] {
 
 /**
  * Get tasks with optional status filter
+ * A "task" is any node with task_status set, regardless of structural type.
  */
 export function getTasksFiltered(options: {
   status?: TaskStatus;
@@ -478,7 +544,7 @@ export function getTasksFiltered(options: {
 }): KNode[] {
   const db = getDb();
 
-  let sql = "SELECT * FROM nodes WHERE type = 'task'";
+  let sql = "SELECT * FROM nodes WHERE task_status IS NOT NULL";
   const params: string[] = [];
 
   if (options.status) {
@@ -497,6 +563,7 @@ export function getTasksFiltered(options: {
 
 /**
  * Get all tasks under a node (recursive via descendants)
+ * A "task" is any node with task_status set, regardless of structural type.
  */
 export function getTasksUnderNode(rootId: string): KNode[] {
   const db = getDb();
@@ -512,7 +579,7 @@ export function getTasksUnderNode(rootId: string): KNode[] {
       JOIN descendants d ON n.parent_id = d.id
     )
     SELECT * FROM nodes
-    WHERE id IN descendants AND type = 'task'
+    WHERE id IN descendants AND task_status IS NOT NULL
     ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC
   `,
     )

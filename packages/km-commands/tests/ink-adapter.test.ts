@@ -30,6 +30,7 @@ function createNode(id: string, opts?: Partial<TNode>): TNode {
     title: id,
     children: [],
     childCount: 0,
+    childrenLoaded: true,
     isTask: false,
     depth: 0,
     data: {},

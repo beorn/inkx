@@ -73,9 +73,13 @@ export async function runBoard(
   // For interactive mode, use deferred loading to show spinner while vault loads
   if (interactive) {
     // Initialize filesystem sync if we have a vault path
+    // Watch can be disabled via: --no-watch CLI flag or config tui.watch=false
+    // Note: Disabling watch still allows TUI edits to write to filesystem,
+    // it just disables watching for external file changes (which blocks event loop on large vaults)
+    const watchEnabled = options?.watch !== false;
     let syncManager: SyncManager | null = null;
     if (rootPath) {
-      debug("Creating SyncManager for: %s", rootPath);
+      debug("Creating SyncManager for: %s (watch=%s)", rootPath, watchEnabled);
       syncManager = new SyncManager({
         vaultPath: rootPath,
         debounceFs: 2000, // Debounce external changes (2s)
@@ -83,21 +87,32 @@ export async function runBoard(
         conflictStrategy: "last_write_wins",
       });
 
-      // Wire up TUI changes → filesystem
+      // Wire up TUI changes → filesystem (always enabled for writes)
       setFsSync(syncManager);
 
-      // Wire up filesystem changes → TUI refresh
-      syncManager.on("state-change", (newState) => {
-        // When sync manager finishes reconciling external changes, refresh TUI
-        if (newState === "idle") {
-          tuiEvents.emit("refresh");
-        }
-      });
+      if (watchEnabled) {
+        // Wire up filesystem changes → TUI refresh
+        syncManager.on("state-change", (newState) => {
+          // When sync manager finishes reconciling external changes, refresh TUI
+          if (newState === "idle") {
+            tuiEvents.emit("refresh");
+          }
+        });
 
-      // Start watching for filesystem changes
-      debug("Starting syncManager...");
-      syncManager.start();
-      debug("syncManager started");
+        // Defer starting watcher to avoid blocking keyboard input during initialization
+        // Chokidar can block the event loop for 20+ seconds on large directories (21k+ files)
+        // Using 500ms delay ensures the TUI is fully interactive before watcher setup begins
+        debug("Deferring syncManager start (500ms)...");
+        setTimeout(() => {
+          if (syncManager) {
+            debug("Starting syncManager (deferred)...");
+            syncManager.start();
+            debug("syncManager started");
+          }
+        }, 500);
+      } else {
+        debug("File watching disabled - TUI edits will still write to filesystem");
+      }
     }
 
     try {
