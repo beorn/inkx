@@ -89,16 +89,16 @@ function getNodeIdAtPath(nodes: TNode[], path: TPath): string | null {
 }
 
 /**
- * Helper to update both cursor and selectedNodeId together.
- * This ensures they stay in sync during the migration period.
+ * Helper to update both cursor and cursorNodeId together.
+ * This ensures they stay in sync.
  */
 function updateCursor(
   state: BoardState,
   newCursor: TPath,
-): Pick<BoardState, "cursor" | "selectedNodeId"> {
+): Pick<BoardState, "cursor" | "cursorNodeId"> {
   return {
     cursor: newCursor,
-    selectedNodeId: getNodeIdAtPath(state.nodes, newCursor),
+    cursorNodeId: getNodeIdAtPath(state.nodes, newCursor),
   };
 }
 
@@ -106,7 +106,7 @@ function updateCursor(
  * Find the path to a node by its ID.
  * Returns null if the node is not found in the tree.
  *
- * This is the key function for the selectedNodeId -> cursor derivation.
+ * This is the key function for the cursorNodeId -> cursor derivation.
  * It searches the tree depth-first and returns the path as soon as found.
  */
 export function findPathToNode(
@@ -462,7 +462,7 @@ export function boardReducer(
 
     case "ZOOM_IN": {
       // nodeId can be null (root level) or a string
-      // IMPORTANT: selectedNodeId is PRESERVED across zoom - the same node stays selected
+      // IMPORTANT: cursorNodeId is PRESERVED across zoom - the same node stays selected
       // The cursor path changes (relative to new root), but the actual node is the same
       const newZoomStack = [
         ...state.zoomStack,
@@ -473,18 +473,18 @@ export function boardReducer(
       ];
 
       let newCursor: TPath;
-      let newSelectedNodeId: string | null;
+      let newCursorNodeId: string | null;
 
       if (action.cursor) {
-        // Explicit cursor provided - use it and derive selectedNodeId
+        // Explicit cursor provided - use it and derive cursorNodeId
         newCursor = action.cursor;
-        newSelectedNodeId = getNodeIdAtPath(action.nodes, newCursor);
+        newCursorNodeId = getNodeIdAtPath(action.nodes, newCursor);
       } else {
-        // No cursor provided - preserve selectedNodeId and derive cursor from it
-        newSelectedNodeId = state.selectedNodeId;
-        if (newSelectedNodeId) {
-          // Find where the selected node is in the new tree
-          const derivedPath = findPathToNode(action.nodes, newSelectedNodeId);
+        // No cursor provided - preserve cursorNodeId and derive cursor from it
+        newCursorNodeId = state.cursorNodeId;
+        if (newCursorNodeId) {
+          // Find where the cursor node is in the new tree
+          const derivedPath = findPathToNode(action.nodes, newCursorNodeId);
           newCursor = derivedPath ?? [0]; // Fall back to [0] if not found
         } else {
           newCursor = [0];
@@ -496,7 +496,7 @@ export function boardReducer(
         rootId: action.nodeId,
         nodes: action.nodes,
         cursor: newCursor,
-        selectedNodeId: newSelectedNodeId,
+        cursorNodeId: newCursorNodeId,
         zoomStack: newZoomStack,
       };
     }
@@ -507,11 +507,11 @@ export function boardReducer(
       const prev = newZoomStack.pop();
       if (!prev) return state; // Shouldn't happen, but satisfies lint
 
-      // IMPORTANT: selectedNodeId is PRESERVED across zoom
-      // Derive cursor from selectedNodeId in the new tree
+      // IMPORTANT: cursorNodeId is PRESERVED across zoom
+      // Derive cursor from cursorNodeId in the new tree
       let newCursor: TPath;
-      if (state.selectedNodeId) {
-        const derivedPath = findPathToNode(action.nodes, state.selectedNodeId);
+      if (state.cursorNodeId) {
+        const derivedPath = findPathToNode(action.nodes, state.cursorNodeId);
         newCursor = derivedPath ?? prev.cursor; // Fall back to stored cursor if not found
       } else {
         newCursor = prev.cursor;
@@ -522,7 +522,7 @@ export function boardReducer(
         rootId: prev.rootId,
         nodes: action.nodes,
         cursor: newCursor,
-        // selectedNodeId stays unchanged - same node remains selected
+        // cursorNodeId stays unchanged - same node remains selected
         zoomStack: newZoomStack,
       };
     }
@@ -542,7 +542,7 @@ export function boardReducer(
         ...state,
         nodes: action.nodes,
         cursor: safeCursor,
-        selectedNodeId: safeNodeId,
+        cursorNodeId: safeNodeId,
       };
     }
 
@@ -563,7 +563,7 @@ export function boardReducer(
         rootPath: action.rootPath,
         nodes: action.nodes,
         cursor: newCursor,
-        selectedNodeId: getNodeIdAtPath(action.nodes, newCursor),
+        cursorNodeId: getNodeIdAtPath(action.nodes, newCursor),
         navHistory: newHistory,
         navHistoryIndex: newHistory.length,
       };
@@ -889,19 +889,19 @@ export function createBoardState(
   rootId: string | null = null,
   rootPath: string | null = null,
 ): BoardState {
-  // Determine initial cursor position and selected node
+  // Determine initial cursor position and cursor node
   // Prefer starting at card level [0, 0] if first node has children
   let cursor: TPath = [];
-  let selectedNodeId: string | null = null;
+  let cursorNodeId: string | null = null;
 
   if (nodes.length > 0) {
     const firstNode = nodes[0];
     if (firstNode && firstNode.children.length > 0) {
       cursor = [0, 0]; // Start at first card in first column
-      selectedNodeId = firstNode.children[0]?.id ?? null;
+      cursorNodeId = firstNode.children[0]?.id ?? null;
     } else if (firstNode) {
       cursor = [0]; // Start at first column (no children)
-      selectedNodeId = firstNode.id;
+      cursorNodeId = firstNode.id;
     }
   }
 
@@ -909,7 +909,7 @@ export function createBoardState(
     rootId,
     rootPath,
     nodes,
-    selectedNodeId,
+    cursorNodeId,
     cursor,
     selectedNodes: new Set(),
     foldedNodes: new Set(),

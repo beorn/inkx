@@ -120,7 +120,7 @@ function extractWipLimits(nodes: TNode[]): Map<string, number> {
  * This is the main conversion function called on each render.
  *
  * Priority for cursor derivation:
- * 1. If selectedNodeId is set and found in tree, derive path from it
+ * 1. If cursorNodeId is set and found in tree, derive path from it
  * 2. Otherwise fall back to stored cursor path
  *
  * This ensures the cursor follows the selected node across zoom operations.
@@ -128,15 +128,15 @@ function extractWipLimits(nodes: TNode[]): Map<string, number> {
 export function deriveColumnsLayout(state: TreeBoardState): ColumnsLayout {
   const wipLimits = extractWipLimits(state.nodes);
 
-  // Derive cursor path from selectedNodeId if available
+  // Derive cursor path from cursorNodeId if available
   // This is the key to making zoom preserve selection
   let cursorPath = state.cursor;
-  if (state.selectedNodeId) {
-    const derivedPath = findPathToNode(state.nodes, state.selectedNodeId);
+  if (state.cursorNodeId) {
+    const derivedPath = findPathToNode(state.nodes, state.cursorNodeId);
     if (derivedPath) {
       cursorPath = derivedPath;
     }
-    // If selectedNodeId not found in tree, keep using stored cursor
+    // If cursorNodeId not found in tree, keep using stored cursor
     // (node might be outside visible tree after zoom)
   }
 
@@ -317,17 +317,17 @@ export function tuiStateToTreeState(
       ? [tuiState.colIndex, tuiState.cardIndex]
       : [tuiState.colIndex];
 
-  // Derive selectedNodeId from cursor
-  let selectedNodeId: string | null = null;
+  // Derive cursorNodeId from cursor
+  let cursorNodeId: string | null = null;
   if (cursor.length >= 2) {
     // Card level
     const col = tuiState.columns[cursor[0] ?? 0];
     const card = col?.cards[cursor[1] ?? 0];
-    selectedNodeId = card?.node.id ?? null;
+    cursorNodeId = card?.node.id ?? null;
   } else if (cursor.length === 1) {
     // Column level
     const col = tuiState.columns[cursor[0] ?? 0];
-    selectedNodeId = col?.node.id ?? null;
+    cursorNodeId = col?.node.id ?? null;
   }
 
   // Merge foldedCards and uiState.foldedNodes
@@ -361,7 +361,7 @@ export function tuiStateToTreeState(
     rootId: tuiState.rootId,
     rootPath: tuiState.rootPath,
     nodes,
-    selectedNodeId,
+    cursorNodeId,
     cursor,
     selectedNodes: new Set<string>(),
     foldedNodes,

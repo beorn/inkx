@@ -32,13 +32,14 @@ export interface BoardState {
   // Tree data
   nodes: TNode[]; // Top-level nodes
 
-  // Node cursor - the ACTUAL selected node (stable across zoom)
-  // This is the single source of truth for which node is selected
-  selectedNodeId: string | null;
+  // Cursor node - the ACTUAL selected node (stable across zoom)
+  // This is the single source of truth for which node the cursor is on
+  // "cursor" = single focused node; "selection" is reserved for multi-select
+  cursorNodeId: string | null;
 
-  // Path-based navigation (DERIVED from selectedNodeId for backward compatibility)
-  // TODO: Remove cursor once selectedNodeId is fully adopted
-  cursor: TPath; // Current selection path (relative to rootId)
+  // Path-based cursor (DERIVED from cursorNodeId for backward compatibility)
+  // cursor[0] = column index, cursor[1] = card index, cursor[2+] = outline depth
+  cursor: TPath;
 
   // Selection state
   selectedNodes: Set<string>;

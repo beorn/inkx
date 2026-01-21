@@ -117,18 +117,18 @@ describe("ZOOM_IN cursor preservation", () => {
     expect(result.cursor).toEqual([1]);
   });
 
-  it("preserves selectedNodeId when cursor is not provided to ZOOM_IN", () => {
-    // When ZOOM_IN is called WITHOUT a cursor, selectedNodeId should be preserved
+  it("preserves cursorNodeId when cursor is not provided to ZOOM_IN", () => {
+    // When ZOOM_IN is called WITHOUT a cursor, cursorNodeId should be preserved
     const initialNodes = [
       createNode("col-A", [createNode("card-X"), createNode("card-Y")]),
     ];
     const initialState: BoardState = {
       ...createBoardState(initialNodes, "root"),
       cursor: [0, 0],
-      selectedNodeId: "card-X",
+      cursorNodeId: "card-X",
     };
 
-    // Zoom without providing cursor - selectedNodeId should stay the same
+    // Zoom without providing cursor - cursorNodeId should stay the same
     const newNodes = [createNode("card-X"), createNode("card-Y")];
     const result = boardReducer(initialState, {
       type: "ZOOM_IN",
@@ -137,15 +137,16 @@ describe("ZOOM_IN cursor preservation", () => {
       // NO cursor provided - this is the key!
     });
 
-    // selectedNodeId should be preserved (not changed)
-    expect(result.selectedNodeId).toBe("card-X");
+    // cursorNodeId should be preserved (not changed)
+    expect(result.cursorNodeId).toBe("card-X");
   });
+
 });
 
-describe("selectedNodeId-based cursor derivation", () => {
-  it("derives cursor from selectedNodeId when node is in new tree", () => {
-    // When ZOOM_IN doesn't provide cursor, and selectedNodeId is in the new tree,
-    // the cursor should be derivable from selectedNodeId via findPathToNode
+describe("cursorNodeId-based cursor derivation", () => {
+  it("derives cursor from cursorNodeId when node is in new tree", () => {
+    // When ZOOM_IN doesn't provide cursor, and cursorNodeId is in the new tree,
+    // the cursor should be derivable from cursorNodeId via findPathToNode
     const initialNodes = [
       createNode("col-A", [createNode("card-X"), createNode("card-Y")]),
       createNode("col-B", [createNode("card-Z")]),
@@ -153,7 +154,7 @@ describe("selectedNodeId-based cursor derivation", () => {
     const initialState: BoardState = {
       ...createBoardState(initialNodes, "root"),
       cursor: [0, 0],
-      selectedNodeId: "card-X", // Card X is selected
+      cursorNodeId: "card-X", // Card X is selected
     };
 
     // Zoom to col-A - card-X becomes a top-level node (column)
@@ -162,20 +163,20 @@ describe("selectedNodeId-based cursor derivation", () => {
       type: "ZOOM_IN",
       nodeId: "col-A",
       nodes: newNodes,
-      // NO cursor provided - selectedNodeId is preserved
+      // NO cursor provided - cursorNodeId is preserved
     });
 
-    // selectedNodeId preserved
-    expect(result.selectedNodeId).toBe("card-X");
+    // cursorNodeId preserved
+    expect(result.cursorNodeId).toBe("card-X");
 
-    // Now verify we can find the path to selectedNodeId in the new tree
-    const pathToSelected = findPathToNode(result.nodes, result.selectedNodeId!);
+    // Now verify we can find the path to cursorNodeId in the new tree
+    const pathToSelected = findPathToNode(result.nodes, result.cursorNodeId!);
     expect(pathToSelected).toEqual([0]); // card-X is now at column index 0
   });
 
-  it("handles selectedNodeId not in new tree (graceful fallback)", () => {
-    // When the selected node is NOT in the new tree after zoom,
-    // the cursor defaults to [0] and selectedNodeId is still preserved
+  it("handles cursorNodeId not in new tree (graceful fallback)", () => {
+    // When the cursor node is NOT in the new tree after zoom,
+    // the cursor defaults to [0] and cursorNodeId is still preserved
     // (it's up to the UI layer to detect this and potentially update)
     const initialNodes = [
       createNode("col-A", [createNode("card-X")]),
@@ -184,7 +185,7 @@ describe("selectedNodeId-based cursor derivation", () => {
     const initialState: BoardState = {
       ...createBoardState(initialNodes, "root"),
       cursor: [1, 0],
-      selectedNodeId: "card-Z", // Card Z is selected (in col-B)
+      cursorNodeId: "card-Z", // Card Z is selected (in col-B)
     };
 
     // Zoom to col-A - card-Z is NOT in this subtree
@@ -196,11 +197,11 @@ describe("selectedNodeId-based cursor derivation", () => {
       // NO cursor provided
     });
 
-    // selectedNodeId is preserved even though it's not in the new tree
-    expect(result.selectedNodeId).toBe("card-Z");
+    // cursorNodeId is preserved even though it's not in the new tree
+    expect(result.cursorNodeId).toBe("card-Z");
 
     // But findPathToNode will return null for the missing node
-    const pathToSelected = findPathToNode(result.nodes, result.selectedNodeId!);
+    const pathToSelected = findPathToNode(result.nodes, result.cursorNodeId!);
     expect(pathToSelected).toBeNull();
 
     // Cursor defaults to [0] when not provided

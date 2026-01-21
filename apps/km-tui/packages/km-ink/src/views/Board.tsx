@@ -521,13 +521,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               ui.inOutlineMode,
             );
 
-            // Dispatch zoom action WITHOUT cursor - selectedNodeId is preserved
-            // deriveColumnsLayout will compute the cursor path from selectedNodeId
+            // Dispatch zoom action WITHOUT cursor - cursorNodeId is preserved
+            // deriveColumnsLayout will compute the cursor path from cursorNodeId
             dispatchBoard({
               type: "ZOOM_IN",
               nodeId: parentNode.id,
               nodes,
-              // NO cursor parameter - let selectedNodeId drive the selection
+              // NO cursor parameter - let cursorNodeId drive the selection
             });
             clearSelection(keyboardContext);
             return;
@@ -550,12 +550,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               ui.inOutlineMode,
             );
 
-            // Dispatch zoom action WITHOUT cursor - selectedNodeId is preserved
+            // Dispatch zoom action WITHOUT cursor - cursorNodeId is preserved
             dispatchBoard({
               type: "ZOOM_IN",
               nodeId: rootView.rootId,
               nodes,
-              // NO cursor parameter - let selectedNodeId drive the selection
+              // NO cursor parameter - let cursorNodeId drive the selection
             });
             clearSelection(keyboardContext);
             return;
@@ -924,13 +924,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       clearSelection(keyboardContext);
       dispatch(actions.setDetailPane(false));
 
-      // Dispatch zoom action WITHOUT cursor - selectedNodeId is preserved
-      // deriveColumnsLayout will compute the cursor path from selectedNodeId
+      // Dispatch zoom action WITHOUT cursor - cursorNodeId is preserved
+      // deriveColumnsLayout will compute the cursor path from cursorNodeId
       dispatchBoard({
         type: "ZOOM_IN",
         nodeId: rootId,
         nodes,
-        // NO cursor parameter - let selectedNodeId drive the selection
+        // NO cursor parameter - let cursorNodeId drive the selection
       });
     }
 
@@ -1252,13 +1252,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       clearSelection(keyboardContext);
       dispatch(actions.setDetailPane(false));
 
-      // Dispatch zoom action WITHOUT cursor - selectedNodeId is preserved
-      // deriveColumnsLayout will compute the cursor path from selectedNodeId
+      // Dispatch zoom action WITHOUT cursor - cursorNodeId is preserved
+      // deriveColumnsLayout will compute the cursor path from cursorNodeId
       dispatchBoard({
         type: "ZOOM_IN",
         nodeId: nextRootId,
         nodes,
-        // NO cursor parameter - let selectedNodeId drive the selection
+        // NO cursor parameter - let cursorNodeId drive the selection
       });
 
       // selectionLevel is now derived from cursor depth, no need to set it manually
