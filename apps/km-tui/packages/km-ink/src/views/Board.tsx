@@ -588,12 +588,18 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         }
       }
 
-      // Also try moving from card to column level
+      // Try moving from card to column level
       if (columnsLayout.cardIndex >= 0) {
         dispatchBoard({
           type: "NAV_TO_PATH",
           path: [columnsLayout.colIndex],
         });
+        return;
+      }
+
+      // Try moving from column level to board level (select all columns)
+      if (ui.selectionLevel === "column") {
+        dispatch(actions.setSelectionLevel("board"));
         return;
       }
 
