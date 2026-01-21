@@ -159,7 +159,8 @@ export function TreeNode({
 
       {/* Main row: Box with paddingLeft for depth indentation */}
       {/* paddingLeft={depth + 1} gives 1-char left margin at depth 0, increasing per level */}
-      <Box flexDirection="row" backgroundColor={style.backgroundColor} paddingLeft={depth + 1}>
+      {/* alignItems="flex-start" prevents row from stretching to match content height */}
+      <Box flexDirection="row" alignItems="flex-start" backgroundColor={style.backgroundColor} paddingLeft={depth + 1}>
         {/* Fixed-width prefix box (fold indicator + icon) */}
         <Box width={prefix.length} flexShrink={0}>
           <Text
