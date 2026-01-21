@@ -16,6 +16,7 @@ import {
   parseMarkdown,
   extractFrontmatter,
   extractTaskMark,
+  extractTitleTaskMark,
   nodeToText,
   listItemToText,
   slugify,
@@ -27,7 +28,7 @@ import {
   parseHeadingRules,
   parseInlineProperties,
 } from "./parser.ts";
-import type { WikiLink } from "./parser.ts";
+import type { WikiLink, PropertyValue } from "./parser.ts";
 
 /**
  * Parse warning for structural issues
@@ -39,12 +40,42 @@ export interface ParseWarning {
 }
 
 /**
+ * Extracted link with optional relationship (for property-based links)
+ */
+export interface ExtractedLink {
+  nodeId: string;
+  link: WikiLink;
+  /** Property name for property-based links (e.g., "blocked-by"), undefined for content wikilinks */
+  relationship?: string;
+}
+
+/**
  * Result of parsing markdown with wikilinks
  */
 export interface ParseResult {
   nodes: KNode[];
-  wikilinks: Array<{ nodeId: string; link: WikiLink }>;
+  wikilinks: ExtractedLink[];
   warnings: ParseWarning[];
+}
+
+/**
+ * Extract link targets from a PropertyValue
+ * Handles single links and lists of links
+ */
+function extractLinksFromProperty(propValue: PropertyValue): string[] {
+  if (propValue.type === "link") {
+    return [propValue.target];
+  }
+  if (propValue.type === "list") {
+    const targets: string[] = [];
+    for (const item of propValue.values) {
+      if (item.type === "link") {
+        targets.push(item.target);
+      }
+    }
+    return targets;
+  }
+  return [];
 }
 
 /**
@@ -115,6 +146,13 @@ export function parseMarkdownWithLinks(
     if (h1Section.rules) {
       fileNode.rules = h1Section.rules;
     }
+    // Copy task properties from H1 (if present)
+    if (h1Section.task_status) {
+      fileNode.task_status = h1Section.task_status;
+    }
+    if (h1Section.task_mark) {
+      fileNode.task_mark = h1Section.task_mark;
+    }
     // Merge H1's data into file data, but frontmatter takes precedence
     // (frontmatter fields overwrite H1 data fields)
     if (h1Section.data) {
@@ -136,22 +174,45 @@ export function parseMarkdownWithLinks(
 
   const allNodes = [fileNode, ...childNodes];
 
-  // Extract wikilinks from all nodes with content
-  const wikilinks: Array<{ nodeId: string; link: WikiLink }> = [];
+  // Extract wikilinks from all nodes with content (both inline and from properties)
+  const wikilinks: ExtractedLink[] = [];
   for (const node of allNodes) {
+    // Extract wikilinks from content
     if (node.content) {
       const links = parseWikiLinks(node.content);
       for (const link of links) {
         wikilinks.push({ nodeId: node.id, link });
       }
     }
+
+    // Extract links from properties (e.g., blocked-by:: [[target]])
+    const nodeData = node.data as { props?: Record<string, PropertyValue> } | undefined;
+    if (nodeData?.props) {
+      for (const [propName, propValue] of Object.entries(nodeData.props)) {
+        const propLinks = extractLinksFromProperty(propValue);
+        for (const target of propLinks) {
+          wikilinks.push({
+            nodeId: node.id,
+            link: { type: "wikiLink", target, embedded: false },
+            relationship: propName,
+          });
+        }
+      }
+    }
   }
 
-  // Aggregate mentions, tags, projects from all child nodes to file node
-  // This enables queries like @issue to find files where any child has that mention
+  // Aggregate mentions, tags, projects from all nodes (including file node) to file node's data
+  // This enables queries like @issue to find files where any content has that mention
   const aggregatedMentions = new Set<string>();
   const aggregatedTags = new Set<string>();
   const aggregatedProjects = new Set<string>();
+
+  // Include file node's own content (e.g., H1 heading with @issue #feature)
+  if (fileNode.content) {
+    for (const m of extractMentions(fileNode.content)) aggregatedMentions.add(m);
+    for (const t of extractTags(fileNode.content)) aggregatedTags.add(t);
+    for (const p of extractProjects(fileNode.content)) aggregatedProjects.add(p);
+  }
 
   for (const node of childNodes) {
     if (node.content) {
@@ -259,9 +320,33 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
       }
 
       const text = nodeToText(heading);
-      const { title, rules } = parseHeadingRules(text);
+      const { title: titleWithRules, rules } = parseHeadingRules(text);
+      const { mark: taskMark, cleanText: title } = extractTitleTaskMark(titleWithRules);
       const hasRules = Object.keys(rules).length > 0;
       const sectionName = slugify(title);
+
+      // Determine task status from mark (same logic as list items)
+      let taskStatus: TaskStatus | undefined;
+      if (taskMark !== undefined) {
+        switch (taskMark) {
+          case "x":
+          case "X":
+            taskStatus = "done";
+            break;
+          case "!":
+            taskStatus = "blocked";
+            break;
+          case "-":
+            taskStatus = "dropped";
+            break;
+          case "/":
+            taskStatus = "wip";
+            break;
+          case " ":
+          default:
+            taskStatus = "todo";
+        }
+      }
 
       const sectionNode: KNode = {
         id: ulid(),
@@ -277,8 +362,10 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
         md_slug: sectionName, // Keep for backwards compatibility
         content: text, // Keep original content for serialization
         content_hash: undefined,
-        title, // Clean title without rules
+        title, // Clean title without rules and task mark
         rules: hasRules ? rules : undefined, // Only set if rules exist
+        task_status: taskStatus,
+        task_mark: taskMark as TaskMark,
         data: {
           depth: heading.depth,
           ...(hasRules ? { rules, title } : {}), // Store rules and clean title in data for DB persistence

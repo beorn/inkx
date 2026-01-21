@@ -266,7 +266,7 @@ export function parseQuery(query: string): QueryAST {
       continue;
     }
 
-    // Property queries: prop::* (exists), prop::value (equals)
+    // Property queries: prop::* (exists), prop::value (equals), prop::>N (comparison)
     // Pattern: name::value where :: distinguishes from field:value
     const propMatch = term.match(/^([a-z][a-z0-9_-]*)::(.*)$/i);
     if (propMatch) {
@@ -281,18 +281,31 @@ export function parseQuery(query: string): QueryAST {
           offset,
         });
       } else {
-        // Value match: prop::value
-        // Check if it's a number
-        const numValue = parseFloat(propValue ?? "");
-        const isNumber = !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "");
+        // Check for comparison operators: >N, <N, >=N, <=N
+        const compMatch = propValue?.match(/^(>=|<=|>|<)(-?\d+(?:\.\d+)?)$/);
+        if (compMatch) {
+          const [, compOp, numStr] = compMatch;
+          ast.propConditions.push({
+            prop: propName?.toLowerCase() ?? "",
+            op: compOp as ">" | "<" | ">=" | "<=",
+            value: parseFloat(numStr ?? "0"),
+            negated,
+            offset,
+          });
+        } else {
+          // Value match: prop::value
+          // Check if it's a number
+          const numValue = parseFloat(propValue ?? "");
+          const isNumber = !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "");
 
-        ast.propConditions.push({
-          prop: propName?.toLowerCase() ?? "",
-          op: negated ? "!=" : "=",
-          value: isNumber ? numValue : (propValue ?? ""),
-          negated,
-          offset,
-        });
+          ast.propConditions.push({
+            prop: propName?.toLowerCase() ?? "",
+            op: negated ? "!=" : "=",
+            value: isNumber ? numValue : (propValue ?? ""),
+            negated,
+            offset,
+          });
+        }
       }
       continue;
     }

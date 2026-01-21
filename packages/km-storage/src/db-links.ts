@@ -18,7 +18,7 @@ const debug = createDebug("km:storage:db:links");
 // =============================================================================
 
 /**
- * Link record for wikilinks
+ * Link record for wikilinks and property-based links
  */
 export interface Link {
   source_id: string;
@@ -28,6 +28,8 @@ export interface Link {
   block_id: string | null;
   alias: string | null;
   embedded: boolean;
+  /** Property name for property-based links (e.g., "blocked-by"), null for wikilinks */
+  relationship: string | null;
   created_at: number;
 }
 
@@ -39,12 +41,12 @@ export interface Link {
  * Add a link from source to target
  */
 export function addLink(link: Omit<Link, "created_at">): void {
-  debug("addLink: %s → %s", link.source_id, link.target_name);
+  debug("addLink: %s → %s (relationship=%s)", link.source_id, link.target_name, link.relationship ?? "wikilink");
   const db = getDb();
   db.run(
     `
-    INSERT OR REPLACE INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       link.source_id,
@@ -54,6 +56,7 @@ export function addLink(link: Omit<Link, "created_at">): void {
       link.block_id,
       link.alias,
       link.embedded ? 1 : 0,
+      link.relationship,
       Date.now(),
     ],
   );
@@ -151,6 +154,7 @@ function rowToLink(row: Record<string, unknown>): Link {
     block_id: row.block_id as string | null,
     alias: row.alias as string | null,
     embedded: Boolean(row.embedded),
+    relationship: (row.relationship as string | null) ?? null,
     created_at: row.created_at as number,
   };
 }

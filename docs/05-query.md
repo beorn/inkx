@@ -97,6 +97,45 @@ Match field values with `key:value`:
 
 ---
 
+## Property Terms
+
+Match inline properties using `prop::value` syntax (double colon):
+
+| Pattern          | Description                          | Example            |
+| ---------------- | ------------------------------------ | ------------------ |
+| `prop::*`        | Property exists                      | `rating::*`        |
+| `prop::value`    | Property equals value                | `author::alice`    |
+| `prop::N`        | Property equals number               | `rating::5`        |
+| `prop::>N`       | Property greater than                | `rating::>3`       |
+| `prop::<N`       | Property less than                   | `priority::<5`     |
+| `prop::>=N`      | Property greater than or equal       | `rating::>=4`      |
+| `prop::<=N`      | Property less than or equal          | `rating::<=2`      |
+| `-prop::*`       | Property does not exist              | `-blocked-by::*`   |
+| `-prop::value`   | Property does not equal value        | `-status::blocked` |
+
+### Special: Blocked Query
+
+| Pattern         | Description                                       |
+| --------------- | ------------------------------------------------- |
+| `blocked:true`  | Has `blocked-by::` with unresolved blockers       |
+| `blocked:false` | No `blocked-by::` or all blockers done/dropped    |
+
+```bash
+# Find tasks ready to work on
+status:todo blocked:false
+
+# Find tasks waiting on dependencies
+blocked:true
+
+# Find highly-rated items
+rating::>=4
+
+# Find tasks blocking a specific issue
+blocks::km-auth
+```
+
+---
+
 ## Negation
 
 Prefix any term with `-` to exclude:

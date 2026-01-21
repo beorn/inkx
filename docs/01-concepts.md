@@ -85,14 +85,28 @@ Status answers: **Can I work on this?**
 
 ## Links
 
-| Syntax        | Type       | Creates       |
-| ------------- | ---------- | ------------- |
-| `[[target]]`  | Wiki link  | Forward link  |
-| `![[target]]` | Embed link | Embedded node |
-| `@user`       | Sigil link | Forward link  |
-| `#tag`        | Sigil link | Forward link  |
-| `+project`    | Sigil link | Forward link  |
-| (reverse)     | Back link  | Auto-tracked  |
+| Syntax               | Type          | Creates                       |
+| -------------------- | ------------- | ----------------------------- |
+| `[[target]]`         | Wiki link     | Forward link                  |
+| `![[target]]`        | Embed link    | Embedded node                 |
+| `@user`              | Sigil link    | Forward link                  |
+| `#tag`               | Sigil link    | Forward link                  |
+| `+project`           | Sigil link    | Forward link                  |
+| `prop:: [[target]]`  | Property link | Forward link with relationship |
+| (reverse)            | Back link     | Auto-tracked                  |
+
+### Property Links
+
+Property links add semantic relationships to links:
+
+```markdown
+- [ ] Deploy blocked-by:: [[km-auth]]
+- [ ] Review blocks:: [[km-release]]
+```
+
+These create backlinks with relationship type, enabling queries like:
+- `blocked:true` — tasks with unresolved blockers
+- `blocks::km-123` — tasks that block a specific issue
 
 ### Node References
 
@@ -139,14 +153,17 @@ km init               # Enable tracking (creates .km/, disk mode)
 
 ## Query Language
 
-| Pattern       | Example          | Description            |
-| ------------- | ---------------- | ---------------------- |
-| `prop:value`  | `status:todo`    | Field equals value     |
-| `prop:func()` | `due:past()`     | Field matches function |
-| `-prop:value` | `-status:done`   | Negate match           |
-| `@ref #tag`   | `@bjorn #urgent` | Reference contains     |
-| `./path/*`    | `./inbox/**`     | Path pattern           |
-| `"text"`      | `"quarterly"`    | Full-text search       |
+| Pattern        | Example          | Description            |
+| -------------- | ---------------- | ---------------------- |
+| `field:value`  | `status:todo`    | Field equals value     |
+| `field:func()` | `due:past()`     | Field matches function |
+| `-field:value` | `-status:done`   | Negate match           |
+| `@ref #tag`    | `@bjorn #urgent` | Reference contains     |
+| `./path/*`     | `./inbox/**`     | Path pattern           |
+| `prop::value`  | `rating::5`      | Property equals value  |
+| `prop::>N`     | `rating::>3`     | Property comparison    |
+| `blocked:true` | `blocked:true`   | Has unresolved blockers |
+| `"text"`       | `"quarterly"`    | Full-text search       |
 
 See [05-query.md](05-query.md) for full query language specification.
 

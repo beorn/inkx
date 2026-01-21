@@ -94,8 +94,9 @@ CREATE TABLE IF NOT EXISTS links (
   block_id TEXT,               -- Optional block ID (^block)
   alias TEXT,                  -- Display alias (|alias)
   embedded INTEGER DEFAULT 0,  -- 1 if this is an embedding (![[...]]), 0 otherwise
+  relationship TEXT,           -- Property name for property-based links (null for wikilinks)
   created_at INTEGER,
-  PRIMARY KEY (source_id, target_name, section, block_id)
+  PRIMARY KEY (source_id, target_name, section, block_id, relationship)
 );
 
 CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id);

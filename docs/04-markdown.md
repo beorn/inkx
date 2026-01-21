@@ -268,6 +268,58 @@ function resolveWikiLink(link: WikiLink, currentFile: Node): Node | null {
 
 ---
 
+## Inline Properties
+
+Logseq-style inline properties for structured metadata.
+
+### Syntax
+
+```markdown
+- [ ] Task blocked-by:: [[other-task]]
+- [ ] Book review rating:: 5 author:: [[Oscar Wilde]]
+- [ ] Deploy blocks:: [[km-auth]], [[km-api]]
+```
+
+### Property Types
+
+| Type   | Example                      | Parsed Value                            |
+| ------ | ---------------------------- | --------------------------------------- |
+| Link   | `blocks:: [[km-a1b2]]`       | `{ type: "link", target: "km-a1b2" }`   |
+| Number | `rating:: 5`                 | `{ type: "number", value: 5 }`          |
+| Date   | `due:: 2024-01-15`           | `{ type: "date", value: "2024-01-15" }` |
+| Text   | `reason:: Fixed in PR #123`  | `{ type: "text", value: "..." }`        |
+| List   | `tags:: [[a]], [[b]], [[c]]` | `{ type: "list", values: [...] }`       |
+
+### Storage
+
+Properties are stored in `node.data.props`:
+
+```typescript
+{
+  type: 'task',
+  content: 'Task blocked-by:: [[other-task]] rating:: 5',
+  data: {
+    props: {
+      'blocked-by': { type: 'link', target: 'other-task' },
+      rating: { type: 'number', value: 5 }
+    },
+    propsRaw: {
+      'blocked-by': '[[other-task]]',
+      rating: '5'
+    }
+  }
+}
+```
+
+### Backlinks
+
+Property links create backlinks with relationship type:
+
+- `blocks:: [[km-a1b2]]` on node X → X appears in km-a1b2's backlinks as "blocks"
+- Enables semantic queries like finding all tasks that block a given issue
+
+---
+
 ## Frontmatter
 
 YAML frontmatter maps to node.data:

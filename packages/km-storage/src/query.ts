@@ -35,11 +35,24 @@ export {
   type DateRange,
 };
 
+/** Options for executeQuery */
+export interface QueryOptions {
+  /** Filter by structural type (e.g., "file", "section") */
+  baseType?: string;
+  /** If true, only return nodes with task_status set (any node acting as a task) */
+  requireTaskStatus?: boolean;
+}
+
 /**
  * Execute a query against the database
  */
-export function executeQuery(ast: QueryAST, baseType?: string): KNode[] {
+export function executeQuery(
+  ast: QueryAST,
+  baseType?: string,
+  options?: QueryOptions,
+): KNode[] {
   const db = getDb();
+  const requireTaskStatus = options?.requireTaskStatus ?? false;
 
   // Check if we need path filtering (requires CTE for ancestor lookup)
   const needsPathFilter = ast.paths.length > 0;
@@ -93,6 +106,11 @@ export function executeQuery(ast: QueryAST, baseType?: string): KNode[] {
   if (baseType) {
     sql += " AND type = ?";
     params.push(baseType);
+  }
+
+  // Filter to only nodes with task_status (nodes acting as tasks)
+  if (requireTaskStatus) {
+    sql += " AND task_status IS NOT NULL";
   }
 
   // Apply field conditions
@@ -181,9 +199,17 @@ export function executeQuery(ast: QueryAST, baseType?: string): KNode[] {
   }
 
   // Apply property conditions (data.props queries)
+  // Properties are stored as PropertyValue objects:
+  // - { type: "number", value: N }
+  // - { type: "link", target: "..." }
+  // - { type: "text", value: "..." }
+  // - { type: "date", value: "YYYY-MM-DD" }
+  // - { type: "list", values: [...] }
   for (const propCond of ast.propConditions) {
     const { prop, op, value, negated } = propCond;
     const jsonPath = `$.props.${prop}`;
+    const valuePath = `$.props.${prop}.value`; // For number/text/date
+    const targetPath = `$.props.${prop}.target`; // For link
 
     if (op === "exists") {
       if (negated) {
@@ -197,34 +223,61 @@ export function executeQuery(ast: QueryAST, baseType?: string): KNode[] {
     } else if ((op === "=" || op === "!=") && value !== undefined) {
       const effectiveOp = negated ? (op === "=" ? "!=" : "=") : op;
       if (effectiveOp === "=") {
-        // For link values, check if the value is in an array or equals directly
-        sql += ` AND (json_extract(data, ?) = ? OR json_extract(data, ?) LIKE ?)`;
-        params.push(jsonPath, value, jsonPath, `%"${value}"%`);
+        // Match value in different property types:
+        // - number/text/date: $.props.X.value = ?
+        // - link: $.props.X.target = ?
+        // - list: $.props.X.values contains the value (LIKE search)
+        sql += ` AND (json_extract(data, ?) = ? OR json_extract(data, ?) = ? OR json_extract(data, ?) LIKE ?)`;
+        params.push(valuePath, value, targetPath, value, jsonPath, `%"${value}"%`);
       } else {
-        sql += ` AND (json_extract(data, ?) IS NULL OR (json_extract(data, ?) != ? AND json_extract(data, ?) NOT LIKE ?))`;
-        params.push(jsonPath, jsonPath, value, jsonPath, `%"${value}"%`);
+        // Not equal - must not match in any form
+        sql += ` AND (json_extract(data, ?) IS NULL OR (json_extract(data, ?) != ? AND json_extract(data, ?) != ? AND json_extract(data, ?) NOT LIKE ?))`;
+        params.push(jsonPath, valuePath, value, targetPath, value, jsonPath, `%"${value}"%`);
       }
     } else if ((op === ">" || op === "<" || op === ">=" || op === "<=") && value !== undefined) {
-      // Numeric comparison
+      // Numeric comparison - extract from $.props.X.value
       sql += ` AND CAST(json_extract(data, ?) AS REAL) ${op} ?`;
-      params.push(jsonPath, value);
+      params.push(valuePath, value);
     }
   }
 
   // Apply special conditions (blocked:true/false)
+  // blocked:true = has blocked-by property pointing to at least one non-done task
+  // blocked:false = no blocked-by property OR all blockers are done
+  // Table alias: when path filter is used, outer query is "FROM nodes n", otherwise "FROM nodes"
+  const outerTable = needsPathFilter ? "n" : "nodes";
   for (const special of ast.specials) {
     if (special.type === "blocked") {
       if (special.value) {
         // blocked:true - has blocked-by property with at least one unresolved blocker
-        // A node is blocked if it has blocked-by:: with targets that are not done
+        // Properties are stored as PropertyValue: {type: "link", target: "..."} or {type: "list", values: [...]}
         sql += ` AND json_extract(data, '$.props.blocked-by') IS NOT NULL`;
-        // Note: Full blocked check (checking if blockers are done) requires a subquery
-        // For now, just check if blocked-by property exists
-        // TODO: Add subquery to check blocker statuses
+        // Subquery to check if any blocker is not done
+        sql += ` AND EXISTS (
+          SELECT 1 FROM nodes AS blocker
+          WHERE (
+            blocker.id = json_extract(${outerTable}.data, '$.props.blocked-by.target')
+            OR blocker.name = json_extract(${outerTable}.data, '$.props.blocked-by.target')
+            OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.id || '"%'
+            OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.name || '"%'
+          )
+          AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
+        )`;
       } else {
         // blocked:false - no blocked-by property OR all blockers are done
-        sql += ` AND (json_extract(data, '$.props.blocked-by') IS NULL)`;
-        // Note: Full unblocked check would need to verify all blockers are done
+        sql += ` AND (
+          json_extract(data, '$.props.blocked-by') IS NULL
+          OR NOT EXISTS (
+            SELECT 1 FROM nodes AS blocker
+            WHERE (
+              blocker.id = json_extract(${outerTable}.data, '$.props.blocked-by.target')
+              OR blocker.name = json_extract(${outerTable}.data, '$.props.blocked-by.target')
+              OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.id || '"%'
+              OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.name || '"%'
+            )
+            AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
+          )
+        )`;
       }
     }
   }
@@ -320,10 +373,11 @@ export function executeQuery(ast: QueryAST, baseType?: string): KNode[] {
 
 /**
  * Query tasks with a string query
+ * A "task" is any node with task_status set, regardless of structural type
  */
 export function queryTasks(query: string): KNode[] {
   const ast = parse(query);
-  return executeQuery(ast, "task");
+  return executeQuery(ast, undefined, { requireTaskStatus: true });
 }
 
 /**

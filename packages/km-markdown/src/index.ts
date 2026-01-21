@@ -3,6 +3,7 @@ export {
   parseMarkdown,
   extractFrontmatter,
   extractTaskMark,
+  extractTitleTaskMark,
   parseWikiLinks,
   extractTags,
   extractMentions,
@@ -34,7 +35,7 @@ export {
   buildNodeTree,
 } from "./ast2nodes.ts";
 
-export type { ParseResult, ParseWarning } from "./ast2nodes.ts";
+export type { ParseResult, ParseWarning, ExtractedLink } from "./ast2nodes.ts";
 
 // Nodes to markdown
 export { nodesToMarkdown, regenerateFile } from "./nodes2md.ts";

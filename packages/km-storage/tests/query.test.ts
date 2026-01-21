@@ -1153,3 +1153,483 @@ describe("Status on Any Node Type", () => {
     expect(ids).toContain("section1"); // wip
   });
 });
+
+/**
+ * Property Query Tests (km-props)
+ *
+ * Tests for inline property queries using prop::value syntax.
+ * Properties are stored as PropertyValue objects in data.props.
+ */
+describe("Property Query Parser", () => {
+  test("parses prop::* (existence check)", () => {
+    const ast = parseQuery("rating::*");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "rating",
+      op: "exists",
+      negated: false,
+    });
+  });
+
+  test("parses prop::value (string equality)", () => {
+    const ast = parseQuery("author::alice");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "author",
+      op: "=",
+      value: "alice",
+      negated: false,
+    });
+  });
+
+  test("parses prop::N (numeric equality)", () => {
+    const ast = parseQuery("rating::5");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "rating",
+      op: "=",
+      value: 5,
+      negated: false,
+    });
+  });
+
+  test("parses prop::>N (greater than)", () => {
+    const ast = parseQuery("rating::>3");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "rating",
+      op: ">",
+      value: 3,
+      negated: false,
+    });
+  });
+
+  test("parses prop::<N (less than)", () => {
+    const ast = parseQuery("priority::<5");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "priority",
+      op: "<",
+      value: 5,
+      negated: false,
+    });
+  });
+
+  test("parses prop::>=N (greater than or equal)", () => {
+    const ast = parseQuery("rating::>=4");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "rating",
+      op: ">=",
+      value: 4,
+      negated: false,
+    });
+  });
+
+  test("parses prop::<=N (less than or equal)", () => {
+    const ast = parseQuery("rating::<=2");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "rating",
+      op: "<=",
+      value: 2,
+      negated: false,
+    });
+  });
+
+  test("parses negated property existence (-prop::*)", () => {
+    const ast = parseQuery("-blocked-by::*");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "blocked-by",
+      op: "exists",
+      negated: true,
+    });
+  });
+
+  test("parses negated property value (-prop::value)", () => {
+    const ast = parseQuery("-status::blocked");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "status",
+      op: "!=",
+      value: "blocked",
+      negated: true,
+    });
+  });
+
+  test("parses blocked:true special query", () => {
+    const ast = parseQuery("blocked:true");
+    expect(ast.specials[0]).toMatchObject({
+      type: "blocked",
+      value: true,
+    });
+  });
+
+  test("parses blocked:false special query", () => {
+    const ast = parseQuery("blocked:false");
+    expect(ast.specials[0]).toMatchObject({
+      type: "blocked",
+      value: false,
+    });
+  });
+
+  test("tracks offsets for property conditions", () => {
+    const ast = parseQuery("rating::5");
+    expect(ast.propConditions[0]?.offset).toEqual({ start: 0, end: 9 });
+  });
+
+  test("parses property with hyphenated name", () => {
+    const ast = parseQuery("blocked-by::km-123");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "blocked-by",
+      op: "=",
+      value: "km-123",
+    });
+  });
+
+  test("parses decimal number in comparison", () => {
+    const ast = parseQuery("score::>3.5");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "score",
+      op: ">",
+      value: 3.5,
+    });
+  });
+
+  test("parses negative number in comparison", () => {
+    const ast = parseQuery("offset::>=-10");
+    expect(ast.propConditions[0]).toMatchObject({
+      prop: "offset",
+      op: ">=",
+      value: -10,
+    });
+  });
+});
+
+describe("Property Query Execution", () => {
+  beforeEach(() => {
+    const db = new Database(":memory:");
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS nodes (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        name TEXT,
+        parent_id TEXT,
+        link_to TEXT,
+        link_alias TEXT,
+        parent_idx REAL DEFAULT 0,
+        fs_path TEXT,
+        fs_ino INTEGER,
+        md_pos INTEGER,
+        md_slug TEXT,
+        task_status TEXT,
+        task_mark TEXT,
+        assigned_to TEXT,
+        due_date TEXT,
+        scheduled_date TEXT,
+        priority INTEGER,
+        content TEXT,
+        content_hash TEXT,
+        data JSON DEFAULT '{}',
+        created_at INTEGER,
+        updated_at INTEGER,
+        version TEXT
+      );
+    `);
+
+    const now = Date.now();
+
+    // Task with rating property (number)
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "task-rated",
+        "task",
+        "todo",
+        "Book review rating:: 5",
+        JSON.stringify({
+          props: { rating: { type: "number", value: 5 } },
+          propsRaw: { rating: "5" },
+        }),
+        now,
+        now,
+        "v1",
+        0,
+      ],
+    );
+
+    // Task with blocked-by property (single link)
+    db.run(
+      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "task-blocked",
+        "task",
+        "blocked-task",
+        "todo",
+        "Deploy blocked-by:: [[blocker-task]]",
+        JSON.stringify({
+          props: { "blocked-by": { type: "link", target: "blocker-task" } },
+          propsRaw: { "blocked-by": "[[blocker-task]]" },
+        }),
+        now,
+        now,
+        "v2",
+        1,
+      ],
+    );
+
+    // The blocker task (todo status - not done)
+    db.run(
+      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "blocker-task",
+        "task",
+        "blocker-task",
+        "todo",
+        "This blocks other tasks",
+        "{}",
+        now,
+        now,
+        "v3",
+        2,
+      ],
+    );
+
+    // Task with blocked-by where blocker is done
+    db.run(
+      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "task-unblocked",
+        "task",
+        "unblocked-task",
+        "todo",
+        "Was blocked blocked-by:: [[done-blocker]]",
+        JSON.stringify({
+          props: { "blocked-by": { type: "link", target: "done-blocker" } },
+          propsRaw: { "blocked-by": "[[done-blocker]]" },
+        }),
+        now,
+        now,
+        "v4",
+        3,
+      ],
+    );
+
+    // The done blocker
+    db.run(
+      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "done-blocker",
+        "task",
+        "done-blocker",
+        "done",
+        "Completed blocker",
+        "{}",
+        now,
+        now,
+        "v5",
+        4,
+      ],
+    );
+
+    // Task with author property (text)
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "task-authored",
+        "task",
+        "todo",
+        "Document author:: alice",
+        JSON.stringify({
+          props: { author: { type: "text", value: "alice" } },
+          propsRaw: { author: "alice" },
+        }),
+        now,
+        now,
+        "v6",
+        5,
+      ],
+    );
+
+    // Task with low rating
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "task-low-rated",
+        "task",
+        "todo",
+        "Mediocre book rating:: 2",
+        JSON.stringify({
+          props: { rating: { type: "number", value: 2 } },
+          propsRaw: { rating: "2" },
+        }),
+        now,
+        now,
+        "v7",
+        6,
+      ],
+    );
+
+    // Task without any properties
+    db.run(
+      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "task-plain",
+        "task",
+        "todo",
+        "Plain task without properties",
+        "{}",
+        now,
+        now,
+        "v8",
+        7,
+      ],
+    );
+
+    // Task with blocked-by list (multiple blockers)
+    db.run(
+      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "task-multi-blocked",
+        "task",
+        "multi-blocked-task",
+        "todo",
+        "Multi blocked blocked-by:: [[blocker-task]], [[done-blocker]]",
+        JSON.stringify({
+          props: {
+            "blocked-by": {
+              type: "list",
+              values: [
+                { type: "link", target: "blocker-task" },
+                { type: "link", target: "done-blocker" },
+              ],
+            },
+          },
+          propsRaw: { "blocked-by": "[[blocker-task]], [[done-blocker]]" },
+        }),
+        now,
+        now,
+        "v9",
+        8,
+      ],
+    );
+
+    setDb(db);
+  });
+
+  afterEach(() => {
+    closeDb();
+  });
+
+  test("prop::* matches nodes with any value for that property", () => {
+    const ast = parseQuery("rating::*");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(2);
+    const ids = results.map((r) => r.id);
+    expect(ids).toContain("task-rated");
+    expect(ids).toContain("task-low-rated");
+  });
+
+  test("-prop::* excludes nodes with that property", () => {
+    const ast = parseQuery("-rating::*");
+    const results = executeQuery(ast, "task");
+    // Should exclude task-rated and task-low-rated
+    expect(results.every((r) => r.id !== "task-rated")).toBe(true);
+    expect(results.every((r) => r.id !== "task-low-rated")).toBe(true);
+  });
+
+  test("prop::N matches exact numeric value", () => {
+    const ast = parseQuery("rating::5");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("task-rated");
+  });
+
+  test("prop::>N matches greater than", () => {
+    const ast = parseQuery("rating::>3");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("task-rated"); // rating 5 > 3
+  });
+
+  test("prop::<N matches less than", () => {
+    const ast = parseQuery("rating::<3");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("task-low-rated"); // rating 2 < 3
+  });
+
+  test("prop::>=N matches greater than or equal", () => {
+    const ast = parseQuery("rating::>=2");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(2); // Both 5 and 2 are >= 2
+  });
+
+  test("prop::<=N matches less than or equal", () => {
+    const ast = parseQuery("rating::<=2");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("task-low-rated"); // rating 2 <= 2
+  });
+
+  test("prop::text matches text property value", () => {
+    const ast = parseQuery("author::alice");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe("task-authored");
+  });
+
+  test("prop::target matches link property target", () => {
+    const ast = parseQuery("blocked-by::blocker-task");
+    const results = executeQuery(ast, "task");
+    // Should match task-blocked (single link) and task-multi-blocked (list containing it)
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    expect(results.some((r) => r.id === "task-blocked")).toBe(true);
+  });
+
+  test("blocked:true matches tasks with unresolved blockers", () => {
+    const ast = parseQuery("blocked:true");
+    const results = executeQuery(ast, "task");
+    // task-blocked is blocked by blocker-task (todo)
+    // task-multi-blocked is blocked by blocker-task (todo) and done-blocker (done)
+    // task-unblocked is blocked by done-blocker (done) - should NOT match
+    const ids = results.map((r) => r.id);
+    expect(ids).toContain("task-blocked");
+    expect(ids).toContain("task-multi-blocked"); // Has at least one unresolved blocker
+    expect(ids).not.toContain("task-unblocked"); // Blocker is done
+    expect(ids).not.toContain("task-plain"); // No blocked-by property
+  });
+
+  test("blocked:false matches tasks without blockers or with all blockers done", () => {
+    const ast = parseQuery("blocked:false");
+    const results = executeQuery(ast, "task");
+    const ids = results.map((r) => r.id);
+    // task-unblocked: blocker is done, so not blocked
+    // task-plain: no blocked-by property
+    // task-rated, task-low-rated, task-authored: no blocked-by property
+    expect(ids).toContain("task-unblocked");
+    expect(ids).toContain("task-plain");
+    expect(ids).not.toContain("task-blocked"); // Still blocked
+    expect(ids).not.toContain("task-multi-blocked"); // Still has unresolved blocker
+  });
+
+  test("combines property query with status filter", () => {
+    const ast = parseQuery("status:todo rating::>3");
+    const results = executeQuery(ast, "task");
+    expect(results.length).toBe(1);
+    expect(results[0]?.id).toBe("task-rated");
+  });
+
+  test("combines blocked:false with status:todo", () => {
+    const ast = parseQuery("status:todo blocked:false");
+    const results = executeQuery(ast, "task");
+    // Should return todo tasks that are not blocked
+    expect(results.every((r) => r.task_status === "todo")).toBe(true);
+    expect(
+      results.every(
+        (r) => r.id !== "task-blocked" && r.id !== "task-multi-blocked",
+      ),
+    ).toBe(true);
+  });
+});
