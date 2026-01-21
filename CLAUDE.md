@@ -191,21 +191,73 @@ bd sync               # Commit beads changes
 
 ---
 
-### 9. Session Completion (MANDATORY)
+### 9. Conventional Commits
+
+All commits MUST follow [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>(<scope>): <subject>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:**
+- `feat`: New feature (maps to CHANGELOG "Added")
+- `fix`: Bug fix (maps to CHANGELOG "Fixed")
+- `refactor`: Code change that neither fixes a bug nor adds a feature (maps to "Changed")
+- `docs`: Documentation only
+- `test`: Adding or updating tests
+- `chore`: Maintenance (deps, build, CI)
+- `perf`: Performance improvement
+- `style`: Formatting, whitespace (no code change)
+
+**Scopes** (optional, use package name or area):
+- `storage`, `tree`, `board`, `markdown`, `query`, `cli`, `tui`
+- `beads`, `inkx`, `docs`
+
+**Examples:**
+```bash
+feat(storage): add file watcher debouncing
+fix(tui): resolve blank screen on startup
+refactor(board): simplify column selection logic
+docs: update architecture diagram
+chore(deps): bump inkx to 0.3.0
+```
+
+**Breaking changes:** Add `!` after type or `BREAKING CHANGE:` in footer:
+```bash
+feat(query)!: change filter syntax to use colon separator
+```
+
+**Beads reference:** Include issue ID in footer when applicable:
+```bash
+fix(tui): preserve cursor on zoom
+
+Resolves: km-k5k3
+```
+
+---
+
+### 10. Session Completion (MANDATORY)
 
 **When ending a session**, complete ALL steps. Work is NOT complete until `git push` succeeds.
 
 ```bash
-# 1. File issues for remaining work
+# 1. Update CHANGELOG.md [Unreleased] section (if code changed)
+# Categories: Added, Changed, Fixed, Removed
+
+# 2. File issues for remaining work
 bd create --title="..." --type=task
 
-# 2. Run quality gates (if code changed)
+# 3. Run quality gates (if code changed)
 bun fix && bun run test:all
 
-# 3. Update issue status
+# 4. Update issue status
 bd close <id>
 
-# 4. Push to remote (MANDATORY)
+# 5. Push to remote (MANDATORY)
 git pull --rebase && bd sync && git push
 git status  # MUST show "up to date with origin"
 ```
@@ -214,7 +266,7 @@ git status  # MUST show "up to date with origin"
 
 ---
 
-### 10. Bug Reports
+### 11. Bug Reports
 
 When a user reports a bug, follow [.claude/skills/bug-report.md](.claude/skills/bug-report.md). Key rules:
 
@@ -226,7 +278,7 @@ When a user reports a bug, follow [.claude/skills/bug-report.md](.claude/skills/
 
 **Never claim "fixed" without verification. Never close a bug bead without evidence.**
 
-### 11. Debug Logging
+### 12. Debug Logging
 
 Use the `debug` npm package for all logging. Never use `console.log` in production code.
 
@@ -286,7 +338,7 @@ bun debug view /path/to/vault
 - Error conditions (before throwing)
 - Data flow boundaries (counts, sizes)
 
-### 12. Visual Testing
+### 13. Visual Testing
 
 Use headless methods (ttyd + Playwright) by default. See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for full documentation.
 
