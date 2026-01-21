@@ -58,10 +58,25 @@ export class FileSystemWatcher extends EventEmitter {
     const ignorePatterns = getIgnorePatterns(vaultPath);
     debug("ignore patterns: %O", ignorePatterns);
 
+    // Create ignored function that combines patterns with file type check
+    // This prevents chokidar from trying to watch socket files (which causes EOPNOTSUPP)
+    const ignoredFn = (path: string, stats?: { isSocket?: () => boolean }) => {
+      // Always ignore socket files - they can't be watched
+      if (stats?.isSocket?.()) {
+        return true;
+      }
+      // Also ignore by extension for paths we see before stat
+      if (path.endsWith(".sock")) {
+        return true;
+      }
+      // Check against glob patterns
+      return shouldIgnore(path, ignorePatterns, vaultPath);
+    };
+
     this.watcher = watch(vaultPath, {
       persistent: true,
       ignoreInitial: true,
-      ignored: ignorePatterns,
+      ignored: ignoredFn,
       awaitWriteFinish: {
         stabilityThreshold: 500,
         pollInterval: 100,
