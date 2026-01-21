@@ -8,6 +8,9 @@
  * km task - Task management subcommand
  */
 
+// Must be imported first - before any debug() calls
+import "./debug-log.ts";
+
 import { existsSync, statSync } from "fs";
 import { dirname, resolve } from "path";
 import { Command } from "commander";

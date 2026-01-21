@@ -226,7 +226,67 @@ When a user reports a bug, follow [.claude/skills/bug-report.md](.claude/skills/
 
 **Never claim "fixed" without verification. Never close a bug bead without evidence.**
 
-### 11. Visual Testing
+### 11. Debug Logging
+
+Use the `debug` npm package for all logging. Never use `console.log` in production code.
+
+**Namespace convention:**
+
+```
+km:<layer>:<subsystem>       # Main packages
+inkx:<subsystem>             # inkx renderer
+flexx:<subsystem>            # flexx layout engine
+tui-measure:<subsystem>      # tui-measure utilities
+chalkx:<subsystem>           # chalkx terminal styling
+```
+
+**Examples:**
+
+```typescript
+import createDebug from "debug";
+const debug = createDebug("km:storage:watch:sync");
+
+// State transitions
+debug("state: %s → %s", oldState, newState);
+
+// Operation with timing
+const start = Date.now();
+// ... operation ...
+debug("reconciled %d files in %dms", count, Date.now() - start);
+
+// Data volumes
+debug("generated %d operations", ops.length);
+```
+
+**Usage:**
+
+```bash
+DEBUG=km:*              # All km packages
+DEBUG=km:storage:*      # Storage layer only
+DEBUG=inkx:*            # inkx renderer
+DEBUG=*                 # Everything
+```
+
+**For TUI debugging (separate debug output from TUI):**
+
+```bash
+# Option 1: Log to file
+DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
+# Then in another terminal: tail -f /tmp/km.log
+
+# Option 2: tmux split pane (preferred)
+bun debug view /path/to/vault
+# Opens tmux with TUI on left, debug log on right
+```
+
+**When to add debug logging:**
+
+- State transitions and lifecycle events
+- Async operations (start/end with timing)
+- Error conditions (before throwing)
+- Data flow boundaries (counts, sizes)
+
+### 12. Visual Testing
 
 Use headless methods (ttyd + Playwright) by default. See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for full documentation.
 

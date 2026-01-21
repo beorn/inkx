@@ -15,7 +15,8 @@
     "vendor/*"
   ],
   "bin": {
-    "km": "./apps/km-cli/src/index.ts"
+    "km": "./apps/km-cli/src/index.ts",
+    "debug": "./scripts/debug"
   },
   "scripts": {
     "km": "bun run ./apps/km-cli/src/index.ts",
@@ -52,7 +53,9 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
+    "@types/debug": "^4.1.12",
     "chokidar": "^5.0.0",
+    "debug": "^4.4.3",
     "reselect": "^5.1.1",
     "ulid": "2.4.0"
   }

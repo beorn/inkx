@@ -1,0 +1,44 @@
+#!/bin/bash
+# debug - Run any command with debug output in a tmux split pane
+#
+# Usage: debug <command> [args...]
+# Example: debug bun km view /tmp/test-vault
+#          debug node server.js
+#
+# Environment:
+#   DEBUG      - Debug namespaces (default: '*' for all)
+#   DEBUG_LOG  - Log file path (default: auto-generated temp file)
+
+set -e
+
+if [ $# -eq 0 ]; then
+  echo "Usage: debug <command> [args...]"
+  echo "Example: debug bun km view /tmp/test-vault"
+  exit 1
+fi
+
+# Use existing DEBUG_LOG or generate temp file with cleanup
+if [ -z "$DEBUG_LOG" ]; then
+  export DEBUG_LOG="/tmp/debug-$$.log"
+  trap 'rm -f "$DEBUG_LOG"' EXIT
+fi
+
+# Default DEBUG to '*' if not set
+export DEBUG="${DEBUG:-*}"
+
+# Create log file if it doesn't exist
+touch "$DEBUG_LOG"
+
+# Check if already in tmux
+if [ -n "$TMUX" ]; then
+  # Already in tmux - just split
+  tmux split-window -h "tail -f $DEBUG_LOG"
+  "$@"
+else
+  # Start new tmux session with split panes
+  SESSION="debug-$$"
+  tmux new-session -d -s "$SESSION" "$*"
+  tmux split-window -h -t "$SESSION" "tail -f $DEBUG_LOG"
+  tmux select-pane -t "$SESSION":0.0
+  tmux attach-session -t "$SESSION"
+fi
