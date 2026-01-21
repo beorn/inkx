@@ -4,7 +4,6 @@
  */
 import React, { useEffect, useReducer, useMemo } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "inkx";
-import { getEngine } from "../engines/index.ts";
 import chalk from "chalk";
 import { hyperlink } from "@beorn/chalkx";
 import createDebug from "debug";
@@ -47,16 +46,19 @@ import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
 import { HelpOverlay } from "./HelpOverlay.tsx";
 import { NewItemDialog } from "./NewItemDialog.tsx";
-import { Column as InkxColumn } from "./CardColumn.tsx"; // For InkBoardTestable
+import { Column } from "./CardColumn.tsx";
 import {
   VerticalScrollIndicator,
   ColumnSeparator,
 } from "./VerticalScrollIndicator.tsx";
+import { ColumnsView } from "./ColumnsView.tsx";
+import { ListView } from "./ListView.tsx";
+import { TabsView } from "./TabsView.tsx";
+import { getEngine } from "../engines/index.ts";
 
 // Layout constants - centralized to avoid magic numbers scattered through rendering code
 const TOP_BAR_HEIGHT = 1;
 const BOTTOM_BAR_HEIGHT = 1;
-import { useEngineViews, EngineProvider } from "../engines/index.ts";
 import {
   createPasteHandler,
   getFileInfo,
@@ -117,9 +119,6 @@ interface BoardProps {
 function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
-
-  // Get engine-specific view components
-  const { ColumnsView, ListView, TabsView, Column } = useEngineViews();
 
   // UI state managed by reducer (enables extracting input handlers)
   const [ui, dispatch] = useReducer(
@@ -1697,12 +1696,7 @@ export async function renderInkxBoard(
 ): Promise<void> {
   debug("renderInkxBoard start, engine=%s", engine);
 
-  // Wrap Board with EngineProvider to inject the right view components
-  const app = (
-    <EngineProvider engine={engine}>
-      <Board initialState={state} initialViewMode={initialViewMode} />
-    </EngineProvider>
-  );
+  const app = <Board initialState={state} initialViewMode={initialViewMode} />;
 
   // Use the engine-specific render function
   const engineApi = getEngine(engine);
@@ -1841,13 +1835,11 @@ export async function renderDeferredBoard(
   let errorMessage: string | null = null;
 
   const app = (
-    <EngineProvider engine={engine}>
-      <DeferredBoardLoader
-        loadState={loadState}
-        initialViewMode={initialViewMode}
-        onError={(msg) => { errorMessage = msg; }}
-      />
-    </EngineProvider>
+    <DeferredBoardLoader
+      loadState={loadState}
+      initialViewMode={initialViewMode}
+      onError={(msg) => { errorMessage = msg; }}
+    />
   );
 
   const engineApi = getEngine(engine);
@@ -1967,7 +1959,7 @@ export function InkBoardTestable({
           {visibleColumns.map((col, i) => {
             const actualColIndex = colScrollOffset + i;
             return (
-              <InkxColumn
+              <Column
                 key={col.node.id}
                 column={col}
                 colIndex={actualColIndex}

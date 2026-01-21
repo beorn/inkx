@@ -11,13 +11,6 @@ import type { TuiEngineApi } from "./types.ts";
 import { inkxEngine } from "./inkx/render.ts";
 
 export type { TuiEngineApi, RenderOptions, RenderResult } from "./types.ts";
-export {
-  EngineProvider,
-  useEngineViews,
-  useEngineName,
-  type EngineViews,
-  type EngineContextValue,
-} from "./context.tsx";
 
 /**
  * Get the engine API for the specified engine type
