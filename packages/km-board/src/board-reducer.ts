@@ -368,36 +368,48 @@ export function boardReducer(
     // ===== Jump Navigation =====
 
     case "NAV_TO_PATH": {
-      // Validate path exists
-      if (action.path.length === 0) return state;
+      // Empty path means board level (no node selected)
+      if (action.path.length === 0) {
+        return {
+          ...state,
+          cursor: [],
+          cursorNodeId: null,
+        };
+      }
+      // Validate path exists for non-empty paths
       const node = getNodeAtPath(state.nodes, action.path);
       if (!node) return state;
       return { ...state, ...updateCursor(state, action.path) };
     }
 
     case "NAV_CROSS_COLUMN": {
-      // Move horizontally between columns, preserving Y position within column
-      // Cursor can be column-level [col] or card-level [col, row]
+      // Move horizontally between columns, preserving cursor depth
+      // Cursor can be column-level [col] or card-level [col, row, ...]
       if (state.cursor.length === 0) return state;
 
       const colIdx = state.cursor[0] ?? 0;
-      // Use row index 0 if at column level (cursor length 1)
-      const rowIdx = state.cursor.length >= 2 ? (state.cursor[1] ?? 0) : 0;
+      const isAtColumnLevel = state.cursor.length === 1;
       const newColIdx = action.direction === "right" ? colIdx + 1 : colIdx - 1;
 
       // Check if target column exists
       if (newColIdx < 0 || newColIdx >= state.nodes.length) return state;
 
-      // Get child count of target column
       const targetCol = state.nodes[newColIdx];
       if (!targetCol) return state;
 
-      // If target column is empty, navigate to column level
+      // Preserve cursor depth: column level stays column level
+      if (isAtColumnLevel) {
+        return { ...state, ...updateCursor(state, [newColIdx]) };
+      }
+
+      // At card level: navigate to card in target column
+      // If target column is empty, stay at column level
       if (targetCol.children.length === 0) {
         return { ...state, ...updateCursor(state, [newColIdx]) };
       }
 
       // Clamp row index to target column's children
+      const rowIdx = state.cursor[1] ?? 0;
       const clampedRow = Math.min(rowIdx, targetCol.children.length - 1);
       return { ...state, ...updateCursor(state, [newColIdx, clampedRow]) };
     }

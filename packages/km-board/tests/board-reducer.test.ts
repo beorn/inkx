@@ -308,29 +308,29 @@ describe("boardReducer", () => {
         expect(newState.cursor).toEqual([1]);
       });
 
-      it("navigates back from empty column to previous column", () => {
+      it("navigates back from empty column to previous column (stays at column level)", () => {
         const state = createEmptyColState([1]); // At empty column (column-level)
         const newState = boardReducer(state, {
           type: "NAV_CROSS_COLUMN",
           direction: "left",
         });
-        // Should be at first card in col-a (row 0 since coming from column level)
-        expect(newState.cursor).toEqual([0, 0]);
+        // Should stay at column level (preserves cursor depth)
+        expect(newState.cursor).toEqual([0]);
       });
 
-      it("navigates forward from empty column to next column", () => {
+      it("navigates forward from empty column to next column (stays at column level)", () => {
         const state = createEmptyColState([1]); // At empty column (column-level)
         const newState = boardReducer(state, {
           type: "NAV_CROSS_COLUMN",
           direction: "right",
         });
-        // Should be at first card in col-c
-        expect(newState.cursor).toEqual([2, 0]);
+        // Should stay at column level (preserves cursor depth)
+        expect(newState.cursor).toEqual([2]);
       });
 
-      it("navigates through empty column (col-a -> col-empty -> col-c)", () => {
-        // Start at col-a
-        let state = createEmptyColState([0, 0]);
+      it("navigates through empty column at column level (col-a -> col-empty -> col-c)", () => {
+        // Start at col-a at COLUMN level
+        let state = createEmptyColState([0]);
 
         // Navigate right to empty col
         state = boardReducer(state, {
@@ -339,12 +339,12 @@ describe("boardReducer", () => {
         });
         expect(state.cursor).toEqual([1]); // Empty column, column-level
 
-        // Navigate right again to col-c
+        // Navigate right again to col-c (stays at column level)
         state = boardReducer(state, {
           type: "NAV_CROSS_COLUMN",
           direction: "right",
         });
-        expect(state.cursor).toEqual([2, 0]); // col-c, first card
+        expect(state.cursor).toEqual([2]); // col-c, still column-level
       });
     });
   });

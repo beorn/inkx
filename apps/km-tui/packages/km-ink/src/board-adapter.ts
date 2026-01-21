@@ -149,7 +149,8 @@ export function deriveColumnsLayout(state: TreeBoardState): ColumnsLayout {
 
   return {
     columns,
-    colIndex: Math.max(0, indices.colIndex),
+    // Preserve -1 for board-level selection (no column selected)
+    colIndex: indices.colIndex,
     // Preserve -1 for column-level selection (no card selected)
     cardIndex: indices.cardIndex,
     subPath: indices.subPath,
