@@ -8,13 +8,70 @@
 # Environment:
 #   DEBUG      - Debug namespaces (default: '*' for all)
 #   DEBUG_LOG  - Log file path (default: auto-generated temp file)
+#
+# See also:
+#   debug npm package: https://www.npmjs.com/package/debug
+#   lnav log viewer:   https://lnav.org
+#   tmux terminal:     https://github.com/tmux/tmux
 
 set -e
 
+show_help() {
+  cat <<'EOF'
+debug - Run any command with debug output in a tmux split pane
+
+Usage: debug <command> [args...]
+
+Examples:
+  debug bun km view /tmp/test-vault
+  debug node server.js
+  DEBUG=km:storage:* debug bun km view .
+
+Environment:
+  DEBUG      - Debug namespaces (default: '*' for all)
+  DEBUG_LOG  - Log file path (default: auto-generated temp file)
+
+=== tmux shortcuts (prefix: Ctrl+b) ===
+  ←/→/↑/↓    Move between panes (or h/j/k/l)
+  z          Zoom/unzoom pane (fullscreen toggle)
+  x          Kill current pane
+  d          Detach from session
+  [          Enter scroll mode (q to exit, / to search)
+  o          Cycle to next pane
+  ;          Toggle to last active pane
+
+EOF
+
+  if command -v lnav >/dev/null 2>&1; then
+    cat <<'EOF'
+=== lnav shortcuts (log viewer) ===
+  /          Search forward
+  n/N        Next/previous match
+  g/G        Jump to top/bottom
+  TAB        Focus filter panel, then: i=filter-in, o=filter-out
+  SPACE      Toggle current filter on/off (in filter panel)
+  :filter-in <pattern>   Show only matching lines (TAB completes search)
+  :filter-out <pattern>  Hide matching lines (TAB completes search)
+  q          Quit
+EOF
+  else
+    cat <<'EOF'
+=== less +F shortcuts (log viewer) ===
+  Ctrl+C     Pause following (enter scroll mode)
+  F          Resume following
+  /          Search forward
+  q          Quit
+
+TIP: Install lnav for better log viewing with filtering:
+  brew install lnav  # or nix-install nixpkgs#lnav
+  https://lnav.org
+EOF
+  fi
+}
+
 if [ $# -eq 0 ]; then
-  echo "Usage: debug <command> [args...]"
-  echo "Example: debug bun km view /tmp/test-vault"
-  exit 1
+  show_help
+  exit 0
 fi
 
 # Use existing DEBUG_LOG or generate temp file with cleanup
@@ -29,16 +86,20 @@ export DEBUG="${DEBUG:-*}"
 # Create log file if it doesn't exist
 touch "$DEBUG_LOG"
 
+# Use lnav if available (better filtering/search), otherwise fall back to less +F
+LOG_CMD="lnav"
+command -v lnav >/dev/null 2>&1 || LOG_CMD="less +F"
+
 # Check if already in tmux
 if [ -n "$TMUX" ]; then
   # Already in tmux - just split
-  tmux split-window -h "tail -f $DEBUG_LOG"
+  tmux split-window -h "$LOG_CMD $DEBUG_LOG"
   "$@"
 else
   # Start new tmux session with split panes
   SESSION="debug-$$"
   tmux new-session -d -s "$SESSION" "$*"
-  tmux split-window -h -t "$SESSION" "tail -f $DEBUG_LOG"
+  tmux split-window -h -t "$SESSION" "$LOG_CMD $DEBUG_LOG"
   tmux select-pane -t "$SESSION":0.0
   tmux attach-session -t "$SESSION"
 fi
