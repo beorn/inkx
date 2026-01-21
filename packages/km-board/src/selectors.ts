@@ -6,7 +6,14 @@
  */
 
 import type { BoardState, TNode } from "./board-types.ts";
-import { getNodeAtPath, getSiblingCount } from "./board-reducer.ts";
+import {
+  getNodeAtPath,
+  getSiblingCount,
+  findPathToNode,
+} from "./board-reducer.ts";
+
+// Re-export findPathToNode for backward compatibility
+export { findPathToNode };
 
 /**
  * Get the currently selected node
@@ -133,40 +140,7 @@ export function getBreadcrumbs(state: BoardState): TNode[] {
 
 // ===== Node ID to Path Lookup =====
 
-/**
- * Find the path to a node by its ID.
- * Returns null if the node is not found in the tree.
- *
- * This is the key function for the selectedNodeId -> cursor derivation.
- * It searches the tree depth-first and returns the path as soon as found.
- */
-export function findPathToNode(
-  nodes: TNode[],
-  nodeId: string,
-): number[] | null {
-  function search(currentNodes: TNode[], currentPath: number[]): number[] | null {
-    for (let i = 0; i < currentNodes.length; i++) {
-      const node = currentNodes[i];
-      if (!node) continue;
-
-      const pathToHere = [...currentPath, i];
-
-      // Found the node
-      if (node.id === nodeId) {
-        return pathToHere;
-      }
-
-      // Search children
-      if (node.children.length > 0) {
-        const childResult = search(node.children, pathToHere);
-        if (childResult) return childResult;
-      }
-    }
-    return null;
-  }
-
-  return search(nodes, []);
-}
+// findPathToNode is imported from board-reducer.ts and re-exported above
 
 /**
  * Check if a node is visible (exists) in the current tree.

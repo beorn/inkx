@@ -102,6 +102,44 @@ function updateCursor(
   };
 }
 
+/**
+ * Find the path to a node by its ID.
+ * Returns null if the node is not found in the tree.
+ *
+ * This is the key function for the selectedNodeId -> cursor derivation.
+ * It searches the tree depth-first and returns the path as soon as found.
+ */
+export function findPathToNode(
+  nodes: TNode[],
+  nodeId: string,
+): number[] | null {
+  function search(
+    currentNodes: TNode[],
+    currentPath: number[],
+  ): number[] | null {
+    for (let i = 0; i < currentNodes.length; i++) {
+      const node = currentNodes[i];
+      if (!node) continue;
+
+      const pathToHere = [...currentPath, i];
+
+      // Found the node
+      if (node.id === nodeId) {
+        return pathToHere;
+      }
+
+      // Search children
+      if (node.children.length > 0) {
+        const childResult = search(node.children, pathToHere);
+        if (childResult) return childResult;
+      }
+    }
+    return null;
+  }
+
+  return search(nodes, []);
+}
+
 // ===== Visual Navigation Helpers =====
 
 /**
@@ -433,12 +471,26 @@ export function boardReducer(
           cursor: state.cursor,
         },
       ];
-      const newCursor = action.cursor ?? [0];
-      // Preserve selectedNodeId if not explicitly provided via cursor
-      // If cursor is provided, derive selectedNodeId from it (backward compat)
-      const newSelectedNodeId = action.cursor
-        ? getNodeIdAtPath(action.nodes, newCursor)
-        : state.selectedNodeId; // Keep same node selected!
+
+      let newCursor: TPath;
+      let newSelectedNodeId: string | null;
+
+      if (action.cursor) {
+        // Explicit cursor provided - use it and derive selectedNodeId
+        newCursor = action.cursor;
+        newSelectedNodeId = getNodeIdAtPath(action.nodes, newCursor);
+      } else {
+        // No cursor provided - preserve selectedNodeId and derive cursor from it
+        newSelectedNodeId = state.selectedNodeId;
+        if (newSelectedNodeId) {
+          // Find where the selected node is in the new tree
+          const derivedPath = findPathToNode(action.nodes, newSelectedNodeId);
+          newCursor = derivedPath ?? [0]; // Fall back to [0] if not found
+        } else {
+          newCursor = [0];
+        }
+      }
+
       return {
         ...state,
         rootId: action.nodeId,
@@ -454,13 +506,22 @@ export function boardReducer(
       const newZoomStack = [...state.zoomStack];
       const prev = newZoomStack.pop();
       if (!prev) return state; // Shouldn't happen, but satisfies lint
+
       // IMPORTANT: selectedNodeId is PRESERVED across zoom
-      // The cursor path is restored, but selectedNodeId stays the same
+      // Derive cursor from selectedNodeId in the new tree
+      let newCursor: TPath;
+      if (state.selectedNodeId) {
+        const derivedPath = findPathToNode(action.nodes, state.selectedNodeId);
+        newCursor = derivedPath ?? prev.cursor; // Fall back to stored cursor if not found
+      } else {
+        newCursor = prev.cursor;
+      }
+
       return {
         ...state,
         rootId: prev.rootId,
         nodes: action.nodes,
-        cursor: prev.cursor,
+        cursor: newCursor,
         // selectedNodeId stays unchanged - same node remains selected
         zoomStack: newZoomStack,
       };
