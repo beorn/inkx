@@ -22,6 +22,10 @@ export type {
   NodeCreatedData,
   NodeUpdatedData,
   NodeMovedData,
+  SessionStartedData,
+  SessionMessageData,
+  SessionToolCallData,
+  SessionEndedData,
 } from "./types.ts";
 
 // Constants
@@ -46,5 +50,7 @@ export type {
   QueryOffset,
   QueryText,
   QueryPhrase,
+  QueryPropCondition,
+  QuerySpecial,
   DateRange,
 } from "./query/index.ts";

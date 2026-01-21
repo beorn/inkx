@@ -1,0 +1,25 @@
+{
+  "name": "@km/agent",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@km/core": "workspace:*",
+    "@km/storage": "workspace:*",
+    "ulid": "^2.3.0",
+    "yaml": "^2.4.0"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "^0.24.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

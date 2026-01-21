@@ -1,0 +1,140 @@
+/**
+ * Agent Queries
+ *
+ * Query functions for agents and their work queues.
+ */
+
+import type { KNode } from "@km/core";
+import { queryNodes } from "@km/storage";
+import type { Agent, AgentFilter } from "./types.ts";
+
+/**
+ * Query all agents, optionally filtered.
+ */
+export function queryAgents(filter?: AgentFilter): Agent[] {
+  const nodes = queryNodes("", "agent");
+  let agents = nodes.map(nodeToAgent);
+
+  if (filter?.status) {
+    const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+    agents = agents.filter((a) => statuses.includes(a.status));
+  }
+  if (filter?.harness) {
+    agents = agents.filter((a) => a.harness === filter.harness);
+  }
+  if (filter?.model) {
+    agents = agents.filter((a) => a.model === filter.model);
+  }
+
+  return agents;
+}
+
+/**
+ * Get a single agent by short ID or full ID.
+ */
+export function getAgent(idOrShortId: string): Agent | null {
+  const agents = queryAgents();
+
+  // Try exact short ID match
+  const byShortId = agents.find((a) => a.shortId === idOrShortId);
+  if (byShortId) return byShortId;
+
+  // Try full ID match
+  const byId = agents.find((a) => a.id === idOrShortId);
+  if (byId) return byId;
+
+  // Try partial short ID match (agent-xxx)
+  const normalized = idOrShortId.replace(/^agent-/, "");
+  const byPartial = agents.find(
+    (a) => a.shortId === `agent-${normalized}` || a.id.endsWith(normalized),
+  );
+  return byPartial ?? null;
+}
+
+/**
+ * Get agents that are currently running.
+ */
+export function getActiveAgents(): Agent[] {
+  return queryAgents({ status: "running" });
+}
+
+/**
+ * Convert a KNode to an Agent.
+ */
+export function nodeToAgent(node: KNode): Agent {
+  const data = node.data ?? {};
+
+  const shortIdPart = typeof data.short_id === "string" ? data.short_id : node.id.slice(-4).toLowerCase();
+
+  return {
+    id: node.id,
+    shortId: `agent-${shortIdPart}`,
+    name: node.name || node.content || "Unnamed Agent",
+    model: data.model || "claude-sonnet-4",
+    harness: data.harness || "general",
+    status: data.status || "idle",
+    workdir: data.workdir,
+    pid: data.pid,
+    currentTaskId: data.current_task_id,
+    createdAt: node.created_at,
+    updatedAt: node.updated_at,
+  };
+}
+
+/**
+ * Get issues in an agent's work queue (assigned to this agent).
+ *
+ * Note: This returns Issue objects from @km/beads.
+ * Agents claim issues by having issues assigned to them via the assignee field.
+ */
+export function getAgentQueue(agentId: string): AgentQueueItem[] {
+  // Find the agent to get its shortId
+  const agent = getAgent(agentId);
+  if (!agent) {
+    return [];
+  }
+
+  // Query tasks assigned to this agent
+  // Issues are assigned via the assignee field matching agent.shortId
+  const nodes = queryNodes(`@${agent.shortId}`, "task");
+
+  return nodes.map((node) => {
+    const data = node.data ?? {};
+    const shortId = typeof data.short_id === "string" ? data.short_id : `km-${node.id.slice(-4).toLowerCase()}`;
+
+    return {
+      issueId: node.id,
+      issueShortId: shortId,
+      title: node.content || node.title || "",
+      priority: extractPriority(data),
+      assignedAt: node.updated_at, // Approximate - would need event tracking for exact time
+    };
+  });
+}
+
+/**
+ * Item in an agent's work queue.
+ */
+export interface AgentQueueItem {
+  issueId: string;
+  issueShortId: string;
+  title: string;
+  priority: number;
+  assignedAt: number;
+}
+
+/**
+ * Extract priority from node data tags.
+ */
+function extractPriority(data: Record<string, unknown>): number {
+  const tags = data.tags as string[] | undefined;
+  if (tags) {
+    for (const tag of tags) {
+      const pMatch = tag.match(/^P([0-4])$/i);
+      if (pMatch && pMatch[1]) {
+        return parseInt(pMatch[1], 10);
+      }
+    }
+  }
+  return 2; // Default P2
+}

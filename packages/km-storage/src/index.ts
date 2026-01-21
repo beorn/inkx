@@ -167,7 +167,23 @@ export {
   emitTaskClaimed,
   emitTaskReleased,
   emitTaskCompleted,
+  emitSessionStarted,
+  emitSessionMessage,
+  emitSessionToolCall,
+  emitSessionEnded,
 } from "./emit.ts";
 
 // Recurrence utilities (moved from @km/core)
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts";
+
+// Configuration
+export {
+  loadConfig,
+  getConfigPath,
+  clearConfigCache,
+  getBeadsConfig,
+  getOriginalBeadsConfig,
+  getOriginalBeadsConfigPath,
+} from "./config.ts";
+
+export type { KmConfig, BeadsConfig, OriginalBeadsConfig } from "./config.ts";

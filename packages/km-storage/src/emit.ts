@@ -2,9 +2,12 @@
  * Event emission - append events to events.jsonl
  */
 
+import createDebug from "debug";
 import { appendFileSync, existsSync, mkdirSync } from "fs";
+
+const debug = createDebug("km:storage:emit");
 import { ulid } from "ulid";
-import { dirname, join } from "path";
+import { join } from "path";
 import type { Event } from "@km/core";
 
 // Event hub for real-time broadcasting (set by km-code)
@@ -96,6 +99,8 @@ export function emit(
     ts: Date.now(),
     ...event,
   };
+
+  debug("emit: %s target=%s", full.type, full.target ?? "(none)");
 
   // Ensure directory exists
   ensureKmDir();
@@ -227,5 +232,103 @@ export function emitTaskCompleted(
     actor,
     target,
     data: { summary },
+  });
+}
+
+/**
+ * Helper to emit session_started event
+ */
+export function emitSessionStarted(
+  actor: string,
+  sessionId: string,
+  model: string,
+  target?: string,
+  systemPromptHash?: string,
+): Event {
+  return emit({
+    type: "session_started",
+    actor,
+    target,
+    data: {
+      session_id: sessionId,
+      model,
+      system_prompt_hash: systemPromptHash,
+    },
+  });
+}
+
+/**
+ * Helper to emit session_message event
+ */
+export function emitSessionMessage(
+  actor: string,
+  sessionId: string,
+  role: "user" | "assistant" | "system",
+  content: string,
+  tokens?: number,
+): Event {
+  return emit({
+    type: "session_message",
+    actor,
+    data: {
+      session_id: sessionId,
+      role,
+      content,
+      tokens,
+    },
+  });
+}
+
+/**
+ * Helper to emit session_tool_call event
+ */
+export function emitSessionToolCall(
+  actor: string,
+  sessionId: string,
+  tool: string,
+  args: Record<string, unknown>,
+  result?: unknown,
+  tokens?: number,
+): Event {
+  return emit({
+    type: "session_tool_call",
+    actor,
+    data: {
+      session_id: sessionId,
+      tool,
+      args,
+      result,
+      tokens,
+    },
+  });
+}
+
+/**
+ * Helper to emit session_ended event
+ */
+export function emitSessionEnded(
+  actor: string,
+  sessionId: string,
+  status: "success" | "error" | "cancelled",
+  options?: {
+    totalTokens?: number;
+    costUsd?: number;
+    filesModified?: string[];
+    summary?: string;
+    error?: string;
+  },
+): Event {
+  return emit({
+    type: "session_ended",
+    actor,
+    data: {
+      session_id: sessionId,
+      status,
+      total_tokens: options?.totalTokens,
+      cost_usd: options?.costUsd,
+      files_modified: options?.filesModified,
+      summary: options?.summary,
+      error: options?.error,
+    },
   });
 }
