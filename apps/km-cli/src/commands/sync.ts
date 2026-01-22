@@ -7,6 +7,7 @@
 import createDebug from "debug";
 import { Command } from "commander";
 import chalk from "chalk";
+import { withProgress } from "@beorn/progressx/wrappers";
 
 const debug = createDebug("km:cli:sync");
 import { SyncManager, findKmRootFromPath } from "@km/storage";
@@ -75,7 +76,12 @@ async function runSync(
   vaultPath: string,
   options: { toFs?: boolean; dryRun?: boolean },
 ): Promise<void> {
-  debug("runSync: %s (toFs=%s, dryRun=%s)", vaultPath, options.toFs, options.dryRun);
+  debug(
+    "runSync: %s (toFs=%s, dryRun=%s)",
+    vaultPath,
+    options.toFs,
+    options.dryRun,
+  );
   console.log(chalk.dim(`Syncing: ${vaultPath}`));
 
   if (options.dryRun) {
@@ -97,10 +103,21 @@ async function runSync(
       const result = await manager.syncToFs();
       console.log(chalk.green("✓"), `Wrote ${result.written} file(s)`);
     } else {
-      // Default: from filesystem
-      console.log(chalk.dim("Syncing filesystem → database..."));
-      const result = await manager.syncFromFs();
-      console.log(chalk.green("✓"), `Processed ${result.processed} change(s)`);
+      // Default: from filesystem - use progressx for clean progress display
+      const result = await withProgress(
+        (onProgress) => manager.syncFromFs(onProgress),
+        {
+          phases: {
+            scanning: "Scanning",
+            reconciling: "Reconciling",
+            rules: "Rules",
+          },
+        },
+      );
+      console.log(
+        chalk.green("✓"),
+        `Processed ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,
+      );
     }
   } catch (error) {
     console.error(chalk.red("Sync failed:"), error);

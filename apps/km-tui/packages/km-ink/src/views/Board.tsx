@@ -6,6 +6,7 @@ import React, { useEffect, useReducer, useMemo, useRef } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "inkx";
 import chalk from "chalk";
 import { hyperlink } from "@beorn/chalkx";
+import { Spinner } from "@beorn/progressx/cli";
 import createDebug from "debug";
 
 const debug = createDebug("km:board");
@@ -854,10 +855,10 @@ export async function renderDeferredBoard(
 
   const stdout = process.stdout;
 
-  // Show loading indicator immediately (will be visible for slow loads)
-  stdout.write("\x1b[?25l"); // Hide cursor
+  // Clear screen and show spinner while loading
   stdout.write("\x1b[2J\x1b[H"); // Clear screen, move to top-left
-  stdout.write("Loading...");
+  const spinner = new Spinner({ text: "Loading vault...", style: "dots" });
+  spinner.start();
 
   // Load state synchronously before rendering
   const startTime = Date.now();
@@ -865,11 +866,11 @@ export async function renderDeferredBoard(
   const loadTime = Date.now() - startTime;
   debug("Board state loaded in %dms", loadTime);
 
-  // Clear loading indicator before rendering board
+  // Stop spinner and clear screen before rendering board
+  spinner.stop();
   stdout.write("\x1b[2J\x1b[H");
 
   if (!state) {
-    stdout.write("\x1b[?25h"); // Show cursor before exit
     console.error("No board found. Create a board node or specify a root ID.");
     process.exit(1);
   }

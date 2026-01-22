@@ -13,3 +13,6 @@
 [submodule "vendor/beorn-tui-measure"]
 	path = vendor/beorn-tui-measure
 	url = git@github.com:beorn/tui-measure.git
+[submodule "vendor/beorn-progressx"]
+	path = vendor/beorn-progressx
+	url = git@github.com:beorn/progressx.git

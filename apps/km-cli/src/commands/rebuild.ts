@@ -7,12 +7,12 @@
 import createDebug from "debug";
 import { Command } from "commander";
 import chalk from "chalk";
+import { withProgress } from "@beorn/progressx/wrappers";
 
 const debug = createDebug("km:cli:rebuild");
 import {
   rebuildState,
   fullReset,
-  syncState,
   freshStart,
   getDbPath,
   getLastEventId,
@@ -25,7 +25,7 @@ export const rebuildCommand = new Command("rebuild")
   .option("--full", "Full rebuild (delete and recreate state.db)")
   .option("--fresh", "Fresh start (delete all .km data including events)")
   .option("--status", "Show rebuild status only")
-  .action((options) => {
+  .action(async (options) => {
     if (options.status) {
       showStatus();
       return;
@@ -45,24 +45,34 @@ export const rebuildCommand = new Command("rebuild")
     console.log(chalk.dim("Rebuilding state..."));
 
     try {
-      const startTime = Date.now();
-
-      let result: { eventCount: number; nodeCount: number };
+      const rebuildFn = options.full ? fullReset : rebuildState;
 
       if (options.full) {
         console.log(chalk.yellow("Performing full reset..."));
-        result = fullReset();
-      } else {
-        result = rebuildState();
       }
 
-      const elapsed = Date.now() - startTime;
-      debug("rebuild: complete in %dms, events=%d nodes=%d", elapsed, result.eventCount, result.nodeCount);
+      const result = await withProgress(
+        (onProgress) => Promise.resolve(rebuildFn(onProgress)),
+        {
+          phases: {
+            reading: "Reading events",
+            applying: "Applying events",
+            rules: "Evaluating rules",
+          },
+        },
+      );
+
+      debug(
+        "rebuild: complete in %dms, events=%d nodes=%d",
+        result.duration,
+        result.eventCount,
+        result.nodeCount,
+      );
 
       console.log(chalk.green("✓"), "Rebuild complete");
       console.log(chalk.dim(`  Events: ${result.eventCount}`));
       console.log(chalk.dim(`  Nodes: ${result.nodeCount}`));
-      console.log(chalk.dim(`  Time: ${elapsed}ms`));
+      console.log(chalk.dim(`  Time: ${result.duration}ms`));
     } catch (error) {
       console.error(chalk.red("Rebuild failed:"), error);
       process.exit(1);
