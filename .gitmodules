@@ -10,3 +10,6 @@
 [submodule "vendor/beorn-flexx"]
 	path = vendor/beorn-flexx
 	url = git@github.com:beorn/flexx.git
+[submodule "vendor/beorn-tui-measure"]
+	path = vendor/beorn-tui-measure
+	url = git@github.com:beorn/tui-measure.git
