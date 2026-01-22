@@ -14,6 +14,8 @@ import { getIgnorePatterns } from "./ignore.ts";
 import type { WorkerCommand, WorkerMessage, WatcherStatus, WatcherState } from "./watcher-worker.ts";
 
 const debug = createDebug("km:storage:watch:worker-watcher");
+// For forwarding worker debug messages - uses worker's namespace
+const workerDebug = createDebug("km:storage:watch:worker");
 
 export interface WorkerWatcherConfig {
   debounceMs: number;
@@ -213,6 +215,12 @@ export class WorkerWatcher extends EventEmitter {
         debug("worker status: %s, pending=%d", message.status.state, message.status.pendingPaths);
         this.currentStatus = message.status;
         this.emit("status", message.status);
+        break;
+
+      case "debug":
+        // Forward worker debug messages through main thread's debug logger
+        // This ensures DEBUG_LOG captures worker output
+        workerDebug("%s", message.message);
         break;
     }
   }

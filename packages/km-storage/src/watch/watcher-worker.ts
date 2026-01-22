@@ -9,7 +9,32 @@ import createDebug from "debug";
 import { watch, type FSWatcher } from "chokidar";
 import { dirname } from "path";
 
-const debug = createDebug("km:storage:watch:worker");
+const NAMESPACE = "km:storage:watch:worker";
+const localDebug = createDebug(NAMESPACE);
+
+// Wrapper that sends debug messages to main thread AND logs locally
+// This ensures DEBUG_LOG in main thread captures worker debug output
+function debug(message: string, ...args: unknown[]): void {
+  // Format the message with args (simple %s/%d/%O replacement)
+  let formatted = message;
+  let argIndex = 0;
+  formatted = message.replace(/%[sdOo]/g, () => {
+    const arg = args[argIndex++];
+    if (arg === undefined) return "";
+    if (typeof arg === "object") return JSON.stringify(arg);
+    return String(arg);
+  });
+
+  // Log locally (goes to stderr if DEBUG is set)
+  localDebug(message, ...args);
+
+  // Send to main thread for DEBUG_LOG capture
+  try {
+    postMessage({ type: "debug", namespace: NAMESPACE, message: formatted });
+  } catch {
+    // Worker might not be fully initialized yet
+  }
+}
 
 // Message types from main thread → worker
 export type WorkerCommand =
@@ -38,7 +63,8 @@ export type WorkerMessage =
   | { type: "sync"; paths: string[]; directories: string[] }
   | { type: "error"; message: string; stack?: string }
   | { type: "stopped" }
-  | { type: "status"; status: WatcherStatus };
+  | { type: "status"; status: WatcherStatus }
+  | { type: "debug"; namespace: string; message: string };
 
 // Worker state
 let watcher: FSWatcher | null = null;
