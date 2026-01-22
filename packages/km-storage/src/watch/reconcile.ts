@@ -294,6 +294,7 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
 
   // Get existing nodes for this file using km-storage abstraction
   const existingNodes = getFileWithChildren(op.path);
+  debug("handleUpdate: existing nodes count=%d, ids=%O", existingNodes.length, existingNodes.map(n => ({ id: n.id, type: n.type, parent_idx: n.parent_idx })));
 
   // Parse new content with wikilinks
   const stat = statSync(op.path);
@@ -304,9 +305,12 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     stat.ino,
     newMtime,
   );
+  debug("handleUpdate: new nodes count=%d, ids=%O", newNodes.length, newNodes.map(n => ({ id: n.id, type: n.type, parent_idx: n.parent_idx })));
 
   // Diff and emit changes
-  const changes = diffNodes(existingNodes, newNodes);
+  const { changes, idMap } = diffNodes(existingNodes, newNodes);
+  debug("handleUpdate: changes=%O", changes.map(c => ({ type: c.type, nodeId: c.nodeId, node: c.node?.id })));
+  debug("handleUpdate: idMap (new→existing)=%O", Object.fromEntries(idMap));
 
   for (const change of changes) {
     switch (change.type) {
@@ -334,15 +338,19 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     emitNodeUpdated("fs-watch", op.nodeId, { fs_mtime: newMtime });
   }
 
-  // Update wikilinks: remove old links and add new ones
-  for (const node of newNodes) {
+  // Update wikilinks: remove old links from EXISTING nodes (not new ones)
+  // Note: newNodes have brand new IDs, so we need to use existingNodes for removal
+  debug("handleUpdate: removing links from existing nodes: %O", existingNodes.map(n => n.id));
+  for (const node of existingNodes) {
     removeLinksFromSource(node.id);
   }
 
   for (const { nodeId, link, relationship } of wikilinks) {
+    // Map new node ID to existing ID (if the node existed before)
+    const mappedSourceId = idMap.get(nodeId) ?? nodeId;
     const targetNode = findNodeByName(link.target);
     addLink({
-      source_id: nodeId,
+      source_id: mappedSourceId,
       target_name: link.target,
       target_id: targetNode?.id ?? null,
       section: link.section ?? null,
@@ -392,7 +400,12 @@ function makeStructuralKey(node: KNode): string {
   return `${node.parent_id ?? "root"}:${node.parent_idx ?? 0}:${node.type}`;
 }
 
-function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
+interface DiffResult {
+  changes: NodeChange[];
+  idMap: Map<string, string>; // new ID → existing ID
+}
+
+function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const changes: NodeChange[] = [];
 
   // Index existing by structural key (parent + index + type)
@@ -426,7 +439,10 @@ function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
       // New node - need to remap its parent_id to existing parent
       const nodeToCreate = { ...node };
       if (nodeToCreate.parent_id && idMap.has(nodeToCreate.parent_id)) {
-        nodeToCreate.parent_id = idMap.get(nodeToCreate.parent_id)!;
+        const mappedId = idMap.get(nodeToCreate.parent_id);
+        if (mappedId) {
+          nodeToCreate.parent_id = mappedId;
+        }
       }
       changes.push({
         type: "created",
@@ -507,7 +523,7 @@ function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
     });
   }
 
-  return changes;
+  return { changes, idMap };
 }
 
 /**
