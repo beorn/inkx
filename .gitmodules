@@ -4,3 +4,6 @@
 [submodule "vendor/beorn-inkx"]
 	path = vendor/beorn-inkx
 	url = git@github.com:beorn/inkx.git
+[submodule "vendor/beorn-chalkx"]
+	path = vendor/beorn-chalkx
+	url = git@github.com:beorn/chalkx.git
