@@ -11,14 +11,24 @@ import createDebug from "debug";
 import type { BoardState, BoardAction, TNode, TPath } from "./board-types.ts";
 
 const debug = createDebug("km:board:reducer");
+import { isTAction, getNodeAtPath, getSiblingCount } from "@km/tree";
+
+// Cursor movement handlers (extracted)
+import { handleCursorMove, updateCursor } from "./board-reducer-cursor.ts";
+
+// Selection handlers (extracted)
 import {
-  isTAction,
-  getNodeAtPath,
-  getSiblingCount,
-  getCurrentIndex,
-  collectAllNodeIds,
-  getSiblings,
-} from "@km/tree";
+  handleSelectNodeAdd,
+  handleSelectNodeRemove,
+  handleSelectNodeToggle,
+  handleSelectAllSiblings,
+  handleSelectAll,
+  handleClearSelection,
+  handleExtendSelectDown,
+  handleExtendSelectUp,
+  handleExtendSelectLeft,
+  handleExtendSelectRight,
+} from "./board-reducer-selection.ts";
 
 // Re-export for backwards compatibility
 export { getNodeAtPath, getSiblingCount };
@@ -30,20 +40,6 @@ export { getNodeAtPath, getSiblingCount };
 function getNodeIdAtPath(nodes: TNode[], path: TPath): string | null {
   const node = getNodeAtPath(nodes, path);
   return node?.id ?? null;
-}
-
-/**
- * Helper to update both cursor and cursorNodeId together.
- * This ensures they stay in sync.
- */
-function updateCursor(
-  state: BoardState,
-  newCursor: TPath,
-): Pick<BoardState, "cursor" | "cursorNodeId"> {
-  return {
-    cursor: newCursor,
-    cursorNodeId: getNodeIdAtPath(state.nodes, newCursor),
-  };
 }
 
 /**
@@ -84,111 +80,6 @@ export function findPathToNode(
   return search(nodes, []);
 }
 
-// ===== Visual Navigation Helpers =====
-
-/**
- * Get the last visible descendant of a node (for CURSOR_UP navigation).
- * Returns the path to the deepest last child that's visible.
- */
-function getLastVisibleDescendantPath(
-  nodes: TNode[],
-  path: TPath,
-  foldedNodes: Set<string>,
-): TPath {
-  const node = getNodeAtPath(nodes, path);
-  if (!node) return path;
-
-  // If node is folded or has no children, return the node itself
-  // Use childCount for bounds (supports lazy loading)
-  if (foldedNodes.has(node.id) || node.childCount === 0) {
-    return path;
-  }
-
-  // Go to last child and recurse
-  const lastChildIdx = node.childCount - 1;
-  const childPath = [...path, lastChildIdx];
-  return getLastVisibleDescendantPath(nodes, childPath, foldedNodes);
-}
-
-/**
- * Get the next visible block below the current position (CURSOR_DOWN).
- * Order: first child (if visible) -> next sibling -> parent's next sibling -> ...
- */
-function getNextVisiblePath(
-  nodes: TNode[],
-  path: TPath,
-  foldedNodes: Set<string>,
-): TPath | null {
-  if (path.length === 0) {
-    // At root level, go to first top-level node
-    return nodes.length > 0 ? [0] : null;
-  }
-
-  const node = getNodeAtPath(nodes, path);
-  if (!node) return null;
-
-  // 1. Try to enter first child (if not folded and has children)
-  // Use childCount for bounds (supports lazy loading)
-  if (!foldedNodes.has(node.id) && node.childCount > 0) {
-    return [...path, 0];
-  }
-
-  // 2. Try next sibling at current level, or bubble up to parent's next sibling
-  let currentPath = [...path];
-  while (currentPath.length > 0) {
-    const idx = currentPath[currentPath.length - 1];
-    if (idx === undefined) break;
-
-    const siblings =
-      currentPath.length === 1
-        ? nodes
-        : (getNodeAtPath(nodes, currentPath.slice(0, -1))?.children ?? []);
-
-    // If there's a next sibling, go there
-    if (idx < siblings.length - 1) {
-      const newPath = [...currentPath];
-      newPath[newPath.length - 1] = idx + 1;
-      return newPath;
-    }
-
-    // No next sibling, go up one level and try again
-    currentPath = currentPath.slice(0, -1);
-  }
-
-  // No more nodes below
-  return null;
-}
-
-/**
- * Get the previous visible block above the current position (CURSOR_UP).
- * Order: previous sibling's last descendant -> previous sibling -> parent
- */
-function getPrevVisiblePath(
-  nodes: TNode[],
-  path: TPath,
-  foldedNodes: Set<string>,
-): TPath | null {
-  if (path.length === 0) return null;
-
-  const idx = path[path.length - 1];
-  if (idx === undefined) return null;
-
-  // 1. If there's a previous sibling, go to its last visible descendant
-  if (idx > 0) {
-    const newPath = [...path];
-    newPath[newPath.length - 1] = idx - 1;
-    return getLastVisibleDescendantPath(nodes, newPath, foldedNodes);
-  }
-
-  // 2. No previous sibling, go to parent
-  if (path.length > 1) {
-    return path.slice(0, -1);
-  }
-
-  // At first top-level node, no previous
-  return null;
-}
-
 // ===== Reducer =====
 
 /**
@@ -209,108 +100,15 @@ export function boardReducer(
 
   debug("action: %s", action.type);
 
+  // Cross-column handler for CURSOR_MOVE left/right
+  const handleCrossColumn = (s: BoardState, dir: "left" | "right") =>
+    boardReducer(s, { type: "NAV_CROSS_COLUMN", direction: dir });
+
   switch (action.type) {
     // ===== Cursor Movement (parameterized) =====
 
-    case "CURSOR_MOVE": {
-      switch (action.dir) {
-        // Structural directions (hjkl)
-        case "prev": {
-          // Previous sibling (k)
-          if (state.cursor.length === 0) return state;
-          const idx = getCurrentIndex(state.cursor);
-          if (idx <= 0) return state;
-          const newPath = [...state.cursor];
-          newPath[newPath.length - 1] = idx - 1;
-          return { ...state, ...updateCursor(state, newPath) };
-        }
-
-        case "next": {
-          // Next sibling (j)
-          if (state.cursor.length === 0) return state;
-          const idx = getCurrentIndex(state.cursor);
-          const siblingCount = getSiblingCount(state.nodes, state.cursor);
-          if (idx >= siblingCount - 1) return state;
-          const newPath = [...state.cursor];
-          newPath[newPath.length - 1] = idx + 1;
-          return { ...state, ...updateCursor(state, newPath) };
-        }
-
-        case "out": {
-          // To parent (h)
-          if (state.cursor.length <= 1) return state;
-          return { ...state, ...updateCursor(state, state.cursor.slice(0, -1)) };
-        }
-
-        case "in": {
-          // Into first child (l)
-          const currentNode = getNodeAtPath(state.nodes, state.cursor);
-          // Use childCount for bounds (supports lazy loading)
-          if (!currentNode || currentNode.childCount === 0) return state;
-          return { ...state, ...updateCursor(state, [...state.cursor, 0]) };
-        }
-
-        case "first": {
-          // First sibling (g)
-          if (state.cursor.length === 0) return state;
-          const newPath = [...state.cursor];
-          newPath[newPath.length - 1] = 0;
-          return { ...state, ...updateCursor(state, newPath) };
-        }
-
-        case "last": {
-          // Last sibling (G)
-          if (state.cursor.length === 0) return state;
-          const siblingCount = getSiblingCount(state.nodes, state.cursor);
-          if (siblingCount === 0) return state;
-          const newPath = [...state.cursor];
-          newPath[newPath.length - 1] = siblingCount - 1;
-          return { ...state, ...updateCursor(state, newPath) };
-        }
-
-        // Visual/spatial directions (arrows)
-        case "up": {
-          // Previous visible block above (may cross tree levels)
-          const prevPath = getPrevVisiblePath(
-            state.nodes,
-            state.cursor,
-            state.foldedNodes,
-          );
-          if (!prevPath) return state;
-          return { ...state, ...updateCursor(state, prevPath) };
-        }
-
-        case "down": {
-          // Next visible block below (may cross tree levels)
-          const nextPath = getNextVisiblePath(
-            state.nodes,
-            state.cursor,
-            state.foldedNodes,
-          );
-          if (!nextPath) return state;
-          return { ...state, ...updateCursor(state, nextPath) };
-        }
-
-        case "left": {
-          // Cross-column left (visual horizontal movement)
-          return boardReducer(state, {
-            type: "NAV_CROSS_COLUMN",
-            direction: "left",
-          });
-        }
-
-        case "right": {
-          // Cross-column right (visual horizontal movement)
-          return boardReducer(state, {
-            type: "NAV_CROSS_COLUMN",
-            direction: "right",
-          });
-        }
-
-        default:
-          return state;
-      }
-    }
+    case "CURSOR_MOVE":
+      return handleCursorMove(state, action.dir, handleCrossColumn);
 
     // ===== Jump Navigation =====
 
@@ -556,207 +354,37 @@ export function boardReducer(
 
     // ===== Selection =====
 
-    case "SELECT_NODE_ADD": {
-      const newSelected = new Set(state.selectedNodes);
-      newSelected.add(action.nodeId);
-      return { ...state, selectedNodes: newSelected };
-    }
+    case "SELECT_NODE_ADD":
+      return handleSelectNodeAdd(state, action.nodeId);
 
-    case "SELECT_NODE_REMOVE": {
-      const newSelected = new Set(state.selectedNodes);
-      newSelected.delete(action.nodeId);
-      return { ...state, selectedNodes: newSelected };
-    }
+    case "SELECT_NODE_REMOVE":
+      return handleSelectNodeRemove(state, action.nodeId);
 
-    case "SELECT_NODE_TOGGLE": {
-      const newSelected = new Set(state.selectedNodes);
-      if (newSelected.has(action.nodeId)) {
-        newSelected.delete(action.nodeId);
-      } else {
-        newSelected.add(action.nodeId);
-      }
-      return { ...state, selectedNodes: newSelected };
-    }
+    case "SELECT_NODE_TOGGLE":
+      return handleSelectNodeToggle(state, action.nodeId);
 
-    case "SELECT_ALL_SIBLINGS": {
-      const siblings = getSiblings(state.nodes, state.cursor);
-      const newSelected = new Set(state.selectedNodes);
-      for (const sibling of siblings) {
-        newSelected.add(sibling.id);
-      }
-      return { ...state, selectedNodes: newSelected };
-    }
+    case "SELECT_ALL_SIBLINGS":
+      return handleSelectAllSiblings(state);
 
-    case "SELECT_ALL": {
-      const allIds = collectAllNodeIds(state.nodes);
-      return { ...state, selectedNodes: new Set(allIds) };
-    }
+    case "SELECT_ALL":
+      return handleSelectAll(state);
 
-    case "CLEAR_SELECTION": {
-      return { ...state, selectedNodes: new Set() };
-    }
+    case "CLEAR_SELECTION":
+      return handleClearSelection(state);
 
     // ===== Extend-Select (shift+hjkl) =====
 
-    case "EXTEND_SELECT_DOWN": {
-      // Add current node to selection and move down
-      const currentNode = getNodeAtPath(state.nodes, state.cursor);
-      if (!currentNode) return state;
+    case "EXTEND_SELECT_DOWN":
+      return handleExtendSelectDown(state);
 
-      const newSelected = new Set(state.selectedNodes);
-      newSelected.add(currentNode.id);
+    case "EXTEND_SELECT_UP":
+      return handleExtendSelectUp(state);
 
-      // Get next visible path
-      const nextPath = getNextVisiblePath(
-        state.nodes,
-        state.cursor,
-        state.foldedNodes,
-      );
-      if (!nextPath) {
-        // No next path, just add current to selection
-        return { ...state, selectedNodes: newSelected };
-      }
+    case "EXTEND_SELECT_LEFT":
+      return handleExtendSelectLeft(state);
 
-      // Add the new node to selection
-      const nextNode = getNodeAtPath(state.nodes, nextPath);
-      if (nextNode) {
-        newSelected.add(nextNode.id);
-      }
-
-      return {
-        ...state,
-        ...updateCursor(state, nextPath),
-        selectedNodes: newSelected,
-      };
-    }
-
-    case "EXTEND_SELECT_UP": {
-      // Add current node to selection and move up
-      const currentNode = getNodeAtPath(state.nodes, state.cursor);
-      if (!currentNode) return state;
-
-      const newSelected = new Set(state.selectedNodes);
-      newSelected.add(currentNode.id);
-
-      // Get previous visible path
-      const prevPath = getPrevVisiblePath(
-        state.nodes,
-        state.cursor,
-        state.foldedNodes,
-      );
-      if (!prevPath) {
-        // No prev path, just add current to selection
-        return { ...state, selectedNodes: newSelected };
-      }
-
-      // Add the new node to selection
-      const prevNode = getNodeAtPath(state.nodes, prevPath);
-      if (prevNode) {
-        newSelected.add(prevNode.id);
-      }
-
-      return {
-        ...state,
-        ...updateCursor(state, prevPath),
-        selectedNodes: newSelected,
-      };
-    }
-
-    case "EXTEND_SELECT_LEFT": {
-      // Add current node to selection and move left (cross-column)
-      const currentNode = getNodeAtPath(state.nodes, state.cursor);
-      if (!currentNode) return state;
-
-      const newSelected = new Set(state.selectedNodes);
-      newSelected.add(currentNode.id);
-
-      // Cross-column navigation left
-      if (state.cursor.length < 2) {
-        // At column level, can't go left - just add to selection
-        return { ...state, selectedNodes: newSelected };
-      }
-
-      const colIdx = state.cursor[0] ?? 0;
-      const rowIdx = state.cursor[1] ?? 0;
-      const newColIdx = colIdx - 1;
-
-      if (newColIdx < 0) {
-        // Already at first column
-        return { ...state, selectedNodes: newSelected };
-      }
-
-      const targetCol = state.nodes[newColIdx];
-      if (!targetCol) {
-        return { ...state, selectedNodes: newSelected };
-      }
-
-      let newPath: TPath;
-      if (targetCol.childCount === 0) {
-        newPath = [newColIdx];
-        newSelected.add(targetCol.id);
-      } else {
-        const clampedRow = Math.min(rowIdx, targetCol.childCount - 1);
-        newPath = [newColIdx, clampedRow];
-        const targetNode = targetCol.children[clampedRow];
-        if (targetNode) {
-          newSelected.add(targetNode.id);
-        }
-      }
-
-      return {
-        ...state,
-        ...updateCursor(state, newPath),
-        selectedNodes: newSelected,
-      };
-    }
-
-    case "EXTEND_SELECT_RIGHT": {
-      // Add current node to selection and move right (cross-column)
-      const currentNode = getNodeAtPath(state.nodes, state.cursor);
-      if (!currentNode) return state;
-
-      const newSelected = new Set(state.selectedNodes);
-      newSelected.add(currentNode.id);
-
-      // Cross-column navigation right
-      if (state.cursor.length < 2) {
-        // At column level, can't go right for extend-select
-        return { ...state, selectedNodes: newSelected };
-      }
-
-      const colIdx = state.cursor[0] ?? 0;
-      const rowIdx = state.cursor[1] ?? 0;
-      const newColIdx = colIdx + 1;
-
-      if (newColIdx >= state.nodes.length) {
-        // Already at last column
-        return { ...state, selectedNodes: newSelected };
-      }
-
-      const targetCol = state.nodes[newColIdx];
-      if (!targetCol) {
-        return { ...state, selectedNodes: newSelected };
-      }
-
-      let newPath: TPath;
-      if (targetCol.childCount === 0) {
-        newPath = [newColIdx];
-        newSelected.add(targetCol.id);
-      } else {
-        const clampedRow = Math.min(rowIdx, targetCol.childCount - 1);
-        newPath = [newColIdx, clampedRow];
-        const targetNode = targetCol.children[clampedRow];
-        if (targetNode) {
-          newSelected.add(targetNode.id);
-        }
-      }
-
-      return {
-        ...state,
-        ...updateCursor(state, newPath),
-        selectedNodes: newSelected,
-      };
-    }
+    case "EXTEND_SELECT_RIGHT":
+      return handleExtendSelectRight(state);
 
     // ===== Shifting (opt+hjkl) =====
     // Note: These are "intent" actions - actual tree mutation happens in the app/store layer

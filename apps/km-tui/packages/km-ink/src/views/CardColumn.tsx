@@ -23,7 +23,9 @@ const ESTIMATED_CARD_HEIGHT = 4;
 
 // Number of extra cards to render above and below visible area
 // This provides smooth scrolling without visible gaps
-const OVERSCAN = 5;
+// Increased from 5 to 15 to prevent blank rendering during scroll
+// when edge-based scrolling preserves offset near window boundaries
+const OVERSCAN = 15;
 
 // Maximum number of cards to render at once
 // Beyond this, use placeholder to avoid overwhelming React

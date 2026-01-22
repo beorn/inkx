@@ -28,7 +28,9 @@ import { MemoizedTreeCard } from "./shared-components.tsx";
 const ESTIMATED_ROW_HEIGHT = 1;
 
 // Number of extra items to render above and below visible area
-const OVERSCAN = 10;
+// Increased from 10 to 20 to prevent blank rendering during scroll
+// when edge-based scrolling preserves offset near window boundaries
+const OVERSCAN = 20;
 
 // Maximum number of items to render at once
 const MAX_RENDERED_ITEMS = 100;
