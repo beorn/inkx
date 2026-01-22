@@ -1557,7 +1557,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
           {/* Bottom bar: left (truncatable) + right (fixed) */}
           {(() => {
             const store = getStore();
-            const repoPath = store.rootPath || "";
+            const homeDir = process.env.HOME || "";
+
+            // Shorten path: replace home directory with ~/
+            let displayPath = store.rootPath || "";
+            if (homeDir && displayPath.startsWith(homeDir)) {
+              displayPath = "~" + displayPath.slice(homeDir.length);
+            }
 
             // Build status parts (middle)
             const statusParts: string[] = [];
@@ -1575,22 +1581,24 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             }
             if (ui.inOutlineMode) statusParts.push("OUT");
 
-            // Right side info (always visible)
+            // Right side info (always visible) - use double space separator
             const rightParts: string[] = [];
             if (ui.watcherStatus) {
               rightParts.push(renderWatcherStatus(ui.watcherStatus));
             }
             // Show column position (only meaningful in columns view)
             if (ui.viewMode === "columns" && state.columns.length > 1) {
-              rightParts.push(`${state.colIndex + 1}/${state.columns.length}`);
+              rightParts.push(`col ${state.colIndex + 1}/${state.columns.length}`);
             }
-            // Always show view mode
-            const viewModeStr = ui.viewMode?.toUpperCase() ?? "CARDS";
+            // Always show view mode with VIEW suffix
+            const viewModeStr = (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW";
             rightParts.push(viewModeStr);
 
-            const left = store.mode === "memory" ? `MEM ${repoPath}` : repoPath;
-            const middle = statusParts.join(" ");
-            const right = ` ${rightParts.join(" ")} `;
+            // Left side: storage mode + REPO + path (single group)
+            const modeLabel = store.mode === "memory" ? "MEM REPO" : "DISK REPO";
+            const left = `${modeLabel} ${displayPath}`;
+            const middle = statusParts.join("  "); // Double space between status parts
+            const right = ` ${rightParts.join("   ")} `; // Triple space between right parts
 
             // Calculate widths: right side is fixed, left gets remaining space
             const rightWidth = right.length;
@@ -1600,7 +1608,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <Box flexDirection="row" flexShrink={0} width={termWidth}>
                 <Box width={leftWidth} flexShrink={0}>
                   <Text dimColor wrap="truncate-end">
-                    {middle ? ` ${left}  ${middle}` : ` ${left}`}
+                    {middle ? ` ${left}   ${middle}` : ` ${left}`}
                   </Text>
                 </Box>
                 <Box width={rightWidth} flexShrink={0}>
@@ -1751,22 +1759,23 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
 /**
  * Render watcher status indicator for bottom bar
+ * Shows file watcher state and count of watched files
  */
 function renderWatcherStatus(status: import("@km/storage").WatcherStatus): string {
   const { state, pendingPaths, watchedPaths } = status;
 
   switch (state) {
     case "starting":
-      return "watcher:starting";
+      return "watching: starting";
     case "syncing":
-      return pendingPaths > 0 ? `watcher:syncing ${pendingPaths}` : "watcher:syncing";
+      return pendingPaths > 0 ? `watching: syncing ${pendingPaths}` : "watching: syncing";
     case "ready":
     case "idle":
-      return watchedPaths ? `watcher:${watchedPaths}` : "watcher:idle";
+      return watchedPaths ? `watching ${watchedPaths} files` : "watching: idle";
     case "error":
-      return "watcher:error";
+      return "watching: error";
     case "stopped":
-      return "watcher:stopped";
+      return "watching: off";
     default:
       return "";
   }
