@@ -4,7 +4,7 @@
  * Uses inkx overflow="scroll" for native scrolling support.
  * Implements React-level virtualization for large card lists.
  */
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { Box, Text } from "inkx";
 import { styledUnderline } from "@beorn/chalkx";
 import type { CardState, ColumnState } from "../types.ts";
@@ -50,46 +50,103 @@ export interface CardProps {
  * Key optimization: cursor movement only changes isSelected for 2 cards
  * (old selection and new selection). All other cards should skip re-render.
  */
-export const Card = React.memo(function Card({
-  card,
-  isSelected,
-  selectedSubIndex,
-  width,
-  colIndex,
-  cardIndex,
-}: CardProps): React.ReactElement {
-  return (
-    <Box
-      flexDirection="column"
-      flexShrink={0}
-      width={width}
-      borderStyle="round"
-      borderColor={isSelected ? "yellow" : "blackBright"}
-    >
-      <TreeNode
-        node={card.node}
-        depth={0}
-        isSelected={isSelected && selectedSubIndex === 0}
-        colIndex={colIndex}
-        cardIndex={cardIndex}
-        subIndex={0}
-        dimInactiveChildren={!isSelected}
-      />
-    </Box>
-  );
-}, (prev, next) => {
-  // Fast equality check for Card props
-  return (
-    prev.card.node.id === next.card.node.id &&
-    prev.card.node.content === next.card.node.content &&
-    prev.card.node.task_status === next.card.node.task_status &&
-    prev.isSelected === next.isSelected &&
-    prev.selectedSubIndex === next.selectedSubIndex &&
-    prev.width === next.width &&
-    prev.colIndex === next.colIndex &&
-    prev.cardIndex === next.cardIndex
-  );
-});
+export const Card = React.memo(
+  function Card({
+    card,
+    isSelected,
+    selectedSubIndex,
+    width,
+    colIndex,
+    cardIndex,
+  }: CardProps): React.ReactElement {
+    return (
+      <Box
+        flexDirection="column"
+        flexShrink={0}
+        width={width}
+        borderStyle="round"
+        borderColor={isSelected ? "yellow" : "blackBright"}
+      >
+        <TreeNode
+          node={card.node}
+          depth={0}
+          isSelected={isSelected && selectedSubIndex === 0}
+          colIndex={colIndex}
+          cardIndex={cardIndex}
+          subIndex={0}
+          dimInactiveChildren={!isSelected}
+        />
+      </Box>
+    );
+  },
+  (prev, next) => {
+    // Fast equality check for Card props
+    return (
+      prev.card.node.id === next.card.node.id &&
+      prev.card.node.content === next.card.node.content &&
+      prev.card.node.task_status === next.card.node.task_status &&
+      prev.isSelected === next.isSelected &&
+      prev.selectedSubIndex === next.selectedSubIndex &&
+      prev.width === next.width &&
+      prev.colIndex === next.colIndex &&
+      prev.cardIndex === next.cardIndex
+    );
+  },
+);
+
+// =============================================================================
+// Edge-Based Scrolling
+// =============================================================================
+
+// Padding from edge before scrolling (in items)
+// When cursor is within this many items of the edge, scroll to keep padding
+const SCROLL_PADDING = 2;
+
+/**
+ * Calculate edge-based scroll offset.
+ * Only scrolls when cursor approaches the edge of the visible area.
+ *
+ * @param selectedIndex - Currently selected item index
+ * @param currentOffset - Current scroll offset (top visible item)
+ * @param visibleCount - Number of items visible in viewport
+ * @param totalCount - Total number of items
+ * @returns New scroll offset
+ */
+function calcEdgeBasedScrollOffset(
+  selectedIndex: number,
+  currentOffset: number,
+  visibleCount: number,
+  totalCount: number,
+): number {
+  // If nothing to scroll, stay at 0
+  if (totalCount <= visibleCount) return 0;
+
+  // Calculate visible range
+  const visibleStart = currentOffset;
+  const visibleEnd = currentOffset + visibleCount - 1;
+
+  // Check if selected is outside visible range (with padding)
+  const paddedStart = visibleStart + SCROLL_PADDING;
+  const paddedEnd = visibleEnd - SCROLL_PADDING;
+
+  let newOffset = currentOffset;
+
+  if (selectedIndex < paddedStart) {
+    // Cursor is near/above top edge - scroll up
+    // Place cursor at SCROLL_PADDING from top
+    newOffset = Math.max(0, selectedIndex - SCROLL_PADDING);
+  } else if (selectedIndex > paddedEnd) {
+    // Cursor is near/below bottom edge - scroll down
+    // Place cursor at SCROLL_PADDING from bottom
+    newOffset = Math.min(
+      totalCount - visibleCount,
+      selectedIndex - visibleCount + SCROLL_PADDING + 1,
+    );
+  }
+
+  // Clamp to valid range
+  return Math.max(0, Math.min(newOffset, totalCount - visibleCount));
+}
 
 // =============================================================================
 // Virtualized Card List Component
@@ -114,6 +171,7 @@ interface VirtualizedCardListProps {
  * 1. Calculates which cards are likely visible based on height
  * 2. Renders only those cards plus a buffer (OVERSCAN)
  * 3. Uses placeholder elements to maintain scroll position
+ * 4. Uses edge-based scrolling (only scrolls when cursor approaches edge)
  */
 function VirtualizedCardList({
   cards,
@@ -125,8 +183,32 @@ function VirtualizedCardList({
   height,
   colIndex,
 }: VirtualizedCardListProps): React.ReactElement {
+  // Track scroll offset for edge-based scrolling
+  // Using ref to persist across renders without causing re-renders
+  const scrollOffsetRef = useRef(0);
+
+  // Calculate how many cards fit in the viewport
+  const visibleCardCount = Math.max(
+    1,
+    Math.floor(height / ESTIMATED_CARD_HEIGHT),
+  );
+
+  // Calculate edge-based scroll offset
+  const newScrollOffset = calcEdgeBasedScrollOffset(
+    selectedCardIndex,
+    scrollOffsetRef.current,
+    visibleCardCount,
+    cards.length,
+  );
+  scrollOffsetRef.current = newScrollOffset;
+
   // Calculate virtualization window
-  const { startIndex, endIndex, topPlaceholderHeight, bottomPlaceholderHeight } = useMemo(() => {
+  const {
+    startIndex,
+    endIndex,
+    topPlaceholderHeight,
+    bottomPlaceholderHeight,
+  } = useMemo(() => {
     const totalCards = cards.length;
 
     // For small lists, render everything
@@ -178,10 +260,12 @@ function VirtualizedCardList({
   // Get the slice of cards to render
   const visibleCards = cards.slice(startIndex, endIndex);
 
-  // Calculate scrollTo index, accounting for placeholder child
-  // If there's a top placeholder, it's child 0, so cards start at index 1
+  // Calculate scrollTo index using edge-based offset
+  // scrollOffsetRef.current is the logical top card index
+  // We need to translate to the index within our rendered slice
   const hasTopPlaceholder = topPlaceholderHeight > 0;
-  const scrollToIndex = selectedCardIndex - startIndex + (hasTopPlaceholder ? 1 : 0);
+  const scrollToIndex =
+    newScrollOffset - startIndex + (hasTopPlaceholder ? 1 : 0);
 
   return (
     <Box
@@ -189,7 +273,7 @@ function VirtualizedCardList({
       flexGrow={1}
       height={height}
       overflow="scroll"
-      scrollTo={scrollToIndex}
+      scrollTo={Math.max(0, scrollToIndex)}
     >
       {/* Top placeholder for cards above visible range */}
       {topPlaceholderHeight > 0 && (
@@ -285,7 +369,12 @@ export const Column = React.memo(function Column({
   const iconColor = isColumnSelected ? "black" : icon.color;
 
   return (
-    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
+    <Box
+      flexDirection="column"
+      width={width}
+      maxHeight={height}
+      overflow="hidden"
+    >
       {/* Blank line above header */}
       <Box height={1} flexShrink={0}>
         <Text> </Text>
@@ -303,22 +392,38 @@ export const Column = React.memo(function Column({
           wrap="truncate"
         >
           {" "}
-          <Text color={iconColor}>{icon.char}</Text>
-          {" "}
-          {name}
+          <Text color={iconColor}>{icon.char}</Text> {name}
           {typeSuffix ? (
-            <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${typeSuffix}`}</Text>
-          ) : ""}
+            <Text
+              color={isColumnSelected ? "gray" : undefined}
+              dimColor={!isColumnSelected}
+            >{` ${typeSuffix}`}</Text>
+          ) : (
+            ""
+          )}
           {wipExceeded ? (
             <Text color="red">
               {` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}
             </Text>
           ) : (
-            <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${countDisplay}`}</Text>
+            <Text
+              color={isColumnSelected ? "gray" : undefined}
+              dimColor={!isColumnSelected}
+            >{` ${countDisplay}`}</Text>
           )}
           {collapsedIndicator}
           {/* Pad to full column width */}
-          {" ".repeat(Math.max(0, width - 4 - name.length - countDisplay.length - (typeSuffix?.length ?? 0) - (collapsedIndicator?.length ?? 0)))}
+          {" ".repeat(
+            Math.max(
+              0,
+              width -
+                4 -
+                name.length -
+                countDisplay.length -
+                (typeSuffix?.length ?? 0) -
+                (collapsedIndicator?.length ?? 0),
+            ),
+          )}
         </Text>
       </Box>
 

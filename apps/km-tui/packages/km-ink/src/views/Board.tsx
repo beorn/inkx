@@ -124,6 +124,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     rootIdRef.current = boardState.rootId;
   }, [boardState.rootId]);
 
+  // Ref for edge-based horizontal scroll tracking
+  const colScrollOffsetRef = useRef(0);
+
   // PERFORMANCE OPTIMIZATION: Separate columns derivation from cursor derivation
   // This ensures cursor movement (which changes boardState.cursor) does NOT
   // cause all columns to be rebuilt. Columns only rebuild when tree structure changes.
@@ -131,7 +134,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Derive columns ONLY when tree structure changes (not on cursor moves)
   const columns = useMemo(
     () => deriveColumns(boardState.nodes),
-    [boardState.nodes],  // Only depends on nodes, not cursor!
+    [boardState.nodes], // Only depends on nodes, not cursor!
   );
 
   // Derive cursor indices on every cursor change (cheap operation)
@@ -242,12 +245,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     Math.max(2, Math.floor(termWidth / 35)),
   );
 
-  // Horizontal scrolling for columns
-  const colScrollOffset = calcScrollOffset(
+  // Horizontal scrolling for columns (edge-based)
+  const colScrollOffset = calcEdgeBasedColumnScrollOffset(
     state.colIndex,
+    colScrollOffsetRef.current,
     maxCols,
     state.columns.length,
   );
+  colScrollOffsetRef.current = colScrollOffset;
   const visibleColumns = state.columns.slice(
     colScrollOffset,
     colScrollOffset + maxCols,
@@ -340,7 +345,6 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     },
   );
 
-
   // Build selected item path segments for colorized top bar
   // Shows full path from filesystem root to selected item based on selection level
   const selectedCol = state.columns[state.colIndex];
@@ -370,11 +374,15 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const effectiveMaxCols = ui.showDetailPane
     ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
     : maxCols;
-  const effectiveScrollOffset = calcScrollOffset(
-    state.colIndex,
-    effectiveMaxCols,
-    state.columns.length,
-  );
+  // Use same edge-based scroll offset (already calculated above with colScrollOffsetRef)
+  const effectiveScrollOffset = ui.showDetailPane
+    ? calcEdgeBasedColumnScrollOffset(
+        state.colIndex,
+        colScrollOffsetRef.current,
+        effectiveMaxCols,
+        state.columns.length,
+      )
+    : colScrollOffset;
   const effectiveVisibleColumns = ui.showDetailPane
     ? state.columns.slice(
         effectiveScrollOffset,
@@ -588,17 +596,22 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             // Right side info (always visible)
             // DB/files/watcher status as one group (single space), other items with double space
             const dbCount = getNodeCount();
-            const watcherInfo = ui.watcherStatus ? ` ${renderWatcherStatus(ui.watcherStatus)}` : "";
+            const watcherInfo = ui.watcherStatus
+              ? ` ${renderWatcherStatus(ui.watcherStatus)}`
+              : "";
             // 📋 = clipboard for records/nodes, 📄 = file for watched files
             const dbFilesGroup = `📋${dbCount}${watcherInfo}`;
 
             const rightParts: string[] = [dbFilesGroup];
             // Show column position (only meaningful in columns view)
             if (ui.viewMode === "columns" && state.columns.length > 1) {
-              rightParts.push(`col ${state.colIndex + 1}/${state.columns.length}`);
+              rightParts.push(
+                `col ${state.colIndex + 1}/${state.columns.length}`,
+              );
             }
             // Always show view mode with VIEW suffix
-            const viewModeStr = (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW";
+            const viewModeStr =
+              (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW";
             rightParts.push(viewModeStr);
 
             // Left side: storage mode + folder icon + path
@@ -740,10 +753,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   function setupRefreshHandler() {
     const handleRefresh = () => {
       // Rebuild tree nodes from database (which was updated by sync manager)
-      // Use shallow loading (false) to only refresh metadata, preserving loaded children
+      // Must use deep loading (true) to include children - shallow loading loses them!
       // Uses rootIdRef to get current rootId (avoids stale closure from useEffect deps)
       // Note: rootIdRef.current can be null for root-level view, which is valid
-      const nodes = buildTreeNodes(rootIdRef.current, false);
+      const nodes = buildTreeNodes(rootIdRef.current, true);
       dispatchBoard({ type: "REFRESH", nodes });
     };
 
@@ -754,7 +767,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   }
 
   function setupWatcherStatusHandler() {
-    const handleWatcherStatus = (status: import("@km/storage").WatcherStatus) => {
+    const handleWatcherStatus = (
+      status: import("@km/storage").WatcherStatus,
+    ) => {
       dispatch(actions.setWatcherStatus(status));
     };
 
@@ -769,7 +784,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
  * Render watcher status indicator for bottom bar
  * Uses 📄 icon for files, always shows file count, plus current state if not idle
  */
-function renderWatcherStatus(status: import("@km/storage").WatcherStatus): string {
+function renderWatcherStatus(
+  status: import("@km/storage").WatcherStatus,
+): string {
   const { state, pendingPaths, watchedPaths } = status;
   // 📄 = file icon for watched files
   const fileCount = watchedPaths ? `📄${watchedPaths}` : "📄0";
@@ -778,7 +795,9 @@ function renderWatcherStatus(status: import("@km/storage").WatcherStatus): strin
     case "starting":
       return `${fileCount} starting`;
     case "syncing":
-      return pendingPaths > 0 ? `${fileCount} sync:${pendingPaths}` : `${fileCount} syncing`;
+      return pendingPaths > 0
+        ? `${fileCount} sync:${pendingPaths}`
+        : `${fileCount} syncing`;
     case "ready":
     case "idle":
       return fileCount;
@@ -1176,19 +1195,51 @@ function renderTopBarContent(
   return content;
 }
 
-// Calculate scroll offset to center selected column
-function calcScrollOffset(
+// Padding from edge before scrolling (in columns)
+const COLUMN_SCROLL_PADDING = 1;
+
+/**
+ * Calculate edge-based scroll offset for horizontal column scrolling.
+ * Only scrolls when cursor approaches the edge of the visible area.
+ *
+ * @param selectedIndex - Currently selected column index
+ * @param currentOffset - Current scroll offset (leftmost visible column)
+ * @param maxVisible - Number of columns visible in viewport
+ * @param totalCount - Total number of columns
+ * @returns New scroll offset
+ */
+function calcEdgeBasedColumnScrollOffset(
   selectedIndex: number,
+  currentOffset: number,
   maxVisible: number,
   totalCount: number,
 ): number {
-  return Math.max(
-    0,
-    Math.min(
-      selectedIndex - Math.floor(maxVisible / 2),
-      Math.max(0, totalCount - maxVisible),
-    ),
-  );
+  // If everything fits, no scrolling needed
+  if (totalCount <= maxVisible) return 0;
+
+  // Calculate visible range
+  const visibleStart = currentOffset;
+  const visibleEnd = currentOffset + maxVisible - 1;
+
+  // Check if selected is outside visible range (with padding)
+  const paddedStart = visibleStart + COLUMN_SCROLL_PADDING;
+  const paddedEnd = visibleEnd - COLUMN_SCROLL_PADDING;
+
+  let newOffset = currentOffset;
+
+  if (selectedIndex < paddedStart) {
+    // Cursor is near/left of left edge - scroll left
+    newOffset = Math.max(0, selectedIndex - COLUMN_SCROLL_PADDING);
+  } else if (selectedIndex > paddedEnd) {
+    // Cursor is near/right of right edge - scroll right
+    newOffset = Math.min(
+      totalCount - maxVisible,
+      selectedIndex - maxVisible + COLUMN_SCROLL_PADDING + 1,
+    );
+  }
+
+  // Clamp to valid range
+  return Math.max(0, Math.min(newOffset, totalCount - maxVisible));
 }
 
 // NOTE: renderTopBarSegments removed - top bar now uses pure inkx styling

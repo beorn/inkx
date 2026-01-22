@@ -7,7 +7,7 @@
  * Uses inkx overflow="scroll" for native scrolling support.
  * Implements React-level virtualization for large card lists.
  */
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { Box, Text } from "inkx";
 import type { BoardState, ColumnState, CardState } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
@@ -35,6 +35,9 @@ const OVERSCAN = 20;
 // Maximum number of items to render at once
 const MAX_RENDERED_ITEMS = 100;
 
+// Padding from edge before scrolling (in items)
+const SCROLL_PADDING = 2;
+
 // =============================================================================
 // Virtualized Tree Card List Component
 // =============================================================================
@@ -51,7 +54,39 @@ interface VirtualizedTreeCardListProps {
 }
 
 /**
+ * Calculate edge-based scroll offset.
+ * Only scrolls when cursor approaches the edge of the visible area.
+ */
+function calcEdgeBasedScrollOffset(
+  selectedIndex: number,
+  currentOffset: number,
+  visibleCount: number,
+  totalCount: number,
+): number {
+  if (totalCount <= visibleCount) return 0;
+
+  const visibleStart = currentOffset;
+  const visibleEnd = currentOffset + visibleCount - 1;
+  const paddedStart = visibleStart + SCROLL_PADDING;
+  const paddedEnd = visibleEnd - SCROLL_PADDING;
+
+  let newOffset = currentOffset;
+
+  if (selectedIndex < paddedStart) {
+    newOffset = Math.max(0, selectedIndex - SCROLL_PADDING);
+  } else if (selectedIndex > paddedEnd) {
+    newOffset = Math.min(
+      totalCount - visibleCount,
+      selectedIndex - visibleCount + SCROLL_PADDING + 1,
+    );
+  }
+
+  return Math.max(0, Math.min(newOffset, totalCount - visibleCount));
+}
+
+/**
  * Virtualized list of tree cards that only renders items near the visible area.
+ * Uses edge-based scrolling (only scrolls when cursor approaches edge).
  */
 function VirtualizedTreeCardList({
   cards,
@@ -63,8 +98,28 @@ function VirtualizedTreeCardList({
   inOutlineMode,
   height,
 }: VirtualizedTreeCardListProps): React.ReactElement {
+  // Track scroll offset for edge-based scrolling
+  const scrollOffsetRef = useRef(0);
+
+  // Calculate how many items fit in the viewport
+  const visibleItemCount = Math.max(1, Math.floor(height / ESTIMATED_ROW_HEIGHT));
+
+  // Calculate edge-based scroll offset
+  const newScrollOffset = calcEdgeBasedScrollOffset(
+    selectedCardIndex,
+    scrollOffsetRef.current,
+    visibleItemCount,
+    cards.length,
+  );
+  scrollOffsetRef.current = newScrollOffset;
+
   // Calculate virtualization window
-  const { startIndex, endIndex, topPlaceholderHeight, bottomPlaceholderHeight } = useMemo(() => {
+  const {
+    startIndex,
+    endIndex,
+    topPlaceholderHeight,
+    bottomPlaceholderHeight,
+  } = useMemo(() => {
     const totalCards = cards.length;
 
     // For small lists, render everything
@@ -114,17 +169,16 @@ function VirtualizedTreeCardList({
   // Get the slice of cards to render
   const visibleCards = cards.slice(startIndex, endIndex);
 
-  // Calculate scrollTo index, accounting for placeholder child
-  // If there's a top placeholder, it's child 0, so cards start at index 1
+  // Calculate scrollTo index using edge-based offset
   const hasTopPlaceholder = topPlaceholderHeight > 0;
-  const scrollToIndex = selectedCardIndex - startIndex + (hasTopPlaceholder ? 1 : 0);
+  const scrollToIndex = newScrollOffset - startIndex + (hasTopPlaceholder ? 1 : 0);
 
   return (
     <Box
       flexDirection="column"
       height={height}
       overflow="scroll"
-      scrollTo={scrollToIndex}
+      scrollTo={Math.max(0, scrollToIndex)}
     >
       {/* Top placeholder */}
       {topPlaceholderHeight > 0 && (
@@ -219,10 +273,11 @@ const ColumnTree = React.memo(function ColumnTree({
             wrap="truncate"
           >
             {" "}
-            <Text color={iconColor}>{icon.char}</Text>
-            {" "}
-            {name}
-            <Text color={isColumnHeaderSelected ? "gray" : undefined} dimColor={!isColumnHeaderSelected}>{` (${count})`}</Text>
+            <Text color={iconColor}>{icon.char}</Text> {name}
+            <Text
+              color={isColumnHeaderSelected ? "gray" : undefined}
+              dimColor={!isColumnHeaderSelected}
+            >{` (${count})`}</Text>
           </Text>
         </Box>
         <Text dimColor wrap="truncate">
@@ -281,7 +336,8 @@ export function ColumnsView({
   // Calculate column widths with max width constraint
   // Tighter than cards view to prevent columns from being too wide
   const maxColWidth = 50;
-  const indicatorWidth = (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
+  const indicatorWidth =
+    (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
   const separatorCount = effectiveVisibleColumns.length - 1;
   const availableWidth = width - indicatorWidth - separatorCount;
   const baseColWidth = Math.floor(availableWidth / effectiveMaxCols);
