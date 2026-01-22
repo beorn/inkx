@@ -61,6 +61,7 @@ export class SyncManager extends EventEmitter {
   private watcher: WatcherInterface;
   private writeQueue: WriteQueue;
   private state: SyncState = "idle";
+  private ignorePatterns: string[] = [];
 
   constructor(config: SyncConfig) {
     super();
@@ -107,6 +108,8 @@ export class SyncManager extends EventEmitter {
    */
   start(): void {
     debug("starting sync manager for %s", this.config.vaultPath);
+    // Load ignore patterns for reconciliation
+    this.ignorePatterns = getIgnorePatterns(this.config.vaultPath);
     this.watcher.start(this.config.vaultPath);
     this.emit("started");
   }
@@ -140,7 +143,7 @@ export class SyncManager extends EventEmitter {
 
     try {
       for (const dir of data.directories) {
-        const ops = reconcileDirectory(dir, this.config.vaultPath);
+        const ops = reconcileDirectory(dir, this.config.vaultPath, this.ignorePatterns);
         debug("reconciled %s: %d ops", dir, ops.length);
 
         if (ops.length > 0) {
@@ -309,7 +312,7 @@ export class SyncManager extends EventEmitter {
 
     let processed = 0;
     for (const dir of dirs) {
-      const ops = reconcileDirectory(dir, this.config.vaultPath);
+      const ops = reconcileDirectory(dir, this.config.vaultPath, ignorePatterns);
       await applyReconcileOps(ops, this.config.vaultPath);
       processed += ops.length;
     }

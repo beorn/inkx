@@ -80,32 +80,55 @@ let statusInterval: ReturnType<typeof setInterval> | null = null;
 
 /**
  * Check if path should be ignored based on patterns
+ *
+ * Supported patterns:
+ * - **\/foo/**: Match "foo" directory anywhere in path (e.g., .git, node_modules)
+ * - **\/foo: Match "foo" anywhere in path
+ * - foo/**: Match anything under "foo" directory at root
+ * - *.ext: Match files with extension
+ * - exact: Exact match or as directory prefix
  */
 function shouldIgnore(path: string, patterns: string[], vaultPath: string): boolean {
   const relativePath = path.replace(vaultPath, "").replace(/^\//, "");
 
   for (const pattern of patterns) {
-    // Simple glob matching for common patterns
-    if (pattern.startsWith("**/")) {
-      // Match anywhere in path
+    // Handle **/.git/** pattern - match directory anywhere in path
+    if (pattern.startsWith("**/") && pattern.endsWith("/**")) {
+      // Extract the middle part: **/.git/** -> .git
+      const middle = pattern.slice(3, -3);
+      // Match if path contains /middle/ OR starts with middle/ OR equals middle
+      if (
+        relativePath.includes("/" + middle + "/") ||
+        relativePath.startsWith(middle + "/") ||
+        relativePath === middle
+      ) {
+        return true;
+      }
+    } else if (pattern.startsWith("**/")) {
+      // Match suffix anywhere in path: **/foo matches any path ending with /foo or equal to foo
       const suffix = pattern.slice(3);
-      if (relativePath.includes(suffix) || relativePath.endsWith(suffix)) {
+      if (
+        relativePath === suffix ||
+        relativePath.endsWith("/" + suffix) ||
+        relativePath.includes("/" + suffix + "/") ||
+        relativePath.startsWith(suffix + "/")
+      ) {
         return true;
       }
     } else if (pattern.endsWith("/**")) {
-      // Match directory prefix
+      // Match directory prefix: foo/** matches foo and anything under foo
       const prefix = pattern.slice(0, -3);
-      if (relativePath.startsWith(prefix)) {
+      if (relativePath === prefix || relativePath.startsWith(prefix + "/")) {
         return true;
       }
     } else if (pattern.includes("*")) {
-      // Simple wildcard
+      // Simple wildcard - convert to regex
       const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
       if (regex.test(relativePath)) {
         return true;
       }
     } else {
-      // Exact match
+      // Exact match or directory prefix
       if (relativePath === pattern || relativePath.startsWith(pattern + "/")) {
         return true;
       }

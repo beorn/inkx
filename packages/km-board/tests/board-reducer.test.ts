@@ -503,3 +503,129 @@ describe("TPath <-> ColumnIndices conversion", () => {
     });
   });
 });
+
+describe("REFRESH action", () => {
+  function createNode(id: string, children: TNode[] = []): TNode {
+    return {
+      id,
+      type: "section",
+      parent_id: null,
+      parent_idx: 0,
+      link_to: null,
+      name: id,
+      title: id,
+      children,
+      childCount: children.length,
+      childrenLoaded: true,
+      isTask: false,
+      depth: 0,
+      data: {},
+      created_at: 0,
+      updated_at: 0,
+      version: "",
+    };
+  }
+
+  it("preserves cursor when node still exists after refresh", () => {
+    const initialNodes: TNode[] = [
+      createNode("col-a", [createNode("card-1"), createNode("card-2")]),
+      createNode("col-b", [createNode("card-3")]),
+    ];
+
+    const state: BoardState = {
+      ...createBoardState(initialNodes),
+      rootId: "root-1",
+      cursor: [0, 1], // At card-2
+      cursorNodeId: "card-2",
+    };
+
+    // Refresh with same nodes (no changes)
+    const newState = boardReducer(state, {
+      type: "REFRESH",
+      nodes: initialNodes,
+    });
+
+    expect(newState.cursor).toEqual([0, 1]); // Cursor preserved
+    expect(newState.rootId).toBe("root-1"); // rootId preserved
+  });
+
+  it("resets cursor to safe position when current node disappears", () => {
+    const initialNodes: TNode[] = [
+      createNode("col-a", [createNode("card-1"), createNode("card-2")]),
+      createNode("col-b", [createNode("card-3")]),
+    ];
+
+    const state: BoardState = {
+      ...createBoardState(initialNodes),
+      rootId: "root-1",
+      cursor: [0, 1], // At card-2
+      cursorNodeId: "card-2",
+    };
+
+    // Refresh with card-2 removed
+    const newNodes: TNode[] = [
+      createNode("col-a", [createNode("card-1")]), // card-2 removed
+      createNode("col-b", [createNode("card-3")]),
+    ];
+
+    const newState = boardReducer(state, {
+      type: "REFRESH",
+      nodes: newNodes,
+    });
+
+    // Cursor should be reset to safe position (first node)
+    expect(newState.cursor).toEqual([0]);
+    expect(newState.rootId).toBe("root-1"); // rootId must be preserved
+  });
+
+  it("preserves rootId even when all nodes disappear", () => {
+    const initialNodes: TNode[] = [
+      createNode("col-a", [createNode("card-1")]),
+    ];
+
+    const state: BoardState = {
+      ...createBoardState(initialNodes),
+      rootId: "root-1",
+      cursor: [0, 0],
+      cursorNodeId: "card-1",
+    };
+
+    // Refresh with empty nodes (all disappeared)
+    const newState = boardReducer(state, {
+      type: "REFRESH",
+      nodes: [],
+    });
+
+    expect(newState.cursor).toEqual([]); // Empty cursor for empty tree
+    expect(newState.rootId).toBe("root-1"); // rootId MUST be preserved
+    expect(newState.nodes).toEqual([]); // Nodes updated to empty
+  });
+
+  it("preserves cursorNodeId when possible for better recovery", () => {
+    // Test that cursorNodeId is updated when cursor is reset
+    const initialNodes: TNode[] = [
+      createNode("col-a", [createNode("card-1"), createNode("card-2")]),
+    ];
+
+    const state: BoardState = {
+      ...createBoardState(initialNodes),
+      rootId: "root-1",
+      cursor: [0, 1], // At card-2
+      cursorNodeId: "card-2",
+    };
+
+    // Refresh with card-2 removed, but col-a still has card-1
+    const newNodes: TNode[] = [
+      createNode("col-a", [createNode("card-1")]),
+    ];
+
+    const newState = boardReducer(state, {
+      type: "REFRESH",
+      nodes: newNodes,
+    });
+
+    // Should reset to first node and update cursorNodeId
+    expect(newState.cursor).toEqual([0]);
+    expect(newState.cursorNodeId).toBe("col-a"); // Updated to match new cursor position
+  });
+});

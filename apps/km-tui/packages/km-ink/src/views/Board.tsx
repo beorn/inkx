@@ -59,11 +59,7 @@ import { getEngine } from "../engines/index.ts";
 // Layout constants - centralized to avoid magic numbers scattered through rendering code
 const TOP_BAR_HEIGHT = 1;
 const BOTTOM_BAR_HEIGHT = 1;
-import {
-  createPasteHandler,
-  getFileInfo,
-  supportsFileDrop,
-} from "../paste-handler.ts";
+import { createPasteHandler, supportsFileDrop } from "../paste-handler.ts";
 import {
   createMouseHandler,
   supportsMouseMode,
@@ -1558,48 +1554,53 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <HelpOverlay width={termWidth} height={contentHeight} />
             )}
           </Box>
-          {/* Bottom bar: all grey text, no background colors */}
-          <Box flexDirection="row" flexShrink={0} alignSelf="stretch">
-            {/* Left side: repo info */}
-            <Box flexShrink={0}>
-              <Text dimColor>
-                {" "}
-                {(() => {
-                  const store = getStore();
-                  return store.mode === "memory"
-                    ? `MEM REPO ${store.rootPath}`
-                    : `DISK REPO ${store.rootPath}`;
-                })()}
-              </Text>
-            </Box>
-            {/* Middle: flexible indicators that can be truncated */}
-            <Box flexGrow={1} flexBasis={0}>
-              <Text dimColor wrap="truncate">
-                {[
-                  ui.showHelp && " [HELP ?]",
-                  ui.showProjectPicker && " [PROJECT]",
-                  ui.showNewItemDialog && " [NEW]",
-                  ui.showDropNotification &&
-                    ui.droppedFiles.length > 0 &&
-                    ` [Dropped: ${ui.droppedFiles.map((f) => getFileInfo(f).name).join(", ")}]`,
-                  ui.isMouseDragging &&
-                    ui.mouseSelection &&
-                    ` [Select: ${ui.mouseSelection.startY}-${ui.mouseSelection.endY}]`,
-                  ui.multiSelected.size > 0 && ` [${ui.multiSelected.size} sel]`,
-                  ui.inOutlineMode && " OUTLINE",
-                ]
-                  .filter(Boolean)
-                  .join("")}
-              </Text>
-            </Box>
-            {/* Right side: watcher status + column position + view mode indicator */}
-            <Box flexShrink={0}>
-              <Text dimColor wrap="truncate-end">
-                {ui.watcherStatus && renderWatcherStatus(ui.watcherStatus)}
-                {state.columns.length > 1 && ` Col ${state.colIndex + 1}/${state.columns.length}`}
-                {` ${ui.viewMode.toUpperCase()} VIEW `}
-              </Text>
-            </Box>
+          {/* Bottom bar: single text with all info */}
+          <Box flexDirection="row" flexShrink={0} width={termWidth}>
+            <Text dimColor wrap="truncate-end">
+              {(() => {
+                const store = getStore();
+                const repoPath = store.rootPath || "";
+
+                // Build status parts
+                const statusParts: string[] = [];
+
+                // Modal indicators
+                if (ui.showHelp) statusParts.push("[?]");
+                if (ui.showProjectPicker) statusParts.push("[PROJ]");
+                if (ui.showNewItemDialog) statusParts.push("[NEW]");
+                if (ui.showDropNotification && ui.droppedFiles.length > 0) {
+                  statusParts.push(`[Drop:${ui.droppedFiles.length}]`);
+                }
+                if (ui.isMouseDragging && ui.mouseSelection) {
+                  statusParts.push("[Sel]");
+                }
+                if (ui.multiSelected.size > 0) {
+                  statusParts.push(`[${ui.multiSelected.size}]`);
+                }
+                if (ui.inOutlineMode) statusParts.push("OUT");
+
+                // Right side info
+                const rightParts: string[] = [];
+                if (ui.watcherStatus) {
+                  rightParts.push(renderWatcherStatus(ui.watcherStatus));
+                }
+                if (state.columns.length > 1) {
+                  rightParts.push(`${state.colIndex + 1}/${state.columns.length}`);
+                }
+                rightParts.push(ui.viewMode.toUpperCase());
+
+                // Combine: path | status | right
+                const left = store.mode === "memory" ? `MEM ${repoPath}` : repoPath;
+                const middle = statusParts.join(" ");
+                const right = rightParts.join(" ");
+
+                // Build the line with spacing
+                if (middle) {
+                  return ` ${left}  ${middle}  ${right} `;
+                }
+                return ` ${left}  ${right} `;
+              })()}
+            </Text>
           </Box>
         </Box>
       </UIProvider>
@@ -1749,17 +1750,16 @@ function renderWatcherStatus(status: import("@km/storage").WatcherStatus): strin
 
   switch (state) {
     case "starting":
-      return " ◐ Starting...";
+      return "watcher:starting";
     case "syncing":
-      return pendingPaths > 0 ? ` ◑ Syncing (${pendingPaths})` : " ◑ Syncing";
+      return pendingPaths > 0 ? `watcher:syncing ${pendingPaths}` : "watcher:syncing";
     case "ready":
     case "idle":
-      // Show watched paths count if available, otherwise just show idle indicator
-      return watchedPaths ? ` ● ${watchedPaths} watched` : " ● Watching";
+      return watchedPaths ? `watcher:${watchedPaths}` : "watcher:idle";
     case "error":
-      return " ✗ Watcher error";
+      return "watcher:error";
     case "stopped":
-      return " ○ Watcher stopped";
+      return "watcher:stopped";
     default:
       return "";
   }

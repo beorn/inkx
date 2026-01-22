@@ -233,18 +233,43 @@ export function getIgnorePatterns(vaultPath: string): string[] {
 /**
  * Simple glob pattern matcher
  * Supports *, **, and ? wildcards
+ *
+ * **  - matches any path segment(s), including none
+ * *   - matches any characters except /
+ * ?   - matches single character
  */
 export function matchesPattern(path: string, pattern: string): boolean {
   // Convert glob pattern to regex
+  // Use placeholders to avoid double-replacement issues
+  const DOUBLE_STAR_SLASH = "\x00DSS\x00"; // **/ at start
+  const SLASH_DOUBLE_STAR_SLASH = "\x00SDSS\x00"; // /**/
+  const SLASH_DOUBLE_STAR = "\x00SDS\x00"; // /**
+  const DOUBLE_STAR = "\x00DS\x00"; // ** alone
+  const SINGLE_STAR = "\x00SS\x00";
+  const QUESTION = "\x00Q\x00";
+
   let regex = pattern
-    // Escape special regex chars (except our wildcards)
+    // Handle specific ** patterns first (order matters!)
+    // **/ at start: match start of string or .*/
+    .replace(/^\*\*\//g, DOUBLE_STAR_SLASH)
+    // /**/ in middle: match / followed by anything then /
+    .replace(/\/\*\*\//g, SLASH_DOUBLE_STAR_SLASH)
+    // /** at end: match / then anything
+    .replace(/\/\*\*$/g, SLASH_DOUBLE_STAR)
+    // Remaining ** (standalone): match anything
+    .replace(/\*\*/g, DOUBLE_STAR)
+    // Single * and ?
+    .replace(/\*/g, SINGLE_STAR)
+    .replace(/\?/g, QUESTION)
+    // Escape special regex chars
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    // Convert ** to match any path
-    .replace(/\*\*/g, ".*")
-    // Convert * to match anything except /
-    .replace(/\*/g, "[^/]*")
-    // Convert ? to match single char
-    .replace(/\?/g, ".");
+    // Replace placeholders with regex equivalents
+    .replace(new RegExp(DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"), "(?:.*\\/)?")
+    .replace(new RegExp(SLASH_DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"), "(?:\\/.*)?/")
+    .replace(new RegExp(SLASH_DOUBLE_STAR.replace(/\x00/g, "\\x00"), "g"), "(?:\\/.*)?")
+    .replace(new RegExp(DOUBLE_STAR.replace(/\x00/g, "\\x00"), "g"), ".*")
+    .replace(new RegExp(SINGLE_STAR.replace(/\x00/g, "\\x00"), "g"), "[^/]*")
+    .replace(new RegExp(QUESTION.replace(/\x00/g, "\\x00"), "g"), ".");
 
   // Anchor the pattern
   regex = "^" + regex + "$";

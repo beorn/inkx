@@ -47,11 +47,12 @@ export interface ReconcileOp {
 export function reconcileDirectory(
   dirPath: string,
   vaultRoot: string,
+  ignorePatterns?: string[],
 ): ReconcileOp[] {
   const ops: ReconcileOp[] = [];
 
-  // Get filesystem state
-  const fsEntries = scanDirectory(dirPath);
+  // Get filesystem state (pass ignore patterns to filter out ignored files)
+  const fsEntries = scanDirectory(dirPath, ignorePatterns);
 
   // Get database state for this directory (using km-storage abstraction)
   const dbNodes = getNodesUnderPath(dirPath);
