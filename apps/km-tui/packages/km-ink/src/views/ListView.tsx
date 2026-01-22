@@ -5,15 +5,19 @@
  * Shows the same data as board view but in a hierarchical list format.
  *
  * Uses inkx overflow="scroll" for native scrolling support.
+ *
+ * Performance optimization: Pre-caches board pills for all visible nodes
+ * to avoid O(n) database queries during render.
  */
 import React, { useMemo } from "react";
 import { Box, Text } from "inkx";
 import type { BoardState, CardState } from "../types.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
-import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
-import { useTreeConfig } from "../ui-context.tsx";
+import { getOwnColor, getHeaderStyle, getBoardPills, type BoardPill } from "../board-pills.ts";
+import { useTreeConfig, useRootBoardId } from "../ui-context.tsx";
 import { getNodeIcon, renderPlain } from "../text/index.ts";
+import type { KNode } from "@km/core";
 
 // Type for flattened list items
 type FlatItem =
@@ -52,6 +56,7 @@ export function ListView({
   selectionLevel,
 }: ListViewProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
+  const rootBoardId = useRootBoardId();
 
   // Flatten all cards into a single list
   const flatItems = useMemo(() => {
@@ -66,6 +71,27 @@ export function ListView({
 
     return items;
   }, [state.columns]);
+
+  // Pre-cache board pills for ALL cards to avoid O(n) DB queries during render
+  // This batches the lookups into a single pass through all cards
+  const boardPillsCache = useMemo(() => {
+    const cache = new Map<string, BoardPill[]>();
+    const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>();
+
+    for (const item of flatItems) {
+      if (item.type === "card" && item.card.node.task_status != null) {
+        cache.set(item.card.node.id, getBoardPills(item.card.node, excludeBoardIds));
+      }
+    }
+    return cache;
+  }, [flatItems, rootBoardId]);
+
+  // Cached getBoardPills function to pass to TreeNode
+  const getCachedBoardPills = useMemo(() => {
+    return (node: KNode, _excludeBoardIds: Set<string>): BoardPill[] => {
+      return boardPillsCache.get(node.id) ?? [];
+    };
+  }, [boardPillsCache]);
 
   // Calculate the selected item's index in flat list
   const selectedFlatIndex = useMemo(() => {
@@ -184,6 +210,11 @@ export function ListView({
               colIndex={cIdx}
               cardIndex={cardIdx}
               subIndex={0}
+              // Performance: pass empty children to skip getChildren DB query
+              // ListView uses oneliner variant which doesn't display children anyway
+              children={[]}
+              // Performance: use pre-cached board pills to avoid O(n) DB queries
+              getBoardPills={getCachedBoardPills}
             />
           );
         })}
