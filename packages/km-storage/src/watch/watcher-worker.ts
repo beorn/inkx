@@ -94,6 +94,11 @@ let statusInterval: ReturnType<typeof setInterval> | null = null;
 function shouldIgnore(path: string, patterns: string[], vaultPath: string): boolean {
   const relativePath = path.replace(vaultPath, "").replace(/^\//, "");
 
+  // Debug: check .git and vendor paths specifically
+  if (relativePath.includes(".git") || relativePath.includes("vendor")) {
+    debug("worker: shouldIgnore check: path=%s relative=%s", path, relativePath);
+  }
+
   for (const pattern of patterns) {
     // Handle **/.git/** pattern - match directory anywhere in path
     if (pattern.startsWith("**/") && pattern.endsWith("/**")) {
@@ -105,6 +110,9 @@ function shouldIgnore(path: string, patterns: string[], vaultPath: string): bool
         relativePath.startsWith(middle + "/") ||
         relativePath === middle
       ) {
+        if (relativePath.includes(".git") || relativePath.includes("vendor")) {
+          debug("worker: shouldIgnore MATCHED pattern=%s middle=%s", pattern, middle);
+        }
         return true;
       }
     } else if (pattern.startsWith("**/")) {
@@ -186,7 +194,12 @@ function startWatcher(vaultPath: string, ignorePatterns: string[], debounceMs: n
     if (path.endsWith(".sock")) {
       return true;
     }
-    return shouldIgnore(path, ignorePatterns, vaultPath);
+    const result = shouldIgnore(path, ignorePatterns, vaultPath);
+    // Debug: log when ignored function is called for .git/vendor paths
+    if (path.includes(".git") || path.includes("vendor")) {
+      debug("worker: ignoredFn called: path=%s result=%s", path, result);
+    }
+    return result;
   };
 
   watcher = watch(vaultPath, {
@@ -203,6 +216,12 @@ function startWatcher(vaultPath: string, ignorePatterns: string[], debounceMs: n
     // Skip in-flight writes (our own writes)
     if (inFlightWrites.has(path)) {
       debug("worker: skipping in-flight: %s %s", event, path);
+      return;
+    }
+
+    // Double-check ignored paths (FSEvents on macOS may bypass chokidar's ignored filter)
+    if (shouldIgnore(path, ignorePatterns, vaultPath)) {
+      debug("worker: filtering ignored path: %s %s", event, path);
       return;
     }
 
