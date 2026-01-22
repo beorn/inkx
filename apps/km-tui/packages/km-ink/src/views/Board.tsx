@@ -1584,12 +1584,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
             // Right side info (always visible) - use double space separator
             const rightParts: string[] = [];
-            // Show DB node count and watcher status together
+            // Always show DB node count (◉ = database icon)
             const dbCount = getNodeCount();
+            rightParts.push(`◉${dbCount}`);
+            // Show watcher status with file icon (◎ = files)
             if (ui.watcherStatus) {
-              rightParts.push(`${dbCount} nodes, ${renderWatcherStatus(ui.watcherStatus)}`);
-            } else {
-              rightParts.push(`${dbCount} nodes`);
+              rightParts.push(renderWatcherStatus(ui.watcherStatus));
             }
             // Show column position (only meaningful in columns view)
             if (ui.viewMode === "columns" && state.columns.length > 1) {
@@ -1764,25 +1764,27 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
 /**
  * Render watcher status indicator for bottom bar
- * Shows file watcher state and count of watched files
+ * Uses ◎ icon for files, always shows file count, plus current state if not idle
  */
 function renderWatcherStatus(status: import("@km/storage").WatcherStatus): string {
   const { state, pendingPaths, watchedPaths } = status;
+  // ◎ = watching files icon
+  const fileCount = watchedPaths ? `◎${watchedPaths}` : "◎0";
 
   switch (state) {
     case "starting":
-      return "watching: starting";
+      return `${fileCount} starting`;
     case "syncing":
-      return pendingPaths > 0 ? `watching: syncing ${pendingPaths}` : "watching: syncing";
+      return pendingPaths > 0 ? `${fileCount} sync:${pendingPaths}` : `${fileCount} syncing`;
     case "ready":
     case "idle":
-      return watchedPaths ? `watching ${watchedPaths} files` : "watching: idle";
+      return fileCount;
     case "error":
-      return "watching: error";
+      return `${fileCount} err`;
     case "stopped":
-      return "watching: off";
+      return `${fileCount} off`;
     default:
-      return "";
+      return fileCount;
   }
 }
 
