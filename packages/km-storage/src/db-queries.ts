@@ -128,20 +128,26 @@ export function getNodesUnderPath(dirPath: string): KNode[] {
 }
 
 /**
- * Get a file node and its children (sections, tasks, etc.)
+ * Get a file node and ALL its descendants (sections, tasks, nested items, etc.)
+ * Uses recursive CTE to get the complete subtree.
  */
 export function getFileWithChildren(fsPath: string): KNode[] {
   const db = getDb();
   const rows = db
     .query(
       `
-      SELECT * FROM nodes
-      WHERE fs_path = ? OR parent_id IN (
-        SELECT id FROM nodes WHERE fs_path = ?
+      WITH RECURSIVE subtree AS (
+        -- Base case: the file node
+        SELECT * FROM nodes WHERE fs_path = ?
+        UNION ALL
+        -- Recursive case: children of nodes in subtree
+        SELECT n.* FROM nodes n
+        INNER JOIN subtree s ON n.parent_id = s.id
       )
+      SELECT * FROM subtree
     `,
     )
-    .all(fsPath, fsPath) as Record<string, unknown>[];
+    .all(fsPath) as Record<string, unknown>[];
 
   return rows.map(rowToNode);
 }
