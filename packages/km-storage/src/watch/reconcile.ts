@@ -86,6 +86,18 @@ export function reconcileDirectory(
         path: entry.path,
         ino: entry.ino,
       });
+    } else if (existingByPath && existingByPath.fs_ino && existingByPath.fs_ino !== entry.ino) {
+      // Atomic write: same path but different inode
+      // This happens when editors save via temp file + rename (Vim, VSCode, etc.)
+      // Treat as an update but also update the inode
+      debug("atomic write detected: %s (old ino=%d, new ino=%d)", entry.path, existingByPath.fs_ino, entry.ino);
+      ops.push({
+        type: "update",
+        nodeId: existingByPath.id,
+        path: entry.path,
+        ino: entry.ino, // New inode to track
+        mtime: entry.mtime,
+      });
     } else if (!existingByPath) {
       // New file/folder
       ops.push({
@@ -100,6 +112,7 @@ export function reconcileDirectory(
         type: "update",
         nodeId: existingByPath.id,
         path: entry.path,
+        ino: entry.ino, // Also track inode in normal updates for consistency
         mtime: entry.mtime,
       });
     }
@@ -333,9 +346,14 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     }
   }
 
-  // Always update the file node's fs_mtime to track the last synced mtime
+  // Always update the file node's fs_mtime (and fs_ino if changed) to track the last synced state
   if (op.nodeId) {
-    emitNodeUpdated("fs-watch", op.nodeId, { fs_mtime: newMtime });
+    const updates: Record<string, unknown> = { fs_mtime: newMtime };
+    // Update fs_ino if it changed (atomic write detection)
+    if (op.ino !== undefined) {
+      updates.fs_ino = op.ino;
+    }
+    emitNodeUpdated("fs-watch", op.nodeId, updates);
   }
 
   // Update wikilinks: remove old links from EXISTING nodes (not new ones)

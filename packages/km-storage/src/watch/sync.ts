@@ -28,6 +28,15 @@ import {
   nodesToMarkdown,
 } from "../index.ts";
 
+export interface HeartbeatConfig {
+  /** Enable periodic reconciliation to catch silently dropped events (default: true) */
+  enabled: boolean;
+  /** Interval between heartbeat checks in ms (default: 60000 = 1 min) */
+  intervalMs: number;
+  /** Only run heartbeat if idle for this long in ms (default: 30000 = 30s) */
+  idleThresholdMs: number;
+}
+
 export interface SyncConfig {
   vaultPath: string;
   debounceFs: number;
@@ -35,7 +44,15 @@ export interface SyncConfig {
   conflictStrategy: "last_write_wins" | "fs_wins" | "db_wins";
   /** Use worker thread for file watching (default: true). Prevents UI blocking on large vaults. */
   useWorker?: boolean;
+  /** Heartbeat reconciliation config */
+  heartbeat?: Partial<HeartbeatConfig>;
 }
+
+const DEFAULT_HEARTBEAT: HeartbeatConfig = {
+  enabled: true,
+  intervalMs: 60000, // 1 minute
+  idleThresholdMs: 30000, // 30 seconds
+};
 
 const DEFAULT_CONFIG: Partial<SyncConfig> = {
   debounceFs: 5000,
@@ -63,9 +80,21 @@ export class SyncManager extends EventEmitter {
   private state: SyncState = "idle";
   private ignorePatterns: string[] = [];
 
+  // Heartbeat reconciliation
+  private heartbeatConfig: HeartbeatConfig;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private lastActivityTime: number = Date.now();
+  private heartbeatDrift: number = 0; // Changes found during heartbeat
+
   constructor(config: SyncConfig) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config } as SyncConfig;
+
+    // Initialize heartbeat config
+    this.heartbeatConfig = {
+      ...DEFAULT_HEARTBEAT,
+      ...config.heartbeat,
+    };
 
     // Use worker-based watcher by default (non-blocking)
     // Fall back to direct watcher if useWorker is explicitly false
@@ -111,6 +140,10 @@ export class SyncManager extends EventEmitter {
     // Load ignore patterns for reconciliation
     this.ignorePatterns = getIgnorePatterns(this.config.vaultPath);
     this.watcher.start(this.config.vaultPath);
+
+    // Start heartbeat timer if enabled
+    this.startHeartbeat();
+
     this.emit("started");
   }
 
@@ -119,9 +152,145 @@ export class SyncManager extends EventEmitter {
    */
   async stop(): Promise<void> {
     debug("stopping sync manager");
+    this.stopHeartbeat();
     await this.watcher.stop();
     this.writeQueue.clear();
     this.emit("stopped");
+  }
+
+  /**
+   * Start heartbeat timer for periodic reconciliation
+   */
+  private startHeartbeat(): void {
+    if (!this.heartbeatConfig.enabled) {
+      debug("heartbeat disabled");
+      return;
+    }
+
+    if (this.heartbeatTimer) {
+      return; // Already running
+    }
+
+    debug(
+      "starting heartbeat: interval=%dms, idleThreshold=%dms",
+      this.heartbeatConfig.intervalMs,
+      this.heartbeatConfig.idleThresholdMs,
+    );
+
+    this.heartbeatTimer = setInterval(() => {
+      void this.runHeartbeat();
+    }, this.heartbeatConfig.intervalMs);
+  }
+
+  /**
+   * Stop heartbeat timer
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+      debug("heartbeat stopped");
+    }
+  }
+
+  /**
+   * Run heartbeat reconciliation if idle
+   */
+  private async runHeartbeat(): Promise<void> {
+    const now = Date.now();
+    const idleTime = now - this.lastActivityTime;
+
+    // Only run if we've been idle long enough
+    if (idleTime < this.heartbeatConfig.idleThresholdMs) {
+      debug("heartbeat: skipping, idle=%dms < threshold=%dms", idleTime, this.heartbeatConfig.idleThresholdMs);
+      return;
+    }
+
+    // Don't run if we're in the middle of something
+    if (this.state !== "idle") {
+      debug("heartbeat: skipping, state=%s", this.state);
+      return;
+    }
+
+    // Don't run if there are pending writes
+    if (this.writeQueue.getPendingCount() > 0) {
+      debug("heartbeat: skipping, pending writes=%d", this.writeQueue.getPendingCount());
+      return;
+    }
+
+    debug("heartbeat: running reconciliation");
+    const start = Date.now();
+
+    try {
+      this.setState("reconciling");
+
+      // Scan entire vault for changes
+      const ops = reconcileDirectory(this.config.vaultPath, this.config.vaultPath, this.ignorePatterns);
+
+      if (ops.length > 0) {
+        debug("heartbeat: found %d changes (drift detected)", ops.length);
+        this.heartbeatDrift += ops.length;
+
+        this.setState("emitting");
+        await applyReconcileOps(ops, this.config.vaultPath);
+
+        // Emit event so consumers know about drift
+        this.emit("heartbeat:drift", {
+          opsCount: ops.length,
+          totalDrift: this.heartbeatDrift,
+        });
+      }
+
+      debug("heartbeat: completed in %dms, ops=%d", Date.now() - start, ops.length);
+      this.emit("heartbeat:complete", {
+        duration: Date.now() - start,
+        opsCount: ops.length,
+      });
+    } catch (error) {
+      debug("heartbeat: error %O", error);
+      this.emit("error", error);
+    } finally {
+      this.setState("idle");
+    }
+  }
+
+  /**
+   * Force a heartbeat reconciliation now (for testing/debugging)
+   */
+  async forceHeartbeat(): Promise<{ opsCount: number; duration: number }> {
+    const start = Date.now();
+    this.setState("reconciling");
+
+    try {
+      const ops = reconcileDirectory(this.config.vaultPath, this.config.vaultPath, this.ignorePatterns);
+
+      if (ops.length > 0) {
+        this.setState("emitting");
+        await applyReconcileOps(ops, this.config.vaultPath);
+        this.heartbeatDrift += ops.length;
+      }
+
+      return { opsCount: ops.length, duration: Date.now() - start };
+    } finally {
+      this.setState("idle");
+    }
+  }
+
+  /**
+   * Get heartbeat diagnostics
+   */
+  getHeartbeatDiagnostics(): {
+    enabled: boolean;
+    totalDrift: number;
+    lastActivityTime: number;
+    idleSinceMs: number;
+  } {
+    return {
+      enabled: this.heartbeatConfig.enabled,
+      totalDrift: this.heartbeatDrift,
+      lastActivityTime: this.lastActivityTime,
+      idleSinceMs: Date.now() - this.lastActivityTime,
+    };
   }
 
   /**
@@ -139,6 +308,7 @@ export class SyncManager extends EventEmitter {
     directories: string[];
   }): Promise<void> {
     debug("fs sync triggered: %d paths, %d directories", data.paths.length, data.directories.length);
+    this.lastActivityTime = Date.now();
     this.setState("reconciling");
 
     try {
@@ -156,6 +326,7 @@ export class SyncManager extends EventEmitter {
       this.emit("error", error);
     }
 
+    this.lastActivityTime = Date.now();
     this.setState("idle");
   }
 
