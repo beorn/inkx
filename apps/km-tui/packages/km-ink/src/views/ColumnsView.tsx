@@ -45,6 +45,7 @@ interface VirtualizedTreeCardListProps {
   selectionLevel: "board" | "column" | "card";
   colIndex: number;
   inOutlineMode: boolean;
+  height: number;
 }
 
 /**
@@ -58,6 +59,7 @@ function VirtualizedTreeCardList({
   selectionLevel,
   colIndex,
   inOutlineMode,
+  height,
 }: VirtualizedTreeCardListProps): React.ReactElement {
   // Calculate virtualization window
   const { startIndex, endIndex, topPlaceholderHeight, bottomPlaceholderHeight } = useMemo(() => {
@@ -110,13 +112,17 @@ function VirtualizedTreeCardList({
   // Get the slice of cards to render
   const visibleCards = cards.slice(startIndex, endIndex);
 
+  // Calculate scrollTo index, accounting for placeholder child
+  // If there's a top placeholder, it's child 0, so cards start at index 1
+  const hasTopPlaceholder = topPlaceholderHeight > 0;
+  const scrollToIndex = selectedCardIndex - startIndex + (hasTopPlaceholder ? 1 : 0);
+
   return (
     <Box
       flexDirection="column"
-      flexGrow={1}
-      minHeight={1}
+      height={height}
       overflow="scroll"
-      scrollTo={selectedCardIndex - startIndex}
+      scrollTo={scrollToIndex}
     >
       {/* Top placeholder */}
       {topPlaceholderHeight > 0 && (
@@ -163,6 +169,7 @@ interface ColumnTreeProps {
   selectedSubIndex: number;
   selectionLevel: "board" | "column" | "card";
   width: number;
+  height: number;
 }
 
 /**
@@ -176,6 +183,7 @@ const ColumnTree = React.memo(function ColumnTree({
   selectedSubIndex,
   selectionLevel,
   width,
+  height,
 }: ColumnTreeProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
 
@@ -197,7 +205,7 @@ const ColumnTree = React.memo(function ColumnTree({
   const iconColor = isColumnHeaderSelected ? "black" : icon.color;
 
   return (
-    <Box flexDirection="column" width={width} overflow="hidden">
+    <Box flexDirection="column" width={width} height={height} overflow="hidden">
       {/* Header section */}
       <Box flexDirection="column" height={2} flexShrink={0}>
         {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
@@ -229,6 +237,7 @@ const ColumnTree = React.memo(function ColumnTree({
         selectionLevel={selectionLevel}
         colIndex={colIndex}
         inOutlineMode={inOutlineMode}
+        height={height - 2}
       />
     </Box>
   );
@@ -303,6 +312,7 @@ export function ColumnsView({
                 selectedSubIndex={subIndex}
                 selectionLevel={selectionLevel}
                 width={colWidth}
+                height={height - 1}
               />
               {/* Separator line between columns */}
               {!isLastCol && <ColumnSeparator />}

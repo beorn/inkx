@@ -125,9 +125,8 @@ export function ListView({
       {/* Scrollable list using inkx native scrolling */}
       <Box
         flexDirection="column"
-        flexGrow={1}
         width={width}
-        minHeight={1}
+        height={height - 1}
         overflow="scroll"
         scrollTo={selectedFlatIndex}
       >

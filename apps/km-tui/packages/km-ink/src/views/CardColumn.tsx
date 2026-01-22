@@ -176,13 +176,18 @@ function VirtualizedCardList({
   // Get the slice of cards to render
   const visibleCards = cards.slice(startIndex, endIndex);
 
+  // Calculate scrollTo index, accounting for placeholder child
+  // If there's a top placeholder, it's child 0, so cards start at index 1
+  const hasTopPlaceholder = topPlaceholderHeight > 0;
+  const scrollToIndex = selectedCardIndex - startIndex + (hasTopPlaceholder ? 1 : 0);
+
   return (
     <Box
       flexDirection="column"
       flexGrow={1}
-      minHeight={1}
+      height={height}
       overflow="scroll"
-      scrollTo={selectedCardIndex - startIndex} // Adjust for virtualization offset
+      scrollTo={scrollToIndex}
     >
       {/* Top placeholder for cards above visible range */}
       {topPlaceholderHeight > 0 && (

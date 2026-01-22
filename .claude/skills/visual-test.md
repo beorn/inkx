@@ -74,7 +74,7 @@ sleep 30  # Maximum reasonable wait
 FORCE_TTY=1 \
 COLORTERM=truecolor \
 TERM=xterm-256color \
-ttyd -W -p 7681 bun km view ...
+ttyd -W -p $TTYD_PORT bun km view ...
 ```
 
 ### 3. Alternate Screen Buffer Issues
@@ -84,13 +84,24 @@ ttyd -W -p 7681 bun km view ...
 OTUI_USE_ALTERNATE_SCREEN=false ttyd ...
 ```
 
-### 4. Port Conflicts
+### 4. Port Conflicts (IMPORTANT for Parallel Agents)
+
+**Multiple Claude agents may run concurrently.** Always use a unique random port:
 
 ```bash
-pkill -f ttyd 2>/dev/null || true
-sleep 1
-lsof -i :7681  # Verify port is free
+# Generate random port in range 7700-7999 (avoid 7681 which other agents may use)
+TTYD_PORT=$((7700 + RANDOM % 300))
+
+# Verify port is free before using
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do
+  TTYD_PORT=$((7700 + RANDOM % 300))
+done
+
+echo "Using port $TTYD_PORT"
+ttyd -W -p $TTYD_PORT bun km view ...
 ```
+
+**Never hardcode port 7681** - always use dynamic allocation.
 
 ### 5. Small Test Vault
 
@@ -98,14 +109,20 @@ lsof -i :7681  # Verify port is free
 # Use a tiny vault that loads instantly
 rm -rf /tmp/test-vault && mkdir -p /tmp/test-vault
 echo -e "# Test\n- [ ] Task 1\n- [x] Task 2" > /tmp/test-vault/test.md
-ttyd -W -p 7681 bun km view -r /tmp/test-vault test.md &
+
+# Use dynamic port (see "Port Conflicts" above)
+TTYD_PORT=$((7700 + RANDOM % 300))
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
+ttyd -W -p $TTYD_PORT bun km view -r /tmp/test-vault test.md &
 ```
 
 ### 6. Check ttyd Output
 
 ```bash
-# Run ttyd in foreground to see errors
-ttyd -W -p 7681 bun km view ... 2>&1 | head -50
+# Run ttyd in foreground to see errors (use dynamic port)
+TTYD_PORT=$((7700 + RANDOM % 300))
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
+ttyd -W -p $TTYD_PORT bun km view ... 2>&1 | head -50
 ```
 
 ### 7. Verify Playwright Installation
@@ -125,12 +142,12 @@ bun x playwright install chromium
 ### 9. Multiple Sequential Captures
 
 ```bash
-# Capture multiple times with increasing delays
+# Capture multiple times with increasing delays (use your assigned $TTYD_PORT)
 for delay in 3 5 10 15; do
   sleep $delay
   HEADLESS=true bun x playwright screenshot \
     --viewport-size=1000,700 \
-    http://localhost:7681 \
+    http://localhost:$TTYD_PORT \
     /tmp/capture-${delay}s.png
 done
 ```
@@ -184,13 +201,16 @@ cat > /tmp/test-vault/test.md << 'EOF'
 - [ ] Another task with **bold** and `code` formatting to test rich text truncation
 EOF
 
-# 2. Start TUI in Cards view with narrow viewport
-pkill -f ttyd 2>/dev/null || true
-ttyd -W -p 7681 bun km view -r /tmp/test-vault test.md --view cards &
+# 2. Get a free port for this agent
+TTYD_PORT=$((7700 + RANDOM % 300))
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
+
+# 3. Start TUI in Cards view with narrow viewport
+ttyd -W -p $TTYD_PORT bun km view -r /tmp/test-vault test.md --view cards &
 sleep 3
 
-# 3. Capture at small size (faster + tests overflow) - HEADLESS=true prevents browser window
-HEADLESS=true bun x playwright screenshot --viewport-size=800,600 http://localhost:7681 /tmp/cards-truncation.png
+# 4. Capture at small size (faster + tests overflow) - HEADLESS=true prevents browser window
+HEADLESS=true bun x playwright screenshot --viewport-size=800,600 http://localhost:$TTYD_PORT /tmp/cards-truncation.png
 ```
 
 ### Example 2: Testing Columns View with Multiple Statuses
@@ -207,13 +227,16 @@ cat > /tmp/test-vault/@next.md << 'EOF'
 - [!] Blocked task
 EOF
 
-# 2. Start in Columns view (default)
-pkill -f ttyd 2>/dev/null || true
-ttyd -W -p 7681 bun km view -r /tmp/test-vault @next.md --view columns &
+# 2. Get a free port for this agent
+TTYD_PORT=$((7700 + RANDOM % 300))
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
+
+# 3. Start in Columns view (default)
+ttyd -W -p $TTYD_PORT bun km view -r /tmp/test-vault @next.md --view columns &
 sleep 3
 
-# 3. Capture - use 1000,700 for balanced view (HEADLESS=true prevents browser window)
-HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:7681 /tmp/columns-statuses.png
+# 4. Capture - use 1000,700 for balanced view (HEADLESS=true prevents browser window)
+HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:$TTYD_PORT /tmp/columns-statuses.png
 ```
 
 ### Example 3: Testing with Existing Fixtures
@@ -223,13 +246,16 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 rm -rf /tmp/tui-test-vault
 cp -r apps/km-cli/tests/fixtures/tui-test-vault /tmp/tui-test-vault
 
-# 2. Start at a specific file known to have the issue
-pkill -f ttyd 2>/dev/null || true
-ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault Projects/api-redesign.md --view tabs &
+# 2. Get a free port for this agent
+TTYD_PORT=$((7700 + RANDOM % 300))
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
+
+# 3. Start at a specific file known to have the issue
+ttyd -W -p $TTYD_PORT bun km view -r /tmp/tui-test-vault Projects/api-redesign.md --view tabs &
 sleep 3
 
-# 3. Capture at medium size (HEADLESS=true prevents browser window)
-HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:7681 /tmp/tabs-view.png
+# 4. Capture at medium size (HEADLESS=true prevents browser window)
+HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:$TTYD_PORT /tmp/tabs-view.png
 ```
 
 ### Key Flags
@@ -281,17 +307,20 @@ Runs the TUI in a real terminal (ttyd) and captures via Playwright. This tests a
 ### Capture Storybook Output
 
 ```bash
-pkill -f ttyd 2>/dev/null || true
 mkdir -p /tmp/tui-visual-test
 
-ttyd -W -p 7681 bash -c 'bun storybook; sleep 120' &
+# Get a free port
+TTYD_PORT=$((7700 + RANDOM % 300))
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
+
+ttyd -W -p $TTYD_PORT bash -c 'bun storybook; sleep 120' &
 sleep 5
 
 # HEADLESS=true prevents browser window from appearing
 HEADLESS=true bun x playwright screenshot \
   --viewport-size=1600,2400 \
   --full-page \
-  http://localhost:7681 \
+  http://localhost:$TTYD_PORT \
   /tmp/tui-visual-test/storybook.png
 
 # View with Read tool
@@ -300,18 +329,21 @@ HEADLESS=true bun x playwright screenshot \
 ### Capture Full TUI
 
 ```bash
-pkill -f ttyd 2>/dev/null || true
 rm -rf /tmp/tui-test-vault
 cp -r apps/km-cli/tests/fixtures/tui-test-vault /tmp/tui-test-vault
 
-ttyd -W -p 7681 bun km view -r /tmp/tui-test-vault @next.md &
+# Get a free port
+TTYD_PORT=$((7700 + RANDOM % 300))
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
+
+ttyd -W -p $TTYD_PORT bun km view -r /tmp/tui-test-vault @next.md &
 sleep 3
 
 # HEADLESS=true prevents browser window from appearing
 # Use 1000,700 for faster captures; 1400,900 only for multi-column layout testing
 HEADLESS=true bun x playwright screenshot \
   --viewport-size=1000,700 \
-  http://localhost:7681 \
+  http://localhost:$TTYD_PORT \
   /tmp/tui-visual-test/tui.png
 ```
 
@@ -430,11 +462,14 @@ rm -rf /tmp/tui-visual-test
 
 ## Troubleshooting
 
-### Port 7681 in use
+### Port in use
 
 ```bash
-pkill -f ttyd
-lsof -i :7681
+# Find who's using your port
+lsof -i :$TTYD_PORT
+# Get a new port
+TTYD_PORT=$((7700 + RANDOM % 300))
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
 ```
 
 ### Playwright not installed
@@ -475,20 +510,17 @@ By default, OpenTUI uses the terminal's alternate screen buffer, which xterm.js 
 Set `OTUI_USE_ALTERNATE_SCREEN=false` to render in the main screen buffer:
 
 ```bash
-# Working configuration for OpenTUI + ttyd
+# Working configuration for OpenTUI + ttyd (use dynamic $TTYD_PORT)
 COLORTERM=truecolor \
 TERM=xterm-256color \
 OTUI_USE_ALTERNATE_SCREEN=false \
-ttyd -W -p 7681 bun km view -r /tmp/test-vault @next.md &
+ttyd -W -p $TTYD_PORT bun km view -r /tmp/test-vault @next.md &
 ```
 
 ### Full Capture Example
 
 ```bash
-# 1. Kill any existing ttyd
-pkill -f ttyd 2>/dev/null || true
-
-# 2. Prepare test data
+# 1. Prepare test data
 rm -rf /tmp/test-vault && mkdir -p /tmp/test-vault
 cat > /tmp/test-vault/@next.md << 'EOF'
 # Next
@@ -497,18 +529,22 @@ cat > /tmp/test-vault/@next.md << 'EOF'
 - [x] Completed
 EOF
 
+# 2. Get a free port
+TTYD_PORT=$((7700 + RANDOM % 300))
+while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
+
 # 3. Start ttyd with OpenTUI-compatible settings
 COLORTERM=truecolor \
 TERM=xterm-256color \
 OTUI_USE_ALTERNATE_SCREEN=false \
-ttyd -W -p 7681 bun km view -r /tmp/test-vault @next.md &
+ttyd -W -p $TTYD_PORT bun km view -r /tmp/test-vault @next.md &
 sleep 5  # OpenTUI needs more startup time than Ink
 
 # 4. Capture with proper wait for xterm.js rendering
 HEADLESS=true bun x playwright screenshot \
   --viewport-size=1000,700 \
   --wait-for-timeout=2000 \
-  http://localhost:7681 \
+  http://localhost:$TTYD_PORT \
   /tmp/opentui-capture.png
 
 # 5. View the screenshot
