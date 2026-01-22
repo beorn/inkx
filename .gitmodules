@@ -7,3 +7,6 @@
 [submodule "vendor/beorn-chalkx"]
 	path = vendor/beorn-chalkx
 	url = git@github.com:beorn/chalkx.git
+[submodule "vendor/beorn-flexx"]
+	path = vendor/beorn-flexx
+	url = git@github.com:beorn/flexx.git
