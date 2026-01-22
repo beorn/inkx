@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cursor navigation: depth preservation across columns
 - Zoom behavior at column and root levels
 - 'u' key at root/column level now correctly moves to board selection
+- TUI content disappearing after watcher sync (stale closure in refresh handler)
 
 ### Removed
 - Legacy Ink engine and views-ink components (archived)
