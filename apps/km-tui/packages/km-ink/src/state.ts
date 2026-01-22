@@ -18,7 +18,6 @@ import {
   getChildCountsBatch,
   getNode,
   resolveNode,
-  queryNodes,
   emit,
 } from "@km/storage";
 import {
@@ -239,36 +238,36 @@ export function buildBoardState(rootId: string): BoardState {
   const nonColumnTypes = new Set(["paragraph", "code", "quote"]);
   const columnNodes = allChildren.filter((n) => !nonColumnTypes.has(n.type));
 
+  // PERFORMANCE OPTIMIZATION: Batch query child counts for all columns FIRST
+  // This lets us skip getChildren() calls for columns with 0 children.
+  // For flat boards like @issue with 766 files, this reduces 766 queries to 1.
+  const columnIds = columnNodes.map((n) => n.id);
+  const columnChildCounts = getChildCountsBatch(columnIds);
+
   // First pass: collect all card IDs across all columns for batch child count query
+  // Note: getChildren() now includes query:add links from storage layer,
+  // so we don't need to evaluate add= rules here at display time.
   const columnCardNodes: KNode[][] = [];
   const allCardIds: string[] = [];
-  const addRuleResults: Map<number, KNode[]> = new Map();
 
   for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
     const colNode = columnNodes[colIdx];
     if (!colNode) continue;
 
+    // OPTIMIZATION: Skip getChildren() for columns with no children
+    const colChildCount = columnChildCounts.get(colNode.id) ?? 0;
+    if (colChildCount === 0) {
+      columnCardNodes[colIdx] = [];
+      continue;
+    }
+
+    // getChildren includes both direct children AND linked children from add= rules
     const cardNodes = getChildren(colNode.id);
     columnCardNodes[colIdx] = cardNodes;
 
     // Collect IDs for batch query
     for (const cardNode of cardNodes) {
       allCardIds.push(cardNode.id);
-    }
-
-    // Check for add= rule and collect those IDs too
-    const rules = colNode.rules ?? parseColumnRules(colNode.content || "");
-    if (rules.add) {
-      const existingCardIds = new Set(cardNodes.map((c) => c.id));
-      const matchingNodes = queryNodes(rules.add);
-      const additionalNodes: KNode[] = [];
-      for (const node of matchingNodes) {
-        if (!existingCardIds.has(node.id)) {
-          additionalNodes.push(node);
-          allCardIds.push(node.id);
-        }
-      }
-      addRuleResults.set(colIdx, additionalNodes);
     }
   }
 
@@ -290,18 +289,6 @@ export function buildBoardState(rootId: string): BoardState {
       children: [], // Don't load grandchildren eagerly - blocks event loop
       childCount: childCounts.get(cardNode.id) ?? 0,
     }));
-
-    // Add cards from add= rule (already collected in first pass)
-    const additionalNodes = addRuleResults.get(colIdx);
-    if (additionalNodes) {
-      for (const node of additionalNodes) {
-        cards.push({
-          node,
-          children: [],
-          childCount: childCounts.get(node.id) ?? 0,
-        });
-      }
-    }
 
     // Look up WIP limit (from rules or frontmatter)
     const colName = getNodeDisplayName(colNode);

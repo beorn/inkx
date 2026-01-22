@@ -21,6 +21,7 @@ import {
   pathToColumnIndices,
   columnIndicesToPath,
   findPathToNode,
+  getNodeAtPath,
 } from "@km/board";
 import { getChildren, getChildCount, getStore } from "@km/storage";
 import type { ColumnState, CardState, ColumnRules } from "./types.ts";
@@ -175,31 +176,42 @@ export function deriveColumns(nodes: TNode[]): ColumnState[] {
  * Use this when you want to react to cursor position changes without
  * rebuilding column structure.
  *
- * PERFORMANCE: This is cheap - just path lookup and index extraction.
- * Safe to call on every cursor move.
+ * PERFORMANCE: This function is called on every cursor move, so it must be fast.
+ * - Fast path: O(depth) - just validate cursor path via array indexing
+ * - Slow path: O(n) tree search - only used after zoom when tree changes
  */
 export function deriveCursorIndices(state: TreeBoardState): ColumnIndices & { subIndex: number } {
-  // Derive cursor path from cursorNodeId if available
-  let cursorPath = state.cursor;
+  // FAST PATH: boardReducer keeps cursor valid during normal navigation
+  // getNodeAtPath is O(depth), not O(n) - just array indexing
+  const nodeAtPath = getNodeAtPath(state.nodes, state.cursor);
+  if (nodeAtPath) {
+    // Cursor path is valid - use directly, skip expensive tree search
+    const indices = pathToColumnIndices(state.cursor);
+    const subIndex = indices.subPath.length > 0
+      ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
+      : 0;
+    return { ...indices, subIndex };
+  }
+
+  // SLOW PATH: Cursor path invalid (happens after zoom when tree structure changes)
+  // Fall back to O(n) tree search using cursorNodeId
   if (state.cursorNodeId) {
     const derivedPath = findPathToNode(state.nodes, state.cursorNodeId);
     if (derivedPath) {
-      cursorPath = derivedPath;
+      const indices = pathToColumnIndices(derivedPath);
+      const subIndex = indices.subPath.length > 0
+        ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
+        : 0;
+      return { ...indices, subIndex };
     }
   }
 
-  const indices = pathToColumnIndices(cursorPath);
-
-  // Calculate subIndex (flattened outline position within card)
-  // For cursor [col, card, ...subPath], subIndex is the flattened position
+  // Fallback: use cursor as-is even if invalid
+  const indices = pathToColumnIndices(state.cursor);
   const subIndex = indices.subPath.length > 0
     ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
     : 0;
-
-  return {
-    ...indices,
-    subIndex,
-  };
+  return { ...indices, subIndex };
 }
 
 /**
