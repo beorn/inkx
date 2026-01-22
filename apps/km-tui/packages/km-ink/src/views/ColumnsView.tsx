@@ -209,7 +209,7 @@ function ColumnTree({
         {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
         <Box>
           <Text
-            bold={isSelected}
+            bold
             color={headerStyle.color}
             backgroundColor={headerStyle.backgroundColor}
             wrap="truncate"
@@ -283,40 +283,46 @@ export function ColumnsView({
   const remainder = availableWidth % effectiveMaxCols;
 
   return (
-    <Box flexDirection="row" width={width} height={height}>
-      {/* Left scroll indicator */}
-      {hasLeftIndicator && <VerticalScrollIndicator direction="left" />}
+    <Box flexDirection="column" width={width} height={height}>
+      {/* Blank line between top bar and column headers */}
+      <Box height={1} flexShrink={0} />
 
-      {/* Columns with tree view inside */}
-      {effectiveVisibleColumns.map((col, i) => {
-        const actualColIndex = effectiveScrollOffset + i;
-        const isLastCol = i === effectiveVisibleColumns.length - 1;
-        // Distribute extra pixels to the first 'remainder' columns, then cap at maxColWidth
-        const rawColWidth = baseColWidth + (i < remainder ? 1 : 0);
-        const colWidth = Math.min(rawColWidth, maxColWidth);
-        return (
-          <React.Fragment key={col.node.id}>
-            <ColumnTree
-              column={col}
-              colIndex={actualColIndex}
-              isSelected={actualColIndex === colIndex}
-              selectedCardIndex={cardIndex}
-              selectedSubIndex={subIndex}
-              selectionLevel={selectionLevel}
-              width={colWidth}
-            />
-            {/* Separator line between columns */}
-            {!isLastCol && <ColumnSeparator />}
-          </React.Fragment>
-        );
-      })}
+      {/* Columns row */}
+      <Box flexDirection="row" flexGrow={1}>
+        {/* Left scroll indicator */}
+        {hasLeftIndicator && <VerticalScrollIndicator direction="left" />}
 
-      {/* Right scroll indicator */}
-      {hasRightIndicator && <VerticalScrollIndicator direction="right" />}
+        {/* Columns with tree view inside */}
+        {effectiveVisibleColumns.map((col, i) => {
+          const actualColIndex = effectiveScrollOffset + i;
+          const isLastCol = i === effectiveVisibleColumns.length - 1;
+          // Distribute extra pixels to the first 'remainder' columns, then cap at maxColWidth
+          const rawColWidth = baseColWidth + (i < remainder ? 1 : 0);
+          const colWidth = Math.min(rawColWidth, maxColWidth);
+          return (
+            <React.Fragment key={col.node.id}>
+              <ColumnTree
+                column={col}
+                colIndex={actualColIndex}
+                isSelected={actualColIndex === colIndex}
+                selectedCardIndex={cardIndex}
+                selectedSubIndex={subIndex}
+                selectionLevel={selectionLevel}
+                width={colWidth}
+              />
+              {/* Separator line between columns */}
+              {!isLastCol && <ColumnSeparator />}
+            </React.Fragment>
+          );
+        })}
 
-      {state.columns.length === 0 && (
-        <Text dimColor>No columns to display</Text>
-      )}
+        {/* Right scroll indicator */}
+        {hasRightIndicator && <VerticalScrollIndicator direction="right" />}
+
+        {state.columns.length === 0 && (
+          <Text dimColor>No columns to display</Text>
+        )}
+      </Box>
     </Box>
   );
 }
