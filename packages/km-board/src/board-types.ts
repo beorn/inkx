@@ -67,6 +67,11 @@ export interface BoardState {
   // View configuration
   maxOutlineDepth: number;
   maxContentLines: number;
+
+  // Sticky cursor coordinates (curswant)
+  // See bead km-jm2r for details on the curswant pattern
+  curswantX: number | null; // Sticky column index for board↔column navigation
+  curswantY: number | null; // Sticky card index for cross-column navigation (row-based for now)
 }
 
 // ===== Board Actions (Core Navigation) =====

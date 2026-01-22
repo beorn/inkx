@@ -40,19 +40,27 @@ export function getLastVisibleDescendantPath(
  * Get the next visible block below the current position (CURSOR_DOWN / j key).
  *
  * Per docs/06-ui.md navigation model:
- * - At board level: enter first column
+ * - At board level: enter first column (or curswantX column if set)
  * - At column level: enter first card (if has cards), else no-op
  * - At card level: next sibling card, stops at last card (does NOT cross to next column)
  * - At deeper levels: document traversal within card subtree
+ *
+ * @param curswantX Optional sticky column index for board→column navigation
  */
 export function getNextVisiblePath(
   nodes: TNode[],
   path: TPath,
   foldedNodes: Set<string>,
+  curswantX?: number | null,
 ): TPath | null {
   if (path.length === 0) {
-    // At board level, go to first column
-    return nodes.length > 0 ? [0] : null;
+    // At board level, go to curswantX column (or first column if not set)
+    if (nodes.length === 0) return null;
+    const targetCol =
+      curswantX !== null && curswantX !== undefined
+        ? Math.min(curswantX, nodes.length - 1)
+        : 0;
+    return [targetCol];
   }
 
   const node = getNodeAtPath(nodes, path);
@@ -278,18 +286,47 @@ export function handleCursorMove(
         state.foldedNodes,
       );
       if (!prevPath) return state;
-      return { ...state, ...updateCursor(state, prevPath) };
+
+      // curswantX: When going from column level (depth 1) to board level (depth 0),
+      // remember the column index so 'down' can return to it
+      const isColumnToBoard =
+        state.cursor.length === 1 && prevPath.length === 0;
+      const newCurswantX = isColumnToBoard ? state.cursor[0] ?? null : null;
+
+      // curswantY: Clear on j/k navigation
+      return {
+        ...state,
+        ...updateCursor(state, prevPath),
+        curswantX: newCurswantX,
+        curswantY: null,
+      };
     }
 
     case "down": {
       // Next visible block below (may cross tree levels)
+      // Pass curswantX for board→column navigation
       const nextPath = getNextVisiblePath(
         state.nodes,
         state.cursor,
         state.foldedNodes,
+        state.curswantX,
       );
       if (!nextPath) return state;
-      return { ...state, ...updateCursor(state, nextPath) };
+
+      // curswantX: Clear when we've used it (board→column) or when entering a card
+      const usedCurswantX =
+        state.cursor.length === 0 && nextPath.length === 1;
+      const enteringCard =
+        state.cursor.length === 1 && nextPath.length === 2;
+      const shouldClearCurswantX = usedCurswantX || enteringCard;
+
+      // curswantY: Clear on j/k navigation
+      return {
+        ...state,
+        ...updateCursor(state, nextPath),
+        curswantX: shouldClearCurswantX ? null : state.curswantX,
+        curswantY: null,
+      };
     }
 
     case "left": {

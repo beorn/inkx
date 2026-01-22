@@ -113,24 +113,37 @@ export function boardReducer(
     // ===== Jump Navigation =====
 
     case "NAV_TO_PATH": {
+      // Explicit navigation clears curswant
       // Empty path means board level (no node selected)
       if (action.path.length === 0) {
         return {
           ...state,
           cursor: [],
           cursorNodeId: null,
+          curswantX: null,
+          curswantY: null,
         };
       }
       // Validate path exists for non-empty paths
       const node = getNodeAtPath(state.nodes, action.path);
       if (!node) return state;
-      return { ...state, ...updateCursor(state, action.path) };
+      return {
+        ...state,
+        ...updateCursor(state, action.path),
+        curswantX: null,
+        curswantY: null,
+      };
     }
 
     case "NAV_CROSS_COLUMN": {
       // Move horizontally between columns, preserving cursor depth
       // Cursor can be column-level [col] or card-level [col, row, ...]
-      if (state.cursor.length === 0) return state;
+      // Uses curswantY for sticky row positioning (see bead km-jm2r)
+
+      // At board level: clear curswantX (explicit horizontal movement)
+      if (state.cursor.length === 0) {
+        return { ...state, curswantX: null };
+      }
 
       const colIdx = state.cursor[0] ?? 0;
       const isAtColumnLevel = state.cursor.length === 1;
@@ -144,20 +157,37 @@ export function boardReducer(
 
       // Preserve cursor depth: column level stays column level
       if (isAtColumnLevel) {
-        return { ...state, ...updateCursor(state, [newColIdx]) };
+        return {
+          ...state,
+          ...updateCursor(state, [newColIdx]),
+          curswantY: 0, // Column level: curswantY = 0
+        };
       }
 
       // At card level: navigate to card in target column
-      // If target column is empty, stay at column level
+      // curswantY: Set on first h/l (when null), preserve on subsequent h/l
+      const currentRowIdx = state.cursor[1] ?? 0;
+      const newCurswantY = state.curswantY ?? currentRowIdx;
+
+      // If target column is empty, fall back to column level
       // Use childCount for bounds (supports lazy loading)
       if (targetCol.childCount === 0) {
-        return { ...state, ...updateCursor(state, [newColIdx]) };
+        return {
+          ...state,
+          ...updateCursor(state, [newColIdx]),
+          curswantY: newCurswantY, // Preserve for when we return to a column with cards
+        };
       }
 
-      // Clamp row index to target column's children
-      const rowIdx = state.cursor[1] ?? 0;
-      const clampedRow = Math.min(rowIdx, targetCol.childCount - 1);
-      return { ...state, ...updateCursor(state, [newColIdx, clampedRow]) };
+      // Find target card using curswantY (row index for now)
+      // Clamp to valid range in target column
+      const targetRowIdx = Math.min(newCurswantY, targetCol.childCount - 1);
+
+      return {
+        ...state,
+        ...updateCursor(state, [newColIdx, targetRowIdx]),
+        curswantY: newCurswantY, // Preserve sticky position
+      };
     }
 
     // ===== Node Operations =====
@@ -265,6 +295,8 @@ export function boardReducer(
         cursor: newCursor,
         cursorNodeId: newCursorNodeId,
         zoomStack: newZoomStack,
+        curswantX: null, // Clear on zoom
+        curswantY: null,
       };
     }
 
@@ -291,6 +323,8 @@ export function boardReducer(
         cursor: newCursor,
         // cursorNodeId stays unchanged - same node remains selected
         zoomStack: newZoomStack,
+        curswantX: null, // Clear on zoom
+        curswantY: null,
       };
     }
 
@@ -333,6 +367,8 @@ export function boardReducer(
         cursorNodeId: getNodeIdAtPath(action.nodes, newCursor),
         navHistory: newHistory,
         navHistoryIndex: newHistory.length,
+        curswantX: null, // Clear on navigation
+        curswantY: null,
       };
     }
 
@@ -443,6 +479,8 @@ export function boardReducer(
         moveSourceNodes: [],
         ...updateCursor(state, restoredCursor),
         moveSourceCursor: [],
+        curswantX: null, // Clear on cancel
+        curswantY: null,
       };
     }
 
@@ -519,5 +557,7 @@ export function createBoardState(
     moveSourceCursor: [],
     maxOutlineDepth: 99,
     maxContentLines: 2,
+    curswantX: null,
+    curswantY: null,
   };
 }
