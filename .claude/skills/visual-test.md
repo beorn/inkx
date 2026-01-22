@@ -12,11 +12,144 @@ Capture methods for visual testing of TUIs and CLI output running in a real term
 
 **Related**: `/fix-tui` command uses these methods for debugging
 
-## CRITICAL: Default to Headless Testing
+---
 
-**ALWAYS use headless methods (Storybook or ttyd + Playwright) by default.** These run in the background and don't interfere with the user's desktop.
+## ⚠️ MANDATORY RULES ⚠️
 
-**NEVER use Peekaboo/desktop capture unless the user EXPLICITLY asks** you to look at their Ghostty window, desktop, or a specific running application. Peekaboo takes over the user's screen and prevents them from using their computer.
+### Rule 1: ALWAYS Use ttyd + Playwright First
+
+**ttyd + Playwright is the ONLY approved method for visual testing.** Do not consider alternatives until you have:
+
+1. Tried at least **10 different approaches** to make ttyd + Playwright work
+2. Created a **bead/task** documenting what's broken and how to fix it
+3. Actually **fixed the issue** so ttyd + Playwright works
+
+If ttyd + Playwright isn't working, that's a bug to fix, not a reason to use Peekaboo.
+
+### Rule 2: NEVER Use Peekaboo Without Explicit User Approval
+
+**Before using ANY Peekaboo MCP tool, you MUST:**
+
+1. **Ask the user explicitly** using AskUserQuestion
+2. **Get a clear "yes"** response
+3. **Only then** proceed with Peekaboo
+
+```
+AskUserQuestion: "I've tried ttyd+Playwright 10+ times and it's not working.
+May I use Peekaboo to capture your desktop? This will interact with your screen."
+Options: ["Yes, use Peekaboo", "No, keep trying headless"]
+```
+
+**If you haven't asked → Don't use Peekaboo**
+**If the user said no → Don't use Peekaboo**
+**If ttyd isn't working → Fix ttyd, don't use Peekaboo**
+
+---
+
+## Troubleshooting ttyd + Playwright (TRY THESE FIRST)
+
+When headless capture fails, work through ALL of these before considering Peekaboo:
+
+### 1. Timing Issues (Most Common)
+
+```bash
+# Problem: Screenshot shows blank/loading
+# Solution: Increase wait times progressively
+
+sleep 3   # Try this first
+sleep 5   # If still blank
+sleep 10  # For large vaults
+sleep 15  # For very large vaults (21k+ files)
+sleep 30  # Maximum reasonable wait
+
+# Also use Playwright's wait flag:
+--wait-for-timeout=2000   # Wait 2s after page load
+--wait-for-timeout=5000   # Wait 5s for slow renders
+```
+
+### 2. Environment Variables
+
+```bash
+# Ensure terminal capabilities are set
+FORCE_TTY=1 \
+COLORTERM=truecolor \
+TERM=xterm-256color \
+ttyd -W -p 7681 bun km view ...
+```
+
+### 3. Alternate Screen Buffer Issues
+
+```bash
+# If using OpenTUI, disable alternate screen
+OTUI_USE_ALTERNATE_SCREEN=false ttyd ...
+```
+
+### 4. Port Conflicts
+
+```bash
+pkill -f ttyd 2>/dev/null || true
+sleep 1
+lsof -i :7681  # Verify port is free
+```
+
+### 5. Small Test Vault
+
+```bash
+# Use a tiny vault that loads instantly
+rm -rf /tmp/test-vault && mkdir -p /tmp/test-vault
+echo -e "# Test\n- [ ] Task 1\n- [x] Task 2" > /tmp/test-vault/test.md
+ttyd -W -p 7681 bun km view -r /tmp/test-vault test.md &
+```
+
+### 6. Check ttyd Output
+
+```bash
+# Run ttyd in foreground to see errors
+ttyd -W -p 7681 bun km view ... 2>&1 | head -50
+```
+
+### 7. Verify Playwright Installation
+
+```bash
+bun x playwright install chromium
+```
+
+### 8. Try Different Viewport Sizes
+
+```bash
+--viewport-size=800,600    # Small
+--viewport-size=1000,700   # Medium
+--viewport-size=1400,900   # Large
+```
+
+### 9. Multiple Sequential Captures
+
+```bash
+# Capture multiple times with increasing delays
+for delay in 3 5 10 15; do
+  sleep $delay
+  HEADLESS=true bun x playwright screenshot \
+    --viewport-size=1000,700 \
+    http://localhost:7681 \
+    /tmp/capture-${delay}s.png
+done
+```
+
+### 10. Check if TUI Actually Started
+
+```bash
+ps aux | grep -E "(km|bun)" | grep -v grep
+# Should show the km view process running
+```
+
+### If All 10 Attempts Fail
+
+1. **Create a bead**: `bd create --type=bug --title="ttyd+Playwright visual capture not working"`
+2. **Document what you tried** in the bead description
+3. **Fix the underlying issue** - this is a project bug, not a reason to switch tools
+4. **Only then** ask the user about Peekaboo as a temporary workaround
+
+---
 
 ## CRITICAL: Set Up for Success (Before Starting TUI)
 
@@ -192,30 +325,39 @@ HEADLESS=true bun x playwright screenshot \
 
 **Best for**: Testing actual terminal rendering, regression testing, before/after comparisons, CI pipelines.
 
-## Method 3: Interactive (Peekaboo) - REQUIRES USER APPROVAL
+## Method 3: Interactive (Peekaboo) - LAST RESORT ONLY
 
-⚠️ **ALWAYS ASK FOR USER APPROVAL BEFORE USING PEEKABOO** ⚠️
+### ⛔ STOP - READ THIS FIRST ⛔
 
-Peekaboo captures the user's actual desktop/screen, which:
+**DO NOT USE PEEKABOO** unless ALL of the following are true:
 
-- Takes over their display
-- Prevents them from using their computer
-- Requires the user to be ready at that moment
+1. ✅ You have tried ttyd + Playwright at least **10 times** with different approaches
+2. ✅ You have created a **bead** documenting what's broken
+3. ✅ You have **asked the user explicitly** and received a clear **"yes"**
 
-**MANDATORY: Before using ANY Peekaboo MCP tool, you MUST use AskUserQuestion to get explicit approval:**
+If ANY of these are false, go back to the troubleshooting section above.
+
+### Why Peekaboo is Problematic
+
+- Takes over the user's desktop
+- Prevents them from doing other work
+- Requires them to be actively watching
+- Indicates a bug in our headless testing infrastructure (fix that instead!)
+
+### Asking for Permission (MANDATORY)
 
 ```
-AskUserQuestion: "I need to use Peekaboo to capture your screen. This will interact with your desktop. Are you ready?"
-Options: ["Yes, I'm ready", "No, use headless instead"]
+AskUserQuestion:
+  question: "I've tried ttyd+Playwright 10+ times without success.
+            May I use Peekaboo to capture your Ghostty window?"
+  options:
+    - "Yes, go ahead"
+    - "No, describe what you tried and I'll help debug"
 ```
 
-Only proceed with Peekaboo if the user confirms they are ready. If they decline or if you haven't asked, **use headless methods instead**.
+**You MUST receive "Yes, go ahead" before proceeding.**
 
-Even if the user previously mentioned wanting desktop capture, always confirm before the actual capture since they may have switched context.
-
-### Via MCP Tools (only after user approval)
-
-Use the `mcp__peekaboo__image` tool:
+### Via MCP Tools (only after explicit user approval)
 
 ```json
 {
@@ -225,17 +367,11 @@ Use the `mcp__peekaboo__image` tool:
 }
 ```
 
-### Via CLI (only after user approval)
+### Via CLI (only after explicit user approval)
 
 ```bash
-# Capture specific app
 peekaboo image --app "Ghostty" --path /tmp/capture.png
-
-# Capture frontmost window
-peekaboo image --path /tmp/capture.png
 ```
-
-**When to use**: ONLY after user confirms via AskUserQuestion that they are ready for desktop capture.
 
 ## Viewing Screenshots
 

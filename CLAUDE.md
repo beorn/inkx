@@ -340,21 +340,27 @@ bun debug view /path/to/vault
 
 ### 13. Visual Testing
 
-**Preferred method: ttyd + Playwright (headless).** Try this first and fix issues before asking user to use Peekaboo.
+**MANDATORY: Use ttyd + Playwright.** This is the ONLY approved method for visual testing.
 
 See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for full documentation.
 
 ```bash
+# Always use a small test vault for faster loading
+rm -rf /tmp/test-vault && mkdir -p /tmp/test-vault
+echo -e "# Test\n- [ ] Task 1\n- [x] Task 2" > /tmp/test-vault/test.md
+
 pkill -f ttyd 2>/dev/null || true
-ttyd -W -p 7681 bun km view -r /tmp/test-vault @next.md &
-sleep 3
-HEADLESS=true bun x playwright screenshot --viewport-size=1400,900 http://localhost:7681 /tmp/tui.png
+FORCE_TTY=1 ttyd -W -p 7681 bun km view -r /tmp/test-vault test.md &
+sleep 5
+HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:7681 /tmp/tui.png
 ```
 
-**Peekaboo (desktop capture):** Only use when ttyd/Playwright doesn't work. When using Peekaboo:
-- **Target Ghostty** - always use `app_target: "Ghostty"` (user's default terminal)
-- **Large screenshots** - use `mcp__peekaboo__image` with specific window targeting for full-size captures, or use `mcp__peekaboo__see` with specific window ID
-- **No OpenAI calls** - the `question` parameter on image tools uses OpenAI which isn't configured; use `Read` tool to view captured images instead
+**⛔ Peekaboo Rules:**
+
+1. **NEVER use Peekaboo without explicit user approval** - Ask first, get a clear "yes"
+2. **Try ttyd+Playwright at least 10 times first** - Different wait times, viewport sizes, env vars
+3. **If ttyd doesn't work, that's a bug to fix** - Create a bead and fix it, don't switch to Peekaboo
+4. **When asking for Peekaboo approval**, explain what you tried and why it failed
 
 **Visual Bug Fixing:** You CANNOT fix what you cannot see. BEFORE attempting any fix:
 
