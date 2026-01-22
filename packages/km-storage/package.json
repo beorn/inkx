@@ -12,5 +12,8 @@
     "@km/markdown": "workspace:*",
     "cosmiconfig": "^9.0.0",
     "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@beorn/watcher-chaos": "workspace:*"
   }
 }

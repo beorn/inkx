@@ -13,6 +13,7 @@ import { EventEmitter } from "events";
 import { FileSystemWatcher, scanDirectoryRecursive } from "./watcher.ts";
 import { WorkerWatcher } from "./worker-bridge.ts";
 import type { WatcherStatus } from "./worker-thread.ts";
+import type { WatcherInterface } from "./types.ts";
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts";
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts";
 import { getIgnorePatterns } from "./ignore.ts";
@@ -46,6 +47,8 @@ export interface SyncConfig {
   useWorker?: boolean;
   /** Heartbeat reconciliation config */
   heartbeat?: Partial<HeartbeatConfig>;
+  /** Custom watcher instance (for testing with ChaosWatcher). If provided, useWorker is ignored. */
+  watcher?: WatcherInterface;
 }
 
 const DEFAULT_HEARTBEAT: HeartbeatConfig = {
@@ -70,9 +73,6 @@ export type SyncState =
   | "emitting"
   | "writing";
 
-/** Common interface for both watcher types */
-type WatcherInterface = FileSystemWatcher | WorkerWatcher;
-
 export class SyncManager extends EventEmitter {
   private config: SyncConfig;
   private watcher: WatcherInterface;
@@ -96,9 +96,13 @@ export class SyncManager extends EventEmitter {
       ...config.heartbeat,
     };
 
-    // Use worker-based watcher by default (non-blocking)
+    // Use injected watcher if provided (for testing with ChaosWatcher)
+    // Otherwise use worker-based watcher by default (non-blocking)
     // Fall back to direct watcher if useWorker is explicitly false
-    if (this.config.useWorker !== false) {
+    if (config.watcher) {
+      debug("using injected watcher");
+      this.watcher = config.watcher;
+    } else if (this.config.useWorker !== false) {
       debug("using WorkerWatcher (non-blocking)");
       this.watcher = new WorkerWatcher({
         debounceMs: this.config.debounceFs,

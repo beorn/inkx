@@ -1,0 +1,33 @@
+{
+  "name": "@beorn/watcher-chaos",
+  "version": "0.1.0",
+  "description": "Drop-in replacement file watcher for chaos testing - simulates edge cases like dropped events, reordering, and coalescing",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "chaos",
+    "testing",
+    "watcher",
+    "chokidar",
+    "fsevents",
+    "inotify",
+    "file-watching",
+    "fuzz"
+  ],
+  "author": "beorn",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

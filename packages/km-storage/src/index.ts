@@ -153,6 +153,8 @@ export type {
   WriteQueueConfig,
   WatcherStatus,
   WatcherState,
+  WatcherInterface,
+  SyncData,
 } from "./watch/index.ts";
 
 // Event emission (moved from @km/core)

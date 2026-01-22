@@ -15,6 +15,9 @@ export type { WorkerWatcherConfig } from "./worker-bridge.ts";
 // Watcher status types
 export type { WatcherStatus, WatcherState } from "./worker-thread.ts";
 
+// Shared types
+export type { WatcherInterface, SyncData } from "./types.ts";
+
 // Sync
 export { SyncManager } from "./sync.ts";
 

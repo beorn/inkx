@@ -170,6 +170,9 @@
         "cosmiconfig": "^9.0.0",
         "yaml": "^2.8.2",
       },
+      "devDependencies": {
+        "@beorn/watcher-chaos": "workspace:*",
+      },
     },
     "packages/km-tree": {
       "name": "@km/tree",
@@ -198,25 +201,28 @@
       "name": "inkx",
       "version": "0.0.1",
       "dependencies": {
-        "@beorn/chalkx": "workspace:*",
+        "@beorn/chalkx": "github:beorn/chalkx",
         "graphemer": "^1.4.0",
         "react-reconciler": "^0.33.0",
         "slice-ansi": "^7.1.2",
-        "string-width": "^7.0.0",
+        "string-width": "^8.0.0",
         "wrap-ansi": "^9.0.2",
       },
       "devDependencies": {
+        "@beorn/flexx": "github:beorn/flexx",
         "@biomejs/biome": "^1.9.0",
         "@types/bun": "^1.1.0",
         "@types/react": "^19.0.0",
+        "chalk": "^5.6.2",
         "mitata": "^0.1.11",
         "react": "^19.0.0",
         "typescript": "^5.5.0",
         "vitepress": "^1.5.0",
         "vitepress-plugin-llms": "^1.0.0",
+        "yoga-wasm-web": "^0.3.3",
       },
       "peerDependencies": {
-        "@beorn/flexx": "workspace:*",
+        "@beorn/flexx": "github:beorn/flexx",
         "react": "^18.0.0 || ^19.0.0",
         "yoga-wasm-web": "^0.3.3",
       },
@@ -261,6 +267,13 @@
       },
       "peerDependencies": {
         "react": "^18.0.0 || ^19.0.0",
+      },
+    },
+    "vendor/beorn-watcher-chaos": {
+      "name": "@beorn/watcher-chaos",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "^5.7.3",
       },
     },
   },
@@ -324,6 +337,8 @@
     "@beorn/mdtest": ["@beorn/mdtest@workspace:vendor/beorn-mdtest"],
 
     "@beorn/tui-measure": ["@beorn/tui-measure@workspace:vendor/beorn-tui-measure"],
+
+    "@beorn/watcher-chaos": ["@beorn/watcher-chaos@workspace:vendor/beorn-watcher-chaos"],
 
     "@biomejs/biome": ["@biomejs/biome@1.9.4", "", { "optionalDependencies": { "@biomejs/cli-darwin-arm64": "1.9.4", "@biomejs/cli-darwin-x64": "1.9.4", "@biomejs/cli-linux-arm64": "1.9.4", "@biomejs/cli-linux-arm64-musl": "1.9.4", "@biomejs/cli-linux-x64": "1.9.4", "@biomejs/cli-linux-x64-musl": "1.9.4", "@biomejs/cli-win32-arm64": "1.9.4", "@biomejs/cli-win32-x64": "1.9.4" }, "bin": { "biome": "bin/biome" } }, "sha512-1rkd7G70+o9KkTn5KLmDYXihGoTaIGO9PIIN2ZB7UJxFrWw04CZHPYiMRjYsaDvVV7hP1dYNRLxSANLaBFGpog=="],
 
@@ -1323,6 +1338,12 @@
 
     "ink/ws": ["ws@8.19.0", "", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg=="],
 
+    "inkx/@beorn/chalkx": ["@beorn/chalkx@github:beorn/chalkx#e60667c", { "dependencies": { "chalk": "^5.4.1", "string-width": "^7.0.0" } }, "beorn-chalkx-e60667c"],
+
+    "inkx/@beorn/flexx": ["@beorn/flexx@github:beorn/flexx#88cd85e", {}, "beorn-flexx-88cd85e"],
+
+    "inkx/string-width": ["string-width@8.1.0", "", { "dependencies": { "get-east-asian-width": "^1.3.0", "strip-ansi": "^7.1.0" } }, "sha512-Kxl3KJGb/gxkaUMOjRsQ8IrXiGW75O4E3RPjFIINOVH8AMl2SQ/yWdTzWwF3FevIX9LcMAjJW+GRwAlAbTSXdg=="],
+
     "mdast-util-find-and-replace/escape-string-regexp": ["escape-string-regexp@5.0.0", "", {}, "sha512-/veY75JbMK4j1yjvuUxuVsiS/hr/4iHs9FTT6cgTexxdE0Ly/glccBAkloH/DofkjRbZU3bnoj38mOmhkZ0lHw=="],
 
     "mdast-util-frontmatter/escape-string-regexp": ["escape-string-regexp@5.0.0", "", {}, "sha512-/veY75JbMK4j1yjvuUxuVsiS/hr/4iHs9FTT6cgTexxdE0Ly/glccBAkloH/DofkjRbZU3bnoj38mOmhkZ0lHw=="],
@@ -1366,6 +1387,8 @@
     "eslint/chalk/ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 
     "gray-matter/js-yaml/argparse": ["argparse@1.0.10", "", { "dependencies": { "sprintf-js": "~1.0.2" } }, "sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg=="],
+
+    "inkx/@beorn/chalkx/string-width": ["string-width@7.2.0", "", { "dependencies": { "emoji-regex": "^10.3.0", "get-east-asian-width": "^1.0.0", "strip-ansi": "^7.1.0" } }, "sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ=="],
 
     "string-width-cjs/strip-ansi/ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 

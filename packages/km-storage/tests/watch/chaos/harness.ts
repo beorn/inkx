@@ -13,7 +13,7 @@ import type {
   FsEvent,
   ChaosScenario,
 } from "./types.ts";
-import { MockWatcher, createMockWatcher } from "./mock-watcher.ts";
+import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos";
 import { Verifier } from "./verifier.ts";
 import { setKmDir, setDatabase } from "../../../src/emit.ts";
 import { resetDb, closeDb, applyEvent } from "../../../src/db.ts";
@@ -28,7 +28,7 @@ export async function runChaosTest(config: ChaosTestConfig): Promise<ChaosTestRe
   const vaultDir = join(testDir, "vault");
   const kmDir = join(testDir, ".km");
 
-  let mockWatcher: MockWatcher | null = null;
+  let chaosWatcher: ChaosWatcher | null = null;
 
   try {
     // ─────────────────────────────────────────────────────────────
@@ -67,30 +67,30 @@ export async function runChaosTest(config: ChaosTestConfig): Promise<ChaosTestRe
     // ─────────────────────────────────────────────────────────────
 
     // Create mock watcher with scenario
-    mockWatcher = createMockWatcher({
+    chaosWatcher = createChaosWatcher({
       debounceMs: 50,
       scenario: config.scenario,
       seed: 12345, // Reproducible
     });
 
     // Start watcher
-    mockWatcher.start(vaultDir);
+    chaosWatcher.start(vaultDir);
 
     // Wait for ready (in virtual time, this is instant unless init_gap scenario)
     await new Promise<void>((resolve) => {
       if (config.scenario.type === "init_gap") {
         // For init_gap, we need to advance time
-        mockWatcher!.once("ready", resolve);
-        void mockWatcher!.advanceTime(
+        chaosWatcher!.once("ready", resolve);
+        void chaosWatcher!.advanceTime(
           (config.scenario.params.initDurationMs as number) ?? 2000,
         );
       } else {
-        mockWatcher!.once("ready", resolve);
+        chaosWatcher!.once("ready", resolve);
       }
     });
 
     // Wire up sync handler
-    mockWatcher.on("sync", (data: { paths: string[]; directories: string[] }) => {
+    chaosWatcher.on("sync", (data: { paths: string[]; directories: string[] }) => {
       void (async () => {
         for (const dir of data.directories) {
           // Use recursive reconciliation for subdirectories (handles FSEvents coalescing)
@@ -109,10 +109,10 @@ export async function runChaosTest(config: ChaosTestConfig): Promise<ChaosTestRe
       path: join(vaultDir, e.path),
     }));
 
-    mockWatcher.injectBatch(absoluteEvents);
+    chaosWatcher.injectBatch(absoluteEvents);
 
     // Process all events
-    await mockWatcher.flush();
+    await chaosWatcher.flush();
 
     // Give extra time for any async processing
     await new Promise((r) => setTimeout(r, config.timeout ?? 100));
@@ -141,13 +141,13 @@ export async function runChaosTest(config: ChaosTestConfig): Promise<ChaosTestRe
       passed: verification.passed,
       verification,
       duration: Date.now() - start,
-      eventsEmitted: mockWatcher.getEmittedEvents().length,
-      eventsDropped: mockWatcher.getDroppedEvents().length,
+      eventsEmitted: chaosWatcher.getEmittedEvents().length,
+      eventsDropped: chaosWatcher.getDroppedEvents().length,
     };
   } finally {
     // Cleanup
-    if (mockWatcher) {
-      await mockWatcher.stop();
+    if (chaosWatcher) {
+      await chaosWatcher.stop();
     }
     closeDb();
     if (existsSync(testDir)) {
