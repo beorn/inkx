@@ -204,10 +204,6 @@ Inbox item 1 of 5:
 ## Shell Integration
 
 ```bash
-# Completions
-eval "$(km completions bash)"
-eval "$(km completions zsh)"
-
 # Quick status change
 km status $(km task --ids | fzf) done
 
@@ -229,23 +225,22 @@ km show $(km ls --ids | fzf)
 
 ## Configuration
 
+Config is loaded from `.km/config.yaml` or standard locations (`.kmrc.yaml`, `km.config.js`, etc.).
+
 ```yaml
-# ~/.config/km/config.yaml
+# .km/config.yaml
 
-defaults:
-  board_columns: [open, blocked, done]
-
+# TUI settings
 tui:
-  vim_keys: true
+  watch: true           # Enable file watching for live sync (default: true)
+  watchWorker: true     # Use worker thread for file watching (default: true)
 
-favorites:
-  1: "@next"
-  2: "@inbox"
-  3: "@someday"
-  4: "+current-project"
+# Beads issue tracking integration
+beads:
+  board: "issue"        # Default board for issue queries
+  parent: "issue/"      # Directory for new issues
+  prefix: "km"          # Issue ID prefix (e.g., km-xxxx)
 ```
-
-Favorites: Number keys `1-6` open favorite boards.
 
 ---
 

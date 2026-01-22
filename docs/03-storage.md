@@ -454,6 +454,7 @@ interface Event {
 
 // Task actions
 { type: 'task_claimed', actor: 'agent-1', target: id }
+{ type: 'task_released', actor: 'agent-1', target: id }
 { type: 'task_completed', actor: 'agent-1', target: id }
 ```
 

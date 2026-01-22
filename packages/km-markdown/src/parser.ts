@@ -1,7 +1,24 @@
 /**
- * Markdown Parser
+ * Markdown Parser - Pure Parsing Utilities
  *
- * Parses markdown content into AST using mdast
+ * This module contains pure text/AST parsing functions that:
+ * - Have NO dependency on @km/core types (except TASK_MARK_REGEX_CLASS)
+ * - Work with raw text, mdast nodes, or regex patterns
+ * - Can be used independently of the km storage layer
+ *
+ * For converting parsed markdown into KNodes, see ast2nodes.ts.
+ *
+ * Exports:
+ * - parseMarkdown: string → mdast Root
+ * - extractFrontmatter: string → { frontmatter, body }
+ * - extractTaskMark/extractTitleTaskMark: text → task mark
+ * - parseWikiLinks: text → WikiLink[]
+ * - extractTags/Mentions/Projects: text → string[]
+ * - parseTaskMetadata: text → { dueDate, priority, ... }
+ * - parseHeadingRules: text → { title, rules }
+ * - parseInlineProperties: text → { props, cleanText }
+ * - nodeToText/listItemToText: mdast → text
+ * - slugify: text → url-safe slug
  */
 
 import { fromMarkdown } from "mdast-util-from-markdown";

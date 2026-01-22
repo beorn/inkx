@@ -25,7 +25,8 @@ export function getNodeAtPath(nodes: TNode[], path: TPath): TNode | null {
 }
 
 /**
- * Get sibling count at the given path level
+ * Get sibling count at the given path level.
+ * Uses childCount for bounds (supports lazy loading where children array may be incomplete).
  */
 export function getSiblingCount(nodes: TNode[], path: TPath): number {
   if (path.length === 0) return 0;
@@ -33,7 +34,7 @@ export function getSiblingCount(nodes: TNode[], path: TPath): number {
 
   const parentPath = path.slice(0, -1);
   const parent = getNodeAtPath(nodes, parentPath);
-  return parent?.children.length ?? 0;
+  return parent?.childCount ?? 0;
 }
 
 /**

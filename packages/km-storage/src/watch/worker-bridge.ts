@@ -11,9 +11,9 @@
 import createDebug from "debug";
 import { EventEmitter } from "events";
 import { getIgnorePatterns } from "./ignore.ts";
-import type { WorkerCommand, WorkerMessage, WatcherStatus, WatcherState } from "./watcher-worker.ts";
+import type { WorkerCommand, WorkerMessage, WatcherStatus, WatcherState } from "./worker-thread.ts";
 
-const debug = createDebug("km:storage:watch:worker-watcher");
+const debug = createDebug("km:storage:watch:worker-bridge");
 // For forwarding worker debug messages - uses worker's namespace
 const workerDebug = createDebug("km:storage:watch:worker");
 
@@ -62,7 +62,7 @@ export class WorkerWatcher extends EventEmitter {
 
     // Create worker
     // Use import.meta.url to resolve the worker file path
-    this.worker = new Worker(new URL("./watcher-worker.ts", import.meta.url));
+    this.worker = new Worker(new URL("./worker-thread.ts", import.meta.url));
 
     // Handle messages from worker
     this.worker.onmessage = (event: MessageEvent<WorkerMessage>) => {

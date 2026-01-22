@@ -129,6 +129,8 @@ export function getConfigPath(): string | undefined {
  */
 export function clearConfigCache(): void {
   cachedResult = null;
+  cachedBeadsConfig = null;
+  explorer.clearCaches();
 }
 
 /**

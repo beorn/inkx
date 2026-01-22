@@ -287,6 +287,17 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       return;
     }
 
+    // Help overlay blocks most keys - only allow dismiss keys
+    if (ui.showHelp) {
+      if (input === "?" || key.escape) {
+        dispatch(actions.hideHelp());
+      } else if (input === "q") {
+        exit();
+      }
+      // All other keys are blocked while help is showing
+      return;
+    }
+
     // Route ALL keys through the command system
     const result = processKeyWithContext(input, key, tuiContext);
 

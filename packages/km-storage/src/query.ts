@@ -7,6 +7,7 @@
 
 import createDebug from "debug";
 import { getDb } from "./db.ts";
+import { rowToNode } from "./db-queries.ts";
 
 const debug = createDebug("km:storage:query");
 import {
@@ -365,10 +366,11 @@ export function executeQuery(
   sql += " ORDER BY parent_idx ASC, created_at DESC";
 
   const start = Date.now();
-  const rows = db.prepare(sql).all(...params) as KNode[];
+  const rows = db.prepare(sql).all(...params) as Record<string, unknown>[];
+  const nodes = rows.map(rowToNode);
   debug("executeQuery: %d results in %dms (type=%s, conditions=%d, paths=%d)",
-    rows.length, Date.now() - start, baseType ?? "any", ast.conditions.length, ast.paths.length);
-  return rows;
+    nodes.length, Date.now() - start, baseType ?? "any", ast.conditions.length, ast.paths.length);
+  return nodes;
 }
 
 /**

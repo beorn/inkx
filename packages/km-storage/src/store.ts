@@ -25,8 +25,25 @@ import { getMarkForStatus } from "@km/core";
 import type { KNode, TaskStatus } from "@km/core";
 import { setKmDir, emitNodeMoved } from "./emit.ts";
 import { parseMarkdownToNodes } from "@km/markdown";
-import { SCHEMA } from "./schema.ts";
+import { SCHEMA, MIGRATIONS } from "./schema.ts";
 import { rowToNode } from "./db-queries.ts";
+
+/**
+ * Apply schema migrations to an existing database.
+ * Each migration is idempotent - safe to run multiple times.
+ */
+function applyMigrations(db: Database): void {
+  // Check if links table has relationship column
+  const columns = db
+    .query("PRAGMA table_info(links)")
+    .all() as { name: string }[];
+  const hasRelationship = columns.some((c) => c.name === "relationship");
+
+  if (!hasRelationship) {
+    // Apply migrations - ALTER TABLE will add the column
+    db.exec(MIGRATIONS);
+  }
+}
 
 /**
  * NodeStore interface - unified access to node storage
@@ -298,6 +315,7 @@ export class DiskStore extends BaseStore {
     this.rootPath = dirname(kmPath);
     this.db = new Database(join(kmPath, "state.db"));
     this.db.exec(SCHEMA);
+    applyMigrations(this.db);
   }
 
   updateNode(id: string, changes: Partial<KNode>): void {

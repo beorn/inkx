@@ -11,10 +11,10 @@ The command system provides a unified interface for executing actions across all
 
 ### Benefits
 
-- **Testable**: Commands are pure functions that return actions
+- **Testable**: Commands are pure functions with injectable context
 - **Scriptable**: Same commands work in shell scripts and automation
 - **Discoverable**: Searchable registry with descriptions
-- **Type-safe**: Full TypeScript types for context and actions
+- **Type-safe**: Full TypeScript types for context and predicates
 - **Consistent**: Same behavior across all input sources
 
 ---
@@ -24,103 +24,143 @@ The command system provides a unified interface for executing actions across all
 ```
 Input Sources (keyboard, km-sh, CLI, palette)
         ↓
-Keybinding Resolution (maps keys → command IDs)
+Key Normalization (unifies key formats)
         ↓
-Command Registry (@km/commands)
+Binding Resolution (first-match with when predicates)
         ↓
-Command Execution (ctx → Action[])
+Command Execution (cmd(ctx) - direct execution)
         ↓
-Action Dispatcher (routes to reducers + storage)
+State Updates (reducers + storage)
 ```
 
 ### Flow Example
 
 1. User presses `j` in TUI
-2. Keybinding layer maps `j` → `cursor_next` (in normal mode)
-3. Command registry looks up `cursor_next` command
-4. Command executes with current context
-5. Returns `{ type: "CURSOR_NEXT" }` action
-6. Action dispatches to board reducer
-7. State updates, UI re-renders
+2. Key normalized to `"j"`
+3. Bindings scanned in order; first match where `when(ctx)` is true wins
+4. If on board: `j` → `cursorNext`; if in picker: `j` → `pickerNext`
+5. Command executes: `cursorNext(ctx)` dispatches to reducer
+6. State updates, UI re-renders
 
 ---
 
-## CommandDef Interface
+## Core Types
 
 ```typescript
-interface CommandDef {
-  id: string; // snake_case: "cursor_next"
-  name: string; // "Move to Next"
-  description: string; // "Move cursor to next sibling"
-  category: CommandCategory;
-  shortcuts?: string[]; // Optional: default keybindings
-  modes?: CommandMode[]; // Optional: active only in these modes
-  execute: (ctx: CommandContext) => CommandAction | CommandAction[] | null;
+// Context passed to commands and when predicates
+interface Ctx {
+  // === LAYER STATE ===
+  layer: "board" | "pane" | "dialog";
+  dialog: "help" | "projectPicker" | "newItem" | null;
+  pane: "detail" | null;
+  mode: "normal" | "move";
+
+  // === SELECTION ===
+  hasSelection: boolean;
+  multiSelection: Set<string>;
+  clipboardHasNodes: boolean;
+
+  // === CURSOR ===
+  node: TNode | null;
+  knode: KNode | null;
+  column: number;
+  card: number;
+  path: TPath;
+
+  // === DERIVED ===
+  nodeIsTask: boolean;
+  nodeHasChildren: boolean;
+  taskStatus: TaskStatus | null;
+  canZoomIn: boolean;
+  canZoomOut: boolean;
+  canNavBack: boolean;
+  canNavForward: boolean;
+  inOutlineMode: boolean;
+
+  // === DISPATCHERS ===
+  dispatch: Dispatch<UIAction>;
+  dispatchBoard: Dispatch<BoardAction>;
+  exit: () => void;
+
+  // === STORAGE ===
+  storage: StorageInterface;
+
+  // === OPERATIONS ===
+  refresh: () => void;
+  buildTree: (rootId: string | null) => TNode[];
+  clearSelection: () => void;
 }
 
-type CommandCategory =
-  | "Navigation"
-  | "Selection"
-  | "Edit"
-  | "Task"
-  | "Fold"
-  | "View";
-type CommandMode = "normal" | "move" | "search" | "input";
+// Command: function that executes with context
+type Cmd = (ctx: Ctx) => void;
+
+// When predicate: TypeScript function for conditional bindings
+type When = (ctx: Ctx) => boolean;
+
+// Binding: maps keys to commands with optional conditions
+interface Binding {
+  keys: string[];
+  cmd: Cmd;
+  when?: When;
+}
 ```
 
-### Field Details
+### Why Direct Execution?
 
-| Field         | Purpose                                         |
-| ------------- | ----------------------------------------------- |
-| `id`          | Unique identifier, snake_case for shell/CLI use |
-| `name`        | Human-readable name for palette/help            |
-| `description` | Longer description for documentation            |
-| `category`    | Grouping for organization and filtering         |
-| `shortcuts`   | Optional array of default key bindings          |
-| `modes`       | Optional array of modes where command is active |
-| `execute`     | Pure function that produces actions             |
+Commands execute directly rather than returning action descriptors. This enables:
 
-### Execute Return Values
-
-- **Single action**: `{ type: "CURSOR_NEXT" }`
-- **Multiple actions**: `[action1, action2]` for compound operations
-- **No-op**: `null` when command doesn't apply (e.g., can't move further)
+- Simpler code (no interpreter/switch statement)
+- Type-safe storage access via `ctx.storage`
+- Commands can do multiple operations atomically
+- Testing with mock context
 
 ---
 
-## CommandContext
+## Bindings
 
-Commands receive a read-only context describing the current state:
+Bindings connect keys to commands with optional when predicates:
 
 ```typescript
-interface CommandContext {
-  // Current node and cursor
-  currentNode: TNode | null;
-  currentNodeId: string | null;
-  cursor: TPath; // Array of indices representing path from root
+// Common condition helpers
+const onBoard: When = (c) => c.layer === "board";
+const onPane: When = (c) => c.layer === "pane";
+const onDialog: When = (c) => c.layer === "dialog";
+const inMoveMode: When = (c) => c.mode === "move";
+const hasTask: When = (c) => c.nodeIsTask;
+const hasChildren: When = (c) => c.nodeHasChildren;
 
-  // Selection state
-  selectedNodes: string[];
+// Example bindings
+const BINDINGS: Binding[] = [
+  // Same key, different commands based on context
+  { keys: ["j"], cmd: cursorNext, when: (c) => onBoard(c) || c.pane === "detail" },
+  { keys: ["j"], cmd: pickerNext, when: (c) => c.dialog === "projectPicker" },
+  { keys: ["j"], cmd: moveDest, when: inMoveMode },
 
-  // Board state (read-only snapshot)
-  boardState: BoardState;
-  viewMode: ViewMode;
+  // Conditional on node properties
+  { keys: ["x"], cmd: cycleTaskStatus, when: (c) => onBoard(c) && hasTask(c) },
+  { keys: ["Tab"], cmd: toggleFold, when: (c) => onBoard(c) && hasChildren(c) },
 
-  // Navigation helpers
-  siblingCount: number;
-  siblingIndex: number;
-  columnIndex: number;
-  columnCount: number;
+  // Modal-specific
+  { keys: ["Escape"], cmd: closeDialog, when: onDialog },
+  { keys: ["Escape"], cmd: cancelMove, when: inMoveMode },
+  { keys: ["Escape"], cmd: clearSelection, when: (c) => onBoard(c) && c.hasSelection },
+];
+```
+
+### Resolution
+
+```typescript
+function resolveBinding(key: string, ctx: Ctx): Cmd | null {
+  for (const b of BINDINGS) {
+    if (b.keys.includes(key) && (!b.when || b.when(ctx))) {
+      return b.cmd;
+    }
+  }
+  return null;
 }
 ```
 
-### Why Read-Only?
-
-Commands never mutate state directly. They return actions that describe _what should happen_. This enables:
-
-- Testing without mocking
-- Undo/redo via action history
-- Consistent state transitions
+First matching binding wins. This enables context layering where dialogs take precedence over board keybindings.
 
 ---
 
@@ -130,251 +170,275 @@ Commands never mutate state directly. They return actions that describe _what sh
 
 Cursor movement, zoom, history navigation.
 
-| Command                  | Description                       |
-| ------------------------ | --------------------------------- |
-| `cursor_next`            | Move to next sibling              |
-| `cursor_prev`            | Move to previous sibling          |
-| `cursor_in`              | Move into first child             |
-| `cursor_out`             | Move to parent                    |
-| `cursor_first`           | Move to first sibling             |
-| `cursor_last`            | Move to last sibling              |
-| `cursor_up`              | Move up visually                  |
-| `cursor_down`            | Move down visually                |
-| `cursor_left`            | Move left (cross-column)          |
-| `cursor_right`           | Move right (cross-column)         |
-| `page_down`              | Jump cursor down half a page      |
-| `page_up`                | Jump cursor up half a page        |
-| `nav_back`               | Navigate history back             |
-| `nav_forward`            | Navigate history forward          |
-| `zoom_in`                | Zoom into current node            |
-| `zoom_out`               | Zoom out to parent                |
-| `go_up_path`             | Navigate to parent of current root|
-| `enter_node`             | Enter current node as board       |
-| `sibling_board_next`     | Navigate to next sibling board    |
-| `sibling_board_prev`     | Navigate to previous sibling board|
-| `open_detail_pane`       | Open detail pane for current node |
+| Command            | Description                        |
+| ------------------ | ---------------------------------- |
+| `cursorNext`       | Move to next sibling               |
+| `cursorPrev`       | Move to previous sibling           |
+| `cursorIn`         | Move into first child              |
+| `cursorOut`        | Move to parent                     |
+| `cursorFirst`      | Move to first sibling              |
+| `cursorLast`       | Move to last sibling               |
+| `cursorUp`         | Move up visually                   |
+| `cursorDown`       | Move down visually                 |
+| `cursorLeft`       | Move left (cross-column)           |
+| `cursorRight`      | Move right (cross-column)          |
+| `pageDown`         | Jump cursor down half a page       |
+| `pageUp`           | Jump cursor up half a page         |
+| `navBack`          | Navigate history back              |
+| `navForward`       | Navigate history forward           |
+| `zoomIn`           | Zoom into current node             |
+| `zoomOut`          | Zoom out to parent                 |
+| `zoomInwards`      | Zoom inwards one level             |
+| `siblingBoardNext` | Navigate to next sibling board     |
+| `siblingBoardPrev` | Navigate to previous sibling board |
+| `openDetail`       | Open detail pane for current node  |
 
 ### Selection
 
 Single, multi, and range selection.
 
-| Command               | Description                   |
-| --------------------- | ----------------------------- |
-| `select_toggle`       | Toggle selection on node      |
-| `select_add`          | Add current node to selection |
-| `select_remove`       | Remove node from selection    |
-| `select_all_siblings` | Select all siblings           |
-| `select_all`          | Select all visible nodes      |
-| `clear_selection`     | Clear all selections          |
-| `extend_select_up`    | Extend selection upward       |
-| `extend_select_down`  | Extend selection downward     |
-| `extend_select_left`  | Extend selection leftward     |
-| `extend_select_right` | Extend selection rightward    |
+| Command             | Description                 |
+| ------------------- | --------------------------- |
+| `selectToggle`      | Toggle selection on node    |
+| `selectAdd`         | Add current node to selection |
+| `selectRemove`      | Remove node from selection  |
+| `selectAllSiblings` | Select all siblings         |
+| `progressiveSelect` | Progressive select all (A)  |
+| `clearSelection`    | Clear all selections        |
+| `extendSelectUp`    | Extend selection upward     |
+| `extendSelectDown`  | Extend selection downward   |
+| `extendSelectLeft`  | Extend selection leftward   |
+| `extendSelectRight` | Extend selection rightward  |
 
 ### Edit
 
 Mutations and move mode commands.
 
-| Command           | Description                         |
-| ----------------- | ----------------------------------- |
-| `enter_move_mode` | Start moving selected nodes         |
-| `confirm_move`    | Confirm node movement (move mode)   |
-| `cancel_move`     | Cancel move operation (move mode)   |
-| `shift_up`        | Move node up among siblings         |
-| `shift_down`      | Move node down among siblings       |
-| `shift_left`      | Move node to parent level (outdent) |
-| `shift_right`     | Move node under sibling (indent)    |
-| `undo`            | Undo the last action                |
-| `redo`            | Redo the last undone action         |
+| Command         | Description                         |
+| --------------- | ----------------------------------- |
+| `enterMoveMode` | Start moving selected nodes         |
+| `confirmMove`   | Confirm node movement (move mode)   |
+| `cancelMove`    | Cancel move operation (move mode)   |
+| `shiftUp`       | Move node up among siblings         |
+| `shiftDown`     | Move node down among siblings       |
+| `shiftLeft`     | Move node to parent level (outdent) |
+| `shiftRight`    | Move node under sibling (indent)    |
+| `deleteNode`    | Delete current node                 |
+| `undo`          | Undo the last action                |
+| `redo`          | Redo the last undone action         |
 
 ### Task
 
 Task-specific status changes.
 
-| Command              | Description                                    |
-| -------------------- | ---------------------------------------------- |
-| `cycle_task_status`  | Cycle through statuses (todo/wip/done/dropped) |
-| `toggle_task_done`   | Toggle between done and todo                   |
-| `set_status_todo`    | Set task status to todo                        |
-| `set_status_wip`     | Set task status to work in progress            |
-| `set_status_blocked` | Set task status to blocked                     |
-| `set_status_done`    | Mark task as done                              |
-| `set_status_dropped` | Mark task as dropped/cancelled                 |
+| Command           | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `cycleTaskStatus` | Cycle through statuses (todo/wip/done/dropped) |
+| `toggleDone`      | Toggle between done and todo                   |
+| `setStatusTodo`   | Set task status to todo                        |
+| `setStatusWip`    | Set task status to work in progress            |
+| `setStatusBlocked`| Set task status to blocked                     |
+| `setStatusDone`   | Mark task as done                              |
+| `setStatusDropped`| Mark task as dropped/cancelled                 |
 
 ### Fold
 
 Expand/collapse tree nodes.
 
-| Command           | Description                    |
-| ----------------- | ------------------------------ |
-| `toggle_fold`     | Toggle fold state              |
-| `toggle_collapse` | Toggle column collapse (board) |
-| `fold_all`        | Fold all nodes at depth 1      |
-| `unfold_all`      | Unfold all nodes               |
+| Command          | Description                    |
+| ---------------- | ------------------------------ |
+| `toggleFold`     | Toggle fold state              |
+| `toggleCollapse` | Toggle column collapse (board) |
+| `foldAll`        | Fold all nodes at depth 1      |
+| `unfoldAll`      | Unfold all nodes               |
 
 ### View
 
 Display settings and UI actions.
 
-| Command                  | Description               |
-| ------------------------ | ------------------------- |
-| `cycle_view_mode`        | Cycle through view modes  |
-| `show_help`              | Toggle help overlay       |
-| `increase_outline_depth` | Show more nested levels   |
-| `decrease_outline_depth` | Show fewer nested levels  |
-| `increase_content_lines` | Show more content preview |
-| `decrease_content_lines` | Show less content preview |
+| Command                | Description               |
+| ---------------------- | ------------------------- |
+| `cycleViewMode`        | Cycle through view modes  |
+| `toggleHelp`           | Toggle help overlay       |
+| `increaseOutlineDepth` | Show more nested levels   |
+| `decreaseOutlineDepth` | Show fewer nested levels  |
+| `increaseContentLines` | Show more content preview |
+| `decreaseContentLines` | Show less content preview |
 
-### TUI-Specific
+### Dialog
 
-Commands specific to the terminal user interface.
+Modal dialog commands.
 
-| Command           | Description                               |
-| ----------------- | ----------------------------------------- |
-| `quit`            | Exit the TUI                              |
-| `new_item`        | Open new item dialog                      |
-| `project_picker`  | Open project picker                       |
-| `close_or_quit`   | Contextual: close dialog/pane, or quit    |
-| `outdent`         | Move item to parent level (outdent)       |
-| `delete_node`     | Delete current node with confirmation     |
-| `favorite_1`-`9`  | Jump to favorite board 1-9                |
-| `column_1`-`9`    | Jump to column 1-9                        |
+| Command         | Description               |
+| --------------- | ------------------------- |
+| `closeDialog`   | Close current dialog      |
+| `pickerNext`    | Next item in picker       |
+| `pickerPrev`    | Previous item in picker   |
+| `pickerSelect`  | Select item in picker     |
+| `newItem`       | Open new item dialog      |
+| `projectPicker` | Open project picker       |
+
+### App
+
+Application-level commands.
+
+| Command      | Description                    |
+| ------------ | ------------------------------ |
+| `quit`       | Exit the TUI                   |
+| `favorite1`-`9` | Jump to favorite board 1-9  |
+| `column1`-`9` | Jump to column 1-9            |
 
 ---
 
-## Keybinding System
+## Context Layers
 
-Keybindings are **separate from commands**. This enables:
+The command system uses context layers to handle modal state:
 
-- Mode-aware bindings (different keys in different modes)
-- User customization without changing command code
-- Multiple keys for the same command
-- Context-dependent bindings
-
-### Keybinding Structure
-
-```typescript
-interface Keybinding {
-  key: string; // "j", "ArrowDown", "Enter"
-  commandId: string; // Command ID to execute
-  ctrl?: boolean; // Ctrl modifier
-  meta?: boolean; // Cmd/Meta modifier
-  shift?: boolean; // Shift modifier
-  alt?: boolean; // Alt/Option modifier
-  modes?: CommandMode[]; // Optional: only active in these modes
-  when?: (ctx: KeybindingContext) => boolean; // Conditional binding
-}
+```
+dialog (highest priority)
+   ↓
+pane (detail pane open)
+   ↓
+board (default)
 ```
 
-### Mode Awareness
+When predicates can check the current layer:
 
-| Mode     | Description                 |
-| -------- | --------------------------- |
-| `normal` | Default navigation/commands |
-| `move`   | Node movement mode          |
-| `search` | Search/filter mode          |
-| `input`  | Text input mode             |
+```typescript
+// Only active on board layer
+{ keys: ["j"], cmd: cursorNext, when: c => c.layer === "board" }
 
-### Keybindings Reference
+// Only in project picker dialog
+{ keys: ["j"], cmd: pickerNext, when: c => c.dialog === "projectPicker" }
+
+// In move mode (a sub-mode of board)
+{ keys: ["j"], cmd: moveDest, when: c => c.mode === "move" }
+```
+
+### Layer Values
+
+| Field    | Values                                     |
+| -------- | ------------------------------------------ |
+| `layer`  | `"board"`, `"pane"`, `"dialog"`            |
+| `dialog` | `"help"`, `"projectPicker"`, `"newItem"`, `null` |
+| `pane`   | `"detail"`, `null`                         |
+| `mode`   | `"normal"`, `"move"`                       |
+
+---
+
+## Keybindings Reference
 
 #### Navigation
 
-| Key          | Command               | Description                      |
-| ------------ | --------------------- | -------------------------------- |
-| `j`          | `cursor_next`         | Move to next sibling             |
-| `k`          | `cursor_prev`         | Move to previous sibling         |
-| `h`          | `cursor_left`         | Move left (cross-column)         |
-| `l`          | `cursor_right`        | Move right (cross-column)        |
-| `g`          | `cursor_first`        | Move to first sibling            |
-| `G`          | `cursor_last`         | Move to last sibling             |
-| `ArrowDown`  | `cursor_down`         | Move down visually               |
-| `ArrowUp`    | `cursor_up`           | Move up visually                 |
-| `ArrowLeft`  | `cursor_left`         | Move left (cross-column)         |
-| `ArrowRight` | `cursor_right`        | Move right (cross-column)        |
-| `Ctrl+D`     | `page_down`           | Jump cursor down half a page     |
-| `Ctrl+U`     | `page_up`             | Jump cursor up half a page       |
-| `[`          | `nav_back`            | Navigate back in history         |
-| `]`          | `nav_forward`         | Navigate forward in history      |
-| `o`          | `zoom_in`             | Zoom into current node           |
-| `i`          | `enter_node`          | Enter current node as board      |
-| `u`          | `go_up_path`          | Go up to parent path             |
-| `Ctrl+J`     | `sibling_board_next`  | Navigate to next sibling board   |
-| `Ctrl+K`     | `sibling_board_prev`  | Navigate to prev sibling board   |
-| `Enter`      | `open_detail_pane`    | Open detail pane (normal mode)   |
+| Key          | Command            | When Condition               |
+| ------------ | ------------------ | ---------------------------- |
+| `j`          | `cursorNext`       | board or detail pane         |
+| `k`          | `cursorPrev`       | board or detail pane         |
+| `h`          | `cursorLeft`       | board                        |
+| `l`          | `cursorRight`      | board                        |
+| `g`          | `cursorFirst`      | board                        |
+| `G`          | `cursorLast`       | board                        |
+| `ArrowDown`  | `cursorDown`       | board                        |
+| `ArrowUp`    | `cursorUp`         | board                        |
+| `ArrowLeft`  | `cursorLeft`       | board                        |
+| `ArrowRight` | `cursorRight`      | board                        |
+| `Ctrl+D`     | `pageDown`         | board                        |
+| `Ctrl+U`     | `pageUp`           | board                        |
+| `[`          | `navBack`          | board && canNavBack          |
+| `]`          | `navForward`       | board && canNavForward       |
+| `o`          | `zoomIn`           | board && canZoomIn           |
+| `i`          | `zoomInwards`      | board                        |
+| `u`          | `zoomOut`          | canZoomOut                   |
+| `Ctrl+J`     | `siblingBoardNext` | board                        |
+| `Ctrl+K`     | `siblingBoardPrev` | board                        |
+| `Enter`      | `openDetail`       | board && pane !== detail     |
 
 #### Selection
 
-| Key           | Command                  | Description                          |
-| ------------- | ------------------------ | ------------------------------------ |
-| `A`           | `select_all_progressive` | Progressive select all               |
-| `Escape`      | `close_or_quit`          | Clear selection / close / quit       |
-| `Shift+Up`    | `extend_select_up`       | Extend selection up                  |
-| `Shift+Down`  | `extend_select_down`     | Extend selection down                |
-| `Shift+Left`  | `extend_select_left`     | Extend selection left                |
-| `Shift+Right` | `extend_select_right`    | Extend selection right               |
-| `K`           | `extend_select_up`       | Extend selection up (Shift+K)        |
-| `J`           | `extend_select_down`     | Extend selection down (Shift+J)      |
-| `H`           | `extend_select_left`     | Extend selection left (Shift+H)      |
-| `L`           | `extend_select_right`    | Extend selection right (Shift+L)     |
+| Key           | Command            | When Condition               |
+| ------------- | ------------------ | ---------------------------- |
+| `A`           | `progressiveSelect`| board                        |
+| `Escape`      | `clearSelection`   | board && hasSelection        |
+| `Shift+Up`    | `extendSelectUp`   | board                        |
+| `Shift+Down`  | `extendSelectDown` | board                        |
+| `Shift+Left`  | `extendSelectLeft` | board                        |
+| `Shift+Right` | `extendSelectRight`| board                        |
+| `K`           | `extendSelectUp`   | board                        |
+| `J`           | `extendSelectDown` | board                        |
+| `H`           | `extendSelectLeft` | board                        |
+| `L`           | `extendSelectRight`| board                        |
 
-> **Note**: `Escape` maps to `close_or_quit` which is contextual - it clears selection, closes dialogs/panes, or quits depending on current state.
+> **Note**: `Escape` has multiple bindings with different when conditions. First match wins: dialog > move mode > selection > pane.
 
 #### Edit
 
-| Key             | Command           | Description              |
-| --------------- | ----------------- | ------------------------ |
-| `m`             | `enter_move_mode` | Start move mode          |
-| `Enter` (move)  | `confirm_move`    | Confirm move (move mode) |
-| `Escape` (move) | `cancel_move`     | Cancel move (move mode)  |
-| `D`             | `delete_node`     | Delete with confirmation |
-| `Cmd+Up`        | `shift_up`        | Move node up             |
-| `Cmd+Down`      | `shift_down`      | Move node down           |
-| `Cmd+Left`      | `shift_left`      | Outdent node             |
-| `Cmd+Right`     | `shift_right`     | Indent node              |
-| `Cmd+k`         | `shift_up`        | Move node up             |
-| `Cmd+j`         | `shift_down`      | Move node down           |
-| `Cmd+h`         | `shift_left`      | Outdent node             |
-| `Cmd+l`         | `shift_right`     | Indent node              |
-| `Tab`           | `toggle_fold`     | Toggle fold on card      |
-| `Shift+Tab`     | `outdent`         | Outdent node             |
-| `Ctrl+Z`        | `undo`            | Undo last action         |
-| `Ctrl+Shift+Z`  | `redo`            | Redo undone action       |
-| `Ctrl+Y`        | `redo`            | Redo undone action       |
+| Key             | Command         | When Condition                         |
+| --------------- | --------------- | -------------------------------------- |
+| `m`             | `enterMoveMode` | board && hasSelection && mode=normal   |
+| `Enter`         | `confirmMove`   | mode=move                              |
+| `Escape`        | `cancelMove`    | mode=move                              |
+| `d`             | `deleteNode`    | board && hasSelection                  |
+| `Cmd+Up`        | `shiftUp`       | board                                  |
+| `Cmd+Down`      | `shiftDown`     | board                                  |
+| `Cmd+Left`      | `shiftLeft`     | board                                  |
+| `Cmd+Right`     | `shiftRight`    | board                                  |
+| `Cmd+k`         | `shiftUp`       | board                                  |
+| `Cmd+j`         | `shiftDown`     | board                                  |
+| `Cmd+h`         | `shiftLeft`     | board                                  |
+| `Cmd+l`         | `shiftRight`    | board                                  |
+| `Tab`           | `toggleFold`    | board && nodeHasChildren               |
+| `Shift+Tab`     | `shiftLeft`     | board                                  |
+| `Ctrl+Z`        | `undo`          | board                                  |
+| `Ctrl+Shift+Z`  | `redo`          | board                                  |
+| `Ctrl+Y`        | `redo`          | board                                  |
 
 #### Task
 
-| Key     | Command             | Description            |
-| ------- | ------------------- | ---------------------- |
-| `Space` | `cycle_task_status` | Cycle through statuses |
+| Key     | Command           | When Condition               |
+| ------- | ----------------- | ---------------------------- |
+| `x`     | `cycleTaskStatus` | board && nodeIsTask          |
+| `X`     | `toggleDone`      | board && nodeIsTask          |
+| `Space` | `cycleTaskStatus` | board && nodeIsTask          |
 
 #### Fold
 
-| Key | Command           | Description                        |
-| --- | ----------------- | ---------------------------------- |
-| `z` | `fold_all`        | Fold all cards in current column   |
-| `Z` | `unfold_all`      | Unfold all cards in current column |
-| `c` | `toggle_collapse` | Toggle column collapse             |
+| Key | Command          | When Condition               |
+| --- | ---------------- | ---------------------------- |
+| `Tab`| `toggleFold`    | board && nodeHasChildren     |
+| `z` | `foldAll`        | board                        |
+| `Z` | `unfoldAll`      | board                        |
+| `c` | `toggleCollapse` | board                        |
 
 #### View
 
-| Key     | Command                  | Description              |
-| ------- | ------------------------ | ------------------------ |
-| `v`     | `cycle_view_mode`        | Cycle through view modes |
-| `?`     | `show_help`              | Toggle help overlay      |
-| `<`     | `decrease_outline_depth` | Decrease visible depth   |
-| `>`     | `increase_outline_depth` | Increase visible depth   |
-| `+`/`=` | `increase_content_lines` | Show more content        |
-| `-`/`_` | `decrease_content_lines` | Show less content        |
+| Key     | Command                | When Condition               |
+| ------- | ---------------------- | ---------------------------- |
+| `v`     | `cycleViewMode`        | board                        |
+| `?`     | `toggleHelp`           | dialog !== help              |
+| `<`     | `decreaseOutlineDepth` | board                        |
+| `>`     | `increaseOutlineDepth` | board                        |
+| `+`/`=` | `increaseContentLines` | board                        |
+| `-`/`_` | `decreaseContentLines` | board                        |
 
-#### TUI-Specific
+#### Dialog
 
-| Key         | Command          | Description                    |
-| ----------- | ---------------- | ------------------------------ |
-| `q`         | `quit`           | Exit the TUI                   |
-| `n`         | `new_item`       | Open new item dialog           |
-| `p`         | `project_picker` | Open project picker            |
-| `1`-`9`     | `favorite_1`-`9` | Jump to favorite board 1-9     |
-| `!@#$%^&*(` | `column_1`-`9`   | Jump to column 1-9 (Shift+1-9) |
+| Key     | Command         | When Condition               |
+| ------- | --------------- | ---------------------------- |
+| `j`     | `pickerNext`    | dialog=projectPicker         |
+| `k`     | `pickerPrev`    | dialog=projectPicker         |
+| `Enter` | `pickerSelect`  | dialog=projectPicker         |
+| `Escape`| `closeDialog`   | dialog (any)                 |
+| `Escape`| `toggleHelp`    | dialog=help                  |
+
+#### App
+
+| Key         | Command         | When Condition               |
+| ----------- | --------------- | ---------------------------- |
+| `q`         | `quit`          | layer !== dialog             |
+| `n`         | `newItem`       | board                        |
+| `p`         | `projectPicker` | board                        |
+| `1`-`9`     | `favorite1`-`9` | board                        |
+| `!@#$%^&*(` | `column1`-`9`   | board                        |
 
 > **Favorite boards**: 1=@inbox, 2=@next, 3=@waiting, 4=@someday, 5=@projects, 6=@areas, 7=@archive, 8=@reference, 9=@goals
 
@@ -384,83 +448,67 @@ interface Keybinding {
 
 ### Step 1: Define the Command
 
-Create the command definition in the appropriate category file:
+Create the command function in the appropriate category file:
 
 ```typescript
 // packages/km-commands/src/commands/navigation.ts
-export const cursorJumpToLine: CommandDef = {
-  id: "cursor_jump_to_line",
-  name: "Jump to Line",
-  description: "Jump cursor to a specific line number",
-  category: "Navigation",
-  shortcuts: [":"],
-  execute: (ctx) => {
-    // Commands should be pure - return action or null
-    if (!ctx.targetLine) return null;
-    return { type: "CURSOR_SET", payload: { line: ctx.targetLine } };
-  },
+export const cursorJumpToLine: Cmd = (ctx) => {
+  if (!ctx.targetLine) return;
+  ctx.dispatchBoard({ type: "CURSOR_SET", line: ctx.targetLine });
 };
 ```
 
-### Step 2: Register the Command
+### Step 2: Add Binding
 
-Add to the command registry:
-
-```typescript
-// packages/km-commands/src/registry.ts
-import { cursorJumpToLine } from "./navigation";
-
-export const commands: CommandDef[] = [
-  // ... existing commands
-  cursorJumpToLine,
-];
-```
-
-### Step 3: Add Keybinding (Optional)
-
-If the command should have a keyboard shortcut:
+Add to the bindings array with optional when predicate:
 
 ```typescript
-// packages/km-commands/src/keybindings.ts
-export const defaultKeybindings: Keybinding[] = [
+// packages/km-commands/src/bindings.ts
+export const BINDINGS: Binding[] = [
   // ... existing bindings
   {
-    key: ":",
-    commandId: "cursor_jump_to_line",
-    modes: ["normal"],
+    keys: [":"],
+    cmd: cursorJumpToLine,
+    when: (c) => c.layer === "board",
   },
 ];
 ```
 
-### Step 4: Handle the Action
-
-Ensure the board reducer handles the new action type:
-
-```typescript
-// packages/km-board/src/board-reducer.ts
-case "CURSOR_SET":
-  return { ...state, cursor: action.payload.line };
-```
-
-### Step 5: Add Tests
+### Step 3: Add Tests
 
 ```typescript
 // packages/km-commands/tests/navigation.test.ts
-describe("cursor_jump_to_line", () => {
-  it("returns CURSOR_SET action with target line", () => {
-    const ctx = mockContext({ targetLine: 5 });
-    const result = cursorJumpToLine.execute(ctx);
-    expect(result).toEqual({ type: "CURSOR_SET", payload: { line: 5 } });
+describe("cursorJumpToLine", () => {
+  it("dispatches CURSOR_SET with target line", () => {
+    const ctx = mockCtx({ targetLine: 5 });
+    cursorJumpToLine(ctx);
+    expect(ctx.dispatchBoard).toHaveBeenCalledWith({
+      type: "CURSOR_SET",
+      line: 5,
+    });
   });
 
-  it("returns null when no target line", () => {
-    const ctx = mockContext({ targetLine: undefined });
-    expect(cursorJumpToLine.execute(ctx)).toBeNull();
+  it("does nothing when no target line", () => {
+    const ctx = mockCtx({ targetLine: undefined });
+    cursorJumpToLine(ctx);
+    expect(ctx.dispatchBoard).not.toHaveBeenCalled();
+  });
+});
+
+describe("bindings", () => {
+  it(": resolves to cursorJumpToLine on board", () => {
+    const ctx = mockCtx({ layer: "board" });
+    expect(resolveBinding(":", ctx)).toBe(cursorJumpToLine);
+  });
+
+  it(": does not resolve in dialog", () => {
+    const ctx = mockCtx({ layer: "dialog" });
+    expect(resolveBinding(":", ctx)).toBeNull();
   });
 });
 ```
 
-### Step 6: Document
+### Step 4: Document
 
 Add to the appropriate category table in this document.
 

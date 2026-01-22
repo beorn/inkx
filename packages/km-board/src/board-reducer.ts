@@ -11,74 +11,17 @@ import createDebug from "debug";
 import type { BoardState, BoardAction, TNode, TPath } from "./board-types.ts";
 
 const debug = createDebug("km:board:reducer");
-import { isTAction } from "@km/tree";
+import {
+  isTAction,
+  getNodeAtPath,
+  getSiblingCount,
+  getCurrentIndex,
+  collectAllNodeIds,
+  getSiblings,
+} from "@km/tree";
 
-// ===== Helper Functions =====
-
-/**
- * Get node at a given cursor path
- */
-export function getNodeAtPath(nodes: TNode[], path: TPath): TNode | null {
-  if (path.length === 0) return null;
-
-  const firstIdx = path[0];
-  if (firstIdx === undefined) return null;
-  let current: TNode | undefined = nodes[firstIdx];
-  for (let i = 1; i < path.length && current; i++) {
-    const idx = path[i];
-    if (idx === undefined) break;
-    current = current.children[idx];
-  }
-  return current ?? null;
-}
-
-/**
- * Get sibling count at the current path level
- */
-export function getSiblingCount(nodes: TNode[], path: TPath): number {
-  if (path.length === 0) return 0;
-  if (path.length === 1) return nodes.length;
-
-  const parentPath = path.slice(0, -1);
-  const parent = getNodeAtPath(nodes, parentPath);
-  // Use childCount for bounds (supports lazy loading)
-  return parent?.childCount ?? 0;
-}
-
-/**
- * Get the current index (last element of path)
- */
-function getCurrentIndex(path: TPath): number {
-  if (path.length === 0) return 0;
-  const lastIdx = path[path.length - 1];
-  return lastIdx ?? 0;
-}
-
-/**
- * Recursively collect all node IDs from a tree
- */
-function collectAllNodeIds(nodes: TNode[]): string[] {
-  const ids: string[] = [];
-  for (const node of nodes) {
-    ids.push(node.id);
-    if (node.children.length > 0) {
-      ids.push(...collectAllNodeIds(node.children));
-    }
-  }
-  return ids;
-}
-
-/**
- * Get sibling nodes at the current cursor level
- */
-function getSiblings(nodes: TNode[], path: TPath): TNode[] {
-  if (path.length === 0) return [];
-  if (path.length === 1) return nodes;
-
-  const parentPath = path.slice(0, -1);
-  const parent = getNodeAtPath(nodes, parentPath);
-  return parent?.children ?? [];
-}
+// Re-export for backwards compatibility
+export { getNodeAtPath, getSiblingCount };
 
 /**
  * Get node ID at a given cursor path.

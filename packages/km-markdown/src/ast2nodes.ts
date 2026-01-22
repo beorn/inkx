@@ -1,13 +1,29 @@
 /**
- * AST to Nodes Converter
+ * AST to Nodes Converter - KNode Transformation
  *
- * Converts mdast AST into km nodes
+ * This module converts parsed markdown (mdast AST) into km's KNode structure.
+ * It depends on parser.ts for the parsing utilities and @km/core for types.
+ *
+ * Responsibility split with parser.ts:
+ * - parser.ts: Pure parsing utilities (no KNode dependency, text/AST only)
+ * - ast2nodes.ts: KNode-specific transformation (uses parser.ts, creates KNodes)
+ *
+ * Main entry points:
+ * - parseMarkdownToNodes: string → KNode[] (simple, no wikilinks)
+ * - parseMarkdownWithLinks: string → { nodes, wikilinks, warnings }
+ *
+ * Internal helpers:
+ * - astToNodes: mdast Root → KNode[] (main conversion loop)
+ * - convertListItem: ListItem → KNode[] (handles tasks, nested lists)
+ * - convertBlock: Content → KNode (paragraphs, quotes, code, etc.)
+ *
+ * For the reverse operation (KNodes → markdown), see nodes2md.ts.
  */
 
 import createDebug from "debug";
 import { ulid } from "ulid";
 
-const debug = createDebug("km:markdown:parser");
+const debug = createDebug("km:markdown:ast2nodes");
 import type { Root, Content, Heading, List, ListItem, Paragraph } from "mdast";
 import { parse as parseYaml } from "yaml";
 import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core";

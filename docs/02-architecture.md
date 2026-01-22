@@ -63,87 +63,86 @@ Board → App:     BoardState    → AppState  (add modals, search)
 
 ---
 
-## Idealized Command/Data Flow
+## Command/Data Flow
 
-All user actions should flow through the same pattern:
+All user actions flow through the command system:
 
 ```
 User Input (key, click, or command palette)
     ↓
-Command Registry (maps input → command name)
+Key Normalization (unifies key formats)
     ↓
-Action Creator (command → typed action)
+Binding Resolution (first-match with when predicates)
     ↓
-dispatch(action)
+Command Execution (cmd(ctx) - direct execution)
     ↓
-Reducer Chain (App → Board)
-    ↓
-Effect Layer (handles side effects)
-    ↓
-Storage (SQLite + file sync)
+State Updates (dispatchers, storage)
     ↓
 Re-render
 ```
 
 ### Command System
 
-Commands are named operations that can be triggered from multiple sources:
-
-| Source          | Example                       | Resolution                    |
-| --------------- | ----------------------------- | ----------------------------- |
-| Keyboard        | `x`                           | keymap → `toggle_task_status` |
-| Command palette | `Cmd+Shift+P` → "Toggle Task" | search → `toggle_task_status` |
-| CLI             | `km status <id> done`         | parser → `toggle_task_status` |
-
-The command registry maps all inputs to the same command names, which then create typed actions:
+Commands are functions that execute with a unified context:
 
 ```typescript
-// Command registry (shared across apps)
-const commands = {
-  // Toggle logic lives in the command, action is idempotent
-  toggle_task_done: (ctx) => ({
-    type: "UPDATE_NODE",
-    nodeId: ctx.currentNode.id,
-    updates: {
-      task_status: ctx.currentNode.taskStatus === "done" ? "todo" : "done",
-    },
-  }),
-  // Direct set commands are also available (idempotent)
-  set_task_done: (ctx) => ({
-    type: "UPDATE_NODE",
-    nodeId: ctx.currentNode.id,
-    updates: { task_status: "done" },
-  }),
-  cursor_down: () => ({ type: "CURSOR_MOVE", dir: "down" }),
-  cursor_up: () => ({ type: "CURSOR_MOVE", dir: "up" }),
-  // ...
+type Cmd = (ctx: Ctx) => void;
+type When = (ctx: Ctx) => boolean;
+
+interface Binding {
+  keys: string[];
+  cmd: Cmd;
+  when?: When;
+}
+```
+
+The same key can map to different commands based on context:
+
+| Key | Context | Command |
+| --- | ------- | ------- |
+| `j` | board | `cursorNext` |
+| `j` | projectPicker dialog | `pickerNext` |
+| `j` | move mode | `moveDest` |
+
+Commands execute directly rather than returning action descriptors:
+
+```typescript
+const cycleTaskStatus: Cmd = (ctx) => {
+  if (!ctx.knode?.task_status) return;
+  const next = nextStatus(ctx.knode.task_status);
+  ctx.storage.update(ctx.knode.id, { task_status: next });
+  ctx.refresh();
+};
+
+const cursorNext: Cmd = (ctx) => {
+  ctx.dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
 };
 ```
 
-**Idempotency principle:** Actions at the reducer/storage level should be idempotent (set to a value, not toggle). Toggle logic belongs in commands, which read current state and compute the target value.
-
 This enables:
 
-- **Discoverability**: Command palette shows all available commands
-- **Customization**: Users can rebind keys to any command
-- **Consistency**: Same command works from keyboard, palette, or CLI
+- **Context-aware bindings**: Same key, different behavior based on modal state
+- **Direct storage access**: Commands can read/write storage directly
+- **Testable**: Commands are pure functions with injectable context
+
+See [09-commands.md](09-commands.md) for full documentation.
 
 ### Action Types and Boundaries
 
 | Action Type   | State Owner | Side Effects              |
 | ------------- | ----------- | ------------------------- |
 | `BoardAction` | BoardState  | None (pure)               |
-| `AppUIAction` | AppUIState  | None (pure)               |
-| `TAction`     | Storage     | storage.updateNode() etc. |
+| `UIAction`    | UIState     | None (pure)               |
+| Storage calls | Storage     | SQLite + file sync        |
 
-**Key principle:** Reducers are pure. Side effects (storage calls) happen in an effect layer that observes dispatched actions.
+**Key principle:** Reducers are pure. Storage mutations happen directly in commands via `ctx.storage`.
 
 ### Why This Matters
 
-- **Undo/redo**: All actions tracked in history
-- **Testability**: Pure reducers are easy to test
-- **Consistency**: One pattern for navigation AND mutations
-- **Multi-window**: Actions can be broadcast to sync state
+- **Undo/redo**: Storage tracks event history
+- **Testability**: Commands are pure functions with mock context
+- **Context-aware**: Same key binds to different commands based on layer
+- **Multi-window**: Storage events can be broadcast
 
 ---
 
@@ -151,19 +150,16 @@ This enables:
 
 ### User Marks Task Done (TUI → File)
 
-**Idealized flow** (target architecture):
-
 ```
 1. Input      User presses `x`
-2. Handler    Creates UPDATE_NODE action with {task_status: "done"}
-3. dispatch   Action flows through reducer chain
-4. Effect     Effect layer detects TAction, calls storage.updateNode()
-5. Storage    Updates SQLite + syncs to filesystem
-6. File       "- [x] Task" written to markdown
-7. App        refreshTree() → dispatch(REFRESH) → re-render
+2. Resolve    Binding lookup: x + board + nodeIsTask → cycleTaskStatus
+3. Execute    cycleTaskStatus(ctx) calls ctx.storage.update()
+4. Storage    Updates SQLite + syncs to filesystem
+5. File       "- [x] Task" written to markdown
+6. Refresh    ctx.refresh() → dispatch(REFRESH) → re-render
 ```
 
-**Current implementation note:** Data mutations (`x`, `d`, `tab`) currently call storage directly from the keyboard handler, bypassing the reducer chain. Navigation actions (`j`, `k`, `h`, `l`) correctly dispatch through reducers. A refactoring effort is planned to unify these patterns.
+Commands directly access storage via `ctx.storage` for mutations, and use `ctx.dispatchBoard` for cursor/selection state.
 
 ### User Edits File (File → TUI)
 

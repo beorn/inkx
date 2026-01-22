@@ -8,12 +8,12 @@ export {
 export type { WatcherConfig, FileChange } from "./watcher.ts";
 
 // Worker-based watcher (non-blocking)
-export { WorkerWatcher } from "./worker-watcher.ts";
+export { WorkerWatcher } from "./worker-bridge.ts";
 
-export type { WorkerWatcherConfig } from "./worker-watcher.ts";
+export type { WorkerWatcherConfig } from "./worker-bridge.ts";
 
 // Watcher status types
-export type { WatcherStatus, WatcherState } from "./watcher-worker.ts";
+export type { WatcherStatus, WatcherState } from "./worker-thread.ts";
 
 // Sync
 export { SyncManager } from "./sync.ts";
