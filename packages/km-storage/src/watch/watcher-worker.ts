@@ -25,8 +25,11 @@ function debug(message: string, ...args: unknown[]): void {
     return String(arg);
   });
 
-  // Log locally (goes to stderr if DEBUG is set)
-  localDebug(message, ...args);
+  // Log locally only when DEBUG_LOG is NOT set (otherwise it goes to stderr
+  // and bypasses the file redirect in the main thread)
+  if (!process.env.DEBUG_LOG) {
+    localDebug(message, ...args);
+  }
 
   // Send to main thread for DEBUG_LOG capture
   try {
