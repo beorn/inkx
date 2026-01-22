@@ -1586,8 +1586,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             // DB/files/watcher status as one group (single space), other items with double space
             const dbCount = getNodeCount();
             const watcherInfo = ui.watcherStatus ? ` ${renderWatcherStatus(ui.watcherStatus)}` : "";
-            // ⛁ = database cylinder, 📁 = folder for files
-            const dbFilesGroup = `⛁${dbCount}${watcherInfo}`;
+            // 📋 = clipboard for records/nodes, 📄 = file for watched files
+            const dbFilesGroup = `📋${dbCount}${watcherInfo}`;
 
             const rightParts: string[] = [dbFilesGroup];
             // Show column position (only meaningful in columns view)
@@ -1763,12 +1763,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
 /**
  * Render watcher status indicator for bottom bar
- * Uses 📁 icon for files, always shows file count, plus current state if not idle
+ * Uses 📄 icon for files, always shows file count, plus current state if not idle
  */
 function renderWatcherStatus(status: import("@km/storage").WatcherStatus): string {
   const { state, pendingPaths, watchedPaths } = status;
-  // 📁 = folder icon for watched files
-  const fileCount = watchedPaths ? `📁${watchedPaths}` : "📁0";
+  // 📄 = file icon for watched files
+  const fileCount = watchedPaths ? `📄${watchedPaths}` : "📄0";
 
   switch (state) {
     case "starting":
