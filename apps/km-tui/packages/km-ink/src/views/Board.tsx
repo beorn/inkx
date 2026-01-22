@@ -1582,15 +1582,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             }
             if (ui.inOutlineMode) statusParts.push("OUT");
 
-            // Right side info (always visible) - use double space separator
-            const rightParts: string[] = [];
-            // Always show DB node count (◉ = database icon)
+            // Right side info (always visible)
+            // DB/files/watcher status as one group (single space), other items with double space
             const dbCount = getNodeCount();
-            rightParts.push(`◉${dbCount}`);
-            // Show watcher status with file icon (◎ = files)
-            if (ui.watcherStatus) {
-              rightParts.push(renderWatcherStatus(ui.watcherStatus));
-            }
+            const watcherInfo = ui.watcherStatus ? ` ${renderWatcherStatus(ui.watcherStatus)}` : "";
+            const dbFilesGroup = `⊛${dbCount}${watcherInfo}`;
+
+            const rightParts: string[] = [dbFilesGroup];
             // Show column position (only meaningful in columns view)
             if (ui.viewMode === "columns" && state.columns.length > 1) {
               rightParts.push(`col ${state.colIndex + 1}/${state.columns.length}`);
@@ -1603,7 +1601,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             const modeLabel = store.mode === "memory" ? "MEM REPO" : "DISK REPO";
             const left = `${modeLabel} ${displayPath}`;
             const middle = statusParts.join("  "); // Double space between status parts
-            const right = ` ${rightParts.join("   ")} `; // Triple space between right parts
+            const right = ` ${rightParts.join("   ")} `; // Triple space between groups
 
             // Calculate widths: right side is fixed, left gets remaining space
             const rightWidth = right.length;
@@ -1764,12 +1762,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
 /**
  * Render watcher status indicator for bottom bar
- * Uses ◎ icon for files, always shows file count, plus current state if not idle
+ * Uses ⊙ icon for files, always shows file count, plus current state if not idle
  */
 function renderWatcherStatus(status: import("@km/storage").WatcherStatus): string {
   const { state, pendingPaths, watchedPaths } = status;
-  // ◎ = watching files icon
-  const fileCount = watchedPaths ? `◎${watchedPaths}` : "◎0";
+  // ⊙ = watching files icon
+  const fileCount = watchedPaths ? `⊙${watchedPaths}` : "⊙0";
 
   switch (state) {
     case "starting":
