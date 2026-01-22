@@ -169,11 +169,14 @@ describe("cross-column navigation (h/l = ←/→ = left/right)", () => {
     expect(result.cursorNodeId).toBe("card-b2");
   });
 
-  it("left moves to same row in previous column", () => {
-    const state = createState([1, 1]); // second card in col-b
+  it("left moves to proportionally similar row in previous column", () => {
+    // col-b has 2 cards, col-a has 3 cards
+    // Row 1 in 2-card column = ratio 0.5 (bottom half)
+    // In 3-card column: round(0.5 * 3) = round(1.5) = 2
+    const state = createState([1, 1]); // last card in col-b
     const result = boardReducer(state, { type: "CURSOR_MOVE", dir: "left" });
-    expect(result.cursor).toEqual([0, 1]); // second card in col-a
-    expect(result.cursorNodeId).toBe("card-a2");
+    expect(result.cursor).toEqual([0, 2]); // last card in col-a (proportional)
+    expect(result.cursorNodeId).toBe("card-a3");
   });
 
   it("right clamps to column bounds when target shorter", () => {

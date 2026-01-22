@@ -138,7 +138,7 @@ export function boardReducer(
     case "NAV_CROSS_COLUMN": {
       // Move horizontally between columns, preserving cursor depth
       // Cursor can be column-level [col] or card-level [col, row, ...]
-      // Uses curswantY for sticky row positioning (see bead km-jm2r)
+      // Uses curswantY for sticky position using normalized ratio (see bead km-jm2r)
 
       // At board level: clear curswantX (explicit horizontal movement)
       if (state.cursor.length === 0) {
@@ -160,17 +160,33 @@ export function boardReducer(
         return {
           ...state,
           ...updateCursor(state, [newColIdx]),
-          curswantY: 0, // Column level: curswantY = 0
+          curswantY: 0, // Column level: curswantY = 0 (top)
         };
       }
 
       // At card level: navigate to card in target column
-      // curswantY: Set on first h/l (when null), preserve on subsequent h/l
+      // curswantY stores a normalized ratio (0.0 = top, 1.0 = bottom)
+      // This provides better visual correspondence than raw row indices
+      const sourceCol = state.nodes[colIdx];
+      const sourceColCount = sourceCol?.childCount ?? 1;
       const currentRowIdx = state.cursor[1] ?? 0;
-      const newCurswantY = state.curswantY ?? currentRowIdx;
+
+      // Convert current position to ratio (using top edge of card)
+      // Row 1 in 2-item column → 1/2 = 0.5
+      const currentRatio =
+        sourceColCount > 0 ? currentRowIdx / sourceColCount : 0;
+      const newCurswantY = state.curswantY ?? currentRatio;
+
+      debug(
+        "NAV_CROSS_COLUMN: cursor=%j, curswantY=%s, currentRatio=%s, sourceColCount=%d, targetCol.childCount=%d",
+        state.cursor,
+        state.curswantY,
+        currentRatio,
+        sourceColCount,
+        targetCol.childCount,
+      );
 
       // If target column is empty, fall back to column level
-      // Use childCount for bounds (supports lazy loading)
       if (targetCol.childCount === 0) {
         return {
           ...state,
@@ -179,14 +195,25 @@ export function boardReducer(
         };
       }
 
-      // Find target card using curswantY (row index for now)
-      // Clamp to valid range in target column
-      const targetRowIdx = Math.min(newCurswantY, targetCol.childCount - 1);
+      // Convert ratio back to row index in target column
+      // Ratio 0.5 in 4-item column → round(0.5 * 4) = 2
+      const idealIdx = Math.round(newCurswantY * targetCol.childCount);
+      const targetRowIdx = Math.max(
+        0,
+        Math.min(idealIdx, targetCol.childCount - 1),
+      );
+
+      debug(
+        "NAV_CROSS_COLUMN: targetRowIdx=%d, newCursor=[%d, %d]",
+        targetRowIdx,
+        newColIdx,
+        targetRowIdx,
+      );
 
       return {
         ...state,
         ...updateCursor(state, [newColIdx, targetRowIdx]),
-        curswantY: newCurswantY, // Preserve sticky position
+        curswantY: newCurswantY, // Preserve sticky ratio
       };
     }
 

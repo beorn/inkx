@@ -329,13 +329,15 @@ describe("card level navigation (cursor depth 2)", () => {
       expect(result.cursor).toEqual([1, 1]); // row 1 in col-b
     });
 
-    it("left moves to same row in prev column", () => {
-      const state = createState([1, 1]); // row 1 in col-b
+    it("left moves to proportionally similar row in prev column", () => {
+      // col-b has 2 cards, col-a has 3 cards
+      // Row 1 in 2-card column = ratio 0.5, maps to round(0.5 * 3) = 2 in col-a
+      const state = createState([1, 1]); // last card in col-b
       const result = boardReducer(state, {
         type: "NAV_CROSS_COLUMN",
         direction: "left",
       });
-      expect(result.cursor).toEqual([0, 1]); // row 1 in col-a
+      expect(result.cursor).toEqual([0, 2]); // proportionally similar row in col-a
     });
 
     it("cross-column clamps to last card if target column is shorter", () => {

@@ -223,16 +223,17 @@ describe("curswantX (board ↔ column navigation)", () => {
 
 describe("curswantY (cross-column navigation)", () => {
   describe("setting curswantY", () => {
-    it("first h/l at card level sets curswantY to current row", () => {
-      const state = createState([0, 2]); // card-a3 (row 2)
+    it("first h/l at card level sets curswantY to normalized ratio", () => {
+      const state = createState([0, 2]); // card-a3 (row 2 in 3-card column)
       const result = boardReducer(state, {
         type: "NAV_CROSS_COLUMN",
         direction: "right",
       });
 
-      // Moved to col-b, curswantY should be set to row 2
-      expect(result.cursor).toEqual([1, 1]); // clamped to row 1 (col-b has 2 cards)
-      expect(result.curswantY).toBe(2); // remembers original row 2
+      // Moved to col-b, curswantY should be ratio = 2/3
+      // Target row = round(0.667 * 2) = round(1.33) = 1
+      expect(result.cursor).toEqual([1, 1]); // row 1 (col-b has 2 cards)
+      expect(result.curswantY).toBeCloseTo(2 / 3); // remembers ratio 2/3
     });
 
     it("column level h/l sets curswantY to 0", () => {
@@ -248,16 +249,16 @@ describe("curswantY (cross-column navigation)", () => {
   });
 
   describe("using curswantY", () => {
-    it("consecutive h/l preserves curswantY", () => {
-      let state = createState([0, 2], undefined, { curswantY: null }); // row 2 in col-a
+    it("consecutive h/l preserves curswantY ratio", () => {
+      let state = createState([0, 2], undefined, { curswantY: null }); // row 2 in col-a (3 cards)
 
-      // Move right to col-b (sets curswantY=2)
+      // Move right to col-b (sets curswantY=2/3)
       state = boardReducer(state, {
         type: "NAV_CROSS_COLUMN",
         direction: "right",
       });
-      expect(state.cursor).toEqual([1, 1]); // clamped to row 1
-      expect(state.curswantY).toBe(2);
+      expect(state.cursor).toEqual([1, 1]); // round(0.667 * 2) = 1
+      expect(state.curswantY).toBeCloseTo(2 / 3);
 
       // Move right to col-c (empty) - curswantY preserved
       state = boardReducer(state, {
@@ -265,10 +266,10 @@ describe("curswantY (cross-column navigation)", () => {
         direction: "right",
       });
       expect(state.cursor).toEqual([2]); // column level (empty column)
-      expect(state.curswantY).toBe(2); // still remembers row 2
+      expect(state.curswantY).toBeCloseTo(2 / 3); // still remembers ratio
     });
 
-    it("returning to taller column snaps to curswantY", () => {
+    it("returning to taller column snaps to curswantY ratio", () => {
       // Create board with varying heights
       const nodes = [
         createNode("col-a", [
@@ -288,21 +289,23 @@ describe("curswantY (cross-column navigation)", () => {
 
       let state = createState([0, 3], nodes); // row 3 in col-a (4 cards)
 
-      // Move right to col-b (only 2 cards) - clamps to row 1
+      // Move right to col-b (only 2 cards)
+      // curswantY = 3/4 = 0.75, targetRow = round(0.75 * 2) = 2, clamped to 1
       state = boardReducer(state, {
         type: "NAV_CROSS_COLUMN",
         direction: "right",
       });
-      expect(state.cursor).toEqual([1, 1]); // clamped
-      expect(state.curswantY).toBe(3); // remembers row 3
+      expect(state.cursor).toEqual([1, 1]); // clamped to last row
+      expect(state.curswantY).toBe(0.75); // remembers ratio 3/4
 
       // Move right to col-c (4 cards) - snaps back to row 3
+      // targetRow = round(0.75 * 4) = round(3) = 3
       state = boardReducer(state, {
         type: "NAV_CROSS_COLUMN",
         direction: "right",
       });
       expect(state.cursor).toEqual([2, 3]); // back to row 3
-      expect(state.curswantY).toBe(3);
+      expect(state.curswantY).toBe(0.75);
     });
   });
 
@@ -334,7 +337,7 @@ describe("curswantY (cross-column navigation)", () => {
 
   describe("edge cases", () => {
     it("h/l to empty column falls back to column level", () => {
-      const state = createState([1, 0]); // card in col-b
+      const state = createState([1, 0]); // row 0 in col-b (2 cards)
       const result = boardReducer(state, {
         type: "NAV_CROSS_COLUMN",
         direction: "right",
@@ -342,7 +345,7 @@ describe("curswantY (cross-column navigation)", () => {
 
       // col-c is empty
       expect(result.cursor).toEqual([2]); // column level
-      expect(result.curswantY).toBe(0); // set from current row
+      expect(result.curswantY).toBe(0); // ratio = 0/2 = 0
     });
 
     it("h/l at first/last column boundary does nothing", () => {
@@ -370,9 +373,10 @@ describe("curswant integration", () => {
     });
 
     // curswantX should be unchanged (we're not at board level)
-    // curswantY should be set from current row
+    // curswantY should be set as ratio: row 1 in 3-card column = 1/3
+    // Target row = round(0.333 * 2) = round(0.667) = 1
     expect(result.cursor).toEqual([1, 1]);
-    expect(result.curswantY).toBe(1);
+    expect(result.curswantY).toBeCloseTo(1 / 3);
   });
 
   it("j/k clears curswantY but manages curswantX independently", () => {
