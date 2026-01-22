@@ -10,7 +10,6 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "inkx";
 import type { BoardState, ColumnState, CardState } from "../types.ts";
-import { TreeNode } from "./TreeNode.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { useTreeConfig } from "../ui-context.tsx";
@@ -19,6 +18,7 @@ import {
   VerticalScrollIndicator,
   ColumnSeparator,
 } from "./VerticalScrollIndicator.tsx";
+import { MemoizedTreeCard } from "./shared-components.tsx";
 
 // =============================================================================
 // Virtualization Constants
@@ -126,28 +126,19 @@ function VirtualizedTreeCardList({
       {/* Render visible cards */}
       {visibleCards.map((card: CardState, i: number) => {
         const actualIndex = startIndex + i;
-        const cardSelected =
+        const isCardSelected =
           selectionLevel === "card" &&
           isSelected &&
           actualIndex === selectedCardIndex &&
-          !inOutlineMode;
+          (!inOutlineMode || selectedSubIndex === 0);
 
         return (
-          <TreeNode
+          <MemoizedTreeCard
             key={card.node.id}
-            node={card.node}
-            depth={0}
-            isSelected={
-              cardSelected ||
-              (selectionLevel === "card" &&
-                inOutlineMode &&
-                isSelected &&
-                actualIndex === selectedCardIndex &&
-                selectedSubIndex === 0)
-            }
+            card={card}
             colIndex={colIndex}
             cardIndex={actualIndex}
-            subIndex={0}
+            isSelected={isCardSelected}
           />
         );
       })}
@@ -174,7 +165,10 @@ interface ColumnTreeProps {
   width: number;
 }
 
-function ColumnTree({
+/**
+ * Memoized ColumnTree - skips re-render when column state unchanged.
+ */
+const ColumnTree = React.memo(function ColumnTree({
   column,
   colIndex,
   isSelected,
@@ -238,7 +232,7 @@ function ColumnTree({
       />
     </Box>
   );
-}
+});
 
 // =============================================================================
 // ColumnsView Component

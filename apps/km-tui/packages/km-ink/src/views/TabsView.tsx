@@ -8,10 +8,10 @@
  */
 import React from "react";
 import { Box, Text } from "inkx";
-import type { BoardState, CardState } from "../types.ts";
-import { TreeNode } from "./TreeNode.tsx";
+import type { BoardState } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
 import { useTreeConfig } from "../ui-context.tsx";
+import { MemoizedTreeCard } from "./shared-components.tsx";
 
 interface TabsViewProps {
   state: BoardState;
@@ -118,26 +118,18 @@ export function TabsView({
               scrollTo={cardIndex}
             >
               {currentColumn.cards.map((card, actualCardIndex) => {
-                const cardSelected =
+                const isCardSelected =
                   selectionLevel === "card" &&
                   actualCardIndex === cardIndex &&
-                  !inOutlineMode;
+                  (!inOutlineMode || subIndex === 0);
 
                 return (
-                  <TreeNode
+                  <MemoizedTreeCard
                     key={card.node.id}
-                    node={card.node}
-                    depth={0}
-                    isSelected={
-                      cardSelected ||
-                      (selectionLevel === "card" &&
-                        inOutlineMode &&
-                        actualCardIndex === cardIndex &&
-                        subIndex === 0)
-                    }
+                    card={card}
                     colIndex={colIndex}
                     cardIndex={actualCardIndex}
-                    subIndex={0}
+                    isSelected={isCardSelected}
                   />
                 );
               })}
