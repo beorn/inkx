@@ -7,6 +7,14 @@ export {
 
 export type { WatcherConfig, FileChange } from "./watcher.ts";
 
+// Worker-based watcher (non-blocking)
+export { WorkerWatcher } from "./worker-watcher.ts";
+
+export type { WorkerWatcherConfig } from "./worker-watcher.ts";
+
+// Watcher status types
+export type { WatcherStatus, WatcherState } from "./watcher-worker.ts";
+
 // Sync
 export { SyncManager } from "./sync.ts";
 
@@ -37,4 +45,4 @@ export {
 // Write queue
 export { WriteQueue, shouldApplyToFs } from "./writequeue.ts";
 
-export type { PendingWrite, WriteQueueConfig } from "./writequeue.ts";
+export type { PendingWrite, WriteQueueConfig, InFlightTracker } from "./writequeue.ts";

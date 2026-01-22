@@ -240,6 +240,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Subscribe to external refresh events (filesystem changes)
   useEffect(setupRefreshHandler, []);
 
+  // Subscribe to watcher status updates (for bottom bar display)
+  useEffect(setupWatcherStatusHandler, []);
+
   const termWidth = ui.dimensions.columns;
   const termHeight = ui.dimensions.rows;
 
@@ -1589,9 +1592,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                   .join("")}
               </Text>
             </Box>
-            {/* Right side: column position + view mode indicator */}
+            {/* Right side: watcher status + column position + view mode indicator */}
             <Box flexShrink={0}>
               <Text dimColor wrap="truncate-end">
+                {ui.watcherStatus && renderWatcherStatus(ui.watcherStatus)}
                 {state.columns.length > 1 && ` Col ${state.colIndex + 1}/${state.columns.length}`}
                 {` ${ui.viewMode.toUpperCase()} VIEW `}
               </Text>
@@ -1723,6 +1727,41 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     return () => {
       tuiEvents.off("refresh", handleRefresh);
     };
+  }
+
+  function setupWatcherStatusHandler() {
+    const handleWatcherStatus = (status: import("@km/storage").WatcherStatus) => {
+      dispatch(actions.setWatcherStatus(status));
+    };
+
+    tuiEvents.on("watcher-status", handleWatcherStatus);
+    return () => {
+      tuiEvents.off("watcher-status", handleWatcherStatus);
+    };
+  }
+}
+
+/**
+ * Render watcher status indicator for bottom bar
+ */
+function renderWatcherStatus(status: import("@km/storage").WatcherStatus): string {
+  const { state, pendingPaths, watchedPaths } = status;
+
+  switch (state) {
+    case "starting":
+      return " ◐ Starting...";
+    case "syncing":
+      return pendingPaths > 0 ? ` ◑ Syncing (${pendingPaths})` : " ◑ Syncing";
+    case "ready":
+    case "idle":
+      // Show watched paths count if available, otherwise just show idle indicator
+      return watchedPaths ? ` ● ${watchedPaths} watched` : " ● Watching";
+    case "error":
+      return " ✗ Watcher error";
+    case "stopped":
+      return " ○ Watcher stopped";
+    default:
+      return "";
   }
 }
 

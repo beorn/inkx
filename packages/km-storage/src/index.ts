@@ -150,6 +150,8 @@ export type {
   ReconcileOp,
   PendingWrite,
   WriteQueueConfig,
+  WatcherStatus,
+  WatcherState,
 } from "./watch/index.ts";
 
 // Event emission (moved from @km/core)

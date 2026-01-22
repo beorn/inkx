@@ -77,14 +77,16 @@ export async function runBoard(
     // Note: Disabling watch still allows TUI edits to write to filesystem,
     // it just disables watching for external file changes (which blocks event loop on large vaults)
     const watchEnabled = options?.watch !== false;
+    const useWorker = options?.watchWorker !== false;
     let syncManager: SyncManager | null = null;
     if (rootPath) {
-      debug("Creating SyncManager for: %s (watch=%s)", rootPath, watchEnabled);
+      debug("Creating SyncManager for: %s (watch=%s, worker=%s)", rootPath, watchEnabled, useWorker);
       syncManager = new SyncManager({
         vaultPath: rootPath,
         debounceFs: 2000, // Debounce external changes (2s)
         debounceApply: 100, // Small debounce for batching TUI changes
         conflictStrategy: "last_write_wins",
+        useWorker, // Use worker thread by default (non-blocking)
       });
 
       // Wire up TUI changes → filesystem (always enabled for writes)
@@ -99,17 +101,17 @@ export async function runBoard(
           }
         });
 
-        // Defer starting watcher to avoid blocking keyboard input during initialization
-        // Chokidar can block the event loop for 20+ seconds on large directories (21k+ files)
-        // Using 500ms delay ensures the TUI is fully interactive before watcher setup begins
-        debug("Deferring syncManager start (500ms)...");
-        setTimeout(() => {
-          if (syncManager) {
-            debug("Starting syncManager (deferred)...");
-            syncManager.start();
-            debug("syncManager started");
-          }
-        }, 500);
+        // Forward watcher status to TUI for bottom bar display
+        syncManager.on("watcher-status", (status) => {
+          tuiEvents.emit("watcher-status", status);
+        });
+
+        // Start the watcher
+        // With worker-based watching (default), this returns immediately (non-blocking)
+        // With direct watching (useWorker=false), chokidar may block during FSEvents setup
+        debug("Starting syncManager...");
+        syncManager.start();
+        debug("syncManager started");
       } else {
         debug("File watching disabled - TUI edits will still write to filesystem");
       }

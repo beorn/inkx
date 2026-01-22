@@ -1,0 +1,322 @@
+/**
+ * Watcher Worker
+ *
+ * Runs chokidar file watching in a separate thread to avoid blocking the main event loop.
+ * Chokidar's FSEvents setup can block for 20+ seconds on large directories (21k+ files).
+ */
+
+import createDebug from "debug";
+import { watch, type FSWatcher } from "chokidar";
+import { dirname } from "path";
+
+const debug = createDebug("km:storage:watch:worker");
+
+// Message types from main thread → worker
+export type WorkerCommand =
+  | { type: "start"; vaultPath: string; ignorePatterns: string[]; debounceMs: number }
+  | { type: "stop" }
+  | { type: "markInFlight"; path: string }
+  | { type: "clearInFlight"; path: string; delayMs: number }
+  | { type: "forceSync" }
+  | { type: "getStatus" };
+
+/** Watcher state for status reporting */
+export type WatcherState = "starting" | "ready" | "syncing" | "idle" | "stopped" | "error";
+
+/** Status information from the watcher */
+export interface WatcherStatus {
+  state: WatcherState;
+  pendingPaths: number;
+  watchedPaths?: number;
+  lastSync?: number; // timestamp
+  error?: string;
+}
+
+// Message types from worker → main thread
+export type WorkerMessage =
+  | { type: "ready"; watchedPaths?: number }
+  | { type: "sync"; paths: string[]; directories: string[] }
+  | { type: "error"; message: string; stack?: string }
+  | { type: "stopped" }
+  | { type: "status"; status: WatcherStatus };
+
+// Worker state
+let watcher: FSWatcher | null = null;
+const pendingPaths: Set<string> = new Set();
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+const inFlightWrites: Set<string> = new Set();
+let currentDebounceMs = 5000;
+let currentState: WatcherState = "stopped";
+let watchedPathCount = 0;
+let lastSyncTime: number | undefined;
+let lastError: string | undefined;
+let statusInterval: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Check if path should be ignored based on patterns
+ */
+function shouldIgnore(path: string, patterns: string[], vaultPath: string): boolean {
+  const relativePath = path.replace(vaultPath, "").replace(/^\//, "");
+
+  for (const pattern of patterns) {
+    // Simple glob matching for common patterns
+    if (pattern.startsWith("**/")) {
+      // Match anywhere in path
+      const suffix = pattern.slice(3);
+      if (relativePath.includes(suffix) || relativePath.endsWith(suffix)) {
+        return true;
+      }
+    } else if (pattern.endsWith("/**")) {
+      // Match directory prefix
+      const prefix = pattern.slice(0, -3);
+      if (relativePath.startsWith(prefix)) {
+        return true;
+      }
+    } else if (pattern.includes("*")) {
+      // Simple wildcard
+      const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
+      if (regex.test(relativePath)) {
+        return true;
+      }
+    } else {
+      // Exact match
+      if (relativePath === pattern || relativePath.startsWith(pattern + "/")) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Emit current status
+ */
+function emitStatus(): void {
+  postMessage({
+    type: "status",
+    status: {
+      state: currentState,
+      pendingPaths: pendingPaths.size,
+      watchedPaths: watchedPathCount,
+      lastSync: lastSyncTime,
+      error: lastError,
+    },
+  } satisfies WorkerMessage);
+}
+
+/**
+ * Update state and emit status
+ */
+function setState(newState: WatcherState): void {
+  if (currentState !== newState) {
+    debug("worker: state %s → %s", currentState, newState);
+    currentState = newState;
+    emitStatus();
+  }
+}
+
+/**
+ * Start watching a directory
+ */
+function startWatcher(vaultPath: string, ignorePatterns: string[], debounceMs: number): void {
+  debug("worker: starting watcher for %s", vaultPath);
+  currentDebounceMs = debounceMs;
+  setState("starting");
+  lastError = undefined;
+
+  // Create ignored function that combines patterns with file type check
+  const ignoredFn = (path: string, stats?: { isSocket?: () => boolean }) => {
+    // Always ignore socket files
+    if (stats?.isSocket?.()) {
+      return true;
+    }
+    if (path.endsWith(".sock")) {
+      return true;
+    }
+    return shouldIgnore(path, ignorePatterns, vaultPath);
+  };
+
+  watcher = watch(vaultPath, {
+    persistent: true,
+    ignoreInitial: true,
+    ignored: ignoredFn,
+    awaitWriteFinish: {
+      stabilityThreshold: 500,
+      pollInterval: 100,
+    },
+  });
+
+  watcher.on("all", (event, path) => {
+    // Skip in-flight writes (our own writes)
+    if (inFlightWrites.has(path)) {
+      debug("worker: skipping in-flight: %s %s", event, path);
+      return;
+    }
+
+    debug("worker: fs event: %s %s", event, path);
+    pendingPaths.add(path);
+    scheduleSync();
+  });
+
+  watcher.on("error", (err: unknown) => {
+    const error = err instanceof Error ? err : new Error(String(err));
+    debug("worker: watcher error: %O", error);
+    lastError = error.message;
+    setState("error");
+    postMessage({
+      type: "error",
+      message: error.message,
+      stack: error.stack,
+    } satisfies WorkerMessage);
+  });
+
+  watcher.on("ready", () => {
+    debug("worker: watcher ready");
+    // Get watched path count from chokidar
+    const watched = watcher?.getWatched();
+    if (watched) {
+      watchedPathCount = Object.keys(watched).length;
+    }
+    setState("idle");
+    postMessage({ type: "ready", watchedPaths: watchedPathCount } satisfies WorkerMessage);
+
+    // Start periodic status updates (every 5 seconds)
+    if (statusInterval) {
+      clearInterval(statusInterval);
+    }
+    statusInterval = setInterval(() => {
+      emitStatus();
+    }, 5000);
+  });
+}
+
+/**
+ * Stop watching
+ */
+async function stopWatcher(): Promise<void> {
+  debug("worker: stopping watcher");
+
+  // Stop status interval
+  if (statusInterval) {
+    clearInterval(statusInterval);
+    statusInterval = null;
+  }
+
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+
+  if (watcher) {
+    await watcher.close();
+    watcher = null;
+  }
+
+  pendingPaths.clear();
+  inFlightWrites.clear();
+  watchedPathCount = 0;
+
+  setState("stopped");
+  postMessage({ type: "stopped" } satisfies WorkerMessage);
+}
+
+/**
+ * Schedule a sync after debounce period
+ */
+function scheduleSync(): void {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+
+  setState("syncing");
+  debug("worker: scheduling sync in %dms (%d pending)", currentDebounceMs, pendingPaths.size);
+  debounceTimer = setTimeout(() => {
+    emitSync();
+  }, currentDebounceMs);
+}
+
+/**
+ * Emit sync event with pending paths
+ */
+function emitSync(): void {
+  const paths = [...pendingPaths];
+  pendingPaths.clear();
+  debounceTimer = null;
+
+  if (paths.length === 0) {
+    debug("worker: sync: no pending paths");
+    setState("idle");
+    return;
+  }
+
+  // Group by directory
+  const dirs = new Set<string>();
+  for (const path of paths) {
+    dirs.add(dirname(path));
+  }
+
+  debug("worker: sync: emitting %d paths, %d directories", paths.length, dirs.size);
+  lastSyncTime = Date.now();
+
+  postMessage({
+    type: "sync",
+    paths,
+    directories: [...dirs],
+  } satisfies WorkerMessage);
+
+  setState("idle");
+}
+
+/**
+ * Handle messages from main thread
+ */
+function handleMessage(command: WorkerCommand): void {
+  switch (command.type) {
+    case "start":
+      startWatcher(command.vaultPath, command.ignorePatterns, command.debounceMs);
+      break;
+
+    case "stop":
+      void stopWatcher();
+      break;
+
+    case "markInFlight":
+      debug("worker: marking in-flight: %s", command.path);
+      inFlightWrites.add(command.path);
+      break;
+
+    case "clearInFlight":
+      setTimeout(() => {
+        inFlightWrites.delete(command.path);
+      }, command.delayMs);
+      break;
+
+    case "forceSync":
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+      }
+      emitSync();
+      break;
+
+    case "getStatus":
+      emitStatus();
+      break;
+  }
+}
+
+// Listen for messages from main thread
+// Use Bun's self.onmessage for worker threads
+declare const self: {
+  onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
+  postMessage: (message: WorkerMessage) => void;
+};
+
+// Bun workers use self.onmessage
+self.onmessage = (event: MessageEvent<WorkerCommand>) => {
+  handleMessage(event.data);
+};
+
+// Also export for type checking
+export { handleMessage };

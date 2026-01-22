@@ -41,16 +41,17 @@ export const viewCommand = new Command("view")
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
     const engine = TUI_ENGINES.includes(options.tui) ? options.tui : "inkx";
 
-    // Watch option: CLI flag > config > default (true)
+    // Watch options: CLI flag > config > default (true)
     // --no-watch flag sets options.watch to false
     const tuiConfig = getTuiConfig(resolved.vaultRoot);
     const watchEnabled = options.watch !== false ? tuiConfig.watch : false;
-    debug("watchEnabled=%s (cli=%s, config=%s)", watchEnabled, options.watch, tuiConfig.watch);
+    const watchWorker = tuiConfig.watchWorker; // Worker-based watching (default: true, non-blocking)
+    debug("watchEnabled=%s, watchWorker=%s (cli=%s, config=%s)", watchEnabled, watchWorker, options.watch, tuiConfig.watch);
 
     // For interactive mode, pass ensureState as callback so TUI can show loading indicator
     // For non-interactive mode, ensure state synchronously before rendering
     if (options.interactive !== false) {
-      debug("launching TUI with deferred state initialization: mode=%s, engine=%s, watch=%s", viewMode, engine, watchEnabled);
+      debug("launching TUI with deferred state initialization: mode=%s, engine=%s, watch=%s, worker=%s", viewMode, engine, watchEnabled, watchWorker);
       await runBoard(
         resolved.nodeRef ?? undefined,
         true,
@@ -59,6 +60,7 @@ export const viewCommand = new Command("view")
           initialViewMode: viewMode as ViewMode,
           engine: engine as TuiEngine,
           watch: watchEnabled,
+          watchWorker, // Worker-based watching (non-blocking)
           // Deferred loading: TUI will call this and show spinner while it runs
           initializeState: () => ensureState(resolved.vaultRoot, false),
         },

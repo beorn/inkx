@@ -128,7 +128,13 @@ export interface TuiOptions {
   /**
    * Enable file watching for live sync (default: true).
    * Set to false to disable watching - faster startup on large vaults.
-   * Can also be set via config (tui.watch) or KM_NO_WATCH=1 env var.
+   * Can also be set via config (tui.watch).
    */
   watch?: boolean;
+  /**
+   * Use worker thread for file watching (default: true).
+   * Worker-based watching doesn't block the main thread during initialization.
+   * Can also be set via config (tui.watchWorker).
+   */
+  watchWorker?: boolean;
 }

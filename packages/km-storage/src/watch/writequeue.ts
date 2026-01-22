@@ -16,7 +16,15 @@ import {
 const debug = createDebug("km:storage:watch:writequeue");
 import { dirname } from "path";
 import { EventEmitter } from "events";
-import { FileSystemWatcher } from "./watcher.ts";
+
+/**
+ * Interface for watcher in-flight tracking
+ * Both FileSystemWatcher and WorkerWatcher implement this
+ */
+export interface InFlightTracker {
+  markInFlight(path: string): void;
+  clearInFlight(path: string, delayMs?: number): void;
+}
 
 /**
  * Write operation types using discriminated union
@@ -45,7 +53,7 @@ export class WriteQueue extends EventEmitter {
   private pending: Map<string, WriteOperation> = new Map();
   private debounceTimer: NodeJS.Timeout | null = null;
   private config: WriteQueueConfig;
-  private watcher: FileSystemWatcher | null = null;
+  private watcher: InFlightTracker | null = null;
 
   constructor(config: Partial<WriteQueueConfig> = {}) {
     super();
@@ -54,8 +62,9 @@ export class WriteQueue extends EventEmitter {
 
   /**
    * Set the watcher for in-flight tracking
+   * Accepts any object implementing InFlightTracker (FileSystemWatcher or WorkerWatcher)
    */
-  setWatcher(watcher: FileSystemWatcher): void {
+  setWatcher(watcher: InFlightTracker): void {
     this.watcher = watcher;
   }
 

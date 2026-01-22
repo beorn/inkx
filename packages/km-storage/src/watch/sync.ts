@@ -11,6 +11,8 @@ const debug = createDebug("km:storage:watch:sync");
 import { dirname, join } from "path";
 import { EventEmitter } from "events";
 import { FileSystemWatcher, scanDirectoryRecursive } from "./watcher.ts";
+import { WorkerWatcher } from "./worker-watcher.ts";
+import type { WatcherStatus } from "./watcher-worker.ts";
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts";
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts";
 import { getIgnorePatterns } from "./ignore.ts";
@@ -31,12 +33,15 @@ export interface SyncConfig {
   debounceFs: number;
   debounceApply: number;
   conflictStrategy: "last_write_wins" | "fs_wins" | "db_wins";
+  /** Use worker thread for file watching (default: true). Prevents UI blocking on large vaults. */
+  useWorker?: boolean;
 }
 
 const DEFAULT_CONFIG: Partial<SyncConfig> = {
   debounceFs: 5000,
   debounceApply: 3000,
   conflictStrategy: "last_write_wins",
+  useWorker: true,
 };
 
 export type SyncState =
@@ -48,9 +53,12 @@ export type SyncState =
   | "emitting"
   | "writing";
 
+/** Common interface for both watcher types */
+type WatcherInterface = FileSystemWatcher | WorkerWatcher;
+
 export class SyncManager extends EventEmitter {
   private config: SyncConfig;
-  private watcher: FileSystemWatcher;
+  private watcher: WatcherInterface;
   private writeQueue: WriteQueue;
   private state: SyncState = "idle";
 
@@ -58,9 +66,19 @@ export class SyncManager extends EventEmitter {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config } as SyncConfig;
 
-    this.watcher = new FileSystemWatcher({
-      debounceMs: this.config.debounceFs,
-    });
+    // Use worker-based watcher by default (non-blocking)
+    // Fall back to direct watcher if useWorker is explicitly false
+    if (this.config.useWorker !== false) {
+      debug("using WorkerWatcher (non-blocking)");
+      this.watcher = new WorkerWatcher({
+        debounceMs: this.config.debounceFs,
+      });
+    } else {
+      debug("using FileSystemWatcher (direct)");
+      this.watcher = new FileSystemWatcher({
+        debounceMs: this.config.debounceFs,
+      });
+    }
 
     this.writeQueue = new WriteQueue({
       debounceMs: this.config.debounceApply,
@@ -72,6 +90,13 @@ export class SyncManager extends EventEmitter {
     this.watcher.on("sync", (data) => void this.handleFsSync(data));
     this.watcher.on("error", (error) => this.emit("error", error));
     this.watcher.on("ready", () => this.emit("ready"));
+
+    // Forward watcher status events (WorkerWatcher only)
+    if (this.watcher instanceof WorkerWatcher) {
+      this.watcher.on("status", (status: WatcherStatus) => {
+        this.emit("watcher-status", status);
+      });
+    }
 
     this.writeQueue.on("flushed", (data) => this.emit("write-complete", data));
     this.writeQueue.on("errors", (errors) => this.emit("write-errors", errors));
@@ -333,12 +358,35 @@ export class SyncManager extends EventEmitter {
     state: SyncState;
     pendingWrites: number;
     vaultPath: string;
+    watcher?: WatcherStatus;
   } {
-    return {
+    const status: {
+      state: SyncState;
+      pendingWrites: number;
+      vaultPath: string;
+      watcher?: WatcherStatus;
+    } = {
       state: this.state,
       pendingWrites: this.writeQueue.getPendingCount(),
       vaultPath: this.config.vaultPath,
     };
+
+    // Include watcher status if using WorkerWatcher
+    if (this.watcher instanceof WorkerWatcher) {
+      status.watcher = this.watcher.getStatus();
+    }
+
+    return status;
+  }
+
+  /**
+   * Get watcher status (WorkerWatcher only)
+   */
+  getWatcherStatus(): WatcherStatus | null {
+    if (this.watcher instanceof WorkerWatcher) {
+      return this.watcher.getStatus();
+    }
+    return null;
   }
 }
 

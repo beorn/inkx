@@ -26,6 +26,8 @@ export interface BeadsConfig {
 export interface TuiConfig {
   /** Enable file watching for live sync (default: true). Disable on large vaults for faster startup. */
   watch?: boolean;
+  /** Use worker thread for file watching (default: true). Prevents UI blocking on large vaults. */
+  watchWorker?: boolean;
 }
 
 export interface KmConfig {
@@ -148,5 +150,6 @@ export function getTuiConfig(searchFrom?: string): Required<TuiConfig> {
   const config = loadConfig(searchFrom);
   return {
     watch: config.tui?.watch ?? true,
+    watchWorker: config.tui?.watchWorker ?? true,
   };
 }

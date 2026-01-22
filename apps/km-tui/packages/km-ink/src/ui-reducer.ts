@@ -8,6 +8,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { ViewMode, SelectionKey } from "./types.ts";
 import type { SelectionRange } from "./mouse-handler.ts";
+import type { WatcherStatus } from "@km/storage";
 
 // =============================================================================
 // UI State Type
@@ -70,6 +71,9 @@ export interface UIState {
   // Loading state (for large vaults)
   isLoading: boolean;
   loadingStartTime: number | null;
+
+  // Watcher status (for bottom bar display)
+  watcherStatus: WatcherStatus | null;
 }
 
 // =============================================================================
@@ -122,6 +126,8 @@ export function createInitialUIState(
 
     isLoading: false,
     loadingStartTime: null,
+
+    watcherStatus: null,
   };
 }
 
@@ -343,6 +349,11 @@ const uiSlice = createSlice({
     stopLoading: (state) => {
       state.isLoading = false;
       state.loadingStartTime = null;
+    },
+
+    // Watcher status
+    setWatcherStatus: (state, action: PayloadAction<WatcherStatus | null>) => {
+      state.watcherStatus = action.payload;
     },
   },
 });
