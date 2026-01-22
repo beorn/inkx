@@ -159,6 +159,50 @@ export function deriveColumnsLayout(state: TreeBoardState): ColumnsLayout {
 }
 
 /**
+ * Derive ONLY the columns from tree state.
+ * Use this when you want to memoize columns separately from cursor position.
+ *
+ * PERFORMANCE: This function rebuilds all column state, so only call it when
+ * the tree structure changes (state.nodes reference changes), NOT on cursor moves.
+ */
+export function deriveColumns(nodes: TNode[]): ColumnState[] {
+  const wipLimits = extractWipLimits(nodes);
+  return nodes.map((node) => tNodeToColumnState(node, wipLimits));
+}
+
+/**
+ * Derive ONLY cursor indices from tree state.
+ * Use this when you want to react to cursor position changes without
+ * rebuilding column structure.
+ *
+ * PERFORMANCE: This is cheap - just path lookup and index extraction.
+ * Safe to call on every cursor move.
+ */
+export function deriveCursorIndices(state: TreeBoardState): ColumnIndices & { subIndex: number } {
+  // Derive cursor path from cursorNodeId if available
+  let cursorPath = state.cursor;
+  if (state.cursorNodeId) {
+    const derivedPath = findPathToNode(state.nodes, state.cursorNodeId);
+    if (derivedPath) {
+      cursorPath = derivedPath;
+    }
+  }
+
+  const indices = pathToColumnIndices(cursorPath);
+
+  // Calculate subIndex (flattened outline position within card)
+  // For cursor [col, card, ...subPath], subIndex is the flattened position
+  const subIndex = indices.subPath.length > 0
+    ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
+    : 0;
+
+  return {
+    ...indices,
+    subIndex,
+  };
+}
+
+/**
  * Get the current column from derived layout.
  */
 export function getLayoutColumn(layout: ColumnsLayout): ColumnState | null {

@@ -59,7 +59,8 @@ import { handleCommandAction } from "../board-actions.ts";
 import { boardReducer, createNodeMap } from "@km/board";
 import {
   tuiStateToTreeState,
-  deriveColumnsLayout,
+  deriveColumns,
+  deriveCursorIndices,
   buildTreeNodes,
 } from "../board-adapter.ts";
 
@@ -123,11 +124,33 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     rootIdRef.current = boardState.rootId;
   }, [boardState.rootId]);
 
-  // Derive column layout from tree state for rendering
-  // This bridges the tree-based boardReducer to column-based rendering
+  // PERFORMANCE OPTIMIZATION: Separate columns derivation from cursor derivation
+  // This ensures cursor movement (which changes boardState.cursor) does NOT
+  // cause all columns to be rebuilt. Columns only rebuild when tree structure changes.
+
+  // Derive columns ONLY when tree structure changes (not on cursor moves)
+  const columns = useMemo(
+    () => deriveColumns(boardState.nodes),
+    [boardState.nodes],  // Only depends on nodes, not cursor!
+  );
+
+  // Derive cursor indices on every cursor change (cheap operation)
+  const cursorIndices = useMemo(
+    () => deriveCursorIndices(boardState),
+    [boardState.cursor, boardState.cursorNodeId, boardState.nodes],
+  );
+
+  // Combined layout for compatibility (uses stable columns reference)
   const columnsLayout = useMemo(
-    () => deriveColumnsLayout(boardState),
-    [boardState],
+    () => ({
+      columns,
+      colIndex: cursorIndices.colIndex,
+      cardIndex: cursorIndices.cardIndex,
+      subPath: cursorIndices.subPath,
+      isAtCardLevel: cursorIndices.isAtCardLevel,
+      isInOutlineMode: cursorIndices.isInOutlineMode,
+    }),
+    [columns, cursorIndices],
   );
 
   // Build nodeMap once when nodes change (O(n) only on tree changes, not every render)
