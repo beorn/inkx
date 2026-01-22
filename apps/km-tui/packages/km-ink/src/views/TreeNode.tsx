@@ -5,7 +5,7 @@
  * - oneliner: Title + parent context inline on one line, truncated (for list/columns/tabs)
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
-import React from "react";
+import React, { useMemo } from "react";
 import { Box, Text } from "inkx";
 import type { KNode } from "@km/core";
 import { getChildren as getChildrenFromStorage } from "@km/storage";
@@ -53,7 +53,69 @@ export interface TreeNodeProps {
   getBoardPills?: GetBoardPillsFn;
 }
 
-export function TreeNode({
+/**
+ * Memoized TreeNode - skips re-render when props are unchanged.
+ *
+ * Custom comparison focuses on the fields that actually affect rendering:
+ * - node.id, node.content, node.task_status (identity and display)
+ * - isSelected (selection state)
+ * - depth, colIndex, cardIndex, subIndex (position)
+ * - dimInactiveChildren (visual state)
+ *
+ * Callback props (getChildren, etc.) are compared by reference.
+ * This is safe because they're typically stable (from storage or parent useMemo).
+ */
+export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
+  // Fast path: if node identity changed, must re-render
+  if (prev.node.id !== next.node.id) return false;
+
+  // Selection state
+  if (prev.isSelected !== next.isSelected) return false;
+
+  // Position (affects key lookups and child selection)
+  if (
+    prev.colIndex !== next.colIndex ||
+    prev.cardIndex !== next.cardIndex ||
+    prev.subIndex !== next.subIndex ||
+    prev.depth !== next.depth
+  ) return false;
+
+  // Visual state
+  if (prev.dimInactiveChildren !== next.dimInactiveChildren) return false;
+
+  // Node content that affects display
+  if (
+    prev.node.content !== next.node.content ||
+    prev.node.task_status !== next.node.task_status ||
+    prev.node.due_date !== next.node.due_date ||
+    prev.node.type !== next.node.type
+  ) return false;
+
+  // Callback props by reference (stable if using useCallback or module-level)
+  if (
+    prev.getChildren !== next.getChildren ||
+    prev.getParentContext !== next.getParentContext ||
+    prev.getBoardPills !== next.getBoardPills
+  ) return false;
+
+  // Pre-computed props
+  if (prev.parentContext !== next.parentContext) return false;
+
+  // Children array - compare by length and IDs for efficiency
+  const prevChildren = prev.children;
+  const nextChildren = next.children;
+  if (prevChildren !== nextChildren) {
+    if (!prevChildren || !nextChildren) return false;
+    if (prevChildren.length !== nextChildren.length) return false;
+    for (let i = 0; i < prevChildren.length; i++) {
+      if (prevChildren[i]?.id !== nextChildren[i]?.id) return false;
+    }
+  }
+
+  return true;
+});
+
+function TreeNodeImpl({
   node,
   depth,
   isSelected,
@@ -97,22 +159,16 @@ export function TreeNode({
   // A node is a task if it has task_status set, regardless of structural type
   const isTask = node.task_status != null;
 
-  // Get all styling from helper
-  const style = getNodeStyle(
-    node,
-    isSelected,
-    isMultiSelected,
-    dimInactiveChildren,
-    depth,
+  // Memoize style calculation - only recalc when selection or node status changes
+  const style = useMemo(
+    () => getNodeStyle(node, isSelected, isMultiSelected, dimInactiveChildren, depth),
+    [node.id, node.task_status, isSelected, isMultiSelected, dimInactiveChildren, depth],
   );
 
-  // Build prefix from helper (new cards style: just fold marker)
-  const prefix = buildPrefix(
-    depth,
-    hasChildren,
-    isFolded,
-    children.length,
-    style.ownColor,
+  // Memoize prefix - only recalc when fold state or children count changes
+  const prefix = useMemo(
+    () => buildPrefix(depth, hasChildren, isFolded, children.length, style.ownColor),
+    [depth, hasChildren, isFolded, children.length, style.ownColor],
   );
 
   // Get content, stripping task marks for nodes with task_status
@@ -122,16 +178,17 @@ export function TreeNode({
       ? getNodeDisplayName(node)
       : node.content || getNodeDisplayName(node);
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent;
-  // Filter out the current board's sigil (e.g., @issue when viewing @issue board)
-  // Apply GTD colors to known sigils (e.g., @next=cyan, @waiting=yellow)
-  const styledContent = renderRich(cleanContent, { excludeSigils: excludedSigils, sigilColors });
 
-  // Info suffix (oneliner shows full info, multiline shows compact dots only)
-  const infoSuffix = formatInfoSuffix(
-    node,
-    !isOneliner, // multiline uses compact info (just dots)
-    excludeBoardIds,
-    getBoardPillsProp,
+  // Memoize rich text rendering - only recalc when content or sigil config changes
+  const styledContent = useMemo(
+    () => renderRich(cleanContent, { excludeSigils: excludedSigils, sigilColors }),
+    [cleanContent, excludedSigils, sigilColors],
+  );
+
+  // Memoize info suffix - only recalc when node metadata changes
+  const infoSuffix = useMemo(
+    () => formatInfoSuffix(node, !isOneliner, excludeBoardIds, getBoardPillsProp),
+    [node.id, node.due_date, node.scheduled_date, node.assigned_to, node.task_status, isOneliner, rootBoardId],
   );
 
   // Parent context for embedded tasks
@@ -157,7 +214,7 @@ export function TreeNode({
   const hiddenCount = children.length - visibleChildren.length;
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" height={isOneliner ? 1 : undefined}>
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
       {!isOneliner && isEmbedded && parentContext && (
@@ -171,7 +228,8 @@ export function TreeNode({
       {/* paddingLeft={depth} makes marker flush with border at depth 0 */}
       {/* alignItems="flex-start" prevents row from stretching to match content height */}
       {/* backgroundColor on Box (not Text) to fill row background properly */}
-      <Box flexDirection="row" alignItems="flex-start" paddingLeft={depth} backgroundColor={style.backgroundColor}>
+      {/* height={1} in oneliner mode prevents background from bleeding to next line */}
+      <Box flexDirection="row" alignItems="flex-start" paddingLeft={depth} backgroundColor={style.backgroundColor} height={isOneliner ? 1 : undefined}>
         {/* Fixed-width prefix box (fold marker only - new cards style) */}
         <Box width={prefix.length} flexShrink={0}>
           <Text

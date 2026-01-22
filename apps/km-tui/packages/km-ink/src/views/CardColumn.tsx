@@ -42,7 +42,13 @@ export interface CardProps {
   cardIndex: number;
 }
 
-export function Card({
+/**
+ * Memoized Card - skips re-render when props are unchanged.
+ *
+ * Key optimization: cursor movement only changes isSelected for 2 cards
+ * (old selection and new selection). All other cards should skip re-render.
+ */
+export const Card = React.memo(function Card({
   card,
   isSelected,
   selectedSubIndex,
@@ -69,7 +75,19 @@ export function Card({
       />
     </Box>
   );
-}
+}, (prev, next) => {
+  // Fast equality check for Card props
+  return (
+    prev.card.node.id === next.card.node.id &&
+    prev.card.node.content === next.card.node.content &&
+    prev.card.node.task_status === next.card.node.task_status &&
+    prev.isSelected === next.isSelected &&
+    prev.selectedSubIndex === next.selectedSubIndex &&
+    prev.width === next.width &&
+    prev.colIndex === next.colIndex &&
+    prev.cardIndex === next.cardIndex
+  );
+});
 
 // =============================================================================
 // Virtualized Card List Component
@@ -215,7 +233,14 @@ export interface ColumnProps {
   selectionLevel: "board" | "column" | "card";
 }
 
-export function Column({
+/**
+ * Memoized Column - skips re-render when props are unchanged.
+ *
+ * When moving cursor within a column, only selectedCardIndex changes.
+ * The Column still re-renders, but memoized Cards skip unless their
+ * isSelected prop changed.
+ */
+export const Column = React.memo(function Column({
   column,
   colIndex,
   isSelected,
@@ -314,4 +339,4 @@ export function Column({
       )}
     </Box>
   );
-}
+});
