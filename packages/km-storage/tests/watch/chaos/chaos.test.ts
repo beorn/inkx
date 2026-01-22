@@ -258,6 +258,132 @@ describe.serial("Chaos Tests", () => {
     });
   });
 
+  describe.serial("Initialization Issues", () => {
+    test("handles init gap (events during watcher startup)", async () => {
+      const result = await runChaosTest({
+        name: "init-gap",
+        scenario: {
+          type: "init_gap",
+          params: { initDurationMs: 500, eventsBeforeReady: 3 },
+        },
+        setup: [
+          { path: "existing.md", content: "# Existing file" },
+        ],
+        events: [
+          { type: "add", path: "new.md" },
+          { type: "change", path: "existing.md" },
+        ],
+        expected: {
+          files: ["existing.md"],
+          // Note: new.md won't be in FS since we only inject events
+          // The key test is that we don't crash or corrupt state
+        },
+        timeout: 1000,
+      });
+
+      // Events during init gap should not cause duplicates or corruption
+      expect(result.verification.stats.duplicateNodes).toBe(0);
+      expect(result.verification.stats.missingParents).toBe(0);
+    });
+  });
+
+  describe.serial("Stress Tests", () => {
+    test("handles 50 files with queue overflow", async () => {
+      const fileCount = 50;
+      const result = await runChaosTest({
+        name: "stress-50-files-overflow",
+        scenario: { type: "queue_overflow", params: { dropRate: 0.3 } },
+        setup: Array.from({ length: fileCount }, (_, i) => ({
+          path: `files/file${i}.md`,
+          content: `# File ${i}\n- [ ] Task ${i}`,
+        })),
+        events: Array.from({ length: fileCount * 2 }, (_, i) => ({
+          type: "change" as const,
+          path: `files/file${i % fileCount}.md`,
+        })),
+        expected: {
+          files: Array.from({ length: fileCount }, (_, i) => `files/file${i}.md`),
+        },
+        timeout: 2000,
+      });
+
+      // Even with 30% event drop, should not have duplicate nodes
+      expect(result.eventsDropped).toBeGreaterThan(0);
+      expect(result.verification.stats.duplicateNodes).toBe(0);
+    });
+
+    test("handles nested directories with coalescing", async () => {
+      const result = await runChaosTest({
+        name: "stress-nested-coalesce",
+        scenario: { type: "fsevents_coalesce", params: { coalesceThreshold: 5 } },
+        setup: [
+          ...Array.from({ length: 10 }, (_, i) => ({
+            path: `level1/level2/file${i}.md`,
+            content: `# Deep file ${i}`,
+          })),
+          ...Array.from({ length: 5 }, (_, i) => ({
+            path: `level1/file${i}.md`,
+            content: `# Level 1 file ${i}`,
+          })),
+        ],
+        events: [
+          ...Array.from({ length: 10 }, (_, i) => ({
+            type: "change" as const,
+            path: `level1/level2/file${i}.md`,
+          })),
+          ...Array.from({ length: 5 }, (_, i) => ({
+            type: "change" as const,
+            path: `level1/file${i}.md`,
+          })),
+        ],
+        expected: {
+          files: [
+            ...Array.from({ length: 10 }, (_, i) => `level1/level2/file${i}.md`),
+            ...Array.from({ length: 5 }, (_, i) => `level1/file${i}.md`),
+          ],
+        },
+        timeout: 1000,
+      });
+
+      expect(result.verification.stats.duplicateNodes).toBe(0);
+    });
+
+    test("handles mixed operations (add, change, unlink) chaos", async () => {
+      const result = await runChaosTest({
+        name: "stress-mixed-ops",
+        scenario: { type: "reorder_chaos", params: { windowSize: 10 } },
+        setup: Array.from({ length: 10 }, (_, i) => ({
+          path: `mixed/existing${i}.md`,
+          content: `# Existing ${i}`,
+        })),
+        events: [
+          // Changes to existing files
+          ...Array.from({ length: 10 }, (_, i) => ({
+            type: "change" as const,
+            path: `mixed/existing${i}.md`,
+          })),
+          // Adds (won't exist in FS, but shouldn't crash)
+          ...Array.from({ length: 5 }, (_, i) => ({
+            type: "add" as const,
+            path: `mixed/new${i}.md`,
+          })),
+          // Unlinks (files still exist, testing event processing)
+          ...Array.from({ length: 3 }, (_, i) => ({
+            type: "unlink" as const,
+            path: `mixed/existing${i}.md`,
+          })),
+        ],
+        expected: {
+          files: Array.from({ length: 10 }, (_, i) => `mixed/existing${i}.md`),
+        },
+        timeout: 1000,
+      });
+
+      // Reordering shouldn't cause duplicates
+      expect(result.verification.stats.duplicateNodes).toBe(0);
+    });
+  });
+
   describe.serial("Combined Scenarios", () => {
     test("handles multiple files with various changes", async () => {
       const result = await runChaosTest({

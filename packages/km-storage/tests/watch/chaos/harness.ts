@@ -17,7 +17,7 @@ import { MockWatcher, createMockWatcher } from "./mock-watcher.ts";
 import { Verifier } from "./verifier.ts";
 import { setKmDir, setDatabase } from "../../../src/emit.ts";
 import { resetDb, closeDb, applyEvent } from "../../../src/db.ts";
-import { reconcileDirectory, applyReconcileOps } from "../../../src/watch/reconcile.ts";
+import { reconcileDirectory, reconcileDirectoryRecursive, applyReconcileOps } from "../../../src/watch/reconcile.ts";
 
 /**
  * Run a single chaos test
@@ -93,7 +93,11 @@ export async function runChaosTest(config: ChaosTestConfig): Promise<ChaosTestRe
     mockWatcher.on("sync", (data: { paths: string[]; directories: string[] }) => {
       void (async () => {
         for (const dir of data.directories) {
-          const dirOps = reconcileDirectory(dir, vaultDir);
+          // Use recursive reconciliation for subdirectories (handles FSEvents coalescing)
+          // For vault root, non-recursive is sufficient
+          const dirOps = dir === vaultDir
+            ? reconcileDirectory(dir, vaultDir)
+            : reconcileDirectoryRecursive(dir, vaultDir);
           await applyReconcileOps(dirOps, vaultDir);
         }
       })();

@@ -141,6 +141,31 @@ export function reconcileDirectory(
 }
 
 /**
+ * Recursively reconcile a directory and all subdirectories
+ * Used when FSEvents coalesces multiple file events into a single directory event
+ */
+export function reconcileDirectoryRecursive(
+  dirPath: string,
+  vaultRoot: string,
+  ignorePatterns?: string[],
+): ReconcileOp[] {
+  const ops: ReconcileOp[] = [];
+
+  // Reconcile this directory
+  ops.push(...reconcileDirectory(dirPath, vaultRoot, ignorePatterns));
+
+  // Get subdirectories and recursively reconcile them
+  const fsEntries = scanDirectory(dirPath, ignorePatterns);
+  for (const entry of fsEntries) {
+    if (entry.isDirectory) {
+      ops.push(...reconcileDirectoryRecursive(entry.path, vaultRoot, ignorePatterns));
+    }
+  }
+
+  return ops;
+}
+
+/**
  * Apply reconciliation operations
  */
 export async function applyReconcileOps(

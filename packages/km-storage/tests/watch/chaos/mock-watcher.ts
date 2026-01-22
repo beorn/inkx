@@ -7,6 +7,7 @@
 
 import { EventEmitter } from "events";
 import { dirname } from "path";
+import { statSync } from "fs";
 import type {
   IMockWatcher,
   MockWatcherConfig,
@@ -387,7 +388,31 @@ export class MockWatcher extends EventEmitter implements IMockWatcher {
     }
 
     const paths = this.eventBatch.map((e) => e.path);
-    const dirs = new Set(paths.map((p) => dirname(p)));
+    const dirs = new Set<string>();
+
+    for (const event of this.eventBatch) {
+      // For directory events (addDir, unlinkDir), include the path itself
+      if (event.type === "addDir" || event.type === "unlinkDir") {
+        dirs.add(event.path);
+      } else if (event.type === "change") {
+        // For change events, check if the path is actually a directory
+        // This handles FSEvents coalescing where file events become dir events
+        try {
+          const stat = statSync(event.path);
+          if (stat.isDirectory()) {
+            dirs.add(event.path);
+          } else {
+            dirs.add(dirname(event.path));
+          }
+        } catch {
+          // Path doesn't exist, use parent directory
+          dirs.add(dirname(event.path));
+        }
+      } else {
+        // For other file events (add, unlink), scan the parent directory
+        dirs.add(dirname(event.path));
+      }
+    }
 
     this.eventBatch = [];
     this.debounceTimer = null;
