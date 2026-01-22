@@ -207,10 +207,20 @@ km/
 ## Development
 
 ```bash
-bun install          # Install dependencies
+# Clone with submodules
+git clone --recurse-submodules https://github.com/beorn/km.git
+cd km
+
+# Or if already cloned without submodules
+git submodule update --init --recursive
+
+# Install dependencies
+bun install
+
+# Run
+bun run km           # Run CLI
 bun test             # Run all tests
 bun fix              # Lint + format
-bun run km           # Run CLI
 ```
 
 ## Known Issues
