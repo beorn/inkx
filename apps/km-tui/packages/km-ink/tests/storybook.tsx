@@ -1029,6 +1029,7 @@ function CardsViewDemo({
                       borderColor={
                         isCardSelected ? "cyanBright" : "blackBright"
                       }
+                      paddingLeft={1}
                     >
                       <TreeNode
                         node={card.node}
