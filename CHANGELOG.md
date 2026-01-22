@@ -8,18 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Node aggregation: mentions, tags, and projects from child nodes bubble up to file nodes
 - `bd` command for beads issue tracking integration
 - `km agent` and `bd agent` CLI commands for AI-assisted workflows
 - Debug script with tmux wrapper and lnav integration (`bun debug`)
 - DEBUG_LOG environment variable for redirecting debug output to file
+- Retry logic with exponential backoff for WriteQueue filesystem operations
+- Conflict detection and resolution for concurrent TUI/filesystem edits
+- Permission error handling with actionable user suggestions (EACCES/EPERM/EROFS)
+- Symlink detection during directory scanning (skipped to avoid infinite loops)
+- Case-sensitivity detection and collision detection for cross-platform compatibility
 
 ### Changed
+
 - Simplified engine abstraction (removed legacy Ink engine, only inkx remains)
 - Cursor system redesign: zoom operations now preserve selection context
 - Renamed `selectedNodeId` to `cursorNodeId` for clarity
 
 ### Fixed
+
 - Blank screen when opening km view (async React reconciler race condition)
 - Crash on directories containing socket files (EOPNOTSUPP)
 - TreeNode row alignment in TUI
@@ -29,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TUI content disappearing after watcher sync (stale closure in refresh handler)
 
 ### Removed
+
 - Legacy Ink engine and views-ink components (archived)
 - Unused board-handlers.ts (787 lines dead code)
 

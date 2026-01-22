@@ -5,25 +5,20 @@
  */
 
 import createDebug from "debug";
-import { statSync, readFileSync, existsSync } from "fs";
 
 const debug = createDebug("km:storage:watch:reconcile");
-import { dirname, basename, relative } from "path";
+import type { FileSystemOps } from "./writequeue.ts";
+import { realFs } from "./writequeue.ts";
+import { dirname, basename } from "path";
 import { ulid } from "ulid";
 import type { KNode } from "@km/core";
-import {
-  emitNodeCreated,
-  emitNodeUpdated,
-  emitNodeMoved,
-  emitNodeDeleted,
-} from "../emit.ts";
+import { emitNodeCreated, emitNodeUpdated, emitNodeDeleted } from "../emit.ts";
 import {
   getNodeByPath,
   getNodesUnderPath,
   getFileWithChildren,
   getNodeContentHash,
   findFileByName,
-  getChildren,
   addLink,
   removeLinksFromSource,
   resolveLinks,
@@ -41,6 +36,20 @@ export interface ReconcileOp {
   mtime?: number;
 }
 
+export interface FsEntry {
+  path: string;
+  ino: number;
+  mtime: number;
+  isDirectory: boolean;
+  /** If true, entry is a symlink (typically skipped during scanning) */
+  isSymlink?: boolean;
+}
+
+export type DirectoryScanner = (
+  dirPath: string,
+  ignorePatterns?: string[],
+) => FsEntry[];
+
 /**
  * Reconcile a directory - compare filesystem to database
  */
@@ -48,16 +57,24 @@ export function reconcileDirectory(
   dirPath: string,
   vaultRoot: string,
   ignorePatterns?: string[],
+  scanner?: DirectoryScanner,
 ): ReconcileOp[] {
   const ops: ReconcileOp[] = [];
 
   // Get filesystem state (pass ignore patterns to filter out ignored files)
-  const fsEntries = scanDirectory(dirPath, ignorePatterns);
+  const fsEntries = scanner
+    ? scanner(dirPath, ignorePatterns)
+    : scanDirectory(dirPath, ignorePatterns);
 
   // Get database state for this directory (using km-storage abstraction)
   const dbNodes = getNodesUnderPath(dirPath);
 
-  debug("reconciling %s: %d fs entries, %d db nodes", dirPath, fsEntries.length, dbNodes.length);
+  debug(
+    "reconciling %s: %d fs entries, %d db nodes",
+    dirPath,
+    fsEntries.length,
+    dbNodes.length,
+  );
 
   // Index by inode and path for efficient lookup
   const dbByIno = new Map<number, KNode>();
@@ -86,11 +103,20 @@ export function reconcileDirectory(
         path: entry.path,
         ino: entry.ino,
       });
-    } else if (existingByPath && existingByPath.fs_ino && existingByPath.fs_ino !== entry.ino) {
+    } else if (
+      existingByPath &&
+      existingByPath.fs_ino &&
+      existingByPath.fs_ino !== entry.ino
+    ) {
       // Atomic write: same path but different inode
       // This happens when editors save via temp file + rename (Vim, VSCode, etc.)
       // Treat as an update but also update the inode
-      debug("atomic write detected: %s (old ino=%d, new ino=%d)", entry.path, existingByPath.fs_ino, entry.ino);
+      debug(
+        "atomic write detected: %s (old ino=%d, new ino=%d)",
+        entry.path,
+        existingByPath.fs_ino,
+        entry.ino,
+      );
       ops.push({
         type: "update",
         nodeId: existingByPath.id,
@@ -106,8 +132,10 @@ export function reconcileDirectory(
         ino: entry.ino,
         mtime: entry.mtime,
       });
-    } else if (entry.mtime !== existingByPath.fs_mtime) {
+    } else if (entry.mtime !== existingByPath.fs_mtime && !entry.isDirectory) {
       // Modified (mtime changed - works for both forward and backward time changes)
+      // Skip directories - their mtime changes when any file inside changes,
+      // which is handled separately. We only care about .md file content changes.
       ops.push({
         type: "update",
         nodeId: existingByPath.id,
@@ -134,7 +162,11 @@ export function reconcileDirectory(
   }
 
   if (ops.length > 0) {
-    debug("generated %d ops: %O", ops.length, ops.map(o => ({ type: o.type, path: o.path })));
+    debug(
+      "generated %d ops: %O",
+      ops.length,
+      ops.map((o) => ({ type: o.type, path: o.path })),
+    );
   }
 
   return ops;
@@ -148,17 +180,27 @@ export function reconcileDirectoryRecursive(
   dirPath: string,
   vaultRoot: string,
   ignorePatterns?: string[],
+  scanner?: DirectoryScanner,
 ): ReconcileOp[] {
   const ops: ReconcileOp[] = [];
 
   // Reconcile this directory
-  ops.push(...reconcileDirectory(dirPath, vaultRoot, ignorePatterns));
+  ops.push(...reconcileDirectory(dirPath, vaultRoot, ignorePatterns, scanner));
 
   // Get subdirectories and recursively reconcile them
-  const fsEntries = scanDirectory(dirPath, ignorePatterns);
+  const fsEntries = scanner
+    ? scanner(dirPath, ignorePatterns)
+    : scanDirectory(dirPath, ignorePatterns);
   for (const entry of fsEntries) {
     if (entry.isDirectory) {
-      ops.push(...reconcileDirectoryRecursive(entry.path, vaultRoot, ignorePatterns));
+      ops.push(
+        ...reconcileDirectoryRecursive(
+          entry.path,
+          vaultRoot,
+          ignorePatterns,
+          scanner,
+        ),
+      );
     }
   }
 
@@ -171,6 +213,7 @@ export function reconcileDirectoryRecursive(
 export async function applyReconcileOps(
   ops: ReconcileOp[],
   vaultRoot: string,
+  fs: FileSystemOps = realFs,
 ): Promise<void> {
   debug("applying %d reconcile ops", ops.length);
   const start = Date.now();
@@ -179,10 +222,10 @@ export async function applyReconcileOps(
     debug("applying op: %s %s", op.type, op.path);
     switch (op.type) {
       case "create":
-        await handleCreate(op, vaultRoot);
+        await handleCreate(op, vaultRoot, fs);
         break;
       case "update":
-        await handleUpdate(op, vaultRoot);
+        await handleUpdate(op, vaultRoot, fs);
         break;
       case "rename":
         await handleRename(op);
@@ -200,7 +243,11 @@ export async function applyReconcileOps(
  * Ensure all ancestor folders exist as nodes, creating them if needed.
  * Returns the ID of the immediate parent folder node.
  */
-function ensureFolderHierarchy(path: string, vaultRoot: string): string | null {
+function ensureFolderHierarchy(
+  path: string,
+  vaultRoot: string,
+  fs: FileSystemOps = realFs,
+): string | null {
   const parentPath = dirname(path);
 
   // If we're at or above the vault root, no parent
@@ -219,11 +266,11 @@ function ensureFolderHierarchy(path: string, vaultRoot: string): string | null {
   }
 
   // Recursively ensure grandparent exists first
-  const grandparentId = ensureFolderHierarchy(parentPath, vaultRoot);
+  const grandparentId = ensureFolderHierarchy(parentPath, vaultRoot, fs);
 
   // Create the parent folder node
   try {
-    const stat = statSync(parentPath);
+    const stat = fs.statSync!(parentPath);
     const folderId = ulid();
     emitNodeCreated("fs-watch", {
       id: folderId,
@@ -245,11 +292,15 @@ function ensureFolderHierarchy(path: string, vaultRoot: string): string | null {
 /**
  * Handle new file/folder creation
  */
-async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
-  const stat = statSync(op.path);
+async function handleCreate(
+  op: ReconcileOp,
+  vaultRoot: string,
+  fs: FileSystemOps = realFs,
+): Promise<void> {
+  const stat = fs.statSync!(op.path);
 
   // Ensure all parent folders exist as nodes
-  const parentId = ensureFolderHierarchy(op.path, vaultRoot);
+  const parentId = ensureFolderHierarchy(op.path, vaultRoot, fs);
 
   if (stat.isDirectory()) {
     // Create folder node
@@ -265,7 +316,7 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     });
   } else if (op.path.endsWith(".md")) {
     // Parse markdown file and create nodes with wikilinks
-    const content = readFileSync(op.path, "utf-8");
+    const content = fs.readFileSync!(op.path, "utf-8");
     const { nodes, wikilinks } = parseMarkdownWithLinks(
       content,
       op.path,
@@ -305,6 +356,19 @@ async function handleCreate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     if (fileNode) {
       resolveLinks(fileNode.id, fileName);
     }
+  } else {
+    // Non-markdown file - create simple file node
+    emitNodeCreated("fs-watch", {
+      id: ulid(),
+      type: "file",
+      fs_path: op.path,
+      fs_ino: op.ino,
+      fs_mtime: op.mtime ?? stat.mtimeMs,
+      parent_id: parentId,
+      name: basename(op.path),
+      content: basename(op.path),
+      data: { name: basename(op.path) },
+    });
   }
 }
 
@@ -314,12 +378,26 @@ const findNodeByName = findFileByName;
 /**
  * Handle file modification
  */
-async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
-  if (!op.nodeId || !op.path.endsWith(".md")) {
+async function handleUpdate(
+  op: ReconcileOp,
+  _vaultRoot: string,
+  fs: FileSystemOps = realFs,
+): Promise<void> {
+  if (!op.nodeId) {
     return;
   }
 
-  const content = readFileSync(op.path, "utf-8");
+  // For non-.md files, just update mtime/ino tracking
+  if (!op.path.endsWith(".md")) {
+    const updates: Record<string, unknown> = { fs_mtime: op.mtime };
+    if (op.ino !== undefined) {
+      updates.fs_ino = op.ino;
+    }
+    emitNodeUpdated("fs-watch", op.nodeId, updates);
+    return;
+  }
+
+  const content = fs.readFileSync!(op.path, "utf-8");
   const contentHash = hashContent(content);
 
   // Use km-storage abstraction to get content hash
@@ -332,10 +410,18 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
 
   // Get existing nodes for this file using km-storage abstraction
   const existingNodes = getFileWithChildren(op.path);
-  debug("handleUpdate: existing nodes count=%d, ids=%O", existingNodes.length, existingNodes.map(n => ({ id: n.id, type: n.type, parent_idx: n.parent_idx })));
+  debug(
+    "handleUpdate: existing nodes count=%d, ids=%O",
+    existingNodes.length,
+    existingNodes.map((n) => ({
+      id: n.id,
+      type: n.type,
+      parent_idx: n.parent_idx,
+    })),
+  );
 
   // Parse new content with wikilinks
-  const stat = statSync(op.path);
+  const stat = fs.statSync!(op.path);
   const newMtime = op.mtime ?? stat.mtimeMs;
   const { nodes: newNodes, wikilinks } = parseMarkdownWithLinks(
     content,
@@ -343,11 +429,18 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
     stat.ino,
     newMtime,
   );
-  debug("handleUpdate: new nodes count=%d, ids=%O", newNodes.length, newNodes.map(n => ({ id: n.id, type: n.type, parent_idx: n.parent_idx })));
+  debug(
+    "handleUpdate: new nodes count=%d, ids=%O",
+    newNodes.length,
+    newNodes.map((n) => ({ id: n.id, type: n.type, parent_idx: n.parent_idx })),
+  );
 
   // Diff and emit changes
   const { changes, idMap } = diffNodes(existingNodes, newNodes);
-  debug("handleUpdate: changes=%O", changes.map(c => ({ type: c.type, nodeId: c.nodeId, node: c.node?.id })));
+  debug(
+    "handleUpdate: changes=%O",
+    changes.map((c) => ({ type: c.type, nodeId: c.nodeId, node: c.node?.id })),
+  );
   debug("handleUpdate: idMap (new→existing)=%O", Object.fromEntries(idMap));
 
   for (const change of changes) {
@@ -383,7 +476,10 @@ async function handleUpdate(op: ReconcileOp, vaultRoot: string): Promise<void> {
 
   // Update wikilinks: remove old links from EXISTING nodes (not new ones)
   // Note: newNodes have brand new IDs, so we need to use existingNodes for removal
-  debug("handleUpdate: removing links from existing nodes: %O", existingNodes.map(n => n.id));
+  debug(
+    "handleUpdate: removing links from existing nodes: %O",
+    existingNodes.map((n) => n.id),
+  );
   for (const node of existingNodes) {
     removeLinksFromSource(node.id);
   }
@@ -473,7 +569,9 @@ function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
     if (node.type === "file") continue;
 
     // Remap parent_id for key lookup
-    const remappedParentId = node.parent_id ? (idMap.get(node.parent_id) ?? node.parent_id) : null;
+    const remappedParentId = node.parent_id
+      ? (idMap.get(node.parent_id) ?? node.parent_id)
+      : null;
     const key = `${remappedParentId ?? "root"}:${node.parent_idx ?? 0}:${node.type}`;
 
     const existingNode = existingByKey.get(key);
