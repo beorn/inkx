@@ -1554,54 +1554,61 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               <HelpOverlay width={termWidth} height={contentHeight} />
             )}
           </Box>
-          {/* Bottom bar: single text with all info */}
-          <Box flexDirection="row" flexShrink={0} width={termWidth}>
-            <Text dimColor wrap="truncate-end">
-              {(() => {
-                const store = getStore();
-                const repoPath = store.rootPath || "";
+          {/* Bottom bar: left (truncatable) + right (fixed) */}
+          {(() => {
+            const store = getStore();
+            const repoPath = store.rootPath || "";
 
-                // Build status parts
-                const statusParts: string[] = [];
+            // Build status parts (middle)
+            const statusParts: string[] = [];
+            if (ui.showHelp) statusParts.push("[?]");
+            if (ui.showProjectPicker) statusParts.push("[PROJ]");
+            if (ui.showNewItemDialog) statusParts.push("[NEW]");
+            if (ui.showDropNotification && ui.droppedFiles.length > 0) {
+              statusParts.push(`[Drop:${ui.droppedFiles.length}]`);
+            }
+            if (ui.isMouseDragging && ui.mouseSelection) {
+              statusParts.push("[Sel]");
+            }
+            if (ui.multiSelected.size > 0) {
+              statusParts.push(`[${ui.multiSelected.size}]`);
+            }
+            if (ui.inOutlineMode) statusParts.push("OUT");
 
-                // Modal indicators
-                if (ui.showHelp) statusParts.push("[?]");
-                if (ui.showProjectPicker) statusParts.push("[PROJ]");
-                if (ui.showNewItemDialog) statusParts.push("[NEW]");
-                if (ui.showDropNotification && ui.droppedFiles.length > 0) {
-                  statusParts.push(`[Drop:${ui.droppedFiles.length}]`);
-                }
-                if (ui.isMouseDragging && ui.mouseSelection) {
-                  statusParts.push("[Sel]");
-                }
-                if (ui.multiSelected.size > 0) {
-                  statusParts.push(`[${ui.multiSelected.size}]`);
-                }
-                if (ui.inOutlineMode) statusParts.push("OUT");
+            // Right side info (always visible)
+            const rightParts: string[] = [];
+            if (ui.watcherStatus) {
+              rightParts.push(renderWatcherStatus(ui.watcherStatus));
+            }
+            // Show column position (only meaningful in columns view)
+            if (ui.viewMode === "columns" && state.columns.length > 1) {
+              rightParts.push(`${state.colIndex + 1}/${state.columns.length}`);
+            }
+            // Always show view mode
+            const viewModeStr = ui.viewMode?.toUpperCase() ?? "CARDS";
+            rightParts.push(viewModeStr);
 
-                // Right side info
-                const rightParts: string[] = [];
-                if (ui.watcherStatus) {
-                  rightParts.push(renderWatcherStatus(ui.watcherStatus));
-                }
-                if (state.columns.length > 1) {
-                  rightParts.push(`${state.colIndex + 1}/${state.columns.length}`);
-                }
-                rightParts.push(ui.viewMode.toUpperCase());
+            const left = store.mode === "memory" ? `MEM ${repoPath}` : repoPath;
+            const middle = statusParts.join(" ");
+            const right = ` ${rightParts.join(" ")} `;
 
-                // Combine: path | status | right
-                const left = store.mode === "memory" ? `MEM ${repoPath}` : repoPath;
-                const middle = statusParts.join(" ");
-                const right = rightParts.join(" ");
+            // Calculate widths: right side is fixed, left gets remaining space
+            const rightWidth = right.length;
+            const leftWidth = Math.max(1, termWidth - rightWidth);
 
-                // Build the line with spacing
-                if (middle) {
-                  return ` ${left}  ${middle}  ${right} `;
-                }
-                return ` ${left}  ${right} `;
-              })()}
-            </Text>
-          </Box>
+            return (
+              <Box flexDirection="row" flexShrink={0} width={termWidth}>
+                <Box width={leftWidth} flexShrink={0}>
+                  <Text dimColor wrap="truncate-end">
+                    {middle ? ` ${left}  ${middle}` : ` ${left}`}
+                  </Text>
+                </Box>
+                <Box width={rightWidth} flexShrink={0}>
+                  <Text dimColor>{right}</Text>
+                </Box>
+              </Box>
+            );
+          })()}
         </Box>
       </UIProvider>
     </ConstraintRoot>
