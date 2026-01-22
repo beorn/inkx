@@ -2,7 +2,7 @@
  * Ink-based Board TUI Component
  * Full-screen board view with columns and cards
  */
-import React, { useEffect, useReducer, useMemo } from "react";
+import React, { useEffect, useReducer, useMemo, useRef } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "inkx";
 import chalk from "chalk";
 import { hyperlink } from "@beorn/chalkx";
@@ -151,6 +151,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     boardReducer,
     initialTreeState,
   );
+
+  // Ref to track current rootId for event handlers (avoids stale closure)
+  const rootIdRef = useRef(boardState.rootId);
+  useEffect(() => {
+    rootIdRef.current = boardState.rootId;
+  }, [boardState.rootId]);
 
   // Derive column layout from tree state for rendering
   // This bridges the tree-based boardReducer to column-based rendering
@@ -1749,10 +1755,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     const handleRefresh = () => {
       // Rebuild tree nodes from database (which was updated by sync manager)
       // Use shallow loading (false) to only refresh metadata, preserving loaded children
-      if (boardState.rootId) {
-        const nodes = buildTreeNodes(boardState.rootId, false);
-        dispatchBoard({ type: "REFRESH", nodes });
-      }
+      // Uses rootIdRef to get current rootId (avoids stale closure from useEffect deps)
+      // Note: rootIdRef.current can be null for root-level view, which is valid
+      const nodes = buildTreeNodes(rootIdRef.current, false);
+      dispatchBoard({ type: "REFRESH", nodes });
     };
 
     tuiEvents.on("refresh", handleRefresh);

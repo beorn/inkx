@@ -496,6 +496,158 @@ describe.serial("reconcile.ts", () => {
     });
   });
 
+  describe("TUI refresh scenario", () => {
+    test("folder children remain visible after file touch in subfolder", async () => {
+      // This test simulates the TUI bug where:
+      // 1. User views a subfolder (e.g., issue/)
+      // 2. A file inside is touched
+      // 3. After watcher syncs, the folder's children should still be visible
+
+      // Create folder structure: vault/issue/task1.md, vault/issue/task2.md
+      const issueFolder = join(VAULT_DIR, "issue");
+      mkdirSync(issueFolder);
+
+      const task1Path = join(issueFolder, "task1.md");
+      const task2Path = join(issueFolder, "task2.md");
+      writeFileSync(task1Path, "# Task 1\n\n- [ ] Do something");
+      writeFileSync(task2Path, "# Task 2\n\n- [ ] Do something else");
+
+      // Initial sync - first the root folder
+      const rootOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);
+      await applyReconcileOps(rootOps, VAULT_DIR);
+      rebuildState();
+
+      // Then the issue folder contents
+      const issueOps = reconcileDirectory(issueFolder, VAULT_DIR);
+      await applyReconcileOps(issueOps, VAULT_DIR);
+      rebuildState();
+
+      // Get the folder node - this is what TUI uses as rootId
+      const folderNode = getNodeByPath(issueFolder);
+      expect(folderNode).not.toBeNull();
+      const folderId = folderNode!.id;
+
+      // Verify folder has children (what TUI displays as columns)
+      const childrenBefore = getChildren(folderId);
+      expect(childrenBefore.length).toBe(2);
+
+      // Simulate "touch" on one of the files - just change mtime
+      const futureTime = new Date(Date.now() + 1000);
+      utimesSync(task1Path, futureTime, futureTime);
+
+      // Reconcile again (this is what watcher triggers)
+      const updateOps = reconcileDirectory(issueFolder, VAULT_DIR);
+
+      // Should detect an update for task1.md
+      expect(updateOps.length).toBe(1);
+      expect(updateOps[0]?.type).toBe("update");
+
+      // Apply the reconcile operations
+      await applyReconcileOps(updateOps, VAULT_DIR);
+      rebuildState();
+
+      // KEY CHECK: folder node should still exist with same ID
+      const folderNodeAfter = getNodeByPath(issueFolder);
+      expect(folderNodeAfter).not.toBeNull();
+      expect(folderNodeAfter!.id).toBe(folderId);
+
+      // KEY CHECK: folder should still have children
+      const childrenAfter = getChildren(folderId);
+      expect(childrenAfter.length).toBe(2);
+
+      // All child nodes should have their parent_id pointing to the folder
+      for (const child of childrenAfter) {
+        expect(child.parent_id).toBe(folderId);
+      }
+    });
+
+    test("nested tasks remain visible after parent file touch", async () => {
+      // This tests a deeper scenario: file → section → tasks
+      // Touching the file should preserve the entire nested structure
+
+      const issueFolder = join(VAULT_DIR, "issue");
+      mkdirSync(issueFolder);
+
+      const taskPath = join(issueFolder, "project.md");
+      writeFileSync(
+        taskPath,
+        `# Project
+
+## Open
+
+- [ ] Task A
+- [ ] Task B
+
+## Done
+
+- [x] Task C
+`,
+      );
+
+      // Sync
+      const rootOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);
+      await applyReconcileOps(rootOps, VAULT_DIR);
+      rebuildState();
+
+      const issueOps = reconcileDirectory(issueFolder, VAULT_DIR);
+      await applyReconcileOps(issueOps, VAULT_DIR);
+      rebuildState();
+
+      // Get folder and verify structure
+      const folderNode = getNodeByPath(issueFolder);
+      expect(folderNode).not.toBeNull();
+      const folderId = folderNode!.id;
+
+      const fileNodes = getChildren(folderId);
+      expect(fileNodes.length).toBe(1);
+
+      const fileNode = fileNodes[0];
+      expect(fileNode?.type).toBe("file");
+
+      // File should have sections as children
+      const sections = getChildren(fileNode!.id);
+      expect(sections.length).toBe(2);
+
+      // Get total task count across all sections
+      let totalTasksBefore = 0;
+      for (const section of sections) {
+        const tasks = getChildren(section.id).filter((n) => n.type === "task");
+        totalTasksBefore += tasks.length;
+      }
+      expect(totalTasksBefore).toBe(3);
+
+      // Touch the file
+      const futureTime = new Date(Date.now() + 1000);
+      utimesSync(taskPath, futureTime, futureTime);
+
+      // Reconcile
+      const updateOps = reconcileDirectory(issueFolder, VAULT_DIR);
+      expect(updateOps.length).toBe(1);
+      expect(updateOps[0]?.type).toBe("update");
+
+      await applyReconcileOps(updateOps, VAULT_DIR);
+      rebuildState();
+
+      // Verify entire structure preserved
+      const folderNodeAfter = getNodeByPath(issueFolder);
+      expect(folderNodeAfter!.id).toBe(folderId);
+
+      const fileNodesAfter = getChildren(folderId);
+      expect(fileNodesAfter.length).toBe(1);
+      expect(fileNodesAfter[0]!.id).toBe(fileNode!.id);
+
+      const sectionsAfter = getChildren(fileNodesAfter[0]!.id);
+      expect(sectionsAfter.length).toBe(2);
+
+      let totalTasksAfter = 0;
+      for (const section of sectionsAfter) {
+        const tasks = getChildren(section.id).filter((n) => n.type === "task");
+        totalTasksAfter += tasks.length;
+      }
+      expect(totalTasksAfter).toBe(3);
+    });
+  });
+
   describe("getParentNodeId", () => {
     test("returns null for vault root files", async () => {
       // Create a file at vault root
