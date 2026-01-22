@@ -49,6 +49,7 @@ export {
   searchWithSnippet,
   getLastEventId,
   getAllNodes,
+  getNodeCount,
   rowToNode,
   type SearchResult,
 } from "./db-queries.ts";

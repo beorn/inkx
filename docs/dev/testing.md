@@ -194,6 +194,62 @@ Is it a pure function?
 
 ---
 
+## Debugging TUI Issues
+
+**Preferred method: DEBUG_LOG + Visual Inspection**
+
+For investigating TUI bugs, combine debug logging with visual inspection:
+
+```bash
+# Terminal 1: Run TUI with debug logging to file
+DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
+
+# Terminal 2: Watch the debug log
+tail -f /tmp/km.log
+```
+
+This approach captures:
+
+| What you see | What you learn |
+| ------------ | -------------- |
+| TUI renders | Visual state at each moment |
+| Debug log | State transitions, events, timing |
+| Correlation | Match visual changes to log events |
+
+**Example debugging session (watcher bug):**
+
+```bash
+# User reports: "issues disappear after watcher syncs"
+
+# 1. Run with debug logging
+DEBUG=km:storage:watch:* DEBUG_LOG=/tmp/km.log bun km view @issue.md
+
+# 2. Watch log for clues
+tail -f /tmp/km.log
+
+# 3. Trigger the bug (edit a file externally)
+
+# 4. Log reveals:
+#    worker: fs event: change /Users/.../km/.git/FETCH_HEAD
+#    → .git files being processed despite ignore patterns!
+```
+
+**When to use DEBUG_LOG + visual inspection:**
+
+- "Why did X happen?" bugs - see the sequence of events
+- Performance issues - timing visible in logs
+- State bugs - state transitions logged
+- Watcher/sync issues - file events and reconciliation visible
+
+**Alternative: tmux debug mode**
+
+```bash
+bun debug view /path/to/vault
+# Opens tmux: TUI on left, debug log on right
+```
+
+---
+
 ## See Also
 
 - [../02-architecture.md](../02-architecture.md) — Layer responsibilities

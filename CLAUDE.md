@@ -338,14 +338,37 @@ bun debug view /path/to/vault
 - Error conditions (before throwing)
 - Data flow boundaries (counts, sizes)
 
-### 13. Visual Testing
+### 13. Visual Testing & TUI Debugging
 
-**MANDATORY: Use ttyd + Playwright.** This is the ONLY approved method for visual testing.
+**Preferred method: DEBUG_LOG + Visual Inspection**
 
-See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for full documentation.
+For debugging TUI issues, combine debug logging with visual inspection to see both what the code is doing AND how it renders:
 
 ```bash
-# Always use a small test vault for faster loading
+# Terminal 1: Run TUI with debug logging to file
+DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
+
+# Terminal 2: Watch the debug log
+tail -f /tmp/km.log
+```
+
+This gives you:
+- **Visual feedback** - See exactly what the TUI renders
+- **Debug output** - See state transitions, events, timing
+- **Correlation** - Match visual changes to log events
+
+**When to use this method:**
+- Investigating "why did X happen?" bugs (like issues disappearing after watcher sync)
+- Performance issues (timing info in logs)
+- State management bugs (state transitions visible in logs)
+- Any bug where you need to understand the sequence of events
+
+**For headless visual capture (CI, automated tests):**
+
+See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for ttyd + Playwright.
+
+```bash
+# Small test vault for faster loading
 rm -rf /tmp/test-vault && mkdir -p /tmp/test-vault
 echo -e "# Test\n- [ ] Task 1\n- [x] Task 2" > /tmp/test-vault/test.md
 

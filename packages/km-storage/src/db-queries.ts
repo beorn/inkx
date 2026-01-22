@@ -826,6 +826,15 @@ export function getAllNodes(): KNode[] {
   return rows.map(rowToNode);
 }
 
+/**
+ * Get total count of nodes in the database
+ */
+export function getNodeCount(): number {
+  const db = getDb();
+  const result = db.query("SELECT COUNT(*) as count FROM nodes").get() as { count: number };
+  return result.count;
+}
+
 // =============================================================================
 // Row Conversion
 // =============================================================================

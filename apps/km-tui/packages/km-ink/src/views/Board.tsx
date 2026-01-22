@@ -22,6 +22,7 @@ import {
   getAncestors,
   getChildren,
   getNode,
+  getNodeCount,
   getStore,
   updateNode,
   deleteNode,
@@ -1583,8 +1584,12 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
             // Right side info (always visible) - use double space separator
             const rightParts: string[] = [];
+            // Show DB node count and watcher status together
+            const dbCount = getNodeCount();
             if (ui.watcherStatus) {
-              rightParts.push(renderWatcherStatus(ui.watcherStatus));
+              rightParts.push(`${dbCount} nodes, ${renderWatcherStatus(ui.watcherStatus)}`);
+            } else {
+              rightParts.push(`${dbCount} nodes`);
             }
             // Show column position (only meaningful in columns view)
             if (ui.viewMode === "columns" && state.columns.length > 1) {

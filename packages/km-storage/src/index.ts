@@ -34,6 +34,7 @@ export {
   toFts5Query,
   getLastEventId,
   getAllNodes,
+  getNodeCount,
   addLink,
   removeLinksFromSource,
   getOutgoingLinks,
