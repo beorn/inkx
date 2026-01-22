@@ -136,15 +136,15 @@ function TreeNodeImpl({
     currentSubIndex,
     variant,
   } = useTreeConfig();
-  const foldedNodes = useUISelector((state) => state.foldedNodes);
-  const multiSelected = useUISelector((state) => state.multiSelected);
   const rootBoardId = useRootBoardId();
   const excludedSigils = useExcludedSigils();
   const sigilColors = useSigilColors();
 
-  // Compute derived state from context
+  // Select only the specific boolean values we need, not entire Sets
+  // This prevents re-renders when other nodes' selection/fold state changes
   const selectionKey = makeSelectionKey(colIndex, cardIndex, subIndex);
-  const isMultiSelected = multiSelected.has(selectionKey);
+  const isMultiSelected = useUISelector((state) => state.multiSelected.has(selectionKey));
+  const isFolded = useUISelector((state) => state.foldedNodes.has(node.id));
   const excludeBoardIds = rootBoardId
     ? new Set([rootBoardId])
     : new Set<string>();
@@ -154,7 +154,6 @@ function TreeNodeImpl({
   const resolvedGetChildren = getChildrenProp ?? getChildrenFromStorage;
   const children = childrenProp ?? resolvedGetChildren(node.id);
   const hasChildren = children.length > 0;
-  const isFolded = foldedNodes.has(node.id);
   const isEmbedded = node.link_to != null;
   // A node is a task if it has task_status set, regardless of structural type
   const isTask = node.task_status != null;
