@@ -132,6 +132,17 @@ bun run test:fast    # Run this frequently - 4 second feedback loop
 
 When creating a new package under `packages/`:
 
+**Vendor Packages (`vendor/`):**
+
+Packages in `vendor/` are standalone libraries that could be useful outside km. When creating a new vendor package:
+
+1. **Create as git submodule** - Never commit vendor code directly to km
+2. **Create public GitHub repo** - `gh repo create beorn/<name> --public`
+3. **Add as submodule** - `git submodule add git@github.com:beorn/<name>.git vendor/beorn-<name>`
+4. **Push both repos** - Push the new repo, then commit the submodule reference in km
+
+**Internal Packages (`packages/`):**
+
 **Before Merging:**
 
 1. **Tests exist** - At minimum, test public API functions. No package ships with 0 tests.
