@@ -357,6 +357,145 @@ describe.serial("reconcile.ts", () => {
     });
   });
 
+  describe("update preserves nested nodes", () => {
+    test("file update does not duplicate or delete nested tasks", async () => {
+      // Create a file with nested structure: file → section → tasks
+      const filePath = join(VAULT_DIR, "nested-tasks.md");
+      const originalContent = `# Board
+
+## Open
+
+- [ ] Task 1
+- [ ] Task 2
+
+## Done
+
+- [x] Task 3
+`;
+      writeFileSync(filePath, originalContent);
+
+      // Initial sync
+      const createOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);
+      expect(createOps.length).toBe(1);
+      await applyReconcileOps(createOps, VAULT_DIR);
+      rebuildState();
+
+      // Verify initial structure
+      const fileNode = getNodeByPath(filePath);
+      expect(fileNode).not.toBeNull();
+      const allChildren = getChildren(fileNode!.id);
+
+      // Should have sections as children (H2)
+      const sections = allChildren.filter((n) => n.type === "section");
+      expect(sections.length).toBe(2);
+
+      // Each section should have tasks
+      const openSection = sections.find((s) => s.content?.includes("Open"));
+      expect(openSection).toBeDefined();
+      const openTasks = getChildren(openSection!.id);
+      expect(openTasks.filter((t) => t.type === "task").length).toBe(2);
+
+      // Record the original node count
+      const { getNodeCount } = await import("../../src/db-queries.ts");
+      const originalNodeCount = getNodeCount();
+
+      // Now trigger an update (touch the file to change mtime)
+      const futureTime = new Date(Date.now() + 1000);
+      utimesSync(filePath, futureTime, futureTime);
+
+      // Reconcile - should detect an update
+      const updateOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);
+      expect(updateOps.length).toBe(1);
+      expect(updateOps[0]?.type).toBe("update");
+
+      // Apply the update
+      await applyReconcileOps(updateOps, VAULT_DIR);
+      rebuildState();
+
+      // Node count should be the same (no duplicates, no deletions)
+      const newNodeCount = getNodeCount();
+      expect(newNodeCount).toBe(originalNodeCount);
+
+      // All structure should be preserved
+      const fileNodeAfter = getNodeByPath(filePath);
+      expect(fileNodeAfter).not.toBeNull();
+      expect(fileNodeAfter!.id).toBe(fileNode!.id); // Same ID
+
+      const sectionsAfter = getChildren(fileNodeAfter!.id).filter(
+        (n) => n.type === "section",
+      );
+      expect(sectionsAfter.length).toBe(2);
+
+      const openSectionAfter = sectionsAfter.find((s) =>
+        s.content?.includes("Open"),
+      );
+      expect(openSectionAfter).toBeDefined();
+      const openTasksAfter = getChildren(openSectionAfter!.id);
+      expect(openTasksAfter.filter((t) => t.type === "task").length).toBe(2);
+    });
+
+    test("file update with content change correctly diffs nodes", async () => {
+      // Create a file with tasks
+      const filePath = join(VAULT_DIR, "diff-test.md");
+      const originalContent = `# Test
+
+- [ ] Task A
+- [ ] Task B
+`;
+      writeFileSync(filePath, originalContent);
+
+      // Initial sync
+      const createOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);
+      await applyReconcileOps(createOps, VAULT_DIR);
+      rebuildState();
+
+      // Get original task IDs
+      const fileNode = getNodeByPath(filePath);
+      const originalTasks = getChildren(fileNode!.id).filter(
+        (n) => n.type === "task",
+      );
+      expect(originalTasks.length).toBe(2);
+      const taskAId = originalTasks.find((t) => t.content?.includes("Task A"))?.id;
+      const taskBId = originalTasks.find((t) => t.content?.includes("Task B"))?.id;
+      expect(taskAId).toBeDefined();
+      expect(taskBId).toBeDefined();
+
+      // Update the file - change Task A content, keep Task B
+      const modifiedContent = `# Test
+
+- [ ] Task A Modified
+- [ ] Task B
+`;
+      writeFileSync(filePath, modifiedContent);
+
+      // Trigger update
+      const updateOps = reconcileDirectory(VAULT_DIR, VAULT_DIR);
+      expect(updateOps.length).toBe(1);
+      expect(updateOps[0]?.type).toBe("update");
+
+      await applyReconcileOps(updateOps, VAULT_DIR);
+      rebuildState();
+
+      // Task A should be updated (same ID, new content)
+      // Task B should be unchanged
+      const fileNodeAfter = getNodeByPath(filePath);
+      const tasksAfter = getChildren(fileNodeAfter!.id).filter(
+        (n) => n.type === "task",
+      );
+      expect(tasksAfter.length).toBe(2);
+
+      const taskAAfter = tasksAfter.find((t) =>
+        t.content?.includes("Task A Modified"),
+      );
+      const taskBAfter = tasksAfter.find((t) => t.content?.includes("Task B"));
+
+      expect(taskAAfter).toBeDefined();
+      expect(taskBAfter).toBeDefined();
+      expect(taskAAfter!.id).toBe(taskAId!); // Same ID
+      expect(taskBAfter!.id).toBe(taskBId!); // Same ID
+    });
+  });
+
   describe("getParentNodeId", () => {
     test("returns null for vault root files", async () => {
       // Create a file at vault root

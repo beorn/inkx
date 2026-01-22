@@ -384,38 +384,58 @@ interface NodeChange {
   changes?: Record<string, unknown>;
 }
 
+/**
+ * Match nodes by structural position (parent_id + parent_idx + type).
+ * This is more stable than md_pos which shifts when content changes.
+ */
+function makeStructuralKey(node: KNode): string {
+  return `${node.parent_id ?? "root"}:${node.parent_idx ?? 0}:${node.type}`;
+}
+
 function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
   const changes: NodeChange[] = [];
 
-  // Index existing by position (for matching)
-  const existingByPos = new Map<number, KNode>();
+  // Index existing by structural key (parent + index + type)
+  const existingByKey = new Map<string, KNode>();
   for (const node of existing) {
-    if (node.md_pos !== undefined) {
-      existingByPos.set(node.md_pos, node);
-    }
+    const key = makeStructuralKey(node);
+    existingByKey.set(key, node);
   }
 
-  // Index new by position
-  const newByPos = new Map<number, KNode>();
-  for (const node of newNodes) {
-    if (node.md_pos !== undefined) {
-      newByPos.set(node.md_pos, node);
-    }
+  // Map from new node IDs to existing node IDs (for parent_id remapping)
+  const idMap = new Map<string, string>();
+
+  // First pass: match file nodes by type (always root)
+  const existingFile = existing.find((n) => n.type === "file");
+  const newFile = newNodes.find((n) => n.type === "file");
+  if (existingFile && newFile) {
+    idMap.set(newFile.id, existingFile.id);
   }
 
-  // Find created/updated nodes
+  // Process non-file nodes with remapped parent IDs
   for (const node of newNodes) {
-    if (node.md_pos === undefined) continue;
+    if (node.type === "file") continue;
 
-    const existingNode = existingByPos.get(node.md_pos);
+    // Remap parent_id for key lookup
+    const remappedParentId = node.parent_id ? (idMap.get(node.parent_id) ?? node.parent_id) : null;
+    const key = `${remappedParentId ?? "root"}:${node.parent_idx ?? 0}:${node.type}`;
+
+    const existingNode = existingByKey.get(key);
 
     if (!existingNode) {
-      // New node
+      // New node - need to remap its parent_id to existing parent
+      const nodeToCreate = { ...node };
+      if (nodeToCreate.parent_id && idMap.has(nodeToCreate.parent_id)) {
+        nodeToCreate.parent_id = idMap.get(nodeToCreate.parent_id)!;
+      }
       changes.push({
         type: "created",
-        node,
+        node: nodeToCreate,
       });
     } else {
+      // Map new ID to existing ID for child nodes
+      idMap.set(node.id, existingNode.id);
+
       // Check for changes
       const nodeChanges: Record<string, unknown> = {};
 
@@ -434,6 +454,10 @@ function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
       if (newData !== existingData) {
         nodeChanges.data = node.data;
       }
+      // Update md_pos since it may have shifted
+      if (node.md_pos !== existingNode.md_pos) {
+        nodeChanges.md_pos = node.md_pos;
+      }
 
       if (Object.keys(nodeChanges).length > 0) {
         changes.push({
@@ -443,12 +467,40 @@ function diffNodes(existing: KNode[], newNodes: KNode[]): NodeChange[] {
         });
       }
 
-      existingByPos.delete(node.md_pos);
+      existingByKey.delete(key);
     }
   }
 
+  // Handle file node updates
+  if (existingFile && newFile) {
+    const nodeChanges: Record<string, unknown> = {};
+    if (newFile.content !== existingFile.content) {
+      nodeChanges.content = newFile.content;
+    }
+    if (newFile.title !== existingFile.title) {
+      nodeChanges.title = newFile.title;
+    }
+    const newData = JSON.stringify(newFile.data ?? {});
+    const existingData = JSON.stringify(existingFile.data ?? {});
+    if (newData !== existingData) {
+      nodeChanges.data = newFile.data;
+    }
+    if (Object.keys(nodeChanges).length > 0) {
+      changes.push({
+        type: "updated",
+        nodeId: existingFile.id,
+        changes: nodeChanges,
+      });
+    }
+    // Remove file from remaining check
+    const fileKey = makeStructuralKey(existingFile);
+    existingByKey.delete(fileKey);
+  }
+
   // Remaining existing nodes were deleted
-  for (const [, node] of existingByPos) {
+  for (const [, node] of existingByKey) {
+    // Don't delete file nodes
+    if (node.type === "file") continue;
     changes.push({
       type: "deleted",
       nodeId: node.id,
