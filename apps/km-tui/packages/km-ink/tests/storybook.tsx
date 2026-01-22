@@ -32,7 +32,7 @@
 import React from "react";
 import { createTestRenderer } from "inkx/testing";
 
-const render = createTestRenderer({ rows: 500 });
+const render = createTestRenderer({ columns: 120, rows: 500 });
 import { Box, Text } from "inkx";
 import chalk from "chalk";
 
@@ -974,6 +974,7 @@ function ViewBox({
   return (
     <Box
       flexDirection="column"
+      width={100}
       borderStyle="double"
       borderColor="magenta"
       marginY={1}
