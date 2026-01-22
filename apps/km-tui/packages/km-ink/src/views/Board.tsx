@@ -1598,9 +1598,10 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
             const viewModeStr = (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW";
             rightParts.push(viewModeStr);
 
-            // Left side: storage mode + REPO + path (single group)
-            const modeLabel = store.mode === "memory" ? "MEM REPO" : "DISK REPO";
-            const left = `${modeLabel} ${displayPath}`;
+            // Left side: storage mode + folder icon + path
+            // 📁 = folder icon for vault/repo path
+            const modeLabel = store.mode === "memory" ? "MEM" : "DISK";
+            const left = `${modeLabel} 📁${displayPath}`;
             const middle = statusParts.join("  "); // Double space between status parts
             const right = ` ${rightParts.join("   ")} `; // Triple space between groups
 
