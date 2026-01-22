@@ -71,9 +71,27 @@ function createStandardBoard(): TNode[] {
 }
 
 function createState(cursor: number[], nodes?: TNode[]): BoardState {
+  const nodeTree = nodes ?? createStandardBoard();
+  const base = createBoardState(nodeTree, "root");
+
+  // Derive cursorNodeId from cursor path
+  let cursorNodeId: string | null = null;
+  if (cursor.length > 0) {
+    let currentNodes = nodeTree;
+    for (let i = 0; i < cursor.length; i++) {
+      const idx = cursor[i];
+      if (idx === undefined || idx >= currentNodes.length) break;
+      const node = currentNodes[idx];
+      if (!node) break;
+      cursorNodeId = node.id;
+      currentNodes = node.children;
+    }
+  }
+
   return {
-    ...createBoardState(nodes ?? createStandardBoard(), "root"),
+    ...base,
     cursor,
+    cursorNodeId,
   };
 }
 
@@ -263,20 +281,20 @@ describe("card level navigation (cursor depth 2)", () => {
       expect(result.cursor).toEqual([0, 1]); // second card
     });
 
-    it("down at last card moves to next column (visual traversal)", () => {
+    it("down at last card stays - does NOT cross to next column", () => {
       const state = createState([0, 2]); // last card in col-a (3 cards)
       const result = boardReducer(state, { type: "CURSOR_MOVE", dir: "down" });
-      // Visual "down" continues document order traversal - next column
-      expect(result.cursor).toEqual([1]);
-      expect(result.cursorNodeId).toBe("col-b");
+      // j/k stay within column, use h/l to cross columns
+      expect(result.cursor).toEqual([0, 2]); // unchanged
+      expect(result.cursorNodeId).toBe("card-a3");
     });
 
-    it("down at last card in last non-empty column goes to empty column", () => {
+    it("down at last card in any column stays at that card", () => {
       const state = createState([1, 1]); // last card in col-b
       const result = boardReducer(state, { type: "CURSOR_MOVE", dir: "down" });
-      // col-c is empty, so we go to column level
-      expect(result.cursor).toEqual([2]);
-      expect(result.cursorNodeId).toBe("col-c");
+      // j/k stay within column, use h/l to cross columns
+      expect(result.cursor).toEqual([1, 1]); // unchanged
+      expect(result.cursorNodeId).toBe("card-b2");
     });
 
     it("down at last column (empty) returns null/noop", () => {

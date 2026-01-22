@@ -70,18 +70,19 @@ export function resolveKeybinding(
 }
 
 // Default keybindings
-// NOTE: These match the actual TUI keyboard-handler.ts behavior
+// NOTE: These match docs/06-ui.md Navigation Model
 export const defaultKeybindings: Keybinding[] = [
   // === Navigation ===
-  // Structural (hjkl) - move within tree structure
-  { key: "j", commandId: "cursor_next" }, // Move to next sibling / down in list
-  { key: "k", commandId: "cursor_prev" }, // Move to previous sibling / up in list
+  // Visual navigation (j/k/arrows) - document traversal, crosses tree levels
+  // Per docs/06-ui.md: j at column level enters first card, k at first card exits to column
+  { key: "j", commandId: "cursor_down" }, // Next visible block (enters children, crosses siblings)
+  { key: "k", commandId: "cursor_up" }, // Previous visible block (exits to parent, crosses siblings)
   { key: "h", commandId: "cursor_left" }, // Move left (column) - TUI: also closes detail pane contextually
   { key: "l", commandId: "cursor_right" }, // Move right (column)
   { key: "g", commandId: "cursor_first" }, // Move to first item in list
   { key: "G", commandId: "cursor_last" }, // Move to last item in list
 
-  // Visual (arrows) - same as hjkl
+  // Arrows behave identically to hjkl per docs/06-ui.md
   { key: "ArrowDown", commandId: "cursor_down" },
   { key: "ArrowUp", commandId: "cursor_up" },
   { key: "ArrowLeft", commandId: "cursor_left" },

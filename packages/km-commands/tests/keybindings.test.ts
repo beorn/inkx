@@ -447,8 +447,9 @@ describe("initDefaultKeybindings", () => {
 
     const ctx = createContext({ mode: "normal" });
 
-    expect(resolveKeybinding("j", {}, ctx)).toBe("cursor_next");
-    expect(resolveKeybinding("k", {}, ctx)).toBe("cursor_prev");
+    // j/k do visual up/down (enters children, exits to parent)
+    expect(resolveKeybinding("j", {}, ctx)).toBe("cursor_down");
+    expect(resolveKeybinding("k", {}, ctx)).toBe("cursor_up");
     // TUI uses h/l for left/right column movement, not in/out
     expect(resolveKeybinding("h", {}, ctx)).toBe("cursor_left");
     expect(resolveKeybinding("l", {}, ctx)).toBe("cursor_right");
@@ -458,11 +459,12 @@ describe("initDefaultKeybindings", () => {
     expect(resolveKeybinding("G", { shift: true }, ctx)).toBe("cursor_last");
   });
 
-  it("includes arrow key navigation", () => {
+  it("includes arrow key navigation (same as hjkl per docs/06-ui.md)", () => {
     initDefaultKeybindings();
 
     const ctx = createContext({ mode: "normal" });
 
+    // Per docs/06-ui.md: "j/↓ Move cursor down (visual)" - arrows and hjkl are identical
     expect(resolveKeybinding("ArrowDown", {}, ctx)).toBe("cursor_down");
     expect(resolveKeybinding("ArrowUp", {}, ctx)).toBe("cursor_up");
     expect(resolveKeybinding("ArrowLeft", {}, ctx)).toBe("cursor_left");
@@ -601,9 +603,9 @@ describe("defaultKeybindings", () => {
   it("covers expected command categories", () => {
     const commandIds = defaultKeybindings.map((b) => b.commandId);
 
-    // Navigation
-    expect(commandIds).toContain("cursor_next");
-    expect(commandIds).toContain("cursor_prev");
+    // Navigation (j/k use cursor_down/up for visual navigation)
+    expect(commandIds).toContain("cursor_down");
+    expect(commandIds).toContain("cursor_up");
     expect(commandIds).toContain("zoom_in");
     expect(commandIds).toContain("zoom_outwards");
 

@@ -234,7 +234,7 @@ describe("initCommandSystem", () => {
 
     const result = processInkKey("j", {}, cmdCtx, kbCtx);
     expect(result.handled).toBe(true);
-    expect(result.commandId).toBe("cursor_next");
+    expect(result.commandId).toBe("cursor_down");
   });
 
   it("can be called multiple times (idempotent)", () => {
@@ -266,7 +266,7 @@ describe("processInkKey", () => {
     const result = processInkKey("j", {}, cmdCtx, kbCtx);
 
     expect(result.handled).toBe(true);
-    expect(result.commandId).toBe("cursor_next");
+    expect(result.commandId).toBe("cursor_down");
     expect(result.actions).not.toBeNull();
   });
 
@@ -291,6 +291,7 @@ describe("processInkKey", () => {
     const result = processInkKey("", { downArrow: true }, cmdCtx, kbCtx);
 
     expect(result.handled).toBe(true);
+    // Per docs/06-ui.md: arrows use same commands as hjkl
     expect(result.commandId).toBe("cursor_down");
   });
 

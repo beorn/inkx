@@ -37,8 +37,13 @@ export function getLastVisibleDescendantPath(
 }
 
 /**
- * Get the next visible block below the current position (CURSOR_DOWN).
- * Order: first child (if visible) -> next sibling -> parent's next sibling -> ...
+ * Get the next visible block below the current position (CURSOR_DOWN / j key).
+ *
+ * Per docs/06-ui.md navigation model:
+ * - At board level: enter first column
+ * - At column level: enter first card (if has cards), else no-op
+ * - At card level: next sibling card, stops at last card (does NOT cross to next column)
+ * - At deeper levels: document traversal within card subtree
  */
 export function getNextVisiblePath(
   nodes: TNode[],
@@ -46,48 +51,76 @@ export function getNextVisiblePath(
   foldedNodes: Set<string>,
 ): TPath | null {
   if (path.length === 0) {
-    // At root level, go to first top-level node
+    // At board level, go to first column
     return nodes.length > 0 ? [0] : null;
   }
 
   const node = getNodeAtPath(nodes, path);
   if (!node) return null;
 
+  // At column level (depth 1): enter first card if has children
+  if (path.length === 1) {
+    if (!foldedNodes.has(node.id) && node.childCount > 0) {
+      return [...path, 0]; // first card
+    }
+    // No cards - stay at column level (don't cross to next column)
+    return null;
+  }
+
+  // At card level (depth 2): only allow next sibling, no column crossing
+  if (path.length === 2) {
+    const idx = path[1];
+    if (idx === undefined) return null;
+
+    const parentNode = getNodeAtPath(nodes, path.slice(0, 1));
+    const siblingCount = parentNode?.childCount ?? 0;
+
+    // Try next sibling card
+    if (idx < siblingCount - 1) {
+      return [path[0]!, idx + 1];
+    }
+    // At last card - stop (don't cross to next column)
+    return null;
+  }
+
+  // At deeper levels (outline mode): full document traversal within card subtree
   // 1. Try to enter first child (if not folded and has children)
-  // Use childCount for bounds (supports lazy loading)
   if (!foldedNodes.has(node.id) && node.childCount > 0) {
     return [...path, 0];
   }
 
-  // 2. Try next sibling at current level, or bubble up to parent's next sibling
+  // 2. Try next sibling, but DON'T bubble up past card level (depth 2)
   let currentPath = [...path];
-  while (currentPath.length > 0) {
+  while (currentPath.length > 2) {
     const idx = currentPath[currentPath.length - 1];
     if (idx === undefined) break;
 
-    const siblings =
-      currentPath.length === 1
-        ? nodes
-        : (getNodeAtPath(nodes, currentPath.slice(0, -1))?.children ?? []);
+    const parentPath = currentPath.slice(0, -1);
+    const parent = getNodeAtPath(nodes, parentPath);
+    const siblingCount = parent?.childCount ?? 0;
 
     // If there's a next sibling, go there
-    if (idx < siblings.length - 1) {
+    if (idx < siblingCount - 1) {
       const newPath = [...currentPath];
       newPath[newPath.length - 1] = idx + 1;
       return newPath;
     }
 
-    // No next sibling, go up one level and try again
-    currentPath = currentPath.slice(0, -1);
+    // No next sibling, go up one level (but not past card level)
+    currentPath = parentPath;
   }
 
-  // No more nodes below
+  // Reached card level boundary - stop
   return null;
 }
 
 /**
- * Get the previous visible block above the current position (CURSOR_UP).
- * Order: previous sibling's last descendant -> previous sibling -> parent
+ * Get the previous visible block above the current position (CURSOR_UP / k key).
+ *
+ * Per docs/06-ui.md navigation model:
+ * - At column level: exit to board level (NOT traverse to prev column's cards)
+ * - At card level: exit to parent (column) if at first card, else prev sibling
+ * - At deeper levels: document traversal (prev sibling's last descendant, or parent)
  */
 export function getPrevVisiblePath(
   nodes: TNode[],
@@ -99,6 +132,18 @@ export function getPrevVisiblePath(
   const idx = path[path.length - 1];
   if (idx === undefined) return null;
 
+  // At column level (depth 1): always exit to board level
+  // This gives clear "zoom out" behavior for k at column headers
+  if (path.length === 1) {
+    return []; // board level
+  }
+
+  // At card level (depth 2): exit to column if at first card
+  if (path.length === 2 && idx === 0) {
+    return path.slice(0, -1); // go to column level
+  }
+
+  // At deeper levels or not at first sibling: document traversal
   // 1. If there's a previous sibling, go to its last visible descendant
   if (idx > 0) {
     const newPath = [...path];
@@ -107,12 +152,7 @@ export function getPrevVisiblePath(
   }
 
   // 2. No previous sibling, go to parent
-  if (path.length > 1) {
-    return path.slice(0, -1);
-  }
-
-  // At first top-level node, no previous
-  return null;
+  return path.slice(0, -1);
 }
 
 // =============================================================================

@@ -237,7 +237,7 @@ describe("boardReducer", () => {
       expect(newState.foldedNodes.has("col-a")).toBe(false);
     });
 
-    it("CURSOR_MOVE down skips children of folded nodes", () => {
+    it("CURSOR_MOVE down on folded column stays at column level", () => {
       const state = {
         ...createTestState([0]),
         foldedNodes: new Set(["col-a"]),
@@ -246,8 +246,9 @@ describe("boardReducer", () => {
         type: "CURSOR_MOVE",
         dir: "down",
       });
-      // Should skip col-a's children and go to col-b
-      expect(newState.cursor).toEqual([1]);
+      // j/k stay within column hierarchy - does NOT cross to next column
+      // Use h/l for cross-column navigation
+      expect(newState.cursor).toEqual([0]); // unchanged
     });
   });
 
