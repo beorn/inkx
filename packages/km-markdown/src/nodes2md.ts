@@ -34,19 +34,64 @@ export function nodesToMarkdown(nodes: KNode[]): string {
 }
 
 /**
+ * Check if a node is a list item type (task, ul, ol)
+ */
+function isListItemType(node: KNode): boolean {
+  return node.type === "task" || node.type === "ul" || node.type === "ol";
+}
+
+/**
+ * Serialize children with proper list grouping.
+ * Consecutive list items are grouped together with no blank lines between them,
+ * and a single blank line is added after each group.
+ */
+function serializeChildren(
+  children: KNode[],
+  tree: Map<string, KNode[]>,
+): string {
+  let md = "";
+
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i]!;
+    const nextChild = children[i + 1];
+
+    const isCurrentList = isListItemType(child);
+    const isNextList = nextChild && isListItemType(nextChild);
+
+    if (isCurrentList) {
+      // For list items: serialize without trailing newline, add blank line only at end of group
+      md += serializeNode(child, tree, 0, false);
+      if (!isNextList) {
+        // End of list group - add blank line
+        md += "\n";
+      }
+    } else {
+      // Non-list items (sections, paragraphs, etc.) handle their own spacing
+      md += serializeNode(child, tree, 0, true);
+    }
+  }
+
+  return md;
+}
+
+/**
  * Serialize a file node (top-level document)
  *
  * The file node may have H1 properties merged in (content, title, rules).
  * We serialize the H1 heading first, then frontmatter (minus depth), then children.
  */
-function serializeFile(node: Node, tree: Map<string, KNode[]>): string {
+function serializeFile(node: KNode, tree: Map<string, KNode[]>): string {
   let md = "";
 
-  // Frontmatter - exclude depth (it's internal for H1 merge tracking)
+  // Frontmatter - exclude internal/computed fields
+  // Original frontmatter values (tags, mentions, projects, title) are preserved
   const frontmatterData = { ...node.data };
-  delete frontmatterData.depth;
-  delete frontmatterData.rules;
-  delete frontmatterData.title;
+  delete frontmatterData.depth; // Internal: H1 merge tracking
+  delete frontmatterData.rules; // Internal: heading rules
+  delete frontmatterData._h1Title; // Internal: H1 heading title (distinct from frontmatter title)
+  delete frontmatterData._allMentions; // Computed: aggregated from content
+  delete frontmatterData._allTags; // Computed: aggregated from content
+  delete frontmatterData._allProjects; // Computed: aggregated from content
 
   if (Object.keys(frontmatterData).length > 0) {
     md += "---\n";
@@ -59,22 +104,22 @@ function serializeFile(node: Node, tree: Map<string, KNode[]>): string {
     md += `# ${node.content}\n\n`;
   }
 
-  // Children
+  // Children (with proper list grouping)
   const children = tree.get(node.id) ?? [];
-  for (const child of children) {
-    md += serializeNode(child, tree, 0);
-  }
+  md += serializeChildren(children, tree);
 
   return md;
 }
 
 /**
  * Serialize a single node
+ * @param addTrailingNewline - Whether to add trailing newline for list items (default true for backwards compat)
  */
 function serializeNode(
-  node: Node,
+  node: KNode,
   tree: Map<string, KNode[]>,
   indent: number,
+  addTrailingNewline: boolean = true,
 ): string {
   const children = tree.get(node.id) ?? [];
 
@@ -87,8 +132,10 @@ function serializeNode(
 
     case "paragraph":
       // If this paragraph came from an embedding, preserve the embedding reference
-      if (node.source_embedding) {
-        return node.source_embedding + "\n\n";
+      if ((node as { source_embedding?: string }).source_embedding) {
+        return (
+          (node as { source_embedding?: string }).source_embedding + "\n\n"
+        );
       }
       return (node.content ?? "") + "\n\n";
 
@@ -99,13 +146,27 @@ function serializeNode(
       return serializeCode(node);
 
     case "ul":
-      return serializeListItem(node, children, tree, indent, false);
+      return serializeListItem(
+        node,
+        children,
+        tree,
+        indent,
+        false,
+        addTrailingNewline,
+      );
 
     case "ol":
-      return serializeListItem(node, children, tree, indent, true);
+      return serializeListItem(
+        node,
+        children,
+        tree,
+        indent,
+        true,
+        addTrailingNewline,
+      );
 
     case "task":
-      return serializeTask(node, children, tree, indent);
+      return serializeTask(node, children, tree, indent, addTrailingNewline);
 
     case "hr":
       return "---\n\n";
@@ -125,7 +186,7 @@ function serializeNode(
  * Serialize a section (heading + children)
  */
 function serializeSection(
-  node: Node,
+  node: KNode,
   children: KNode[],
   tree: Map<string, KNode[]>,
 ): string {
@@ -133,9 +194,8 @@ function serializeSection(
   const prefix = "#".repeat(depth);
   let md = `${prefix} ${node.content ?? ""}\n\n`;
 
-  for (const child of children) {
-    md += serializeNode(child, tree, 0);
-  }
+  // Use serializeChildren for proper list grouping
+  md += serializeChildren(children, tree);
 
   return md;
 }
@@ -163,11 +223,12 @@ function serializeCode(node: KNode): string {
  * Serialize a list item
  */
 function serializeListItem(
-  node: Node,
+  node: KNode,
   children: KNode[],
   tree: Map<string, KNode[]>,
   indent: number,
   ordered: boolean,
+  addTrailingNewline: boolean = true,
 ): string {
   const indentStr = "  ".repeat(indent);
   const marker = ordered ? "1." : "-";
@@ -180,8 +241,8 @@ function serializeListItem(
     }
   }
 
-  // Add trailing newline only at top level
-  if (indent === 0) {
+  // Add trailing newline only at top level when requested
+  if (indent === 0 && addTrailingNewline) {
     md += "\n";
   }
 
@@ -217,10 +278,11 @@ function statusToMark(
  * Serialize a task item
  */
 function serializeTask(
-  node: Node,
+  node: KNode,
   children: KNode[],
   tree: Map<string, KNode[]>,
   indent: number,
+  addTrailingNewline: boolean = true,
 ): string {
   const indentStr = "  ".repeat(indent);
   // Derive mark from task_status (which may have been updated)
@@ -258,8 +320,8 @@ function serializeTask(
     }
   }
 
-  // Add trailing newline only at top level
-  if (indent === 0) {
+  // Add trailing newline only at top level when requested
+  if (indent === 0 && addTrailingNewline) {
     md += "\n";
   }
 

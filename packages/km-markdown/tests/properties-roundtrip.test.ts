@@ -39,8 +39,7 @@ describe("Round-trip: Single Property", () => {
 
 describe("Round-trip: Multiple Link Values", () => {
   test("preserves multiple links in single property", () => {
-    const original =
-      "# Test\n\n- [ ] Task blocked-by:: [[a]], [[b]], [[c]]\n";
+    const original = "# Test\n\n- [ ] Task blocked-by:: [[a]], [[b]], [[c]]\n";
     const nodes = parseMarkdownToNodes(original, "test.md");
     const output = nodesToMarkdown(nodes);
     expect(output).toContain("blocked-by:: [[a]], [[b]], [[c]]");
@@ -51,7 +50,9 @@ describe("Round-trip: Multiple Link Values", () => {
       "# Test\n\n- [ ] Task deps:: [[task-1|First]], [[task-2]], [[task-3|Third]]\n";
     const nodes = parseMarkdownToNodes(original, "test.md");
     const output = nodesToMarkdown(nodes);
-    expect(output).toContain("deps:: [[task-1|First]], [[task-2]], [[task-3|Third]]");
+    expect(output).toContain(
+      "deps:: [[task-1|First]], [[task-2]], [[task-3|Third]]",
+    );
   });
 });
 
@@ -97,7 +98,7 @@ describe("Round-trip: Property Order Preservation", () => {
 describe("Round-trip: Text Properties with Special Characters", () => {
   test("preserves text property with special characters", () => {
     const original =
-      '# Test\n\n- [ ] Task reason:: Fixed in PR #123 (urgent)\n';
+      "# Test\n\n- [ ] Task reason:: Fixed in PR #123 (urgent)\n";
     const nodes = parseMarkdownToNodes(original, "test.md");
     const output = nodesToMarkdown(nodes);
     expect(output).toContain("reason:: Fixed in PR #123 (urgent)");
@@ -111,8 +112,7 @@ describe("Round-trip: Text Properties with Special Characters", () => {
   });
 
   test("preserves text property with quotes", () => {
-    const original =
-      '# Test\n\n- [ ] Task comment:: He said "hello" to her\n';
+    const original = '# Test\n\n- [ ] Task comment:: He said "hello" to her\n';
     const nodes = parseMarkdownToNodes(original, "test.md");
     const output = nodesToMarkdown(nodes);
     expect(output).toContain('comment:: He said "hello"');
@@ -181,8 +181,7 @@ describe("Round-trip: Double Round-trip Stability", () => {
   });
 
   test("stable after double round-trip - list property", () => {
-    const original =
-      "# Test\n\n- [ ] Task deps:: [[a]], [[b]], [[c]]\n";
+    const original = "# Test\n\n- [ ] Task deps:: [[a]], [[b]], [[c]]\n";
     const nodes1 = parseMarkdownToNodes(original, "test.md");
     const md1 = nodesToMarkdown(nodes1);
     const nodes2 = parseMarkdownToNodes(md1, "test.md");
@@ -249,8 +248,7 @@ describe("Round-trip: Mixed Content with Properties", () => {
   });
 
   test("preserves properties alongside task metadata emojis", () => {
-    const original =
-      "# Test\n\n- [ ] Task status:: active 📅 2026-02-01 ⏫\n";
+    const original = "# Test\n\n- [ ] Task status:: active 📅 2026-02-01 ⏫\n";
     const nodes = parseMarkdownToNodes(original, "test.md");
     const output = nodesToMarkdown(nodes);
 
@@ -367,8 +365,7 @@ describe("Properties: Parsed Values in data.props", () => {
   });
 
   test("propsRaw stored for round-trip preservation", () => {
-    const original =
-      "# Test\n\n- [ ] Task blocks:: [[km-a1b2]] rating:: 5\n";
+    const original = "# Test\n\n- [ ] Task blocks:: [[km-a1b2]] rating:: 5\n";
     const nodes = parseMarkdownToNodes(original, "test.md");
     const task = nodes.find((n) => n.type === "task");
 
@@ -407,16 +404,14 @@ describe("Properties: Parsed Values in data.props", () => {
 
 describe("Properties: Edge Cases", () => {
   test("handles property name with hyphens", () => {
-    const original =
-      "# Test\n\n- [ ] Task blocked-by:: [[other-task]]\n";
+    const original = "# Test\n\n- [ ] Task blocked-by:: [[other-task]]\n";
     const nodes = parseMarkdownToNodes(original, "test.md");
     const output = nodesToMarkdown(nodes);
     expect(output).toContain("blocked-by:: [[other-task]]");
   });
 
   test("handles property name with underscores", () => {
-    const original =
-      "# Test\n\n- [ ] Task created_at:: 2026-01-21\n";
+    const original = "# Test\n\n- [ ] Task created_at:: 2026-01-21\n";
     const nodes = parseMarkdownToNodes(original, "test.md");
     const output = nodesToMarkdown(nodes);
     expect(output).toContain("created_at:: 2026-01-21");

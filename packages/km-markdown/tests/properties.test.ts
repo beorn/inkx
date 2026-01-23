@@ -147,7 +147,9 @@ describe("parseInlineProperties", () => {
     });
 
     test("should parse two links as a list", () => {
-      const result = parseInlineProperties("depends-on:: [[task-1]], [[task-2]]");
+      const result = parseInlineProperties(
+        "depends-on:: [[task-1]], [[task-2]]",
+      );
       expect(result.props["depends-on"]).toEqual({
         type: "list",
         values: [

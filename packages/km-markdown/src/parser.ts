@@ -445,7 +445,8 @@ export function parseInlineProperties(text: string): ParsedProperties {
   // Match property:: value patterns
   // Property name: lowercase letter followed by alphanumeric, underscore, or hyphen
   // Value: everything until next property or end of string
-  const propPattern = /([a-z][a-z0-9_-]*)::[ ]*(.+?)(?=\s+[a-z][a-z0-9_-]*::|$)/gi;
+  const propPattern =
+    /([a-z][a-z0-9_-]*)::[ ]*(.+?)(?=\s+[a-z][a-z0-9_-]*::|$)/gi;
 
   let cleanText = text;
   let match;
