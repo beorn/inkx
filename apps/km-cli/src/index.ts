@@ -8,6 +8,13 @@
  * km task - Task management subcommand
  */
 
+// Show loading indicator immediately for view command (before heavy imports)
+// This works because @km/storage is now imported dynamically in preAction
+const isViewCommand = process.argv[2] === "view" || process.argv[2] === "v";
+if (isViewCommand && process.stdout.isTTY) {
+  process.stdout.write("Loading...");
+}
+
 // Must be imported first - before any debug() calls
 import "./debug-log.ts";
 
@@ -116,13 +123,22 @@ function getRootFromOptions(opts: { root?: string }): string | undefined {
 }
 
 // Initialize state on startup (skip for init and view commands)
-program.hook("preAction", (thisCommand, actionCommand) => {
+program.hook("preAction", async (thisCommand, actionCommand) => {
   // Don't initialize state for 'init' command - it creates .km/ itself
   // Don't initialize state for 'view' command - it handles its own loading with task progress
   const cmdName = actionCommand?.name() ?? thisCommand.name();
   if (cmdName === "init" || cmdName === "view") {
     return;
   }
+
+  // Dynamic import of @km/storage - allows view command to show "Loading..." first
+  const {
+    ensureState,
+    isExplicitPath,
+    resolveFsPath,
+    runGenerator,
+    getStore,
+  } = await import("@km/storage");
 
   // Get root path from global options or env var
   const opts = thisCommand.opts() as { root?: string };
