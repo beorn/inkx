@@ -13,22 +13,23 @@ The km codebase is transitioning from global singletons to domain objects. The b
 
 ## Quick Reference
 
-| Old API (deprecated) | New API (preferred) |
-|---------------------|---------------------|
-| `loadVault(path)` | `createVault(path)` |
-| `getNode(id)` | `vault.getNode(id)` |
-| `getChildren(id)` | `vault.getChildren(id)` |
-| `getAllTasks()` | `vault.getAllTasks()` |
-| `search(query)` | `vault.search(query)` |
+| Old API (deprecated)      | New API (preferred)             |
+| ------------------------- | ------------------------------- |
+| `loadVault(path)`         | `createVault(path)`             |
+| `getNode(id)`             | `vault.getNode(id)`             |
+| `getChildren(id)`         | `vault.getChildren(id)`         |
+| `getAllTasks()`           | `vault.getAllTasks()`           |
+| `search(query)`           | `vault.search(query)`           |
 | `updateNode(id, changes)` | `vault.updateNode(id, changes)` |
-| `getTuiConfig()` | `loadConfigObject().tui` |
-| `getBeadsConfig()` | `loadConfigObject().beads` |
+| `getTuiConfig()`          | `loadConfigObject().tui`        |
+| `getBeadsConfig()`        | `loadConfigObject().beads`      |
 
 ## Migration Patterns
 
 ### Basic Command Migration
 
 **Before (singleton pattern):**
+
 ```typescript
 import { loadVault, getNode, getAllTasks, getTasksByStatus } from "@km/storage";
 import { runGenerator } from "@km/storage";
@@ -47,6 +48,7 @@ export async function myCommand(path: string) {
 ```
 
 **After (domain object pattern):**
+
 ```typescript
 import { createVault, runGenerator } from "@km/storage";
 
@@ -67,6 +69,7 @@ export async function myCommand(path: string) {
 ### With Progress Display
 
 **Before:**
+
 ```typescript
 import { loadVault, runWithProgress } from "@km/storage";
 
@@ -76,6 +79,7 @@ const result = runWithProgress(loadVault(path), (progress) => {
 ```
 
 **After:**
+
 ```typescript
 import { createVault, runWithProgress } from "@km/storage";
 
@@ -87,6 +91,7 @@ using vault = runWithProgress(createVault(path), (progress) => {
 ### Config Migration
 
 **Before:**
+
 ```typescript
 import { getTuiConfig, getBeadsConfig } from "@km/storage";
 
@@ -96,6 +101,7 @@ const watchEnabled = tuiConfig.watch;
 ```
 
 **After:**
+
 ```typescript
 import { loadConfigObject } from "@km/storage";
 
@@ -133,6 +139,7 @@ async function syncVaults(srcPath: string, dstPath: string) {
 ### Watcher Migration
 
 **Before:**
+
 ```typescript
 import { SyncManager } from "@km/storage";
 
@@ -143,6 +150,7 @@ sync.on("state-change", handleChange);
 ```
 
 **After:**
+
 ```typescript
 import { createVault, runGenerator } from "@km/storage";
 
@@ -179,8 +187,8 @@ board.clearSelection();
 
 // Folding
 board.toggleFold(nodeId);
-board.foldToDepth(0);  // Fold all
-board.unfoldToDepth(99);  // Unfold all
+board.foldToDepth(0); // Fold all
+board.unfoldToDepth(99); // Unfold all
 
 // Zoom
 board.zoom(nodeId);

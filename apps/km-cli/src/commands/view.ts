@@ -31,8 +31,8 @@ export const viewCommand = new Command("view")
   .action(async (root, options) => {
     debug("view command", { root, as: options.as, watch: options.watch });
 
-    // Import task runner and ANSI helpers first (small, fast)
-    const [{ tasks }, { CURSOR_TO_START, CLEAR_LINE_END }] = await Promise.all([
+    // Import step runner and ANSI helpers first (small, fast)
+    const [{ steps }, { CURSOR_TO_START, CLEAR_LINE_END }] = await Promise.all([
       import("@beorn/inkx-ui/progress"),
       import("@beorn/inkx-ui/cli"),
     ]);
@@ -45,17 +45,17 @@ export const viewCommand = new Command("view")
     let storageModule: typeof import("@km/storage");
     let cliModule: typeof import("../index.ts");
 
-    // Run loading tasks with fluent API
+    // Run loading steps with fluent API
     // loadVault() handles both memory and disk modes with unified progress
-    const results = await tasks()
-      .add("Loading modules", async () => {
+    const results = await steps()
+      .run("Loading modules", async () => {
         [inkModule, storageModule, cliModule] = await Promise.all([
           import("@km/ink"),
           import("@km/storage"),
           import("../index.ts"),
         ]);
       })
-      .add("Loading vault", function* () {
+      .run("Loading vault", function* () {
         const vaultRoot = storageModule!.resolvePathArg(
           root,
           cliModule!.getRootPath(),
@@ -68,7 +68,7 @@ export const viewCommand = new Command("view")
         // - Disk mode: discover → apply → materialize
         yield* storageModule!.loadVault(vaultRoot, { searchAncestors: false });
       })
-      .add("Building view", function* () {
+      .run("Building view", function* () {
         const resolved = storageModule!.resolvePathArg(
           root,
           cliModule!.getRootPath(),
@@ -81,7 +81,7 @@ export const viewCommand = new Command("view")
         }
         return { state, resolved };
       })
-      .run({ clear: true });
+      .execute({ clear: true });
 
     // Extract results
     const { state, resolved } = results["Building view"] as {

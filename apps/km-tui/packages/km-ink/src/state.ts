@@ -5,7 +5,9 @@
  */
 
 import type { KNode } from "@km/core";
-import type { ProgressInfo } from "@beorn/inkx-ui";
+
+/** Progress yield type for step generators */
+type StepYield = string | { current?: number; total?: number };
 import type {
   BoardState,
   ColumnState,
@@ -158,7 +160,7 @@ export function initBoardState(rootId?: string): BoardState | null {
  */
 export function* initBoardStateGenerator(
   rootId?: string,
-): Generator<ProgressInfo, BoardState | null, unknown> {
+): Generator<StepYield, BoardState | null, unknown> {
   if (rootId) {
     const root = resolveNode(rootId);
     if (!root) {
@@ -190,7 +192,8 @@ export function* initBoardStateGenerator(
   const total = groups.size;
   let current = 0;
 
-  yield { phase: "board", current: 0, total };
+  yield "Building view";
+  yield { current: 0, total };
 
   for (const [_name, groupRoots] of groups) {
     const colNode = groupRoots[0];
@@ -212,7 +215,7 @@ export function* initBoardStateGenerator(
 
     columnData.push({ colNode, cardNodes: uniqueCardNodes });
     current++;
-    yield { phase: "board", current, total };
+    yield { current, total };
   }
 
   // Single batch query for all child counts
@@ -251,7 +254,7 @@ export function* initBoardStateGenerator(
  */
 export function* buildBoardStateGenerator(
   rootId: string,
-): Generator<ProgressInfo, BoardState, unknown> {
+): Generator<StepYield, BoardState, unknown> {
   const rootNode = getNode(rootId);
   const wipLimits = extractWipLimits(rootNode);
   const collapsedColumns = new Set<number>();
@@ -262,7 +265,8 @@ export function* buildBoardStateGenerator(
   const columnNodes = allChildren.filter((n) => !nonColumnTypes.has(n.type));
 
   const total = columnNodes.length;
-  yield { phase: "board", current: 0, total };
+  yield "Building view";
+  yield { current: 0, total };
 
   // Batch query child counts for all columns
   const columnIds = columnNodes.map((n) => n.id);
@@ -290,7 +294,7 @@ export function* buildBoardStateGenerator(
     }
 
     // Yield progress after each column
-    yield { phase: "board", current: colIdx + 1, total };
+    yield { current: colIdx + 1, total };
   }
 
   // Single batch query for all child counts

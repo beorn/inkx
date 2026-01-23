@@ -74,12 +74,12 @@ Functionality is exposed through **domain objects created by factory functions**
 
 ### Key Domain Objects
 
-| Object    | Factory          | Lifecycle        | Purpose                      |
-| --------- | ---------------- | ---------------- | ---------------------------- |
-| `Vault`   | `createVault()`  | `Disposable`     | Storage, queries, mutations  |
-| `Board`   | `createBoard()`  | plain object     | Navigation state (cursor, selection, zoom) |
-| `Watcher` | `vault.watch()`  | `Service`        | File sync (start/stop lifecycle) |
-| `Config`  | `loadConfig()`   | plain object     | Vault configuration          |
+| Object    | Factory         | Lifecycle    | Purpose                                    |
+| --------- | --------------- | ------------ | ------------------------------------------ |
+| `Vault`   | `createVault()` | `Disposable` | Storage, queries, mutations                |
+| `Board`   | `createBoard()` | plain object | Navigation state (cursor, selection, zoom) |
+| `Watcher` | `vault.watch()` | `Service`    | File sync (start/stop lifecycle)           |
+| `Config`  | `loadConfig()`  | plain object | Vault configuration                        |
 
 ### Service Interface
 

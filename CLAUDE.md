@@ -358,10 +358,10 @@ When a user reports a bug, follow [.claude/skills/bug-report.md](.claude/skills/
 
 km has two logging systems for different purposes:
 
-| System | Purpose | When to use |
-|--------|---------|-------------|
-| `debug()` | Internal tracing | State dumps, performance timing, internal diagnostics |
-| `logger` | User-facing output | Progress messages, errors, warnings the user should see |
+| System    | Purpose            | When to use                                             |
+| --------- | ------------------ | ------------------------------------------------------- |
+| `debug()` | Internal tracing   | State dumps, performance timing, internal diagnostics   |
+| `logger`  | User-facing output | Progress messages, errors, warnings the user should see |
 
 **Quick reference:**
 
@@ -406,9 +406,9 @@ flexx:<subsystem>            # flexx layout engine
 **Keep statements concise:**
 
 ```typescript
-debug("resolved", resolved);                    // Objects
-debug("loading %s...", filename);               // Inline text
-debug("state: %s → %s", oldState, newState);    // Transitions
+debug("resolved", resolved); // Objects
+debug("loading %s...", filename); // Inline text
+debug("state: %s → %s", oldState, newState); // Transitions
 ```
 
 **TUI debugging (separate from TUI display):**

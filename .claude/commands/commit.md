@@ -10,6 +10,7 @@ Atomically commit all pending changes across the main repo and vendor submodules
 ## Overview
 
 This command handles the complexity of git submodules by:
+
 1. Gathering all state in ONE shell command
 2. Making ONE decision about commit message/grouping
 3. Executing all commits in ONE batched shell command
@@ -70,6 +71,7 @@ From the output, answer these questions:
 **Untracked content in submodules:** If you see `??` lines like `node_modules/`, `dist/`, `*.log` - add a `.gitignore` to that submodule first, commit it, then continue.
 
 **Decision template:**
+
 - Commit type: `fix`, `feat`, `refactor`, `chore`, `docs`
 - Scope: `storage`, `cli`, `tui`, `inkx`, `core`, `board`, etc.
 - Message: 50 char summary, optional body
@@ -104,6 +106,7 @@ EOF
 ```
 
 **Rules:**
+
 - Chain with `&&` (stops on failure)
 - List files explicitly (no `-A` or `.`)
 - Quote paths with spaces
@@ -133,6 +136,7 @@ git status && echo "---" && git log --oneline -1
 ## Quick Reference: Common Patterns
 
 **Only main repo changed (no submodules):**
+
 ```bash
 git add path/to/files.ts && \
 git commit -m "type(scope): message
@@ -142,6 +146,7 @@ bd sync && git push
 ```
 
 **One submodule + main:**
+
 ```bash
 (cd vendor/beorn-inkx && git add src/file.ts && git commit -m "...") && \
 git add vendor/beorn-inkx packages/file.ts && git commit -m "..." && \
@@ -149,6 +154,7 @@ bd sync && (cd vendor/beorn-inkx && git push) && git push
 ```
 
 **Multiple submodules + main:**
+
 ```bash
 (cd vendor/beorn-inkx && git add src/changed-file.ts && git commit -m "...") && \
 (cd vendor/beorn-inkx-ui && git add src/other-file.ts && git commit -m "...") && \
@@ -159,6 +165,7 @@ bd sync && (cd vendor/beorn-inkx && git push) && (cd vendor/beorn-inkx-ui && git
 ## Safety Checks
 
 Before committing, verify:
+
 - [ ] No sensitive files (.env, credentials, API keys)
 - [ ] No large binaries (use git-lfs if needed)
 - [ ] No build artifacts (node_modules, dist, .gen.ts if gitignored)
@@ -166,23 +173,25 @@ Before committing, verify:
 
 ## Error Recovery
 
-| Error | Fix |
-|-------|-----|
-| "detached HEAD" | `cd vendor/X && git checkout main` |
-| "nothing to commit" | Check if already committed or changes are in submodule |
-| "push rejected" | `git pull --rebase` then push again |
-| "submodule not on branch" | `cd vendor/X && git checkout main && git pull` |
-| "Uncommitted changes detected" (pre-push) | Run `bd sync` before pushing |
-| "(untracked content)" in submodule | Add `.gitignore` to submodule, commit, then continue |
+| Error                                     | Fix                                                    |
+| ----------------------------------------- | ------------------------------------------------------ |
+| "detached HEAD"                           | `cd vendor/X && git checkout main`                     |
+| "nothing to commit"                       | Check if already committed or changes are in submodule |
+| "push rejected"                           | `git pull --rebase` then push again                    |
+| "submodule not on branch"                 | `cd vendor/X && git checkout main && git pull`         |
+| "Uncommitted changes detected" (pre-push) | Run `bd sync` before pushing                           |
+| "(untracked content)" in submodule        | Add `.gitignore` to submodule, commit, then continue   |
 
 ## When to Ask User
 
 Use AskUserQuestion if:
+
 - Changes span multiple unrelated features (should be separate commits?)
 - Untracked files that might be intentional additions vs accidentally created
 - Pre-commit hooks fail and `--no-verify` might be needed
 
 Do NOT ask if:
+
 - Changes are clearly related (just commit them)
 - Only modified files, no untracked (clear what to stage)
 - Following up on work the user explicitly requested

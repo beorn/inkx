@@ -66,13 +66,13 @@ Config is in [.release-it.json](../../.release-it.json):
 
 release-it uses conventional commits to generate changelog entries:
 
-| Commit Type | Changelog Section |
-|-------------|-------------------|
-| `feat:` | Added |
-| `fix:` | Fixed |
-| `refactor:` | Changed |
-| `perf:` | Performance |
-| `BREAKING CHANGE:` | Breaking Changes |
+| Commit Type        | Changelog Section |
+| ------------------ | ----------------- |
+| `feat:`            | Added             |
+| `fix:`             | Fixed             |
+| `refactor:`        | Changed           |
+| `perf:`            | Performance       |
+| `BREAKING CHANGE:` | Breaking Changes  |
 
 ## Manual Steps (if needed)
 

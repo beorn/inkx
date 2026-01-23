@@ -18,7 +18,17 @@ import { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { join, dirname, relative, basename } from "path";
 import type { Event } from "@km/core";
-import type { ProgressInfo } from "@beorn/inkx-ui";
+
+/**
+ * Progress yield type for step generators.
+ * - String: creates new sub-step with that label
+ * - Object { current, total }: updates progress on current sub-step
+ * - Object { declare: [...] }: declare all sub-steps upfront (show as pending)
+ */
+type StepYield =
+  | string
+  | { current?: number; total?: number }
+  | { declare: string[] };
 import { parseMarkdownWithLinks } from "@km/markdown";
 import { SCHEMA } from "./schema.ts";
 import {
@@ -75,7 +85,7 @@ export interface LoadOptions {
 export function* loadVault(
   rootPath?: string,
   options?: LoadOptions,
-): Generator<ProgressInfo, LoadResult, unknown> {
+): Generator<StepYield, LoadResult, unknown> {
   const start = Date.now();
   const errors: LoadError[] = [];
 
@@ -85,6 +95,23 @@ export function* loadVault(
   const mode = kmDir ? "disk" : "memory";
 
   debug("loadVault", { vaultRoot, mode, force: options?.force });
+
+  // Declare all sub-steps upfront so they appear as pending
+  if (mode === "memory") {
+    yield {
+      declare: [
+        "Discovering files",
+        "Parsing markdown",
+        "Applying changes",
+        "Resolving links",
+        "Evaluating rules",
+      ],
+    };
+  } else {
+    yield {
+      declare: ["Reading events", "Applying changes", "Evaluating rules"],
+    };
+  }
 
   // 2. Set up database based on mode
   let db: Database;
@@ -181,13 +208,14 @@ function resolveVaultRoot(
 function* discoverFromFilesystem(
   vaultRoot: string,
   errors: LoadError[],
-): Generator<ProgressInfo, EventSource, unknown> {
-  // Phase: discover - count markdown files
-  yield { phase: "discover", current: 0, total: 0 };
+): Generator<StepYield, EventSource, unknown> {
+  // Discover - count markdown files
+  yield "Discovering files";
   const total = countMarkdownFiles(vaultRoot);
-  yield { phase: "discover", current: total, total };
+  yield { current: total, total };
 
-  // Phase: parse - scan filesystem and generate events
+  // Parse - scan filesystem and generate events
+  yield "Parsing markdown";
   const events: Event[] = [];
   const pendingLinks: PendingLink[] = [];
   let current = 0;
@@ -202,7 +230,7 @@ function* discoverFromFilesystem(
     dirPath: string,
     parentId: string | null,
     sortOrder: number,
-  ): Generator<ProgressInfo, void, unknown> {
+  ): Generator<StepYield, void, unknown> {
     if (!existsSync(dirPath)) return;
 
     const dirName = basename(dirPath);
@@ -278,7 +306,7 @@ function* discoverFromFilesystem(
             current++;
             // Yield progress every 50 files
             if (current % 50 === 0) {
-              yield { phase: "parse", current, total };
+              yield { current, total };
             }
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
@@ -341,14 +369,14 @@ function* discoverFromEvents(
   kmDir: string,
   force: boolean,
   errors: LoadError[],
-): Generator<ProgressInfo, EventSource, unknown> {
-  // Phase: discover - read and count events
-  yield { phase: "discover", current: 0, total: 0 };
+): Generator<StepYield, EventSource, unknown> {
+  // Discover - read and count events
+  yield "Reading events";
 
   const eventsPath = getEventsPath();
   if (!existsSync(eventsPath)) {
     debug("no events file at %s", eventsPath);
-    yield { phase: "discover", current: 0, total: 0 };
+    yield { current: 0, total: 0 };
     return { events: [], pendingLinks: [] };
   }
 
@@ -388,7 +416,7 @@ function* discoverFromEvents(
       : allEvents;
   }
 
-  yield { phase: "discover", current: events.length, total: events.length };
+  yield { current: events.length, total: events.length };
   debug("discovered %d events (%d new)", allEvents.length, events.length);
 
   // Disk mode: links are resolved during applyEvent, no pending links
@@ -401,7 +429,9 @@ function* applyEvents(
   db: Database,
   events: Event[],
   errors: LoadError[],
-): Generator<ProgressInfo, void, unknown> {
+): Generator<StepYield, void, unknown> {
+  yield "Applying changes";
+
   const total = events.length;
   if (total === 0) return;
 
@@ -420,7 +450,7 @@ function* applyEvents(
 
       // Yield progress every 100 events
       if (i % 100 === 0 || i === total - 1) {
-        yield { phase: "apply", current: i + 1, total };
+        yield { current: i + 1, total };
       }
     }
     db.run("COMMIT");
@@ -436,11 +466,12 @@ function* applyEvents(
 function* resolveLinks(
   pendingLinks: PendingLink[],
   errors: LoadError[],
-): Generator<ProgressInfo, number, unknown> {
+): Generator<StepYield, number, unknown> {
   const total = pendingLinks.length;
   let resolved = 0;
 
-  yield { phase: "resolve", current: 0, total };
+  yield "Resolving links";
+  yield { current: 0, total };
 
   for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
     try {
@@ -477,19 +508,16 @@ function* resolveLinks(
 
     // Yield progress every 10 links
     if (i % 10 === 0 || i === total - 1) {
-      yield { phase: "resolve", current: i + 1, total };
+      yield { current: i + 1, total };
     }
   }
 
   return resolved;
 }
 
-function* materializeRules(): Generator<ProgressInfo, void, unknown> {
+function* materializeRules(): Generator<StepYield, void, unknown> {
+  yield "Evaluating rules";
   for (const progress of evaluateAllRules()) {
-    yield {
-      phase: "materialize",
-      current: progress.current,
-      total: progress.total,
-    };
+    yield { current: progress.current, total: progress.total };
   }
 }

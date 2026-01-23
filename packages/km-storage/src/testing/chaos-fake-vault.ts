@@ -8,7 +8,11 @@
 import type { KNode, TaskStatus } from "@km/core";
 import type { Vault, VaultStats, LoadError } from "../vault.ts";
 import type { Link } from "../db.ts";
-import { createFakeVault, type FakeVault, type FakeVaultOptions } from "./fake-vault.ts";
+import {
+  createFakeVault,
+  type FakeVault,
+  type FakeVaultOptions,
+} from "./fake-vault.ts";
 
 /**
  * Transaction log entry for tracking vault operations
@@ -24,13 +28,13 @@ export interface TransactionLogEntry {
  * Corruption type for simulating data issues
  */
 export type CorruptionType =
-  | "missing_parent"      // Node references non-existent parent
-  | "circular_parent"     // Node is its own ancestor
-  | "duplicate_id"        // Multiple nodes with same ID
-  | "orphaned"            // Node with parent that doesn't list it as child
-  | "invalid_position"    // parent_idx out of bounds or duplicate
-  | "missing_content"     // Node with undefined required fields
-  | "stale_hash";         // content_hash doesn't match content
+  | "missing_parent" // Node references non-existent parent
+  | "circular_parent" // Node is its own ancestor
+  | "duplicate_id" // Multiple nodes with same ID
+  | "orphaned" // Node with parent that doesn't list it as child
+  | "invalid_position" // parent_idx out of bounds or duplicate
+  | "missing_content" // Node with undefined required fields
+  | "stale_hash"; // content_hash doesn't match content
 
 /**
  * Options for createChaosFakeVault

@@ -64,6 +64,7 @@ Create a GitHub release using release-it. Handles uncommitted changes automatica
 ```
 
 **Decision point after Step 1:**
+
 - If not on `main` → Abort: "Switch to main first: `git checkout main && git pull`"
 - If has uncommitted changes → Continue to Step 2
 - If clean → Skip to Step 3
@@ -114,6 +115,7 @@ bun release --dry-run 2>&1 | head -40
 ```
 
 This shows:
+
 - Current → New version
 - Files that will be modified
 - Changelog entries to be added
@@ -144,6 +146,7 @@ bun release [patch|minor|major]
 ```
 
 release-it will:
+
 1. ✓ Bump version in package.json
 2. ✓ Run `bun run build:info` (hook)
 3. ✓ Update CHANGELOG.md
@@ -185,22 +188,24 @@ bun release --dry-run    # Preview without changes
 
 ## Error Recovery
 
-| Error | Fix |
-|-------|-----|
-| "Working dir must be clean" | Should auto-handle; if not, run `/commit` |
-| "Not on main branch" | `git checkout main && git pull` |
-| "gh not authenticated" | `gh auth login` |
-| "Tag already exists" | Previous release attempt; check version |
-| "Push rejected" | `git pull --rebase && git push && git push --tags` |
+| Error                       | Fix                                                |
+| --------------------------- | -------------------------------------------------- |
+| "Working dir must be clean" | Should auto-handle; if not, run `/commit`          |
+| "Not on main branch"        | `git checkout main && git pull`                    |
+| "gh not authenticated"      | `gh auth login`                                    |
+| "Tag already exists"        | Previous release attempt; check version            |
+| "Push rejected"             | `git pull --rebase && git push && git push --tags` |
 
 ## Rollback
 
 **Before push (tag created but not pushed):**
+
 ```bash
 git tag -d vX.Y.Z && git reset --hard HEAD~1 && bun run build:info
 ```
 
 **After push:**
+
 ```bash
 git push --delete origin vX.Y.Z && gh release delete vX.Y.Z --yes
 git tag -d vX.Y.Z && git reset --hard HEAD~1 && bun run build:info

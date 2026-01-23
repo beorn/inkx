@@ -9,8 +9,17 @@
 
 import createDebug from "debug";
 import type { KNode, TNode } from "@km/core";
-import type { BoardState, BoardAction, TPath, NodeDirection } from "./board-types.ts";
-import { boardReducer, createBoardState, findPathToNode } from "./board-reducer.ts";
+import type {
+  BoardState,
+  BoardAction,
+  TPath,
+  NodeDirection,
+} from "./board-types.ts";
+import {
+  boardReducer,
+  createBoardState,
+  findPathToNode,
+} from "./board-reducer.ts";
 import {
   getCurrentNode,
   getParentNode,
@@ -135,7 +144,10 @@ export interface BoardOptions {
  * @param options - Board options
  * @returns Board domain object
  */
-export function createBoard(vault: VaultInterface, options?: BoardOptions): Board {
+export function createBoard(
+  vault: VaultInterface,
+  options?: BoardOptions,
+): Board {
   debug("createBoard", { vaultPath: vault.path, options });
 
   // Build initial tree from vault
@@ -248,7 +260,9 @@ export function createBoard(vault: VaultInterface, options?: BoardOptions): Boar
     refresh() {
       debug("refreshing board");
       const rootNode = state.rootId ? vault.getNode(state.rootId) : null;
-      const nodes = rootNode ? buildTree(vault, rootNode.id) : buildRootTree(vault);
+      const nodes = rootNode
+        ? buildTree(vault, rootNode.id)
+        : buildRootTree(vault);
       dispatch({ type: "REFRESH", nodes });
     },
 

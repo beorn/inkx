@@ -36,8 +36,12 @@ export function createVault(path: string, options?: VaultOptions): Vault {
 
   // Return plain object with methods
   return {
-    get path() { return resolvedPath; },
-    get mode() { return mode; },
+    get path() {
+      return resolvedPath;
+    },
+    get mode() {
+      return mode;
+    },
 
     getNode(id) {
       ensureNotClosed();
@@ -52,7 +56,7 @@ export function createVault(path: string, options?: VaultOptions): Vault {
 
     [Symbol.dispose]() {
       this.close();
-    }
+    },
   };
 
   // Private helper (hoisted)
@@ -123,7 +127,7 @@ When loading involves multiple phases, use a generator factory:
 ```typescript
 export function* createVault(
   path: string,
-  options?: VaultOptions
+  options?: VaultOptions,
 ): Generator<ProgressInfo, Vault, unknown> {
   // Phase 1: Discover
   yield { phase: "discover", current: 0, total: 0 };
@@ -180,7 +184,7 @@ export function runGenerator<T>(gen: Generator<unknown, T, unknown>): T {
 /** Run generator with progress callback */
 export function runWithProgress<T>(
   gen: Generator<ProgressInfo, T, unknown>,
-  onProgress: (info: ProgressInfo) => void
+  onProgress: (info: ProgressInfo) => void,
 ): T {
   let result = gen.next();
   while (!result.done) {
@@ -214,7 +218,7 @@ export function createVault(path: string): Vault {
     },
     [Symbol.dispose]() {
       this.close();
-    }
+    },
   };
 }
 
@@ -248,7 +252,9 @@ export function createWatcher(vault: Vault): Watcher {
   let fsWatcher: FSWatcher | null = null;
 
   return {
-    get status() { return status; },
+    get status() {
+      return status;
+    },
 
     async start() {
       if (status !== "stopped") return;
@@ -276,12 +282,12 @@ export function createWatcher(vault: Vault): Watcher {
 
     async [Symbol.asyncDispose]() {
       await this.stop();
-    }
+    },
   };
 
   function handleChange(path: string) {
     const change = { path, type: "modify" };
-    handlers.get("change")?.forEach(h => h([change]));
+    handlers.get("change")?.forEach((h) => h([change]));
   }
 }
 
@@ -411,8 +417,10 @@ async function main(vaultPath: string) {
 ```typescript
 // ❌ BAD - factory that also sets singletons
 export function createVault(path: string): Vault {
-  const vault = { /* ... */ };
-  _globalVault = vault;  // Don't do this!
+  const vault = {
+    /* ... */
+  };
+  _globalVault = vault; // Don't do this!
   return vault;
 }
 ```
@@ -422,7 +430,7 @@ export function createVault(path: string): Vault {
 ```typescript
 // ❌ BAD - exposes internal database
 export interface Vault {
-  db: Database;  // Don't expose this!
+  db: Database; // Don't expose this!
 }
 
 // ✅ GOOD - only expose operations
@@ -447,8 +455,12 @@ export function createVault(path: string): Vault {
   const db = openDatabase(path);
   return {
     getNode: (id) => queryNode(db, id),
-    close() { db.close(); },
-    [Symbol.dispose]() { this.close(); }
+    close() {
+      db.close();
+    },
+    [Symbol.dispose]() {
+      this.close();
+    },
   };
 }
 ```
