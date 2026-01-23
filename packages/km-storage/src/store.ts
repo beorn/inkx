@@ -1037,6 +1037,8 @@ function findKmDirectoryExact(path: string): string | null {
 /**
  * Get the current store instance.
  * If no store exists, creates one in lazy mode (deferred scanning).
+ * @deprecated Use createVault() factory to create a Vault domain object instead.
+ * This singleton will be removed in a future version.
  */
 export function getStore(): NodeStore {
   if (!storeInstance) {

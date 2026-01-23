@@ -10,6 +10,12 @@ import { parse as parseYaml } from "yaml";
 import { getKmDir } from "@km/storage";
 import type { Harness } from "./types.ts";
 
+/** Options for harness functions */
+export interface HarnessOptions {
+  /** Path to .km directory. Falls back to getKmDir() singleton if not provided. */
+  kmDir?: string;
+}
+
 /**
  * Default general-purpose harness (built-in).
  */
@@ -31,10 +37,12 @@ export const DEFAULT_HARNESS: Harness = {
 /**
  * Load a harness by name.
  * First checks .km/harnesses/, then falls back to built-ins.
+ * @param name - Harness name to load
+ * @param options - Optional options (kmDir for DI)
  */
-export function loadHarness(name: string): Harness | null {
+export function loadHarness(name: string, options?: HarnessOptions): Harness | null {
   // Try loading from .km/harnesses/
-  const kmDir = getKmDir();
+  const kmDir = options?.kmDir ?? getKmDir();
   if (kmDir) {
     const harnessPath = join(kmDir, "harnesses", `${name}.yaml`);
     if (existsSync(harnessPath)) {
@@ -116,11 +124,12 @@ export function getDefaultHarness(): Harness {
 
 /**
  * List all available harnesses (built-in + custom).
+ * @param options - Optional options (kmDir for DI)
  */
-export function listHarnesses(): string[] {
+export function listHarnesses(options?: HarnessOptions): string[] {
   const harnesses = new Set<string>(["general"]);
 
-  const kmDir = getKmDir();
+  const kmDir = options?.kmDir ?? getKmDir();
   if (kmDir) {
     const harnessDir = join(kmDir, "harnesses");
     if (existsSync(harnessDir)) {

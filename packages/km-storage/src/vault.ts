@@ -36,6 +36,7 @@ import {
   getAncestors as dbGetAncestors,
   getLinksTo as dbGetLinksTo,
   getBacklinks as dbGetBacklinks,
+  getDb,
   closeDb,
   type Link,
 } from "./db.ts";
@@ -140,6 +141,17 @@ export interface Vault extends Disposable {
    * @param relativePath - Path relative to vault root
    */
   pathExists(relativePath: string): boolean;
+
+  // --- Advanced ---
+
+  /**
+   * Execute a raw SQL query on the database.
+   * Use for advanced queries not covered by the standard API.
+   * @param sql - SQL query string
+   * @param params - Query parameters
+   * @returns Query results as array of objects
+   */
+  rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[];
 
   // --- Lifecycle ---
 
@@ -495,6 +507,13 @@ export function* createVault(
     pathExists(relativePath) {
       ensureNotClosed();
       return existsSync(join(path, relativePath));
+    },
+
+    rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
+      ensureNotClosed();
+      const db = getDb();
+      const stmt = db.prepare(sql);
+      return (params ? stmt.all(...(params as Parameters<typeof stmt.all>)) : stmt.all()) as T[];
     },
 
     // Lifecycle

@@ -31,6 +31,8 @@ export function setKmDir(path: string): void {
 
 /**
  * Get the current km state directory path
+ * @deprecated Use Vault.path or pass kmDir explicitly to functions that need it.
+ * This singleton will be removed in a future version.
  */
 export function getKmDir(): string {
   return kmDir;

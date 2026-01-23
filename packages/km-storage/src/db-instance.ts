@@ -31,6 +31,8 @@ export function getDbPath(): string {
 
 /**
  * Initialize or get the database instance
+ * @deprecated Use Vault.rawQuery() for raw SQL, or Vault query methods for typed queries.
+ * This singleton will be removed in a future version.
  */
 export function getDb(): Database {
   if (dbInstance) {
@@ -71,6 +73,7 @@ export function closeDb(): void {
 /**
  * Inject an external database instance (e.g., from MemoryStore)
  * This allows memory mode to work with existing db.ts functions
+ * @deprecated Internal use only. Use createVault() factory instead.
  */
 export function setDb(db: Database): void {
   if (dbInstance && !dbInjected) {
