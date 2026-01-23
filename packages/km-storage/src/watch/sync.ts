@@ -5,7 +5,7 @@
  */
 
 import createDebug from "debug";
-import { mkdirSync } from "fs";
+import { existsSync, mkdirSync, statSync } from "fs";
 
 const debug = createDebug("km:storage:watch:sync");
 import { dirname, join } from "path";
@@ -408,6 +408,10 @@ export class SyncManager extends EventEmitter {
 
   /**
    * Handle node updated event - regenerate file
+   *
+   * CRITICAL: Before regenerating, we must reconcile any pending FS changes
+   * to avoid data loss. If the file was modified externally (mtime differs),
+   * we reconcile first to bring FS changes into DB, then regenerate.
    */
   private handleNodeUpdated(event: Event): void {
     if (!event.target) return;
@@ -419,7 +423,11 @@ export class SyncManager extends EventEmitter {
     const fileNode = findFileNode(node);
     if (!fileNode?.fs_path) return;
 
-    // Regenerate the file
+    // Check if file has been modified externally (mtime differs from DB)
+    // If so, reconcile first to avoid losing external changes
+    this.reconcileIfChanged(fileNode);
+
+    // Regenerate the file from (now-updated) DB state
     const allNodes = getSubtree(fileNode.id);
     const content = nodesToMarkdown(allNodes);
 
@@ -428,6 +436,44 @@ export class SyncManager extends EventEmitter {
       content,
       sourceEventId: event.id,
     });
+  }
+
+  /**
+   * Reconcile a file if it has been modified externally (mtime differs from DB).
+   * This prevents data loss when DB changes race with FS changes.
+   */
+  private reconcileIfChanged(fileNode: KNode): void {
+    if (!fileNode.fs_path || !existsSync(fileNode.fs_path)) return;
+
+    try {
+      const stat = statSync(fileNode.fs_path);
+      const dbMtime = fileNode.fs_mtime;
+
+      if (dbMtime !== undefined && stat.mtimeMs !== dbMtime) {
+        debug("reconcile-before-write: file changed externally, reconciling", {
+          path: fileNode.fs_path,
+          dbMtime,
+          fsMtime: stat.mtimeMs,
+        });
+
+        // Reconcile this directory to bring FS changes into DB
+        const dir = dirname(fileNode.fs_path);
+        const ops = reconcileDirectory(
+          dir,
+          this.config.vaultPath,
+          this.ignorePatterns,
+        );
+
+        if (ops.length > 0) {
+          debug("reconcile-before-write: applying %d ops", ops.length);
+          // Apply synchronously to ensure DB is updated before we regenerate
+          void applyReconcileOps(ops, this.config.vaultPath);
+        }
+      }
+    } catch (err) {
+      debug("reconcile-before-write: error checking file", err);
+      // Continue with write anyway - better than losing the DB change
+    }
   }
 
   /**
@@ -469,6 +515,9 @@ export class SyncManager extends EventEmitter {
 
   /**
    * Handle node moved event
+   *
+   * CRITICAL: Before regenerating, we must reconcile any pending FS changes
+   * to avoid data loss (same as handleNodeUpdated).
    */
   private handleNodeMoved(event: Event): void {
     // Movement might require file regeneration
@@ -480,6 +529,9 @@ export class SyncManager extends EventEmitter {
     // Regenerate affected files
     const fileNode = findFileNode(node);
     if (fileNode?.fs_path) {
+      // Check if file has been modified externally and reconcile if needed
+      this.reconcileIfChanged(fileNode);
+
       const allNodes = getSubtree(fileNode.id);
       const content = nodesToMarkdown(allNodes);
 

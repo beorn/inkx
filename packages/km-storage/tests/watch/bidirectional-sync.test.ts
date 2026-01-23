@@ -325,10 +325,9 @@ describe.serial("Bidirectional Sync E2E", () => {
       expect(task!.content).toContain("Task 4");
     });
 
-    // Skip: This test verifies complex concurrent edit behavior that depends on
-    // exact timing and conflict resolution strategy. The current implementation
-    // does not guarantee both edits survive in a race condition.
-    test.skip("TUI edit during filesystem sync doesn't cause data loss", async () => {
+    // Fixed: The reconcile-before-write fix ensures FS changes are synced to DB
+    // before regenerating the file for a DB→FS write. This prevents data loss.
+    test("TUI edit during filesystem sync doesn't cause data loss", async () => {
       // Create initial file
       const testFile = join(VAULT_DIR, "conflict.md");
       writeFileSync(testFile, "# Conflict\n\n- [ ] Task A\n");
