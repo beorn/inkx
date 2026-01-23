@@ -211,7 +211,10 @@ export function fseventsCoalesce(coalesceThreshold = 10): ChaosScenario {
 }
 
 /** Create rapid succession scenario */
-export function rapidSuccession(editsPerFile = 10, intervalMs = 10): ChaosScenario {
+export function rapidSuccession(
+  editsPerFile = 10,
+  intervalMs = 10,
+): ChaosScenario {
   return createScenario("rapid_succession", { editsPerFile, intervalMs });
 }
 
@@ -415,7 +418,9 @@ function applyPartialWrites(
           ...event,
           type: "change",
           timing: {
-            delay: baseDelay + (finalWriteDelay / (intermediateEvents + 1)) * (i + 1),
+            delay:
+              baseDelay +
+              (finalWriteDelay / (intermediateEvents + 1)) * (i + 1),
           },
           originalIndex: event.originalIndex,
         });
@@ -457,7 +462,8 @@ function applyRenameStorm(
 
       // Create rename chain: file.md -> file1.md -> file2.md -> ...
       for (let i = 0; i < chainLength; i++) {
-        const fromPath = i === 0 ? event.path : join(dir, `${baseName}${i}${ext}`);
+        const fromPath =
+          i === 0 ? event.path : join(dir, `${baseName}${i}${ext}`);
         const toPath = join(dir, `${baseName}${i + 1}${ext}`);
 
         // Unlink old path
