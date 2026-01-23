@@ -34,8 +34,9 @@ $ cat > board.md << 'EOF'
 
 ```console
 $ km sync
-Syncing: ...
+Syncing .km/state.db with files (repo ...)
 [...]
+✓ Synced ... change(s) in ... directories (...ms)
 ```
 
 ## Path-based Commands

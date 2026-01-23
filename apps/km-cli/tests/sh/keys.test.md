@@ -33,8 +33,9 @@ $ cat > board.md << 'EOF'
 
 ```console
 $ km sync
-Syncing: ...
+Syncing .km/state.db with files (repo ...)
 [...]
+✓ Synced ... change(s) in ... directories (...ms)
 ```
 
 ## Cursor-Select Keys (hjkl)
@@ -148,8 +149,8 @@ topLevel: 2 nodes
 
 ```console
 $ km sh board.md -c 'j; L; H; state'
-cursor: [0,0]
-node: Task A
+cursor: [0,1]
+node: Task B
 topLevel: 2 nodes
 ```
 
@@ -214,8 +215,9 @@ $ cat > empty-col.md << 'EOF'
 
 ```console
 $ km sync
-Syncing: ...
+Syncing .km/state.db with files (repo ...)
 [...]
+✓ Synced ... change(s) in ... directories (...ms)
 ```
 
 ```console

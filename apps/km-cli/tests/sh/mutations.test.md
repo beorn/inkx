@@ -33,8 +33,9 @@ $ cat > board.md << 'EOF'
 
 ```console
 $ km sync
-Syncing: ...
+Syncing .km/state.db with files (repo ...)
 [...]
+✓ Synced ... change(s) in ... directories (...ms)
 ```
 
 ## set_status command
@@ -119,8 +120,9 @@ $ cat > delete-test.md << 'EOF'
 
 ```console
 $ km sync
-Syncing: ...
+Syncing .km/state.db with files (repo ...)
 [...]
+✓ Synced ... change(s) in ... directories (...ms)
 ```
 
 ```console

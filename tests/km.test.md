@@ -20,9 +20,9 @@ Sync filesystem to database:
 
 ```console
 $ km sync
-Syncing: ...
-Syncing filesystem → database...
-✓ Processed ... change(s)
+Syncing .km/state.db with files (repo ...)
+[...]
+✓ Synced ... change(s) in ... directories (...ms)
 ```
 
 ## Task Management
@@ -36,9 +36,8 @@ $ km new "Test task from mdtest"
 ✓ Added to inbox: Test task from mdtest
 
 $ km sync
-Syncing: ...
-Syncing filesystem → database...
-✓ Processed 2 change(s)
+Syncing .km/state.db with files (repo ...)
+✓ Synced 2 change(s) in ... directories (...ms)
 ```
 
 ### km tasks - List tasks
@@ -142,9 +141,9 @@ $ cat << 'EOF' > projects/p1.md
 > - [ ] Third project task
 > EOF
 $ km sync
-Syncing: ...
-Syncing filesystem → database...
-✓ Processed ... change(s)
+Syncing .km/state.db with files (repo ...)
+[...]
+✓ Synced ... change(s) in ... directories (...ms)
 ```
 
 Verify tasks exist in the project file:
@@ -209,9 +208,9 @@ $ cat << 'EOF' > docs/readme.md
 > - [ ] Install dependencies
 > EOF
 $ km sync
-Syncing: ...
-Syncing filesystem → database...
-✓ Processed ... change(s)
+Syncing .km/state.db with files (repo ...)
+[...]
+✓ Synced ... change(s) in ... directories (...ms)
 ```
 
 The file node should display with the H1 title "Welcome to My Project":
