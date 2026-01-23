@@ -3,11 +3,13 @@
  *
  * Tests for computed rule evaluation (add=, sync=, etc.)
  * Rules are evaluated at sync time and results stored in the links table.
+ * Uses isolated temp directories for cleaner test setup.
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
+import { mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
+import { ulid } from "ulid";
 import { MemoryStore } from "../src/store.ts";
 import {
   evaluateNodeRules,
@@ -18,16 +20,25 @@ import {
 import { getChildren, getChildCountsBatch } from "../src/db-queries/index.ts";
 import { setDb } from "../src/db-instance.ts";
 
-const TEST_DIR = join("/tmp", "kmtest-rules");
+// Track created directories for cleanup
+const createdDirs: string[] = [];
+
+/** Create an isolated test directory */
+function createTestDir(): string {
+  const dir = join("/tmp", `kmtest-rules-${ulid()}`);
+  mkdirSync(dir, { recursive: true });
+  createdDirs.push(dir);
+  return dir;
+}
+
+// Current test directory (set in beforeEach)
+let testDir: string;
 
 describe.serial("Database Rules", () => {
   let store: MemoryStore | null = null;
 
   beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
+    testDir = createTestDir();
   });
 
   afterEach(() => {
@@ -35,16 +46,22 @@ describe.serial("Database Rules", () => {
       store.close();
       store = null;
     }
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
+    // Clean up all created directories
+    for (const dir of createdDirs) {
+      try {
+        rmSync(dir, { recursive: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     }
+    createdDirs.length = 0;
   });
 
   describe.serial("getNodesWithRules", () => {
     test("should find nodes with add= rules", () => {
       // Create a file with sections that have add= rules
       writeFileSync(
-        join(TEST_DIR, "board.md"),
+        join(testDir, "board.md"),
         `# Board
 
 ## Open add="@issue status:todo"
@@ -53,7 +70,7 @@ describe.serial("Database Rules", () => {
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
 
       const nodesWithRules = getNodesWithRules();
@@ -67,7 +84,7 @@ describe.serial("Database Rules", () => {
 
     test("should return empty array when no rules exist", () => {
       writeFileSync(
-        join(TEST_DIR, "simple.md"),
+        join(testDir, "simple.md"),
         `# Simple
 
 ## Section 1
@@ -80,7 +97,7 @@ describe.serial("Database Rules", () => {
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
 
       const nodesWithRules = getNodesWithRules();
@@ -91,7 +108,7 @@ describe.serial("Database Rules", () => {
   describe.serial("getNodesWithRule", () => {
     test("should find nodes with specific rule type", () => {
       writeFileSync(
-        join(TEST_DIR, "mixed.md"),
+        join(testDir, "mixed.md"),
         `# Mixed Rules
 
 ## Open add="@issue status:todo"
@@ -102,7 +119,7 @@ describe.serial("Database Rules", () => {
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
 
       const addRuleNodes = getNodesWithRule("add");
@@ -119,7 +136,7 @@ describe.serial("Database Rules", () => {
     test("should create embed children for matching nodes", () => {
       // Create issues with @issue tag
       writeFileSync(
-        join(TEST_DIR, "issues.md"),
+        join(testDir, "issues.md"),
         `# Issues
 
 - [ ] Fix bug @issue
@@ -130,14 +147,14 @@ describe.serial("Database Rules", () => {
 
       // Create board with add= rule
       writeFileSync(
-        join(TEST_DIR, "board.md"),
+        join(testDir, "board.md"),
         `# Board
 
 ## Open add="@issue status:todo"
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
 
       // Find the "Open" section
@@ -163,7 +180,7 @@ describe.serial("Database Rules", () => {
     test("should not create embeds for direct children", () => {
       // Create a section with both direct children AND add= rule
       writeFileSync(
-        join(TEST_DIR, "mixed.md"),
+        join(testDir, "mixed.md"),
         `# Mixed
 
 ## Open add="@issue status:todo"
@@ -178,7 +195,7 @@ describe.serial("Database Rules", () => {
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
 
       const allNodes = store.getAllNodes();
@@ -204,7 +221,7 @@ describe.serial("Database Rules", () => {
   describe.serial("evaluateAllRules", () => {
     test("should evaluate all rules in database", () => {
       writeFileSync(
-        join(TEST_DIR, "tasks.md"),
+        join(testDir, "tasks.md"),
         `# Tasks
 
 - [ ] Task A @project
@@ -214,7 +231,7 @@ describe.serial("Database Rules", () => {
       );
 
       writeFileSync(
-        join(TEST_DIR, "board.md"),
+        join(testDir, "board.md"),
         `# Board
 
 ## Todo add="@project status:todo"
@@ -223,7 +240,7 @@ describe.serial("Database Rules", () => {
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
 
       // Evaluate all rules
@@ -259,7 +276,7 @@ describe.serial("Database Rules", () => {
   describe.serial("getChildren with computed links", () => {
     test("should include embed children from add= rule", () => {
       writeFileSync(
-        join(TEST_DIR, "issues.md"),
+        join(testDir, "issues.md"),
         `# Issues
 
 - [ ] Bug 1 @issue
@@ -268,14 +285,14 @@ describe.serial("Database Rules", () => {
       );
 
       writeFileSync(
-        join(TEST_DIR, "board.md"),
+        join(testDir, "board.md"),
         `# Board
 
 ## Open add="@issue status:todo"
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
 
       // Find the Open section
@@ -302,7 +319,7 @@ describe.serial("Database Rules", () => {
       // This tests the UNION in getChildren - if a node is both
       // a direct child AND matched by a query, it should only appear once
       writeFileSync(
-        join(TEST_DIR, "board.md"),
+        join(testDir, "board.md"),
         `# Board
 
 ## Open add="status:todo"
@@ -311,7 +328,7 @@ describe.serial("Database Rules", () => {
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
 
       const allNodes = store.getAllNodes();
@@ -332,7 +349,7 @@ describe.serial("Database Rules", () => {
   describe.serial("incremental updates", () => {
     test("should update links when task status changes", () => {
       writeFileSync(
-        join(TEST_DIR, "tasks.md"),
+        join(testDir, "tasks.md"),
         `# Tasks
 
 - [ ] Task A @tag
@@ -341,7 +358,7 @@ describe.serial("Database Rules", () => {
       );
 
       writeFileSync(
-        join(TEST_DIR, "board.md"),
+        join(testDir, "board.md"),
         `# Board
 
 ## Todo add="@tag status:todo"
@@ -350,7 +367,7 @@ describe.serial("Database Rules", () => {
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
       for (const _ of evaluateAllRules()) {
         /* exhaust generator */
@@ -402,7 +419,7 @@ describe.serial("Database Rules", () => {
       // getChildCountsBatch was only counting direct children, causing
       // sections with only add= linked children to appear empty.
       writeFileSync(
-        join(TEST_DIR, "issues.md"),
+        join(testDir, "issues.md"),
         `# Issues
 
 - [ ] Bug 1 @issue
@@ -412,14 +429,14 @@ describe.serial("Database Rules", () => {
       );
 
       writeFileSync(
-        join(TEST_DIR, "board.md"),
+        join(testDir, "board.md"),
         `# Board
 
 ## Open add="@issue status:todo"
 `,
       );
 
-      store = new MemoryStore(TEST_DIR);
+      store = new MemoryStore(testDir);
       setDb(store.getDatabase());
 
       // Evaluate rules to create links

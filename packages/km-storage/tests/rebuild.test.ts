@@ -2,41 +2,57 @@
  * State Rebuild Tests
  *
  * Tests for rebuild.ts functions.
+ * Uses isolated temp directories for cleaner test setup.
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
-import { setKmDir, getEventsPath, emitNodeCreated } from "../src/emit.ts";
+import { ulid } from "ulid";
+import { setKmDir, getEventsPath } from "../src/emit.ts";
 import {
   readEvents,
   rebuildState,
   needsRebuild,
-  syncState,
   fullReset,
   freshStart,
   runWithProgress,
 } from "../src/rebuild.ts";
 import { closeDb, getDb, resetDb } from "../src/db.ts";
 
-const TEST_DIR = join("/tmp", "kmtest-rebuild");
-const KM_DIR = join(TEST_DIR, ".km");
+// Track created directories for cleanup
+const createdDirs: string[] = [];
+
+/** Create an isolated test directory with .km subdirectory */
+function createTestDir(): { testDir: string; kmDir: string } {
+  const testDir = join("/tmp", `kmtest-rebuild-${ulid()}`);
+  const kmDir = join(testDir, ".km");
+  mkdirSync(kmDir, { recursive: true });
+  createdDirs.push(testDir);
+  return { testDir, kmDir };
+}
+
+// Current test directory (set in beforeEach)
+let currentKmDir: string;
 
 describe.serial("rebuild.ts", () => {
   beforeEach(() => {
-    // Clean up and create test directory structure
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(KM_DIR, { recursive: true });
-    setKmDir(KM_DIR);
+    const { kmDir } = createTestDir();
+    currentKmDir = kmDir;
+    setKmDir(kmDir);
   });
 
   afterEach(() => {
     closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
+    // Clean up all created directories
+    for (const dir of createdDirs) {
+      try {
+        rmSync(dir, { recursive: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     }
+    createdDirs.length = 0;
   });
 
   describe.serial("readEvents", () => {
@@ -186,18 +202,18 @@ describe.serial("rebuild.ts", () => {
   describe.serial("freshStart", () => {
     test("clears .km directory contents", () => {
       // Create some files in .km
-      writeFileSync(join(KM_DIR, "events.jsonl"), "test");
-      writeFileSync(join(KM_DIR, "test.txt"), "test");
-      mkdirSync(join(KM_DIR, "blobs"));
-      writeFileSync(join(KM_DIR, "blobs", "test"), "test");
+      writeFileSync(join(currentKmDir, "events.jsonl"), "test");
+      writeFileSync(join(currentKmDir, "test.txt"), "test");
+      mkdirSync(join(currentKmDir, "blobs"));
+      writeFileSync(join(currentKmDir, "blobs", "test"), "test");
 
       freshStart();
 
       // .km should exist but be empty
-      expect(existsSync(KM_DIR)).toBe(true);
-      expect(existsSync(join(KM_DIR, "events.jsonl"))).toBe(false);
-      expect(existsSync(join(KM_DIR, "test.txt"))).toBe(false);
-      expect(existsSync(join(KM_DIR, "blobs"))).toBe(false);
+      expect(existsSync(currentKmDir)).toBe(true);
+      expect(existsSync(join(currentKmDir, "events.jsonl"))).toBe(false);
+      expect(existsSync(join(currentKmDir, "test.txt"))).toBe(false);
+      expect(existsSync(join(currentKmDir, "blobs"))).toBe(false);
     });
   });
 });

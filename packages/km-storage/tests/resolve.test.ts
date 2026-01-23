@@ -5,34 +5,51 @@
  * - ID (exact, prefix, suffix)
  * - Filesystem path (exact, relative, filename)
  * - Content match
+ *
+ * Uses isolated temp directories for cleaner test setup.
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { join } from "path";
-import { mkdirSync, rmSync, existsSync } from "fs";
+import { mkdirSync, rmSync } from "fs";
+import { ulid } from "ulid";
 
 import { closeDb, resolveNode, resetDb, applyEvent } from "../src/db.ts";
 import { emitNodeCreated, setKmDir, setDatabase } from "../src/emit.ts";
-import { ulid } from "ulid";
 
-const TEST_DIR = join("/tmp", "kmtest-resolve");
+// Track created directories for cleanup
+const createdDirs: string[] = [];
+
+/** Create an isolated test directory */
+function createTestDir(): string {
+  const dir = join("/tmp", `kmtest-resolve-${ulid()}`);
+  mkdirSync(dir, { recursive: true });
+  createdDirs.push(dir);
+  return dir;
+}
+
+// Current test directory (set in beforeEach)
+let testDir: string;
 
 describe.serial("resolveNode", () => {
   beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setKmDir(TEST_DIR);
+    testDir = createTestDir();
+    setKmDir(testDir);
     setDatabase({ applyEvent });
     resetDb();
   });
 
   afterEach(() => {
     closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
+    // Clean up all created directories
+    for (const dir of createdDirs) {
+      try {
+        rmSync(dir, { recursive: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     }
+    createdDirs.length = 0;
   });
 
   test("resolves by exact ID", () => {
@@ -65,7 +82,7 @@ describe.serial("resolveNode", () => {
   });
 
   test("resolves by exact filesystem path", () => {
-    const fsPath = join(TEST_DIR, "test.md");
+    const fsPath = join(testDir, "test.md");
     emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
 
     const node = resolveNode(fsPath);
@@ -74,7 +91,7 @@ describe.serial("resolveNode", () => {
   });
 
   test("resolves by filename with extension", () => {
-    const fsPath = join(TEST_DIR, "@inbox.md");
+    const fsPath = join(testDir, "@inbox.md");
     emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
 
     const node = resolveNode("@inbox.md");
@@ -83,7 +100,7 @@ describe.serial("resolveNode", () => {
   });
 
   test("resolves by filename without extension", () => {
-    const fsPath = join(TEST_DIR, "@inbox.md");
+    const fsPath = join(testDir, "@inbox.md");
     emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
 
     const node = resolveNode("@inbox");
@@ -116,7 +133,7 @@ describe.serial("resolveNode", () => {
     emitNodeCreated("test", {
       id: fileId,
       type: "file",
-      fs_path: join(TEST_DIR, "Test.md"),
+      fs_path: join(testDir, "Test.md"),
     });
 
     // Without type filter, could match either
