@@ -38,6 +38,7 @@ import { inboxCommand } from "./commands/inbox.ts";
 import { shCommand } from "./commands/sh.ts";
 import { bdCommand } from "./commands/bd.ts";
 import { agentCommand } from "./commands/agent.ts";
+import { statsCommand } from "./commands/stats.ts";
 
 const program = new Command();
 
@@ -199,6 +200,7 @@ program.addCommand(daemonCommand); // km daemon {start,stop,status} - background
 program.addCommand(shCommand); // km sh [root] - scripting shell for TUI2 debugging
 program.addCommand(bdCommand); // km bd - issue tracking (beads-compatible)
 program.addCommand(agentCommand); // km agent - AI agent management
+program.addCommand(statsCommand); // km stats [path] - vault statistics (domain object example)
 
 // Handle unknown commands with helpful error message
 program.action((_options, command) => {

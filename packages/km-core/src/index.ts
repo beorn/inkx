@@ -31,6 +31,10 @@ export type {
 // Constants
 export { CUSTOM_TASK_MARKS, TASK_MARK_REGEX_CLASS } from "./types.ts";
 
+// Build info (auto-generated)
+export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } from "./build-info.gen.ts";
+export type { BuildInfo } from "./build-info.gen.ts";
+
 // Task utilities
 export { getMarkForStatus } from "./types.ts";
 
