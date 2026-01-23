@@ -53,7 +53,7 @@ export interface NodeStore {
   readonly mode: "memory" | "disk";
   readonly rootPath: string;
 
-  // Internal database access (for backwards compatibility with db.ts)
+  // Internal database access (for setDb() calls that configure global state)
   getDatabase(): Database;
 
   // Read operations

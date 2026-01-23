@@ -6,14 +6,8 @@
  */
 
 import type { BoardState, TNode } from "./board-types.ts";
-import {
-  getNodeAtPath,
-  getSiblingCount,
-  findPathToNode,
-} from "./board-reducer.ts";
-
-// Re-export findPathToNode for backward compatibility
-export { findPathToNode };
+import { getNodeAtPath, getSiblingCount } from "@km/tree";
+import { findPathToNode } from "./board-reducer.ts";
 
 /**
  * Get the currently selected node
@@ -139,8 +133,6 @@ export function getBreadcrumbs(state: BoardState): TNode[] {
 }
 
 // ===== Node ID to Path Lookup =====
-
-// findPathToNode is imported from board-reducer.ts and re-exported above
 
 /**
  * Check if a node is visible (exists) in the current tree.

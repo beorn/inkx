@@ -11,7 +11,7 @@ import createDebug from "debug";
 import type { BoardState, BoardAction, TNode, TPath } from "./board-types.ts";
 
 const debug = createDebug("km:board:reducer");
-import { isTAction, getNodeAtPath, getSiblingCount } from "@km/tree";
+import { isTAction, getNodeAtPath } from "@km/tree";
 
 // Cursor movement handlers (extracted)
 import { handleCursorMove, updateCursor } from "./board-reducer-cursor.ts";
@@ -29,9 +29,6 @@ import {
   handleExtendSelectLeft,
   handleExtendSelectRight,
 } from "./board-reducer-selection.ts";
-
-// Re-export for backwards compatibility
-export { getNodeAtPath, getSiblingCount };
 
 /**
  * Get node ID at a given cursor path.

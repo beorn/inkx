@@ -1,13 +1,8 @@
 /**
  * SQLite Database - state.db management
  *
- * This file re-exports from focused modules for backwards compatibility.
- * New code should import directly from the specific modules:
- * - db-instance.ts: Database connection management
- * - db-queries.ts: Read-only query functions
- * - db-links.ts: Link management
- * - db-ops.ts: Write operations
- * - db-events.ts: Event application
+ * Facade module that re-exports from focused sub-modules.
+ * This is the primary public API for database access.
  */
 
 // Database instance management

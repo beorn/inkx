@@ -24,13 +24,11 @@ export { VIEW_LEVEL_PRESETS } from "./board-types.ts";
 export type { TAction } from "@km/tree";
 export { isTAction, TActionTypes } from "@km/tree";
 
+// ===== Tree Helpers (re-exported from @km/tree) =====
+export { getNodeAtPath, getSiblingCount } from "@km/tree";
+
 // ===== Board Reducer =====
-export {
-  boardReducer,
-  createBoardState,
-  getNodeAtPath,
-  getSiblingCount,
-} from "./board-reducer.ts";
+export { boardReducer, createBoardState, findPathToNode } from "./board-reducer.ts";
 
 // ===== Selectors =====
 export {
@@ -48,8 +46,6 @@ export {
   getTopLevelCount,
   getCursorDepth,
   getBreadcrumbs,
-  // Node ID to path lookup (for cursorNodeId -> cursor derivation)
-  findPathToNode,
   isNodeInTree,
   // TPath <-> Column/Card index conversion
   pathToColumnIndices,
