@@ -7,7 +7,13 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
 import { setDb, closeDb } from "@km/storage";
-import { queryAgents, getAgent, getActiveAgents, nodeToAgent, getAgentQueue } from "../src/queries.ts";
+import {
+  queryAgents,
+  getAgent,
+  getActiveAgents,
+  nodeToAgent,
+  getAgentQueue,
+} from "../src/queries.ts";
 import type { KNode } from "@km/core";
 
 describe("nodeToAgent", () => {
@@ -65,7 +71,11 @@ describe("nodeToAgent", () => {
   });
 
   test("falls back to content for name", () => {
-    const node = { ...baseNode, name: undefined, content: "Agent from Content" };
+    const node = {
+      ...baseNode,
+      name: undefined,
+      content: "Agent from Content",
+    };
     const agent = nodeToAgent(node);
 
     expect(agent.name).toBe("Agent from Content");
@@ -121,7 +131,12 @@ describe.serial("queryAgents", () => {
         "agent",
         "Agent One",
         "Agent One",
-        JSON.stringify({ short_id: "0001", model: "claude-sonnet-4", harness: "general", status: "idle" }),
+        JSON.stringify({
+          short_id: "0001",
+          model: "claude-sonnet-4",
+          harness: "general",
+          status: "idle",
+        }),
         now,
         now,
         0,
@@ -135,7 +150,12 @@ describe.serial("queryAgents", () => {
         "agent",
         "Agent Two",
         "Agent Two",
-        JSON.stringify({ short_id: "0002", model: "claude-opus-4", harness: "code-reviewer", status: "running" }),
+        JSON.stringify({
+          short_id: "0002",
+          model: "claude-opus-4",
+          harness: "code-reviewer",
+          status: "running",
+        }),
         now,
         now,
         1,
@@ -149,7 +169,12 @@ describe.serial("queryAgents", () => {
         "agent",
         "Agent Three",
         "Agent Three",
-        JSON.stringify({ short_id: "0003", model: "claude-sonnet-4", harness: "general", status: "error" }),
+        JSON.stringify({
+          short_id: "0003",
+          model: "claude-sonnet-4",
+          harness: "general",
+          status: "error",
+        }),
         now,
         now,
         2,
@@ -257,7 +282,12 @@ describe.serial("getAgent", () => {
         "agent",
         "Test Agent",
         "Test Agent",
-        JSON.stringify({ short_id: "test", model: "claude-sonnet-4", harness: "general", status: "idle" }),
+        JSON.stringify({
+          short_id: "test",
+          model: "claude-sonnet-4",
+          harness: "general",
+          status: "idle",
+        }),
         now,
         now,
         0,

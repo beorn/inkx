@@ -55,7 +55,9 @@ export function querySessions(filter?: SessionFilter): Session[] {
     sessions = sessions.filter((s) => s.taskId === filter.taskId);
   }
   if (filter?.status) {
-    const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+    const statuses = Array.isArray(filter.status)
+      ? filter.status
+      : [filter.status];
     sessions = sessions.filter((s) => statuses.includes(s.status));
   }
 
@@ -65,7 +67,9 @@ export function querySessions(filter?: SessionFilter): Session[] {
 /**
  * Map event status to session status.
  */
-function mapSessionStatus(eventStatus: "success" | "error" | "cancelled"): SessionStatus {
+function mapSessionStatus(
+  eventStatus: "success" | "error" | "cancelled",
+): SessionStatus {
   switch (eventStatus) {
     case "success":
       return "completed";

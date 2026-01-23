@@ -47,7 +47,9 @@ export function createAgentNode(
  */
 export function updateAgentFields(
   agent: Agent,
-  changes: Partial<Pick<Agent, "name" | "model" | "harness" | "status" | "currentTaskId">>,
+  changes: Partial<
+    Pick<Agent, "name" | "model" | "harness" | "status" | "currentTaskId">
+  >,
 ): Partial<KNode> {
   const updates: Partial<KNode> = {
     updated_at: Date.now(),

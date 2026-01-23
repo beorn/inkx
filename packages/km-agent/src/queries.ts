@@ -16,7 +16,9 @@ export function queryAgents(filter?: AgentFilter): Agent[] {
   let agents = nodes.map(nodeToAgent);
 
   if (filter?.status) {
-    const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+    const statuses = Array.isArray(filter.status)
+      ? filter.status
+      : [filter.status];
     agents = agents.filter((a) => statuses.includes(a.status));
   }
   if (filter?.harness) {
@@ -64,7 +66,10 @@ export function getActiveAgents(): Agent[] {
 export function nodeToAgent(node: KNode): Agent {
   const data = node.data ?? {};
 
-  const shortIdPart = typeof data.short_id === "string" ? data.short_id : node.id.slice(-4).toLowerCase();
+  const shortIdPart =
+    typeof data.short_id === "string"
+      ? data.short_id
+      : node.id.slice(-4).toLowerCase();
 
   return {
     id: node.id,
@@ -101,7 +106,10 @@ export function getAgentQueue(agentId: string): AgentQueueItem[] {
 
   return nodes.map((node) => {
     const data = node.data ?? {};
-    const shortId = typeof data.short_id === "string" ? data.short_id : `km-${node.id.slice(-4).toLowerCase()}`;
+    const shortId =
+      typeof data.short_id === "string"
+        ? data.short_id
+        : `km-${node.id.slice(-4).toLowerCase()}`;
 
     return {
       issueId: node.id,

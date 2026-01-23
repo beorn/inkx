@@ -16,7 +16,13 @@ import type { Harness } from "./types.ts";
 export const DEFAULT_HARNESS: Harness = {
   name: "general",
   description: "General-purpose agent harness",
-  tools: ["read_file", "write_file", "search_codebase", "run_tests", "execute_command"],
+  tools: [
+    "read_file",
+    "write_file",
+    "search_codebase",
+    "run_tests",
+    "execute_command",
+  ],
   constraints: {
     max_tokens_per_session: 100000,
   },
@@ -63,7 +69,9 @@ export function loadHarnessFromPath(path: string): Harness {
 /**
  * Validate that an object is a valid Harness definition.
  */
-export function validateHarness(obj: unknown): obj is { harness: Harness } | Harness {
+export function validateHarness(
+  obj: unknown,
+): obj is { harness: Harness } | Harness {
   if (typeof obj !== "object" || obj === null) {
     return false;
   }

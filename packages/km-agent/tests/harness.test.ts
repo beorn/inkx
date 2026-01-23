@@ -20,7 +20,9 @@ describe("DEFAULT_HARNESS", () => {
 
   test("has constraints", () => {
     expect(DEFAULT_HARNESS.constraints).toBeDefined();
-    expect(DEFAULT_HARNESS.constraints?.max_tokens_per_session).toBeGreaterThan(0);
+    expect(DEFAULT_HARNESS.constraints?.max_tokens_per_session).toBeGreaterThan(
+      0,
+    );
   });
 });
 
