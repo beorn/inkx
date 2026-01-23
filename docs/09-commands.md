@@ -132,7 +132,11 @@ const hasChildren: When = (c) => c.nodeHasChildren;
 // Example bindings
 const BINDINGS: Binding[] = [
   // Same key, different commands based on context
-  { keys: ["j"], cmd: cursorNext, when: (c) => onBoard(c) || c.pane === "detail" },
+  {
+    keys: ["j"],
+    cmd: cursorNext,
+    when: (c) => onBoard(c) || c.pane === "detail",
+  },
   { keys: ["j"], cmd: pickerNext, when: (c) => c.dialog === "projectPicker" },
   { keys: ["j"], cmd: moveDest, when: inMoveMode },
 
@@ -143,7 +147,11 @@ const BINDINGS: Binding[] = [
   // Modal-specific
   { keys: ["Escape"], cmd: closeDialog, when: onDialog },
   { keys: ["Escape"], cmd: cancelMove, when: inMoveMode },
-  { keys: ["Escape"], cmd: clearSelection, when: (c) => onBoard(c) && c.hasSelection },
+  {
+    keys: ["Escape"],
+    cmd: clearSelection,
+    when: (c) => onBoard(c) && c.hasSelection,
+  },
 ];
 ```
 
@@ -197,18 +205,18 @@ Cursor movement, zoom, history navigation.
 
 Single, multi, and range selection.
 
-| Command             | Description                 |
-| ------------------- | --------------------------- |
-| `selectToggle`      | Toggle selection on node    |
+| Command             | Description                   |
+| ------------------- | ----------------------------- |
+| `selectToggle`      | Toggle selection on node      |
 | `selectAdd`         | Add current node to selection |
-| `selectRemove`      | Remove node from selection  |
-| `selectAllSiblings` | Select all siblings         |
-| `progressiveSelect` | Progressive select all (A)  |
-| `clearSelection`    | Clear all selections        |
-| `extendSelectUp`    | Extend selection upward     |
-| `extendSelectDown`  | Extend selection downward   |
-| `extendSelectLeft`  | Extend selection leftward   |
-| `extendSelectRight` | Extend selection rightward  |
+| `selectRemove`      | Remove node from selection    |
+| `selectAllSiblings` | Select all siblings           |
+| `progressiveSelect` | Progressive select all (A)    |
+| `clearSelection`    | Clear all selections          |
+| `extendSelectUp`    | Extend selection upward       |
+| `extendSelectDown`  | Extend selection downward     |
+| `extendSelectLeft`  | Extend selection leftward     |
+| `extendSelectRight` | Extend selection rightward    |
 
 ### Edit
 
@@ -231,15 +239,15 @@ Mutations and move mode commands.
 
 Task-specific status changes.
 
-| Command           | Description                                    |
-| ----------------- | ---------------------------------------------- |
-| `cycleTaskStatus` | Cycle through statuses (todo/wip/done/dropped) |
-| `toggleDone`      | Toggle between done and todo                   |
-| `setStatusTodo`   | Set task status to todo                        |
-| `setStatusWip`    | Set task status to work in progress            |
-| `setStatusBlocked`| Set task status to blocked                     |
-| `setStatusDone`   | Mark task as done                              |
-| `setStatusDropped`| Mark task as dropped/cancelled                 |
+| Command            | Description                                    |
+| ------------------ | ---------------------------------------------- |
+| `cycleTaskStatus`  | Cycle through statuses (todo/wip/done/dropped) |
+| `toggleDone`       | Toggle between done and todo                   |
+| `setStatusTodo`    | Set task status to todo                        |
+| `setStatusWip`     | Set task status to work in progress            |
+| `setStatusBlocked` | Set task status to blocked                     |
+| `setStatusDone`    | Mark task as done                              |
+| `setStatusDropped` | Mark task as dropped/cancelled                 |
 
 ### Fold
 
@@ -269,24 +277,24 @@ Display settings and UI actions.
 
 Modal dialog commands.
 
-| Command         | Description               |
-| --------------- | ------------------------- |
-| `closeDialog`   | Close current dialog      |
-| `pickerNext`    | Next item in picker       |
-| `pickerPrev`    | Previous item in picker   |
-| `pickerSelect`  | Select item in picker     |
-| `newItem`       | Open new item dialog      |
-| `projectPicker` | Open project picker       |
+| Command         | Description             |
+| --------------- | ----------------------- |
+| `closeDialog`   | Close current dialog    |
+| `pickerNext`    | Next item in picker     |
+| `pickerPrev`    | Previous item in picker |
+| `pickerSelect`  | Select item in picker   |
+| `newItem`       | Open new item dialog    |
+| `projectPicker` | Open project picker     |
 
 ### App
 
 Application-level commands.
 
-| Command      | Description                    |
-| ------------ | ------------------------------ |
-| `quit`       | Exit the TUI                   |
-| `favorite1`-`9` | Jump to favorite board 1-9  |
-| `column1`-`9` | Jump to column 1-9            |
+| Command         | Description                |
+| --------------- | -------------------------- |
+| `quit`          | Exit the TUI               |
+| `favorite1`-`9` | Jump to favorite board 1-9 |
+| `column1`-`9`   | Jump to column 1-9         |
 
 ---
 
@@ -317,12 +325,12 @@ When predicates can check the current layer:
 
 ### Layer Values
 
-| Field    | Values                                     |
-| -------- | ------------------------------------------ |
-| `layer`  | `"board"`, `"pane"`, `"dialog"`            |
+| Field    | Values                                           |
+| -------- | ------------------------------------------------ |
+| `layer`  | `"board"`, `"pane"`, `"dialog"`                  |
 | `dialog` | `"help"`, `"projectPicker"`, `"newItem"`, `null` |
-| `pane`   | `"detail"`, `null`                         |
-| `mode`   | `"normal"`, `"move"`                       |
+| `pane`   | `"detail"`, `null`                               |
+| `mode`   | `"normal"`, `"move"`                             |
 
 ---
 
@@ -330,115 +338,115 @@ When predicates can check the current layer:
 
 #### Navigation
 
-| Key          | Command            | When Condition               |
-| ------------ | ------------------ | ---------------------------- |
-| `j`          | `cursorNext`       | board or detail pane         |
-| `k`          | `cursorPrev`       | board or detail pane         |
-| `h`          | `cursorLeft`       | board                        |
-| `l`          | `cursorRight`      | board                        |
-| `g`          | `cursorFirst`      | board                        |
-| `G`          | `cursorLast`       | board                        |
-| `ArrowDown`  | `cursorDown`       | board                        |
-| `ArrowUp`    | `cursorUp`         | board                        |
-| `ArrowLeft`  | `cursorLeft`       | board                        |
-| `ArrowRight` | `cursorRight`      | board                        |
-| `Ctrl+D`     | `pageDown`         | board                        |
-| `Ctrl+U`     | `pageUp`           | board                        |
-| `[`          | `navBack`          | board && canNavBack          |
-| `]`          | `navForward`       | board && canNavForward       |
-| `o`          | `zoomIn`           | board && canZoomIn           |
-| `i`          | `zoomInwards`      | board                        |
-| `u`          | `zoomOut`          | canZoomOut                   |
-| `Ctrl+J`     | `siblingBoardNext` | board                        |
-| `Ctrl+K`     | `siblingBoardPrev` | board                        |
-| `Enter`      | `openDetail`       | board && pane !== detail     |
+| Key          | Command            | When Condition           |
+| ------------ | ------------------ | ------------------------ |
+| `j`          | `cursorNext`       | board or detail pane     |
+| `k`          | `cursorPrev`       | board or detail pane     |
+| `h`          | `cursorLeft`       | board                    |
+| `l`          | `cursorRight`      | board                    |
+| `g`          | `cursorFirst`      | board                    |
+| `G`          | `cursorLast`       | board                    |
+| `ArrowDown`  | `cursorDown`       | board                    |
+| `ArrowUp`    | `cursorUp`         | board                    |
+| `ArrowLeft`  | `cursorLeft`       | board                    |
+| `ArrowRight` | `cursorRight`      | board                    |
+| `Ctrl+D`     | `pageDown`         | board                    |
+| `Ctrl+U`     | `pageUp`           | board                    |
+| `[`          | `navBack`          | board && canNavBack      |
+| `]`          | `navForward`       | board && canNavForward   |
+| `o`          | `zoomIn`           | board && canZoomIn       |
+| `i`          | `zoomInwards`      | board                    |
+| `u`          | `zoomOut`          | canZoomOut               |
+| `Ctrl+J`     | `siblingBoardNext` | board                    |
+| `Ctrl+K`     | `siblingBoardPrev` | board                    |
+| `Enter`      | `openDetail`       | board && pane !== detail |
 
 #### Selection
 
-| Key           | Command            | When Condition               |
-| ------------- | ------------------ | ---------------------------- |
-| `A`           | `progressiveSelect`| board                        |
-| `Escape`      | `clearSelection`   | board && hasSelection        |
-| `Shift+Up`    | `extendSelectUp`   | board                        |
-| `Shift+Down`  | `extendSelectDown` | board                        |
-| `Shift+Left`  | `extendSelectLeft` | board                        |
-| `Shift+Right` | `extendSelectRight`| board                        |
-| `K`           | `extendSelectUp`   | board                        |
-| `J`           | `extendSelectDown` | board                        |
-| `H`           | `extendSelectLeft` | board                        |
-| `L`           | `extendSelectRight`| board                        |
+| Key           | Command             | When Condition        |
+| ------------- | ------------------- | --------------------- |
+| `A`           | `progressiveSelect` | board                 |
+| `Escape`      | `clearSelection`    | board && hasSelection |
+| `Shift+Up`    | `extendSelectUp`    | board                 |
+| `Shift+Down`  | `extendSelectDown`  | board                 |
+| `Shift+Left`  | `extendSelectLeft`  | board                 |
+| `Shift+Right` | `extendSelectRight` | board                 |
+| `K`           | `extendSelectUp`    | board                 |
+| `J`           | `extendSelectDown`  | board                 |
+| `H`           | `extendSelectLeft`  | board                 |
+| `L`           | `extendSelectRight` | board                 |
 
 > **Note**: `Escape` has multiple bindings with different when conditions. First match wins: dialog > move mode > selection > pane.
 
 #### Edit
 
-| Key             | Command         | When Condition                         |
-| --------------- | --------------- | -------------------------------------- |
-| `m`             | `enterMoveMode` | board && hasSelection && mode=normal   |
-| `Enter`         | `confirmMove`   | mode=move                              |
-| `Escape`        | `cancelMove`    | mode=move                              |
-| `d`             | `deleteNode`    | board && hasSelection                  |
-| `Cmd+Up`        | `shiftUp`       | board                                  |
-| `Cmd+Down`      | `shiftDown`     | board                                  |
-| `Cmd+Left`      | `shiftLeft`     | board                                  |
-| `Cmd+Right`     | `shiftRight`    | board                                  |
-| `Cmd+k`         | `shiftUp`       | board                                  |
-| `Cmd+j`         | `shiftDown`     | board                                  |
-| `Cmd+h`         | `shiftLeft`     | board                                  |
-| `Cmd+l`         | `shiftRight`    | board                                  |
-| `Tab`           | `toggleFold`    | board && nodeHasChildren               |
-| `Shift+Tab`     | `shiftLeft`     | board                                  |
-| `Ctrl+Z`        | `undo`          | board                                  |
-| `Ctrl+Shift+Z`  | `redo`          | board                                  |
-| `Ctrl+Y`        | `redo`          | board                                  |
+| Key            | Command         | When Condition                       |
+| -------------- | --------------- | ------------------------------------ |
+| `m`            | `enterMoveMode` | board && hasSelection && mode=normal |
+| `Enter`        | `confirmMove`   | mode=move                            |
+| `Escape`       | `cancelMove`    | mode=move                            |
+| `d`            | `deleteNode`    | board && hasSelection                |
+| `Cmd+Up`       | `shiftUp`       | board                                |
+| `Cmd+Down`     | `shiftDown`     | board                                |
+| `Cmd+Left`     | `shiftLeft`     | board                                |
+| `Cmd+Right`    | `shiftRight`    | board                                |
+| `Cmd+k`        | `shiftUp`       | board                                |
+| `Cmd+j`        | `shiftDown`     | board                                |
+| `Cmd+h`        | `shiftLeft`     | board                                |
+| `Cmd+l`        | `shiftRight`    | board                                |
+| `Tab`          | `toggleFold`    | board && nodeHasChildren             |
+| `Shift+Tab`    | `shiftLeft`     | board                                |
+| `Ctrl+Z`       | `undo`          | board                                |
+| `Ctrl+Shift+Z` | `redo`          | board                                |
+| `Ctrl+Y`       | `redo`          | board                                |
 
 #### Task
 
-| Key     | Command           | When Condition               |
-| ------- | ----------------- | ---------------------------- |
-| `x`     | `cycleTaskStatus` | board && nodeIsTask          |
-| `X`     | `toggleDone`      | board && nodeIsTask          |
-| `Space` | `cycleTaskStatus` | board && nodeIsTask          |
+| Key     | Command           | When Condition      |
+| ------- | ----------------- | ------------------- |
+| `x`     | `cycleTaskStatus` | board && nodeIsTask |
+| `X`     | `toggleDone`      | board && nodeIsTask |
+| `Space` | `cycleTaskStatus` | board && nodeIsTask |
 
 #### Fold
 
-| Key | Command          | When Condition               |
-| --- | ---------------- | ---------------------------- |
-| `Tab`| `toggleFold`    | board && nodeHasChildren     |
-| `z` | `foldAll`        | board                        |
-| `Z` | `unfoldAll`      | board                        |
-| `c` | `toggleCollapse` | board                        |
+| Key   | Command          | When Condition           |
+| ----- | ---------------- | ------------------------ |
+| `Tab` | `toggleFold`     | board && nodeHasChildren |
+| `z`   | `foldAll`        | board                    |
+| `Z`   | `unfoldAll`      | board                    |
+| `c`   | `toggleCollapse` | board                    |
 
 #### View
 
-| Key     | Command                | When Condition               |
-| ------- | ---------------------- | ---------------------------- |
-| `v`     | `cycleViewMode`        | board                        |
-| `?`     | `toggleHelp`           | dialog !== help              |
-| `<`     | `decreaseOutlineDepth` | board                        |
-| `>`     | `increaseOutlineDepth` | board                        |
-| `+`/`=` | `increaseContentLines` | board                        |
-| `-`/`_` | `decreaseContentLines` | board                        |
+| Key     | Command                | When Condition  |
+| ------- | ---------------------- | --------------- |
+| `v`     | `cycleViewMode`        | board           |
+| `?`     | `toggleHelp`           | dialog !== help |
+| `<`     | `decreaseOutlineDepth` | board           |
+| `>`     | `increaseOutlineDepth` | board           |
+| `+`/`=` | `increaseContentLines` | board           |
+| `-`/`_` | `decreaseContentLines` | board           |
 
 #### Dialog
 
-| Key     | Command         | When Condition               |
-| ------- | --------------- | ---------------------------- |
-| `j`     | `pickerNext`    | dialog=projectPicker         |
-| `k`     | `pickerPrev`    | dialog=projectPicker         |
-| `Enter` | `pickerSelect`  | dialog=projectPicker         |
-| `Escape`| `closeDialog`   | dialog (any)                 |
-| `Escape`| `toggleHelp`    | dialog=help                  |
+| Key      | Command        | When Condition       |
+| -------- | -------------- | -------------------- |
+| `j`      | `pickerNext`   | dialog=projectPicker |
+| `k`      | `pickerPrev`   | dialog=projectPicker |
+| `Enter`  | `pickerSelect` | dialog=projectPicker |
+| `Escape` | `closeDialog`  | dialog (any)         |
+| `Escape` | `toggleHelp`   | dialog=help          |
 
 #### App
 
-| Key         | Command         | When Condition               |
-| ----------- | --------------- | ---------------------------- |
-| `q`         | `quit`          | layer !== dialog             |
-| `n`         | `newItem`       | board                        |
-| `p`         | `projectPicker` | board                        |
-| `1`-`9`     | `favorite1`-`9` | board                        |
-| `!@#$%^&*(` | `column1`-`9`   | board                        |
+| Key         | Command         | When Condition   |
+| ----------- | --------------- | ---------------- |
+| `q`         | `quit`          | layer !== dialog |
+| `n`         | `newItem`       | board            |
+| `p`         | `projectPicker` | board            |
+| `1`-`9`     | `favorite1`-`9` | board            |
+| `!@#$%^&*(` | `column1`-`9`   | board            |
 
 > **Favorite boards**: 1=@inbox, 2=@next, 3=@waiting, 4=@someday, 5=@projects, 6=@areas, 7=@archive, 8=@reference, 9=@goals
 

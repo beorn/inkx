@@ -76,13 +76,13 @@ projects/**         # Contains "projects/", recursive
 
 Match field values with `key:value`:
 
-| Field    | Values                              | Example        |
-| -------- | ----------------------------------- | -------------- |
-| `status` | todo, wip, blocked, done, dropped   | `status:todo`  |
-| `due`    | today, past, week, none, YYYY-MM-DD | `due:past`     |
-| `start`  | past, today, YYYY-MM-DD             | `start:past`   |
-| `assigned` | name                              | `assigned:bjorn$` |
-| `p`      | 1-5                                 | `p:1`          |
+| Field      | Values                              | Example           |
+| ---------- | ----------------------------------- | ----------------- |
+| `status`   | todo, wip, blocked, done, dropped   | `status:todo`     |
+| `due`      | today, past, week, none, YYYY-MM-DD | `due:past`        |
+| `start`    | past, today, YYYY-MM-DD             | `start:past`      |
+| `assigned` | name                                | `assigned:bjorn$` |
+| `p`        | 1-5                                 | `p:1`             |
 
 ### Date Values
 
@@ -101,24 +101,24 @@ Match field values with `key:value`:
 
 Match inline properties using `prop::value` syntax (double colon):
 
-| Pattern          | Description                          | Example            |
-| ---------------- | ------------------------------------ | ------------------ |
-| `prop::*`        | Property exists                      | `rating::*`        |
-| `prop::value`    | Property equals value                | `author::alice`    |
-| `prop::N`        | Property equals number               | `rating::5`        |
-| `prop::>N`       | Property greater than                | `rating::>3`       |
-| `prop::<N`       | Property less than                   | `priority::<5`     |
-| `prop::>=N`      | Property greater than or equal       | `rating::>=4`      |
-| `prop::<=N`      | Property less than or equal          | `rating::<=2`      |
-| `-prop::*`       | Property does not exist              | `-blocked-by::*`   |
-| `-prop::value`   | Property does not equal value        | `-status::blocked` |
+| Pattern        | Description                    | Example            |
+| -------------- | ------------------------------ | ------------------ |
+| `prop::*`      | Property exists                | `rating::*`        |
+| `prop::value`  | Property equals value          | `author::alice`    |
+| `prop::N`      | Property equals number         | `rating::5`        |
+| `prop::>N`     | Property greater than          | `rating::>3`       |
+| `prop::<N`     | Property less than             | `priority::<5`     |
+| `prop::>=N`    | Property greater than or equal | `rating::>=4`      |
+| `prop::<=N`    | Property less than or equal    | `rating::<=2`      |
+| `-prop::*`     | Property does not exist        | `-blocked-by::*`   |
+| `-prop::value` | Property does not equal value  | `-status::blocked` |
 
 ### Special: Blocked Query
 
-| Pattern         | Description                                       |
-| --------------- | ------------------------------------------------- |
-| `blocked:true`  | Has `blocked-by::` with unresolved blockers       |
-| `blocked:false` | No `blocked-by::` or all blockers done/dropped    |
+| Pattern         | Description                                    |
+| --------------- | ---------------------------------------------- |
+| `blocked:true`  | Has `blocked-by::` with unresolved blockers    |
+| `blocked:false` | No `blocked-by::` or all blockers done/dropped |
 
 ```bash
 # Find tasks ready to work on

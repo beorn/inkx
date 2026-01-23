@@ -17,13 +17,13 @@ km provides beads-compatible issue tracking by treating issues as **tasks with l
 
 ### Why This Approach?
 
-| Benefit | Description |
-|---------|-------------|
-| **No special storage** | Issues are regular km tasks with `@issue` link |
-| **Backlink-based** | Board shows backlinks automatically, no `add=` rules needed |
-| **Unified model** | Same fields: `task_status`, `priority`, `assigned_to` |
-| **Flexible workflow** | Add `@issue` to any task to track it |
-| **Links for deps** | Use existing link system for dependencies |
+| Benefit                | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| **No special storage** | Issues are regular km tasks with `@issue` link              |
+| **Backlink-based**     | Board shows backlinks automatically, no `add=` rules needed |
+| **Unified model**      | Same fields: `task_status`, `priority`, `assigned_to`       |
+| **Flexible workflow**  | Add `@issue` to any task to track it                        |
+| **Links for deps**     | Use existing link system for dependencies                   |
 
 ---
 
@@ -31,30 +31,30 @@ km provides beads-compatible issue tracking by treating issues as **tasks with l
 
 ### km Already Supports Everything
 
-| Beads Concept | km Field | Notes |
-|---------------|----------|-------|
-| status | `task_status` | todo, wip, blocked, done, dropped |
-| priority | `#P0`-`#P4` tags | P0=critical, P1=high, P2=medium, P3=low, P4=backlog |
-| assignee | `assigned_to` | Already exists |
-| labels | `#tag` syntax | Parsed to `data.tags` |
-| due date | `due_date` | Parsed from `📅 YYYY-MM-DD` or `due:` |
-| issue type | `#bug` `#feature` `#epic` | Type tags |
-| description | Task content | Markdown body |
+| Beads Concept | km Field                  | Notes                                               |
+| ------------- | ------------------------- | --------------------------------------------------- |
+| status        | `task_status`             | todo, wip, blocked, done, dropped                   |
+| priority      | `#P0`-`#P4` tags          | P0=critical, P1=high, P2=medium, P3=low, P4=backlog |
+| assignee      | `assigned_to`             | Already exists                                      |
+| labels        | `#tag` syntax             | Parsed to `data.tags`                               |
+| due date      | `due_date`                | Parsed from `📅 YYYY-MM-DD` or `due:`               |
+| issue type    | `#bug` `#feature` `#epic` | Type tags                                           |
+| description   | Task content              | Markdown body                                       |
 
 ### What Needs Extension
 
-| Beads Concept | Solution | Notes |
-|---------------|----------|-------|
-| Dependencies | Inline properties | `blocks:: [[km-a1b2]]` (see km-props) |
-| `blocked:true` query | Query extension | Check for unresolved blocking links |
-| Short IDs | Configurable display | `km-a1b2` from ULID (prefix configurable) |
+| Beads Concept        | Solution             | Notes                                     |
+| -------------------- | -------------------- | ----------------------------------------- |
+| Dependencies         | Inline properties    | `blocks:: [[km-a1b2]]` (see km-props)     |
+| `blocked:true` query | Query extension      | Check for unresolved blocking links       |
+| Short IDs            | Configurable display | `km-a1b2` from ULID (prefix configurable) |
 
 ### Related Issues
 
 - **km-props** (P1): Inline properties system - required for `blocks::` / `blocked-by::` syntax
 - **km-supertags** (P4): Optional schema validation for @issue
 - **km-beads** (P2): This implementation - the CLI commands
-| Close reason | Event + node field | `data.close_reason` for quick access |
+  | Close reason | Event + node field | `data.close_reason` for quick access |
 
 ---
 
@@ -84,15 +84,19 @@ Because tasks link to `@issue`, the board automatically shows them as backlinks:
 The issue tracker board.
 
 ## Ready `sync=status:todo`
+
 Issues ready to work on.
 
 ## In Progress `sync=status:wip` `limit=3`
+
 Currently being worked on.
 
 ## Blocked `sync=status:blocked`
+
 Waiting on dependencies.
 
 ## Done `sync=status:done` `collapse=true`
+
 Recently completed.
 ```
 
@@ -100,23 +104,23 @@ Recently completed.
 
 ### Issue Type Tags
 
-| Tag | Meaning |
-|-----|---------|
-| `#bug` | Bug report |
-| `#feature` | Feature request |
-| `#epic` | Epic (parent issue) |
-| `#task` | General task (default) |
-| `#docs` | Documentation |
+| Tag        | Meaning                |
+| ---------- | ---------------------- |
+| `#bug`     | Bug report             |
+| `#feature` | Feature request        |
+| `#epic`    | Epic (parent issue)    |
+| `#task`    | General task (default) |
+| `#docs`    | Documentation          |
 
 ### Priority Tags
 
-| Tag | Meaning | Beads equivalent |
-|-----|---------|------------------|
-| `#P0` | Critical / emergency | priority 0 |
-| `#P1` | High priority | priority 1 |
-| `#P2` | Medium priority | priority 2 |
-| `#P3` | Low priority | priority 3 |
-| `#P4` | Backlog / someday | priority 4 |
+| Tag   | Meaning              | Beads equivalent |
+| ----- | -------------------- | ---------------- |
+| `#P0` | Critical / emergency | priority 0       |
+| `#P1` | High priority        | priority 1       |
+| `#P2` | Medium priority      | priority 2       |
+| `#P3` | Low priority         | priority 3       |
+| `#P4` | Backlog / someday    | priority 4       |
 
 ```markdown
 - [ ] Critical bug @issue #bug #P0
@@ -137,6 +141,7 @@ Use Logseq-compatible `property:: value` syntax for dependencies:
 ```
 
 Relation types:
+
 - `blocks::` - this issue blocks the target
 - `blocked-by::` - this issue is blocked by target
 - `parent::` - this issue is a child of target epic
@@ -202,7 +207,7 @@ Short IDs are stored in `data.short_id`:
 
 ```typescript
 interface NodeData {
-  short_id?: string;      // e.g., "auth-epic" or "auth-epic.1"
+  short_id?: string; // e.g., "auth-epic" or "auth-epic.1"
   // ... other fields
 }
 ```
@@ -214,7 +219,9 @@ The full display ID is `{prefix}{separator}{short_id}`, e.g., `km-auth-epic`.
 ```typescript
 function getDisplayId(node: KNode, config = defaultConfig): string {
   const { prefix, separator } = config.shortId;
-  const shortId = node.data.short_id ?? node.id.slice(-config.shortId.autoLength).toLowerCase();
+  const shortId =
+    node.data.short_id ??
+    node.id.slice(-config.shortId.autoLength).toLowerCase();
   return `${prefix}${separator}${shortId}`;
 }
 
@@ -225,7 +232,7 @@ function resolveShortId(displayId: string): string | null {
   // Try exact match on data.short_id
   const exact = db.query(
     `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ?`,
-    [shortId]
+    [shortId],
   );
   if (exact) return exact;
 
@@ -237,7 +244,7 @@ function nextSubId(parentShortId: string): string {
   const existing = db.query(
     `SELECT json_extract(data, '$.short_id') as sid FROM nodes
      WHERE json_extract(data, '$.short_id') LIKE ?`,
-    [`${parentShortId}.%`]
+    [`${parentShortId}.%`],
   );
   const maxN = existing.reduce((max, row) => {
     const n = parseInt(row.sid.split(".").pop(), 10);
@@ -260,11 +267,12 @@ When closing an issue, the reason is stored in two places:
 // Closing an issue
 emitNodeUpdated(id, {
   task_status: "done",
-  data: { close_reason: "Fixed in commit abc123" }
+  data: { close_reason: "Fixed in commit abc123" },
 });
 ```
 
 This enables:
+
 - Quick access: `node.data.close_reason`
 - History: Query events for when/why it was closed
 - Reopen: Clear `close_reason` when reopening
@@ -322,6 +330,7 @@ Flags:
 ```
 
 **Implementation**:
+
 1. Create task: `- [ ] title @issue #type #P2 @assignee`
 2. Add priority tag based on `-p` flag
 3. Set `data.short_id`:
@@ -406,12 +415,12 @@ km bd migrate                        # Import from .beads/
 
 ## Query Extensions
 
-| Query | Meaning |
-|-------|---------|
-| `@issue` | Has `@issue` link (is an issue) |
-| `blocked:true` | Has unresolved `blocked-by` links |
-| `blocked:false` | No blockers (ready) |
-| `stale:14` | Not updated in 14 days |
+| Query           | Meaning                           |
+| --------------- | --------------------------------- |
+| `@issue`        | Has `@issue` link (is an issue)   |
+| `blocked:true`  | Has unresolved `blocked-by` links |
+| `blocked:false` | No blockers (ready)               |
+| `stale:14`      | Not updated in 14 days            |
 
 ---
 
@@ -427,12 +436,12 @@ km view @issues              # Open issues board
 
 Standard km shortcuts work:
 
-| Key | Action |
-|-----|--------|
-| `x` | Cycle status |
-| `Enter` | Open detail |
-| `e` | Edit in $EDITOR |
-| `t` | Add/edit tags |
+| Key     | Action          |
+| ------- | --------------- |
+| `x`     | Cycle status    |
+| `Enter` | Open detail     |
+| `e`     | Edit in $EDITOR |
+| `t`     | Add/edit tags   |
 
 ---
 
@@ -462,6 +471,7 @@ km bd migrate [--dry-run]
 ```
 
 **Process:**
+
 1. Read `.beads/issues.jsonl`
 2. For each issue:
    - Find or create task with matching content

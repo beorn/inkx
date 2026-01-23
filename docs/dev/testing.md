@@ -210,11 +210,11 @@ tail -f /tmp/km.log
 
 This approach captures:
 
-| What you see | What you learn |
-| ------------ | -------------- |
-| TUI renders | Visual state at each moment |
-| Debug log | State transitions, events, timing |
-| Correlation | Match visual changes to log events |
+| What you see | What you learn                     |
+| ------------ | ---------------------------------- |
+| TUI renders  | Visual state at each moment        |
+| Debug log    | State transitions, events, timing  |
+| Correlation  | Match visual changes to log events |
 
 **Example debugging session (watcher bug):**
 

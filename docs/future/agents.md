@@ -252,10 +252,10 @@ This enables queries like "Show all sessions for issue km-a1b2".
 
 Agents are managed through two complementary command namespaces:
 
-| Namespace | Purpose | Focus |
-|-----------|---------|-------|
+| Namespace  | Purpose                   | Focus                      |
+| ---------- | ------------------------- | -------------------------- |
 | `km agent` | Agent lifecycle & runtime | Spawn, run, stop, sessions |
-| `bd agent` | Work queue integration | Assign issues, view queues |
+| `bd agent` | Work queue integration    | Assign issues, view queues |
 
 ### `km agent` — Lifecycle & Runtime
 
@@ -302,12 +302,14 @@ bd agent run <agent-id>               # → km agent run --continuous
 ### Why Two Namespaces?
 
 **`km agent`** is for general agent management:
+
 - Creating and destroying agents
 - Running agents with arbitrary prompts
 - Session inspection and debugging
 - Interactive chat
 
 **`bd agent`** is for issue-centric workflows:
+
 - Assigning issues to agent work queues
 - Viewing what each agent is working on
 - Integration with `/pm` skill

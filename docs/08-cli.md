@@ -232,14 +232,14 @@ Config is loaded from `.km/config.yaml` or standard locations (`.kmrc.yaml`, `km
 
 # TUI settings
 tui:
-  watch: true           # Enable file watching for live sync (default: true)
-  watchWorker: true     # Use worker thread for file watching (default: true)
+  watch: true # Enable file watching for live sync (default: true)
+  watchWorker: true # Use worker thread for file watching (default: true)
 
 # Beads issue tracking integration
 beads:
-  board: "issue"        # Default board for issue queries
-  parent: "issue/"      # Directory for new issues
-  prefix: "km"          # Issue ID prefix (e.g., km-xxxx)
+  board: "issue" # Default board for issue queries
+  parent: "issue/" # Directory for new issues
+  prefix: "km" # Issue ID prefix (e.g., km-xxxx)
 ```
 
 ---

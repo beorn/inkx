@@ -98,11 +98,11 @@ interface Binding {
 
 The same key can map to different commands based on context:
 
-| Key | Context | Command |
-| --- | ------- | ------- |
-| `j` | board | `cursorNext` |
+| Key | Context              | Command      |
+| --- | -------------------- | ------------ |
+| `j` | board                | `cursorNext` |
 | `j` | projectPicker dialog | `pickerNext` |
-| `j` | move mode | `moveDest` |
+| `j` | move mode            | `moveDest`   |
 
 Commands execute directly rather than returning action descriptors:
 
@@ -129,11 +129,11 @@ See [09-commands.md](09-commands.md) for full documentation.
 
 ### Action Types and Boundaries
 
-| Action Type   | State Owner | Side Effects              |
-| ------------- | ----------- | ------------------------- |
-| `BoardAction` | BoardState  | None (pure)               |
-| `UIAction`    | UIState     | None (pure)               |
-| Storage calls | Storage     | SQLite + file sync        |
+| Action Type   | State Owner | Side Effects       |
+| ------------- | ----------- | ------------------ |
+| `BoardAction` | BoardState  | None (pure)        |
+| `UIAction`    | UIState     | None (pure)        |
+| Storage calls | Storage     | SQLite + file sync |
 
 **Key principle:** Reducers are pure. Storage mutations happen directly in commands via `ctx.storage`.
 
