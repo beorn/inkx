@@ -57,8 +57,8 @@ The sync system (file watching, reconciliation, write queue) is notoriously hard
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**With `useMockFs: true`:** Tests run entirely in-memory using MockFileSystem.
-The only real filesystem access is for SQLite database (stored in `/tmp`).
+**Current state:** Tests use `MockFileSystem` (in-memory) by default with `--mock-fs` flag.
+This provides ~9x speedup compared to real filesystem tests in `/tmp`.
 
 ---
 
@@ -488,10 +488,12 @@ See beads for implementation status:
 | Milestone                  | Bead       | Description                                |
 | -------------------------- | ---------- | ------------------------------------------ |
 | ✅ M1: Foundation          | -          | Watcher DI, ChaosWatcher, 25+ tests        |
-| ✅ M2: Full FS Mocking     | km-sync-m2 | MockFileSystem, scanner DI, fs DI          |
-| ✅ M3: Invariant Framework | km-sync-m3 | InvariantChecker, structured reports       |
-| ✅ M4: Chaos Fuzzer        | km-sync-m4 | Property-based fuzzing, parallel execution |
-| ✅ M5: Regression Suite    | km-sync-m5 | Named cases, CI integration                |
+| ✅ M2: Full FS Mocking     | km-sync-m2 | MockFileSystem class for fast testing      |
+| ✅ M3: Invariant Framework | km-sync-m3 | Verifier class, structured reports         |
+| ✅ M4: Chaos Fuzzer        | km-sync-m4 | Property-based fuzzing, CLI commands       |
+| 🚧 M5: Regression Suite    | km-sync-m5 | Named cases, CI integration                |
+
+**Performance:** With `--mock-fs` flag, chaos tests run ~9x faster (~60ms vs ~560ms/iteration).
 
 ---
 

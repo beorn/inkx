@@ -2,6 +2,7 @@
  * Verifier
  *
  * Verification functions for chaos test assertions.
+ * Supports both real filesystem and MockFileSystem.
  */
 
 import { readdirSync, statSync, existsSync } from "fs";
@@ -13,8 +14,46 @@ import {
   getChildren,
   getNode,
 } from "../../../src/index.ts";
+import type { MockFileSystem } from "./mock-fs.ts";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Filesystem Abstraction
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface FsOps {
+  existsSync(path: string): boolean;
+  readdirSync(path: string): string[];
+  statSync(path: string): { isDirectory(): boolean };
+}
+
+const realFsOps: FsOps = {
+  existsSync,
+  readdirSync: (path) => readdirSync(path) as string[],
+  statSync,
+};
+
+function createMockFsOps(mockFs: MockFileSystem): FsOps {
+  return {
+    existsSync: (path) => mockFs.existsSync(path),
+    readdirSync: (path) => {
+      const entries = mockFs.createScanner()(path);
+      return entries.map((e) => e.path.split("/").pop()!);
+    },
+    statSync: (path) => mockFs.statSync(path),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Verifier
+// ─────────────────────────────────────────────────────────────────────────────
 
 export class Verifier implements IVerifier {
+  private fsOps: FsOps;
+
+  constructor(mockFs?: MockFileSystem) {
+    this.fsOps = mockFs ? createMockFsOps(mockFs) : realFsOps;
+  }
+
   verifyState(expected: ExpectedState): VerificationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -222,7 +261,7 @@ export class Verifier implements IVerifier {
 
     // Scan filesystem for markdown files
     const fsFiles = new Set<string>();
-    scanDir(vaultPath, fsFiles);
+    this.scanDir(vaultPath, fsFiles);
 
     // Get database file nodes
     const nodes = getAllNodes();
@@ -278,30 +317,34 @@ export class Verifier implements IVerifier {
       },
     };
   }
-}
 
-/**
- * Recursively scan directory for markdown files
- */
-function scanDir(dir: string, files: Set<string>): void {
-  if (!existsSync(dir)) return;
+  // ─────────────────────────────────────────────────────────────────────────
+  // Private Helpers
+  // ─────────────────────────────────────────────────────────────────────────
 
-  for (const entry of readdirSync(dir)) {
-    // Skip hidden files and common ignore patterns
-    if (entry.startsWith(".")) continue;
-    if (entry === "node_modules") continue;
+  /**
+   * Recursively scan directory for markdown files
+   */
+  private scanDir(dir: string, files: Set<string>): void {
+    if (!this.fsOps.existsSync(dir)) return;
 
-    const fullPath = join(dir, entry);
-    try {
-      const stat = statSync(fullPath);
+    for (const entry of this.fsOps.readdirSync(dir)) {
+      // Skip hidden files and common ignore patterns
+      if (entry.startsWith(".")) continue;
+      if (entry === "node_modules") continue;
 
-      if (stat.isDirectory()) {
-        scanDir(fullPath, files);
-      } else if (entry.endsWith(".md")) {
-        files.add(fullPath);
+      const fullPath = join(dir, entry);
+      try {
+        const stat = this.fsOps.statSync(fullPath);
+
+        if (stat.isDirectory()) {
+          this.scanDir(fullPath, files);
+        } else if (entry.endsWith(".md")) {
+          files.add(fullPath);
+        }
+      } catch {
+        // Skip files we can't stat
       }
-    } catch {
-      // Skip files we can't stat
     }
   }
 }
@@ -309,8 +352,8 @@ function scanDir(dir: string, files: Set<string>): void {
 /**
  * Create a verifier instance
  */
-export function createVerifier(): Verifier {
-  return new Verifier();
+export function createVerifier(mockFs?: MockFileSystem): Verifier {
+  return new Verifier(mockFs);
 }
 
 /**

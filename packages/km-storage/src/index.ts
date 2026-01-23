@@ -62,7 +62,7 @@ export {
 
 export type { NodeStore } from "./store.ts";
 
-// State rebuild
+// State rebuild (generators - use runWithProgress or for...of to consume)
 export {
   readEvents,
   rebuildState,
@@ -71,7 +71,23 @@ export {
   fullReset,
   ensureState,
   freshStart,
+  runWithProgress,
 } from "./rebuild.ts";
+
+export type { RebuildResult, SyncResult } from "./rebuild.ts";
+
+// Database rules (add= materialization)
+export {
+  evaluateAllRules,
+  evaluateNodeRules,
+  getPendingWriteBack,
+  setBulkMode,
+  isBulkMode,
+  onNodeChanged,
+  onNodeDeleted,
+} from "./db-rules.ts";
+
+export type { RulesProgress } from "./db-rules.ts";
 
 // Content-addressable store
 export {
@@ -155,6 +171,7 @@ export type {
   WatcherState,
   WatcherInterface,
   SyncData,
+  SyncFromFsResult,
 } from "./watch/index.ts";
 
 // Event emission (moved from @km/core)

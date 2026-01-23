@@ -453,6 +453,33 @@ export function getSubtree(rootId: string): KNode[] {
 }
 
 /**
+ * Get all embed targets that exist anywhere on a board (for deduplication).
+ * Returns a Set of node IDs that are already embedded somewhere on the board.
+ */
+export function getEmbedTargetsOnBoard(boardRootId: string | null): Set<string> {
+  if (!boardRootId) return new Set();
+
+  const db = getDb();
+  const result = db
+    .query(
+      `
+    WITH RECURSIVE descendants AS (
+      SELECT id FROM nodes WHERE parent_id = ?
+      UNION ALL
+      SELECT n.id FROM nodes n
+      JOIN descendants d ON n.parent_id = d.id
+    )
+    SELECT link_to FROM nodes
+    WHERE id IN (SELECT id FROM descendants)
+    AND type = 'embed' AND link_to IS NOT NULL
+  `,
+    )
+    .all(boardRootId) as { link_to: string }[];
+
+  return new Set(result.map((r) => r.link_to));
+}
+
+/**
  * Get ancestors of a node (from root to parent)
  * Returns array from root down to immediate parent (excludes the node itself)
  */

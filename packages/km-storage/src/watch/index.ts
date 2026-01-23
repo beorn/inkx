@@ -30,7 +30,7 @@ export type { WatcherInterface, SyncData } from "./types.ts";
 // Sync
 export { SyncManager } from "./sync.ts";
 
-export type { SyncConfig } from "./sync.ts";
+export type { SyncConfig, SyncFromFsResult } from "./sync.ts";
 
 // Reconcile
 export {

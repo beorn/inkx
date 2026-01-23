@@ -31,6 +31,7 @@ interface FuzzOptions {
   seed: number;
   verbose: boolean;
   timeout: number;
+  useMockFs: boolean;
 }
 
 interface ReproduceOptions {
@@ -62,6 +63,8 @@ function parseArgs(args: string[]): {
       options.verbose = true;
     } else if (arg === "-t" && args[i + 1]) {
       options.timeout = parseInt(args[++i], 10);
+    } else if (arg === "--real-fs" || arg === "-r") {
+      options.useMockFs = false;
     }
   }
 
@@ -73,13 +76,14 @@ function parseArgs(args: string[]): {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function cmdFuzz(options: FuzzOptions): Promise<void> {
-  const { iterations, seed, verbose, timeout } = options;
+  const { iterations, seed, verbose, timeout, useMockFs } = options;
 
   console.log(`Chaos Fuzzer`);
   console.log(`============`);
   console.log(`Iterations: ${iterations}`);
   console.log(`Seed: ${seed}`);
   console.log(`Timeout: ${timeout}ms per test`);
+  console.log(`MockFS: ${useMockFs ? "yes (fast mode)" : "no (real fs)"}`);
   console.log(`Scenarios: ${Object.keys(CHAOS_SCENARIOS).length}`);
   console.log();
 
@@ -91,6 +95,7 @@ async function cmdFuzz(options: FuzzOptions): Promise<void> {
     scenarios: Object.values(CHAOS_SCENARIOS),
     maxCombinedScenarios: 2,
     timeout,
+    useMockFs,
   };
 
   const startTime = Date.now();
@@ -261,7 +266,8 @@ Commands:
 Options:
   -n <iterations>         Number of test iterations (default: 100)
   -s <seed>               Random seed for reproducibility
-  -t <ms>                 Timeout per test in milliseconds (default: 500)
+  -t <ms>                 Timeout per test in milliseconds (default: 10, 500 with -r)
+  -r, --real-fs           Use real filesystem instead of MockFS (slower)
   -v, --verbose           Verbose output with full details
   -o <file>               Output file for report command
 
@@ -297,11 +303,14 @@ if (import.meta.main) {
 
   switch (command) {
     case "fuzz": {
+      // MockFS is default; use --real-fs to disable
+      const useMockFs = options.useMockFs !== false;
       const fuzzOpts: FuzzOptions = {
         iterations: (options.iterations as number) || 100,
         seed: (options.seed as number) || Date.now(),
         verbose: (options.verbose as boolean) || false,
-        timeout: (options.timeout as number) || 500,
+        timeout: (options.timeout as number) || (useMockFs ? 10 : 500),
+        useMockFs,
       };
       await cmdFuzz(fuzzOpts);
       break;

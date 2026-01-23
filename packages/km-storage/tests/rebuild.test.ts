@@ -15,6 +15,7 @@ import {
   syncState,
   fullReset,
   freshStart,
+  runWithProgress,
 } from "../src/rebuild.ts";
 import { closeDb, getDb, resetDb } from "../src/db.ts";
 
@@ -139,7 +140,7 @@ describe.serial("rebuild.ts", () => {
         }) + "\n",
       );
 
-      const result = rebuildState();
+      const result = runWithProgress(rebuildState());
       expect(result.eventCount).toBe(1);
       expect(result.nodeCount).toBe(1);
 
@@ -173,10 +174,10 @@ describe.serial("rebuild.ts", () => {
         }) + "\n",
       );
 
-      rebuildState();
+      runWithProgress(rebuildState());
 
       // Now do full reset
-      const result = fullReset();
+      const result = runWithProgress(fullReset());
       expect(result.eventCount).toBe(1);
       expect(result.nodeCount).toBe(1);
     });

@@ -25,6 +25,8 @@ import {
   getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,
   getParentContext as getParentContextBase,
 } from "@km/tree";
+// Note: Card position tracking is now handled via LayoutContext in board-actions.ts
+// The handleKey function below is legacy code - keys are handled via the command system
 
 // Bound versions that inject store dependencies
 // These are the primary exports for TUI components
@@ -374,26 +376,41 @@ export function handleKey(
       return { state: newState, action: null };
 
     // Navigation - left/right columns
+    // NOTE: This is legacy code. Keys are now handled via command system in board-actions.ts
+    // which uses LayoutContext for sticky Y position tracking.
     case "h":
-    case "\x02": // Ctrl+B
-      newState.colIndex = Math.max(0, state.colIndex - 1);
-      newState.cardIndex = Math.min(
-        state.cardIndex,
-        (state.columns[newState.colIndex]?.cards.length || 1) - 1,
-      );
+    case "\x02": { // Ctrl+B
+      const targetColIndex = Math.max(0, state.colIndex - 1);
+      if (targetColIndex === state.colIndex) {
+        return { state: newState, action: null };
+      }
+      newState.colIndex = targetColIndex;
+      const targetCol = state.columns[targetColIndex];
+      if (targetCol && targetCol.cards.length > 0) {
+        // Simple index-based fallback (sticky Y handled in board-actions.ts)
+        newState.cardIndex = Math.min(state.cardIndex, targetCol.cards.length - 1);
+      } else {
+        newState.cardIndex = 0;
+      }
       return { state: newState, action: null };
+    }
 
     case "l":
-    case "\x06": // Ctrl+F
-      newState.colIndex = Math.min(
-        state.columns.length - 1,
-        state.colIndex + 1,
-      );
-      newState.cardIndex = Math.min(
-        state.cardIndex,
-        (state.columns[newState.colIndex]?.cards.length || 1) - 1,
-      );
+    case "\x06": { // Ctrl+F
+      const targetColIndex = Math.min(state.columns.length - 1, state.colIndex + 1);
+      if (targetColIndex === state.colIndex) {
+        return { state: newState, action: null };
+      }
+      newState.colIndex = targetColIndex;
+      const targetCol = state.columns[targetColIndex];
+      if (targetCol && targetCol.cards.length > 0) {
+        // Simple index-based fallback (sticky Y handled in board-actions.ts)
+        newState.cardIndex = Math.min(state.cardIndex, targetCol.cards.length - 1);
+      } else {
+        newState.cardIndex = 0;
+      }
       return { state: newState, action: null };
+    }
 
     // Navigation - up/down cards
     case "k":

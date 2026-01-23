@@ -2,6 +2,7 @@
  * Test Harness
  *
  * Orchestrates chaos tests with setup, execution, and verification.
+ * Supports both real filesystem and MockFileSystem for fast testing.
  */
 
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
@@ -17,69 +18,101 @@ import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos";
 import { Verifier } from "./verifier.ts";
 import { setKmDir, setDatabase } from "../../../src/emit.ts";
 import { resetDb, closeDb, applyEvent } from "../../../src/db.ts";
-import { reconcileDirectory, reconcileDirectoryRecursive, applyReconcileOps } from "../../../src/watch/reconcile.ts";
+import {
+  reconcileDirectory,
+  reconcileDirectoryRecursive,
+  applyReconcileOps,
+} from "../../../src/watch/reconcile.ts";
+import { MockFileSystem, createMockFileSystem } from "./mock-fs.ts";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ChaosTestOptions {
+  /** Use in-memory MockFileSystem instead of real /tmp directories */
+  useMockFs?: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Test Runner
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Run a single chaos test
  */
-export async function runChaosTest(config: ChaosTestConfig): Promise<ChaosTestResult> {
+export async function runChaosTest(
+  config: ChaosTestConfig,
+  options: ChaosTestOptions = {},
+): Promise<ChaosTestResult> {
+  const { useMockFs = false } = options;
+
+  if (useMockFs) {
+    return runChaosTestWithMockFs(config);
+  } else {
+    return runChaosTestWithRealFs(config);
+  }
+}
+
+/**
+ * Run chaos test using MockFileSystem (fast, in-memory)
+ */
+async function runChaosTestWithMockFs(
+  config: ChaosTestConfig,
+): Promise<ChaosTestResult> {
   const start = Date.now();
-  const testDir = join("/tmp", `kmtest-chaos-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  const vaultDir = join(testDir, "vault");
-  const kmDir = join(testDir, ".km");
+  const mockFs = createMockFileSystem();
+  const vaultDir = "/vault";
+  const kmDir = "/tmp/.km"; // SQLite still needs real path
 
   let chaosWatcher: ChaosWatcher | null = null;
 
   try {
     // ─────────────────────────────────────────────────────────────
-    // Setup Phase
+    // Setup Phase (in-memory)
     // ─────────────────────────────────────────────────────────────
 
-    // Create directories
-    mkdirSync(kmDir, { recursive: true });
-    mkdirSync(vaultDir, { recursive: true });
+    // Create directories in mock filesystem
+    mockFs.mkdirSync(vaultDir, { recursive: true });
 
-    // Configure database
+    // Create real .km directory for SQLite
+    mkdirSync(kmDir, { recursive: true });
     setKmDir(kmDir);
     setDatabase({ applyEvent });
     resetDb();
 
-    // Create initial files from setup config
+    // Create initial files in mock filesystem
     for (const file of config.setup) {
       const fullPath = join(vaultDir, file.path);
       const fileDir = dirname(fullPath);
-      if (!existsSync(fileDir)) {
-        mkdirSync(fileDir, { recursive: true });
+      if (!mockFs.existsSync(fileDir)) {
+        mockFs.mkdirSync(fileDir, { recursive: true });
       }
-      writeFileSync(fullPath, file.content);
+      mockFs.writeFileSync(fullPath, file.content);
     }
 
     // ─────────────────────────────────────────────────────────────
     // Initial Sync Phase
     // ─────────────────────────────────────────────────────────────
 
-    // Perform initial reconciliation (simulates app startup)
-    const ops = reconcileDirectory(vaultDir, vaultDir);
-    await applyReconcileOps(ops, vaultDir);
+    const scanner = mockFs.createScanner();
+    const ops = reconcileDirectory(vaultDir, vaultDir, undefined, scanner);
+    await applyReconcileOps(ops, vaultDir, mockFs);
 
     // ─────────────────────────────────────────────────────────────
     // Chaos Injection Phase
     // ─────────────────────────────────────────────────────────────
 
-    // Create mock watcher with scenario
     chaosWatcher = createChaosWatcher({
       debounceMs: 50,
       scenario: config.scenario,
-      seed: 12345, // Reproducible
+      seed: 12345,
     });
 
-    // Start watcher
     chaosWatcher.start(vaultDir);
 
-    // Wait for ready (in virtual time, this is instant unless init_gap scenario)
     await new Promise<void>((resolve) => {
       if (config.scenario.type === "init_gap") {
-        // For init_gap, we need to advance time
         chaosWatcher!.once("ready", resolve);
         void chaosWatcher!.advanceTime(
           (config.scenario.params.initDurationMs as number) ?? 2000,
@@ -89,45 +122,46 @@ export async function runChaosTest(config: ChaosTestConfig): Promise<ChaosTestRe
       }
     });
 
-    // Wire up sync handler
-    chaosWatcher.on("sync", (data: { paths: string[]; directories: string[] }) => {
-      void (async () => {
-        for (const dir of data.directories) {
-          // Use recursive reconciliation for subdirectories (handles FSEvents coalescing)
-          // For vault root, non-recursive is sufficient
-          const dirOps = dir === vaultDir
-            ? reconcileDirectory(dir, vaultDir)
-            : reconcileDirectoryRecursive(dir, vaultDir);
-          await applyReconcileOps(dirOps, vaultDir);
-        }
-      })();
-    });
+    // Wire up sync handler with mock fs
+    chaosWatcher.on(
+      "sync",
+      (data: { paths: string[]; directories: string[] }) => {
+        void (async () => {
+          for (const dir of data.directories) {
+            const dirOps =
+              dir === vaultDir
+                ? reconcileDirectory(dir, vaultDir, undefined, scanner)
+                : reconcileDirectoryRecursive(dir, vaultDir, undefined, scanner);
+            await applyReconcileOps(dirOps, vaultDir, mockFs);
+          }
+        })();
+      },
+    );
 
-    // Convert relative paths to absolute and inject events
+    // Inject events
     const absoluteEvents: FsEvent[] = config.events.map((e) => ({
       ...e,
       path: join(vaultDir, e.path),
     }));
 
     chaosWatcher.injectBatch(absoluteEvents);
-
-    // Process all events
     await chaosWatcher.flush();
 
-    // Give extra time for any async processing
-    await new Promise((r) => setTimeout(r, config.timeout ?? 100));
+    // Minimal wait (no real I/O needed)
+    await new Promise((r) => setTimeout(r, config.timeout ?? 10));
 
     // ─────────────────────────────────────────────────────────────
     // Verification Phase
     // ─────────────────────────────────────────────────────────────
 
-    const verifier = new Verifier();
+    const verifier = new Verifier(mockFs);
 
-    // Convert expected paths to absolute
     const expectedWithAbsolutePaths: ExpectedState = {
       ...config.expected,
       files: config.expected.files.map((f) => join(vaultDir, f)),
-      deletedFiles: config.expected.deletedFiles?.map((f) => join(vaultDir, f)),
+      deletedFiles: config.expected.deletedFiles?.map((f) =>
+        join(vaultDir, f),
+      ),
       nodes: config.expected.nodes?.map((n) => ({
         ...n,
         path: join(vaultDir, n.path),
@@ -145,7 +179,125 @@ export async function runChaosTest(config: ChaosTestConfig): Promise<ChaosTestRe
       eventsDropped: chaosWatcher.getDroppedEvents().length,
     };
   } finally {
-    // Cleanup
+    if (chaosWatcher) {
+      await chaosWatcher.stop();
+    }
+    closeDb();
+    // Clean up real .km directory
+    if (existsSync(kmDir)) {
+      rmSync(kmDir, { recursive: true });
+    }
+  }
+}
+
+/**
+ * Run chaos test using real filesystem (original behavior)
+ */
+async function runChaosTestWithRealFs(
+  config: ChaosTestConfig,
+): Promise<ChaosTestResult> {
+  const start = Date.now();
+  const testDir = join(
+    "/tmp",
+    `kmtest-chaos-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  const vaultDir = join(testDir, "vault");
+  const kmDir = join(testDir, ".km");
+
+  let chaosWatcher: ChaosWatcher | null = null;
+
+  try {
+    // Setup Phase
+    mkdirSync(kmDir, { recursive: true });
+    mkdirSync(vaultDir, { recursive: true });
+
+    setKmDir(kmDir);
+    setDatabase({ applyEvent });
+    resetDb();
+
+    for (const file of config.setup) {
+      const fullPath = join(vaultDir, file.path);
+      const fileDir = dirname(fullPath);
+      if (!existsSync(fileDir)) {
+        mkdirSync(fileDir, { recursive: true });
+      }
+      writeFileSync(fullPath, file.content);
+    }
+
+    // Initial Sync Phase
+    const ops = reconcileDirectory(vaultDir, vaultDir);
+    await applyReconcileOps(ops, vaultDir);
+
+    // Chaos Injection Phase
+    chaosWatcher = createChaosWatcher({
+      debounceMs: 50,
+      scenario: config.scenario,
+      seed: 12345,
+    });
+
+    chaosWatcher.start(vaultDir);
+
+    await new Promise<void>((resolve) => {
+      if (config.scenario.type === "init_gap") {
+        chaosWatcher!.once("ready", resolve);
+        void chaosWatcher!.advanceTime(
+          (config.scenario.params.initDurationMs as number) ?? 2000,
+        );
+      } else {
+        chaosWatcher!.once("ready", resolve);
+      }
+    });
+
+    chaosWatcher.on(
+      "sync",
+      (data: { paths: string[]; directories: string[] }) => {
+        void (async () => {
+          for (const dir of data.directories) {
+            const dirOps =
+              dir === vaultDir
+                ? reconcileDirectory(dir, vaultDir)
+                : reconcileDirectoryRecursive(dir, vaultDir);
+            await applyReconcileOps(dirOps, vaultDir);
+          }
+        })();
+      },
+    );
+
+    const absoluteEvents: FsEvent[] = config.events.map((e) => ({
+      ...e,
+      path: join(vaultDir, e.path),
+    }));
+
+    chaosWatcher.injectBatch(absoluteEvents);
+    await chaosWatcher.flush();
+    await new Promise((r) => setTimeout(r, config.timeout ?? 100));
+
+    // Verification Phase
+    const verifier = new Verifier();
+
+    const expectedWithAbsolutePaths: ExpectedState = {
+      ...config.expected,
+      files: config.expected.files.map((f) => join(vaultDir, f)),
+      deletedFiles: config.expected.deletedFiles?.map((f) =>
+        join(vaultDir, f),
+      ),
+      nodes: config.expected.nodes?.map((n) => ({
+        ...n,
+        path: join(vaultDir, n.path),
+      })),
+    };
+
+    const verification = verifier.verifyAll(expectedWithAbsolutePaths, vaultDir);
+
+    return {
+      name: config.name,
+      passed: verification.passed,
+      verification,
+      duration: Date.now() - start,
+      eventsEmitted: chaosWatcher.getEmittedEvents().length,
+      eventsDropped: chaosWatcher.getDroppedEvents().length,
+    };
+  } finally {
     if (chaosWatcher) {
       await chaosWatcher.stop();
     }
@@ -156,11 +308,16 @@ export async function runChaosTest(config: ChaosTestConfig): Promise<ChaosTestRe
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Suite Runner
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Run a suite of chaos tests
  */
 export async function runChaosSuite(
   configs: ChaosTestConfig[],
+  options: ChaosTestOptions = {},
 ): Promise<{
   results: ChaosTestResult[];
   summary: {
@@ -174,7 +331,7 @@ export async function runChaosSuite(
   const start = Date.now();
 
   for (const config of configs) {
-    const result = await runChaosTest(config);
+    const result = await runChaosTest(config, options);
     results.push(result);
   }
 
@@ -188,6 +345,10 @@ export async function runChaosSuite(
     },
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Helper to create a simple test config

@@ -121,11 +121,12 @@ export async function runBoard(
       debug("Starting interactive TUI with deferred loading");
       // Pass the loader function so UI can show spinner while loading
       // This includes both ensureState (sync vault) and initBoardState (build tree)
-      const loadBoardState = () => {
+      // The loader receives a progress callback to update the spinner text
+      const loadBoardState = (onProgress?: import("@beorn/progressx").ProgressCallback) => {
         // First, initialize database state if callback provided (this is the slow part)
         if (options?.initializeState) {
           debug("Calling initializeState callback");
-          options.initializeState();
+          options.initializeState(onProgress);
           debug("initializeState callback complete");
         }
         // Then build the board state from the database

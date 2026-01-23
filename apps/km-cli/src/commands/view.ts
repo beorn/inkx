@@ -11,7 +11,7 @@ import { Command } from "commander";
 const debug = createDebug("km:cli:view");
 import { runBoard, type ViewMode, type TuiEngine } from "@km/ink";
 import { getRootPath } from "../index.ts";
-import { resolvePathArg, ensureState, getTuiConfig } from "@km/storage";
+import { resolvePathArg, ensureState, getTuiConfig, runWithProgress } from "@km/storage";
 
 const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"];
 const TUI_ENGINES: TuiEngine[] = ["inkx", "inkx-flexx"];
@@ -62,12 +62,13 @@ export const viewCommand = new Command("view")
           watch: watchEnabled,
           watchWorker, // Worker-based watching (non-blocking)
           // Deferred loading: TUI will call this and show spinner while it runs
-          initializeState: () => ensureState(resolved.vaultRoot, false),
+          // Progress callback updates spinner text with current phase/count
+          initializeState: (onProgress) => runWithProgress(ensureState(resolved.vaultRoot, false), onProgress),
         },
       );
     } else {
       // Non-interactive mode: load state first, then render
-      ensureState(resolved.vaultRoot, false);
+      runWithProgress(ensureState(resolved.vaultRoot, false));
       debug("launching static view: mode=%s", viewMode);
       await runBoard(
         resolved.nodeRef ?? undefined,

@@ -8,6 +8,7 @@ import createDebug from "debug";
 import { Command } from "commander";
 import chalk from "chalk";
 import { withProgress } from "@beorn/progressx/wrappers";
+import { dirname, resolve } from "path";
 
 const debug = createDebug("km:cli:rebuild");
 import {
@@ -17,15 +18,35 @@ import {
   getDbPath,
   getLastEventId,
   getEventsPath,
+  findKmRootFromPath,
+  setKmDir,
+  runWithProgress,
 } from "@km/storage";
 import { existsSync, statSync } from "fs";
+import { formatPath } from "../utils/format-path.ts";
+import { REBUILD_PHASES } from "../utils/progress-phases.ts";
 
 export const rebuildCommand = new Command("rebuild")
   .description("Rebuild state from events")
+  .argument("[path]", "Path to vault (default: current directory)")
   .option("--full", "Full rebuild (delete and recreate state.db)")
   .option("--fresh", "Fresh start (delete all .km data including events)")
   .option("--status", "Show rebuild status only")
-  .action(async (options) => {
+  .action(async (path, options) => {
+    // Resolve vault path from argument or current directory
+    const searchPath = path ? resolve(path) : process.cwd();
+    const kmRoot = findKmRootFromPath(searchPath);
+
+    if (!kmRoot) {
+      console.error(chalk.red(`No .km directory found in ${searchPath} or ancestors.`));
+      console.error("Run 'km init' to initialize a vault.");
+      process.exit(1);
+    }
+
+    // Set the .km directory for all subsequent operations
+    setKmDir(kmRoot);
+    debug("Using .km directory: %s", kmRoot);
+
     if (options.status) {
       showStatus();
       return;
@@ -41,25 +62,19 @@ export const rebuildCommand = new Command("rebuild")
       return;
     }
 
+    const vaultPath = dirname(kmRoot);
     debug("rebuild: starting (full=%s)", !!options.full);
-    console.log(chalk.dim("Rebuilding state..."));
+    console.log(chalk.bold("Rebuilding .km/state.db from .km/events.jsonl"), chalk.dim(`(repo ${formatPath(vaultPath)})`));
 
     try {
-      const rebuildFn = options.full ? fullReset : rebuildState;
-
       if (options.full) {
-        console.log(chalk.yellow("Performing full reset..."));
+        console.log(chalk.dim("Performing full reset..."));
       }
 
+      const generator = options.full ? fullReset() : rebuildState();
       const result = await withProgress(
-        (onProgress) => Promise.resolve(rebuildFn(onProgress)),
-        {
-          phases: {
-            reading: "Reading events",
-            applying: "Applying events",
-            rules: "Evaluating rules",
-          },
-        },
+        (onProgress) => Promise.resolve(runWithProgress(generator, onProgress)),
+        { phases: REBUILD_PHASES },
       );
 
       debug(

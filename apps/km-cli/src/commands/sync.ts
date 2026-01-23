@@ -10,8 +10,10 @@ import chalk from "chalk";
 import { withProgress } from "@beorn/progressx/wrappers";
 
 const debug = createDebug("km:cli:sync");
-import { SyncManager, findKmRootFromPath } from "@km/storage";
+import { SyncManager, findKmRootFromPath, setKmDir, syncState, runWithProgress } from "@km/storage";
 import { dirname, resolve } from "path";
+import { formatPath } from "../utils/format-path.ts";
+import { REBUILD_PHASES, SYNC_PHASES } from "../utils/progress-phases.ts";
 
 /**
  * Start the continuous filesystem watcher
@@ -74,6 +76,7 @@ function startWatch(vaultPath: string, debounceMs: number): void {
  */
 async function runSync(
   vaultPath: string,
+  kmRoot: string,
   options: { toFs?: boolean; dryRun?: boolean },
 ): Promise<void> {
   debug(
@@ -82,7 +85,7 @@ async function runSync(
     options.toFs,
     options.dryRun,
   );
-  console.log(chalk.dim(`Syncing: ${vaultPath}`));
+  console.log(chalk.bold(`Syncing .km/state.db with files`), chalk.dim(`(repo ${formatPath(vaultPath)})`));
 
   if (options.dryRun) {
     console.log(chalk.yellow("Dry run mode - no changes will be made"));
@@ -90,14 +93,27 @@ async function runSync(
     return;
   }
 
-  const manager = new SyncManager({
-    vaultPath,
-    debounceFs: 0,
-    debounceApply: 0,
-    conflictStrategy: "last_write_wins",
-  });
+  // Set the .km directory for event processing
+  setKmDir(kmRoot);
 
   try {
+    // Step 1: Apply any pending events from events.jsonl to state.db
+    const eventResult = await withProgress(
+      (onProgress) => Promise.resolve(runWithProgress(syncState(), onProgress)),
+      { phases: REBUILD_PHASES },
+    );
+    if (eventResult.applied > 0) {
+      console.log(chalk.green("✓"), `Applied ${eventResult.applied} event(s) from events.jsonl`);
+    }
+
+    // Step 2: Sync with filesystem
+    const manager = new SyncManager({
+      vaultPath,
+      debounceFs: 0,
+      debounceApply: 0,
+      conflictStrategy: "last_write_wins",
+    });
+
     if (options.toFs) {
       console.log(chalk.dim("Syncing database → filesystem..."));
       const result = await manager.syncToFs();
@@ -106,17 +122,11 @@ async function runSync(
       // Default: from filesystem - use progressx for clean progress display
       const result = await withProgress(
         (onProgress) => manager.syncFromFs(onProgress),
-        {
-          phases: {
-            scanning: "Scanning",
-            reconciling: "Reconciling",
-            rules: "Rules",
-          },
-        },
+        { phases: SYNC_PHASES },
       );
       console.log(
         chalk.green("✓"),
-        `Processed ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,
+        `Synced ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,
       );
     }
   } catch (error) {
@@ -155,6 +165,6 @@ export const syncCommand = new Command("sync")
       const debounceMs = parseInt(options.debounce, 10);
       startWatch(vaultPath, debounceMs);
     } else {
-      await runSync(vaultPath, options);
+      await runSync(vaultPath, kmRoot, options);
     }
   });

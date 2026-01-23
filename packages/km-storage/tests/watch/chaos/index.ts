@@ -53,3 +53,24 @@ export {
   createTestConfig,
   printResults,
 } from "./harness.ts";
+
+// Fuzzer - Property-based chaos scenario testing
+export type {
+  FuzzConfig,
+  GeneratedScenario,
+  InvariantViolation as FuzzerInvariantViolation,
+  FuzzIterationResult,
+  FuzzFailure,
+  FuzzResult,
+  SyncBugReport,
+} from "./fuzzer.ts";
+
+export {
+  generateScenarios,
+  runFuzzer,
+  generateBugReport,
+  formatBugReport,
+  generateRandomFile,
+  createDefaultFuzzConfig,
+  printFuzzResults,
+} from "./fuzzer.ts";

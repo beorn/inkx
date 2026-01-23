@@ -387,7 +387,7 @@ function handleTaskStatusCycle(ctx: TUIContext): void {
 }
 
 function handleCursorMove(ctx: TUIContext, dir: string): void {
-  const { state, ui, dispatch, dispatchBoard } = ctx;
+  const { state, ui, dispatch, dispatchBoard, positionRegistry } = ctx;
   const keyboardContext = toKeyboardContext(ctx);
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
@@ -412,6 +412,11 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       }
     }
     return;
+  }
+
+  // Vertical movement (j/k) clears sticky Y
+  if (dir === "prev" || dir === "next") {
+    positionRegistry.clearStickyY();
   }
 
   // Selection range extension mode
@@ -442,7 +447,48 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     }
   }
 
-  // Normal cursor movement
+  // Horizontal movement (h/l) uses sticky Y for visual consistency
+  if (dir === "left" || dir === "right") {
+    const targetColIndex = dir === "left"
+      ? Math.max(0, state.colIndex - 1)
+      : Math.min(state.columns.length - 1, state.colIndex + 1);
+
+    // No movement possible
+    if (targetColIndex === state.colIndex) {
+      return;
+    }
+
+    const targetCol = state.columns[targetColIndex];
+    if (!targetCol || targetCol.cards.length === 0) {
+      // Target column is empty - just move to column level
+      dispatchBoard({ type: "NAV_TO_PATH", path: [targetColIndex] });
+      return;
+    }
+
+    // Get or set sticky Y position
+    let targetY = positionRegistry.getStickyY();
+    if (targetY === null) {
+      // First h/l move - capture current card's Y as sticky
+      const currentEntry = positionRegistry.getCardOptional(state.colIndex, state.cardIndex);
+      if (!currentEntry) {
+        throw new Error(
+          `Card layout not found for current position: col=${state.colIndex}, card=${state.cardIndex}. ` +
+          `This indicates a bug - cards must register their layout before navigation.`
+        );
+      }
+      targetY = currentEntry.layout.y;
+      positionRegistry.setStickyY(targetY);
+    }
+
+    // Find closest card to sticky Y in target column
+    const targetCardIndex = positionRegistry.findCardAtY(targetColIndex, targetY);
+
+    // Navigate to target
+    dispatchBoard({ type: "NAV_TO_PATH", path: [targetColIndex, targetCardIndex] });
+    return;
+  }
+
+  // Normal cursor movement (first, last, etc.)
   dispatchBoard({
     type: "CURSOR_MOVE",
     dir: dir as "prev" | "next" | "left" | "right" | "first" | "last",

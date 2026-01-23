@@ -13,6 +13,7 @@ import type { BoardState, CardState, ColumnState } from "./types.ts";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";
 import type { ColumnsLayout } from "./board-adapter.ts";
+import type { LayoutRegistry } from "./card-positions.ts";
 
 // =============================================================================
 // Types
@@ -34,6 +35,8 @@ export interface TUIContext {
   ui: UIState;
   /** Derived column layout from tree state */
   layout: ColumnsLayout;
+  /** Card position registry for h/l navigation (Y-position tracking) */
+  positionRegistry: LayoutRegistry;
 
   // === Derived (computed once) ===
   /** Current column (from layout) */
@@ -92,6 +95,8 @@ export interface BuildTUIContextParams {
   layout: ColumnsLayout;
   /** Pre-computed nodeMap (use useMemo in caller to avoid O(n) rebuild per render) */
   nodeMap: NodeMap;
+  /** Card position registry for h/l navigation */
+  positionRegistry: LayoutRegistry;
   dispatch: TUIContext["dispatch"];
   dispatchBoard: TUIContext["dispatchBoard"];
   exit: TUIContext["exit"];
@@ -105,7 +110,7 @@ export interface BuildTUIContextParams {
  * The nodeMap should be created via useMemo to avoid O(n) rebuild on every render.
  */
 export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
-  const { state, boardState, ui, layout, nodeMap } = params;
+  const { state, boardState, ui, layout, nodeMap, positionRegistry } = params;
 
   // Derive current column and card from layout
   const column = layout.columns[layout.colIndex];
@@ -117,6 +122,7 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
     boardState,
     ui,
     layout,
+    positionRegistry,
     column,
     card,
     selectedNode,

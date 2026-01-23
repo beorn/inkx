@@ -16,9 +16,12 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
+import { withProgress } from "@beorn/progressx/wrappers";
+import { SYNC_PHASES } from "../utils/progress-phases.ts";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { SyncManager } from "@km/storage";
+import { formatPath } from "../utils/format-path.ts";
 
 /**
  * Search for .km/ in ancestors of the given directory
@@ -187,8 +190,8 @@ export const initCommand = new Command("init")
       writeFileSync(eventsPath, "");
     }
 
-    console.log(chalk.green(`Initialized km in ${targetDir}`));
-    console.log(chalk.dim(`  Created: ${kmDir}/`));
+    console.log(chalk.bold("Initializing .km"), chalk.dim(`(repo ${formatPath(targetDir)})`));
+    console.log(chalk.green("✓"), "Created .km/");
 
     // Add GTD structure by default (unless --no-gtd)
     if (options.gtd !== false) {
@@ -197,8 +200,6 @@ export const initCommand = new Command("init")
 
     // Sync by default (unless --no-sync)
     if (options.sync !== false) {
-      console.log();
-      console.log(chalk.dim("Syncing filesystem → database..."));
       const manager = new SyncManager({
         vaultPath: targetDir,
         debounceFs: 0,
@@ -206,8 +207,13 @@ export const initCommand = new Command("init")
         conflictStrategy: "last_write_wins",
       });
       try {
-        const result = await manager.syncFromFs();
-        console.log(chalk.green("✓"), `Synced ${result.processed} file(s)`);
+        const result = await withProgress(
+          (onProgress) => manager.syncFromFs(onProgress),
+          {
+            phases: { ...SYNC_PHASES, reconciling: "Syncing files" },
+          },
+        );
+        console.log(chalk.green("✓"), `Synced ${result.processed} file(s) in ${result.directories} directories`);
       } catch (error) {
         console.error("Sync failed:", error);
       }

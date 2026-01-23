@@ -44,6 +44,8 @@ import { getInheritedColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
 import { tuiEvents } from "../tui.ts";
 import { UIProvider } from "../ui-context.tsx";
+import { LayoutProvider } from "../layout-context.tsx";
+import { createLayoutRegistry } from "../card-positions.ts";
 import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
 import { ConstraintRoot } from "../layout/index.ts";
@@ -127,6 +129,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Ref for edge-based horizontal scroll tracking
   const colScrollOffsetRef = useRef(0);
+
+  // Layout registry for card position tracking (used by h/l navigation)
+  // Created once and never changes - stable reference for context
+  const layoutRegistryRef = useRef<ReturnType<typeof createLayoutRegistry> | null>(null);
+  if (!layoutRegistryRef.current) {
+    layoutRegistryRef.current = createLayoutRegistry();
+  }
+  const layoutRegistry = layoutRegistryRef.current;
 
   // PERFORMANCE OPTIMIZATION: Separate columns derivation from cursor derivation
   // This ensures cursor movement (which changes boardState.cursor) does NOT
@@ -266,6 +276,7 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     ui,
     layout: columnsLayout,
     nodeMap,
+    positionRegistry: layoutRegistry,
     dispatch,
     dispatchBoard,
     exit,
@@ -405,8 +416,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   return (
     <ConstraintRoot>
-      <UIProvider state={ui} dispatch={dispatch}>
-        <Box
+      <LayoutProvider registry={layoutRegistry}>
+        <UIProvider state={ui} dispatch={dispatch}>
+          <Box
           flexDirection="column"
           width={termWidth}
           height={termHeight}
@@ -639,8 +651,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               </Box>
             );
           })()}
-        </Box>
-      </UIProvider>
+          </Box>
+        </UIProvider>
+      </LayoutProvider>
     </ConstraintRoot>
   );
 

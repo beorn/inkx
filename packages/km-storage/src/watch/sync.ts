@@ -513,10 +513,8 @@ export class SyncManager extends EventEmitter {
       await applyReconcileOps(ops, this.config.vaultPath);
       processed += ops.length;
 
-      // Report progress every 10 directories or on last one
-      if (i % 10 === 0 || i === totalDirs - 1) {
-        onProgress?.({ phase: "reconciling", current: i + 1, total: totalDirs });
-      }
+      // Report progress for each directory
+      onProgress?.({ phase: "reconciling", current: i + 1, total: totalDirs });
     }
 
     // Phase 3: Evaluate rules (add= materialization)
@@ -525,10 +523,17 @@ export class SyncManager extends EventEmitter {
     }
 
     // Write back any files that were modified by rule evaluation
+    // SAFETY: Only write .md files to prevent corruption of source code/config files
     const pendingFiles = getPendingWriteBack();
     if (pendingFiles.length > 0) {
       debug("syncFromFs: writing back %d files after rule evaluation", pendingFiles.length);
       for (const filePath of pendingFiles) {
+        // CRITICAL: Skip non-.md files to prevent corruption
+        if (!filePath.endsWith(".md")) {
+          debug("syncFromFs: SKIPPING non-.md file in write-back: %s", filePath);
+          continue;
+        }
+
         // Find the file node and regenerate its content
         const fileNode = getAllNodes().find((n) => n.fs_path === filePath);
         if (fileNode) {

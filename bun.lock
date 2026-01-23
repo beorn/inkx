@@ -167,6 +167,7 @@
     "packages/km-storage": {
       "name": "@km/storage",
       "dependencies": {
+        "@beorn/progressx": "workspace:*",
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
         "cosmiconfig": "^9.0.0",

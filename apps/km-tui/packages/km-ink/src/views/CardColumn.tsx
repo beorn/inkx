@@ -4,14 +4,65 @@
  * Uses inkx overflow="scroll" for native scrolling support.
  * Implements React-level virtualization for large card lists.
  */
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useLayoutEffect } from "react";
 import { Box, Text } from "inkx";
 import { styledUnderline } from "@beorn/chalkx";
+import createDebug from "debug";
 import type { CardState, ColumnState } from "../types.ts";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { TreeNode } from "./TreeNode.tsx";
 import { getNodeIcon, renderPlain } from "../text/index.ts";
+import { useLayoutRegistryOptional } from "../layout-context.tsx";
+
+const debug = createDebug("km:tui:layout");
+
+// =============================================================================
+// Card Layout Tracking (DISABLED)
+// =============================================================================
+// TODO: Re-enable position tracking for h/l navigation
+// Currently disabled because calling useLayout() in every Card component
+// causes blank screen rendering issues with large datasets (100+ cards).
+// See: km-tui-layout bead for investigation
+//
+// Alternative approaches to consider:
+// 1. Calculate positions from column/card indices (no useLayout needed)
+// 2. Only track visible cards (virtualization-aware)
+// 3. Use DOM refs and measure manually
+// =============================================================================
+
+// Hook kept for reference but currently unused
+ 
+function _useCardLayoutRegistration(
+  nodeId: string,
+  colIndex: number,
+  cardIndex: number,
+  layout: { x: number; y: number; width: number; height: number },
+): void {
+  const registry = useLayoutRegistryOptional();
+
+  useLayoutEffect(() => {
+    // Only register if we have a registry (tests may not provide one)
+    if (!registry) return;
+
+    registry.registerCard(colIndex, cardIndex, nodeId, {
+      x: layout.x,
+      y: layout.y,
+      headHeight: 1,
+      headWidth: layout.width,
+      cardHeight: layout.height,
+      cardWidth: layout.width,
+    });
+    debug(
+      "card registered: col=%d card=%d id=%s y=%d h=%d",
+      colIndex,
+      cardIndex,
+      nodeId.slice(-8),
+      layout.y,
+      layout.height,
+    );
+  }, [registry, colIndex, cardIndex, nodeId, layout.x, layout.y, layout.width, layout.height]);
+}
 
 // =============================================================================
 // Virtualization Constants
@@ -59,6 +110,11 @@ export const Card = React.memo(
     colIndex,
     cardIndex,
   }: CardProps): React.ReactElement {
+    // Layout tracking disabled for now - causes blank screen with large datasets
+    // TODO: Investigate useLayout() performance with many cards
+    // const layout = useLayout();
+    // useCardLayoutRegistration(card.node.id, colIndex, cardIndex, layout);
+
     return (
       <Box
         flexDirection="column"

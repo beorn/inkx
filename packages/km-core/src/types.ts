@@ -24,7 +24,8 @@ export type NodeType =
   | "html"
   // Special
   | "agent"
-  | "board";
+  | "board"
+  | "embed";
 
 // =============================================================================
 // Task Status and Marks

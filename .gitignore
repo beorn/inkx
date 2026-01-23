@@ -39,6 +39,12 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # KM runtime data
 .km/
 
+# Test artifacts
+@*.md
+issue/
+test-*.tsx
+test-*.ts
+
 # bv (beads viewer) local config and caches
 .bv/
 tmp-test/

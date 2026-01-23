@@ -9,6 +9,9 @@
  */
 import React, { useMemo, useRef } from "react";
 import { Box, Text } from "inkx";
+import createDebug from "debug";
+
+const debugCol = createDebug("km:tui:columns");
 import type { BoardState, ColumnState, CardState } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
@@ -194,6 +197,7 @@ function VirtualizedTreeCardList({
           actualIndex === selectedCardIndex &&
           (!inOutlineMode || selectedSubIndex === 0);
 
+        debugCol("rendering card col=%d idx=%d id=%s", colIndex, actualIndex, card.node.id);
         return (
           <MemoizedTreeCard
             key={card.node.id}

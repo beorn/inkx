@@ -72,6 +72,26 @@ export function removeLinksFromSource(sourceId: string): void {
 }
 
 /**
+ * Remove links from a source node with a specific relationship type.
+ * Used to clear computed links before re-evaluation.
+ */
+export function removeLinksFromSourceByRelationship(
+  sourceId: string,
+  relationship: string,
+): void {
+  debug(
+    "removeLinksFromSourceByRelationship: %s relationship=%s",
+    sourceId,
+    relationship,
+  );
+  const db = getDb();
+  db.run("DELETE FROM links WHERE source_id = ? AND relationship = ?", [
+    sourceId,
+    relationship,
+  ]);
+}
+
+/**
  * Resolve unresolved links to a target node
  * Call this when a new node is created that might match pending links
  */

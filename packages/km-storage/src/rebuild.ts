@@ -10,10 +10,19 @@ import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs";
 const debug = createDebug("km:storage:rebuild");
 import { join } from "path";
 import type { Event } from "@km/core";
+import type { ProgressInfo } from "@beorn/progressx";
 import { getEventsPath, getKmDir, setDatabase } from "./emit.ts";
 import { dbApplyEvent } from "./db.ts";
 import { applyEvent, getDb, getDbPath, resetDb, closeDb, setDb } from "./db.ts";
 import { initStore } from "./store.ts";
+import { evaluateAllRules, setBulkMode } from "./db-rules.ts";
+
+/** Result from rebuildState */
+export interface RebuildResult {
+  eventCount: number;
+  nodeCount: number;
+  duration: number;
+}
 
 /**
  * Read all events from events.jsonl
@@ -65,33 +74,66 @@ export function readEvents(): Event[] {
 
 /**
  * Rebuild state.db from events.jsonl
- * This is the primary recovery mechanism
+ * This is the primary recovery mechanism.
+ * Yields progress info for each step.
  */
-export function rebuildState(): { eventCount: number; nodeCount: number } {
+export function* rebuildState(): Generator<ProgressInfo, RebuildResult, unknown> {
   debug("rebuilding state.db");
   const start = Date.now();
 
   // Reset the database
   resetDb();
 
-  // Read and apply all events
+  // Read events (phase 1)
+  yield { phase: "reading", current: 0, total: 1 };
   const events = readEvents();
+  yield { phase: "reading", current: 1, total: 1 };
 
-  for (const event of events) {
-    applyEvent(event);
+  // Apply all events in a single transaction for performance
+  // Without this, each applyEvent triggers an fsync to disk
+  const db = getDb();
+  const total = events.length;
+
+  // Enable bulk mode to suppress incremental rule evaluation during rebuild
+  setBulkMode(true);
+
+  db.run("BEGIN IMMEDIATE");
+  try {
+    for (let i = 0; i < events.length; i++) {
+      applyEvent(events[i]!);
+
+      // Yield progress every 100 events to avoid overhead
+      if (i % 100 === 0 || i === total - 1) {
+        yield { phase: "applying", current: i + 1, total };
+      }
+    }
+    db.run("COMMIT");
+  } catch (error) {
+    db.run("ROLLBACK");
+    setBulkMode(false);
+    throw error;
+  }
+
+  // Disable bulk mode and evaluate all rules
+  setBulkMode(false);
+
+  // Evaluate all add= rules to materialize results (phase 3)
+  for (const progress of evaluateAllRules()) {
+    yield { phase: "rules", current: progress.current, total: progress.total };
   }
 
   // Get final stats
-  const db = getDb();
   const nodeCount = (
     db.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }
   ).count;
 
-  debug("rebuilt state.db: %d events → %d nodes in %dms", events.length, nodeCount, Date.now() - start);
+  const duration = Date.now() - start;
+  debug("rebuilt state.db: %d events → %d nodes in %dms", events.length, nodeCount, duration);
 
   return {
     eventCount: events.length,
     nodeCount,
+    duration,
   };
 }
 
@@ -145,37 +187,77 @@ export function needsRebuild(): boolean {
   return needs;
 }
 
+/** Result from syncState */
+export interface SyncResult {
+  applied: number;
+  duration: number;
+}
+
 /**
  * Incremental sync - apply only new events
+ * Yields progress info for each step.
  */
-export function syncState(): { applied: number } {
+export function* syncState(): Generator<ProgressInfo, SyncResult, unknown> {
   debug("syncState: checking for new events");
+  const start = Date.now();
   const db = getDb();
   const lastApplied = db
     .prepare("SELECT value FROM meta WHERE key = ?")
     .get("last_event") as { value: string } | undefined;
 
+  yield { phase: "reading", current: 0, total: 1 };
   const events = readEvents();
-  let applied = 0;
+  yield { phase: "reading", current: 1, total: 1 };
 
-  for (const event of events) {
-    // Skip already applied events
-    if (lastApplied?.value && event.id <= lastApplied.value) {
-      continue;
-    }
+  // Filter to only new events
+  const newEvents = events.filter(
+    (e) => !lastApplied?.value || e.id > lastApplied.value,
+  );
+  const total = newEvents.length;
 
-    applyEvent(event);
-    applied++;
+  if (total === 0) {
+    debug("syncState: no new events");
+    return { applied: 0, duration: Date.now() - start };
   }
 
-  debug("syncState: applied %d new events", applied);
-  return { applied };
+  // Enable bulk mode to suppress incremental rule evaluation
+  setBulkMode(true);
+
+  // Apply in transaction for performance
+  db.run("BEGIN IMMEDIATE");
+  try {
+    for (let i = 0; i < newEvents.length; i++) {
+      applyEvent(newEvents[i]!);
+
+      if (i % 100 === 0 || i === total - 1) {
+        yield { phase: "applying", current: i + 1, total };
+      }
+    }
+    db.run("COMMIT");
+  } catch (error) {
+    db.run("ROLLBACK");
+    setBulkMode(false);
+    throw error;
+  }
+
+  // Disable bulk mode and evaluate all rules
+  setBulkMode(false);
+
+  // Evaluate all add= rules to materialize results
+  for (const progress of evaluateAllRules()) {
+    yield { phase: "rules", current: progress.current, total: progress.total };
+  }
+
+  const duration = Date.now() - start;
+  debug("syncState: applied %d new events in %dms", total, duration);
+  return { applied: total, duration };
 }
 
 /**
  * Full reset - delete state.db and rebuild
+ * Yields progress info for each step.
  */
-export function fullReset(): { eventCount: number; nodeCount: number } {
+export function* fullReset(): Generator<ProgressInfo, RebuildResult, unknown> {
   closeDb();
 
   const dbPath = getDbPath();
@@ -192,7 +274,8 @@ export function fullReset(): { eventCount: number; nodeCount: number } {
     unlinkSync(shmPath);
   }
 
-  return rebuildState();
+  // Delegate to rebuildState and return its result
+  return yield* rebuildState();
 }
 
 /**
@@ -205,8 +288,12 @@ export function fullReset(): { eventCount: number; nodeCount: number } {
  *
  * @param rootPath - Directory to use as root
  * @param searchAncestors - If true, search for .km/ in ancestors (default: true)
+ * @param onProgress - Optional callback for progress reporting
  */
-export function ensureState(rootPath?: string, searchAncestors = true): void {
+export function* ensureState(
+  rootPath?: string,
+  searchAncestors = true,
+): Generator<ProgressInfo, void, unknown> {
   debug("ensureState: rootPath=%s, searchAncestors=%s", rootPath ?? "cwd", searchAncestors);
   const store = initStore(rootPath, searchAncestors);
 
@@ -219,9 +306,9 @@ export function ensureState(rootPath?: string, searchAncestors = true): void {
     debug("ensureState: disk mode");
     // Disk mode: use existing event-sourced approach
     if (needsRebuild()) {
-      rebuildState();
+      yield* rebuildState();
     } else {
-      syncState();
+      yield* syncState();
     }
     // Enable immediate event application so emit() updates state.db in real-time
     setDatabase(dbApplyEvent);
@@ -246,4 +333,20 @@ export function freshStart(): void {
     const fullPath = join(kmPath, entry);
     rmSync(fullPath, { recursive: true, force: true });
   }
+}
+
+/**
+ * Run a progress generator with a callback.
+ * Bridges generator-based APIs to callback-based progress reporting.
+ */
+export function runWithProgress<T>(
+  generator: Generator<ProgressInfo, T, unknown>,
+  onProgress?: (info: ProgressInfo) => void,
+): T {
+  let result = generator.next();
+  while (!result.done) {
+    onProgress?.(result.value);
+    result = generator.next();
+  }
+  return result.value;
 }

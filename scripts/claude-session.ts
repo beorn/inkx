@@ -7,6 +7,7 @@
  *   show <session-id>    - Show session details
  *   index                - Build/rebuild file write index
  *   search <pattern>     - Search indexed writes by file path
+ *   grep <pattern>       - Search ALL session content (conversations, code, etc.)
  *   writes [--date D]    - List recent writes
  *   restore <file-path>  - Restore file content from session
  *   stats                - Show index statistics
@@ -582,6 +583,204 @@ async function cmdStats(): Promise<void> {
   db.close();
 }
 
+interface GrepMatch {
+  sessionFile: string;
+  sessionId: string;
+  timestamp: string;
+  type: string; // "user" | "assistant"
+  lineNumber: number;
+  context: string; // Surrounding text
+  matchLine: string; // The actual matching line
+}
+
+async function cmdGrep(pattern: string, options: { project?: string; limit?: number; context?: number }): Promise<void> {
+  const { project, limit = 50, context: contextLines = 2 } = options;
+
+  console.log(`Searching for "${pattern}" in session content...\n`);
+
+  const regex = new RegExp(pattern, "i");
+  const matches: GrepMatch[] = [];
+  let filesSearched = 0;
+
+  for await (const sessionFile of findSessionFiles()) {
+    const relativePath = path.relative(PROJECTS_DIR, sessionFile);
+    const projectName = relativePath.split(path.sep)[0] || "";
+
+    // Filter by project if specified
+    if (project && !projectName.toLowerCase().includes(project.toLowerCase())) {
+      continue;
+    }
+
+    filesSearched++;
+
+    const fileContent = fs.readFileSync(sessionFile, "utf8");
+    const lines = fileContent.split("\n");
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line?.trim()) continue;
+
+      try {
+        const record = JSON.parse(line);
+
+        // Extract text content from the record
+        const textContent = extractTextContent(record);
+        if (!textContent) continue;
+
+        // Check if pattern matches
+        if (!regex.test(textContent)) continue;
+
+        // Find the matching lines within the content
+        const contentLines = textContent.split("\n");
+        for (let j = 0; j < contentLines.length; j++) {
+          const contentLine = contentLines[j];
+          if (!contentLine || !regex.test(contentLine)) continue;
+
+          // Get surrounding context
+          const startIdx = Math.max(0, j - contextLines);
+          const endIdx = Math.min(contentLines.length, j + contextLines + 1);
+          const contextText = contentLines.slice(startIdx, endIdx).join("\n");
+
+          matches.push({
+            sessionFile: relativePath,
+            sessionId: record.sessionId || path.basename(sessionFile, ".jsonl"),
+            timestamp: record.timestamp || "",
+            type: record.type || "unknown",
+            lineNumber: j + 1,
+            context: contextText,
+            matchLine: contentLine,
+          });
+
+          if (matches.length >= limit) break;
+        }
+
+        if (matches.length >= limit) break;
+      } catch {
+        // Skip malformed JSON
+      }
+    }
+
+    if (matches.length >= limit) break;
+  }
+
+  if (matches.length === 0) {
+    console.log(`No matches found for "${pattern}" in ${filesSearched} session files.`);
+    return;
+  }
+
+  console.log(`Found ${matches.length} matches in ${filesSearched} files:\n`);
+
+  // Group by session for cleaner output
+  const bySession = new Map<string, GrepMatch[]>();
+  for (const match of matches) {
+    const key = match.sessionId;
+    const existing = bySession.get(key) || [];
+    existing.push(match);
+    bySession.set(key, existing);
+  }
+
+  for (const [sessionId, sessionMatches] of bySession) {
+    const firstMatch = sessionMatches[0]!;
+    const displayProject = firstMatch.sessionFile.split(path.sep)[0]?.replace(/-/g, "/").replace(/^-/, "/") || "";
+    const date = firstMatch.timestamp ? new Date(firstMatch.timestamp).toLocaleDateString() : "unknown date";
+
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`📁 Session: ${sessionId.slice(0, 12)}...  |  Project: ${displayProject}  |  ${date}`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+    for (const match of sessionMatches.slice(0, 5)) {
+      const time = match.timestamp ? new Date(match.timestamp).toLocaleTimeString() : "";
+      const role = match.type === "user" ? "👤 User" : match.type === "assistant" ? "🤖 Assistant" : match.type;
+
+      console.log(`\n${role} (${time}):`);
+      console.log("─".repeat(60));
+
+      // Highlight the match in the context
+      const highlighted = highlightMatch(match.context, regex);
+      console.log(highlighted);
+    }
+
+    if (sessionMatches.length > 5) {
+      console.log(`\n  ... and ${sessionMatches.length - 5} more matches in this session`);
+    }
+    console.log();
+  }
+
+  if (matches.length >= limit) {
+    console.log(`\n(showing first ${limit} matches, use --limit N for more)`);
+  }
+}
+
+function extractTextContent(record: Record<string, unknown>): string | null {
+  const parts: string[] = [];
+
+  // Handle user messages
+  if (record.type === "user" && record.message) {
+    const message = record.message as { content?: unknown };
+    if (typeof message.content === "string") {
+      parts.push(message.content);
+    } else if (Array.isArray(message.content)) {
+      for (const item of message.content) {
+        if (typeof item === "string") {
+          parts.push(item);
+        } else if (item && typeof item === "object" && "text" in item) {
+          parts.push(String((item as { text: unknown }).text));
+        }
+      }
+    }
+  }
+
+  // Handle assistant messages
+  if (record.type === "assistant" && record.message) {
+    const message = record.message as { content?: unknown };
+    if (Array.isArray(message.content)) {
+      for (const item of message.content) {
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          // Text blocks
+          if (obj.type === "text" && typeof obj.text === "string") {
+            parts.push(obj.text);
+          }
+          // Tool use - include the input as searchable text
+          if (obj.type === "tool_use" && obj.input) {
+            parts.push(JSON.stringify(obj.input));
+          }
+          // Thinking blocks
+          if (obj.type === "thinking" && typeof obj.thinking === "string") {
+            parts.push(obj.thinking);
+          }
+        }
+      }
+    }
+  }
+
+  // Handle tool results
+  if (record.type === "tool_result" && record.content) {
+    if (typeof record.content === "string") {
+      parts.push(record.content);
+    } else if (Array.isArray(record.content)) {
+      for (const item of record.content) {
+        if (typeof item === "string") {
+          parts.push(item);
+        } else if (item && typeof item === "object" && "text" in item) {
+          parts.push(String((item as { text: unknown }).text));
+        }
+      }
+    }
+  }
+
+  return parts.length > 0 ? parts.join("\n") : null;
+}
+
+function highlightMatch(text: string, regex: RegExp): string {
+  // Use ANSI codes for highlighting
+  const YELLOW = "\x1b[33m";
+  const BOLD = "\x1b[1m";
+  const RESET = "\x1b[0m";
+
+  return text.replace(new RegExp(`(${regex.source})`, "gi"), `${BOLD}${YELLOW}$1${RESET}`);
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
@@ -599,9 +798,15 @@ Commands:
   show <session-id>    Show session details and file writes
   index                Build/rebuild file write index
   search <pattern>     Search indexed writes by file path pattern
+  grep <pattern>       Search ALL session content (conversations, code, etc.)
   writes [--date D]    List recent writes, optionally filter by date
   restore <file>       Restore file content from session history
   stats                Show index statistics
+
+Grep options:
+  --project <name>     Filter by project name
+  --limit <n>          Max matches to return (default: 50)
+  --context <n>        Lines of context around match (default: 2)
 
 Examples:
   bun ./scripts/claude-session.ts list
@@ -609,6 +814,8 @@ Examples:
   bun ./scripts/claude-session.ts show 03e4eae4
   bun ./scripts/claude-session.ts index
   bun ./scripts/claude-session.ts search '**/chaos*.ts'
+  bun ./scripts/claude-session.ts grep "loading progress"
+  bun ./scripts/claude-session.ts grep "progressx" --project km --limit 20
   bun ./scripts/claude-session.ts writes --date 2026-01-22
   bun ./scripts/claude-session.ts restore packages/km-storage/scripts/chaos-cli.ts
   bun ./scripts/claude-session.ts stats
@@ -645,6 +852,28 @@ if (import.meta.main) {
       }
       await cmdSearch(args[1]);
       break;
+
+    case "grep": {
+      if (!args[1]) {
+        console.error("Usage: claude-session grep <pattern> [--project name] [--limit n] [--context n]");
+        process.exit(1);
+      }
+      const grepOptions: { project?: string; limit?: number; context?: number } = {};
+      const projectIdx = args.indexOf("--project");
+      if (projectIdx !== -1 && args[projectIdx + 1]) {
+        grepOptions.project = args[projectIdx + 1];
+      }
+      const limitIdx = args.indexOf("--limit");
+      if (limitIdx !== -1 && args[limitIdx + 1]) {
+        grepOptions.limit = parseInt(args[limitIdx + 1]!, 10);
+      }
+      const contextIdx = args.indexOf("--context");
+      if (contextIdx !== -1 && args[contextIdx + 1]) {
+        grepOptions.context = parseInt(args[contextIdx + 1]!, 10);
+      }
+      await cmdGrep(args[1], grepOptions);
+      break;
+    }
 
     case "writes": {
       let dateFilter: string | undefined;
