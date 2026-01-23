@@ -1,12 +1,16 @@
 ---
-description: Beads issue tracker - find work, claim tasks, track progress
+description: Beads issue tracker. Use when user asks "what should I work on?", "show available tasks", "claim this issue", "find work", or wants to coordinate work between sessions.
 argument-hint: [ready|show|work|claim|release|close|sync|my] [id]
 allowed-tools: Bash, Read
+disable-model-invocation: true
 ---
 
 # /bd - Beads Issue Tracker
 
 Unified interface for beads issue tracking. Manage your work queue, coordinate with other Claude sessions, and track progress.
+
+## Current State
+!`bun ./.claude/skills/bd/scripts/bd.ts 2>/dev/null || echo "Run /bd to see dashboard"`
 
 ## Subcommands
 
@@ -55,5 +59,3 @@ When multiple Claude Code sessions work on the same codebase:
 ```bash
 bun ./.claude/skills/bd/scripts/bd.ts $ARGUMENTS
 ```
-
-**Keywords**: bd, beads, bead, claim, work, ready, issue, task, bug, track
