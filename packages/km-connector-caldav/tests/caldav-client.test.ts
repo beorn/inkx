@@ -23,7 +23,10 @@ function restoreFetch() {
 
 // Helper to create mock response
 function mockResponse(body: string, status = 200): Response {
-  return new Response(body, { status, headers: { "Content-Type": "text/xml" } });
+  return new Response(body, {
+    status,
+    headers: { "Content-Type": "text/xml" },
+  });
 }
 
 // Sample WebDAV responses
@@ -161,7 +164,9 @@ describe("CalDAVClient", () => {
         callCount++;
         if (callCount === 1) {
           // First call: get principal
-          return Promise.resolve(mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207));
+          return Promise.resolve(
+            mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207),
+          );
         } else {
           // Second call: get calendar home
           return Promise.resolve(
@@ -187,9 +192,7 @@ describe("CalDAVClient", () => {
 
     test("falls back to config URL when discovery fails", async () => {
       mockFetch = mock(() =>
-        Promise.resolve(
-          mockResponse("<D:multistatus></D:multistatus>", 207),
-        ),
+        Promise.resolve(mockResponse("<D:multistatus></D:multistatus>", 207)),
       );
       globalThis.fetch = mockFetch as unknown as typeof fetch;
 
@@ -212,8 +215,11 @@ describe("CalDAVClient", () => {
         callCount++;
         if (callCount <= 2) {
           // Discovery calls
-          if (callCount === 1)
-            {return Promise.resolve(mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207));}
+          if (callCount === 1) {
+            return Promise.resolve(
+              mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207),
+            );
+          }
           return Promise.resolve(
             mockResponse(PROPFIND_CALENDAR_HOME_RESPONSE, 207),
           );
@@ -265,7 +271,12 @@ describe("CalDAVClient", () => {
 
   describe("createEvent", () => {
     test("sends PUT request with iCalendar data", async () => {
-      const capturedRequests: { url: string; method: string; body?: string; headers?: Record<string, string> }[] = [];
+      const capturedRequests: {
+        url: string;
+        method: string;
+        body?: string;
+        headers?: Record<string, string>;
+      }[] = [];
       mockFetch = mock((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
@@ -306,7 +317,11 @@ describe("CalDAVClient", () => {
 
   describe("updateEvent", () => {
     test("sends PUT request with If-Match header", async () => {
-      const capturedRequests: { url: string; method: string; headers?: Record<string, string> }[] = [];
+      const capturedRequests: {
+        url: string;
+        method: string;
+        headers?: Record<string, string>;
+      }[] = [];
       mockFetch = mock((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
@@ -340,7 +355,11 @@ describe("CalDAVClient", () => {
 
   describe("deleteEvent", () => {
     test("sends DELETE request", async () => {
-      const capturedRequests: { url: string; method: string; headers?: Record<string, string> }[] = [];
+      const capturedRequests: {
+        url: string;
+        method: string;
+        headers?: Record<string, string>;
+      }[] = [];
       mockFetch = mock((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,

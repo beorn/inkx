@@ -317,7 +317,12 @@ export class CalDAVClient {
       result.state.lastSync = Date.now();
     }
 
-    debug("sync: added=%d modified=%d deleted=%d", result.added.length, result.modified.length, result.deleted.length);
+    debug(
+      "sync: added=%d modified=%d deleted=%d",
+      result.added.length,
+      result.modified.length,
+      result.deleted.length,
+    );
     return result;
   }
 }

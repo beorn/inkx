@@ -264,9 +264,18 @@ export function matchesPattern(path: string, pattern: string): boolean {
     // Escape special regex chars
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
     // Replace placeholders with regex equivalents
-    .replace(new RegExp(DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"), "(?:.*\\/)?")
-    .replace(new RegExp(SLASH_DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"), "(?:\\/.*)?/")
-    .replace(new RegExp(SLASH_DOUBLE_STAR.replace(/\x00/g, "\\x00"), "g"), "(?:\\/.*)?")
+    .replace(
+      new RegExp(DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"),
+      "(?:.*\\/)?",
+    )
+    .replace(
+      new RegExp(SLASH_DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"),
+      "(?:\\/.*)?/",
+    )
+    .replace(
+      new RegExp(SLASH_DOUBLE_STAR.replace(/\x00/g, "\\x00"), "g"),
+      "(?:\\/.*)?",
+    )
     .replace(new RegExp(DOUBLE_STAR.replace(/\x00/g, "\\x00"), "g"), ".*")
     .replace(new RegExp(SINGLE_STAR.replace(/\x00/g, "\\x00"), "g"), "[^/]*")
     .replace(new RegExp(QUESTION.replace(/\x00/g, "\\x00"), "g"), ".");

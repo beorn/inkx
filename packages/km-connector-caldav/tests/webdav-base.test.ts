@@ -25,7 +25,10 @@ function restoreFetch() {
 }
 
 function mockResponse(body: string, status = 200): Response {
-  return new Response(body, { status, headers: { "Content-Type": "text/xml" } });
+  return new Response(body, {
+    status,
+    headers: { "Content-Type": "text/xml" },
+  });
 }
 
 describe("webdav-base", () => {

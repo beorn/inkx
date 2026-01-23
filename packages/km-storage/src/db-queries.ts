@@ -456,7 +456,9 @@ export function getSubtree(rootId: string): KNode[] {
  * Get all embed targets that exist anywhere on a board (for deduplication).
  * Returns a Set of node IDs that are already embedded somewhere on the board.
  */
-export function getEmbedTargetsOnBoard(boardRootId: string | null): Set<string> {
+export function getEmbedTargetsOnBoard(
+  boardRootId: string | null,
+): Set<string> {
   if (!boardRootId) return new Set();
 
   const db = getDb();
@@ -864,7 +866,9 @@ export function getAllNodes(): KNode[] {
  */
 export function getNodeCount(): number {
   const db = getDb();
-  const result = db.query("SELECT COUNT(*) as count FROM nodes").get() as { count: number };
+  const result = db.query("SELECT COUNT(*) as count FROM nodes").get() as {
+    count: number;
+  };
   return result.count;
 }
 

@@ -296,7 +296,8 @@ export function parseQuery(query: string): QueryAST {
           // Value match: prop::value
           // Check if it's a number
           const numValue = parseFloat(propValue ?? "");
-          const isNumber = !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "");
+          const isNumber =
+            !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "");
 
           ast.propConditions.push({
             prop: propName?.toLowerCase() ?? "",
@@ -311,7 +312,10 @@ export function parseQuery(query: string): QueryAST {
     }
 
     // Special queries: blocked:true/false
-    if (term.toLowerCase() === "blocked:true" || term.toLowerCase() === "blocked:false") {
+    if (
+      term.toLowerCase() === "blocked:true" ||
+      term.toLowerCase() === "blocked:false"
+    ) {
       ast.specials.push({
         type: "blocked",
         value: term.toLowerCase() === "blocked:true",

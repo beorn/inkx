@@ -34,9 +34,9 @@ import { rowToNode } from "./db-queries.ts";
  */
 function applyMigrations(db: Database): void {
   // Check if links table has relationship column
-  const columns = db
-    .query("PRAGMA table_info(links)")
-    .all() as { name: string }[];
+  const columns = db.query("PRAGMA table_info(links)").all() as {
+    name: string;
+  }[];
   const hasRelationship = columns.some((c) => c.name === "relationship");
 
   if (!hasRelationship) {
@@ -86,7 +86,6 @@ export interface NodeStore {
   refresh(): void;
   close(): void;
 }
-
 
 /**
  * Base store implementation with shared query methods

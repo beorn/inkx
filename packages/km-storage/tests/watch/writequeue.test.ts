@@ -521,12 +521,24 @@ describe("Conflict Detection", () => {
 
 describe("Permission Error Handling", () => {
   test("getErrorType classifies permission errors correctly", () => {
-    expect(getErrorType(Object.assign(new Error("EACCES"), { code: "EACCES" }))).toBe("permission");
-    expect(getErrorType(Object.assign(new Error("EPERM"), { code: "EPERM" }))).toBe("permission");
-    expect(getErrorType(Object.assign(new Error("EROFS"), { code: "EROFS" }))).toBe("read_only");
-    expect(getErrorType(Object.assign(new Error("ENOENT"), { code: "ENOENT" }))).toBe("not_found");
-    expect(getErrorType(Object.assign(new Error("EBUSY"), { code: "EBUSY" }))).toBe("transient");
-    expect(getErrorType(Object.assign(new Error("EISDIR"), { code: "EISDIR" }))).toBe("other");
+    expect(
+      getErrorType(Object.assign(new Error("EACCES"), { code: "EACCES" })),
+    ).toBe("permission");
+    expect(
+      getErrorType(Object.assign(new Error("EPERM"), { code: "EPERM" })),
+    ).toBe("permission");
+    expect(
+      getErrorType(Object.assign(new Error("EROFS"), { code: "EROFS" })),
+    ).toBe("read_only");
+    expect(
+      getErrorType(Object.assign(new Error("ENOENT"), { code: "ENOENT" })),
+    ).toBe("not_found");
+    expect(
+      getErrorType(Object.assign(new Error("EBUSY"), { code: "EBUSY" })),
+    ).toBe("transient");
+    expect(
+      getErrorType(Object.assign(new Error("EISDIR"), { code: "EISDIR" })),
+    ).toBe("other");
   });
 
   test("getPermissionSuggestion provides helpful messages", () => {
@@ -560,10 +572,20 @@ describe("Permission Error Handling", () => {
 
     let permissionEvent: PermissionError[] = [];
     let flushedEvent: { permissionErrors?: number } = {};
-    queue.on("permission-denied", (e: PermissionError[]) => (permissionEvent = e));
-    queue.on("flushed", (e: { permissionErrors?: number }) => (flushedEvent = e));
+    queue.on(
+      "permission-denied",
+      (e: PermissionError[]) => (permissionEvent = e),
+    );
+    queue.on(
+      "flushed",
+      (e: { permissionErrors?: number }) => (flushedEvent = e),
+    );
 
-    queue.queue({ path: "/protected/test.md", content: "test", sourceEventId: "1" });
+    queue.queue({
+      path: "/protected/test.md",
+      content: "test",
+      sourceEventId: "1",
+    });
     await queue.forceFlush();
 
     expect(permissionEvent).toHaveLength(1);
@@ -577,7 +599,9 @@ describe("Permission Error Handling", () => {
   test("emits permission-denied event on EPERM error", async () => {
     const mockFs: FileSystemOps = {
       writeFileSync: () => {
-        throw Object.assign(new Error("Operation not permitted"), { code: "EPERM" });
+        throw Object.assign(new Error("Operation not permitted"), {
+          code: "EPERM",
+        });
       },
       unlinkSync: () => {},
       mkdirSync: () => {},
@@ -605,7 +629,9 @@ describe("Permission Error Handling", () => {
   test("emits permission-denied event on EROFS error", async () => {
     const mockFs: FileSystemOps = {
       writeFileSync: () => {
-        throw Object.assign(new Error("Read-only file system"), { code: "EROFS" });
+        throw Object.assign(new Error("Read-only file system"), {
+          code: "EROFS",
+        });
       },
       unlinkSync: () => {},
       mkdirSync: () => {},
@@ -622,7 +648,11 @@ describe("Permission Error Handling", () => {
     let permissionEvent: PermissionError[] | null = null;
     queue.on("permission-denied", (e) => (permissionEvent = e));
 
-    queue.queue({ path: "/readonly/test.md", content: "test", sourceEventId: "1" });
+    queue.queue({
+      path: "/readonly/test.md",
+      content: "test",
+      sourceEventId: "1",
+    });
     await queue.forceFlush();
 
     expect(permissionEvent).toHaveLength(1);

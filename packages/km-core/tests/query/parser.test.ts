@@ -210,7 +210,7 @@ describe("parseQuery - quoted phrases", () => {
     expect(ast.phraseTerms[0]?.value).toBe("hello world");
   });
 
-  test("parses multiple phrases: '\"foo bar\" \"baz\"'", () => {
+  test('parses multiple phrases: \'"foo bar" "baz"\'', () => {
     const ast = parseQuery('"foo bar" "baz"');
     expect(ast.phrases).toHaveLength(2);
     expect(ast.phrases).toContain("foo bar");

@@ -23,7 +23,10 @@ function restoreFetch() {
 
 // Helper to create mock response
 function mockResponse(body: string, status = 200): Response {
-  return new Response(body, { status, headers: { "Content-Type": "text/xml" } });
+  return new Response(body, {
+    status,
+    headers: { "Content-Type": "text/xml" },
+  });
 }
 
 // Sample WebDAV responses
@@ -139,7 +142,9 @@ describe("CardDAVClient", () => {
       mockFetch = mock((url: string) => {
         callCount++;
         if (callCount === 1) {
-          return Promise.resolve(mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207));
+          return Promise.resolve(
+            mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207),
+          );
         } else {
           return Promise.resolve(
             mockResponse(PROPFIND_ADDRESSBOOK_HOME_RESPONSE, 207),
@@ -186,8 +191,11 @@ describe("CardDAVClient", () => {
       mockFetch = mock((url: string) => {
         callCount++;
         if (callCount <= 2) {
-          if (callCount === 1)
-            {return Promise.resolve(mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207));}
+          if (callCount === 1) {
+            return Promise.resolve(
+              mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207),
+            );
+          }
           return Promise.resolve(
             mockResponse(PROPFIND_ADDRESSBOOK_HOME_RESPONSE, 207),
           );
@@ -241,7 +249,12 @@ describe("CardDAVClient", () => {
 
   describe("createContact", () => {
     test("sends PUT request with vCard data", async () => {
-      const capturedRequests: { url: string; method: string; body?: string; headers?: Record<string, string> }[] = [];
+      const capturedRequests: {
+        url: string;
+        method: string;
+        body?: string;
+        headers?: Record<string, string>;
+      }[] = [];
       mockFetch = mock((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
@@ -282,7 +295,11 @@ describe("CardDAVClient", () => {
 
   describe("updateContact", () => {
     test("sends PUT request with If-Match header", async () => {
-      const capturedRequests: { url: string; method: string; headers?: Record<string, string> }[] = [];
+      const capturedRequests: {
+        url: string;
+        method: string;
+        headers?: Record<string, string>;
+      }[] = [];
       mockFetch = mock((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
@@ -315,7 +332,11 @@ describe("CardDAVClient", () => {
 
   describe("deleteContact", () => {
     test("sends DELETE request", async () => {
-      const capturedRequests: { url: string; method: string; headers?: Record<string, string> }[] = [];
+      const capturedRequests: {
+        url: string;
+        method: string;
+        headers?: Record<string, string>;
+      }[] = [];
       mockFetch = mock((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,

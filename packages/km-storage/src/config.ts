@@ -59,12 +59,17 @@ const explorer = cosmiconfigSync("km", {
 });
 
 let cachedResult: { config: KmConfig; filepath: string } | null = null;
-let cachedBeadsConfig: { config: OriginalBeadsConfig; filepath: string } | null = null;
+let cachedBeadsConfig: {
+  config: OriginalBeadsConfig;
+  filepath: string;
+} | null = null;
 
 /**
  * Find and load .beads/config.yaml
  */
-function loadOriginalBeadsConfig(searchFrom?: string): OriginalBeadsConfig | null {
+function loadOriginalBeadsConfig(
+  searchFrom?: string,
+): OriginalBeadsConfig | null {
   if (cachedBeadsConfig) return cachedBeadsConfig.config;
 
   let dir = searchFrom || process.cwd();
@@ -97,7 +102,9 @@ export function getOriginalBeadsConfigPath(): string | undefined {
 /**
  * Get the original beads config (for migration info)
  */
-export function getOriginalBeadsConfig(searchFrom?: string): OriginalBeadsConfig | null {
+export function getOriginalBeadsConfig(
+  searchFrom?: string,
+): OriginalBeadsConfig | null {
   return loadOriginalBeadsConfig(searchFrom);
 }
 
@@ -110,7 +117,10 @@ export function loadConfig(searchFrom?: string): KmConfig {
 
   const result = explorer.search(searchFrom);
   if (result && !result.isEmpty) {
-    cachedResult = { config: result.config as KmConfig, filepath: result.filepath };
+    cachedResult = {
+      config: result.config as KmConfig,
+      filepath: result.filepath,
+    };
     return cachedResult.config;
   }
 

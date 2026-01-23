@@ -20,12 +20,7 @@ import {
   applyReconcileOps,
   getParentNodeId,
 } from "../../src/watch/reconcile.ts";
-import {
-  closeDb,
-  resetDb,
-  getNodeByPath,
-  getChildren,
-} from "../../src/db.ts";
+import { closeDb, resetDb, getNodeByPath, getChildren } from "../../src/db.ts";
 import { rebuildState } from "../../src/rebuild.ts";
 
 const TEST_DIR = join("/tmp", "kmtest-reconcile");
@@ -455,8 +450,12 @@ describe.serial("reconcile.ts", () => {
         (n) => n.type === "task",
       );
       expect(originalTasks.length).toBe(2);
-      const taskAId = originalTasks.find((t) => t.content?.includes("Task A"))?.id;
-      const taskBId = originalTasks.find((t) => t.content?.includes("Task B"))?.id;
+      const taskAId = originalTasks.find((t) =>
+        t.content?.includes("Task A"),
+      )?.id;
+      const taskBId = originalTasks.find((t) =>
+        t.content?.includes("Task B"),
+      )?.id;
       expect(taskAId).toBeDefined();
       expect(taskBId).toBeDefined();
 

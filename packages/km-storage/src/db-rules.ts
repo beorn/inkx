@@ -159,10 +159,7 @@ function evaluateAddRule(sectionId: string, query: string): void {
   // Get the board root (parent of section) to check board-wide deduplication
   const boardRootId = section.parent_id;
   const existingOnBoard = getEmbedTargetsOnBoard(boardRootId);
-  debug(
-    "evaluateAddRule: existing embeds on board: %d",
-    existingOnBoard.size,
-  );
+  debug("evaluateAddRule: existing embeds on board: %d", existingOnBoard.size);
 
   // Get existing embed children in this section (by link_to) - refresh after cleanup
   const existingEmbeds = getChildren(sectionId)
@@ -219,7 +216,11 @@ function evaluateAddRule(sectionId: string, query: string): void {
     existingOnBoard.add(match.id); // Prevent adding same match twice
   }
 
-  debug("evaluateAddRule: created %d embeds, removed %d", addedCount, removedCount);
+  debug(
+    "evaluateAddRule: created %d embeds, removed %d",
+    addedCount,
+    removedCount,
+  );
 
   // Mark the file for write-back if we added or removed any embeds
   if (addedCount > 0 || removedCount > 0) {

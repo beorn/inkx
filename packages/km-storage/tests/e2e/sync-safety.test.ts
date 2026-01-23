@@ -60,7 +60,9 @@ function createTestVault(): void {
 function verifyNonMdFilesUnchanged(): { passed: boolean; errors: string[] } {
   const errors: string[] = [];
 
-  for (const [relativePath, originalContent] of Object.entries(ORIGINAL_FILES)) {
+  for (const [relativePath, originalContent] of Object.entries(
+    ORIGINAL_FILES,
+  )) {
     // Skip markdown files - they're expected to potentially change
     if (relativePath.endsWith(".md")) continue;
 
@@ -195,7 +197,10 @@ describe.serial("E2E Sync Safety", () => {
       const utilsTs = readFileSync(join(VAULT_DIR, "src/utils.ts"), "utf-8");
       expect(utilsTs).toBe(ORIGINAL_FILES["src/utils.ts"]!);
 
-      const configJson = readFileSync(join(VAULT_DIR, "src/config.json"), "utf-8");
+      const configJson = readFileSync(
+        join(VAULT_DIR, "src/config.json"),
+        "utf-8",
+      );
       expect(configJson).toBe(ORIGINAL_FILES["src/config.json"]!);
     });
   });

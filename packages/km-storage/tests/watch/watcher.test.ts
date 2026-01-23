@@ -5,13 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  rmSync,
-  writeFileSync,
-  symlinkSync,
-} from "fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync, symlinkSync } from "fs";
 import { join } from "path";
 import {
   scanDirectory,
