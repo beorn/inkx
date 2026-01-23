@@ -18,6 +18,7 @@ import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts";
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts";
 import { getIgnorePatterns } from "./ignore.ts";
 import type { Event, KNode } from "@km/core";
+import type { ProgressCallback } from "@beorn/progressx";
 import { setDatabase, setKmDir } from "../emit.ts";
 import {
   getAllNodes,
@@ -27,7 +28,16 @@ import {
   dbApplyEvent,
   readEvents,
   nodesToMarkdown,
+  evaluateAllRules,
+  getPendingWriteBack,
 } from "../index.ts";
+
+/** Result from syncFromFs */
+export interface SyncFromFsResult {
+  processed: number;
+  directories: number;
+  duration: number;
+}
 
 export interface HeartbeatConfig {
   /** Enable periodic reconciliation to catch silently dropped events (default: true) */
@@ -456,8 +466,10 @@ export class SyncManager extends EventEmitter {
 
   /**
    * Force sync from filesystem
+   *
+   * @param onProgress - Optional callback for progress reporting
    */
-  async syncFromFs(): Promise<{ processed: number }> {
+  async syncFromFs(onProgress?: ProgressCallback): Promise<SyncFromFsResult> {
     debug("syncFromFs: scanning %s", this.config.vaultPath);
     const start = Date.now();
 
@@ -469,6 +481,9 @@ export class SyncManager extends EventEmitter {
 
     // Load ignore patterns for this vault
     const ignorePatterns = getIgnorePatterns(this.config.vaultPath);
+
+    // Phase 1: Scanning
+    onProgress?.({ phase: "scanning", current: 0, total: 1 });
 
     const entries = scanDirectoryRecursive(
       this.config.vaultPath,
@@ -485,19 +500,60 @@ export class SyncManager extends EventEmitter {
       dirs.add(dirname(entry.path));
     }
 
+    onProgress?.({ phase: "scanning", current: 1, total: 1 });
+
+    // Phase 2: Reconciling
+    const dirArray = Array.from(dirs);
+    const totalDirs = dirArray.length;
     let processed = 0;
-    for (const dir of dirs) {
+
+    for (let i = 0; i < dirArray.length; i++) {
+      const dir = dirArray[i]!;
       const ops = reconcileDirectory(dir, this.config.vaultPath, ignorePatterns);
       await applyReconcileOps(ops, this.config.vaultPath);
       processed += ops.length;
+
+      // Report progress every 10 directories or on last one
+      if (i % 10 === 0 || i === totalDirs - 1) {
+        onProgress?.({ phase: "reconciling", current: i + 1, total: totalDirs });
+      }
     }
 
-    debug("syncFromFs: processed %d ops in %dms", processed, Date.now() - start);
-    return { processed };
+    // Phase 3: Evaluate rules (add= materialization)
+    for (const progress of evaluateAllRules()) {
+      onProgress?.({ phase: "rules", current: progress.current, total: progress.total });
+    }
+
+    // Write back any files that were modified by rule evaluation
+    const pendingFiles = getPendingWriteBack();
+    if (pendingFiles.length > 0) {
+      debug("syncFromFs: writing back %d files after rule evaluation", pendingFiles.length);
+      for (const filePath of pendingFiles) {
+        // Find the file node and regenerate its content
+        const fileNode = getAllNodes().find((n) => n.fs_path === filePath);
+        if (fileNode) {
+          const subtree = getSubtree(fileNode.id);
+          const content = nodesToMarkdown(subtree);
+          this.writeQueue.queue({
+            path: filePath,
+            content,
+            sourceEventId: "rule-evaluation",
+          });
+        }
+      }
+      await this.writeQueue.forceFlush();
+    }
+
+    const duration = Date.now() - start;
+    debug("syncFromFs: processed %d ops in %d dirs in %dms", processed, totalDirs, duration);
+    return { processed, directories: totalDirs, duration };
   }
 
   /**
    * Force sync to filesystem
+   *
+   * SAFETY: Only writes .md files. Never touches source code, config files, or binaries.
+   * This is critical to prevent corruption of non-vault files (km-me0n bug).
    */
   async syncToFs(): Promise<{ written: number }> {
     debug("syncToFs: starting");
@@ -507,7 +563,8 @@ export class SyncManager extends EventEmitter {
     setKmDir(join(this.config.vaultPath, ".km"));
 
     const nodes = getAllNodes();
-    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path);
+    // CRITICAL: Only sync .md files to prevent corruption of source code/config files
+    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path?.endsWith(".md"));
 
     debug("syncToFs: writing %d files", fileNodes.length);
 

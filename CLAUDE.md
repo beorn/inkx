@@ -128,6 +128,28 @@ bun run test:fast    # Run this frequently - 4 second feedback loop
 5. `bun run test:all` passes (final check before commit)
 6. Commit
 
+**⚠️ CRITICAL: Test Safety - Use Isolated Test Directories**
+
+**NEVER run sync operations or tests on:**
+- The km source code repository itself
+- User vaults with real data
+- Any directory containing non-markdown files you care about
+
+**ALWAYS use isolated test directories:**
+- Tests use `/tmp/kmtest-*` directories that are created and destroyed per test
+- Manual testing should use throw-away test vaults:
+  ```bash
+  # Create a test vault
+  rm -rf /tmp/test-vault && mkdir -p /tmp/test-vault
+  echo -e "# Test\n- [ ] Task 1" > /tmp/test-vault/test.md
+  bun km view /tmp/test-vault
+  ```
+
+**Why this matters (km-me0n incident):**
+- `km sync --to-fs` once corrupted source files by converting them to markdown stubs
+- Any sync operation that writes to filesystem must be tested in isolation
+- E2E tests in `packages/km-storage/tests/e2e/` verify sync never touches non-.md files
+
 ### 6. New Package Checklist (MUST FOLLOW)
 
 When creating a new package under `packages/`:
@@ -292,6 +314,16 @@ When a user reports a bug, follow [.claude/skills/bug-report.md](.claude/skills/
 ### 12. Debug Logging
 
 Use the `debug` npm package for all logging. Never use `console.log` in production code.
+
+**Quick start (TUI debugging):**
+
+```bash
+# Run TUI with debug output to file (so it doesn't interfere with TUI display)
+DEBUG_LOG=/tmp/km.log DEBUG='km:*' bun km view /path/to/vault
+
+# In another terminal, watch the log:
+tail -f /tmp/km.log
+```
 
 **Namespace convention:**
 
