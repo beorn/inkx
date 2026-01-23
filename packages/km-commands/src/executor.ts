@@ -21,7 +21,10 @@ export function executeCommand(
   }
   debug("executing: %s", id);
   const result = cmd.execute(ctx);
-  debug("executed %s → %O", id, Array.isArray(result) ? result.map(r => r.type) : result?.type);
+  debug("executed", {
+    id,
+    result: Array.isArray(result) ? result.map((r) => r.type) : result?.type,
+  });
   return result;
 }
 

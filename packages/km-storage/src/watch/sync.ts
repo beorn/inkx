@@ -567,10 +567,9 @@ export class SyncManager extends EventEmitter {
       for (const filePath of pendingFiles) {
         // CRITICAL: Skip non-.md files to prevent corruption
         if (!filePath.endsWith(".md")) {
-          debug(
-            "syncFromFs: SKIPPING non-.md file in write-back: %s",
+          debug("syncFromFs: SKIPPING non-.md file in write-back", {
             filePath,
-          );
+          });
           continue;
         }
 

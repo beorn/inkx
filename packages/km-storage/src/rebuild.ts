@@ -182,11 +182,11 @@ export function needsRebuild(): boolean {
     // DB exists but hasn't applied any events
     const events = readEvents();
     const needs = events.length > 0;
-    debug(
-      "needsRebuild: %s (no last_event, %d events)",
-      needs ? "yes" : "no",
-      events.length,
-    );
+    debug("needsRebuild", {
+      result: needs ? "yes" : "no",
+      reason: "no last_event",
+      eventCount: events.length,
+    });
     return needs;
   }
 
@@ -201,12 +201,11 @@ export function needsRebuild(): boolean {
 
   // ULID comparison - if last event ID > last applied, need to catch up
   const needs = lastEvent.id > lastApplied.value;
-  debug(
-    "needsRebuild: %s (last=%s, applied=%s)",
-    needs ? "yes" : "no",
-    lastEvent.id.slice(-8),
-    lastApplied.value.slice(-8),
-  );
+  debug("needsRebuild", {
+    result: needs ? "yes" : "no",
+    last: lastEvent.id.slice(-8),
+    applied: lastApplied.value.slice(-8),
+  });
   return needs;
 }
 
@@ -317,11 +316,7 @@ export function* ensureState(
   rootPath?: string,
   searchAncestors = true,
 ): Generator<ProgressInfo, void, unknown> {
-  debug(
-    "ensureState: rootPath=%s, searchAncestors=%s",
-    rootPath ?? "cwd",
-    searchAncestors,
-  );
+  debug("ensureState", { rootPath: rootPath ?? "cwd", searchAncestors });
   const store = initStore(rootPath, searchAncestors);
 
   if (store.mode === "memory") {

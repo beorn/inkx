@@ -446,14 +446,13 @@ export class WriteQueue extends EventEmitter {
       const resolution =
         this.conflictStrategy === "fs_wins" ? "discarded" : "written";
 
-      debug(
-        "conflict detected on %s: baseMtime=%d, currentMtime=%d, strategy=%s, resolution=%s",
-        op.path,
-        op.baseMtime,
+      debug("conflict detected", {
+        path: op.path,
+        baseMtime: op.baseMtime,
         currentMtime,
-        this.conflictStrategy,
+        strategy: this.conflictStrategy,
         resolution,
-      );
+      });
 
       return {
         path: op.path,
@@ -496,23 +495,21 @@ export class WriteQueue extends EventEmitter {
 
         // Don't retry permanent errors
         if (errorClass === "permanent") {
-          debug(
-            "permanent error on %s (attempt %d): %s",
-            op.path,
+          debug("permanent error", {
+            path: op.path,
             attempts,
-            lastError.code || lastError.message,
-          );
+            error: lastError.code || lastError.message,
+          });
           return { op, success: false, attempts, error: lastError, errorClass };
         }
 
         // Last attempt - don't sleep, just fail
         if (attempt === this.retryConfig.maxRetries) {
-          debug(
-            "max retries reached for %s after %d attempts: %s",
-            op.path,
+          debug("max retries reached", {
+            path: op.path,
             attempts,
-            lastError.code || lastError.message,
-          );
+            error: lastError.code || lastError.message,
+          });
           return {
             op,
             success: false,
@@ -524,13 +521,12 @@ export class WriteQueue extends EventEmitter {
 
         // Calculate backoff delay and wait
         const delay = calculateBackoffDelay(attempt, this.retryConfig);
-        debug(
-          "transient error on %s (attempt %d), retrying in %dms: %s",
-          op.path,
+        debug("transient error, retrying", {
+          path: op.path,
           attempts,
-          delay,
-          lastError.code || lastError.message,
-        );
+          delayMs: delay,
+          error: lastError.code || lastError.message,
+        });
         await sleep(delay);
       }
     }

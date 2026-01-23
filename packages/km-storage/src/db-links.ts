@@ -41,7 +41,11 @@ export interface Link {
  * Add a link from source to target
  */
 export function addLink(link: Omit<Link, "created_at">): void {
-  debug("addLink: %s → %s (relationship=%s)", link.source_id, link.target_name, link.relationship ?? "wikilink");
+  debug("addLink", {
+    source: link.source_id,
+    target: link.target_name,
+    relationship: link.relationship ?? "wikilink",
+  });
   const db = getDb();
   db.run(
     `
@@ -79,11 +83,7 @@ export function removeLinksFromSourceByRelationship(
   sourceId: string,
   relationship: string,
 ): void {
-  debug(
-    "removeLinksFromSourceByRelationship: %s relationship=%s",
-    sourceId,
-    relationship,
-  );
+  debug("removeLinksFromSourceByRelationship", { sourceId, relationship });
   const db = getDb();
   db.run("DELETE FROM links WHERE source_id = ? AND relationship = ?", [
     sourceId,
@@ -107,7 +107,7 @@ export function resolveLinks(targetId: string, targetName: string): number {
   `,
     [targetId, normalizedName],
   );
-  debug("resolveLinks: %s (%s) → %d resolved", targetName, targetId, result.changes);
+  debug("resolveLinks", { targetName, targetId, resolved: result.changes });
   return result.changes;
 }
 

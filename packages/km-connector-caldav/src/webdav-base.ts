@@ -47,7 +47,12 @@ export async function webdavRequest(
   });
 
   if (!response.ok && response.status !== 207) {
-    debug("%s %s failed: %d %s", method, url, response.status, response.statusText);
+    debug("request failed", {
+      method,
+      url,
+      status: response.status,
+      statusText: response.statusText,
+    });
     throw new Error(
       `WebDAV request failed: ${response.status} ${response.statusText}`,
     );

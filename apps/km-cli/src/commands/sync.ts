@@ -85,12 +85,7 @@ async function runSync(
   kmRoot: string,
   options: { toFs?: boolean; dryRun?: boolean },
 ): Promise<void> {
-  debug(
-    "runSync: %s (toFs=%s, dryRun=%s)",
-    vaultPath,
-    options.toFs,
-    options.dryRun,
-  );
+  debug("runSync", { vaultPath, toFs: options.toFs, dryRun: options.dryRun });
   console.log(
     chalk.bold(`Syncing .km/state.db with files`),
     chalk.dim(`(repo ${formatPath(vaultPath)})`),

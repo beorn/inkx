@@ -69,12 +69,11 @@ export function reconcileDirectory(
   // Get database state for this directory (using km-storage abstraction)
   const dbNodes = getNodesUnderPath(dirPath);
 
-  debug(
-    "reconciling %s: %d fs entries, %d db nodes",
+  debug("reconciling", {
     dirPath,
-    fsEntries.length,
-    dbNodes.length,
-  );
+    fsEntries: fsEntries.length,
+    dbNodes: dbNodes.length,
+  });
 
   // Index by inode and path for efficient lookup
   const dbByIno = new Map<number, KNode>();
@@ -111,12 +110,11 @@ export function reconcileDirectory(
       // Atomic write: same path but different inode
       // This happens when editors save via temp file + rename (Vim, VSCode, etc.)
       // Treat as an update but also update the inode
-      debug(
-        "atomic write detected: %s (old ino=%d, new ino=%d)",
-        entry.path,
-        existingByPath.fs_ino,
-        entry.ino,
-      );
+      debug("atomic write detected", {
+        path: entry.path,
+        oldIno: existingByPath.fs_ino,
+        newIno: entry.ino,
+      });
       ops.push({
         type: "update",
         nodeId: existingByPath.id,

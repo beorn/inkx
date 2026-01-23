@@ -177,14 +177,13 @@ export function boardReducer(
         sourceColCount > 0 ? currentRowIdx / sourceColCount : 0;
       const newCurswantY = state.curswantY ?? currentRatio;
 
-      debug(
-        "NAV_CROSS_COLUMN: cursor=%j, curswantY=%s, currentRatio=%s, sourceColCount=%d, targetCol.childCount=%d",
-        state.cursor,
-        state.curswantY,
+      debug("NAV_CROSS_COLUMN", {
+        cursor: state.cursor,
+        curswantY: state.curswantY,
         currentRatio,
         sourceColCount,
-        targetCol.childCount,
-      );
+        targetChildCount: targetCol.childCount,
+      });
 
       // If target column is empty, fall back to column level
       if (targetCol.childCount === 0) {

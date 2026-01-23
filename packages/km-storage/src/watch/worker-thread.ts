@@ -114,11 +114,7 @@ function shouldIgnore(
 
   // Debug: check .git and vendor paths specifically
   if (relativePath.includes(".git") || relativePath.includes("vendor")) {
-    debug(
-      "worker: shouldIgnore check: path=%s relative=%s",
-      path,
-      relativePath,
-    );
+    debug("worker: shouldIgnore check", { path, relativePath });
   }
 
   for (const pattern of patterns) {
@@ -133,11 +129,7 @@ function shouldIgnore(
         relativePath === middle
       ) {
         if (relativePath.includes(".git") || relativePath.includes("vendor")) {
-          debug(
-            "worker: shouldIgnore MATCHED pattern=%s middle=%s",
-            pattern,
-            middle,
-          );
+          debug("worker: shouldIgnore MATCHED", { pattern, middle });
         }
         return true;
       }

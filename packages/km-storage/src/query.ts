@@ -229,13 +229,31 @@ export function executeQuery(
         // - link: $.props.X.target = ?
         // - list: $.props.X.values contains the value (LIKE search)
         sql += ` AND (json_extract(data, ?) = ? OR json_extract(data, ?) = ? OR json_extract(data, ?) LIKE ?)`;
-        params.push(valuePath, value, targetPath, value, jsonPath, `%"${value}"%`);
+        params.push(
+          valuePath,
+          value,
+          targetPath,
+          value,
+          jsonPath,
+          `%"${value}"%`,
+        );
       } else {
         // Not equal - must not match in any form
         sql += ` AND (json_extract(data, ?) IS NULL OR (json_extract(data, ?) != ? AND json_extract(data, ?) != ? AND json_extract(data, ?) NOT LIKE ?))`;
-        params.push(jsonPath, valuePath, value, targetPath, value, jsonPath, `%"${value}"%`);
+        params.push(
+          jsonPath,
+          valuePath,
+          value,
+          targetPath,
+          value,
+          jsonPath,
+          `%"${value}"%`,
+        );
       }
-    } else if ((op === ">" || op === "<" || op === ">=" || op === "<=") && value !== undefined) {
+    } else if (
+      (op === ">" || op === "<" || op === ">=" || op === "<=") &&
+      value !== undefined
+    ) {
       // Numeric comparison - extract from $.props.X.value
       sql += ` AND CAST(json_extract(data, ?) AS REAL) ${op} ?`;
       params.push(valuePath, value);
@@ -368,8 +386,13 @@ export function executeQuery(
   const start = Date.now();
   const rows = db.prepare(sql).all(...params) as Record<string, unknown>[];
   const nodes = rows.map(rowToNode);
-  debug("executeQuery: %d results in %dms (type=%s, conditions=%d, paths=%d)",
-    nodes.length, Date.now() - start, baseType ?? "any", ast.conditions.length, ast.paths.length);
+  debug("executeQuery", {
+    results: nodes.length,
+    ms: Date.now() - start,
+    type: baseType ?? "any",
+    conditions: ast.conditions.length,
+    paths: ast.paths.length,
+  });
   return nodes;
 }
 

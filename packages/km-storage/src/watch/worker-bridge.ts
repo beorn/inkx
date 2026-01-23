@@ -11,7 +11,12 @@
 import createDebug from "debug";
 import { EventEmitter } from "events";
 import { getIgnorePatterns } from "./ignore.ts";
-import type { WorkerCommand, WorkerMessage, WatcherStatus, WatcherState } from "./worker-thread.ts";
+import type {
+  WorkerCommand,
+  WorkerMessage,
+  WatcherStatus,
+  WatcherState,
+} from "./worker-thread.ts";
 
 const debug = createDebug("km:storage:watch:worker-bridge");
 // For forwarding worker debug messages - uses worker's namespace
@@ -194,7 +199,11 @@ export class WorkerWatcher extends EventEmitter {
         break;
 
       case "sync":
-        debug("worker sync: %d paths, %d directories", message.paths.length, message.directories.length);
+        debug(
+          "worker sync: %d paths, %d directories",
+          message.paths.length,
+          message.directories.length,
+        );
         this.emit("sync", {
           paths: message.paths,
           directories: message.directories,
@@ -212,7 +221,10 @@ export class WorkerWatcher extends EventEmitter {
         break;
 
       case "status":
-        debug("worker status: %s, pending=%d", message.status.state, message.status.pendingPaths);
+        debug("worker status", {
+          state: message.status.state,
+          pending: message.status.pendingPaths,
+        });
         this.currentStatus = message.status;
         this.emit("status", message.status);
         break;

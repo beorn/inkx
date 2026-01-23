@@ -244,7 +244,13 @@ export interface SymlinkInfo {
 export function scanDirectory(
   dirPath: string,
   ignorePatterns?: string[],
-): Array<{ path: string; ino: number; mtime: number; isDirectory: boolean; isSymlink?: boolean }> {
+): Array<{
+  path: string;
+  ino: number;
+  mtime: number;
+  isDirectory: boolean;
+  isSymlink?: boolean;
+}> {
   const results: Array<{
     path: string;
     ino: number;
@@ -424,7 +430,9 @@ export function detectCaseSensitivity(dirPath: string): boolean {
     return !isCaseInsensitive;
   } catch {
     // If we can't test, assume case-sensitive (safer default)
-    debug("could not detect case sensitivity for %s, assuming case-sensitive", dirPath);
+    debug("could not detect case sensitivity, assuming case-sensitive", {
+      dirPath,
+    });
     return true;
   }
 }

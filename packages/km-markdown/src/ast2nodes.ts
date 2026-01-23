@@ -174,9 +174,9 @@ export function parseMarkdownWithLinks(
     if (h1Section.data) {
       fileNode.data = { ...h1Section.data, ...fileNode.data };
     }
-    // Store H1 title in data for DB persistence (only if no frontmatter title)
-    if (h1Section.title && !fileNode.data?.title) {
-      fileNode.data = { ...fileNode.data, title: h1Section.title };
+    // Store H1 title in data for DB persistence (using _h1Title to avoid collision with frontmatter title)
+    if (h1Section.title) {
+      fileNode.data = { ...fileNode.data, _h1Title: h1Section.title };
     }
 
     // Re-parent H1's children to the file node
@@ -202,7 +202,9 @@ export function parseMarkdownWithLinks(
     }
 
     // Extract links from properties (e.g., blocked-by:: [[target]])
-    const nodeData = node.data as { props?: Record<string, PropertyValue> } | undefined;
+    const nodeData = node.data as
+      | { props?: Record<string, PropertyValue> }
+      | undefined;
     if (nodeData?.props) {
       for (const [propName, propValue] of Object.entries(nodeData.props)) {
         const propLinks = extractLinksFromProperty(propValue);
@@ -225,9 +227,13 @@ export function parseMarkdownWithLinks(
 
   // Include file node's own content (e.g., H1 heading with @issue #feature)
   if (fileNode.content) {
-    for (const m of extractMentions(fileNode.content)) aggregatedMentions.add(m);
+    for (const m of extractMentions(fileNode.content)) {
+      aggregatedMentions.add(m);
+    }
     for (const t of extractTags(fileNode.content)) aggregatedTags.add(t);
-    for (const p of extractProjects(fileNode.content)) aggregatedProjects.add(p);
+    for (const p of extractProjects(fileNode.content)) {
+      aggregatedProjects.add(p);
+    }
   }
 
   for (const node of childNodes) {
@@ -249,24 +255,29 @@ export function parseMarkdownWithLinks(
     }
   }
 
-  // Merge aggregated refs into file node's data, preserving existing values
+  // Store aggregated refs in separate fields to preserve original frontmatter
+  // Original frontmatter values stay in data.tags/mentions/projects
+  // Aggregated values (content + frontmatter) go in data._allTags/_allMentions/_allProjects
   const fileData = fileNode.data as Record<string, unknown>;
   const existingMentions = (fileData.mentions as string[] | undefined) || [];
   const existingTags = (fileData.tags as string[] | undefined) || [];
   const existingProjects = (fileData.projects as string[] | undefined) || [];
 
+  // Add original frontmatter values to aggregation
   for (const m of existingMentions) aggregatedMentions.add(m);
   for (const t of existingTags) aggregatedTags.add(t);
   for (const p of existingProjects) aggregatedProjects.add(p);
 
+  // Store aggregated values in separate fields (for queries)
+  // Original frontmatter values (data.tags etc.) are preserved for serialization
   if (aggregatedMentions.size > 0) {
-    fileData.mentions = [...aggregatedMentions];
+    fileData._allMentions = [...aggregatedMentions];
   }
   if (aggregatedTags.size > 0) {
-    fileData.tags = [...aggregatedTags];
+    fileData._allTags = [...aggregatedTags];
   }
   if (aggregatedProjects.size > 0) {
-    fileData.projects = [...aggregatedProjects];
+    fileData._allProjects = [...aggregatedProjects];
   }
 
   // Validate H1 headings - each file should have exactly one
@@ -294,8 +305,13 @@ export function parseMarkdownWithLinks(
     });
   }
 
-  debug("parsed %s: %d nodes, %d wikilinks, %d warnings in %dms",
-    fsPath, allNodes.length, wikilinks.length, warnings.length, Date.now() - start);
+  debug("parsed", {
+    fsPath,
+    nodes: allNodes.length,
+    wikilinks: wikilinks.length,
+    warnings: warnings.length,
+    ms: Date.now() - start,
+  });
 
   return { nodes: allNodes, wikilinks, warnings };
 }
@@ -337,7 +353,8 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
 
       const text = nodeToText(heading);
       const { title: titleWithRules, rules } = parseHeadingRules(text);
-      const { mark: taskMark, cleanText: title } = extractTitleTaskMark(titleWithRules);
+      const { mark: taskMark, cleanText: title } =
+        extractTitleTaskMark(titleWithRules);
       const hasRules = Object.keys(rules).length > 0;
       const sectionName = slugify(title);
 
