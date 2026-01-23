@@ -6,8 +6,7 @@
     "requireBranch": "main"
   },
   "github": {
-    "release": true,
-    "releaseName": "v${version}"
+    "release": false
   },
   "npm": {
     "publish": false
@@ -19,6 +18,7 @@
     }
   },
   "hooks": {
-    "after:bump": "bun run build:info"
+    "after:bump": "bun run build:info",
+    "after:git:push": "gh release create v${version} --title 'v${version}' --generate-notes"
   }
 }
