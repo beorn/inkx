@@ -31,13 +31,12 @@ export const viewCommand = new Command("view")
     debug("view command", { root, as: options.as, watch: options.watch });
 
     // Import task runner and ANSI helpers first (small, fast)
-    const [{ runWithTasks }, { CURSOR_TO_START, CLEAR_LINE_END }] =
-      await Promise.all([
-        import("../utils/task-progress.ts"),
-        import("@beorn/progressx/cli"),
-      ]);
+    const [{ tasks }, { CURSOR_TO_START, CLEAR_LINE_END }] = await Promise.all([
+      import("@beorn/inkx-ui/progress"),
+      import("@beorn/inkx-ui/cli"),
+    ]);
 
-    // Clear the "Loading..." line from index.ts
+    // Clear the "Loading..." line from bootstrap.ts
     process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END);
 
     // Modules loaded by tasks
@@ -45,53 +44,39 @@ export const viewCommand = new Command("view")
     let storageModule: typeof import("@km/storage");
     let cliModule: typeof import("../index.ts");
 
-    // Run loading tasks with progress display
-    const results = await runWithTasks([
-      {
-        id: "modules",
-        title: "Loading modules",
-        run: async () => {
-          [inkModule, storageModule, cliModule] = await Promise.all([
-            import("@km/ink"),
-            import("@km/storage"),
-            import("../index.ts"),
-          ]);
-        },
-      },
-      {
-        id: "vault",
-        title: "Loading vault",
-        run: function* () {
-          // ensureState is a generator that yields progress
-          yield* storageModule!.ensureState(
-            storageModule!.resolvePathArg(root, cliModule!.getRootPath())
-              .vaultRoot,
-            false,
-          );
-        },
-      },
-      {
-        id: "board",
-        title: "Building view",
-        run: function* () {
-          const resolved = storageModule!.resolvePathArg(
-            root,
-            cliModule!.getRootPath(),
-          );
-          // initBoardStateGenerator yields progress per column
-          const state = yield* inkModule!.initBoardStateGenerator(
-            resolved.nodeRef ?? undefined,
-          );
-          if (state) {
-            state.rootPath = resolved.vaultRoot;
-          }
-          return { state, resolved };
-        },
-      },
-    ]);
+    // Run loading tasks with fluent API
+    const results = await tasks()
+      .add("Loading modules", async () => {
+        [inkModule, storageModule, cliModule] = await Promise.all([
+          import("@km/ink"),
+          import("@km/storage"),
+          import("../index.ts"),
+        ]);
+      })
+      .add("Loading vault", function* () {
+        yield* storageModule!.ensureState(
+          storageModule!.resolvePathArg(root, cliModule!.getRootPath())
+            .vaultRoot,
+          false,
+        );
+      })
+      .add("Building view", function* () {
+        const resolved = storageModule!.resolvePathArg(
+          root,
+          cliModule!.getRootPath(),
+        );
+        const state = yield* inkModule!.initBoardStateGenerator(
+          resolved.nodeRef ?? undefined,
+        );
+        if (state) {
+          state.rootPath = resolved.vaultRoot;
+        }
+        return { state, resolved };
+      })
+      .run({ clear: true });
 
     // Extract results
-    const { state, resolved } = results.board as {
+    const { state, resolved } = results["Building view"] as {
       state: import("@km/ink").BoardState | null;
       resolved: ReturnType<typeof storageModule.resolvePathArg>;
     };

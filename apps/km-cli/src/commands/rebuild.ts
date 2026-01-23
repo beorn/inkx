@@ -7,7 +7,7 @@
 import createDebug from "debug";
 import { Command } from "commander";
 import chalk from "chalk";
-import { withProgress } from "@beorn/progressx/wrappers";
+import { withProgress } from "@beorn/inkx-ui/wrappers";
 import { dirname, resolve } from "path";
 
 const debug = createDebug("km:cli:rebuild");

@@ -34,11 +34,11 @@
       "name": "@km/cli-app",
       "version": "0.1.0",
       "bin": {
-        "km": "./src/index.ts",
+        "km": "./src/bootstrap.ts",
       },
       "dependencies": {
         "@beorn/chalkx": "workspace:*",
-        "@beorn/progressx": "workspace:*",
+        "@beorn/inkx-ui": "workspace:*",
         "@km/agent": "workspace:*",
         "@km/beads": "workspace:*",
         "@km/board": "workspace:*",
@@ -74,7 +74,7 @@
       "name": "@km/ink",
       "dependencies": {
         "@beorn/chalkx": "workspace:*",
-        "@beorn/progressx": "workspace:*",
+        "@beorn/inkx-ui": "workspace:*",
         "@beorn/tui-measure": "workspace:*",
         "@km/board": "workspace:*",
         "@km/commands": "workspace:*",
@@ -170,7 +170,7 @@
     "packages/km-storage": {
       "name": "@km/storage",
       "dependencies": {
-        "@beorn/progressx": "workspace:*",
+        "@beorn/inkx-ui": "workspace:*",
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
         "cosmiconfig": "^9.0.0",
@@ -237,6 +237,25 @@
         "yoga-wasm-web",
       ],
     },
+    "vendor/beorn-inkx-ui": {
+      "name": "@beorn/inkx-ui",
+      "version": "0.2.0",
+      "dependencies": {
+        "chalk": "^5.3.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/react": "^18.2.0",
+        "react": "^18.2.0",
+        "typescript": "^5.0.0",
+      },
+      "peerDependencies": {
+        "react": ">=18.0.0",
+      },
+      "optionalPeers": [
+        "react",
+      ],
+    },
     "vendor/beorn-mdtest": {
       "name": "@beorn/mdtest",
       "version": "0.1.0",
@@ -258,25 +277,6 @@
         "commander": "^14.0.1",
         "typescript": "latest",
       },
-    },
-    "vendor/beorn-progressx": {
-      "name": "@beorn/progressx",
-      "version": "0.1.0",
-      "dependencies": {
-        "chalk": "^5.3.0",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "@types/react": "^18.2.0",
-        "react": "^18.2.0",
-        "typescript": "^5.0.0",
-      },
-      "peerDependencies": {
-        "react": ">=18.0.0",
-      },
-      "optionalPeers": [
-        "react",
-      ],
     },
     "vendor/beorn-tui-measure": {
       "name": "@beorn/tui-measure",
@@ -359,9 +359,9 @@
 
     "@beorn/flexx": ["@beorn/flexx@workspace:vendor/beorn-flexx"],
 
-    "@beorn/mdtest": ["@beorn/mdtest@workspace:vendor/beorn-mdtest"],
+    "@beorn/inkx-ui": ["@beorn/inkx-ui@workspace:vendor/beorn-inkx-ui"],
 
-    "@beorn/progressx": ["@beorn/progressx@workspace:vendor/beorn-progressx"],
+    "@beorn/mdtest": ["@beorn/mdtest@workspace:vendor/beorn-mdtest"],
 
     "@beorn/tui-measure": ["@beorn/tui-measure@workspace:vendor/beorn-tui-measure"],
 
@@ -1393,9 +1393,9 @@
 
     "ink/ws": ["ws@8.19.0", "", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg=="],
 
-    "inkx/@beorn/chalkx": ["@beorn/chalkx@github:beorn/chalkx#e60667c", { "dependencies": { "chalk": "^5.4.1", "string-width": "^7.0.0" } }, "beorn-chalkx-e60667c"],
+    "inkx/@beorn/chalkx": ["@beorn/chalkx@github:beorn/chalkx#75fbbe4", { "dependencies": { "chalk": "^5.4.1", "string-width": "^7.0.0" } }, "beorn-chalkx-75fbbe4"],
 
-    "inkx/@beorn/flexx": ["@beorn/flexx@github:beorn/flexx#88cd85e", {}, "beorn-flexx-88cd85e"],
+    "inkx/@beorn/flexx": ["@beorn/flexx@github:beorn/flexx#e2d7e03", {}, "beorn-flexx-e2d7e03"],
 
     "inkx/@types/react": ["@types/react@19.2.7", "", { "dependencies": { "csstype": "^3.2.2" } }, "sha512-MWtvHrGZLFttgeEj28VXHxpmwYbor/ATPYbBfSFZEIRK0ecCFLl2Qo55z52Hss+UV9CRN7trSeq1zbgx7YDWWg=="],
 

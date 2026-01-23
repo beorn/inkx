@@ -10,7 +10,7 @@ import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs";
 const debug = createDebug("km:storage:rebuild");
 import { join } from "path";
 import type { Event } from "@km/core";
-import type { ProgressInfo } from "@beorn/progressx";
+import type { ProgressInfo } from "@beorn/inkx-ui";
 import { getEventsPath, getKmDir, setDatabase } from "./emit.ts";
 import { dbApplyEvent } from "./db.ts";
 import { applyEvent, getDb, getDbPath, resetDb, closeDb, setDb } from "./db.ts";

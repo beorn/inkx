@@ -16,7 +16,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { withProgress } from "@beorn/progressx/wrappers";
+import { withProgress } from "@beorn/inkx-ui/wrappers";
 import { SYNC_PHASES } from "../utils/progress-phases.ts";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";

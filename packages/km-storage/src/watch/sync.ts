@@ -18,7 +18,7 @@ import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts";
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts";
 import { getIgnorePatterns } from "./ignore.ts";
 import type { Event, KNode } from "@km/core";
-import type { ProgressCallback } from "@beorn/progressx";
+import type { ProgressCallback } from "@beorn/inkx-ui";
 import { setDatabase, setKmDir } from "../emit.ts";
 import {
   getAllNodes,
