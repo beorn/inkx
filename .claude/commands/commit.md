@@ -34,7 +34,10 @@ Run this single command to capture complete repo state:
   echo -e "\n=== UNTRACKED ==="
   git ls-files --others --exclude-standard | head -20
 
-  echo -e "\n=== SUBMODULE CHANGES ==="
+  echo -e "\n=== SUBMODULE STATUS (main repo view) ==="
+  git status --porcelain | grep "vendor/" || echo "(none)"
+
+  echo -e "\n=== SUBMODULE CHANGES (inside each) ==="
   for d in vendor/*/; do
     [ -e "$d.git" ] || continue
     changes=$(cd "$d" && git status --porcelain 2>/dev/null)
@@ -54,11 +57,17 @@ Run this single command to capture complete repo state:
 From the output, answer these questions:
 
 1. **Any submodules need commits?** Look at "=== SUBMODULE CHANGES ===" section
-2. **What's the primary change?** Look at file paths to identify the scope
-3. **Single commit or multiple?**
+2. **Submodule status in main repo?** Look for:
+   - `(new commits)` → submodule was committed, main needs to update pointer
+   - `(untracked content)` → submodule has untracked files (likely needs .gitignore)
+   - `(modified content)` → submodule has uncommitted changes
+3. **What's the primary change?** Look at file paths to identify the scope
+4. **Single commit or multiple?**
    - Same logical change → single message for all
    - Unrelated changes → consider separate commits (ask user)
-4. **Any DETACHED branches?** Must fix before committing
+5. **Any DETACHED branches?** Must fix before committing
+
+**Untracked content in submodules:** If you see `??` lines like `node_modules/`, `dist/`, `*.log` - add a `.gitignore` to that submodule first, commit it, then continue.
 
 **Decision template:**
 - Commit type: `fix`, `feat`, `refactor`, `chore`, `docs`
@@ -101,17 +110,19 @@ EOF
 - HEREDOC for messages (handles quotes/newlines)
 - Submodule commits use same or consistent message
 
-## Step 4: Push All (One Batched Command)
+## Step 4: Sync Beads & Push All
 
 ```bash
-# Push submodules first, then main
+# Sync beads (required by pre-push hook), push submodules, then main
+bd sync && \
 (cd vendor/beorn-inkx && git push) && \
 (cd vendor/beorn-inkx-ui && git push) && \
 git push && \
 echo "✓ All pushed successfully"
 ```
 
-Only push submodules that were committed in Step 3.
+- `bd sync` commits any beads changes and syncs with remote (required by pre-push hook)
+- Only include submodule push commands for those committed in Step 3
 
 ## Step 5: Verify
 
@@ -126,15 +137,15 @@ git status && echo "---" && git log --oneline -1
 git add path/to/files.ts && \
 git commit -m "type(scope): message
 
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-git push
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>" && \
+bd sync && git push
 ```
 
 **One submodule + main:**
 ```bash
 (cd vendor/beorn-inkx && git add src/file.ts && git commit -m "...") && \
 git add vendor/beorn-inkx packages/file.ts && git commit -m "..." && \
-(cd vendor/beorn-inkx && git push) && git push
+bd sync && (cd vendor/beorn-inkx && git push) && git push
 ```
 
 **Multiple submodules + main:**
@@ -142,7 +153,7 @@ git add vendor/beorn-inkx packages/file.ts && git commit -m "..." && \
 (cd vendor/beorn-inkx && git add src/changed-file.ts && git commit -m "...") && \
 (cd vendor/beorn-inkx-ui && git add src/other-file.ts && git commit -m "...") && \
 git add vendor/beorn-inkx vendor/beorn-inkx-ui packages/changed.ts && git commit -m "..." && \
-(cd vendor/beorn-inkx && git push) && (cd vendor/beorn-inkx-ui && git push) && git push
+bd sync && (cd vendor/beorn-inkx && git push) && (cd vendor/beorn-inkx-ui && git push) && git push
 ```
 
 ## Safety Checks
@@ -161,6 +172,8 @@ Before committing, verify:
 | "nothing to commit" | Check if already committed or changes are in submodule |
 | "push rejected" | `git pull --rebase` then push again |
 | "submodule not on branch" | `cd vendor/X && git checkout main && git pull` |
+| "Uncommitted changes detected" (pre-push) | Run `bd sync` before pushing |
+| "(untracked content)" in submodule | Add `.gitignore` to submodule, commit, then continue |
 
 ## When to Ask User
 
