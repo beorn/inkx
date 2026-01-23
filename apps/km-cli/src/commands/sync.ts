@@ -10,7 +10,13 @@ import chalk from "chalk";
 import { withProgress } from "@beorn/progressx/wrappers";
 
 const debug = createDebug("km:cli:sync");
-import { SyncManager, findKmRootFromPath, setKmDir, syncState, runWithProgress } from "@km/storage";
+import {
+  SyncManager,
+  findKmRootFromPath,
+  setKmDir,
+  syncState,
+  runWithProgress,
+} from "@km/storage";
 import { dirname, resolve } from "path";
 import { formatPath } from "../utils/format-path.ts";
 import { REBUILD_PHASES, SYNC_PHASES } from "../utils/progress-phases.ts";
@@ -85,7 +91,10 @@ async function runSync(
     options.toFs,
     options.dryRun,
   );
-  console.log(chalk.bold(`Syncing .km/state.db with files`), chalk.dim(`(repo ${formatPath(vaultPath)})`));
+  console.log(
+    chalk.bold(`Syncing .km/state.db with files`),
+    chalk.dim(`(repo ${formatPath(vaultPath)})`),
+  );
 
   if (options.dryRun) {
     console.log(chalk.yellow("Dry run mode - no changes will be made"));
@@ -103,7 +112,10 @@ async function runSync(
       { phases: REBUILD_PHASES },
     );
     if (eventResult.applied > 0) {
-      console.log(chalk.green("✓"), `Applied ${eventResult.applied} event(s) from events.jsonl`);
+      console.log(
+        chalk.green("✓"),
+        `Applied ${eventResult.applied} event(s) from events.jsonl`,
+      );
     }
 
     // Step 2: Sync with filesystem

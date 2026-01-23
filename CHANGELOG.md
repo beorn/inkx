@@ -19,12 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Permission error handling with actionable user suggestions (EACCES/EPERM/EROFS)
 - Symlink detection during directory scanning (skipped to avoid infinite loops)
 - Case-sensitivity detection and collision detection for cross-platform compatibility
+- `resolveShortId()` function for beads short ID to node ID lookup
+- `dependentCount` calculation for beads issues (reverse dependency tracking)
+- `scripts/playwright-capture.ts` for headless TUI screenshot capture via ttyd
 
 ### Changed
 
 - Simplified engine abstraction (removed legacy Ink engine, only inkx remains)
 - Cursor system redesign: zoom operations now preserve selection context
 - Renamed `selectedNodeId` to `cursorNodeId` for clarity
+- Progress indicators now update every directory during sync (previously every 10)
+- Unified progress phase labels across CLI commands (consistent "Verb noun" style)
 
 ### Fixed
 
@@ -35,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zoom behavior at column and root levels
 - 'u' key at root/column level now correctly moves to board selection
 - TUI content disappearing after watcher sync (stale closure in refresh handler)
+- Visual testing (ttyd+Playwright) showing blank screen by keeping WebSocket connection open during TUI initialization
 
 ### Removed
 

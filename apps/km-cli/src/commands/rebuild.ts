@@ -38,7 +38,9 @@ export const rebuildCommand = new Command("rebuild")
     const kmRoot = findKmRootFromPath(searchPath);
 
     if (!kmRoot) {
-      console.error(chalk.red(`No .km directory found in ${searchPath} or ancestors.`));
+      console.error(
+        chalk.red(`No .km directory found in ${searchPath} or ancestors.`),
+      );
       console.error("Run 'km init' to initialize a vault.");
       process.exit(1);
     }
@@ -64,7 +66,10 @@ export const rebuildCommand = new Command("rebuild")
 
     const vaultPath = dirname(kmRoot);
     debug("rebuild: starting (full=%s)", !!options.full);
-    console.log(chalk.bold("Rebuilding .km/state.db from .km/events.jsonl"), chalk.dim(`(repo ${formatPath(vaultPath)})`));
+    console.log(
+      chalk.bold("Rebuilding .km/state.db from .km/events.jsonl"),
+      chalk.dim(`(repo ${formatPath(vaultPath)})`),
+    );
 
     try {
       if (options.full) {

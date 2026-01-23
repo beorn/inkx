@@ -1,4 +1,5 @@
 import { ulid } from "ulid";
+import { getDb } from "@km/storage";
 
 const PREFIX = "km";
 const SEPARATOR = "-";
@@ -16,14 +17,24 @@ export function generateCustomId(custom: string): string {
 
 export function generateSubId(
   parentShortId: string,
-  childNumber: number
+  childNumber: number,
 ): string {
   return `${parentShortId}.${childNumber}`;
 }
 
-// Note: resolveShortId will need storage access - stub for now
-export async function resolveShortId(shortId: string): Promise<string | null> {
-  // TODO: Query storage for node with data.short_id matching
-  void shortId;
-  return null;
+/**
+ * Resolve a short ID (e.g., "km-a1b2") to a full node ID
+ * Queries storage for nodes with matching data.short_id
+ */
+export function resolveShortId(shortId: string): string | null {
+  const db = getDb();
+
+  // Query for node with matching short_id in data JSON field
+  const row = db
+    .prepare(
+      `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ? LIMIT 1`,
+    )
+    .get(shortId) as { id: string } | undefined;
+
+  return row?.id ?? null;
 }

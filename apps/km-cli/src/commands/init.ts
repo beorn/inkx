@@ -190,7 +190,10 @@ export const initCommand = new Command("init")
       writeFileSync(eventsPath, "");
     }
 
-    console.log(chalk.bold("Initializing .km"), chalk.dim(`(repo ${formatPath(targetDir)})`));
+    console.log(
+      chalk.bold("Initializing .km"),
+      chalk.dim(`(repo ${formatPath(targetDir)})`),
+    );
     console.log(chalk.green("✓"), "Created .km/");
 
     // Add GTD structure by default (unless --no-gtd)
@@ -213,7 +216,10 @@ export const initCommand = new Command("init")
             phases: { ...SYNC_PHASES, reconciling: "Syncing files" },
           },
         );
-        console.log(chalk.green("✓"), `Synced ${result.processed} file(s) in ${result.directories} directories`);
+        console.log(
+          chalk.green("✓"),
+          `Synced ${result.processed} file(s) in ${result.directories} directories`,
+        );
       } catch (error) {
         console.error("Sync failed:", error);
       }
