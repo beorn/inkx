@@ -256,6 +256,10 @@ export {
   createChaosFakeVault,
   createChaosHooks,
   createSeededRandom,
+  generateChaosReport,
+  formatChaosReport,
+  formatChaosReportJson,
+  formatChaosReportMarkdown,
 } from "./testing/index.ts";
 
 export type {
@@ -270,4 +274,9 @@ export type {
   ChaosEvent,
   ChaosHooks,
   ChaosStats,
+  ChaosScenario,
+  ChaosStateSnapshot,
+  ChaosRecommendation,
+  ChaosReport,
+  GenerateReportOptions,
 } from "./testing/index.ts";
