@@ -38,6 +38,84 @@ km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This 
 
 ---
 
+## Domain Objects
+
+Functionality is exposed through **domain objects created by factory functions**. This replaces scattered singletons and classes with composable, testable objects.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Application Code                                                   │
+│                                                                     │
+│    using vault = runGenerator(createVault(path))                    │
+│    using board = createBoard(vault)                                 │
+│    await using watcher = vault.watch()                              │
+│                                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│  Domain Objects                                                     │
+│                                                                     │
+│    Vault         Board          Watcher         Config              │
+│    ├─ getNode()  ├─ moveCursor()├─ start()      ├─ beads            │
+│    ├─ search()   ├─ select()    ├─ stop()       └─ tui              │
+│    ├─ update()   ├─ zoom()      └─ on("change")                     │
+│    ├─ watch()    └─ refresh()                                       │
+│    └─ close()                                                       │
+│                                                                     │
+│    Disposable    plain object   Service         plain object        │
+│    (sync)                       (async)                             │
+├─────────────────────────────────────────────────────────────────────┤
+│  Factory Functions                                                  │
+│                                                                     │
+│    createVault(path, options)   → Vault                             │
+│    createBoard(vault, options)  → Board                             │
+│    vault.watch()                → Watcher (Service)                 │
+│    loadConfig(vaultPath)        → Config                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Domain Objects
+
+| Object    | Factory          | Lifecycle        | Purpose                      |
+| --------- | ---------------- | ---------------- | ---------------------------- |
+| `Vault`   | `createVault()`  | `Disposable`     | Storage, queries, mutations  |
+| `Board`   | `createBoard()`  | plain object     | Navigation state (cursor, selection, zoom) |
+| `Watcher` | `vault.watch()`  | `Service`        | File sync (start/stop lifecycle) |
+| `Config`  | `loadConfig()`   | plain object     | Vault configuration          |
+
+### Service Interface
+
+Objects with start/stop lifecycle (like Watcher) implement the Service interface:
+
+```typescript
+interface Service extends AsyncDisposable {
+  readonly status: "stopped" | "starting" | "running" | "stopping";
+  start(): Promise<void>;
+  stop(): Promise<void>;
+}
+```
+
+### Composition Example
+
+```typescript
+async function runTui(path: string) {
+  // Create domain objects with explicit dependencies
+  using vault = runGenerator(createVault(path));
+  using board = createBoard(vault);
+  await using watcher = vault.watch();
+
+  // Start file watching
+  await watcher.start();
+  watcher.on("change", () => board.refresh());
+
+  // Run TUI...
+
+  // Cleanup order (reverse): watcher.stop(), board cleanup, vault.close()
+}
+```
+
+See [dev/domain-objects.md](dev/domain-objects.md) for complete patterns guide
+
+---
+
 ## Data Types
 
 ```

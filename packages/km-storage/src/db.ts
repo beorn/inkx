@@ -3,6 +3,13 @@
  *
  * Facade module that re-exports from focused sub-modules.
  * This is the primary public API for database access.
+ *
+ * @deprecated Direct use of these singleton-based functions is deprecated.
+ * Use the domain object APIs instead:
+ * - createVault() → vault.getNode(), vault.getChildren(), etc.
+ * - createWatcher() → watcher.on("change", ...)
+ *
+ * These functions remain for internal use and backwards compatibility.
  */
 
 // Database instance management

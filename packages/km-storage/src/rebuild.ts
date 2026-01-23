@@ -1,8 +1,10 @@
 /**
  * State Rebuild
  *
- * Legacy API for state rebuilding - now delegates to vault-loader.ts.
+ * @deprecated Legacy API for state rebuilding. Use createVault() instead.
  * These functions are kept for backwards compatibility but all use loadVault() internally.
+ *
+ * For the generator helpers (runGenerator, runWithProgress), import from @km/core instead.
  */
 
 import createDebug from "debug";

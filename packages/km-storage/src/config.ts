@@ -7,6 +7,11 @@
  * - km.config.js, km.config.ts
  *
  * Also reads .beads/config.yaml for beads-specific settings.
+ *
+ * @deprecated Use loadConfigObject() instead for a proper domain object.
+ * The functions loadConfig(), getBeadsConfig(), getTuiConfig() use caching
+ * that can lead to stale state. loadConfigObject() returns a Config object
+ * with an explicit reload() method.
  */
 
 import { cosmiconfigSync } from "cosmiconfig";
