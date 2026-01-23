@@ -6,7 +6,7 @@
   "type": "module",
   "module": "src/index.ts",
   "bin": {
-    "km": "./src/index.ts"
+    "km": "./src/bootstrap.ts"
   },
   "dependencies": {
     "@beorn/chalkx": "workspace:*",

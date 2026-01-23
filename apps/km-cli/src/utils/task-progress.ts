@@ -82,11 +82,22 @@ export async function runWithTasks<T extends TaskDef<unknown>[]>(
       handle.complete();
     }
   } finally {
-    multi.stop();
+    // Clear progress display after all tasks complete
+    multi.stop(true);
   }
 
   return results as { [K in T[number]["id"]]: unknown };
 }
+
+/** Phase names for progress display */
+const PHASE_LABELS: Record<string, string> = {
+  reading: "Reading events",
+  applying: "Applying events",
+  rules: "Evaluating rules",
+  scanning: "Scanning files",
+  reconciling: "Reconciling changes",
+  board: "Building view",
+};
 
 /**
  * Run a generator task with progress updates
@@ -100,10 +111,14 @@ async function runGenerator<T>(
 
   while (!result.done) {
     const info = result.value;
+    const phase = info.phase ?? "";
+    const phaseLabel = PHASE_LABELS[phase] ?? (phase || baseTitle);
 
-    // Update title with progress count
+    // Update title with phase and progress count
     if (info.total && info.total > 0) {
-      handle.setTitle(`${baseTitle} (${info.current}/${info.total})`);
+      handle.setTitle(`${phaseLabel} (${info.current}/${info.total})`);
+    } else {
+      handle.setTitle(phaseLabel);
     }
 
     // Yield to event loop for animation

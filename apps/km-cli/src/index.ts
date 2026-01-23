@@ -8,12 +8,7 @@
  * km task - Task management subcommand
  */
 
-// Show loading indicator immediately for view command (before heavy imports)
-// This works because @km/storage is now imported dynamically in preAction
-const isViewCommand = process.argv[2] === "view" || process.argv[2] === "v";
-if (isViewCommand && process.stdout.isTTY) {
-  process.stdout.write("Loading...");
-}
+// Note: "Loading..." for view command is shown by bootstrap.ts before this module loads
 
 // Must be imported first - before any debug() calls
 import "./debug-log.ts";
