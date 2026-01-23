@@ -123,11 +123,12 @@ type When = (ctx: Ctx) => boolean;
 
 // Binding: maps keys to commands with optional conditions
 interface Binding {
-  keys: string[];
-  cmd: Cmd;
-  when?: When;
+keys: string[];
+cmd: Cmd;
+when?: When;
 }
-```
+
+````
 
 ### Why Direct Execution?
 
@@ -177,7 +178,7 @@ const BINDINGS: Binding[] = [
     when: (c) => onBoard(c) && c.hasSelection,
   },
 ];
-```
+````
 
 ### Resolution
 

@@ -34,14 +34,18 @@
     "test:mdtest": "bun run vendor/beorn-mdtest/src/index.ts $(find packages apps vendor -name '*.test.md' ! -path '*/node_modules/*' 2>/dev/null)",
     "test:mdtest:update": "bun run vendor/beorn-mdtest/src/index.ts --update $(find packages apps vendor -name '*.test.md' ! -path '*/node_modules/*' 2>/dev/null)",
     "test:all": "bun test $(find packages apps vendor -name '*.test.ts' ! -path '*/node_modules/*' 2>/dev/null) && bun run test:mdtest",
+    "build:info": "bun scripts/generate-build-info.ts",
+    "prebuild": "bun run build:info",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
     "storybook": "bun run apps/km-tui/packages/km-ink/tests/storybook.tsx",
     "chaos:fuzz": "bun ./scripts/chaos.ts fuzz",
     "chaos:reproduce": "bun ./scripts/chaos.ts reproduce",
-    "chaos:report": "bun ./scripts/chaos.ts report"
+    "chaos:report": "bun ./scripts/chaos.ts report",
+    "release": "release-it"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
+    "@release-it/conventional-changelog": "^10.0.4",
     "@sinonjs/fake-timers": "^15.1.0",
     "@steipete/peekaboo": "^3.0.0-beta3",
     "@types/bun": "^1.3.6",
@@ -53,6 +57,7 @@
     "playwright": "^1.57.0",
     "prettier": "^3.8.0",
     "react-devtools-core": "^7.0.1",
+    "release-it": "^19.2.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0",
     "yaml": "^2.8.2"

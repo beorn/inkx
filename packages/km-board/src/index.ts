@@ -28,7 +28,11 @@ export { isTAction, TActionTypes } from "@km/tree";
 export { getNodeAtPath, getSiblingCount } from "@km/tree";
 
 // ===== Board Reducer =====
-export { boardReducer, createBoardState, findPathToNode } from "./board-reducer.ts";
+export {
+  boardReducer,
+  createBoardState,
+  findPathToNode,
+} from "./board-reducer.ts";
 
 // ===== Selectors =====
 export {

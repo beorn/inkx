@@ -17,6 +17,7 @@ import { existsSync, statSync } from "fs";
 import { dirname, resolve } from "path";
 import { Command } from "commander";
 import chalk from "chalk";
+import { VERSION } from "@km/core";
 
 // @km/storage is imported dynamically in preAction hook to allow
 // view command to show "Loading..." before heavy module loading
@@ -63,7 +64,7 @@ export function wasRootExplicit(): boolean {
 program
   .name("km")
   .description("Knowledge Machine - The agentic work desk")
-  .version("0.1.0")
+  .version(VERSION)
   .option(
     "-r, --root <path>",
     "Root directory to operate on (overrides KM_ROOT env var)",

@@ -5,6 +5,7 @@ node_modules
 out
 dist
 *.tgz
+*.gen.ts
 
 # code coverage
 coverage
