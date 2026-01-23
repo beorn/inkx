@@ -8,12 +8,6 @@
  * km task - Task management subcommand
  */
 
-// Show loading indicator immediately for view command (before heavy imports)
-const isViewCommand = process.argv[2] === "view" || process.argv[2] === "v";
-if (isViewCommand && process.stdout.isTTY) {
-  process.stdout.write("Loading...");
-}
-
 // Must be imported first - before any debug() calls
 import "./debug-log.ts";
 
@@ -21,13 +15,10 @@ import { existsSync, statSync } from "fs";
 import { dirname, resolve } from "path";
 import { Command } from "commander";
 import chalk from "chalk";
-import {
-  ensureState,
-  isExplicitPath,
-  resolveFsPath,
-  runGenerator,
-} from "@km/storage";
-import { getStore } from "@km/storage";
+
+// @km/storage is imported dynamically in preAction hook to allow
+// view command to show "Loading..." before heavy module loading
+
 import { showCommand } from "./commands/show.ts";
 import { viewCommand } from "./commands/view.ts";
 import { syncCommand } from "./commands/sync.ts";
@@ -124,11 +115,12 @@ function getRootFromOptions(opts: { root?: string }): string | undefined {
   return undefined;
 }
 
-// Initialize state on startup (skip for init command)
+// Initialize state on startup (skip for init and view commands)
 program.hook("preAction", (thisCommand, actionCommand) => {
   // Don't initialize state for 'init' command - it creates .km/ itself
+  // Don't initialize state for 'view' command - it handles its own loading with task progress
   const cmdName = actionCommand?.name() ?? thisCommand.name();
-  if (cmdName === "init") {
+  if (cmdName === "init" || cmdName === "view") {
     return;
   }
 
