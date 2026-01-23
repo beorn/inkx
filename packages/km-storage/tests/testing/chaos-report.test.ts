@@ -162,7 +162,11 @@ describe("generateChaosReport", () => {
 describe("formatChaosReport", () => {
   test("formats report as human-readable text", () => {
     const report: ChaosReport = {
-      scenario: { name: "format-test", seed: 42, description: "Test formatting" },
+      scenario: {
+        name: "format-test",
+        seed: 42,
+        description: "Test formatting",
+      },
       passed: false,
       invariantsViolated: ["test invariant"],
       stateSnapshot: {

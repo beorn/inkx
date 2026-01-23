@@ -4,13 +4,13 @@ Analysis for km-domain-objects.t bead - mapping out test suite reorganization ar
 
 ## Current Test Organization
 
-| Package | Test Files | Lines | Pattern |
-|---------|-----------|-------|---------|
-| km-storage | ~30 | ~12,000 | Mixed singleton/domain |
-| km-board | ~3 | ~500 | Mostly domain objects |
-| km-tree | ~2 | ~300 | Pure functions |
-| km-cli | ~5 | ~2,000 | Integration (singletons) |
-| km-ink (TUI) | ~15 | ~8,000 | Mixed |
+| Package      | Test Files | Lines   | Pattern                  |
+| ------------ | ---------- | ------- | ------------------------ |
+| km-storage   | ~30        | ~12,000 | Mixed singleton/domain   |
+| km-board     | ~3         | ~500    | Mostly domain objects    |
+| km-tree      | ~2         | ~300    | Pure functions           |
+| km-cli       | ~5         | ~2,000  | Integration (singletons) |
+| km-ink (TUI) | ~15        | ~8,000  | Mixed                    |
 
 ## Pattern Analysis
 
@@ -99,6 +99,7 @@ Update app-level tests:
 ## Migration Pattern
 
 ### Before (Singleton)
+
 ```typescript
 describe.serial("Node CRUD", () => {
   beforeEach(() => {
@@ -122,6 +123,7 @@ describe.serial("Node CRUD", () => {
 ```
 
 ### After (Domain Object)
+
 ```typescript
 describe("Node CRUD", () => {
   test("creates node", () => {
@@ -138,12 +140,12 @@ describe("Node CRUD", () => {
 
 ## Estimated Impact
 
-| Metric | Current | After Migration |
-|--------|---------|----------------|
-| test:fast time | ~24s | ~15-18s |
-| Parallel tests | ~25% | ~75% |
-| describe.serial | 24 | 5-8 |
-| Test isolation | Poor | Good |
+| Metric          | Current | After Migration |
+| --------------- | ------- | --------------- |
+| test:fast time  | ~24s    | ~15-18s         |
+| Parallel tests  | ~25%    | ~75%            |
+| describe.serial | 24      | 5-8             |
+| Test isolation  | Poor    | Good            |
 
 ## Priority Order
 

@@ -1,7 +1,12 @@
 /**
- * Board Tests
+ * Board Slow Tests
  *
- * Tests for the boardliner TUI state management and rendering
+ * Integration tests for boardliner TUI that REQUIRE real database access.
+ * These tests use createTestNode() which calls emitNodeCreated(), and
+ * buildBoardState()/initBoardState() which query real database nodes.
+ *
+ * Run with: bun run test:all (includes slow tests)
+ * For fast iteration, use: bun run test:fast (excludes slow tests)
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
@@ -13,7 +18,7 @@ const render = createTestRenderer();
 import React from "react";
 
 // Test directories in /tmp/ to avoid polluting source tree
-const TEST_DIR = join("/tmp", "km-test-board");
+const TEST_DIR = join("/tmp", "km-test-board-slow");
 
 import {
   resetDb,
@@ -34,7 +39,6 @@ import {
   initBoardState,
   buildBoardState,
   handleKey,
-  handleSearchKey,
   getNodeDisplayName,
   getCurrentCard,
   getCurrentColumn,
@@ -42,21 +46,13 @@ import {
 import { buildTreeNodes } from "../src/board-adapter.ts";
 import { stripAnsi } from "../src/text/index.ts";
 
-import {
-  renderBoard,
-  renderBoardStatic,
-  renderCard,
-  renderStatusBar,
-  renderHelp,
-  renderStatusIcon,
-  defaultRenderOptions,
-} from "../src/render.ts";
+import { renderBoardStatic, renderCard } from "../src/render.ts";
 
-import type { BoardState, CardState, ColumnState } from "../src/types.ts";
+import type { CardState } from "../src/types.ts";
 import { InkBoardTestable } from "../src/views/Board.tsx";
 import { NewItemDialog } from "../src/views/NewItemDialog.tsx";
 
-// Test helpers
+// Test helper - creates a node in the real database
 function createTestNode(
   type: NodeType,
   content?: string,
@@ -90,18 +86,6 @@ describe.serial("Board State", () => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true });
     }
-  });
-
-  test("createEmptyState returns valid empty state", () => {
-    const state = createEmptyState();
-    expect(state.rootId).toBeNull();
-    expect(state.columns).toHaveLength(0);
-    expect(state.colIndex).toBe(0);
-    expect(state.cardIndex).toBe(0);
-    expect(state.selectedCards.size).toBe(0);
-    expect(state.visualMode).toBe(false);
-    expect(state.searchMode).toBe(false);
-    expect(state.helpMode).toBe(false);
   });
 
   test("buildBoardState creates columns from children", () => {
@@ -309,7 +293,7 @@ describe.serial("Board Key Handling", () => {
     }
   });
 
-  function createTestBoard(): BoardState {
+  function createTestBoard() {
     const rootId = createTestNode("board", "Test Board");
     const col1Id = createTestNode("folder", "Todo", rootId);
     const col2Id = createTestNode("folder", "Done", rootId);
@@ -413,104 +397,6 @@ describe.serial("Board Key Handling", () => {
   });
 });
 
-describe.serial("Board Search", () => {
-  test("handleSearchKey adds characters", () => {
-    const state = createEmptyState();
-    state.searchMode = true;
-
-    const r1 = handleSearchKey(state, "t");
-    expect(r1.state.searchQuery).toBe("t");
-
-    const r2 = handleSearchKey(r1.state, "e");
-    expect(r2.state.searchQuery).toBe("te");
-
-    const r3 = handleSearchKey(r2.state, "s");
-    expect(r3.state.searchQuery).toBe("tes");
-  });
-
-  test("handleSearchKey backspace removes character", () => {
-    const state = createEmptyState();
-    state.searchMode = true;
-    state.searchQuery = "test";
-
-    const result = handleSearchKey(state, "\x7F");
-    expect(result.state.searchQuery).toBe("tes");
-  });
-
-  test("handleSearchKey enter exits search", () => {
-    const state = createEmptyState();
-    state.searchMode = true;
-    state.searchQuery = "test";
-
-    const result = handleSearchKey(state, "\r");
-    expect(result.exitSearch).toBe(true);
-    expect(result.state.searchMode).toBe(false);
-  });
-
-  test("handleSearchKey escape exits search", () => {
-    const state = createEmptyState();
-    state.searchMode = true;
-
-    const result = handleSearchKey(state, "\x1B");
-    expect(result.exitSearch).toBe(true);
-  });
-
-  test("handleSearchKey enter with no matches returns createTask (NV-style)", () => {
-    const state = createEmptyState();
-    state.searchMode = true;
-    state.searchQuery = "new task content";
-    // No columns/cards, so no matches exist
-
-    const result = handleSearchKey(state, "\r");
-    expect(result.exitSearch).toBe(true);
-    expect(result.createTask).toBe("new task content");
-  });
-
-  test("handleSearchKey enter with matches does not return createTask", () => {
-    const state = createEmptyState();
-    state.searchMode = true;
-    state.searchQuery = "task";
-    // Add a column with a matching card
-    state.columns = [
-      {
-        node: {
-          id: "col1",
-          type: "section",
-          content: "Todo",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "1",
-        },
-        cards: [
-          {
-            node: {
-              id: "card1",
-              type: "task",
-              content: "Matching task here",
-              parent_id: "col1",
-              parent_idx: 0,
-              link_to: null,
-              data: {},
-              created_at: Date.now(),
-              updated_at: Date.now(),
-              version: "1",
-            },
-            children: [],
-          },
-        ],
-      },
-    ];
-
-    const result = handleSearchKey(state, "\r");
-    expect(result.exitSearch).toBe(true);
-    expect(result.createTask).toBeUndefined();
-  });
-});
-
 describe.serial("Board Rendering", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
@@ -547,40 +433,6 @@ describe.serial("Board Rendering", () => {
     const state = createEmptyState();
     const output = renderBoardStatic(state, 80);
     expect(output).toContain("Empty board");
-  });
-
-  test("renderStatusBar shows visual mode", () => {
-    const state = createEmptyState();
-    state.visualMode = true;
-
-    const output = renderStatusBar(state, 80);
-    expect(output).toContain("VISUAL");
-  });
-
-  test("renderStatusBar shows selection count", () => {
-    const state = createEmptyState();
-    state.selectedCards.add("card-1");
-    state.selectedCards.add("card-2");
-
-    const output = renderStatusBar(state, 80);
-    expect(output).toContain("2 selected");
-  });
-
-  test("renderHelp contains keybindings", () => {
-    const output = renderHelp(80);
-    expect(output).toContain("Navigation");
-    expect(output).toContain("h / Ctrl+B");
-    expect(output).toContain("Move to left column");
-  });
-
-  test("renderStatusIcon returns correct icons (ballot box style)", () => {
-    expect(renderStatusIcon("todo")).toContain("☐"); // ballot box (white)
-    expect(renderStatusIcon("wip")).toContain("☐"); // ballot box (yellow)
-    expect(renderStatusIcon("blocked")).toContain("☒"); // ballot box with X (red)
-    expect(renderStatusIcon("done")).toContain("☑"); // ballot box with check (green)
-    expect(renderStatusIcon("dropped")).toContain("☒"); // ballot box with X (gray)
-    // undefined/null status shows red warning triangle
-    expect(renderStatusIcon(undefined)).toContain("⚠");
   });
 
   test("renderCard includes content", () => {
@@ -681,7 +533,7 @@ describe.serial("Board Rendering", () => {
     };
 
     const output = renderCard(cardState, 40, false, false, true);
-    expect(output).toContain("▶ 2"); // Collapsed indicator with count
+    expect(output).toContain("\u25b6 2"); // Collapsed indicator with count
     expect(output).not.toContain("Child 1");
   });
 });
@@ -906,7 +758,7 @@ describe.serial("Ink Board TUI Rendering", () => {
     // Check that text doesn't bleed into box-drawing border characters
     for (const line of lines) {
       // Pattern: letter directly touching horizontal border line (no space between)
-      const hasOverflow = /[a-zA-Z]─|─[a-zA-Z]/.test(line);
+      const hasOverflow = /[a-zA-Z]\u2500|\u2500[a-zA-Z]/.test(line);
       if (hasOverflow) {
         console.log("Overflow detected in line:", line);
       }
@@ -938,8 +790,8 @@ describe.serial("Ink Board TUI Rendering", () => {
 
     if (contentLine) {
       // Find padding between border and content
-      // Round border uses │ for vertical sides
-      const match = contentLine.match(/[│](\s*).*TestContent/);
+      // Round border uses \u2502 for vertical sides
+      const match = contentLine.match(/[\u2502](\s*).*TestContent/);
       if (match) {
         const leftPadding = match[1]?.length ?? 0;
         // Should have at most 1 space of padding

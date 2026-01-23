@@ -292,7 +292,11 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
     },
 
     afterQuery(operation: string, result: unknown): void {
-      log("query completed:", operation, Array.isArray(result) ? `${result.length} results` : "single result");
+      log(
+        "query completed:",
+        operation,
+        Array.isArray(result) ? `${result.length} results` : "single result",
+      );
     },
 
     // ChaosHooks-specific methods

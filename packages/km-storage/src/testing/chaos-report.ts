@@ -128,7 +128,9 @@ export interface GenerateReportOptions {
  * @param options - Report generation options
  * @returns Complete chaos report
  */
-export function generateChaosReport(options: GenerateReportOptions): ChaosReport {
+export function generateChaosReport(
+  options: GenerateReportOptions,
+): ChaosReport {
   const {
     scenario,
     hooks,
@@ -185,10 +187,12 @@ function captureStateSnapshot(
     // Use ChaosFakeVault's built-in inspection methods
     const orphanedNodes = fakeVault.getOrphanedNodes();
     const duplicateMap = fakeVault.getDuplicateIds();
-    const duplicates = Array.from(duplicateMap.entries()).map(([id, count]) => ({
-      id,
-      count,
-    }));
+    const duplicates = Array.from(duplicateMap.entries()).map(
+      ([id, count]) => ({
+        id,
+        count,
+      }),
+    );
     const consistencyIssues = fakeVault.validateConsistency();
     const allNodes = fakeVault.getAllNodes();
 
@@ -368,17 +372,23 @@ export function formatChaosReport(report: ChaosReport): string {
   lines.push(`  Node count: ${report.stateSnapshot.nodeCount}`);
   lines.push(`  Orphaned nodes: ${report.stateSnapshot.orphanedNodes.length}`);
   lines.push(`  Duplicate IDs: ${report.stateSnapshot.duplicates.length}`);
-  lines.push(`  Consistency issues: ${report.stateSnapshot.consistencyIssues.length}`);
+  lines.push(
+    `  Consistency issues: ${report.stateSnapshot.consistencyIssues.length}`,
+  );
   lines.push("");
 
   // Chaos events (last 10)
   if (report.chaosEvents.length > 0) {
     lines.push("─".repeat(40));
-    lines.push(`CHAOS EVENTS (last ${Math.min(10, report.chaosEvents.length)} of ${report.chaosEvents.length}):`);
+    lines.push(
+      `CHAOS EVENTS (last ${Math.min(10, report.chaosEvents.length)} of ${report.chaosEvents.length}):`,
+    );
     const recentEvents = report.chaosEvents.slice(-10);
     for (const event of recentEvents) {
       const time = new Date(event.timestamp).toISOString().slice(11, 23);
-      lines.push(`  [${time}] ${event.type}: ${event.mutation.type} ${event.mutation.nodeId}`);
+      lines.push(
+        `  [${time}] ${event.type}: ${event.mutation.type} ${event.mutation.nodeId}`,
+      );
     }
     lines.push("");
   }
@@ -388,7 +398,9 @@ export function formatChaosReport(report: ChaosReport): string {
     lines.push("─".repeat(40));
     lines.push("RECOMMENDATIONS:");
     for (const rec of report.recommendations) {
-      const priority = ["", "P1-CRITICAL", "P2-HIGH", "P3-MEDIUM", "P4-LOW"][rec.priority];
+      const priority = ["", "P1-CRITICAL", "P2-HIGH", "P3-MEDIUM", "P4-LOW"][
+        rec.priority
+      ];
       lines.push(`  [${priority}] [${rec.type}] ${rec.description}`);
       if (rec.suggestion) {
         lines.push(`    → ${rec.suggestion}`);
@@ -403,7 +415,9 @@ export function formatChaosReport(report: ChaosReport): string {
   // Reproduction command
   lines.push("─".repeat(40));
   lines.push("TO REPRODUCE:");
-  lines.push(`  Use seed ${report.scenario.seed} with the same scenario configuration`);
+  lines.push(
+    `  Use seed ${report.scenario.seed} with the same scenario configuration`,
+  );
   lines.push("");
 
   lines.push("═".repeat(60));

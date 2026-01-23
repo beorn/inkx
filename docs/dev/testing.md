@@ -99,6 +99,37 @@ bun run test:all    # All tests including mdtest (before commit)
 **DO test**: Component renders with various props, edge cases
 **DON'T test**: Visual appearance (use visual tests instead)
 
+#### TUI Test File Organization
+
+TUI tests are split by speed and dependencies:
+
+| File Pattern           | Database          | Speed         | Run In      |
+| ---------------------- | ----------------- | ------------- | ----------- |
+| `board-state.test.ts`  | No (pure data)    | Fast (~100ms) | `test:fast` |
+| `board-render.test.ts` | No (pure data)    | Fast (~90ms)  | `test:fast` |
+| `board-keys.test.ts`   | No (fixtures)     | Fast (~90ms)  | `test:fast` |
+| `board.slow.test.ts`   | Yes (real SQLite) | Slow (~1s)    | `test:all`  |
+
+**Fixtures**: Use `tests/fixtures/board-fixtures.ts` for pure data factories:
+
+```typescript
+import {
+  createSimpleTestBoard,
+  createCardState,
+} from "./fixtures/board-fixtures.ts";
+
+test("navigation moves down", () => {
+  const { state } = createSimpleTestBoard(); // No database!
+  const result = handleKey(state, "j");
+  expect(result.state.cardIndex).toBe(1);
+});
+```
+
+**When to use fixtures vs real database:**
+
+- **Fixtures**: Testing state logic, key handling, pure rendering
+- **Real DB**: Testing buildBoardState, initBoardState, integration with storage
+
 ---
 
 ### CLI/Application (`apps/km-cli`)
