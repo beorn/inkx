@@ -17,6 +17,7 @@ import { existsSync, statSync } from "fs";
 import { dirname, resolve } from "path";
 import { Command } from "commander";
 import chalk from "chalk";
+import { setLogLevel, type LogLevel } from "@km/core";
 
 // @km/storage is imported dynamically in preAction hook to allow
 // view command to show "Loading..." before heavy module loading
@@ -69,6 +70,17 @@ program
     "-r, --root <path>",
     "Root directory to operate on (overrides KM_ROOT env var)",
   )
+  .option("-s, --silent", "Suppress output except errors")
+  .option(
+    "-v, --verbose",
+    "Increase verbosity (-v, -vv, -vvv)",
+    (_, prev) => (prev ?? 0) + 1,
+    0,
+  )
+  .option(
+    "--log-level <level>",
+    "Log level (trace|debug|verbose|info|warn|error|silent)",
+  )
   .allowUnknownOption(false)
   .allowExcessArguments(false)
   .showSuggestionAfterError(true)
@@ -120,6 +132,24 @@ function getRootFromOptions(opts: { root?: string }): string | undefined {
 
 // Initialize state on startup (skip for init and view commands)
 program.hook("preAction", async (thisCommand, actionCommand) => {
+  // Configure log level from CLI flags
+  const globalOpts = thisCommand.opts() as {
+    root?: string;
+    silent?: boolean;
+    verbose?: number;
+    logLevel?: string;
+  };
+  if (globalOpts.logLevel) {
+    setLogLevel(globalOpts.logLevel as LogLevel);
+  } else if (globalOpts.silent) {
+    setLogLevel("error");
+  } else if (globalOpts.verbose && globalOpts.verbose >= 2) {
+    setLogLevel("trace");
+  } else if (globalOpts.verbose && globalOpts.verbose >= 1) {
+    setLogLevel("debug");
+  }
+  // Default: "info" (from LOG_LEVEL env or @beorn/logger default)
+
   // Don't initialize state for 'init' command - it creates .km/ itself
   // Don't initialize state for 'view' command - it handles its own loading with task progress
   const cmdName = actionCommand?.name() ?? thisCommand.name();

@@ -354,19 +354,46 @@ When a user reports a bug, follow [.claude/skills/bug-report.md](.claude/skills/
 
 **Never claim "fixed" without verification. Never close a bug bead without evidence.**
 
-### 12. Debug Logging
+### 12. Logging
 
-Use the `debug` npm package for all logging. Never use `console.log` in production code.
+km has two logging systems for different purposes:
 
-**Quick start (TUI debugging):**
+| System | Purpose | When to use |
+|--------|---------|-------------|
+| `debug()` | Internal tracing | State dumps, performance timing, internal diagnostics |
+| `logger` | User-facing output | Progress messages, errors, warnings the user should see |
+
+**Quick reference:**
+
+```typescript
+// Internal diagnostics - use debug()
+import createDebug from "debug";
+const debug = createDebug("km:storage:watch");
+debug("config", { watchEnabled, debounceMs });
+
+// User-facing messages - use logger
+import { createLogger } from "@km/core";
+const logger = createLogger("@km/storage");
+logger.info("Syncing vault...");
+logger.error("Failed to write file", { path, error });
+```
+
+**CLI flags for log levels:**
 
 ```bash
-# Run TUI with debug output to file (so it doesn't interfere with TUI display)
-DEBUG_LOG=/tmp/km.log DEBUG='km:*' bun km view /path/to/vault
-
-# In another terminal, watch the log:
-tail -f /tmp/km.log
+bun km -s sync /tmp/test        # Silent (errors only)
+bun km -v view /tmp/test        # Verbose (debug level)
+bun km -vv view /tmp/test       # Very verbose (trace level)
+bun km --log-level trace view   # Explicit level
+LOG_LEVEL=debug bun km view     # Environment variable
+DEBUG=km:* bun km view          # debug() still works independently
 ```
+
+**Log levels:** `silent < error < warn < info < debug < trace`
+
+#### debug() - Internal Diagnostics
+
+Use for detailed internal tracing that's only useful when debugging.
 
 **Namespace convention:**
 
@@ -374,72 +401,42 @@ tail -f /tmp/km.log
 km:<layer>:<subsystem>       # Main packages
 inkx:<subsystem>             # inkx renderer
 flexx:<subsystem>            # flexx layout engine
-tui-measure:<subsystem>      # tui-measure utilities
-chalkx:<subsystem>           # chalkx terminal styling
 ```
 
-**Keep debug statements concise (one line):**
+**Keep statements concise:**
 
 ```typescript
-// Good: object form for state/config
-debug("resolved", resolved);
-debug("watch config", { watchEnabled, watchWorker });
-debug("launching", { mode, interactive });
-
-// Good: %s for inline text
-debug("loading %s...", filename);
-debug("state: %s → %s", oldState, newState);
-
-// Bad: verbose multi-line format specifiers
-debug(
-  "resolved: vaultRoot=%s, nodeRef=%s", // Don't do this
-  resolved.vaultRoot,
-  resolved.nodeRef,
-);
+debug("resolved", resolved);                    // Objects
+debug("loading %s...", filename);               // Inline text
+debug("state: %s → %s", oldState, newState);    // Transitions
 ```
 
-**Examples:**
-
-```typescript
-import createDebug from "debug";
-const debug = createDebug("km:storage:watch:sync");
-
-// Objects - just pass them
-debug("config", config);
-debug("result", { count, duration: Date.now() - start });
-
-// Inline text - use %s
-debug("processing %s...", filename);
-debug("state: %s → %s", oldState, newState);
-```
-
-**Usage:**
+**TUI debugging (separate from TUI display):**
 
 ```bash
-DEBUG=km:*              # All km packages
-DEBUG=km:storage:*      # Storage layer only
-DEBUG=inkx:*            # inkx renderer
-DEBUG=*                 # Everything
-```
-
-**For TUI debugging (separate debug output from TUI):**
-
-```bash
-# Option 1: Log to file
 DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
-# Then in another terminal: tail -f /tmp/km.log
-
-# Option 2: tmux split pane (preferred)
-bun debug view /path/to/vault
-# Opens tmux with TUI on left, debug log on right
+# Then: tail -f /tmp/km.log
 ```
 
-**When to add debug logging:**
+#### @beorn/logger - User Output
 
-- State transitions and lifecycle events
-- Async operations (start/end with timing)
-- Error conditions (before throwing)
-- Data flow boundaries (counts, sizes)
+Use for messages the user should see during normal operation.
+
+```typescript
+import { createLogger } from "@km/core";
+const logger = createLogger("@km/storage");
+
+logger.info("Loading vault...");
+logger.warn("Config file not found, using defaults");
+logger.error("Failed to sync", { error });
+```
+
+**When to use which:**
+
+- `debug()` → internal state, performance timing, data flow tracing
+- `logger.info()` → progress, success messages, normal operation
+- `logger.warn()` → recoverable issues, deprecation notices
+- `logger.error()` → failures that affect user (show error to user)
 
 ### 13. Visual Testing & TUI Debugging
 
@@ -562,12 +559,12 @@ All major functionality MUST be exposed through **domain objects created by fact
 
 **Core domain objects:**
 
-| Object   | Factory           | Lifecycle         | Purpose                     |
-| -------- | ----------------- | ----------------- | --------------------------- |
-| `Vault`  | `createVault()`   | `Disposable`      | Storage, queries, mutations |
-| `Board`  | `createBoard()`   | plain object      | Navigation state            |
-| `Watcher`| `vault.watch()`   | `Service`         | File sync                   |
-| `Config` | `loadConfig()`    | plain object      | Vault configuration         |
+| Object    | Factory         | Lifecycle    | Purpose                     |
+| --------- | --------------- | ------------ | --------------------------- |
+| `Vault`   | `createVault()` | `Disposable` | Storage, queries, mutations |
+| `Board`   | `createBoard()` | plain object | Navigation state            |
+| `Watcher` | `vault.watch()` | `Service`    | File sync                   |
+| `Config`  | `loadConfig()`  | plain object | Vault configuration         |
 
 **Service interface** (for objects with start/stop lifecycle):
 
@@ -589,7 +586,9 @@ export function createVault(path: string, options?: VaultOptions): Vault {
   let closed = false;
 
   return {
-    get path() { return path; },
+    get path() {
+      return path;
+    },
 
     getNode(id) {
       if (closed) throw new Error("Vault is closed");
@@ -604,7 +603,7 @@ export function createVault(path: string, options?: VaultOptions): Vault {
 
     [Symbol.dispose]() {
       this.close();
-    }
+    },
   };
 }
 
@@ -663,9 +662,11 @@ async function watchVault(path: string) {
 
 ```typescript
 const mockDb = new Database(":memory:");
-const vault = runGenerator(createVault("/test", {
-  inject: { database: mockDb }
-}));
+const vault = runGenerator(
+  createVault("/test", {
+    inject: { database: mockDb },
+  }),
+);
 ```
 
 See [docs/dev/domain-objects.md](docs/dev/domain-objects.md) for complete patterns guide
@@ -677,7 +678,7 @@ See [docs/dev/domain-objects.md](docs/dev/domain-objects.md) for complete patter
 **Never hardcode versions.** Import from `@km/core`:
 
 ```typescript
-import { VERSION, BUILD_INFO } from "@km/core"
+import { VERSION, BUILD_INFO } from "@km/core";
 
 // VERSION = "0.1.0"
 // BUILD_INFO = { version, gitCommit, gitBranch, gitDirty, buildTime }
@@ -688,8 +689,8 @@ import { VERSION, BUILD_INFO } from "@km/core"
 **For diagnostics**, include git commit in error messages or debug output:
 
 ```typescript
-import { BUILD_INFO } from "@km/core"
-debug("startup", { version: BUILD_INFO.version, commit: BUILD_INFO.gitCommit })
+import { BUILD_INFO } from "@km/core";
+debug("startup", { version: BUILD_INFO.version, commit: BUILD_INFO.gitCommit });
 ```
 
 ### 17. Prior Art / Related Projects (cloudi, kimmi, decker)

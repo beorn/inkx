@@ -13,7 +13,7 @@
         "ulid": "2.4.0",
       },
       "devDependencies": {
-        "@playwright/test": "^1.57.0",
+        "@playwright/test": "^1.58.0",
         "@release-it/conventional-changelog": "^10.0.4",
         "@sinonjs/fake-timers": "^15.1.0",
         "@steipete/peekaboo": "^3.0.0-beta3",
@@ -23,12 +23,12 @@
         "eslint-plugin-promise": "^7.2.1",
         "ink-testing-library": "^4.0.0",
         "node-pty": "^1.1.0",
-        "playwright": "^1.57.0",
-        "prettier": "^3.8.0",
+        "playwright": "^1.58.0",
+        "prettier": "^3.8.1",
         "react-devtools-core": "^7.0.1",
         "release-it": "^19.2.4",
         "typescript": "^5.9.3",
-        "typescript-eslint": "^8.53.0",
+        "typescript-eslint": "^8.53.1",
         "yaml": "^2.8.2",
       },
     },
@@ -151,6 +151,7 @@
     "packages/km-core": {
       "name": "@km/core",
       "dependencies": {
+        "@beorn/logger": "workspace:*",
         "ulid": "^2.3.0",
       },
     },
