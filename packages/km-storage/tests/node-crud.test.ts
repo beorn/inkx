@@ -2,14 +2,27 @@
  * Node CRUD Operations Tests
  *
  * Comprehensive tests for creating, reading, updating, deleting, and moving nodes.
+ * Uses isolated temp directories for cleaner test setup.
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rmSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
+import { ulid } from "ulid";
 
-// Test directory - KM_DIR is set in beforeEach via setKmDir()
-const TEST_DIR = join("/tmp", "kmtest-km");
+// Track created directories for cleanup
+const createdDirs: string[] = [];
+
+/** Create an isolated test directory */
+function createTestDir(): string {
+  const dir = join("/tmp", `kmtest-crud-${ulid()}`);
+  mkdirSync(dir, { recursive: true });
+  createdDirs.push(dir);
+  return dir;
+}
+
+// Current test directory (set in beforeEach)
+let testDir: string;
 
 import {
   getDb,
@@ -40,7 +53,6 @@ import {
 } from "../src/emit.ts";
 
 import type { NodeType, TaskStatus, Event } from "@km/core";
-import { ulid } from "ulid";
 
 // Test helpers
 
@@ -85,14 +97,10 @@ function createTestNode(
 
 describe.serial("Node CRUD Operations", () => {
   beforeEach(() => {
-    // Clean up test directory
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
+    testDir = createTestDir();
 
     // Configure emit to use test directory and connect to database
-    setKmDir(TEST_DIR);
+    setKmDir(testDir);
     setDatabase({ applyEvent });
 
     // Reset database
@@ -101,9 +109,15 @@ describe.serial("Node CRUD Operations", () => {
 
   afterEach(() => {
     closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
+    // Clean up all created directories
+    for (const dir of createdDirs) {
+      try {
+        rmSync(dir, { recursive: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     }
+    createdDirs.length = 0;
   });
 
   describe.serial("Create Operations", () => {
@@ -769,7 +783,7 @@ describe.serial("Node CRUD Operations", () => {
   describe.serial("Bidirectional Sync", () => {
     test("should write task status change back to markdown file", async () => {
       // Create a test markdown file with a task
-      const testFile = join(TEST_DIR, "test-task.md");
+      const testFile = join(testDir, "test-task.md");
       await Bun.write(testFile, "- [ ] Test task\n");
 
       // Create a task node pointing to the file
@@ -796,7 +810,7 @@ describe.serial("Node CRUD Operations", () => {
     });
 
     test("should write blocked status to markdown file", async () => {
-      const testFile = join(TEST_DIR, "test-blocked.md");
+      const testFile = join(testDir, "test-blocked.md");
       await Bun.write(testFile, "- [ ] Blocked task\n");
 
       emit({
@@ -822,7 +836,7 @@ describe.serial("Node CRUD Operations", () => {
     });
 
     test("should write dropped status to markdown file", async () => {
-      const testFile = join(TEST_DIR, "test-dropped.md");
+      const testFile = join(testDir, "test-dropped.md");
       await Bun.write(testFile, "- [ ] Dropped task\n");
 
       emit({
