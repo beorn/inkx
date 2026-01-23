@@ -38,6 +38,9 @@ import { DEFAULT_FAVORITES } from "./keyboard-types.ts";
 import { assertNever, beepUnimplemented } from "./action-handlers.ts";
 import type { CommandAction } from "@km/commands";
 import { getCardMidY } from "./card-positions.ts";
+import createDebug from "debug";
+
+const debug = createDebug("km:tui:nav");
 
 // =============================================================================
 // Action Handler Type
@@ -510,6 +513,14 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     if (!hasCurrentPositions || !hasTargetPositions) {
       // Positions not yet registered (first render hasn't completed).
       // Fall back to same card index, clamped to target column bounds.
+      debug(
+        "h/l fallback: current=%d has=%s, target=%d has=%s, registry=%s",
+        state.colIndex,
+        hasCurrentPositions,
+        targetColIndex,
+        hasTargetPositions,
+        positionRegistry.dump(),
+      );
       const targetCardIndex = Math.min(
         state.cardIndex,
         targetCol.cards.length - 1,
@@ -554,6 +565,13 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     // targetCardIndex can be -1 if curswantY is above all cards (land on header)
     // For now, clamp to first card (column header navigation is separate)
     const finalCardIndex = Math.max(0, targetCardIndex);
+
+    debug(
+      "h/l visual: curswantY=%d, targetCol=%d, targetCard=%d",
+      curswantY,
+      targetColIndex,
+      finalCardIndex,
+    );
 
     dispatchBoard({
       type: "NAV_TO_PATH",

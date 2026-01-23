@@ -5,7 +5,7 @@
  * Implements React-level virtualization for large card lists.
  */
 import React, { useCallback, useMemo, useRef } from "react";
-import { Box, Text, useLayoutCallback } from "inkx";
+import { Box, Text, useScreenRectCallback } from "inkx";
 import { styledUnderline } from "@beorn/chalkx";
 import type { CardState, ColumnState } from "../types.ts";
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
@@ -52,8 +52,9 @@ export interface CardProps {
  * Key optimization: cursor movement only changes isSelected for 2 cards
  * (old selection and new selection). All other cards should skip re-render.
  *
- * Layout registration: Uses useLayoutCallback to register measured positions
- * without causing re-renders. This enables h/l visual navigation.
+ * Layout registration: Uses useScreenRectCallback to register screen positions
+ * without causing re-renders. This enables h/l visual navigation across
+ * columns with different scroll positions.
  */
 export const Card = React.memo(
   function Card({
@@ -85,7 +86,7 @@ export const Card = React.memo(
       [registry, colIndex, cardIndex, nodeId],
     );
 
-    useLayoutCallback(handleLayout);
+    useScreenRectCallback(handleLayout);
 
     return (
       <Box
