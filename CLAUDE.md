@@ -528,7 +528,7 @@ function getName(node: Node): string {
 }
 ```
 
-**When you find fallback/compat code:**
+**When you find fallback/compat/deprecated code:**
 
 1. **Determine intent**: Is this handling legitimate data variations, or masking bugs?
 2. **Legitimate**: External input, user data, optional features → keep the handling
