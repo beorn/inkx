@@ -133,7 +133,9 @@ async function runGenerator<T>(
   return result.value;
 }
 
-function isGenerator(value: unknown): value is Generator<ProgressInfo, unknown, unknown> {
+function isGenerator(
+  value: unknown,
+): value is Generator<ProgressInfo, unknown, unknown> {
   return (
     value !== null &&
     typeof value === "object" &&

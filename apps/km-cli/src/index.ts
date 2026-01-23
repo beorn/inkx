@@ -127,13 +127,8 @@ program.hook("preAction", async (thisCommand, actionCommand) => {
   }
 
   // Dynamic import of @km/storage - allows view command to show "Loading..." first
-  const {
-    ensureState,
-    isExplicitPath,
-    resolveFsPath,
-    runGenerator,
-    getStore,
-  } = await import("@km/storage");
+  const { ensureState, isExplicitPath, resolveFsPath, runGenerator, getStore } =
+    await import("@km/storage");
 
   // Get root path from global options or env var
   const opts = thisCommand.opts() as { root?: string };
