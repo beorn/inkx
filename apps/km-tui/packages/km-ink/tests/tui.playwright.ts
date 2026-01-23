@@ -96,6 +96,82 @@ test.describe("TUI View Tests", () => {
     await takeDebugScreenshot(page, "05-back-to-cards");
   });
 
+  test("should show help overlay with '?' key", async ({ page }) => {
+    await page.goto("/");
+    await waitForTerminal(page);
+    await takeDebugScreenshot(page, "help-01-before");
+
+    // Press '?' to show help overlay
+    await pressKey(page, "Shift+/"); // '?' is Shift+/
+    await page.waitForTimeout(300);
+    await takeDebugScreenshot(page, "help-02-overlay-shown");
+
+    // Verify the help overlay content is visible
+    const terminalContent = await page.locator(".xterm-screen").textContent();
+    expect(terminalContent).toContain("Keyboard Shortcuts");
+    expect(terminalContent).toContain("Navigation");
+    expect(terminalContent).toContain("Press ? or Esc to close");
+
+    // Press '?' again to dismiss
+    await pressKey(page, "Shift+/");
+    await page.waitForTimeout(300);
+    await takeDebugScreenshot(page, "help-03-dismissed-with-question");
+
+    // Verify overlay is dismissed (should not show "Keyboard Shortcuts" prominently)
+    // Re-show and dismiss with Escape
+    await pressKey(page, "Shift+/");
+    await page.waitForTimeout(300);
+    await takeDebugScreenshot(page, "help-04-reshown");
+
+    await pressKey(page, "Escape");
+    await page.waitForTimeout(300);
+    await takeDebugScreenshot(page, "help-05-dismissed-with-escape");
+  });
+
+  test("should show project picker with 'p' key", async ({ page }) => {
+    await page.goto("/");
+    await waitForTerminal(page);
+
+    // Navigate to a task first (project picker requires a selected task)
+    await pressKey(page, "ArrowDown");
+    await page.waitForTimeout(200);
+    await takeDebugScreenshot(page, "picker-01-before");
+
+    // Press 'p' to open project picker
+    await pressKey(page, "p");
+    await page.waitForTimeout(300);
+    await takeDebugScreenshot(page, "picker-02-opened");
+
+    // Verify the project picker content is visible
+    const terminalContent = await page.locator(".xterm-screen").textContent();
+    expect(terminalContent).toContain("Move to project");
+
+    // Dismiss with Escape
+    await pressKey(page, "Escape");
+    await page.waitForTimeout(300);
+    await takeDebugScreenshot(page, "picker-03-dismissed");
+  });
+
+  test("should show new item dialog with 'n' key", async ({ page }) => {
+    await page.goto("/");
+    await waitForTerminal(page);
+    await takeDebugScreenshot(page, "newitem-01-before");
+
+    // Press 'n' to open new item dialog
+    await pressKey(page, "n");
+    await page.waitForTimeout(300);
+    await takeDebugScreenshot(page, "newitem-02-opened");
+
+    // Verify the new item dialog content is visible
+    const terminalContent = await page.locator(".xterm-screen").textContent();
+    expect(terminalContent).toContain("New");
+
+    // Dismiss with Escape
+    await pressKey(page, "Escape");
+    await page.waitForTimeout(300);
+    await takeDebugScreenshot(page, "newitem-03-dismissed");
+  });
+
   test("should navigate with arrow keys", async ({ page }) => {
     await page.goto("/");
     await waitForTerminal(page);

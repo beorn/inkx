@@ -9,6 +9,7 @@ import { Box, Text, useInput } from "inkx";
 import type { KNode } from "@km/core";
 import { getAllNodes, getNode } from "@km/storage";
 import { getNodeDisplayName } from "../state.ts";
+import { ModalDialog } from "./shared-components.tsx";
 
 /**
  * Simple fuzzy match - check if query chars appear in order in target
@@ -248,38 +249,26 @@ export function ProjectPicker({
     }
   });
 
-  const innerWidth = Math.max(10, width - 4);
+  const innerWidth = Math.max(10, width - 8); // Account for border + paddingX(2)
 
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      height={height}
-      borderStyle="double"
-      borderColor="cyan"
-    >
+    <ModalDialog borderColor="cyan" width={width} height={height}>
       {/* Header */}
-      <Box paddingX={1}>
-        <Text bold>Move to project:</Text>
-      </Box>
+      <Text bold>Move to project:</Text>
 
       {/* Separator */}
-      <Box paddingX={1}>
-        <Text dimColor>{"─".repeat(innerWidth)}</Text>
-      </Box>
+      <Text dimColor>{"─".repeat(innerWidth)}</Text>
 
       {/* Search input */}
-      <Box paddingX={1}>
-        <Text>
-          <Text dimColor>[Search: </Text>
-          <Text color="cyan">{query || " "}</Text>
-          <Text inverse> </Text>
-          <Text dimColor>]</Text>
-        </Text>
-      </Box>
+      <Text>
+        <Text dimColor>[Search: </Text>
+        <Text color="cyan">{query || " "}</Text>
+        <Text inverse> </Text>
+        <Text dimColor>]</Text>
+      </Text>
 
       {/* Options list */}
-      <Box flexDirection="column" paddingX={1} flexGrow={1}>
+      <Box flexDirection="column" flexGrow={1}>
         {visibleOptions.map((opt, i) => {
           const actualIndex = scrollOffset + i;
           const isSelected = actualIndex === selectedIndex;
@@ -335,20 +324,16 @@ export function ProjectPicker({
 
       {/* Scroll indicator */}
       {filteredOptions.length > maxVisible && (
-        <Box paddingX={1}>
-          <Text dimColor>
-            {scrollOffset > 0 ? "↑ " : "  "}
-            {`${selectedIndex + 1}/${filteredOptions.length}`}
-            {scrollOffset + maxVisible < filteredOptions.length ? " ↓" : ""}
-          </Text>
-        </Box>
+        <Text dimColor>
+          {scrollOffset > 0 ? "↑ " : "  "}
+          {`${selectedIndex + 1}/${filteredOptions.length}`}
+          {scrollOffset + maxVisible < filteredOptions.length ? " ↓" : ""}
+        </Text>
       )}
 
       {/* Hints */}
-      <Box paddingX={1}>
-        <Text dimColor>↑↓:nav Enter:select Esc:cancel</Text>
-      </Box>
-    </Box>
+      <Text dimColor>↑↓:nav Enter:select Esc:cancel</Text>
+    </ModalDialog>
   );
 }
 

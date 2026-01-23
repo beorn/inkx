@@ -23,7 +23,7 @@ export function DetailPane({
   width,
   height,
 }: DetailPaneProps): React.ReactElement {
-  const innerWidth = Math.max(10, width - 2);
+  const innerWidth = Math.max(10, width - 6); // Account for border + paddingX(1)
   const title = getNodeDisplayName(node);
 
   // Get fields
@@ -109,21 +109,23 @@ export function DetailPane({
       height={height}
       borderStyle="single"
       borderColor="cyan"
+      backgroundColor="black"
+      paddingX={1}
     >
       {/* Title - let Ink handle wrapping naturally */}
-      <Box paddingX={1} width={innerWidth}>
+      <Box width={innerWidth}>
         <Text bold wrap="wrap">
           {title}
         </Text>
       </Box>
 
       {/* Separator - full width */}
-      <Box paddingX={1}>
+      <Box>
         <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
       </Box>
 
       {/* Fields */}
-      <Box paddingX={1} flexDirection="row" gap={2}>
+      <Box flexDirection="row" gap={2}>
         <Text>
           <Text dimColor>Status: </Text>
           <Text color={statusInfo.color}>{statusInfo.text}</Text>
@@ -152,7 +154,7 @@ export function DetailPane({
       </Box>
 
       {assignedTo && (
-        <Box paddingX={1} flexDirection="row" gap={2}>
+        <Box flexDirection="row" gap={2}>
           <Text>
             <Text dimColor>Assigned: </Text>
             <Text color="magenta">@{assignedTo}</Text>
@@ -162,7 +164,7 @@ export function DetailPane({
 
       {/* Project path */}
       {projectPath.length > 0 && (
-        <Box paddingX={1}>
+        <Box>
           <Text>
             <Text dimColor>Project: </Text>
             <Text>{projectPath.join(" / ")}</Text>
@@ -172,7 +174,7 @@ export function DetailPane({
 
       {/* References */}
       {hasRefs && (
-        <Box paddingX={1} flexDirection="row" flexWrap="wrap" gap={1}>
+        <Box flexDirection="row" flexWrap="wrap" gap={1}>
           {refs.tags.map((tag) => (
             <Text key={`tag-${tag}`} color="blue">
               #{tag}
@@ -267,7 +269,7 @@ export function DetailPane({
 
       {/* Keybindings hint */}
       <Box flexGrow={1} />
-      <Box paddingX={1}>
+      <Box>
         <Text dimColor>h/Esc:close Space:status</Text>
       </Box>
     </Box>

@@ -232,3 +232,47 @@ export const MemoizedColumnHeader = React.memo(
     );
   },
 );
+
+// =============================================================================
+// Modal Dialog Component
+// =============================================================================
+
+export interface ModalDialogProps {
+  /** Border color (cyan, green, etc.) */
+  borderColor?: string;
+  /** Dialog width */
+  width?: number;
+  /** Dialog height (optional, omit for auto-height) */
+  height?: number;
+  /** Dialog children */
+  children: React.ReactNode;
+}
+
+/**
+ * Reusable modal dialog with consistent styling.
+ *
+ * Features:
+ * - Solid black background (covers board content)
+ * - Double border in configurable color
+ * - 2-space horizontal padding
+ */
+export function ModalDialog({
+  borderColor = "cyan",
+  width,
+  height,
+  children,
+}: ModalDialogProps): React.ReactElement {
+  return (
+    <Box
+      flexDirection="column"
+      width={width}
+      height={height}
+      borderStyle="double"
+      borderColor={borderColor}
+      backgroundColor="black"
+      paddingX={2}
+    >
+      {children}
+    </Box>
+  );
+}

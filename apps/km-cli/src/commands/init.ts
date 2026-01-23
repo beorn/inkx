@@ -16,8 +16,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { withProgress } from "@beorn/inkx-ui/wrappers";
-import { SYNC_PHASES } from "../utils/progress-phases.ts";
+import { steps } from "@beorn/inkx-ui/progress";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { SyncManager } from "@km/storage";
@@ -210,12 +209,14 @@ export const initCommand = new Command("init")
         conflictStrategy: "last_write_wins",
       });
       try {
-        const result = await withProgress(
-          (onProgress) => manager.syncFromFs(onProgress),
-          {
-            phases: { ...SYNC_PHASES, reconciling: "Syncing files" },
-          },
-        );
+        const results = await steps({
+          syncFiles: () => manager.syncFromFs(),
+        }).run({ clear: true });
+
+        const result = results.syncFiles as {
+          processed: number;
+          directories: number;
+        };
         console.log(
           chalk.green("✓"),
           `Synced ${result.processed} file(s) in ${result.directories} directories`,

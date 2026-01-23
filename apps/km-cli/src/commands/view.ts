@@ -45,17 +45,18 @@ export const viewCommand = new Command("view")
     let storageModule: typeof import("@km/storage");
     let cliModule: typeof import("../index.ts");
 
-    // Run loading steps with fluent API
+    // Run loading steps with declarative API
     // loadVault() handles both memory and disk modes with unified progress
-    const results = await steps()
-      .run("Loading modules", async () => {
+    const results = await steps({
+      loadModules: async () => {
         [inkModule, storageModule, cliModule] = await Promise.all([
           import("@km/ink"),
           import("@km/storage"),
           import("../index.ts"),
         ]);
-      })
-      .run("Loading vault", function* () {
+      },
+
+      loadVault: function* () {
         const vaultRoot = storageModule!.resolvePathArg(
           root,
           cliModule!.getRootPath(),
@@ -67,8 +68,9 @@ export const viewCommand = new Command("view")
         // - Memory mode: discover → parse → apply → resolve → materialize
         // - Disk mode: discover → apply → materialize
         yield* storageModule!.loadVault(vaultRoot, { searchAncestors: false });
-      })
-      .run("Building view", function* () {
+      },
+
+      buildView: function* () {
         const resolved = storageModule!.resolvePathArg(
           root,
           cliModule!.getRootPath(),
@@ -80,11 +82,11 @@ export const viewCommand = new Command("view")
           state.rootPath = resolved.vaultRoot;
         }
         return { state, resolved };
-      })
-      .execute({ clear: true });
+      },
+    }).run({ clear: true });
 
-    // Extract results
-    const { state, resolved } = results["Building view"] as {
+    // Extract results (generator return types need double assertion)
+    const { state, resolved } = results.buildView as unknown as {
       state: import("@km/ink").BoardState | null;
       resolved: ReturnType<typeof storageModule.resolvePathArg>;
     };

@@ -10,6 +10,7 @@ import { ulid } from "ulid";
 import type { KNode } from "@km/core";
 import { getNode, getChildren, emitNodeCreated } from "@km/storage";
 import { getNodeDisplayName } from "../state.ts";
+import { ModalDialog } from "./shared-components.tsx";
 
 export interface NewItemDialogProps {
   /** The currently selected node (for context/defaults) */
@@ -143,30 +144,24 @@ export function NewItemDialog({
     }
   });
 
-  const innerWidth = Math.max(10, width - 4);
+  const innerWidth = Math.max(10, width - 8); // Account for border + paddingX(2)
 
   return (
-    <Box
-      flexDirection="column"
+    <ModalDialog
+      borderColor="green"
       width={width}
       height={Math.min(height, 10)}
-      borderStyle="double"
-      borderColor="green"
     >
       {/* Header */}
-      <Box paddingX={1}>
-        <Text bold>
-          New {isTask ? "task" : "item"} {insertContext}
-        </Text>
-      </Box>
+      <Text bold>
+        New {isTask ? "task" : "item"} {insertContext}
+      </Text>
 
       {/* Separator */}
-      <Box paddingX={1}>
-        <Text dimColor>{"─".repeat(innerWidth)}</Text>
-      </Box>
+      <Text dimColor>{"─".repeat(innerWidth)}</Text>
 
       {/* Input field */}
-      <Box paddingX={1} flexGrow={1}>
+      <Box flexGrow={1}>
         <Text>
           <Text color="green">{isTask ? "[ ] " : "• "}</Text>
           <Text>{content}</Text>
@@ -175,9 +170,7 @@ export function NewItemDialog({
       </Box>
 
       {/* Hints */}
-      <Box paddingX={1}>
-        <Text dimColor>Enter:create Esc:cancel</Text>
-      </Box>
-    </Box>
+      <Text dimColor>Enter:create Esc:cancel</Text>
+    </ModalDialog>
   );
 }

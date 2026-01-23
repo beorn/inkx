@@ -7,7 +7,7 @@
 import createDebug from "debug";
 import { Command } from "commander";
 import chalk from "chalk";
-import { withProgress } from "@beorn/inkx-ui/wrappers";
+import { steps } from "@beorn/inkx-ui/progress";
 
 const debug = createDebug("km:cli:sync");
 import {
@@ -15,11 +15,9 @@ import {
   findKmRootFromPath,
   setKmDir,
   syncState,
-  runWithProgress,
 } from "@km/storage";
 import { dirname, resolve } from "path";
 import { formatPath } from "../utils/format-path.ts";
-import { REBUILD_PHASES, SYNC_PHASES } from "../utils/progress-phases.ts";
 
 /**
  * Start the continuous filesystem watcher
@@ -102,10 +100,13 @@ async function runSync(
 
   try {
     // Step 1: Apply any pending events from events.jsonl to state.db
-    const eventResult = await withProgress(
-      (onProgress) => Promise.resolve(runWithProgress(syncState(), onProgress)),
-      { phases: REBUILD_PHASES },
-    );
+    const eventResults = await steps({
+      syncState,
+    }).run({ clear: true });
+
+    const eventResult = eventResults.syncState as unknown as {
+      applied: number;
+    };
     if (eventResult.applied > 0) {
       console.log(
         chalk.green("✓"),
@@ -126,11 +127,16 @@ async function runSync(
       const result = await manager.syncToFs();
       console.log(chalk.green("✓"), `Wrote ${result.written} file(s)`);
     } else {
-      // Default: from filesystem - use progressx for clean progress display
-      const result = await withProgress(
-        (onProgress) => manager.syncFromFs(onProgress),
-        { phases: SYNC_PHASES },
-      );
+      // Default: from filesystem
+      const syncResults = await steps({
+        syncFromFs: () => manager.syncFromFs(),
+      }).run({ clear: true });
+
+      const result = syncResults.syncFromFs as {
+        processed: number;
+        directories: number;
+        duration: number;
+      };
       console.log(
         chalk.green("✓"),
         `Synced ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,

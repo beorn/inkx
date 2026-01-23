@@ -7,7 +7,7 @@
 import createDebug from "debug";
 import { Command } from "commander";
 import chalk from "chalk";
-import { withProgress } from "@beorn/inkx-ui/wrappers";
+import { steps } from "@beorn/inkx-ui/progress";
 import { dirname, resolve } from "path";
 
 const debug = createDebug("km:cli:rebuild");
@@ -20,11 +20,9 @@ import {
   getEventsPath,
   findKmRootFromPath,
   setKmDir,
-  runWithProgress,
 } from "@km/storage";
 import { existsSync, statSync } from "fs";
 import { formatPath } from "../utils/format-path.ts";
-import { REBUILD_PHASES } from "../utils/progress-phases.ts";
 
 export const rebuildCommand = new Command("rebuild")
   .description("Rebuild state from events")
@@ -76,11 +74,15 @@ export const rebuildCommand = new Command("rebuild")
         console.log(chalk.dim("Performing full reset..."));
       }
 
-      const generator = options.full ? fullReset() : rebuildState();
-      const result = await withProgress(
-        (onProgress) => Promise.resolve(runWithProgress(generator, onProgress)),
-        { phases: REBUILD_PHASES },
-      );
+      const results = await steps({
+        rebuildState: options.full ? fullReset : rebuildState,
+      }).run({ clear: true });
+
+      const result = results.rebuildState as unknown as {
+        duration: number;
+        eventCount: number;
+        nodeCount: number;
+      };
 
       debug(
         "rebuild: complete in %dms, events=%d nodes=%d",

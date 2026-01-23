@@ -5,6 +5,7 @@
  */
 import React from "react";
 import { Box, Text } from "inkx";
+import { ModalDialog } from "./shared-components.tsx";
 
 interface HelpOverlayProps {
   width: number;
@@ -72,81 +73,83 @@ const maxKeyWidth = Math.max(
   ...shortcuts.flatMap((cat) => cat.keys.map((k) => k.key.length)),
 );
 
+// Minimum dimensions to render the overlay
+const MIN_WIDTH = 30;
+const MIN_HEIGHT = 10;
+
 export function HelpOverlay({ width, height }: HelpOverlayProps) {
+  // Guard against invalid dimensions - render fallback if too small
+  if (width < MIN_WIDTH || height < MIN_HEIGHT) {
+    return (
+      <Box
+        position="absolute"
+        marginLeft={Math.max(0, Math.floor((width - 20) / 2))}
+        marginTop={Math.max(0, Math.floor((height - 3) / 2))}
+        flexDirection="column"
+        borderStyle="single"
+        borderColor="cyan"
+      >
+        <Text color="cyan">Terminal too small</Text>
+        <Text dimColor>Press ? or Esc</Text>
+      </Box>
+    );
+  }
+
   // Calculate content dimensions - more padding around the box
-  const boxWidth = Math.min(70, width - 8);
-  const boxHeight = Math.min(
-    shortcuts.reduce((acc, cat) => acc + cat.keys.length + 3, 4), // Extra lines for internal padding
-    height - 6,
+  // Use Math.max to ensure positive values
+  const boxWidth = Math.max(MIN_WIDTH, Math.min(70, width - 8));
+  const boxHeight = Math.max(
+    MIN_HEIGHT,
+    Math.min(
+      shortcuts.reduce((acc, cat) => acc + cat.keys.length + 3, 4), // Extra lines for internal padding
+      height - 6,
+    ),
   );
 
-  // Center the box
-  const marginLeft = Math.floor((width - boxWidth) / 2);
-  const marginTop = Math.floor((height - boxHeight) / 2);
+  // Center the box - ensure non-negative margins
+  const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2));
+  const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2));
 
-  // Content width inside the border (with internal padding)
-  const contentWidth = boxWidth - 4; // Account for border + internal padding
-
-  // Create full-width line with black background
-  const bgLine = (text: string, indent = 1) => {
-    const w = contentWidth - indent;
-    const content = text.slice(0, w);
-    return " ".repeat(indent) + content.padEnd(w + 1);
-  };
+  // Content width inside the border (with 2-space padding)
+  const contentWidth = Math.max(10, boxWidth - 8); // Account for border + paddingX(2)
 
   // Center text within contentWidth
-  const centerText = (text: string) =>
-    text.padStart((contentWidth + text.length) / 2).padEnd(contentWidth);
+  const centerText = (text: string) => {
+    const paddedLen = Math.max(0, Math.floor((contentWidth + text.length) / 2));
+    return text.padStart(paddedLen).padEnd(Math.max(paddedLen, contentWidth));
+  };
 
   return (
-    <Box
-      position="absolute"
-      marginLeft={marginLeft}
-      marginTop={marginTop}
-      flexDirection="column"
-      width={boxWidth}
-      borderStyle="double"
-      borderColor="cyan"
-    >
-      {/* Top padding */}
-      <Text backgroundColor="black">{bgLine("", 0)}</Text>
+    <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop}>
+      <ModalDialog borderColor="cyan" width={boxWidth}>
+        {/* Header */}
+        <Text> </Text>
+        <Text color="cyan" bold>
+          {centerText("Keyboard Shortcuts")}
+        </Text>
+        <Text> </Text>
 
-      {/* Header */}
-      <Text backgroundColor="black" color="cyan" bold>
-        {bgLine(centerText("Keyboard Shortcuts"), 0)}
-      </Text>
-      <Text backgroundColor="black">{bgLine("", 0)}</Text>
-
-      {shortcuts.map((category) => (
-        <Box key={category.category} flexDirection="column">
-          <Text bold color="white" backgroundColor="black">
-            {bgLine(category.category)}
-          </Text>
-          {category.keys.map((shortcut) => {
-            return (
-              <Text key={shortcut.key} backgroundColor="black">
-                <Text color="yellow" backgroundColor="black">
+        {shortcuts.map((category) => (
+          <Box key={category.category} flexDirection="column">
+            <Text bold color="white">
+              {category.category}
+            </Text>
+            {category.keys.map((shortcut) => (
+              <Text key={shortcut.key}>
+                <Text color="yellow">
                   {"  "}
                   {shortcut.key.padEnd(maxKeyWidth + 2)}
                 </Text>
-                <Text dimColor backgroundColor="black">
-                  {shortcut.desc.padEnd(
-                    Math.max(0, contentWidth - maxKeyWidth - 4),
-                  )}
-                </Text>
+                <Text dimColor>{shortcut.desc}</Text>
               </Text>
-            );
-          })}
-          <Text backgroundColor="black">{bgLine("")}</Text>
-        </Box>
-      ))}
+            ))}
+            <Text> </Text>
+          </Box>
+        ))}
 
-      <Text backgroundColor="black" dimColor>
-        {bgLine(centerText("Press ? or Esc to close"), 0)}
-      </Text>
-
-      {/* Bottom padding */}
-      <Text backgroundColor="black">{bgLine("", 0)}</Text>
+        <Text dimColor>{centerText("Press ? or Esc to close")}</Text>
+        <Text> </Text>
+      </ModalDialog>
     </Box>
   );
 }
