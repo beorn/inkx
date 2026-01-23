@@ -28,11 +28,7 @@ export { isTAction, TActionTypes } from "@km/tree";
 export { getNodeAtPath, getSiblingCount } from "@km/tree";
 
 // ===== Board Reducer =====
-export {
-  boardReducer,
-  createBoardState,
-  findPathToNode,
-} from "./board-reducer.ts";
+export { boardReducer, createBoardState, findPathToNode } from "./board-reducer.ts";
 
 // ===== Selectors =====
 export {
@@ -72,3 +68,7 @@ export type { NodeMap, NodeMapEntry } from "./node-map.ts";
 // ===== Visual-to-Structural Navigation =====
 export { visualToStructural, canMove } from "./navigation.ts";
 export type { VisualDir, StructuralAction } from "./navigation.ts";
+
+// ===== Board Domain Object (preferred API) =====
+export { createBoard } from "./board-object.ts";
+export type { Board, BoardOptions } from "./board-object.ts";
