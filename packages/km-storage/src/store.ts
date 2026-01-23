@@ -498,34 +498,101 @@ export class MemoryStore extends BaseStore {
     };
     relationship?: string;
   }> = [];
+  private initialized = false;
+  private fileCount = 0;
 
-  constructor(rootPath: string) {
+  constructor(rootPath: string, options?: { lazy?: boolean }) {
     super();
     this.rootPath = rootPath;
     this.db = new Database(":memory:");
     this.db.exec(SCHEMA);
     // Inject db into singleton so link functions can access it
     setDb(this.db);
-    this.scanFilesystem();
+    // Scan immediately unless lazy mode requested (for progress reporting)
+    if (!options?.lazy) {
+      this.scanFilesystem();
+    }
   }
 
   /**
-   * Scan filesystem and populate in-memory database
+   * Initialize the store by scanning filesystem.
+   * Yields progress for spinner animation.
+   */
+  *initialize(): Generator<{ phase: string; current: number; total: number }> {
+    if (this.initialized) return;
+    yield* this.scanFilesGenerator();
+    yield* this.resolveLinksGenerator();
+    this.initialized = true;
+  }
+
+  /**
+   * Scan filesystem phase - yields scanning progress.
+   * Can be called separately for finer progress control.
+   */
+  *scanFilesGenerator(): Generator<{ phase: string; current: number; total: number }> {
+    // First pass: count files for progress reporting
+    yield { phase: "scanning", current: 0, total: 0 };
+    const total = this.countMarkdownFiles(this.rootPath);
+
+    // Second pass: actually scan and parse
+    this.fileCount = 0;
+    yield* this.scanDirectoryAsync(this.rootPath, null, 0, total);
+    // Final yield to show 100%
+    yield { phase: "scanning", current: this.fileCount, total };
+  }
+
+  /**
+   * Resolve wikilinks phase - yields reconciling progress.
+   * Can be called separately for finer progress control.
+   */
+  *resolveLinksGenerator(): Generator<{ phase: string; current: number; total: number }> {
+    const total = this.pendingWikilinks.length;
+    yield { phase: "reconciling", current: 0, total };
+    yield* this.resolveWikilinksGenerator();
+  }
+
+  /**
+   * Count markdown files for progress reporting
+   */
+  private countMarkdownFiles(dirPath: string): number {
+    if (!existsSync(dirPath)) return 0;
+
+    let count = 0;
+    const entries = readdirSync(dirPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+
+      const fullPath = join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        count += this.countMarkdownFiles(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith(".md")) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * Scan filesystem and populate in-memory database (sync version for refresh)
    */
   private scanFilesystem(): void {
-    this.scanDirectory(this.rootPath, null, 0);
-    // Resolve wikilinks after all files are parsed
+    for (const _ of this.scanDirectoryAsync(this.rootPath, null, 0, 0)) {
+      // Consume generator without progress reporting
+    }
     this.resolveWikilinks();
+    this.initialized = true;
   }
 
   /**
-   * Recursively scan a directory
+   * Recursively scan a directory (generator for progress reporting)
    */
-  private scanDirectory(
+  private *scanDirectoryAsync(
     dirPath: string,
     parentId: string | null,
     sortOrder: number,
-  ): void {
+    total: number,
+  ): Generator<{ phase: string; current: number; total: number }> {
     if (!existsSync(dirPath)) return;
 
     // Skip hidden directories and common excludes (but not the root directory)
@@ -556,13 +623,18 @@ export class MemoryStore extends BaseStore {
         });
 
         // Recurse
-        this.scanDirectory(fullPath, folderId, 0);
+        yield* this.scanDirectoryAsync(fullPath, folderId, 0, total);
       } else if (entry.isFile()) {
         const isMarkdown = entry.name.endsWith(".md");
 
         if (isMarkdown) {
           // Use the full km-markdown parser for .md files
           this.parseMarkdownFile(fullPath, parentId, order++);
+          this.fileCount++;
+          // Yield progress every 50 files to avoid overhead
+          if (this.fileCount % 50 === 0) {
+            yield { phase: "scanning", current: this.fileCount, total };
+          }
         } else {
           // Create simple file node for non-markdown files
           const fileId = this.generateId(fullPath);
@@ -623,9 +695,12 @@ export class MemoryStore extends BaseStore {
   }
 
   /**
-   * Resolve all collected wikilinks after files are parsed
+   * Resolve all collected wikilinks after files are parsed (generator version)
    */
-  private resolveWikilinks(): void {
+  private *resolveWikilinksGenerator(): Generator<{ phase: string; current: number; total: number }> {
+    const total = this.pendingWikilinks.length;
+    let current = 0;
+
     for (const { nodeId, link, relationship } of this.pendingWikilinks) {
       // Try to find target file by name
       const fileNode = findFileByName(link.target);
@@ -647,9 +722,24 @@ export class MemoryStore extends BaseStore {
         embedded: link.embedded ?? false,
         relationship: relationship ?? null,
       });
+
+      current++;
+      // Yield progress every 10 links for smoother animation
+      if (current % 10 === 0 || current === total) {
+        yield { phase: "reconciling", current, total };
+      }
     }
     // Clear pending wikilinks after resolution
     this.pendingWikilinks = [];
+  }
+
+  /**
+   * Resolve all collected wikilinks after files are parsed (sync version for refresh)
+   */
+  private resolveWikilinks(): void {
+    for (const _ of this.resolveWikilinksGenerator()) {
+      // Consume generator without progress reporting
+    }
   }
 
   /**
@@ -866,6 +956,7 @@ let storeInstance: NodeStore | null = null;
 export function initStore(
   startPath?: string,
   searchAncestors = true,
+  options?: { lazy?: boolean },
 ): NodeStore {
   const path = startPath ?? process.cwd();
 
@@ -880,7 +971,7 @@ export function initStore(
     setKmDir(kmPath);
     storeInstance = new DiskStore(kmPath);
   } else {
-    storeInstance = new MemoryStore(path);
+    storeInstance = new MemoryStore(path, { lazy: options?.lazy });
   }
 
   return storeInstance;

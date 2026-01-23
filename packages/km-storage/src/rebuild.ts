@@ -14,7 +14,7 @@ import type { ProgressInfo } from "@beorn/inkx-ui";
 import { getEventsPath, getKmDir, setDatabase } from "./emit.ts";
 import { dbApplyEvent } from "./db.ts";
 import { applyEvent, getDb, getDbPath, resetDb, closeDb, setDb } from "./db.ts";
-import { initStore } from "./store.ts";
+import { initStore, MemoryStore } from "./store.ts";
 import { evaluateAllRules, setBulkMode } from "./db-rules.ts";
 
 /** Result from rebuildState */
@@ -317,11 +317,13 @@ export function* ensureState(
   searchAncestors = true,
 ): Generator<ProgressInfo, void, unknown> {
   debug("ensureState", { rootPath: rootPath ?? "cwd", searchAncestors });
-  const store = initStore(rootPath, searchAncestors);
+  const store = initStore(rootPath, searchAncestors, { lazy: true });
 
   if (store.mode === "memory") {
     debug("ensureState: memory mode");
-    // Memory mode: store already scanned filesystem
+    // Memory mode: scan filesystem with progress reporting
+    const memStore = store as MemoryStore;
+    yield* memStore.initialize();
     // Inject its database into db.ts for backwards compatibility
     setDb(store.getDatabase());
   } else {
