@@ -10,10 +10,12 @@ Run chaos testing on km's filesystem sync system to discover bugs, analyze root 
 
 **Mode**: $ARGUMENTS
 
-- `quick` or empty → 100 iterations (~10s), just report pass/fail counts
+- `quick` or empty → 100 iterations (~1s), just report pass/fail counts
 - `<N>` (number) → N iterations with full analysis
-- `<N>m` / `<N>s` / `<N>h` → Duration-based (~10 iter/sec)
+- `<N>m` / `<N>s` / `<N>h` → Duration-based (~1000 iter/sec with MockFS parallel)
 - `--analyze-only <seed>` → Skip fuzzing, analyze existing failure
+
+**Performance**: MockFS + parallel mode (default) runs ~1000 iterations/sec. Real FS mode (~2 iter/sec) is only needed when debugging specific FS interactions.
 
 ---
 
@@ -45,16 +47,22 @@ Run `/chaos-test 500` for full analysis or `/chaos-test --analyze-only 12345` fo
 
 ### Phase 1: Run Fuzzer
 
-Convert duration to iterations:
+Convert duration to iterations (MockFS parallel mode @ ~1000 iter/sec):
 
-- `5m` → 3000 iterations (~10/sec)
-- `30s` → 300 iterations
-- `1h` → 36000 iterations
-- `1000` → 1000 iterations
+- `5m` → 100000+ iterations
+- `30s` → 30000 iterations
+- `1h` → 1M+ iterations (practical limit ~100k)
+- `1000` → 1000 iterations (~1s)
 
 ```bash
 bun run chaos:fuzz -n <iterations> -v 2>&1 | tee /tmp/chaos-output.txt
 ```
+
+**Flags:**
+- Default: MockFS + parallel (fastest, ~1000 iter/sec)
+- `-p/--parallel`: Force parallel mode
+- `--sequential`: Disable parallel (for debugging)
+- `-r/--real-fs`: Use real filesystem (slower, ~2 iter/sec)
 
 Show progress every 25%: "Progress: 25% (245 passed, 5 failed)"
 
@@ -70,9 +78,9 @@ Extract failed seeds from output. **Group by invariant violated** before analyzi
 Generate reports for **one seed per invariant group** (max 5 total):
 
 ```bash
-# Run these in parallel
-bun run chaos:report -s <seed1> -o /tmp/chaos-bug-<seed1>.md &
-bun run chaos:report -s <seed2> -o /tmp/chaos-bug-<seed2>.md &
+# Generate reports in parallel (background jobs)
+bun ./scripts/chaos.ts report -s <seed1> -o /tmp/chaos-bug-<seed1>.md &
+bun ./scripts/chaos.ts report -s <seed2> -o /tmp/chaos-bug-<seed2>.md &
 wait
 ```
 
@@ -217,8 +225,14 @@ Suggest next steps:
 
 - `bun ./scripts/chaos.ts reproduce -s <seed>` to debug specific failure
 - Save regression: `bun ./scripts/chaos.ts save-regression -s <seed> -b <bead-id>`
-- Re-run `/chaos-test quick` after fix to verify
+- Re-run `/chaos-test quick` after fix to verify (~1s with parallel mode)
 - Run `bun test packages/km-storage/tests/sync/chaos/regression.test.ts`
+
+**Quick iteration cycle** (parallel mode makes this fast):
+```bash
+# 1000 iterations in ~1 second
+bun ./scripts/chaos.ts fuzz -n 1000
+```
 
 ---
 
@@ -258,7 +272,7 @@ After fixing bugs, consider improvements to the chaos testing system itself:
 | **Invariants**    | Add new invariant checks (e.g., "all initial files synced") |
 | **Scenarios**     | Add chaos scenarios that would have caught this bug         |
 | **Observability** | Add debug logging, timing info, state dumps                 |
-| **Tooling**       | Improve CLI output, add bisect mode, parallel runs          |
+| **Tooling**       | Improve CLI output, add bisect mode, better error messages  |
 | **Documentation** | Update this command, add gotchas to CLAUDE.md               |
 
 ### Template
