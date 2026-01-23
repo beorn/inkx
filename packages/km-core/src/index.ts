@@ -31,6 +31,10 @@ export type {
 // Constants
 export { CUSTOM_TASK_MARKS, TASK_MARK_REGEX_CLASS } from "./types.ts";
 
+// Build info (auto-generated)
+export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } from "./build-info.gen.ts";
+export type { BuildInfo } from "./build-info.gen.ts";
+
 // Task utilities
 export { getMarkForStatus } from "./types.ts";
 
@@ -55,6 +59,6 @@ export type {
   DateRange,
 } from "./query/index.ts";
 
-// Build info (version, git commit, etc.)
-export { VERSION, BUILD_INFO, GIT_COMMIT } from "./build-info.gen.ts";
-export type { BuildInfo } from "./build-info.gen.ts";
+// Service interface and utilities
+export type { Service, ServiceStatus } from "./service.ts";
+export { runGenerator, runWithProgress } from "./service.ts";

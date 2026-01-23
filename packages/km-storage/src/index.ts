@@ -81,7 +81,18 @@ export type { RebuildResult, SyncResult } from "./rebuild.ts";
 // Unified vault loading (the ONE function for loading vaults)
 export { loadVault } from "./vault-loader.ts";
 
-export type { LoadResult, LoadError, LoadOptions } from "./vault-loader.ts";
+export type { LoadResult, LoadOptions } from "./vault-loader.ts";
+export type { LoadError as VaultLoaderError } from "./vault-loader.ts";
+
+// Vault domain object (preferred API)
+export { createVault } from "./vault.ts";
+
+export type { Vault, VaultOptions, VaultStats, LoadError } from "./vault.ts";
+
+// Watcher domain object (Service for file sync)
+export { createWatcher } from "./watcher.ts";
+
+export type { Watcher, WatcherOptions } from "./watcher.ts";
 
 // Database rules (add= materialization)
 export {
@@ -207,7 +218,7 @@ export {
 // Recurrence utilities (moved from @km/core)
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts";
 
-// Configuration
+// Configuration (legacy functions)
 export {
   loadConfig,
   getConfigPath,
@@ -224,3 +235,8 @@ export type {
   TuiConfig,
   OriginalBeadsConfig,
 } from "./config.ts";
+
+// Config domain object (preferred API)
+export { loadConfigObject } from "./config-object.ts";
+
+export type { Config } from "./config-object.ts";
