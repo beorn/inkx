@@ -1,12 +1,13 @@
 import type { CommandDef } from "../types.ts";
 
-// Cursor movement - structural (hjkl style)
+// Cursor movement - structural (not bound to default keys in board view)
+// These are available for tree/outline views or programmatic use
 export const cursorPrev: CommandDef = {
   id: "cursor_prev",
   name: "Move to Previous",
   description: "Move cursor to previous sibling",
   category: "Navigation",
-  shortcuts: ["k"],
+  shortcuts: [], // Not bound by default
   execute: () => ({ type: "CURSOR_MOVE", dir: "prev" }),
 };
 
@@ -15,7 +16,7 @@ export const cursorNext: CommandDef = {
   name: "Move to Next",
   description: "Move cursor to next sibling",
   category: "Navigation",
-  shortcuts: ["j"],
+  shortcuts: [], // Not bound by default
   execute: () => ({ type: "CURSOR_MOVE", dir: "next" }),
 };
 
@@ -24,7 +25,7 @@ export const cursorIn: CommandDef = {
   name: "Move to Child",
   description: "Move cursor into first child",
   category: "Navigation",
-  shortcuts: ["l"],
+  shortcuts: [], // Not bound by default (h/l do cross-column in board view)
   execute: () => ({ type: "CURSOR_MOVE", dir: "in" }),
 };
 
@@ -33,7 +34,7 @@ export const cursorOut: CommandDef = {
   name: "Move to Parent",
   description: "Move cursor to parent",
   category: "Navigation",
-  shortcuts: ["h"],
+  shortcuts: [], // Not bound by default (h/l do cross-column in board view)
   execute: () => ({ type: "CURSOR_MOVE", dir: "out" }),
 };
 
@@ -55,13 +56,13 @@ export const cursorLast: CommandDef = {
   execute: () => ({ type: "CURSOR_MOVE", dir: "last" }),
 };
 
-// Cursor movement - visual (arrow style)
+// Cursor movement - visual (j/k/h/l + arrows behave identically per docs/06-ui.md)
 export const cursorUp: CommandDef = {
   id: "cursor_up",
   name: "Move Up",
   description: "Move cursor up visually",
   category: "Navigation",
-  shortcuts: ["ArrowUp"],
+  shortcuts: ["k", "ArrowUp"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "up" }),
 };
 
@@ -70,7 +71,7 @@ export const cursorDown: CommandDef = {
   name: "Move Down",
   description: "Move cursor down visually",
   category: "Navigation",
-  shortcuts: ["ArrowDown"],
+  shortcuts: ["j", "ArrowDown"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "down" }),
 };
 
@@ -79,7 +80,7 @@ export const cursorLeft: CommandDef = {
   name: "Move Left",
   description: "Move cursor left (cross-column)",
   category: "Navigation",
-  shortcuts: ["ArrowLeft"],
+  shortcuts: ["h", "ArrowLeft"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "left" }),
 };
 
@@ -88,7 +89,7 @@ export const cursorRight: CommandDef = {
   name: "Move Right",
   description: "Move cursor right (cross-column)",
   category: "Navigation",
-  shortcuts: ["ArrowRight"],
+  shortcuts: ["l", "ArrowRight"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "right" }),
 };
 
