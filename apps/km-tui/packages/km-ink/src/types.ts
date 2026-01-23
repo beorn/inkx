@@ -113,21 +113,16 @@ export interface RenderOptions {
  */
 export type TuiEngine = "inkx" | "inkx-flexx";
 
-import type { ProgressCallback } from "@beorn/progressx";
-
 /**
  * Options for running the TUI
  */
 export interface TuiOptions {
-  initialViewMode?: ViewMode;
-  engine?: TuiEngine;
   /**
-   * Optional callback to initialize database state (replay events).
-   * If provided, TUI will show loading indicator while this runs.
-   * This enables deferred loading for large vaults.
-   * The callback receives a progress callback to report loading progress.
+   * Run in interactive mode (default: true).
+   * When false, renders static output and exits.
    */
-  initializeState?: (onProgress?: ProgressCallback) => void;
+  interactive?: boolean;
+  initialViewMode?: ViewMode;
   /**
    * Enable file watching for live sync (default: true).
    * Set to false to disable watching - faster startup on large vaults.

@@ -6,7 +6,6 @@ import React, { useEffect, useReducer, useMemo, useRef } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "inkx";
 import chalk from "chalk";
 import { hyperlink } from "@beorn/chalkx";
-import { Spinner } from "@beorn/progressx/cli";
 import createDebug from "debug";
 
 const debug = createDebug("km:board");
@@ -132,7 +131,9 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Layout registry for card position tracking (used by h/l navigation)
   // Created once and never changes - stable reference for context
-  const layoutRegistryRef = useRef<ReturnType<typeof createLayoutRegistry> | null>(null);
+  const layoutRegistryRef = useRef<ReturnType<
+    typeof createLayoutRegistry
+  > | null>(null);
   if (!layoutRegistryRef.current) {
     layoutRegistryRef.current = createLayoutRegistry();
   }
@@ -405,13 +406,14 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Build top bar - use board's color as background, or blue if selected/no color
   const isBoardSelected = derivedSelectionLevel === "board";
 
-  // Render loading indicator until terminal is ready (see ui.isReady comment above)
-  // This prevents the flash/scroll caused by fullscreen-ink's alternate buffer race condition
-  // Note: Don't use centered layout here - it causes scroll issues when transitioning to the board
-  // INKX FIX: Don't render Loading indicator - it causes artifacts that don't get cleared.
-  // Instead, just render an empty screen briefly until dimensions sync.
+  // Render loading indicator until terminal is ready
+  // This prevents blank screen while waiting for alternate buffer to stabilize
   if (!ui.isReady) {
-    return <Box height={termHeight} width={termWidth} />;
+    return (
+      <Box height={termHeight} width={termWidth}>
+        <Text>Loading...</Text>
+      </Box>
+    );
   }
 
   return (
@@ -419,238 +421,238 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
       <LayoutProvider registry={layoutRegistry}>
         <UIProvider state={ui} dispatch={dispatch}>
           <Box
-          flexDirection="column"
-          width={termWidth}
-          height={termHeight}
-          minHeight={3}
-          overflow="hidden"
-        >
-          {/* Top bar: full path from root to selected item, spans full width */}
-          {/* Board root is bold, other segments are dimmed */}
-          {/* backgroundColor on Box ensures full width fill */}
-          <Box
-            flexShrink={0}
+            flexDirection="column"
             width={termWidth}
-            backgroundColor={isBoardSelected ? "yellow" : "white"}
-          >
-            <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
-              {renderTopBarContent(selectedPathSegments, isBoardSelected)}
-            </Text>
-          </Box>
-          <Box
-            flexGrow={1}
-            flexDirection="row"
-            minHeight={1}
-            maxHeight={contentHeight}
+            height={termHeight}
+            minHeight={3}
             overflow="hidden"
           >
-            {/* Cards, Columns, or List view */}
-            {ui.viewMode === "cards" ? (
-              <Box
-                flexDirection="row"
-                width={boardWidth}
-                height={contentHeight}
-              >
-                {/* Left scroll indicator - full height filled bar */}
-                {effectiveScrollOffset > 0 && (
-                  <VerticalScrollIndicator direction="left" />
-                )}
-                {effectiveVisibleColumns.map((col, i) => {
-                  const actualColIndex = effectiveScrollOffset + i;
-                  const isLastCol = i === effectiveVisibleColumns.length - 1;
-                  // Reduce column width if scroll indicators are shown
-                  const hasLeftIndicator = effectiveScrollOffset > 0;
-                  const hasRightIndicator =
-                    effectiveScrollOffset + effectiveMaxCols <
-                    state.columns.length;
-                  const indicatorWidth =
-                    (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
-                  // Account for separator lines between columns (1 char each, n-1 separators)
-                  const separatorCount = effectiveVisibleColumns.length - 1;
-                  const availableWidth =
-                    boardWidth - indicatorWidth - separatorCount;
-                  const baseColWidth = Math.floor(
-                    availableWidth / effectiveMaxCols,
-                  );
-                  const remainder = availableWidth % effectiveMaxCols;
-                  // Distribute extra pixels to the first 'remainder' columns
-                  const adjustedColWidth =
-                    baseColWidth + (i < remainder ? 1 : 0);
-                  return (
-                    <React.Fragment key={col.node.id}>
-                      <Column
-                        column={col}
-                        colIndex={actualColIndex}
-                        isSelected={actualColIndex === state.colIndex}
-                        isCollapsed={ui.collapsedColumns.has(actualColIndex)}
-                        selectedCardIndex={state.cardIndex}
-                        selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
-                        width={adjustedColWidth}
-                        height={contentHeight}
-                        selectionLevel={derivedSelectionLevel}
-                      />
-                      {/* Separator line between columns */}
-                      {!isLastCol && <ColumnSeparator />}
-                    </React.Fragment>
-                  );
-                })}
-                {/* Right scroll indicator - full height filled bar */}
-                {effectiveScrollOffset + effectiveMaxCols <
-                  state.columns.length && (
-                  <VerticalScrollIndicator direction="right" />
-                )}
-              </Box>
-            ) : ui.viewMode === "columns" ? (
-              <ColumnsView
-                state={state}
-                width={boardWidth}
-                height={contentHeight}
-                colIndex={state.colIndex}
-                cardIndex={state.cardIndex}
-                subIndex={ui.subIndex}
-                effectiveScrollOffset={effectiveScrollOffset}
-                effectiveMaxCols={effectiveMaxCols}
-                effectiveVisibleColumns={effectiveVisibleColumns}
-                selectionLevel={derivedSelectionLevel}
-              />
-            ) : ui.viewMode === "list" ? (
-              <ListView
-                state={state}
-                width={boardWidth}
-                height={contentHeight}
-                colIndex={state.colIndex}
-                cardIndex={state.cardIndex}
-                subIndex={ui.subIndex}
-                selectionLevel={derivedSelectionLevel}
-              />
-            ) : (
-              <TabsView
-                state={state}
-                width={boardWidth}
-                height={contentHeight}
-                colIndex={state.colIndex}
-                cardIndex={state.cardIndex}
-                subIndex={ui.subIndex}
-                selectionLevel={derivedSelectionLevel}
-              />
-            )}
-            {/* Detail pane */}
-            {ui.showDetailPane && selectedCard && (
-              <DetailPane
-                node={selectedCard.node}
-                width={detailPaneWidth}
-                height={contentHeight}
-              />
-            )}
-            {/* Project picker modal */}
-            {ui.showProjectPicker && (
-              <Box
-                position="absolute"
-                marginLeft={Math.floor(termWidth / 4)}
-                marginTop={Math.floor(contentHeight / 2)}
-              >
-                <ProjectPicker
-                  onSelect={handleProjectSelect}
-                  onCancel={handleProjectCancel}
-                  width={Math.floor(termWidth / 2)}
-                  height={Math.floor(contentHeight / 2)}
-                  recentProjectIds={ui.recentProjectIds}
+            {/* Top bar: full path from root to selected item, spans full width */}
+            {/* Board root is bold, other segments are dimmed */}
+            {/* backgroundColor on Box ensures full width fill */}
+            <Box
+              flexShrink={0}
+              width={termWidth}
+              backgroundColor={isBoardSelected ? "yellow" : "white"}
+            >
+              <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
+                {renderTopBarContent(selectedPathSegments, isBoardSelected)}
+              </Text>
+            </Box>
+            <Box
+              flexGrow={1}
+              flexDirection="row"
+              minHeight={1}
+              maxHeight={contentHeight}
+              overflow="hidden"
+            >
+              {/* Cards, Columns, or List view */}
+              {ui.viewMode === "cards" ? (
+                <Box
+                  flexDirection="row"
+                  width={boardWidth}
+                  height={contentHeight}
+                >
+                  {/* Left scroll indicator - full height filled bar */}
+                  {effectiveScrollOffset > 0 && (
+                    <VerticalScrollIndicator direction="left" />
+                  )}
+                  {effectiveVisibleColumns.map((col, i) => {
+                    const actualColIndex = effectiveScrollOffset + i;
+                    const isLastCol = i === effectiveVisibleColumns.length - 1;
+                    // Reduce column width if scroll indicators are shown
+                    const hasLeftIndicator = effectiveScrollOffset > 0;
+                    const hasRightIndicator =
+                      effectiveScrollOffset + effectiveMaxCols <
+                      state.columns.length;
+                    const indicatorWidth =
+                      (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
+                    // Account for separator lines between columns (1 char each, n-1 separators)
+                    const separatorCount = effectiveVisibleColumns.length - 1;
+                    const availableWidth =
+                      boardWidth - indicatorWidth - separatorCount;
+                    const baseColWidth = Math.floor(
+                      availableWidth / effectiveMaxCols,
+                    );
+                    const remainder = availableWidth % effectiveMaxCols;
+                    // Distribute extra pixels to the first 'remainder' columns
+                    const adjustedColWidth =
+                      baseColWidth + (i < remainder ? 1 : 0);
+                    return (
+                      <React.Fragment key={col.node.id}>
+                        <Column
+                          column={col}
+                          colIndex={actualColIndex}
+                          isSelected={actualColIndex === state.colIndex}
+                          isCollapsed={ui.collapsedColumns.has(actualColIndex)}
+                          selectedCardIndex={state.cardIndex}
+                          selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
+                          width={adjustedColWidth}
+                          height={contentHeight}
+                          selectionLevel={derivedSelectionLevel}
+                        />
+                        {/* Separator line between columns */}
+                        {!isLastCol && <ColumnSeparator />}
+                      </React.Fragment>
+                    );
+                  })}
+                  {/* Right scroll indicator - full height filled bar */}
+                  {effectiveScrollOffset + effectiveMaxCols <
+                    state.columns.length && (
+                    <VerticalScrollIndicator direction="right" />
+                  )}
+                </Box>
+              ) : ui.viewMode === "columns" ? (
+                <ColumnsView
+                  state={state}
+                  width={boardWidth}
+                  height={contentHeight}
+                  colIndex={state.colIndex}
+                  cardIndex={state.cardIndex}
+                  subIndex={ui.subIndex}
+                  effectiveScrollOffset={effectiveScrollOffset}
+                  effectiveMaxCols={effectiveMaxCols}
+                  effectiveVisibleColumns={effectiveVisibleColumns}
+                  selectionLevel={derivedSelectionLevel}
                 />
-              </Box>
-            )}
-            {/* New item dialog modal */}
-            {ui.showNewItemDialog && (
-              <Box
-                position="absolute"
-                marginLeft={Math.floor(termWidth / 4)}
-                marginTop={Math.floor(contentHeight / 3)}
-              >
-                <NewItemDialog
-                  cursorNode={selectedCard?.node ?? null}
-                  onCreate={handleNewItemCreate}
-                  onCancel={handleNewItemCancel}
-                  width={Math.floor(termWidth / 2)}
-                  height={10}
+              ) : ui.viewMode === "list" ? (
+                <ListView
+                  state={state}
+                  width={boardWidth}
+                  height={contentHeight}
+                  colIndex={state.colIndex}
+                  cardIndex={state.cardIndex}
+                  subIndex={ui.subIndex}
+                  selectionLevel={derivedSelectionLevel}
                 />
-              </Box>
-            )}
-            {/* Help overlay */}
-            {ui.showHelp && (
-              <HelpOverlay width={termWidth} height={contentHeight} />
-            )}
-          </Box>
-          {/* Bottom bar: left (truncatable) + right (fixed) */}
-          {(() => {
-            const store = getStore();
-            const homeDir = process.env.HOME || "";
+              ) : (
+                <TabsView
+                  state={state}
+                  width={boardWidth}
+                  height={contentHeight}
+                  colIndex={state.colIndex}
+                  cardIndex={state.cardIndex}
+                  subIndex={ui.subIndex}
+                  selectionLevel={derivedSelectionLevel}
+                />
+              )}
+              {/* Detail pane */}
+              {ui.showDetailPane && selectedCard && (
+                <DetailPane
+                  node={selectedCard.node}
+                  width={detailPaneWidth}
+                  height={contentHeight}
+                />
+              )}
+              {/* Project picker modal */}
+              {ui.showProjectPicker && (
+                <Box
+                  position="absolute"
+                  marginLeft={Math.floor(termWidth / 4)}
+                  marginTop={Math.floor(contentHeight / 2)}
+                >
+                  <ProjectPicker
+                    onSelect={handleProjectSelect}
+                    onCancel={handleProjectCancel}
+                    width={Math.floor(termWidth / 2)}
+                    height={Math.floor(contentHeight / 2)}
+                    recentProjectIds={ui.recentProjectIds}
+                  />
+                </Box>
+              )}
+              {/* New item dialog modal */}
+              {ui.showNewItemDialog && (
+                <Box
+                  position="absolute"
+                  marginLeft={Math.floor(termWidth / 4)}
+                  marginTop={Math.floor(contentHeight / 3)}
+                >
+                  <NewItemDialog
+                    cursorNode={selectedCard?.node ?? null}
+                    onCreate={handleNewItemCreate}
+                    onCancel={handleNewItemCancel}
+                    width={Math.floor(termWidth / 2)}
+                    height={10}
+                  />
+                </Box>
+              )}
+              {/* Help overlay */}
+              {ui.showHelp && (
+                <HelpOverlay width={termWidth} height={contentHeight} />
+              )}
+            </Box>
+            {/* Bottom bar: left (truncatable) + right (fixed) */}
+            {(() => {
+              const store = getStore();
+              const homeDir = process.env.HOME || "";
 
-            // Shorten path: replace home directory with ~/
-            let displayPath = store.rootPath || "";
-            if (homeDir && displayPath.startsWith(homeDir)) {
-              displayPath = "~" + displayPath.slice(homeDir.length);
-            }
+              // Shorten path: replace home directory with ~/
+              let displayPath = store.rootPath || "";
+              if (homeDir && displayPath.startsWith(homeDir)) {
+                displayPath = "~" + displayPath.slice(homeDir.length);
+              }
 
-            // Build status parts (middle)
-            const statusParts: string[] = [];
-            if (ui.showHelp) statusParts.push("[?]");
-            if (ui.showProjectPicker) statusParts.push("[PROJ]");
-            if (ui.showNewItemDialog) statusParts.push("[NEW]");
-            if (ui.showDropNotification && ui.droppedFiles.length > 0) {
-              statusParts.push(`[Drop:${ui.droppedFiles.length}]`);
-            }
-            if (ui.isMouseDragging && ui.mouseSelection) {
-              statusParts.push("[Sel]");
-            }
-            if (ui.multiSelected.size > 0) {
-              statusParts.push(`[${ui.multiSelected.size}]`);
-            }
-            if (ui.inOutlineMode) statusParts.push("OUT");
+              // Build status parts (middle)
+              const statusParts: string[] = [];
+              if (ui.showHelp) statusParts.push("[?]");
+              if (ui.showProjectPicker) statusParts.push("[PROJ]");
+              if (ui.showNewItemDialog) statusParts.push("[NEW]");
+              if (ui.showDropNotification && ui.droppedFiles.length > 0) {
+                statusParts.push(`[Drop:${ui.droppedFiles.length}]`);
+              }
+              if (ui.isMouseDragging && ui.mouseSelection) {
+                statusParts.push("[Sel]");
+              }
+              if (ui.multiSelected.size > 0) {
+                statusParts.push(`[${ui.multiSelected.size}]`);
+              }
+              if (ui.inOutlineMode) statusParts.push("OUT");
 
-            // Right side info (always visible)
-            // DB/files/watcher status as one group (single space), other items with double space
-            const dbCount = getNodeCount();
-            const watcherInfo = ui.watcherStatus
-              ? ` ${renderWatcherStatus(ui.watcherStatus)}`
-              : "";
-            // 📋 = clipboard for records/nodes, 📄 = file for watched files
-            const dbFilesGroup = `📋${dbCount}${watcherInfo}`;
+              // Right side info (always visible)
+              // DB/files/watcher status as one group (single space), other items with double space
+              const dbCount = getNodeCount();
+              const watcherInfo = ui.watcherStatus
+                ? ` ${renderWatcherStatus(ui.watcherStatus)}`
+                : "";
+              // 📋 = clipboard for records/nodes, 📄 = file for watched files
+              const dbFilesGroup = `📋${dbCount}${watcherInfo}`;
 
-            const rightParts: string[] = [dbFilesGroup];
-            // Show column position (only meaningful in columns view)
-            if (ui.viewMode === "columns" && state.columns.length > 1) {
-              rightParts.push(
-                `col ${state.colIndex + 1}/${state.columns.length}`,
+              const rightParts: string[] = [dbFilesGroup];
+              // Show column position (only meaningful in columns view)
+              if (ui.viewMode === "columns" && state.columns.length > 1) {
+                rightParts.push(
+                  `col ${state.colIndex + 1}/${state.columns.length}`,
+                );
+              }
+              // Always show view mode with VIEW suffix
+              const viewModeStr =
+                (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW";
+              rightParts.push(viewModeStr);
+
+              // Left side: storage mode + folder icon + path
+              // 📁 = folder icon for vault/repo path
+              const modeLabel = store.mode === "memory" ? "MEM" : "DISK";
+              const left = `${modeLabel} 📁${displayPath}`;
+              const middle = statusParts.join("  "); // Double space between status parts
+              const right = ` ${rightParts.join("   ")} `; // Triple space between groups
+
+              // Calculate widths: right side is fixed, left gets remaining space
+              const rightWidth = right.length;
+              const leftWidth = Math.max(1, termWidth - rightWidth);
+
+              return (
+                <Box flexDirection="row" flexShrink={0} width={termWidth}>
+                  <Box width={leftWidth} flexShrink={0}>
+                    <Text dimColor wrap="truncate-end">
+                      {middle ? ` ${left}   ${middle}` : ` ${left}`}
+                    </Text>
+                  </Box>
+                  <Box width={rightWidth} flexShrink={0}>
+                    <Text dimColor>{right}</Text>
+                  </Box>
+                </Box>
               );
-            }
-            // Always show view mode with VIEW suffix
-            const viewModeStr =
-              (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW";
-            rightParts.push(viewModeStr);
-
-            // Left side: storage mode + folder icon + path
-            // 📁 = folder icon for vault/repo path
-            const modeLabel = store.mode === "memory" ? "MEM" : "DISK";
-            const left = `${modeLabel} 📁${displayPath}`;
-            const middle = statusParts.join("  "); // Double space between status parts
-            const right = ` ${rightParts.join("   ")} `; // Triple space between groups
-
-            // Calculate widths: right side is fixed, left gets remaining space
-            const rightWidth = right.length;
-            const leftWidth = Math.max(1, termWidth - rightWidth);
-
-            return (
-              <Box flexDirection="row" flexShrink={0} width={termWidth}>
-                <Box width={leftWidth} flexShrink={0}>
-                  <Text dimColor wrap="truncate-end">
-                    {middle ? ` ${left}   ${middle}` : ` ${left}`}
-                  </Text>
-                </Box>
-                <Box width={rightWidth} flexShrink={0}>
-                  <Text dimColor>{right}</Text>
-                </Box>
-              </Box>
-            );
-          })()}
+            })()}
           </Box>
         </UIProvider>
       </LayoutProvider>
@@ -849,58 +851,6 @@ export async function renderInkxBoard(
 // =============================================================================
 // Render Entry Points
 // =============================================================================
-
-/**
- * Render the board TUI with deferred loading.
- * Loads state synchronously, then renders the board.
- * Shows a loading indicator during the synchronous load.
- *
- * Note: Originally used useEffect for loading with a spinner, but inkx's
- * React reconciler doesn't flush passive effects reliably in all environments.
- * We now use direct stdout writes for the loading indicator.
- */
-export async function renderDeferredBoard(
-  loadState: () => BoardState | null,
-  initialViewMode?: ViewMode,
-  engine: TuiEngine = "inkx",
-): Promise<void> {
-  debug("renderDeferredBoard start, engine=%s", engine);
-
-  const stdout = process.stdout;
-
-  // Clear screen and show spinner while loading
-  stdout.write("\x1b[2J\x1b[H"); // Clear screen, move to top-left
-  const spinner = new Spinner({ text: "Loading vault...", style: "dots" });
-  spinner.start();
-
-  // Load state synchronously before rendering
-  const startTime = Date.now();
-  const state = loadState();
-  const loadTime = Date.now() - startTime;
-  debug("Board state loaded in %dms", loadTime);
-
-  // Stop spinner and clear screen before rendering board
-  spinner.stop();
-  stdout.write("\x1b[2J\x1b[H");
-
-  if (!state) {
-    console.error("No board found. Create a board node or specify a root ID.");
-    process.exit(1);
-  }
-
-  const app = <Board initialState={state} initialViewMode={initialViewMode} />;
-
-  const engineApi = getEngine(engine);
-  debug("Got engine API");
-
-  const { waitUntilExit } = await engineApi.render(app, {
-    exitOnCtrlC: true,
-    patchConsole: true,
-  });
-  debug("Render complete, awaiting exit");
-
-  await waitUntilExit();
-}
 
 // Testable version of Board component with fixed ui.dimensions for testing
 interface TestBoardProps {

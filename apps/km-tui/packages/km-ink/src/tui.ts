@@ -10,46 +10,19 @@ import createDebug from "debug";
 import type { BoardState, TuiEngine, TuiOptions } from "./types.ts";
 import { initBoardState } from "./state.ts";
 import { renderBoardStatic } from "./render.ts";
-import { renderInkxBoard, renderDeferredBoard } from "./views/index.ts";
+import { renderInkxBoard } from "./views/index.ts";
 import { setFsSync, SyncManager } from "@km/storage";
 
 const debug = createDebug("km:tui");
+
+/** Default TUI engine - inkx with pure JS flexbox */
+const DEFAULT_ENGINE: TuiEngine = "inkx-flexx";
 
 /**
  * Global event emitter for TUI refresh events
  * Board components can subscribe to this to refresh when filesystem changes
  */
 export const tuiEvents = new EventEmitter();
-
-/**
- * Run the interactive board TUI using the specified engine
- * Returns when the user quits
- */
-export async function runBoardTUI(
-  initialState: BoardState,
-  options?: TuiOptions,
-): Promise<void> {
-  const stdin = process.stdin;
-  const stdout = process.stdout;
-
-  // Check if we're in a TTY - if not, fall back to static mode
-  // FORCE_TTY=1 bypasses TTY check for headless testing (ttyd + Playwright)
-  const forceTTY = process.env.FORCE_TTY === "1";
-  if (!forceTTY && (!stdin.isTTY || !stdout.isTTY)) {
-    console.log(chalk.yellow("Not running in a TTY, using static mode"));
-    const width = process.stdout.columns || 80;
-    console.log(renderBoardStatic(initialState, width));
-    return;
-  }
-
-  const engine: TuiEngine = options?.engine ?? "inkx";
-
-  // Supported TUI engines:
-  // - inkx: Custom Ink fork with double-buffering and native overflow="scroll" support
-  // - inkx-flexx: inkx with pure JS flexbox (replaces yoga-wasm)
-
-  await renderInkxBoard(initialState, options?.initialViewMode, engine);
-}
 
 /**
  * Run the board in static (non-interactive) mode
@@ -61,93 +34,18 @@ export function runBoardStatic(state: BoardState): void {
 
 /**
  * Entry point for the board command
+ *
+ * State must already be loaded (via ensureState) before calling this.
+ * The CLI handles loading state with progress indicator.
  */
 export async function runBoard(
   rootId?: string,
-  interactive: boolean = true,
   rootPath?: string,
   options?: TuiOptions,
 ): Promise<void> {
   debug("runBoard start");
 
-  // For interactive mode, use deferred loading to show spinner while vault loads
-  if (interactive) {
-    // Initialize filesystem sync if we have a vault path
-    // Watch can be disabled via: --no-watch CLI flag or config tui.watch=false
-    // Note: Disabling watch still allows TUI edits to write to filesystem,
-    // it just disables watching for external file changes (which blocks event loop on large vaults)
-    const watchEnabled = options?.watch !== false;
-    const useWorker = options?.watchWorker !== false;
-    let syncManager: SyncManager | null = null;
-    if (rootPath) {
-      debug("Creating SyncManager for: %s (watch=%s, worker=%s)", rootPath, watchEnabled, useWorker);
-      syncManager = new SyncManager({
-        vaultPath: rootPath,
-        debounceFs: 2000, // Debounce external changes (2s)
-        debounceApply: 100, // Small debounce for batching TUI changes
-        conflictStrategy: "last_write_wins",
-        useWorker, // Use worker thread by default (non-blocking)
-      });
-
-      // Wire up TUI changes → filesystem (always enabled for writes)
-      setFsSync(syncManager);
-
-      if (watchEnabled) {
-        // Wire up filesystem changes → TUI refresh
-        syncManager.on("state-change", (newState) => {
-          // When sync manager finishes reconciling external changes, refresh TUI
-          if (newState === "idle") {
-            tuiEvents.emit("refresh");
-          }
-        });
-
-        // Forward watcher status to TUI for bottom bar display
-        syncManager.on("watcher-status", (status) => {
-          tuiEvents.emit("watcher-status", status);
-        });
-
-        // Start the watcher
-        // With worker-based watching (default), this returns immediately (non-blocking)
-        // With direct watching (useWorker=false), chokidar may block during FSEvents setup
-        debug("Starting syncManager...");
-        syncManager.start();
-        debug("syncManager started");
-      } else {
-        debug("File watching disabled - TUI edits will still write to filesystem");
-      }
-    }
-
-    try {
-      debug("Starting interactive TUI with deferred loading");
-      // Pass the loader function so UI can show spinner while loading
-      // This includes both ensureState (sync vault) and initBoardState (build tree)
-      // The loader receives a progress callback to update the spinner text
-      const loadBoardState = (onProgress?: import("@beorn/progressx").ProgressCallback) => {
-        // First, initialize database state if callback provided (this is the slow part)
-        if (options?.initializeState) {
-          debug("Calling initializeState callback");
-          options.initializeState(onProgress);
-          debug("initializeState callback complete");
-        }
-        // Then build the board state from the database
-        const state = initBoardState(rootId);
-        if (state && rootPath) {
-          state.rootPath = rootPath;
-        }
-        return state;
-      };
-      await renderDeferredBoard(loadBoardState, options?.initialViewMode, options?.engine);
-    } finally {
-      // Clean up sync manager
-      if (syncManager) {
-        setFsSync(null);
-        await syncManager.stop();
-      }
-    }
-    return;
-  }
-
-  // Non-interactive mode: load state synchronously
+  // Build board state from the already-loaded database
   const state = initBoardState(rootId);
   debug("initBoardState complete");
 
@@ -162,5 +60,79 @@ export async function runBoard(
     state.rootPath = rootPath;
   }
 
-  runBoardStatic(state);
+  // Non-interactive mode: just print and exit
+  const interactive = options?.interactive !== false;
+  if (!interactive) {
+    runBoardStatic(state);
+    return;
+  }
+
+  // Interactive mode: check TTY
+  const stdin = process.stdin;
+  const stdout = process.stdout;
+  const forceTTY = process.env.FORCE_TTY === "1";
+  if (!forceTTY && (!stdin.isTTY || !stdout.isTTY)) {
+    console.log(chalk.yellow("Not running in a TTY, using static mode"));
+    runBoardStatic(state);
+    return;
+  }
+
+  // Initialize filesystem sync if we have a vault path
+  // Watch can be disabled via: --no-watch CLI flag or config tui.watch=false
+  // Note: Disabling watch still allows TUI edits to write to filesystem,
+  // it just disables watching for external file changes
+  const watchEnabled = options?.watch !== false;
+  const useWorker = options?.watchWorker !== false;
+  let syncManager: SyncManager | null = null;
+
+  if (rootPath) {
+    debug("Creating SyncManager", {
+      rootPath,
+      watch: watchEnabled,
+      worker: useWorker,
+    });
+    syncManager = new SyncManager({
+      vaultPath: rootPath,
+      debounceFs: 2000, // Debounce external changes (2s)
+      debounceApply: 100, // Small debounce for batching TUI changes
+      conflictStrategy: "last_write_wins",
+      useWorker, // Use worker thread by default (non-blocking)
+    });
+
+    // Wire up TUI changes → filesystem (always enabled for writes)
+    setFsSync(syncManager);
+
+    if (watchEnabled) {
+      // Wire up filesystem changes → TUI refresh
+      syncManager.on("state-change", (newState) => {
+        if (newState === "idle") {
+          tuiEvents.emit("refresh");
+        }
+      });
+
+      // Forward watcher status to TUI for bottom bar display
+      syncManager.on("watcher-status", (status) => {
+        tuiEvents.emit("watcher-status", status);
+      });
+
+      debug("Starting syncManager...");
+      syncManager.start();
+      debug("syncManager started");
+    } else {
+      debug(
+        "File watching disabled - TUI edits will still write to filesystem",
+      );
+    }
+  }
+
+  try {
+    debug("Starting interactive TUI");
+    await renderInkxBoard(state, options?.initialViewMode, DEFAULT_ENGINE);
+  } finally {
+    // Clean up sync manager
+    if (syncManager) {
+      setFsSync(null);
+      await syncManager.stop();
+    }
+  }
 }

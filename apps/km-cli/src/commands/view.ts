@@ -9,12 +9,12 @@ import createDebug from "debug";
 import { Command } from "commander";
 
 const debug = createDebug("km:cli:view");
-import { runBoard, type ViewMode, type TuiEngine } from "@km/ink";
-import { getRootPath } from "../index.ts";
-import { resolvePathArg, ensureState, getTuiConfig, runWithProgress } from "@km/storage";
+
+// Heavy modules are imported dynamically - spinner shows while they load
+
+type ViewMode = "cards" | "columns" | "list" | "tabs";
 
 const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"];
-const TUI_ENGINES: TuiEngine[] = ["inkx", "inkx-flexx"];
 
 export const viewCommand = new Command("view")
   .description("Interactive TUI view (press 'v' to cycle modes)")
@@ -26,58 +26,59 @@ export const viewCommand = new Command("view")
     "cards",
   )
   .option(
-    "--tui <engine>",
-    `TUI rendering engine: ${TUI_ENGINES.join(", ")} (default: inkx-flexx)`,
-    "inkx-flexx",
+    "--no-watch",
+    "Disable file watching (faster startup on large vaults)",
   )
-  .option("--no-watch", "Disable file watching (faster startup on large vaults)")
   .action(async (root, options) => {
-    debug("view command: root=%s, as=%s, tui=%s, watch=%s", root, options.as, options.tui, options.watch);
+    debug("view command", { root, as: options.as, watch: options.watch });
+
+    // Dynamic imports - "Loading..." already visible while they load
+    const [
+      { runBoard },
+      { resolvePathArg, ensureState, getTuiConfig, runWithProgress },
+      { getRootPath },
+      { createSpinner, CURSOR_TO_START, CLEAR_LINE_END },
+    ] = await Promise.all([
+      import("@km/ink"),
+      import("@km/storage"),
+      import("../index.ts"),
+      import("@beorn/progressx/cli"),
+    ]);
 
     // Resolve path argument - handles directory paths, file paths, and node IDs
     const resolved = resolvePathArg(root, getRootPath());
-    debug("resolved: vaultRoot=%s, nodeRef=%s", resolved.vaultRoot, resolved.nodeRef);
+    debug("resolved", resolved);
 
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
-    const engine = TUI_ENGINES.includes(options.tui) ? options.tui : "inkx";
+    const interactive = options.interactive !== false;
 
     // Watch options: CLI flag > config > default (true)
-    // --no-watch flag sets options.watch to false
     const tuiConfig = getTuiConfig(resolved.vaultRoot);
     const watchEnabled = options.watch !== false ? tuiConfig.watch : false;
-    const watchWorker = tuiConfig.watchWorker; // Worker-based watching (default: true, non-blocking)
-    debug("watchEnabled=%s, watchWorker=%s (cli=%s, config=%s)", watchEnabled, watchWorker, options.watch, tuiConfig.watch);
+    const watchWorker = tuiConfig.watchWorker;
+    debug("watch config", {
+      watchEnabled,
+      watchWorker,
+      cli: options.watch,
+      config: tuiConfig.watch,
+    });
 
-    // For interactive mode, pass ensureState as callback so TUI can show loading indicator
-    // For non-interactive mode, ensure state synchronously before rendering
-    if (options.interactive !== false) {
-      debug("launching TUI with deferred state initialization: mode=%s, engine=%s, watch=%s, worker=%s", viewMode, engine, watchEnabled, watchWorker);
-      await runBoard(
-        resolved.nodeRef ?? undefined,
-        true,
-        resolved.vaultRoot,
-        {
-          initialViewMode: viewMode as ViewMode,
-          engine: engine as TuiEngine,
-          watch: watchEnabled,
-          watchWorker, // Worker-based watching (non-blocking)
-          // Deferred loading: TUI will call this and show spinner while it runs
-          // Progress callback updates spinner text with current phase/count
-          initializeState: (onProgress) => runWithProgress(ensureState(resolved.vaultRoot, false), onProgress),
-        },
-      );
-    } else {
-      // Non-interactive mode: load state first, then render
-      runWithProgress(ensureState(resolved.vaultRoot, false));
-      debug("launching static view: mode=%s", viewMode);
-      await runBoard(
-        resolved.nodeRef ?? undefined,
-        false,
-        resolved.vaultRoot,
-        {
-          initialViewMode: viewMode as ViewMode,
-          engine: engine as TuiEngine,
-        },
-      );
-    }
+    // Load state with spinner (same for both modes)
+    // Clear the "Loading..." line from index.ts before showing spinner
+    process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END);
+    {
+      using spinner = createSpinner({ style: "dots" });
+      runWithProgress(ensureState(resolved.vaultRoot, false), (info) => {
+        spinner(`${info.phase}: ${info.current}/${info.total}`);
+      });
+    } // spinner auto-stops via Symbol.dispose
+
+    // Run board with loaded state
+    debug("launching board", { viewMode, interactive, watchEnabled });
+    await runBoard(resolved.nodeRef ?? undefined, resolved.vaultRoot, {
+      interactive,
+      initialViewMode: viewMode as ViewMode,
+      watch: watchEnabled,
+      watchWorker,
+    });
   });
