@@ -64,7 +64,9 @@ async function captureScreenshot(
       console.error(`Verifying text "${options.waitFor}" is present...`);
       const content = await page.textContent("body");
       if (!content?.includes(options.waitFor)) {
-        throw new Error(`Expected text "${options.waitFor}" not found in terminal`);
+        throw new Error(
+          `Expected text "${options.waitFor}" not found in terminal`,
+        );
       }
     }
 

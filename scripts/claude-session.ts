@@ -110,7 +110,7 @@ async function parseSessionFile(
     timestamp: string;
     filePath: string;
     content: string;
-  }) => void
+  }) => void,
 ): Promise<number> {
   const fileStream = fs.createReadStream(filePath);
   const rl = readline.createInterface({
@@ -179,7 +179,10 @@ async function getSessionInfo(filePath: string): Promise<SessionInfo> {
   let sessionId = path.basename(filePath, ".jsonl");
 
   const fileStream = fs.createReadStream(filePath);
-  const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
+  const rl = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity,
+  });
 
   for await (const line of rl) {
     if (!line.trim()) continue;
@@ -219,7 +222,10 @@ async function cmdList(projectFilter?: string): Promise<void> {
     const relativePath = path.relative(PROJECTS_DIR, sessionFile);
     const project = relativePath.split(path.sep)[0] || "";
 
-    if (projectFilter && !project.toLowerCase().includes(projectFilter.toLowerCase())) {
+    if (
+      projectFilter &&
+      !project.toLowerCase().includes(projectFilter.toLowerCase())
+    ) {
       continue;
     }
 
@@ -262,7 +268,9 @@ async function cmdList(projectFilter?: string): Promise<void> {
     console.log();
   }
 
-  console.log(`Total: ${sessions.length} sessions across ${byProject.size} projects`);
+  console.log(
+    `Total: ${sessions.length} sessions across ${byProject.size} projects`,
+  );
 }
 
 async function cmdShow(sessionIdOrFile: string): Promise<void> {
@@ -271,7 +279,10 @@ async function cmdShow(sessionIdOrFile: string): Promise<void> {
 
   for await (const file of findSessionFiles()) {
     const basename = path.basename(file, ".jsonl");
-    if (basename.startsWith(sessionIdOrFile) || file.includes(sessionIdOrFile)) {
+    if (
+      basename.startsWith(sessionIdOrFile) ||
+      file.includes(sessionIdOrFile)
+    ) {
       sessionFile = file;
       break;
     }
@@ -287,21 +298,33 @@ async function cmdShow(sessionIdOrFile: string): Promise<void> {
   const info = await getSessionInfo(sessionFile);
 
   console.log(`Session ID:    ${info.sessionId}`);
-  console.log(`Project:       ${info.project.replace(/-/g, "/").replace(/^-/, "/")}`);
+  console.log(
+    `Project:       ${info.project.replace(/-/g, "/").replace(/^-/, "/")}`,
+  );
   console.log(`Size:          ${formatBytes(info.size)}`);
   console.log(`Messages:      ${info.messageCount}`);
   if (info.firstTimestamp) {
-    console.log(`Started:       ${new Date(info.firstTimestamp).toLocaleString()}`);
+    console.log(
+      `Started:       ${new Date(info.firstTimestamp).toLocaleString()}`,
+    );
   }
   if (info.lastTimestamp) {
-    console.log(`Last activity: ${new Date(info.lastTimestamp).toLocaleString()}`);
+    console.log(
+      `Last activity: ${new Date(info.lastTimestamp).toLocaleString()}`,
+    );
   }
 
   // Show file writes in this session
   const db = getDb();
   const writes = db
-    .prepare("SELECT file_path, timestamp, content_size FROM writes WHERE session_id = ? ORDER BY timestamp")
-    .all(info.sessionId) as { file_path: string; timestamp: string; content_size: number }[];
+    .prepare(
+      "SELECT file_path, timestamp, content_size FROM writes WHERE session_id = ? ORDER BY timestamp",
+    )
+    .all(info.sessionId) as {
+    file_path: string;
+    timestamp: string;
+    content_size: number;
+  }[];
 
   if (writes.length > 0) {
     console.log(`\nFile writes (${writes.length}):`);
@@ -340,7 +363,9 @@ async function cmdIndex(): Promise<void> {
   for await (const sessionFile of findSessionFiles()) {
     totalFiles++;
     const relativePath = path.relative(PROJECTS_DIR, sessionFile);
-    process.stdout.write(`\rProcessing: ${relativePath.slice(0, 60).padEnd(60)}`);
+    process.stdout.write(
+      `\rProcessing: ${relativePath.slice(0, 60).padEnd(60)}`,
+    );
 
     const writes = await parseSessionFile(sessionFile, (write) => {
       const hash = hashContent(write.content);
@@ -359,23 +384,23 @@ async function cmdIndex(): Promise<void> {
         write.filePath,
         hash,
         contentSize,
-        contentSize <= MAX_CONTENT_SIZE ? write.content : null
+        contentSize <= MAX_CONTENT_SIZE ? write.content : null,
       );
       totalWrites++;
     });
   }
 
   // Store metadata
-  db.prepare("INSERT OR REPLACE INTO index_meta (key, value) VALUES (?, ?)").run(
-    "last_rebuild",
-    new Date().toISOString()
-  );
-  db.prepare("INSERT OR REPLACE INTO index_meta (key, value) VALUES (?, ?)").run(
-    "total_files",
-    String(totalFiles)
-  );
+  db.prepare(
+    "INSERT OR REPLACE INTO index_meta (key, value) VALUES (?, ?)",
+  ).run("last_rebuild", new Date().toISOString());
+  db.prepare(
+    "INSERT OR REPLACE INTO index_meta (key, value) VALUES (?, ?)",
+  ).run("total_files", String(totalFiles));
 
-  console.log(`\n\nIndexed ${totalWrites} unique writes from ${totalFiles} session files`);
+  console.log(
+    `\n\nIndexed ${totalWrites} unique writes from ${totalFiles} session files`,
+  );
   db.close();
 }
 
@@ -383,7 +408,10 @@ async function cmdSearch(pattern: string): Promise<void> {
   const db = getDb();
 
   // Convert glob pattern to SQL LIKE pattern
-  const sqlPattern = pattern.replace(/\*\*/g, "%").replace(/\*/g, "%").replace(/\?/g, "_");
+  const sqlPattern = pattern
+    .replace(/\*\*/g, "%")
+    .replace(/\*/g, "%")
+    .replace(/\?/g, "_");
 
   const rows = db
     .prepare(
@@ -392,7 +420,7 @@ async function cmdSearch(pattern: string): Promise<void> {
     FROM writes
     WHERE file_path LIKE ?
     ORDER BY timestamp DESC
-  `
+  `,
     )
     .all(`%${sqlPattern}%`) as WriteRecord[];
 
@@ -417,7 +445,9 @@ async function cmdSearch(pattern: string): Promise<void> {
       // Show up to 5 versions
       const date = new Date(v.timestamp).toLocaleString();
       const size = formatBytes(v.content_size);
-      console.log(`   ${date}  ${size}  [${v.content_hash}]  session:${v.session_id.slice(0, 8)}`);
+      console.log(
+        `   ${date}  ${size}  [${v.content_hash}]  session:${v.session_id.slice(0, 8)}`,
+      );
     }
     if (versions.length > 5) {
       console.log(`   ... and ${versions.length - 5} more versions`);
@@ -447,7 +477,11 @@ async function cmdWrites(dateFilter?: string): Promise<void> {
   const rows = db.prepare(query).all(...params) as WriteRecord[];
 
   if (rows.length === 0) {
-    console.log(dateFilter ? `No writes found for date: ${dateFilter}` : "No writes found");
+    console.log(
+      dateFilter
+        ? `No writes found for date: ${dateFilter}`
+        : "No writes found",
+    );
     return;
   }
 
@@ -503,27 +537,37 @@ async function cmdRestore(filePath: string, sessionId?: string): Promise<void> {
       console.log("// " + "=".repeat(70));
       console.log(row.content);
     } else {
-      console.log(`Content not stored (file was ${formatBytes(row.content_size)}, exceeds 1MB limit)`);
+      console.log(
+        `Content not stored (file was ${formatBytes(row.content_size)}, exceeds 1MB limit)`,
+      );
       console.log(`Session file: ${row.session_file}`);
       console.log(`Tool use ID: ${row.tool_use_id}`);
-      console.log("\nTo extract manually, search the session file for the tool_use_id");
+      console.log(
+        "\nTo extract manually, search the session file for the tool_use_id",
+      );
     }
   } else {
     // Multiple results - show list
-    console.log(`Found ${rows.length} versions of files matching "${filePath}":\n`);
+    console.log(
+      `Found ${rows.length} versions of files matching "${filePath}":\n`,
+    );
 
     for (let i = 0; i < Math.min(rows.length, 20); i++) {
       const row = rows[i];
       const date = new Date(row.timestamp).toLocaleString();
       const hasContent = row.content ? "✓" : "✗";
-      console.log(`${i + 1}. ${date}  [${row.content_hash}]  ${hasContent}content  session:${row.session_id.slice(0, 8)}`);
+      console.log(
+        `${i + 1}. ${date}  [${row.content_hash}]  ${hasContent}content  session:${row.session_id.slice(0, 8)}`,
+      );
       if (row.file_path !== filePath) {
         console.log(`   ${row.file_path}`);
       }
     }
 
     console.log("\nTo restore a specific version, use:");
-    console.log(`  bun ./scripts/claude-session.ts restore "${rows[0]!.file_path}" --session <session-id>`);
+    console.log(
+      `  bun ./scripts/claude-session.ts restore "${rows[0]!.file_path}" --session <session-id>`,
+    );
   }
 
   db.close();
@@ -532,31 +576,47 @@ async function cmdRestore(filePath: string, sessionId?: string): Promise<void> {
 async function cmdStats(): Promise<void> {
   const db = getDb();
 
-  const totalWrites = (db.prepare("SELECT COUNT(*) as count FROM writes").get() as { count: number }).count;
+  const totalWrites = (
+    db.prepare("SELECT COUNT(*) as count FROM writes").get() as {
+      count: number;
+    }
+  ).count;
   const uniqueFiles = (
-    db.prepare("SELECT COUNT(DISTINCT file_path) as count FROM writes").get() as { count: number }
+    db
+      .prepare("SELECT COUNT(DISTINCT file_path) as count FROM writes")
+      .get() as { count: number }
   ).count;
   const uniqueSessions = (
-    db.prepare("SELECT COUNT(DISTINCT session_id) as count FROM writes").get() as { count: number }
+    db
+      .prepare("SELECT COUNT(DISTINCT session_id) as count FROM writes")
+      .get() as { count: number }
   ).count;
   const totalSize = (
-    db.prepare("SELECT SUM(content_size) as total FROM writes").get() as { total: number }
+    db.prepare("SELECT SUM(content_size) as total FROM writes").get() as {
+      total: number;
+    }
   ).total;
   const storedContent = (
-    db.prepare("SELECT COUNT(*) as count FROM writes WHERE content IS NOT NULL").get() as { count: number }
+    db
+      .prepare("SELECT COUNT(*) as count FROM writes WHERE content IS NOT NULL")
+      .get() as { count: number }
   ).count;
 
-  const lastRebuild = db.prepare("SELECT value FROM index_meta WHERE key = 'last_rebuild'").get() as
-    | { value: string }
-    | undefined;
+  const lastRebuild = db
+    .prepare("SELECT value FROM index_meta WHERE key = 'last_rebuild'")
+    .get() as { value: string } | undefined;
 
   console.log("Session Index Statistics\n");
   console.log(`Total writes indexed:    ${totalWrites.toLocaleString()}`);
   console.log(`Unique files:            ${uniqueFiles.toLocaleString()}`);
   console.log(`Unique sessions:         ${uniqueSessions.toLocaleString()}`);
   console.log(`Total content written:   ${formatBytes(totalSize || 0)}`);
-  console.log(`Writes with content:     ${storedContent.toLocaleString()} (${((storedContent / totalWrites) * 100).toFixed(1)}%)`);
-  console.log(`Last rebuild:            ${lastRebuild ? new Date(lastRebuild.value).toLocaleString() : "never"}`);
+  console.log(
+    `Writes with content:     ${storedContent.toLocaleString()} (${((storedContent / totalWrites) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `Last rebuild:            ${lastRebuild ? new Date(lastRebuild.value).toLocaleString() : "never"}`,
+  );
   console.log(`Database location:       ${DB_PATH}`);
 
   // Top 10 most written files
@@ -568,7 +628,7 @@ async function cmdStats(): Promise<void> {
     GROUP BY file_path
     ORDER BY count DESC
     LIMIT 10
-  `
+  `,
     )
     .all() as { file_path: string; count: number }[];
 
@@ -593,7 +653,10 @@ interface GrepMatch {
   matchLine: string; // The actual matching line
 }
 
-async function cmdGrep(pattern: string, options: { project?: string; limit?: number; context?: number }): Promise<void> {
+async function cmdGrep(
+  pattern: string,
+  options: { project?: string; limit?: number; context?: number },
+): Promise<void> {
   const { project, limit = 50, context: contextLines = 2 } = options;
 
   console.log(`Searching for "${pattern}" in session content...\n`);
@@ -664,7 +727,9 @@ async function cmdGrep(pattern: string, options: { project?: string; limit?: num
   }
 
   if (matches.length === 0) {
-    console.log(`No matches found for "${pattern}" in ${filesSearched} session files.`);
+    console.log(
+      `No matches found for "${pattern}" in ${filesSearched} session files.`,
+    );
     return;
   }
 
@@ -681,16 +746,31 @@ async function cmdGrep(pattern: string, options: { project?: string; limit?: num
 
   for (const [sessionId, sessionMatches] of bySession) {
     const firstMatch = sessionMatches[0]!;
-    const displayProject = firstMatch.sessionFile.split(path.sep)[0]?.replace(/-/g, "/").replace(/^-/, "/") || "";
-    const date = firstMatch.timestamp ? new Date(firstMatch.timestamp).toLocaleDateString() : "unknown date";
+    const displayProject =
+      firstMatch.sessionFile
+        .split(path.sep)[0]
+        ?.replace(/-/g, "/")
+        .replace(/^-/, "/") || "";
+    const date = firstMatch.timestamp
+      ? new Date(firstMatch.timestamp).toLocaleDateString()
+      : "unknown date";
 
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-    console.log(`📁 Session: ${sessionId.slice(0, 12)}...  |  Project: ${displayProject}  |  ${date}`);
+    console.log(
+      `📁 Session: ${sessionId.slice(0, 12)}...  |  Project: ${displayProject}  |  ${date}`,
+    );
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
     for (const match of sessionMatches.slice(0, 5)) {
-      const time = match.timestamp ? new Date(match.timestamp).toLocaleTimeString() : "";
-      const role = match.type === "user" ? "👤 User" : match.type === "assistant" ? "🤖 Assistant" : match.type;
+      const time = match.timestamp
+        ? new Date(match.timestamp).toLocaleTimeString()
+        : "";
+      const role =
+        match.type === "user"
+          ? "👤 User"
+          : match.type === "assistant"
+            ? "🤖 Assistant"
+            : match.type;
 
       console.log(`\n${role} (${time}):`);
       console.log("─".repeat(60));
@@ -701,7 +781,9 @@ async function cmdGrep(pattern: string, options: { project?: string; limit?: num
     }
 
     if (sessionMatches.length > 5) {
-      console.log(`\n  ... and ${sessionMatches.length - 5} more matches in this session`);
+      console.log(
+        `\n  ... and ${sessionMatches.length - 5} more matches in this session`,
+      );
     }
     console.log();
   }
@@ -778,7 +860,10 @@ function highlightMatch(text: string, regex: RegExp): string {
   const BOLD = "\x1b[1m";
   const RESET = "\x1b[0m";
 
-  return text.replace(new RegExp(`(${regex.source})`, "gi"), `${BOLD}${YELLOW}$1${RESET}`);
+  return text.replace(
+    new RegExp(`(${regex.source})`, "gi"),
+    `${BOLD}${YELLOW}$1${RESET}`,
+  );
 }
 
 function formatBytes(bytes: number): string {
@@ -855,10 +940,16 @@ if (import.meta.main) {
 
     case "grep": {
       if (!args[1]) {
-        console.error("Usage: claude-session grep <pattern> [--project name] [--limit n] [--context n]");
+        console.error(
+          "Usage: claude-session grep <pattern> [--project name] [--limit n] [--context n]",
+        );
         process.exit(1);
       }
-      const grepOptions: { project?: string; limit?: number; context?: number } = {};
+      const grepOptions: {
+        project?: string;
+        limit?: number;
+        context?: number;
+      } = {};
       const projectIdx = args.indexOf("--project");
       if (projectIdx !== -1 && args[projectIdx + 1]) {
         grepOptions.project = args[projectIdx + 1];
@@ -887,7 +978,9 @@ if (import.meta.main) {
 
     case "restore": {
       if (!args[1]) {
-        console.error("Usage: claude-session restore <file-path> [--session <id>]");
+        console.error(
+          "Usage: claude-session restore <file-path> [--session <id>]",
+        );
         process.exit(1);
       }
       let sessionId: string | undefined;

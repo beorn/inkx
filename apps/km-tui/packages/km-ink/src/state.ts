@@ -5,6 +5,7 @@
  */
 
 import type { KNode } from "@km/core";
+import type { ProgressInfo } from "@beorn/progressx";
 import type {
   BoardState,
   ColumnState,
