@@ -12,7 +12,7 @@ const debug = createDebug("km:board");
 import type { BoardState, ViewMode, TuiEngine } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
 import type { KNode } from "@km/core";
-import { getChildren, getNode, getNodeCount, getStore } from "@km/storage";
+import { getChildren, getNode } from "@km/storage";
 import type { KeyboardContext } from "../keyboard-types.ts";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
@@ -27,17 +27,6 @@ import { ColumnsView } from "./ColumnsView.tsx";
 import { ListView } from "./ListView.tsx";
 import { TabsView } from "./TabsView.tsx";
 import { getEngine } from "../engines/index.ts";
-
-// Layout constants - centralized to avoid magic numbers scattered through rendering code
-const TOP_BAR_HEIGHT = 1;
-const BOTTOM_BAR_HEIGHT = 1;
-import { createPasteHandler, supportsFileDrop } from "../paste-handler.ts";
-import {
-  createMouseHandler,
-  supportsMouseMode,
-  SelectionManager,
-  type MouseEvent as TermMouseEvent,
-} from "../mouse-handler.ts";
 import { renderPlain, getNodeIcon, getChalkColor } from "../text/index.ts";
 import { getInheritedColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
@@ -48,16 +37,12 @@ import { createLayoutRegistry } from "../card-positions.ts";
 import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
 import { ConstraintRoot } from "../layout/index.ts";
-import {
-  processKeyWithContext,
-  ensureCommandSystemInitialized,
-} from "../command-bridge.ts";
+import { ensureCommandSystemInitialized } from "../command-bridge.ts";
 import {
   buildTUIContext,
   toKeyboardContext,
   type TUIContext,
 } from "../tui-context.ts";
-import { handleCommandAction } from "../board-actions.ts";
 import { boardReducer, createNodeMap } from "@km/board";
 import {
   tuiStateToTreeState,
@@ -65,6 +50,26 @@ import {
   deriveCursorIndices,
   buildTreeNodes,
 } from "../board-adapter.ts";
+
+// Extracted modules
+import {
+  TOP_BAR_HEIGHT,
+  BOTTOM_BAR_HEIGHT,
+  calcEdgeBasedColumnScrollOffset,
+} from "./board-layout.ts";
+import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts";
+import { BottomBar } from "./board-bottom-bar.tsx";
+import {
+  createSyncTerminalDimensions,
+  createFileDropHandler,
+  createMouseHandler_,
+  createRefreshHandler,
+  createWatcherStatusHandler,
+} from "./board-effects.ts";
+import {
+  handleBoardKeyInput,
+  handleDetailPaneKeyInput,
+} from "./board-input.ts";
 
 export { makeSelectionKey } from "../types.ts";
 
@@ -210,26 +215,8 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   } = useBoardDialogs({ state, boardState, dispatch, dispatchBoard });
 
   // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
-  //
-  // Problem: On TUI startup, the top status bar line was missing until a key was pressed.
-  // This caused either a missing line or a visible flash/scroll when content appeared.
-  //
-  // Root cause: fullscreen-ink switches to the terminal's alternate screen buffer using
-  // escape sequences, then calls Ink's rerender(). However:
-  // 1. Ink's useStdout() returns stdout with undefined columns/rows on first render
-  // 2. The first render frame may be discarded during the alternate buffer switch
-  // 3. This causes the initial render to be incomplete or positioned incorrectly
-  //
-  // Solution: Delay rendering the actual UI until the terminal is fully ready:
-  // 1. Poll for valid stdout ui.dimensions (columns/rows defined)
-  // 2. Wait an additional 50ms for alternate buffer to stabilize
-  // 3. Render an empty Box until ready, then render the full UI
-  //
-  // The 50ms delay is a balance between avoiding the race condition and minimizing
-  // perceived startup latency. Shorter delays may reintroduce the bug.
-
-  // Sync terminal ui.dimensions and handle the initial render delay
-  useEffect(syncTerminalDimensions, [stdout]);
+  // See board-effects.ts for detailed explanation
+  useEffect(() => createSyncTerminalDimensions(stdout, dispatch), [stdout]);
 
   // Sync rootBoardId in UI state when board navigation changes
   useEffect(
@@ -238,16 +225,19 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   );
 
   // Handle file drops via bracketed paste
-  useEffect(setupFileDropHandler, []);
+  useEffect(() => createFileDropHandler(dispatch), []);
 
   // Handle mouse drag-select
-  useEffect(setupMouseHandler, [ui.mouseSelection]);
+  useEffect(
+    () => createMouseHandler_(dispatch, dispatchBoard, ui.mouseSelection),
+    [ui.mouseSelection],
+  );
 
   // Subscribe to external refresh events (filesystem changes)
-  useEffect(setupRefreshHandler, []);
+  useEffect(() => createRefreshHandler(rootIdRef, dispatchBoard), []);
 
   // Subscribe to watcher status updates (for bottom bar display)
-  useEffect(setupWatcherStatusHandler, []);
+  useEffect(() => createWatcherStatusHandler(dispatch), []);
 
   const termWidth = ui.dimensions.columns;
   const termHeight = ui.dimensions.rows;
@@ -295,63 +285,31 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Main keyboard input handler - ALL keys go through @km/commands
   useInput((input, key) => {
-    // Dialog modes have their own input handling via dialog components
-    if (ui.showNewItemDialog || ui.showProjectPicker) {
-      return;
-    }
-
-    // Help overlay blocks most keys - only allow dismiss keys
-    if (ui.showHelp) {
-      if (input === "?" || key.escape) {
-        dispatch(actions.hideHelp());
-      } else if (input === "q") {
-        exit();
-      }
-      // All other keys are blocked while help is showing
-      return;
-    }
-
-    // Route ALL keys through the command system
-    const result = processKeyWithContext(input, key, tuiContext);
-
-    if (result.handled && result.actions) {
-      const actionList = Array.isArray(result.actions)
-        ? result.actions
-        : [result.actions];
-      for (const action of actionList) {
-        handleCommandAction(tuiContext, action);
-      }
-    }
-    // Unhandled keys are silently ignored (no fallback)
+    handleBoardKeyInput(
+      input,
+      key,
+      tuiContext,
+      {
+        showNewItemDialog: ui.showNewItemDialog,
+        showProjectPicker: ui.showProjectPicker,
+        showHelp: ui.showHelp,
+      },
+      dispatch,
+      exit,
+    );
   });
 
   // Handle detail pane navigation (j/k to move cards while pane is open)
   useInput(
     (input, key) => {
-      // Detail pane has limited navigation: j/k/arrows for cards, h/Esc to close, q to quit
-      if (input === "h" || key.escape) {
-        dispatch(actions.setDetailPane(false));
-        return;
-      }
-      if (input === "q") {
-        exit();
-        return;
-      }
-      const col = state.columns[state.colIndex];
-      if (input === "j" || key.downArrow) {
-        if (col && state.cardIndex < col.cards.length - 1) {
-          // Dispatch directly to boardReducer
-          dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
-        }
-        return;
-      }
-      if (input === "k" || key.upArrow) {
-        if (state.cardIndex > 0) {
-          // Dispatch directly to boardReducer
-          dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
-        }
-        return;
-      }
+      handleDetailPaneKeyInput(
+        input,
+        key,
+        state,
+        dispatch,
+        dispatchBoard,
+        exit,
+      );
     },
     {
       isActive: ui.showDetailPane,
@@ -581,249 +539,31 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
                 <HelpOverlay width={termWidth} height={contentHeight} />
               )}
             </Box>
-            {/* Bottom bar: left (truncatable) + right (fixed) */}
-            {(() => {
-              const store = getStore();
-              const homeDir = process.env.HOME || "";
-
-              // Shorten path: replace home directory with ~/
-              let displayPath = store.rootPath || "";
-              if (homeDir && displayPath.startsWith(homeDir)) {
-                displayPath = "~" + displayPath.slice(homeDir.length);
-              }
-
-              // Build status parts (middle)
-              const statusParts: string[] = [];
-              if (ui.showHelp) statusParts.push("[?]");
-              if (ui.showProjectPicker) statusParts.push("[PROJ]");
-              if (ui.showNewItemDialog) statusParts.push("[NEW]");
-              if (ui.showDropNotification && ui.droppedFiles.length > 0) {
-                statusParts.push(`[Drop:${ui.droppedFiles.length}]`);
-              }
-              if (ui.isMouseDragging && ui.mouseSelection) {
-                statusParts.push("[Sel]");
-              }
-              if (ui.multiSelected.size > 0) {
-                statusParts.push(`[${ui.multiSelected.size}]`);
-              }
-              if (ui.inOutlineMode) statusParts.push("OUT");
-
-              // Right side info (always visible)
-              // DB/files/watcher status as one group (single space), other items with double space
-              const dbCount = getNodeCount();
-              const watcherInfo = ui.watcherStatus
-                ? ` ${renderWatcherStatus(ui.watcherStatus)}`
-                : "";
-              // 📋 = clipboard for records/nodes, 📄 = file for watched files
-              const dbFilesGroup = `📋${dbCount}${watcherInfo}`;
-
-              const rightParts: string[] = [dbFilesGroup];
-              // Show column position (only meaningful in columns view)
-              if (ui.viewMode === "columns" && state.columns.length > 1) {
-                rightParts.push(
-                  `col ${state.colIndex + 1}/${state.columns.length}`,
-                );
-              }
-              // Always show view mode with VIEW suffix
-              const viewModeStr =
-                (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW";
-              rightParts.push(viewModeStr);
-
-              // Left side: storage mode + folder icon + path
-              // 📁 = folder icon for vault/repo path
-              const modeLabel = store.mode === "memory" ? "MEM" : "DISK";
-              const left = `${modeLabel} 📁${displayPath}`;
-              const middle = statusParts.join("  "); // Double space between status parts
-              const right = ` ${rightParts.join("   ")} `; // Triple space between groups
-
-              // Calculate widths: right side is fixed, left gets remaining space
-              const rightWidth = right.length;
-              const leftWidth = Math.max(1, termWidth - rightWidth);
-
-              return (
-                <Box flexDirection="row" flexShrink={0} width={termWidth}>
-                  <Box width={leftWidth} flexShrink={0}>
-                    <Text dimColor wrap="truncate-end">
-                      {middle ? ` ${left}   ${middle}` : ` ${left}`}
-                    </Text>
-                  </Box>
-                  <Box width={rightWidth} flexShrink={0}>
-                    <Text dimColor>{right}</Text>
-                  </Box>
-                </Box>
-              );
-            })()}
+            {/* Bottom bar */}
+            <BottomBar ui={ui} state={state} termWidth={termWidth} />
           </Box>
         </UIProvider>
       </LayoutProvider>
     </ConstraintRoot>
   );
-
-  // ===========================================================================
-  // Effect Handlers (hoisted for readability)
-  // ===========================================================================
-
-  function syncTerminalDimensions() {
-    if (!stdout) return;
-
-    const handleResize = () => {
-      dispatch(
-        actions.setDimensions({ columns: stdout.columns, rows: stdout.rows }),
-      );
-    };
-
-    // Check if stdout has valid ui.dimensions (not undefined)
-    const syncDimensions = () => {
-      if (stdout.columns !== undefined && stdout.rows !== undefined) {
-        dispatch(
-          actions.setDimensions({ columns: stdout.columns, rows: stdout.rows }),
-        );
-        return true;
-      }
-      return false;
-    };
-
-    // Try to sync immediately, otherwise poll until ui.dimensions are available
-    if (!syncDimensions()) {
-      const interval = setInterval(() => {
-        if (syncDimensions()) {
-          clearInterval(interval);
-          // Delay before marking ready to ensure alternate buffer is stable
-          setTimeout(() => dispatch(actions.setReady(true)), 50);
-        }
-      }, 10);
-      stdout.on("resize", handleResize);
-      return () => {
-        clearInterval(interval);
-        stdout.off("resize", handleResize);
-      };
-    }
-
-    // Dimensions available immediately - still delay to avoid race condition
-    const timeout = setTimeout(() => dispatch(actions.setReady(true)), 50);
-
-    stdout.on("resize", handleResize);
-    return () => {
-      clearTimeout(timeout);
-      stdout.off("resize", handleResize);
-    };
-  }
-
-  function setupFileDropHandler() {
-    if (!supportsFileDrop()) return;
-
-    const cleanup = createPasteHandler((files) => {
-      dispatch(actions.setDroppedFiles(files));
-      dispatch(actions.showDropNotification());
-      // Auto-hide notification after 3 seconds
-      setTimeout(() => dispatch(actions.hideDropNotification()), 3000);
-    });
-
-    return cleanup;
-  }
-
-  function setupMouseHandler() {
-    // TODO: Fix mouse integration - not working properly yet
-    // Disable for now until scroll wheel and click-to-select work correctly
-    return;
-
-    if (!supportsMouseMode()) return;
-
-    const selectionManager = new SelectionManager((range) => {
-      dispatch(actions.setMouseSelection(range));
-      dispatch(actions.setMouseDragging(range !== null));
-    });
-
-    const cleanup = createMouseHandler((event: TermMouseEvent) => {
-      selectionManager.handleMouseEvent(event);
-
-      // Handle scroll wheel events
-      if (event.type === "scroll" && event.scrollDirection) {
-        // Use boardReducer for cursor movement
-        if (event.scrollDirection === "down") {
-          dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
-        } else {
-          dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
-        }
-        return;
-      }
-
-      // Handle double-click to drill in
-      if (event.type === "down" && event.button === "left") {
-        // TODO: Track double-click timing for drill-in
-        // For now, single click just selects
-      }
-
-      // Convert screen coordinates to board items
-      // This is a simplified version - full implementation would map
-      // coordinates to specific cards/items in the board
-      if (event.type === "up" && ui.mouseSelection) {
-        // Selection complete - could trigger multi-select of items
-        // within the selection range
-      }
-    });
-
-    return cleanup;
-  }
-
-  function setupRefreshHandler() {
-    const handleRefresh = () => {
-      // Rebuild tree nodes from database (which was updated by sync manager)
-      // Must use deep loading (true) to include children - shallow loading loses them!
-      // Uses rootIdRef to get current rootId (avoids stale closure from useEffect deps)
-      // Note: rootIdRef.current can be null for root-level view, which is valid
-      const nodes = buildTreeNodes(rootIdRef.current, true);
-      dispatchBoard({ type: "REFRESH", nodes });
-    };
-
-    tuiEvents.on("refresh", handleRefresh);
-    return () => {
-      tuiEvents.off("refresh", handleRefresh);
-    };
-  }
-
-  function setupWatcherStatusHandler() {
-    const handleWatcherStatus = (
-      status: import("@km/storage").WatcherStatus,
-    ) => {
-      dispatch(actions.setWatcherStatus(status));
-    };
-
-    tuiEvents.on("watcher-status", handleWatcherStatus);
-    return () => {
-      tuiEvents.off("watcher-status", handleWatcherStatus);
-    };
-  }
 }
 
-/**
- * Render watcher status indicator for bottom bar
- * Uses 📄 icon for files, always shows file count, plus current state if not idle
- */
-function renderWatcherStatus(
-  status: import("@km/storage").WatcherStatus,
-): string {
-  const { state, pendingPaths, watchedPaths } = status;
-  // 📄 = file icon for watched files
-  const fileCount = watchedPaths ? `📄${watchedPaths}` : "📄0";
-
-  switch (state) {
-    case "starting":
-      return `${fileCount} starting`;
-    case "syncing":
-      return pendingPaths > 0
-        ? `${fileCount} sync:${pendingPaths}`
-        : `${fileCount} syncing`;
-    case "ready":
-    case "idle":
-      return fileCount;
-    case "error":
-      return `${fileCount} err`;
-    case "stopped":
-      return `${fileCount} off`;
-    default:
-      return fileCount;
+// Helper to count visible descendants for flat indexing
+function countVisibleDescendants(
+  node: KNode,
+  depth: number,
+  maxDepth: number,
+  foldedNodes: Set<string>,
+): number {
+  if (depth > maxDepth || foldedNodes.has(node.id)) {
+    return 0;
   }
+  const children = getChildren(node.id).slice(0, 10);
+  let count = children.length;
+  for (const child of children) {
+    count += countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
+  }
+  return count;
 }
 
 export async function renderInkxBoard(
@@ -980,230 +720,6 @@ export function InkBoardTestable({
       </Box>
     </UIProvider>
   );
-}
-
-// =============================================================================
-// Module-Level Helper Functions
-// =============================================================================
-
-// Build path segments for colorized display
-// Returns segments with: { id, name, sep, isWithinBoard }
-// isWithinBoard distinguishes the board root path from path within the board
-// Always includes a repo root segment (🏠) at the start
-function getPathSegments(
-  nodeId: string | null,
-  boardRootId: string | null,
-): Array<{
-  id: string | null;
-  name: string;
-  sep: string;
-  isWithinBoard: boolean;
-  node: KNode | null;
-}> {
-  // Repo root segment - always present (folder icon)
-  const repoRootSegment = {
-    id: null,
-    name: "\uD83D\uDCC1", // folder 📁
-    sep: "",
-    isWithinBoard: false,
-    node: null,
-  };
-
-  if (!nodeId) {
-    return [repoRootSegment];
-  }
-
-  // Collect all nodes from root to target
-  const nodes: KNode[] = [];
-  let currentId: string | null = nodeId;
-  while (currentId) {
-    const node = getNode(currentId);
-    if (!node) break;
-    nodes.unshift(node);
-    currentId = node.parent_id;
-  }
-
-  if (nodes.length === 0) {
-    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
-  }
-
-  // Find index where we enter the board (nodes after boardRootId)
-  let boardRootIndex = -1;
-  if (boardRootId) {
-    boardRootIndex = nodes.findIndex((n) => n.id === boardRootId);
-  }
-
-  // Build segments with separators
-  const segments: Array<{
-    id: string | null;
-    name: string;
-    sep: string;
-    isWithinBoard: boolean;
-    node: KNode | null;
-  }> = [];
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i];
-    if (!node) continue;
-    // Strip wiki link brackets and show alias for display
-    const rawName = getNodeDisplayName(node);
-    const name = renderPlain(rawName);
-    const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex;
-
-    if (node.type === "folder" || node.type === "file") {
-      segments.push({
-        id: node.id,
-        name,
-        sep: segments.length > 0 ? "/" : "",
-        isWithinBoard,
-        node,
-      });
-    } else if (node.type === "section") {
-      segments.push({ id: node.id, name, sep: "#", isWithinBoard, node });
-    } else if (node.type === "board") {
-      if (segments.length === 0) {
-        segments.push({
-          id: node.id,
-          name,
-          sep: "",
-          isWithinBoard: false,
-          node,
-        });
-      }
-    } else {
-      // Other types (paragraph, task, etc.)
-      segments.push({
-        id: node.id,
-        name,
-        sep: segments.length > 0 ? "/" : "",
-        isWithinBoard,
-        node,
-      });
-    }
-  }
-
-  // Update first segment to have "/" separator (since it follows repo root)
-  if (segments.length > 0) {
-    const first = segments[0];
-    if (first && first.sep === "") {
-      segments[0] = {
-        id: first.id,
-        name: first.name,
-        sep: "/",
-        isWithinBoard: first.isWithinBoard,
-        node: first.node,
-      };
-    }
-  }
-
-  // Always prepend repo root segment (folder icon)
-  return [repoRootSegment, ...segments];
-}
-
-// Helper to count visible descendants for flat indexing
-function countVisibleDescendants(
-  node: KNode,
-  depth: number,
-  maxDepth: number,
-  foldedNodes: Set<string>,
-): number {
-  if (depth > maxDepth || foldedNodes.has(node.id)) {
-    return 0;
-  }
-  const children = getChildren(node.id).slice(0, 10);
-  let count = children.length;
-  for (const child of children) {
-    count += countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
-  }
-  return count;
-}
-
-// Render top bar content as plain string (no chalk styling)
-// Color is controlled by the parent Text component's color prop
-// Board root segment gets special formatting via chalk.bold
-function renderTopBarContent(
-  segments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>,
-  isBoardSelected: boolean,
-): string {
-  // Find the board root index:
-  // - If there are isWithinBoard segments, board root is the last one before them
-  // - If no isWithinBoard segments, the last segment is the board root
-  const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard);
-  const boardRootIdx =
-    firstWithinBoardIdx > 0
-      ? firstWithinBoardIdx - 1
-      : firstWithinBoardIdx === -1
-        ? segments.length - 1
-        : 0;
-
-  // Build content: " ● " prefix + segments
-  // Use chalk only for bold (board root) and dim (other segments)
-  // Base color is inherited from parent Text component
-  const boldChalk = isBoardSelected ? chalk.black.bold : chalk.gray.bold;
-  const dimChalk = isBoardSelected ? chalk.black.dim : chalk.gray.dim;
-
-  let content = " ● ";
-
-  segments.forEach((seg, idx) => {
-    const sepPart = seg.sep ? ` ${seg.sep} ` : "";
-    const isBoardRoot = idx === boardRootIdx;
-
-    if (isBoardRoot) {
-      // Board root: bold, prominent (sep is dimmed)
-      content += dimChalk(sepPart) + boldChalk(seg.name);
-    } else {
-      // Path segments before/after board root: dimmed
-      content += dimChalk(sepPart + seg.name);
-    }
-  });
-
-  return content;
-}
-
-// Padding from edge before scrolling (in columns)
-const COLUMN_SCROLL_PADDING = 1;
-
-/**
- * Calculate edge-based scroll offset for horizontal column scrolling.
- * Only scrolls when cursor approaches the edge of the visible area.
- *
- * @param selectedIndex - Currently selected column index
- * @param currentOffset - Current scroll offset (leftmost visible column)
- * @param maxVisible - Number of columns visible in viewport
- * @param totalCount - Total number of columns
- * @returns New scroll offset
- */
-function calcEdgeBasedColumnScrollOffset(
-  selectedIndex: number,
-  currentOffset: number,
-  maxVisible: number,
-  totalCount: number,
-): number {
-  // If everything fits, no scrolling needed
-  if (totalCount <= maxVisible) return 0;
-
-  // Calculate visible range
-  const visibleStart = currentOffset;
-  const visibleEnd = currentOffset + maxVisible - 1;
-
-  // Check if selected is outside visible range (with padding)
-  const paddedStart = visibleStart + COLUMN_SCROLL_PADDING;
-  const paddedEnd = visibleEnd - COLUMN_SCROLL_PADDING;
-
-  let newOffset = currentOffset;
-
-  if (selectedIndex < paddedStart) {
-    // Cursor is near/left of left edge - scroll left
-    newOffset = Math.max(0, selectedIndex - COLUMN_SCROLL_PADDING);
-  } else if (selectedIndex > paddedEnd) {
-    // Cursor is near/right of right edge - scroll right
-    newOffset = Math.min(
-      totalCount - maxVisible,
-      selectedIndex - maxVisible + COLUMN_SCROLL_PADDING + 1,
-    );
-  }
-
-  // Clamp to valid range
-  return Math.max(0, Math.min(newOffset, totalCount - maxVisible));
 }
 
 // NOTE: renderTopBarSegments removed - top bar now uses pure inkx styling

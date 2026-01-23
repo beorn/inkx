@@ -391,7 +391,7 @@ describe.serial("reconcile.ts", () => {
       expect(openTasks.filter((t) => t.type === "task").length).toBe(2);
 
       // Record the original node count
-      const { getNodeCount } = await import("../../src/db-queries.ts");
+      const { getNodeCount } = await import("../../src/db-queries/index.ts");
       const originalNodeCount = getNodeCount();
 
       // Now trigger an update (touch the file to change mtime)

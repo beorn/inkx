@@ -15,7 +15,7 @@ import {
   getNodesWithRules,
   getNodesWithRule,
 } from "../src/db-rules.ts";
-import { getChildren, getChildCountsBatch } from "../src/db-queries.ts";
+import { getChildren, getChildCountsBatch } from "../src/db-queries/index.ts";
 import { setDb } from "../src/db-instance.ts";
 
 const TEST_DIR = join("/tmp", "kmtest-rules");

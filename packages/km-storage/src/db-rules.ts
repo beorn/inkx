@@ -26,7 +26,7 @@ import {
   getChildren,
   getEmbedTargetsOnBoard,
   getNode,
-} from "./db-queries.ts";
+} from "./db-queries/index.ts";
 // Note: We insert embed nodes directly into DB rather than using emitNodeCreated
 // because that would require the event system to be set up (which isn't always the case)
 import type { KNode, NodeRules } from "@km/core";

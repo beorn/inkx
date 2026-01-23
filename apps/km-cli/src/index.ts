@@ -225,4 +225,17 @@ program.action((_options, command) => {
   }
 });
 
+// Board shortcuts: transform `km @next` → `km view @next`
+// Sigils: @ (person/context), + (project), # (tag)
+function isBoardShortcut(arg: string): boolean {
+  return /^[@+#]/.test(arg) && !arg.startsWith("./") && !arg.startsWith("../");
+}
+
+const cliArgs = process.argv.slice(2);
+const firstArg = cliArgs[0];
+if (firstArg && isBoardShortcut(firstArg)) {
+  // Insert 'view' command before the sigil argument
+  process.argv.splice(2, 0, "view");
+}
+
 program.parse();

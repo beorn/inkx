@@ -53,7 +53,7 @@ export {
   getNodeCount,
   rowToNode,
   type SearchResult,
-} from "./db-queries.ts";
+} from "./db-queries/index.ts";
 
 // Link management
 export {

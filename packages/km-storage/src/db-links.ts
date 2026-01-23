@@ -11,7 +11,7 @@
 import createDebug from "debug";
 import { getDb } from "./db-instance.ts";
 import { updateNode } from "./db-ops.ts";
-import { findChildByContent } from "./db-queries.ts";
+import { findChildByContent } from "./db-queries/index.ts";
 
 const debug = createDebug("km:storage:db:links");
 

@@ -26,13 +26,8 @@ import type { KNode, TaskStatus } from "@km/core";
 import { setKmDir, emitNodeMoved } from "./emit.ts";
 import { parseMarkdownWithLinks } from "@km/markdown";
 import { SCHEMA, MIGRATIONS } from "./schema.ts";
-import {
-  addLink,
-  findChildByContent,
-  findFileByName,
-  setDb,
-} from "./db.ts";
-import { rowToNode } from "./db-queries.ts";
+import { addLink, findChildByContent, findFileByName, setDb } from "./db.ts";
+import { rowToNode } from "./db-queries/index.ts";
 
 /**
  * Apply schema migrations to an existing database.
@@ -500,6 +495,7 @@ export class MemoryStore extends BaseStore {
   }> = [];
   private initialized = false;
   private fileCount = 0;
+  private parseErrors: Array<{ path: string; error: string }> = [];
 
   constructor(rootPath: string, options?: { lazy?: boolean }) {
     super();
@@ -528,24 +524,60 @@ export class MemoryStore extends BaseStore {
   /**
    * Scan filesystem phase - yields scanning progress.
    * Can be called separately for finer progress control.
+   *
+   * Uses transaction wrapping and deferred FTS updates for performance
+   * (matching disk mode's bulk loading pattern).
    */
-  *scanFilesGenerator(): Generator<{ phase: string; current: number; total: number }> {
+  *scanFilesGenerator(): Generator<{
+    phase: string;
+    current: number;
+    total: number;
+  }> {
     // First pass: count files for progress reporting
     yield { phase: "scanning", current: 0, total: 0 };
     const total = this.countMarkdownFiles(this.rootPath);
 
-    // Second pass: actually scan and parse
+    // Clear any previous errors
+    this.parseErrors = [];
+
+    // Second pass: scan and parse in a transaction for performance
+    // This matches disk mode's BEGIN/COMMIT pattern
     this.fileCount = 0;
-    yield* this.scanDirectoryAsync(this.rootPath, null, 0, total);
+    this.db.run("BEGIN IMMEDIATE");
+    try {
+      yield* this.scanDirectoryAsync(this.rootPath, null, 0, total);
+      this.db.run("COMMIT");
+    } catch (error) {
+      this.db.run("ROLLBACK");
+      throw error;
+    }
+
     // Final yield to show 100%
     yield { phase: "scanning", current: this.fileCount, total };
+
+    // Log parse errors summary if any occurred
+    if (this.parseErrors.length > 0) {
+      console.warn(
+        `Warning: ${this.parseErrors.length} file(s) could not be parsed:`,
+      );
+      for (const { path, error } of this.parseErrors.slice(0, 5)) {
+        console.warn(`  - ${path}: ${error}`);
+      }
+      if (this.parseErrors.length > 5) {
+        console.warn(`  ... and ${this.parseErrors.length - 5} more`);
+      }
+    }
   }
 
   /**
    * Resolve wikilinks phase - yields reconciling progress.
    * Can be called separately for finer progress control.
    */
-  *resolveLinksGenerator(): Generator<{ phase: string; current: number; total: number }> {
+  *resolveLinksGenerator(): Generator<{
+    phase: string;
+    current: number;
+    total: number;
+  }> {
     const total = this.pendingWikilinks.length;
     yield { phase: "reconciling", current: 0, total };
     yield* this.resolveWikilinksGenerator();
@@ -577,8 +609,16 @@ export class MemoryStore extends BaseStore {
    * Scan filesystem and populate in-memory database (sync version for refresh)
    */
   private scanFilesystem(): void {
-    for (const _ of this.scanDirectoryAsync(this.rootPath, null, 0, 0)) {
-      // Consume generator without progress reporting
+    this.parseErrors = [];
+    this.db.run("BEGIN IMMEDIATE");
+    try {
+      for (const _ of this.scanDirectoryAsync(this.rootPath, null, 0, 0)) {
+        // Consume generator without progress reporting
+      }
+      this.db.run("COMMIT");
+    } catch (error) {
+      this.db.run("ROLLBACK");
+      throw error;
     }
     this.resolveWikilinks();
     this.initialized = true;
@@ -689,15 +729,21 @@ export class MemoryStore extends BaseStore {
       for (const wikilink of wikilinks) {
         this.pendingWikilinks.push(wikilink);
       }
-    } catch {
-      // Skip files that can't be read
+    } catch (err) {
+      // Accumulate errors instead of silently skipping (matches disk mode pattern)
+      const message = err instanceof Error ? err.message : String(err);
+      this.parseErrors.push({ path: filePath, error: message });
     }
   }
 
   /**
    * Resolve all collected wikilinks after files are parsed (generator version)
    */
-  private *resolveWikilinksGenerator(): Generator<{ phase: string; current: number; total: number }> {
+  private *resolveWikilinksGenerator(): Generator<{
+    phase: string;
+    current: number;
+    total: number;
+  }> {
     const total = this.pendingWikilinks.length;
     let current = 0;
 
