@@ -180,8 +180,11 @@ export function TopBar({
   const icon = getNodeIcon(null, boardColor, false);
   const iconColor = isBoardSelected ? "black" : icon.color;
   const iconChalk = chalk[iconColor as keyof typeof chalk] as ChalkInstance;
-  const disc = iconChalk ? bgChalk(iconChalk(icon.char)) : bgChalk.gray(icon.char);
-  const topBarString = fgChalk(" ") + disc + fgChalk(" ") + content + bgChalk(padding);
+  const disc = iconChalk
+    ? bgChalk(iconChalk(icon.char))
+    : bgChalk.gray(icon.char);
+  const topBarString =
+    fgChalk(" ") + disc + fgChalk(" ") + content + bgChalk(padding);
 
   return (
     <Box height={1} width={width}>

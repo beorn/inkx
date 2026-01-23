@@ -5,7 +5,12 @@
  * Single source of truth for both inkx and vanilla ink bindings.
  */
 
-import React, { useMemo, type ComponentType, type ReactNode, type ReactElement } from "react";
+import React, {
+  useMemo,
+  type ComponentType,
+  type ReactNode,
+  type ReactElement,
+} from "react";
 import {
   ConstraintRoot as BaseConstraintRoot,
   ConstraintContext,
@@ -119,7 +124,10 @@ export function createLayoutComponents(fw: Framework) {
   /**
    * Root component that provides terminal dimensions via context
    */
-  function ConstraintRoot({ children, padding = 0 }: ConstraintRootProps): ReactElement {
+  function ConstraintRoot({
+    children,
+    padding = 0,
+  }: ConstraintRootProps): ReactElement {
     const { stdout } = useStdout();
     return (
       <BaseConstraintRoot stdout={stdout ?? undefined} padding={padding}>
@@ -224,7 +232,12 @@ export function createLayoutComponents(fw: Framework) {
       ellipsis?: string;
     } = {},
   ): { lines: string[]; truncated: boolean } {
-    const { maxLines = 1, width: widthOverride, pad = false, ellipsis } = options;
+    const {
+      maxLines = 1,
+      width: widthOverride,
+      pad = false,
+      ellipsis,
+    } = options;
 
     let contextSize: ComputedSize | null = null;
     try {
@@ -289,10 +302,21 @@ export function createLayoutComponents(fw: Framework) {
           hasOverflowIndicator,
           getItemHeight,
         ),
-      [items, selectedIndex, availableHeight, itemHeight, gap, hasOverflowIndicator, getItemHeight],
+      [
+        items,
+        selectedIndex,
+        availableHeight,
+        itemHeight,
+        gap,
+        hasOverflowIndicator,
+        getItemHeight,
+      ],
     );
 
-    const renderOverflowIndicator = (direction: "top" | "bottom", count: number): ReactNode => {
+    const renderOverflowIndicator = (
+      direction: "top" | "bottom",
+      count: number,
+    ): ReactNode => {
       if (renderOverflow) {
         return renderOverflow(direction, count);
       }
@@ -307,7 +331,8 @@ export function createLayoutComponents(fw: Framework) {
             {renderItem(item, index, index === selectedIndex)}
           </React.Fragment>
         ))}
-        {overflowBottom > 0 && renderOverflowIndicator("bottom", overflowBottom)}
+        {overflowBottom > 0 &&
+          renderOverflowIndicator("bottom", overflowBottom)}
       </Box>
     );
   }
@@ -348,7 +373,15 @@ export function createLayoutComponents(fw: Framework) {
           hasOverflowIndicator,
           getItemHeight,
         ),
-      [items, selectedIndex, availableHeight, itemHeight, gap, hasOverflowIndicator, getItemHeight],
+      [
+        items,
+        selectedIndex,
+        availableHeight,
+        itemHeight,
+        gap,
+        hasOverflowIndicator,
+        getItemHeight,
+      ],
     );
   }
 

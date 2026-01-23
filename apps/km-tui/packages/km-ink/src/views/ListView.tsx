@@ -15,7 +15,10 @@ import type { BoardState, CardState } from "../types.ts";
 import { getBoardPills, type BoardPill } from "../board-pills.ts";
 import { useTreeConfig, useRootBoardId } from "../ui-context.tsx";
 import type { KNode } from "@km/core";
-import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx";
+import {
+  MemoizedTreeCard,
+  MemoizedColumnHeader,
+} from "./shared-components.tsx";
 
 // Type for flattened list items
 type FlatItem =
@@ -77,11 +80,16 @@ export function ListView({
   // This batches the lookups into a single pass through all cards
   const boardPillsCache = useMemo(() => {
     const cache = new Map<string, BoardPill[]>();
-    const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>();
+    const excludeBoardIds = rootBoardId
+      ? new Set([rootBoardId])
+      : new Set<string>();
 
     for (const item of flatItems) {
       if (item.type === "card" && item.card.node.task_status != null) {
-        cache.set(item.card.node.id, getBoardPills(item.card.node, excludeBoardIds));
+        cache.set(
+          item.card.node.id,
+          getBoardPills(item.card.node, excludeBoardIds),
+        );
       }
     }
     return cache;
@@ -116,7 +124,12 @@ export function ListView({
   }
 
   return (
-    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
+    <Box
+      flexDirection="column"
+      width={width}
+      maxHeight={height}
+      overflow="hidden"
+    >
       {/* Blank line at top */}
       <Box height={1} flexShrink={0}>
         <Text> </Text>
@@ -133,7 +146,8 @@ export function ListView({
         {flatItems.map((item) => {
           if (item.type === "header") {
             const cIdx = item.colIdx;
-            const isColSelected = selectionLevel === "column" && colIndex === cIdx;
+            const isColSelected =
+              selectionLevel === "column" && colIndex === cIdx;
             const isSelected = colIndex === cIdx;
 
             return (

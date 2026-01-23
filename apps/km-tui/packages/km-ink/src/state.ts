@@ -379,7 +379,8 @@ export function handleKey(
     // NOTE: This is legacy code. Keys are now handled via command system in board-actions.ts
     // which uses LayoutContext for sticky Y position tracking.
     case "h":
-    case "\x02": { // Ctrl+B
+    case "\x02": {
+      // Ctrl+B
       const targetColIndex = Math.max(0, state.colIndex - 1);
       if (targetColIndex === state.colIndex) {
         return { state: newState, action: null };
@@ -388,7 +389,10 @@ export function handleKey(
       const targetCol = state.columns[targetColIndex];
       if (targetCol && targetCol.cards.length > 0) {
         // Simple index-based fallback (sticky Y handled in board-actions.ts)
-        newState.cardIndex = Math.min(state.cardIndex, targetCol.cards.length - 1);
+        newState.cardIndex = Math.min(
+          state.cardIndex,
+          targetCol.cards.length - 1,
+        );
       } else {
         newState.cardIndex = 0;
       }
@@ -396,8 +400,12 @@ export function handleKey(
     }
 
     case "l":
-    case "\x06": { // Ctrl+F
-      const targetColIndex = Math.min(state.columns.length - 1, state.colIndex + 1);
+    case "\x06": {
+      // Ctrl+F
+      const targetColIndex = Math.min(
+        state.columns.length - 1,
+        state.colIndex + 1,
+      );
       if (targetColIndex === state.colIndex) {
         return { state: newState, action: null };
       }
@@ -405,7 +413,10 @@ export function handleKey(
       const targetCol = state.columns[targetColIndex];
       if (targetCol && targetCol.cards.length > 0) {
         // Simple index-based fallback (sticky Y handled in board-actions.ts)
-        newState.cardIndex = Math.min(state.cardIndex, targetCol.cards.length - 1);
+        newState.cardIndex = Math.min(
+          state.cardIndex,
+          targetCol.cards.length - 1,
+        );
       } else {
         newState.cardIndex = 0;
       }
@@ -459,7 +470,11 @@ export function handleKey(
     case "\r": // Enter
     case "o":
       // Use childCount for hasChildren check (children array may be empty due to lazy loading)
-      if (card && (card.childCount ?? card.children.length) > 0 && state.rootId) {
+      if (
+        card &&
+        (card.childCount ?? card.children.length) > 0 &&
+        state.rootId
+      ) {
         const zoomed = buildBoardState(card.node.id);
         zoomed.zoomStack = [...state.zoomStack, state.rootId];
         return { state: zoomed, action: null };

@@ -105,7 +105,10 @@ function VirtualizedTreeCardList({
   const scrollOffsetRef = useRef(0);
 
   // Calculate how many items fit in the viewport
-  const visibleItemCount = Math.max(1, Math.floor(height / ESTIMATED_ROW_HEIGHT));
+  const visibleItemCount = Math.max(
+    1,
+    Math.floor(height / ESTIMATED_ROW_HEIGHT),
+  );
 
   // Calculate edge-based scroll offset
   const newScrollOffset = calcEdgeBasedScrollOffset(
@@ -174,7 +177,8 @@ function VirtualizedTreeCardList({
 
   // Calculate scrollTo index using edge-based offset
   const hasTopPlaceholder = topPlaceholderHeight > 0;
-  const scrollToIndex = newScrollOffset - startIndex + (hasTopPlaceholder ? 1 : 0);
+  const scrollToIndex =
+    newScrollOffset - startIndex + (hasTopPlaceholder ? 1 : 0);
 
   return (
     <Box
@@ -197,7 +201,12 @@ function VirtualizedTreeCardList({
           actualIndex === selectedCardIndex &&
           (!inOutlineMode || selectedSubIndex === 0);
 
-        debugCol("rendering card col=%d idx=%d id=%s", colIndex, actualIndex, card.node.id);
+        debugCol(
+          "rendering card col=%d idx=%d id=%s",
+          colIndex,
+          actualIndex,
+          card.node.id,
+        );
         return (
           <MemoizedTreeCard
             key={card.node.id}

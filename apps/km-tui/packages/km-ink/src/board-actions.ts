@@ -29,10 +29,15 @@ import {
   progressiveSelectAll,
   updateSelectionRange,
 } from "./keyboard-helpers.ts";
-import { outdentNode, moveCardInColumn, moveCardToColumn } from "./keyboard-card-ops.ts";
+import {
+  outdentNode,
+  moveCardInColumn,
+  moveCardToColumn,
+} from "./keyboard-card-ops.ts";
 import { DEFAULT_FAVORITES } from "./keyboard-types.ts";
 import { assertNever, beepUnimplemented } from "./action-handlers.ts";
 import type { CommandAction } from "@km/commands";
+import { getCardMidY } from "./card-positions.ts";
 
 // =============================================================================
 // Action Handler Type
@@ -50,7 +55,10 @@ export type ActionHandler = (ctx: TUIContext, action: CommandAction) => void;
  * Uses exhaustive switch - TypeScript errors if any action type is missing.
  * See km-y00m for why this pattern replaced the layered type guard approach.
  */
-export function handleCommandAction(ctx: TUIContext, action: CommandAction): void {
+export function handleCommandAction(
+  ctx: TUIContext,
+  action: CommandAction,
+): void {
   const { state, dispatch, exit } = ctx;
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
@@ -321,7 +329,9 @@ function handleZoomOutwards(ctx: TUIContext): void {
       for (let cIdx = 0; cIdx < nodes.length; cIdx++) {
         const colNode = nodes[cIdx];
         if (!colNode) continue;
-        const cardIdx = colNode.children.findIndex((c) => c.id === parentNode.id);
+        const cardIdx = colNode.children.findIndex(
+          (c) => c.id === parentNode.id,
+        );
         if (cardIdx >= 0) {
           dispatchBoard({ type: "NAV_TO_PATH", path: [cIdx, cardIdx] });
           clearSelection(keyboardContext);
@@ -358,7 +368,8 @@ function handleDeleteNode(ctx: TUIContext): void {
   if (!card) return;
   storageDeleteNode(card.node.id);
   refreshBoardState(keyboardContext, {
-    cardIndex: (c) => Math.min(state.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
+    cardIndex: (c) =>
+      Math.min(state.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
   });
 }
 
@@ -372,9 +383,17 @@ function handleTaskStatusCycle(ctx: TUIContext): void {
   const targetId = card.node.link_to || card.node.id;
   const targetNode = card.node.link_to ? getNode(card.node.link_to) : card.node;
   const currentStatus = targetNode?.task_status || "todo";
-  const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"];
+  const statusCycle: TaskStatus[] = [
+    "todo",
+    "wip",
+    "blocked",
+    "done",
+    "dropped",
+  ];
   const currentIndex = statusCycle.indexOf(currentStatus);
-  const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus;
+  const nextStatus = statusCycle[
+    (currentIndex + 1) % statusCycle.length
+  ] as TaskStatus;
   const markMap: Record<TaskStatus, string> = {
     todo: " ",
     wip: "/",
@@ -382,7 +401,10 @@ function handleTaskStatusCycle(ctx: TUIContext): void {
     done: "x",
     dropped: "-",
   };
-  updateNode(targetId, { task_status: nextStatus, task_mark: markMap[nextStatus] });
+  updateNode(targetId, {
+    task_status: nextStatus,
+    task_mark: markMap[nextStatus],
+  });
   refreshBoardState(keyboardContext);
 }
 
@@ -420,7 +442,8 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
   }
 
   // Selection range extension mode
-  const isShiftSelection = ui.multiSelected.size > 0 && ui.selectionAnchor !== null;
+  const isShiftSelection =
+    ui.multiSelected.size > 0 && ui.selectionAnchor !== null;
   if (isShiftSelection) {
     const verticalDirs = ["prev", "next"];
     const horizontalDirs = ["left", "right"];
@@ -433,7 +456,10 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
           : Math.min((col?.cards.length ?? 1) - 1, state.cardIndex + 1);
 
       if (targetIdx !== state.cardIndex) {
-        dispatchBoard({ type: "CURSOR_MOVE", dir: dir === "prev" ? "prev" : "next" });
+        dispatchBoard({
+          type: "CURSOR_MOVE",
+          dir: dir === "prev" ? "prev" : "next",
+        });
         if (ui.selectionAnchor !== null) {
           updateSelectionRange(keyboardContext, state.colIndex, targetIdx, 0);
         }
@@ -447,11 +473,13 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     }
   }
 
-  // Horizontal movement (h/l) uses sticky Y for visual consistency
+  // Horizontal movement (h/l) uses visual Y coordinates for cross-column navigation
+  // Per docs/06-ui.md: curswantY = head midpoint, find card whose box intersects
   if (dir === "left" || dir === "right") {
-    const targetColIndex = dir === "left"
-      ? Math.max(0, state.colIndex - 1)
-      : Math.min(state.columns.length - 1, state.colIndex + 1);
+    const targetColIndex =
+      dir === "left"
+        ? Math.max(0, state.colIndex - 1)
+        : Math.min(state.columns.length - 1, state.colIndex + 1);
 
     // No movement possible
     if (targetColIndex === state.colIndex) {
@@ -465,26 +493,72 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       return;
     }
 
-    // Get or set sticky Y position
-    let targetY = positionRegistry.getStickyY();
-    if (targetY === null) {
-      // First h/l move - capture current card's Y as sticky
-      const currentEntry = positionRegistry.getCardOptional(state.colIndex, state.cardIndex);
-      if (!currentEntry) {
-        throw new Error(
-          `Card layout not found for current position: col=${state.colIndex}, card=${state.cardIndex}. ` +
-          `This indicates a bug - cards must register their layout before navigation.`
-        );
-      }
-      targetY = currentEntry.layout.y;
-      positionRegistry.setStickyY(targetY);
+    // If at column level (cardIndex < 0), move to target column's header (not a card)
+    if (state.cardIndex < 0) {
+      dispatchBoard({ type: "NAV_TO_PATH", path: [targetColIndex] });
+      return;
     }
 
-    // Find closest card to sticky Y in target column
-    const targetCardIndex = positionRegistry.findCardAtY(targetColIndex, targetY);
+    // Positions are registered by rendered Card components via useLayoutCallback.
+    // Check if we have positions available for visual navigation.
+    const hasCurrentPositions = positionRegistry.hasCardsInColumn(
+      state.colIndex,
+    );
+    const hasTargetPositions =
+      positionRegistry.hasCardsInColumn(targetColIndex);
 
-    // Navigate to target
-    dispatchBoard({ type: "NAV_TO_PATH", path: [targetColIndex, targetCardIndex] });
+    if (!hasCurrentPositions || !hasTargetPositions) {
+      // Positions not yet registered (first render hasn't completed).
+      // Fall back to same card index, clamped to target column bounds.
+      const targetCardIndex = Math.min(
+        state.cardIndex,
+        targetCol.cards.length - 1,
+      );
+      dispatchBoard({
+        type: "NAV_TO_PATH",
+        path: [targetColIndex, Math.max(0, targetCardIndex)],
+      });
+      return;
+    }
+
+    // Get or calculate curswantY (head midpoint of current card)
+    let curswantY = positionRegistry.getStickyY();
+    if (curswantY === null) {
+      // First h/l move - get head midpoint of current card from measured position
+      const currentLayout = positionRegistry.getCardOptional(
+        state.colIndex,
+        state.cardIndex,
+      );
+      if (!currentLayout) {
+        // Current card not registered (virtualized out) - fall back
+        const targetCardIndex = Math.min(
+          state.cardIndex,
+          targetCol.cards.length - 1,
+        );
+        dispatchBoard({
+          type: "NAV_TO_PATH",
+          path: [targetColIndex, Math.max(0, targetCardIndex)],
+        });
+        return;
+      }
+      curswantY = getCardMidY(currentLayout.layout);
+      positionRegistry.setStickyY(curswantY);
+    }
+
+    // Find card in target column whose box intersects curswantY (or closest)
+    const targetCardIndex = positionRegistry.findCardAtYVisual(
+      targetColIndex,
+      curswantY,
+    );
+
+    // targetCardIndex can be -1 if curswantY is above all cards (land on header)
+    // For now, clamp to first card (column header navigation is separate)
+    const finalCardIndex = Math.max(0, targetCardIndex);
+
+    dispatchBoard({
+      type: "NAV_TO_PATH",
+      path: [targetColIndex, finalCardIndex],
+    });
     return;
   }
 
@@ -527,7 +601,10 @@ function handleNavBack(ctx: TUIContext): void {
     type: "ZOOM_IN",
     nodeId: entry.rootId || null,
     nodes,
-    cursor: entry.cardIndex >= 0 ? [entry.colIndex, entry.cardIndex] : [entry.colIndex],
+    cursor:
+      entry.cardIndex >= 0
+        ? [entry.colIndex, entry.cardIndex]
+        : [entry.colIndex],
   });
 
   // Restore selection state
@@ -566,7 +643,10 @@ function handleNavForward(ctx: TUIContext): void {
     type: "ZOOM_IN",
     nodeId: entry.rootId || null,
     nodes,
-    cursor: entry.cardIndex >= 0 ? [entry.colIndex, entry.cardIndex] : [entry.colIndex],
+    cursor:
+      entry.cardIndex >= 0
+        ? [entry.colIndex, entry.cardIndex]
+        : [entry.colIndex],
   });
 
   // Restore selection state
@@ -622,7 +702,10 @@ function handleZoomIn(ctx: TUIContext): void {
   clearSelection(keyboardContext);
 }
 
-function handleExtendSelectVertical(ctx: TUIContext, direction: "up" | "down"): void {
+function handleExtendSelectVertical(
+  ctx: TUIContext,
+  direction: "up" | "down",
+): void {
   const { state, ui, dispatch, dispatchBoard } = ctx;
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
@@ -631,7 +714,13 @@ function handleExtendSelectVertical(ctx: TUIContext, direction: "up" | "down"): 
 
   // Initialize selection if starting fresh
   if (ui.multiSelected.size === 0) {
-    dispatch(actions.setSelectionAnchor({ col: state.colIndex, card: state.cardIndex, sub: 0 }));
+    dispatch(
+      actions.setSelectionAnchor({
+        col: state.colIndex,
+        card: state.cardIndex,
+        sub: 0,
+      }),
+    );
     const newSelected = new Set(ui.multiSelected);
     newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, 0));
     dispatch(actions.setMultiSelected(newSelected));
@@ -646,14 +735,20 @@ function handleExtendSelectVertical(ctx: TUIContext, direction: "up" | "down"): 
   if (targetIdx === state.cardIndex) return;
 
   // Move cursor
-  dispatchBoard({ type: "CURSOR_MOVE", dir: direction === "up" ? "prev" : "next" });
+  dispatchBoard({
+    type: "CURSOR_MOVE",
+    dir: direction === "up" ? "prev" : "next",
+  });
 
   // Update selection range
   const keyboardContext = toKeyboardContext(ctx);
   updateSelectionRange(keyboardContext, state.colIndex, targetIdx, 0);
 }
 
-function handleExtendSelectHorizontal(ctx: TUIContext, direction: "left" | "right"): void {
+function handleExtendSelectHorizontal(
+  ctx: TUIContext,
+  direction: "left" | "right",
+): void {
   const { state, ui, dispatch, dispatchBoard } = ctx;
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
@@ -673,7 +768,8 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
   const { boardState, ui, dispatch, dispatchBoard, layout } = ctx;
   const keyboardContext = toKeyboardContext(ctx);
 
-  const favoriteKey = `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES;
+  const favoriteKey =
+    `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES;
   const favoriteId = DEFAULT_FAVORITES[favoriteKey];
 
   if (!favoriteId) return;
@@ -766,7 +862,10 @@ function handleShiftCard(
   }
 }
 
-function handleNavSiblingBoard(ctx: TUIContext, direction: "next" | "prev"): void {
+function handleNavSiblingBoard(
+  ctx: TUIContext,
+  direction: "next" | "prev",
+): void {
   const { boardState, ui, dispatch, dispatchBoard, layout } = ctx;
   const keyboardContext = toKeyboardContext(ctx);
 
@@ -830,7 +929,8 @@ function handleZoomInwards(ctx: TUIContext): void {
 
   // If we're in outline mode with a sub-selection, zoom to that child
   if (ui.inOutlineMode && ui.subIndex > 0) {
-    const flatChildren: { node: ReturnType<typeof getNode>; depth: number }[] = [];
+    const flatChildren: { node: ReturnType<typeof getNode>; depth: number }[] =
+      [];
 
     // Build flat list of visible descendants
     function collectVisible(

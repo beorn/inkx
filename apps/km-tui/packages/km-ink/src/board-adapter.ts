@@ -180,16 +180,19 @@ export function deriveColumns(nodes: TNode[]): ColumnState[] {
  * - Fast path: O(depth) - just validate cursor path via array indexing
  * - Slow path: O(n) tree search - only used after zoom when tree changes
  */
-export function deriveCursorIndices(state: TreeBoardState): ColumnIndices & { subIndex: number } {
+export function deriveCursorIndices(
+  state: TreeBoardState,
+): ColumnIndices & { subIndex: number } {
   // FAST PATH: boardReducer keeps cursor valid during normal navigation
   // getNodeAtPath is O(depth), not O(n) - just array indexing
   const nodeAtPath = getNodeAtPath(state.nodes, state.cursor);
   if (nodeAtPath) {
     // Cursor path is valid - use directly, skip expensive tree search
     const indices = pathToColumnIndices(state.cursor);
-    const subIndex = indices.subPath.length > 0
-      ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
-      : 0;
+    const subIndex =
+      indices.subPath.length > 0
+        ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
+        : 0;
     return { ...indices, subIndex };
   }
 
@@ -199,18 +202,20 @@ export function deriveCursorIndices(state: TreeBoardState): ColumnIndices & { su
     const derivedPath = findPathToNode(state.nodes, state.cursorNodeId);
     if (derivedPath) {
       const indices = pathToColumnIndices(derivedPath);
-      const subIndex = indices.subPath.length > 0
-        ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
-        : 0;
+      const subIndex =
+        indices.subPath.length > 0
+          ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
+          : 0;
       return { ...indices, subIndex };
     }
   }
 
   // Fallback: use cursor as-is even if invalid
   const indices = pathToColumnIndices(state.cursor);
-  const subIndex = indices.subPath.length > 0
-    ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
-    : 0;
+  const subIndex =
+    indices.subPath.length > 0
+      ? indices.subPath.reduce((acc, idx) => acc + idx + 1, 0)
+      : 0;
   return { ...indices, subIndex };
 }
 
@@ -437,7 +442,6 @@ function kNodeToTNodeWithChildren(node: KNode, depth: number): TNode {
   };
 }
 
-
 // ===== Direct Tree Building =====
 
 /**
@@ -469,7 +473,9 @@ export function loadNodeChildren(node: TNode): TNode {
   const children = getChildren(node.id);
   return {
     ...node,
-    children: children.map((child) => kNodeToTNodeShallow(child, node.depth + 1)),
+    children: children.map((child) =>
+      kNodeToTNodeShallow(child, node.depth + 1),
+    ),
     childCount: children.length,
     childrenLoaded: true,
   };

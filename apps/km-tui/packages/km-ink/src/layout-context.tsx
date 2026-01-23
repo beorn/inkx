@@ -34,9 +34,7 @@ export function LayoutProvider({
   children,
 }: LayoutProviderProps): React.ReactElement {
   return (
-    <LayoutContext.Provider value={registry}>
-      {children}
-    </LayoutContext.Provider>
+    <LayoutContext.Provider value={registry}>{children}</LayoutContext.Provider>
   );
 }
 

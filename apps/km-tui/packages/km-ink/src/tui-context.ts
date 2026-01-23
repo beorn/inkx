@@ -158,7 +158,10 @@ export function isInOutlineMode(ctx: TUIContext): boolean {
  * Build a new cursor path with updated subIndex.
  * Preserves colIndex and cardIndex, sets depth 2 element.
  */
-export function cursorWithSubIndex(ctx: TUIContext, subIndex: number): number[] {
+export function cursorWithSubIndex(
+  ctx: TUIContext,
+  subIndex: number,
+): number[] {
   const [colIndex, cardIndex] = ctx.boardState.cursor;
   if (colIndex === undefined || cardIndex === undefined) {
     return ctx.boardState.cursor;

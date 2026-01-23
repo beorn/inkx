@@ -42,7 +42,12 @@ export function TabsView({
   const isColumnHeaderSelected = selectionLevel === "column";
 
   return (
-    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
+    <Box
+      flexDirection="column"
+      width={width}
+      maxHeight={height}
+      overflow="hidden"
+    >
       {/* Spacer line between top bar and tabs */}
       <Box height={1} flexShrink={0} />
 
@@ -57,14 +62,13 @@ export function TabsView({
 
           // Tab content: " name (count) " with min width of 10 chars for the name
           const minNameWidth = 10;
-          const displayName = colName.length > minNameWidth
-            ? colName
-            : colName;
+          const displayName = colName.length > minNameWidth ? colName : colName;
           // Truncate if name exceeds reasonable width (20 chars)
           const maxNameWidth = 20;
-          const truncatedName = displayName.length > maxNameWidth
-            ? displayName.slice(0, maxNameWidth - 1) + "\u2026"
-            : displayName;
+          const truncatedName =
+            displayName.length > maxNameWidth
+              ? displayName.slice(0, maxNameWidth - 1) + "\u2026"
+              : displayName;
 
           // Style like cards view column headers
           const isTabSelected = isActive && isColumnHeaderSelected;
@@ -88,8 +92,7 @@ export function TabsView({
                 >
                   {" "}
                   {truncatedName}
-                  <Text dimColor={!isTabSelected}>{countStr}</Text>
-                  {" "}
+                  <Text dimColor={!isTabSelected}>{countStr}</Text>{" "}
                 </Text>
               </Box>
               {/* Separator with space padding */}

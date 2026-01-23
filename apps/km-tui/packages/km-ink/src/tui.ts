@@ -8,7 +8,6 @@ import { EventEmitter } from "events";
 import chalk from "chalk";
 import createDebug from "debug";
 import type { BoardState, TuiEngine, TuiOptions } from "./types.ts";
-import { initBoardState } from "./state.ts";
 import { renderBoardStatic } from "./render.ts";
 import { renderInkxBoard } from "./views/index.ts";
 import { setFsSync, SyncManager } from "@km/storage";
@@ -35,29 +34,21 @@ export function runBoardStatic(state: BoardState): void {
 /**
  * Entry point for the board command
  *
- * State must already be loaded (via ensureState) before calling this.
- * The CLI handles loading state with progress indicator.
+ * State must already be loaded (via ensureState) and board state built
+ * (via initBoardState) before calling this. The CLI handles both with
+ * a progress indicator.
  */
 export async function runBoard(
-  rootId?: string,
-  rootPath?: string,
+  state: BoardState | null,
   options?: TuiOptions,
 ): Promise<void> {
   debug("runBoard start");
-
-  // Build board state from the already-loaded database
-  const state = initBoardState(rootId);
-  debug("initBoardState complete");
 
   if (!state) {
     console.error(
       chalk.red("No board found. Create a board node or specify a root ID."),
     );
     process.exit(1);
-  }
-
-  if (rootPath) {
-    state.rootPath = rootPath;
   }
 
   // Non-interactive mode: just print and exit
@@ -85,14 +76,14 @@ export async function runBoard(
   const useWorker = options?.watchWorker !== false;
   let syncManager: SyncManager | null = null;
 
-  if (rootPath) {
+  if (state.rootPath) {
     debug("Creating SyncManager", {
-      rootPath,
+      rootPath: state.rootPath,
       watch: watchEnabled,
       worker: useWorker,
     });
     syncManager = new SyncManager({
-      vaultPath: rootPath,
+      vaultPath: state.rootPath,
       debounceFs: 2000, // Debounce external changes (2s)
       debounceApply: 100, // Small debounce for batching TUI changes
       conflictStrategy: "last_write_wins",
@@ -126,6 +117,8 @@ export async function runBoard(
   }
 
   try {
+    // Stop CLI spinner - TUI is about to take over the screen
+    options?.spinner?.stop();
     debug("Starting interactive TUI");
     await renderInkxBoard(state, options?.initialViewMode, DEFAULT_ENGINE);
   } finally {

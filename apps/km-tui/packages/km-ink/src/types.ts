@@ -135,4 +135,9 @@ export interface TuiOptions {
    * Can also be set via config (tui.watchWorker).
    */
   watchWorker?: boolean;
+  /**
+   * Loading spinner to stop when TUI is ready to render.
+   * Passed from CLI to keep spinner running through board initialization.
+   */
+  spinner?: { stop(): void };
 }
