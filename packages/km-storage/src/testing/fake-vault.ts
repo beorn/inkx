@@ -244,6 +244,44 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       return id;
     },
 
+    cloneTask(sourceId, changes) {
+      ensureNotClosed();
+      const source = nodes.get(sourceId);
+      if (!source || source.type !== "task") return null;
+
+      const id = `fake-${nextId++}`;
+      const now = Date.now();
+
+      const cloned: KNode = {
+        ...source,
+        id,
+        task_status: changes.task_status ?? "todo",
+        task_mark: changes.task_mark ?? " ",
+        content: changes.content ?? source.content,
+        due_date: changes.due_date ?? source.due_date,
+        scheduled_date: changes.scheduled_date ?? source.scheduled_date,
+        parent_idx: (source.parent_idx ?? 0) + 0.001,
+        data: { ...source.data, ...changes.data, recur_prev: sourceId },
+        created_at: now,
+        updated_at: now,
+        ...changes,
+      };
+
+      nodes.set(id, cloned);
+      return id;
+    },
+
+    appendTaskToFile(_filePath, _content, _options) {
+      ensureNotClosed();
+      // No-op in fake vault - filesystem operations not supported
+    },
+
+    pathExists(_relativePath) {
+      ensureNotClosed();
+      // Always return false in fake vault
+      return false;
+    },
+
     // --- Lifecycle ---
 
     watch() {

@@ -13,6 +13,8 @@
 
 import createDebug from "debug";
 import { Database } from "bun:sqlite";
+import { existsSync, mkdirSync, writeFileSync, appendFileSync } from "fs";
+import { join, dirname, basename } from "path";
 import type { KNode, TaskStatus } from "@km/core";
 import type { ProgressInfo } from "@beorn/inkx-ui";
 import {
@@ -110,6 +112,34 @@ export interface Vault extends Disposable {
     parentId: string | null,
     node: Partial<KNode> & { type: KNode["type"]; content: string },
   ): string;
+
+  /**
+   * Clone a task with modifications (e.g., for recurring tasks).
+   * @param sourceId - ID of the task to clone
+   * @param changes - Changes to apply to the clone
+   * @returns ID of the new task, or null if source not found
+   */
+  cloneTask(sourceId: string, changes: Partial<KNode>): string | null;
+
+  /**
+   * Append a task line to a markdown file.
+   * @param filePath - Relative or absolute path to the file
+   * @param content - Content to append
+   * @param options.ensure - Create file/directory if not exists
+   */
+  appendTaskToFile(
+    filePath: string,
+    content: string,
+    options?: { ensure?: boolean },
+  ): void;
+
+  // --- Filesystem helpers ---
+
+  /**
+   * Check if a path exists relative to vault root.
+   * @param relativePath - Path relative to vault root
+   */
+  pathExists(relativePath: string): boolean;
 
   // --- Lifecycle ---
 
@@ -402,6 +432,69 @@ export function* createVault(
         { type: "add", nodeId: parentId ?? "root", node },
         (ctx) => dbAddNode(parentId, ctx.node!),
       );
+    },
+
+    cloneTask(sourceId, changes) {
+      ensureNotClosed();
+      const source = dbGetNode(sourceId);
+      if (!source || source.type !== "task") return null;
+
+      // Build cloned node with changes
+      const clonedNode: Partial<KNode> & { type: "task"; content: string } = {
+        type: "task",
+        content: changes.content ?? source.content ?? "",
+        parent_id: changes.parent_id ?? source.parent_id,
+        parent_idx: changes.parent_idx ?? (source.parent_idx ?? 0) + 0.001,
+        task_status: changes.task_status ?? "todo",
+        task_mark: changes.task_mark ?? " ",
+        assigned_to: changes.assigned_to ?? source.assigned_to,
+        due_date: changes.due_date ?? source.due_date,
+        scheduled_date: changes.scheduled_date ?? source.scheduled_date,
+        priority: changes.priority ?? source.priority,
+        data: {
+          ...source.data,
+          ...changes.data,
+          recur_prev: sourceId, // Link back to source
+        },
+      };
+
+      // Use addNode mutation to insert
+      return runMutation(
+        {
+          type: "add",
+          nodeId: clonedNode.parent_id ?? "root",
+          node: clonedNode,
+        },
+        () => dbAddNode(clonedNode.parent_id ?? null, clonedNode),
+      );
+    },
+
+    appendTaskToFile(filePath, content, options) {
+      ensureNotClosed();
+      const fullPath = filePath.startsWith("/")
+        ? filePath
+        : join(path, filePath);
+
+      // Ensure directory exists if requested
+      if (options?.ensure) {
+        const dir = dirname(fullPath);
+        if (!existsSync(dir)) {
+          mkdirSync(dir, { recursive: true });
+        }
+        if (!existsSync(fullPath)) {
+          writeFileSync(
+            fullPath,
+            `---\ntitle: ${basename(fullPath).replace(/\.md$/, "")}\n---\n\n`,
+          );
+        }
+      }
+
+      appendFileSync(fullPath, content);
+    },
+
+    pathExists(relativePath) {
+      ensureNotClosed();
+      return existsSync(join(path, relativePath));
     },
 
     // Lifecycle

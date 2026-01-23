@@ -12,7 +12,7 @@ const debug = createDebug("km:board");
 import type { BoardState, ViewMode, TuiEngine } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
 import type { KNode } from "@km/core";
-import { getChildren, getNode } from "@km/storage";
+import { getChildren, getNode, getStore, getNodeCount } from "@km/storage";
 import type { KeyboardContext } from "../keyboard-types.ts";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
@@ -540,7 +540,13 @@ function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               )}
             </Box>
             {/* Bottom bar */}
-            <BottomBar ui={ui} state={state} termWidth={termWidth} />
+            <BottomBar
+              ui={ui}
+              state={state}
+              termWidth={termWidth}
+              storageMode={getStore().mode}
+              nodeCount={getNodeCount()}
+            />
           </Box>
         </UIProvider>
       </LayoutProvider>

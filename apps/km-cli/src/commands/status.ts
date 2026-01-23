@@ -13,7 +13,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import {
   resolveTask,
-  getStore,
+  runGenerator,
+  createVault,
   getNextOccurrence,
   naturalToRRule,
 } from "@km/storage";
@@ -43,6 +44,7 @@ export const statusCommand = new Command("status")
   .argument("[status]", "New status: todo, wip, blocked, done, dropped")
   .option("--json", "Output as JSON")
   .action((id, newStatus, options) => {
+    using vault = runGenerator(createVault());
     const node = resolveTask(id);
 
     if (!node) {
@@ -88,8 +90,6 @@ export const statusCommand = new Command("status")
       process.exit(1);
     }
 
-    const store = getStore();
-
     // Handle recurring tasks when marking done
     if (newStatus === "done") {
       const recurrence =
@@ -106,7 +106,7 @@ export const statusCommand = new Command("status")
 
         if (nextDue) {
           // Clone the task with new due date
-          const newId = store.cloneTask(node.id, {
+          const newId = vault.cloneTask(node.id, {
             due_date: nextDue,
             task_status: "todo",
             task_mark: " ",
@@ -135,7 +135,7 @@ export const statusCommand = new Command("status")
 
     const newMark = getMarkForStatus(newStatus as TaskStatus);
 
-    store.updateNode(node.id, {
+    vault.updateNode(node.id, {
       task_status: newStatus as TaskStatus,
       task_mark: newMark,
     });

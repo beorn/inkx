@@ -8,7 +8,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { join } from "path";
 import {
-  getStore,
+  createVault,
   resolveNode,
   parseTaskMetadata,
   extractTags,
@@ -67,7 +67,8 @@ export const newCommand = new Command("new")
   .option("-P, --priority <n>", "Set priority (1-5)")
   .option("--json", "Output as JSON")
   .action((content, options) => {
-    const store = getStore();
+    const rootPath = getRootPath();
+    using vault = runGenerator(createVault(rootPath));
     const text = content.join(" ");
 
     // Parse any metadata already in the content
@@ -103,7 +104,7 @@ export const newCommand = new Command("new")
 
     if (options.parent) {
       // Resolve parent path argument
-      const resolvedParent = resolvePathArg(options.parent, getRootPath());
+      const resolvedParent = resolvePathArg(options.parent, rootPath);
       runGenerator(ensureState(resolvedParent.vaultRoot, false));
 
       if (!resolvedParent.nodeRef) {
@@ -116,9 +117,9 @@ export const newCommand = new Command("new")
       if (parentNode && parentNode.fs_path) {
         targetPath = parentNode.fs_path;
         targetName = parentNode.fs_path.split("/").pop() || options.parent;
-      } else if (store.pathExists(options.parent)) {
+      } else if (vault.pathExists(options.parent)) {
         // Try as relative path
-        targetPath = join(store.rootPath, options.parent);
+        targetPath = join(vault.path, options.parent);
         targetName = options.parent;
       } else {
         console.error(
@@ -129,12 +130,12 @@ export const newCommand = new Command("new")
       }
     } else {
       // Default to inbox
-      targetPath = getInboxPath(store.rootPath);
+      targetPath = getInboxPath(vault.path);
       targetName = "inbox";
     }
 
-    // Append to target file via store (handles directory/file creation)
-    store.appendTaskToFile(targetPath, taskLine, { ensure: true });
+    // Append to target file via vault (handles directory/file creation)
+    vault.appendTaskToFile(targetPath, taskLine, { ensure: true });
 
     if (options.json) {
       console.log(

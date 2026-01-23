@@ -6,7 +6,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getStore, resolveNode, getChildren, queryTasks } from "@km/storage";
+import { runGenerator, createVault, resolveNode } from "@km/storage";
 import * as readline from "readline";
 
 /**
@@ -22,6 +22,8 @@ export const inboxCommand = new Command("inbox")
   .description("GTD-style inbox processing")
   .option("--json", "Output as JSON")
   .action((options: { json?: boolean }) => {
+    using vault = runGenerator(createVault());
+
     // List inbox items
     const inbox = getInboxNode();
     if (!inbox) {
@@ -34,7 +36,7 @@ export const inboxCommand = new Command("inbox")
     }
 
     // Get all tasks in inbox
-    const items = getChildren(inbox.id).filter((n) => n.type === "task");
+    const items = vault.getChildren(inbox.id).filter((n) => n.type === "task");
 
     if (items.length === 0) {
       if (options.json) {
@@ -65,7 +67,7 @@ inboxCommand
   .command("process")
   .description("Interactive inbox processing")
   .action(async () => {
-    const store = getStore();
+    using vault = runGenerator(createVault());
     const inbox = getInboxNode();
 
     if (!inbox) {
@@ -74,7 +76,7 @@ inboxCommand
     }
 
     // Get all tasks in inbox
-    const items = getChildren(inbox.id).filter((n) => n.type === "task");
+    const items = vault.getChildren(inbox.id).filter((n) => n.type === "task");
 
     if (items.length === 0) {
       console.log(chalk.green("Inbox is empty!"));
@@ -114,7 +116,7 @@ inboxCommand
         switch (key) {
           case "n": // Move to next
             if (nextNode) {
-              store.moveNode(item.id, nextNode.id);
+              vault.moveNode(item.id, nextNode.id, 0);
               console.log(chalk.green("→ Moved to @next"));
             } else {
               console.log(chalk.yellow("No @next board found"));
@@ -125,7 +127,7 @@ inboxCommand
 
           case "s": // Move to someday
             if (somedayNode) {
-              store.moveNode(item.id, somedayNode.id);
+              vault.moveNode(item.id, somedayNode.id, 0);
               console.log(chalk.green("→ Moved to @someday"));
             } else {
               console.log(chalk.yellow("No @someday board found"));
@@ -135,7 +137,7 @@ inboxCommand
             break;
 
           case "d": // Mark done
-            store.updateNode(item.id, {
+            vault.updateNode(item.id, {
               task_status: "done",
               task_mark: "x",
             });
@@ -144,7 +146,7 @@ inboxCommand
             break;
 
           case "D": // Delete (drop)
-            store.updateNode(item.id, {
+            vault.updateNode(item.id, {
               task_status: "dropped",
               task_mark: "-",
             });
@@ -183,7 +185,7 @@ inboxCommand
   .argument("<content...>", "Task content")
   .option("--json", "Output as JSON")
   .action((content: string[], options: { json?: boolean }) => {
-    const store = getStore();
+    using vault = runGenerator(createVault());
     const inbox = getInboxNode();
 
     if (!inbox) {
@@ -200,8 +202,8 @@ inboxCommand
       process.exit(1);
     }
 
-    // Use store method to append task
-    store.appendTaskToFile(inboxPath, taskContent);
+    // Use vault method to append task
+    vault.appendTaskToFile(inboxPath, taskContent);
 
     if (options.json) {
       console.log(JSON.stringify({ added: true, content: taskContent }));

@@ -18,12 +18,12 @@ import { homedir } from "os";
 import { join } from "path";
 import { getRootPath } from "../index.ts";
 import {
-  ensureState,
+  createVault,
   runGenerator,
-  getStore,
   getChildren,
   resolveNode,
   resolvePathArg,
+  type Vault,
 } from "@km/storage";
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree";
 
@@ -213,9 +213,10 @@ function getNodeAtCursor(state: BoardState): TNode | null {
 
 /**
  * Create mutation handler that integrates with storage layer
- * Uses the store's methods which handle filesystem writes synchronously
+ * Uses the vault's methods which handle filesystem writes synchronously
  */
 function createMutationHandler(
+  vault: Vault,
   rootId: string | null,
   rootPath: string,
 ): MutationHandler {
@@ -225,13 +226,11 @@ function createMutationHandler(
       return { ok: false, error: "No node at cursor" };
     }
 
-    const store = getStore();
-
     try {
       switch (command.type) {
         case "SET_STATUS": {
-          // Use store's updateNode which writes to filesystem synchronously
-          store.updateNode(currentNode.id, { task_status: command.status });
+          // Use vault's updateNode which writes to filesystem synchronously
+          vault.updateNode(currentNode.id, { task_status: command.status });
           break;
         }
         case "DELETE": {
@@ -308,10 +307,8 @@ export const shCommand = new Command("sh")
     // Resolve the root argument - handles directory paths, file paths, and node IDs
     const resolved = resolvePathArg(root, getRootPath());
 
-    // Ensure store is initialized with the vault root
-    runGenerator(ensureState(resolved.vaultRoot, false));
-
-    const store = getStore();
+    // Create vault domain object (auto-closes via `using`)
+    using vault = runGenerator(createVault(resolved.vaultRoot));
 
     // Resolve the node reference if provided
     let resolvedNodeId: string | null = null;
@@ -367,14 +364,10 @@ export const shCommand = new Command("sh")
     }
 
     // Create initial state
-    const initialState = createBoardState(
-      nodes,
-      resolvedNodeId,
-      store.rootPath,
-    );
+    const initialState = createBoardState(nodes, resolvedNodeId, vault.path);
 
     // Create mutation handler for storage operations
-    const onMutation = createMutationHandler(resolvedNodeId, store.rootPath);
+    const onMutation = createMutationHandler(vault, resolvedNodeId, vault.path);
 
     // Output function
     const output = (event: OutputEvent | string) => {

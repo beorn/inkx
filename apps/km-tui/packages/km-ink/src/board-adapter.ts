@@ -23,7 +23,7 @@ import {
   findPathToNode,
   getNodeAtPath,
 } from "@km/board";
-import { getChildren, getChildCount, getStore } from "@km/storage";
+import { getChildren, getChildCount } from "@km/storage";
 import type { ColumnState, CardState, ColumnRules } from "./types.ts";
 import { parseColumnRules } from "./state.ts";
 
@@ -491,27 +491,6 @@ export function loadNodeChildren(node: TNode): TNode {
     childCount: children.length,
     childrenLoaded: true,
   };
-}
-
-/**
- * Build root-level TNode[] for the entire vault (no specific root).
- * Used when starting without a root ID.
- */
-export function buildRootTreeNodes(): TNode[] | null {
-  // Get root node from store
-  const store = getStore();
-  if (!store) return null;
-
-  const rootPath = store.rootPath;
-  if (!rootPath) return null;
-
-  // Find root node by path
-  const rootNode = getChildren("").find(
-    (n) => n.fs_path === rootPath || n.name === rootPath.replace(/\.md$/, ""),
-  );
-  if (!rootNode) return null;
-
-  return buildTreeNodes(rootNode.id);
 }
 
 // ===== Re-exports for convenience =====

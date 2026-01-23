@@ -3,10 +3,9 @@
  */
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "inkx";
-import { getStore, getNodeCount } from "@km/storage";
 import type { WatcherStatus } from "@km/storage";
 import type { UIState } from "../ui-reducer.ts";
-import type { BoardState, ViewMode } from "../types.ts";
+import type { BoardState } from "../types.ts";
 
 // Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
@@ -30,6 +29,10 @@ interface BottomBarProps {
   ui: UIState;
   state: BoardState;
   termWidth: number;
+  /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
+  storageMode: "memory" | "disk";
+  /** Total node count in database */
+  nodeCount: number;
 }
 
 /**
@@ -39,8 +42,9 @@ export function BottomBar({
   ui,
   state,
   termWidth,
+  storageMode,
+  nodeCount,
 }: BottomBarProps): React.ReactElement {
-  const store = getStore();
   const homeDir = process.env.HOME || "";
 
   // Spinner for sync/loading states (hook runs always but frame only displayed when active)
@@ -51,7 +55,7 @@ export function BottomBar({
   const isLoading = ui.isLoading || isSyncing;
 
   // Shorten path: replace home directory with ~/
-  let displayPath = store.rootPath || "";
+  let displayPath = state.rootPath || "";
   if (homeDir && displayPath.startsWith(homeDir)) {
     displayPath = "~" + displayPath.slice(homeDir.length);
   }
@@ -74,7 +78,7 @@ export function BottomBar({
 
   // Right side info (always visible)
   // DB/files/watcher status as one group (single space), other items with double space
-  const dbCount = getNodeCount();
+  const dbCount = nodeCount;
   // Show spinner when syncing/loading
   const spinnerPrefix = isLoading ? `${spinnerFrame} ` : "";
   const watcherInfo = ui.watcherStatus
@@ -94,7 +98,7 @@ export function BottomBar({
 
   // Left side: storage mode + folder icon + path
   // 📁 = folder icon for vault/repo path
-  const modeLabel = store.mode === "memory" ? "MEM" : "DISK";
+  const modeLabel = storageMode === "memory" ? "MEM" : "DISK";
   const left = `${modeLabel} 📁${displayPath}`;
   const middle = statusParts.join("  "); // Double space between status parts
   const right = ` ${rightParts.join("   ")} `; // Triple space between groups

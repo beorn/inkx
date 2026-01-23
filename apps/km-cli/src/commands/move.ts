@@ -12,11 +12,10 @@ import { Command } from "commander";
 import chalk from "chalk";
 import {
   resolveNode,
-  getStore,
   getChildren,
   resolvePathArg,
-  ensureState,
   runGenerator,
+  createVault,
   findProject,
 } from "@km/storage";
 import { getRootPath } from "../index.ts";
@@ -38,7 +37,7 @@ export const moveCommand = new Command("move")
   .action((nodeArg, parentArg, options) => {
     // Resolve the node argument - may detect vault root from path
     const resolvedNode = resolvePathArg(nodeArg, getRootPath());
-    runGenerator(ensureState(resolvedNode.vaultRoot, false));
+    using vault = runGenerator(createVault(resolvedNode.vaultRoot));
 
     if (!resolvedNode.nodeRef) {
       console.error(chalk.red(`Cannot move a directory`));
@@ -108,9 +107,8 @@ export const moveCommand = new Command("move")
       return;
     }
 
-    // Move via store (handles event emission and persistence)
-    const store = getStore();
-    store.moveNode(node.id, targetParentId);
+    // Move via vault (handles event emission and persistence)
+    vault.moveNode(node.id, targetParentId as string, Date.now());
 
     if (options.json) {
       console.log(JSON.stringify({ id: node.id, parent_id: targetParentId }));
