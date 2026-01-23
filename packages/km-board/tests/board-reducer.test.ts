@@ -580,9 +580,7 @@ describe("REFRESH action", () => {
   });
 
   it("preserves rootId even when all nodes disappear", () => {
-    const initialNodes: TNode[] = [
-      createNode("col-a", [createNode("card-1")]),
-    ];
+    const initialNodes: TNode[] = [createNode("col-a", [createNode("card-1")])];
 
     const state: BoardState = {
       ...createBoardState(initialNodes),
@@ -616,9 +614,7 @@ describe("REFRESH action", () => {
     };
 
     // Refresh with card-2 removed, but col-a still has card-1
-    const newNodes: TNode[] = [
-      createNode("col-a", [createNode("card-1")]),
-    ];
+    const newNodes: TNode[] = [createNode("col-a", [createNode("card-1")])];
 
     const newState = boardReducer(state, {
       type: "REFRESH",

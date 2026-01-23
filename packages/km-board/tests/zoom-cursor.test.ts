@@ -171,7 +171,6 @@ describe("ZOOM_IN cursor preservation", () => {
     expect(result.cursorNodeId).toBe("col-B");
     expect(result.rootId).toBe("col-B");
   });
-
 });
 
 describe("cursorNodeId-based cursor derivation", () => {

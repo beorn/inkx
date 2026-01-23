@@ -366,7 +366,10 @@ describe("curswantY (cross-column navigation)", () => {
 
 describe("curswant integration", () => {
   it("h/l clears curswantX but sets/preserves curswantY", () => {
-    const state = createState([0, 1], undefined, { curswantX: 2, curswantY: null });
+    const state = createState([0, 1], undefined, {
+      curswantX: 2,
+      curswantY: null,
+    });
     const result = boardReducer(state, {
       type: "NAV_CROSS_COLUMN",
       direction: "right",
@@ -382,7 +385,10 @@ describe("curswant integration", () => {
   it("j/k clears curswantY but manages curswantX independently", () => {
     // curswantX is only set when going from column→board
     // curswantY is cleared on any j/k
-    const state = createState([0, 1], undefined, { curswantX: null, curswantY: 5 });
+    const state = createState([0, 1], undefined, {
+      curswantX: null,
+      curswantY: 5,
+    });
 
     // j within column
     const result = boardReducer(state, { type: "CURSOR_MOVE", dir: "down" });
@@ -392,7 +398,10 @@ describe("curswant integration", () => {
   });
 
   it("zoom clears both curswant values", () => {
-    const state = createState([0, 1], undefined, { curswantX: 2, curswantY: 3 });
+    const state = createState([0, 1], undefined, {
+      curswantX: 2,
+      curswantY: 3,
+    });
     const result = boardReducer(state, {
       type: "ZOOM_IN",
       nodeId: "col-a",

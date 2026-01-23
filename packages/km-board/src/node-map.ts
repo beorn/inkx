@@ -102,4 +102,3 @@ export function createNodeMap(nodes: TNode[]): NodeMap {
     },
   };
 }
-

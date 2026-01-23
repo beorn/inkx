@@ -79,4 +79,3 @@ describe("createNodeMap", () => {
     expect(map.getEntry("sub2")?.path).toEqual([1, 0, 1]);
   });
 });
-

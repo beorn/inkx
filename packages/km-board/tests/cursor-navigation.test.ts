@@ -463,7 +463,10 @@ describe("edge cases", () => {
 
     it("NAV_TO_PATH to non-existent card is noop", () => {
       const state = createState([0, 0]);
-      const result = boardReducer(state, { type: "NAV_TO_PATH", path: [0, 10] });
+      const result = boardReducer(state, {
+        type: "NAV_TO_PATH",
+        path: [0, 10],
+      });
       expect(result.cursor).toEqual([0, 0]); // unchanged
     });
   });
