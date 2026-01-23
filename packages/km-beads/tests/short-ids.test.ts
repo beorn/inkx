@@ -22,7 +22,11 @@ describe("Short ID utilities", () => {
   });
 
   test("generates unique IDs", () => {
-    const ids = new Set([generateShortId(), generateShortId(), generateShortId()]);
+    const ids = new Set([
+      generateShortId(),
+      generateShortId(),
+      generateShortId(),
+    ]);
     expect(ids.size).toBe(3);
   });
 });

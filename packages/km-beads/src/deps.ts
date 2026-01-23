@@ -14,7 +14,7 @@ import type { Issue } from "./types.ts";
  */
 export function addDependency(
   issue: Issue,
-  dependsOn: string // Short ID of the blocker
+  dependsOn: string, // Short ID of the blocker
 ): { props: Record<string, unknown>; propsRaw: Record<string, string> } {
   const currentBlockers = issue.blockedBy || [];
 
@@ -32,7 +32,7 @@ export function addDependency(
  */
 export function removeDependency(
   issue: Issue,
-  dependsOn: string
+  dependsOn: string,
 ): { props: Record<string, unknown>; propsRaw: Record<string, string> } | null {
   const currentBlockers = issue.blockedBy || [];
 
@@ -105,7 +105,10 @@ export function dependsOn(issueA: Issue, issueB: Issue): boolean {
  */
 export function mergeDepProps(
   existingData: Record<string, unknown> | undefined,
-  depProps: { props: Record<string, unknown>; propsRaw: Record<string, string> }
+  depProps: {
+    props: Record<string, unknown>;
+    propsRaw: Record<string, string>;
+  },
 ): Record<string, unknown> {
   const data = existingData || {};
   const existingProps = (data.props || {}) as Record<string, unknown>;
