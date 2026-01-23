@@ -39,7 +39,9 @@ import {
   addLink,
   dbApplyEvent,
 } from "./db.ts";
-import { findFileByName, findChildByContent } from "./db-queries/index.ts";
+import { findChildByContent } from "./db-queries/index.ts";
+import { rowToNode } from "./db-queries/utils.ts";
+import type { KNode } from "@km/core";
 import { getEventsPath, setKmDir, setDatabase } from "./emit.ts";
 import { evaluateAllRules, setBulkMode } from "./db-rules.ts";
 import { findKmRootFromPath } from "./path-utils.ts";
@@ -473,10 +475,14 @@ function* resolveLinks(
   yield "Resolving links";
   yield { current: 0, total };
 
+  // Build file lookup index for O(1) resolution instead of O(n) SQL per link
+  const fileIndex = buildFileIndex();
+
   for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
     try {
-      // Find target file by name
-      const fileNode = findFileByName(link.target);
+      // Find target file by normalized name (O(1) lookup)
+      const normalizedTarget = link.target.toLowerCase().replace(/\.md$/, "");
+      const fileNode = fileIndex.get(normalizedTarget) ?? null;
 
       // If there's a section reference, try to find the specific child node
       let targetNode = fileNode;
@@ -513,6 +519,41 @@ function* resolveLinks(
   }
 
   return resolved;
+}
+
+/**
+ * Build an index of file nodes by normalized name for O(1) lookup.
+ * This replaces per-link SQL queries which were O(n) each.
+ */
+function buildFileIndex(): Map<string, KNode> {
+  const db = getDb();
+  const index = new Map<string, KNode>();
+
+  const rows = db
+    .query("SELECT * FROM nodes WHERE type = 'file'")
+    .all() as Record<string, unknown>[];
+
+  for (const row of rows) {
+    const node = rowToNode(row);
+    if (node.fs_path) {
+      // Index by filename without extension (e.g., "test" for "test.md")
+      const filename = basename(node.fs_path)
+        .toLowerCase()
+        .replace(/\.md$/, "");
+      index.set(filename, node);
+
+      // Also index by full path without extension for disambiguation
+      const fullPath = node.fs_path.toLowerCase().replace(/\.md$/, "");
+      index.set(fullPath, node);
+    }
+    // Also index by data.name if present
+    const data = node.data as Record<string, unknown> | undefined;
+    if (data?.name && typeof data.name === "string") {
+      index.set(data.name.toLowerCase(), node);
+    }
+  }
+
+  return index;
 }
 
 function* materializeRules(): Generator<StepYield, void, unknown> {

@@ -35,7 +35,10 @@ export function generateSubId(
  * @param shortId - The short ID to resolve
  * @param options - Optional options (vault for DI)
  */
-export function resolveShortId(shortId: string, options?: ShortIdOptions): string | null {
+export function resolveShortId(
+  shortId: string,
+  options?: ShortIdOptions,
+): string | null {
   const sql = `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ? LIMIT 1`;
   const params = [shortId];
 

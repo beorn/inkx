@@ -40,7 +40,10 @@ export const DEFAULT_HARNESS: Harness = {
  * @param name - Harness name to load
  * @param options - Optional options (kmDir for DI)
  */
-export function loadHarness(name: string, options?: HarnessOptions): Harness | null {
+export function loadHarness(
+  name: string,
+  options?: HarnessOptions,
+): Harness | null {
   // Try loading from .km/harnesses/
   const kmDir = options?.kmDir ?? getKmDir();
   if (kmDir) {

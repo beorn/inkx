@@ -282,10 +282,15 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       return false;
     },
 
-    rawQuery<T = Record<string, unknown>>(_sql: string, _params?: unknown[]): T[] {
+    rawQuery<T = Record<string, unknown>>(
+      _sql: string,
+      _params?: unknown[],
+    ): T[] {
       ensureNotClosed();
       // FakeVault doesn't have a real database - return empty results
-      throw new Error("FakeVault does not support rawQuery - use real Vault for SQL queries");
+      throw new Error(
+        "FakeVault does not support rawQuery - use real Vault for SQL queries",
+      );
     },
 
     // --- Lifecycle ---

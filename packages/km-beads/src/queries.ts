@@ -24,7 +24,9 @@ function getNodePath(node: KNode, vault?: Vault): string | undefined {
   }
   // For embedded nodes, try to get parent's path
   if (node.parent_id) {
-    const parent = vault ? vault.getNode(node.parent_id) : getNode(node.parent_id);
+    const parent = vault
+      ? vault.getNode(node.parent_id)
+      : getNode(node.parent_id);
     if (parent) {
       return getNodePath(parent, vault);
     }
@@ -50,7 +52,9 @@ function countDependents(shortId: string, vault?: Vault): number {
 
   // Fallback to singleton
   const db = getDb();
-  const result = db.prepare(sql).get(...params) as { count: number } | undefined;
+  const result = db.prepare(sql).get(...params) as
+    | { count: number }
+    | undefined;
   return result?.count ?? 0;
 }
 
@@ -61,7 +65,9 @@ function getParentContext(node: KNode, vault?: Vault): string | undefined {
   if (!node.parent_id) {
     return undefined;
   }
-  const parent = vault ? vault.getNode(node.parent_id) : getNode(node.parent_id);
+  const parent = vault
+    ? vault.getNode(node.parent_id)
+    : getNode(node.parent_id);
   if (!parent) {
     return undefined;
   }
@@ -192,7 +198,9 @@ export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
 
   // Check if any blocker is not done
   for (const blockerId of issue.blockedBy) {
-    const blockers = vault ? vault.query(`short_id:${blockerId}`) : queryNodes(`short_id:${blockerId}`);
+    const blockers = vault
+      ? vault.query(`short_id:${blockerId}`)
+      : queryNodes(`short_id:${blockerId}`);
     const [firstBlocker] = blockers;
     if (firstBlocker) {
       const blocker = nodeToIssue(firstBlocker, { vault });
@@ -301,7 +309,9 @@ export function queryIssues(
   }
 
   // Don't filter by type='task' - issues can be file nodes with task_status
-  const nodes = vault ? vault.query(query.trim() || "*") : queryNodes(query.trim() || "*");
+  const nodes = vault
+    ? vault.query(query.trim() || "*")
+    : queryNodes(query.trim() || "*");
   let issues = nodes.map((n) => nodeToIssue(n, { vault }));
 
   // Apply path scope filter after query (since path: syntax not supported)
@@ -326,7 +336,10 @@ export function queryIssues(
  * @param shortId - The short ID to look up
  * @param options - Optional query options (vault for DI)
  */
-export function getIssue(shortId: string, options?: BeadsQueryOptions): Issue | null {
+export function getIssue(
+  shortId: string,
+  options?: BeadsQueryOptions,
+): Issue | null {
   const vault = options?.vault;
   // Try to find by short_id in data
   // Don't filter by type='task' - issues can be file nodes with task_status

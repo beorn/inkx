@@ -509,11 +509,18 @@ export function* createVault(
       return existsSync(join(path, relativePath));
     },
 
-    rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
+    rawQuery<T = Record<string, unknown>>(
+      sql: string,
+      params?: unknown[],
+    ): T[] {
       ensureNotClosed();
       const db = getDb();
       const stmt = db.prepare(sql);
-      return (params ? stmt.all(...(params as Parameters<typeof stmt.all>)) : stmt.all()) as T[];
+      return (
+        params
+          ? stmt.all(...(params as Parameters<typeof stmt.all>))
+          : stmt.all()
+      ) as T[];
     },
 
     // Lifecycle
