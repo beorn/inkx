@@ -1,13 +1,30 @@
 /**
  * Board bottom bar - status display component
  */
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Text } from "inkx";
-import { useSpinnerFrame } from "@beorn/inkx-ui/react";
 import { getStore, getNodeCount } from "@km/storage";
 import type { WatcherStatus } from "@km/storage";
 import type { UIState } from "../ui-reducer.ts";
 import type { BoardState, ViewMode } from "../types.ts";
+
+// Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const SPINNER_INTERVAL = 80;
+
+/** Hook for animated spinner frame - uses React from inkx to avoid version mismatch */
+function useSpinnerFrame(): string {
+  const [frameIndex, setFrameIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFrameIndex((i) => (i + 1) % SPINNER_FRAMES.length);
+    }, SPINNER_INTERVAL);
+    return () => clearInterval(timer);
+  }, []);
+
+  return SPINNER_FRAMES[frameIndex] ?? "⠋";
+}
 
 interface BottomBarProps {
   ui: UIState;
@@ -27,7 +44,7 @@ export function BottomBar({
   const homeDir = process.env.HOME || "";
 
   // Spinner for sync/loading states (hook runs always but frame only displayed when active)
-  const spinnerFrame = useSpinnerFrame("dots");
+  const spinnerFrame = useSpinnerFrame();
   const isSyncing =
     ui.watcherStatus?.state === "syncing" ||
     ui.watcherStatus?.state === "starting";
