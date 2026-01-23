@@ -153,6 +153,193 @@ export function initBoardState(rootId?: string): BoardState | null {
 }
 
 /**
+ * Generator version of initBoardState that yields progress
+ * Use this for loading screens to allow event loop updates between yields
+ */
+export function* initBoardStateGenerator(
+  rootId?: string,
+): Generator<ProgressInfo, BoardState | null, unknown> {
+  if (rootId) {
+    const root = resolveNode(rootId);
+    if (!root) {
+      return null;
+    }
+    // Delegate to generator version of buildBoardState
+    return yield* buildBoardStateGenerator(root.id);
+  }
+
+  // No root specified - show root-level nodes as columns
+  const roots = getChildren(null);
+  if (roots.length === 0) {
+    return null;
+  }
+
+  // Group roots by display name
+  const groups = new Map<string, KNode[]>();
+  for (const root of roots) {
+    const name = getNodeDisplayName(root);
+    if (!groups.has(name)) {
+      groups.set(name, []);
+    }
+    groups.get(name)?.push(root);
+  }
+
+  // First pass: collect all unique card nodes and their IDs
+  const allCardIds: string[] = [];
+  const columnData: Array<{ colNode: KNode; cardNodes: KNode[] }> = [];
+  const total = groups.size;
+  let current = 0;
+
+  yield { phase: "board", current: 0, total };
+
+  for (const [_name, groupRoots] of groups) {
+    const colNode = groupRoots[0];
+    if (!colNode) continue;
+
+    // Collect all children from all roots in this group
+    const seenNames = new Set<string>();
+    const uniqueCardNodes: KNode[] = [];
+    for (const root of groupRoots) {
+      for (const child of getChildren(root.id)) {
+        const cardName = getNodeDisplayName(child);
+        if (!seenNames.has(cardName)) {
+          seenNames.add(cardName);
+          uniqueCardNodes.push(child);
+          allCardIds.push(child.id);
+        }
+      }
+    }
+
+    columnData.push({ colNode, cardNodes: uniqueCardNodes });
+    current++;
+    yield { phase: "board", current, total };
+  }
+
+  // Single batch query for all child counts
+  const childCounts = getChildCountsBatch(allCardIds);
+
+  // Second pass: build columns with pre-fetched child counts
+  const columns: ColumnState[] = [];
+  for (const { colNode, cardNodes } of columnData) {
+    const cards: CardState[] = cardNodes.map((cardNode) => ({
+      node: cardNode,
+      children: [],
+      childCount: childCounts.get(cardNode.id) ?? 0,
+    }));
+    columns.push({ node: colNode, cards });
+  }
+
+  return {
+    rootId: null,
+    rootPath: null,
+    columns,
+    colIndex: 0,
+    cardIndex: 0,
+    selectedCards: new Set(),
+    visualMode: false,
+    foldedCards: new Set(),
+    collapsedColumns: new Set(),
+    searchQuery: "",
+    searchMode: false,
+    helpMode: false,
+    zoomStack: [],
+  };
+}
+
+/**
+ * Generator version of buildBoardState that yields progress
+ */
+export function* buildBoardStateGenerator(
+  rootId: string,
+): Generator<ProgressInfo, BoardState, unknown> {
+  const rootNode = getNode(rootId);
+  const wipLimits = extractWipLimits(rootNode);
+  const collapsedColumns = new Set<number>();
+
+  // Get direct children as columns
+  const allChildren = getChildren(rootId);
+  const nonColumnTypes = new Set(["paragraph", "code", "quote"]);
+  const columnNodes = allChildren.filter((n) => !nonColumnTypes.has(n.type));
+
+  const total = columnNodes.length;
+  yield { phase: "board", current: 0, total };
+
+  // Batch query child counts for all columns
+  const columnIds = columnNodes.map((n) => n.id);
+  const columnChildCounts = getChildCountsBatch(columnIds);
+
+  // First pass: collect all card IDs
+  const columnCardNodes: KNode[][] = [];
+  const allCardIds: string[] = [];
+
+  for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
+    const colNode = columnNodes[colIdx];
+    if (!colNode) continue;
+
+    const colChildCount = columnChildCounts.get(colNode.id) ?? 0;
+    if (colChildCount === 0) {
+      columnCardNodes[colIdx] = [];
+      continue;
+    }
+
+    const cardNodes = getChildren(colNode.id);
+    columnCardNodes[colIdx] = cardNodes;
+
+    for (const cardNode of cardNodes) {
+      allCardIds.push(cardNode.id);
+    }
+
+    // Yield progress after each column
+    yield { phase: "board", current: colIdx + 1, total };
+  }
+
+  // Single batch query for all child counts
+  const childCounts = getChildCountsBatch(allCardIds);
+
+  // Second pass: build columns with pre-fetched child counts
+  const columns: ColumnState[] = [];
+  for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
+    const colNode = columnNodes[colIdx];
+    if (!colNode) continue;
+
+    const cardNodes = columnCardNodes[colIdx] ?? [];
+    const rules = colNode.rules ?? parseColumnRules(colNode.content || "");
+
+    const cards: CardState[] = cardNodes.map((cardNode) => ({
+      node: cardNode,
+      children: [],
+      childCount: childCounts.get(cardNode.id) ?? 0,
+    }));
+
+    const colName = getNodeDisplayName(colNode);
+    const normalizedName = normalizeColumnName(colName);
+    const wipLimit = rules.limit ?? wipLimits.get(normalizedName);
+
+    if (rules.collapse) {
+      collapsedColumns.add(colIdx);
+    }
+
+    columns.push({ node: colNode, cards, wipLimit, rules });
+  }
+
+  return {
+    rootId,
+    rootPath: null,
+    columns,
+    colIndex: 0,
+    cardIndex: 0,
+    selectedCards: new Set(),
+    visualMode: false,
+    foldedCards: new Set(),
+    collapsedColumns,
+    searchQuery: "",
+    searchMode: false,
+    helpMode: false,
+    zoomStack: [],
+  };
+}
+
+/**
  * Extract WIP limits from frontmatter columns config
  * Frontmatter format: columns: { column_name: { limit: number } }
  */
