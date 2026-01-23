@@ -99,6 +99,11 @@ export function getNodeDisplayName(
   }
 
   // 5. Use filename (strip .md extension)
+  // Note: fs_path may be missing for:
+  // - In-memory test nodes created without filesystem backing
+  // - Dynamically generated/synthetic nodes
+  // - Legacy data migration scenarios
+  // This is intentional - we fall back to short ID rather than throwing.
   if (node.fs_path) {
     const filename = node.fs_path.split("/").pop() || "";
     return filename.replace(/\.md$/, "") || node.id.slice(0, 8);

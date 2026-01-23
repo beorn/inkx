@@ -78,6 +78,11 @@ export {
 
 export type { RebuildResult, SyncResult } from "./rebuild.ts";
 
+// Unified vault loading (the ONE function for loading vaults)
+export { loadVault } from "./vault-loader.ts";
+
+export type { LoadResult, LoadError, LoadOptions } from "./vault-loader.ts";
+
 // Database rules (add= materialization)
 export {
   evaluateAllRules,

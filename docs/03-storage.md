@@ -479,6 +479,79 @@ async function rebuildState(): Promise<Database> {
 
 ---
 
+## Vault Loader
+
+The `loadVault()` function is the **unified entry point** for loading vaults in both memory and disk modes. It replaces the fragmented `ensureState`, `rebuildState`, `syncState` functions with a single generator-based pipeline.
+
+### Usage
+
+```typescript
+import { loadVault, runGenerator } from "@km/storage";
+
+// Basic usage (silent, no progress)
+const result = runGenerator(loadVault("/path/to/vault"));
+
+// With progress reporting
+import { withProgress } from "@beorn/inkx-ui/wrappers";
+const result = await withProgress(loadVault("/path/to/vault"), { phases: PHASES });
+```
+
+### Options
+
+```typescript
+interface LoadOptions {
+  searchAncestors?: boolean;  // Look for .km/ in parent directories (default: true)
+  force?: boolean;            // Force full rebuild even if state exists (default: false)
+}
+```
+
+### Pipeline Phases
+
+`loadVault()` yields progress through these phases:
+
+| Phase | Memory Mode | Disk Mode |
+|-------|-------------|-----------|
+| **discover** | Count markdown files | Count events in events.jsonl |
+| **parse** | Parse files → generate events | (skipped - events already parsed) |
+| **apply** | Insert nodes into SQLite | Apply events to SQLite |
+| **resolve** | Resolve wikilinks | (skipped - resolved during apply) |
+| **materialize** | Evaluate add= rules | Evaluate add= rules |
+
+### Return Value
+
+```typescript
+interface LoadResult {
+  mode: "memory" | "disk";
+  nodeCount: number;
+  linkCount: number;
+  errors: LoadError[];
+  duration: number;
+}
+```
+
+### Legacy API
+
+The old functions still work but delegate to `loadVault()`:
+
+| Old Function | New Equivalent |
+|--------------|----------------|
+| `ensureState(root)` | `loadVault(root)` |
+| `rebuildState()` | `loadVault(root, { force: true })` |
+| `syncState()` | `loadVault(root)` |
+
+### Cold Start vs Hot Path
+
+`loadVault()` is for **cold start** (initial loading). For incremental updates after loading:
+
+| Path | Function | When |
+|------|----------|------|
+| Cold start | `loadVault()` | CLI startup, initial load |
+| Hot path | `applyEvent()` | Real-time file watcher changes |
+
+The `SyncManager` handles the hot path via file watching → `reconcileDirectory()` → `applyEvent()`.
+
+---
+
 ## Store Interface
 
 ```typescript

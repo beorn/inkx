@@ -45,10 +45,8 @@ export const viewCommand = new Command("view")
     let storageModule: typeof import("@km/storage");
     let cliModule: typeof import("../index.ts");
 
-    // Store instance for memory mode (to call generators separately)
-    let memStore: import("@km/storage").MemoryStore | null = null;
-
     // Run loading tasks with fluent API
+    // loadVault() handles both memory and disk modes with unified progress
     const results = await tasks()
       .add("Loading modules", async () => {
         [inkModule, storageModule, cliModule] = await Promise.all([
@@ -57,7 +55,7 @@ export const viewCommand = new Command("view")
           import("../index.ts"),
         ]);
       })
-      .add("Scanning files", function* () {
+      .add("Loading vault", function* () {
         const vaultRoot = storageModule!.resolvePathArg(
           root,
           cliModule!.getRootPath(),
@@ -65,23 +63,10 @@ export const viewCommand = new Command("view")
         // Set vault root for debug path formatting
         setDebugVaultRoot(vaultRoot);
 
-        // Initialize store - use lazy mode for memory stores so we can split phases
-        const store = storageModule!.initStore(vaultRoot, false, { lazy: true });
-        if (store.mode === "memory") {
-          memStore = store as import("@km/storage").MemoryStore;
-          yield* memStore.scanFilesGenerator();
-        } else {
-          // Disk mode: use ensureState which handles sync/rebuild
-          yield* storageModule!.ensureState(vaultRoot, false);
-        }
-      })
-      .add("Reconciling links", function* () {
-        if (memStore) {
-          yield* memStore.resolveLinksGenerator();
-          // Inject database for backwards compatibility
-          storageModule!.setDb(memStore.getDatabase());
-        }
-        // Disk mode already handled in previous step
+        // loadVault handles both memory and disk modes:
+        // - Memory mode: discover → parse → apply → resolve → materialize
+        // - Disk mode: discover → apply → materialize
+        yield* storageModule!.loadVault(vaultRoot, { searchAncestors: false });
       })
       .add("Building view", function* () {
         const resolved = storageModule!.resolvePathArg(

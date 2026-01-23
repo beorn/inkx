@@ -1,21 +1,20 @@
 /**
  * State Rebuild
  *
- * Rebuilds state.db from events.jsonl
+ * Legacy API for state rebuilding - now delegates to vault-loader.ts.
+ * These functions are kept for backwards compatibility but all use loadVault() internally.
  */
 
 import createDebug from "debug";
 import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs";
 
 const debug = createDebug("km:storage:rebuild");
-import { join } from "path";
+import { join, dirname } from "path";
 import type { Event } from "@km/core";
 import type { ProgressInfo } from "@beorn/inkx-ui";
-import { getEventsPath, getKmDir, setDatabase } from "./emit.ts";
-import { dbApplyEvent } from "./db.ts";
-import { applyEvent, getDb, getDbPath, resetDb, closeDb, setDb } from "./db.ts";
-import { initStore, MemoryStore } from "./store.ts";
-import { evaluateAllRules, setBulkMode } from "./db-rules.ts";
+import { getEventsPath, getKmDir } from "./emit.ts";
+import { getDb, getDbPath, closeDb } from "./db.ts";
+import { loadVault } from "./vault-loader.ts";
 
 /** Result from rebuildState */
 export interface RebuildResult {
@@ -81,73 +80,34 @@ export function readEvents(): Event[] {
  * Rebuild state.db from events.jsonl
  * This is the primary recovery mechanism.
  * Yields progress info for each step.
+ *
+ * Now delegates to loadVault() with force: true.
  */
 export function* rebuildState(): Generator<
   ProgressInfo,
   RebuildResult,
   unknown
 > {
-  debug("rebuilding state.db");
-  const start = Date.now();
+  debug("rebuildState: delegating to loadVault with force=true");
 
-  // Reset the database
-  resetDb();
-
-  // Read events (phase 1)
-  yield { phase: "reading", current: 0, total: 1 };
+  // Count events for the return value (loadVault doesn't track this)
   const events = readEvents();
-  yield { phase: "reading", current: 1, total: 1 };
+  const eventCount = events.length;
 
-  // Apply all events in a single transaction for performance
-  // Without this, each applyEvent triggers an fsync to disk
-  const db = getDb();
-  const total = events.length;
+  // Get vault root from already-configured kmDir (set by setKmDir())
+  const kmDir = getKmDir();
+  const vaultRoot = dirname(kmDir);
 
-  // Enable bulk mode to suppress incremental rule evaluation during rebuild
-  setBulkMode(true);
-
-  db.run("BEGIN IMMEDIATE");
-  try {
-    for (const [i, event] of events.entries()) {
-      applyEvent(event);
-
-      // Yield progress every 100 events to avoid overhead
-      if (i % 100 === 0 || i === total - 1) {
-        yield { phase: "applying", current: i + 1, total };
-      }
-    }
-    db.run("COMMIT");
-  } catch (error) {
-    db.run("ROLLBACK");
-    setBulkMode(false);
-    throw error;
-  }
-
-  // Disable bulk mode and evaluate all rules
-  setBulkMode(false);
-
-  // Evaluate all add= rules to materialize results (phase 3)
-  for (const progress of evaluateAllRules()) {
-    yield { phase: "rules", current: progress.current, total: progress.total };
-  }
-
-  // Get final stats
-  const nodeCount = (
-    db.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }
-  ).count;
-
-  const duration = Date.now() - start;
-  debug(
-    "rebuilt state.db: %d events → %d nodes in %dms",
-    events.length,
-    nodeCount,
-    duration,
-  );
+  // Delegate to loadVault with force flag
+  const result = yield* loadVault(vaultRoot, {
+    searchAncestors: false,
+    force: true,
+  });
 
   return {
-    eventCount: events.length,
-    nodeCount,
-    duration,
+    eventCount,
+    nodeCount: result.nodeCount,
+    duration: result.duration,
   };
 }
 
@@ -218,61 +178,33 @@ export interface SyncResult {
 /**
  * Incremental sync - apply only new events
  * Yields progress info for each step.
+ *
+ * Now delegates to loadVault() (which handles incremental sync internally).
  */
 export function* syncState(): Generator<ProgressInfo, SyncResult, unknown> {
-  debug("syncState: checking for new events");
-  const start = Date.now();
+  debug("syncState: delegating to loadVault");
+
+  // Get current state to calculate how many events were applied
   const db = getDb();
   const lastApplied = db
     .prepare("SELECT value FROM meta WHERE key = ?")
     .get("last_event") as { value: string } | undefined;
-
-  yield { phase: "reading", current: 0, total: 1 };
   const events = readEvents();
-  yield { phase: "reading", current: 1, total: 1 };
-
-  // Filter to only new events
   const newEvents = events.filter(
     (e) => !lastApplied?.value || e.id > lastApplied.value,
   );
-  const total = newEvents.length;
 
-  if (total === 0) {
-    debug("syncState: no new events");
-    return { applied: 0, duration: Date.now() - start };
-  }
+  // Get vault root from already-configured kmDir (set by setKmDir())
+  const kmDir = getKmDir();
+  const vaultRoot = dirname(kmDir);
 
-  // Enable bulk mode to suppress incremental rule evaluation
-  setBulkMode(true);
+  // Delegate to loadVault (incremental mode)
+  const result = yield* loadVault(vaultRoot, { searchAncestors: false });
 
-  // Apply in transaction for performance
-  db.run("BEGIN IMMEDIATE");
-  try {
-    for (const [i, event] of newEvents.entries()) {
-      applyEvent(event);
-
-      if (i % 100 === 0 || i === total - 1) {
-        yield { phase: "applying", current: i + 1, total };
-      }
-    }
-    db.run("COMMIT");
-  } catch (error) {
-    db.run("ROLLBACK");
-    setBulkMode(false);
-    throw error;
-  }
-
-  // Disable bulk mode and evaluate all rules
-  setBulkMode(false);
-
-  // Evaluate all add= rules to materialize results
-  for (const progress of evaluateAllRules()) {
-    yield { phase: "rules", current: progress.current, total: progress.total };
-  }
-
-  const duration = Date.now() - start;
-  debug("syncState: applied %d new events in %dms", total, duration);
-  return { applied: total, duration };
+  return {
+    applied: newEvents.length,
+    duration: result.duration,
+  };
 }
 
 /**
@@ -296,7 +228,7 @@ export function* fullReset(): Generator<ProgressInfo, RebuildResult, unknown> {
     unlinkSync(shmPath);
   }
 
-  // Delegate to rebuildState and return its result
+  // Delegate to rebuildState (which now uses loadVault)
   return yield* rebuildState();
 }
 
@@ -308,35 +240,22 @@ export function* fullReset(): Generator<ProgressInfo, RebuildResult, unknown> {
  * - Disk mode (.km/ exists): rebuild from events.jsonl
  * - Memory mode (no .km/): scan filesystem into :memory: SQLite
  *
+ * Now delegates entirely to loadVault().
+ *
  * @param rootPath - Directory to use as root
  * @param searchAncestors - If true, search for .km/ in ancestors (default: true)
- * @param onProgress - Optional callback for progress reporting
  */
 export function* ensureState(
   rootPath?: string,
   searchAncestors = true,
 ): Generator<ProgressInfo, void, unknown> {
-  debug("ensureState", { rootPath: rootPath ?? "cwd", searchAncestors });
-  const store = initStore(rootPath, searchAncestors, { lazy: true });
+  debug("ensureState: delegating to loadVault", {
+    rootPath: rootPath ?? "cwd",
+    searchAncestors,
+  });
 
-  if (store.mode === "memory") {
-    debug("ensureState: memory mode");
-    // Memory mode: scan filesystem with progress reporting
-    const memStore = store as MemoryStore;
-    yield* memStore.initialize();
-    // Inject its database into db.ts for backwards compatibility
-    setDb(store.getDatabase());
-  } else {
-    debug("ensureState: disk mode");
-    // Disk mode: use existing event-sourced approach
-    if (needsRebuild()) {
-      yield* rebuildState();
-    } else {
-      yield* syncState();
-    }
-    // Enable immediate event application so emit() updates state.db in real-time
-    setDatabase(dbApplyEvent);
-  }
+  // Delegate entirely to loadVault - it handles both modes
+  yield* loadVault(rootPath, { searchAncestors });
 }
 
 /**
