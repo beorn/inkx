@@ -5,10 +5,12 @@
  * - Singleton instance management
  * - Memory mode for testing
  * - Database initialization and reset
+ * - AsyncLocalStorage for parallel test isolation
  */
 
 import createDebug from "debug";
 import { Database } from "bun:sqlite";
+import { AsyncLocalStorage } from "async_hooks";
 
 const debug = createDebug("km:storage:db:instance");
 import { join } from "path";
@@ -21,6 +23,9 @@ let dbInstance: Database | null = null;
 
 // Flag to track if db was injected externally (e.g., from MemoryStore)
 let dbInjected = false;
+
+// AsyncLocalStorage for context-local database (enables parallel test isolation)
+const dbContext = new AsyncLocalStorage<Database>();
 
 /**
  * Get the database path
@@ -35,6 +40,12 @@ export function getDbPath(): string {
  * This singleton will be removed in a future version.
  */
 export function getDb(): Database {
+  // Check async context first (enables parallel test isolation)
+  const contextDb = dbContext.getStore();
+  if (contextDb) {
+    return contextDb;
+  }
+
   if (dbInstance) {
     return dbInstance;
   }
@@ -101,4 +112,24 @@ export function resetDb(): void {
     DROP TABLE IF EXISTS meta;
   `);
   db.exec(SCHEMA);
+}
+
+/**
+ * Run a function with a context-local database.
+ * This enables parallel test isolation - each test can have its own in-memory
+ * database without affecting other concurrent tests.
+ *
+ * @example
+ * const db = new Database(":memory:");
+ * db.exec(SCHEMA);
+ * runWithDb(db, () => {
+ *   // All getDb() calls within this function return the context database
+ *   resetDb();
+ *   // ... test logic ...
+ * }).finally(() => {
+ *   db.close();
+ * });
+ */
+export function runWithDb<T>(db: Database, fn: () => T): T {
+  return dbContext.run(db, fn);
 }

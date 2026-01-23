@@ -4,6 +4,7 @@
 
 import createDebug from "debug";
 import { appendFileSync, existsSync, mkdirSync } from "fs";
+import { AsyncLocalStorage } from "async_hooks";
 
 const debug = createDebug("km:storage:emit");
 import { ulid } from "ulid";
@@ -22,6 +23,9 @@ let fsSync: { applyEventToFs: (event: Event) => void } | null = null;
 // Path to km state directory (defaults to .km, can be overridden with KM_DIR env var)
 let kmDir = process.env.KM_DIR ?? ".km";
 
+// AsyncLocalStorage for context-local kmDir (enables parallel test isolation)
+const kmDirContext = new AsyncLocalStorage<string>();
+
 /**
  * Set the km state directory path
  */
@@ -35,7 +39,21 @@ export function setKmDir(path: string): void {
  * This singleton will be removed in a future version.
  */
 export function getKmDir(): string {
+  // Check async context first (enables parallel test isolation)
+  const contextKmDir = kmDirContext.getStore();
+  if (contextKmDir) {
+    return contextKmDir;
+  }
   return kmDir;
+}
+
+/**
+ * Run a function with a context-local kmDir.
+ * This enables parallel test isolation - each test can have its own kmDir
+ * without affecting other concurrent tests.
+ */
+export function runWithKmDir<T>(path: string, fn: () => T): T {
+  return kmDirContext.run(path, fn);
 }
 
 /**

@@ -1,3 +1,6 @@
+// Database schema (for testing with in-memory databases)
+export { SCHEMA } from "./schema.ts";
+
 // Database operations
 export {
   getDbPath,
@@ -6,6 +9,7 @@ export {
   setDb,
   isMemoryMode,
   resetDb,
+  runWithDb,
   applyEvent,
   getNode,
   getNodeByIdPrefix,
@@ -206,6 +210,7 @@ export {
   emit,
   setKmDir,
   getKmDir,
+  runWithKmDir,
   setEventHub,
   setDatabase,
   setFsSync,
