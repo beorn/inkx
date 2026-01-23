@@ -23,7 +23,7 @@ Run this single command to capture complete repo state:
 {
   echo "=== BRANCHES ==="
   echo "main: $(git branch --show-current)"
-  for d in vendor/*/; do [ -d "$d.git" ] && echo "$d: $(cd "$d" && git branch --show-current 2>/dev/null || echo 'DETACHED')"; done
+  for d in vendor/*/; do [ -e "$d.git" ] && echo "$d: $(cd "$d" && git branch --show-current 2>/dev/null || echo 'DETACHED')"; done
 
   echo -e "\n=== STAGED ==="
   git diff --cached --name-status
@@ -36,7 +36,7 @@ Run this single command to capture complete repo state:
 
   echo -e "\n=== SUBMODULE CHANGES ==="
   for d in vendor/*/; do
-    [ -d "$d.git" ] || continue
+    [ -e "$d.git" ] || continue
     changes=$(cd "$d" && git status --porcelain 2>/dev/null)
     [ -z "$changes" ] && continue
     echo "--- $d ---"
