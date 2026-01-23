@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0](https://github.com/beorn/km/compare/v0.1.1...v0.2.0) (2026-01-23)
+
+### Features
+
+* **board,storage:** add Board and Config domain objects ([40beb76](https://github.com/beorn/km/commit/40beb76f09c9be4d926712366740dd201c7f4741))
+* **cli:** add stats command as domain object migration example ([3eb7473](https://github.com/beorn/km/commit/3eb74737505d8b97516620f44e67d24ec830412a))
+* **core:** add Service interface and generator utilities ([3d45cc4](https://github.com/beorn/km/commit/3d45cc4efda983c7de6a70cba4eddd960e560a5b))
+* **storage:** add Vault domain object and createVault factory ([7b4a052](https://github.com/beorn/km/commit/7b4a05212caae07ba9f344aa36fe287354f378d9))
+* **storage:** add Watcher service and createWatcher factory ([a37a67b](https://github.com/beorn/km/commit/a37a67bb2173ff5d0b2053df3ad93c6dfc439aec))
+
 ## 0.1.1 (2026-01-23)
 
 ### Features
