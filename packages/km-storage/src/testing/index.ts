@@ -6,6 +6,7 @@
 
 export { createFakeVault } from "./fake-vault.ts";
 export { createChaosFakeVault } from "./chaos-fake-vault.ts";
+export { createChaosHooks, createSeededRandom } from "./chaos-hooks.ts";
 
 export type { FakeVault, FakeVaultOptions } from "./fake-vault.ts";
 export type {
@@ -15,3 +16,9 @@ export type {
   CorruptionType,
   ConsistencyIssue,
 } from "./chaos-fake-vault.ts";
+export type {
+  ChaosHooksConfig,
+  ChaosEvent,
+  ChaosHooks,
+  ChaosStats,
+} from "./chaos-hooks.ts";

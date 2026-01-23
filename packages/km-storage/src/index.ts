@@ -87,7 +87,16 @@ export type { LoadError as VaultLoaderError } from "./vault-loader.ts";
 // Vault domain object (preferred API)
 export { createVault } from "./vault.ts";
 
-export type { Vault, VaultOptions, VaultStats, LoadError } from "./vault.ts";
+export type {
+  Vault,
+  VaultOptions,
+  VaultStats,
+  LoadError,
+  VaultHooks,
+  MutationType,
+  MutationContext,
+  BeforeMutationResult,
+} from "./vault.ts";
 
 // Watcher domain object (Service for file sync)
 export { createWatcher } from "./watcher.ts";
@@ -242,7 +251,12 @@ export { loadConfigObject } from "./config-object.ts";
 export type { Config } from "./config-object.ts";
 
 // Testing utilities
-export { createFakeVault, createChaosFakeVault } from "./testing/index.ts";
+export {
+  createFakeVault,
+  createChaosFakeVault,
+  createChaosHooks,
+  createSeededRandom,
+} from "./testing/index.ts";
 
 export type {
   FakeVault,
@@ -252,4 +266,8 @@ export type {
   TransactionLogEntry,
   CorruptionType,
   ConsistencyIssue,
+  ChaosHooksConfig,
+  ChaosEvent,
+  ChaosHooks,
+  ChaosStats,
 } from "./testing/index.ts";

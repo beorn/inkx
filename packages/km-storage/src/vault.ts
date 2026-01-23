@@ -15,7 +15,11 @@ import createDebug from "debug";
 import { Database } from "bun:sqlite";
 import type { KNode, TaskStatus } from "@km/core";
 import type { ProgressInfo } from "@beorn/inkx-ui";
-import { loadVault, type LoadOptions, type LoadResult } from "./vault-loader.ts";
+import {
+  loadVault,
+  type LoadOptions,
+  type LoadResult,
+} from "./vault-loader.ts";
 import {
   getNode as dbGetNode,
   getChildren as dbGetChildren,
@@ -144,12 +148,63 @@ export interface VaultStats {
   duration: number;
 }
 
+// --- Hooks ---
+
+/** Mutation types for beforeMutation/afterMutation hooks */
+export type MutationType = "update" | "move" | "delete" | "add";
+
+/** Context passed to mutation hooks */
+export interface MutationContext {
+  type: MutationType;
+  nodeId: string;
+  changes?: Partial<KNode>;
+  newParentId?: string;
+  position?: number;
+  node?: Partial<KNode> & { type: KNode["type"]; content: string };
+}
+
+/** Result from beforeMutation hook */
+export interface BeforeMutationResult {
+  /** Set to true to cancel the mutation */
+  cancel?: boolean;
+  /** Modified context (optional) */
+  context?: MutationContext;
+}
+
+/** Vault lifecycle hooks for extending behavior */
+export interface VaultHooks {
+  /**
+   * Called before each mutation (update, move, delete, add).
+   * Return { cancel: true } to prevent the mutation.
+   * Return { context: modified } to transform the mutation.
+   */
+  beforeMutation?: (ctx: MutationContext) => BeforeMutationResult | void;
+
+  /**
+   * Called after each mutation completes.
+   */
+  afterMutation?: (ctx: MutationContext) => void;
+
+  /**
+   * Called after query operations complete.
+   * Can be used to augment results or log queries.
+   */
+  afterQuery?: (operation: string, result: unknown) => void;
+
+  /**
+   * Called when vault is closed.
+   */
+  onClose?: () => void;
+}
+
 /** Options for createVault */
 export interface VaultOptions extends LoadOptions {
   /** Dependency injection for testing */
   inject?: {
     database?: Database;
   };
+  /** Lifecycle hooks for extending vault behavior */
+  hooks?: VaultHooks;
 }
 
 // --- Factory ---
@@ -197,6 +252,38 @@ export function* createVault(
 
   debug("vault loaded", { path, mode, stats });
 
+  // Capture hooks
+  const hooks = options?.hooks;
+
+  // Helper to run mutation with hooks
+  function runMutation<T>(
+    ctx: MutationContext,
+    execute: (ctx: MutationContext) => T,
+  ): T {
+    // beforeMutation hook
+    if (hooks?.beforeMutation) {
+      const result = hooks.beforeMutation(ctx);
+      if (result?.cancel) {
+        throw new Error(
+          `Mutation cancelled by hook: ${ctx.type} ${ctx.nodeId}`,
+        );
+      }
+      if (result?.context) {
+        ctx = result.context;
+      }
+    }
+
+    // Execute mutation
+    const value = execute(ctx);
+
+    // afterMutation hook
+    if (hooks?.afterMutation) {
+      hooks.afterMutation(ctx);
+    }
+
+    return value;
+  }
+
   // Return vault object
   const vault: Vault = {
     get path() {
@@ -212,77 +299,109 @@ export function* createVault(
       return stats;
     },
 
-    // Query operations
+    // Query operations (with afterQuery hook)
     getNode(id) {
       ensureNotClosed();
-      return dbGetNode(id);
+      const result = dbGetNode(id);
+      hooks?.afterQuery?.("getNode", result);
+      return result;
     },
 
     getChildren(parentId) {
       ensureNotClosed();
-      return dbGetChildren(parentId);
+      const result = dbGetChildren(parentId);
+      hooks?.afterQuery?.("getChildren", result);
+      return result;
     },
 
     getSubtree(nodeId) {
       ensureNotClosed();
-      return dbGetSubtree(nodeId);
+      const result = dbGetSubtree(nodeId);
+      hooks?.afterQuery?.("getSubtree", result);
+      return result;
     },
 
     getAncestors(nodeId) {
       ensureNotClosed();
-      return dbGetAncestors(nodeId);
+      const result = dbGetAncestors(nodeId);
+      hooks?.afterQuery?.("getAncestors", result);
+      return result;
     },
 
     getAllTasks() {
       ensureNotClosed();
-      return dbGetAllTasks();
+      const result = dbGetAllTasks();
+      hooks?.afterQuery?.("getAllTasks", result);
+      return result;
     },
 
     getTasksByStatus(status) {
       ensureNotClosed();
-      return dbGetTasksByStatus(status);
+      const result = dbGetTasksByStatus(status);
+      hooks?.afterQuery?.("getTasksByStatus", result);
+      return result;
     },
 
     search(query) {
       ensureNotClosed();
-      return dbSearch(query);
+      const result = dbSearch(query);
+      hooks?.afterQuery?.("search", result);
+      return result;
     },
 
     query(expression) {
       ensureNotClosed();
       const ast = parseQuery(expression);
-      return executeQuery(ast);
+      const result = executeQuery(ast);
+      hooks?.afterQuery?.("query", result);
+      return result;
     },
 
     getLinksTo(targetId) {
       ensureNotClosed();
-      return dbGetLinksTo(targetId);
+      const result = dbGetLinksTo(targetId);
+      hooks?.afterQuery?.("getLinksTo", result);
+      return result;
     },
 
     getBacklinks(nodeId) {
       ensureNotClosed();
-      return dbGetBacklinks(nodeId);
+      const result = dbGetBacklinks(nodeId);
+      hooks?.afterQuery?.("getBacklinks", result);
+      return result;
     },
 
-    // Mutation operations
+    // Mutation operations (with hooks)
     updateNode(id, changes) {
       ensureNotClosed();
-      dbUpdateNode(id, changes);
+      runMutation({ type: "update", nodeId: id, changes }, (ctx) => {
+        dbUpdateNode(ctx.nodeId, ctx.changes!);
+      });
     },
 
     moveNode(id, newParentId, position) {
       ensureNotClosed();
-      dbMoveNode(id, newParentId, position);
+      runMutation(
+        { type: "move", nodeId: id, newParentId, position },
+        (ctx) => {
+          dbMoveNode(ctx.nodeId, ctx.newParentId!, ctx.position!);
+        },
+      );
     },
 
     deleteNode(id) {
       ensureNotClosed();
-      dbDeleteNode(id);
+      runMutation({ type: "delete", nodeId: id }, (ctx) => {
+        dbDeleteNode(ctx.nodeId);
+      });
     },
 
     addNode(parentId, node) {
       ensureNotClosed();
-      return dbAddNode(parentId, node);
+      return runMutation(
+        { type: "add", nodeId: parentId ?? "root", node },
+        (ctx) => dbAddNode(parentId, ctx.node!),
+      );
     },
 
     // Lifecycle
@@ -305,6 +424,7 @@ export function* createVault(
       if (closed) return;
       closed = true;
       debug("closing vault");
+      hooks?.onClose?.();
       closeDb();
     },
 

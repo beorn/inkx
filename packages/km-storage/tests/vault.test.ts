@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { runGenerator } from "@km/core";
 import { createVault, closeDb } from "../src/index.ts";
+import type { MutationContext, VaultHooks } from "../src/index.ts";
 
 const TEST_DIR = "/tmp/kmtest-vault";
 
@@ -224,8 +225,7 @@ Some content here with [[tasks]] link.
   });
 
   test("yields progress info during loading", () => {
-    const progress: Array<{ phase: string; current: number; total: number }> =
-      [];
+    const progress: Array<string | { current?: number; total?: number }> = [];
 
     const gen = createVault(ROOT_DIR);
     let result = gen.next();
@@ -236,8 +236,9 @@ Some content here with [[tasks]] link.
     const vault = result.value;
 
     expect(progress.length).toBeGreaterThan(0);
-    // "discover" is always yielded, "parse" only yields every 50 files
-    expect(progress.some((p) => p.phase === "discover")).toBe(true);
+    // New format: strings for labels, objects for progress
+    // First yield should be declare object, then "Discovering files" string
+    expect(progress.some((p) => p === "Discovering files")).toBe(true);
 
     vault.close();
   });
@@ -258,5 +259,214 @@ Some content here with [[tasks]] link.
     expect(Array.isArray(vault.loadErrors)).toBe(true);
 
     vault.close();
+  });
+
+  describe("hooks", () => {
+    test("afterQuery is called for query operations", () => {
+      const queryCalls: Array<{ operation: string; result: unknown }> = [];
+      const hooks: VaultHooks = {
+        afterQuery: (operation, result) => {
+          queryCalls.push({ operation, result });
+        },
+      };
+
+      const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
+
+      vault.getAllTasks();
+      vault.getNode(vault.getAllTasks()[0]!.id);
+      vault.getChildren(null);
+      vault.search("task");
+
+      expect(queryCalls.length).toBe(5); // getAllTasks x2, getNode, getChildren, search
+      expect(queryCalls.map((c) => c.operation)).toContain("getAllTasks");
+      expect(queryCalls.map((c) => c.operation)).toContain("getNode");
+      expect(queryCalls.map((c) => c.operation)).toContain("getChildren");
+      expect(queryCalls.map((c) => c.operation)).toContain("search");
+
+      vault.close();
+    });
+
+    test("beforeMutation is called before mutations", () => {
+      const mutations: MutationContext[] = [];
+      const hooks: VaultHooks = {
+        beforeMutation: (ctx) => {
+          mutations.push({ ...ctx });
+        },
+      };
+
+      const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
+
+      const tasks = vault.getAllTasks();
+      const task = tasks[0]!;
+
+      vault.updateNode(task.id, { task_status: "done" });
+
+      expect(mutations.length).toBe(1);
+      expect(mutations[0]!.type).toBe("update");
+      expect(mutations[0]!.nodeId).toBe(task.id);
+      expect(mutations[0]!.changes).toEqual({ task_status: "done" });
+
+      vault.close();
+    });
+
+    test("afterMutation is called after mutations", () => {
+      const mutations: MutationContext[] = [];
+      const hooks: VaultHooks = {
+        afterMutation: (ctx) => {
+          mutations.push({ ...ctx });
+        },
+      };
+
+      const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
+
+      const tasks = vault.getAllTasks();
+      const task = tasks[0]!;
+
+      vault.updateNode(task.id, { task_status: "done" });
+
+      expect(mutations.length).toBe(1);
+      expect(mutations[0]!.type).toBe("update");
+      expect(mutations[0]!.nodeId).toBe(task.id);
+
+      vault.close();
+    });
+
+    test("beforeMutation can cancel mutations", () => {
+      const hooks: VaultHooks = {
+        beforeMutation: () => {
+          return { cancel: true };
+        },
+      };
+
+      const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
+
+      const tasks = vault.getAllTasks();
+      const task = tasks[0]!;
+      const originalStatus = task.task_status;
+
+      expect(() => vault.updateNode(task.id, { task_status: "done" })).toThrow(
+        /Mutation cancelled by hook/,
+      );
+
+      // Verify mutation didn't happen
+      const unchanged = vault.getNode(task.id);
+      expect(unchanged!.task_status).toBe(originalStatus);
+
+      vault.close();
+    });
+
+    test("beforeMutation can modify context", () => {
+      const hooks: VaultHooks = {
+        beforeMutation: (ctx) => {
+          if (ctx.type === "update" && ctx.changes) {
+            // Force all status updates to "wip"
+            return {
+              context: {
+                ...ctx,
+                changes: { ...ctx.changes, task_status: "wip" as const },
+              },
+            };
+          }
+        },
+      };
+
+      const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
+
+      const tasks = vault.getAllTasks();
+      const task = tasks[0]!;
+
+      // Request "done" but hook transforms to "wip"
+      vault.updateNode(task.id, { task_status: "done" });
+
+      const updated = vault.getNode(task.id);
+      expect(updated!.task_status).toBe("wip");
+
+      vault.close();
+    });
+
+    test("onClose is called when vault is closed", () => {
+      let closeCalled = false;
+      const hooks: VaultHooks = {
+        onClose: () => {
+          closeCalled = true;
+        },
+      };
+
+      const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
+
+      expect(closeCalled).toBe(false);
+      vault.close();
+      expect(closeCalled).toBe(true);
+    });
+
+    test("onClose is called only once", () => {
+      let closeCount = 0;
+      const hooks: VaultHooks = {
+        onClose: () => {
+          closeCount++;
+        },
+      };
+
+      const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
+
+      vault.close();
+      vault.close();
+      vault.close();
+
+      expect(closeCount).toBe(1);
+    });
+
+    test("addNode triggers mutation hooks", () => {
+      const mutations: MutationContext[] = [];
+      const hooks: VaultHooks = {
+        beforeMutation: (ctx) => {
+          mutations.push({ ...ctx });
+        },
+        afterMutation: (ctx) => {
+          mutations.push({ ...ctx });
+        },
+      };
+
+      const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
+
+      const rootChildren = vault.getChildren(null);
+      const fileNode = rootChildren[0]!;
+
+      vault.addNode(fileNode.id, {
+        type: "task",
+        content: "New task from hook test",
+      });
+
+      expect(mutations.length).toBe(2); // before + after
+      expect(mutations[0]!.type).toBe("add");
+      expect(mutations[0]!.node?.content).toBe("New task from hook test");
+
+      vault.close();
+    });
+
+    test("deleteNode triggers mutation hooks", () => {
+      const mutations: MutationContext[] = [];
+      const hooks: VaultHooks = {
+        beforeMutation: (ctx) => {
+          mutations.push({ ...ctx });
+        },
+        afterMutation: (ctx) => {
+          mutations.push({ ...ctx });
+        },
+      };
+
+      const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
+
+      const tasks = vault.getAllTasks();
+      const task = tasks[0]!;
+
+      vault.deleteNode(task.id);
+
+      expect(mutations.length).toBe(2);
+      expect(mutations[0]!.type).toBe("delete");
+      expect(mutations[0]!.nodeId).toBe(task.id);
+
+      vault.close();
+    });
   });
 });
