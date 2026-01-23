@@ -12,6 +12,14 @@ import { buildNodeTree } from "./ast2nodes.ts";
 const debug = createDebug("km:markdown:nodes2md");
 
 /**
+ * Context for serialization - includes node lookup for embedding reconstruction
+ */
+interface SerializeContext {
+  tree: Map<string, KNode[]>;
+  nodeMap: Map<string, KNode>;
+}
+
+/**
  * Convert nodes to markdown
  */
 export function nodesToMarkdown(nodes: KNode[]): string {
@@ -20,17 +28,19 @@ export function nodesToMarkdown(nodes: KNode[]): string {
     return "";
   }
 
-  // Build tree structure
+  // Build tree structure and node lookup map
   const tree = buildNodeTree(nodes);
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const ctx: SerializeContext = { tree, nodeMap };
 
   // Find root node (file node)
   const fileNode = nodes.find((n) => n.type === "file");
   if (!fileNode) {
     // No file node, serialize all nodes flat
-    return nodes.map((n) => serializeNode(n, tree, 0)).join("");
+    return nodes.map((n) => serializeNode(n, ctx, 0)).join("");
   }
 
-  return serializeFile(fileNode, tree);
+  return serializeFile(fileNode, ctx);
 }
 
 /**
@@ -47,7 +57,7 @@ function isListItemType(node: KNode): boolean {
  */
 function serializeChildren(
   children: KNode[],
-  tree: Map<string, KNode[]>,
+  ctx: SerializeContext,
 ): string {
   let md = "";
 
@@ -60,14 +70,14 @@ function serializeChildren(
 
     if (isCurrentList) {
       // For list items: serialize without trailing newline, add blank line only at end of group
-      md += serializeNode(child, tree, 0, false);
+      md += serializeNode(child, ctx, 0, false);
       if (!isNextList) {
         // End of list group - add blank line
         md += "\n";
       }
     } else {
       // Non-list items (sections, paragraphs, etc.) handle their own spacing
-      md += serializeNode(child, tree, 0, true);
+      md += serializeNode(child, ctx, 0, true);
     }
   }
 
@@ -80,7 +90,7 @@ function serializeChildren(
  * The file node may have H1 properties merged in (content, title, rules).
  * We serialize the H1 heading first, then frontmatter (minus depth), then children.
  */
-function serializeFile(node: KNode, tree: Map<string, KNode[]>): string {
+function serializeFile(node: KNode, ctx: SerializeContext): string {
   let md = "";
 
   // Frontmatter - exclude internal/computed fields
@@ -105,8 +115,8 @@ function serializeFile(node: KNode, tree: Map<string, KNode[]>): string {
   }
 
   // Children (with proper list grouping)
-  const children = tree.get(node.id) ?? [];
-  md += serializeChildren(children, tree);
+  const children = ctx.tree.get(node.id) ?? [];
+  md += serializeChildren(children, ctx);
 
   return md;
 }
@@ -117,25 +127,23 @@ function serializeFile(node: KNode, tree: Map<string, KNode[]>): string {
  */
 function serializeNode(
   node: KNode,
-  tree: Map<string, KNode[]>,
+  ctx: SerializeContext,
   indent: number,
   addTrailingNewline: boolean = true,
 ): string {
-  const children = tree.get(node.id) ?? [];
+  const children = ctx.tree.get(node.id) ?? [];
 
   switch (node.type) {
     case "file":
-      return serializeFile(node, tree);
+      return serializeFile(node, ctx);
 
     case "section":
-      return serializeSection(node, children, tree);
+      return serializeSection(node, children, ctx);
 
     case "paragraph":
-      // If this paragraph came from an embedding, preserve the embedding reference
-      if ((node as { source_embedding?: string }).source_embedding) {
-        return (
-          (node as { source_embedding?: string }).source_embedding + "\n\n"
-        );
+      // If this node has link_to, it's an embedding - reconstruct ![[path|alias]]
+      if (node.link_to) {
+        return serializeEmbedding(node, ctx);
       }
       return (node.content ?? "") + "\n\n";
 
@@ -149,7 +157,7 @@ function serializeNode(
       return serializeListItem(
         node,
         children,
-        tree,
+        ctx,
         indent,
         false,
         addTrailingNewline,
@@ -159,14 +167,14 @@ function serializeNode(
       return serializeListItem(
         node,
         children,
-        tree,
+        ctx,
         indent,
         true,
         addTrailingNewline,
       );
 
     case "task":
-      return serializeTask(node, children, tree, indent, addTrailingNewline);
+      return serializeTask(node, children, ctx, indent, addTrailingNewline);
 
     case "hr":
       return "---\n\n";
@@ -188,16 +196,56 @@ function serializeNode(
 function serializeSection(
   node: KNode,
   children: KNode[],
-  tree: Map<string, KNode[]>,
+  ctx: SerializeContext,
 ): string {
   const depth = (node.data?.depth as number) ?? 1;
   const prefix = "#".repeat(depth);
   let md = `${prefix} ${node.content ?? ""}\n\n`;
 
   // Use serializeChildren for proper list grouping
-  md += serializeChildren(children, tree);
+  md += serializeChildren(children, ctx);
 
   return md;
+}
+
+/**
+ * Serialize an embedding node back to ![[path|alias]] syntax
+ */
+function serializeEmbedding(node: KNode, ctx: SerializeContext): string {
+  if (!node.link_to) {
+    // Fallback to content if no link_to
+    return (node.content ?? "") + "\n\n";
+  }
+
+  // Look up target node to get its path
+  const targetNode = ctx.nodeMap.get(node.link_to);
+  if (!targetNode) {
+    // Target not found - fallback to content
+    debug("serializeEmbedding: target not found %s", node.link_to);
+    return (node.content ?? "") + "\n\n";
+  }
+
+  // Reconstruct the embedding path from target's fs_path
+  let path = "";
+  if (targetNode.fs_path) {
+    // Use filename without .md extension
+    const filename = targetNode.fs_path.split("/").pop() ?? "";
+    path = filename.replace(/\.md$/, "");
+  } else if (targetNode.title) {
+    // Use title for sections
+    path = targetNode.title;
+  } else {
+    // Fallback to ID
+    path = targetNode.id;
+  }
+
+  // Add alias if present and different from path
+  const alias = node.link_alias;
+  if (alias && alias !== path) {
+    return `![[${path}|${alias}]]\n\n`;
+  }
+
+  return `![[${path}]]\n\n`;
 }
 
 /**
@@ -225,7 +273,7 @@ function serializeCode(node: KNode): string {
 function serializeListItem(
   node: KNode,
   children: KNode[],
-  tree: Map<string, KNode[]>,
+  ctx: SerializeContext,
   indent: number,
   ordered: boolean,
   addTrailingNewline: boolean = true,
@@ -237,7 +285,7 @@ function serializeListItem(
   // Nested items
   for (const child of children) {
     if (child.type === "ul" || child.type === "ol" || child.type === "task") {
-      md += serializeNode(child, tree, indent + 1);
+      md += serializeNode(child, ctx, indent + 1);
     }
   }
 
@@ -280,7 +328,7 @@ function statusToMark(
 function serializeTask(
   node: KNode,
   children: KNode[],
-  tree: Map<string, KNode[]>,
+  ctx: SerializeContext,
   indent: number,
   addTrailingNewline: boolean = true,
 ): string {
@@ -316,7 +364,7 @@ function serializeTask(
   // Nested items
   for (const child of children) {
     if (child.type === "ul" || child.type === "ol" || child.type === "task") {
-      md += serializeNode(child, tree, indent + 1);
+      md += serializeNode(child, ctx, indent + 1);
     }
   }
 

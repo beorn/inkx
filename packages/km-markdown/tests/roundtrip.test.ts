@@ -8,6 +8,7 @@
 import { describe, test, expect } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
+import type { KNode } from "@km/core";
 
 import { parseMarkdownToNodes } from "../src/ast2nodes.ts";
 import { nodesToMarkdown } from "../src/nodes2md.ts";
@@ -1611,5 +1612,189 @@ describe("Round-trip: Special Characters", () => {
     const output = nodesToMarkdown(nodes);
 
     expect(output).toContain("\\");
+  });
+});
+
+describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
+  test("should serialize embedding from link_to target", () => {
+    // Create a file node representing the target file
+    const targetNode: KNode = {
+      id: "target-id-123",
+      type: "file",
+      parent_id: null,
+      parent_idx: 0,
+      link_to: null,
+      fs_path: "/vault/projects/api.md",
+      content: "API Documentation",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    // Create a paragraph node with link_to set (resolved embedding)
+    const embeddingNode: KNode = {
+      id: "embed-id-456",
+      type: "paragraph",
+      parent_id: "file-id-789",
+      parent_idx: 1,
+      link_to: "target-id-123", // Points to target node
+      content: "![[projects/api]]", // Original content (preserved for reference)
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    // Create a parent file node
+    const fileNode: KNode = {
+      id: "file-id-789",
+      type: "file",
+      parent_id: null,
+      parent_idx: 0,
+      link_to: null,
+      fs_path: "/vault/test.md",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    const nodes: KNode[] = [fileNode, embeddingNode, targetNode];
+    const output = nodesToMarkdown(nodes);
+
+    // Should reconstruct embedding syntax from target's fs_path
+    expect(output).toContain("![[api]]");
+  });
+
+  test("should serialize embedding with alias from link_alias", () => {
+    const targetNode: KNode = {
+      id: "target-id-123",
+      type: "file",
+      parent_id: null,
+      parent_idx: 0,
+      link_to: null,
+      fs_path: "/vault/docs/authentication.md",
+      content: "Authentication Guide",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    const embeddingNode: KNode = {
+      id: "embed-id-456",
+      type: "paragraph",
+      parent_id: "file-id-789",
+      parent_idx: 1,
+      link_to: "target-id-123",
+      link_alias: "Auth Docs", // Alias should appear in output
+      content: "![[authentication|Auth Docs]]",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    const fileNode: KNode = {
+      id: "file-id-789",
+      type: "file",
+      parent_id: null,
+      parent_idx: 0,
+      link_to: null,
+      fs_path: "/vault/test.md",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    const nodes: KNode[] = [fileNode, embeddingNode, targetNode];
+    const output = nodesToMarkdown(nodes);
+
+    // Should include alias in embedding syntax
+    expect(output).toContain("![[authentication|Auth Docs]]");
+  });
+
+  test("should serialize embedding to section using title", () => {
+    const targetSection: KNode = {
+      id: "section-id-123",
+      type: "section",
+      parent_id: "parent-file",
+      parent_idx: 1,
+      link_to: null,
+      title: "API Reference",
+      content: "API Reference",
+      data: { depth: 2 },
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    const embeddingNode: KNode = {
+      id: "embed-id-456",
+      type: "paragraph",
+      parent_id: "file-id-789",
+      parent_idx: 1,
+      link_to: "section-id-123",
+      content: "![[#API Reference]]",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    const fileNode: KNode = {
+      id: "file-id-789",
+      type: "file",
+      parent_id: null,
+      parent_idx: 0,
+      link_to: null,
+      fs_path: "/vault/test.md",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    const nodes: KNode[] = [fileNode, embeddingNode, targetSection];
+    const output = nodesToMarkdown(nodes);
+
+    // Should use section title as embedding path
+    expect(output).toContain("![[API Reference]]");
+  });
+
+  test("should fallback to content when link_to target not found", () => {
+    const embeddingNode: KNode = {
+      id: "embed-id-456",
+      type: "paragraph",
+      parent_id: "file-id-789",
+      parent_idx: 1,
+      link_to: "nonexistent-target",
+      content: "![[missing-file]]",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    const fileNode: KNode = {
+      id: "file-id-789",
+      type: "file",
+      parent_id: null,
+      parent_idx: 0,
+      link_to: null,
+      fs_path: "/vault/test.md",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "",
+    };
+
+    const nodes: KNode[] = [fileNode, embeddingNode];
+    const output = nodesToMarkdown(nodes);
+
+    // Should fallback to original content when target not found
+    expect(output).toContain("![[missing-file]]");
   });
 });
