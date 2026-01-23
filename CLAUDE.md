@@ -103,8 +103,8 @@ bun run test:mdtest  # Only mdtest integration tests (*.test.md)
 
 **⚡ IMPORTANT: Use `bun run test:fast` during development!**
 
-- `test:fast` takes ~4 seconds - use this while iterating
-- Only run `test:all` before committing
+- `test:fast` takes ~24 seconds - use this while iterating
+- Only run `test:all` before committing (~1.5 minutes)
 
 **BEFORE committing any code changes:**
 
@@ -116,7 +116,7 @@ bun run test:all     # MUST pass - all tests including mdtest
 **During development:**
 
 ```bash
-bun run test:fast    # Run this frequently - 4 second feedback loop
+bun run test:fast    # Run this frequently - 24 second feedback loop
 ```
 
 **When implementing features:**
@@ -202,6 +202,8 @@ Packages in `vendor/` are standalone libraries that could be useful outside km. 
 - How to use `km sh` + `mdtest` for TUI behavior tests
 - Coverage goals per layer
 
+**Chaos testing for sync bugs:** Use `/chaos-test` to discover and fix file synchronization bugs. This runs a property-based fuzzer that simulates edge cases like dropped events, reordering, and race conditions. See [docs/dev/chaos-testing.md](docs/dev/chaos-testing.md) for details.
+
 ---
 
 ### 8. Beads Issue Tracking
@@ -233,8 +235,30 @@ Claims expire after 30 min of session inactivity. Stale claims can be taken over
 **Key concepts:**
 
 - Priority: P0=critical, P1=high, P2=medium, P3=low, P4=backlog
-- Types: task, bug, feature, epic, question, docs
+- Types: task, bug, feature, epic, chore
 - Dependencies: `bd dep add <issue> <depends-on>`
+
+**Grouped beads (for related issues):**
+
+When creating multiple related beads (e.g., from an architecture review or multi-part feature), use parent-child hierarchy with explicit IDs:
+
+```bash
+# 1. Create parent with descriptive slug
+bd create --id "km-review-sync" --type=epic --priority=2 \
+  --title="Architecture review: sync layer" \
+  --body-file /tmp/review.md
+
+# 2. Create children with sequential suffix
+bd create --id "km-review-sync.0" --title="Fix race condition" --type=bug --priority=1
+bd create --id "km-review-sync.1" --title="Add retry logic" --type=task --priority=2
+bd create --id "km-review-sync.2" --title="Update docs" --type=task --priority=3
+```
+
+Benefits:
+
+- `bd show km-review-sync` shows parent with all children
+- Related issues stay grouped in listings
+- Clear audit trail of what was found together
 
 ---
 
@@ -472,3 +496,55 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 2. If you can't reproduce, ask user for help - DO NOT guess at fixes
 3. After fix, capture AFTER screenshot and compare
 4. For recurring bugs, wait for user confirmation before closing
+
+### 14. No Defensive Fallbacks or Compatibility Shims
+
+**Fail fast, don't mask bugs.**
+
+**No backwards compatibility re-exports:**
+
+```typescript
+// BAD - keeping old export location "for compatibility"
+export { foo } from "./old-location.ts"; // backwards compat
+
+// GOOD - just remove it, update callers
+// (delete the re-export entirely)
+```
+
+**No fallback chains that mask programming errors:**
+
+```typescript
+// BAD - silently hides missing data
+function getName(node: Node): string {
+  return node.title ?? node.data?.title ?? node.content ?? node.id.slice(0, 8);
+}
+
+// GOOD - throw if invariant is violated
+function getName(node: Node): string {
+  if (node.type === "section" && !node.title) {
+    throw new Error(`Section ${node.id} missing title`);
+  }
+  return node.title!;
+}
+```
+
+**When you find fallback/compat code:**
+
+1. **Determine intent**: Is this handling legitimate data variations, or masking bugs?
+2. **Legitimate**: External input, user data, optional features → keep the handling
+3. **Bug masking**: Internal invariants, required fields → replace with throw
+4. **If unsure**: Create a bead to investigate, don't leave it unresolved
+
+**Comments indicating tech debt:**
+
+```typescript
+// BAD - leaving breadcrumbs of past mistakes
+// backwards compatibility
+// legacy fallback
+// deprecated, remove in v2
+
+// GOOD - either fix it or create a bead
+// Delete the code OR: bd create --title="Remove legacy X" --type=chore
+```
+
+**Rule of thumb**: If you wouldn't add this fallback/compat code today from scratch, remove it or create a bead to remove it later
