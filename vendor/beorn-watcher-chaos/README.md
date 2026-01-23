@@ -230,7 +230,7 @@ new ChaosWatcher(config?: {
 ### MockFileSystem
 
 ```typescript
-new MockFileSystem()
+new MockFileSystem();
 ```
 
 **Methods:**

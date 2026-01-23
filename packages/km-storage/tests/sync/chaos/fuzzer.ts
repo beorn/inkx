@@ -742,7 +742,7 @@ function generateReproductionCommand(
     `# Parent seed: ${parentSeed}, iteration: ${scenario.index}\n` +
     `# Scenarios: ${scenarios}\n` +
     `# Files: ${scenario.setup.length}, Events: ${scenario.events.length}\n` +
-    `bun test packages/km-storage/tests/watch/chaos/fuzzer.test.ts --test-name-pattern "seed ${scenario.seed}"`
+    `bun test packages/km-storage/tests/sync/chaos/fuzzer.test.ts --test-name-pattern "seed ${scenario.seed}"`
   );
 }
 
