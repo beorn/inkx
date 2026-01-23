@@ -2,39 +2,55 @@
  * Store Abstraction Tests
  *
  * Tests for DiskStore and MemoryStore implementations.
+ * Uses isolated temp directories for parallelization.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, afterEach } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "fs";
 import { join } from "path";
+import { ulid } from "ulid";
 import { initStore, closeStore, MemoryStore, DiskStore } from "../src/store.ts";
 
-const TEST_DIR = join("/tmp", "kmtest-store");
+// Track created directories for cleanup
+const createdDirs: string[] = [];
 
-describe.serial("MemoryStore", () => {
-  const ROOT_DIR = join(TEST_DIR, "memory-root");
-
-  beforeEach(() => {
-    // Clean up and create test directory structure
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
+afterEach(() => {
+  for (const dir of createdDirs) {
+    try {
+      rmSync(dir, { recursive: true });
+    } catch {
+      // Ignore cleanup errors
     }
-    mkdirSync(ROOT_DIR, { recursive: true });
+  }
+  createdDirs.length = 0;
+});
 
-    // Create test files
-    writeFileSync(
-      join(ROOT_DIR, "tasks.md"),
-      `# Tasks
+/** Create an isolated test directory */
+function createTestDir(): string {
+  const dir = join("/tmp", `kmtest-store-${ulid()}`);
+  mkdirSync(dir, { recursive: true });
+  createdDirs.push(dir);
+  return dir;
+}
+
+/** Create a test vault with standard test files */
+function createMemoryStoreTestVault(): string {
+  const rootDir = createTestDir();
+
+  // Create test files
+  writeFileSync(
+    join(rootDir, "tasks.md"),
+    `# Tasks
 
 - [ ] Open task
 - [x] Done task
 - [/] In progress task
 `,
-    );
+  );
 
-    writeFileSync(
-      join(ROOT_DIR, "notes.md"),
-      `# Notes
+  writeFileSync(
+    join(rootDir, "notes.md"),
+    `# Notes
 
 ## Section One
 
@@ -44,34 +60,31 @@ Some content here.
 
 - [ ] Nested task
 `,
-    );
+  );
 
-    // Create a subfolder with content
-    mkdirSync(join(ROOT_DIR, "projects"));
-    writeFileSync(
-      join(ROOT_DIR, "projects", "project-a.md"),
-      `# Project A
+  // Create a subfolder with content
+  mkdirSync(join(rootDir, "projects"));
+  writeFileSync(
+    join(rootDir, "projects", "project-a.md"),
+    `# Project A
 
 - [ ] Project task
 `,
-    );
+  );
 
-    // Create non-markdown files (inbox scenario)
-    mkdirSync(join(ROOT_DIR, "inbox"));
-    writeFileSync(join(ROOT_DIR, "inbox", "document.pdf"), "fake pdf content");
-    writeFileSync(join(ROOT_DIR, "inbox", "image.png"), "fake image content");
-    writeFileSync(join(ROOT_DIR, "inbox", "readme.txt"), "some text");
-  });
+  // Create non-markdown files (inbox scenario)
+  mkdirSync(join(rootDir, "inbox"));
+  writeFileSync(join(rootDir, "inbox", "document.pdf"), "fake pdf content");
+  writeFileSync(join(rootDir, "inbox", "image.png"), "fake image content");
+  writeFileSync(join(rootDir, "inbox", "readme.txt"), "some text");
 
-  afterEach(() => {
-    closeStore();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
+  return rootDir;
+}
 
+describe("MemoryStore", () => {
   test("should scan filesystem and create nodes", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     const allNodes = store.getAllNodes();
     expect(allNodes.length).toBeGreaterThan(0);
@@ -88,7 +101,8 @@ Some content here.
   });
 
   test("should include non-markdown files as nodes", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     const allNodes = store.getAllNodes();
     const fileNames = allNodes
@@ -108,7 +122,8 @@ Some content here.
   });
 
   test("should find all tasks", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     const tasks = store.getAllTasks();
     expect(tasks.length).toBe(5); // 3 in tasks.md, 1 in notes.md, 1 in project-a.md
@@ -117,7 +132,8 @@ Some content here.
   });
 
   test("should correctly parse task status", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     const tasks = store.getAllTasks();
 
@@ -137,7 +153,8 @@ Some content here.
   });
 
   test("should create ULID IDs for parsed nodes", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     const tasks = store.getAllTasks();
     const task = tasks.find((t) => t.content === "Open task");
@@ -150,7 +167,8 @@ Some content here.
   });
 
   test("should build section hierarchy from headings", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     const sections = store.getAllNodes().filter((n) => n.type === "section");
     expect(sections.length).toBeGreaterThan(0);
@@ -158,7 +176,7 @@ Some content here.
     // notes.md has "Notes" (H1 merged into file), "Section One", "Section Two" (H2s)
     // H1 is merged into file node, so only H2 sections exist as separate nodes
     // Sections are children of the file node, not marked with fs_path
-    const notesFile = store.getNodeByPath(join(ROOT_DIR, "notes.md"));
+    const notesFile = store.getNodeByPath(join(rootDir, "notes.md"));
     expect(notesFile).not.toBeNull();
     const noteSections = sections.filter((s) => s.parent_id === notesFile!.id);
     expect(noteSections.length).toBe(2); // Section One, Section Two
@@ -167,9 +185,10 @@ Some content here.
   });
 
   test("should get node by path", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
-    const tasksFile = store.getNodeByPath(join(ROOT_DIR, "tasks.md"));
+    const tasksFile = store.getNodeByPath(join(rootDir, "tasks.md"));
     expect(tasksFile).not.toBeNull();
     expect(tasksFile!.type).toBe("file");
     // File content is the H1 title (merged into file node)
@@ -179,7 +198,8 @@ Some content here.
   });
 
   test("should get children of a node", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     // Get root children
     const rootChildren = store.getChildren(null);
@@ -196,7 +216,8 @@ Some content here.
   });
 
   test("should get ancestors of a node", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     // Find a nested task
     const tasks = store.getAllTasks();
@@ -215,7 +236,8 @@ Some content here.
   });
 
   test("should get tasks by status", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     const todoTasks = store.getTasksByStatus("todo");
     expect(todoTasks.length).toBe(3); // Open task, Nested task, Project task
@@ -230,7 +252,8 @@ Some content here.
   });
 
   test("should update node and write through to file", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     // Find an open task
     const tasks = store.getAllTasks();
@@ -248,20 +271,21 @@ Some content here.
     expect(updatedTask!.task_status).toBe("done");
 
     // Verify write-through to file
-    const fileContent = readFileSync(join(ROOT_DIR, "tasks.md"), "utf-8");
+    const fileContent = readFileSync(join(rootDir, "tasks.md"), "utf-8");
     expect(fileContent).toContain("- [x] Open task");
 
     store.close();
   });
 
   test("should refresh and rescan filesystem", () => {
-    const store = new MemoryStore(ROOT_DIR);
+    const rootDir = createMemoryStoreTestVault();
+    const store = new MemoryStore(rootDir);
 
     const initialTasks = store.getAllTasks();
     expect(initialTasks.length).toBe(5);
 
     // Add a new task to the file
-    const tasksPath = join(ROOT_DIR, "tasks.md");
+    const tasksPath = join(rootDir, "tasks.md");
     const content = readFileSync(tasksPath, "utf-8");
     writeFileSync(tasksPath, content + "\n- [ ] New task\n");
 
@@ -276,78 +300,61 @@ Some content here.
 });
 
 describe.serial("DiskStore", () => {
-  const ROOT_DIR = join(TEST_DIR, "disk-root");
-  const KM_DIR = join(ROOT_DIR, ".km");
-
-  beforeEach(() => {
-    // Clean up and create test directory structure
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(KM_DIR, { recursive: true });
-  });
-
   afterEach(() => {
     closeStore();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
   });
 
   test("should detect disk mode when .km exists", () => {
-    const store = initStore(ROOT_DIR);
+    const rootDir = createTestDir();
+    const kmDir = join(rootDir, ".km");
+    mkdirSync(kmDir, { recursive: true });
+
+    const store = initStore(rootDir);
     expect(store.mode).toBe("disk");
-    expect(store.rootPath).toBe(ROOT_DIR);
+    expect(store.rootPath).toBe(rootDir);
   });
 
   test("should use state.db in .km directory", () => {
-    const store = new DiskStore(KM_DIR);
-    expect(existsSync(join(KM_DIR, "state.db"))).toBe(true);
+    const rootDir = createTestDir();
+    const kmDir = join(rootDir, ".km");
+    mkdirSync(kmDir, { recursive: true });
+
+    const store = new DiskStore(kmDir);
+    expect(existsSync(join(kmDir, "state.db"))).toBe(true);
     store.close();
   });
 });
 
 describe.serial("initStore mode detection", () => {
-  // Use /tmp to avoid ancestor .km detection from project directory
-  const TEST_ROOT = "/tmp/km-store-mode-test";
-  const MEMORY_DIR = join(TEST_ROOT, "memory");
-  const DISK_DIR = join(TEST_ROOT, "disk");
-
-  beforeEach(() => {
-    if (existsSync(TEST_ROOT)) {
-      rmSync(TEST_ROOT, { recursive: true });
-    }
-    mkdirSync(MEMORY_DIR, { recursive: true });
-    mkdirSync(join(DISK_DIR, ".km"), { recursive: true });
-  });
-
   afterEach(() => {
     closeStore();
-    if (existsSync(TEST_ROOT)) {
-      rmSync(TEST_ROOT, { recursive: true });
-    }
   });
 
   test("should return MemoryStore when no .km directory exists", () => {
+    const memoryDir = createTestDir();
     // Pass false to disable ancestor search (avoid /tmp/.km pollution)
-    const store = initStore(MEMORY_DIR, false);
+    const store = initStore(memoryDir, false);
     expect(store.mode).toBe("memory");
     expect(store).toBeInstanceOf(MemoryStore);
   });
 
   test("should return DiskStore when .km directory exists", () => {
+    const diskDir = createTestDir();
+    mkdirSync(join(diskDir, ".km"), { recursive: true });
     // Pass false to disable ancestor search (test specific directory)
-    const store = initStore(DISK_DIR, false);
+    const store = initStore(diskDir, false);
     expect(store.mode).toBe("disk");
     expect(store).toBeInstanceOf(DiskStore);
   });
 
   test("should find .km in parent directory", () => {
-    const subDir = join(DISK_DIR, "subdir");
+    const diskDir = createTestDir();
+    mkdirSync(join(diskDir, ".km"), { recursive: true });
+    const subDir = join(diskDir, "subdir");
     mkdirSync(subDir, { recursive: true });
 
     const store = initStore(subDir);
     expect(store.mode).toBe("disk");
-    expect(store.rootPath).toBe(DISK_DIR);
+    expect(store.rootPath).toBe(diskDir);
   });
 });

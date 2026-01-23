@@ -61,13 +61,14 @@ Tests requiring real filesystem/database:
 
 Convert 5 files from singleton to domain object pattern:
 
-1. `node-crud.test.ts` → Use createFakeVault
-2. `links.test.ts` → Use createFakeVault
-3. `query.test.ts` → Use createFakeVault
-4. `config.test.ts` → Use loadConfigObject
-5. `store.test.ts` → Use createVault with inject
+1. `node-crud.test.ts` → Use createFakeVault (pending)
+2. `links.test.ts` → ✅ Uses isolated temp directories with ulid()
+3. `query.test.ts` → ✅ Already parallelizable (no describe.serial)
+4. `config.test.ts` → ⚠️ Must stay serial (tests global cache behavior)
+5. `store.test.ts` → ✅ MemoryStore section uses isolated directories
+6. `path-utils.test.ts` → ✅ Uses isolated temp directories with ulid()
 
-**Estimated impact**: 15% of tests can parallelize.
+**Actual impact**: test:fast improved from ~24s to ~22.5s
 
 ### Phase 2: Storage Layer Migration (3-5 days)
 
@@ -166,4 +167,5 @@ describe("Node CRUD", () => {
 - km-domain-objects (completed) - Domain objects implemented
 - km-vault-plugins (completed) - Vault hooks for testing
 - km-chaos-hooks (completed) - Chaos testing integration
-- km-tui-test-modes - TUI test speed improvements
+- km-tui-test-modes (completed) - TUI test split into fast/slow categories
+- km-test-storage-migrate (in progress) - Storage test migration to domain objects

@@ -5,11 +5,14 @@
  * - isExplicitPath: detecting filesystem paths
  * - resolveFsPath: resolving paths to full info
  * - findKmRootFromPath: finding .km directory
+ *
+ * Uses isolated temp directories for parallelization.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, afterEach } from "bun:test";
 import { join } from "path";
-import { mkdirSync, rmSync, existsSync, writeFileSync } from "fs";
+import { mkdirSync, rmSync, writeFileSync } from "fs";
+import { ulid } from "ulid";
 
 import {
   isExplicitPath,
@@ -19,10 +22,30 @@ import {
   resolvePathArg,
 } from "../src/path-utils.ts";
 
-// Use /tmp to avoid finding the actual .km directory in the codebase
-const TEST_DIR = "/tmp/km-test-path-utils";
+// Track created directories for cleanup
+const createdDirs: string[] = [];
 
-describe.serial("isExplicitPath", () => {
+afterEach(() => {
+  for (const dir of createdDirs) {
+    try {
+      rmSync(dir, { recursive: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+  createdDirs.length = 0;
+});
+
+/** Create an isolated test directory */
+function createTestDir(): string {
+  const dir = join("/tmp", `kmtest-path-${ulid()}`);
+  mkdirSync(dir, { recursive: true });
+  createdDirs.push(dir);
+  return dir;
+}
+
+// Pure function tests - no filesystem needed
+describe("isExplicitPath", () => {
   test("returns true for absolute paths", () => {
     expect(isExplicitPath("/usr/local/bin")).toBe(true);
     expect(isExplicitPath("/home/user/file.md")).toBe(true);
@@ -55,149 +78,125 @@ describe.serial("isExplicitPath", () => {
   });
 });
 
-describe.serial("findKmRootFromPath", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(join(TEST_DIR, "vault/deep/nested"), { recursive: true });
-    mkdirSync(join(TEST_DIR, "vault/.km"), { recursive: true });
-    mkdirSync(join(TEST_DIR, "no-vault/folder"), { recursive: true });
-    writeFileSync(join(TEST_DIR, "vault/deep/nested/file.md"), "# Test");
-  });
-
-  afterEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
+describe("findKmRootFromPath", () => {
   test("finds .km directory in parent", () => {
-    const result = findKmRootFromPath(join(TEST_DIR, "vault/deep"));
-    expect(result).toBe(join(TEST_DIR, "vault/.km"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/deep/nested"), { recursive: true });
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+
+    const result = findKmRootFromPath(join(testDir, "vault/deep"));
+    expect(result).toBe(join(testDir, "vault/.km"));
   });
 
   test("finds .km directory from deeply nested path", () => {
-    const result = findKmRootFromPath(join(TEST_DIR, "vault/deep/nested"));
-    expect(result).toBe(join(TEST_DIR, "vault/.km"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/deep/nested"), { recursive: true });
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+
+    const result = findKmRootFromPath(join(testDir, "vault/deep/nested"));
+    expect(result).toBe(join(testDir, "vault/.km"));
   });
 
   test("finds .km directory from file path", () => {
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/deep/nested"), { recursive: true });
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+    writeFileSync(join(testDir, "vault/deep/nested/file.md"), "# Test");
+
     const result = findKmRootFromPath(
-      join(TEST_DIR, "vault/deep/nested/file.md"),
+      join(testDir, "vault/deep/nested/file.md"),
     );
-    expect(result).toBe(join(TEST_DIR, "vault/.km"));
+    expect(result).toBe(join(testDir, "vault/.km"));
   });
 
   test("returns null when no .km directory exists", () => {
-    const result = findKmRootFromPath(join(TEST_DIR, "no-vault/folder"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "no-vault/folder"), { recursive: true });
+
+    const result = findKmRootFromPath(join(testDir, "no-vault/folder"));
     expect(result).toBeNull();
   });
 });
 
-describe.serial("resolveFsPath", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(join(TEST_DIR, "vault/.km"), { recursive: true });
-    mkdirSync(join(TEST_DIR, "vault/folder"), { recursive: true });
-    writeFileSync(join(TEST_DIR, "vault/file.md"), "# Test");
-  });
-
-  afterEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
+describe("resolveFsPath", () => {
   test("resolves existing file", () => {
-    const result = resolveFsPath(join(TEST_DIR, "vault/file.md"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+    writeFileSync(join(testDir, "vault/file.md"), "# Test");
+
+    const result = resolveFsPath(join(testDir, "vault/file.md"));
     expect(result.exists).toBe(true);
     expect(result.isFile).toBe(true);
     expect(result.isDirectory).toBe(false);
-    expect(result.kmRoot).toBe(join(TEST_DIR, "vault/.km"));
+    expect(result.kmRoot).toBe(join(testDir, "vault/.km"));
   });
 
   test("resolves existing directory", () => {
-    const result = resolveFsPath(join(TEST_DIR, "vault/folder"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+    mkdirSync(join(testDir, "vault/folder"), { recursive: true });
+
+    const result = resolveFsPath(join(testDir, "vault/folder"));
     expect(result.exists).toBe(true);
     expect(result.isFile).toBe(false);
     expect(result.isDirectory).toBe(true);
-    expect(result.kmRoot).toBe(join(TEST_DIR, "vault/.km"));
+    expect(result.kmRoot).toBe(join(testDir, "vault/.km"));
   });
 
   test("handles non-existent path", () => {
-    const result = resolveFsPath(join(TEST_DIR, "vault/nonexistent.md"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+
+    const result = resolveFsPath(join(testDir, "vault/nonexistent.md"));
     expect(result.exists).toBe(false);
     expect(result.isFile).toBe(false);
     expect(result.isDirectory).toBe(false);
     // Should still find .km from parent
-    expect(result.kmRoot).toBe(join(TEST_DIR, "vault/.km"));
+    expect(result.kmRoot).toBe(join(testDir, "vault/.km"));
   });
 
   test("returns null kmRoot when outside any vault", () => {
-    mkdirSync(join(TEST_DIR, "outside"), { recursive: true });
-    const result = resolveFsPath(join(TEST_DIR, "outside"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "outside"), { recursive: true });
+
+    const result = resolveFsPath(join(testDir, "outside"));
     expect(result.exists).toBe(true);
     expect(result.kmRoot).toBeNull();
   });
 });
 
-describe.serial("getEffectiveRoot", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(join(TEST_DIR, "vault/.km"), { recursive: true });
-    mkdirSync(join(TEST_DIR, "no-vault"), { recursive: true });
-    writeFileSync(join(TEST_DIR, "vault/file.md"), "# Test");
-    writeFileSync(join(TEST_DIR, "no-vault/file.md"), "# Test");
-  });
-
-  afterEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
+describe("getEffectiveRoot", () => {
   test("returns vault root when .km exists", () => {
-    const resolution = resolveFsPath(join(TEST_DIR, "vault/file.md"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+    writeFileSync(join(testDir, "vault/file.md"), "# Test");
+
+    const resolution = resolveFsPath(join(testDir, "vault/file.md"));
     const root = getEffectiveRoot(resolution);
-    expect(root).toBe(join(TEST_DIR, "vault"));
+    expect(root).toBe(join(testDir, "vault"));
   });
 
   test("returns file parent for memory mode", () => {
-    const resolution = resolveFsPath(join(TEST_DIR, "no-vault/file.md"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "no-vault"), { recursive: true });
+    writeFileSync(join(testDir, "no-vault/file.md"), "# Test");
+
+    const resolution = resolveFsPath(join(testDir, "no-vault/file.md"));
     const root = getEffectiveRoot(resolution);
-    expect(root).toBe(join(TEST_DIR, "no-vault"));
+    expect(root).toBe(join(testDir, "no-vault"));
   });
 
   test("returns directory itself for memory mode directory", () => {
-    const resolution = resolveFsPath(join(TEST_DIR, "no-vault"));
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "no-vault"), { recursive: true });
+
+    const resolution = resolveFsPath(join(testDir, "no-vault"));
     const root = getEffectiveRoot(resolution);
-    expect(root).toBe(join(TEST_DIR, "no-vault"));
+    expect(root).toBe(join(testDir, "no-vault"));
   });
 });
 
-describe.serial("resolvePathArg", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    // Create vault structure: /tmp/.../vault/.km and /tmp/.../vault/Projects/
-    mkdirSync(join(TEST_DIR, "vault/.km"), { recursive: true });
-    mkdirSync(join(TEST_DIR, "vault/Projects"), { recursive: true });
-    writeFileSync(join(TEST_DIR, "vault/Projects.md"), "# Projects");
-    writeFileSync(join(TEST_DIR, "vault/inbox.md"), "# Inbox");
-  });
-
-  afterEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
+describe("resolvePathArg", () => {
   test("no argument returns fallback root with null nodeRef", () => {
     const result = resolvePathArg(undefined, "/fallback");
     expect(result.vaultRoot).toBe("/fallback");
@@ -206,27 +205,34 @@ describe.serial("resolvePathArg", () => {
   });
 
   test("file path returns vault root and file as nodeRef", () => {
-    const filePath = join(TEST_DIR, "vault/inbox.md");
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+    writeFileSync(join(testDir, "vault/inbox.md"), "# Inbox");
+
+    const filePath = join(testDir, "vault/inbox.md");
     const result = resolvePathArg(filePath);
-    expect(result.vaultRoot).toBe(join(TEST_DIR, "vault"));
+    expect(result.vaultRoot).toBe(join(testDir, "vault"));
     expect(result.nodeRef).toBe(filePath);
     expect(result.wasExplicitPath).toBe(true);
   });
 
   test("directory inside vault returns vault root and directory as nodeRef", () => {
-    // This is the key test - a subdirectory of a vault should:
-    // 1. Find the vault root (parent of .km)
-    // 2. Pass the directory path as nodeRef for resolution
-    const dirPath = join(TEST_DIR, "vault/Projects");
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+    mkdirSync(join(testDir, "vault/Projects"), { recursive: true });
+
+    const dirPath = join(testDir, "vault/Projects");
     const result = resolvePathArg(dirPath);
-    expect(result.vaultRoot).toBe(join(TEST_DIR, "vault"));
+    expect(result.vaultRoot).toBe(join(testDir, "vault"));
     expect(result.nodeRef).toBe(dirPath);
     expect(result.wasExplicitPath).toBe(true);
   });
 
   test("vault root directory returns itself with null nodeRef", () => {
-    // When pointing directly at a vault root, show all nodes
-    const vaultPath = join(TEST_DIR, "vault");
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "vault/.km"), { recursive: true });
+
+    const vaultPath = join(testDir, "vault");
     const result = resolvePathArg(vaultPath);
     expect(result.vaultRoot).toBe(vaultPath);
     expect(result.nodeRef).toBeNull();
@@ -234,8 +240,10 @@ describe.serial("resolvePathArg", () => {
   });
 
   test("directory outside any vault returns itself as root with null nodeRef", () => {
-    mkdirSync(join(TEST_DIR, "standalone"), { recursive: true });
-    const dirPath = join(TEST_DIR, "standalone");
+    const testDir = createTestDir();
+    mkdirSync(join(testDir, "standalone"), { recursive: true });
+
+    const dirPath = join(testDir, "standalone");
     const result = resolvePathArg(dirPath);
     expect(result.vaultRoot).toBe(dirPath);
     expect(result.nodeRef).toBeNull();
