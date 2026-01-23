@@ -242,6 +242,14 @@ export { loadConfigObject } from "./config-object.ts";
 export type { Config } from "./config-object.ts";
 
 // Testing utilities
-export { createFakeVault } from "./testing/index.ts";
+export { createFakeVault, createChaosFakeVault } from "./testing/index.ts";
 
-export type { FakeVault, FakeVaultOptions } from "./testing/index.ts";
+export type {
+  FakeVault,
+  FakeVaultOptions,
+  ChaosFakeVault,
+  ChaosFakeVaultOptions,
+  TransactionLogEntry,
+  CorruptionType,
+  ConsistencyIssue,
+} from "./testing/index.ts";
