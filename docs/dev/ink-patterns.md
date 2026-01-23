@@ -5,13 +5,13 @@ This guide documents patterns, workarounds, and best practices for working with 
 **Related docs:**
 
 - [ADR 001: TUI Architecture](../adr/001-tui-architecture.md) - Decision to stay with Ink
-- [km-ink README](../../apps/km-tui/packages/km-ink/src/README.md) - Component hierarchy and data flow
+- [TUI README](../../apps/km-tui/src/README.md) - Component hierarchy and data flow
 
 ## Known Issues and Workarounds
 
 ### 1. fullscreen-ink Alternate Buffer Race Condition
 
-**Location:** [Board.tsx:384-444](../../apps/km-tui/packages/km-ink/src/views/Board.tsx#L384-L444)
+**Location:** [Board.tsx:384-444](../../apps/km-tui/src/views/Board.tsx#L384-L444)
 
 **Problem:** On TUI startup, content may flash or scroll because fullscreen-ink's alternate buffer switch races with Ink's first render.
 
@@ -61,7 +61,7 @@ if (!isReady) return <Box />;
 
 **Problem:** When a Box has a `height` constraint and content overflows, Ink/Yoga clips from the TOP, not the bottom. This is counterintuitive and can cause critical content to disappear.
 
-**Location:** Discovered while debugging [storybook.tsx](../../apps/km-tui/packages/km-ink/tests/storybook.tsx) - see bead km-2yys.
+**Location:** Discovered while debugging [storybook.tsx](../../apps/km-tui/tests/storybook.tsx) - see bead km-2yys.
 
 **Example of the bug:**
 
@@ -116,7 +116,7 @@ When the bordered box has 5 lines (top border + 3 content + bottom border) plus 
 
 **Problem:** `String.length` counts ANSI escape codes, breaking layout calculations for styled text.
 
-**Location:** [text/rich.ts](../../apps/km-tui/packages/km-ink/src/text/rich.ts)
+**Location:** [text/rich.ts](../../apps/km-tui/src/text/rich.ts)
 
 **Solution:** Use `displayLength()` for all width calculations:
 
@@ -134,7 +134,7 @@ const width = displayLength(styledText);
 
 We've built constraint components to reduce boilerplate for common layout patterns.
 
-**Location:** [constraints/](../../apps/km-tui/packages/km-ink/src/constraints/)
+**Location:** [constraints/](../../apps/km-tui/src/constraints/)
 
 ### ConstraintContext
 
@@ -287,7 +287,7 @@ it("renders correctly", () => {
 
 ### Storybook
 
-Visual testing with [storybook.tsx](../../apps/km-tui/packages/km-ink/tests/storybook.tsx):
+Visual testing with [storybook.tsx](../../apps/km-tui/tests/storybook.tsx):
 
 ```bash
 bun storybook

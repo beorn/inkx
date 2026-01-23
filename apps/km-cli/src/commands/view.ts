@@ -41,7 +41,7 @@ export const viewCommand = new Command("view")
     process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END);
 
     // Modules loaded by tasks
-    let inkModule: typeof import("@km/ink");
+    let tuiModule: typeof import("@km/tui");
     let storageModule: typeof import("@km/storage");
     let cliModule: typeof import("../index.ts");
 
@@ -49,8 +49,8 @@ export const viewCommand = new Command("view")
     // loadVault() handles both memory and disk modes with unified progress
     const results = await steps({
       loadModules: async () => {
-        [inkModule, storageModule, cliModule] = await Promise.all([
-          import("@km/ink"),
+        [tuiModule, storageModule, cliModule] = await Promise.all([
+          import("@km/tui"),
           import("@km/storage"),
           import("../index.ts"),
         ]);
@@ -75,7 +75,7 @@ export const viewCommand = new Command("view")
           root,
           cliModule!.getRootPath(),
         );
-        const state = yield* inkModule!.initBoardStateGenerator(
+        const state = yield* tuiModule!.initBoardStateGenerator(
           resolved.nodeRef ?? undefined,
         );
         if (state) {
@@ -87,7 +87,7 @@ export const viewCommand = new Command("view")
 
     // Extract results (generator return types need double assertion)
     const { state, resolved } = results.buildView as unknown as {
-      state: import("@km/ink").BoardState | null;
+      state: import("@km/tui").BoardState | null;
       resolved: ReturnType<typeof storageModule.resolvePathArg>;
     };
 
@@ -107,7 +107,7 @@ export const viewCommand = new Command("view")
 
     // Run board - TUI takes over from here
     debug("launching board", { viewMode, interactive, watchEnabled });
-    await inkModule!.runBoard(state, {
+    await tuiModule!.runBoard(state, {
       interactive,
       initialViewMode: viewMode as ViewMode,
       watch: watchEnabled,

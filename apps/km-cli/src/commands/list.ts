@@ -18,7 +18,7 @@ import {
 } from "@km/storage";
 import type { KNode } from "@km/core";
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree";
-import { formatNode, formatCollapsedAncestor } from "@km/ink";
+import { formatNode, formatCollapsedAncestor } from "@km/tui";
 
 /**
  * Match a query against a node

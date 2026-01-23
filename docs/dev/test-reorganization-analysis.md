@@ -10,7 +10,7 @@ Analysis for km-domain-objects.t bead - mapping out test suite reorganization ar
 | km-board     | ~3         | ~500    | Mostly domain objects    |
 | km-tree      | ~2         | ~300    | Pure functions           |
 | km-cli       | ~5         | ~2,000  | Integration (singletons) |
-| km-ink (TUI) | ~15        | ~8,000  | Mixed                    |
+| km-tui (TUI) | ~15        | ~8,000  | Mixed                    |
 
 ## Pattern Analysis
 
@@ -24,7 +24,7 @@ Files that call `getDb()`, `closeDb()`, `setKmDir()`, `setDatabase()`:
 - `packages/km-storage/tests/links.test.ts` - getDb, closeDb
 - `packages/km-storage/tests/db-rules.test.ts` - resetDb, closeDb
 - `apps/km-cli/tests/*.test.ts` - various singleton usage
-- `apps/km-tui/packages/km-ink/tests/board.test.ts` - setKmDir, setDatabase
+- `apps/km-tui/tests/board.test.ts` - setKmDir, setDatabase
 
 **Impact**: 24 `describe.serial` blocks prevent parallel execution.
 
@@ -95,7 +95,7 @@ Refactor sync/watch tests to use domain objects:
 Update app-level tests:
 
 1. `apps/km-cli/tests/*.test.ts` - Use createVault
-2. `apps/km-tui/packages/km-ink/tests/board.test.ts` - Split into fast/slow
+2. `apps/km-tui/tests/board.test.ts` - Split into fast/slow
 
 ## Migration Pattern
 

@@ -87,7 +87,7 @@ bun run test:all    # All tests including mdtest (before commit)
 
 ---
 
-### UI Components (`@km/ink`)
+### UI Components (`@km/tui`)
 
 **Testing Approach**: Component tests (props → element), minimal
 

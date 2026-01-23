@@ -20,7 +20,7 @@ import {
 import { getRootPath } from "../index.ts";
 import type { KNode } from "@km/core";
 import type { Link } from "@km/storage";
-import { formatStatus, formatNodeBrief } from "@km/ink";
+import { formatStatus, formatNodeBrief } from "@km/tui";
 
 export const showCommand = new Command("show")
   .description("Show node details")

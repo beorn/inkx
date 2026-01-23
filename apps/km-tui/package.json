@@ -1,5 +1,5 @@
 {
-  "name": "@km/tui-app",
+  "name": "@km/tui",
   "description": "TUI application for km",
   "type": "module",
   "module": "src/index.ts",
@@ -8,6 +8,24 @@
   },
   "private": true,
   "dependencies": {
-    "@km/ink": "workspace:*"
+    "@beorn/chalkx": "workspace:*",
+    "@beorn/inkx-ui": "workspace:*",
+    "@beorn/tui-measure": "workspace:*",
+    "@km/board": "workspace:*",
+    "@km/commands": "workspace:*",
+    "@km/core": "workspace:*",
+    "@km/markdown": "workspace:*",
+    "@km/storage": "workspace:*",
+    "@km/tree": "workspace:*",
+    "chalk": "^5.4.1",
+    "fullscreen-ink": "^0.1.0",
+    "ink": "^6.0.0",
+    "inkx": "workspace:*",
+    "react": "catalog:",
+    "wrap-ansi": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "string-width": "^8.1.0"
   }
 }
