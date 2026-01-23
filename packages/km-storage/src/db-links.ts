@@ -10,6 +10,8 @@
 
 import createDebug from "debug";
 import { getDb } from "./db-instance.ts";
+import { updateNode } from "./db-ops.ts";
+import { findChildByContent } from "./db-queries.ts";
 
 const debug = createDebug("km:storage:db:links");
 
@@ -64,6 +66,18 @@ export function addLink(link: Omit<Link, "created_at">): void {
       Date.now(),
     ],
   );
+
+  // For embedded links, update the source node's link_to field for transclusion
+  if (link.embedded && link.target_id) {
+    debug("addLink: updating source node link_to for embedding", {
+      source: link.source_id,
+      target: link.target_id,
+    });
+    updateNode(link.source_id, {
+      link_to: link.target_id,
+      link_alias: link.alias ?? undefined,
+    });
+  }
 }
 
 /**
@@ -98,17 +112,67 @@ export function removeLinksFromSourceByRelationship(
 export function resolveLinks(targetId: string, targetName: string): number {
   const db = getDb();
   const normalizedName = targetName.toLowerCase().replace(/\.md$/, "");
-  const result = db.run(
-    `
-    UPDATE links
-    SET target_id = ?
+
+  // Find all unresolved links that match this target name
+  const unresolvedLinks = db
+    .query(
+      `
+    SELECT source_id, section, alias, embedded FROM links
     WHERE target_id IS NULL
     AND LOWER(REPLACE(target_name, '.md', '')) = ?
   `,
-    [targetId, normalizedName],
-  );
-  debug("resolveLinks", { targetName, targetId, resolved: result.changes });
-  return result.changes;
+    )
+    .all(normalizedName) as Array<{
+    source_id: string;
+    section: string | null;
+    alias: string | null;
+    embedded: number;
+  }>;
+
+  let resolvedCount = 0;
+
+  for (const link of unresolvedLinks) {
+    // Determine the actual target: if there's a section, try to find the child
+    let actualTargetId = targetId;
+    if (link.section) {
+      const childNode = findChildByContent(targetId, link.section);
+      if (childNode) {
+        actualTargetId = childNode.id;
+        debug("resolveLinks: resolved section to child", {
+          section: link.section,
+          childId: childNode.id,
+        });
+      }
+    }
+
+    // Update this specific link
+    db.run(
+      `
+      UPDATE links
+      SET target_id = ?
+      WHERE source_id = ?
+      AND target_id IS NULL
+      AND LOWER(REPLACE(target_name, '.md', '')) = ?
+    `,
+      [actualTargetId, link.source_id, normalizedName],
+    );
+    resolvedCount++;
+
+    // For embedded links, update the source node's link_to
+    if (link.embedded) {
+      debug("resolveLinks: updating source node link_to for embedding", {
+        source: link.source_id,
+        target: actualTargetId,
+      });
+      updateNode(link.source_id, {
+        link_to: actualTargetId,
+        link_alias: link.alias ?? undefined,
+      });
+    }
+  }
+
+  debug("resolveLinks", { targetName, targetId, resolved: resolvedCount });
+  return resolvedCount;
 }
 
 // =============================================================================

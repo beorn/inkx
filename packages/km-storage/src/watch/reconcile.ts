@@ -19,6 +19,7 @@ import {
   getFileWithChildren,
   getNodeContentHash,
   findFileByName,
+  findChildByContent,
   addLink,
   removeLinksFromSource,
   resolveLinks,
@@ -336,7 +337,15 @@ async function handleCreate(
     // Store wikilinks and try to resolve them
     for (const { nodeId, link, relationship } of wikilinks) {
       // Try to find target node by name
-      const targetNode = findNodeByName(link.target);
+      const fileNode = findNodeByName(link.target);
+      // If there's a section reference, try to find the specific child node
+      let targetNode = fileNode;
+      if (fileNode && link.section) {
+        const childNode = findChildByContent(fileNode.id, link.section);
+        if (childNode) {
+          targetNode = childNode;
+        }
+      }
       addLink({
         source_id: nodeId,
         target_name: link.target,
@@ -485,7 +494,16 @@ async function handleUpdate(
   for (const { nodeId, link, relationship } of wikilinks) {
     // Map new node ID to existing ID (if the node existed before)
     const mappedSourceId = idMap.get(nodeId) ?? nodeId;
-    const targetNode = findNodeByName(link.target);
+    // Try to find target node by name
+    const fileNode = findNodeByName(link.target);
+    // If there's a section reference, try to find the specific child node
+    let targetNode = fileNode;
+    if (fileNode && link.section) {
+      const childNode = findChildByContent(fileNode.id, link.section);
+      if (childNode) {
+        targetNode = childNode;
+      }
+    }
     addLink({
       source_id: mappedSourceId,
       target_name: link.target,

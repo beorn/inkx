@@ -24,8 +24,14 @@ import { ulid } from "ulid";
 import { getMarkForStatus } from "@km/core";
 import type { KNode, TaskStatus } from "@km/core";
 import { setKmDir, emitNodeMoved } from "./emit.ts";
-import { parseMarkdownToNodes } from "@km/markdown";
+import { parseMarkdownWithLinks } from "@km/markdown";
 import { SCHEMA, MIGRATIONS } from "./schema.ts";
+import {
+  addLink,
+  findChildByContent,
+  findFileByName,
+  setDb,
+} from "./db.ts";
 import { rowToNode } from "./db-queries.ts";
 
 /**
@@ -481,12 +487,25 @@ export class MemoryStore extends BaseStore {
   readonly mode = "memory" as const;
   readonly rootPath: string;
   protected db: Database;
+  private pendingWikilinks: Array<{
+    nodeId: string;
+    link: {
+      target: string;
+      section?: string;
+      blockId?: string;
+      alias?: string;
+      embedded?: boolean;
+    };
+    relationship?: string;
+  }> = [];
 
   constructor(rootPath: string) {
     super();
     this.rootPath = rootPath;
     this.db = new Database(":memory:");
     this.db.exec(SCHEMA);
+    // Inject db into singleton so link functions can access it
+    setDb(this.db);
     this.scanFilesystem();
   }
 
@@ -495,6 +514,8 @@ export class MemoryStore extends BaseStore {
    */
   private scanFilesystem(): void {
     this.scanDirectory(this.rootPath, null, 0);
+    // Resolve wikilinks after all files are parsed
+    this.resolveWikilinks();
   }
 
   /**
@@ -575,7 +596,7 @@ export class MemoryStore extends BaseStore {
   ): void {
     try {
       const content = readFileSync(filePath, "utf-8");
-      const nodes = parseMarkdownToNodes(content, filePath);
+      const { nodes, wikilinks } = parseMarkdownWithLinks(content, filePath);
 
       // The first node is always the file node
       const fileNode = nodes[0];
@@ -591,9 +612,44 @@ export class MemoryStore extends BaseStore {
       for (const node of nodes) {
         this.insertNode(node);
       }
+
+      // Collect wikilinks for resolution after all files are parsed
+      for (const wikilink of wikilinks) {
+        this.pendingWikilinks.push(wikilink);
+      }
     } catch {
       // Skip files that can't be read
     }
+  }
+
+  /**
+   * Resolve all collected wikilinks after files are parsed
+   */
+  private resolveWikilinks(): void {
+    for (const { nodeId, link, relationship } of this.pendingWikilinks) {
+      // Try to find target file by name
+      const fileNode = findFileByName(link.target);
+      // If there's a section reference, try to find the specific child node
+      let targetNode = fileNode;
+      if (fileNode && link.section) {
+        const childNode = findChildByContent(fileNode.id, link.section);
+        if (childNode) {
+          targetNode = childNode;
+        }
+      }
+      addLink({
+        source_id: nodeId,
+        target_name: link.target,
+        target_id: targetNode?.id ?? null,
+        section: link.section ?? null,
+        block_id: link.blockId ?? null,
+        alias: link.alias ?? null,
+        embedded: link.embedded ?? false,
+        relationship: relationship ?? null,
+      });
+    }
+    // Clear pending wikilinks after resolution
+    this.pendingWikilinks = [];
   }
 
   /**
@@ -615,8 +671,8 @@ export class MemoryStore extends BaseStore {
     this.db.run(
       `INSERT INTO nodes (
         id, type, parent_id, parent_idx, fs_path, md_line,
-        content, task_status, task_mark, data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        content, title, task_status, task_mark, data, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id,
         node.type,
@@ -625,6 +681,7 @@ export class MemoryStore extends BaseStore {
         node.fs_path ?? null,
         node.md_line ?? null,
         node.content ?? null,
+        node.title ?? null,
         node.task_status ?? null,
         node.task_mark ?? null,
         JSON.stringify(node.data ?? {}),

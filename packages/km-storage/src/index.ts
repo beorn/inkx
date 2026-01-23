@@ -15,6 +15,7 @@ export {
   getFileWithChildren,
   getNodeContentHash,
   findFileByName,
+  findChildByContent,
   resolveNode,
   resolveTask,
   getChildren,

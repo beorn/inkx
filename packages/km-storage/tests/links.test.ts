@@ -112,6 +112,103 @@ describe.serial("Links and Backlinks", () => {
     });
   });
 
+  describe.serial("Embedding Resolution", () => {
+    test("should resolve embedding to specific task by content", () => {
+      // Create target file with tasks
+      writeFileSync(
+        join(TEST_DIR, "tasks.md"),
+        "# Tasks\n\n- [ ] Buy groceries @shopping\n- [x] Call mom\n- [ ] Review PR @work",
+      );
+
+      // Create board that embeds a specific task
+      writeFileSync(
+        join(TEST_DIR, "board.md"),
+        "# My Board\n\n## Work\n- ![[tasks#Review PR]]",
+      );
+
+      store = new MemoryStore(TEST_DIR);
+
+      const nodes = store.getAllNodes();
+
+      // Find the embedding node (the list item with ![[...]])
+      const embedNode = nodes.find((n) =>
+        n.content?.includes("![[tasks#Review PR]]"),
+      );
+      expect(embedNode).toBeDefined();
+
+      // Find the target task (Review PR)
+      const targetTask = nodes.find(
+        (n) => n.type === "task" && n.content?.includes("Review PR @work"),
+      );
+      expect(targetTask).toBeDefined();
+
+      // The embedding should have link_to pointing to the specific task, not the file
+      expect(embedNode?.link_to).toBe(targetTask?.id);
+    });
+
+    test("should resolve embedding to file when no section match", () => {
+      writeFileSync(
+        join(TEST_DIR, "source.md"),
+        "# Source\n\nSome content here.",
+      );
+
+      writeFileSync(
+        join(TEST_DIR, "embed.md"),
+        "# Embed\n\n- ![[source#nonexistent section]]",
+      );
+
+      store = new MemoryStore(TEST_DIR);
+
+      const nodes = store.getAllNodes();
+
+      // Find the embedding node
+      const embedNode = nodes.find((n) =>
+        n.content?.includes("![[source#nonexistent section]]"),
+      );
+      expect(embedNode).toBeDefined();
+
+      // Find the source file
+      const sourceFile = nodes.find(
+        (n) => n.type === "file" && n.fs_path?.endsWith("source.md"),
+      );
+      expect(sourceFile).toBeDefined();
+
+      // The embedding should fall back to the file since section doesn't exist
+      expect(embedNode?.link_to).toBe(sourceFile?.id);
+    });
+
+    test("should resolve embedding to section by title", () => {
+      writeFileSync(
+        join(TEST_DIR, "doc.md"),
+        "# Document\n\n## Introduction\n\nIntro content.\n\n## Conclusion\n\nConclusion content.",
+      );
+
+      writeFileSync(
+        join(TEST_DIR, "ref.md"),
+        "# Reference\n\n- ![[doc#Conclusion]]",
+      );
+
+      store = new MemoryStore(TEST_DIR);
+
+      const nodes = store.getAllNodes();
+
+      // Find the embedding node
+      const embedNode = nodes.find((n) =>
+        n.content?.includes("![[doc#Conclusion]]"),
+      );
+      expect(embedNode).toBeDefined();
+
+      // Find the Conclusion section
+      const conclusionSection = nodes.find(
+        (n) => n.type === "section" && n.title === "Conclusion",
+      );
+      expect(conclusionSection).toBeDefined();
+
+      // The embedding should point to the specific section
+      expect(embedNode?.link_to).toBe(conclusionSection?.id);
+    });
+  });
+
   describe.serial("Node Hierarchy", () => {
     test("should track parent-child relationships", () => {
       writeFileSync(
