@@ -377,3 +377,15 @@ export function runWithProgress<T>(
   }
   return result.value;
 }
+
+/**
+ * Consume a generator without progress reporting.
+ * Use this when you need to run ensureState() but don't need progress updates.
+ */
+export function runGenerator<T>(generator: Generator<unknown, T, unknown>): T {
+  let result = generator.next();
+  while (!result.done) {
+    result = generator.next();
+  }
+  return result.value;
+}

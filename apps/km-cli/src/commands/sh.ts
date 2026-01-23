@@ -19,6 +19,7 @@ import { join } from "path";
 import { getRootPath } from "../index.ts";
 import {
   ensureState,
+  runGenerator,
   getStore,
   getChildren,
   resolveNode,
@@ -308,7 +309,7 @@ export const shCommand = new Command("sh")
     const resolved = resolvePathArg(root, getRootPath());
 
     // Ensure store is initialized with the vault root
-    ensureState(resolved.vaultRoot, false);
+    runGenerator(ensureState(resolved.vaultRoot, false));
 
     const store = getStore();
 

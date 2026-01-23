@@ -5,10 +5,10 @@
  * - oneliner: Title + parent context inline on one line, truncated (for list/columns/tabs)
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
-import React, { useMemo } from "react";
-import { Box, Text } from "inkx";
+import React, { useCallback, useMemo } from "react";
+import { Box, Text, useLayoutCallback } from "inkx";
 import type { KNode } from "@km/core";
-import { getChildren as getChildrenFromStorage } from "@km/storage";
+import { getChildren as getChildrenFromStorage, getNode } from "@km/storage";
 import {
   getNodeDisplayName,
   getParentContext as getParentContextFromState,
@@ -31,6 +31,7 @@ import {
   VARIANT_CONFIG,
   type GetBoardPillsFn,
 } from "./tree-node-helpers.ts";
+import { useLayoutRegistryOptional } from "../layout-context.tsx";
 
 export interface TreeNodeProps {
   node: KNode;
@@ -78,7 +79,9 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     prev.cardIndex !== next.cardIndex ||
     prev.subIndex !== next.subIndex ||
     prev.depth !== next.depth
-  ) return false;
+  ) {
+    return false;
+  }
 
   // Visual state
   if (prev.dimInactiveChildren !== next.dimInactiveChildren) return false;
@@ -89,14 +92,18 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     prev.node.task_status !== next.node.task_status ||
     prev.node.due_date !== next.node.due_date ||
     prev.node.type !== next.node.type
-  ) return false;
+  ) {
+    return false;
+  }
 
   // Callback props by reference (stable if using useCallback or module-level)
   if (
     prev.getChildren !== next.getChildren ||
     prev.getParentContext !== next.getParentContext ||
     prev.getBoardPills !== next.getBoardPills
-  ) return false;
+  ) {
+    return false;
+  }
 
   // Pre-computed props
   if (prev.parentContext !== next.parentContext) return false;
@@ -143,7 +150,9 @@ function TreeNodeImpl({
   // Select only the specific boolean values we need, not entire Sets
   // This prevents re-renders when other nodes' selection/fold state changes
   const selectionKey = makeSelectionKey(colIndex, cardIndex, subIndex);
-  const isMultiSelected = useUISelector((state) => state.multiSelected.has(selectionKey));
+  const isMultiSelected = useUISelector((state) =>
+    state.multiSelected.has(selectionKey),
+  );
   const isFolded = useUISelector((state) => state.foldedNodes.has(node.id));
   const excludeBoardIds = rootBoardId
     ? new Set([rootBoardId])
@@ -155,39 +164,85 @@ function TreeNodeImpl({
   const children = childrenProp ?? resolvedGetChildren(node.id);
   const hasChildren = children.length > 0;
   const isEmbedded = node.link_to != null;
+
+  // For embedded nodes, resolve the target for display purposes
+  // The embed node's content is just "![[target]]" - we want to show the linked node's data
+  const resolvedNode =
+    isEmbedded && node.link_to ? getNode(node.link_to) : null;
+  const displayNode = resolvedNode ?? node;
+
   // A node is a task if it has task_status set, regardless of structural type
-  const isTask = node.task_status != null;
+  // For embeds, check the target node's status
+  const isTask = displayNode.task_status != null;
 
   // Memoize style calculation - only recalc when selection or node status changes
+  // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
   const style = useMemo(
-    () => getNodeStyle(node, isSelected, isMultiSelected, dimInactiveChildren, depth),
-    [node.id, node.task_status, isSelected, isMultiSelected, dimInactiveChildren, depth],
+    () =>
+      getNodeStyle(
+        displayNode,
+        isSelected,
+        isMultiSelected,
+        dimInactiveChildren,
+        depth,
+      ),
+    [
+      displayNode.id,
+      displayNode.task_status,
+      isSelected,
+      isMultiSelected,
+      dimInactiveChildren,
+      depth,
+    ],
   );
 
   // Memoize prefix - only recalc when fold state or children count changes
   const prefix = useMemo(
-    () => buildPrefix(depth, hasChildren, isFolded, children.length, style.ownColor),
+    () =>
+      buildPrefix(
+        depth,
+        hasChildren,
+        isFolded,
+        children.length,
+        style.ownColor,
+      ),
     [depth, hasChildren, isFolded, children.length, style.ownColor],
   );
 
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
   const rawContent =
-    node.type === "section"
-      ? getNodeDisplayName(node)
-      : node.content || getNodeDisplayName(node);
+    displayNode.type === "section"
+      ? getNodeDisplayName(displayNode)
+      : displayNode.content || getNodeDisplayName(displayNode);
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent;
 
   // Memoize rich text rendering - only recalc when content or sigil config changes
   const styledContent = useMemo(
-    () => renderRich(cleanContent, { excludeSigils: excludedSigils, sigilColors }),
+    () =>
+      renderRich(cleanContent, { excludeSigils: excludedSigils, sigilColors }),
     [cleanContent, excludedSigils, sigilColors],
   );
 
   // Memoize info suffix - only recalc when node metadata changes
+  // Use displayNode for metadata (due_date, assigned_to, etc.)
   const infoSuffix = useMemo(
-    () => formatInfoSuffix(node, !isOneliner, excludeBoardIds, getBoardPillsProp),
-    [node.id, node.due_date, node.scheduled_date, node.assigned_to, node.task_status, isOneliner, rootBoardId],
+    () =>
+      formatInfoSuffix(
+        displayNode,
+        !isOneliner,
+        excludeBoardIds,
+        getBoardPillsProp,
+      ),
+    [
+      displayNode.id,
+      displayNode.due_date,
+      displayNode.scheduled_date,
+      displayNode.assigned_to,
+      displayNode.task_status,
+      isOneliner,
+      rootBoardId,
+    ],
   );
 
   // Parent context for embedded tasks
@@ -206,6 +261,16 @@ function TreeNodeImpl({
     : null;
   const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
   const showInlineContext = truncatedContext !== null;
+
+  // Head row measurement for curswantY (only at depth 0)
+  const registry = useLayoutRegistryOptional();
+  const handleHeadLayout = useCallback(
+    (computed: { x: number; y: number; width: number; height: number }) => {
+      if (!registry || depth !== 0) return;
+      registry.updateCardHead(colIndex, cardIndex, computed.y, computed.height);
+    },
+    [registry, depth, colIndex, cardIndex],
+  );
 
   // Child rendering
   const { maxChildren } = VARIANT_CONFIG[variant];
@@ -228,57 +293,71 @@ function TreeNodeImpl({
       {/* alignItems="flex-start" prevents row from stretching to match content height */}
       {/* backgroundColor on Box (not Text) to fill row background properly */}
       {/* height={1} in oneliner mode prevents background from bleeding to next line */}
-      <Box flexDirection="row" alignItems="flex-start" paddingLeft={depth} backgroundColor={style.backgroundColor} height={isOneliner ? 1 : undefined}>
-        {/* Fixed-width prefix box (fold marker only - new cards style) */}
-        <Box width={prefix.length} flexShrink={0}>
-          <Text
-            color={style.textColor}
-            dimColor={style.shouldDim}
-            strikethrough={style.shouldStrikethrough}
-            wrap="truncate"
-          >
+      <HeadRow onLayout={handleHeadLayout}>
+        <Box
+          flexDirection="row"
+          alignItems="flex-start"
+          paddingLeft={depth}
+          backgroundColor={style.backgroundColor}
+          height={isOneliner ? 1 : undefined}
+        >
+          {/* Fixed-width prefix box (fold marker only - new cards style) */}
+          <Box width={prefix.length} flexShrink={0}>
             <Text
-              color={
-                isSelected || isMultiSelected ? style.textColor : prefix.markerColor
-              }
+              color={style.textColor}
+              dimColor={style.shouldDim}
+              strikethrough={style.shouldStrikethrough}
+              wrap="truncate"
             >
-              {prefix.markerChar}
-            </Text>
-            {prefix.afterMarker}
-          </Text>
-        </Box>
-        {/* Flexible content box */}
-        {/* overflow="hidden" only for oneliner to enable truncation; removed for multiline to allow wrap */}
-        <Box flexGrow={1} flexShrink={1} overflow={isOneliner ? "hidden" : undefined}>
-          <Text
-            color={style.textColor}
-            dimColor={style.shouldDim}
-            strikethrough={style.shouldStrikethrough}
-            wrap={isOneliner ? "truncate" : "wrap"}
-          >
-            {/* Task status icon prepended to content (new cards style) */}
-            {style.taskStatusIcon && (
               <Text
                 color={
                   isSelected || isMultiSelected
                     ? style.textColor
-                    : style.taskStatusIcon.color
+                    : prefix.markerColor
                 }
               >
-                {style.taskStatusIcon.char}{" "}
+                {prefix.markerChar}
               </Text>
-            )}
-            {styledContent}
-            {prefix.foldedCount}
-            {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
-            {showInlineContext && (
-              <Text dimColor italic>
-                {contextSuffix}
-              </Text>
-            )}
-          </Text>
+              {prefix.afterMarker}
+            </Text>
+          </Box>
+          {/* Flexible content box */}
+          {/* overflow="hidden" only for oneliner to enable truncation; removed for multiline to allow wrap */}
+          <Box
+            flexGrow={1}
+            flexShrink={1}
+            overflow={isOneliner ? "hidden" : undefined}
+          >
+            <Text
+              color={style.textColor}
+              dimColor={style.shouldDim}
+              strikethrough={style.shouldStrikethrough}
+              wrap={isOneliner ? "truncate" : "wrap"}
+            >
+              {/* Task status icon prepended to content (new cards style) */}
+              {style.taskStatusIcon && (
+                <Text
+                  color={
+                    isSelected || isMultiSelected
+                      ? style.textColor
+                      : style.taskStatusIcon.color
+                  }
+                >
+                  {style.taskStatusIcon.char}{" "}
+                </Text>
+              )}
+              {styledContent}
+              {prefix.foldedCount}
+              {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
+              {showInlineContext && (
+                <Text dimColor italic>
+                  {contextSuffix}
+                </Text>
+              )}
+            </Text>
+          </Box>
         </Box>
-      </Box>
+      </HeadRow>
 
       {/* Children */}
       {hasChildren && !isFolded && depth < maxDepth && (
@@ -299,6 +378,25 @@ function TreeNodeImpl({
       )}
     </Box>
   );
+}
+
+// =============================================================================
+// HeadRow Subcomponent (measures head position for curswantY)
+// =============================================================================
+
+interface HeadRowProps {
+  onLayout: (computed: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) => void;
+  children: React.ReactNode;
+}
+
+function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
+  useLayoutCallback(onLayout);
+  return <Box flexDirection="column">{children}</Box>;
 }
 
 // =============================================================================
@@ -337,7 +435,6 @@ function NodeChildren({
   getParentContext,
   getBoardPills,
 }: NodeChildrenProps): React.ReactElement {
-
   const indent = " ".repeat(depth);
 
   return (

@@ -16,6 +16,7 @@ import {
   getChildren,
   resolvePathArg,
   ensureState,
+  runGenerator,
   findProject,
 } from "@km/storage";
 import { getRootPath } from "../index.ts";
@@ -37,7 +38,7 @@ export const moveCommand = new Command("move")
   .action((nodeArg, parentArg, options) => {
     // Resolve the node argument - may detect vault root from path
     const resolvedNode = resolvePathArg(nodeArg, getRootPath());
-    ensureState(resolvedNode.vaultRoot, false);
+    runGenerator(ensureState(resolvedNode.vaultRoot, false));
 
     if (!resolvedNode.nodeRef) {
       console.error(chalk.red(`Cannot move a directory`));

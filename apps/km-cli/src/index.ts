@@ -8,6 +8,12 @@
  * km task - Task management subcommand
  */
 
+// Show loading indicator immediately for view command (before heavy imports)
+const isViewCommand = process.argv[2] === "view" || process.argv[2] === "v";
+if (isViewCommand && process.stdout.isTTY) {
+  process.stdout.write("Loading...");
+}
+
 // Must be imported first - before any debug() calls
 import "./debug-log.ts";
 
@@ -15,7 +21,12 @@ import { existsSync, statSync } from "fs";
 import { dirname, resolve } from "path";
 import { Command } from "commander";
 import chalk from "chalk";
-import { ensureState, isExplicitPath, resolveFsPath } from "@km/storage";
+import {
+  ensureState,
+  isExplicitPath,
+  resolveFsPath,
+  runGenerator,
+} from "@km/storage";
 import { getStore } from "@km/storage";
 import { showCommand } from "./commands/show.ts";
 import { viewCommand } from "./commands/view.ts";
@@ -152,7 +163,7 @@ program.hook("preAction", (thisCommand, actionCommand) => {
 
   // ensureState will search for .km/ if no explicit root was set
   // If root was explicit, don't search ancestors - use the path directly
-  ensureState(resolvedRootPath, !rootExplicitlySet);
+  runGenerator(ensureState(resolvedRootPath, !rootExplicitlySet));
 
   // Warn if using cwd in memory mode (no .km/ found, no explicit root)
   // Skip warning if we auto-detected from a path (user knows what they're doing)

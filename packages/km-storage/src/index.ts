@@ -72,6 +72,7 @@ export {
   ensureState,
   freshStart,
   runWithProgress,
+  runGenerator,
 } from "./rebuild.ts";
 
 export type { RebuildResult, SyncResult } from "./rebuild.ts";
@@ -211,4 +212,9 @@ export {
   getOriginalBeadsConfigPath,
 } from "./config.ts";
 
-export type { KmConfig, BeadsConfig, TuiConfig, OriginalBeadsConfig } from "./config.ts";
+export type {
+  KmConfig,
+  BeadsConfig,
+  TuiConfig,
+  OriginalBeadsConfig,
+} from "./config.ts";

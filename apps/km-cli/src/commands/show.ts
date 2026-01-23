@@ -15,6 +15,7 @@ import {
   getNode,
   resolvePathArg,
   ensureState,
+  runGenerator,
 } from "@km/storage";
 import { getRootPath } from "../index.ts";
 import type { KNode } from "@km/core";
@@ -31,7 +32,7 @@ export const showCommand = new Command("show")
   .action((id, options) => {
     // Resolve path argument - may initialize store with detected vault root
     const resolved = resolvePathArg(id, getRootPath());
-    ensureState(resolved.vaultRoot, false);
+    runGenerator(ensureState(resolved.vaultRoot, false));
 
     // Directory paths don't resolve to a specific node
     if (!resolved.nodeRef) {

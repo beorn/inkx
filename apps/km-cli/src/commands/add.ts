@@ -18,6 +18,7 @@ import {
   getChildren,
   resolvePathArg,
   ensureState,
+  runGenerator,
   emitNodeCreated,
 } from "@km/storage";
 import type { KNode } from "@km/core";
@@ -32,7 +33,7 @@ export const addCommand = new Command("add")
   .action((target, sources, options) => {
     // Resolve target path argument - may detect vault root
     const resolvedTarget = resolvePathArg(target, getRootPath());
-    ensureState(resolvedTarget.vaultRoot, false);
+    runGenerator(ensureState(resolvedTarget.vaultRoot, false));
 
     if (!resolvedTarget.nodeRef) {
       console.error(chalk.red(`Cannot add to a directory`));
