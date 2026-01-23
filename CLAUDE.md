@@ -548,3 +548,124 @@ function getName(node: Node): string {
 ```
 
 **Rule of thumb**: If you wouldn't add this fallback/compat code today from scratch, remove it or create a bead to remove it later
+
+### 15. Domain Object Pattern (MUST FOLLOW)
+
+All major functionality MUST be exposed through **domain objects created by factory functions**.
+
+**Principles:**
+
+- **Factory functions** (not classes) - return plain objects with methods
+- **No singletons** - all state owned by domain objects, passed via DI
+- **Disposable lifecycle** - `Disposable` for sync cleanup, `AsyncDisposable` for async
+- **Service interface** - for long-running objects with start/stop lifecycle
+
+**Core domain objects:**
+
+| Object   | Factory           | Lifecycle         | Purpose                     |
+| -------- | ----------------- | ----------------- | --------------------------- |
+| `Vault`  | `createVault()`   | `Disposable`      | Storage, queries, mutations |
+| `Board`  | `createBoard()`   | plain object      | Navigation state            |
+| `Watcher`| `vault.watch()`   | `Service`         | File sync                   |
+| `Config` | `loadConfig()`    | plain object      | Vault configuration         |
+
+**Service interface** (for objects with start/stop lifecycle):
+
+```typescript
+interface Service extends AsyncDisposable {
+  readonly status: "stopped" | "starting" | "running" | "stopping";
+  start(): Promise<void>;
+  stop(): Promise<void>;
+}
+```
+
+**Factory function pattern:**
+
+```typescript
+// ✅ GOOD - factory returns plain object
+export function createVault(path: string, options?: VaultOptions): Vault {
+  // Internal state via closure
+  const db = options?.inject?.database ?? openDatabase(path);
+  let closed = false;
+
+  return {
+    get path() { return path; },
+
+    getNode(id) {
+      if (closed) throw new Error("Vault is closed");
+      return queryNode(db, id);
+    },
+
+    close() {
+      if (closed) return;
+      closed = true;
+      db.close();
+    },
+
+    [Symbol.dispose]() {
+      this.close();
+    }
+  };
+}
+
+// ❌ BAD - class with internal state
+export class Vault {
+  private db: Database;
+  constructor(path: string) {
+    this.db = openDatabase(path);
+  }
+}
+
+// ❌ BAD - singleton
+let _db: Database | null = null;
+export function getDb() {
+  if (!_db) throw new Error("Not initialized");
+  return _db;
+}
+```
+
+**Generator factories for progress reporting:**
+
+```typescript
+// Single factory - always a generator
+function* createVault(path: string): Generator<ProgressInfo, Vault> {
+  yield { phase: "discover", current: 0, total: 0 };
+  // ... load vault ...
+  return vault;
+}
+
+// Caller chooses consumption:
+// A) With progress: for (const p of createVault(path)) spinner.update(p);
+// B) Without:       const vault = runGenerator(createVault(path));
+```
+
+**Usage with disposables:**
+
+```typescript
+// Sync disposable (Vault, Board)
+function processVault(path: string) {
+  using vault = runGenerator(createVault(path));
+  const tasks = vault.getAllTasks();
+  // vault.close() called automatically at scope exit
+}
+
+// Async disposable (Service like Watcher)
+async function watchVault(path: string) {
+  using vault = runGenerator(createVault(path));
+  await using watcher = vault.watch();
+  await watcher.start();
+  // ... do stuff ...
+  // watcher.stop() awaited, then vault.close() called
+}
+```
+
+**Dependency injection for testing:**
+
+```typescript
+const mockDb = new Database(":memory:");
+const vault = runGenerator(createVault("/test", {
+  inject: { database: mockDb }
+}));
+```
+
+See [docs/dev/domain-objects.md](docs/dev/domain-objects.md) for complete patterns guide
