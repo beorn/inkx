@@ -52,13 +52,17 @@ export { Verifier, createVerifier, quickVerify } from "./verifier.ts";
 export {
   runChaosTest,
   runChaosSuite,
+  runChaosSuiteParallel,
   createTestConfig,
   printResults,
 } from "./harness.ts";
 
+export type { ParallelSuiteConfig, ParallelSuiteResult } from "./harness.ts";
+
 // Fuzzer - Property-based chaos scenario testing
 export type {
   FuzzConfig,
+  ParallelFuzzConfig,
   GeneratedScenario,
   InvariantViolation as FuzzerInvariantViolation,
   FuzzIterationResult,
@@ -70,6 +74,7 @@ export type {
 export {
   generateScenarios,
   runFuzzer,
+  runFuzzerParallel,
   generateBugReport,
   formatBugReport,
   generateRandomFile,

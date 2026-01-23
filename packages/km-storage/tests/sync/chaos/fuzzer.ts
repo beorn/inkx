@@ -321,7 +321,7 @@ function generateEvents(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Run the fuzzer with given configuration
+ * Run the fuzzer with given configuration (sequential)
  */
 export async function runFuzzer(config: FuzzConfig): Promise<FuzzResult> {
   const start = Date.now();
@@ -349,6 +349,93 @@ export async function runFuzzer(config: FuzzConfig): Promise<FuzzResult> {
     iterations: results.length,
     passed: results.filter((r) => r.passed).length,
     failed: results.filter((r) => !r.passed).length,
+    failures,
+    duration: Date.now() - start,
+  };
+}
+
+/**
+ * Parallel fuzzer configuration (extends FuzzConfig)
+ */
+export interface ParallelFuzzConfig extends FuzzConfig {
+  /** Run iterations in parallel (default: true) */
+  parallel?: boolean;
+  /** Progress callback */
+  onIterationComplete?: (
+    iteration: number,
+    result: FuzzIterationResult,
+    progress: { completed: number; total: number },
+  ) => void;
+}
+
+/**
+ * Run the fuzzer with parallel execution for 10-100x speedup.
+ *
+ * @example
+ * const results = await runFuzzerParallel({
+ *   seed: 12345,
+ *   iterations: 100,
+ *   maxFiles: 10,
+ *   maxEvents: 20,
+ *   scenarios: Object.values(CHAOS_SCENARIOS),
+ *   useMockFs: true, // Required for parallel (avoids SQLite conflicts)
+ *   parallel: true,
+ *   onIterationComplete: (i, result, progress) => {
+ *     console.log(`[${progress.completed}/${progress.total}] ${result.passed ? 'PASS' : 'FAIL'}`);
+ *   }
+ * });
+ */
+export async function runFuzzerParallel(
+  config: ParallelFuzzConfig,
+): Promise<FuzzResult> {
+  const start = Date.now();
+  const { useMockFs = true, parallel = true, onIterationComplete } = config;
+
+  // Collect all scenarios first (generator → array)
+  const scenarios = [...generateScenarios(config)];
+  const total = scenarios.length;
+  let completed = 0;
+
+  const runSingleScenario = async (scenario: GeneratedScenario) => {
+    const result = useMockFs
+      ? await runSingleIterationWithMockFs(scenario, config.timeout ?? 10)
+      : await runSingleIteration(scenario, config.timeout ?? 1000);
+
+    completed++;
+    if (onIterationComplete) {
+      onIterationComplete(scenario.index, result, { completed, total });
+    }
+
+    return { scenario, result };
+  };
+
+  let results: Array<{
+    scenario: GeneratedScenario;
+    result: FuzzIterationResult;
+  }>;
+
+  if (parallel) {
+    results = await Promise.all(scenarios.map(runSingleScenario));
+  } else {
+    results = [];
+    for (const scenario of scenarios) {
+      results.push(await runSingleScenario(scenario));
+    }
+  }
+
+  const failures: FuzzFailure[] = results
+    .filter((r) => !r.result.passed)
+    .map((r) => ({
+      seed: r.scenario.seed,
+      scenario: r.scenario,
+      violations: r.result.violations,
+      reproduction: generateReproductionCommand(r.scenario, config.seed),
+    }));
+
+  return {
+    iterations: results.length,
+    passed: results.filter((r) => r.result.passed).length,
+    failed: results.filter((r) => !r.result.passed).length,
     failures,
     duration: Date.now() - start,
   };
