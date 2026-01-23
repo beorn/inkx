@@ -77,13 +77,25 @@ bdCommand
     }
 
     if (issues.length === 0) {
-      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : "";
+      const scopeMsg = scopePath
+        ? ` in ${scopePath}`
+        : boardTag
+          ? ` on @${boardTag}`
+          : "";
       console.log(chalk.yellow(`No ready issues found${scopeMsg}.`));
       return;
     }
 
-    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : "";
-    console.log(chalk.bold(`📋 Ready work (${issues.length} issues with no blockers${scopeMsg}):\n`));
+    const scopeMsg = scopePath
+      ? ` in ${scopePath}`
+      : boardTag
+        ? ` on @${boardTag}`
+        : "";
+    console.log(
+      chalk.bold(
+        `📋 Ready work (${issues.length} issues with no blockers${scopeMsg}):\n`,
+      ),
+    );
     issues.forEach((issue, i) => {
       printReadyIssue(issue, i + 1);
     });
@@ -93,7 +105,10 @@ bdCommand
 bdCommand
   .command("list [scope]")
   .description("List issues with optional filters")
-  .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
+  .option(
+    "-s, --status <status>",
+    "Filter by status (todo,wip,blocked,done,dropped)",
+  )
   .option("-t, --type <type>", "Filter by issue type")
   .option("-a, --assignee <name>", "Filter by assignee")
   .option("-p, --priority <n>", "Filter by priority", parseInt)
@@ -124,12 +139,20 @@ bdCommand
     }
 
     if (issues.length === 0) {
-      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : "";
+      const scopeMsg = scopePath
+        ? ` in ${scopePath}`
+        : boardTag
+          ? ` on @${boardTag}`
+          : "";
       console.log(chalk.yellow(`No issues found${scopeMsg}.`));
       return;
     }
 
-    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : "";
+    const scopeMsg = scopePath
+      ? ` in ${scopePath}`
+      : boardTag
+        ? ` on @${boardTag}`
+        : "";
     console.log(chalk.bold(`Issues (${issues.length}${scopeMsg}):\n`));
     for (const issue of issues) {
       printIssue(issue);
@@ -195,14 +218,19 @@ bdCommand
     console.log(chalk.dim(`Priority: P${opts.priority ?? 2}`));
 
     // Note: Actual persistence requires km-storage integration
-    console.log(chalk.yellow("\nNote: Issue created in memory. Persistence pending."));
+    console.log(
+      chalk.yellow("\nNote: Issue created in memory. Persistence pending."),
+    );
   });
 
 // bd update [id] - Update issue fields
 const updateCmd = bdCommand
   .command("update [id]")
   .description("Update issue status, priority, or assignee")
-  .option("-s, --status <status>", "Set status (todo, wip, blocked, done, dropped)")
+  .option(
+    "-s, --status <status>",
+    "Set status (todo, wip, blocked, done, dropped)",
+  )
   .option("-p, --priority <n>", "Set priority (0-4)", parseInt)
   .option("-a, --assignee <name>", "Set assignee")
   .option("-t, --title <title>", "Set title")
@@ -228,11 +256,17 @@ const updateCmd = bdCommand
     const updates = updateIssueFields(issue, changes);
 
     console.log(chalk.green(`Updated ${issue.shortId}:`));
-    if (updates.task_status) console.log(chalk.dim(`  Status: ${updates.task_status}`));
-    if (updates.priority !== undefined) console.log(chalk.dim(`  Priority: P${updates.priority}`));
+    if (updates.task_status) {
+      console.log(chalk.dim(`  Status: ${updates.task_status}`));
+    }
+    if (updates.priority !== undefined) {
+      console.log(chalk.dim(`  Priority: P${updates.priority}`));
+    }
     if (updates.content) console.log(chalk.dim(`  Title: ${updates.content}`));
 
-    console.log(chalk.yellow("\nNote: Update created in memory. Persistence pending."));
+    console.log(
+      chalk.yellow("\nNote: Update created in memory. Persistence pending."),
+    );
   });
 
 // bd close [id] - Close an issue
@@ -258,7 +292,9 @@ const closeCmd = bdCommand
 
     console.log(chalk.green(`Closed ${issue.shortId}`));
     if (opts.reason) console.log(chalk.dim(`Reason: ${opts.reason}`));
-    console.log(chalk.yellow("\nNote: Update created in memory. Persistence pending."));
+    console.log(
+      chalk.yellow("\nNote: Update created in memory. Persistence pending."),
+    );
   });
 
 // bd drop [id] - Drop an issue
@@ -284,7 +320,9 @@ const dropCmd = bdCommand
 
     console.log(chalk.yellow(`Dropped ${issue.shortId}`));
     if (opts.reason) console.log(chalk.dim(`Reason: ${opts.reason}`));
-    console.log(chalk.yellow("\nNote: Update created in memory. Persistence pending."));
+    console.log(
+      chalk.yellow("\nNote: Update created in memory. Persistence pending."),
+    );
   });
 
 // bd dep - Manage dependencies
@@ -309,8 +347,12 @@ const depAddCmd = depCommand
     const props = addDependency(issue, dependsOn);
     void props;
 
-    console.log(chalk.green(`Added dependency: ${issue.shortId} blocked-by ${dependsOn}`));
-    console.log(chalk.yellow("\nNote: Update created in memory. Persistence pending."));
+    console.log(
+      chalk.green(`Added dependency: ${issue.shortId} blocked-by ${dependsOn}`),
+    );
+    console.log(
+      chalk.yellow("\nNote: Update created in memory. Persistence pending."),
+    );
   });
 
 const depRemoveCmd = depCommand
@@ -331,12 +373,20 @@ const depRemoveCmd = depCommand
 
     const result = removeDependency(issue, dependsOn);
     if (!result) {
-      console.error(chalk.yellow(`${issue.shortId} does not depend on ${dependsOn}`));
+      console.error(
+        chalk.yellow(`${issue.shortId} does not depend on ${dependsOn}`),
+      );
       return;
     }
 
-    console.log(chalk.green(`Removed dependency: ${issue.shortId} no longer blocked-by ${dependsOn}`));
-    console.log(chalk.yellow("\nNote: Update created in memory. Persistence pending."));
+    console.log(
+      chalk.green(
+        `Removed dependency: ${issue.shortId} no longer blocked-by ${dependsOn}`,
+      ),
+    );
+    console.log(
+      chalk.yellow("\nNote: Update created in memory. Persistence pending."),
+    );
   });
 
 const depListCmd = depCommand
@@ -393,8 +443,12 @@ bdCommand
 
     console.log(chalk.bold("Beads Configuration"));
     console.log("===================");
-    console.log(`Board:  ${config.board || chalk.dim("(none - showing all tasks)")}`);
-    console.log(`Parent: ${config.parent || chalk.dim("(none - create manually)")}`);
+    console.log(
+      `Board:  ${config.board || chalk.dim("(none - showing all tasks)")}`,
+    );
+    console.log(
+      `Parent: ${config.parent || chalk.dim("(none - create manually)")}`,
+    );
     console.log(`Prefix: ${config.prefix}`);
     if (configPath) {
       console.log(chalk.dim(`Config: ${configPath}`));
@@ -403,11 +457,17 @@ bdCommand
     console.log();
     console.log(chalk.bold("How tasks are tracked:"));
     if (config.board) {
-      console.log(`  Tasks tagged @${config.board} are shown by 'km bd' commands.`);
+      console.log(
+        `  Tasks tagged @${config.board} are shown by 'km bd' commands.`,
+      );
       console.log(`  View the board with 'km view @${config.board}'.`);
     } else {
-      console.log(`  All tasks in the vault are shown (no board filter configured).`);
-      console.log(`  Set beads.board in .km/config.yaml to filter to a specific board.`);
+      console.log(
+        `  All tasks in the vault are shown (no board filter configured).`,
+      );
+      console.log(
+        `  Set beads.board in .km/config.yaml to filter to a specific board.`,
+      );
     }
     if (config.parent) {
       console.log(`  New issues will be created in ${config.parent}.`);
@@ -426,7 +486,11 @@ bdCommand
     }
 
     console.log();
-    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : "";
+    const scopeMsg = scopePath
+      ? ` in ${scopePath}`
+      : boardTag
+        ? ` on @${boardTag}`
+        : "";
     console.log(chalk.bold(`Statistics${scopeMsg}`));
     console.log(`  Total: ${issues.length} issues`);
 
@@ -439,7 +503,9 @@ bdCommand
       dropped: issues.filter((i) => i.status === "dropped").length,
     };
     if (issues.length > 0) {
-      console.log(`  Open: ${byStatus.open}, In Progress: ${byStatus.in_progress}, Blocked: ${byStatus.blocked}`);
+      console.log(
+        `  Open: ${byStatus.open}, In Progress: ${byStatus.in_progress}, Blocked: ${byStatus.blocked}`,
+      );
       console.log(`  Closed: ${byStatus.closed}, Dropped: ${byStatus.dropped}`);
     }
 
@@ -459,7 +525,9 @@ bdCommand
         console.log(chalk.dim(`  ${path} (${count})`));
       }
       if (pathsWithTasks.size > 5) {
-        console.log(chalk.dim(`  ... and ${pathsWithTasks.size - 5} more files`));
+        console.log(
+          chalk.dim(`  ... and ${pathsWithTasks.size - 5} more files`),
+        );
       }
     }
   });
@@ -491,7 +559,9 @@ bdCommand
   });
 
 // bd config - View and modify beads configuration
-const configCommand = new Command("config").description("View and modify beads configuration");
+const configCommand = new Command("config").description(
+  "View and modify beads configuration",
+);
 
 configCommand
   .command("list")
@@ -511,7 +581,9 @@ configCommand
       console.log(chalk.dim(`Source: ${configPath}`));
     } else {
       console.log();
-      console.log(chalk.dim("No config file found. Create .km/config.yaml to customize."));
+      console.log(
+        chalk.dim("No config file found. Create .km/config.yaml to customize."),
+      );
     }
   });
 
@@ -577,7 +649,9 @@ configCommand.action(() => {
     console.log(chalk.dim(`Source: ${configPath}`));
   } else {
     console.log();
-    console.log(chalk.dim("No config file found. Create .km/config.yaml to customize."));
+    console.log(
+      chalk.dim("No config file found. Create .km/config.yaml to customize."),
+    );
   }
 });
 
@@ -588,7 +662,10 @@ bdCommand
   .command("migrate")
   .description("Migrate issues from .beads/issues.jsonl to markdown files")
   .option("--dry-run", "Show what would be migrated without writing files")
-  .option("--status <statuses>", "Only migrate issues with these statuses (comma-separated)")
+  .option(
+    "--status <statuses>",
+    "Only migrate issues with these statuses (comma-separated)",
+  )
   .option("--target <dir>", "Target directory for markdown files")
   .action((opts) => {
     const resolved = resolvePathArg(undefined);
@@ -598,7 +675,11 @@ bdCommand
     const beadsDir = findBeadsDir(resolved.vaultRoot);
     if (!beadsDir) {
       console.error(chalk.red("No .beads directory found."));
-      console.log(chalk.dim("Run 'bd init' to initialize beads, or check your working directory."));
+      console.log(
+        chalk.dim(
+          "Run 'bd init' to initialize beads, or check your working directory.",
+        ),
+      );
       process.exitCode = 1;
       return;
     }
@@ -618,8 +699,16 @@ bdCommand
       }
     }
     console.log(`  Total issues: ${stats.total}`);
-    console.log(`  By status: ${Object.entries(stats.byStatus).map(([k, v]) => `${k}=${v}`).join(", ")}`);
-    console.log(`  By type: ${Object.entries(stats.byType).map(([k, v]) => `${k}=${v}`).join(", ")}`);
+    console.log(
+      `  By status: ${Object.entries(stats.byStatus)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(", ")}`,
+    );
+    console.log(
+      `  By type: ${Object.entries(stats.byType)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(", ")}`,
+    );
     console.log();
 
     if (stats.total === 0) {
@@ -628,7 +717,11 @@ bdCommand
     }
 
     // Determine target directory
-    const targetDir = opts.target || (config.parent ? `${resolved.vaultRoot}/${config.parent}` : `${resolved.vaultRoot}/issue`);
+    const targetDir =
+      opts.target ||
+      (config.parent
+        ? `${resolved.vaultRoot}/${config.parent}`
+        : `${resolved.vaultRoot}/issue`);
 
     // Parse status filter
     const statusFilter = opts.status ? opts.status.split(",") : undefined;
@@ -666,7 +759,9 @@ bdCommand
 
     if (result.migrated > 0 && !opts.dryRun) {
       console.log();
-      console.log(chalk.green(`✓ Migrated ${result.migrated} issues to ${targetDir}`));
+      console.log(
+        chalk.green(`✓ Migrated ${result.migrated} issues to ${targetDir}`),
+      );
       console.log(chalk.dim("Run 'km rebuild' to index the new files."));
     }
   });
@@ -699,7 +794,10 @@ bdCommand
     }
 
     // Determine target directory
-    const beadsDir = opts.target || findBeadsDir(resolved.vaultRoot) || `${resolved.vaultRoot}/.beads`;
+    const beadsDir =
+      opts.target ||
+      findBeadsDir(resolved.vaultRoot) ||
+      `${resolved.vaultRoot}/.beads`;
 
     console.log(chalk.bold("Export Target"));
     console.log(`  .beads dir: ${beadsDir}`);
@@ -729,7 +827,11 @@ bdCommand
 
     if (result.exported > 0 && !opts.dryRun) {
       console.log();
-      console.log(chalk.green(`✓ Exported ${result.exported} issues to ${result.outputPath}`));
+      console.log(
+        chalk.green(
+          `✓ Exported ${result.exported} issues to ${result.outputPath}`,
+        ),
+      );
     }
   });
 
@@ -758,8 +860,12 @@ function resolveIssueArg(arg: string): Issue | null {
 function printIssue(issue: Issue): void {
   const status = bdStatus(issue.status);
   const type = issue.type || "task";
-  const location = issue.parentContext ? chalk.dim(` (${issue.parentContext})`) : "";
-  console.log(`${chalk.cyan(issue.shortId)} [P${issue.priority}] [${type}] ${status} - ${issue.title}${location}`);
+  const location = issue.parentContext
+    ? chalk.dim(` (${issue.parentContext})`)
+    : "";
+  console.log(
+    `${chalk.cyan(issue.shortId)} [P${issue.priority}] [${type}] ${status} - ${issue.title}${location}`,
+  );
 }
 
 /**
@@ -767,8 +873,12 @@ function printIssue(issue: Issue): void {
  */
 function printReadyIssue(issue: Issue, index: number): void {
   const type = issue.type || "task";
-  const location = issue.parentContext ? chalk.dim(` (${issue.parentContext})`) : "";
-  console.log(`${index}. [P${issue.priority}] [${type}] ${chalk.cyan(issue.shortId)}: ${issue.title}${location}`);
+  const location = issue.parentContext
+    ? chalk.dim(` (${issue.parentContext})`)
+    : "";
+  console.log(
+    `${index}. [P${issue.priority}] [${type}] ${chalk.cyan(issue.shortId)}: ${issue.title}${location}`,
+  );
 }
 
 /**

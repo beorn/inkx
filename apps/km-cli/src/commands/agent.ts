@@ -74,7 +74,10 @@ Examples:
 agentCommand
   .command("ls")
   .description("List all agents")
-  .option("-s, --status <status>", "Filter by status (idle, running, stopped, error)")
+  .option(
+    "-s, --status <status>",
+    "Filter by status (idle, running, stopped, error)",
+  )
   .option("--harness <name>", "Filter by harness")
   .option("--json", "Output as JSON")
   .action((opts) => {
@@ -115,7 +118,9 @@ agentCommand
       const harness = loadHarness(opts.harness);
       if (!harness) {
         console.error(chalk.red(`Harness not found: ${opts.harness}`));
-        console.error(chalk.dim(`Available harnesses: ${listHarnesses().join(", ")}`));
+        console.error(
+          chalk.dim(`Available harnesses: ${listHarnesses().join(", ")}`),
+        );
         process.exitCode = 1;
         return;
       }
@@ -139,7 +144,9 @@ agentCommand
     console.log(chalk.dim(`  Harness: ${opts.harness ?? "general"}`));
 
     // Note: Actual persistence requires km-storage integration
-    console.log(chalk.yellow("\nNote: Agent created in memory. Persistence pending."));
+    console.log(
+      chalk.yellow("\nNote: Agent created in memory. Persistence pending."),
+    );
   });
 
 // km agent stop <id> - Stop an agent
@@ -158,7 +165,9 @@ agentCommand
     void updates; // Use for persistence later
 
     console.log(chalk.green(`Stopped agent: ${agent.shortId}`));
-    console.log(chalk.yellow("\nNote: Update created in memory. Persistence pending."));
+    console.log(
+      chalk.yellow("\nNote: Update created in memory. Persistence pending."),
+    );
   });
 
 // km agent kill <id> - Force kill an agent
@@ -182,7 +191,9 @@ agentCommand
     void updates;
 
     console.log(chalk.yellow(`Killed agent: ${agent.shortId}`));
-    console.log(chalk.yellow("\nNote: Update created in memory. Persistence pending."));
+    console.log(
+      chalk.yellow("\nNote: Update created in memory. Persistence pending."),
+    );
   });
 
 // km agent show <id> - Show agent details
@@ -289,7 +300,10 @@ agentCommand
 agentCommand
   .command("run <id> [prompt]")
   .description("Run an agent (one-shot with prompt, or continuous)")
-  .option("--target <path|id|@ref>", "Work on a specific task (path, ID, or @ref)")
+  .option(
+    "--target <path|id|@ref>",
+    "Work on a specific task (path, ID, or @ref)",
+  )
   .option("--continuous", "Process work queue continuously")
   .option("--max-tasks <n>", "Max tasks in continuous mode", parseInt)
   .option("--dry-run", "Show plan without executing")
@@ -326,8 +340,12 @@ agentCommand
       if (prompt) console.log(`  Prompt: "${prompt}"`);
       if (targetTask) {
         console.log(`  Target: ${targetTask.id}`);
-        if (targetTask.name) console.log(`          ${chalk.dim(targetTask.name)}`);
-        if (targetTask.path) console.log(`          ${chalk.dim(targetTask.path)}`);
+        if (targetTask.name) {
+          console.log(`          ${chalk.dim(targetTask.name)}`);
+        }
+        if (targetTask.path) {
+          console.log(`          ${chalk.dim(targetTask.path)}`);
+        }
       }
       if (opts.continuous) console.log(`  Mode: continuous`);
       return;
@@ -341,7 +359,9 @@ agentCommand
 
 function printAgent(agent: Agent): void {
   const status = formatStatus(agent.status);
-  const task = agent.currentTaskId ? chalk.dim(` → ${agent.currentTaskId}`) : "";
+  const task = agent.currentTaskId
+    ? chalk.dim(` → ${agent.currentTaskId}`)
+    : "";
 
   console.log(`${status} ${chalk.cyan(agent.shortId)} ${agent.name}${task}`);
   console.log(chalk.dim(`   ${agent.model} / ${agent.harness}`));
@@ -360,8 +380,12 @@ function printAgentDetails(agent: Agent): void {
   if (agent.currentTaskId) console.log(`  Task:     ${agent.currentTaskId}`);
 
   console.log();
-  console.log(chalk.dim(`  Created:  ${new Date(agent.createdAt).toISOString()}`));
-  console.log(chalk.dim(`  Updated:  ${new Date(agent.updatedAt).toISOString()}`));
+  console.log(
+    chalk.dim(`  Created:  ${new Date(agent.createdAt).toISOString()}`),
+  );
+  console.log(
+    chalk.dim(`  Updated:  ${new Date(agent.updatedAt).toISOString()}`),
+  );
 }
 
 function formatStatus(status: AgentStatus): string {

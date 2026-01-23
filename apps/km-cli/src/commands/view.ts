@@ -34,15 +34,17 @@ export const viewCommand = new Command("view")
 
     // Dynamic imports - "Loading..." already visible while they load
     const [
-      { runBoard },
+      { runBoard, initBoardState },
       { resolvePathArg, ensureState, getTuiConfig, runWithProgress },
       { getRootPath },
       { createSpinner, CURSOR_TO_START, CLEAR_LINE_END },
+      { REBUILD_PHASES },
     ] = await Promise.all([
       import("@km/ink"),
       import("@km/storage"),
       import("../index.ts"),
       import("@beorn/progressx/cli"),
+      import("../utils/progress-phases.ts"),
     ]);
 
     // Resolve path argument - handles directory paths, file paths, and node IDs
@@ -63,22 +65,46 @@ export const viewCommand = new Command("view")
       config: tuiConfig.watch,
     });
 
-    // Load state with spinner (same for both modes)
+    // Load state with spinner - keeps running through board initialization
     // Clear the "Loading..." line from index.ts before showing spinner
     process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END);
-    {
-      using spinner = createSpinner({ style: "dots" });
+    const spinner = createSpinner({ style: "dots" });
+    try {
+      let lastPhase: string | undefined;
+      const phases = REBUILD_PHASES as Record<string, string>;
       runWithProgress(ensureState(resolved.vaultRoot, false), (info) => {
-        spinner(`${info.phase}: ${info.current}/${info.total}`);
+        const label = phases[info.phase ?? ""] ?? info.phase ?? "Loading";
+        // When phase changes, print completed phase on its own line
+        if (lastPhase && lastPhase !== info.phase) {
+          const prevLabel = phases[lastPhase] ?? lastPhase;
+          spinner.succeed(prevLabel);
+        }
+        lastPhase = info.phase;
+        spinner(`${label}: ${info.current}/${info.total}`);
       });
-    } // spinner auto-stops via Symbol.dispose
+      // Print final phase completion
+      if (lastPhase) {
+        const finalLabel = phases[lastPhase] ?? lastPhase;
+        spinner.succeed(finalLabel);
+      }
 
-    // Run board with loaded state
-    debug("launching board", { viewMode, interactive, watchEnabled });
-    await runBoard(resolved.nodeRef ?? undefined, resolved.vaultRoot, {
-      interactive,
-      initialViewMode: viewMode as ViewMode,
-      watch: watchEnabled,
-      watchWorker,
-    });
+      // Build board state (covered by spinner)
+      spinner("Building view...");
+      const state = initBoardState(resolved.nodeRef ?? undefined);
+      if (state) {
+        state.rootPath = resolved.vaultRoot;
+      }
+
+      // Run board - it will stop the spinner when TUI is ready
+      debug("launching board", { viewMode, interactive, watchEnabled });
+      await runBoard(state, {
+        interactive,
+        initialViewMode: viewMode as ViewMode,
+        watch: watchEnabled,
+        watchWorker,
+        spinner,
+      });
+    } finally {
+      spinner.stop(); // Ensure cleanup on error
+    }
   });

@@ -10,7 +10,11 @@ import {
   getAncestors,
   getTasksUnderNode as storageGetTasksUnderNode,
 } from "@km/storage";
-import { normalizeName, collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree";
+import {
+  normalizeName,
+  collapseAncestorsWithTypes,
+  type CollapsedAncestor,
+} from "@km/tree";
 import type { KNode } from "@km/core";
 import { getNodeDisplayName } from "./formatters.ts";
 

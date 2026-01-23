@@ -6,7 +6,13 @@
 
 import { Command } from "commander";
 import { listTasks } from "./list.ts";
-import { addTask, markDone, claimTask, releaseTask, assignTask } from "./mutations.ts";
+import {
+  addTask,
+  markDone,
+  claimTask,
+  releaseTask,
+  assignTask,
+} from "./mutations.ts";
 import { createStatusCommand } from "./status.ts";
 import { createSetCommand, createClearCommand } from "./set-clear.ts";
 

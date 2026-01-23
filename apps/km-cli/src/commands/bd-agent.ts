@@ -92,7 +92,9 @@ bdAgentCommand
     console.log(chalk.bold(`Work queue for ${agent.shortId}:\n`));
 
     if (agent.currentTaskId) {
-      console.log(`  ${chalk.green("▶")} Current: ${chalk.cyan(agent.currentTaskId)}`);
+      console.log(
+        `  ${chalk.green("▶")} Current: ${chalk.cyan(agent.currentTaskId)}`,
+      );
     }
 
     if (queue.length === 0 && !agent.currentTaskId) {
@@ -103,7 +105,9 @@ bdAgentCommand
         const isCurrent = item.issueShortId === agent.currentTaskId;
         const prefix = isCurrent ? chalk.green("▶") : chalk.dim("○");
         const priority = chalk.dim(`P${item.priority}`);
-        console.log(`  ${prefix} ${chalk.cyan(item.issueShortId)} ${priority} ${item.title}`);
+        console.log(
+          `  ${prefix} ${chalk.cyan(item.issueShortId)} ${priority} ${item.title}`,
+        );
       }
     }
   });
@@ -133,7 +137,9 @@ bdAgentCommand
 
     console.log(chalk.green(`Assigned ${issue.shortId} to ${agent.shortId}`));
     console.log(chalk.dim(`  ${issue.title}`));
-    console.log(chalk.yellow("\nNote: Assignment not yet persisted to storage."));
+    console.log(
+      chalk.yellow("\nNote: Assignment not yet persisted to storage."),
+    );
   });
 
 // bd agent unassign <agent-id> <issue-id> - Remove assignment
@@ -159,8 +165,12 @@ bdAgentCommand
     const assignment = unassignIssueFields();
     void assignment; // Will be used for persistence
 
-    console.log(chalk.green(`Unassigned ${issue.shortId} from ${agent.shortId}`));
-    console.log(chalk.yellow("\nNote: Unassignment not yet persisted to storage."));
+    console.log(
+      chalk.green(`Unassigned ${issue.shortId} from ${agent.shortId}`),
+    );
+    console.log(
+      chalk.yellow("\nNote: Unassignment not yet persisted to storage."),
+    );
   });
 
 // bd agent claim <agent-id> - Agent claims next ready issue
@@ -191,12 +201,17 @@ bdAgentCommand
     }
 
     // Get the field updates for both agent and issue
-    const { agentUpdate, issueAssignment } = claimIssueFields(agent.shortId, issue.shortId);
+    const { agentUpdate, issueAssignment } = claimIssueFields(
+      agent.shortId,
+      issue.shortId,
+    );
     void agentUpdate; // Will be used for persistence
     void issueAssignment; // Will be used for persistence
 
     if (opts.json) {
-      console.log(JSON.stringify({ agent: agent.shortId, claimed: issue }, null, 2));
+      console.log(
+        JSON.stringify({ agent: agent.shortId, claimed: issue }, null, 2),
+      );
       return;
     }
 
@@ -235,7 +250,9 @@ bdAgentCommand
 
 function printAgent(agent: Agent): void {
   const status = formatStatus(agent.status);
-  const task = agent.currentTaskId ? chalk.dim(` → ${agent.currentTaskId}`) : "";
+  const task = agent.currentTaskId
+    ? chalk.dim(` → ${agent.currentTaskId}`)
+    : "";
 
   console.log(`${status} ${chalk.cyan(agent.shortId)} ${agent.name}${task}`);
 }
