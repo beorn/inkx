@@ -5,7 +5,11 @@
  */
 
 import { describe, test, expect } from "bun:test";
-import { runChaosTest, createTestConfig } from "./harness.ts";
+import {
+  runChaosTest,
+  createTestConfig,
+  runChaosSuiteParallel,
+} from "./harness.ts";
 import { CHAOS_SCENARIOS, NO_CHAOS } from "./scenarios.ts";
 
 describe.serial("Chaos Tests", () => {
@@ -514,5 +518,124 @@ describe.serial("Chaos Scenario Unit Tests", () => {
       ).toBe(true);
       expect(result.some((e) => e.path === "/test.md.tmp")).toBe(true);
     });
+  });
+});
+
+describe.serial("Parallel Suite Runner", () => {
+  test("runs multiple vaults with single scenario", async () => {
+    const result = await runChaosSuiteParallel({
+      vaultCount: 3,
+      scenarios: [NO_CHAOS],
+      parallel: false, // Sequential for predictable test
+      useMockFs: true,
+      timeout: 100,
+    });
+
+    expect(result.summary.total).toBe(3);
+    expect(result.summary.passed).toBe(3);
+    expect(result.summary.failed).toBe(0);
+    expect(result.byVault.size).toBe(3);
+    expect(result.byScenario.size).toBe(1);
+  });
+
+  test("runs single vault with multiple scenarios", async () => {
+    const result = await runChaosSuiteParallel({
+      vaultCount: 1,
+      scenarios: [NO_CHAOS, CHAOS_SCENARIOS.reorder_chaos],
+      parallel: false,
+      useMockFs: true,
+      timeout: 100,
+    });
+
+    expect(result.summary.total).toBe(2);
+    expect(result.byVault.size).toBe(1);
+    expect(result.byScenario.size).toBe(2);
+
+    // Check grouping by scenario
+    const noChaosResults = result.byScenario.get("slow_disk"); // NO_CHAOS has type "slow_disk"
+    const reorderResults = result.byScenario.get("reorder_chaos");
+    expect(noChaosResults?.length ?? 0).toBe(1);
+    expect(reorderResults?.length).toBe(1);
+  });
+
+  test("calls progress callback for each test", async () => {
+    const progressUpdates: Array<{
+      vaultIndex: number;
+      completed: number;
+      total: number;
+    }> = [];
+
+    await runChaosSuiteParallel({
+      vaultCount: 2,
+      scenarios: [NO_CHAOS],
+      parallel: false,
+      useMockFs: true,
+      timeout: 100,
+      onVaultComplete: (vaultIndex, _result, progress) => {
+        progressUpdates.push({
+          vaultIndex,
+          completed: progress.completed,
+          total: progress.total,
+        });
+      },
+    });
+
+    expect(progressUpdates.length).toBe(2);
+    expect(progressUpdates[0].completed).toBe(1);
+    expect(progressUpdates[0].total).toBe(2);
+    expect(progressUpdates[1].completed).toBe(2);
+    expect(progressUpdates[1].total).toBe(2);
+  });
+
+  test("parallel execution completes all tests", async () => {
+    const result = await runChaosSuiteParallel({
+      vaultCount: 5,
+      scenarios: [NO_CHAOS],
+      parallel: true, // Actually run in parallel
+      useMockFs: true,
+      timeout: 100,
+    });
+
+    expect(result.summary.total).toBe(5);
+    expect(result.results.length).toBe(5);
+    // All vaults should complete
+    for (let i = 0; i < 5; i++) {
+      expect(result.byVault.has(i)).toBe(true);
+    }
+  });
+
+  test("calculates parallel speedup", async () => {
+    const result = await runChaosSuiteParallel({
+      vaultCount: 3,
+      scenarios: [NO_CHAOS],
+      parallel: true,
+      useMockFs: true,
+      timeout: 100,
+    });
+
+    // Speedup should be >= 1 (parallel should be at least as fast as sequential estimate)
+    expect(result.summary.parallelSpeedup).toBeGreaterThanOrEqual(0.5); // Allow some margin
+    expect(result.summary.totalDuration).toBeGreaterThan(0);
+  });
+
+  test("groups results correctly by vault and scenario", async () => {
+    const result = await runChaosSuiteParallel({
+      vaultCount: 2,
+      scenarios: [NO_CHAOS, CHAOS_SCENARIOS.reorder_chaos],
+      parallel: false,
+      useMockFs: true,
+      timeout: 100,
+    });
+
+    // 2 vaults × 2 scenarios = 4 total tests
+    expect(result.summary.total).toBe(4);
+
+    // Each vault should have 2 results (one per scenario)
+    expect(result.byVault.get(0)?.length ?? 0).toBe(2);
+    expect(result.byVault.get(1)?.length ?? 0).toBe(2);
+
+    // Each scenario should have 2 results (one per vault)
+    expect(result.byScenario.get("slow_disk")?.length ?? 0).toBe(2);
+    expect(result.byScenario.get("reorder_chaos")?.length ?? 0).toBe(2);
   });
 });
