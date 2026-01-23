@@ -55,16 +55,16 @@ km view --id                # Show node IDs
 ### Task Commands
 
 ```bash
-km task [query]             # List tasks (= km ls --type task --context)
-km task --all               # All tasks including done
-km task --status open       # Filter by status
-km task "budget"            # Full-text search
+km tasks [query]            # List tasks (= km ls --type task --context)
+km tasks --all              # All tasks including done
+km tasks --status open      # Filter by status
+km tasks "budget"           # Full-text search
 
-km task --verbose           # Show all fields
-km task --flat              # Single-line format
-km task --id                # Show task IDs
-km task --json              # JSON output
-km task --count             # Count only
+km tasks --verbose          # Show all fields
+km tasks --flat             # Single-line format
+km tasks --id               # Show task IDs
+km tasks --json             # JSON output
+km tasks --count            # Count only
 ```
 
 ### Board Commands
@@ -120,14 +120,14 @@ km add @next ./inbox/**
 ### Task Field Commands
 
 ```bash
-km task set <node> due:2025-01-20
-km task set <node> p:1
-km task set <node> status:blocked
+km tasks set <node> due:2025-01-20
+km tasks set <node> p:1
+km tasks set <node> status:blocked
 
-km task clear <node> due
+km tasks clear <node> due
 
-km task claim <node>        # Assign to me
-km task release <node>      # Unassign
+km tasks claim <node>       # Assign to me
+km tasks release <node>     # Unassign
 ```
 
 ### Sync & Maintenance

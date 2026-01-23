@@ -47,9 +47,9 @@ bun run km init
 bun run km sync              # Import your existing markdown files
 
 # View your knowledge
-bun run km tree              # See the tree structure
-bun run km task              # List all tasks found in your files
-bun run km task -i           # Show task IDs (use these with done/show)
+bun run km show --tree       # See the tree structure
+bun run km tasks             # List all tasks found in your files
+bun run km tasks -i          # Show task IDs (use these with done/show)
 
 # Create tasks
 bun run km new "Review Q4 budget @finance #urgent"
@@ -62,19 +62,19 @@ bun run km add @next ./inbox/**      # Add all inbox tasks to @next
 bun run km add @next status:open     # Add all open tasks to @next
 
 # Complete tasks (accepts ID, path, or filename)
-bun run km done ABCD1234     # Mark task done using short ID
-bun run km done @inbox       # Mark done by filename
+bun run km status ABCD1234 done  # Mark task done using short ID
+bun run km status @inbox done    # Mark done by filename
 
 # Task status workflow
-bun run km task status ABCD1234            # View status
-bun run km task status ABCD1234 in_progress # Set to in_progress
+bun run km status ABCD1234       # View status
+bun run km status ABCD1234 wip   # Set to wip (work in progress)
 
 # View tasks by folder
-bun run km task ./inbox/**   # List tasks in inbox folder
+bun run km tasks ./inbox/**  # List tasks in inbox folder
 
 # Search
-bun run km search "meeting"        # Full-text search
-bun run km search '"exact phrase"' # Phrase search
+bun run km ls "meeting"            # Full-text search
+bun run km ls '"exact phrase"'     # Phrase search
 
 # Changes sync both ways
 # - Edit .md files → run 'km sync' → changes appear in km
@@ -128,14 +128,14 @@ Your markdown becomes a knowledge base. Notes, tasks, calendar — all nodes in 
 cd ~/notes
 km init               # Create .km/ folder
 km sync               # Scan and import .md files
-km tree               # Your knowledge hierarchy
-km task               # Every TODO across all files
-km task -i            # Show with IDs for use with done/show
+km show --tree        # Your knowledge hierarchy
+km tasks              # Every TODO across all files
+km tasks -i           # Show with IDs for use with status command
 km board              # Kanban TUI (vim keys)
 km board @inbox       # Open @inbox board by filename
 km search "query"     # Full-text search
 km show <node>        # Node details (ID, path, or filename)
-km done <node>        # Mark done - accepts ID, path, or filename
+km status <node> done # Mark done - accepts ID, path, or filename
 ```
 
 Features:

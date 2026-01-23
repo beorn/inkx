@@ -46,6 +46,29 @@ State Updates (reducers + storage)
 
 ## Core Types
 
+### Current Implementation
+
+The actual `CommandContext` in `@km/commands` (see [types.ts](../packages/km-commands/src/types.ts)):
+
+```typescript
+interface CommandContext {
+  currentNode: TNode | null;
+  currentNodeId: string | null;
+  selectedNodes: string[];
+  cursor: TPath;
+  boardState: BoardState;
+  viewMode: ViewMode;
+  siblingCount: number;
+  siblingIndex: number;
+  columnIndex: number;
+  columnCount: number;
+}
+```
+
+### Design Target (Future)
+
+The full context interface planned for when commands need storage access and dispatchers:
+
 ```typescript
 // Context passed to commands and when predicates
 interface Ctx {
@@ -90,6 +113,7 @@ interface Ctx {
   buildTree: (rootId: string | null) => TNode[];
   clearSelection: () => void;
 }
+```
 
 // Command: function that executes with context
 type Cmd = (ctx: Ctx) => void;

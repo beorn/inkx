@@ -6,19 +6,11 @@ allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion
 
 # Architecture Review
 
-Systematically review km codebase through 3 refinement iterations. Think carefully about each finding.
+Systematically review km codebase: Survey → Filter → Present → (optionally) Create Beads.
 
 **Focus**: $ARGUMENTS → if empty, review all areas; otherwise limit to specified area
 
-**Keywords**: architecture, review, refactor, cleanup, tech debt, code quality, layer violation
-
-## Architecture
-
-```
-UI (km-cli) → Query (km-storage) → Model (km-core) → Sync (km-watch) → Parser (km-markdown) → Filesystem
-```
-
-Rules: layers call only below, UI never touches fs, parser is stateless.
+**Architecture**: See CLAUDE.md §1 "Clear Layering". Rules: layers call only below, UI never touches fs, parser is stateless.
 
 ## Finding Types
 
@@ -91,6 +83,30 @@ X critical, Y high, Z medium, W low
 ```
 
 Then use AskUserQuestion: "Which findings should I create beads for?"
+
+## Follow-up: Create Beads
+
+If user selects findings, create grouped beads:
+
+1. **Generate unique ID** with date suffix:
+   - Format: `km-rev-<slug>-<MMDD>` (e.g., `km-rev-chaos-0123` for Jan 23)
+   - Focus → slug: `chaos` → `chaos`, `storage sync` → `sync`, `tui rendering` → `tui`
+   - For broad reviews: use primary finding area (e.g., `docs`, `refactor`, `tests`)
+
+2. **Write summary to /tmp/review.md** (the output from Iteration 3)
+
+3. **Create parent + children**:
+   ```bash
+   # Get date suffix
+   DATE_SUFFIX=$(date +%m%d)
+
+   bd create --id "km-rev-<slug>-$DATE_SUFFIX" --type=epic --priority=2 \
+     --title="Architecture review: <focus>" --body-file /tmp/review.md
+   bd create --id "km-rev-<slug>-$DATE_SUFFIX.0" --title="<P1 finding>" --type=bug --priority=1
+   bd create --id "km-rev-<slug>-$DATE_SUFFIX.1" --title="<P2 finding>" --type=task --priority=2
+   ```
+
+Order children by priority (P1 first). `bd show km-rev-<slug>-<MMDD>` shows full review with children.
 
 ## Execute
 

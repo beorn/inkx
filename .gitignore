@@ -41,7 +41,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Test artifacts
 @*.md
-issue/
 test-*.tsx
 test-*.ts
 
