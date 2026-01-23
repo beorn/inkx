@@ -70,7 +70,7 @@ program
     "-r, --root <path>",
     "Root directory to operate on (overrides KM_ROOT env var)",
   )
-  .option("-s, --silent", "Suppress output except errors")
+  .option("--silent", "Suppress output except errors")
   .option(
     "-v, --verbose",
     "Increase verbosity (-v, -vv, -vvv)",

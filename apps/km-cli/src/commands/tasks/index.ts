@@ -23,11 +23,12 @@ export const taskCommand = new Command("tasks")
   .description("Task management - list, add, complete, and assign tasks")
   .argument(
     "[query...]",
-    "Query terms: @person, #tag, +project, status:todo, ./path/**",
+    "Query terms: @person, #tag, +project, status:todo, -status:done",
   )
+  .allowUnknownOption()
   .option("-a, --all", "Show all tasks including done")
   .option(
-    "-s, --status <status>",
+    "-S, --status <status>",
     "Filter by status (todo, wip, done, blocked)",
   )
   .option(

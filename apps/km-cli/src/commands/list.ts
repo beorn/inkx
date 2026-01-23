@@ -150,12 +150,13 @@ function displaySimple(nodes: KNode[], options: { showId: boolean }): void {
 export const listCommand = new Command("list")
   .alias("ls")
   .description("List nodes")
-  .argument("[query]", "Filter by path, ID prefix, or pattern")
+  .argument("[query]", "Filter by path, ID prefix, -status:done negation")
+  .allowUnknownOption()
   .option(
     "-t, --type <type>",
     "Filter by node type (task, section, file, folder)",
   )
-  .option("-s, --status <status>", "Filter tasks by status (todo, wip, done)")
+  .option("--status <status>", "Filter tasks by status (todo, wip, done)")
   .option("-a, --all", "Show all (including done tasks)")
   .option("-c, --context", "Show ancestor paths (like tasks command)")
   .option("-i, --id", "Show node IDs")
