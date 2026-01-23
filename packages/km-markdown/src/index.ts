@@ -8,6 +8,7 @@ export {
   extractTags,
   extractMentions,
   extractProjects,
+  extractAllRefs,
   parseTaskMetadata,
   parseHeadingRules,
   nodeToText,

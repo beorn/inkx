@@ -193,6 +193,39 @@ export function extractProjects(text: string): string[] {
 }
 
 /**
+ * Combined refs extraction - single-pass for performance (km-load-perf.1)
+ * Extracts tags, mentions, and projects in one regex pass instead of three.
+ *
+ * @returns Object with tags, mentions, and projects arrays
+ */
+export function extractAllRefs(text: string): {
+  tags: string[];
+  mentions: string[];
+  projects: string[];
+} {
+  const tags: string[] = [];
+  const mentions: string[] = [];
+  const projects: string[] = [];
+
+  // Combined regex: matches #tag, @mention, or +project
+  // Using alternation with capturing groups
+  const combinedRegex = /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-]+)/g;
+
+  let match;
+  while ((match = combinedRegex.exec(text)) !== null) {
+    if (match[1]) {
+      tags.push(match[1]);
+    } else if (match[2]) {
+      mentions.push(match[2]);
+    } else if (match[3]) {
+      projects.push(match[3]);
+    }
+  }
+
+  return { tags, mentions, projects };
+}
+
+/**
  * Parse task metadata (supports multiple formats)
  * Extracts: due date, scheduled date, priority, recurrence
  *

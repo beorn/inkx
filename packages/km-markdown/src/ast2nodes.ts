@@ -37,9 +37,7 @@ import {
   listItemToText,
   slugify,
   parseTaskMetadata,
-  extractTags,
-  extractMentions,
-  extractProjects,
+  extractAllRefs,
   parseWikiLinks,
   parseHeadingRules,
   parseInlineProperties,
@@ -225,22 +223,22 @@ export function parseMarkdownWithLinks(
   const aggregatedTags = new Set<string>();
   const aggregatedProjects = new Set<string>();
 
+  // km-load-perf.1: Use single-pass extraction for all refs
   // Include file node's own content (e.g., H1 heading with @issue #feature)
   if (fileNode.content) {
-    for (const m of extractMentions(fileNode.content)) {
-      aggregatedMentions.add(m);
-    }
-    for (const t of extractTags(fileNode.content)) aggregatedTags.add(t);
-    for (const p of extractProjects(fileNode.content)) {
-      aggregatedProjects.add(p);
-    }
+    const refs = extractAllRefs(fileNode.content);
+    for (const m of refs.mentions) aggregatedMentions.add(m);
+    for (const t of refs.tags) aggregatedTags.add(t);
+    for (const p of refs.projects) aggregatedProjects.add(p);
   }
 
   for (const node of childNodes) {
     if (node.content) {
-      for (const m of extractMentions(node.content)) aggregatedMentions.add(m);
-      for (const t of extractTags(node.content)) aggregatedTags.add(t);
-      for (const p of extractProjects(node.content)) aggregatedProjects.add(p);
+      // Single-pass extraction instead of 3 separate passes
+      const refs = extractAllRefs(node.content);
+      for (const m of refs.mentions) aggregatedMentions.add(m);
+      for (const t of refs.tags) aggregatedTags.add(t);
+      for (const p of refs.projects) aggregatedProjects.add(p);
     }
     // Also include from node's own data (for list items that already extracted these)
     const nodeData = node.data as Record<string, unknown> | undefined;
@@ -496,9 +494,8 @@ function convertListItem(
 
   // Parse task metadata from text
   const metadata = isTask ? parseTaskMetadata(text) : {};
-  const tags = extractTags(text);
-  const mentions = extractMentions(text);
-  const projects = extractProjects(text);
+  // km-load-perf.1: Single-pass extraction for refs
+  const { tags, mentions, projects } = extractAllRefs(text);
   const parsedProps = parseInlineProperties(text);
 
   // Priority from metadata only
