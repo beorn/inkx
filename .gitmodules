@@ -16,3 +16,6 @@
 [submodule "vendor/beorn-inkx-ui"]
 	path = vendor/beorn-inkx-ui
 	url = git@github.com:beorn/inkx-ui.git
+[submodule "vendor/beorn-logger"]
+	path = vendor/beorn-logger
+	url = git@github.com:beorn/logger.git

@@ -502,10 +502,10 @@ export class MemoryStore extends BaseStore {
     this.rootPath = rootPath;
     this.db = new Database(":memory:");
     this.db.exec(SCHEMA);
-    // Inject db into singleton so link functions can access it
-    setDb(this.db);
-    // Scan immediately unless lazy mode requested (for progress reporting)
+    // Only set the db singleton if not lazy - in lazy mode, the db is managed elsewhere
+    // (e.g., by vault-loader.ts which may have already set up a database)
     if (!options?.lazy) {
+      setDb(this.db);
       this.scanFilesystem();
     }
   }
@@ -1035,11 +1035,14 @@ function findKmDirectoryExact(path: string): string | null {
 }
 
 /**
- * Get the current store instance
+ * Get the current store instance.
+ * If no store exists, creates one in lazy mode (deferred scanning).
  */
 export function getStore(): NodeStore {
   if (!storeInstance) {
-    return initStore();
+    // Use lazy mode by default to avoid immediate filesystem scan
+    // Caller should call store.initialize() if they need full data
+    return initStore(undefined, true, { lazy: true });
   }
   return storeInstance;
 }

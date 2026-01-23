@@ -54,3 +54,7 @@ export type {
   QuerySpecial,
   DateRange,
 } from "./query/index.ts";
+
+// Build info (version, git commit, etc.)
+export { VERSION, BUILD_INFO, GIT_COMMIT } from "./build-info.gen.ts";
+export type { BuildInfo } from "./build-info.gen.ts";

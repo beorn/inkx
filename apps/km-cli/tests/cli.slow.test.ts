@@ -95,8 +95,8 @@ describe.serial("CLI Integration", () => {
 
       const result = await km(["sync"]);
       expect(result.exitCode).toBe(0);
-      // Output contains "Processed" with capital P
-      expect(result.stdout.toLowerCase()).toContain("processed");
+      // Output contains "Synced" with change count
+      expect(result.stdout.toLowerCase()).toContain("synced");
     });
 
     test("should sync nested folder structure", async () => {
@@ -540,7 +540,7 @@ describe.serial("km init", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Initialized");
+    expect(result.stdout).toContain("Initializing");
     expect(existsSync(join(initDir, ".km"))).toBe(true);
     expect(existsSync(join(initDir, ".km", "events.jsonl"))).toBe(true);
   });
@@ -569,7 +569,7 @@ describe.serial("km init", () => {
       });
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Initialized");
+      expect(result.stdout).toContain("Initializing");
 
       // Check folders exist
       expect(existsSync(join(initDir, "inbox"))).toBe(true);
@@ -591,8 +591,8 @@ describe.serial("km init", () => {
       });
 
       const content = readFileSync(join(initDir, "@inbox.md"), "utf-8");
-      // No frontmatter - inline column rules in heading
-      expect(content).not.toContain("---");
+      // Sync adds frontmatter with title extracted from heading (due to add= rule)
+      expect(content).toContain("title: Inbox");
       expect(content).toContain("# Inbox");
       expect(content).toContain('## Unprocessed add="./inbox/**"');
     });
@@ -644,7 +644,7 @@ describe.serial("km init", () => {
       });
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Initialized");
+      expect(result.stdout).toContain("Initializing");
       expect(existsSync(join(initDir, ".km"))).toBe(true);
       // GTD files should also be created by default
       expect(existsSync(join(initDir, "@inbox.md"))).toBe(true);
@@ -660,7 +660,7 @@ describe.serial("km init", () => {
       });
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Initialized");
+      expect(result.stdout).toContain("Initializing");
       expect(existsSync(join(initDir, ".km"))).toBe(true);
       // GTD files should NOT exist
       expect(existsSync(join(initDir, "@inbox.md"))).toBe(false);

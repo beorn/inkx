@@ -122,7 +122,7 @@ export function* loadVault(
 
   // Enable real-time event application for disk mode
   if (mode === "disk") {
-    setDatabase({ applyEvent: dbApplyEvent });
+    setDatabase(dbApplyEvent);
   }
 
   const duration = Date.now() - start;

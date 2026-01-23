@@ -94,7 +94,7 @@ const doubled = items.map((x) => x * 2);
 **Test commands:**
 
 ```bash
-bun run test:fast    # ⚡ USE THIS for fast iteration (~4s)
+bun run test:fast    # ⚡ USE THIS for fast iteration (~24s)
 bun run test:all     # ALL tests - unit + mdtest (~2min, run before committing)
 bun run test:mdtest  # Only mdtest integration tests (*.test.md)
 ```
@@ -548,3 +548,94 @@ function getName(node: Node): string {
 ```
 
 **Rule of thumb**: If you wouldn't add this fallback/compat code today from scratch, remove it or create a bead to remove it later
+
+### 15. Version Info
+
+**Single source of truth:** `package.json` version field
+
+**Never hardcode versions.** Import from `@km/core`:
+
+```typescript
+import { VERSION, BUILD_INFO } from "@km/core"
+
+// VERSION = "0.1.0"
+// BUILD_INFO = { version, gitCommit, gitBranch, gitDirty, buildTime }
+```
+
+**Build-time generation:** Version info is generated at build time via `bun run build:info`, which creates `packages/km-core/src/build-info.gen.ts`. This file is gitignored.
+
+**For diagnostics**, include git commit in error messages or debug output:
+
+```typescript
+import { BUILD_INFO } from "@km/core"
+debug("startup", { version: BUILD_INFO.version, commit: BUILD_INFO.gitCommit })
+```
+
+### 16. Prior Art / Related Projects (cloudi, kimmi, decker)
+
+These sibling projects share ideas, patterns, and code with km. Reference them for inspiration on implementation approaches. All are accessible on the local filesystem. For detailed comparisons, see [docs/dev/prior-art.md](docs/dev/prior-art.md).
+
+---
+
+**../cloudi** — AI email assistant + cloud PIM (Nov 2025 – Jan 2026, ~1300 commits)
+
+Cloudi is a multi-mode Claude AI assistant combining an interactive CLI chat interface with an autonomous Gmail bot. The system stores all state in Gmail (tasks, contacts, drafts as key-value storage) rather than managing a separate database, enabling zero-infrastructure deployment. Features include conversation continuity across chat/email modes, tool result caching, and integration with Google Tasks/Contacts APIs. Built with Vercel AI SDK, TypeScript, Bun workspaces.
+
+Notable patterns to borrow:
+
+- Build-time version generation (`scripts/generate-build-info.ts` → `build-info.gen.ts`)
+- Structured logger (`@beorn/logger`) with log levels + `--log-level` CLI flag
+- Type-safe env config via Zod (`@cloudi/env-config`)
+- AppContext pattern for dependency injection
+- Feature/task ID system (F###, T###) in CHANGELOG
+- Factory functions over classes for better tree-shaking
+
+---
+
+**../kimmi** — Local-first PIM with CRDT sync (Oct 2025 – Jan 2026, ~1200 commits)
+
+Kimmi is a local-first personal information manager that unifies contacts, calendar, notes, tasks, and files using Automerge CRDTs for conflict-free replication. It syncs bidirectionally with external PIM systems (CardDAV/CalDAV for iCloud, Google, Outlook) while maintaining complete local control. The architecture uses a Repo-based CRDT model with separate tree and content documents, enabling partial replication and efficient network sync.
+
+Key differences from km:
+
+- **Storage**: Automerge CRDTs vs SQLite — CRDTs enable automatic conflict resolution for multi-device sync
+- **Scope**: Full PIM (contacts, calendar, notes, tasks, files) vs task-focused markdown files
+- **Sync**: Bidirectional with external systems (CardDAV connectors) vs file system as source of truth
+
+Notable patterns:
+
+- `@kimmi/obs` — Structured logging with hierarchical namespaces
+- Connector architecture for external system sync
+- Shadow cache pattern for external data
+
+---
+
+**../../DZ/decker** — Web-based collaborative boards (Jan 2020 – Jan 2025, ~3000 commits)
+
+Decker (also called Boardliner) is a web-based document and project management app built with Next.js, React, Slate editor, and Yjs for real-time collaboration. Enables hierarchical document organization with kanban-style board views, drag-and-drop cards, outline editing, live cursors, and cloud sync. Collaboration with Mike Welch exploring rich board interfaces before km's TUI approach.
+
+Relationship to km's board view:
+
+- Both model tasks as hierarchical nodes with columns/cards, cursor navigation, fold states
+- Decker is web-based with drag-and-drop; km is TUI-optimized for keyboard efficiency
+- Decker has real-time multi-user collaboration (Yjs); km is single-user file-based
+- Similar concepts: zoom, navigation history, move mode, selection states
+
+Tech stack: Next.js, React, Slate, Yjs, Radix UI, Tailwind, PostgreSQL, Redis
+
+### 17. Releasing
+
+Use [release-it](https://github.com/release-it/release-it) for GitHub releases:
+
+```bash
+bun release              # Interactive (prompts for version type)
+bun release patch        # Patch: 0.1.0 → 0.1.1
+bun release minor        # Minor: 0.1.0 → 0.2.0
+bun release --dry-run    # Preview without changes
+```
+
+This automatically: bumps version in package.json, regenerates build-info.gen.ts, updates CHANGELOG.md from conventional commits, creates git tag, creates GitHub release, and pushes.
+
+**Prerequisites**: Clean working directory, on `main` branch, `gh` CLI authenticated.
+
+See [docs/dev/releasing.md](docs/dev/releasing.md) for full details
