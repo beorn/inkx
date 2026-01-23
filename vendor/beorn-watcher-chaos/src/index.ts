@@ -51,6 +51,8 @@ export type {
   WatcherInterface,
   ChaosWatcherConfig,
   IChaosWatcher,
+  ServiceStatus,
+  Service,
 } from "./types.ts";
 
 export type {

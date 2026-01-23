@@ -15,6 +15,7 @@ import type {
   ScheduledEvent,
   ChaosScenario,
   EventTiming,
+  ServiceStatus,
 } from "./types.ts";
 import { applyScenario } from "./scenarios.ts";
 import { SeededRandom } from "./seeded-random.ts";
@@ -26,8 +27,8 @@ const DEFAULT_CONFIG: ChaosWatcherConfig = {
 
 export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
   private config: ChaosWatcherConfig;
-  private vaultPath: string = "";
-  private isStarted: boolean = false;
+  private _vaultPath: string = "";
+  private _status: ServiceStatus = "stopped";
   private pendingEvents: ScheduledEvent[] = [];
   private emittedEvents: FsEvent[] = [];
   private droppedEvents: FsEvent[] = [];
@@ -48,15 +49,39 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
     if (config.scenario) {
       this.scenario = config.scenario;
     }
+    if (config.vaultPath) {
+      this._vaultPath = config.vaultPath;
+    }
+  }
+
+  /** Current lifecycle status */
+  get status(): ServiceStatus {
+    return this._status;
+  }
+
+  /** Vault path being watched */
+  get vaultPath(): string {
+    return this._vaultPath;
   }
 
   // ─────────────────────────────────────────────────────────────
   // WatcherInterface Implementation
   // ─────────────────────────────────────────────────────────────
 
-  start(vaultPath: string): void {
-    this.vaultPath = vaultPath;
-    this.isStarted = true;
+  /**
+   * Start the watcher.
+   * @param vaultPath - Optional path to watch (uses config.vaultPath if not provided)
+   */
+  async start(vaultPath?: string): Promise<void> {
+    if (this._status !== "stopped") {
+      return;
+    }
+
+    this._status = "starting";
+
+    if (vaultPath) {
+      this._vaultPath = vaultPath;
+    }
 
     // Handle init gap scenario
     if (this.scenario?.type === "init_gap") {
@@ -65,27 +90,41 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
 
       if (this.useVirtualTime) {
         this.scheduleVirtual(initDuration, () => {
+          this._status = "running";
           this.emit("ready");
         });
       } else {
         setTimeout(() => {
+          this._status = "running";
           this.emit("ready");
         }, initDuration);
       }
     } else {
+      this._status = "running";
       // Immediate ready for most scenarios
       setImmediate(() => this.emit("ready"));
     }
   }
 
   async stop(): Promise<void> {
-    this.isStarted = false;
+    if (this._status !== "running" && this._status !== "starting") {
+      return;
+    }
+
+    this._status = "stopping";
+
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
     this.pendingEvents = [];
     this.scheduledTimers = [];
+
+    this._status = "stopped";
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    await this.stop();
   }
 
   markInFlight(path: string): void {

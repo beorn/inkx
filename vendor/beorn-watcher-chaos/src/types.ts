@@ -7,6 +7,32 @@
 import type { EventEmitter } from "events";
 
 /**
+ * Service status indicates the lifecycle state.
+ */
+export type ServiceStatus = "stopped" | "starting" | "running" | "stopping";
+
+/**
+ * Service interface for objects with start/stop lifecycle.
+ * Implements AsyncDisposable for automatic cleanup.
+ */
+export interface Service extends AsyncDisposable {
+  /** Current lifecycle status */
+  readonly status: ServiceStatus;
+
+  /**
+   * Start the service.
+   * Transitions: stopped → starting → running
+   */
+  start(): Promise<void>;
+
+  /**
+   * Stop the service.
+   * Transitions: running → stopping → stopped
+   */
+  stop(): Promise<void>;
+}
+
+/**
  * File system event types matching chokidar
  */
 export type FsEventType = "add" | "change" | "unlink" | "addDir" | "unlinkDir";
@@ -78,11 +104,12 @@ export interface SyncData {
 /**
  * Watcher interface - matches km-storage's FileSystemWatcher/WorkerWatcher
  *
+ * Extends Service for start/stop lifecycle management.
  * Implement this interface to create a drop-in replacement watcher.
  */
-export interface WatcherInterface extends EventEmitter {
-  /** Start watching a directory */
-  start(vaultPath: string): void;
+export interface WatcherInterface extends EventEmitter, Service {
+  /** Start watching a directory (vaultPath optional if set via config) */
+  start(vaultPath?: string): Promise<void>;
 
   /** Stop watching */
   stop(): Promise<void>;
@@ -111,6 +138,8 @@ export interface WatcherInterface extends EventEmitter {
 export interface ChaosWatcherConfig {
   /** Base debounce time (ms) */
   debounceMs: number;
+  /** Vault path to watch (can also be set in start()) */
+  vaultPath?: string;
   /** Chaos scenario to apply */
   scenario?: ChaosScenario;
   /** Custom event transformer */

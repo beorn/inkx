@@ -230,3 +230,63 @@ describe("SeededRandom", () => {
     expect(shuffled1).toEqual(shuffled2);
   });
 });
+
+describe("Service interface", () => {
+  it("status starts as stopped", () => {
+    const watcher = createChaosWatcher();
+    expect(watcher.status).toBe("stopped");
+  });
+
+  it("status transitions to running after start", async () => {
+    const watcher = createChaosWatcher();
+    await watcher.start("/vault");
+    expect(watcher.status).toBe("running");
+  });
+
+  it("status transitions to stopped after stop", async () => {
+    const watcher = createChaosWatcher();
+    await watcher.start("/vault");
+    await watcher.stop();
+    expect(watcher.status).toBe("stopped");
+  });
+
+  it("start is idempotent (no-op when running)", async () => {
+    const watcher = createChaosWatcher();
+    await watcher.start("/vault");
+    expect(watcher.status).toBe("running");
+
+    // Second start should be no-op
+    await watcher.start("/vault");
+    expect(watcher.status).toBe("running");
+  });
+
+  it("stop is idempotent (no-op when stopped)", async () => {
+    const watcher = createChaosWatcher();
+    expect(watcher.status).toBe("stopped");
+
+    // Stop when already stopped should be no-op
+    await watcher.stop();
+    expect(watcher.status).toBe("stopped");
+  });
+
+  it("supports AsyncDisposable", async () => {
+    const watcher = createChaosWatcher();
+    await watcher.start("/vault");
+    expect(watcher.status).toBe("running");
+
+    await watcher[Symbol.asyncDispose]();
+    expect(watcher.status).toBe("stopped");
+  });
+
+  it("can use vaultPath from config", async () => {
+    const watcher = createChaosWatcher({ vaultPath: "/configured/vault" });
+    await watcher.start(); // No vaultPath argument
+    expect(watcher.vaultPath).toBe("/configured/vault");
+  });
+
+  it("start argument overrides config vaultPath", async () => {
+    const watcher = createChaosWatcher({ vaultPath: "/configured/vault" });
+    await watcher.start("/override/vault");
+    expect(watcher.vaultPath).toBe("/override/vault");
+  });
+});
