@@ -21,7 +21,10 @@ function debug(message: string, ...args: unknown[]): void {
   formatted = message.replace(/%[sdOo]/g, () => {
     const arg = args[argIndex++];
     if (arg === undefined) return "";
+    if (arg === null) return "null";
     if (typeof arg === "object") return JSON.stringify(arg);
+    // After checks above, arg is string | number | boolean | symbol | bigint
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     return String(arg);
   });
 
@@ -41,7 +44,12 @@ function debug(message: string, ...args: unknown[]): void {
 
 // Message types from main thread → worker
 export type WorkerCommand =
-  | { type: "start"; vaultPath: string; ignorePatterns: string[]; debounceMs: number }
+  | {
+      type: "start";
+      vaultPath: string;
+      ignorePatterns: string[];
+      debounceMs: number;
+    }
   | { type: "stop" }
   | { type: "markInFlight"; path: string }
   | { type: "clearInFlight"; path: string; delayMs: number }
@@ -49,7 +57,13 @@ export type WorkerCommand =
   | { type: "getStatus" };
 
 /** Watcher state for status reporting */
-export type WatcherState = "starting" | "ready" | "syncing" | "idle" | "stopped" | "error";
+export type WatcherState =
+  | "starting"
+  | "ready"
+  | "syncing"
+  | "idle"
+  | "stopped"
+  | "error";
 
 /** Status information from the watcher */
 export interface WatcherStatus {
@@ -91,12 +105,20 @@ let statusInterval: ReturnType<typeof setInterval> | null = null;
  * - *.ext: Match files with extension
  * - exact: Exact match or as directory prefix
  */
-function shouldIgnore(path: string, patterns: string[], vaultPath: string): boolean {
+function shouldIgnore(
+  path: string,
+  patterns: string[],
+  vaultPath: string,
+): boolean {
   const relativePath = path.replace(vaultPath, "").replace(/^\//, "");
 
   // Debug: check .git and vendor paths specifically
   if (relativePath.includes(".git") || relativePath.includes("vendor")) {
-    debug("worker: shouldIgnore check: path=%s relative=%s", path, relativePath);
+    debug(
+      "worker: shouldIgnore check: path=%s relative=%s",
+      path,
+      relativePath,
+    );
   }
 
   for (const pattern of patterns) {
@@ -111,7 +133,11 @@ function shouldIgnore(path: string, patterns: string[], vaultPath: string): bool
         relativePath === middle
       ) {
         if (relativePath.includes(".git") || relativePath.includes("vendor")) {
-          debug("worker: shouldIgnore MATCHED pattern=%s middle=%s", pattern, middle);
+          debug(
+            "worker: shouldIgnore MATCHED pattern=%s middle=%s",
+            pattern,
+            middle,
+          );
         }
         return true;
       }
@@ -179,7 +205,11 @@ function setState(newState: WatcherState): void {
 /**
  * Start watching a directory
  */
-function startWatcher(vaultPath: string, ignorePatterns: string[], debounceMs: number): void {
+function startWatcher(
+  vaultPath: string,
+  ignorePatterns: string[],
+  debounceMs: number,
+): void {
   debug("worker: starting watcher for %s", vaultPath);
   currentDebounceMs = debounceMs;
   setState("starting");
@@ -250,7 +280,10 @@ function startWatcher(vaultPath: string, ignorePatterns: string[], debounceMs: n
       watchedPathCount = Object.keys(watched).length;
     }
     setState("idle");
-    postMessage({ type: "ready", watchedPaths: watchedPathCount } satisfies WorkerMessage);
+    postMessage({
+      type: "ready",
+      watchedPaths: watchedPathCount,
+    } satisfies WorkerMessage);
 
     // Start periodic status updates (every 5 seconds)
     if (statusInterval) {
@@ -301,7 +334,11 @@ function scheduleSync(): void {
   }
 
   setState("syncing");
-  debug("worker: scheduling sync in %dms (%d pending)", currentDebounceMs, pendingPaths.size);
+  debug(
+    "worker: scheduling sync in %dms (%d pending)",
+    currentDebounceMs,
+    pendingPaths.size,
+  );
   debounceTimer = setTimeout(() => {
     emitSync();
   }, currentDebounceMs);
@@ -327,7 +364,11 @@ function emitSync(): void {
     dirs.add(dirname(path));
   }
 
-  debug("worker: sync: emitting %d paths, %d directories", paths.length, dirs.size);
+  debug(
+    "worker: sync: emitting %d paths, %d directories",
+    paths.length,
+    dirs.size,
+  );
   lastSyncTime = Date.now();
 
   postMessage({
@@ -345,7 +386,11 @@ function emitSync(): void {
 function handleMessage(command: WorkerCommand): void {
   switch (command.type) {
     case "start":
-      startWatcher(command.vaultPath, command.ignorePatterns, command.debounceMs);
+      startWatcher(
+        command.vaultPath,
+        command.ignorePatterns,
+        command.debounceMs,
+      );
       break;
 
     case "stop":

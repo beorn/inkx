@@ -216,7 +216,11 @@ export class SyncManager extends EventEmitter {
 
     // Only run if we've been idle long enough
     if (idleTime < this.heartbeatConfig.idleThresholdMs) {
-      debug("heartbeat: skipping, idle=%dms < threshold=%dms", idleTime, this.heartbeatConfig.idleThresholdMs);
+      debug(
+        "heartbeat: skipping, idle=%dms < threshold=%dms",
+        idleTime,
+        this.heartbeatConfig.idleThresholdMs,
+      );
       return;
     }
 
@@ -228,7 +232,10 @@ export class SyncManager extends EventEmitter {
 
     // Don't run if there are pending writes
     if (this.writeQueue.getPendingCount() > 0) {
-      debug("heartbeat: skipping, pending writes=%d", this.writeQueue.getPendingCount());
+      debug(
+        "heartbeat: skipping, pending writes=%d",
+        this.writeQueue.getPendingCount(),
+      );
       return;
     }
 
@@ -239,7 +246,11 @@ export class SyncManager extends EventEmitter {
       this.setState("reconciling");
 
       // Scan entire vault for changes
-      const ops = reconcileDirectory(this.config.vaultPath, this.config.vaultPath, this.ignorePatterns);
+      const ops = reconcileDirectory(
+        this.config.vaultPath,
+        this.config.vaultPath,
+        this.ignorePatterns,
+      );
 
       if (ops.length > 0) {
         debug("heartbeat: found %d changes (drift detected)", ops.length);
@@ -255,7 +266,11 @@ export class SyncManager extends EventEmitter {
         });
       }
 
-      debug("heartbeat: completed in %dms, ops=%d", Date.now() - start, ops.length);
+      debug(
+        "heartbeat: completed in %dms, ops=%d",
+        Date.now() - start,
+        ops.length,
+      );
       this.emit("heartbeat:complete", {
         duration: Date.now() - start,
         opsCount: ops.length,
@@ -276,7 +291,11 @@ export class SyncManager extends EventEmitter {
     this.setState("reconciling");
 
     try {
-      const ops = reconcileDirectory(this.config.vaultPath, this.config.vaultPath, this.ignorePatterns);
+      const ops = reconcileDirectory(
+        this.config.vaultPath,
+        this.config.vaultPath,
+        this.ignorePatterns,
+      );
 
       if (ops.length > 0) {
         this.setState("emitting");
@@ -321,13 +340,21 @@ export class SyncManager extends EventEmitter {
     paths: string[];
     directories: string[];
   }): Promise<void> {
-    debug("fs sync triggered: %d paths, %d directories", data.paths.length, data.directories.length);
+    debug(
+      "fs sync triggered: %d paths, %d directories",
+      data.paths.length,
+      data.directories.length,
+    );
     this.lastActivityTime = Date.now();
     this.setState("reconciling");
 
     try {
       for (const dir of data.directories) {
-        const ops = reconcileDirectory(dir, this.config.vaultPath, this.ignorePatterns);
+        const ops = reconcileDirectory(
+          dir,
+          this.config.vaultPath,
+          this.ignorePatterns,
+        );
         debug("reconciled %s: %d ops", dir, ops.length);
 
         if (ops.length > 0) {
@@ -507,9 +534,12 @@ export class SyncManager extends EventEmitter {
     const totalDirs = dirArray.length;
     let processed = 0;
 
-    for (let i = 0; i < dirArray.length; i++) {
-      const dir = dirArray[i]!;
-      const ops = reconcileDirectory(dir, this.config.vaultPath, ignorePatterns);
+    for (const [i, dir] of dirArray.entries()) {
+      const ops = reconcileDirectory(
+        dir,
+        this.config.vaultPath,
+        ignorePatterns,
+      );
       await applyReconcileOps(ops, this.config.vaultPath);
       processed += ops.length;
 
@@ -519,18 +549,28 @@ export class SyncManager extends EventEmitter {
 
     // Phase 3: Evaluate rules (add= materialization)
     for (const progress of evaluateAllRules()) {
-      onProgress?.({ phase: "rules", current: progress.current, total: progress.total });
+      onProgress?.({
+        phase: "rules",
+        current: progress.current,
+        total: progress.total,
+      });
     }
 
     // Write back any files that were modified by rule evaluation
     // SAFETY: Only write .md files to prevent corruption of source code/config files
     const pendingFiles = getPendingWriteBack();
     if (pendingFiles.length > 0) {
-      debug("syncFromFs: writing back %d files after rule evaluation", pendingFiles.length);
+      debug(
+        "syncFromFs: writing back %d files after rule evaluation",
+        pendingFiles.length,
+      );
       for (const filePath of pendingFiles) {
         // CRITICAL: Skip non-.md files to prevent corruption
         if (!filePath.endsWith(".md")) {
-          debug("syncFromFs: SKIPPING non-.md file in write-back: %s", filePath);
+          debug(
+            "syncFromFs: SKIPPING non-.md file in write-back: %s",
+            filePath,
+          );
           continue;
         }
 
@@ -550,7 +590,12 @@ export class SyncManager extends EventEmitter {
     }
 
     const duration = Date.now() - start;
-    debug("syncFromFs: processed %d ops in %d dirs in %dms", processed, totalDirs, duration);
+    debug(
+      "syncFromFs: processed %d ops in %d dirs in %dms",
+      processed,
+      totalDirs,
+      duration,
+    );
     return { processed, directories: totalDirs, duration };
   }
 
@@ -569,7 +614,9 @@ export class SyncManager extends EventEmitter {
 
     const nodes = getAllNodes();
     // CRITICAL: Only sync .md files to prevent corruption of source code/config files
-    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path?.endsWith(".md"));
+    const fileNodes = nodes.filter(
+      (n) => n.type === "file" && n.fs_path?.endsWith(".md"),
+    );
 
     debug("syncToFs: writing %d files", fileNodes.length);
 
@@ -587,7 +634,11 @@ export class SyncManager extends EventEmitter {
 
     await this.writeQueue.forceFlush();
 
-    debug("syncToFs: wrote %d files in %dms", fileNodes.length, Date.now() - start);
+    debug(
+      "syncToFs: wrote %d files in %dms",
+      fileNodes.length,
+      Date.now() - start,
+    );
     return { written: fileNodes.length };
   }
 

@@ -68,7 +68,12 @@ export function readEvents(): Event[] {
   // Sort by ULID (lexicographic = chronological)
   events.sort((a, b) => a.id.localeCompare(b.id));
 
-  debug("read %d events (%d dupes, %d malformed)", events.length, dupes, malformed);
+  debug(
+    "read %d events (%d dupes, %d malformed)",
+    events.length,
+    dupes,
+    malformed,
+  );
   return events;
 }
 
@@ -77,7 +82,11 @@ export function readEvents(): Event[] {
  * This is the primary recovery mechanism.
  * Yields progress info for each step.
  */
-export function* rebuildState(): Generator<ProgressInfo, RebuildResult, unknown> {
+export function* rebuildState(): Generator<
+  ProgressInfo,
+  RebuildResult,
+  unknown
+> {
   debug("rebuilding state.db");
   const start = Date.now();
 
@@ -99,8 +108,8 @@ export function* rebuildState(): Generator<ProgressInfo, RebuildResult, unknown>
 
   db.run("BEGIN IMMEDIATE");
   try {
-    for (let i = 0; i < events.length; i++) {
-      applyEvent(events[i]!);
+    for (const [i, event] of events.entries()) {
+      applyEvent(event);
 
       // Yield progress every 100 events to avoid overhead
       if (i % 100 === 0 || i === total - 1) {
@@ -128,7 +137,12 @@ export function* rebuildState(): Generator<ProgressInfo, RebuildResult, unknown>
   ).count;
 
   const duration = Date.now() - start;
-  debug("rebuilt state.db: %d events → %d nodes in %dms", events.length, nodeCount, duration);
+  debug(
+    "rebuilt state.db: %d events → %d nodes in %dms",
+    events.length,
+    nodeCount,
+    duration,
+  );
 
   return {
     eventCount: events.length,
@@ -168,7 +182,11 @@ export function needsRebuild(): boolean {
     // DB exists but hasn't applied any events
     const events = readEvents();
     const needs = events.length > 0;
-    debug("needsRebuild: %s (no last_event, %d events)", needs ? "yes" : "no", events.length);
+    debug(
+      "needsRebuild: %s (no last_event, %d events)",
+      needs ? "yes" : "no",
+      events.length,
+    );
     return needs;
   }
 
@@ -183,7 +201,12 @@ export function needsRebuild(): boolean {
 
   // ULID comparison - if last event ID > last applied, need to catch up
   const needs = lastEvent.id > lastApplied.value;
-  debug("needsRebuild: %s (last=%s, applied=%s)", needs ? "yes" : "no", lastEvent.id.slice(-8), lastApplied.value.slice(-8));
+  debug(
+    "needsRebuild: %s (last=%s, applied=%s)",
+    needs ? "yes" : "no",
+    lastEvent.id.slice(-8),
+    lastApplied.value.slice(-8),
+  );
   return needs;
 }
 
@@ -226,8 +249,8 @@ export function* syncState(): Generator<ProgressInfo, SyncResult, unknown> {
   // Apply in transaction for performance
   db.run("BEGIN IMMEDIATE");
   try {
-    for (let i = 0; i < newEvents.length; i++) {
-      applyEvent(newEvents[i]!);
+    for (const [i, event] of newEvents.entries()) {
+      applyEvent(event);
 
       if (i % 100 === 0 || i === total - 1) {
         yield { phase: "applying", current: i + 1, total };
@@ -294,7 +317,11 @@ export function* ensureState(
   rootPath?: string,
   searchAncestors = true,
 ): Generator<ProgressInfo, void, unknown> {
-  debug("ensureState: rootPath=%s, searchAncestors=%s", rootPath ?? "cwd", searchAncestors);
+  debug(
+    "ensureState: rootPath=%s, searchAncestors=%s",
+    rootPath ?? "cwd",
+    searchAncestors,
+  );
   const store = initStore(rootPath, searchAncestors);
 
   if (store.mode === "memory") {

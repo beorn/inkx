@@ -115,7 +115,9 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string): string {
     lines.push(`close_reason: "${issue.close_reason.replace(/"/g, '\\"')}"`);
   }
   if (issue.blocked_by && issue.blocked_by.length > 0) {
-    lines.push(`blocked_by: [${issue.blocked_by.map((b) => `"${b}"`).join(", ")}]`);
+    lines.push(
+      `blocked_by: [${issue.blocked_by.map((b) => `"${b}"`).join(", ")}]`,
+    );
   }
   if (issue.parent_id) {
     lines.push(`parent_id: ${issue.parent_id}`);
@@ -185,7 +187,10 @@ export interface MigrateResult {
 /**
  * Migrate issues from .beads/issues.jsonl to markdown files
  */
-export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions): MigrateResult {
+export function migrateBeadsToMarkdown(
+  beadsDir: string,
+  options: MigrateOptions,
+): MigrateResult {
   const issues = readBeadsIssues(beadsDir);
   const result: MigrateResult = {
     migrated: 0,
@@ -197,7 +202,8 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
   // Filter by status if specified
   let filtered = issues;
   if (options.statusFilter && options.statusFilter.length > 0) {
-    filtered = issues.filter((i) => options.statusFilter!.includes(i.status));
+    const { statusFilter } = options;
+    filtered = issues.filter((i) => statusFilter.includes(i.status));
   }
 
   // Ensure target directory exists
@@ -225,7 +231,9 @@ export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions
       result.migrated++;
       result.files.push(filepath);
     } catch (error) {
-      result.errors.push(`${issue.id}: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `${issue.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 

@@ -111,10 +111,7 @@ export function getErrorType(error: Error & { code?: string }): ErrorType {
 /**
  * Get a user-friendly suggestion for fixing a permission error
  */
-export function getPermissionSuggestion(
-  path: string,
-  code: string,
-): string {
+export function getPermissionSuggestion(path: string, code: string): string {
   if (code === "EACCES") {
     return `Check file permissions for "${path}". You may need to run: chmod u+rw "${path}"`;
   }
@@ -201,8 +198,8 @@ export interface FileSystemOps {
   mkdirSync(path: string, options?: { recursive?: boolean }): void;
   existsSync(path: string): boolean;
   renameSync(oldPath: string, newPath: string): void;
-  readFileSync?(path: string, encoding?: BufferEncoding): string;
-  statSync?(path: string): StatResult;
+  readFileSync(path: string, encoding?: BufferEncoding): string;
+  statSync(path: string): StatResult;
 }
 
 /**
@@ -474,7 +471,7 @@ export class WriteQueue extends EventEmitter {
    * Execute operation with retry logic for transient failures
    */
   private async executeWithRetry(op: WriteOperation): Promise<OperationResult> {
-    let lastError: Error & { code?: string } | undefined;
+    let lastError: (Error & { code?: string }) | undefined;
     let attempts = 0;
 
     // Check for conflict before attempting write

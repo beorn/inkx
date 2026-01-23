@@ -26,12 +26,12 @@ function TestNestedStyles() {
         </Text>
       </Box>
       
-      <Text>4. Deep nesting: white > red > blue > back to red > back to white:</Text>
+      <Text>4. Deep nesting: white {'->'} red {'->'} blue {'->'} back to red {'->'} back to white:</Text>
       <Text color="white">
         W<Text color="red">R<Text color="blue">B</Text>R</Text>W
       </Text>
-      
-      <Text>5. Multiple styles: bold+green > dim+red > restore bold+green:</Text>
+
+      <Text>5. Multiple styles: bold+green {'->'} dim+red {'->'} restore bold+green:</Text>
       <Text bold color="green">
         GREEN<Text dim color="red">red</Text>GREEN
       </Text>

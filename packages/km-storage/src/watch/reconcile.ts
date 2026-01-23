@@ -270,7 +270,7 @@ function ensureFolderHierarchy(
 
   // Create the parent folder node
   try {
-    const stat = fs.statSync!(parentPath);
+    const stat = fs.statSync(parentPath);
     const folderId = ulid();
     emitNodeCreated("fs-watch", {
       id: folderId,
@@ -297,7 +297,7 @@ async function handleCreate(
   vaultRoot: string,
   fs: FileSystemOps = realFs,
 ): Promise<void> {
-  const stat = fs.statSync!(op.path);
+  const stat = fs.statSync(op.path);
 
   // Ensure all parent folders exist as nodes
   const parentId = ensureFolderHierarchy(op.path, vaultRoot, fs);
@@ -316,7 +316,7 @@ async function handleCreate(
     });
   } else if (op.path.endsWith(".md")) {
     // Parse markdown file and create nodes with wikilinks
-    const content = fs.readFileSync!(op.path, "utf-8");
+    const content = fs.readFileSync(op.path, "utf-8");
     const { nodes, wikilinks } = parseMarkdownWithLinks(
       content,
       op.path,
@@ -397,7 +397,7 @@ async function handleUpdate(
     return;
   }
 
-  const content = fs.readFileSync!(op.path, "utf-8");
+  const content = fs.readFileSync(op.path, "utf-8");
   const contentHash = hashContent(content);
 
   // Use km-storage abstraction to get content hash
@@ -421,7 +421,7 @@ async function handleUpdate(
   );
 
   // Parse new content with wikilinks
-  const stat = fs.statSync!(op.path);
+  const stat = fs.statSync(op.path);
   const newMtime = op.mtime ?? stat.mtimeMs;
   const { nodes: newNodes, wikilinks } = parseMarkdownWithLinks(
     content,

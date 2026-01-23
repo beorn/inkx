@@ -478,15 +478,18 @@ function Layer1FoldMarkers(): React.ReactElement {
       <SubsectionHeader title="Marker Constants" />
       <Text>
         {" "}
-        <Text color={FOLDED_MARKER.color}>{FOLDED_MARKER.char}</Text> FOLDED_MARKER (● U+25CF) - big filled circle
+        <Text color={FOLDED_MARKER.color}>{FOLDED_MARKER.char}</Text>{" "}
+        FOLDED_MARKER (● U+25CF) - big filled circle
       </Text>
       <Text>
         {" "}
-        <Text color={UNFOLDED_MARKER.color}>{UNFOLDED_MARKER.char}</Text> UNFOLDED_MARKER (• U+2022) - medium bullet
+        <Text color={UNFOLDED_MARKER.color}>{UNFOLDED_MARKER.char}</Text>{" "}
+        UNFOLDED_MARKER (• U+2022) - medium bullet
       </Text>
       <Text>
         {" "}
-        <Text color={EMPTY_MARKER.color}>{EMPTY_MARKER.char}</Text> EMPTY_MARKER (· U+00B7) - tiny dot
+        <Text color={EMPTY_MARKER.color}>{EMPTY_MARKER.char}</Text> EMPTY_MARKER
+        (· U+00B7) - tiny dot
       </Text>
       <Text> </Text>
 
@@ -511,17 +514,20 @@ function Layer1FoldMarkers(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="Combined: Fold Marker + Task Status" />
-      <Text dimColor> New cards style: marker indicates fold, status in title</Text>
+      <Text dimColor>
+        {" "}
+        New cards style: marker indicates fold, status in title
+      </Text>
       <Text> </Text>
       <Text>
         {" "}
-        <Text>{FOLDED_MARKER.char}</Text>{" "}
-        <Text color="gray">▢</Text> Folded todo task (5)
+        <Text>{FOLDED_MARKER.char}</Text> <Text color="gray">▢</Text> Folded
+        todo task (5)
       </Text>
       <Text>
         {" "}
-        <Text>{UNFOLDED_MARKER.char}</Text>{" "}
-        <Text color="yellow">◧</Text> Unfolded WIP task
+        <Text>{UNFOLDED_MARKER.char}</Text> <Text color="yellow">◧</Text>{" "}
+        Unfolded WIP task
       </Text>
       <Text>
         {" "}
@@ -1121,8 +1127,12 @@ function Layer3AllViews(): React.ReactElement {
       <Text dimColor>
         Each view renders the same BoardState with varied content:
       </Text>
-      <Text dimColor>• Fold markers: ● folded, • unfolded, · empty (size variation)</Text>
-      <Text dimColor>• Task status: ▢ todo, ◧ wip, ■ blocked, ▣ done (square style)</Text>
+      <Text dimColor>
+        • Fold markers: ● folded, • unfolded, · empty (size variation)
+      </Text>
+      <Text dimColor>
+        • Task status: ▢ todo, ◧ wip, ■ blocked, ▣ done (square style)
+      </Text>
       <Text dimColor>
         • Rich text: **bold**, *italic*, `code`, ~~strike~~, [[links]]
       </Text>
@@ -1367,7 +1377,9 @@ const rawOutput = lastFrame() ?? "";
 const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")); // trim trailing whitespace
 // Find last line with visible content (not just ANSI codes and whitespace)
 let lastContentLine = lines.length - 1;
-while (lastContentLine >= 0 && lines[lastContentLine]!.replace(ANSI_REGEX, "").trim() === "") {
+while (lastContentLine >= 0) {
+  const line = lines[lastContentLine];
+  if (line && line.replace(ANSI_REGEX, "").trim() !== "") break;
   lastContentLine--;
 }
 const output = lines.slice(0, lastContentLine + 1).join("\n");

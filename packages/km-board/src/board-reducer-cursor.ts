@@ -77,15 +77,15 @@ export function getNextVisiblePath(
 
   // At card level (depth 2): only allow next sibling, no column crossing
   if (path.length === 2) {
-    const idx = path[1];
-    if (idx === undefined) return null;
+    const [colIdx, idx] = path;
+    if (idx === undefined || colIdx === undefined) return null;
 
-    const parentNode = getNodeAtPath(nodes, path.slice(0, 1));
+    const parentNode = getNodeAtPath(nodes, [colIdx]);
     const siblingCount = parentNode?.childCount ?? 0;
 
     // Try next sibling card
     if (idx < siblingCount - 1) {
-      return [path[0]!, idx + 1];
+      return [colIdx, idx + 1];
     }
     // At last card - stop (don't cross to next column)
     return null;
@@ -291,7 +291,7 @@ export function handleCursorMove(
       // remember the column index so 'down' can return to it
       const isColumnToBoard =
         state.cursor.length === 1 && prevPath.length === 0;
-      const newCurswantX = isColumnToBoard ? state.cursor[0] ?? null : null;
+      const newCurswantX = isColumnToBoard ? (state.cursor[0] ?? null) : null;
 
       // curswantY: Clear on j/k navigation
       return {
@@ -314,10 +314,8 @@ export function handleCursorMove(
       if (!nextPath) return state;
 
       // curswantX: Clear when we've used it (board→column) or when entering a card
-      const usedCurswantX =
-        state.cursor.length === 0 && nextPath.length === 1;
-      const enteringCard =
-        state.cursor.length === 1 && nextPath.length === 2;
+      const usedCurswantX = state.cursor.length === 0 && nextPath.length === 1;
+      const enteringCard = state.cursor.length === 1 && nextPath.length === 2;
       const shouldClearCurswantX = usedCurswantX || enteringCard;
 
       // curswantY: Clear on j/k navigation

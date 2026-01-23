@@ -4,7 +4,7 @@
  * Query issues from the km database.
  */
 
-import { queryNodes, getNode } from "@km/storage";
+import { queryNodes, getNode, getDb } from "@km/storage";
 import type { KNode } from "@km/core";
 import type { Issue, IssueFilter } from "./types.ts";
 
@@ -23,6 +23,27 @@ function getNodePath(node: KNode): string | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * Count how many issues are blocked by the given short ID
+ * This performs a reverse dependency lookup
+ */
+function countDependents(shortId: string): number {
+  const db = getDb();
+
+  // Query for nodes where data.blocked_by contains this short ID
+  // blocked_by can be stored as a single string or an array
+  const result = db
+    .prepare(
+      `
+    SELECT COUNT(*) as count FROM nodes
+    WHERE json_extract(data, '$.blocked_by') LIKE ?
+  `,
+    )
+    .get(`%"${shortId}"%`) as { count: number } | undefined;
+
+  return result?.count ?? 0;
 }
 
 /**
@@ -45,7 +66,17 @@ function getParentContext(node: KNode): string | undefined {
  */
 export function nodeToIssue(node: KNode): Issue {
   const data = node.data as Record<string, unknown> | undefined;
-  const props = data?.props as Record<string, { type: string; target?: string; value?: unknown; values?: Array<{ target: string }> }> | undefined;
+  const props = data?.props as
+    | Record<
+        string,
+        {
+          type: string;
+          target?: string;
+          value?: unknown;
+          values?: Array<{ target: string }>;
+        }
+      >
+    | undefined;
 
   // Extract blocked-by from props
   let blockedBy: string[] | undefined;
@@ -83,8 +114,8 @@ export function nodeToIssue(node: KNode): Issue {
   if (tags) {
     for (const tag of tags) {
       const pMatch = tag.match(/^P([0-4])$/i);
-      if (pMatch) {
-        priority = parseInt(pMatch[1]!, 10);
+      if (pMatch && pMatch[1]) {
+        priority = parseInt(pMatch[1], 10);
         break;
       }
     }
@@ -113,9 +144,16 @@ export function nodeToIssue(node: KNode): Issue {
   // Count dependencies
   const dependencyCount = blockedBy?.length || 0;
 
+  // Calculate the short ID for this issue (needed for dependent count lookup)
+  const shortId =
+    (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`;
+
+  // Count dependents (issues that are blocked by this one)
+  const dependentCount = countDependents(shortId);
+
   return {
     id: node.id,
-    shortId: (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`,
+    shortId,
     title: node.content || node.title || "",
     description: node.content || undefined,
     status,
@@ -128,7 +166,7 @@ export function nodeToIssue(node: KNode): Issue {
     path,
     parentContext,
     dependencyCount,
-    dependentCount: 0, // TODO: Would need reverse lookup
+    dependentCount,
   };
 }
 
@@ -143,8 +181,9 @@ export async function isBlocked(issue: Issue): Promise<boolean> {
   // Check if any blocker is not done
   for (const blockerId of issue.blockedBy) {
     const blockers = queryNodes(`short_id:${blockerId}`);
-    if (blockers.length > 0) {
-      const blocker = nodeToIssue(blockers[0]!);
+    const [firstBlocker] = blockers;
+    if (firstBlocker) {
+      const blocker = nodeToIssue(firstBlocker);
       if (blocker.status !== "done" && blocker.status !== "dropped") {
         return true;
       }
@@ -160,7 +199,11 @@ export async function isBlocked(issue: Issue): Promise<boolean> {
  * @param scopePath - Optional path to scope results to (e.g., "/vault/Projects")
  * @param boardTag - Optional board tag to filter by (e.g., "issues" for @issues)
  */
-export function queryReady(filter?: Partial<IssueFilter>, scopePath?: string, boardTag?: string): Issue[] {
+export function queryReady(
+  filter?: Partial<IssueFilter>,
+  scopePath?: string,
+  boardTag?: string,
+): Issue[] {
   // Build query for open tasks
   let query = "status:todo";
 
@@ -209,7 +252,11 @@ export function queryReady(filter?: Partial<IssueFilter>, scopePath?: string, bo
  * @param scopePath - Optional path to scope results to (e.g., "/vault/Projects")
  * @param boardTag - Optional board tag to filter by (e.g., "issues" for @issues)
  */
-export function queryIssues(filter?: IssueFilter, scopePath?: string, boardTag?: string): Issue[] {
+export function queryIssues(
+  filter?: IssueFilter,
+  scopePath?: string,
+  boardTag?: string,
+): Issue[] {
   let query = "";
 
   // Add board tag filter if provided (tasks tagged with @board)
@@ -220,7 +267,9 @@ export function queryIssues(filter?: IssueFilter, scopePath?: string, boardTag?:
   }
 
   if (filter?.status) {
-    const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+    const statuses = Array.isArray(filter.status)
+      ? filter.status
+      : [filter.status];
     query += ` status:${statuses.join(",")}`;
   }
   if (filter?.type) {

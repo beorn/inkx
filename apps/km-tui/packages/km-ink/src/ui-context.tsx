@@ -245,6 +245,7 @@ export function useExcludedSigils(): string[] {
     if (!rootBoardId) return [];
 
     // Import getNode lazily to avoid circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { getNode } = require("@km/storage");
     const node = getNode(rootBoardId);
     if (!node?.fs_path) return [];
