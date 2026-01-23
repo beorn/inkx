@@ -34,8 +34,8 @@ import { ChaosWatcher, queueOverflow } from "@beorn/watcher-chaos";
 // Create chaos watcher with 20% event drops
 const watcher = new ChaosWatcher({
   scenario: queueOverflow(0.2),
-  seed: 12345,        // Reproducible
-  virtualTime: true,  // Fast tests
+  seed: 12345, // Reproducible
+  virtualTime: true, // Fast tests
 });
 
 // Same interface as your real watcher
@@ -150,10 +150,42 @@ For reproducible chaos:
 import { SeededRandom } from "@beorn/watcher-chaos";
 
 const random = new SeededRandom(12345);
-random.next();                    // 0-1
-random.nextInt(0, 100);           // 0-99
-random.chance(0.5);               // true/false with 50% probability
-random.shuffle([1, 2, 3, 4, 5]);  // Deterministic shuffle
+random.next(); // 0-1
+random.nextInt(0, 100); // 0-99
+random.chance(0.5); // true/false with 50% probability
+random.shuffle([1, 2, 3, 4, 5]); // Deterministic shuffle
+```
+
+### MockFileSystem
+
+In-memory filesystem for fast tests without temp directories:
+
+```typescript
+import { MockFileSystem } from "@beorn/watcher-chaos";
+
+const fs = new MockFileSystem();
+
+// Standard fs operations
+fs.mkdirSync("/vault", { recursive: true });
+fs.writeFileSync("/vault/test.md", "# Hello");
+const content = fs.readFileSync("/vault/test.md", "utf8");
+
+// Error injection for testing error handling
+fs.setErrorInjection({
+  permissionDenied: ["/vault/secret.md"], // EACCES
+  ioError: ["/vault/corrupt.md"], // EIO
+  readOnly: ["/vault/readonly/"], // EROFS on writes
+  errorRate: 0.1, // 10% random I/O errors
+});
+
+// Directory scanning (for reconciliation tests)
+const scanner = fs.createScanner();
+const entries = scanner("/vault", ["*.tmp", "node_modules"]);
+
+// Test helpers
+fs.setMtime("/vault/test.md", Date.now() - 60000); // Set mtime
+console.log(fs.dump()); // Debug state
+fs.reset(); // Clear all
 ```
 
 ## API
@@ -185,15 +217,41 @@ new ChaosWatcher(config?: {
 
 ### Scenarios
 
-| Scenario | Description |
-|----------|-------------|
-| `slowDisk(min, max)` | Random delays (simulates slow storage) |
-| `queueOverflow(rate)` | Drop events randomly (simulates overflow) |
-| `editorAtomic(delay)` | Change → unlink + add (simulates vim/vscode) |
-| `eventStorm(interval)` | Rapid burst of events |
-| `reorderChaos(window)` | Shuffle within window |
-| `fseventsCoalesce(threshold)` | Merge to directory event |
-| `rapidSuccession(count, interval)` | Many rapid edits |
+| Scenario                           | Description                                  |
+| ---------------------------------- | -------------------------------------------- |
+| `slowDisk(min, max)`               | Random delays (simulates slow storage)       |
+| `queueOverflow(rate)`              | Drop events randomly (simulates overflow)    |
+| `editorAtomic(delay)`              | Change → unlink + add (simulates vim/vscode) |
+| `eventStorm(interval)`             | Rapid burst of events                        |
+| `reorderChaos(window)`             | Shuffle within window                        |
+| `fseventsCoalesce(threshold)`      | Merge to directory event                     |
+| `rapidSuccession(count, interval)` | Many rapid edits                             |
+
+### MockFileSystem
+
+```typescript
+new MockFileSystem()
+```
+
+**Methods:**
+
+- `writeFileSync(path, content, encoding?)` - Write file
+- `readFileSync(path, encoding?)` - Read file
+- `unlinkSync(path)` - Delete file
+- `mkdirSync(path, options?)` - Create directory
+- `existsSync(path)` - Check if path exists
+- `renameSync(oldPath, newPath)` - Rename/move file
+- `statSync(path)` - Get file stats
+- `createScanner()` - Create directory scanner function
+- `scanDirectory(path, ignorePatterns?)` - Scan directory
+- `setErrorInjection(config)` - Configure error injection
+- `setErrorRng(rng)` - Set RNG for random errors
+- `clearErrorInjection()` - Clear error settings
+- `setMtime(path, mtime)` - Set file modification time
+- `getAllPaths()` - List all paths
+- `getContent(path)` - Get file content (no throw)
+- `dump()` - Dump filesystem state
+- `reset()` - Reset to initial state
 
 ## License
 

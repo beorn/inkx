@@ -8,6 +8,7 @@
 // Main exports
 export { ChaosWatcher, createChaosWatcher } from "./watcher.ts";
 export { SeededRandom } from "./seeded-random.ts";
+export { MockFileSystem, createMockFileSystem } from "./mock-fs.ts";
 
 // Scenarios
 export {
@@ -51,3 +52,11 @@ export type {
   ChaosWatcherConfig,
   IChaosWatcher,
 } from "./types.ts";
+
+export type {
+  StatResult,
+  FsEntry,
+  FileSystemOps,
+  DirectoryScanner,
+  ErrorInjection,
+} from "./mock-fs.ts";
