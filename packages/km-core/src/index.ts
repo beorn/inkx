@@ -54,3 +54,7 @@ export type {
   QuerySpecial,
   DateRange,
 } from "./query/index.ts";
+
+// Service interface and utilities
+export type { Service, ServiceStatus } from "./service.ts";
+export { runGenerator, runWithProgress } from "./service.ts";
