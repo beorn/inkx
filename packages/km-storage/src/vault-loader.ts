@@ -36,7 +36,6 @@ import {
   getDb,
   resetDb,
   setDb,
-  addLink,
   dbApplyEvent,
 } from "./db.ts";
 import { findChildByContent } from "./db-queries/index.ts";
@@ -55,6 +54,8 @@ export interface LoadResult {
   linkCount: number;
   errors: LoadError[];
   duration: number;
+  /** Pending links for deferred resolution (only present if skipLinkResolution was true) */
+  pendingLinks?: PendingLink[];
 }
 
 /** Error during loading */
@@ -70,6 +71,8 @@ export interface LoadOptions {
   searchAncestors?: boolean;
   /** Force full rebuild even if state exists (default: false) */
   force?: boolean;
+  /** Skip link resolution for faster startup (default: false) */
+  skipLinkResolution?: boolean;
 }
 
 /**
@@ -99,15 +102,18 @@ export function* loadVault(
   debug("loadVault", { vaultRoot, mode, force: options?.force });
 
   // Declare all sub-steps upfront so they appear as pending
+  const skipLinks = options?.skipLinkResolution ?? false;
   if (mode === "memory") {
     yield {
-      declare: [
-        "Discovering files",
-        "Parsing markdown",
-        "Applying changes",
-        "Resolving links",
-        "Evaluating rules",
-      ],
+      declare: skipLinks
+        ? ["Discovering files", "Parsing markdown", "Applying changes", "Evaluating rules"]
+        : [
+            "Discovering files",
+            "Parsing markdown",
+            "Applying changes",
+            "Resolving links",
+            "Evaluating rules",
+          ],
     };
   } else {
     yield {
@@ -140,8 +146,16 @@ export function* loadVault(
 
   // Resolve links (memory mode has pending links, disk mode resolves during apply)
   let linkCount = 0;
+  let returnPendingLinks: PendingLink[] | undefined;
+
   if (source.pendingLinks.length > 0) {
-    linkCount = yield* resolveLinks(source.pendingLinks, errors);
+    if (options?.skipLinkResolution) {
+      // Skip resolution - return pending links for deferred processing
+      returnPendingLinks = source.pendingLinks;
+      debug("skipping link resolution, %d links deferred", source.pendingLinks.length);
+    } else {
+      linkCount = yield* resolveLinks(source.pendingLinks, errors);
+    }
   }
 
   // Materialize rules
@@ -160,7 +174,14 @@ export function* loadVault(
   const duration = Date.now() - start;
   debug("loadVault complete", { mode, nodeCount, linkCount, duration });
 
-  return { mode, nodeCount, linkCount, errors, duration };
+  return {
+    mode,
+    nodeCount,
+    linkCount,
+    errors,
+    duration,
+    pendingLinks: returnPendingLinks,
+  };
 }
 
 // --- Types ---
@@ -170,7 +191,8 @@ interface EventSource {
   pendingLinks: PendingLink[];
 }
 
-interface PendingLink {
+/** Pending link for deferred resolution */
+export interface PendingLink {
   nodeId: string;
   link: {
     target: string;
@@ -231,7 +253,7 @@ function* discoverFromFilesystem(
   function* scanDirectory(
     dirPath: string,
     parentId: string | null,
-    sortOrder: number,
+    _sortOrder: number,
   ): Generator<StepYield, void, unknown> {
     if (!existsSync(dirPath)) return;
 
@@ -368,9 +390,9 @@ function generateId(
 // --- Disk Mode Discovery ---
 
 function* discoverFromEvents(
-  kmDir: string,
+  _kmDir: string,
   force: boolean,
-  errors: LoadError[],
+  _errors: LoadError[],
 ): Generator<StepYield, EventSource, unknown> {
   // Discover - read and count events
   yield "Reading events";
@@ -470,7 +492,7 @@ function* resolveLinks(
   errors: LoadError[],
 ): Generator<StepYield, number, unknown> {
   const total = pendingLinks.length;
-  let resolved = 0;
+  if (total === 0) return 0;
 
   yield "Resolving links";
   yield { current: 0, total };
@@ -478,6 +500,28 @@ function* resolveLinks(
   // Build file lookup index for O(1) resolution instead of O(n) SQL per link
   const fileIndex = buildFileIndex();
 
+  // Collect all link data for batch INSERT
+  const linksToInsert: Array<{
+    source_id: string;
+    target_name: string;
+    target_id: string | null;
+    section: string | null;
+    block_id: string | null;
+    alias: string | null;
+    embedded: boolean;
+    relationship: string | null;
+  }> = [];
+
+  // Collect embedded link updates for batch UPDATE
+  const embeddedUpdates: Array<{
+    source_id: string;
+    target_id: string;
+    alias: string | null;
+  }> = [];
+
+  let resolved = 0;
+
+  // Phase 1: Build link data (O(1) lookups)
   for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
     try {
       // Find target file by normalized name (O(1) lookup)
@@ -493,7 +537,7 @@ function* resolveLinks(
         }
       }
 
-      addLink({
+      linksToInsert.push({
         source_id: nodeId,
         target_name: link.target,
         target_id: targetNode?.id ?? null,
@@ -504,6 +548,15 @@ function* resolveLinks(
         relationship: relationship ?? null,
       });
 
+      // Track embedded links that need node updates
+      if (link.embedded && targetNode?.id) {
+        embeddedUpdates.push({
+          source_id: nodeId,
+          target_id: targetNode.id,
+          alias: link.alias ?? null,
+        });
+      }
+
       if (targetNode) {
         resolved++;
       }
@@ -512,12 +565,194 @@ function* resolveLinks(
       errors.push({ phase: "resolve", message });
     }
 
-    // Yield progress every 10 links
-    if (i % 10 === 0 || i === total - 1) {
-      yield { current: i + 1, total };
+    // Yield progress every 100 links (building phase)
+    if (i % 100 === 0) {
+      yield { current: Math.floor(i / 2), total }; // First half is building
     }
   }
 
+  // Phase 2: Batch INSERT in single transaction
+  const db = getDb();
+  const now = Date.now();
+
+  db.run("BEGIN IMMEDIATE");
+  try {
+    const insertStmt = db.prepare(`
+      INSERT OR REPLACE INTO links
+      (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const link of linksToInsert) {
+      insertStmt.run(
+        link.source_id,
+        link.target_name,
+        link.target_id,
+        link.section,
+        link.block_id,
+        link.alias,
+        link.embedded ? 1 : 0,
+        link.relationship,
+        now,
+      );
+    }
+
+    // Batch UPDATE for embedded links (update source node's link_to)
+    if (embeddedUpdates.length > 0) {
+      const updateStmt = db.prepare(`
+        UPDATE nodes SET link_to = ?, link_alias = ?, updated_at = ? WHERE id = ?
+      `);
+      for (const update of embeddedUpdates) {
+        updateStmt.run(update.target_id, update.alias, now, update.source_id);
+      }
+    }
+
+    db.run("COMMIT");
+  } catch (error) {
+    db.run("ROLLBACK");
+    throw error;
+  }
+
+  yield { current: total, total };
+  return resolved;
+}
+
+/**
+ * Resolve pending links asynchronously (after board renders).
+ * Call this with pendingLinks from loadVault({ skipLinkResolution: true }).
+ *
+ * Yields to event loop between batches to keep UI responsive.
+ *
+ * @param pendingLinks - Links to resolve (from LoadResult.pendingLinks)
+ * @param onProgress - Optional callback for progress updates
+ * @returns Number of successfully resolved links
+ */
+export async function resolveLinksAsync(
+  pendingLinks: PendingLink[],
+  onProgress?: (current: number, total: number) => void,
+): Promise<number> {
+  const total = pendingLinks.length;
+  if (total === 0) return 0;
+
+  debug("resolveLinksAsync: starting %d links", total);
+
+  // Build file lookup index for O(1) resolution
+  const fileIndex = buildFileIndex();
+
+  // Collect all link data for batch INSERT
+  const linksToInsert: Array<{
+    source_id: string;
+    target_name: string;
+    target_id: string | null;
+    section: string | null;
+    block_id: string | null;
+    alias: string | null;
+    embedded: boolean;
+    relationship: string | null;
+  }> = [];
+
+  // Collect embedded link updates for batch UPDATE
+  const embeddedUpdates: Array<{
+    source_id: string;
+    target_id: string;
+    alias: string | null;
+  }> = [];
+
+  let resolved = 0;
+  const BATCH_SIZE = 50;
+
+  // Phase 1: Build link data (O(1) lookups), yielding periodically
+  for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
+    // Find target file by normalized name (O(1) lookup)
+    const normalizedTarget = link.target.toLowerCase().replace(/\.md$/, "");
+    const fileNode = fileIndex.get(normalizedTarget) ?? null;
+
+    // If there's a section reference, try to find the specific child node
+    let targetNode = fileNode;
+    if (fileNode && link.section) {
+      const childNode = findChildByContent(fileNode.id, link.section);
+      if (childNode) {
+        targetNode = childNode;
+      }
+    }
+
+    linksToInsert.push({
+      source_id: nodeId,
+      target_name: link.target,
+      target_id: targetNode?.id ?? null,
+      section: link.section ?? null,
+      block_id: link.blockId ?? null,
+      alias: link.alias ?? null,
+      embedded: link.embedded ?? false,
+      relationship: relationship ?? null,
+    });
+
+    // Track embedded links that need node updates
+    if (link.embedded && targetNode?.id) {
+      embeddedUpdates.push({
+        source_id: nodeId,
+        target_id: targetNode.id,
+        alias: link.alias ?? null,
+      });
+    }
+
+    if (targetNode) {
+      resolved++;
+    }
+
+    // Yield to event loop periodically to keep UI responsive
+    if (i % BATCH_SIZE === 0) {
+      onProgress?.(i, total);
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
+    }
+  }
+
+  // Phase 2: Batch INSERT in single transaction
+  const db = getDb();
+  const now = Date.now();
+
+  db.run("BEGIN IMMEDIATE");
+  try {
+    const insertStmt = db.prepare(`
+      INSERT OR REPLACE INTO links
+      (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const link of linksToInsert) {
+      insertStmt.run(
+        link.source_id,
+        link.target_name,
+        link.target_id,
+        link.section,
+        link.block_id,
+        link.alias,
+        link.embedded ? 1 : 0,
+        link.relationship,
+        now,
+      );
+    }
+
+    // Batch UPDATE for embedded links (update source node's link_to)
+    if (embeddedUpdates.length > 0) {
+      const updateStmt = db.prepare(`
+        UPDATE nodes SET link_to = ?, link_alias = ?, updated_at = ? WHERE id = ?
+      `);
+      for (const update of embeddedUpdates) {
+        updateStmt.run(update.target_id, update.alias, now, update.source_id);
+      }
+    }
+
+    db.run("COMMIT");
+  } catch (error) {
+    db.run("ROLLBACK");
+    throw error;
+  }
+
+  onProgress?.(total, total);
+  debug("resolveLinksAsync: completed, %d resolved", resolved);
   return resolved;
 }
 
