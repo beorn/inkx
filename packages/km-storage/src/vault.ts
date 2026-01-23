@@ -31,9 +31,11 @@ import {
   getLinksTo as dbGetLinksTo,
   getBacklinks as dbGetBacklinks,
   closeDb,
+  type Link,
 } from "./db.ts";
-import { executeQuery } from "./query.ts";
-import type { FileChange } from "./watch/index.ts";
+import { parseQuery, executeQuery } from "./query.ts";
+import { createWatcher, type Watcher } from "./watcher.ts";
+import { getKmDir } from "./emit.ts";
 
 const debug = createDebug("km:storage:vault");
 
@@ -85,8 +87,8 @@ export interface Vault extends Disposable {
   /** Get nodes linking to a target */
   getLinksTo(targetId: string): KNode[];
 
-  /** Get backlinks (nodes referencing this node by name) */
-  getBacklinks(nodeId: string): KNode[];
+  /** Get backlinks (link records pointing to this node) */
+  getBacklinks(nodeId: string): Link[];
 
   // --- Mutation operations ---
 
@@ -149,20 +151,6 @@ export interface VaultOptions extends LoadOptions {
     database?: Database;
   };
 }
-
-/**
- * Watcher interface - file sync service.
- * Implements Service for start/stop lifecycle.
- * TODO: Will be fully implemented in Phase 4
- */
-export interface Watcher extends AsyncDisposable {
-  readonly status: "stopped" | "starting" | "running" | "stopping";
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  on(event: "change", handler: (changes: FileChange[]) => void): void;
-  off(event: "change", handler: (changes: FileChange[]) => void): void;
-}
-
 
 // --- Factory ---
 
@@ -262,7 +250,8 @@ export function* createVault(
 
     query(expression) {
       ensureNotClosed();
-      return executeQuery(expression);
+      const ast = parseQuery(expression);
+      return executeQuery(ast);
     },
 
     getLinksTo(targetId) {
@@ -302,8 +291,8 @@ export function* createVault(
       if (mode === "memory") {
         throw new Error("Cannot watch a memory vault - no .km directory");
       }
-      // TODO: Implement createWatcher in Phase 4
-      throw new Error("Watcher not yet implemented");
+      const kmDir = getKmDir();
+      return createWatcher(kmDir ? kmDir.replace(/\/.km$/, "") : path);
     },
 
     refresh() {
