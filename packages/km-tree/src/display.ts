@@ -11,7 +11,7 @@ import type { KNode } from "@km/core";
  * Lookup function types for dependency injection.
  * These allow tree traversal without importing @km/storage directly.
  */
-export type GetChildrenFn = (nodeId: string) => Node[];
+export type GetChildrenFn = (nodeId: string) => KNode[];
 export type GetNodeFn = (nodeId: string) => KNode | null | undefined;
 
 /**
@@ -52,7 +52,7 @@ function stripInlineRules(text: string): string {
  * @param getChildren Optional function to get children (needed for file nodes to find H1)
  */
 export function getNodeDisplayName(
-  node: Node,
+  node: KNode,
   getChildren?: GetChildrenFn,
 ): string {
   // 1. Frontmatter title takes priority
@@ -170,7 +170,7 @@ export function namesAreSimilar(a: string, b: string): boolean {
  * @param getChildren Function to get children of a node (required for traversal)
  */
 export function getCollapsedTypeSuffix(
-  node: Node,
+  node: KNode,
   getChildren?: GetChildrenFn,
 ): string {
   const indicators: string[] = [];
@@ -216,7 +216,7 @@ export function getCollapsedTypeSuffix(
  * Result of collapsing ancestors - includes both the nodes and their type suffixes
  */
 export interface CollapsedAncestor {
-  node: Node;
+  node: KNode;
   typeSuffix: string; // e.g., "/ .md" if folder and file were unified
 }
 
@@ -294,7 +294,7 @@ export function collapseAncestorsWithTypes(
  * @returns The parent context string, or null if at root or no meaningful context
  */
 export function getParentContext(
-  node: Node,
+  node: KNode,
   skipParentId?: string | null,
   getNode?: GetNodeFn,
 ): string | null {
