@@ -10,8 +10,6 @@ import { Command } from "commander";
 
 const debug = createDebug("km:cli:view");
 
-// Heavy modules are imported dynamically - spinner shows while they load
-
 type ViewMode = "cards" | "columns" | "list" | "tabs";
 
 const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"];
@@ -32,30 +30,77 @@ export const viewCommand = new Command("view")
   .action(async (root, options) => {
     debug("view command", { root, as: options.as, watch: options.watch });
 
-    // Dynamic imports - "Loading..." already visible while they load
-    const [
-      { runBoard, initBoardState },
-      { resolvePathArg, ensureState, getTuiConfig, runWithProgress },
-      { getRootPath },
-      { createSpinner, CURSOR_TO_START, CLEAR_LINE_END },
-      { REBUILD_PHASES },
-    ] = await Promise.all([
-      import("@km/ink"),
-      import("@km/storage"),
-      import("../index.ts"),
-      import("@beorn/progressx/cli"),
-      import("../utils/progress-phases.ts"),
+    // Import task runner and ANSI helpers first (small, fast)
+    const [{ runWithTasks }, { CURSOR_TO_START, CLEAR_LINE_END }] =
+      await Promise.all([
+        import("../utils/task-progress.ts"),
+        import("@beorn/progressx/cli"),
+      ]);
+
+    // Clear the "Loading..." line from index.ts
+    process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END);
+
+    // Modules loaded by tasks
+    let inkModule: typeof import("@km/ink");
+    let storageModule: typeof import("@km/storage");
+    let cliModule: typeof import("../index.ts");
+
+    // Run loading tasks with progress display
+    const results = await runWithTasks([
+      {
+        id: "modules",
+        title: "Loading modules",
+        run: async () => {
+          [inkModule, storageModule, cliModule] = await Promise.all([
+            import("@km/ink"),
+            import("@km/storage"),
+            import("../index.ts"),
+          ]);
+        },
+      },
+      {
+        id: "vault",
+        title: "Loading vault",
+        run: function* () {
+          // ensureState is a generator that yields progress
+          yield* storageModule!.ensureState(
+            storageModule!.resolvePathArg(root, cliModule!.getRootPath())
+              .vaultRoot,
+            false,
+          );
+        },
+      },
+      {
+        id: "board",
+        title: "Building view",
+        run: function* () {
+          const resolved = storageModule!.resolvePathArg(
+            root,
+            cliModule!.getRootPath(),
+          );
+          // initBoardStateGenerator yields progress per column
+          const state = yield* inkModule!.initBoardStateGenerator(
+            resolved.nodeRef ?? undefined,
+          );
+          if (state) {
+            state.rootPath = resolved.vaultRoot;
+          }
+          return { state, resolved };
+        },
+      },
     ]);
 
-    // Resolve path argument - handles directory paths, file paths, and node IDs
-    const resolved = resolvePathArg(root, getRootPath());
-    debug("resolved", resolved);
+    // Extract results
+    const { state, resolved } = results.board as {
+      state: import("@km/ink").BoardState | null;
+      resolved: ReturnType<typeof storageModule.resolvePathArg>;
+    };
 
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
     const interactive = options.interactive !== false;
 
     // Watch options: CLI flag > config > default (true)
-    const tuiConfig = getTuiConfig(resolved.vaultRoot);
+    const tuiConfig = storageModule!.getTuiConfig(resolved.vaultRoot);
     const watchEnabled = options.watch !== false ? tuiConfig.watch : false;
     const watchWorker = tuiConfig.watchWorker;
     debug("watch config", {
@@ -65,46 +110,12 @@ export const viewCommand = new Command("view")
       config: tuiConfig.watch,
     });
 
-    // Load state with spinner - keeps running through board initialization
-    // Clear the "Loading..." line from index.ts before showing spinner
-    process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END);
-    const spinner = createSpinner({ style: "dots" });
-    try {
-      let lastPhase: string | undefined;
-      const phases = REBUILD_PHASES as Record<string, string>;
-      runWithProgress(ensureState(resolved.vaultRoot, false), (info) => {
-        const label = phases[info.phase ?? ""] ?? info.phase ?? "Loading";
-        // When phase changes, print completed phase on its own line
-        if (lastPhase && lastPhase !== info.phase) {
-          const prevLabel = phases[lastPhase] ?? lastPhase;
-          spinner.succeed(prevLabel);
-        }
-        lastPhase = info.phase;
-        spinner(`${label}: ${info.current}/${info.total}`);
-      });
-      // Print final phase completion
-      if (lastPhase) {
-        const finalLabel = phases[lastPhase] ?? lastPhase;
-        spinner.succeed(finalLabel);
-      }
-
-      // Build board state (covered by spinner)
-      spinner("Building view...");
-      const state = initBoardState(resolved.nodeRef ?? undefined);
-      if (state) {
-        state.rootPath = resolved.vaultRoot;
-      }
-
-      // Run board - it will stop the spinner when TUI is ready
-      debug("launching board", { viewMode, interactive, watchEnabled });
-      await runBoard(state, {
-        interactive,
-        initialViewMode: viewMode as ViewMode,
-        watch: watchEnabled,
-        watchWorker,
-        spinner,
-      });
-    } finally {
-      spinner.stop(); // Ensure cleanup on error
-    }
+    // Run board - TUI takes over from here
+    debug("launching board", { viewMode, interactive, watchEnabled });
+    await inkModule!.runBoard(state, {
+      interactive,
+      initialViewMode: viewMode as ViewMode,
+      watch: watchEnabled,
+      watchWorker,
+    });
   });
