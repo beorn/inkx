@@ -10,21 +10,22 @@ disable-model-invocation: true
 Unified interface for beads issue tracking. Manage your work queue, coordinate with other Claude sessions, and track progress.
 
 ## Current State
+
 !`bun ./.claude/skills/bd/scripts/bd.ts 2>/dev/null || echo "Run /bd to see dashboard"`
 
 ## Subcommands
 
-| Command | Description |
-|---------|-------------|
-| (none) | Dashboard: ready work + active claims |
-| `ready` | Show actionable work (no blockers) |
-| `show <id>` | View bead details, dependencies, blockers |
-| `work <id>` | Start working: claim + show details |
-| `claim <id>` | Claim bead for this session |
-| `release [id]` | Release claim (or all if no id) |
-| `close <id>` | Complete work |
-| `sync` | Commit beads changes to git |
-| `my` | Show this session's claims |
+| Command        | Description                               |
+| -------------- | ----------------------------------------- |
+| (none)         | Dashboard: ready work + active claims     |
+| `ready`        | Show actionable work (no blockers)        |
+| `show <id>`    | View bead details, dependencies, blockers |
+| `work <id>`    | Start working: claim + show details       |
+| `claim <id>`   | Claim bead for this session               |
+| `release [id]` | Release claim (or all if no id)           |
+| `close <id>`   | Complete work                             |
+| `sync`         | Commit beads changes to git               |
+| `my`           | Show this session's claims                |
 
 ## Workflow
 

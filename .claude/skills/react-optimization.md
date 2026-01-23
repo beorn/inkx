@@ -25,6 +25,7 @@ DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
 ```
 
 Look for:
+
 - State changes that cascade to many components
 - Props that change reference on every render
 - Context values that change frequently
@@ -59,12 +60,12 @@ const richContent = renderRich(content, options);
 // AFTER: Only runs when dependencies change
 const style = useMemo(
   () => getNodeStyle(node, isSelected, depth),
-  [node.id, node.task_status, isSelected, depth]
+  [node.id, node.task_status, isSelected, depth],
 );
 
 const richContent = useMemo(
   () => renderRich(content, options),
-  [content, options.excludeSigils, options.sigilColors]
+  [content, options.excludeSigils, options.sigilColors],
 );
 ```
 
@@ -95,6 +96,7 @@ export const Card = React.memo(function Card({ card, isSelected, width }) {
 ```
 
 **Custom comparison rules:**
+
 - Compare primitive values directly
 - For objects, compare the specific fields that affect rendering
 - For arrays, compare length and key fields (e.g., `.id`)
@@ -133,7 +135,7 @@ function handleSelectItem(id) { ... }
 const { selectedId, allItems, settings } = useAppContext();
 
 // AFTER: Only re-renders when selection changes
-const selectedId = useUISelector(state => state.selectedId);
+const selectedId = useUISelector((state) => state.selectedId);
 ```
 
 ### Pattern 5: Virtualization for Long Lists
@@ -156,8 +158,12 @@ function VirtualizedList({ items, selectedIndex }) {
   return (
     <>
       {startIndex > 0 && <Placeholder height={startIndex * ITEM_HEIGHT} />}
-      {items.slice(startIndex, endIndex).map(item => <Item key={item.id} />)}
-      {endIndex < items.length && <Placeholder height={(items.length - endIndex) * ITEM_HEIGHT} />}
+      {items.slice(startIndex, endIndex).map((item) => (
+        <Item key={item.id} />
+      ))}
+      {endIndex < items.length && (
+        <Placeholder height={(items.length - endIndex) * ITEM_HEIGHT} />
+      )}
     </>
   );
 }
@@ -168,20 +174,24 @@ function VirtualizedList({ items, selectedIndex }) {
 Apply optimizations in this order:
 
 ### Layer 1: Memoize Leaf Calculations (Highest Impact)
+
 - `useMemo` on expensive pure functions inside components
 - Style calculations, text formatting, derived data
 
 ### Layer 2: Memoize Components (Medium Impact)
+
 - `React.memo` on frequently-rendered components
 - Custom comparison for complex props
 - Start with leaf components, work up the tree
 
 ### Layer 3: Stabilize Props (Enables Layer 2)
+
 - `useCallback` for event handlers passed as props
 - `useMemo` for object/array props
 - Module-level functions where possible
 
 ### Layer 4: Architectural Changes (Last Resort)
+
 - Context splitting
 - State colocation
 - Virtualization
@@ -204,6 +214,7 @@ function Component(props) {
 ### Expected Results
 
 For cursor movement in a 60-item list:
+
 - **Before:** 60 component renders, 60 style calculations
 - **After:** 2 component renders (old/new selection), 2 style calculations
 - **Improvement:** ~30x reduction in render work
@@ -242,6 +253,7 @@ const Item = React.memo(({ item }) => ..., (prev, next) => {
 ### 3. Premature Optimization
 
 Don't optimize until you have evidence of a problem. Profile first:
+
 - Is the component actually slow?
 - How many items are being rendered?
 - What's the actual impact on user experience?
@@ -255,6 +267,7 @@ Don't optimize until you have evidence of a problem. Profile first:
 ## Reference: Bead km-8mp9
 
 The original performance bug and solution design is documented in bead `km-8mp9`:
+
 ```bash
 bd show km-8mp9
 ```

@@ -33,7 +33,7 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 - **Reserved colors**: `cyan` bg = selection only, `inverse` = input cursor only
 - **Headers**: `yellow` (selected) / `yellowBright` + dim (unselected)
 - **Status icons**: Use both color AND shape (colorblind-safe)
-- **Background colors**: Use inkx `backgroundColor` OR chalk.bg*, never both on same element (throws by default)
+- **Background colors**: Use inkx `backgroundColor` OR chalk.bg\*, never both on same element (throws by default)
 
 **Ink Framework Patterns**: When working on TUI code using Ink, you MUST read [docs/dev/ink-patterns.md](docs/dev/ink-patterns.md). This documents critical workarounds for Ink's layout limitations including:
 
@@ -131,11 +131,13 @@ bun run test:fast    # Run this frequently - 4 second feedback loop
 **⚠️ CRITICAL: Test Safety - Use Isolated Test Directories**
 
 **NEVER run sync operations or tests on:**
+
 - The km source code repository itself
 - User vaults with real data
 - Any directory containing non-markdown files you care about
 
 **ALWAYS use isolated test directories:**
+
 - Tests use `/tmp/kmtest-*` directories that are created and destroyed per test
 - Manual testing should use throw-away test vaults:
   ```bash
@@ -146,6 +148,7 @@ bun run test:fast    # Run this frequently - 4 second feedback loop
   ```
 
 **Why this matters (km-me0n incident):**
+
 - `km sync --to-fs` once corrupted source files by converting them to markdown stubs
 - Any sync operation that writes to filesystem must be tested in isolation
 - E2E tests in `packages/km-storage/tests/e2e/` verify sync never touches non-.md files
@@ -216,6 +219,17 @@ bd sync               # Commit beads changes
 
 **Workflow:** `bd ready` → claim → work → `bd close` → `bd sync`
 
+**Multi-session coordination:** When multiple Claude Code sessions work on the same codebase, use `/claim` to avoid conflicts:
+
+```bash
+/claim              # See available work + who has what claimed
+/claim <bead-id>    # Claim before starting work
+bd close <bead-id>  # Done (auto-releases claim)
+/claim release      # Release if switching tasks
+```
+
+Claims expire after 30 min of session inactivity. Stale claims can be taken over.
+
 **Key concepts:**
 
 - Priority: P0=critical, P1=high, P2=medium, P3=low, P4=backlog
@@ -237,6 +251,7 @@ All commits MUST follow [Conventional Commits](https://www.conventionalcommits.o
 ```
 
 **Types:**
+
 - `feat`: New feature (maps to CHANGELOG "Added")
 - `fix`: Bug fix (maps to CHANGELOG "Fixed")
 - `refactor`: Code change that neither fixes a bug nor adds a feature (maps to "Changed")
@@ -247,10 +262,12 @@ All commits MUST follow [Conventional Commits](https://www.conventionalcommits.o
 - `style`: Formatting, whitespace (no code change)
 
 **Scopes** (optional, use package name or area):
+
 - `storage`, `tree`, `board`, `markdown`, `query`, `cli`, `tui`
 - `beads`, `inkx`, `docs`
 
 **Examples:**
+
 ```bash
 feat(storage): add file watcher debouncing
 fix(tui): resolve blank screen on startup
@@ -260,11 +277,13 @@ chore(deps): bump inkx to 0.3.0
 ```
 
 **Breaking changes:** Add `!` after type or `BREAKING CHANGE:` in footer:
+
 ```bash
 feat(query)!: change filter syntax to use colon separator
 ```
 
 **Beads reference:** Include issue ID in footer when applicable:
+
 ```bash
 fix(tui): preserve cursor on zoom
 
@@ -335,22 +354,39 @@ tui-measure:<subsystem>      # tui-measure utilities
 chalkx:<subsystem>           # chalkx terminal styling
 ```
 
+**Keep debug statements concise (one line):**
+
+```typescript
+// Good: object form for state/config
+debug("resolved", resolved);
+debug("watch config", { watchEnabled, watchWorker });
+debug("launching", { mode, interactive });
+
+// Good: %s for inline text
+debug("loading %s...", filename);
+debug("state: %s → %s", oldState, newState);
+
+// Bad: verbose multi-line format specifiers
+debug(
+  "resolved: vaultRoot=%s, nodeRef=%s", // Don't do this
+  resolved.vaultRoot,
+  resolved.nodeRef,
+);
+```
+
 **Examples:**
 
 ```typescript
 import createDebug from "debug";
 const debug = createDebug("km:storage:watch:sync");
 
-// State transitions
+// Objects - just pass them
+debug("config", config);
+debug("result", { count, duration: Date.now() - start });
+
+// Inline text - use %s
+debug("processing %s...", filename);
 debug("state: %s → %s", oldState, newState);
-
-// Operation with timing
-const start = Date.now();
-// ... operation ...
-debug("reconciled %d files in %dms", count, Date.now() - start);
-
-// Data volumes
-debug("generated %d operations", ops.length);
 ```
 
 **Usage:**
@@ -396,11 +432,13 @@ tail -f /tmp/km.log
 ```
 
 This gives you:
+
 - **Visual feedback** - See exactly what the TUI renders
 - **Debug output** - See state transitions, events, timing
 - **Correlation** - Match visual changes to log events
 
 **When to use this method:**
+
 - Investigating "why did X happen?" bugs (like issues disappearing after watcher sync)
 - Performance issues (timing info in logs)
 - State management bugs (state transitions visible in logs)

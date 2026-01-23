@@ -42,6 +42,7 @@ Don't skip this - vague reports lead to wasted effort.
 **CRITICAL: You must see the bug before attempting to fix it.**
 
 For TUI/visual bugs:
+
 ```bash
 # Use headless capture - see visual-test.md skill
 pkill -f ttyd 2>/dev/null || true
@@ -51,17 +52,20 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 ```
 
 For logic bugs:
+
 ```bash
 # Write a failing test that demonstrates the bug
 bun run test:fast -- --grep "bug description"
 ```
 
 **If you cannot reproduce:**
+
 - Ask user for more details
 - Ask user to show you (Peekaboo with permission)
 - DO NOT attempt fixes based on guesses
 
 Update the bead with reproduction steps:
+
 ```bash
 bd update <id> --status in_progress
 ```
@@ -79,6 +83,7 @@ test("should not crash when X happens", () => {
 ```
 
 This:
+
 - Proves you understand the bug
 - Prevents regression
 - Provides objective verification
@@ -116,18 +121,19 @@ bd close <id>
 ```
 
 For non-trivial bugs, ask user to confirm:
+
 ```
 "I believe this is fixed. Can you verify on your end?"
 ```
 
 ## Bug Severity Guide
 
-| Priority | When to Use | Response |
-|----------|-------------|----------|
-| P0 | Data loss, crash, security | Drop everything, fix now |
-| P1 | Blocks core workflow | Fix before session ends |
-| P2 | Annoying but workaround exists | Fix soon, track in bead |
-| P3 | Minor annoyance | Track in bead, fix when convenient |
+| Priority | When to Use                    | Response                           |
+| -------- | ------------------------------ | ---------------------------------- |
+| P0       | Data loss, crash, security     | Drop everything, fix now           |
+| P1       | Blocks core workflow           | Fix before session ends            |
+| P2       | Annoying but workaround exists | Fix soon, track in bead            |
+| P3       | Minor annoyance                | Track in bead, fix when convenient |
 
 ## Anti-Patterns (NEVER DO)
 
