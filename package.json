@@ -35,7 +35,10 @@
     "test:mdtest:update": "bun run vendor/beorn-mdtest/src/index.ts --update $(find packages apps vendor -name '*.test.md' ! -path '*/node_modules/*' 2>/dev/null)",
     "test:all": "bun test $(find packages apps vendor -name '*.test.ts' ! -path '*/node_modules/*' 2>/dev/null) && bun run test:mdtest",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
-    "storybook": "bun run apps/km-tui/packages/km-ink/tests/storybook.tsx"
+    "storybook": "bun run apps/km-tui/packages/km-ink/tests/storybook.tsx",
+    "chaos:fuzz": "bun ./scripts/chaos.ts fuzz",
+    "chaos:reproduce": "bun ./scripts/chaos.ts reproduce",
+    "chaos:report": "bun ./scripts/chaos.ts report"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
