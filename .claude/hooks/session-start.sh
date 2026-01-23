@@ -1,0 +1,9 @@
+#!/bin/bash
+# Export CLAUDE_SESSION_ID for /claim command
+# This hook runs on SessionStart and makes the session ID available as an env var
+
+SESSION_ID=$(cat | jq -r '.session_id // empty')
+if [ -n "$CLAUDE_ENV_FILE" ] && [ -n "$SESSION_ID" ]; then
+  echo "export CLAUDE_SESSION_ID='${SESSION_ID}'" >> "$CLAUDE_ENV_FILE"
+fi
+exit 0
