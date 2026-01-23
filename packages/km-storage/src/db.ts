@@ -20,6 +20,7 @@ export {
   setDb,
   isMemoryMode,
   resetDb,
+  runWithDb,
 } from "./db-instance.ts";
 
 // Read-only queries

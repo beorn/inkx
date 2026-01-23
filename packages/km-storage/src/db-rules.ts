@@ -234,8 +234,15 @@ function evaluateAddRule(sectionId: string, query: string): void {
 
 /**
  * Find the file ancestor of a node (the nearest ancestor with type='file')
+ * Uses cached lookup during bulk evaluation for O(1) access.
  */
 function findFileAncestor(nodeId: string): KNode | null {
+  // km-load-perf.3: Use cache if available (during evaluateAllRules)
+  if (fileAncestorCache) {
+    return fileAncestorCache.get(nodeId) ?? null;
+  }
+
+  // Fallback to tree walk for incremental updates
   let current = getNode(nodeId);
   while (current) {
     if (current.type === "file") {
@@ -311,6 +318,75 @@ export interface RulesProgress {
   total: number;
 }
 
+// km-load-perf.3: Cache for file ancestors to avoid repeated tree walks
+let fileAncestorCache: Map<string, KNode | null> | null = null;
+
+/**
+ * Build a cache mapping all nodes to their file ancestor.
+ * This avoids O(depth) tree walks per rule evaluation.
+ */
+function buildFileAncestorCache(): Map<string, KNode | null> {
+  const db = getDb();
+  const cache = new Map<string, KNode | null>();
+
+  // Get all file nodes first
+  const fileRows = db.query("SELECT * FROM nodes WHERE type = 'file'").all() as Record<string, unknown>[];
+  const fileNodes = new Map<string, KNode>();
+  for (const row of fileRows) {
+    const node = rowToNode(row);
+    fileNodes.set(node.id, node);
+    cache.set(node.id, node); // Files are their own ancestor
+  }
+
+  // Get all non-file nodes and build parent chain
+  const nodeRows = db.query("SELECT id, parent_id FROM nodes WHERE type != 'file'").all() as { id: string; parent_id: string | null }[];
+
+  // Build parent lookup
+  const parentMap = new Map<string, string | null>();
+  for (const row of nodeRows) {
+    parentMap.set(row.id, row.parent_id);
+  }
+
+  // For each non-file node, walk up to find file ancestor
+  for (const row of nodeRows) {
+    let currentId: string | null = row.id;
+    const visited = new Set<string>();
+
+    while (currentId && !cache.has(currentId)) {
+      if (visited.has(currentId)) break; // Prevent cycles
+      visited.add(currentId);
+
+      const parentId = parentMap.get(currentId);
+      if (!parentId) {
+        cache.set(row.id, null);
+        break;
+      }
+
+      // Check if parent is a file
+      const fileNode = fileNodes.get(parentId);
+      if (fileNode) {
+        // Found file ancestor - cache for all visited nodes
+        for (const id of visited) {
+          cache.set(id, fileNode);
+        }
+        break;
+      }
+
+      currentId = parentId;
+    }
+
+    // If we found a cached result during walk, propagate it
+    if (currentId && cache.has(currentId) && !cache.has(row.id)) {
+      const result = cache.get(currentId)!;
+      for (const id of visited) {
+        cache.set(id, result);
+      }
+    }
+  }
+
+  return cache;
+}
+
 /**
  * Evaluate all rules in the database.
  * Call this on startup/migration to ensure all computed links are current.
@@ -325,12 +401,20 @@ export function* evaluateAllRules(): Generator<RulesProgress, void, unknown> {
 
   yield { current: 0, total: nodesWithRules.length };
 
-  for (let i = 0; i < nodesWithRules.length; i++) {
-    const node = nodesWithRules[i];
-    if (node) {
-      evaluateRulesForNode(node);
+  // km-load-perf.3: Build file ancestor cache before evaluation
+  fileAncestorCache = buildFileAncestorCache();
+
+  try {
+    for (let i = 0; i < nodesWithRules.length; i++) {
+      const node = nodesWithRules[i];
+      if (node) {
+        evaluateRulesForNode(node);
+      }
+      yield { current: i + 1, total: nodesWithRules.length };
     }
-    yield { current: i + 1, total: nodesWithRules.length };
+  } finally {
+    // Clear cache after evaluation completes
+    fileAncestorCache = null;
   }
 
   debug("evaluateAllRules: completed in %dms", Date.now() - start);
