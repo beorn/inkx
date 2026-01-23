@@ -3,6 +3,7 @@
  */
 import React from "react";
 import { Box, Text } from "inkx";
+import { useSpinnerFrame } from "@beorn/inkx-ui/react";
 import { getStore, getNodeCount } from "@km/storage";
 import type { WatcherStatus } from "@km/storage";
 import type { UIState } from "../ui-reducer.ts";
@@ -24,6 +25,13 @@ export function BottomBar({
 }: BottomBarProps): React.ReactElement {
   const store = getStore();
   const homeDir = process.env.HOME || "";
+
+  // Spinner for sync/loading states (hook runs always but frame only displayed when active)
+  const spinnerFrame = useSpinnerFrame("dots");
+  const isSyncing =
+    ui.watcherStatus?.state === "syncing" ||
+    ui.watcherStatus?.state === "starting";
+  const isLoading = ui.isLoading || isSyncing;
 
   // Shorten path: replace home directory with ~/
   let displayPath = store.rootPath || "";
@@ -50,8 +58,10 @@ export function BottomBar({
   // Right side info (always visible)
   // DB/files/watcher status as one group (single space), other items with double space
   const dbCount = getNodeCount();
+  // Show spinner when syncing/loading
+  const spinnerPrefix = isLoading ? `${spinnerFrame} ` : "";
   const watcherInfo = ui.watcherStatus
-    ? ` ${renderWatcherStatus(ui.watcherStatus)}`
+    ? ` ${spinnerPrefix}${renderWatcherStatus(ui.watcherStatus)}`
     : "";
   // 📋 = clipboard for records/nodes, 📄 = file for watched files
   const dbFilesGroup = `📋${dbCount}${watcherInfo}`;
