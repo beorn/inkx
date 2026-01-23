@@ -17,7 +17,6 @@ import { existsSync, statSync } from "fs";
 import { dirname, resolve } from "path";
 import { Command } from "commander";
 import chalk from "chalk";
-import { VERSION } from "@km/core";
 
 // @km/storage is imported dynamically in preAction hook to allow
 // view command to show "Loading..." before heavy module loading
@@ -39,6 +38,7 @@ import { inboxCommand } from "./commands/inbox.ts";
 import { shCommand } from "./commands/sh.ts";
 import { bdCommand } from "./commands/bd.ts";
 import { agentCommand } from "./commands/agent.ts";
+import { statsCommand } from "./commands/stats.ts";
 
 const program = new Command();
 
@@ -64,7 +64,7 @@ export function wasRootExplicit(): boolean {
 program
   .name("km")
   .description("Knowledge Machine - The agentic work desk")
-  .version(VERSION)
+  .version("0.1.0")
   .option(
     "-r, --root <path>",
     "Root directory to operate on (overrides KM_ROOT env var)",
@@ -200,6 +200,7 @@ program.addCommand(daemonCommand); // km daemon {start,stop,status} - background
 program.addCommand(shCommand); // km sh [root] - scripting shell for TUI2 debugging
 program.addCommand(bdCommand); // km bd - issue tracking (beads-compatible)
 program.addCommand(agentCommand); // km agent - AI agent management
+program.addCommand(statsCommand); // km stats [path] - vault statistics (domain object example)
 
 // Handle unknown commands with helpful error message
 program.action((_options, command) => {
