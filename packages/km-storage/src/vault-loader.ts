@@ -64,6 +64,9 @@ export interface LoadOptions {
  * THE unified vault loading function.
  * Handles both memory and disk modes with a shared pipeline.
  *
+ * @deprecated Use createVault() instead for a proper domain object with
+ * encapsulated state. This function uses global singletons.
+ *
  * @param rootPath - Directory to load (default: cwd)
  * @param options - Loading options
  * @yields Progress info for each phase

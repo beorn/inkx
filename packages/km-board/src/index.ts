@@ -68,3 +68,7 @@ export type { NodeMap, NodeMapEntry } from "./node-map.ts";
 // ===== Visual-to-Structural Navigation =====
 export { visualToStructural, canMove } from "./navigation.ts";
 export type { VisualDir, StructuralAction } from "./navigation.ts";
+
+// ===== Board Domain Object (preferred API) =====
+export { createBoard } from "./board-object.ts";
+export type { Board, BoardOptions } from "./board-object.ts";

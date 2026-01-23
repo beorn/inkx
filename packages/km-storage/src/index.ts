@@ -218,7 +218,7 @@ export {
 // Recurrence utilities (moved from @km/core)
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts";
 
-// Configuration
+// Configuration (legacy functions)
 export {
   loadConfig,
   getConfigPath,
@@ -235,3 +235,8 @@ export type {
   TuiConfig,
   OriginalBeadsConfig,
 } from "./config.ts";
+
+// Config domain object (preferred API)
+export { loadConfigObject } from "./config-object.ts";
+
+export type { Config } from "./config-object.ts";
