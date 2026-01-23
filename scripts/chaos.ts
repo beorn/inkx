@@ -15,12 +15,14 @@ import { join, dirname } from "path";
 import { stringify as stringifyYaml } from "yaml";
 import {
   runFuzzer,
+  runFuzzerParallel,
   createDefaultFuzzConfig,
   printFuzzResults,
   generateBugReport,
   formatBugReport,
   generateScenarioFromSeed,
   type FuzzConfig,
+  type ParallelFuzzConfig,
   type FuzzResult,
 } from "../packages/km-storage/tests/sync/chaos/fuzzer.ts";
 import { CHAOS_SCENARIOS } from "../packages/km-storage/tests/sync/chaos/scenarios.ts";
@@ -35,6 +37,7 @@ interface FuzzOptions {
   verbose: boolean;
   timeout: number;
   useMockFs: boolean;
+  parallel: boolean;
 }
 
 interface ReproduceOptions {
@@ -78,6 +81,10 @@ function parseArgs(args: string[]): {
       options.timeout = parseInt(args[++i], 10);
     } else if (arg === "--real-fs" || arg === "-r") {
       options.useMockFs = false;
+    } else if (arg === "--parallel" || arg === "-p") {
+      options.parallel = true;
+    } else if (arg === "--sequential" || arg === "--no-parallel") {
+      options.parallel = false;
     }
   }
 
@@ -89,7 +96,7 @@ function parseArgs(args: string[]): {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function cmdFuzz(options: FuzzOptions): Promise<void> {
-  const { iterations, seed, verbose, timeout, useMockFs } = options;
+  const { iterations, seed, verbose, timeout, useMockFs, parallel } = options;
 
   console.log(`Chaos Fuzzer`);
   console.log(`============`);
@@ -97,10 +104,11 @@ async function cmdFuzz(options: FuzzOptions): Promise<void> {
   console.log(`Seed: ${seed}`);
   console.log(`Timeout: ${timeout}ms per test`);
   console.log(`MockFS: ${useMockFs ? "yes (fast mode)" : "no (real fs)"}`);
+  console.log(`Parallel: ${parallel ? "yes" : "no"}`);
   console.log(`Scenarios: ${Object.keys(CHAOS_SCENARIOS).length}`);
   console.log();
 
-  const config: FuzzConfig = {
+  const config: ParallelFuzzConfig = {
     seed,
     iterations,
     maxFiles: 10,
@@ -109,6 +117,7 @@ async function cmdFuzz(options: FuzzOptions): Promise<void> {
     maxCombinedScenarios: 2,
     timeout,
     useMockFs,
+    parallel,
   };
 
   const startTime = Date.now();
@@ -118,13 +127,29 @@ async function cmdFuzz(options: FuzzOptions): Promise<void> {
 
   // Run with progress reporting
   if (verbose) {
-    const result = await runFuzzer(config);
+    const result = parallel
+      ? await runFuzzerParallel(config)
+      : await runFuzzer(config);
     printFuzzResults(result);
     return;
   }
 
-  // Simple progress mode
-  const result = await runFuzzer(config);
+  // Run with progress callback for parallel mode
+  const result = parallel
+    ? await runFuzzerParallel({
+        ...config,
+        onIterationComplete: (_i, r, progress) => {
+          process.stdout.write(
+            `\r[${progress.completed}/${progress.total}] ${r.passed ? "✓" : "✗"}`,
+          );
+        },
+      })
+    : await runFuzzer(config);
+
+  if (parallel) {
+    process.stdout.write("\r"); // Clear progress line
+  }
+
   passed = result.passed;
   failed = result.failed;
 
@@ -395,6 +420,8 @@ Options:
   -s <seed>               Random seed for reproducibility
   -t <ms>                 Timeout per test in milliseconds (default: 10, 500 with -r)
   -r, --real-fs           Use real filesystem instead of MockFS (slower)
+  -p, --parallel          Run iterations in parallel (default with MockFS)
+  --sequential            Run iterations sequentially (disable parallel)
   -v, --verbose           Verbose output with full details
   -o <file>               Output file for report command
   -b <bead-id>            Bead ID for save-regression (e.g., km-91vy)
@@ -435,12 +462,15 @@ if (import.meta.main) {
     case "fuzz": {
       // MockFS is default; use --real-fs to disable
       const useMockFs = options.useMockFs !== false;
+      // Parallel is default when using MockFS
+      const parallel = options.parallel !== false && useMockFs;
       const fuzzOpts: FuzzOptions = {
         iterations: (options.iterations as number) || 100,
         seed: (options.seed as number) || Date.now(),
         verbose: (options.verbose as boolean) || false,
         timeout: (options.timeout as number) || (useMockFs ? 10 : 500),
         useMockFs,
+        parallel,
       };
       await cmdFuzz(fuzzOpts);
       break;
