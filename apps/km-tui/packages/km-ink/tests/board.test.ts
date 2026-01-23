@@ -39,6 +39,7 @@ import {
   getCurrentCard,
   getCurrentColumn,
 } from "../src/state.ts";
+import { buildTreeNodes } from "../src/board-adapter.ts";
 import { stripAnsi } from "../src/text/index.ts";
 
 import {
@@ -204,6 +205,89 @@ describe.serial("Board State", () => {
 
     expect(col).not.toBeNull();
     expect(col!.node.id).toBe(colId);
+  });
+
+  test("buildBoardState filters out paragraph nodes as columns (km-1tho)", () => {
+    // Bug: paragraph text like "All issues tracked with @issue tag" was appearing as column
+    // Expected: paragraphs, code blocks, and quotes should be filtered out as non-columns
+    const rootId = createTestNode("file", "@issue.md");
+
+    // Create a paragraph (should NOT become a column)
+    createTestNode(
+      "paragraph",
+      "All issues tracked with the @issue tag.",
+      rootId,
+    );
+
+    // Create actual columns (sections should become columns)
+    const col1Id = createTestNode("section", "Open Issues", rootId);
+    const col2Id = createTestNode("section", "Closed Issues", rootId);
+
+    // Add cards to columns
+    createTestNode("task", "Fix bug #1", col1Id);
+    createTestNode("task", "Fix bug #2", col2Id);
+
+    const state = buildBoardState(rootId);
+
+    // Should have exactly 2 columns (the sections), NOT 3 (with paragraph)
+    expect(state.columns).toHaveLength(2);
+    expect(state.columns[0]!.node.type).toBe("section");
+    expect(state.columns[1]!.node.type).toBe("section");
+  });
+
+  test("buildBoardState filters out code and quote nodes as columns", () => {
+    const rootId = createTestNode("file", "readme.md");
+
+    // These should NOT become columns
+    createTestNode("code", "const x = 1;", rootId);
+    createTestNode("quote", "Some quote text", rootId);
+
+    // This should become a column
+    const colId = createTestNode("section", "Getting Started", rootId);
+    createTestNode("task", "Install dependencies", colId);
+
+    const state = buildBoardState(rootId);
+
+    expect(state.columns).toHaveLength(1);
+    expect(state.columns[0]!.node.id).toBe(colId);
+  });
+
+  test("buildTreeNodes filters out paragraph nodes (km-1tho refresh path)", () => {
+    // This tests the REFRESH code path - buildTreeNodes is called on file watcher sync
+    // The original bug: paragraph appeared as column after sync because buildTreeNodes
+    // didn't filter like buildBoardState does
+    const rootId = createTestNode("file", "@issue.md");
+
+    // Create paragraph (should NOT appear in tree nodes)
+    createTestNode(
+      "paragraph",
+      "All issues tracked with the @issue tag.",
+      rootId,
+    );
+
+    // Create actual columns
+    createTestNode("section", "Open Issues", rootId);
+    createTestNode("section", "Closed Issues", rootId);
+
+    const nodes = buildTreeNodes(rootId);
+
+    // Should have exactly 2 nodes (sections), NOT 3 (with paragraph)
+    expect(nodes).toHaveLength(2);
+    expect(nodes[0]!.type).toBe("section");
+    expect(nodes[1]!.type).toBe("section");
+  });
+
+  test("buildTreeNodes filters out code and quote nodes", () => {
+    const rootId = createTestNode("file", "readme.md");
+
+    createTestNode("code", "const x = 1;", rootId);
+    createTestNode("quote", "Some quote text", rootId);
+    createTestNode("section", "Getting Started", rootId);
+
+    const nodes = buildTreeNodes(rootId);
+
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0]!.type).toBe("section");
   });
 });
 

@@ -445,17 +445,29 @@ function kNodeToTNodeWithChildren(node: KNode, depth: number): TNode {
 // ===== Direct Tree Building =====
 
 /**
+ * Non-column types that should be filtered out when building board columns.
+ * These are content blocks, not navigable column headers.
+ * Must stay in sync with buildBoardState in state.ts.
+ */
+const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"]);
+
+/**
  * Build TNode[] directly from storage.
+ *
+ * Filters out non-column types (paragraph, code, quote) to prevent content blocks
+ * from appearing as columns in the board view. (Fix for km-1tho)
  *
  * @param rootId - Root node ID to load children from (null for root level)
  * @param loadChildren - If true, load children one level deep. If false, shallow load only.
- * @returns TNode[] for immediate children of root
+ * @returns TNode[] for immediate children of root (excluding non-column types)
  */
 export function buildTreeNodes(
   rootId: string | null,
   loadChildren: boolean = true,
 ): TNode[] {
-  const columnNodes = getChildren(rootId);
+  const allChildren = getChildren(rootId);
+  // Filter out non-column types (paragraph, code, quote) to match buildBoardState behavior
+  const columnNodes = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type));
   return columnNodes.map((node) =>
     loadChildren
       ? kNodeToTNodeWithChildren(node, 0)
