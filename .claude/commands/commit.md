@@ -78,6 +78,9 @@ set -e  # Stop on first error
 # Fix detached heads (if any)
 # (cd vendor/X && git checkout main)
 
+# Run lint fixes on vendor repos with changes (BEFORE committing)
+# (cd vendor/beorn-inkx && bun run lint --fix)
+
 # Commit submodules (innermost first)
 # (cd vendor/beorn-inkx && \
 #   git add file1.ts file2.ts && \
@@ -107,7 +110,9 @@ git log --oneline -1
 **Script Rules:**
 
 - `set -e` at top (stop on any error)
-- List ALL files explicitly (never use `-A`, `.`, or `--all`)
+- **Run `bun run lint --fix` on vendor repos with changes BEFORE committing** (prevents CI failures)
+- For vendor repos, use `git add -A` after lint fix (lint may change files)
+- List ALL files explicitly for main repo (never use `-A`, `.`, or `--all`)
 - Use inline commit messages (no HEREDOC needed for simple messages)
 - Include `bd sync` before main commit
 - Only include submodule sections if that submodule has changes
@@ -137,7 +142,8 @@ git status --short && git log --oneline -1
 ```bash
 #!/bin/bash
 set -e
-(cd vendor/beorn-inkx && git add src/file.ts && git commit -m "fix(inkx): description
+# Lint fix vendor repo BEFORE committing
+(cd vendor/beorn-inkx && bun run lint --fix && git add -A && git commit -m "fix(inkx): description
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>")
 bd sync 2>/dev/null || true
@@ -155,10 +161,11 @@ git status --short && git log --oneline -1
 ```bash
 #!/bin/bash
 set -e
-(cd vendor/beorn-inkx && git add src/a.ts && git commit -m "refactor(inkx): description
+# Lint fix vendor repos BEFORE committing
+(cd vendor/beorn-inkx && bun run lint --fix && git add -A && git commit -m "refactor(inkx): description
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>")
-(cd vendor/beorn-inkx-ui && git add src/b.ts && git commit -m "refactor(inkx-ui): description
+(cd vendor/beorn-inkx-ui && bun run lint --fix && git add -A && git commit -m "refactor(inkx-ui): description
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>")
 bd sync 2>/dev/null || true
