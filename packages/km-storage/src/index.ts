@@ -232,8 +232,6 @@ export type {
 // Event emission (moved from @km/core)
 export {
   emit,
-  setKmDir,
-  getKmDir,
   runWithKmDir,
   setEventHub,
   setDatabase,
@@ -256,12 +254,10 @@ export {
 // Recurrence utilities (moved from @km/core)
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts";
 
-// Configuration (legacy functions)
+// Configuration
 export {
   loadConfig,
-  getConfigPath,
   clearConfigCache,
-  getBeadsConfig,
   getTuiConfig,
   getOriginalBeadsConfig,
   getOriginalBeadsConfigPath,
