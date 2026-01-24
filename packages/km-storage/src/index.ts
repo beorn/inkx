@@ -83,10 +83,27 @@ export {
 export type { RebuildResult, SyncResult } from "./rebuild.ts";
 
 // Unified vault loading (the ONE function for loading vaults)
-export { loadVault, resolveLinksAsync, parseDeferredAsync } from "./vault-loader.ts";
+export {
+  loadVault,
+  resolveLinksAsync,
+  parseDeferredAsync,
+} from "./vault-loader.ts";
 
-export type { LoadResult, LoadOptions, PendingLink, DeferredFile } from "./vault-loader.ts";
+export type {
+  LoadResult,
+  LoadOptions,
+  PendingLink,
+  DeferredFile,
+} from "./vault-loader.ts";
 export type { LoadError as VaultLoaderError } from "./vault-loader.ts";
+
+// km-fast-md.6: Worker pool for parallel parsing
+export { ParsePool, getParsePool, shutdownParsePool } from "./parse-pool.ts";
+
+export type {
+  ParseResult as PoolParseResult,
+  ParsePoolOptions,
+} from "./parse-pool.ts";
 
 // Vault domain object (preferred API)
 export { createVault } from "./vault.ts";

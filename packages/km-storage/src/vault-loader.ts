@@ -18,6 +18,7 @@ import { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { join, dirname, relative, basename } from "path";
 import type { Event } from "@km/core";
+import { ParsePool, type ParseResult } from "./parse-pool.ts";
 
 /**
  * Progress yield type for step generators.
@@ -177,7 +178,10 @@ export function* loadVault(
   // km-fast-md.7: In discover-only mode, skip link resolution and rules
   if (discoverOnly) {
     returnDeferredFiles = source.deferredFiles;
-    debug("discover-only mode, %d files deferred", returnDeferredFiles?.length ?? 0);
+    debug(
+      "discover-only mode, %d files deferred",
+      returnDeferredFiles?.length ?? 0,
+    );
   } else {
     if (source.pendingLinks.length > 0) {
       if (options?.skipLinkResolution) {
@@ -1042,18 +1046,200 @@ function* materializeRules(): Generator<StepYield, void, unknown> {
  * km-fast-md.7: Parse deferred files in background after board renders.
  * Updates stub nodes with full content and creates child nodes.
  *
+ * km-fast-md.6: Uses worker pool for parallel parsing when available.
+ *
  * @param deferredFiles - Files to parse (from LoadResult.deferredFiles)
  * @param shouldAbort - Optional callback that returns true to abort parsing
+ * @param options - Optional configuration (useWorkerPool defaults to true)
  * @returns Object with parsed count and pending links for resolution
  */
 export async function parseDeferredAsync(
   deferredFiles: DeferredFile[],
   shouldAbort?: () => boolean,
+  options?: { useWorkerPool?: boolean },
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
   const total = deferredFiles.length;
   if (total === 0) return { parsed: 0, pendingLinks: [] };
 
-  debug("parseDeferredAsync: starting %d files", total);
+  // km-fast-md.6: Use worker pool for parallel parsing (default: true)
+  const useWorkerPool = options?.useWorkerPool ?? true;
+
+  if (useWorkerPool && total >= 4) {
+    // Only use pool for 4+ files (overhead not worth it for fewer)
+    return parseDeferredWithPool(deferredFiles, shouldAbort);
+  }
+
+  return parseDeferredSequential(deferredFiles, shouldAbort);
+}
+
+/**
+ * km-fast-md.6: Parse files in parallel using worker pool.
+ * Workers handle CPU-intensive parsing, main thread updates database.
+ */
+async function parseDeferredWithPool(
+  deferredFiles: DeferredFile[],
+  shouldAbort?: () => boolean,
+): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
+  const total = deferredFiles.length;
+  debug("parseDeferredWithPool: starting %d files with worker pool", total);
+
+  const pool = new ParsePool();
+  await pool.start();
+
+  try {
+    // Parse all files in parallel using worker threads
+    const parseResults = await pool.parseMany(
+      deferredFiles,
+      (current, total) => {
+        debug("parseDeferredWithPool: progress %d/%d", current, total);
+      },
+      shouldAbort,
+    );
+
+    // Now apply results to database (must be on main thread)
+    return applyParseResults(parseResults, deferredFiles);
+  } finally {
+    await pool.shutdown();
+  }
+}
+
+/**
+ * Apply parse results to database. Called after worker pool parsing.
+ */
+function applyParseResults(
+  parseResults: ParseResult[],
+  deferredFiles: DeferredFile[],
+): { parsed: number; pendingLinks: PendingLink[] } {
+  const db = getDb();
+  const pendingLinks: PendingLink[] = [];
+  let parsed = 0;
+
+  // Build lookup map for stub info
+  const stubInfoMap = new Map<
+    string,
+    { parent_id: string | null; parent_idx: number }
+  >();
+  for (const { nodeId } of deferredFiles) {
+    const stubRow = db
+      .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
+      .get(nodeId) as { parent_id: string | null; parent_idx: number } | null;
+    if (stubRow) {
+      stubInfoMap.set(nodeId, stubRow);
+    }
+  }
+
+  db.run("BEGIN IMMEDIATE");
+
+  try {
+    const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?");
+    const insertStmt = db.prepare(`
+      INSERT INTO nodes (
+        id, type, parent_id, link_to, link_alias, parent_idx,
+        fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
+        task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+        content, content_hash, data,
+        created_at, updated_at, version
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const now = Date.now();
+
+    for (const result of parseResults) {
+      if (result.error) {
+        debug(
+          "parseDeferredWithPool: error for %s: %s",
+          result.fsPath,
+          result.error,
+        );
+        continue;
+      }
+
+      const stubInfo = stubInfoMap.get(result.nodeId);
+      if (!stubInfo) {
+        debug(
+          "parseDeferredWithPool: stub %s not found, skipping",
+          result.nodeId,
+        );
+        continue;
+      }
+
+      // Delete the stub node
+      deleteStmt.run(result.nodeId);
+
+      // Process nodes from worker result
+      const nodes = result.nodes as Array<Record<string, unknown>>;
+      const fileNode = nodes[0];
+      if (fileNode?.type === "file") {
+        fileNode.id = result.nodeId; // Keep original ID
+        fileNode.parent_id = stubInfo.parent_id;
+        fileNode.parent_idx = stubInfo.parent_idx;
+      }
+
+      // Insert all parsed nodes
+      for (const node of nodes) {
+        const data = (node.data as Record<string, unknown>) ?? {};
+        insertStmt.run(
+          node.id as string,
+          node.type as string,
+          (node.parent_id as string) ?? null,
+          (node.link_to as string) ?? null,
+          (node.link_alias as string) ?? null,
+          (node.parent_idx as number) ?? 0,
+          (node.fs_path as string) ?? null,
+          (node.fs_ino as number) ?? null,
+          (node.fs_mtime as number) ?? null,
+          (node.name as string) ?? null,
+          (node.title as string) ?? null,
+          (node.md_pos as number) ?? null,
+          (node.md_line as number) ?? null,
+          (node.md_slug as string) ?? null,
+          (node.task_status as string) ?? null,
+          (node.task_mark as string) ?? null,
+          (node.assigned_to as string) ?? null,
+          (node.due_date as string) ?? null,
+          (node.scheduled_date as string) ?? null,
+          (node.priority as number) ?? null,
+          (node.content as string) ?? null,
+          (node.content_hash as string) ?? null,
+          JSON.stringify(data),
+          now,
+          now,
+          (node.version as string) || "",
+        );
+      }
+
+      // Collect wikilinks for later resolution
+      const wikilinks = result.wikilinks as PendingLink[];
+      for (const wikilink of wikilinks) {
+        pendingLinks.push(wikilink);
+      }
+
+      parsed++;
+    }
+
+    db.run("COMMIT");
+  } catch (error) {
+    db.run("ROLLBACK");
+    throw error;
+  }
+
+  debug(
+    "parseDeferredWithPool: completed, %d parsed, %d links",
+    parsed,
+    pendingLinks.length,
+  );
+  return { parsed, pendingLinks };
+}
+
+/**
+ * Sequential parsing (original implementation, used for small file counts).
+ */
+async function parseDeferredSequential(
+  deferredFiles: DeferredFile[],
+  shouldAbort?: () => boolean,
+): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
+  const total = deferredFiles.length;
+  debug("parseDeferredSequential: starting %d files", total);
 
   const db = getDb();
   const pendingLinks: PendingLink[] = [];
@@ -1084,10 +1270,13 @@ export async function parseDeferredAsync(
         // Get the stub's parent info before deleting
         const stubRow = db
           .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
-          .get(nodeId) as { parent_id: string | null; parent_idx: number } | null;
+          .get(nodeId) as {
+          parent_id: string | null;
+          parent_idx: number;
+        } | null;
 
         if (!stubRow) {
-          debug("parseDeferredAsync: stub %s not found, skipping", nodeId);
+          debug("parseDeferredSequential: stub %s not found, skipping", nodeId);
           continue;
         }
 
@@ -1143,7 +1332,7 @@ export async function parseDeferredAsync(
 
         parsed++;
       } catch (err) {
-        debug("parseDeferredAsync: error parsing %s: %s", fsPath, err);
+        debug("parseDeferredSequential: error parsing %s: %s", fsPath, err);
       }
 
       // Yield to event loop periodically and check for abort
@@ -1153,7 +1342,7 @@ export async function parseDeferredAsync(
         });
         // Check abort after yielding
         if (shouldAbort?.()) {
-          debug("parseDeferredAsync: aborted at %d/%d", i, total);
+          debug("parseDeferredSequential: aborted at %d/%d", i, total);
           break;
         }
       }
@@ -1165,7 +1354,11 @@ export async function parseDeferredAsync(
     throw error;
   }
 
-  debug("parseDeferredAsync: completed, %d parsed, %d links", parsed, pendingLinks.length);
+  debug(
+    "parseDeferredSequential: completed, %d parsed, %d links",
+    parsed,
+    pendingLinks.length,
+  );
 
   return { parsed, pendingLinks };
 }
