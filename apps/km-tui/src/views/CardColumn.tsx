@@ -58,6 +58,42 @@ export interface CardProps {
  * without causing re-renders. This enables h/l visual navigation across
  * columns with different scroll positions.
  */
+/**
+ * Helper component that registers the Card's screen position.
+ * Must be rendered INSIDE the Card's Box to get the correct node context.
+ */
+function CardLayoutRegistrar({
+  colIndex,
+  cardIndex,
+  nodeId,
+}: {
+  colIndex: number;
+  cardIndex: number;
+  nodeId: string;
+}): null {
+  const registry = useLayoutRegistryOptional();
+
+  const handleLayout = useCallback(
+    (computed: { x: number; y: number; width: number; height: number }) => {
+      if (!registry) return;
+
+      const layout: NodeLayout = {
+        x: computed.x,
+        y: computed.y,
+        cardWidth: computed.width,
+        cardHeight: computed.height,
+      };
+
+      registry.registerCard(colIndex, cardIndex, nodeId, layout);
+    },
+    [registry, colIndex, cardIndex, nodeId],
+  );
+
+  useScreenRectCallback(handleLayout);
+
+  return null;
+}
+
 export const Card = React.memo(
   function Card({
     card,
@@ -68,28 +104,7 @@ export const Card = React.memo(
     cardIndex,
     isVirtualColumn,
   }: CardProps): React.ReactElement {
-    const registry = useLayoutRegistryOptional();
     const nodeId = card.node.id;
-
-    // Register measured position after layout - no re-renders
-    const handleLayout = useCallback(
-      (computed: { x: number; y: number; width: number; height: number }) => {
-        if (!registry) return;
-
-        // Use measured dimensions directly from inkx layout
-        const layout: NodeLayout = {
-          x: computed.x,
-          y: computed.y,
-          cardWidth: computed.width,
-          cardHeight: computed.height,
-        };
-
-        registry.registerCard(colIndex, cardIndex, nodeId, layout);
-      },
-      [registry, colIndex, cardIndex, nodeId],
-    );
-
-    useScreenRectCallback(handleLayout);
 
     // Virtual body content renders borderless (inline body content)
     // This includes: cards in virtual columns OR individual virtual body cards
@@ -101,6 +116,11 @@ export const Card = React.memo(
           width={width}
           paddingLeft={1}
         >
+          <CardLayoutRegistrar
+            colIndex={colIndex}
+            cardIndex={cardIndex}
+            nodeId={nodeId}
+          />
           <TreeNode
             node={card.node}
             depth={0}
@@ -122,6 +142,11 @@ export const Card = React.memo(
         borderStyle="round"
         borderColor={isSelected ? "yellow" : "blackBright"}
       >
+        <CardLayoutRegistrar
+          colIndex={colIndex}
+          cardIndex={cardIndex}
+          nodeId={nodeId}
+        />
         <TreeNode
           node={card.node}
           depth={0}

@@ -7,7 +7,7 @@
 import React from "react";
 import { Box, Text } from "inkx";
 import type { KNode } from "@km/core";
-import { getChildren, getBacklinks, getNode } from "@km/storage";
+import { useVault } from "../vault-context.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { renderRich } from "../text/index.ts";
 import { wrapText } from "../layout/index.ts";
@@ -23,6 +23,7 @@ export function DetailPane({
   width,
   height,
 }: DetailPaneProps): React.ReactElement {
+  const vault = useVault();
   const innerWidth = Math.max(10, width - 6); // Account for border + paddingX(1)
   const title = getNodeDisplayName(node);
 
@@ -58,14 +59,14 @@ export function DetailPane({
   }
 
   // Get subtasks (children that are tasks)
-  const children = getChildren(node.id);
-  const subtasks = children.filter((c) => c.type === "task");
+  const children = vault.getChildren(node.id);
+  const subtasks = children.filter((c: KNode) => c.type === "task");
 
   // Get backlinks
-  const backlinks = getBacklinks(node.id);
+  const backlinks = vault.getBacklinks(node.id);
   const backlinkNodes: KNode[] = [];
   for (const link of backlinks) {
-    const sourceNode = getNode(link.source_id);
+    const sourceNode = vault.getNode(link.source_id);
     if (sourceNode) {
       backlinkNodes.push(sourceNode);
     }

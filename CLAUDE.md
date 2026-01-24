@@ -545,6 +545,46 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 
 **Fail fast, don't mask bugs.**
 
+**Programming errors MUST throw, never log or ignore:**
+
+```typescript
+// BAD - silently ignoring missing context
+function useMyHook() {
+  const ctx = useContext(MyContext);
+  if (!ctx) return; // Silent failure - caller has no idea it's broken!
+}
+
+// BAD - logging instead of throwing
+function useMyHook() {
+  const ctx = useContext(MyContext);
+  if (!ctx) {
+    console.warn("Missing context");
+    return defaultValue; // Caller doesn't know it's using a fallback
+  }
+}
+
+// GOOD - throw immediately so caller knows during development
+function useMyHook() {
+  const ctx = useContext(MyContext);
+  if (!ctx) {
+    throw new Error("useMyHook must be used within MyProvider");
+  }
+  return ctx;
+}
+```
+
+**When to throw vs. handle gracefully:**
+
+| Scenario                            | Action                                |
+| ----------------------------------- | ------------------------------------- |
+| Missing required context/dependency | **Throw** - programming error         |
+| Invalid internal state              | **Throw** - invariant violation       |
+| Missing required prop               | **Throw** - caller's mistake          |
+| User input validation failure       | Handle gracefully with error message  |
+| External API failure                | Handle gracefully with retry/fallback |
+| File not found (expected to exist)  | **Throw** - programming error         |
+| File not found (optional)           | Handle gracefully                     |
+
 **No backwards compatibility re-exports:**
 
 ```typescript

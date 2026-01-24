@@ -7,7 +7,7 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "inkx";
 import type { KNode } from "@km/core";
-import { getAllNodes, getNode } from "@km/storage";
+import { useVault } from "../vault-context.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { ModalDialog } from "./shared-components.tsx";
 

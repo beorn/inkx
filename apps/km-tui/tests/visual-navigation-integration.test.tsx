@@ -14,9 +14,23 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import React, { useReducer, useMemo, useRef, useEffect, useLayoutEffect, useState, useCallback } from "react";
+import React, {
+  useReducer,
+  useMemo,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useCallback,
+} from "react";
 import { createTestRenderer, bufferToText, createLocator } from "inkx/testing";
-import { Box, Text, useInput, useScreenRectCallback, useScreenRect } from "inkx";
+import {
+  Box,
+  Text,
+  useInput,
+  useScreenRectCallback,
+  useScreenRect,
+} from "inkx";
 
 import {
   withTestEnv,
@@ -315,16 +329,20 @@ function TestBoard({
 // =============================================================================
 
 /**
- * Super minimal component to test if useScreenRectCallback fires
+ * Inner component that calls layout hooks - must be inside a Box
  */
-function MinimalLayoutTest({
+function LayoutHooksTester({
   onLayout,
   onDebug,
 }: {
-  onLayout: (rect: { x: number; y: number; width: number; height: number }) => void;
+  onLayout: (rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) => void;
   onDebug?: (info: { hasNode: boolean; screenRect: unknown }) => void;
 }): React.ReactElement {
-  // Use useCallback to ensure stable callback reference
   const handleLayout = useCallback(
     (rect: { x: number; y: number; width: number; height: number }) => {
       console.log("useScreenRectCallback fired:", rect);
@@ -345,9 +363,28 @@ function MinimalLayoutTest({
     }
   }, [screenRect, onDebug]);
 
+  return <Text>Test Content</Text>;
+}
+
+/**
+ * Super minimal component to test if useScreenRectCallback fires.
+ * The hooks are called inside the Box via LayoutHooksTester.
+ */
+function MinimalLayoutTest({
+  onLayout,
+  onDebug,
+}: {
+  onLayout: (rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) => void;
+  onDebug?: (info: { hasNode: boolean; screenRect: unknown }) => void;
+}): React.ReactElement {
   return (
     <Box width={40} height={10}>
-      <Text>Test Content</Text>
+      <LayoutHooksTester onLayout={onLayout} onDebug={onDebug} />
     </Box>
   );
 }
@@ -401,7 +438,12 @@ describe("useScreenRectCallback Diagnostics", () => {
 
   test("useScreenRectCallback fires on initial render", async () => {
     let callbackFired = false;
-    let capturedRect: { x: number; y: number; width: number; height: number } | null = null;
+    let capturedRect: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null = null;
 
     render(
       React.createElement(MinimalLayoutTest, {

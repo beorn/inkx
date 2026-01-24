@@ -8,7 +8,7 @@
 import React, { useCallback, useMemo } from "react";
 import { Box, Text, useLayoutCallback } from "inkx";
 import type { KNode } from "@km/core";
-import { getChildren as getChildrenFromStorage, getNode } from "@km/storage";
+import { useVault } from "../vault-context.tsx";
 import {
   getNodeDisplayName,
   getParentContext as getParentContextFromState,
@@ -159,9 +159,10 @@ function TreeNodeImpl({
     ? new Set([rootBoardId])
     : new Set<string>();
 
+  const vault = useVault();
   const isOneliner = variant === "oneliner";
-  // Use provided children or fetch from storage
-  const resolvedGetChildren = getChildrenProp ?? getChildrenFromStorage;
+  // Use provided children or fetch from vault
+  const resolvedGetChildren = getChildrenProp ?? vault.getChildren.bind(vault);
   const children = childrenProp ?? resolvedGetChildren(node.id);
   const hasChildren = children.length > 0;
   const isEmbedded = node.link_to != null;
@@ -169,7 +170,7 @@ function TreeNodeImpl({
   // For embedded nodes, resolve the target for display purposes
   // The embed node's content is just "![[target]]" - we want to show the linked node's data
   const resolvedNode =
-    isEmbedded && node.link_to ? getNode(node.link_to) : null;
+    isEmbedded && node.link_to ? vault.getNode(node.link_to) : null;
   const displayNode = resolvedNode ?? node;
 
   // A node is a task if it has task_status set, regardless of structural type
