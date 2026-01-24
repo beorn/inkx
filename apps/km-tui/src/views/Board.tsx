@@ -3,13 +3,14 @@
  * Full-screen board view with columns and cards
  */
 import React, { useEffect, useReducer, useMemo, useRef } from "react";
-import { Box, Text, useInput, useApp, useStdout } from "inkx";
+import { writeSync } from "fs";
+import { Box, Text, useInput, useApp, useStdout, render as inkxRender } from "inkx";
 import chalk from "chalk";
 import { hyperlink } from "@beorn/chalkx";
 import createDebug from "debug";
 
 const debug = createDebug("km:board");
-import type { BoardState, ViewMode, TuiEngine } from "../types.ts";
+import type { BoardState, ViewMode } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
 import type { KNode } from "@km/core";
 import { getChildren, getNode, getStore, getNodeCount } from "@km/storage";
@@ -26,7 +27,6 @@ import {
 import { ColumnsView } from "./ColumnsView.tsx";
 import { ListView } from "./ListView.tsx";
 import { TabsView } from "./TabsView.tsx";
-import { getEngine } from "../engines/index.ts";
 import { renderPlain, getNodeIcon, getChalkColor } from "../text/index.ts";
 import { getInheritedColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
@@ -573,26 +573,71 @@ function countVisibleDescendants(
   return count;
 }
 
+/**
+ * Restore terminal to normal state after crash or exit.
+ */
+function restoreTerminal(): void {
+  if (process.stdin.isTTY && process.stdin.isRaw) {
+    try {
+      process.stdin.setRawMode(false);
+    } catch {
+      // Ignore errors during cleanup
+    }
+  }
+
+  const sequences = [
+    "\x1b[0m", // Reset text attributes
+    "\x1b[?1007l\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?1006l", // Disable mouse
+    "\x1b[?1l", // Disable application cursor keys
+    "\x1b[?2004l", // Disable bracketed paste
+    "\x1b[?25h", // Show cursor
+    "\x1b[?1049l", // Exit alternate screen
+  ].join("");
+
+  try {
+    writeSync(process.stdout.fd, sequences);
+  } catch {
+    process.stdout.write(sequences);
+  }
+}
+
 export async function renderInkxBoard(
   state: BoardState,
   initialViewMode?: ViewMode,
-  engine: TuiEngine = "inkx",
 ): Promise<void> {
-  debug("renderInkxBoard start, engine=%s", engine);
+  debug("renderInkxBoard start");
 
   const app = <Board initialState={state} initialViewMode={initialViewMode} />;
 
-  // Use the engine-specific render function
-  const engineApi = getEngine(engine);
-  debug("Got engine API");
+  // Register error handlers to clean up terminal on crash
+  const handleError = (error: Error) => {
+    restoreTerminal();
+    console.error("\n\nTUI crashed with error:", error.message);
+    console.error(error.stack);
+    process.exit(1);
+  };
 
-  const { waitUntilExit } = await engineApi.render(app, {
+  const handleSignal = (signal: string) => {
+    restoreTerminal();
+    process.exit(signal === "SIGINT" ? 130 : 143);
+  };
+
+  process.on("uncaughtException", handleError);
+  process.on("unhandledRejection", (reason) => {
+    handleError(reason instanceof Error ? reason : new Error(String(reason)));
+  });
+  process.once("SIGINT", () => handleSignal("SIGINT"));
+  process.once("SIGTERM", () => handleSignal("SIGTERM"));
+
+  debug("Rendering with inkx");
+  const instance = await inkxRender(app, {
     exitOnCtrlC: true,
     patchConsole: false,
+    alternateScreen: true,
   });
-  debug("Render complete, awaiting exit");
 
-  await waitUntilExit();
+  debug("Render complete, awaiting exit");
+  await instance.waitUntilExit();
 }
 
 // =============================================================================

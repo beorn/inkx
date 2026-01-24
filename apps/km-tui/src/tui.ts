@@ -7,15 +7,12 @@
 import { EventEmitter } from "events";
 import chalk from "chalk";
 import createDebug from "debug";
-import type { BoardState, TuiEngine, TuiOptions } from "./types.ts";
+import type { BoardState, TuiOptions } from "./types.ts";
 import { renderBoardStatic } from "./render.ts";
 import { renderInkxBoard } from "./views/index.ts";
 import { setFsSync, SyncManager } from "@km/storage";
 
 const debug = createDebug("km:tui");
-
-/** Default TUI engine - inkx with pure JS flexbox */
-const DEFAULT_ENGINE: TuiEngine = "inkx-flexx";
 
 /**
  * Global event emitter for TUI refresh events
@@ -120,7 +117,7 @@ export async function runBoard(
     // Stop CLI spinner - TUI is about to take over the screen
     options?.spinner?.stop();
     debug("Starting interactive TUI");
-    await renderInkxBoard(state, options?.initialViewMode, DEFAULT_ENGINE);
+    await renderInkxBoard(state, options?.initialViewMode);
   } finally {
     // Clean up sync manager
     if (syncManager) {
