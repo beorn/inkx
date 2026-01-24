@@ -30,6 +30,44 @@ import { TASK_MARK_REGEX_CLASS } from "@km/core";
 // Re-export types
 export type { Root, Content, ListItem, Heading, Paragraph, List };
 
+// =============================================================================
+// km-fast-md.1: Module-level compiled regexes (compile once, use many times)
+// =============================================================================
+
+/** Task mark from list item (e.g., "- [x]") */
+const TASK_MARK_REGEX = new RegExp(
+  `^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\\]`,
+);
+
+/** Task mark from title (e.g., "[x] Title") */
+const TITLE_TASK_MARK_REGEX = new RegExp(`^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`);
+
+/** Wikilinks: [[target]], [[target|alias]], ![[embed]] */
+const WIKILINK_REGEX =
+  /(!?)\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g;
+
+/** Combined refs: #tag, @mention, +project in single pass */
+const COMBINED_REFS_REGEX =
+  /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-]+)/g;
+
+/** Fast wikilink presence check (avoid full regex if no wikilinks) */
+const HAS_WIKILINK = /\[\[/;
+
+// km-fast-md.3: Individual task metadata regexes compiled at module level
+// (Combined regex was consuming whitespace between patterns, causing misses)
+const DUE_EMOJI_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})/;
+const DUE_INLINE_REGEX = /\bdue:(\d{4}-\d{2}-\d{2})\b/;
+const SCHED_EMOJI_REGEX = /⏳\s*(\d{4}-\d{2}-\d{2})/;
+const SCHED_INLINE_REGEX = /\bstart:(\d{4}-\d{2}-\d{2})\b/;
+const RECURRENCE_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/;
+const PRIORITY_INLINE_REGEX = /\bp:([1-9])\b/;
+
+// km-fast-md.4: Single-pass heading rules regex
+// Matches: add="query", sync=value, collapse=true, limit=N, default=true, color=value
+// Also handles backtick-wrapped versions: `add="query"`
+const HEADING_RULE_REGEX =
+  /`?(?:add=["']([^"']+)["']|sync=["']?([^\s"'`]+)["']?|collapse=(true)|limit=(\d+)|default=(true)|color=["']?([^\s"'`]+)["']?)`?/gi;
+
 /**
  * Extended ListItem with task mark
  */
@@ -87,6 +125,7 @@ export function extractFrontmatter(content: string): {
 
 /**
  * Extract the task mark from a list item's source text
+ * km-fast-md.1: Uses module-level compiled regex
  */
 export function extractTaskMark(
   content: string,
@@ -98,9 +137,7 @@ export function extractTaskMark(
     position.start.offset,
     position.start.offset + 20,
   );
-  // Build regex dynamically from the task mark character class constant
-  const regex = new RegExp(`^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\\]`);
-  const match = slice.match(regex);
+  const match = slice.match(TASK_MARK_REGEX);
 
   return match?.[1];
 }
@@ -108,6 +145,7 @@ export function extractTaskMark(
 /**
  * Extract task mark from node title text (works for headings, list items, etc.)
  * Supports: [x], [ ], [/], [!], [-] at the start of text
+ * km-fast-md.1: Uses module-level compiled regex
  *
  * Examples:
  *   "[ ] Todo task" → { mark: " ", cleanText: "Todo task" }
@@ -118,9 +156,7 @@ export function extractTitleTaskMark(text: string): {
   mark: string | undefined;
   cleanText: string;
 } {
-  // Match [x], [ ], [/], [!], [-] at the start of text
-  const regex = new RegExp(`^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`);
-  const match = text.match(regex);
+  const match = text.match(TITLE_TASK_MARK_REGEX);
 
   if (match) {
     return {
@@ -138,15 +174,20 @@ export function extractTitleTaskMark(text: string): {
 /**
  * Parse wikilinks from text
  * Detects both regular links [[...]] and embeddings ![[...]]
+ * km-fast-md.1 & km-fast-md.2: Uses module-level regex with fast-path check
  */
 export function parseWikiLinks(text: string): WikiLink[] {
+  // km-fast-md.2: Fast-path check - skip full regex if no wikilinks present
+  if (!HAS_WIKILINK.test(text)) {
+    return [];
+  }
+
   const links: WikiLink[] = [];
-  // Match optional ! prefix before [[
-  const regex =
-    /(!?)\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g;
+  // Reset regex lastIndex since it's global
+  WIKILINK_REGEX.lastIndex = 0;
 
   let match;
-  while ((match = regex.exec(text)) !== null) {
+  while ((match = WIKILINK_REGEX.exec(text)) !== null) {
     const isEmbedded = match[1] === "!";
     links.push({
       type: "wikiLink",
@@ -195,6 +236,7 @@ export function extractProjects(text: string): string[] {
 /**
  * Combined refs extraction - single-pass for performance (km-load-perf.1)
  * Extracts tags, mentions, and projects in one regex pass instead of three.
+ * km-fast-md.1: Uses module-level compiled regex
  *
  * @returns Object with tags, mentions, and projects arrays
  */
@@ -207,12 +249,11 @@ export function extractAllRefs(text: string): {
   const mentions: string[] = [];
   const projects: string[] = [];
 
-  // Combined regex: matches #tag, @mention, or +project
-  // Using alternation with capturing groups
-  const combinedRegex = /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-]+)/g;
+  // Reset regex lastIndex since it's global
+  COMBINED_REFS_REGEX.lastIndex = 0;
 
   let match;
-  while ((match = combinedRegex.exec(text)) !== null) {
+  while ((match = COMBINED_REFS_REGEX.exec(text)) !== null) {
     if (match[1]) {
       tags.push(match[1]);
     } else if (match[2]) {
@@ -228,6 +269,7 @@ export function extractAllRefs(text: string): {
 /**
  * Parse task metadata (supports multiple formats)
  * Extracts: due date, scheduled date, priority, recurrence
+ * km-fast-md.3: Module-level compiled regexes (avoiding per-call compilation)
  *
  * Supported formats:
  * - Obsidian Tasks: 📅 2024-01-15, ⏳ 2024-01-10, ⏫/🔼/🔽, 🔁 every week
@@ -246,22 +288,23 @@ export function parseTaskMetadata(text: string): {
     recurrence?: string;
   } = {};
 
+  // km-fast-md.3: Use module-level compiled regexes
   // Due date: 📅 2024-01-15 OR due:2024-01-15
-  const dueMatch = text.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
+  const dueMatch = text.match(DUE_EMOJI_REGEX);
   if (dueMatch) {
     result.dueDate = dueMatch[1];
   }
-  const dueInlineMatch = text.match(/\bdue:(\d{4}-\d{2}-\d{2})\b/);
+  const dueInlineMatch = text.match(DUE_INLINE_REGEX);
   if (dueInlineMatch && !result.dueDate) {
     result.dueDate = dueInlineMatch[1];
   }
 
   // Scheduled date: ⏳ 2024-01-10 OR start:2024-01-10
-  const scheduledMatch = text.match(/⏳\s*(\d{4}-\d{2}-\d{2})/);
+  const scheduledMatch = text.match(SCHED_EMOJI_REGEX);
   if (scheduledMatch) {
     result.scheduledDate = scheduledMatch[1];
   }
-  const startInlineMatch = text.match(/\bstart:(\d{4}-\d{2}-\d{2})\b/);
+  const startInlineMatch = text.match(SCHED_INLINE_REGEX);
   if (startInlineMatch && !result.scheduledDate) {
     result.scheduledDate = startInlineMatch[1];
   }
@@ -274,14 +317,14 @@ export function parseTaskMetadata(text: string): {
   } else if (text.includes("🔽")) {
     result.priority = 3;
   }
-  const priorityInlineMatch = text.match(/\bp:([1-9])\b/);
+  const priorityInlineMatch = text.match(PRIORITY_INLINE_REGEX);
   if (priorityInlineMatch && priorityInlineMatch[1] && !result.priority) {
     result.priority = parseInt(priorityInlineMatch[1], 10);
   }
 
   // Recurrence: 🔁 every week
-  const recurrenceMatch = text.match(/🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/);
-  if (recurrenceMatch) {
+  const recurrenceMatch = text.match(RECURRENCE_REGEX);
+  if (recurrenceMatch && recurrenceMatch[1]) {
     result.recurrence = recurrenceMatch[1].trim();
   }
 
@@ -310,6 +353,7 @@ export interface ParsedHeading {
 
 /**
  * Parse heading text to extract title and inline rules
+ * km-fast-md.4: Single-pass extraction using combined regex
  *
  * Format: "Column Name add=\"query\" sync=field:value collapse=true limit=3"
  * Returns: { title: "Column Name", rules: { add: "query", sync: "field:value", ... } }
@@ -317,61 +361,54 @@ export interface ParsedHeading {
 export function parseHeadingRules(text: string): ParsedHeading {
   const rules: SectionRules = {};
 
-  // Parse add="query" or add='query'
-  const addMatch = text.match(/\badd=["']([^"']+)["']/);
-  if (addMatch) {
-    rules.add = addMatch[1];
+  // km-fast-md.4: Single-pass extraction of all rules
+  // Reset lastIndex since it's global
+  HEADING_RULE_REGEX.lastIndex = 0;
+
+  // Track matched ranges for title extraction
+  const matchedRanges: Array<{ start: number; end: number }> = [];
+
+  let match;
+  while ((match = HEADING_RULE_REGEX.exec(text)) !== null) {
+    // Track where this match is for title cleanup
+    matchedRanges.push({ start: match.index, end: match.index + match[0].length });
+
+    // add="query"
+    if (match[1]) {
+      rules.add = match[1];
+    }
+    // sync=value
+    if (match[2]) {
+      rules.sync = match[2];
+    }
+    // collapse=true
+    if (match[3]) {
+      rules.collapse = true;
+    }
+    // limit=N
+    if (match[4]) {
+      rules.limit = parseInt(match[4], 10);
+    }
+    // default=true
+    if (match[5]) {
+      rules.default = true;
+    }
+    // color=value
+    if (match[6]) {
+      rules.color = match[6];
+    }
   }
 
-  // Parse sync=field:value (no quotes needed for simple values)
-  // Exclude backticks from the value capture since attributes may be wrapped in backticks
-  const syncMatch = text.match(/\bsync=["']?([^\s"'`]+)["']?/);
-  if (syncMatch) {
-    rules.sync = syncMatch[1];
+  // Extract title by removing matched rules
+  // Build title from non-matched portions
+  let title = "";
+  let lastEnd = 0;
+  for (const range of matchedRanges) {
+    title += text.slice(lastEnd, range.start);
+    lastEnd = range.end;
   }
-
-  // Parse collapse=true
-  if (/\bcollapse=true\b/i.test(text)) {
-    rules.collapse = true;
-  }
-
-  // Parse limit=N
-  const limitMatch = text.match(/\blimit=(\d+)/);
-  if (limitMatch) {
-    rules.limit = parseInt(limitMatch[1] || "0", 10);
-  }
-
-  // Parse default=true
-  if (/\bdefault=true\b/i.test(text)) {
-    rules.default = true;
-  }
-
-  // Parse color=value (no quotes needed for simple color names)
-  const colorMatch = text.match(/\bcolor=["']?([^\s"'`]+)["']?/);
-  if (colorMatch) {
-    rules.color = colorMatch[1];
-  }
-
-  // Extract title by removing all rule attributes
-  // Supports both plain and backtick-wrapped syntax:
-  //   ## Column add="query"
-  //   ## Column `add="query"`
-  const title = text
-    // Plain syntax
-    .replace(/\s+add=["'][^"']*["']/g, "")
-    .replace(/\s+sync=["']?[^\s"']+["']?/g, "")
-    .replace(/\s+collapse=\w+/gi, "")
-    .replace(/\s+limit=\d+/g, "")
-    .replace(/\s+default=\w+/gi, "")
-    .replace(/\s+color=["']?[^\s"']+["']?/g, "")
-    // Backtick-wrapped syntax (common in markdown for code-like attributes)
-    .replace(/\s*`add=["'][^"']*["']`/g, "")
-    .replace(/\s*`sync=["']?[^\s"'`]+["']?`/g, "")
-    .replace(/\s*`collapse=\w+`/gi, "")
-    .replace(/\s*`limit=\d+`/g, "")
-    .replace(/\s*`default=\w+`/gi, "")
-    .replace(/\s*`color=["']?[^\s"'`]+["']?`/g, "")
-    .trim();
+  title += text.slice(lastEnd);
+  title = title.replace(/\s+/g, " ").trim();
 
   return { title, rules };
 }

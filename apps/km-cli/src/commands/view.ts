@@ -67,7 +67,12 @@ export const viewCommand = new Command("view")
         // loadVault handles both memory and disk modes:
         // - Memory mode: discover → parse → apply → resolve → materialize
         // - Disk mode: discover → apply → materialize
-        yield* storageModule!.loadVault(vaultRoot, { searchAncestors: false });
+        // km-fast-md.7: Use discoverOnly for instant board render
+        // Files appear immediately as stubs, content parses in background
+        return yield* storageModule!.loadVault(vaultRoot, {
+          searchAncestors: false,
+          discoverOnly: true,
+        });
       },
 
       buildView: function* () {
@@ -91,6 +96,10 @@ export const viewCommand = new Command("view")
       resolved: ReturnType<typeof storageModule.resolvePathArg>;
     };
 
+    // km-fast-md.7: Extract deferred files for background parsing
+    const loadResult = results.loadVault as unknown as import("@km/storage").LoadResult;
+    const deferredFiles = loadResult.deferredFiles ?? [];
+
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
     const interactive = options.interactive !== false;
 
@@ -107,10 +116,52 @@ export const viewCommand = new Command("view")
 
     // Run board - TUI takes over from here
     debug("launching board", { viewMode, interactive, watchEnabled });
+
+    // km-fast-md.7: Parse files and resolve links in background after board starts
+    // This keeps startup instant while eventually completing content parsing
+    let backgroundTask: Promise<void> | null = null;
+    let aborted = false;
+
+    if (deferredFiles.length > 0) {
+      debug("scheduling background parsing for %d files", deferredFiles.length);
+      backgroundTask = (async () => {
+        // Small delay to let the board render first
+        await new Promise((r) => setTimeout(r, 100));
+        if (aborted) return;
+
+        try {
+          const { parsed, pendingLinks } = await storageModule!.parseDeferredAsync(
+            deferredFiles,
+            () => aborted, // Check abort on each batch
+          );
+          debug("background parsing complete: %d parsed", parsed);
+
+          if (aborted) return;
+
+          // Now resolve links from the parsed content
+          if (pendingLinks.length > 0) {
+            const resolved = await storageModule!.resolveLinksAsync(pendingLinks);
+            debug("background link resolution complete: %d resolved", resolved);
+          }
+        } catch (err) {
+          if (!aborted) {
+            debug("background parsing/resolution failed: %s", err);
+          }
+        }
+      })();
+    }
+
     await tuiModule!.runBoard(state, {
       interactive,
       initialViewMode: viewMode as ViewMode,
       watch: watchEnabled,
       watchWorker,
     });
+
+    // Signal background task to stop and wait for it
+    aborted = true;
+    if (backgroundTask) {
+      debug("waiting for background task to complete");
+      await backgroundTask;
+    }
   });

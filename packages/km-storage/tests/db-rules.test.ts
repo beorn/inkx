@@ -3,13 +3,12 @@
  *
  * Tests for computed rule evaluation (add=, sync=, etc.)
  * Rules are evaluated at sync time and results stored in the links table.
- * Uses isolated temp directories for cleaner test setup.
+ * Uses withTestEnvSync for parallel test isolation.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "fs";
+import { describe, test, expect } from "bun:test";
+import { writeFileSync } from "fs";
 import { join } from "path";
-import { ulid } from "ulid";
 import { MemoryStore } from "../src/store.ts";
 import {
   evaluateNodeRules,
@@ -19,73 +18,44 @@ import {
 } from "../src/db-rules.ts";
 import { getChildren, getChildCountsBatch } from "../src/db-queries/index.ts";
 import { setDb } from "../src/db-instance.ts";
+import { withTestEnvSync } from "./test-utils.ts";
 
-// Track created directories for cleanup
-const createdDirs: string[] = [];
-
-/** Create an isolated test directory */
-function createTestDir(): string {
-  const dir = join("/tmp", `kmtest-rules-${ulid()}`);
-  mkdirSync(dir, { recursive: true });
-  createdDirs.push(dir);
-  return dir;
-}
-
-// Current test directory (set in beforeEach)
-let testDir: string;
-
-describe.serial("Database Rules", () => {
-  let store: MemoryStore | null = null;
-
-  beforeEach(() => {
-    testDir = createTestDir();
-  });
-
-  afterEach(() => {
-    if (store) {
-      store.close();
-      store = null;
-    }
-    // Clean up all created directories
-    for (const dir of createdDirs) {
-      try {
-        rmSync(dir, { recursive: true });
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
-    createdDirs.length = 0;
-  });
-
-  describe.serial("getNodesWithRules", () => {
-    test("should find nodes with add= rules", () => {
-      // Create a file with sections that have add= rules
-      writeFileSync(
-        join(testDir, "board.md"),
-        `# Board
+describe("Database Rules", () => {
+  describe("getNodesWithRules", () => {
+    test("should find nodes with add= rules", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        // Create a file with sections that have add= rules
+        writeFileSync(
+          join(vaultDir, "board.md"),
+          `# Board
 
 ## Open add="@issue status:todo"
 
 ## Done add="@issue status:done"
 `,
-      );
+        );
 
-      store = new MemoryStore(testDir);
-      setDb(store.getDatabase());
+        const store = new MemoryStore(vaultDir);
+        setDb(store.getDatabase());
 
-      const nodesWithRules = getNodesWithRules();
-      expect(nodesWithRules.length).toBe(2);
+        try {
+          const nodesWithRules = getNodesWithRules();
+          expect(nodesWithRules.length).toBe(2);
 
-      for (const node of nodesWithRules) {
-        expect(node.type).toBe("section");
-        expect(node.rules?.add).toBeDefined();
-      }
-    });
+          for (const node of nodesWithRules) {
+            expect(node.type).toBe("section");
+            expect(node.rules?.add).toBeDefined();
+          }
+        } finally {
+          store.close();
+        }
+      }));
 
-    test("should return empty array when no rules exist", () => {
-      writeFileSync(
-        join(testDir, "simple.md"),
-        `# Simple
+    test("should return empty array when no rules exist", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, "simple.md"),
+          `# Simple
 
 ## Section 1
 
@@ -95,21 +65,26 @@ describe.serial("Database Rules", () => {
 
 - [ ] Task 2
 `,
-      );
+        );
 
-      store = new MemoryStore(testDir);
-      setDb(store.getDatabase());
+        const store = new MemoryStore(vaultDir);
+        setDb(store.getDatabase());
 
-      const nodesWithRules = getNodesWithRules();
-      expect(nodesWithRules.length).toBe(0);
-    });
+        try {
+          const nodesWithRules = getNodesWithRules();
+          expect(nodesWithRules.length).toBe(0);
+        } finally {
+          store.close();
+        }
+      }));
   });
 
-  describe.serial("getNodesWithRule", () => {
-    test("should find nodes with specific rule type", () => {
-      writeFileSync(
-        join(testDir, "mixed.md"),
-        `# Mixed Rules
+  describe("getNodesWithRule", () => {
+    test("should find nodes with specific rule type", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, "mixed.md"),
+          `# Mixed Rules
 
 ## Open add="@issue status:todo"
 
@@ -117,71 +92,81 @@ describe.serial("Database Rules", () => {
 
 ## Limited limit=3
 `,
-      );
+        );
 
-      store = new MemoryStore(testDir);
-      setDb(store.getDatabase());
+        const store = new MemoryStore(vaultDir);
+        setDb(store.getDatabase());
 
-      const addRuleNodes = getNodesWithRule("add");
-      expect(addRuleNodes.length).toBe(1);
-      expect(addRuleNodes[0]?.rules?.add).toBe("@issue status:todo");
+        try {
+          const addRuleNodes = getNodesWithRule("add");
+          expect(addRuleNodes.length).toBe(1);
+          expect(addRuleNodes[0]?.rules?.add).toBe("@issue status:todo");
 
-      const collapseRuleNodes = getNodesWithRule("collapse");
-      expect(collapseRuleNodes.length).toBe(1);
-      expect(collapseRuleNodes[0]?.rules?.collapse).toBe(true);
-    });
+          const collapseRuleNodes = getNodesWithRule("collapse");
+          expect(collapseRuleNodes.length).toBe(1);
+          expect(collapseRuleNodes[0]?.rules?.collapse).toBe(true);
+        } finally {
+          store.close();
+        }
+      }));
   });
 
-  describe.serial("evaluateNodeRules - add= rule", () => {
-    test("should create embed children for matching nodes", () => {
-      // Create issues with @issue tag
-      writeFileSync(
-        join(testDir, "issues.md"),
-        `# Issues
+  describe("evaluateNodeRules - add= rule", () => {
+    test("should create embed children for matching nodes", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        // Create issues with @issue tag
+        writeFileSync(
+          join(vaultDir, "issues.md"),
+          `# Issues
 
 - [ ] Fix bug @issue
 - [ ] Add feature @issue
 - [x] Done task @issue
 `,
-      );
+        );
 
-      // Create board with add= rule
-      writeFileSync(
-        join(testDir, "board.md"),
-        `# Board
+        // Create board with add= rule
+        writeFileSync(
+          join(vaultDir, "board.md"),
+          `# Board
 
 ## Open add="@issue status:todo"
 `,
-      );
+        );
 
-      store = new MemoryStore(testDir);
-      setDb(store.getDatabase());
+        const store = new MemoryStore(vaultDir);
+        setDb(store.getDatabase());
 
-      // Find the "Open" section
-      const allNodes = store.getAllNodes();
-      const openSection = allNodes.find(
-        (n) => n.type === "section" && n.rules?.add === "@issue status:todo",
-      );
-      expect(openSection).toBeDefined();
+        try {
+          // Find the "Open" section
+          const allNodes = store.getAllNodes();
+          const openSection = allNodes.find(
+            (n) => n.type === "section" && n.rules?.add === "@issue status:todo",
+          );
+          expect(openSection).toBeDefined();
 
-      // Evaluate the rules for this section
-      evaluateNodeRules(openSection!.id);
+          // Evaluate the rules for this section
+          evaluateNodeRules(openSection!.id);
 
-      // Check that embed children were created
-      const children = getChildren(openSection!.id);
-      const embeds = children.filter((c) => c.type === "embed");
+          // Check that embed children were created
+          const children = getChildren(openSection!.id);
+          const embeds = children.filter((c) => c.type === "embed");
 
-      // Should have 2 embeds (the two todo tasks with @issue)
-      expect(embeds.length).toBe(2);
-      // Each embed should have a link_to pointing to a task
-      expect(embeds.every((e) => e.link_to)).toBe(true);
-    });
+          // Should have 2 embeds (the two todo tasks with @issue)
+          expect(embeds.length).toBe(2);
+          // Each embed should have a link_to pointing to a task
+          expect(embeds.every((e) => e.link_to)).toBe(true);
+        } finally {
+          store.close();
+        }
+      }));
 
-    test("should not create embeds for direct children", () => {
-      // Create a section with both direct children AND add= rule
-      writeFileSync(
-        join(testDir, "mixed.md"),
-        `# Mixed
+    test("should not create embeds for direct children", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        // Create a section with both direct children AND add= rule
+        writeFileSync(
+          join(vaultDir, "mixed.md"),
+          `# Mixed
 
 ## Open add="@issue status:todo"
 
@@ -193,224 +178,249 @@ describe.serial("Database Rules", () => {
 
 - [ ] Other task @issue
 `,
-      );
+        );
 
-      store = new MemoryStore(testDir);
-      setDb(store.getDatabase());
+        const store = new MemoryStore(vaultDir);
+        setDb(store.getDatabase());
 
-      const allNodes = store.getAllNodes();
-      const openSection = allNodes.find(
-        (n) => n.type === "section" && n.rules?.add === "@issue status:todo",
-      );
-      expect(openSection).toBeDefined();
+        try {
+          const allNodes = store.getAllNodes();
+          const openSection = allNodes.find(
+            (n) => n.type === "section" && n.rules?.add === "@issue status:todo",
+          );
+          expect(openSection).toBeDefined();
 
-      evaluateNodeRules(openSection!.id);
+          evaluateNodeRules(openSection!.id);
 
-      // Check children - should have the direct task + 1 embed for "Other task"
-      const children = getChildren(openSection!.id);
-      const embeds = children.filter((c) => c.type === "embed");
-      const directTasks = children.filter((c) => c.type === "task");
+          // Check children - should have the direct task + 1 embed for "Other task"
+          const children = getChildren(openSection!.id);
+          const embeds = children.filter((c) => c.type === "embed");
+          const directTasks = children.filter((c) => c.type === "task");
 
-      // Should only have 1 embed (the other task, not the direct child)
-      expect(embeds.length).toBe(1);
-      // Direct child is already a direct child, not an embed
-      expect(directTasks.length).toBe(1);
-    });
+          // Should only have 1 embed (the other task, not the direct child)
+          expect(embeds.length).toBe(1);
+          // Direct child is already a direct child, not an embed
+          expect(directTasks.length).toBe(1);
+        } finally {
+          store.close();
+        }
+      }));
   });
 
-  describe.serial("evaluateAllRules", () => {
-    test("should evaluate all rules in database", () => {
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        `# Tasks
+  describe("evaluateAllRules", () => {
+    test("should evaluate all rules in database", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, "tasks.md"),
+          `# Tasks
 
 - [ ] Task A @project
 - [ ] Task B @project
 - [x] Task C @project
 `,
-      );
+        );
 
-      writeFileSync(
-        join(testDir, "board.md"),
-        `# Board
+        writeFileSync(
+          join(vaultDir, "board.md"),
+          `# Board
 
 ## Todo add="@project status:todo"
 
 ## Done add="@project status:done"
 `,
-      );
+        );
 
-      store = new MemoryStore(testDir);
-      setDb(store.getDatabase());
+        const store = new MemoryStore(vaultDir);
+        setDb(store.getDatabase());
 
-      // Evaluate all rules
-      for (const _ of evaluateAllRules()) {
-        /* exhaust generator */
-      }
+        try {
+          // Evaluate all rules
+          for (const _ of evaluateAllRules()) {
+            /* exhaust generator */
+          }
 
-      // Check that both sections have embed children
-      const allNodes = store.getAllNodes();
-      const todoSection = allNodes.find(
-        (n) => n.type === "section" && n.rules?.add === "@project status:todo",
-      );
-      const doneSection = allNodes.find(
-        (n) => n.type === "section" && n.rules?.add === "@project status:done",
-      );
+          // Check that both sections have embed children
+          const allNodes = store.getAllNodes();
+          const todoSection = allNodes.find(
+            (n) => n.type === "section" && n.rules?.add === "@project status:todo",
+          );
+          const doneSection = allNodes.find(
+            (n) => n.type === "section" && n.rules?.add === "@project status:done",
+          );
 
-      expect(todoSection).toBeDefined();
-      expect(doneSection).toBeDefined();
+          expect(todoSection).toBeDefined();
+          expect(doneSection).toBeDefined();
 
-      const todoEmbeds = getChildren(todoSection!.id).filter(
-        (c) => c.type === "embed",
-      );
-      const doneEmbeds = getChildren(doneSection!.id).filter(
-        (c) => c.type === "embed",
-      );
+          const todoEmbeds = getChildren(todoSection!.id).filter(
+            (c) => c.type === "embed",
+          );
+          const doneEmbeds = getChildren(doneSection!.id).filter(
+            (c) => c.type === "embed",
+          );
 
-      // 2 todo tasks as embeds in Todo section + 1 done task as embed in Done section
-      expect(todoEmbeds.length).toBe(2);
-      expect(doneEmbeds.length).toBe(1);
-    });
+          // 2 todo tasks as embeds in Todo section + 1 done task as embed in Done section
+          expect(todoEmbeds.length).toBe(2);
+          expect(doneEmbeds.length).toBe(1);
+        } finally {
+          store.close();
+        }
+      }));
   });
 
-  describe.serial("getChildren with computed links", () => {
-    test("should include embed children from add= rule", () => {
-      writeFileSync(
-        join(testDir, "issues.md"),
-        `# Issues
+  describe("getChildren with computed links", () => {
+    test("should include embed children from add= rule", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, "issues.md"),
+          `# Issues
 
 - [ ] Bug 1 @issue
 - [ ] Bug 2 @issue
 `,
-      );
+        );
 
-      writeFileSync(
-        join(testDir, "board.md"),
-        `# Board
+        writeFileSync(
+          join(vaultDir, "board.md"),
+          `# Board
 
 ## Open add="@issue status:todo"
 `,
-      );
+        );
 
-      store = new MemoryStore(testDir);
-      setDb(store.getDatabase());
+        const store = new MemoryStore(vaultDir);
+        setDb(store.getDatabase());
 
-      // Find the Open section
-      const allNodes = store.getAllNodes();
-      const openSection = allNodes.find(
-        (n) => n.type === "section" && n.rules?.add === "@issue status:todo",
-      );
-      expect(openSection).toBeDefined();
+        try {
+          // Find the Open section
+          const allNodes = store.getAllNodes();
+          const openSection = allNodes.find(
+            (n) => n.type === "section" && n.rules?.add === "@issue status:todo",
+          );
+          expect(openSection).toBeDefined();
 
-      // Evaluate rules
-      evaluateNodeRules(openSection!.id);
+          // Evaluate rules
+          evaluateNodeRules(openSection!.id);
 
-      // Now getChildren should include the embed children
-      const children = getChildren(openSection!.id);
+          // Now getChildren should include the embed children
+          const children = getChildren(openSection!.id);
 
-      // Should have 2 children (embeds pointing to the issues)
-      expect(children.length).toBe(2);
-      expect(children.every((c) => c.type === "embed")).toBe(true);
-      // Each embed should have a link_to
-      expect(children.every((c) => c.link_to)).toBe(true);
-    });
+          // Should have 2 children (embeds pointing to the issues)
+          expect(children.length).toBe(2);
+          expect(children.every((c) => c.type === "embed")).toBe(true);
+          // Each embed should have a link_to
+          expect(children.every((c) => c.link_to)).toBe(true);
+        } finally {
+          store.close();
+        }
+      }));
 
-    test("should deduplicate direct children and linked children", () => {
-      // This tests the UNION in getChildren - if a node is both
-      // a direct child AND matched by a query, it should only appear once
-      writeFileSync(
-        join(testDir, "board.md"),
-        `# Board
+    test("should deduplicate direct children and linked children", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        // This tests the UNION in getChildren - if a node is both
+        // a direct child AND matched by a query, it should only appear once
+        writeFileSync(
+          join(vaultDir, "board.md"),
+          `# Board
 
 ## Open add="status:todo"
 
 - [ ] Direct task
 `,
-      );
+        );
 
-      store = new MemoryStore(testDir);
-      setDb(store.getDatabase());
+        const store = new MemoryStore(vaultDir);
+        setDb(store.getDatabase());
 
-      const allNodes = store.getAllNodes();
-      const openSection = allNodes.find(
-        (n) => n.type === "section" && n.rules?.add === "status:todo",
-      );
-      expect(openSection).toBeDefined();
+        try {
+          const allNodes = store.getAllNodes();
+          const openSection = allNodes.find(
+            (n) => n.type === "section" && n.rules?.add === "status:todo",
+          );
+          expect(openSection).toBeDefined();
 
-      // Evaluate rules - the direct task matches "status:todo"
-      evaluateNodeRules(openSection!.id);
+          // Evaluate rules - the direct task matches "status:todo"
+          evaluateNodeRules(openSection!.id);
 
-      // getChildren should return the task only once
-      const children = getChildren(openSection!.id);
-      expect(children.length).toBe(1);
-    });
+          // getChildren should return the task only once
+          const children = getChildren(openSection!.id);
+          expect(children.length).toBe(1);
+        } finally {
+          store.close();
+        }
+      }));
   });
 
-  describe.serial("incremental updates", () => {
-    test("should update links when task status changes", () => {
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        `# Tasks
+  describe("incremental updates", () => {
+    test("should update links when task status changes", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, "tasks.md"),
+          `# Tasks
 
 - [ ] Task A @tag
 - [ ] Task B @tag
 `,
-      );
+        );
 
-      writeFileSync(
-        join(testDir, "board.md"),
-        `# Board
+        writeFileSync(
+          join(vaultDir, "board.md"),
+          `# Board
 
 ## Todo add="@tag status:todo"
 
 ## Done add="@tag status:done"
 `,
-      );
+        );
 
-      store = new MemoryStore(testDir);
-      setDb(store.getDatabase());
-      for (const _ of evaluateAllRules()) {
-        /* exhaust generator */
-      }
+        const store = new MemoryStore(vaultDir);
+        setDb(store.getDatabase());
 
-      // Check initial state - both tasks in Todo
-      const allNodes = store.getAllNodes();
-      const todoSection = allNodes.find(
-        (n) => n.type === "section" && n.rules?.add === "@tag status:todo",
-      );
-      const doneSection = allNodes.find(
-        (n) => n.type === "section" && n.rules?.add === "@tag status:done",
-      );
+        try {
+          for (const _ of evaluateAllRules()) {
+            /* exhaust generator */
+          }
 
-      expect(todoSection).toBeDefined();
-      expect(doneSection).toBeDefined();
+          // Check initial state - both tasks in Todo
+          const allNodes = store.getAllNodes();
+          const todoSection = allNodes.find(
+            (n) => n.type === "section" && n.rules?.add === "@tag status:todo",
+          );
+          const doneSection = allNodes.find(
+            (n) => n.type === "section" && n.rules?.add === "@tag status:done",
+          );
 
-      let todoChildren = getChildren(todoSection!.id);
-      let doneChildren = getChildren(doneSection!.id);
+          expect(todoSection).toBeDefined();
+          expect(doneSection).toBeDefined();
 
-      expect(todoChildren.length).toBe(2);
-      expect(doneChildren.length).toBe(0);
+          let todoChildren = getChildren(todoSection!.id);
+          let doneChildren = getChildren(doneSection!.id);
 
-      // Mark Task A as done
-      const taskA = allNodes.find(
-        (n) => n.type === "task" && n.content?.includes("Task A"),
-      );
-      expect(taskA).toBeDefined();
+          expect(todoChildren.length).toBe(2);
+          expect(doneChildren.length).toBe(0);
 
-      store.updateNode(taskA!.id, { task_status: "done", task_mark: "x" });
+          // Mark Task A as done
+          const taskA = allNodes.find(
+            (n) => n.type === "task" && n.content?.includes("Task A"),
+          );
+          expect(taskA).toBeDefined();
 
-      // Re-evaluate rules (simulating what onNodeChanged does)
-      for (const _ of evaluateAllRules()) {
-        /* exhaust generator */
-      }
+          store.updateNode(taskA!.id, { task_status: "done", task_mark: "x" });
 
-      // Check updated state
-      todoChildren = getChildren(todoSection!.id);
-      doneChildren = getChildren(doneSection!.id);
+          // Re-evaluate rules (simulating what onNodeChanged does)
+          for (const _ of evaluateAllRules()) {
+            /* exhaust generator */
+          }
 
-      expect(todoChildren.length).toBe(1);
-      expect(doneChildren.length).toBe(1);
-    });
+          // Check updated state
+          todoChildren = getChildren(todoSection!.id);
+          doneChildren = getChildren(doneSection!.id);
+
+          expect(todoChildren.length).toBe(1);
+          expect(doneChildren.length).toBe(1);
+        } finally {
+          store.close();
+        }
+      }));
   });
 
   describe.serial("getChildCountsBatch with computed links", () => {

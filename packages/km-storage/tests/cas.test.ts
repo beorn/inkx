@@ -4,10 +4,9 @@
  * Tests for cas.ts functions.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "fs";
+import { describe, test, expect } from "bun:test";
+import { existsSync } from "fs";
 import { join } from "path";
-import { setKmDir } from "../src/emit.ts";
 import {
   getBlobsPath,
   hashContent,
@@ -18,178 +17,181 @@ import {
   storeContentAuto,
   loadContentAuto,
 } from "../src/cas.ts";
+import { withTestEnvSync } from "./test-utils.ts";
 
-const TEST_DIR = join("/tmp", "kmtest-cas");
-const KM_DIR = join(TEST_DIR, ".km");
-
-describe.serial("cas.ts", () => {
-  beforeEach(() => {
-    // Clean up and create test directory structure
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(KM_DIR, { recursive: true });
-    setKmDir(KM_DIR);
+describe("cas.ts", () => {
+  describe("getBlobsPath", () => {
+    test("returns path to blobs directory", () =>
+      withTestEnvSync(({ kmDir }) => {
+        const path = getBlobsPath();
+        expect(path).toBe(join(kmDir, "blobs"));
+      }));
   });
 
-  afterEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
+  describe("hashContent", () => {
+    test("returns SHA-256 hash of content", () =>
+      withTestEnvSync(() => {
+        const hash = hashContent("hello world");
+        // Known SHA-256 hash of "hello world"
+        expect(hash).toBe(
+          "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",
+        );
+      }));
+
+    test("different content produces different hashes", () =>
+      withTestEnvSync(() => {
+        const hash1 = hashContent("content 1");
+        const hash2 = hashContent("content 2");
+        expect(hash1).not.toBe(hash2);
+      }));
+
+    test("same content produces same hash", () =>
+      withTestEnvSync(() => {
+        const hash1 = hashContent("same content");
+        const hash2 = hashContent("same content");
+        expect(hash1).toBe(hash2);
+      }));
   });
 
-  describe.serial("getBlobsPath", () => {
-    test("returns path to blobs directory", () => {
-      const path = getBlobsPath();
-      expect(path).toBe(join(KM_DIR, "blobs"));
-    });
-  });
+  describe("storeContent / loadContent", () => {
+    test("stores and retrieves content by hash", () =>
+      withTestEnvSync(() => {
+        const content = "test content to store";
+        const hash = storeContent(content);
 
-  describe.serial("hashContent", () => {
-    test("returns SHA-256 hash of content", () => {
-      const hash = hashContent("hello world");
-      // Known SHA-256 hash of "hello world"
-      expect(hash).toBe(
-        "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",
-      );
-    });
+        const retrieved = loadContent(hash);
+        expect(retrieved).toBe(content);
+      }));
 
-    test("different content produces different hashes", () => {
-      const hash1 = hashContent("content 1");
-      const hash2 = hashContent("content 2");
-      expect(hash1).not.toBe(hash2);
-    });
+    test("creates sharded directory structure", () =>
+      withTestEnvSync(() => {
+        const content = "test content";
+        const hash = storeContent(content);
 
-    test("same content produces same hash", () => {
-      const hash1 = hashContent("same content");
-      const hash2 = hashContent("same content");
-      expect(hash1).toBe(hash2);
-    });
-  });
+        // Hash should be stored at blobs/XX/rest-of-hash
+        const prefix = hash.slice(0, 2);
+        const blobDir = join(getBlobsPath(), prefix);
+        expect(existsSync(blobDir)).toBe(true);
+      }));
 
-  describe.serial("storeContent / loadContent", () => {
-    test("stores and retrieves content by hash", () => {
-      const content = "test content to store";
-      const hash = storeContent(content);
+    test("deduplicates identical content", () =>
+      withTestEnvSync(() => {
+        const content = "duplicate content";
+        const hash1 = storeContent(content);
+        const hash2 = storeContent(content);
 
-      const retrieved = loadContent(hash);
-      expect(retrieved).toBe(content);
-    });
+        expect(hash1).toBe(hash2);
+      }));
 
-    test("creates sharded directory structure", () => {
-      const content = "test content";
-      const hash = storeContent(content);
-
-      // Hash should be stored at blobs/XX/rest-of-hash
-      const prefix = hash.slice(0, 2);
-      const blobDir = join(getBlobsPath(), prefix);
-      expect(existsSync(blobDir)).toBe(true);
-    });
-
-    test("deduplicates identical content", () => {
-      const content = "duplicate content";
-      const hash1 = storeContent(content);
-      const hash2 = storeContent(content);
-
-      expect(hash1).toBe(hash2);
-    });
-
-    test("loadContent returns null for non-existent hash", () => {
-      const result = loadContent(
-        "0000000000000000000000000000000000000000000000000000000000000000",
-      );
-      expect(result).toBeNull();
-    });
-  });
-
-  describe.serial("hasContent", () => {
-    test("returns true when content exists", () => {
-      const content = "stored content";
-      const hash = storeContent(content);
-
-      expect(hasContent(hash)).toBe(true);
-    });
-
-    test("returns false when content doesn't exist", () => {
-      expect(
-        hasContent(
+    test("loadContent returns null for non-existent hash", () =>
+      withTestEnvSync(() => {
+        const result = loadContent(
           "0000000000000000000000000000000000000000000000000000000000000000",
-        ),
-      ).toBe(false);
-    });
+        );
+        expect(result).toBeNull();
+      }));
   });
 
-  describe.serial("shouldStoreInCas", () => {
-    test("returns false for small content", () => {
-      const smallContent = "small";
-      expect(shouldStoreInCas(smallContent)).toBe(false);
-    });
+  describe("hasContent", () => {
+    test("returns true when content exists", () =>
+      withTestEnvSync(() => {
+        const content = "stored content";
+        const hash = storeContent(content);
 
-    test("returns true for large content (>4KB)", () => {
-      const largeContent = "x".repeat(5000);
-      expect(shouldStoreInCas(largeContent)).toBe(true);
-    });
+        expect(hasContent(hash)).toBe(true);
+      }));
 
-    test("handles exactly threshold size", () => {
-      const exactContent = "x".repeat(4096);
-      expect(shouldStoreInCas(exactContent)).toBe(false);
-
-      const overContent = "x".repeat(4097);
-      expect(shouldStoreInCas(overContent)).toBe(true);
-    });
+    test("returns false when content doesn't exist", () =>
+      withTestEnvSync(() => {
+        expect(
+          hasContent(
+            "0000000000000000000000000000000000000000000000000000000000000000",
+          ),
+        ).toBe(false);
+      }));
   });
 
-  describe.serial("storeContentAuto", () => {
-    test("stores small content inline", () => {
-      const smallContent = "small content";
-      const result = storeContentAuto(smallContent);
+  describe("shouldStoreInCas", () => {
+    test("returns false for small content", () =>
+      withTestEnvSync(() => {
+        const smallContent = "small";
+        expect(shouldStoreInCas(smallContent)).toBe(false);
+      }));
 
-      expect(result.content).toBe(smallContent);
-      expect(result.content_hash).toBeNull();
-    });
+    test("returns true for large content (>4KB)", () =>
+      withTestEnvSync(() => {
+        const largeContent = "x".repeat(5000);
+        expect(shouldStoreInCas(largeContent)).toBe(true);
+      }));
 
-    test("stores large content in CAS", () => {
-      const largeContent = "x".repeat(5000);
-      const result = storeContentAuto(largeContent);
+    test("handles exactly threshold size", () =>
+      withTestEnvSync(() => {
+        const exactContent = "x".repeat(4096);
+        expect(shouldStoreInCas(exactContent)).toBe(false);
 
-      expect(result.content).toBeNull();
-      expect(result.content_hash).not.toBeNull();
-      expect(typeof result.content_hash).toBe("string");
-    });
+        const overContent = "x".repeat(4097);
+        expect(shouldStoreInCas(overContent)).toBe(true);
+      }));
   });
 
-  describe.serial("loadContentAuto", () => {
-    test("returns inline content when available", () => {
-      const content = "inline content";
-      const result = loadContentAuto(content, null);
-      expect(result).toBe(content);
-    });
+  describe("storeContentAuto", () => {
+    test("stores small content inline", () =>
+      withTestEnvSync(() => {
+        const smallContent = "small content";
+        const result = storeContentAuto(smallContent);
 
-    test("loads from CAS when hash provided", () => {
-      const content = "cas content";
-      const hash = storeContent(content);
+        expect(result.content).toBe(smallContent);
+        expect(result.content_hash).toBeNull();
+      }));
 
-      const result = loadContentAuto(null, hash);
-      expect(result).toBe(content);
-    });
+    test("stores large content in CAS", () =>
+      withTestEnvSync(() => {
+        const largeContent = "x".repeat(5000);
+        const result = storeContentAuto(largeContent);
 
-    test("prefers inline content over hash", () => {
-      const inlineContent = "inline";
-      const casContent = "from cas";
-      const hash = storeContent(casContent);
+        expect(result.content).toBeNull();
+        expect(result.content_hash).not.toBeNull();
+        expect(typeof result.content_hash).toBe("string");
+      }));
+  });
 
-      const result = loadContentAuto(inlineContent, hash);
-      expect(result).toBe(inlineContent);
-    });
+  describe("loadContentAuto", () => {
+    test("returns inline content when available", () =>
+      withTestEnvSync(() => {
+        const content = "inline content";
+        const result = loadContentAuto(content, null);
+        expect(result).toBe(content);
+      }));
 
-    test("returns null when neither available", () => {
-      const result = loadContentAuto(null, null);
-      expect(result).toBeNull();
-    });
+    test("loads from CAS when hash provided", () =>
+      withTestEnvSync(() => {
+        const content = "cas content";
+        const hash = storeContent(content);
 
-    test("handles undefined values", () => {
-      const result = loadContentAuto(undefined, undefined);
-      expect(result).toBeNull();
-    });
+        const result = loadContentAuto(null, hash);
+        expect(result).toBe(content);
+      }));
+
+    test("prefers inline content over hash", () =>
+      withTestEnvSync(() => {
+        const inlineContent = "inline";
+        const casContent = "from cas";
+        const hash = storeContent(casContent);
+
+        const result = loadContentAuto(inlineContent, hash);
+        expect(result).toBe(inlineContent);
+      }));
+
+    test("returns null when neither available", () =>
+      withTestEnvSync(() => {
+        const result = loadContentAuto(null, null);
+        expect(result).toBeNull();
+      }));
+
+    test("handles undefined values", () =>
+      withTestEnvSync(() => {
+        const result = loadContentAuto(undefined, undefined);
+        expect(result).toBeNull();
+      }));
   });
 });

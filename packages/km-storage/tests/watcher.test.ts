@@ -4,143 +4,242 @@
  * Tests for createWatcher factory and Service interface implementation.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { describe, test, expect } from "bun:test";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
-import { createWatcher, closeDb } from "../src/index.ts";
+import { createWatcher } from "../src/index.ts";
+import { withTestEnv } from "./test-utils.ts";
 
-const TEST_DIR = "/tmp/kmtest-watcher";
+describe("createWatcher", () => {
+  test("creates watcher with stopped status", () =>
+    withTestEnv(async ({ testDir }) => {
+      const rootDir = join(testDir, "vault");
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
 
-describe.serial("createWatcher", () => {
-  const ROOT_DIR = join(TEST_DIR, "watcher-root");
-  const KM_DIR = join(ROOT_DIR, ".km");
-
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(KM_DIR, { recursive: true });
-
-    writeFileSync(
-      join(ROOT_DIR, "tasks.md"),
-      `# Tasks
+      writeFileSync(
+        join(rootDir, "tasks.md"),
+        `# Tasks
 
 - [ ] Open task
 - [x] Done task
 `,
-    );
-  });
+      );
 
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
+      const watcher = createWatcher(rootDir);
 
-  test("creates watcher with stopped status", () => {
-    const watcher = createWatcher(ROOT_DIR);
+      expect(watcher.status).toBe("stopped");
+    }));
 
-    expect(watcher.status).toBe("stopped");
-  });
+  test("start transitions to running", () =>
+    withTestEnv(async ({ testDir }) => {
+      const rootDir = join(testDir, "vault");
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
 
-  test("start transitions to running", async () => {
-    const watcher = createWatcher(ROOT_DIR);
+      writeFileSync(
+        join(rootDir, "tasks.md"),
+        `# Tasks
 
-    expect(watcher.status).toBe("stopped");
+- [ ] Open task
+- [x] Done task
+`,
+      );
 
-    await watcher.start();
+      const watcher = createWatcher(rootDir);
 
-    expect(watcher.status).toBe("running");
+      expect(watcher.status).toBe("stopped");
 
-    await watcher.stop();
-  });
+      await watcher.start();
 
-  test("stop transitions to stopped", async () => {
-    const watcher = createWatcher(ROOT_DIR);
+      expect(watcher.status).toBe("running");
 
-    await watcher.start();
-    expect(watcher.status).toBe("running");
+      await watcher.stop();
+    }));
 
-    await watcher.stop();
-    expect(watcher.status).toBe("stopped");
-  });
+  test("stop transitions to stopped", () =>
+    withTestEnv(async ({ testDir }) => {
+      const rootDir = join(testDir, "vault");
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
 
-  test("start is idempotent when running", async () => {
-    const watcher = createWatcher(ROOT_DIR);
+      writeFileSync(
+        join(rootDir, "tasks.md"),
+        `# Tasks
 
-    await watcher.start();
-    expect(watcher.status).toBe("running");
+- [ ] Open task
+- [x] Done task
+`,
+      );
 
-    // Second start should be no-op
-    await watcher.start();
-    expect(watcher.status).toBe("running");
-
-    await watcher.stop();
-  });
-
-  test("stop is idempotent when stopped", async () => {
-    const watcher = createWatcher(ROOT_DIR);
-
-    expect(watcher.status).toBe("stopped");
-
-    // Stop when already stopped should be no-op
-    await watcher.stop();
-    expect(watcher.status).toBe("stopped");
-  });
-
-  test("on/off subscribe and unsubscribe handlers", async () => {
-    const watcher = createWatcher(ROOT_DIR);
-    const calls: string[] = [];
-
-    const handler = () => {
-      calls.push("ready");
-    };
-
-    watcher.on("ready", handler);
-    watcher.off("ready", handler);
-
-    // Handler should not be called after unsubscribing
-    await watcher.start();
-    await watcher.stop();
-
-    // Note: ready event may or may not fire depending on timing
-    // The key test is that off() doesn't throw
-  });
-
-  test("Symbol.asyncDispose calls stop", async () => {
-    const watcher = createWatcher(ROOT_DIR);
-
-    await watcher.start();
-    expect(watcher.status).toBe("running");
-
-    await watcher[Symbol.asyncDispose]();
-    expect(watcher.status).toBe("stopped");
-  });
-
-  test("await using syntax calls stop automatically", async () => {
-    let watcherRef: Awaited<ReturnType<typeof createWatcher>>;
-
-    {
-      await using watcher = createWatcher(ROOT_DIR);
-      watcherRef = watcher;
+      const watcher = createWatcher(rootDir);
 
       await watcher.start();
       expect(watcher.status).toBe("running");
-    }
 
-    // Should be stopped after scope exit
-    expect(watcherRef.status).toBe("stopped");
-  });
+      await watcher.stop();
+      expect(watcher.status).toBe("stopped");
+    }));
 
-  test("accepts custom options", () => {
-    const watcher = createWatcher(ROOT_DIR, {
-      debounceFs: 1000,
-      debounceApply: 500,
-      conflictStrategy: "fs_wins",
-      useWorker: false,
-    });
+  test("start is idempotent when running", () =>
+    withTestEnv(async ({ testDir }) => {
+      const rootDir = join(testDir, "vault");
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
 
-    expect(watcher.status).toBe("stopped");
-  });
+      writeFileSync(
+        join(rootDir, "tasks.md"),
+        `# Tasks
+
+- [ ] Open task
+- [x] Done task
+`,
+      );
+
+      const watcher = createWatcher(rootDir);
+
+      await watcher.start();
+      expect(watcher.status).toBe("running");
+
+      // Second start should be no-op
+      await watcher.start();
+      expect(watcher.status).toBe("running");
+
+      await watcher.stop();
+    }));
+
+  test("stop is idempotent when stopped", () =>
+    withTestEnv(async ({ testDir }) => {
+      const rootDir = join(testDir, "vault");
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
+
+      writeFileSync(
+        join(rootDir, "tasks.md"),
+        `# Tasks
+
+- [ ] Open task
+- [x] Done task
+`,
+      );
+
+      const watcher = createWatcher(rootDir);
+
+      expect(watcher.status).toBe("stopped");
+
+      // Stop when already stopped should be no-op
+      await watcher.stop();
+      expect(watcher.status).toBe("stopped");
+    }));
+
+  test("on/off subscribe and unsubscribe handlers", () =>
+    withTestEnv(async ({ testDir }) => {
+      const rootDir = join(testDir, "vault");
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
+
+      writeFileSync(
+        join(rootDir, "tasks.md"),
+        `# Tasks
+
+- [ ] Open task
+- [x] Done task
+`,
+      );
+
+      const watcher = createWatcher(rootDir);
+      const calls: string[] = [];
+
+      const handler = () => {
+        calls.push("ready");
+      };
+
+      watcher.on("ready", handler);
+      watcher.off("ready", handler);
+
+      // Handler should not be called after unsubscribing
+      await watcher.start();
+      await watcher.stop();
+
+      // Note: ready event may or may not fire depending on timing
+      // The key test is that off() doesn't throw
+    }));
+
+  test("Symbol.asyncDispose calls stop", () =>
+    withTestEnv(async ({ testDir }) => {
+      const rootDir = join(testDir, "vault");
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
+
+      writeFileSync(
+        join(rootDir, "tasks.md"),
+        `# Tasks
+
+- [ ] Open task
+- [x] Done task
+`,
+      );
+
+      const watcher = createWatcher(rootDir);
+
+      await watcher.start();
+      expect(watcher.status).toBe("running");
+
+      await watcher[Symbol.asyncDispose]();
+      expect(watcher.status).toBe("stopped");
+    }));
+
+  test("await using syntax calls stop automatically", () =>
+    withTestEnv(async ({ testDir }) => {
+      const rootDir = join(testDir, "vault");
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
+
+      writeFileSync(
+        join(rootDir, "tasks.md"),
+        `# Tasks
+
+- [ ] Open task
+- [x] Done task
+`,
+      );
+
+      let watcherRef: Awaited<ReturnType<typeof createWatcher>>;
+
+      {
+        await using watcher = createWatcher(rootDir);
+        watcherRef = watcher;
+
+        await watcher.start();
+        expect(watcher.status).toBe("running");
+      }
+
+      // Should be stopped after scope exit
+      expect(watcherRef.status).toBe("stopped");
+    }));
+
+  test("accepts custom options", () =>
+    withTestEnv(async ({ testDir }) => {
+      const rootDir = join(testDir, "vault");
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
+
+      writeFileSync(
+        join(rootDir, "tasks.md"),
+        `# Tasks
+
+- [ ] Open task
+- [x] Done task
+`,
+      );
+
+      const watcher = createWatcher(rootDir, {
+        debounceFs: 1000,
+        debounceApply: 500,
+        conflictStrategy: "fs_wins",
+        useWorker: false,
+      });
+
+      expect(watcher.status).toBe("stopped");
+    }));
 });

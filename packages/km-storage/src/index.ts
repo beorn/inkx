@@ -83,9 +83,9 @@ export {
 export type { RebuildResult, SyncResult } from "./rebuild.ts";
 
 // Unified vault loading (the ONE function for loading vaults)
-export { loadVault, resolveLinksAsync } from "./vault-loader.ts";
+export { loadVault, resolveLinksAsync, parseDeferredAsync } from "./vault-loader.ts";
 
-export type { LoadResult, LoadOptions, PendingLink } from "./vault-loader.ts";
+export type { LoadResult, LoadOptions, PendingLink, DeferredFile } from "./vault-loader.ts";
 export type { LoadError as VaultLoaderError } from "./vault-loader.ts";
 
 // Vault domain object (preferred API)

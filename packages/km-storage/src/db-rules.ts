@@ -330,7 +330,9 @@ function buildFileAncestorCache(): Map<string, KNode | null> {
   const cache = new Map<string, KNode | null>();
 
   // Get all file nodes first
-  const fileRows = db.query("SELECT * FROM nodes WHERE type = 'file'").all() as Record<string, unknown>[];
+  const fileRows = db
+    .query("SELECT * FROM nodes WHERE type = 'file'")
+    .all() as Record<string, unknown>[];
   const fileNodes = new Map<string, KNode>();
   for (const row of fileRows) {
     const node = rowToNode(row);
@@ -339,7 +341,9 @@ function buildFileAncestorCache(): Map<string, KNode | null> {
   }
 
   // Get all non-file nodes and build parent chain
-  const nodeRows = db.query("SELECT id, parent_id FROM nodes WHERE type != 'file'").all() as { id: string; parent_id: string | null }[];
+  const nodeRows = db
+    .query("SELECT id, parent_id FROM nodes WHERE type != 'file'")
+    .all() as { id: string; parent_id: string | null }[];
 
   // Build parent lookup
   const parentMap = new Map<string, string | null>();
@@ -377,9 +381,11 @@ function buildFileAncestorCache(): Map<string, KNode | null> {
 
     // If we found a cached result during walk, propagate it
     if (currentId && cache.has(currentId) && !cache.has(row.id)) {
-      const result = cache.get(currentId)!;
-      for (const id of visited) {
-        cache.set(id, result);
+      const result = cache.get(currentId);
+      if (result !== undefined) {
+        for (const id of visited) {
+          cache.set(id, result);
+        }
       }
     }
   }

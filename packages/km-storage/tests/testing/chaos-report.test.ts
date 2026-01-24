@@ -4,13 +4,12 @@
  * Tests for chaos test report generation and formatting.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { describe, test, expect } from "bun:test";
+import { writeFileSync } from "fs";
 import { join } from "path";
 import { runGenerator } from "@km/core";
 import {
   createVault,
-  closeDb,
   createChaosHooks,
   createSeededRandom,
   createChaosFakeVault,
@@ -20,8 +19,7 @@ import {
   formatChaosReportMarkdown,
 } from "../../src/index.ts";
 import type { ChaosReport, ChaosScenario } from "../../src/index.ts";
-
-const TEST_DIR = "/tmp/kmtest-chaos-report";
+import { withTestEnv } from "../test-utils.ts";
 
 describe("generateChaosReport", () => {
   test("generates report with ChaosHooks", () => {
@@ -321,70 +319,57 @@ describe("formatChaosReportMarkdown", () => {
   });
 });
 
-describe.serial("integration with real vault", () => {
-  const ROOT_DIR = join(TEST_DIR, "vault-root");
-
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(ROOT_DIR, { recursive: true });
-
-    writeFileSync(
-      join(ROOT_DIR, "tasks.md"),
-      `# Tasks
+describe("integration with real vault", () => {
+  test("generates report from real vault chaos test", () =>
+    withTestEnv(async ({ vaultDir }) => {
+      writeFileSync(
+        join(vaultDir, "tasks.md"),
+        `# Tasks
 
 - [ ] Task one
 - [ ] Task two
 `,
-    );
-  });
+      );
 
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
+      const random = createSeededRandom(99999);
+      const hooks = createChaosHooks({
+        mutationDropRate: 0.5,
+        random,
+      });
 
-  test("generates report from real vault chaos test", () => {
-    const random = createSeededRandom(99999);
-    const hooks = createChaosHooks({
-      mutationDropRate: 0.5,
-      random,
-    });
+      const vault = runGenerator(createVault(vaultDir, { hooks }));
 
-    const vault = runGenerator(createVault(ROOT_DIR, { hooks }));
-
-    // Perform some mutations that may be dropped
-    const tasks = vault.getAllTasks();
-    for (const task of tasks) {
       try {
-        vault.updateNode(task.id, { task_status: "done" });
-      } catch {
-        // Expected for dropped mutations
+        // Perform some mutations that may be dropped
+        const tasks = vault.getAllTasks();
+        for (const task of tasks) {
+          try {
+            vault.updateNode(task.id, { task_status: "done" });
+          } catch {
+            // Expected for dropped mutations
+          }
+        }
+
+        const report = generateChaosReport({
+          scenario: {
+            name: "real-vault-chaos",
+            seed: 99999,
+            config: { mutationDropRate: 0.5 },
+          },
+          hooks,
+          vault,
+          passed: true,
+          durationMs: 100,
+        });
+
+        expect(report.chaosStats.totalMutations).toBeGreaterThan(0);
+        expect(report.stateSnapshot.nodeCount).toBeGreaterThan(0);
+
+        // Verify we can format it
+        const text = formatChaosReport(report);
+        expect(text).toContain("real-vault-chaos");
+      } finally {
+        vault.close();
       }
-    }
-
-    const report = generateChaosReport({
-      scenario: {
-        name: "real-vault-chaos",
-        seed: 99999,
-        config: { mutationDropRate: 0.5 },
-      },
-      hooks,
-      vault,
-      passed: true,
-      durationMs: 100,
-    });
-
-    expect(report.chaosStats.totalMutations).toBeGreaterThan(0);
-    expect(report.stateSnapshot.nodeCount).toBeGreaterThan(0);
-
-    // Verify we can format it
-    const text = formatChaosReport(report);
-    expect(text).toContain("real-vault-chaos");
-
-    vault.close();
-  });
+    }));
 });

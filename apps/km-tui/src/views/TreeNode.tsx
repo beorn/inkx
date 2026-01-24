@@ -13,6 +13,7 @@ import {
   getNodeDisplayName,
   getParentContext as getParentContextFromState,
 } from "../state.ts";
+import { extractBody } from "@km/tree";
 import { renderRich } from "../text/index.ts";
 import { makeSelectionKey } from "../types.ts";
 import {
@@ -437,23 +438,41 @@ function NodeChildren({
 }: NodeChildrenProps): React.ReactElement {
   const indent = " ".repeat(depth);
 
+  // Apply recursive body extraction: separate body content from structural items
+  const { body: bodyChildren, items: structuralChildren } =
+    extractBody(children);
+
+  // Determine rendering order:
+  // - If structural items exist, body items are dimmed (non-selectable)
+  // - If no structural items, all items are treated normally
+  const hasStructural = structuralChildren.length > 0;
+
+  // Build ordered children list with body flag
+  const orderedChildren = hasStructural
+    ? [
+        ...bodyChildren.map((c) => ({ node: c, isBody: true })),
+        ...structuralChildren.map((c) => ({ node: c, isBody: false })),
+      ]
+    : children.map((c) => ({ node: c, isBody: false }));
+
   return (
     <Box flexDirection="column">
-      {children.map((child, i) => {
+      {orderedChildren.map((item, i) => {
         const childSubIndex = startSubIndex + i;
+        // Body items are never selected in outline mode
         const childSelected =
-          inOutlineMode && currentSubIndex === childSubIndex;
+          inOutlineMode && currentSubIndex === childSubIndex && !item.isBody;
 
         return (
           <TreeNode
-            key={child.id}
-            node={child}
+            key={item.node.id}
+            node={item.node}
             depth={depth + 1}
             isSelected={childSelected}
             colIndex={colIndex}
             cardIndex={cardIndex}
             subIndex={childSubIndex}
-            dimInactiveChildren={dimInactiveChildren}
+            dimInactiveChildren={dimInactiveChildren || item.isBody}
             getChildren={getChildren}
             getParentContext={getParentContext}
             getBoardPills={getBoardPills}

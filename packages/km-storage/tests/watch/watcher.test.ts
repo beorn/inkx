@@ -4,8 +4,8 @@
  * Tests for watcher.ts - directory scanning and symlink detection.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync, symlinkSync } from "fs";
+import { describe, test, expect } from "bun:test";
+import { mkdirSync, writeFileSync, symlinkSync } from "fs";
 import { join } from "path";
 import {
   scanDirectory,
@@ -14,187 +14,158 @@ import {
   normalizePath,
   detectCaseCollisions,
 } from "../../src/watch/watcher.ts";
-
-const TEST_DIR = join("/tmp", "kmtest-watcher");
+import { withTestEnvSync } from "../test-utils.ts";
 
 describe("scanDirectory", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
+  test("scans files and directories", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      writeFileSync(join(vaultDir, "file1.md"), "# File 1");
+      writeFileSync(join(vaultDir, "file2.md"), "# File 2");
+      mkdirSync(join(vaultDir, "subdir"));
 
-  afterEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
+      const entries = scanDirectory(vaultDir);
 
-  test("scans files and directories", () => {
-    writeFileSync(join(TEST_DIR, "file1.md"), "# File 1");
-    writeFileSync(join(TEST_DIR, "file2.md"), "# File 2");
-    mkdirSync(join(TEST_DIR, "subdir"));
+      expect(entries).toHaveLength(3);
+      expect(entries.map((e) => e.path)).toContain(join(vaultDir, "file1.md"));
+      expect(entries.map((e) => e.path)).toContain(join(vaultDir, "file2.md"));
+      expect(entries.map((e) => e.path)).toContain(join(vaultDir, "subdir"));
+    }));
 
-    const entries = scanDirectory(TEST_DIR);
+  test("skips hidden files", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      writeFileSync(join(vaultDir, "visible.md"), "# Visible");
+      writeFileSync(join(vaultDir, ".hidden"), "hidden content");
+      mkdirSync(join(vaultDir, ".hidden-dir"));
 
-    expect(entries).toHaveLength(3);
-    expect(entries.map((e) => e.path)).toContain(join(TEST_DIR, "file1.md"));
-    expect(entries.map((e) => e.path)).toContain(join(TEST_DIR, "file2.md"));
-    expect(entries.map((e) => e.path)).toContain(join(TEST_DIR, "subdir"));
-  });
+      const entries = scanDirectory(vaultDir);
 
-  test("skips hidden files", () => {
-    writeFileSync(join(TEST_DIR, "visible.md"), "# Visible");
-    writeFileSync(join(TEST_DIR, ".hidden"), "hidden content");
-    mkdirSync(join(TEST_DIR, ".hidden-dir"));
+      expect(entries).toHaveLength(1);
+      expect(entries[0]?.path).toBe(join(vaultDir, "visible.md"));
+    }));
 
-    const entries = scanDirectory(TEST_DIR);
+  test("skips symlinks to avoid circular references", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      writeFileSync(join(vaultDir, "real-file.md"), "# Real file");
+      mkdirSync(join(vaultDir, "real-dir"));
 
-    expect(entries).toHaveLength(1);
-    expect(entries[0]?.path).toBe(join(TEST_DIR, "visible.md"));
-  });
+      // Create symlink to file
+      symlinkSync(
+        join(vaultDir, "real-file.md"),
+        join(vaultDir, "link-to-file.md"),
+      );
 
-  test("skips symlinks to avoid circular references", () => {
-    writeFileSync(join(TEST_DIR, "real-file.md"), "# Real file");
-    mkdirSync(join(TEST_DIR, "real-dir"));
+      // Create symlink to directory
+      symlinkSync(join(vaultDir, "real-dir"), join(vaultDir, "link-to-dir"));
 
-    // Create symlink to file
-    symlinkSync(
-      join(TEST_DIR, "real-file.md"),
-      join(TEST_DIR, "link-to-file.md"),
-    );
+      // Create circular symlink (points to parent)
+      symlinkSync(vaultDir, join(vaultDir, "circular-link"));
 
-    // Create symlink to directory
-    symlinkSync(join(TEST_DIR, "real-dir"), join(TEST_DIR, "link-to-dir"));
+      const entries = scanDirectory(vaultDir);
 
-    // Create circular symlink (points to parent)
-    symlinkSync(TEST_DIR, join(TEST_DIR, "circular-link"));
+      // Should only contain real file and real directory, not symlinks
+      expect(entries).toHaveLength(2);
+      const paths = entries.map((e) => e.path);
+      expect(paths).toContain(join(vaultDir, "real-file.md"));
+      expect(paths).toContain(join(vaultDir, "real-dir"));
+      expect(paths).not.toContain(join(vaultDir, "link-to-file.md"));
+      expect(paths).not.toContain(join(vaultDir, "link-to-dir"));
+      expect(paths).not.toContain(join(vaultDir, "circular-link"));
+    }));
 
-    const entries = scanDirectory(TEST_DIR);
-
-    // Should only contain real file and real directory, not symlinks
-    expect(entries).toHaveLength(2);
-    const paths = entries.map((e) => e.path);
-    expect(paths).toContain(join(TEST_DIR, "real-file.md"));
-    expect(paths).toContain(join(TEST_DIR, "real-dir"));
-    expect(paths).not.toContain(join(TEST_DIR, "link-to-file.md"));
-    expect(paths).not.toContain(join(TEST_DIR, "link-to-dir"));
-    expect(paths).not.toContain(join(TEST_DIR, "circular-link"));
-  });
-
-  test("returns empty array for nonexistent directory", () => {
-    const entries = scanDirectory(join(TEST_DIR, "nonexistent"));
-    expect(entries).toEqual([]);
-  });
+  test("returns empty array for nonexistent directory", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      const entries = scanDirectory(join(vaultDir, "nonexistent"));
+      expect(entries).toEqual([]);
+    }));
 });
 
 describe("scanSymlinks", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
+  test("detects symlinks and their targets", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      writeFileSync(join(vaultDir, "real-file.md"), "# Real file");
+      symlinkSync(
+        join(vaultDir, "real-file.md"),
+        join(vaultDir, "link-to-file.md"),
+      );
 
-  afterEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
+      const symlinks = scanSymlinks(vaultDir);
 
-  test("detects symlinks and their targets", () => {
-    writeFileSync(join(TEST_DIR, "real-file.md"), "# Real file");
-    symlinkSync(
-      join(TEST_DIR, "real-file.md"),
-      join(TEST_DIR, "link-to-file.md"),
-    );
+      expect(symlinks).toHaveLength(1);
+      expect(symlinks[0]?.path).toBe(join(vaultDir, "link-to-file.md"));
+      expect(symlinks[0]?.target).toBe(join(vaultDir, "real-file.md"));
+    }));
 
-    const symlinks = scanSymlinks(TEST_DIR);
+  test("detects broken symlinks", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      // Create symlink to nonexistent target
+      symlinkSync(join(vaultDir, "nonexistent"), join(vaultDir, "broken-link"));
 
-    expect(symlinks).toHaveLength(1);
-    expect(symlinks[0]?.path).toBe(join(TEST_DIR, "link-to-file.md"));
-    expect(symlinks[0]?.target).toBe(join(TEST_DIR, "real-file.md"));
-  });
+      const symlinks = scanSymlinks(vaultDir);
 
-  test("detects broken symlinks", () => {
-    // Create symlink to nonexistent target
-    symlinkSync(join(TEST_DIR, "nonexistent"), join(TEST_DIR, "broken-link"));
+      expect(symlinks).toHaveLength(1);
+      expect(symlinks[0]?.path).toBe(join(vaultDir, "broken-link"));
+      expect(symlinks[0]?.target).toBe(join(vaultDir, "nonexistent"));
+    }));
 
-    const symlinks = scanSymlinks(TEST_DIR);
+  test("detects circular symlinks", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      symlinkSync(vaultDir, join(vaultDir, "circular"));
 
-    expect(symlinks).toHaveLength(1);
-    expect(symlinks[0]?.path).toBe(join(TEST_DIR, "broken-link"));
-    expect(symlinks[0]?.target).toBe(join(TEST_DIR, "nonexistent"));
-  });
+      const symlinks = scanSymlinks(vaultDir);
 
-  test("detects circular symlinks", () => {
-    symlinkSync(TEST_DIR, join(TEST_DIR, "circular"));
+      expect(symlinks).toHaveLength(1);
+      expect(symlinks[0]?.path).toBe(join(vaultDir, "circular"));
+      expect(symlinks[0]?.target).toBe(vaultDir);
+    }));
 
-    const symlinks = scanSymlinks(TEST_DIR);
+  test("scans recursively when enabled", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      mkdirSync(join(vaultDir, "subdir"));
+      writeFileSync(join(vaultDir, "subdir", "file.md"), "# File");
+      symlinkSync(
+        join(vaultDir, "subdir", "file.md"),
+        join(vaultDir, "subdir", "link.md"),
+      );
 
-    expect(symlinks).toHaveLength(1);
-    expect(symlinks[0]?.path).toBe(join(TEST_DIR, "circular"));
-    expect(symlinks[0]?.target).toBe(TEST_DIR);
-  });
+      // Non-recursive: should not find symlink in subdir
+      const nonRecursive = scanSymlinks(vaultDir, undefined, false);
+      expect(nonRecursive).toHaveLength(0);
 
-  test("scans recursively when enabled", () => {
-    mkdirSync(join(TEST_DIR, "subdir"));
-    writeFileSync(join(TEST_DIR, "subdir", "file.md"), "# File");
-    symlinkSync(
-      join(TEST_DIR, "subdir", "file.md"),
-      join(TEST_DIR, "subdir", "link.md"),
-    );
+      // Recursive: should find symlink in subdir
+      const recursive = scanSymlinks(vaultDir, undefined, true);
+      expect(recursive).toHaveLength(1);
+      expect(recursive[0]?.path).toBe(join(vaultDir, "subdir", "link.md"));
+    }));
 
-    // Non-recursive: should not find symlink in subdir
-    const nonRecursive = scanSymlinks(TEST_DIR, undefined, false);
-    expect(nonRecursive).toHaveLength(0);
+  test("skips hidden symlinks", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      symlinkSync(vaultDir, join(vaultDir, ".hidden-link"));
+      symlinkSync(vaultDir, join(vaultDir, "visible-link"));
 
-    // Recursive: should find symlink in subdir
-    const recursive = scanSymlinks(TEST_DIR, undefined, true);
-    expect(recursive).toHaveLength(1);
-    expect(recursive[0]?.path).toBe(join(TEST_DIR, "subdir", "link.md"));
-  });
+      const symlinks = scanSymlinks(vaultDir);
 
-  test("skips hidden symlinks", () => {
-    symlinkSync(TEST_DIR, join(TEST_DIR, ".hidden-link"));
-    symlinkSync(TEST_DIR, join(TEST_DIR, "visible-link"));
+      expect(symlinks).toHaveLength(1);
+      expect(symlinks[0]?.path).toBe(join(vaultDir, "visible-link"));
+    }));
 
-    const symlinks = scanSymlinks(TEST_DIR);
+  test("returns empty array when no symlinks", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      writeFileSync(join(vaultDir, "file.md"), "# File");
+      mkdirSync(join(vaultDir, "dir"));
 
-    expect(symlinks).toHaveLength(1);
-    expect(symlinks[0]?.path).toBe(join(TEST_DIR, "visible-link"));
-  });
+      const symlinks = scanSymlinks(vaultDir);
 
-  test("returns empty array when no symlinks", () => {
-    writeFileSync(join(TEST_DIR, "file.md"), "# File");
-    mkdirSync(join(TEST_DIR, "dir"));
-
-    const symlinks = scanSymlinks(TEST_DIR);
-
-    expect(symlinks).toHaveLength(0);
-  });
+      expect(symlinks).toHaveLength(0);
+    }));
 });
 
 describe("Case Sensitivity", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
-
-  afterEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("detectCaseSensitivity returns boolean", () => {
-    // This test is environment-dependent but should always return a boolean
-    const result = detectCaseSensitivity(TEST_DIR);
-    expect(typeof result).toBe("boolean");
-  });
+  test("detectCaseSensitivity returns boolean", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      // This test is environment-dependent but should always return a boolean
+      const result = detectCaseSensitivity(vaultDir);
+      expect(typeof result).toBe("boolean");
+    }));
 
   test("normalizePath lowercases when case-insensitive", () => {
     expect(normalizePath("/Path/To/File.MD", false)).toBe("/path/to/file.md");
@@ -206,67 +177,71 @@ describe("Case Sensitivity", () => {
     expect(normalizePath("/path/to/file.md", true)).toBe("/path/to/file.md");
   });
 
-  test("detectCaseCollisions finds no collisions in normal case", () => {
-    writeFileSync(join(TEST_DIR, "file1.md"), "# File 1");
-    writeFileSync(join(TEST_DIR, "file2.md"), "# File 2");
+  test("detectCaseCollisions finds no collisions in normal case", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      writeFileSync(join(vaultDir, "file1.md"), "# File 1");
+      writeFileSync(join(vaultDir, "file2.md"), "# File 2");
 
-    const collisions = detectCaseCollisions(TEST_DIR);
+      const collisions = detectCaseCollisions(vaultDir);
 
-    expect(collisions).toHaveLength(0);
-  });
+      expect(collisions).toHaveLength(0);
+    }));
 
   // This test is only valid on case-sensitive filesystems (Linux)
   // On macOS/Windows, creating File.md and file.md will overwrite
-  test("detectCaseCollisions finds collisions on case-sensitive fs", () => {
-    const isCaseSensitive = detectCaseSensitivity(TEST_DIR);
+  test("detectCaseCollisions finds collisions on case-sensitive fs", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      const isCaseSensitive = detectCaseSensitivity(vaultDir);
 
-    if (isCaseSensitive) {
-      // Create files that differ only by case
-      writeFileSync(join(TEST_DIR, "File.md"), "# File");
-      writeFileSync(join(TEST_DIR, "file.md"), "# file");
+      if (isCaseSensitive) {
+        // Create files that differ only by case
+        writeFileSync(join(vaultDir, "File.md"), "# File");
+        writeFileSync(join(vaultDir, "file.md"), "# file");
 
-      const collisions = detectCaseCollisions(TEST_DIR);
+        const collisions = detectCaseCollisions(vaultDir);
 
-      expect(collisions).toHaveLength(1);
-      expect(collisions[0]?.paths).toHaveLength(2);
-      expect(collisions[0]?.paths).toContain(join(TEST_DIR, "File.md"));
-      expect(collisions[0]?.paths).toContain(join(TEST_DIR, "file.md"));
-    } else {
-      // On case-insensitive fs, we can't create case-colliding files
-      // Just verify the function handles empty case
-      const collisions = detectCaseCollisions(TEST_DIR);
-      expect(Array.isArray(collisions)).toBe(true);
-    }
-  });
+        expect(collisions).toHaveLength(1);
+        expect(collisions[0]?.paths).toHaveLength(2);
+        expect(collisions[0]?.paths).toContain(join(vaultDir, "File.md"));
+        expect(collisions[0]?.paths).toContain(join(vaultDir, "file.md"));
+      } else {
+        // On case-insensitive fs, we can't create case-colliding files
+        // Just verify the function handles empty case
+        const collisions = detectCaseCollisions(vaultDir);
+        expect(Array.isArray(collisions)).toBe(true);
+      }
+    }));
 
-  test("detectCaseCollisions scans recursively when enabled", () => {
-    const isCaseSensitive = detectCaseSensitivity(TEST_DIR);
+  test("detectCaseCollisions scans recursively when enabled", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      const isCaseSensitive = detectCaseSensitivity(vaultDir);
 
-    if (isCaseSensitive) {
-      mkdirSync(join(TEST_DIR, "subdir"));
-      writeFileSync(join(TEST_DIR, "subdir", "Test.md"), "# Test");
-      writeFileSync(join(TEST_DIR, "subdir", "test.md"), "# test");
+      if (isCaseSensitive) {
+        mkdirSync(join(vaultDir, "subdir"));
+        writeFileSync(join(vaultDir, "subdir", "Test.md"), "# Test");
+        writeFileSync(join(vaultDir, "subdir", "test.md"), "# test");
 
-      // Non-recursive: should not find collision in subdir
-      const nonRecursive = detectCaseCollisions(TEST_DIR, false);
-      expect(nonRecursive).toHaveLength(0);
+        // Non-recursive: should not find collision in subdir
+        const nonRecursive = detectCaseCollisions(vaultDir, false);
+        expect(nonRecursive).toHaveLength(0);
 
-      // Recursive: should find collision in subdir
-      const recursive = detectCaseCollisions(TEST_DIR, true);
-      expect(recursive).toHaveLength(1);
-    }
-  });
+        // Recursive: should find collision in subdir
+        const recursive = detectCaseCollisions(vaultDir, true);
+        expect(recursive).toHaveLength(1);
+      }
+    }));
 
-  test("detectCaseCollisions skips hidden files", () => {
-    const isCaseSensitive = detectCaseSensitivity(TEST_DIR);
+  test("detectCaseCollisions skips hidden files", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      const isCaseSensitive = detectCaseSensitivity(vaultDir);
 
-    if (isCaseSensitive) {
-      writeFileSync(join(TEST_DIR, ".Hidden"), "hidden");
-      writeFileSync(join(TEST_DIR, ".hidden"), "hidden2");
+      if (isCaseSensitive) {
+        writeFileSync(join(vaultDir, ".Hidden"), "hidden");
+        writeFileSync(join(vaultDir, ".hidden"), "hidden2");
 
-      const collisions = detectCaseCollisions(TEST_DIR);
-      // Hidden files are skipped, so no collisions detected
-      expect(collisions).toHaveLength(0);
-    }
-  });
+        const collisions = detectCaseCollisions(vaultDir);
+        // Hidden files are skipped, so no collisions detected
+        expect(collisions).toHaveLength(0);
+      }
+    }));
 });

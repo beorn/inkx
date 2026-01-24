@@ -213,10 +213,14 @@ describe.serial("Board State", () => {
 
     const state = buildBoardState(rootId);
 
-    // Should have exactly 2 columns (the sections), NOT 3 (with paragraph)
-    expect(state.columns).toHaveLength(2);
-    expect(state.columns[0]!.node.type).toBe("section");
+    // Should have 3 columns: virtual body column + 2 sections
+    // Body content (paragraph) is grouped into a virtual body column
+    expect(state.columns).toHaveLength(3);
+    expect(state.columns[0]!.isVirtual).toBe(true);
+    expect(state.columns[0]!.cards).toHaveLength(1);
+    expect(state.columns[0]!.cards[0]!.node.type).toBe("paragraph");
     expect(state.columns[1]!.node.type).toBe("section");
+    expect(state.columns[2]!.node.type).toBe("section");
   });
 
   test("buildBoardState filters out code and quote nodes as columns", () => {
@@ -232,8 +236,12 @@ describe.serial("Board State", () => {
 
     const state = buildBoardState(rootId);
 
-    expect(state.columns).toHaveLength(1);
-    expect(state.columns[0]!.node.id).toBe(colId);
+    // Should have 2 columns: virtual body column + 1 section
+    // Body content (code, quote) is grouped into a virtual body column
+    expect(state.columns).toHaveLength(2);
+    expect(state.columns[0]!.isVirtual).toBe(true);
+    expect(state.columns[0]!.cards).toHaveLength(2); // code + quote
+    expect(state.columns[1]!.node.id).toBe(colId);
   });
 
   test("buildTreeNodes filters out paragraph nodes (km-1tho refresh path)", () => {

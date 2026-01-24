@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 import { ulid } from "ulid";
 import { initStore, closeStore, MemoryStore, DiskStore } from "../src/store.ts";
+import { withTestEnvSync } from "./test-utils.ts";
 
 // Track created directories for cleanup
 const createdDirs: string[] = [];
@@ -299,62 +300,82 @@ describe("MemoryStore", () => {
   });
 });
 
-describe.serial("DiskStore", () => {
-  afterEach(() => {
-    closeStore();
-  });
+describe("DiskStore", () => {
+  test("should detect disk mode when .km exists", () =>
+    withTestEnvSync(({ testDir }) => {
+      const rootDir = testDir;
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
 
-  test("should detect disk mode when .km exists", () => {
-    const rootDir = createTestDir();
-    const kmDir = join(rootDir, ".km");
-    mkdirSync(kmDir, { recursive: true });
+      const store = initStore(rootDir);
+      try {
+        expect(store.mode).toBe("disk");
+        expect(store.rootPath).toBe(rootDir);
+      } finally {
+        closeStore();
+      }
+    }));
 
-    const store = initStore(rootDir);
-    expect(store.mode).toBe("disk");
-    expect(store.rootPath).toBe(rootDir);
-  });
+  test("should use state.db in .km directory", () =>
+    withTestEnvSync(({ testDir }) => {
+      const rootDir = testDir;
+      const kmDir = join(rootDir, ".km");
+      mkdirSync(kmDir, { recursive: true });
 
-  test("should use state.db in .km directory", () => {
-    const rootDir = createTestDir();
-    const kmDir = join(rootDir, ".km");
-    mkdirSync(kmDir, { recursive: true });
-
-    const store = new DiskStore(kmDir);
-    expect(existsSync(join(kmDir, "state.db"))).toBe(true);
-    store.close();
-  });
+      const store = new DiskStore(kmDir);
+      try {
+        expect(existsSync(join(kmDir, "state.db"))).toBe(true);
+      } finally {
+        store.close();
+      }
+    }));
 });
 
-describe.serial("initStore mode detection", () => {
-  afterEach(() => {
-    closeStore();
-  });
+describe("initStore mode detection", () => {
+  test("should return MemoryStore when no .km directory exists", () =>
+    withTestEnvSync(({ testDir }) => {
+      const memoryDir = testDir;
+      // Remove the .km dir that withTestEnvSync creates so we test memory mode
+      rmSync(join(memoryDir, ".km"), { recursive: true });
 
-  test("should return MemoryStore when no .km directory exists", () => {
-    const memoryDir = createTestDir();
-    // Pass false to disable ancestor search (avoid /tmp/.km pollution)
-    const store = initStore(memoryDir, false);
-    expect(store.mode).toBe("memory");
-    expect(store).toBeInstanceOf(MemoryStore);
-  });
+      // Pass false to disable ancestor search (avoid /tmp/.km pollution)
+      const store = initStore(memoryDir, false);
+      try {
+        expect(store.mode).toBe("memory");
+        expect(store).toBeInstanceOf(MemoryStore);
+      } finally {
+        closeStore();
+      }
+    }));
 
-  test("should return DiskStore when .km directory exists", () => {
-    const diskDir = createTestDir();
-    mkdirSync(join(diskDir, ".km"), { recursive: true });
-    // Pass false to disable ancestor search (test specific directory)
-    const store = initStore(diskDir, false);
-    expect(store.mode).toBe("disk");
-    expect(store).toBeInstanceOf(DiskStore);
-  });
+  test("should return DiskStore when .km directory exists", () =>
+    withTestEnvSync(({ testDir }) => {
+      const diskDir = testDir;
+      // .km already exists from withTestEnvSync
 
-  test("should find .km in parent directory", () => {
-    const diskDir = createTestDir();
-    mkdirSync(join(diskDir, ".km"), { recursive: true });
-    const subDir = join(diskDir, "subdir");
-    mkdirSync(subDir, { recursive: true });
+      // Pass false to disable ancestor search (test specific directory)
+      const store = initStore(diskDir, false);
+      try {
+        expect(store.mode).toBe("disk");
+        expect(store).toBeInstanceOf(DiskStore);
+      } finally {
+        closeStore();
+      }
+    }));
 
-    const store = initStore(subDir);
-    expect(store.mode).toBe("disk");
-    expect(store.rootPath).toBe(diskDir);
-  });
+  test("should find .km in parent directory", () =>
+    withTestEnvSync(({ testDir }) => {
+      const diskDir = testDir;
+      // .km already exists from withTestEnvSync
+      const subDir = join(diskDir, "subdir");
+      mkdirSync(subDir, { recursive: true });
+
+      const store = initStore(subDir);
+      try {
+        expect(store.mode).toBe("disk");
+        expect(store.rootPath).toBe(diskDir);
+      } finally {
+        closeStore();
+      }
+    }));
 });

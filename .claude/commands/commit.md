@@ -60,6 +60,7 @@ From the gathered output, determine:
 5. **Commit message** - Use conventional commits format, reference beads if relevant
 
 **Single vs multiple commits:** Default to ONE commit unless changes are CLEARLY unrelated:
+
 - Different packages touched? Usually ONE commit (refactors often touch multiple)
 - Fix + test for that fix? ONE commit
 - Feature + unrelated style fix? Consider asking, but lean toward ONE unless obvious

@@ -5,8 +5,8 @@
  * and files during sync/watch operations.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
+import { describe, test, expect } from "bun:test";
+import { writeFileSync } from "fs";
 import { join } from "path";
 
 import {
@@ -19,24 +19,10 @@ import {
   readObsidianIgnore,
   getIgnorePatterns,
 } from "../../src/watch/ignore.ts";
+import { withTestEnvSync } from "../test-utils.ts";
 
-const TEST_DIR = join("/tmp", "kmtest-ignore");
-
-describe.serial("Ignore Patterns", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
-
-  afterEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  describe.serial("DEFAULT_IGNORE_PATTERNS", () => {
+describe("Ignore Patterns", () => {
+  describe("DEFAULT_IGNORE_PATTERNS", () => {
     test("should include common non-content directories", () => {
       expect(DEFAULT_IGNORE_PATTERNS).toContain("**/.git/**");
       expect(DEFAULT_IGNORE_PATTERNS).toContain("**/node_modules/**");
@@ -64,7 +50,7 @@ describe.serial("Ignore Patterns", () => {
     });
   });
 
-  describe.serial("matchesPattern", () => {
+  describe("matchesPattern", () => {
     test("should match exact paths", () => {
       expect(matchesPattern("foo.md", "foo.md")).toBe(true);
       expect(matchesPattern("foo.md", "bar.md")).toBe(false);
@@ -102,7 +88,7 @@ describe.serial("Ignore Patterns", () => {
     });
   });
 
-  describe.serial("shouldIgnore", () => {
+  describe("shouldIgnore", () => {
     test("should match basename for simple patterns", () => {
       // shouldIgnore also tries basename matching
       const patterns = ["*.log"];
@@ -125,7 +111,7 @@ describe.serial("Ignore Patterns", () => {
     });
   });
 
-  describe.serial("isHiddenFile", () => {
+  describe("isHiddenFile", () => {
     test("should identify hidden files by basename", () => {
       expect(isHiddenFile(".gitignore")).toBe(true);
       expect(isHiddenFile(".env")).toBe(true);
@@ -150,143 +136,154 @@ describe.serial("Ignore Patterns", () => {
     });
   });
 
-  describe.serial("readGitignore", () => {
-    test("should return empty array if .gitignore doesn't exist", () => {
-      const patterns = readGitignore(TEST_DIR);
-      expect(patterns).toEqual([]);
-    });
+  describe("readGitignore", () => {
+    test("should return empty array if .gitignore doesn't exist", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        const patterns = readGitignore(vaultDir);
+        expect(patterns).toEqual([]);
+      }));
 
-    test("should parse simple gitignore patterns", () => {
-      writeFileSync(
-        join(TEST_DIR, ".gitignore"),
-        `# Comment
+    test("should parse simple gitignore patterns", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, ".gitignore"),
+          `# Comment
 node_modules
 *.log
 dist/
 `,
-      );
+        );
 
-      const patterns = readGitignore(TEST_DIR);
-      expect(patterns.length).toBe(3);
-      expect(patterns).toContain("**/node_modules");
-      expect(patterns).toContain("**/*.log");
-      // dist/ becomes dist/** after slash removal
-      expect(patterns.some((p) => p.includes("dist"))).toBe(true);
-    });
+        const patterns = readGitignore(vaultDir);
+        expect(patterns.length).toBe(3);
+        expect(patterns).toContain("**/node_modules");
+        expect(patterns).toContain("**/*.log");
+        // dist/ becomes dist/** after slash removal
+        expect(patterns.some((p) => p.includes("dist"))).toBe(true);
+      }));
 
-    test("should handle leading slashes (root-relative)", () => {
-      writeFileSync(join(TEST_DIR, ".gitignore"), "/build\n");
+    test("should handle leading slashes (root-relative)", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(join(vaultDir, ".gitignore"), "/build\n");
 
-      const patterns = readGitignore(TEST_DIR);
-      // Leading slash is stripped, pattern doesn't contain / so ** is added
-      expect(patterns.some((p) => p.includes("build"))).toBe(true);
-    });
+        const patterns = readGitignore(vaultDir);
+        // Leading slash is stripped, pattern doesn't contain / so ** is added
+        expect(patterns.some((p) => p.includes("build"))).toBe(true);
+      }));
 
-    test("should skip comments and empty lines", () => {
-      writeFileSync(
-        join(TEST_DIR, ".gitignore"),
-        `# This is a comment
+    test("should skip comments and empty lines", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, ".gitignore"),
+          `# This is a comment
 
 # Another comment
 *.log
 `,
-      );
+        );
 
-      const patterns = readGitignore(TEST_DIR);
-      expect(patterns.length).toBe(1);
-      expect(patterns[0]).toBe("**/*.log");
-    });
+        const patterns = readGitignore(vaultDir);
+        expect(patterns.length).toBe(1);
+        expect(patterns[0]).toBe("**/*.log");
+      }));
 
-    test("should skip negation patterns (not supported)", () => {
-      writeFileSync(
-        join(TEST_DIR, ".gitignore"),
-        `*.log
+    test("should skip negation patterns (not supported)", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, ".gitignore"),
+          `*.log
 !important.log
 `,
-      );
+        );
 
-      const patterns = readGitignore(TEST_DIR);
-      expect(patterns.length).toBe(1);
-    });
+        const patterns = readGitignore(vaultDir);
+        expect(patterns.length).toBe(1);
+      }));
   });
 
-  describe.serial("readKmignore", () => {
-    test("should return empty array if .kmignore doesn't exist", () => {
-      const patterns = readKmignore(TEST_DIR);
-      expect(patterns).toEqual([]);
-    });
+  describe("readKmignore", () => {
+    test("should return empty array if .kmignore doesn't exist", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        const patterns = readKmignore(vaultDir);
+        expect(patterns).toEqual([]);
+      }));
 
-    test("should parse .kmignore patterns directly as globs", () => {
-      writeFileSync(
-        join(TEST_DIR, ".kmignore"),
-        `# KM-specific ignores
+    test("should parse .kmignore patterns directly as globs", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, ".kmignore"),
+          `# KM-specific ignores
 **/private/**
 **/*.draft.md
 `,
-      );
+        );
 
-      const patterns = readKmignore(TEST_DIR);
-      expect(patterns.length).toBe(2);
-      expect(patterns).toContain("**/private/**");
-      expect(patterns).toContain("**/*.draft.md");
-    });
+        const patterns = readKmignore(vaultDir);
+        expect(patterns.length).toBe(2);
+        expect(patterns).toContain("**/private/**");
+        expect(patterns).toContain("**/*.draft.md");
+      }));
   });
 
-  describe.serial("readObsidianIgnore", () => {
-    test("should return empty array if .obsidianignore doesn't exist", () => {
-      const patterns = readObsidianIgnore(TEST_DIR);
-      expect(patterns).toEqual([]);
-    });
+  describe("readObsidianIgnore", () => {
+    test("should return empty array if .obsidianignore doesn't exist", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        const patterns = readObsidianIgnore(vaultDir);
+        expect(patterns).toEqual([]);
+      }));
 
-    test("should parse .obsidianignore like gitignore", () => {
-      writeFileSync(
-        join(TEST_DIR, ".obsidianignore"),
-        `# Obsidian ignore
+    test("should parse .obsidianignore like gitignore", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        writeFileSync(
+          join(vaultDir, ".obsidianignore"),
+          `# Obsidian ignore
 Archive/
 *.tmp
 `,
-      );
+        );
 
-      const patterns = readObsidianIgnore(TEST_DIR);
-      expect(patterns.length).toBe(2);
-      // Archive/ converted to Archive/**
-      expect(patterns.some((p) => p.includes("Archive"))).toBe(true);
-      expect(patterns).toContain("**/*.tmp");
-    });
+        const patterns = readObsidianIgnore(vaultDir);
+        expect(patterns.length).toBe(2);
+        // Archive/ converted to Archive/**
+        expect(patterns.some((p) => p.includes("Archive"))).toBe(true);
+        expect(patterns).toContain("**/*.tmp");
+      }));
   });
 
-  describe.serial("getIgnorePatterns", () => {
-    test("should return default patterns when no ignore files exist", () => {
-      const patterns = getIgnorePatterns(TEST_DIR);
+  describe("getIgnorePatterns", () => {
+    test("should return default patterns when no ignore files exist", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        const patterns = getIgnorePatterns(vaultDir);
 
-      // Should include defaults
-      expect(patterns).toContain("**/.git/**");
-      expect(patterns).toContain("**/node_modules/**");
-    });
+        // Should include defaults
+        expect(patterns).toContain("**/.git/**");
+        expect(patterns).toContain("**/node_modules/**");
+      }));
 
-    test("should combine patterns from all sources", () => {
-      // Create all ignore files
-      writeFileSync(join(TEST_DIR, ".gitignore"), "*.log\n");
-      writeFileSync(join(TEST_DIR, ".kmignore"), "**/drafts/**\n");
-      writeFileSync(join(TEST_DIR, ".obsidianignore"), "Archive/\n");
+    test("should combine patterns from all sources", () =>
+      withTestEnvSync(({ vaultDir }) => {
+        // Create all ignore files
+        writeFileSync(join(vaultDir, ".gitignore"), "*.log\n");
+        writeFileSync(join(vaultDir, ".kmignore"), "**/drafts/**\n");
+        writeFileSync(join(vaultDir, ".obsidianignore"), "Archive/\n");
 
-      const patterns = getIgnorePatterns(TEST_DIR);
+        const patterns = getIgnorePatterns(vaultDir);
 
-      // Should include defaults
-      expect(patterns).toContain("**/.git/**");
+        // Should include defaults
+        expect(patterns).toContain("**/.git/**");
 
-      // Should include from .gitignore (converted)
-      expect(patterns).toContain("**/*.log");
+        // Should include from .gitignore (converted)
+        expect(patterns).toContain("**/*.log");
 
-      // Should include from .kmignore (as-is)
-      expect(patterns).toContain("**/drafts/**");
+        // Should include from .kmignore (as-is)
+        expect(patterns).toContain("**/drafts/**");
 
-      // Should include from .obsidianignore (converted)
-      expect(patterns.some((p) => p.includes("Archive"))).toBe(true);
-    });
+        // Should include from .obsidianignore (converted)
+        expect(patterns.some((p) => p.includes("Archive"))).toBe(true);
+      }));
   });
 
-  describe.serial("Integration: Common Ignore Scenarios", () => {
+  describe("Integration: Common Ignore Scenarios", () => {
     test("should ignore files with simple extension patterns", () => {
       // These patterns work via basename matching in shouldIgnore
       const logPatterns = ["*.log"];

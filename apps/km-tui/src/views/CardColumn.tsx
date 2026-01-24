@@ -44,6 +44,8 @@ export interface CardProps {
   width: number;
   colIndex: number;
   cardIndex: number;
+  /** True if this card is in a virtual body column (renders borderless) */
+  isVirtualColumn?: boolean;
 }
 
 /**
@@ -64,6 +66,7 @@ export const Card = React.memo(
     width,
     colIndex,
     cardIndex,
+    isVirtualColumn,
   }: CardProps): React.ReactElement {
     const registry = useLayoutRegistryOptional();
     const nodeId = card.node.id;
@@ -87,6 +90,24 @@ export const Card = React.memo(
     );
 
     useScreenRectCallback(handleLayout);
+
+    // Virtual body content renders borderless (inline body content)
+    // This includes: cards in virtual columns OR individual virtual body cards
+    if (isVirtualColumn || card.isVirtual) {
+      return (
+        <Box flexDirection="column" flexShrink={0} width={width} paddingLeft={1}>
+          <TreeNode
+            node={card.node}
+            depth={0}
+            isSelected={false}
+            colIndex={colIndex}
+            cardIndex={cardIndex}
+            subIndex={0}
+            dimInactiveChildren={true}
+          />
+        </Box>
+      );
+    }
 
     return (
       <Box
@@ -190,6 +211,8 @@ interface VirtualizedCardListProps {
   width: number;
   height: number;
   colIndex: number;
+  /** True if this is a virtual body column (cards render borderless) */
+  isVirtualColumn?: boolean;
 }
 
 /**
@@ -211,6 +234,7 @@ function VirtualizedCardList({
   width,
   height,
   colIndex,
+  isVirtualColumn,
 }: VirtualizedCardListProps): React.ReactElement {
   // Track scroll offset for edge-based scrolling
   // Using ref to persist across renders without causing re-renders
@@ -325,6 +349,7 @@ function VirtualizedCardList({
             width={width}
             colIndex={colIndex}
             cardIndex={actualIndex}
+            isVirtualColumn={isVirtualColumn}
           />
         );
       })}
@@ -376,9 +401,11 @@ export const Column = React.memo(function Column({
   const typeSuffix = getCollapsedTypeSuffix(column.node);
   const count = column.cards.length;
   const wipLimit = column.wipLimit;
+  const isVirtual = column.isVirtual ?? false;
 
   // Get column's own color (not inherited) for background
-  const ownColor = getOwnColor(column.node);
+  // Virtual body columns use dimmed gray styling
+  const ownColor = isVirtual ? undefined : getOwnColor(column.node);
   const wipExceeded = wipLimit !== undefined && count > wipLimit;
 
   // Build count display
@@ -393,7 +420,10 @@ export const Column = React.memo(function Column({
   // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
   // - Non-tasks with color: filled circle (●) in that color
   // - Non-tasks without color: small bullet (·)
-  const icon = getNodeIcon(null, ownColor, false);
+  // - Virtual body columns: dimmed info icon
+  const icon = isVirtual
+    ? { char: "·", color: "gray" as const }
+    : getNodeIcon(null, ownColor, false);
   // When column is selected, icon should be black on yellow bg
   const iconColor = isColumnSelected ? "black" : icon.color;
 
@@ -476,6 +506,7 @@ export const Column = React.memo(function Column({
           width={width}
           height={height - 2} // Subtract header height
           colIndex={colIndex}
+          isVirtualColumn={isVirtual}
         />
       )}
     </Box>

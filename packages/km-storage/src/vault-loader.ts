@@ -31,13 +31,7 @@ type StepYield =
   | { declare: string[] };
 import { parseMarkdownWithLinks } from "@km/markdown";
 import { SCHEMA } from "./schema.ts";
-import {
-  applyEvent,
-  getDb,
-  resetDb,
-  setDb,
-  dbApplyEvent,
-} from "./db.ts";
+import { applyEvent, getDb, resetDb, setDb, dbApplyEvent } from "./db.ts";
 import { findChildByContent } from "./db-queries/index.ts";
 import { rowToNode } from "./db-queries/utils.ts";
 import type { KNode } from "@km/core";
@@ -56,6 +50,8 @@ export interface LoadResult {
   duration: number;
   /** Pending links for deferred resolution (only present if skipLinkResolution was true) */
   pendingLinks?: PendingLink[];
+  /** Files pending deferred parsing (only present if discoverOnly was true) */
+  deferredFiles?: DeferredFile[];
 }
 
 /** Error during loading */
@@ -73,6 +69,18 @@ export interface LoadOptions {
   force?: boolean;
   /** Skip link resolution for faster startup (default: false) */
   skipLinkResolution?: boolean;
+  /**
+   * km-fast-md.7: Discover-only mode for instant board render.
+   * Creates stub nodes without parsing markdown content.
+   * Call parseDeferredAsync() afterward to fill in content.
+   */
+  discoverOnly?: boolean;
+}
+
+/** Files pending deferred parsing (for discoverOnly mode) */
+export interface DeferredFile {
+  nodeId: string;
+  fsPath: string;
 }
 
 /**
@@ -103,18 +111,32 @@ export function* loadVault(
 
   // Declare all sub-steps upfront so they appear as pending
   const skipLinks = options?.skipLinkResolution ?? false;
+  const discoverOnly = options?.discoverOnly ?? false;
+
   if (mode === "memory") {
-    yield {
-      declare: skipLinks
-        ? ["Discovering files", "Parsing markdown", "Applying changes", "Evaluating rules"]
-        : [
-            "Discovering files",
-            "Parsing markdown",
-            "Applying changes",
-            "Resolving links",
-            "Evaluating rules",
-          ],
-    };
+    if (discoverOnly) {
+      // km-fast-md.7: Fast discover-only mode
+      yield { declare: ["Discovering files", "Applying changes"] };
+    } else if (skipLinks) {
+      yield {
+        declare: [
+          "Discovering files",
+          "Parsing markdown",
+          "Applying changes",
+          "Evaluating rules",
+        ],
+      };
+    } else {
+      yield {
+        declare: [
+          "Discovering files",
+          "Parsing markdown",
+          "Applying changes",
+          "Resolving links",
+          "Evaluating rules",
+        ],
+      };
+    }
   } else {
     yield {
       declare: ["Reading events", "Applying changes", "Evaluating rules"],
@@ -123,8 +145,8 @@ export function* loadVault(
 
   // 2. Set up database based on mode
   let db: Database;
-  if (mode === "disk") {
-    setKmDir(kmDir!);
+  if (mode === "disk" && kmDir) {
+    setKmDir(kmDir);
     db = getDb();
     if (options?.force) {
       resetDb();
@@ -136,10 +158,13 @@ export function* loadVault(
   }
 
   // 3. Mode-specific event source (yield* chains progress)
+  // km-fast-md.7: Use fast discover for instant board render
   const source: EventSource =
     mode === "memory"
-      ? yield* discoverFromFilesystem(vaultRoot, errors)
-      : yield* discoverFromEvents(kmDir!, options?.force ?? false, errors);
+      ? discoverOnly
+        ? yield* discoverFilesOnly(vaultRoot, errors)
+        : yield* discoverFromFilesystem(vaultRoot, errors)
+      : yield* discoverFromEvents(kmDir ?? "", options?.force ?? false, errors);
 
   // 4. Shared pipeline (SAME for both modes)
   yield* applyEvents(db, source.events, errors);
@@ -147,19 +172,29 @@ export function* loadVault(
   // Resolve links (memory mode has pending links, disk mode resolves during apply)
   let linkCount = 0;
   let returnPendingLinks: PendingLink[] | undefined;
+  let returnDeferredFiles: DeferredFile[] | undefined;
 
-  if (source.pendingLinks.length > 0) {
-    if (options?.skipLinkResolution) {
-      // Skip resolution - return pending links for deferred processing
-      returnPendingLinks = source.pendingLinks;
-      debug("skipping link resolution, %d links deferred", source.pendingLinks.length);
-    } else {
-      linkCount = yield* resolveLinks(source.pendingLinks, errors);
+  // km-fast-md.7: In discover-only mode, skip link resolution and rules
+  if (discoverOnly) {
+    returnDeferredFiles = source.deferredFiles;
+    debug("discover-only mode, %d files deferred", returnDeferredFiles?.length ?? 0);
+  } else {
+    if (source.pendingLinks.length > 0) {
+      if (options?.skipLinkResolution) {
+        // Skip resolution - return pending links for deferred processing
+        returnPendingLinks = source.pendingLinks;
+        debug(
+          "skipping link resolution, %d links deferred",
+          source.pendingLinks.length,
+        );
+      } else {
+        linkCount = yield* resolveLinks(source.pendingLinks, errors);
+      }
     }
-  }
 
-  // Materialize rules
-  yield* materializeRules();
+    // Materialize rules
+    yield* materializeRules();
+  }
 
   // 5. Finalize
   const nodeCount = (
@@ -181,6 +216,7 @@ export function* loadVault(
     errors,
     duration,
     pendingLinks: returnPendingLinks,
+    deferredFiles: returnDeferredFiles,
   };
 }
 
@@ -189,6 +225,8 @@ export function* loadVault(
 interface EventSource {
   events: Event[];
   pendingLinks: PendingLink[];
+  /** km-fast-md.7: Files to parse later (discover-only mode) */
+  deferredFiles?: DeferredFile[];
 }
 
 /** Pending link for deferred resolution */
@@ -228,6 +266,127 @@ function resolveVaultRoot(
 }
 
 // --- Memory Mode Discovery ---
+
+/**
+ * km-fast-md.7: Fast discover-only mode for instant board render.
+ * Creates stub nodes for files/folders without parsing markdown.
+ * Returns deferred files list for later background parsing.
+ */
+function* discoverFilesOnly(
+  vaultRoot: string,
+  _errors: LoadError[],
+): Generator<StepYield, EventSource, unknown> {
+  yield "Discovering files";
+
+  const events: Event[] = [];
+  const deferredFiles: DeferredFile[] = [];
+  const now = Date.now();
+
+  // Count files for progress
+  const total = countMarkdownFilesFast(vaultRoot);
+  yield { current: 0, total };
+
+  let current = 0;
+  yield* scanDirectory(vaultRoot, null);
+
+  yield { current, total };
+  return { events, pendingLinks: [], deferredFiles };
+
+  // Fast scanner - no markdown parsing
+  function* scanDirectory(
+    dirPath: string,
+    parentId: string | null,
+  ): Generator<StepYield, void, unknown> {
+    if (!existsSync(dirPath)) return;
+
+    const dirName = basename(dirPath);
+    if (
+      parentId !== null &&
+      (dirName.startsWith(".") || dirName === "node_modules")
+    ) {
+      return;
+    }
+
+    const entries = readdirSync(dirPath, { withFileTypes: true });
+    let order = 0;
+
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue;
+
+      const fullPath = join(dirPath, entry.name);
+
+      if (entry.isDirectory()) {
+        // Create folder node
+        const folderId = generateId(vaultRoot, fullPath);
+        events.push({
+          id: folderId,
+          type: "node_created",
+          actor: "fs-scan",
+          ts: now,
+          data: {
+            id: folderId,
+            type: "folder",
+            parent_id: parentId,
+            parent_idx: order++,
+            fs_path: fullPath,
+            content: entry.name,
+          },
+        });
+
+        yield* scanDirectory(fullPath, folderId);
+      } else if (entry.isFile()) {
+        const fileId = generateId(vaultRoot, fullPath);
+
+        if (entry.name.endsWith(".md")) {
+          // Create stub file node WITHOUT parsing
+          const name = entry.name.replace(/\.md$/i, "");
+          events.push({
+            id: fileId,
+            type: "node_created",
+            actor: "fs-scan",
+            ts: now,
+            data: {
+              id: fileId,
+              type: "file",
+              parent_id: parentId,
+              parent_idx: order++,
+              fs_path: fullPath,
+              name,
+              // Title defaults to filename until parsed
+              title: name,
+              // Mark as unparsed stub
+              data: { _stub: true },
+            },
+          });
+
+          // Add to deferred files for later parsing
+          deferredFiles.push({ nodeId: fileId, fsPath: fullPath });
+
+          current++;
+          if (current % 100 === 0) {
+            yield { current, total };
+          }
+        } else {
+          // Non-markdown file node
+          events.push({
+            id: fileId,
+            type: "node_created",
+            actor: "fs-scan",
+            ts: now,
+            data: {
+              id: fileId,
+              type: "file",
+              parent_id: parentId,
+              parent_idx: order++,
+              fs_path: fullPath,
+              content: entry.name,
+            },
+          });
+        }
+      }
+    }
+  }
+}
 
 function* discoverFromFilesystem(
   vaultRoot: string,
@@ -374,11 +533,15 @@ function countMarkdownFilesFast(rootPath: string): number {
   const stack = [rootPath];
 
   while (stack.length > 0) {
-    const dirPath = stack.pop()!;
+    const dirPath = stack.pop();
+    if (!dirPath) continue;
     const dirName = basename(dirPath);
 
     // Skip hidden dirs and node_modules (except root)
-    if (dirPath !== rootPath && (dirName.startsWith(".") || dirName === "node_modules")) {
+    if (
+      dirPath !== rootPath &&
+      (dirName.startsWith(".") || dirName === "node_modules")
+    ) {
       continue;
     }
 
@@ -873,4 +1036,136 @@ function* materializeRules(): Generator<StepYield, void, unknown> {
   for (const progress of evaluateAllRules()) {
     yield { current: progress.current, total: progress.total };
   }
+}
+
+/**
+ * km-fast-md.7: Parse deferred files in background after board renders.
+ * Updates stub nodes with full content and creates child nodes.
+ *
+ * @param deferredFiles - Files to parse (from LoadResult.deferredFiles)
+ * @param shouldAbort - Optional callback that returns true to abort parsing
+ * @returns Object with parsed count and pending links for resolution
+ */
+export async function parseDeferredAsync(
+  deferredFiles: DeferredFile[],
+  shouldAbort?: () => boolean,
+): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
+  const total = deferredFiles.length;
+  if (total === 0) return { parsed: 0, pendingLinks: [] };
+
+  debug("parseDeferredAsync: starting %d files", total);
+
+  const db = getDb();
+  const pendingLinks: PendingLink[] = [];
+  const BATCH_SIZE = 10;
+  let parsed = 0;
+
+  db.run("BEGIN IMMEDIATE");
+
+  try {
+    // Prepared statements for batch operations
+    const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?");
+    const insertStmt = db.prepare(`
+      INSERT INTO nodes (
+        id, type, parent_id, link_to, link_alias, parent_idx,
+        fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
+        task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+        content, content_hash, data,
+        created_at, updated_at, version
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const [i, { nodeId, fsPath }] of deferredFiles.entries()) {
+      try {
+        // Read and parse the file
+        const content = readFileSync(fsPath, "utf-8");
+        const { nodes, wikilinks } = parseMarkdownWithLinks(content, fsPath);
+
+        // Get the stub's parent info before deleting
+        const stubRow = db
+          .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
+          .get(nodeId) as { parent_id: string | null; parent_idx: number } | null;
+
+        if (!stubRow) {
+          debug("parseDeferredAsync: stub %s not found, skipping", nodeId);
+          continue;
+        }
+
+        // Delete the stub node
+        deleteStmt.run(nodeId);
+
+        // First node is always the file node - preserve its ID and parent info
+        const fileNode = nodes[0];
+        if (fileNode?.type === "file") {
+          fileNode.id = nodeId; // Keep original ID
+          fileNode.parent_id = stubRow.parent_id;
+          fileNode.parent_idx = stubRow.parent_idx;
+        }
+
+        // Insert all parsed nodes
+        const now = Date.now();
+        for (const node of nodes) {
+          const data = node.data ?? {};
+          insertStmt.run(
+            node.id,
+            node.type,
+            node.parent_id ?? null,
+            node.link_to ?? null,
+            node.link_alias ?? null,
+            node.parent_idx ?? 0,
+            node.fs_path ?? null,
+            node.fs_ino ?? null,
+            node.fs_mtime ?? null,
+            node.name ?? null,
+            node.title ?? null,
+            node.md_pos ?? null,
+            node.md_line ?? null,
+            node.md_slug ?? null,
+            node.task_status ?? null,
+            node.task_mark ?? null,
+            node.assigned_to ?? null,
+            node.due_date ?? null,
+            node.scheduled_date ?? null,
+            node.priority ?? null,
+            node.content ?? null,
+            node.content_hash ?? null,
+            JSON.stringify(data),
+            now,
+            now,
+            node.version || "",
+          );
+        }
+
+        // Collect wikilinks for later resolution
+        for (const wikilink of wikilinks) {
+          pendingLinks.push(wikilink);
+        }
+
+        parsed++;
+      } catch (err) {
+        debug("parseDeferredAsync: error parsing %s: %s", fsPath, err);
+      }
+
+      // Yield to event loop periodically and check for abort
+      if (i % BATCH_SIZE === 0) {
+        await new Promise((resolve) => {
+          setImmediate(resolve);
+        });
+        // Check abort after yielding
+        if (shouldAbort?.()) {
+          debug("parseDeferredAsync: aborted at %d/%d", i, total);
+          break;
+        }
+      }
+    }
+
+    db.run("COMMIT");
+  } catch (error) {
+    db.run("ROLLBACK");
+    throw error;
+  }
+
+  debug("parseDeferredAsync: completed, %d parsed, %d links", parsed, pendingLinks.length);
+
+  return { parsed, pendingLinks };
 }

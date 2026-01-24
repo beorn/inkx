@@ -35,6 +35,8 @@ export interface ColumnState {
   cards: CardState[];
   wipLimit?: number; // Optional WIP limit from frontmatter
   rules?: ColumnRules; // Optional column rules parsed from heading
+  /** True for virtual body column (displays leading non-section content) */
+  isVirtual?: boolean;
 }
 
 export interface CardState {
@@ -42,6 +44,8 @@ export interface CardState {
   children: KNode[];
   /** Child count for lazy loading (may be > 0 even when children array is empty) */
   childCount?: number;
+  /** True for virtual body card (displays leading non-section content) */
+  isVirtual?: boolean;
 }
 
 // Status cycle order

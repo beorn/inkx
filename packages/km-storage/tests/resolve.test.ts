@@ -6,148 +6,144 @@
  * - Filesystem path (exact, relative, filename)
  * - Content match
  *
- * Uses isolated temp directories for cleaner test setup.
+ * Uses isolated temp directories for parallel test execution.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect } from "bun:test";
 import { join } from "path";
-import { mkdirSync, rmSync } from "fs";
 import { ulid } from "ulid";
 
-import { closeDb, resolveNode, resetDb, applyEvent } from "../src/db.ts";
-import { emitNodeCreated, setKmDir, setDatabase } from "../src/emit.ts";
+import { resolveNode, applyEvent } from "../src/db.ts";
+import { emitNodeCreated, setDatabase } from "../src/emit.ts";
+import { withTestEnvSync } from "./test-utils.ts";
 
-// Track created directories for cleanup
-const createdDirs: string[] = [];
+describe("resolveNode", () => {
+  test("resolves by exact ID", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      setDatabase({ applyEvent });
 
-/** Create an isolated test directory */
-function createTestDir(): string {
-  const dir = join("/tmp", `kmtest-resolve-${ulid()}`);
-  mkdirSync(dir, { recursive: true });
-  createdDirs.push(dir);
-  return dir;
-}
+      const id = ulid();
+      emitNodeCreated("test", { id, type: "task", content: "Test task" });
 
-// Current test directory (set in beforeEach)
-let testDir: string;
+      const node = resolveNode(id);
+      expect(node).not.toBeNull();
+      expect(node?.id).toBe(id);
+    }));
 
-describe.serial("resolveNode", () => {
-  beforeEach(() => {
-    testDir = createTestDir();
-    setKmDir(testDir);
-    setDatabase({ applyEvent });
-    resetDb();
-  });
+  test("resolves by ID prefix", () =>
+    withTestEnvSync(() => {
+      setDatabase({ applyEvent });
 
-  afterEach(() => {
-    closeDb();
-    // Clean up all created directories
-    for (const dir of createdDirs) {
-      try {
-        rmSync(dir, { recursive: true });
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
-    createdDirs.length = 0;
-  });
+      const id = ulid();
+      emitNodeCreated("test", { id, type: "task", content: "Test task" });
 
-  test("resolves by exact ID", () => {
-    const id = ulid();
-    emitNodeCreated("test", { id, type: "task", content: "Test task" });
+      const prefix = id.slice(0, 8);
+      const node = resolveNode(prefix);
+      expect(node).not.toBeNull();
+      expect(node?.id).toBe(id);
+    }));
 
-    const node = resolveNode(id);
-    expect(node).not.toBeNull();
-    expect(node?.id).toBe(id);
-  });
+  test("resolves by ID suffix", () =>
+    withTestEnvSync(() => {
+      setDatabase({ applyEvent });
 
-  test("resolves by ID prefix", () => {
-    const id = ulid();
-    emitNodeCreated("test", { id, type: "task", content: "Test task" });
+      const id = ulid();
+      emitNodeCreated("test", { id, type: "task", content: "Test task" });
 
-    const prefix = id.slice(0, 8);
-    const node = resolveNode(prefix);
-    expect(node).not.toBeNull();
-    expect(node?.id).toBe(id);
-  });
+      const suffix = id.slice(-8);
+      const node = resolveNode(suffix);
+      expect(node).not.toBeNull();
+      expect(node?.id).toBe(id);
+    }));
 
-  test("resolves by ID suffix", () => {
-    const id = ulid();
-    emitNodeCreated("test", { id, type: "task", content: "Test task" });
+  test("resolves by exact filesystem path", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      setDatabase({ applyEvent });
 
-    const suffix = id.slice(-8);
-    const node = resolveNode(suffix);
-    expect(node).not.toBeNull();
-    expect(node?.id).toBe(id);
-  });
+      const fsPath = join(vaultDir, "test.md");
+      emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
 
-  test("resolves by exact filesystem path", () => {
-    const fsPath = join(testDir, "test.md");
-    emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
+      const node = resolveNode(fsPath);
+      expect(node).not.toBeNull();
+      expect(node?.fs_path).toBe(fsPath);
+    }));
 
-    const node = resolveNode(fsPath);
-    expect(node).not.toBeNull();
-    expect(node?.fs_path).toBe(fsPath);
-  });
+  test("resolves by filename with extension", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      setDatabase({ applyEvent });
 
-  test("resolves by filename with extension", () => {
-    const fsPath = join(testDir, "@inbox.md");
-    emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
+      const fsPath = join(vaultDir, "@inbox.md");
+      emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
 
-    const node = resolveNode("@inbox.md");
-    expect(node).not.toBeNull();
-    expect(node?.fs_path).toBe(fsPath);
-  });
+      const node = resolveNode("@inbox.md");
+      expect(node).not.toBeNull();
+      expect(node?.fs_path).toBe(fsPath);
+    }));
 
-  test("resolves by filename without extension", () => {
-    const fsPath = join(testDir, "@inbox.md");
-    emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
+  test("resolves by filename without extension", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      setDatabase({ applyEvent });
 
-    const node = resolveNode("@inbox");
-    expect(node).not.toBeNull();
-    expect(node?.fs_path).toBe(fsPath);
-  });
+      const fsPath = join(vaultDir, "@inbox.md");
+      emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
 
-  test("resolves by relative path ./file.md", () => {
-    const fsPath = join(process.cwd(), "test-file.md");
-    emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
+      const node = resolveNode("@inbox");
+      expect(node).not.toBeNull();
+      expect(node?.fs_path).toBe(fsPath);
+    }));
 
-    const node = resolveNode("./test-file.md");
-    expect(node).not.toBeNull();
-    expect(node?.fs_path).toBe(fsPath);
-  });
+  test("resolves by relative path ./file.md", () =>
+    withTestEnvSync(() => {
+      setDatabase({ applyEvent });
 
-  test("resolves by content match", () => {
-    const id = ulid();
-    emitNodeCreated("test", { id, type: "section", content: "My Section" });
+      const fsPath = join(process.cwd(), "test-file.md");
+      emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath });
 
-    const node = resolveNode("My Section");
-    expect(node).not.toBeNull();
-    expect(node?.id).toBe(id);
-  });
+      const node = resolveNode("./test-file.md");
+      expect(node).not.toBeNull();
+      expect(node?.fs_path).toBe(fsPath);
+    }));
 
-  test("filters by type when specified", () => {
-    const taskId = ulid();
-    const fileId = ulid();
-    emitNodeCreated("test", { id: taskId, type: "task", content: "Test" });
-    emitNodeCreated("test", {
-      id: fileId,
-      type: "file",
-      fs_path: join(testDir, "Test.md"),
-    });
+  test("resolves by content match", () =>
+    withTestEnvSync(() => {
+      setDatabase({ applyEvent });
 
-    // Without type filter, could match either
-    const anyNode = resolveNode("Test");
-    expect(anyNode).not.toBeNull();
+      const id = ulid();
+      emitNodeCreated("test", { id, type: "section", content: "My Section" });
 
-    // With type filter, only matches task
-    const taskNode = resolveNode("Test", "task");
-    expect(taskNode).not.toBeNull();
-    expect(taskNode?.type).toBe("task");
-  });
+      const node = resolveNode("My Section");
+      expect(node).not.toBeNull();
+      expect(node?.id).toBe(id);
+    }));
 
-  test("returns null for non-existent node", () => {
-    const node = resolveNode("nonexistent");
-    expect(node).toBeNull();
-  });
+  test("filters by type when specified", () =>
+    withTestEnvSync(({ vaultDir }) => {
+      setDatabase({ applyEvent });
+
+      const taskId = ulid();
+      const fileId = ulid();
+      emitNodeCreated("test", { id: taskId, type: "task", content: "Test" });
+      emitNodeCreated("test", {
+        id: fileId,
+        type: "file",
+        fs_path: join(vaultDir, "Test.md"),
+      });
+
+      // Without type filter, could match either
+      const anyNode = resolveNode("Test");
+      expect(anyNode).not.toBeNull();
+
+      // With type filter, only matches task
+      const taskNode = resolveNode("Test", "task");
+      expect(taskNode).not.toBeNull();
+      expect(taskNode?.type).toBe("task");
+    }));
+
+  test("returns null for non-existent node", () =>
+    withTestEnvSync(() => {
+      setDatabase({ applyEvent });
+
+      const node = resolveNode("nonexistent");
+      expect(node).toBeNull();
+    }));
 });

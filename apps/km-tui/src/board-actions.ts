@@ -479,13 +479,22 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
   // Horizontal movement (h/l) uses visual Y coordinates for cross-column navigation
   // Per docs/06-ui.md: curswantY = head midpoint, find card whose box intersects
   if (dir === "left" || dir === "right") {
-    const targetColIndex =
-      dir === "left"
-        ? Math.max(0, state.colIndex - 1)
-        : Math.min(state.columns.length - 1, state.colIndex + 1);
+    // Find next non-virtual column, skipping body columns
+    let targetColIndex = state.colIndex;
+    const step = dir === "left" ? -1 : 1;
+    do {
+      targetColIndex += step;
+    } while (
+      targetColIndex >= 0 &&
+      targetColIndex < state.columns.length &&
+      state.columns[targetColIndex]?.isVirtual
+    );
 
-    // No movement possible
-    if (targetColIndex === state.colIndex) {
+    // Clamp to valid range
+    targetColIndex = Math.max(0, Math.min(state.columns.length - 1, targetColIndex));
+
+    // No movement possible (or landed on virtual column at boundary)
+    if (targetColIndex === state.colIndex || state.columns[targetColIndex]?.isVirtual) {
       return;
     }
 

@@ -27,6 +27,7 @@ import {
   getNodeDisplayName as getNodeDisplayNameBase,
   getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,
   getParentContext as getParentContextBase,
+  extractBody,
 } from "@km/tree";
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
 // The handleKey function below is legacy code - keys are handled via the command system
@@ -259,12 +260,11 @@ export function* buildBoardStateGenerator(
   const wipLimits = extractWipLimits(rootNode);
   const collapsedColumns = new Set<number>();
 
-  // Get direct children as columns
+  // Get direct children and split into body content vs structural items
   const allChildren = getChildren(rootId);
-  const nonColumnTypes = new Set(["paragraph", "code", "quote"]);
-  const columnNodes = allChildren.filter((n) => !nonColumnTypes.has(n.type));
+  const { body: bodyNodes, items: columnNodes } = extractBody(allChildren);
 
-  const total = columnNodes.length;
+  const total = columnNodes.length + (bodyNodes.length > 0 ? 1 : 0);
   yield "Building view";
   yield { current: 0, total };
 
@@ -302,6 +302,21 @@ export function* buildBoardStateGenerator(
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = [];
+
+  // Add virtual body column if there's leading content
+  if (bodyNodes.length > 0) {
+    const bodyCards: CardState[] = bodyNodes.map((node) => ({
+      node,
+      children: [],
+      childCount: 0,
+    }));
+    columns.push({
+      node: createVirtualBodyNode(rootId),
+      cards: bodyCards,
+      isVirtual: true,
+    });
+  }
+
   for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
     const colNode = columnNodes[colIdx];
     if (!colNode) continue;
@@ -309,18 +324,49 @@ export function* buildBoardStateGenerator(
     const cardNodes = columnCardNodes[colIdx] ?? [];
     const rules = colNode.rules ?? parseColumnRules(colNode.content || "");
 
-    const cards: CardState[] = cardNodes.map((cardNode) => ({
-      node: cardNode,
-      children: [],
-      childCount: childCounts.get(cardNode.id) ?? 0,
-    }));
+    // Extract body content within column (tasks/paragraphs before subsections)
+    const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes);
+
+    const cards: CardState[] = [];
+
+    // If there are structural children, body content becomes virtual body cards
+    if (structuralCards.length > 0) {
+      // Add body cards first (virtual, displayed differently)
+      for (const bodyNode of colBodyNodes) {
+        cards.push({
+          node: bodyNode,
+          children: [],
+          childCount: childCounts.get(bodyNode.id) ?? 0,
+          isVirtual: true,
+        });
+      }
+      // Then add structural cards
+      for (const cardNode of structuralCards) {
+        cards.push({
+          node: cardNode,
+          children: [],
+          childCount: childCounts.get(cardNode.id) ?? 0,
+        });
+      }
+    } else {
+      // No structural children - all items are regular cards (no body)
+      for (const cardNode of cardNodes) {
+        cards.push({
+          node: cardNode,
+          children: [],
+          childCount: childCounts.get(cardNode.id) ?? 0,
+        });
+      }
+    }
 
     const colName = getNodeDisplayName(colNode);
     const normalizedName = normalizeColumnName(colName);
     const wipLimit = rules.limit ?? wipLimits.get(normalizedName);
 
+    // Track collapsed columns (offset by body column if present)
+    const actualColIdx = colIdx + (bodyNodes.length > 0 ? 1 : 0);
     if (rules.collapse) {
-      collapsedColumns.add(colIdx);
+      collapsedColumns.add(actualColIdx);
     }
 
     columns.push({ node: colNode, cards, wipLimit, rules });
@@ -340,6 +386,27 @@ export function* buildBoardStateGenerator(
     searchMode: false,
     helpMode: false,
     zoomStack: [],
+  };
+}
+
+/**
+ * Create a virtual node for the body column.
+ * This node represents leading non-section content grouped for display.
+ */
+function createVirtualBodyNode(parentId: string): KNode {
+  const now = Date.now();
+  return {
+    id: `__body__${parentId}`,
+    type: "section",
+    parent_id: parentId,
+    parent_idx: 0,
+    title: "Description",
+    content: "",
+    data: {},
+    link_to: null,
+    created_at: now,
+    updated_at: now,
+    version: "",
   };
 }
 
@@ -426,11 +493,9 @@ export function buildBoardState(rootId: string): BoardState {
   const wipLimits = extractWipLimits(rootNode);
   const collapsedColumns = new Set<number>();
 
-  // Get direct children as columns
-  // Filter out content nodes (paragraphs, code blocks, quotes) that aren't columns
+  // Get direct children and split into body content vs structural items
   const allChildren = getChildren(rootId);
-  const nonColumnTypes = new Set(["paragraph", "code", "quote"]);
-  const columnNodes = allChildren.filter((n) => !nonColumnTypes.has(n.type));
+  const { body: bodyNodes, items: columnNodes } = extractBody(allChildren);
 
   // PERFORMANCE OPTIMIZATION: Batch query child counts for all columns FIRST
   // This lets us skip getChildren() calls for columns with 0 children.
@@ -470,6 +535,21 @@ export function buildBoardState(rootId: string): BoardState {
 
   // Second pass: build columns with the pre-fetched child counts
   const columns: ColumnState[] = [];
+
+  // Add virtual body column if there's leading content
+  if (bodyNodes.length > 0) {
+    const bodyCards: CardState[] = bodyNodes.map((node) => ({
+      node,
+      children: [],
+      childCount: 0,
+    }));
+    columns.push({
+      node: createVirtualBodyNode(rootId),
+      cards: bodyCards,
+      isVirtual: true,
+    });
+  }
+
   for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
     const colNode = columnNodes[colIdx];
     if (!colNode) continue;
@@ -489,9 +569,10 @@ export function buildBoardState(rootId: string): BoardState {
     const normalizedName = normalizeColumnName(colName);
     const wipLimit = rules.limit ?? wipLimits.get(normalizedName);
 
-    // Track collapsed columns
+    // Track collapsed columns (offset by body column if present)
+    const actualColIdx = colIdx + (bodyNodes.length > 0 ? 1 : 0);
     if (rules.collapse) {
-      collapsedColumns.add(colIdx);
+      collapsedColumns.add(actualColIdx);
     }
 
     columns.push({ node: colNode, cards, wipLimit, rules });
@@ -520,6 +601,19 @@ export function buildBoardState(rootId: string): BoardState {
 export function getCurrentCard(state: BoardState): CardState | null {
   const col = state.columns[state.colIndex];
   return col?.cards[state.cardIndex] ?? null;
+}
+
+/**
+ * Find the index of the first non-virtual card in a column.
+ * Virtual body cards are at the start; this returns the first real card.
+ * Returns 0 if no virtual cards, or cards.length if all are virtual.
+ */
+function getFirstRealCardIndex(col: ColumnState | null): number {
+  if (!col) return 0;
+  for (let i = 0; i < col.cards.length; i++) {
+    if (!col.cards[i]?.isVirtual) return i;
+  }
+  return col.cards.length; // All virtual (shouldn't happen in practice)
 }
 
 /**
@@ -572,18 +666,22 @@ export function handleKey(
     // which uses LayoutContext for sticky Y position tracking.
     case "h":
     case "\x02": {
-      // Ctrl+B
-      const targetColIndex = Math.max(0, state.colIndex - 1);
-      if (targetColIndex === state.colIndex) {
+      // Ctrl+B - skip virtual columns
+      let targetColIndex = state.colIndex - 1;
+      while (targetColIndex >= 0 && state.columns[targetColIndex]?.isVirtual) {
+        targetColIndex--;
+      }
+      if (targetColIndex < 0 || targetColIndex === state.colIndex) {
         return { state: newState, action: null };
       }
       newState.colIndex = targetColIndex;
       const targetCol = state.columns[targetColIndex];
       if (targetCol && targetCol.cards.length > 0) {
-        // Simple index-based fallback (sticky Y handled in board-actions.ts)
-        newState.cardIndex = Math.min(
-          state.cardIndex,
-          targetCol.cards.length - 1,
+        // Ensure we land on a non-virtual card
+        const firstReal = getFirstRealCardIndex(targetCol);
+        newState.cardIndex = Math.max(
+          firstReal,
+          Math.min(state.cardIndex, targetCol.cards.length - 1),
         );
       } else {
         newState.cardIndex = 0;
@@ -593,21 +691,28 @@ export function handleKey(
 
     case "l":
     case "\x06": {
-      // Ctrl+F
-      const targetColIndex = Math.min(
-        state.columns.length - 1,
-        state.colIndex + 1,
-      );
-      if (targetColIndex === state.colIndex) {
+      // Ctrl+F - skip virtual columns
+      let targetColIndex = state.colIndex + 1;
+      while (
+        targetColIndex < state.columns.length &&
+        state.columns[targetColIndex]?.isVirtual
+      ) {
+        targetColIndex++;
+      }
+      if (
+        targetColIndex >= state.columns.length ||
+        targetColIndex === state.colIndex
+      ) {
         return { state: newState, action: null };
       }
       newState.colIndex = targetColIndex;
       const targetCol = state.columns[targetColIndex];
       if (targetCol && targetCol.cards.length > 0) {
-        // Simple index-based fallback (sticky Y handled in board-actions.ts)
-        newState.cardIndex = Math.min(
-          state.cardIndex,
-          targetCol.cards.length - 1,
+        // Ensure we land on a non-virtual card
+        const firstReal = getFirstRealCardIndex(targetCol);
+        newState.cardIndex = Math.max(
+          firstReal,
+          Math.min(state.cardIndex, targetCol.cards.length - 1),
         );
       } else {
         newState.cardIndex = 0;
@@ -615,11 +720,12 @@ export function handleKey(
       return { state: newState, action: null };
     }
 
-    // Navigation - up/down cards
+    // Navigation - up/down cards (skip virtual body cards)
     case "k":
     case "\x10": // Ctrl+P
       if (col) {
-        newState.cardIndex = Math.max(0, state.cardIndex - 1);
+        const firstReal = getFirstRealCardIndex(col);
+        newState.cardIndex = Math.max(firstReal, state.cardIndex - 1);
         if (state.visualMode) {
           const newCard = col.cards[newState.cardIndex];
           if (newCard) {
@@ -647,9 +753,13 @@ export function handleKey(
       }
       return { state: newState, action: null };
 
-    // Jump to top/bottom
+    // Jump to top/bottom (skip virtual body cards)
     case "g":
-      newState.cardIndex = 0;
+      if (col) {
+        newState.cardIndex = getFirstRealCardIndex(col);
+      } else {
+        newState.cardIndex = 0;
+      }
       return { state: newState, action: null };
 
     case "G":

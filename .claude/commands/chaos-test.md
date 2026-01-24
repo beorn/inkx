@@ -59,6 +59,7 @@ bun run chaos:fuzz -n <iterations> -v 2>&1 | tee /tmp/chaos-output.txt
 ```
 
 **Flags:**
+
 - Default: MockFS + parallel (fastest, ~1000 iter/sec)
 - `-p/--parallel`: Force parallel mode
 - `--sequential`: Disable parallel (for debugging)
@@ -229,6 +230,7 @@ Suggest next steps:
 - Run `bun test packages/km-storage/tests/sync/chaos/regression.test.ts`
 
 **Quick iteration cycle** (parallel mode makes this fast):
+
 ```bash
 # 1000 iterations in ~1 second
 bun ./scripts/chaos.ts fuzz -n 1000

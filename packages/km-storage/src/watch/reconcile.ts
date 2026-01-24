@@ -316,6 +316,7 @@ async function handleCreate(
   } else if (op.path.endsWith(".md")) {
     // Parse markdown file and create nodes with wikilinks
     const content = fs.readFileSync(op.path, "utf-8");
+    const contentHash = hashContent(content);
     const { nodes, wikilinks } = parseMarkdownWithLinks(
       content,
       op.path,
@@ -323,10 +324,12 @@ async function handleCreate(
       op.mtime ?? stat.mtimeMs,
     );
 
-    // Set parent for file node
+    // Set parent and content_hash for file node
+    // km-fast-md.0: Store content_hash so updates can skip parsing if unchanged
     const fileNode = nodes[0];
     if (fileNode) {
       fileNode.parent_id = parentId;
+      fileNode.content_hash = contentHash;
     }
 
     // Emit creation events for all nodes
@@ -471,9 +474,13 @@ async function handleUpdate(
     }
   }
 
-  // Always update the file node's fs_mtime (and fs_ino if changed) to track the last synced state
+  // Always update the file node's fs_mtime, fs_ino, and content_hash to track the last synced state
+  // km-fast-md.0: Store content_hash so subsequent updates can skip parsing if unchanged
   if (op.nodeId) {
-    const updates: Record<string, unknown> = { fs_mtime: newMtime };
+    const updates: Record<string, unknown> = {
+      fs_mtime: newMtime,
+      content_hash: contentHash,
+    };
     // Update fs_ino if it changed (atomic write detection)
     if (op.ino !== undefined) {
       updates.fs_ino = op.ino;

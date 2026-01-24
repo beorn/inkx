@@ -55,10 +55,7 @@ function isListItemType(node: KNode): boolean {
  * Consecutive list items are grouped together with no blank lines between them,
  * and a single blank line is added after each group.
  */
-function serializeChildren(
-  children: KNode[],
-  ctx: SerializeContext,
-): string {
+function serializeChildren(children: KNode[], ctx: SerializeContext): string {
   let md = "";
 
   for (let i = 0; i < children.length; i++) {

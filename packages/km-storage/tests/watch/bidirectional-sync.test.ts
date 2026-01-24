@@ -6,7 +6,8 @@
  * - File edit → Model → TUI refresh event
  * - Rapid external edits don't cause race conditions
  *
- * Uses isolated test environments for parallel execution.
+ * Uses isolated test environments with useWorker:false for parallel execution.
+ * Worker thread integration is tested separately.
  */
 
 import { describe, test, expect } from "bun:test";
@@ -36,6 +37,7 @@ describe("Bidirectional Sync E2E", () => {
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
+          useWorker: false, // Use main thread for ALS access
         });
 
         setFsSync(syncManager);
@@ -79,6 +81,7 @@ describe("Bidirectional Sync E2E", () => {
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
+          useWorker: false,
         });
 
         setFsSync(syncManager);
@@ -127,6 +130,7 @@ describe("Bidirectional Sync E2E", () => {
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
+          useWorker: false,
         });
 
         syncManager.on("state-change", (state) => {
@@ -169,10 +173,7 @@ describe("Bidirectional Sync E2E", () => {
 
           // Wait for sync to complete (with timeout)
           const timeout = new Promise<void>((_, reject) => {
-            setTimeout(
-              () => reject(new Error("Timeout waiting for sync")),
-              5000,
-            );
+            setTimeout(() => reject(new Error("Timeout waiting for sync")), 5000);
           });
 
           await Promise.race([stateChanged, timeout]);
@@ -197,6 +198,7 @@ describe("Bidirectional Sync E2E", () => {
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
+          useWorker: false,
         });
 
         syncManager.on("state-change", (state) => {
@@ -272,6 +274,7 @@ describe("Bidirectional Sync E2E", () => {
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
+          useWorker: false,
         });
 
         syncManager.on("state-change", (state) => {
@@ -345,6 +348,7 @@ describe("Bidirectional Sync E2E", () => {
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
+          useWorker: false,
         });
 
         syncManager.on("state-change", (state) => {
@@ -396,8 +400,6 @@ describe("Bidirectional Sync E2E", () => {
         }
       }));
 
-    // Fixed: The reconcile-before-write fix ensures FS changes are synced to DB
-    // before regenerating the file for a DB→FS write. This prevents data loss.
     test("TUI edit during filesystem sync doesn't cause data loss", () =>
       withTestEnv(async ({ vaultDir }) => {
         setDatabase({ applyEvent });
@@ -407,6 +409,7 @@ describe("Bidirectional Sync E2E", () => {
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
+          useWorker: false,
         });
 
         setFsSync(syncManager);

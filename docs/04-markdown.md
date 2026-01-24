@@ -410,6 +410,56 @@ function parseMarkdown(content: string): Root {
 
 ---
 
+## Body Content
+
+Sections can contain "body content" — block-level nodes (paragraphs, code, quotes)
+that appear before any subsections.
+
+### Current Model (Virtual Body)
+
+Body content is grouped at display time, not stored as a separate node:
+
+```
+section "Board"
+├── paragraph "Board description"    ← body (virtual grouping)
+├── code "example"                   ← body
+├── section "Column 1"               ← structural children
+└── section "Column 2"
+```
+
+Display renders body as a virtual first column (labeled "Description"):
+- Read-only: cursor skips body columns in h/l navigation
+- Styled differently: dimmed header, info icon
+
+### FUTURE: Structured Item Model (Slate.js Compatible)
+
+For richer editing (e.g., Slate.js integration), items could use explicit structure:
+
+```
+item (section-level node)
+├── title (block-level)      ← 1st child: heading/name
+├── body (container)         ← 2nd child: block-level content
+│   ├── paragraph
+│   ├── code
+│   └── quote
+├── subitem                  ← 3rd+ children: nested items
+├── subitem
+└── subitem
+```
+
+Benefits:
+- Title is addressable node (can have inline formatting, links)
+- Body is explicit container (maps to Slate.js document)
+- Clear separation: structure (items) vs content (body blocks)
+- Easier bidirectional sync with rich text editors
+
+Trade-offs:
+- More nodes in storage
+- Parser must synthesize title/body nodes
+- Migration from current flat model
+
+---
+
 ## See Also
 
 - [03-storage.md](03-storage.md) — Node storage, sync

@@ -40,3 +40,12 @@ export {
   type GetNodeFn,
   type CollapsedAncestor,
 } from "./display.ts";
+
+// Body content utilities
+export {
+  extractBody,
+  hasBody,
+  isStructuralType,
+  isBodyType,
+  type BodyExtraction,
+} from "./body.ts";
