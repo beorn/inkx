@@ -58,11 +58,13 @@ When multiple Claude Code sessions work on the same codebase:
 ## Execute
 
 **Session-aware commands** (`work`, `claim`, `release`, `my`):
+
 ```bash
 bun ./.claude/skills/bd/scripts/bd.ts $ARGUMENTS
 ```
 
 **Standard commands** (`ready`, `show`, `close`, `sync`, `create`, `list`, etc.):
+
 ```bash
 bd $ARGUMENTS
 ```

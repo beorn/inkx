@@ -53,8 +53,13 @@ function TreeLine({
   if (isCursor) {
     return (
       <Text>
-        <Text dimColor>{prefix}{connector}</Text>
-        <Text backgroundColor="cyan" color="black">{contentText}</Text>
+        <Text dimColor>
+          {prefix}
+          {connector}
+        </Text>
+        <Text backgroundColor="cyan" color="black">
+          {contentText}
+        </Text>
       </Text>
     );
   }
@@ -62,7 +67,10 @@ function TreeLine({
   if (isSelected) {
     return (
       <Text>
-        <Text dimColor>{prefix}{connector}</Text>
+        <Text dimColor>
+          {prefix}
+          {connector}
+        </Text>
         <Text color="cyan">{contentText}</Text>
       </Text>
     );
@@ -70,7 +78,10 @@ function TreeLine({
 
   return (
     <Text>
-      <Text dimColor>{prefix}{connector}</Text>
+      <Text dimColor>
+        {prefix}
+        {connector}
+      </Text>
       <Text>{contentText}</Text>
     </Text>
   );
@@ -100,14 +111,13 @@ function buildTreeLines(
 
     // Check if this node is at the cursor position
     const isCursor =
-      cursor.length === path.length &&
-      cursor.every((v, j) => v === path[j]);
+      cursor.length === path.length && cursor.every((v, j) => v === path[j]);
     const isSelected = selectedNodes.has(node.id);
     const isFolded = foldedNodes.has(node.id);
 
     // Status icon
     const statusIcon = node.task_status
-      ? STATUS_ICONS[node.task_status] ?? " "
+      ? (STATUS_ICONS[node.task_status] ?? " ")
       : " ";
 
     // Fold indicator

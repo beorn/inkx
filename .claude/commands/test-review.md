@@ -13,12 +13,12 @@ Review tests for pruning, overlap, and architecture alignment.
 
 ## Modes
 
-| Argument | Behavior |
-|----------|----------|
-| (none) | Review all tests, output report |
+| Argument    | Behavior                                     |
+| ----------- | -------------------------------------------- |
+| (none)      | Review all tests, output report              |
 | `<package>` | Review specific package (e.g., `km-storage`) |
-| `--full` | Include detailed taxonomy of every test |
-| `--dry-run` | Analysis only, no action recommendations |
+| `--full`    | Include detailed taxonomy of every test      |
+| `--dry-run` | Analysis only, no action recommendations     |
 
 ---
 
@@ -61,6 +61,7 @@ Use Task agents in parallel to analyze each layer:
 5. **Playwright tests** - Should test visual behavior, not state logic
 
 Check for layer violations:
+
 - Storage tests importing UI components
 - Board tests opening databases
 - Parser tests checking node structure (belongs in tree/storage)
@@ -88,6 +89,7 @@ find packages apps -name "*.test.ts" -exec wc -l {} \; 2>/dev/null | \
 Apply checklist from `docs/dev/test-review.md`:
 
 **Delete candidates**:
+
 - Tautology tests
 - Tests the mock
 - Obsolete features
@@ -95,11 +97,13 @@ Apply checklist from `docs/dev/test-review.md`:
 - Covered by types
 
 **Merge candidates**:
+
 - Same setup, different assertions
 - Sequential dependencies
 
 **Move layer candidates**:
-- >10 mocks → move up
+
+- > 10 mocks → move up
 - Pure function with database → move down
 
 ## Phase 5: Report
@@ -110,29 +114,35 @@ Output structured findings:
 ## Test Review: YYYY-MM-DD
 
 ### Summary
-| Metric | Count |
-|--------|-------|
-| Total test files | N |
-| Total tests | N |
-| Fast tests | N |
-| Slow tests | N |
-| Playwright tests | N |
-| Chaos tests | N |
-| Delete candidates | N |
-| Merge candidates | N |
+
+| Metric            | Count |
+| ----------------- | ----- |
+| Total test files  | N     |
+| Total tests       | N     |
+| Fast tests        | N     |
+| Slow tests        | N     |
+| Playwright tests  | N     |
+| Chaos tests       | N     |
+| Delete candidates | N     |
+| Merge candidates  | N     |
 
 ### By Layer
+
 | Layer | Files | Tests | Issues |
-|-------|-------|-------|--------|
+| ----- | ----- | ----- | ------ |
 
 ### Action Items
+
 #### A. Delete (N)
+
 | File:Line | Test | Reason |
 
 #### B. Merge (N)
+
 | Source | Into | Reason |
 
 #### C. Move (N)
+
 | File:Line | From | To | Reason |
 ```
 
