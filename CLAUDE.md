@@ -114,17 +114,19 @@ This applies to all code including:
 **Test commands:**
 
 ```bash
-bun run test:fast    # ⚡ USE THIS for fast iteration (~24s)
+bun run test:fast    # ⚡ USE THIS for fast iteration (<5s target)
 bun run test:all     # ALL tests - unit + mdtest (~2min, run before committing)
 bun run test:mdtest  # Only mdtest integration tests (*.test.md)
 ```
+
+**test:fast performance target: <5 seconds**. If test:fast takes longer than 5 seconds, schedule a cleanup/pruning/optimization round. Move slow integration tests to `*.slow.test.ts` suffix to exclude them from test:fast.
 
 **⚠️ NEVER use bare `bun test`** - it picks up archived tests in `archive/` and takes forever. Always use the npm scripts above.
 
 **⚡ IMPORTANT: Use `bun run test:fast` during development!**
 
-- `test:fast` takes ~24 seconds - use this while iterating
-- Only run `test:all` before committing (~1.5 minutes)
+- `test:fast` should complete in <5 seconds - use this while iterating
+- Only run `test:all` before committing (~2 minutes)
 
 **BEFORE committing any code changes:**
 
