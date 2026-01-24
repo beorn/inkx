@@ -43,3 +43,16 @@ export type {
   ChaosReport,
   GenerateReportOptions,
 } from "./chaos-report.ts";
+
+// Fixture DSL for building test data
+export {
+  board,
+  column,
+  task,
+  section,
+  paragraph,
+  SIMPLE_BOARD,
+  NESTED_BOARD,
+  BODY_CONTENT_BOARD,
+  type BoardFixture,
+} from "./fixtures.ts";
