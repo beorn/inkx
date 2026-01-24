@@ -97,7 +97,8 @@ export const viewCommand = new Command("view")
     };
 
     // km-fast-md.7: Extract deferred files for background parsing
-    const loadResult = results.loadVault as unknown as import("@km/storage").LoadResult;
+    const loadResult =
+      results.loadVault as unknown as import("@km/storage").LoadResult;
     const deferredFiles = loadResult.deferredFiles ?? [];
 
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
@@ -129,17 +130,19 @@ export const viewCommand = new Command("view")
         if (aborted) return;
 
         try {
-          const { parsed, pendingLinks } = await storageModule!.parseDeferredAsync(
-            deferredFiles,
-            () => aborted, // Check abort on each batch
-          );
+          const { parsed, pendingLinks } =
+            await storageModule!.parseDeferredAsync(
+              deferredFiles,
+              () => aborted, // Check abort on each batch
+            );
           debug("background parsing complete: %d parsed", parsed);
 
           if (aborted) return;
 
           // Now resolve links from the parsed content
           if (pendingLinks.length > 0) {
-            const resolved = await storageModule!.resolveLinksAsync(pendingLinks);
+            const resolved =
+              await storageModule!.resolveLinksAsync(pendingLinks);
             debug("background link resolution complete: %d resolved", resolved);
           }
         } catch (err) {

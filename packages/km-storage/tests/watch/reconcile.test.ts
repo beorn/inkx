@@ -114,7 +114,10 @@ describe("reconcile.ts", () => {
         expect(node).not.toBeNull();
         expect(node!.fs_mtime).toBeDefined();
 
-        writeFileSync(filePath, "# Restored from backup with different content");
+        writeFileSync(
+          filePath,
+          "# Restored from backup with different content",
+        );
         const pastTime = new Date(Date.now() - 86400000);
         utimesSync(filePath, pastTime, pastTime);
 
@@ -268,7 +271,10 @@ describe("reconcile.ts", () => {
         await applyReconcileOps(rootOps, vaultDir);
         rebuildState();
 
-        const level1Ops = reconcileDirectory(join(vaultDir, "level1"), vaultDir);
+        const level1Ops = reconcileDirectory(
+          join(vaultDir, "level1"),
+          vaultDir,
+        );
         await applyReconcileOps(level1Ops, vaultDir);
         rebuildState();
 
@@ -406,7 +412,9 @@ describe("reconcile.ts", () => {
         const taskAAfter = tasksAfter.find((t) =>
           t.content?.includes("Task A Modified"),
         );
-        const taskBAfter = tasksAfter.find((t) => t.content?.includes("Task B"));
+        const taskBAfter = tasksAfter.find((t) =>
+          t.content?.includes("Task B"),
+        );
 
         expect(taskAAfter).toBeDefined();
         expect(taskBAfter).toBeDefined();
@@ -508,7 +516,9 @@ describe("reconcile.ts", () => {
 
         let totalTasksBefore = 0;
         for (const section of sections) {
-          const tasks = getChildren(section.id).filter((n) => n.type === "task");
+          const tasks = getChildren(section.id).filter(
+            (n) => n.type === "task",
+          );
           totalTasksBefore += tasks.length;
         }
         expect(totalTasksBefore).toBe(3);
@@ -535,7 +545,9 @@ describe("reconcile.ts", () => {
 
         let totalTasksAfter = 0;
         for (const section of sectionsAfter) {
-          const tasks = getChildren(section.id).filter((n) => n.type === "task");
+          const tasks = getChildren(section.id).filter(
+            (n) => n.type === "task",
+          );
           totalTasksAfter += tasks.length;
         }
         expect(totalTasksAfter).toBe(3);

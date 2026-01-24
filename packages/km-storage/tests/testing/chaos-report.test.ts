@@ -4,8 +4,8 @@
  * Tests for chaos test report generation and formatting.
  */
 
-import { describe, test, expect } from "bun:test";
-import { writeFileSync } from "fs";
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { runGenerator } from "@km/core";
 import {
@@ -17,10 +17,11 @@ import {
   formatChaosReport,
   formatChaosReportJson,
   formatChaosReportMarkdown,
+  closeDb,
 } from "../../src/index.ts";
 import type { ChaosReport, ChaosScenario } from "../../src/index.ts";
-import { withTestEnv } from "../test-utils.ts";
 
+// Tests that don't use createVault can run in parallel
 describe("generateChaosReport", () => {
   test("generates report with ChaosHooks", () => {
     const random = createSeededRandom(12345);
@@ -319,57 +320,71 @@ describe("formatChaosReportMarkdown", () => {
   });
 });
 
-describe("integration with real vault", () => {
-  test("generates report from real vault chaos test", () =>
-    withTestEnv(async ({ vaultDir }) => {
-      writeFileSync(
-        join(vaultDir, "tasks.md"),
-        `# Tasks
+// Tests using createVault must be serial - createVault manages its own database
+// via loadVault which uses global singletons. Cannot use withTestEnv.
+const TEST_DIR = "/tmp/kmtest-chaos-report";
+const VAULT_DIR = join(TEST_DIR, "vault");
+
+describe.serial("integration with real vault", () => {
+  beforeEach(() => {
+    if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
+    mkdirSync(VAULT_DIR, { recursive: true });
+  });
+
+  afterEach(() => {
+    closeDb();
+    if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
+  });
+
+  test("generates report from real vault chaos test", () => {
+    writeFileSync(
+      join(VAULT_DIR, "tasks.md"),
+      `# Tasks
 
 - [ ] Task one
 - [ ] Task two
 `,
-      );
+    );
 
-      const random = createSeededRandom(99999);
-      const hooks = createChaosHooks({
-        mutationDropRate: 0.5,
-        random,
+    const random = createSeededRandom(99999);
+    const hooks = createChaosHooks({
+      mutationDropRate: 0.5,
+      random,
+    });
+
+    const vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+
+    try {
+      // Perform some mutations that may be dropped
+      const tasks = vault.getAllTasks();
+      for (const task of tasks) {
+        try {
+          vault.updateNode(task.id, { task_status: "done" });
+        } catch {
+          // Expected for dropped mutations
+        }
+      }
+
+      const report = generateChaosReport({
+        scenario: {
+          name: "real-vault-chaos",
+          seed: 99999,
+          config: { mutationDropRate: 0.5 },
+        },
+        hooks,
+        vault,
+        passed: true,
+        durationMs: 100,
       });
 
-      const vault = runGenerator(createVault(vaultDir, { hooks }));
+      expect(report.chaosStats.totalMutations).toBeGreaterThan(0);
+      expect(report.stateSnapshot.nodeCount).toBeGreaterThan(0);
 
-      try {
-        // Perform some mutations that may be dropped
-        const tasks = vault.getAllTasks();
-        for (const task of tasks) {
-          try {
-            vault.updateNode(task.id, { task_status: "done" });
-          } catch {
-            // Expected for dropped mutations
-          }
-        }
-
-        const report = generateChaosReport({
-          scenario: {
-            name: "real-vault-chaos",
-            seed: 99999,
-            config: { mutationDropRate: 0.5 },
-          },
-          hooks,
-          vault,
-          passed: true,
-          durationMs: 100,
-        });
-
-        expect(report.chaosStats.totalMutations).toBeGreaterThan(0);
-        expect(report.stateSnapshot.nodeCount).toBeGreaterThan(0);
-
-        // Verify we can format it
-        const text = formatChaosReport(report);
-        expect(text).toContain("real-vault-chaos");
-      } finally {
-        vault.close();
-      }
-    }));
+      // Verify we can format it
+      const text = formatChaosReport(report);
+      expect(text).toContain("real-vault-chaos");
+    } finally {
+      vault.close();
+    }
+  });
 });

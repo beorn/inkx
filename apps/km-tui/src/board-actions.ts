@@ -491,10 +491,16 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     );
 
     // Clamp to valid range
-    targetColIndex = Math.max(0, Math.min(state.columns.length - 1, targetColIndex));
+    targetColIndex = Math.max(
+      0,
+      Math.min(state.columns.length - 1, targetColIndex),
+    );
 
     // No movement possible (or landed on virtual column at boundary)
-    if (targetColIndex === state.colIndex || state.columns[targetColIndex]?.isVirtual) {
+    if (
+      targetColIndex === state.colIndex ||
+      state.columns[targetColIndex]?.isVirtual
+    ) {
       return;
     }
 

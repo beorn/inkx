@@ -10,7 +10,12 @@ import { describe, test, expect } from "bun:test";
 import { mkdirSync, existsSync, writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 
-import { getNodeByPath, getAllNodes, applyEvent, getAncestors } from "@km/storage";
+import {
+  getNodeByPath,
+  getAllNodes,
+  applyEvent,
+  getAncestors,
+} from "@km/storage";
 
 import { setDatabase } from "../../src/emit.ts";
 import { SyncManager } from "../../src/watch/sync.ts";

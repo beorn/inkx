@@ -7,17 +7,13 @@
  * Critical safety test for km-me0n bug.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "fs";
+import { describe, test, expect } from "bun:test";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { SyncManager } from "../../src/watch/sync.ts";
-import { getAllNodes, resetDb, closeDb, applyEvent } from "../../src/index.ts";
-import { setKmDir, setDatabase } from "../../src/emit.ts";
-
-// Fixed test directory for isolation
-const TEST_DIR = join("/tmp", "kmtest-e2e-sync-safety");
-const VAULT_DIR = join(TEST_DIR, "vault");
-const KM_DIR = join(VAULT_DIR, ".km");
+import { getAllNodes, applyEvent } from "../../src/index.ts";
+import { setDatabase } from "../../src/emit.ts";
+import { withTestEnv } from "../test-utils.ts";
 
 /**
  * Original file contents - non-markdown files MUST remain unchanged
@@ -40,16 +36,14 @@ const ORIGINAL_FILES: Record<string, string> = {
 /**
  * Create the test vault with all file types
  */
-function createTestVault(): void {
+function createTestVault(vaultDir: string): void {
   // Create directories
-  mkdirSync(VAULT_DIR, { recursive: true });
-  mkdirSync(KM_DIR, { recursive: true });
-  mkdirSync(join(VAULT_DIR, "src"), { recursive: true });
-  mkdirSync(join(VAULT_DIR, "notes"), { recursive: true });
+  mkdirSync(join(vaultDir, "src"), { recursive: true });
+  mkdirSync(join(vaultDir, "notes"), { recursive: true });
 
   // Write all files
   for (const [relativePath, content] of Object.entries(ORIGINAL_FILES)) {
-    const fullPath = join(VAULT_DIR, relativePath);
+    const fullPath = join(vaultDir, relativePath);
     writeFileSync(fullPath, content);
   }
 }
@@ -57,7 +51,10 @@ function createTestVault(): void {
 /**
  * Verify that all non-markdown files are unchanged
  */
-function verifyNonMdFilesUnchanged(): { passed: boolean; errors: string[] } {
+function verifyNonMdFilesUnchanged(vaultDir: string): {
+  passed: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   for (const [relativePath, originalContent] of Object.entries(
@@ -66,7 +63,7 @@ function verifyNonMdFilesUnchanged(): { passed: boolean; errors: string[] } {
     // Skip markdown files - they're expected to potentially change
     if (relativePath.endsWith(".md")) continue;
 
-    const fullPath = join(VAULT_DIR, relativePath);
+    const fullPath = join(vaultDir, relativePath);
 
     if (!existsSync(fullPath)) {
       errors.push(`File deleted: ${relativePath}`);
@@ -86,144 +83,147 @@ function verifyNonMdFilesUnchanged(): { passed: boolean; errors: string[] } {
   return { passed: errors.length === 0, errors };
 }
 
-describe.serial("E2E Sync Safety", () => {
-  beforeEach(() => {
-    // Clean up test directories
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
+describe("E2E Sync Safety", () => {
+  describe("syncFromFs", () => {
+    test("should import markdown files into database", () =>
+      withTestEnv(async ({ vaultDir }) => {
+        setDatabase({ applyEvent });
+        createTestVault(vaultDir);
 
-    // Create test vault with all file types
-    createTestVault();
+        const manager = new SyncManager({
+          vaultPath: vaultDir,
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "fs_wins",
+          useWorker: false,
+        });
 
-    // Configure database to use test directory
-    setKmDir(KM_DIR);
-    setDatabase({ applyEvent });
-    resetDb();
+        const result = await manager.syncFromFs();
+
+        // Should have processed files
+        expect(result.processed).toBeGreaterThan(0);
+
+        // Should have markdown file nodes
+        const nodes = getAllNodes();
+        const fileNodes = nodes.filter((n) => n.type === "file");
+
+        // Should have exactly 2 markdown files (README.md and notes/daily.md)
+        const mdFiles = fileNodes.filter((n) => n.fs_path?.endsWith(".md"));
+        expect(mdFiles.length).toBe(2);
+      }));
+
+    test("should not modify non-markdown files during import", () =>
+      withTestEnv(async ({ vaultDir }) => {
+        setDatabase({ applyEvent });
+        createTestVault(vaultDir);
+
+        const manager = new SyncManager({
+          vaultPath: vaultDir,
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "fs_wins",
+          useWorker: false,
+        });
+
+        await manager.syncFromFs();
+
+        // Verify all non-markdown files are unchanged
+        const verification = verifyNonMdFilesUnchanged(vaultDir);
+        expect(verification.errors).toEqual([]);
+        expect(verification.passed).toBe(true);
+      }));
   });
 
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
+  describe("syncToFs", () => {
+    test("should only write .md files to filesystem", () =>
+      withTestEnv(async ({ vaultDir }) => {
+        setDatabase({ applyEvent });
+        createTestVault(vaultDir);
 
-  describe.serial("syncFromFs", () => {
-    test("should import markdown files into database", async () => {
-      const manager = new SyncManager({
-        vaultPath: VAULT_DIR,
-        debounceFs: 0,
-        debounceApply: 0,
-        conflictStrategy: "fs_wins",
-      });
+        // First import from filesystem
+        const manager = new SyncManager({
+          vaultPath: vaultDir,
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "fs_wins",
+          useWorker: false,
+        });
 
-      const result = await manager.syncFromFs();
+        await manager.syncFromFs();
 
-      // Should have processed files
-      expect(result.processed).toBeGreaterThan(0);
+        // Now sync back to filesystem
+        const result = await manager.syncToFs();
 
-      // Should have markdown file nodes
-      const nodes = getAllNodes();
-      const fileNodes = nodes.filter((n) => n.type === "file");
+        // Should have written only markdown files
+        expect(result.written).toBe(2);
 
-      // Should have exactly 2 markdown files (README.md and notes/daily.md)
-      const mdFiles = fileNodes.filter((n) => n.fs_path?.endsWith(".md"));
-      expect(mdFiles.length).toBe(2);
-    });
-
-    test("should not modify non-markdown files during import", async () => {
-      const manager = new SyncManager({
-        vaultPath: VAULT_DIR,
-        debounceFs: 0,
-        debounceApply: 0,
-        conflictStrategy: "fs_wins",
-      });
-
-      await manager.syncFromFs();
-
-      // Verify all non-markdown files are unchanged
-      const verification = verifyNonMdFilesUnchanged();
-      expect(verification.errors).toEqual([]);
-      expect(verification.passed).toBe(true);
-    });
-  });
-
-  describe.serial("syncToFs", () => {
-    test("should only write .md files to filesystem", async () => {
-      // First import from filesystem
-      const manager = new SyncManager({
-        vaultPath: VAULT_DIR,
-        debounceFs: 0,
-        debounceApply: 0,
-        conflictStrategy: "fs_wins",
-      });
-
-      await manager.syncFromFs();
-
-      // Now sync back to filesystem
-      const result = await manager.syncToFs();
-
-      // Should have written only markdown files
-      expect(result.written).toBe(2);
-
-      // CRITICAL: Verify non-markdown files are unchanged
-      const verification = verifyNonMdFilesUnchanged();
-      if (!verification.passed) {
-        console.error("Non-markdown files were corrupted:");
-        for (const error of verification.errors) {
-          console.error("  ", error);
+        // CRITICAL: Verify non-markdown files are unchanged
+        const verification = verifyNonMdFilesUnchanged(vaultDir);
+        if (!verification.passed) {
+          console.error("Non-markdown files were corrupted:");
+          for (const error of verification.errors) {
+            console.error("  ", error);
+          }
         }
-      }
-      expect(verification.errors).toEqual([]);
-      expect(verification.passed).toBe(true);
-    });
+        expect(verification.errors).toEqual([]);
+        expect(verification.passed).toBe(true);
+      }));
 
-    test("should never write source code files", async () => {
-      const manager = new SyncManager({
-        vaultPath: VAULT_DIR,
-        debounceFs: 0,
-        debounceApply: 0,
-        conflictStrategy: "fs_wins",
-      });
+    test("should never write source code files", () =>
+      withTestEnv(async ({ vaultDir }) => {
+        setDatabase({ applyEvent });
+        createTestVault(vaultDir);
 
-      await manager.syncFromFs();
-      await manager.syncToFs();
+        const manager = new SyncManager({
+          vaultPath: vaultDir,
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "fs_wins",
+          useWorker: false,
+        });
 
-      // Read the source files - they should be UNCHANGED
-      const indexTs = readFileSync(join(VAULT_DIR, "src/index.ts"), "utf-8");
-      expect(indexTs).toBe(ORIGINAL_FILES["src/index.ts"]!);
-
-      const utilsTs = readFileSync(join(VAULT_DIR, "src/utils.ts"), "utf-8");
-      expect(utilsTs).toBe(ORIGINAL_FILES["src/utils.ts"]!);
-
-      const configJson = readFileSync(
-        join(VAULT_DIR, "src/config.json"),
-        "utf-8",
-      );
-      expect(configJson).toBe(ORIGINAL_FILES["src/config.json"]!);
-    });
-  });
-
-  describe.serial("round-trip safety", () => {
-    test("should preserve all non-markdown files through multiple sync cycles", async () => {
-      const manager = new SyncManager({
-        vaultPath: VAULT_DIR,
-        debounceFs: 0,
-        debounceApply: 0,
-        conflictStrategy: "fs_wins",
-      });
-
-      // Multiple round-trips
-      for (let i = 0; i < 3; i++) {
         await manager.syncFromFs();
         await manager.syncToFs();
-      }
 
-      // All non-markdown files should be unchanged
-      const verification = verifyNonMdFilesUnchanged();
-      expect(verification.errors).toEqual([]);
-      expect(verification.passed).toBe(true);
-    });
+        // Read the source files - they should be UNCHANGED
+        const indexTs = readFileSync(join(vaultDir, "src/index.ts"), "utf-8");
+        expect(indexTs).toBe(ORIGINAL_FILES["src/index.ts"]!);
+
+        const utilsTs = readFileSync(join(vaultDir, "src/utils.ts"), "utf-8");
+        expect(utilsTs).toBe(ORIGINAL_FILES["src/utils.ts"]!);
+
+        const configJson = readFileSync(
+          join(vaultDir, "src/config.json"),
+          "utf-8",
+        );
+        expect(configJson).toBe(ORIGINAL_FILES["src/config.json"]!);
+      }));
+  });
+
+  describe("round-trip safety", () => {
+    test("should preserve all non-markdown files through multiple sync cycles", () =>
+      withTestEnv(async ({ vaultDir }) => {
+        setDatabase({ applyEvent });
+        createTestVault(vaultDir);
+
+        const manager = new SyncManager({
+          vaultPath: vaultDir,
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "fs_wins",
+          useWorker: false,
+        });
+
+        // Multiple round-trips
+        for (let i = 0; i < 3; i++) {
+          await manager.syncFromFs();
+          await manager.syncToFs();
+        }
+
+        // All non-markdown files should be unchanged
+        const verification = verifyNonMdFilesUnchanged(vaultDir);
+        expect(verification.errors).toEqual([]);
+        expect(verification.passed).toBe(true);
+      }));
   });
 });

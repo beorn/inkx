@@ -40,7 +40,9 @@ const TASK_MARK_REGEX = new RegExp(
 );
 
 /** Task mark from title (e.g., "[x] Title") */
-const TITLE_TASK_MARK_REGEX = new RegExp(`^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`);
+const TITLE_TASK_MARK_REGEX = new RegExp(
+  `^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`,
+);
 
 /** Wikilinks: [[target]], [[target|alias]], ![[embed]] */
 const WIKILINK_REGEX =
@@ -371,7 +373,10 @@ export function parseHeadingRules(text: string): ParsedHeading {
   let match;
   while ((match = HEADING_RULE_REGEX.exec(text)) !== null) {
     // Track where this match is for title cleanup
-    matchedRanges.push({ start: match.index, end: match.index + match[0].length });
+    matchedRanges.push({
+      start: match.index,
+      end: match.index + match[0].length,
+    });
 
     // add="query"
     if (match[1]) {

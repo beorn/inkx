@@ -95,7 +95,12 @@ export const Card = React.memo(
     // This includes: cards in virtual columns OR individual virtual body cards
     if (isVirtualColumn || card.isVirtual) {
       return (
-        <Box flexDirection="column" flexShrink={0} width={width} paddingLeft={1}>
+        <Box
+          flexDirection="column"
+          flexShrink={0}
+          width={width}
+          paddingLeft={1}
+        >
           <TreeNode
             node={card.node}
             depth={0}

@@ -18,7 +18,9 @@ import {
   runWithProgress,
 } from "../src/rebuild.ts";
 import { getDb } from "../src/db.ts";
-import { withTestEnvSync } from "./test-utils.ts";
+import { createVault } from "../src/vault.ts";
+import { runGenerator } from "../src/rebuild.ts";
+import { withTestEnvSync, withTestEnv } from "./test-utils.ts";
 
 describe("rebuild.ts", () => {
   describe("readEvents", () => {
@@ -91,20 +93,63 @@ describe("rebuild.ts", () => {
       }));
   });
 
-  describe("needsRebuild", () => {
+  describe("needsRebuild (standalone - deprecated)", () => {
     test("returns true when state.db doesn't exist", () =>
       withTestEnvSync(({ kmDir }) => {
         mkdirSync(kmDir, { recursive: true });
         writeFileSync(getEventsPath(), "");
         expect(needsRebuild()).toBe(true);
       }));
+  });
 
-    // Note: This test requires physical state.db file which we can't easily create
-    // with in-memory db. The needsRebuild function should be moved to Vault.
-    test.todo(
-      "returns false when no events exist - needs Vault.needsRebuild()",
-      () => {},
-    );
+  describe("vault.needsRebuild()", () => {
+    test("returns false for memory mode vaults", () =>
+      withTestEnv(async ({ vaultDir }) => {
+        // No .km directory = memory mode
+        writeFileSync(join(vaultDir, "test.md"), "# Test\n- [ ] Task\n");
+
+        const vault = runGenerator(createVault(vaultDir));
+        try {
+          expect(vault.mode).toBe("memory");
+          expect(vault.needsRebuild()).toBe(false);
+        } finally {
+          vault.close();
+        }
+      }));
+
+    test("returns true for disk mode without state.db", () =>
+      withTestEnv(async ({ vaultDir, kmDir }) => {
+        // Create .km directory for disk mode (but no state.db created yet)
+        mkdirSync(kmDir, { recursive: true });
+        writeFileSync(join(vaultDir, "test.md"), "# Test\n- [ ] Task\n");
+
+        const vault = runGenerator(createVault(vaultDir));
+        try {
+          expect(vault.mode).toBe("disk");
+          // No state.db file exists = needs rebuild
+          // (test uses ALS in-memory db, so physical state.db doesn't exist)
+          expect(vault.needsRebuild()).toBe(true);
+        } finally {
+          vault.close();
+        }
+      }));
+
+    test("returns false for disk mode with state.db and no events", () =>
+      withTestEnv(async ({ vaultDir, kmDir }) => {
+        // Create .km directory and empty state.db for disk mode
+        mkdirSync(kmDir, { recursive: true });
+        writeFileSync(join(kmDir, "state.db"), ""); // Empty file simulates existing db
+        writeFileSync(join(vaultDir, "test.md"), "# Test\n- [ ] Task\n");
+
+        const vault = runGenerator(createVault(vaultDir));
+        try {
+          expect(vault.mode).toBe("disk");
+          // state.db exists, no events = no rebuild needed
+          expect(vault.needsRebuild()).toBe(false);
+        } finally {
+          vault.close();
+        }
+      }));
   });
 
   describe("rebuildState", () => {

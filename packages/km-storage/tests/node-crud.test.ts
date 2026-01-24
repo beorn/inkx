@@ -249,7 +249,10 @@ describe("Node CRUD Operations", () => {
       withTestEnvSync(() => {
         setDatabase({ applyEvent });
 
-        const event = createTestNode("table", "| A | B |\n|---|---|\n| 1 | 2 |");
+        const event = createTestNode(
+          "table",
+          "| A | B |\n|---|---|\n| 1 | 2 |",
+        );
 
         const node = getNode(event.data.id as string);
         expect(node!.type).toBe("table");
@@ -269,7 +272,10 @@ describe("Node CRUD Operations", () => {
       withTestEnvSync(() => {
         setDatabase({ applyEvent });
 
-        const event = createTestNode("html", '<div class="custom">Content</div>');
+        const event = createTestNode(
+          "html",
+          '<div class="custom">Content</div>',
+        );
 
         const node = getNode(event.data.id as string);
         expect(node!.type).toBe("html");
@@ -558,7 +564,11 @@ describe("Node CRUD Operations", () => {
 
         const folder1 = createTestNode("folder");
         const folder2 = createTestNode("folder");
-        const file = createTestNode("file", undefined, folder1.data.id as string);
+        const file = createTestNode(
+          "file",
+          undefined,
+          folder1.data.id as string,
+        );
 
         const fileId = file.data.id as string;
 
@@ -583,7 +593,11 @@ describe("Node CRUD Operations", () => {
         setDatabase({ applyEvent });
 
         const folder = createTestNode("folder");
-        const file = createTestNode("file", undefined, folder.data.id as string);
+        const file = createTestNode(
+          "file",
+          undefined,
+          folder.data.id as string,
+        );
 
         const fileId = file.data.id as string;
 
@@ -598,8 +612,16 @@ describe("Node CRUD Operations", () => {
         setDatabase({ applyEvent });
 
         const folder = createTestNode("folder");
-        const file1 = createTestNode("file", undefined, folder.data.id as string);
-        const file2 = createTestNode("file", undefined, folder.data.id as string);
+        const file1 = createTestNode(
+          "file",
+          undefined,
+          folder.data.id as string,
+        );
+        const file2 = createTestNode(
+          "file",
+          undefined,
+          folder.data.id as string,
+        );
 
         const file1Id = file1.data.id as string;
 
@@ -669,7 +691,11 @@ describe("Node CRUD Operations", () => {
         setDatabase({ applyEvent });
 
         const parent = createTestNode("folder");
-        const child = createTestNode("file", undefined, parent.data.id as string);
+        const child = createTestNode(
+          "file",
+          undefined,
+          parent.data.id as string,
+        );
 
         const parentId = parent.data.id as string;
         const childId = child.data.id as string;

@@ -173,7 +173,10 @@ describe("Bidirectional Sync E2E", () => {
 
           // Wait for sync to complete (with timeout)
           const timeout = new Promise<void>((_, reject) => {
-            setTimeout(() => reject(new Error("Timeout waiting for sync")), 5000);
+            setTimeout(
+              () => reject(new Error("Timeout waiting for sync")),
+              5000,
+            );
           });
 
           await Promise.race([stateChanged, timeout]);

@@ -325,7 +325,8 @@ export function* buildBoardStateGenerator(
     const rules = colNode.rules ?? parseColumnRules(colNode.content || "");
 
     // Extract body content within column (tasks/paragraphs before subsections)
-    const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes);
+    const { body: colBodyNodes, items: structuralCards } =
+      extractBody(cardNodes);
 
     const cards: CardState[] = [];
 

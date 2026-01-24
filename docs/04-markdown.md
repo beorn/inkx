@@ -428,6 +428,7 @@ section "Board"
 ```
 
 Display renders body as a virtual first column (labeled "Description"):
+
 - Read-only: cursor skips body columns in h/l navigation
 - Styled differently: dimmed header, info icon
 
@@ -448,12 +449,14 @@ item (section-level node)
 ```
 
 Benefits:
+
 - Title is addressable node (can have inline formatting, links)
 - Body is explicit container (maps to Slate.js document)
 - Clear separation: structure (items) vs content (body blocks)
 - Easier bidirectional sync with rich text editors
 
 Trade-offs:
+
 - More nodes in storage
 - Parser must synthesize title/body nodes
 - Migration from current flat model

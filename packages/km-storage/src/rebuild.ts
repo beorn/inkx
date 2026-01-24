@@ -118,6 +118,9 @@ export function* rebuildState(): Generator<
  * Returns true if:
  * - state.db doesn't exist
  * - events.jsonl has events newer than last applied
+ *
+ * @deprecated Use vault.needsRebuild() instead. This singleton-based function
+ * relies on global state and will be removed in a future version.
  */
 export function needsRebuild(): boolean {
   const dbPath = getDbPath();

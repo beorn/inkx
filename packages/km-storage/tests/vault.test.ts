@@ -301,7 +301,9 @@ Some content here with [[tasks]] link.
       );
 
       let vaultRef: ReturnType<
-        typeof createVault extends Generator<any, infer R, any> ? () => R : never
+        typeof createVault extends Generator<any, infer R, any>
+          ? () => R
+          : never
       >;
 
       {

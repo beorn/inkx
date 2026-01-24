@@ -53,6 +53,7 @@
         "chalk": "^5.4.1",
         "commander": "^13.1.0",
         "ink-select-input": "^6.2.0",
+        "inkx": "workspace:*",
         "react": "catalog:",
       },
       "devDependencies": {

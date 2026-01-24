@@ -40,6 +40,7 @@ import { shCommand } from "./commands/sh.ts";
 import { bdCommand } from "./commands/bd.ts";
 import { agentCommand } from "./commands/agent.ts";
 import { statsCommand } from "./commands/stats.ts";
+import { screenshotCommand } from "./commands/screenshot.ts";
 
 const program = new Command();
 
@@ -151,9 +152,9 @@ program.hook("preAction", async (thisCommand, actionCommand) => {
   // Default: "info" (from LOG_LEVEL env or @beorn/logger default)
 
   // Don't initialize state for 'init' command - it creates .km/ itself
-  // Don't initialize state for 'view' command - it handles its own loading with task progress
+  // Don't initialize state for 'view' or 'screenshot' commands - they handle their own loading
   const cmdName = actionCommand?.name() ?? thisCommand.name();
-  if (cmdName === "init" || cmdName === "view") {
+  if (cmdName === "init" || cmdName === "view" || cmdName === "screenshot") {
     return;
   }
 
@@ -231,6 +232,7 @@ program.addCommand(shCommand); // km sh [root] - scripting shell for TUI2 debugg
 program.addCommand(bdCommand); // km bd - issue tracking (beads-compatible)
 program.addCommand(agentCommand); // km agent - AI agent management
 program.addCommand(statsCommand); // km stats [path] - vault statistics (domain object example)
+program.addCommand(screenshotCommand); // km screenshot [root] - capture TUI as text
 
 // Handle unknown commands with helpful error message
 program.action((_options, command) => {

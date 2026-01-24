@@ -13,7 +13,13 @@
 
 import createDebug from "debug";
 import { Database } from "bun:sqlite";
-import { existsSync, mkdirSync, writeFileSync, appendFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+  appendFileSync,
+  readFileSync,
+} from "fs";
 import { join, dirname, basename } from "path";
 import type { KNode, TaskStatus } from "@km/core";
 import type { ProgressInfo } from "@beorn/inkx-ui";
@@ -152,6 +158,16 @@ export interface Vault extends Disposable {
    * @returns Query results as array of objects
    */
   rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[];
+
+  // --- Rebuild helpers ---
+
+  /**
+   * Check if state.db needs rebuild.
+   * Returns true if:
+   * - Disk mode: state.db doesn't exist or has unapplied events
+   * - Memory mode: always returns false (ephemeral, no persistence)
+   */
+  needsRebuild(): boolean;
 
   // --- Lifecycle ---
 
@@ -537,6 +553,75 @@ export function* createVault(
       ensureNotClosed();
       // TODO: Re-scan or re-apply events
       debug("refresh not yet implemented");
+    },
+
+    needsRebuild() {
+      ensureNotClosed();
+
+      // Memory mode never needs rebuild (ephemeral)
+      if (mode === "memory") {
+        debug("needsRebuild: no (memory mode)");
+        return false;
+      }
+
+      // Disk mode: check state.db and events.jsonl
+      const kmDir = join(path, ".km");
+      const dbPath = join(kmDir, "state.db");
+      const eventsPath = join(kmDir, "events.jsonl");
+
+      if (!existsSync(dbPath)) {
+        debug("needsRebuild: yes (no state.db)");
+        return true;
+      }
+
+      if (!existsSync(eventsPath)) {
+        debug("needsRebuild: no (no events.jsonl)");
+        return false;
+      }
+
+      // Check if there are unapplied events
+      const db = getDb();
+      const lastApplied = db
+        .prepare("SELECT value FROM meta WHERE key = ?")
+        .get("last_event") as { value: string } | undefined;
+
+      const lastAppliedId = lastApplied?.value;
+      if (!lastAppliedId) {
+        // DB exists but hasn't applied any events - check if events exist
+        const content = existsSync(eventsPath)
+          ? readFileSync(eventsPath, "utf-8")
+          : "";
+        const hasEvents = content.trim().length > 0;
+        debug("needsRebuild", {
+          result: hasEvents ? "yes" : "no",
+          reason: "no last_event",
+        });
+        return hasEvents;
+      }
+
+      // Check if events file has newer events (read last line)
+      const content = readFileSync(eventsPath, "utf-8");
+      const lines = content.split("\n").filter((l: string) => l.trim());
+      if (lines.length === 0) {
+        debug("needsRebuild: no (no events)");
+        return false;
+      }
+
+      // Parse last event to get its ID
+      try {
+        const lastEvent = JSON.parse(lines[lines.length - 1]);
+        const needs = lastEvent.id > lastAppliedId;
+        debug("needsRebuild", {
+          result: needs ? "yes" : "no",
+          last: lastEvent.id.slice(-8),
+          applied: lastAppliedId.slice(-8),
+        });
+        return needs;
+      } catch {
+        // Malformed last line, assume rebuild needed
+        debug("needsRebuild: yes (malformed events)");
+        return true;
+      }
     },
 
     close() {

@@ -1,8 +1,8 @@
 /**
  * Worker Thread Integration Test
  *
- * This is the ONLY test file using describe.serial - it tests the actual
- * worker thread watcher which can't use AsyncLocalStorage context.
+ * This is the ONLY test file using describe.serial for watcher tests - it tests
+ * the actual worker thread watcher which can't use AsyncLocalStorage context.
  *
  * All other watcher tests use useWorker: false for parallel execution.
  */
@@ -10,6 +10,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
+import { EventEmitter } from "events";
 import { SyncManager } from "../../src/watch/sync.ts";
 import { resetDb, closeDb, getAllNodes, applyEvent } from "../../src/index.ts";
 import { setKmDir, setDatabase } from "../../src/emit.ts";
@@ -34,6 +35,8 @@ describe.serial("Worker Thread Integration", () => {
   });
 
   test("worker watcher receives file change events", async () => {
+    const events = new EventEmitter();
+
     // Create initial file
     writeFileSync(join(VAULT_DIR, "test.md"), "# Test\n\n- [ ] Task\n");
 
@@ -46,30 +49,43 @@ describe.serial("Worker Thread Integration", () => {
       // useWorker defaults to true - uses real worker thread
     });
 
+    syncManager.on("state-change", (state) => {
+      events.emit("state-change", state);
+    });
+
     try {
       // Initial sync
       await syncManager.syncFromFs();
 
-      // Start watching
+      // Start watching and wait for ready
       syncManager.start();
       await new Promise<void>((resolve) => {
         syncManager.once("ready", resolve);
       });
 
-      // Make an external edit
+      // Wait for full sync cycle: reconciling → idle
       const stateChanged = new Promise<void>((resolve) => {
-        syncManager.once("state-change", (state) => {
-          if (state === "idle") resolve();
-        });
+        let sawReconciling = false;
+        const handler = (state: string) => {
+          if (state === "reconciling") {
+            sawReconciling = true;
+          }
+          if (state === "idle" && sawReconciling) {
+            events.off("state-change", handler);
+            resolve();
+          }
+        };
+        events.on("state-change", handler);
       });
 
+      // Make an external edit
       writeFileSync(join(VAULT_DIR, "test.md"), "# Test\n\n- [x] Task\n");
 
-      // Wait for worker to detect and sync
+      // Wait for worker to detect and sync (with timeout)
       await Promise.race([
         stateChanged,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 5000)
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout waiting for sync")), 5000),
         ),
       ]);
 

@@ -89,6 +89,26 @@ useEffect(() => dispatch(setRootId(id)), [id]);
 const doubled = items.map((x) => x * 2);
 ```
 
+#### ESM Only - No require()
+
+**NEVER use `require()`.** This is a Bun/ESM codebase. Always use ES module imports:
+
+```typescript
+// ❌ BAD - CommonJS require
+const fs = require("fs");
+const { readFileSync } = require("fs");
+
+// ✅ GOOD - ES module import
+import fs from "fs";
+import { readFileSync } from "fs";
+```
+
+This applies to all code including:
+
+- Dynamic imports (use `await import()` not `require()`)
+- JSON files (use `import data from "./data.json"`)
+- Optional dependencies (use try/catch with `await import()`)
+
 ### 5. Test-Driven Development
 
 **Test commands:**

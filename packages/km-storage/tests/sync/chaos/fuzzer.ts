@@ -19,6 +19,9 @@ import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos";
 import { Verifier } from "./verifier.ts";
 import { setKmDir, setDatabase } from "../../../src/emit.ts";
 import { resetDb, closeDb, applyEvent, getAllNodes } from "../../../src/db.ts";
+import { runWithDb } from "../../../src/db-instance.ts";
+import { Database } from "bun:sqlite";
+import { SCHEMA } from "../../../src/schema.ts";
 import {
   reconcileDirectory,
   reconcileDirectoryRecursive,
@@ -633,150 +636,153 @@ async function runSingleIterationWithMockFs(
   const start = Date.now();
   const mockFs = createMockFileSystem();
   const vaultDir = "/vault";
-  const kmDir = `/tmp/kmtest-mock-${Date.now()}-${Math.random().toString(36).slice(2)}/.km`;
 
-  let chaosWatcher: ChaosWatcher | null = null;
+  // Use in-memory database for parallel isolation
+  const db = new Database(":memory:");
+  db.exec(SCHEMA);
+
+  // Setup - create virtual directories
+  mockFs.mkdirSync(vaultDir, { recursive: true });
+
+  // Declare outside runWithDb so catch/finally can access
   const violations: InvariantViolation[] = [];
+  let chaosWatcher: ChaosWatcher | null = null;
 
+  // Use runWithDb for context-local database (parallel-safe)
   try {
-    // Setup - create virtual directories
-    mockFs.mkdirSync(vaultDir, { recursive: true });
+    return await runWithDb(db, async () => {
+      setDatabase({ applyEvent });
 
-    // Real .km directory for SQLite
-    mkdirSync(kmDir, { recursive: true });
-    setKmDir(kmDir);
-    setDatabase({ applyEvent });
-    resetDb();
-
-    // Create files in mock filesystem
-    for (const file of scenario.setup) {
-      const fullPath = join(vaultDir, file.path);
-      const fileDir = dirname(fullPath);
-      if (!mockFs.existsSync(fileDir)) {
-        mockFs.mkdirSync(fileDir, { recursive: true });
+      // Create files in mock filesystem
+      for (const file of scenario.setup) {
+        const fullPath = join(vaultDir, file.path);
+        const fileDir = dirname(fullPath);
+        if (!mockFs.existsSync(fileDir)) {
+          mockFs.mkdirSync(fileDir, { recursive: true });
+        }
+        mockFs.writeFileSync(fullPath, file.content);
       }
-      mockFs.writeFileSync(fullPath, file.content);
-    }
 
-    // Initial reconciliation with mock scanner
-    const scanner = mockFs.createScanner();
-    const ops = reconcileDirectoryRecursive(
-      vaultDir,
-      vaultDir,
-      undefined,
-      scanner,
-    );
-    await applyReconcileOps(ops, vaultDir, mockFs);
+      // Initial reconciliation with mock scanner
+      const scanner = mockFs.createScanner();
+      const ops = reconcileDirectoryRecursive(
+        vaultDir,
+        vaultDir,
+        undefined,
+        scanner,
+      );
+      await applyReconcileOps(ops, vaultDir, mockFs);
 
-    // Create watcher with combined scenarios
-    const combinedScenario =
-      scenario.scenarios.length === 1
-        ? scenario.scenarios[0]
-        : scenario.scenarios[0];
+      // Create watcher with combined scenarios
+      const combinedScenario =
+        scenario.scenarios.length === 1
+          ? scenario.scenarios[0]
+          : scenario.scenarios[0];
 
-    chaosWatcher = createChaosWatcher({
-      debounceMs: 50,
-      scenario: combinedScenario,
-      seed: scenario.seed,
-    });
+      chaosWatcher = createChaosWatcher({
+        debounceMs: 50,
+        scenario: combinedScenario,
+        seed: scenario.seed,
+      });
 
-    chaosWatcher.start(vaultDir);
+      chaosWatcher.start(vaultDir);
 
-    // Wait for ready (init_gap scenarios need advanceTime)
-    await new Promise<void>((resolve) => {
-      if (combinedScenario?.type === "init_gap") {
-        chaosWatcher!.once("ready", resolve);
-        void chaosWatcher!.advanceTime(
-          (combinedScenario.params.initDurationMs as number) ?? 2000,
-        );
-      } else {
-        chaosWatcher!.once("ready", resolve);
+      // Wait for ready (init_gap scenarios need advanceTime)
+      await new Promise<void>((resolve) => {
+        if (combinedScenario?.type === "init_gap") {
+          chaosWatcher!.once("ready", resolve);
+          void chaosWatcher!.advanceTime(
+            (combinedScenario.params.initDurationMs as number) ?? 2000,
+          );
+        } else {
+          chaosWatcher!.once("ready", resolve);
+        }
+      });
+
+      // Wire sync handler with mock fs
+      chaosWatcher.on(
+        "sync",
+        (data: { paths: string[]; directories: string[] }) => {
+          void (async () => {
+            for (const dir of data.directories) {
+              const dirOps =
+                dir === vaultDir
+                  ? reconcileDirectory(dir, vaultDir, undefined, scanner)
+                  : reconcileDirectoryRecursive(
+                      dir,
+                      vaultDir,
+                      undefined,
+                      scanner,
+                    );
+              await applyReconcileOps(dirOps, vaultDir, mockFs);
+            }
+          })();
+        },
+      );
+
+      // Inject events
+      const absoluteEvents = scenario.events.map((e) => ({
+        ...e,
+        path: join(vaultDir, e.path),
+      }));
+
+      chaosWatcher.injectBatch(absoluteEvents);
+      await chaosWatcher.flush();
+      await new Promise((r) => setTimeout(r, timeout));
+
+      // Verify invariants with mock fs
+      const verifier = new Verifier(mockFs);
+
+      // Check all invariants
+      const duplicates = verifier.verifyNoDuplicates();
+      if (!duplicates.passed) {
+        violations.push({
+          invariant: "no_duplicates",
+          message: "Duplicate nodes found",
+          details: { errors: duplicates.errors },
+        });
       }
-    });
 
-    // Wire sync handler with mock fs
-    chaosWatcher.on(
-      "sync",
-      (data: { paths: string[]; directories: string[] }) => {
-        void (async () => {
-          for (const dir of data.directories) {
-            const dirOps =
-              dir === vaultDir
-                ? reconcileDirectory(dir, vaultDir, undefined, scanner)
-                : reconcileDirectoryRecursive(
-                    dir,
-                    vaultDir,
-                    undefined,
-                    scanner,
-                  );
-            await applyReconcileOps(dirOps, vaultDir, mockFs);
-          }
-        })();
-      },
-    );
+      const parentIntegrity = verifier.verifyParentIntegrity();
+      if (!parentIntegrity.passed) {
+        violations.push({
+          invariant: "parent_integrity",
+          message: "Invalid parent references",
+          details: { errors: parentIntegrity.errors },
+        });
+      }
 
-    // Inject events
-    const absoluteEvents = scenario.events.map((e) => ({
-      ...e,
-      path: join(vaultDir, e.path),
-    }));
+      const filePaths = verifier.verifyFilePaths();
+      if (!filePaths.passed) {
+        violations.push({
+          invariant: "file_paths",
+          message: "Missing file paths",
+          details: { errors: filePaths.errors },
+        });
+      }
 
-    chaosWatcher.injectBatch(absoluteEvents);
-    await chaosWatcher.flush();
-    await new Promise((r) => setTimeout(r, timeout));
+      const fsDbSync = verifier.verifyFsDbSync(vaultDir);
+      if (!fsDbSync.passed) {
+        violations.push({
+          invariant: "fs_db_sync",
+          message: "Filesystem and database out of sync",
+          details: { errors: fsDbSync.errors },
+        });
+      }
 
-    // Verify invariants with mock fs
-    const verifier = new Verifier(mockFs);
+      const verification = verifier.verifyTreeConsistency();
 
-    // Check all invariants
-    const duplicates = verifier.verifyNoDuplicates();
-    if (!duplicates.passed) {
-      violations.push({
-        invariant: "no_duplicates",
-        message: "Duplicate nodes found",
-        details: { errors: duplicates.errors },
-      });
-    }
-
-    const parentIntegrity = verifier.verifyParentIntegrity();
-    if (!parentIntegrity.passed) {
-      violations.push({
-        invariant: "parent_integrity",
-        message: "Invalid parent references",
-        details: { errors: parentIntegrity.errors },
-      });
-    }
-
-    const filePaths = verifier.verifyFilePaths();
-    if (!filePaths.passed) {
-      violations.push({
-        invariant: "file_paths",
-        message: "Missing file paths",
-        details: { errors: filePaths.errors },
-      });
-    }
-
-    const fsDbSync = verifier.verifyFsDbSync(vaultDir);
-    if (!fsDbSync.passed) {
-      violations.push({
-        invariant: "fs_db_sync",
-        message: "Filesystem and database out of sync",
-        details: { errors: fsDbSync.errors },
-      });
-    }
-
-    const verification = verifier.verifyTreeConsistency();
-
-    return {
-      scenario,
-      passed: violations.length === 0,
-      violations,
-      verification,
-      duration: Date.now() - start,
-      eventsEmitted: chaosWatcher.getEmittedEvents().length,
-      eventsDropped: chaosWatcher.getDroppedEvents().length,
-    };
-  } catch (error) {
+      return {
+        scenario,
+        passed: violations.length === 0,
+        violations,
+        verification,
+        duration: Date.now() - start,
+        eventsEmitted: chaosWatcher.getEmittedEvents().length,
+        eventsDropped: chaosWatcher.getDroppedEvents().length,
+      };
+    }); // End runWithDb
+  } catch (error: unknown) {
     violations.push({
       invariant: "no_crash",
       message: `Test crashed: ${error instanceof Error ? error.message : String(error)}`,
@@ -800,19 +806,18 @@ async function runSingleIterationWithMockFs(
         },
       },
       duration: Date.now() - start,
-      eventsEmitted: chaosWatcher?.getEmittedEvents().length ?? 0,
-      eventsDropped: chaosWatcher?.getDroppedEvents().length ?? 0,
+      eventsEmitted: chaosWatcher
+        ? (chaosWatcher as ChaosWatcher).getEmittedEvents().length
+        : 0,
+      eventsDropped: chaosWatcher
+        ? (chaosWatcher as ChaosWatcher).getDroppedEvents().length
+        : 0,
     };
   } finally {
-    if (chaosWatcher) {
-      await chaosWatcher.stop();
+    if (chaosWatcher !== null) {
+      await (chaosWatcher as ChaosWatcher).stop();
     }
-    closeDb();
-    // Clean up real .km directory
-    const testDir = dirname(kmDir);
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true });
-    }
+    db.close();
   }
 }
 
