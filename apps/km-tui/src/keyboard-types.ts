@@ -5,6 +5,7 @@
  */
 
 import type { KNode } from "@km/core";
+import type { Vault } from "@km/storage";
 import type { BoardState as TreeBoardState, BoardAction } from "@km/board";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";
@@ -30,6 +31,8 @@ export interface KeyEvent {
 }
 
 export interface KeyboardContext {
+  /** Vault for storage operations */
+  vault: Vault;
   /** Tree-based board state from boardReducer */
   boardState: TreeBoardState;
   /** Derived column layout from tree state */

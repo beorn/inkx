@@ -4,7 +4,14 @@
  */
 import React, { useEffect, useReducer, useMemo, useRef } from "react";
 import { writeSync } from "fs";
-import { Box, Text, useInput, useApp, useStdout, render as inkxRender } from "inkx";
+import {
+  Box,
+  Text,
+  useInput,
+  useApp,
+  useStdout,
+  render as inkxRender,
+} from "inkx";
 import chalk from "chalk";
 import { hyperlink } from "@beorn/chalkx";
 import createDebug from "debug";
@@ -13,7 +20,8 @@ const debug = createDebug("km:board");
 import type { BoardState, ViewMode } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
 import type { KNode } from "@km/core";
-import { getChildren, getNode, getStore, getNodeCount } from "@km/storage";
+import { getStore, getNodeCount } from "@km/storage";
+import { useVault } from "../vault-context.tsx";
 import type { KeyboardContext } from "../keyboard-types.ts";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
@@ -86,6 +94,7 @@ export interface BoardProps {
 export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
+  const vault = useVault();
 
   // UI state managed by reducer (enables extracting input handlers)
   const [ui, dispatch] = useReducer(
@@ -263,6 +272,7 @@ export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
   // Build unified TUI context once - passed to all handlers
   const tuiContext: TUIContext = buildTUIContext({
+    vault,
     state,
     boardState,
     ui,
@@ -272,7 +282,8 @@ export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     dispatch,
     dispatchBoard,
     exit,
-    countVisibleDescendants,
+    countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
+      countVisibleDescendants(vault, node, depth, maxDepth, foldedNodes),
   });
 
   // Legacy keyboard context for backward compatibility during migration
@@ -331,7 +342,7 @@ export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
         ? selectedCol.node.id
         : selectedCard.node.id;
   const selectedPathSegments = renderPath(
-    getPathSegments(pathNodeId, state.rootId),
+    getPathSegments(vault, pathNodeId, state.rootId),
     termWidth - 4,
   );
 
@@ -557,6 +568,7 @@ export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
 
 // Helper to count visible descendants for flat indexing
 function countVisibleDescendants(
+  vault: import("@km/storage").Vault,
   node: KNode,
   depth: number,
   maxDepth: number,
@@ -565,10 +577,16 @@ function countVisibleDescendants(
   if (depth > maxDepth || foldedNodes.has(node.id)) {
     return 0;
   }
-  const children = getChildren(node.id).slice(0, 10);
+  const children = vault.getChildren(node.id).slice(0, 10);
   let count = children.length;
   for (const child of children) {
-    count += countVisibleDescendants(child, depth + 1, maxDepth, foldedNodes);
+    count += countVisibleDescendants(
+      vault,
+      child,
+      depth + 1,
+      maxDepth,
+      foldedNodes,
+    );
   }
   return count;
 }
@@ -649,12 +667,14 @@ interface TestBoardProps {
   initialState: BoardState;
   testWidth: number;
   testHeight: number;
+  vault: import("@km/storage").Vault;
 }
 
 export function InkBoardTestable({
   initialState,
   testWidth,
   testHeight,
+  vault,
 }: TestBoardProps): React.ReactElement {
   // Create a mock UI state for testing
   const mockUIState = createInitialUIState("cards", [], {
@@ -689,10 +709,10 @@ export function InkBoardTestable({
   const selectedCard = selectedCol?.cards[initialState.cardIndex];
   const selectedPathSegments = selectedCard
     ? renderPath(
-        getPathSegments(selectedCard.node.id, initialState.rootId),
+        getPathSegments(vault, selectedCard.node.id, initialState.rootId),
         termWidth - 4,
       )
-    : getPathSegments(initialState.rootId, initialState.rootId);
+    : getPathSegments(vault, initialState.rootId, initialState.rootId);
 
   // Build top bar with consistent white background, varying foreground colors
   // Path segments are clickable hyperlinks for navigation (km://root/<id>)

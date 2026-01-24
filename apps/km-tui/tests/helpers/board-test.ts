@@ -35,6 +35,7 @@ import {
   type RenderResult,
 } from "inkx/testing";
 import { expect } from "bun:test";
+import { createFakeVault } from "@km/storage";
 
 import { InkBoardTestable } from "../../src/views/Board.tsx";
 import type { BoardState } from "../../src/types.ts";
@@ -494,12 +495,16 @@ export function renderBoard(
 ): BoardTest {
   const { columns = 80, rows = 24 } = options;
 
+  // Create a fake vault for static rendering tests
+  const vault = createFakeVault();
+
   const render = createTestRenderer({ columns, rows });
   const result = render(
     React.createElement(InkBoardTestable, {
       initialState: state,
       testWidth: columns,
       testHeight: rows,
+      vault,
     }),
   );
 

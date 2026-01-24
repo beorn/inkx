@@ -26,6 +26,7 @@ import {
   setDatabase,
   getEventsPath,
   withTestEnv,
+  createFakeVault,
 } from "@km/storage";
 import type { NodeType, Event } from "@km/core";
 import { ulid } from "ulid";
@@ -392,12 +393,14 @@ describe.serial("Board Move - In-Memory Mode", () => {
       );
 
       const state = buildBoardState(rootId);
+      const vault = createFakeVault();
 
       const { lastFrame } = render(
         React.createElement(InkBoardTestable, {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
+          vault,
         }),
       );
 

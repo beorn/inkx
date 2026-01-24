@@ -111,12 +111,9 @@ export async function createBoardTest(
   // Import storage module
   const storageModule = await import("@km/storage");
 
-  // Load vault
-  storageModule.runGenerator(
-    storageModule.loadVault(vaultPath, {
-      searchAncestors: false,
-      discoverOnly: false,
-    }),
+  // Load vault and get reference
+  const vault = storageModule.runGenerator(
+    storageModule.createVault(vaultPath),
   );
 
   // Resolve the file reference if provided
@@ -149,6 +146,7 @@ export async function createBoardTest(
       initialState: state,
       testWidth: width,
       testHeight: height,
+      vault,
     }),
   );
 

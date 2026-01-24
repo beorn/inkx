@@ -8,6 +8,7 @@
  */
 
 import type { KNode } from "@km/core";
+import type { Vault } from "@km/storage";
 import type { BoardState as TreeBoardState, NodeMap } from "@km/board";
 import type { BoardState, CardState, ColumnState } from "./types.ts";
 import type { UIState } from "./ui-reducer.ts";
@@ -26,6 +27,10 @@ import type { LayoutRegistry } from "./card-positions.ts";
  * Eliminates redundant context building in keyboard-handler.ts and command-bridge.ts.
  */
 export interface TUIContext {
+  // === Storage ===
+  /** Vault for storage operations */
+  vault: Vault;
+
   // === State ===
   /** Legacy column-based board state (for backward compatibility) */
   state: BoardState;
@@ -89,6 +94,7 @@ export interface KeyEvent {
 // =============================================================================
 
 export interface BuildTUIContextParams {
+  vault: Vault;
   state: BoardState;
   boardState: TreeBoardState;
   ui: UIState;
@@ -110,7 +116,8 @@ export interface BuildTUIContextParams {
  * The nodeMap should be created via useMemo to avoid O(n) rebuild on every render.
  */
 export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
-  const { state, boardState, ui, layout, nodeMap, positionRegistry } = params;
+  const { vault, state, boardState, ui, layout, nodeMap, positionRegistry } =
+    params;
 
   // Derive current column and card from layout
   const column = layout.columns[layout.colIndex];
@@ -118,6 +125,7 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
   const selectedNode = card?.node;
 
   return {
+    vault,
     state,
     boardState,
     ui,
@@ -186,6 +194,7 @@ export function toKeyboardContext(
   ctx: TUIContext,
 ): import("./keyboard-types.ts").KeyboardContext {
   return {
+    vault: ctx.vault,
     boardState: ctx.boardState,
     layout: ctx.layout,
     ui: ctx.ui,

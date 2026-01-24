@@ -5,6 +5,7 @@
  */
 
 import type { KNode, TaskStatus, TaskMark } from "@km/core";
+import type { Vault } from "@km/storage";
 
 export interface BoardState {
   rootId: string | null;
@@ -137,4 +138,9 @@ export interface TuiOptions {
    * Passed from CLI to keep spinner running through board initialization.
    */
   spinner?: { stop(): void };
+  /**
+   * Vault domain object for storage operations.
+   * When provided, TUI uses this instead of global getStore().
+   */
+  vault?: Vault;
 }
