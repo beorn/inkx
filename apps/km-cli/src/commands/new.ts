@@ -105,7 +105,9 @@ export const newCommand = new Command("new")
     if (options.parent) {
       // Resolve parent path argument
       const resolvedParent = resolvePathArg(options.parent, rootPath);
-      runGenerator(loadVault(resolvedParent.vaultRoot, { searchAncestors: false }));
+      runGenerator(
+        loadVault(resolvedParent.vaultRoot, { searchAncestors: false }),
+      );
 
       if (!resolvedParent.nodeRef) {
         console.error(chalk.red(`Cannot create task in a directory`));

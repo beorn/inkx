@@ -33,7 +33,9 @@ export const addCommand = new Command("add")
   .action((target, sources, options) => {
     // Resolve target path argument - may detect vault root
     const resolvedTarget = resolvePathArg(target, getRootPath());
-    runGenerator(loadVault(resolvedTarget.vaultRoot, { searchAncestors: false }));
+    runGenerator(
+      loadVault(resolvedTarget.vaultRoot, { searchAncestors: false }),
+    );
 
     if (!resolvedTarget.nodeRef) {
       console.error(chalk.red(`Cannot add to a directory`));

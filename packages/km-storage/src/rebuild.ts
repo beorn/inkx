@@ -84,11 +84,7 @@ export function readEvents(): Event[] {
  *
  * Now delegates to loadVault() with force: true.
  */
-export function* rebuildState(): Generator<
-  StepYield,
-  RebuildResult,
-  unknown
-> {
+export function* rebuildState(): Generator<StepYield, RebuildResult, unknown> {
   debug("rebuildState: delegating to loadVault with force=true");
 
   // Count events for the return value (loadVault doesn't track this)

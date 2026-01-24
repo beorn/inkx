@@ -12,10 +12,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import {
-  getAncestors,
-  getFilteredNodes as storageGetFilteredNodes,
-} from "@km/storage";
+import { createVault, runGenerator, type Vault } from "@km/storage";
 import type { KNode } from "@km/core";
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree";
 import { formatNode, formatCollapsedAncestor } from "@km/tui";
@@ -51,24 +48,51 @@ function matchesQuery(node: KNode, query: string, ancestors: KNode[]): boolean {
 /**
  * Get nodes filtered by type and query
  */
-function getFilteredNodesWithQuery(options: {
-  type?: string;
-  query?: string;
-  status?: string;
-  all?: boolean;
-}): KNode[] {
-  // Use storage API for the base filtering
-  let nodes = storageGetFilteredNodes({
-    type: options.type,
-    status: options.status,
-    excludeDone: options.type === "task" && !options.all && !options.status,
-  });
+function getFilteredNodesWithQuery(
+  vault: Vault,
+  options: {
+    type?: string;
+    query?: string;
+    status?: string;
+    all?: boolean;
+  },
+): KNode[] {
+  // Build query expression based on options
+  let nodes: KNode[];
+
+  if (options.type === "task") {
+    if (options.status) {
+      nodes = vault.getTasksByStatus(
+        options.status as NonNullable<KNode["task_status"]>,
+      );
+    } else if (options.all) {
+      nodes = vault.getAllTasks();
+    } else {
+      // Exclude done tasks by default
+      nodes = vault.getAllTasks().filter((n) => n.task_status !== "done");
+    }
+  } else if (options.type) {
+    // Use query for other types
+    nodes = vault.query(`type:${options.type}`);
+  } else {
+    // No type filter - get all nodes via subtree from root
+    nodes = vault.getChildren(null);
+    // Flatten to get all descendants
+    const getAllDescendants = (parentId: string | null): KNode[] => {
+      const children = vault.getChildren(parentId);
+      return children.flatMap((child) => [
+        child,
+        ...getAllDescendants(child.id),
+      ]);
+    };
+    nodes = getAllDescendants(null);
+  }
 
   // Apply query filter if provided
   if (options.query) {
     const query = options.query;
     nodes = nodes.filter((node) => {
-      const ancestors = getAncestors(node.id);
+      const ancestors = vault.getAncestors(node.id);
       return matchesQuery(node, query, ancestors);
     });
   }
@@ -80,18 +104,19 @@ function getFilteredNodesWithQuery(options: {
  * Display nodes with context (ancestor paths)
  */
 function displayWithContext(
+  vault: Vault,
   nodes: KNode[],
   options: { showId: boolean; flat: boolean },
 ): void {
   // Group nodes by their collapsed ancestor paths
   interface NodeWithContext {
-    node: Node;
+    node: KNode;
     collapsed: CollapsedAncestor[];
     pathKey: string;
   }
 
   const nodesWithContext: NodeWithContext[] = nodes.map((node) => {
-    const ancestors = getAncestors(node.id);
+    const ancestors = vault.getAncestors(node.id);
     const collapsed = collapseAncestorsWithTypes(ancestors);
     const pathKey = collapsed.map((ca) => ca.node.id).join("/");
     return { node, collapsed, pathKey };
@@ -104,10 +129,10 @@ function displayWithContext(
     // Flat mode: each node on one line with path prefix
     for (const { node, collapsed } of nodesWithContext) {
       const pathParts = collapsed.map((ca) =>
-        chalk.dim(formatCollapsedAncestor(ca, false)),
+        chalk.dim(formatCollapsedAncestor(vault, ca, false)),
       );
       const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : "";
-      console.log(pathStr + formatNode(node, options.showId));
+      console.log(pathStr + formatNode(vault, node, options.showId));
     }
   } else {
     // Tree mode: show ancestors once, then nodes indented
@@ -122,7 +147,8 @@ function displayWithContext(
         for (const ca of collapsed) {
           const prefix = " ".repeat(depth);
           console.log(
-            prefix + chalk.dim(formatCollapsedAncestor(ca, options.showId)),
+            prefix +
+              chalk.dim(formatCollapsedAncestor(vault, ca, options.showId)),
           );
           if (ca.node.type !== "section") {
             depth++;
@@ -133,7 +159,7 @@ function displayWithContext(
 
       // Print node
       const indent = " ".repeat(Math.max(0, collapsed.length));
-      console.log(indent + formatNode(node, options.showId));
+      console.log(indent + formatNode(vault, node, options.showId));
     }
   }
 }
@@ -141,9 +167,13 @@ function displayWithContext(
 /**
  * Display nodes without context (simple list)
  */
-function displaySimple(nodes: KNode[], options: { showId: boolean }): void {
+function displaySimple(
+  vault: Vault,
+  nodes: KNode[],
+  options: { showId: boolean },
+): void {
   for (const node of nodes) {
-    console.log(formatNode(node, options.showId));
+    console.log(formatNode(vault, node, options.showId));
   }
 }
 
@@ -163,7 +193,9 @@ export const listCommand = new Command("list")
   .option("-f, --flat", "Flat output with path prefixes")
   .option("--json", "Output as JSON")
   .action((query, options) => {
-    const nodes = getFilteredNodesWithQuery({
+    using vault = runGenerator(createVault());
+
+    const nodes = getFilteredNodesWithQuery(vault, {
       type: options.type,
       query,
       status: options.status,
@@ -184,9 +216,9 @@ export const listCommand = new Command("list")
     const flat = options.flat ?? false;
 
     if (options.context || options.type === "task") {
-      displayWithContext(nodes, { showId, flat });
+      displayWithContext(vault, nodes, { showId, flat });
     } else {
-      displaySimple(nodes, { showId });
+      displaySimple(vault, nodes, { showId });
     }
 
     console.log(chalk.dim(`\n${nodes.length} node(s)`));

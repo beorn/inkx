@@ -483,7 +483,7 @@ bdCommand
       console.log();
       console.log(chalk.bold("Storage"));
       console.log(`  Database: ${dbPath}`);
-      console.log(`  Mode: ${store ? "disk" : "memory"}`);
+      console.log(`  Mode: ${store.mode}`);
       console.log(`  Vault: ${resolved.vaultRoot}`);
       if (kmDir) {
         console.log(`  KM Dir: ${kmDir}`);
