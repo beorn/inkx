@@ -2,23 +2,28 @@
  * Board Test Helper - Fluent API for Visual Board Testing
  *
  * Wraps inkx createTestRenderer with a concise, documentation-like API
- * for testing TUI board navigation and rendering.
+ * for testing TUI board rendering.
+ *
+ * ## Current Limitations
+ *
+ * Uses InkBoardTestable (static render) because the full Board component
+ * depends on @km/storage globals. This means:
+ * - ✅ Static visual testing works (content assertions, position assertions)
+ * - ❌ Keyboard navigation (press/moveTo) does NOT change state
+ *
+ * For keyboard navigation testing, the Board component needs refactoring
+ * to accept state via props instead of calling storage functions directly.
  *
  * @example
  * ```typescript
- * const board = renderBoard(SIMPLE_BOARD);
+ * const b = renderBoard(SIMPLE_BOARD);
  *
- * // Navigation - reads like documentation
- * board.press('l').expectCursor({ col: 1 });
- * board.press('j').expectCursor({ card: 1 });
+ * // Content assertions - works!
+ * b.expectVisible('Task 1');
+ * b.expect('Task 1').toBeVisible();
  *
- * // Content assertions
- * board.expect('Task 1').toBeVisible();
- * board.expect('cursor').toBeRightOf('column-0');
- *
- * // State assertions
- * board.expectSelected('Task 2');
- * board.expectColumnCount(2);
+ * // Screenshot for debugging
+ * console.log(b.screenshot());
  * ```
  */
 
@@ -31,8 +36,14 @@ import {
 } from "inkx/testing";
 import { expect } from "bun:test";
 
-import { Board } from "../../src/views/Board.tsx";
+import { InkBoardTestable } from "../../src/views/Board.tsx";
 import type { BoardState } from "../../src/types.ts";
+
+// NOTE: The full Board component requires @km/storage initialization, so we use
+// InkBoardTestable which is a static version that accepts dimensions via props.
+// This means keyboard navigation via press() won't actually change state -
+// for interactive testing, the component needs to be refactored to accept
+// state via props rather than calling storage functions directly.
 import {
   createBoardState as createBoardStateFixture,
   createColumnState,
@@ -482,7 +493,11 @@ export function renderBoard(
 
   const render = createTestRenderer({ columns, rows });
   const result = render(
-    React.createElement(Board, { initialState: state }),
+    React.createElement(InkBoardTestable, {
+      initialState: state,
+      testWidth: columns,
+      testHeight: rows,
+    }),
   );
 
   return new BoardTestImpl(result);

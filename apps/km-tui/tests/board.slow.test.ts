@@ -9,26 +9,18 @@
  * For fast iteration, use: bun run test:fast (excludes slow tests)
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { rmSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import { describe, test, expect } from "bun:test";
 import { createTestRenderer } from "inkx/testing";
 
 const render = createTestRenderer();
 import React from "react";
 
-// Test directories in /tmp/ to avoid polluting source tree
-const TEST_DIR = join("/tmp", "km-test-board-slow");
-
 import {
-  resetDb,
-  closeDb,
   getNode,
-  getChildren,
   applyEvent,
   emitNodeCreated,
-  runWithKmDir,
   setDatabase,
+  withTestEnv,
 } from "@km/storage";
 
 import type { NodeType } from "@km/core";
@@ -71,24 +63,9 @@ function createTestNode(
 }
 
 describe.serial("Board State", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("buildBoardState creates columns from children", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("buildBoardState creates columns from children", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       // Create a root with two children (columns)
       const rootId = createTestNode("board", "Test Board");
       const col1Id = createTestNode("folder", "Column 1", rootId);
@@ -108,9 +85,9 @@ describe.serial("Board State", () => {
     });
   });
 
-  test("initBoardState groups root nodes by name", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("initBoardState groups root nodes by name", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       // Create root nodes - two with same name, one different
       createTestNode("folder", "Projects");
       createTestNode("folder", "Projects"); // Duplicate name
@@ -124,9 +101,9 @@ describe.serial("Board State", () => {
     });
   });
 
-  test("initBoardState deduplicates cards by name within grouped columns", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("initBoardState deduplicates cards by name within grouped columns", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       // Create multiple root nodes with same name
       const ref1 = createTestNode("folder", "ref");
       const ref2 = createTestNode("folder", "ref");
@@ -156,26 +133,26 @@ describe.serial("Board State", () => {
     });
   });
 
-  test("initBoardState returns null for empty database", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("initBoardState returns null for empty database", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const state = initBoardState();
       expect(state).toBeNull();
     });
   });
 
-  test("getNodeDisplayName returns content", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("getNodeDisplayName returns content", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const id = createTestNode("task", "Test Task");
       const node = getNode(id)!;
       expect(getNodeDisplayName(node)).toBe("Test Task");
     });
   });
 
-  test("getNodeDisplayName returns data.name if present", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("getNodeDisplayName returns data.name if present", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const id = createTestNode("folder", undefined, null, {
         data: { name: "My Folder" },
       });
@@ -184,9 +161,9 @@ describe.serial("Board State", () => {
     });
   });
 
-  test("getCurrentCard returns current card", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("getCurrentCard returns current card", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       const cardId = createTestNode("task", "Card", colId);
@@ -199,9 +176,9 @@ describe.serial("Board State", () => {
     });
   });
 
-  test("getCurrentColumn returns current column", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("getCurrentColumn returns current column", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
 
@@ -213,9 +190,9 @@ describe.serial("Board State", () => {
     });
   });
 
-  test("buildBoardState filters out paragraph nodes as columns (km-1tho)", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("buildBoardState filters out paragraph nodes as columns (km-1tho)", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       // Bug: paragraph text like "All issues tracked with @issue tag" was appearing as column
       // Expected: paragraphs, code blocks, and quotes should be filtered out as non-columns
       const rootId = createTestNode("file", "@issue.md");
@@ -248,9 +225,9 @@ describe.serial("Board State", () => {
     });
   });
 
-  test("buildBoardState filters out code and quote nodes as columns", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("buildBoardState filters out code and quote nodes as columns", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("file", "readme.md");
 
       // These should NOT become columns
@@ -272,9 +249,9 @@ describe.serial("Board State", () => {
     });
   });
 
-  test("buildTreeNodes filters out paragraph nodes (km-1tho refresh path)", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("buildTreeNodes filters out paragraph nodes (km-1tho refresh path)", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       // This tests the REFRESH code path - buildTreeNodes is called on file watcher sync
       // The original bug: paragraph appeared as column after sync because buildTreeNodes
       // didn't filter like buildBoardState does
@@ -300,9 +277,9 @@ describe.serial("Board State", () => {
     });
   });
 
-  test("buildTreeNodes filters out code and quote nodes", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("buildTreeNodes filters out code and quote nodes", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("file", "readme.md");
 
       createTestNode("code", "const x = 1;", rootId);
@@ -318,23 +295,8 @@ describe.serial("Board State", () => {
 });
 
 describe.serial("Board Key Handling", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
   function createTestBoard() {
-    resetDb();
+    setDatabase({ applyEvent });
     const rootId = createTestNode("board", "Test Board");
     const col1Id = createTestNode("folder", "Todo", rootId);
     const col2Id = createTestNode("folder", "Done", rootId);
@@ -344,8 +306,8 @@ describe.serial("Board Key Handling", () => {
     return buildBoardState(rootId);
   }
 
-  test("h key moves left", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("h key moves left", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       state.colIndex = 1;
       const result = handleKey(state, "h");
@@ -354,8 +316,8 @@ describe.serial("Board Key Handling", () => {
     });
   });
 
-  test("l key moves right", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("l key moves right", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       const result = handleKey(state, "l");
       expect(result.state.colIndex).toBe(1);
@@ -363,8 +325,8 @@ describe.serial("Board Key Handling", () => {
     });
   });
 
-  test("j key moves down", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("j key moves down", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       const result = handleKey(state, "j");
       expect(result.state.cardIndex).toBe(1);
@@ -372,8 +334,8 @@ describe.serial("Board Key Handling", () => {
     });
   });
 
-  test("k key moves up", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("k key moves up", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       state.cardIndex = 1;
       const result = handleKey(state, "k");
@@ -382,8 +344,8 @@ describe.serial("Board Key Handling", () => {
     });
   });
 
-  test("g jumps to first card", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("g jumps to first card", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       state.cardIndex = 1;
       const result = handleKey(state, "g");
@@ -391,32 +353,32 @@ describe.serial("Board Key Handling", () => {
     });
   });
 
-  test("G jumps to last card", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("G jumps to last card", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       const result = handleKey(state, "G");
       expect(result.state.cardIndex).toBe(1); // Column 1 has 2 cards
     });
   });
 
-  test("q returns quit action", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("q returns quit action", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       const result = handleKey(state, "q");
       expect(result.action).toBe("quit");
     });
   });
 
-  test("? enables help mode", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("? enables help mode", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       const result = handleKey(state, "?");
       expect(result.state.helpMode).toBe(true);
     });
   });
 
-  test("/ enables search mode", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("/ enables search mode", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       const result = handleKey(state, "/");
       expect(result.state.searchMode).toBe(true);
@@ -424,8 +386,8 @@ describe.serial("Board Key Handling", () => {
     });
   });
 
-  test("v toggles visual mode", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("v toggles visual mode", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       const result1 = handleKey(state, "v");
       expect(result1.state.visualMode).toBe(true);
@@ -437,8 +399,8 @@ describe.serial("Board Key Handling", () => {
     });
   });
 
-  test("space toggles selection", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("space toggles selection", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       const result1 = handleKey(state, " ");
       expect(result1.state.selectedCards.size).toBe(1);
@@ -448,8 +410,8 @@ describe.serial("Board Key Handling", () => {
     });
   });
 
-  test("Tab toggles fold", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("Tab toggles fold", async () => {
+    await withTestEnv(async () => {
       const state = createTestBoard();
       const card = getCurrentCard(state)!;
 
@@ -463,24 +425,9 @@ describe.serial("Board Key Handling", () => {
 });
 
 describe.serial("Board Rendering", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("renderBoardStatic renders columns", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("renderBoardStatic renders columns", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const col1Id = createTestNode("folder", "Todo", rootId);
       createTestNode("folder", "Done", rootId);
@@ -605,28 +552,13 @@ describe.serial("Board Rendering", () => {
 });
 
 describe.serial("Board Zoom Navigation", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("Enter zooms into card with children", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("Enter zooms into card with children", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       const cardId = createTestNode("task", "Card", colId);
-      const subCardId = createTestNode("task", "Sub-card", cardId);
+      createTestNode("task", "Sub-card", cardId);
 
       const state = buildBoardState(rootId);
 
@@ -639,9 +571,9 @@ describe.serial("Board Zoom Navigation", () => {
     });
   });
 
-  test("Escape zooms out", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("Escape zooms out", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       const cardId = createTestNode("task", "Card", colId);
@@ -659,9 +591,9 @@ describe.serial("Board Zoom Navigation", () => {
     });
   });
 
-  test("Escape quits when at root", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("Escape quits when at root", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const state = buildBoardState(rootId);
 
@@ -672,27 +604,12 @@ describe.serial("Board Zoom Navigation", () => {
 });
 
 describe.serial("Ink Board Rendering", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
   // Note: Full Ink testing would require ink-testing-library
   // These tests verify the static rendering which shares logic with Ink components
 
-  test("board with rootPath shows filesystem path", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("board with rootPath shows filesystem path", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Test Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode("task", "Task 1", colId);
@@ -707,9 +624,9 @@ describe.serial("Ink Board Rendering", () => {
     });
   });
 
-  test("board state includes rootPath field", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("board state includes rootPath field", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const state = createEmptyState();
       expect(state.rootPath).toBeNull();
 
@@ -719,9 +636,9 @@ describe.serial("Ink Board Rendering", () => {
     });
   });
 
-  test("renderBoardStatic truncates long content", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("renderBoardStatic truncates long content", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode(
@@ -739,9 +656,9 @@ describe.serial("Ink Board Rendering", () => {
     });
   });
 
-  test("renderBoardStatic shows column counts", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("renderBoardStatic shows column counts", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Todo", rootId);
       createTestNode("task", "Task 1", colId);
@@ -756,9 +673,9 @@ describe.serial("Ink Board Rendering", () => {
     });
   });
 
-  test("renderBoardStatic handles multiple columns", () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+  test("renderBoardStatic handles multiple columns", async () => {
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       createTestNode("folder", "Todo", rootId);
       createTestNode("folder", "In Progress", rootId);
@@ -777,24 +694,9 @@ describe.serial("Ink Board Rendering", () => {
 describe.serial("Ink Board TUI Rendering", () => {
   // Tests using ink-testing-library to test the ACTUAL Ink components
 
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
   test("ink board shows header path on first render", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Test Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode("task", "Task 1", colId);
@@ -824,8 +726,8 @@ describe.serial("Ink Board TUI Rendering", () => {
   });
 
   test("ink board card content does not overflow into borders", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode("task", "Stretching exercises for morning routine", colId);
@@ -857,8 +759,8 @@ describe.serial("Ink Board TUI Rendering", () => {
   });
 
   test("ink board cards have minimal padding", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode("task", "TestContent", colId);
@@ -894,8 +796,8 @@ describe.serial("Ink Board TUI Rendering", () => {
   });
 
   test("ink board columns show side by side", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       createTestNode("folder", "Todo", rootId);
       createTestNode("folder", "InProgress", rootId);
@@ -932,8 +834,8 @@ describe.serial("Ink Board TUI Rendering", () => {
   });
 
   test("ink board shows card count in column header", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "MyColumn", rootId);
       createTestNode("task", "Task 1", colId);
@@ -959,24 +861,9 @@ describe.serial("Ink Board TUI Rendering", () => {
 });
 
 describe.serial("Navigation History with Selection", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
   test("navigation history stores selection state", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       // Create a board with nested structure for navigation
       const rootId = createTestNode("board", "Root Board");
       const col1Id = createTestNode("folder", "Column 1", rootId);
@@ -1022,8 +909,8 @@ describe.serial("Navigation History with Selection", () => {
   });
 
   test("navigation history preserves subIndex on restore", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       // Create a board with a card that has children (for outline mode)
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
@@ -1065,8 +952,8 @@ describe.serial("Navigation History with Selection", () => {
   });
 
   test("forward navigation with ] restores selection", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       const cardId = createTestNode("task", "Card with children", colId);
@@ -1105,24 +992,9 @@ describe.serial("Navigation History with Selection", () => {
 });
 
 describe.serial("Wiki Link Rendering", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
   test("wiki links are rendered without brackets", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       // Create a task with wiki link in content
@@ -1149,8 +1021,8 @@ describe.serial("Wiki Link Rendering", () => {
   });
 
   test("aliased wiki links show only the alias", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       // Create a task with aliased wiki link: [[path|alias]]
@@ -1186,24 +1058,9 @@ describe.serial("Wiki Link Rendering", () => {
 });
 
 describe.serial("New Item Dialog", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
   test("NewItemDialog renders with cursor context", async () => {
-    runWithKmDir(TEST_DIR, () => {
-      resetDb();
+    await withTestEnv(async () => {
+      setDatabase({ applyEvent });
       // Create test nodes
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);

@@ -77,12 +77,13 @@ export { makeSelectionKey } from "../types.ts";
 // Main Board Component
 // =============================================================================
 
-interface BoardProps {
+export interface BoardProps {
   initialState: BoardState;
   initialViewMode?: ViewMode;
 }
 
-function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
+// Exported for testing with inkx createTestRenderer
+export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
 
