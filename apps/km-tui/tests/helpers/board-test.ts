@@ -268,6 +268,7 @@ class BoardTestImpl implements BoardTest {
   // --- Content Assertions ---
 
   expect(text: string): ContentAssertion {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- needed to reference BoardTest in returned object
     const self = this;
     const element = this.currentLocator.getByText(text);
 

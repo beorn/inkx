@@ -120,6 +120,7 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       const queue = [nodeId];
 
       while (queue.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounds checked by loop condition
         const id = queue.shift()!;
         const node = nodes.get(id);
         if (node) {

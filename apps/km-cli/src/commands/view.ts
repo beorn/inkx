@@ -57,8 +57,10 @@ export const viewCommand = new Command("view")
       },
 
       loadVault: function* () {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees sequential execution
         const vaultRoot = storageModule!.resolvePathArg(
           root,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           cliModule!.getRootPath(),
         ).vaultRoot;
         // Set vault root for debug path formatting
@@ -69,6 +71,7 @@ export const viewCommand = new Command("view")
         // - Disk mode: discover → apply → materialize
         // km-fast-md.7: Use discoverOnly for instant board render
         // Files appear immediately as stubs, content parses in background
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return yield* storageModule!.loadVault(vaultRoot, {
           searchAncestors: false,
           discoverOnly: true,
@@ -76,10 +79,13 @@ export const viewCommand = new Command("view")
       },
 
       buildView: function* () {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees sequential execution
         const resolved = storageModule!.resolvePathArg(
           root,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           cliModule!.getRootPath(),
         );
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const state = yield* tuiModule!.initBoardStateGenerator(
           resolved.nodeRef ?? undefined,
         );
@@ -105,6 +111,7 @@ export const viewCommand = new Command("view")
     const interactive = options.interactive !== false;
 
     // Watch options: CLI flag > config > default (true)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
     const tuiConfig = storageModule!.getTuiConfig(resolved.vaultRoot);
     const watchEnabled = options.watch !== false ? tuiConfig.watch : false;
     const watchWorker = tuiConfig.watchWorker;
@@ -126,11 +133,14 @@ export const viewCommand = new Command("view")
       debug("scheduling background parsing for %d files", deferredFiles.length);
       void (async () => {
         // Small delay to let the board render first
-        await new Promise((r) => setTimeout(r, 100));
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 100);
+        });
         if (aborted) return;
 
         try {
           const { parsed, pendingLinks } =
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
             await storageModule!.parseDeferredAsync(
               deferredFiles,
               () => aborted, // Check abort on each batch
@@ -142,6 +152,7 @@ export const viewCommand = new Command("view")
           // Now resolve links from the parsed content
           if (pendingLinks.length > 0) {
             const resolved =
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               await storageModule!.resolveLinksAsync(pendingLinks);
             debug("background link resolution complete: %d resolved", resolved);
           }
@@ -153,6 +164,7 @@ export const viewCommand = new Command("view")
       })();
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
     await tuiModule!.runBoard(state, {
       interactive,
       initialViewMode: viewMode as ViewMode,

@@ -37,7 +37,8 @@ import {
   type InkxLocator,
   type RenderResult,
 } from "inkx/testing";
-import type { BoardState, TNode } from "./types.ts";
+import type { TNode } from "@km/core";
+import type { BoardState } from "./types.ts";
 import { InkBoardTestable } from "./views/index.ts";
 
 /**
@@ -152,7 +153,7 @@ export async function createBoardTest(
   );
 
   // Current state - updated after each input
-  let currentState = state;
+  const currentState = state;
 
   // Create locator for DOM queries
   const getLocator = () => createLocator(result.getContainer());

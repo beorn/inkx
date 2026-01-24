@@ -202,6 +202,7 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
           // Randomly clear or modify a change
           const keys = Object.keys(ctx.changes);
           if (keys.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounds checked above
             const keyToCorrupt = keys[Math.floor(random() * keys.length)]!;
             return {
               ...ctx,

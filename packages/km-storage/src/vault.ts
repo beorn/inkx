@@ -433,6 +433,7 @@ export function* createVault(
     updateNode(id, changes) {
       ensureNotClosed();
       runMutation({ type: "update", nodeId: id, changes }, (ctx) => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- ctx.changes is set by caller
         dbUpdateNode(ctx.nodeId, ctx.changes!);
       });
     },
@@ -442,6 +443,7 @@ export function* createVault(
       runMutation(
         { type: "move", nodeId: id, newParentId, position },
         (ctx) => {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- ctx fields set by caller
           dbMoveNode(ctx.nodeId, ctx.newParentId!, ctx.position!);
         },
       );
@@ -458,6 +460,7 @@ export function* createVault(
       ensureNotClosed();
       return runMutation(
         { type: "add", nodeId: parentId ?? "root", node },
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- ctx.node set by caller
         (ctx) => dbAddNode(parentId, ctx.node!),
       );
     },

@@ -163,6 +163,7 @@ export function createWatcher(
       if (!handlers.has(event)) {
         handlers.set(event, new Set());
       }
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we just set it above
       handlers.get(event)!.add(handler);
     },
 

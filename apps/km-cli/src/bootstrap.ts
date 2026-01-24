@@ -13,4 +13,4 @@ if (isViewCommand && process.stdout.isTTY) {
 }
 
 // Now load the main CLI (this triggers all the heavy imports)
-import("./index.ts");
+void import("./index.ts");

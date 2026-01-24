@@ -59,6 +59,7 @@ function serializeChildren(children: KNode[], ctx: SerializeContext): string {
   let md = "";
 
   for (let i = 0; i < children.length; i++) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounds checked by loop condition
     const child = children[i]!;
     const nextChild = children[i + 1];
 

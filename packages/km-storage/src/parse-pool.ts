@@ -188,6 +188,7 @@ export class ParsePool {
       this.workers = [];
       this.availableWorkers = [];
       debug("pool shut down");
+      return undefined; // eslint requires return value in then()
     });
 
     return this.shutdownPromise;
