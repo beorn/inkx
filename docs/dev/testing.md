@@ -117,7 +117,47 @@ $ echo -e "move_down\nstate" | km sh -r $PWD/vault @inbox.md
 
 Per-layer, per-domain-object tests. Fast, isolated, use mocks by default.
 
-### 2.1 Domain Object Tests
+### 2.1 Test Isolation with `withTestEnv`
+
+Tests requiring database access use `withTestEnv` for isolated environments:
+
+```typescript
+import { withTestEnv } from "@km/storage";
+
+test("creates node", async () => {
+  await withTestEnv(async ({ db, vaultDir, kmDir }) => {
+    // Each test gets:
+    // - Unique /tmp/kmtest-{ulid}/ directory
+    // - Fresh in-memory SQLite database
+    // - Isolated AsyncLocalStorage contexts
+    createTask(db, "Test task");
+    expect(getNode(taskId)).toBeDefined();
+  });
+  // Cleanup automatic: db closed, temp dirs removed
+});
+```
+
+**What `withTestEnv` provides**:
+
+| Property   | Description                              |
+| ---------- | ---------------------------------------- |
+| `db`       | In-memory SQLite with schema initialized |
+| `vaultDir` | Isolated `/tmp/kmtest-{id}/vault/`       |
+| `kmDir`    | Isolated `/tmp/kmtest-{id}/vault/.km/`   |
+| `testId`   | Unique ULID for this test                |
+
+**When to use**:
+
+- Tests that call database functions (`getNode`, `getTasksByStatus`, etc.)
+- Tests that need filesystem isolation
+- Integration tests with multiple components
+
+**When NOT to use**:
+
+- Pure function tests (no DB needed)
+- Tests using `createFakeVault()` (already isolated)
+
+### 2.2 Domain Object Tests
 
 Each domain object gets its own test file testing the **public API**:
 
@@ -137,7 +177,7 @@ test("creates node", () => {
 });
 ```
 
-### 2.2 Pure Function Tests
+### 2.3 Pure Function Tests
 
 Per-layer tests for pure logic (no database, no I/O):
 
@@ -147,7 +187,7 @@ Per-layer tests for pure logic (no database, no I/O):
 | `@km/tree`      | Tree queries, display names, paths     |
 | Board selectors | Derived state, filtering, calculations |
 
-### 2.3 Vendor Component Tests
+### 2.4 Vendor Component Tests
 
 **Scope**: Vendor packages only (inkx, flexx, logger).
 
@@ -218,20 +258,25 @@ expect(task.boundingBox()?.x).toBe(10);
 stdin.write("j"); // Move down
 ```
 
-### Method 2: `km screenshot` (Debugging)
+### Method 2: `km screenshot` (Debugging Only)
 
-Quick capture of current TUI state:
+Quick capture of current TUI state for **manual inspection**. Not for automated testing - you can't send keystrokes programmatically.
 
 ```bash
 km screenshot /path/to/vault --width 80 --height 24
 km screenshot /path/to/file.md --format ansi -o /tmp/out.txt
 ```
 
-### Method 3: ttyd + Playwright (Rare)
+**When to use**: Debugging visual issues, sharing TUI state in bug reports.
 
-Pixel-perfect terminal rendering tests. Use sparingly - slow.
+**Not for**: Automated tests (use inkx test renderer instead).
+
+### Method 3: ttyd + Playwright (Deprecated)
+
+Pixel-perfect terminal rendering via browser. **Not recommended** - slow, flaky, and being migrated to inkx.
 
 ```bash
+# Legacy approach - prefer inkx createTestRenderer instead
 TTYD_PORT=$((7700 + RANDOM % 300))
 FORCE_TTY=1 ttyd -W -p $TTYD_PORT bun km view /tmp/vault &
 sleep 3
