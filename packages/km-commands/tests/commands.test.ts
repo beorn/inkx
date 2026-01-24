@@ -51,11 +51,15 @@ function createNode(
 
 // Helper to create minimal BoardState
 function createBoardState(nodes: TNode[], cursor: number[] = []): BoardState {
+  const firstIdx = cursor[0];
   return {
     rootId: null,
     rootPath: null,
     nodes,
     cursor,
+    cursorNodeId: firstIdx !== undefined ? (nodes[firstIdx]?.id ?? null) : null,
+    curswantX: null,
+    curswantY: null,
     selectedNodes: new Set(),
     foldedNodes: new Set(),
     collapsedNodes: new Set(),
@@ -170,12 +174,12 @@ describe("allCommands", () => {
 describe("navigationCommands", () => {
   describe("structural cursor movement (hjkl)", () => {
     const cursorCommands = [
-      { id: "cursor_prev", dir: "prev" },
-      { id: "cursor_next", dir: "next" },
-      { id: "cursor_in", dir: "in" },
-      { id: "cursor_out", dir: "out" },
-      { id: "cursor_first", dir: "first" },
-      { id: "cursor_last", dir: "last" },
+      { id: "cursor_prev", dir: "prev" as const },
+      { id: "cursor_next", dir: "next" as const },
+      { id: "cursor_in", dir: "in" as const },
+      { id: "cursor_out", dir: "out" as const },
+      { id: "cursor_first", dir: "first" as const },
+      { id: "cursor_last", dir: "last" as const },
     ];
 
     for (const { id, dir } of cursorCommands) {
@@ -192,10 +196,10 @@ describe("navigationCommands", () => {
 
   describe("visual cursor movement (arrows)", () => {
     const arrowCommands = [
-      { id: "cursor_up", dir: "up" },
-      { id: "cursor_down", dir: "down" },
-      { id: "cursor_left", dir: "left" },
-      { id: "cursor_right", dir: "right" },
+      { id: "cursor_up", dir: "up" as const },
+      { id: "cursor_down", dir: "down" as const },
+      { id: "cursor_left", dir: "left" as const },
+      { id: "cursor_right", dir: "right" as const },
     ];
 
     for (const { id, dir } of arrowCommands) {
@@ -434,10 +438,10 @@ describe("taskCommands", () => {
       const expectedNext = ["wip", "done", "dropped", "todo"];
 
       for (let i = 0; i < statuses.length; i++) {
-        const ctx = createTaskContext(statuses[i]);
+        const ctx = createTaskContext(statuses[i]!);
         const result = cmd.execute(ctx) as { type: string; status: string };
 
-        expect(result.status).toBe(expectedNext[i]);
+        expect(result.status).toBe(expectedNext[i]!);
       }
     });
 
@@ -472,7 +476,11 @@ describe("taskCommands", () => {
 
     it("toggles from todo to done", () => {
       const ctx = createTaskContext("todo");
-      const result = cmd.execute(ctx) as { type: string; status: string };
+      const result = cmd.execute(ctx) as {
+        type: string;
+        nodeId: string;
+        status: string;
+      };
 
       expect(result).toEqual({
         type: "TASK_SET_STATUS",
@@ -483,7 +491,11 @@ describe("taskCommands", () => {
 
     it("toggles from done to todo", () => {
       const ctx = createTaskContext("done");
-      const result = cmd.execute(ctx) as { type: string; status: string };
+      const result = cmd.execute(ctx) as {
+        type: string;
+        nodeId: string;
+        status: string;
+      };
 
       expect(result).toEqual({
         type: "TASK_SET_STATUS",
@@ -502,11 +514,11 @@ describe("taskCommands", () => {
 
   describe("direct status setters", () => {
     const statusSetters = [
-      { id: "set_status_todo", status: "todo" },
-      { id: "set_status_wip", status: "wip" },
-      { id: "set_status_blocked", status: "blocked" },
-      { id: "set_status_done", status: "done" },
-      { id: "set_status_dropped", status: "dropped" },
+      { id: "set_status_todo", status: "todo" as const },
+      { id: "set_status_wip", status: "wip" as const },
+      { id: "set_status_blocked", status: "blocked" as const },
+      { id: "set_status_done", status: "done" as const },
+      { id: "set_status_dropped", status: "dropped" as const },
     ];
 
     for (const { id, status } of statusSetters) {

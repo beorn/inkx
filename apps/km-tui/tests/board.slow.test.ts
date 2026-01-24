@@ -21,6 +21,7 @@ import {
   emitNodeCreated,
   setDatabase,
   withTestEnv,
+  createFakeVault,
 } from "@km/storage";
 
 import type { NodeType } from "@km/core";
@@ -36,7 +37,7 @@ import {
   getCurrentColumn,
 } from "../src/state.ts";
 import { buildTreeNodes } from "../src/board-adapter.ts";
-import { stripAnsi } from "../src/text/index.ts";
+import { stripAnsi } from "../src/layout/index.ts";
 
 import { renderBoardStatic, renderCard } from "../src/render.ts";
 
@@ -80,8 +81,8 @@ describe.serial("Board State", () => {
 
       expect(state.rootId).toBe(rootId);
       expect(state.columns).toHaveLength(2);
-      expect(state.columns[0].cards).toHaveLength(2);
-      expect(state.columns[1].cards).toHaveLength(1);
+      expect(state.columns[0]?.cards).toHaveLength(2);
+      expect(state.columns[1]?.cards).toHaveLength(1);
     });
   });
 
@@ -709,6 +710,7 @@ describe.serial("Ink Board TUI Rendering", () => {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
       );
 
@@ -740,6 +742,7 @@ describe.serial("Ink Board TUI Rendering", () => {
           initialState: state,
           testWidth: 40,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
       );
 
@@ -772,6 +775,7 @@ describe.serial("Ink Board TUI Rendering", () => {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
       );
 
@@ -811,6 +815,7 @@ describe.serial("Ink Board TUI Rendering", () => {
           initialState: state,
           testWidth: 120,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
         { columns: 120, rows: 24 },
       );
@@ -849,6 +854,7 @@ describe.serial("Ink Board TUI Rendering", () => {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
       );
 
@@ -880,6 +886,7 @@ describe.serial("Navigation History with Selection", () => {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
       );
 
@@ -928,6 +935,7 @@ describe.serial("Navigation History with Selection", () => {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
       );
 
@@ -967,6 +975,7 @@ describe.serial("Navigation History with Selection", () => {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
       );
 
@@ -1007,6 +1016,7 @@ describe.serial("Wiki Link Rendering", () => {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
       );
 
@@ -1039,6 +1049,7 @@ describe.serial("Wiki Link Rendering", () => {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
+          vault: createFakeVault(),
         }),
       );
 

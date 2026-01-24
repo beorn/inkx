@@ -464,8 +464,9 @@ const daemonStartCommand = new Command("start")
       }
 
       // Spawn background process
+      const cliPath = process.argv[1] ?? "km";
       const proc = Bun.spawn(
-        ["bun", "run", process.argv[1], "daemon", "start", "--foreground"],
+        ["bun", "run", cliPath, "daemon", "start", "--foreground"],
         {
           cwd: vaultPath,
           env: { ...process.env, KM_DIR: kmDir },

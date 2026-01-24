@@ -117,7 +117,7 @@ export function* loadVault(
   const { vaultRoot, kmDir } = resolveVaultRoot(rootPath, searchAncestors);
   const mode = kmDir ? "disk" : "memory";
 
-  debug("loadVault", { vaultRoot, mode, force: options?.force });
+  debug("loadVault vaultRoot=%s mode=%s", vaultRoot, mode);
 
   // Declare all sub-steps upfront so they appear as pending
   const skipLinks = options?.skipLinkResolution ?? false;

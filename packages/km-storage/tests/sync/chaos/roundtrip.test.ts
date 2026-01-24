@@ -414,5 +414,5 @@ function randomWord(random: SeededRandom): string {
     "high",
     "medium",
   ];
-  return words[random.nextInt(0, words.length)];
+  return words[random.nextInt(0, words.length)]!;
 }

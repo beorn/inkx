@@ -223,7 +223,7 @@ export class MockWatcher extends EventEmitter implements IMockWatcher {
       // Sort by time
       this.scheduledTimers.sort((a, b) => a.time - b.time);
 
-      const next = this.scheduledTimers[0];
+      const next = this.scheduledTimers[0]!;
       if (next.time > targetTime) {
         break;
       }

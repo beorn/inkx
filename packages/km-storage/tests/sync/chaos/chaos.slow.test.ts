@@ -463,8 +463,8 @@ describe.serial("Chaos Scenario Unit Tests", () => {
         random,
       );
 
-      expect(result[0].timing?.delay).toBeGreaterThanOrEqual(100);
-      expect(result[0].timing?.delay).toBeLessThanOrEqual(200);
+      expect(result[0]!.timing?.delay).toBeGreaterThanOrEqual(100);
+      expect(result[0]!.timing?.delay).toBeLessThanOrEqual(200);
     });
 
     test("queue_overflow drops some events", async () => {
@@ -581,10 +581,10 @@ describe.serial("Parallel Suite Runner", () => {
     });
 
     expect(progressUpdates.length).toBe(2);
-    expect(progressUpdates[0].completed).toBe(1);
-    expect(progressUpdates[0].total).toBe(2);
-    expect(progressUpdates[1].completed).toBe(2);
-    expect(progressUpdates[1].total).toBe(2);
+    expect(progressUpdates[0]!.completed).toBe(1);
+    expect(progressUpdates[0]!.total).toBe(2);
+    expect(progressUpdates[1]!.completed).toBe(2);
+    expect(progressUpdates[1]!.total).toBe(2);
   });
 
   test("parallel execution completes all tests", async () => {

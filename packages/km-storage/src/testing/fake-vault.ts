@@ -100,7 +100,15 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       return { ...stats, nodeCount: nodes.size };
     },
 
+    get deferredFiles() {
+      return []; // FakeVault never has deferred files
+    },
+
     // --- Query operations ---
+
+    needsRebuild() {
+      return false; // FakeVault is in-memory, never needs rebuild
+    },
 
     getNode(id) {
       ensureNotClosed();

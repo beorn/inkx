@@ -11,7 +11,7 @@ describe("ChaosFakeVault", () => {
 
       const log = vault.getTransactionLog();
       expect(log).toHaveLength(1);
-      expect(log[0].operation).toBe("add");
+      expect(log[0]!.operation).toBe("add");
     });
 
     it("logs updateNode operations", () => {
@@ -23,8 +23,8 @@ describe("ChaosFakeVault", () => {
 
       const log = vault.getTransactionLog();
       expect(log).toHaveLength(1);
-      expect(log[0].operation).toBe("update");
-      expect(log[0].nodeId).toBe("1");
+      expect(log[0]!.operation).toBe("update");
+      expect(log[0]!.nodeId).toBe("1");
     });
 
     it("logs deleteNode operations", () => {
@@ -36,7 +36,7 @@ describe("ChaosFakeVault", () => {
 
       const log = vault.getTransactionLog();
       expect(log).toHaveLength(1);
-      expect(log[0].operation).toBe("delete");
+      expect(log[0]!.operation).toBe("delete");
     });
 
     it("logs moveNode operations", () => {
@@ -47,11 +47,11 @@ describe("ChaosFakeVault", () => {
         ],
       });
 
-      vault.moveNode("child", null, 0);
+      vault.moveNode("child", null as unknown as string, 0);
 
       const log = vault.getTransactionLog();
       expect(log).toHaveLength(1);
-      expect(log[0].operation).toBe("move");
+      expect(log[0]!.operation).toBe("move");
     });
 
     it("can disable logging", () => {
@@ -84,7 +84,7 @@ describe("ChaosFakeVault", () => {
       const orphans = vault.getOrphanedNodes();
 
       expect(orphans).toHaveLength(1);
-      expect(orphans[0].id).toBe("2");
+      expect(orphans[0]!.id).toBe("2");
     });
 
     it("injectOrphan creates an orphaned node", () => {

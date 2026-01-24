@@ -5,20 +5,29 @@
  * and permission error handling
  */
 
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach } from "bun:test";
 import {
   WriteQueue,
   classifyError,
   calculateBackoffDelay,
   getErrorType,
   getPermissionSuggestion,
-  DEFAULT_RETRY_CONFIG,
   type FileSystemOps,
   type RetryConfig,
   type OperationResult,
   type ConflictInfo,
   type PermissionError,
 } from "../../src/watch/writequeue.ts";
+
+// Event type emitted by WriteQueue on "flushed"
+type FlushedEvent = {
+  count: number;
+  errors: number;
+  retries: number;
+  conflicts: number;
+  permissionErrors: number;
+  results: OperationResult[];
+};
 
 describe("Error Classification", () => {
   test("classifies transient errors correctly", () => {
@@ -114,7 +123,7 @@ describe("WriteQueue Retry Logic", () => {
     failError = Object.assign(new Error("Resource busy"), { code: "EBUSY" });
 
     mockFs = {
-      writeFileSync: (path: string, content: string) => {
+      writeFileSync: (path: string, _content: string) => {
         if (failCount > 0) {
           failCount--;
           throw failError;
@@ -137,6 +146,14 @@ describe("WriteQueue Retry Logic", () => {
         }
         writeHistory.push(`rename:${oldPath}->${newPath}`);
       },
+      readFileSync: () => "",
+      statSync: () => ({
+        ino: 1,
+        mtimeMs: Date.now(),
+        size: 100,
+        isDirectory: () => false,
+        isFile: () => true,
+      }),
     };
   });
 
@@ -147,15 +164,15 @@ describe("WriteQueue Retry Logic", () => {
       retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
     });
 
-    let flushedEvent: { results?: OperationResult[] } | null = null;
-    queue.on("flushed", (e) => (flushedEvent = e));
+    let flushedEvent: FlushedEvent | null = null;
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" });
     await queue.forceFlush();
 
     expect(writeHistory).toEqual(["write:/test.md"]);
-    expect(flushedEvent?.results?.[0]?.attempts).toBe(1);
-    expect(flushedEvent?.results?.[0]?.success).toBe(true);
+    expect(flushedEvent!.results[0]?.attempts).toBe(1);
+    expect(flushedEvent!.results[0]?.success).toBe(true);
   });
 
   test("retries transient errors with backoff", async () => {
@@ -167,17 +184,16 @@ describe("WriteQueue Retry Logic", () => {
       retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
     });
 
-    let flushedEvent: { results?: OperationResult[]; retries?: number } | null =
-      null;
-    queue.on("flushed", (e) => (flushedEvent = e));
+    let flushedEvent: FlushedEvent | null = null;
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" });
     await queue.forceFlush();
 
     expect(writeHistory).toEqual(["write:/test.md"]);
-    expect(flushedEvent?.results?.[0]?.attempts).toBe(3);
-    expect(flushedEvent?.results?.[0]?.success).toBe(true);
-    expect(flushedEvent?.retries).toBe(2);
+    expect(flushedEvent!.results[0]?.attempts).toBe(3);
+    expect(flushedEvent!.results[0]?.success).toBe(true);
+    expect(flushedEvent!.retries).toBe(2);
   });
 
   test("fails after max retries for transient errors", async () => {
@@ -190,17 +206,17 @@ describe("WriteQueue Retry Logic", () => {
     });
 
     let errorsEvent: unknown[] | null = null;
-    let flushedEvent: { errors?: number; retries?: number } | null = null;
-    queue.on("errors", (e) => (errorsEvent = e));
-    queue.on("flushed", (e) => (flushedEvent = e));
+    let flushedEvent: FlushedEvent | null = null;
+    queue.on("errors", (e) => (errorsEvent = e as unknown[]));
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" });
     await queue.forceFlush();
 
     expect(writeHistory).toEqual([]);
     expect(errorsEvent).toHaveLength(1);
-    expect(flushedEvent?.errors).toBe(1);
-    expect(flushedEvent?.retries).toBe(2); // 2 retries after initial attempt
+    expect(flushedEvent!.errors).toBe(1);
+    expect(flushedEvent!.retries).toBe(2); // 2 retries after initial attempt
   });
 
   test("does not retry permanent errors", async () => {
@@ -215,18 +231,17 @@ describe("WriteQueue Retry Logic", () => {
       retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
     });
 
-    let flushedEvent: { results?: OperationResult[]; retries?: number } | null =
-      null;
-    queue.on("flushed", (e) => (flushedEvent = e));
+    let flushedEvent: FlushedEvent | null = null;
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" });
     await queue.forceFlush();
 
     expect(writeHistory).toEqual([]);
-    expect(flushedEvent?.results?.[0]?.attempts).toBe(1); // Only one attempt
-    expect(flushedEvent?.results?.[0]?.success).toBe(false);
-    expect(flushedEvent?.results?.[0]?.errorClass).toBe("permanent");
-    expect(flushedEvent?.retries).toBe(0);
+    expect(flushedEvent!.results[0]?.attempts).toBe(1); // Only one attempt
+    expect(flushedEvent!.results[0]?.success).toBe(false);
+    expect(flushedEvent!.results[0]?.errorClass).toBe("permanent");
+    expect(flushedEvent!.retries).toBe(0);
   });
 
   test("retries delete operations", async () => {
@@ -279,12 +294,8 @@ describe("WriteQueue Retry Logic", () => {
       retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
     });
 
-    let flushedEvent: {
-      results?: OperationResult[];
-      errors?: number;
-      retries?: number;
-    } | null = null;
-    queue.on("flushed", (e) => (flushedEvent = e));
+    let flushedEvent: FlushedEvent | null = null;
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     queue.queue({ path: "/a.md", content: "a", sourceEventId: "1" });
     queue.queue({ path: "/b.md", content: "b", sourceEventId: "2" });
@@ -296,8 +307,8 @@ describe("WriteQueue Retry Logic", () => {
     expect(writeHistory).toContain("write:/b.md");
     expect(writeHistory).not.toContain("write:/c.md");
 
-    expect(flushedEvent?.errors).toBe(1); // c.md failed
-    expect(flushedEvent?.retries).toBe(2); // a.md needed 2 retries
+    expect(flushedEvent!.errors).toBe(1); // c.md failed
+    expect(flushedEvent!.retries).toBe(2); // a.md needed 2 retries
   });
 
   test("uses custom retry config", async () => {
@@ -309,15 +320,15 @@ describe("WriteQueue Retry Logic", () => {
       retry: { maxRetries: 5, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
     });
 
-    let flushedEvent: { results?: OperationResult[] } | null = null;
-    queue.on("flushed", (e) => (flushedEvent = e));
+    let flushedEvent: FlushedEvent | null = null;
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" });
     await queue.forceFlush();
 
     expect(writeHistory).toEqual(["write:/test.md"]);
-    expect(flushedEvent?.results?.[0]?.attempts).toBe(6); // 1 initial + 5 retries
-    expect(flushedEvent?.results?.[0]?.success).toBe(true);
+    expect(flushedEvent!.results[0]?.attempts).toBe(6); // 1 initial + 5 retries
+    expect(flushedEvent!.results[0]?.success).toBe(true);
   });
 });
 
@@ -325,14 +336,6 @@ describe("Conflict Detection", () => {
   let writeHistory: string[];
   let fileMtimes: Map<string, number>;
   let mockFs: FileSystemOps;
-
-  // Type for flushed event
-  type FlushedEvent = {
-    results?: OperationResult[];
-    conflicts?: number;
-    errors?: number;
-    retries?: number;
-  };
 
   beforeEach(() => {
     writeHistory = [];
@@ -357,6 +360,7 @@ describe("Conflict Detection", () => {
           fileMtimes.delete(oldPath);
         }
       },
+      readFileSync: () => "",
       statSync: (path: string) => {
         const mtime = fileMtimes.get(path);
         if (mtime === undefined) {
@@ -384,14 +388,14 @@ describe("Conflict Detection", () => {
     });
 
     let flushedEvent: FlushedEvent | null = null;
-    queue.on("flushed", (e) => (flushedEvent = e));
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     queue.queue({ path: "/test.md", content: "updated", sourceEventId: "1" });
     await queue.forceFlush();
 
     expect(writeHistory).toEqual(["write:/test.md"]);
-    expect(flushedEvent?.conflicts).toBe(0);
-    expect(flushedEvent?.results?.[0]?.conflict).toBeUndefined();
+    expect(flushedEvent!.conflicts).toBe(0);
+    expect(flushedEvent!.results[0]?.conflict).toBeUndefined();
   });
 
   test("detects conflict when file changed externally (last_write_wins)", async () => {
@@ -406,8 +410,8 @@ describe("Conflict Detection", () => {
 
     let conflictsEvent: ConflictInfo[] | null = null;
     let flushedEvent: FlushedEvent | null = null;
-    queue.on("conflicts", (e) => (conflictsEvent = e));
-    queue.on("flushed", (e) => (flushedEvent = e));
+    queue.on("conflicts", (e) => (conflictsEvent = e as ConflictInfo[]));
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     // Queue write - this captures baseMtime=1000
     queue.queue({ path: "/test.md", content: "tui-edit", sourceEventId: "1" });
@@ -419,9 +423,9 @@ describe("Conflict Detection", () => {
 
     // last_write_wins: should still write despite conflict
     expect(writeHistory).toEqual(["write:/test.md"]);
-    expect(flushedEvent?.conflicts).toBe(1);
+    expect(flushedEvent!.conflicts).toBe(1);
     expect(conflictsEvent).toHaveLength(1);
-    expect(flushedEvent?.results?.[0]?.conflict?.resolution).toBe("written");
+    expect(flushedEvent!.results[0]?.conflict?.resolution).toBe("written");
   });
 
   test("discards write when file changed (fs_wins strategy)", async () => {
@@ -436,8 +440,8 @@ describe("Conflict Detection", () => {
 
     let conflictsEvent: ConflictInfo[] | null = null;
     let flushedEvent: FlushedEvent | null = null;
-    queue.on("conflicts", (e) => (conflictsEvent = e));
-    queue.on("flushed", (e) => (flushedEvent = e));
+    queue.on("conflicts", (e) => (conflictsEvent = e as ConflictInfo[]));
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     // Queue write - captures baseMtime=1000
     queue.queue({ path: "/test.md", content: "tui-edit", sourceEventId: "1" });
@@ -449,10 +453,10 @@ describe("Conflict Detection", () => {
 
     // fs_wins: should NOT write
     expect(writeHistory).toEqual([]);
-    expect(flushedEvent?.conflicts).toBe(1);
+    expect(flushedEvent!.conflicts).toBe(1);
     expect(conflictsEvent).toHaveLength(1);
-    expect(flushedEvent?.results?.[0]?.conflict?.resolution).toBe("discarded");
-    expect(flushedEvent?.results?.[0]?.success).toBe(true); // Still "success" - not an error
+    expect(flushedEvent!.results[0]?.conflict?.resolution).toBe("discarded");
+    expect(flushedEvent!.results[0]?.success).toBe(true); // Still "success" - not an error
   });
 
   test("writes with warning when file changed (db_wins strategy)", async () => {
@@ -466,7 +470,7 @@ describe("Conflict Detection", () => {
     });
 
     let flushedEvent: FlushedEvent | null = null;
-    queue.on("flushed", (e) => (flushedEvent = e));
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     queue.queue({ path: "/test.md", content: "tui-edit", sourceEventId: "1" });
     fileMtimes.set("/test.md", 2000);
@@ -475,8 +479,8 @@ describe("Conflict Detection", () => {
 
     // db_wins: should write despite conflict
     expect(writeHistory).toEqual(["write:/test.md"]);
-    expect(flushedEvent?.conflicts).toBe(1);
-    expect(flushedEvent?.results?.[0]?.conflict?.resolution).toBe("written");
+    expect(flushedEvent!.conflicts).toBe(1);
+    expect(flushedEvent!.results[0]?.conflict?.resolution).toBe("written");
   });
 
   test("no conflict for new files", async () => {
@@ -488,13 +492,13 @@ describe("Conflict Detection", () => {
     });
 
     let flushedEvent: FlushedEvent | null = null;
-    queue.on("flushed", (e) => (flushedEvent = e));
+    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent));
 
     queue.queue({ path: "/new.md", content: "new file", sourceEventId: "1" });
     await queue.forceFlush();
 
     expect(writeHistory).toEqual(["write:/new.md"]);
-    expect(flushedEvent?.conflicts).toBe(0);
+    expect(flushedEvent!.conflicts).toBe(0);
   });
 
   test("conflict info includes mtime details", async () => {
@@ -507,15 +511,15 @@ describe("Conflict Detection", () => {
     });
 
     let conflictsEvent: ConflictInfo[] | null = null;
-    queue.on("conflicts", (e) => (conflictsEvent = e));
+    queue.on("conflicts", (e) => (conflictsEvent = e as ConflictInfo[]));
 
     queue.queue({ path: "/test.md", content: "edit", sourceEventId: "1" });
     fileMtimes.set("/test.md", 2000);
     await queue.forceFlush();
 
-    expect(conflictsEvent?.[0]?.path).toBe("/test.md");
-    expect(conflictsEvent?.[0]?.baseMtime).toBe(1000);
-    expect(conflictsEvent?.[0]?.currentMtime).toBe(2000);
+    expect(conflictsEvent![0]?.path).toBe("/test.md");
+    expect(conflictsEvent![0]?.baseMtime).toBe(1000);
+    expect(conflictsEvent![0]?.currentMtime).toBe(2000);
   });
 });
 
@@ -562,6 +566,14 @@ describe("Permission Error Handling", () => {
       mkdirSync: () => {},
       existsSync: () => false,
       renameSync: () => {},
+      readFileSync: () => "",
+      statSync: () => ({
+        ino: 1,
+        mtimeMs: Date.now(),
+        size: 100,
+        isDirectory: () => false,
+        isFile: () => true,
+      }),
     };
 
     const queue = new WriteQueue({
@@ -607,6 +619,14 @@ describe("Permission Error Handling", () => {
       mkdirSync: () => {},
       existsSync: () => false,
       renameSync: () => {},
+      readFileSync: () => "",
+      statSync: () => ({
+        ino: 1,
+        mtimeMs: Date.now(),
+        size: 100,
+        isDirectory: () => false,
+        isFile: () => true,
+      }),
     };
 
     const queue = new WriteQueue({
@@ -616,14 +636,14 @@ describe("Permission Error Handling", () => {
     });
 
     let permissionEvent: PermissionError[] | null = null;
-    queue.on("permission-denied", (e) => (permissionEvent = e));
+    queue.on("permission-denied", (e) => (permissionEvent = e as PermissionError[]));
 
     queue.queue({ path: "/root/test.md", content: "test", sourceEventId: "1" });
     await queue.forceFlush();
 
     expect(permissionEvent).toHaveLength(1);
-    expect(permissionEvent?.[0]?.code).toBe("EPERM");
-    expect(permissionEvent?.[0]?.suggestion).toContain("not permitted");
+    expect(permissionEvent![0]?.code).toBe("EPERM");
+    expect(permissionEvent![0]?.suggestion).toContain("not permitted");
   });
 
   test("emits permission-denied event on EROFS error", async () => {
@@ -637,6 +657,14 @@ describe("Permission Error Handling", () => {
       mkdirSync: () => {},
       existsSync: () => false,
       renameSync: () => {},
+      readFileSync: () => "",
+      statSync: () => ({
+        ino: 1,
+        mtimeMs: Date.now(),
+        size: 100,
+        isDirectory: () => false,
+        isFile: () => true,
+      }),
     };
 
     const queue = new WriteQueue({
@@ -646,7 +674,7 @@ describe("Permission Error Handling", () => {
     });
 
     let permissionEvent: PermissionError[] | null = null;
-    queue.on("permission-denied", (e) => (permissionEvent = e));
+    queue.on("permission-denied", (e) => (permissionEvent = e as PermissionError[]));
 
     queue.queue({
       path: "/readonly/test.md",
@@ -656,8 +684,8 @@ describe("Permission Error Handling", () => {
     await queue.forceFlush();
 
     expect(permissionEvent).toHaveLength(1);
-    expect(permissionEvent?.[0]?.code).toBe("EROFS");
-    expect(permissionEvent?.[0]?.suggestion).toContain("read-only");
+    expect(permissionEvent![0]?.code).toBe("EROFS");
+    expect(permissionEvent![0]?.suggestion).toContain("read-only");
   });
 
   test("does not emit permission-denied for non-permission errors", async () => {
@@ -669,6 +697,14 @@ describe("Permission Error Handling", () => {
       mkdirSync: () => {},
       existsSync: () => false,
       renameSync: () => {},
+      readFileSync: () => "",
+      statSync: () => ({
+        ino: 1,
+        mtimeMs: Date.now(),
+        size: 100,
+        isDirectory: () => false,
+        isFile: () => true,
+      }),
     };
 
     const queue = new WriteQueue({

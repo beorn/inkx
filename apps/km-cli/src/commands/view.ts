@@ -56,7 +56,7 @@ export const viewCommand = new Command("view")
         ]);
       },
 
-      loadVault: function* () {
+      createVault: function* () {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees sequential execution
         const vaultRoot = storageModule!.resolvePathArg(
           root,
@@ -65,16 +65,13 @@ export const viewCommand = new Command("view")
         ).vaultRoot;
         // Set vault root for debug path formatting
         setDebugVaultRoot(vaultRoot);
-
-        // loadVault handles both memory and disk modes:
-        // - Memory mode: discover → parse → apply → resolve → materialize
-        // - Disk mode: discover → apply → materialize
-        // km-fast-md.7: Use discoverOnly for instant board render
-        // Files appear immediately as stubs, content parses in background
+        // km-fast-md.7: Use discoverOnly for interactive mode (instant render)
+        // For non-interactive mode, we need full parsing before rendering
+        const interactive = options.interactive !== false;
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return yield* storageModule!.loadVault(vaultRoot, {
+        return yield* storageModule!.createVault(vaultRoot, {
           searchAncestors: false,
-          discoverOnly: true,
+          discoverOnly: interactive,
         });
       },
 
@@ -103,9 +100,8 @@ export const viewCommand = new Command("view")
     };
 
     // km-fast-md.7: Extract deferred files for background parsing
-    const loadResult =
-      results.loadVault as unknown as import("@km/storage").LoadResult;
-    const deferredFiles = loadResult.deferredFiles ?? [];
+    const vault = results.createVault as unknown as import("@km/storage").Vault;
+    const deferredFiles = vault.deferredFiles;
 
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
     const interactive = options.interactive !== false;
@@ -170,6 +166,7 @@ export const viewCommand = new Command("view")
       initialViewMode: viewMode as ViewMode,
       watch: watchEnabled,
       watchWorker,
+      vault,
     });
 
     // Signal background task to stop (don't wait - causes Bun crash on cleanup)

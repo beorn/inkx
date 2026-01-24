@@ -47,14 +47,34 @@ function createCommandContext(
 ): CommandContext {
   return {
     currentNode: null,
+    currentNodeId: null,
+    selectedNodes: [],
     cursor: [0],
-    siblings: [],
-    currentIndex: 0,
-    nodes: [],
-    selectedIds: new Set(),
-    foldedIds: new Set(),
-    viewMode: "board",
-    rootPath: "/",
+    boardState: {
+      rootId: null,
+      rootPath: null,
+      nodes: [],
+      cursor: [0],
+      cursorNodeId: null,
+      curswantX: null,
+      curswantY: null,
+      selectedNodes: new Set(),
+      foldedNodes: new Set(),
+      collapsedNodes: new Set(),
+      zoomStack: [],
+      navHistory: [],
+      navHistoryIndex: 0,
+      moveMode: false,
+      moveSourceNodes: [],
+      moveSourceCursor: [],
+      maxOutlineDepth: 3,
+      maxContentLines: 2,
+    },
+    viewMode: "cards",
+    siblingCount: 0,
+    siblingIndex: 0,
+    columnIndex: 0,
+    columnCount: 0,
     ...overrides,
   };
 }
@@ -277,8 +297,8 @@ describe("processInkKey", () => {
   it("processes simple key press and returns action", () => {
     const kbCtx = buildKeybindingContext({});
     const cmdCtx = createCommandContext({
-      siblings: [createNode("a"), createNode("b")],
-      currentIndex: 0,
+      siblingCount: 2,
+      siblingIndex: 0,
     });
 
     const result = processInkKey("j", {}, cmdCtx, kbCtx);
@@ -302,8 +322,8 @@ describe("processInkKey", () => {
   it("processes arrow keys", () => {
     const kbCtx = buildKeybindingContext({});
     const cmdCtx = createCommandContext({
-      siblings: [createNode("a"), createNode("b")],
-      currentIndex: 0,
+      siblingCount: 2,
+      siblingIndex: 0,
     });
 
     const result = processInkKey("", { downArrow: true }, cmdCtx, kbCtx);

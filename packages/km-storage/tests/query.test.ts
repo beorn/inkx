@@ -332,28 +332,28 @@ describe("Query Executor", () => {
     const ast = parseQuery("p:1");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task1");
+    expect(results[0]!.id).toBe("task1");
   });
 
   test("filters by @mention", () => {
     const ast = parseQuery("@bjorn");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task1");
+    expect(results[0]!.id).toBe("task1");
   });
 
   test("filters by #tag", () => {
     const ast = parseQuery("#urgent");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task1");
+    expect(results[0]!.id).toBe("task1");
   });
 
   test("filters by +project", () => {
     const ast = parseQuery("+project-alpha");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task3");
+    expect(results[0]!.id).toBe("task3");
   });
 
   test("excludes with negation", () => {
@@ -367,7 +367,7 @@ describe("Query Executor", () => {
     const ast = parseQuery("status:todo @bjorn");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task1");
+    expect(results[0]!.id).toBe("task1");
   });
 
   test("queryTasks helper works", () => {
@@ -520,14 +520,14 @@ describe("Path Pattern Query Execution", () => {
     const ast = parseQuery("/projects/");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("project-task1");
+    expect(results[0]!.id).toBe("project-task1");
   });
 
   test("filters with recursive nested path pattern", () => {
     const ast = parseQuery("./archive/**");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("archive-task1");
+    expect(results[0]!.id).toBe("archive-task1");
   });
 
   test("excludes with negated path pattern", () => {
@@ -733,25 +733,25 @@ describe("Date Query Execution", () => {
   test("filters by due:today", () => {
     const results = queryTasks("due:today");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task-today");
+    expect(results[0]!.id).toBe("task-today");
   });
 
   test("filters by due:tomorrow", () => {
     const results = queryTasks("due:tomorrow");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task-tomorrow");
+    expect(results[0]!.id).toBe("task-tomorrow");
   });
 
   test("filters by due:past (overdue)", () => {
     const results = queryTasks("due:past");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task-overdue");
+    expect(results[0]!.id).toBe("task-overdue");
   });
 
   test("filters by due:overdue", () => {
     const results = queryTasks("due:overdue");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task-overdue");
+    expect(results[0]!.id).toBe("task-overdue");
   });
 
   test("filters by due:week includes today and tomorrow", () => {
@@ -900,7 +900,7 @@ describe("Full-text Search with Phrases", () => {
   test("exact phrase search matches only exact phrases", () => {
     const results = search('"budget review"', 10);
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("doc1");
+    expect(results[0]!.id).toBe("doc1");
   });
 
   test("individual terms match documents with those terms in any order", () => {
@@ -1078,39 +1078,39 @@ describe("Status on Any Node Type", () => {
     const ast = parseQuery("status:todo");
     const results = executeQuery(ast);
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task1");
-    expect(results[0].type).toBe("task");
+    expect(results[0]!.id).toBe("task1");
+    expect(results[0]!.type).toBe("task");
   });
 
   test("status:wip matches section with status", () => {
     const ast = parseQuery("status:wip");
     const results = executeQuery(ast);
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("section1");
-    expect(results[0].type).toBe("section");
+    expect(results[0]!.id).toBe("section1");
+    expect(results[0]!.type).toBe("section");
   });
 
   test("status:done matches file with status", () => {
     const ast = parseQuery("status:done");
     const results = executeQuery(ast);
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("file1");
-    expect(results[0].type).toBe("file");
+    expect(results[0]!.id).toBe("file1");
+    expect(results[0]!.type).toBe("file");
   });
 
   test("status:blocked matches paragraph with status", () => {
     const ast = parseQuery("status:blocked");
     const results = executeQuery(ast);
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("para1");
-    expect(results[0].type).toBe("paragraph");
+    expect(results[0]!.id).toBe("para1");
+    expect(results[0]!.type).toBe("paragraph");
   });
 
   test("type:task only matches checkbox-originated nodes", () => {
     const ast = parseQuery("type:task");
     const results = executeQuery(ast);
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task1");
+    expect(results[0]!.id).toBe("task1");
   });
 
   test("type:section matches sections regardless of status", () => {
@@ -1543,21 +1543,21 @@ describe("Property Query Execution", () => {
     const ast = parseQuery("rating::5");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task-rated");
+    expect(results[0]!.id).toBe("task-rated");
   });
 
   test("prop::>N matches greater than", () => {
     const ast = parseQuery("rating::>3");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task-rated"); // rating 5 > 3
+    expect(results[0]!.id).toBe("task-rated"); // rating 5 > 3
   });
 
   test("prop::<N matches less than", () => {
     const ast = parseQuery("rating::<3");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task-low-rated"); // rating 2 < 3
+    expect(results[0]!.id).toBe("task-low-rated"); // rating 2 < 3
   });
 
   test("prop::>=N matches greater than or equal", () => {
@@ -1570,14 +1570,14 @@ describe("Property Query Execution", () => {
     const ast = parseQuery("rating::<=2");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task-low-rated"); // rating 2 <= 2
+    expect(results[0]!.id).toBe("task-low-rated"); // rating 2 <= 2
   });
 
   test("prop::text matches text property value", () => {
     const ast = parseQuery("author::alice");
     const results = executeQuery(ast, "task");
     expect(results.length).toBe(1);
-    expect(results[0].id).toBe("task-authored");
+    expect(results[0]!.id).toBe("task-authored");
   });
 
   test("prop::target matches link property target", () => {

@@ -10,15 +10,8 @@
  * - `format` - Node formatting for display
  */
 
-// Rich text rendering and ANSI utilities
-export {
-  renderRich,
-  renderPlain,
-  displayLength,
-  stripAnsi,
-  ANSI_REGEX,
-  type RenderRichOptions,
-} from "./rich.ts";
+// Rich text rendering (ANSI utilities exported from layout/index.ts via @beorn/tui-measure)
+export { renderRich, renderPlain, type RenderRichOptions } from "./rich.ts";
 
 // Icon utilities (moved from @km/tui-core)
 export {

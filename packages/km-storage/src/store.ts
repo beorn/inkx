@@ -9,7 +9,7 @@
  * Both modes are read-write. The difference is persistence.
  */
 
-import { Database } from "bun:sqlite";
+import { Database, type SQLQueryBindings } from "bun:sqlite";
 import {
   existsSync,
   readdirSync,
@@ -346,7 +346,10 @@ export class DiskStore extends BaseStore {
     sets.push("updated_at = ?");
     values.push(Date.now(), id);
 
-    this.db.run(`UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`, values);
+    this.db.run(
+      `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`,
+      values as SQLQueryBindings[],
+    );
 
     // Write through to markdown file for task status changes (bidirectional sync)
     if (changes.task_status !== undefined && node.md_line !== undefined) {
@@ -814,8 +817,8 @@ export class MemoryStore extends BaseStore {
         content, title, task_status, task_mark, data, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        node.id,
-        node.type,
+        node.id ?? null,
+        node.type ?? null,
         node.parent_id ?? null,
         node.parent_idx ?? 0,
         node.fs_path ?? null,
@@ -827,7 +830,7 @@ export class MemoryStore extends BaseStore {
         JSON.stringify(node.data ?? {}),
         now,
         now,
-      ],
+      ] as SQLQueryBindings[],
     );
   }
 
@@ -853,7 +856,10 @@ export class MemoryStore extends BaseStore {
     sets.push("updated_at = ?");
     values.push(Date.now(), id);
 
-    this.db.run(`UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`, values);
+    this.db.run(
+      `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`,
+      values as SQLQueryBindings[],
+    );
 
     // Write through to markdown file for task status changes
     if (changes.task_status !== undefined && node.md_line !== undefined) {

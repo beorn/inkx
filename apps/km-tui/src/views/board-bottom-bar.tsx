@@ -16,6 +16,11 @@ function useSpinnerFrame(): string {
   const [frameIndex, setFrameIndex] = useState(0);
 
   useEffect(() => {
+    // Skip animation during tests to avoid act() warnings
+    // @ts-expect-error - React internal flag set by inkx test renderer
+    if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
+      return;
+    }
     const timer = setInterval(() => {
       setFrameIndex((i) => (i + 1) % SPINNER_FRAMES.length);
     }, SPINNER_INTERVAL);

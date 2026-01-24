@@ -21,7 +21,7 @@ import type { BoardState, ViewMode } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
 import type { KNode } from "@km/core";
 import { getStore, getNodeCount } from "@km/storage";
-import { useVault } from "../vault-context.tsx";
+import { useVault, VaultProvider } from "../vault-context.tsx";
 import type { KeyboardContext } from "../keyboard-types.ts";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
@@ -622,10 +622,19 @@ function restoreTerminal(): void {
 export async function renderInkxBoard(
   state: BoardState,
   initialViewMode?: ViewMode,
+  vault?: import("@km/storage").Vault,
 ): Promise<void> {
   debug("renderInkxBoard start");
 
-  const app = <Board initialState={state} initialViewMode={initialViewMode} />;
+  if (!vault) {
+    throw new Error("renderInkxBoard requires a vault");
+  }
+
+  const app = (
+    <VaultProvider vault={vault}>
+      <Board initialState={state} initialViewMode={initialViewMode} />
+    </VaultProvider>
+  );
 
   // Register error handlers to clean up terminal on crash
   const handleError = (error: Error) => {
@@ -749,48 +758,52 @@ export function InkBoardTestable({
   const noopDispatch = () => {};
 
   return (
-    <UIProvider state={mockUIState} dispatch={noopDispatch}>
-      <Box flexDirection="column" height={termHeight} minHeight={3}>
-        {/* Top bar: full path */}
-        <Box height={1} width={termWidth}>
-          <Text>
-            {chalk.bgWhite.black(" ") +
-              testTopBarContent +
-              chalk.bgWhite(testPadding)}
-          </Text>
+    <VaultProvider vault={vault}>
+      <UIProvider state={mockUIState} dispatch={noopDispatch}>
+        <Box flexDirection="column" height={termHeight} minHeight={3}>
+          {/* Top bar: full path */}
+          <Box height={1} width={termWidth}>
+            <Text>
+              {chalk.bgWhite.black(" ") +
+                testTopBarContent +
+                chalk.bgWhite(testPadding)}
+            </Text>
+          </Box>
+          <Box flexDirection="row" flexGrow={1}>
+            {visibleColumns.map((col, i) => {
+              const actualColIndex = colScrollOffset + i;
+              return (
+                <Column
+                  key={col.node.id}
+                  column={col}
+                  colIndex={actualColIndex}
+                  isSelected={actualColIndex === initialState.colIndex}
+                  isCollapsed={initialState.collapsedColumns.has(
+                    actualColIndex,
+                  )}
+                  selectedCardIndex={initialState.cardIndex}
+                  selectedSubIndex={-1}
+                  width={colWidth}
+                  height={testContentHeight}
+                  selectionLevel="card"
+                />
+              );
+            })}
+          </Box>
+          {/* Bottom bar: indicators right-aligned */}
+          <Box width={termWidth} justifyContent="flex-end" paddingX={1}>
+            <Text>
+              {initialState.columns.length > maxCols && (
+                <Text dimColor>
+                  {`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${initialState.columns.length}] `}
+                </Text>
+              )}
+              <Text inverse>{" BOARD "}</Text>
+            </Text>
+          </Box>
         </Box>
-        <Box flexDirection="row" flexGrow={1}>
-          {visibleColumns.map((col, i) => {
-            const actualColIndex = colScrollOffset + i;
-            return (
-              <Column
-                key={col.node.id}
-                column={col}
-                colIndex={actualColIndex}
-                isSelected={actualColIndex === initialState.colIndex}
-                isCollapsed={initialState.collapsedColumns.has(actualColIndex)}
-                selectedCardIndex={initialState.cardIndex}
-                selectedSubIndex={-1}
-                width={colWidth}
-                height={testContentHeight}
-                selectionLevel="card"
-              />
-            );
-          })}
-        </Box>
-        {/* Bottom bar: indicators right-aligned */}
-        <Box width={termWidth} justifyContent="flex-end" paddingX={1}>
-          <Text>
-            {initialState.columns.length > maxCols && (
-              <Text dimColor>
-                {`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${initialState.columns.length}] `}
-              </Text>
-            )}
-            <Text inverse>{" BOARD "}</Text>
-          </Text>
-        </Box>
-      </Box>
-    </UIProvider>
+      </UIProvider>
+    </VaultProvider>
   );
 }
 

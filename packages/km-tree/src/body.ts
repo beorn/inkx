@@ -72,7 +72,7 @@ export function extractBody<T extends { type: string }>(
 export function hasBody<T extends { type: string }>(children: T[]): boolean {
   if (children.length === 0) return false;
   // Has body if first child is not structural
-  return !STRUCTURAL_TYPES.has(children[0].type);
+  return !STRUCTURAL_TYPES.has(children[0]!.type);
 }
 
 /**

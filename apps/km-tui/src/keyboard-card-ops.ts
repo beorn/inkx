@@ -13,6 +13,7 @@ import {
   getSelectedCardIndices,
   refreshBoardState,
 } from "./keyboard-helpers.ts";
+import { buildTreeNodes } from "./board-adapter.ts";
 
 // =============================================================================
 // Card Movement
@@ -96,15 +97,16 @@ export function moveCardInColumn(
   const newCardIndex =
     direction === "up" ? ctx.layout.cardIndex - 1 : ctx.layout.cardIndex + 1;
 
-  const newState = refreshBoardState(ctx, { cardIndex: newCardIndex });
+  refreshBoardState(ctx, { cardIndex: newCardIndex });
 
-  if (newState && movedCardIds.length > 1) {
+  if (movedCardIds.length > 1 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>();
-    const newCol = newState.columns[ctx.layout.colIndex];
+    const nodes = buildTreeNodes(ctx.boardState.rootId);
+    const newCol = nodes[ctx.layout.colIndex];
     if (newCol) {
-      for (let cardIdx = 0; cardIdx < newCol.cards.length; cardIdx++) {
-        const c = newCol.cards[cardIdx];
-        if (c && movedCardIds.includes(c.node.id)) {
+      for (let cardIdx = 0; cardIdx < newCol.children.length; cardIdx++) {
+        const c = newCol.children[cardIdx];
+        if (c && movedCardIds.includes(c.id)) {
           newSelected.add(makeSelectionKey(ctx.layout.colIndex, cardIdx, 0));
         }
       }
@@ -152,18 +154,19 @@ export function moveCardToColumn(
   const movedCardIds = cardsToMove.map((c) => c.node.id);
   const expectedCardIndex = targetCol.cards.length;
 
-  const newState = refreshBoardState(ctx, {
+  refreshBoardState(ctx, {
     colIndex: targetColIndex,
     cardIndex: (col) => Math.min(expectedCardIndex, col?.cards.length || 0),
   });
 
-  if (newState && movedCardIds.length > 0) {
+  if (movedCardIds.length > 0 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>();
-    const newCol = newState.columns[targetColIndex];
+    const nodes = buildTreeNodes(ctx.boardState.rootId);
+    const newCol = nodes[targetColIndex];
     if (newCol) {
-      for (let cardIdx = 0; cardIdx < newCol.cards.length; cardIdx++) {
-        const c = newCol.cards[cardIdx];
-        if (c && movedCardIds.includes(c.node.id)) {
+      for (let cardIdx = 0; cardIdx < newCol.children.length; cardIdx++) {
+        const c = newCol.children[cardIdx];
+        if (c && movedCardIds.includes(c.id)) {
           newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
         }
       }
@@ -213,22 +216,23 @@ export function moveCardToColumnByIndex(
     Math.max(0, col.cards.length - cardsToMove.length - 1),
   );
 
-  const newState = refreshBoardState(ctx, {
+  refreshBoardState(ctx, {
     cardIndex: (col) =>
       Math.min(expectedCardIndex, Math.max(0, (col?.cards.length ?? 1) - 1)),
   });
 
-  if (newState && movedCardIds.length > 0) {
+  if (movedCardIds.length > 0 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>();
-    const targetColumnState = newState.columns[targetColIndex];
+    const nodes = buildTreeNodes(ctx.boardState.rootId);
+    const targetColumnState = nodes[targetColIndex];
     if (targetColumnState) {
       for (
         let cardIdx = 0;
-        cardIdx < targetColumnState.cards.length;
+        cardIdx < targetColumnState.children.length;
         cardIdx++
       ) {
-        const c = targetColumnState.cards[cardIdx];
-        if (c && movedCardIds.includes(c.node.id)) {
+        const c = targetColumnState.children[cardIdx];
+        if (c && movedCardIds.includes(c.id)) {
           newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
         }
       }

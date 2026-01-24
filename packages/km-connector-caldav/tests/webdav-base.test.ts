@@ -81,8 +81,8 @@ describe("webdav-base", () => {
       await webdavRequest("PROPFIND", "https://example.com/dav", authHeader);
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(capturedOptions[0].method).toBe("PROPFIND");
-      expect(capturedOptions[0].headers).toMatchObject({
+      expect(capturedOptions[0]!.method).toBe("PROPFIND");
+      expect(capturedOptions[0]!.headers).toMatchObject({
         Authorization: authHeader,
         "Content-Type": "application/xml; charset=utf-8",
       });
@@ -105,7 +105,7 @@ describe("webdav-base", () => {
         body,
       );
 
-      expect(capturedOptions[0].body).toBe(body);
+      expect(capturedOptions[0]!.body).toBe(body);
     });
 
     test("includes custom headers", async () => {
@@ -125,7 +125,7 @@ describe("webdav-base", () => {
         { Depth: "1", "X-Custom": "value" },
       );
 
-      const headers = capturedOptions[0].headers as Record<string, string>;
+      const headers = capturedOptions[0]!.headers as Record<string, string>;
       expect(headers.Depth).toBe("1");
       expect(headers["X-Custom"]).toBe("value");
     });
@@ -278,8 +278,8 @@ describe("webdav-base", () => {
       const authHeader = createBasicAuthHeader("user", "pass");
       await discoverPrincipal("https://example.com/dav", authHeader);
 
-      expect(capturedOptions[0].method).toBe("PROPFIND");
-      const headers = capturedOptions[0].headers as Record<string, string>;
+      expect(capturedOptions[0]!.method).toBe("PROPFIND");
+      const headers = capturedOptions[0]!.headers as Record<string, string>;
       expect(headers.Depth).toBe("0");
     });
   });

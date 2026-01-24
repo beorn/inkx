@@ -93,6 +93,7 @@ export const screenshotCommand = new Command("screenshot")
         initialState: state,
         testWidth: width,
         testHeight: height,
+        vault: storageModule.createFakeVault(),
       }),
     );
 

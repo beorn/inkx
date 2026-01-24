@@ -75,12 +75,18 @@ export function nodeToAgent(node: KNode): Agent {
     id: node.id,
     shortId: `agent-${shortIdPart}`,
     name: node.name || node.content || "Unnamed Agent",
-    model: data.model || "claude-sonnet-4",
-    harness: data.harness || "general",
-    status: data.status || "idle",
-    workdir: data.workdir,
-    pid: data.pid,
-    currentTaskId: data.current_task_id,
+    model: typeof data.model === "string" ? data.model : "claude-sonnet-4",
+    harness: typeof data.harness === "string" ? data.harness : "general",
+    status:
+      typeof data.status === "string"
+        ? (data.status as Agent["status"])
+        : "idle",
+    workdir: typeof data.workdir === "string" ? data.workdir : undefined,
+    pid: typeof data.pid === "number" ? data.pid : undefined,
+    currentTaskId:
+      typeof data.current_task_id === "string"
+        ? data.current_task_id
+        : undefined,
     createdAt: node.created_at,
     updatedAt: node.updated_at,
   };

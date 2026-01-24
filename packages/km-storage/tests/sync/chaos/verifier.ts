@@ -473,10 +473,10 @@ export class Verifier implements IVerifier {
       warnings: results.flatMap((r) => r.warnings),
       stats: {
         expectedFiles: expected.files.length,
-        actualFiles: results[0].stats.actualFiles,
-        duplicateNodes: results[1].stats.duplicateNodes,
-        orphanedNodes: results[1].stats.orphanedNodes,
-        missingParents: results[1].stats.missingParents,
+        actualFiles: results[0]!.stats.actualFiles,
+        duplicateNodes: results[1]!.stats.duplicateNodes,
+        orphanedNodes: results[1]!.stats.orphanedNodes,
+        missingParents: results[1]!.stats.missingParents,
       },
     };
   }

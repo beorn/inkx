@@ -91,8 +91,10 @@ export function sortByPath(
     // Compare ancestor paths by keys (fs_path/slug/content), not IDs
     const minLen = Math.min(a.ancestorKeys.length, b.ancestorKeys.length);
     for (let i = 0; i < minLen; i++) {
-      if (a.ancestorKeys[i] < b.ancestorKeys[i]) return -1;
-      if (a.ancestorKeys[i] > b.ancestorKeys[i]) return 1;
+      const aKey = a.ancestorKeys[i] ?? "";
+      const bKey = b.ancestorKeys[i] ?? "";
+      if (aKey < bKey) return -1;
+      if (aKey > bKey) return 1;
     }
     // Shorter paths come first
     return a.ancestorKeys.length - b.ancestorKeys.length;

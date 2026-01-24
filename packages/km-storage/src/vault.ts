@@ -22,11 +22,12 @@ import {
 } from "fs";
 import { join, dirname, basename } from "path";
 import type { KNode, TaskStatus } from "@km/core";
-import type { ProgressInfo } from "@beorn/inkx-ui";
 import {
   loadVault,
   type LoadOptions,
   type LoadResult,
+  type DeferredFile,
+  type StepYield,
 } from "./vault-loader.ts";
 import {
   getNode as dbGetNode,
@@ -70,6 +71,12 @@ export interface Vault extends Disposable {
 
   /** Stats from loading */
   readonly stats: VaultStats;
+
+  /**
+   * Files deferred for background parsing (when discoverOnly: true).
+   * Empty array if full parsing was done upfront.
+   */
+  readonly deferredFiles: DeferredFile[];
 
   // --- Query operations ---
 
@@ -290,8 +297,8 @@ export interface VaultOptions extends LoadOptions {
 export function* createVault(
   rootPath?: string,
   options?: VaultOptions,
-): Generator<ProgressInfo, Vault, unknown> {
-  debug("createVault", { rootPath, options });
+): Generator<StepYield, Vault, unknown> {
+  debug("createVault rootPath=%s options=%o", rootPath, options);
 
   // Load vault using existing infrastructure
   const result: LoadResult = yield* loadVault(rootPath, options);
@@ -308,7 +315,7 @@ export function* createVault(
 
   let closed = false;
 
-  debug("vault loaded", { path, mode, stats });
+  debug("vault loaded path=%s mode=%s stats=%o", path, mode, stats);
 
   // Capture hooks
   const hooks = options?.hooks;
@@ -355,6 +362,9 @@ export function* createVault(
     },
     get stats() {
       return stats;
+    },
+    get deferredFiles() {
+      return result.deferredFiles ?? [];
     },
 
     // Query operations (with afterQuery hook)
@@ -611,13 +621,21 @@ export function* createVault(
       }
 
       // Parse last event to get its ID
+      const lastLine = lines.at(-1);
+      if (!lastLine) {
+        debug("needsRebuild: no (empty last line)");
+        return false;
+      }
       try {
-        const lastEvent = JSON.parse(lines[lines.length - 1]);
+        const lastEvent = JSON.parse(lastLine) as {
+          id: string;
+        };
         const needs = lastEvent.id > lastAppliedId;
         debug("needsRebuild", {
           result: needs ? "yes" : "no",
           last: lastEvent.id.slice(-8),
-          applied: lastAppliedId.slice(-8),
+          // lastAppliedId is string here (early return above if undefined)
+          applied: (lastAppliedId as string).slice(-8),
         });
         return needs;
       } catch {

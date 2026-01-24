@@ -525,23 +525,25 @@ async function cmdRestore(filePath: string, sessionId?: string): Promise<void> {
     return;
   }
 
-  if (rows.length === 1 || rows[0].content) {
+  const firstRow = rows[0]!; // Safe: checked rows.length > 0 above
+  if (rows.length === 1 || firstRow.content) {
     // Single result or has content - show it
-    const row = rows[0];
-    if (row.content) {
-      console.log(`// File: ${row.file_path}`);
-      console.log(`// Written: ${new Date(row.timestamp).toLocaleString()}`);
-      console.log(`// Session: ${row.session_id}`);
-      console.log(`// Hash: ${row.content_hash}`);
-      console.log(`// Size: ${formatBytes(row.content_size)}`);
+    if (firstRow.content) {
+      console.log(`// File: ${firstRow.file_path}`);
+      console.log(
+        `// Written: ${new Date(firstRow.timestamp).toLocaleString()}`,
+      );
+      console.log(`// Session: ${firstRow.session_id}`);
+      console.log(`// Hash: ${firstRow.content_hash}`);
+      console.log(`// Size: ${formatBytes(firstRow.content_size)}`);
       console.log("// " + "=".repeat(70));
-      console.log(row.content);
+      console.log(firstRow.content);
     } else {
       console.log(
-        `Content not stored (file was ${formatBytes(row.content_size)}, exceeds 1MB limit)`,
+        `Content not stored (file was ${formatBytes(firstRow.content_size)}, exceeds 1MB limit)`,
       );
-      console.log(`Session file: ${row.session_file}`);
-      console.log(`Tool use ID: ${row.tool_use_id}`);
+      console.log(`Session file: ${firstRow.session_file}`);
+      console.log(`Tool use ID: ${firstRow.tool_use_id}`);
       console.log(
         "\nTo extract manually, search the session file for the tool_use_id",
       );
@@ -553,7 +555,7 @@ async function cmdRestore(filePath: string, sessionId?: string): Promise<void> {
     );
 
     for (let i = 0; i < Math.min(rows.length, 20); i++) {
-      const row = rows[i];
+      const row = rows[i]!; // Safe: i < rows.length
       const date = new Date(row.timestamp).toLocaleString();
       const hasContent = row.content ? "✓" : "✗";
       console.log(
@@ -566,7 +568,7 @@ async function cmdRestore(filePath: string, sessionId?: string): Promise<void> {
 
     console.log("\nTo restore a specific version, use:");
     console.log(
-      `  bun ./scripts/claude-session.ts restore "${rows[0]!.file_path}" --session <session-id>`,
+      `  bun ./scripts/claude-session.ts restore "${firstRow.file_path}" --session <session-id>`,
     );
   }
 

@@ -129,10 +129,10 @@ function displayWithContext(
     // Flat mode: each node on one line with path prefix
     for (const { node, collapsed } of nodesWithContext) {
       const pathParts = collapsed.map((ca) =>
-        chalk.dim(formatCollapsedAncestor(vault, ca, false)),
+        chalk.dim(formatCollapsedAncestor(ca, false)),
       );
       const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : "";
-      console.log(pathStr + formatNode(vault, node, options.showId));
+      console.log(pathStr + formatNode(node, options.showId));
     }
   } else {
     // Tree mode: show ancestors once, then nodes indented
@@ -147,8 +147,7 @@ function displayWithContext(
         for (const ca of collapsed) {
           const prefix = " ".repeat(depth);
           console.log(
-            prefix +
-              chalk.dim(formatCollapsedAncestor(vault, ca, options.showId)),
+            prefix + chalk.dim(formatCollapsedAncestor(ca, options.showId)),
           );
           if (ca.node.type !== "section") {
             depth++;
@@ -159,7 +158,7 @@ function displayWithContext(
 
       // Print node
       const indent = " ".repeat(Math.max(0, collapsed.length));
-      console.log(indent + formatNode(vault, node, options.showId));
+      console.log(indent + formatNode(node, options.showId));
     }
   }
 }
@@ -168,12 +167,12 @@ function displayWithContext(
  * Display nodes without context (simple list)
  */
 function displaySimple(
-  vault: Vault,
+  _vault: Vault,
   nodes: KNode[],
   options: { showId: boolean },
 ): void {
   for (const node of nodes) {
-    console.log(formatNode(vault, node, options.showId));
+    console.log(formatNode(node, options.showId));
   }
 }
 

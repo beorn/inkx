@@ -46,7 +46,7 @@ export const commands: CommandDef[] = [
     description: "Move to previous sibling",
     shortcut: "k / \u2191",
     category: "Navigation",
-    action: { type: "NAV_PREV_SIBLING" },
+    action: { type: "CURSOR_MOVE", dir: "prev" },
   },
   {
     id: "nav_next_sibling",
@@ -54,7 +54,7 @@ export const commands: CommandDef[] = [
     description: "Move to next sibling",
     shortcut: "j / \u2193",
     category: "Navigation",
-    action: { type: "NAV_NEXT_SIBLING" },
+    action: { type: "CURSOR_MOVE", dir: "next" },
   },
   {
     id: "nav_parent",
@@ -62,7 +62,7 @@ export const commands: CommandDef[] = [
     description: "Navigate to parent node",
     shortcut: "h / \u2190",
     category: "Navigation",
-    action: { type: "NAV_PARENT" },
+    action: { type: "CURSOR_MOVE", dir: "out" },
   },
   {
     id: "nav_child",
@@ -70,7 +70,7 @@ export const commands: CommandDef[] = [
     description: "Navigate to first child",
     shortcut: "l / \u2192",
     category: "Navigation",
-    action: { type: "NAV_CHILD" },
+    action: { type: "CURSOR_MOVE", dir: "in" },
   },
   {
     id: "nav_first_sibling",
@@ -78,7 +78,7 @@ export const commands: CommandDef[] = [
     description: "Jump to first sibling",
     shortcut: "g",
     category: "Navigation",
-    action: { type: "NAV_FIRST_SIBLING" },
+    action: { type: "CURSOR_MOVE", dir: "first" },
   },
   {
     id: "nav_last_sibling",
@@ -86,7 +86,7 @@ export const commands: CommandDef[] = [
     description: "Jump to last sibling",
     shortcut: "G",
     category: "Navigation",
-    action: { type: "NAV_LAST_SIBLING" },
+    action: { type: "CURSOR_MOVE", dir: "last" },
   },
   {
     id: "nav_cross_column_left",

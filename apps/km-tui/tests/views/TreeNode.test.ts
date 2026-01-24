@@ -34,27 +34,27 @@ describe("TreeNode component", () => {
   // Full render tests would require ink-testing-library and DB setup.
 
   describe("compact variant", () => {
-    it.todo("shows status icon for tasks");
-    it.todo("shows type icon for non-tasks");
-    it.todo("limits children to 8");
-    it.todo("shows parent context on separate line");
+    it.todo("shows status icon for tasks", () => {});
+    it.todo("shows type icon for non-tasks", () => {});
+    it.todo("limits children to 8", () => {});
+    it.todo("shows parent context on separate line", () => {});
   });
 
   describe("wide variant", () => {
-    it.todo("shows info columns (priority, assignee, dates)");
-    it.todo("shows inline context when single-line");
-    it.todo("has no child limit");
+    it.todo("shows info columns (priority, assignee, dates)", () => {});
+    it.todo("shows inline context when single-line", () => {});
+    it.todo("has no child limit", () => {});
   });
 
   describe("selection", () => {
-    it.todo("applies blue background when selected");
-    it.todo("applies cyan background when multi-selected");
+    it.todo("applies blue background when selected", () => {});
+    it.todo("applies cyan background when multi-selected", () => {});
   });
 
   describe("folding", () => {
-    it.todo("shows ▶ when folded with children");
-    it.todo("shows ▼ when expanded with children");
-    it.todo("shows space when no children");
-    it.todo("shows child count when folded");
+    it.todo("shows ▶ when folded with children", () => {});
+    it.todo("shows ▼ when expanded with children", () => {});
+    it.todo("shows space when no children", () => {});
+    it.todo("shows child count when folded", () => {});
   });
 });

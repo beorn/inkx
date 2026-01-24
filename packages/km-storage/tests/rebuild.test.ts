@@ -41,8 +41,8 @@ describe("rebuild.ts", () => {
 
         const events = readEvents();
         expect(events.length).toBe(2);
-        expect(events[0].id).toBe("01HQ1A");
-        expect(events[1].id).toBe("01HQ1B");
+        expect(events[0]!.id).toBe("01HQ1A");
+        expect(events[1]!.id).toBe("01HQ1B");
       }));
 
     test("deduplicates events by ID", () =>
@@ -72,8 +72,8 @@ describe("rebuild.ts", () => {
         );
 
         const events = readEvents();
-        expect(events[0].id).toBe("01HQ1A");
-        expect(events[1].id).toBe("01HQ1B");
+        expect(events[0]!.id).toBe("01HQ1A");
+        expect(events[1]!.id).toBe("01HQ1B");
       }));
 
     test("skips malformed lines", () =>

@@ -37,7 +37,7 @@ import {
   type InkxLocator,
   type RenderResult,
 } from "inkx/testing";
-import type { TNode } from "@km/core";
+import type { KNode } from "@km/core";
 import type { BoardState } from "./types.ts";
 import { InkBoardTestable } from "./views/index.ts";
 
@@ -79,7 +79,7 @@ export interface BoardTestHarness extends InkxLocator {
   /** Get the current cursor position [colIndex, cardIndex] */
   getCursor(): [number, number];
   /** Get the currently selected node, if any */
-  getSelectedNode(): TNode | null;
+  getSelectedNode(): KNode | null;
 
   // Lifecycle
   /** Unmount the component and clean up */

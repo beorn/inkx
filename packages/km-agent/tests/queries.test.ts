@@ -46,6 +46,8 @@ describe("nodeToAgent", () => {
     content: "Test Agent",
     parent_id: null,
     parent_idx: 0,
+    link_to: null,
+    version: "01ABCDEFGHIJKL",
     created_at: Date.now(),
     updated_at: Date.now(),
     data: {},
@@ -164,11 +166,11 @@ describe("queryAgents", () => {
     runWithDb(db, () => {
       const idle = queryAgents({ status: "idle" });
       expect(idle.length).toBe(1);
-      expect(idle[0].name).toBe("Agent One");
+      expect(idle[0]!.name).toBe("Agent One");
 
       const running = queryAgents({ status: "running" });
       expect(running.length).toBe(1);
-      expect(running[0].name).toBe("Agent Two");
+      expect(running[0]!.name).toBe("Agent Two");
     });
   });
 
@@ -199,7 +201,7 @@ describe("queryAgents", () => {
 
       const codeReviewer = queryAgents({ harness: "code-reviewer" });
       expect(codeReviewer.length).toBe(1);
-      expect(codeReviewer[0].name).toBe("Agent Two");
+      expect(codeReviewer[0]!.name).toBe("Agent Two");
     });
   });
 
@@ -215,7 +217,7 @@ describe("queryAgents", () => {
 
       const opus = queryAgents({ model: "claude-opus-4" });
       expect(opus.length).toBe(1);
-      expect(opus[0].name).toBe("Agent Two");
+      expect(opus[0]!.name).toBe("Agent Two");
     });
   });
 
@@ -240,7 +242,7 @@ describe("queryAgents", () => {
       });
 
       expect(agents.length).toBe(1);
-      expect(agents[0].name).toBe("Agent One");
+      expect(agents[0]!.name).toBe("Agent One");
     });
   });
 });
@@ -308,8 +310,8 @@ describe("getActiveAgents", () => {
       const active = getActiveAgents();
 
       expect(active.length).toBe(1);
-      expect(active[0].name).toBe("Running Agent");
-      expect(active[0].status).toBe("running");
+      expect(active[0]!.name).toBe("Running Agent");
+      expect(active[0]!.status).toBe("running");
     });
   });
 });

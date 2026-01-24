@@ -213,16 +213,16 @@ describe("CardDAVClient", () => {
       const contacts = await client.getContacts();
 
       expect(contacts).toHaveLength(2);
-      expect(contacts[0].uid).toBe("contact-uid-1");
-      expect(contacts[0].fullName).toBe("John Doe");
-      expect(contacts[0].etag).toBe("etag-abc");
-      expect(contacts[0].emails?.[0].value).toBe("john@example.com");
-      expect(contacts[0].phones?.[0].value).toBe("+1234567890");
+      expect(contacts[0]!.uid).toBe("contact-uid-1");
+      expect(contacts[0]!.fullName).toBe("John Doe");
+      expect(contacts[0]!.etag).toBe("etag-abc");
+      expect(contacts[0]!.emails?.[0]!.value).toBe("john@example.com");
+      expect(contacts[0]!.phones?.[0]!.value).toBe("+1234567890");
 
-      expect(contacts[1].uid).toBe("contact-uid-2");
-      expect(contacts[1].fullName).toBe("Jane Smith");
-      expect(contacts[1].org).toBe("Acme Inc");
-      expect(contacts[1].title).toBe("Software Engineer");
+      expect(contacts[1]!.uid).toBe("contact-uid-2");
+      expect(contacts[1]!.fullName).toBe("Jane Smith");
+      expect(contacts[1]!.org).toBe("Acme Inc");
+      expect(contacts[1]!.title).toBe("Software Engineer");
     });
 
     test("skips discovery if already discovered", async () => {

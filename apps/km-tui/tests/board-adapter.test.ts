@@ -61,14 +61,21 @@ describe("deriveColumnsLayout", () => {
         rootId: "root",
         rootPath: null,
         nodes,
+        cursorNodeId: null,
         cursor: [0], // Column level - no card selected
         selectedNodes: new Set(),
         foldedNodes: new Set(),
+        collapsedNodes: new Set(),
         zoomStack: [],
         navHistory: [],
         navHistoryIndex: -1,
-        inMoveMode: false,
+        moveMode: false,
+        moveSourceNodes: [],
         moveSourceCursor: [],
+        maxOutlineDepth: 2,
+        maxContentLines: 3,
+        curswantX: null,
+        curswantY: null,
       });
 
       expect(layout.colIndex).toBe(0);
@@ -85,14 +92,21 @@ describe("deriveColumnsLayout", () => {
         rootId: "root",
         rootPath: null,
         nodes,
+        cursorNodeId: null,
         cursor: [0, 0], // Column 0, card 0
         selectedNodes: new Set(),
         foldedNodes: new Set(),
+        collapsedNodes: new Set(),
         zoomStack: [],
         navHistory: [],
         navHistoryIndex: -1,
-        inMoveMode: false,
+        moveMode: false,
+        moveSourceNodes: [],
         moveSourceCursor: [],
+        maxOutlineDepth: 2,
+        maxContentLines: 3,
+        curswantX: null,
+        curswantY: null,
       });
 
       expect(layout.colIndex).toBe(0);
@@ -109,14 +123,21 @@ describe("deriveColumnsLayout", () => {
         rootId: "root",
         rootPath: null,
         nodes,
+        cursorNodeId: null,
         cursor: [0, 1], // Column 0, card 1
         selectedNodes: new Set(),
         foldedNodes: new Set(),
+        collapsedNodes: new Set(),
         zoomStack: [],
         navHistory: [],
         navHistoryIndex: -1,
-        inMoveMode: false,
+        moveMode: false,
+        moveSourceNodes: [],
         moveSourceCursor: [],
+        maxOutlineDepth: 2,
+        maxContentLines: 3,
+        curswantX: null,
+        curswantY: null,
       });
 
       expect(layout.colIndex).toBe(0);
@@ -131,14 +152,21 @@ describe("deriveColumnsLayout", () => {
         rootId: null,
         rootPath: null,
         nodes,
+        cursorNodeId: null,
         cursor: [], // Empty cursor
         selectedNodes: new Set(),
         foldedNodes: new Set(),
+        collapsedNodes: new Set(),
         zoomStack: [],
         navHistory: [],
         navHistoryIndex: -1,
-        inMoveMode: false,
+        moveMode: false,
+        moveSourceNodes: [],
         moveSourceCursor: [],
+        maxOutlineDepth: 2,
+        maxContentLines: 3,
+        curswantX: null,
+        curswantY: null,
       });
 
       // Empty cursor means board level - no column or card selected

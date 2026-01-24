@@ -238,12 +238,12 @@ describe("CalDAVClient", () => {
       const events = await client.getEvents();
 
       expect(events).toHaveLength(2);
-      expect(events[0].uid).toBe("event-uid-1");
-      expect(events[0].summary).toBe("Test Event");
-      expect(events[0].etag).toBe("etag-123");
-      expect(events[1].uid).toBe("event-uid-2");
-      expect(events[1].summary).toBe("Another Event");
-      expect(events[1].location).toBe("Conference Room");
+      expect(events[0]!.uid).toBe("event-uid-1");
+      expect(events[0]!.summary).toBe("Test Event");
+      expect(events[0]!.etag).toBe("etag-123");
+      expect(events[1]!.uid).toBe("event-uid-2");
+      expect(events[1]!.summary).toBe("Another Event");
+      expect(events[1]!.location).toBe("Conference Room");
     });
 
     test("skips discovery if already discovered", async () => {

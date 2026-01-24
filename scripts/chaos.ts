@@ -66,11 +66,11 @@ function parseArgs(args: string[]): {
   for (let i = 1; i < args.length; i++) {
     const arg = args[i];
     if (arg === "-n" && args[i + 1]) {
-      options.iterations = parseInt(args[++i], 10);
+      options.iterations = parseInt(args[++i]!, 10);
     } else if (arg === "-s" && args[i + 1]) {
-      options.seed = parseInt(args[++i], 10);
+      options.seed = parseInt(args[++i]!, 10);
     } else if (arg === "-o" && args[i + 1]) {
-      options.output = args[++i];
+      options.output = args[++i]!;
     } else if (arg === "-b" && args[i + 1]) {
       options.beadId = args[++i]!;
     } else if (arg === "-d" && args[i + 1]) {
@@ -78,7 +78,7 @@ function parseArgs(args: string[]): {
     } else if (arg === "-v" || arg === "--verbose") {
       options.verbose = true;
     } else if (arg === "-t" && args[i + 1]) {
-      options.timeout = parseInt(args[++i], 10);
+      options.timeout = parseInt(args[++i]!, 10);
     } else if (arg === "--real-fs" || arg === "-r") {
       options.useMockFs = false;
     } else if (arg === "--parallel" || arg === "-p") {
@@ -193,11 +193,11 @@ async function cmdFuzz(options: FuzzOptions): Promise<void> {
 
     console.log();
     console.log("To reproduce:");
-    console.log(`  bun ./scripts/chaos.ts reproduce -s ${failures[0].seed}`);
+    console.log(`  bun ./scripts/chaos.ts reproduce -s ${failures[0]!.seed}`);
     console.log();
     console.log("To generate report:");
     console.log(
-      `  bun ./scripts/chaos.ts report -s ${failures[0].seed} -o /tmp/chaos-bug.md`,
+      `  bun ./scripts/chaos.ts report -s ${failures[0]!.seed} -o /tmp/chaos-bug.md`,
     );
   }
 }

@@ -288,7 +288,7 @@ function pickScenarios(
   const shuffled = random.shuffle([...pool]);
 
   for (let i = 0; i < Math.min(count, shuffled.length); i++) {
-    scenarios.push(shuffled[i]);
+    scenarios.push(shuffled[i]!);
   }
 
   return scenarios;

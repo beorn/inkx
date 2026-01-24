@@ -190,7 +190,7 @@ export const showCommand = new Command("show")
 /**
  * Get indentation for tree display
  */
-function getIndent(node: Node, rootId: string): string {
+function getIndent(node: KNode, rootId: string): string {
   let depth = 0;
   const current = node;
 

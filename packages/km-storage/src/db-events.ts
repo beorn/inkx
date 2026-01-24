@@ -6,7 +6,7 @@
  */
 
 import createDebug from "debug";
-import type { Database } from "bun:sqlite";
+import type { Database, SQLQueryBindings } from "bun:sqlite";
 
 const debug = createDebug("km:storage:db:events");
 import { readFileSync } from "fs";
@@ -142,7 +142,7 @@ function applyNodeUpdated(db: Database, event: Event): void {
   values.push(event.ts, event.id, event.target);
 
   const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`;
-  db.run(sql, values);
+  db.run(sql, values as SQLQueryBindings[]);
 
   // Bidirectional sync: write task status changes back to markdown file
   if (data.task_status !== undefined) {

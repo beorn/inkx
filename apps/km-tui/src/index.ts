@@ -26,5 +26,6 @@ export * from "./layout/index.ts";
 
 // Note: Icons are exported via ./text/index.ts
 
-// Testing utilities
-export { createBoardTest, type BoardTestHarness } from "./testing.ts";
+// Testing utilities exported via @km/tui/testing, NOT from main entry point
+// to avoid setting IS_REACT_ACT_ENVIRONMENT in production
+// See: apps/km-tui/src/testing.ts

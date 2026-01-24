@@ -328,6 +328,8 @@ export function tuiStateToTreeState(
     moveSourceCursor: [],
     maxOutlineDepth: 99,
     maxContentLines: 2,
+    curswantX: 0,
+    curswantY: 0,
   };
 }
 
@@ -345,6 +347,7 @@ function columnToTNode(col: ColumnState): TNode {
     title: col.node.title ?? "",
     children: col.cards.map((card) => cardToTNode(card)),
     childCount: col.cards.length,
+    childrenLoaded: true,
     isTask: col.node.type === "task",
     depth: 0,
     data: col.node.data ?? {},

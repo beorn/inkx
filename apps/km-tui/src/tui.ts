@@ -117,7 +117,7 @@ export async function runBoard(
     // Stop CLI spinner - TUI is about to take over the screen
     options?.spinner?.stop();
     debug("Starting interactive TUI");
-    await renderInkxBoard(state, options?.initialViewMode);
+    await renderInkxBoard(state, options?.initialViewMode, options?.vault);
   } finally {
     // Clean up sync manager
     if (syncManager) {

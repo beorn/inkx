@@ -72,7 +72,7 @@ export function loadHarnessFromPath(path: string): Harness {
   }
 
   // The YAML wraps the harness in a `harness:` key
-  const harness = parsed.harness ?? parsed;
+  const harness = "harness" in parsed ? parsed.harness : parsed;
   return harness as Harness;
 }
 

@@ -18,8 +18,8 @@ function node(id: string, children: TNode[] = []): TNode {
     isTask: true,
     depth: 0,
     data: {},
-    created_at: "",
-    updated_at: "",
+    created_at: 0,
+    updated_at: 0,
     version: "1",
   };
 }

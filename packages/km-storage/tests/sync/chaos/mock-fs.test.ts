@@ -215,7 +215,8 @@ describe("MockFileSystem", () => {
       fs.writeFileSync("/vault/test.md", "content");
 
       const scanner = fs.createScanner();
-      const [entry] = scanner("/vault");
+      const entries = scanner("/vault");
+      const entry = entries[0]!;
 
       expect(entry.path).toBe("/vault/test.md");
       expect(entry.ino).toBeGreaterThan(0);

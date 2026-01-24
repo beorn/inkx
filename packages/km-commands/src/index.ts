@@ -10,7 +10,6 @@ export type {
   HistoryUndoAction,
   HistoryRedoAction,
   UIAction,
-  GoUpPathAction,
   OpenDetailPaneAction,
   CloseDetailPaneAction,
   ShowHelpAction,

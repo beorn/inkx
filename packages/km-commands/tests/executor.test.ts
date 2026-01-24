@@ -48,11 +48,15 @@ function createNode(
 
 // Helper to create minimal BoardState
 function createBoardState(nodes: TNode[], cursor: number[] = []): BoardState {
+  const firstIdx = cursor[0];
   return {
     rootId: null,
     rootPath: null,
     nodes,
     cursor,
+    cursorNodeId: firstIdx !== undefined ? (nodes[firstIdx]?.id ?? null) : null,
+    curswantX: null,
+    curswantY: null,
     selectedNodes: new Set(),
     foldedNodes: new Set(),
     collapsedNodes: new Set(),

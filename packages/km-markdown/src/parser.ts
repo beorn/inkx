@@ -114,8 +114,8 @@ export function extractFrontmatter(content: string): {
 
   if (match) {
     return {
-      frontmatter: match[1],
-      body: match[2],
+      frontmatter: match[1] ?? null,
+      body: match[2] ?? "",
     };
   }
 

@@ -201,24 +201,24 @@ export function naturalToRRule(natural: string): string | null {
     /^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)$/,
   );
   if (dayMatch) {
-    const dayName = dayMatch[1];
-    const dayCode =
-      {
-        monday: "MO",
-        mon: "MO",
-        tuesday: "TU",
-        tue: "TU",
-        wednesday: "WE",
-        wed: "WE",
-        thursday: "TH",
-        thu: "TH",
-        friday: "FR",
-        fri: "FR",
-        saturday: "SA",
-        sat: "SA",
-        sunday: "SU",
-        sun: "SU",
-      }[dayName] || "MO";
+    const dayName = dayMatch[1] as string;
+    const dayMap: Record<string, string> = {
+      monday: "MO",
+      mon: "MO",
+      tuesday: "TU",
+      tue: "TU",
+      wednesday: "WE",
+      wed: "WE",
+      thursday: "TH",
+      thu: "TH",
+      friday: "FR",
+      fri: "FR",
+      saturday: "SA",
+      sat: "SA",
+      sunday: "SU",
+      sun: "SU",
+    };
+    const dayCode = dayMap[dayName] ?? "MO";
     return `FREQ=WEEKLY;BYDAY=${dayCode}`;
   }
 

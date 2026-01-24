@@ -51,7 +51,7 @@ describe("Markdown Parser", () => {
 - [-] Cancelled task
 `;
       const ast = parseMarkdown(md);
-      const list = ast.children.find((n: any) => n.type === "list");
+      const list = ast.children.find((n: any) => n.type === "list") as any;
       expect(list).toBeDefined();
       expect(list.children.length).toBe(3);
     });
@@ -59,7 +59,7 @@ describe("Markdown Parser", () => {
     test("should parse code blocks", () => {
       const md = "```javascript\nconst x = 1;\n```";
       const ast = parseMarkdown(md);
-      const code = ast.children.find((n: any) => n.type === "code");
+      const code = ast.children.find((n: any) => n.type === "code") as any;
       expect(code).toBeDefined();
       expect(code.lang).toBe("javascript");
     });
@@ -171,17 +171,17 @@ tags: [a, b, c]
       const text = "Check out [[Other Page]] for more info.";
       const links = parseWikiLinks(text);
       expect(links.length).toBe(1);
-      expect(links[0].target).toBe("Other Page");
-      expect(links[0].alias).toBeUndefined();
-      expect(links[0].embedded).toBeUndefined();
+      expect(links[0]!.target).toBe("Other Page");
+      expect(links[0]!.alias).toBeUndefined();
+      expect(links[0]!.embedded).toBeUndefined();
     });
 
     test("should parse aliased wikilinks", () => {
       const text = "See [[Target Page|this link]] here.";
       const links = parseWikiLinks(text);
       expect(links.length).toBe(1);
-      expect(links[0].target).toBe("Target Page");
-      expect(links[0].alias).toBe("this link");
+      expect(links[0]!.target).toBe("Target Page");
+      expect(links[0]!.alias).toBe("this link");
     });
 
     test("should parse multiple wikilinks", () => {
@@ -200,26 +200,26 @@ tags: [a, b, c]
       const text = "Embed this: ![[Tasks/Todo]]";
       const links = parseWikiLinks(text);
       expect(links.length).toBe(1);
-      expect(links[0].target).toBe("Tasks/Todo");
-      expect(links[0].embedded).toBe(true);
+      expect(links[0]!.target).toBe("Tasks/Todo");
+      expect(links[0]!.embedded).toBe(true);
     });
 
     test("should detect embedding with section anchor", () => {
       const text = "![[Project#Tasks]]";
       const links = parseWikiLinks(text);
       expect(links.length).toBe(1);
-      expect(links[0].target).toBe("Project");
-      expect(links[0].section).toBe("Tasks");
-      expect(links[0].embedded).toBe(true);
+      expect(links[0]!.target).toBe("Project");
+      expect(links[0]!.section).toBe("Tasks");
+      expect(links[0]!.embedded).toBe(true);
     });
 
     test("should detect embedding with alias", () => {
       const text = "![[Project/API|API Docs]]";
       const links = parseWikiLinks(text);
       expect(links.length).toBe(1);
-      expect(links[0].target).toBe("Project/API");
-      expect(links[0].alias).toBe("API Docs");
-      expect(links[0].embedded).toBe(true);
+      expect(links[0]!.target).toBe("Project/API");
+      expect(links[0]!.alias).toBe("API Docs");
+      expect(links[0]!.embedded).toBe(true);
     });
 
     test("should distinguish embeddings from regular links in same text", () => {

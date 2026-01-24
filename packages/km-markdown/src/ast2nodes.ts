@@ -342,11 +342,13 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
       const heading = child as Heading;
 
       // Pop stack until we find a shallower heading
-      while (
-        sectionStack.length > 0 &&
-        sectionStack[sectionStack.length - 1].depth >= heading.depth
-      ) {
-        sectionStack.pop();
+      while (sectionStack.length > 0) {
+        const top = sectionStack[sectionStack.length - 1];
+        if (top && top.depth >= heading.depth) {
+          sectionStack.pop();
+        } else {
+          break;
+        }
       }
 
       const text = nodeToText(heading);
@@ -379,13 +381,11 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
         }
       }
 
+      const parentSection = sectionStack[sectionStack.length - 1];
       const sectionNode: KNode = {
         id: ulid(),
         type: "section",
-        parent_id:
-          sectionStack.length > 0
-            ? sectionStack[sectionStack.length - 1].node.id
-            : fileNode.id,
+        parent_id: parentSection ? parentSection.node.id : fileNode.id,
         parent_idx: sortOrder++,
         link_to: null,
         name: sectionName, // Slug/identifier derived from heading
@@ -454,7 +454,11 @@ function convertListItem(
   const now = Date.now();
 
   let text = listItemToText(item);
-  const taskMark = extractTaskMark(sourceText, item.position);
+  // Convert position to the expected format for extractTaskMark
+  const position = item.position?.start.offset !== undefined
+    ? { start: { offset: item.position.start.offset } }
+    : undefined;
+  const taskMark = extractTaskMark(sourceText, position);
 
   // A task is either:
   // 1. A GFM task list item (item.checked is boolean) - [ ] or [x]

@@ -41,8 +41,8 @@ function contentMatches(original: string, regenerated: string): boolean {
   if (origNodes.length !== regenNodes.length) return false;
 
   for (let i = 0; i < origNodes.length; i++) {
-    if (origNodes[i].type !== regenNodes[i].type) return false;
-    if (origNodes[i].content !== regenNodes[i].content) return false;
+    if (origNodes[i]!.type !== regenNodes[i]!.type) return false;
+    if (origNodes[i]!.content !== regenNodes[i]!.content) return false;
   }
 
   return true;
@@ -620,16 +620,16 @@ describe("Round-trip: Content Preservation Verification", () => {
     const tasks = nodes.filter((n) => n.type === "task");
 
     expect(tasks.length).toBe(2);
-    expect(tasks[0].task_status).toBe("todo");
-    expect(tasks[1].task_status).toBe("done");
+    expect(tasks[0]!.task_status).toBe("todo");
+    expect(tasks[1]!.task_status).toBe("done");
 
     // After round-trip, statuses should be preserved
     const output = nodesToMarkdown(nodes);
     const nodes2 = parseMarkdownToNodes(output, "test.md");
     const tasks2 = nodes2.filter((n) => n.type === "task");
 
-    expect(tasks2[0].task_status).toBe("todo");
-    expect(tasks2[1].task_status).toBe("done");
+    expect(tasks2[0]!.task_status).toBe("todo");
+    expect(tasks2[1]!.task_status).toBe("done");
   });
 
   test("should preserve task metadata in node", () => {

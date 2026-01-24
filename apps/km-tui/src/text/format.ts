@@ -51,7 +51,7 @@ export function formatCollapsedAncestor(
 /**
  * Format a node for display in listings.
  */
-export function formatNode(node: Node, showId: boolean): string {
+export function formatNode(node: KNode, showId: boolean): string {
   let prefix = "";
   if (showId) {
     prefix = chalk.dim(`[${node.id.slice(0, 5)}] `);
