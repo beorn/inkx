@@ -6,7 +6,6 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { getBeadsConfig } from "@km/storage";
 import type { Issue } from "./types.ts";
 
 /** Raw beads issue format from issues.jsonl */

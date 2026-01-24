@@ -15,7 +15,7 @@ import {
 } from "../../src/watch/reconcile.ts";
 import { getNodeByPath, getChildren } from "../../src/db.ts";
 import { rebuildState } from "../../src/rebuild.ts";
-import { withTestEnv } from "../utils.ts";
+import { withTestEnv } from "@km/storage";
 
 describe("reconcile.ts", () => {
   describe("reconcileDirectory", () => {

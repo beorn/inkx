@@ -15,7 +15,7 @@ import {
 } from "@km/beads";
 import {
   resolvePathArg,
-  getBeadsConfig,
+  loadConfigObject,
   getOriginalBeadsConfig,
   getOriginalBeadsConfigPath,
 } from "@km/storage";
@@ -33,7 +33,7 @@ export const migrateCommand = new Command("migrate")
   .option("--target <dir>", "Target directory for markdown files")
   .action((opts) => {
     const resolved = resolvePathArg(undefined);
-    const config = getBeadsConfig(resolved.vaultRoot);
+    const configObj = loadConfigObject(resolved.vaultRoot);
 
     // Find .beads directory
     const beadsDir = findBeadsDir(resolved.vaultRoot);
@@ -81,10 +81,11 @@ export const migrateCommand = new Command("migrate")
     }
 
     // Determine target directory
+    const beadsConfig = configObj.beads;
     const targetDir =
       opts.target ||
-      (config.parent
-        ? `${resolved.vaultRoot}/${config.parent}`
+      (beadsConfig.parent
+        ? `${resolved.vaultRoot}/${beadsConfig.parent}`
         : `${resolved.vaultRoot}/issue`);
 
     // Parse status filter
@@ -92,7 +93,7 @@ export const migrateCommand = new Command("migrate")
 
     console.log(chalk.bold("Migration Target"));
     console.log(`  Target dir: ${targetDir}`);
-    console.log(`  Board tag: @${config.board}`);
+    console.log(`  Board tag: @${beadsConfig.board}`);
     if (statusFilter) {
       console.log(`  Status filter: ${statusFilter.join(", ")}`);
     }
@@ -106,7 +107,7 @@ export const migrateCommand = new Command("migrate")
     // Run migration
     const result = migrateBeadsToMarkdown(beadsDir, {
       targetDir,
-      boardTag: config.board,
+      boardTag: beadsConfig.board,
       statusFilter,
       dryRun: opts.dryRun,
     });
@@ -140,10 +141,10 @@ export const exportCommand = new Command("export")
   .option("--target <dir>", "Target .beads directory")
   .action((opts) => {
     const resolved = resolvePathArg(undefined);
-    const config = getBeadsConfig(resolved.vaultRoot);
+    const configObj = loadConfigObject(resolved.vaultRoot);
 
     // Get issues from km
-    const boardTag = config.board || undefined;
+    const boardTag = configObj.beads.board || undefined;
     const issues = queryIssues({}, undefined, boardTag);
 
     console.log(chalk.bold("Export Source"));

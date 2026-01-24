@@ -19,7 +19,7 @@ import {
   readObsidianIgnore,
   getIgnorePatterns,
 } from "../../src/watch/ignore.ts";
-import { withTestEnvSync } from "../utils.ts";
+import { withTestEnvSync } from "@km/storage";
 
 describe("Ignore Patterns", () => {
   describe("DEFAULT_IGNORE_PATTERNS", () => {

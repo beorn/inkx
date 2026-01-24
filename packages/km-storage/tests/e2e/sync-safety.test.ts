@@ -13,7 +13,7 @@ import { join } from "path";
 import { SyncManager } from "../../src/watch/sync.ts";
 import { getAllNodes, applyEvent } from "../../src/index.ts";
 import { setDatabase } from "../../src/emit.ts";
-import { withTestEnv } from "../utils.ts";
+import { withTestEnv } from "@km/storage";
 
 /**
  * Original file contents - non-markdown files MUST remain unchanged

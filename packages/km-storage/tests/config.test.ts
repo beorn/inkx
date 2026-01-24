@@ -26,7 +26,7 @@ import {
   getOriginalBeadsConfig,
   getOriginalBeadsConfigPath,
 } from "../src/config.ts";
-import { withTestEnvSync } from "./utils.ts";
+import { withTestEnvSync } from "@km/storage";
 
 describe("loadConfig", () => {
   test("returns empty object when no config exists", () =>

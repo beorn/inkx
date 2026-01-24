@@ -15,7 +15,7 @@ import { ulid } from "ulid";
 
 import { resolveNode, applyEvent } from "../src/db.ts";
 import { emitNodeCreated, setDatabase } from "../src/emit.ts";
-import { withTestEnvSync } from "./utils.ts";
+import { withTestEnvSync } from "@km/storage";
 
 describe("resolveNode", () => {
   test("resolves by exact ID", () =>

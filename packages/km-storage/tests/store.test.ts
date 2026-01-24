@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 import { ulid } from "ulid";
 import { initStore, closeStore, MemoryStore, DiskStore } from "../src/store.ts";
-import { withTestEnvSync } from "./utils.ts";
+import { withTestEnvSync } from "@km/storage";
 
 // Track created directories for cleanup
 const createdDirs: string[] = [];

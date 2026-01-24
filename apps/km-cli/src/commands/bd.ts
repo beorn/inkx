@@ -24,7 +24,6 @@ import {
   getDbPath,
   getStore,
   resolvePathArg,
-  getBeadsConfig,
   loadConfigObject,
   runWithKmDir,
 } from "@km/storage";
@@ -64,7 +63,7 @@ bdCommand
   .action((scope, opts) => {
     const resolved = resolvePathArg(scope);
     const scopePath = resolved.nodeRef ?? undefined;
-    const config = getBeadsConfig(resolved.vaultRoot);
+    const configObj = loadConfigObject(resolved.vaultRoot);
 
     const filter: Partial<IssueFilter> = {};
     if (opts.type) filter.type = opts.type;
@@ -72,7 +71,8 @@ bdCommand
     if (opts.priority !== undefined) filter.priority = opts.priority;
 
     // Use board filter from config unless --all or explicit scope given
-    const boardTag = opts.all || scope ? undefined : config.board || undefined;
+    const boardTag =
+      opts.all || scope ? undefined : configObj.beads.board || undefined;
     const issues = queryReady(filter, scopePath, boardTag);
 
     if (opts.json) {
@@ -123,7 +123,7 @@ bdCommand
   .action((scope, opts) => {
     const resolved = resolvePathArg(scope);
     const scopePath = resolved.nodeRef ?? undefined;
-    const config = getBeadsConfig(resolved.vaultRoot);
+    const configObj = loadConfigObject(resolved.vaultRoot);
 
     const filter: IssueFilter = {};
     if (opts.status) filter.status = opts.status.split(",");
@@ -134,7 +134,8 @@ bdCommand
     if (opts.unblocked) filter.blocked = false;
 
     // Use board filter from config unless --all or explicit scope given
-    const boardTag = opts.all || scope ? undefined : config.board || undefined;
+    const boardTag =
+      opts.all || scope ? undefined : configObj.beads.board || undefined;
     const issues = queryIssues(filter, scopePath, boardTag);
 
     if (opts.json) {
