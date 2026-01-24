@@ -20,23 +20,28 @@ let db: { applyEvent: (event: Event) => void } | null = null;
 // Filesystem sync callback (set by km-watch when sync is enabled)
 let fsSync: { applyEventToFs: (event: Event) => void } | null = null;
 
-// Path to km state directory (defaults to .km, can be overridden with KM_DIR env var)
-let kmDir = process.env.KM_DIR ?? ".km";
-
 // AsyncLocalStorage for context-local kmDir (enables parallel test isolation)
 const kmDirContext = new AsyncLocalStorage<string>();
 
 /**
- * Set the km state directory path
+ * Set the km state directory path.
+ * @deprecated Use runWithKmDir() for context-local paths instead.
+ * This function now sets the default for non-context code paths only.
  */
 export function setKmDir(path: string): void {
-  kmDir = path;
+  // Store as default for legacy code paths that don't use ALS context
+  defaultKmDir = path;
 }
 
+// Default kmDir for legacy code paths (prefer ALS context via runWithKmDir)
+let defaultKmDir = process.env.KM_DIR ?? ".km";
+
 /**
- * Get the current km state directory path
+ * Get the current km state directory path.
+ * Prefers ALS context (set via runWithKmDir), falls back to default.
+ *
  * @deprecated Use Vault.path or pass kmDir explicitly to functions that need it.
- * This singleton will be removed in a future version.
+ * Prefer using runWithKmDir() to establish context.
  */
 export function getKmDir(): string {
   // Check async context first (enables parallel test isolation)
@@ -44,7 +49,7 @@ export function getKmDir(): string {
   if (contextKmDir) {
     return contextKmDir;
   }
-  return kmDir;
+  return defaultKmDir;
 }
 
 /**
@@ -95,8 +100,9 @@ export function clearDatabase(): void {
  * Ensure the km directory exists
  */
 function ensureKmDir(): void {
-  if (!existsSync(kmDir)) {
-    mkdirSync(kmDir, { recursive: true });
+  const dir = getKmDir();
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
   }
 }
 
@@ -104,7 +110,7 @@ function ensureKmDir(): void {
  * Get the events file path
  */
 export function getEventsPath(): string {
-  return join(kmDir, "events.jsonl");
+  return join(getKmDir(), "events.jsonl");
 }
 
 /**

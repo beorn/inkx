@@ -21,6 +21,7 @@ export {
   isMemoryMode,
   resetDb,
   runWithDb,
+  tryGetContextDb,
 } from "./db-instance.ts";
 
 // Read-only queries

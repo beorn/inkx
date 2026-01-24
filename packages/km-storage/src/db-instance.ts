@@ -133,3 +133,12 @@ export function resetDb(): void {
 export function runWithDb<T>(db: Database, fn: () => T): T {
   return dbContext.run(db, fn);
 }
+
+/**
+ * Get the context-local database if running within runWithDb, otherwise undefined.
+ * Unlike getDb(), this does NOT create a database if none exists.
+ * Use this when you want to check for a context without side effects.
+ */
+export function tryGetContextDb(): Database | undefined {
+  return dbContext.getStore();
+}

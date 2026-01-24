@@ -333,13 +333,10 @@ describe("DiskStore", () => {
 
 describe("initStore mode detection", () => {
   test("should return MemoryStore when no .km directory exists", () =>
-    withTestEnvSync(({ testDir }) => {
-      const memoryDir = testDir;
-      // Remove the .km dir that withTestEnvSync creates so we test memory mode
-      rmSync(join(memoryDir, ".km"), { recursive: true });
-
+    withTestEnvSync(({ vaultDir }) => {
+      // No .km directory - should use memory mode
       // Pass false to disable ancestor search (avoid /tmp/.km pollution)
-      const store = initStore(memoryDir, false);
+      const store = initStore(vaultDir, false);
       try {
         expect(store.mode).toBe("memory");
         expect(store).toBeInstanceOf(MemoryStore);
@@ -349,12 +346,12 @@ describe("initStore mode detection", () => {
     }));
 
   test("should return DiskStore when .km directory exists", () =>
-    withTestEnvSync(({ testDir }) => {
-      const diskDir = testDir;
-      // .km already exists from withTestEnvSync
+    withTestEnvSync(({ vaultDir }) => {
+      // Create .km to trigger disk mode
+      mkdirSync(join(vaultDir, ".km"), { recursive: true });
 
       // Pass false to disable ancestor search (test specific directory)
-      const store = initStore(diskDir, false);
+      const store = initStore(vaultDir, false);
       try {
         expect(store.mode).toBe("disk");
         expect(store).toBeInstanceOf(DiskStore);
@@ -364,16 +361,17 @@ describe("initStore mode detection", () => {
     }));
 
   test("should find .km in parent directory", () =>
-    withTestEnvSync(({ testDir }) => {
-      const diskDir = testDir;
-      // .km already exists from withTestEnvSync
-      const subDir = join(diskDir, "subdir");
+    withTestEnvSync(({ vaultDir }) => {
+      // Create .km in vaultDir
+      mkdirSync(join(vaultDir, ".km"), { recursive: true });
+      // Create subdir to test ancestor search
+      const subDir = join(vaultDir, "subdir");
       mkdirSync(subDir, { recursive: true });
 
       const store = initStore(subDir);
       try {
         expect(store.mode).toBe("disk");
-        expect(store.rootPath).toBe(diskDir);
+        expect(store.rootPath).toBe(vaultDir);
       } finally {
         closeStore();
       }

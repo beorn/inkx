@@ -32,7 +32,14 @@ type StepYield =
   | { declare: string[] };
 import { parseMarkdownWithLinks } from "@km/markdown";
 import { SCHEMA } from "./schema.ts";
-import { applyEvent, getDb, resetDb, setDb, dbApplyEvent } from "./db.ts";
+import {
+  applyEvent,
+  getDb,
+  resetDb,
+  setDb,
+  dbApplyEvent,
+  tryGetContextDb,
+} from "./db.ts";
 import { findChildByContent } from "./db-queries/index.ts";
 import { rowToNode } from "./db-queries/utils.ts";
 import type { KNode } from "@km/core";
@@ -153,9 +160,15 @@ export function* loadVault(
       resetDb();
     }
   } else {
-    db = new Database(":memory:");
-    db.exec(SCHEMA);
-    setDb(db);
+    // Memory mode - use context db if available (enables test isolation)
+    const contextDb = tryGetContextDb();
+    if (contextDb) {
+      db = contextDb;
+    } else {
+      db = new Database(":memory:");
+      db.exec(SCHEMA);
+      setDb(db);
+    }
   }
 
   // 3. Mode-specific event source (yield* chains progress)
