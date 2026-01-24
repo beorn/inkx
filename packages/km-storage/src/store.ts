@@ -314,12 +314,16 @@ export class DiskStore extends BaseStore {
   readonly rootPath: string;
   protected db: Database;
 
-  constructor(kmPath: string) {
+  constructor(kmPath: string, options?: { inject?: { database?: Database } }) {
     super();
     this.rootPath = dirname(kmPath);
-    this.db = new Database(join(kmPath, "state.db"));
-    this.db.exec(SCHEMA);
-    applyMigrations(this.db);
+    if (options?.inject?.database) {
+      this.db = options.inject.database;
+    } else {
+      this.db = new Database(join(kmPath, "state.db"));
+      this.db.exec(SCHEMA);
+      applyMigrations(this.db);
+    }
   }
 
   updateNode(id: string, changes: Partial<KNode>): void {
@@ -504,16 +508,25 @@ export class MemoryStore extends BaseStore {
   private fileCount = 0;
   private parseErrors: Array<{ path: string; error: string }> = [];
 
-  constructor(rootPath: string, options?: { lazy?: boolean }) {
+  constructor(
+    rootPath: string,
+    options?: { lazy?: boolean; inject?: { database?: Database } },
+  ) {
     super();
     this.rootPath = rootPath;
-    this.db = new Database(":memory:");
-    this.db.exec(SCHEMA);
-    // Only set the db singleton if not lazy - in lazy mode, the db is managed elsewhere
-    // (e.g., by vault-loader.ts which may have already set up a database)
-    if (!options?.lazy) {
-      setDb(this.db);
-      this.scanFilesystem();
+    if (options?.inject?.database) {
+      // Use injected database (e.g., from loadVault)
+      this.db = options.inject.database;
+      this.initialized = true; // Already populated by caller
+    } else {
+      this.db = new Database(":memory:");
+      this.db.exec(SCHEMA);
+      // Only set the db singleton if not lazy - in lazy mode, the db is managed elsewhere
+      // (e.g., by vault-loader.ts which may have already set up a database)
+      if (!options?.lazy) {
+        setDb(this.db);
+        this.scanFilesystem();
+      }
     }
   }
 

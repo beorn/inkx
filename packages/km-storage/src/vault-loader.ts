@@ -46,6 +46,7 @@ import type { KNode } from "@km/core";
 import { getEventsPath, setKmDir, setDatabase } from "./emit.ts";
 import { evaluateAllRules, setBulkMode } from "./db-rules.ts";
 import { findKmRootFromPath } from "./path-utils.ts";
+import { DiskStore, MemoryStore, type NodeStore } from "./store.ts";
 
 const debug = createDebug("km:storage:vault-loader");
 
@@ -62,6 +63,8 @@ export interface LoadResult {
   pendingLinks?: PendingLink[];
   /** Files pending deferred parsing (only present if discoverOnly was true) */
   deferredFiles?: DeferredFile[];
+  /** The NodeStore instance for querying/mutating nodes */
+  store: NodeStore;
 }
 
 /** Error during loading */
@@ -228,6 +231,12 @@ export function* loadVault(
   const duration = Date.now() - start;
   debug("loadVault complete", { mode, nodeCount, linkCount, duration });
 
+  // Create the appropriate store with the database we just set up
+  const store: NodeStore =
+    mode === "disk" && kmDir
+      ? new DiskStore(kmDir, { inject: { database: db } })
+      : new MemoryStore(vaultRoot, { inject: { database: db } });
+
   return {
     mode,
     rootPath: vaultRoot,
@@ -237,6 +246,7 @@ export function* loadVault(
     duration,
     pendingLinks: returnPendingLinks,
     deferredFiles: returnDeferredFiles,
+    store,
   };
 }
 
