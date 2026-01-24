@@ -43,15 +43,11 @@ describe("Links and Backlinks", () => {
         "# Tasks\n\n- [ ] Review [[project notes]]",
       );
 
-      const store = new MemoryStore(testDir);
-      try {
-        const nodes = store.getAllNodes();
-        const task = nodes.find((n) => n.type === "task");
-        expect(task).toBeDefined();
-        expect(task?.content).toContain("[[project notes]]");
-      } finally {
-        store.close();
-      }
+      using store = new MemoryStore(testDir);
+      const nodes = store.getAllNodes();
+      const task = nodes.find((n) => n.type === "task");
+      expect(task).toBeDefined();
+      expect(task?.content).toContain("[[project notes]]");
     });
 
     test("should preserve wikilinks with aliases", () => {
@@ -61,15 +57,11 @@ describe("Links and Backlinks", () => {
         "# Document\n\n- [ ] See [[Real Target|Display Name]] for details",
       );
 
-      const store = new MemoryStore(testDir);
-      try {
-        const nodes = store.getAllNodes();
-        const task = nodes.find((n) => n.type === "task");
-        expect(task).toBeDefined();
-        expect(task?.content).toContain("[[Real Target|Display Name]]");
-      } finally {
-        store.close();
-      }
+      using store = new MemoryStore(testDir);
+      const nodes = store.getAllNodes();
+      const task = nodes.find((n) => n.type === "task");
+      expect(task).toBeDefined();
+      expect(task?.content).toContain("[[Real Target|Display Name]]");
     });
 
     test("should preserve section links", () => {
@@ -79,15 +71,11 @@ describe("Links and Backlinks", () => {
         "# Page\n\n- [ ] Link to [[other#section]]",
       );
 
-      const store = new MemoryStore(testDir);
-      try {
-        const nodes = store.getAllNodes();
-        const task = nodes.find((n) => n.type === "task");
-        expect(task).toBeDefined();
-        expect(task?.content).toContain("[[other#section]]");
-      } finally {
-        store.close();
-      }
+      using store = new MemoryStore(testDir);
+      const nodes = store.getAllNodes();
+      const task = nodes.find((n) => n.type === "task");
+      expect(task).toBeDefined();
+      expect(task?.content).toContain("[[other#section]]");
     });
 
     test("should handle multiple wikilinks in same task", () => {
@@ -97,17 +85,13 @@ describe("Links and Backlinks", () => {
         "# Multi\n\n- [ ] Links to [[one]] and [[two]] and [[three]]",
       );
 
-      const store = new MemoryStore(testDir);
-      try {
-        const nodes = store.getAllNodes();
-        const task = nodes.find((n) => n.type === "task");
-        expect(task).toBeDefined();
-        expect(task?.content).toContain("[[one]]");
-        expect(task?.content).toContain("[[two]]");
-        expect(task?.content).toContain("[[three]]");
-      } finally {
-        store.close();
-      }
+      using store = new MemoryStore(testDir);
+      const nodes = store.getAllNodes();
+      const task = nodes.find((n) => n.type === "task");
+      expect(task).toBeDefined();
+      expect(task?.content).toContain("[[one]]");
+      expect(task?.content).toContain("[[two]]");
+      expect(task?.content).toContain("[[three]]");
     });
   });
 
@@ -116,27 +100,19 @@ describe("Links and Backlinks", () => {
       const testDir = createTestDir();
       writeFileSync(join(testDir, "target.md"), "# Target\n\nContent here.");
 
-      const store = new MemoryStore(testDir);
-      try {
-        const node = store.getNodeByPath(join(testDir, "target.md"));
-        expect(node).toBeDefined();
-        expect(node?.type).toBe("file");
-      } finally {
-        store.close();
-      }
+      using store = new MemoryStore(testDir);
+      const node = store.getNodeByPath(join(testDir, "target.md"));
+      expect(node).toBeDefined();
+      expect(node?.type).toBe("file");
     });
 
     test("should return null for non-existent paths", () => {
       const testDir = createTestDir();
       writeFileSync(join(testDir, "exists.md"), "# Exists\n\nContent.");
 
-      const store = new MemoryStore(testDir);
-      try {
-        const node = store.getNodeByPath(join(testDir, "nonexistent.md"));
-        expect(node).toBeNull();
-      } finally {
-        store.close();
-      }
+      using store = new MemoryStore(testDir);
+      const node = store.getNodeByPath(join(testDir, "nonexistent.md"));
+      expect(node).toBeNull();
     });
   });
 
@@ -155,27 +131,23 @@ describe("Links and Backlinks", () => {
         "# My Board\n\n## Work\n- ![[tasks#Review PR]]",
       );
 
-      const store = new MemoryStore(testDir);
-      try {
-        const nodes = store.getAllNodes();
+      using store = new MemoryStore(testDir);
+      const nodes = store.getAllNodes();
 
-        // Find the embedding node (the list item with ![[...]])
-        const embedNode = nodes.find((n) =>
-          n.content?.includes("![[tasks#Review PR]]"),
-        );
-        expect(embedNode).toBeDefined();
+      // Find the embedding node (the list item with ![[...]])
+      const embedNode = nodes.find((n) =>
+        n.content?.includes("![[tasks#Review PR]]"),
+      );
+      expect(embedNode).toBeDefined();
 
-        // Find the target task (Review PR)
-        const targetTask = nodes.find(
-          (n) => n.type === "task" && n.content?.includes("Review PR @work"),
-        );
-        expect(targetTask).toBeDefined();
+      // Find the target task (Review PR)
+      const targetTask = nodes.find(
+        (n) => n.type === "task" && n.content?.includes("Review PR @work"),
+      );
+      expect(targetTask).toBeDefined();
 
-        // The embedding should have link_to pointing to the specific task, not the file
-        expect(embedNode?.link_to).toBe(targetTask?.id);
-      } finally {
-        store.close();
-      }
+      // The embedding should have link_to pointing to the specific task, not the file
+      expect(embedNode?.link_to).toBe(targetTask?.id);
     });
 
     test("should resolve embedding to file when no section match", () => {
@@ -190,27 +162,23 @@ describe("Links and Backlinks", () => {
         "# Embed\n\n- ![[source#nonexistent section]]",
       );
 
-      const store = new MemoryStore(testDir);
-      try {
-        const nodes = store.getAllNodes();
+      using store = new MemoryStore(testDir);
+      const nodes = store.getAllNodes();
 
-        // Find the embedding node
-        const embedNode = nodes.find((n) =>
-          n.content?.includes("![[source#nonexistent section]]"),
-        );
-        expect(embedNode).toBeDefined();
+      // Find the embedding node
+      const embedNode = nodes.find((n) =>
+        n.content?.includes("![[source#nonexistent section]]"),
+      );
+      expect(embedNode).toBeDefined();
 
-        // Find the source file
-        const sourceFile = nodes.find(
-          (n) => n.type === "file" && n.fs_path?.endsWith("source.md"),
-        );
-        expect(sourceFile).toBeDefined();
+      // Find the source file
+      const sourceFile = nodes.find(
+        (n) => n.type === "file" && n.fs_path?.endsWith("source.md"),
+      );
+      expect(sourceFile).toBeDefined();
 
-        // The embedding should fall back to the file since section doesn't exist
-        expect(embedNode?.link_to).toBe(sourceFile?.id);
-      } finally {
-        store.close();
-      }
+      // The embedding should fall back to the file since section doesn't exist
+      expect(embedNode?.link_to).toBe(sourceFile?.id);
     });
 
     test("should resolve embedding to section by title", () => {
@@ -225,27 +193,23 @@ describe("Links and Backlinks", () => {
         "# Reference\n\n- ![[doc#Conclusion]]",
       );
 
-      const store = new MemoryStore(testDir);
-      try {
-        const nodes = store.getAllNodes();
+      using store = new MemoryStore(testDir);
+      const nodes = store.getAllNodes();
 
-        // Find the embedding node
-        const embedNode = nodes.find((n) =>
-          n.content?.includes("![[doc#Conclusion]]"),
-        );
-        expect(embedNode).toBeDefined();
+      // Find the embedding node
+      const embedNode = nodes.find((n) =>
+        n.content?.includes("![[doc#Conclusion]]"),
+      );
+      expect(embedNode).toBeDefined();
 
-        // Find the Conclusion section
-        const conclusionSection = nodes.find(
-          (n) => n.type === "section" && n.title === "Conclusion",
-        );
-        expect(conclusionSection).toBeDefined();
+      // Find the Conclusion section
+      const conclusionSection = nodes.find(
+        (n) => n.type === "section" && n.title === "Conclusion",
+      );
+      expect(conclusionSection).toBeDefined();
 
-        // The embedding should point to the specific section
-        expect(embedNode?.link_to).toBe(conclusionSection?.id);
-      } finally {
-        store.close();
-      }
+      // The embedding should point to the specific section
+      expect(embedNode?.link_to).toBe(conclusionSection?.id);
     });
   });
 
@@ -257,19 +221,15 @@ describe("Links and Backlinks", () => {
         "# Parent\n\n- [ ] Child task 1\n- [ ] Child task 2",
       );
 
-      const store = new MemoryStore(testDir);
-      try {
-        // File has sections as children, sections have tasks
-        const allNodes = store.getAllNodes();
-        const tasks = allNodes.filter((n) => n.type === "task");
-        expect(tasks.length).toBe(2);
+      using store = new MemoryStore(testDir);
+      // File has sections as children, sections have tasks
+      const allNodes = store.getAllNodes();
+      const tasks = allNodes.filter((n) => n.type === "task");
+      expect(tasks.length).toBe(2);
 
-        // Each task should have a parent
-        for (const task of tasks) {
-          expect(task.parent_id).toBeDefined();
-        }
-      } finally {
-        store.close();
+      // Each task should have a parent
+      for (const task of tasks) {
+        expect(task.parent_id).toBeDefined();
       }
     });
 
@@ -281,19 +241,15 @@ describe("Links and Backlinks", () => {
         "# Nested\n\n- [ ] Deep task",
       );
 
-      const store = new MemoryStore(testDir);
-      try {
-        const nodes = store.getAllNodes();
-        const task = nodes.find(
-          (n) => n.type === "task" && n.content?.includes("Deep task"),
-        );
-        expect(task).toBeDefined();
+      using store = new MemoryStore(testDir);
+      const nodes = store.getAllNodes();
+      const task = nodes.find(
+        (n) => n.type === "task" && n.content?.includes("Deep task"),
+      );
+      expect(task).toBeDefined();
 
-        const ancestors = store.getAncestors(task!.id);
-        expect(ancestors.length).toBeGreaterThan(0);
-      } finally {
-        store.close();
-      }
+      const ancestors = store.getAncestors(task!.id);
+      expect(ancestors.length).toBeGreaterThan(0);
     });
   });
 });

@@ -46,13 +46,12 @@ function withMemoryStore<T>(
   setup(vaultDir);
 
   // Create store (will parse the files)
-  const store = new MemoryStore(vaultDir);
+  using store = new MemoryStore(vaultDir);
 
   try {
     // Run within ALS context using the store's database
     return runWithDb(store.getDatabase(), () => fn({ store, vaultDir }));
   } finally {
-    store.close();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true });
     }

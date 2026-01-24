@@ -420,6 +420,105 @@ async function watchVault(path: string) {
 
 ---
 
+## DisposableStack for Complex Cleanup
+
+When you need to clean up multiple resources or combine disposables with cleanup callbacks, use `DisposableStack` (sync) or `AsyncDisposableStack` (async). These are part of the TC39 Explicit Resource Management proposal, supported in TypeScript 5.2+.
+
+### Basic Usage
+
+```typescript
+// Multiple resources with mixed cleanup
+await using stack = new AsyncDisposableStack();
+
+// Add disposable resources - cleanup via Symbol.asyncDispose
+const watcher = stack.use(createWatcher(dir));
+
+// Add cleanup callbacks - runs in reverse order
+stack.defer(() => setGlobalState(null));
+stack.defer(async () => await someAsyncCleanup());
+
+await watcher.start();
+// ... do work ...
+// Cleanup order: someAsyncCleanup(), setGlobalState(null), watcher.stop()
+```
+
+### When to Use
+
+| Scenario                       | Use                                        |
+| ------------------------------ | ------------------------------------------ |
+| Single resource                | `using` / `await using` directly           |
+| Multiple independent resources | Multiple `using` declarations              |
+| Resources + cleanup callbacks  | `DisposableStack` / `AsyncDisposableStack` |
+| Conditional cleanup            | `stack.defer()` with conditional logic     |
+| Non-disposable with cleanup    | `stack.adopt(value, cleanup)`              |
+
+### Methods
+
+- `stack.use(disposable)` - Add a disposable, returns it for chaining
+- `stack.adopt(value, cleanup)` - Add non-disposable with custom cleanup function
+- `stack.defer(callback)` - Add cleanup callback (runs in reverse order)
+- `stack.move()` - Transfer ownership to a new stack (original becomes empty)
+
+### Practical Examples
+
+**Combining disposables with state cleanup:**
+
+```typescript
+async function runWithTempState(vault: Vault) {
+  await using stack = new AsyncDisposableStack();
+
+  // Disposable resource
+  const watcher = stack.use(vault.watch());
+
+  // Non-disposable with cleanup
+  const tempDir = stack.adopt(mkdtemp("/tmp/km-"), (dir) =>
+    rmSync(dir, { recursive: true }),
+  );
+
+  // State cleanup callback
+  const previousLogLevel = getLogLevel();
+  stack.defer(() => setLogLevel(previousLogLevel));
+  setLogLevel("debug");
+
+  await watcher.start();
+  // ... do work in tempDir with debug logging ...
+  // Cleanup: restore log level, remove tempDir, stop watcher
+}
+```
+
+**Conditional resource acquisition:**
+
+```typescript
+async function maybeWatch(vault: Vault, enableWatch: boolean) {
+  await using stack = new AsyncDisposableStack();
+
+  if (enableWatch) {
+    const watcher = stack.use(vault.watch());
+    await watcher.start();
+  }
+
+  // ... do work ...
+  // Watcher only cleaned up if it was created
+}
+```
+
+**Transferring ownership:**
+
+```typescript
+function createManagedResources(): AsyncDisposableStack {
+  const stack = new AsyncDisposableStack();
+  stack.use(createWatcher(dir1));
+  stack.use(createWatcher(dir2));
+  // Transfer ownership to caller - our stack is now empty
+  return stack.move();
+}
+
+// Caller takes ownership
+await using resources = createManagedResources();
+```
+
+---
+
 ## Dependency Injection
 
 ### Options Pattern
