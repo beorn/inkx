@@ -73,7 +73,6 @@ export {
   rebuildState,
   syncState,
   fullReset,
-  ensureState,
   freshStart,
   runWithProgress,
   runGenerator,
@@ -93,6 +92,7 @@ export type {
   LoadOptions,
   PendingLink,
   DeferredFile,
+  StepYield,
 } from "./vault-loader.ts";
 export type { LoadError as VaultLoaderError } from "./vault-loader.ts";
 

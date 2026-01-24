@@ -13,10 +13,9 @@ import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs";
 const debug = createDebug("km:storage:rebuild");
 import { join, dirname } from "path";
 import type { Event } from "@km/core";
-import type { ProgressInfo } from "@beorn/inkx-ui";
 import { getEventsPath, getKmDir } from "./emit.ts";
 import { getDb, getDbPath, closeDb } from "./db.ts";
-import { loadVault } from "./vault-loader.ts";
+import { loadVault, type StepYield } from "./vault-loader.ts";
 
 /** Result from rebuildState */
 export interface RebuildResult {
@@ -86,7 +85,7 @@ export function readEvents(): Event[] {
  * Now delegates to loadVault() with force: true.
  */
 export function* rebuildState(): Generator<
-  ProgressInfo,
+  StepYield,
   RebuildResult,
   unknown
 > {
@@ -125,7 +124,7 @@ export interface SyncResult {
  *
  * Now delegates to loadVault() (which handles incremental sync internally).
  */
-export function* syncState(): Generator<ProgressInfo, SyncResult, unknown> {
+export function* syncState(): Generator<StepYield, SyncResult, unknown> {
   debug("syncState: delegating to loadVault");
 
   // Get current state to calculate how many events were applied
@@ -155,7 +154,7 @@ export function* syncState(): Generator<ProgressInfo, SyncResult, unknown> {
  * Full reset - delete state.db and rebuild
  * Yields progress info for each step.
  */
-export function* fullReset(): Generator<ProgressInfo, RebuildResult, unknown> {
+export function* fullReset(): Generator<StepYield, RebuildResult, unknown> {
   closeDb();
 
   const dbPath = getDbPath();
@@ -174,32 +173,6 @@ export function* fullReset(): Generator<ProgressInfo, RebuildResult, unknown> {
 
   // Delegate to rebuildState (which now uses loadVault)
   return yield* rebuildState();
-}
-
-/**
- * Ensure state is up to date
- * Called at startup
- *
- * Supports two modes:
- * - Disk mode (.km/ exists): rebuild from events.jsonl
- * - Memory mode (no .km/): scan filesystem into :memory: SQLite
- *
- * Now delegates entirely to loadVault().
- *
- * @param rootPath - Directory to use as root
- * @param searchAncestors - If true, search for .km/ in ancestors (default: true)
- */
-export function* ensureState(
-  rootPath?: string,
-  searchAncestors = true,
-): Generator<ProgressInfo, void, unknown> {
-  debug("ensureState: delegating to loadVault", {
-    rootPath: rootPath ?? "cwd",
-    searchAncestors,
-  });
-
-  // Delegate entirely to loadVault - it handles both modes
-  yield* loadVault(rootPath, { searchAncestors });
 }
 
 /**
@@ -227,8 +200,8 @@ export function freshStart(): void {
  * Bridges generator-based APIs to callback-based progress reporting.
  */
 export function runWithProgress<T>(
-  generator: Generator<ProgressInfo, T, unknown>,
-  onProgress?: (info: ProgressInfo) => void,
+  generator: Generator<StepYield, T, unknown>,
+  onProgress?: (info: StepYield) => void,
 ): T {
   let result = generator.next();
   while (!result.done) {
@@ -240,7 +213,7 @@ export function runWithProgress<T>(
 
 /**
  * Consume a generator without progress reporting.
- * Use this when you need to run ensureState() but don't need progress updates.
+ * Use this when you need to run loadVault() but don't need progress updates.
  */
 export function runGenerator<T>(generator: Generator<unknown, T, unknown>): T {
   let result = generator.next();

@@ -14,7 +14,7 @@ import {
   extractTags,
   extractMentions,
   resolvePathArg,
-  ensureState,
+  loadVault,
   runGenerator,
 } from "@km/storage";
 import { getRootPath } from "../index.ts";
@@ -105,7 +105,7 @@ export const newCommand = new Command("new")
     if (options.parent) {
       // Resolve parent path argument
       const resolvedParent = resolvePathArg(options.parent, rootPath);
-      runGenerator(ensureState(resolvedParent.vaultRoot, false));
+      runGenerator(loadVault(resolvedParent.vaultRoot, { searchAncestors: false }));
 
       if (!resolvedParent.nodeRef) {
         console.error(chalk.red(`Cannot create task in a directory`));

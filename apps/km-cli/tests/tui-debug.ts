@@ -1,4 +1,4 @@
-import { ensureState, getNode } from "@km/storage";
+import { loadVault, runGenerator, getNode } from "@km/storage";
 import {
   initBoardState,
   getNodeDisplayName,
@@ -11,7 +11,7 @@ async function debug() {
   const board = "@next.md";
 
   console.log("Opening vault:", root);
-  await ensureState(root);
+  runGenerator(loadVault(root));
 
   const state = initBoardState(board);
   if (!state) {

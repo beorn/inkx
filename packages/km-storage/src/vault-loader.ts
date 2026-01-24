@@ -26,7 +26,7 @@ import { ParsePool, type ParseResult } from "./parse-pool.ts";
  * - Object { current, total }: updates progress on current sub-step
  * - Object { declare: [...] }: declare all sub-steps upfront (show as pending)
  */
-type StepYield =
+export type StepYield =
   | string
   | { current?: number; total?: number }
   | { declare: string[] };
@@ -52,6 +52,8 @@ const debug = createDebug("km:storage:vault-loader");
 /** Result from loadVault */
 export interface LoadResult {
   mode: "memory" | "disk";
+  /** Root path of the vault */
+  rootPath: string;
   nodeCount: number;
   linkCount: number;
   errors: LoadError[];
@@ -228,6 +230,7 @@ export function* loadVault(
 
   return {
     mode,
+    rootPath: vaultRoot,
     nodeCount,
     linkCount,
     errors,

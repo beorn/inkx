@@ -470,7 +470,7 @@ export class DiskStore extends BaseStore {
 
   refresh(): void {
     // In disk mode, refresh means rebuild from events
-    // This is handled by ensureState()
+    // This is handled by loadVault()
   }
 
   close(): void {

@@ -12,7 +12,7 @@ import { useState, useRef, useEffect } from "react";
 import { parseArgs } from "util";
 
 // Import km-storage functions
-import { ensureState, getStore } from "@km/storage";
+import { loadVault, runGenerator, getStore } from "@km/storage";
 import {
   initBoardState,
   buildBoardState,
@@ -39,7 +39,7 @@ if (!vaultPath) {
 
 // Initialize store
 console.log(`Loading vault: ${vaultPath}`);
-ensureState(vaultPath, false);
+runGenerator(loadVault(vaultPath, { searchAncestors: false }));
 const store = getStore();
 console.log(`Store loaded in ${store.mode} mode: ${store.rootPath}`);
 

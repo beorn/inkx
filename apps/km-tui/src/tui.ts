@@ -34,7 +34,7 @@ export function runBoardStatic(state: BoardState): void {
 /**
  * Entry point for the board command
  *
- * State must already be loaded (via ensureState) and board state built
+ * State must already be loaded (via loadVault) and board state built
  * (via initBoardState) before calling this. The CLI handles both with
  * a progress indicator.
  */

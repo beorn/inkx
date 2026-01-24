@@ -159,7 +159,7 @@ program.hook("preAction", async (thisCommand, actionCommand) => {
   }
 
   // Dynamic import of @km/storage - allows view command to show "Loading..." first
-  const { ensureState, isExplicitPath, resolveFsPath, runGenerator, getStore } =
+  const { loadVault, isExplicitPath, resolveFsPath, runGenerator } =
     await import("@km/storage");
 
   // Get root path from global options or env var
@@ -191,15 +191,16 @@ program.hook("preAction", async (thisCommand, actionCommand) => {
     rootExplicitlySet = !!(opts.root || process.env.KM_ROOT);
   }
 
-  // ensureState will search for .km/ if no explicit root was set
+  // loadVault will search for .km/ if no explicit root was set
   // If root was explicit, don't search ancestors - use the path directly
-  runGenerator(ensureState(resolvedRootPath, !rootExplicitlySet));
+  const result = runGenerator(
+    loadVault(resolvedRootPath, { searchAncestors: !rootExplicitlySet }),
+  );
 
   // Warn if using cwd in memory mode (no .km/ found, no explicit root)
   // Skip warning if we auto-detected from a path (user knows what they're doing)
-  const store = getStore();
-  if (!rootExplicitlySet && store.mode === "memory" && !pathArg) {
-    console.error(chalk.yellow(`Using current directory: ${store.rootPath}`));
+  if (!rootExplicitlySet && result.mode === "memory" && !pathArg) {
+    console.error(chalk.yellow(`Using current directory: ${result.rootPath}`));
     console.error(
       chalk.yellow(
         `Hint: Use --root <path> or set KM_ROOT, or run 'km init' for disk mode\n`,
