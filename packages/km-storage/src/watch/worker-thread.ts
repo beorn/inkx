@@ -315,6 +315,13 @@ async function stopWatcher(): Promise<void> {
 
   setState("stopped");
   postMessage({ type: "stopped" } satisfies WorkerMessage);
+
+  // Exit the worker thread cleanly after sending stopped message
+  // This prevents the main process from hanging while waiting for the worker
+  // Note: We use setTimeout to ensure the message is posted before exiting
+  setTimeout(() => {
+    process.exit(0);
+  }, 50);
 }
 
 /**
