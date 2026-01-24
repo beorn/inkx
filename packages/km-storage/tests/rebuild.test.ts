@@ -19,7 +19,7 @@ import {
 import { getDb } from "../src/db.ts";
 import { createVault } from "../src/vault.ts";
 import { runGenerator } from "../src/rebuild.ts";
-import { withTestEnvSync, withTestEnv } from "./test-utils.ts";
+import { withTestEnvSync, withTestEnv } from "./utils.ts";
 
 describe("rebuild.ts", () => {
   describe("readEvents", () => {

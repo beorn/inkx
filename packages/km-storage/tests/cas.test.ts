@@ -17,7 +17,7 @@ import {
   storeContentAuto,
   loadContentAuto,
 } from "../src/cas.ts";
-import { withTestEnvSync } from "./test-utils.ts";
+import { withTestEnvSync } from "./utils.ts";
 
 describe("cas.ts", () => {
   describe("getBlobsPath", () => {

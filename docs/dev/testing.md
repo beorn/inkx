@@ -368,6 +368,12 @@ Is it end-user visible behavior?
     └── Is it sync/watch? → Chaos or regression test
 ```
 
+### Terminology Choices
+
+- **"Acceptance" not "e2e"** - e2e is overloaded; we reserve `e2e/` for critical safety tests
+- **"Core Tests" not "Unit/Integration"** - speed (fast/slow) is our organizing principle, not test type
+- **No "integration" in filenames** - the `.slow.test.ts` suffix handles this
+
 ---
 
 ## Debugging TUI Issues

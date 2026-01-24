@@ -134,7 +134,7 @@ import { getAllNodes, updateNode, applyEvent } from "@km/storage";
 
 import { setDatabase, setFsSync } from "../../../src/emit.ts";
 import { SyncManager } from "../../../src/watch/sync.ts";
-import { withTestEnv } from "../../test-utils.ts";
+import { withTestEnv } from "../../utils.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Suite

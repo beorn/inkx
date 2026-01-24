@@ -8,27 +8,26 @@ Reference for reviewing, pruning, and organizing the km test suite.
 
 ## Test Types Overview
 
-| Type                              | Location                     | Speed  | Purpose                              |
-| --------------------------------- | ---------------------------- | ------ | ------------------------------------ |
-| **Unit** (`.test.ts`)             | `packages/*/tests/`          | Fast   | Isolated logic, pure functions       |
-| **Integration** (`.slow.test.ts`) | `packages/*/tests/`          | Medium | Multi-component, real database       |
-| **mdtest** (`.test.md`)           | `apps/km-cli/tests/sh/`      | Medium | CLI golden file testing              |
-| **Chaos** (`sync/chaos/`)         | `packages/km-storage/tests/` | Slow   | Property-based fuzzing, sync safety  |
-| **Playwright** (`.playwright.ts`) | `apps/km-tui/tests/`         | Slow   | Visual TUI testing via ttyd+chromium |
-| **E2E** (`.spec.ts`)              | `vendor/beorn-inkx/e2e/`     | Slow   | End-to-end rendering                 |
+| Suffix              | Location                     | Speed  | Purpose                             |
+| ------------------- | ---------------------------- | ------ | ----------------------------------- |
+| `.test.ts`          | `packages/*/tests/`          | Fast   | Core tests (logic, domain objects) |
+| `.slow.test.ts`     | `packages/*/tests/`          | Medium | Slow tests (sync, multi-component) |
+| `.test.md`          | `apps/km-cli/tests/sh/`      | Medium | CLI acceptance tests (mdtest)      |
+| `.playwright.ts`    | `apps/km-tui/tests/`         | Slow   | Visual TUI tests (deprecated)      |
+| `sync/chaos/*.ts`   | `packages/km-storage/tests/` | Slow   | Property-based sync fuzzing        |
 
-## Test Pyramid for km
+## Test Distribution
 
-| Layer                   | Target % | Test Type                  | Database?      |
-| ----------------------- | -------- | -------------------------- | -------------- |
-| Parser (`@km/markdown`) | ~5%      | Unit                       | No             |
-| Storage (`@km/storage`) | ~40%     | Unit + Integration + Chaos | Yes (isolated) |
-| Tree (`@km/tree`)       | ~5%      | Unit                       | No             |
-| Board (`@km/board`)     | ~15%     | Unit (fixtures)            | No             |
-| TUI (`apps/km-tui`)     | ~20%     | Unit + mdtest + Playwright | No             |
-| CLI (`apps/km-cli`)     | ~15%     | mdtest + Integration       | Yes            |
+| Layer                   | Target % | Test Focus                       | Database?      |
+| ----------------------- | -------- | -------------------------------- | -------------- |
+| Parser (`@km/markdown`) | ~5%      | Parse/serialize logic            | No             |
+| Storage (`@km/storage`) | ~40%     | Domain + Sync + Chaos            | Yes (isolated) |
+| Tree (`@km/tree`)       | ~5%      | Query logic                      | No             |
+| Board (`@km/board`)     | ~15%     | State machine (fixtures)         | No             |
+| TUI (`apps/km-tui`)     | ~20%     | Acceptance + mdtest              | No             |
+| CLI (`apps/km-cli`)     | ~15%     | Acceptance (mdtest)              | Yes            |
 
-**Pyramid health**: 70% unit, 20% integration, 10% E2E. If inverted ("ice cream cone"), refactor.
+**Health check**: Fast tests (~24s) should catch 90% of regressions. Slow tests for edge cases only.
 
 ---
 
@@ -156,19 +155,18 @@ test("should display cards view", async ({ page }) => {
 });
 ```
 
-**When to use Playwright**:
+**Status**: Deprecated - migrate to inkx `createTestRenderer()`.
 
-- Visual regression testing
-- Testing keyboard navigation end-to-end
-- Validating terminal rendering (colors, box drawing)
+**When reviewing Playwright tests**:
 
-**When NOT to use Playwright**:
+- Consider migrating to inkx (faster, more reliable)
+- Keep only if testing pixel-perfect terminal rendering that inkx can't cover
+- For keyboard navigation, use inkx + `stdin.write()` instead
 
-- Testing pure state logic (use unit tests)
-- Testing component rendering (use Ink testing library)
-- Quick iteration (Playwright is slow)
+**Preferred alternatives**:
 
-**Alternative**: `km sh` shell for scripted TUI testing (faster, mdtest-compatible).
+- `inkx/testing` with `createTestRenderer()` for visual assertions
+- `km sh` + mdtest for scripted TUI testing
 
 ### mdtest / `km sh` Tests (`apps/km-cli/tests/sh/*.test.md`)
 

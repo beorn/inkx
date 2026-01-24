@@ -8,7 +8,7 @@ import { describe, test, expect } from "bun:test";
 import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { createWatcher } from "../src/index.ts";
-import { withTestEnv } from "./test-utils.ts";
+import { withTestEnv } from "./utils.ts";
 
 describe("createWatcher", () => {
   test("creates watcher with stopped status", () =>

@@ -10,7 +10,7 @@ import { join } from "path";
 import { runGenerator } from "@km/core";
 import { createVault } from "../src/index.ts";
 import type { MutationContext, Vault, VaultHooks } from "../src/index.ts";
-import { withTestEnv } from "./test-utils.ts";
+import { withTestEnv } from "./utils.ts";
 
 describe("createVault", () => {
   test("creates vault in memory mode (no .km dir)", () =>

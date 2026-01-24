@@ -239,7 +239,8 @@ bd list                    # List all issues
 bd list --status open      # Filter by status
 bd update <id> --status in_progress  # Update issue
 bd close <id>              # Complete work
-bd close <id> -r "reason"  # Close with reason
+bd close <id> -r "reason"  # Close with reason (NOT --comment)
+bd comments add <id> "text"  # Add comment to issue
 bd create --title="..." --type=task --priority=2
 bd sync                    # Commit beads changes
 ```

@@ -19,7 +19,7 @@ import {
 
 import { setDatabase } from "../../src/emit.ts";
 import { SyncManager } from "../../src/watch/sync.ts";
-import { withTestEnv } from "../test-utils.ts";
+import { withTestEnv } from "../utils.ts";
 
 describe("Sync Integration", () => {
   describe("syncFromFs", () => {

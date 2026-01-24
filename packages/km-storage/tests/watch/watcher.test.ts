@@ -14,7 +14,7 @@ import {
   normalizePath,
   detectCaseCollisions,
 } from "../../src/watch/watcher.ts";
-import { withTestEnvSync } from "../test-utils.ts";
+import { withTestEnvSync } from "../utils.ts";
 
 describe("scanDirectory", () => {
   test("scans files and directories", () =>
