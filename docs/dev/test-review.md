@@ -8,24 +8,24 @@ Reference for reviewing, pruning, and organizing the km test suite.
 
 ## Test Types Overview
 
-| Suffix              | Location                     | Speed  | Purpose                             |
-| ------------------- | ---------------------------- | ------ | ----------------------------------- |
-| `.test.ts`          | `packages/*/tests/`          | Fast   | Core tests (logic, domain objects) |
-| `.slow.test.ts`     | `packages/*/tests/`          | Medium | Slow tests (sync, multi-component) |
-| `.test.md`          | `apps/km-cli/tests/sh/`      | Medium | CLI acceptance tests (mdtest)      |
-| `.playwright.ts`    | `apps/km-tui/tests/`         | Slow   | Visual TUI tests (deprecated)      |
-| `sync/chaos/*.ts`   | `packages/km-storage/tests/` | Slow   | Property-based sync fuzzing        |
+| Suffix            | Location                     | Speed  | Purpose                            |
+| ----------------- | ---------------------------- | ------ | ---------------------------------- |
+| `.test.ts`        | `packages/*/tests/`          | Fast   | Core tests (logic, domain objects) |
+| `.slow.test.ts`   | `packages/*/tests/`          | Medium | Slow tests (sync, multi-component) |
+| `.test.md`        | `apps/km-cli/tests/sh/`      | Medium | CLI acceptance tests (mdtest)      |
+| `.playwright.ts`  | `apps/km-tui/tests/`         | Slow   | Visual TUI tests (deprecated)      |
+| `sync/chaos/*.ts` | `packages/km-storage/tests/` | Slow   | Property-based sync fuzzing        |
 
 ## Test Distribution
 
-| Layer                   | Target % | Test Focus                       | Database?      |
-| ----------------------- | -------- | -------------------------------- | -------------- |
-| Parser (`@km/markdown`) | ~5%      | Parse/serialize logic            | No             |
-| Storage (`@km/storage`) | ~40%     | Domain + Sync + Chaos            | Yes (isolated) |
-| Tree (`@km/tree`)       | ~5%      | Query logic                      | No             |
-| Board (`@km/board`)     | ~15%     | State machine (fixtures)         | No             |
-| TUI (`apps/km-tui`)     | ~20%     | Acceptance + mdtest              | No             |
-| CLI (`apps/km-cli`)     | ~15%     | Acceptance (mdtest)              | Yes            |
+| Layer                   | Target % | Test Focus               | Database?      |
+| ----------------------- | -------- | ------------------------ | -------------- |
+| Parser (`@km/markdown`) | ~5%      | Parse/serialize logic    | No             |
+| Storage (`@km/storage`) | ~40%     | Domain + Sync + Chaos    | Yes (isolated) |
+| Tree (`@km/tree`)       | ~5%      | Query logic              | No             |
+| Board (`@km/board`)     | ~15%     | State machine (fixtures) | No             |
+| TUI (`apps/km-tui`)     | ~20%     | Acceptance + mdtest      | No             |
+| CLI (`apps/km-cli`)     | ~15%     | Acceptance (mdtest)      | Yes            |
 
 **Health check**: Fast tests (~24s) should catch 90% of regressions. Slow tests for edge cases only.
 

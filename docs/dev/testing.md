@@ -330,11 +330,11 @@ pkill -f ttyd
 
 ### File Naming
 
-| Suffix           | Purpose                        | Included in           |
-| ---------------- | ------------------------------ | --------------------- |
-| `.test.ts`       | Fast tests (<1s each)          | test:fast, test:all   |
-| `.slow.test.ts`  | Slow tests (integration, chaos)| test:all only         |
-| `.test.md`       | mdtest CLI tests               | test:mdtest, test:all |
+| Suffix          | Purpose                         | Included in           |
+| --------------- | ------------------------------- | --------------------- |
+| `.test.ts`      | Fast tests (<1s each)           | test:fast, test:all   |
+| `.slow.test.ts` | Slow tests (integration, chaos) | test:all only         |
+| `.test.md`      | mdtest CLI tests                | test:mdtest, test:all |
 
 ### Commands
 
