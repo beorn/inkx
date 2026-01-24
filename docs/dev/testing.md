@@ -21,6 +21,8 @@ bun run test:fast   # Fast iteration (~4s)
 bun run test:all    # All tests including mdtest (before commit)
 ```
 
+**Related**: See [test-review.md](test-review.md) for pruning, overlap detection, and test smell checklists.
+
 ---
 
 ## Testing Pyramid
