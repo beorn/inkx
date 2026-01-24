@@ -7,6 +7,9 @@ A test system that is:
 3. **Documentation-like** - acceptance tests are concise enough to serve as specs
 4. **Non-overlapping** - each test has a clear owner, no redundancy
 
+> Tests exist to prevent user-visible regressions and architectural decay, not to maximize coverage.
+> We prefer fewer, clearer tests with strong ownership over exhaustive suites.
+
 ---
 
 ## Test Architecture
@@ -25,18 +28,16 @@ A test system that is:
 └──────────────────────────┴──────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
-│              2. MODULE TESTS                                │
+│              2. CORE TESTS                                  │
 │         (per layer, per domain object)                      │
 ├─────────────────────────────────────────────────────────────┤
-│  DOMAIN OBJECTS          │  PURE FUNCTIONS                  │
+│  DOMAIN TESTS            │  LOGIC TESTS                     │
 │  - Vault: CRUD, queries  │  - Parser: parse/serialize       │
 │  - Board: state machine  │  - Tree: queries, formatting     │
 │  - Config: loading       │  - Formatters, validators        │
 ├──────────────────────────┼──────────────────────────────────┤
-│  VENDOR COMPONENTS       │                                  │
-│  - inkx: render, layout  │  (vendor tests owned by vendor)  │
-│  - flexx: layout engine  │                                  │
-│  - logger, etc.          │                                  │
+│  VENDOR (git submodules) │  (tests in vendor/beorn-*/,      │
+│  - inkx, flexx, logger   │   included in test:fast)         │
 └──────────────────────────┴──────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -90,6 +91,8 @@ board.expectColumnCount(2);
 
 **When to use**: Testing TUI rendering, navigation, keyboard handling.
 
+**Size budget:** Acceptance tests cover representative paths, not combinatorial coverage. If a test grows beyond ~10 steps, extract the complex logic to a core test.
+
 ### 1.2 CLI Tests (mdtest)
 
 **Framework**: mdtest (`.test.md` files)
@@ -111,9 +114,11 @@ $ echo -e "move_down\nstate" | km sh -r $PWD/vault @inbox.md
 
 **Related**: `km sh` enables scripted TUI testing without rendering.
 
+**Doctrine:** mdtest asserts semantic output, not formatting or layout. Don't assert spacing, ANSI colors, or cursor position in mdtest.
+
 ---
 
-## 2. Module Tests
+## 2. Core Tests
 
 Per-layer, per-domain-object tests. Fast, isolated, use mocks by default.
 
@@ -187,11 +192,15 @@ Per-layer tests for pure logic (no database, no I/O):
 | `@km/tree`      | Tree queries, display names, paths     |
 | Board selectors | Derived state, filtering, calculations |
 
-### 2.4 Vendor Component Tests
+### 2.4 Vendor Tests
 
-**Scope**: Vendor packages only (inkx, flexx, logger).
+Vendor packages (`vendor/beorn-*`) are git submodules - part of km's test suite.
 
-For km packages, acceptance tests already cover component behavior. Component tests in km packages create overlap.
+**Test location:** Tests live in each vendor package (e.g., `vendor/beorn-inkx/tests/`).
+
+**Included automatically:** `test:fast` and `test:all` discover and run vendor tests.
+
+**Rule:** km packages (`packages/`, `apps/`) must not contain component-level render/layout tests. Component behavior is validated via acceptance tests or vendor tests.
 
 ---
 
@@ -213,7 +222,10 @@ See [chaos-testing.md](chaos-testing.md) for detailed reference.
 
 **Purpose**: Prevent re-introduction of known bugs.
 
-**Rule**: NEVER delete regression tests - they document real bugs.
+**Rules:**
+
+- NEVER delete regression tests - they document real bugs
+- Each regression test must reference the original issue or commit
 
 **When to run**: Always (part of `test:fast`).
 
@@ -315,6 +327,14 @@ pkill -f ttyd
 ---
 
 ## Quick Reference
+
+### File Naming
+
+| Suffix           | Purpose                        | Included in           |
+| ---------------- | ------------------------------ | --------------------- |
+| `.test.ts`       | Fast tests (<1s each)          | test:fast, test:all   |
+| `.slow.test.ts`  | Slow tests (integration, chaos)| test:all only         |
+| `.test.md`       | mdtest CLI tests               | test:mdtest, test:all |
 
 ### Commands
 
