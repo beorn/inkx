@@ -19,7 +19,7 @@ import {
 import { join, dirname } from "path";
 import { Command } from "commander";
 import chalk from "chalk";
-import { SyncManager, getKmDir, setEventHub, setFsSync } from "@km/storage";
+import { SyncManager, findKmRootFromPath, setEventHub, setFsSync } from "@km/storage";
 import type { Event } from "@km/core";
 import { EventEmitter } from "events";
 
@@ -435,7 +435,11 @@ const daemonStartCommand = new Command("start")
   .description("Start the daemon in the background")
   .option("--foreground", "Run in foreground (don't daemonize)")
   .action(async (options: { foreground?: boolean }) => {
-    const kmDir = getKmDir();
+    const kmDir = findKmRootFromPath(process.cwd());
+    if (!kmDir) {
+      console.error(chalk.red("No .km directory found. Run 'km init' first."));
+      process.exit(1);
+    }
     const vaultPath = dirname(kmDir);
 
     if (options.foreground) {
@@ -491,7 +495,11 @@ const daemonStartCommand = new Command("start")
 const daemonStopCommand = new Command("stop")
   .description("Stop the daemon")
   .action(async () => {
-    const kmDir = getKmDir();
+    const kmDir = findKmRootFromPath(process.cwd());
+    if (!kmDir) {
+      console.error(chalk.red("No .km directory found."));
+      process.exit(1);
+    }
     const paths = getDaemonPaths(kmDir);
     const status = getDaemonStatus(kmDir);
 
@@ -548,7 +556,11 @@ const daemonStopCommand = new Command("stop")
 const daemonStatusCommand = new Command("status")
   .description("Show daemon status")
   .action(async () => {
-    const kmDir = getKmDir();
+    const kmDir = findKmRootFromPath(process.cwd());
+    if (!kmDir) {
+      console.error(chalk.red("No .km directory found."));
+      process.exit(1);
+    }
     const paths = getDaemonPaths(kmDir);
     const basicStatus = getDaemonStatus(kmDir);
 

@@ -21,13 +21,14 @@ import {
   type IssueFilter,
 } from "@km/beads";
 import {
-  getKmDir,
   getDbPath,
   getStore,
   resolvePathArg,
   getBeadsConfig,
   getConfigPath,
 } from "@km/storage";
+import { join } from "path";
+import { existsSync } from "fs";
 
 // Import from extracted modules
 import {
@@ -435,7 +436,7 @@ bdCommand
     const config = getBeadsConfig(resolved.vaultRoot);
     const configPath = getConfigPath();
 
-    const kmDir = getKmDir();
+    const kmDir = join(resolved.vaultRoot, ".km");
     const dbPath = getDbPath();
     const store = getStore();
 
@@ -540,11 +541,11 @@ bdCommand
   .description("Show beads paths and configuration")
   .action((scope) => {
     const resolved = resolvePathArg(scope);
-    const kmDir = getKmDir();
+    const kmDir = join(resolved.vaultRoot, ".km");
     const dbPath = getDbPath();
     const config = getBeadsConfig(resolved.vaultRoot);
 
-    if (kmDir) {
+    if (existsSync(kmDir)) {
       console.log(kmDir);
       console.log(`  prefix: ${config.prefix}`);
       console.log(`  board: ${config.board || "(none)"}`);

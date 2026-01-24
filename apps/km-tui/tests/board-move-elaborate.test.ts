@@ -27,7 +27,7 @@ import {
   applyEvent,
   setDb,
   emitNodeCreated,
-  setKmDir,
+  runWithKmDir,
   setDatabase,
   getEventsPath,
 } from "@km/storage";
@@ -108,9 +108,6 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmDir(TEST_DIR);
-    setDatabase({ applyEvent });
-    resetDb();
   });
 
   afterEach(() => {
@@ -121,221 +118,280 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("persists move events to events.jsonl", () => {
-    const { rootId, card1Id, col2Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    // Build state and move card1 to col2 (L key moves right)
-    const state = buildBoardState(rootId);
-    expect(state.colIndex).toBe(0);
-    expect(getCurrentCard(state)?.node.id).toBe(card1Id);
+      const { rootId, card1Id, col2Id } = createStandardBoard();
 
-    // Press L to move card to next column
-    const result = handleKey(state, "L");
-    expect(result.action).toBe("refresh");
+      // Build state and move card1 to col2 (L key moves right)
+      const state = buildBoardState(rootId);
+      expect(state.colIndex).toBe(0);
+      expect(getCurrentCard(state)?.node.id).toBe(card1Id);
 
-    // Verify event was persisted
-    const eventsPath = getEventsPath();
-    expect(existsSync(eventsPath)).toBe(true);
+      // Press L to move card to next column
+      const result = handleKey(state, "L");
+      expect(result.action).toBe("refresh");
 
-    const events = readFileSync(eventsPath, "utf-8")
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line) as Event);
+      // Verify event was persisted
+      const eventsPath = getEventsPath();
+      expect(existsSync(eventsPath)).toBe(true);
 
-    // Find the move event
-    const moveEvent = events.find((e) => e.type === "node_moved");
-    expect(moveEvent).toBeDefined();
-    expect(moveEvent?.target).toBe(card1Id);
-    expect(moveEvent?.data.parent_id).toBe(col2Id);
-    expect(typeof moveEvent?.data.parent_idx).toBe("number");
+      const events = readFileSync(eventsPath, "utf-8")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line) as Event);
+
+      // Find the move event
+      const moveEvent = events.find((e) => e.type === "node_moved");
+      expect(moveEvent).toBeDefined();
+      expect(moveEvent?.target).toBe(card1Id);
+      expect(moveEvent?.data.parent_id).toBe(col2Id);
+      expect(typeof moveEvent?.data.parent_idx).toBe("number");
+    });
   });
 
   it("state reflects move after event application", () => {
-    const { rootId, card1Id, col2Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    // Verify initial state
-    let node = getNode(card1Id);
-    expect(node?.parent_id).not.toBe(col2Id);
+      const { rootId, card1Id, col2Id } = createStandardBoard();
 
-    // Build state and move
-    const state = buildBoardState(rootId);
-    handleKey(state, "L");
+      // Verify initial state
+      let node = getNode(card1Id);
+      expect(node?.parent_id).not.toBe(col2Id);
 
-    // Verify node was moved in database
-    node = getNode(card1Id);
-    expect(node?.parent_id).toBe(col2Id);
+      // Build state and move
+      const state = buildBoardState(rootId);
+      handleKey(state, "L");
+
+      // Verify node was moved in database
+      node = getNode(card1Id);
+      expect(node?.parent_id).toBe(col2Id);
+    });
   });
 
   it("moves card up within column (K key)", () => {
-    const { rootId, card2Id, col1Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    // Start at second card
-    const state = buildBoardState(rootId);
-    state.cardIndex = 1; // Select card2
+      const { rootId, card2Id, col1Id } = createStandardBoard();
 
-    expect(getCurrentCard(state)?.node.id).toBe(card2Id);
+      // Start at second card
+      const state = buildBoardState(rootId);
+      state.cardIndex = 1; // Select card2
 
-    // Move up with K
-    const result = handleKey(state, "K");
-    expect(result.action).toBe("refresh");
+      expect(getCurrentCard(state)?.node.id).toBe(card2Id);
 
-    // Verify card moved (parent_idx should be less than before)
-    const node = getNode(card2Id);
-    expect(node?.parent_id).toBe(col1Id);
-    expect(node?.parent_idx).toBeLessThan(0); // Should be before first card
+      // Move up with K
+      const result = handleKey(state, "K");
+      expect(result.action).toBe("refresh");
+
+      // Verify card moved (parent_idx should be less than before)
+      const node = getNode(card2Id);
+      expect(node?.parent_id).toBe(col1Id);
+      expect(node?.parent_idx).toBeLessThan(0); // Should be before first card
+    });
   });
 
   it("moves card down within column (J key)", () => {
-    const { rootId, card1Id, col1Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    const state = buildBoardState(rootId);
-    expect(getCurrentCard(state)?.node.id).toBe(card1Id);
+      const { rootId, card1Id, col1Id } = createStandardBoard();
 
-    // Move down with J
-    const result = handleKey(state, "J");
-    expect(result.action).toBe("refresh");
+      const state = buildBoardState(rootId);
+      expect(getCurrentCard(state)?.node.id).toBe(card1Id);
 
-    // Verify card moved (parent_idx should be greater)
-    const node = getNode(card1Id);
-    expect(node?.parent_id).toBe(col1Id);
-    expect(node?.parent_idx).toBeGreaterThan(1); // Should be after second card
+      // Move down with J
+      const result = handleKey(state, "J");
+      expect(result.action).toBe("refresh");
+
+      // Verify card moved (parent_idx should be greater)
+      const node = getNode(card1Id);
+      expect(node?.parent_id).toBe(col1Id);
+      expect(node?.parent_idx).toBeGreaterThan(1); // Should be after second card
+    });
   });
 
   it("moves card to previous column (H key)", () => {
-    const { rootId, card3Id, col1Id, col2Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    // Start in second column
-    const state = buildBoardState(rootId);
-    state.colIndex = 1;
-    expect(getCurrentCard(state)?.node.id).toBe(card3Id);
-    expect(getCurrentCard(state)?.node.parent_id).toBe(col2Id);
+      const { rootId, card3Id, col1Id, col2Id } = createStandardBoard();
 
-    // Move left with H
-    const result = handleKey(state, "H");
-    expect(result.action).toBe("refresh");
+      // Start in second column
+      const state = buildBoardState(rootId);
+      state.colIndex = 1;
+      expect(getCurrentCard(state)?.node.id).toBe(card3Id);
+      expect(getCurrentCard(state)?.node.parent_id).toBe(col2Id);
 
-    // Verify card moved to first column
-    const node = getNode(card3Id);
-    expect(node?.parent_id).toBe(col1Id);
+      // Move left with H
+      const result = handleKey(state, "H");
+      expect(result.action).toBe("refresh");
+
+      // Verify card moved to first column
+      const node = getNode(card3Id);
+      expect(node?.parent_id).toBe(col1Id);
+    });
   });
 
   it("handles moving to empty column", () => {
-    const rootId = createTestNode("board", "Test Board");
-    const col1Id = createTestNode("folder", "Full", rootId, { parent_idx: 0 });
-    const col2Id = createTestNode("folder", "Empty", rootId, { parent_idx: 1 });
-    const cardId = createTestNode("task", "Only Card", col1Id, {
-      parent_idx: 0,
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+
+      const rootId = createTestNode("board", "Test Board");
+      const col1Id = createTestNode("folder", "Full", rootId, { parent_idx: 0 });
+      const col2Id = createTestNode("folder", "Empty", rootId, {
+        parent_idx: 1,
+      });
+      const cardId = createTestNode("task", "Only Card", col1Id, {
+        parent_idx: 0,
+      });
+
+      const state = buildBoardState(rootId);
+      expect(getCurrentCard(state)?.node.id).toBe(cardId);
+
+      // Move to empty column
+      const result = handleKey(state, "L");
+      expect(result.action).toBe("refresh");
+
+      const node = getNode(cardId);
+      expect(node?.parent_id).toBe(col2Id);
+      expect(node?.parent_idx).toBe(0); // First card in empty column
     });
-
-    const state = buildBoardState(rootId);
-    expect(getCurrentCard(state)?.node.id).toBe(cardId);
-
-    // Move to empty column
-    const result = handleKey(state, "L");
-    expect(result.action).toBe("refresh");
-
-    const node = getNode(cardId);
-    expect(node?.parent_id).toBe(col2Id);
-    expect(node?.parent_idx).toBe(0); // First card in empty column
   });
 
   it("replays events from events.jsonl correctly", () => {
-    const { rootId, card1Id, col2Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    // Move a card
-    const state = buildBoardState(rootId);
-    handleKey(state, "L");
+      const { rootId, card1Id, col2Id } = createStandardBoard();
 
-    // Close db and reset
-    closeDb();
+      // Move a card
+      const state = buildBoardState(rootId);
+      handleKey(state, "L");
 
-    // Re-read events and replay to fresh db
-    const eventsPath = getEventsPath();
-    const events = readFileSync(eventsPath, "utf-8")
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line) as Event);
+      // Close db and reset
+      closeDb();
 
-    // Create fresh database
-    resetDb();
+      // Re-read events and replay to fresh db
+      const eventsPath = getEventsPath();
+      const events = readFileSync(eventsPath, "utf-8")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line) as Event);
 
-    // Replay all events
-    for (const event of events) {
-      applyEvent(event);
-    }
+      // Create fresh database
+      resetDb();
 
-    // Verify state is correct after replay
-    const node = getNode(card1Id);
-    expect(node?.parent_id).toBe(col2Id);
+      // Replay all events
+      for (const event of events) {
+        applyEvent(event);
+      }
+
+      // Verify state is correct after replay
+      const node = getNode(card1Id);
+      expect(node?.parent_id).toBe(col2Id);
+    });
   });
 
   it("prevents move at boundary (first column, H key)", () => {
-    const { rootId, card1Id, col1Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    const state = buildBoardState(rootId);
-    expect(state.colIndex).toBe(0); // Already at first column
+      const { rootId, card1Id, col1Id } = createStandardBoard();
 
-    // Try to move left - should not trigger action
-    const result = handleKey(state, "H");
-    expect(result.action).toBeNull();
+      const state = buildBoardState(rootId);
+      expect(state.colIndex).toBe(0); // Already at first column
 
-    // Card should not have moved
-    const node = getNode(card1Id);
-    expect(node?.parent_id).toBe(col1Id);
+      // Try to move left - should not trigger action
+      const result = handleKey(state, "H");
+      expect(result.action).toBeNull();
+
+      // Card should not have moved
+      const node = getNode(card1Id);
+      expect(node?.parent_id).toBe(col1Id);
+    });
   });
 
   it("prevents move at boundary (last column, L key)", () => {
-    const { rootId, card4Id, col3Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    // Move to last column
-    const state = buildBoardState(rootId);
-    state.colIndex = 2;
-    expect(getCurrentCard(state)?.node.id).toBe(card4Id);
+      const { rootId, card4Id, col3Id } = createStandardBoard();
 
-    // Try to move right - should not trigger action
-    const result = handleKey(state, "L");
-    expect(result.action).toBeNull();
+      // Move to last column
+      const state = buildBoardState(rootId);
+      state.colIndex = 2;
+      expect(getCurrentCard(state)?.node.id).toBe(card4Id);
 
-    // Card should not have moved
-    const node = getNode(card4Id);
-    expect(node?.parent_id).toBe(col3Id);
+      // Try to move right - should not trigger action
+      const result = handleKey(state, "L");
+      expect(result.action).toBeNull();
+
+      // Card should not have moved
+      const node = getNode(card4Id);
+      expect(node?.parent_id).toBe(col3Id);
+    });
   });
 
   it("prevents move up at first position (K key)", () => {
-    const { rootId, card1Id, col1Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    const state = buildBoardState(rootId);
-    expect(state.cardIndex).toBe(0); // Already at first card
+      const { rootId, card1Id, col1Id } = createStandardBoard();
 
-    // Try to move up - should not trigger action
-    const result = handleKey(state, "K");
-    expect(result.action).toBeNull();
+      const state = buildBoardState(rootId);
+      expect(state.cardIndex).toBe(0); // Already at first card
 
-    // Card should not have moved
-    const node = getNode(card1Id);
-    expect(node?.parent_id).toBe(col1Id);
+      // Try to move up - should not trigger action
+      const result = handleKey(state, "K");
+      expect(result.action).toBeNull();
+
+      // Card should not have moved
+      const node = getNode(card1Id);
+      expect(node?.parent_id).toBe(col1Id);
+    });
   });
 
   it("handles fractional index calculations correctly", () => {
-    // Create board with specific indices
-    const rootId = createTestNode("board", "Test Board");
-    const colId = createTestNode("folder", "Column", rootId);
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    // Create cards with specific indices
-    const cardAId = createTestNode("task", "Card A", colId, { parent_idx: 0 });
-    const cardBId = createTestNode("task", "Card B", colId, { parent_idx: 10 });
-    const cardCId = createTestNode("task", "Card C", colId, {
-      parent_idx: 20,
+      // Create board with specific indices
+      const rootId = createTestNode("board", "Test Board");
+      const colId = createTestNode("folder", "Column", rootId);
+
+      // Create cards with specific indices
+      const cardAId = createTestNode("task", "Card A", colId, { parent_idx: 0 });
+      const cardBId = createTestNode("task", "Card B", colId, {
+        parent_idx: 10,
+      });
+      const cardCId = createTestNode("task", "Card C", colId, {
+        parent_idx: 20,
+      });
+
+      // Move card C between A and B
+      const state = buildBoardState(rootId);
+      state.cardIndex = 2; // Select Card C
+
+      // Move up twice to get between A and B
+      handleKey(state, "K"); // C moves before B
+      const nodeAfterFirst = getNode(cardCId);
+      expect(nodeAfterFirst?.parent_idx).toBeGreaterThan(0);
+      expect(nodeAfterFirst?.parent_idx).toBeLessThan(10);
     });
-
-    // Move card C between A and B
-    const state = buildBoardState(rootId);
-    state.cardIndex = 2; // Select Card C
-
-    // Move up twice to get between A and B
-    handleKey(state, "K"); // C moves before B
-    const nodeAfterFirst = getNode(cardCId);
-    expect(nodeAfterFirst?.parent_idx).toBeGreaterThan(0);
-    expect(nodeAfterFirst?.parent_idx).toBeLessThan(10);
   });
 });
 
@@ -495,9 +551,6 @@ describe.serial("Board Move - Multi-card Selection", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmDir(TEST_DIR);
-    setDatabase({ applyEvent });
-    resetDb();
   });
 
   afterEach(() => {
@@ -508,21 +561,26 @@ describe.serial("Board Move - Multi-card Selection", () => {
   });
 
   it("moves multiple selected cards with x (status cycle)", () => {
-    const { rootId, card1Id, card2Id } = createStandardBoard();
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    // Select multiple cards
-    const state = buildBoardState(rootId);
-    state.selectedCards.add(card1Id);
-    state.selectedCards.add(card2Id);
+      const { rootId, card1Id, card2Id } = createStandardBoard();
 
-    // Cycle status for all selected
-    handleKey(state, "x");
+      // Select multiple cards
+      const state = buildBoardState(rootId);
+      state.selectedCards.add(card1Id);
+      state.selectedCards.add(card2Id);
 
-    // Both should have changed status (todo → wip in the cycle)
-    const node1 = getNode(card1Id);
-    const node2 = getNode(card2Id);
-    expect(node1?.task_status).toBe("wip");
-    expect(node2?.task_status).toBe("wip");
+      // Cycle status for all selected
+      handleKey(state, "x");
+
+      // Both should have changed status (todo → wip in the cycle)
+      const node1 = getNode(card1Id);
+      const node2 = getNode(card2Id);
+      expect(node1?.task_status).toBe("wip");
+      expect(node2?.task_status).toBe("wip");
+    });
   });
 });
 
@@ -539,9 +597,6 @@ describe.serial("Board Move - Edge Cases", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmDir(TEST_DIR);
-    setDatabase({ applyEvent });
-    resetDb();
   });
 
   afterEach(() => {
@@ -552,105 +607,125 @@ describe.serial("Board Move - Edge Cases", () => {
   });
 
   it("handles board with single column", () => {
-    const rootId = createTestNode("board", "Board");
-    const colId = createTestNode("folder", "Only Column", rootId);
-    const cardId = createTestNode("task", "Card", colId);
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    const state = buildBoardState(rootId);
+      const rootId = createTestNode("board", "Board");
+      const colId = createTestNode("folder", "Only Column", rootId);
+      const cardId = createTestNode("task", "Card", colId);
 
-    // Try to move left - should not work
-    let result = handleKey(state, "H");
-    expect(result.action).toBeNull();
+      const state = buildBoardState(rootId);
 
-    // Try to move right - should not work
-    result = handleKey(state, "L");
-    expect(result.action).toBeNull();
+      // Try to move left - should not work
+      let result = handleKey(state, "H");
+      expect(result.action).toBeNull();
 
-    // Card should still be in same column
-    const node = getNode(cardId);
-    expect(node?.parent_id).toBe(colId);
+      // Try to move right - should not work
+      result = handleKey(state, "L");
+      expect(result.action).toBeNull();
+
+      // Card should still be in same column
+      const node = getNode(cardId);
+      expect(node?.parent_id).toBe(colId);
+    });
   });
 
   it("handles column with single card", () => {
-    const rootId = createTestNode("board", "Board");
-    const colId = createTestNode("folder", "Column", rootId);
-    createTestNode("task", "Only Card", colId);
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    const state = buildBoardState(rootId);
+      const rootId = createTestNode("board", "Board");
+      const colId = createTestNode("folder", "Column", rootId);
+      createTestNode("task", "Only Card", colId);
 
-    // Try to move up - should not work (already first)
-    let result = handleKey(state, "K");
-    expect(result.action).toBeNull();
+      const state = buildBoardState(rootId);
 
-    // Try to move down - should not work (already last)
-    result = handleKey(state, "J");
-    expect(result.action).toBeNull();
+      // Try to move up - should not work (already first)
+      let result = handleKey(state, "K");
+      expect(result.action).toBeNull();
+
+      // Try to move down - should not work (already last)
+      result = handleKey(state, "J");
+      expect(result.action).toBeNull();
+    });
   });
 
   it("handles empty column navigation", () => {
-    const rootId = createTestNode("board", "Board");
-    createTestNode("folder", "Empty", rootId, { parent_idx: 0 });
-    const col2Id = createTestNode("folder", "Full", rootId, { parent_idx: 1 });
-    createTestNode("task", "Card", col2Id);
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    const state = buildBoardState(rootId);
-    expect(state.columns[0]?.cards.length).toBe(0);
-    expect(state.columns[1]?.cards.length).toBe(1);
+      const rootId = createTestNode("board", "Board");
+      createTestNode("folder", "Empty", rootId, { parent_idx: 0 });
+      const col2Id = createTestNode("folder", "Full", rootId, { parent_idx: 1 });
+      createTestNode("task", "Card", col2Id);
 
-    // Navigate to empty column
-    handleKey(state, "h"); // Should not crash
+      const state = buildBoardState(rootId);
+      expect(state.columns[0]?.cards.length).toBe(0);
+      expect(state.columns[1]?.cards.length).toBe(1);
 
-    // No card to move in empty column
-    const result = handleKey(state, "L");
-    expect(result.action).toBeNull();
+      // Navigate to empty column
+      handleKey(state, "h"); // Should not crash
+
+      // No card to move in empty column
+      const result = handleKey(state, "L");
+      expect(result.action).toBeNull();
+    });
   });
 
   it("preserves card order after multiple moves", () => {
-    const rootId = createTestNode("board", "Board");
-    const colId = createTestNode("folder", "Column", rootId);
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
 
-    // Create cards A, B, C, D with indices 0, 1, 2, 3
-    const cardAId = createTestNode("task", "A", colId, { parent_idx: 0 });
-    createTestNode("task", "B", colId, { parent_idx: 1 });
-    createTestNode("task", "C", colId, { parent_idx: 2 });
-    const cardDId = createTestNode("task", "D", colId, { parent_idx: 3 });
+      const rootId = createTestNode("board", "Board");
+      const colId = createTestNode("folder", "Column", rootId);
 
-    // Move D up one position - state must be rebuilt after each move
-    // to get fresh parent_idx values (like the real TUI does on "refresh")
-    let state = buildBoardState(rootId);
-    state.cardIndex = 3; // Select D
-    handleKey(state, "K"); // D moves before C
+      // Create cards A, B, C, D with indices 0, 1, 2, 3
+      const cardAId = createTestNode("task", "A", colId, { parent_idx: 0 });
+      createTestNode("task", "B", colId, { parent_idx: 1 });
+      createTestNode("task", "C", colId, { parent_idx: 2 });
+      const cardDId = createTestNode("task", "D", colId, { parent_idx: 3 });
 
-    // Rebuild state after move (simulating "refresh" action)
-    state = buildBoardState(rootId);
-    // Find D's new position
-    const col = state.columns[0];
-    if (col) {
-      state.cardIndex = col.cards.findIndex((c) => c.node.id === cardDId);
-    }
-    handleKey(state, "K"); // D moves before B
+      // Move D up one position - state must be rebuilt after each move
+      // to get fresh parent_idx values (like the real TUI does on "refresh")
+      let state = buildBoardState(rootId);
+      state.cardIndex = 3; // Select D
+      handleKey(state, "K"); // D moves before C
 
-    state = buildBoardState(rootId);
-    const col2 = state.columns[0];
-    if (col2) {
-      state.cardIndex = col2.cards.findIndex((c) => c.node.id === cardDId);
-    }
-    handleKey(state, "K"); // D moves before A
+      // Rebuild state after move (simulating "refresh" action)
+      state = buildBoardState(rootId);
+      // Find D's new position
+      const col = state.columns[0];
+      if (col) {
+        state.cardIndex = col.cards.findIndex((c) => c.node.id === cardDId);
+      }
+      handleKey(state, "K"); // D moves before B
 
-    // Rebuild and verify order
-    state = buildBoardState(rootId);
+      state = buildBoardState(rootId);
+      const col2 = state.columns[0];
+      if (col2) {
+        state.cardIndex = col2.cards.findIndex((c) => c.node.id === cardDId);
+      }
+      handleKey(state, "K"); // D moves before A
 
-    // Get indices - D should now be first
-    const nodeA = getNode(cardAId);
-    const nodeD = getNode(cardDId);
+      // Rebuild and verify order
+      state = buildBoardState(rootId);
 
-    // D should now be before A (at position 0)
-    expect(nodeD!.parent_idx).toBeLessThan(nodeA!.parent_idx);
+      // Get indices - D should now be first
+      const nodeA = getNode(cardAId);
+      const nodeD = getNode(cardDId);
 
-    // Verify the visual order in state matches
-    const finalCol = state.columns[0];
-    expect(finalCol).toBeDefined();
-    expect(finalCol!.cards[0]?.node.id).toBe(cardDId);
-    expect(finalCol!.cards[1]?.node.id).toBe(cardAId);
+      // D should now be before A (at position 0)
+      expect(nodeD!.parent_idx).toBeLessThan(nodeA!.parent_idx);
+
+      // Verify the visual order in state matches
+      const finalCol = state.columns[0];
+      expect(finalCol).toBeDefined();
+      expect(finalCol!.cards[0]?.node.id).toBe(cardDId);
+      expect(finalCol!.cards[1]?.node.id).toBe(cardAId);
+    });
   });
 });

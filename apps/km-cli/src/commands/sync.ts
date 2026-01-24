@@ -13,7 +13,7 @@ const debug = createDebug("km:cli:sync");
 import {
   SyncManager,
   findKmRootFromPath,
-  setKmDir,
+  runWithKmDir,
   syncState,
 } from "@km/storage";
 import { dirname, resolve } from "path";
@@ -95,57 +95,57 @@ async function runSync(
     return;
   }
 
-  // Set the .km directory for event processing
-  setKmDir(kmRoot);
-
-  try {
-    // Step 1: Apply any pending events from events.jsonl to state.db
-    const eventResults = await steps({
-      syncState,
-    }).run({ clear: true });
-
-    const eventResult = eventResults.syncState as unknown as {
-      applied: number;
-    };
-    if (eventResult.applied > 0) {
-      console.log(
-        chalk.green("✓"),
-        `Applied ${eventResult.applied} event(s) from events.jsonl`,
-      );
-    }
-
-    // Step 2: Sync with filesystem
-    const manager = new SyncManager({
-      vaultPath,
-      debounceFs: 0,
-      debounceApply: 0,
-      conflictStrategy: "last_write_wins",
-    });
-
-    if (options.toFs) {
-      console.log(chalk.dim("Syncing database → filesystem..."));
-      const result = await manager.syncToFs();
-      console.log(chalk.green("✓"), `Wrote ${result.written} file(s)`);
-    } else {
-      // Default: from filesystem
-      const syncResults = await steps({
-        syncFromFs: () => manager.syncFromFs(),
+  // Run sync operations in kmDir context
+  await runWithKmDir(kmRoot, async () => {
+    try {
+      // Step 1: Apply any pending events from events.jsonl to state.db
+      const eventResults = await steps({
+        syncState,
       }).run({ clear: true });
 
-      const result = syncResults.syncFromFs as {
-        processed: number;
-        directories: number;
-        duration: number;
+      const eventResult = eventResults.syncState as unknown as {
+        applied: number;
       };
-      console.log(
-        chalk.green("✓"),
-        `Synced ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,
-      );
+      if (eventResult.applied > 0) {
+        console.log(
+          chalk.green("✓"),
+          `Applied ${eventResult.applied} event(s) from events.jsonl`,
+        );
+      }
+
+      // Step 2: Sync with filesystem
+      const manager = new SyncManager({
+        vaultPath,
+        debounceFs: 0,
+        debounceApply: 0,
+        conflictStrategy: "last_write_wins",
+      });
+
+      if (options.toFs) {
+        console.log(chalk.dim("Syncing database → filesystem..."));
+        const result = await manager.syncToFs();
+        console.log(chalk.green("✓"), `Wrote ${result.written} file(s)`);
+      } else {
+        // Default: from filesystem
+        const syncResults = await steps({
+          syncFromFs: () => manager.syncFromFs(),
+        }).run({ clear: true });
+
+        const result = syncResults.syncFromFs as {
+          processed: number;
+          directories: number;
+          duration: number;
+        };
+        console.log(
+          chalk.green("✓"),
+          `Synced ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,
+        );
+      }
+    } catch (error) {
+      console.error(chalk.red("Sync failed:"), error);
+      process.exit(1);
     }
-  } catch (error) {
-    console.error(chalk.red("Sync failed:"), error);
-    process.exit(1);
-  }
+  });
 }
 
 export const syncCommand = new Command("sync")

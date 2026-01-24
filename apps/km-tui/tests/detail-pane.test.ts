@@ -20,9 +20,8 @@ import {
   getNode,
   applyEvent,
   addLink,
-  getChildren,
   emitNodeCreated,
-  setKmDir,
+  runWithKmDir,
   setDatabase,
 } from "@km/storage";
 import type { NodeType, KNode } from "@km/core";
@@ -201,9 +200,6 @@ describe.serial("getProjectPath", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmDir(TEST_DIR);
-    setDatabase({ applyEvent });
-    resetDb();
   });
 
   afterEach(() => {
@@ -214,29 +210,41 @@ describe.serial("getProjectPath", () => {
   });
 
   test("returns empty array for node with no parent", () => {
-    const nodeId = createTestNode("task", "Standalone task");
-    const node = getNode(nodeId)!;
-    expect(getProjectPath(node)).toEqual([]);
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      const nodeId = createTestNode("task", "Standalone task");
+      const node = getNode(nodeId)!;
+      expect(getProjectPath(node)).toEqual([]);
+    });
   });
 
   test("returns folder names in path", () => {
-    const folderId = createTestNode("folder", "Work", null);
-    const subfolderId = createTestNode("folder", "Finance", folderId);
-    const taskId = createTestNode("task", "Review budget", subfolderId);
-    const task = getNode(taskId)!;
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      const folderId = createTestNode("folder", "Work", null);
+      const subfolderId = createTestNode("folder", "Finance", folderId);
+      const taskId = createTestNode("task", "Review budget", subfolderId);
+      const task = getNode(taskId)!;
 
-    const path = getProjectPath(task);
-    expect(path).toEqual(["Work", "Finance"]);
+      const path = getProjectPath(task);
+      expect(path).toEqual(["Work", "Finance"]);
+    });
   });
 
   test("includes files in path", () => {
-    const folderId = createTestNode("folder", "Projects", null);
-    const fileId = createTestNode("file", "todo.md", folderId);
-    const taskId = createTestNode("task", "Do something", fileId);
-    const task = getNode(taskId)!;
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      const folderId = createTestNode("folder", "Projects", null);
+      const fileId = createTestNode("file", "todo.md", folderId);
+      const taskId = createTestNode("task", "Do something", fileId);
+      const task = getNode(taskId)!;
 
-    const path = getProjectPath(task);
-    expect(path).toEqual(["Projects", "todo.md"]);
+      const path = getProjectPath(task);
+      expect(path).toEqual(["Projects", "todo.md"]);
+    });
   });
 });
 
@@ -246,9 +254,6 @@ describe.serial("DetailPane Component", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmDir(TEST_DIR);
-    setDatabase({ applyEvent });
-    resetDb();
   });
 
   afterEach(() => {
@@ -259,141 +264,165 @@ describe.serial("DetailPane Component", () => {
   });
 
   test("renders with all task fields", async () => {
-    const taskId = createTestNode("task", "Review Q1 budget", null, {
-      task_status: "todo",
-      due_date: "2026-01-10",
-      assigned_to: "bjorn",
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      const taskId = createTestNode("task", "Review Q1 budget", null, {
+        task_status: "todo",
+        due_date: "2026-01-10",
+        assigned_to: "bjorn",
+      });
+      const task = getNode(taskId)!;
+
+      const { lastFrame } = render(
+        React.createElement(DetailPane, {
+          node: task,
+          width: 40,
+          height: 24,
+        }),
+      );
+
+      const output = lastFrame() ?? "";
+
+      // Check title
+      expect(output).toContain("Review Q1 budget");
+
+      // Check status
+      expect(output).toContain("Status:");
+      expect(output).toContain("todo");
+
+      // Check due date
+      expect(output).toContain("Due:");
+      expect(output).toContain("Jan");
+
+      // Check assigned
+      expect(output).toContain("Assigned:");
+      expect(output).toContain("@bjorn");
     });
-    const task = getNode(taskId)!;
-
-    const { lastFrame } = render(
-      React.createElement(DetailPane, {
-        node: task,
-        width: 40,
-        height: 24,
-      }),
-    );
-
-    const output = lastFrame() ?? "";
-
-    // Check title
-    expect(output).toContain("Review Q1 budget");
-
-    // Check status
-    expect(output).toContain("Status:");
-    expect(output).toContain("todo");
-
-    // Check due date
-    expect(output).toContain("Due:");
-    expect(output).toContain("Jan");
-
-    // Check assigned
-    expect(output).toContain("Assigned:");
-    expect(output).toContain("@bjorn");
   });
 
   test("shows subtasks", async () => {
-    const parentId = createTestNode("task", "Parent task");
-    createTestNode("task", "Subtask 1", parentId, { task_status: "done" });
-    createTestNode("task", "Subtask 2", parentId, { task_status: "todo" });
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      const parentId = createTestNode("task", "Parent task");
+      createTestNode("task", "Subtask 1", parentId, { task_status: "done" });
+      createTestNode("task", "Subtask 2", parentId, { task_status: "todo" });
 
-    const parent = getNode(parentId)!;
+      const parent = getNode(parentId)!;
 
-    const { lastFrame } = render(
-      React.createElement(DetailPane, {
-        node: parent,
-        width: 40,
-        height: 24,
-      }),
-    );
+      const { lastFrame } = render(
+        React.createElement(DetailPane, {
+          node: parent,
+          width: 40,
+          height: 24,
+        }),
+      );
 
-    const output = lastFrame() ?? "";
+      const output = lastFrame() ?? "";
 
-    expect(output).toContain("Subtasks");
-    expect(output).toContain("Subtask 1");
-    expect(output).toContain("Subtask 2");
+      expect(output).toContain("Subtasks");
+      expect(output).toContain("Subtask 1");
+      expect(output).toContain("Subtask 2");
+    });
   });
 
   test("shows references from content", async () => {
-    const taskId = createTestNode(
-      "task",
-      "Talk to @john about #budget for +work project [[Meeting Notes]]",
-    );
-    const task = getNode(taskId)!;
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      const taskId = createTestNode(
+        "task",
+        "Talk to @john about #budget for +work project [[Meeting Notes]]",
+      );
+      const task = getNode(taskId)!;
 
-    const { lastFrame } = render(
-      React.createElement(DetailPane, {
-        node: task,
-        width: 50,
-        height: 24,
-      }),
-    );
+      const { lastFrame } = render(
+        React.createElement(DetailPane, {
+          node: task,
+          width: 50,
+          height: 24,
+        }),
+      );
 
-    const output = lastFrame() ?? "";
+      const output = lastFrame() ?? "";
 
-    // Check references are shown
-    expect(output).toContain("#budget");
-    expect(output).toContain("@john");
-    expect(output).toContain("+work");
-    expect(output).toContain("[[Meeting Notes]]");
+      // Check references are shown
+      expect(output).toContain("#budget");
+      expect(output).toContain("@john");
+      expect(output).toContain("+work");
+      expect(output).toContain("[[Meeting Notes]]");
+    });
   });
 
   test("shows project path", async () => {
-    const folderId = createTestNode("folder", "Work");
-    const subfolderId = createTestNode("folder", "Finance", folderId);
-    const taskId = createTestNode("task", "Review budget", subfolderId);
-    const task = getNode(taskId)!;
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      const folderId = createTestNode("folder", "Work");
+      const subfolderId = createTestNode("folder", "Finance", folderId);
+      const taskId = createTestNode("task", "Review budget", subfolderId);
+      const task = getNode(taskId)!;
 
-    const { lastFrame } = render(
-      React.createElement(DetailPane, {
-        node: task,
-        width: 50,
-        height: 24,
-      }),
-    );
+      const { lastFrame } = render(
+        React.createElement(DetailPane, {
+          node: task,
+          width: 50,
+          height: 24,
+        }),
+      );
 
-    const output = lastFrame() ?? "";
+      const output = lastFrame() ?? "";
 
-    expect(output).toContain("Project:");
-    expect(output).toContain("Work");
-    expect(output).toContain("Finance");
+      expect(output).toContain("Project:");
+      expect(output).toContain("Work");
+      expect(output).toContain("Finance");
+    });
   });
 
   test("shows keybindings hint", async () => {
-    const taskId = createTestNode("task", "Simple task");
-    const task = getNode(taskId)!;
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      const taskId = createTestNode("task", "Simple task");
+      const task = getNode(taskId)!;
 
-    const { lastFrame } = render(
-      React.createElement(DetailPane, {
-        node: task,
-        width: 50,
-        height: 24,
-      }),
-    );
+      const { lastFrame } = render(
+        React.createElement(DetailPane, {
+          node: task,
+          width: 50,
+          height: 24,
+        }),
+      );
 
-    const output = lastFrame() ?? "";
+      const output = lastFrame() ?? "";
 
-    // Should show keybindings at bottom
-    expect(output).toContain("h/Esc:close");
+      // Should show keybindings at bottom
+      expect(output).toContain("h/Esc:close");
+    });
   });
 
   test("handles task with done status", async () => {
-    const taskId = createTestNode("task", "Completed task", null, {
-      task_status: "done",
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      const taskId = createTestNode("task", "Completed task", null, {
+        task_status: "done",
+      });
+      const task = getNode(taskId)!;
+
+      const { lastFrame } = render(
+        React.createElement(DetailPane, {
+          node: task,
+          width: 40,
+          height: 24,
+        }),
+      );
+
+      const output = lastFrame() ?? "";
+
+      expect(output).toContain("done");
     });
-    const task = getNode(taskId)!;
-
-    const { lastFrame } = render(
-      React.createElement(DetailPane, {
-        node: task,
-        width: 40,
-        height: 24,
-      }),
-    );
-
-    const output = lastFrame() ?? "";
-
-    expect(output).toContain("done");
   });
 });
 
@@ -403,9 +432,6 @@ describe.serial("DetailPane with Backlinks", () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     mkdirSync(TEST_DIR, { recursive: true });
-    setKmDir(TEST_DIR);
-    setDatabase({ applyEvent });
-    resetDb();
   });
 
   afterEach(() => {
@@ -416,36 +442,40 @@ describe.serial("DetailPane with Backlinks", () => {
   });
 
   test("shows backlinks when present", async () => {
-    // Create target node
-    const targetId = createTestNode("task", "Target task");
-    const target = getNode(targetId)!;
+    runWithKmDir(TEST_DIR, () => {
+      setDatabase({ applyEvent });
+      resetDb();
+      // Create target node
+      const targetId = createTestNode("task", "Target task");
+      const target = getNode(targetId)!;
 
-    // Create source node that links to target
-    const sourceId = createTestNode("file", "Meeting Notes");
+      // Create source node that links to target
+      const sourceId = createTestNode("file", "Meeting Notes");
 
-    // Add a link from source to target
-    addLink({
-      source_id: sourceId,
-      target_name: "Target task",
-      target_id: targetId,
-      section: null,
-      block_id: null,
-      alias: null,
-      embedded: false,
-      relationship: null,
+      // Add a link from source to target
+      addLink({
+        source_id: sourceId,
+        target_name: "Target task",
+        target_id: targetId,
+        section: null,
+        block_id: null,
+        alias: null,
+        embedded: false,
+        relationship: null,
+      });
+
+      const { lastFrame } = render(
+        React.createElement(DetailPane, {
+          node: target,
+          width: 50,
+          height: 24,
+        }),
+      );
+
+      const output = lastFrame() ?? "";
+
+      expect(output).toContain("Backlinks");
+      expect(output).toContain("Meeting Notes");
     });
-
-    const { lastFrame } = render(
-      React.createElement(DetailPane, {
-        node: target,
-        width: 50,
-        height: 24,
-      }),
-    );
-
-    const output = lastFrame() ?? "";
-
-    expect(output).toContain("Backlinks");
-    expect(output).toContain("Meeting Notes");
   });
 });

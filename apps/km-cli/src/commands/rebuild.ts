@@ -19,7 +19,7 @@ import {
   getLastEventId,
   getEventsPath,
   findKmRootFromPath,
-  setKmDir,
+  runWithKmDir,
 } from "@km/storage";
 import { existsSync, statSync } from "fs";
 import { formatPath } from "../utils/format-path.ts";
@@ -43,62 +43,63 @@ export const rebuildCommand = new Command("rebuild")
       process.exit(1);
     }
 
-    // Set the .km directory for all subsequent operations
-    setKmDir(kmRoot);
+    // Run all operations in kmDir context
     debug("Using .km directory: %s", kmRoot);
 
-    if (options.status) {
-      showStatus();
-      return;
-    }
-
-    if (options.fresh) {
-      console.log(chalk.yellow("Fresh start - deleting all .km data..."));
-      freshStart();
-      console.log(
-        chalk.green("✓"),
-        "Fresh start complete - .km directory cleared",
-      );
-      return;
-    }
-
-    const vaultPath = dirname(kmRoot);
-    debug("rebuild: starting (full=%s)", !!options.full);
-    console.log(
-      chalk.bold("Rebuilding .km/state.db from .km/events.jsonl"),
-      chalk.dim(`(repo ${formatPath(vaultPath)})`),
-    );
-
-    try {
-      if (options.full) {
-        console.log(chalk.dim("Performing full reset..."));
+    await runWithKmDir(kmRoot, async () => {
+      if (options.status) {
+        showStatus();
+        return;
       }
 
-      const results = await steps({
-        rebuildState: options.full ? fullReset : rebuildState,
-      }).run({ clear: true });
+      if (options.fresh) {
+        console.log(chalk.yellow("Fresh start - deleting all .km data..."));
+        freshStart();
+        console.log(
+          chalk.green("✓"),
+          "Fresh start complete - .km directory cleared",
+        );
+        return;
+      }
 
-      const result = results.rebuildState as unknown as {
-        duration: number;
-        eventCount: number;
-        nodeCount: number;
-      };
-
-      debug(
-        "rebuild: complete in %dms, events=%d nodes=%d",
-        result.duration,
-        result.eventCount,
-        result.nodeCount,
+      const vaultPath = dirname(kmRoot);
+      debug("rebuild: starting (full=%s)", !!options.full);
+      console.log(
+        chalk.bold("Rebuilding .km/state.db from .km/events.jsonl"),
+        chalk.dim(`(repo ${formatPath(vaultPath)})`),
       );
 
-      console.log(chalk.green("✓"), "Rebuild complete");
-      console.log(chalk.dim(`  Events: ${result.eventCount}`));
-      console.log(chalk.dim(`  Nodes: ${result.nodeCount}`));
-      console.log(chalk.dim(`  Time: ${result.duration}ms`));
-    } catch (error) {
-      console.error(chalk.red("Rebuild failed:"), error);
-      process.exit(1);
-    }
+      try {
+        if (options.full) {
+          console.log(chalk.dim("Performing full reset..."));
+        }
+
+        const results = await steps({
+          rebuildState: options.full ? fullReset : rebuildState,
+        }).run({ clear: true });
+
+        const result = results.rebuildState as unknown as {
+          duration: number;
+          eventCount: number;
+          nodeCount: number;
+        };
+
+        debug(
+          "rebuild: complete in %dms, events=%d nodes=%d",
+          result.duration,
+          result.eventCount,
+          result.nodeCount,
+        );
+
+        console.log(chalk.green("✓"), "Rebuild complete");
+        console.log(chalk.dim(`  Events: ${result.eventCount}`));
+        console.log(chalk.dim(`  Nodes: ${result.nodeCount}`));
+        console.log(chalk.dim(`  Time: ${result.duration}ms`));
+      } catch (error) {
+        console.error(chalk.red("Rebuild failed:"), error);
+        process.exit(1);
+      }
+    });
   });
 
 /**
