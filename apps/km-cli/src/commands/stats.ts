@@ -16,7 +16,7 @@ import { runGenerator, createVault } from "@km/storage";
 export const statsCommand = new Command("stats")
   .description("Show vault statistics (domain object example)")
   .argument("[path]", "Path to vault (default: cwd)")
-  .action(async (path) => {
+  .action((path) => {
     // Use 'using' for automatic cleanup when scope exits
     // runGenerator consumes the generator without progress display
     using vault = runGenerator(createVault(path));

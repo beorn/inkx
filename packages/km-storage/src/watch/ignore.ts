@@ -89,7 +89,7 @@ export const HIDDEN_FILE_PATTERN = "**/.*";
  * Convert a gitignore pattern to a glob pattern
  * This is a simplified conversion - gitignore has some nuances
  */
-function gitignoreToGlob(pattern: string, basePath: string): string {
+function gitignoreToGlob(pattern: string, _basePath: string): string {
   let glob = pattern.trim();
 
   // Skip empty lines and comments

@@ -30,10 +30,16 @@ Unified interface for beads issue tracking. Manage your work queue, coordinate w
 ## Workflow
 
 1. **Find work:** `/bd` or `/bd ready`
-2. **Start working:** `/bd work <id>` (claims and shows details)
+2. **Claim work:** `/bd work <id>` — **MANDATORY before starting any implementation**
 3. **Implement:** Do the work
 4. **Complete:** `/bd close <id>`
 5. **Commit:** `/bd sync`
+
+**Important:** Always use `/bd work <id>` to claim work. This sets your session as the `assignee`, which:
+
+- Prevents duplicate work across multiple Claude sessions
+- Shows other sessions that this bead is actively being worked on
+- Auto-expires after 30 min of inactivity
 
 ## Session Coordination
 

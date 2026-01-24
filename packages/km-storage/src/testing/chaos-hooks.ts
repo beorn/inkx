@@ -189,7 +189,7 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
     return random() < rate;
   }
 
-  function shouldCorrupt(ctx: MutationContext): boolean {
+  function shouldCorrupt(_ctx: MutationContext): boolean {
     if (!enabled) return false;
     return random() < mutationCorruptRate;
   }

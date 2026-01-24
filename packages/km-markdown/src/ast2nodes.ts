@@ -24,7 +24,7 @@ import createDebug from "debug";
 import { ulid } from "ulid";
 
 const debug = createDebug("km:markdown:ast2nodes");
-import type { Root, Content, Heading, List, ListItem, Paragraph } from "mdast";
+import type { Root, Content, Heading, List, ListItem } from "mdast";
 import { parse as parseYaml } from "yaml";
 import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core";
 import { CUSTOM_TASK_MARKS } from "@km/core";
@@ -455,9 +455,10 @@ function convertListItem(
 
   let text = listItemToText(item);
   // Convert position to the expected format for extractTaskMark
-  const position = item.position?.start.offset !== undefined
-    ? { start: { offset: item.position.start.offset } }
-    : undefined;
+  const position =
+    item.position?.start.offset !== undefined
+      ? { start: { offset: item.position.start.offset } }
+      : undefined;
   const taskMark = extractTaskMark(sourceText, position);
 
   // A task is either:

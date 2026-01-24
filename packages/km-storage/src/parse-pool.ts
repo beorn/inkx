@@ -164,32 +164,32 @@ export class ParsePool {
 
     debug("shutting down pool");
 
-    this.shutdownPromise = Promise.all(
-      this.workers.map(
-        (worker) =>
-          new Promise<void>((resolve) => {
-            const timeout = setTimeout(() => {
-              worker.terminate();
-              resolve();
-            }, 1000);
-
-            worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-              if (event.data.type === "shutdown") {
-                clearTimeout(timeout);
+    this.shutdownPromise = (async () => {
+      await Promise.all(
+        this.workers.map(
+          (worker) =>
+            new Promise<void>((resolve) => {
+              const timeout = setTimeout(() => {
                 worker.terminate();
                 resolve();
-              }
-            };
+              }, 1000);
 
-            worker.postMessage({ type: "shutdown" } satisfies WorkerMessage);
-          }),
-      ),
-    ).then(() => {
+              worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+                if (event.data.type === "shutdown") {
+                  clearTimeout(timeout);
+                  worker.terminate();
+                  resolve();
+                }
+              };
+
+              worker.postMessage({ type: "shutdown" } satisfies WorkerMessage);
+            }),
+        ),
+      );
       this.workers = [];
       this.availableWorkers = [];
       debug("pool shut down");
-      return undefined; // eslint requires return value in then()
-    });
+    })();
 
     return this.shutdownPromise;
   }

@@ -18,7 +18,6 @@ import createDebug from "debug";
 
 const debug = createDebug("km:board");
 import type { BoardState, ViewMode } from "../types.ts";
-import { getNodeDisplayName } from "../state.ts";
 import type { KNode } from "@km/core";
 import { getStore, getNodeCount } from "@km/storage";
 import { useVault, VaultProvider } from "../vault-context.tsx";
@@ -35,10 +34,9 @@ import {
 import { ColumnsView } from "./ColumnsView.tsx";
 import { ListView } from "./ListView.tsx";
 import { TabsView } from "./TabsView.tsx";
-import { renderPlain, getNodeIcon, getChalkColor } from "../text/index.ts";
+import { getNodeIcon, getChalkColor } from "../text/index.ts";
 import { getInheritedColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
-import { tuiEvents } from "../tui.ts";
 import { UIProvider } from "../ui-context.tsx";
 import { LayoutProvider } from "../layout-context.tsx";
 import { createLayoutRegistry } from "../card-positions.ts";
@@ -56,7 +54,6 @@ import {
   tuiStateToTreeState,
   deriveColumns,
   deriveCursorIndices,
-  buildTreeNodes,
 } from "../board-adapter.ts";
 
 // Extracted modules

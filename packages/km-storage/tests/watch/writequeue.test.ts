@@ -636,7 +636,10 @@ describe("Permission Error Handling", () => {
     });
 
     let permissionEvent: PermissionError[] | null = null;
-    queue.on("permission-denied", (e) => (permissionEvent = e as PermissionError[]));
+    queue.on(
+      "permission-denied",
+      (e) => (permissionEvent = e as PermissionError[]),
+    );
 
     queue.queue({ path: "/root/test.md", content: "test", sourceEventId: "1" });
     await queue.forceFlush();
@@ -674,7 +677,10 @@ describe("Permission Error Handling", () => {
     });
 
     let permissionEvent: PermissionError[] | null = null;
-    queue.on("permission-denied", (e) => (permissionEvent = e as PermissionError[]));
+    queue.on(
+      "permission-denied",
+      (e) => (permissionEvent = e as PermissionError[]),
+    );
 
     queue.queue({
       path: "/readonly/test.md",

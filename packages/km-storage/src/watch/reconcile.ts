@@ -221,13 +221,13 @@ export async function applyReconcileOps(
     debug("applying op: %s %s", op.type, op.path);
     switch (op.type) {
       case "create":
-        await handleCreate(op, vaultRoot, fs);
+        handleCreate(op, vaultRoot, fs);
         break;
       case "update":
-        await handleUpdate(op, vaultRoot, fs);
+        handleUpdate(op, vaultRoot, fs);
         break;
       case "rename":
-        await handleRename(op);
+        handleRename(op);
         break;
       case "delete":
         handleDelete(op);
@@ -291,11 +291,11 @@ function ensureFolderHierarchy(
 /**
  * Handle new file/folder creation
  */
-async function handleCreate(
+function handleCreate(
   op: ReconcileOp,
   vaultRoot: string,
   fs: FileSystemOps = realFs,
-): Promise<void> {
+): void {
   const stat = fs.statSync(op.path);
 
   // Ensure all parent folders exist as nodes
@@ -388,11 +388,11 @@ const findNodeByName = findFileByName;
 /**
  * Handle file modification
  */
-async function handleUpdate(
+function handleUpdate(
   op: ReconcileOp,
   _vaultRoot: string,
   fs: FileSystemOps = realFs,
-): Promise<void> {
+): void {
   if (!op.nodeId) {
     return;
   }
@@ -527,7 +527,7 @@ async function handleUpdate(
 /**
  * Handle file/folder rename
  */
-async function handleRename(op: ReconcileOp): Promise<void> {
+function handleRename(op: ReconcileOp): void {
   if (!op.nodeId) return;
 
   emitNodeUpdated("fs-watch", op.nodeId, {

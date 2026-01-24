@@ -39,7 +39,6 @@ import {
   getCommandNames,
   getPromptPath,
   type TNode,
-  type TaskStatus,
   type OutputEvent,
   type ShellContext,
   type MutationHandler,

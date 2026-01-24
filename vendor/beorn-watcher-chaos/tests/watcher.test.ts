@@ -50,7 +50,7 @@ describe("ChaosWatcher", () => {
       await watcher.flush();
 
       expect(watcher.getEmittedEvents()).toHaveLength(1);
-      expect(watcher.getEmittedEvents()[0].path).toBe("/vault/test.md");
+      expect(watcher.getEmittedEvents()[0]!.path).toBe("/vault/test.md");
     });
   });
 
@@ -134,7 +134,7 @@ describe("ChaosWatcher", () => {
       // Should coalesce to single directory event
       const events = watcher.getEmittedEvents();
       expect(events).toHaveLength(1);
-      expect(events[0].path).toBe("/vault/dir");
+      expect(events[0]!.path).toBe("/vault/dir");
     });
   });
 

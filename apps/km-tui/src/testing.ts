@@ -35,7 +35,6 @@ import {
   bufferToStyledText,
   createLocator,
   type InkxLocator,
-  type RenderResult,
 } from "inkx/testing";
 import type { KNode } from "@km/core";
 import type { BoardState } from "./types.ts";

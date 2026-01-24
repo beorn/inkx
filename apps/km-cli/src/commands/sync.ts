@@ -67,11 +67,17 @@ function startWatch(vaultPath: string, debounceMs: number): void {
   // Handle shutdown
   process.on("SIGINT", () => {
     console.log(chalk.dim("\nStopping watcher..."));
-    void manager.stop().then(() => process.exit(0));
+    void (async () => {
+      await manager.stop();
+      process.exit(0);
+    })();
   });
 
   process.on("SIGTERM", () => {
-    void manager.stop().then(() => process.exit(0));
+    void (async () => {
+      await manager.stop();
+      process.exit(0);
+    })();
   });
 }
 

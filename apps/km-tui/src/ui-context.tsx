@@ -69,6 +69,7 @@ export function UIProvider({
     () => ({
       getState: () => stateRef.current,
       dispatch,
+      // eslint-disable-next-line promise/prefer-await-to-callbacks -- subscribe pattern requires callback
       subscribe: (callback: () => void) => {
         listenersRef.current.add(callback);
         return () => listenersRef.current.delete(callback);

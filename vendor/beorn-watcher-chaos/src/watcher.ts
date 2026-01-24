@@ -242,7 +242,7 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
     while (this.scheduledTimers.length > 0) {
       this.scheduledTimers.sort((a, b) => a.time - b.time);
 
-      const next = this.scheduledTimers[0];
+      const next = this.scheduledTimers[0]!;
       if (next.time > targetTime) {
         break;
       }

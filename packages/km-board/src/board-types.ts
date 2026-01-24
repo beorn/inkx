@@ -7,7 +7,7 @@
 
 // Import types from @km/core and @km/tree
 import type { TNode } from "@km/core";
-import type { TPath, TaskStatus } from "@km/tree";
+import type { TPath } from "@km/tree";
 
 export type { TaskStatus } from "@km/tree";
 export type { TNode } from "@km/core";

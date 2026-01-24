@@ -4,7 +4,6 @@
  * Add and remove dependencies between issues.
  */
 
-import type { KNode } from "@km/core";
 import type { Issue } from "./types.ts";
 
 /**

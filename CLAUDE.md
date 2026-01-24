@@ -232,34 +232,43 @@ Packages in `vendor/` are standalone libraries that could be useful outside km. 
 
 This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
 
-```bash
-bd ready                   # Find available work (no blockers)
-bd show <id>               # View issue details
-bd list                    # List all issues
-bd list --status open      # Filter by status
-bd update <id> --status in_progress  # Update issue
-bd close <id>              # Complete work
-bd close <id> -r "reason"  # Close with reason (NOT --comment)
-bd comments add <id> "text"  # Add comment to issue
-bd create --title="..." --type=task --priority=2
-bd sync                    # Commit beads changes
-```
+**⚠️ MANDATORY: Claim before working**
 
-**Workflow:** `bd ready` → claim → work → `bd close` → `bd sync`
+When starting work on ANY bead, you MUST use `/bd work <id>` first. This:
 
-**Multi-session coordination:** When multiple Claude Code sessions work on the same codebase, use `/bd` skill for session-aware claiming:
+- Sets your session as the `assignee` (visible to other sessions via `/bd`)
+- Prevents duplicate work when multiple Claude sessions are active
+- Auto-expires after 30 min of inactivity (so abandoned work can be picked up)
+
+**Never use bare `bd update --status in_progress`** — it doesn't set assignee and breaks session coordination.
 
 ```bash
 /bd                 # Dashboard: ready work + active claims
-/bd work <bead-id>  # Claim and start working (shows details)
+/bd work <bead-id>  # REQUIRED before starting work (claims + shows details)
 /bd my              # See your active claims
 /bd close <bead-id> # Complete work (auto-releases claim)
 /bd release         # Release claim if switching tasks
 ```
 
-Note: `/bd work`, `/bd my`, `/bd release` use the session script at `.claude/skills/bd/scripts/bd.ts`. Other commands use `bd` directly.
+**Direct bd commands** (for queries and creation only):
 
-Claims expire after 30 min of session inactivity. Stale claims can be taken over.
+```bash
+bd ready              # Find available work (no blockers)
+bd show <id>          # View issue details
+bd create --title="..." --type=task --priority=2
+bd close <id>         # Complete work
+bd sync               # Commit beads changes
+```
+
+**Workflow:**
+
+1. `/bd` or `bd ready` — Find available work
+2. `/bd work <id>` — **Claim and start** (REQUIRED before implementation)
+3. Implement the work
+4. `/bd close <id>` — Complete (releases claim)
+5. `bd sync` — Commit beads changes
+
+**⚠️ Close beads immediately when done.** Don't leave finished work open while moving to other tasks. If a bead is complete, close it before starting new work. Orphaned open beads cause confusion for other sessions.
 
 **Key concepts:**
 
@@ -368,6 +377,15 @@ git status  # MUST show "up to date with origin"
 ```
 
 **CRITICAL:** NEVER stop before pushing. If push fails, resolve and retry.
+
+**Propose next steps when stopping.** Before ending a session, offer the user clear options for what to do next. Use `AskUserQuestion` with 2-4 actionable choices like:
+
+- Continue with next highest priority bead
+- Run tests/quality gates
+- Commit and push current work
+- Review a specific file or feature
+
+This makes it easy for the user to say "yes" or pick an option rather than having to think about what's next.
 
 ---
 

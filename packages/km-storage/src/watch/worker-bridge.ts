@@ -118,7 +118,8 @@ export class WorkerWatcher extends EventEmitter {
         if (event.data.type === "stopped") {
           debug("worker stopped gracefully");
           clearTimeout(timeout);
-          worker.terminate();
+          // Don't call terminate() after graceful stop - causes Bun segfault (km-a4l5)
+          // The worker has already cleaned up; calling terminate() races with internal cleanup
           resolve();
         }
       };

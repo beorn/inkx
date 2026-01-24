@@ -20,8 +20,6 @@ import {
   type QueryCondition,
   type QueryRef,
   type QueryPath,
-  type QueryPropCondition,
-  type QuerySpecial,
   type DateRange,
 } from "@km/core";
 

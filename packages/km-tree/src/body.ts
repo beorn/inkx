@@ -8,8 +8,6 @@
  * is grouped at display time for rendering as virtual columns/cards.
  */
 
-import type { TNode } from "./types.ts";
-
 /**
  * Node types that create structural hierarchy (columns, cards, subitems).
  * Everything else is considered "body content" when it appears before these.
@@ -70,9 +68,10 @@ export function extractBody<T extends { type: string }>(
  * Check if children array has body content (non-structural before structural).
  */
 export function hasBody<T extends { type: string }>(children: T[]): boolean {
-  if (children.length === 0) return false;
+  const first = children[0];
+  if (!first) return false;
   // Has body if first child is not structural
-  return !STRUCTURAL_TYPES.has(children[0]!.type);
+  return !STRUCTURAL_TYPES.has(first.type);
 }
 
 /**

@@ -518,7 +518,7 @@ function applyFsEventsCoalesce(
         type: "change",
         path: dir,
         timing: { delay: 0 },
-        originalIndex: dirEvents[0].originalIndex,
+        originalIndex: dirEvents[0]!.originalIndex,
       });
     } else {
       result.push(...dirEvents);

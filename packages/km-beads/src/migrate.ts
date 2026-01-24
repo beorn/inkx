@@ -6,7 +6,6 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
-import type { Issue } from "./types.ts";
 
 /** Raw beads issue format from issues.jsonl */
 export interface BeadsIssue {
@@ -157,7 +156,7 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string): string {
 /**
  * Generate a safe filename from issue title
  */
-function slugify(title: string): string {
+function _slugify(title: string): string {
   return title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

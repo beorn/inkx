@@ -5,9 +5,7 @@
  * simulating failures, and testing reconciliation logic.
  */
 
-import type { KNode, TaskStatus } from "@km/core";
-import type { Vault, VaultStats, LoadError } from "../vault.ts";
-import type { Link } from "../db.ts";
+import type { KNode } from "@km/core";
 import {
   createFakeVault,
   type FakeVault,
