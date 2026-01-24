@@ -4,14 +4,14 @@
  * Query issues from the km database.
  */
 
-import { queryNodes, getNode, getDb } from "@km/storage";
+import { queryNodes } from "@km/storage";
 import type { Vault } from "@km/storage";
 import type { KNode } from "@km/core";
 import type { Issue, IssueFilter } from "./types.ts";
 
 /** Options for beads query functions */
 export interface BeadsQueryOptions {
-  /** Vault to use for queries (preferred). Falls back to singleton if not provided. */
+  /** Vault to use for queries. Required for functions that access storage. */
   vault?: Vault;
 }
 
@@ -23,10 +23,8 @@ function getNodePath(node: KNode, vault?: Vault): string | undefined {
     return node.fs_path;
   }
   // For embedded nodes, try to get parent's path
-  if (node.parent_id) {
-    const parent = vault
-      ? vault.getNode(node.parent_id)
-      : getNode(node.parent_id);
+  if (node.parent_id && vault) {
+    const parent = vault.getNode(node.parent_id);
     if (parent) {
       return getNodePath(parent, vault);
     }
@@ -39,35 +37,27 @@ function getNodePath(node: KNode, vault?: Vault): string | undefined {
  * This performs a reverse dependency lookup
  */
 function countDependents(shortId: string, vault?: Vault): number {
+  if (!vault) {
+    return 0; // Can't count without vault access
+  }
+
   const sql = `
     SELECT COUNT(*) as count FROM nodes
     WHERE json_extract(data, '$.blocked_by') LIKE ?
   `;
   const params = [`%"${shortId}"%`];
-
-  if (vault) {
-    const result = vault.rawQuery<{ count: number }>(sql, params);
-    return result[0]?.count ?? 0;
-  }
-
-  // Fallback to singleton
-  const db = getDb();
-  const result = db.prepare(sql).get(...params) as
-    | { count: number }
-    | undefined;
-  return result?.count ?? 0;
+  const result = vault.rawQuery<{ count: number }>(sql, params);
+  return result[0]?.count ?? 0;
 }
 
 /**
  * Get parent context for embedded nodes (section/file name)
  */
 function getParentContext(node: KNode, vault?: Vault): string | undefined {
-  if (!node.parent_id) {
+  if (!node.parent_id || !vault) {
     return undefined;
   }
-  const parent = vault
-    ? vault.getNode(node.parent_id)
-    : getNode(node.parent_id);
+  const parent = vault.getNode(node.parent_id);
   if (!parent) {
     return undefined;
   }

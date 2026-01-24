@@ -71,7 +71,6 @@ export type { NodeStore } from "./store.ts";
 export {
   readEvents,
   rebuildState,
-  needsRebuild,
   syncState,
   fullReset,
   ensureState,
@@ -98,9 +97,17 @@ export type {
 export type { LoadError as VaultLoaderError } from "./vault-loader.ts";
 
 // km-fast-md.6: Worker pool for parallel parsing
-export { ParsePool, getParsePool, shutdownParsePool } from "./parse-pool.ts";
+// km-disposable.3: Service factory pattern
+export {
+  createParsePool,
+  getParsePool,
+  shutdownParsePool,
+  // Keep ParsePool for backwards compat during transition
+  ParsePool,
+} from "./parse-pool.ts";
 
 export type {
+  ParsePoolService,
   ParseResult as PoolParseResult,
   ParsePoolOptions,
 } from "./parse-pool.ts";

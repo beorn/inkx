@@ -3,10 +3,12 @@
  *
  * Manages a pool of worker threads for parallel markdown parsing.
  * km-fast-md.6: Worker pool for parallel parsing
+ * km-disposable.3: Wrapped with Service factory pattern
  */
 
 import createDebug from "debug";
 import { cpus } from "os";
+import type { ServiceStatus } from "./watcher.ts";
 import type {
   ParseRequest,
   WorkerMessage,
@@ -220,15 +222,115 @@ export class ParsePool {
   }
 }
 
+/**
+ * ParsePoolService interface - worker pool with Service lifecycle.
+ * Implements AsyncDisposable for automatic cleanup.
+ */
+export interface ParsePoolService extends AsyncDisposable {
+  readonly status: ServiceStatus;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  parse(nodeId: string, fsPath: string): Promise<ParseResult>;
+  parseMany(
+    files: Array<{ nodeId: string; fsPath: string }>,
+    onProgress?: (current: number, total: number) => void,
+    shouldAbort?: () => boolean,
+  ): Promise<ParseResult[]>;
+}
+
+/**
+ * Create a ParsePoolService for parallel markdown parsing.
+ *
+ * The pool implements the Service interface with start/stop lifecycle.
+ * Use `await using pool = createParsePool()` for automatic cleanup.
+ *
+ * @example
+ * await using pool = createParsePool({ poolSize: 4 });
+ * await pool.start();
+ * const result = await pool.parse("node-id", "/path/to/file.md");
+ * // pool.stop() called automatically
+ *
+ * @param options - Pool configuration
+ * @returns ParsePoolService
+ */
+export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
+  debug("createParsePool", { options });
+
+  const pool = new ParsePool(options);
+  let status: ServiceStatus = "stopped";
+
+  return {
+    get status() {
+      return status;
+    },
+
+    async start() {
+      if (status !== "stopped") {
+        debug("start called but status is %s", status);
+        return;
+      }
+
+      status = "starting";
+      debug("starting parse pool");
+
+      try {
+        await pool.start();
+        status = "running";
+        debug("parse pool started");
+      } catch (error) {
+        status = "stopped";
+        throw error;
+      }
+    },
+
+    async stop() {
+      if (status !== "running") {
+        debug("stop called but status is %s", status);
+        return;
+      }
+
+      status = "stopping";
+      debug("stopping parse pool");
+
+      try {
+        await pool.shutdown();
+        status = "stopped";
+        debug("parse pool stopped");
+      } catch (error) {
+        // Force status to stopped even on error
+        status = "stopped";
+        throw error;
+      }
+    },
+
+    parse(nodeId: string, fsPath: string) {
+      return pool.parse(nodeId, fsPath);
+    },
+
+    parseMany(
+      files: Array<{ nodeId: string; fsPath: string }>,
+      onProgress?: (current: number, total: number) => void,
+      shouldAbort?: () => boolean,
+    ) {
+      return pool.parseMany(files, onProgress, shouldAbort);
+    },
+
+    async [Symbol.asyncDispose]() {
+      await this.stop();
+    },
+  };
+}
+
 // Singleton instance for convenient access
-let defaultPool: ParsePool | null = null;
+let defaultPool: ParsePoolService | null = null;
 
 /**
  * Get or create the default parse pool.
+ * @deprecated Use createParsePool() for new code
  */
-export async function getParsePool(): Promise<ParsePool> {
+export async function getParsePool(): Promise<ParsePoolService> {
   if (!defaultPool) {
-    defaultPool = new ParsePool();
+    defaultPool = createParsePool();
     await defaultPool.start();
   }
   return defaultPool;
@@ -236,10 +338,11 @@ export async function getParsePool(): Promise<ParsePool> {
 
 /**
  * Shutdown the default parse pool.
+ * @deprecated Use createParsePool() with AsyncDisposable for new code
  */
 export async function shutdownParsePool(): Promise<void> {
   if (defaultPool) {
-    await defaultPool.shutdown();
+    await defaultPool.stop();
     defaultPool = null;
   }
 }

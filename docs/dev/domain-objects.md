@@ -197,7 +197,118 @@ export function runWithProgress<T>(
 
 ---
 
-## Disposable Pattern
+## Using Disposable for Cleanup
+
+The `using` and `await using` declarations provide automatic cleanup at scope exit, eliminating the need for try/finally blocks. This is the preferred pattern for all resource management in km.
+
+### When to Use `using` vs `await using`
+
+| Declaration   | Cleanup Method            | Use For                           |
+| ------------- | ------------------------- | --------------------------------- |
+| `using`       | `[Symbol.dispose]()`      | Sync cleanup (DB close, etc.)     |
+| `await using` | `[Symbol.asyncDispose]()` | Async cleanup (workers, watchers) |
+
+### Disposable Objects in km
+
+| Object        | Disposable Type   | Cleanup Action             |
+| ------------- | ----------------- | -------------------------- |
+| `Vault`       | `Disposable`      | Closes database connection |
+| `FakeVault`   | `Disposable`      | Closes in-memory database  |
+| `MemoryStore` | `Disposable`      | Closes database            |
+| `DiskStore`   | `Disposable`      | Closes database            |
+| `Watcher`     | `AsyncDisposable` | Stops file watchers        |
+| `ParsePool`   | `AsyncDisposable` | Terminates worker threads  |
+
+### Synchronous Cleanup (Disposable)
+
+For objects with sync cleanup (Vault, Store, FakeVault):
+
+```typescript
+// ✅ GOOD - automatic cleanup via using
+using vault = runGenerator(createVault(vaultDir));
+const tasks = vault.getAllTasks();
+// vault.close() called automatically at scope exit
+
+// ❌ AVOID - manual try/finally
+const vault = runGenerator(createVault(vaultDir));
+try {
+  const tasks = vault.getAllTasks();
+} finally {
+  vault.close();
+}
+```
+
+### Async Cleanup (AsyncDisposable)
+
+For objects with async cleanup (Watcher, ParsePool):
+
+```typescript
+// ✅ GOOD - automatic async cleanup
+await using watcher = createWatcher(rootDir);
+await watcher.start();
+// watcher.stop() awaited automatically at scope exit
+
+// ❌ AVOID - manual cleanup
+const watcher = createWatcher(rootDir);
+await watcher.start();
+// ...
+await watcher.stop();
+```
+
+### Combining Sync and Async Disposables
+
+When using both types together, declare them in dependency order:
+
+```typescript
+async function watchVault(path: string) {
+  using vault = runGenerator(createVault(path));
+  await using watcher = vault.watch();
+
+  await watcher.start();
+  watcher.on("change", (changes) => console.log(changes));
+
+  // ... do stuff ...
+
+  // At scope exit (reverse order):
+  // 1. await watcher[Symbol.asyncDispose]() → await watcher.stop()
+  // 2. vault[Symbol.dispose]() → vault.close()
+}
+```
+
+### Context Managers vs Resource Owners
+
+**Context managers** set up execution context (like AsyncLocalStorage) but don't own resources. They are NOT Disposable:
+
+- `runWithDb(db, fn)` - Sets database context for `fn`, no cleanup needed
+- `runWithKmDir(dir, fn)` - Sets directory context for `fn`, no cleanup needed
+
+```typescript
+// Context manager - just sets context, doesn't own resources
+await runWithDb(db, async () => {
+  // db is available via getDb() inside this callback
+  const node = await getDb().get("SELECT ...");
+});
+// No cleanup - db was passed in, caller owns it
+```
+
+**Resource owners** create and own resources. They MUST be Disposable:
+
+- `Vault` - Owns and closes database connection
+- `Watcher` - Owns and stops file watchers
+- `ParsePool` - Owns and terminates worker threads
+- `MemoryStore`/`DiskStore` - Own and close database connection
+
+```typescript
+// Resource owner - creates and owns the db
+using vault = runGenerator(createVault(path));
+// vault.close() called at scope exit, closing the db it owns
+```
+
+**Rule of thumb**: If your factory calls `new Database()`, `spawn()`, `watch()`, or similar resource-creating functions, the returned object MUST be Disposable.
+
+---
+
+## Disposable Pattern Implementation
 
 ### Sync Disposable
 
@@ -349,12 +460,11 @@ describe("Vault", () => {
       INSERT INTO nodes VALUES ('1', 'Test node');
     `);
 
-    const vault = createVault("/test", { inject: { database: mockDb } });
+    using vault = createVault("/test", { inject: { database: mockDb } });
 
     expect(vault.getNode("1")?.content).toBe("Test node");
     expect(vault.getNode("999")).toBeNull();
-
-    vault.close();
+    // vault.close() called automatically at scope exit
   });
 });
 ```
@@ -389,19 +499,17 @@ async function main(vaultPath: string) {
   const config = loadConfig(vaultPath);
 
   // Watcher is optional (only for disk mode)
-  let watcher: Watcher | null = null;
   if (vault.mode === "disk") {
-    watcher = vault.watch();
+    await using watcher = vault.watch();
     await watcher.start();
     watcher.on("change", () => board.refresh());
-  }
 
-  try {
-    // Run application...
+    // Run application with watcher active
     await runTui(board, config);
-  } finally {
-    // Explicit cleanup for optional objects
-    await watcher?.stop();
+    // watcher.stop() called automatically at scope exit
+  } else {
+    // Run application without watcher
+    await runTui(board, config);
   }
 
   // vault and board cleaned up by 'using' at scope exit
@@ -450,7 +558,7 @@ export function createVault(path: string) {
   // db is never closed!
 }
 
-// ✅ GOOD - explicit cleanup
+// ✅ GOOD - implement Disposable for automatic cleanup
 export function createVault(path: string): Vault {
   const db = openDatabase(path);
   return {
@@ -462,6 +570,13 @@ export function createVault(path: string): Vault {
       this.close();
     },
   };
+}
+
+// ✅ GOOD - use 'using' for automatic cleanup at call sites
+function processVault(path: string) {
+  using vault = createVault(path);
+  return vault.getNode("1");
+  // vault.close() called automatically
 }
 ```
 

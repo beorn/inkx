@@ -7,12 +7,11 @@
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { parse as parseYaml } from "yaml";
-import { getKmDir } from "@km/storage";
 import type { Harness } from "./types.ts";
 
 /** Options for harness functions */
 export interface HarnessOptions {
-  /** Path to .km directory. Falls back to getKmDir() singleton if not provided. */
+  /** Path to .km directory. If not provided, only built-in harnesses are available. */
   kmDir?: string;
 }
 
@@ -45,7 +44,7 @@ export function loadHarness(
   options?: HarnessOptions,
 ): Harness | null {
   // Try loading from .km/harnesses/
-  const kmDir = options?.kmDir ?? getKmDir();
+  const kmDir = options?.kmDir;
   if (kmDir) {
     const harnessPath = join(kmDir, "harnesses", `${name}.yaml`);
     if (existsSync(harnessPath)) {
@@ -132,7 +131,7 @@ export function getDefaultHarness(): Harness {
 export function listHarnesses(options?: HarnessOptions): string[] {
   const harnesses = new Set<string>(["general"]);
 
-  const kmDir = options?.kmDir ?? getKmDir();
+  const kmDir = options?.kmDir;
   if (kmDir) {
     const harnessDir = join(kmDir, "harnesses");
     if (existsSync(harnessDir)) {

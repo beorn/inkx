@@ -1,5 +1,4 @@
 import { ulid } from "ulid";
-import { getDb } from "@km/storage";
 import type { Vault } from "@km/storage";
 
 const PREFIX = "km";
@@ -8,7 +7,7 @@ const AUTO_LENGTH = 4;
 
 /** Options for short ID functions */
 export interface ShortIdOptions {
-  /** Vault to use for queries (preferred). Falls back to singleton if not provided. */
+  /** Vault to use for queries. Required for functions that access storage. */
   vault?: Vault;
 }
 
@@ -37,18 +36,14 @@ export function generateSubId(
  */
 export function resolveShortId(
   shortId: string,
-  options?: ShortIdOptions,
+  options: ShortIdOptions,
 ): string | null {
-  const sql = `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ? LIMIT 1`;
-  const params = [shortId];
-
-  if (options?.vault) {
-    const rows = options.vault.rawQuery<{ id: string }>(sql, params);
-    return rows[0]?.id ?? null;
+  if (!options.vault) {
+    throw new Error("resolveShortId requires a vault instance");
   }
 
-  // Fallback to singleton
-  const db = getDb();
-  const row = db.prepare(sql).get(...params) as { id: string } | undefined;
-  return row?.id ?? null;
+  const sql = `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ? LIMIT 1`;
+  const params = [shortId];
+  const rows = options.vault.rawQuery<{ id: string }>(sql, params);
+  return rows[0]?.id ?? null;
 }

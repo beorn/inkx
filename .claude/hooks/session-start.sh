@@ -1,5 +1,5 @@
 #!/bin/bash
-# Export CLAUDE_SESSION_ID for /claim command
+# Export CLAUDE_SESSION_ID for /bd claiming functionality
 # This hook runs on SessionStart and makes the session ID available as an env var
 
 SESSION_ID=$(cat | jq -r '.session_id // empty')

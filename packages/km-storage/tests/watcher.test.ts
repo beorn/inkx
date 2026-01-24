@@ -46,15 +46,13 @@ describe("createWatcher", () => {
 `,
       );
 
-      const watcher = createWatcher(rootDir);
+      await using watcher = createWatcher(rootDir);
 
       expect(watcher.status).toBe("stopped");
 
       await watcher.start();
 
       expect(watcher.status).toBe("running");
-
-      await watcher.stop();
     }));
 
   test("stop transitions to stopped", () =>
@@ -72,7 +70,7 @@ describe("createWatcher", () => {
 `,
       );
 
-      const watcher = createWatcher(rootDir);
+      await using watcher = createWatcher(rootDir);
 
       await watcher.start();
       expect(watcher.status).toBe("running");
@@ -96,7 +94,7 @@ describe("createWatcher", () => {
 `,
       );
 
-      const watcher = createWatcher(rootDir);
+      await using watcher = createWatcher(rootDir);
 
       await watcher.start();
       expect(watcher.status).toBe("running");
@@ -104,8 +102,6 @@ describe("createWatcher", () => {
       // Second start should be no-op
       await watcher.start();
       expect(watcher.status).toBe("running");
-
-      await watcher.stop();
     }));
 
   test("stop is idempotent when stopped", () =>
@@ -123,7 +119,7 @@ describe("createWatcher", () => {
 `,
       );
 
-      const watcher = createWatcher(rootDir);
+      await using watcher = createWatcher(rootDir);
 
       expect(watcher.status).toBe("stopped");
 
@@ -147,7 +143,7 @@ describe("createWatcher", () => {
 `,
       );
 
-      const watcher = createWatcher(rootDir);
+      await using watcher = createWatcher(rootDir);
       const calls: string[] = [];
 
       const handler = () => {
@@ -159,7 +155,6 @@ describe("createWatcher", () => {
 
       // Handler should not be called after unsubscribing
       await watcher.start();
-      await watcher.stop();
 
       // Note: ready event may or may not fire depending on timing
       // The key test is that off() doesn't throw

@@ -1,56 +1,70 @@
 ---
-description: Quick beads CLI access - run bd commands directly
-argument-hint: [ready | list | show <id> | create | close <id> | <any bd args>]
+description: Beads issue tracker with session coordination - claim, track, complete work
+argument-hint: [ready|show|work|claim|release|close|sync|my|create] [id]
 allowed-tools: Bash, TodoWrite
 ---
 
-# Beads CLI
+# /bd - Beads Issue Tracker
 
-Quick access to the `bd` CLI for issue tracking. Pass arguments directly to `bd`.
+Unified interface for beads issue tracking with **session coordination** for claiming work.
 
 **Arguments**: $ARGUMENTS
 
-## Routing
+## Commands
 
-| Input         | Action                         |
-| ------------- | ------------------------------ |
-| (empty)       | `bd ready` - show actionable   |
-| `ready`       | `bd ready`                     |
-| `list`        | `bd list --status open --long` |
-| `show <id>`   | `bd show <id>`                 |
-| `create ...`  | `bd create ...`                |
-| `close <id>`  | `bd close <id>`                |
-| anything else | `bd $ARGUMENTS` (pass through) |
+| Command        | Description                               |
+| -------------- | ----------------------------------------- |
+| (none)         | Dashboard: ready work + active claims     |
+| `ready`        | Show actionable work (no blockers)        |
+| `show <id>`    | View bead details, dependencies, blockers |
+| `work <id>`    | **Start working: claim + show details**   |
+| `claim <id>`   | Claim bead for this session               |
+| `release [id]` | Release claim (or all if no id)           |
+| `close <id>`   | Complete work                             |
+| `sync`         | Commit beads changes to git               |
+| `my`           | Show this session's claims                |
+| `create ...`   | Create new bead (passthrough to bd)       |
+| `list ...`     | List beads (passthrough to bd)            |
+
+## Workflow
+
+1. **Find work:** `/bd` or `/bd ready`
+2. **Start working:** `/bd work <id>` (claims and shows details)
+3. **Implement:** Do the work
+4. **Complete:** `/bd close <id>`
+5. **Commit:** `/bd sync`
+
+## Session Coordination
+
+When multiple Claude Code sessions work on the same codebase:
+
+- Claims expire after **30 minutes** of session inactivity
+- Stale claims can be taken over by other sessions
+- Use `/bd my` to see your active claims
+- Use `/bd release` before switching tasks
 
 ## Examples
 
 ```bash
-/bd                      # Show ready work
-/bd list                 # List open issues
-/bd show km-abc1         # View issue details
+/bd                    # See dashboard
+/bd ready              # Show work with no blockers
+/bd work km-abc1       # Claim and start working on km-abc1
+/bd show km-abc1       # View details without claiming
+/bd close km-abc1      # Mark done
+/bd sync               # Commit beads changes
 /bd create --title="Fix bug" --type=bug --priority=2
-/bd close km-abc1        # Close issue
-/bd stale --days 7       # Custom: find stale issues
-/bd log --limit 5        # Custom: recent activity
 ```
 
 ## Execute
 
-Run the appropriate command based on arguments:
+Use the session-aware bd script:
 
 ```bash
-# If empty or "ready":
-bd ready
-
-# If "list":
-bd list --status open --long
-
-# Otherwise pass through:
-bd $ARGUMENTS
+bun ./.claude/skills/bd/scripts/bd.ts $ARGUMENTS
 ```
 
-After execution, if the output suggests follow-up actions (e.g., "claim this issue"), briefly mention them.
+For `create`, `list`, or other non-session commands, pass through to `bd` directly:
 
-## For Complex Operations
-
-For backlog grooming, triage, or multi-step issue management, use `/pm` instead.
+```bash
+bd $ARGUMENTS
+```

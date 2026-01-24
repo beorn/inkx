@@ -46,23 +46,19 @@ describe.serial("createChaosHooks", () => {
     );
 
     const hooks = createChaosHooks();
-    const vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+    using vault = runGenerator(createVault(VAULT_DIR, { hooks }));
 
-    try {
-      const tasks = vault.getAllTasks();
-      expect(tasks.length).toBe(3);
+    const tasks = vault.getAllTasks();
+    expect(tasks.length).toBe(3);
 
-      // Update should succeed
-      vault.updateNode(tasks[0]!.id, { task_status: "done" });
+    // Update should succeed
+    vault.updateNode(tasks[0]!.id, { task_status: "done" });
 
-      const updated = vault.getNode(tasks[0]!.id);
-      expect(updated!.task_status).toBe("done");
+    const updated = vault.getNode(tasks[0]!.id);
+    expect(updated!.task_status).toBe("done");
 
-      // No chaos events
-      expect(hooks.getChaosEvents()).toHaveLength(0);
-    } finally {
-      vault.close();
-    }
+    // No chaos events
+    expect(hooks.getChaosEvents()).toHaveLength(0);
   });
 
   test("drops mutations at configured rate", () => {
@@ -86,28 +82,24 @@ describe.serial("createChaosHooks", () => {
       onChaosEvent: (e) => events.push(e),
     });
 
-    const vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+    using vault = runGenerator(createVault(VAULT_DIR, { hooks }));
 
-    try {
-      const tasks = vault.getAllTasks();
-      expect(tasks.length).toBe(3);
+    const tasks = vault.getAllTasks();
+    expect(tasks.length).toBe(3);
 
-      // Update should be dropped
-      expect(() =>
-        vault.updateNode(tasks[0]!.id, { task_status: "done" }),
-      ).toThrow(/Mutation cancelled by hook/);
+    // Update should be dropped
+    expect(() =>
+      vault.updateNode(tasks[0]!.id, { task_status: "done" }),
+    ).toThrow(/Mutation cancelled by hook/);
 
-      // Verify mutation was dropped
-      const unchanged = vault.getNode(tasks[0]!.id);
-      expect(unchanged!.task_status).toBe("todo");
+    // Verify mutation was dropped
+    const unchanged = vault.getNode(tasks[0]!.id);
+    expect(unchanged!.task_status).toBe("todo");
 
-      // Check chaos events
-      expect(events).toHaveLength(1);
-      expect(events[0]!.type).toBe("drop");
-      expect(events[0]!.mutation.type).toBe("update");
-    } finally {
-      vault.close();
-    }
+    // Check chaos events
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe("drop");
+    expect(events[0]!.mutation.type).toBe("update");
   });
 
   test("corrupts mutations at configured rate", () => {
@@ -131,21 +123,17 @@ describe.serial("createChaosHooks", () => {
       onChaosEvent: (e) => events.push(e),
     });
 
-    const vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+    using vault = runGenerator(createVault(VAULT_DIR, { hooks }));
 
-    try {
-      const tasks = vault.getAllTasks();
-      const task = tasks[0]!;
+    const tasks = vault.getAllTasks();
+    const task = tasks[0]!;
 
-      // Update will be corrupted
-      vault.updateNode(task.id, { task_status: "done" });
+    // Update will be corrupted
+    vault.updateNode(task.id, { task_status: "done" });
 
-      // Check that corruption event was logged
-      expect(events).toHaveLength(1);
-      expect(events[0]!.type).toBe("corrupt");
-    } finally {
-      vault.close();
-    }
+    // Check that corruption event was logged
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe("corrupt");
   });
 
   test("supports type-specific drop rates", () => {
@@ -167,27 +155,23 @@ describe.serial("createChaosHooks", () => {
       },
     });
 
-    const vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+    using vault = runGenerator(createVault(VAULT_DIR, { hooks }));
 
-    try {
-      const tasks = vault.getAllTasks();
+    const tasks = vault.getAllTasks();
 
-      // Update should be dropped
-      expect(() =>
-        vault.updateNode(tasks[0]!.id, { task_status: "done" }),
-      ).toThrow(/Mutation cancelled by hook/);
+    // Update should be dropped
+    expect(() =>
+      vault.updateNode(tasks[0]!.id, { task_status: "done" }),
+    ).toThrow(/Mutation cancelled by hook/);
 
-      // Add should succeed
-      const rootChildren = vault.getChildren(null);
-      const fileNode = rootChildren[0]!;
-      const newId = vault.addNode(fileNode.id, {
-        type: "task",
-        content: "New task",
-      });
-      expect(newId).toBeDefined();
-    } finally {
-      vault.close();
-    }
+    // Add should succeed
+    const rootChildren = vault.getChildren(null);
+    const fileNode = rootChildren[0]!;
+    const newId = vault.addNode(fileNode.id, {
+      type: "task",
+      content: "New task",
+    });
+    expect(newId).toBeDefined();
   });
 
   test("can be disabled and enabled", () => {
@@ -205,37 +189,33 @@ describe.serial("createChaosHooks", () => {
       mutationDropRate: 1.0, // Would drop all mutations
     }) as ChaosHooks;
 
-    const vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+    using vault = runGenerator(createVault(VAULT_DIR, { hooks }));
 
-    try {
-      const tasks = vault.getAllTasks();
+    const tasks = vault.getAllTasks();
 
-      // With chaos enabled, update should fail
-      expect(hooks.isEnabled()).toBe(true);
-      expect(() =>
-        vault.updateNode(tasks[0]!.id, { task_status: "done" }),
-      ).toThrow(/Mutation cancelled by hook/);
+    // With chaos enabled, update should fail
+    expect(hooks.isEnabled()).toBe(true);
+    expect(() =>
+      vault.updateNode(tasks[0]!.id, { task_status: "done" }),
+    ).toThrow(/Mutation cancelled by hook/);
 
-      // Disable chaos
-      hooks.disable();
-      expect(hooks.isEnabled()).toBe(false);
+    // Disable chaos
+    hooks.disable();
+    expect(hooks.isEnabled()).toBe(false);
 
-      // Now update should succeed
-      vault.updateNode(tasks[1]!.id, { task_status: "done" });
-      const updated = vault.getNode(tasks[1]!.id);
-      expect(updated!.task_status).toBe("done");
+    // Now update should succeed
+    vault.updateNode(tasks[1]!.id, { task_status: "done" });
+    const updated = vault.getNode(tasks[1]!.id);
+    expect(updated!.task_status).toBe("done");
 
-      // Re-enable chaos
-      hooks.enable();
-      expect(hooks.isEnabled()).toBe(true);
+    // Re-enable chaos
+    hooks.enable();
+    expect(hooks.isEnabled()).toBe(true);
 
-      // Now update should fail again
-      expect(() =>
-        vault.updateNode(tasks[2]!.id, { task_status: "done" }),
-      ).toThrow(/Mutation cancelled by hook/);
-    } finally {
-      vault.close();
-    }
+    // Now update should fail again
+    expect(() =>
+      vault.updateNode(tasks[2]!.id, { task_status: "done" }),
+    ).toThrow(/Mutation cancelled by hook/);
   });
 
   test("tracks statistics", () => {
@@ -256,26 +236,22 @@ describe.serial("createChaosHooks", () => {
       random,
     }) as ChaosHooks;
 
-    const vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+    using vault = runGenerator(createVault(VAULT_DIR, { hooks }));
 
-    try {
-      const tasks = vault.getAllTasks();
+    const tasks = vault.getAllTasks();
 
-      // Try multiple mutations
-      for (const task of tasks) {
-        try {
-          vault.updateNode(task.id, { task_status: "done" });
-        } catch {
-          // Expected for dropped mutations
-        }
+    // Try multiple mutations
+    for (const task of tasks) {
+      try {
+        vault.updateNode(task.id, { task_status: "done" });
+      } catch {
+        // Expected for dropped mutations
       }
-
-      const stats = hooks.getStats();
-      expect(stats.totalMutations).toBe(3);
-      expect(stats.droppedMutations + stats.successfulMutations).toBe(3);
-    } finally {
-      vault.close();
     }
+
+    const stats = hooks.getStats();
+    expect(stats.totalMutations).toBe(3);
+    expect(stats.droppedMutations + stats.successfulMutations).toBe(3);
   });
 
   test("clearChaosEvents resets event log", () => {
@@ -293,24 +269,20 @@ describe.serial("createChaosHooks", () => {
       mutationDropRate: 1.0,
     }) as ChaosHooks;
 
-    const vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+    using vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+
+    const tasks = vault.getAllTasks();
 
     try {
-      const tasks = vault.getAllTasks();
-
-      try {
-        vault.updateNode(tasks[0]!.id, { task_status: "done" });
-      } catch {
-        // Expected
-      }
-
-      expect(hooks.getChaosEvents()).toHaveLength(1);
-
-      hooks.clearChaosEvents();
-      expect(hooks.getChaosEvents()).toHaveLength(0);
-    } finally {
-      vault.close();
+      vault.updateNode(tasks[0]!.id, { task_status: "done" });
+    } catch {
+      // Expected
     }
+
+    expect(hooks.getChaosEvents()).toHaveLength(1);
+
+    hooks.clearChaosEvents();
+    expect(hooks.getChaosEvents()).toHaveLength(0);
   });
 
   test("seeded random produces deterministic results", () => {
@@ -335,20 +307,16 @@ describe.serial("createChaosHooks", () => {
         random,
       });
 
-      const vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+      using vault = runGenerator(createVault(VAULT_DIR, { hooks }));
 
-      try {
-        const tasks = vault.getAllTasks();
-        for (const task of tasks) {
-          try {
-            vault.updateNode(task.id, { task_status: "done" });
-            results.push("success");
-          } catch {
-            results.push("dropped");
-          }
+      const tasks = vault.getAllTasks();
+      for (const task of tasks) {
+        try {
+          vault.updateNode(task.id, { task_status: "done" });
+          results.push("success");
+        } catch {
+          results.push("dropped");
         }
-      } finally {
-        vault.close();
       }
     }
 

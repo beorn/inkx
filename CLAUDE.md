@@ -233,21 +233,21 @@ This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for
 ```bash
 bd ready              # Find available work (no blockers)
 bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
 bd close <id>         # Complete work
 bd create --title="..." --type=task --priority=2
 bd sync               # Commit beads changes
 ```
 
-**Workflow:** `bd ready` → claim → work → `bd close` → `bd sync`
+**Workflow:** `/bd ready` → `/bd work <id>` → work → `/bd close <id>` → `/bd sync`
 
-**Multi-session coordination:** When multiple Claude Code sessions work on the same codebase, use `/claim` to avoid conflicts:
+**Multi-session coordination:** When multiple Claude Code sessions work on the same codebase, use `/bd work` to claim work and avoid conflicts:
 
 ```bash
-/claim              # See available work + who has what claimed
-/claim <bead-id>    # Claim before starting work
-bd close <bead-id>  # Done (auto-releases claim)
-/claim release      # Release if switching tasks
+/bd                 # Dashboard: ready work + active claims
+/bd work <bead-id>  # Claim and start working (shows details)
+/bd my              # See your active claims
+/bd close <bead-id> # Complete work (auto-releases claim)
+/bd release         # Release claim if switching tasks
 ```
 
 Claims expire after 30 min of session inactivity. Stale claims can be taken over.

@@ -49,7 +49,7 @@ function applyMigrations(db: Database): void {
 /**
  * NodeStore interface - unified access to node storage
  */
-export interface NodeStore {
+export interface NodeStore extends Disposable {
   readonly mode: "memory" | "disk";
   readonly rootPath: string;
 
@@ -230,6 +230,10 @@ abstract class BaseStore implements NodeStore {
   abstract cloneTask(sourceId: string, changes: Partial<KNode>): string | null;
   abstract refresh(): void;
   abstract close(): void;
+
+  [Symbol.dispose](): void {
+    this.close();
+  }
 
   /**
    * Check if a path exists relative to rootPath

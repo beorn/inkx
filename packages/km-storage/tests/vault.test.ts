@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { runGenerator } from "@km/core";
 import { createVault } from "../src/index.ts";
-import type { MutationContext, VaultHooks } from "../src/index.ts";
+import type { MutationContext, Vault, VaultHooks } from "../src/index.ts";
 import { withTestEnv } from "./test-utils.ts";
 
 describe("createVault", () => {
@@ -25,14 +25,10 @@ describe("createVault", () => {
 `,
       );
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        expect(vault.mode).toBe("memory");
-        expect(vault.path).toBe(vaultDir);
-        expect(vault.stats.nodeCount).toBeGreaterThan(0);
-      } finally {
-        vault.close();
-      }
+      using vault = runGenerator(createVault(vaultDir));
+      expect(vault.mode).toBe("memory");
+      expect(vault.path).toBe(vaultDir);
+      expect(vault.stats.nodeCount).toBeGreaterThan(0);
     }));
 
   test("creates vault in disk mode (with .km dir)", () =>
@@ -47,13 +43,9 @@ describe("createVault", () => {
       );
       mkdirSync(join(vaultDir, ".km"), { recursive: true });
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        expect(vault.mode).toBe("disk");
-        expect(vault.path).toBe(vaultDir);
-      } finally {
-        vault.close();
-      }
+      using vault = runGenerator(createVault(vaultDir));
+      expect(vault.mode).toBe("disk");
+      expect(vault.path).toBe(vaultDir);
     }));
 
   test("getNode returns node by ID", () =>
@@ -66,20 +58,16 @@ describe("createVault", () => {
 `,
       );
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        const tasks = vault.getAllTasks();
-        expect(tasks.length).toBeGreaterThan(0);
+      using vault = runGenerator(createVault(vaultDir));
+      const tasks = vault.getAllTasks();
+      expect(tasks.length).toBeGreaterThan(0);
 
-        const task = tasks[0];
-        const fetched = vault.getNode(task.id);
+      const task = tasks[0]!;
+      const fetched = vault.getNode(task.id);
 
-        expect(fetched).not.toBeNull();
-        expect(fetched!.id).toBe(task.id);
-        expect(fetched!.content).toBe(task.content);
-      } finally {
-        vault.close();
-      }
+      expect(fetched).not.toBeNull();
+      expect(fetched!.id).toBe(task.id);
+      expect(fetched!.content).toBe(task.content);
     }));
 
   test("getChildren returns children of parent", () =>
@@ -99,18 +87,14 @@ Some content here.
 `,
       );
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        // Root children
-        const rootChildren = vault.getChildren(null);
-        expect(rootChildren.length).toBeGreaterThan(0);
+      using vault = runGenerator(createVault(vaultDir));
+      // Root children
+      const rootChildren = vault.getChildren(null);
+      expect(rootChildren.length).toBeGreaterThan(0);
 
-        const fileNames = rootChildren.map((n) => n.content);
-        expect(fileNames).toContain("Tasks");
-        expect(fileNames).toContain("Notes");
-      } finally {
-        vault.close();
-      }
+      const fileNames = rootChildren.map((n) => n.content);
+      expect(fileNames).toContain("Tasks");
+      expect(fileNames).toContain("Notes");
     }));
 
   test("getAllTasks returns all tasks", () =>
@@ -138,13 +122,9 @@ Some content here with [[tasks]] link.
 `,
       );
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        const tasks = vault.getAllTasks();
-        expect(tasks.length).toBe(4); // 3 in tasks.md, 1 in notes.md
-      } finally {
-        vault.close();
-      }
+      using vault = runGenerator(createVault(vaultDir));
+      const tasks = vault.getAllTasks();
+      expect(tasks.length).toBe(4); // 3 in tasks.md, 1 in notes.md
     }));
 
   test("getTasksByStatus filters by status", () =>
@@ -166,19 +146,15 @@ Some content here with [[tasks]] link.
 `,
       );
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        const todo = vault.getTasksByStatus("todo");
-        expect(todo.length).toBe(2);
+      using vault = runGenerator(createVault(vaultDir));
+      const todo = vault.getTasksByStatus("todo");
+      expect(todo.length).toBe(2);
 
-        const done = vault.getTasksByStatus("done");
-        expect(done.length).toBe(1);
+      const done = vault.getTasksByStatus("done");
+      expect(done.length).toBe(1);
 
-        const wip = vault.getTasksByStatus("wip");
-        expect(wip.length).toBe(1);
-      } finally {
-        vault.close();
-      }
+      const wip = vault.getTasksByStatus("wip");
+      expect(wip.length).toBe(1);
     }));
 
   test("search finds nodes by text", () =>
@@ -191,14 +167,10 @@ Some content here with [[tasks]] link.
 `,
       );
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        const results = vault.search("Open task");
-        expect(results.length).toBeGreaterThan(0);
-        expect(results.some((n) => n.content === "Open task")).toBe(true);
-      } finally {
-        vault.close();
-      }
+      using vault = runGenerator(createVault(vaultDir));
+      const results = vault.search("Open task");
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.some((n) => n.content === "Open task")).toBe(true);
     }));
 
   test("updateNode modifies node", () =>
@@ -211,21 +183,17 @@ Some content here with [[tasks]] link.
 `,
       );
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        const tasks = vault.getAllTasks();
-        const openTask = tasks.find((t) => t.content === "Open task")!;
+      using vault = runGenerator(createVault(vaultDir));
+      const tasks = vault.getAllTasks();
+      const openTask = tasks.find((t) => t.content === "Open task")!;
 
-        vault.updateNode(openTask.id, {
-          task_status: "done",
-          task_mark: "x",
-        });
+      vault.updateNode(openTask.id, {
+        task_status: "done",
+        task_mark: "x",
+      });
 
-        const updated = vault.getNode(openTask.id);
-        expect(updated!.task_status).toBe("done");
-      } finally {
-        vault.close();
-      }
+      const updated = vault.getNode(openTask.id);
+      expect(updated!.task_status).toBe("done");
     }));
 
   test("close prevents further operations", () =>
@@ -300,11 +268,7 @@ Some content here with [[tasks]] link.
 `,
       );
 
-      let vaultRef: ReturnType<
-        typeof createVault extends Generator<any, infer R, any>
-          ? () => R
-          : never
-      >;
+      let vaultRef: Vault;
 
       {
         using vault = runGenerator(createVault(vaultDir));
@@ -329,13 +293,9 @@ Some content here with [[tasks]] link.
 `,
       );
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        expect(vault.mode).toBe("memory");
-        expect(() => vault.watch()).toThrow("Cannot watch a memory vault");
-      } finally {
-        vault.close();
-      }
+      using vault = runGenerator(createVault(vaultDir));
+      expect(vault.mode).toBe("memory");
+      expect(() => vault.watch()).toThrow("Cannot watch a memory vault");
     }));
 
   test("watch returns Watcher in disk mode", () =>
@@ -349,16 +309,12 @@ Some content here with [[tasks]] link.
       );
       mkdirSync(join(vaultDir, ".km"), { recursive: true });
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        expect(vault.mode).toBe("disk");
+      using vault = runGenerator(createVault(vaultDir));
+      expect(vault.mode).toBe("disk");
 
-        const watcher = vault.watch();
-        expect(watcher).toBeDefined();
-        expect(watcher.status).toBe("stopped");
-      } finally {
-        vault.close();
-      }
+      const watcher = vault.watch();
+      expect(watcher).toBeDefined();
+      expect(watcher.status).toBe("stopped");
     }));
 
   test("yields progress info during loading", () =>
@@ -381,14 +337,11 @@ Some content here with [[tasks]] link.
       }
       const vault = result.value;
 
-      try {
-        expect(progress.length).toBeGreaterThan(0);
-        // New format: strings for labels, objects for progress
-        // First yield should be declare object, then "Discovering files" string
-        expect(progress.some((p) => p === "Discovering files")).toBe(true);
-      } finally {
-        vault.close();
-      }
+      using _vault = vault;
+      expect(progress.length).toBeGreaterThan(0);
+      // New format: strings for labels, objects for progress
+      // First yield should be declare object, then "Discovering files" string
+      expect(progress.some((p) => p === "Discovering files")).toBe(true);
     }));
 
   test("loadErrors captures non-fatal parse errors", () =>
@@ -408,14 +361,10 @@ Some content here with [[tasks]] link.
 `,
       );
 
-      const vault = runGenerator(createVault(vaultDir));
-      try {
-        // loadErrors may or may not have content depending on parser behavior
-        expect(vault.loadErrors).toBeDefined();
-        expect(Array.isArray(vault.loadErrors)).toBe(true);
-      } finally {
-        vault.close();
-      }
+      using vault = runGenerator(createVault(vaultDir));
+      // loadErrors may or may not have content depending on parser behavior
+      expect(vault.loadErrors).toBeDefined();
+      expect(Array.isArray(vault.loadErrors)).toBe(true);
     }));
 
   describe("hooks", () => {
@@ -436,21 +385,17 @@ Some content here with [[tasks]] link.
           },
         };
 
-        const vault = runGenerator(createVault(vaultDir, { hooks }));
-        try {
-          vault.getAllTasks();
-          vault.getNode(vault.getAllTasks()[0]!.id);
-          vault.getChildren(null);
-          vault.search("task");
+        using vault = runGenerator(createVault(vaultDir, { hooks }));
+        vault.getAllTasks();
+        vault.getNode(vault.getAllTasks()[0]!.id);
+        vault.getChildren(null);
+        vault.search("task");
 
-          expect(queryCalls.length).toBe(5); // getAllTasks x2, getNode, getChildren, search
-          expect(queryCalls.map((c) => c.operation)).toContain("getAllTasks");
-          expect(queryCalls.map((c) => c.operation)).toContain("getNode");
-          expect(queryCalls.map((c) => c.operation)).toContain("getChildren");
-          expect(queryCalls.map((c) => c.operation)).toContain("search");
-        } finally {
-          vault.close();
-        }
+        expect(queryCalls.length).toBe(5); // getAllTasks x2, getNode, getChildren, search
+        expect(queryCalls.map((c) => c.operation)).toContain("getAllTasks");
+        expect(queryCalls.map((c) => c.operation)).toContain("getNode");
+        expect(queryCalls.map((c) => c.operation)).toContain("getChildren");
+        expect(queryCalls.map((c) => c.operation)).toContain("search");
       }));
 
     test("beforeMutation is called before mutations", () =>
@@ -470,20 +415,16 @@ Some content here with [[tasks]] link.
           },
         };
 
-        const vault = runGenerator(createVault(vaultDir, { hooks }));
-        try {
-          const tasks = vault.getAllTasks();
-          const task = tasks[0]!;
+        using vault = runGenerator(createVault(vaultDir, { hooks }));
+        const tasks = vault.getAllTasks();
+        const task = tasks[0]!;
 
-          vault.updateNode(task.id, { task_status: "done" });
+        vault.updateNode(task.id, { task_status: "done" });
 
-          expect(mutations.length).toBe(1);
-          expect(mutations[0]!.type).toBe("update");
-          expect(mutations[0]!.nodeId).toBe(task.id);
-          expect(mutations[0]!.changes).toEqual({ task_status: "done" });
-        } finally {
-          vault.close();
-        }
+        expect(mutations.length).toBe(1);
+        expect(mutations[0]!.type).toBe("update");
+        expect(mutations[0]!.nodeId).toBe(task.id);
+        expect(mutations[0]!.changes).toEqual({ task_status: "done" });
       }));
 
     test("afterMutation is called after mutations", () =>
@@ -503,19 +444,15 @@ Some content here with [[tasks]] link.
           },
         };
 
-        const vault = runGenerator(createVault(vaultDir, { hooks }));
-        try {
-          const tasks = vault.getAllTasks();
-          const task = tasks[0]!;
+        using vault = runGenerator(createVault(vaultDir, { hooks }));
+        const tasks = vault.getAllTasks();
+        const task = tasks[0]!;
 
-          vault.updateNode(task.id, { task_status: "done" });
+        vault.updateNode(task.id, { task_status: "done" });
 
-          expect(mutations.length).toBe(1);
-          expect(mutations[0]!.type).toBe("update");
-          expect(mutations[0]!.nodeId).toBe(task.id);
-        } finally {
-          vault.close();
-        }
+        expect(mutations.length).toBe(1);
+        expect(mutations[0]!.type).toBe("update");
+        expect(mutations[0]!.nodeId).toBe(task.id);
       }));
 
     test("beforeMutation can cancel mutations", () =>
@@ -534,22 +471,18 @@ Some content here with [[tasks]] link.
           },
         };
 
-        const vault = runGenerator(createVault(vaultDir, { hooks }));
-        try {
-          const tasks = vault.getAllTasks();
-          const task = tasks[0]!;
-          const originalStatus = task.task_status;
+        using vault = runGenerator(createVault(vaultDir, { hooks }));
+        const tasks = vault.getAllTasks();
+        const task = tasks[0]!;
+        const originalStatus = task.task_status;
 
-          expect(() =>
-            vault.updateNode(task.id, { task_status: "done" }),
-          ).toThrow(/Mutation cancelled by hook/);
+        expect(() =>
+          vault.updateNode(task.id, { task_status: "done" }),
+        ).toThrow(/Mutation cancelled by hook/);
 
-          // Verify mutation didn't happen
-          const unchanged = vault.getNode(task.id);
-          expect(unchanged!.task_status).toBe(originalStatus);
-        } finally {
-          vault.close();
-        }
+        // Verify mutation didn't happen
+        const unchanged = vault.getNode(task.id);
+        expect(unchanged!.task_status).toBe(originalStatus);
       }));
 
     test("beforeMutation can modify context", () =>
@@ -576,19 +509,15 @@ Some content here with [[tasks]] link.
           },
         };
 
-        const vault = runGenerator(createVault(vaultDir, { hooks }));
-        try {
-          const tasks = vault.getAllTasks();
-          const task = tasks[0]!;
+        using vault = runGenerator(createVault(vaultDir, { hooks }));
+        const tasks = vault.getAllTasks();
+        const task = tasks[0]!;
 
-          // Request "done" but hook transforms to "wip"
-          vault.updateNode(task.id, { task_status: "done" });
+        // Request "done" but hook transforms to "wip"
+        vault.updateNode(task.id, { task_status: "done" });
 
-          const updated = vault.getNode(task.id);
-          expect(updated!.task_status).toBe("wip");
-        } finally {
-          vault.close();
-        }
+        const updated = vault.getNode(task.id);
+        expect(updated!.task_status).toBe("wip");
       }));
 
     test("onClose is called when vault is closed", () =>
@@ -661,22 +590,18 @@ Some content here with [[tasks]] link.
           },
         };
 
-        const vault = runGenerator(createVault(vaultDir, { hooks }));
-        try {
-          const rootChildren = vault.getChildren(null);
-          const fileNode = rootChildren[0]!;
+        using vault = runGenerator(createVault(vaultDir, { hooks }));
+        const rootChildren = vault.getChildren(null);
+        const fileNode = rootChildren[0]!;
 
-          vault.addNode(fileNode.id, {
-            type: "task",
-            content: "New task from hook test",
-          });
+        vault.addNode(fileNode.id, {
+          type: "task",
+          content: "New task from hook test",
+        });
 
-          expect(mutations.length).toBe(2); // before + after
-          expect(mutations[0]!.type).toBe("add");
-          expect(mutations[0]!.node?.content).toBe("New task from hook test");
-        } finally {
-          vault.close();
-        }
+        expect(mutations.length).toBe(2); // before + after
+        expect(mutations[0]!.type).toBe("add");
+        expect(mutations[0]!.node?.content).toBe("New task from hook test");
       }));
 
     test("deleteNode triggers mutation hooks", () =>
@@ -699,19 +624,15 @@ Some content here with [[tasks]] link.
           },
         };
 
-        const vault = runGenerator(createVault(vaultDir, { hooks }));
-        try {
-          const tasks = vault.getAllTasks();
-          const task = tasks[0]!;
+        using vault = runGenerator(createVault(vaultDir, { hooks }));
+        const tasks = vault.getAllTasks();
+        const task = tasks[0]!;
 
-          vault.deleteNode(task.id);
+        vault.deleteNode(task.id);
 
-          expect(mutations.length).toBe(2);
-          expect(mutations[0]!.type).toBe("delete");
-          expect(mutations[0]!.nodeId).toBe(task.id);
-        } finally {
-          vault.close();
-        }
+        expect(mutations.length).toBe(2);
+        expect(mutations[0]!.type).toBe("delete");
+        expect(mutations[0]!.nodeId).toBe(task.id);
       }));
   });
 });

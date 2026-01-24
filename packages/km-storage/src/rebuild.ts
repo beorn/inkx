@@ -113,67 +113,6 @@ export function* rebuildState(): Generator<
   };
 }
 
-/**
- * Check if state.db needs rebuild
- * Returns true if:
- * - state.db doesn't exist
- * - events.jsonl has events newer than last applied
- *
- * @deprecated Use vault.needsRebuild() instead. This singleton-based function
- * relies on global state and will be removed in a future version.
- */
-export function needsRebuild(): boolean {
-  const dbPath = getDbPath();
-
-  if (!existsSync(dbPath)) {
-    debug("needsRebuild: yes (no state.db)");
-    return true;
-  }
-
-  const eventsPath = getEventsPath();
-  if (!existsSync(eventsPath)) {
-    // No events, no rebuild needed
-    debug("needsRebuild: no (no events.jsonl)");
-    return false;
-  }
-
-  // Check if there are unapplied events
-  const db = getDb();
-  const lastApplied = db
-    .prepare("SELECT value FROM meta WHERE key = ?")
-    .get("last_event") as { value: string } | undefined;
-
-  if (!lastApplied?.value) {
-    // DB exists but hasn't applied any events
-    const events = readEvents();
-    const needs = events.length > 0;
-    debug("needsRebuild", {
-      result: needs ? "yes" : "no",
-      reason: "no last_event",
-      eventCount: events.length,
-    });
-    return needs;
-  }
-
-  // Check if events file has newer events
-  const events = readEvents();
-  const lastEvent = events.at(-1);
-
-  if (!lastEvent) {
-    debug("needsRebuild: no (no events)");
-    return false;
-  }
-
-  // ULID comparison - if last event ID > last applied, need to catch up
-  const needs = lastEvent.id > lastApplied.value;
-  debug("needsRebuild", {
-    result: needs ? "yes" : "no",
-    last: lastEvent.id.slice(-8),
-    applied: lastApplied.value.slice(-8),
-  });
-  return needs;
-}
-
 /** Result from syncState */
 export interface SyncResult {
   applied: number;
