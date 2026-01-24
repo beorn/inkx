@@ -130,6 +130,7 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
       };
     }),
     childCount: children.length,
+    childrenLoaded: true,
     isTask: node.task_status !== undefined,
     depth,
   };
@@ -384,7 +385,7 @@ export const shCommand = new Command("sh")
     if (cmdStrings && cmdStrings.length > 0) {
       // Batch mode: -c flag with commands
       const lines = cmdStrings.flatMap(parseCommandString);
-      const finalState = runShell(lines, initialState, {
+      const finalState = await runShell(lines, initialState, {
         jsonMode: options.json ?? false,
         verbose: options.verbose ?? false,
         output,
@@ -403,7 +404,7 @@ export const shCommand = new Command("sh")
     } else if (options.file) {
       // Batch mode: -f flag with file
       const lines = await readInputLines(options.file);
-      const finalState = runShell(lines, initialState, {
+      const finalState = await runShell(lines, initialState, {
         jsonMode: options.json ?? false,
         verbose: options.verbose ?? false,
         output,
@@ -482,39 +483,42 @@ export const shCommand = new Command("sh")
 
       await new Promise<void>((resolve) => {
         rl.on("line", (line) => {
-          // Signal command start
-          if (useOsc133) {
-            process.stdout.write(OSC_133_C);
-          }
-
-          const { state, quit } = executeCommand(line, ctx);
-          ctx.state = state;
-
-          // Append to history file (only non-empty lines)
-          if (line.trim().length > 0) {
-            try {
-              appendFileSync(historyPath, line + "\n");
-            } catch {
-              // Ignore history write errors
+          // Use void to handle async callback (lint: no-misused-promises)
+          void (async () => {
+            // Signal command start
+            if (useOsc133) {
+              process.stdout.write(OSC_133_C);
             }
-          }
 
-          // Signal command end (exit code 0 - shell commands don't have exit codes yet)
-          if (useOsc133) {
-            process.stdout.write(osc133D(0));
-            // Signal next prompt ready (unless quitting)
-            if (!quit) {
-              process.stdout.write(OSC_133_A);
+            const { state, quit } = await executeCommand(line, ctx);
+            ctx.state = state;
+
+            // Append to history file (only non-empty lines)
+            if (line.trim().length > 0) {
+              try {
+                appendFileSync(historyPath, line + "\n");
+              } catch {
+                // Ignore history write errors
+              }
             }
-          }
 
-          if (quit) {
-            rl.close();
-          } else {
-            // Update prompt with new path and show it
-            rl.setPrompt(buildPrompt());
-            rl.prompt();
-          }
+            // Signal command end (exit code 0 - shell commands don't have exit codes yet)
+            if (useOsc133) {
+              process.stdout.write(osc133D(0));
+              // Signal next prompt ready (unless quitting)
+              if (!quit) {
+                process.stdout.write(OSC_133_A);
+              }
+            }
+
+            if (quit) {
+              rl.close();
+            } else {
+              // Update prompt with new path and show it
+              rl.setPrompt(buildPrompt());
+              rl.prompt();
+            }
+          })();
         });
 
         rl.on("close", () => {

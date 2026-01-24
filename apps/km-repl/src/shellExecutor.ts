@@ -15,7 +15,8 @@ import type {
 import { boardReducer, getNodeAtPath } from "@km/board";
 import { parseCommand, getCommandHelp } from "./commandParser.ts";
 import type { ShellCommand } from "./commandParser.ts";
-import { renderTree } from "./treeRenderer.tsx";
+// Note: renderTree is imported lazily to avoid loading inkx/testing
+// (which sets IS_REACT_ACT_ENVIRONMENT=true) when km-repl is imported
 
 /**
  * Output event types for JSON mode
@@ -207,7 +208,7 @@ function getPathAsString(state: BoardState): string {
   for (const idx of state.cursor) {
     const node = nodes[idx];
     if (!node) break;
-    parts.push(node.title);
+    parts.push(node.title ?? node.id);
     nodes = node.children;
   }
 
@@ -237,7 +238,7 @@ export function getPromptPath(
     const node = nodes[idx];
     if (!node) break;
     // Use name if available, otherwise fall back to slugified title
-    parts.push(node.name || slugify(node.title));
+    parts.push(node.name ?? slugify(node.title ?? node.id));
     nodes = node.children;
   }
 
@@ -259,12 +260,12 @@ function findChildByName(
     if (!node) continue;
 
     // Match by exact title (case-insensitive)
-    if (node.title.toLowerCase() === lowerName) {
+    if (node.title && node.title.toLowerCase() === lowerName) {
       return { node, index: i };
     }
 
     // Match by slugified title
-    if (slugify(node.title) === slugName) {
+    if (node.title && slugify(node.title) === slugName) {
       return { node, index: i };
     }
 
@@ -456,14 +457,14 @@ function renderTreeCommand(
         return "tree: path not found";
       }
       startNodes = [node];
-      rootTitle = node.title;
+      rootTitle = node.title ?? node.id;
     }
   } else {
     // Tree from current node
     const currentNode = getNodeAtPath(state.nodes, state.cursor);
     if (currentNode) {
       startNodes = [currentNode];
-      rootTitle = currentNode.title;
+      rootTitle = currentNode.title ?? currentNode.id;
     } else {
       startNodes = state.nodes;
       rootTitle = state.rootPath || ".";
@@ -563,10 +564,10 @@ function catNode(state: BoardState, pathStr?: string): string {
 /**
  * Execute a shell command (not a BoardAction)
  */
-export function executeShellCommand(
+export async function executeShellCommand(
   command: ShellCommand,
   ctx: ShellContext,
-): { quit: boolean } {
+): Promise<{ quit: boolean }> {
   const ts = Date.now();
 
   switch (command.type) {
@@ -590,6 +591,8 @@ export function executeShellCommand(
     }
 
     case "RENDER": {
+      // Lazy import to avoid loading inkx/testing at module load time
+      const { renderTree } = await import("./treeRenderer.tsx");
       const view = renderTree(ctx.state, {
         width: command.width,
         height: command.height,
@@ -803,10 +806,10 @@ export function executeBoardAction(
  * Execute a single command line
  * Returns new state and whether to quit
  */
-export function executeCommand(
+export async function executeCommand(
   line: string,
   ctx: ShellContext,
-): { state: BoardState; quit: boolean } {
+): Promise<{ state: BoardState; quit: boolean }> {
   const ts = Date.now();
   const result = parseCommand(line);
 
@@ -904,7 +907,7 @@ export function executeCommand(
 
   // Execute shell command or tree action
   if ("command" in result) {
-    const { quit } = executeShellCommand(result.command, ctx);
+    const { quit } = await executeShellCommand(result.command, ctx);
     return { state: ctx.state, quit };
   } else {
     const newState = executeBoardAction(result.action, ctx);
@@ -916,7 +919,7 @@ export function executeCommand(
  * Run shell with input lines
  * Returns final state
  */
-export function runShell(
+export async function runShell(
   lines: string[],
   initialState: BoardState,
   options: {
@@ -926,7 +929,7 @@ export function runShell(
     stdlog?: (line: string) => void;
     onMutation?: MutationHandler;
   } = {},
-): BoardState {
+): Promise<BoardState> {
   const jsonMode = options.jsonMode ?? false;
   const verbose = options.verbose ?? false;
   const output =
@@ -951,7 +954,7 @@ export function runShell(
   };
 
   for (const line of lines) {
-    const { state, quit } = executeCommand(line, ctx);
+    const { state, quit } = await executeCommand(line, ctx);
     ctx.state = state;
     if (quit) break;
   }
