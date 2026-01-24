@@ -13,10 +13,16 @@ export {
   formatChaosReportJson,
   formatChaosReportMarkdown,
 } from "./chaos-report.ts";
-export { withTestEnv, withTestEnvSync } from "./test-env.ts";
+export {
+  withTestEnv,
+  withTestEnvSync,
+  getTestMode,
+  isRealMode,
+  isMockMode,
+} from "./env.ts";
 
 export type { FakeVault, FakeVaultOptions } from "./fake-vault.ts";
-export type { TestEnv } from "./test-env.ts";
+export type { TestEnv, TestMode } from "./env.ts";
 export type {
   ChaosFakeVault,
   ChaosFakeVaultOptions,

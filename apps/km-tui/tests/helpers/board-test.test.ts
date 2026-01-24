@@ -25,9 +25,7 @@ describe("board-test helper", () => {
 
   test("board() fixture DSL creates valid board state", () => {
     const state = board({
-      columns: [
-        column("My Column", ["Task A", "Task B"]),
-      ],
+      columns: [column("My Column", ["Task A", "Task B"])],
     });
 
     expect(state.columns).toHaveLength(1);

@@ -32,18 +32,18 @@ and the invariants verified after each scenario.
 
 ## Scenarios Tested
 
-| Scenario | Description | Real-World Analog |
-|----------|-------------|-------------------|
-| `slow_disk` | Events delayed 2-5 seconds | Network drives, busy disks |
-| `queue_overflow` | 20% of events dropped randomly | inotify IN_Q_OVERFLOW |
-| `editor_atomic` | change → delete + add pair | Vim/VSCode atomic saves |
-| `event_storm` | Bursts of 100+ events | npm install, git checkout |
-| `reorder_chaos` | Events reordered randomly | Non-deterministic delivery |
-| `partial_writes` | File created before fully written | Large file writes |
-| `rename_storm` | Rapid file renames | Refactoring tools |
-| `fsevents_coalesce` | Parent dir event only | macOS FSEvents coalescing |
-| `init_gap` | Changes during watcher init | Files created before ready |
-| `rapid_succession` | Many edits in milliseconds | Rapid typing with autosave |
+| Scenario            | Description                       | Real-World Analog          |
+| ------------------- | --------------------------------- | -------------------------- |
+| `slow_disk`         | Events delayed 2-5 seconds        | Network drives, busy disks |
+| `queue_overflow`    | 20% of events dropped randomly    | inotify IN_Q_OVERFLOW      |
+| `editor_atomic`     | change → delete + add pair        | Vim/VSCode atomic saves    |
+| `event_storm`       | Bursts of 100+ events             | npm install, git checkout  |
+| `reorder_chaos`     | Events reordered randomly         | Non-deterministic delivery |
+| `partial_writes`    | File created before fully written | Large file writes          |
+| `rename_storm`      | Rapid file renames                | Refactoring tools          |
+| `fsevents_coalesce` | Parent dir event only             | macOS FSEvents coalescing  |
+| `init_gap`          | Changes during watcher init       | Files created before ready |
+| `rapid_succession`  | Many edits in milliseconds        | Rapid typing with autosave |
 
 ## Invariants Verified
 
@@ -58,6 +58,7 @@ After each chaos scenario, the following invariants are checked:
 ## Test Results
 
 As of 2026-01-23, the chaos fuzzer passes:
+
 - 500 iterations with aggressive parameters
 - All 10 chaos scenarios
 - Combination of up to 3 scenarios per test

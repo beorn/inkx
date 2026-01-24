@@ -54,6 +54,7 @@ without creating duplicate nodes.
 ## What This Tests
 
 When inotify/FSEvents buffer overflows:
+
 1. Events may be dropped randomly
 2. System recovers by re-scanning affected directories
 3. Recovery must not create duplicate nodes

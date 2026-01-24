@@ -43,6 +43,7 @@ correctly captured when the watcher becomes ready.
 ## What This Tests
 
 Race condition window:
+
 1. Initial directory scan completes
 2. Watcher starts but isn't ready yet (2 second gap)
 3. Files are created/modified during this window

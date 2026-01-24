@@ -56,6 +56,7 @@ in non-deterministic order.
 ## What This Tests
 
 File system events can arrive out of order:
+
 1. Network filesystems may batch/reorder
 2. Multi-threaded watchers have race conditions
 3. OS event queues have no ordering guarantees

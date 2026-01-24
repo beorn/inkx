@@ -351,7 +351,9 @@ class BoardTestImpl implements BoardTest {
         expect(otherBox).not.toBeNull();
 
         if (textBox && otherBox) {
-          expect(textBox.y).toBeGreaterThanOrEqual(otherBox.y + otherBox.height);
+          expect(textBox.y).toBeGreaterThanOrEqual(
+            otherBox.y + otherBox.height,
+          );
         }
 
         return self;
@@ -549,7 +551,9 @@ export function column(
  * });
  * ```
  */
-export function board(config: { columns: ReturnType<typeof column>[] }): BoardState {
+export function board(config: {
+  columns: ReturnType<typeof column>[];
+}): BoardState {
   return createBoardStateFixture(config.columns, {
     colIndex: 0,
     cardIndex: 0,
@@ -564,10 +568,7 @@ export function board(config: { columns: ReturnType<typeof column>[] }): BoardSt
  * Simple 2-column board with basic tasks
  */
 export const SIMPLE_BOARD = board({
-  columns: [
-    column("To Do", ["Task 1", "Task 2"]),
-    column("Done", ["Task 3"]),
-  ],
+  columns: [column("To Do", ["Task 1", "Task 2"]), column("Done", ["Task 3"])],
 });
 
 /**

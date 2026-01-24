@@ -221,16 +221,42 @@ See [chaos-testing.md](chaos-testing.md) for detailed reference.
 
 ## Infrastructure Modes
 
-All tests default to lightweight infrastructure.
+All tests default to lightweight infrastructure. Use `TEST_MODE` to switch:
 
-| Mode        | Infrastructure   | Speed   | When to Run                   |
-| ----------- | ---------------- | ------- | ----------------------------- |
-| **default** | Memory DB, mocks | ~10-30s | Every test run                |
-| **real**    | Real fs, disk DB | ~3-5min | CI, releases, drift detection |
+| Mode         | Database | Filesystem | Speed   | Use Case                      |
+| ------------ | -------- | ---------- | ------- | ----------------------------- |
+| **standard** | Memory   | Real /tmp  | ~24s    | Default, everyday testing     |
+| **mock**     | Memory   | Real /tmp  | ~20s    | Skip watcher/sync tests       |
+| **real**     | Disk     | Real /tmp  | ~3-5min | CI, releases, drift detection |
 
-**Environment variable**: `TEST_MODE=real bun test`
+All modes create filesystem for compatibility. Speed differences:
 
-**Mock drift detection**: Periodic `TEST_MODE=real` runs catch when mocks diverge from reality.
+- **mock** vs **standard**: Skip slow watcher/sync tests with `test.skipIf(isMockMode())`
+- **standard** vs **real**: Memory DB is faster than disk DB operations
+
+**Commands**:
+
+```bash
+bun run test:fast    # Standard mode (default)
+bun run test:mock    # Mock mode - skips watcher tests
+bun run test:real    # Real mode - disk DB + all tests
+```
+
+**Environment variable**: `TEST_MODE=mock|standard|real`
+
+**In test code**:
+
+```typescript
+import { getTestMode, isMockMode, isRealMode } from "@km/storage";
+
+// Skip slow infrastructure tests in mock mode
+test.skipIf(isMockMode())("file watcher syncs", () => { ... });
+
+// Only run in real mode (detect mock drift)
+test.skipIf(!isRealMode())("disk db behavior", () => { ... });
+```
+
+**Mock drift detection**: Periodic `test:real` runs catch when mocks diverge from reality.
 
 ---
 

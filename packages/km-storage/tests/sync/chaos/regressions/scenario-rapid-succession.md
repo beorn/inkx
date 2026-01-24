@@ -64,6 +64,7 @@ from autosave, search-replace, or fast typing.
 ## What This Tests
 
 When users type rapidly with autosave:
+
 1. Multiple change events fire in quick succession
 2. Debouncing should coalesce these
 3. Only final state should be persisted

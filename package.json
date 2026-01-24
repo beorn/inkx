@@ -30,6 +30,8 @@
     "codemod": "bun scripts/codemod.ts",
     "fix": "bun run codemod && bun run lint:fix && bun run format:fix",
     "test:fast": "bun test $(find packages apps vendor -name '*.test.ts' ! -name '*.slow.test.ts' ! -path '*/node_modules/*' 2>/dev/null)",
+    "test:mock": "TEST_MODE=mock bun run test:fast",
+    "test:real": "TEST_MODE=real bun run test:fast && TEST_MODE=real bun run test:slow",
     "test:slow": "bun test $(find packages apps vendor -name '*.slow.test.ts' ! -path '*/node_modules/*' 2>/dev/null)",
     "test:mdtest": "bun run vendor/beorn-mdtest/src/index.ts $(find packages apps vendor -name '*.test.md' ! -path '*/node_modules/*' 2>/dev/null)",
     "test:mdtest:update": "bun run vendor/beorn-mdtest/src/index.ts --update $(find packages apps vendor -name '*.test.md' ! -path '*/node_modules/*' 2>/dev/null)",

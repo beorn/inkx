@@ -47,6 +47,7 @@ editors like Vim, VSCode, and Emacs.
 ## What This Tests
 
 Editors use atomic writes to prevent data loss:
+
 1. Write content to `file.tmp`
 2. Delete original `file.md`
 3. Rename `file.tmp` to `file.md`

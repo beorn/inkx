@@ -7,11 +7,7 @@
 
 import { describe, test, expect } from "bun:test";
 
-import {
-  getNode,
-  getTasksByStatus,
-  withTestEnv,
-} from "@km/storage";
+import { getNode, getTasksByStatus, withTestEnv } from "@km/storage";
 import type { KNode, TaskStatus } from "@km/core";
 import type { Database } from "bun:sqlite";
 
