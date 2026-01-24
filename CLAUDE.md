@@ -233,16 +233,20 @@ Packages in `vendor/` are standalone libraries that could be useful outside km. 
 This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
 
 ```bash
-bd ready              # Find available work (no blockers)
-bd show <id>          # View issue details
-bd close <id>         # Complete work
+bd ready                   # Find available work (no blockers)
+bd show <id>               # View issue details
+bd list                    # List all issues
+bd list --status open      # Filter by status
+bd update <id> --status in_progress  # Update issue
+bd close <id>              # Complete work
+bd close <id> -r "reason"  # Close with reason
 bd create --title="..." --type=task --priority=2
-bd sync               # Commit beads changes
+bd sync                    # Commit beads changes
 ```
 
-**Workflow:** `/bd ready` → `/bd work <id>` → work → `/bd close <id>` → `/bd sync`
+**Workflow:** `bd ready` → claim → work → `bd close` → `bd sync`
 
-**Multi-session coordination:** When multiple Claude Code sessions work on the same codebase, use `/bd work` to claim work and avoid conflicts:
+**Multi-session coordination:** When multiple Claude Code sessions work on the same codebase, use `/bd` skill for session-aware claiming:
 
 ```bash
 /bd                 # Dashboard: ready work + active claims
@@ -251,6 +255,8 @@ bd sync               # Commit beads changes
 /bd close <bead-id> # Complete work (auto-releases claim)
 /bd release         # Release claim if switching tasks
 ```
+
+Note: `/bd work`, `/bd my`, `/bd release` use the session script at `.claude/skills/bd/scripts/bd.ts`. Other commands use `bd` directly.
 
 Claims expire after 30 min of session inactivity. Stale claims can be taken over.
 

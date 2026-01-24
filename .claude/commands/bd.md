@@ -57,14 +57,14 @@ When multiple Claude Code sessions work on the same codebase:
 
 ## Execute
 
-Use the session-aware bd script:
-
+**Session-aware commands** (`work`, `claim`, `release`, `my`):
 ```bash
 bun ./.claude/skills/bd/scripts/bd.ts $ARGUMENTS
 ```
 
-For `create`, `list`, or other non-session commands, pass through to `bd` directly:
-
+**Standard commands** (`ready`, `show`, `close`, `sync`, `create`, `list`, etc.):
 ```bash
 bd $ARGUMENTS
 ```
+
+Most commands work directly with `bd`. Only use the script for session coordination.
