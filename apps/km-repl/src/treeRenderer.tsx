@@ -1,0 +1,213 @@
+/**
+ * Tree Renderer for km-sh
+ *
+ * Renders a BoardState tree using inkx for TUI-style output.
+ * Used by the `render` command to provide visual debugging.
+ */
+
+import React from "react";
+import { Box, Text } from "inkx";
+import {
+  createTestRenderer,
+  bufferToText,
+  bufferToStyledText,
+} from "inkx/testing";
+import type { BoardState, TNode, TPath } from "@km/board";
+
+// Status icons for task status
+const STATUS_ICONS: Record<string, string> = {
+  todo: "○",
+  wip: "◐",
+  blocked: "⊘",
+  done: "✓",
+  dropped: "∅",
+};
+
+interface TreeLineProps {
+  prefix: string;
+  connector: string;
+  foldChar: string;
+  statusIcon: string;
+  title: string;
+  suffix: string;
+  isCursor: boolean;
+  isSelected: boolean;
+}
+
+/**
+ * Renders a single tree line with proper styling
+ */
+function TreeLine({
+  prefix,
+  connector,
+  foldChar,
+  statusIcon,
+  title,
+  suffix,
+  isCursor,
+  isSelected,
+}: TreeLineProps): React.ReactElement {
+  // Build the full line content
+  const contentText = `${foldChar} ${statusIcon} ${title}${suffix}`;
+
+  if (isCursor) {
+    return (
+      <Text>
+        <Text dimColor>{prefix}{connector}</Text>
+        <Text backgroundColor="cyan" color="black">{contentText}</Text>
+      </Text>
+    );
+  }
+
+  if (isSelected) {
+    return (
+      <Text>
+        <Text dimColor>{prefix}{connector}</Text>
+        <Text color="cyan">{contentText}</Text>
+      </Text>
+    );
+  }
+
+  return (
+    <Text>
+      <Text dimColor>{prefix}{connector}</Text>
+      <Text>{contentText}</Text>
+    </Text>
+  );
+}
+
+/**
+ * Recursively build tree lines for rendering
+ */
+function buildTreeLines(
+  nodes: TNode[],
+  cursor: TPath,
+  foldedNodes: Set<string>,
+  selectedNodes: Set<string>,
+  parentPath: TPath,
+  prefix: string,
+): React.ReactElement[] {
+  const lines: React.ReactElement[] = [];
+
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (!node) continue;
+
+    const path = [...parentPath, i];
+    const isLast = i === nodes.length - 1;
+    const connector = isLast ? "└── " : "├── ";
+    const childPrefix = prefix + (isLast ? "    " : "│   ");
+
+    // Check if this node is at the cursor position
+    const isCursor =
+      cursor.length === path.length &&
+      cursor.every((v, j) => v === path[j]);
+    const isSelected = selectedNodes.has(node.id);
+    const isFolded = foldedNodes.has(node.id);
+
+    // Status icon
+    const statusIcon = node.task_status
+      ? STATUS_ICONS[node.task_status] ?? " "
+      : " ";
+
+    // Fold indicator
+    const foldChar = node.childCount > 0 ? (isFolded ? "▸" : "▾") : " ";
+
+    // Title with count if folded
+    const titleSuffix =
+      isFolded && node.childCount > 0 ? ` (+${node.childCount})` : "";
+
+    lines.push(
+      <TreeLine
+        key={node.id}
+        prefix={prefix}
+        connector={connector}
+        foldChar={foldChar}
+        statusIcon={statusIcon}
+        title={node.title ?? "(untitled)"}
+        suffix={titleSuffix}
+        isCursor={isCursor}
+        isSelected={isSelected}
+      />,
+    );
+
+    // Render children if not folded
+    if (!isFolded && node.children.length > 0) {
+      lines.push(
+        ...buildTreeLines(
+          node.children,
+          cursor,
+          foldedNodes,
+          selectedNodes,
+          path,
+          childPrefix,
+        ),
+      );
+    }
+  }
+
+  return lines;
+}
+
+interface TreeViewProps {
+  state: BoardState;
+  width: number;
+  height: number;
+}
+
+/**
+ * Main tree view component for rendering BoardState
+ */
+function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
+  const lines = buildTreeLines(
+    state.nodes,
+    state.cursor,
+    state.foldedNodes,
+    state.selectedNodes,
+    [],
+    "",
+  );
+
+  return (
+    <Box flexDirection="column" width={width} height={height}>
+      {/* Header */}
+      <Text bold>{state.rootPath ?? "/"}</Text>
+      {/* Tree content */}
+      {lines}
+      {/* Footer with cursor position */}
+      <Box marginTop={1}>
+        <Text dimColor>
+          cursor: [{state.cursor.join(",")}]
+          {state.selectedNodes.size > 0 &&
+            ` selected: ${state.selectedNodes.size}`}
+        </Text>
+      </Box>
+    </Box>
+  );
+}
+
+/**
+ * Render a BoardState to text using inkx test renderer
+ */
+export function renderTree(
+  state: BoardState,
+  options: { width?: number; height?: number; ansi?: boolean } = {},
+): string {
+  const { width = 80, height = 24, ansi = false } = options;
+
+  // Create test renderer
+  const render = createTestRenderer({ columns: width, rows: height });
+
+  // Render the tree view
+  const { lastBuffer } = render(
+    React.createElement(TreeView, { state, width, height }),
+  );
+
+  // Get the buffer and convert to text
+  const buffer = lastBuffer();
+  if (!buffer) {
+    return "(render failed)";
+  }
+
+  return ansi ? bufferToStyledText(buffer) : bufferToText(buffer);
+}

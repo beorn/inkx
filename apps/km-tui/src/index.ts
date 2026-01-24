@@ -25,3 +25,6 @@ export * from "./text/index.ts";
 export * from "./layout/index.ts";
 
 // Note: Icons are exported via ./text/index.ts
+
+// Testing utilities
+export { createBoardTest, type BoardTestHarness } from "./testing.ts";

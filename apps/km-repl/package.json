@@ -9,6 +9,11 @@
   "private": true,
   "dependencies": {
     "@km/board": "workspace:*",
-    "@km/commands": "workspace:*"
+    "@km/commands": "workspace:*",
+    "inkx": "workspace:*",
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:"
   }
 }

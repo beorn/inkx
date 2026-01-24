@@ -15,6 +15,7 @@ import type {
 import { boardReducer, getNodeAtPath } from "@km/board";
 import { parseCommand, getCommandHelp } from "./commandParser.ts";
 import type { ShellCommand } from "./commandParser.ts";
+import { renderTree } from "./treeRenderer.tsx";
 
 /**
  * Output event types for JSON mode
@@ -580,6 +581,20 @@ export function executeShellCommand(
 
     case "VIEW": {
       const view = renderAsciiView(ctx.state);
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: view, ts });
+      } else {
+        ctx.output(view);
+      }
+      return { quit: false };
+    }
+
+    case "RENDER": {
+      const view = renderTree(ctx.state, {
+        width: command.width,
+        height: command.height,
+        ansi: command.ansi,
+      });
       if (ctx.jsonMode) {
         ctx.output({ event: "output", text: view, ts });
       } else {

@@ -26,6 +26,7 @@ import type { TaskStatus } from "@km/board";
 export type ShellCommand =
   | { type: "STATE" } // Dump current state
   | { type: "VIEW" } // Render current view as ASCII
+  | { type: "RENDER"; width?: number; height?: number; ansi?: boolean } // Render TUI-style view using inkx
   | { type: "HELP"; topic?: string } // Show help
   | { type: "LOG"; count?: number } // Dump last n actions (default: all)
   | { type: "QUIT" } // Exit shell
@@ -540,6 +541,37 @@ export function parseCommand(input: string): ParseResult {
       return { ok: true, command: { type: "SHIFT", direction: "down" } };
     }
 
+    // render [--width N] [--height N] [--ansi] - render TUI-style view
+    case "render": {
+      let width: number | undefined;
+      let height: number | undefined;
+      let ansi = false;
+
+      for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+        const nextArg = args[i + 1];
+        if (arg === "--width" && nextArg) {
+          width = parseInt(nextArg, 10);
+          if (isNaN(width)) {
+            return { ok: false, error: "render --width requires a number" };
+          }
+          i++;
+        } else if (arg === "--height" && nextArg) {
+          height = parseInt(nextArg, 10);
+          if (isNaN(height)) {
+            return { ok: false, error: "render --height requires a number" };
+          }
+          i++;
+        } else if (arg === "--ansi") {
+          ansi = true;
+        } else if (arg?.startsWith("--")) {
+          return { ok: false, error: `Unknown render option: ${arg}` };
+        }
+      }
+
+      return { ok: true, command: { type: "RENDER", width, height, ansi } };
+    }
+
     default:
       return { ok: false, error: `Unknown command: ${cmd}` };
   }
@@ -571,6 +603,8 @@ export function getCommandHelp(topic?: string): string {
       key: "key <keyspec> - Send raw key (e.g., key j, key <Enter>)",
       state: "Dump current BoardState as JSON",
       view: "Render current view as ASCII",
+      render:
+        "render [--width N] [--height N] [--ansi] - Render TUI-style view using inkx",
       help: "help [command] - Show help",
       quit: "Exit the shell",
       // Filesystem-like commands
@@ -621,6 +655,7 @@ View:
 Shell:
   state - dump BoardState as JSON
   view - render ASCII view
+  render [--width N] [--height N] [--ansi] - TUI-style view
   help [command] - show help
   quit, exit, q - exit shell
 
@@ -662,6 +697,7 @@ export function getCommandNames(): string[] {
     "select_node_remove",
     "select_node_toggle",
     "key",
+    "render",
     // Filesystem-like commands
     "ls",
     "cd",
