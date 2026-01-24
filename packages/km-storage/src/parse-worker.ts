@@ -3,7 +3,15 @@
  *
  * Parses markdown files in a worker thread for parallel processing.
  * km-fast-md.6: Worker pool for parallel parsing
+ *
+ * Note: Debug output is suppressed in worker threads. Workers don't have
+ * access to the main thread's DEBUG_LOG redirection, so debug() would write
+ * to stdout. To debug the parser, run it outside the worker context.
  */
+
+// Suppress debug output in worker - it would bypass DEBUG_LOG and go to stdout
+// Must be set BEFORE importing modules that use debug()
+delete process.env.DEBUG;
 
 import { readFileSync } from "fs";
 import { parseMarkdownWithLinks } from "@km/markdown";
