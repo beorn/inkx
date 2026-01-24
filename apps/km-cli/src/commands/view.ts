@@ -119,12 +119,11 @@ export const viewCommand = new Command("view")
 
     // km-fast-md.7: Parse files and resolve links in background after board starts
     // This keeps startup instant while eventually completing content parsing
-    let backgroundTask: Promise<void> | null = null;
     let aborted = false;
 
     if (deferredFiles.length > 0) {
       debug("scheduling background parsing for %d files", deferredFiles.length);
-      backgroundTask = (async () => {
+      void (async () => {
         // Small delay to let the board render first
         await new Promise((r) => setTimeout(r, 100));
         if (aborted) return;
@@ -158,10 +157,7 @@ export const viewCommand = new Command("view")
       watchWorker,
     });
 
-    // Signal background task to stop and wait for it
+    // Signal background task to stop (don't wait - causes Bun crash on cleanup)
     aborted = true;
-    if (backgroundTask) {
-      debug("waiting for background task to complete");
-      await backgroundTask;
-    }
+    // Background task will check `aborted` and exit cleanly on next yield
   });
