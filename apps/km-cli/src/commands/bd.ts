@@ -25,7 +25,8 @@ import {
   getStore,
   resolvePathArg,
   getBeadsConfig,
-  getConfigPath,
+  loadConfigObject,
+  runWithKmDir,
 } from "@km/storage";
 import { join } from "path";
 import { existsSync } from "fs";
@@ -432,107 +433,112 @@ bdCommand
   .description("Show beads configuration and statistics")
   .action((scope) => {
     const resolved = resolvePathArg(scope);
-    const scopePath = resolved.nodeRef ?? undefined;
-    const config = getBeadsConfig(resolved.vaultRoot);
-    const configPath = getConfigPath();
-
     const kmDir = join(resolved.vaultRoot, ".km");
-    const dbPath = getDbPath();
-    const store = getStore();
 
-    // Query with board filter if configured
-    const boardTag = config.board || undefined;
-    const issues = queryIssues({}, scopePath, boardTag);
+    // Run with kmDir context for getDbPath, getStore
+    runWithKmDir(kmDir, () => {
+      const scopePath = resolved.nodeRef ?? undefined;
+      const configObj = loadConfigObject(resolved.vaultRoot);
+      const config = configObj.beads;
+      const dbPath = getDbPath();
+      const store = getStore();
 
-    console.log(chalk.bold("Beads Configuration"));
-    console.log("===================");
-    console.log(
-      `Board:  ${config.board || chalk.dim("(none - showing all tasks)")}`,
-    );
-    console.log(
-      `Parent: ${config.parent || chalk.dim("(none - create manually)")}`,
-    );
-    console.log(`Prefix: ${config.prefix}`);
-    if (configPath) {
-      console.log(chalk.dim(`Config: ${configPath}`));
-    }
+      // Query with board filter if configured
+      const boardTag = config.board || undefined;
+      const issues = queryIssues({}, scopePath, boardTag);
 
-    console.log();
-    console.log(chalk.bold("How tasks are tracked:"));
-    if (config.board) {
+      console.log(chalk.bold("Beads Configuration"));
+      console.log("===================");
       console.log(
-        `  Tasks tagged @${config.board} are shown by 'km bd' commands.`,
-      );
-      console.log(`  View the board with 'km view @${config.board}'.`);
-    } else {
-      console.log(
-        `  All tasks in the vault are shown (no board filter configured).`,
+        `Board:  ${config.board || chalk.dim("(none - showing all tasks)")}`,
       );
       console.log(
-        `  Set beads.board in .km/config.yaml to filter to a specific board.`,
+        `Parent: ${config.parent || chalk.dim("(none - create manually)")}`,
       );
-    }
-    if (config.parent) {
-      console.log(`  New issues will be created in ${config.parent}.`);
-    }
-
-    console.log();
-    console.log(chalk.bold("Storage"));
-    console.log(`  Database: ${dbPath}`);
-    console.log(`  Mode: ${store ? "disk" : "memory"}`);
-    console.log(`  Vault: ${resolved.vaultRoot}`);
-    if (kmDir) {
-      console.log(`  KM Dir: ${kmDir}`);
-    }
-    if (scopePath) {
-      console.log(`  Scope: ${scopePath}`);
-    }
-
-    console.log();
-    const scopeMsg = scopePath
-      ? ` in ${scopePath}`
-      : boardTag
-        ? ` on @${boardTag}`
-        : "";
-    console.log(chalk.bold(`Statistics${scopeMsg}`));
-    console.log(`  Total: ${issues.length} issues`);
-
-    // Show breakdown by status
-    const byStatus = {
-      open: issues.filter((i) => i.status === "todo").length,
-      in_progress: issues.filter((i) => i.status === "wip").length,
-      blocked: issues.filter((i) => i.status === "blocked").length,
-      closed: issues.filter((i) => i.status === "done").length,
-      dropped: issues.filter((i) => i.status === "dropped").length,
-    };
-    if (issues.length > 0) {
-      console.log(
-        `  Open: ${byStatus.open}, In Progress: ${byStatus.in_progress}, Blocked: ${byStatus.blocked}`,
-      );
-      console.log(`  Closed: ${byStatus.closed}, Dropped: ${byStatus.dropped}`);
-    }
-
-    // Show files with tasks
-    const pathsWithTasks = new Set<string>();
-    for (const issue of issues) {
-      if (issue.path) {
-        pathsWithTasks.add(issue.path);
+      console.log(`Prefix: ${config.prefix}`);
+      if (configObj.path) {
+        console.log(chalk.dim(`Config: ${configObj.path}`));
       }
-    }
-    if (pathsWithTasks.size > 0) {
+
       console.log();
-      console.log(chalk.bold("Files with tasks:"));
-      const paths = Array.from(pathsWithTasks).slice(0, 5);
-      for (const path of paths) {
-        const count = issues.filter((i) => i.path === path).length;
-        console.log(chalk.dim(`  ${path} (${count})`));
-      }
-      if (pathsWithTasks.size > 5) {
+      console.log(chalk.bold("How tasks are tracked:"));
+      if (config.board) {
         console.log(
-          chalk.dim(`  ... and ${pathsWithTasks.size - 5} more files`),
+          `  Tasks tagged @${config.board} are shown by 'km bd' commands.`,
+        );
+        console.log(`  View the board with 'km view @${config.board}'.`);
+      } else {
+        console.log(
+          `  All tasks in the vault are shown (no board filter configured).`,
+        );
+        console.log(
+          `  Set beads.board in .km/config.yaml to filter to a specific board.`,
         );
       }
-    }
+      if (config.parent) {
+        console.log(`  New issues will be created in ${config.parent}.`);
+      }
+
+      console.log();
+      console.log(chalk.bold("Storage"));
+      console.log(`  Database: ${dbPath}`);
+      console.log(`  Mode: ${store ? "disk" : "memory"}`);
+      console.log(`  Vault: ${resolved.vaultRoot}`);
+      if (kmDir) {
+        console.log(`  KM Dir: ${kmDir}`);
+      }
+      if (scopePath) {
+        console.log(`  Scope: ${scopePath}`);
+      }
+
+      console.log();
+      const scopeMsg = scopePath
+        ? ` in ${scopePath}`
+        : boardTag
+          ? ` on @${boardTag}`
+          : "";
+      console.log(chalk.bold(`Statistics${scopeMsg}`));
+      console.log(`  Total: ${issues.length} issues`);
+
+      // Show breakdown by status
+      const byStatus = {
+        open: issues.filter((i) => i.status === "todo").length,
+        in_progress: issues.filter((i) => i.status === "wip").length,
+        blocked: issues.filter((i) => i.status === "blocked").length,
+        closed: issues.filter((i) => i.status === "done").length,
+        dropped: issues.filter((i) => i.status === "dropped").length,
+      };
+      if (issues.length > 0) {
+        console.log(
+          `  Open: ${byStatus.open}, In Progress: ${byStatus.in_progress}, Blocked: ${byStatus.blocked}`,
+        );
+        console.log(
+          `  Closed: ${byStatus.closed}, Dropped: ${byStatus.dropped}`,
+        );
+      }
+
+      // Show files with tasks
+      const pathsWithTasks = new Set<string>();
+      for (const issue of issues) {
+        if (issue.path) {
+          pathsWithTasks.add(issue.path);
+        }
+      }
+      if (pathsWithTasks.size > 0) {
+        console.log();
+        console.log(chalk.bold("Files with tasks:"));
+        const paths = Array.from(pathsWithTasks).slice(0, 5);
+        for (const path of paths) {
+          const count = issues.filter((i) => i.path === path).length;
+          console.log(chalk.dim(`  ${path} (${count})`));
+        }
+        if (pathsWithTasks.size > 5) {
+          console.log(
+            chalk.dim(`  ... and ${pathsWithTasks.size - 5} more files`),
+          );
+        }
+      }
+    }); // close runWithKmDir
   });
 
 // bd where [scope] - Show paths
@@ -542,23 +548,26 @@ bdCommand
   .action((scope) => {
     const resolved = resolvePathArg(scope);
     const kmDir = join(resolved.vaultRoot, ".km");
-    const dbPath = getDbPath();
-    const config = getBeadsConfig(resolved.vaultRoot);
 
-    if (existsSync(kmDir)) {
-      console.log(kmDir);
-      console.log(`  prefix: ${config.prefix}`);
-      console.log(`  board: ${config.board || "(none)"}`);
-      console.log(`  parent: ${config.parent || "(none)"}`);
-      console.log(`  database: ${dbPath}`);
-      console.log(`  vault: ${resolved.vaultRoot}`);
-      if (resolved.nodeRef) {
-        console.log(`  scope: ${resolved.nodeRef}`);
+    runWithKmDir(kmDir, () => {
+      const dbPath = getDbPath();
+      const configObj = loadConfigObject(resolved.vaultRoot);
+
+      if (existsSync(kmDir)) {
+        console.log(kmDir);
+        console.log(`  prefix: ${configObj.beads.prefix}`);
+        console.log(`  board: ${configObj.beads.board || "(none)"}`);
+        console.log(`  parent: ${configObj.beads.parent || "(none)"}`);
+        console.log(`  database: ${dbPath}`);
+        console.log(`  vault: ${resolved.vaultRoot}`);
+        if (resolved.nodeRef) {
+          console.log(`  scope: ${resolved.nodeRef}`);
+        }
+      } else {
+        console.log(chalk.yellow("No km directory found."));
+        console.log(`  vault: ${resolved.vaultRoot}`);
       }
-    } else {
-      console.log(chalk.yellow("No km directory found."));
-      console.log(`  vault: ${resolved.vaultRoot}`);
-    }
+    });
   });
 
 // Add extracted subcommands

@@ -6,7 +6,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { resolvePathArg, getBeadsConfig, getConfigPath } from "@km/storage";
+import { resolvePathArg, loadConfigObject } from "@km/storage";
 
 export const configCommand = new Command("config").description(
   "View and modify beads configuration",
@@ -18,16 +18,17 @@ configCommand
   .description("List current configuration")
   .action(() => {
     const resolved = resolvePathArg(undefined);
-    const config = getBeadsConfig(resolved.vaultRoot);
-    const configPath = getConfigPath();
+    const configObj = loadConfigObject(resolved.vaultRoot);
 
     console.log(chalk.bold("Beads Configuration"));
-    console.log(`  board:  ${config.board || chalk.dim("(not set)")}`);
-    console.log(`  parent: ${config.parent || chalk.dim("(not set)")}`);
-    console.log(`  prefix: ${config.prefix}`);
-    if (configPath) {
+    console.log(`  board:  ${configObj.beads.board || chalk.dim("(not set)")}`);
+    console.log(
+      `  parent: ${configObj.beads.parent || chalk.dim("(not set)")}`,
+    );
+    console.log(`  prefix: ${configObj.beads.prefix}`);
+    if (configObj.path) {
       console.log();
-      console.log(chalk.dim(`Source: ${configPath}`));
+      console.log(chalk.dim(`Source: ${configObj.path}`));
     } else {
       console.log();
       console.log(
@@ -41,17 +42,17 @@ configCommand
   .description("Get a configuration value")
   .action((key) => {
     const resolved = resolvePathArg(undefined);
-    const config = getBeadsConfig(resolved.vaultRoot);
+    const configObj = loadConfigObject(resolved.vaultRoot);
 
     switch (key) {
       case "board":
-        console.log(config.board || "");
+        console.log(configObj.beads.board || "");
         break;
       case "parent":
-        console.log(config.parent || "");
+        console.log(configObj.beads.parent || "");
         break;
       case "prefix":
-        console.log(config.prefix);
+        console.log(configObj.beads.prefix);
         break;
       default:
         console.error(chalk.red(`Unknown config key: ${key}`));
@@ -86,16 +87,15 @@ configCommand
 // Show config list by default when no subcommand
 configCommand.action(() => {
   const resolved = resolvePathArg(undefined);
-  const config = getBeadsConfig(resolved.vaultRoot);
-  const configPath = getConfigPath();
+  const configObj = loadConfigObject(resolved.vaultRoot);
 
   console.log(chalk.bold("Beads Configuration"));
-  console.log(`  board:  ${config.board || chalk.dim("(not set)")}`);
-  console.log(`  parent: ${config.parent || chalk.dim("(not set)")}`);
-  console.log(`  prefix: ${config.prefix}`);
-  if (configPath) {
+  console.log(`  board:  ${configObj.beads.board || chalk.dim("(not set)")}`);
+  console.log(`  parent: ${configObj.beads.parent || chalk.dim("(not set)")}`);
+  console.log(`  prefix: ${configObj.beads.prefix}`);
+  if (configObj.path) {
     console.log();
-    console.log(chalk.dim(`Source: ${configPath}`));
+    console.log(chalk.dim(`Source: ${configObj.path}`));
   } else {
     console.log();
     console.log(
