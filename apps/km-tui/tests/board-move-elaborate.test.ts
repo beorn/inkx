@@ -246,7 +246,9 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
       resetDb();
 
       const rootId = createTestNode("board", "Test Board");
-      const col1Id = createTestNode("folder", "Full", rootId, { parent_idx: 0 });
+      const col1Id = createTestNode("folder", "Full", rootId, {
+        parent_idx: 0,
+      });
       const col2Id = createTestNode("folder", "Empty", rootId, {
         parent_idx: 1,
       });
@@ -374,7 +376,9 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
       const colId = createTestNode("folder", "Column", rootId);
 
       // Create cards with specific indices
-      const cardAId = createTestNode("task", "Card A", colId, { parent_idx: 0 });
+      const cardAId = createTestNode("task", "Card A", colId, {
+        parent_idx: 0,
+      });
       const cardBId = createTestNode("task", "Card B", colId, {
         parent_idx: 10,
       });
@@ -659,7 +663,9 @@ describe.serial("Board Move - Edge Cases", () => {
 
       const rootId = createTestNode("board", "Board");
       createTestNode("folder", "Empty", rootId, { parent_idx: 0 });
-      const col2Id = createTestNode("folder", "Full", rootId, { parent_idx: 1 });
+      const col2Id = createTestNode("folder", "Full", rootId, {
+        parent_idx: 1,
+      });
       createTestNode("task", "Card", col2Id);
 
       const state = buildBoardState(rootId);

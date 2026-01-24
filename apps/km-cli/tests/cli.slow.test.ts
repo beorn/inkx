@@ -12,7 +12,8 @@ import { $ } from "bun";
 
 // Set test environment before imports
 // KM_DIR should be inside the vault so sync defaults to correct directory
-const TEST_DIR = join("/tmp", "kmtest-cli");
+// Use process.pid to ensure unique directories across parallel test runs
+const TEST_DIR = join("/tmp", `kmtest-cli-${process.pid}`);
 const VAULT_DIR = join(TEST_DIR, "vault");
 const KM_DIR = join(VAULT_DIR, ".km"); // .km inside vault, not sibling
 
@@ -513,7 +514,7 @@ describe.serial("km task status", () => {
 });
 
 describe.serial("km init", () => {
-  const INIT_TEST_DIR = join("/tmp", "kmtest-init");
+  const INIT_TEST_DIR = join("/tmp", `kmtest-init-${process.pid}`);
 
   beforeEach(() => {
     // Use a completely separate directory for init tests
@@ -699,7 +700,7 @@ describe.serial("CLI Error Handling", () => {
 });
 
 describe.serial("Global --root option", () => {
-  const ROOT_TEST_DIR = "/tmp/km-root-test";
+  const ROOT_TEST_DIR = `/tmp/km-root-test-${process.pid}`;
   const VAULT_A = join(ROOT_TEST_DIR, "vault-a");
   const VAULT_B = join(ROOT_TEST_DIR, "vault-b");
 
