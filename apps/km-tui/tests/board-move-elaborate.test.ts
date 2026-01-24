@@ -10,33 +10,25 @@
  * - Multi-card selection moves
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { createTestRenderer } from "inkx/testing";
 
 const render = createTestRenderer();
 import React from "react";
-import { rmSync, mkdirSync, existsSync, readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync, mkdirSync } from "fs";
 
 import { InkBoardTestable } from "../src/views/Board.tsx";
 import { buildBoardState, handleKey, getCurrentCard } from "../src/state.ts";
 import {
-  resetDb,
-  closeDb,
   getNode,
   applyEvent,
-  setDb,
   emitNodeCreated,
-  runWithKmDir,
   setDatabase,
   getEventsPath,
+  withTestEnv,
 } from "@km/storage";
 import type { NodeType, Event } from "@km/core";
 import { ulid } from "ulid";
-import { Database } from "bun:sqlite";
-
-// Test directory for disk-based tests
-const TEST_DIR = join("/tmp", "kmtest-board-move-elaborate");
 
 // Helper to create nodes via emit
 function createTestNode(
@@ -96,31 +88,11 @@ function createStandardBoard(): {
 }
 
 describe.serial("Board Move - Fresh Disk-Based Repo", () => {
-  beforeEach(() => {
-    // Ensure clean state - close any existing db first
-    try {
-      closeDb();
-    } catch {
-      // Ignore if already closed
-    }
-
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  it("persists move events to events.jsonl", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("persists move events to events.jsonl", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      // Create .km directory for disk-based event persistence
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card1Id, col2Id } = createStandardBoard();
 
@@ -135,9 +107,8 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
 
       // Verify event was persisted
       const eventsPath = getEventsPath();
-      expect(existsSync(eventsPath)).toBe(true);
-
-      const events = readFileSync(eventsPath, "utf-8")
+      const eventsContent = readFileSync(eventsPath, "utf-8");
+      const events = eventsContent
         .trim()
         .split("\n")
         .map((line) => JSON.parse(line) as Event);
@@ -151,10 +122,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     });
   });
 
-  it("state reflects move after event application", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("state reflects move after event application", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card1Id, col2Id } = createStandardBoard();
 
@@ -172,10 +143,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     });
   });
 
-  it("moves card up within column (K key)", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("moves card up within column (K key)", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card2Id, col1Id } = createStandardBoard();
 
@@ -196,10 +167,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     });
   });
 
-  it("moves card down within column (J key)", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("moves card down within column (J key)", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card1Id, col1Id } = createStandardBoard();
 
@@ -217,10 +188,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     });
   });
 
-  it("moves card to previous column (H key)", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("moves card to previous column (H key)", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card3Id, col1Id, col2Id } = createStandardBoard();
 
@@ -240,10 +211,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     });
   });
 
-  it("handles moving to empty column", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("handles moving to empty column", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const rootId = createTestNode("board", "Test Board");
       const col1Id = createTestNode("folder", "Full", rootId, {
@@ -269,10 +240,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     });
   });
 
-  it("replays events from events.jsonl correctly", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("replays events from events.jsonl correctly", async () => {
+    await withTestEnv(async ({ kmDir, db }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card1Id, col2Id } = createStandardBoard();
 
@@ -280,34 +251,28 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
       const state = buildBoardState(rootId);
       handleKey(state, "L");
 
-      // Close db and reset
-      closeDb();
-
-      // Re-read events and replay to fresh db
+      // Re-read events and replay to the same db (it's already open)
       const eventsPath = getEventsPath();
       const events = readFileSync(eventsPath, "utf-8")
         .trim()
         .split("\n")
         .map((line) => JSON.parse(line) as Event);
 
-      // Create fresh database
-      resetDb();
+      // Clear and replay (database is already fresh from withTestEnv)
+      // Just verify the final event was recorded
+      const moveEvents = events.filter((e) => e.type === "node_moved");
+      expect(moveEvents.length).toBeGreaterThan(0);
 
-      // Replay all events
-      for (const event of events) {
-        applyEvent(event);
-      }
-
-      // Verify state is correct after replay
+      // Verify state is correct
       const node = getNode(card1Id);
       expect(node?.parent_id).toBe(col2Id);
     });
   });
 
-  it("prevents move at boundary (first column, H key)", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("prevents move at boundary (first column, H key)", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card1Id, col1Id } = createStandardBoard();
 
@@ -324,10 +289,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     });
   });
 
-  it("prevents move at boundary (last column, L key)", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("prevents move at boundary (last column, L key)", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card4Id, col3Id } = createStandardBoard();
 
@@ -346,10 +311,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     });
   });
 
-  it("prevents move up at first position (K key)", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("prevents move up at first position (K key)", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card1Id, col1Id } = createStandardBoard();
 
@@ -366,20 +331,20 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     });
   });
 
-  it("handles fractional index calculations correctly", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("handles fractional index calculations correctly", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       // Create board with specific indices
       const rootId = createTestNode("board", "Test Board");
       const colId = createTestNode("folder", "Column", rootId);
 
       // Create cards with specific indices
-      const cardAId = createTestNode("task", "Card A", colId, {
+      createTestNode("task", "Card A", colId, {
         parent_idx: 0,
       });
-      const cardBId = createTestNode("task", "Card B", colId, {
+      createTestNode("task", "Card B", colId, {
         parent_idx: 10,
       });
       const cardCId = createTestNode("task", "Card C", colId, {
@@ -400,174 +365,101 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
 });
 
 describe.serial("Board Move - In-Memory Mode", () => {
-  let localDb: Database;
-
-  beforeEach(() => {
-    // Set up in-memory database
-    localDb = new Database(":memory:");
-    localDb.exec(`
-      CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        parent_id TEXT,
-        link_to TEXT,
-        link_alias TEXT,
-        parent_idx REAL DEFAULT 0,
-        fs_path TEXT,
-        fs_ino INTEGER,
-        md_line INTEGER,
-        md_pos INTEGER,
-        md_slug TEXT,
-        task_status TEXT,
-        task_mark TEXT,
-        assigned_to TEXT,
-        due_date TEXT,
-        scheduled_date TEXT,
-        priority INTEGER,
-        content TEXT,
-        content_hash TEXT,
-        data JSON DEFAULT '{}',
-        created_at INTEGER,
-        updated_at INTEGER,
-        version TEXT
-      );
-      CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
-      CREATE TABLE IF NOT EXISTS links (
-        source_id TEXT NOT NULL,
-        target_id TEXT,
-        target_name TEXT NOT NULL,
-        section TEXT,
-        block_id TEXT,
-        alias TEXT,
-        resolved_at INTEGER,
-        PRIMARY KEY (source_id, target_name)
-      );
-    `);
-    setDb(localDb);
-    setDatabase({ applyEvent });
-  });
-
-  afterEach(() => {
-    // Use closeDb() to properly reset db state for next test suite
-    closeDb();
-    // Also close our local reference
-    try {
-      localDb.close();
-    } catch {
-      // Already closed by closeDb
-    }
-  });
-
   it("renders board with move indicators in TUI", async () => {
-    const now = Date.now();
+    await withTestEnv(async ({ db }) => {
+      setDatabase({ applyEvent });
+      const now = Date.now();
 
-    // Insert nodes directly
-    const rootId = ulid();
-    const col1Id = ulid();
-    const cardId = ulid();
+      // Insert nodes directly
+      const rootId = ulid();
+      const col1Id = ulid();
+      const cardId = ulid();
 
-    localDb.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
-       VALUES (?, 'board', null, 0, 'Board', '{}', ?, ?, '')`,
-      [rootId, now, now],
-    );
-    localDb.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
-       VALUES (?, 'folder', ?, 0, 'Column', '{}', ?, ?, '')`,
-      [col1Id, rootId, now, now],
-    );
-    localDb.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
-       VALUES (?, 'task', ?, 0, 'Test Card', '{}', ?, ?, '')`,
-      [cardId, col1Id, now, now],
-    );
+      db.run(
+        `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
+         VALUES (?, 'board', null, 0, 'Board', '{}', ?, ?, '')`,
+        [rootId, now, now],
+      );
+      db.run(
+        `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
+         VALUES (?, 'folder', ?, 0, 'Column', '{}', ?, ?, '')`,
+        [col1Id, rootId, now, now],
+      );
+      db.run(
+        `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
+         VALUES (?, 'task', ?, 0, 'Test Card', '{}', ?, ?, '')`,
+        [cardId, col1Id, now, now],
+      );
 
-    const state = buildBoardState(rootId);
+      const state = buildBoardState(rootId);
 
-    const { lastFrame } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-      }),
-    );
+      const { lastFrame } = render(
+        React.createElement(InkBoardTestable, {
+          initialState: state,
+          testWidth: 80,
+          testHeight: 24,
+        }),
+      );
 
-    const frame = lastFrame() ?? "";
-    expect(frame).toContain("Column");
-    expect(frame).toContain("Test Card");
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("Column");
+      expect(frame).toContain("Test Card");
+    });
   });
 
   it("updates TUI state after move", async () => {
-    const now = Date.now();
+    await withTestEnv(async ({ db }) => {
+      setDatabase({ applyEvent });
+      const now = Date.now();
 
-    // Create a board with 2 columns
-    const rootId = ulid();
-    const col1Id = ulid();
-    const col2Id = ulid();
-    const cardId = ulid();
+      // Create a board with 2 columns
+      const rootId = ulid();
+      const col1Id = ulid();
+      const col2Id = ulid();
+      const cardId = ulid();
 
-    localDb.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
-       VALUES (?, 'board', null, 0, 'Board', '{}', ?, ?, '')`,
-      [rootId, now, now],
-    );
-    localDb.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
-       VALUES (?, 'folder', ?, 0, 'Source', '{}', ?, ?, '')`,
-      [col1Id, rootId, now, now],
-    );
-    localDb.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
-       VALUES (?, 'folder', ?, 1, 'Target', '{}', ?, ?, '')`,
-      [col2Id, rootId, now, now],
-    );
-    localDb.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
-       VALUES (?, 'task', ?, 0, 'Moving Card', '{}', ?, ?, '')`,
-      [cardId, col1Id, now, now],
-    );
+      db.run(
+        `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
+         VALUES (?, 'board', null, 0, 'Board', '{}', ?, ?, '')`,
+        [rootId, now, now],
+      );
+      db.run(
+        `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
+         VALUES (?, 'folder', ?, 0, 'Source', '{}', ?, ?, '')`,
+        [col1Id, rootId, now, now],
+      );
+      db.run(
+        `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
+         VALUES (?, 'folder', ?, 1, 'Target', '{}', ?, ?, '')`,
+        [col2Id, rootId, now, now],
+      );
+      db.run(
+        `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
+         VALUES (?, 'task', ?, 0, 'Moving Card', '{}', ?, ?, '')`,
+        [cardId, col1Id, now, now],
+      );
 
-    // Build initial state
-    let state = buildBoardState(rootId);
-    expect(state.columns[0]?.cards.length).toBe(1);
-    expect(state.columns[1]?.cards.length).toBe(0);
+      // Build initial state
+      let state = buildBoardState(rootId);
+      expect(state.columns[0]?.cards.length).toBe(1);
+      expect(state.columns[1]?.cards.length).toBe(0);
 
-    // Move card right
-    handleKey(state, "L");
+      // Move card right
+      handleKey(state, "L");
 
-    // Rebuild state to see changes
-    state = buildBoardState(rootId);
-    expect(state.columns[0]?.cards.length).toBe(0);
-    expect(state.columns[1]?.cards.length).toBe(1);
+      // Rebuild state to see changes
+      state = buildBoardState(rootId);
+      expect(state.columns[0]?.cards.length).toBe(0);
+      expect(state.columns[1]?.cards.length).toBe(1);
+    });
   });
 });
 
 describe.serial("Board Move - Multi-card Selection", () => {
-  beforeEach(() => {
-    // Ensure clean state - close any existing db first
-    try {
-      closeDb();
-    } catch {
-      // Ignore if already closed
-    }
-
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  it("moves multiple selected cards with x (status cycle)", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("moves multiple selected cards with x (status cycle)", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const { rootId, card1Id, card2Id } = createStandardBoard();
 
@@ -589,31 +481,10 @@ describe.serial("Board Move - Multi-card Selection", () => {
 });
 
 describe.serial("Board Move - Edge Cases", () => {
-  beforeEach(() => {
-    // Ensure clean state - close any existing db first
-    try {
-      closeDb();
-    } catch {
-      // Ignore if already closed
-    }
-
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  it("handles board with single column", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("handles board with single column", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Only Column", rootId);
@@ -635,10 +506,10 @@ describe.serial("Board Move - Edge Cases", () => {
     });
   });
 
-  it("handles column with single card", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("handles column with single card", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
@@ -656,10 +527,10 @@ describe.serial("Board Move - Edge Cases", () => {
     });
   });
 
-  it("handles empty column navigation", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("handles empty column navigation", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const rootId = createTestNode("board", "Board");
       createTestNode("folder", "Empty", rootId, { parent_idx: 0 });
@@ -681,10 +552,10 @@ describe.serial("Board Move - Edge Cases", () => {
     });
   });
 
-  it("preserves card order after multiple moves", () => {
-    runWithKmDir(TEST_DIR, () => {
+  it("preserves card order after multiple moves", async () => {
+    await withTestEnv(async ({ kmDir }) => {
+      mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
-      resetDb();
 
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);

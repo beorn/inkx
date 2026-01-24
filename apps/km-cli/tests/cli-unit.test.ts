@@ -5,33 +5,28 @@
  * These test the command logic directly rather than through the CLI.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { rmSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import { describe, test, expect } from "bun:test";
 
 import {
-  runWithKmDir,
-  clearDatabase,
-  getDb,
-  closeDb,
-  resetDb,
   getNode,
   getTasksByStatus,
+  withTestEnv,
 } from "@km/storage";
 import type { KNode, TaskStatus } from "@km/core";
-
-// Test directory
-const TEST_DIR = join("/tmp", "kmtest-cli-unit");
+import type { Database } from "bun:sqlite";
 
 /**
  * Helper to create a task directly in the database
  */
-function createTask(content: string, options: Partial<KNode> = {}): Node {
-  const db = getDb();
+function createTask(
+  db: Database,
+  content: string,
+  options: Partial<KNode> = {},
+): KNode {
   const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const now = Date.now();
 
-  const node: Node = {
+  const node: KNode = {
     id,
     type: "task",
     content,
@@ -39,7 +34,7 @@ function createTask(content: string, options: Partial<KNode> = {}): Node {
     created_at: now,
     updated_at: now,
     ...options,
-  };
+  } as KNode;
 
   db.prepare(
     `INSERT INTO nodes (id, type, content, task_status, priority, due_date, assigned_to, created_at, updated_at)
@@ -47,8 +42,8 @@ function createTask(content: string, options: Partial<KNode> = {}): Node {
   ).run(
     node.id,
     node.type,
-    node.content,
-    node.task_status,
+    node.content ?? null,
+    node.task_status ?? "todo",
     node.priority ?? null,
     node.due_date ?? null,
     node.assigned_to ?? null,
@@ -60,49 +55,27 @@ function createTask(content: string, options: Partial<KNode> = {}): Node {
 }
 
 describe.serial("Task Status Filtering", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
-
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should filter by single status", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Open task", { task_status: "todo" });
-      createTask("Done task", { task_status: "done" });
-      createTask("In progress", { task_status: "wip" });
+  test("should filter by single status", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Open task", { task_status: "todo" });
+      createTask(db, "Done task", { task_status: "done" });
+      createTask(db, "In progress", { task_status: "wip" });
 
       const openTasks = getTasksByStatus(["todo"]);
       expect(openTasks.length).toBe(1);
-      expect(openTasks[0].content).toBe("Open task");
+      expect(openTasks[0]!.content).toBe("Open task");
 
       const doneTasks = getTasksByStatus(["done"]);
       expect(doneTasks.length).toBe(1);
-      expect(doneTasks[0].content).toBe("Done task");
+      expect(doneTasks[0]!.content).toBe("Done task");
     });
   });
 
-  test("should filter by multiple statuses", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Open task", { task_status: "todo" });
-      createTask("Done task", { task_status: "done" });
-      createTask("In progress", { task_status: "wip" });
+  test("should filter by multiple statuses", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Open task", { task_status: "todo" });
+      createTask(db, "Done task", { task_status: "done" });
+      createTask(db, "In progress", { task_status: "wip" });
 
       const tasks = getTasksByStatus(["todo", "wip"]);
       expect(tasks.length).toBe(2);
@@ -111,9 +84,9 @@ describe.serial("Task Status Filtering", () => {
     });
   });
 
-  test("should return empty for no matches", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Open task", { task_status: "todo" });
+  test("should return empty for no matches", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Open task", { task_status: "todo" });
 
       const blockedTasks = getTasksByStatus(["blocked"]);
       expect(blockedTasks.length).toBe(0);
@@ -122,85 +95,41 @@ describe.serial("Task Status Filtering", () => {
 });
 
 describe.serial("Task Priority Sorting", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
-
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should sort by priority ascending", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Low priority", { priority: 5 });
-      createTask("High priority", { priority: 1 });
-      createTask("Medium priority", { priority: 3 });
+  test("should sort by priority ascending", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Low priority", { priority: 5 });
+      createTask(db, "High priority", { priority: 1 });
+      createTask(db, "Medium priority", { priority: 3 });
 
       const tasks = getTasksByStatus(["todo"]);
       tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
 
-      expect(tasks[0].content).toBe("High priority");
-      expect(tasks[1].content).toBe("Medium priority");
-      expect(tasks[2].content).toBe("Low priority");
+      expect(tasks[0]!.content).toBe("High priority");
+      expect(tasks[1]!.content).toBe("Medium priority");
+      expect(tasks[2]!.content).toBe("Low priority");
     });
   });
 
-  test("should handle null priorities", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("No priority");
-      createTask("Has priority", { priority: 2 });
+  test("should handle null priorities", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "No priority");
+      createTask(db, "Has priority", { priority: 2 });
 
       const tasks = getTasksByStatus(["todo"]);
       tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
 
-      expect(tasks[0].content).toBe("Has priority");
-      expect(tasks[1].content).toBe("No priority");
+      expect(tasks[0]!.content).toBe("Has priority");
+      expect(tasks[1]!.content).toBe("No priority");
     });
   });
 });
 
 describe.serial("Task Due Date Sorting", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
-
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should sort by due date ascending", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Due tomorrow", { due_date: "2026-01-10" });
-      createTask("Due today", { due_date: "2026-01-09" });
-      createTask("Due next week", { due_date: "2026-01-16" });
+  test("should sort by due date ascending", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Due tomorrow", { due_date: "2026-01-10" });
+      createTask(db, "Due today", { due_date: "2026-01-09" });
+      createTask(db, "Due next week", { due_date: "2026-01-16" });
 
       const tasks = getTasksByStatus(["todo"]);
       tasks.sort((a, b) => {
@@ -210,16 +139,16 @@ describe.serial("Task Due Date Sorting", () => {
         return a.due_date.localeCompare(b.due_date);
       });
 
-      expect(tasks[0].content).toBe("Due today");
-      expect(tasks[1].content).toBe("Due tomorrow");
-      expect(tasks[2].content).toBe("Due next week");
+      expect(tasks[0]!.content).toBe("Due today");
+      expect(tasks[1]!.content).toBe("Due tomorrow");
+      expect(tasks[2]!.content).toBe("Due next week");
     });
   });
 
-  test("should put tasks without due date last", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("No due date");
-      createTask("Has due date", { due_date: "2026-01-15" });
+  test("should put tasks without due date last", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "No due date");
+      createTask(db, "Has due date", { due_date: "2026-01-15" });
 
       const tasks = getTasksByStatus(["todo"]);
       tasks.sort((a, b) => {
@@ -229,8 +158,8 @@ describe.serial("Task Due Date Sorting", () => {
         return a.due_date.localeCompare(b.due_date);
       });
 
-      expect(tasks[0].content).toBe("Has due date");
-      expect(tasks[1].content).toBe("No due date");
+      expect(tasks[0]!.content).toBe("Has due date");
+      expect(tasks[1]!.content).toBe("No due date");
     });
   });
 });
@@ -241,7 +170,6 @@ describe.serial("Task Status Validation", () => {
     "wip",
     "done",
     "blocked",
-    "waiting",
     "dropped",
   ];
 
@@ -252,7 +180,7 @@ describe.serial("Task Status Validation", () => {
   });
 
   test("should have correct status list", () => {
-    expect(validStatuses.length).toBe(6);
+    expect(validStatuses.length).toBe(5);
   });
 
   test("should reject invalid status values", () => {
@@ -270,31 +198,9 @@ describe.serial("Task Status Validation", () => {
 });
 
 describe.serial("Node ID Prefix Matching", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
-
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should find node by full ID", () => {
-    runWithKmDir(TEST_DIR, () => {
-      const task = createTask("Test task");
+  test("should find node by full ID", async () => {
+    await withTestEnv(async ({ db }) => {
+      const task = createTask(db, "Test task");
       const found = getNode(task.id);
 
       expect(found).not.toBeNull();
@@ -302,16 +208,16 @@ describe.serial("Node ID Prefix Matching", () => {
     });
   });
 
-  test("should return null for non-existent ID", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("should return null for non-existent ID", async () => {
+    await withTestEnv(async () => {
       const found = getNode("nonexistent-id");
       expect(found).toBeNull();
     });
   });
 
-  test("should get node with all fields", () => {
-    runWithKmDir(TEST_DIR, () => {
-      const task = createTask("Test task", {
+  test("should get node with all fields", async () => {
+    await withTestEnv(async ({ db }) => {
+      const task = createTask(db, "Test task", {
         priority: 2,
         due_date: "2026-01-15",
         assigned_to: "alice",
@@ -328,56 +234,32 @@ describe.serial("Node ID Prefix Matching", () => {
 });
 
 describe.serial("Task Assignment", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
+  test("should filter tasks by assigned_to", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Alice task", { assigned_to: "alice" });
+      createTask(db, "Bob task", { assigned_to: "bob" });
+      createTask(db, "Unassigned task");
 
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should filter tasks by assigned_to", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Alice task", { assigned_to: "alice" });
-      createTask("Bob task", { assigned_to: "bob" });
-      createTask("Unassigned task");
-
-      const db = getDb();
       const aliceTasks = db
         .prepare("SELECT * FROM nodes WHERE type = 'task' AND assigned_to = ?")
-        .all("alice") as Node[];
+        .all("alice") as KNode[];
 
       expect(aliceTasks.length).toBe(1);
-      expect(aliceTasks[0].content).toBe("Alice task");
+      expect(aliceTasks[0]!.content).toBe("Alice task");
     });
   });
 
-  test("should find unassigned tasks", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Alice task", { assigned_to: "alice" });
-      createTask("Unassigned 1");
-      createTask("Unassigned 2");
+  test("should find unassigned tasks", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Alice task", { assigned_to: "alice" });
+      createTask(db, "Unassigned 1");
+      createTask(db, "Unassigned 2");
 
-      const db = getDb();
       const unassigned = db
         .prepare(
           "SELECT * FROM nodes WHERE type = 'task' AND assigned_to IS NULL",
         )
-        .all() as Node[];
+        .all() as KNode[];
 
       expect(unassigned.length).toBe(2);
     });
@@ -388,31 +270,9 @@ describe.serial("Task Content Parsing", () => {
   // These tests verify that task content can contain metadata markers
   // The actual parsing happens in md/parser.ts which is tested elsewhere
 
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
-
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should store content with emoji markers", () => {
-    runWithKmDir(TEST_DIR, () => {
-      const task = createTask("Task with due 📅 2025-12-25");
+  test("should store content with emoji markers", async () => {
+    await withTestEnv(async ({ db }) => {
+      const task = createTask(db, "Task with due 📅 2025-12-25");
       const found = getNode(task.id);
 
       expect(found?.content).toContain("📅");
@@ -420,18 +280,18 @@ describe.serial("Task Content Parsing", () => {
     });
   });
 
-  test("should store content with priority marker", () => {
-    runWithKmDir(TEST_DIR, () => {
-      const task = createTask("Urgent task ⏫");
+  test("should store content with priority marker", async () => {
+    await withTestEnv(async ({ db }) => {
+      const task = createTask(db, "Urgent task ⏫");
       const found = getNode(task.id);
 
       expect(found?.content).toContain("⏫");
     });
   });
 
-  test("should store content with tags", () => {
-    runWithKmDir(TEST_DIR, () => {
-      const task = createTask("Task #work #urgent");
+  test("should store content with tags", async () => {
+    await withTestEnv(async ({ db }) => {
+      const task = createTask(db, "Task #work #urgent");
       const found = getNode(task.id);
 
       expect(found?.content).toContain("#work");
@@ -441,68 +301,43 @@ describe.serial("Task Content Parsing", () => {
 });
 
 describe.serial("Search Functionality", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
+  test("should find tasks by content substring", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Buy groceries");
+      createTask(db, "Call Alice");
+      createTask(db, "Review code");
 
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should find tasks by content substring", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Buy groceries");
-      createTask("Call Alice");
-      createTask("Review code");
-
-      const db = getDb();
       const results = db
         .prepare("SELECT * FROM nodes WHERE type = 'task' AND content LIKE ?")
-        .all("%Alice%") as Node[];
+        .all("%Alice%") as KNode[];
 
       expect(results.length).toBe(1);
-      expect(results[0].content).toBe("Call Alice");
+      expect(results[0]!.content).toBe("Call Alice");
     });
   });
 
-  test("should find tasks case-insensitively", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Buy GROCERIES");
-      createTask("groceries list");
+  test("should find tasks case-insensitively", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Buy GROCERIES");
+      createTask(db, "groceries list");
 
-      const db = getDb();
       const results = db
         .prepare(
           "SELECT * FROM nodes WHERE type = 'task' AND LOWER(content) LIKE LOWER(?)",
         )
-        .all("%groceries%") as Node[];
+        .all("%groceries%") as KNode[];
 
       expect(results.length).toBe(2);
     });
   });
 
-  test("should return empty for no matches", () => {
-    runWithKmDir(TEST_DIR, () => {
-      createTask("Buy groceries");
+  test("should return empty for no matches", async () => {
+    await withTestEnv(async ({ db }) => {
+      createTask(db, "Buy groceries");
 
-      const db = getDb();
       const results = db
         .prepare("SELECT * FROM nodes WHERE type = 'task' AND content LIKE ?")
-        .all("%nonexistent%") as Node[];
+        .all("%nonexistent%") as KNode[];
 
       expect(results.length).toBe(0);
     });
@@ -510,31 +345,8 @@ describe.serial("Search Functionality", () => {
 });
 
 describe.serial("Task Data Field", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
-
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should store and retrieve JSON data", () => {
-    runWithKmDir(TEST_DIR, () => {
-      const db = getDb();
+  test("should store and retrieve JSON data", async () => {
+    await withTestEnv(async ({ db }) => {
       const id = `task-${Date.now()}`;
       const data = { tags: ["work", "urgent"], notes: "Important" };
 
@@ -556,9 +368,9 @@ describe.serial("Task Data Field", () => {
     });
   });
 
-  test("should handle empty data field", () => {
-    runWithKmDir(TEST_DIR, () => {
-      const task = createTask("Task without data");
+  test("should handle empty data field", async () => {
+    await withTestEnv(async ({ db }) => {
+      const task = createTask(db, "Task without data");
       const found = getNode(task.id);
 
       // Data defaults to empty object when not specified
@@ -568,35 +380,13 @@ describe.serial("Task Data Field", () => {
 });
 
 describe.serial("Overdue Detection", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
-
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should detect overdue tasks", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("should detect overdue tasks", async () => {
+    await withTestEnv(async ({ db }) => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().split("T")[0];
 
-      createTask("Overdue task", { due_date: yesterdayStr });
+      createTask(db, "Overdue task", { due_date: yesterdayStr });
 
       const tasks = getTasksByStatus(["todo"]);
       const overdue = tasks.filter((t) => {
@@ -605,17 +395,17 @@ describe.serial("Overdue Detection", () => {
       });
 
       expect(overdue.length).toBe(1);
-      expect(overdue[0].content).toBe("Overdue task");
+      expect(overdue[0]!.content).toBe("Overdue task");
     });
   });
 
-  test("should not mark future tasks as overdue", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("should not mark future tasks as overdue", async () => {
+    await withTestEnv(async ({ db }) => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-      createTask("Future task", { due_date: tomorrowStr });
+      createTask(db, "Future task", { due_date: tomorrowStr });
 
       const tasks = getTasksByStatus(["todo"]);
       const overdue = tasks.filter((t) => {
@@ -629,32 +419,10 @@ describe.serial("Overdue Detection", () => {
 });
 
 describe.serial("Timestamp Handling", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-      resetDb();
-    });
-  });
-
-  afterEach(() => {
-    runWithKmDir(TEST_DIR, () => {
-      clearDatabase();
-      closeDb();
-    });
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("should store and retrieve timestamps", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("should store and retrieve timestamps", async () => {
+    await withTestEnv(async ({ db }) => {
       const before = Date.now();
-      const task = createTask("Timestamped task");
+      const task = createTask(db, "Timestamped task");
       const after = Date.now();
 
       const found = getNode(task.id);

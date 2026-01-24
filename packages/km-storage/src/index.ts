@@ -289,6 +289,8 @@ export {
   formatChaosReport,
   formatChaosReportJson,
   formatChaosReportMarkdown,
+  withTestEnv,
+  withTestEnvSync,
 } from "./testing/index.ts";
 
 export type {
@@ -308,4 +310,5 @@ export type {
   ChaosRecommendation,
   ChaosReport,
   GenerateReportOptions,
+  TestEnv,
 } from "./testing/index.ts";

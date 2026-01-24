@@ -64,7 +64,7 @@ import type { KNode } from "@km/core";
 import type { BoardState, ColumnState, CardState } from "../src/types.ts";
 import { UIProvider } from "../src/ui-context.tsx";
 import { createInitialUIState } from "../src/ui-reducer.ts";
-import { setDb } from "@km/storage";
+import { runWithDb } from "@km/storage";
 import Database from "bun:sqlite";
 
 // Initialize an empty in-memory database for storybook rendering
@@ -110,7 +110,6 @@ db.exec(`
     UNIQUE(source_id, target_name)
   );
 `);
-setDb(db);
 
 // In-memory node store for storybook - supplements the DB for DI props
 // TreeNode now accepts children/getChildren props for DI
@@ -1368,19 +1367,22 @@ function Storybook(): React.ReactElement {
 // Render and Output
 // ============================================================================
 
-const { lastFrame } = render(<Storybook />);
-// Clean up output from 500-row buffer:
-// 1. Remove trailing whitespace from each line
-// 2. Remove trailing blank/ANSI-only lines
-const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
-const rawOutput = lastFrame() ?? "";
-const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")); // trim trailing whitespace
-// Find last line with visible content (not just ANSI codes and whitespace)
-let lastContentLine = lines.length - 1;
-while (lastContentLine >= 0) {
-  const line = lines[lastContentLine];
-  if (line && line.replace(ANSI_REGEX, "").trim() !== "") break;
-  lastContentLine--;
-}
-const output = lines.slice(0, lastContentLine + 1).join("\n");
-console.log(output);
+// Run rendering within db context (replaces deprecated setDb singleton)
+runWithDb(db, () => {
+  const { lastFrame } = render(<Storybook />);
+  // Clean up output from 500-row buffer:
+  // 1. Remove trailing whitespace from each line
+  // 2. Remove trailing blank/ANSI-only lines
+  const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
+  const rawOutput = lastFrame() ?? "";
+  const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")); // trim trailing whitespace
+  // Find last line with visible content (not just ANSI codes and whitespace)
+  let lastContentLine = lines.length - 1;
+  while (lastContentLine >= 0) {
+    const line = lines[lastContentLine];
+    if (line && line.replace(ANSI_REGEX, "").trim() !== "") break;
+    lastContentLine--;
+  }
+  const output = lines.slice(0, lastContentLine + 1).join("\n");
+  console.log(output);
+});

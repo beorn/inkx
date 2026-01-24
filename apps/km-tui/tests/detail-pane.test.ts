@@ -4,27 +4,21 @@
  * Tests for the detail pane component that shows full task details
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { rmSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import { describe, test, expect } from "bun:test";
 import React from "react";
 import { createTestRenderer } from "inkx/testing";
 
 const render = createTestRenderer();
 
-const TEST_DIR = join("/tmp", "kmtest-detail-pane");
-
 import {
-  resetDb,
-  closeDb,
   getNode,
   applyEvent,
   addLink,
   emitNodeCreated,
-  runWithKmDir,
   setDatabase,
+  withTestEnv,
 } from "@km/storage";
-import type { NodeType, KNode } from "@km/core";
+import type { NodeType } from "@km/core";
 import { ulid } from "ulid";
 
 import {
@@ -195,34 +189,18 @@ describe.serial("getStatusDisplay", () => {
 });
 
 describe.serial("getProjectPath", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
-  test("returns empty array for node with no parent", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("returns empty array for node with no parent", async () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       const nodeId = createTestNode("task", "Standalone task");
       const node = getNode(nodeId)!;
       expect(getProjectPath(node)).toEqual([]);
     });
   });
 
-  test("returns folder names in path", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("returns folder names in path", async () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       const folderId = createTestNode("folder", "Work", null);
       const subfolderId = createTestNode("folder", "Finance", folderId);
       const taskId = createTestNode("task", "Review budget", subfolderId);
@@ -233,10 +211,9 @@ describe.serial("getProjectPath", () => {
     });
   });
 
-  test("includes files in path", () => {
-    runWithKmDir(TEST_DIR, () => {
+  test("includes files in path", async () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       const folderId = createTestNode("folder", "Projects", null);
       const fileId = createTestNode("file", "todo.md", folderId);
       const taskId = createTestNode("task", "Do something", fileId);
@@ -249,24 +226,9 @@ describe.serial("getProjectPath", () => {
 });
 
 describe.serial("DetailPane Component", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
   test("renders with all task fields", async () => {
-    runWithKmDir(TEST_DIR, () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       const taskId = createTestNode("task", "Review Q1 budget", null, {
         task_status: "todo",
         due_date: "2026-01-10",
@@ -302,9 +264,8 @@ describe.serial("DetailPane Component", () => {
   });
 
   test("shows subtasks", async () => {
-    runWithKmDir(TEST_DIR, () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       const parentId = createTestNode("task", "Parent task");
       createTestNode("task", "Subtask 1", parentId, { task_status: "done" });
       createTestNode("task", "Subtask 2", parentId, { task_status: "todo" });
@@ -328,9 +289,8 @@ describe.serial("DetailPane Component", () => {
   });
 
   test("shows references from content", async () => {
-    runWithKmDir(TEST_DIR, () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       const taskId = createTestNode(
         "task",
         "Talk to @john about #budget for +work project [[Meeting Notes]]",
@@ -356,9 +316,8 @@ describe.serial("DetailPane Component", () => {
   });
 
   test("shows project path", async () => {
-    runWithKmDir(TEST_DIR, () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       const folderId = createTestNode("folder", "Work");
       const subfolderId = createTestNode("folder", "Finance", folderId);
       const taskId = createTestNode("task", "Review budget", subfolderId);
@@ -381,9 +340,8 @@ describe.serial("DetailPane Component", () => {
   });
 
   test("shows keybindings hint", async () => {
-    runWithKmDir(TEST_DIR, () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       const taskId = createTestNode("task", "Simple task");
       const task = getNode(taskId)!;
 
@@ -403,9 +361,8 @@ describe.serial("DetailPane Component", () => {
   });
 
   test("handles task with done status", async () => {
-    runWithKmDir(TEST_DIR, () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       const taskId = createTestNode("task", "Completed task", null, {
         task_status: "done",
       });
@@ -427,24 +384,9 @@ describe.serial("DetailPane Component", () => {
 });
 
 describe.serial("DetailPane with Backlinks", () => {
-  beforeEach(() => {
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
-
-  afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) {
-      rmSync(TEST_DIR, { recursive: true });
-    }
-  });
-
   test("shows backlinks when present", async () => {
-    runWithKmDir(TEST_DIR, () => {
+    await withTestEnv(async () => {
       setDatabase({ applyEvent });
-      resetDb();
       // Create target node
       const targetId = createTestNode("task", "Target task");
       const target = getNode(targetId)!;
