@@ -8,7 +8,7 @@ import { EventEmitter } from "events";
 import chalk from "chalk";
 import createDebug from "debug";
 import type { BoardState, TuiOptions } from "./types.ts";
-import type { Vault } from "@km/storage";
+import type { Vault } from "./vault-context.tsx";
 import { renderBoardStatic } from "./render.ts";
 import { renderInkxBoard } from "./views/index.ts";
 import { setFsSync, SyncManager } from "@km/storage";

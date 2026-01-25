@@ -14,7 +14,7 @@
 
 import chalk from "chalk";
 import type { TaskStatus } from "@km/core";
-import type { Vault } from "@km/storage";
+import type { Vault } from "./vault-context.tsx";
 import type { BoardState, CardState, RenderOptions } from "./types.ts";
 import { getNodeDisplayName } from "./state.ts";
 import {

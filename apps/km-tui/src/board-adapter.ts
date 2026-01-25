@@ -23,7 +23,7 @@ import {
   findPathToNode,
   getNodeAtPath,
 } from "@km/board";
-import type { Vault } from "@km/storage";
+import type { Vault } from "./vault-context.tsx";
 import type { ColumnState, CardState, ColumnRules } from "./types.ts";
 import { parseColumnRules } from "./state.ts";
 

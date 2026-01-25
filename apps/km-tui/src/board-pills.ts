@@ -9,7 +9,7 @@
  */
 
 import type { KNode } from "@km/core";
-import type { Vault } from "@km/storage";
+import type { Vault } from "./vault-context.tsx";
 import { getNodeDisplayName } from "./state.ts";
 import {
   GTD_BOARD_COLORS,

@@ -5,7 +5,7 @@
  */
 
 import type { KNode } from "@km/core";
-import type { Vault } from "@km/storage";
+import type { Vault } from "./vault-context.tsx";
 import type { BoardState as TreeBoardState, BoardAction } from "@km/board";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";

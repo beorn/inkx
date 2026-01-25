@@ -109,6 +109,33 @@ This applies to all code including:
 - JSON files (use `import data from "./data.json"`)
 - Optional dependencies (use try/catch with `await import()`)
 
+#### Prefer Type Inference
+
+**Let TypeScript infer types when possible.** Only add explicit type annotations when:
+
+1. **Interface/type definitions** - properties must have explicit types
+2. **Exported function parameters** - for API clarity and documentation
+3. **Complex return types** - when inference would be unclear or wrong
+
+```typescript
+// ✅ GOOD - inference works
+const items = nodes.map((n) => n.id);
+const count = items.length;
+const result = await loadVault(path);
+
+// ✅ GOOD - explicit type needed (exported API)
+export function buildBoardState(vault: Vault, rootId: string): BoardState {
+
+// ✅ GOOD - explicit type needed (interface)
+interface Context {
+  vault: Vault;
+}
+
+// ❌ BAD - unnecessary type annotation
+const items: string[] = nodes.map((n) => n.id);
+const count: number = items.length;
+```
+
 ### 5. Test-Driven Development
 
 **Test commands:**

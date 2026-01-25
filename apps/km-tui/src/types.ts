@@ -5,7 +5,7 @@
  */
 
 import type { KNode, TaskStatus, TaskMark } from "@km/core";
-import type { Vault } from "@km/storage";
+import type { Vault } from "./vault-context.tsx";
 
 export interface BoardState {
   rootId: string | null;

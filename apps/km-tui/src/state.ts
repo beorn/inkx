@@ -15,7 +15,7 @@ import type {
   BoardAction,
   ColumnRules,
 } from "./types.ts";
-import type { Vault } from "@km/storage";
+import type { Vault } from "./vault-context.tsx";
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
   getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,

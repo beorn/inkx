@@ -11,7 +11,7 @@ import {
   getNodeDisplayName as getNodeDisplayNameBase,
   type CollapsedAncestor,
 } from "@km/tree";
-import type { Vault } from "@km/storage";
+import type { Vault } from "../vault-context.tsx";
 
 /**
  * Format a collapsed ancestor for display with its type suffix.
