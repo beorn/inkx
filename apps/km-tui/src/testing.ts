@@ -38,7 +38,10 @@ import {
 } from "inkx/testing";
 import type { KNode } from "@km/core";
 import type { BoardState } from "./types.ts";
-import { InkBoardTestable } from "./views/index.ts";
+import { BoardCore } from "./views/index.ts";
+import { createInitialUIState } from "./ui-reducer.ts";
+import { createLayoutRegistry } from "./card-positions.ts";
+import { VaultProvider } from "./vault-context.tsx";
 
 /**
  * Options for creating a board test harness
@@ -144,14 +147,24 @@ export async function createBoardTest(
   // Create test renderer
   const render = createTestRenderer({ columns: width, rows: height });
 
-  // Render the board
+  // Render the board using BoardCore (pure rendering) wrapped in VaultProvider
+  const boardCoreElement = React.createElement(BoardCore, {
+    state,
+    ui: createInitialUIState("cards", [], { columns: width, rows: height }),
+    derivedSelectionLevel: "card",
+    dimensions: { columns: width, rows: height },
+    layoutRegistry: createLayoutRegistry(),
+    dispatch: () => {},
+    dialogHandlers: {
+      handleProjectSelect: () => {},
+      handleProjectCancel: () => {},
+      handleNewItemCreate: () => {},
+      handleNewItemCancel: () => {},
+    },
+  });
+
   const result = render(
-    React.createElement(InkBoardTestable, {
-      initialState: state,
-      testWidth: width,
-      testHeight: height,
-      vault,
-    }),
+    React.createElement(VaultProvider, { vault, children: boardCoreElement }),
   );
 
   // Current state - updated after each input

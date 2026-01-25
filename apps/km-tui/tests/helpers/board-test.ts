@@ -4,23 +4,24 @@
  * Wraps inkx createTestRenderer with a concise, documentation-like API
  * for testing TUI board rendering.
  *
- * ## Current Limitations
+ * ## Architecture (3-layer pattern)
  *
- * Uses InkBoardTestable (static render) because the full Board component
- * depends on @km/storage globals. This means:
- * - ✅ Static visual testing works (content assertions, position assertions)
- * - ❌ Keyboard navigation (press/moveTo) does NOT change state
- *
- * For keyboard navigation testing, the Board component needs refactoring
- * to accept state via props instead of calling storage functions directly.
+ * Uses BoardCore (pure rendering) for static tests, or Board (stateful)
+ * for keyboard navigation tests:
+ * - ✅ Static visual testing with BoardCore
+ * - ✅ Keyboard navigation with Board (useReducer + useInput)
  *
  * @example
  * ```typescript
  * const b = renderBoard(SIMPLE_BOARD);
  *
- * // Content assertions - works!
+ * // Content assertions
  * b.expectVisible('Task 1');
  * b.expect('Task 1').toBeVisible();
+ *
+ * // Keyboard navigation (works with Board)
+ * b.press('j');
+ * b.expectVisible('Task 2');
  *
  * // Screenshot for debugging
  * console.log(b.screenshot());
@@ -37,14 +38,14 @@ import {
 import { expect } from "bun:test";
 import { createFakeVault } from "@km/storage";
 
-import { InkBoardTestable } from "../../src/views/Board.tsx";
+import { BoardCore, Board } from "../../src/views/Board.tsx";
+import { createInitialUIState } from "../../src/ui-reducer.ts";
+import { createLayoutRegistry } from "../../src/card-positions.ts";
+import { VaultProvider } from "../../src/vault-context.tsx";
 import type { BoardState } from "../../src/types.ts";
 
-// NOTE: The full Board component requires @km/storage initialization, so we use
-// InkBoardTestable which is a static version that accepts dimensions via props.
-// This means keyboard navigation via press() won't actually change state -
-// for interactive testing, the component needs to be refactored to accept
-// state via props rather than calling storage functions directly.
+// NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
+// Board includes useReducer + useInput - use for keyboard navigation tests.
 import {
   createBoardState as createBoardStateFixture,
   createColumnState,
@@ -499,13 +500,22 @@ export function renderBoard(
   const vault = createFakeVault();
 
   const render = createTestRenderer({ columns, rows });
+  const boardCoreElement = React.createElement(BoardCore, {
+    state,
+    ui: createInitialUIState("cards", [], { columns, rows }),
+    derivedSelectionLevel: "card",
+    dimensions: { columns, rows },
+    layoutRegistry: createLayoutRegistry(),
+    dispatch: () => {},
+    dialogHandlers: {
+      handleProjectSelect: () => {},
+      handleProjectCancel: () => {},
+      handleNewItemCreate: () => {},
+      handleNewItemCancel: () => {},
+    },
+  });
   const result = render(
-    React.createElement(InkBoardTestable, {
-      initialState: state,
-      testWidth: columns,
-      testHeight: rows,
-      vault,
-    }),
+    React.createElement(VaultProvider, { vault, children: boardCoreElement }),
   );
 
   return new BoardTestImpl(result);

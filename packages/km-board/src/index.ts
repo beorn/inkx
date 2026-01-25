@@ -17,6 +17,8 @@ export type {
   SimplifiedBoardAction,
   ZoomEntry,
   NavHistoryEntry,
+  // Transitional type for gradual migration
+  TransitionalBoardAction,
   // Common types
   TNode,
   TPath,

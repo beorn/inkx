@@ -102,10 +102,13 @@ describe("useScreenRectCallback integration", () => {
     // Sort by Y to ensure consistent ordering
     positions.sort((a, b) => a.y - b.y);
 
+    // Verify we have at least 3 positions
+    expect(positions.length).toBeGreaterThanOrEqual(3);
+
     // Each card should have a larger Y than the previous
     // (stacked vertically means increasing Y)
-    expect(positions[0].y).toBeLessThan(positions[1].y);
-    expect(positions[1].y).toBeLessThan(positions[2].y);
+    expect(positions[0]!.y).toBeLessThan(positions[1]!.y);
+    expect(positions[1]!.y).toBeLessThan(positions[2]!.y);
 
     // Log actual values for debugging
     console.log("Card positions:", positions);

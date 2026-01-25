@@ -550,7 +550,7 @@ bdCommand
     const kmDir = join(resolved.vaultRoot, ".km");
 
     // Load vault to set up global state for getDbPath()
-    runGenerator(loadVault(resolved.vaultRoot, { searchAncestors: false }));
+    runGenerator(createVault(resolved.vaultRoot, { searchAncestors: false }));
     const dbPath = getDbPath();
     const configObj = loadConfigObject(resolved.vaultRoot);
 

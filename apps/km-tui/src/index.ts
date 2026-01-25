@@ -14,9 +14,19 @@ export * from "./tui.ts";
 // Export views
 export {
   renderInkxBoard,
-  InkBoardTestable,
+  BoardCore,
+  BoardApp,
   makeSelectionKey,
 } from "./views/index.ts";
+
+// Export vault context for wrapping components
+export { VaultProvider, useVault, type Vault } from "./vault-context.tsx";
+
+// Export UI reducer utilities
+export { createInitialUIState } from "./ui-reducer.ts";
+
+// Export layout registry for card position tracking
+export { createLayoutRegistry } from "./card-positions.ts";
 
 // Export text utilities
 export * from "./text/index.ts";

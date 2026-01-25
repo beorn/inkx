@@ -287,6 +287,10 @@ export {
   formatChaosReportMarkdown,
   withTestEnv,
   withTestEnvSync,
+  getTestMode,
+  isRealMode,
+  isMockMode,
+  createMockWatcher,
 } from "./testing/index.ts";
 
 export type {
@@ -307,4 +311,6 @@ export type {
   ChaosReport,
   GenerateReportOptions,
   TestEnv,
+  TestMode,
+  MockWatcher,
 } from "./testing/index.ts";

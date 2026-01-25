@@ -5,18 +5,11 @@ import type { WriteStream } from "tty";
 import type { Dispatch } from "react";
 import { actions, type UIAction } from "../ui-reducer.ts";
 import { createPasteHandler, supportsFileDrop } from "../paste-handler.ts";
-import {
-  createMouseHandler,
-  supportsMouseMode,
-  SelectionManager,
-  type MouseEvent as TermMouseEvent,
-} from "../mouse-handler.ts";
+import type { SelectionRange } from "../mouse-handler.ts";
 import { tuiEvents } from "../tui.ts";
-import { buildTreeNodes } from "../board-adapter.ts";
 import type { WatcherStatus } from "@km/storage";
 import type { Vault } from "../vault-context.tsx";
-import type { BoardAction } from "@km/board";
-import type { SelectionRange } from "../mouse-handler.ts";
+import type { TransitionalBoardAction } from "@km/board";
 
 /**
  * Creates the terminal dimension sync effect
@@ -93,71 +86,41 @@ export function createFileDropHandler(
 /**
  * Creates the mouse handler effect
  * Handles mouse drag-select and scroll wheel events
+ *
+ * NOTE: Mouse support disabled pending migration to new navigation handlers.
+ * TODO: Re-enable with TransitionalBoardAction when navigation handlers support it.
  */
 export function createMouseHandler_(
-  dispatch: Dispatch<UIAction>,
-  dispatchBoard: Dispatch<BoardAction>,
-  mouseSelection: SelectionRange | null,
+  _dispatch: Dispatch<UIAction>,
+  _dispatchBoard: Dispatch<TransitionalBoardAction>,
+  _mouseSelection: SelectionRange | null,
 ): () => void | undefined {
   // TODO: Fix mouse integration - not working properly yet
   // Disable for now until scroll wheel and click-to-select work correctly
   return () => {};
-
-  if (!supportsMouseMode()) return () => {};
-
-  const selectionManager = new SelectionManager((range) => {
-    dispatch(actions.setMouseSelection(range));
-    dispatch(actions.setMouseDragging(range !== null));
-  });
-
-  const cleanup = createMouseHandler((event: TermMouseEvent) => {
-    selectionManager.handleMouseEvent(event);
-
-    // Handle scroll wheel events
-    if (event.type === "scroll" && event.scrollDirection) {
-      // Use boardReducer for cursor movement
-      if (event.scrollDirection === "down") {
-        dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
-      } else {
-        dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
-      }
-      return;
-    }
-
-    // Handle double-click to drill in
-    if (event.type === "down" && event.button === "left") {
-      // TODO: Track double-click timing for drill-in
-      // For now, single click just selects
-    }
-
-    // Convert screen coordinates to board items
-    // This is a simplified version - full implementation would map
-    // coordinates to specific cards/items in the board
-    if (event.type === "up" && mouseSelection) {
-      // Selection complete - could trigger multi-select of items
-      // within the selection range
-    }
-  });
-
-  return cleanup;
 }
 
 /**
  * Creates the refresh handler effect
  * Subscribes to external refresh events (filesystem changes)
+ *
+ * NEW ARCHITECTURE: No longer dispatches REFRESH action.
+ * The useColumns hook depends on vault.stats.nodeCount, so React
+ * automatically re-renders when vault changes.
+ *
+ * TODO: Verify vault stats update triggers re-render correctly.
+ * May need to add a forceUpdate mechanism if vault mutation doesn't
+ * change stats reference.
  */
 export function createRefreshHandler(
-  vault: Vault,
-  rootIdRef: React.RefObject<string | null>,
-  dispatchBoard: Dispatch<BoardAction>,
+  _vault: Vault,
+  _rootIdRef: React.RefObject<string | null>,
+  _dispatchBoard: Dispatch<TransitionalBoardAction>,
 ): () => void {
+  // The refresh event is still useful for logging/debugging
   const handleRefresh = () => {
-    // Rebuild tree nodes from database (which was updated by sync manager)
-    // Must use deep loading (true) to include children - shallow loading loses them!
-    // Uses rootIdRef to get current rootId (avoids stale closure from useEffect deps)
-    // Note: rootIdRef.current can be null for root-level view, which is valid
-    const nodes = buildTreeNodes(vault, rootIdRef.current, true);
-    dispatchBoard({ type: "REFRESH", nodes });
+    // No-op: columns are derived from vault at render time
+    // React will re-render when vault.stats changes
   };
 
   tuiEvents.on("refresh", handleRefresh);

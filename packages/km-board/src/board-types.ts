@@ -133,6 +133,13 @@ export type SimplifiedBoardAction =
   // Sticky cursor (set by navigation handlers)
   | { type: "SET_CURSWANT"; x?: number | null; y?: number | null };
 
+/**
+ * Transitional action type that accepts both old and new actions.
+ * Used during migration to allow gradual update of action handlers.
+ * TODO: Remove once all handlers use SimplifiedBoardAction.
+ */
+export type TransitionalBoardAction = SimplifiedBoardAction | BoardAction;
+
 // ===== Current Board State (legacy, being phased out) =====
 
 /**

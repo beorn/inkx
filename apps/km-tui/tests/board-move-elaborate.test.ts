@@ -17,13 +17,43 @@ import { createTestRenderer } from "inkx/testing";
 const render = createTestRenderer();
 import React from "react";
 
-import { InkBoardTestable } from "../src/views/Board.tsx";
+import { BoardCore } from "../src/views/Board.tsx";
+import { VaultProvider } from "../src/vault-context.tsx";
+import { createInitialUIState } from "../src/ui-reducer.ts";
+import { createLayoutRegistry } from "../src/card-positions.ts";
 import { handleKey, getCurrentCard } from "../src/state.ts";
 import { createFakeVault } from "@km/storage";
-import type { FakeVault } from "@km/storage";
+import type { FakeVault, Vault } from "@km/storage";
 import type { KNode } from "@km/core";
 import type { BoardState, ColumnState, CardState } from "../src/types.ts";
 import { ulid } from "ulid";
+
+/** Helper to render BoardCore with test-friendly defaults */
+function renderBoardCore(
+  state: BoardState,
+  vault: Vault,
+  options: { width?: number; height?: number } = {},
+) {
+  const { width = 80, height = 24 } = options;
+  const boardCoreElement = React.createElement(BoardCore, {
+    state,
+    ui: createInitialUIState("cards", [], { columns: width, rows: height }),
+    derivedSelectionLevel: "card" as const,
+    dimensions: { columns: width, rows: height },
+    layoutRegistry: createLayoutRegistry(),
+    dispatch: () => {},
+    dialogHandlers: {
+      handleProjectSelect: () => {},
+      handleProjectCancel: () => {},
+      handleNewItemCreate: () => {},
+      handleNewItemCancel: () => {},
+    },
+  });
+  return React.createElement(VaultProvider, {
+    vault,
+    children: boardCoreElement,
+  });
+}
 
 /**
  * Create a KNode for tests
@@ -322,14 +352,7 @@ describe("Board Move - TUI Rendering", () => {
 
     const state = buildStateFromVault(vault, rootId);
 
-    const { lastFrame } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-        vault,
-      }),
-    );
+    const { lastFrame } = render(renderBoardCore(state, vault));
 
     const frame = lastFrame() ?? "";
     expect(frame).toContain("Column");

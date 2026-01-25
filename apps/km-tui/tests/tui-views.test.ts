@@ -59,9 +59,8 @@ describe("TUI View Tests", () => {
   });
 
   // Note: Help overlay tests require a full interactive TUI test harness.
-  // The current InkBoardTestable uses static rendering without input handling.
-  // For help overlay testing, use the mdtest approach (km sh) or
-  // a future interactive test harness.
+  // BoardCore is pure rendering without input handling. For keyboard testing,
+  // use Board which includes useReducer/useInput, or mdtest (km sh).
   //
   // These tests are migrated from Playwright but the functionality they tested
   // (keyboard input → state change) requires the command system to be wired up.

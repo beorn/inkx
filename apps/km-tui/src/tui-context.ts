@@ -9,7 +9,11 @@
 
 import type { KNode } from "@km/core";
 import type { Vault } from "./vault-context.tsx";
-import type { BoardState as TreeBoardState, NodeMap } from "@km/board";
+import type {
+  SimplifiedBoardState,
+  TransitionalBoardAction,
+  NodeMap,
+} from "@km/board";
 import type { BoardState, CardState, ColumnState } from "./types.ts";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";
@@ -34,8 +38,8 @@ export interface TUIContext {
   // === State ===
   /** Legacy column-based board state (for backward compatibility) */
   state: BoardState;
-  /** Tree-based board state from boardReducer */
-  boardState: TreeBoardState;
+  /** Simplified board state from simplifiedBoardReducer */
+  boardState: SimplifiedBoardState;
   /** UI state (dialogs, view mode, selection) */
   ui: UIState;
   /** Derived column layout from tree state */
@@ -56,8 +60,8 @@ export interface TUIContext {
   // === Dispatchers ===
   /** Dispatch to UI reducer */
   dispatch: React.Dispatch<ReturnType<(typeof actions)[keyof typeof actions]>>;
-  /** Dispatch to board reducer */
-  dispatchBoard: React.Dispatch<import("@km/board").BoardAction>;
+  /** Dispatch to board reducer (transitional: accepts old and new actions) */
+  dispatchBoard: React.Dispatch<TransitionalBoardAction>;
   /** Exit the application */
   exit: () => void;
 
@@ -96,7 +100,7 @@ export interface KeyEvent {
 export interface BuildTUIContextParams {
   vault: Vault;
   state: BoardState;
-  boardState: TreeBoardState;
+  boardState: SimplifiedBoardState;
   ui: UIState;
   layout: ColumnsLayout;
   /** Pre-computed nodeMap (use useMemo in caller to avoid O(n) rebuild per render) */
@@ -143,42 +147,23 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
 }
 
 // =============================================================================
-// Cursor Helpers (for Phase 6 migration)
+// Cursor Helpers (simplified for new architecture)
 // =============================================================================
 
 /**
- * Get subIndex from cursor path.
- * cursor[2] is the sub-item index within outline mode.
- * Returns 0 if not in outline mode.
+ * Get subIndex from layout.
+ * TODO: Outline mode support will be added in a future update.
  */
 export function getSubIndex(ctx: TUIContext): number {
-  return ctx.boardState.cursor[2] ?? 0;
+  return ctx.layout.subPath[0] ?? 0;
 }
 
 /**
- * Check if cursor is in outline mode (depth > 2).
+ * Check if cursor is in outline mode (has subPath).
+ * TODO: Outline mode support will be added in a future update.
  */
 export function isInOutlineMode(ctx: TUIContext): boolean {
-  return ctx.boardState.cursor.length > 2;
-}
-
-/**
- * Build a new cursor path with updated subIndex.
- * Preserves colIndex and cardIndex, sets depth 2 element.
- */
-export function cursorWithSubIndex(
-  ctx: TUIContext,
-  subIndex: number,
-): number[] {
-  const [colIndex, cardIndex] = ctx.boardState.cursor;
-  if (colIndex === undefined || cardIndex === undefined) {
-    return ctx.boardState.cursor;
-  }
-  if (subIndex === 0) {
-    // Exit outline mode - return to card level
-    return [colIndex, cardIndex];
-  }
-  return [colIndex, cardIndex, subIndex];
+  return ctx.layout.isInOutlineMode;
 }
 
 // =============================================================================

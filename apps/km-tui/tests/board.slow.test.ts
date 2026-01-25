@@ -33,8 +33,39 @@ import { stripAnsi } from "../src/layout/index.ts";
 import { renderBoardStatic, renderCard } from "../src/render.ts";
 
 import type { CardState } from "../src/types.ts";
-import { InkBoardTestable } from "../src/views/Board.tsx";
+import { BoardCore } from "../src/views/Board.tsx";
+import { createInitialUIState } from "../src/ui-reducer.ts";
+import { createLayoutRegistry } from "../src/card-positions.ts";
+import { VaultProvider } from "../src/vault-context.tsx";
 import { NewItemDialog } from "../src/views/NewItemDialog.tsx";
+import type { BoardState } from "../src/types.ts";
+
+/** Helper to render BoardCore with test-friendly defaults */
+function renderBoardCore(
+  state: BoardState,
+  vault: Vault,
+  options: { width?: number; height?: number } = {},
+) {
+  const { width = 80, height = 24 } = options;
+  const boardCoreElement = React.createElement(BoardCore, {
+    state,
+    ui: createInitialUIState("cards", [], { columns: width, rows: height }),
+    derivedSelectionLevel: "card" as const,
+    dimensions: { columns: width, rows: height },
+    layoutRegistry: createLayoutRegistry(),
+    dispatch: () => {},
+    dialogHandlers: {
+      handleProjectSelect: () => {},
+      handleProjectCancel: () => {},
+      handleNewItemCreate: () => {},
+      handleNewItemCancel: () => {},
+    },
+  });
+  return React.createElement(VaultProvider, {
+    vault,
+    children: boardCoreElement,
+  });
+}
 
 // Helper to build KNode with required defaults
 function makeNode(
@@ -691,14 +722,7 @@ describe.serial("Ink Board TUI Rendering", () => {
     const state = buildBoardState(vault, "root");
     state.rootPath = "/Users/test/vault";
 
-    const { lastFrame } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-        vault,
-      }),
-    );
+    const { lastFrame } = render(renderBoardCore(state, vault));
 
     const output = lastFrame() ?? "";
 
@@ -731,12 +755,7 @@ describe.serial("Ink Board TUI Rendering", () => {
 
     // Use narrow width to force content handling
     const { lastFrame } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 40,
-        testHeight: 24,
-        vault: createFakeVault(),
-      }),
+      renderBoardCore(state, createFakeVault(), { width: 40 }),
     );
 
     const output = lastFrame() ?? "";
@@ -764,14 +783,7 @@ describe.serial("Ink Board TUI Rendering", () => {
 
     const state = buildBoardState(vault, "board");
 
-    const { lastFrame } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-        vault: createFakeVault(),
-      }),
-    );
+    const { lastFrame } = render(renderBoardCore(state, createFakeVault()));
 
     const output = lastFrame() ?? "";
     const lines = output.split("\n");
@@ -804,14 +816,9 @@ describe.serial("Ink Board TUI Rendering", () => {
 
     const state = buildBoardState(vault, "board");
 
-    // Wide enough for 3 columns - must set both testWidth and render columns
+    // Wide enough for 3 columns
     const { lastFrame } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 120,
-        testHeight: 24,
-        vault: createFakeVault(),
-      }),
+      renderBoardCore(state, createFakeVault(), { width: 120 }),
       { columns: 120, rows: 24 },
     );
 
@@ -845,14 +852,7 @@ describe.serial("Ink Board TUI Rendering", () => {
 
     const state = buildBoardState(vault, "board");
 
-    const { lastFrame } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-        vault: createFakeVault(),
-      }),
-    );
+    const { lastFrame } = render(renderBoardCore(state, createFakeVault()));
 
     const output = lastFrame() ?? "";
 
@@ -877,14 +877,7 @@ describe.serial("Navigation History with Selection", () => {
 
     const state = buildBoardState(vault, "root");
 
-    const { lastFrame, stdin } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-        vault,
-      }),
-    );
+    const { lastFrame, stdin } = render(renderBoardCore(state, vault));
 
     // Initial state should show Card 1
     let output = lastFrame() ?? "";
@@ -926,14 +919,7 @@ describe.serial("Navigation History with Selection", () => {
 
     const state = buildBoardState(vault, "board");
 
-    const { lastFrame, stdin } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-        vault,
-      }),
-    );
+    const { lastFrame, stdin } = render(renderBoardCore(state, vault));
 
     // Enter outline mode by pressing 'o' to navigate into the card's children
     stdin.write("o");
@@ -967,14 +953,7 @@ describe.serial("Navigation History with Selection", () => {
 
     const state = buildBoardState(vault, "board");
 
-    const { lastFrame, stdin } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-        vault,
-      }),
-    );
+    const { lastFrame, stdin } = render(renderBoardCore(state, vault));
 
     // Zoom into the card
     stdin.write("\r");
@@ -1009,14 +988,7 @@ describe.serial("Wiki Link Rendering", () => {
 
     const state = buildBoardState(vault, "board");
 
-    const { lastFrame } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-        vault: createFakeVault(),
-      }),
-    );
+    const { lastFrame } = render(renderBoardCore(state, createFakeVault()));
 
     const output = lastFrame() ?? "";
 
@@ -1045,14 +1017,7 @@ describe.serial("Wiki Link Rendering", () => {
 
     const state = buildBoardState(vault, "board");
 
-    const { lastFrame } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: 80,
-        testHeight: 24,
-        vault: createFakeVault(),
-      }),
-    );
+    const { lastFrame } = render(renderBoardCore(state, createFakeVault()));
 
     const output = lastFrame() ?? "";
     // Strip ANSI codes to check visible text (URLs are in OSC 8 hyperlink sequences)

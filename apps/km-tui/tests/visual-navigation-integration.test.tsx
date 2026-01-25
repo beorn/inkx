@@ -61,6 +61,7 @@ function makeColumn(id: string, name: string, cards: CardState[]): ColumnState {
 function makeBoardState(columns: ColumnState[]): BoardState {
   return {
     rootId: "root",
+    rootPath: null,
     columns,
     colIndex: 0,
     cardIndex: 0,
@@ -71,10 +72,7 @@ function makeBoardState(columns: ColumnState[]): BoardState {
     searchMode: false,
     searchQuery: "",
     collapsedColumns: new Set(),
-    rootNode: makeNode("root", "Root"),
-    cardIndexPerColumn: new Map(),
-    scrollOffset: 0,
-    selectionLevel: "card" as const,
+    zoomStack: [],
   };
 }
 
@@ -97,6 +95,8 @@ describe("Visual navigation integration: card position registration", () => {
         <Board
           initialState={state}
           initialViewMode="cards"
+          dimensions={{ columns: 80, rows: 24 }}
+          onExit={() => {}}
           layoutRegistry={registry}
         />
       </VaultProvider>,
@@ -147,6 +147,8 @@ describe("Visual navigation integration: card position registration", () => {
         <Board
           initialState={state}
           initialViewMode="cards"
+          dimensions={{ columns: 80, rows: 24 }}
+          onExit={() => {}}
           layoutRegistry={registry}
         />
       </VaultProvider>,
@@ -192,6 +194,8 @@ describe("Visual navigation integration: card position registration", () => {
         <Board
           initialState={state}
           initialViewMode="cards"
+          dimensions={{ columns: 80, rows: 24 }}
+          onExit={() => {}}
           layoutRegistry={registry}
         />
       </VaultProvider>,

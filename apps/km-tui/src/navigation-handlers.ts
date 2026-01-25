@@ -13,7 +13,7 @@
 
 import createDebug from "debug";
 import type { Vault } from "@km/storage";
-import type { LayoutRegistry, NodeLayout } from "./card-positions.ts";
+import type { LayoutRegistry } from "./card-positions.ts";
 import { getCardMidY } from "./card-positions.ts";
 import type { SimplifiedBoardState } from "@km/board";
 

@@ -10,7 +10,11 @@ import { join } from "path";
 import { runGenerator } from "@km/core";
 import { createVault } from "../src/index.ts";
 import type { MutationContext, Vault, VaultHooks } from "../src/index.ts";
-import { withTestEnv } from "@km/storage";
+import {
+  withTestEnv,
+  isMockMode,
+  createMockWatcher,
+} from "../src/testing/index.ts";
 
 describe("createVault", () => {
   test("creates vault in memory mode (no .km dir)", () =>
@@ -309,7 +313,14 @@ Some content here with [[tasks]] link.
       );
       mkdirSync(join(vaultDir, ".km"), { recursive: true });
 
-      using vault = runGenerator(createVault(vaultDir));
+      // Use mock watcher in mock mode, real watcher otherwise
+      const mockWatcher = isMockMode() ? createMockWatcher() : undefined;
+
+      using vault = runGenerator(
+        createVault(vaultDir, {
+          watcherFactory: mockWatcher ? () => mockWatcher : undefined,
+        }),
+      );
       expect(vault.mode).toBe("disk");
 
       const watcher = vault.watch();

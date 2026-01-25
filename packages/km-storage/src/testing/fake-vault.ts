@@ -302,7 +302,10 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       return false;
     },
 
-    rawQuery<T = Record<string, unknown>>(sql: string, _params?: unknown[]): T[] {
+    rawQuery<T = Record<string, unknown>>(
+      sql: string,
+      _params?: unknown[],
+    ): T[] {
       ensureNotClosed();
 
       // Pattern: SELECT * FROM nodes (used by ProjectPicker)

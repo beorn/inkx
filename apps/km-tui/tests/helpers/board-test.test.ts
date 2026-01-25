@@ -40,11 +40,11 @@ describe("board-test helper", () => {
     b.expectVisible("To Do");
   });
 
-  test("press sends key but does not change state (InkBoardTestable limitation)", () => {
+  test("press sends key but does not change state (BoardCore limitation)", () => {
     const b = renderBoard(SIMPLE_BOARD);
-    // NOTE: press() won't actually change navigation state because InkBoardTestable
-    // is a static component. For interactive testing, the full Board component
-    // needs to be refactored to not depend on @km/storage globals.
+    // NOTE: press() won't actually change navigation state because BoardCore
+    // is a pure rendering component. For interactive testing, use Board which
+    // includes useReducer and useInput.
     b.press("l");
     // Should still render without crashing
     expect(b.screenshot()).toBeDefined();

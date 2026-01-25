@@ -8,8 +8,6 @@ import { useCallback } from "react";
 import type { KNode } from "@km/core";
 import type { Vault } from "../vault-context.tsx";
 import type { BoardState } from "../types.ts";
-import type { BoardState as TreeBoardState, BoardAction } from "@km/board";
-import { buildTreeNodes } from "../board-adapter.ts";
 import { actions } from "../ui-reducer.ts";
 
 // =============================================================================
@@ -19,11 +17,9 @@ import { actions } from "../ui-reducer.ts";
 interface UseBoardDialogsParams {
   vault: Vault;
   state: BoardState;
-  boardState: TreeBoardState;
   dispatch: (
     action: ReturnType<(typeof actions)[keyof typeof actions]>,
   ) => void;
-  dispatchBoard: (action: BoardAction) => void;
 }
 
 interface BoardDialogHandlers {
@@ -44,9 +40,7 @@ interface BoardDialogHandlers {
 export function useBoardDialogs({
   vault,
   state,
-  boardState,
   dispatch,
-  dispatchBoard,
 }: UseBoardDialogsParams): BoardDialogHandlers {
   // Handle project picker selection
   // For linked nodes (transclusions), re-parent the TARGET node, not the link
@@ -72,18 +66,10 @@ export function useBoardDialogs({
       // Track as recent project
       dispatch(actions.addRecentProject(targetNode.id));
 
-      // Close picker and rebuild board
+      // Close picker - columns will be re-derived from vault on next render
       dispatch(actions.hideProjectPicker());
-
-      setTimeout(() => {
-        if (boardState.rootId) {
-          // Build tree nodes directly and dispatch to boardReducer
-          const nodes = buildTreeNodes(vault, boardState.rootId);
-          dispatchBoard({ type: "REFRESH", nodes });
-        }
-      }, 50);
     },
-    [vault, state, boardState, dispatch, dispatchBoard],
+    [vault, state, dispatch],
   );
 
   const handleProjectCancel = useCallback(() => {
@@ -93,14 +79,10 @@ export function useBoardDialogs({
   // Handler for new item creation
   const handleNewItemCreate = useCallback(
     (_newNodeId: string) => {
+      // Close dialog - columns will be re-derived from vault on next render
       dispatch(actions.hideNewItemDialog());
-      // Refresh the board to show the new item
-      if (boardState.rootId) {
-        const nodes = buildTreeNodes(vault, boardState.rootId);
-        dispatchBoard({ type: "REFRESH", nodes });
-      }
     },
-    [boardState, dispatch, dispatchBoard],
+    [dispatch],
   );
 
   const handleNewItemCancel = useCallback(() => {

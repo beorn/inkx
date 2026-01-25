@@ -35,7 +35,7 @@
  * 2. **handleCursorMove correctly wires registry to board state**
  *    - Test: Press 'l' key, verify correct card is selected based on curswantY
  *    - This requires either:
- *      a) Full TUI integration test (render InkBoardTestable, send keys)
+ *      a) Full TUI integration test (render Board, use stdin.write)
  *      b) Unit test with mocked TUIContext
  *
  * 3. **Scroll position changes trigger position re-registration**

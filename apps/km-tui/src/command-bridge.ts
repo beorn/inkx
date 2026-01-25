@@ -46,17 +46,17 @@ export function processKeyWithContext(
     currentNode: (selectedNode as TNode) ?? null,
   });
 
-  const { colIndex, cardIndex } = layout;
-  const columnNode = boardState.nodes[colIndex];
+  const { colIndex, cardIndex, columns } = layout;
+  const column = columns[colIndex];
 
   const cmdCtx = buildContext(
     boardState as unknown as CmdBoardState,
     ui.viewMode,
     {
-      siblingCount: columnNode?.children.length ?? 0,
+      siblingCount: column?.cards.length ?? 0,
       siblingIndex: cardIndex >= 0 ? cardIndex : 0,
       columnIndex: colIndex >= 0 ? colIndex : 0,
-      columnCount: boardState.nodes.length,
+      columnCount: columns.length,
     },
   );
 

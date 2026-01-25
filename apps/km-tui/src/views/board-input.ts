@@ -8,8 +8,10 @@
 import type { Key } from "inkx";
 import type { Dispatch } from "react";
 import { actions, type UIAction } from "../ui-reducer.ts";
-import type { BoardAction } from "@km/board";
+import type { SimplifiedBoardState, TransitionalBoardAction } from "@km/board";
+import type { Vault } from "../vault-context.tsx";
 import type { TUIContext } from "../tui-context.ts";
+import { handleTreeNavigation } from "../navigation-handlers.ts";
 import {
   processKeyWithContext,
   ensureCommandSystemInitialized,
@@ -73,17 +75,16 @@ export function handleBoardKeyInput(
 /**
  * Handle detail pane keyboard input
  * Limited navigation: j/k/arrows for cards, h/Esc to close, q to quit
+ *
+ * Uses navigation handlers to compute target nodeId, then dispatches SELECT.
  */
 export function handleDetailPaneKeyInput(
   input: string,
   key: Key,
-  state: {
-    colIndex: number;
-    cardIndex: number;
-    columns: Array<{ cards: unknown[] }>;
-  },
+  vault: Vault,
+  boardState: SimplifiedBoardState,
   dispatch: Dispatch<UIAction>,
-  dispatchBoard: Dispatch<BoardAction>,
+  dispatchBoard: Dispatch<TransitionalBoardAction>,
   exit: () => void,
 ): void {
   if (input === "h" || key.escape) {
@@ -94,16 +95,19 @@ export function handleDetailPaneKeyInput(
     exit();
     return;
   }
-  const col = state.columns[state.colIndex];
+
+  // Use navigation handlers to compute target nodeId
   if (input === "j" || key.downArrow) {
-    if (col && state.cardIndex < col.cards.length - 1) {
-      dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
+    const targetId = handleTreeNavigation("next", boardState, vault);
+    if (targetId) {
+      dispatchBoard({ type: "SELECT", nodeId: targetId });
     }
     return;
   }
   if (input === "k" || key.upArrow) {
-    if (state.cardIndex > 0) {
-      dispatchBoard({ type: "CURSOR_MOVE", dir: "prev" });
+    const targetId = handleTreeNavigation("prev", boardState, vault);
+    if (targetId) {
+      dispatchBoard({ type: "SELECT", nodeId: targetId });
     }
     return;
   }

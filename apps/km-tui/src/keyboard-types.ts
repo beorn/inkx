@@ -6,7 +6,7 @@
 
 import type { KNode } from "@km/core";
 import type { Vault } from "./vault-context.tsx";
-import type { BoardState as TreeBoardState, BoardAction } from "@km/board";
+import type { SimplifiedBoardState, TransitionalBoardAction } from "@km/board";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";
 import type { ColumnsLayout } from "./board-adapter.ts";
@@ -33,14 +33,14 @@ export interface KeyEvent {
 export interface KeyboardContext {
   /** Vault for storage operations */
   vault: Vault;
-  /** Tree-based board state from boardReducer */
-  boardState: TreeBoardState;
+  /** Simplified board state from simplifiedBoardReducer */
+  boardState: SimplifiedBoardState;
   /** Derived column layout from tree state */
   layout: ColumnsLayout;
   ui: UIState;
   dispatch: React.Dispatch<ReturnType<(typeof actions)[keyof typeof actions]>>;
-  /** Dispatch to boardReducer for navigation state changes */
-  dispatchBoard: (action: BoardAction) => void;
+  /** Dispatch to board reducer (transitional: accepts old and new actions) */
+  dispatchBoard: (action: TransitionalBoardAction) => void;
   exit: () => void;
   countVisibleDescendants: (
     node: KNode,

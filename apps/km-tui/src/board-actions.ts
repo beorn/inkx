@@ -314,20 +314,23 @@ function handleZoomOutwards(ctx: TUIContext): void {
   if (card?.node.parent_id) {
     const parentNode = ctx.vault.getNode(card.node.parent_id);
     if (parentNode) {
-      const nodes = boardState.nodes;
+      // Search in layout.columns for the parent node
+      const columns = layout.columns;
 
-      const colIdx = nodes.findIndex((n) => n.id === parentNode.id);
+      // Check if parent is a column header
+      const colIdx = columns.findIndex((col) => col.node.id === parentNode.id);
       if (colIdx >= 0) {
         dispatchBoard({ type: "NAV_TO_PATH", path: [colIdx] });
         clearSelection(keyboardContext);
         return;
       }
 
-      for (let cIdx = 0; cIdx < nodes.length; cIdx++) {
-        const colNode = nodes[cIdx];
-        if (!colNode) continue;
-        const cardIdx = colNode.children.findIndex(
-          (c) => c.id === parentNode.id,
+      // Check if parent is a card within any column
+      for (let cIdx = 0; cIdx < columns.length; cIdx++) {
+        const column = columns[cIdx];
+        if (!column) continue;
+        const cardIdx = column.cards.findIndex(
+          (c) => c.node.id === parentNode.id,
         );
         if (cardIdx >= 0) {
           dispatchBoard({ type: "NAV_TO_PATH", path: [cIdx, cardIdx] });
@@ -345,9 +348,9 @@ function handleZoomOutwards(ctx: TUIContext): void {
   }
 
   // Try moving from column level to board level
-  const cursorDepth = boardState.cursor.length;
+  // Derive selection level from layout indices
   const derivedSelectionLevel =
-    cursorDepth === 0 ? "board" : cursorDepth === 1 ? "column" : "card";
+    layout.cardIndex >= 0 ? "card" : layout.colIndex >= 0 ? "column" : "board";
   if (derivedSelectionLevel === "column") {
     dispatchBoard({ type: "NAV_TO_PATH", path: [] });
     return;

@@ -82,19 +82,34 @@ export const screenshotCommand = new Command("screenshot")
       rows: height,
     });
 
-    // Import React and Board component
+    // Import React and Board components
     const React = await import("react");
-    const { InkBoardTestable } = await import("@km/tui");
+    const {
+      BoardCore,
+      VaultProvider,
+      createInitialUIState,
+      createLayoutRegistry,
+    } = await import("@km/tui");
 
-    // Render the board
-    // Note: InkBoardTestable uses fixed dimensions, view mode is currently "cards" only
+    // Create the BoardCore element with all required props
+    const boardCoreElement = React.createElement(BoardCore, {
+      state,
+      ui: createInitialUIState(viewMode, [], { columns: width, rows: height }),
+      derivedSelectionLevel: "card" as const,
+      dimensions: { columns: width, rows: height },
+      layoutRegistry: createLayoutRegistry(),
+      dispatch: () => {},
+      dialogHandlers: {
+        handleProjectSelect: () => {},
+        handleProjectCancel: () => {},
+        handleNewItemCreate: () => {},
+        handleNewItemCancel: () => {},
+      },
+    });
+
+    // Render the board wrapped in VaultProvider
     const { lastBuffer, lastFrameText } = render(
-      React.createElement(InkBoardTestable, {
-        initialState: state,
-        testWidth: width,
-        testHeight: height,
-        vault: storageModule.createFakeVault(),
-      }),
+      React.createElement(VaultProvider, { vault, children: boardCoreElement }),
     );
 
     // Generate output based on format

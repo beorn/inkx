@@ -1,6 +1,10 @@
 /**
  * Ink-based Board TUI Component
- * Full-screen board view with columns and cards
+ *
+ * 3-Layer Architecture:
+ * 1. BoardCore - Pure rendering, no hooks (testable)
+ * 2. Board - State management (useReducer, useInput)
+ * 3. BoardApp - Production entry (useVault, useStdout, external integrations)
  */
 import React, { useEffect, useReducer, useMemo, useRef } from "react";
 import { writeSync } from "fs";
@@ -12,15 +16,13 @@ import {
   useStdout,
   render as inkxRender,
 } from "inkx";
-import chalk from "chalk";
-import { hyperlink } from "@beorn/chalkx";
 import createDebug from "debug";
 
 const debug = createDebug("km:board");
 import type { BoardState, ViewMode } from "../types.ts";
 import type { KNode } from "@km/core";
-// Removed singleton imports: getStore, getNodeCount - use vault.mode and vault.stats instead
 import { useVault, VaultProvider } from "../vault-context.tsx";
+import type { Vault } from "@km/storage";
 import type { KeyboardContext } from "../keyboard-types.ts";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
@@ -34,13 +36,19 @@ import {
 import { ColumnsView } from "./ColumnsView.tsx";
 import { ListView } from "./ListView.tsx";
 import { TabsView } from "./TabsView.tsx";
-import { getNodeIcon, getChalkColor } from "../text/index.ts";
-import { getInheritedColor } from "../board-pills.ts";
 import { renderPath } from "../layout/index.ts";
 import { UIProvider } from "../ui-context.tsx";
 import { LayoutProvider } from "../layout-context.tsx";
-import { createLayoutRegistry } from "../card-positions.ts";
-import { uiReducer, createInitialUIState, actions } from "../ui-reducer.ts";
+import {
+  createLayoutRegistry,
+  type LayoutRegistry,
+} from "../card-positions.ts";
+import {
+  uiReducer,
+  createInitialUIState,
+  type UIState,
+  type UIAction,
+} from "../ui-reducer.ts";
 import { useBoardDialogs } from "./use-board-dialogs.ts";
 import { ConstraintRoot } from "../layout/index.ts";
 import { ensureCommandSystemInitialized } from "../command-bridge.ts";
@@ -49,12 +57,16 @@ import {
   toKeyboardContext,
   type TUIContext,
 } from "../tui-context.ts";
-import { boardReducer, createNodeMap } from "@km/board";
 import {
-  tuiStateToTreeState,
-  deriveColumns,
-  deriveCursorIndices,
-} from "../board-adapter.ts";
+  simplifiedBoardReducer,
+  createSimplifiedBoardState,
+  type TransitionalBoardAction,
+  type NodeMap,
+  type TNode,
+} from "@km/board";
+import { useColumns } from "../hooks/use-columns.ts";
+import { useCursorPosition } from "../hooks/use-cursor-position.ts";
+import type { ColumnsLayout } from "../board-adapter.ts";
 
 // Extracted modules
 import {
@@ -67,7 +79,6 @@ import { BottomBar } from "./board-bottom-bar.tsx";
 import {
   createSyncTerminalDimensions,
   createFileDropHandler,
-  createMouseHandler_,
   createRefreshHandler,
   createWatcherStatusHandler,
 } from "./board-effects.ts";
@@ -79,271 +90,67 @@ import {
 export { makeSelectionKey } from "../types.ts";
 
 // =============================================================================
-// Main Board Component
+// BoardCore - Pure Rendering (No Hooks)
 // =============================================================================
 
-export interface BoardProps {
-  initialState: BoardState;
-  initialViewMode?: ViewMode;
-  /** Optional layout registry for card position tracking (used by h/l navigation).
-   * If not provided, one will be created automatically.
-   * Pass a registry for testing to inspect card positions. */
-  layoutRegistry?: ReturnType<typeof createLayoutRegistry>;
+export interface BoardCoreProps {
+  /** Legacy column-based state for rendering */
+  state: BoardState;
+  /** UI state (dialogs, view mode, etc.) */
+  ui: UIState;
+  /** Derived selection level from cursor depth */
+  derivedSelectionLevel: "board" | "column" | "card";
+  /** Terminal dimensions */
+  dimensions: { columns: number; rows: number };
+  /** Layout registry for card position tracking */
+  layoutRegistry: LayoutRegistry;
+  /** Dispatch to UI reducer */
+  dispatch: React.Dispatch<UIAction>;
+  /** Dialog handlers (types match ProjectPicker and NewItemDialog props) */
+  dialogHandlers: {
+    handleProjectSelect: (targetNode: KNode) => void;
+    handleProjectCancel: () => void;
+    handleNewItemCreate: (newNodeId: string) => void;
+    handleNewItemCancel: () => void;
+  };
 }
 
-// Exported for testing with inkx createTestRenderer
-export function Board({
-  initialState,
-  initialViewMode = "cards",
-  layoutRegistry: injectedRegistry,
-}: BoardProps) {
-  const { exit } = useApp();
-  const { stdout } = useStdout();
+/**
+ * Pure rendering component - NO hooks, just JSX.
+ * Receives all state as props, making it fully testable.
+ */
+export function BoardCore({
+  state,
+  ui,
+  derivedSelectionLevel,
+  dimensions,
+  layoutRegistry,
+  dispatch,
+  dialogHandlers,
+}: BoardCoreProps): React.ReactElement {
   const vault = useVault();
-
-  // UI state managed by reducer (enables extracting input handlers)
-  const [ui, dispatch] = useReducer(
-    uiReducer,
-    {
-      initialViewMode,
-      collapsedColumns: [...(initialState.collapsedColumns ?? [])],
-      stdout,
-      rootBoardId: initialState.rootId,
-    },
-    (init) =>
-      createInitialUIState(
-        init.initialViewMode,
-        init.collapsedColumns,
-        {
-          columns: init.stdout?.columns ?? 80,
-          rows: init.stdout?.rows ?? 24,
-        },
-        init.rootBoardId,
-      ),
-  );
-
-  // Convert initial TUI state to tree-based state for boardReducer
-  // Uses initialState in deps to ensure it's captured on mount
-  const initialTreeState = useMemo(
-    () =>
-      tuiStateToTreeState(vault, initialState, {
-        foldedNodes: new Set<string>(),
-        navHistory: [],
-        navHistoryIndex: 0,
-      }),
-    [vault, initialState],
-  );
-
-  // Board navigation state managed by @km/board's boardReducer
-  const [boardState, dispatchBoard] = useReducer(
-    boardReducer,
-    initialTreeState,
-  );
-
-  // Ref to track current rootId for event handlers (avoids stale closure)
-  const rootIdRef = useRef(boardState.rootId);
-  useEffect(() => {
-    rootIdRef.current = boardState.rootId;
-  }, [boardState.rootId]);
-
-  // Ref for edge-based horizontal scroll tracking
-  const colScrollOffsetRef = useRef(0);
-
-  // Layout registry for card position tracking (used by h/l navigation)
-  // Use injected registry if provided (for testing), otherwise create one
-  // Created once and never changes - stable reference for context
-  const layoutRegistryRef = useRef<ReturnType<
-    typeof createLayoutRegistry
-  > | null>(null);
-  if (!layoutRegistryRef.current) {
-    layoutRegistryRef.current = injectedRegistry ?? createLayoutRegistry();
-  }
-  const layoutRegistry = layoutRegistryRef.current;
-
-  // PERFORMANCE OPTIMIZATION: Separate columns derivation from cursor derivation
-  // This ensures cursor movement (which changes boardState.cursor) does NOT
-  // cause all columns to be rebuilt. Columns only rebuild when tree structure changes.
-
-  // Derive columns ONLY when tree structure changes (not on cursor moves)
-  const columns = useMemo(
-    () => deriveColumns(boardState.nodes),
-    [boardState.nodes], // Only depends on nodes, not cursor!
-  );
-
-  // Derive cursor indices on every cursor change (cheap operation)
-  const cursorIndices = useMemo(
-    () => deriveCursorIndices(boardState),
-    [boardState.cursor, boardState.cursorNodeId, boardState.nodes],
-  );
-
-  // Combined layout for compatibility (uses stable columns reference)
-  const columnsLayout = useMemo(
-    () => ({
-      columns,
-      colIndex: cursorIndices.colIndex,
-      cardIndex: cursorIndices.cardIndex,
-      subPath: cursorIndices.subPath,
-      isAtCardLevel: cursorIndices.isAtCardLevel,
-      isInOutlineMode: cursorIndices.isInOutlineMode,
-    }),
-    [columns, cursorIndices],
-  );
-
-  // Build nodeMap once when nodes change (O(n) only on tree changes, not every render)
-  const nodeMap = useMemo(
-    () => createNodeMap(boardState.nodes),
-    [boardState.nodes],
-  );
-
-  // Derive cursorDepth from cursor path length (replaces stored selectionLevel)
-  // depth 0 = board level, depth 1 = column level, depth 2+ = card level
-  const cursorDepth = boardState.cursor.length;
-  const derivedSelectionLevel: "board" | "column" | "card" =
-    cursorDepth === 0 ? "board" : cursorDepth === 1 ? "column" : "card";
-
-  // Legacy state accessor for compatibility during migration
-  // Components still expect the old BoardState shape
-  const state: BoardState = useMemo(
-    () => ({
-      rootId: boardState.rootId,
-      rootPath: boardState.rootPath,
-      columns: columnsLayout.columns,
-      colIndex: columnsLayout.colIndex,
-      cardIndex: columnsLayout.cardIndex,
-      selectedCards: new Set<string>(),
-      visualMode: false,
-      foldedCards: boardState.foldedNodes,
-      collapsedColumns: new Set<number>(),
-      searchQuery: "",
-      searchMode: false,
-      helpMode: false,
-      zoomStack: boardState.zoomStack.map((z) => z.rootId ?? ""),
-    }),
-    [boardState, columnsLayout],
-  );
-
-  // Dialog handlers (extracted to separate hook for maintainability)
-  const {
-    handleProjectSelect,
-    handleProjectCancel,
-    handleNewItemCreate,
-    handleNewItemCancel,
-  } = useBoardDialogs({ vault, state, boardState, dispatch, dispatchBoard });
-
-  // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
-  // See board-effects.ts for detailed explanation
-  useEffect(() => createSyncTerminalDimensions(stdout, dispatch), [stdout]);
-
-  // Sync rootBoardId in UI state when board navigation changes
-  useEffect(
-    () => dispatch(actions.setRootBoardId(state.rootId)),
-    [state.rootId],
-  );
-
-  // Handle file drops via bracketed paste
-  useEffect(() => createFileDropHandler(dispatch), []);
-
-  // Handle mouse drag-select
-  useEffect(
-    () => createMouseHandler_(dispatch, dispatchBoard, ui.mouseSelection),
-    [ui.mouseSelection],
-  );
-
-  // Subscribe to external refresh events (filesystem changes)
-  useEffect(
-    () => createRefreshHandler(vault, rootIdRef, dispatchBoard),
-    [vault],
-  );
-
-  // Subscribe to watcher status updates (for bottom bar display)
-  useEffect(() => createWatcherStatusHandler(dispatch), []);
-
-  const termWidth = ui.dimensions.columns;
-  const termHeight = ui.dimensions.rows;
+  const termWidth = dimensions.columns;
+  const termHeight = dimensions.rows;
 
   const maxCols = Math.min(
     state.columns.length,
     Math.max(2, Math.floor(termWidth / 35)),
   );
 
-  // Horizontal scrolling for columns (edge-based)
-  const colScrollOffset = calcEdgeBasedColumnScrollOffset(
-    state.colIndex,
-    colScrollOffsetRef.current,
-    maxCols,
-    state.columns.length,
-  );
-  colScrollOffsetRef.current = colScrollOffset;
-  const visibleColumns = state.columns.slice(
-    colScrollOffset,
-    colScrollOffset + maxCols,
-  );
-
-  // Build unified TUI context once - passed to all handlers
-  const tuiContext: TUIContext = buildTUIContext({
-    vault,
-    state,
-    boardState,
-    ui,
-    layout: columnsLayout,
-    nodeMap,
-    positionRegistry: layoutRegistry,
-    dispatch,
-    dispatchBoard,
-    exit,
-    countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
-      countVisibleDescendants(vault, node, depth, maxDepth, foldedNodes),
-  });
-
-  // Legacy keyboard context for backward compatibility during migration
-  // TODO(km-mz2g): Remove when command system migration is complete
-  const _keyboardContext: KeyboardContext = toKeyboardContext(tuiContext);
-
-  // Initialize command system on first render
-  useEffect(() => {
-    ensureCommandSystemInitialized();
-  }, []);
-
-  // Main keyboard input handler - ALL keys go through @km/commands
-  useInput((input, key) => {
-    handleBoardKeyInput(
-      input,
-      key,
-      tuiContext,
-      {
-        showNewItemDialog: ui.showNewItemDialog,
-        showProjectPicker: ui.showProjectPicker,
-        showHelp: ui.showHelp,
-      },
-      dispatch,
-      exit,
-    );
-  });
-
-  // Handle detail pane navigation (j/k to move cards while pane is open)
-  useInput(
-    (input, key) => {
-      handleDetailPaneKeyInput(
-        input,
-        key,
-        state,
-        dispatch,
-        dispatchBoard,
-        exit,
-      );
-    },
-    {
-      isActive: ui.showDetailPane,
-    },
+  // Calculate scroll offset (pure calculation, no refs needed)
+  const colScrollOffset = Math.max(
+    0,
+    Math.min(
+      state.colIndex - Math.floor(maxCols / 2),
+      Math.max(0, state.columns.length - maxCols),
+    ),
   );
 
   // Build selected item path segments for colorized top bar
-  // Shows full path from filesystem root to selected item based on selection level
   const selectedCol = state.columns[state.colIndex];
   const selectedCard = selectedCol?.cards[state.cardIndex];
 
   // Determine which node to show path to based on selection level
-  // Card level shows card path (or column if no card), column shows column, board shows root
   const pathNodeId =
     derivedSelectionLevel === "board" || !selectedCol
       ? state.rootId
@@ -366,27 +173,23 @@ export function Board({
   const effectiveMaxCols = ui.showDetailPane
     ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
     : maxCols;
-  // Use same edge-based scroll offset (already calculated above with colScrollOffsetRef)
   const effectiveScrollOffset = ui.showDetailPane
     ? calcEdgeBasedColumnScrollOffset(
         state.colIndex,
-        colScrollOffsetRef.current,
+        colScrollOffset,
         effectiveMaxCols,
         state.columns.length,
       )
     : colScrollOffset;
-  const effectiveVisibleColumns = ui.showDetailPane
-    ? state.columns.slice(
-        effectiveScrollOffset,
-        effectiveScrollOffset + effectiveMaxCols,
-      )
-    : visibleColumns;
+  const effectiveVisibleColumns = state.columns.slice(
+    effectiveScrollOffset,
+    effectiveScrollOffset + effectiveMaxCols,
+  );
 
   // Build top bar - use board's color as background, or blue if selected/no color
   const isBoardSelected = derivedSelectionLevel === "board";
 
   // Render loading indicator until terminal is ready
-  // This prevents blank screen while waiting for alternate buffer to stabilize
   if (!ui.isReady) {
     return (
       <Box height={termHeight} width={termWidth}>
@@ -407,8 +210,6 @@ export function Board({
             overflow="hidden"
           >
             {/* Top bar: full path from root to selected item, spans full width */}
-            {/* Board root is bold, other segments are dimmed */}
-            {/* backgroundColor on Box ensures full width fill */}
             <Box
               flexShrink={0}
               width={termWidth}
@@ -531,8 +332,8 @@ export function Board({
                   marginTop={Math.floor(contentHeight / 2)}
                 >
                   <ProjectPicker
-                    onSelect={handleProjectSelect}
-                    onCancel={handleProjectCancel}
+                    onSelect={dialogHandlers.handleProjectSelect}
+                    onCancel={dialogHandlers.handleProjectCancel}
                     width={Math.floor(termWidth / 2)}
                     height={Math.floor(contentHeight / 2)}
                     recentProjectIds={ui.recentProjectIds}
@@ -548,8 +349,8 @@ export function Board({
                 >
                   <NewItemDialog
                     cursorNode={selectedCard?.node ?? null}
-                    onCreate={handleNewItemCreate}
-                    onCancel={handleNewItemCancel}
+                    onCreate={dialogHandlers.handleNewItemCreate}
+                    onCancel={dialogHandlers.handleNewItemCancel}
                     width={Math.floor(termWidth / 2)}
                     height={10}
                   />
@@ -575,9 +376,349 @@ export function Board({
   );
 }
 
-// Helper to count visible descendants for flat indexing
+// =============================================================================
+// Board - Stateful Component (useReducer, useInput)
+// =============================================================================
+
+export interface BoardProps {
+  /** Initial board state */
+  initialState: BoardState;
+  /** Initial view mode (default: "cards") */
+  initialViewMode?: ViewMode;
+  /** Terminal dimensions */
+  dimensions: { columns: number; rows: number };
+  /** Exit callback */
+  onExit: () => void;
+  /** Optional layout registry for card position tracking (for testing) */
+  layoutRegistry?: LayoutRegistry;
+  /** Optional custom reducer for testing */
+  reducer?: typeof uiReducer;
+}
+
+/**
+ * Stateful Board component with reducers and input handling.
+ * Renders BoardCore with computed state.
+ *
+ * NEW ARCHITECTURE:
+ * - Uses SimplifiedBoardState (cursorNodeId only, no nodes array)
+ * - Derives columns from Vault at render time via useColumns
+ * - Derives cursor position from cursorNodeId via useCursorPosition
+ */
+export function Board({
+  initialState,
+  initialViewMode = "cards",
+  dimensions,
+  onExit,
+  layoutRegistry: injectedRegistry,
+  reducer = uiReducer,
+}: BoardProps) {
+  const vault = useVault();
+
+  // UI state managed by reducer (enables extracting input handlers)
+  const [ui, dispatch] = useReducer(
+    reducer,
+    {
+      initialViewMode,
+      collapsedColumns: [...(initialState.collapsedColumns ?? [])],
+      dimensions,
+      rootBoardId: initialState.rootId,
+    },
+    (init) =>
+      createInitialUIState(
+        init.initialViewMode,
+        init.collapsedColumns,
+        init.dimensions,
+        init.rootBoardId,
+      ),
+  );
+
+  // Derive initial cursorNodeId from initialState
+  const initialCursorNodeId = useMemo(() => {
+    if (initialState.colIndex >= 0) {
+      const col = initialState.columns[initialState.colIndex];
+      if (col && initialState.cardIndex >= 0) {
+        const card = col.cards[initialState.cardIndex];
+        return card?.node.id ?? col.node.id;
+      }
+      return col?.node.id ?? null;
+    }
+    return null;
+  }, [initialState]);
+
+  // Board navigation state managed by simplifiedBoardReducer
+  // No nodes array - just IDs and Sets
+  const [boardState, dispatchBoard] = useReducer(
+    simplifiedBoardReducer,
+    null, // unused
+    () =>
+      createSimplifiedBoardState(
+        initialState.rootId,
+        initialState.rootPath,
+        initialCursorNodeId,
+      ),
+  );
+
+  // Ref to track current rootId for event handlers (avoids stale closure)
+  const rootIdRef = useRef(boardState.rootId);
+  useEffect(() => {
+    rootIdRef.current = boardState.rootId;
+  }, [boardState.rootId]);
+
+  // Ref for edge-based horizontal scroll tracking
+  const colScrollOffsetRef = useRef(0);
+
+  // Layout registry for card position tracking (used by h/l navigation)
+  const layoutRegistryRef = useRef<LayoutRegistry | null>(null);
+  if (!layoutRegistryRef.current) {
+    layoutRegistryRef.current = injectedRegistry ?? createLayoutRegistry();
+  }
+  const layoutRegistry = layoutRegistryRef.current;
+
+  // NEW: Derive columns from Vault (not from state.nodes)
+  const columns = useColumns(vault, boardState.rootId, boardState.foldedNodes);
+
+  // NEW: Derive cursor position from cursorNodeId (not from state.cursor path)
+  const cursorPosition = useCursorPosition(columns, boardState.cursorNodeId);
+
+  const columnsLayout: ColumnsLayout = useMemo(
+    () => ({
+      columns,
+      colIndex: cursorPosition.colIndex,
+      cardIndex: cursorPosition.cardIndex,
+      subPath: [], // TODO: outline mode subpath
+      isAtCardLevel: cursorPosition.isAtCardLevel,
+      isInOutlineMode: false, // TODO: outline mode
+    }),
+    [columns, cursorPosition],
+  );
+
+  // Stub nodeMap for TUI context compatibility
+  // In the new architecture, vault provides O(1) lookup via getNode(id)
+  // TODO: Remove nodeMap from TUIContext once all consumers use vault directly
+  const nodeMap = useMemo(
+    (): NodeMap => ({
+      get: (id: string) => {
+        const node = vault.getNode(id);
+        if (!node) throw new Error(`Node not found: ${id}`);
+        return node as unknown as TNode;
+      },
+      getOrNull: (id: string) => vault.getNode(id) as unknown as TNode | null,
+      getEntry: () => null,
+      has: (id: string) => vault.getNode(id) !== null,
+      keys: () => [] as string[],
+      size: vault.stats.nodeCount,
+    }),
+    [vault.stats.nodeCount],
+  );
+
+  // Derive selection level from cursor position
+  const derivedSelectionLevel = cursorPosition.selectionLevel;
+
+  // Legacy state accessor for compatibility during migration
+  const state: BoardState = useMemo(
+    () => ({
+      rootId: boardState.rootId,
+      rootPath: boardState.rootPath,
+      columns: columnsLayout.columns,
+      colIndex: columnsLayout.colIndex,
+      cardIndex: columnsLayout.cardIndex,
+      selectedCards: new Set<string>(),
+      visualMode: false,
+      foldedCards: boardState.foldedNodes,
+      collapsedColumns: new Set<number>(),
+      searchQuery: "",
+      searchMode: false,
+      helpMode: false,
+      zoomStack: boardState.zoomStack.map(
+        (z: { rootId: string | null }) => z.rootId ?? "",
+      ),
+    }),
+    [boardState, columnsLayout],
+  );
+
+  // Dialog handlers (no longer need boardState/dispatchBoard - columns derived from vault)
+  const dialogHandlers = useBoardDialogs({
+    vault,
+    state,
+    dispatch,
+  });
+
+  // Calculate visible columns for scroll offset tracking
+  const termWidth = ui.dimensions.columns;
+  const maxCols = Math.min(
+    state.columns.length,
+    Math.max(2, Math.floor(termWidth / 35)),
+  );
+
+  // Update scroll offset ref
+  const colScrollOffset = calcEdgeBasedColumnScrollOffset(
+    state.colIndex,
+    colScrollOffsetRef.current,
+    maxCols,
+    state.columns.length,
+  );
+  colScrollOffsetRef.current = colScrollOffset;
+
+  // Cast dispatchBoard to transitional type for legacy action compatibility
+  const transitionalDispatch =
+    dispatchBoard as React.Dispatch<TransitionalBoardAction>;
+
+  // Build unified TUI context once - passed to all handlers
+  const tuiContext: TUIContext = buildTUIContext({
+    vault,
+    state,
+    boardState,
+    ui,
+    layout: columnsLayout,
+    nodeMap,
+    positionRegistry: layoutRegistry,
+    dispatch,
+    dispatchBoard: transitionalDispatch,
+    exit: onExit,
+    countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
+      countVisibleDescendants(vault, node, depth, maxDepth, foldedNodes),
+  });
+
+  // Legacy keyboard context for backward compatibility during migration
+  const _keyboardContext: KeyboardContext = toKeyboardContext(tuiContext);
+
+  // Initialize command system on first render
+  useEffect(() => {
+    ensureCommandSystemInitialized();
+  }, []);
+
+  // Main keyboard input handler - ALL keys go through @km/commands
+  useInput((input, key) => {
+    handleBoardKeyInput(
+      input,
+      key,
+      tuiContext,
+      {
+        showNewItemDialog: ui.showNewItemDialog,
+        showProjectPicker: ui.showProjectPicker,
+        showHelp: ui.showHelp,
+      },
+      dispatch,
+      onExit,
+    );
+  });
+
+  // Handle detail pane navigation (j/k to move cards while pane is open)
+  useInput(
+    (input, key) => {
+      handleDetailPaneKeyInput(
+        input,
+        key,
+        vault,
+        boardState,
+        dispatch,
+        transitionalDispatch,
+        onExit,
+      );
+    },
+    {
+      isActive: ui.showDetailPane,
+    },
+  );
+
+  return (
+    <BoardCore
+      state={state}
+      ui={ui}
+      derivedSelectionLevel={derivedSelectionLevel}
+      dimensions={ui.dimensions}
+      layoutRegistry={layoutRegistry}
+      dispatch={dispatch}
+      dialogHandlers={dialogHandlers}
+    />
+  );
+}
+
+// =============================================================================
+// BoardApp - Production Entry (useVault, useStdout, external integrations)
+// =============================================================================
+
+export interface BoardAppProps {
+  /** Initial board state */
+  initialState: BoardState;
+  /** Initial view mode (default: "cards") */
+  initialViewMode?: ViewMode;
+  /** Optional layout registry for card position tracking (for testing) */
+  layoutRegistry?: LayoutRegistry;
+}
+
+/**
+ * Production entry component with external integrations.
+ * Gets vault, dimensions, exit from context/hooks.
+ * Has file watcher and other external effects.
+ */
+export function BoardApp({
+  initialState,
+  initialViewMode = "cards",
+  layoutRegistry,
+}: BoardAppProps) {
+  const { exit } = useApp();
+  const { stdout } = useStdout();
+  const vault = useVault();
+
+  // Create dispatch for dimension sync (passed to effects)
+  // This is separate from Board's dispatch to keep effects at this layer
+  const [dimensionState, dimensionDispatch] = useReducer(
+    (
+      state: { columns: number; rows: number },
+      action: { columns: number; rows: number },
+    ) => action,
+    { columns: stdout?.columns ?? 80, rows: stdout?.rows ?? 24 },
+  );
+
+  // Ref to track current rootId for event handlers
+  const rootIdRef = useRef(initialState.rootId);
+
+  // UI dispatch for effects (watcher status, file drops, etc.)
+  // We need a stable dispatch reference for effects, but Board manages its own state
+  // Solution: use a ref that gets updated by Board through a callback
+  const dispatchBoardRef =
+    useRef<React.Dispatch<TransitionalBoardAction> | null>(null);
+
+  // WORKAROUND: fullscreen-ink alternate buffer race condition
+  useEffect(
+    () =>
+      createSyncTerminalDimensions(
+        stdout,
+        dimensionDispatch as unknown as React.Dispatch<UIAction>,
+      ),
+    [stdout],
+  );
+
+  // Handle file drops via bracketed paste
+  useEffect(() => createFileDropHandler(() => {}), []);
+
+  // Subscribe to external refresh events (filesystem changes)
+  useEffect(() => {
+    if (!dispatchBoardRef.current) return;
+    return createRefreshHandler(vault, rootIdRef, dispatchBoardRef.current);
+  }, [vault]);
+
+  // Subscribe to watcher status updates
+  useEffect(() => createWatcherStatusHandler(() => {}), []);
+
+  return (
+    <Board
+      initialState={initialState}
+      initialViewMode={initialViewMode}
+      dimensions={dimensionState}
+      onExit={exit}
+      layoutRegistry={layoutRegistry}
+    />
+  );
+}
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
 function countVisibleDescendants(
-  vault: import("@km/storage").Vault,
+  vault: Vault,
   node: KNode,
   depth: number,
   maxDepth: number,
@@ -628,10 +769,14 @@ function restoreTerminal(): void {
   }
 }
 
+// =============================================================================
+// Render Entry Points
+// =============================================================================
+
 export async function renderInkxBoard(
   state: BoardState,
   initialViewMode?: ViewMode,
-  vault?: import("@km/storage").Vault,
+  vault?: Vault,
 ): Promise<void> {
   debug("renderInkxBoard start");
 
@@ -641,7 +786,7 @@ export async function renderInkxBoard(
 
   const app = (
     <VaultProvider vault={vault}>
-      <Board initialState={state} initialViewMode={initialViewMode} />
+      <BoardApp initialState={state} initialViewMode={initialViewMode} />
     </VaultProvider>
   );
 
@@ -676,149 +821,5 @@ export async function renderInkxBoard(
   await instance.waitUntilExit();
 }
 
-// =============================================================================
-// Render Entry Points
-// =============================================================================
-
-// Testable version of Board component with fixed ui.dimensions for testing
-interface TestBoardProps {
-  initialState: BoardState;
-  testWidth: number;
-  testHeight: number;
-  vault: import("@km/storage").Vault;
-}
-
-export function InkBoardTestable({
-  initialState,
-  testWidth,
-  testHeight,
-  vault,
-}: TestBoardProps): React.ReactElement {
-  // Create a mock UI state for testing
-  const mockUIState = createInitialUIState("cards", [], {
-    columns: testWidth,
-    rows: testHeight,
-  });
-
-  // Use fixed test ui.dimensions instead of stdout
-  const termWidth = testWidth;
-  const termHeight = testHeight;
-  const testContentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT;
-
-  const maxCols = Math.min(
-    initialState.columns.length,
-    Math.max(2, Math.floor(termWidth / 35)),
-  );
-  const colWidth = Math.floor((termWidth - 2) / maxCols);
-
-  const colScrollOffset = Math.max(
-    0,
-    Math.min(
-      initialState.colIndex - Math.floor(maxCols / 2),
-      Math.max(0, initialState.columns.length - maxCols),
-    ),
-  );
-  const visibleColumns = initialState.columns.slice(
-    colScrollOffset,
-    colScrollOffset + maxCols,
-  );
-
-  const selectedCol = initialState.columns[initialState.colIndex];
-  const selectedCard = selectedCol?.cards[initialState.cardIndex];
-  const selectedPathSegments = selectedCard
-    ? renderPath(
-        getPathSegments(vault, selectedCard.node.id, initialState.rootId),
-        termWidth - 4,
-      )
-    : getPathSegments(vault, initialState.rootId, initialState.rootId);
-
-  // Build top bar with consistent white background, varying foreground colors
-  // Path segments are clickable hyperlinks for navigation (km://root/<id>)
-  const testTopBarContent = selectedPathSegments
-    .map((seg) => {
-      const sepPart = seg.sep ? chalk.bgWhite.gray(` ${seg.sep} `) : "";
-      // Get color icon for this segment if it has one
-      const segColor = seg.node
-        ? getInheritedColor(vault, seg.node)
-        : undefined;
-      const segIcon = segColor ? getNodeIcon(null, segColor) : null;
-      const iconPart = segIcon
-        ? chalk.bgWhite(getChalkColor(segIcon.color)(segIcon.char)) + " "
-        : "";
-      // Make segment name a clickable hyperlink to navigate to that node
-      const url = seg.id ? `km://root/${seg.id}` : "";
-      const linkedName = seg.id ? hyperlink(seg.name, url) : seg.name;
-      const namePart = seg.isWithinBoard
-        ? chalk.bgWhite.blue(linkedName)
-        : chalk.bgWhite.black(linkedName);
-      return sepPart + iconPart + namePart;
-    })
-    .join("");
-  const testVisibleLen =
-    1 +
-    selectedPathSegments.reduce((acc, seg) => {
-      const segColor = seg.node
-        ? getInheritedColor(vault, seg.node)
-        : undefined;
-      const iconLen = segColor ? 2 : 0; // icon char + space
-      return (
-        acc + seg.name.length + iconLen + (seg.sep ? seg.sep.length + 2 : 0)
-      );
-    }, 0);
-  const testPadding = " ".repeat(Math.max(0, termWidth - testVisibleLen));
-
-  // No-op dispatch for static test render
-  const noopDispatch = () => {};
-
-  return (
-    <VaultProvider vault={vault}>
-      <UIProvider state={mockUIState} dispatch={noopDispatch}>
-        <Box flexDirection="column" height={termHeight} minHeight={3}>
-          {/* Top bar: full path */}
-          <Box height={1} width={termWidth}>
-            <Text>
-              {chalk.bgWhite.black(" ") +
-                testTopBarContent +
-                chalk.bgWhite(testPadding)}
-            </Text>
-          </Box>
-          <Box flexDirection="row" flexGrow={1}>
-            {visibleColumns.map((col, i) => {
-              const actualColIndex = colScrollOffset + i;
-              return (
-                <Column
-                  key={col.node.id}
-                  column={col}
-                  colIndex={actualColIndex}
-                  isSelected={actualColIndex === initialState.colIndex}
-                  isCollapsed={initialState.collapsedColumns.has(
-                    actualColIndex,
-                  )}
-                  selectedCardIndex={initialState.cardIndex}
-                  selectedSubIndex={-1}
-                  width={colWidth}
-                  height={testContentHeight}
-                  selectionLevel="card"
-                />
-              );
-            })}
-          </Box>
-          {/* Bottom bar: indicators right-aligned */}
-          <Box width={termWidth} justifyContent="flex-end" paddingX={1}>
-            <Text>
-              {initialState.columns.length > maxCols && (
-                <Text dimColor>
-                  {`[cols ${colScrollOffset + 1}-${colScrollOffset + maxCols}/${initialState.columns.length}] `}
-                </Text>
-              )}
-              <Text inverse>{" BOARD "}</Text>
-            </Text>
-          </Box>
-        </Box>
-      </UIProvider>
-    </VaultProvider>
-  );
-}
-
-// NOTE: renderTopBarSegments removed - top bar now uses pure inkx styling
-// See bead for chalk+inkx styling consolidation
+// NOTE: InkBoardTestable removed - use BoardCore directly for testing
+// See testing.ts for the new test harness pattern
