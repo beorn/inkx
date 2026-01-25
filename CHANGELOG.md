@@ -16,9 +16,17 @@
   - Added `NotificationLevel` type to `@km/core` for consistent UI feedback levels
   - Status messages display in bottom bar middle section (takes priority over indicators)
   - Selection actions show status messages ("3 items selected", etc.)
-  - Boundary navigation rings terminal bell (\x07) + shows warning message
+  - Boundary navigation rings terminal bell (\x07) + shows warning message with 🔔 visual indicator
   - Status messages clear automatically on next keypress
   - Resolves: km-defensive-chain.7
+- **core**: Cross-layer event system for observability and decoupling
+  - Added `kmEvents` global emitter using nanoevents (107 bytes)
+  - Three event categories: User (UI feedback), Debug (tracing), Metric (performance)
+  - Full TypeScript type safety with interface-based typing
+  - Disposable support: works as unbind function, .dispose(), and `using` keyword
+  - DisposableStore for managing multiple subscriptions
+  - Complete docs in docs/dev/events.md
+  - Resolves: km-defensive-chain.8
 
 ### Fixed
 
