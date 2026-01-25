@@ -12,6 +12,17 @@ A test system that is:
 
 ---
 
+## File Naming Conventions
+
+| Suffix          | Purpose                         | Included in           |
+| --------------- | ------------------------------- | --------------------- |
+| `.test.ts`      | Fast tests (<1s each)           | test:fast, test:all   |
+| `.slow.test.ts` | Slow tests (integration, chaos) | test:all only         |
+| `.spec.ts`      | TUI acceptance tests            | test:fast, test:all   |
+| `.test.md`      | mdtest CLI tests                | test:mdtest, test:all |
+
+---
+
 ## Test Architecture
 
 ```
@@ -289,11 +300,21 @@ test("creates node", () => {
 
 Per-layer tests for pure logic (no database, no I/O):
 
-| Layer           | Test Focus                             |
-| --------------- | -------------------------------------- |
-| `@km/markdown`  | Parse constructs, round-trip, edges    |
-| `@km/tree`      | Tree queries, display names, paths     |
-| Board selectors | Derived state, filtering, calculations |
+**Parser Layer** (`@km/markdown`):
+- [markdown.test.ts](../../packages/km-markdown/tests/markdown.test.ts) - Parse markdown constructs
+- [roundtrip.test.ts](../../packages/km-markdown/tests/roundtrip.test.ts) - Serialize and re-parse
+- [properties.test.ts](../../packages/km-markdown/tests/properties.test.ts) - Property-based parsing
+- [properties-roundtrip.test.ts](../../packages/km-markdown/tests/properties-roundtrip.test.ts) - Property-based roundtrip
+
+**Tree Layer** (`@km/tree`):
+- [body.test.ts](../../packages/km-tree/tests/body.test.ts) - Body text extraction
+- [display.test.ts](../../packages/km-tree/tests/display.test.ts) - Display name generation
+- [queries.test.ts](../../packages/km-tree/tests/queries.test.ts) - Tree queries (ancestors, descendants)
+
+**Board Layer** (`@km/board`):
+- [selectors.test.ts](../../packages/km-board/tests/selectors.test.ts) - Derived state calculations
+- [node-map.test.ts](../../packages/km-board/tests/node-map.test.ts) - Node indexing
+- [transformers.test.ts](../../packages/km-board/tests/transformers.test.ts) - State transformations
 
 ### 2.4 Vendor Tests
 
@@ -304,6 +325,30 @@ Vendor packages (`vendor/beorn-*`) are git submodules - part of km's test suite.
 **Included automatically:** `test:fast` and `test:all` discover and run vendor tests.
 
 **Rule:** km packages (`packages/`, `apps/`) must not contain component-level render/layout tests. Component behavior is validated via acceptance tests or vendor tests.
+
+### 2.5 Utility Tests
+
+**TUI Layout** (`apps/km-tui/tests/layout/`):
+- [constrain.test.ts](../../apps/km-tui/tests/layout/constrain.test.ts) - Width constraint logic
+- [path.test.ts](../../apps/km-tui/tests/layout/path.test.ts) - Path formatting
+- [truncate.test.ts](../../apps/km-tui/tests/layout/truncate.test.ts) - Text truncation
+- [wrap.test.ts](../../apps/km-tui/tests/layout/wrap.test.ts) - Text wrapping
+
+**TUI Text** (`apps/km-tui/tests/text/`):
+- [icons.test.ts](../../apps/km-tui/tests/text/icons.test.ts) - Icon rendering
+- [rich.test.ts](../../apps/km-tui/tests/text/rich.test.ts) - Rich text formatting
+
+### 2.6 Other Package Tests
+
+Each package has focused unit tests:
+
+| Package              | Test Files | Focus Area                  |
+| -------------------- | ---------- | --------------------------- |
+| km-commands          | 5          | Command system, keybindings |
+| km-agent             | 4          | Agent harness, mutations    |
+| km-beads             | 3          | Issue tracking, dependencies |
+| km-connector-caldav  | 5          | CalDAV/CardDAV sync         |
+| km-core              | 4          | Query parser, types         |
 
 ---
 
@@ -331,6 +376,18 @@ See [chaos-testing.md](chaos-testing.md) for detailed reference.
 - Each regression test must reference the original issue or commit
 
 **When to run**: Always (part of `test:fast`).
+
+### 3.3 E2E Safety Tests
+
+**Purpose**: Verify sync never corrupts non-markdown files.
+
+**Location**: `packages/km-storage/tests/e2e/`
+
+**Files**: [sync-safety.test.ts](../../packages/km-storage/tests/e2e/sync-safety.test.ts) (5 tests)
+
+**When to run**: Always (part of `test:fast`).
+
+**Context**: After km-me0n incident where sync overwrote source files, these tests ensure sync only touches `.md` files.
 
 ---
 
@@ -437,6 +494,7 @@ pkill -f ttyd
 | --------------- | ------------------------------- | --------------------- |
 | `.test.ts`      | Fast tests (<1s each)           | test:fast, test:all   |
 | `.slow.test.ts` | Slow tests (integration, chaos) | test:all only         |
+| `.spec.ts`      | TUI acceptance tests            | test:fast, test:all   |
 | `.test.md`      | mdtest CLI tests                | test:mdtest, test:all |
 
 ### Commands
