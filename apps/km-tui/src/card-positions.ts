@@ -12,9 +12,9 @@
  * - Used to return to same column when moving down
  */
 
-import createDebug from "debug";
+import createDebug from "debug"
 
-const debug = createDebug("km:tui:layout");
+const debug = createDebug("km:tui:layout")
 
 // =============================================================================
 // Types
@@ -25,25 +25,25 @@ const debug = createDebug("km:tui:layout");
  */
 export interface NodeLayout {
   /** X position (left edge) */
-  x: number;
+  x: number
   /** Y position (top edge) */
-  y: number;
+  y: number
   /** Full card width (measured) */
-  cardWidth: number;
+  cardWidth: number
   /** Full card height (measured) */
-  cardHeight: number;
+  cardHeight: number
   /** Head row Y position (measured) */
-  headY?: number;
+  headY?: number
   /** Head row height (measured) */
-  headHeight?: number;
+  headHeight?: number
 }
 
 /**
  * Card entry in the registry (combines position info with node ID).
  */
 export interface CardEntry {
-  nodeId: string;
-  layout: NodeLayout;
+  nodeId: string
+  layout: NodeLayout
 }
 
 /**
@@ -54,13 +54,13 @@ export interface LayoutRegistry {
   // === Node-level registration ===
 
   /** Register a node's layout by ID */
-  registerNode(nodeId: string, layout: NodeLayout): void;
+  registerNode(nodeId: string, layout: NodeLayout): void
 
   /** Get a node's layout by ID (throws if not found) */
-  getNode(nodeId: string): NodeLayout;
+  getNode(nodeId: string): NodeLayout
 
   /** Get a node's layout by ID (returns undefined if not found) */
-  getNodeOptional(nodeId: string): NodeLayout | undefined;
+  getNodeOptional(nodeId: string): NodeLayout | undefined
 
   // === Card-level registration (for column/card index navigation) ===
 
@@ -70,13 +70,13 @@ export interface LayoutRegistry {
     cardIndex: number,
     nodeId: string,
     layout: NodeLayout,
-  ): void;
+  ): void
 
   /** Get a card's entry by column and card index (throws if not found) */
-  getCard(colIndex: number, cardIndex: number): CardEntry;
+  getCard(colIndex: number, cardIndex: number): CardEntry
 
   /** Get a card's entry by column and card index (returns undefined if not found) */
-  getCardOptional(colIndex: number, cardIndex: number): CardEntry | undefined;
+  getCardOptional(colIndex: number, cardIndex: number): CardEntry | undefined
 
   /** Update the head layout for a card (called after head row is measured) */
   updateCardHead(
@@ -84,32 +84,32 @@ export interface LayoutRegistry {
     cardIndex: number,
     headY: number,
     headHeight: number,
-  ): void;
+  ): void
 
   /** Find the card in a column closest to a target Y position (throws if no cards registered) */
-  findCardAtY(colIndex: number, targetY: number): number;
+  findCardAtY(colIndex: number, targetY: number): number
 
   // === Sticky Y for h/l navigation ===
 
   /** Set sticky Y position for h/l navigation sequences (head midpoint) */
-  setStickyY(y: number): void;
+  setStickyY(y: number): void
 
   /** Get current sticky Y position (null if not set) */
-  getStickyY(): number | null;
+  getStickyY(): number | null
 
   /** Clear sticky Y position (called on j/k navigation) */
-  clearStickyY(): void;
+  clearStickyY(): void
 
   // === Sticky X for board/column navigation ===
 
   /** Set sticky X (column index) for board/column navigation */
-  setStickyX(colIndex: number): void;
+  setStickyX(colIndex: number): void
 
   /** Get current sticky X (null if not set) */
-  getStickyX(): number | null;
+  getStickyX(): number | null
 
   /** Clear sticky X */
-  clearStickyX(): void;
+  clearStickyX(): void
 
   // === Visual navigation helpers ===
 
@@ -118,28 +118,28 @@ export interface LayoutRegistry {
    * or the closest card if none intersect.
    * Returns -1 if should land on column header (targetY above all cards).
    */
-  findCardAtYVisual(colIndex: number, targetY: number): number;
+  findCardAtYVisual(colIndex: number, targetY: number): number
 
   /**
    * Find the insertion slot in a column closest to targetY.
    * Slots: 0 = after header, 1 = after card 0, etc.
    * Returns the slot index (0 to cardCount).
    */
-  findInsertionSlot(colIndex: number, targetY: number): number;
+  findInsertionSlot(colIndex: number, targetY: number): number
 
   // === Utilities ===
 
   /** Clear all positions (call on tree structure change) */
-  clear(): void;
+  clear(): void
 
   /** Dump registry state for debugging */
-  dump(): string;
+  dump(): string
 
   /** Check if any cards are registered for a column */
-  hasCardsInColumn(colIndex: number): boolean;
+  hasCardsInColumn(colIndex: number): boolean
 
   /** Get count of registered cards in a column */
-  getCardCount(colIndex: number): number;
+  getCardCount(colIndex: number): number
 }
 
 // =============================================================================
@@ -152,39 +152,39 @@ export interface LayoutRegistry {
  */
 export function createLayoutRegistry(): LayoutRegistry {
   // Map: nodeId -> NodeLayout
-  const nodeLayouts = new Map<string, NodeLayout>();
+  const nodeLayouts = new Map<string, NodeLayout>()
 
   // Map: colIndex -> Map<cardIndex, CardEntry>
-  const cardLayouts = new Map<number, Map<number, CardEntry>>();
+  const cardLayouts = new Map<number, Map<number, CardEntry>>()
 
   // Sticky Y for h/l navigation (head midpoint Y coordinate)
-  let stickyY: number | null = null;
+  let stickyY: number | null = null
 
   // Sticky X for board/column navigation (column index)
-  let stickyX: number | null = null;
+  let stickyX: number | null = null
 
   return {
     // === Node-level ===
 
     registerNode(nodeId: string, layout: NodeLayout): void {
-      nodeLayouts.set(nodeId, layout);
+      nodeLayouts.set(nodeId, layout)
       debug("registerNode", {
         id: nodeId.slice(-8),
         y: layout.y,
         size: `${layout.cardWidth}x${layout.cardHeight}`,
-      });
+      })
     },
 
     getNode(nodeId: string): NodeLayout {
-      const layout = nodeLayouts.get(nodeId);
+      const layout = nodeLayouts.get(nodeId)
       if (!layout) {
-        throw new Error(`Node layout not found: ${nodeId}`);
+        throw new Error(`Node layout not found: ${nodeId}`)
       }
-      return layout;
+      return layout
     },
 
     getNodeOptional(nodeId: string): NodeLayout | undefined {
-      return nodeLayouts.get(nodeId);
+      return nodeLayouts.get(nodeId)
     },
 
     // === Card-level ===
@@ -195,39 +195,39 @@ export function createLayoutRegistry(): LayoutRegistry {
       nodeId: string,
       layout: NodeLayout,
     ): void {
-      let colMap = cardLayouts.get(colIndex);
+      let colMap = cardLayouts.get(colIndex)
       if (!colMap) {
-        colMap = new Map();
-        cardLayouts.set(colIndex, colMap);
+        colMap = new Map()
+        cardLayouts.set(colIndex, colMap)
       }
-      colMap.set(cardIndex, { nodeId, layout });
+      colMap.set(cardIndex, { nodeId, layout })
 
       // Also register by node ID for direct lookup
-      nodeLayouts.set(nodeId, layout);
+      nodeLayouts.set(nodeId, layout)
 
       debug("registerCard", {
         col: colIndex,
         card: cardIndex,
         id: nodeId.slice(-8),
         y: layout.y,
-      });
+      })
     },
 
     getCard(colIndex: number, cardIndex: number): CardEntry {
-      const entry = cardLayouts.get(colIndex)?.get(cardIndex);
+      const entry = cardLayouts.get(colIndex)?.get(cardIndex)
       if (!entry) {
         throw new Error(
           `Card layout not found: col=${colIndex}, card=${cardIndex}`,
-        );
+        )
       }
-      return entry;
+      return entry
     },
 
     getCardOptional(
       colIndex: number,
       cardIndex: number,
     ): CardEntry | undefined {
-      return cardLayouts.get(colIndex)?.get(cardIndex);
+      return cardLayouts.get(colIndex)?.get(cardIndex)
     },
 
     updateCardHead(
@@ -236,36 +236,36 @@ export function createLayoutRegistry(): LayoutRegistry {
       headY: number,
       headHeight: number,
     ): void {
-      const entry = cardLayouts.get(colIndex)?.get(cardIndex);
+      const entry = cardLayouts.get(colIndex)?.get(cardIndex)
       if (entry) {
-        entry.layout.headY = headY;
-        entry.layout.headHeight = headHeight;
+        entry.layout.headY = headY
+        entry.layout.headHeight = headHeight
         debug(
           "updateCardHead: col=%d card=%d headY=%d headHeight=%d",
           colIndex,
           cardIndex,
           headY,
           headHeight,
-        );
+        )
       }
     },
 
     findCardAtY(colIndex: number, targetY: number): number {
-      const colMap = cardLayouts.get(colIndex);
+      const colMap = cardLayouts.get(colIndex)
 
       if (!colMap || colMap.size === 0) {
-        throw new Error(`No cards registered for column ${colIndex}`);
+        throw new Error(`No cards registered for column ${colIndex}`)
       }
 
       // Find card whose Y is closest to target
-      let closestIdx = 0;
-      let closestDist = Infinity;
+      let closestIdx = 0
+      let closestDist = Infinity
 
       for (const [cardIdx, entry] of colMap) {
-        const dist = Math.abs(entry.layout.y - targetY);
+        const dist = Math.abs(entry.layout.y - targetY)
         if (dist < closestDist) {
-          closestDist = dist;
-          closestIdx = cardIdx;
+          closestDist = dist
+          closestIdx = cardIdx
         }
       }
 
@@ -275,61 +275,61 @@ export function createLayoutRegistry(): LayoutRegistry {
         targetY,
         closestIdx,
         colMap.get(closestIdx)?.layout.y,
-      );
+      )
 
-      return closestIdx;
+      return closestIdx
     },
 
     // === Sticky Y ===
 
     setStickyY(y: number): void {
-      stickyY = y;
-      debug("setStickyY: %d", y);
+      stickyY = y
+      debug("setStickyY: %d", y)
     },
 
     getStickyY(): number | null {
-      return stickyY;
+      return stickyY
     },
 
     clearStickyY(): void {
       if (stickyY !== null) {
-        debug("clearStickyY");
-        stickyY = null;
+        debug("clearStickyY")
+        stickyY = null
       }
     },
 
     // === Sticky X ===
 
     setStickyX(colIndex: number): void {
-      stickyX = colIndex;
-      debug("setStickyX: %d", colIndex);
+      stickyX = colIndex
+      debug("setStickyX: %d", colIndex)
     },
 
     getStickyX(): number | null {
-      return stickyX;
+      return stickyX
     },
 
     clearStickyX(): void {
       if (stickyX !== null) {
-        debug("clearStickyX");
-        stickyX = null;
+        debug("clearStickyX")
+        stickyX = null
       }
     },
 
     // === Visual navigation helpers ===
 
     findCardAtYVisual(colIndex: number, targetY: number): number {
-      const colMap = cardLayouts.get(colIndex);
+      const colMap = cardLayouts.get(colIndex)
 
       if (!colMap || colMap.size === 0) {
         // No cards - return -1 to indicate column header
-        return -1;
+        return -1
       }
 
       // First pass: find card whose card box contains targetY (intersection)
       for (const [cardIdx, entry] of colMap) {
-        const cardTop = entry.layout.y;
-        const cardBottom = cardTop + entry.layout.cardHeight;
+        const cardTop = entry.layout.y
+        const cardBottom = cardTop + entry.layout.cardHeight
         if (targetY >= cardTop && targetY < cardBottom) {
           debug(
             "findCardAtYVisual: col=%d targetY=%d -> card=%d (intersects y=%d-%d)",
@@ -338,35 +338,35 @@ export function createLayoutRegistry(): LayoutRegistry {
             cardIdx,
             cardTop,
             cardBottom,
-          );
-          return cardIdx;
+          )
+          return cardIdx
         }
       }
 
       // Second pass: find closest card
-      let closestIdx = -1;
-      let closestDist = Infinity;
+      let closestIdx = -1
+      let closestDist = Infinity
 
       for (const [cardIdx, entry] of colMap) {
-        const cardTop = entry.layout.y;
-        const cardBottom = cardTop + entry.layout.cardHeight;
-        const cardMid = (cardTop + cardBottom) / 2;
-        const dist = Math.abs(cardMid - targetY);
+        const cardTop = entry.layout.y
+        const cardBottom = cardTop + entry.layout.cardHeight
+        const cardMid = (cardTop + cardBottom) / 2
+        const dist = Math.abs(cardMid - targetY)
         if (dist < closestDist) {
-          closestDist = dist;
-          closestIdx = cardIdx;
+          closestDist = dist
+          closestIdx = cardIdx
         }
       }
 
       // If targetY is above all cards, return -1 for column header
-      const firstCard = colMap.get(0);
+      const firstCard = colMap.get(0)
       if (firstCard && targetY < firstCard.layout.y) {
         debug(
           "findCardAtYVisual: col=%d targetY=%d -> header (above all cards)",
           colIndex,
           targetY,
-        );
-        return -1;
+        )
+        return -1
       }
 
       debug(
@@ -374,20 +374,20 @@ export function createLayoutRegistry(): LayoutRegistry {
         colIndex,
         targetY,
         closestIdx,
-      );
-      return closestIdx;
+      )
+      return closestIdx
     },
 
     findInsertionSlot(colIndex: number, targetY: number): number {
-      const colMap = cardLayouts.get(colIndex);
+      const colMap = cardLayouts.get(colIndex)
 
       if (!colMap || colMap.size === 0) {
         // No cards - insert at slot 0 (after header)
-        return 0;
+        return 0
       }
 
       // Build sorted list of card boundaries
-      const cards = Array.from(colMap.entries()).sort((a, b) => a[0] - b[0]);
+      const cards = Array.from(colMap.entries()).sort((a, b) => a[0] - b[0])
 
       // Slot positions are the gaps between cards
       // Slot 0 = before first card (y = first card top)
@@ -395,56 +395,56 @@ export function createLayoutRegistry(): LayoutRegistry {
       // Last slot = after last card (y = last card bottom)
 
       for (let i = 0; i < cards.length; i++) {
-        const cardEntry = cards[i];
-        if (!cardEntry) continue;
-        const [, entry] = cardEntry;
-        const cardTop = entry.layout.y;
+        const cardEntry = cards[i]
+        if (!cardEntry) continue
+        const [, entry] = cardEntry
+        const cardTop = entry.layout.y
         if (targetY < cardTop) {
           debug(
             "findInsertionSlot: col=%d targetY=%d -> slot=%d",
             colIndex,
             targetY,
             i,
-          );
-          return i;
+          )
+          return i
         }
       }
 
       // targetY is at or below last card - insert after it
-      const lastSlot = cards.length;
+      const lastSlot = cards.length
       debug(
         "findInsertionSlot: col=%d targetY=%d -> slot=%d (after last)",
         colIndex,
         targetY,
         lastSlot,
-      );
-      return lastSlot;
+      )
+      return lastSlot
     },
 
     // === Utilities ===
 
     clear(): void {
-      nodeLayouts.clear();
-      cardLayouts.clear();
-      stickyY = null;
-      stickyX = null;
-      debug("cleared all layouts");
+      nodeLayouts.clear()
+      cardLayouts.clear()
+      stickyY = null
+      stickyX = null
+      debug("cleared all layouts")
     },
 
     hasCardsInColumn(colIndex: number): boolean {
-      const colMap = cardLayouts.get(colIndex);
-      return colMap !== undefined && colMap.size > 0;
+      const colMap = cardLayouts.get(colIndex)
+      return colMap !== undefined && colMap.size > 0
     },
 
     getCardCount(colIndex: number): number {
-      return cardLayouts.get(colIndex)?.size ?? 0;
+      return cardLayouts.get(colIndex)?.size ?? 0
     },
 
     dump(): string {
-      const lines: string[] = [`stickyX=${stickyX}, stickyY=${stickyY}`];
+      const lines: string[] = [`stickyX=${stickyX}, stickyY=${stickyY}`]
 
       if (cardLayouts.size === 0) {
-        lines.push("(no cards registered)");
+        lines.push("(no cards registered)")
       } else {
         for (const [colIdx, colMap] of cardLayouts) {
           const entries = Array.from(colMap.entries())
@@ -453,18 +453,18 @@ export function createLayoutRegistry(): LayoutRegistry {
               ([cardIdx, entry]) =>
                 `${cardIdx}:y${entry.layout.y}:h${entry.layout.cardHeight}`,
             )
-            .join(", ");
-          lines.push(`col[${colIdx}]: ${entries}`);
+            .join(", ")
+          lines.push(`col[${colIdx}]: ${entries}`)
         }
       }
 
       if (nodeLayouts.size > cardLayouts.size) {
-        lines.push(`(${nodeLayouts.size} total nodes registered)`);
+        lines.push(`(${nodeLayouts.size} total nodes registered)`)
       }
 
-      return lines.join("\n");
+      return lines.join("\n")
     },
-  };
+  }
 }
 
 // =============================================================================
@@ -473,11 +473,14 @@ export function createLayoutRegistry(): LayoutRegistry {
 
 /**
  * Get the visual midpoint Y for a card's head row (used as curswantY).
- * Uses measured head position when available.
+ * Requires measured head position - throws if not available.
  */
 export function getCardMidY(layout: NodeLayout): number {
   if (layout.headY !== undefined && layout.headHeight !== undefined) {
-    return layout.headY + layout.headHeight / 2;
+    return layout.headY + layout.headHeight / 2
   }
-  return layout.y + layout.cardHeight / 2;
+  throw new Error(
+    "Head position not registered - this is a programming error. " +
+      "Card components must call updateCardHead() after measuring the head row.",
+  )
 }
