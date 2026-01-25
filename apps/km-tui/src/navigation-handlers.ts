@@ -25,18 +25,18 @@ const debug = createDebug("km:tui:nav");
 
 /**
  * Tree navigation direction.
- * - next/prev: sibling navigation (j/k keys)
- * - child: enter first child (Enter key)
- * - parent: go to parent (Backspace key)
+ * - next/prev: sibling navigation (mapped from cursor_down/cursor_up in board-actions)
+ * - child: enter first child
+ * - parent: go to parent
  */
 export type TreeDirection = "next" | "prev" | "child" | "parent";
 
 /**
- * Handle tree-based navigation (j/k/Enter/Backspace).
+ * Handle tree-based navigation.
  *
  * Uses Vault for tree structure queries. No visual layout involved.
  *
- * @param direction - Navigation direction
+ * @param direction - Navigation direction ("next"/"prev" for siblings, "child"/"parent" for tree traversal)
  * @param state - Current board state (for cursorNodeId, rootId, foldedNodes)
  * @param vault - Vault for tree queries
  * @returns New cursorNodeId, or null if can't move
@@ -117,8 +117,13 @@ export function handleTreeNavigation(
       return currentNode.parent_id;
     }
 
-    default:
-      return null;
+    default: {
+      // Exhaustiveness check - TypeScript will error if new TreeDirection values are added
+      const _exhaustive: never = direction;
+      throw new Error(
+        `Unhandled tree direction: ${_exhaustive as string}. This is a programming error.`,
+      );
+    }
   }
 }
 

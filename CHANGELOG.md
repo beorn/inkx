@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **TUI**: Fixed j/k navigation not working - keybindings produced cursor_up/cursor_down with "up"/"down" directions, but handleTreeNavigation() only handled "prev"/"next". Added mapping in handleCursorMove() and exhaustiveness checking to prevent future regressions.
+
 ### Changed
 
 - **tui,tests:** migrate UI tests to spec pattern with tree fixtures

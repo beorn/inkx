@@ -228,9 +228,13 @@ export function handleCommandAction(
 
     // === Move mode actions ===
     case "ENTER_MOVE_MODE":
+      ctx.dispatchBoard(action);
+      break;
     case "CONFIRM_MOVE":
+      handleConfirmMove(ctx);
+      break;
     case "CANCEL_MOVE":
-      beepUnimplemented();
+      ctx.dispatchBoard(action);
       break;
 
     default:
@@ -364,6 +368,30 @@ function handleDeleteNode(ctx: TUIContext): void {
   refreshBoardState(ctx, {
     cardIndex: (c) =>
       Math.min(state.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
+  });
+}
+
+function handleConfirmMove(ctx: TUIContext): void {
+  const { boardState, layout, vault, dispatchBoard } = ctx;
+  const sourceNodeIds = boardState.moveSourceNodes;
+  console.log("handleConfirmMove:", { sourceNodeIds, colIndex: layout.colIndex });
+  if (sourceNodeIds.length === 0) return;
+  const targetCol = layout.columns[layout.colIndex];
+  console.log("targetCol:", targetCol?.node.id, targetCol?.node.title);
+  if (!targetCol) return;
+  let newSortOrder =
+    targetCol.cards.length > 0
+      ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1
+      : 0;
+  for (const nodeId of sourceNodeIds) {
+    console.log("Moving:", nodeId, "to", targetCol.node.id, "at", newSortOrder);
+    vault.moveNode(nodeId, targetCol.node.id, newSortOrder);
+    newSortOrder++;
+  }
+  dispatchBoard({ type: "CONFIRM_MOVE" });
+  refreshBoardState(ctx, {
+    colIndex: layout.colIndex,
+    cardIndex: (col) => Math.min(targetCol.cards.length, col?.cards.length || 0),
   });
 }
 
@@ -597,11 +625,10 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
   }
 
   // Normal cursor movement (first, last, etc.)
-  const targetId = handleTreeNavigation(
-    dir as TreeDirection,
-    ctx.boardState,
-    ctx.vault,
-  );
+  // Map visual directions (up/down) to tree directions (prev/next)
+  const treeDir =
+    dir === "up" ? "prev" : dir === "down" ? "next" : (dir as TreeDirection);
+  const targetId = handleTreeNavigation(treeDir, ctx.boardState, ctx.vault);
   if (targetId) dispatchBoard({ type: "SELECT", nodeId: targetId });
 }
 
