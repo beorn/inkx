@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Bug Fixes
+
+- **tui:** prevent constant re-renders from spinner animation ([db5457d](https://github.com/beorn/km/commit/db5457d))
+  - Fixed unconditional setInterval in useSpinnerFrame causing 60ms render loop
+  - Spinner animation now only runs when actually loading/syncing
+  - Resolves: km-jfr6
+- **storage:** intercept createDebug.log in workers before imports ([db5457d](https://github.com/beorn/km/commit/db5457d))
+  - Prevents debug() calls from imported modules going to stderr in worker threads
+  - All worker debug output properly forwarded to DEBUG_LOG
+  - Fixes debug messages interfering with TUI rendering
+  - Resolves: km-lvrl
+
 ## [0.2.0](https://github.com/beorn/km/compare/v0.1.1...v0.2.0) (2026-01-23)
 
 ### Features
