@@ -210,7 +210,6 @@ Divides width between columns with optional fixed-width columns:
 
 ```tsx
 import { FlexRow } from "../constraints"
-
 ;<FlexRow
   width={80}
   columns={[

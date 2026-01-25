@@ -17,6 +17,8 @@ import {
   type Agent,
 } from "@km/agent"
 import { queryReady, getIssue } from "@km/beads"
+import { createVault, runGenerator, resolvePathArg } from "@km/storage"
+import { getRootPath } from "../index.ts"
 
 export const bdAgentCommand = new Command("agent")
   .description("Assign issues to agents and manage work queues")
@@ -40,7 +42,9 @@ bdAgentCommand
   .description("List all agents")
   .option("--json", "Output as JSON")
   .action((opts) => {
-    const agents = queryAgents()
+    const pathResolved = resolvePathArg(process.cwd(), getRootPath())
+    using vault = runGenerator(createVault(pathResolved.vaultRoot))
+    const agents = queryAgents(vault)
 
     if (opts.json) {
       console.log(JSON.stringify(agents, null, 2))
@@ -65,14 +69,16 @@ bdAgentCommand
   .description("Show agent's assigned issues")
   .option("--json", "Output as JSON")
   .action((agentId, opts) => {
-    const agent = getAgent(agentId)
+    const pathResolved = resolvePathArg(process.cwd(), getRootPath())
+    using vault = runGenerator(createVault(pathResolved.vaultRoot))
+    const agent = getAgent(vault, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))
       process.exitCode = 1
       return
     }
 
-    const queue = getAgentQueue(agentId)
+    const queue = getAgentQueue(vault, agentId)
 
     if (opts.json) {
       console.log(
@@ -117,7 +123,9 @@ bdAgentCommand
   .command("assign <agent-id> <issue-id>")
   .description("Assign an issue to an agent's queue")
   .action((agentId, issueId) => {
-    const agent = getAgent(agentId)
+    const pathResolved = resolvePathArg(process.cwd(), getRootPath())
+    using vault = runGenerator(createVault(pathResolved.vaultRoot))
+    const agent = getAgent(vault, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))
       process.exitCode = 1
@@ -147,7 +155,9 @@ bdAgentCommand
   .command("unassign <agent-id> <issue-id>")
   .description("Remove an issue from agent's queue")
   .action((agentId, issueId) => {
-    const agent = getAgent(agentId)
+    const pathResolved = resolvePathArg(process.cwd(), getRootPath())
+    using vault = runGenerator(createVault(pathResolved.vaultRoot))
+    const agent = getAgent(vault, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))
       process.exitCode = 1
@@ -179,7 +189,9 @@ bdAgentCommand
   .description("Agent claims the next ready issue from the backlog")
   .option("--json", "Output as JSON")
   .action((agentId, opts) => {
-    const agent = getAgent(agentId)
+    const pathResolved = resolvePathArg(process.cwd(), getRootPath())
+    using vault = runGenerator(createVault(pathResolved.vaultRoot))
+    const agent = getAgent(vault, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))
       process.exitCode = 1
@@ -227,7 +239,9 @@ bdAgentCommand
   .option("--max-tasks <n>", "Maximum tasks to process", parseInt)
   .option("--dry-run", "Show what would be done")
   .action((agentId, opts) => {
-    const agent = getAgent(agentId)
+    const pathResolved = resolvePathArg(process.cwd(), getRootPath())
+    using vault = runGenerator(createVault(pathResolved.vaultRoot))
+    const agent = getAgent(vault, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))
       process.exitCode = 1

@@ -32,18 +32,12 @@ export type StepYield =
   | { declare: string[] }
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA } from "./schema.ts"
-import {
-  applyEvent,
-  getDb,
-  resetDb,
-  setDb,
-  dbApplyEvent,
-  tryGetContextDb,
-} from "./db.ts"
+import { getDb, resetDb, setDb, tryGetContextDb } from "./db.ts"
+import { applyEvent } from "./db-events.ts"
 import { findChildByContent } from "./db-queries/index.ts"
 import { rowToNode } from "./db-queries/utils.ts"
 import type { KNode } from "@km/core"
-import { getEventsPath, setKmDir, setDatabase } from "./emit.ts"
+import { getEventsPath, setKmDir } from "./emit.ts"
 import { evaluateAllRules, setBulkMode } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { DiskStore, MemoryStore, type NodeStore } from "./store.ts"
@@ -223,10 +217,7 @@ export function* loadVault(
     db.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }
   ).count
 
-  // Enable real-time event application for disk mode
-  if (mode === "disk") {
-    setDatabase(dbApplyEvent)
-  }
+  // Real-time event application now handled via context-local database in emit.ts
 
   const duration = Date.now() - start
   debug("loadVault complete", { mode, nodeCount, linkCount, duration })

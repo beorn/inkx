@@ -129,7 +129,10 @@ describe("Database Rules", () => {
           expect(addRuleNodes.length).toBe(1)
           expect(addRuleNodes[0]?.rules?.add).toBe("@issue status:todo")
 
-          const collapseRuleNodes = getNodesWithRule(store.getDatabase(), "collapse")
+          const collapseRuleNodes = getNodesWithRule(
+            store.getDatabase(),
+            "collapse",
+          )
           expect(collapseRuleNodes.length).toBe(1)
           expect(collapseRuleNodes[0]?.rules?.collapse).toBe(true)
         },
@@ -257,12 +260,14 @@ describe("Database Rules", () => {
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
 
-          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter(
-            (c) => c.type === "embed",
-          )
-          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter(
-            (c) => c.type === "embed",
-          )
+          const todoEmbeds = getChildren(
+            store.getDatabase(),
+            todoSection!.id,
+          ).filter((c) => c.type === "embed")
+          const doneEmbeds = getChildren(
+            store.getDatabase(),
+            doneSection!.id,
+          ).filter((c) => c.type === "embed")
 
           expect(todoEmbeds.length).toBe(2)
           expect(doneEmbeds.length).toBe(1)
@@ -436,7 +441,9 @@ describe("Database Rules", () => {
           )
           expect(openSection).toBeDefined()
 
-          const counts = getChildCountsBatch(store.getDatabase(), [openSection!.id])
+          const counts = getChildCountsBatch(store.getDatabase(), [
+            openSection!.id,
+          ])
           expect(counts.get(openSection!.id)).toBe(3)
         },
       ))

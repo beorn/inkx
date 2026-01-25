@@ -9,19 +9,24 @@ import {
   getNodeDisplayName as getNodeDisplayNameRaw,
   type CollapsedAncestor,
 } from "@km/tree"
-import { getChildren } from "@km/storage"
+import type { Vault } from "@km/storage"
 import type { KNode } from "@km/core"
 
-// Bound version with store dependency
-export const getNodeDisplayName = (
-  node: Parameters<typeof getNodeDisplayNameRaw>[0],
-) => getNodeDisplayNameRaw(node, getChildren)
+/**
+ * Get display name for a node (using vault for children lookup)
+ */
+export function getNodeDisplayName(vault: Vault, node: KNode): string {
+  return getNodeDisplayNameRaw(node, (parentId) => vault.getChildren(parentId))
+}
 
 /**
  * Format a collapsed ancestor for display with its type suffix
  */
-export function formatCollapsedAncestor(ca: CollapsedAncestor): string {
-  const name = getNodeDisplayName(ca.node)
+export function formatCollapsedAncestor(
+  vault: Vault,
+  ca: CollapsedAncestor,
+): string {
+  const name = getNodeDisplayName(vault, ca.node)
   if (ca.typeSuffix) {
     return name + chalk.gray(` ${ca.typeSuffix}`)
   }
@@ -42,6 +47,7 @@ export function formatCollapsedAncestor(ca: CollapsedAncestor): string {
  * Format a task for display with path
  */
 export function formatTaskWithPath(
+  vault: Vault,
   task: KNode,
   collapsedAncestors: CollapsedAncestor[],
   options: { verbose?: boolean; flat?: boolean; showId?: boolean } = {},
@@ -51,7 +57,7 @@ export function formatTaskWithPath(
   if (options.flat) {
     // Single line: path → task
     const pathParts = collapsedAncestors.map((ca) =>
-      chalk.dim(formatCollapsedAncestor(ca)),
+      chalk.dim(formatCollapsedAncestor(vault, ca)),
     )
     const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : ""
     lines.push(pathStr + formatTaskLine(task, options))
@@ -63,7 +69,7 @@ export function formatTaskWithPath(
     let hasSection = false
     for (const ca of collapsedAncestors) {
       const prefix = " ".repeat(fsDepth)
-      lines.push(prefix + chalk.dim(formatCollapsedAncestor(ca)))
+      lines.push(prefix + chalk.dim(formatCollapsedAncestor(vault, ca)))
       if (ca.node.type === "section") {
         hasSection = true
       } else {

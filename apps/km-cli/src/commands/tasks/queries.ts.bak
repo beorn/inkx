@@ -1,37 +1,42 @@
 /**
  * Task Query Helpers
  *
- * Functions for finding and querying tasks - now accept Vault parameter.
+ * Functions for finding and querying tasks.
  */
 
-import type { Vault } from "@km/storage"
+import {
+  getNodeByPath,
+  getNodeByIdPrefix,
+  getAncestors,
+  getTasksUnderNode as storageGetTasksUnderNode,
+} from "@km/storage"
 import {
   normalizeName,
   collapseAncestorsWithTypes,
   type CollapsedAncestor,
 } from "@km/tree"
 import type { KNode } from "@km/core"
-import { getNodeDisplayName as getNodeDisplayNameWithVault } from "./formatters.ts"
+import { getNodeDisplayName } from "./formatters.ts"
 
 /**
  * Find a node by path or ID prefix/suffix
  * Returns the node if found, null otherwise
  */
-export function findNodeByPathOrId(
-  vault: Vault,
-  pathOrId: string,
-): KNode | null {
-  // Try ID match via resolveNode (handles prefixes)
-  const node = vault.resolveNode(pathOrId)
+export function findNodeByPathOrId(pathOrId: string): KNode | null {
+  // Try ID match (exact, prefix, or suffix)
+  const node = getNodeByIdPrefix(pathOrId)
   if (node) return node
+
+  // Try path match (exact)
+  const byPath = getNodeByPath(pathOrId)
+  if (byPath) return byPath
 
   // Try path match with vault path prefix (user may provide relative path)
   // Check if it looks like a relative path
   if (!pathOrId.startsWith("/")) {
     const cwd = process.cwd()
     const fullPath = `${cwd}/${pathOrId}`
-    // Try resolving the full path
-    const byFullPath = vault.resolveNode(fullPath)
+    const byFullPath = getNodeByPath(fullPath)
     if (byFullPath) return byFullPath
   }
 
@@ -40,11 +45,9 @@ export function findNodeByPathOrId(
 
 /**
  * Get all tasks under a root node (recursive)
+ * Re-exports from @km/storage for backwards compatibility
  */
-export function getTasksUnderNode(vault: Vault, nodeId: string): KNode[] {
-  const subtree = vault.getSubtree(nodeId)
-  return subtree.filter((n) => n.type === "task" || n.task_status)
-}
+export const getTasksUnderNode = storageGetTasksUnderNode
 
 /**
  * Task with computed ancestor data for display
@@ -59,24 +62,21 @@ export interface TaskWithAncestors {
  * Get a stable key for a collapsed ancestor (for grouping)
  * Uses normalized name so similar names group together
  */
-function getAncestorKey(vault: Vault, ca: CollapsedAncestor): string {
-  return normalizeName(getNodeDisplayNameWithVault(vault, ca.node))
+function getAncestorKey(ca: CollapsedAncestor): string {
+  return normalizeName(getNodeDisplayName(ca.node))
 }
 
 /**
  * Build task tree data (ancestors, keys) for a list of tasks
  */
-export function buildTaskTree(
-  vault: Vault,
-  tasks: KNode[],
-): TaskWithAncestors[] {
+export function buildTaskTree(tasks: KNode[]): TaskWithAncestors[] {
   return tasks.map((task) => {
-    const rawAncestors = vault.getAncestors(task.id)
+    const rawAncestors = getAncestors(task.id)
     const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
     return {
       task,
       collapsedAncestors,
-      ancestorKeys: collapsedAncestors.map((ca) => getAncestorKey(vault, ca)),
+      ancestorKeys: collapsedAncestors.map((ca) => getAncestorKey(ca)),
     }
   })
 }
@@ -148,11 +148,7 @@ function getNodeSegmentName(node: KNode): string | null {
  * - "projects"    -> matches path segments that START with "projects" (default)
  * - "*projects*"  -> matches path segments that CONTAIN "projects" (explicit contains)
  */
-export function taskPathMatches(
-  vault: Vault,
-  task: KNode,
-  filter: string,
-): boolean {
+export function taskPathMatches(task: KNode, filter: string): boolean {
   // Determine matching mode based on filter syntax
   let mode: "prefix" | "contains" = "prefix"
   let cleanFilter = filter
@@ -174,7 +170,7 @@ export function taskPathMatches(
   }
 
   // Check ancestors for path match
-  const ancestors = vault.getAncestors(task.id)
+  const ancestors = getAncestors(task.id)
   for (const ancestor of ancestors) {
     const ancestorName = getNodeSegmentName(ancestor)
     if (ancestorName && segmentMatches(ancestorName, cleanFilter, mode)) {

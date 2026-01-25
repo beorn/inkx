@@ -16,9 +16,6 @@ import { applyEventWithDb } from "./db-events.ts"
 // Event hub for real-time broadcasting (set by km-code)
 let eventHub: { broadcast: (event: Event) => void } | null = null
 
-// Database for immediate projection (set when db is loaded)
-let db: { applyEvent: (event: Event) => void } | null = null
-
 // Filesystem sync callback (set by km-watch when sync is enabled)
 let fsSync: { applyEventToFs: (event: Event) => void } | null = null
 
@@ -71,17 +68,6 @@ export function setEventHub(hub: { broadcast: (event: Event) => void }): void {
 }
 
 /**
- * Set the database for immediate projection
- */
-export function setDatabase(
-  database: {
-    applyEvent: (event: Event) => void
-  } | null,
-): void {
-  db = database
-}
-
-/**
  * Set the filesystem sync callback
  * Called for each event to sync changes back to markdown files
  */
@@ -89,13 +75,6 @@ export function setFsSync(
   sync: { applyEventToFs: (event: Event) => void } | null,
 ): void {
   fsSync = sync
-}
-
-/**
- * Clear the database reference (for testing)
- */
-export function clearDatabase(): void {
-  db = null
 }
 
 /**
@@ -139,14 +118,10 @@ export function emit(
     appendFileSync(eventsPath, JSON.stringify(full) + "\n")
   }
 
-  // 2. Apply to state.db if loaded (prefer context db for test isolation)
+  // 2. Apply to state.db if loaded (context db from runWithDb)
   const contextDb = tryGetContextDb()
   if (contextDb) {
-    // Use context db for test isolation
     applyEventWithDb(contextDb, full)
-  } else if (db) {
-    // Fall back to global db for production
-    db.applyEvent(full)
   }
 
   // 3. Broadcast via socket (real-time)

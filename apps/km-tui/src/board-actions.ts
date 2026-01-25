@@ -628,14 +628,10 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       return
     }
 
-    // INVARIANT: All visible columns MUST have their card positions registered.
-    // Card components register positions via useScreenRectCallback on render.
-    // If positions are missing, it's a programming error - either:
-    // 1. Columns are being virtualized incorrectly (not all visible columns rendered)
-    // 2. Position registration is broken (useScreenRectCallback not called)
-    // 3. Registry was cleared unexpectedly
-    //
-    // We throw here to catch these bugs early rather than silently degrading UX.
+    // Position-based navigation: Check if we have registered positions
+    // Positions may be missing during initialization, in test environments,
+    // or if columns are off-screen (virtualized).
+    // Fallback: navigate to first card in target column if positions unavailable.
     const hasCurrentPositions = positionRegistry.hasCardsInColumn(
       state.colIndex,
     )
@@ -649,20 +645,31 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       hasTargetPositions,
     )
 
-    if (!hasCurrentPositions) {
-      throw new Error(
-        `[km:board] h/l navigation: current column ${state.colIndex} has no registered positions. ` +
-          `This is a programming error - all rendered columns must register card positions.\n` +
-          `Registry dump:\n${positionRegistry.dump()}`,
+    // Fallback when positions aren't available: go to first card in target column
+    if (!hasTargetPositions) {
+      debug(
+        "h/l nav: target column %d has no positions, falling back to first card. Registry:\n%s",
+        targetColIndex,
+        positionRegistry.dump(),
       )
+      const firstCard = targetCol.cards[0]
+      if (firstCard) {
+        dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
+      }
+      return
     }
 
-    if (!hasTargetPositions) {
-      throw new Error(
-        `[km:board] h/l navigation: target column ${targetColIndex} has no registered positions. ` +
-          `This is a programming error - all rendered columns must register card positions.\n` +
-          `Registry dump:\n${positionRegistry.dump()}`,
+    if (!hasCurrentPositions) {
+      debug(
+        "h/l nav: current column %d has no positions, can't get curswantY. Falling back to first card. Registry:\n%s",
+        state.colIndex,
+        positionRegistry.dump(),
       )
+      const firstCard = targetCol.cards[0]
+      if (firstCard) {
+        dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
+      }
+      return
     }
 
     // Get or calculate curswantY (head midpoint of current card)

@@ -258,7 +258,11 @@ describe("reconcile.ts", () => {
         const rootOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, rootOps, vaultDir)
 
-        const level1Ops = reconcileDirectory(db, join(vaultDir, "level1"), vaultDir)
+        const level1Ops = reconcileDirectory(
+          db,
+          join(vaultDir, "level1"),
+          vaultDir,
+        )
         await applyReconcileOps(db, level1Ops, vaultDir)
 
         const level2Ops = reconcileDirectory(db, nestedDir, vaultDir)
@@ -487,7 +491,9 @@ describe("reconcile.ts", () => {
 
         let totalTasksBefore = 0
         for (const section of sections) {
-          const tasks = getChildren(db, section.id).filter((n) => n.type === "task")
+          const tasks = getChildren(db, section.id).filter(
+            (n) => n.type === "task",
+          )
           totalTasksBefore += tasks.length
         }
         expect(totalTasksBefore).toBe(3)
@@ -513,7 +519,9 @@ describe("reconcile.ts", () => {
 
         let totalTasksAfter = 0
         for (const section of sectionsAfter) {
-          const tasks = getChildren(db, section.id).filter((n) => n.type === "task")
+          const tasks = getChildren(db, section.id).filter(
+            (n) => n.type === "task",
+          )
           totalTasksAfter += tasks.length
         }
         expect(totalTasksAfter).toBe(3)

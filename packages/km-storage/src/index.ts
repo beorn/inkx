@@ -1,8 +1,10 @@
 // Database schema (for testing with in-memory databases)
 export { SCHEMA } from "./schema.ts"
 
-// Database operations
+// Database operations (db-accepting functions for internal use)
+// All application code should use Vault domain object (createVault) instead
 export {
+  // Instance management (for testing)
   getDbPath,
   getDb,
   closeDb,
@@ -10,7 +12,8 @@ export {
   isMemoryMode,
   resetDb,
   runWithDb,
-  applyEvent,
+  tryGetContextDb,
+  // Query operations (require Database parameter)
   getNode,
   getNodeByIdPrefix,
   getTaskByIdPrefix,
@@ -40,21 +43,27 @@ export {
   getLastEventId,
   getAllNodes,
   getNodeCount,
+  rowToNode,
+  executeQuery,
+  queryTasks,
+  queryNodes,
+  // Link operations (require Database parameter)
   addLink,
   removeLinksFromSource,
   getOutgoingLinks,
   getBacklinks,
   getBacklinksByName,
   resolveLinks,
-  dbApplyEvent,
-  // Store-layer node operations (handles memory/disk mode automatically)
+  // Mutation operations (require Database parameter)
   moveNode,
   updateNode,
   deleteNode,
   addNode,
+  // Event application (internal use)
+  dbApplyEvent,
 } from "./db.ts"
 
-export type { Link, SearchResult } from "./db.ts"
+export type { Link, SearchResult, QueryAST } from "./db.ts"
 
 // Store abstraction
 export {
@@ -157,19 +166,9 @@ export {
 } from "./cas.ts"
 
 // Query language
-export {
-  parseQuery,
-  resolveDateQuery,
-} from "./query.ts"
+export { parseQuery, resolveDateQuery } from "./query.ts"
 
-// Re-export singleton wrappers for query functions (from db.ts)
-export {
-  executeQuery,
-  queryTasks,
-  queryNodes,
-} from "./db.ts"
-
-export type { QueryAST, QueryCondition, QueryRef, DateRange } from "./query.ts"
+export type { QueryCondition, QueryRef, DateRange } from "./query.ts"
 
 // Re-export markdown parsing functions (to avoid other layers importing km-markdown directly)
 export {
@@ -238,9 +237,7 @@ export {
   emit,
   runWithKmDir,
   setEventHub,
-  setDatabase,
   setFsSync,
-  clearDatabase,
   getEventsPath,
   emitNodeCreated,
   emitNodeUpdated,

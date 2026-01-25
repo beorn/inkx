@@ -6,9 +6,15 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import { emitNodeUpdated, getTaskByIdPrefix } from "@km/storage"
+import {
+  createVault,
+  runGenerator,
+  resolvePathArg,
+  emitNodeUpdated,
+} from "@km/storage"
 import { getMarkForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
+import { getRootPath } from "../../index.ts"
 
 /**
  * Create the set subcommand
@@ -27,7 +33,9 @@ export function createSetCommand(): Command {
     )
     .option("--json", "Output as JSON")
     .action((id, fields, options) => {
-      const task = getTaskByIdPrefix(id)
+      const resolved = resolvePathArg(process.cwd(), getRootPath())
+      using vault = runGenerator(createVault(resolved.vaultRoot))
+      const task = vault.resolveNode(id, { taskOnly: true })
 
       if (!task) {
         console.error(chalk.red(`No task found with ID prefix: ${id}`))
@@ -113,7 +121,9 @@ export function createClearCommand(): Command {
     )
     .option("--json", "Output as JSON")
     .action((id, fields, options) => {
-      const task = getTaskByIdPrefix(id)
+      const resolved = resolvePathArg(process.cwd(), getRootPath())
+      using vault = runGenerator(createVault(resolved.vaultRoot))
+      const task = vault.resolveNode(id, { taskOnly: true })
 
       if (!task) {
         console.error(chalk.red(`No task found with ID prefix: ${id}`))

@@ -86,7 +86,10 @@ export interface TestVault {
   moveNode: (id: string, newParentId: string, position: number) => void
   updateNode: (id: string, changes: Partial<KNode>) => void
   deleteNode: (id: string) => void
-  addNode: (parentId: string | null, nodeData: Partial<KNode> & { type: string; content: string }) => string
+  addNode: (
+    parentId: string | null,
+    nodeData: Partial<KNode> & { type: string; content: string },
+  ) => string
   rawQuery: <T = Record<string, unknown>>(
     sql: string,
     params?: unknown[],
@@ -169,7 +172,8 @@ export async function withTestEnv<T>(
     getBacklinks: (nodeId) => getBacklinks(db, nodeId),
     getAncestors: (nodeId) => getAncestors(db, nodeId),
     getLinksTo: (targetId) => getLinksTo(db, targetId),
-    moveNode: (id, newParentId, position) => moveNode(db, id, newParentId, position),
+    moveNode: (id, newParentId, position) =>
+      moveNode(db, id, newParentId, position),
     updateNode: (id, changes) => updateNode(db, id, changes),
     deleteNode: (id) => deleteNode(db, id),
     addNode: (parentId, nodeData) => addNode(db, parentId, nodeData),
@@ -228,7 +232,8 @@ export function withTestEnvSync<T>(fn: (env: TestEnv) => T): T {
     getBacklinks: (nodeId) => getBacklinks(db, nodeId),
     getAncestors: (nodeId) => getAncestors(db, nodeId),
     getLinksTo: (targetId) => getLinksTo(db, targetId),
-    moveNode: (id, newParentId, position) => moveNode(db, id, newParentId, position),
+    moveNode: (id, newParentId, position) =>
+      moveNode(db, id, newParentId, position),
     updateNode: (id, changes) => updateNode(db, id, changes),
     deleteNode: (id) => deleteNode(db, id),
     addNode: (parentId, nodeData) => addNode(db, parentId, nodeData),

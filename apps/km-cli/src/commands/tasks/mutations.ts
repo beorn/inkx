@@ -7,13 +7,16 @@
 import chalk from "chalk"
 import { ulid } from "ulid"
 import {
+  createVault,
+  runGenerator,
+  resolvePathArg,
   emitNodeCreated,
   emitNodeUpdated,
-  getTaskByIdPrefix,
   parseTaskMetadata,
   extractTags,
 } from "@km/storage"
 import type { TaskStatus } from "@km/core"
+import { getRootPath } from "../../index.ts"
 import { findNodeByPathOrId } from "./queries.ts"
 
 /**
@@ -24,6 +27,9 @@ export function addTask(
   content: string,
   options: { json?: boolean },
 ): void {
+  const resolved = resolvePathArg(process.cwd(), getRootPath())
+  using vault = runGenerator(createVault(resolved.vaultRoot))
+
   // Parse metadata from content
   const metadata = parseTaskMetadata(content)
   const tags = extractTags(content)
@@ -31,7 +37,7 @@ export function addTask(
   // Resolve parent
   let parentId: string | null = null
   if (pathOrId) {
-    const parent = findNodeByPathOrId(pathOrId)
+    const parent = findNodeByPathOrId(vault, pathOrId)
     if (!parent) {
       console.error(chalk.red(`Parent not found: ${pathOrId}`))
       process.exit(1)
@@ -73,7 +79,10 @@ export function markDone(
     process.exit(1)
   }
 
-  const task = getTaskByIdPrefix(pathOrId)
+  const resolved = resolvePathArg(process.cwd(), getRootPath())
+  using vault = runGenerator(createVault(resolved.vaultRoot))
+
+  const task = vault.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -104,7 +113,10 @@ export function claimTask(
     process.exit(1)
   }
 
-  const task = getTaskByIdPrefix(pathOrId)
+  const resolved = resolvePathArg(process.cwd(), getRootPath())
+  using vault = runGenerator(createVault(resolved.vaultRoot))
+
+  const task = vault.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -143,7 +155,10 @@ export function releaseTask(
     process.exit(1)
   }
 
-  const task = getTaskByIdPrefix(pathOrId)
+  const resolved = resolvePathArg(process.cwd(), getRootPath())
+  using vault = runGenerator(createVault(resolved.vaultRoot))
+
+  const task = vault.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -178,7 +193,10 @@ export function assignTask(
     process.exit(1)
   }
 
-  const task = getTaskByIdPrefix(pathOrId)
+  const resolved = resolvePathArg(process.cwd(), getRootPath())
+  using vault = runGenerator(createVault(resolved.vaultRoot))
+
+  const task = vault.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`))
     process.exit(1)

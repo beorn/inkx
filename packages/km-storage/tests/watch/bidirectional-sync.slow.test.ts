@@ -15,7 +15,13 @@ import { rmSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { EventEmitter } from "events"
 
-import { getNodeByPath, getAllNodes, applyEvent, updateNode, getDb } from "@km/storage"
+import {
+  getNodeByPath,
+  getAllNodes,
+  applyEvent,
+  updateNode,
+  getDb,
+} from "@km/storage"
 
 import { setDatabase, setFsSync } from "../../src/emit.ts"
 import { SyncManager } from "../../src/watch/sync.ts"

@@ -63,7 +63,9 @@ export function updateNode(
   updates: Record<string, unknown>,
 ): void {
   if (!updates) {
-    throw new Error(`updateNode called with undefined updates for node ${nodeId}`)
+    throw new Error(
+      `updateNode called with undefined updates for node ${nodeId}`,
+    )
   }
   debug("updateNode: %s keys=%o", nodeId, Object.keys(updates))
   if (isMemoryMode()) {

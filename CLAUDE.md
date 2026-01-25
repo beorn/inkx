@@ -285,6 +285,7 @@ Packages in `vendor/` are standalone libraries that could be useful outside km. 
 3. **Update the reference in km** - `git add vendor/<name> && git commit -m "chore(vendor): update <name> with fix"`
 
 Examples:
+
 - Missing `.text()` method on InkxLocator → add it to inkx
 - Need better layout constraints in flexx → fix flexx directly
 - Vendor package has bugs → patch them in the submodule

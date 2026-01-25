@@ -117,299 +117,299 @@ describe("Cursoring", () => {
   // Default view mode tests (cards view)
   describe("Cards View", () => {
     test("vertical (j/k): cards → column → board → boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
-    // j down through cards
-    board.expect("#1a[data-cursor]").toExist()
-    board.press("j")
-    board.expect("#1b[data-cursor]").toExist()
-    board.press("j")
-    board.expect("#1c[data-cursor]").toExist()
-
-    // j at bottom stops (boundary)
-    board.press("j", { allowNoEffect: true })
-    board.expect("#1c[data-cursor]").toExist()
-    board.press("j", { allowNoEffect: true })
-    board.expect("#1c[data-cursor]").toExist()
-
-    // k up through cards → column → board → boundary
-    board.press("k")
-    board.expect("#1b[data-cursor]").toExist()
-    board.press("k")
-    board.expect("#1a[data-cursor]").toExist()
-    board.press("k")
-    board.expect("#col1[data-cursor]").toExist()
-    board.press("k")
-    board.expect("#board[data-cursor]").toExist()
-
-    // k at top stops (boundary)
-    board.press("k", { allowNoEffect: true })
-    board.expect("#board[data-cursor]").toExist()
-    board.press("k", { allowNoEffect: true })
-    board.expect("#board[data-cursor]").toExist()
-
-    // j back down: board → column → card
-    board.press("j")
-    board.expect("#col1[data-cursor]").toExist()
-    board.press("j")
-    board.expect("#1a[data-cursor]").toExist()
-  })
-
-  test("horizontal (h/l): columns at card level → boundary", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
-    )
-    // l right through columns
-    board.expect("#1a[data-cursor]").toExist()
-    board.press("l")
-    board.expect("#2a[data-cursor]").toExist()
-    board.press("l")
-    board.expect("#3a[data-cursor]").toExist()
-
-    // l at right boundary stops
-    board.press("l")
-    board.expect("#3a[data-cursor]").toExist()
-    board.press("l")
-    board.expect("#3a[data-cursor]").toExist()
-
-    // h back left through columns
-    board.press("h")
-    board.expect("#2a[data-cursor]").toExist()
-    board.press("h")
-    board.expect("#1a[data-cursor]").toExist()
-
-    // h at left boundary stops
-    board.press("h")
-    board.expect("#1a[data-cursor]").toExist()
-    board.press("h")
-    board.expect("#1a[data-cursor]").toExist()
-  })
-
-  test("horizontal (h/l): columns at header level → boundary", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
-    )
-    // Go to column headers
-    board.press("k")
-    board.expect("#col1[data-cursor]").toExist()
-
-    // l right through headers
-    board.press("l")
-    board.expect("#col2[data-cursor]").toExist()
-    board.press("l")
-    board.expect("#col3[data-cursor]").toExist()
-
-    // l at right boundary stops
-    board.press("l")
-    board.expect("#col3[data-cursor]").toExist()
-    board.press("l")
-    board.expect("#col3[data-cursor]").toExist()
-
-    // h back left through headers
-    board.press("h")
-    board.expect("#col2[data-cursor]").toExist()
-    board.press("h")
-    board.expect("#col1[data-cursor]").toExist()
-
-    // h at left boundary stops
-    board.press("h")
-    board.expect("#col1[data-cursor]").toExist()
-    board.press("h")
-    board.expect("#col1[data-cursor]").toExist()
-  })
-
-  test("g/G: jump to first/last in column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
-    // Start at middle
-    board.press("j")
-    board.expect("#1b[data-cursor]").toExist()
-
-    // G to last
-    board.press("G")
-    board.expect("#1c[data-cursor]").toExist()
-
-    // G at last does nothing
-    board.press("G")
-    board.expect("#1c[data-cursor]").toExist()
-
-    // g to first
-    board.press("g")
-    board.expect("#1a[data-cursor]").toExist()
-
-    // g at first does nothing
-    board.press("g")
-    board.expect("#1a[data-cursor]").toExist()
-  })
-
-  describe("curswantX (horizontal position memory)", () => {
-    test("remembers column when moving through headers", () => {
       const { board } = testEnv(() =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a"), item("2b")),
-          item("col3", item("3a"), item("3b")),
-        ),
+        item("board", item("col1", item("1a"), item("1b"), item("1c"))),
       )
-      // Start at card in col3
-      board.press("l")
-      board.press("l")
-      board.expect("#3a[data-cursor]").toExist()
+      // j down through cards
+      board.expect("#1a[data-cursor]").toExist()
+      board.press("j")
+      board.expect("#1b[data-cursor]").toExist()
+      board.press("j")
+      board.expect("#1c[data-cursor]").toExist()
 
-      // Move up to col3 header, then board title
+      // j at bottom stops (boundary)
+      board.press("j", { allowNoEffect: true })
+      board.expect("#1c[data-cursor]").toExist()
+      board.press("j", { allowNoEffect: true })
+      board.expect("#1c[data-cursor]").toExist()
+
+      // k up through cards → column → board → boundary
       board.press("k")
-      board.expect("#col3[data-cursor]").toExist()
+      board.expect("#1b[data-cursor]").toExist()
+      board.press("k")
+      board.expect("#1a[data-cursor]").toExist()
+      board.press("k")
+      board.expect("#col1[data-cursor]").toExist()
       board.press("k")
       board.expect("#board[data-cursor]").toExist()
 
-      // Move back down - should go to col3 header (curswantX preserved)
-      board.press("j")
-      board.expect("#col3[data-cursor]").toExist()
+      // k at top stops (boundary)
+      board.press("k", { allowNoEffect: true })
+      board.expect("#board[data-cursor]").toExist()
+      board.press("k", { allowNoEffect: true })
+      board.expect("#board[data-cursor]").toExist()
 
-      // Continue down - should go to first card in col3
+      // j back down: board → column → card
       board.press("j")
+      board.expect("#col1[data-cursor]").toExist()
+      board.press("j")
+      board.expect("#1a[data-cursor]").toExist()
+    })
+
+    test("horizontal (h/l): columns at card level → boundary", () => {
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item("col1", item("1a")),
+          item("col2", item("2a")),
+          item("col3", item("3a")),
+        ),
+      )
+      // l right through columns
+      board.expect("#1a[data-cursor]").toExist()
+      board.press("l")
+      board.expect("#2a[data-cursor]").toExist()
+      board.press("l")
       board.expect("#3a[data-cursor]").toExist()
+
+      // l at right boundary stops
+      board.press("l", { allowNoEffect: true })
+      board.expect("#3a[data-cursor]").toExist()
+      board.press("l", { allowNoEffect: true })
+      board.expect("#3a[data-cursor]").toExist()
+
+      // h back left through columns
+      board.press("h")
+      board.expect("#2a[data-cursor]").toExist()
+      board.press("h")
+      board.expect("#1a[data-cursor]").toExist()
+
+      // h at left boundary stops
+      board.press("h", { allowNoEffect: true })
+      board.expect("#1a[data-cursor]").toExist()
+      board.press("h", { allowNoEffect: true })
+      board.expect("#1a[data-cursor]").toExist()
     })
 
-    test("preserves column when jumping between first/last card", () => {
+    test("horizontal (h/l): columns at header level → boundary", () => {
       const { board } = testEnv(() =>
         item(
           "board",
-          item("col1", item("1a"), item("1b"), item("1c")),
-          item("col2", item("2a"), item("2b"), item("2c")),
+          item("col1", item("1a")),
+          item("col2", item("2a")),
+          item("col3", item("3a")),
         ),
       )
-      // Move to col2
-      board.press("l")
-      board.expect("#2a[data-cursor]").toExist()
-
-      // Jump to last card in column
-      board.press("G")
-      board.expect("#2c[data-cursor]").toExist()
-
-      // Jump back to first - should stay in col2
-      board.press("g")
-      board.expect("#2a[data-cursor]").toExist()
-    })
-
-    test("remembers X position in columns view", () => {
-      const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("task")),
-            item("col2", item("task")),
-            item("col3", item("task")),
-          ),
-        { columns: 120 }, // Wide terminal for side-by-side columns
-      )
-      // Move to col3 header
-      board.press("l")
-      board.press("l")
-      const col3Box = board.q("#col3").boundingBox()
-
-      // Move up to board title and back down
+      // Go to column headers
       board.press("k")
-      board.press("j")
+      board.expect("#col1[data-cursor]").toExist()
 
-      // Should return to col3 (same X position)
+      // l right through headers
+      board.press("l")
+      board.expect("#col2[data-cursor]").toExist()
+      board.press("l")
       board.expect("#col3[data-cursor]").toExist()
-      const returnedBox = board.q("#col3[data-cursor]").boundingBox()
-      expect(returnedBox!.x).toBe(col3Box!.x)
-    })
-  })
 
-  describe("curswantY (vertical position memory)", () => {
-    test("remembers card position when moving between columns", () => {
-      const { board } = testEnv(() =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
-          item("col2", item("2a"), item("2b"), item("2c")),
-          item("col3", item("3a"), item("3b"), item("3c"), item("3d")),
-        ),
-      )
-      // Move to third card in col1
-      board.press("j")
-      board.press("j")
-      board.expect("#1c[data-cursor]").toExist()
-      const card1cBox = board.q("#1c").boundingBox()
+      // l at right boundary stops
+      board.press("l", { allowNoEffect: true })
+      board.expect("#col3[data-cursor]").toExist()
+      board.press("l", { allowNoEffect: true })
+      board.expect("#col3[data-cursor]").toExist()
 
-      // Move right to col2 - should go to card at similar Y position
-      board.press("l")
-      const card2Box = board.q("[data-cursor]").boundingBox()
-      // Y position should be close (within card height tolerance)
-      expect(Math.abs(card2Box!.y - card1cBox!.y)).toBeLessThan(10)
-
-      // Move right to col3 - should maintain Y position
-      board.press("l")
-      const card3Box = board.q("[data-cursor]").boundingBox()
-      expect(Math.abs(card3Box!.y - card1cBox!.y)).toBeLessThan(10)
-
-      // Move back left - should return to similar Y position
+      // h back left through headers
       board.press("h")
+      board.expect("#col2[data-cursor]").toExist()
       board.press("h")
-      const returnedBox = board.q("[data-cursor]").boundingBox()
-      expect(Math.abs(returnedBox!.y - card1cBox!.y)).toBeLessThan(10)
+      board.expect("#col1[data-cursor]").toExist()
+
+      // h at left boundary stops
+      board.press("h", { allowNoEffect: true })
+      board.expect("#col1[data-cursor]").toExist()
+      board.press("h", { allowNoEffect: true })
+      board.expect("#col1[data-cursor]").toExist()
     })
 
-    test("adjusts Y position when target column is shorter", () => {
+    test("g/G: jump to first/last in column", () => {
       const { board } = testEnv(() =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
-          item("col2", item("2a")), // Only one card
-          item("col3", item("3a"), item("3b"), item("3c")),
-        ),
+        item("board", item("col1", item("1a"), item("1b"), item("1c"))),
       )
-      // Move to last card in col1
+      // Start at middle
+      board.press("j")
+      board.expect("#1b[data-cursor]").toExist()
+
+      // G to last
       board.press("G")
-      board.expect("#1d[data-cursor]").toExist()
+      board.expect("#1c[data-cursor]").toExist()
 
-      // Move right to col2 (shorter column) - should clamp to last card
-      board.press("l")
-      board.expect("#2a[data-cursor]").toExist()
+      // G at last does nothing
+      board.press("G")
+      board.expect("#1c[data-cursor]").toExist()
 
-      // Move right to col3 - should go to last card (curswantY preserved)
-      board.press("l")
-      board.expect("#3c[data-cursor]").toExist()
+      // g to first
+      board.press("g")
+      board.expect("#1a[data-cursor]").toExist()
+
+      // g at first does nothing
+      board.press("g")
+      board.expect("#1a[data-cursor]").toExist()
     })
 
-    test("maintains Y position in columns view", () => {
-      const { board } = testEnv(
-        () =>
+    describe("curswantX (horizontal position memory)", () => {
+      test("remembers column when moving through headers", () => {
+        const { board } = testEnv(() =>
           item(
             "board",
-            item("col1", item("task1"), item("task2"), item("task3")),
-            item("col2", item("taskA"), item("taskB"), item("taskC")),
+            item("col1", item("1a"), item("1b")),
+            item("col2", item("2a"), item("2b")),
+            item("col3", item("3a"), item("3b")),
           ),
-        { columns: 120 },
-      )
-      // Move down to second card
-      board.press("j")
-      const card2Box = board.q("[data-cursor]").boundingBox()
+        )
+        // Start at card in col3
+        board.press("l")
+        board.press("l")
+        board.expect("#3a[data-cursor]").toExist()
 
-      // Move right to col2
-      board.press("l")
-      const col2Box = board.q("[data-cursor]").boundingBox()
+        // Move up to col3 header, then board title
+        board.press("k")
+        board.expect("#col3[data-cursor]").toExist()
+        board.press("k")
+        board.expect("#board[data-cursor]").toExist()
 
-      // Y position should be preserved (within tolerance)
-      expect(Math.abs(col2Box!.y - card2Box!.y)).toBeLessThan(10)
+        // Move back down - should go to col3 header (curswantX preserved)
+        board.press("j")
+        board.expect("#col3[data-cursor]").toExist()
+
+        // Continue down - should go to first card in col3
+        board.press("j")
+        board.expect("#3a[data-cursor]").toExist()
+      })
+
+      test("preserves column when jumping between first/last card", () => {
+        const { board } = testEnv(() =>
+          item(
+            "board",
+            item("col1", item("1a"), item("1b"), item("1c")),
+            item("col2", item("2a"), item("2b"), item("2c")),
+          ),
+        )
+        // Move to col2
+        board.press("l")
+        board.expect("#2a[data-cursor]").toExist()
+
+        // Jump to last card in column
+        board.press("G")
+        board.expect("#2c[data-cursor]").toExist()
+
+        // Jump back to first - should stay in col2
+        board.press("g")
+        board.expect("#2a[data-cursor]").toExist()
+      })
+
+      test("remembers X position in columns view", () => {
+        const { board } = testEnv(
+          () =>
+            item(
+              "board",
+              item("col1", item("task")),
+              item("col2", item("task")),
+              item("col3", item("task")),
+            ),
+          { columns: 120 }, // Wide terminal for side-by-side columns
+        )
+        // Move to col3 header
+        board.press("l")
+        board.press("l")
+        const col3Box = board.q("#col3").boundingBox()
+
+        // Move up to board title and back down
+        board.press("k")
+        board.press("j")
+
+        // Should return to col3 (same X position)
+        board.expect("#col3[data-cursor]").toExist()
+        const returnedBox = board.q("#col3[data-cursor]").boundingBox()
+        expect(returnedBox!.x).toBe(col3Box!.x)
+      })
     })
-  })
+
+    describe("curswantY (vertical position memory)", () => {
+      test("remembers card position when moving between columns", () => {
+        const { board } = testEnv(() =>
+          item(
+            "board",
+            item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
+            item("col2", item("2a"), item("2b"), item("2c")),
+            item("col3", item("3a"), item("3b"), item("3c"), item("3d")),
+          ),
+        )
+        // Move to third card in col1
+        board.press("j")
+        board.press("j")
+        board.expect("#1c[data-cursor]").toExist()
+        const card1cBox = board.q("#1c").boundingBox()
+
+        // Move right to col2 - should go to card at similar Y position
+        board.press("l")
+        const card2Box = board.q("[data-cursor]").boundingBox()
+        // Y position should be close (within card height tolerance)
+        expect(Math.abs(card2Box!.y - card1cBox!.y)).toBeLessThan(10)
+
+        // Move right to col3 - should maintain Y position
+        board.press("l")
+        const card3Box = board.q("[data-cursor]").boundingBox()
+        expect(Math.abs(card3Box!.y - card1cBox!.y)).toBeLessThan(10)
+
+        // Move back left - should return to similar Y position
+        board.press("h")
+        board.press("h")
+        const returnedBox = board.q("[data-cursor]").boundingBox()
+        expect(Math.abs(returnedBox!.y - card1cBox!.y)).toBeLessThan(10)
+      })
+
+      test("adjusts Y position when target column is shorter", () => {
+        const { board } = testEnv(() =>
+          item(
+            "board",
+            item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
+            item("col2", item("2a")), // Only one card
+            item("col3", item("3a"), item("3b"), item("3c")),
+          ),
+        )
+        // Move to last card in col1
+        board.press("G")
+        board.expect("#1d[data-cursor]").toExist()
+
+        // Move right to col2 (shorter column) - should clamp to last card
+        board.press("l")
+        board.expect("#2a[data-cursor]").toExist()
+
+        // Move right to col3 - should go to last card (curswantY preserved)
+        board.press("l")
+        board.expect("#3c[data-cursor]").toExist()
+      })
+
+      test("maintains Y position in columns view", () => {
+        const { board } = testEnv(
+          () =>
+            item(
+              "board",
+              item("col1", item("task1"), item("task2"), item("task3")),
+              item("col2", item("taskA"), item("taskB"), item("taskC")),
+            ),
+          { columns: 120 },
+        )
+        // Move down to second card
+        board.press("j")
+        const card2Box = board.q("[data-cursor]").boundingBox()
+
+        // Move right to col2
+        board.press("l")
+        const col2Box = board.q("[data-cursor]").boundingBox()
+
+        // Y position should be preserved (within tolerance)
+        expect(Math.abs(col2Box!.y - card2Box!.y)).toBeLessThan(10)
+      })
+    })
   }) // End Cards View
 
   // TODO: Add view mode variations (List, Columns, Tabs)
@@ -435,8 +435,8 @@ describe("Boundaries and Edge Cases", () => {
     })
 
     test("empty column - j/k do nothing", () => {
-      const { board } = testEnv(() =>
-        item("board", item("col1", item("task")), item("col2")), // col2 is empty
+      const { board } = testEnv(
+        () => item("board", item("col1", item("task")), item("col2")), // col2 is empty
       )
       // Move to col2
       board.press("l")
@@ -746,10 +746,7 @@ describe("Zooming", () => {
         "board",
         item(
           "col",
-          item(
-            "level1",
-            item("level2", item("level3", item("deepest"))),
-          ),
+          item("level1", item("level2", item("level3", item("deepest")))),
         ),
       ),
     )
@@ -959,10 +956,7 @@ describe("History", () => {
   describe("cursor position after history navigation", () => {
     test("[ restores exact cursor position", () => {
       const { board } = testEnv(() =>
-        item(
-          "board",
-          item("col", item("card1"), item("card2"), item("card3")),
-        ),
+        item("board", item("col", item("card1"), item("card2"), item("card3"))),
       )
       // Move to card3
       board.press("j")
@@ -1115,7 +1109,10 @@ describe("Folding", () => {
 
   test("z toggles fold state on card with children", () => {
     const { board } = testEnv(() =>
-      item("board", item("col", item("parent", item("child1"), item("child2")))),
+      item(
+        "board",
+        item("col", item("parent", item("child1"), item("child2"))),
+      ),
     )
     board.expect("#child1").toExist()
     board.press("z")
@@ -1145,8 +1142,8 @@ describe("Empty States", () => {
   })
 
   test("empty column shows placeholder", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task")), item("col2")), // col2 is empty
+    const { board } = testEnv(
+      () => item("board", item("col1", item("task")), item("col2")), // col2 is empty
     )
     const output = board.screenshot()
     // Should show column header but no cards
@@ -1248,7 +1245,8 @@ describe("WIP Limits", () => {
 describe("Terminal Sizes", () => {
   test("narrow terminal (40 cols) shows single column", () => {
     const { board } = testEnv(
-      () => item("board", item("col1", item("task")), item("col2", item("task"))),
+      () =>
+        item("board", item("col1", item("task")), item("col2", item("task"))),
       { columns: 40 },
     )
     // Should only show one column at a time in narrow terminal

@@ -5,7 +5,11 @@
  */
 
 import chalk from "chalk"
-import { createVault, runGenerator, resolvePathArg } from "@km/storage"
+import {
+  createVault,
+  runGenerator,
+  resolvePathArg,
+} from "@km/storage"
 import { collapseAncestorsWithTypes } from "@km/tree"
 import type { KNode, TaskStatus } from "@km/core"
 import { getRootPath } from "../../index.ts"
@@ -41,9 +45,6 @@ export function listTasks(
   pathOrId: string | undefined,
   options: ListTasksOptions,
 ): void {
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using vault = runGenerator(createVault(resolved.vaultRoot))
-
   let tasks: KNode[]
   let rootNode: KNode | null = null
   let pathFilter: string | null = null
@@ -61,36 +62,33 @@ export function listTasks(
     if (options.status) {
       queryStr = `status:${options.status} ${queryStr}`
     }
-    tasks = vault.query(queryStr)
+    tasks = queryTasks(queryStr)
   } else if (pathOrId) {
     // Try to find an exact node match first
-    rootNode = findNodeByPathOrId(vault, pathOrId)
+    rootNode = findNodeByPathOrId(pathOrId)
 
     if (rootNode) {
       // If the root IS a task, show its details
       if (rootNode.type === "task") {
-        showTaskDetails(vault, rootNode, options)
+        showTaskDetails(rootNode, options)
         return
       }
 
       // Get tasks under this root
-      tasks = getTasksUnderNode(vault, rootNode.id)
+      tasks = getTasksUnderNode(rootNode.id)
     } else {
       // No exact match - treat as path filter (like `bun test <filter>`)
       pathFilter = pathOrId
 
-      // Get tasks with status filter via vault
-      const allTasks = vault.getAllTasks().filter((t) => {
-        if (options.status && t.task_status !== options.status) return false
-        if (!options.all && !options.status && t.task_status === "done") {
-          return false
-        }
-        return true
+      // Get tasks with status filter via storage API
+      const allTasks = getTasksFiltered({
+        status: options.status as TaskStatus | undefined,
+        excludeDone: !options.all && !options.status,
       })
 
       // Filter by path match
       tasks = allTasks.filter(
-        (t) => pathFilter && taskPathMatches(vault, t, pathFilter),
+        (t) => pathFilter && taskPathMatches(t, pathFilter),
       )
     }
 
@@ -105,13 +103,10 @@ export function listTasks(
       }
     }
   } else {
-    // Global task list via vault
-    tasks = vault.getAllTasks().filter((t) => {
-      if (options.status && t.task_status !== options.status) return false
-      if (!options.all && !options.status && t.task_status === "done") {
-        return false
-      }
-      return true
+    // Global task list via storage API
+    tasks = getTasksFiltered({
+      status: options.status as TaskStatus | undefined,
+      excludeDone: !options.all && !options.status,
     })
   }
 
@@ -127,7 +122,7 @@ export function listTasks(
 
   // Show context header
   if (rootNode) {
-    console.log(chalk.bold(getNodeDisplayName(vault, rootNode)))
+    console.log(chalk.bold(getNodeDisplayName(rootNode)))
     console.log()
   } else if (pathFilter) {
     console.log(chalk.dim(`Filter: ${pathFilter}`))
@@ -137,9 +132,9 @@ export function listTasks(
   // Flat mode: simple single-line display
   if (options.flat) {
     for (const task of tasks) {
-      const rawAncestors = vault.getAncestors(task.id)
+      const rawAncestors = getAncestors(task.id)
       const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
-      const lines = formatTaskWithPath(vault, task, collapsedAncestors, {
+      const lines = formatTaskWithPath(task, collapsedAncestors, {
         verbose: options.verbose,
         flat: true,
         showId: options.id,
@@ -154,7 +149,7 @@ export function listTasks(
   }
 
   // Tree mode: group tasks by shared paths
-  const tasksWithAncestors = buildTaskTree(vault, tasks)
+  const tasksWithAncestors = buildTaskTree(tasks)
   const sorted = sortByPath(tasksWithAncestors)
 
   let previousAncestorKeys: string[] = []
@@ -187,7 +182,7 @@ export function listTasks(
       const ca = collapsedAncestors[i]
       if (!ca) continue
       const prefix = " ".repeat(fsDepth)
-      console.log(prefix + chalk.dim(formatCollapsedAncestor(vault, ca)))
+      console.log(prefix + chalk.dim(formatCollapsedAncestor(ca)))
       if (ca.node.type === "section") {
         hasSection = true
       } else {
@@ -220,7 +215,6 @@ export function listTasks(
  * Show task details
  */
 export function showTaskDetails(
-  vault: import("@km/storage").Vault,
   task: KNode,
   options: { json?: boolean },
 ): void {
@@ -247,7 +241,7 @@ export function showTaskDetails(
   )
 
   // Show child tasks if any
-  const children = getTasksUnderNode(vault, task.id)
+  const children = getTasksUnderNode(task.id)
   if (children.length > 0) {
     console.log()
     console.log(chalk.dim(`${children.length} subtask(s):`))

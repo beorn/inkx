@@ -231,7 +231,6 @@ describe.serial("State", () => {
   })
 })
 
-
 describe.serial("Render", () => {
   test("renderBoardStatic renders columns", () => {
     const vault = createFakeVault({

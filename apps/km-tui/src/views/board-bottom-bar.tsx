@@ -117,12 +117,7 @@ export function BottomBar({
   const leftWidth = Math.max(1, termWidth - rightWidth)
 
   return (
-    <Box
-      flexDirection="row"
-      flexShrink={0}
-      width={termWidth}
-      id="bottom-bar"
-    >
+    <Box flexDirection="row" flexShrink={0} width={termWidth} id="bottom-bar">
       <Box width={leftWidth} flexShrink={0}>
         <Text dimColor wrap="truncate-end">
           {/* Storage mode indicator */}
@@ -151,8 +146,7 @@ export function BottomBar({
             </>
           )}
           {"   "}
-          <Text id="view-mode">{viewModeStr}</Text>
-          {" "}
+          <Text id="view-mode">{viewModeStr}</Text>{" "}
         </Text>
       </Box>
     </Box>

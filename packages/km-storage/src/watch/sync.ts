@@ -20,12 +20,11 @@ import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 import { getIgnorePatterns } from "./ignore.ts"
 import type { Event, KNode } from "@km/core"
 import type { ProgressCallback } from "@beorn/inkx-ui"
-import { setDatabase, runWithKmDir } from "../emit.ts"
+import { runWithKmDir } from "../emit.ts"
 import {
   getAllNodes,
   getNode,
   getSubtree,
-  dbApplyEvent,
   nodesToMarkdown,
   evaluateAllRules,
   getPendingWriteBack,
@@ -583,8 +582,7 @@ export class SyncManager extends EventEmitter {
     const kmDir = join(this.config.vaultPath, ".km")
 
     return runWithKmDir(kmDir, async () => {
-      // Enable immediate event application so folder nodes are visible during sync
-      setDatabase(dbApplyEvent)
+      // Event application handled via context-local database in emit.ts
 
       // Load ignore patterns for this vault
       const ignorePatterns = getIgnorePatterns(this.config.vaultPath)
