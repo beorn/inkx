@@ -263,8 +263,6 @@ function handleZoomOutwards(ctx: TUIContext): void {
     if (currentRoot?.parent_id) {
       const parentNode = ctx.vault.getNode(currentRoot.parent_id);
       if (parentNode) {
-        const nodes = buildTreeNodes(ctx.vault, parentNode.id);
-
         pushNavHistoryEntry(
           dispatch,
           boardState.rootId,
@@ -278,7 +276,6 @@ function handleZoomOutwards(ctx: TUIContext): void {
         dispatchBoard({
           type: "ZOOM_IN",
           nodeId: parentNode.id,
-          nodes,
         });
         clearSelection(ctx);
         return;
@@ -286,8 +283,6 @@ function handleZoomOutwards(ctx: TUIContext): void {
     } else {
       const rootView = initBoardState(ctx.vault);
       if (rootView && rootView.rootId !== boardState.rootId) {
-        const nodes = buildTreeNodes(ctx.vault, rootView.rootId);
-
         pushNavHistoryEntry(
           dispatch,
           boardState.rootId,
@@ -301,7 +296,6 @@ function handleZoomOutwards(ctx: TUIContext): void {
         dispatchBoard({
           type: "ZOOM_IN",
           nodeId: rootView.rootId,
-          nodes,
         });
         clearSelection(ctx);
         return;
@@ -638,15 +632,9 @@ function handleNavBack(ctx: TUIContext): void {
   if (!entry) return;
 
   // Navigate to the saved state
-  const nodes = buildTreeNodes(ctx.vault, entry.rootId || null);
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: entry.rootId || null,
-    nodes,
-    cursor:
-      entry.cardIndex >= 0
-        ? [entry.colIndex, entry.cardIndex]
-        : [entry.colIndex],
   });
 
   // Restore selection state
@@ -679,15 +667,9 @@ function handleNavForward(ctx: TUIContext): void {
   if (!entry) return;
 
   // Navigate to the saved state
-  const nodes = buildTreeNodes(ctx.vault, entry.rootId || null);
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: entry.rootId || null,
-    nodes,
-    cursor:
-      entry.cardIndex >= 0
-        ? [entry.colIndex, entry.cardIndex]
-        : [entry.colIndex],
   });
 
   // Restore selection state
@@ -728,15 +710,10 @@ function handleZoomIn(ctx: TUIContext): void {
     ui.inOutlineMode,
   );
 
-  // Build tree for new root
-  const nodes = buildTreeNodes(ctx.vault, card.node.id);
-
   // Dispatch zoom - board reducer handles cursor reset
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: card.node.id,
-    nodes,
-    cursor: [0, 0],
   });
 
   clearSelection(ctx);
@@ -825,12 +802,9 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
   );
 
   // Navigate to favorite
-  const nodes = buildTreeNodes(ctx.vault, favoriteId);
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: favoriteId,
-    nodes,
-    cursor: [0, 0],
   });
 
   clearSelection(ctx);
@@ -945,12 +919,9 @@ function handleNavSiblingBoard(
   );
 
   // Navigate to sibling
-  const nodes = buildTreeNodes(ctx.vault, targetSibling.id);
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: targetSibling.id,
-    nodes,
-    cursor: [0, 0],
   });
 
   clearSelection(ctx);
@@ -1004,12 +975,9 @@ function handleZoomInwards(ctx: TUIContext): void {
       dispatch(actions.exitOutlineMode());
       dispatch(actions.setSubIndex(0));
 
-      const nodes = buildTreeNodes(ctx.vault, targetChild.node.id);
       dispatchBoard({
         type: "ZOOM_IN",
         nodeId: targetChild.node.id,
-        nodes,
-        cursor: [0, 0],
       });
 
       clearSelection(ctx);

@@ -164,9 +164,13 @@ function customLog(...args: unknown[]): void {
 
   if (stream) {
     stream.write(line + "\n");
-  } else {
+  } else if (!process.stdout.isTTY) {
+    // Not in TTY (tests, scripts) - output to stderr as normal
     console.error(line);
   }
+  // If in TTY without DEBUG_LOG, silently drop to prevent breaking TUI
+  // Use: DEBUG=km:* DEBUG_LOG=/tmp/km.log km view
+  // Or: debug km view (wrapper sets DEBUG_LOG automatically)
 }
 
 // Configure debug to use our custom formatter

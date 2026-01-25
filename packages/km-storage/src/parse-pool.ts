@@ -16,8 +16,12 @@ import type {
 } from "./parse-worker.ts";
 
 const debug = createDebug("km:storage:parse-pool");
-// For forwarding worker debug messages - uses worker's namespace
-const workerDebug = createDebug("km:storage:parse-worker");
+
+// For forwarding worker debug - call createDebug.log directly
+// This ensures it goes through debug-log.ts if loaded (CLI context)
+const forwardWorkerDebug = (formattedMessage: string) => {
+  createDebug.log(formattedMessage);
+};
 
 export interface ParseResult {
   nodeId: string;
@@ -198,9 +202,10 @@ export class ParsePool {
 
   private handleWorkerMessage(worker: Worker, message: WorkerResponse): void {
     if (message.type === "debug") {
-      // Forward worker debug messages through main thread's debug logger
-      // This ensures DEBUG_LOG captures worker output
-      workerDebug("%s", message.message);
+      // Forward worker debug through createDebug.log
+      // In CLI context, debug-log.ts overrides this to write to DEBUG_LOG
+      // In other contexts, it goes to stderr
+      forwardWorkerDebug(message.message);
       return;
     }
 
