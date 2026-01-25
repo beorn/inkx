@@ -37,6 +37,7 @@ import {
   type InkxLocator,
 } from "inkx/testing";
 import type { KNode } from "@km/core";
+import type { Vault } from "@km/storage";
 import type { TUIBoardState } from "./types.ts";
 import { BoardCore } from "./views/index.ts";
 import { createInitialUIState } from "./ui-reducer.ts";
@@ -105,7 +106,7 @@ export interface BoardTestHarness extends InkxLocator {
  * ```
  */
 export async function createBoardTest(
-  vaultPath: string,
+  vaultOrPath: string | Vault,
   options: BoardTestOptions = {},
 ): Promise<BoardTestHarness> {
   const { file, width = 80, height = 24 } = options;
@@ -113,15 +114,27 @@ export async function createBoardTest(
   // Import storage module
   const storageModule = await import("@km/storage");
 
-  // Load vault and get reference
-  // searchAncestors: false prevents finding .km in parent directories (e.g., project root)
-  const vault = storageModule.runGenerator(
-    storageModule.createVault(vaultPath, { searchAncestors: false }),
-  );
+  // Load vault based on input type
+  let vault: Vault;
+  let vaultPath: string;
+
+  if (typeof vaultOrPath === "string") {
+    // Load vault from disk (original behavior)
+    // searchAncestors: false prevents finding .km in parent directories (e.g., project root)
+    vault = storageModule.runGenerator(
+      storageModule.createVault(vaultOrPath, { searchAncestors: false }),
+    );
+    vaultPath = vaultOrPath;
+  } else {
+    // Use provided vault instance (new behavior for fake vaults)
+    vault = vaultOrPath;
+    vaultPath = vault.path;
+  }
 
   // Resolve the file reference to a node ID if provided
   let rootNodeId: string | undefined;
-  if (file) {
+  if (file && typeof vaultOrPath === "string") {
+    // File references only work with real vaults (not fake vaults)
     const resolved = storageModule.resolvePathArg(file, vaultPath);
     if (resolved.nodeRef) {
       // resolveNode converts filename/path/ID to actual node

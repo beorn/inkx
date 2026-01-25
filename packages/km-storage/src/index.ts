@@ -291,6 +291,15 @@ export {
   isRealMode,
   isMockMode,
   createMockWatcher,
+  // Fixture DSL for building test data
+  board,
+  column,
+  task,
+  section,
+  paragraph,
+  SIMPLE_BOARD,
+  NESTED_BOARD,
+  BODY_CONTENT_BOARD,
 } from "./testing/index.ts";
 
 export type {
@@ -313,4 +322,5 @@ export type {
   TestEnv,
   TestMode,
   MockWatcher,
+  BoardFixture,
 } from "./testing/index.ts";

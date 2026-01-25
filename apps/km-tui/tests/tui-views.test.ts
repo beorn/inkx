@@ -1,5 +1,5 @@
 /**
- * TUI View Tests (migrated from tui.playwright.ts)
+ * TUI View Tests
  *
  * Tests basic TUI functionality:
  * - Initial rendering
@@ -8,13 +8,13 @@
  * - Navigation
  * - Expand/collapse
  *
- * Uses inkx createTestRenderer instead of Playwright for faster, more reliable testing.
+ * Uses createFakeVault for fast in-memory testing.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, afterEach } from "bun:test";
+import { createFakeVault } from "@km/storage";
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts";
-
-const TEST_VAULT = `${process.cwd()}/apps/km-cli/tests/fixtures/tui-test-vault`;
+import { GENERIC_BOARD } from "./fixtures/generic-board-fixture.ts";
 
 describe("TUI View Tests", () => {
   let board: BoardTestHarness | null = null;
@@ -27,7 +27,8 @@ describe("TUI View Tests", () => {
   });
 
   test("should display cards view by default", async () => {
-    board = await createBoardTest(TEST_VAULT);
+    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes });
+    board = await createBoardTest(vault);
     const screenshot = board.screenshot();
 
     // Should show content from the vault
@@ -36,7 +37,8 @@ describe("TUI View Tests", () => {
   });
 
   test("should switch views with 'v' key", async () => {
-    board = await createBoardTest(TEST_VAULT);
+    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes });
+    board = await createBoardTest(vault);
 
     // Initial view
     const initial = board.screenshot();
@@ -67,7 +69,8 @@ describe("TUI View Tests", () => {
   // The visual rendering tests above cover the core board rendering functionality.
 
   test("should navigate with arrow keys", async () => {
-    board = await createBoardTest(TEST_VAULT);
+    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes });
+    board = await createBoardTest(vault);
 
     // Navigate right
     board.press("right");
@@ -96,7 +99,8 @@ describe("TUI View Tests", () => {
   });
 
   test("should navigate with vim keys", async () => {
-    board = await createBoardTest(TEST_VAULT);
+    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes });
+    board = await createBoardTest(vault);
 
     // Navigate with h/j/k/l
     board.press("l"); // right
@@ -109,7 +113,8 @@ describe("TUI View Tests", () => {
   });
 
   test("should expand/collapse with Enter", async () => {
-    board = await createBoardTest(TEST_VAULT);
+    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes });
+    board = await createBoardTest(vault);
 
     // Navigate to an item
     board.press("j");

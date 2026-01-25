@@ -1,18 +1,18 @@
 /**
- * Body Content Tests (migrated from body-content.playwright.ts)
+ * Body Content Tests
  *
  * Tests that body content (paragraphs, code, quotes before sections) renders correctly:
  * - Board level: Body column appears first, dimmed, borderless
  * - Column level: Body cards appear before structural cards, borderless
  * - Navigation: h/l/j/k skip virtual body elements
  *
- * Uses inkx createTestRenderer instead of Playwright for faster, more reliable testing.
+ * Uses createFakeVault for fast in-memory testing.
  */
 
 import { describe, test, expect, afterEach } from "bun:test";
+import { createFakeVault } from "@km/storage";
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts";
-
-const TEST_VAULT = `${process.cwd()}/apps/km-cli/tests/fixtures/tui-test-vault`;
+import { BODY_CONTENT_BOARD } from "./fixtures/body-content-fixture.ts";
 
 describe("Body Content Visual Tests", () => {
   let board: BoardTestHarness | null = null;
@@ -25,16 +25,18 @@ describe("Body Content Visual Tests", () => {
   });
 
   test("body content file renders correctly", async () => {
-    board = await createBoardTest(TEST_VAULT, { file: "body-test.md" });
+    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes });
+    board = await createBoardTest(vault);
     const screenshot = board.screenshot();
 
-    // Should render content from body-test.md
+    // Should render content from body fixture
     expect(screenshot.length).toBeGreaterThan(0);
     expect(screenshot).toBeTruthy();
   });
 
   test("navigation with h/l moves between columns", async () => {
-    board = await createBoardTest(TEST_VAULT, { file: "body-test.md" });
+    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes });
+    board = await createBoardTest(vault);
 
     // Initial state
     const initial = board.screenshot();
@@ -58,7 +60,8 @@ describe("Body Content Visual Tests", () => {
   });
 
   test("navigation with j/k moves between cards", async () => {
-    board = await createBoardTest(TEST_VAULT, { file: "body-test.md" });
+    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes });
+    board = await createBoardTest(vault);
 
     // Navigate to a column first
     board.press("l");
@@ -75,7 +78,8 @@ describe("Body Content Visual Tests", () => {
   });
 
   test("g (go top) navigates to first card", async () => {
-    board = await createBoardTest(TEST_VAULT, { file: "body-test.md" });
+    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes });
+    board = await createBoardTest(vault);
 
     // Navigate to a column
     board.press("l");
@@ -94,7 +98,8 @@ describe("Body Content Visual Tests", () => {
   });
 
   test("nested content expands correctly", async () => {
-    board = await createBoardTest(TEST_VAULT, { file: "body-test.md" });
+    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes });
+    board = await createBoardTest(vault);
 
     // Navigate to Column B (two 'l' presses)
     board.press("l");
