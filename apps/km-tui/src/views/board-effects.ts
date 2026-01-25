@@ -10,6 +10,7 @@ import { tuiEvents } from "../tui.ts"
 import type { WatcherStatus } from "@km/storage"
 import type { Vault } from "../vault-context.tsx"
 import type { BoardAction } from "@km/board"
+import { toast, kmEvents } from "@km/core"
 
 /**
  * Creates the terminal dimension sync effect
@@ -136,12 +137,62 @@ export function createRefreshHandler(
 export function createWatcherStatusHandler(
   dispatch: Dispatch<UIAction>,
 ): () => void {
+  let lastSyncCount = 0
+
   const handleWatcherStatus = (status: WatcherStatus) => {
     dispatch(actions.setWatcherStatus(status))
+
+    // Show toast when sync completes with changes
+    if (status.state === "idle" || status.state === "ready") {
+      const syncedCount = status.pendingPaths
+      if (syncedCount > 0 && syncedCount !== lastSyncCount) {
+        toast.success(`Synced ${syncedCount} file${syncedCount === 1 ? "" : "s"}`, {
+          batchKey: "sync",
+          duration: 2000,
+        })
+        lastSyncCount = syncedCount
+      }
+    }
   }
 
   tuiEvents.on("watcher-status", handleWatcherStatus)
   return () => {
     tuiEvents.off("watcher-status", handleWatcherStatus)
+  }
+}
+
+/**
+ * Creates the error/warning event handler effect
+ * Subscribes to cross-layer error/warning events and displays toasts
+ */
+export function createErrorWarningHandler(): () => void {
+  // Parse errors
+  const unsubParseError = kmEvents.on("parse-error", (e) => {
+    toast.error(`Parse error in ${e.file}:${e.line}`, {
+      description: e.message,
+      batchKey: "parse-error",
+    })
+  })
+
+  // Sync errors
+  const unsubSyncError = kmEvents.on("sync-error", (e) => {
+    toast.error(`Sync error: ${e.path}`, {
+      description: e.message,
+      batchKey: "sync-error",
+    })
+  })
+
+  // Validation warnings
+  const unsubValidationWarning = kmEvents.on("validation-warning", (e) => {
+    toast.warning("Validation warning", {
+      description: e.message,
+      batchKey: "validation",
+    })
+  })
+
+  return () => {
+    unsubParseError()
+    unsubSyncError()
+    unsubValidationWarning()
   }
 }

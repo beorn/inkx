@@ -62,13 +62,16 @@ import {
 } from "./board-layout.ts"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
+import { Toast } from "./Toast.tsx"
 import {
   createSyncTerminalDimensions,
   createFileDropHandler,
   createRefreshHandler,
   createWatcherStatusHandler,
+  createErrorWarningHandler,
 } from "./board-effects.ts"
 import { handleBoardKeyInput, handleDetailPaneKeyInput } from "./board-input.ts"
+import { toastQueue } from "@km/core"
 
 export { makeSelectionKey } from "../types.ts"
 
@@ -355,6 +358,10 @@ export function BoardCore({
                 <HelpOverlay width={termWidth} height={contentHeight} />
               )}
             </Box>
+            {/* Toast area - above bottom bar */}
+            {toastQueue.getLatest() && (
+              <Toast toast={toastQueue.getLatest()!} termWidth={termWidth} />
+            )}
             {/* Bottom bar (includes status messages) */}
             <BottomBar
               ui={ui}
@@ -560,6 +567,9 @@ export function Board({
 
   // Subscribe to watcher status updates
   useEffect(() => createWatcherStatusHandler(dispatch), [])
+
+  // Subscribe to error/warning events
+  useEffect(() => createErrorWarningHandler(), [])
 
   // Subscribe to external refresh events (filesystem changes)
   useEffect(

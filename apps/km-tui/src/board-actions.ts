@@ -121,9 +121,22 @@ export function handleCommandAction(
     case "HIDE_HELP":
       dispatch(actions.hideHelp())
       return ok()
-    case "OPEN_DETAIL_PANE":
+    case "OPEN_DETAIL_PANE": {
+      // If current node has children, zoom into it instead of opening detail pane
+      const curCol = state.columns[state.colIndex]
+      const curCard = curCol?.cards[state.cardIndex]
+      const curNodeId = curCard?.node.id ?? curCol?.node.id
+      if (curNodeId) {
+        const children = ctx.vault.getChildren(curNodeId)
+        if (children.length > 0) {
+          // Use handleZoomInNode to support both card and column level zoom
+          return handleZoomInNode(ctx, curNodeId)
+        }
+      }
+      // No children - open detail pane for leaf nodes
       dispatch(actions.setDetailPane(true))
       return ok()
+    }
     case "CLOSE_DETAIL_PANE":
       dispatch(actions.setDetailPane(false))
       return ok()
@@ -449,7 +462,7 @@ function handleHierarchicalNavigation(
   ctx: TUIContext,
   dir: "up" | "down",
 ): string | null {
-  const { state, boardState, vault } = ctx
+  const { state, boardState, vault, positionRegistry } = ctx
   const { cursorNodeId, rootId } = boardState
   const col = state.columns[state.colIndex]
 
@@ -476,9 +489,12 @@ function handleHierarchicalNavigation(
   if (dir === "down") {
     // j: move down through hierarchy
     if (isAtBoardLevel) {
-      // Board → first column header
-      const firstCol = state.columns[0]
-      return firstCol?.node.id ?? null
+      // Board → column header (use stickyX to remember which column)
+      const stickyX = positionRegistry.getStickyX()
+      const targetColIdx =
+        stickyX !== null && stickyX < state.columns.length ? stickyX : 0
+      const targetCol = state.columns[targetColIdx]
+      return targetCol?.node.id ?? null
     }
 
     if (isAtColumnLevel) {
@@ -507,7 +523,8 @@ function handleHierarchicalNavigation(
     }
 
     if (isAtColumnLevel) {
-      // Column header → board title
+      // Column header → board title (save column index for return)
+      positionRegistry.setStickyX(state.colIndex)
       return rootId
     }
 
@@ -862,6 +879,39 @@ function handleZoomIn(ctx: TUIContext): ActionResult {
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: card.node.id,
+  })
+
+  clearSelection(ctx)
+  return ok()
+}
+
+/**
+ * Zoom into a specific node by ID (works for both cards and columns)
+ */
+function handleZoomInNode(ctx: TUIContext, nodeId: string): ActionResult {
+  const { boardState, ui, dispatch, dispatchBoard, layout } = ctx
+
+  // Verify node has children
+  const children = ctx.vault.getChildren(nodeId)
+  if (children.length === 0) {
+    return boundary("in", "no children")
+  }
+
+  // Save current state to history
+  pushNavHistoryEntry(
+    dispatch,
+    boardState.rootId,
+    layout.colIndex,
+    layout.cardIndex,
+    ui.subIndex,
+    ui.multiSelected,
+    ui.inOutlineMode,
+  )
+
+  // Dispatch zoom
+  dispatchBoard({
+    type: "ZOOM_IN",
+    nodeId,
   })
 
   clearSelection(ctx)

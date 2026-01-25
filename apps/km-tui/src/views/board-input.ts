@@ -17,7 +17,7 @@ import {
   ensureCommandSystemInitialized,
 } from "../command-bridge.ts"
 import { handleCommandAction } from "../board-actions.ts"
-import { isErr } from "@km/core"
+import { isErr, toastQueue } from "@km/core"
 
 // Re-export for convenience
 export { ensureCommandSystemInitialized }
@@ -59,6 +59,12 @@ export function handleBoardKeyInput(
   // Clear bell and status at start of each keypress
   dispatch(actions.clearBell())
   dispatch(actions.clearStatus())
+
+  // Escape dismisses toast if present
+  if (key.escape && toastQueue.getLatest()) {
+    toastQueue.dismissAll()
+    return true
+  }
 
   // Route ALL keys through the command system
   const result = processKeyWithContext(input, key, tuiContext)

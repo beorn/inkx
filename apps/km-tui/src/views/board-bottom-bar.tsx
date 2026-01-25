@@ -82,9 +82,7 @@ export function BottomBar({
       error: "✗",
     } as const
     const icon = icons[ui.status.level]
-    // Add visual bell indicator (🔔) for boundary errors
-    const bellIndicator = ui.bellState ? "🔔 " : ""
-    statusParts.push(`${bellIndicator}${icon} ${ui.status.message}`)
+    statusParts.push(`${icon} ${ui.status.message}`)
   } else {
     // Normal status indicators (only when no status message)
     if (ui.showHelp) statusParts.push("[?]")

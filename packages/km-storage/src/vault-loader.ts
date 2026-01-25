@@ -59,6 +59,8 @@ export interface LoadResult {
   deferredFiles?: DeferredFile[]
   /** The NodeStore instance for querying/mutating nodes */
   store: NodeStore
+  /** The database instance used for loading (for DI/testing) */
+  database: Database
 }
 
 /** Error during loading */
@@ -204,7 +206,7 @@ export function* loadVault(
           source.pendingLinks.length,
         )
       } else {
-        linkCount = yield* resolveLinks(source.pendingLinks, errors)
+        linkCount = yield* resolveLinks(db, source.pendingLinks, errors)
       }
     }
 
@@ -238,6 +240,7 @@ export function* loadVault(
     pendingLinks: returnPendingLinks,
     deferredFiles: returnDeferredFiles,
     store,
+    database: db,
   }
 }
 
@@ -749,6 +752,7 @@ function* applyEvents(
 }
 
 function* resolveLinks(
+  db: Database,
   pendingLinks: PendingLink[],
   errors: LoadError[],
 ): Generator<StepYield, number, unknown> {
@@ -759,7 +763,7 @@ function* resolveLinks(
   yield { current: 0, total }
 
   // Build file lookup index for O(1) resolution instead of O(n) SQL per link
-  const fileIndex = buildFileIndex()
+  const fileIndex = buildFileIndex(db)
 
   // Collect all link data for batch INSERT
   const linksToInsert: Array<{
@@ -792,7 +796,7 @@ function* resolveLinks(
       // If there's a section reference, try to find the specific child node
       let targetNode = fileNode
       if (fileNode && link.section) {
-        const childNode = findChildByContent(fileNode.id, link.section)
+        const childNode = findChildByContent(db, fileNode.id, link.section)
         if (childNode) {
           targetNode = childNode
         }
@@ -833,7 +837,6 @@ function* resolveLinks(
   }
 
   // Phase 2: Batch INSERT in single transaction
-  const db = getDb()
   const now = Date.now()
 
   db.run("BEGIN IMMEDIATE")
@@ -892,13 +895,14 @@ export async function resolveLinksAsync(
   pendingLinks: PendingLink[],
   onProgress?: (current: number, total: number) => void,
 ): Promise<number> {
+  const db = getDb()
   const total = pendingLinks.length
   if (total === 0) return 0
 
   debug("resolveLinksAsync: starting %d links", total)
 
   // Build file lookup index for O(1) resolution
-  const fileIndex = buildFileIndex()
+  const fileIndex = buildFileIndex(db)
 
   // Collect all link data for batch INSERT
   const linksToInsert: Array<{
@@ -931,7 +935,7 @@ export async function resolveLinksAsync(
     // If there's a section reference, try to find the specific child node
     let targetNode = fileNode
     if (fileNode && link.section) {
-      const childNode = findChildByContent(fileNode.id, link.section)
+      const childNode = findChildByContent(db, fileNode.id, link.section)
       if (childNode) {
         targetNode = childNode
       }
@@ -971,7 +975,6 @@ export async function resolveLinksAsync(
   }
 
   // Phase 2: Batch INSERT in single transaction
-  const db = getDb()
   const now = Date.now()
 
   db.run("BEGIN IMMEDIATE")
@@ -1021,8 +1024,7 @@ export async function resolveLinksAsync(
  * Build an index of file nodes by normalized name for O(1) lookup.
  * This replaces per-link SQL queries which were O(n) each.
  */
-function buildFileIndex(): Map<string, KNode> {
-  const db = getDb()
+function buildFileIndex(db: Database): Map<string, KNode> {
   const index = new Map<string, KNode>()
 
   const rows = db
@@ -1076,15 +1078,17 @@ export async function parseDeferredAsync(
   const total = deferredFiles.length
   if (total === 0) return { parsed: 0, pendingLinks: [] }
 
+  const db = getDb()
+
   // km-fast-md.6: Use worker pool for parallel parsing (default: true)
   const useWorkerPool = options?.useWorkerPool ?? true
 
   if (useWorkerPool && total >= 4) {
     // Only use pool for 4+ files (overhead not worth it for fewer)
-    return parseDeferredWithPool(deferredFiles, shouldAbort)
+    return parseDeferredWithPool(db, deferredFiles, shouldAbort)
   }
 
-  return parseDeferredSequential(deferredFiles, shouldAbort)
+  return parseDeferredSequential(db, deferredFiles, shouldAbort)
 }
 
 /**
@@ -1092,6 +1096,7 @@ export async function parseDeferredAsync(
  * Workers handle CPU-intensive parsing, main thread updates database.
  */
 async function parseDeferredWithPool(
+  db: Database,
   deferredFiles: DeferredFile[],
   shouldAbort?: () => boolean,
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
@@ -1112,7 +1117,7 @@ async function parseDeferredWithPool(
     )
 
     // Now apply results to database (must be on main thread)
-    return applyParseResults(parseResults, deferredFiles)
+    return applyParseResults(db, parseResults, deferredFiles)
   } finally {
     await pool.shutdown()
   }
@@ -1122,10 +1127,10 @@ async function parseDeferredWithPool(
  * Apply parse results to database. Called after worker pool parsing.
  */
 function applyParseResults(
+  db: Database,
   parseResults: ParseResult[],
   deferredFiles: DeferredFile[],
 ): { parsed: number; pendingLinks: PendingLink[] } {
-  const db = getDb()
   const pendingLinks: PendingLink[] = []
   let parsed = 0
 
@@ -1250,13 +1255,12 @@ function applyParseResults(
  * Sequential parsing (original implementation, used for small file counts).
  */
 async function parseDeferredSequential(
+  db: Database,
   deferredFiles: DeferredFile[],
   shouldAbort?: () => boolean,
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
   const total = deferredFiles.length
   debug("parseDeferredSequential: starting %d files", total)
-
-  const db = getDb()
   const pendingLinks: PendingLink[] = []
   const BATCH_SIZE = 10
   let parsed = 0

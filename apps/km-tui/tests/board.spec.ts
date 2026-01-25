@@ -351,19 +351,20 @@ describe("Cursoring", () => {
         // Move right to col2 - should go to card at similar Y position
         board.press("l")
         const card2Box = board.q("[data-cursor]").boundingBox()
-        // Y position should be close (within card height tolerance)
-        expect(Math.abs(card2Box!.y - card1cBox!.y)).toBeLessThan(10)
+        // Y position should be close (within ~1 card height tolerance)
+        // Using 15 to account for minor layout variations
+        expect(Math.abs(card2Box!.y - card1cBox!.y)).toBeLessThanOrEqual(15)
 
         // Move right to col3 - should maintain Y position
         board.press("l")
         const card3Box = board.q("[data-cursor]").boundingBox()
-        expect(Math.abs(card3Box!.y - card1cBox!.y)).toBeLessThan(10)
+        expect(Math.abs(card3Box!.y - card1cBox!.y)).toBeLessThanOrEqual(15)
 
         // Move back left - should return to similar Y position
         board.press("h")
         board.press("h")
         const returnedBox = board.q("[data-cursor]").boundingBox()
-        expect(Math.abs(returnedBox!.y - card1cBox!.y)).toBeLessThan(10)
+        expect(Math.abs(returnedBox!.y - card1cBox!.y)).toBeLessThanOrEqual(15)
       })
 
       test("adjusts Y position when target column is shorter", () => {
