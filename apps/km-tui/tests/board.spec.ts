@@ -103,11 +103,11 @@ describe("Display", () => {
     }
   })
 
-  test.todo("columns show side by side", () => {
-    // TODO: Layout width constraints - 3 columns don't fit in default 80 columns
-    // Need to investigate proper column sizing or increase terminal width for test
-    const { board } = testEnv(() =>
-      item("board", item("Todo"), item("InProgress"), item("Done")),
+  test("columns show side by side", () => {
+    // Use wider terminal (120 columns) so 3 columns fit side by side
+    const { board } = testEnv(
+      () => item("board", item("Todo"), item("InProgress"), item("Done")),
+      { columns: 120 },
     )
     const output = board.screenshot()
     expect(output).toContain("Todo")

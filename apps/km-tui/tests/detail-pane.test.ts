@@ -1,180 +1,145 @@
-/**
- * Detail Pane Tests
- *
- * Tests for the detail pane component that shows full task details
- */
-
-import { describe, test, expect } from "bun:test";
-import React from "react";
-import { createTestRenderer } from "inkx/testing";
-
-const render = createTestRenderer();
-
-import { createFakeVault } from "@km/storage";
-import type { KNode } from "@km/core";
-
+import { describe, test, expect } from "bun:test"
+import React from "react"
+import { createTestRenderer } from "inkx/testing"
+const render = createTestRenderer()
+import { createFakeVault } from "@km/storage"
+import type { KNode } from "@km/core"
 import {
   DetailPane,
   extractReferences,
   formatDate,
   getStatusDisplay,
   getProjectPath,
-} from "../src/views/DetailPane.tsx";
-import { VaultProvider } from "../src/vault-context.tsx";
+} from "../src/views/DetailPane.tsx"
+import { VaultProvider } from "../src/vault-context.tsx"
 
-// Helper to render DetailPane with VaultProvider
 function renderDetailPane(
   vault: ReturnType<typeof createFakeVault>,
   node: KNode,
   width: number,
   height: number,
 ) {
-  const detailPane = React.createElement(DetailPane, { node, width, height });
+  const detailPane = React.createElement(DetailPane, { node, width, height })
   return render(
     React.createElement(VaultProvider, { vault, children: detailPane }),
-  );
+  )
 }
 
 describe("extractReferences", () => {
   test("extracts @mentions", () => {
-    const refs = extractReferences("Contact @john and @jane about this");
-    expect(refs.mentions).toEqual(["john", "jane"]);
-  });
-
+    const refs = extractReferences("Contact @john and @jane about this")
+    expect(refs.mentions).toEqual(["john", "jane"])
+  })
   test("extracts #tags", () => {
-    const refs = extractReferences("This is #important and #urgent");
-    expect(refs.tags).toEqual(["important", "urgent"]);
-  });
-
+    const refs = extractReferences("This is #important and #urgent")
+    expect(refs.tags).toEqual(["important", "urgent"])
+  })
   test("extracts +projects", () => {
-    const refs = extractReferences("Part of +work and +finance projects");
-    expect(refs.projects).toEqual(["work", "finance"]);
-  });
-
+    const refs = extractReferences("Part of +work and +finance projects")
+    expect(refs.projects).toEqual(["work", "finance"])
+  })
   test("extracts [[wikilinks]]", () => {
     const refs = extractReferences(
       "See [[Meeting Notes]] and [[Q4 Actuals]] for details",
-    );
-    expect(refs.wikilinks).toEqual(["Meeting Notes", "Q4 Actuals"]);
-  });
-
-  test("extracts all reference types together", () => {
-    const refs = extractReferences(
-      "@bjorn #finance +work [[Q4 Budget]] review",
-    );
-    expect(refs.mentions).toEqual(["bjorn"]);
-    expect(refs.tags).toEqual(["finance"]);
-    expect(refs.projects).toEqual(["work"]);
-    expect(refs.wikilinks).toEqual(["Q4 Budget"]);
-  });
-
+    )
+    expect(refs.wikilinks).toEqual(["Meeting Notes", "Q4 Actuals"])
+  })
+  test("extracts all reference types", () => {
+    const refs = extractReferences("@bjorn #finance +work [[Q4 Budget]] review")
+    expect(refs.mentions).toEqual(["bjorn"])
+    expect(refs.tags).toEqual(["finance"])
+    expect(refs.projects).toEqual(["work"])
+    expect(refs.wikilinks).toEqual(["Q4 Budget"])
+  })
   test("deduplicates references", () => {
-    const refs = extractReferences("@john said @john should do it @john");
-    expect(refs.mentions).toEqual(["john"]);
-  });
-
+    const refs = extractReferences("@john said @john should do it @john")
+    expect(refs.mentions).toEqual(["john"])
+  })
   test("handles undefined content", () => {
-    const refs = extractReferences(undefined);
-    expect(refs.mentions).toEqual([]);
-    expect(refs.tags).toEqual([]);
-    expect(refs.projects).toEqual([]);
-    expect(refs.wikilinks).toEqual([]);
-  });
-
+    const refs = extractReferences(undefined)
+    expect(refs.mentions).toEqual([])
+    expect(refs.tags).toEqual([])
+    expect(refs.projects).toEqual([])
+    expect(refs.wikilinks).toEqual([])
+  })
   test("handles empty content", () => {
-    const refs = extractReferences("");
-    expect(refs.mentions).toEqual([]);
-    expect(refs.tags).toEqual([]);
-    expect(refs.projects).toEqual([]);
-    expect(refs.wikilinks).toEqual([]);
-  });
-});
+    const refs = extractReferences("")
+    expect(refs.mentions).toEqual([])
+  })
+})
 
 describe("formatDate", () => {
   test("returns empty string for undefined", () => {
-    expect(formatDate(undefined).text).toBe("");
-  });
-
+    expect(formatDate(undefined).text).toBe("")
+  })
   test("returns raw date for invalid date", () => {
-    expect(formatDate("not-a-date").text).toBe("not-a-date");
-  });
-
+    expect(formatDate("not-a-date").text).toBe("not-a-date")
+  })
   test("formats date in current year as short form", () => {
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-01-15`;
-    const formatted = formatDate(dateStr);
-    expect(formatted.text).toContain("Jan");
-    expect(formatted.text).toContain("15");
-  });
-
+    const now = new Date()
+    const dateStr = `${now.getFullYear()}-01-15`
+    const formatted = formatDate(dateStr)
+    expect(formatted.text).toContain("Jan")
+    expect(formatted.text).toContain("15")
+  })
   test("returns full date for different year", () => {
-    const formatted = formatDate("2020-06-15");
-    // Should return the original date string for different years
-    expect(formatted.text).toBe("2020-06-15");
-    // Past date should be overdue
-    expect(formatted.urgency).toBe("overdue");
-  });
-
+    const formatted = formatDate("2020-06-15")
+    expect(formatted.text).toBe("2020-06-15")
+    expect(formatted.urgency).toBe("overdue")
+  })
   test("returns overdue urgency for past dates", () => {
-    const pastDate = new Date();
-    pastDate.setDate(pastDate.getDate() - 5);
-    const formatted = formatDate(pastDate.toISOString().slice(0, 10));
-    expect(formatted.urgency).toBe("overdue");
-  });
-
+    const pastDate = new Date()
+    pastDate.setDate(pastDate.getDate() - 5)
+    const formatted = formatDate(pastDate.toISOString().slice(0, 10))
+    expect(formatted.urgency).toBe("overdue")
+  })
   test("returns urgent urgency for dates due tomorrow", () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const formatted = formatDate(tomorrow.toISOString().slice(0, 10));
-    expect(formatted.urgency).toBe("urgent");
-  });
-
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const formatted = formatDate(tomorrow.toISOString().slice(0, 10))
+    expect(formatted.urgency).toBe("urgent")
+  })
   test("returns soon urgency for dates due within 3 days", () => {
-    const soonDate = new Date();
-    soonDate.setDate(soonDate.getDate() + 3);
-    const formatted = formatDate(soonDate.toISOString().slice(0, 10));
-    expect(formatted.urgency).toBe("soon");
-  });
-
+    const soonDate = new Date()
+    soonDate.setDate(soonDate.getDate() + 3)
+    const formatted = formatDate(soonDate.toISOString().slice(0, 10))
+    expect(formatted.urgency).toBe("soon")
+  })
   test("returns normal urgency for future dates", () => {
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 10);
-    const formatted = formatDate(futureDate.toISOString().slice(0, 10));
-    expect(formatted.urgency).toBe("normal");
-  });
-});
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 10)
+    const formatted = formatDate(futureDate.toISOString().slice(0, 10))
+    expect(formatted.urgency).toBe("normal")
+  })
+})
 
 describe("getStatusDisplay", () => {
   test("returns todo for undefined status", () => {
-    const result = getStatusDisplay(undefined);
-    expect(result.text).toBe("todo");
-    expect(result.color).toBe("blue");
-  });
-
+    const result = getStatusDisplay(undefined)
+    expect(result.text).toBe("todo")
+    expect(result.color).toBe("blue")
+  })
   test("returns done with green color", () => {
-    const result = getStatusDisplay("done");
-    expect(result.text).toBe("done");
-    expect(result.color).toBe("green");
-  });
-
+    const result = getStatusDisplay("done")
+    expect(result.text).toBe("done")
+    expect(result.color).toBe("green")
+  })
   test("returns wip with yellow color", () => {
-    const result = getStatusDisplay("wip");
-    expect(result.text).toBe("wip");
-    expect(result.color).toBe("yellow");
-  });
-
+    const result = getStatusDisplay("wip")
+    expect(result.text).toBe("wip")
+    expect(result.color).toBe("yellow")
+  })
   test("returns blocked with red color", () => {
-    const result = getStatusDisplay("blocked");
-    expect(result.text).toBe("blocked");
-    expect(result.color).toBe("red");
-  });
-
+    const result = getStatusDisplay("blocked")
+    expect(result.text).toBe("blocked")
+    expect(result.color).toBe("red")
+  })
   test("returns dropped with gray color", () => {
-    const result = getStatusDisplay("dropped");
-    expect(result.text).toBe("dropped");
-    expect(result.color).toBe("gray");
-  });
-});
+    const result = getStatusDisplay("dropped")
+    expect(result.text).toBe("dropped")
+    expect(result.color).toBe("gray")
+  })
+})
 
 describe("getProjectPath", () => {
   test("returns empty array for node with no parent", () => {
@@ -193,11 +158,10 @@ describe("getProjectPath", () => {
           version: "test",
         },
       ],
-    });
-    const node = vault.getNode("task1")!;
-    expect(getProjectPath(vault, node)).toEqual([]);
-  });
-
+    })
+    const node = vault.getNode("task1")!
+    expect(getProjectPath(vault, node)).toEqual([])
+  })
   test("returns folder names in path", () => {
     const vault = createFakeVault({
       nodes: [
@@ -238,12 +202,11 @@ describe("getProjectPath", () => {
           version: "test",
         },
       ],
-    });
-    const task = vault.getNode("task1")!;
-    const path = getProjectPath(vault, task);
-    expect(path).toEqual(["Work", "Finance"]);
-  });
-
+    })
+    const task = vault.getNode("task1")!
+    const path = getProjectPath(vault, task)
+    expect(path).toEqual(["Work", "Finance"])
+  })
   test("includes files in path", () => {
     const vault = createFakeVault({
       nodes: [
@@ -284,14 +247,14 @@ describe("getProjectPath", () => {
           version: "test",
         },
       ],
-    });
-    const task = vault.getNode("task1")!;
-    const path = getProjectPath(vault, task);
-    expect(path).toEqual(["Projects", "todo.md"]);
-  });
-});
+    })
+    const task = vault.getNode("task1")!
+    const path = getProjectPath(vault, task)
+    expect(path).toEqual(["Projects", "todo.md"])
+  })
+})
 
-describe("DetailPane Component", () => {
+describe("DetailPane", () => {
   test("renders with all task fields", () => {
     const vault = createFakeVault({
       nodes: [
@@ -311,29 +274,18 @@ describe("DetailPane Component", () => {
           version: "test",
         },
       ],
-    });
-    const task = vault.getNode("task1")!;
-
-    const { lastFrame } = renderDetailPane(vault, task, 40, 24);
-
-    const output = lastFrame() ?? "";
-
-    // Check title
-    expect(output).toContain("Review Q1 budget");
-
-    // Check status
-    expect(output).toContain("Status:");
-    expect(output).toContain("todo");
-
-    // Check due date
-    expect(output).toContain("Due:");
-    expect(output).toContain("Jan");
-
-    // Check assigned
-    expect(output).toContain("Assigned:");
-    expect(output).toContain("@bjorn");
-  });
-
+    })
+    const task = vault.getNode("task1")!
+    const { lastFrame } = renderDetailPane(vault, task, 40, 24)
+    const output = lastFrame() ?? ""
+    expect(output).toContain("Review Q1 budget")
+    expect(output).toContain("Status:")
+    expect(output).toContain("todo")
+    expect(output).toContain("Due:")
+    expect(output).toContain("Jan")
+    expect(output).toContain("Assigned:")
+    expect(output).toContain("@bjorn")
+  })
   test("shows subtasks", () => {
     const vault = createFakeVault({
       nodes: [
@@ -376,18 +328,14 @@ describe("DetailPane Component", () => {
           version: "test",
         },
       ],
-    });
-    const parent = vault.getNode("parent1")!;
-
-    const { lastFrame } = renderDetailPane(vault, parent, 40, 24);
-
-    const output = lastFrame() ?? "";
-
-    expect(output).toContain("Subtasks");
-    expect(output).toContain("Subtask 1");
-    expect(output).toContain("Subtask 2");
-  });
-
+    })
+    const parent = vault.getNode("parent1")!
+    const { lastFrame } = renderDetailPane(vault, parent, 40, 24)
+    const output = lastFrame() ?? ""
+    expect(output).toContain("Subtasks")
+    expect(output).toContain("Subtask 1")
+    expect(output).toContain("Subtask 2")
+  })
   test("shows references from content", () => {
     const vault = createFakeVault({
       nodes: [
@@ -405,20 +353,15 @@ describe("DetailPane Component", () => {
           version: "test",
         },
       ],
-    });
-    const task = vault.getNode("task1")!;
-
-    const { lastFrame } = renderDetailPane(vault, task, 50, 24);
-
-    const output = lastFrame() ?? "";
-
-    // Check references are shown
-    expect(output).toContain("#budget");
-    expect(output).toContain("@john");
-    expect(output).toContain("+work");
-    expect(output).toContain("[[Meeting Notes]]");
-  });
-
+    })
+    const task = vault.getNode("task1")!
+    const { lastFrame } = renderDetailPane(vault, task, 50, 24)
+    const output = lastFrame() ?? ""
+    expect(output).toContain("#budget")
+    expect(output).toContain("@john")
+    expect(output).toContain("+work")
+    expect(output).toContain("[[Meeting Notes]]")
+  })
   test("shows project path", () => {
     const vault = createFakeVault({
       nodes: [
@@ -459,18 +402,14 @@ describe("DetailPane Component", () => {
           version: "test",
         },
       ],
-    });
-    const task = vault.getNode("task1")!;
-
-    const { lastFrame } = renderDetailPane(vault, task, 50, 24);
-
-    const output = lastFrame() ?? "";
-
-    expect(output).toContain("Project:");
-    expect(output).toContain("Work");
-    expect(output).toContain("Finance");
-  });
-
+    })
+    const task = vault.getNode("task1")!
+    const { lastFrame } = renderDetailPane(vault, task, 50, 24)
+    const output = lastFrame() ?? ""
+    expect(output).toContain("Project:")
+    expect(output).toContain("Work")
+    expect(output).toContain("Finance")
+  })
   test("shows keybindings hint", () => {
     const vault = createFakeVault({
       nodes: [
@@ -487,17 +426,12 @@ describe("DetailPane Component", () => {
           version: "test",
         },
       ],
-    });
-    const task = vault.getNode("task1")!;
-
-    const { lastFrame } = renderDetailPane(vault, task, 50, 24);
-
-    const output = lastFrame() ?? "";
-
-    // Should show keybindings at bottom
-    expect(output).toContain("h/Esc:close");
-  });
-
+    })
+    const task = vault.getNode("task1")!
+    const { lastFrame } = renderDetailPane(vault, task, 50, 24)
+    const output = lastFrame() ?? ""
+    expect(output).toContain("h/Esc:close")
+  })
   test("handles task with done status", () => {
     const vault = createFakeVault({
       nodes: [
@@ -515,18 +449,12 @@ describe("DetailPane Component", () => {
           version: "test",
         },
       ],
-    });
-    const task = vault.getNode("task1")!;
-
-    const { lastFrame } = renderDetailPane(vault, task, 40, 24);
-
-    const output = lastFrame() ?? "";
-
-    expect(output).toContain("done");
-  });
-});
-
-describe("DetailPane with Backlinks", () => {
+    })
+    const task = vault.getNode("task1")!
+    const { lastFrame } = renderDetailPane(vault, task, 40, 24)
+    const output = lastFrame() ?? ""
+    expect(output).toContain("done")
+  })
   test("shows backlinks when present", () => {
     const vault = createFakeVault({
       nodes: [
@@ -568,14 +496,11 @@ describe("DetailPane with Backlinks", () => {
           created_at: Date.now(),
         },
       ],
-    });
-    const target = vault.getNode("target1")!;
-
-    const { lastFrame } = renderDetailPane(vault, target, 50, 24);
-
-    const output = lastFrame() ?? "";
-
-    expect(output).toContain("Backlinks");
-    expect(output).toContain("Meeting Notes");
-  });
-});
+    })
+    const target = vault.getNode("target1")!
+    const { lastFrame } = renderDetailPane(vault, target, 50, 24)
+    const output = lastFrame() ?? ""
+    expect(output).toContain("Backlinks")
+    expect(output).toContain("Meeting Notes")
+  })
+})

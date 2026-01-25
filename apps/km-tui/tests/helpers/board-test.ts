@@ -156,7 +156,10 @@ export function standardBoard() {
  * );
  * board.press("j").expect("#1b[data-cursor]").toExist();
  */
-export function testEnv(treeBuilder: () => KNode[]) {
+export function testEnv(
+  treeBuilder: () => KNode[],
+  options?: { columns?: number; rows?: number },
+) {
   const nodes = treeBuilder();
   const vault = createFakeVault({ nodes });
   const rootNode = nodes[0];
@@ -168,11 +171,13 @@ export function testEnv(treeBuilder: () => KNode[]) {
   const initialState = buildBoardState(vault as any, rootNode.id);
 
   // Render the full Board component (not BoardCore) for keyboard navigation + id attributes
-  const render = createTestRenderer({ columns: 80, rows: 24 });
+  const columns = options?.columns ?? 80;
+  const rows = options?.rows ?? 24;
+  const render = createTestRenderer({ columns, rows });
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: "cards" as const,
-    dimensions: { columns: 80, rows: 24 },
+    dimensions: { columns, rows },
     onExit: () => {},
     layoutRegistry: createLayoutRegistry(),
   });

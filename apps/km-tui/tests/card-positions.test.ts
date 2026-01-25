@@ -24,6 +24,22 @@ function makeLayout(y: number, height = 3): NodeLayout {
   };
 }
 
+// Helper to create a NodeLayout with head position for testing
+function makeLayoutWithHead(
+  y: number,
+  height = 3,
+  headHeight = 1,
+): NodeLayout {
+  return {
+    x: 0,
+    y,
+    cardWidth: 40,
+    cardHeight: height,
+    headY: y,
+    headHeight,
+  };
+}
+
 describe("LayoutRegistry", () => {
   describe("basic card operations", () => {
     it("should register and retrieve cards", () => {
@@ -339,11 +355,11 @@ describe("Sticky X (curswantX)", () => {
 });
 
 describe("getCardMidY helper", () => {
-  it("should calculate card vertical center when no head measured", () => {
+  it("should throw when no head measured (programming error)", () => {
     // Card at y=10, height=5
-    // Card center = 10 + 5/2 = 12.5
+    // Missing head position is a programming error
     const layout = makeLayout(10, 5);
-    expect(getCardMidY(layout)).toBe(12.5);
+    expect(() => getCardMidY(layout)).toThrow("Head position not registered");
   });
 
   it("should use measured head position when available", () => {
@@ -360,8 +376,8 @@ describe("getCardMidY helper", () => {
     expect(getCardMidY(layout)).toBe(11.5);
   });
 
-  it("should fallback to card center when head partially measured", () => {
-    // Only headY set, no headHeight
+  it("should throw when head partially measured (programming error)", () => {
+    // Only headY set, no headHeight - programming error
     const layout: NodeLayout = {
       x: 0,
       y: 20,
@@ -369,8 +385,8 @@ describe("getCardMidY helper", () => {
       cardHeight: 6,
       headY: 21,
     };
-    // Falls back to card center = 20 + 6/2 = 23
-    expect(getCardMidY(layout)).toBe(23);
+    // Missing headHeight is a programming error
+    expect(() => getCardMidY(layout)).toThrow("Head position not registered");
   });
 });
 
@@ -398,9 +414,10 @@ describe("updateCardHead", () => {
   it("should update getCardMidY result", () => {
     const registry = createLayoutRegistry();
 
-    // Card at y=5, height=10 → card center = 10
+    // Card at y=5, height=10, head at y=5, height=1 → head center = 5.5
     registry.registerCard(0, 0, "card-0", makeLayout(5, 10));
-    expect(getCardMidY(registry.getCard(0, 0).layout)).toBe(10);
+    registry.updateCardHead(0, 0, 5, 1);
+    expect(getCardMidY(registry.getCard(0, 0).layout)).toBe(5.5);
 
     // Update head: y=6, height=2 → head center = 7
     registry.updateCardHead(0, 0, 6, 2);
@@ -413,8 +430,9 @@ describe("Visual navigation scenarios", () => {
     const registry = createLayoutRegistry();
 
     // Column 0: One tall card with many subitems
-    // y=2, height=15 (lots of subitems)
+    // y=2, height=15 (lots of subitems), head at y=2, height=1
     registry.registerCard(0, 0, "tall", makeLayout(2, 15));
+    registry.updateCardHead(0, 0, 2, 1);
 
     // Column 1: Multiple short cards
     // y=2, height=4
@@ -422,16 +440,20 @@ describe("Visual navigation scenarios", () => {
     // y=10, height=4
     // y=14, height=4
     registry.registerCard(1, 0, "short0", makeLayout(2, 4));
+    registry.updateCardHead(1, 0, 2, 1);
     registry.registerCard(1, 1, "short1", makeLayout(6, 4));
+    registry.updateCardHead(1, 1, 6, 1);
     registry.registerCard(1, 2, "short2", makeLayout(10, 4));
+    registry.updateCardHead(1, 2, 10, 1);
     registry.registerCard(1, 3, "short3", makeLayout(14, 4));
+    registry.updateCardHead(1, 3, 14, 1);
 
-    // Card center of tall card: y=2, height=15, center = 2 + 15/2 = 9.5
-    const curswantY = getCardMidY(makeLayout(2, 15));
-    expect(curswantY).toBe(9.5);
+    // Head midpoint of tall card: y=2, headHeight=1, midpoint = 2 + 1/2 = 2.5
+    const curswantY = getCardMidY(makeLayoutWithHead(2, 15, 1));
+    expect(curswantY).toBe(2.5);
 
-    // This should land on short1 (box [6, 10) contains 9.5)
-    expect(registry.findCardAtYVisual(1, curswantY)).toBe(1);
+    // This should land on short0 (box [2, 6) contains 2.5)
+    expect(registry.findCardAtYVisual(1, curswantY)).toBe(0);
   });
 
   it("h/l should preserve visual position across multiple columns", () => {

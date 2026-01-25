@@ -72,6 +72,7 @@ function makeLayout(y: number, height = 3, x = 0): NodeLayout {
 
 /**
  * Simulates what the Card component does: registers its screen position.
+ * Also sets head position (required for getCardMidY to work).
  */
 function registerCards(
   registry: LayoutRegistry,
@@ -79,12 +80,10 @@ function registerCards(
   cards: { id: string; y: number; height?: number }[],
 ): void {
   cards.forEach((card, idx) => {
-    registry.registerCard(
-      colIndex,
-      idx,
-      card.id,
-      makeLayout(card.y, card.height ?? 3),
-    );
+    const height = card.height ?? 3;
+    registry.registerCard(colIndex, idx, card.id, makeLayout(card.y, height));
+    // Set head position (head is at top of card, height 1)
+    registry.updateCardHead(colIndex, idx, card.y, 1);
   });
 }
 
@@ -141,10 +140,10 @@ describe("Visual navigation: h/l finds card at same screen Y", () => {
       { id: "b2", y: 21 },
     ]);
 
-    // From card a1 (y=10, height=3, midpoint=11.5)
+    // From card a1 (y=10, height=3, head midpoint=10.5)
     const currentLayout = registry.getCard(0, 1);
     const curswantY = getCardMidY(currentLayout.layout);
-    expect(curswantY).toBe(11.5);
+    expect(curswantY).toBe(10.5);
 
     // Find target in column 1
     // b0: box [7, 10), midpoint 8.5, dist = 3
@@ -172,9 +171,9 @@ describe("Visual navigation: h/l finds card at same screen Y", () => {
       { id: "b1", y: 10, height: 8 },
     ]);
 
-    // From card a1 (y=10, height=3, midpoint=11.5)
+    // From card a1 (y=10, height=3, head midpoint=10.5)
     const curswantY = getCardMidY(registry.getCard(0, 1).layout);
-    expect(curswantY).toBe(11.5);
+    expect(curswantY).toBe(10.5);
 
     // Find target: curswantY=11.5 is inside b1's box [10, 18)
     const targetIdx = registry.findCardAtYVisual(1, curswantY);
@@ -214,6 +213,7 @@ describe("Visual navigation: scroll offset handling", () => {
       cardWidth: 40,
       cardHeight: 5,
     });
+    registry.updateCardHead(0, 0, 50, 1);
 
     // Column 1: card at screen Y = 50 (same screen position)
     registry.registerCard(1, 0, "b0", {
@@ -222,6 +222,7 @@ describe("Visual navigation: scroll offset handling", () => {
       cardWidth: 40,
       cardHeight: 5,
     });
+    registry.updateCardHead(1, 0, 50, 1);
 
     // Also add other cards at different positions
     registry.registerCard(1, 1, "b1", {
@@ -230,16 +231,18 @@ describe("Visual navigation: scroll offset handling", () => {
       cardWidth: 40,
       cardHeight: 5,
     });
+    registry.updateCardHead(1, 1, 60, 1);
     registry.registerCard(1, 2, "b2", {
       x: 40,
       y: 70,
       cardWidth: 40,
       cardHeight: 5,
     });
+    registry.updateCardHead(1, 2, 70, 1);
 
-    // From a0 at screen Y=50, curswantY should be 52.5 (midpoint)
+    // From a0 at screen Y=50, curswantY should be 50.5 (head midpoint)
     const curswantY = getCardMidY(registry.getCard(0, 0).layout);
-    expect(curswantY).toBe(52.5);
+    expect(curswantY).toBe(50.5);
 
     // Find target in column 1: should find b0 (whose box [50,55) contains 52.5)
     const targetIdx = registry.findCardAtYVisual(1, curswantY);
@@ -263,6 +266,7 @@ describe("Visual navigation: scroll offset handling", () => {
       cardWidth: 40,
       cardHeight: 5,
     });
+    registry.updateCardHead(0, 0, 80, 1);
 
     // Simulate column 1: card appears at screen Y=80
     registry.registerCard(1, 0, "b-at-80", {
@@ -271,12 +275,14 @@ describe("Visual navigation: scroll offset handling", () => {
       cardWidth: 40,
       cardHeight: 5,
     });
+    registry.updateCardHead(1, 0, 80, 1);
     registry.registerCard(1, 1, "b-at-90", {
       x: 40,
       y: 90,
       cardWidth: 40,
       cardHeight: 5,
     });
+    registry.updateCardHead(1, 1, 90, 1);
 
     // Navigation from a-scrolled should find b-at-80
     const curswantY = getCardMidY(registry.getCard(0, 0).layout);
@@ -319,7 +325,7 @@ describe("curswantY sticky behavior for h/l sequences", () => {
     // First h/l: from a0, set curswantY
     const curswantY = getCardMidY(registry.getCard(0, 0).layout);
     registry.setStickyY(curswantY);
-    expect(curswantY).toBe(11.5); // y=10 + height=3/2
+    expect(curswantY).toBe(10.5); // y=10 + headHeight=1/2
 
     // First move: col 0 → col 1
     // curswantY=11.5 intersects b1's box [10, 13)
@@ -472,7 +478,7 @@ describe("Head position for visual targeting", () => {
     expect(curswantY).not.toBe(20);
   });
 
-  it("falls back to card midpoint when head not measured", () => {
+  it("throws when head not measured (programming error)", () => {
     registry.registerCard(0, 0, "card", {
       x: 0,
       y: 10,
@@ -480,13 +486,12 @@ describe("Head position for visual targeting", () => {
       cardHeight: 20,
     });
 
-    // No updateCardHead called
+    // No updateCardHead called - this is a programming error
 
     const layout = registry.getCard(0, 0).layout;
-    const curswantY = getCardMidY(layout);
-
-    // Card midpoint = 10 + 20/2 = 20
-    expect(curswantY).toBe(20);
+    expect(() => getCardMidY(layout)).toThrow(
+      "Head position not registered",
+    );
   });
 });
 
@@ -664,7 +669,7 @@ describe("handleCursorMove h/l navigation algorithm", () => {
 
     // First move: col 0 → col 1
     const result1 = simulateHLNavigation(registry, 0, 0, "right", columns);
-    expect(result1.curswantY).toBe(11.5); // a0 midpoint
+    expect(result1.curswantY).toBe(10.5); // a0 head midpoint
 
     // Second move: col 1 → col 2 (use same curswantY)
     const result2 = simulateHLNavigation(
@@ -676,8 +681,8 @@ describe("handleCursorMove h/l navigation algorithm", () => {
     );
 
     // curswantY should be preserved
-    expect(result2.curswantY).toBe(11.5);
-    // c1 at y=10 is closest to curswantY=11.5
+    expect(result2.curswantY).toBe(10.5);
+    // c1 at y=10 is closest to curswantY=10.5
     expect(result2.targetCardIndex).toBe(1);
   });
 });
