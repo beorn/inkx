@@ -157,35 +157,6 @@ export type NodeDirection =
   | "first"
   | "last";
 
-// ===== View Level Configuration =====
-
-/**
- * How views interpret tree levels.
- */
-export interface ViewLevelConfig {
-  /** Which depth level represents horizontal grouping */
-  columnLevel: number;
-  /** Which depth level represents vertical items */
-  itemLevel: number;
-  /** Maximum depth to render inline */
-  maxInlineDepth: number;
-  /** Whether to flatten all levels with indentation */
-  flattenAll: boolean;
-}
-
-/** Preset configurations for view modes */
-export const VIEW_LEVEL_PRESETS: Record<ViewMode, ViewLevelConfig> = {
-  cards: { columnLevel: 0, itemLevel: 1, maxInlineDepth: 1, flattenAll: false },
-  list: { columnLevel: 0, itemLevel: 1, maxInlineDepth: 99, flattenAll: true },
-  columns: {
-    columnLevel: 0,
-    itemLevel: 1,
-    maxInlineDepth: 2,
-    flattenAll: false,
-  },
-  tabs: { columnLevel: 0, itemLevel: 1, maxInlineDepth: 1, flattenAll: false },
-};
-
 // ===== ViewModel Types =====
 
 /**

@@ -23,11 +23,9 @@ export type {
   TPath,
   ViewMode,
   TaskStatus,
-  ViewLevelConfig,
   BoardViewModel,
   NodeDirection,
 } from "./board-types.ts";
-export { VIEW_LEVEL_PRESETS } from "./board-types.ts";
 
 // ===== Tree Actions (re-exported for convenience) =====
 export type { TAction } from "@km/tree";
