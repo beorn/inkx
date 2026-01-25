@@ -61,8 +61,6 @@ import {
   simplifiedBoardReducer,
   createSimplifiedBoardState,
   type TransitionalBoardAction,
-  type NodeMap,
-  type TNode,
 } from "@km/board";
 import { useColumns } from "../hooks/use-columns.ts";
 import { useCursorPosition } from "../hooks/use-cursor-position.ts";
@@ -492,25 +490,6 @@ export function Board({
     [columns, cursorPosition],
   );
 
-  // Stub nodeMap for TUI context compatibility
-  // In the new architecture, vault provides O(1) lookup via getNode(id)
-  // TODO: Remove nodeMap from TUIContext once all consumers use vault directly
-  const nodeMap = useMemo(
-    (): NodeMap => ({
-      get: (id: string) => {
-        const node = vault.getNode(id);
-        if (!node) throw new Error(`Node not found: ${id}`);
-        return node as unknown as TNode;
-      },
-      getOrNull: (id: string) => vault.getNode(id) as unknown as TNode | null,
-      getEntry: () => null,
-      has: (id: string) => vault.getNode(id) !== null,
-      keys: () => [] as string[],
-      size: vault.stats.nodeCount,
-    }),
-    [vault.stats.nodeCount],
-  );
-
   // Derive selection level from cursor position
   const derivedSelectionLevel = cursorPosition.selectionLevel;
 
@@ -570,7 +549,6 @@ export function Board({
     boardState,
     ui,
     layout: columnsLayout,
-    nodeMap,
     positionRegistry: layoutRegistry,
     dispatch,
     dispatchBoard: transitionalDispatch,

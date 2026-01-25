@@ -9,11 +9,7 @@
 
 import type { KNode } from "@km/core";
 import type { Vault } from "./vault-context.tsx";
-import type {
-  SimplifiedBoardState,
-  TransitionalBoardAction,
-  NodeMap,
-} from "@km/board";
+import type { SimplifiedBoardState, TransitionalBoardAction } from "@km/board";
 import type { BoardState, CardState, ColumnState } from "./types.ts";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";
@@ -54,8 +50,6 @@ export interface TUIContext {
   card: CardState | undefined;
   /** Currently selected node */
   selectedNode: KNode | undefined;
-  /** O(1) node lookup by ID */
-  nodeMap: NodeMap;
 
   // === Dispatchers ===
   /** Dispatch to UI reducer */
@@ -103,8 +97,6 @@ export interface BuildTUIContextParams {
   boardState: SimplifiedBoardState;
   ui: UIState;
   layout: ColumnsLayout;
-  /** Pre-computed nodeMap (use useMemo in caller to avoid O(n) rebuild per render) */
-  nodeMap: NodeMap;
   /** Card position registry for h/l navigation */
   positionRegistry: LayoutRegistry;
   dispatch: TUIContext["dispatch"];
@@ -115,13 +107,10 @@ export interface BuildTUIContextParams {
 
 /**
  * Build unified TUI context from component state.
- *
  * Call this once per render, then pass to all handlers.
- * The nodeMap should be created via useMemo to avoid O(n) rebuild on every render.
  */
 export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
-  const { vault, state, boardState, ui, layout, nodeMap, positionRegistry } =
-    params;
+  const { vault, state, boardState, ui, layout, positionRegistry } = params;
 
   // Derive current column and card from layout
   const column = layout.columns[layout.colIndex];
@@ -138,7 +127,6 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
     column,
     card,
     selectedNode,
-    nodeMap,
     dispatch: params.dispatch,
     dispatchBoard: params.dispatchBoard,
     exit: params.exit,
