@@ -516,15 +516,20 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       return;
     }
 
-    // Positions are registered by rendered Card components via useLayoutCallback.
-    // Check if we have positions available for visual navigation.
+    // INVARIANT: All visible columns MUST have their card positions registered.
+    // Card components register positions via useScreenRectCallback on render.
+    // If positions are missing, it's a programming error - either:
+    // 1. Columns are being virtualized incorrectly (not all visible columns rendered)
+    // 2. Position registration is broken (useScreenRectCallback not called)
+    // 3. Registry was cleared unexpectedly
+    //
+    // We throw here to catch these bugs early rather than silently degrading UX.
     const hasCurrentPositions = positionRegistry.hasCardsInColumn(
       state.colIndex,
     );
     const hasTargetPositions =
       positionRegistry.hasCardsInColumn(targetColIndex);
 
-    // Debug: always show registry state on h/l
     debug(
       "h/l nav: curCol=%d hasCur=%s, targetCol=%d hasTgt=%s",
       state.colIndex,
@@ -532,73 +537,37 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       targetColIndex,
       hasTargetPositions,
     );
-    debug("registry dump:\n%s", positionRegistry.dump());
 
-    if (!hasCurrentPositions || !hasTargetPositions) {
-      // Positions not yet registered (target column hasn't been rendered).
-      // Use proportional fallback: maintain relative position in column.
-      const currentCol = state.columns[state.colIndex];
-      const currentCount = currentCol?.cards.length ?? 1;
-      const targetCount = targetCol.cards.length;
-
-      // Calculate proportional index (e.g., 3rd of 6 cards → 50% → 2nd of 4 cards)
-      // This maintains visual position better than absolute index for uneven columns
-      const proportion =
-        currentCount > 1 ? state.cardIndex / (currentCount - 1) : 0;
-      const targetCardIndex = Math.round(proportion * (targetCount - 1));
-
-      debug(
-        "h/l proportional fallback: current=%d/%d (%.1f%%) -> target=%d/%d",
-        state.cardIndex,
-        currentCount,
-        proportion * 100,
-        targetCardIndex,
-        targetCount,
+    if (!hasCurrentPositions) {
+      throw new Error(
+        `[km:board] h/l navigation: current column ${state.colIndex} has no registered positions. ` +
+          `This is a programming error - all rendered columns must register card positions.\n` +
+          `Registry dump:\n${positionRegistry.dump()}`,
       );
+    }
 
-      dispatchBoard({
-        type: "NAV_TO_PATH",
-        path: [targetColIndex, Math.max(0, targetCardIndex)],
-      });
-      return;
+    if (!hasTargetPositions) {
+      throw new Error(
+        `[km:board] h/l navigation: target column ${targetColIndex} has no registered positions. ` +
+          `This is a programming error - all rendered columns must register card positions.\n` +
+          `Registry dump:\n${positionRegistry.dump()}`,
+      );
     }
 
     // Get or calculate curswantY (head midpoint of current card)
     let curswantY = positionRegistry.getStickyY();
     if (curswantY === null) {
       // First h/l move - get head midpoint of current card from measured position
-      const currentLayout = positionRegistry.getCardOptional(
+      const currentLayout = positionRegistry.getCard(
         state.colIndex,
         state.cardIndex,
       );
       debug(
-        "h/l: getting curswantY from current card col=%d idx=%d layout=%s",
+        "h/l: getting curswantY from current card col=%d idx=%d layout=%O",
         state.colIndex,
         state.cardIndex,
-        currentLayout ? JSON.stringify(currentLayout.layout) : "null",
+        currentLayout.layout,
       );
-      if (!currentLayout) {
-        // Current card not registered (virtualized out) - use proportional fallback
-        const currentCol = state.columns[state.colIndex];
-        const currentCount = currentCol?.cards.length ?? 1;
-        const targetCount = targetCol.cards.length;
-        const proportion =
-          currentCount > 1 ? state.cardIndex / (currentCount - 1) : 0;
-        const targetCardIndex = Math.round(proportion * (targetCount - 1));
-
-        debug(
-          "h/l: current card not registered, proportional fallback %d/%d -> %d/%d",
-          state.cardIndex,
-          currentCount,
-          targetCardIndex,
-          targetCount,
-        );
-        dispatchBoard({
-          type: "NAV_TO_PATH",
-          path: [targetColIndex, Math.max(0, targetCardIndex)],
-        });
-        return;
-      }
       curswantY = getCardMidY(currentLayout.layout);
       debug("h/l: computed curswantY=%d", curswantY);
       positionRegistry.setStickyY(curswantY);
