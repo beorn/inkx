@@ -223,34 +223,6 @@ export interface ExtendSelectRightAction {
   type: "EXTEND_SELECT_RIGHT";
 }
 
-export interface ShiftUpAction {
-  type: "SHIFT_UP";
-}
-
-export interface ShiftDownAction {
-  type: "SHIFT_DOWN";
-}
-
-export interface ShiftLeftAction {
-  type: "SHIFT_LEFT";
-}
-
-export interface ShiftRightAction {
-  type: "SHIFT_RIGHT";
-}
-
-export interface EnterMoveModeAction {
-  type: "ENTER_MOVE_MODE";
-}
-
-export interface ConfirmMoveAction {
-  type: "CONFIRM_MOVE";
-}
-
-export interface CancelMoveAction {
-  type: "CANCEL_MOVE";
-}
-
 export type NavigationAction =
   | CursorMoveAction
   | NavBackAction
@@ -262,14 +234,7 @@ export type NavigationAction =
   | ExtendSelectUpAction
   | ExtendSelectDownAction
   | ExtendSelectLeftAction
-  | ExtendSelectRightAction
-  | ShiftUpAction
-  | ShiftDownAction
-  | ShiftLeftAction
-  | ShiftRightAction
-  | EnterMoveModeAction
-  | ConfirmMoveAction
-  | CancelMoveAction;
+  | ExtendSelectRightAction;
 
 // Combined action type that commands can return
 export type CommandAction =
