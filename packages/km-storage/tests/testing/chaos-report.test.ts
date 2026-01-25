@@ -358,7 +358,7 @@ describe.serial("integration with real vault", () => {
     const tasks = vault.getAllTasks()
     for (const task of tasks) {
       try {
-        vault.updateNode(task.id, { task_status: "done" })
+        vault.updateNode(getDb(), task.id, { task_status: "done" })
       } catch {
         // Expected for dropped mutations
       }

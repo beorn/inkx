@@ -44,7 +44,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes()
+      const nodes = store.getAllNodes(getDb())
       const task = nodes.find((n) => n.type === "task")
       expect(task).toBeDefined()
       expect(task?.content).toContain("[[project notes]]")
@@ -58,7 +58,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes()
+      const nodes = store.getAllNodes(getDb())
       const task = nodes.find((n) => n.type === "task")
       expect(task).toBeDefined()
       expect(task?.content).toContain("[[Real Target|Display Name]]")
@@ -72,7 +72,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes()
+      const nodes = store.getAllNodes(getDb())
       const task = nodes.find((n) => n.type === "task")
       expect(task).toBeDefined()
       expect(task?.content).toContain("[[other#section]]")
@@ -86,7 +86,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes()
+      const nodes = store.getAllNodes(getDb())
       const task = nodes.find((n) => n.type === "task")
       expect(task).toBeDefined()
       expect(task?.content).toContain("[[one]]")
@@ -132,7 +132,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes()
+      const nodes = store.getAllNodes(getDb())
 
       // Find the embedding node (the list item with ![[...]])
       const embedNode = nodes.find((n) =>
@@ -163,7 +163,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes()
+      const nodes = store.getAllNodes(getDb())
 
       // Find the embedding node
       const embedNode = nodes.find((n) =>
@@ -194,7 +194,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes()
+      const nodes = store.getAllNodes(getDb())
 
       // Find the embedding node
       const embedNode = nodes.find((n) =>
@@ -223,7 +223,7 @@ describe("Links and Backlinks", () => {
 
       using store = new MemoryStore(testDir)
       // File has sections as children, sections have tasks
-      const allNodes = store.getAllNodes()
+      const allNodes = store.getAllNodes(getDb())
       const tasks = allNodes.filter((n) => n.type === "task")
       expect(tasks.length).toBe(2)
 
@@ -242,13 +242,13 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes()
+      const nodes = store.getAllNodes(getDb())
       const task = nodes.find(
         (n) => n.type === "task" && n.content?.includes("Deep task"),
       )
       expect(task).toBeDefined()
 
-      const ancestors = store.getAncestors(task!.id)
+      const ancestors = store.getAncestors(getDb(), task!.id)
       expect(ancestors.length).toBeGreaterThan(0)
     })
   })

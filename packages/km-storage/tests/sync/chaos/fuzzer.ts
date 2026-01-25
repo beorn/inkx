@@ -17,7 +17,7 @@ import { CHAOS_SCENARIOS, NO_CHAOS } from "./scenarios.ts"
 import { combineScenarios } from "./scenario-transformer.ts"
 import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
-import { runWithKmDir, setDatabase } from "../../../src/emit.ts"
+import { runWithKmDir } from "../../../src/emit.ts"
 import { resetDb, closeDb, applyEvent, getAllNodes } from "../../../src/db.ts"
 import { runWithDb } from "../../../src/db-instance.ts"
 import { Database } from "bun:sqlite"
@@ -469,7 +469,6 @@ async function runSingleIteration(
     const violations: InvariantViolation[] = []
 
     try {
-      setDatabase({ applyEvent })
       resetDb()
 
       // Create files
@@ -655,7 +654,6 @@ async function runSingleIterationWithMockFs(
   // Use runWithDb for context-local database (parallel-safe)
   try {
     return await runWithDb(db, async () => {
-      setDatabase({ applyEvent })
 
       // Create files in mock filesystem
       for (const file of scenario.setup) {
@@ -858,7 +856,7 @@ export function generateBugReport(failure: FuzzFailure): SyncBugReport {
 
   // Get actual state (would need to be captured during test)
   const actualFiles = new Map<string, string>()
-  const nodes = getAllNodes()
+  const nodes = getAllNodes(getDb())
 
   // Build diff
   const missingInDb: string[] = []

@@ -19,7 +19,7 @@ describe("ChaosFakeVault", () => {
         nodes: [createNode({ id: "1" })],
       })
 
-      vault.updateNode("1", { content: "Updated" })
+      vault.updateNode(getDb(), "1", { content: "Updated" })
 
       const log = vault.getTransactionLog()
       expect(log).toHaveLength(1)
@@ -162,7 +162,7 @@ describe("ChaosFakeVault", () => {
 
       vault.simulateCorruption("1", "circular_parent")
 
-      const node = vault.getNode("1")
+      const node = vault.getNode(getDb(), "1")
       expect(node!.parent_id).toBe("1")
     })
   })
@@ -219,7 +219,7 @@ describe("ChaosFakeVault", () => {
 
       vault.simulatePartialWrite("1", ["content"])
 
-      const node = vault.getNode("1")
+      const node = vault.getNode(getDb(), "1")
       expect(node!.content).toBeUndefined()
     })
 
@@ -230,7 +230,7 @@ describe("ChaosFakeVault", () => {
 
       vault.simulateCorruption("1", "missing_parent")
 
-      const node = vault.getNode("1")
+      const node = vault.getNode(getDb(), "1")
       expect(node!.parent_id).toBe("nonexistent-parent-999")
     })
 
@@ -241,7 +241,7 @@ describe("ChaosFakeVault", () => {
 
       vault.simulateCorruption("1", "stale_hash")
 
-      const node = vault.getNode("1")
+      const node = vault.getNode(getDb(), "1")
       expect(node!.content).toBe("changed content")
       expect(node!.content_hash).toBe("stale-hash-that-doesnt-match")
     })
@@ -253,7 +253,7 @@ describe("ChaosFakeVault", () => {
 
       vault.simulateCorruption("1", "invalid_position")
 
-      const node = vault.getNode("1")
+      const node = vault.getNode(getDb(), "1")
       expect(node!.parent_idx).toBe(-1)
     })
   })
@@ -264,7 +264,7 @@ describe("ChaosFakeVault", () => {
         nodes: [createNode({ id: "1" })],
       })
 
-      vault.updateNode("1", { content: "Changed" })
+      vault.updateNode(getDb(), "1", { content: "Changed" })
       expect(vault.getTransactionLog()).toHaveLength(1)
 
       vault.reset()

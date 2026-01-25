@@ -12,7 +12,6 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { SyncManager } from "../../src/watch/sync.ts"
 import { getAllNodes, applyEvent, getDb } from "../../src/index.ts"
-import { setDatabase } from "../../src/emit.ts"
 import { withTestEnv } from "@km/storage"
 
 /**
@@ -87,7 +86,6 @@ describe("E2E Sync Safety", () => {
   describe("syncFromFs", () => {
     test("should import markdown files into database", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent })
         createTestVault(vaultDir)
 
         const manager = new SyncManager({
@@ -105,7 +103,7 @@ describe("E2E Sync Safety", () => {
         expect(result.processed).toBeGreaterThan(0)
 
         // Should have markdown file nodes
-        const nodes = getAllNodes()
+        const nodes = getAllNodes(getDb())
         const fileNodes = nodes.filter((n) => n.type === "file")
 
         // Should have exactly 2 markdown files (README.md and notes/daily.md)
@@ -115,7 +113,6 @@ describe("E2E Sync Safety", () => {
 
     test("should not modify non-markdown files during import", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent })
         createTestVault(vaultDir)
 
         const manager = new SyncManager({
@@ -139,7 +136,6 @@ describe("E2E Sync Safety", () => {
   describe("syncToFs", () => {
     test("should only write .md files to filesystem", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent })
         createTestVault(vaultDir)
 
         // First import from filesystem
@@ -174,7 +170,6 @@ describe("E2E Sync Safety", () => {
 
     test("should never write source code files", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent })
         createTestVault(vaultDir)
 
         const manager = new SyncManager({
@@ -207,7 +202,6 @@ describe("E2E Sync Safety", () => {
   describe("round-trip safety", () => {
     test("should preserve all non-markdown files through multiple sync cycles", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent })
         createTestVault(vaultDir)
 
         const manager = new SyncManager({

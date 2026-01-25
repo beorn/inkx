@@ -17,7 +17,7 @@ import type {
 } from "./types.ts"
 import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
-import { runWithKmDir, setDatabase } from "../../../src/emit.ts"
+import { runWithKmDir } from "../../../src/emit.ts"
 import { resetDb, closeDb, applyEvent } from "../../../src/db.ts"
 import {
   reconcileDirectory,
@@ -81,7 +81,6 @@ async function runChaosTestWithMockFs(
       // Create directories in mock filesystem
       mockFs.mkdirSync(vaultDir, { recursive: true })
 
-      setDatabase({ applyEvent })
       resetDb()
 
       // Create initial files in mock filesystem
@@ -225,7 +224,6 @@ async function runChaosTestWithRealFs(
     let chaosWatcher: ChaosWatcher | null = null
 
     try {
-      setDatabase({ applyEvent })
       resetDb()
 
       for (const file of config.setup) {

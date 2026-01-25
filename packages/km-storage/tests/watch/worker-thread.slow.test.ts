@@ -94,7 +94,7 @@ describe.serial("Worker Thread Integration", () => {
     ])
 
     // Verify the change was synced (need runWithKmDir for getAllNodes)
-    const nodes = runWithKmDir(KM_DIR, () => getAllNodes())
+    const nodes = runWithKmDir(KM_DIR, () => getAllNodes(getDb()))
     const task = nodes.find((n) => n.type === "task")
     expect(task).toBeDefined()
     expect(task!.task_status).toBe("done")

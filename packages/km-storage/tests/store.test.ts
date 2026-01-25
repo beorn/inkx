@@ -87,7 +87,7 @@ describe("MemoryStore", () => {
     const rootDir = createMemoryStoreTestVault()
     using store = new MemoryStore(rootDir)
 
-    const allNodes = store.getAllNodes()
+    const allNodes = store.getAllNodes(getDb())
     expect(allNodes.length).toBeGreaterThan(0)
 
     // Should have files (3 .md + 3 non-md)
@@ -103,7 +103,7 @@ describe("MemoryStore", () => {
     const rootDir = createMemoryStoreTestVault()
     using store = new MemoryStore(rootDir)
 
-    const allNodes = store.getAllNodes()
+    const allNodes = store.getAllNodes(getDb())
     const fileNames = allNodes
       .filter((n) => n.type === "file")
       .map((n) => n.content)
@@ -161,7 +161,7 @@ describe("MemoryStore", () => {
     const rootDir = createMemoryStoreTestVault()
     using store = new MemoryStore(rootDir)
 
-    const sections = store.getAllNodes().filter((n) => n.type === "section")
+    const sections = store.getAllNodes(getDb()).filter((n) => n.type === "section")
     expect(sections.length).toBeGreaterThan(0)
 
     // notes.md has "Notes" (H1 merged into file), "Section One", "Section Two" (H2s)
@@ -189,14 +189,14 @@ describe("MemoryStore", () => {
     using store = new MemoryStore(rootDir)
 
     // Get root children
-    const rootChildren = store.getChildren(null)
+    const rootChildren = store.getChildren(getDb(), null)
     expect(rootChildren.length).toBe(4) // tasks.md, notes.md, projects/, inbox/
 
     // Get children of projects folder
     const projectsFolder = rootChildren.find((n) => n.content === "projects")
     expect(projectsFolder).toBeDefined()
 
-    const projectChildren = store.getChildren(projectsFolder!.id)
+    const projectChildren = store.getChildren(getDb(), projectsFolder!.id)
     expect(projectChildren.length).toBe(1) // project-a.md
   })
 
@@ -209,7 +209,7 @@ describe("MemoryStore", () => {
     const nestedTask = tasks.find((t) => t.content === "Nested task")
     expect(nestedTask).toBeDefined()
 
-    const ancestors = store.getAncestors(nestedTask!.id)
+    const ancestors = store.getAncestors(getDb(), nestedTask!.id)
     expect(ancestors.length).toBeGreaterThan(0)
 
     // Should have section and file as ancestors
@@ -222,13 +222,13 @@ describe("MemoryStore", () => {
     const rootDir = createMemoryStoreTestVault()
     using store = new MemoryStore(rootDir)
 
-    const todoTasks = store.getTasksByStatus("todo")
+    const todoTasks = store.getTasksByStatus(getDb(), "todo")
     expect(todoTasks.length).toBe(3) // Open task, Nested task, Project task
 
-    const doneTasks = store.getTasksByStatus("done")
+    const doneTasks = store.getTasksByStatus(getDb(), "done")
     expect(doneTasks.length).toBe(1)
 
-    const multiStatus = store.getTasksByStatus(["todo", "wip"])
+    const multiStatus = store.getTasksByStatus(getDb(), ["todo", "wip"])
     expect(multiStatus.length).toBe(4) // 3 todo + 1 wip
   })
 
@@ -242,13 +242,13 @@ describe("MemoryStore", () => {
     expect(openTask).toBeDefined()
 
     // Update to done
-    store.updateNode(openTask!.id, {
+    store.updateNode(getDb(), openTask!.id, {
       task_status: "done",
       task_mark: "x",
     })
 
     // Verify in-memory update
-    const updatedTask = store.getNode(openTask!.id)
+    const updatedTask = store.getNode(getDb(), openTask!.id)
     expect(updatedTask!.task_status).toBe("done")
 
     // Verify write-through to file

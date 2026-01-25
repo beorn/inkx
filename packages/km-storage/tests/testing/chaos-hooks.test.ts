@@ -52,9 +52,9 @@ describe.serial("createChaosHooks", () => {
     expect(tasks.length).toBe(3)
 
     // Update should succeed
-    vault.updateNode(tasks[0]!.id, { task_status: "done" })
+    vault.updateNode(getDb(), tasks[0]!.id, { task_status: "done" })
 
-    const updated = vault.getNode(tasks[0]!.id)
+    const updated = vault.getNode(getDb(), tasks[0]!.id)
     expect(updated!.task_status).toBe("done")
 
     // No chaos events
@@ -89,11 +89,11 @@ describe.serial("createChaosHooks", () => {
 
     // Update should be dropped
     expect(() =>
-      vault.updateNode(tasks[0]!.id, { task_status: "done" }),
+      vault.updateNode(getDb(), tasks[0]!.id, { task_status: "done" }),
     ).toThrow(/Mutation cancelled by hook/)
 
     // Verify mutation was dropped
-    const unchanged = vault.getNode(tasks[0]!.id)
+    const unchanged = vault.getNode(getDb(), tasks[0]!.id)
     expect(unchanged!.task_status).toBe("todo")
 
     // Check chaos events
@@ -129,7 +129,7 @@ describe.serial("createChaosHooks", () => {
     const task = tasks[0]!
 
     // Update will be corrupted
-    vault.updateNode(task.id, { task_status: "done" })
+    vault.updateNode(getDb(), task.id, { task_status: "done" })
 
     // Check that corruption event was logged
     expect(events).toHaveLength(1)
@@ -161,11 +161,11 @@ describe.serial("createChaosHooks", () => {
 
     // Update should be dropped
     expect(() =>
-      vault.updateNode(tasks[0]!.id, { task_status: "done" }),
+      vault.updateNode(getDb(), tasks[0]!.id, { task_status: "done" }),
     ).toThrow(/Mutation cancelled by hook/)
 
     // Add should succeed
-    const rootChildren = vault.getChildren(null)
+    const rootChildren = vault.getChildren(getDb(), null)
     const fileNode = rootChildren[0]!
     const newId = vault.addNode(fileNode.id, {
       type: "task",
@@ -196,7 +196,7 @@ describe.serial("createChaosHooks", () => {
     // With chaos enabled, update should fail
     expect(hooks.isEnabled()).toBe(true)
     expect(() =>
-      vault.updateNode(tasks[0]!.id, { task_status: "done" }),
+      vault.updateNode(getDb(), tasks[0]!.id, { task_status: "done" }),
     ).toThrow(/Mutation cancelled by hook/)
 
     // Disable chaos
@@ -204,8 +204,8 @@ describe.serial("createChaosHooks", () => {
     expect(hooks.isEnabled()).toBe(false)
 
     // Now update should succeed
-    vault.updateNode(tasks[1]!.id, { task_status: "done" })
-    const updated = vault.getNode(tasks[1]!.id)
+    vault.updateNode(getDb(), tasks[1]!.id, { task_status: "done" })
+    const updated = vault.getNode(getDb(), tasks[1]!.id)
     expect(updated!.task_status).toBe("done")
 
     // Re-enable chaos
@@ -214,7 +214,7 @@ describe.serial("createChaosHooks", () => {
 
     // Now update should fail again
     expect(() =>
-      vault.updateNode(tasks[2]!.id, { task_status: "done" }),
+      vault.updateNode(getDb(), tasks[2]!.id, { task_status: "done" }),
     ).toThrow(/Mutation cancelled by hook/)
   })
 
@@ -243,7 +243,7 @@ describe.serial("createChaosHooks", () => {
     // Try multiple mutations
     for (const task of tasks) {
       try {
-        vault.updateNode(task.id, { task_status: "done" })
+        vault.updateNode(getDb(), task.id, { task_status: "done" })
       } catch {
         // Expected for dropped mutations
       }
@@ -274,7 +274,7 @@ describe.serial("createChaosHooks", () => {
     const tasks = vault.getAllTasks()
 
     try {
-      vault.updateNode(tasks[0]!.id, { task_status: "done" })
+      vault.updateNode(getDb(), tasks[0]!.id, { task_status: "done" })
     } catch {
       // Expected
     }
@@ -312,7 +312,7 @@ describe.serial("createChaosHooks", () => {
       const tasks = vault.getAllTasks()
       for (const task of tasks) {
         try {
-          vault.updateNode(task.id, { task_status: "done" })
+          vault.updateNode(getDb(), task.id, { task_status: "done" })
           results.push("success")
         } catch {
           results.push("dropped")
