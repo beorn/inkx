@@ -26,7 +26,11 @@ import type { KNode, TaskStatus } from "@km/core"
 import { setKmDir, emitNodeMoved } from "./emit.ts"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA, MIGRATIONS } from "./schema.ts"
-import { addLink, findChildByContent, findFileByName, setDb } from "./db.ts"
+import { addLink, setDb } from "./db.ts"
+import {
+  findChildByContent,
+  findFileByName,
+} from "./db-queries/wikilink-resolver.ts"
 import { rowToNode } from "./db-queries/index.ts"
 
 /**
@@ -769,11 +773,11 @@ export class MemoryStore extends BaseStore {
 
     for (const { nodeId, link, relationship } of this.pendingWikilinks) {
       // Try to find target file by name
-      const fileNode = findFileByName(link.target)
+      const fileNode = findFileByName(this.db, link.target)
       // If there's a section reference, try to find the specific child node
       let targetNode = fileNode
       if (fileNode && link.section) {
-        const childNode = findChildByContent(fileNode.id, link.section)
+        const childNode = findChildByContent(this.db, fileNode.id, link.section)
         if (childNode) {
           targetNode = childNode
         }

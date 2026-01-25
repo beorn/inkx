@@ -101,7 +101,7 @@ describe("Database Rules", () => {
 `,
           )
         },
-        () => {
+        ({ store }) => {
           const nodesWithRules = getNodesWithRules(store.getDatabase())
           expect(nodesWithRules.length).toBe(0)
         },
@@ -124,7 +124,7 @@ describe("Database Rules", () => {
 `,
           )
         },
-        () => {
+        ({ store }) => {
           const addRuleNodes = getNodesWithRule(store.getDatabase(), "add")
           expect(addRuleNodes.length).toBe(1)
           expect(addRuleNodes[0]?.rules?.add).toBe("@issue status:todo")

@@ -29,26 +29,28 @@ import {
   type DeferredFile,
   type StepYield,
 } from "./vault-loader.ts"
+import { getDb, closeDb, type Link } from "./db.ts"
 import {
   getNode as dbGetNode,
   getChildren as dbGetChildren,
+  getSubtree as dbGetSubtree,
+  getAncestors as dbGetAncestors,
   getAllTasks as dbGetAllTasks,
   getTasksByStatus as dbGetTasksByStatus,
-  search as dbSearch,
+  getLinksTo as dbGetLinksTo,
+  resolveNode as dbResolveNode,
+} from "./db-queries/index.ts"
+import { search as dbSearch } from "./db-queries/full-text-search.ts"
+import {
+  getOutgoingLinks as dbGetOutgoingLinks,
+  getBacklinks as dbGetBacklinks,
+} from "./db-links.ts"
+import {
   updateNode as dbUpdateNode,
   moveNode as dbMoveNode,
   deleteNode as dbDeleteNode,
   addNode as dbAddNode,
-  getSubtree as dbGetSubtree,
-  getAncestors as dbGetAncestors,
-  getLinksTo as dbGetLinksTo,
-  getOutgoingLinks as dbGetOutgoingLinks,
-  getBacklinks as dbGetBacklinks,
-  resolveNode as dbResolveNode,
-  getDb,
-  closeDb,
-  type Link,
-} from "./db.ts"
+} from "./db-ops.ts"
 import { parseQuery, executeQuery } from "./query.ts"
 import { createWatcher, type Watcher } from "./watcher.ts"
 import { getKmDir } from "./emit.ts"
