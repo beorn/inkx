@@ -11,29 +11,11 @@ import type {
   ContactPhone,
   ContactAddress,
 } from "./types.ts"
-
-// Type validators - ensure parsed values are valid union members
-const emailTypes = ["home", "work", "other"] as const
-const phoneTypes = ["home", "work", "cell", "fax", "other"] as const
-const addressTypes = ["home", "work", "other"] as const
-
-function parseEmailType(v: string | undefined): ContactEmail["type"] {
-  return v && emailTypes.includes(v as (typeof emailTypes)[number])
-    ? (v as ContactEmail["type"])
-    : undefined
-}
-
-function parsePhoneType(v: string | undefined): ContactPhone["type"] {
-  return v && phoneTypes.includes(v as (typeof phoneTypes)[number])
-    ? (v as ContactPhone["type"])
-    : undefined
-}
-
-function parseAddressType(v: string | undefined): ContactAddress["type"] {
-  return v && addressTypes.includes(v as (typeof addressTypes)[number])
-    ? (v as ContactAddress["type"])
-    : undefined
-}
+import {
+  parseEmailType,
+  parsePhoneType,
+  parseAddressType,
+} from "./constants.ts"
 
 /**
  * Parse vCard data to Contact

@@ -8,7 +8,8 @@
   "dependencies": {
     "@km/core": "workspace:*",
     "@km/storage": "workspace:*",
-    "ulid": "^2.3.0"
+    "ulid": "^2.3.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bun": "latest"

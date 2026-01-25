@@ -7,7 +7,7 @@
 import { existsSync, writeFileSync, mkdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Issue } from "./types.ts"
-import type { BeadsIssue } from "./migrate.ts"
+import { parseBeadsIssuesJsonl, type BeadsIssue } from "./schema.ts"
 
 /**
  * Convert km status to beads status
@@ -105,12 +105,18 @@ export function exportToBeads(
     mkdirSync(options.beadsDir, { recursive: true })
   }
 
-  // Read existing issues if appending
+  // Read existing issues if appending (with validation)
   let existingIssues: BeadsIssue[] = []
   if (options.mode === "append" && existsSync(result.outputPath)) {
     const content = readFileSync(result.outputPath, "utf-8")
-    const lines = content.trim().split("\n").filter(Boolean)
-    existingIssues = lines.map((line) => JSON.parse(line) as BeadsIssue)
+    const { issues, errors } = parseBeadsIssuesJsonl(content)
+    existingIssues = issues
+    // Log validation errors but continue - allows partial recovery
+    if (errors.length > 0) {
+      console.warn(
+        `Skipped ${errors.length} malformed lines in existing issues`,
+      )
+    }
   }
 
   // Convert issues to beads format

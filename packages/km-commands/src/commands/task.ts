@@ -22,7 +22,7 @@ function getNextStatus(current: TaskStatus | null | undefined): TaskStatus {
 // Note: Task commands need special handling as they modify storage
 // They return a marker action that the dispatcher will convert to storage mutations
 
-export const cycleTaskStatus: CommandDef = {
+export const cycleTaskStatus = {
   id: "cycle_task_status",
   name: "Cycle Status",
   description: "Cycle through task statuses",
@@ -40,9 +40,9 @@ export const cycleTaskStatus: CommandDef = {
       status: newStatus,
     } satisfies TaskSetStatusAction
   },
-}
+} satisfies CommandDef
 
-export const toggleTaskDone: CommandDef = {
+export const toggleTaskDone = {
   id: "toggle_task_done",
   name: "Toggle Done",
   description: "Toggle task between done and todo",
@@ -58,9 +58,9 @@ export const toggleTaskDone: CommandDef = {
       status: newStatus,
     } satisfies TaskSetStatusAction
   },
-}
+} satisfies CommandDef
 
-export const setStatusTodo: CommandDef = {
+export const setStatusTodo = {
   id: "set_status_todo",
   name: "Set Todo",
   description: "Set task status to todo",
@@ -73,9 +73,9 @@ export const setStatusTodo: CommandDef = {
       status: "todo",
     } satisfies TaskSetStatusAction
   },
-}
+} satisfies CommandDef
 
-export const setStatusWip: CommandDef = {
+export const setStatusWip = {
   id: "set_status_wip",
   name: "Set In Progress",
   description: "Set task status to work in progress",
@@ -88,9 +88,9 @@ export const setStatusWip: CommandDef = {
       status: "wip",
     } satisfies TaskSetStatusAction
   },
-}
+} satisfies CommandDef
 
-export const setStatusBlocked: CommandDef = {
+export const setStatusBlocked = {
   id: "set_status_blocked",
   name: "Set Blocked",
   description: "Set task status to blocked",
@@ -103,9 +103,9 @@ export const setStatusBlocked: CommandDef = {
       status: "blocked",
     } satisfies TaskSetStatusAction
   },
-}
+} satisfies CommandDef
 
-export const setStatusDone: CommandDef = {
+export const setStatusDone = {
   id: "set_status_done",
   name: "Set Done",
   description: "Mark task as done",
@@ -118,9 +118,9 @@ export const setStatusDone: CommandDef = {
       status: "done",
     } satisfies TaskSetStatusAction
   },
-}
+} satisfies CommandDef
 
-export const setStatusDropped: CommandDef = {
+export const setStatusDropped = {
   id: "set_status_dropped",
   name: "Set Dropped",
   description: "Mark task as dropped/cancelled",
@@ -133,7 +133,7 @@ export const setStatusDropped: CommandDef = {
       status: "dropped",
     } satisfies TaskSetStatusAction
   },
-}
+} satisfies CommandDef
 
 export const taskCommands: CommandDef[] = [
   cycleTaskStatus,

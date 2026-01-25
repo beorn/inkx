@@ -7,29 +7,9 @@
 
 import createDebug from "debug"
 import type { CalendarEvent, Attendee } from "./types.ts"
+import { parseEventStatus, parseAttendeeStatus } from "./constants.ts"
 
 const debug = createDebug("km:caldav:ical")
-
-// Type validators - ensure parsed values are valid union members
-const eventStatuses = ["TENTATIVE", "CONFIRMED", "CANCELLED"] as const
-const attendeeStatuses = [
-  "NEEDS-ACTION",
-  "ACCEPTED",
-  "DECLINED",
-  "TENTATIVE",
-] as const
-
-function parseEventStatus(v: string | undefined): CalendarEvent["status"] {
-  return v && eventStatuses.includes(v as (typeof eventStatuses)[number])
-    ? (v as CalendarEvent["status"])
-    : undefined
-}
-
-function parseAttendeeStatus(v: string | undefined): Attendee["status"] {
-  return v && attendeeStatuses.includes(v as (typeof attendeeStatuses)[number])
-    ? (v as Attendee["status"])
-    : undefined
-}
 
 /**
  * Parse iCalendar data to CalendarEvent

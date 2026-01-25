@@ -6,28 +6,10 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs"
 import { join, dirname } from "node:path"
+import { parseBeadsIssuesJsonl, type BeadsIssue } from "./schema.ts"
 
-/** Raw beads issue format from issues.jsonl */
-export interface BeadsIssue {
-  id: string
-  title: string
-  description?: string
-  status: "open" | "in_progress" | "closed" | "blocked"
-  priority: number
-  issue_type?: string
-  created_at: string
-  created_by?: string
-  updated_at: string
-  closed_at?: string
-  close_reason?: string
-  // Dependencies
-  blocked_by?: string[]
-  blocks?: string[]
-  parent_id?: string
-  // Metadata
-  labels?: string[]
-  assignee?: string
-}
+// Re-export for backwards compatibility
+export type { BeadsIssue } from "./schema.ts"
 
 /**
  * Find the .beads directory starting from a path
@@ -47,7 +29,7 @@ export function findBeadsDir(startFrom?: string): string | null {
 }
 
 /**
- * Read issues from .beads/issues.jsonl
+ * Read issues from .beads/issues.jsonl with validation
  */
 export function readBeadsIssues(beadsDir: string): BeadsIssue[] {
   const issuesPath = join(beadsDir, "issues.jsonl")
@@ -56,9 +38,17 @@ export function readBeadsIssues(beadsDir: string): BeadsIssue[] {
   }
 
   const content = readFileSync(issuesPath, "utf-8")
-  const lines = content.trim().split("\n").filter(Boolean)
+  const { issues, errors } = parseBeadsIssuesJsonl(content)
 
-  return lines.map((line) => JSON.parse(line) as BeadsIssue)
+  // Log validation errors but don't fail - allows partial recovery
+  if (errors.length > 0) {
+    console.warn(
+      `Skipped ${errors.length} malformed lines in ${issuesPath}:`,
+      errors.map((e) => `line ${e.line}: ${e.error}`).join(", "),
+    )
+  }
+
+  return issues
 }
 
 /**

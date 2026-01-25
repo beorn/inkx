@@ -1,6 +1,6 @@
 import type { CommandDef } from "../types.ts"
 
-export const selectToggle: CommandDef = {
+export const selectToggle = {
   id: "select_toggle",
   name: "Toggle Selection",
   description: "Toggle selection on current node",
@@ -10,9 +10,9 @@ export const selectToggle: CommandDef = {
     if (!ctx.currentNodeId) return null
     return { type: "SELECT_NODE_TOGGLE", nodeId: ctx.currentNodeId }
   },
-}
+} satisfies CommandDef
 
-export const selectAdd: CommandDef = {
+export const selectAdd = {
   id: "select_add",
   name: "Add to Selection",
   description: "Add current node to selection",
@@ -21,9 +21,9 @@ export const selectAdd: CommandDef = {
     if (!ctx.currentNodeId) return null
     return { type: "SELECT_NODE_ADD", nodeId: ctx.currentNodeId }
   },
-}
+} satisfies CommandDef
 
-export const selectRemove: CommandDef = {
+export const selectRemove = {
   id: "select_remove",
   name: "Remove from Selection",
   description: "Remove current node from selection",
@@ -32,81 +32,81 @@ export const selectRemove: CommandDef = {
     if (!ctx.currentNodeId) return null
     return { type: "SELECT_NODE_REMOVE", nodeId: ctx.currentNodeId }
   },
-}
+} satisfies CommandDef
 
-export const selectAllSiblings: CommandDef = {
+export const selectAllSiblings = {
   id: "select_all_siblings",
   name: "Select All Siblings",
   description: "Select all siblings of current node",
   category: "Selection",
   execute: () => ({ type: "SELECT_ALL_SIBLINGS" }),
-}
+} satisfies CommandDef
 
-export const selectAll: CommandDef = {
+export const selectAll = {
   id: "select_all",
   name: "Select All",
   description: "Select all visible nodes",
   category: "Selection",
   shortcuts: ["Ctrl+A"],
   execute: () => ({ type: "SELECT_ALL" }),
-}
+} satisfies CommandDef
 
 // Progressive select all (TUI's Shift+A behavior)
 // First press: select all in column, second: select all in board
-export const selectAllProgressive: CommandDef = {
+export const selectAllProgressive = {
   id: "select_all_progressive",
   name: "Progressive Select All",
   description: "Select all in column, then all in board",
   category: "Selection",
   shortcuts: ["A"],
   execute: () => ({ type: "SELECT_ALL_PROGRESSIVE" }),
-}
+} satisfies CommandDef
 
-export const clearSelection: CommandDef = {
+export const clearSelection = {
   id: "clear_selection",
   name: "Clear Selection",
   description: "Clear all selections",
   category: "Selection",
   shortcuts: ["Escape"],
   execute: () => ({ type: "CLEAR_SELECTION" }),
-}
+} satisfies CommandDef
 
 // Extend selection (shift+direction)
-export const extendSelectUp: CommandDef = {
+export const extendSelectUp = {
   id: "extend_select_up",
   name: "Extend Selection Up",
   description: "Extend selection upward",
   category: "Selection",
   shortcuts: ["Shift+ArrowUp"],
   execute: () => ({ type: "EXTEND_SELECT_UP" }),
-}
+} satisfies CommandDef
 
-export const extendSelectDown: CommandDef = {
+export const extendSelectDown = {
   id: "extend_select_down",
   name: "Extend Selection Down",
   description: "Extend selection downward",
   category: "Selection",
   shortcuts: ["Shift+ArrowDown"],
   execute: () => ({ type: "EXTEND_SELECT_DOWN" }),
-}
+} satisfies CommandDef
 
-export const extendSelectLeft: CommandDef = {
+export const extendSelectLeft = {
   id: "extend_select_left",
   name: "Extend Selection Left",
   description: "Extend selection leftward",
   category: "Selection",
   shortcuts: ["Shift+ArrowLeft"],
   execute: () => ({ type: "EXTEND_SELECT_LEFT" }),
-}
+} satisfies CommandDef
 
-export const extendSelectRight: CommandDef = {
+export const extendSelectRight = {
   id: "extend_select_right",
   name: "Extend Selection Right",
   description: "Extend selection rightward",
   category: "Selection",
   shortcuts: ["Shift+ArrowRight"],
   execute: () => ({ type: "EXTEND_SELECT_RIGHT" }),
-}
+} satisfies CommandDef
 
 export const selectionCommands: CommandDef[] = [
   selectToggle,

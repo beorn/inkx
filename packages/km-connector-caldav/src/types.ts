@@ -2,6 +2,14 @@
  * CalDAV/CardDAV Types
  */
 
+import type {
+  EventStatus,
+  AttendeeStatus,
+  EmailType,
+  PhoneType,
+  AddressType,
+} from "./constants.ts"
+
 /**
  * CalDAV server configuration
  */
@@ -61,7 +69,7 @@ export interface CalendarEvent {
   /** Organizer */
   organizer?: Organizer
   /** Status (TENTATIVE, CONFIRMED, CANCELLED) */
-  status?: "TENTATIVE" | "CONFIRMED" | "CANCELLED"
+  status?: EventStatus
   /** ETag for change detection */
   etag?: string
   /** Raw iCalendar data */
@@ -74,7 +82,7 @@ export interface CalendarEvent {
 export interface Attendee {
   email: string
   name?: string
-  status?: "NEEDS-ACTION" | "ACCEPTED" | "DECLINED" | "TENTATIVE"
+  status?: AttendeeStatus
 }
 
 /**
@@ -127,7 +135,7 @@ export interface Contact {
  * Contact email
  */
 export interface ContactEmail {
-  type?: "home" | "work" | "other"
+  type?: EmailType
   value: string
   primary?: boolean
 }
@@ -136,7 +144,7 @@ export interface ContactEmail {
  * Contact phone
  */
 export interface ContactPhone {
-  type?: "home" | "work" | "cell" | "fax" | "other"
+  type?: PhoneType
   value: string
   primary?: boolean
 }
@@ -145,7 +153,7 @@ export interface ContactPhone {
  * Contact address
  */
 export interface ContactAddress {
-  type?: "home" | "work" | "other"
+  type?: AddressType
   street?: string
   city?: string
   region?: string
