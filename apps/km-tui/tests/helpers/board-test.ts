@@ -227,6 +227,33 @@ export function testEnv(
       },
     }),
     screenshot: () => result.lastFrameText() ?? "",
+    /** Check if status message is showing */
+    get hasStatus(): boolean {
+      const freshLocator = createLocator(result.getContainer())
+      const bottomBar = freshLocator.locator("#bottom-bar")
+      return bottomBar.count() > 0 && !!bottomBar.getAttribute("data-status")
+    },
+    /** Get current status message if visible, or null if no status */
+    getStatus: (): { level: string; message: string } | null => {
+      const freshLocator = createLocator(result.getContainer())
+      const bottomBar = freshLocator.locator("#bottom-bar")
+      if (bottomBar.count() === 0) {
+        return null
+      }
+      const level = bottomBar.getAttribute("data-status")
+      if (!level) {
+        return null
+      }
+      // Status message is in #status-message element within bottom bar
+      const statusEl = freshLocator.locator("#status-message")
+      if (statusEl.count() === 0) {
+        return null
+      }
+      const text = statusEl.textContent()
+      // Text includes icon (first char), extract message
+      const message = text.slice(2).trim() // Skip icon + space
+      return level && message ? { level, message } : null
+    },
     _result: result,
   }
   return { board }
@@ -407,6 +434,35 @@ class BoardTestImpl implements BoardTest {
   /** Whether bell was triggered (boundary hit) - checks for data-bell attribute */
   get bell(): boolean {
     return this.currentLocator.locator("[data-bell]").count() > 0
+  }
+
+  // --- Status Message (in BottomBar) ---
+
+  /** Get current status message if visible, or null if no status */
+  getStatus(): { level: string; message: string } | null {
+    const bottomBar = this.currentLocator.locator("#bottom-bar")
+    if (bottomBar.count() === 0) {
+      return null
+    }
+    const level = bottomBar.getAttribute("data-status")
+    if (!level) {
+      return null
+    }
+    // Status message is in #status-message element within bottom bar
+    const statusEl = this.currentLocator.locator("#status-message")
+    if (statusEl.count() === 0) {
+      return null
+    }
+    const text = statusEl.textContent()
+    // Text includes icon (first char), extract message
+    const message = text.slice(2).trim() // Skip icon + space
+    return level && message ? { level, message } : null
+  }
+
+  /** Check if status message is showing */
+  get hasStatus(): boolean {
+    const bottomBar = this.currentLocator.locator("#bottom-bar")
+    return bottomBar.count() > 0 && !!bottomBar.getAttribute("data-status")
   }
 
   // --- Actions ---

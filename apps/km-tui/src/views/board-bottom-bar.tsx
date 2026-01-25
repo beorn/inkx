@@ -72,19 +72,33 @@ export function BottomBar({
 
   // Build status parts (middle)
   const statusParts: string[] = []
-  if (ui.showHelp) statusParts.push("[?]")
-  if (ui.showProjectPicker) statusParts.push("[PROJ]")
-  if (ui.showNewItemDialog) statusParts.push("[NEW]")
-  if (ui.showDropNotification && ui.droppedFiles.length > 0) {
-    statusParts.push(`[Drop:${ui.droppedFiles.length}]`)
+
+  // Status message has priority - show it if present
+  if (ui.status) {
+    const icons = {
+      info: "ℹ",
+      success: "✓",
+      warning: "⚠",
+      error: "✗",
+    } as const
+    const icon = icons[ui.status.level]
+    statusParts.push(`${icon} ${ui.status.message}`)
+  } else {
+    // Normal status indicators (only when no status message)
+    if (ui.showHelp) statusParts.push("[?]")
+    if (ui.showProjectPicker) statusParts.push("[PROJ]")
+    if (ui.showNewItemDialog) statusParts.push("[NEW]")
+    if (ui.showDropNotification && ui.droppedFiles.length > 0) {
+      statusParts.push(`[Drop:${ui.droppedFiles.length}]`)
+    }
+    if (ui.isMouseDragging && ui.mouseSelection) {
+      statusParts.push("[Sel]")
+    }
+    if (ui.multiSelected.size > 0) {
+      statusParts.push(`[${ui.multiSelected.size}]`)
+    }
+    if (ui.inOutlineMode) statusParts.push("OUT")
   }
-  if (ui.isMouseDragging && ui.mouseSelection) {
-    statusParts.push("[Sel]")
-  }
-  if (ui.multiSelected.size > 0) {
-    statusParts.push(`[${ui.multiSelected.size}]`)
-  }
-  if (ui.inOutlineMode) statusParts.push("OUT")
 
   // Right side info (always visible)
   // DB/files/watcher status as one group (single space), other items with double space
@@ -117,7 +131,13 @@ export function BottomBar({
   const leftWidth = Math.max(1, termWidth - rightWidth)
 
   return (
-    <Box flexDirection="row" flexShrink={0} width={termWidth} id="bottom-bar">
+    <Box
+      flexDirection="row"
+      flexShrink={0}
+      width={termWidth}
+      id="bottom-bar"
+      data-status={ui.status?.level}
+    >
       <Box width={leftWidth} flexShrink={0}>
         <Text dimColor wrap="truncate-end">
           {/* Storage mode indicator */}
@@ -127,7 +147,7 @@ export function BottomBar({
           {middle && (
             <>
               {"   "}
-              <Text id="status-indicators">{middle}</Text>
+              <Text id="status-message">{middle}</Text>
             </>
           )}
         </Text>

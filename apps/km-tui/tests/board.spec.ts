@@ -1381,6 +1381,103 @@ describe("View Modes", () => {
   })
 })
 
+describe("Boundary Feedback (Bell + Status)", () => {
+  test("k at top boundary triggers bell and status message", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"))),
+    )
+
+    // Navigate to board (cursor starts at 1a)
+    board.press("k") // 1a → col1 header
+    board.press("k") // col1 → board
+    board.expect("#board[data-cursor]").toExist()
+
+    // Hit top boundary - should ring bell and show status
+    board.press("k")
+    expect(board.bell).toBe(true)
+    expect(board.hasStatus).toBe(true)
+    const status = board.getStatus()
+    expect(status?.level).toBe("warning")
+    expect(status?.message).toContain("Can't move")
+
+    // Next keypress clears status
+    board.press("j")
+    expect(board.hasStatus).toBe(false)
+  })
+
+  test("h at left boundary shows feedback", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a")), item("col2", item("2a"))),
+    )
+
+    // Start at first column
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Try h (left) - should hit boundary
+    board.press("h")
+    expect(board.bell).toBe(true)
+    expect(board.hasStatus).toBe(true)
+  })
+
+  test("l at right boundary shows feedback", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a")), item("col2", item("2a"))),
+    )
+
+    // Navigate to last column
+    board.press("l")
+    board.expect("#2a[data-cursor]").toExist()
+
+    // Try l (right) - should hit boundary
+    board.press("l")
+    expect(board.bell).toBe(true)
+    expect(board.hasStatus).toBe(true)
+  })
+
+  test("j at bottom boundary shows feedback", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"))),
+    )
+
+    // Navigate to last card
+    board.press("j")
+    board.expect("#1b[data-cursor]").toExist()
+
+    // Try j (down) - should hit boundary
+    board.press("j")
+    expect(board.bell).toBe(true)
+    expect(board.hasStatus).toBe(true)
+  })
+
+  test("status message clears on next keypress", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"))),
+    )
+
+    // Navigate to board and hit top boundary
+    board.press("k") // 1a → col1
+    board.press("k") // col1 → board
+    board.press("k") // board → top boundary
+    expect(board.hasStatus).toBe(true)
+
+    // Any keypress clears status
+    board.press("j")
+    expect(board.hasStatus).toBe(false)
+
+    // Hit another boundary (bottom)
+    board.press("j") // board → col1
+    board.press("j") // col1 → 1a
+    board.press("j") // 1a → 1b
+    board.expect("#1b[data-cursor]").toExist()
+    board.press("j") // 1b → bottom boundary
+    expect(board.hasStatus).toBe(true)
+
+    // Clear again
+    board.press("k")
+    expect(board.hasStatus).toBe(false)
+  })
+})
+
 describe("Help and Keyboard Shortcuts", () => {
   test("? shows keyboard shortcuts", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))

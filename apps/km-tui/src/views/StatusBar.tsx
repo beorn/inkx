@@ -43,7 +43,7 @@ export function StatusBar({ ui, termWidth }: StatusBarProps): React.ReactElement
       : message
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection="row" gap={1} data-status={level} id="status">
       <Text color={color}>{icon}</Text>
       <Text>{displayMessage}</Text>
     </Box>

@@ -56,8 +56,9 @@ export function handleBoardKeyInput(
     return true
   }
 
-  // Clear bell state at start of each keypress
+  // Clear bell and status at start of each keypress
   dispatch(actions.clearBell())
+  dispatch(actions.clearStatus())
 
   // Route ALL keys through the command system
   const result = processKeyWithContext(input, key, tuiContext)
@@ -69,9 +70,19 @@ export function handleBoardKeyInput(
     for (const action of actionList) {
       const actionResult = handleCommandAction(tuiContext, action)
 
-      // Check for boundary errors and ring bell
+      // Check for boundary errors - ring bell and show status message
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
         dispatch(actions.setBell(actionResult.error.direction))
+        dispatch(
+          actions.setStatus({
+            level: "warning",
+            message:
+              actionResult.error.message ??
+              `Can't move ${actionResult.error.direction}`,
+          }),
+        )
+        // Output actual bell character to terminal
+        process.stdout.write("\x07")
       }
     }
     return true
