@@ -5,15 +5,15 @@
  * Chokidar's FSEvents setup can block for 20+ seconds on large directories (21k+ files).
  */
 
-import createDebug from "debug";
 import { watch, type FSWatcher } from "chokidar";
 import { dirname } from "path";
 
 const NAMESPACE = "km:storage:watch:worker";
-const localDebug = createDebug(NAMESPACE);
 
-// Wrapper that sends debug messages to main thread AND logs locally
-// This ensures DEBUG_LOG in main thread captures worker debug output
+// Wrapper that sends debug messages ONLY to main thread
+// This ensures all debug output goes through main thread's debug-log.ts,
+// which handles DEBUG_LOG redirection properly.
+// Worker threads should NEVER log to stderr directly as it bypasses DEBUG_LOG.
 function debug(message: string, ...args: unknown[]): void {
   // Format the message with args (simple %s/%d/%O replacement)
   let formatted = message;
@@ -28,13 +28,8 @@ function debug(message: string, ...args: unknown[]): void {
     return String(arg);
   });
 
-  // Log locally only when DEBUG_LOG is NOT set (otherwise it goes to stderr
-  // and bypasses the file redirect in the main thread)
-  if (!process.env.DEBUG_LOG) {
-    localDebug(message, ...args);
-  }
-
   // Send to main thread for DEBUG_LOG capture
+  // Main thread's debug-log.ts handles redirection to file or suppression
   try {
     postMessage({ type: "debug", namespace: NAMESPACE, message: formatted });
   } catch {

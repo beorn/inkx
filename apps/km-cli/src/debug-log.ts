@@ -172,10 +172,8 @@ function customLog(...args: unknown[]): void {
 // Configure debug to use our custom formatter
 createDebug.log = customLog;
 
-// Set up file output if DEBUG_LOG is set, or auto-redirect to /dev/null if DEBUG is enabled
-// to prevent debug output from interfering with TUI rendering
+// Set up file output if DEBUG_LOG is set
 const logPath = process.env.DEBUG_LOG;
-const debugEnabled = process.env.DEBUG && process.env.DEBUG !== "false";
 
 if (logPath) {
   stream = createWriteStream(logPath, { flags: "a" });
@@ -185,10 +183,6 @@ if (logPath) {
   process.on("exit", () => stream?.end());
   process.on("SIGINT", () => stream?.end());
   process.on("SIGTERM", () => stream?.end());
-} else if (debugEnabled) {
-  // DEBUG is enabled but no log file specified - redirect to /dev/null
-  // to prevent debug output from showing in TUI
-  stream = createWriteStream("/dev/null");
 }
 
 export { stream as debugLogStream };
