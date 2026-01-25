@@ -8,6 +8,7 @@ import createDebug from "debug"
 import { Command } from "commander"
 import chalk from "chalk"
 import { steps } from "@beorn/inkx-ui/progress"
+import { Database } from "bun:sqlite"
 
 const debug = createDebug("km:cli:sync")
 import {
@@ -15,6 +16,7 @@ import {
   findKmRootFromPath,
   runWithKmDir,
   syncState,
+  getDb,
 } from "@km/storage"
 import { dirname, resolve } from "path"
 import { formatPath } from "../utils/format-path.ts"
@@ -22,13 +24,14 @@ import { formatPath } from "../utils/format-path.ts"
 /**
  * Start the continuous filesystem watcher
  */
-function startWatch(vaultPath: string, debounceMs: number): void {
+function startWatch(vaultPath: string, debounceMs: number, db: Database): void {
   debug("starting watch: %s (debounce=%dms)", vaultPath, debounceMs)
   console.log(chalk.dim(`Watching: ${vaultPath}`))
   console.log(chalk.dim(`Debounce: ${debounceMs}ms`))
   console.log(chalk.dim("Press Ctrl+C to stop\n"))
 
   const manager = new SyncManager({
+    db,
     vaultPath,
     debounceFs: debounceMs,
     debounceApply: 3000,
@@ -88,6 +91,7 @@ async function runSync(
   vaultPath: string,
   kmRoot: string,
   options: { toFs?: boolean; dryRun?: boolean },
+  db: Database,
 ): Promise<void> {
   debug("runSync", { vaultPath, toFs: options.toFs, dryRun: options.dryRun })
   console.log(
@@ -121,6 +125,7 @@ async function runSync(
 
       // Step 2: Sync with filesystem
       const manager = new SyncManager({
+        db,
         vaultPath,
         debounceFs: 0,
         debounceApply: 0,
@@ -180,10 +185,15 @@ export const syncCommand = new Command("sync")
     const vaultPath = dirname(kmRoot)
     debug("resolved vault path: %s (from kmRoot: %s)", vaultPath, kmRoot)
 
+    // Get database instance (needed by SyncManager)
+    // Note: getDb() is deprecated, but SyncManager requires a Database object.
+    // TODO: Refactor to use Vault domain object when that API is available
+    const db = getDb()
+
     if (options.watch) {
       const debounceMs = parseInt(options.debounce, 10)
-      startWatch(vaultPath, debounceMs)
+      startWatch(vaultPath, debounceMs, db)
     } else {
-      await runSync(vaultPath, kmRoot, options)
+      await runSync(vaultPath, kmRoot, options, db)
     }
   })

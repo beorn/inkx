@@ -663,6 +663,39 @@ describe.serial("km init", () => {
       expect(existsSync(join(initDir, "@inbox.md"))).toBe(false)
       expect(existsSync(join(initDir, "inbox"))).toBe(false)
     })
+
+    // Regression test for km-init-db-bug: database initialization during sync
+    test("should initialize database and sync GTD files without errors", async () => {
+      const initDir = join(INIT_TEST_DIR, "db-sync-test")
+      mkdirSync(initDir, { recursive: true })
+
+      const result = await km(["init", "--force"], {
+        cwd: initDir,
+        env: { KM_DIR: join(initDir, ".km") },
+      })
+
+      expect(result.exitCode).toBe(0)
+      expect(result.stderr).not.toContain("TypeError")
+      expect(result.stderr).not.toContain("undefined is not an object")
+
+      // Verify database was created
+      expect(existsSync(join(initDir, ".km", "state.db"))).toBe(true)
+      expect(existsSync(join(initDir, ".km", "events.jsonl"))).toBe(true)
+
+      // Verify files were synced by querying the database
+      const listResult = await km(["list"], {
+        cwd: initDir,
+        env: { KM_DIR: join(initDir, ".km") },
+      })
+
+      expect(listResult.exitCode).toBe(0)
+      // Should find nodes from the GTD structure
+      expect(listResult.stdout).toContain("Inbox")
+      expect(listResult.stdout).toContain("Next Actions")
+      expect(listResult.stdout).toContain("Someday/Maybe")
+      // Should report multiple nodes (proves sync worked)
+      expect(listResult.stdout).toMatch(/\d+ node\(s\)/)
+    })
   })
 })
 
