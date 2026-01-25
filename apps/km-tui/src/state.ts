@@ -622,10 +622,6 @@ export function getCurrentColumn(state: TUIBoardState): ColumnState | null {
   return state.columns[state.colIndex] ?? null;
 }
 
-
-/**
- * Check if search has any visible matches
- */
 function hasSearchMatches(state: TUIBoardState): boolean {
   if (!state.searchQuery) return true; // Empty query matches all
 
