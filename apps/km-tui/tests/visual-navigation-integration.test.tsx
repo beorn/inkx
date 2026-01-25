@@ -16,7 +16,7 @@ import { Board } from "../src/views/Board.tsx";
 import { VaultProvider } from "../src/vault-context.tsx";
 import { createLayoutRegistry } from "../src/card-positions.ts";
 import { createFakeVault } from "@km/storage";
-import type { BoardState, ColumnState, CardState } from "../src/types.ts";
+import type { BoardState } from "../src/types.ts";
 import type { KNode } from "@km/core";
 
 const render = createTestRenderer({ columns: 80, rows: 24 });
@@ -26,12 +26,14 @@ function makeNode(
   id: string,
   content: string,
   type: KNode["type"] = "task",
+  parentId: string | null = null,
+  parentIdx: number = 0,
 ): KNode {
   return {
     id,
     type,
-    parent_id: null,
-    parent_idx: 0,
+    parent_id: parentId,
+    parent_idx: parentIdx,
     link_to: null,
     content,
     data: {},
@@ -41,28 +43,12 @@ function makeNode(
   };
 }
 
-// Helper to create a CardState
-function makeCard(id: string, content: string): CardState {
+// Helper to create a minimal BoardState (columns are derived from vault now)
+function makeBoardState(rootId: string): BoardState {
   return {
-    node: makeNode(id, content),
-    children: [],
-  };
-}
-
-// Helper to create a ColumnState
-function makeColumn(id: string, name: string, cards: CardState[]): ColumnState {
-  return {
-    node: makeNode(id, name, "section"),
-    cards,
-  };
-}
-
-// Helper to create a minimal BoardState
-function makeBoardState(columns: ColumnState[]): BoardState {
-  return {
-    rootId: "root",
+    rootId,
     rootPath: null,
-    columns,
+    columns: [], // Derived from vault
     colIndex: 0,
     cardIndex: 0,
     selectedCards: new Set(),
@@ -79,16 +65,19 @@ function makeBoardState(columns: ColumnState[]): BoardState {
 describe("Visual navigation integration: card position registration", () => {
   test("cards in single column register with increasing Y positions", () => {
     const registry = createLayoutRegistry();
-    const vault = createFakeVault();
 
-    const columns = [
-      makeColumn("col-1", "Column 1", [
-        makeCard("card-1", "Task 1"),
-        makeCard("card-2", "Task 2"),
-        makeCard("card-3", "Task 3"),
-      ]),
-    ];
-    const state = makeBoardState(columns);
+    // Create vault with nodes: root -> column -> cards
+    const vault = createFakeVault({
+      nodes: [
+        makeNode("root", "Root", "section"),
+        makeNode("col-1", "Column 1", "section", "root", 0),
+        makeNode("card-1", "Task 1", "task", "col-1", 0),
+        makeNode("card-2", "Task 2", "task", "col-1", 1),
+        makeNode("card-3", "Task 3", "task", "col-1", 2),
+      ],
+    });
+
+    const state = makeBoardState("root");
 
     const { lastFrameText } = render(
       <VaultProvider vault={vault}>
@@ -128,19 +117,21 @@ describe("Visual navigation integration: card position registration", () => {
 
   test("cards in same row across columns have same Y position", () => {
     const registry = createLayoutRegistry();
-    const vault = createFakeVault();
 
-    const columns = [
-      makeColumn("col-1", "Column 1", [
-        makeCard("card-a1", "Task A1"),
-        makeCard("card-a2", "Task A2"),
-      ]),
-      makeColumn("col-2", "Column 2", [
-        makeCard("card-b1", "Task B1"),
-        makeCard("card-b2", "Task B2"),
-      ]),
-    ];
-    const state = makeBoardState(columns);
+    // Create vault with two columns, each with cards
+    const vault = createFakeVault({
+      nodes: [
+        makeNode("root", "Root", "section"),
+        makeNode("col-1", "Column 1", "section", "root", 0),
+        makeNode("card-a1", "Task A1", "task", "col-1", 0),
+        makeNode("card-a2", "Task A2", "task", "col-1", 1),
+        makeNode("col-2", "Column 2", "section", "root", 1),
+        makeNode("card-b1", "Task B1", "task", "col-2", 0),
+        makeNode("card-b2", "Task B2", "task", "col-2", 1),
+      ],
+    });
+
+    const state = makeBoardState("root");
 
     render(
       <VaultProvider vault={vault}>
@@ -174,20 +165,22 @@ describe("Visual navigation integration: card position registration", () => {
 
   test("findCardAtYVisual returns correct card index", () => {
     const registry = createLayoutRegistry();
-    const vault = createFakeVault();
 
-    const columns = [
-      makeColumn("col-1", "Column 1", [
-        makeCard("card-a1", "Task A1"),
-        makeCard("card-a2", "Task A2"),
-        makeCard("card-a3", "Task A3"),
-      ]),
-      makeColumn("col-2", "Column 2", [
-        makeCard("card-b1", "Task B1"),
-        makeCard("card-b2", "Task B2"),
-      ]),
-    ];
-    const state = makeBoardState(columns);
+    // Create vault with two columns with different card counts
+    const vault = createFakeVault({
+      nodes: [
+        makeNode("root", "Root", "section"),
+        makeNode("col-1", "Column 1", "section", "root", 0),
+        makeNode("card-a1", "Task A1", "task", "col-1", 0),
+        makeNode("card-a2", "Task A2", "task", "col-1", 1),
+        makeNode("card-a3", "Task A3", "task", "col-1", 2),
+        makeNode("col-2", "Column 2", "section", "root", 1),
+        makeNode("card-b1", "Task B1", "task", "col-2", 0),
+        makeNode("card-b2", "Task B2", "task", "col-2", 1),
+      ],
+    });
+
+    const state = makeBoardState("root");
 
     render(
       <VaultProvider vault={vault}>
