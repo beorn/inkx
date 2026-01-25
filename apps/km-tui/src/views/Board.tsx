@@ -19,11 +19,10 @@ import {
 import createDebug from "debug";
 
 const debug = createDebug("km:board");
-import type { BoardState, ViewMode } from "../types.ts";
+import type { TUIBoardState, ViewMode } from "../types.ts";
 import type { KNode } from "@km/core";
 import { useVault, VaultProvider } from "../vault-context.tsx";
 import type { Vault } from "@km/storage";
-import type { KeyboardContext } from "../keyboard-types.ts";
 import { DetailPane } from "./DetailPane.tsx";
 import { ProjectPicker } from "./ProjectPicker.tsx";
 import { HelpOverlay } from "./HelpOverlay.tsx";
@@ -52,11 +51,7 @@ import {
 import { useBoardDialogs } from "./use-board-dialogs.ts";
 import { ConstraintRoot } from "../layout/index.ts";
 import { ensureCommandSystemInitialized } from "../command-bridge.ts";
-import {
-  buildTUIContext,
-  toKeyboardContext,
-  type TUIContext,
-} from "../tui-context.ts";
+import { buildTUIContext, type TUIContext } from "../tui-context.ts";
 import {
   simplifiedBoardReducer,
   createSimplifiedBoardState,
@@ -64,7 +59,7 @@ import {
 } from "@km/board";
 import { useColumns } from "../hooks/use-columns.ts";
 import { useCursorPosition } from "../hooks/use-cursor-position.ts";
-import type { ColumnsLayout } from "../board-adapter.ts";
+import type { ColumnsLayout } from "../types.ts";
 
 // Extracted modules
 import {
@@ -93,7 +88,7 @@ export { makeSelectionKey } from "../types.ts";
 
 export interface BoardCoreProps {
   /** Legacy column-based state for rendering */
-  state: BoardState;
+  state: TUIBoardState;
   /** UI state (dialogs, view mode, etc.) */
   ui: UIState;
   /** Derived selection level from cursor depth */
@@ -380,7 +375,7 @@ export function BoardCore({
 
 export interface BoardProps {
   /** Initial board state */
-  initialState: BoardState;
+  initialState: TUIBoardState;
   /** Initial view mode (default: "cards") */
   initialViewMode?: ViewMode;
   /** Terminal dimensions */
@@ -494,7 +489,7 @@ export function Board({
   const derivedSelectionLevel = cursorPosition.selectionLevel;
 
   // Legacy state accessor for compatibility during migration
-  const state: BoardState = useMemo(
+  const state: TUIBoardState = useMemo(
     () => ({
       rootId: boardState.rootId,
       rootPath: boardState.rootPath,
@@ -556,9 +551,6 @@ export function Board({
     countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
       countVisibleDescendants(vault, node, depth, maxDepth, foldedNodes),
   });
-
-  // Legacy keyboard context for backward compatibility during migration
-  const _keyboardContext: KeyboardContext = toKeyboardContext(tuiContext);
 
   // Initialize command system on first render
   useEffect(() => {
@@ -630,7 +622,7 @@ export function Board({
 
 export interface BoardAppProps {
   /** Initial board state */
-  initialState: BoardState;
+  initialState: TUIBoardState;
   /** Initial view mode (default: "cards") */
   initialViewMode?: ViewMode;
   /** Optional layout registry for card position tracking (for testing) */
@@ -741,7 +733,7 @@ function restoreTerminal(): void {
 // =============================================================================
 
 export async function renderInkxBoard(
-  state: BoardState,
+  state: TUIBoardState,
   initialViewMode?: ViewMode,
   vault?: Vault,
 ): Promise<void> {

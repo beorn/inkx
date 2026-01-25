@@ -7,7 +7,12 @@
 import type { KNode, TaskStatus, TaskMark } from "@km/core";
 import type { Vault } from "./vault-context.tsx";
 
-export interface BoardState {
+/**
+ * TUI-specific board rendering state.
+ * This is the legacy rendering state with columns/cards structure.
+ * Separate from @km/board's BoardState which is the navigation state.
+ */
+export interface TUIBoardState {
   rootId: string | null;
   rootPath: string | null; // Filesystem path to the board root (for display)
   columns: ColumnState[];
@@ -79,6 +84,19 @@ export interface ColumnRules {
 }
 
 export type BoardAction = "quit" | "refresh" | null;
+
+/**
+ * Derived columns layout with cursor position.
+ * Built from Vault + cursor state for rendering.
+ */
+export interface ColumnsLayout {
+  columns: ColumnState[];
+  colIndex: number;
+  cardIndex: number;
+  subPath: number[];
+  isAtCardLevel: boolean;
+  isInOutlineMode: boolean;
+}
 
 /**
  * View mode for the TUI

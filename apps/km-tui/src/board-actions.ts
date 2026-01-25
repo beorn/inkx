@@ -14,7 +14,6 @@ import { buildTreeNodes } from "./board-adapter.ts";
 import { initBoardState } from "./state.ts";
 import { actions } from "./ui-reducer.ts";
 import type { TUIContext } from "./tui-context.ts";
-import { toKeyboardContext } from "./tui-context.ts";
 import { makeSelectionKey } from "./types.ts";
 import {
   clearSelection,
@@ -59,7 +58,6 @@ export function handleCommandAction(
   const { state, dispatch, exit } = ctx;
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
-  const keyboardContext = toKeyboardContext(ctx);
 
   switch (action.type) {
     // === TUI-specific actions ===
@@ -70,7 +68,7 @@ export function handleCommandAction(
       dispatch(actions.showNewItemDialog());
       dispatch(actions.exitOutlineMode());
       dispatch(actions.setSubIndex(0));
-      clearSelection(keyboardContext);
+      clearSelection(ctx);
       dispatch(actions.setDetailPane(false));
       break;
     case "SHOW_PROJECT_PICKER":
@@ -78,7 +76,7 @@ export function handleCommandAction(
         dispatch(actions.showProjectPicker());
         dispatch(actions.exitOutlineMode());
         dispatch(actions.setSubIndex(0));
-        clearSelection(keyboardContext);
+        clearSelection(ctx);
         dispatch(actions.setDetailPane(false));
       }
       break;
@@ -92,7 +90,7 @@ export function handleCommandAction(
       handleCloseOrQuit(ctx);
       break;
     case "OUTDENT_NODE":
-      if (card) outdentNode(keyboardContext, card);
+      if (card) outdentNode(ctx, card);
       break;
     case "NAV_SIBLING_BOARD":
       handleNavSiblingBoard(ctx, action.direction);
@@ -127,7 +125,7 @@ export function handleCommandAction(
       handleDeleteNode(ctx);
       break;
     case "SELECT_ALL_PROGRESSIVE":
-      progressiveSelectAll(keyboardContext);
+      progressiveSelectAll(ctx);
       break;
 
     // === Task actions ===
@@ -170,8 +168,16 @@ export function handleCommandAction(
       handleZoomOutwards(ctx);
       break;
     case "CLEAR_SELECTION":
-      clearSelection(keyboardContext);
+      clearSelection(ctx);
       break;
+
+    // === SimplifiedBoardAction passthrough (forward to board reducer) ===
+    case "SELECT":
+    case "SET_ROOT":
+    case "SET_CURSWANT":
+      ctx.dispatchBoard(action);
+      break;
+
     case "EXTEND_SELECT_UP":
       handleExtendSelectVertical(ctx, "up");
       break;
@@ -218,14 +224,7 @@ export function handleCommandAction(
       beepUnimplemented();
       break;
 
-    // === Navigation actions not yet wired ===
-    case "NAV_CROSS_COLUMN":
-    case "NAV_TO_PATH":
-    case "NAV_PAGE":
-    case "NAV_TO":
-    case "REFRESH":
-      beepUnimplemented();
-      break;
+    // Legacy navigation actions removed (were in BoardAction, not in CommandAction)
 
     // === Move mode actions ===
     case "ENTER_MOVE_MODE":
@@ -245,7 +244,6 @@ export function handleCommandAction(
 
 function handleZoomOutwards(ctx: TUIContext): void {
   const { state, boardState, ui, layout, dispatch, dispatchBoard } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
 
@@ -256,7 +254,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
   if (ui.inOutlineMode) {
     dispatch(actions.exitOutlineMode());
     dispatch(actions.setSubIndex(0));
-    clearSelection(keyboardContext);
+    clearSelection(ctx);
     return;
   }
   if (boardState.rootId) {
@@ -281,7 +279,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
           nodeId: parentNode.id,
           nodes,
         });
-        clearSelection(keyboardContext);
+        clearSelection(ctx);
         return;
       }
     } else {
@@ -304,7 +302,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
           nodeId: rootView.rootId,
           nodes,
         });
-        clearSelection(keyboardContext);
+        clearSelection(ctx);
         return;
       }
     }
@@ -321,7 +319,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
       const colIdx = columns.findIndex((col) => col.node.id === parentNode.id);
       if (colIdx >= 0) {
         dispatchBoard({ type: "NAV_TO_PATH", path: [colIdx] });
-        clearSelection(keyboardContext);
+        clearSelection(ctx);
         return;
       }
 
@@ -334,7 +332,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
         );
         if (cardIdx >= 0) {
           dispatchBoard({ type: "NAV_TO_PATH", path: [cIdx, cardIdx] });
-          clearSelection(keyboardContext);
+          clearSelection(ctx);
           return;
         }
       }
@@ -361,13 +359,12 @@ function handleZoomOutwards(ctx: TUIContext): void {
 
 function handleDeleteNode(ctx: TUIContext): void {
   const { state } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
 
   if (!card) return;
   ctx.vault.deleteNode(card.node.id);
-  refreshBoardState(keyboardContext, {
+  refreshBoardState(ctx, {
     cardIndex: (c) =>
       Math.min(state.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
   });
@@ -375,7 +372,6 @@ function handleDeleteNode(ctx: TUIContext): void {
 
 function handleTaskStatusCycle(ctx: TUIContext): void {
   const { state } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
 
@@ -407,12 +403,11 @@ function handleTaskStatusCycle(ctx: TUIContext): void {
     task_status: nextStatus,
     task_mark: markMap[nextStatus],
   });
-  refreshBoardState(keyboardContext);
+  refreshBoardState(ctx);
 }
 
 function handleCursorMove(ctx: TUIContext, dir: string): void {
   const { state, ui, dispatch, dispatchBoard, positionRegistry } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
 
@@ -463,7 +458,7 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
           dir: dir === "prev" ? "prev" : "next",
         });
         if (ui.selectionAnchor !== null) {
-          updateSelectionRange(keyboardContext, state.colIndex, targetIdx, 0);
+          updateSelectionRange(ctx, state.colIndex, targetIdx, 0);
         }
       }
       return;
@@ -471,7 +466,7 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
 
     if (horizontalDirs.includes(dir)) {
       // Horizontal: clear selection and move
-      clearSelection(keyboardContext);
+      clearSelection(ctx);
     }
   }
 
@@ -617,7 +612,6 @@ function handleToggleFold(ctx: TUIContext): void {
 
 function handleNavBack(ctx: TUIContext): void {
   const { ui, dispatch, dispatchBoard } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
 
   // Check if we can go back
   if (ui.navHistoryIndex <= 0) {
@@ -648,7 +642,7 @@ function handleNavBack(ctx: TUIContext): void {
   if (entry.multiSelected && entry.multiSelected.size > 0) {
     dispatch(actions.setMultiSelected(entry.multiSelected));
   } else {
-    clearSelection(keyboardContext);
+    clearSelection(ctx);
   }
 
   if (entry.inOutlineMode) {
@@ -659,7 +653,6 @@ function handleNavBack(ctx: TUIContext): void {
 
 function handleNavForward(ctx: TUIContext): void {
   const { ui, dispatch, dispatchBoard } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
 
   // Check if we can go forward
   if (ui.navHistoryIndex >= ui.navHistory.length - 1) {
@@ -690,7 +683,7 @@ function handleNavForward(ctx: TUIContext): void {
   if (entry.multiSelected && entry.multiSelected.size > 0) {
     dispatch(actions.setMultiSelected(entry.multiSelected));
   } else {
-    clearSelection(keyboardContext);
+    clearSelection(ctx);
   }
 
   if (entry.inOutlineMode) {
@@ -701,7 +694,6 @@ function handleNavForward(ctx: TUIContext): void {
 
 function handleZoomIn(ctx: TUIContext): void {
   const { state, boardState, ui, dispatch, dispatchBoard, layout } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
 
@@ -736,7 +728,7 @@ function handleZoomIn(ctx: TUIContext): void {
     cursor: [0, 0],
   });
 
-  clearSelection(keyboardContext);
+  clearSelection(ctx);
 }
 
 function handleExtendSelectVertical(
@@ -778,8 +770,7 @@ function handleExtendSelectVertical(
   });
 
   // Update selection range
-  const keyboardContext = toKeyboardContext(ctx);
-  updateSelectionRange(keyboardContext, state.colIndex, targetIdx, 0);
+  updateSelectionRange(ctx, state.colIndex, targetIdx, 0);
 }
 
 function handleExtendSelectHorizontal(
@@ -803,7 +794,6 @@ function handleExtendSelectHorizontal(
 
 function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
   const { boardState, ui, dispatch, dispatchBoard, layout } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
 
   const favoriteKey =
     `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES;
@@ -834,7 +824,7 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
     cursor: [0, 0],
   });
 
-  clearSelection(keyboardContext);
+  clearSelection(ctx);
 }
 
 function handleJumpToColumn(ctx: TUIContext, columnNumber: number): void {
@@ -886,16 +876,15 @@ function handleShiftCard(
   direction: "up" | "down" | "left" | "right",
 ): void {
   const { state } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
 
   if (!card) return;
 
   if (direction === "up" || direction === "down") {
-    moveCardInColumn(keyboardContext, card, direction);
+    moveCardInColumn(ctx, card, direction);
   } else {
-    moveCardToColumn(keyboardContext, card, direction);
+    moveCardToColumn(ctx, card, direction);
   }
 }
 
@@ -904,7 +893,6 @@ function handleNavSiblingBoard(
   direction: "next" | "prev",
 ): void {
   const { boardState, ui, dispatch, dispatchBoard, layout } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
 
   if (!boardState.rootId) {
     process.stdout.write("\x07");
@@ -950,12 +938,11 @@ function handleNavSiblingBoard(
     cursor: [0, 0],
   });
 
-  clearSelection(keyboardContext);
+  clearSelection(ctx);
 }
 
 function handleZoomInwards(ctx: TUIContext): void {
   const { state, boardState, ui, dispatch, dispatchBoard, layout } = ctx;
-  const keyboardContext = toKeyboardContext(ctx);
   const col = state.columns[state.colIndex];
   const card = col?.cards[state.cardIndex];
 
@@ -1010,7 +997,7 @@ function handleZoomInwards(ctx: TUIContext): void {
         cursor: [0, 0],
       });
 
-      clearSelection(keyboardContext);
+      clearSelection(ctx);
       return;
     }
   }

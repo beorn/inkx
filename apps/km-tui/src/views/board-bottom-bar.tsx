@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { Box, Text } from "inkx";
 import type { WatcherStatus } from "@km/storage";
 import type { UIState } from "../ui-reducer.ts";
-import type { BoardState } from "../types.ts";
+import type { TUIBoardState } from "../types.ts";
 
 // Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
@@ -32,7 +32,7 @@ function useSpinnerFrame(): string {
 
 interface BottomBarProps {
   ui: UIState;
-  state: BoardState;
+  state: TUIBoardState;
   termWidth: number;
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
   storageMode: "memory" | "disk";

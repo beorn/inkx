@@ -61,7 +61,7 @@ import { ColumnsView } from "../src/views/ColumnsView.tsx";
 import { TabsView } from "../src/views/TabsView.tsx";
 import { TopBar } from "../src/views/TopBar.tsx";
 import type { KNode } from "@km/core";
-import type { BoardState, ColumnState, CardState } from "../src/types.ts";
+import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts";
 import { UIProvider } from "../src/ui-context.tsx";
 import { createInitialUIState } from "../src/ui-reducer.ts";
 import { runWithDb } from "@km/storage";
@@ -790,14 +790,14 @@ function mockColumn(name: string, cards: CardState[]): ColumnState {
   };
 }
 
-// Create a rich mock BoardState with varied content for view demos
+// Create a rich mock TUIBoardState with varied content for view demos
 // This demonstrates ALL styling scenarios:
 // - Task statuses: todo, wip, blocked, done, dropped
 // - Done/dropped tasks: dimmed styling
 // - Inactive children: dimmed when parent card not selected (depth > 0)
 // - Parent context: italic + dim on separate line for embedded/linked tasks
 // - Rich text: **bold**, *italic*, `code`, [[wiki links]], ~~strike~~
-function createMockBoardState(): BoardState {
+function createMockTUIBoardState(): TUIBoardState {
   // Create a source hierarchy for embedded tasks to link to
   // The parent context shows the PARENT of the linked task, so we need:
   //   source-file (file) → source-section (section) → source-task (task)
@@ -1001,7 +1001,7 @@ function CardsViewDemo({
   state,
   width,
 }: {
-  state: BoardState;
+  state: TUIBoardState;
   width: number;
 }): React.ReactElement {
   const numCols = Math.min(state.columns.length, 4);
@@ -1067,7 +1067,7 @@ function CardsViewDemo({
 }
 
 function Layer3AllViews(): React.ReactElement {
-  const mockState = createMockBoardState();
+  const mockState = createMockTUIBoardState();
   // ViewBox has: border (2 chars) + paddingX (2 chars) = 4 chars overhead
   // Inner content width is outerWidth - 4
   const viewWidth = 96; // Fits within ViewBox (100 - 4 for border/padding)
@@ -1124,7 +1124,7 @@ function Layer3AllViews(): React.ReactElement {
     <Box flexDirection="column">
       <SectionHeader title="Layer 3: All View Modes" />
       <Text dimColor>
-        Each view renders the same BoardState with varied content:
+        Each view renders the same TUIBoardState with varied content:
       </Text>
       <Text dimColor>
         • Fold markers: ● folded, • unfolded, · empty (size variation)

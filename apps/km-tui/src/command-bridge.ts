@@ -12,7 +12,6 @@ import {
   buildContext,
   type InkKeyEvent,
   type InkCommandResult,
-  type BoardState as CmdBoardState,
   type TNode,
 } from "@km/commands";
 import type { TUIContext } from "./tui-context.ts";
@@ -49,26 +48,17 @@ export function processKeyWithContext(
   const { colIndex, cardIndex, columns } = layout;
   const column = columns[colIndex];
 
-  // Build legacy BoardState shape for @km/commands compatibility.
-  // The command system expects { cursor, nodes, selectedNodes } which we derive
-  // from layout since SimplifiedBoardState no longer has these fields.
-  // We use a minimal object with just the fields buildContext actually uses.
-  const legacyBoardState = {
-    rootId: boardState.rootId,
-    rootPath: boardState.rootPath,
-    cursor: cardIndex >= 0 ? [colIndex, cardIndex] : [colIndex],
-    nodes: [] as TNode[], // Commands don't traverse nodes, they use extras
-    cursorNodeId: boardState.cursorNodeId,
-    selectedNodes: boardState.selectedNodes,
-    foldedNodes: boardState.foldedNodes,
-    zoomStack: [] as { rootId: string | null; cursor: number[] }[],
-  } as CmdBoardState;
-
-  const cmdCtx = buildContext(legacyBoardState, ui.viewMode, {
+  // Build CommandContext directly - no legacy shim needed
+  const cmdCtx = buildContext(ui.viewMode, {
+    currentNode: (selectedNode as TNode) ?? null,
+    currentNodeId: selectedNode?.id ?? null,
+    selectedNodes: Array.from(boardState.selectedNodes),
     siblingCount: column?.cards.length ?? 0,
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,
     columnIndex: colIndex >= 0 ? colIndex : 0,
     columnCount: columns.length,
+    moveMode: boardState.moveMode,
+    foldedNodes: boardState.foldedNodes,
   });
 
   return processInkKey(input, key, cmdCtx, kbCtx);

@@ -8,14 +8,14 @@
  */
 import React from "react";
 import { Box, Text } from "inkx";
-import type { BoardState } from "../types.ts";
+import type { TUIBoardState } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
 import { useTreeConfig } from "../ui-context.tsx";
 import { useVault } from "../vault-context.tsx";
 import { MemoizedTreeCard } from "./shared-components.tsx";
 
 interface TabsViewProps {
-  state: BoardState;
+  state: TUIBoardState;
   width: number;
   height: number;
   colIndex: number;

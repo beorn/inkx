@@ -37,7 +37,7 @@ import {
   type InkxLocator,
 } from "inkx/testing";
 import type { KNode } from "@km/core";
-import type { BoardState } from "./types.ts";
+import type { TUIBoardState } from "./types.ts";
 import { BoardCore } from "./views/index.ts";
 import { createInitialUIState } from "./ui-reducer.ts";
 import { createLayoutRegistry } from "./card-positions.ts";
@@ -77,7 +77,7 @@ export interface BoardTestHarness extends InkxLocator {
 
   // State access
   /** Get the current board state */
-  getState(): BoardState;
+  getState(): TUIBoardState;
   /** Get the current cursor position [colIndex, cardIndex] */
   getCursor(): [number, number];
   /** Get the currently selected node, if any */

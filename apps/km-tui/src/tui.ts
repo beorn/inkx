@@ -7,7 +7,7 @@
 import { EventEmitter } from "events";
 import chalk from "chalk";
 import createDebug from "debug";
-import type { BoardState, TuiOptions } from "./types.ts";
+import type { TUIBoardState, TuiOptions } from "./types.ts";
 import type { Vault } from "./vault-context.tsx";
 import { renderBoardStatic } from "./render.ts";
 import { renderInkxBoard } from "./views/index.ts";
@@ -24,7 +24,7 @@ export const tuiEvents = new EventEmitter();
 /**
  * Run the board in static (non-interactive) mode
  */
-export function runBoardStatic(vault: Vault, state: BoardState): void {
+export function runBoardStatic(vault: Vault, state: TUIBoardState): void {
   const width = process.stdout.columns || 80;
   console.log(renderBoardStatic(vault, state, width));
 }
@@ -37,7 +37,7 @@ export function runBoardStatic(vault: Vault, state: BoardState): void {
  * a progress indicator.
  */
 export async function runBoard(
-  state: BoardState | null,
+  state: TUIBoardState | null,
   options?: TuiOptions,
 ): Promise<void> {
   debug("runBoard start");

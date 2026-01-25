@@ -42,7 +42,7 @@ import { BoardCore, Board } from "../../src/views/Board.tsx";
 import { createInitialUIState } from "../../src/ui-reducer.ts";
 import { createLayoutRegistry } from "../../src/card-positions.ts";
 import { VaultProvider } from "../../src/vault-context.tsx";
-import type { BoardState } from "../../src/types.ts";
+import type { TUIBoardState } from "../../src/types.ts";
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
 // Board includes useReducer + useInput - use for keyboard navigation tests.
@@ -491,7 +491,7 @@ class BoardTestImpl implements BoardTest {
  * Render a board with the given state and return a test helper
  */
 export function renderBoard(
-  state: BoardState,
+  state: TUIBoardState,
   options: BoardTestOptions = {},
 ): BoardTest {
   const { columns = 80, rows = 24 } = options;
@@ -569,7 +569,7 @@ export function column(
  */
 export function board(config: {
   columns: ReturnType<typeof column>[];
-}): BoardState {
+}): TUIBoardState {
   return createBoardStateFixture(config.columns, {
     colIndex: 0,
     cardIndex: 0,

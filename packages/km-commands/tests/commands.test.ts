@@ -14,12 +14,7 @@ import { taskCommands } from "../src/commands/task.ts";
 import { viewCommands } from "../src/commands/view.ts";
 import { historyCommands } from "../src/commands/history.ts";
 import { tuiCommands } from "../src/commands/tui.ts";
-import type {
-  CommandContext,
-  TNode,
-  BoardState,
-  CommandAction,
-} from "../src/types.ts";
+import type { CommandContext, TNode, CommandAction } from "../src/types.ts";
 
 // Helper to create minimal TNode
 function createNode(
@@ -49,48 +44,21 @@ function createNode(
   };
 }
 
-// Helper to create minimal BoardState
-function createBoardState(nodes: TNode[], cursor: number[] = []): BoardState {
-  const firstIdx = cursor[0];
-  return {
-    rootId: null,
-    rootPath: null,
-    nodes,
-    cursor,
-    cursorNodeId: firstIdx !== undefined ? (nodes[firstIdx]?.id ?? null) : null,
-    curswantX: null,
-    curswantY: null,
-    selectedNodes: new Set(),
-    foldedNodes: new Set(),
-    collapsedNodes: new Set(),
-    zoomStack: [],
-    navHistory: [],
-    navHistoryIndex: 0,
-    moveMode: false,
-    moveSourceNodes: [],
-    moveSourceCursor: [],
-    maxOutlineDepth: 3,
-    maxContentLines: 2,
-  };
-}
-
-// Helper to create CommandContext
+// Helper to create minimal CommandContext
 function createContext(overrides?: Partial<CommandContext>): CommandContext {
   const defaultNode = createNode("current-node");
-  const defaultNodes = [defaultNode];
-  const defaultBoardState = createBoardState(defaultNodes, [0]);
 
   return {
     currentNode: defaultNode,
     currentNodeId: "current-node",
     selectedNodes: [],
-    cursor: [0],
-    boardState: defaultBoardState,
     viewMode: "cards",
     siblingCount: 1,
     siblingIndex: 0,
     columnIndex: 0,
     columnCount: 1,
+    moveMode: false,
+    foldedNodes: new Set(),
     ...overrides,
   };
 }
@@ -103,37 +71,34 @@ function createTaskContext(
     isTask: true,
     task_status: status ?? "todo",
   });
-  const boardState = createBoardState([taskNode], [0]);
 
   return {
     currentNode: taskNode,
     currentNodeId: "task-node",
     selectedNodes: [],
-    cursor: [0],
-    boardState,
     viewMode: "cards",
     siblingCount: 1,
     siblingIndex: 0,
     columnIndex: 0,
     columnCount: 1,
+    moveMode: false,
+    foldedNodes: new Set(),
   };
 }
 
 // Helper to create context with null currentNode
 function createNullNodeContext(): CommandContext {
-  const boardState = createBoardState([], []);
-
   return {
     currentNode: null,
     currentNodeId: null,
     selectedNodes: [],
-    cursor: [],
-    boardState,
     viewMode: "cards",
     siblingCount: 0,
     siblingIndex: 0,
     columnIndex: 0,
     columnCount: 0,
+    moveMode: false,
+    foldedNodes: new Set(),
   };
 }
 
@@ -231,7 +196,7 @@ describe("navigationCommands", () => {
   });
 
   describe("zoom commands", () => {
-    it("zoom_in returns ZOOM_IN with nodeId and nodes when currentNode exists", () => {
+    it("zoom_in returns ZOOM_IN with nodeId when currentNode exists", () => {
       const node = createNode("zoom-target");
       const ctx = createContext({
         currentNode: node,
@@ -241,10 +206,10 @@ describe("navigationCommands", () => {
       const cmd = navigationCommands.find((c) => c.id === "zoom_in");
       const result = cmd!.execute(ctx);
 
+      // Simplified action - just nodeId, no nodes array
       expect(result).toEqual({
         type: "ZOOM_IN",
         nodeId: "zoom-target",
-        nodes: [node],
       });
     });
 
@@ -256,15 +221,12 @@ describe("navigationCommands", () => {
       expect(result).toBeNull();
     });
 
-    it("zoom_out returns ZOOM_OUT with current nodes", () => {
-      const nodes = [createNode("a"), createNode("b")];
-      const boardState = createBoardState(nodes, [0]);
-      const ctx = createContext({ boardState });
-
+    it("zoom_out returns ZOOM_OUT", () => {
       const cmd = navigationCommands.find((c) => c.id === "zoom_out");
-      const result = cmd!.execute(ctx);
+      const result = cmd!.execute(createContext());
 
-      expect(result).toEqual({ type: "ZOOM_OUT", nodes });
+      // Simplified action - no nodes array
+      expect(result).toEqual({ type: "ZOOM_OUT" });
     });
   });
 });

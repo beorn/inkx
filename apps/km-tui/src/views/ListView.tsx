@@ -11,7 +11,7 @@
  */
 import React, { useMemo, useCallback } from "react";
 import { Box, Text } from "inkx";
-import type { BoardState, CardState } from "../types.ts";
+import type { TUIBoardState, CardState } from "../types.ts";
 import { getBoardPills, type BoardPill } from "../board-pills.ts";
 import { useTreeConfig, useRootBoardId } from "../ui-context.tsx";
 import { useVault } from "../vault-context.tsx";
@@ -27,14 +27,14 @@ type FlatItem =
       type: "header";
       colIdx: number;
       cardIdx: -1;
-      column: BoardState["columns"][0];
+      column: TUIBoardState["columns"][0];
       card?: undefined;
     }
   | {
       type: "card";
       colIdx: number;
       cardIdx: number;
-      column: BoardState["columns"][0];
+      column: TUIBoardState["columns"][0];
       card: CardState;
     };
 
@@ -42,7 +42,7 @@ type FlatItem =
 const EMPTY_CHILDREN: KNode[] = [];
 
 interface ListViewProps {
-  state: BoardState;
+  state: TUIBoardState;
   width: number;
   height: number;
   colIndex: number;

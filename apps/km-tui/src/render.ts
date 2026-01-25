@@ -15,7 +15,7 @@
 import chalk from "chalk";
 import type { TaskStatus } from "@km/core";
 import type { Vault } from "./vault-context.tsx";
-import type { BoardState, CardState, RenderOptions } from "./types.ts";
+import type { TUIBoardState, CardState, RenderOptions } from "./types.ts";
 import { getNodeDisplayName } from "./state.ts";
 import {
   getStatusIcon as getStatusIconBase,
@@ -39,7 +39,7 @@ export function defaultRenderOptions(): RenderOptions {
  */
 export function renderBoard(
   vault: Vault,
-  state: BoardState,
+  state: TUIBoardState,
   opts: RenderOptions,
 ): string {
   const lines: string[] = [];
@@ -214,7 +214,7 @@ export function renderCard(
 /**
  * Render status bar
  */
-export function renderStatusBar(state: BoardState, width: number): string {
+export function renderStatusBar(state: TUIBoardState, width: number): string {
   const parts: string[] = [];
 
   if (state.visualMode) {
@@ -289,7 +289,7 @@ ${chalk.dim("Press any key to close")}
  */
 export function renderBoardStatic(
   vault: Vault,
-  state: BoardState,
+  state: TUIBoardState,
   width: number,
 ): string {
   const { columns } = state;

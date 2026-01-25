@@ -13,7 +13,7 @@ import { Box, Text } from "inkx";
 import createDebug from "debug";
 
 const debugCol = createDebug("km:tui:columns");
-import type { BoardState, ColumnState, CardState } from "../types.ts";
+import type { TUIBoardState, ColumnState, CardState } from "../types.ts";
 import { getNodeDisplayName } from "../state.ts";
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
 import { useTreeConfig } from "../ui-context.tsx";
@@ -320,7 +320,7 @@ const ColumnTree = React.memo(function ColumnTree({
 // =============================================================================
 
 interface ColumnsViewProps {
-  state: BoardState;
+  state: TUIBoardState;
   width: number;
   height: number;
   colIndex: number;

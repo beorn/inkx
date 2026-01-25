@@ -10,10 +10,14 @@
 import type { KNode } from "@km/core";
 import type { Vault } from "./vault-context.tsx";
 import type { SimplifiedBoardState, TransitionalBoardAction } from "@km/board";
-import type { BoardState, CardState, ColumnState } from "./types.ts";
+import type {
+  TUIBoardState,
+  CardState,
+  ColumnState,
+  ColumnsLayout,
+} from "./types.ts";
 import type { UIState } from "./ui-reducer.ts";
 import { actions } from "./ui-reducer.ts";
-import type { ColumnsLayout } from "./board-adapter.ts";
 import type { LayoutRegistry } from "./card-positions.ts";
 
 // =============================================================================
@@ -33,7 +37,7 @@ export interface TUIContext {
 
   // === State ===
   /** Legacy column-based board state (for backward compatibility) */
-  state: BoardState;
+  state: TUIBoardState;
   /** Simplified board state from simplifiedBoardReducer */
   boardState: SimplifiedBoardState;
   /** UI state (dialogs, view mode, selection) */
@@ -93,7 +97,7 @@ export interface KeyEvent {
 
 export interface BuildTUIContextParams {
   vault: Vault;
-  state: BoardState;
+  state: TUIBoardState;
   boardState: SimplifiedBoardState;
   ui: UIState;
   layout: ColumnsLayout;
@@ -152,28 +156,4 @@ export function getSubIndex(ctx: TUIContext): number {
  */
 export function isInOutlineMode(ctx: TUIContext): boolean {
   return ctx.layout.isInOutlineMode;
-}
-
-// =============================================================================
-// Backward Compatibility
-// =============================================================================
-
-/**
- * Convert TUIContext to legacy KeyboardContext for existing handlers.
- *
- * Use this during migration - eventually handlers should use TUIContext directly.
- */
-export function toKeyboardContext(
-  ctx: TUIContext,
-): import("./keyboard-types.ts").KeyboardContext {
-  return {
-    vault: ctx.vault,
-    boardState: ctx.boardState,
-    layout: ctx.layout,
-    ui: ctx.ui,
-    dispatch: ctx.dispatch,
-    dispatchBoard: ctx.dispatchBoard,
-    exit: ctx.exit,
-    countVisibleDescendants: ctx.countVisibleDescendants,
-  };
 }

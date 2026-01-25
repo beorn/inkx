@@ -8,7 +8,7 @@ import type { CardState, SelectionKey } from "./types.ts";
 import { makeSelectionKey } from "./types.ts";
 import { actions } from "./ui-reducer.ts";
 import { buildTreeNodes } from "./board-adapter.ts";
-import type { KeyboardContext } from "./keyboard-types.ts";
+import type { TUIContext } from "./tui-context.ts";
 
 // =============================================================================
 // Navigation History
@@ -16,7 +16,7 @@ import type { KeyboardContext } from "./keyboard-types.ts";
 
 /** Push a new entry to navigation history */
 export function pushNavHistoryEntry(
-  dispatch: KeyboardContext["dispatch"],
+  dispatch: TUIContext["dispatch"],
   rootId: string | null,
   colIndex: number,
   cardIndex: number,
@@ -41,7 +41,7 @@ export function pushNavHistoryEntry(
 // =============================================================================
 
 /** Calculate max sub-items in current card */
-export function getMaxSubIndex(ctx: KeyboardContext): number {
+export function getMaxSubIndex(ctx: TUIContext): number {
   const col = ctx.layout.columns[ctx.layout.colIndex];
   const card = col?.cards[ctx.layout.cardIndex];
   if (!card) return 0;
@@ -58,7 +58,7 @@ export function getMaxSubIndex(ctx: KeyboardContext): number {
 
 /** Update multi-selection range from anchor to current position */
 export function updateSelectionRange(
-  ctx: KeyboardContext,
+  ctx: TUIContext,
   toCol: number,
   toCard: number,
   toSub: number,
@@ -99,14 +99,14 @@ export function updateSelectionRange(
 }
 
 /** Clear all selection state */
-export function clearSelection(ctx: KeyboardContext): void {
+export function clearSelection(ctx: TUIContext): void {
   ctx.dispatch(actions.setMultiSelected(new Set()));
   ctx.dispatch(actions.setSelectionAnchor(null));
   ctx.dispatch(actions.setSelectAllLevel(0));
 }
 
 /** Get unique selected card indices from multi-selection */
-export function getSelectedCardIndices(ctx: KeyboardContext): number[] {
+export function getSelectedCardIndices(ctx: TUIContext): number[] {
   if (ctx.ui.multiSelected.size === 0) return [];
   const indices = new Set<number>();
   for (const key of ctx.ui.multiSelected) {
@@ -126,7 +126,7 @@ export function getSelectedCardIndices(ctx: KeyboardContext): number[] {
 
 /** Rebuild board state after a mutation, preserving navigation context */
 export function refreshBoardState(
-  ctx: KeyboardContext,
+  ctx: TUIContext,
   options?: {
     colIndex?: number;
     cardIndex?: number | ((col: { cards: CardState[] } | undefined) => number);
@@ -173,7 +173,7 @@ export function refreshBoardState(
 // =============================================================================
 
 /** Progressive select all with Shift+A */
-export function progressiveSelectAll(ctx: KeyboardContext): void {
+export function progressiveSelectAll(ctx: TUIContext): void {
   const col = ctx.layout.columns[ctx.layout.colIndex];
   const card = col?.cards[ctx.layout.cardIndex];
 

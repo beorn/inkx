@@ -7,7 +7,7 @@
 import { useCallback } from "react";
 import type { KNode } from "@km/core";
 import type { Vault } from "../vault-context.tsx";
-import type { BoardState } from "../types.ts";
+import type { TUIBoardState } from "../types.ts";
 import { actions } from "../ui-reducer.ts";
 
 // =============================================================================
@@ -16,7 +16,7 @@ import { actions } from "../ui-reducer.ts";
 
 interface UseBoardDialogsParams {
   vault: Vault;
-  state: BoardState;
+  state: TUIBoardState;
   dispatch: (
     action: ReturnType<(typeof actions)[keyof typeof actions]>,
   ) => void;

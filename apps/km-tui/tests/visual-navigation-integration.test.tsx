@@ -16,7 +16,7 @@ import { Board } from "../src/views/Board.tsx";
 import { VaultProvider } from "../src/vault-context.tsx";
 import { createLayoutRegistry } from "../src/card-positions.ts";
 import { createFakeVault } from "@km/storage";
-import type { BoardState } from "../src/types.ts";
+import type { TUIBoardState } from "../src/types.ts";
 import type { KNode } from "@km/core";
 
 const render = createTestRenderer({ columns: 80, rows: 24 });
@@ -43,8 +43,8 @@ function makeNode(
   };
 }
 
-// Helper to create a minimal BoardState (columns are derived from vault now)
-function makeBoardState(rootId: string): BoardState {
+// Helper to create a minimal TUIBoardState (columns are derived from vault now)
+function makeTUIBoardState(rootId: string): TUIBoardState {
   return {
     rootId,
     rootPath: null,
@@ -77,7 +77,7 @@ describe("Visual navigation integration: card position registration", () => {
       ],
     });
 
-    const state = makeBoardState("root");
+    const state = makeTUIBoardState("root");
 
     const { lastFrameText } = render(
       <VaultProvider vault={vault}>
@@ -131,7 +131,7 @@ describe("Visual navigation integration: card position registration", () => {
       ],
     });
 
-    const state = makeBoardState("root");
+    const state = makeTUIBoardState("root");
 
     render(
       <VaultProvider vault={vault}>
@@ -180,7 +180,7 @@ describe("Visual navigation integration: card position registration", () => {
       ],
     });
 
-    const state = makeBoardState("root");
+    const state = makeTUIBoardState("root");
 
     render(
       <VaultProvider vault={vault}>

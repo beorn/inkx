@@ -26,10 +26,8 @@ export type {
   JumpToColumnAction,
   CloseOrQuitAction,
   OutdentNodeAction,
-  BoardAction,
-  BoardState,
+  SimplifiedBoardAction,
   TNode,
-  TPath,
   ViewMode,
   TaskStatus,
 } from "./types.ts";

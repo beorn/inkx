@@ -121,11 +121,8 @@ export const zoomIn: CommandDef = {
   shortcuts: ["o"], // TUI uses 'o' for zoom in
   execute: (ctx) => {
     if (!ctx.currentNode) return null;
-    return {
-      type: "ZOOM_IN",
-      nodeId: ctx.currentNode.id,
-      nodes: [ctx.currentNode],
-    };
+    // SimplifiedBoardAction: just the nodeId, no tree data needed
+    return { type: "ZOOM_IN", nodeId: ctx.currentNode.id };
   },
 };
 
@@ -135,8 +132,9 @@ export const zoomOut: CommandDef = {
   description: "Return to previous zoom level (from zoom stack)",
   category: "Navigation",
   shortcuts: [], // Not directly bound - see goUpPath
-  execute: (ctx) => {
-    return { type: "ZOOM_OUT", nodes: ctx.boardState.nodes };
+  execute: () => {
+    // SimplifiedBoardAction: no tree data needed
+    return { type: "ZOOM_OUT" };
   },
 };
 

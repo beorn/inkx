@@ -25,12 +25,12 @@ import { handleKey, getCurrentCard } from "../src/state.ts";
 import { createFakeVault } from "@km/storage";
 import type { FakeVault, Vault } from "@km/storage";
 import type { KNode } from "@km/core";
-import type { BoardState, ColumnState, CardState } from "../src/types.ts";
+import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts";
 import { ulid } from "ulid";
 
 /** Helper to render BoardCore with test-friendly defaults */
 function renderBoardCore(
-  state: BoardState,
+  state: TUIBoardState,
   vault: Vault,
   options: { width?: number; height?: number } = {},
 ) {
@@ -81,10 +81,10 @@ function createNode(
 }
 
 /**
- * Create a BoardState from a FakeVault's nodes
+ * Create a TUIBoardState from a FakeVault's nodes
  * This builds state manually without needing rawQuery
  */
-function buildStateFromVault(vault: FakeVault, rootId: string): BoardState {
+function buildStateFromVault(vault: FakeVault, rootId: string): TUIBoardState {
   const columns: ColumnState[] = [];
   const columnNodes = vault.getChildren(rootId);
 

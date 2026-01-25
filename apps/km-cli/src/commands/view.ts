@@ -106,7 +106,7 @@ export const viewCommand = new Command("view")
 
     // Extract results (generator return types need double assertion)
     const { state, resolved } = results.buildView as unknown as {
-      state: import("@km/tui").BoardState | null;
+      state: import("@km/tui").TUIBoardState | null;
       resolved: ReturnType<typeof storageModule.resolvePathArg>;
     };
 

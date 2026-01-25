@@ -38,11 +38,11 @@ import { createInitialUIState } from "../src/ui-reducer.ts";
 import { createLayoutRegistry } from "../src/card-positions.ts";
 import { VaultProvider } from "../src/vault-context.tsx";
 import { NewItemDialog } from "../src/views/NewItemDialog.tsx";
-import type { BoardState } from "../src/types.ts";
+import type { TUIBoardState } from "../src/types.ts";
 
 /** Helper to render BoardCore with test-friendly defaults */
 function renderBoardCore(
-  state: BoardState,
+  state: TUIBoardState,
   vault: Vault,
   options: { width?: number; height?: number } = {},
 ) {

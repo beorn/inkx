@@ -9,7 +9,7 @@ import type { KNode } from "@km/core";
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number };
 import type {
-  BoardState,
+  TUIBoardState,
   ColumnState,
   CardState,
   BoardAction,
@@ -45,7 +45,7 @@ export const getParentContext = (
 /**
  * Create an empty board state
  */
-export function createEmptyState(): BoardState {
+export function createEmptyState(): TUIBoardState {
   return {
     rootId: null,
     rootPath: null,
@@ -70,7 +70,7 @@ export function createEmptyState(): BoardState {
 export function initBoardState(
   vault: Vault,
   rootId?: string,
-): BoardState | null {
+): TUIBoardState | null {
   if (rootId) {
     // Use vault.getNode for ID lookup (caller should resolve path/filename before calling)
     const root = vault.getNode(rootId);
@@ -162,7 +162,7 @@ export function initBoardState(
 export function* initBoardStateGenerator(
   vault: Vault,
   rootId?: string,
-): Generator<StepYield, BoardState | null, unknown> {
+): Generator<StepYield, TUIBoardState | null, unknown> {
   if (rootId) {
     // Use vault.getNode for ID lookup (caller should resolve path/filename before calling)
     const root = vault.getNode(rootId);
@@ -258,7 +258,7 @@ export function* initBoardStateGenerator(
 export function* buildBoardStateGenerator(
   vault: Vault,
   rootId: string,
-): Generator<StepYield, BoardState, unknown> {
+): Generator<StepYield, TUIBoardState, unknown> {
   const rootNode = vault.getNode(rootId);
   const wipLimits = extractWipLimits(rootNode);
   const collapsedColumns = new Set<number>();
@@ -492,7 +492,7 @@ export function parseColumnRules(content: string): ColumnRules {
  * For markdown files, the parser merges the H1 into the file node,
  * so H2 sections are direct children of the file node (columns).
  */
-export function buildBoardState(vault: Vault, rootId: string): BoardState {
+export function buildBoardState(vault: Vault, rootId: string): TUIBoardState {
   const rootNode = vault.getNode(rootId);
   const wipLimits = extractWipLimits(rootNode);
   const collapsedColumns = new Set<number>();
@@ -602,7 +602,7 @@ export function buildBoardState(vault: Vault, rootId: string): BoardState {
 /**
  * Get the current card (if any)
  */
-export function getCurrentCard(state: BoardState): CardState | null {
+export function getCurrentCard(state: TUIBoardState): CardState | null {
   const col = state.columns[state.colIndex];
   return col?.cards[state.cardIndex] ?? null;
 }
@@ -623,7 +623,7 @@ function getFirstRealCardIndex(col: ColumnState | null): number {
 /**
  * Get the current column (if any)
  */
-export function getCurrentColumn(state: BoardState): ColumnState | null {
+export function getCurrentColumn(state: TUIBoardState): ColumnState | null {
   return state.columns[state.colIndex] ?? null;
 }
 
@@ -636,9 +636,9 @@ export function getCurrentColumn(state: BoardState): ColumnState | null {
  */
 export function handleKey(
   vault: Vault,
-  state: BoardState,
+  state: TUIBoardState,
   key: string,
-): { state: BoardState; action: BoardAction } {
+): { state: TUIBoardState; action: BoardAction } {
   // Clone state for immutability
   const newState = { ...state };
   const col = getCurrentColumn(state);
@@ -927,7 +927,7 @@ export function handleKey(
 /**
  * Check if search has any visible matches
  */
-function hasSearchMatches(state: BoardState): boolean {
+function hasSearchMatches(state: TUIBoardState): boolean {
   if (!state.searchQuery) return true; // Empty query matches all
 
   const query = state.searchQuery.toLowerCase();
@@ -950,9 +950,9 @@ function hasSearchMatches(state: BoardState): boolean {
  * - createTask: if set, contains the text for a new task to create (NV-style)
  */
 export function handleSearchKey(
-  state: BoardState,
+  state: TUIBoardState,
   key: string,
-): { state: BoardState; exitSearch: boolean; createTask?: string } {
+): { state: TUIBoardState; exitSearch: boolean; createTask?: string } {
   const newState = { ...state };
 
   // Escape - cancel search without action

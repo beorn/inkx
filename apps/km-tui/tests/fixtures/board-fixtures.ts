@@ -7,7 +7,7 @@
 
 import { ulid } from "ulid";
 import type { KNode } from "@km/core";
-import type { BoardState, CardState, ColumnState } from "../../src/types.ts";
+import type { TUIBoardState, CardState, ColumnState } from "../../src/types.ts";
 import { createEmptyState } from "../../src/state.ts";
 
 /**
@@ -57,12 +57,12 @@ export function createColumnState(
 }
 
 /**
- * Create a BoardState with columns
+ * Create a TUIBoardState with columns
  */
 export function createBoardState(
   columns: ColumnState[] = [],
-  overrides: Partial<BoardState> = {},
-): BoardState {
+  overrides: Partial<TUIBoardState> = {},
+): TUIBoardState {
   const base = createEmptyState();
   return {
     ...base,
@@ -77,7 +77,7 @@ export function createBoardState(
  * Useful for testing navigation, rendering, etc.
  */
 export function createSimpleTestBoard(): {
-  state: BoardState;
+  state: TUIBoardState;
   nodeIds: {
     root: string;
     col1: string;
@@ -143,7 +143,7 @@ export function createSimpleTestBoard(): {
  * Create a nested board for zoom testing
  */
 export function createNestedTestBoard(): {
-  state: BoardState;
+  state: TUIBoardState;
   nodeIds: {
     root: string;
     col: string;
@@ -220,7 +220,7 @@ export function createNestedTestBoard(): {
 /**
  * Create a board state with task statuses for status icon testing
  */
-export function createStatusTestBoard(): BoardState {
+export function createStatusTestBoard(): TUIBoardState {
   const col = createColumnState({ content: "Tasks" }, [
     createCardState({
       content: "Todo task",

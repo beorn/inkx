@@ -15,7 +15,6 @@ import type {
   CommandDef,
   CommandContext,
   TNode,
-  BoardState,
   ViewMode,
 } from "../src/types.ts";
 
@@ -46,28 +45,22 @@ function createNode(
   };
 }
 
-// Helper to create minimal BoardState
-function createBoardState(nodes: TNode[], cursor: number[] = []): BoardState {
-  const firstIdx = cursor[0];
+// Helper to create minimal CommandContext
+function createContext(
+  overrides: Partial<CommandContext> = {},
+): CommandContext {
   return {
-    rootId: null,
-    rootPath: null,
-    nodes,
-    cursor,
-    cursorNodeId: firstIdx !== undefined ? (nodes[firstIdx]?.id ?? null) : null,
-    curswantX: null,
-    curswantY: null,
-    selectedNodes: new Set(),
-    foldedNodes: new Set(),
-    collapsedNodes: new Set(),
-    zoomStack: [],
-    navHistory: [],
-    navHistoryIndex: 0,
+    currentNode: null,
+    currentNodeId: null,
+    selectedNodes: [],
+    viewMode: "cards",
+    siblingCount: 0,
+    siblingIndex: 0,
+    columnIndex: 0,
+    columnCount: 0,
     moveMode: false,
-    moveSourceNodes: [],
-    moveSourceCursor: [],
-    maxOutlineDepth: 3,
-    maxContentLines: 2,
+    foldedNodes: new Set(),
+    ...overrides,
   };
 }
 
@@ -77,7 +70,7 @@ describe("executeCommand", () => {
   });
 
   it("returns null for unknown command id", () => {
-    const ctx = buildContext(createBoardState([]), "cards");
+    const ctx = createContext();
     const result = executeCommand("nonexistent_cmd", ctx);
 
     expect(result).toBeNull();
@@ -93,7 +86,7 @@ describe("executeCommand", () => {
       execute: () => testAction,
     });
 
-    const ctx = buildContext(createBoardState([]), "cards");
+    const ctx = createContext();
     const result = executeCommand("test_cmd", ctx);
 
     expect(result).toEqual(testAction);
@@ -114,8 +107,11 @@ describe("executeCommand", () => {
     });
 
     const testNode = createNode("test-node");
-    const boardState = createBoardState([testNode], [0]);
-    const ctx = buildContext(boardState, "list");
+    const ctx = createContext({
+      currentNode: testNode,
+      currentNodeId: testNode.id,
+      viewMode: "list",
+    });
 
     executeCommand("capture_ctx", ctx);
 
@@ -138,7 +134,7 @@ describe("executeCommand", () => {
       execute: () => actions,
     });
 
-    const ctx = buildContext(createBoardState([]), "cards");
+    const ctx = createContext();
     const result = executeCommand("multi_action", ctx);
 
     expect(result).toEqual(actions);
@@ -153,7 +149,7 @@ describe("executeCommand", () => {
       execute: () => null,
     });
 
-    const ctx = buildContext(createBoardState([]), "cards");
+    const ctx = createContext();
     const result = executeCommand("null_cmd", ctx);
 
     expect(result).toBeNull();
@@ -161,211 +157,81 @@ describe("executeCommand", () => {
 });
 
 describe("buildContext", () => {
-  describe("currentNode resolution from cursor path", () => {
-    it("returns null currentNode for empty nodes", () => {
-      const ctx = buildContext(createBoardState([]), "cards");
-
-      expect(ctx.currentNode).toBeNull();
-      expect(ctx.currentNodeId).toBeNull();
+  it("creates context with provided fields", () => {
+    const testNode = createNode("test-node");
+    const ctx = buildContext("cards", {
+      currentNode: testNode,
+      currentNodeId: testNode.id,
+      selectedNodes: ["a", "b"],
+      siblingCount: 5,
+      siblingIndex: 2,
+      columnIndex: 1,
+      columnCount: 3,
+      moveMode: false,
+      foldedNodes: new Set(["folded-1"]),
     });
 
-    it("returns null currentNode for empty cursor path", () => {
-      const nodes = [createNode("col-1")];
-      const ctx = buildContext(createBoardState(nodes, []), "cards");
-
-      expect(ctx.currentNode).toBeNull();
-    });
-
-    it("resolves single-level cursor path", () => {
-      const node1 = createNode("node-1");
-      const node2 = createNode("node-2");
-      const nodes = [node1, node2];
-
-      const ctx = buildContext(createBoardState(nodes, [1]), "cards");
-
-      expect(ctx.currentNode).toEqual(node2);
-      expect(ctx.currentNodeId).toBe("node-2");
-    });
-
-    it("resolves nested cursor path", () => {
-      const child1 = createNode("child-1");
-      const child2 = createNode("child-2");
-      const parent = createNode("parent", [child1, child2]);
-      const nodes = [parent];
-
-      const ctx = buildContext(createBoardState(nodes, [0, 1]), "cards");
-
-      expect(ctx.currentNode).toEqual(child2);
-      expect(ctx.currentNodeId).toBe("child-2");
-    });
-
-    it("resolves deeply nested cursor path", () => {
-      const deepChild = createNode("deep-child");
-      const midChild = createNode("mid-child", [deepChild]);
-      const topParent = createNode("top-parent", [midChild]);
-      const nodes = [topParent];
-
-      const ctx = buildContext(createBoardState(nodes, [0, 0, 0]), "cards");
-
-      expect(ctx.currentNode).toEqual(deepChild);
-      expect(ctx.currentNodeId).toBe("deep-child");
-    });
-
-    it("handles out-of-bounds cursor gracefully", () => {
-      const node = createNode("only-node");
-      const nodes = [node];
-
-      // Cursor points beyond available nodes
-      const ctx = buildContext(createBoardState(nodes, [5]), "cards");
-
-      expect(ctx.currentNode).toBeNull();
-    });
-
-    it("handles partial path traversal (child index out of bounds)", () => {
-      const parent = createNode("parent", [createNode("child")]);
-      const nodes = [parent];
-
-      // Parent exists, but no child at index 5
-      // Implementation note: buildContext traverses as far as it can,
-      // and if the final index is out of bounds at a level, it returns
-      // the last valid node found during traversal (the parent)
-      const ctx = buildContext(createBoardState(nodes, [0, 5]), "cards");
-
-      // The algorithm sets currentNode during traversal, so parent remains
-      expect(ctx.currentNode).toEqual(parent);
-    });
+    expect(ctx.viewMode).toBe("cards");
+    expect(ctx.currentNode).toEqual(testNode);
+    expect(ctx.currentNodeId).toBe("test-node");
+    expect(ctx.selectedNodes).toEqual(["a", "b"]);
+    expect(ctx.siblingCount).toBe(5);
+    expect(ctx.siblingIndex).toBe(2);
+    expect(ctx.columnIndex).toBe(1);
+    expect(ctx.columnCount).toBe(3);
+    expect(ctx.moveMode).toBe(false);
+    expect(ctx.foldedNodes.has("folded-1")).toBe(true);
   });
 
-  describe("sibling information", () => {
-    it("calculates siblingCount for top-level nodes", () => {
-      const nodes = [createNode("a"), createNode("b"), createNode("c")];
-      const ctx = buildContext(createBoardState(nodes, [1]), "cards");
+  it("includes viewMode", () => {
+    const viewModes: ViewMode[] = ["cards", "list", "columns", "tabs"];
 
-      expect(ctx.siblingCount).toBe(3);
-      expect(ctx.siblingIndex).toBe(1);
-    });
-
-    it("calculates siblingCount for nested nodes", () => {
-      const children = [
-        createNode("child-1"),
-        createNode("child-2"),
-        createNode("child-3"),
-        createNode("child-4"),
-      ];
-      const parent = createNode("parent", children);
-      const nodes = [parent];
-
-      const ctx = buildContext(createBoardState(nodes, [0, 2]), "cards");
-
-      expect(ctx.siblingCount).toBe(4);
-      expect(ctx.siblingIndex).toBe(2);
-    });
-
-    it("returns 0 siblingIndex for empty cursor", () => {
-      const nodes = [createNode("a")];
-      const ctx = buildContext(createBoardState(nodes, []), "cards");
-
-      expect(ctx.siblingIndex).toBe(0);
-    });
-  });
-
-  describe("column information", () => {
-    it("calculates columnIndex and columnCount", () => {
-      const nodes = [
-        createNode("col-a", [createNode("card-1")]),
-        createNode("col-b", [createNode("card-2")]),
-        createNode("col-c", [createNode("card-3")]),
-      ];
-
-      const ctx = buildContext(createBoardState(nodes, [1, 0]), "columns");
-
-      expect(ctx.columnIndex).toBe(1);
-      expect(ctx.columnCount).toBe(3);
-    });
-
-    it("returns 0 columnIndex for cursor starting at first column", () => {
-      const nodes = [createNode("col-a"), createNode("col-b")];
-      const ctx = buildContext(createBoardState(nodes, [0]), "columns");
-
-      expect(ctx.columnIndex).toBe(0);
-    });
-
-    it("returns correct columnCount for empty nodes", () => {
-      const ctx = buildContext(createBoardState([], []), "columns");
-
-      expect(ctx.columnCount).toBe(0);
-    });
-  });
-
-  describe("boardState and viewMode pass-through", () => {
-    it("includes original boardState reference", () => {
-      const boardState = createBoardState([createNode("a")], [0]);
-      const ctx = buildContext(boardState, "cards");
-
-      expect(ctx.boardState).toBe(boardState);
-    });
-
-    it("includes viewMode", () => {
-      const viewModes: ViewMode[] = ["cards", "list", "columns", "tabs"];
-
-      for (const mode of viewModes) {
-        const ctx = buildContext(createBoardState([]), mode);
-        expect(ctx.viewMode).toBe(mode);
-      }
-    });
-  });
-
-  describe("selectedNodes conversion", () => {
-    it("converts Set to Array", () => {
-      const boardState = createBoardState(
-        [createNode("a"), createNode("b")],
-        [0],
-      );
-      boardState.selectedNodes = new Set(["a", "b"]);
-
-      const ctx = buildContext(boardState, "cards");
-
-      expect(Array.isArray(ctx.selectedNodes)).toBe(true);
-      expect(ctx.selectedNodes).toContain("a");
-      expect(ctx.selectedNodes).toContain("b");
-    });
-
-    it("returns empty array for no selection", () => {
-      const ctx = buildContext(createBoardState([]), "cards");
-
-      expect(ctx.selectedNodes).toEqual([]);
-    });
-  });
-
-  describe("cursor pass-through", () => {
-    it("includes cursor path from boardState", () => {
-      const cursor = [1, 2, 3];
-      const ctx = buildContext(createBoardState([], cursor), "cards");
-
-      expect(ctx.cursor).toEqual(cursor);
-    });
-  });
-
-  describe("extras override", () => {
-    it("allows overriding context fields via extras", () => {
-      const nodes = [createNode("a")];
-      const ctx = buildContext(createBoardState(nodes, [0]), "cards", {
-        columnIndex: 99,
-        siblingCount: 100,
+    for (const mode of viewModes) {
+      const ctx = buildContext(mode, {
+        currentNode: null,
+        currentNodeId: null,
+        selectedNodes: [],
+        siblingCount: 0,
+        siblingIndex: 0,
+        columnIndex: 0,
+        columnCount: 0,
+        moveMode: false,
+        foldedNodes: new Set(),
       });
+      expect(ctx.viewMode).toBe(mode);
+    }
+  });
 
-      expect(ctx.columnIndex).toBe(99);
-      expect(ctx.siblingCount).toBe(100);
+  it("handles null currentNode", () => {
+    const ctx = buildContext("cards", {
+      currentNode: null,
+      currentNodeId: null,
+      selectedNodes: [],
+      siblingCount: 0,
+      siblingIndex: 0,
+      columnIndex: 0,
+      columnCount: 0,
+      moveMode: false,
+      foldedNodes: new Set(),
     });
 
-    it("extras can add custom fields", () => {
-      const ctx = buildContext(createBoardState([]), "cards", {
-        customField: "custom-value",
-      } as Partial<CommandContext> & { customField: string });
+    expect(ctx.currentNode).toBeNull();
+    expect(ctx.currentNodeId).toBeNull();
+  });
 
-      expect(
-        (ctx as CommandContext & { customField: string }).customField,
-      ).toBe("custom-value");
+  it("handles empty selectedNodes", () => {
+    const ctx = buildContext("cards", {
+      currentNode: null,
+      currentNodeId: null,
+      selectedNodes: [],
+      siblingCount: 0,
+      siblingIndex: 0,
+      columnIndex: 0,
+      columnCount: 0,
+      moveMode: false,
+      foldedNodes: new Set(),
     });
+
+    expect(ctx.selectedNodes).toEqual([]);
   });
 });

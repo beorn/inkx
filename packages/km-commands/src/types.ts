@@ -1,10 +1,9 @@
 import type {
-  BoardAction,
-  BoardState,
+  SimplifiedBoardAction,
   TNode,
-  TPath,
   ViewMode,
   TaskStatus,
+  NodeDirection,
 } from "@km/board";
 
 export type CommandCategory =
@@ -17,17 +16,32 @@ export type CommandCategory =
 
 export type CommandMode = "normal" | "move" | "search" | "input";
 
+/**
+ * Command execution context.
+ *
+ * All fields are passed directly by the caller - no tree traversal needed.
+ * Commands receive pre-computed position info and can return actions.
+ */
 export interface CommandContext {
+  // Current node (passed by caller)
   currentNode: TNode | null;
   currentNodeId: string | null;
+
+  // Selection
   selectedNodes: string[];
-  cursor: TPath;
-  boardState: BoardState;
+
+  // View
   viewMode: ViewMode;
-  siblingCount: number;
+
+  // Position (passed by caller, not derived from tree)
   siblingIndex: number;
+  siblingCount: number;
   columnIndex: number;
   columnCount: number;
+
+  // State flags (for commands that need them)
+  moveMode: boolean;
+  foldedNodes: Set<string>;
 }
 
 export interface CommandDef {
@@ -160,12 +174,110 @@ export type UIAction =
   | SelectAllProgressiveAction
   | TUIAction;
 
+// High-level navigation actions (interpreted by TUI, not dispatched to reducer)
+// These are returned by commands and converted to SimplifiedBoardAction by the TUI handler
+export interface CursorMoveAction {
+  type: "CURSOR_MOVE";
+  dir: NodeDirection;
+}
+
+export interface NavBackAction {
+  type: "NAV_BACK";
+}
+
+export interface NavForwardAction {
+  type: "NAV_FORWARD";
+}
+
+export interface FoldLevelAction {
+  type: "FOLD_LEVEL";
+  depth: number;
+}
+
+export interface UnfoldLevelAction {
+  type: "UNFOLD_LEVEL";
+  depth: number;
+}
+
+export interface SelectAllSiblingsAction {
+  type: "SELECT_ALL_SIBLINGS";
+}
+
+export interface SelectAllAction {
+  type: "SELECT_ALL";
+}
+
+export interface ExtendSelectUpAction {
+  type: "EXTEND_SELECT_UP";
+}
+
+export interface ExtendSelectDownAction {
+  type: "EXTEND_SELECT_DOWN";
+}
+
+export interface ExtendSelectLeftAction {
+  type: "EXTEND_SELECT_LEFT";
+}
+
+export interface ExtendSelectRightAction {
+  type: "EXTEND_SELECT_RIGHT";
+}
+
+export interface ShiftUpAction {
+  type: "SHIFT_UP";
+}
+
+export interface ShiftDownAction {
+  type: "SHIFT_DOWN";
+}
+
+export interface ShiftLeftAction {
+  type: "SHIFT_LEFT";
+}
+
+export interface ShiftRightAction {
+  type: "SHIFT_RIGHT";
+}
+
+export interface EnterMoveModeAction {
+  type: "ENTER_MOVE_MODE";
+}
+
+export interface ConfirmMoveAction {
+  type: "CONFIRM_MOVE";
+}
+
+export interface CancelMoveAction {
+  type: "CANCEL_MOVE";
+}
+
+export type NavigationAction =
+  | CursorMoveAction
+  | NavBackAction
+  | NavForwardAction
+  | FoldLevelAction
+  | UnfoldLevelAction
+  | SelectAllSiblingsAction
+  | SelectAllAction
+  | ExtendSelectUpAction
+  | ExtendSelectDownAction
+  | ExtendSelectLeftAction
+  | ExtendSelectRightAction
+  | ShiftUpAction
+  | ShiftDownAction
+  | ShiftLeftAction
+  | ShiftRightAction
+  | EnterMoveModeAction
+  | ConfirmMoveAction
+  | CancelMoveAction;
+
 // Combined action type that commands can return
 export type CommandAction =
-  | BoardAction
+  | SimplifiedBoardAction
+  | NavigationAction
   | TaskSetStatusAction
   | HistoryAction
   | UIAction;
 
 // Re-export for convenience
-export type { BoardAction, BoardState, TNode, TPath, ViewMode, TaskStatus };
+export type { SimplifiedBoardAction, TNode, ViewMode, TaskStatus };

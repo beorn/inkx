@@ -18,9 +18,9 @@ import {
   executeCommand as executeRegisteredCommand,
   type CommandAction,
   type CommandContext,
-  type BoardState,
   type ViewMode,
 } from "@km/commands";
+import type { TNode } from "@km/board";
 
 // Re-export types for consumers
 export type { CommandAction, CommandContext };
@@ -63,16 +63,39 @@ export function getCommandInfo(
 }
 
 /**
+ * Shell context options for building CommandContext.
+ * Most fields have sensible defaults for shell use.
+ */
+interface ShellContextOptions {
+  currentNode?: TNode | null;
+  currentNodeId?: string | null;
+  selectedNodes?: string[];
+  siblingIndex?: number;
+  siblingCount?: number;
+  columnIndex?: number;
+  columnCount?: number;
+  moveMode?: boolean;
+  foldedNodes?: Set<string>;
+}
+
+/**
  * Build CommandContext from shell state.
  * Shell doesn't have all UI context, so we provide sensible defaults.
  */
 export function buildShellContext(
-  state: BoardState,
   viewMode: ViewMode = "list",
+  options: ShellContextOptions = {},
 ): CommandContext {
-  return buildContext(state, viewMode, {
-    // Shell doesn't track these UI-specific values precisely
-    // but buildContext computes them from boardState
+  return buildContext(viewMode, {
+    currentNode: options.currentNode ?? null,
+    currentNodeId: options.currentNodeId ?? null,
+    selectedNodes: options.selectedNodes ?? [],
+    siblingIndex: options.siblingIndex ?? 0,
+    siblingCount: options.siblingCount ?? 0,
+    columnIndex: options.columnIndex ?? 0,
+    columnCount: options.columnCount ?? 0,
+    moveMode: options.moveMode ?? false,
+    foldedNodes: options.foldedNodes ?? new Set(),
   });
 }
 
@@ -80,14 +103,14 @@ export function buildShellContext(
  * Try to execute a command by ID through the unified registry.
  *
  * @param commandId - The command ID (e.g., "cursor_next")
- * @param state - Current BoardState
  * @param viewMode - Current view mode (defaults to "list" for shell)
+ * @param options - Optional context fields
  * @returns Actions to execute, or null if command not found/not applicable
  */
 export function tryExecuteRegisteredCommand(
   commandId: string,
-  state: BoardState,
   viewMode: ViewMode = "list",
+  options: ShellContextOptions = {},
 ): CommandAction | CommandAction[] | null {
   initShellCommands();
 
@@ -96,7 +119,7 @@ export function tryExecuteRegisteredCommand(
     return null;
   }
 
-  const ctx = buildShellContext(state, viewMode);
+  const ctx = buildShellContext(viewMode, options);
   return executeRegisteredCommand(commandId, ctx);
 }
 

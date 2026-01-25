@@ -7,7 +7,7 @@
 import type { CardState, SelectionKey } from "./types.ts";
 import { makeSelectionKey } from "./types.ts";
 import { actions } from "./ui-reducer.ts";
-import type { KeyboardContext } from "./keyboard-types.ts";
+import type { TUIContext } from "./tui-context.ts";
 import {
   getSelectedCardIndices,
   refreshBoardState,
@@ -20,7 +20,7 @@ import { buildTreeNodes } from "./board-adapter.ts";
 
 /** Move card within column (up/down) */
 export function moveCardInColumn(
-  ctx: KeyboardContext,
+  ctx: TUIContext,
   card: CardState,
   direction: "up" | "down",
 ): void {
@@ -116,7 +116,7 @@ export function moveCardInColumn(
 
 /** Move card to different column (left/right) */
 export function moveCardToColumn(
-  ctx: KeyboardContext,
+  ctx: TUIContext,
   card: CardState,
   direction: "left" | "right",
 ): void {
@@ -176,7 +176,7 @@ export function moveCardToColumn(
 
 /** Move card to a specific column by index (for Opt+1-9) */
 export function moveCardToColumnByIndex(
-  ctx: KeyboardContext,
+  ctx: TUIContext,
   card: CardState,
   targetColIndex: number,
 ): void {
@@ -245,7 +245,7 @@ export function moveCardToColumnByIndex(
 // =============================================================================
 
 /** Indent node: make it a child of the sibling above it */
-export function indentNode(ctx: KeyboardContext, card: CardState): void {
+export function indentNode(ctx: TUIContext, card: CardState): void {
   const col = ctx.layout.columns[ctx.layout.colIndex];
   if (!col) return;
 
@@ -264,7 +264,7 @@ export function indentNode(ctx: KeyboardContext, card: CardState): void {
 }
 
 /** Outdent node: make it a sibling of its parent */
-export function outdentNode(ctx: KeyboardContext, card: CardState): void {
+export function outdentNode(ctx: TUIContext, card: CardState): void {
   const parentId = card.node.parent_id;
   if (!parentId) {
     process.stdout.write("\x07");
