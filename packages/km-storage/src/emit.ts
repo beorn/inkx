@@ -10,6 +10,8 @@ const debug = createDebug("km:storage:emit")
 import { ulid } from "ulid"
 import { join } from "path"
 import type { Event } from "@km/core"
+import { tryGetContextDb } from "./db-instance.ts"
+import { applyEventWithDb } from "./db-events.ts"
 
 // Event hub for real-time broadcasting (set by km-code)
 let eventHub: { broadcast: (event: Event) => void } | null = null
@@ -137,8 +139,13 @@ export function emit(
     appendFileSync(eventsPath, JSON.stringify(full) + "\n")
   }
 
-  // 2. Apply to state.db if loaded
-  if (db) {
+  // 2. Apply to state.db if loaded (prefer context db for test isolation)
+  const contextDb = tryGetContextDb()
+  if (contextDb) {
+    // Use context db for test isolation
+    applyEventWithDb(contextDb, full)
+  } else if (db) {
+    // Fall back to global db for production
     db.applyEvent(full)
   }
 

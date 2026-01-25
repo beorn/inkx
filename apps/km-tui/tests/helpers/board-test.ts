@@ -99,13 +99,15 @@ import {
  * );
  */
 export function item(content: string, ...childArrays: KNode[][]): KNode[] {
+  // Nodes with children become folders (columns), leaf nodes become tasks (cards)
+  const hasChildren = childArrays.length > 0
   const node: KNode = {
     id: content,
-    type: "task",
-    content,
+    type: hasChildren ? "folder" : "task",
+    content: hasChildren ? undefined : content,
+    data: hasChildren ? { name: content } : {},
     parent_id: null,
     parent_idx: 0,
-    data: {},
     link_to: null,
     created_at: Date.now(),
     updated_at: Date.now(),

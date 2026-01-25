@@ -435,6 +435,89 @@ function handleTaskStatusCycle(ctx: TUIContext): void {
   refreshBoardState(ctx)
 }
 
+/**
+ * Handle hierarchical vertical navigation (j/k).
+ * Navigates through the visual hierarchy: board → columns → cards
+ *
+ * @param ctx - TUI context
+ * @param dir - "up" (k) or "down" (j)
+ * @returns nodeId to select, or null if can't move
+ */
+function handleHierarchicalNavigation(
+  ctx: TUIContext,
+  dir: "up" | "down",
+): string | null {
+  const { state, boardState, vault } = ctx
+  const { cursorNodeId, rootId } = boardState
+  const col = state.columns[state.colIndex]
+
+  if (!cursorNodeId) {
+    // No cursor - can't navigate
+    debug("h-nav: no cursor")
+    return null
+  }
+
+  // Determine current level in hierarchy
+  const isAtBoardLevel = cursorNodeId === rootId
+  const isAtColumnLevel = state.columns.some((c) => c.node.id === cursorNodeId)
+  const isAtCardLevel = !isAtBoardLevel && !isAtColumnLevel
+
+  debug(
+    "h-nav: dir=%s cursor=%s board=%s col=%s card=%s",
+    dir,
+    cursorNodeId.slice(-4),
+    isAtBoardLevel,
+    isAtColumnLevel,
+    isAtCardLevel,
+  )
+
+  if (dir === "down") {
+    // j: move down through hierarchy
+    if (isAtBoardLevel) {
+      // Board → first column header
+      const firstCol = state.columns[0]
+      return firstCol?.node.id ?? null
+    }
+
+    if (isAtColumnLevel) {
+      // Column header → first card in column
+      if (col && col.cards.length > 0) {
+        return col.cards[0]?.node.id ?? null
+      }
+      // Empty column - stay at header
+      return null
+    }
+
+    if (isAtCardLevel) {
+      // Card → next card (sibling navigation)
+      return handleTreeNavigation("next", boardState, vault)
+    }
+  } else {
+    // k: move up through hierarchy
+    if (isAtCardLevel) {
+      // Try to move to previous card first
+      const prevCard = handleTreeNavigation("prev", boardState, vault)
+      if (prevCard) {
+        return prevCard
+      }
+      // At first card → column header
+      return col?.node.id ?? null
+    }
+
+    if (isAtColumnLevel) {
+      // Column header → board title
+      return rootId
+    }
+
+    if (isAtBoardLevel) {
+      // Already at board - can't go higher
+      return null
+    }
+  }
+
+  return null
+}
+
 function handleCursorMove(ctx: TUIContext, dir: string): void {
   const { state, ui, dispatch, dispatchBoard, positionRegistry } = ctx
   const col = state.columns[state.colIndex]
@@ -627,10 +710,18 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     return
   }
 
+  // Hierarchical vertical navigation (j/k)
+  if (dir === "up" || dir === "down") {
+    positionRegistry.clearStickyY()
+    const targetId = handleHierarchicalNavigation(ctx, dir)
+    if (targetId) {
+      dispatchBoard({ type: "SELECT", nodeId: targetId })
+    }
+    return
+  }
+
   // Normal cursor movement (first, last, etc.)
-  // Map visual directions (up/down) to tree directions (prev/next)
-  const treeDir =
-    dir === "up" ? "prev" : dir === "down" ? "next" : (dir as TreeDirection)
+  const treeDir = dir as TreeDirection
   const targetId = handleTreeNavigation(treeDir, ctx.boardState, ctx.vault)
   if (targetId) dispatchBoard({ type: "SELECT", nodeId: targetId })
 }

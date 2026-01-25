@@ -14,19 +14,10 @@ import { dirname, basename } from "path"
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
 import { emitNodeCreated, emitNodeUpdated, emitNodeDeleted } from "../emit.ts"
-import {
-  getNodeByPath,
-  getNodesUnderPath,
-  getFileWithChildren,
-  getNodeContentHash,
-  findFileByName,
-  findChildByContent,
-  addLink,
-  removeLinksFromSource,
-  resolveLinks,
-  hashContent,
-  parseMarkdownWithLinks,
-} from "../index.ts"
+import { getNodeByPath, getNodesUnderPath, getFileWithChildren, getNodeContentHash } from "../db-queries/core-lookup.ts"
+import { findFileByName, findChildByContent } from "../db-queries/wikilink-resolver.ts"
+import { addLink, removeLinksFromSource, resolveLinks } from "../db-links.ts"
+import { hashContent, parseMarkdownWithLinks } from "../index.ts"
 import { scanDirectory } from "./watcher.ts"
 
 export interface ReconcileOp {

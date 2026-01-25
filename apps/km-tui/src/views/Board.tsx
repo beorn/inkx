@@ -188,6 +188,7 @@ export function BoardCore({
           <Box
             id={state.rootId ?? undefined}
             data-view="board"
+            data-cursor={isBoardSelected}
             flexDirection="column"
             width={termWidth}
             height={termHeight}
@@ -419,10 +420,17 @@ export function Board({
 
   // Derive initial cursorNodeId from initialState
   const initialCursorNodeId = useMemo(() => {
+    debug(
+      "deriving initial cursor: colIdx=%d cardIdx=%d",
+      initialState.colIndex,
+      initialState.cardIndex,
+    )
     if (initialState.colIndex >= 0) {
       const col = initialState.columns[initialState.colIndex]
+      debug("  col=%s cards=%d", col?.node.id, col?.cards.length ?? 0)
       if (col && initialState.cardIndex >= 0) {
         const card = col.cards[initialState.cardIndex]
+        debug("  card=%s", card?.node.id)
         return card?.node.id ?? col.node.id
       }
       return col?.node.id ?? null

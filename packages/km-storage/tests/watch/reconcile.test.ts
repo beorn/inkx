@@ -13,7 +13,8 @@ import {
   applyReconcileOps,
   getParentNodeId,
 } from "../../src/watch/reconcile.ts"
-import { getNodeByPath, getChildren } from "../../src/db.ts"
+import { getNodeByPath } from "../../src/db-queries/core-lookup.ts"
+import { getChildren } from "../../src/db-queries/tree-traversal.ts"
 import { rebuildState } from "../../src/rebuild.ts"
 import { withTestEnv } from "@km/storage"
 
@@ -65,7 +66,7 @@ describe("reconcile.ts", () => {
 
         await applyReconcileOps(db, createOps, vaultDir)
 
-        const node = getNodeByPath(filePath)
+        const node = getNodeByPath(db, filePath)
         expect(node).not.toBeNull()
 
         rmSync(filePath)
@@ -85,7 +86,7 @@ describe("reconcile.ts", () => {
         const createOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, createOps, vaultDir)
 
-        const node = getNodeByPath(filePath)
+        const node = getNodeByPath(db, filePath)
         expect(node).not.toBeNull()
 
         writeFileSync(filePath, "# Modified Content")
@@ -107,7 +108,7 @@ describe("reconcile.ts", () => {
         const createOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, createOps, vaultDir)
 
-        const node = getNodeByPath(filePath)
+        const node = getNodeByPath(db, filePath)
         expect(node).not.toBeNull()
         expect(node!.fs_mtime).toBeDefined()
 
@@ -130,7 +131,7 @@ describe("reconcile.ts", () => {
         const createOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, createOps, vaultDir)
 
-        const node = getNodeByPath(oldPath)
+        const node = getNodeByPath(db, oldPath)
         expect(node).not.toBeNull()
         expect(node!.fs_ino).toBeDefined()
         const originalIno = node!.fs_ino!
@@ -185,11 +186,11 @@ describe("reconcile.ts", () => {
 
         await applyReconcileOps(db, ops, vaultDir)
 
-        const fileNode = getNodeByPath(filePath)
+        const fileNode = getNodeByPath(db, filePath)
         expect(fileNode).not.toBeNull()
         expect(fileNode!.type).toBe("file")
 
-        const children = getChildren(fileNode!.id)
+        const children = getChildren(db, fileNode!.id)
         const tasks = children.filter((n) => n.type === "task")
         expect(tasks.length).toBe(2)
       }))
@@ -202,7 +203,7 @@ describe("reconcile.ts", () => {
         const ops = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, ops, vaultDir)
 
-        const folderNode = getNodeByPath(folderPath)
+        const folderNode = getNodeByPath(db, folderPath)
         expect(folderNode).not.toBeNull()
         expect(folderNode!.type).toBe("folder")
       }))
@@ -215,13 +216,13 @@ describe("reconcile.ts", () => {
         const createOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, createOps, vaultDir)
 
-        expect(getNodeByPath(filePath)).not.toBeNull()
+        expect(getNodeByPath(db, filePath)).not.toBeNull()
 
         rmSync(filePath)
         const deleteOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, deleteOps, vaultDir)
 
-        expect(getNodeByPath(filePath)).toBeNull()
+        expect(getNodeByPath(db, filePath)).toBeNull()
       }))
 
     test("handles rename operations", () =>
@@ -232,7 +233,7 @@ describe("reconcile.ts", () => {
         const createOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, createOps, vaultDir)
 
-        const originalNode = getNodeByPath(oldPath)
+        const originalNode = getNodeByPath(db, oldPath)
         expect(originalNode).not.toBeNull()
         const originalId = originalNode!.id
 
@@ -257,17 +258,17 @@ describe("reconcile.ts", () => {
         const rootOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, rootOps, vaultDir)
 
-        const level1Ops = reconcileDirectory(join(vaultDir, "level1"), vaultDir)
+        const level1Ops = reconcileDirectory(db, join(vaultDir, "level1"), vaultDir)
         await applyReconcileOps(db, level1Ops, vaultDir)
 
-        const level2Ops = reconcileDirectory(nestedDir, vaultDir)
+        const level2Ops = reconcileDirectory(db, nestedDir, vaultDir)
         await applyReconcileOps(db, level2Ops, vaultDir)
 
-        const fileNode = getNodeByPath(filePath)
+        const fileNode = getNodeByPath(db, filePath)
         expect(fileNode).not.toBeNull()
         expect(fileNode!.parent_id).not.toBeNull()
 
-        const level2Node = getNodeByPath(nestedDir)
+        const level2Node = getNodeByPath(db, nestedDir)
         expect(level2Node).not.toBeNull()
         expect(fileNode!.parent_id).toBe(level2Node!.id)
       }))
@@ -294,20 +295,20 @@ describe("reconcile.ts", () => {
         expect(createOps.length).toBe(1)
         await applyReconcileOps(db, createOps, vaultDir)
 
-        const fileNode = getNodeByPath(filePath)
+        const fileNode = getNodeByPath(db, filePath)
         expect(fileNode).not.toBeNull()
-        const allChildren = getChildren(fileNode!.id)
+        const allChildren = getChildren(db, fileNode!.id)
 
         const sections = allChildren.filter((n) => n.type === "section")
         expect(sections.length).toBe(2)
 
         const openSection = sections.find((s) => s.content?.includes("Open"))
         expect(openSection).toBeDefined()
-        const openTasks = getChildren(openSection!.id)
+        const openTasks = getChildren(db, openSection!.id)
         expect(openTasks.filter((t) => t.type === "task").length).toBe(2)
 
         const { getNodeCount } = await import("../../src/db-queries/index.ts")
-        const originalNodeCount = getNodeCount()
+        const originalNodeCount = getNodeCount(db)
 
         const futureTime = new Date(Date.now() + 1000)
         utimesSync(filePath, futureTime, futureTime)
@@ -318,14 +319,14 @@ describe("reconcile.ts", () => {
 
         await applyReconcileOps(db, updateOps, vaultDir)
 
-        const newNodeCount = getNodeCount()
+        const newNodeCount = getNodeCount(db)
         expect(newNodeCount).toBe(originalNodeCount)
 
-        const fileNodeAfter = getNodeByPath(filePath)
+        const fileNodeAfter = getNodeByPath(db, filePath)
         expect(fileNodeAfter).not.toBeNull()
         expect(fileNodeAfter!.id).toBe(fileNode!.id)
 
-        const sectionsAfter = getChildren(fileNodeAfter!.id).filter(
+        const sectionsAfter = getChildren(db, fileNodeAfter!.id).filter(
           (n) => n.type === "section",
         )
         expect(sectionsAfter.length).toBe(2)
@@ -334,7 +335,7 @@ describe("reconcile.ts", () => {
           s.content?.includes("Open"),
         )
         expect(openSectionAfter).toBeDefined()
-        const openTasksAfter = getChildren(openSectionAfter!.id)
+        const openTasksAfter = getChildren(db, openSectionAfter!.id)
         expect(openTasksAfter.filter((t) => t.type === "task").length).toBe(2)
       }))
 
@@ -351,8 +352,8 @@ describe("reconcile.ts", () => {
         const createOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, createOps, vaultDir)
 
-        const fileNode = getNodeByPath(filePath)
-        const originalTasks = getChildren(fileNode!.id).filter(
+        const fileNode = getNodeByPath(db, filePath)
+        const originalTasks = getChildren(db, fileNode!.id).filter(
           (n) => n.type === "task",
         )
         expect(originalTasks.length).toBe(2)
@@ -380,8 +381,8 @@ describe("reconcile.ts", () => {
 
         await applyReconcileOps(db, updateOps, vaultDir)
 
-        const fileNodeAfter = getNodeByPath(filePath)
-        const tasksAfter = getChildren(fileNodeAfter!.id).filter(
+        const fileNodeAfter = getNodeByPath(db, filePath)
+        const tasksAfter = getChildren(db, fileNodeAfter!.id).filter(
           (n) => n.type === "task",
         )
         expect(tasksAfter.length).toBe(2)
@@ -412,31 +413,31 @@ describe("reconcile.ts", () => {
         const rootOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, rootOps, vaultDir)
 
-        const issueOps = reconcileDirectory(issueFolder, vaultDir)
+        const issueOps = reconcileDirectory(db, issueFolder, vaultDir)
         await applyReconcileOps(db, issueOps, vaultDir)
 
-        const folderNode = getNodeByPath(issueFolder)
+        const folderNode = getNodeByPath(db, issueFolder)
         expect(folderNode).not.toBeNull()
         const folderId = folderNode!.id
 
-        const childrenBefore = getChildren(folderId)
+        const childrenBefore = getChildren(db, folderId)
         expect(childrenBefore.length).toBe(2)
 
         const futureTime = new Date(Date.now() + 1000)
         utimesSync(task1Path, futureTime, futureTime)
 
-        const updateOps = reconcileDirectory(issueFolder, vaultDir)
+        const updateOps = reconcileDirectory(db, issueFolder, vaultDir)
 
         expect(updateOps.length).toBe(1)
         expect(updateOps[0]?.type).toBe("update")
 
         await applyReconcileOps(db, updateOps, vaultDir)
 
-        const folderNodeAfter = getNodeByPath(issueFolder)
+        const folderNodeAfter = getNodeByPath(db, issueFolder)
         expect(folderNodeAfter).not.toBeNull()
         expect(folderNodeAfter!.id).toBe(folderId)
 
-        const childrenAfter = getChildren(folderId)
+        const childrenAfter = getChildren(db, folderId)
         expect(childrenAfter.length).toBe(2)
 
         for (const child of childrenAfter) {
@@ -468,25 +469,25 @@ describe("reconcile.ts", () => {
         const rootOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, rootOps, vaultDir)
 
-        const issueOps = reconcileDirectory(issueFolder, vaultDir)
+        const issueOps = reconcileDirectory(db, issueFolder, vaultDir)
         await applyReconcileOps(db, issueOps, vaultDir)
 
-        const folderNode = getNodeByPath(issueFolder)
+        const folderNode = getNodeByPath(db, issueFolder)
         expect(folderNode).not.toBeNull()
         const folderId = folderNode!.id
 
-        const fileNodes = getChildren(folderId)
+        const fileNodes = getChildren(db, folderId)
         expect(fileNodes.length).toBe(1)
 
         const fileNode = fileNodes[0]
         expect(fileNode?.type).toBe("file")
 
-        const sections = getChildren(fileNode!.id)
+        const sections = getChildren(db, fileNode!.id)
         expect(sections.length).toBe(2)
 
         let totalTasksBefore = 0
         for (const section of sections) {
-          const tasks = getChildren(section.id).filter((n) => n.type === "task")
+          const tasks = getChildren(db, section.id).filter((n) => n.type === "task")
           totalTasksBefore += tasks.length
         }
         expect(totalTasksBefore).toBe(3)
@@ -494,25 +495,25 @@ describe("reconcile.ts", () => {
         const futureTime = new Date(Date.now() + 1000)
         utimesSync(taskPath, futureTime, futureTime)
 
-        const updateOps = reconcileDirectory(issueFolder, vaultDir)
+        const updateOps = reconcileDirectory(db, issueFolder, vaultDir)
         expect(updateOps.length).toBe(1)
         expect(updateOps[0]?.type).toBe("update")
 
         await applyReconcileOps(db, updateOps, vaultDir)
 
-        const folderNodeAfter = getNodeByPath(issueFolder)
+        const folderNodeAfter = getNodeByPath(db, issueFolder)
         expect(folderNodeAfter!.id).toBe(folderId)
 
-        const fileNodesAfter = getChildren(folderId)
+        const fileNodesAfter = getChildren(db, folderId)
         expect(fileNodesAfter.length).toBe(1)
         expect(fileNodesAfter[0]!.id).toBe(fileNode!.id)
 
-        const sectionsAfter = getChildren(fileNodesAfter[0]!.id)
+        const sectionsAfter = getChildren(db, fileNodesAfter[0]!.id)
         expect(sectionsAfter.length).toBe(2)
 
         let totalTasksAfter = 0
         for (const section of sectionsAfter) {
-          const tasks = getChildren(section.id).filter((n) => n.type === "task")
+          const tasks = getChildren(db, section.id).filter((n) => n.type === "task")
           totalTasksAfter += tasks.length
         }
         expect(totalTasksAfter).toBe(3)
@@ -540,7 +541,7 @@ describe("reconcile.ts", () => {
         const folderOps = reconcileDirectory(db, vaultDir, vaultDir)
         await applyReconcileOps(db, folderOps, vaultDir)
 
-        const folderNode = getNodeByPath(folderPath)
+        const folderNode = getNodeByPath(db, folderPath)
         expect(folderNode).not.toBeNull()
 
         const filePath = join(folderPath, "child.md")

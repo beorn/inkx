@@ -19,11 +19,9 @@ import { getDb } from "./db-instance.ts"
 // =============================================================================
 
 /**
- * Apply an event to the database
+ * Apply an event to the database (db-accepting version)
  */
-export function applyEvent(event: Event): void {
-  const db = getDb()
-
+export function applyEventWithDb(db: Database, event: Event): void {
   debug("applying %s: %s", event.type, event.target ?? event.id.slice(-8))
 
   switch (event.type) {
@@ -64,6 +62,15 @@ export function applyEvent(event: Event): void {
     "last_event",
     event.id,
   ])
+}
+
+/**
+ * Apply an event to the database (singleton wrapper)
+ * @deprecated Use applyEventWithDb(db, event) instead
+ */
+export function applyEvent(event: Event): void {
+  const db = getDb()
+  applyEventWithDb(db, event)
 }
 
 // =============================================================================

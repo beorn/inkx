@@ -481,6 +481,7 @@ export const Column = React.memo(function Column({
       id={column.node.id}
       data-view="column"
       data-selected={isSelected}
+      data-cursor={isColumnSelected}
       flexDirection="column"
       width={width}
       maxHeight={height}
