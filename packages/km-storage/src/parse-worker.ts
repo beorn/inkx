@@ -3,18 +3,35 @@
  *
  * Parses markdown files in a worker thread for parallel processing.
  * km-fast-md.6: Worker pool for parallel parsing
- *
- * Note: Debug output is suppressed in worker threads. Workers don't have
- * access to the main thread's DEBUG_LOG redirection, so debug() would write
- * to stdout. To debug the parser, run it outside the worker context.
  */
-
-// Suppress debug output in worker - it would bypass DEBUG_LOG and go to stdout
-// Must be set BEFORE importing modules that use debug()
-delete process.env.DEBUG;
 
 import { readFileSync } from "fs";
 import { parseMarkdownWithLinks } from "@km/markdown";
+
+const NAMESPACE = "km:storage:parse-worker";
+
+// Custom debug function that forwards to main thread
+// Worker threads MUST forward debug output to main thread for proper DEBUG_LOG handling
+function debug(message: string, ...args: unknown[]): void {
+  // Format the message with args (simple %s/%d/%O replacement)
+  let formatted = message;
+  let argIndex = 0;
+  formatted = message.replace(/%[sdOo]/g, () => {
+    const arg = args[argIndex++];
+    if (arg === undefined) return "";
+    if (arg === null) return "null";
+    if (typeof arg === "object") return JSON.stringify(arg);
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    return String(arg);
+  });
+
+  // Send to main thread - NEVER call createDebug() in worker
+  try {
+    postMessage({ type: "debug", namespace: NAMESPACE, message: formatted });
+  } catch {
+    // Worker might not be fully initialized yet
+  }
+}
 
 export interface ParseRequest {
   type: "parse";
@@ -37,7 +54,8 @@ export type WorkerMessage = ParseRequest | { type: "shutdown" };
 export type WorkerResponse =
   | ParseResponse
   | { type: "ready" }
-  | { type: "shutdown" };
+  | { type: "shutdown" }
+  | { type: "debug"; namespace: string; message: string };
 
 // Worker entry point
 declare const self: Worker;
@@ -52,12 +70,14 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
 
   if (message.type === "parse") {
     try {
+      debug("parsing %s", message.fsPath);
       const content = readFileSync(message.fsPath, "utf-8");
       const { nodes, wikilinks } = parseMarkdownWithLinks(
         content,
         message.fsPath,
       );
 
+      debug("parsed %s: %d nodes, %d links", message.fsPath, nodes.length, wikilinks.length);
       self.postMessage({
         type: "parsed",
         id: message.id,
@@ -67,6 +87,7 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         wikilinks,
       } satisfies ParseResponse);
     } catch (err) {
+      debug("parse error %s: %s", message.fsPath, err instanceof Error ? err.message : String(err));
       self.postMessage({
         type: "parsed",
         id: message.id,
