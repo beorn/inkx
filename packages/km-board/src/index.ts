@@ -8,9 +8,16 @@
 
 // ===== Board Types =====
 export type {
+  // Current types (being migrated)
   BoardState,
   BoardAction,
   NodeDirection,
+  // New simplified types (target architecture)
+  SimplifiedBoardState,
+  SimplifiedBoardAction,
+  ZoomEntry,
+  NavHistoryEntry,
+  // Common types
   TNode,
   TPath,
   ViewMode,
@@ -29,9 +36,13 @@ export { getNodeAtPath, getSiblingCount } from "@km/tree";
 
 // ===== Board Reducer =====
 export {
+  // Current reducer (uses BoardState with nodes)
   boardReducer,
   createBoardState,
   findPathToNode,
+  // New simplified reducer (uses SimplifiedBoardState without nodes)
+  simplifiedBoardReducer,
+  createSimplifiedBoardState,
 } from "./board-reducer.ts";
 
 // ===== Selectors =====
