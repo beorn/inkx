@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+
+- **tui,commands,core**: Defensive command chain with boundary error feedback
+  - Added `Result<T,E>` type to `@km/core` for explicit error handling
+  - Added `ActionError` types (`boundary`, `precondition`, `unimplemented`) to `@km/commands`
+  - Navigation handlers now return boundary errors when operations can't proceed
+  - Users get feedback (bell indicator) when hitting navigation boundaries
+  - Escape key is now hierarchical: close overlays → zoom out → boundary
+  - Simplified test helpers by removing `allowNoEffect` flags
+  - Resolves: km-defensive-chain.6
+
 ### Fixed
 
 - **TUI**: Fixed j/k navigation not working - keybindings produced cursor_up/cursor_down with "up"/"down" directions, but handleTreeNavigation() only handled "prev"/"next". Added mapping in handleCursorMove() and exhaustiveness checking to prevent future regressions.
