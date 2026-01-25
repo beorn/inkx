@@ -62,6 +62,12 @@
  * Tests are grouped by user actions (Cursoring, Zooming, Folding) rather than
  * structural categories. This matches how users think about features.
  *
+ * **6. View Mode Variations**
+ * Core navigation tests should be repeated for each view mode (cards, list, columns, tabs).
+ * Navigation behavior may differ between views - list view is purely vertical, columns view
+ * emphasizes horizontal navigation, tabs view switches between discrete panes. Testing each
+ * ensures consistent cursor behavior regardless of how users choose to view their data.
+ *
  * ### Patterns
  *
  * **testEnv() + item() Fixture Pattern**
@@ -108,7 +114,9 @@ import { describe, test, expect } from "bun:test"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("Cursoring", () => {
-  test.todo("vertical (j/k): cards → column → board → boundary", () => {
+  // Default view mode tests (cards view)
+  describe("Cards View", () => {
+    test.todo("vertical (j/k): cards → column → board → boundary", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"), item("1c"))),
     )
@@ -401,6 +409,20 @@ describe("Cursoring", () => {
       // Y position should be preserved (within tolerance)
       expect(Math.abs(col2Box!.y - card2Box!.y)).toBeLessThan(10)
     })
+  })
+  }) // End Cards View
+
+  // TODO: Add view mode variations (List, Columns, Tabs)
+  describe.todo("List View", () => {
+    // Repeat key cursoring tests in list view
+  })
+
+  describe.todo("Columns View", () => {
+    // Repeat key cursoring tests in columns view
+  })
+
+  describe.todo("Tabs View", () => {
+    // Repeat key cursoring tests in tabs view
   })
 })
 
