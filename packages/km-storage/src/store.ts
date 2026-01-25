@@ -314,7 +314,7 @@ abstract class BaseStore implements NodeStore {
  * Uses .km/state.db and events.jsonl
  */
 export class DiskStore extends BaseStore {
-  readonly mode = "disk" as const
+  readonly mode = "disk"
   readonly rootPath: string
   protected db: Database
 
@@ -494,7 +494,7 @@ export class DiskStore extends BaseStore {
  * Uses :memory: SQLite, rebuilds on each run
  */
 export class MemoryStore extends BaseStore {
-  readonly mode = "memory" as const
+  readonly mode = "memory"
   readonly rootPath: string
   protected db: Database
   private pendingWikilinks: Array<{

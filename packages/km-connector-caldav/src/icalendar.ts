@@ -10,6 +10,27 @@ import type { CalendarEvent, Attendee } from "./types.ts"
 
 const debug = createDebug("km:caldav:ical")
 
+// Type validators - ensure parsed values are valid union members
+const eventStatuses = ["TENTATIVE", "CONFIRMED", "CANCELLED"] as const
+const attendeeStatuses = [
+  "NEEDS-ACTION",
+  "ACCEPTED",
+  "DECLINED",
+  "TENTATIVE",
+] as const
+
+function parseEventStatus(v: string | undefined): CalendarEvent["status"] {
+  return v && eventStatuses.includes(v as (typeof eventStatuses)[number])
+    ? (v as CalendarEvent["status"])
+    : undefined
+}
+
+function parseAttendeeStatus(v: string | undefined): Attendee["status"] {
+  return v && attendeeStatuses.includes(v as (typeof attendeeStatuses)[number])
+    ? (v as Attendee["status"])
+    : undefined
+}
+
 /**
  * Parse iCalendar data to CalendarEvent
  */
@@ -54,7 +75,7 @@ export function parseICalendar(ical: string): CalendarEvent | null {
     duration: getValue("DURATION"),
     location: getValue("LOCATION"),
     rrule: getValue("RRULE"),
-    status: getValue("STATUS") as CalendarEvent["status"],
+    status: parseEventStatus(getValue("STATUS")),
   }
 
   // Check if all-day event (DATE vs DATE-TIME)
@@ -80,7 +101,7 @@ export function parseICalendar(ical: string): CalendarEvent | null {
       attendees.push({
         email,
         name,
-        status: partstat as Attendee["status"],
+        status: parseAttendeeStatus(partstat),
       })
     }
   }

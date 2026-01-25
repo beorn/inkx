@@ -12,6 +12,29 @@ import type {
   ContactAddress,
 } from "./types.ts"
 
+// Type validators - ensure parsed values are valid union members
+const emailTypes = ["home", "work", "other"] as const
+const phoneTypes = ["home", "work", "cell", "fax", "other"] as const
+const addressTypes = ["home", "work", "other"] as const
+
+function parseEmailType(v: string | undefined): ContactEmail["type"] {
+  return v && emailTypes.includes(v as (typeof emailTypes)[number])
+    ? (v as ContactEmail["type"])
+    : undefined
+}
+
+function parsePhoneType(v: string | undefined): ContactPhone["type"] {
+  return v && phoneTypes.includes(v as (typeof phoneTypes)[number])
+    ? (v as ContactPhone["type"])
+    : undefined
+}
+
+function parseAddressType(v: string | undefined): ContactAddress["type"] {
+  return v && addressTypes.includes(v as (typeof addressTypes)[number])
+    ? (v as ContactAddress["type"])
+    : undefined
+}
+
 /**
  * Parse vCard data to Contact
  */
@@ -87,7 +110,7 @@ export function parseVCard(vcard: string): Contact | null {
     const paramStr = colonIndex >= 0 ? line.slice(0, colonIndex) : ""
 
     const typeMatch = paramStr.match(/TYPE=([^;:,]+)/i)
-    const type = typeMatch?.[1]?.toLowerCase() as ContactEmail["type"]
+    const type = parseEmailType(typeMatch?.[1]?.toLowerCase())
     const primary = paramStr.toLowerCase().includes("pref")
 
     if (value) {
@@ -108,7 +131,7 @@ export function parseVCard(vcard: string): Contact | null {
     const paramStr = colonIndex >= 0 ? line.slice(0, colonIndex) : ""
 
     const typeMatch = paramStr.match(/TYPE=([^;:,]+)/i)
-    const type = typeMatch?.[1]?.toLowerCase() as ContactPhone["type"]
+    const type = parsePhoneType(typeMatch?.[1]?.toLowerCase())
     const primary = paramStr.toLowerCase().includes("pref")
 
     if (value) {
@@ -129,7 +152,7 @@ export function parseVCard(vcard: string): Contact | null {
     const paramStr = colonIndex >= 0 ? line.slice(0, colonIndex) : ""
 
     const typeMatch = paramStr.match(/TYPE=([^;:,]+)/i)
-    const type = typeMatch?.[1]?.toLowerCase() as ContactAddress["type"]
+    const type = parseAddressType(typeMatch?.[1]?.toLowerCase())
 
     // ADR format: PO Box;Extended;Street;City;Region;Postal;Country
     const parts = value.split(";")
