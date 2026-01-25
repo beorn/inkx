@@ -4,13 +4,13 @@
  * Test suite for file watcher robustness using chaos simulation.
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "bun:test"
 import {
   runChaosTest,
   createTestConfig,
   runChaosSuiteParallel,
-} from "./harness.ts";
-import { CHAOS_SCENARIOS, NO_CHAOS } from "./scenarios.ts";
+} from "./harness.ts"
+import { CHAOS_SCENARIOS, NO_CHAOS } from "./scenarios.ts"
 
 describe.serial("Chaos Tests", () => {
   describe.serial("Baseline (No Chaos)", () => {
@@ -21,11 +21,11 @@ describe.serial("Chaos Tests", () => {
           events: [{ type: "change", path: "test.md" }],
           expectedFiles: ["test.md"],
         }),
-      );
+      )
 
-      expect(result.passed).toBe(true);
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
+      expect(result.passed).toBe(true)
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
 
     test("handles file creation", async () => {
       const result = await runChaosTest(
@@ -35,11 +35,11 @@ describe.serial("Chaos Tests", () => {
           expectedFiles: [],
           // Note: new.md won't exist in FS since we only inject events
         }),
-      );
+      )
 
       // Should not crash even if file doesn't exist
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
 
     test("handles file deletion", async () => {
       const result = await runChaosTest({
@@ -51,13 +51,13 @@ describe.serial("Chaos Tests", () => {
           files: [], // File was deleted
           deletedFiles: ["test.md"],
         },
-      });
+      })
 
       // Note: This will currently fail because we don't actually delete the file
       // The mock watcher only sends events, it doesn't modify filesystem
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
-  });
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
+  })
 
   describe.serial("Event Timing Issues", () => {
     test("handles event reordering", async () => {
@@ -77,11 +77,11 @@ describe.serial("Chaos Tests", () => {
         expected: {
           files: ["file1.md", "file2.md", "file3.md"],
         },
-      });
+      })
 
-      expect(result.passed).toBe(true);
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
+      expect(result.passed).toBe(true)
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
 
     test("handles duplicate events", async () => {
       const result = await runChaosTest({
@@ -92,11 +92,11 @@ describe.serial("Chaos Tests", () => {
         expected: {
           files: ["test.md"],
         },
-      });
+      })
 
-      expect(result.passed).toBe(true);
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
+      expect(result.passed).toBe(true)
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
 
     test("handles delayed events (slow disk)", async () => {
       const result = await runChaosTest({
@@ -111,11 +111,11 @@ describe.serial("Chaos Tests", () => {
           files: ["test.md"],
         },
         timeout: 500, // Allow time for delayed events
-      });
+      })
 
-      expect(result.passed).toBe(true);
-    });
-  });
+      expect(result.passed).toBe(true)
+    })
+  })
 
   describe.serial("Queue/Buffer Issues", () => {
     test("handles queue overflow (dropped events)", async () => {
@@ -134,12 +134,12 @@ describe.serial("Chaos Tests", () => {
           files: Array.from({ length: 10 }, (_, i) => `file${i}.md`),
         },
         timeout: 500,
-      });
+      })
 
       // Some events will be dropped, but files should still exist
-      expect(result.eventsDropped).toBeGreaterThan(0);
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
+      expect(result.eventsDropped).toBeGreaterThan(0)
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
 
     test("handles event storm (100+ events)", async () => {
       const result = await runChaosTest({
@@ -154,12 +154,12 @@ describe.serial("Chaos Tests", () => {
           files: ["test.md"],
         },
         timeout: 2000,
-      });
+      })
 
-      expect(result.passed).toBe(true);
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
-  });
+      expect(result.passed).toBe(true)
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
+  })
 
   describe.serial("Write Pattern Issues", () => {
     test("handles atomic writes (editor save pattern)", async () => {
@@ -172,11 +172,11 @@ describe.serial("Chaos Tests", () => {
           files: ["test.md"],
           deletedFiles: ["test.md.tmp"],
         },
-      });
+      })
 
       // Atomic write creates temp file events, but final state should be correct
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
 
     test("handles partial writes", async () => {
       const result = await runChaosTest({
@@ -188,11 +188,11 @@ describe.serial("Chaos Tests", () => {
           files: ["test.md"],
         },
         timeout: 1000,
-      });
+      })
 
       // Multiple change events during write, should not crash
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
 
     test("handles rapid successive writes", async () => {
       const result = await runChaosTest({
@@ -204,12 +204,12 @@ describe.serial("Chaos Tests", () => {
           files: ["test.md"],
         },
         timeout: 500,
-      });
+      })
 
-      expect(result.passed).toBe(true);
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
-  });
+      expect(result.passed).toBe(true)
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
+  })
 
   describe.serial("Platform Quirks", () => {
     test("handles FSEvents coalescing (parent dir event)", async () => {
@@ -228,18 +228,18 @@ describe.serial("Chaos Tests", () => {
           files: Array.from({ length: 15 }, (_, i) => `subdir/file${i}.md`),
         },
         timeout: 500,
-      });
+      })
 
       // FSEvents coalescing sends a directory event instead of individual file events
       // The reconciler needs to handle this by scanning the directory
       // For now, just check no duplicates - the coalesced event might not trigger reconcile
-      expect(result.verification.stats.duplicateNodes).toBe(0);
+      expect(result.verification.stats.duplicateNodes).toBe(0)
       // Log errors for debugging if test fails
       if (!result.passed) {
-        console.log("FSEvents coalesce errors:", result.verification.errors);
+        console.log("FSEvents coalesce errors:", result.verification.errors)
       }
-    });
-  });
+    })
+  })
 
   describe.serial("Rename Operations", () => {
     test("handles rename storm", async () => {
@@ -255,12 +255,12 @@ describe.serial("Chaos Tests", () => {
           files: ["test.md"],
         },
         timeout: 500,
-      });
+      })
 
       // Rapid renames should not create duplicate nodes
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
-  });
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
+  })
 
   describe.serial("Initialization Issues", () => {
     test("handles init gap (events during watcher startup)", async () => {
@@ -281,17 +281,17 @@ describe.serial("Chaos Tests", () => {
           // The key test is that we don't crash or corrupt state
         },
         timeout: 1000,
-      });
+      })
 
       // Events during init gap should not cause duplicates or corruption
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-      expect(result.verification.stats.missingParents).toBe(0);
-    });
-  });
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+      expect(result.verification.stats.missingParents).toBe(0)
+    })
+  })
 
   describe.serial("Stress Tests", () => {
     test("handles 50 files with queue overflow", async () => {
-      const fileCount = 50;
+      const fileCount = 50
       const result = await runChaosTest({
         name: "stress-50-files-overflow",
         scenario: { type: "queue_overflow", params: { dropRate: 0.3 } },
@@ -310,12 +310,12 @@ describe.serial("Chaos Tests", () => {
           ),
         },
         timeout: 2000,
-      });
+      })
 
       // Even with 30% event drop, should not have duplicate nodes
-      expect(result.eventsDropped).toBeGreaterThan(0);
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
+      expect(result.eventsDropped).toBeGreaterThan(0)
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
 
     test("handles nested directories with coalescing", async () => {
       const result = await runChaosTest({
@@ -354,10 +354,10 @@ describe.serial("Chaos Tests", () => {
           ],
         },
         timeout: 1000,
-      });
+      })
 
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
 
     test("handles mixed operations (add, change, unlink) chaos", async () => {
       const result = await runChaosTest({
@@ -388,12 +388,12 @@ describe.serial("Chaos Tests", () => {
           files: Array.from({ length: 10 }, (_, i) => `mixed/existing${i}.md`),
         },
         timeout: 1000,
-      });
+      })
 
       // Reordering shouldn't cause duplicates
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
-  });
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
+  })
 
   describe.serial("Combined Scenarios", () => {
     test("handles multiple files with various changes", async () => {
@@ -413,91 +413,91 @@ describe.serial("Chaos Tests", () => {
         expected: {
           files: ["notes/note1.md", "notes/note2.md", "tasks.md"],
         },
-      });
+      })
 
-      expect(result.passed).toBe(true);
-      expect(result.verification.stats.duplicateNodes).toBe(0);
-    });
-  });
-});
+      expect(result.passed).toBe(true)
+      expect(result.verification.stats.duplicateNodes).toBe(0)
+    })
+  })
+})
 
 describe.serial("Chaos Scenario Unit Tests", () => {
   describe.serial("SeededRandom", () => {
     test("produces reproducible results", async () => {
-      const { SeededRandom } = await import("./seeded-random.ts");
+      const { SeededRandom } = await import("./seeded-random.ts")
 
-      const r1 = new SeededRandom(12345);
-      const r2 = new SeededRandom(12345);
+      const r1 = new SeededRandom(12345)
+      const r2 = new SeededRandom(12345)
 
-      expect(r1.next()).toBe(r2.next());
-      expect(r1.next()).toBe(r2.next());
-      expect(r1.nextInt(0, 100)).toBe(r2.nextInt(0, 100));
-    });
+      expect(r1.next()).toBe(r2.next())
+      expect(r1.next()).toBe(r2.next())
+      expect(r1.nextInt(0, 100)).toBe(r2.nextInt(0, 100))
+    })
 
     test("shuffle is deterministic with same seed", async () => {
-      const { SeededRandom } = await import("./seeded-random.ts");
+      const { SeededRandom } = await import("./seeded-random.ts")
 
-      const r1 = new SeededRandom(42);
-      const r2 = new SeededRandom(42);
+      const r1 = new SeededRandom(42)
+      const r2 = new SeededRandom(42)
 
-      const arr1 = [1, 2, 3, 4, 5];
-      const arr2 = [1, 2, 3, 4, 5];
+      const arr1 = [1, 2, 3, 4, 5]
+      const arr2 = [1, 2, 3, 4, 5]
 
-      expect(r1.shuffle(arr1)).toEqual(r2.shuffle(arr2));
-    });
-  });
+      expect(r1.shuffle(arr1)).toEqual(r2.shuffle(arr2))
+    })
+  })
 
   describe.serial("Scenario Transformer", () => {
     test("slow_disk adds delays", async () => {
-      const { applyScenario } = await import("./scenario-transformer.ts");
-      const { SeededRandom } = await import("./seeded-random.ts");
+      const { applyScenario } = await import("./scenario-transformer.ts")
+      const { SeededRandom } = await import("./seeded-random.ts")
 
       const events = [
         { type: "change" as const, path: "/test.md", originalIndex: 0 },
-      ];
-      const random = new SeededRandom(123);
+      ]
+      const random = new SeededRandom(123)
 
       const result = applyScenario(
         events,
         { type: "slow_disk", params: { minDelayMs: 100, maxDelayMs: 200 } },
         random,
-      );
+      )
 
-      expect(result[0]!.timing?.delay).toBeGreaterThanOrEqual(100);
-      expect(result[0]!.timing?.delay).toBeLessThanOrEqual(200);
-    });
+      expect(result[0]!.timing?.delay).toBeGreaterThanOrEqual(100)
+      expect(result[0]!.timing?.delay).toBeLessThanOrEqual(200)
+    })
 
     test("queue_overflow drops some events", async () => {
-      const { applyScenario } = await import("./scenario-transformer.ts");
-      const { SeededRandom } = await import("./seeded-random.ts");
+      const { applyScenario } = await import("./scenario-transformer.ts")
+      const { SeededRandom } = await import("./seeded-random.ts")
 
       const events = Array.from({ length: 100 }, (_, i) => ({
         type: "change" as const,
         path: `/file${i}.md`,
         originalIndex: i,
-      }));
-      const random = new SeededRandom(123);
+      }))
+      const random = new SeededRandom(123)
 
       const result = applyScenario(
         events,
         { type: "queue_overflow", params: { dropRate: 0.2 } },
         random,
-      );
+      )
 
-      const dropped = result.filter((e) => e.timing?.drop === true);
+      const dropped = result.filter((e) => e.timing?.drop === true)
       // With 20% drop rate on 100 events, expect roughly 20 dropped
-      expect(dropped.length).toBeGreaterThan(10);
-      expect(dropped.length).toBeLessThan(40);
-    });
+      expect(dropped.length).toBeGreaterThan(10)
+      expect(dropped.length).toBeLessThan(40)
+    })
 
     test("editor_atomic converts change to unlink+add pair", async () => {
-      const { applyScenario } = await import("./scenario-transformer.ts");
-      const { SeededRandom } = await import("./seeded-random.ts");
+      const { applyScenario } = await import("./scenario-transformer.ts")
+      const { SeededRandom } = await import("./seeded-random.ts")
 
       const events = [
         { type: "change" as const, path: "/test.md", originalIndex: 0 },
-      ];
-      const random = new SeededRandom(123);
+      ]
+      const random = new SeededRandom(123)
 
       const result = applyScenario(
         events,
@@ -506,20 +506,20 @@ describe.serial("Chaos Scenario Unit Tests", () => {
           params: { tempSuffix: ".tmp", renameDelayMs: 50 },
         },
         random,
-      );
+      )
 
       // Should produce: add .tmp, unlink original, add original, unlink .tmp
-      expect(result.length).toBe(4);
+      expect(result.length).toBe(4)
       expect(
         result.some((e) => e.type === "unlink" && e.path === "/test.md"),
-      ).toBe(true);
+      ).toBe(true)
       expect(
         result.some((e) => e.type === "add" && e.path === "/test.md"),
-      ).toBe(true);
-      expect(result.some((e) => e.path === "/test.md.tmp")).toBe(true);
-    });
-  });
-});
+      ).toBe(true)
+      expect(result.some((e) => e.path === "/test.md.tmp")).toBe(true)
+    })
+  })
+})
 
 describe.serial("Parallel Suite Runner", () => {
   test("runs multiple vaults with single scenario", async () => {
@@ -529,14 +529,14 @@ describe.serial("Parallel Suite Runner", () => {
       parallel: false, // Sequential for predictable test
       useMockFs: true,
       timeout: 100,
-    });
+    })
 
-    expect(result.summary.total).toBe(3);
-    expect(result.summary.passed).toBe(3);
-    expect(result.summary.failed).toBe(0);
-    expect(result.byVault.size).toBe(3);
-    expect(result.byScenario.size).toBe(1);
-  });
+    expect(result.summary.total).toBe(3)
+    expect(result.summary.passed).toBe(3)
+    expect(result.summary.failed).toBe(0)
+    expect(result.byVault.size).toBe(3)
+    expect(result.byScenario.size).toBe(1)
+  })
 
   test("runs single vault with multiple scenarios", async () => {
     const result = await runChaosSuiteParallel({
@@ -545,25 +545,25 @@ describe.serial("Parallel Suite Runner", () => {
       parallel: false,
       useMockFs: true,
       timeout: 100,
-    });
+    })
 
-    expect(result.summary.total).toBe(2);
-    expect(result.byVault.size).toBe(1);
-    expect(result.byScenario.size).toBe(2);
+    expect(result.summary.total).toBe(2)
+    expect(result.byVault.size).toBe(1)
+    expect(result.byScenario.size).toBe(2)
 
     // Check grouping by scenario
-    const noChaosResults = result.byScenario.get("slow_disk"); // NO_CHAOS has type "slow_disk"
-    const reorderResults = result.byScenario.get("reorder_chaos");
-    expect(noChaosResults?.length ?? 0).toBe(1);
-    expect(reorderResults?.length).toBe(1);
-  });
+    const noChaosResults = result.byScenario.get("slow_disk") // NO_CHAOS has type "slow_disk"
+    const reorderResults = result.byScenario.get("reorder_chaos")
+    expect(noChaosResults?.length ?? 0).toBe(1)
+    expect(reorderResults?.length).toBe(1)
+  })
 
   test("calls progress callback for each test", async () => {
     const progressUpdates: Array<{
-      vaultIndex: number;
-      completed: number;
-      total: number;
-    }> = [];
+      vaultIndex: number
+      completed: number
+      total: number
+    }> = []
 
     await runChaosSuiteParallel({
       vaultCount: 2,
@@ -576,16 +576,16 @@ describe.serial("Parallel Suite Runner", () => {
           vaultIndex,
           completed: progress.completed,
           total: progress.total,
-        });
+        })
       },
-    });
+    })
 
-    expect(progressUpdates.length).toBe(2);
-    expect(progressUpdates[0]!.completed).toBe(1);
-    expect(progressUpdates[0]!.total).toBe(2);
-    expect(progressUpdates[1]!.completed).toBe(2);
-    expect(progressUpdates[1]!.total).toBe(2);
-  });
+    expect(progressUpdates.length).toBe(2)
+    expect(progressUpdates[0]!.completed).toBe(1)
+    expect(progressUpdates[0]!.total).toBe(2)
+    expect(progressUpdates[1]!.completed).toBe(2)
+    expect(progressUpdates[1]!.total).toBe(2)
+  })
 
   test("parallel execution completes all tests", async () => {
     const result = await runChaosSuiteParallel({
@@ -594,15 +594,15 @@ describe.serial("Parallel Suite Runner", () => {
       parallel: true, // Actually run in parallel
       useMockFs: true,
       timeout: 100,
-    });
+    })
 
-    expect(result.summary.total).toBe(5);
-    expect(result.results.length).toBe(5);
+    expect(result.summary.total).toBe(5)
+    expect(result.results.length).toBe(5)
     // All vaults should complete
     for (let i = 0; i < 5; i++) {
-      expect(result.byVault.has(i)).toBe(true);
+      expect(result.byVault.has(i)).toBe(true)
     }
-  });
+  })
 
   test("calculates parallel speedup", async () => {
     const result = await runChaosSuiteParallel({
@@ -611,12 +611,12 @@ describe.serial("Parallel Suite Runner", () => {
       parallel: true,
       useMockFs: true,
       timeout: 100,
-    });
+    })
 
     // Speedup should be >= 1 (parallel should be at least as fast as sequential estimate)
-    expect(result.summary.parallelSpeedup).toBeGreaterThanOrEqual(0.5); // Allow some margin
-    expect(result.summary.totalDuration).toBeGreaterThan(0);
-  });
+    expect(result.summary.parallelSpeedup).toBeGreaterThanOrEqual(0.5) // Allow some margin
+    expect(result.summary.totalDuration).toBeGreaterThan(0)
+  })
 
   test("groups results correctly by vault and scenario", async () => {
     const result = await runChaosSuiteParallel({
@@ -625,17 +625,17 @@ describe.serial("Parallel Suite Runner", () => {
       parallel: false,
       useMockFs: true,
       timeout: 100,
-    });
+    })
 
     // 2 vaults × 2 scenarios = 4 total tests
-    expect(result.summary.total).toBe(4);
+    expect(result.summary.total).toBe(4)
 
     // Each vault should have 2 results (one per scenario)
-    expect(result.byVault.get(0)?.length ?? 0).toBe(2);
-    expect(result.byVault.get(1)?.length ?? 0).toBe(2);
+    expect(result.byVault.get(0)?.length ?? 0).toBe(2)
+    expect(result.byVault.get(1)?.length ?? 0).toBe(2)
 
     // Each scenario should have 2 results (one per vault)
-    expect(result.byScenario.get("slow_disk")?.length ?? 0).toBe(2);
-    expect(result.byScenario.get("reorder_chaos")?.length ?? 0).toBe(2);
-  });
-});
+    expect(result.byScenario.get("slow_disk")?.length ?? 0).toBe(2)
+    expect(result.byScenario.get("reorder_chaos")?.length ?? 0).toBe(2)
+  })
+})

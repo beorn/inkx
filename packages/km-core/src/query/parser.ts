@@ -18,91 +18,91 @@
  * Offset information for syntax highlighting
  */
 export interface QueryOffset {
-  start: number;
-  end: number;
+  start: number
+  end: number
 }
 
 /**
  * Parsed query condition
  */
 export interface QueryCondition {
-  field: string;
-  op: "=" | "!=" | ">" | "<" | ">=" | "<=" | "LIKE";
-  value: string;
-  negated?: boolean;
-  offset?: QueryOffset;
+  field: string
+  op: "=" | "!=" | ">" | "<" | ">=" | "<=" | "LIKE"
+  value: string
+  negated?: boolean
+  offset?: QueryOffset
 }
 
 /**
  * Parsed reference filter
  */
 export interface QueryRef {
-  type: "person" | "tag" | "project";
-  value: string;
-  negated?: boolean;
-  offset?: QueryOffset;
+  type: "person" | "tag" | "project"
+  value: string
+  negated?: boolean
+  offset?: QueryOffset
 }
 
 /**
  * Path pattern filter
  */
 export interface QueryPath {
-  pattern: string;
-  recursive: boolean; // True if pattern ends with **
-  negated?: boolean;
-  offset?: QueryOffset;
+  pattern: string
+  recursive: boolean // True if pattern ends with **
+  negated?: boolean
+  offset?: QueryOffset
 }
 
 /**
  * Text search term with offset
  */
 export interface QueryText {
-  value: string;
-  negated?: boolean;
-  offset?: QueryOffset;
+  value: string
+  negated?: boolean
+  offset?: QueryOffset
 }
 
 /**
  * Phrase search with offset
  */
 export interface QueryPhrase {
-  value: string;
-  offset?: QueryOffset;
+  value: string
+  offset?: QueryOffset
 }
 
 /**
  * Property condition for inline property queries
  */
 export interface QueryPropCondition {
-  prop: string;
-  op: "exists" | "=" | "!=" | ">" | "<" | ">=" | "<=";
-  value?: string | number;
-  negated?: boolean;
-  offset?: QueryOffset;
+  prop: string
+  op: "exists" | "=" | "!=" | ">" | "<" | ">=" | "<="
+  value?: string | number
+  negated?: boolean
+  offset?: QueryOffset
 }
 
 /**
  * Special query conditions (blocked, etc.)
  */
 export interface QuerySpecial {
-  type: "blocked";
-  value: boolean;
-  offset?: QueryOffset;
+  type: "blocked"
+  value: boolean
+  offset?: QueryOffset
 }
 
 /**
  * Parsed query AST
  */
 export interface QueryAST {
-  conditions: QueryCondition[];
-  refs: QueryRef[];
-  paths: QueryPath[]; // Path pattern filters
-  propConditions: QueryPropCondition[]; // Inline property queries
-  specials: QuerySpecial[]; // Special conditions like blocked:true
-  text: string[]; // Backwards compatible - plain text values
-  phrases: string[]; // Backwards compatible - plain phrase values
-  textTerms: QueryText[]; // Text with offsets
-  phraseTerms: QueryPhrase[]; // Phrases with offsets
+  conditions: QueryCondition[]
+  refs: QueryRef[]
+  paths: QueryPath[] // Path pattern filters
+  propConditions: QueryPropCondition[] // Inline property queries
+  specials: QuerySpecial[] // Special conditions like blocked:true
+  text: string[] // Backwards compatible - plain text values
+  phrases: string[] // Backwards compatible - plain phrase values
+  textTerms: QueryText[] // Text with offsets
+  phraseTerms: QueryPhrase[] // Phrases with offsets
 }
 
 /**
@@ -117,23 +117,23 @@ const FIELD_ALIASES: Record<string, string> = {
   scheduled: "scheduled_date",
   assigned: "assigned_to",
   type: "type",
-};
+}
 
 /**
  * Map common field aliases to canonical names
  */
 export function mapFieldName(field: string): string {
-  return FIELD_ALIASES[field.toLowerCase()] ?? field;
+  return FIELD_ALIASES[field.toLowerCase()] ?? field
 }
 
 /**
  * Token with position information
  */
 interface TokenInfo {
-  value: string;
-  start: number;
-  end: number;
-  isPhrase: boolean;
+  value: string
+  start: number
+  end: number
+  isPhrase: boolean
 }
 
 /**
@@ -150,17 +150,17 @@ export function parseQuery(query: string): QueryAST {
     phrases: [],
     textTerms: [],
     phraseTerms: [],
-  };
+  }
 
   if (!query || query.trim() === "") {
-    return ast;
+    return ast
   }
 
   // Tokenize by splitting on whitespace, but preserve quoted strings
   // Track positions for each token
-  const tokens: TokenInfo[] = [];
-  const regex = /"([^"]+)"|(\S+)/g;
-  let match;
+  const tokens: TokenInfo[] = []
+  const regex = /"([^"]+)"|(\S+)/g
+  let match
   while ((match = regex.exec(query)) !== null) {
     // match[1] is content inside quotes (phrase search)
     // match[2] is unquoted token
@@ -171,36 +171,36 @@ export function parseQuery(query: string): QueryAST {
         start: match.index,
         end: match.index + match[0].length,
         isPhrase: true,
-      });
+      })
     } else {
       tokens.push({
         value: match[2] ?? "",
         start: match.index,
         end: match.index + match[0].length,
         isPhrase: false,
-      });
+      })
     }
   }
 
   for (const tokenInfo of tokens) {
-    const { value: token, start, end, isPhrase } = tokenInfo;
+    const { value: token, start, end, isPhrase } = tokenInfo
 
     // Handle quoted phrases
     if (isPhrase) {
-      ast.phrases.push(token);
+      ast.phrases.push(token)
       ast.phraseTerms.push({
         value: token,
         offset: { start, end },
-      });
-      continue;
+      })
+      continue
     }
 
-    if (!token) continue;
+    if (!token) continue
 
     // Check for negation prefix
-    const negated = token.startsWith("-");
-    const term = negated ? token.slice(1) : token;
-    const offset: QueryOffset = { start, end };
+    const negated = token.startsWith("-")
+    const term = negated ? token.slice(1) : token
+    const offset: QueryOffset = { start, end }
 
     // @mention
     if (term.startsWith("@")) {
@@ -209,8 +209,8 @@ export function parseQuery(query: string): QueryAST {
         value: term.slice(1),
         negated,
         offset,
-      });
-      continue;
+      })
+      continue
     }
 
     // #tag
@@ -220,8 +220,8 @@ export function parseQuery(query: string): QueryAST {
         value: term.slice(1),
         negated,
         offset,
-      });
-      continue;
+      })
+      continue
     }
 
     // +project
@@ -231,8 +231,8 @@ export function parseQuery(query: string): QueryAST {
         value: term.slice(1),
         negated,
         offset,
-      });
-      continue;
+      })
+      continue
     }
 
     // Path patterns: ./path, /path, path/, **
@@ -245,15 +245,15 @@ export function parseQuery(query: string): QueryAST {
       term.endsWith("/") ||
       term.includes("**")
     ) {
-      const recursive = term.endsWith("**");
-      let pattern = term;
+      const recursive = term.endsWith("**")
+      let pattern = term
 
       // Remove ** suffix for cleaner pattern matching
       if (recursive) {
-        pattern = term.slice(0, -2);
+        pattern = term.slice(0, -2)
         // Also remove trailing slash if present
         if (pattern.endsWith("/")) {
-          pattern = pattern.slice(0, -1);
+          pattern = pattern.slice(0, -1)
         }
       }
 
@@ -262,15 +262,15 @@ export function parseQuery(query: string): QueryAST {
         recursive,
         negated,
         offset,
-      });
-      continue;
+      })
+      continue
     }
 
     // Property queries: prop::* (exists), prop::value (equals), prop::>N (comparison)
     // Pattern: name::value where :: distinguishes from field:value
-    const propMatch = term.match(/^([a-z][a-z0-9_-]*)::(.*)$/i);
+    const propMatch = term.match(/^([a-z][a-z0-9_-]*)::(.*)$/i)
     if (propMatch) {
-      const [, propName, propValue] = propMatch;
+      const [, propName, propValue] = propMatch
 
       if (propValue === "*") {
         // Existence check: prop::*
@@ -279,25 +279,25 @@ export function parseQuery(query: string): QueryAST {
           op: "exists",
           negated,
           offset,
-        });
+        })
       } else {
         // Check for comparison operators: >N, <N, >=N, <=N
-        const compMatch = propValue?.match(/^(>=|<=|>|<)(-?\d+(?:\.\d+)?)$/);
+        const compMatch = propValue?.match(/^(>=|<=|>|<)(-?\d+(?:\.\d+)?)$/)
         if (compMatch) {
-          const [, compOp, numStr] = compMatch;
+          const [, compOp, numStr] = compMatch
           ast.propConditions.push({
             prop: propName?.toLowerCase() ?? "",
             op: compOp as ">" | "<" | ">=" | "<=",
             value: parseFloat(numStr ?? "0"),
             negated,
             offset,
-          });
+          })
         } else {
           // Value match: prop::value
           // Check if it's a number
-          const numValue = parseFloat(propValue ?? "");
+          const numValue = parseFloat(propValue ?? "")
           const isNumber =
-            !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "");
+            !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "")
 
           ast.propConditions.push({
             prop: propName?.toLowerCase() ?? "",
@@ -305,10 +305,10 @@ export function parseQuery(query: string): QueryAST {
             value: isNumber ? numValue : (propValue ?? ""),
             negated,
             offset,
-          });
+          })
         }
       }
-      continue;
+      continue
     }
 
     // Special queries: blocked:true/false
@@ -320,33 +320,33 @@ export function parseQuery(query: string): QueryAST {
         type: "blocked",
         value: term.toLowerCase() === "blocked:true",
         offset,
-      });
-      continue;
+      })
+      continue
     }
 
     // field:value (supports comma-separated values like status:open,blocked)
-    const fieldMatch = term.match(/^([a-z_]+)([:=<>!]+)(.+)$/i);
+    const fieldMatch = term.match(/^([a-z_]+)([:=<>!]+)(.+)$/i)
     if (fieldMatch) {
-      const [, field, opStr, rawValue] = fieldMatch;
-      let op: QueryCondition["op"] = "=";
+      const [, field, opStr, rawValue] = fieldMatch
+      let op: QueryCondition["op"] = "="
 
       // Determine operator
       if (opStr === ":" || opStr === "=") {
-        op = negated ? "!=" : "=";
+        op = negated ? "!=" : "="
       } else if (opStr === "!=") {
-        op = "!=";
+        op = "!="
       } else if (opStr === ">") {
-        op = ">";
+        op = ">"
       } else if (opStr === "<") {
-        op = "<";
+        op = "<"
       } else if (opStr === ">=") {
-        op = ">=";
+        op = ">="
       } else if (opStr === "<=") {
-        op = "<=";
+        op = "<="
       }
 
       // Map field aliases
-      const mappedField = mapFieldName(field ?? "");
+      const mappedField = mapFieldName(field ?? "")
 
       // Store value as-is (comma-separated values handled by executor)
       ast.conditions.push({
@@ -355,18 +355,18 @@ export function parseQuery(query: string): QueryAST {
         value: rawValue ?? "",
         negated,
         offset,
-      });
-      continue;
+      })
+      continue
     }
 
     // Plain text search term
-    ast.text.push(negated ? `-${term}` : term);
+    ast.text.push(negated ? `-${term}` : term)
     ast.textTerms.push({
       value: term,
       negated,
       offset,
-    });
+    })
   }
 
-  return ast;
+  return ast
 }

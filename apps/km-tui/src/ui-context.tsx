@@ -13,31 +13,31 @@ import React, {
   useRef,
   useSyncExternalStore,
   type Dispatch,
-} from "react";
-import { createSelector } from "reselect";
-import type { UIState, UIAction } from "./ui-reducer.ts";
-import type { SelectionKey } from "./types.ts";
+} from "react"
+import { createSelector } from "reselect"
+import type { UIState, UIAction } from "./ui-reducer.ts"
+import type { SelectionKey } from "./types.ts"
 
 // =============================================================================
 // Context Types
 // =============================================================================
 
 interface UIContextValue {
-  getState: () => UIState;
-  dispatch: Dispatch<UIAction>;
-  subscribe: (callback: () => void) => () => void;
+  getState: () => UIState
+  dispatch: Dispatch<UIAction>
+  subscribe: (callback: () => void) => () => void
 }
 
-const UIContext = createContext<UIContextValue | null>(null);
+const UIContext = createContext<UIContextValue | null>(null)
 
 // =============================================================================
 // Provider Component
 // =============================================================================
 
 interface UIProviderProps {
-  state: UIState;
-  dispatch: Dispatch<UIAction>;
-  children: React.ReactNode;
+  state: UIState
+  dispatch: Dispatch<UIAction>
+  children: React.ReactNode
 }
 
 /**
@@ -50,20 +50,20 @@ export function UIProvider({
   children,
 }: UIProviderProps): React.ReactElement {
   // Use ref to always have current state without causing re-renders
-  const stateRef = useRef(state);
-  const listenersRef = useRef(new Set<() => void>());
+  const stateRef = useRef(state)
+  const listenersRef = useRef(new Set<() => void>())
 
   // Update ref synchronously so getState() returns current value
-  stateRef.current = state;
+  stateRef.current = state
 
   // Notify listeners AFTER render completes to avoid "Cannot update component
   // while rendering" React error. This is critical for inkx which re-renders
   // more aggressively than stock ink.
   useEffect(() => {
     for (const listener of listenersRef.current) {
-      listener();
+      listener()
     }
-  }, [state]);
+  }, [state])
 
   const value = useMemo(
     () => ({
@@ -71,14 +71,14 @@ export function UIProvider({
       dispatch,
       // eslint-disable-next-line promise/prefer-await-to-callbacks -- subscribe pattern requires callback
       subscribe: (callback: () => void) => {
-        listenersRef.current.add(callback);
-        return () => listenersRef.current.delete(callback);
+        listenersRef.current.add(callback)
+        return () => listenersRef.current.delete(callback)
       },
     }),
     [dispatch],
-  );
+  )
 
-  return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
+  return <UIContext.Provider value={value}>{children}</UIContext.Provider>
 }
 
 // =============================================================================
@@ -89,11 +89,11 @@ export function UIProvider({
  * Get the dispatch function only (never causes re-renders)
  */
 export function useUIDispatch(): Dispatch<UIAction> {
-  const context = useContext(UIContext);
+  const context = useContext(UIContext)
   if (!context) {
-    throw new Error("useUIDispatch must be used within UIProvider");
+    throw new Error("useUIDispatch must be used within UIProvider")
   }
-  return context.dispatch;
+  return context.dispatch
 }
 
 /**
@@ -105,16 +105,16 @@ export function useUIDispatch(): Dispatch<UIAction> {
  * const isSelected = useUISelector(state => state.multiSelected.has(myKey));
  */
 export function useUISelector<T>(selector: (state: UIState) => T): T {
-  const context = useContext(UIContext);
+  const context = useContext(UIContext)
   if (!context) {
-    throw new Error("useUISelector must be used within UIProvider");
+    throw new Error("useUISelector must be used within UIProvider")
   }
 
   return useSyncExternalStore(
     context.subscribe,
     () => selector(context.getState()),
     () => selector(context.getState()),
-  );
+  )
 }
 
 /**
@@ -122,7 +122,7 @@ export function useUISelector<T>(selector: (state: UIState) => T): T {
  * Prefer useUISelector for better performance.
  */
 export function useUIState(): UIState {
-  return useUISelector((state) => state);
+  return useUISelector((state) => state)
 }
 
 // =============================================================================
@@ -130,21 +130,21 @@ export function useUIState(): UIState {
 // =============================================================================
 
 // Base selectors
-const selectFoldedNodes = (state: UIState) => state.foldedNodes;
-const selectMultiSelected = (state: UIState) => state.multiSelected;
-const selectSubIndex = (state: UIState) => state.subIndex;
-const selectInOutlineMode = (state: UIState) => state.inOutlineMode;
-const selectMaxOutlineDepth = (state: UIState) => state.maxOutlineDepth;
-const selectMaxContentLines = (state: UIState) => state.maxContentLines;
-const selectViewMode = (state: UIState) => state.viewMode;
+const selectFoldedNodes = (state: UIState) => state.foldedNodes
+const selectMultiSelected = (state: UIState) => state.multiSelected
+const selectSubIndex = (state: UIState) => state.subIndex
+const selectInOutlineMode = (state: UIState) => state.inOutlineMode
+const selectMaxOutlineDepth = (state: UIState) => state.maxOutlineDepth
+const selectMaxContentLines = (state: UIState) => state.maxContentLines
+const selectViewMode = (state: UIState) => state.viewMode
 // Note: selectionLevel is now derived from cursor depth in Board.tsx, not stored in UIState
-const selectRootBoardId = (state: UIState) => state.rootBoardId;
+const selectRootBoardId = (state: UIState) => state.rootBoardId
 
 /**
  * Check if a node is folded
  */
 export const makeSelectIsFolded = (nodeId: string) =>
-  createSelector([selectFoldedNodes], (foldedNodes) => foldedNodes.has(nodeId));
+  createSelector([selectFoldedNodes], (foldedNodes) => foldedNodes.has(nodeId))
 
 /**
  * Check if a selection key is multi-selected
@@ -152,7 +152,7 @@ export const makeSelectIsFolded = (nodeId: string) =>
 export const makeSelectIsMultiSelected = (key: SelectionKey) =>
   createSelector([selectMultiSelected], (multiSelected) =>
     multiSelected.has(key),
-  );
+  )
 
 /**
  * Get tree rendering config (commonly used together)
@@ -180,7 +180,7 @@ export const selectTreeConfig = createSelector(
       | "oneliner"
       | "multiline",
   }),
-);
+)
 
 // =============================================================================
 // Convenience Hooks (using pre-built selectors)
@@ -190,23 +190,23 @@ export const selectTreeConfig = createSelector(
  * Get tree rendering config
  */
 export function useTreeConfig() {
-  return useUISelector(selectTreeConfig);
+  return useUISelector(selectTreeConfig)
 }
 
 /**
  * Check if a node is folded
  */
 export function useIsFolded(nodeId: string): boolean {
-  const foldedNodes = useUISelector(selectFoldedNodes);
-  return foldedNodes.has(nodeId);
+  const foldedNodes = useUISelector(selectFoldedNodes)
+  return foldedNodes.has(nodeId)
 }
 
 /**
  * Check if a selection key is multi-selected
  */
 export function useIsMultiSelected(key: SelectionKey): boolean {
-  const multiSelected = useUISelector(selectMultiSelected);
-  return multiSelected.has(key);
+  const multiSelected = useUISelector(selectMultiSelected)
+  return multiSelected.has(key)
 }
 
 /**
@@ -222,14 +222,14 @@ export function useSelectionState() {
         inOutlineMode,
       }),
     ),
-  );
+  )
 }
 
 /**
  * Get the current board's root ID (for excluding from board pills)
  */
 export function useRootBoardId(): string | null {
-  return useUISelector(selectRootBoardId);
+  return useUISelector(selectRootBoardId)
 }
 
 /**
@@ -241,27 +241,27 @@ export function useRootBoardId(): string | null {
  * @returns Array of sigils to exclude (e.g., ["@issue"])
  */
 export function useExcludedSigils(): string[] {
-  const rootBoardId = useRootBoardId();
+  const rootBoardId = useRootBoardId()
   return useMemo(() => {
-    if (!rootBoardId) return [];
+    if (!rootBoardId) return []
 
     // Import getNode lazily to avoid circular dependencies
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getNode } = require("@km/storage");
-    const node = getNode(rootBoardId);
-    if (!node?.fs_path) return [];
+    const { getNode } = require("@km/storage")
+    const node = getNode(rootBoardId)
+    if (!node?.fs_path) return []
 
     // Extract filename without extension (e.g., "@issue.md" → "@issue")
-    const filename = node.fs_path.split("/").pop() || "";
-    const name = filename.replace(/\.md$/, "");
+    const filename = node.fs_path.split("/").pop() || ""
+    const name = filename.replace(/\.md$/, "")
 
     // If the filename starts with a sigil (@, #, +), include it
     if (/^[@#\+]/.test(name)) {
-      return [name];
+      return [name]
     }
 
-    return [];
-  }, [rootBoardId]);
+    return []
+  }, [rootBoardId])
 }
 
 /**
@@ -276,7 +276,7 @@ const GTD_SIGIL_COLORS: Record<string, string> = {
   "@done": "green",
   "@dropped": "gray",
   "@blocked": "red",
-};
+}
 
 /**
  * Get colors for sigils based on GTD defaults or node colors.
@@ -286,5 +286,5 @@ const GTD_SIGIL_COLORS: Record<string, string> = {
 export function useSigilColors(): Map<string, string> {
   // Return static GTD colors for now
   // Future: could look up actual node colors from storage
-  return useMemo(() => new Map(Object.entries(GTD_SIGIL_COLORS)), []);
+  return useMemo(() => new Map(Object.entries(GTD_SIGIL_COLORS)), [])
 }

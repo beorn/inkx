@@ -4,7 +4,7 @@
  * Add and remove dependencies between issues.
  */
 
-import type { Issue } from "./types.ts";
+import type { Issue } from "./types.ts"
 
 /**
  * Add a dependency (blocked-by relationship)
@@ -15,15 +15,15 @@ export function addDependency(
   issue: Issue,
   dependsOn: string, // Short ID of the blocker
 ): { props: Record<string, unknown>; propsRaw: Record<string, string> } {
-  const currentBlockers = issue.blockedBy || [];
+  const currentBlockers = issue.blockedBy || []
 
   // Don't add duplicate
   if (currentBlockers.includes(dependsOn)) {
-    return buildBlockedByProps(currentBlockers);
+    return buildBlockedByProps(currentBlockers)
   }
 
-  const newBlockers = [...currentBlockers, dependsOn];
-  return buildBlockedByProps(newBlockers);
+  const newBlockers = [...currentBlockers, dependsOn]
+  return buildBlockedByProps(newBlockers)
 }
 
 /**
@@ -33,31 +33,31 @@ export function removeDependency(
   issue: Issue,
   dependsOn: string,
 ): { props: Record<string, unknown>; propsRaw: Record<string, string> } | null {
-  const currentBlockers = issue.blockedBy || [];
+  const currentBlockers = issue.blockedBy || []
 
   if (!currentBlockers.includes(dependsOn)) {
-    return null; // Not a current dependency
+    return null // Not a current dependency
   }
 
-  const newBlockers = currentBlockers.filter((b) => b !== dependsOn);
+  const newBlockers = currentBlockers.filter((b) => b !== dependsOn)
 
   if (newBlockers.length === 0) {
     // Return empty props to clear the blocked-by property
-    return { props: {}, propsRaw: {} };
+    return { props: {}, propsRaw: {} }
   }
 
-  return buildBlockedByProps(newBlockers);
+  return buildBlockedByProps(newBlockers)
 }
 
 /**
  * Build the blocked-by property structure
  */
 function buildBlockedByProps(blockers: string[]): {
-  props: Record<string, unknown>;
-  propsRaw: Record<string, string>;
+  props: Record<string, unknown>
+  propsRaw: Record<string, string>
 } {
   if (blockers.length === 0) {
-    return { props: {}, propsRaw: {} };
+    return { props: {}, propsRaw: {} }
   }
 
   if (blockers.length === 1) {
@@ -68,7 +68,7 @@ function buildBlockedByProps(blockers: string[]): {
       propsRaw: {
         "blocked-by": `[[${blockers[0]}]]`,
       },
-    };
+    }
   }
 
   // Multiple blockers - use list type
@@ -82,21 +82,21 @@ function buildBlockedByProps(blockers: string[]): {
     propsRaw: {
       "blocked-by": blockers.map((b) => `[[${b}]]`).join(", "),
     },
-  };
+  }
 }
 
 /**
  * Get all dependencies for an issue
  */
 export function getDependencies(issue: Issue): string[] {
-  return issue.blockedBy || [];
+  return issue.blockedBy || []
 }
 
 /**
  * Check if issue A depends on issue B
  */
 export function dependsOn(issueA: Issue, issueB: Issue): boolean {
-  return (issueA.blockedBy || []).includes(issueB.shortId);
+  return (issueA.blockedBy || []).includes(issueB.shortId)
 }
 
 /**
@@ -105,13 +105,13 @@ export function dependsOn(issueA: Issue, issueB: Issue): boolean {
 export function mergeDepProps(
   existingData: Record<string, unknown> | undefined,
   depProps: {
-    props: Record<string, unknown>;
-    propsRaw: Record<string, string>;
+    props: Record<string, unknown>
+    propsRaw: Record<string, string>
   },
 ): Record<string, unknown> {
-  const data = existingData || {};
-  const existingProps = (data.props || {}) as Record<string, unknown>;
-  const existingPropsRaw = (data.propsRaw || {}) as Record<string, string>;
+  const data = existingData || {}
+  const existingProps = (data.props || {}) as Record<string, unknown>
+  const existingPropsRaw = (data.propsRaw || {}) as Record<string, string>
 
   return {
     ...data,
@@ -123,5 +123,5 @@ export function mergeDepProps(
       ...existingPropsRaw,
       ...depProps.propsRaw,
     },
-  };
+  }
 }

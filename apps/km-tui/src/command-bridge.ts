@@ -13,15 +13,15 @@ import {
   type InkKeyEvent,
   type InkCommandResult,
   type TNode,
-} from "@km/commands";
-import type { TUIContext } from "./tui-context.ts";
+} from "@km/commands"
+import type { TUIContext } from "./tui-context.ts"
 
-let initialized = false;
+let initialized = false
 
 export function ensureCommandSystemInitialized(): void {
   if (!initialized) {
-    initCommandSystem();
-    initialized = true;
+    initCommandSystem()
+    initialized = true
   }
 }
 
@@ -30,9 +30,9 @@ export function processKeyWithContext(
   key: InkKeyEvent,
   ctx: TUIContext,
 ): InkCommandResult {
-  ensureCommandSystemInitialized();
+  ensureCommandSystemInitialized()
 
-  const { boardState, ui, layout, selectedNode } = ctx;
+  const { boardState, ui, layout, selectedNode } = ctx
 
   const kbCtx = buildKeybindingContext({
     inMoveMode: boardState.moveMode,
@@ -43,10 +43,10 @@ export function processKeyWithContext(
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
     currentNode: (selectedNode as TNode) ?? null,
-  });
+  })
 
-  const { colIndex, cardIndex, columns } = layout;
-  const column = columns[colIndex];
+  const { colIndex, cardIndex, columns } = layout
+  const column = columns[colIndex]
 
   // Build CommandContext directly - no legacy shim needed
   const cmdCtx = buildContext(ui.viewMode, {
@@ -59,7 +59,7 @@ export function processKeyWithContext(
     columnCount: columns.length,
     moveMode: boardState.moveMode,
     foldedNodes: boardState.foldedNodes,
-  });
+  })
 
-  return processInkKey(input, key, cmdCtx, kbCtx);
+  return processInkKey(input, key, cmdCtx, kbCtx)
 }

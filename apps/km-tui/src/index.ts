@@ -6,10 +6,10 @@
  */
 
 // Re-export types and utilities
-export * from "./types.ts";
-export * from "./state.ts";
-export * from "./render.ts";
-export * from "./tui.ts";
+export * from "./types.ts"
+export * from "./state.ts"
+export * from "./render.ts"
+export * from "./tui.ts"
 
 // Export views
 export {
@@ -17,22 +17,22 @@ export {
   BoardCore,
   BoardApp,
   makeSelectionKey,
-} from "./views/index.ts";
+} from "./views/index.ts"
 
 // Export vault context for wrapping components
-export { VaultProvider, useVault, type Vault } from "./vault-context.tsx";
+export { VaultProvider, useVault, type Vault } from "./vault-context.tsx"
 
 // Export UI reducer utilities
-export { createInitialUIState } from "./ui-reducer.ts";
+export { createInitialUIState } from "./ui-reducer.ts"
 
 // Export layout registry for card position tracking
-export { createLayoutRegistry } from "./card-positions.ts";
+export { createLayoutRegistry } from "./card-positions.ts"
 
 // Export text utilities
-export * from "./text/index.ts";
+export * from "./text/index.ts"
 
 // Export layout utilities
-export * from "./layout/index.ts";
+export * from "./layout/index.ts"
 
 // Note: Icons are exported via ./text/index.ts
 

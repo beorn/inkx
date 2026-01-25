@@ -13,12 +13,12 @@
  * - materialize: Evaluate add= rules
  */
 
-import createDebug from "debug";
-import { Database } from "bun:sqlite";
-import { existsSync, readdirSync, readFileSync, statSync } from "fs";
-import { join, dirname, relative, basename } from "path";
-import type { Event } from "@km/core";
-import { ParsePool, type ParseResult } from "./parse-pool.ts";
+import createDebug from "debug"
+import { Database } from "bun:sqlite"
+import { existsSync, readdirSync, readFileSync, statSync } from "fs"
+import { join, dirname, relative, basename } from "path"
+import type { Event } from "@km/core"
+import { ParsePool, type ParseResult } from "./parse-pool.ts"
 
 /**
  * Progress yield type for step generators.
@@ -29,9 +29,9 @@ import { ParsePool, type ParseResult } from "./parse-pool.ts";
 export type StepYield =
   | string
   | { current?: number; total?: number }
-  | { declare: string[] };
-import { parseMarkdownWithLinks } from "@km/markdown";
-import { SCHEMA } from "./schema.ts";
+  | { declare: string[] }
+import { parseMarkdownWithLinks } from "@km/markdown"
+import { SCHEMA } from "./schema.ts"
 import {
   applyEvent,
   getDb,
@@ -39,61 +39,61 @@ import {
   setDb,
   dbApplyEvent,
   tryGetContextDb,
-} from "./db.ts";
-import { findChildByContent } from "./db-queries/index.ts";
-import { rowToNode } from "./db-queries/utils.ts";
-import type { KNode } from "@km/core";
-import { getEventsPath, setKmDir, setDatabase } from "./emit.ts";
-import { evaluateAllRules, setBulkMode } from "./db-rules.ts";
-import { findKmRootFromPath } from "./path-utils.ts";
-import { DiskStore, MemoryStore, type NodeStore } from "./store.ts";
+} from "./db.ts"
+import { findChildByContent } from "./db-queries/index.ts"
+import { rowToNode } from "./db-queries/utils.ts"
+import type { KNode } from "@km/core"
+import { getEventsPath, setKmDir, setDatabase } from "./emit.ts"
+import { evaluateAllRules, setBulkMode } from "./db-rules.ts"
+import { findKmRootFromPath } from "./path-utils.ts"
+import { DiskStore, MemoryStore, type NodeStore } from "./store.ts"
 
-const debug = createDebug("km:storage:vault-loader");
+const debug = createDebug("km:storage:vault-loader")
 
 /** Result from loadVault */
 export interface LoadResult {
-  mode: "memory" | "disk";
+  mode: "memory" | "disk"
   /** Root path of the vault */
-  rootPath: string;
-  nodeCount: number;
-  linkCount: number;
-  errors: LoadError[];
-  duration: number;
+  rootPath: string
+  nodeCount: number
+  linkCount: number
+  errors: LoadError[]
+  duration: number
   /** Pending links for deferred resolution (only present if skipLinkResolution was true) */
-  pendingLinks?: PendingLink[];
+  pendingLinks?: PendingLink[]
   /** Files pending deferred parsing (only present if discoverOnly was true) */
-  deferredFiles?: DeferredFile[];
+  deferredFiles?: DeferredFile[]
   /** The NodeStore instance for querying/mutating nodes */
-  store: NodeStore;
+  store: NodeStore
 }
 
 /** Error during loading */
 export interface LoadError {
-  phase: "discover" | "parse" | "apply" | "resolve" | "materialize";
-  path?: string;
-  message: string;
+  phase: "discover" | "parse" | "apply" | "resolve" | "materialize"
+  path?: string
+  message: string
 }
 
 /** Options for loadVault */
 export interface LoadOptions {
   /** Search for .km in parent directories (default: true) */
-  searchAncestors?: boolean;
+  searchAncestors?: boolean
   /** Force full rebuild even if state exists (default: false) */
-  force?: boolean;
+  force?: boolean
   /** Skip link resolution for faster startup (default: false) */
-  skipLinkResolution?: boolean;
+  skipLinkResolution?: boolean
   /**
    * km-fast-md.7: Discover-only mode for instant board render.
    * Creates stub nodes without parsing markdown content.
    * Call parseDeferredAsync() afterward to fill in content.
    */
-  discoverOnly?: boolean;
+  discoverOnly?: boolean
 }
 
 /** Files pending deferred parsing (for discoverOnly mode) */
 export interface DeferredFile {
-  nodeId: string;
-  fsPath: string;
+  nodeId: string
+  fsPath: string
 }
 
 /**
@@ -112,24 +112,24 @@ export function* loadVault(
   rootPath?: string,
   options?: LoadOptions,
 ): Generator<StepYield, LoadResult, unknown> {
-  const start = Date.now();
-  const errors: LoadError[] = [];
+  const start = Date.now()
+  const errors: LoadError[] = []
 
   // 1. Resolve path and detect mode
-  const searchAncestors = options?.searchAncestors ?? true;
-  const { vaultRoot, kmDir } = resolveVaultRoot(rootPath, searchAncestors);
-  const mode = kmDir ? "disk" : "memory";
+  const searchAncestors = options?.searchAncestors ?? true
+  const { vaultRoot, kmDir } = resolveVaultRoot(rootPath, searchAncestors)
+  const mode = kmDir ? "disk" : "memory"
 
-  debug("loadVault vaultRoot=%s mode=%s", vaultRoot, mode);
+  debug("loadVault vaultRoot=%s mode=%s", vaultRoot, mode)
 
   // Declare all sub-steps upfront so they appear as pending
-  const skipLinks = options?.skipLinkResolution ?? false;
-  const discoverOnly = options?.discoverOnly ?? false;
+  const skipLinks = options?.skipLinkResolution ?? false
+  const discoverOnly = options?.discoverOnly ?? false
 
   if (mode === "memory") {
     if (discoverOnly) {
       // km-fast-md.7: Fast discover-only mode
-      yield { declare: ["Discovering files", "Applying changes"] };
+      yield { declare: ["Discovering files", "Applying changes"] }
     } else if (skipLinks) {
       yield {
         declare: [
@@ -138,7 +138,7 @@ export function* loadVault(
           "Applying changes",
           "Evaluating rules",
         ],
-      };
+      }
     } else {
       yield {
         declare: [
@@ -148,31 +148,31 @@ export function* loadVault(
           "Resolving links",
           "Evaluating rules",
         ],
-      };
+      }
     }
   } else {
     yield {
       declare: ["Reading events", "Applying changes", "Evaluating rules"],
-    };
+    }
   }
 
   // 2. Set up database based on mode
-  let db: Database;
+  let db: Database
   if (mode === "disk" && kmDir) {
-    setKmDir(kmDir);
-    db = getDb();
+    setKmDir(kmDir)
+    db = getDb()
     if (options?.force) {
-      resetDb();
+      resetDb()
     }
   } else {
     // Memory mode - use context db if available (enables test isolation)
-    const contextDb = tryGetContextDb();
+    const contextDb = tryGetContextDb()
     if (contextDb) {
-      db = contextDb;
+      db = contextDb
     } else {
-      db = new Database(":memory:");
-      db.exec(SCHEMA);
-      setDb(db);
+      db = new Database(":memory:")
+      db.exec(SCHEMA)
+      setDb(db)
     }
   }
 
@@ -183,59 +183,59 @@ export function* loadVault(
       ? discoverOnly
         ? yield* discoverFilesOnly(vaultRoot, errors)
         : yield* discoverFromFilesystem(vaultRoot, errors)
-      : yield* discoverFromEvents(kmDir ?? "", options?.force ?? false, errors);
+      : yield* discoverFromEvents(kmDir ?? "", options?.force ?? false, errors)
 
   // 4. Shared pipeline (SAME for both modes)
-  yield* applyEvents(db, source.events, errors);
+  yield* applyEvents(db, source.events, errors)
 
   // Resolve links (memory mode has pending links, disk mode resolves during apply)
-  let linkCount = 0;
-  let returnPendingLinks: PendingLink[] | undefined;
-  let returnDeferredFiles: DeferredFile[] | undefined;
+  let linkCount = 0
+  let returnPendingLinks: PendingLink[] | undefined
+  let returnDeferredFiles: DeferredFile[] | undefined
 
   // km-fast-md.7: In discover-only mode, skip link resolution and rules
   if (discoverOnly) {
-    returnDeferredFiles = source.deferredFiles;
+    returnDeferredFiles = source.deferredFiles
     debug(
       "discover-only mode, %d files deferred",
       returnDeferredFiles?.length ?? 0,
-    );
+    )
   } else {
     if (source.pendingLinks.length > 0) {
       if (options?.skipLinkResolution) {
         // Skip resolution - return pending links for deferred processing
-        returnPendingLinks = source.pendingLinks;
+        returnPendingLinks = source.pendingLinks
         debug(
           "skipping link resolution, %d links deferred",
           source.pendingLinks.length,
-        );
+        )
       } else {
-        linkCount = yield* resolveLinks(source.pendingLinks, errors);
+        linkCount = yield* resolveLinks(source.pendingLinks, errors)
       }
     }
 
     // Materialize rules
-    yield* materializeRules();
+    yield* materializeRules(db)
   }
 
   // 5. Finalize
   const nodeCount = (
     db.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }
-  ).count;
+  ).count
 
   // Enable real-time event application for disk mode
   if (mode === "disk") {
-    setDatabase(dbApplyEvent);
+    setDatabase(dbApplyEvent)
   }
 
-  const duration = Date.now() - start;
-  debug("loadVault complete", { mode, nodeCount, linkCount, duration });
+  const duration = Date.now() - start
+  debug("loadVault complete", { mode, nodeCount, linkCount, duration })
 
   // Create the appropriate store with the database we just set up
   const store: NodeStore =
     mode === "disk" && kmDir
       ? new DiskStore(kmDir, { inject: { database: db } })
-      : new MemoryStore(vaultRoot, { inject: { database: db } });
+      : new MemoryStore(vaultRoot, { inject: { database: db } })
 
   return {
     mode,
@@ -247,29 +247,29 @@ export function* loadVault(
     pendingLinks: returnPendingLinks,
     deferredFiles: returnDeferredFiles,
     store,
-  };
+  }
 }
 
 // --- Types ---
 
 interface EventSource {
-  events: Event[];
-  pendingLinks: PendingLink[];
+  events: Event[]
+  pendingLinks: PendingLink[]
   /** km-fast-md.7: Files to parse later (discover-only mode) */
-  deferredFiles?: DeferredFile[];
+  deferredFiles?: DeferredFile[]
 }
 
 /** Pending link for deferred resolution */
 export interface PendingLink {
-  nodeId: string;
+  nodeId: string
   link: {
-    target: string;
-    section?: string;
-    blockId?: string;
-    alias?: string;
-    embedded?: boolean;
-  };
-  relationship?: string;
+    target: string
+    section?: string
+    blockId?: string
+    alias?: string
+    embedded?: boolean
+  }
+  relationship?: string
 }
 
 // --- Path Resolution ---
@@ -278,21 +278,21 @@ function resolveVaultRoot(
   rootPath: string | undefined,
   searchAncestors: boolean,
 ): { vaultRoot: string; kmDir: string | null } {
-  const path = rootPath ?? process.cwd();
+  const path = rootPath ?? process.cwd()
 
   if (searchAncestors) {
-    const kmDir = findKmRootFromPath(path);
+    const kmDir = findKmRootFromPath(path)
     if (kmDir) {
-      return { vaultRoot: dirname(kmDir), kmDir };
+      return { vaultRoot: dirname(kmDir), kmDir }
     }
   } else {
-    const kmDir = join(path, ".km");
+    const kmDir = join(path, ".km")
     if (existsSync(kmDir) && statSync(kmDir).isDirectory()) {
-      return { vaultRoot: path, kmDir };
+      return { vaultRoot: path, kmDir }
     }
   }
 
-  return { vaultRoot: path, kmDir: null };
+  return { vaultRoot: path, kmDir: null }
 }
 
 // --- Memory Mode Discovery ---
@@ -306,48 +306,48 @@ function* discoverFilesOnly(
   vaultRoot: string,
   _errors: LoadError[],
 ): Generator<StepYield, EventSource, unknown> {
-  yield "Discovering files";
+  yield "Discovering files"
 
-  const events: Event[] = [];
-  const deferredFiles: DeferredFile[] = [];
-  const now = Date.now();
+  const events: Event[] = []
+  const deferredFiles: DeferredFile[] = []
+  const now = Date.now()
 
   // Count files for progress
-  const total = countMarkdownFilesFast(vaultRoot);
-  yield { current: 0, total };
+  const total = countMarkdownFilesFast(vaultRoot)
+  yield { current: 0, total }
 
-  let current = 0;
-  yield* scanDirectory(vaultRoot, null);
+  let current = 0
+  yield* scanDirectory(vaultRoot, null)
 
-  yield { current, total };
-  return { events, pendingLinks: [], deferredFiles };
+  yield { current, total }
+  return { events, pendingLinks: [], deferredFiles }
 
   // Fast scanner - no markdown parsing
   function* scanDirectory(
     dirPath: string,
     parentId: string | null,
   ): Generator<StepYield, void, unknown> {
-    if (!existsSync(dirPath)) return;
+    if (!existsSync(dirPath)) return
 
-    const dirName = basename(dirPath);
+    const dirName = basename(dirPath)
     if (
       parentId !== null &&
       (dirName.startsWith(".") || dirName === "node_modules")
     ) {
-      return;
+      return
     }
 
-    const entries = readdirSync(dirPath, { withFileTypes: true });
-    let order = 0;
+    const entries = readdirSync(dirPath, { withFileTypes: true })
+    let order = 0
 
     for (const entry of entries) {
-      if (entry.name.startsWith(".")) continue;
+      if (entry.name.startsWith(".")) continue
 
-      const fullPath = join(dirPath, entry.name);
+      const fullPath = join(dirPath, entry.name)
 
       if (entry.isDirectory()) {
         // Create folder node
-        const folderId = generateId(vaultRoot, fullPath);
+        const folderId = generateId(vaultRoot, fullPath)
         events.push({
           id: folderId,
           type: "node_created",
@@ -361,15 +361,15 @@ function* discoverFilesOnly(
             fs_path: fullPath,
             content: entry.name,
           },
-        });
+        })
 
-        yield* scanDirectory(fullPath, folderId);
+        yield* scanDirectory(fullPath, folderId)
       } else if (entry.isFile()) {
-        const fileId = generateId(vaultRoot, fullPath);
+        const fileId = generateId(vaultRoot, fullPath)
 
         if (entry.name.endsWith(".md")) {
           // Create stub file node WITHOUT parsing
-          const name = entry.name.replace(/\.md$/i, "");
+          const name = entry.name.replace(/\.md$/i, "")
           events.push({
             id: fileId,
             type: "node_created",
@@ -387,14 +387,14 @@ function* discoverFilesOnly(
               // Mark as unparsed stub
               data: { _stub: true },
             },
-          });
+          })
 
           // Add to deferred files for later parsing
-          deferredFiles.push({ nodeId: fileId, fsPath: fullPath });
+          deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
 
-          current++;
+          current++
           if (current % 100 === 0) {
-            yield { current, total };
+            yield { current, total }
           }
         } else {
           // Non-markdown file node
@@ -411,7 +411,7 @@ function* discoverFilesOnly(
               fs_path: fullPath,
               content: entry.name,
             },
-          });
+          })
         }
       }
     }
@@ -423,24 +423,24 @@ function* discoverFromFilesystem(
   errors: LoadError[],
 ): Generator<StepYield, EventSource, unknown> {
   // Single-pass: discover AND parse in one traversal (km-load-perf.0)
-  yield "Discovering files";
+  yield "Discovering files"
 
-  const events: Event[] = [];
-  const pendingLinks: PendingLink[] = [];
-  const now = Date.now();
+  const events: Event[] = []
+  const pendingLinks: PendingLink[] = []
+  const now = Date.now()
 
   // First pass: count markdown files (fast - no parsing)
   // Use a stack-based iteration to count without recursion overhead
-  const total = countMarkdownFilesFast(vaultRoot);
-  yield { current: total, total };
+  const total = countMarkdownFilesFast(vaultRoot)
+  yield { current: total, total }
 
   // Parse - scan filesystem and generate events
-  yield "Parsing markdown";
-  let current = 0;
+  yield "Parsing markdown"
+  let current = 0
 
-  yield* scanDirectory(vaultRoot, null, 0);
+  yield* scanDirectory(vaultRoot, null, 0)
 
-  return { events, pendingLinks };
+  return { events, pendingLinks }
 
   // Recursive scanner (hoisted generator)
   function* scanDirectory(
@@ -448,27 +448,27 @@ function* discoverFromFilesystem(
     parentId: string | null,
     _sortOrder: number,
   ): Generator<StepYield, void, unknown> {
-    if (!existsSync(dirPath)) return;
+    if (!existsSync(dirPath)) return
 
-    const dirName = basename(dirPath);
+    const dirName = basename(dirPath)
     if (
       parentId !== null &&
       (dirName.startsWith(".") || dirName === "node_modules")
     ) {
-      return;
+      return
     }
 
-    const entries = readdirSync(dirPath, { withFileTypes: true });
-    let order = 0;
+    const entries = readdirSync(dirPath, { withFileTypes: true })
+    let order = 0
 
     for (const entry of entries) {
-      if (entry.name.startsWith(".")) continue;
+      if (entry.name.startsWith(".")) continue
 
-      const fullPath = join(dirPath, entry.name);
+      const fullPath = join(dirPath, entry.name)
 
       if (entry.isDirectory()) {
         // Create folder node
-        const folderId = generateId(vaultRoot, fullPath);
+        const folderId = generateId(vaultRoot, fullPath)
         events.push({
           id: folderId,
           type: "node_created",
@@ -482,56 +482,56 @@ function* discoverFromFilesystem(
             fs_path: fullPath,
             content: entry.name,
           },
-        });
+        })
 
         // Recurse into subdirectory
-        yield* scanDirectory(fullPath, folderId, 0);
+        yield* scanDirectory(fullPath, folderId, 0)
       } else if (entry.isFile()) {
         if (entry.name.endsWith(".md")) {
           try {
-            const content = readFileSync(fullPath, "utf-8");
+            const content = readFileSync(fullPath, "utf-8")
             const { nodes, wikilinks } = parseMarkdownWithLinks(
               content,
               fullPath,
-            );
+            )
 
             // First node is always the file node
-            const fileNode = nodes[0];
+            const fileNode = nodes[0]
             if (fileNode?.type === "file") {
-              fileNode.parent_id = parentId;
-              fileNode.parent_idx = order++;
+              fileNode.parent_id = parentId
+              fileNode.parent_idx = order++
             }
 
             // Convert nodes to events
             for (const node of nodes) {
               const nodeId =
-                node.id ?? generateId(vaultRoot, fullPath, node.md_line);
+                node.id ?? generateId(vaultRoot, fullPath, node.md_line)
               events.push({
                 id: nodeId,
                 type: "node_created",
                 actor: "fs-scan",
                 ts: now,
                 data: { ...node, id: nodeId },
-              });
+              })
             }
 
             // Collect wikilinks for later resolution
             for (const wikilink of wikilinks) {
-              pendingLinks.push(wikilink);
+              pendingLinks.push(wikilink)
             }
 
-            current++;
+            current++
             // Yield progress every 50 files
             if (current % 50 === 0) {
-              yield { current, total };
+              yield { current, total }
             }
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            errors.push({ phase: "parse", path: fullPath, message });
+            const message = err instanceof Error ? err.message : String(err)
+            errors.push({ phase: "parse", path: fullPath, message })
           }
         } else {
           // Non-markdown file node
-          const fileId = generateId(vaultRoot, fullPath);
+          const fileId = generateId(vaultRoot, fullPath)
           events.push({
             id: fileId,
             type: "node_created",
@@ -545,7 +545,7 @@ function* discoverFromFilesystem(
               fs_path: fullPath,
               content: entry.name,
             },
-          });
+          })
         }
       }
     }
@@ -557,35 +557,35 @@ function* discoverFromFilesystem(
  * This is used for progress display only - minimal overhead.
  */
 function countMarkdownFilesFast(rootPath: string): number {
-  if (!existsSync(rootPath)) return 0;
+  if (!existsSync(rootPath)) return 0
 
-  let count = 0;
-  const stack = [rootPath];
+  let count = 0
+  const stack = [rootPath]
 
   while (stack.length > 0) {
-    const dirPath = stack.pop();
-    if (!dirPath) continue;
-    const dirName = basename(dirPath);
+    const dirPath = stack.pop()
+    if (!dirPath) continue
+    const dirName = basename(dirPath)
 
     // Skip hidden dirs and node_modules (except root)
     if (
       dirPath !== rootPath &&
       (dirName.startsWith(".") || dirName === "node_modules")
     ) {
-      continue;
+      continue
     }
 
     try {
-      const entries = readdirSync(dirPath, { withFileTypes: true });
+      const entries = readdirSync(dirPath, { withFileTypes: true })
 
       for (const entry of entries) {
-        if (entry.name.startsWith(".")) continue;
+        if (entry.name.startsWith(".")) continue
 
-        const fullPath = join(dirPath, entry.name);
+        const fullPath = join(dirPath, entry.name)
         if (entry.isDirectory()) {
-          stack.push(fullPath);
+          stack.push(fullPath)
         } else if (entry.isFile() && entry.name.endsWith(".md")) {
-          count++;
+          count++
         }
       }
     } catch {
@@ -593,7 +593,7 @@ function countMarkdownFilesFast(rootPath: string): number {
     }
   }
 
-  return count;
+  return count
 }
 
 function generateId(
@@ -601,8 +601,8 @@ function generateId(
   filePath: string,
   lineNum?: number,
 ): string {
-  const relPath = relative(vaultRoot, filePath);
-  return lineNum !== undefined ? `${relPath}:${lineNum}` : relPath;
+  const relPath = relative(vaultRoot, filePath)
+  return lineNum !== undefined ? `${relPath}:${lineNum}` : relPath
 }
 
 // --- Disk Mode Discovery ---
@@ -613,27 +613,27 @@ function* discoverFromEvents(
   _errors: LoadError[],
 ): Generator<StepYield, EventSource, unknown> {
   // Discover - read and count events
-  yield "Reading events";
+  yield "Reading events"
 
-  const eventsPath = getEventsPath();
+  const eventsPath = getEventsPath()
   if (!existsSync(eventsPath)) {
-    debug("no events file at %s", eventsPath);
-    yield { current: 0, total: 0 };
-    return { events: [], pendingLinks: [] };
+    debug("no events file at %s", eventsPath)
+    yield { current: 0, total: 0 }
+    return { events: [], pendingLinks: [] }
   }
 
-  const content = readFileSync(eventsPath, "utf-8");
-  const lines = content.split("\n").filter((line) => line.trim());
+  const content = readFileSync(eventsPath, "utf-8")
+  const lines = content.split("\n").filter((line) => line.trim())
 
-  const allEvents: Event[] = [];
-  const seen = new Set<string>();
+  const allEvents: Event[] = []
+  const seen = new Set<string>()
 
   for (const line of lines) {
     try {
-      const event = JSON.parse(line) as Event;
+      const event = JSON.parse(line) as Event
       if (!seen.has(event.id)) {
-        seen.add(event.id);
-        allEvents.push(event);
+        seen.add(event.id)
+        allEvents.push(event)
       }
     } catch {
       // Skip malformed lines
@@ -641,28 +641,28 @@ function* discoverFromEvents(
   }
 
   // Sort by ULID (lexicographic = chronological)
-  allEvents.sort((a, b) => a.id.localeCompare(b.id));
+  allEvents.sort((a, b) => a.id.localeCompare(b.id))
 
   // Filter to only new events (unless force rebuild)
-  let events: Event[];
+  let events: Event[]
   if (force) {
-    events = allEvents;
+    events = allEvents
   } else {
-    const db = getDb();
+    const db = getDb()
     const lastApplied = db
       .prepare("SELECT value FROM meta WHERE key = ?")
-      .get("last_event") as { value: string } | undefined;
+      .get("last_event") as { value: string } | undefined
 
     events = lastApplied?.value
       ? allEvents.filter((e) => e.id > lastApplied.value)
-      : allEvents;
+      : allEvents
   }
 
-  yield { current: events.length, total: events.length };
-  debug("discovered %d events (%d new)", allEvents.length, events.length);
+  yield { current: events.length, total: events.length }
+  debug("discovered %d events (%d new)", allEvents.length, events.length)
 
   // Disk mode: links are resolved during applyEvent, no pending links
-  return { events, pendingLinks: [] };
+  return { events, pendingLinks: [] }
 }
 
 // --- Shared Pipeline ---
@@ -672,15 +672,15 @@ function* applyEvents(
   events: Event[],
   errors: LoadError[],
 ): Generator<StepYield, void, unknown> {
-  yield "Applying changes";
+  yield "Applying changes"
 
-  const total = events.length;
-  if (total === 0) return;
+  const total = events.length
+  if (total === 0) return
 
   // Enable bulk mode to suppress incremental rule evaluation
-  setBulkMode(true);
+  setBulkMode(true)
 
-  db.run("BEGIN IMMEDIATE");
+  db.run("BEGIN IMMEDIATE")
   try {
     // km-load-perf.2: Batch INSERT for node_created events using prepared statement
     // This is significantly faster than individual db.run() calls
@@ -698,13 +698,13 @@ function* applyEvents(
         ?, ?, ?,
         ?, ?, ?
       )
-    `);
+    `)
 
     for (const [i, event] of events.entries()) {
       try {
         // Fast path for node_created (most common during memory mode)
         if (event.type === "node_created") {
-          const data = event.data as Record<string, unknown>;
+          const data = event.data as Record<string, unknown>
           insertStmt.run(
             data.id as string,
             data.type as string,
@@ -732,78 +732,78 @@ function* applyEvents(
             event.ts,
             event.ts,
             event.id,
-          );
+          )
         } else {
           // Use generic applyEvent for other event types
-          applyEvent(event);
+          applyEvent(event)
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        errors.push({ phase: "apply", message });
+        const message = err instanceof Error ? err.message : String(err)
+        errors.push({ phase: "apply", message })
       }
 
       // Yield progress every 100 events
       if (i % 100 === 0 || i === total - 1) {
-        yield { current: i + 1, total };
+        yield { current: i + 1, total }
       }
     }
-    db.run("COMMIT");
+    db.run("COMMIT")
   } catch (error) {
-    db.run("ROLLBACK");
-    setBulkMode(false);
-    throw error;
+    db.run("ROLLBACK")
+    setBulkMode(false)
+    throw error
   }
 
-  setBulkMode(false);
+  setBulkMode(false)
 }
 
 function* resolveLinks(
   pendingLinks: PendingLink[],
   errors: LoadError[],
 ): Generator<StepYield, number, unknown> {
-  const total = pendingLinks.length;
-  if (total === 0) return 0;
+  const total = pendingLinks.length
+  if (total === 0) return 0
 
-  yield "Resolving links";
-  yield { current: 0, total };
+  yield "Resolving links"
+  yield { current: 0, total }
 
   // Build file lookup index for O(1) resolution instead of O(n) SQL per link
-  const fileIndex = buildFileIndex();
+  const fileIndex = buildFileIndex()
 
   // Collect all link data for batch INSERT
   const linksToInsert: Array<{
-    source_id: string;
-    target_name: string;
-    target_id: string | null;
-    section: string | null;
-    block_id: string | null;
-    alias: string | null;
-    embedded: boolean;
-    relationship: string | null;
-  }> = [];
+    source_id: string
+    target_name: string
+    target_id: string | null
+    section: string | null
+    block_id: string | null
+    alias: string | null
+    embedded: boolean
+    relationship: string | null
+  }> = []
 
   // Collect embedded link updates for batch UPDATE
   const embeddedUpdates: Array<{
-    source_id: string;
-    target_id: string;
-    alias: string | null;
-  }> = [];
+    source_id: string
+    target_id: string
+    alias: string | null
+  }> = []
 
-  let resolved = 0;
+  let resolved = 0
 
   // Phase 1: Build link data (O(1) lookups)
   for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
     try {
       // Find target file by normalized name (O(1) lookup)
-      const normalizedTarget = link.target.toLowerCase().replace(/\.md$/, "");
-      const fileNode = fileIndex.get(normalizedTarget) ?? null;
+      const normalizedTarget = link.target.toLowerCase().replace(/\.md$/, "")
+      const fileNode = fileIndex.get(normalizedTarget) ?? null
 
       // If there's a section reference, try to find the specific child node
-      let targetNode = fileNode;
+      let targetNode = fileNode
       if (fileNode && link.section) {
-        const childNode = findChildByContent(fileNode.id, link.section);
+        const childNode = findChildByContent(fileNode.id, link.section)
         if (childNode) {
-          targetNode = childNode;
+          targetNode = childNode
         }
       }
 
@@ -816,7 +816,7 @@ function* resolveLinks(
         alias: link.alias ?? null,
         embedded: link.embedded ?? false,
         relationship: relationship ?? null,
-      });
+      })
 
       // Track embedded links that need node updates
       if (link.embedded && targetNode?.id) {
@@ -824,34 +824,34 @@ function* resolveLinks(
           source_id: nodeId,
           target_id: targetNode.id,
           alias: link.alias ?? null,
-        });
+        })
       }
 
       if (targetNode) {
-        resolved++;
+        resolved++
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      errors.push({ phase: "resolve", message });
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push({ phase: "resolve", message })
     }
 
     // Yield progress every 100 links (building phase)
     if (i % 100 === 0) {
-      yield { current: Math.floor(i / 2), total }; // First half is building
+      yield { current: Math.floor(i / 2), total } // First half is building
     }
   }
 
   // Phase 2: Batch INSERT in single transaction
-  const db = getDb();
-  const now = Date.now();
+  const db = getDb()
+  const now = Date.now()
 
-  db.run("BEGIN IMMEDIATE");
+  db.run("BEGIN IMMEDIATE")
   try {
     const insertStmt = db.prepare(`
       INSERT OR REPLACE INTO links
       (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    `)
 
     for (const link of linksToInsert) {
       insertStmt.run(
@@ -864,27 +864,27 @@ function* resolveLinks(
         link.embedded ? 1 : 0,
         link.relationship,
         now,
-      );
+      )
     }
 
     // Batch UPDATE for embedded links (update source node's link_to)
     if (embeddedUpdates.length > 0) {
       const updateStmt = db.prepare(`
         UPDATE nodes SET link_to = ?, link_alias = ?, updated_at = ? WHERE id = ?
-      `);
+      `)
       for (const update of embeddedUpdates) {
-        updateStmt.run(update.target_id, update.alias, now, update.source_id);
+        updateStmt.run(update.target_id, update.alias, now, update.source_id)
       }
     }
 
-    db.run("COMMIT");
+    db.run("COMMIT")
   } catch (error) {
-    db.run("ROLLBACK");
-    throw error;
+    db.run("ROLLBACK")
+    throw error
   }
 
-  yield { current: total, total };
-  return resolved;
+  yield { current: total, total }
+  return resolved
 }
 
 /**
@@ -901,48 +901,48 @@ export async function resolveLinksAsync(
   pendingLinks: PendingLink[],
   onProgress?: (current: number, total: number) => void,
 ): Promise<number> {
-  const total = pendingLinks.length;
-  if (total === 0) return 0;
+  const total = pendingLinks.length
+  if (total === 0) return 0
 
-  debug("resolveLinksAsync: starting %d links", total);
+  debug("resolveLinksAsync: starting %d links", total)
 
   // Build file lookup index for O(1) resolution
-  const fileIndex = buildFileIndex();
+  const fileIndex = buildFileIndex()
 
   // Collect all link data for batch INSERT
   const linksToInsert: Array<{
-    source_id: string;
-    target_name: string;
-    target_id: string | null;
-    section: string | null;
-    block_id: string | null;
-    alias: string | null;
-    embedded: boolean;
-    relationship: string | null;
-  }> = [];
+    source_id: string
+    target_name: string
+    target_id: string | null
+    section: string | null
+    block_id: string | null
+    alias: string | null
+    embedded: boolean
+    relationship: string | null
+  }> = []
 
   // Collect embedded link updates for batch UPDATE
   const embeddedUpdates: Array<{
-    source_id: string;
-    target_id: string;
-    alias: string | null;
-  }> = [];
+    source_id: string
+    target_id: string
+    alias: string | null
+  }> = []
 
-  let resolved = 0;
-  const BATCH_SIZE = 50;
+  let resolved = 0
+  const BATCH_SIZE = 50
 
   // Phase 1: Build link data (O(1) lookups), yielding periodically
   for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
     // Find target file by normalized name (O(1) lookup)
-    const normalizedTarget = link.target.toLowerCase().replace(/\.md$/, "");
-    const fileNode = fileIndex.get(normalizedTarget) ?? null;
+    const normalizedTarget = link.target.toLowerCase().replace(/\.md$/, "")
+    const fileNode = fileIndex.get(normalizedTarget) ?? null
 
     // If there's a section reference, try to find the specific child node
-    let targetNode = fileNode;
+    let targetNode = fileNode
     if (fileNode && link.section) {
-      const childNode = findChildByContent(fileNode.id, link.section);
+      const childNode = findChildByContent(fileNode.id, link.section)
       if (childNode) {
-        targetNode = childNode;
+        targetNode = childNode
       }
     }
 
@@ -955,7 +955,7 @@ export async function resolveLinksAsync(
       alias: link.alias ?? null,
       embedded: link.embedded ?? false,
       relationship: relationship ?? null,
-    });
+    })
 
     // Track embedded links that need node updates
     if (link.embedded && targetNode?.id) {
@@ -963,33 +963,33 @@ export async function resolveLinksAsync(
         source_id: nodeId,
         target_id: targetNode.id,
         alias: link.alias ?? null,
-      });
+      })
     }
 
     if (targetNode) {
-      resolved++;
+      resolved++
     }
 
     // Yield to event loop periodically to keep UI responsive
     if (i % BATCH_SIZE === 0) {
-      onProgress?.(i, total);
+      onProgress?.(i, total)
       await new Promise((resolve) => {
-        setImmediate(resolve);
-      });
+        setImmediate(resolve)
+      })
     }
   }
 
   // Phase 2: Batch INSERT in single transaction
-  const db = getDb();
-  const now = Date.now();
+  const db = getDb()
+  const now = Date.now()
 
-  db.run("BEGIN IMMEDIATE");
+  db.run("BEGIN IMMEDIATE")
   try {
     const insertStmt = db.prepare(`
       INSERT OR REPLACE INTO links
       (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    `)
 
     for (const link of linksToInsert) {
       insertStmt.run(
@@ -1002,28 +1002,28 @@ export async function resolveLinksAsync(
         link.embedded ? 1 : 0,
         link.relationship,
         now,
-      );
+      )
     }
 
     // Batch UPDATE for embedded links (update source node's link_to)
     if (embeddedUpdates.length > 0) {
       const updateStmt = db.prepare(`
         UPDATE nodes SET link_to = ?, link_alias = ?, updated_at = ? WHERE id = ?
-      `);
+      `)
       for (const update of embeddedUpdates) {
-        updateStmt.run(update.target_id, update.alias, now, update.source_id);
+        updateStmt.run(update.target_id, update.alias, now, update.source_id)
       }
     }
 
-    db.run("COMMIT");
+    db.run("COMMIT")
   } catch (error) {
-    db.run("ROLLBACK");
-    throw error;
+    db.run("ROLLBACK")
+    throw error
   }
 
-  onProgress?.(total, total);
-  debug("resolveLinksAsync: completed, %d resolved", resolved);
-  return resolved;
+  onProgress?.(total, total)
+  debug("resolveLinksAsync: completed, %d resolved", resolved)
+  return resolved
 }
 
 /**
@@ -1031,40 +1031,38 @@ export async function resolveLinksAsync(
  * This replaces per-link SQL queries which were O(n) each.
  */
 function buildFileIndex(): Map<string, KNode> {
-  const db = getDb();
-  const index = new Map<string, KNode>();
+  const db = getDb()
+  const index = new Map<string, KNode>()
 
   const rows = db
     .query("SELECT * FROM nodes WHERE type = 'file'")
-    .all() as Record<string, unknown>[];
+    .all() as Record<string, unknown>[]
 
   for (const row of rows) {
-    const node = rowToNode(row);
+    const node = rowToNode(row)
     if (node.fs_path) {
       // Index by filename without extension (e.g., "test" for "test.md")
-      const filename = basename(node.fs_path)
-        .toLowerCase()
-        .replace(/\.md$/, "");
-      index.set(filename, node);
+      const filename = basename(node.fs_path).toLowerCase().replace(/\.md$/, "")
+      index.set(filename, node)
 
       // Also index by full path without extension for disambiguation
-      const fullPath = node.fs_path.toLowerCase().replace(/\.md$/, "");
-      index.set(fullPath, node);
+      const fullPath = node.fs_path.toLowerCase().replace(/\.md$/, "")
+      index.set(fullPath, node)
     }
     // Also index by data.name if present
-    const data = node.data as Record<string, unknown> | undefined;
+    const data = node.data as Record<string, unknown> | undefined
     if (data?.name && typeof data.name === "string") {
-      index.set(data.name.toLowerCase(), node);
+      index.set(data.name.toLowerCase(), node)
     }
   }
 
-  return index;
+  return index
 }
 
-function* materializeRules(): Generator<StepYield, void, unknown> {
-  yield "Evaluating rules";
-  for (const progress of evaluateAllRules()) {
-    yield { current: progress.current, total: progress.total };
+function* materializeRules(db: Database): Generator<StepYield, void, unknown> {
+  yield "Evaluating rules"
+  for (const progress of evaluateAllRules(db)) {
+    yield { current: progress.current, total: progress.total }
   }
 }
 
@@ -1084,18 +1082,18 @@ export async function parseDeferredAsync(
   shouldAbort?: () => boolean,
   options?: { useWorkerPool?: boolean },
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
-  const total = deferredFiles.length;
-  if (total === 0) return { parsed: 0, pendingLinks: [] };
+  const total = deferredFiles.length
+  if (total === 0) return { parsed: 0, pendingLinks: [] }
 
   // km-fast-md.6: Use worker pool for parallel parsing (default: true)
-  const useWorkerPool = options?.useWorkerPool ?? true;
+  const useWorkerPool = options?.useWorkerPool ?? true
 
   if (useWorkerPool && total >= 4) {
     // Only use pool for 4+ files (overhead not worth it for fewer)
-    return parseDeferredWithPool(deferredFiles, shouldAbort);
+    return parseDeferredWithPool(deferredFiles, shouldAbort)
   }
 
-  return parseDeferredSequential(deferredFiles, shouldAbort);
+  return parseDeferredSequential(deferredFiles, shouldAbort)
 }
 
 /**
@@ -1106,26 +1104,26 @@ async function parseDeferredWithPool(
   deferredFiles: DeferredFile[],
   shouldAbort?: () => boolean,
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
-  const total = deferredFiles.length;
-  debug("parseDeferredWithPool: starting %d files with worker pool", total);
+  const total = deferredFiles.length
+  debug("parseDeferredWithPool: starting %d files with worker pool", total)
 
-  const pool = new ParsePool();
-  await pool.start();
+  const pool = new ParsePool()
+  await pool.start()
 
   try {
     // Parse all files in parallel using worker threads
     const parseResults = await pool.parseMany(
       deferredFiles,
       (current, total) => {
-        debug("parseDeferredWithPool: progress %d/%d", current, total);
+        debug("parseDeferredWithPool: progress %d/%d", current, total)
       },
       shouldAbort,
-    );
+    )
 
     // Now apply results to database (must be on main thread)
-    return applyParseResults(parseResults, deferredFiles);
+    return applyParseResults(parseResults, deferredFiles)
   } finally {
-    await pool.shutdown();
+    await pool.shutdown()
   }
 }
 
@@ -1136,28 +1134,28 @@ function applyParseResults(
   parseResults: ParseResult[],
   deferredFiles: DeferredFile[],
 ): { parsed: number; pendingLinks: PendingLink[] } {
-  const db = getDb();
-  const pendingLinks: PendingLink[] = [];
-  let parsed = 0;
+  const db = getDb()
+  const pendingLinks: PendingLink[] = []
+  let parsed = 0
 
   // Build lookup map for stub info
   const stubInfoMap = new Map<
     string,
     { parent_id: string | null; parent_idx: number }
-  >();
+  >()
   for (const { nodeId } of deferredFiles) {
     const stubRow = db
       .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
-      .get(nodeId) as { parent_id: string | null; parent_idx: number } | null;
+      .get(nodeId) as { parent_id: string | null; parent_idx: number } | null
     if (stubRow) {
-      stubInfoMap.set(nodeId, stubRow);
+      stubInfoMap.set(nodeId, stubRow)
     }
   }
 
-  db.run("BEGIN IMMEDIATE");
+  db.run("BEGIN IMMEDIATE")
 
   try {
-    const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?");
+    const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?")
     const insertStmt = db.prepare(`
       INSERT INTO nodes (
         id, type, parent_id, link_to, link_alias, parent_idx,
@@ -1166,9 +1164,9 @@ function applyParseResults(
         content, content_hash, data,
         created_at, updated_at, version
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    `)
 
-    const now = Date.now();
+    const now = Date.now()
 
     for (const result of parseResults) {
       if (result.error) {
@@ -1176,34 +1174,34 @@ function applyParseResults(
           "parseDeferredWithPool: error for %s: %s",
           result.fsPath,
           result.error,
-        );
-        continue;
+        )
+        continue
       }
 
-      const stubInfo = stubInfoMap.get(result.nodeId);
+      const stubInfo = stubInfoMap.get(result.nodeId)
       if (!stubInfo) {
         debug(
           "parseDeferredWithPool: stub %s not found, skipping",
           result.nodeId,
-        );
-        continue;
+        )
+        continue
       }
 
       // Delete the stub node
-      deleteStmt.run(result.nodeId);
+      deleteStmt.run(result.nodeId)
 
       // Process nodes from worker result
-      const nodes = result.nodes as Array<Record<string, unknown>>;
-      const fileNode = nodes[0];
+      const nodes = result.nodes as Array<Record<string, unknown>>
+      const fileNode = nodes[0]
       if (fileNode?.type === "file") {
-        fileNode.id = result.nodeId; // Keep original ID
-        fileNode.parent_id = stubInfo.parent_id;
-        fileNode.parent_idx = stubInfo.parent_idx;
+        fileNode.id = result.nodeId // Keep original ID
+        fileNode.parent_id = stubInfo.parent_id
+        fileNode.parent_idx = stubInfo.parent_idx
       }
 
       // Insert all parsed nodes
       for (const node of nodes) {
-        const data = (node.data as Record<string, unknown>) ?? {};
+        const data = (node.data as Record<string, unknown>) ?? {}
         insertStmt.run(
           node.id as string,
           node.type as string,
@@ -1231,30 +1229,30 @@ function applyParseResults(
           now,
           now,
           (node.version as string) || "",
-        );
+        )
       }
 
       // Collect wikilinks for later resolution
-      const wikilinks = result.wikilinks as PendingLink[];
+      const wikilinks = result.wikilinks as PendingLink[]
       for (const wikilink of wikilinks) {
-        pendingLinks.push(wikilink);
+        pendingLinks.push(wikilink)
       }
 
-      parsed++;
+      parsed++
     }
 
-    db.run("COMMIT");
+    db.run("COMMIT")
   } catch (error) {
-    db.run("ROLLBACK");
-    throw error;
+    db.run("ROLLBACK")
+    throw error
   }
 
   debug(
     "parseDeferredWithPool: completed, %d parsed, %d links",
     parsed,
     pendingLinks.length,
-  );
-  return { parsed, pendingLinks };
+  )
+  return { parsed, pendingLinks }
 }
 
 /**
@@ -1264,19 +1262,19 @@ async function parseDeferredSequential(
   deferredFiles: DeferredFile[],
   shouldAbort?: () => boolean,
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
-  const total = deferredFiles.length;
-  debug("parseDeferredSequential: starting %d files", total);
+  const total = deferredFiles.length
+  debug("parseDeferredSequential: starting %d files", total)
 
-  const db = getDb();
-  const pendingLinks: PendingLink[] = [];
-  const BATCH_SIZE = 10;
-  let parsed = 0;
+  const db = getDb()
+  const pendingLinks: PendingLink[] = []
+  const BATCH_SIZE = 10
+  let parsed = 0
 
-  db.run("BEGIN IMMEDIATE");
+  db.run("BEGIN IMMEDIATE")
 
   try {
     // Prepared statements for batch operations
-    const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?");
+    const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?")
     const insertStmt = db.prepare(`
       INSERT INTO nodes (
         id, type, parent_id, link_to, link_alias, parent_idx,
@@ -1285,42 +1283,42 @@ async function parseDeferredSequential(
         content, content_hash, data,
         created_at, updated_at, version
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    `)
 
     for (const [i, { nodeId, fsPath }] of deferredFiles.entries()) {
       try {
         // Read and parse the file
-        const content = readFileSync(fsPath, "utf-8");
-        const { nodes, wikilinks } = parseMarkdownWithLinks(content, fsPath);
+        const content = readFileSync(fsPath, "utf-8")
+        const { nodes, wikilinks } = parseMarkdownWithLinks(content, fsPath)
 
         // Get the stub's parent info before deleting
         const stubRow = db
           .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
           .get(nodeId) as {
-          parent_id: string | null;
-          parent_idx: number;
-        } | null;
+          parent_id: string | null
+          parent_idx: number
+        } | null
 
         if (!stubRow) {
-          debug("parseDeferredSequential: stub %s not found, skipping", nodeId);
-          continue;
+          debug("parseDeferredSequential: stub %s not found, skipping", nodeId)
+          continue
         }
 
         // Delete the stub node
-        deleteStmt.run(nodeId);
+        deleteStmt.run(nodeId)
 
         // First node is always the file node - preserve its ID and parent info
-        const fileNode = nodes[0];
+        const fileNode = nodes[0]
         if (fileNode?.type === "file") {
-          fileNode.id = nodeId; // Keep original ID
-          fileNode.parent_id = stubRow.parent_id;
-          fileNode.parent_idx = stubRow.parent_idx;
+          fileNode.id = nodeId // Keep original ID
+          fileNode.parent_id = stubRow.parent_id
+          fileNode.parent_idx = stubRow.parent_idx
         }
 
         // Insert all parsed nodes
-        const now = Date.now();
+        const now = Date.now()
         for (const node of nodes) {
-          const data = node.data ?? {};
+          const data = node.data ?? {}
           insertStmt.run(
             node.id,
             node.type,
@@ -1348,43 +1346,43 @@ async function parseDeferredSequential(
             now,
             now,
             node.version || "",
-          );
+          )
         }
 
         // Collect wikilinks for later resolution
         for (const wikilink of wikilinks) {
-          pendingLinks.push(wikilink);
+          pendingLinks.push(wikilink)
         }
 
-        parsed++;
+        parsed++
       } catch (err) {
-        debug("parseDeferredSequential: error parsing %s: %s", fsPath, err);
+        debug("parseDeferredSequential: error parsing %s: %s", fsPath, err)
       }
 
       // Yield to event loop periodically and check for abort
       if (i % BATCH_SIZE === 0) {
         await new Promise((resolve) => {
-          setImmediate(resolve);
-        });
+          setImmediate(resolve)
+        })
         // Check abort after yielding
         if (shouldAbort?.()) {
-          debug("parseDeferredSequential: aborted at %d/%d", i, total);
-          break;
+          debug("parseDeferredSequential: aborted at %d/%d", i, total)
+          break
         }
       }
     }
 
-    db.run("COMMIT");
+    db.run("COMMIT")
   } catch (error) {
-    db.run("ROLLBACK");
-    throw error;
+    db.run("ROLLBACK")
+    throw error
   }
 
   debug(
     "parseDeferredSequential: completed, %d parsed, %d links",
     parsed,
     pendingLinks.length,
-  );
+  )
 
-  return { parsed, pendingLinks };
+  return { parsed, pendingLinks }
 }

@@ -5,7 +5,7 @@
  * Created via loadConfigObject() factory function.
  */
 
-import createDebug from "debug";
+import createDebug from "debug"
 import {
   loadConfig as loadRawConfig,
   getConfigPath,
@@ -15,9 +15,9 @@ import {
   type KmConfig,
   type BeadsConfig,
   type TuiConfig,
-} from "./config.ts";
+} from "./config.ts"
 
-const debug = createDebug("km:storage:config");
+const debug = createDebug("km:storage:config")
 
 /**
  * Config interface - vault configuration.
@@ -25,19 +25,19 @@ const debug = createDebug("km:storage:config");
  */
 export interface Config {
   /** Path to the config file, if found */
-  readonly path: string | undefined;
+  readonly path: string | undefined
 
   /** Raw config object */
-  readonly raw: KmConfig;
+  readonly raw: KmConfig
 
   /** Beads configuration with defaults applied */
-  readonly beads: Required<BeadsConfig>;
+  readonly beads: Required<BeadsConfig>
 
   /** TUI configuration with defaults applied */
-  readonly tui: Required<TuiConfig>;
+  readonly tui: Required<TuiConfig>
 
   /** Reload configuration from disk */
-  reload(): void;
+  reload(): void
 }
 
 /**
@@ -52,40 +52,40 @@ export interface Config {
  * @returns Config object
  */
 export function loadConfigObject(searchFrom?: string): Config {
-  debug("loadConfigObject", { searchFrom });
+  debug("loadConfigObject", { searchFrom })
 
   // Initial load
-  let raw = loadRawConfig(searchFrom);
-  let path = getConfigPath();
-  let beads = getRawBeadsConfig(searchFrom);
-  let tui = getRawTuiConfig(searchFrom);
+  let raw = loadRawConfig(searchFrom)
+  let path = getConfigPath()
+  let beads = getRawBeadsConfig(searchFrom)
+  let tui = getRawTuiConfig(searchFrom)
 
   const config: Config = {
     get path() {
-      return path;
+      return path
     },
 
     get raw() {
-      return raw;
+      return raw
     },
 
     get beads() {
-      return beads;
+      return beads
     },
 
     get tui() {
-      return tui;
+      return tui
     },
 
     reload() {
-      debug("reloading config");
-      clearConfigCache();
-      raw = loadRawConfig(searchFrom);
-      path = getConfigPath();
-      beads = getRawBeadsConfig(searchFrom);
-      tui = getRawTuiConfig(searchFrom);
+      debug("reloading config")
+      clearConfigCache()
+      raw = loadRawConfig(searchFrom)
+      path = getConfigPath()
+      beads = getRawBeadsConfig(searchFrom)
+      tui = getRawTuiConfig(searchFrom)
     },
-  };
+  }
 
-  return config;
+  return config
 }

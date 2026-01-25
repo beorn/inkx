@@ -5,8 +5,8 @@
  * Supports default patterns, .gitignore, .obsidianignore, and custom .kmignore files.
  */
 
-import { existsSync, readFileSync } from "fs";
-import { join, relative, basename } from "path";
+import { existsSync, readFileSync } from "fs"
+import { join, relative, basename } from "path"
 
 /**
  * Default ignore patterns - common directories and files that should never be synced
@@ -77,44 +77,44 @@ export const DEFAULT_IGNORE_PATTERNS = [
   "**/credentials.json",
   "**/*.pem",
   "**/*.key",
-];
+]
 
 /**
  * Patterns that match hidden files/directories (starting with .)
  * These are handled separately for fine-grained control
  */
-export const HIDDEN_FILE_PATTERN = "**/.*";
+export const HIDDEN_FILE_PATTERN = "**/.*"
 
 /**
  * Convert a gitignore pattern to a glob pattern
  * This is a simplified conversion - gitignore has some nuances
  */
 function gitignoreToGlob(pattern: string, _basePath: string): string {
-  let glob = pattern.trim();
+  let glob = pattern.trim()
 
   // Skip empty lines and comments
   if (!glob || glob.startsWith("#")) {
-    return "";
+    return ""
   }
 
   // Handle negation (we don't support it yet, skip)
   if (glob.startsWith("!")) {
-    return "";
+    return ""
   }
 
   // Remove leading slash (makes it relative to repo root)
   if (glob.startsWith("/")) {
-    glob = glob.slice(1);
+    glob = glob.slice(1)
   }
 
   // If pattern ends with /, it's a directory
   if (glob.endsWith("/")) {
-    glob = glob.slice(0, -1) + "/**";
+    glob = glob.slice(0, -1) + "/**"
   }
 
   // If pattern doesn't contain /, it matches anywhere
   if (!glob.includes("/")) {
-    glob = "**/" + glob;
+    glob = "**/" + glob
   }
 
   // If pattern doesn't start with ** or /, make it match from root
@@ -123,33 +123,33 @@ function gitignoreToGlob(pattern: string, _basePath: string): string {
     // But "*.log" should match anywhere (already handled above)
   }
 
-  return glob;
+  return glob
 }
 
 /**
  * Read and parse a .gitignore file
  */
 export function readGitignore(vaultPath: string): string[] {
-  const gitignorePath = join(vaultPath, ".gitignore");
+  const gitignorePath = join(vaultPath, ".gitignore")
 
   if (!existsSync(gitignorePath)) {
-    return [];
+    return []
   }
 
   try {
-    const content = readFileSync(gitignorePath, "utf-8");
-    const patterns: string[] = [];
+    const content = readFileSync(gitignorePath, "utf-8")
+    const patterns: string[] = []
 
     for (const line of content.split("\n")) {
-      const glob = gitignoreToGlob(line, vaultPath);
+      const glob = gitignoreToGlob(line, vaultPath)
       if (glob) {
-        patterns.push(glob);
+        patterns.push(glob)
       }
     }
 
-    return patterns;
+    return patterns
   } catch {
-    return [];
+    return []
   }
 }
 
@@ -157,29 +157,29 @@ export function readGitignore(vaultPath: string): string[] {
  * Read and parse a .kmignore file (km-specific ignore patterns)
  */
 export function readKmignore(vaultPath: string): string[] {
-  const kmignorePath = join(vaultPath, ".kmignore");
+  const kmignorePath = join(vaultPath, ".kmignore")
 
   if (!existsSync(kmignorePath)) {
-    return [];
+    return []
   }
 
   try {
-    const content = readFileSync(kmignorePath, "utf-8");
-    const patterns: string[] = [];
+    const content = readFileSync(kmignorePath, "utf-8")
+    const patterns: string[] = []
 
     for (const line of content.split("\n")) {
-      const trimmed = line.trim();
+      const trimmed = line.trim()
       // Skip empty lines and comments
       if (!trimmed || trimmed.startsWith("#")) {
-        continue;
+        continue
       }
       // .kmignore uses glob patterns directly
-      patterns.push(trimmed);
+      patterns.push(trimmed)
     }
 
-    return patterns;
+    return patterns
   } catch {
-    return [];
+    return []
   }
 }
 
@@ -188,26 +188,26 @@ export function readKmignore(vaultPath: string): string[] {
  * This file uses gitignore-style patterns
  */
 export function readObsidianIgnore(vaultPath: string): string[] {
-  const obsidianIgnorePath = join(vaultPath, ".obsidianignore");
+  const obsidianIgnorePath = join(vaultPath, ".obsidianignore")
 
   if (!existsSync(obsidianIgnorePath)) {
-    return [];
+    return []
   }
 
   try {
-    const content = readFileSync(obsidianIgnorePath, "utf-8");
-    const patterns: string[] = [];
+    const content = readFileSync(obsidianIgnorePath, "utf-8")
+    const patterns: string[] = []
 
     for (const line of content.split("\n")) {
-      const glob = gitignoreToGlob(line, vaultPath);
+      const glob = gitignoreToGlob(line, vaultPath)
       if (glob) {
-        patterns.push(glob);
+        patterns.push(glob)
       }
     }
 
-    return patterns;
+    return patterns
   } catch {
-    return [];
+    return []
   }
 }
 
@@ -216,18 +216,18 @@ export function readObsidianIgnore(vaultPath: string): string[] {
  * Combines default patterns with .gitignore, .obsidianignore, and .kmignore
  */
 export function getIgnorePatterns(vaultPath: string): string[] {
-  const patterns = [...DEFAULT_IGNORE_PATTERNS];
+  const patterns = [...DEFAULT_IGNORE_PATTERNS]
 
   // Add .gitignore patterns
-  patterns.push(...readGitignore(vaultPath));
+  patterns.push(...readGitignore(vaultPath))
 
   // Add .obsidianignore patterns (Obsidian's native ignore file)
-  patterns.push(...readObsidianIgnore(vaultPath));
+  patterns.push(...readObsidianIgnore(vaultPath))
 
   // Add .kmignore patterns (km-specific)
-  patterns.push(...readKmignore(vaultPath));
+  patterns.push(...readKmignore(vaultPath))
 
-  return patterns;
+  return patterns
 }
 
 /**
@@ -241,12 +241,12 @@ export function getIgnorePatterns(vaultPath: string): string[] {
 export function matchesPattern(path: string, pattern: string): boolean {
   // Convert glob pattern to regex
   // Use placeholders to avoid double-replacement issues
-  const DOUBLE_STAR_SLASH = "\x00DSS\x00"; // **/ at start
-  const SLASH_DOUBLE_STAR_SLASH = "\x00SDSS\x00"; // /**/
-  const SLASH_DOUBLE_STAR = "\x00SDS\x00"; // /**
-  const DOUBLE_STAR = "\x00DS\x00"; // ** alone
-  const SINGLE_STAR = "\x00SS\x00";
-  const QUESTION = "\x00Q\x00";
+  const DOUBLE_STAR_SLASH = "\x00DSS\x00" // **/ at start
+  const SLASH_DOUBLE_STAR_SLASH = "\x00SDSS\x00" // /**/
+  const SLASH_DOUBLE_STAR = "\x00SDS\x00" // /**
+  const DOUBLE_STAR = "\x00DS\x00" // ** alone
+  const SINGLE_STAR = "\x00SS\x00"
+  const QUESTION = "\x00Q\x00"
 
   let regex = pattern
     // Handle specific ** patterns first (order matters!)
@@ -278,15 +278,15 @@ export function matchesPattern(path: string, pattern: string): boolean {
     )
     .replace(new RegExp(DOUBLE_STAR.replace(/\x00/g, "\\x00"), "g"), ".*")
     .replace(new RegExp(SINGLE_STAR.replace(/\x00/g, "\\x00"), "g"), "[^/]*")
-    .replace(new RegExp(QUESTION.replace(/\x00/g, "\\x00"), "g"), ".");
+    .replace(new RegExp(QUESTION.replace(/\x00/g, "\\x00"), "g"), ".")
 
   // Anchor the pattern
-  regex = "^" + regex + "$";
+  regex = "^" + regex + "$"
 
   try {
-    return new RegExp(regex).test(path);
+    return new RegExp(regex).test(path)
   } catch {
-    return false;
+    return false
   }
 }
 
@@ -299,25 +299,25 @@ export function shouldIgnore(
   vaultPath?: string,
 ): boolean {
   // Normalize path for matching
-  const normalizedPath = vaultPath ? relative(vaultPath, path) : path;
+  const normalizedPath = vaultPath ? relative(vaultPath, path) : path
 
   for (const pattern of patterns) {
     if (matchesPattern(normalizedPath, pattern)) {
-      return true;
+      return true
     }
     // Also try matching against basename for patterns like "*.log"
     if (matchesPattern(basename(path), pattern)) {
-      return true;
+      return true
     }
   }
 
-  return false;
+  return false
 }
 
 /**
  * Check if a filename is a hidden file (starts with .)
  */
 export function isHiddenFile(path: string): boolean {
-  const name = basename(path);
-  return name.startsWith(".") && name !== "." && name !== "..";
+  const name = basename(path)
+  return name.startsWith(".") && name !== "." && name !== ".."
 }

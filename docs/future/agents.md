@@ -129,7 +129,7 @@ const agent: Node = {
     harness: "code-reviewer",
     workdir: ".agents/agent-1",
   },
-};
+}
 
 const kimmi: Node = {
   id: "kimmi",
@@ -141,7 +141,7 @@ const kimmi: Node = {
     harness: "general",
     description: "Knowledge Machine's built-in agent",
   },
-};
+}
 ```
 
 ### Agent Work Queue

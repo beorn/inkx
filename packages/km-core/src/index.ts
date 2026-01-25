@@ -26,10 +26,10 @@ export type {
   SessionMessageData,
   SessionToolCallData,
   SessionEndedData,
-} from "./types.ts";
+} from "./types.ts"
 
 // Constants
-export { CUSTOM_TASK_MARKS, TASK_MARK_REGEX_CLASS } from "./types.ts";
+export { CUSTOM_TASK_MARKS, TASK_MARK_REGEX_CLASS } from "./types.ts"
 
 // Build info (auto-generated)
 export {
@@ -39,11 +39,11 @@ export {
   GIT_COMMIT,
   GIT_BRANCH,
   GIT_DIRTY,
-} from "./build-info.gen.ts";
-export type { BuildInfo } from "./build-info.gen.ts";
+} from "./build-info.gen.ts"
+export type { BuildInfo } from "./build-info.gen.ts"
 
 // Task utilities
-export { getMarkForStatus } from "./types.ts";
+export { getMarkForStatus } from "./types.ts"
 
 // Query language parser (pure parsing, no DB)
 export {
@@ -52,7 +52,7 @@ export {
   resolveDateQuery,
   isDateShortcut,
   isDateField,
-} from "./query/index.ts";
+} from "./query/index.ts"
 export type {
   QueryAST,
   QueryCondition,
@@ -64,11 +64,11 @@ export type {
   QueryPropCondition,
   QuerySpecial,
   DateRange,
-} from "./query/index.ts";
+} from "./query/index.ts"
 
 // Service interface and utilities
-export type { Service, ServiceStatus } from "./service.ts";
-export { runGenerator, runWithProgress } from "./service.ts";
+export type { Service, ServiceStatus } from "./service.ts"
+export { runGenerator, runWithProgress } from "./service.ts"
 
 // Logger (re-export from @beorn/logger)
 export {
@@ -77,4 +77,4 @@ export {
   getLogLevel,
   type Logger,
   type LogLevel,
-} from "@beorn/logger";
+} from "@beorn/logger"

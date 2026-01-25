@@ -1,4 +1,4 @@
-import type { CommandDef } from "../types.ts";
+import type { CommandDef } from "../types.ts"
 
 // View mode
 export const cycleViewMode: CommandDef = {
@@ -8,7 +8,7 @@ export const cycleViewMode: CommandDef = {
   category: "View",
   shortcuts: ["v"],
   execute: () => ({ type: "CYCLE_VIEW_MODE" }),
-};
+}
 
 export const showHelp: CommandDef = {
   id: "show_help",
@@ -17,7 +17,7 @@ export const showHelp: CommandDef = {
   category: "View",
   shortcuts: ["?"],
   execute: () => ({ type: "SHOW_HELP" }),
-};
+}
 
 // Fold commands
 export const toggleFold: CommandDef = {
@@ -27,10 +27,10 @@ export const toggleFold: CommandDef = {
   category: "Fold",
   shortcuts: ["z"],
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
-    return { type: "TOGGLE_FOLD", nodeId: ctx.currentNodeId };
+    if (!ctx.currentNodeId) return null
+    return { type: "TOGGLE_FOLD", nodeId: ctx.currentNodeId }
   },
-};
+}
 
 export const toggleCollapse: CommandDef = {
   id: "toggle_collapse",
@@ -39,10 +39,10 @@ export const toggleCollapse: CommandDef = {
   category: "Fold",
   shortcuts: ["c"],
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
-    return { type: "TOGGLE_COLLAPSE", nodeId: ctx.currentNodeId };
+    if (!ctx.currentNodeId) return null
+    return { type: "TOGGLE_COLLAPSE", nodeId: ctx.currentNodeId }
   },
-};
+}
 
 export const foldAll: CommandDef = {
   id: "fold_all",
@@ -51,7 +51,7 @@ export const foldAll: CommandDef = {
   category: "Fold",
   shortcuts: ["Z"],
   execute: () => ({ type: "FOLD_LEVEL", depth: 1 }),
-};
+}
 
 export const unfoldAll: CommandDef = {
   id: "unfold_all",
@@ -60,7 +60,7 @@ export const unfoldAll: CommandDef = {
   category: "Fold",
   shortcuts: ["Shift+Z"],
   execute: () => ({ type: "UNFOLD_LEVEL", depth: 99 }),
-};
+}
 
 // View configuration
 export const increaseOutlineDepth: CommandDef = {
@@ -70,7 +70,7 @@ export const increaseOutlineDepth: CommandDef = {
   category: "View",
   shortcuts: [">"],
   execute: () => ({ type: "INCREASE_OUTLINE_DEPTH" }),
-};
+}
 
 export const decreaseOutlineDepth: CommandDef = {
   id: "decrease_outline_depth",
@@ -79,7 +79,7 @@ export const decreaseOutlineDepth: CommandDef = {
   category: "View",
   shortcuts: ["<"],
   execute: () => ({ type: "DECREASE_OUTLINE_DEPTH" }),
-};
+}
 
 export const increaseContentLines: CommandDef = {
   id: "increase_content_lines",
@@ -88,7 +88,7 @@ export const increaseContentLines: CommandDef = {
   category: "View",
   shortcuts: ["+", "="],
   execute: () => ({ type: "INCREASE_CONTENT_LINES" }),
-};
+}
 
 export const decreaseContentLines: CommandDef = {
   id: "decrease_content_lines",
@@ -97,7 +97,7 @@ export const decreaseContentLines: CommandDef = {
   category: "View",
   shortcuts: ["-", "_"],
   execute: () => ({ type: "DECREASE_CONTENT_LINES" }),
-};
+}
 
 export const viewCommands: CommandDef[] = [
   cycleViewMode,
@@ -110,4 +110,4 @@ export const viewCommands: CommandDef[] = [
   decreaseOutlineDepth,
   increaseContentLines,
   decreaseContentLines,
-];
+]

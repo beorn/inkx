@@ -4,7 +4,7 @@
  * Simple board structure for testing TUI views, navigation, and keyboard interactions.
  */
 
-import { board, column, section, task } from "@km/storage";
+import { board, column, section, task } from "@km/storage"
 
 export const GENERIC_BOARD = board("Test Board", [
   column("To Do", [
@@ -15,4 +15,4 @@ export const GENERIC_BOARD = board("Test Board", [
   column("In Progress", [section("Active Work", [task("Task 4")])]),
 
   column("Done", []),
-]);
+])

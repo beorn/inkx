@@ -1,4 +1,4 @@
-import type { CommandDef } from "../types.ts";
+import type { CommandDef } from "../types.ts"
 
 // Cursor movement - structural (not bound to default keys in board view)
 // These are available for tree/outline views or programmatic use
@@ -9,7 +9,7 @@ export const cursorPrev: CommandDef = {
   category: "Navigation",
   shortcuts: [], // Not bound by default
   execute: () => ({ type: "CURSOR_MOVE", dir: "prev" }),
-};
+}
 
 export const cursorNext: CommandDef = {
   id: "cursor_next",
@@ -18,7 +18,7 @@ export const cursorNext: CommandDef = {
   category: "Navigation",
   shortcuts: [], // Not bound by default
   execute: () => ({ type: "CURSOR_MOVE", dir: "next" }),
-};
+}
 
 export const cursorIn: CommandDef = {
   id: "cursor_in",
@@ -27,7 +27,7 @@ export const cursorIn: CommandDef = {
   category: "Navigation",
   shortcuts: [], // Not bound by default (h/l do cross-column in board view)
   execute: () => ({ type: "CURSOR_MOVE", dir: "in" }),
-};
+}
 
 export const cursorOut: CommandDef = {
   id: "cursor_out",
@@ -36,7 +36,7 @@ export const cursorOut: CommandDef = {
   category: "Navigation",
   shortcuts: [], // Not bound by default (h/l do cross-column in board view)
   execute: () => ({ type: "CURSOR_MOVE", dir: "out" }),
-};
+}
 
 export const cursorFirst: CommandDef = {
   id: "cursor_first",
@@ -45,7 +45,7 @@ export const cursorFirst: CommandDef = {
   category: "Navigation",
   shortcuts: ["g"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "first" }),
-};
+}
 
 export const cursorLast: CommandDef = {
   id: "cursor_last",
@@ -54,7 +54,7 @@ export const cursorLast: CommandDef = {
   category: "Navigation",
   shortcuts: ["G"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "last" }),
-};
+}
 
 // Cursor movement - visual (j/k/h/l + arrows behave identically per docs/06-ui.md)
 export const cursorUp: CommandDef = {
@@ -64,7 +64,7 @@ export const cursorUp: CommandDef = {
   category: "Navigation",
   shortcuts: ["k", "ArrowUp"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "up" }),
-};
+}
 
 export const cursorDown: CommandDef = {
   id: "cursor_down",
@@ -73,7 +73,7 @@ export const cursorDown: CommandDef = {
   category: "Navigation",
   shortcuts: ["j", "ArrowDown"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "down" }),
-};
+}
 
 export const cursorLeft: CommandDef = {
   id: "cursor_left",
@@ -82,7 +82,7 @@ export const cursorLeft: CommandDef = {
   category: "Navigation",
   shortcuts: ["h", "ArrowLeft"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "left" }),
-};
+}
 
 export const cursorRight: CommandDef = {
   id: "cursor_right",
@@ -91,7 +91,7 @@ export const cursorRight: CommandDef = {
   category: "Navigation",
   shortcuts: ["l", "ArrowRight"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "right" }),
-};
+}
 
 // History navigation
 export const navBack: CommandDef = {
@@ -101,7 +101,7 @@ export const navBack: CommandDef = {
   category: "Navigation",
   shortcuts: ["["],
   execute: () => ({ type: "NAV_BACK" }),
-};
+}
 
 export const navForward: CommandDef = {
   id: "nav_forward",
@@ -110,7 +110,7 @@ export const navForward: CommandDef = {
   category: "Navigation",
   shortcuts: ["]"],
   execute: () => ({ type: "NAV_FORWARD" }),
-};
+}
 
 // Zoom - these need context
 export const zoomIn: CommandDef = {
@@ -120,11 +120,11 @@ export const zoomIn: CommandDef = {
   category: "Navigation",
   shortcuts: ["o"], // TUI uses 'o' for zoom in
   execute: (ctx) => {
-    if (!ctx.currentNode) return null;
+    if (!ctx.currentNode) return null
     // BoardAction: just the nodeId, no tree data needed
-    return { type: "ZOOM_IN", nodeId: ctx.currentNode.id };
+    return { type: "ZOOM_IN", nodeId: ctx.currentNode.id }
   },
-};
+}
 
 // Zoom outwards one level (to parent of current root)
 export const zoomOutwards: CommandDef = {
@@ -134,7 +134,7 @@ export const zoomOutwards: CommandDef = {
   category: "Navigation",
   shortcuts: ["u"],
   execute: () => ({ type: "ZOOM_OUTWARDS" }),
-};
+}
 
 // Open detail pane for current node
 export const openDetailPane: CommandDef = {
@@ -144,7 +144,7 @@ export const openDetailPane: CommandDef = {
   category: "Navigation",
   shortcuts: ["Enter"],
   execute: () => ({ type: "OPEN_DETAIL_PANE" }),
-};
+}
 
 // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
 export const pageDown: CommandDef = {
@@ -154,7 +154,7 @@ export const pageDown: CommandDef = {
   category: "Navigation",
   shortcuts: ["Ctrl+D"],
   execute: () => ({ type: "PAGE_JUMP", direction: "down" }),
-};
+}
 
 export const pageUp: CommandDef = {
   id: "page_up",
@@ -163,7 +163,7 @@ export const pageUp: CommandDef = {
   category: "Navigation",
   shortcuts: ["Ctrl+U"],
   execute: () => ({ type: "PAGE_JUMP", direction: "up" }),
-};
+}
 
 // Sibling board navigation (Ctrl+J/Ctrl+K)
 export const siblingBoardNext: CommandDef = {
@@ -173,7 +173,7 @@ export const siblingBoardNext: CommandDef = {
   category: "Navigation",
   shortcuts: ["Ctrl+J"],
   execute: () => ({ type: "NAV_SIBLING_BOARD", direction: "next" }),
-};
+}
 
 export const siblingBoardPrev: CommandDef = {
   id: "sibling_board_prev",
@@ -182,7 +182,7 @@ export const siblingBoardPrev: CommandDef = {
   category: "Navigation",
   shortcuts: ["Ctrl+K"],
   execute: () => ({ type: "NAV_SIBLING_BOARD", direction: "prev" }),
-};
+}
 
 // Zoom inwards one level closer to selected node
 export const zoomInwards: CommandDef = {
@@ -192,7 +192,7 @@ export const zoomInwards: CommandDef = {
   category: "Navigation",
   shortcuts: ["i"],
   execute: () => ({ type: "ZOOM_INWARDS" }),
-};
+}
 
 // All navigation commands
 export const navigationCommands: CommandDef[] = [
@@ -216,4 +216,4 @@ export const navigationCommands: CommandDef[] = [
   siblingBoardNext,
   siblingBoardPrev,
   zoomInwards,
-];
+]

@@ -5,21 +5,21 @@
  * Implements RFC 6352 (CardDAV).
  */
 
-import type { CardDAVConfig, Contact, SyncState, SyncResult } from "./types.ts";
-import { parseVCard, formatVCard } from "./vcard.ts";
-import { createBasicAuthHeader, webdavRequest } from "./webdav-base.ts";
+import type { CardDAVConfig, Contact, SyncState, SyncResult } from "./types.ts"
+import { parseVCard, formatVCard } from "./vcard.ts"
+import { createBasicAuthHeader, webdavRequest } from "./webdav-base.ts"
 
 /**
  * CardDAV client for syncing contacts
  */
 export class CardDAVClient {
-  private config: CardDAVConfig;
-  private addressBookUrl: string | null = null;
-  private authHeader: string;
+  private config: CardDAVConfig
+  private addressBookUrl: string | null = null
+  private authHeader: string
 
   constructor(config: CardDAVConfig) {
-    this.config = config;
-    this.authHeader = createBasicAuthHeader(config.username, config.password);
+    this.config = config
+    this.authHeader = createBasicAuthHeader(config.username, config.password)
   }
 
   /**
@@ -31,7 +31,7 @@ export class CardDAVClient {
     body?: string,
     headers?: Record<string, string>,
   ): Promise<Response> {
-    return webdavRequest(method, url, this.authHeader, body, headers);
+    return webdavRequest(method, url, this.authHeader, body, headers)
   }
 
   /**
@@ -39,8 +39,8 @@ export class CardDAVClient {
    */
   async discover(): Promise<string> {
     if (this.config.addressBookPath) {
-      this.addressBookUrl = `${this.config.url}${this.config.addressBookPath}`;
-      return this.addressBookUrl;
+      this.addressBookUrl = `${this.config.url}${this.config.addressBookPath}`
+      return this.addressBookUrl
     }
 
     // Use current-user-principal to find addressbook home
@@ -49,17 +49,17 @@ export class CardDAVClient {
   <D:prop>
     <D:current-user-principal/>
   </D:prop>
-</D:propfind>`;
+</D:propfind>`
 
     const response = await this.request("PROPFIND", this.config.url, propfind, {
       Depth: "0",
-    });
+    })
 
-    const text = await response.text();
-    const principalMatch = text.match(/<D:href>([^<]+)<\/D:href>/);
+    const text = await response.text()
+    const principalMatch = text.match(/<D:href>([^<]+)<\/D:href>/)
 
     if (principalMatch) {
-      const principalUrl = principalMatch[1];
+      const principalUrl = principalMatch[1]
       // Find addressbook-home-set
       const homeResponse = await this.request(
         "PROPFIND",
@@ -71,21 +71,21 @@ export class CardDAVClient {
   </D:prop>
 </D:propfind>`,
         { Depth: "0" },
-      );
+      )
 
-      const homeText = await homeResponse.text();
+      const homeText = await homeResponse.text()
       const homeMatch = homeText.match(
         /<C:addressbook-home-set>.*?<D:href>([^<]+)<\/D:href>/s,
-      );
+      )
       if (homeMatch) {
-        this.addressBookUrl = `${this.config.url}${homeMatch[1]}`;
-        return this.addressBookUrl;
+        this.addressBookUrl = `${this.config.url}${homeMatch[1]}`
+        return this.addressBookUrl
       }
     }
 
     // Fallback: use the config URL directly
-    this.addressBookUrl = this.config.url;
-    return this.addressBookUrl;
+    this.addressBookUrl = this.config.url
+    return this.addressBookUrl
   }
 
   /**
@@ -93,7 +93,7 @@ export class CardDAVClient {
    */
   async getContacts(): Promise<Contact[]> {
     if (!this.addressBookUrl) {
-      await this.discover();
+      await this.discover()
     }
 
     const report = `<?xml version="1.0" encoding="utf-8"?>
@@ -102,7 +102,7 @@ export class CardDAVClient {
     <D:getetag/>
     <C:address-data/>
   </D:prop>
-</C:addressbook-query>`;
+</C:addressbook-query>`
 
     const response = await this.request(
       "REPORT",
@@ -111,34 +111,34 @@ export class CardDAVClient {
       {
         Depth: "1",
       },
-    );
+    )
 
-    const text = await response.text();
-    const contacts: Contact[] = [];
+    const text = await response.text()
+    const contacts: Contact[] = []
 
     // Parse multiget response
     const responseRegex =
-      /<D:response>[\s\S]*?<D:href>([^<]+)<\/D:href>[\s\S]*?<D:getetag>"?([^"<]+)"?<\/D:getetag>[\s\S]*?<C:address-data[^>]*>([\s\S]*?)<\/C:address-data>[\s\S]*?<\/D:response>/g;
+      /<D:response>[\s\S]*?<D:href>([^<]+)<\/D:href>[\s\S]*?<D:getetag>"?([^"<]+)"?<\/D:getetag>[\s\S]*?<C:address-data[^>]*>([\s\S]*?)<\/C:address-data>[\s\S]*?<\/D:response>/g
 
-    let match;
+    let match
     while ((match = responseRegex.exec(text)) !== null) {
-      const etag = match[2];
+      const etag = match[2]
       const vcardData = match[3]
         ?.replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">")
-        .replace(/&amp;/g, "&");
+        .replace(/&amp;/g, "&")
 
       if (vcardData) {
-        const contact = parseVCard(vcardData);
+        const contact = parseVCard(vcardData)
         if (contact) {
-          contact.etag = etag;
-          contact.raw = vcardData;
-          contacts.push(contact);
+          contact.etag = etag
+          contact.raw = vcardData
+          contacts.push(contact)
         }
       }
     }
 
-    return contacts;
+    return contacts
   }
 
   /**
@@ -146,16 +146,16 @@ export class CardDAVClient {
    */
   async createContact(contact: Contact): Promise<void> {
     if (!this.addressBookUrl) {
-      await this.discover();
+      await this.discover()
     }
 
-    const vcard = formatVCard(contact);
-    const url = `${this.addressBookUrl}/${contact.uid}.vcf`;
+    const vcard = formatVCard(contact)
+    const url = `${this.addressBookUrl}/${contact.uid}.vcf`
 
     await this.request("PUT", url, vcard, {
       "Content-Type": "text/vcard; charset=utf-8",
       "If-None-Match": "*",
-    });
+    })
   }
 
   /**
@@ -163,20 +163,20 @@ export class CardDAVClient {
    */
   async updateContact(contact: Contact): Promise<void> {
     if (!this.addressBookUrl) {
-      await this.discover();
+      await this.discover()
     }
 
-    const vcard = formatVCard(contact);
-    const url = `${this.addressBookUrl}/${contact.uid}.vcf`;
+    const vcard = formatVCard(contact)
+    const url = `${this.addressBookUrl}/${contact.uid}.vcf`
 
     const headers: Record<string, string> = {
       "Content-Type": "text/vcard; charset=utf-8",
-    };
+    }
     if (contact.etag) {
-      headers["If-Match"] = contact.etag;
+      headers["If-Match"] = contact.etag
     }
 
-    await this.request("PUT", url, vcard, headers);
+    await this.request("PUT", url, vcard, headers)
   }
 
   /**
@@ -184,16 +184,16 @@ export class CardDAVClient {
    */
   async deleteContact(uid: string, etag?: string): Promise<void> {
     if (!this.addressBookUrl) {
-      await this.discover();
+      await this.discover()
     }
 
-    const url = `${this.addressBookUrl}/${uid}.vcf`;
-    const headers: Record<string, string> = {};
+    const url = `${this.addressBookUrl}/${uid}.vcf`
+    const headers: Record<string, string> = {}
     if (etag) {
-      headers["If-Match"] = etag;
+      headers["If-Match"] = etag
     }
 
-    await this.request("DELETE", url, undefined, headers);
+    await this.request("DELETE", url, undefined, headers)
   }
 
   /**
@@ -201,7 +201,7 @@ export class CardDAVClient {
    */
   async sync(state?: SyncState): Promise<SyncResult> {
     if (!this.addressBookUrl) {
-      await this.discover();
+      await this.discover()
     }
 
     const result: SyncResult = {
@@ -209,21 +209,21 @@ export class CardDAVClient {
       modified: [],
       deleted: [],
       state: state || { etags: {} },
-    };
+    }
 
     // Full sync - get all contacts and compare
-    const contacts = await this.getContacts();
-    const newEtags: Record<string, string> = {};
+    const contacts = await this.getContacts()
+    const newEtags: Record<string, string> = {}
 
     for (const contact of contacts) {
-      newEtags[contact.uid] = contact.etag || "";
+      newEtags[contact.uid] = contact.etag || ""
 
       if (state?.etags[contact.uid]) {
         if (state.etags[contact.uid] !== contact.etag) {
-          result.modified.push(contact.uid);
+          result.modified.push(contact.uid)
         }
       } else {
-        result.added.push(contact.uid);
+        result.added.push(contact.uid)
       }
     }
 
@@ -231,14 +231,14 @@ export class CardDAVClient {
     if (state?.etags) {
       for (const uid of Object.keys(state.etags)) {
         if (!newEtags[uid]) {
-          result.deleted.push(uid);
+          result.deleted.push(uid)
         }
       }
     }
 
-    result.state.etags = newEtags;
-    result.state.lastSync = Date.now();
+    result.state.etags = newEtags
+    result.state.lastSync = Date.now()
 
-    return result;
+    return result
   }
 }

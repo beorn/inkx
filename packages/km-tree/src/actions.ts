@@ -11,7 +11,7 @@
  * - Actions use simple names without prefixes (UPDATE_NODE, not T_UPDATE_NODE)
  */
 
-import type { KNode } from "@km/core";
+import type { KNode } from "@km/core"
 
 /**
  * Tree content manipulation actions.
@@ -24,13 +24,13 @@ import type { KNode } from "@km/core";
 export type TAction =
   | { type: "ADD_NODE"; parentId: string | null; node: Partial<KNode> }
   | {
-      type: "MOVE_NODE";
-      nodeId: string;
-      newParentId: string | null;
-      newIndex: number;
+      type: "MOVE_NODE"
+      nodeId: string
+      newParentId: string | null
+      newIndex: number
     }
   | { type: "DELETE_NODE"; nodeId: string }
-  | { type: "UPDATE_NODE"; nodeId: string; updates: Partial<KNode> };
+  | { type: "UPDATE_NODE"; nodeId: string; updates: Partial<KNode> }
 
 /** Action type constants for tree actions */
 export const TActionTypes = {
@@ -38,12 +38,12 @@ export const TActionTypes = {
   MOVE_NODE: "MOVE_NODE",
   DELETE_NODE: "DELETE_NODE",
   UPDATE_NODE: "UPDATE_NODE",
-} as const;
+} as const
 
 /**
  * Check if an action is a tree action.
  * Used by boardReducer to detect pass-through actions.
  */
 export function isTAction(action: { type: string }): action is TAction {
-  return action.type in TActionTypes;
+  return action.type in TActionTypes
 }

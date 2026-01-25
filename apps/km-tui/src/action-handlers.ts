@@ -14,7 +14,7 @@
  * @see issue km-y00m for the motivation behind this design
  */
 
-import type { CommandAction } from "@km/commands";
+import type { CommandAction } from "@km/commands"
 
 /**
  * Helper to ensure exhaustiveness at compile time.
@@ -25,8 +25,8 @@ import type { CommandAction } from "@km/commands";
  * @returns never - Always throws
  */
 export function assertNever(action: never): never {
-  const unhandled = action as CommandAction;
-  throw new Error(`Unhandled action type: ${unhandled.type}`);
+  const unhandled = action as CommandAction
+  throw new Error(`Unhandled action type: ${unhandled.type}`)
 }
 
 /**
@@ -34,5 +34,5 @@ export function assertNever(action: never): never {
  * Use this for actions that are recognized but not yet implemented.
  */
 export function beepUnimplemented(): void {
-  process.stdout.write("\x07");
+  process.stdout.write("\x07")
 }

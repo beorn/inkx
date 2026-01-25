@@ -633,7 +633,7 @@ export class SyncManager extends EventEmitter {
       }
 
       // Phase 3: Evaluate rules (add= materialization)
-      for (const progress of evaluateAllRules()) {
+      for (const progress of evaluateAllRules(this.db)) {
         onProgress?.({
           phase: "rules",
           current: progress.current,

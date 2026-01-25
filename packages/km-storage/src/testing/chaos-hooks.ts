@@ -20,7 +20,7 @@ import type {
   VaultHooks,
   MutationContext,
   BeforeMutationResult,
-} from "../vault.ts";
+} from "../vault.ts"
 
 /**
  * Configuration for chaos hook behavior
@@ -31,53 +31,53 @@ export interface ChaosHooksConfig {
    * Dropped mutations throw an error (simulating write failure).
    * @default 0
    */
-  mutationDropRate?: number;
+  mutationDropRate?: number
 
   /**
    * Probability (0-1) that a mutation will be corrupted.
    * Corrupted mutations have their changes modified randomly.
    * @default 0
    */
-  mutationCorruptRate?: number;
+  mutationCorruptRate?: number
 
   /**
    * Probability (0-1) that a specific mutation type will be dropped.
    * More granular than mutationDropRate.
    */
   dropRates?: {
-    update?: number;
-    add?: number;
-    delete?: number;
-    move?: number;
-  };
+    update?: number
+    add?: number
+    delete?: number
+    move?: number
+  }
 
   /**
    * If true, log all chaos events to console for debugging.
    * @default false
    */
-  verbose?: boolean;
+  verbose?: boolean
 
   /**
    * Custom random function for deterministic testing.
    * Should return values in [0, 1).
    * @default Math.random
    */
-  random?: () => number;
+  random?: () => number
 
   /**
    * Callback for each chaos event (for test assertions).
    */
-  onChaosEvent?: (event: ChaosEvent) => void;
+  onChaosEvent?: (event: ChaosEvent) => void
 }
 
 /**
  * Event emitted when chaos is injected
  */
 export interface ChaosEvent {
-  type: "drop" | "corrupt" | "delay";
-  mutation: MutationContext;
-  timestamp: number;
-  details?: Record<string, unknown>;
+  type: "drop" | "corrupt" | "delay"
+  mutation: MutationContext
+  timestamp: number
+  details?: Record<string, unknown>
 }
 
 /**
@@ -85,32 +85,32 @@ export interface ChaosEvent {
  */
 export interface ChaosHooks extends VaultHooks {
   /** Get all chaos events that occurred */
-  getChaosEvents(): ChaosEvent[];
+  getChaosEvents(): ChaosEvent[]
 
   /** Clear the chaos event log */
-  clearChaosEvents(): void;
+  clearChaosEvents(): void
 
   /** Get statistics about chaos injection */
-  getStats(): ChaosStats;
+  getStats(): ChaosStats
 
   /** Temporarily disable chaos (for setup/teardown) */
-  disable(): void;
+  disable(): void
 
   /** Re-enable chaos after disable() */
-  enable(): void;
+  enable(): void
 
   /** Check if chaos is currently enabled */
-  isEnabled(): boolean;
+  isEnabled(): boolean
 }
 
 /**
  * Statistics about chaos injection
  */
 export interface ChaosStats {
-  totalMutations: number;
-  droppedMutations: number;
-  corruptedMutations: number;
-  successfulMutations: number;
+  totalMutations: number
+  droppedMutations: number
+  corruptedMutations: number
+  successfulMutations: number
 }
 
 /**
@@ -151,47 +151,47 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
     verbose = false,
     random = Math.random,
     onChaosEvent,
-  } = config;
+  } = config
 
   // Internal state
-  let enabled = true;
-  const chaosEvents: ChaosEvent[] = [];
+  let enabled = true
+  const chaosEvents: ChaosEvent[] = []
   const stats: ChaosStats = {
     totalMutations: 0,
     droppedMutations: 0,
     corruptedMutations: 0,
     successfulMutations: 0,
-  };
+  }
 
   function log(message: string, ...args: unknown[]) {
     if (verbose) {
-      console.log(`[ChaosHooks] ${message}`, ...args);
+      console.log(`[ChaosHooks] ${message}`, ...args)
     }
   }
 
   function emitEvent(event: ChaosEvent) {
-    chaosEvents.push(event);
-    onChaosEvent?.(event);
-    log(`${event.type}:`, event.mutation.type, event.mutation.nodeId);
+    chaosEvents.push(event)
+    onChaosEvent?.(event)
+    log(`${event.type}:`, event.mutation.type, event.mutation.nodeId)
   }
 
   function getDropRateForType(type: MutationContext["type"]): number {
-    const specificRate = dropRates[type];
+    const specificRate = dropRates[type]
     if (specificRate !== undefined) {
-      return specificRate;
+      return specificRate
     }
-    return mutationDropRate;
+    return mutationDropRate
   }
 
   function shouldDrop(ctx: MutationContext): boolean {
-    if (!enabled) return false;
-    const rate = getDropRateForType(ctx.type);
-    return random() < rate;
+    if (!enabled) return false
+    const rate = getDropRateForType(ctx.type)
+    return random() < rate
   }
 
   function shouldCorrupt(_ctx: MutationContext): boolean {
-    if (!enabled) return false;
-    return random() < mutationCorruptRate;
+    if (!enabled) return false
+    return random() < mutationCorruptRate
   }
 
   function corruptMutation(ctx: MutationContext): MutationContext {
@@ -200,10 +200,10 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
       case "update":
         if (ctx.changes) {
           // Randomly clear or modify a change
-          const keys = Object.keys(ctx.changes);
+          const keys = Object.keys(ctx.changes)
           if (keys.length > 0) {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounds checked above
-            const keyToCorrupt = keys[Math.floor(random() * keys.length)]!;
+            const keyToCorrupt = keys[Math.floor(random() * keys.length)]!
             return {
               ...ctx,
               changes: {
@@ -212,10 +212,10 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
                   (ctx.changes as Record<string, unknown>)[keyToCorrupt],
                 ),
               },
-            };
+            }
           }
         }
-        break;
+        break
 
       case "move":
         // Corrupt position
@@ -223,9 +223,9 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
           return {
             ...ctx,
             position: Math.floor(random() * 1000), // Random position
-          };
+          }
         }
-        break;
+        break
 
       case "add":
         if (ctx.node) {
@@ -236,60 +236,60 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
               ...ctx.node,
               content: `[CORRUPTED] ${ctx.node.content}`,
             },
-          };
+          }
         }
-        break;
+        break
     }
 
-    return ctx;
+    return ctx
   }
 
   function corruptValue(value: unknown): unknown {
     if (typeof value === "string") {
-      return `[CORRUPTED] ${value}`;
+      return `[CORRUPTED] ${value}`
     }
     if (typeof value === "number") {
-      return value * -1 || 999;
+      return value * -1 || 999
     }
     if (typeof value === "boolean") {
-      return !value;
+      return !value
     }
-    return null;
+    return null
   }
 
   const hooks: ChaosHooks = {
     beforeMutation(ctx: MutationContext): BeforeMutationResult | void {
-      stats.totalMutations++;
+      stats.totalMutations++
 
       // Check for drop
       if (shouldDrop(ctx)) {
-        stats.droppedMutations++;
+        stats.droppedMutations++
         emitEvent({
           type: "drop",
           mutation: ctx,
           timestamp: Date.now(),
-        });
-        return { cancel: true };
+        })
+        return { cancel: true }
       }
 
       // Check for corruption
       if (shouldCorrupt(ctx)) {
-        stats.corruptedMutations++;
-        const corrupted = corruptMutation(ctx);
+        stats.corruptedMutations++
+        const corrupted = corruptMutation(ctx)
         emitEvent({
           type: "corrupt",
           mutation: ctx,
           timestamp: Date.now(),
           details: { corruptedTo: corrupted },
-        });
-        return { context: corrupted };
+        })
+        return { context: corrupted }
       }
 
-      stats.successfulMutations++;
+      stats.successfulMutations++
     },
 
     afterMutation(ctx: MutationContext): void {
-      log("mutation completed:", ctx.type, ctx.nodeId);
+      log("mutation completed:", ctx.type, ctx.nodeId)
     },
 
     afterQuery(operation: string, result: unknown): void {
@@ -297,38 +297,38 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
         "query completed:",
         operation,
         Array.isArray(result) ? `${result.length} results` : "single result",
-      );
+      )
     },
 
     // ChaosHooks-specific methods
     getChaosEvents() {
-      return [...chaosEvents];
+      return [...chaosEvents]
     },
 
     clearChaosEvents() {
-      chaosEvents.length = 0;
+      chaosEvents.length = 0
     },
 
     getStats() {
-      return { ...stats };
+      return { ...stats }
     },
 
     disable() {
-      enabled = false;
-      log("disabled");
+      enabled = false
+      log("disabled")
     },
 
     enable() {
-      enabled = true;
-      log("enabled");
+      enabled = true
+      log("enabled")
     },
 
     isEnabled() {
-      return enabled;
+      return enabled
     },
-  };
+  }
 
-  return hooks;
+  return hooks
 }
 
 /**
@@ -345,10 +345,10 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
  * ```
  */
 export function createSeededRandom(seed: number): () => number {
-  let state = seed;
+  let state = seed
   return () => {
     // Simple LCG (Linear Congruential Generator)
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
+    state = (state * 1664525 + 1013904223) >>> 0
+    return state / 4294967296
+  }
 }

@@ -11,9 +11,9 @@
  * - `stripAnsi(styled)` - remove all ANSI escape codes
  */
 
-import chalk from "chalk";
-import { dashedUnderline } from "@beorn/chalkx";
-import stringWidth from "string-width";
+import chalk from "chalk"
+import { dashedUnderline } from "@beorn/chalkx"
+import stringWidth from "string-width"
 
 // ============================================================================
 // ANSI String Utilities
@@ -26,7 +26,7 @@ import stringWidth from "string-width";
  * - Extended SGR codes like \x1b[4:3m (curly underline) or \x1b[58:2::r:g:bm (underline color)
  * - OSC 8 hyperlink sequences: \x1b]8;;<url>\x1b\\ (opening) and \x1b]8;;\x1b\\ (closing)
  */
-export const ANSI_REGEX = /\x1b\[[0-9;:]*m|\x1b\]8;;[^\x1b]*\x1b\\/g;
+export const ANSI_REGEX = /\x1b\[[0-9;:]*m|\x1b\]8;;[^\x1b]*\x1b\\/g
 
 /**
  * Get the display length of a string, excluding ANSI escape codes.
@@ -38,14 +38,14 @@ export const ANSI_REGEX = /\x1b\[[0-9;:]*m|\x1b\]8;;[^\x1b]*\x1b\\/g;
  * - ANSI escape codes are stripped
  */
 export function displayLength(text: string): number {
-  return stringWidth(text);
+  return stringWidth(text)
 }
 
 /**
  * Strip all ANSI escape codes from a string.
  */
 export function stripAnsi(text: string): string {
-  return text.replace(ANSI_REGEX, "");
+  return text.replace(ANSI_REGEX, "")
 }
 
 // ============================================================================
@@ -56,12 +56,12 @@ export function stripAnsi(text: string): string {
  * Regex to match inline field attributes like [due:: 2024-01-15], [priority:: 1]
  * These are Dataview/Obsidian Tasks style inline fields.
  */
-const INLINE_FIELD_REGEX = /\[(\w+)::\s*([^\]]*)\]/g;
+const INLINE_FIELD_REGEX = /\[(\w+)::\s*([^\]]*)\]/g
 
 /**
  * Regex to match wiki links: [[note]] or [[path/to/note|alias]]
  */
-const WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g;
+const WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g
 
 /**
  * Extract display text and target from a wiki link content.
@@ -69,34 +69,34 @@ const WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g;
  * For [[text]], returns { display: "text", target: "text" }.
  */
 function extractLinkParts(linkContent: string): {
-  display: string;
-  target: string;
+  display: string
+  target: string
 } {
   if (linkContent.includes("|")) {
-    const parts = linkContent.split("|");
+    const parts = linkContent.split("|")
     return {
       target: parts[0] ?? linkContent,
       display: parts[1] ?? linkContent,
-    };
+    }
   }
-  return { display: linkContent, target: linkContent };
+  return { display: linkContent, target: linkContent }
 }
 
 // Markdown formatting patterns
-const BOLD_REGEX = /\*\*([^*]+)\*\*/g; // **bold**
-const ITALIC_ASTERISK_REGEX = /(?<!\*)\*([^*]+)\*(?!\*)/g; // *italic* (not part of **)
-const ITALIC_UNDERSCORE_REGEX = /(?<![_\w])_([^_]+)_(?![_\w])/g; // _italic_ (word boundary)
-const CODE_REGEX = /`([^`]+)`/g; // `code`
-const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g; // ~~strikethrough~~
+const BOLD_REGEX = /\*\*([^*]+)\*\*/g // **bold**
+const ITALIC_ASTERISK_REGEX = /(?<!\*)\*([^*]+)\*(?!\*)/g // *italic* (not part of **)
+const ITALIC_UNDERSCORE_REGEX = /(?<![_\w])_([^_]+)_(?![_\w])/g // _italic_ (word boundary)
+const CODE_REGEX = /`([^`]+)`/g // `code`
+const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g // ~~strikethrough~~
 
 // Markdown link patterns - capture both text and URL
-const MD_LINK_REGEX = /\[([^\]]+)\]\(([^)]+)\)/g; // [text](url)
+const MD_LINK_REGEX = /\[([^\]]+)\]\(([^)]+)\)/g // [text](url)
 
 // Draft/tentative content patterns - styled with dashed underline
-const DRAFT_PREFIX_REGEX = /^(Draft|WIP|TODO|FIXME):\s*/i;
+const DRAFT_PREFIX_REGEX = /^(Draft|WIP|TODO|FIXME):\s*/i
 
 // Sigil patterns for @ mentions, # tags, and + projects
-const SIGIL_REGEX = /([@#\+])([a-zA-Z0-9_-]+)/g;
+const SIGIL_REGEX = /([@#\+])([a-zA-Z0-9_-]+)/g
 
 /**
  * Options for rich text rendering
@@ -106,12 +106,12 @@ export interface RenderRichOptions {
    * Sigils to exclude from display (e.g., ["@issue"] when viewing the @issue board).
    * Include the full sigil with prefix (e.g., "@issue", "#feature", "+project").
    */
-  excludeSigils?: string[];
+  excludeSigils?: string[]
   /**
    * Map of sigil to color (e.g., { "@next": "cyan", "#urgent": "red" }).
    * Sigils with a color are displayed in that color; others use dim white.
    */
-  sigilColors?: Map<string, string>;
+  sigilColors?: Map<string, string>
 }
 
 /**
@@ -139,13 +139,13 @@ export interface RenderRichOptions {
  * // Returns: "Fix bug \x1b[36m\x1b[4m#P1\x1b[0m" (without @issue)
  */
 export function renderRich(text: string, options?: RenderRichOptions): string {
-  const excludeSigils = new Set(options?.excludeSigils ?? []);
-  const sigilColors = options?.sigilColors ?? new Map<string, string>();
+  const excludeSigils = new Set(options?.excludeSigils ?? [])
+  const sigilColors = options?.sigilColors ?? new Map<string, string>()
   // Check if content starts with a draft prefix (Draft:, WIP:, TODO:, FIXME:)
-  const isDraft = DRAFT_PREFIX_REGEX.test(text);
+  const isDraft = DRAFT_PREFIX_REGEX.test(text)
 
   // Strip inline fields first
-  let result = text.replace(INLINE_FIELD_REGEX, "");
+  let result = text.replace(INLINE_FIELD_REGEX, "")
 
   // Style markdown links [text](url) → underlined text
   // NOTE: OSC 8 hyperlinks disabled due to wrap-ansi incompatibility
@@ -153,98 +153,98 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   result = result.replace(
     MD_LINK_REGEX,
     (_match, linkText: string, _url: string) => {
-      return chalk.underline(linkText);
+      return chalk.underline(linkText)
     },
-  );
+  )
 
   // Style wiki links: underlined text
   // NOTE: OSC 8 hyperlinks disabled due to wrap-ansi incompatibility
   // The km:// protocol would be intercepted for navigation, but wrapping breaks it
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
-    const { display } = extractLinkParts(content);
-    return chalk.underline(display);
-  });
+    const { display } = extractLinkParts(content)
+    return chalk.underline(display)
+  })
 
   // Style sigils (@mention, #tag, +project) - use node color if available, else dim
   // Filter out excluded sigils (e.g., @issue when viewing the @issue board)
   result = result.replace(
     SIGIL_REGEX,
     (_match, prefix: string, name: string) => {
-      const sigil = `${prefix}${name}`;
+      const sigil = `${prefix}${name}`
       // If this sigil should be excluded, remove it entirely (including surrounding space)
       if (excludeSigils.has(sigil)) {
-        return "";
+        return ""
       }
       // Use sigil's color if provided, otherwise dim white
       // Always dim the sigil to keep it subtle - color + dim for toned-down appearance
-      const color = sigilColors.get(sigil);
+      const color = sigilColors.get(sigil)
       if (color) {
         // Use the sigil node's color, but dimmed for subtlety
         switch (color) {
           case "red":
-            return chalk.dim.red(sigil);
+            return chalk.dim.red(sigil)
           case "green":
-            return chalk.dim.green(sigil);
+            return chalk.dim.green(sigil)
           case "yellow":
-            return chalk.dim.yellow(sigil);
+            return chalk.dim.yellow(sigil)
           case "blue":
-            return chalk.dim.blue(sigil);
+            return chalk.dim.blue(sigil)
           case "magenta":
-            return chalk.dim.magenta(sigil);
+            return chalk.dim.magenta(sigil)
           case "cyan":
-            return chalk.dim.cyan(sigil);
+            return chalk.dim.cyan(sigil)
           case "white":
-            return chalk.dim.white(sigil);
+            return chalk.dim.white(sigil)
           case "gray":
           case "grey":
-            return chalk.gray(sigil);
+            return chalk.gray(sigil)
           default:
-            return chalk.dim(sigil);
+            return chalk.dim(sigil)
         }
       }
       // Default: subtle dim text
-      return chalk.dim(sigil);
+      return chalk.dim(sigil)
     },
-  );
+  )
 
   // Style bold text (must be before italic to avoid conflicts)
   result = result.replace(BOLD_REGEX, (_match, content: string) => {
-    return chalk.bold(content);
-  });
+    return chalk.bold(content)
+  })
 
   // Style italic text (*italic* or _italic_)
   result = result.replace(ITALIC_ASTERISK_REGEX, (_match, content: string) => {
-    return chalk.italic(content);
-  });
+    return chalk.italic(content)
+  })
   result = result.replace(
     ITALIC_UNDERSCORE_REGEX,
     (_match, content: string) => {
-      return chalk.italic(content);
+      return chalk.italic(content)
     },
-  );
+  )
 
   // Style inline code
   result = result.replace(CODE_REGEX, (_match, content: string) => {
-    return chalk.cyan(content);
-  });
+    return chalk.cyan(content)
+  })
 
   // Style strikethrough (render as dim since terminals often don't support true strikethrough)
   result = result.replace(STRIKETHROUGH_REGEX, (_match, content: string) => {
-    return chalk.dim.strikethrough(content);
-  });
+    return chalk.dim.strikethrough(content)
+  })
 
   // Clean up whitespace: collapse multiple spaces and newlines
   result = result
     .replace(/\n{2,}/g, "\n") // Collapse multiple newlines to single
     .replace(/  +/g, " ") // Collapse multiple spaces
-    .trim();
+    .trim()
 
   // Apply dashed underline to draft/tentative content
   if (isDraft) {
-    result = dashedUnderline(result);
+    result = dashedUnderline(result)
   }
 
-  return result;
+  return result
 }
 
 /**
@@ -263,18 +263,18 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
  */
 export function renderPlain(text: string): string {
   // Strip inline fields
-  let result = text.replace(INLINE_FIELD_REGEX, "");
+  let result = text.replace(INLINE_FIELD_REGEX, "")
 
   // Strip markdown links [text](url) → text
   result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => {
-    return linkText;
-  });
+    return linkText
+  })
 
   // Strip wiki links (keep display text only)
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
-    return extractLinkParts(content).display;
-  });
+    return extractLinkParts(content).display
+  })
 
   // Clean up whitespace
-  return result.replace(/  +/g, " ").trim();
+  return result.replace(/  +/g, " ").trim()
 }

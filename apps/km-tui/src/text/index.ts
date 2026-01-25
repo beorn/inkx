@@ -11,7 +11,7 @@
  */
 
 // Rich text rendering (ANSI utilities exported from layout/index.ts via @beorn/tui-measure)
-export { renderRich, renderPlain, type RenderRichOptions } from "./rich.ts";
+export { renderRich, renderPlain, type RenderRichOptions } from "./rich.ts"
 
 // Icon utilities (moved from @km/tui-core)
 export {
@@ -25,7 +25,7 @@ export {
   UNFOLDED_MARKER,
   EMPTY_MARKER,
   type StatusIcon,
-} from "../icons.ts";
+} from "../icons.ts"
 
 // Node formatting
 export {
@@ -33,7 +33,7 @@ export {
   formatStatus,
   formatNodeBrief,
   formatCollapsedAncestor,
-} from "./format.ts";
+} from "./format.ts"
 
 // Extended ANSI features (chalkx)
 export {
@@ -49,7 +49,7 @@ export {
   supportsExtendedUnderline,
   setExtendedUnderlineSupport,
   type UnderlineStyle,
-} from "@beorn/chalkx";
+} from "@beorn/chalkx"
 
 // Board color system
 export {
@@ -59,4 +59,4 @@ export {
   getBoardColorByName,
   colorize,
   type ChalkColor,
-} from "./colors.ts";
+} from "./colors.ts"

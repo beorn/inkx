@@ -4,7 +4,7 @@
  * Predefined configurations for simulating file watcher edge cases.
  */
 
-import type { ChaosScenario } from "./types.ts";
+import type { ChaosScenario } from "./types.ts"
 
 /**
  * Slow disk - all events delayed 2-5 seconds
@@ -16,7 +16,7 @@ export const SLOW_DISK: ChaosScenario = {
     minDelayMs: 2000,
     maxDelayMs: 5000,
   },
-};
+}
 
 /**
  * Queue overflow - drops 20% of events randomly
@@ -28,7 +28,7 @@ export const QUEUE_OVERFLOW: ChaosScenario = {
     dropRate: 0.2,
     burstSize: 50, // Trigger overflow simulation after this many pending events
   },
-};
+}
 
 /**
  * Editor atomic writes - modify becomes delete + add pair
@@ -40,7 +40,7 @@ export const EDITOR_ATOMIC: ChaosScenario = {
     tempSuffix: ".tmp",
     renameDelayMs: 50, // ms between temp write and rename
   },
-};
+}
 
 /**
  * Event storm - bursts of 100+ events
@@ -53,7 +53,7 @@ export const EVENT_STORM: ChaosScenario = {
     burstIntervalMs: 10, // ms between events in burst
     cooldownAfterBurstMs: 500,
   },
-};
+}
 
 /**
  * Reorder chaos - randomly reorders event batches
@@ -65,7 +65,7 @@ export const REORDER_CHAOS: ChaosScenario = {
     reorderProbability: 0.5,
     maxReorderWindow: 10, // Events within this window may be reordered
   },
-};
+}
 
 /**
  * Partial writes - file created before fully written
@@ -78,7 +78,7 @@ export const PARTIAL_WRITES: ChaosScenario = {
     finalWriteDelayMs: 500,
     intermediateEvents: 3, // Number of "change" events during write
   },
-};
+}
 
 /**
  * Rename storm - rapid file renames
@@ -90,7 +90,7 @@ export const RENAME_STORM: ChaosScenario = {
     chainLength: 5, // file.md -> file1.md -> file2.md -> ...
     renameIntervalMs: 100,
   },
-};
+}
 
 /**
  * FSEvents coalescing - parent dir event instead of file events
@@ -102,7 +102,7 @@ export const FSEVENTS_COALESCE: ChaosScenario = {
     coalesceThreshold: 10, // Coalesce when > N files changed in dir
     useParentDirEvent: true,
   },
-};
+}
 
 /**
  * Init gap - file changes during watcher initialization
@@ -114,7 +114,7 @@ export const INIT_GAP: ChaosScenario = {
     initDurationMs: 2000, // How long before "ready" fires
     eventsBeforeReady: 5, // Events that happen during init
   },
-};
+}
 
 /**
  * Rapid succession - many edits in milliseconds
@@ -126,7 +126,7 @@ export const RAPID_SUCCESSION: ChaosScenario = {
     editsPerFile: 10,
     intervalMs: 10,
   },
-};
+}
 
 /**
  * Duplicate events - same event fired multiple times
@@ -138,7 +138,7 @@ export const DUPLICATE_EVENTS: ChaosScenario = {
     editsPerFile: 3,
     intervalMs: 0, // Immediate duplicates
   },
-};
+}
 
 /**
  * All predefined scenarios for easy access
@@ -155,7 +155,7 @@ export const CHAOS_SCENARIOS = {
   init_gap: INIT_GAP,
   rapid_succession: RAPID_SUCCESSION,
   duplicate_events: DUPLICATE_EVENTS,
-} as const;
+} as const
 
 /**
  * Create a custom scenario by merging with defaults
@@ -164,11 +164,11 @@ export function createScenario(
   type: ChaosScenario["type"],
   overrides: Record<string, unknown> = {},
 ): ChaosScenario {
-  const base = CHAOS_SCENARIOS[type];
+  const base = CHAOS_SCENARIOS[type]
   return {
     type,
     params: { ...base.params, ...overrides },
-  };
+  }
 }
 
 /**
@@ -181,4 +181,4 @@ export const NO_CHAOS: ChaosScenario = {
     minDelayMs: 0,
     maxDelayMs: 0,
   },
-};
+}

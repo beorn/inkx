@@ -9,22 +9,22 @@
  * Must be imported before any debug() calls.
  */
 
-import createDebug from "debug";
-import { createWriteStream, type WriteStream } from "fs";
-import { relative } from "path";
-import { homedir } from "os";
+import createDebug from "debug"
+import { createWriteStream, type WriteStream } from "fs"
+import { relative } from "path"
+import { homedir } from "os"
 
-let stream: WriteStream | null = null;
+let stream: WriteStream | null = null
 
 // Optional vault root for formatting paths relative to vault
-let vaultRoot: string | null = null;
+let vaultRoot: string | null = null
 
 /**
  * Set the vault root for path formatting in debug output.
  * Paths inside this root will be shown as relative.
  */
 export function setDebugVaultRoot(root: string | null): void {
-  vaultRoot = root;
+  vaultRoot = root
 }
 
 /**
@@ -34,25 +34,25 @@ export function setDebugVaultRoot(root: string | null): void {
 function formatPath(absPath: string): string {
   // Try relative to vault root (most useful for debug output)
   if (vaultRoot && absPath.startsWith(vaultRoot)) {
-    const rel = absPath.slice(vaultRoot.length);
-    return rel.startsWith("/") ? rel.slice(1) : rel;
+    const rel = absPath.slice(vaultRoot.length)
+    return rel.startsWith("/") ? rel.slice(1) : rel
   }
 
-  const home = homedir();
-  const cwd = process.cwd();
+  const home = homedir()
+  const cwd = process.cwd()
 
   // Try relative to cwd
-  const relPath = relative(cwd, absPath);
+  const relPath = relative(cwd, absPath)
   if (relPath && !relPath.startsWith("..") && relPath.length < absPath.length) {
-    return relPath;
+    return relPath
   }
 
   // Try home-relative
   if (absPath.startsWith(home)) {
-    return "~" + absPath.slice(home.length);
+    return "~" + absPath.slice(home.length)
   }
 
-  return absPath;
+  return absPath
 }
 
 /**
@@ -60,17 +60,17 @@ function formatPath(absPath: string): string {
  */
 function formatPathsInObject(obj: unknown, depth = 0): unknown {
   // Prevent infinite recursion
-  if (depth > 5) return obj;
+  if (depth > 5) return obj
 
   if (typeof obj !== "object" || obj === null) {
-    return obj;
+    return obj
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((v) => formatPathsInObject(v, depth + 1));
+    return obj.map((v) => formatPathsInObject(v, depth + 1))
   }
 
-  const result: Record<string, unknown> = {};
+  const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(obj)) {
     // Format path-like string values
     if (
@@ -83,14 +83,14 @@ function formatPathsInObject(obj: unknown, depth = 0): unknown {
         key === "vaultRoot" ||
         key.endsWith("Path"))
     ) {
-      result[key] = formatPath(value);
+      result[key] = formatPath(value)
     } else if (typeof value === "object" && value !== null) {
-      result[key] = formatPathsInObject(value, depth + 1);
+      result[key] = formatPathsInObject(value, depth + 1)
     } else {
-      result[key] = value;
+      result[key] = value
     }
   }
-  return result;
+  return result
 }
 
 /**
@@ -98,17 +98,17 @@ function formatPathsInObject(obj: unknown, depth = 0): unknown {
  */
 function formatValue(val: unknown): string {
   if (typeof val === "string") {
-    return val;
+    return val
   }
   if (typeof val !== "object" || val === null) {
-    return String(val);
+    return String(val)
   }
   try {
-    const formatted = formatPathsInObject(val);
-    return JSON.stringify(formatted);
+    const formatted = formatPathsInObject(val)
+    return JSON.stringify(formatted)
   } catch {
     // Circular reference or other error - fall back to [object Object]
-    return "[object]";
+    return "[object]"
   }
 }
 
@@ -116,12 +116,12 @@ function formatValue(val: unknown): string {
  * Format a string value, detecting and formatting paths.
  */
 function formatString(val: unknown): string {
-  const str = String(val);
+  const str = String(val)
   // Detect absolute paths and format them
   if (str.startsWith("/") && (str.includes(".md") || str.includes(".km"))) {
-    return formatPath(str);
+    return formatPath(str)
   }
-  return str;
+  return str
 }
 
 /**
@@ -133,40 +133,40 @@ function formatString(val: unknown): string {
  */
 function customLog(...args: unknown[]): void {
   // First arg is the format string (includes namespace from debug)
-  const formatStr = typeof args[0] === "string" ? args[0] : "";
-  const rest = args.slice(1);
+  const formatStr = typeof args[0] === "string" ? args[0] : ""
+  const rest = args.slice(1)
 
   // Format all printf-style placeholders
-  let i = 0;
+  let i = 0
   const formatted = formatStr.replace(/%([Oojs%d])/g, (match, type) => {
-    if (type === "%") return "%"; // Escaped %%
-    if (i >= rest.length) return match; // No more args
+    if (type === "%") return "%" // Escaped %%
+    if (i >= rest.length) return match // No more args
 
-    const val = rest[i++];
+    const val = rest[i++]
     switch (type) {
       case "O":
       case "o":
       case "j":
-        return formatValue(val);
+        return formatValue(val)
       case "s":
-        return formatString(val);
+        return formatString(val)
       case "d":
-        return String(Number(val));
+        return String(Number(val))
       default:
-        return match;
+        return match
     }
-  });
+  })
 
   // Remaining args after format string placeholders - append as formatted values
-  const remaining = rest.slice(i).map(formatValue);
-  const parts = [formatted, ...remaining].filter(Boolean);
-  const line = parts.join(" ");
+  const remaining = rest.slice(i).map(formatValue)
+  const parts = [formatted, ...remaining].filter(Boolean)
+  const line = parts.join(" ")
 
   if (stream) {
-    stream.write(line + "\n");
+    stream.write(line + "\n")
   } else if (!process.stdout.isTTY) {
     // Not in TTY (tests, scripts) - output to stderr as normal
-    console.error(line);
+    console.error(line)
   }
   // If in TTY without DEBUG_LOG, silently drop to prevent breaking TUI
   // Use: DEBUG=km:* DEBUG_LOG=/tmp/km.log km view
@@ -174,19 +174,19 @@ function customLog(...args: unknown[]): void {
 }
 
 // Configure debug to use our custom formatter
-createDebug.log = customLog;
+createDebug.log = customLog
 
 // Set up file output if DEBUG_LOG is set
-const logPath = process.env.DEBUG_LOG;
+const logPath = process.env.DEBUG_LOG
 
 if (logPath) {
-  stream = createWriteStream(logPath, { flags: "a" });
+  stream = createWriteStream(logPath, { flags: "a" })
 
   // Clean up on exit - only close stream, don't call process.exit()
   // Other signal handlers (like TUI terminal restoration) need to run first
-  process.on("exit", () => stream?.end());
-  process.on("SIGINT", () => stream?.end());
-  process.on("SIGTERM", () => stream?.end());
+  process.on("exit", () => stream?.end())
+  process.on("SIGINT", () => stream?.end())
+  process.on("SIGTERM", () => stream?.end())
 }
 
-export { stream as debugLogStream };
+export { stream as debugLogStream }

@@ -7,8 +7,8 @@
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
-import { useMemo } from "react";
-import type { ColumnState } from "../types.ts";
+import { useMemo } from "react"
+import type { ColumnState } from "../types.ts"
 
 // =============================================================================
 // Types
@@ -16,13 +16,13 @@ import type { ColumnState } from "../types.ts";
 
 export interface CursorPosition {
   /** Column index (-1 if at board level or not found) */
-  colIndex: number;
+  colIndex: number
   /** Card index (-1 if at column level or not found) */
-  cardIndex: number;
+  cardIndex: number
   /** Whether cursor is at card level */
-  isAtCardLevel: boolean;
+  isAtCardLevel: boolean
   /** Selection level for styling */
-  selectionLevel: "board" | "column" | "card";
+  selectionLevel: "board" | "column" | "card"
 }
 
 // =============================================================================
@@ -41,8 +41,8 @@ export function useCursorPosition(
   cursorNodeId: string | null,
 ): CursorPosition {
   return useMemo(() => {
-    return deriveCursorPosition(columns, cursorNodeId);
-  }, [columns, cursorNodeId]);
+    return deriveCursorPosition(columns, cursorNodeId)
+  }, [columns, cursorNodeId])
 }
 
 /**
@@ -60,13 +60,13 @@ export function deriveCursorPosition(
       cardIndex: -1,
       isAtCardLevel: false,
       selectionLevel: "board",
-    };
+    }
   }
 
   // Search for cursor node in columns
   for (let colIdx = 0; colIdx < columns.length; colIdx++) {
-    const column = columns[colIdx];
-    if (!column) continue;
+    const column = columns[colIdx]
+    if (!column) continue
 
     // Check if cursor is on the column itself
     if (column.node.id === cursorNodeId) {
@@ -75,13 +75,13 @@ export function deriveCursorPosition(
         cardIndex: -1,
         isAtCardLevel: false,
         selectionLevel: "column",
-      };
+      }
     }
 
     // Check if cursor is on a card in this column
     for (let cardIdx = 0; cardIdx < column.cards.length; cardIdx++) {
-      const card = column.cards[cardIdx];
-      if (!card) continue;
+      const card = column.cards[cardIdx]
+      if (!card) continue
 
       if (card.node.id === cursorNodeId) {
         return {
@@ -89,7 +89,7 @@ export function deriveCursorPosition(
           cardIndex: cardIdx,
           isAtCardLevel: true,
           selectionLevel: "card",
-        };
+        }
       }
 
       // Check if cursor is in a descendant of this card
@@ -99,7 +99,7 @@ export function deriveCursorPosition(
           cardIndex: cardIdx,
           isAtCardLevel: true,
           selectionLevel: "card",
-        };
+        }
       }
     }
   }
@@ -111,7 +111,7 @@ export function deriveCursorPosition(
     cardIndex: -1,
     isAtCardLevel: false,
     selectionLevel: "board",
-  };
+  }
 }
 
 /**
@@ -123,10 +123,10 @@ function isDescendantOf(
 ): boolean {
   for (const child of children) {
     if (child.id === nodeId) {
-      return true;
+      return true
     }
     // Type assertion for recursive check
-    const nestedChildren = (child as { children?: { id: string }[] }).children;
+    const nestedChildren = (child as { children?: { id: string }[] }).children
     if (
       nestedChildren &&
       isDescendantOf(
@@ -134,8 +134,8 @@ function isDescendantOf(
         nestedChildren as { id: string; children?: unknown[] }[],
       )
     ) {
-      return true;
+      return true
     }
   }
-  return false;
+  return false
 }

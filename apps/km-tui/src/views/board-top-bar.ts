@@ -1,18 +1,18 @@
 /**
  * Board top bar - path segments rendering
  */
-import chalk from "chalk";
-import type { KNode } from "@km/core";
-import type { Vault } from "../vault-context.tsx";
-import { getNodeDisplayName } from "../state.ts";
-import { renderPlain } from "../text/index.ts";
+import chalk from "chalk"
+import type { KNode } from "@km/core"
+import type { Vault } from "../vault-context.tsx"
+import { getNodeDisplayName } from "../state.ts"
+import { renderPlain } from "../text/index.ts"
 
 export interface PathSegment {
-  id: string | null;
-  name: string;
-  sep: string;
-  isWithinBoard: boolean;
-  node: KNode | null;
+  id: string | null
+  name: string
+  sep: string
+  isWithinBoard: boolean
+  node: KNode | null
 }
 
 /**
@@ -37,41 +37,41 @@ export function getPathSegments(
     sep: "",
     isWithinBoard: false,
     node: null,
-  };
+  }
 
   if (!nodeId) {
-    return [repoRootSegment];
+    return [repoRootSegment]
   }
 
   // Collect all nodes from root to target
-  const nodes: KNode[] = [];
-  let currentId: string | null = nodeId;
+  const nodes: KNode[] = []
+  let currentId: string | null = nodeId
   while (currentId) {
-    const node = vault.getNode(currentId);
-    if (!node) break;
-    nodes.unshift(node);
-    currentId = node.parent_id;
+    const node = vault.getNode(currentId)
+    if (!node) break
+    nodes.unshift(node)
+    currentId = node.parent_id
   }
 
   if (nodes.length === 0) {
-    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }];
+    return [{ id: null, name: "/", sep: "", isWithinBoard: false, node: null }]
   }
 
   // Find index where we enter the board (nodes after boardRootId)
-  let boardRootIndex = -1;
+  let boardRootIndex = -1
   if (boardRootId) {
-    boardRootIndex = nodes.findIndex((n) => n.id === boardRootId);
+    boardRootIndex = nodes.findIndex((n) => n.id === boardRootId)
   }
 
   // Build segments with separators
-  const segments: PathSegment[] = [];
+  const segments: PathSegment[] = []
   for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i];
-    if (!node) continue;
+    const node = nodes[i]
+    if (!node) continue
     // Strip wiki link brackets and show alias for display
-    const rawName = getNodeDisplayName(vault, node);
-    const name = renderPlain(rawName);
-    const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex;
+    const rawName = getNodeDisplayName(vault, node)
+    const name = renderPlain(rawName)
+    const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex
 
     if (node.type === "folder" || node.type === "file") {
       segments.push({
@@ -80,9 +80,9 @@ export function getPathSegments(
         sep: segments.length > 0 ? "/" : "",
         isWithinBoard,
         node,
-      });
+      })
     } else if (node.type === "section") {
-      segments.push({ id: node.id, name, sep: "#", isWithinBoard, node });
+      segments.push({ id: node.id, name, sep: "#", isWithinBoard, node })
     } else if (node.type === "board") {
       if (segments.length === 0) {
         segments.push({
@@ -91,7 +91,7 @@ export function getPathSegments(
           sep: "",
           isWithinBoard: false,
           node,
-        });
+        })
       }
     } else {
       // Other types (paragraph, task, etc.)
@@ -101,13 +101,13 @@ export function getPathSegments(
         sep: segments.length > 0 ? "/" : "",
         isWithinBoard,
         node,
-      });
+      })
     }
   }
 
   // Update first segment to have "/" separator (since it follows repo root)
   if (segments.length > 0) {
-    const first = segments[0];
+    const first = segments[0]
     if (first && first.sep === "") {
       segments[0] = {
         id: first.id,
@@ -115,12 +115,12 @@ export function getPathSegments(
         sep: "/",
         isWithinBoard: first.isWithinBoard,
         node: first.node,
-      };
+      }
     }
   }
 
   // Always prepend repo root segment (folder icon)
-  return [repoRootSegment, ...segments];
+  return [repoRootSegment, ...segments]
 }
 
 /**
@@ -135,34 +135,34 @@ export function renderTopBarContent(
   // Find the board root index:
   // - If there are isWithinBoard segments, board root is the last one before them
   // - If no isWithinBoard segments, the last segment is the board root
-  const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard);
+  const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard)
   const boardRootIdx =
     firstWithinBoardIdx > 0
       ? firstWithinBoardIdx - 1
       : firstWithinBoardIdx === -1
         ? segments.length - 1
-        : 0;
+        : 0
 
   // Build content: " ● " prefix + segments
   // Use chalk only for bold (board root) and dim (other segments)
   // Base color is inherited from parent Text component
-  const boldChalk = isBoardSelected ? chalk.black.bold : chalk.gray.bold;
-  const dimChalk = isBoardSelected ? chalk.black.dim : chalk.gray.dim;
+  const boldChalk = isBoardSelected ? chalk.black.bold : chalk.gray.bold
+  const dimChalk = isBoardSelected ? chalk.black.dim : chalk.gray.dim
 
-  let content = " ● ";
+  let content = " ● "
 
   segments.forEach((seg, idx) => {
-    const sepPart = seg.sep ? ` ${seg.sep} ` : "";
-    const isBoardRoot = idx === boardRootIdx;
+    const sepPart = seg.sep ? ` ${seg.sep} ` : ""
+    const isBoardRoot = idx === boardRootIdx
 
     if (isBoardRoot) {
       // Board root: bold, prominent (sep is dimmed)
-      content += dimChalk(sepPart) + boldChalk(seg.name);
+      content += dimChalk(sepPart) + boldChalk(seg.name)
     } else {
       // Path segments before/after board root: dimmed
-      content += dimChalk(sepPart + seg.name);
+      content += dimChalk(sepPart + seg.name)
     }
-  });
+  })
 
-  return content;
+  return content
 }

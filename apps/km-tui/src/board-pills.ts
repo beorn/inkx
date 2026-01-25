@@ -8,18 +8,14 @@
  * 3. Inherited from parent section
  */
 
-import type { KNode } from "@km/core";
-import type { Vault } from "./vault-context.tsx";
-import { getNodeDisplayName } from "./state.ts";
-import {
-  GTD_BOARD_COLORS,
-  normalizeBoardName,
-  colorize,
-} from "./text/index.ts";
+import type { KNode } from "@km/core"
+import type { Vault } from "./vault-context.tsx"
+import { getNodeDisplayName } from "./state.ts"
+import { GTD_BOARD_COLORS, normalizeBoardName, colorize } from "./text/index.ts"
 
 export interface BoardPill {
-  name: string; // Display name (e.g., "next" or "My Board")
-  color: string; // Chalk color name
+  name: string // Display name (e.g., "next" or "My Board")
+  color: string // Chalk color name
 }
 
 /**
@@ -31,13 +27,13 @@ export interface BoardPill {
 export function getOwnColor(node: KNode): string | undefined {
   // Check node's own rules (direct rules or data.rules for file nodes)
   if (node.rules?.color) {
-    return node.rules.color;
+    return node.rules.color
   }
-  const dataRules = node.data?.rules as { color?: string } | undefined;
+  const dataRules = node.data?.rules as { color?: string } | undefined
   if (dataRules?.color) {
-    return dataRules.color;
+    return dataRules.color
   }
-  return undefined;
+  return undefined
 }
 
 /**
@@ -51,21 +47,21 @@ export function getInheritedColor(
   node: KNode,
 ): string | undefined {
   // Check node's own color first
-  const ownColor = getOwnColor(node);
+  const ownColor = getOwnColor(node)
   if (ownColor) {
-    return ownColor;
+    return ownColor
   }
 
   // Check ancestors for inherited color
-  const ancestors = vault.getAncestors(node.id);
+  const ancestors = vault.getAncestors(node.id)
   for (const ancestor of ancestors) {
-    const ancestorColor = getOwnColor(ancestor);
+    const ancestorColor = getOwnColor(ancestor)
     if (ancestorColor) {
-      return ancestorColor;
+      return ancestorColor
     }
   }
 
-  return undefined;
+  return undefined
 }
 
 /**
@@ -73,26 +69,26 @@ export function getInheritedColor(
  * Returns the first section/file ancestor that represents a board column
  */
 function getBoardForLink(vault: Vault, linkNode: KNode): KNode | null {
-  if (!linkNode.parent_id) return null;
+  if (!linkNode.parent_id) return null
 
-  const parent = vault.getNode(linkNode.parent_id);
-  if (!parent) return null;
+  const parent = vault.getNode(linkNode.parent_id)
+  if (!parent) return null
 
   // The link's parent is typically the board column (a section)
   // If the parent is a section or file, that's our board
   if (parent.type === "section" || parent.type === "file") {
-    return parent;
+    return parent
   }
 
   // Otherwise, look up ancestors to find the board
-  const ancestors = vault.getAncestors(linkNode.id);
+  const ancestors = vault.getAncestors(linkNode.id)
   for (const ancestor of ancestors) {
     if (ancestor.type === "section" || ancestor.type === "file") {
-      return ancestor;
+      return ancestor
     }
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -109,40 +105,40 @@ export function getBoardPills(
   excludeBoardIds: Set<string> = new Set(),
 ): BoardPill[] {
   // Only nodes with task_status can be on boards (regardless of structural type)
-  if (taskNode.task_status == null) return [];
+  if (taskNode.task_status == null) return []
 
   // Find all links pointing to this task
-  const links = vault.getLinksTo(taskNode.id);
-  if (links.length === 0) return [];
+  const links = vault.getLinksTo(taskNode.id)
+  if (links.length === 0) return []
 
-  const pills: BoardPill[] = [];
-  const seenBoards = new Set<string>();
+  const pills: BoardPill[] = []
+  const seenBoards = new Set<string>()
 
   for (const link of links) {
-    const board = getBoardForLink(vault, link);
-    if (!board) continue;
+    const board = getBoardForLink(vault, link)
+    if (!board) continue
 
     // Skip if this board is excluded (we're viewing it)
-    if (excludeBoardIds.has(board.id)) continue;
+    if (excludeBoardIds.has(board.id)) continue
 
     // Skip duplicates
-    if (seenBoards.has(board.id)) continue;
-    seenBoards.add(board.id);
+    if (seenBoards.has(board.id)) continue
+    seenBoards.add(board.id)
 
-    const boardName = getNodeDisplayName(vault, board);
+    const boardName = getNodeDisplayName(vault, board)
 
     // Get color: custom rules > inherited > GTD default
-    const customColor = getInheritedColor(vault, board);
-    const gtdColor = GTD_BOARD_COLORS[normalizeBoardName(boardName)];
-    const color = customColor || gtdColor || "white";
+    const customColor = getInheritedColor(vault, board)
+    const gtdColor = GTD_BOARD_COLORS[normalizeBoardName(boardName)]
+    const color = customColor || gtdColor || "white"
 
     pills.push({
       name: boardName,
       color,
-    });
+    })
   }
 
-  return pills;
+  return pills
 }
 
 /**
@@ -155,14 +151,14 @@ export function formatBoardPills(
   pills: BoardPill[],
   compact: boolean = false,
 ): string {
-  if (pills.length === 0) return "";
+  if (pills.length === 0) return ""
 
   if (compact) {
     // Compact: just colored dots
-    return pills.map((p) => colorize("●", p.color)).join("");
+    return pills.map((p) => colorize("●", p.color)).join("")
   } else {
     // Full: @name format
-    return pills.map((p) => colorize(`@${p.name}`, p.color)).join(" ");
+    return pills.map((p) => colorize(`@${p.name}`, p.color)).join(" ")
   }
 }
 
@@ -189,7 +185,7 @@ export function getHeaderStyle(
       color: "black",
       backgroundColor: "yellow",
       dimColor: false,
-    };
+    }
   }
 
   // Default styling:
@@ -200,5 +196,5 @@ export function getHeaderStyle(
     color: isSelected ? "yellow" : "white",
     backgroundColor: undefined,
     dimColor: false,
-  };
+  }
 }

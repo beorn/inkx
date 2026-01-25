@@ -3,13 +3,13 @@
  *
  * Displays keyboard shortcuts for the board TUI
  */
-import React from "react";
-import { Box, Text } from "inkx";
-import { ModalDialog } from "./shared-components.tsx";
+import React from "react"
+import { Box, Text } from "inkx"
+import { ModalDialog } from "./shared-components.tsx"
 
 interface HelpOverlayProps {
-  width: number;
-  height: number;
+  width: number
+  height: number
 }
 
 // Keyboard shortcuts organized by category
@@ -66,16 +66,16 @@ const shortcuts = [
       { key: "q", desc: "Quit" },
     ],
   },
-];
+]
 
 // Calculate max key width across all shortcuts
 const maxKeyWidth = Math.max(
   ...shortcuts.flatMap((cat) => cat.keys.map((k) => k.key.length)),
-);
+)
 
 // Minimum dimensions to render the overlay
-const MIN_WIDTH = 30;
-const MIN_HEIGHT = 10;
+const MIN_WIDTH = 30
+const MIN_HEIGHT = 10
 
 export function HelpOverlay({ width, height }: HelpOverlayProps) {
   // Guard against invalid dimensions - render fallback if too small
@@ -92,32 +92,32 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
         <Text color="cyan">Terminal too small</Text>
         <Text dimColor>Press ? or Esc</Text>
       </Box>
-    );
+    )
   }
 
   // Calculate content dimensions - more padding around the box
   // Use Math.max to ensure positive values
-  const boxWidth = Math.max(MIN_WIDTH, Math.min(70, width - 8));
+  const boxWidth = Math.max(MIN_WIDTH, Math.min(70, width - 8))
   const boxHeight = Math.max(
     MIN_HEIGHT,
     Math.min(
       shortcuts.reduce((acc, cat) => acc + cat.keys.length + 3, 4), // Extra lines for internal padding
       height - 6,
     ),
-  );
+  )
 
   // Center the box - ensure non-negative margins
-  const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2));
-  const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2));
+  const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2))
+  const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2))
 
   // Content width inside the border (with 2-space padding)
-  const contentWidth = Math.max(10, boxWidth - 8); // Account for border + paddingX(2)
+  const contentWidth = Math.max(10, boxWidth - 8) // Account for border + paddingX(2)
 
   // Center text within contentWidth
   const centerText = (text: string) => {
-    const paddedLen = Math.max(0, Math.floor((contentWidth + text.length) / 2));
-    return text.padStart(paddedLen).padEnd(Math.max(paddedLen, contentWidth));
-  };
+    const paddedLen = Math.max(0, Math.floor((contentWidth + text.length) / 2))
+    return text.padStart(paddedLen).padEnd(Math.max(paddedLen, contentWidth))
+  }
 
   return (
     <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop}>
@@ -151,5 +151,5 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
         <Text> </Text>
       </ModalDialog>
     </Box>
-  );
+  )
 }

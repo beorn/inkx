@@ -11,7 +11,7 @@
  * - Outdent
  */
 
-import type { CommandDef, CommandAction } from "../types.ts";
+import type { CommandDef, CommandAction } from "../types.ts"
 
 export const tuiCommands: CommandDef[] = [
   // Quit
@@ -238,4 +238,4 @@ export const tuiCommands: CommandDef[] = [
     shortcuts: ["Shift+Tab"],
     execute: (): CommandAction => ({ type: "OUTDENT_NODE" }),
   },
-];
+]

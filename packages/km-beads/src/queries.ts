@@ -4,15 +4,15 @@
  * Query issues from the km database.
  */
 
-import { queryNodes } from "@km/storage";
-import type { Vault } from "@km/storage";
-import type { KNode } from "@km/core";
-import type { Issue, IssueFilter } from "./types.ts";
+import { queryNodes } from "@km/storage"
+import type { Vault } from "@km/storage"
+import type { KNode } from "@km/core"
+import type { Issue, IssueFilter } from "./types.ts"
 
 /** Options for beads query functions */
 export interface BeadsQueryOptions {
   /** Vault to use for queries. Required for functions that access storage. */
-  vault?: Vault;
+  vault?: Vault
 }
 
 /**
@@ -20,16 +20,16 @@ export interface BeadsQueryOptions {
  */
 function getNodePath(node: KNode, vault?: Vault): string | undefined {
   if (node.fs_path) {
-    return node.fs_path;
+    return node.fs_path
   }
   // For embedded nodes, try to get parent's path
   if (node.parent_id && vault) {
-    const parent = vault.getNode(node.parent_id);
+    const parent = vault.getNode(node.parent_id)
     if (parent) {
-      return getNodePath(parent, vault);
+      return getNodePath(parent, vault)
     }
   }
-  return undefined;
+  return undefined
 }
 
 /**
@@ -38,16 +38,16 @@ function getNodePath(node: KNode, vault?: Vault): string | undefined {
  */
 function countDependents(shortId: string, vault?: Vault): number {
   if (!vault) {
-    return 0; // Can't count without vault access
+    return 0 // Can't count without vault access
   }
 
   const sql = `
     SELECT COUNT(*) as count FROM nodes
     WHERE json_extract(data, '$.blocked_by') LIKE ?
-  `;
-  const params = [`%"${shortId}"%`];
-  const result = vault.rawQuery<{ count: number }>(sql, params);
-  return result[0]?.count ?? 0;
+  `
+  const params = [`%"${shortId}"%`]
+  const result = vault.rawQuery<{ count: number }>(sql, params)
+  return result[0]?.count ?? 0
 }
 
 /**
@@ -55,106 +55,106 @@ function countDependents(shortId: string, vault?: Vault): number {
  */
 function getParentContext(node: KNode, vault?: Vault): string | undefined {
   if (!node.parent_id || !vault) {
-    return undefined;
+    return undefined
   }
-  const parent = vault.getNode(node.parent_id);
+  const parent = vault.getNode(node.parent_id)
   if (!parent) {
-    return undefined;
+    return undefined
   }
   // Return parent's name or title
-  return parent.name || parent.title || undefined;
+  return parent.name || parent.title || undefined
 }
 
 /**
  * Convert a KNode to an Issue
  */
 export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
-  const vault = options?.vault;
-  const data = node.data as Record<string, unknown> | undefined;
+  const vault = options?.vault
+  const data = node.data as Record<string, unknown> | undefined
   const props = data?.props as
     | Record<
         string,
         {
-          type: string;
-          target?: string;
-          value?: unknown;
-          values?: Array<{ target: string }>;
+          type: string
+          target?: string
+          value?: unknown
+          values?: Array<{ target: string }>
         }
       >
-    | undefined;
+    | undefined
 
   // Extract blocked-by from props
-  let blockedBy: string[] | undefined;
+  let blockedBy: string[] | undefined
   if (props?.["blocked-by"]) {
-    const blockedByProp = props["blocked-by"];
+    const blockedByProp = props["blocked-by"]
     if (blockedByProp.type === "link" && blockedByProp.target) {
-      blockedBy = [blockedByProp.target];
+      blockedBy = [blockedByProp.target]
     } else if (blockedByProp.type === "list" && blockedByProp.values) {
-      blockedBy = blockedByProp.values.map((v) => v.target);
+      blockedBy = blockedByProp.values.map((v) => v.target)
     }
   }
 
   // Determine status from task_status
-  let status: Issue["status"] = "todo";
+  let status: Issue["status"] = "todo"
   switch (node.task_status) {
     case "done":
-      status = "done";
-      break;
+      status = "done"
+      break
     case "wip":
-      status = "wip";
-      break;
+      status = "wip"
+      break
     case "blocked":
-      status = "blocked";
-      break;
+      status = "blocked"
+      break
     case "dropped":
-      status = "dropped";
-      break;
+      status = "dropped"
+      break
     default:
-      status = blockedBy && blockedBy.length > 0 ? "blocked" : "todo";
+      status = blockedBy && blockedBy.length > 0 ? "blocked" : "todo"
   }
 
   // Extract priority from tags or data
-  let priority = 2; // Default to P2 (medium)
-  const tags = data?.tags as string[] | undefined;
+  let priority = 2 // Default to P2 (medium)
+  const tags = data?.tags as string[] | undefined
   if (tags) {
     for (const tag of tags) {
-      const pMatch = tag.match(/^P([0-4])$/i);
+      const pMatch = tag.match(/^P([0-4])$/i)
       if (pMatch && pMatch[1]) {
-        priority = parseInt(pMatch[1], 10);
-        break;
+        priority = parseInt(pMatch[1], 10)
+        break
       }
     }
   }
 
   // Extract type from tags
-  let type: string | undefined;
-  const typeKeywords = ["bug", "feature", "epic", "task", "docs", "question"];
+  let type: string | undefined
+  const typeKeywords = ["bug", "feature", "epic", "task", "docs", "question"]
   if (tags) {
     for (const tag of tags) {
       if (typeKeywords.includes(tag.toLowerCase())) {
-        type = tag.toLowerCase();
-        break;
+        type = tag.toLowerCase()
+        break
       }
     }
   }
 
   // Extract assignee from mentions
-  const mentions = data?.mentions as string[] | undefined;
-  const assignee = mentions?.[0];
+  const mentions = data?.mentions as string[] | undefined
+  const assignee = mentions?.[0]
 
   // Get path and context
-  const path = getNodePath(node, vault);
-  const parentContext = getParentContext(node, vault);
+  const path = getNodePath(node, vault)
+  const parentContext = getParentContext(node, vault)
 
   // Count dependencies
-  const dependencyCount = blockedBy?.length || 0;
+  const dependencyCount = blockedBy?.length || 0
 
   // Calculate the short ID for this issue (needed for dependent count lookup)
   const shortId =
-    (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`;
+    (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
 
   // Count dependents (issues that are blocked by this one)
-  const dependentCount = countDependents(shortId, vault);
+  const dependentCount = countDependents(shortId, vault)
 
   return {
     id: node.id,
@@ -172,7 +172,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
     parentContext,
     dependencyCount,
     dependentCount,
-  };
+  }
 }
 
 /**
@@ -181,26 +181,26 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
  * @param options - Optional query options (vault for DI)
  */
 export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
-  const vault = options?.vault;
+  const vault = options?.vault
   if (!issue.blockedBy || issue.blockedBy.length === 0) {
-    return false;
+    return false
   }
 
   // Check if any blocker is not done
   for (const blockerId of issue.blockedBy) {
     const blockers = vault
       ? vault.query(`short_id:${blockerId}`)
-      : queryNodes(`short_id:${blockerId}`);
-    const [firstBlocker] = blockers;
+      : queryNodes(`short_id:${blockerId}`)
+    const [firstBlocker] = blockers
     if (firstBlocker) {
-      const blocker = nodeToIssue(firstBlocker, { vault });
+      const blocker = nodeToIssue(firstBlocker, { vault })
       if (blocker.status !== "done" && blocker.status !== "dropped") {
-        return true;
+        return true
       }
     }
   }
 
-  return false;
+  return false
 }
 
 /**
@@ -216,47 +216,47 @@ export function queryReady(
   boardTag?: string,
   options?: BeadsQueryOptions,
 ): Issue[] {
-  const vault = options?.vault;
+  const vault = options?.vault
   // Build query for open tasks
-  let query = "status:todo";
+  let query = "status:todo"
 
   // Add board tag filter if provided (tasks tagged with @board)
   if (boardTag) {
     // Strip @ prefix if present
-    const tag = boardTag.startsWith("@") ? boardTag.slice(1) : boardTag;
-    query += ` @${tag}`;
+    const tag = boardTag.startsWith("@") ? boardTag.slice(1) : boardTag
+    query += ` @${tag}`
   }
 
   if (filter?.type) {
-    query += ` #${filter.type}`;
+    query += ` #${filter.type}`
   }
   if (filter?.assignee) {
-    query += ` @${filter.assignee}`;
+    query += ` @${filter.assignee}`
   }
   if (filter?.priority !== undefined) {
-    query += ` #P${filter.priority}`;
+    query += ` #P${filter.priority}`
   }
 
   // Don't filter by type='task' - issues can be file nodes with task_status
-  const nodes = vault ? vault.query(query) : queryNodes(query);
-  let issues = nodes.map((n) => nodeToIssue(n, { vault }));
+  const nodes = vault ? vault.query(query) : queryNodes(query)
+  let issues = nodes.map((n) => nodeToIssue(n, { vault }))
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {
-    issues = issues.filter((issue) => issue.path?.startsWith(scopePath));
+    issues = issues.filter((issue) => issue.path?.startsWith(scopePath))
   }
 
   // Filter out blocked issues
   const ready = issues.filter((issue) => {
     // Quick sync check - if has blockedBy, consider blocked
     // Full async check would require isBlocked() call
-    return !issue.blockedBy || issue.blockedBy.length === 0;
-  });
+    return !issue.blockedBy || issue.blockedBy.length === 0
+  })
 
   // Sort by priority (lower = higher priority)
-  ready.sort((a, b) => a.priority - b.priority);
+  ready.sort((a, b) => a.priority - b.priority)
 
-  return ready;
+  return ready
 }
 
 /**
@@ -272,53 +272,53 @@ export function queryIssues(
   boardTag?: string,
   options?: BeadsQueryOptions,
 ): Issue[] {
-  const vault = options?.vault;
-  let query = "";
+  const vault = options?.vault
+  let query = ""
 
   // Add board tag filter if provided (tasks tagged with @board)
   if (boardTag) {
     // Strip @ prefix if present
-    const tag = boardTag.startsWith("@") ? boardTag.slice(1) : boardTag;
-    query += ` @${tag}`;
+    const tag = boardTag.startsWith("@") ? boardTag.slice(1) : boardTag
+    query += ` @${tag}`
   }
 
   if (filter?.status) {
     const statuses = Array.isArray(filter.status)
       ? filter.status
-      : [filter.status];
-    query += ` status:${statuses.join(",")}`;
+      : [filter.status]
+    query += ` status:${statuses.join(",")}`
   }
   if (filter?.type) {
-    query += ` #${filter.type}`;
+    query += ` #${filter.type}`
   }
   if (filter?.assignee) {
-    query += ` @${filter.assignee}`;
+    query += ` @${filter.assignee}`
   }
   if (filter?.priority !== undefined) {
-    query += ` #P${filter.priority}`;
+    query += ` #P${filter.priority}`
   }
 
   // Don't filter by type='task' - issues can be file nodes with task_status
   const nodes = vault
     ? vault.query(query.trim() || "*")
-    : queryNodes(query.trim() || "*");
-  let issues = nodes.map((n) => nodeToIssue(n, { vault }));
+    : queryNodes(query.trim() || "*")
+  let issues = nodes.map((n) => nodeToIssue(n, { vault }))
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {
-    issues = issues.filter((issue) => issue.path?.startsWith(scopePath));
+    issues = issues.filter((issue) => issue.path?.startsWith(scopePath))
   }
 
   // Apply blocked filter
   if (filter?.blocked !== undefined) {
     if (filter.blocked) {
-      issues = issues.filter((i) => i.blockedBy && i.blockedBy.length > 0);
+      issues = issues.filter((i) => i.blockedBy && i.blockedBy.length > 0)
     } else {
-      issues = issues.filter((i) => !i.blockedBy || i.blockedBy.length === 0);
+      issues = issues.filter((i) => !i.blockedBy || i.blockedBy.length === 0)
     }
   }
 
-  return issues;
+  return issues
 }
 
 /**
@@ -330,20 +330,20 @@ export function getIssue(
   shortId: string,
   options?: BeadsQueryOptions,
 ): Issue | null {
-  const vault = options?.vault;
+  const vault = options?.vault
   // Try to find by short_id in data
   // Don't filter by type='task' - issues can be file nodes with task_status
-  const nodes = vault ? vault.query(`@issue`) : queryNodes(`@issue`);
+  const nodes = vault ? vault.query(`@issue`) : queryNodes(`@issue`)
 
   for (const node of nodes) {
-    const data = node.data as Record<string, unknown> | undefined;
-    const nodeShortId = data?.short_id as string | undefined;
-    const derivedShortId = `km-${node.id.slice(-4).toLowerCase()}`;
+    const data = node.data as Record<string, unknown> | undefined
+    const nodeShortId = data?.short_id as string | undefined
+    const derivedShortId = `km-${node.id.slice(-4).toLowerCase()}`
 
     if (nodeShortId === shortId || derivedShortId === shortId) {
-      return nodeToIssue(node, { vault });
+      return nodeToIssue(node, { vault })
     }
   }
 
-  return null;
+  return null
 }

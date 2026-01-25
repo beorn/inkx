@@ -12,16 +12,16 @@
  * Node types that create structural hierarchy (columns, cards, subitems).
  * Everything else is considered "body content" when it appears before these.
  */
-const STRUCTURAL_TYPES = new Set(["section", "file", "folder"]);
+const STRUCTURAL_TYPES = new Set(["section", "file", "folder"])
 
 /**
  * Result of extracting body content from children.
  */
 export interface BodyExtraction<T extends { type: string }> {
   /** Leading non-structural content (before first section/file/folder) */
-  body: T[];
+  body: T[]
   /** Structural children (sections, files, folders) */
-  items: T[];
+  items: T[]
 }
 
 /**
@@ -46,44 +46,44 @@ export function extractBody<T extends { type: string }>(
 ): BodyExtraction<T> {
   const firstStructuralIdx = children.findIndex((c) =>
     STRUCTURAL_TYPES.has(c.type),
-  );
+  )
 
   if (firstStructuralIdx === -1) {
     // No structural children - all content is body
-    return { body: children, items: [] };
+    return { body: children, items: [] }
   }
 
   if (firstStructuralIdx === 0) {
     // No leading body content
-    return { body: [], items: children };
+    return { body: [], items: children }
   }
 
   return {
     body: children.slice(0, firstStructuralIdx),
     items: children.slice(firstStructuralIdx),
-  };
+  }
 }
 
 /**
  * Check if children array has body content (non-structural before structural).
  */
 export function hasBody<T extends { type: string }>(children: T[]): boolean {
-  const first = children[0];
-  if (!first) return false;
+  const first = children[0]
+  if (!first) return false
   // Has body if first child is not structural
-  return !STRUCTURAL_TYPES.has(first.type);
+  return !STRUCTURAL_TYPES.has(first.type)
 }
 
 /**
  * Check if a node type is structural (creates hierarchy) vs body content.
  */
 export function isStructuralType(type: string): boolean {
-  return STRUCTURAL_TYPES.has(type);
+  return STRUCTURAL_TYPES.has(type)
 }
 
 /**
  * Check if a node type is body content (non-structural).
  */
 export function isBodyType(type: string): boolean {
-  return !STRUCTURAL_TYPES.has(type);
+  return !STRUCTURAL_TYPES.has(type)
 }

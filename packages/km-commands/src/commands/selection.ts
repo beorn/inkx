@@ -1,4 +1,4 @@
-import type { CommandDef } from "../types.ts";
+import type { CommandDef } from "../types.ts"
 
 export const selectToggle: CommandDef = {
   id: "select_toggle",
@@ -7,10 +7,10 @@ export const selectToggle: CommandDef = {
   category: "Selection",
   // Note: No default shortcut - 'v' is used for cycle_view_mode in TUI
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
-    return { type: "SELECT_NODE_TOGGLE", nodeId: ctx.currentNodeId };
+    if (!ctx.currentNodeId) return null
+    return { type: "SELECT_NODE_TOGGLE", nodeId: ctx.currentNodeId }
   },
-};
+}
 
 export const selectAdd: CommandDef = {
   id: "select_add",
@@ -18,10 +18,10 @@ export const selectAdd: CommandDef = {
   description: "Add current node to selection",
   category: "Selection",
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
-    return { type: "SELECT_NODE_ADD", nodeId: ctx.currentNodeId };
+    if (!ctx.currentNodeId) return null
+    return { type: "SELECT_NODE_ADD", nodeId: ctx.currentNodeId }
   },
-};
+}
 
 export const selectRemove: CommandDef = {
   id: "select_remove",
@@ -29,10 +29,10 @@ export const selectRemove: CommandDef = {
   description: "Remove current node from selection",
   category: "Selection",
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
-    return { type: "SELECT_NODE_REMOVE", nodeId: ctx.currentNodeId };
+    if (!ctx.currentNodeId) return null
+    return { type: "SELECT_NODE_REMOVE", nodeId: ctx.currentNodeId }
   },
-};
+}
 
 export const selectAllSiblings: CommandDef = {
   id: "select_all_siblings",
@@ -40,7 +40,7 @@ export const selectAllSiblings: CommandDef = {
   description: "Select all siblings of current node",
   category: "Selection",
   execute: () => ({ type: "SELECT_ALL_SIBLINGS" }),
-};
+}
 
 export const selectAll: CommandDef = {
   id: "select_all",
@@ -49,7 +49,7 @@ export const selectAll: CommandDef = {
   category: "Selection",
   shortcuts: ["Ctrl+A"],
   execute: () => ({ type: "SELECT_ALL" }),
-};
+}
 
 // Progressive select all (TUI's Shift+A behavior)
 // First press: select all in column, second: select all in board
@@ -60,7 +60,7 @@ export const selectAllProgressive: CommandDef = {
   category: "Selection",
   shortcuts: ["A"],
   execute: () => ({ type: "SELECT_ALL_PROGRESSIVE" }),
-};
+}
 
 export const clearSelection: CommandDef = {
   id: "clear_selection",
@@ -69,7 +69,7 @@ export const clearSelection: CommandDef = {
   category: "Selection",
   shortcuts: ["Escape"],
   execute: () => ({ type: "CLEAR_SELECTION" }),
-};
+}
 
 // Extend selection (shift+direction)
 export const extendSelectUp: CommandDef = {
@@ -79,7 +79,7 @@ export const extendSelectUp: CommandDef = {
   category: "Selection",
   shortcuts: ["Shift+ArrowUp"],
   execute: () => ({ type: "EXTEND_SELECT_UP" }),
-};
+}
 
 export const extendSelectDown: CommandDef = {
   id: "extend_select_down",
@@ -88,7 +88,7 @@ export const extendSelectDown: CommandDef = {
   category: "Selection",
   shortcuts: ["Shift+ArrowDown"],
   execute: () => ({ type: "EXTEND_SELECT_DOWN" }),
-};
+}
 
 export const extendSelectLeft: CommandDef = {
   id: "extend_select_left",
@@ -97,7 +97,7 @@ export const extendSelectLeft: CommandDef = {
   category: "Selection",
   shortcuts: ["Shift+ArrowLeft"],
   execute: () => ({ type: "EXTEND_SELECT_LEFT" }),
-};
+}
 
 export const extendSelectRight: CommandDef = {
   id: "extend_select_right",
@@ -106,7 +106,7 @@ export const extendSelectRight: CommandDef = {
   category: "Selection",
   shortcuts: ["Shift+ArrowRight"],
   execute: () => ({ type: "EXTEND_SELECT_RIGHT" }),
-};
+}
 
 export const selectionCommands: CommandDef[] = [
   selectToggle,
@@ -120,4 +120,4 @@ export const selectionCommands: CommandDef[] = [
   extendSelectDown,
   extendSelectLeft,
   extendSelectRight,
-];
+]

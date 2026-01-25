@@ -5,63 +5,63 @@
  * These tests run in parallel and are much faster than tests requiring SQLite setup.
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "bun:test"
 
-import { createEmptyState } from "../src/state.ts";
+import { createEmptyState } from "../src/state.ts"
 import {
   renderCard,
   renderStatusBar,
   renderHelp,
   renderStatusIcon,
-} from "../src/render.ts";
-import { createCardState } from "./fixtures/board-fixtures.ts";
-import type { CardState } from "../src/types.ts";
-import type { Vault } from "@km/storage";
+} from "../src/render.ts"
+import { createCardState } from "./fixtures/board-fixtures.ts"
+import type { CardState } from "../src/types.ts"
+import type { Vault } from "@km/storage"
 
 // Minimal mock vault for pure rendering tests - only needs getChildren for display name
 function createMockVault(): Vault {
   return {
     getChildren: () => [],
-  } as unknown as Vault;
+  } as unknown as Vault
 }
 
 describe("Board Pure Rendering", () => {
   test("renderStatusBar shows visual mode", () => {
-    const state = createEmptyState();
-    state.visualMode = true;
+    const state = createEmptyState()
+    state.visualMode = true
 
-    const output = renderStatusBar(state, 80);
-    expect(output).toContain("VISUAL");
-  });
+    const output = renderStatusBar(state, 80)
+    expect(output).toContain("VISUAL")
+  })
 
   test("renderStatusBar shows selection count", () => {
-    const state = createEmptyState();
-    state.selectedCards.add("card-1");
-    state.selectedCards.add("card-2");
+    const state = createEmptyState()
+    state.selectedCards.add("card-1")
+    state.selectedCards.add("card-2")
 
-    const output = renderStatusBar(state, 80);
-    expect(output).toContain("2 selected");
-  });
+    const output = renderStatusBar(state, 80)
+    expect(output).toContain("2 selected")
+  })
 
   test("renderHelp contains keybindings", () => {
-    const output = renderHelp(80);
-    expect(output).toContain("Navigation");
-    expect(output).toContain("h / Ctrl+B");
-    expect(output).toContain("Move to left column");
-  });
+    const output = renderHelp(80)
+    expect(output).toContain("Navigation")
+    expect(output).toContain("h / Ctrl+B")
+    expect(output).toContain("Move to left column")
+  })
 
   test("renderStatusIcon returns correct icons (ballot box style)", () => {
-    expect(renderStatusIcon("todo")).toContain("☐"); // ballot box (white)
-    expect(renderStatusIcon("wip")).toContain("☐"); // ballot box (yellow)
-    expect(renderStatusIcon("blocked")).toContain("☒"); // ballot box with X (red)
-    expect(renderStatusIcon("done")).toContain("☑"); // ballot box with check (green)
-    expect(renderStatusIcon("dropped")).toContain("☒"); // ballot box with X (gray)
+    expect(renderStatusIcon("todo")).toContain("☐") // ballot box (white)
+    expect(renderStatusIcon("wip")).toContain("☐") // ballot box (yellow)
+    expect(renderStatusIcon("blocked")).toContain("☒") // ballot box with X (red)
+    expect(renderStatusIcon("done")).toContain("☑") // ballot box with check (green)
+    expect(renderStatusIcon("dropped")).toContain("☒") // ballot box with X (gray)
     // undefined/null status shows red warning triangle
-    expect(renderStatusIcon(undefined)).toContain("⚠");
-  });
+    expect(renderStatusIcon(undefined)).toContain("⚠")
+  })
 
   test("renderCard includes content", () => {
-    const vault = createMockVault();
+    const vault = createMockVault()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -76,14 +76,14 @@ describe("Board Pure Rendering", () => {
         version: "v1",
       },
       children: [],
-    };
+    }
 
-    const output = renderCard(vault, cardState, 40, false, false, false);
-    expect(output).toContain("My Test Task");
-  });
+    const output = renderCard(vault, cardState, 40, false, false, false)
+    expect(output).toContain("My Test Task")
+  })
 
   test("renderCard shows children when not folded", () => {
-    const vault = createMockVault();
+    const vault = createMockVault()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -111,14 +111,14 @@ describe("Board Pure Rendering", () => {
           version: "v1",
         },
       ],
-    };
+    }
 
-    const output = renderCard(vault, cardState, 40, false, false, false);
-    expect(output).toContain("Child Task 1");
-  });
+    const output = renderCard(vault, cardState, 40, false, false, false)
+    expect(output).toContain("Child Task 1")
+  })
 
   test("renderCard shows item count when folded", () => {
-    const vault = createMockVault();
+    const vault = createMockVault()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -158,22 +158,22 @@ describe("Board Pure Rendering", () => {
           version: "v1",
         },
       ],
-    };
+    }
 
-    const output = renderCard(vault, cardState, 40, false, false, true);
-    expect(output).toContain("▶ 2"); // Collapsed indicator with count
-    expect(output).not.toContain("Child 1");
-  });
+    const output = renderCard(vault, cardState, 40, false, false, true)
+    expect(output).toContain("▶ 2") // Collapsed indicator with count
+    expect(output).not.toContain("Child 1")
+  })
 
   test("renderCard using fixture helper", () => {
-    const vault = createMockVault();
+    const vault = createMockVault()
     // Demonstrate using the createCardState fixture
     const cardState = createCardState({
       content: "Fixture Card",
       type: "task",
-    });
+    })
 
-    const output = renderCard(vault, cardState, 40, false, false, false);
-    expect(output).toContain("Fixture Card");
-  });
-});
+    const output = renderCard(vault, cardState, 40, false, false, false)
+    expect(output).toContain("Fixture Card")
+  })
+})

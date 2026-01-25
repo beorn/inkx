@@ -5,9 +5,9 @@
  * Kept for backwards compatibility - forwards to sync --watch.
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
-import { syncCommand } from "./sync.ts";
+import { Command } from "commander"
+import chalk from "chalk"
+import { syncCommand } from "./sync.ts"
 
 export const watchCommand = new Command("watch")
   .description(
@@ -20,14 +20,14 @@ export const watchCommand = new Command("watch")
       chalk.yellow(
         "Note: 'km watch' is deprecated. Use 'km sync --watch' instead.\n",
       ),
-    );
+    )
 
     // Forward to sync --watch by parsing args
-    const args = ["sync"];
-    if (path) args.push(path);
-    args.push("--watch");
-    if (options.debounce) args.push("--debounce", options.debounce);
+    const args = ["sync"]
+    if (path) args.push(path)
+    args.push("--watch")
+    if (options.debounce) args.push("--debounce", options.debounce)
 
     // Parse and execute through sync command
-    await syncCommand.parseAsync(args, { from: "user" });
-  });
+    await syncCommand.parseAsync(args, { from: "user" })
+  })

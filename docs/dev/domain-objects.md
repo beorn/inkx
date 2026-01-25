@@ -21,47 +21,47 @@ This guide documents the domain object architecture used throughout km. All new 
 ```typescript
 // ✅ GOOD - factory returns plain object with closure-based state
 export interface Vault extends Disposable {
-  readonly path: string;
-  readonly mode: "memory" | "disk";
-  getNode(id: string): KNode | null;
-  close(): void;
+  readonly path: string
+  readonly mode: "memory" | "disk"
+  getNode(id: string): KNode | null
+  close(): void
 }
 
 export function createVault(path: string, options?: VaultOptions): Vault {
   // Internal state via closure (not class fields)
-  const resolvedPath = resolvePath(path);
-  const mode = detectMode(resolvedPath);
-  const db = options?.inject?.database ?? openDatabase(mode, resolvedPath);
-  let closed = false;
+  const resolvedPath = resolvePath(path)
+  const mode = detectMode(resolvedPath)
+  const db = options?.inject?.database ?? openDatabase(mode, resolvedPath)
+  let closed = false
 
   // Return plain object with methods
   return {
     get path() {
-      return resolvedPath;
+      return resolvedPath
     },
     get mode() {
-      return mode;
+      return mode
     },
 
     getNode(id) {
-      ensureNotClosed();
-      return queryNode(db, id);
+      ensureNotClosed()
+      return queryNode(db, id)
     },
 
     close() {
-      if (closed) return;
-      closed = true;
-      db.close();
+      if (closed) return
+      closed = true
+      db.close()
     },
 
     [Symbol.dispose]() {
-      this.close();
+      this.close()
     },
-  };
+  }
 
   // Private helper (hoisted)
   function ensureNotClosed() {
-    if (closed) throw new Error("Vault is closed");
+    if (closed) throw new Error("Vault is closed")
   }
 }
 ```
@@ -71,15 +71,15 @@ export function createVault(path: string, options?: VaultOptions): Vault {
 ```typescript
 // ❌ BAD - class with internal state
 export class Vault {
-  private db: Database;
-  private closed = false;
+  private db: Database
+  private closed = false
 
   constructor(path: string) {
-    this.db = openDatabase(path);
+    this.db = openDatabase(path)
   }
 
   getNode(id: string) {
-    return queryNode(this.db, id);
+    return queryNode(this.db, id)
   }
 }
 
@@ -94,21 +94,21 @@ export class Vault {
 
 ```typescript
 // ❌ BAD - singleton pattern
-let _db: Database | null = null;
-let _vaultPath: string | null = null;
+let _db: Database | null = null
+let _vaultPath: string | null = null
 
 export function initVault(path: string) {
-  _db = openDatabase(path);
-  _vaultPath = path;
+  _db = openDatabase(path)
+  _vaultPath = path
 }
 
 export function getDb() {
-  if (!_db) throw new Error("Vault not initialized");
-  return _db;
+  if (!_db) throw new Error("Vault not initialized")
+  return _db
 }
 
 export function getNode(id: string) {
-  return queryNode(getDb(), id);
+  return queryNode(getDb(), id)
 }
 
 // Problems:
@@ -130,26 +130,26 @@ export function* createVault(
   options?: VaultOptions,
 ): Generator<ProgressInfo, Vault, unknown> {
   // Phase 1: Discover
-  yield { phase: "discover", current: 0, total: 0 };
-  const files = discoverFiles(path);
-  yield { phase: "discover", current: files.length, total: files.length };
+  yield { phase: "discover", current: 0, total: 0 }
+  const files = discoverFiles(path)
+  yield { phase: "discover", current: files.length, total: files.length }
 
   // Phase 2: Parse
-  const events: Event[] = [];
+  const events: Event[] = []
   for (const [i, file] of files.entries()) {
-    events.push(...parseFile(file));
-    yield { phase: "parse", current: i + 1, total: files.length };
+    events.push(...parseFile(file))
+    yield { phase: "parse", current: i + 1, total: files.length }
   }
 
   // Phase 3: Apply
-  const db = createDatabase();
+  const db = createDatabase()
   for (const [i, event] of events.entries()) {
-    applyEvent(db, event);
-    yield { phase: "apply", current: i + 1, total: events.length };
+    applyEvent(db, event)
+    yield { phase: "apply", current: i + 1, total: events.length }
   }
 
   // Return the vault
-  return createVaultFromDb(db, path);
+  return createVaultFromDb(db, path)
 }
 ```
 
@@ -158,15 +158,15 @@ export function* createVault(
 ```typescript
 // Option A: With progress reporting
 for (const progress of createVault(path)) {
-  spinner.update(`${progress.phase}: ${progress.current}/${progress.total}`);
+  spinner.update(`${progress.phase}: ${progress.current}/${progress.total}`)
 }
-const vault = runGenerator(createVault(path)); // Get final value
+const vault = runGenerator(createVault(path)) // Get final value
 
 // Option B: Silent (no progress)
-const vault = runGenerator(createVault(path));
+const vault = runGenerator(createVault(path))
 
 // Option C: Async wrapper (for promise-based APIs)
-const vault = await toPromise(createVault(path));
+const vault = await toPromise(createVault(path))
 ```
 
 ### Helper Functions
@@ -174,11 +174,11 @@ const vault = await toPromise(createVault(path));
 ```typescript
 /** Run generator to completion, return final value */
 export function runGenerator<T>(gen: Generator<unknown, T, unknown>): T {
-  let result = gen.next();
+  let result = gen.next()
   while (!result.done) {
-    result = gen.next();
+    result = gen.next()
   }
-  return result.value;
+  return result.value
 }
 
 /** Run generator with progress callback */
@@ -186,12 +186,12 @@ export function runWithProgress<T>(
   gen: Generator<ProgressInfo, T, unknown>,
   onProgress: (info: ProgressInfo) => void,
 ): T {
-  let result = gen.next();
+  let result = gen.next()
   while (!result.done) {
-    onProgress(result.value);
-    result = gen.next();
+    onProgress(result.value)
+    result = gen.next()
   }
-  return result.value;
+  return result.value
 }
 ```
 
@@ -225,16 +225,16 @@ For objects with sync cleanup (Vault, Store, FakeVault):
 
 ```typescript
 // ✅ GOOD - automatic cleanup via using
-using vault = runGenerator(createVault(vaultDir));
-const tasks = vault.getAllTasks();
+using vault = runGenerator(createVault(vaultDir))
+const tasks = vault.getAllTasks()
 // vault.close() called automatically at scope exit
 
 // ❌ AVOID - manual try/finally
-const vault = runGenerator(createVault(vaultDir));
+const vault = runGenerator(createVault(vaultDir))
 try {
-  const tasks = vault.getAllTasks();
+  const tasks = vault.getAllTasks()
 } finally {
-  vault.close();
+  vault.close()
 }
 ```
 
@@ -244,15 +244,15 @@ For objects with async cleanup (Watcher, ParsePool):
 
 ```typescript
 // ✅ GOOD - automatic async cleanup
-await using watcher = createWatcher(rootDir);
-await watcher.start();
+await using watcher = createWatcher(rootDir)
+await watcher.start()
 // watcher.stop() awaited automatically at scope exit
 
 // ❌ AVOID - manual cleanup
-const watcher = createWatcher(rootDir);
-await watcher.start();
+const watcher = createWatcher(rootDir)
+await watcher.start()
 // ...
-await watcher.stop();
+await watcher.stop()
 ```
 
 ### Combining Sync and Async Disposables
@@ -261,11 +261,11 @@ When using both types together, declare them in dependency order:
 
 ```typescript
 async function watchVault(path: string) {
-  using vault = runGenerator(createVault(path));
-  await using watcher = vault.watch();
+  using vault = runGenerator(createVault(path))
+  await using watcher = vault.watch()
 
-  await watcher.start();
-  watcher.on("change", (changes) => console.log(changes));
+  await watcher.start()
+  watcher.on("change", (changes) => console.log(changes))
 
   // ... do stuff ...
 
@@ -286,8 +286,8 @@ async function watchVault(path: string) {
 // Context manager - just sets context, doesn't own resources
 await runWithDb(db, async () => {
   // db is available via getDb() inside this callback
-  const node = await getDb().get("SELECT ...");
-});
+  const node = await getDb().get("SELECT ...")
+})
 // No cleanup - db was passed in, caller owns it
 ```
 
@@ -300,7 +300,7 @@ await runWithDb(db, async () => {
 
 ```typescript
 // Resource owner - creates and owns the db
-using vault = runGenerator(createVault(path));
+using vault = runGenerator(createVault(path))
 // vault.close() called at scope exit, closing the db it owns
 ```
 
@@ -316,27 +316,27 @@ For objects with synchronous cleanup (database close, etc.):
 
 ```typescript
 export interface Vault extends Disposable {
-  close(): void;
-  [Symbol.dispose](): void;
+  close(): void
+  [Symbol.dispose](): void
 }
 
 export function createVault(path: string): Vault {
-  const db = openDatabase(path);
+  const db = openDatabase(path)
 
   return {
     close() {
-      db.close();
+      db.close()
     },
     [Symbol.dispose]() {
-      this.close();
+      this.close()
     },
-  };
+  }
 }
 
 // Usage with 'using'
 function processVault(path: string) {
-  using vault = runGenerator(createVault(path));
-  const tasks = vault.getAllTasks();
+  using vault = runGenerator(createVault(path))
+  const tasks = vault.getAllTasks()
   // vault[Symbol.dispose]() → vault.close() called at scope exit
 }
 ```
@@ -347,68 +347,68 @@ For objects with async cleanup (file watchers, network connections):
 
 ```typescript
 export interface Service extends AsyncDisposable {
-  readonly status: "stopped" | "starting" | "running" | "stopping";
-  start(): Promise<void>;
-  stop(): Promise<void>;
+  readonly status: "stopped" | "starting" | "running" | "stopping"
+  start(): Promise<void>
+  stop(): Promise<void>
 }
 
 export interface Watcher extends Service {
-  on(event: "change", handler: (changes: FileChange[]) => void): void;
-  off(event: "change", handler: (changes: FileChange[]) => void): void;
+  on(event: "change", handler: (changes: FileChange[]) => void): void
+  off(event: "change", handler: (changes: FileChange[]) => void): void
 }
 
 export function createWatcher(vault: Vault): Watcher {
-  let status: Service["status"] = "stopped";
-  const handlers = new Map<string, Set<Function>>();
-  let fsWatcher: FSWatcher | null = null;
+  let status: Service["status"] = "stopped"
+  const handlers = new Map<string, Set<Function>>()
+  let fsWatcher: FSWatcher | null = null
 
   return {
     get status() {
-      return status;
+      return status
     },
 
     async start() {
-      if (status !== "stopped") return;
-      status = "starting";
-      fsWatcher = watch(vault.path, handleChange);
-      status = "running";
+      if (status !== "stopped") return
+      status = "starting"
+      fsWatcher = watch(vault.path, handleChange)
+      status = "running"
     },
 
     async stop() {
-      if (status !== "running") return;
-      status = "stopping";
-      await fsWatcher?.close();
-      fsWatcher = null;
-      status = "stopped";
+      if (status !== "running") return
+      status = "stopping"
+      await fsWatcher?.close()
+      fsWatcher = null
+      status = "stopped"
     },
 
     on(event, handler) {
-      if (!handlers.has(event)) handlers.set(event, new Set());
-      handlers.get(event)!.add(handler);
+      if (!handlers.has(event)) handlers.set(event, new Set())
+      handlers.get(event)!.add(handler)
     },
 
     off(event, handler) {
-      handlers.get(event)?.delete(handler);
+      handlers.get(event)?.delete(handler)
     },
 
     async [Symbol.asyncDispose]() {
-      await this.stop();
+      await this.stop()
     },
-  };
+  }
 
   function handleChange(path: string) {
-    const change = { path, type: "modify" };
-    handlers.get("change")?.forEach((h) => h([change]));
+    const change = { path, type: "modify" }
+    handlers.get("change")?.forEach((h) => h([change]))
   }
 }
 
 // Usage with 'await using'
 async function watchVault(path: string) {
-  using vault = runGenerator(createVault(path));
-  await using watcher = vault.watch();
+  using vault = runGenerator(createVault(path))
+  await using watcher = vault.watch()
 
-  await watcher.start();
-  watcher.on("change", (changes) => console.log(changes));
+  await watcher.start()
+  watcher.on("change", (changes) => console.log(changes))
 
   // ... do stuff ...
 
@@ -428,16 +428,16 @@ When you need to clean up multiple resources or combine disposables with cleanup
 
 ```typescript
 // Multiple resources with mixed cleanup
-await using stack = new AsyncDisposableStack();
+await using stack = new AsyncDisposableStack()
 
 // Add disposable resources - cleanup via Symbol.asyncDispose
-const watcher = stack.use(createWatcher(dir));
+const watcher = stack.use(createWatcher(dir))
 
 // Add cleanup callbacks - runs in reverse order
-stack.defer(() => setGlobalState(null));
-stack.defer(async () => await someAsyncCleanup());
+stack.defer(() => setGlobalState(null))
+stack.defer(async () => await someAsyncCleanup())
 
-await watcher.start();
+await watcher.start()
 // ... do work ...
 // Cleanup order: someAsyncCleanup(), setGlobalState(null), watcher.stop()
 ```
@@ -465,22 +465,22 @@ await watcher.start();
 
 ```typescript
 async function runWithTempState(vault: Vault) {
-  await using stack = new AsyncDisposableStack();
+  await using stack = new AsyncDisposableStack()
 
   // Disposable resource
-  const watcher = stack.use(vault.watch());
+  const watcher = stack.use(vault.watch())
 
   // Non-disposable with cleanup
   const tempDir = stack.adopt(mkdtemp("/tmp/km-"), (dir) =>
     rmSync(dir, { recursive: true }),
-  );
+  )
 
   // State cleanup callback
-  const previousLogLevel = getLogLevel();
-  stack.defer(() => setLogLevel(previousLogLevel));
-  setLogLevel("debug");
+  const previousLogLevel = getLogLevel()
+  stack.defer(() => setLogLevel(previousLogLevel))
+  setLogLevel("debug")
 
-  await watcher.start();
+  await watcher.start()
   // ... do work in tempDir with debug logging ...
   // Cleanup: restore log level, remove tempDir, stop watcher
 }
@@ -490,11 +490,11 @@ async function runWithTempState(vault: Vault) {
 
 ```typescript
 async function maybeWatch(vault: Vault, enableWatch: boolean) {
-  await using stack = new AsyncDisposableStack();
+  await using stack = new AsyncDisposableStack()
 
   if (enableWatch) {
-    const watcher = stack.use(vault.watch());
-    await watcher.start();
+    const watcher = stack.use(vault.watch())
+    await watcher.start()
   }
 
   // ... do work ...
@@ -506,15 +506,15 @@ async function maybeWatch(vault: Vault, enableWatch: boolean) {
 
 ```typescript
 function createManagedResources(): AsyncDisposableStack {
-  const stack = new AsyncDisposableStack();
-  stack.use(createWatcher(dir1));
-  stack.use(createWatcher(dir2));
+  const stack = new AsyncDisposableStack()
+  stack.use(createWatcher(dir1))
+  stack.use(createWatcher(dir2))
   // Transfer ownership to caller - our stack is now empty
-  return stack.move();
+  return stack.move()
 }
 
 // Caller takes ownership
-await using resources = createManagedResources();
+await using resources = createManagedResources()
 ```
 
 ---
@@ -526,19 +526,19 @@ await using resources = createManagedResources();
 ```typescript
 export interface VaultOptions {
   /** Search for .km in parent directories (default: true) */
-  searchAncestors?: boolean;
+  searchAncestors?: boolean
   /** Force full rebuild even if state exists (default: false) */
-  force?: boolean;
+  force?: boolean
   /** Dependency injection for testing */
   inject?: {
-    database?: Database;
-    fs?: FileSystemInterface;
-  };
+    database?: Database
+    fs?: FileSystemInterface
+  }
 }
 
 export function createVault(path: string, options?: VaultOptions): Vault {
-  const db = options?.inject?.database ?? openDatabase(path);
-  const fs = options?.inject?.fs ?? realFs;
+  const db = options?.inject?.database ?? openDatabase(path)
+  const fs = options?.inject?.fs ?? realFs
   // ...
 }
 ```
@@ -546,26 +546,26 @@ export function createVault(path: string, options?: VaultOptions): Vault {
 ### Testing with DI
 
 ```typescript
-import { describe, test, expect } from "bun:test";
-import { Database } from "bun:sqlite";
-import { createVault } from "./vault";
+import { describe, test, expect } from "bun:test"
+import { Database } from "bun:sqlite"
+import { createVault } from "./vault"
 
 describe("Vault", () => {
   test("queries nodes", () => {
     // Inject in-memory database
-    const mockDb = new Database(":memory:");
+    const mockDb = new Database(":memory:")
     mockDb.exec(`
       CREATE TABLE nodes (id TEXT PRIMARY KEY, content TEXT);
       INSERT INTO nodes VALUES ('1', 'Test node');
-    `);
+    `)
 
-    using vault = createVault("/test", { inject: { database: mockDb } });
+    using vault = createVault("/test", { inject: { database: mockDb } })
 
-    expect(vault.getNode("1")?.content).toBe("Test node");
-    expect(vault.getNode("999")).toBeNull();
+    expect(vault.getNode("1")?.content).toBe("Test node")
+    expect(vault.getNode("999")).toBeNull()
     // vault.close() called automatically at scope exit
-  });
-});
+  })
+})
 ```
 
 ---
@@ -576,16 +576,16 @@ describe("Vault", () => {
 
 ```typescript
 // Vault is independent (root of dependency tree)
-const vault = runGenerator(createVault(path));
+const vault = runGenerator(createVault(path))
 
 // Board depends on Vault
-const board = createBoard(vault);
+const board = createBoard(vault)
 
 // Watcher is created from Vault
-const watcher = vault.watch();
+const watcher = vault.watch()
 
 // Config is independent
-const config = loadConfig(path);
+const config = loadConfig(path)
 ```
 
 ### Full Application Composition
@@ -593,22 +593,22 @@ const config = loadConfig(path);
 ```typescript
 async function main(vaultPath: string) {
   // Create domain objects with explicit dependencies
-  using vault = runGenerator(createVault(vaultPath));
-  using board = createBoard(vault);
-  const config = loadConfig(vaultPath);
+  using vault = runGenerator(createVault(vaultPath))
+  using board = createBoard(vault)
+  const config = loadConfig(vaultPath)
 
   // Watcher is optional (only for disk mode)
   if (vault.mode === "disk") {
-    await using watcher = vault.watch();
-    await watcher.start();
-    watcher.on("change", () => board.refresh());
+    await using watcher = vault.watch()
+    await watcher.start()
+    watcher.on("change", () => board.refresh())
 
     // Run application with watcher active
-    await runTui(board, config);
+    await runTui(board, config)
     // watcher.stop() called automatically at scope exit
   } else {
     // Run application without watcher
-    await runTui(board, config);
+    await runTui(board, config)
   }
 
   // vault and board cleaned up by 'using' at scope exit
@@ -626,9 +626,9 @@ async function main(vaultPath: string) {
 export function createVault(path: string): Vault {
   const vault = {
     /* ... */
-  };
-  _globalVault = vault; // Don't do this!
-  return vault;
+  }
+  _globalVault = vault // Don't do this!
+  return vault
 }
 ```
 
@@ -637,13 +637,13 @@ export function createVault(path: string): Vault {
 ```typescript
 // ❌ BAD - exposes internal database
 export interface Vault {
-  db: Database; // Don't expose this!
+  db: Database // Don't expose this!
 }
 
 // ✅ GOOD - only expose operations
 export interface Vault {
-  getNode(id: string): KNode | null;
-  updateNode(id: string, changes: Partial<KNode>): void;
+  getNode(id: string): KNode | null
+  updateNode(id: string, changes: Partial<KNode>): void
 }
 ```
 
@@ -652,29 +652,29 @@ export interface Vault {
 ```typescript
 // ❌ BAD - no cleanup path
 export function createVault(path: string) {
-  const db = openDatabase(path);
-  return { getNode: (id) => queryNode(db, id) };
+  const db = openDatabase(path)
+  return { getNode: (id) => queryNode(db, id) }
   // db is never closed!
 }
 
 // ✅ GOOD - implement Disposable for automatic cleanup
 export function createVault(path: string): Vault {
-  const db = openDatabase(path);
+  const db = openDatabase(path)
   return {
     getNode: (id) => queryNode(db, id),
     close() {
-      db.close();
+      db.close()
     },
     [Symbol.dispose]() {
-      this.close();
+      this.close()
     },
-  };
+  }
 }
 
 // ✅ GOOD - use 'using' for automatic cleanup at call sites
 function processVault(path: string) {
-  using vault = createVault(path);
-  return vault.getNode("1");
+  using vault = createVault(path)
+  return vault.getNode("1")
   // vault.close() called automatically
 }
 ```

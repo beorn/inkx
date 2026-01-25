@@ -6,8 +6,8 @@
  * 2. Board - State management (useReducer, useInput)
  * 3. BoardApp - Production entry (useVault, useStdout, external integrations)
  */
-import React, { useEffect, useReducer, useMemo, useRef } from "react";
-import { writeSync } from "fs";
+import React, { useEffect, useReducer, useMemo, useRef } from "react"
+import { writeSync } from "fs"
 import {
   Box,
   Text,
@@ -15,68 +15,62 @@ import {
   useApp,
   useStdout,
   render as inkxRender,
-} from "inkx";
-import createDebug from "debug";
+} from "inkx"
+import createDebug from "debug"
 
-const debug = createDebug("km:board");
-import type { TUIBoardState, ViewMode } from "../types.ts";
-import type { KNode } from "@km/core";
-import { useVault, VaultProvider } from "../vault-context.tsx";
-import type { Vault } from "@km/storage";
-import { DetailPane } from "./DetailPane.tsx";
-import { ProjectPicker } from "./ProjectPicker.tsx";
-import { HelpOverlay } from "./HelpOverlay.tsx";
-import { NewItemDialog } from "./NewItemDialog.tsx";
-import { Column } from "./CardColumn.tsx";
+const debug = createDebug("km:board")
+import type { TUIBoardState, ViewMode } from "../types.ts"
+import type { KNode } from "@km/core"
+import { useVault, VaultProvider } from "../vault-context.tsx"
+import type { Vault } from "@km/storage"
+import { DetailPane } from "./DetailPane.tsx"
+import { ProjectPicker } from "./ProjectPicker.tsx"
+import { HelpOverlay } from "./HelpOverlay.tsx"
+import { NewItemDialog } from "./NewItemDialog.tsx"
+import { Column } from "./CardColumn.tsx"
 import {
   VerticalScrollIndicator,
   ColumnSeparator,
-} from "./VerticalScrollIndicator.tsx";
-import { ColumnsView } from "./ColumnsView.tsx";
-import { ListView } from "./ListView.tsx";
-import { TabsView } from "./TabsView.tsx";
-import { renderPath } from "../layout/index.ts";
-import { UIProvider } from "../ui-context.tsx";
-import { LayoutProvider } from "../layout-context.tsx";
-import {
-  createLayoutRegistry,
-  type LayoutRegistry,
-} from "../card-positions.ts";
+} from "./VerticalScrollIndicator.tsx"
+import { ColumnsView } from "./ColumnsView.tsx"
+import { ListView } from "./ListView.tsx"
+import { TabsView } from "./TabsView.tsx"
+import { renderPath } from "../layout/index.ts"
+import { UIProvider } from "../ui-context.tsx"
+import { LayoutProvider } from "../layout-context.tsx"
+import { createLayoutRegistry, type LayoutRegistry } from "../card-positions.ts"
 import {
   uiReducer,
   createInitialUIState,
   type UIState,
   type UIAction,
-} from "../ui-reducer.ts";
-import { useBoardDialogs } from "./use-board-dialogs.ts";
-import { ConstraintRoot } from "../layout/index.ts";
-import { ensureCommandSystemInitialized } from "../command-bridge.ts";
-import { buildTUIContext, type TUIContext } from "../tui-context.ts";
-import { boardReducer, createBoardState } from "@km/board";
-import { useColumns } from "../hooks/use-columns.ts";
-import { useCursorPosition } from "../hooks/use-cursor-position.ts";
-import type { ColumnsLayout } from "../types.ts";
+} from "../ui-reducer.ts"
+import { useBoardDialogs } from "./use-board-dialogs.ts"
+import { ConstraintRoot } from "../layout/index.ts"
+import { ensureCommandSystemInitialized } from "../command-bridge.ts"
+import { buildTUIContext, type TUIContext } from "../tui-context.ts"
+import { boardReducer, createBoardState } from "@km/board"
+import { useColumns } from "../hooks/use-columns.ts"
+import { useCursorPosition } from "../hooks/use-cursor-position.ts"
+import type { ColumnsLayout } from "../types.ts"
 
 // Extracted modules
 import {
   TOP_BAR_HEIGHT,
   BOTTOM_BAR_HEIGHT,
   calcEdgeBasedColumnScrollOffset,
-} from "./board-layout.ts";
-import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts";
-import { BottomBar } from "./board-bottom-bar.tsx";
+} from "./board-layout.ts"
+import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
+import { BottomBar } from "./board-bottom-bar.tsx"
 import {
   createSyncTerminalDimensions,
   createFileDropHandler,
   createRefreshHandler,
   createWatcherStatusHandler,
-} from "./board-effects.ts";
-import {
-  handleBoardKeyInput,
-  handleDetailPaneKeyInput,
-} from "./board-input.ts";
+} from "./board-effects.ts"
+import { handleBoardKeyInput, handleDetailPaneKeyInput } from "./board-input.ts"
 
-export { makeSelectionKey } from "../types.ts";
+export { makeSelectionKey } from "../types.ts"
 
 // =============================================================================
 // BoardCore - Pure Rendering (No Hooks)
@@ -84,24 +78,24 @@ export { makeSelectionKey } from "../types.ts";
 
 export interface BoardCoreProps {
   /** Legacy column-based state for rendering */
-  state: TUIBoardState;
+  state: TUIBoardState
   /** UI state (dialogs, view mode, etc.) */
-  ui: UIState;
+  ui: UIState
   /** Derived selection level from cursor depth */
-  derivedSelectionLevel: "board" | "column" | "card";
+  derivedSelectionLevel: "board" | "column" | "card"
   /** Terminal dimensions */
-  dimensions: { columns: number; rows: number };
+  dimensions: { columns: number; rows: number }
   /** Layout registry for card position tracking */
-  layoutRegistry: LayoutRegistry;
+  layoutRegistry: LayoutRegistry
   /** Dispatch to UI reducer */
-  dispatch: React.Dispatch<UIAction>;
+  dispatch: React.Dispatch<UIAction>
   /** Dialog handlers (types match ProjectPicker and NewItemDialog props) */
   dialogHandlers: {
-    handleProjectSelect: (targetNode: KNode) => void;
-    handleProjectCancel: () => void;
-    handleNewItemCreate: (newNodeId: string) => void;
-    handleNewItemCancel: () => void;
-  };
+    handleProjectSelect: (targetNode: KNode) => void
+    handleProjectCancel: () => void
+    handleNewItemCreate: (newNodeId: string) => void
+    handleNewItemCancel: () => void
+  }
 }
 
 /**
@@ -117,14 +111,14 @@ export function BoardCore({
   dispatch,
   dialogHandlers,
 }: BoardCoreProps): React.ReactElement {
-  const vault = useVault();
-  const termWidth = dimensions.columns;
-  const termHeight = dimensions.rows;
+  const vault = useVault()
+  const termWidth = dimensions.columns
+  const termHeight = dimensions.rows
 
   const maxCols = Math.min(
     state.columns.length,
     Math.max(2, Math.floor(termWidth / 35)),
-  );
+  )
 
   // Calculate scroll offset (pure calculation, no refs needed)
   const colScrollOffset = Math.max(
@@ -133,11 +127,11 @@ export function BoardCore({
       state.colIndex - Math.floor(maxCols / 2),
       Math.max(0, state.columns.length - maxCols),
     ),
-  );
+  )
 
   // Build selected item path segments for colorized top bar
-  const selectedCol = state.columns[state.colIndex];
-  const selectedCard = selectedCol?.cards[state.cardIndex];
+  const selectedCol = state.columns[state.colIndex]
+  const selectedCard = selectedCol?.cards[state.cardIndex]
 
   // Determine which node to show path to based on selection level
   const pathNodeId =
@@ -145,23 +139,23 @@ export function BoardCore({
       ? state.rootId
       : derivedSelectionLevel === "column" || !selectedCard
         ? selectedCol.node.id
-        : selectedCard.node.id;
+        : selectedCard.node.id
   const selectedPathSegments = renderPath(
     getPathSegments(vault, pathNodeId, state.rootId),
     termWidth - 4,
-  );
+  )
 
   // Calculate widths for split view
-  const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0;
-  const boardWidth = termWidth - detailPaneWidth;
+  const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
+  const boardWidth = termWidth - detailPaneWidth
 
   // Calculate content area height - space between top and bottom bars
-  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT;
+  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT
 
   // Recalculate columns when detail pane is shown (narrower view)
   const effectiveMaxCols = ui.showDetailPane
     ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
-    : maxCols;
+    : maxCols
   const effectiveScrollOffset = ui.showDetailPane
     ? calcEdgeBasedColumnScrollOffset(
         state.colIndex,
@@ -169,14 +163,14 @@ export function BoardCore({
         effectiveMaxCols,
         state.columns.length,
       )
-    : colScrollOffset;
+    : colScrollOffset
   const effectiveVisibleColumns = state.columns.slice(
     effectiveScrollOffset,
     effectiveScrollOffset + effectiveMaxCols,
-  );
+  )
 
   // Build top bar - use board's color as background, or blue if selected/no color
-  const isBoardSelected = derivedSelectionLevel === "board";
+  const isBoardSelected = derivedSelectionLevel === "board"
 
   // Render loading indicator until terminal is ready
   if (!ui.isReady) {
@@ -184,7 +178,7 @@ export function BoardCore({
       <Box height={termHeight} width={termWidth}>
         <Text>Loading...</Text>
       </Box>
-    );
+    )
   }
 
   return (
@@ -229,26 +223,26 @@ export function BoardCore({
                     <VerticalScrollIndicator direction="left" />
                   )}
                   {effectiveVisibleColumns.map((col, i) => {
-                    const actualColIndex = effectiveScrollOffset + i;
-                    const isLastCol = i === effectiveVisibleColumns.length - 1;
+                    const actualColIndex = effectiveScrollOffset + i
+                    const isLastCol = i === effectiveVisibleColumns.length - 1
                     // Reduce column width if scroll indicators are shown
-                    const hasLeftIndicator = effectiveScrollOffset > 0;
+                    const hasLeftIndicator = effectiveScrollOffset > 0
                     const hasRightIndicator =
                       effectiveScrollOffset + effectiveMaxCols <
-                      state.columns.length;
+                      state.columns.length
                     const indicatorWidth =
-                      (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0);
+                      (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0)
                     // Account for separator lines between columns (1 char each, n-1 separators)
-                    const separatorCount = effectiveVisibleColumns.length - 1;
+                    const separatorCount = effectiveVisibleColumns.length - 1
                     const availableWidth =
-                      boardWidth - indicatorWidth - separatorCount;
+                      boardWidth - indicatorWidth - separatorCount
                     const baseColWidth = Math.floor(
                       availableWidth / effectiveMaxCols,
-                    );
-                    const remainder = availableWidth % effectiveMaxCols;
+                    )
+                    const remainder = availableWidth % effectiveMaxCols
                     // Distribute extra pixels to the first 'remainder' columns
                     const adjustedColWidth =
-                      baseColWidth + (i < remainder ? 1 : 0);
+                      baseColWidth + (i < remainder ? 1 : 0)
                     return (
                       <React.Fragment key={col.node.id}>
                         <Column
@@ -265,7 +259,7 @@ export function BoardCore({
                         {/* Separator line between columns */}
                         {!isLastCol && <ColumnSeparator />}
                       </React.Fragment>
-                    );
+                    )
                   })}
                   {/* Right scroll indicator - full height filled bar */}
                   {effectiveScrollOffset + effectiveMaxCols <
@@ -364,7 +358,7 @@ export function BoardCore({
         </UIProvider>
       </LayoutProvider>
     </ConstraintRoot>
-  );
+  )
 }
 
 // =============================================================================
@@ -373,17 +367,17 @@ export function BoardCore({
 
 export interface BoardProps {
   /** Initial board state */
-  initialState: TUIBoardState;
+  initialState: TUIBoardState
   /** Initial view mode (default: "cards") */
-  initialViewMode?: ViewMode;
+  initialViewMode?: ViewMode
   /** Terminal dimensions */
-  dimensions: { columns: number; rows: number };
+  dimensions: { columns: number; rows: number }
   /** Exit callback */
-  onExit: () => void;
+  onExit: () => void
   /** Optional layout registry for card position tracking (for testing) */
-  layoutRegistry?: LayoutRegistry;
+  layoutRegistry?: LayoutRegistry
   /** Optional custom reducer for testing */
-  reducer?: typeof uiReducer;
+  reducer?: typeof uiReducer
 }
 
 /**
@@ -403,7 +397,7 @@ export function Board({
   layoutRegistry: injectedRegistry,
   reducer = uiReducer,
 }: BoardProps) {
-  const vault = useVault();
+  const vault = useVault()
 
   // UI state managed by reducer (enables extracting input handlers)
   const [ui, dispatch] = useReducer(
@@ -421,20 +415,20 @@ export function Board({
         init.dimensions,
         init.rootBoardId,
       ),
-  );
+  )
 
   // Derive initial cursorNodeId from initialState
   const initialCursorNodeId = useMemo(() => {
     if (initialState.colIndex >= 0) {
-      const col = initialState.columns[initialState.colIndex];
+      const col = initialState.columns[initialState.colIndex]
       if (col && initialState.cardIndex >= 0) {
-        const card = col.cards[initialState.cardIndex];
-        return card?.node.id ?? col.node.id;
+        const card = col.cards[initialState.cardIndex]
+        return card?.node.id ?? col.node.id
       }
-      return col?.node.id ?? null;
+      return col?.node.id ?? null
     }
-    return null;
-  }, [initialState]);
+    return null
+  }, [initialState])
 
   // Board navigation state managed by boardReducer
   // No nodes array - just IDs and Sets
@@ -447,29 +441,29 @@ export function Board({
         initialState.rootPath,
         initialCursorNodeId,
       ),
-  );
+  )
 
   // Ref to track current rootId for event handlers (avoids stale closure)
-  const rootIdRef = useRef(boardState.rootId);
+  const rootIdRef = useRef(boardState.rootId)
   useEffect(() => {
-    rootIdRef.current = boardState.rootId;
-  }, [boardState.rootId]);
+    rootIdRef.current = boardState.rootId
+  }, [boardState.rootId])
 
   // Ref for edge-based horizontal scroll tracking
-  const colScrollOffsetRef = useRef(0);
+  const colScrollOffsetRef = useRef(0)
 
   // Layout registry for card position tracking (used by h/l navigation)
-  const layoutRegistryRef = useRef<LayoutRegistry | null>(null);
+  const layoutRegistryRef = useRef<LayoutRegistry | null>(null)
   if (!layoutRegistryRef.current) {
-    layoutRegistryRef.current = injectedRegistry ?? createLayoutRegistry();
+    layoutRegistryRef.current = injectedRegistry ?? createLayoutRegistry()
   }
-  const layoutRegistry = layoutRegistryRef.current;
+  const layoutRegistry = layoutRegistryRef.current
 
   // NEW: Derive columns from Vault (not from state.nodes)
-  const columns = useColumns(vault, boardState.rootId, boardState.foldedNodes);
+  const columns = useColumns(vault, boardState.rootId, boardState.foldedNodes)
 
   // NEW: Derive cursor position from cursorNodeId (not from state.cursor path)
-  const cursorPosition = useCursorPosition(columns, boardState.cursorNodeId);
+  const cursorPosition = useCursorPosition(columns, boardState.cursorNodeId)
 
   const columnsLayout: ColumnsLayout = useMemo(
     () => ({
@@ -481,10 +475,10 @@ export function Board({
       isInOutlineMode: false, // TODO: outline mode
     }),
     [columns, cursorPosition],
-  );
+  )
 
   // Derive selection level from cursor position
-  const derivedSelectionLevel = cursorPosition.selectionLevel;
+  const derivedSelectionLevel = cursorPosition.selectionLevel
 
   // Assemble TUIBoardState for rendering from board state + derived layout
   const state: TUIBoardState = useMemo(
@@ -503,21 +497,21 @@ export function Board({
       helpMode: false,
     }),
     [boardState, columnsLayout],
-  );
+  )
 
   // Dialog handlers (no longer need boardState/dispatchBoard - columns derived from vault)
   const dialogHandlers = useBoardDialogs({
     vault,
     state,
     dispatch,
-  });
+  })
 
   // Calculate visible columns for scroll offset tracking
-  const termWidth = ui.dimensions.columns;
+  const termWidth = ui.dimensions.columns
   const maxCols = Math.min(
     state.columns.length,
     Math.max(2, Math.floor(termWidth / 35)),
-  );
+  )
 
   // Update scroll offset ref
   const colScrollOffset = calcEdgeBasedColumnScrollOffset(
@@ -525,8 +519,8 @@ export function Board({
     colScrollOffsetRef.current,
     maxCols,
     state.columns.length,
-  );
-  colScrollOffsetRef.current = colScrollOffset;
+  )
+  colScrollOffsetRef.current = colScrollOffset
 
   // Build unified TUI context once - passed to all handlers
   const tuiContext: TUIContext = buildTUIContext({
@@ -541,24 +535,24 @@ export function Board({
     exit: onExit,
     countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
       countVisibleDescendants(vault, node, depth, maxDepth, foldedNodes),
-  });
+  })
 
   // Initialize command system on first render
   useEffect(() => {
-    ensureCommandSystemInitialized();
-  }, []);
+    ensureCommandSystemInitialized()
+  }, [])
 
   // Handle file drops via bracketed paste
-  useEffect(() => createFileDropHandler(dispatch), []);
+  useEffect(() => createFileDropHandler(dispatch), [])
 
   // Subscribe to watcher status updates
-  useEffect(() => createWatcherStatusHandler(dispatch), []);
+  useEffect(() => createWatcherStatusHandler(dispatch), [])
 
   // Subscribe to external refresh events (filesystem changes)
   useEffect(
     () => createRefreshHandler(vault, rootIdRef, dispatchBoard),
     [vault, dispatchBoard],
-  );
+  )
 
   // Main keyboard input handler - ALL keys go through @km/commands
   useInput((input, key) => {
@@ -573,8 +567,8 @@ export function Board({
       },
       dispatch,
       onExit,
-    );
-  });
+    )
+  })
 
   // Handle detail pane navigation (j/k to move cards while pane is open)
   useInput(
@@ -587,12 +581,12 @@ export function Board({
         dispatch,
         dispatchBoard,
         onExit,
-      );
+      )
     },
     {
       isActive: ui.showDetailPane,
     },
-  );
+  )
 
   return (
     <BoardCore
@@ -604,7 +598,7 @@ export function Board({
       dispatch={dispatch}
       dialogHandlers={dialogHandlers}
     />
-  );
+  )
 }
 
 // =============================================================================
@@ -613,11 +607,11 @@ export function Board({
 
 export interface BoardAppProps {
   /** Initial board state */
-  initialState: TUIBoardState;
+  initialState: TUIBoardState
   /** Initial view mode (default: "cards") */
-  initialViewMode?: ViewMode;
+  initialViewMode?: ViewMode
   /** Optional layout registry for card position tracking (for testing) */
-  layoutRegistry?: LayoutRegistry;
+  layoutRegistry?: LayoutRegistry
 }
 
 /**
@@ -630,8 +624,8 @@ export function BoardApp({
   initialViewMode = "cards",
   layoutRegistry,
 }: BoardAppProps) {
-  const { exit } = useApp();
-  const { stdout } = useStdout();
+  const { exit } = useApp()
+  const { stdout } = useStdout()
 
   // Create dispatch for dimension sync
   const [dimensionState, dimensionDispatch] = useReducer(
@@ -640,7 +634,7 @@ export function BoardApp({
       action: { columns: number; rows: number },
     ) => action,
     { columns: stdout?.columns ?? 80, rows: stdout?.rows ?? 24 },
-  );
+  )
 
   // WORKAROUND: fullscreen-ink alternate buffer race condition
   useEffect(
@@ -650,7 +644,7 @@ export function BoardApp({
         dimensionDispatch as unknown as React.Dispatch<UIAction>,
       ),
     [stdout],
-  );
+  )
 
   return (
     <Board
@@ -660,7 +654,7 @@ export function BoardApp({
       onExit={exit}
       layoutRegistry={layoutRegistry}
     />
-  );
+  )
 }
 
 // =============================================================================
@@ -675,10 +669,10 @@ function countVisibleDescendants(
   foldedNodes: Set<string>,
 ): number {
   if (depth > maxDepth || foldedNodes.has(node.id)) {
-    return 0;
+    return 0
   }
-  const children = vault.getChildren(node.id).slice(0, 10);
-  let count = children.length;
+  const children = vault.getChildren(node.id).slice(0, 10)
+  let count = children.length
   for (const child of children) {
     count += countVisibleDescendants(
       vault,
@@ -686,9 +680,9 @@ function countVisibleDescendants(
       depth + 1,
       maxDepth,
       foldedNodes,
-    );
+    )
   }
-  return count;
+  return count
 }
 
 /**
@@ -697,7 +691,7 @@ function countVisibleDescendants(
 function restoreTerminal(): void {
   if (process.stdin.isTTY && process.stdin.isRaw) {
     try {
-      process.stdin.setRawMode(false);
+      process.stdin.setRawMode(false)
     } catch {
       // Ignore errors during cleanup
     }
@@ -710,12 +704,12 @@ function restoreTerminal(): void {
     "\x1b[?2004l", // Disable bracketed paste
     "\x1b[?25h", // Show cursor
     "\x1b[?1049l", // Exit alternate screen
-  ].join("");
+  ].join("")
 
   try {
-    writeSync(process.stdout.fd, sequences);
+    writeSync(process.stdout.fd, sequences)
   } catch {
-    process.stdout.write(sequences);
+    process.stdout.write(sequences)
   }
 }
 
@@ -728,47 +722,47 @@ export async function renderInkxBoard(
   initialViewMode?: ViewMode,
   vault?: Vault,
 ): Promise<void> {
-  debug("renderInkxBoard start");
+  debug("renderInkxBoard start")
 
   if (!vault) {
-    throw new Error("renderInkxBoard requires a vault");
+    throw new Error("renderInkxBoard requires a vault")
   }
 
   const app = (
     <VaultProvider vault={vault}>
       <BoardApp initialState={state} initialViewMode={initialViewMode} />
     </VaultProvider>
-  );
+  )
 
   // Register error handlers to clean up terminal on crash
   const handleError = (error: Error) => {
-    restoreTerminal();
-    console.error("\n\nTUI crashed with error:", error.message);
-    console.error(error.stack);
-    process.exit(1);
-  };
+    restoreTerminal()
+    console.error("\n\nTUI crashed with error:", error.message)
+    console.error(error.stack)
+    process.exit(1)
+  }
 
   const handleSignal = (signal: string) => {
-    restoreTerminal();
-    process.exit(signal === "SIGINT" ? 130 : 143);
-  };
+    restoreTerminal()
+    process.exit(signal === "SIGINT" ? 130 : 143)
+  }
 
-  process.on("uncaughtException", handleError);
+  process.on("uncaughtException", handleError)
   process.on("unhandledRejection", (reason) => {
-    handleError(reason instanceof Error ? reason : new Error(String(reason)));
-  });
-  process.once("SIGINT", () => handleSignal("SIGINT"));
-  process.once("SIGTERM", () => handleSignal("SIGTERM"));
+    handleError(reason instanceof Error ? reason : new Error(String(reason)))
+  })
+  process.once("SIGINT", () => handleSignal("SIGINT"))
+  process.once("SIGTERM", () => handleSignal("SIGTERM"))
 
-  debug("Rendering with inkx");
+  debug("Rendering with inkx")
   const instance = await inkxRender(app, {
     exitOnCtrlC: true,
     patchConsole: false,
     alternateScreen: true,
-  });
+  })
 
-  debug("Render complete, awaiting exit");
-  await instance.waitUntilExit();
+  debug("Render complete, awaiting exit")
+  await instance.waitUntilExit()
 }
 
 // NOTE: InkBoardTestable removed - use BoardCore directly for testing

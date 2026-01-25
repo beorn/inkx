@@ -6,16 +6,16 @@
  */
 
 // Import types from @km/core and @km/tree
-import type { TNode } from "@km/core";
-import type { TPath } from "@km/tree";
+import type { TNode } from "@km/core"
+import type { TPath } from "@km/tree"
 
-export type { TaskStatus } from "@km/tree";
-export type { TNode } from "@km/core";
-export type { TPath } from "@km/tree";
+export type { TaskStatus } from "@km/tree"
+export type { TNode } from "@km/core"
+export type { TPath } from "@km/tree"
 
 // ===== Base Types =====
 
-export type ViewMode = "cards" | "list" | "columns" | "tabs";
+export type ViewMode = "cards" | "list" | "columns" | "tabs"
 
 // ===== Board State (NEW - simplified architecture) =====
 
@@ -24,9 +24,9 @@ export type ViewMode = "cards" | "list" | "columns" | "tabs";
  * Stores node IDs, not paths.
  */
 export interface NavHistoryEntry {
-  rootId: string | null;
-  rootPath: string | null;
-  cursorNodeId: string | null;
+  rootId: string | null
+  rootPath: string | null
+  cursorNodeId: string | null
 }
 
 /**
@@ -39,36 +39,36 @@ export interface NavHistoryEntry {
  */
 export interface BoardState {
   // Root context
-  rootId: string | null;
-  rootPath: string | null;
+  rootId: string | null
+  rootPath: string | null
 
   // Cursor node - the ACTUAL selected node (stable across zoom)
   // This is the single source of truth for which node the cursor is on
   // "cursor" = single focused node; "selection" is reserved for multi-select
-  cursorNodeId: string | null;
+  cursorNodeId: string | null
 
   // Selection state
-  selectedNodes: Set<string>;
-  foldedNodes: Set<string>;
-  collapsedNodes: Set<string>; // Top-level nodes that are collapsed
+  selectedNodes: Set<string>
+  foldedNodes: Set<string>
+  collapsedNodes: Set<string> // Top-level nodes that are collapsed
 
   // Navigation history (stores cursorNodeId, NOT paths)
-  navHistory: NavHistoryEntry[];
-  navHistoryIndex: number;
+  navHistory: NavHistoryEntry[]
+  navHistoryIndex: number
 
   // Move mode (m + destination)
-  moveMode: boolean;
-  moveSourceNodes: string[]; // Node IDs being moved
-  moveSourceCursorNodeId: string | null; // Original cursor node
+  moveMode: boolean
+  moveSourceNodes: string[] // Node IDs being moved
+  moveSourceCursorNodeId: string | null // Original cursor node
 
   // View configuration
-  maxOutlineDepth: number;
-  maxContentLines: number;
+  maxOutlineDepth: number
+  maxContentLines: number
 
   // Sticky cursor coordinates (curswant)
   // See bead km-jm2r for details on the curswant pattern
-  curswantX: number | null; // Sticky column index for board↔column navigation
-  curswantY: number | null; // Sticky card index for cross-column navigation
+  curswantX: number | null // Sticky column index for board↔column navigation
+  curswantY: number | null // Sticky card index for cross-column navigation
 }
 
 /**
@@ -88,10 +88,10 @@ export type BoardAction =
 
   // Root change (e.g., navigating to different file)
   | {
-      type: "SET_ROOT";
-      rootId: string | null;
-      rootPath: string | null;
-      cursorNodeId: string | null;
+      type: "SET_ROOT"
+      rootId: string | null
+      rootPath: string | null
+      cursorNodeId: string | null
     }
 
   // Multi-select
@@ -112,7 +112,7 @@ export type BoardAction =
   | { type: "DECREASE_CONTENT_LINES" }
 
   // Sticky cursor (set by navigation handlers)
-  | { type: "SET_CURSWANT"; x?: number | null; y?: number | null };
+  | { type: "SET_CURSWANT"; x?: number | null; y?: number | null }
 
 // ===== Navigation Types =====
 
@@ -142,7 +142,7 @@ export type NodeDirection =
   | "in"
   | "out"
   | "first"
-  | "last";
+  | "last"
 
 // ===== ViewModel Types =====
 
@@ -151,10 +151,10 @@ export type NodeDirection =
  * Uses TNode[] directly - UI state (selection, folding) is in BoardState Sets.
  */
 export interface BoardViewModel {
-  rootPath: string | null;
-  nodes: TNode[];
-  cursor: TPath;
-  selectedNodes: Set<string>;
-  foldedNodes: Set<string>;
-  viewMode: ViewMode;
+  rootPath: string | null
+  nodes: TNode[]
+  cursor: TPath
+  selectedNodes: Set<string>
+  foldedNodes: Set<string>
+  viewMode: ViewMode
 }

@@ -4,30 +4,30 @@
  * Generates randomized test scenarios for the sync system and verifies invariants.
  */
 
-import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
-import { join, dirname } from "path";
+import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs"
+import { join, dirname } from "path"
 import type {
   ChaosScenario,
   FsEvent,
   FsEventType,
   VerificationResult,
-} from "./types.ts";
-import { SeededRandom } from "./seeded-random.ts";
-import { CHAOS_SCENARIOS, NO_CHAOS } from "./scenarios.ts";
-import { combineScenarios } from "./scenario-transformer.ts";
-import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos";
-import { Verifier } from "./verifier.ts";
-import { runWithKmDir, setDatabase } from "../../../src/emit.ts";
-import { resetDb, closeDb, applyEvent, getAllNodes } from "../../../src/db.ts";
-import { runWithDb } from "../../../src/db-instance.ts";
-import { Database } from "bun:sqlite";
-import { SCHEMA } from "../../../src/schema.ts";
+} from "./types.ts"
+import { SeededRandom } from "./seeded-random.ts"
+import { CHAOS_SCENARIOS, NO_CHAOS } from "./scenarios.ts"
+import { combineScenarios } from "./scenario-transformer.ts"
+import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
+import { Verifier } from "./verifier.ts"
+import { runWithKmDir, setDatabase } from "../../../src/emit.ts"
+import { resetDb, closeDb, applyEvent, getAllNodes } from "../../../src/db.ts"
+import { runWithDb } from "../../../src/db-instance.ts"
+import { Database } from "bun:sqlite"
+import { SCHEMA } from "../../../src/schema.ts"
 import {
   reconcileDirectory,
   reconcileDirectoryRecursive,
   applyReconcileOps,
-} from "../../../src/watch/reconcile.ts";
-import { createMockFileSystem } from "./mock-fs.ts";
+} from "../../../src/watch/reconcile.ts"
+import { createMockFileSystem } from "./mock-fs.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -38,21 +38,21 @@ import { createMockFileSystem } from "./mock-fs.ts";
  */
 export interface FuzzConfig {
   /** Random seed for reproducibility */
-  seed: number;
+  seed: number
   /** Number of test iterations to run */
-  iterations: number;
+  iterations: number
   /** Maximum number of files to generate per scenario */
-  maxFiles: number;
+  maxFiles: number
   /** Maximum number of events to generate per scenario */
-  maxEvents: number;
+  maxEvents: number
   /** Pool of chaos scenarios to pick from */
-  scenarios: ChaosScenario[];
+  scenarios: ChaosScenario[]
   /** Maximum number of scenarios to combine per test */
-  maxCombinedScenarios?: number;
+  maxCombinedScenarios?: number
   /** Timeout per test in ms */
-  timeout?: number;
+  timeout?: number
   /** Use in-memory MockFileSystem for faster testing */
-  useMockFs?: boolean;
+  useMockFs?: boolean
 }
 
 /**
@@ -60,15 +60,15 @@ export interface FuzzConfig {
  */
 export interface GeneratedScenario {
   /** The seed used to generate this specific scenario */
-  seed: number;
+  seed: number
   /** Index within the fuzzer run */
-  index: number;
+  index: number
   /** Initial file setup */
-  setup: Array<{ path: string; content: string }>;
+  setup: Array<{ path: string; content: string }>
   /** Chaos scenarios applied */
-  scenarios: ChaosScenario[];
+  scenarios: ChaosScenario[]
   /** Raw events before scenario transformation */
-  events: FsEvent[];
+  events: FsEvent[]
 }
 
 /**
@@ -76,66 +76,66 @@ export interface GeneratedScenario {
  */
 export interface InvariantViolation {
   /** The invariant that was violated */
-  invariant: string;
+  invariant: string
   /** Description of what went wrong */
-  message: string;
+  message: string
   /** Additional context */
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown>
 }
 
 /**
  * Result of a single fuzz iteration
  */
 export interface FuzzIterationResult {
-  scenario: GeneratedScenario;
-  passed: boolean;
-  violations: InvariantViolation[];
-  verification: VerificationResult;
-  duration: number;
-  eventsEmitted: number;
-  eventsDropped: number;
+  scenario: GeneratedScenario
+  passed: boolean
+  violations: InvariantViolation[]
+  verification: VerificationResult
+  duration: number
+  eventsEmitted: number
+  eventsDropped: number
 }
 
 /**
  * A failed fuzz test with reproduction information
  */
 export interface FuzzFailure {
-  seed: number;
-  scenario: GeneratedScenario;
-  violations: InvariantViolation[];
-  reproduction: string;
+  seed: number
+  scenario: GeneratedScenario
+  violations: InvariantViolation[]
+  reproduction: string
 }
 
 /**
  * Overall fuzzer run result
  */
 export interface FuzzResult {
-  iterations: number;
-  passed: number;
-  failed: number;
-  failures: FuzzFailure[];
-  duration: number;
+  iterations: number
+  passed: number
+  failed: number
+  failures: FuzzFailure[]
+  duration: number
 }
 
 /**
  * Bug report for a sync failure
  */
 export interface SyncBugReport {
-  seed: number;
-  scenario: GeneratedScenario;
-  invariantsViolated: string[];
-  expectedState: { files: Map<string, string> };
-  actualState: { files: Map<string, string>; nodes: unknown[] };
+  seed: number
+  scenario: GeneratedScenario
+  invariantsViolated: string[]
+  expectedState: { files: Map<string, string> }
+  actualState: { files: Map<string, string>; nodes: unknown[] }
   diff: {
-    missingInDb: string[];
-    missingInFs: string[];
+    missingInDb: string[]
+    missingInFs: string[]
     contentMismatches: Array<{
-      path: string;
-      fsContent: string;
-      dbContent: string;
-    }>;
-  };
-  reproduction: string;
+      path: string
+      fsContent: string
+      dbContent: string
+    }>
+  }
+  reproduction: string
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -148,27 +148,27 @@ export interface SyncBugReport {
 export function* generateScenarios(
   config: FuzzConfig,
 ): Generator<GeneratedScenario> {
-  const random = new SeededRandom(config.seed);
-  const maxCombined = config.maxCombinedScenarios ?? 2;
+  const random = new SeededRandom(config.seed)
+  const maxCombined = config.maxCombinedScenarios ?? 2
 
   for (let i = 0; i < config.iterations; i++) {
-    const scenarioSeed = random.nextInt(0, 2 ** 31);
+    const scenarioSeed = random.nextInt(0, 2 ** 31)
 
     // Generate random file setup
-    const numFiles = random.nextInt(1, config.maxFiles + 1);
-    const setup = generateFileSetup(random, numFiles);
+    const numFiles = random.nextInt(1, config.maxFiles + 1)
+    const setup = generateFileSetup(random, numFiles)
 
     // Pick random scenarios to combine
-    const numScenarios = random.nextInt(1, maxCombined + 1);
-    const scenarios = pickScenarios(random, config.scenarios, numScenarios);
+    const numScenarios = random.nextInt(1, maxCombined + 1)
+    const scenarios = pickScenarios(random, config.scenarios, numScenarios)
 
     // Generate random events targeting the setup files
-    const numEvents = random.nextInt(1, config.maxEvents + 1);
+    const numEvents = random.nextInt(1, config.maxEvents + 1)
     const events = generateEvents(
       random,
       setup.map((f) => f.path),
       numEvents,
-    );
+    )
 
     yield {
       seed: scenarioSeed,
@@ -176,7 +176,7 @@ export function* generateScenarios(
       setup,
       scenarios,
       events,
-    };
+    }
   }
 }
 
@@ -187,43 +187,43 @@ function generateFileSetup(
   random: SeededRandom,
   count: number,
 ): Array<{ path: string; content: string }> {
-  const files: Array<{ path: string; content: string }> = [];
-  const usedPaths = new Set<string>();
+  const files: Array<{ path: string; content: string }> = []
+  const usedPaths = new Set<string>()
 
   for (let i = 0; i < count; i++) {
-    const path = generateFilePath(random, usedPaths);
-    usedPaths.add(path);
-    const content = generateFileContent(random);
-    files.push({ path, content });
+    const path = generateFilePath(random, usedPaths)
+    usedPaths.add(path)
+    const content = generateFileContent(random)
+    files.push({ path, content })
   }
 
-  return files;
+  return files
 }
 
 /**
  * Generate a random file path
  */
 function generateFilePath(random: SeededRandom, existing: Set<string>): string {
-  const maxAttempts = 100;
+  const maxAttempts = 100
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const depth = random.nextInt(0, 3); // 0-2 subdirectories
-    const segments: string[] = [];
+    const depth = random.nextInt(0, 3) // 0-2 subdirectories
+    const segments: string[] = []
 
     for (let d = 0; d < depth; d++) {
-      segments.push(generateName(random, "dir"));
+      segments.push(generateName(random, "dir"))
     }
 
-    segments.push(generateName(random, "file") + ".md");
-    const path = segments.join("/");
+    segments.push(generateName(random, "file") + ".md")
+    const path = segments.join("/")
 
     if (!existing.has(path)) {
-      return path;
+      return path
     }
   }
 
   // Fallback: use unique suffix
-  return `file-${Date.now()}-${random.nextInt(0, 10000)}.md`;
+  return `file-${Date.now()}-${random.nextInt(0, 10000)}.md`
 }
 
 /**
@@ -233,43 +233,43 @@ function generateName(random: SeededRandom, type: "file" | "dir"): string {
   const prefixes =
     type === "file"
       ? ["note", "task", "doc", "readme", "index", "inbox"]
-      : ["notes", "tasks", "docs", "archive", "projects"];
+      : ["notes", "tasks", "docs", "archive", "projects"]
 
-  const prefix = random.pick(prefixes);
-  const suffix = random.chance(0.5) ? `-${random.nextInt(1, 100)}` : "";
+  const prefix = random.pick(prefixes)
+  const suffix = random.chance(0.5) ? `-${random.nextInt(1, 100)}` : ""
 
-  return prefix + suffix;
+  return prefix + suffix
 }
 
 /**
  * Generate random markdown content
  */
 function generateFileContent(random: SeededRandom): string {
-  const lines: string[] = [];
+  const lines: string[] = []
 
   // Header
-  const title = `Test File ${random.nextInt(1, 1000)}`;
-  lines.push(`# ${title}`);
-  lines.push("");
+  const title = `Test File ${random.nextInt(1, 1000)}`
+  lines.push(`# ${title}`)
+  lines.push("")
 
   // Random number of tasks
-  const numTasks = random.nextInt(0, 10);
+  const numTasks = random.nextInt(0, 10)
   for (let i = 0; i < numTasks; i++) {
-    const status = random.pick(["[ ]", "[x]", "[/]", "[-]"]);
+    const status = random.pick(["[ ]", "[x]", "[/]", "[-]"])
     const priority = random.chance(0.3)
       ? `[#${random.pick(["A", "B", "C"])}] `
-      : "";
-    const taskText = `Task ${i + 1}`;
-    lines.push(`- ${status} ${priority}${taskText}`);
+      : ""
+    const taskText = `Task ${i + 1}`
+    lines.push(`- ${status} ${priority}${taskText}`)
   }
 
   // Random paragraphs
   if (random.chance(0.5)) {
-    lines.push("");
-    lines.push(`Some text content ${random.nextInt(1, 1000)}`);
+    lines.push("")
+    lines.push(`Some text content ${random.nextInt(1, 1000)}`)
   }
 
-  return lines.join("\n");
+  return lines.join("\n")
 }
 
 /**
@@ -281,17 +281,17 @@ function pickScenarios(
   count: number,
 ): ChaosScenario[] {
   if (pool.length === 0) {
-    return [NO_CHAOS];
+    return [NO_CHAOS]
   }
 
-  const scenarios: ChaosScenario[] = [];
-  const shuffled = random.shuffle([...pool]);
+  const scenarios: ChaosScenario[] = []
+  const shuffled = random.shuffle([...pool])
 
   for (let i = 0; i < Math.min(count, shuffled.length); i++) {
-    scenarios.push(shuffled[i]!);
+    scenarios.push(shuffled[i]!)
   }
 
-  return scenarios;
+  return scenarios
 }
 
 /**
@@ -302,21 +302,21 @@ function generateEvents(
   filePaths: string[],
   count: number,
 ): FsEvent[] {
-  const events: FsEvent[] = [];
-  const eventTypes: FsEventType[] = ["add", "change", "unlink"];
+  const events: FsEvent[] = []
+  const eventTypes: FsEventType[] = ["add", "change", "unlink"]
 
   for (let i = 0; i < count; i++) {
-    const type = random.pick(eventTypes);
-    const path = random.pick(filePaths);
+    const type = random.pick(eventTypes)
+    const path = random.pick(filePaths)
 
     events.push({
       type,
       path,
       mtime: Date.now() + i * 100,
-    });
+    })
   }
 
-  return events;
+  return events
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -327,16 +327,16 @@ function generateEvents(
  * Run the fuzzer with given configuration (sequential)
  */
 export async function runFuzzer(config: FuzzConfig): Promise<FuzzResult> {
-  const start = Date.now();
-  const results: FuzzIterationResult[] = [];
-  const failures: FuzzFailure[] = [];
-  const { useMockFs = false } = config;
+  const start = Date.now()
+  const results: FuzzIterationResult[] = []
+  const failures: FuzzFailure[] = []
+  const { useMockFs = false } = config
 
   for (const scenario of generateScenarios(config)) {
     const result = useMockFs
       ? await runSingleIterationWithMockFs(scenario, config.timeout ?? 10)
-      : await runSingleIteration(scenario, config.timeout ?? 1000);
-    results.push(result);
+      : await runSingleIteration(scenario, config.timeout ?? 1000)
+    results.push(result)
 
     if (!result.passed) {
       failures.push({
@@ -344,7 +344,7 @@ export async function runFuzzer(config: FuzzConfig): Promise<FuzzResult> {
         scenario,
         violations: result.violations,
         reproduction: generateReproductionCommand(scenario, config.seed),
-      });
+      })
     }
   }
 
@@ -354,7 +354,7 @@ export async function runFuzzer(config: FuzzConfig): Promise<FuzzResult> {
     failed: results.filter((r) => !r.passed).length,
     failures,
     duration: Date.now() - start,
-  };
+  }
 }
 
 /**
@@ -362,13 +362,13 @@ export async function runFuzzer(config: FuzzConfig): Promise<FuzzResult> {
  */
 export interface ParallelFuzzConfig extends FuzzConfig {
   /** Run iterations in parallel (default: true) */
-  parallel?: boolean;
+  parallel?: boolean
   /** Progress callback */
   onIterationComplete?: (
     iteration: number,
     result: FuzzIterationResult,
     progress: { completed: number; total: number },
-  ) => void;
+  ) => void
 }
 
 /**
@@ -391,38 +391,38 @@ export interface ParallelFuzzConfig extends FuzzConfig {
 export async function runFuzzerParallel(
   config: ParallelFuzzConfig,
 ): Promise<FuzzResult> {
-  const start = Date.now();
-  const { useMockFs = true, parallel = true, onIterationComplete } = config;
+  const start = Date.now()
+  const { useMockFs = true, parallel = true, onIterationComplete } = config
 
   // Collect all scenarios first (generator → array)
-  const scenarios = [...generateScenarios(config)];
-  const total = scenarios.length;
-  let completed = 0;
+  const scenarios = [...generateScenarios(config)]
+  const total = scenarios.length
+  let completed = 0
 
   const runSingleScenario = async (scenario: GeneratedScenario) => {
     const result = useMockFs
       ? await runSingleIterationWithMockFs(scenario, config.timeout ?? 10)
-      : await runSingleIteration(scenario, config.timeout ?? 1000);
+      : await runSingleIteration(scenario, config.timeout ?? 1000)
 
-    completed++;
+    completed++
     if (onIterationComplete) {
-      onIterationComplete(scenario.index, result, { completed, total });
+      onIterationComplete(scenario.index, result, { completed, total })
     }
 
-    return { scenario, result };
-  };
+    return { scenario, result }
+  }
 
   let results: Array<{
-    scenario: GeneratedScenario;
-    result: FuzzIterationResult;
-  }>;
+    scenario: GeneratedScenario
+    result: FuzzIterationResult
+  }>
 
   if (parallel) {
-    results = await Promise.all(scenarios.map(runSingleScenario));
+    results = await Promise.all(scenarios.map(runSingleScenario))
   } else {
-    results = [];
+    results = []
     for (const scenario of scenarios) {
-      results.push(await runSingleScenario(scenario));
+      results.push(await runSingleScenario(scenario))
     }
   }
 
@@ -433,7 +433,7 @@ export async function runFuzzerParallel(
       scenario: r.scenario,
       violations: r.result.violations,
       reproduction: generateReproductionCommand(r.scenario, config.seed),
-    }));
+    }))
 
   return {
     iterations: results.length,
@@ -441,7 +441,7 @@ export async function runFuzzerParallel(
     failed: results.filter((r) => !r.result.passed).length,
     failures,
     duration: Date.now() - start,
-  };
+  }
 }
 
 /**
@@ -451,66 +451,66 @@ async function runSingleIteration(
   scenario: GeneratedScenario,
   timeout: number,
 ): Promise<FuzzIterationResult> {
-  const start = Date.now();
+  const start = Date.now()
   const testDir = join(
     "/tmp",
     `kmtest-fuzz-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  );
-  const vaultDir = join(testDir, "vault");
-  const kmDir = join(testDir, ".km");
+  )
+  const vaultDir = join(testDir, "vault")
+  const kmDir = join(testDir, ".km")
 
   // Setup
-  mkdirSync(kmDir, { recursive: true });
-  mkdirSync(vaultDir, { recursive: true });
+  mkdirSync(kmDir, { recursive: true })
+  mkdirSync(vaultDir, { recursive: true })
 
   // Wrap in runWithKmDir for context-local kmDir (enables parallel test isolation)
   return runWithKmDir(kmDir, async () => {
-    let chaosWatcher: ChaosWatcher | null = null;
-    const violations: InvariantViolation[] = [];
+    let chaosWatcher: ChaosWatcher | null = null
+    const violations: InvariantViolation[] = []
 
     try {
-      setDatabase({ applyEvent });
-      resetDb();
+      setDatabase({ applyEvent })
+      resetDb()
 
       // Create files
       for (const file of scenario.setup) {
-        const fullPath = join(vaultDir, file.path);
-        const fileDir = dirname(fullPath);
+        const fullPath = join(vaultDir, file.path)
+        const fileDir = dirname(fullPath)
         if (!existsSync(fileDir)) {
-          mkdirSync(fileDir, { recursive: true });
+          mkdirSync(fileDir, { recursive: true })
         }
-        writeFileSync(fullPath, file.content);
+        writeFileSync(fullPath, file.content)
       }
 
       // Initial reconciliation - use recursive to handle files in subdirectories
-      const ops = reconcileDirectoryRecursive(vaultDir, vaultDir);
-      await applyReconcileOps(ops, vaultDir);
+      const ops = reconcileDirectoryRecursive(vaultDir, vaultDir)
+      await applyReconcileOps(ops, vaultDir)
 
       // Create watcher with combined scenarios
       const combinedScenario =
         scenario.scenarios.length === 1
           ? scenario.scenarios[0]
-          : scenario.scenarios[0]; // Use first; combineScenarios handles rest
+          : scenario.scenarios[0] // Use first; combineScenarios handles rest
 
       chaosWatcher = createChaosWatcher({
         debounceMs: 50,
         scenario: combinedScenario,
         seed: scenario.seed,
-      });
+      })
 
-      chaosWatcher.start(vaultDir);
+      chaosWatcher.start(vaultDir)
 
       // Wait for ready (init_gap scenarios need advanceTime)
       await new Promise<void>((resolve) => {
         if (combinedScenario?.type === "init_gap") {
-          chaosWatcher!.once("ready", resolve);
+          chaosWatcher!.once("ready", resolve)
           void chaosWatcher!.advanceTime(
             (combinedScenario.params.initDurationMs as number) ?? 2000,
-          );
+          )
         } else {
-          chaosWatcher!.once("ready", resolve);
+          chaosWatcher!.once("ready", resolve)
         }
-      });
+      })
 
       // Wire sync handler
       chaosWatcher.on(
@@ -521,64 +521,64 @@ async function runSingleIteration(
               const dirOps =
                 dir === vaultDir
                   ? reconcileDirectory(dir, vaultDir)
-                  : reconcileDirectoryRecursive(dir, vaultDir);
-              await applyReconcileOps(dirOps, vaultDir);
+                  : reconcileDirectoryRecursive(dir, vaultDir)
+              await applyReconcileOps(dirOps, vaultDir)
             }
-          })();
+          })()
         },
-      );
+      )
 
       // Inject events
       const absoluteEvents = scenario.events.map((e) => ({
         ...e,
         path: join(vaultDir, e.path),
-      }));
+      }))
 
-      chaosWatcher.injectBatch(absoluteEvents);
-      await chaosWatcher.flush();
-      await new Promise((r) => setTimeout(r, timeout));
+      chaosWatcher.injectBatch(absoluteEvents)
+      await chaosWatcher.flush()
+      await new Promise((r) => setTimeout(r, timeout))
 
       // Verify invariants
-      const verifier = new Verifier();
+      const verifier = new Verifier()
 
       // Check all invariants
-      const duplicates = verifier.verifyNoDuplicates();
+      const duplicates = verifier.verifyNoDuplicates()
       if (!duplicates.passed) {
         violations.push({
           invariant: "no_duplicates",
           message: "Duplicate nodes found",
           details: { errors: duplicates.errors },
-        });
+        })
       }
 
-      const parentIntegrity = verifier.verifyParentIntegrity();
+      const parentIntegrity = verifier.verifyParentIntegrity()
       if (!parentIntegrity.passed) {
         violations.push({
           invariant: "parent_integrity",
           message: "Invalid parent references",
           details: { errors: parentIntegrity.errors },
-        });
+        })
       }
 
-      const filePaths = verifier.verifyFilePaths();
+      const filePaths = verifier.verifyFilePaths()
       if (!filePaths.passed) {
         violations.push({
           invariant: "file_paths",
           message: "Missing file paths",
           details: { errors: filePaths.errors },
-        });
+        })
       }
 
-      const fsDbSync = verifier.verifyFsDbSync(vaultDir);
+      const fsDbSync = verifier.verifyFsDbSync(vaultDir)
       if (!fsDbSync.passed) {
         violations.push({
           invariant: "fs_db_sync",
           message: "Filesystem and database out of sync",
           details: { errors: fsDbSync.errors },
-        });
+        })
       }
 
-      const verification = verifier.verifyTreeConsistency();
+      const verification = verifier.verifyTreeConsistency()
 
       return {
         scenario,
@@ -588,7 +588,7 @@ async function runSingleIteration(
         duration: Date.now() - start,
         eventsEmitted: chaosWatcher.getEmittedEvents().length,
         eventsDropped: chaosWatcher.getDroppedEvents().length,
-      };
+      }
     } catch (error) {
       violations.push({
         invariant: "no_crash",
@@ -596,7 +596,7 @@ async function runSingleIteration(
         details: {
           error: error instanceof Error ? error.stack : String(error),
         },
-      });
+      })
 
       return {
         scenario,
@@ -617,17 +617,17 @@ async function runSingleIteration(
         duration: Date.now() - start,
         eventsEmitted: chaosWatcher?.getEmittedEvents().length ?? 0,
         eventsDropped: chaosWatcher?.getDroppedEvents().length ?? 0,
-      };
+      }
     } finally {
       if (chaosWatcher) {
-        await chaosWatcher.stop();
+        await chaosWatcher.stop()
       }
-      closeDb();
+      closeDb()
       if (existsSync(testDir)) {
-        rmSync(testDir, { recursive: true });
+        rmSync(testDir, { recursive: true })
       }
     }
-  });
+  })
 }
 
 /**
@@ -637,71 +637,71 @@ async function runSingleIterationWithMockFs(
   scenario: GeneratedScenario,
   timeout: number,
 ): Promise<FuzzIterationResult> {
-  const start = Date.now();
-  const mockFs = createMockFileSystem();
-  const vaultDir = "/vault";
+  const start = Date.now()
+  const mockFs = createMockFileSystem()
+  const vaultDir = "/vault"
 
   // Use in-memory database for parallel isolation
-  const db = new Database(":memory:");
-  db.exec(SCHEMA);
+  const db = new Database(":memory:")
+  db.exec(SCHEMA)
 
   // Setup - create virtual directories
-  mockFs.mkdirSync(vaultDir, { recursive: true });
+  mockFs.mkdirSync(vaultDir, { recursive: true })
 
   // Declare outside runWithDb so catch/finally can access
-  const violations: InvariantViolation[] = [];
-  let chaosWatcher: ChaosWatcher | null = null;
+  const violations: InvariantViolation[] = []
+  let chaosWatcher: ChaosWatcher | null = null
 
   // Use runWithDb for context-local database (parallel-safe)
   try {
     return await runWithDb(db, async () => {
-      setDatabase({ applyEvent });
+      setDatabase({ applyEvent })
 
       // Create files in mock filesystem
       for (const file of scenario.setup) {
-        const fullPath = join(vaultDir, file.path);
-        const fileDir = dirname(fullPath);
+        const fullPath = join(vaultDir, file.path)
+        const fileDir = dirname(fullPath)
         if (!mockFs.existsSync(fileDir)) {
-          mockFs.mkdirSync(fileDir, { recursive: true });
+          mockFs.mkdirSync(fileDir, { recursive: true })
         }
-        mockFs.writeFileSync(fullPath, file.content);
+        mockFs.writeFileSync(fullPath, file.content)
       }
 
       // Initial reconciliation with mock scanner
-      const scanner = mockFs.createScanner();
+      const scanner = mockFs.createScanner()
       const ops = reconcileDirectoryRecursive(
         vaultDir,
         vaultDir,
         undefined,
         scanner,
-      );
-      await applyReconcileOps(ops, vaultDir, mockFs);
+      )
+      await applyReconcileOps(ops, vaultDir, mockFs)
 
       // Create watcher with combined scenarios
       const combinedScenario =
         scenario.scenarios.length === 1
           ? scenario.scenarios[0]
-          : scenario.scenarios[0];
+          : scenario.scenarios[0]
 
       chaosWatcher = createChaosWatcher({
         debounceMs: 50,
         scenario: combinedScenario,
         seed: scenario.seed,
-      });
+      })
 
-      chaosWatcher.start(vaultDir);
+      chaosWatcher.start(vaultDir)
 
       // Wait for ready (init_gap scenarios need advanceTime)
       await new Promise<void>((resolve) => {
         if (combinedScenario?.type === "init_gap") {
-          chaosWatcher!.once("ready", resolve);
+          chaosWatcher!.once("ready", resolve)
           void chaosWatcher!.advanceTime(
             (combinedScenario.params.initDurationMs as number) ?? 2000,
-          );
+          )
         } else {
-          chaosWatcher!.once("ready", resolve);
+          chaosWatcher!.once("ready", resolve)
         }
-      });
+      })
 
       // Wire sync handler with mock fs
       chaosWatcher.on(
@@ -717,64 +717,64 @@ async function runSingleIterationWithMockFs(
                       vaultDir,
                       undefined,
                       scanner,
-                    );
-              await applyReconcileOps(dirOps, vaultDir, mockFs);
+                    )
+              await applyReconcileOps(dirOps, vaultDir, mockFs)
             }
-          })();
+          })()
         },
-      );
+      )
 
       // Inject events
       const absoluteEvents = scenario.events.map((e) => ({
         ...e,
         path: join(vaultDir, e.path),
-      }));
+      }))
 
-      chaosWatcher.injectBatch(absoluteEvents);
-      await chaosWatcher.flush();
-      await new Promise((r) => setTimeout(r, timeout));
+      chaosWatcher.injectBatch(absoluteEvents)
+      await chaosWatcher.flush()
+      await new Promise((r) => setTimeout(r, timeout))
 
       // Verify invariants with mock fs
-      const verifier = new Verifier(mockFs);
+      const verifier = new Verifier(mockFs)
 
       // Check all invariants
-      const duplicates = verifier.verifyNoDuplicates();
+      const duplicates = verifier.verifyNoDuplicates()
       if (!duplicates.passed) {
         violations.push({
           invariant: "no_duplicates",
           message: "Duplicate nodes found",
           details: { errors: duplicates.errors },
-        });
+        })
       }
 
-      const parentIntegrity = verifier.verifyParentIntegrity();
+      const parentIntegrity = verifier.verifyParentIntegrity()
       if (!parentIntegrity.passed) {
         violations.push({
           invariant: "parent_integrity",
           message: "Invalid parent references",
           details: { errors: parentIntegrity.errors },
-        });
+        })
       }
 
-      const filePaths = verifier.verifyFilePaths();
+      const filePaths = verifier.verifyFilePaths()
       if (!filePaths.passed) {
         violations.push({
           invariant: "file_paths",
           message: "Missing file paths",
           details: { errors: filePaths.errors },
-        });
+        })
       }
 
-      const fsDbSync = verifier.verifyFsDbSync(vaultDir);
+      const fsDbSync = verifier.verifyFsDbSync(vaultDir)
       if (!fsDbSync.passed) {
         violations.push({
           invariant: "fs_db_sync",
           message: "Filesystem and database out of sync",
           details: { errors: fsDbSync.errors },
-        });
+        })
       }
 
-      const verification = verifier.verifyTreeConsistency();
+      const verification = verifier.verifyTreeConsistency()
 
       return {
         scenario,
@@ -784,14 +784,14 @@ async function runSingleIterationWithMockFs(
         duration: Date.now() - start,
         eventsEmitted: chaosWatcher.getEmittedEvents().length,
         eventsDropped: chaosWatcher.getDroppedEvents().length,
-      };
-    }); // End runWithDb
+      }
+    }) // End runWithDb
   } catch (error: unknown) {
     violations.push({
       invariant: "no_crash",
       message: `Test crashed: ${error instanceof Error ? error.message : String(error)}`,
       details: { error: error instanceof Error ? error.stack : String(error) },
-    });
+    })
 
     return {
       scenario,
@@ -816,12 +816,12 @@ async function runSingleIterationWithMockFs(
       eventsDropped: chaosWatcher
         ? (chaosWatcher as ChaosWatcher).getDroppedEvents().length
         : 0,
-    };
+    }
   } finally {
     if (chaosWatcher !== null) {
-      await (chaosWatcher as ChaosWatcher).stop();
+      await (chaosWatcher as ChaosWatcher).stop()
     }
-    db.close();
+    db.close()
   }
 }
 
@@ -832,14 +832,14 @@ function generateReproductionCommand(
   scenario: GeneratedScenario,
   parentSeed: number,
 ): string {
-  const scenarios = scenario.scenarios.map((s) => s.type).join(",");
+  const scenarios = scenario.scenarios.map((s) => s.type).join(",")
   return (
     `# Reproduce with seed: ${scenario.seed}\n` +
     `# Parent seed: ${parentSeed}, iteration: ${scenario.index}\n` +
     `# Scenarios: ${scenarios}\n` +
     `# Files: ${scenario.setup.length}, Events: ${scenario.events.length}\n` +
     `bun test packages/km-storage/tests/sync/chaos/fuzzer.test.ts --test-name-pattern "seed ${scenario.seed}"`
-  );
+  )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -851,33 +851,33 @@ function generateReproductionCommand(
  */
 export function generateBugReport(failure: FuzzFailure): SyncBugReport {
   // Reconstruct expected and actual state
-  const expectedFiles = new Map<string, string>();
+  const expectedFiles = new Map<string, string>()
   for (const file of failure.scenario.setup) {
-    expectedFiles.set(file.path, file.content);
+    expectedFiles.set(file.path, file.content)
   }
 
   // Get actual state (would need to be captured during test)
-  const actualFiles = new Map<string, string>();
-  const nodes = getAllNodes();
+  const actualFiles = new Map<string, string>()
+  const nodes = getAllNodes()
 
   // Build diff
-  const missingInDb: string[] = [];
-  const missingInFs: string[] = [];
+  const missingInDb: string[] = []
+  const missingInFs: string[] = []
   const contentMismatches: Array<{
-    path: string;
-    fsContent: string;
-    dbContent: string;
-  }> = [];
+    path: string
+    fsContent: string
+    dbContent: string
+  }> = []
 
   for (const [path] of expectedFiles) {
     if (!actualFiles.has(path)) {
-      missingInDb.push(path);
+      missingInDb.push(path)
     }
   }
 
   for (const [path] of actualFiles) {
     if (!expectedFiles.has(path)) {
-      missingInFs.push(path);
+      missingInFs.push(path)
     }
   }
 
@@ -893,80 +893,80 @@ export function generateBugReport(failure: FuzzFailure): SyncBugReport {
       contentMismatches,
     },
     reproduction: failure.reproduction,
-  };
+  }
 }
 
 /**
  * Format a bug report as markdown
  */
 export function formatBugReport(report: SyncBugReport): string {
-  const lines: string[] = [];
+  const lines: string[] = []
 
-  lines.push("# Sync Bug Report");
-  lines.push("");
-  lines.push(`**Seed:** ${report.seed}`);
-  lines.push("");
-  lines.push("## Invariants Violated");
+  lines.push("# Sync Bug Report")
+  lines.push("")
+  lines.push(`**Seed:** ${report.seed}`)
+  lines.push("")
+  lines.push("## Invariants Violated")
   for (const inv of report.invariantsViolated) {
-    lines.push(`- ${inv}`);
+    lines.push(`- ${inv}`)
   }
-  lines.push("");
+  lines.push("")
 
-  lines.push("## Scenario");
-  lines.push("");
-  lines.push(`**Files:** ${report.scenario.setup.length}`);
-  lines.push(`**Events:** ${report.scenario.events.length}`);
+  lines.push("## Scenario")
+  lines.push("")
+  lines.push(`**Files:** ${report.scenario.setup.length}`)
+  lines.push(`**Events:** ${report.scenario.events.length}`)
   lines.push(
     `**Chaos Scenarios:** ${report.scenario.scenarios.map((s) => s.type).join(", ")}`,
-  );
-  lines.push("");
+  )
+  lines.push("")
 
-  lines.push("### File Setup");
-  lines.push("```");
+  lines.push("### File Setup")
+  lines.push("```")
   for (const file of report.scenario.setup) {
-    lines.push(`${file.path}:`);
+    lines.push(`${file.path}:`)
     lines.push(
       file.content.slice(0, 200) + (file.content.length > 200 ? "..." : ""),
-    );
-    lines.push("");
+    )
+    lines.push("")
   }
-  lines.push("```");
-  lines.push("");
+  lines.push("```")
+  lines.push("")
 
-  lines.push("### Events");
-  lines.push("```");
+  lines.push("### Events")
+  lines.push("```")
   for (const event of report.scenario.events.slice(0, 20)) {
-    lines.push(`${event.type}: ${event.path}`);
+    lines.push(`${event.type}: ${event.path}`)
   }
   if (report.scenario.events.length > 20) {
-    lines.push(`... and ${report.scenario.events.length - 20} more`);
+    lines.push(`... and ${report.scenario.events.length - 20} more`)
   }
-  lines.push("```");
-  lines.push("");
+  lines.push("```")
+  lines.push("")
 
-  lines.push("## Diff");
-  lines.push("");
+  lines.push("## Diff")
+  lines.push("")
   if (report.diff.missingInDb.length > 0) {
-    lines.push("### Missing in Database");
+    lines.push("### Missing in Database")
     for (const path of report.diff.missingInDb) {
-      lines.push(`- ${path}`);
+      lines.push(`- ${path}`)
     }
-    lines.push("");
+    lines.push("")
   }
   if (report.diff.missingInFs.length > 0) {
-    lines.push("### Missing in Filesystem");
+    lines.push("### Missing in Filesystem")
     for (const path of report.diff.missingInFs) {
-      lines.push(`- ${path}`);
+      lines.push(`- ${path}`)
     }
-    lines.push("");
+    lines.push("")
   }
 
-  lines.push("## Reproduction");
-  lines.push("```bash");
-  lines.push(report.reproduction);
-  lines.push("```");
+  lines.push("## Reproduction")
+  lines.push("```bash")
+  lines.push(report.reproduction)
+  lines.push("```")
 
-  return lines.join("\n");
+  return lines.join("\n")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -979,10 +979,10 @@ export function formatBugReport(report: SyncBugReport): string {
 export function generateRandomFile(
   random: SeededRandom,
   options: {
-    minTasks?: number;
-    maxTasks?: number;
-    withSections?: boolean;
-    withLinks?: boolean;
+    minTasks?: number
+    maxTasks?: number
+    withSections?: boolean
+    withLinks?: boolean
   } = {},
 ): string {
   const {
@@ -990,55 +990,55 @@ export function generateRandomFile(
     maxTasks = 10,
     withSections = false,
     withLinks = false,
-  } = options;
+  } = options
 
-  const lines: string[] = [];
+  const lines: string[] = []
 
   // Title
-  lines.push(`# Test Document ${random.nextInt(1, 10000)}`);
-  lines.push("");
+  lines.push(`# Test Document ${random.nextInt(1, 10000)}`)
+  lines.push("")
 
   // Optional sections
   if (withSections && random.chance(0.7)) {
-    const numSections = random.nextInt(1, 4);
+    const numSections = random.nextInt(1, 4)
     for (let s = 0; s < numSections; s++) {
-      lines.push(`## Section ${s + 1}`);
-      lines.push("");
+      lines.push(`## Section ${s + 1}`)
+      lines.push("")
 
       // Tasks in section
-      const sectionTasks = random.nextInt(0, 5);
+      const sectionTasks = random.nextInt(0, 5)
       for (let t = 0; t < sectionTasks; t++) {
-        lines.push(generateTaskLine(random, withLinks));
+        lines.push(generateTaskLine(random, withLinks))
       }
-      lines.push("");
+      lines.push("")
     }
   }
 
   // Top-level tasks
-  const numTasks = random.nextInt(minTasks, maxTasks + 1);
+  const numTasks = random.nextInt(minTasks, maxTasks + 1)
   for (let i = 0; i < numTasks; i++) {
-    lines.push(generateTaskLine(random, withLinks));
+    lines.push(generateTaskLine(random, withLinks))
   }
 
-  return lines.join("\n");
+  return lines.join("\n")
 }
 
 /**
  * Generate a single task line
  */
 function generateTaskLine(random: SeededRandom, withLinks: boolean): string {
-  const status = random.pick(["[ ]", "[x]", "[/]", "[-]"]);
+  const status = random.pick(["[ ]", "[x]", "[/]", "[-]"])
   const priority = random.chance(0.2)
     ? `[#${random.pick(["A", "B", "C"])}] `
-    : "";
-  const due = random.chance(0.1) ? " @due(2024-12-31)" : "";
+    : ""
+  const due = random.chance(0.1) ? " @due(2024-12-31)" : ""
   const link =
     withLinks && random.chance(0.15)
       ? ` [[note-${random.nextInt(1, 100)}]]`
-      : "";
-  const text = `Task ${random.nextInt(1, 1000)}`;
+      : ""
+  const text = `Task ${random.nextInt(1, 1000)}`
 
-  return `- ${status} ${priority}${text}${due}${link}`;
+  return `- ${status} ${priority}${text}${due}${link}`
 }
 
 /**
@@ -1056,30 +1056,30 @@ export function createDefaultFuzzConfig(
     scenarios: Object.values(CHAOS_SCENARIOS),
     maxCombinedScenarios: 2,
     timeout: 500,
-  };
+  }
 }
 
 /**
  * Print fuzzer results to console
  */
 export function printFuzzResults(results: FuzzResult): void {
-  console.log("\n=== Fuzzer Results ===\n");
-  console.log(`Iterations: ${results.iterations}`);
-  console.log(`Passed: ${results.passed}`);
-  console.log(`Failed: ${results.failed}`);
-  console.log(`Duration: ${results.duration}ms`);
+  console.log("\n=== Fuzzer Results ===\n")
+  console.log(`Iterations: ${results.iterations}`)
+  console.log(`Passed: ${results.passed}`)
+  console.log(`Failed: ${results.failed}`)
+  console.log(`Duration: ${results.duration}ms`)
 
   if (results.failures.length > 0) {
-    console.log("\n=== Failures ===\n");
+    console.log("\n=== Failures ===\n")
     for (const failure of results.failures) {
-      console.log(`Seed: ${failure.seed}`);
-      console.log(`Violations:`);
+      console.log(`Seed: ${failure.seed}`)
+      console.log(`Violations:`)
       for (const v of failure.violations) {
-        console.log(`  - ${v.invariant}: ${v.message}`);
+        console.log(`  - ${v.invariant}: ${v.message}`)
       }
-      console.log(`Reproduction:`);
-      console.log(failure.reproduction);
-      console.log("");
+      console.log(`Reproduction:`)
+      console.log(failure.reproduction)
+      console.log("")
     }
   }
 }
@@ -1094,7 +1094,7 @@ export async function replayScenario(
   scenario: GeneratedScenario,
   timeout: number = 100,
 ): Promise<FuzzIterationResult> {
-  return runSingleIterationWithMockFs(scenario, timeout);
+  return runSingleIterationWithMockFs(scenario, timeout)
 }
 
 /**
@@ -1107,7 +1107,7 @@ export function generateScenarioFromSeed(
   seed: number,
   config?: Partial<FuzzConfig>,
 ): GeneratedScenario {
-  const random = new SeededRandom(seed);
+  const random = new SeededRandom(seed)
   const fullConfig: FuzzConfig = {
     seed,
     iterations: 1,
@@ -1116,42 +1116,42 @@ export function generateScenarioFromSeed(
     scenarios: config?.scenarios ?? Object.values(CHAOS_SCENARIOS),
     maxCombinedScenarios: config?.maxCombinedScenarios ?? 2,
     timeout: config?.timeout ?? 500,
-  };
+  }
 
   // Generate a single scenario using the same logic as the fuzzer
-  const scenarioSeed = random.nextInt(0, 2 ** 31);
-  const scenarioRandom = new SeededRandom(scenarioSeed);
+  const scenarioSeed = random.nextInt(0, 2 ** 31)
+  const scenarioRandom = new SeededRandom(scenarioSeed)
 
   // Generate files
-  const numFiles = scenarioRandom.nextInt(1, fullConfig.maxFiles + 1);
-  const setup: Array<{ path: string; content: string }> = [];
+  const numFiles = scenarioRandom.nextInt(1, fullConfig.maxFiles + 1)
+  const setup: Array<{ path: string; content: string }> = []
   for (let i = 0; i < numFiles; i++) {
-    const path = `file-${i}.md`;
-    const content = generateRandomFile(scenarioRandom);
-    setup.push({ path, content });
+    const path = `file-${i}.md`
+    const content = generateRandomFile(scenarioRandom)
+    setup.push({ path, content })
   }
 
   // Pick scenarios
   const numScenarios = scenarioRandom.nextInt(
     1,
     (fullConfig.maxCombinedScenarios ?? 2) + 1,
-  );
-  const scenarios: ChaosScenario[] = [];
+  )
+  const scenarios: ChaosScenario[] = []
   for (let i = 0; i < numScenarios; i++) {
-    scenarios.push(scenarioRandom.pick(fullConfig.scenarios));
+    scenarios.push(scenarioRandom.pick(fullConfig.scenarios))
   }
 
   // Generate events
-  const numEvents = scenarioRandom.nextInt(1, fullConfig.maxEvents + 1);
-  const events: FsEvent[] = [];
-  const eventTypes: FsEventType[] = ["add", "change", "unlink"];
+  const numEvents = scenarioRandom.nextInt(1, fullConfig.maxEvents + 1)
+  const events: FsEvent[] = []
+  const eventTypes: FsEventType[] = ["add", "change", "unlink"]
   for (let i = 0; i < numEvents; i++) {
-    const targetFile = scenarioRandom.pick(setup);
+    const targetFile = scenarioRandom.pick(setup)
     events.push({
       type: scenarioRandom.pick(eventTypes),
       path: targetFile.path,
       mtime: Date.now() + i * 100,
-    });
+    })
   }
 
   return {
@@ -1160,5 +1160,5 @@ export function generateScenarioFromSeed(
     setup,
     scenarios,
     events,
-  };
+  }
 }

@@ -4,33 +4,33 @@
  * These components are used across ListView, TabsView, and ColumnsView
  * to provide consistent, optimized rendering of cards and headers.
  */
-import React, { useCallback } from "react";
-import { Box, Text, useContentRectCallback } from "inkx";
-import createDebug from "debug";
+import React, { useCallback } from "react"
+import { Box, Text, useContentRectCallback } from "inkx"
+import createDebug from "debug"
 
-const debug = createDebug("km:tui:layout");
-import type { CardState, ColumnState } from "../types.ts";
-import type { KNode } from "@km/core";
-import { TreeNode } from "./TreeNode.tsx";
-import { getNodeDisplayName } from "../state.ts";
-import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts";
-import { getNodeIcon, renderPlain } from "../text/index.ts";
-import { useLayoutRegistryOptional } from "../layout-context.tsx";
-import { useVault } from "../vault-context.tsx";
+const debug = createDebug("km:tui:layout")
+import type { CardState, ColumnState } from "../types.ts"
+import type { KNode } from "@km/core"
+import { TreeNode } from "./TreeNode.tsx"
+import { getNodeDisplayName } from "../state.ts"
+import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts"
+import { getNodeIcon, renderPlain } from "../text/index.ts"
+import { useLayoutRegistryOptional } from "../layout-context.tsx"
+import { useVault } from "../vault-context.tsx"
 
 // =============================================================================
 // Memoized Tree Card Component
 // =============================================================================
 
 export interface MemoizedTreeCardProps {
-  card: CardState;
-  colIndex: number;
-  cardIndex: number;
-  isSelected: boolean;
+  card: CardState
+  colIndex: number
+  cardIndex: number
+  isSelected: boolean
   /** Optional children to pass to TreeNode (pass [] to skip DB query) */
-  children?: KNode[];
+  children?: KNode[]
   /** Optional board pills callback for performance optimization */
-  getBoardPills?: (node: KNode, excludeBoardIds: Set<string>) => BoardPill[];
+  getBoardPills?: (node: KNode, excludeBoardIds: Set<string>) => BoardPill[]
 }
 
 /**
@@ -55,7 +55,7 @@ export const MemoizedTreeCard = React.memo(
       colIndex,
       cardIndex,
       card.node.id.slice(-8),
-    );
+    )
     return (
       <CardLayoutTracker
         nodeId={card.node.id}
@@ -74,7 +74,7 @@ export const MemoizedTreeCard = React.memo(
           getBoardPills={getBoardPills}
         />
       </CardLayoutTracker>
-    );
+    )
   },
   (prev, next) => {
     return (
@@ -85,20 +85,20 @@ export const MemoizedTreeCard = React.memo(
       prev.cardIndex === next.cardIndex &&
       prev.isSelected === next.isSelected &&
       prev.getBoardPills === next.getBoardPills
-    );
+    )
   },
-);
+)
 
 // =============================================================================
 // Card Layout Tracking
 // =============================================================================
 
 interface CardLayoutTrackerProps {
-  nodeId: string;
-  colIndex: number;
-  cardIndex: number;
-  isSelected: boolean;
-  children: React.ReactNode;
+  nodeId: string
+  colIndex: number
+  cardIndex: number
+  isSelected: boolean
+  children: React.ReactNode
 }
 
 /**
@@ -114,12 +114,12 @@ function CardLayoutTracker({
   isSelected,
   children,
 }: CardLayoutTrackerProps): React.ReactElement {
-  const registry = useLayoutRegistryOptional();
+  const registry = useLayoutRegistryOptional()
 
   // Register measured position after layout - no re-renders
   const handleLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
-      if (!registry) return;
+      if (!registry) return
 
       // Use measured dimensions directly from inkx layout
       registry.registerCard(colIndex, cardIndex, nodeId, {
@@ -127,7 +127,7 @@ function CardLayoutTracker({
         y: computed.y,
         cardWidth: computed.width,
         cardHeight: computed.height,
-      });
+      })
       debug(
         "registered: col=%d card=%d id=%s y=%d h=%d",
         colIndex,
@@ -135,12 +135,12 @@ function CardLayoutTracker({
         nodeId.slice(-8),
         computed.y,
         computed.height,
-      );
+      )
     },
     [registry, colIndex, cardIndex, nodeId],
-  );
+  )
 
-  useContentRectCallback(handleLayout);
+  useContentRectCallback(handleLayout)
 
   return (
     <Box
@@ -151,7 +151,7 @@ function CardLayoutTracker({
     >
       {children}
     </Box>
-  );
+  )
 }
 
 // =============================================================================
@@ -159,15 +159,15 @@ function CardLayoutTracker({
 // =============================================================================
 
 export interface MemoizedColumnHeaderProps {
-  column: ColumnState;
-  colIdx: number;
-  isSelected: boolean;
-  isColSelected: boolean;
-  width: number;
+  column: ColumnState
+  colIdx: number
+  isSelected: boolean
+  isColSelected: boolean
+  width: number
   /** Show blank line above (for list view, not first header) */
-  showTopSpacer?: boolean;
+  showTopSpacer?: boolean
   /** Show separator line below header */
-  showSeparator?: boolean;
+  showSeparator?: boolean
 }
 
 /**
@@ -183,20 +183,20 @@ export const MemoizedColumnHeader = React.memo(
     showTopSpacer = false,
     showSeparator = true,
   }: MemoizedColumnHeaderProps): React.ReactElement {
-    const vault = useVault();
-    const ownColor = getOwnColor(column.node);
-    const headerStyle = getHeaderStyle(ownColor, isSelected, isColSelected);
+    const vault = useVault()
+    const ownColor = getOwnColor(column.node)
+    const headerStyle = getHeaderStyle(ownColor, isSelected, isColSelected)
 
     // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
-    const icon = getNodeIcon(null, ownColor, false);
-    const iconColor = isColSelected ? "black" : icon.color;
+    const icon = getNodeIcon(null, ownColor, false)
+    const iconColor = isColSelected ? "black" : icon.color
 
     // Render header with wiki links stripped: [[target|alias]] → "alias"
-    const headerText = renderPlain(getNodeDisplayName(vault, column.node));
-    const countText = ` (${column.cards.length})`;
+    const headerText = renderPlain(getNodeDisplayName(vault, column.node))
+    const countText = ` (${column.cards.length})`
     // Calculate padding to fill full width: " [icon] headerText countText" = 3 + headerText + countText
-    const headerContentLen = 3 + headerText.length + countText.length;
-    const headerPadding = " ".repeat(Math.max(0, width - headerContentLen));
+    const headerContentLen = 3 + headerText.length + countText.length
+    const headerPadding = " ".repeat(Math.max(0, width - headerContentLen))
 
     return (
       <Box flexDirection="column" width={width}>
@@ -231,7 +231,7 @@ export const MemoizedColumnHeader = React.memo(
           </Box>
         )}
       </Box>
-    );
+    )
   },
   (prev, next) => {
     return (
@@ -243,9 +243,9 @@ export const MemoizedColumnHeader = React.memo(
       prev.width === next.width &&
       prev.showTopSpacer === next.showTopSpacer &&
       prev.showSeparator === next.showSeparator
-    );
+    )
   },
-);
+)
 
 // =============================================================================
 // Modal Dialog Component
@@ -253,13 +253,13 @@ export const MemoizedColumnHeader = React.memo(
 
 export interface ModalDialogProps {
   /** Border color (cyan, green, etc.) */
-  borderColor?: string;
+  borderColor?: string
   /** Dialog width */
-  width?: number;
+  width?: number
   /** Dialog height (optional, omit for auto-height) */
-  height?: number;
+  height?: number
   /** Dialog children */
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 /**
@@ -288,5 +288,5 @@ export function ModalDialog({
     >
       {children}
     </Box>
-  );
+  )
 }

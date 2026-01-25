@@ -8,27 +8,27 @@
  * during FSEvents setup.
  */
 
-import createDebug from "debug";
-import { EventEmitter } from "events";
-import { getIgnorePatterns } from "./ignore.ts";
+import createDebug from "debug"
+import { EventEmitter } from "events"
+import { getIgnorePatterns } from "./ignore.ts"
 import type {
   WorkerCommand,
   WorkerMessage,
   WatcherStatus,
   WatcherState,
-} from "./worker-thread.ts";
+} from "./worker-thread.ts"
 
-const debug = createDebug("km:storage:watch:worker-bridge");
+const debug = createDebug("km:storage:watch:worker-bridge")
 // For forwarding worker debug messages - uses worker's namespace
-const workerDebug = createDebug("km:storage:watch:worker");
+const workerDebug = createDebug("km:storage:watch:worker")
 
 export interface WorkerWatcherConfig {
-  debounceMs: number;
+  debounceMs: number
 }
 
 const DEFAULT_CONFIG: WorkerWatcherConfig = {
   debounceMs: 5000,
-};
+}
 
 /**
  * Worker-based filesystem watcher
@@ -37,18 +37,18 @@ const DEFAULT_CONFIG: WorkerWatcherConfig = {
  * to avoid blocking the main event loop.
  */
 export class WorkerWatcher extends EventEmitter {
-  private worker: Worker | null = null;
-  private config: WorkerWatcherConfig;
-  private vaultPath: string = "";
-  private isReady: boolean = false;
+  private worker: Worker | null = null
+  private config: WorkerWatcherConfig
+  private vaultPath: string = ""
+  private isReady: boolean = false
   private currentStatus: WatcherStatus = {
     state: "stopped",
     pendingPaths: 0,
-  };
+  }
 
   constructor(config: Partial<WorkerWatcherConfig> = {}) {
-    super();
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    super()
+    this.config = { ...DEFAULT_CONFIG, ...config }
   }
 
   /**
@@ -58,26 +58,26 @@ export class WorkerWatcher extends EventEmitter {
    * the worker has finished initializing chokidar.
    */
   start(vaultPath: string): void {
-    this.vaultPath = vaultPath;
-    debug("starting worker watcher for %s", vaultPath);
+    this.vaultPath = vaultPath
+    debug("starting worker watcher for %s", vaultPath)
 
     // Load ignore patterns (this is fast, runs in main thread)
-    const ignorePatterns = getIgnorePatterns(vaultPath);
-    debug("ignore patterns: %O", ignorePatterns);
+    const ignorePatterns = getIgnorePatterns(vaultPath)
+    debug("ignore patterns: %O", ignorePatterns)
 
     // Create worker
     // Use import.meta.url to resolve the worker file path
-    this.worker = new Worker(new URL("./worker-thread.ts", import.meta.url));
+    this.worker = new Worker(new URL("./worker-thread.ts", import.meta.url))
 
     // Handle messages from worker
     this.worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-      this.handleWorkerMessage(event.data);
-    };
+      this.handleWorkerMessage(event.data)
+    }
 
     this.worker.onerror = (error: ErrorEvent) => {
-      debug("worker error: %s", error.message);
-      this.emit("error", new Error(error.message));
-    };
+      debug("worker error: %s", error.message)
+      this.emit("error", new Error(error.message))
+    }
 
     // Send start command to worker
     this.postCommand({
@@ -85,60 +85,60 @@ export class WorkerWatcher extends EventEmitter {
       vaultPath,
       ignorePatterns,
       debounceMs: this.config.debounceMs,
-    });
+    })
   }
 
   /**
    * Stop watching
    */
   async stop(): Promise<void> {
-    debug("stopping worker watcher");
+    debug("stopping worker watcher")
 
     if (!this.worker) {
-      return;
+      return
     }
 
-    const worker = this.worker;
-    this.worker = null;
-    this.isReady = false;
+    const worker = this.worker
+    this.worker = null
+    this.isReady = false
 
     // Request worker to stop
-    worker.postMessage({ type: "stop" } satisfies WorkerCommand);
+    worker.postMessage({ type: "stop" } satisfies WorkerCommand)
 
     // Wait for stopped message or timeout
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        debug("worker stop timeout, terminating");
-        worker.terminate();
-        resolve();
-      }, 5000);
+        debug("worker stop timeout, terminating")
+        worker.terminate()
+        resolve()
+      }, 5000)
 
       // Listen for stopped message
       worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
         if (event.data.type === "stopped") {
-          debug("worker stopped gracefully");
-          clearTimeout(timeout);
+          debug("worker stopped gracefully")
+          clearTimeout(timeout)
           // Don't call terminate() after graceful stop - causes Bun segfault (km-a4l5)
           // The worker has already cleaned up; calling terminate() races with internal cleanup
-          resolve();
+          resolve()
         }
-      };
-    });
+      }
+    })
   }
 
   /**
    * Mark a path as in-flight (being written by us)
    */
   markInFlight(path: string): void {
-    debug("marking in-flight: %s", path);
-    this.postCommand({ type: "markInFlight", path });
+    debug("marking in-flight: %s", path)
+    this.postCommand({ type: "markInFlight", path })
   }
 
   /**
    * Clear in-flight status after write settles
    */
   clearInFlight(path: string, delayMs: number = 1000): void {
-    this.postCommand({ type: "clearInFlight", path, delayMs });
+    this.postCommand({ type: "clearInFlight", path, delayMs })
   }
 
   /**
@@ -150,42 +150,42 @@ export class WorkerWatcher extends EventEmitter {
   isInFlight(_path: string): boolean {
     // Worker maintains the in-flight set, we can't query it synchronously
     // Callers should track their own writes if they need synchronous checks
-    return false;
+    return false
   }
 
   /**
    * Force immediate sync (bypass debounce)
    */
   forceSync(): void {
-    this.postCommand({ type: "forceSync" });
+    this.postCommand({ type: "forceSync" })
   }
 
   /**
    * Check if the watcher is ready
    */
   get ready(): boolean {
-    return this.isReady;
+    return this.isReady
   }
 
   /**
    * Get current watcher status
    */
   getStatus(): WatcherStatus {
-    return this.currentStatus;
+    return this.currentStatus
   }
 
   /**
    * Get current watcher state
    */
   getState(): WatcherState {
-    return this.currentStatus.state;
+    return this.currentStatus.state
   }
 
   /**
    * Request status update from worker
    */
   requestStatus(): void {
-    this.postCommand({ type: "getStatus" });
+    this.postCommand({ type: "getStatus" })
   }
 
   /**
@@ -194,47 +194,47 @@ export class WorkerWatcher extends EventEmitter {
   private handleWorkerMessage(message: WorkerMessage): void {
     switch (message.type) {
       case "ready":
-        debug("worker ready");
-        this.isReady = true;
-        this.emit("ready");
-        break;
+        debug("worker ready")
+        this.isReady = true
+        this.emit("ready")
+        break
 
       case "sync":
         debug(
           "worker sync: %d paths, %d directories",
           message.paths.length,
           message.directories.length,
-        );
+        )
         this.emit("sync", {
           paths: message.paths,
           directories: message.directories,
-        });
-        break;
+        })
+        break
 
       case "error":
-        debug("worker error: %s", message.message);
-        this.emit("error", new Error(message.message));
-        break;
+        debug("worker error: %s", message.message)
+        this.emit("error", new Error(message.message))
+        break
 
       case "stopped":
-        debug("worker stopped");
-        this.currentStatus = { state: "stopped", pendingPaths: 0 };
-        break;
+        debug("worker stopped")
+        this.currentStatus = { state: "stopped", pendingPaths: 0 }
+        break
 
       case "status":
         debug("worker status", {
           state: message.status.state,
           pending: message.status.pendingPaths,
-        });
-        this.currentStatus = message.status;
-        this.emit("status", message.status);
-        break;
+        })
+        this.currentStatus = message.status
+        this.emit("status", message.status)
+        break
 
       case "debug":
         // Forward worker debug messages through main thread's debug logger
         // This ensures DEBUG_LOG captures worker output
-        workerDebug("%s", message.message);
-        break;
+        workerDebug("%s", message.message)
+        break
     }
   }
 
@@ -243,7 +243,7 @@ export class WorkerWatcher extends EventEmitter {
    */
   private postCommand(command: WorkerCommand): void {
     if (this.worker) {
-      this.worker.postMessage(command);
+      this.worker.postMessage(command)
     }
   }
 }

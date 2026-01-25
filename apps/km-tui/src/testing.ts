@@ -28,34 +28,34 @@
  * ```
  */
 
-import React from "react";
+import React from "react"
 import {
   createTestRenderer,
   bufferToText,
   bufferToStyledText,
   createLocator,
   type InkxLocator,
-} from "inkx/testing";
-import type { KNode } from "@km/core";
-import type { Vault } from "@km/storage";
-import type { TUIBoardState } from "./types.ts";
-import { BoardCore } from "./views/index.ts";
-import { createInitialUIState } from "./ui-reducer.ts";
-import { createLayoutRegistry } from "./card-positions.ts";
-import { VaultProvider } from "./vault-context.tsx";
+} from "inkx/testing"
+import type { KNode } from "@km/core"
+import type { Vault } from "@km/storage"
+import type { TUIBoardState } from "./types.ts"
+import { BoardCore } from "./views/index.ts"
+import { createInitialUIState } from "./ui-reducer.ts"
+import { createLayoutRegistry } from "./card-positions.ts"
+import { VaultProvider } from "./vault-context.tsx"
 
 /**
  * Options for creating a board test harness
  */
 export interface BoardTestOptions {
   /** Specific file to view (relative to vault) */
-  file?: string;
+  file?: string
   /** Terminal width in columns */
-  width?: number;
+  width?: number
   /** Terminal height in rows */
-  height?: number;
+  height?: number
   /** Initial view mode */
-  viewMode?: "cards" | "columns" | "list";
+  viewMode?: "cards" | "columns" | "list"
 }
 
 /**
@@ -64,29 +64,29 @@ export interface BoardTestOptions {
 export interface BoardTestHarness extends InkxLocator {
   // Visual capture
   /** Get plain text screenshot (no ANSI codes) */
-  screenshot(): string;
+  screenshot(): string
   /** Get styled screenshot (with ANSI codes) */
-  screenshotAnsi(): string;
+  screenshotAnsi(): string
 
   // Input simulation
   /** Press a single key */
-  press(key: string): void;
+  press(key: string): void
   /** Press multiple keys in sequence */
-  pressMultiple(keys: string[]): void;
+  pressMultiple(keys: string[]): void
   /** Type text character by character */
-  type(text: string): void;
+  type(text: string): void
 
   // State access
   /** Get the current board state */
-  getState(): TUIBoardState;
+  getState(): TUIBoardState
   /** Get the current cursor position [colIndex, cardIndex] */
-  getCursor(): [number, number];
+  getCursor(): [number, number]
   /** Get the currently selected node, if any */
-  getSelectedNode(): KNode | null;
+  getSelectedNode(): KNode | null
 
   // Lifecycle
   /** Unmount the component and clean up */
-  unmount(): void;
+  unmount(): void
 }
 
 /**
@@ -109,56 +109,56 @@ export async function createBoardTest(
   vaultOrPath: string | Vault,
   options: BoardTestOptions = {},
 ): Promise<BoardTestHarness> {
-  const { file, width = 80, height = 24 } = options;
+  const { file, width = 80, height = 24 } = options
 
   // Import storage module
-  const storageModule = await import("@km/storage");
+  const storageModule = await import("@km/storage")
 
   // Load vault based on input type
-  let vault: Vault;
-  let vaultPath: string;
+  let vault: Vault
+  let vaultPath: string
 
   if (typeof vaultOrPath === "string") {
     // Load vault from disk (original behavior)
     // searchAncestors: false prevents finding .km in parent directories (e.g., project root)
     vault = storageModule.runGenerator(
       storageModule.createVault(vaultOrPath, { searchAncestors: false }),
-    );
-    vaultPath = vaultOrPath;
+    )
+    vaultPath = vaultOrPath
   } else {
     // Use provided vault instance (new behavior for fake vaults)
-    vault = vaultOrPath;
-    vaultPath = vault.path;
+    vault = vaultOrPath
+    vaultPath = vault.path
   }
 
   // Resolve the file reference to a node ID if provided
-  let rootNodeId: string | undefined;
+  let rootNodeId: string | undefined
   if (file && typeof vaultOrPath === "string") {
     // File references only work with real vaults (not fake vaults)
-    const resolved = storageModule.resolvePathArg(file, vaultPath);
+    const resolved = storageModule.resolvePathArg(file, vaultPath)
     if (resolved.nodeRef) {
       // resolveNode converts filename/path/ID to actual node
-      const node = storageModule.resolveNode(resolved.nodeRef);
-      rootNodeId = node?.id;
+      const node = storageModule.resolveNode(resolved.nodeRef)
+      rootNodeId = node?.id
     }
   }
 
   // Import TUI module for state initialization
-  const tuiModule = await import("./index.ts");
+  const tuiModule = await import("./index.ts")
 
   // Initialize board state
   const state = storageModule.runGenerator(
     tuiModule.initBoardStateGenerator(vault, rootNodeId),
-  );
+  )
 
   if (!state) {
-    throw new Error(`Failed to initialize board state for ${vaultPath}`);
+    throw new Error(`Failed to initialize board state for ${vaultPath}`)
   }
 
-  state.rootPath = vaultPath;
+  state.rootPath = vaultPath
 
   // Create test renderer
-  const render = createTestRenderer({ columns: width, rows: height });
+  const render = createTestRenderer({ columns: width, rows: height })
 
   // Render the board using BoardCore (pure rendering) wrapped in VaultProvider
   const boardCoreElement = React.createElement(BoardCore, {
@@ -174,72 +174,72 @@ export async function createBoardTest(
       handleNewItemCreate: () => {},
       handleNewItemCancel: () => {},
     },
-  });
+  })
 
   const result = render(
     React.createElement(VaultProvider, { vault, children: boardCoreElement }),
-  );
+  )
 
   // Current state - updated after each input
-  const currentState = state;
+  const currentState = state
 
   // Create locator for DOM queries
-  const getLocator = () => createLocator(result.getContainer());
+  const getLocator = () => createLocator(result.getContainer())
 
   // Build harness object that extends InkxLocator
   const harness: BoardTestHarness = {
     // InkxLocator methods - delegate to current locator
     getByText(text) {
-      return getLocator().getByText(text);
+      return getLocator().getByText(text)
     },
     getByTestId(id) {
-      return getLocator().getByTestId(id);
+      return getLocator().getByTestId(id)
     },
     locator(selector) {
-      return getLocator().locator(selector);
+      return getLocator().locator(selector)
     },
     first() {
-      return getLocator().first();
+      return getLocator().first()
     },
     last() {
-      return getLocator().last();
+      return getLocator().last()
     },
     nth(index) {
-      return getLocator().nth(index);
+      return getLocator().nth(index)
     },
     resolve() {
-      return getLocator().resolve();
+      return getLocator().resolve()
     },
     resolveAll() {
-      return getLocator().resolveAll();
+      return getLocator().resolveAll()
     },
     count() {
-      return getLocator().count();
+      return getLocator().count()
     },
     textContent() {
-      return getLocator().textContent();
+      return getLocator().textContent()
     },
     getAttribute(name) {
-      return getLocator().getAttribute(name);
+      return getLocator().getAttribute(name)
     },
     boundingBox() {
-      return getLocator().boundingBox();
+      return getLocator().boundingBox()
     },
     isVisible() {
-      return getLocator().isVisible();
+      return getLocator().isVisible()
     },
 
     // Visual capture
     screenshot() {
-      const buffer = result.lastBuffer();
-      if (!buffer) return "";
-      return bufferToText(buffer);
+      const buffer = result.lastBuffer()
+      if (!buffer) return ""
+      return bufferToText(buffer)
     },
 
     screenshotAnsi() {
-      const buffer = result.lastBuffer();
-      if (!buffer) return "";
-      return bufferToStyledText(buffer);
+      const buffer = result.lastBuffer()
+      if (!buffer) return ""
+      return bufferToStyledText(buffer)
     },
 
     // Input simulation
@@ -266,22 +266,22 @@ export async function createBoardTest(
         pageup: "\x1b[5~",
         pagedown: "\x1b[6~",
         space: " ",
-      };
+      }
 
-      const normalized = key.toLowerCase();
-      const sequence = keyMap[normalized] ?? key;
-      result.stdin.write(sequence);
+      const normalized = key.toLowerCase()
+      const sequence = keyMap[normalized] ?? key
+      result.stdin.write(sequence)
     },
 
     pressMultiple(keys) {
       for (const key of keys) {
-        this.press(key);
+        this.press(key)
       }
     },
 
     type(text) {
       for (const char of text) {
-        result.stdin.write(char);
+        result.stdin.write(char)
       }
     },
 
@@ -289,27 +289,27 @@ export async function createBoardTest(
     getState() {
       // TODO: We need a way to get the current state from the rendered component
       // For now return the initial state - this is a limitation
-      return currentState;
+      return currentState
     },
 
     getCursor() {
-      const s = this.getState();
-      return [s.colIndex, s.cardIndex];
+      const s = this.getState()
+      return [s.colIndex, s.cardIndex]
     },
 
     getSelectedNode() {
-      const s = this.getState();
-      const col = s.columns[s.colIndex];
-      if (!col) return null;
-      const card = col.cards[s.cardIndex];
-      return card?.node ?? null;
+      const s = this.getState()
+      const col = s.columns[s.colIndex]
+      if (!col) return null
+      const card = col.cards[s.cardIndex]
+      return card?.node ?? null
     },
 
     // Lifecycle
     unmount() {
-      result.unmount();
+      result.unmount()
     },
-  };
+  }
 
-  return harness;
+  return harness
 }

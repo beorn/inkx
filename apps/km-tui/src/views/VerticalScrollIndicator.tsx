@@ -7,11 +7,11 @@
  * Uses inkx Box backgroundColor to fill the area - no manual height needed.
  * The component uses flexGrow to fill available vertical space.
  */
-import React from "react";
-import { Box, Text } from "inkx";
+import React from "react"
+import { Box, Text } from "inkx"
 
 export interface VerticalScrollIndicatorProps {
-  direction: "left" | "right";
+  direction: "left" | "right"
 }
 
 /**
@@ -21,7 +21,7 @@ export interface VerticalScrollIndicatorProps {
 export function VerticalScrollIndicator({
   direction,
 }: VerticalScrollIndicatorProps): React.ReactElement {
-  const arrow = direction === "left" ? "‹" : "›";
+  const arrow = direction === "left" ? "‹" : "›"
 
   return (
     <Box
@@ -34,7 +34,7 @@ export function VerticalScrollIndicator({
     >
       <Text color="white">{arrow}</Text>
     </Box>
-  );
+  )
 }
 
 /**
@@ -53,5 +53,5 @@ export function ColumnSeparator(): React.ReactElement {
       borderBottom={false}
       borderColor="gray"
     />
-  );
+  )
 }

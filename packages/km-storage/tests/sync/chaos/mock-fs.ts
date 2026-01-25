@@ -13,4 +13,4 @@ export {
   type FileSystemOps,
   type DirectoryScanner,
   type ErrorInjection,
-} from "@beorn/watcher-chaos";
+} from "@beorn/watcher-chaos"

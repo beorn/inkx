@@ -4,20 +4,20 @@
  * Uses inkx overflow="scroll" for native scrolling support.
  * Implements React-level virtualization for large card lists.
  */
-import React, { useCallback, useMemo, useRef } from "react";
-import createDebug from "debug";
-import { useVault } from "../vault-context.tsx";
-import { Box, Text, useScreenRectCallback } from "inkx";
-import { styledUnderline } from "@beorn/chalkx";
-import type { CardState, ColumnState } from "../types.ts";
-import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts";
-import { getOwnColor, getHeaderStyle } from "../board-pills.ts";
-import { TreeNode } from "./TreeNode.tsx";
-import { getNodeIcon, renderPlain } from "../text/index.ts";
-import { useLayoutRegistryOptional } from "../layout-context.tsx";
-import type { NodeLayout } from "../card-positions.ts";
+import React, { useCallback, useMemo, useRef } from "react"
+import createDebug from "debug"
+import { useVault } from "../vault-context.tsx"
+import { Box, Text, useScreenRectCallback } from "inkx"
+import { styledUnderline } from "@beorn/chalkx"
+import type { CardState, ColumnState } from "../types.ts"
+import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts"
+import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
+import { TreeNode } from "./TreeNode.tsx"
+import { getNodeIcon, renderPlain } from "../text/index.ts"
+import { useLayoutRegistryOptional } from "../layout-context.tsx"
+import type { NodeLayout } from "../card-positions.ts"
 
-const debug = createDebug("km:tui:card-layout");
+const debug = createDebug("km:tui:card-layout")
 
 // =============================================================================
 // Virtualization
@@ -25,31 +25,31 @@ const debug = createDebug("km:tui:card-layout");
 
 // Approximate card height (border + content + padding)
 // Used to calculate which cards to render
-const ESTIMATED_CARD_HEIGHT = 4;
+const ESTIMATED_CARD_HEIGHT = 4
 
 // Number of extra cards to render above and below visible area
 // This provides smooth scrolling without visible gaps
 // Increased from 5 to 15 to prevent blank rendering during scroll
 // when edge-based scrolling preserves offset near window boundaries
-const OVERSCAN = 15;
+const OVERSCAN = 15
 
 // Maximum number of cards to render at once
 // Beyond this, use placeholder to avoid overwhelming React
-const MAX_RENDERED_CARDS = 50;
+const MAX_RENDERED_CARDS = 50
 
 // =============================================================================
 // Card Component
 // =============================================================================
 
 export interface CardProps {
-  card: CardState;
-  isSelected: boolean;
-  selectedSubIndex: number;
-  width: number;
-  colIndex: number;
-  cardIndex: number;
+  card: CardState
+  isSelected: boolean
+  selectedSubIndex: number
+  width: number
+  colIndex: number
+  cardIndex: number
   /** True if this card is in a virtual body column (renders borderless) */
-  isVirtualColumn?: boolean;
+  isVirtualColumn?: boolean
 }
 
 /**
@@ -71,11 +71,11 @@ function CardLayoutRegistrar({
   cardIndex,
   nodeId,
 }: {
-  colIndex: number;
-  cardIndex: number;
-  nodeId: string;
+  colIndex: number
+  cardIndex: number
+  nodeId: string
 }): null {
-  const registry = useLayoutRegistryOptional();
+  const registry = useLayoutRegistryOptional()
 
   const handleLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
@@ -84,8 +84,8 @@ function CardLayoutRegistrar({
           "CardLayoutRegistrar: no registry for col=%d card=%d",
           colIndex,
           cardIndex,
-        );
-        return;
+        )
+        return
       }
 
       const layout: NodeLayout = {
@@ -93,7 +93,7 @@ function CardLayoutRegistrar({
         y: computed.y,
         cardWidth: computed.width,
         cardHeight: computed.height,
-      };
+      }
 
       debug(
         "CardLayoutRegistrar: col=%d card=%d y=%d h=%d",
@@ -101,15 +101,15 @@ function CardLayoutRegistrar({
         cardIndex,
         computed.y,
         computed.height,
-      );
-      registry.registerCard(colIndex, cardIndex, nodeId, layout);
+      )
+      registry.registerCard(colIndex, cardIndex, nodeId, layout)
     },
     [registry, colIndex, cardIndex, nodeId],
-  );
+  )
 
-  useScreenRectCallback(handleLayout);
+  useScreenRectCallback(handleLayout)
 
-  return null;
+  return null
 }
 
 export const Card = React.memo(
@@ -122,7 +122,7 @@ export const Card = React.memo(
     cardIndex,
     isVirtualColumn,
   }: CardProps): React.ReactElement {
-    const nodeId = card.node.id;
+    const nodeId = card.node.id
 
     // Virtual body content renders borderless (inline body content)
     // This includes: cards in virtual columns OR individual virtual body cards
@@ -149,7 +149,7 @@ export const Card = React.memo(
             dimInactiveChildren={true}
           />
         </Box>
-      );
+      )
     }
 
     return (
@@ -175,7 +175,7 @@ export const Card = React.memo(
           dimInactiveChildren={!isSelected}
         />
       </Box>
-    );
+    )
   },
   (prev, next) => {
     // Fast equality check for Card props
@@ -188,9 +188,9 @@ export const Card = React.memo(
       prev.width === next.width &&
       prev.colIndex === next.colIndex &&
       prev.cardIndex === next.cardIndex
-    );
+    )
   },
-);
+)
 
 // =============================================================================
 // Edge-Based Scrolling
@@ -198,7 +198,7 @@ export const Card = React.memo(
 
 // Padding from edge before scrolling (in items)
 // When cursor is within this many items of the edge, scroll to keep padding
-const SCROLL_PADDING = 2;
+const SCROLL_PADDING = 2
 
 /**
  * Calculate edge-based scroll offset.
@@ -217,33 +217,33 @@ function calcEdgeBasedScrollOffset(
   totalCount: number,
 ): number {
   // If nothing to scroll, stay at 0
-  if (totalCount <= visibleCount) return 0;
+  if (totalCount <= visibleCount) return 0
 
   // Calculate visible range
-  const visibleStart = currentOffset;
-  const visibleEnd = currentOffset + visibleCount - 1;
+  const visibleStart = currentOffset
+  const visibleEnd = currentOffset + visibleCount - 1
 
   // Check if selected is outside visible range (with padding)
-  const paddedStart = visibleStart + SCROLL_PADDING;
-  const paddedEnd = visibleEnd - SCROLL_PADDING;
+  const paddedStart = visibleStart + SCROLL_PADDING
+  const paddedEnd = visibleEnd - SCROLL_PADDING
 
-  let newOffset = currentOffset;
+  let newOffset = currentOffset
 
   if (selectedIndex < paddedStart) {
     // Cursor is near/above top edge - scroll up
     // Place cursor at SCROLL_PADDING from top
-    newOffset = Math.max(0, selectedIndex - SCROLL_PADDING);
+    newOffset = Math.max(0, selectedIndex - SCROLL_PADDING)
   } else if (selectedIndex > paddedEnd) {
     // Cursor is near/below bottom edge - scroll down
     // Place cursor at SCROLL_PADDING from bottom
     newOffset = Math.min(
       totalCount - visibleCount,
       selectedIndex - visibleCount + SCROLL_PADDING + 1,
-    );
+    )
   }
 
   // Clamp to valid range
-  return Math.max(0, Math.min(newOffset, totalCount - visibleCount));
+  return Math.max(0, Math.min(newOffset, totalCount - visibleCount))
 }
 
 // =============================================================================
@@ -251,16 +251,16 @@ function calcEdgeBasedScrollOffset(
 // =============================================================================
 
 interface VirtualizedCardListProps {
-  cards: CardState[];
-  selectedCardIndex: number;
-  selectedSubIndex: number;
-  isSelected: boolean;
-  selectionLevel: "board" | "column" | "card";
-  width: number;
-  height: number;
-  colIndex: number;
+  cards: CardState[]
+  selectedCardIndex: number
+  selectedSubIndex: number
+  isSelected: boolean
+  selectionLevel: "board" | "column" | "card"
+  width: number
+  height: number
+  colIndex: number
   /** True if this is a virtual body column (cards render borderless) */
-  isVirtualColumn?: boolean;
+  isVirtualColumn?: boolean
 }
 
 /**
@@ -286,13 +286,13 @@ function VirtualizedCardList({
 }: VirtualizedCardListProps): React.ReactElement {
   // Track scroll offset for edge-based scrolling
   // Using ref to persist across renders without causing re-renders
-  const scrollOffsetRef = useRef(0);
+  const scrollOffsetRef = useRef(0)
 
   // Calculate how many cards fit in the viewport
   const visibleCardCount = Math.max(
     1,
     Math.floor(height / ESTIMATED_CARD_HEIGHT),
-  );
+  )
 
   // Calculate edge-based scroll offset
   const newScrollOffset = calcEdgeBasedScrollOffset(
@@ -300,8 +300,8 @@ function VirtualizedCardList({
     scrollOffsetRef.current,
     visibleCardCount,
     cards.length,
-  );
-  scrollOffsetRef.current = newScrollOffset;
+  )
+  scrollOffsetRef.current = newScrollOffset
 
   // Calculate virtualization window
   const {
@@ -310,7 +310,7 @@ function VirtualizedCardList({
     topPlaceholderHeight,
     bottomPlaceholderHeight,
   } = useMemo(() => {
-    const totalCards = cards.length;
+    const totalCards = cards.length
 
     // For small lists, render everything
     if (totalCards <= MAX_RENDERED_CARDS) {
@@ -319,34 +319,34 @@ function VirtualizedCardList({
         endIndex: totalCards,
         topPlaceholderHeight: 0,
         bottomPlaceholderHeight: 0,
-      };
+      }
     }
 
     // Center the window around the selected card
-    const halfWindow = Math.floor(MAX_RENDERED_CARDS / 2);
-    let start = Math.max(0, selectedCardIndex - halfWindow);
-    let end = Math.min(totalCards, start + MAX_RENDERED_CARDS);
+    const halfWindow = Math.floor(MAX_RENDERED_CARDS / 2)
+    let start = Math.max(0, selectedCardIndex - halfWindow)
+    let end = Math.min(totalCards, start + MAX_RENDERED_CARDS)
 
     // Adjust start if we hit the end
     if (end === totalCards) {
-      start = Math.max(0, end - MAX_RENDERED_CARDS);
+      start = Math.max(0, end - MAX_RENDERED_CARDS)
     }
 
     // Add overscan
-    start = Math.max(0, start - OVERSCAN);
-    end = Math.min(totalCards, end + OVERSCAN);
+    start = Math.max(0, start - OVERSCAN)
+    end = Math.min(totalCards, end + OVERSCAN)
 
     // Calculate placeholder heights
-    const topHeight = start * ESTIMATED_CARD_HEIGHT;
-    const bottomHeight = (totalCards - end) * ESTIMATED_CARD_HEIGHT;
+    const topHeight = start * ESTIMATED_CARD_HEIGHT
+    const bottomHeight = (totalCards - end) * ESTIMATED_CARD_HEIGHT
 
     return {
       startIndex: start,
       endIndex: end,
       topPlaceholderHeight: topHeight,
       bottomPlaceholderHeight: bottomHeight,
-    };
-  }, [cards.length, selectedCardIndex, height]);
+    }
+  }, [cards.length, selectedCardIndex, height])
 
   if (cards.length === 0) {
     return (
@@ -355,18 +355,18 @@ function VirtualizedCardList({
           <Text dimColor>(empty)</Text>
         </Box>
       </Box>
-    );
+    )
   }
 
   // Get the slice of cards to render
-  const visibleCards = cards.slice(startIndex, endIndex);
+  const visibleCards = cards.slice(startIndex, endIndex)
 
   // Calculate scrollTo index using edge-based offset
   // scrollOffsetRef.current is the logical top card index
   // We need to translate to the index within our rendered slice
-  const hasTopPlaceholder = topPlaceholderHeight > 0;
+  const hasTopPlaceholder = topPlaceholderHeight > 0
   const scrollToIndex =
-    newScrollOffset - startIndex + (hasTopPlaceholder ? 1 : 0);
+    newScrollOffset - startIndex + (hasTopPlaceholder ? 1 : 0)
 
   return (
     <Box
@@ -383,11 +383,11 @@ function VirtualizedCardList({
 
       {/* Render visible cards */}
       {visibleCards.map((card: CardState, i: number) => {
-        const actualIndex = startIndex + i;
+        const actualIndex = startIndex + i
         const cardIsSelected =
           isSelected &&
           actualIndex === selectedCardIndex &&
-          selectionLevel === "card";
+          selectionLevel === "card"
         return (
           <Card
             key={card.node.id}
@@ -399,7 +399,7 @@ function VirtualizedCardList({
             cardIndex={actualIndex}
             isVirtualColumn={isVirtualColumn}
           />
-        );
+        )
       })}
 
       {/* Bottom placeholder for cards below visible range */}
@@ -407,7 +407,7 @@ function VirtualizedCardList({
         <Box height={bottomPlaceholderHeight} flexShrink={0} />
       )}
     </Box>
-  );
+  )
 }
 
 // =============================================================================
@@ -415,15 +415,15 @@ function VirtualizedCardList({
 // =============================================================================
 
 export interface ColumnProps {
-  column: ColumnState;
-  colIndex: number;
-  isSelected: boolean;
-  isCollapsed: boolean;
-  selectedCardIndex: number;
-  selectedSubIndex: number;
-  width: number;
-  height: number;
-  selectionLevel: "board" | "column" | "card";
+  column: ColumnState
+  colIndex: number
+  isSelected: boolean
+  isCollapsed: boolean
+  selectedCardIndex: number
+  selectedSubIndex: number
+  width: number
+  height: number
+  selectionLevel: "board" | "column" | "card"
 }
 
 /**
@@ -444,27 +444,27 @@ export const Column = React.memo(function Column({
   height,
   selectionLevel,
 }: ColumnProps): React.ReactElement {
-  const vault = useVault();
+  const vault = useVault()
   // Render name with wiki links stripped: [[target|alias]] → "alias"
-  const name = renderPlain(getNodeDisplayName(vault, column.node));
-  const typeSuffix = getCollapsedTypeSuffix(vault, column.node);
-  const count = column.cards.length;
-  const wipLimit = column.wipLimit;
-  const isVirtual = column.isVirtual ?? false;
+  const name = renderPlain(getNodeDisplayName(vault, column.node))
+  const typeSuffix = getCollapsedTypeSuffix(vault, column.node)
+  const count = column.cards.length
+  const wipLimit = column.wipLimit
+  const isVirtual = column.isVirtual ?? false
 
   // Get column's own color (not inherited) for background
   // Virtual body columns use dimmed gray styling
-  const ownColor = isVirtual ? undefined : getOwnColor(column.node);
-  const wipExceeded = wipLimit !== undefined && count > wipLimit;
+  const ownColor = isVirtual ? undefined : getOwnColor(column.node)
+  const wipExceeded = wipLimit !== undefined && count > wipLimit
 
   // Build count display
   const countDisplay =
-    wipLimit !== undefined ? `(${count}/${wipLimit})` : `(${count})`;
-  const warningIndicator = wipExceeded ? " \u26A0" : "";
-  const collapsedIndicator = isCollapsed ? " \u25B8" : "";
+    wipLimit !== undefined ? `(${count}/${wipLimit})` : `(${count})`
+  const warningIndicator = wipExceeded ? " \u26A0" : ""
+  const collapsedIndicator = isCollapsed ? " \u25B8" : ""
 
-  const isColumnSelected = isSelected && selectionLevel === "column";
-  const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnSelected);
+  const isColumnSelected = isSelected && selectionLevel === "column"
+  const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnSelected)
 
   // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
   // - Non-tasks with color: filled circle (●) in that color
@@ -472,9 +472,9 @@ export const Column = React.memo(function Column({
   // - Virtual body columns: dimmed info icon
   const icon = isVirtual
     ? { char: "·", color: "gray" as const }
-    : getNodeIcon(null, ownColor, false);
+    : getNodeIcon(null, ownColor, false)
   // When column is selected, icon should be black on yellow bg
-  const iconColor = isColumnSelected ? "black" : icon.color;
+  const iconColor = isColumnSelected ? "black" : icon.color
 
   return (
     <Box
@@ -562,5 +562,5 @@ export const Column = React.memo(function Column({
         />
       )}
     </Box>
-  );
-});
+  )
+})

@@ -6,95 +6,95 @@
  * km-disposable.3: Wrapped with Service factory pattern
  */
 
-import createDebug from "debug";
-import { cpus } from "os";
-import type { ServiceStatus } from "./watcher.ts";
+import createDebug from "debug"
+import { cpus } from "os"
+import type { ServiceStatus } from "./watcher.ts"
 import type {
   ParseRequest,
   WorkerMessage,
   WorkerResponse,
-} from "./parse-worker.ts";
+} from "./parse-worker.ts"
 
-const debug = createDebug("km:storage:parse-pool");
+const debug = createDebug("km:storage:parse-pool")
 
 // For forwarding worker debug - call createDebug.log directly
 // This ensures it goes through debug-log.ts if loaded (CLI context)
 const forwardWorkerDebug = (formattedMessage: string) => {
-  createDebug.log(formattedMessage);
-};
+  createDebug.log(formattedMessage)
+}
 
 export interface ParseResult {
-  nodeId: string;
-  fsPath: string;
-  nodes: unknown[];
-  wikilinks: unknown[];
-  error?: string;
+  nodeId: string
+  fsPath: string
+  nodes: unknown[]
+  wikilinks: unknown[]
+  error?: string
 }
 
 export interface ParsePoolOptions {
   /** Number of worker threads (default: CPU count - 1, min 1) */
-  poolSize?: number;
+  poolSize?: number
 }
 
 /**
  * Pool of worker threads for parallel markdown parsing.
  */
 export class ParsePool {
-  private workers: Worker[] = [];
-  private availableWorkers: Worker[] = [];
+  private workers: Worker[] = []
+  private availableWorkers: Worker[] = []
   private pendingRequests: Map<
     number,
     {
-      resolve: (result: ParseResult) => void;
-      reject: (error: Error) => void;
+      resolve: (result: ParseResult) => void
+      reject: (error: Error) => void
     }
-  > = new Map();
-  private requestQueue: ParseRequest[] = [];
-  private nextRequestId = 0;
-  private poolSize: number;
-  private shutdownPromise: Promise<void> | null = null;
+  > = new Map()
+  private requestQueue: ParseRequest[] = []
+  private nextRequestId = 0
+  private poolSize: number
+  private shutdownPromise: Promise<void> | null = null
 
   constructor(options?: ParsePoolOptions) {
-    this.poolSize = options?.poolSize ?? Math.max(1, cpus().length - 1);
-    debug("creating pool with %d workers", this.poolSize);
+    this.poolSize = options?.poolSize ?? Math.max(1, cpus().length - 1)
+    debug("creating pool with %d workers", this.poolSize)
   }
 
   /**
    * Start the worker pool.
    */
   async start(): Promise<void> {
-    debug("starting pool");
+    debug("starting pool")
 
-    const readyPromises: Promise<void>[] = [];
+    const readyPromises: Promise<void>[] = []
 
     for (let i = 0; i < this.poolSize; i++) {
-      const worker = new Worker(new URL("./parse-worker.ts", import.meta.url));
+      const worker = new Worker(new URL("./parse-worker.ts", import.meta.url))
 
       const readyPromise = new Promise<void>((resolve) => {
         const onMessage = (event: MessageEvent<WorkerResponse>) => {
           if (event.data.type === "ready") {
-            worker.removeEventListener("message", onMessage);
-            resolve();
+            worker.removeEventListener("message", onMessage)
+            resolve()
           }
-        };
-        worker.addEventListener("message", onMessage);
-      });
-      readyPromises.push(readyPromise);
+        }
+        worker.addEventListener("message", onMessage)
+      })
+      readyPromises.push(readyPromise)
 
       worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-        this.handleWorkerMessage(worker, event.data);
-      };
+        this.handleWorkerMessage(worker, event.data)
+      }
 
       worker.onerror = (error: ErrorEvent) => {
-        debug("worker error: %s", error.message);
-      };
+        debug("worker error: %s", error.message)
+      }
 
-      this.workers.push(worker);
+      this.workers.push(worker)
     }
 
-    await Promise.all(readyPromises);
-    this.availableWorkers = [...this.workers];
-    debug("pool started, %d workers ready", this.workers.length);
+    await Promise.all(readyPromises)
+    this.availableWorkers = [...this.workers]
+    debug("pool started, %d workers ready", this.workers.length)
   }
 
   /**
@@ -102,26 +102,26 @@ export class ParsePool {
    */
   parse(nodeId: string, fsPath: string): Promise<ParseResult> {
     return new Promise((resolve, reject) => {
-      const id = this.nextRequestId++;
+      const id = this.nextRequestId++
 
-      this.pendingRequests.set(id, { resolve, reject });
+      this.pendingRequests.set(id, { resolve, reject })
 
       const request: ParseRequest = {
         type: "parse",
         id,
         nodeId,
         fsPath,
-      };
+      }
 
       // If a worker is available, dispatch immediately
-      const worker = this.availableWorkers.pop();
+      const worker = this.availableWorkers.pop()
       if (worker) {
-        worker.postMessage(request);
+        worker.postMessage(request)
       } else {
         // Queue the request
-        this.requestQueue.push(request);
+        this.requestQueue.push(request)
       }
-    });
+    })
   }
 
   /**
@@ -132,32 +132,32 @@ export class ParsePool {
     onProgress?: (current: number, total: number) => void,
     shouldAbort?: () => boolean,
   ): Promise<ParseResult[]> {
-    const total = files.length;
-    const results: ParseResult[] = [];
-    let completed = 0;
+    const total = files.length
+    const results: ParseResult[] = []
+    let completed = 0
 
     const promises = files.map(async ({ nodeId, fsPath }) => {
       if (shouldAbort?.()) {
-        return null;
+        return null
       }
 
-      const result = await this.parse(nodeId, fsPath);
-      completed++;
-      onProgress?.(completed, total);
-      return result;
-    });
+      const result = await this.parse(nodeId, fsPath)
+      completed++
+      onProgress?.(completed, total)
+      return result
+    })
 
     for (const promise of promises) {
-      const result = await promise;
+      const result = await promise
       if (result) {
-        results.push(result);
+        results.push(result)
       }
       if (shouldAbort?.()) {
-        break;
+        break
       }
     }
 
-    return results;
+    return results
   }
 
   /**
@@ -165,10 +165,10 @@ export class ParsePool {
    */
   async shutdown(): Promise<void> {
     if (this.shutdownPromise) {
-      return this.shutdownPromise;
+      return this.shutdownPromise
     }
 
-    debug("shutting down pool");
+    debug("shutting down pool")
 
     this.shutdownPromise = (async () => {
       await Promise.all(
@@ -176,28 +176,28 @@ export class ParsePool {
           (worker) =>
             new Promise<void>((resolve) => {
               const timeout = setTimeout(() => {
-                worker.terminate();
-                resolve();
-              }, 1000);
+                worker.terminate()
+                resolve()
+              }, 1000)
 
               worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
                 if (event.data.type === "shutdown") {
-                  clearTimeout(timeout);
-                  worker.terminate();
-                  resolve();
+                  clearTimeout(timeout)
+                  worker.terminate()
+                  resolve()
                 }
-              };
+              }
 
-              worker.postMessage({ type: "shutdown" } satisfies WorkerMessage);
+              worker.postMessage({ type: "shutdown" } satisfies WorkerMessage)
             }),
         ),
-      );
-      this.workers = [];
-      this.availableWorkers = [];
-      debug("pool shut down");
-    })();
+      )
+      this.workers = []
+      this.availableWorkers = []
+      debug("pool shut down")
+    })()
 
-    return this.shutdownPromise;
+    return this.shutdownPromise
   }
 
   private handleWorkerMessage(worker: Worker, message: WorkerResponse): void {
@@ -205,33 +205,33 @@ export class ParsePool {
       // Forward worker debug through createDebug.log
       // In CLI context, debug-log.ts overrides this to write to DEBUG_LOG
       // In other contexts, it goes to stderr
-      forwardWorkerDebug(message.message);
-      return;
+      forwardWorkerDebug(message.message)
+      return
     }
 
     if (message.type === "parsed") {
-      const pending = this.pendingRequests.get(message.id);
+      const pending = this.pendingRequests.get(message.id)
       if (pending) {
-        this.pendingRequests.delete(message.id);
+        this.pendingRequests.delete(message.id)
 
         if (message.error) {
-          pending.reject(new Error(message.error));
+          pending.reject(new Error(message.error))
         } else {
           pending.resolve({
             nodeId: message.nodeId,
             fsPath: message.fsPath,
             nodes: message.nodes,
             wikilinks: message.wikilinks,
-          });
+          })
         }
       }
 
       // Process next queued request
-      const nextRequest = this.requestQueue.shift();
+      const nextRequest = this.requestQueue.shift()
       if (nextRequest) {
-        worker.postMessage(nextRequest);
+        worker.postMessage(nextRequest)
       } else {
-        this.availableWorkers.push(worker);
+        this.availableWorkers.push(worker)
       }
     }
   }
@@ -242,15 +242,15 @@ export class ParsePool {
  * Implements AsyncDisposable for automatic cleanup.
  */
 export interface ParsePoolService extends AsyncDisposable {
-  readonly status: ServiceStatus;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  parse(nodeId: string, fsPath: string): Promise<ParseResult>;
+  readonly status: ServiceStatus
+  start(): Promise<void>
+  stop(): Promise<void>
+  parse(nodeId: string, fsPath: string): Promise<ParseResult>
   parseMany(
     files: Array<{ nodeId: string; fsPath: string }>,
     onProgress?: (current: number, total: number) => void,
     shouldAbort?: () => boolean,
-  ): Promise<ParseResult[]>;
+  ): Promise<ParseResult[]>
 }
 
 /**
@@ -269,57 +269,57 @@ export interface ParsePoolService extends AsyncDisposable {
  * @returns ParsePoolService
  */
 export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
-  debug("createParsePool", { options });
+  debug("createParsePool", { options })
 
-  const pool = new ParsePool(options);
-  let status: ServiceStatus = "stopped";
+  const pool = new ParsePool(options)
+  let status: ServiceStatus = "stopped"
 
   return {
     get status() {
-      return status;
+      return status
     },
 
     async start() {
       if (status !== "stopped") {
-        debug("start called but status is %s", status);
-        return;
+        debug("start called but status is %s", status)
+        return
       }
 
-      status = "starting";
-      debug("starting parse pool");
+      status = "starting"
+      debug("starting parse pool")
 
       try {
-        await pool.start();
-        status = "running";
-        debug("parse pool started");
+        await pool.start()
+        status = "running"
+        debug("parse pool started")
       } catch (error) {
-        status = "stopped";
-        throw error;
+        status = "stopped"
+        throw error
       }
     },
 
     async stop() {
       if (status !== "running") {
-        debug("stop called but status is %s", status);
-        return;
+        debug("stop called but status is %s", status)
+        return
       }
 
-      status = "stopping";
-      debug("stopping parse pool");
+      status = "stopping"
+      debug("stopping parse pool")
 
       try {
-        await pool.shutdown();
-        status = "stopped";
-        debug("parse pool stopped");
+        await pool.shutdown()
+        status = "stopped"
+        debug("parse pool stopped")
       } catch (error) {
         // Force status to stopped even on error
-        status = "stopped";
-        throw error;
+        status = "stopped"
+        throw error
       }
     },
 
     parse(nodeId: string, fsPath: string) {
-      return pool.parse(nodeId, fsPath);
+      return pool.parse(nodeId, fsPath)
     },
 
     parseMany(
@@ -327,17 +327,17 @@ export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
       onProgress?: (current: number, total: number) => void,
       shouldAbort?: () => boolean,
     ) {
-      return pool.parseMany(files, onProgress, shouldAbort);
+      return pool.parseMany(files, onProgress, shouldAbort)
     },
 
     async [Symbol.asyncDispose]() {
-      await this.stop();
+      await this.stop()
     },
-  };
+  }
 }
 
 // Singleton instance for convenient access
-let defaultPool: ParsePoolService | null = null;
+let defaultPool: ParsePoolService | null = null
 
 /**
  * Get or create the default parse pool.
@@ -345,10 +345,10 @@ let defaultPool: ParsePoolService | null = null;
  */
 export async function getParsePool(): Promise<ParsePoolService> {
   if (!defaultPool) {
-    defaultPool = createParsePool();
-    await defaultPool.start();
+    defaultPool = createParsePool()
+    await defaultPool.start()
   }
-  return defaultPool;
+  return defaultPool
 }
 
 /**
@@ -357,7 +357,7 @@ export async function getParsePool(): Promise<ParsePoolService> {
  */
 export async function shutdownParsePool(): Promise<void> {
   if (defaultPool) {
-    await defaultPool.stop();
-    defaultPool = null;
+    await defaultPool.stop()
+    defaultPool = null
   }
 }

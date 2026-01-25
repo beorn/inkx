@@ -7,30 +7,30 @@ export {
   detectCaseSensitivity,
   normalizePath,
   detectCaseCollisions,
-} from "./watcher.ts";
+} from "./watcher.ts"
 
 export type {
   WatcherConfig,
   FileChange,
   SymlinkInfo,
   CaseCollision,
-} from "./watcher.ts";
+} from "./watcher.ts"
 
 // Worker-based watcher (non-blocking)
-export { WorkerWatcher } from "./worker-bridge.ts";
+export { WorkerWatcher } from "./worker-bridge.ts"
 
-export type { WorkerWatcherConfig } from "./worker-bridge.ts";
+export type { WorkerWatcherConfig } from "./worker-bridge.ts"
 
 // Watcher status types
-export type { WatcherStatus, WatcherState } from "./worker-thread.ts";
+export type { WatcherStatus, WatcherState } from "./worker-thread.ts"
 
 // Shared types
-export type { WatcherInterface, SyncData } from "./types.ts";
+export type { WatcherInterface, SyncData } from "./types.ts"
 
 // Sync
-export { SyncManager } from "./sync.ts";
+export { SyncManager } from "./sync.ts"
 
-export type { SyncConfig, SyncFromFsResult } from "./sync.ts";
+export type { SyncConfig, SyncFromFsResult } from "./sync.ts"
 
 // Reconcile
 export {
@@ -38,9 +38,9 @@ export {
   reconcileDirectoryRecursive,
   applyReconcileOps,
   getParentNodeId,
-} from "./reconcile.ts";
+} from "./reconcile.ts"
 
-export type { ReconcileOp, FsEntry, DirectoryScanner } from "./reconcile.ts";
+export type { ReconcileOp, FsEntry, DirectoryScanner } from "./reconcile.ts"
 
 // Ignore patterns
 export {
@@ -53,14 +53,14 @@ export {
   matchesPattern,
   shouldIgnore,
   isHiddenFile,
-} from "./ignore.ts";
+} from "./ignore.ts"
 
 // Write queue
-export { WriteQueue, shouldApplyToFs } from "./writequeue.ts";
+export { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 
 export type {
   PendingWrite,
   WriteQueueConfig,
   InFlightTracker,
   FileSystemOps,
-} from "./writequeue.ts";
+} from "./writequeue.ts"

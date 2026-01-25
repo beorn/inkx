@@ -20,23 +20,23 @@
  * Adapted from cloudi: ../cloudi/scripts/generate-build-info.ts
  */
 
-import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { execSync } from "node:child_process"
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs"
+import { join } from "node:path"
 
-const PROJECT_ROOT = import.meta.dir + "/..";
+const PROJECT_ROOT = import.meta.dir + "/.."
 
 /**
  * Get git information safely with fallbacks
  */
 function getGitInfo() {
-  let commit = "unknown";
-  let branch = "unknown";
-  let isDirty = false;
+  let commit = "unknown"
+  let branch = "unknown"
+  let isDirty = false
 
   // Check env vars first (set by Docker ARG or CI)
   if (process.env.GIT_COMMIT) {
-    commit = process.env.GIT_COMMIT.slice(0, 7);
+    commit = process.env.GIT_COMMIT.slice(0, 7)
   } else {
     try {
       commit = execSync("git rev-parse --short HEAD", {
@@ -46,14 +46,14 @@ function getGitInfo() {
         stdio: ["ignore", "pipe", "ignore"],
       })
         .trim()
-        .slice(0, 7); // Ensure exactly 7 chars
+        .slice(0, 7) // Ensure exactly 7 chars
     } catch {
-      commit = "unknown";
+      commit = "unknown"
     }
   }
 
   if (process.env.GIT_BRANCH) {
-    branch = process.env.GIT_BRANCH;
+    branch = process.env.GIT_BRANCH
   } else {
     try {
       branch = execSync("git rev-parse --abbrev-ref HEAD", {
@@ -61,9 +61,9 @@ function getGitInfo() {
         encoding: "utf8",
         timeout: 5000,
         stdio: ["ignore", "pipe", "ignore"],
-      }).trim();
+      }).trim()
     } catch {
-      branch = "unknown";
+      branch = "unknown"
     }
   }
 
@@ -73,32 +73,32 @@ function getGitInfo() {
       encoding: "utf8",
       timeout: 5000,
       stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    isDirty = status.length > 0;
+    }).trim()
+    isDirty = status.length > 0
   } catch {
     // Can't determine, assume clean
-    isDirty = false;
+    isDirty = false
   }
 
-  return { commit, branch, isDirty };
+  return { commit, branch, isDirty }
 }
 
 /**
  * Get version from package.json
  */
 function getVersion() {
-  const packageJsonPath = join(PROJECT_ROOT, "package.json");
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-  return packageJson.version;
+  const packageJsonPath = join(PROJECT_ROOT, "package.json")
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"))
+  return packageJson.version
 }
 
 /**
  * Generate build info file
  */
 function generateBuildInfo() {
-  const buildTime = new Date().toISOString();
-  const git = getGitInfo();
-  const version = getVersion();
+  const buildTime = new Date().toISOString()
+  const git = getGitInfo()
+  const version = getVersion()
 
   const content = `/**
  * Auto-generated build information
@@ -139,24 +139,24 @@ export const BUILD_INFO: BuildInfo = {
   gitDirty: GIT_DIRTY,
   version: VERSION,
 }
-`;
+`
 
   // Ensure directory exists
-  const outputDir = join(PROJECT_ROOT, "packages/km-core/src");
-  mkdirSync(outputDir, { recursive: true });
+  const outputDir = join(PROJECT_ROOT, "packages/km-core/src")
+  mkdirSync(outputDir, { recursive: true })
 
-  const outputPath = join(outputDir, "build-info.gen.ts");
-  writeFileSync(outputPath, content, "utf-8");
+  const outputPath = join(outputDir, "build-info.gen.ts")
+  writeFileSync(outputPath, content, "utf-8")
 
-  console.log(`✅ Generated build info: ${outputPath}`);
-  console.log(`   Version: ${version}`);
-  console.log(`   Commit: ${git.commit}`);
-  console.log(`   Branch: ${git.branch}`);
-  console.log(`   Dirty: ${git.isDirty}`);
-  console.log(`   Built: ${buildTime}`);
+  console.log(`✅ Generated build info: ${outputPath}`)
+  console.log(`   Version: ${version}`)
+  console.log(`   Commit: ${git.commit}`)
+  console.log(`   Branch: ${git.branch}`)
+  console.log(`   Dirty: ${git.isDirty}`)
+  console.log(`   Built: ${buildTime}`)
 }
 
 // Run if called directly
 if (import.meta.main) {
-  generateBuildInfo();
+  generateBuildInfo()
 }

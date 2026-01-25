@@ -1,15 +1,15 @@
 /**
  * Board lifecycle effects - setup/teardown hooks
  */
-import type { WriteStream } from "tty";
-import type { Dispatch } from "react";
-import { actions, type UIAction } from "../ui-reducer.ts";
-import { createPasteHandler, supportsFileDrop } from "../paste-handler.ts";
-import type { SelectionRange } from "../mouse-handler.ts";
-import { tuiEvents } from "../tui.ts";
-import type { WatcherStatus } from "@km/storage";
-import type { Vault } from "../vault-context.tsx";
-import type { BoardAction } from "@km/board";
+import type { WriteStream } from "tty"
+import type { Dispatch } from "react"
+import { actions, type UIAction } from "../ui-reducer.ts"
+import { createPasteHandler, supportsFileDrop } from "../paste-handler.ts"
+import type { SelectionRange } from "../mouse-handler.ts"
+import { tuiEvents } from "../tui.ts"
+import type { WatcherStatus } from "@km/storage"
+import type { Vault } from "../vault-context.tsx"
+import type { BoardAction } from "@km/board"
 
 /**
  * Creates the terminal dimension sync effect
@@ -19,49 +19,49 @@ export function createSyncTerminalDimensions(
   stdout: WriteStream | undefined,
   dispatch: Dispatch<UIAction>,
 ): () => void | undefined {
-  if (!stdout) return () => {};
+  if (!stdout) return () => {}
 
   const handleResize = () => {
     dispatch(
       actions.setDimensions({ columns: stdout.columns, rows: stdout.rows }),
-    );
-  };
+    )
+  }
 
   // Check if stdout has valid dimensions (not undefined)
   const syncDimensions = () => {
     if (stdout.columns !== undefined && stdout.rows !== undefined) {
       dispatch(
         actions.setDimensions({ columns: stdout.columns, rows: stdout.rows }),
-      );
-      return true;
+      )
+      return true
     }
-    return false;
-  };
+    return false
+  }
 
   // Try to sync immediately, otherwise poll until dimensions are available
   if (!syncDimensions()) {
     const interval = setInterval(() => {
       if (syncDimensions()) {
-        clearInterval(interval);
+        clearInterval(interval)
         // Delay before marking ready to ensure alternate buffer is stable
-        setTimeout(() => dispatch(actions.setReady(true)), 50);
+        setTimeout(() => dispatch(actions.setReady(true)), 50)
       }
-    }, 10);
-    stdout.on("resize", handleResize);
+    }, 10)
+    stdout.on("resize", handleResize)
     return () => {
-      clearInterval(interval);
-      stdout.off("resize", handleResize);
-    };
+      clearInterval(interval)
+      stdout.off("resize", handleResize)
+    }
   }
 
   // Dimensions available immediately - still delay to avoid race condition
-  const timeout = setTimeout(() => dispatch(actions.setReady(true)), 50);
+  const timeout = setTimeout(() => dispatch(actions.setReady(true)), 50)
 
-  stdout.on("resize", handleResize);
+  stdout.on("resize", handleResize)
   return () => {
-    clearTimeout(timeout);
-    stdout.off("resize", handleResize);
-  };
+    clearTimeout(timeout)
+    stdout.off("resize", handleResize)
+  }
 }
 
 /**
@@ -71,16 +71,16 @@ export function createSyncTerminalDimensions(
 export function createFileDropHandler(
   dispatch: Dispatch<UIAction>,
 ): () => void | undefined {
-  if (!supportsFileDrop()) return () => {};
+  if (!supportsFileDrop()) return () => {}
 
   const cleanup = createPasteHandler((files) => {
-    dispatch(actions.setDroppedFiles(files));
-    dispatch(actions.showDropNotification());
+    dispatch(actions.setDroppedFiles(files))
+    dispatch(actions.showDropNotification())
     // Auto-hide notification after 3 seconds
-    setTimeout(() => dispatch(actions.hideDropNotification()), 3000);
-  });
+    setTimeout(() => dispatch(actions.hideDropNotification()), 3000)
+  })
 
-  return cleanup;
+  return cleanup
 }
 
 /**
@@ -97,7 +97,7 @@ export function createMouseHandler_(
 ): () => void | undefined {
   // TODO: Fix mouse integration - not working properly yet
   // Disable for now until scroll wheel and click-to-select work correctly
-  return () => {};
+  return () => {}
 }
 
 /**
@@ -121,12 +121,12 @@ export function createRefreshHandler(
   const handleRefresh = () => {
     // No-op: columns are derived from vault at render time
     // React will re-render when vault.stats changes
-  };
+  }
 
-  tuiEvents.on("refresh", handleRefresh);
+  tuiEvents.on("refresh", handleRefresh)
   return () => {
-    tuiEvents.off("refresh", handleRefresh);
-  };
+    tuiEvents.off("refresh", handleRefresh)
+  }
 }
 
 /**
@@ -137,11 +137,11 @@ export function createWatcherStatusHandler(
   dispatch: Dispatch<UIAction>,
 ): () => void {
   const handleWatcherStatus = (status: WatcherStatus) => {
-    dispatch(actions.setWatcherStatus(status));
-  };
+    dispatch(actions.setWatcherStatus(status))
+  }
 
-  tuiEvents.on("watcher-status", handleWatcherStatus);
+  tuiEvents.on("watcher-status", handleWatcherStatus)
   return () => {
-    tuiEvents.off("watcher-status", handleWatcherStatus);
-  };
+    tuiEvents.off("watcher-status", handleWatcherStatus)
+  }
 }

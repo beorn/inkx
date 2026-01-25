@@ -4,10 +4,10 @@
  * Tests for chaos test report generation and formatting.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
-import { join } from "path";
-import { runGenerator } from "@km/core";
+import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
+import { join } from "path"
+import { runGenerator } from "@km/core"
 import {
   createVault,
   createChaosHooks,
@@ -18,40 +18,40 @@ import {
   formatChaosReportJson,
   formatChaosReportMarkdown,
   closeDb,
-} from "../../src/index.ts";
-import type { ChaosReport, ChaosScenario } from "../../src/index.ts";
+} from "../../src/index.ts"
+import type { ChaosReport, ChaosScenario } from "../../src/index.ts"
 
 // Tests that don't use createVault can run in parallel
 describe("generateChaosReport", () => {
   test("generates report with ChaosHooks", () => {
-    const random = createSeededRandom(12345);
+    const random = createSeededRandom(12345)
     const hooks = createChaosHooks({
       mutationDropRate: 0.5,
       random,
-    });
+    })
 
     const scenario: ChaosScenario = {
       name: "test-scenario",
       seed: 12345,
       description: "Test scenario for report generation",
-    };
+    }
 
     const report = generateChaosReport({
       scenario,
       hooks,
       invariantsViolated: [],
       passed: true,
-    });
+    })
 
-    expect(report.scenario.name).toBe("test-scenario");
-    expect(report.scenario.seed).toBe(12345);
-    expect(report.passed).toBe(true);
-    expect(report.invariantsViolated).toEqual([]);
-    expect(report.chaosStats).toBeDefined();
-    expect(report.stateSnapshot).toBeDefined();
-    expect(report.recommendations).toEqual([]);
-    expect(report.generatedAt).toBeGreaterThan(0);
-  });
+    expect(report.scenario.name).toBe("test-scenario")
+    expect(report.scenario.seed).toBe(12345)
+    expect(report.passed).toBe(true)
+    expect(report.invariantsViolated).toEqual([])
+    expect(report.chaosStats).toBeDefined()
+    expect(report.stateSnapshot).toBeDefined()
+    expect(report.recommendations).toEqual([])
+    expect(report.generatedAt).toBeGreaterThan(0)
+  })
 
   test("generates report with ChaosFakeVault", () => {
     const fakeVault = createChaosFakeVault({
@@ -69,23 +69,23 @@ describe("generateChaosReport", () => {
           version: "test-1",
         },
       ],
-    });
+    })
 
     const scenario: ChaosScenario = {
       name: "fake-vault-test",
       seed: 99999,
-    };
+    }
 
     const report = generateChaosReport({
       scenario,
       fakeVault,
       passed: true,
-    });
+    })
 
-    expect(report.stateSnapshot.nodeCount).toBe(1);
-    expect(report.stateSnapshot.orphanedNodes).toHaveLength(0);
-    expect(report.stateSnapshot.duplicates).toHaveLength(0);
-  });
+    expect(report.stateSnapshot.nodeCount).toBe(1)
+    expect(report.stateSnapshot.orphanedNodes).toHaveLength(0)
+    expect(report.stateSnapshot.duplicates).toHaveLength(0)
+  })
 
   test("detects orphaned nodes in ChaosFakeVault", () => {
     const fakeVault = createChaosFakeVault({
@@ -115,24 +115,24 @@ describe("generateChaosReport", () => {
           version: "test-2",
         },
       ],
-    });
+    })
 
     const report = generateChaosReport({
       scenario: { name: "orphan-test", seed: 1 },
       fakeVault,
       passed: false,
       invariantsViolated: ["orphaned nodes found"],
-    });
+    })
 
-    expect(report.passed).toBe(false);
-    expect(report.stateSnapshot.orphanedNodes).toHaveLength(1);
-    expect(report.recommendations.length).toBeGreaterThan(0);
-    expect(report.recommendations[0]!.type).toBe("bug");
-    expect(report.recommendations[0]!.priority).toBe(1);
-  });
+    expect(report.passed).toBe(false)
+    expect(report.stateSnapshot.orphanedNodes).toHaveLength(1)
+    expect(report.recommendations.length).toBeGreaterThan(0)
+    expect(report.recommendations[0]!.type).toBe("bug")
+    expect(report.recommendations[0]!.priority).toBe(1)
+  })
 
   test("generates recommendations for high drop rate", () => {
-    const hooks = createChaosHooks({ mutationDropRate: 1.0 });
+    const hooks = createChaosHooks({ mutationDropRate: 1.0 })
 
     // Simulate some mutations being tracked
     // We can't easily trigger mutations without a real vault, so just check the structure
@@ -141,22 +141,22 @@ describe("generateChaosReport", () => {
       hooks,
       invariantsViolated: ["data loss detected"],
       passed: false,
-    });
+    })
 
-    expect(report.passed).toBe(false);
-    expect(report.invariantsViolated).toContain("data loss detected");
-  });
+    expect(report.passed).toBe(false)
+    expect(report.invariantsViolated).toContain("data loss detected")
+  })
 
   test("includes duration when provided", () => {
     const report = generateChaosReport({
       scenario: { name: "timed-test", seed: 1 },
       durationMs: 1500,
       passed: true,
-    });
+    })
 
-    expect(report.durationMs).toBe(1500);
-  });
-});
+    expect(report.durationMs).toBe(1500)
+  })
+})
 
 describe("formatChaosReport", () => {
   test("formats report as human-readable text", () => {
@@ -192,22 +192,22 @@ describe("formatChaosReport", () => {
       ],
       generatedAt: Date.now(),
       durationMs: 500,
-    };
+    }
 
-    const formatted = formatChaosReport(report);
+    const formatted = formatChaosReport(report)
 
-    expect(formatted).toContain("CHAOS TEST REPORT: format-test");
-    expect(formatted).toContain("✗ FAILED");
-    expect(formatted).toContain("Seed: 42");
-    expect(formatted).toContain("Duration: 500ms");
-    expect(formatted).toContain("INVARIANTS VIOLATED:");
-    expect(formatted).toContain("test invariant");
-    expect(formatted).toContain("Total mutations: 100");
-    expect(formatted).toContain("Dropped: 10");
-    expect(formatted).toContain("RECOMMENDATIONS:");
-    expect(formatted).toContain("Fix the thing");
-    expect(formatted).toContain("Do this instead");
-  });
+    expect(formatted).toContain("CHAOS TEST REPORT: format-test")
+    expect(formatted).toContain("✗ FAILED")
+    expect(formatted).toContain("Seed: 42")
+    expect(formatted).toContain("Duration: 500ms")
+    expect(formatted).toContain("INVARIANTS VIOLATED:")
+    expect(formatted).toContain("test invariant")
+    expect(formatted).toContain("Total mutations: 100")
+    expect(formatted).toContain("Dropped: 10")
+    expect(formatted).toContain("RECOMMENDATIONS:")
+    expect(formatted).toContain("Fix the thing")
+    expect(formatted).toContain("Do this instead")
+  })
 
   test("formats passing report", () => {
     const report: ChaosReport = {
@@ -230,14 +230,14 @@ describe("formatChaosReport", () => {
       },
       recommendations: [],
       generatedAt: Date.now(),
-    };
+    }
 
-    const formatted = formatChaosReport(report);
+    const formatted = formatChaosReport(report)
 
-    expect(formatted).toContain("✓ PASSED");
-    expect(formatted).not.toContain("INVARIANTS VIOLATED:");
-  });
-});
+    expect(formatted).toContain("✓ PASSED")
+    expect(formatted).not.toContain("INVARIANTS VIOLATED:")
+  })
+})
 
 describe("formatChaosReportJson", () => {
   test("formats report as valid JSON", () => {
@@ -261,15 +261,15 @@ describe("formatChaosReportJson", () => {
       },
       recommendations: [],
       generatedAt: Date.now(),
-    };
+    }
 
-    const json = formatChaosReportJson(report);
-    const parsed = JSON.parse(json);
+    const json = formatChaosReportJson(report)
+    const parsed = JSON.parse(json)
 
-    expect(parsed.scenario.name).toBe("json-test");
-    expect(parsed.passed).toBe(true);
-  });
-});
+    expect(parsed.scenario.name).toBe("json-test")
+    expect(parsed.passed).toBe(true)
+  })
+})
 
 describe("formatChaosReportMarkdown", () => {
   test("formats report as markdown", () => {
@@ -303,38 +303,38 @@ describe("formatChaosReportMarkdown", () => {
         },
       ],
       generatedAt: Date.now(),
-    };
+    }
 
-    const markdown = formatChaosReportMarkdown(report);
+    const markdown = formatChaosReportMarkdown(report)
 
-    expect(markdown).toContain("# Chaos Test Report: markdown-test");
-    expect(markdown).toContain("✗ Failed");
-    expect(markdown).toContain("`456`");
-    expect(markdown).toContain("## Invariants Violated");
-    expect(markdown).toContain("something broke");
-    expect(markdown).toContain("| Total mutations | 200 |");
-    expect(markdown).toContain("## Recommendations");
-    expect(markdown).toContain("🟡 P3");
-    expect(markdown).toContain("## Reproduction");
-    expect(markdown).toContain("createSeededRandom(456)");
-  });
-});
+    expect(markdown).toContain("# Chaos Test Report: markdown-test")
+    expect(markdown).toContain("✗ Failed")
+    expect(markdown).toContain("`456`")
+    expect(markdown).toContain("## Invariants Violated")
+    expect(markdown).toContain("something broke")
+    expect(markdown).toContain("| Total mutations | 200 |")
+    expect(markdown).toContain("## Recommendations")
+    expect(markdown).toContain("🟡 P3")
+    expect(markdown).toContain("## Reproduction")
+    expect(markdown).toContain("createSeededRandom(456)")
+  })
+})
 
 // Tests using createVault must be serial - createVault manages its own database
 // via loadVault which uses global singletons. Cannot use withTestEnv.
-const TEST_DIR = "/tmp/kmtest-chaos-report";
-const VAULT_DIR = join(TEST_DIR, "vault");
+const TEST_DIR = "/tmp/kmtest-chaos-report"
+const VAULT_DIR = join(TEST_DIR, "vault")
 
 describe.serial("integration with real vault", () => {
   beforeEach(() => {
-    if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
-    mkdirSync(VAULT_DIR, { recursive: true });
-  });
+    if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
+    mkdirSync(VAULT_DIR, { recursive: true })
+  })
 
   afterEach(() => {
-    closeDb();
-    if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true });
-  });
+    closeDb()
+    if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
+  })
 
   test("generates report from real vault chaos test", () => {
     writeFileSync(
@@ -344,21 +344,21 @@ describe.serial("integration with real vault", () => {
 - [ ] Task one
 - [ ] Task two
 `,
-    );
+    )
 
-    const random = createSeededRandom(99999);
+    const random = createSeededRandom(99999)
     const hooks = createChaosHooks({
       mutationDropRate: 0.5,
       random,
-    });
+    })
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }));
+    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
 
     // Perform some mutations that may be dropped
-    const tasks = vault.getAllTasks();
+    const tasks = vault.getAllTasks()
     for (const task of tasks) {
       try {
-        vault.updateNode(task.id, { task_status: "done" });
+        vault.updateNode(task.id, { task_status: "done" })
       } catch {
         // Expected for dropped mutations
       }
@@ -374,13 +374,13 @@ describe.serial("integration with real vault", () => {
       vault,
       passed: true,
       durationMs: 100,
-    });
+    })
 
-    expect(report.chaosStats.totalMutations).toBeGreaterThan(0);
-    expect(report.stateSnapshot.nodeCount).toBeGreaterThan(0);
+    expect(report.chaosStats.totalMutations).toBeGreaterThan(0)
+    expect(report.stateSnapshot.nodeCount).toBeGreaterThan(0)
 
     // Verify we can format it
-    const text = formatChaosReport(report);
-    expect(text).toContain("real-vault-chaos");
-  });
-});
+    const text = formatChaosReport(report)
+    expect(text).toContain("real-vault-chaos")
+  })
+})

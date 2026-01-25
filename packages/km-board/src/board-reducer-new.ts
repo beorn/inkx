@@ -8,10 +8,10 @@
  * See hazy-forging-crayon.md plan for design rationale.
  */
 
-import createDebug from "debug";
-import type { BoardState, BoardAction } from "./board-types.ts";
+import createDebug from "debug"
+import type { BoardState, BoardAction } from "./board-types.ts"
 
-const debug = createDebug("km:board:reducer");
+const debug = createDebug("km:board:reducer")
 
 // ===== Reducer =====
 
@@ -25,7 +25,7 @@ export function simplifiedBoardReducer(
   state: BoardState,
   action: BoardAction,
 ): BoardState {
-  debug("action: %s", action.type);
+  debug("action: %s", action.type)
 
   switch (action.type) {
     // ===== Cursor Selection =====
@@ -37,29 +37,29 @@ export function simplifiedBoardReducer(
         cursorNodeId: action.nodeId,
         curswantX: null, // Clear curswant on explicit selection
         curswantY: null,
-      };
+      }
     }
 
     // ===== Fold/Collapse =====
 
     case "TOGGLE_FOLD": {
-      const newFolded = new Set(state.foldedNodes);
+      const newFolded = new Set(state.foldedNodes)
       if (newFolded.has(action.nodeId)) {
-        newFolded.delete(action.nodeId);
+        newFolded.delete(action.nodeId)
       } else {
-        newFolded.add(action.nodeId);
+        newFolded.add(action.nodeId)
       }
-      return { ...state, foldedNodes: newFolded };
+      return { ...state, foldedNodes: newFolded }
     }
 
     case "TOGGLE_COLLAPSE": {
-      const newCollapsed = new Set(state.collapsedNodes);
+      const newCollapsed = new Set(state.collapsedNodes)
       if (newCollapsed.has(action.nodeId)) {
-        newCollapsed.delete(action.nodeId);
+        newCollapsed.delete(action.nodeId)
       } else {
-        newCollapsed.add(action.nodeId);
+        newCollapsed.add(action.nodeId)
       }
-      return { ...state, collapsedNodes: newCollapsed };
+      return { ...state, collapsedNodes: newCollapsed }
     }
 
     // ===== Zoom =====
@@ -74,7 +74,7 @@ export function simplifiedBoardReducer(
         cursorNodeId: action.nodeId,
         curswantX: null,
         curswantY: null,
-      };
+      }
     }
 
     // ===== Root Change =====
@@ -88,7 +88,7 @@ export function simplifiedBoardReducer(
           rootPath: state.rootPath,
           cursorNodeId: state.cursorNodeId,
         },
-      ];
+      ]
 
       return {
         ...state,
@@ -99,48 +99,48 @@ export function simplifiedBoardReducer(
         navHistoryIndex: newHistory.length,
         curswantX: null,
         curswantY: null,
-      };
+      }
     }
 
     // ===== Selection =====
 
     case "SELECT_NODE_ADD": {
-      const newSelected = new Set(state.selectedNodes);
-      newSelected.add(action.nodeId);
-      return { ...state, selectedNodes: newSelected };
+      const newSelected = new Set(state.selectedNodes)
+      newSelected.add(action.nodeId)
+      return { ...state, selectedNodes: newSelected }
     }
 
     case "SELECT_NODE_REMOVE": {
-      const newSelected = new Set(state.selectedNodes);
-      newSelected.delete(action.nodeId);
-      return { ...state, selectedNodes: newSelected };
+      const newSelected = new Set(state.selectedNodes)
+      newSelected.delete(action.nodeId)
+      return { ...state, selectedNodes: newSelected }
     }
 
     case "SELECT_NODE_TOGGLE": {
-      const newSelected = new Set(state.selectedNodes);
+      const newSelected = new Set(state.selectedNodes)
       if (newSelected.has(action.nodeId)) {
-        newSelected.delete(action.nodeId);
+        newSelected.delete(action.nodeId)
       } else {
-        newSelected.add(action.nodeId);
+        newSelected.add(action.nodeId)
       }
-      return { ...state, selectedNodes: newSelected };
+      return { ...state, selectedNodes: newSelected }
     }
 
     case "CLEAR_SELECTION": {
-      return { ...state, selectedNodes: new Set() };
+      return { ...state, selectedNodes: new Set() }
     }
 
     // ===== Move Mode =====
 
     case "ENTER_MOVE_MODE": {
-      if (action.nodeIds.length === 0) return state;
+      if (action.nodeIds.length === 0) return state
 
       return {
         ...state,
         moveMode: true,
         moveSourceNodes: action.nodeIds,
         moveSourceCursorNodeId: action.cursorNodeId,
-      };
+      }
     }
 
     case "CONFIRM_MOVE": {
@@ -150,7 +150,7 @@ export function simplifiedBoardReducer(
         moveSourceNodes: [],
         moveSourceCursorNodeId: null,
         selectedNodes: new Set(), // Clear selection after move
-      };
+      }
     }
 
     case "CANCEL_MOVE": {
@@ -162,29 +162,29 @@ export function simplifiedBoardReducer(
         moveSourceCursorNodeId: null,
         curswantX: null,
         curswantY: null,
-      };
+      }
     }
 
     // ===== View Configuration =====
 
     case "INCREASE_OUTLINE_DEPTH": {
-      if (state.maxOutlineDepth >= 99) return state;
-      return { ...state, maxOutlineDepth: state.maxOutlineDepth + 1 };
+      if (state.maxOutlineDepth >= 99) return state
+      return { ...state, maxOutlineDepth: state.maxOutlineDepth + 1 }
     }
 
     case "DECREASE_OUTLINE_DEPTH": {
-      if (state.maxOutlineDepth <= 0) return state;
-      return { ...state, maxOutlineDepth: state.maxOutlineDepth - 1 };
+      if (state.maxOutlineDepth <= 0) return state
+      return { ...state, maxOutlineDepth: state.maxOutlineDepth - 1 }
     }
 
     case "INCREASE_CONTENT_LINES": {
-      if (state.maxContentLines >= 10) return state;
-      return { ...state, maxContentLines: state.maxContentLines + 1 };
+      if (state.maxContentLines >= 10) return state
+      return { ...state, maxContentLines: state.maxContentLines + 1 }
     }
 
     case "DECREASE_CONTENT_LINES": {
-      if (state.maxContentLines <= 0) return state;
-      return { ...state, maxContentLines: state.maxContentLines - 1 };
+      if (state.maxContentLines <= 0) return state
+      return { ...state, maxContentLines: state.maxContentLines - 1 }
     }
 
     // ===== Sticky Cursor =====
@@ -194,12 +194,12 @@ export function simplifiedBoardReducer(
         ...state,
         curswantX: action.x !== undefined ? action.x : state.curswantX,
         curswantY: action.y !== undefined ? action.y : state.curswantY,
-      };
+      }
     }
 
     default: {
-      const unhandled = action as { type: string };
-      throw new Error(`[km:board] Unhandled action: ${unhandled.type}`);
+      const unhandled = action as { type: string }
+      throw new Error(`[km:board] Unhandled action: ${unhandled.type}`)
     }
   }
 }
@@ -228,5 +228,5 @@ export function createBoardState(
     maxContentLines: 2,
     curswantX: null,
     curswantY: null,
-  };
+  }
 }

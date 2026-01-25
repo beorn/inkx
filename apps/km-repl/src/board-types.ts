@@ -6,45 +6,45 @@
  * while the TUI uses SimplifiedBoardState with just cursorNodeId.
  */
 
-import type { TaskStatus, TaskMark } from "@km/core";
+import type { TaskStatus, TaskMark } from "@km/core"
 
 /**
  * Tree path - array of indices into nodes/children arrays
  * Example: [0, 2, 1] = first top-level node → third child → second subchild
  */
-export type TPath = number[];
+export type TPath = number[]
 
 /**
  * Tree node with children and metadata
  */
 export interface TNode {
   // === Core KNode properties ===
-  id: string;
-  type: string;
-  parent_id: string | null;
-  parent_idx: number;
-  link_to: string | null;
-  link_alias?: string;
-  name?: string;
-  title: string | null;
-  task_status?: TaskStatus;
-  task_mark?: TaskMark;
-  priority?: number;
-  due_date?: string;
-  scheduled_date?: string;
-  content?: string;
-  rules?: string[];
-  data: Record<string, unknown>;
-  created_at: number;
-  updated_at: number;
-  version: string;
+  id: string
+  type: string
+  parent_id: string | null
+  parent_idx: number
+  link_to: string | null
+  link_alias?: string
+  name?: string
+  title: string | null
+  task_status?: TaskStatus
+  task_mark?: TaskMark
+  priority?: number
+  due_date?: string
+  scheduled_date?: string
+  content?: string
+  rules?: string[]
+  data: Record<string, unknown>
+  created_at: number
+  updated_at: number
+  version: string
 
   // === Tree structure ===
-  children: TNode[];
-  childCount: number;
-  childrenLoaded: boolean;
-  isTask: boolean;
-  depth: number;
+  children: TNode[]
+  childCount: number
+  childrenLoaded: boolean
+  isTask: boolean
+  depth: number
 }
 
 /**
@@ -55,19 +55,19 @@ export interface TNode {
  */
 export interface BoardState {
   /** Root node ID being viewed (or null for vault root) */
-  rootId: string | null;
+  rootId: string | null
   /** Human-readable root path for display */
-  rootPath: string | null;
+  rootPath: string | null
   /** Full tree nodes at current root level */
-  nodes: TNode[];
+  nodes: TNode[]
   /** Cursor position as path through tree */
-  cursor: TPath;
+  cursor: TPath
   /** Node IDs that are folded (children hidden) */
-  foldedNodes: Set<string>;
+  foldedNodes: Set<string>
   /** Node IDs that are collapsed (in outline mode) */
-  collapsedNodes: Set<string>;
+  collapsedNodes: Set<string>
   /** Node IDs that are selected */
-  selectedNodes: Set<string>;
+  selectedNodes: Set<string>
 }
 
 /**
@@ -83,7 +83,7 @@ export type NodeDirection =
   | "up"
   | "down"
   | "left"
-  | "right";
+  | "right"
 
 /**
  * Board Actions for km-repl
@@ -124,4 +124,4 @@ export type BoardAction =
   | { type: "INCREASE_OUTLINE_DEPTH" }
   | { type: "DECREASE_OUTLINE_DEPTH" }
   | { type: "INCREASE_CONTENT_LINES" }
-  | { type: "DECREASE_CONTENT_LINES" };
+  | { type: "DECREASE_CONTENT_LINES" }

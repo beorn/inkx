@@ -1,72 +1,72 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "bun:test"
 import {
   createIssueNode,
   updateIssueFields,
   closeIssueFields,
   dropIssueFields,
-} from "../src/mutations.ts";
-import type { Issue } from "../src/types.ts";
+} from "../src/mutations.ts"
+import type { Issue } from "../src/types.ts"
 
 describe("createIssueNode", () => {
   test("creates a basic issue node", () => {
-    const { node, shortId } = createIssueNode("Fix the login bug");
+    const { node, shortId } = createIssueNode("Fix the login bug")
 
-    expect(node.type).toBe("task");
-    expect(node.task_status).toBe("todo");
-    expect(node.task_mark).toBe(" ");
-    expect(node.content).toContain("Fix the login bug");
-    expect(node.content).toContain("@issue");
-    expect(shortId).toMatch(/^km-[a-z0-9]{4}$/);
-  });
+    expect(node.type).toBe("task")
+    expect(node.task_status).toBe("todo")
+    expect(node.task_mark).toBe(" ")
+    expect(node.content).toContain("Fix the login bug")
+    expect(node.content).toContain("@issue")
+    expect(shortId).toMatch(/^km-[a-z0-9]{4}$/)
+  })
 
   test("creates issue with type tag", () => {
-    const { node } = createIssueNode("Fix the login bug", { type: "bug" });
+    const { node } = createIssueNode("Fix the login bug", { type: "bug" })
 
-    expect(node.content).toContain("#bug");
-  });
+    expect(node.content).toContain("#bug")
+  })
 
   test("creates issue with priority", () => {
-    const { node } = createIssueNode("Critical fix", { priority: 0 });
+    const { node } = createIssueNode("Critical fix", { priority: 0 })
 
-    expect(node.content).toContain("#P0");
-    expect(node.priority).toBe(0);
-  });
+    expect(node.content).toContain("#P0")
+    expect(node.priority).toBe(0)
+  })
 
   test("creates issue with assignee", () => {
-    const { node } = createIssueNode("Assigned task", { assignee: "alice" });
+    const { node } = createIssueNode("Assigned task", { assignee: "alice" })
 
-    expect(node.content).toContain("@alice");
-    expect(node.data?.mentions).toContain("alice");
-  });
+    expect(node.content).toContain("@alice")
+    expect(node.data?.mentions).toContain("alice")
+  })
 
   test("creates issue with custom ID", () => {
-    const { shortId } = createIssueNode("Epic task", { customId: "auth-epic" });
+    const { shortId } = createIssueNode("Epic task", { customId: "auth-epic" })
 
-    expect(shortId).toBe("km-auth-epic");
-  });
+    expect(shortId).toBe("km-auth-epic")
+  })
 
   test("creates sub-issue with parent ID", () => {
-    const { shortId } = createIssueNode("Sub task", { parentId: "km-epic" });
+    const { shortId } = createIssueNode("Sub task", { parentId: "km-epic" })
 
-    expect(shortId).toMatch(/^km-epic\.\d+$/);
-  });
+    expect(shortId).toMatch(/^km-epic\.\d+$/)
+  })
 
   test("creates issue with labels", () => {
     const { node } = createIssueNode("Labeled task", {
       labels: ["urgent", "frontend"],
-    });
+    })
 
-    expect(node.content).toContain("#urgent");
-    expect(node.content).toContain("#frontend");
-  });
+    expect(node.content).toContain("#urgent")
+    expect(node.content).toContain("#frontend")
+  })
 
   test("defaults to P2 priority", () => {
-    const { node } = createIssueNode("Normal task");
+    const { node } = createIssueNode("Normal task")
 
-    expect(node.content).toContain("#P2");
-    expect(node.priority).toBe(2);
-  });
-});
+    expect(node.content).toContain("#P2")
+    expect(node.priority).toBe(2)
+  })
+})
 
 describe("updateIssueFields", () => {
   const baseIssue: Issue = {
@@ -77,84 +77,84 @@ describe("updateIssueFields", () => {
     priority: 2,
     createdAt: Date.now(),
     updatedAt: Date.now(),
-  };
+  }
 
   test("updates status to done", () => {
-    const updates = updateIssueFields(baseIssue, { status: "done" });
+    const updates = updateIssueFields(baseIssue, { status: "done" })
 
-    expect(updates.task_status).toBe("done");
-    expect(updates.task_mark).toBe("x");
-  });
+    expect(updates.task_status).toBe("done")
+    expect(updates.task_mark).toBe("x")
+  })
 
   test("updates status to wip", () => {
-    const updates = updateIssueFields(baseIssue, { status: "wip" });
+    const updates = updateIssueFields(baseIssue, { status: "wip" })
 
-    expect(updates.task_status).toBe("wip");
-    expect(updates.task_mark).toBe("/");
-  });
+    expect(updates.task_status).toBe("wip")
+    expect(updates.task_mark).toBe("/")
+  })
 
   test("updates status to blocked", () => {
-    const updates = updateIssueFields(baseIssue, { status: "blocked" });
+    const updates = updateIssueFields(baseIssue, { status: "blocked" })
 
-    expect(updates.task_status).toBe("blocked");
-    expect(updates.task_mark).toBe("!");
-  });
+    expect(updates.task_status).toBe("blocked")
+    expect(updates.task_mark).toBe("!")
+  })
 
   test("updates status to dropped", () => {
-    const updates = updateIssueFields(baseIssue, { status: "dropped" });
+    const updates = updateIssueFields(baseIssue, { status: "dropped" })
 
-    expect(updates.task_status).toBe("dropped");
-    expect(updates.task_mark).toBe("-");
-  });
+    expect(updates.task_status).toBe("dropped")
+    expect(updates.task_mark).toBe("-")
+  })
 
   test("updates priority", () => {
-    const updates = updateIssueFields(baseIssue, { priority: 1 });
+    const updates = updateIssueFields(baseIssue, { priority: 1 })
 
-    expect(updates.priority).toBe(1);
-  });
+    expect(updates.priority).toBe(1)
+  })
 
   test("updates title", () => {
-    const updates = updateIssueFields(baseIssue, { title: "New title" });
+    const updates = updateIssueFields(baseIssue, { title: "New title" })
 
-    expect(updates.content).toBe("New title");
-  });
+    expect(updates.content).toBe("New title")
+  })
 
   test("sets updated_at timestamp", () => {
-    const before = Date.now();
-    const updates = updateIssueFields(baseIssue, { status: "done" });
-    const after = Date.now();
+    const before = Date.now()
+    const updates = updateIssueFields(baseIssue, { status: "done" })
+    const after = Date.now()
 
-    expect(updates.updated_at).toBeGreaterThanOrEqual(before);
-    expect(updates.updated_at).toBeLessThanOrEqual(after);
-  });
-});
+    expect(updates.updated_at).toBeGreaterThanOrEqual(before)
+    expect(updates.updated_at).toBeLessThanOrEqual(after)
+  })
+})
 
 describe("closeIssueFields", () => {
   test("closes issue with done status", () => {
-    const updates = closeIssueFields();
+    const updates = closeIssueFields()
 
-    expect(updates.task_status).toBe("done");
-    expect(updates.task_mark).toBe("x");
-  });
+    expect(updates.task_status).toBe("done")
+    expect(updates.task_mark).toBe("x")
+  })
 
   test("closes issue with reason", () => {
-    const updates = closeIssueFields("Fixed in PR #123");
+    const updates = closeIssueFields("Fixed in PR #123")
 
-    expect(updates.data).toEqual({ closeReason: "Fixed in PR #123" });
-  });
-});
+    expect(updates.data).toEqual({ closeReason: "Fixed in PR #123" })
+  })
+})
 
 describe("dropIssueFields", () => {
   test("drops issue with dropped status", () => {
-    const updates = dropIssueFields();
+    const updates = dropIssueFields()
 
-    expect(updates.task_status).toBe("dropped");
-    expect(updates.task_mark).toBe("-");
-  });
+    expect(updates.task_status).toBe("dropped")
+    expect(updates.task_mark).toBe("-")
+  })
 
   test("drops issue with reason", () => {
-    const updates = dropIssueFields("No longer needed");
+    const updates = dropIssueFields("No longer needed")
 
-    expect(updates.data).toEqual({ dropReason: "No longer needed" });
-  });
-});
+    expect(updates.data).toEqual({ dropReason: "No longer needed" })
+  })
+})

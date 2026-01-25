@@ -69,10 +69,10 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 ```tsx
 // ✅ GOOD - Reading flow: what it does, then how
 function Component() {
-  useEffect(handleRefresh, []);
-  useInput(handleKeyboardInput);
+  useEffect(handleRefresh, [])
+  useInput(handleKeyboardInput)
 
-  return <Box>...</Box>;
+  return <Box>...</Box>
 
   // Hoisted helpers (need closure access) - AFTER return
   function handleRefresh() {
@@ -94,40 +94,40 @@ function formatDate(d: Date): string {
 function processVault() {
   // Helper defined at top
   function validatePath(p: string) {
-    if (!p.startsWith("/")) throw new Error("...");
-    if (!existsSync(p)) throw new Error("...");
-    return resolve(p);
+    if (!p.startsWith("/")) throw new Error("...")
+    if (!existsSync(p)) throw new Error("...")
+    return resolve(p)
   }
 
   function loadDatabase(p: string) {
-    const db = new Database(p);
-    db.pragma("journal_mode = WAL");
-    return db;
+    const db = new Database(p)
+    db.pragma("journal_mode = WAL")
+    return db
   }
 
   // Main logic buried at bottom
-  const path = validatePath(vaultPath);
-  const db = loadDatabase(path);
-  return { path, db };
+  const path = validatePath(vaultPath)
+  const db = loadDatabase(path)
+  return { path, db }
 }
 
 // ✅ GOOD - Main logic first, details after return
 function processVault() {
-  const path = validatePath(vaultPath);
-  const db = loadDatabase(path);
-  return { path, db };
+  const path = validatePath(vaultPath)
+  const db = loadDatabase(path)
+  return { path, db }
 
   // Implementation details - reader can skip if not interested
   function validatePath(p: string) {
-    if (!p.startsWith("/")) throw new Error("...");
-    if (!existsSync(p)) throw new Error("...");
-    return resolve(p);
+    if (!p.startsWith("/")) throw new Error("...")
+    if (!existsSync(p)) throw new Error("...")
+    return resolve(p)
   }
 
   function loadDatabase(p: string) {
-    const db = new Database(p);
-    db.pragma("journal_mode = WAL");
-    return db;
+    const db = new Database(p)
+    db.pragma("journal_mode = WAL")
+    return db
   }
 }
 ```
@@ -135,8 +135,8 @@ function processVault() {
 **Short lambdas (1-3 lines) are fine inline:**
 
 ```tsx
-useEffect(() => dispatch(setRootId(id)), [id]);
-const doubled = items.map((x) => x * 2);
+useEffect(() => dispatch(setRootId(id)), [id])
+const doubled = items.map((x) => x * 2)
 ```
 
 **When NOT to hoist**: Keep functions at the top only when they're the primary export/purpose of the file, or when they're very short (1-3 lines) and used once.
@@ -147,12 +147,12 @@ const doubled = items.map((x) => x * 2);
 
 ```typescript
 // ❌ BAD - CommonJS require
-const fs = require("fs");
-const { readFileSync } = require("fs");
+const fs = require("fs")
+const { readFileSync } = require("fs")
 
 // ✅ GOOD - ES module import
-import fs from "fs";
-import { readFileSync } from "fs";
+import fs from "fs"
+import { readFileSync } from "fs"
 ```
 
 This applies to all code including:
@@ -275,6 +275,21 @@ Packages in `vendor/` are standalone libraries that could be useful outside km. 
 2. **Create public GitHub repo** - `gh repo create beorn/<name> --public`
 3. **Add as submodule** - `git submodule add git@github.com:beorn/<name>.git vendor/beorn-<name>`
 4. **Push both repos** - Push the new repo, then commit the submodule reference in km
+
+**Fixing and Extending Vendor Packages:**
+
+**We don't have to live with vendor packages' limitations.** If a vendor package (like inkx, flexx, or any other submodule) is missing functionality we need:
+
+1. **Fix it directly in the submodule** - Navigate to `vendor/<name>`, make changes, commit
+2. **Push to the submodule repo** - `cd vendor/<name> && git push`
+3. **Update the reference in km** - `git add vendor/<name> && git commit -m "chore(vendor): update <name> with fix"`
+
+Examples:
+- Missing `.text()` method on InkxLocator → add it to inkx
+- Need better layout constraints in flexx → fix flexx directly
+- Vendor package has bugs → patch them in the submodule
+
+Don't work around limitations by duplicating functionality or creating wrapper abstractions. Fix the root cause in the vendor package and push the improvement upstream.
 
 **Internal Packages (`packages/`):**
 
@@ -525,15 +540,15 @@ km has two logging systems for different purposes:
 
 ```typescript
 // Internal diagnostics - use debug()
-import createDebug from "debug";
-const debug = createDebug("km:storage:watch");
-debug("config", { watchEnabled, debounceMs });
+import createDebug from "debug"
+const debug = createDebug("km:storage:watch")
+debug("config", { watchEnabled, debounceMs })
 
 // User-facing messages - use logger
-import { createLogger } from "@km/core";
-const logger = createLogger("@km/storage");
-logger.info("Syncing vault...");
-logger.error("Failed to write file", { path, error });
+import { createLogger } from "@km/core"
+const logger = createLogger("@km/storage")
+logger.info("Syncing vault...")
+logger.error("Failed to write file", { path, error })
 ```
 
 **CLI flags for log levels:**
@@ -564,9 +579,9 @@ flexx:<subsystem>            # flexx layout engine
 **Keep statements concise:**
 
 ```typescript
-debug("resolved", resolved); // Objects
-debug("loading %s...", filename); // Inline text
-debug("state: %s → %s", oldState, newState); // Transitions
+debug("resolved", resolved) // Objects
+debug("loading %s...", filename) // Inline text
+debug("state: %s → %s", oldState, newState) // Transitions
 ```
 
 **TUI debugging (separate from TUI display):**
@@ -581,12 +596,12 @@ DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
 Use for messages the user should see during normal operation.
 
 ```typescript
-import { createLogger } from "@km/core";
-const logger = createLogger("@km/storage");
+import { createLogger } from "@km/core"
+const logger = createLogger("@km/storage")
 
-logger.info("Loading vault...");
-logger.warn("Config file not found, using defaults");
-logger.error("Failed to sync", { error });
+logger.info("Loading vault...")
+logger.warn("Config file not found, using defaults")
+logger.error("Failed to sync", { error })
 ```
 
 **When to use which:**
@@ -613,27 +628,27 @@ Suppressing output hides bugs. Worker threads MUST forward all debug output to t
 
 ```typescript
 // Worker thread (e.g., worker-thread.ts)
-const NAMESPACE = "km:storage:watch:worker";
+const NAMESPACE = "km:storage:watch:worker"
 
 // Custom debug function that forwards to main thread
 function debug(message: string, ...args: unknown[]): void {
   // Format the message with args (simple %s/%d/%O replacement)
-  let formatted = message;
-  let argIndex = 0;
+  let formatted = message
+  let argIndex = 0
   formatted = message.replace(/%[sdOo]/g, () => {
-    const arg = args[argIndex++];
-    if (arg === undefined) return "";
-    if (arg === null) return "null";
-    if (typeof arg === "object") return JSON.stringify(arg);
-    return String(arg);
-  });
+    const arg = args[argIndex++]
+    if (arg === undefined) return ""
+    if (arg === null) return "null"
+    if (typeof arg === "object") return JSON.stringify(arg)
+    return String(arg)
+  })
 
   // Send to main thread - NEVER call createDebug() in worker
-  postMessage({ type: "debug", namespace: NAMESPACE, message: formatted });
+  postMessage({ type: "debug", namespace: NAMESPACE, message: formatted })
 }
 
 // Use this debug() throughout worker
-debug("worker started, watching %s", vaultPath);
+debug("worker started, watching %s", vaultPath)
 ```
 
 ```typescript
@@ -737,26 +752,26 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 ```typescript
 // BAD - silently ignoring missing context
 function useMyHook() {
-  const ctx = useContext(MyContext);
-  if (!ctx) return; // Silent failure - caller has no idea it's broken!
+  const ctx = useContext(MyContext)
+  if (!ctx) return // Silent failure - caller has no idea it's broken!
 }
 
 // BAD - logging instead of throwing
 function useMyHook() {
-  const ctx = useContext(MyContext);
+  const ctx = useContext(MyContext)
   if (!ctx) {
-    console.warn("Missing context");
-    return defaultValue; // Caller doesn't know it's using a fallback
+    console.warn("Missing context")
+    return defaultValue // Caller doesn't know it's using a fallback
   }
 }
 
 // GOOD - throw immediately so caller knows during development
 function useMyHook() {
-  const ctx = useContext(MyContext);
+  const ctx = useContext(MyContext)
   if (!ctx) {
-    throw new Error("useMyHook must be used within MyProvider");
+    throw new Error("useMyHook must be used within MyProvider")
   }
-  return ctx;
+  return ctx
 }
 ```
 
@@ -776,7 +791,7 @@ function useMyHook() {
 
 ```typescript
 // BAD - keeping old export location "for compatibility"
-export { foo } from "./old-location.ts"; // backwards compat
+export { foo } from "./old-location.ts" // backwards compat
 
 // GOOD - just remove it, update callers
 // (delete the re-export entirely)
@@ -787,15 +802,15 @@ export { foo } from "./old-location.ts"; // backwards compat
 ```typescript
 // BAD - silently hides missing data
 function getName(node: Node): string {
-  return node.title ?? node.data?.title ?? node.content ?? node.id.slice(0, 8);
+  return node.title ?? node.data?.title ?? node.content ?? node.id.slice(0, 8)
 }
 
 // GOOD - throw if invariant is violated
 function getName(node: Node): string {
   if (node.type === "section" && !node.title) {
-    throw new Error(`Section ${node.id} missing title`);
+    throw new Error(`Section ${node.id} missing title`)
   }
-  return node.title!;
+  return node.title!
 }
 ```
 
@@ -844,9 +859,9 @@ All major functionality MUST be exposed through **domain objects created by fact
 
 ```typescript
 interface Service extends AsyncDisposable {
-  readonly status: "stopped" | "starting" | "running" | "stopping";
-  start(): Promise<void>;
-  stop(): Promise<void>;
+  readonly status: "stopped" | "starting" | "running" | "stopping"
+  start(): Promise<void>
+  stop(): Promise<void>
 }
 ```
 
@@ -856,44 +871,44 @@ interface Service extends AsyncDisposable {
 // ✅ GOOD - factory returns plain object
 export function createVault(path: string, options?: VaultOptions): Vault {
   // Internal state via closure
-  const db = options?.inject?.database ?? openDatabase(path);
-  let closed = false;
+  const db = options?.inject?.database ?? openDatabase(path)
+  let closed = false
 
   return {
     get path() {
-      return path;
+      return path
     },
 
     getNode(id) {
-      if (closed) throw new Error("Vault is closed");
-      return queryNode(db, id);
+      if (closed) throw new Error("Vault is closed")
+      return queryNode(db, id)
     },
 
     close() {
-      if (closed) return;
-      closed = true;
-      db.close();
+      if (closed) return
+      closed = true
+      db.close()
     },
 
     [Symbol.dispose]() {
-      this.close();
+      this.close()
     },
-  };
+  }
 }
 
 // ❌ BAD - class with internal state
 export class Vault {
-  private db: Database;
+  private db: Database
   constructor(path: string) {
-    this.db = openDatabase(path);
+    this.db = openDatabase(path)
   }
 }
 
 // ❌ BAD - singleton
-let _db: Database | null = null;
+let _db: Database | null = null
 export function getDb() {
-  if (!_db) throw new Error("Not initialized");
-  return _db;
+  if (!_db) throw new Error("Not initialized")
+  return _db
 }
 ```
 
@@ -902,9 +917,9 @@ export function getDb() {
 ```typescript
 // Single factory - always a generator
 function* createVault(path: string): Generator<ProgressInfo, Vault> {
-  yield { phase: "discover", current: 0, total: 0 };
+  yield { phase: "discover", current: 0, total: 0 }
   // ... load vault ...
-  return vault;
+  return vault
 }
 
 // Caller chooses consumption:
@@ -917,16 +932,16 @@ function* createVault(path: string): Generator<ProgressInfo, Vault> {
 ```typescript
 // Sync disposable (Vault, Board)
 function processVault(path: string) {
-  using vault = runGenerator(createVault(path));
-  const tasks = vault.getAllTasks();
+  using vault = runGenerator(createVault(path))
+  const tasks = vault.getAllTasks()
   // vault.close() called automatically at scope exit
 }
 
 // Async disposable (Service like Watcher)
 async function watchVault(path: string) {
-  using vault = runGenerator(createVault(path));
-  await using watcher = vault.watch();
-  await watcher.start();
+  using vault = runGenerator(createVault(path))
+  await using watcher = vault.watch()
+  await watcher.start()
   // ... do stuff ...
   // watcher.stop() awaited, then vault.close() called
 }
@@ -935,12 +950,12 @@ async function watchVault(path: string) {
 **Dependency injection for testing:**
 
 ```typescript
-const mockDb = new Database(":memory:");
+const mockDb = new Database(":memory:")
 const vault = runGenerator(
   createVault("/test", {
     inject: { database: mockDb },
   }),
-);
+)
 ```
 
 See [docs/dev/domain-objects.md](docs/dev/domain-objects.md) for complete patterns guide
@@ -952,7 +967,7 @@ See [docs/dev/domain-objects.md](docs/dev/domain-objects.md) for complete patter
 **Never hardcode versions.** Import from `@km/core`:
 
 ```typescript
-import { VERSION, BUILD_INFO } from "@km/core";
+import { VERSION, BUILD_INFO } from "@km/core"
 
 // VERSION = "0.1.0"
 // BUILD_INFO = { version, gitCommit, gitBranch, gitDirty, buildTime }
@@ -963,8 +978,8 @@ import { VERSION, BUILD_INFO } from "@km/core";
 **For diagnostics**, include git commit in error messages or debug output:
 
 ```typescript
-import { BUILD_INFO } from "@km/core";
-debug("startup", { version: BUILD_INFO.version, commit: BUILD_INFO.gitCommit });
+import { BUILD_INFO } from "@km/core"
+debug("startup", { version: BUILD_INFO.version, commit: BUILD_INFO.gitCommit })
 ```
 
 ### 17. Prior Art / Related Projects (cloudi, kimmi, decker)

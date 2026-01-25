@@ -30,7 +30,7 @@ export type {
   TNode,
   ViewMode,
   TaskStatus,
-} from "./types.ts";
+} from "./types.ts"
 
 // Registry
 export {
@@ -42,13 +42,13 @@ export {
   filterCommands,
   fuzzyMatch,
   clearRegistry,
-} from "./registry.ts";
+} from "./registry.ts"
 
 // Executor
-export { executeCommand, buildContext } from "./executor.ts";
+export { executeCommand, buildContext } from "./executor.ts"
 
 // Keybindings
-export type { Keybinding, KeybindingContext } from "./keybindings.ts";
+export type { Keybinding, KeybindingContext } from "./keybindings.ts"
 export {
   registerKeybinding,
   registerKeybindings,
@@ -57,7 +57,7 @@ export {
   resolveKeybinding,
   defaultKeybindings,
   initDefaultKeybindings,
-} from "./keybindings.ts";
+} from "./keybindings.ts"
 
 // Commands
 export {
@@ -70,7 +70,7 @@ export {
   tuiCommands,
   allCommands,
   type TaskAction,
-} from "./commands/index.ts";
+} from "./commands/index.ts"
 
 // Ink Adapter (for TUI integration)
 export {
@@ -82,4 +82,4 @@ export {
   wouldHandleKey,
   type InkKeyEvent,
   type InkCommandResult,
-} from "./ink-adapter.ts";
+} from "./ink-adapter.ts"

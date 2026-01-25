@@ -5,24 +5,24 @@
  * - oneliner: Title + parent context inline on one line, truncated (for list/columns/tabs)
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
-import React, { useCallback, useMemo } from "react";
-import { Box, Text, useContentRectCallback } from "inkx";
-import type { KNode } from "@km/core";
-import { useVault } from "../vault-context.tsx";
+import React, { useCallback, useMemo } from "react"
+import { Box, Text, useContentRectCallback } from "inkx"
+import type { KNode } from "@km/core"
+import { useVault } from "../vault-context.tsx"
 import {
   getNodeDisplayName,
   getParentContext as getParentContextFromState,
-} from "../state.ts";
-import { extractBody } from "@km/tree";
-import { renderRich } from "../text/index.ts";
-import { makeSelectionKey } from "../types.ts";
+} from "../state.ts"
+import { extractBody } from "@km/tree"
+import { renderRich } from "../text/index.ts"
+import { makeSelectionKey } from "../types.ts"
 import {
   useTreeConfig,
   useUISelector,
   useRootBoardId,
   useExcludedSigils,
   useSigilColors,
-} from "../ui-context.tsx";
+} from "../ui-context.tsx"
 import {
   getNodeStyle,
   buildPrefix,
@@ -31,28 +31,28 @@ import {
   stripTaskMark,
   VARIANT_CONFIG,
   type GetBoardPillsFn,
-} from "./tree-node-helpers.ts";
-import { useLayoutRegistryOptional } from "../layout-context.tsx";
+} from "./tree-node-helpers.ts"
+import { useLayoutRegistryOptional } from "../layout-context.tsx"
 
 export interface TreeNodeProps {
-  node: KNode;
-  depth: number;
-  isSelected: boolean;
-  colIndex: number;
-  cardIndex: number;
-  subIndex: number;
+  node: KNode
+  depth: number
+  isSelected: boolean
+  colIndex: number
+  cardIndex: number
+  subIndex: number
   /** Dim child items when this subtree is not the active card (for cards view) */
-  dimInactiveChildren?: boolean;
+  dimInactiveChildren?: boolean
   /** Pre-loaded children (optional - if not provided, fetched from storage) */
-  children?: KNode[];
+  children?: KNode[]
   /** Pre-computed parent context for embedded tasks (optional) */
-  parentContext?: string | null;
+  parentContext?: string | null
   /** Callback to fetch children on unfold (optional - defaults to storage lookup) */
-  getChildren?: (id: string) => KNode[];
+  getChildren?: (id: string) => KNode[]
   /** Callback to get parent context for nested embedded tasks (optional) */
-  getParentContext?: (node: KNode) => string | null;
+  getParentContext?: (node: KNode) => string | null
   /** Callback to get board pills for info suffix (optional - defaults to storage lookup) */
-  getBoardPills?: GetBoardPillsFn;
+  getBoardPills?: GetBoardPillsFn
 }
 
 /**
@@ -69,10 +69,10 @@ export interface TreeNodeProps {
  */
 export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Fast path: if node identity changed, must re-render
-  if (prev.node.id !== next.node.id) return false;
+  if (prev.node.id !== next.node.id) return false
 
   // Selection state
-  if (prev.isSelected !== next.isSelected) return false;
+  if (prev.isSelected !== next.isSelected) return false
 
   // Position (affects key lookups and child selection)
   if (
@@ -81,11 +81,11 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     prev.subIndex !== next.subIndex ||
     prev.depth !== next.depth
   ) {
-    return false;
+    return false
   }
 
   // Visual state
-  if (prev.dimInactiveChildren !== next.dimInactiveChildren) return false;
+  if (prev.dimInactiveChildren !== next.dimInactiveChildren) return false
 
   // Node content that affects display
   if (
@@ -94,7 +94,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     prev.node.due_date !== next.node.due_date ||
     prev.node.type !== next.node.type
   ) {
-    return false;
+    return false
   }
 
   // Callback props by reference (stable if using useCallback or module-level)
@@ -103,25 +103,25 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     prev.getParentContext !== next.getParentContext ||
     prev.getBoardPills !== next.getBoardPills
   ) {
-    return false;
+    return false
   }
 
   // Pre-computed props
-  if (prev.parentContext !== next.parentContext) return false;
+  if (prev.parentContext !== next.parentContext) return false
 
   // Children array - compare by length and IDs for efficiency
-  const prevChildren = prev.children;
-  const nextChildren = next.children;
+  const prevChildren = prev.children
+  const nextChildren = next.children
   if (prevChildren !== nextChildren) {
-    if (!prevChildren || !nextChildren) return false;
-    if (prevChildren.length !== nextChildren.length) return false;
+    if (!prevChildren || !nextChildren) return false
+    if (prevChildren.length !== nextChildren.length) return false
     for (let i = 0; i < prevChildren.length; i++) {
-      if (prevChildren[i]?.id !== nextChildren[i]?.id) return false;
+      if (prevChildren[i]?.id !== nextChildren[i]?.id) return false
     }
   }
 
-  return true;
-});
+  return true
+})
 
 function TreeNodeImpl({
   node,
@@ -143,39 +143,39 @@ function TreeNodeImpl({
     inOutlineMode,
     currentSubIndex,
     variant,
-  } = useTreeConfig();
-  const rootBoardId = useRootBoardId();
-  const excludedSigils = useExcludedSigils();
-  const sigilColors = useSigilColors();
+  } = useTreeConfig()
+  const rootBoardId = useRootBoardId()
+  const excludedSigils = useExcludedSigils()
+  const sigilColors = useSigilColors()
 
   // Select only the specific boolean values we need, not entire Sets
   // This prevents re-renders when other nodes' selection/fold state changes
-  const selectionKey = makeSelectionKey(colIndex, cardIndex, subIndex);
+  const selectionKey = makeSelectionKey(colIndex, cardIndex, subIndex)
   const isMultiSelected = useUISelector((state) =>
     state.multiSelected.has(selectionKey),
-  );
-  const isFolded = useUISelector((state) => state.foldedNodes.has(node.id));
+  )
+  const isFolded = useUISelector((state) => state.foldedNodes.has(node.id))
   const excludeBoardIds = rootBoardId
     ? new Set([rootBoardId])
-    : new Set<string>();
+    : new Set<string>()
 
-  const vault = useVault();
-  const isOneliner = variant === "oneliner";
+  const vault = useVault()
+  const isOneliner = variant === "oneliner"
   // Use provided children or fetch from vault
-  const resolvedGetChildren = getChildrenProp ?? vault.getChildren.bind(vault);
-  const children = childrenProp ?? resolvedGetChildren(node.id);
-  const hasChildren = children.length > 0;
-  const isEmbedded = node.link_to != null;
+  const resolvedGetChildren = getChildrenProp ?? vault.getChildren.bind(vault)
+  const children = childrenProp ?? resolvedGetChildren(node.id)
+  const hasChildren = children.length > 0
+  const isEmbedded = node.link_to != null
 
   // For embedded nodes, resolve the target for display purposes
   // The embed node's content is just "![[target]]" - we want to show the linked node's data
   const resolvedNode =
-    isEmbedded && node.link_to ? vault.getNode(node.link_to) : null;
-  const displayNode = resolvedNode ?? node;
+    isEmbedded && node.link_to ? vault.getNode(node.link_to) : null
+  const displayNode = resolvedNode ?? node
 
   // A node is a task if it has task_status set, regardless of structural type
   // For embeds, check the target node's status
-  const isTask = displayNode.task_status != null;
+  const isTask = displayNode.task_status != null
 
   // Memoize style calculation - only recalc when selection or node status changes
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
@@ -196,28 +196,28 @@ function TreeNodeImpl({
       dimInactiveChildren,
       depth,
     ],
-  );
+  )
 
   // Memoize prefix - only recalc when fold state or children count changes
   const prefix = useMemo(
     () => buildPrefix(hasChildren, isFolded, children.length, style.ownColor),
     [hasChildren, isFolded, children.length, style.ownColor],
-  );
+  )
 
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
   const rawContent =
     displayNode.type === "section"
       ? getNodeDisplayName(vault, displayNode)
-      : displayNode.content || getNodeDisplayName(vault, displayNode);
-  const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent;
+      : displayNode.content || getNodeDisplayName(vault, displayNode)
+  const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
 
   // Memoize rich text rendering - only recalc when content or sigil config changes
   const styledContent = useMemo(
     () =>
       renderRich(cleanContent, { excludeSigils: excludedSigils, sigilColors }),
     [cleanContent, excludedSigils, sigilColors],
-  );
+  )
 
   // Memoize info suffix - only recalc when node metadata changes
   // Use displayNode for metadata (due_date, assigned_to, etc.)
@@ -239,7 +239,7 @@ function TreeNodeImpl({
       rootBoardId,
       getBoardPills,
     ],
-  );
+  )
 
   // Parent context for embedded tasks - use prop or default implementation
   const resolvedGetParentContext = useCallback(
@@ -248,35 +248,35 @@ function TreeNodeImpl({
         ? getParentContextProp(n)
         : getParentContextFromState(vault, n),
     [getParentContextProp, vault],
-  );
+  )
   const parentContext =
     parentContextProp !== undefined
       ? parentContextProp
       : depth === 0 && isTask && isEmbedded
         ? resolvedGetParentContext(node)
-        : null;
+        : null
 
   // Context suffix (shown inline for oneliner variant only)
   const truncatedContext = isOneliner
     ? truncateContext(parentContext, 40) // Fixed max context width
-    : null;
-  const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : "";
-  const showInlineContext = truncatedContext !== null;
+    : null
+  const contextSuffix = truncatedContext ? ` < ${truncatedContext}` : ""
+  const showInlineContext = truncatedContext !== null
 
   // Head row measurement for curswantY (only at depth 0)
-  const registry = useLayoutRegistryOptional();
+  const registry = useLayoutRegistryOptional()
   const handleHeadLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
-      if (!registry || depth !== 0) return;
-      registry.updateCardHead(colIndex, cardIndex, computed.y, computed.height);
+      if (!registry || depth !== 0) return
+      registry.updateCardHead(colIndex, cardIndex, computed.y, computed.height)
     },
     [registry, depth, colIndex, cardIndex],
-  );
+  )
 
   // Child rendering
-  const { maxChildren } = VARIANT_CONFIG[variant];
-  const visibleChildren = children.slice(0, maxChildren);
-  const hiddenCount = children.length - visibleChildren.length;
+  const { maxChildren } = VARIANT_CONFIG[variant]
+  const visibleChildren = children.slice(0, maxChildren)
+  const hiddenCount = children.length - visibleChildren.length
 
   return (
     <Box flexDirection="column" height={isOneliner ? 1 : undefined}>
@@ -381,7 +381,7 @@ function TreeNodeImpl({
         />
       )}
     </Box>
-  );
+  )
 }
 
 // =============================================================================
@@ -390,17 +390,17 @@ function TreeNodeImpl({
 
 interface HeadRowProps {
   onLayout: (computed: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }) => void;
-  children: React.ReactNode;
+    x: number
+    y: number
+    width: number
+    height: number
+  }) => void
+  children: React.ReactNode
 }
 
 function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
-  useContentRectCallback(onLayout);
-  return <Box flexDirection="column">{children}</Box>;
+  useContentRectCallback(onLayout)
+  return <Box flexDirection="column">{children}</Box>
 }
 
 // =============================================================================
@@ -408,21 +408,21 @@ function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
 // =============================================================================
 
 interface NodeChildrenProps {
-  children: KNode[];
-  colIndex: number;
-  cardIndex: number;
-  startSubIndex: number;
-  depth: number;
-  inOutlineMode: boolean;
-  currentSubIndex: number;
-  dimInactiveChildren: boolean;
-  hiddenCount: number;
+  children: KNode[]
+  colIndex: number
+  cardIndex: number
+  startSubIndex: number
+  depth: number
+  inOutlineMode: boolean
+  currentSubIndex: number
+  dimInactiveChildren: boolean
+  hiddenCount: number
   /** Callback to fetch children for nested nodes */
-  getChildren?: (id: string) => KNode[];
+  getChildren?: (id: string) => KNode[]
   /** Callback to get parent context for nested embedded tasks */
-  getParentContext?: (node: KNode) => string | null;
+  getParentContext?: (node: KNode) => string | null
   /** Callback to get board pills for info suffix */
-  getBoardPills?: GetBoardPillsFn;
+  getBoardPills?: GetBoardPillsFn
 }
 
 function NodeChildren({
@@ -439,16 +439,16 @@ function NodeChildren({
   getParentContext,
   getBoardPills,
 }: NodeChildrenProps): React.ReactElement {
-  const indent = " ".repeat(depth);
+  const indent = " ".repeat(depth)
 
   // Apply recursive body extraction: separate body content from structural items
   const { body: bodyChildren, items: structuralChildren } =
-    extractBody(children);
+    extractBody(children)
 
   // Determine rendering order:
   // - If structural items exist, body items are dimmed (non-selectable)
   // - If no structural items, all items are treated normally
-  const hasStructural = structuralChildren.length > 0;
+  const hasStructural = structuralChildren.length > 0
 
   // Build ordered children list with body flag
   const orderedChildren = hasStructural
@@ -456,15 +456,15 @@ function NodeChildren({
         ...bodyChildren.map((c) => ({ node: c, isBody: true })),
         ...structuralChildren.map((c) => ({ node: c, isBody: false })),
       ]
-    : children.map((c) => ({ node: c, isBody: false }));
+    : children.map((c) => ({ node: c, isBody: false }))
 
   return (
     <Box flexDirection="column">
       {orderedChildren.map((item, i) => {
-        const childSubIndex = startSubIndex + i;
+        const childSubIndex = startSubIndex + i
         // Body items are never selected in outline mode
         const childSelected =
-          inOutlineMode && currentSubIndex === childSubIndex && !item.isBody;
+          inOutlineMode && currentSubIndex === childSubIndex && !item.isBody
 
         return (
           <TreeNode
@@ -480,7 +480,7 @@ function NodeChildren({
             getParentContext={getParentContext}
             getBoardPills={getBoardPills}
           />
-        );
+        )
       })}
       {hiddenCount > 0 && (
         <Text dimColor wrap="truncate">
@@ -488,5 +488,5 @@ function NodeChildren({
         </Text>
       )}
     </Box>
-  );
+  )
 }

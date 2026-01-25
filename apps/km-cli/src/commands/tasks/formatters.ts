@@ -4,38 +4,38 @@
  * Functions for formatting tasks and their paths for CLI output.
  */
 
-import chalk from "chalk";
+import chalk from "chalk"
 import {
   getNodeDisplayName as getNodeDisplayNameRaw,
   type CollapsedAncestor,
-} from "@km/tree";
-import { getChildren } from "@km/storage";
-import type { KNode } from "@km/core";
+} from "@km/tree"
+import { getChildren } from "@km/storage"
+import type { KNode } from "@km/core"
 
 // Bound version with store dependency
 export const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameRaw>[0],
-) => getNodeDisplayNameRaw(node, getChildren);
+) => getNodeDisplayNameRaw(node, getChildren)
 
 /**
  * Format a collapsed ancestor for display with its type suffix
  */
 export function formatCollapsedAncestor(ca: CollapsedAncestor): string {
-  const name = getNodeDisplayName(ca.node);
+  const name = getNodeDisplayName(ca.node)
   if (ca.typeSuffix) {
-    return name + chalk.gray(` ${ca.typeSuffix}`);
+    return name + chalk.gray(` ${ca.typeSuffix}`)
   }
   // No collapsed suffix - show individual type indicator
   if (ca.node.type === "folder") {
-    return name + chalk.gray("/");
+    return name + chalk.gray("/")
   } else if (ca.node.type === "file") {
     // Only add .md if name doesn't already end with it
-    return name.endsWith(".md") ? name : name + chalk.gray(".md");
+    return name.endsWith(".md") ? name : name + chalk.gray(".md")
   } else if (ca.node.type === "section") {
-    const depth = (ca.node.data?.depth as number) ?? 1;
-    return chalk.gray("#".repeat(depth) + " ") + name;
+    const depth = (ca.node.data?.depth as number) ?? 1
+    return chalk.gray("#".repeat(depth) + " ") + name
   }
-  return name;
+  return name
 }
 
 /**
@@ -46,38 +46,38 @@ export function formatTaskWithPath(
   collapsedAncestors: CollapsedAncestor[],
   options: { verbose?: boolean; flat?: boolean; showId?: boolean } = {},
 ): string[] {
-  const lines: string[] = [];
+  const lines: string[] = []
 
   if (options.flat) {
     // Single line: path → task
     const pathParts = collapsedAncestors.map((ca) =>
       chalk.dim(formatCollapsedAncestor(ca)),
-    );
-    const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : "";
-    lines.push(pathStr + formatTaskLine(task, options));
+    )
+    const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : ""
+    lines.push(pathStr + formatTaskLine(task, options))
   } else {
     // Multi-line: each ancestor on its own line
     // - Folders/files: 1 space per level
     // - Sections: same indent as their file (# prefix shows heading level)
-    let fsDepth = 0;
-    let hasSection = false;
+    let fsDepth = 0
+    let hasSection = false
     for (const ca of collapsedAncestors) {
-      const prefix = " ".repeat(fsDepth);
-      lines.push(prefix + chalk.dim(formatCollapsedAncestor(ca)));
+      const prefix = " ".repeat(fsDepth)
+      lines.push(prefix + chalk.dim(formatCollapsedAncestor(ca)))
       if (ca.node.type === "section") {
-        hasSection = true;
+        hasSection = true
       } else {
         // Only folders/files increase the depth
-        fsDepth++;
+        fsDepth++
       }
     }
     // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
-    const taskIndent = hasSection ? fsDepth + 3 : fsDepth;
-    const taskPrefix = " ".repeat(taskIndent);
-    lines.push(taskPrefix + formatTaskLine(task, options));
+    const taskIndent = hasSection ? fsDepth + 3 : fsDepth
+    const taskPrefix = " ".repeat(taskIndent)
+    lines.push(taskPrefix + formatTaskLine(task, options))
   }
 
-  return lines;
+  return lines
 }
 
 /**
@@ -87,11 +87,11 @@ export function formatTaskLine(
   task: KNode,
   options: { verbose?: boolean; showId?: boolean } = {},
 ): string {
-  const mark = task.task_mark ?? " ";
-  const status = task.task_status ?? "todo";
+  const mark = task.task_mark ?? " "
+  const status = task.task_status ?? "todo"
 
   // Color the checkbox based on status, using actual task mark
-  const checkboxStr = `[${mark}]`;
+  const checkboxStr = `[${mark}]`
   const checkbox =
     status === "done"
       ? chalk.green(checkboxStr)
@@ -99,31 +99,31 @@ export function formatTaskLine(
         ? chalk.yellow(checkboxStr)
         : status === "blocked"
           ? chalk.red(checkboxStr)
-          : chalk.dim(checkboxStr);
+          : chalk.dim(checkboxStr)
 
-  const content = task.content ?? "(no content)";
+  const content = task.content ?? "(no content)"
 
   // Build line: checkbox, optional id, content
-  let line = `${checkbox} `;
+  let line = `${checkbox} `
   if (options.showId) {
     // Show last 8 chars of ID (the random part, not timestamp)
-    const shortId = task.id.slice(-8);
-    line += `${chalk.dim(shortId)}  `;
+    const shortId = task.id.slice(-8)
+    line += `${chalk.dim(shortId)}  `
   }
-  line += content;
+  line += content
 
   if (options.verbose) {
     if (task.due_date) {
-      line += chalk.cyan(` 📅 ${task.due_date}`);
+      line += chalk.cyan(` 📅 ${task.due_date}`)
     }
     if (task.priority) {
-      const p = task.priority === 1 ? "⏫" : task.priority === 2 ? "🔼" : "🔽";
-      line += ` ${p}`;
+      const p = task.priority === 1 ? "⏫" : task.priority === 2 ? "🔼" : "🔽"
+      line += ` ${p}`
     }
     if (task.assigned_to) {
-      line += chalk.magenta(` @${task.assigned_to}`);
+      line += chalk.magenta(` @${task.assigned_to}`)
     }
   }
 
-  return line;
+  return line
 }

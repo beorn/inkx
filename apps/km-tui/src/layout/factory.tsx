@@ -10,7 +10,7 @@ import React, {
   type ComponentType,
   type ReactNode,
   type ReactElement,
-} from "react";
+} from "react"
 import {
   ConstraintRoot as BaseConstraintRoot,
   ConstraintContext,
@@ -34,7 +34,7 @@ import {
   type FlexItemConfig,
   type FlexItemProps as BaseFlexItemProps,
   type ScrollState,
-} from "@beorn/tui-measure";
+} from "@beorn/tui-measure"
 
 // Re-export pure utilities and types (no framework binding needed)
 export {
@@ -58,65 +58,65 @@ export {
   type TerminalSize,
   type FlexItemConfig,
   type ScrollState,
-};
+}
 
 /**
  * Framework interface - the minimal API needed from ink/inkx
  */
 export interface Framework {
   Box: ComponentType<{
-    flexDirection?: "row" | "column";
-    gap?: number;
-    width?: number;
-    children?: ReactNode;
-  }>;
+    flexDirection?: "row" | "column"
+    gap?: number
+    width?: number
+    children?: ReactNode
+  }>
   Text: ComponentType<{
-    children?: ReactNode;
-    backgroundColor?: string;
-    color?: string;
-  }>;
-  useStdout: () => { stdout: NodeJS.WriteStream | undefined };
+    children?: ReactNode
+    backgroundColor?: string
+    color?: string
+  }>
+  useStdout: () => { stdout: NodeJS.WriteStream | undefined }
 }
 
 // Component prop types
 export interface ConstraintRootProps {
-  children: ReactNode;
-  padding?: number | { x?: number; y?: number };
+  children: ReactNode
+  padding?: number | { x?: number; y?: number }
 }
 
 export interface FlexRowProps {
-  children: ReactNode;
-  gap?: number;
+  children: ReactNode
+  gap?: number
 }
 
 export interface FlexItemProps extends FlexItemConfig {
-  children: ReactNode;
+  children: ReactNode
 }
 
 export interface TruncatedTextProps {
-  children: string;
-  ellipsis?: string;
-  maxLines?: number;
-  width?: number;
-  pad?: boolean;
+  children: string
+  ellipsis?: string
+  maxLines?: number
+  width?: number
+  pad?: boolean
 }
 
 export interface ScrollableListProps<T> {
-  items: T[];
-  selectedIndex: number;
-  itemHeight?: number;
-  getItemHeight?: (item: T, index: number) => number;
-  renderItem: (item: T, index: number, isSelected: boolean) => ReactNode;
-  renderOverflow?: (direction: "top" | "bottom", count: number) => ReactNode;
-  gap?: number;
-  height?: number;
+  items: T[]
+  selectedIndex: number
+  itemHeight?: number
+  getItemHeight?: (item: T, index: number) => number
+  renderItem: (item: T, index: number, isSelected: boolean) => ReactNode
+  renderOverflow?: (direction: "top" | "bottom", count: number) => ReactNode
+  gap?: number
+  height?: number
 }
 
 /**
  * Create layout components bound to a specific framework (ink or inkx)
  */
 export function createLayoutComponents(fw: Framework) {
-  const { Box, Text, useStdout } = fw;
+  const { Box, Text, useStdout } = fw
 
   /**
    * Root component that provides terminal dimensions via context
@@ -125,51 +125,51 @@ export function createLayoutComponents(fw: Framework) {
     children,
     padding = 0,
   }: ConstraintRootProps): ReactElement {
-    const { stdout } = useStdout();
+    const { stdout } = useStdout()
     return (
       <BaseConstraintRoot stdout={stdout ?? undefined} padding={padding}>
         {children}
       </BaseConstraintRoot>
-    );
+    )
   }
 
   /**
    * FlexRow distributes horizontal space among children
    */
   function FlexRow({ children, gap = 0 }: FlexRowProps): ReactElement {
-    const context = useConstraintContext();
-    const { parent, terminal } = context;
-    const childArray = React.Children.toArray(children);
+    const context = useConstraintContext()
+    const { parent, terminal } = context
+    const childArray = React.Children.toArray(children)
 
     const configs: FlexItemConfig[] = childArray.map((child) => {
       if (React.isValidElement(child) && child.type === FlexItem) {
-        const props = child.props as BaseFlexItemProps;
+        const props = child.props as BaseFlexItemProps
         return {
           flex: props.flex,
           width: props.width,
           minWidth: props.minWidth,
           maxWidth: props.maxWidth,
           squish: props.squish,
-        };
+        }
       }
-      return { flex: 1 };
-    });
+      return { flex: 1 }
+    })
 
     const widths = useMemo(
       () => distributeSpace(parent.width, configs, gap),
       [parent.width, configs, gap],
-    );
+    )
 
     return (
       <Box flexDirection="row" gap={gap}>
         {childArray.map((child, i) => {
-          const width = widths[i] ?? 0;
-          const childSize: ComputedSize = { width, height: parent.height };
+          const width = widths[i] ?? 0
+          const childSize: ComputedSize = { width, height: parent.height }
 
           const content =
             React.isValidElement(child) && child.type === FlexItem
               ? (child.props as BaseFlexItemProps).children
-              : child;
+              : child
 
           return (
             <ConstraintContext.Provider
@@ -178,10 +178,10 @@ export function createLayoutComponents(fw: Framework) {
             >
               <Box width={width}>{content}</Box>
             </ConstraintContext.Provider>
-          );
+          )
         })}
       </Box>
-    );
+    )
   }
 
   /**
@@ -194,19 +194,19 @@ export function createLayoutComponents(fw: Framework) {
     width: widthOverride,
     pad = false,
   }: TruncatedTextProps): ReactElement {
-    let contextSize: ComputedSize | null = null;
+    let contextSize: ComputedSize | null = null
     try {
-      contextSize = useComputedSize();
+      contextSize = useComputedSize()
     } catch {
       // Not inside ConstraintRoot
     }
 
-    const width = widthOverride ?? contextSize?.width ?? 80;
+    const width = widthOverride ?? contextSize?.width ?? 80
 
     const { lines } = useMemo(
       () => constrainText(children, width, maxLines, pad, ellipsis),
       [children, width, maxLines, pad, ellipsis],
-    );
+    )
 
     return (
       <>
@@ -214,7 +214,7 @@ export function createLayoutComponents(fw: Framework) {
           <Text key={i}>{line}</Text>
         ))}
       </>
-    );
+    )
   }
 
   /**
@@ -223,10 +223,10 @@ export function createLayoutComponents(fw: Framework) {
   function useTruncatedText(
     text: string,
     options: {
-      maxLines?: number;
-      width?: number;
-      pad?: boolean;
-      ellipsis?: string;
+      maxLines?: number
+      width?: number
+      pad?: boolean
+      ellipsis?: string
     } = {},
   ): { lines: string[]; truncated: boolean } {
     const {
@@ -234,21 +234,21 @@ export function createLayoutComponents(fw: Framework) {
       width: widthOverride,
       pad = false,
       ellipsis,
-    } = options;
+    } = options
 
-    let contextSize: ComputedSize | null = null;
+    let contextSize: ComputedSize | null = null
     try {
-      contextSize = useComputedSize();
+      contextSize = useComputedSize()
     } catch {
       // Not inside ConstraintRoot
     }
 
-    const width = widthOverride ?? contextSize?.width ?? 80;
+    const width = widthOverride ?? contextSize?.width ?? 80
 
     return useMemo(
       () => constrainText(text, width, maxLines, pad, ellipsis),
       [text, width, maxLines, pad, ellipsis],
-    );
+    )
   }
 
   /**
@@ -258,16 +258,16 @@ export function createLayoutComponents(fw: Framework) {
     direction,
     count,
   }: {
-    direction: "top" | "bottom";
-    count: number;
+    direction: "top" | "bottom"
+    count: number
   }): ReactElement {
-    const arrow = direction === "top" ? "▲" : "▼";
-    const text = `${arrow} ${count} more`;
+    const arrow = direction === "top" ? "▲" : "▼"
+    const text = `${arrow} ${count} more`
     return (
       <Text backgroundColor="gray" color="white">
         {text}
       </Text>
-    );
+    )
   }
 
   /**
@@ -283,10 +283,10 @@ export function createLayoutComponents(fw: Framework) {
     gap = 0,
     height: heightOverride,
   }: ScrollableListProps<T>): ReactElement {
-    const { parent } = useConstraintContext();
-    const availableHeight = heightOverride ?? parent.height;
+    const { parent } = useConstraintContext()
+    const availableHeight = heightOverride ?? parent.height
 
-    const hasOverflowIndicator = true; // Always show indicators
+    const hasOverflowIndicator = true // Always show indicators
 
     const { visible, overflowTop, overflowBottom } = useMemo(
       () =>
@@ -308,17 +308,17 @@ export function createLayoutComponents(fw: Framework) {
         hasOverflowIndicator,
         getItemHeight,
       ],
-    );
+    )
 
     const renderOverflowIndicator = (
       direction: "top" | "bottom",
       count: number,
     ): ReactNode => {
       if (renderOverflow) {
-        return renderOverflow(direction, count);
+        return renderOverflow(direction, count)
       }
-      return <DefaultOverflow direction={direction} count={count} />;
-    };
+      return <DefaultOverflow direction={direction} count={count} />
+    }
 
     return (
       <Box flexDirection="column" gap={gap}>
@@ -331,7 +331,7 @@ export function createLayoutComponents(fw: Framework) {
         {overflowBottom > 0 &&
           renderOverflowIndicator("bottom", overflowBottom)}
       </Box>
-    );
+    )
   }
 
   /**
@@ -341,23 +341,23 @@ export function createLayoutComponents(fw: Framework) {
     items: T[],
     selectedIndex: number,
     options: {
-      itemHeight?: number;
-      gap?: number;
-      height?: number;
-      hasOverflowIndicator?: boolean;
-      getItemHeight?: (item: T, index: number) => number;
+      itemHeight?: number
+      gap?: number
+      height?: number
+      hasOverflowIndicator?: boolean
+      getItemHeight?: (item: T, index: number) => number
     } = {},
   ): ScrollState<T> {
-    const { parent } = useConstraintContext();
+    const { parent } = useConstraintContext()
     const {
       itemHeight = 1,
       gap = 0,
       height: heightOverride,
       hasOverflowIndicator = true,
       getItemHeight,
-    } = options;
+    } = options
 
-    const availableHeight = heightOverride ?? parent.height;
+    const availableHeight = heightOverride ?? parent.height
 
     return useMemo(
       () =>
@@ -379,7 +379,7 @@ export function createLayoutComponents(fw: Framework) {
         hasOverflowIndicator,
         getItemHeight,
       ],
-    );
+    )
   }
 
   return {
@@ -392,5 +392,5 @@ export function createLayoutComponents(fw: Framework) {
     // Hooks
     useTruncatedText,
     useScrollState,
-  };
+  }
 }

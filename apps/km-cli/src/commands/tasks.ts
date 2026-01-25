@@ -5,4 +5,4 @@
  * New code should import directly from ./tasks/index.ts
  */
 
-export { taskCommand } from "./tasks/index.ts";
+export { taskCommand } from "./tasks/index.ts"

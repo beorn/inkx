@@ -4,11 +4,11 @@
  * Watches for filesystem changes and triggers reconciliation
  */
 
-import createDebug from "debug";
-import { watch, type FSWatcher } from "chokidar";
+import createDebug from "debug"
+import { watch, type FSWatcher } from "chokidar"
 
-const debug = createDebug("km:storage:watch:watcher");
-import { dirname, join } from "path";
+const debug = createDebug("km:storage:watch:watcher")
+import { dirname, join } from "path"
 import {
   statSync,
   existsSync,
@@ -16,69 +16,69 @@ import {
   readlinkSync,
   writeFileSync,
   unlinkSync,
-} from "fs";
-import { EventEmitter } from "events";
+} from "fs"
+import { EventEmitter } from "events"
 import {
   DEFAULT_IGNORE_PATTERNS,
   getIgnorePatterns,
   shouldIgnore,
   isHiddenFile,
-} from "./ignore.ts";
+} from "./ignore.ts"
 
 export interface WatcherConfig {
-  debounceMs: number;
-  ignored: string[];
+  debounceMs: number
+  ignored: string[]
 }
 
 const DEFAULT_CONFIG: WatcherConfig = {
   debounceMs: 5000,
   ignored: DEFAULT_IGNORE_PATTERNS,
-};
+}
 
 export interface FileChange {
-  type: "add" | "change" | "unlink" | "addDir" | "unlinkDir";
-  path: string;
-  ino?: number;
+  type: "add" | "change" | "unlink" | "addDir" | "unlinkDir"
+  path: string
+  ino?: number
 }
 
 export class FileSystemWatcher extends EventEmitter {
-  private watcher: FSWatcher | null = null;
-  private pendingPaths: Set<string> = new Set();
-  private debounceTimer: NodeJS.Timeout | null = null;
-  private config: WatcherConfig;
-  private vaultPath: string = "";
-  private inFlightWrites: Set<string> = new Set();
+  private watcher: FSWatcher | null = null
+  private pendingPaths: Set<string> = new Set()
+  private debounceTimer: NodeJS.Timeout | null = null
+  private config: WatcherConfig
+  private vaultPath: string = ""
+  private inFlightWrites: Set<string> = new Set()
 
   constructor(config: Partial<WatcherConfig> = {}) {
-    super();
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    super()
+    this.config = { ...DEFAULT_CONFIG, ...config }
   }
 
   /**
    * Start watching a directory
    */
   start(vaultPath: string): void {
-    this.vaultPath = vaultPath;
-    debug("starting watcher for %s", vaultPath);
+    this.vaultPath = vaultPath
+    debug("starting watcher for %s", vaultPath)
 
     // Load ignore patterns from vault's ignore files
-    const ignorePatterns = getIgnorePatterns(vaultPath);
-    debug("ignore patterns: %O", ignorePatterns);
+    const ignorePatterns = getIgnorePatterns(vaultPath)
+    debug("ignore patterns: %O", ignorePatterns)
 
     // Create ignored function that combines patterns with file type check
     // This prevents chokidar from trying to watch socket files (which causes EOPNOTSUPP)
     const ignoredFn = (path: string, stats?: { isSocket?: () => boolean }) => {
       // Always ignore socket files - they can't be watched
       if (stats?.isSocket?.()) {
-        return true;
+        return true
       }
       // Also ignore by extension for paths we see before stat
       if (path.endsWith(".sock")) {
-        return true;
+        return true
       }
       // Check against glob patterns
-      return shouldIgnore(path, ignorePatterns, vaultPath);
-    };
+      return shouldIgnore(path, ignorePatterns, vaultPath)
+    }
 
     this.watcher = watch(vaultPath, {
       persistent: true,
@@ -88,44 +88,44 @@ export class FileSystemWatcher extends EventEmitter {
         stabilityThreshold: 500,
         pollInterval: 100,
       },
-    });
+    })
 
     this.watcher.on("all", (event, path) => {
       // Skip in-flight writes (our own writes)
       if (this.inFlightWrites.has(path)) {
-        debug("skipping in-flight: %s %s", event, path);
-        return;
+        debug("skipping in-flight: %s %s", event, path)
+        return
       }
 
-      debug("fs event: %s %s", event, path);
-      this.pendingPaths.add(path);
-      this.scheduleSync();
-    });
+      debug("fs event: %s %s", event, path)
+      this.pendingPaths.add(path)
+      this.scheduleSync()
+    })
 
     this.watcher.on("error", (error) => {
-      debug("watcher error: %O", error);
-      this.emit("error", error);
-    });
+      debug("watcher error: %O", error)
+      this.emit("error", error)
+    })
 
     this.watcher.on("ready", () => {
-      debug("watcher ready");
-      this.emit("ready");
-    });
+      debug("watcher ready")
+      this.emit("ready")
+    })
   }
 
   /**
    * Stop watching
    */
   async stop(): Promise<void> {
-    debug("stopping watcher");
+    debug("stopping watcher")
     if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = null;
+      clearTimeout(this.debounceTimer)
+      this.debounceTimer = null
     }
 
     if (this.watcher) {
-      await this.watcher.close();
-      this.watcher = null;
+      await this.watcher.close()
+      this.watcher = null
     }
   }
 
@@ -133,8 +133,8 @@ export class FileSystemWatcher extends EventEmitter {
    * Mark a path as in-flight (being written by us)
    */
   markInFlight(path: string): void {
-    debug("marking in-flight: %s", path);
-    this.inFlightWrites.add(path);
+    debug("marking in-flight: %s", path)
+    this.inFlightWrites.add(path)
   }
 
   /**
@@ -142,15 +142,15 @@ export class FileSystemWatcher extends EventEmitter {
    */
   clearInFlight(path: string, delayMs: number = 1000): void {
     setTimeout(() => {
-      this.inFlightWrites.delete(path);
-    }, delayMs);
+      this.inFlightWrites.delete(path)
+    }, delayMs)
   }
 
   /**
    * Check if a path is in-flight
    */
   isInFlight(path: string): boolean {
-    return this.inFlightWrites.has(path);
+    return this.inFlightWrites.has(path)
   }
 
   /**
@@ -158,44 +158,44 @@ export class FileSystemWatcher extends EventEmitter {
    */
   private scheduleSync(): void {
     if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
+      clearTimeout(this.debounceTimer)
     }
 
     debug(
       "scheduling sync in %dms (%d pending)",
       this.config.debounceMs,
       this.pendingPaths.size,
-    );
+    )
     this.debounceTimer = setTimeout(() => {
-      this.sync();
-    }, this.config.debounceMs);
+      this.sync()
+    }, this.config.debounceMs)
   }
 
   /**
    * Process pending changes
    */
   private sync(): void {
-    const paths = [...this.pendingPaths];
-    this.pendingPaths.clear();
+    const paths = [...this.pendingPaths]
+    this.pendingPaths.clear()
 
     if (paths.length === 0) {
-      debug("sync: no pending paths");
-      return;
+      debug("sync: no pending paths")
+      return
     }
 
     // Group by directory for efficient scanning
-    const dirs = new Set<string>();
+    const dirs = new Set<string>()
     for (const path of paths) {
-      dirs.add(dirname(path));
+      dirs.add(dirname(path))
     }
 
-    debug("sync: emitting %d paths, %d directories", paths.length, dirs.size);
+    debug("sync: emitting %d paths, %d directories", paths.length, dirs.size)
 
     // Emit sync event with affected directories
     this.emit("sync", {
       paths,
       directories: [...dirs],
-    });
+    })
   }
 
   /**
@@ -203,10 +203,10 @@ export class FileSystemWatcher extends EventEmitter {
    */
   forceSync(): void {
     if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = null;
+      clearTimeout(this.debounceTimer)
+      this.debounceTimer = null
     }
-    this.sync();
+    this.sync()
   }
 
   /**
@@ -216,15 +216,15 @@ export class FileSystemWatcher extends EventEmitter {
     path: string,
   ): { ino: number; path: string; mtime: number; size: number } | null {
     try {
-      const stat = statSync(path);
+      const stat = statSync(path)
       return {
         ino: stat.ino,
         path,
         mtime: stat.mtimeMs,
         size: stat.size,
-      };
+      }
     } catch {
-      return null;
+      return null
     }
   }
 }
@@ -233,8 +233,8 @@ export class FileSystemWatcher extends EventEmitter {
  * Information about detected symlinks (for user notification)
  */
 export interface SymlinkInfo {
-  path: string;
-  target: string | null;
+  path: string
+  target: string | null
 }
 
 /**
@@ -245,37 +245,37 @@ export function scanDirectory(
   dirPath: string,
   ignorePatterns?: string[],
 ): Array<{
-  path: string;
-  ino: number;
-  mtime: number;
-  isDirectory: boolean;
-  isSymlink?: boolean;
+  path: string
+  ino: number
+  mtime: number
+  isDirectory: boolean
+  isSymlink?: boolean
 }> {
   const results: Array<{
-    path: string;
-    ino: number;
-    mtime: number;
-    isDirectory: boolean;
-    isSymlink?: boolean;
-  }> = [];
+    path: string
+    ino: number
+    mtime: number
+    isDirectory: boolean
+    isSymlink?: boolean
+  }> = []
 
   if (!existsSync(dirPath)) {
-    return results;
+    return results
   }
 
-  const entries = readdirSync(dirPath, { withFileTypes: true });
+  const entries = readdirSync(dirPath, { withFileTypes: true })
 
   for (const entry of entries) {
-    const fullPath = join(dirPath, entry.name);
+    const fullPath = join(dirPath, entry.name)
 
     // Skip hidden files (files starting with .)
     if (isHiddenFile(fullPath)) {
-      continue;
+      continue
     }
 
     // Skip files matching ignore patterns
     if (ignorePatterns && shouldIgnore(fullPath, ignorePatterns)) {
-      continue;
+      continue
     }
 
     // Skip symlinks to avoid potential infinite loops and inconsistent behavior
@@ -284,24 +284,24 @@ export function scanDirectory(
     // - Duplicate nodes if symlink target is also in vault
     // - Confusing behavior if symlink target is modified
     if (entry.isSymbolicLink()) {
-      debug("skipping symlink: %s", fullPath);
-      continue;
+      debug("skipping symlink: %s", fullPath)
+      continue
     }
 
     try {
-      const stat = statSync(fullPath);
+      const stat = statSync(fullPath)
       results.push({
         path: fullPath,
         ino: stat.ino,
         mtime: stat.mtimeMs,
         isDirectory: entry.isDirectory(),
-      });
+      })
     } catch {
       // Skip inaccessible files
     }
   }
 
-  return results;
+  return results
 }
 
 /**
@@ -313,32 +313,32 @@ export function scanDirectoryRecursive(
   ignorePatterns?: string[],
 ): Array<{ path: string; ino: number; mtime: number; isDirectory: boolean }> {
   const results: Array<{
-    path: string;
-    ino: number;
-    mtime: number;
-    isDirectory: boolean;
-  }> = [];
+    path: string
+    ino: number
+    mtime: number
+    isDirectory: boolean
+  }> = []
 
   function scan(dir: string) {
-    const entries = scanDirectory(dir, ignorePatterns);
+    const entries = scanDirectory(dir, ignorePatterns)
 
     for (const entry of entries) {
       // Always recurse into directories, but only add to results if filter passes
       if (entry.isDirectory) {
-        scan(entry.path);
+        scan(entry.path)
       }
 
       // Apply filter to determine if entry should be in results
       if (filter && !filter(entry.path)) {
-        continue;
+        continue
       }
 
-      results.push(entry);
+      results.push(entry)
     }
   }
 
-  scan(dirPath);
-  return results;
+  scan(dirPath)
+  return results
 }
 
 /**
@@ -350,45 +350,45 @@ export function scanSymlinks(
   ignorePatterns?: string[],
   recursive: boolean = false,
 ): SymlinkInfo[] {
-  const symlinks: SymlinkInfo[] = [];
+  const symlinks: SymlinkInfo[] = []
 
   function scan(dir: string) {
     if (!existsSync(dir)) {
-      return;
+      return
     }
 
-    const entries = readdirSync(dir, { withFileTypes: true });
+    const entries = readdirSync(dir, { withFileTypes: true })
 
     for (const entry of entries) {
-      const fullPath = join(dir, entry.name);
+      const fullPath = join(dir, entry.name)
 
       // Skip hidden files
       if (isHiddenFile(fullPath)) {
-        continue;
+        continue
       }
 
       // Skip files matching ignore patterns
       if (ignorePatterns && shouldIgnore(fullPath, ignorePatterns)) {
-        continue;
+        continue
       }
 
       if (entry.isSymbolicLink()) {
         // Read symlink target
-        let target: string | null = null;
+        let target: string | null = null
         try {
-          target = readlinkSync(fullPath);
+          target = readlinkSync(fullPath)
         } catch {
           // Target unreadable
         }
-        symlinks.push({ path: fullPath, target });
+        symlinks.push({ path: fullPath, target })
       } else if (recursive && entry.isDirectory()) {
-        scan(fullPath);
+        scan(fullPath)
       }
     }
   }
 
-  scan(dirPath);
-  return symlinks;
+  scan(dirPath)
+  return symlinks
 }
 
 /**
@@ -396,9 +396,9 @@ export function scanSymlinks(
  */
 export interface CaseCollision {
   /** Normalized lowercase path */
-  normalizedPath: string;
+  normalizedPath: string
   /** All paths that collide (differ only by case) */
-  paths: string[];
+  paths: string[]
 }
 
 /**
@@ -414,26 +414,26 @@ export interface CaseCollision {
  * @returns true if case-sensitive, false if case-insensitive
  */
 export function detectCaseSensitivity(dirPath: string): boolean {
-  const testFile = join(dirPath, `.km-case-test-${Date.now()}`);
-  const testFileUpper = testFile.toUpperCase();
+  const testFile = join(dirPath, `.km-case-test-${Date.now()}`)
+  const testFileUpper = testFile.toUpperCase()
 
   try {
     // Create a lowercase test file
-    writeFileSync(testFile, "");
+    writeFileSync(testFile, "")
 
     // Check if the uppercase version exists (would be same file on case-insensitive FS)
-    const isCaseInsensitive = existsSync(testFileUpper);
+    const isCaseInsensitive = existsSync(testFileUpper)
 
     // Clean up
-    unlinkSync(testFile);
+    unlinkSync(testFile)
 
-    return !isCaseInsensitive;
+    return !isCaseInsensitive
   } catch {
     // If we can't test, assume case-sensitive (safer default)
     debug("could not detect case sensitivity, assuming case-sensitive", {
       dirPath,
-    });
-    return true;
+    })
+    return true
   }
 }
 
@@ -442,7 +442,7 @@ export function detectCaseSensitivity(dirPath: string): boolean {
  * Only lowercases if caseSensitive is false.
  */
 export function normalizePath(path: string, caseSensitive: boolean): string {
-  return caseSensitive ? path : path.toLowerCase();
+  return caseSensitive ? path : path.toLowerCase()
 }
 
 /**
@@ -460,48 +460,48 @@ export function detectCaseCollisions(
   dirPath: string,
   recursive: boolean = false,
 ): CaseCollision[] {
-  const pathsByNormalized = new Map<string, string[]>();
+  const pathsByNormalized = new Map<string, string[]>()
 
   function scan(dir: string) {
     if (!existsSync(dir)) {
-      return;
+      return
     }
 
-    const entries = readdirSync(dir, { withFileTypes: true });
+    const entries = readdirSync(dir, { withFileTypes: true })
 
     for (const entry of entries) {
-      const fullPath = join(dir, entry.name);
+      const fullPath = join(dir, entry.name)
 
       // Skip hidden files
       if (isHiddenFile(fullPath)) {
-        continue;
+        continue
       }
 
       // Skip symlinks
       if (entry.isSymbolicLink()) {
-        continue;
+        continue
       }
 
-      const normalized = fullPath.toLowerCase();
-      const existing = pathsByNormalized.get(normalized) ?? [];
-      existing.push(fullPath);
-      pathsByNormalized.set(normalized, existing);
+      const normalized = fullPath.toLowerCase()
+      const existing = pathsByNormalized.get(normalized) ?? []
+      existing.push(fullPath)
+      pathsByNormalized.set(normalized, existing)
 
       if (recursive && entry.isDirectory()) {
-        scan(fullPath);
+        scan(fullPath)
       }
     }
   }
 
-  scan(dirPath);
+  scan(dirPath)
 
   // Filter to only collisions (more than one path per normalized key)
-  const collisions: CaseCollision[] = [];
+  const collisions: CaseCollision[] = []
   for (const [normalizedPath, paths] of pathsByNormalized) {
     if (paths.length > 1) {
-      collisions.push({ normalizedPath, paths });
+      collisions.push({ normalizedPath, paths })
     }
   }
 
-  return collisions;
+  return collisions
 }

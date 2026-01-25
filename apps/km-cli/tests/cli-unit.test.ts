@@ -5,11 +5,11 @@
  * These test the command logic directly rather than through the CLI.
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "bun:test"
 
-import { getNode, getTasksByStatus, withTestEnv } from "@km/storage";
-import type { KNode, TaskStatus } from "@km/core";
-import type { Database } from "bun:sqlite";
+import { getNode, getTasksByStatus, withTestEnv } from "@km/storage"
+import type { KNode, TaskStatus } from "@km/core"
+import type { Database } from "bun:sqlite"
 
 /**
  * Helper to create a task directly in the database
@@ -19,8 +19,8 @@ function createTask(
   content: string,
   options: Partial<KNode> = {},
 ): KNode {
-  const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const now = Date.now();
+  const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const now = Date.now()
 
   const node: KNode = {
     id,
@@ -30,7 +30,7 @@ function createTask(
     created_at: now,
     updated_at: now,
     ...options,
-  } as KNode;
+  } as KNode
 
   db.prepare(
     `INSERT INTO nodes (id, type, content, task_status, priority, due_date, assigned_to, created_at, updated_at)
@@ -45,120 +45,120 @@ function createTask(
     node.assigned_to ?? null,
     node.created_at,
     node.updated_at,
-  );
+  )
 
-  return node;
+  return node
 }
 
 describe.serial("Task Status Filtering", () => {
   test("should filter by single status", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Open task", { task_status: "todo" });
-      createTask(db, "Done task", { task_status: "done" });
-      createTask(db, "In progress", { task_status: "wip" });
+      createTask(db, "Open task", { task_status: "todo" })
+      createTask(db, "Done task", { task_status: "done" })
+      createTask(db, "In progress", { task_status: "wip" })
 
-      const openTasks = getTasksByStatus(["todo"]);
-      expect(openTasks.length).toBe(1);
-      expect(openTasks[0]!.content).toBe("Open task");
+      const openTasks = getTasksByStatus(["todo"])
+      expect(openTasks.length).toBe(1)
+      expect(openTasks[0]!.content).toBe("Open task")
 
-      const doneTasks = getTasksByStatus(["done"]);
-      expect(doneTasks.length).toBe(1);
-      expect(doneTasks[0]!.content).toBe("Done task");
-    });
-  });
+      const doneTasks = getTasksByStatus(["done"])
+      expect(doneTasks.length).toBe(1)
+      expect(doneTasks[0]!.content).toBe("Done task")
+    })
+  })
 
   test("should filter by multiple statuses", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Open task", { task_status: "todo" });
-      createTask(db, "Done task", { task_status: "done" });
-      createTask(db, "In progress", { task_status: "wip" });
+      createTask(db, "Open task", { task_status: "todo" })
+      createTask(db, "Done task", { task_status: "done" })
+      createTask(db, "In progress", { task_status: "wip" })
 
-      const tasks = getTasksByStatus(["todo", "wip"]);
-      expect(tasks.length).toBe(2);
-      expect(tasks.map((t) => t.content)).toContain("Open task");
-      expect(tasks.map((t) => t.content)).toContain("In progress");
-    });
-  });
+      const tasks = getTasksByStatus(["todo", "wip"])
+      expect(tasks.length).toBe(2)
+      expect(tasks.map((t) => t.content)).toContain("Open task")
+      expect(tasks.map((t) => t.content)).toContain("In progress")
+    })
+  })
 
   test("should return empty for no matches", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Open task", { task_status: "todo" });
+      createTask(db, "Open task", { task_status: "todo" })
 
-      const blockedTasks = getTasksByStatus(["blocked"]);
-      expect(blockedTasks.length).toBe(0);
-    });
-  });
-});
+      const blockedTasks = getTasksByStatus(["blocked"])
+      expect(blockedTasks.length).toBe(0)
+    })
+  })
+})
 
 describe.serial("Task Priority Sorting", () => {
   test("should sort by priority ascending", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Low priority", { priority: 5 });
-      createTask(db, "High priority", { priority: 1 });
-      createTask(db, "Medium priority", { priority: 3 });
+      createTask(db, "Low priority", { priority: 5 })
+      createTask(db, "High priority", { priority: 1 })
+      createTask(db, "Medium priority", { priority: 3 })
 
-      const tasks = getTasksByStatus(["todo"]);
-      tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
+      const tasks = getTasksByStatus(["todo"])
+      tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
 
-      expect(tasks[0]!.content).toBe("High priority");
-      expect(tasks[1]!.content).toBe("Medium priority");
-      expect(tasks[2]!.content).toBe("Low priority");
-    });
-  });
+      expect(tasks[0]!.content).toBe("High priority")
+      expect(tasks[1]!.content).toBe("Medium priority")
+      expect(tasks[2]!.content).toBe("Low priority")
+    })
+  })
 
   test("should handle null priorities", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "No priority");
-      createTask(db, "Has priority", { priority: 2 });
+      createTask(db, "No priority")
+      createTask(db, "Has priority", { priority: 2 })
 
-      const tasks = getTasksByStatus(["todo"]);
-      tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
+      const tasks = getTasksByStatus(["todo"])
+      tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
 
-      expect(tasks[0]!.content).toBe("Has priority");
-      expect(tasks[1]!.content).toBe("No priority");
-    });
-  });
-});
+      expect(tasks[0]!.content).toBe("Has priority")
+      expect(tasks[1]!.content).toBe("No priority")
+    })
+  })
+})
 
 describe.serial("Task Due Date Sorting", () => {
   test("should sort by due date ascending", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Due tomorrow", { due_date: "2026-01-10" });
-      createTask(db, "Due today", { due_date: "2026-01-09" });
-      createTask(db, "Due next week", { due_date: "2026-01-16" });
+      createTask(db, "Due tomorrow", { due_date: "2026-01-10" })
+      createTask(db, "Due today", { due_date: "2026-01-09" })
+      createTask(db, "Due next week", { due_date: "2026-01-16" })
 
-      const tasks = getTasksByStatus(["todo"]);
+      const tasks = getTasksByStatus(["todo"])
       tasks.sort((a, b) => {
-        if (!a.due_date && !b.due_date) return 0;
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return a.due_date.localeCompare(b.due_date);
-      });
+        if (!a.due_date && !b.due_date) return 0
+        if (!a.due_date) return 1
+        if (!b.due_date) return -1
+        return a.due_date.localeCompare(b.due_date)
+      })
 
-      expect(tasks[0]!.content).toBe("Due today");
-      expect(tasks[1]!.content).toBe("Due tomorrow");
-      expect(tasks[2]!.content).toBe("Due next week");
-    });
-  });
+      expect(tasks[0]!.content).toBe("Due today")
+      expect(tasks[1]!.content).toBe("Due tomorrow")
+      expect(tasks[2]!.content).toBe("Due next week")
+    })
+  })
 
   test("should put tasks without due date last", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "No due date");
-      createTask(db, "Has due date", { due_date: "2026-01-15" });
+      createTask(db, "No due date")
+      createTask(db, "Has due date", { due_date: "2026-01-15" })
 
-      const tasks = getTasksByStatus(["todo"]);
+      const tasks = getTasksByStatus(["todo"])
       tasks.sort((a, b) => {
-        if (!a.due_date && !b.due_date) return 0;
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return a.due_date.localeCompare(b.due_date);
-      });
+        if (!a.due_date && !b.due_date) return 0
+        if (!a.due_date) return 1
+        if (!b.due_date) return -1
+        return a.due_date.localeCompare(b.due_date)
+      })
 
-      expect(tasks[0]!.content).toBe("Has due date");
-      expect(tasks[1]!.content).toBe("No due date");
-    });
-  });
-});
+      expect(tasks[0]!.content).toBe("Has due date")
+      expect(tasks[1]!.content).toBe("No due date")
+    })
+  })
+})
 
 describe.serial("Task Status Validation", () => {
   const validStatuses: TaskStatus[] = [
@@ -167,17 +167,17 @@ describe.serial("Task Status Validation", () => {
     "done",
     "blocked",
     "dropped",
-  ];
+  ]
 
   test("should accept valid status values", () => {
     for (const status of validStatuses) {
-      expect(validStatuses.includes(status)).toBe(true);
+      expect(validStatuses.includes(status)).toBe(true)
     }
-  });
+  })
 
   test("should have correct status list", () => {
-    expect(validStatuses.length).toBe(5);
-  });
+    expect(validStatuses.length).toBe(5)
+  })
 
   test("should reject invalid status values", () => {
     const invalidStatuses = [
@@ -186,30 +186,30 @@ describe.serial("Task Status Validation", () => {
       "active",
       "open",
       "in_progress",
-    ];
+    ]
     for (const status of invalidStatuses) {
-      expect(validStatuses.includes(status as TaskStatus)).toBe(false);
+      expect(validStatuses.includes(status as TaskStatus)).toBe(false)
     }
-  });
-});
+  })
+})
 
 describe.serial("Node ID Prefix Matching", () => {
   test("should find node by full ID", async () => {
     await withTestEnv(async ({ db }) => {
-      const task = createTask(db, "Test task");
-      const found = getNode(task.id);
+      const task = createTask(db, "Test task")
+      const found = getNode(task.id)
 
-      expect(found).not.toBeNull();
-      expect(found?.id).toBe(task.id);
-    });
-  });
+      expect(found).not.toBeNull()
+      expect(found?.id).toBe(task.id)
+    })
+  })
 
   test("should return null for non-existent ID", async () => {
     await withTestEnv(async () => {
-      const found = getNode("nonexistent-id");
-      expect(found).toBeNull();
-    });
-  });
+      const found = getNode("nonexistent-id")
+      expect(found).toBeNull()
+    })
+  })
 
   test("should get node with all fields", async () => {
     await withTestEnv(async ({ db }) => {
@@ -217,50 +217,50 @@ describe.serial("Node ID Prefix Matching", () => {
         priority: 2,
         due_date: "2026-01-15",
         assigned_to: "alice",
-      });
+      })
 
-      const found = getNode(task.id);
+      const found = getNode(task.id)
 
-      expect(found?.content).toBe("Test task");
-      expect(found?.priority).toBe(2);
-      expect(found?.due_date).toBe("2026-01-15");
-      expect(found?.assigned_to).toBe("alice");
-    });
-  });
-});
+      expect(found?.content).toBe("Test task")
+      expect(found?.priority).toBe(2)
+      expect(found?.due_date).toBe("2026-01-15")
+      expect(found?.assigned_to).toBe("alice")
+    })
+  })
+})
 
 describe.serial("Task Assignment", () => {
   test("should filter tasks by assigned_to", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Alice task", { assigned_to: "alice" });
-      createTask(db, "Bob task", { assigned_to: "bob" });
-      createTask(db, "Unassigned task");
+      createTask(db, "Alice task", { assigned_to: "alice" })
+      createTask(db, "Bob task", { assigned_to: "bob" })
+      createTask(db, "Unassigned task")
 
       const aliceTasks = db
         .prepare("SELECT * FROM nodes WHERE type = 'task' AND assigned_to = ?")
-        .all("alice") as KNode[];
+        .all("alice") as KNode[]
 
-      expect(aliceTasks.length).toBe(1);
-      expect(aliceTasks[0]!.content).toBe("Alice task");
-    });
-  });
+      expect(aliceTasks.length).toBe(1)
+      expect(aliceTasks[0]!.content).toBe("Alice task")
+    })
+  })
 
   test("should find unassigned tasks", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Alice task", { assigned_to: "alice" });
-      createTask(db, "Unassigned 1");
-      createTask(db, "Unassigned 2");
+      createTask(db, "Alice task", { assigned_to: "alice" })
+      createTask(db, "Unassigned 1")
+      createTask(db, "Unassigned 2")
 
       const unassigned = db
         .prepare(
           "SELECT * FROM nodes WHERE type = 'task' AND assigned_to IS NULL",
         )
-        .all() as KNode[];
+        .all() as KNode[]
 
-      expect(unassigned.length).toBe(2);
-    });
-  });
-});
+      expect(unassigned.length).toBe(2)
+    })
+  })
+})
 
 describe.serial("Task Content Parsing", () => {
   // These tests verify that task content can contain metadata markers
@@ -268,83 +268,83 @@ describe.serial("Task Content Parsing", () => {
 
   test("should store content with emoji markers", async () => {
     await withTestEnv(async ({ db }) => {
-      const task = createTask(db, "Task with due 📅 2025-12-25");
-      const found = getNode(task.id);
+      const task = createTask(db, "Task with due 📅 2025-12-25")
+      const found = getNode(task.id)
 
-      expect(found?.content).toContain("📅");
-      expect(found?.content).toContain("2025-12-25");
-    });
-  });
+      expect(found?.content).toContain("📅")
+      expect(found?.content).toContain("2025-12-25")
+    })
+  })
 
   test("should store content with priority marker", async () => {
     await withTestEnv(async ({ db }) => {
-      const task = createTask(db, "Urgent task ⏫");
-      const found = getNode(task.id);
+      const task = createTask(db, "Urgent task ⏫")
+      const found = getNode(task.id)
 
-      expect(found?.content).toContain("⏫");
-    });
-  });
+      expect(found?.content).toContain("⏫")
+    })
+  })
 
   test("should store content with tags", async () => {
     await withTestEnv(async ({ db }) => {
-      const task = createTask(db, "Task #work #urgent");
-      const found = getNode(task.id);
+      const task = createTask(db, "Task #work #urgent")
+      const found = getNode(task.id)
 
-      expect(found?.content).toContain("#work");
-      expect(found?.content).toContain("#urgent");
-    });
-  });
-});
+      expect(found?.content).toContain("#work")
+      expect(found?.content).toContain("#urgent")
+    })
+  })
+})
 
 describe.serial("Search Functionality", () => {
   test("should find tasks by content substring", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Buy groceries");
-      createTask(db, "Call Alice");
-      createTask(db, "Review code");
+      createTask(db, "Buy groceries")
+      createTask(db, "Call Alice")
+      createTask(db, "Review code")
 
       const results = db
         .prepare("SELECT * FROM nodes WHERE type = 'task' AND content LIKE ?")
-        .all("%Alice%") as KNode[];
+        .all("%Alice%") as KNode[]
 
-      expect(results.length).toBe(1);
-      expect(results[0]!.content).toBe("Call Alice");
-    });
-  });
+      expect(results.length).toBe(1)
+      expect(results[0]!.content).toBe("Call Alice")
+    })
+  })
 
   test("should find tasks case-insensitively", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Buy GROCERIES");
-      createTask(db, "groceries list");
+      createTask(db, "Buy GROCERIES")
+      createTask(db, "groceries list")
 
       const results = db
         .prepare(
           "SELECT * FROM nodes WHERE type = 'task' AND LOWER(content) LIKE LOWER(?)",
         )
-        .all("%groceries%") as KNode[];
+        .all("%groceries%") as KNode[]
 
-      expect(results.length).toBe(2);
-    });
-  });
+      expect(results.length).toBe(2)
+    })
+  })
 
   test("should return empty for no matches", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Buy groceries");
+      createTask(db, "Buy groceries")
 
       const results = db
         .prepare("SELECT * FROM nodes WHERE type = 'task' AND content LIKE ?")
-        .all("%nonexistent%") as KNode[];
+        .all("%nonexistent%") as KNode[]
 
-      expect(results.length).toBe(0);
-    });
-  });
-});
+      expect(results.length).toBe(0)
+    })
+  })
+})
 
 describe.serial("Task Data Field", () => {
   test("should store and retrieve JSON data", async () => {
     await withTestEnv(async ({ db }) => {
-      const id = `task-${Date.now()}`;
-      const data = { tags: ["work", "urgent"], notes: "Important" };
+      const id = `task-${Date.now()}`
+      const data = { tags: ["work", "urgent"], notes: "Important" }
 
       db.prepare(
         `INSERT INTO nodes (id, type, content, task_status, data, created_at, updated_at)
@@ -357,76 +357,76 @@ describe.serial("Task Data Field", () => {
         JSON.stringify(data),
         Date.now(),
         Date.now(),
-      );
+      )
 
-      const found = getNode(id);
-      expect(found?.data).toEqual(data);
-    });
-  });
+      const found = getNode(id)
+      expect(found?.data).toEqual(data)
+    })
+  })
 
   test("should handle empty data field", async () => {
     await withTestEnv(async ({ db }) => {
-      const task = createTask(db, "Task without data");
-      const found = getNode(task.id);
+      const task = createTask(db, "Task without data")
+      const found = getNode(task.id)
 
       // Data defaults to empty object when not specified
-      expect(found?.data).toEqual({});
-    });
-  });
-});
+      expect(found?.data).toEqual({})
+    })
+  })
+})
 
 describe.serial("Overdue Detection", () => {
   test("should detect overdue tasks", async () => {
     await withTestEnv(async ({ db }) => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split("T")[0]
 
-      createTask(db, "Overdue task", { due_date: yesterdayStr });
+      createTask(db, "Overdue task", { due_date: yesterdayStr })
 
-      const tasks = getTasksByStatus(["todo"]);
+      const tasks = getTasksByStatus(["todo"])
       const overdue = tasks.filter((t) => {
-        if (!t.due_date) return false;
-        return new Date(t.due_date) < new Date();
-      });
+        if (!t.due_date) return false
+        return new Date(t.due_date) < new Date()
+      })
 
-      expect(overdue.length).toBe(1);
-      expect(overdue[0]!.content).toBe("Overdue task");
-    });
-  });
+      expect(overdue.length).toBe(1)
+      expect(overdue[0]!.content).toBe("Overdue task")
+    })
+  })
 
   test("should not mark future tasks as overdue", async () => {
     await withTestEnv(async ({ db }) => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const tomorrowStr = tomorrow.toISOString().split("T")[0]
 
-      createTask(db, "Future task", { due_date: tomorrowStr });
+      createTask(db, "Future task", { due_date: tomorrowStr })
 
-      const tasks = getTasksByStatus(["todo"]);
+      const tasks = getTasksByStatus(["todo"])
       const overdue = tasks.filter((t) => {
-        if (!t.due_date) return false;
-        return new Date(t.due_date) < new Date();
-      });
+        if (!t.due_date) return false
+        return new Date(t.due_date) < new Date()
+      })
 
-      expect(overdue.length).toBe(0);
-    });
-  });
-});
+      expect(overdue.length).toBe(0)
+    })
+  })
+})
 
 describe.serial("Timestamp Handling", () => {
   test("should store and retrieve timestamps", async () => {
     await withTestEnv(async ({ db }) => {
-      const before = Date.now();
-      const task = createTask(db, "Timestamped task");
-      const after = Date.now();
+      const before = Date.now()
+      const task = createTask(db, "Timestamped task")
+      const after = Date.now()
 
-      const found = getNode(task.id);
+      const found = getNode(task.id)
 
-      expect(found?.created_at).toBeGreaterThanOrEqual(before);
-      expect(found?.created_at).toBeLessThanOrEqual(after);
-      expect(found?.updated_at).toBeGreaterThanOrEqual(before);
-      expect(found?.updated_at).toBeLessThanOrEqual(after);
-    });
-  });
-});
+      expect(found?.created_at).toBeGreaterThanOrEqual(before)
+      expect(found?.created_at).toBeLessThanOrEqual(after)
+      expect(found?.updated_at).toBeGreaterThanOrEqual(before)
+      expect(found?.updated_at).toBeLessThanOrEqual(after)
+    })
+  })
+})

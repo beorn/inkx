@@ -6,12 +6,12 @@
  */
 
 // Types
-export type { TNode, TPath } from "./types.ts";
-export type { TaskStatus } from "./types.ts";
+export type { TNode, TPath } from "./types.ts"
+export type { TaskStatus } from "./types.ts"
 
 // Actions
-export type { TAction } from "./actions.ts";
-export { isTAction, TActionTypes } from "./actions.ts";
+export type { TAction } from "./actions.ts"
+export { isTAction, TActionTypes } from "./actions.ts"
 
 // Queries
 export {
@@ -24,7 +24,7 @@ export {
   getFirstChildPath,
   countVisibleNodes,
   findPathByNodeId,
-} from "./queries.ts";
+} from "./queries.ts"
 
 // Display utilities (moved from @km/tui-core)
 export {
@@ -39,7 +39,7 @@ export {
   type GetChildrenFn,
   type GetNodeFn,
   type CollapsedAncestor,
-} from "./display.ts";
+} from "./display.ts"
 
 // Body content utilities
 export {
@@ -48,4 +48,4 @@ export {
   isStructuralType,
   isBodyType,
   type BodyExtraction,
-} from "./body.ts";
+} from "./body.ts"

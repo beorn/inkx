@@ -159,12 +159,12 @@ function MyComponent() {
 Use `react-reconciler` to build a custom renderer:
 
 ```typescript
-import Reconciler from "react-reconciler";
+import Reconciler from "react-reconciler"
 
 const hostConfig = {
   createInstance(type, props) {
     // Create layout node with constraints from props
-    return new LayoutNode(type, props);
+    return new LayoutNode(type, props)
   },
 
   finalizeInitialChildren(node) {
@@ -176,9 +176,9 @@ const hostConfig = {
     // On prop changes, mark layout dirty
     // Re-solve and re-render affected subtree
   },
-};
+}
 
-const renderer = Reconciler(hostConfig);
+const renderer = Reconciler(hostConfig)
 ```
 
 ### Layout Solver Options

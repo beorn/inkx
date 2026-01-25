@@ -48,11 +48,11 @@ We use JWT tokens:
 
 ```typescript
 interface JWTPayload {
-  sub: string; // User ID
-  email: string;
-  roles: string[];
-  iat: number; // Issued at
-  exp: number; // Expires
+  sub: string // User ID
+  email: string
+  roles: string[]
+  iat: number // Issued at
+  exp: number // Expires
 }
 ```
 

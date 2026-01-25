@@ -1,5 +1,5 @@
 // Database schema (for testing with in-memory databases)
-export { SCHEMA } from "./schema.ts";
+export { SCHEMA } from "./schema.ts"
 
 // Database operations
 export {
@@ -52,9 +52,9 @@ export {
   updateNode,
   deleteNode,
   addNode,
-} from "./db.ts";
+} from "./db.ts"
 
-export type { Link, SearchResult } from "./db.ts";
+export type { Link, SearchResult } from "./db.ts"
 
 // Store abstraction
 export {
@@ -63,9 +63,9 @@ export {
   initStore,
   getStore,
   closeStore,
-} from "./store.ts";
+} from "./store.ts"
 
-export type { NodeStore } from "./store.ts";
+export type { NodeStore } from "./store.ts"
 
 // State rebuild (generators - use runWithProgress or for...of to consume)
 export {
@@ -76,16 +76,16 @@ export {
   freshStart,
   runWithProgress,
   runGenerator,
-} from "./rebuild.ts";
+} from "./rebuild.ts"
 
-export type { RebuildResult, SyncResult } from "./rebuild.ts";
+export type { RebuildResult, SyncResult } from "./rebuild.ts"
 
 // Unified vault loading (the ONE function for loading vaults)
 export {
   loadVault,
   resolveLinksAsync,
   parseDeferredAsync,
-} from "./vault-loader.ts";
+} from "./vault-loader.ts"
 
 export type {
   LoadResult,
@@ -93,8 +93,8 @@ export type {
   PendingLink,
   DeferredFile,
   StepYield,
-} from "./vault-loader.ts";
-export type { LoadError as VaultLoaderError } from "./vault-loader.ts";
+} from "./vault-loader.ts"
+export type { LoadError as VaultLoaderError } from "./vault-loader.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
@@ -104,16 +104,16 @@ export {
   shutdownParsePool,
   // Keep ParsePool for backwards compat during transition
   ParsePool,
-} from "./parse-pool.ts";
+} from "./parse-pool.ts"
 
 export type {
   ParsePoolService,
   ParseResult as PoolParseResult,
   ParsePoolOptions,
-} from "./parse-pool.ts";
+} from "./parse-pool.ts"
 
 // Vault domain object (preferred API)
-export { createVault } from "./vault.ts";
+export { createVault } from "./vault.ts"
 
 export type {
   Vault,
@@ -124,12 +124,12 @@ export type {
   MutationType,
   MutationContext,
   BeforeMutationResult,
-} from "./vault.ts";
+} from "./vault.ts"
 
 // Watcher domain object (Service for file sync)
-export { createWatcher } from "./watcher.ts";
+export { createWatcher } from "./watcher.ts"
 
-export type { Watcher, WatcherOptions } from "./watcher.ts";
+export type { Watcher, WatcherOptions } from "./watcher.ts"
 
 // Database rules (add= materialization)
 export {
@@ -140,9 +140,9 @@ export {
   isBulkMode,
   onNodeChanged,
   onNodeDeleted,
-} from "./db-rules.ts";
+} from "./db-rules.ts"
 
-export type { RulesProgress } from "./db-rules.ts";
+export type { RulesProgress } from "./db-rules.ts"
 
 // Content-addressable store
 export {
@@ -154,7 +154,7 @@ export {
   shouldStoreInCas,
   storeContentAuto,
   loadContentAuto,
-} from "./cas.ts";
+} from "./cas.ts"
 
 // Query language
 export {
@@ -163,9 +163,9 @@ export {
   queryTasks,
   queryNodes,
   resolveDateQuery,
-} from "./query.ts";
+} from "./query.ts"
 
-export type { QueryAST, QueryCondition, QueryRef, DateRange } from "./query.ts";
+export type { QueryAST, QueryCondition, QueryRef, DateRange } from "./query.ts"
 
 // Re-export markdown parsing functions (to avoid other layers importing km-markdown directly)
 export {
@@ -178,9 +178,9 @@ export {
   // For km-watch sync layer
   parseMarkdownWithLinks,
   nodesToMarkdown,
-} from "@km/markdown";
+} from "@km/markdown"
 
-export type { ParseResult, ParseWarning } from "@km/markdown";
+export type { ParseResult, ParseWarning } from "@km/markdown"
 
 // Path utilities for filesystem-based node resolution
 export {
@@ -189,9 +189,9 @@ export {
   resolveFsPath,
   getEffectiveRoot,
   resolvePathArg,
-} from "./path-utils.ts";
+} from "./path-utils.ts"
 
-export type { PathResolution, ResolvedPathArg } from "./path-utils.ts";
+export type { PathResolution, ResolvedPathArg } from "./path-utils.ts"
 
 // Watch and sync (merged from @km/watch)
 export {
@@ -213,7 +213,7 @@ export {
   isHiddenFile,
   WriteQueue,
   shouldApplyToFs,
-} from "./watch/index.ts";
+} from "./watch/index.ts"
 
 export type {
   WatcherConfig,
@@ -227,7 +227,7 @@ export type {
   WatcherInterface,
   SyncData,
   SyncFromFsResult,
-} from "./watch/index.ts";
+} from "./watch/index.ts"
 
 // Event emission (moved from @km/core)
 export {
@@ -249,10 +249,10 @@ export {
   emitSessionMessage,
   emitSessionToolCall,
   emitSessionEnded,
-} from "./emit.ts";
+} from "./emit.ts"
 
 // Recurrence utilities (moved from @km/core)
-export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts";
+export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
 
 // Configuration
 export {
@@ -261,19 +261,19 @@ export {
   getTuiConfig,
   getOriginalBeadsConfig,
   getOriginalBeadsConfigPath,
-} from "./config.ts";
+} from "./config.ts"
 
 export type {
   KmConfig,
   BeadsConfig,
   TuiConfig,
   OriginalBeadsConfig,
-} from "./config.ts";
+} from "./config.ts"
 
 // Config domain object (preferred API)
-export { loadConfigObject } from "./config-object.ts";
+export { loadConfigObject } from "./config-object.ts"
 
-export type { Config } from "./config-object.ts";
+export type { Config } from "./config-object.ts"
 
 // Testing utilities
 export {
@@ -300,7 +300,7 @@ export {
   SIMPLE_BOARD,
   NESTED_BOARD,
   BODY_CONTENT_BOARD,
-} from "./testing/index.ts";
+} from "./testing/index.ts"
 
 export type {
   FakeVault,
@@ -323,4 +323,4 @@ export type {
   TestMode,
   MockWatcher,
   BoardFixture,
-} from "./testing/index.ts";
+} from "./testing/index.ts"

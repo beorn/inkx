@@ -8,30 +8,30 @@
  * - AsyncLocalStorage for parallel test isolation
  */
 
-import createDebug from "debug";
-import { Database } from "bun:sqlite";
-import { AsyncLocalStorage } from "async_hooks";
+import createDebug from "debug"
+import { Database } from "bun:sqlite"
+import { AsyncLocalStorage } from "async_hooks"
 
-const debug = createDebug("km:storage:db:instance");
-import { join } from "path";
-import { existsSync, mkdirSync } from "fs";
-import { getKmDir } from "./emit.ts";
-import { SCHEMA } from "./schema.ts";
+const debug = createDebug("km:storage:db:instance")
+import { join } from "path"
+import { existsSync, mkdirSync } from "fs"
+import { getKmDir } from "./emit.ts"
+import { SCHEMA } from "./schema.ts"
 
 // Singleton database instance
-let dbInstance: Database | null = null;
+let dbInstance: Database | null = null
 
 // Flag to track if db was injected externally (e.g., from MemoryStore)
-let dbInjected = false;
+let dbInjected = false
 
 // AsyncLocalStorage for context-local database (enables parallel test isolation)
-const dbContext = new AsyncLocalStorage<Database>();
+const dbContext = new AsyncLocalStorage<Database>()
 
 /**
  * Get the database path
  */
 export function getDbPath(): string {
-  return join(getKmDir(), "state.db");
+  return join(getKmDir(), "state.db")
 }
 
 /**
@@ -41,29 +41,29 @@ export function getDbPath(): string {
  */
 export function getDb(): Database {
   // Check async context first (enables parallel test isolation)
-  const contextDb = dbContext.getStore();
+  const contextDb = dbContext.getStore()
   if (contextDb) {
-    return contextDb;
+    return contextDb
   }
 
   if (dbInstance) {
-    return dbInstance;
+    return dbInstance
   }
 
-  const kmPath = getKmDir();
+  const kmPath = getKmDir()
   if (!existsSync(kmPath)) {
-    mkdirSync(kmPath, { recursive: true });
+    mkdirSync(kmPath, { recursive: true })
   }
 
-  const dbPath = getDbPath();
-  debug("opening database: %s", dbPath);
-  dbInstance = new Database(dbPath);
+  const dbPath = getDbPath()
+  debug("opening database: %s", dbPath)
+  dbInstance = new Database(dbPath)
 
   // Initialize schema
-  dbInstance.exec(SCHEMA);
-  debug("database initialized");
+  dbInstance.exec(SCHEMA)
+  debug("database initialized")
 
-  return dbInstance;
+  return dbInstance
 }
 
 /**
@@ -71,13 +71,13 @@ export function getDb(): Database {
  */
 export function closeDb(): void {
   if (dbInstance) {
-    debug("closing database (injected=%s)", dbInjected);
+    debug("closing database (injected=%s)", dbInjected)
     // Only close if we own it (not injected from external store)
     if (!dbInjected) {
-      dbInstance.close();
+      dbInstance.close()
     }
-    dbInstance = null;
-    dbInjected = false;
+    dbInstance = null
+    dbInjected = false
   }
 }
 
@@ -88,30 +88,30 @@ export function closeDb(): void {
  */
 export function setDb(db: Database): void {
   if (dbInstance && !dbInjected) {
-    dbInstance.close();
+    dbInstance.close()
   }
-  dbInstance = db;
-  dbInjected = true;
+  dbInstance = db
+  dbInjected = true
 }
 
 /**
  * Check if database is using memory mode
  */
 export function isMemoryMode(): boolean {
-  return dbInjected;
+  return dbInjected
 }
 
 /**
  * Reset the database (drop all tables and recreate)
  */
 export function resetDb(): void {
-  const db = getDb();
+  const db = getDb()
   db.exec(`
     DROP TABLE IF EXISTS nodes_fts;
     DROP TABLE IF EXISTS nodes;
     DROP TABLE IF EXISTS meta;
-  `);
-  db.exec(SCHEMA);
+  `)
+  db.exec(SCHEMA)
 }
 
 /**
@@ -131,7 +131,7 @@ export function resetDb(): void {
  * });
  */
 export function runWithDb<T>(db: Database, fn: () => T): T {
-  return dbContext.run(db, fn);
+  return dbContext.run(db, fn)
 }
 
 /**
@@ -140,5 +140,5 @@ export function runWithDb<T>(db: Database, fn: () => T): T {
  * Use this when you want to check for a context without side effects.
  */
 export function tryGetContextDb(): Database | undefined {
-  return dbContext.getStore();
+  return dbContext.getStore()
 }

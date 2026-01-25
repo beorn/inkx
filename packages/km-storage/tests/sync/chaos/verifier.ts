@@ -5,63 +5,63 @@
  * Supports both real filesystem and MockFileSystem.
  */
 
-import { readdirSync, statSync, existsSync, readFileSync } from "fs";
-import { join } from "path";
-import type { IVerifier, ExpectedState, VerificationResult } from "./types.ts";
+import { readdirSync, statSync, existsSync, readFileSync } from "fs"
+import { join } from "path"
+import type { IVerifier, ExpectedState, VerificationResult } from "./types.ts"
 import {
   getAllNodes,
   getNodeByPath,
   getChildren,
   getNode,
-} from "../../../src/index.ts";
-import type { MockFileSystem } from "./mock-fs.ts";
+} from "../../../src/index.ts"
+import type { MockFileSystem } from "./mock-fs.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Filesystem Abstraction
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FsOps {
-  existsSync(path: string): boolean;
-  readdirSync(path: string): string[];
+  existsSync(path: string): boolean
+  readdirSync(path: string): string[]
   statSync(path: string): {
-    isDirectory(): boolean;
-    mtimeMs?: number;
-    ino?: number;
-  };
-  readFileSync(path: string, encoding: BufferEncoding): string;
+    isDirectory(): boolean
+    mtimeMs?: number
+    ino?: number
+  }
+  readFileSync(path: string, encoding: BufferEncoding): string
 }
 
 const realFsOps: FsOps = {
   existsSync,
   readdirSync: (path) => readdirSync(path) as string[],
   statSync: (path) => {
-    const stat = statSync(path);
+    const stat = statSync(path)
     return {
       isDirectory: () => stat.isDirectory(),
       mtimeMs: stat.mtimeMs,
       ino: stat.ino,
-    };
+    }
   },
   readFileSync: (path, encoding) => readFileSync(path, encoding),
-};
+}
 
 function createMockFsOps(mockFs: MockFileSystem): FsOps {
   return {
     existsSync: (path) => mockFs.existsSync(path),
     readdirSync: (path) => {
-      const entries = mockFs.createScanner()(path);
-      return entries.map((e) => e.path.split("/").pop()!);
+      const entries = mockFs.createScanner()(path)
+      return entries.map((e) => e.path.split("/").pop()!)
     },
     statSync: (path) => {
-      const stat = mockFs.statSync(path);
+      const stat = mockFs.statSync(path)
       return {
         isDirectory: () => stat.isDirectory(),
         mtimeMs: stat.mtimeMs,
         ino: stat.ino,
-      };
+      }
     },
     readFileSync: (path, encoding) => mockFs.readFileSync(path, encoding),
-  };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,30 +69,30 @@ function createMockFsOps(mockFs: MockFileSystem): FsOps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export class Verifier implements IVerifier {
-  private fsOps: FsOps;
+  private fsOps: FsOps
 
   constructor(mockFs?: MockFileSystem) {
-    this.fsOps = mockFs ? createMockFsOps(mockFs) : realFsOps;
+    this.fsOps = mockFs ? createMockFsOps(mockFs) : realFsOps
   }
 
   verifyState(expected: ExpectedState): VerificationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const nodes = getAllNodes();
+    const errors: string[] = []
+    const warnings: string[] = []
+    const nodes = getAllNodes()
 
     // Check expected files exist as nodes
     for (const filePath of expected.files) {
-      const node = getNodeByPath(filePath);
+      const node = getNodeByPath(filePath)
       if (!node) {
-        errors.push(`Missing expected file node: ${filePath}`);
+        errors.push(`Missing expected file node: ${filePath}`)
       }
     }
 
     // Check deleted files don't exist as nodes
     for (const filePath of expected.deletedFiles ?? []) {
-      const node = getNodeByPath(filePath);
+      const node = getNodeByPath(filePath)
       if (node) {
-        errors.push(`Node still exists for deleted file: ${filePath}`);
+        errors.push(`Node still exists for deleted file: ${filePath}`)
       }
     }
 
@@ -101,28 +101,28 @@ export class Verifier implements IVerifier {
       if (nodes.length !== expected.nodeCount) {
         warnings.push(
           `Node count mismatch: expected ${expected.nodeCount}, got ${nodes.length}`,
-        );
+        )
       }
     }
 
     // Check specific node properties
     for (const spec of expected.nodes ?? []) {
-      const node = getNodeByPath(spec.path);
+      const node = getNodeByPath(spec.path)
       if (!node) {
-        errors.push(`Missing node: ${spec.path}`);
-        continue;
+        errors.push(`Missing node: ${spec.path}`)
+        continue
       }
 
       if (node.type !== spec.type) {
         errors.push(
           `Type mismatch for ${spec.path}: expected ${spec.type}, got ${node.type}`,
-        );
+        )
       }
 
       if (spec.content !== undefined && node.content !== spec.content) {
         errors.push(
           `Content mismatch for ${spec.path}: expected "${spec.content}", got "${node.content}"`,
-        );
+        )
       }
 
       if (
@@ -131,20 +131,20 @@ export class Verifier implements IVerifier {
       ) {
         errors.push(
           `Task status mismatch for ${spec.path}: expected ${spec.task_status}, got ${node.task_status}`,
-        );
+        )
       }
 
       if (spec.children !== undefined) {
-        const children = getChildren(node.id);
+        const children = getChildren(node.id)
         if (children.length !== spec.children) {
           errors.push(
             `Children count mismatch for ${spec.path}: expected ${spec.children}, got ${children.length}`,
-          );
+          )
         }
       }
     }
 
-    const fileNodes = nodes.filter((n) => n.type === "file");
+    const fileNodes = nodes.filter((n) => n.type === "file")
 
     return {
       passed: errors.length === 0,
@@ -157,26 +157,26 @@ export class Verifier implements IVerifier {
         orphanedNodes: 0,
         missingParents: 0,
       },
-    };
+    }
   }
 
   verifyNoDuplicates(): VerificationResult {
-    const nodes = getAllNodes();
-    const errors: string[] = [];
-    const pathCounts = new Map<string, number>();
+    const nodes = getAllNodes()
+    const errors: string[] = []
+    const pathCounts = new Map<string, number>()
 
     // Count nodes per fs_path
     for (const node of nodes) {
       if (node.fs_path) {
-        pathCounts.set(node.fs_path, (pathCounts.get(node.fs_path) ?? 0) + 1);
+        pathCounts.set(node.fs_path, (pathCounts.get(node.fs_path) ?? 0) + 1)
       }
     }
 
-    let duplicateCount = 0;
+    let duplicateCount = 0
     for (const [path, count] of pathCounts) {
       if (count > 1) {
-        errors.push(`Duplicate nodes for path: ${path} (count: ${count})`);
-        duplicateCount += count - 1;
+        errors.push(`Duplicate nodes for path: ${path} (count: ${count})`)
+        duplicateCount += count - 1
       }
     }
 
@@ -191,29 +191,29 @@ export class Verifier implements IVerifier {
         orphanedNodes: 0,
         missingParents: 0,
       },
-    };
+    }
   }
 
   verifyParentIntegrity(): VerificationResult {
-    const nodes = getAllNodes();
-    const errors: string[] = [];
-    const nodeIds = new Set(nodes.map((n) => n.id));
-    let missingParents = 0;
-    let orphaned = 0;
+    const nodes = getAllNodes()
+    const errors: string[] = []
+    const nodeIds = new Set(nodes.map((n) => n.id))
+    let missingParents = 0
+    let orphaned = 0
 
     for (const node of nodes) {
       // Check parent_id references valid node
       if (node.parent_id && !nodeIds.has(node.parent_id)) {
-        errors.push(`Node ${node.id} has invalid parent_id: ${node.parent_id}`);
-        missingParents++;
+        errors.push(`Node ${node.id} has invalid parent_id: ${node.parent_id}`)
+        missingParents++
       }
 
       // Check for orphaned nodes (non-root, non-folder with no parent but has fs_path suggesting nesting)
       if (node.type !== "folder" && !node.parent_id && node.fs_path) {
-        const pathParts = node.fs_path.split("/");
+        const pathParts = node.fs_path.split("/")
         // If path has multiple segments, probably should have a parent
         if (pathParts.length > 2 && node.type !== "file") {
-          orphaned++;
+          orphaned++
         }
       }
     }
@@ -229,20 +229,20 @@ export class Verifier implements IVerifier {
         orphanedNodes: orphaned,
         missingParents,
       },
-    };
+    }
   }
 
   verifyFilePaths(): VerificationResult {
-    const nodes = getAllNodes();
-    const errors: string[] = [];
+    const nodes = getAllNodes()
+    const errors: string[] = []
 
     const fsNodes = nodes.filter(
       (n) => n.type === "file" || n.type === "folder",
-    );
+    )
 
     for (const node of fsNodes) {
       if (!node.fs_path) {
-        errors.push(`${node.type} node ${node.id} missing fs_path`);
+        errors.push(`${node.type} node ${node.id} missing fs_path`)
       }
     }
 
@@ -257,7 +257,7 @@ export class Verifier implements IVerifier {
         orphanedNodes: 0,
         missingParents: 0,
       },
-    };
+    }
   }
 
   verifyTreeConsistency(): VerificationResult {
@@ -265,7 +265,7 @@ export class Verifier implements IVerifier {
       this.verifyNoDuplicates(),
       this.verifyParentIntegrity(),
       this.verifyFilePaths(),
-    ];
+    ]
 
     return {
       passed: results.every((r) => r.passed),
@@ -278,36 +278,36 @@ export class Verifier implements IVerifier {
         orphanedNodes: results.reduce((s, r) => s + r.stats.orphanedNodes, 0),
         missingParents: results.reduce((s, r) => s + r.stats.missingParents, 0),
       },
-    };
+    }
   }
 
   verifyFsDbSync(vaultPath: string): VerificationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+    const errors: string[] = []
+    const warnings: string[] = []
 
     // Scan filesystem for markdown files
-    const fsFiles = new Set<string>();
-    this.scanDir(vaultPath, fsFiles);
+    const fsFiles = new Set<string>()
+    this.scanDir(vaultPath, fsFiles)
 
     // Get database file nodes
-    const nodes = getAllNodes();
+    const nodes = getAllNodes()
     const dbFiles = new Set(
       nodes
         .filter((n) => n.type === "file" && n.fs_path)
         .map((n) => n.fs_path!),
-    );
+    )
 
     // Check for files in filesystem but not in database
     for (const path of fsFiles) {
       if (!dbFiles.has(path)) {
-        errors.push(`File in filesystem but not in database: ${path}`);
+        errors.push(`File in filesystem but not in database: ${path}`)
       }
     }
 
     // Check for files in database but not in filesystem
     for (const path of dbFiles) {
       if (!fsFiles.has(path)) {
-        errors.push(`File in database but not in filesystem: ${path}`);
+        errors.push(`File in database but not in filesystem: ${path}`)
       }
     }
 
@@ -322,7 +322,7 @@ export class Verifier implements IVerifier {
         orphanedNodes: 0,
         missingParents: 0,
       },
-    };
+    }
   }
 
   /**
@@ -330,23 +330,23 @@ export class Verifier implements IVerifier {
    * CRITICAL: This catches silent data loss/corruption that existence checks miss
    */
   verifyContentSync(_vaultPath: string): VerificationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const nodes = getAllNodes();
+    const errors: string[] = []
+    const warnings: string[] = []
+    const nodes = getAllNodes()
 
     // Only check file nodes that have fs_path
-    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path);
+    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path)
 
     for (const node of fileNodes) {
-      const fsPath = node.fs_path!;
+      const fsPath = node.fs_path!
 
       // Skip if file doesn't exist (handled by verifyFsDbSync)
       if (!this.fsOps.existsSync(fsPath)) {
-        continue;
+        continue
       }
 
       try {
-        const fsContent = this.fsOps.readFileSync(fsPath, "utf-8");
+        const fsContent = this.fsOps.readFileSync(fsPath, "utf-8")
 
         // Get the content from database
         // Note: For file nodes, we compare the raw file content
@@ -360,11 +360,11 @@ export class Verifier implements IVerifier {
         // Check for truncation (empty file when it shouldn't be)
         if (fsContent.length === 0) {
           // Check if node has children - if so, file should have content
-          const children = getChildren(node.id);
+          const children = getChildren(node.id)
           if (children.length > 0) {
             errors.push(
               `Content mismatch: ${fsPath} - File is empty but has ${children.length} child nodes in DB`,
-            );
+            )
           }
         }
 
@@ -377,7 +377,7 @@ export class Verifier implements IVerifier {
       } catch (e) {
         errors.push(
           `Cannot read file: ${fsPath} - ${e instanceof Error ? e.message : String(e)}`,
-        );
+        )
       }
     }
 
@@ -392,38 +392,38 @@ export class Verifier implements IVerifier {
         orphanedNodes: 0,
         missingParents: 0,
       },
-    };
+    }
   }
 
   /**
    * Verify metadata (mtime, ino) matches between filesystem and database
    */
   verifyMetadataSync(_vaultPath: string): VerificationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const nodes = getAllNodes();
+    const errors: string[] = []
+    const warnings: string[] = []
+    const nodes = getAllNodes()
 
     // Only check file nodes that have fs_path
-    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path);
+    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path)
 
     for (const node of fileNodes) {
-      const fsPath = node.fs_path!;
+      const fsPath = node.fs_path!
 
       // Skip if file doesn't exist (handled by verifyFsDbSync)
       if (!this.fsOps.existsSync(fsPath)) {
-        continue;
+        continue
       }
 
       try {
-        const stat = this.fsOps.statSync(fsPath);
+        const stat = this.fsOps.statSync(fsPath)
 
         // Check mtime - allow 1 second tolerance for filesystem precision differences
         if (node.fs_mtime !== undefined && stat.mtimeMs !== undefined) {
-          const mtimeDiff = Math.abs(stat.mtimeMs - node.fs_mtime);
+          const mtimeDiff = Math.abs(stat.mtimeMs - node.fs_mtime)
           if (mtimeDiff > 1000) {
             warnings.push(
               `Mtime mismatch: ${fsPath} - FS: ${stat.mtimeMs}, DB: ${node.fs_mtime} (diff: ${mtimeDiff}ms)`,
-            );
+            )
           }
         }
 
@@ -434,13 +434,13 @@ export class Verifier implements IVerifier {
             // Just a warning, not an error
             warnings.push(
               `Inode changed: ${fsPath} - FS: ${stat.ino}, DB: ${node.fs_ino}`,
-            );
+            )
           }
         }
       } catch (e) {
         errors.push(
           `Cannot stat file: ${fsPath} - ${e instanceof Error ? e.message : String(e)}`,
-        );
+        )
       }
     }
 
@@ -455,7 +455,7 @@ export class Verifier implements IVerifier {
         orphanedNodes: 0,
         missingParents: 0,
       },
-    };
+    }
   }
 
   verifyAll(expected: ExpectedState, vaultPath: string): VerificationResult {
@@ -465,7 +465,7 @@ export class Verifier implements IVerifier {
       this.verifyFsDbSync(vaultPath),
       this.verifyContentSync(vaultPath),
       this.verifyMetadataSync(vaultPath),
-    ];
+    ]
 
     return {
       passed: results.every((r) => r.passed),
@@ -478,7 +478,7 @@ export class Verifier implements IVerifier {
         orphanedNodes: results[1]!.stats.orphanedNodes,
         missingParents: results[1]!.stats.missingParents,
       },
-    };
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -489,21 +489,21 @@ export class Verifier implements IVerifier {
    * Recursively scan directory for markdown files
    */
   private scanDir(dir: string, files: Set<string>): void {
-    if (!this.fsOps.existsSync(dir)) return;
+    if (!this.fsOps.existsSync(dir)) return
 
     for (const entry of this.fsOps.readdirSync(dir)) {
       // Skip hidden files and common ignore patterns
-      if (entry.startsWith(".")) continue;
-      if (entry === "node_modules") continue;
+      if (entry.startsWith(".")) continue
+      if (entry === "node_modules") continue
 
-      const fullPath = join(dir, entry);
+      const fullPath = join(dir, entry)
       try {
-        const stat = this.fsOps.statSync(fullPath);
+        const stat = this.fsOps.statSync(fullPath)
 
         if (stat.isDirectory()) {
-          this.scanDir(fullPath, files);
+          this.scanDir(fullPath, files)
         } else if (entry.endsWith(".md")) {
-          files.add(fullPath);
+          files.add(fullPath)
         }
       } catch {
         // Skip files we can't stat
@@ -516,13 +516,13 @@ export class Verifier implements IVerifier {
  * Create a verifier instance
  */
 export function createVerifier(mockFs?: MockFileSystem): Verifier {
-  return new Verifier(mockFs);
+  return new Verifier(mockFs)
 }
 
 /**
  * Quick verification - just check no duplicates and tree consistency
  */
 export function quickVerify(): VerificationResult {
-  const verifier = new Verifier();
-  return verifier.verifyTreeConsistency();
+  const verifier = new Verifier()
+  return verifier.verifyTreeConsistency()
 }

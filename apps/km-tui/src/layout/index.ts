@@ -30,7 +30,7 @@ export {
   stripAnsi,
   calcScrollOffset,
   ANSI_REGEX,
-} from "@beorn/tui-measure";
+} from "@beorn/tui-measure"
 
 // Path rendering (km-ink specific)
 export {
@@ -38,7 +38,7 @@ export {
   renderParentPath,
   calcPathLength,
   type PathSegment,
-} from "./path.ts";
+} from "./path.ts"
 
 // Constraint components and hooks (inkx-bound by default)
 export {
@@ -70,4 +70,4 @@ export {
   type TerminalSize,
   type FlexItemConfig,
   type ScrollState,
-} from "./inkx.ts";
+} from "./inkx.ts"

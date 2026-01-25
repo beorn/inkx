@@ -19,24 +19,24 @@
  * const vault = createFakeVault({ nodes: fixture.nodes });
  */
 
-import type { KNode, NodeType } from "@km/core";
-import { ulid } from "ulid";
+import type { KNode, NodeType } from "@km/core"
+import { ulid } from "ulid"
 
 // =============================================================================
 // Builder Types
 // =============================================================================
 
 interface NodeBuilder {
-  _type: NodeType;
-  _title?: string;
-  _content?: string;
-  _done?: boolean;
-  _children?: NodeBuilder[];
+  _type: NodeType
+  _title?: string
+  _content?: string
+  _done?: boolean
+  _children?: NodeBuilder[]
 }
 
 /** Fixture data that can be passed to createFakeVault */
 export interface BoardFixture {
-  nodes: KNode[];
+  nodes: KNode[]
 }
 
 // =============================================================================
@@ -47,11 +47,11 @@ export interface BoardFixture {
  * Create a board fixture with columns.
  */
 export function board(title: string, columns: NodeBuilder[]): BoardFixture {
-  const nodes: KNode[] = [];
-  const now = Date.now();
+  const nodes: KNode[] = []
+  const now = Date.now()
 
   // Create root file node
-  const rootId = ulid();
+  const rootId = ulid()
   nodes.push(
     makeNode({
       id: rootId,
@@ -62,15 +62,15 @@ export function board(title: string, columns: NodeBuilder[]): BoardFixture {
       created_at: now,
       updated_at: now,
     }),
-  );
+  )
 
   // Build columns and their children
-  let colIdx = 0;
+  let colIdx = 0
   for (const col of columns) {
-    buildNode(col, rootId, colIdx++, nodes, now);
+    buildNode(col, rootId, colIdx++, nodes, now)
   }
 
-  return { nodes };
+  return { nodes }
 }
 
 /**
@@ -84,7 +84,7 @@ export function column(
     _type: "section",
     _title: title,
     _children: children,
-  };
+  }
 }
 
 /**
@@ -95,7 +95,7 @@ export function task(content: string, opts?: { done?: boolean }): NodeBuilder {
     _type: "task",
     _content: content,
     _done: opts?.done,
-  };
+  }
 }
 
 /**
@@ -109,7 +109,7 @@ export function section(
     _type: "section",
     _title: title,
     _children: children,
-  };
+  }
 }
 
 /**
@@ -119,7 +119,7 @@ export function paragraph(content: string): NodeBuilder {
   return {
     _type: "paragraph",
     _content: content,
-  };
+  }
 }
 
 // =============================================================================
@@ -133,7 +133,7 @@ function buildNode(
   nodes: KNode[],
   now: number,
 ): string {
-  const id = ulid();
+  const id = ulid()
 
   const node = makeNode({
     id,
@@ -148,19 +148,19 @@ function buildNode(
       builder._type === "task" ? (builder._done ? "x" : " ") : undefined,
     created_at: now,
     updated_at: now,
-  });
+  })
 
-  nodes.push(node);
+  nodes.push(node)
 
   // Build children
   if (builder._children) {
-    let childIdx = 0;
+    let childIdx = 0
     for (const child of builder._children) {
-      buildNode(child, id, childIdx++, nodes, now);
+      buildNode(child, id, childIdx++, nodes, now)
     }
   }
 
-  return id;
+  return id
 }
 
 function makeNode(
@@ -180,7 +180,7 @@ function makeNode(
     created_at: partial.created_at ?? Date.now(),
     updated_at: partial.updated_at ?? Date.now(),
     version: "mock",
-  };
+  }
 }
 
 // =============================================================================
@@ -194,7 +194,7 @@ export const SIMPLE_BOARD = board("Test Board", [
   column("To Do", [task("Task 1"), task("Task 2")]),
   column("In Progress", [task("Task 3")]),
   column("Done", [task("Task 4", { done: true })]),
-]);
+])
 
 /**
  * Board with nested sections.
@@ -205,7 +205,7 @@ export const NESTED_BOARD = board("Nested Board", [
     section("Phase 2", [task("Test"), task("Deploy")]),
   ]),
   column("Project B", [task("Simple task")]),
-]);
+])
 
 /**
  * Board with body content.
@@ -216,4 +216,4 @@ export const BODY_CONTENT_BOARD = board("Body Content", [
     task("Task after body"),
   ]),
   column("Column B", [task("Regular task")]),
-]);
+])

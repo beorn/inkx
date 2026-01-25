@@ -15,4 +15,4 @@ export const DEFAULT_FAVORITES: Record<string, string> = {
   "7": "@archive",
   "8": "@reference",
   "9": "@goals",
-};
+}

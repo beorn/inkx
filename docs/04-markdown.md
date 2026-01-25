@@ -31,27 +31,27 @@ type BlockNode =
   | ListItem // - item, 1. item, - [ ] task
   | Table // | col | col |
   | ThematicBreak // ---
-  | Html; // Raw HTML block
+  | Html // Raw HTML block
 
 interface Heading {
-  type: "heading";
-  depth: 1 | 2 | 3 | 4 | 5 | 6;
-  children: PhrasingContent[];
+  type: "heading"
+  depth: 1 | 2 | 3 | 4 | 5 | 6
+  children: PhrasingContent[]
 }
 
 interface List {
-  type: "list";
-  ordered: boolean;
-  start?: number; // For ordered lists
-  spread: boolean; // Loose vs tight
-  children: ListItem[];
+  type: "list"
+  ordered: boolean
+  start?: number // For ordered lists
+  spread: boolean // Loose vs tight
+  children: ListItem[]
 }
 
 interface ListItem {
-  type: "listItem";
-  checked?: boolean | null; // null = not a task, true/false = task
-  spread: boolean;
-  children: BlockContent[];
+  type: "listItem"
+  checked?: boolean | null // null = not a task, true/false = task
+  spread: boolean
+  children: BlockContent[]
 }
 ````
 
@@ -69,7 +69,7 @@ type PhrasingContent =
   | LinkReference // [text][ref]
   | FootnoteReference
   | Html // Inline HTML
-  | Break; // Hard line break
+  | Break // Hard line break
 ```
 
 ### Extensions
@@ -77,15 +77,15 @@ type PhrasingContent =
 ```typescript
 // Wikilinks (Obsidian)
 interface WikiLink {
-  type: "wikiLink";
-  value: string; // [[Page Name]]
-  alias?: string; // [[Page Name|display text]]
+  type: "wikiLink"
+  value: string // [[Page Name]]
+  alias?: string // [[Page Name|display text]]
 }
 
 // Task extensions
 interface TaskItem extends ListItem {
-  checked: boolean;
-  taskMark: " " | "x" | "X" | "/" | "-" | "!";
+  checked: boolean
+  taskMark: " " | "x" | "X" | "/" | "-" | "!"
   // Extended marks:
   // ' ' = todo
   // 'x'/'X' = done
@@ -96,14 +96,14 @@ interface TaskItem extends ListItem {
 
 // Frontmatter
 interface Yaml {
-  type: "yaml";
-  value: string; // Raw YAML content
+  type: "yaml"
+  value: string // Raw YAML content
 }
 
 // Tags
 interface Tag {
-  type: "tag";
-  value: string; // #tag-name
+  type: "tag"
+  value: string // #tag-name
 }
 ```
 
@@ -154,29 +154,29 @@ Content B. → paragraph (child of Section B)
 function serializeNode(node: Node): string {
   switch (node.type) {
     case "section":
-      const prefix = "#".repeat(node.data.depth || 1);
-      return `${prefix} ${node.content}\n\n`;
+      const prefix = "#".repeat(node.data.depth || 1)
+      return `${prefix} ${node.content}\n\n`
     case "paragraph":
-      return node.content + "\n\n";
+      return node.content + "\n\n"
     case "quote":
       return (
         node.content
           .split("\n")
           .map((l) => "> " + l)
           .join("\n") + "\n\n"
-      );
+      )
     case "code":
-      return "```" + (node.data.lang || "") + "\n" + node.content + "\n```\n\n";
+      return "```" + (node.data.lang || "") + "\n" + node.content + "\n```\n\n"
     case "ul":
-      return "- " + node.content + "\n";
+      return "- " + node.content + "\n"
     case "ol":
-      return "1. " + node.content + "\n";
+      return "1. " + node.content + "\n"
     case "task":
-      return `- [${node.task_mark || " "}] ${node.content}\n`;
+      return `- [${node.task_mark || " "}] ${node.content}\n`
     case "hr":
-      return "---\n\n";
+      return "---\n\n"
     default:
-      return node.content + "\n";
+      return node.content + "\n"
   }
 }
 ````
@@ -238,10 +238,10 @@ Parsed into node data:
 
 ```typescript
 interface WikiLink {
-  target: string; // "Page Name"
-  section?: string; // "Section"
-  blockId?: string; // "block-id"
-  alias?: string; // "Display Text"
+  target: string // "Page Name"
+  section?: string // "Section"
+  blockId?: string // "block-id"
+  alias?: string // "Display Text"
 }
 ```
 
@@ -250,19 +250,19 @@ interface WikiLink {
 ```typescript
 function resolveWikiLink(link: WikiLink, currentFile: Node): Node | null {
   // 1. Exact path match
-  let target = findNodeByPath(link.target);
+  let target = findNodeByPath(link.target)
 
   // 2. Filename match (Obsidian-style)
   if (!target) {
-    target = findNodeByFilename(link.target);
+    target = findNodeByFilename(link.target)
   }
 
   // 3. With section/block
   if (target && link.section) {
-    target = findChildBySlug(target, link.section);
+    target = findChildBySlug(target, link.section)
   }
 
-  return target;
+  return target
 }
 ```
 
@@ -339,7 +339,7 @@ node.data = {
   tags: ["project", "active"],
   due: "2024-01-15",
   priority: 1,
-};
+}
 ```
 
 ### Reserved Fields
@@ -366,13 +366,13 @@ Nodes track their source position for:
 
 ```typescript
 interface Position {
-  start: { line: number; column: number; offset: number };
-  end: { line: number; column: number; offset: number };
+  start: { line: number; column: number; offset: number }
+  end: { line: number; column: number; offset: number }
 }
 
 // Stored in node
-md_pos: number; // start.offset (byte position)
-md_end: number; // end.offset
+md_pos: number // start.offset (byte position)
+md_end: number // end.offset
 ```
 
 ---
@@ -382,20 +382,20 @@ md_end: number; // end.offset
 Use [unified](https://unifiedjs.com/) ecosystem:
 
 ```typescript
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkFrontmatter from "remark-frontmatter";
-import remarkGfm from "remark-gfm";
-import remarkWikiLink from "remark-wiki-link";
+import { unified } from "unified"
+import remarkParse from "remark-parse"
+import remarkFrontmatter from "remark-frontmatter"
+import remarkGfm from "remark-gfm"
+import remarkWikiLink from "remark-wiki-link"
 
 const parser = unified()
   .use(remarkParse)
   .use(remarkFrontmatter, ["yaml"])
   .use(remarkGfm) // Tables, strikethrough, task lists
-  .use(remarkWikiLink);
+  .use(remarkWikiLink)
 
 function parseMarkdown(content: string): Root {
-  return parser.parse(content);
+  return parser.parse(content)
 }
 ```
 

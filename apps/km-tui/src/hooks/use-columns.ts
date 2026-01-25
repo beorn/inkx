@@ -7,17 +7,17 @@
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
-import { useMemo } from "react";
-import type { Vault } from "@km/storage";
-import type { KNode } from "@km/core";
-import type { ColumnState, CardState, ColumnRules } from "../types.ts";
-import { parseColumnRules } from "../state.ts";
+import { useMemo } from "react"
+import type { Vault } from "@km/storage"
+import type { KNode } from "@km/core"
+import type { ColumnState, CardState, ColumnRules } from "../types.ts"
+import { parseColumnRules } from "../state.ts"
 
 // =============================================================================
 // Non-Column Types (content blocks, not navigable columns)
 // =============================================================================
 
-const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"]);
+const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
 
 // =============================================================================
 // Hook
@@ -37,8 +37,8 @@ export function useColumns(
   foldedNodes: Set<string>,
 ): ColumnState[] {
   return useMemo(() => {
-    return deriveColumnsFromVault(vault, rootId, foldedNodes);
-  }, [vault.stats.nodeCount, rootId, foldedNodes]);
+    return deriveColumnsFromVault(vault, rootId, foldedNodes)
+  }, [vault.stats.nodeCount, rootId, foldedNodes])
 }
 
 /**
@@ -51,16 +51,16 @@ export function deriveColumnsFromVault(
   foldedNodes: Set<string>,
 ): ColumnState[] {
   // Get children of root, filtered to exclude non-column types
-  const allChildren = vault.getChildren(rootId);
-  const columnNodes = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type));
+  const allChildren = vault.getChildren(rootId)
+  const columnNodes = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
 
   // Extract WIP limits from root frontmatter
-  const wipLimits = extractWipLimits(columnNodes);
+  const wipLimits = extractWipLimits(columnNodes)
 
   // Convert to column state
   return columnNodes.map((node) =>
     kNodeToColumnState(vault, node, wipLimits, foldedNodes),
-  );
+  )
 }
 
 // =============================================================================
@@ -71,23 +71,23 @@ export function deriveColumnsFromVault(
  * Extract WIP limits from column nodes' frontmatter.
  */
 function extractWipLimits(nodes: KNode[]): Map<string, number> {
-  const limits = new Map<string, number>();
+  const limits = new Map<string, number>()
 
   for (const node of nodes) {
     const columnsConfig = (
       node.data as { columns?: Record<string, { limit?: number }> }
-    )?.columns;
-    if (!columnsConfig) continue;
+    )?.columns
+    if (!columnsConfig) continue
 
     for (const [colName, config] of Object.entries(columnsConfig)) {
       if (typeof config?.limit === "number" && config.limit > 0) {
-        const normalizedName = colName.toLowerCase().replace(/\s+/g, "_");
-        limits.set(normalizedName, config.limit);
+        const normalizedName = colName.toLowerCase().replace(/\s+/g, "_")
+        limits.set(normalizedName, config.limit)
       }
     }
   }
 
-  return limits;
+  return limits
 }
 
 /**
@@ -100,16 +100,16 @@ function kNodeToColumnState(
   foldedNodes: Set<string>,
 ): ColumnState {
   // Parse column rules from node content
-  const rules: ColumnRules = parseColumnRules(node.title || "");
+  const rules: ColumnRules = parseColumnRules(node.title || "")
 
   // Look up WIP limit
   const normalizedName = (node.name || node.title || "")
     .toLowerCase()
-    .replace(/\s+/g, "_");
-  const wipLimit = rules.limit ?? wipLimits.get(normalizedName);
+    .replace(/\s+/g, "_")
+  const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
 
   // Get cards (children of column)
-  const cardNodes = vault.getChildren(node.id);
+  const cardNodes = vault.getChildren(node.id)
 
   // Convert children to cards
   const cards: CardState[] = cardNodes.map((child) => ({
@@ -118,12 +118,12 @@ function kNodeToColumnState(
       ? [] // Don't load children for folded nodes
       : vault.getChildren(child.id),
     childCount: vault.getChildren(child.id).length,
-  }));
+  }))
 
   return {
     node,
     cards,
     wipLimit,
     rules,
-  };
+  }
 }

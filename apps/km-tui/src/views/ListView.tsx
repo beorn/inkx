@@ -9,46 +9,43 @@
  * Performance optimization: Pre-caches board pills for all visible nodes
  * to avoid O(n) database queries during render.
  */
-import React, { useMemo, useCallback } from "react";
-import { Box, Text } from "inkx";
-import type { TUIBoardState, CardState } from "../types.ts";
-import { getBoardPills, type BoardPill } from "../board-pills.ts";
-import { useTreeConfig, useRootBoardId } from "../ui-context.tsx";
-import { useVault } from "../vault-context.tsx";
-import type { KNode } from "@km/core";
-import {
-  MemoizedTreeCard,
-  MemoizedColumnHeader,
-} from "./shared-components.tsx";
+import React, { useMemo, useCallback } from "react"
+import { Box, Text } from "inkx"
+import type { TUIBoardState, CardState } from "../types.ts"
+import { getBoardPills, type BoardPill } from "../board-pills.ts"
+import { useTreeConfig, useRootBoardId } from "../ui-context.tsx"
+import { useVault } from "../vault-context.tsx"
+import type { KNode } from "@km/core"
+import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
 
 // Type for flattened list items
 type FlatItem =
   | {
-      type: "header";
-      colIdx: number;
-      cardIdx: -1;
-      column: TUIBoardState["columns"][0];
-      card?: undefined;
+      type: "header"
+      colIdx: number
+      cardIdx: -1
+      column: TUIBoardState["columns"][0]
+      card?: undefined
     }
   | {
-      type: "card";
-      colIdx: number;
-      cardIdx: number;
-      column: TUIBoardState["columns"][0];
-      card: CardState;
-    };
+      type: "card"
+      colIdx: number
+      cardIdx: number
+      column: TUIBoardState["columns"][0]
+      card: CardState
+    }
 
 // Empty children array constant - stable reference for memoization
-const EMPTY_CHILDREN: KNode[] = [];
+const EMPTY_CHILDREN: KNode[] = []
 
 interface ListViewProps {
-  state: TUIBoardState;
-  width: number;
-  height: number;
-  colIndex: number;
-  cardIndex: number;
-  subIndex: number;
-  selectionLevel: "board" | "column" | "card";
+  state: TUIBoardState
+  width: number
+  height: number
+  colIndex: number
+  cardIndex: number
+  subIndex: number
+  selectionLevel: "board" | "column" | "card"
 }
 
 export function ListView({
@@ -60,60 +57,60 @@ export function ListView({
   subIndex,
   selectionLevel,
 }: ListViewProps): React.ReactElement {
-  const { inOutlineMode } = useTreeConfig();
-  const rootBoardId = useRootBoardId();
-  const vault = useVault();
+  const { inOutlineMode } = useTreeConfig()
+  const rootBoardId = useRootBoardId()
+  const vault = useVault()
 
   // Flatten all cards into a single list
   const flatItems = useMemo(() => {
-    const items: FlatItem[] = [];
+    const items: FlatItem[] = []
 
     state.columns.forEach((column, cIdx) => {
-      items.push({ type: "header", colIdx: cIdx, cardIdx: -1, column });
+      items.push({ type: "header", colIdx: cIdx, cardIdx: -1, column })
       column.cards.forEach((card, idx) => {
-        items.push({ type: "card", colIdx: cIdx, cardIdx: idx, column, card });
-      });
-    });
+        items.push({ type: "card", colIdx: cIdx, cardIdx: idx, column, card })
+      })
+    })
 
-    return items;
-  }, [state.columns]);
+    return items
+  }, [state.columns])
 
   // Pre-cache board pills for ALL cards to avoid O(n) DB queries during render
   // This batches the lookups into a single pass through all cards
   const boardPillsCache = useMemo(() => {
-    const cache = new Map<string, BoardPill[]>();
+    const cache = new Map<string, BoardPill[]>()
     const excludeBoardIds = rootBoardId
       ? new Set([rootBoardId])
-      : new Set<string>();
+      : new Set<string>()
 
     for (const item of flatItems) {
       if (item.type === "card" && item.card.node.task_status != null) {
         cache.set(
           item.card.node.id,
           getBoardPills(vault, item.card.node, excludeBoardIds),
-        );
+        )
       }
     }
-    return cache;
-  }, [flatItems, rootBoardId, vault]);
+    return cache
+  }, [flatItems, rootBoardId, vault])
 
   // Cached getBoardPills function to pass to TreeNode
   // Use useCallback to maintain stable reference when cache content is same
   const getCachedBoardPills = useCallback(
     (node: KNode, _excludeBoardIds: Set<string>): BoardPill[] => {
-      return boardPillsCache.get(node.id) ?? [];
+      return boardPillsCache.get(node.id) ?? []
     },
     [boardPillsCache],
-  );
+  )
 
   // Calculate the selected item's index in flat list
   const selectedFlatIndex = useMemo(() => {
-    let idx = 0;
+    let idx = 0
     for (let c = 0; c < colIndex; c++) {
-      idx += 1 + (state.columns[c]?.cards.length ?? 0);
+      idx += 1 + (state.columns[c]?.cards.length ?? 0)
     }
-    return selectionLevel === "column" ? idx : idx + 1 + cardIndex;
-  }, [colIndex, cardIndex, selectionLevel, state.columns]);
+    return selectionLevel === "column" ? idx : idx + 1 + cardIndex
+  }, [colIndex, cardIndex, selectionLevel, state.columns])
 
   // Empty state
   if (state.columns.length === 0) {
@@ -122,7 +119,7 @@ export function ListView({
         <Text> </Text>
         <Text dimColor>No columns to display</Text>
       </Box>
-    );
+    )
   }
 
   return (
@@ -147,10 +144,10 @@ export function ListView({
       >
         {flatItems.map((item) => {
           if (item.type === "header") {
-            const cIdx = item.colIdx;
+            const cIdx = item.colIdx
             const isColSelected =
-              selectionLevel === "column" && colIndex === cIdx;
-            const isSelected = colIndex === cIdx;
+              selectionLevel === "column" && colIndex === cIdx
+            const isSelected = colIndex === cIdx
 
             return (
               <MemoizedColumnHeader
@@ -162,17 +159,17 @@ export function ListView({
                 width={width}
                 showTopSpacer={cIdx > 0}
               />
-            );
+            )
           }
 
           // Card item
-          const cIdx = item.colIdx;
-          const cardIdx = item.cardIdx;
+          const cIdx = item.colIdx
+          const cardIdx = item.cardIdx
           const isCardSelected =
             selectionLevel === "card" &&
             colIndex === cIdx &&
             cardIndex === cardIdx &&
-            (!inOutlineMode || subIndex === 0);
+            (!inOutlineMode || subIndex === 0)
 
           return (
             <MemoizedTreeCard
@@ -184,9 +181,9 @@ export function ListView({
               children={EMPTY_CHILDREN}
               getBoardPills={getCachedBoardPills}
             />
-          );
+          )
         })}
       </Box>
     </Box>
-  );
+  )
 }

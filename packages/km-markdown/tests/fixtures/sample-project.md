@@ -31,7 +31,7 @@ Here is a regular paragraph with some **bold** and _italic_ text.
 ```typescript
 // Code block
 function hello(): string {
-  return "world";
+  return "world"
 }
 ```
 

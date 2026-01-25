@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS links (
 CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id);
 CREATE INDEX IF NOT EXISTS idx_links_target_name ON links(target_name);
 CREATE INDEX IF NOT EXISTS idx_links_target_id ON links(target_id);
-`;
+`
 
 /**
  * Schema migrations - run after initial schema creation.
@@ -112,4 +112,4 @@ export const MIGRATIONS = `
 -- Migration: Add relationship column to links table (if missing)
 -- This column tracks property-based links vs wikilinks
 ALTER TABLE links ADD COLUMN relationship TEXT;
-`;
+`

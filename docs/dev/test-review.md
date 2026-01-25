@@ -146,13 +146,13 @@ Visual TUI testing via ttyd + chromium headless.
 
 ```typescript
 test("should display cards view", async ({ page }) => {
-  await page.goto("/"); // ttyd serves TUI
-  await waitForTerminal(page);
-  await takeDebugScreenshot(page, "01-initial");
+  await page.goto("/") // ttyd serves TUI
+  await waitForTerminal(page)
+  await takeDebugScreenshot(page, "01-initial")
 
-  const content = await page.locator(".xterm-screen").textContent();
-  expect(content).toContain("expected text");
-});
+  const content = await page.locator(".xterm-screen").textContent()
+  expect(content).toContain("expected text")
+})
 ```
 
 **Status**: Deprecated - migrate to inkx `createTestRenderer()`.
@@ -293,13 +293,13 @@ Move up when:
 
 ```typescript
 // GOOD: Tests via domain object API
-using vault = runGenerator(createVault(vaultDir));
-vault.updateNode(id, { task_status: "done" });
-expect(vault.getNode(id)!.task_status).toBe("done");
+using vault = runGenerator(createVault(vaultDir))
+vault.updateNode(id, { task_status: "done" })
+expect(vault.getNode(id)!.task_status).toBe("done")
 
 // BAD: Tests internal implementation
-setDatabase({ applyEvent }); // Global singleton
-emitNodeUpdated("user", id, { task_status: "done" }); // Internal function
+setDatabase({ applyEvent }) // Global singleton
+emitNodeUpdated("user", id, { task_status: "done" }) // Internal function
 ```
 
 ### Layer Isolation

@@ -20,14 +20,14 @@
  * For the reverse operation (KNodes → markdown), see nodes2md.ts.
  */
 
-import createDebug from "debug";
-import { ulid } from "ulid";
+import createDebug from "debug"
+import { ulid } from "ulid"
 
-const debug = createDebug("km:markdown:ast2nodes");
-import type { Root, RootContent, Heading, List, ListItem } from "mdast";
-import { parse as parseYaml } from "yaml";
-import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core";
-import { CUSTOM_TASK_MARKS } from "@km/core";
+const debug = createDebug("km:markdown:ast2nodes")
+import type { Root, RootContent, Heading, List, ListItem } from "mdast"
+import { parse as parseYaml } from "yaml"
+import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core"
+import { CUSTOM_TASK_MARKS } from "@km/core"
 import {
   parseMarkdown,
   extractFrontmatter,
@@ -41,35 +41,35 @@ import {
   parseWikiLinks,
   parseHeadingRules,
   parseInlineProperties,
-} from "./parser.ts";
-import type { WikiLink, PropertyValue } from "./parser.ts";
+} from "./parser.ts"
+import type { WikiLink, PropertyValue } from "./parser.ts"
 
 /**
  * Parse warning for structural issues
  */
 export interface ParseWarning {
-  type: "missing_h1" | "multiple_h1";
-  message: string;
-  line?: number;
+  type: "missing_h1" | "multiple_h1"
+  message: string
+  line?: number
 }
 
 /**
  * Extracted link with optional relationship (for property-based links)
  */
 export interface ExtractedLink {
-  nodeId: string;
-  link: WikiLink;
+  nodeId: string
+  link: WikiLink
   /** Property name for property-based links (e.g., "blocked-by"), undefined for content wikilinks */
-  relationship?: string;
+  relationship?: string
 }
 
 /**
  * Result of parsing markdown with wikilinks
  */
 export interface ParseResult {
-  nodes: KNode[];
-  wikilinks: ExtractedLink[];
-  warnings: ParseWarning[];
+  nodes: KNode[]
+  wikilinks: ExtractedLink[]
+  warnings: ParseWarning[]
 }
 
 /**
@@ -78,18 +78,18 @@ export interface ParseResult {
  */
 function extractLinksFromProperty(propValue: PropertyValue): string[] {
   if (propValue.type === "link") {
-    return [propValue.target];
+    return [propValue.target]
   }
   if (propValue.type === "list") {
-    const targets: string[] = [];
+    const targets: string[] = []
     for (const item of propValue.values) {
       if (item.type === "link") {
-        targets.push(item.target);
+        targets.push(item.target)
       }
     }
-    return targets;
+    return targets
   }
-  return [];
+  return []
 }
 
 /**
@@ -100,7 +100,7 @@ export function parseMarkdownToNodes(
   fsPath: string,
   fsIno?: number,
 ): KNode[] {
-  return parseMarkdownWithLinks(content, fsPath, fsIno).nodes;
+  return parseMarkdownWithLinks(content, fsPath, fsIno).nodes
 }
 
 /**
@@ -112,16 +112,16 @@ export function parseMarkdownWithLinks(
   fsIno?: number,
   fsMtime?: number,
 ): ParseResult {
-  debug("parsing %s (%d bytes)", fsPath, content.length);
-  const start = Date.now();
+  debug("parsing %s (%d bytes)", fsPath, content.length)
+  const start = Date.now()
 
-  const { frontmatter, body } = extractFrontmatter(content);
-  const ast = parseMarkdown(body);
-  const now = Date.now();
+  const { frontmatter, body } = extractFrontmatter(content)
+  const ast = parseMarkdown(body)
+  const now = Date.now()
 
   // Extract name from filesystem path (filename without .md)
-  const filename = fsPath.split("/").pop() || "";
-  const name = filename.replace(/\.md$/i, "");
+  const filename = fsPath.split("/").pop() || ""
+  const name = filename.replace(/\.md$/i, "")
 
   // Create file node
   const fileNode: KNode = {
@@ -140,78 +140,78 @@ export function parseMarkdownWithLinks(
     created_at: now,
     updated_at: now,
     version: "",
-  };
+  }
 
   // Convert AST to nodes
-  let childNodes = astToNodes(ast, fileNode, body);
+  let childNodes = astToNodes(ast, fileNode, body)
 
   // Merge H1 section into file node (file + H1 = one conceptual node)
   // The H1 title becomes the file's title, and H1's children become file's children
   const h1Section = childNodes.find(
     (n) => n.type === "section" && n.data?.depth === 1,
-  );
+  )
 
   if (h1Section) {
     // Copy H1 properties to file node
-    fileNode.title = h1Section.title;
-    fileNode.content = h1Section.content;
-    fileNode.md_pos = h1Section.md_pos;
-    fileNode.md_slug = h1Section.md_slug;
+    fileNode.title = h1Section.title
+    fileNode.content = h1Section.content
+    fileNode.md_pos = h1Section.md_pos
+    fileNode.md_slug = h1Section.md_slug
     if (h1Section.rules) {
-      fileNode.rules = h1Section.rules;
+      fileNode.rules = h1Section.rules
     }
     // Copy task properties from H1 (if present)
     if (h1Section.task_status) {
-      fileNode.task_status = h1Section.task_status;
+      fileNode.task_status = h1Section.task_status
     }
     if (h1Section.task_mark) {
-      fileNode.task_mark = h1Section.task_mark;
+      fileNode.task_mark = h1Section.task_mark
     }
     // Merge H1's data into file data, but frontmatter takes precedence
     // (frontmatter fields overwrite H1 data fields)
     if (h1Section.data) {
-      fileNode.data = { ...h1Section.data, ...fileNode.data };
+      fileNode.data = { ...h1Section.data, ...fileNode.data }
     }
     // Store H1 title in data for DB persistence (using _h1Title to avoid collision with frontmatter title)
     if (h1Section.title) {
-      fileNode.data = { ...fileNode.data, _h1Title: h1Section.title };
+      fileNode.data = { ...fileNode.data, _h1Title: h1Section.title }
     }
 
     // Re-parent H1's children to the file node
-    childNodes = childNodes.filter((n) => n.id !== h1Section.id);
+    childNodes = childNodes.filter((n) => n.id !== h1Section.id)
     for (const child of childNodes) {
       if (child.parent_id === h1Section.id) {
-        child.parent_id = fileNode.id;
+        child.parent_id = fileNode.id
       }
     }
   }
 
-  const allNodes = [fileNode, ...childNodes];
+  const allNodes = [fileNode, ...childNodes]
 
   // Extract wikilinks from all nodes with content (both inline and from properties)
-  const wikilinks: ExtractedLink[] = [];
+  const wikilinks: ExtractedLink[] = []
   for (const node of allNodes) {
     // Extract wikilinks from content
     if (node.content) {
-      const links = parseWikiLinks(node.content);
+      const links = parseWikiLinks(node.content)
       for (const link of links) {
-        wikilinks.push({ nodeId: node.id, link });
+        wikilinks.push({ nodeId: node.id, link })
       }
     }
 
     // Extract links from properties (e.g., blocked-by:: [[target]])
     const nodeData = node.data as
       | { props?: Record<string, PropertyValue> }
-      | undefined;
+      | undefined
     if (nodeData?.props) {
       for (const [propName, propValue] of Object.entries(nodeData.props)) {
-        const propLinks = extractLinksFromProperty(propValue);
+        const propLinks = extractLinksFromProperty(propValue)
         for (const target of propLinks) {
           wikilinks.push({
             nodeId: node.id,
             link: { type: "wikiLink", target, embedded: false },
             relationship: propName,
-          });
+          })
         }
       }
     }
@@ -219,88 +219,88 @@ export function parseMarkdownWithLinks(
 
   // Aggregate mentions, tags, projects from all nodes (including file node) to file node's data
   // This enables queries like @issue to find files where any content has that mention
-  const aggregatedMentions = new Set<string>();
-  const aggregatedTags = new Set<string>();
-  const aggregatedProjects = new Set<string>();
+  const aggregatedMentions = new Set<string>()
+  const aggregatedTags = new Set<string>()
+  const aggregatedProjects = new Set<string>()
 
   // km-load-perf.1: Use single-pass extraction for all refs
   // Include file node's own content (e.g., H1 heading with @issue #feature)
   if (fileNode.content) {
-    const refs = extractAllRefs(fileNode.content);
-    for (const m of refs.mentions) aggregatedMentions.add(m);
-    for (const t of refs.tags) aggregatedTags.add(t);
-    for (const p of refs.projects) aggregatedProjects.add(p);
+    const refs = extractAllRefs(fileNode.content)
+    for (const m of refs.mentions) aggregatedMentions.add(m)
+    for (const t of refs.tags) aggregatedTags.add(t)
+    for (const p of refs.projects) aggregatedProjects.add(p)
   }
 
   for (const node of childNodes) {
     if (node.content) {
       // Single-pass extraction instead of 3 separate passes
-      const refs = extractAllRefs(node.content);
-      for (const m of refs.mentions) aggregatedMentions.add(m);
-      for (const t of refs.tags) aggregatedTags.add(t);
-      for (const p of refs.projects) aggregatedProjects.add(p);
+      const refs = extractAllRefs(node.content)
+      for (const m of refs.mentions) aggregatedMentions.add(m)
+      for (const t of refs.tags) aggregatedTags.add(t)
+      for (const p of refs.projects) aggregatedProjects.add(p)
     }
     // Also include from node's own data (for list items that already extracted these)
-    const nodeData = node.data as Record<string, unknown> | undefined;
+    const nodeData = node.data as Record<string, unknown> | undefined
     if (nodeData?.mentions) {
-      for (const m of nodeData.mentions as string[]) aggregatedMentions.add(m);
+      for (const m of nodeData.mentions as string[]) aggregatedMentions.add(m)
     }
     if (nodeData?.tags) {
-      for (const t of nodeData.tags as string[]) aggregatedTags.add(t);
+      for (const t of nodeData.tags as string[]) aggregatedTags.add(t)
     }
     if (nodeData?.projects) {
-      for (const p of nodeData.projects as string[]) aggregatedProjects.add(p);
+      for (const p of nodeData.projects as string[]) aggregatedProjects.add(p)
     }
   }
 
   // Store aggregated refs in separate fields to preserve original frontmatter
   // Original frontmatter values stay in data.tags/mentions/projects
   // Aggregated values (content + frontmatter) go in data._allTags/_allMentions/_allProjects
-  const fileData = fileNode.data as Record<string, unknown>;
-  const existingMentions = (fileData.mentions as string[] | undefined) || [];
-  const existingTags = (fileData.tags as string[] | undefined) || [];
-  const existingProjects = (fileData.projects as string[] | undefined) || [];
+  const fileData = fileNode.data as Record<string, unknown>
+  const existingMentions = (fileData.mentions as string[] | undefined) || []
+  const existingTags = (fileData.tags as string[] | undefined) || []
+  const existingProjects = (fileData.projects as string[] | undefined) || []
 
   // Add original frontmatter values to aggregation
-  for (const m of existingMentions) aggregatedMentions.add(m);
-  for (const t of existingTags) aggregatedTags.add(t);
-  for (const p of existingProjects) aggregatedProjects.add(p);
+  for (const m of existingMentions) aggregatedMentions.add(m)
+  for (const t of existingTags) aggregatedTags.add(t)
+  for (const p of existingProjects) aggregatedProjects.add(p)
 
   // Store aggregated values in separate fields (for queries)
   // Original frontmatter values (data.tags etc.) are preserved for serialization
   if (aggregatedMentions.size > 0) {
-    fileData._allMentions = [...aggregatedMentions];
+    fileData._allMentions = [...aggregatedMentions]
   }
   if (aggregatedTags.size > 0) {
-    fileData._allTags = [...aggregatedTags];
+    fileData._allTags = [...aggregatedTags]
   }
   if (aggregatedProjects.size > 0) {
-    fileData._allProjects = [...aggregatedProjects];
+    fileData._allProjects = [...aggregatedProjects]
   }
 
   // Validate H1 headings - each file should have exactly one
-  const warnings: ParseWarning[] = [];
+  const warnings: ParseWarning[] = []
   const h1Count = childNodes.filter(
     (n) => n.type === "section" && n.data?.depth === 1,
-  ).length;
+  ).length
   // Add 1 for the merged H1 if it existed
-  const totalH1s = h1Section ? h1Count + 1 : h1Count;
+  const totalH1s = h1Section ? h1Count + 1 : h1Count
 
   if (totalH1s === 0) {
     warnings.push({
       type: "missing_h1",
       message: `${fsPath}: Missing H1 heading. Each markdown file should have exactly one # heading as its title.`,
-    });
+    })
   } else if (totalH1s > 1) {
     // Find the second H1 for line number
     const secondH1 = childNodes.find(
       (n) => n.type === "section" && n.data?.depth === 1,
-    );
+    )
     warnings.push({
       type: "multiple_h1",
       message: `${fsPath}: Multiple H1 headings found (${totalH1s}). Each markdown file should have exactly one # heading.`,
       line: secondH1?.md_line,
-    });
+    })
   }
 
   debug("parsed", {
@@ -309,9 +309,9 @@ export function parseMarkdownWithLinks(
     wikilinks: wikilinks.length,
     warnings: warnings.length,
     ms: Date.now() - start,
-  });
+  })
 
-  return { nodes: allNodes, wikilinks, warnings };
+  return { nodes: allNodes, wikilinks, warnings }
 }
 
 /**
@@ -319,10 +319,10 @@ export function parseMarkdownWithLinks(
  */
 function parseFrontmatter(yaml: string): Record<string, unknown> {
   try {
-    const data = parseYaml(yaml) as Record<string, unknown>;
-    return data ?? {};
+    const data = parseYaml(yaml) as Record<string, unknown>
+    return data ?? {}
   } catch {
-    return {};
+    return {}
   }
 }
 
@@ -330,58 +330,58 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
  * Convert AST children to km nodes
  */
 function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
-  const nodes: KNode[] = [];
-  const sectionStack: Array<{ depth: number; node: KNode }> = [];
-  let currentParent = fileNode;
-  let sortOrder = 0;
-  const now = Date.now();
+  const nodes: KNode[] = []
+  const sectionStack: Array<{ depth: number; node: KNode }> = []
+  let currentParent = fileNode
+  let sortOrder = 0
+  const now = Date.now()
 
   for (const child of ast.children) {
     // Handle headings - create section hierarchy
     if (child.type === "heading") {
-      const heading = child as Heading;
+      const heading = child as Heading
 
       // Pop stack until we find a shallower heading
       while (sectionStack.length > 0) {
-        const top = sectionStack[sectionStack.length - 1];
+        const top = sectionStack[sectionStack.length - 1]
         if (top && top.depth >= heading.depth) {
-          sectionStack.pop();
+          sectionStack.pop()
         } else {
-          break;
+          break
         }
       }
 
-      const text = nodeToText(heading);
-      const { title: titleWithRules, rules } = parseHeadingRules(text);
+      const text = nodeToText(heading)
+      const { title: titleWithRules, rules } = parseHeadingRules(text)
       const { mark: taskMark, cleanText: title } =
-        extractTitleTaskMark(titleWithRules);
-      const hasRules = Object.keys(rules).length > 0;
-      const sectionName = slugify(title);
+        extractTitleTaskMark(titleWithRules)
+      const hasRules = Object.keys(rules).length > 0
+      const sectionName = slugify(title)
 
       // Determine task status from mark (same logic as list items)
-      let taskStatus: TaskStatus | undefined;
+      let taskStatus: TaskStatus | undefined
       if (taskMark !== undefined) {
         switch (taskMark) {
           case "x":
           case "X":
-            taskStatus = "done";
-            break;
+            taskStatus = "done"
+            break
           case "!":
-            taskStatus = "blocked";
-            break;
+            taskStatus = "blocked"
+            break
           case "-":
-            taskStatus = "dropped";
-            break;
+            taskStatus = "dropped"
+            break
           case "/":
-            taskStatus = "wip";
-            break;
+            taskStatus = "wip"
+            break
           case " ":
           default:
-            taskStatus = "todo";
+            taskStatus = "todo"
         }
       }
 
-      const parentSection = sectionStack[sectionStack.length - 1];
+      const parentSection = sectionStack[sectionStack.length - 1]
       const sectionNode: KNode = {
         id: ulid(),
         type: "section",
@@ -404,40 +404,40 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
         created_at: now,
         updated_at: now,
         version: "",
-      };
+      }
 
-      nodes.push(sectionNode);
-      sectionStack.push({ depth: heading.depth, node: sectionNode });
-      currentParent = sectionNode;
-      continue;
+      nodes.push(sectionNode)
+      sectionStack.push({ depth: heading.depth, node: sectionNode })
+      currentParent = sectionNode
+      continue
     }
 
     // Handle lists - create list items/tasks
     if (child.type === "list") {
-      const list = child as List;
+      const list = child as List
 
       for (const item of list.children) {
-        const listItem = item as ListItem;
+        const listItem = item as ListItem
         const itemNodes = convertListItem(
           listItem,
           currentParent,
           list.ordered ?? false,
           sortOrder++,
           sourceText,
-        );
-        nodes.push(...itemNodes);
+        )
+        nodes.push(...itemNodes)
       }
-      continue;
+      continue
     }
 
     // Handle other block types
-    const blockNode = convertBlock(child, currentParent, sortOrder++);
+    const blockNode = convertBlock(child, currentParent, sortOrder++)
     if (blockNode) {
-      nodes.push(blockNode);
+      nodes.push(blockNode)
     }
   }
 
-  return nodes;
+  return nodes
 }
 
 /**
@@ -450,61 +450,61 @@ function convertListItem(
   sortOrder: number,
   sourceText: string,
 ): KNode[] {
-  const nodes: KNode[] = [];
-  const now = Date.now();
+  const nodes: KNode[] = []
+  const now = Date.now()
 
-  let text = listItemToText(item);
+  let text = listItemToText(item)
   // Convert position to the expected format for extractTaskMark
   const position =
     item.position?.start.offset !== undefined
       ? { start: { offset: item.position.start.offset } }
-      : undefined;
-  const taskMark = extractTaskMark(sourceText, position);
+      : undefined
+  const taskMark = extractTaskMark(sourceText, position)
 
   // A task is either:
   // 1. A GFM task list item (item.checked is boolean) - [ ] or [x]
   // 2. A list item with a custom task mark - [/], [-], [!]
-  const isGfmTask = item.checked !== null && item.checked !== undefined;
+  const isGfmTask = item.checked !== null && item.checked !== undefined
   const isCustomTask =
-    taskMark && (CUSTOM_TASK_MARKS as readonly string[]).includes(taskMark);
-  const isTask = isGfmTask || isCustomTask;
+    taskMark && (CUSTOM_TASK_MARKS as readonly string[]).includes(taskMark)
+  const isTask = isGfmTask || isCustomTask
 
   // For custom task marks, mdast includes the mark in the text (e.g., "[/] task content")
   // Strip it to get the clean content
   if (isCustomTask && !isGfmTask) {
-    text = text.replace(/^\[.\]\s*/, "");
+    text = text.replace(/^\[.\]\s*/, "")
   }
 
   // Determine task status from mark
-  let taskStatus: TaskStatus | undefined;
+  let taskStatus: TaskStatus | undefined
   if (isTask) {
     switch (taskMark) {
       case "x":
       case "X":
-        taskStatus = "done";
-        break;
+        taskStatus = "done"
+        break
       case "!":
-        taskStatus = "blocked";
-        break;
+        taskStatus = "blocked"
+        break
       case "-":
-        taskStatus = "dropped";
-        break;
+        taskStatus = "dropped"
+        break
       case "/":
-        taskStatus = "wip";
-        break;
+        taskStatus = "wip"
+        break
       default:
-        taskStatus = "todo";
+        taskStatus = "todo"
     }
   }
 
   // Parse task metadata from text
-  const metadata = isTask ? parseTaskMetadata(text) : {};
+  const metadata = isTask ? parseTaskMetadata(text) : {}
   // km-load-perf.1: Single-pass extraction for refs
-  const { tags, mentions, projects } = extractAllRefs(text);
-  const parsedProps = parseInlineProperties(text);
+  const { tags, mentions, projects } = extractAllRefs(text)
+  const parsedProps = parseInlineProperties(text)
 
   // Priority from metadata only
-  const priority: number | undefined = metadata.priority;
+  const priority: number | undefined = metadata.priority
 
   const node: KNode = {
     id: ulid(),
@@ -538,15 +538,15 @@ function convertListItem(
     created_at: now,
     updated_at: now,
     version: "",
-  };
+  }
 
-  nodes.push(node);
+  nodes.push(node)
 
   // Handle nested lists
   for (const child of item.children) {
     if (child.type === "list") {
-      const list = child as List;
-      let nestedSort = 0;
+      const list = child as List
+      let nestedSort = 0
 
       for (const nestedItem of list.children) {
         const nestedNodes = convertListItem(
@@ -555,13 +555,13 @@ function convertListItem(
           list.ordered ?? false,
           nestedSort++,
           sourceText,
-        );
-        nodes.push(...nestedNodes);
+        )
+        nodes.push(...nestedNodes)
       }
     }
   }
 
-  return nodes;
+  return nodes
 }
 
 /**
@@ -572,12 +572,12 @@ function convertListItem(
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getEmbeddingText(text: string): string | null {
-  const trimmed = text.trim();
+  const trimmed = text.trim()
   // Match ![[...]] with optional section/blockId/alias
   const match = trimmed.match(
     /^!\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]$/,
-  );
-  return match ? trimmed : null;
+  )
+  return match ? trimmed : null
 }
 
 /**
@@ -588,54 +588,54 @@ function convertBlock(
   parent: KNode,
   sortOrder: number,
 ): KNode | null {
-  const now = Date.now();
+  const now = Date.now()
 
-  let type: NodeType;
-  let content: string | null = null;
-  const data: Record<string, unknown> = {};
+  let type: NodeType
+  let content: string | null = null
+  const data: Record<string, unknown> = {}
 
   switch (block.type) {
     case "paragraph": {
-      type = "paragraph";
-      content = nodeToText(block);
+      type = "paragraph"
+      content = nodeToText(block)
       // TODO: When embedding detected (getEmbeddingText), resolve target and set link_to
       // This requires Phase 2 of km-xexz (target resolution)
-      break;
+      break
     }
 
     case "blockquote":
-      type = "quote";
-      content = nodeToText(block);
-      break;
+      type = "quote"
+      content = nodeToText(block)
+      break
 
     case "code":
-      type = "code";
-      content = block.value;
+      type = "code"
+      content = block.value
       if (block.lang) {
-        data.lang = block.lang;
+        data.lang = block.lang
       }
       if (block.meta) {
-        data.meta = block.meta;
+        data.meta = block.meta
       }
-      break;
+      break
 
     case "thematicBreak":
-      type = "hr";
-      break;
+      type = "hr"
+      break
 
     case "table":
-      type = "table";
-      content = nodeToText(block);
-      break;
+      type = "table"
+      content = nodeToText(block)
+      break
 
     case "html":
-      type = "html";
-      content = block.value;
-      break;
+      type = "html"
+      content = block.value
+      break
 
     default:
       // Skip unknown types
-      return null;
+      return null
   }
 
   return {
@@ -651,27 +651,27 @@ function convertBlock(
     created_at: now,
     updated_at: now,
     version: "",
-  };
+  }
 }
 
 /**
  * Build a tree structure from flat nodes
  */
 export function buildNodeTree(nodes: KNode[]): Map<string, KNode[]> {
-  const tree = new Map<string, KNode[]>();
+  const tree = new Map<string, KNode[]>()
 
   for (const node of nodes) {
-    const parentId = node.parent_id ?? "__root__";
+    const parentId = node.parent_id ?? "__root__"
     if (!tree.has(parentId)) {
-      tree.set(parentId, []);
+      tree.set(parentId, [])
     }
-    tree.get(parentId)?.push(node);
+    tree.get(parentId)?.push(node)
   }
 
   // Sort children by parent_idx
   for (const children of tree.values()) {
-    children.sort((a, b) => a.parent_idx - b.parent_idx);
+    children.sort((a, b) => a.parent_idx - b.parent_idx)
   }
 
-  return tree;
+  return tree
 }

@@ -4,14 +4,14 @@
  * Create, update, and close issues.
  */
 
-import { ulid } from "ulid";
-import type { KNode } from "@km/core";
-import type { Issue, CreateIssueOptions } from "./types.ts";
+import { ulid } from "ulid"
+import type { KNode } from "@km/core"
+import type { Issue, CreateIssueOptions } from "./types.ts"
 import {
   generateShortId,
   generateCustomId,
   generateSubId,
-} from "./short-ids.ts";
+} from "./short-ids.ts"
 
 /**
  * Create a new issue
@@ -23,48 +23,48 @@ export function createIssueNode(
   title: string,
   options: CreateIssueOptions = {},
 ): { node: KNode; shortId: string } {
-  const now = Date.now();
-  const id = ulid();
+  const now = Date.now()
+  const id = ulid()
 
   // Generate short ID
-  let shortId: string;
+  let shortId: string
   if (options.customId) {
-    shortId = generateCustomId(options.customId);
+    shortId = generateCustomId(options.customId)
   } else if (options.parentId) {
     // For sub-issues, we'd need to query existing children
     // For now, use timestamp-based suffix
-    const childNum = Math.floor(Date.now() % 1000);
-    shortId = generateSubId(options.parentId, childNum);
+    const childNum = Math.floor(Date.now() % 1000)
+    shortId = generateSubId(options.parentId, childNum)
   } else {
-    shortId = generateShortId();
+    shortId = generateShortId()
   }
 
   // Build content with metadata
-  let content = title;
+  let content = title
 
   // Add type tag
   if (options.type) {
-    content += ` #${options.type}`;
+    content += ` #${options.type}`
   }
 
   // Add priority tag
-  const priority = options.priority ?? 2;
-  content += ` #P${priority}`;
+  const priority = options.priority ?? 2
+  content += ` #P${priority}`
 
   // Add assignee
   if (options.assignee) {
-    content += ` @${options.assignee}`;
+    content += ` @${options.assignee}`
   }
 
   // Add additional labels
   if (options.labels) {
     for (const label of options.labels) {
-      content += ` #${label}`;
+      content += ` #${label}`
     }
   }
 
   // Add @issue marker for queryability
-  content += " @issue";
+  content += " @issue"
 
   const node: KNode = {
     id,
@@ -86,9 +86,9 @@ export function createIssueNode(
     created_at: now,
     updated_at: now,
     version: "",
-  };
+  }
 
-  return { node, shortId };
+  return { node, shortId }
 }
 
 /**
@@ -99,50 +99,50 @@ export function createIssueNode(
 export function updateIssueFields(
   issue: Issue,
   changes: {
-    status?: Issue["status"];
-    priority?: number;
-    assignee?: string;
-    title?: string;
+    status?: Issue["status"]
+    priority?: number
+    assignee?: string
+    title?: string
   },
 ): Partial<KNode> {
   const updates: Partial<KNode> = {
     updated_at: Date.now(),
-  };
+  }
 
   if (changes.status !== undefined) {
     switch (changes.status) {
       case "done":
-        updates.task_status = "done";
-        updates.task_mark = "x";
-        break;
+        updates.task_status = "done"
+        updates.task_mark = "x"
+        break
       case "wip":
-        updates.task_status = "wip";
-        updates.task_mark = "/";
-        break;
+        updates.task_status = "wip"
+        updates.task_mark = "/"
+        break
       case "blocked":
-        updates.task_status = "blocked";
-        updates.task_mark = "!";
-        break;
+        updates.task_status = "blocked"
+        updates.task_mark = "!"
+        break
       case "dropped":
-        updates.task_status = "dropped";
-        updates.task_mark = "-";
-        break;
+        updates.task_status = "dropped"
+        updates.task_mark = "-"
+        break
       case "todo":
-        updates.task_status = "todo";
-        updates.task_mark = " ";
-        break;
+        updates.task_status = "todo"
+        updates.task_mark = " "
+        break
     }
   }
 
   if (changes.priority !== undefined) {
-    updates.priority = changes.priority;
+    updates.priority = changes.priority
   }
 
   if (changes.title !== undefined) {
-    updates.content = changes.title;
+    updates.content = changes.title
   }
 
-  return updates;
+  return updates
 }
 
 /**
@@ -153,14 +153,14 @@ export function closeIssueFields(reason?: string): Partial<KNode> {
     task_status: "done",
     task_mark: "x",
     updated_at: Date.now(),
-  };
+  }
 
   if (reason) {
     // Store close reason in data
-    updates.data = { closeReason: reason };
+    updates.data = { closeReason: reason }
   }
 
-  return updates;
+  return updates
 }
 
 /**
@@ -171,11 +171,11 @@ export function dropIssueFields(reason?: string): Partial<KNode> {
     task_status: "dropped",
     task_mark: "-",
     updated_at: Date.now(),
-  };
-
-  if (reason) {
-    updates.data = { dropReason: reason };
   }
 
-  return updates;
+  if (reason) {
+    updates.data = { dropReason: reason }
+  }
+
+  return updates
 }

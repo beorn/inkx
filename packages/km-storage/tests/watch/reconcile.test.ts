@@ -5,297 +5,291 @@
  * Uses isolated test environments for parallel execution.
  */
 
-import { describe, test, expect } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync, statSync, utimesSync } from "fs";
-import { join } from "path";
+import { describe, test, expect } from "bun:test"
+import { mkdirSync, rmSync, writeFileSync, statSync, utimesSync } from "fs"
+import { join } from "path"
 import {
   reconcileDirectory,
   applyReconcileOps,
   getParentNodeId,
-} from "../../src/watch/reconcile.ts";
-import { getNodeByPath, getChildren } from "../../src/db.ts";
-import { rebuildState } from "../../src/rebuild.ts";
-import { withTestEnv } from "@km/storage";
+} from "../../src/watch/reconcile.ts"
+import { getNodeByPath, getChildren } from "../../src/db.ts"
+import { rebuildState } from "../../src/rebuild.ts"
+import { withTestEnv } from "@km/storage"
 
 describe("reconcile.ts", () => {
   describe("reconcileDirectory", () => {
     test("detects new files", () =>
       withTestEnv(({ vaultDir }) => {
-        const filePath = join(vaultDir, "test.md");
-        writeFileSync(filePath, "# Test\n\n- [ ] Task 1");
+        const filePath = join(vaultDir, "test.md")
+        writeFileSync(filePath, "# Test\n\n- [ ] Task 1")
 
-        const ops = reconcileDirectory(vaultDir, vaultDir);
+        const ops = reconcileDirectory(vaultDir, vaultDir)
 
-        expect(ops.length).toBe(1);
-        expect(ops[0]!.type).toBe("create");
-        expect(ops[0]!.path).toBe(filePath);
-      }));
+        expect(ops.length).toBe(1)
+        expect(ops[0]!.type).toBe("create")
+        expect(ops[0]!.path).toBe(filePath)
+      }))
 
     test("detects new folders", () =>
       withTestEnv(({ vaultDir }) => {
-        const folderPath = join(vaultDir, "subfolder");
-        mkdirSync(folderPath);
+        const folderPath = join(vaultDir, "subfolder")
+        mkdirSync(folderPath)
 
-        const ops = reconcileDirectory(vaultDir, vaultDir);
+        const ops = reconcileDirectory(vaultDir, vaultDir)
 
-        expect(ops.length).toBe(1);
-        expect(ops[0]!.type).toBe("create");
-        expect(ops[0]!.path).toBe(folderPath);
-      }));
+        expect(ops.length).toBe(1)
+        expect(ops[0]!.type).toBe("create")
+        expect(ops[0]!.path).toBe(folderPath)
+      }))
 
     test("detects multiple new items", () =>
       withTestEnv(({ vaultDir }) => {
-        writeFileSync(join(vaultDir, "file1.md"), "# File 1");
-        writeFileSync(join(vaultDir, "file2.md"), "# File 2");
-        mkdirSync(join(vaultDir, "folder1"));
+        writeFileSync(join(vaultDir, "file1.md"), "# File 1")
+        writeFileSync(join(vaultDir, "file2.md"), "# File 2")
+        mkdirSync(join(vaultDir, "folder1"))
 
-        const ops = reconcileDirectory(vaultDir, vaultDir);
+        const ops = reconcileDirectory(vaultDir, vaultDir)
 
-        expect(ops.length).toBe(3);
-        expect(ops.every((op) => op.type === "create")).toBe(true);
-      }));
+        expect(ops.length).toBe(3)
+        expect(ops.every((op) => op.type === "create")).toBe(true)
+      }))
 
     test("detects deleted files", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const filePath = join(vaultDir, "delete-me.md");
-        writeFileSync(filePath, "# Delete Me");
+        const filePath = join(vaultDir, "delete-me.md")
+        writeFileSync(filePath, "# Delete Me")
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        expect(createOps.length).toBe(1);
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        expect(createOps.length).toBe(1)
 
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        const node = getNodeByPath(filePath);
-        expect(node).not.toBeNull();
+        const node = getNodeByPath(filePath)
+        expect(node).not.toBeNull()
 
-        rmSync(filePath);
+        rmSync(filePath)
 
-        const deleteOps = reconcileDirectory(vaultDir, vaultDir);
-        expect(deleteOps.length).toBe(1);
-        expect(deleteOps[0]!.type).toBe("delete");
-        expect(deleteOps[0]!.path).toBe(filePath);
-        expect(deleteOps[0]!.nodeId).toBe(node!.id);
-      }));
+        const deleteOps = reconcileDirectory(vaultDir, vaultDir)
+        expect(deleteOps.length).toBe(1)
+        expect(deleteOps[0]!.type).toBe("delete")
+        expect(deleteOps[0]!.path).toBe(filePath)
+        expect(deleteOps[0]!.nodeId).toBe(node!.id)
+      }))
 
     test("detects modified files by mtime (forward)", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const filePath = join(vaultDir, "modify-me.md");
-        writeFileSync(filePath, "# Original");
+        const filePath = join(vaultDir, "modify-me.md")
+        writeFileSync(filePath, "# Original")
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        const node = getNodeByPath(filePath);
-        expect(node).not.toBeNull();
+        const node = getNodeByPath(filePath)
+        expect(node).not.toBeNull()
 
-        writeFileSync(filePath, "# Modified Content");
-        const futureTime = new Date(Date.now() + 1000);
-        utimesSync(filePath, futureTime, futureTime);
+        writeFileSync(filePath, "# Modified Content")
+        const futureTime = new Date(Date.now() + 1000)
+        utimesSync(filePath, futureTime, futureTime)
 
-        const updateOps = reconcileDirectory(vaultDir, vaultDir);
-        expect(updateOps.length).toBe(1);
-        expect(updateOps[0]!.type).toBe("update");
-        expect(updateOps[0]!.path).toBe(filePath);
-        expect(updateOps[0]!.nodeId).toBe(node!.id);
-      }));
+        const updateOps = reconcileDirectory(vaultDir, vaultDir)
+        expect(updateOps.length).toBe(1)
+        expect(updateOps[0]!.type).toBe("update")
+        expect(updateOps[0]!.path).toBe(filePath)
+        expect(updateOps[0]!.nodeId).toBe(node!.id)
+      }))
 
     test("detects modified files by mtime (backward - restored from backup)", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const filePath = join(vaultDir, "backup-restore.md");
-        writeFileSync(filePath, "# Original");
+        const filePath = join(vaultDir, "backup-restore.md")
+        writeFileSync(filePath, "# Original")
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        const node = getNodeByPath(filePath);
-        expect(node).not.toBeNull();
-        expect(node!.fs_mtime).toBeDefined();
+        const node = getNodeByPath(filePath)
+        expect(node).not.toBeNull()
+        expect(node!.fs_mtime).toBeDefined()
 
-        writeFileSync(
-          filePath,
-          "# Restored from backup with different content",
-        );
-        const pastTime = new Date(Date.now() - 86400000);
-        utimesSync(filePath, pastTime, pastTime);
+        writeFileSync(filePath, "# Restored from backup with different content")
+        const pastTime = new Date(Date.now() - 86400000)
+        utimesSync(filePath, pastTime, pastTime)
 
-        const updateOps = reconcileDirectory(vaultDir, vaultDir);
-        expect(updateOps.length).toBe(1);
-        expect(updateOps[0]!.type).toBe("update");
-        expect(updateOps[0]!.path).toBe(filePath);
-        expect(updateOps[0]!.nodeId).toBe(node!.id);
-      }));
+        const updateOps = reconcileDirectory(vaultDir, vaultDir)
+        expect(updateOps.length).toBe(1)
+        expect(updateOps[0]!.type).toBe("update")
+        expect(updateOps[0]!.path).toBe(filePath)
+        expect(updateOps[0]!.nodeId).toBe(node!.id)
+      }))
 
     test("detects renamed files by inode", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const oldPath = join(vaultDir, "old-name.md");
-        writeFileSync(oldPath, "# Content");
+        const oldPath = join(vaultDir, "old-name.md")
+        writeFileSync(oldPath, "# Content")
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        const node = getNodeByPath(oldPath);
-        expect(node).not.toBeNull();
-        expect(node!.fs_ino).toBeDefined();
-        const originalIno = node!.fs_ino!;
+        const node = getNodeByPath(oldPath)
+        expect(node).not.toBeNull()
+        expect(node!.fs_ino).toBeDefined()
+        const originalIno = node!.fs_ino!
 
-        const newPath = join(vaultDir, "new-name.md");
-        Bun.spawnSync(["mv", oldPath, newPath]);
+        const newPath = join(vaultDir, "new-name.md")
+        Bun.spawnSync(["mv", oldPath, newPath])
 
-        const newStat = statSync(newPath);
-        expect(newStat.ino).toBe(originalIno);
+        const newStat = statSync(newPath)
+        expect(newStat.ino).toBe(originalIno)
 
-        const renameOps = reconcileDirectory(vaultDir, vaultDir);
-        const renameOp = renameOps.find((op) => op.type === "rename");
-        expect(renameOp).toBeDefined();
-        expect(renameOp!.oldPath).toBe(oldPath);
-        expect(renameOp!.path).toBe(newPath);
-        expect(renameOp!.nodeId).toBe(node!.id);
-      }));
+        const renameOps = reconcileDirectory(vaultDir, vaultDir)
+        const renameOp = renameOps.find((op) => op.type === "rename")
+        expect(renameOp).toBeDefined()
+        expect(renameOp!.oldPath).toBe(oldPath)
+        expect(renameOp!.path).toBe(newPath)
+        expect(renameOp!.nodeId).toBe(node!.id)
+      }))
 
     test("returns empty array when nothing changed", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const filePath = join(vaultDir, "stable.md");
-        writeFileSync(filePath, "# Stable");
+        const filePath = join(vaultDir, "stable.md")
+        writeFileSync(filePath, "# Stable")
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        const ops = reconcileDirectory(vaultDir, vaultDir);
-        expect(ops.length).toBe(0);
-      }));
+        const ops = reconcileDirectory(vaultDir, vaultDir)
+        expect(ops.length).toBe(0)
+      }))
 
     test("ignores non-markdown files", () =>
       withTestEnv(({ vaultDir }) => {
-        writeFileSync(join(vaultDir, "image.png"), "fake image data");
-        writeFileSync(join(vaultDir, "test.md"), "# Real markdown");
+        writeFileSync(join(vaultDir, "image.png"), "fake image data")
+        writeFileSync(join(vaultDir, "test.md"), "# Real markdown")
 
-        const ops = reconcileDirectory(vaultDir, vaultDir);
+        const ops = reconcileDirectory(vaultDir, vaultDir)
 
-        expect(ops.length).toBeGreaterThanOrEqual(1);
-        const mdOp = ops.find((op) => op.path.endsWith(".md"));
-        expect(mdOp).toBeDefined();
-      }));
-  });
+        expect(ops.length).toBeGreaterThanOrEqual(1)
+        const mdOp = ops.find((op) => op.path.endsWith(".md"))
+        expect(mdOp).toBeDefined()
+      }))
+  })
 
   describe("applyReconcileOps", () => {
     test("creates file node from markdown", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const filePath = join(vaultDir, "new-file.md");
-        writeFileSync(filePath, "# New File\n\n- [ ] Task 1\n- [x] Task 2");
+        const filePath = join(vaultDir, "new-file.md")
+        writeFileSync(filePath, "# New File\n\n- [ ] Task 1\n- [x] Task 2")
 
-        const ops = reconcileDirectory(vaultDir, vaultDir);
-        expect(ops.length).toBe(1);
+        const ops = reconcileDirectory(vaultDir, vaultDir)
+        expect(ops.length).toBe(1)
 
-        await applyReconcileOps(ops, vaultDir);
-        rebuildState();
+        await applyReconcileOps(ops, vaultDir)
+        rebuildState()
 
-        const fileNode = getNodeByPath(filePath);
-        expect(fileNode).not.toBeNull();
-        expect(fileNode!.type).toBe("file");
+        const fileNode = getNodeByPath(filePath)
+        expect(fileNode).not.toBeNull()
+        expect(fileNode!.type).toBe("file")
 
-        const children = getChildren(fileNode!.id);
-        const tasks = children.filter((n) => n.type === "task");
-        expect(tasks.length).toBe(2);
-      }));
+        const children = getChildren(fileNode!.id)
+        const tasks = children.filter((n) => n.type === "task")
+        expect(tasks.length).toBe(2)
+      }))
 
     test("creates folder node", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const folderPath = join(vaultDir, "new-folder");
-        mkdirSync(folderPath);
+        const folderPath = join(vaultDir, "new-folder")
+        mkdirSync(folderPath)
 
-        const ops = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(ops, vaultDir);
-        rebuildState();
+        const ops = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(ops, vaultDir)
+        rebuildState()
 
-        const folderNode = getNodeByPath(folderPath);
-        expect(folderNode).not.toBeNull();
-        expect(folderNode!.type).toBe("folder");
-      }));
+        const folderNode = getNodeByPath(folderPath)
+        expect(folderNode).not.toBeNull()
+        expect(folderNode!.type).toBe("folder")
+      }))
 
     test("deletes node on delete op", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const filePath = join(vaultDir, "to-delete.md");
-        writeFileSync(filePath, "# To Delete");
+        const filePath = join(vaultDir, "to-delete.md")
+        writeFileSync(filePath, "# To Delete")
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        expect(getNodeByPath(filePath)).not.toBeNull();
+        expect(getNodeByPath(filePath)).not.toBeNull()
 
-        rmSync(filePath);
-        const deleteOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(deleteOps, vaultDir);
-        rebuildState();
+        rmSync(filePath)
+        const deleteOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(deleteOps, vaultDir)
+        rebuildState()
 
-        expect(getNodeByPath(filePath)).toBeNull();
-      }));
+        expect(getNodeByPath(filePath)).toBeNull()
+      }))
 
     test("handles rename operations", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const oldPath = join(vaultDir, "rename-old.md");
-        writeFileSync(oldPath, "# Rename Me");
+        const oldPath = join(vaultDir, "rename-old.md")
+        writeFileSync(oldPath, "# Rename Me")
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        const originalNode = getNodeByPath(oldPath);
-        expect(originalNode).not.toBeNull();
-        const originalId = originalNode!.id;
+        const originalNode = getNodeByPath(oldPath)
+        expect(originalNode).not.toBeNull()
+        const originalId = originalNode!.id
 
-        const newPath = join(vaultDir, "rename-new.md");
-        Bun.spawnSync(["mv", oldPath, newPath]);
+        const newPath = join(vaultDir, "rename-new.md")
+        Bun.spawnSync(["mv", oldPath, newPath])
 
-        const renameOps = reconcileDirectory(vaultDir, vaultDir);
-        const renameOp = renameOps.find((op) => op.type === "rename");
-        expect(renameOp).toBeDefined();
-        expect(renameOp!.nodeId).toBe(originalId);
-        expect(renameOp!.path).toBe(newPath);
-        expect(renameOp!.oldPath).toBe(oldPath);
-      }));
+        const renameOps = reconcileDirectory(vaultDir, vaultDir)
+        const renameOp = renameOps.find((op) => op.type === "rename")
+        expect(renameOp).toBeDefined()
+        expect(renameOp!.nodeId).toBe(originalId)
+        expect(renameOp!.path).toBe(newPath)
+        expect(renameOp!.oldPath).toBe(oldPath)
+      }))
 
     test("creates folder hierarchy for nested files", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const nestedDir = join(vaultDir, "level1", "level2");
-        mkdirSync(nestedDir, { recursive: true });
-        const filePath = join(nestedDir, "nested.md");
-        writeFileSync(filePath, "# Nested File");
+        const nestedDir = join(vaultDir, "level1", "level2")
+        mkdirSync(nestedDir, { recursive: true })
+        const filePath = join(nestedDir, "nested.md")
+        writeFileSync(filePath, "# Nested File")
 
-        const rootOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(rootOps, vaultDir);
-        rebuildState();
+        const rootOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(rootOps, vaultDir)
+        rebuildState()
 
-        const level1Ops = reconcileDirectory(
-          join(vaultDir, "level1"),
-          vaultDir,
-        );
-        await applyReconcileOps(level1Ops, vaultDir);
-        rebuildState();
+        const level1Ops = reconcileDirectory(join(vaultDir, "level1"), vaultDir)
+        await applyReconcileOps(level1Ops, vaultDir)
+        rebuildState()
 
-        const level2Ops = reconcileDirectory(nestedDir, vaultDir);
-        await applyReconcileOps(level2Ops, vaultDir);
-        rebuildState();
+        const level2Ops = reconcileDirectory(nestedDir, vaultDir)
+        await applyReconcileOps(level2Ops, vaultDir)
+        rebuildState()
 
-        const fileNode = getNodeByPath(filePath);
-        expect(fileNode).not.toBeNull();
-        expect(fileNode!.parent_id).not.toBeNull();
+        const fileNode = getNodeByPath(filePath)
+        expect(fileNode).not.toBeNull()
+        expect(fileNode!.parent_id).not.toBeNull()
 
-        const level2Node = getNodeByPath(nestedDir);
-        expect(level2Node).not.toBeNull();
-        expect(fileNode!.parent_id).toBe(level2Node!.id);
-      }));
-  });
+        const level2Node = getNodeByPath(nestedDir)
+        expect(level2Node).not.toBeNull()
+        expect(fileNode!.parent_id).toBe(level2Node!.id)
+      }))
+  })
 
   describe("update preserves nested nodes", () => {
     test("file update does not duplicate or delete nested tasks", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const filePath = join(vaultDir, "nested-tasks.md");
+        const filePath = join(vaultDir, "nested-tasks.md")
         const originalContent = `# Board
 
 ## Open
@@ -306,178 +300,176 @@ describe("reconcile.ts", () => {
 ## Done
 
 - [x] Task 3
-`;
-        writeFileSync(filePath, originalContent);
+`
+        writeFileSync(filePath, originalContent)
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        expect(createOps.length).toBe(1);
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        expect(createOps.length).toBe(1)
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        const fileNode = getNodeByPath(filePath);
-        expect(fileNode).not.toBeNull();
-        const allChildren = getChildren(fileNode!.id);
+        const fileNode = getNodeByPath(filePath)
+        expect(fileNode).not.toBeNull()
+        const allChildren = getChildren(fileNode!.id)
 
-        const sections = allChildren.filter((n) => n.type === "section");
-        expect(sections.length).toBe(2);
+        const sections = allChildren.filter((n) => n.type === "section")
+        expect(sections.length).toBe(2)
 
-        const openSection = sections.find((s) => s.content?.includes("Open"));
-        expect(openSection).toBeDefined();
-        const openTasks = getChildren(openSection!.id);
-        expect(openTasks.filter((t) => t.type === "task").length).toBe(2);
+        const openSection = sections.find((s) => s.content?.includes("Open"))
+        expect(openSection).toBeDefined()
+        const openTasks = getChildren(openSection!.id)
+        expect(openTasks.filter((t) => t.type === "task").length).toBe(2)
 
-        const { getNodeCount } = await import("../../src/db-queries/index.ts");
-        const originalNodeCount = getNodeCount();
+        const { getNodeCount } = await import("../../src/db-queries/index.ts")
+        const originalNodeCount = getNodeCount()
 
-        const futureTime = new Date(Date.now() + 1000);
-        utimesSync(filePath, futureTime, futureTime);
+        const futureTime = new Date(Date.now() + 1000)
+        utimesSync(filePath, futureTime, futureTime)
 
-        const updateOps = reconcileDirectory(vaultDir, vaultDir);
-        expect(updateOps.length).toBe(1);
-        expect(updateOps[0]?.type).toBe("update");
+        const updateOps = reconcileDirectory(vaultDir, vaultDir)
+        expect(updateOps.length).toBe(1)
+        expect(updateOps[0]?.type).toBe("update")
 
-        await applyReconcileOps(updateOps, vaultDir);
-        rebuildState();
+        await applyReconcileOps(updateOps, vaultDir)
+        rebuildState()
 
-        const newNodeCount = getNodeCount();
-        expect(newNodeCount).toBe(originalNodeCount);
+        const newNodeCount = getNodeCount()
+        expect(newNodeCount).toBe(originalNodeCount)
 
-        const fileNodeAfter = getNodeByPath(filePath);
-        expect(fileNodeAfter).not.toBeNull();
-        expect(fileNodeAfter!.id).toBe(fileNode!.id);
+        const fileNodeAfter = getNodeByPath(filePath)
+        expect(fileNodeAfter).not.toBeNull()
+        expect(fileNodeAfter!.id).toBe(fileNode!.id)
 
         const sectionsAfter = getChildren(fileNodeAfter!.id).filter(
           (n) => n.type === "section",
-        );
-        expect(sectionsAfter.length).toBe(2);
+        )
+        expect(sectionsAfter.length).toBe(2)
 
         const openSectionAfter = sectionsAfter.find((s) =>
           s.content?.includes("Open"),
-        );
-        expect(openSectionAfter).toBeDefined();
-        const openTasksAfter = getChildren(openSectionAfter!.id);
-        expect(openTasksAfter.filter((t) => t.type === "task").length).toBe(2);
-      }));
+        )
+        expect(openSectionAfter).toBeDefined()
+        const openTasksAfter = getChildren(openSectionAfter!.id)
+        expect(openTasksAfter.filter((t) => t.type === "task").length).toBe(2)
+      }))
 
     test("file update with content change correctly diffs nodes", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const filePath = join(vaultDir, "diff-test.md");
+        const filePath = join(vaultDir, "diff-test.md")
         const originalContent = `# Test
 
 - [ ] Task A
 - [ ] Task B
-`;
-        writeFileSync(filePath, originalContent);
+`
+        writeFileSync(filePath, originalContent)
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        const fileNode = getNodeByPath(filePath);
+        const fileNode = getNodeByPath(filePath)
         const originalTasks = getChildren(fileNode!.id).filter(
           (n) => n.type === "task",
-        );
-        expect(originalTasks.length).toBe(2);
+        )
+        expect(originalTasks.length).toBe(2)
         const taskAId = originalTasks.find((t) =>
           t.content?.includes("Task A"),
-        )?.id;
+        )?.id
         const taskBId = originalTasks.find((t) =>
           t.content?.includes("Task B"),
-        )?.id;
-        expect(taskAId).toBeDefined();
-        expect(taskBId).toBeDefined();
+        )?.id
+        expect(taskAId).toBeDefined()
+        expect(taskBId).toBeDefined()
 
         const modifiedContent = `# Test
 
 - [ ] Task A Modified
 - [ ] Task B
-`;
-        writeFileSync(filePath, modifiedContent);
-        const futureTime = new Date(Date.now() + 1000);
-        utimesSync(filePath, futureTime, futureTime);
+`
+        writeFileSync(filePath, modifiedContent)
+        const futureTime = new Date(Date.now() + 1000)
+        utimesSync(filePath, futureTime, futureTime)
 
-        const updateOps = reconcileDirectory(vaultDir, vaultDir);
-        expect(updateOps.length).toBe(1);
-        expect(updateOps[0]?.type).toBe("update");
+        const updateOps = reconcileDirectory(vaultDir, vaultDir)
+        expect(updateOps.length).toBe(1)
+        expect(updateOps[0]?.type).toBe("update")
 
-        await applyReconcileOps(updateOps, vaultDir);
-        rebuildState();
+        await applyReconcileOps(updateOps, vaultDir)
+        rebuildState()
 
-        const fileNodeAfter = getNodeByPath(filePath);
+        const fileNodeAfter = getNodeByPath(filePath)
         const tasksAfter = getChildren(fileNodeAfter!.id).filter(
           (n) => n.type === "task",
-        );
-        expect(tasksAfter.length).toBe(2);
+        )
+        expect(tasksAfter.length).toBe(2)
 
         const taskAAfter = tasksAfter.find((t) =>
           t.content?.includes("Task A Modified"),
-        );
-        const taskBAfter = tasksAfter.find((t) =>
-          t.content?.includes("Task B"),
-        );
+        )
+        const taskBAfter = tasksAfter.find((t) => t.content?.includes("Task B"))
 
-        expect(taskAAfter).toBeDefined();
-        expect(taskBAfter).toBeDefined();
-        expect(taskAAfter!.id).toBe(taskAId!);
-        expect(taskBAfter!.id).toBe(taskBId!);
-      }));
-  });
+        expect(taskAAfter).toBeDefined()
+        expect(taskBAfter).toBeDefined()
+        expect(taskAAfter!.id).toBe(taskAId!)
+        expect(taskBAfter!.id).toBe(taskBId!)
+      }))
+  })
 
   describe("TUI refresh scenario", () => {
     test("folder children remain visible after file touch in subfolder", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const issueFolder = join(vaultDir, "issue");
-        mkdirSync(issueFolder);
+        const issueFolder = join(vaultDir, "issue")
+        mkdirSync(issueFolder)
 
-        const task1Path = join(issueFolder, "task1.md");
-        const task2Path = join(issueFolder, "task2.md");
-        writeFileSync(task1Path, "# Task 1\n\n- [ ] Do something");
-        writeFileSync(task2Path, "# Task 2\n\n- [ ] Do something else");
+        const task1Path = join(issueFolder, "task1.md")
+        const task2Path = join(issueFolder, "task2.md")
+        writeFileSync(task1Path, "# Task 1\n\n- [ ] Do something")
+        writeFileSync(task2Path, "# Task 2\n\n- [ ] Do something else")
 
-        const rootOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(rootOps, vaultDir);
-        rebuildState();
+        const rootOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(rootOps, vaultDir)
+        rebuildState()
 
-        const issueOps = reconcileDirectory(issueFolder, vaultDir);
-        await applyReconcileOps(issueOps, vaultDir);
-        rebuildState();
+        const issueOps = reconcileDirectory(issueFolder, vaultDir)
+        await applyReconcileOps(issueOps, vaultDir)
+        rebuildState()
 
-        const folderNode = getNodeByPath(issueFolder);
-        expect(folderNode).not.toBeNull();
-        const folderId = folderNode!.id;
+        const folderNode = getNodeByPath(issueFolder)
+        expect(folderNode).not.toBeNull()
+        const folderId = folderNode!.id
 
-        const childrenBefore = getChildren(folderId);
-        expect(childrenBefore.length).toBe(2);
+        const childrenBefore = getChildren(folderId)
+        expect(childrenBefore.length).toBe(2)
 
-        const futureTime = new Date(Date.now() + 1000);
-        utimesSync(task1Path, futureTime, futureTime);
+        const futureTime = new Date(Date.now() + 1000)
+        utimesSync(task1Path, futureTime, futureTime)
 
-        const updateOps = reconcileDirectory(issueFolder, vaultDir);
+        const updateOps = reconcileDirectory(issueFolder, vaultDir)
 
-        expect(updateOps.length).toBe(1);
-        expect(updateOps[0]?.type).toBe("update");
+        expect(updateOps.length).toBe(1)
+        expect(updateOps[0]?.type).toBe("update")
 
-        await applyReconcileOps(updateOps, vaultDir);
-        rebuildState();
+        await applyReconcileOps(updateOps, vaultDir)
+        rebuildState()
 
-        const folderNodeAfter = getNodeByPath(issueFolder);
-        expect(folderNodeAfter).not.toBeNull();
-        expect(folderNodeAfter!.id).toBe(folderId);
+        const folderNodeAfter = getNodeByPath(issueFolder)
+        expect(folderNodeAfter).not.toBeNull()
+        expect(folderNodeAfter!.id).toBe(folderId)
 
-        const childrenAfter = getChildren(folderId);
-        expect(childrenAfter.length).toBe(2);
+        const childrenAfter = getChildren(folderId)
+        expect(childrenAfter.length).toBe(2)
 
         for (const child of childrenAfter) {
-          expect(child.parent_id).toBe(folderId);
+          expect(child.parent_id).toBe(folderId)
         }
-      }));
+      }))
 
     test("nested tasks remain visible after parent file touch", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const issueFolder = join(vaultDir, "issue");
-        mkdirSync(issueFolder);
+        const issueFolder = join(vaultDir, "issue")
+        mkdirSync(issueFolder)
 
-        const taskPath = join(issueFolder, "project.md");
+        const taskPath = join(issueFolder, "project.md")
         writeFileSync(
           taskPath,
           `# Project
@@ -491,100 +483,96 @@ describe("reconcile.ts", () => {
 
 - [x] Task C
 `,
-        );
+        )
 
-        const rootOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(rootOps, vaultDir);
-        rebuildState();
+        const rootOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(rootOps, vaultDir)
+        rebuildState()
 
-        const issueOps = reconcileDirectory(issueFolder, vaultDir);
-        await applyReconcileOps(issueOps, vaultDir);
-        rebuildState();
+        const issueOps = reconcileDirectory(issueFolder, vaultDir)
+        await applyReconcileOps(issueOps, vaultDir)
+        rebuildState()
 
-        const folderNode = getNodeByPath(issueFolder);
-        expect(folderNode).not.toBeNull();
-        const folderId = folderNode!.id;
+        const folderNode = getNodeByPath(issueFolder)
+        expect(folderNode).not.toBeNull()
+        const folderId = folderNode!.id
 
-        const fileNodes = getChildren(folderId);
-        expect(fileNodes.length).toBe(1);
+        const fileNodes = getChildren(folderId)
+        expect(fileNodes.length).toBe(1)
 
-        const fileNode = fileNodes[0];
-        expect(fileNode?.type).toBe("file");
+        const fileNode = fileNodes[0]
+        expect(fileNode?.type).toBe("file")
 
-        const sections = getChildren(fileNode!.id);
-        expect(sections.length).toBe(2);
+        const sections = getChildren(fileNode!.id)
+        expect(sections.length).toBe(2)
 
-        let totalTasksBefore = 0;
+        let totalTasksBefore = 0
         for (const section of sections) {
-          const tasks = getChildren(section.id).filter(
-            (n) => n.type === "task",
-          );
-          totalTasksBefore += tasks.length;
+          const tasks = getChildren(section.id).filter((n) => n.type === "task")
+          totalTasksBefore += tasks.length
         }
-        expect(totalTasksBefore).toBe(3);
+        expect(totalTasksBefore).toBe(3)
 
-        const futureTime = new Date(Date.now() + 1000);
-        utimesSync(taskPath, futureTime, futureTime);
+        const futureTime = new Date(Date.now() + 1000)
+        utimesSync(taskPath, futureTime, futureTime)
 
-        const updateOps = reconcileDirectory(issueFolder, vaultDir);
-        expect(updateOps.length).toBe(1);
-        expect(updateOps[0]?.type).toBe("update");
+        const updateOps = reconcileDirectory(issueFolder, vaultDir)
+        expect(updateOps.length).toBe(1)
+        expect(updateOps[0]?.type).toBe("update")
 
-        await applyReconcileOps(updateOps, vaultDir);
-        rebuildState();
+        await applyReconcileOps(updateOps, vaultDir)
+        rebuildState()
 
-        const folderNodeAfter = getNodeByPath(issueFolder);
-        expect(folderNodeAfter!.id).toBe(folderId);
+        const folderNodeAfter = getNodeByPath(issueFolder)
+        expect(folderNodeAfter!.id).toBe(folderId)
 
-        const fileNodesAfter = getChildren(folderId);
-        expect(fileNodesAfter.length).toBe(1);
-        expect(fileNodesAfter[0]!.id).toBe(fileNode!.id);
+        const fileNodesAfter = getChildren(folderId)
+        expect(fileNodesAfter.length).toBe(1)
+        expect(fileNodesAfter[0]!.id).toBe(fileNode!.id)
 
-        const sectionsAfter = getChildren(fileNodesAfter[0]!.id);
-        expect(sectionsAfter.length).toBe(2);
+        const sectionsAfter = getChildren(fileNodesAfter[0]!.id)
+        expect(sectionsAfter.length).toBe(2)
 
-        let totalTasksAfter = 0;
+        let totalTasksAfter = 0
         for (const section of sectionsAfter) {
-          const tasks = getChildren(section.id).filter(
-            (n) => n.type === "task",
-          );
-          totalTasksAfter += tasks.length;
+          const tasks = getChildren(section.id).filter((n) => n.type === "task")
+          totalTasksAfter += tasks.length
         }
-        expect(totalTasksAfter).toBe(3);
-      }));
-  });
+        expect(totalTasksAfter).toBe(3)
+      }))
+  })
 
   describe("getParentNodeId", () => {
     test("returns null for vault root files", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const filePath = join(vaultDir, "root-file.md");
-        writeFileSync(filePath, "# Root");
+        const filePath = join(vaultDir, "root-file.md")
+        writeFileSync(filePath, "# Root")
 
-        const createOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(createOps, vaultDir);
-        rebuildState();
+        const createOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(createOps, vaultDir)
+        rebuildState()
 
-        const parentId = getParentNodeId(filePath);
-        expect(parentId).toBeNull();
-      }));
+        const parentId = getParentNodeId(filePath)
+        expect(parentId).toBeNull()
+      }))
 
     test("returns folder node ID for nested files", () =>
       withTestEnv(async ({ vaultDir }) => {
-        const folderPath = join(vaultDir, "parent-folder");
-        mkdirSync(folderPath);
+        const folderPath = join(vaultDir, "parent-folder")
+        mkdirSync(folderPath)
 
-        const folderOps = reconcileDirectory(vaultDir, vaultDir);
-        await applyReconcileOps(folderOps, vaultDir);
-        rebuildState();
+        const folderOps = reconcileDirectory(vaultDir, vaultDir)
+        await applyReconcileOps(folderOps, vaultDir)
+        rebuildState()
 
-        const folderNode = getNodeByPath(folderPath);
-        expect(folderNode).not.toBeNull();
+        const folderNode = getNodeByPath(folderPath)
+        expect(folderNode).not.toBeNull()
 
-        const filePath = join(folderPath, "child.md");
-        writeFileSync(filePath, "# Child");
+        const filePath = join(folderPath, "child.md")
+        writeFileSync(filePath, "# Child")
 
-        const parentId = getParentNodeId(filePath);
-        expect(parentId).toBe(folderNode!.id);
-      }));
-  });
-});
+        const parentId = getParentNodeId(filePath)
+        expect(parentId).toBe(folderNode!.id)
+      }))
+  })
+})

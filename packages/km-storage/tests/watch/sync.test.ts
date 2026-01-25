@@ -6,28 +6,29 @@
  * Uses isolated test environments for parallel execution.
  */
 
-import { describe, test, expect } from "bun:test";
-import { mkdirSync, existsSync, writeFileSync, readFileSync } from "fs";
-import { join } from "path";
+import { describe, test, expect } from "bun:test"
+import { mkdirSync, existsSync, writeFileSync, readFileSync } from "fs"
+import { join } from "path"
 
 import {
   getNodeByPath,
   getAllNodes,
   applyEvent,
   getAncestors,
-} from "@km/storage";
+  getDb,
+} from "@km/storage"
 
-import { setDatabase } from "../../src/emit.ts";
-import { SyncManager } from "../../src/watch/sync.ts";
-import { withTestEnv } from "@km/storage";
+import { setDatabase } from "../../src/emit.ts"
+import { SyncManager } from "../../src/watch/sync.ts"
+import { withTestEnv } from "@km/storage"
 
 describe("Sync Integration", () => {
   describe("syncFromFs", () => {
     test("should sync a simple markdown file to database", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const testFile = join(vaultDir, "test.md");
+        const testFile = join(vaultDir, "test.md")
         writeFileSync(
           testFile,
           `# Test Document
@@ -37,68 +38,70 @@ This is a paragraph.
 - [ ] Open task
 - [x] Completed task
 `,
-        );
+        )
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        const result = await manager.syncFromFs();
-        expect(result.processed).toBeGreaterThan(0);
+        const result = await manager.syncFromFs()
+        expect(result.processed).toBeGreaterThan(0)
 
-        const allNodes = getAllNodes();
-        expect(allNodes.length).toBeGreaterThan(0);
+        const allNodes = getAllNodes()
+        expect(allNodes.length).toBeGreaterThan(0)
 
-        const fileNode = getNodeByPath(testFile);
-        expect(fileNode).not.toBeNull();
-        expect(fileNode!.type).toBe("file");
-        expect(fileNode!.fs_path).toBe(testFile);
+        const fileNode = getNodeByPath(testFile)
+        expect(fileNode).not.toBeNull()
+        expect(fileNode!.type).toBe("file")
+        expect(fileNode!.fs_path).toBe(testFile)
 
-        const tasks = allNodes.filter((n) => n.type === "task");
-        expect(tasks.length).toBe(2);
+        const tasks = allNodes.filter((n) => n.type === "task")
+        expect(tasks.length).toBe(2)
 
-        const todoTask = tasks.find((t) => t.task_status === "todo");
-        const doneTask = tasks.find((t) => t.task_status === "done");
-        expect(todoTask).toBeDefined();
-        expect(doneTask).toBeDefined();
-      }));
+        const todoTask = tasks.find((t) => t.task_status === "todo")
+        const doneTask = tasks.find((t) => t.task_status === "done")
+        expect(todoTask).toBeDefined()
+        expect(doneTask).toBeDefined()
+      }))
 
     test("should sync files in subdirectories", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const subFolder = join(vaultDir, "subfolder");
-        mkdirSync(subFolder);
+        const subFolder = join(vaultDir, "subfolder")
+        mkdirSync(subFolder)
 
-        const testFile = join(subFolder, "nested.md");
-        writeFileSync(testFile, "# Nested File\n\nContent here.");
+        const testFile = join(subFolder, "nested.md")
+        writeFileSync(testFile, "# Nested File\n\nContent here.")
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        const result = await manager.syncFromFs();
-        expect(result.processed).toBeGreaterThan(0);
+        const result = await manager.syncFromFs()
+        expect(result.processed).toBeGreaterThan(0)
 
-        const allNodes = getAllNodes();
-        const fileNodes = allNodes.filter((n) => n.type === "file");
-        expect(fileNodes.length).toBeGreaterThan(0);
+        const allNodes = getAllNodes()
+        const fileNodes = allNodes.filter((n) => n.type === "file")
+        expect(fileNodes.length).toBeGreaterThan(0)
 
-        const fileNode = fileNodes.find((n) => n.fs_path === testFile);
-        expect(fileNode).toBeDefined();
-      }));
+        const fileNode = fileNodes.find((n) => n.fs_path === testFile)
+        expect(fileNode).toBeDefined()
+      }))
 
     test("should sync file with frontmatter correctly", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const testFile = join(vaultDir, "frontmatter.md");
+        const testFile = join(vaultDir, "frontmatter.md")
         writeFileSync(
           testFile,
           `---
@@ -111,30 +114,31 @@ tags: [test, fixture]
 
 Some content here.
 `,
-        );
+        )
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const fileNode = getNodeByPath(testFile);
-        expect(fileNode).not.toBeNull();
-        expect(fileNode!.type).toBe("file");
-        expect(fileNode!.data).toBeDefined();
-        expect(fileNode!.data.title).toBe("Test Document");
-        expect(fileNode!.data.type).toBe("daily");
-      }));
+        const fileNode = getNodeByPath(testFile)
+        expect(fileNode).not.toBeNull()
+        expect(fileNode!.type).toBe("file")
+        expect(fileNode!.data).toBeDefined()
+        expect(fileNode!.data.title).toBe("Test Document")
+        expect(fileNode!.data.type).toBe("daily")
+      }))
 
     test("should sync tasks with Obsidian metadata", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const testFile = join(vaultDir, "tasks.md");
+        const testFile = join(vaultDir, "tasks.md")
         writeFileSync(
           testFile,
           `# Task List
@@ -144,64 +148,66 @@ Some content here.
 - [ ] Task with scheduled date ⏳ 2025-03-10
 - [x] Completed task
 `,
-        );
+        )
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const allNodes = getAllNodes();
-        const tasks = allNodes.filter((n) => n.type === "task");
+        const allNodes = getAllNodes()
+        const tasks = allNodes.filter((n) => n.type === "task")
 
-        expect(tasks.length).toBe(4);
+        expect(tasks.length).toBe(4)
 
-        const dueTask = tasks.find((t) => t.due_date === "2025-03-15");
-        expect(dueTask).toBeDefined();
+        const dueTask = tasks.find((t) => t.due_date === "2025-03-15")
+        expect(dueTask).toBeDefined()
 
-        const highPriorityTask = tasks.find((t) => t.priority === 1);
-        expect(highPriorityTask).toBeDefined();
+        const highPriorityTask = tasks.find((t) => t.priority === 1)
+        expect(highPriorityTask).toBeDefined()
 
         const scheduledTask = tasks.find(
           (t) => t.scheduled_date === "2025-03-10",
-        );
-        expect(scheduledTask).toBeDefined();
-      }));
+        )
+        expect(scheduledTask).toBeDefined()
+      }))
 
     test("should create nodes with valid IDs", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const testFile = join(vaultDir, "ids.md");
-        writeFileSync(testFile, "# Test\n\n- [ ] Task\n");
+        const testFile = join(vaultDir, "ids.md")
+        writeFileSync(testFile, "# Test\n\n- [ ] Task\n")
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const allNodes = getAllNodes();
+        const allNodes = getAllNodes()
 
         for (const node of allNodes) {
-          expect(node.id).toBeDefined();
-          expect(node.id.length).toBeGreaterThan(0);
-          expect(node.id.length).toBe(26);
+          expect(node.id).toBeDefined()
+          expect(node.id.length).toBeGreaterThan(0)
+          expect(node.id.length).toBe(26)
         }
-      }));
+      }))
 
     test("should create nodes with valid types", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const testFile = join(vaultDir, "types.md");
+        const testFile = join(vaultDir, "types.md")
         writeFileSync(
           testFile,
           `# Section
@@ -217,18 +223,19 @@ Paragraph text.
 code
 \`\`\`
 `,
-        );
+        )
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const allNodes = getAllNodes();
+        const allNodes = getAllNodes()
 
         const validTypes = [
           "folder",
@@ -245,19 +252,19 @@ code
           "html",
           "agent",
           "board",
-        ];
+        ]
 
         for (const node of allNodes) {
-          expect(node.type).toBeDefined();
-          expect(validTypes).toContain(node.type);
+          expect(node.type).toBeDefined()
+          expect(validTypes).toContain(node.type)
         }
-      }));
+      }))
 
     test("should handle nested task structure", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const testFile = join(vaultDir, "nested-tasks.md");
+        const testFile = join(vaultDir, "nested-tasks.md")
         writeFileSync(
           testFile,
           `# Project
@@ -266,173 +273,178 @@ code
   - [ ] Child task 1
   - [x] Child task 2
 `,
-        );
+        )
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const allNodes = getAllNodes();
-        const tasks = allNodes.filter((n) => n.type === "task");
+        const allNodes = getAllNodes()
+        const tasks = allNodes.filter((n) => n.type === "task")
 
-        expect(tasks.length).toBe(3);
-      }));
-  });
+        expect(tasks.length).toBe(3)
+      }))
+  })
 
   describe("Event format validation", () => {
     test("events should have actor as string, not object", () =>
       withTestEnv(async ({ vaultDir, kmDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const testFile = join(vaultDir, "event-test.md");
-        writeFileSync(testFile, "# Test\n");
+        const testFile = join(vaultDir, "event-test.md")
+        writeFileSync(testFile, "# Test\n")
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const eventsPath = join(kmDir, "events.jsonl");
+        const eventsPath = join(kmDir, "events.jsonl")
 
         if (existsSync(eventsPath)) {
-          const content = readFileSync(eventsPath, "utf-8");
-          const lines = content.trim().split("\n");
+          const content = readFileSync(eventsPath, "utf-8")
+          const lines = content.trim().split("\n")
 
           for (const line of lines) {
-            const event = JSON.parse(line);
+            const event = JSON.parse(line)
 
-            expect(typeof event.actor).toBe("string");
-            expect(typeof event.data).toBe("object");
+            expect(typeof event.actor).toBe("string")
+            expect(typeof event.data).toBe("object")
 
             if (event.type === "node_created") {
-              expect(event.data.id).toBeDefined();
-              expect(typeof event.data.id).toBe("string");
-              expect(event.data.type).toBeDefined();
-              expect(typeof event.data.type).toBe("string");
+              expect(event.data.id).toBeDefined()
+              expect(typeof event.data.id).toBe("string")
+              expect(event.data.type).toBeDefined()
+              expect(typeof event.data.type).toBe("string")
             }
           }
         }
-      }));
-  });
+      }))
+  })
 
   describe("Folder hierarchy", () => {
     test("should create folder nodes for parent directories", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const subFolder = join(vaultDir, "projects");
-        const deepFolder = join(subFolder, "active");
-        mkdirSync(deepFolder, { recursive: true });
+        const subFolder = join(vaultDir, "projects")
+        const deepFolder = join(subFolder, "active")
+        mkdirSync(deepFolder, { recursive: true })
 
-        const testFile = join(deepFolder, "task.md");
-        writeFileSync(testFile, "# Task\n\n- [ ] Do something\n");
+        const testFile = join(deepFolder, "task.md")
+        writeFileSync(testFile, "# Task\n\n- [ ] Do something\n")
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const allNodes = getAllNodes();
+        const allNodes = getAllNodes()
 
-        const folderNodes = allNodes.filter((n) => n.type === "folder");
-        expect(folderNodes.length).toBeGreaterThanOrEqual(2);
+        const folderNodes = allNodes.filter((n) => n.type === "folder")
+        expect(folderNodes.length).toBeGreaterThanOrEqual(2)
 
-        const projectsFolder = getNodeByPath(subFolder);
-        const activeFolder = getNodeByPath(deepFolder);
+        const projectsFolder = getNodeByPath(subFolder)
+        const activeFolder = getNodeByPath(deepFolder)
 
-        expect(projectsFolder).not.toBeNull();
-        expect(projectsFolder!.type).toBe("folder");
+        expect(projectsFolder).not.toBeNull()
+        expect(projectsFolder!.type).toBe("folder")
 
-        expect(activeFolder).not.toBeNull();
-        expect(activeFolder!.type).toBe("folder");
-      }));
+        expect(activeFolder).not.toBeNull()
+        expect(activeFolder!.type).toBe("folder")
+      }))
 
     test("should link files to their parent folder via parent_id", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const subFolder = join(vaultDir, "docs");
-        mkdirSync(subFolder);
+        const subFolder = join(vaultDir, "docs")
+        mkdirSync(subFolder)
 
-        const testFile = join(subFolder, "readme.md");
-        writeFileSync(testFile, "# Documentation\n\nSome content.\n");
+        const testFile = join(subFolder, "readme.md")
+        writeFileSync(testFile, "# Documentation\n\nSome content.\n")
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const fileNode = getNodeByPath(testFile);
-        const folderNode = getNodeByPath(subFolder);
+        const fileNode = getNodeByPath(testFile)
+        const folderNode = getNodeByPath(subFolder)
 
-        expect(fileNode).not.toBeNull();
-        expect(folderNode).not.toBeNull();
+        expect(fileNode).not.toBeNull()
+        expect(folderNode).not.toBeNull()
 
-        expect(fileNode!.parent_id).toBe(folderNode!.id);
-      }));
+        expect(fileNode!.parent_id).toBe(folderNode!.id)
+      }))
 
     test("should create parent chain from nested folders to vault root", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const level1 = join(vaultDir, "level1");
-        const level2 = join(level1, "level2");
-        const level3 = join(level2, "level3");
-        mkdirSync(level3, { recursive: true });
+        const level1 = join(vaultDir, "level1")
+        const level2 = join(level1, "level2")
+        const level3 = join(level2, "level3")
+        mkdirSync(level3, { recursive: true })
 
-        const testFile = join(level3, "deep.md");
-        writeFileSync(testFile, "# Deep File\n");
+        const testFile = join(level3, "deep.md")
+        writeFileSync(testFile, "# Deep File\n")
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const folder1 = getNodeByPath(level1);
-        const folder2 = getNodeByPath(level2);
-        const folder3 = getNodeByPath(level3);
-        const file = getNodeByPath(testFile);
+        const folder1 = getNodeByPath(level1)
+        const folder2 = getNodeByPath(level2)
+        const folder3 = getNodeByPath(level3)
+        const file = getNodeByPath(testFile)
 
-        expect(folder1).not.toBeNull();
-        expect(folder2).not.toBeNull();
-        expect(folder3).not.toBeNull();
-        expect(file).not.toBeNull();
+        expect(folder1).not.toBeNull()
+        expect(folder2).not.toBeNull()
+        expect(folder3).not.toBeNull()
+        expect(file).not.toBeNull()
 
-        expect(file!.parent_id).toBe(folder3!.id);
-        expect(folder3!.parent_id).toBe(folder2!.id);
-        expect(folder2!.parent_id).toBe(folder1!.id);
-        expect(folder1!.parent_id).toBeNull();
-      }));
+        expect(file!.parent_id).toBe(folder3!.id)
+        expect(folder3!.parent_id).toBe(folder2!.id)
+        expect(folder2!.parent_id).toBe(folder1!.id)
+        expect(folder1!.parent_id).toBeNull()
+      }))
 
     test("getAncestors should return full path from root to parent", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const subFolder = join(vaultDir, "work");
-        mkdirSync(subFolder);
+        const subFolder = join(vaultDir, "work")
+        mkdirSync(subFolder)
 
-        const testFile = join(subFolder, "tasks.md");
+        const testFile = join(subFolder, "tasks.md")
         writeFileSync(
           testFile,
           `# Project Tasks
@@ -441,73 +453,75 @@ code
 
 - [ ] Complete the feature
 `,
-        );
+        )
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const allNodes = getAllNodes();
-        const taskNode = allNodes.find((n) => n.type === "task");
-        expect(taskNode).toBeDefined();
+        const allNodes = getAllNodes()
+        const taskNode = allNodes.find((n) => n.type === "task")
+        expect(taskNode).toBeDefined()
 
-        const ancestors = getAncestors(taskNode!.id);
+        const ancestors = getAncestors(taskNode!.id)
 
-        expect(ancestors.length).toBeGreaterThanOrEqual(3);
+        expect(ancestors.length).toBeGreaterThanOrEqual(3)
 
-        const folderAncestor = ancestors.find((a) => a.type === "folder");
-        expect(folderAncestor).toBeDefined();
-        expect(folderAncestor!.fs_path).toBe(subFolder);
+        const folderAncestor = ancestors.find((a) => a.type === "folder")
+        expect(folderAncestor).toBeDefined()
+        expect(folderAncestor!.fs_path).toBe(subFolder)
 
-        const fileAncestor = ancestors.find((a) => a.type === "file");
-        expect(fileAncestor).toBeDefined();
-        expect(fileAncestor!.fs_path).toBe(testFile);
+        const fileAncestor = ancestors.find((a) => a.type === "file")
+        expect(fileAncestor).toBeDefined()
+        expect(fileAncestor!.fs_path).toBe(testFile)
 
-        const sectionAncestors = ancestors.filter((a) => a.type === "section");
-        expect(sectionAncestors.length).toBeGreaterThanOrEqual(1);
-      }));
+        const sectionAncestors = ancestors.filter((a) => a.type === "section")
+        expect(sectionAncestors.length).toBeGreaterThanOrEqual(1)
+      }))
 
     test("should handle multiple files in same folder efficiently", () =>
       withTestEnv(async ({ vaultDir }) => {
-        setDatabase({ applyEvent });
+        setDatabase({ applyEvent })
 
-        const subFolder = join(vaultDir, "multi");
-        mkdirSync(subFolder);
+        const subFolder = join(vaultDir, "multi")
+        mkdirSync(subFolder)
 
-        writeFileSync(join(subFolder, "file1.md"), "# File 1\n");
-        writeFileSync(join(subFolder, "file2.md"), "# File 2\n");
-        writeFileSync(join(subFolder, "file3.md"), "# File 3\n");
+        writeFileSync(join(subFolder, "file1.md"), "# File 1\n")
+        writeFileSync(join(subFolder, "file2.md"), "# File 2\n")
+        writeFileSync(join(subFolder, "file3.md"), "# File 3\n")
 
         const manager = new SyncManager({
+          db: getDb(),
           vaultPath: vaultDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-        });
+        })
 
-        await manager.syncFromFs();
+        await manager.syncFromFs()
 
-        const allNodes = getAllNodes();
+        const allNodes = getAllNodes()
 
         const folderNodes = allNodes.filter(
           (n) => n.type === "folder" && n.fs_path === subFolder,
-        );
-        expect(folderNodes.length).toBe(1);
+        )
+        expect(folderNodes.length).toBe(1)
 
         const fileNodes = allNodes.filter(
           (n) => n.type === "file" && n.fs_path?.startsWith(subFolder),
-        );
-        expect(fileNodes.length).toBe(3);
+        )
+        expect(fileNodes.length).toBe(3)
 
-        const folderId = folderNodes[0]!.id;
+        const folderId = folderNodes[0]!.id
         for (const file of fileNodes) {
-          expect(file.parent_id).toBe(folderId);
+          expect(file.parent_id).toBe(folderId)
         }
-      }));
-  });
-});
+      }))
+  })
+})

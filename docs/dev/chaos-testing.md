@@ -83,23 +83,19 @@ The `@beorn/watcher-chaos` package provides 11 built-in scenarios:
 ### Using Scenarios
 
 ```typescript
-import {
-  ChaosWatcher,
-  queueOverflow,
-  editorAtomic,
-} from "@beorn/watcher-chaos";
+import { ChaosWatcher, queueOverflow, editorAtomic } from "@beorn/watcher-chaos"
 
 // Use a single scenario
 const watcher = new ChaosWatcher({
   scenario: queueOverflow(0.2), // 20% drop rate
   seed: 12345, // Reproducible randomness
-});
+})
 
 // Combine multiple scenarios
 const watcher = new ChaosWatcher({
   scenarios: [queueOverflow(0.1), editorAtomic(50)],
   seed: 12345,
-});
+})
 ```
 
 ### Factory Functions
@@ -142,8 +138,8 @@ bun test packages/km-storage/tests/sync/chaos/ --verbose
 ### Basic Test Structure
 
 ```typescript
-import { runChaosTest } from "./harness.ts";
-import { queueOverflow } from "@beorn/watcher-chaos";
+import { runChaosTest } from "./harness.ts"
+import { queueOverflow } from "@beorn/watcher-chaos"
 
 test("handles queue overflow gracefully", async () => {
   const result = await runChaosTest({
@@ -154,32 +150,32 @@ test("handles queue overflow gracefully", async () => {
     expected: {
       files: ["test.md"],
     },
-  });
+  })
 
-  expect(result.passed).toBe(true);
-});
+  expect(result.passed).toBe(true)
+})
 ```
 
 ### Test Config Shape
 
 ```typescript
 interface ChaosTestConfig {
-  name: string;
-  scenario: ChaosScenario | ChaosScenario[];
-  setup: Array<{ path: string; content: string }>;
-  events: FsEvent[];
-  expected: ExpectedState;
-  timeout?: number;
+  name: string
+  scenario: ChaosScenario | ChaosScenario[]
+  setup: Array<{ path: string; content: string }>
+  events: FsEvent[]
+  expected: ExpectedState
+  timeout?: number
 }
 
 interface ExpectedState {
-  files: string[]; // Files that should exist in DB
-  deletedFiles?: string[]; // Files that should NOT exist
+  files: string[] // Files that should exist in DB
+  deletedFiles?: string[] // Files that should NOT exist
   nodes?: Array<{
     // Specific node assertions
-    path: string;
-    content?: string;
-  }>;
+    path: string
+    content?: string
+  }>
 }
 ```
 
@@ -284,7 +280,7 @@ const queue = new WriteQueue({
     maxDelayMs: 5000, // Cap on delay
     jitterFactor: 0.1, // Random ±10% to avoid thundering herd
   },
-});
+})
 ```
 
 **Error Classification:**
@@ -304,15 +300,15 @@ const queue = new WriteQueue({
 **Testing retry behavior:**
 
 ```typescript
-import { classifyError, calculateBackoffDelay } from "@km/storage";
+import { classifyError, calculateBackoffDelay } from "@km/storage"
 
 // Verify error classification
-const error = Object.assign(new Error("Busy"), { code: "EBUSY" });
-expect(classifyError(error)).toBe("transient");
+const error = Object.assign(new Error("Busy"), { code: "EBUSY" })
+expect(classifyError(error)).toBe("transient")
 
 // Calculate backoff delay
-const delay = calculateBackoffDelay(2, DEFAULT_RETRY_CONFIG);
-expect(delay).toBeCloseTo(400, -2); // ~400ms for attempt 2
+const delay = calculateBackoffDelay(2, DEFAULT_RETRY_CONFIG)
+expect(delay).toBeCloseTo(400, -2) // ~400ms for attempt 2
 ```
 
 ### Conflict Detection and Resolution
@@ -332,7 +328,7 @@ The WriteQueue detects conflicts when a file is modified externally between queu
 const queue = new WriteQueue({
   debounceMs: 3000,
   conflictStrategy: "last_write_wins", // or "fs_wins" or "db_wins"
-});
+})
 ```
 
 **Conflict Strategies:**
@@ -346,7 +342,7 @@ const queue = new WriteQueue({
 **Listening for conflicts:**
 
 ```typescript
-const queue = new WriteQueue({ conflictStrategy: "fs_wins" });
+const queue = new WriteQueue({ conflictStrategy: "fs_wins" })
 
 queue.on("conflicts", (conflicts) => {
   for (const c of conflicts) {
@@ -354,16 +350,16 @@ queue.on("conflicts", (conflicts) => {
       `Conflict on ${c.path}: external edit detected ` +
         `(base=${c.baseMtime}, current=${c.currentMtime}), ` +
         `resolution=${c.resolution}`,
-    );
+    )
   }
-});
+})
 
 // The "flushed" event also includes conflict count
 queue.on("flushed", ({ conflicts }) => {
   if (conflicts > 0) {
-    console.log(`${conflicts} conflicts detected during flush`);
+    console.log(`${conflicts} conflicts detected during flush`)
   }
-});
+})
 ```
 
 **Conflict scenarios in chaos testing:**
@@ -371,24 +367,24 @@ queue.on("flushed", ({ conflicts }) => {
 ```typescript
 test("handles concurrent TUI and external edits", async () => {
   // Setup: file exists with mtime=1000
-  mockFs.setMtime("/test.md", 1000);
+  mockFs.setMtime("/test.md", 1000)
 
   const queue = new WriteQueue({
     fs: mockFs,
     conflictStrategy: "fs_wins",
-  });
+  })
 
   // TUI queues a write (captures baseMtime=1000)
-  queue.queue({ path: "/test.md", content: "TUI edit" });
+  queue.queue({ path: "/test.md", content: "TUI edit" })
 
   // External editor modifies file (mtime changes to 2000)
-  mockFs.setMtime("/test.md", 2000);
+  mockFs.setMtime("/test.md", 2000)
 
-  await queue.forceFlush();
+  await queue.forceFlush()
 
   // With fs_wins: external edit preserved, TUI edit discarded
-  expect(mockFs.readFile("/test.md")).not.toBe("TUI edit");
-});
+  expect(mockFs.readFile("/test.md")).not.toBe("TUI edit")
+})
 ```
 
 ### Permission Error Handling
@@ -406,16 +402,16 @@ The WriteQueue provides detailed permission error handling with actionable sugge
 **Listening for permission errors:**
 
 ```typescript
-const queue = new WriteQueue({ debounceMs: 3000 });
+const queue = new WriteQueue({ debounceMs: 3000 })
 
 queue.on("permission-denied", (errors) => {
   for (const e of errors) {
-    console.error(`Permission error on ${e.path}:`);
-    console.error(`  Operation: ${e.operation}`);
-    console.error(`  Code: ${e.code}`);
-    console.error(`  Suggestion: ${e.suggestion}`);
+    console.error(`Permission error on ${e.path}:`)
+    console.error(`  Operation: ${e.operation}`)
+    console.error(`  Code: ${e.code}`)
+    console.error(`  Suggestion: ${e.suggestion}`)
   }
-});
+})
 ```
 
 ### Symlink Detection
@@ -429,13 +425,13 @@ Directory scanning skips symbolic links to avoid potential infinite loops and in
 **Detecting symlinks for user notification:**
 
 ```typescript
-import { scanSymlinks } from "@km/storage";
+import { scanSymlinks } from "@km/storage"
 
-const symlinks = scanSymlinks("/path/to/vault", ignorePatterns, true);
+const symlinks = scanSymlinks("/path/to/vault", ignorePatterns, true)
 if (symlinks.length > 0) {
-  console.warn("Symlinks detected (will be skipped):");
+  console.warn("Symlinks detected (will be skipped):")
   for (const s of symlinks) {
-    console.warn(`  ${s.path} -> ${s.target}`);
+    console.warn(`  ${s.path} -> ${s.target}`)
   }
 }
 ```
@@ -453,18 +449,18 @@ Different filesystems handle case differently:
 **Detecting filesystem case sensitivity:**
 
 ```typescript
-import { detectCaseSensitivity, detectCaseCollisions } from "@km/storage";
+import { detectCaseSensitivity, detectCaseCollisions } from "@km/storage"
 
 // Test actual filesystem behavior (creates temp file)
-const isCaseSensitive = detectCaseSensitivity("/path/to/vault");
+const isCaseSensitive = detectCaseSensitivity("/path/to/vault")
 
 // Find potential problems for case-insensitive systems
 if (isCaseSensitive) {
-  const collisions = detectCaseCollisions("/path/to/vault", true);
+  const collisions = detectCaseCollisions("/path/to/vault", true)
   if (collisions.length > 0) {
-    console.warn("Case collisions found (would conflict on macOS/Windows):");
+    console.warn("Case collisions found (would conflict on macOS/Windows):")
     for (const c of collisions) {
-      console.warn(`  ${c.paths.join(" vs ")}`);
+      console.warn(`  ${c.paths.join(" vs ")}`)
     }
   }
 }
@@ -473,10 +469,10 @@ if (isCaseSensitive) {
 **Path normalization for comparison:**
 
 ```typescript
-import { normalizePath } from "@km/storage";
+import { normalizePath } from "@km/storage"
 
-const caseSensitive = detectCaseSensitivity(vaultPath);
-const normalizedPath = normalizePath(filePath, caseSensitive);
+const caseSensitive = detectCaseSensitivity(vaultPath)
+const normalizedPath = normalizePath(filePath, caseSensitive)
 ```
 
 ---
@@ -502,9 +498,9 @@ With fake timers:
 ### Using Fake Timers
 
 ```typescript
-import FakeTimers, { type InstalledClock } from "@sinonjs/fake-timers";
+import FakeTimers, { type InstalledClock } from "@sinonjs/fake-timers"
 
-let clock: InstalledClock;
+let clock: InstalledClock
 
 beforeEach(() => {
   // Install BEFORE any code using setTimeout/setInterval
@@ -517,26 +513,26 @@ beforeEach(() => {
       "Date",
     ],
     shouldAdvanceTime: false, // Manual control = deterministic
-  });
-});
+  })
+})
 
 afterEach(() => {
-  clock.uninstall(); // Restore real timers
-});
+  clock.uninstall() // Restore real timers
+})
 
 // Advance time and process callbacks + promises
-await clock.tickAsync(500);
+await clock.tickAsync(500)
 ```
 
 ### Key Gotcha: `tickAsync()` vs `tick()`
 
 ```typescript
 // WRONG - Promise callbacks won't execute
-clock.tick(100);
-await promise; // HANGS - microtasks never flushed
+clock.tick(100)
+await promise // HANGS - microtasks never flushed
 
 // RIGHT - Handles both timers and promise microtasks
-await clock.tickAsync(100);
+await clock.tickAsync(100)
 // Promise callbacks execute correctly
 ```
 
@@ -553,27 +549,27 @@ Solution: Inject a `TestWatcher` that we control directly:
 class TestWatcher extends EventEmitter implements WatcherInterface {
   // Instead of waiting for OS events, tests call triggerChange() directly
   triggerChange(path: string): void {
-    this.pendingPaths.add(path);
-    this.scheduleSync(); // Uses fake setTimeout
+    this.pendingPaths.add(path)
+    this.scheduleSync() // Uses fake setTimeout
   }
 }
 
 // In test setup:
-const testWatcher = new TestWatcher(100); // 100ms debounce
+const testWatcher = new TestWatcher(100) // 100ms debounce
 const syncManager = new SyncManager({
   vaultPath: VAULT_DIR,
   watcher: testWatcher, // Inject controllable watcher
   heartbeat: { enabled: false }, // Disable setInterval heartbeat
-});
+})
 
 // In tests:
 function writeAndTrigger(path: string, content: string): void {
-  writeFileSync(path, content);
-  testWatcher.triggerChange(path); // Simulate watcher detecting change
+  writeFileSync(path, content)
+  testWatcher.triggerChange(path) // Simulate watcher detecting change
 }
 
-writeAndTrigger(testFile, "# New content");
-await clock.tickAsync(200); // Advance past debounce
+writeAndTrigger(testFile, "# New content")
+await clock.tickAsync(200) // Advance past debounce
 // Now sync has happened
 ```
 
@@ -586,17 +582,17 @@ With fake timers, `setInterval` handlers run forever during `runAllAsync()`. Pre
    ```typescript
    syncManager = new SyncManager({
      heartbeat: { enabled: false },
-   });
+   })
    ```
 
 2. **Use `tickAsync(ms)` instead of `runAllAsync()`:**
 
    ```typescript
    // DANGEROUS - can infinite loop with setInterval
-   await clock.runAllAsync();
+   await clock.runAllAsync()
 
    // SAFE - bounded time advancement
-   await clock.tickAsync(1000);
+   await clock.tickAsync(1000)
    ```
 
 ### Test Locations

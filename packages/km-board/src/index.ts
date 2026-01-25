@@ -24,14 +24,14 @@ export type {
   TaskStatus,
   BoardViewModel,
   NodeDirection,
-} from "./board-types.ts";
+} from "./board-types.ts"
 
 // ===== Tree Actions (re-exported for convenience) =====
-export type { TAction } from "@km/tree";
-export { isTAction, TActionTypes } from "@km/tree";
+export type { TAction } from "@km/tree"
+export { isTAction, TActionTypes } from "@km/tree"
 
 // ===== Tree Helpers (re-exported from @km/tree) =====
-export { getNodeAtPath, getSiblingCount } from "@km/tree";
+export { getNodeAtPath, getSiblingCount } from "@km/tree"
 
 // ===== Board Reducer =====
-export { boardReducer, createBoardState } from "./board-reducer.ts";
+export { boardReducer, createBoardState } from "./board-reducer.ts"

@@ -95,48 +95,48 @@ Everything is a node. The unified schema stored in SQLite:
 
 ```typescript
 interface KNode {
-  id: string; // ULID (persisted) or path:line (memory)
-  type: NodeType;
-  parent_id: string | null; // Flat structure - parent reference
-  parent_idx: number; // Fractional index for ordering among siblings
-  link_to: string | null; // Target node ID for embeddings (![[...]])
-  link_alias?: string; // Optional display alias from |alias syntax
+  id: string // ULID (persisted) or path:line (memory)
+  type: NodeType
+  parent_id: string | null // Flat structure - parent reference
+  parent_idx: number // Fractional index for ordering among siblings
+  link_to: string | null // Target node ID for embeddings (![[...]])
+  link_alias?: string // Optional display alias from |alias syntax
 
   // Filesystem mapping (for folder/file nodes)
-  fs_path?: string; // Absolute path to .md file or directory
-  fs_ino?: number; // Inode number for rename detection
+  fs_path?: string // Absolute path to .md file or directory
+  fs_ino?: number // Inode number for rename detection
 
   // Identity
-  name?: string; // Slug/identifier (filename without .md, or heading slug)
+  name?: string // Slug/identifier (filename without .md, or heading slug)
 
   // Markdown mapping (for sections/blocks)
-  md_pos?: number; // Byte offset in file
-  md_line?: number; // Line number in file (0-indexed)
-  md_slug?: string; // Heading slug (DEPRECATED: use name instead)
+  md_pos?: number // Byte offset in file
+  md_line?: number // Line number in file (0-indexed)
+  md_slug?: string // Heading slug (DEPRECATED: use name instead)
 
   // Task properties (can be set on any node type, not just type: "task")
-  task_status?: TaskStatus;
-  task_mark?: TaskMark; // ' ', 'x', '/', etc. (only for type: "task")
-  assigned_to?: string; // User/agent assigned to task
-  due_date?: string; // YYYY-MM-DD format
-  scheduled_date?: string; // YYYY-MM-DD format
-  priority?: number; // 1-5 (1 = highest)
-  recurrence?: string; // iCal RRULE format (e.g., "FREQ=DAILY")
-  recur_prev?: string; // Previous recurrence instance ID
+  task_status?: TaskStatus
+  task_mark?: TaskMark // ' ', 'x', '/', etc. (only for type: "task")
+  assigned_to?: string // User/agent assigned to task
+  due_date?: string // YYYY-MM-DD format
+  scheduled_date?: string // YYYY-MM-DD format
+  priority?: number // 1-5 (1 = highest)
+  recurrence?: string // iCal RRULE format (e.g., "FREQ=DAILY")
+  recur_prev?: string // Previous recurrence instance ID
 
   // Content
-  content?: string; // Text content (inline for small)
-  content_hash?: string; // CAS reference for large content
-  title?: string; // Display title (for sections: heading without rules)
+  content?: string // Text content (inline for small)
+  content_hash?: string // CAS reference for large content
+  title?: string // Display title (for sections: heading without rules)
 
   // Column/section rules (parsed from inline attributes)
-  rules?: NodeRules;
+  rules?: NodeRules
 
   // Metadata
-  data: Record<string, unknown>; // Frontmatter, custom fields
-  created_at: number; // Unix timestamp (ms)
-  updated_at: number; // Unix timestamp (ms)
-  version: string; // Last event ID that modified this node
+  data: Record<string, unknown> // Frontmatter, custom fields
+  created_at: number // Unix timestamp (ms)
+  updated_at: number // Unix timestamp (ms)
+  version: string // Last event ID that modified this node
 }
 ```
 
@@ -181,12 +181,12 @@ Rules control column/section behavior in boards:
 
 ```typescript
 interface NodeRules {
-  add?: string; // Query to auto-pull matching tasks
-  sync?: string; // Bidirectional field sync (e.g., "status:blocked")
-  collapse?: boolean; // Start collapsed
-  limit?: number; // WIP limit
-  default?: boolean; // Default column for new items
-  color?: string; // Board/section color (cyan, yellow, magenta, etc.)
+  add?: string // Query to auto-pull matching tasks
+  sync?: string // Bidirectional field sync (e.g., "status:blocked")
+  collapse?: boolean // Start collapsed
+  limit?: number // WIP limit
+  default?: boolean // Default column for new items
+  color?: string // Board/section color (cyan, yellow, magenta, etc.)
 }
 ```
 
@@ -212,7 +212,7 @@ type NodeType =
 
   // Special (persisted mode)
   | "board"
-  | "agent";
+  | "agent"
 ````
 
 ### Task Status
@@ -223,7 +223,7 @@ type TaskStatus =
   | "wip" // [/] — actively being worked on
   | "blocked" // [!] — waiting on something/someone
   | "done" // [x] — completed
-  | "dropped"; // [-] — cancelled, won't do
+  | "dropped" // [-] — cancelled, won't do
 ```
 
 ### Task Marks
@@ -243,8 +243,8 @@ Nodes can be **linked** to appear in multiple locations (e.g., `![[Target]]` emb
 ```typescript
 interface KNode {
   // ... other fields ...
-  link_to?: string; // ID of target node (if this is a link)
-  link_alias?: string; // Optional display alias from |alias syntax
+  link_to?: string // ID of target node (if this is a link)
+  link_alias?: string // Optional display alias from |alias syntax
 }
 ```
 
@@ -434,12 +434,12 @@ The `actor` field controls which paths fire:
 
 ```typescript
 interface Event {
-  id: string; // ULID
-  type: EventType;
-  actor: string; // 'user', 'system', 'fs-watch', agent ID
-  target?: string; // Node ID
-  data: unknown;
-  ts: number; // Unix ms
+  id: string // ULID
+  type: EventType
+  actor: string // 'user', 'system', 'fs-watch', agent ID
+  target?: string // Node ID
+  data: unknown
+  ts: number // Unix ms
 }
 ```
 
@@ -464,16 +464,16 @@ SQLite is a disposable cache. Rebuild anytime from events:
 
 ```typescript
 async function rebuildState(): Promise<Database> {
-  const db = new Database(".km/state.db");
-  db.exec("DROP TABLE IF EXISTS nodes; ...");
-  db.exec(CREATE_SCHEMA);
+  const db = new Database(".km/state.db")
+  db.exec("DROP TABLE IF EXISTS nodes; ...")
+  db.exec(CREATE_SCHEMA)
 
-  const events = readEventsSync(".km/events.jsonl");
+  const events = readEventsSync(".km/events.jsonl")
   for (const event of events) {
-    applyEvent(db, event);
+    applyEvent(db, event)
   }
 
-  return db;
+  return db
 }
 ```
 
@@ -486,24 +486,24 @@ The `loadVault()` function is the **unified entry point** for loading vaults in 
 ### Usage
 
 ```typescript
-import { loadVault, runGenerator } from "@km/storage";
+import { loadVault, runGenerator } from "@km/storage"
 
 // Basic usage (silent, no progress)
-const result = runGenerator(loadVault("/path/to/vault"));
+const result = runGenerator(loadVault("/path/to/vault"))
 
 // With progress reporting
-import { withProgress } from "@beorn/inkx-ui/wrappers";
+import { withProgress } from "@beorn/inkx-ui/wrappers"
 const result = await withProgress(loadVault("/path/to/vault"), {
   phases: PHASES,
-});
+})
 ```
 
 ### Options
 
 ```typescript
 interface LoadOptions {
-  searchAncestors?: boolean; // Look for .km/ in parent directories (default: true)
-  force?: boolean; // Force full rebuild even if state exists (default: false)
+  searchAncestors?: boolean // Look for .km/ in parent directories (default: true)
+  force?: boolean // Force full rebuild even if state exists (default: false)
 }
 ```
 
@@ -523,11 +523,11 @@ interface LoadOptions {
 
 ```typescript
 interface LoadResult {
-  mode: "memory" | "disk";
-  nodeCount: number;
-  linkCount: number;
-  errors: LoadError[];
-  duration: number;
+  mode: "memory" | "disk"
+  nodeCount: number
+  linkCount: number
+  errors: LoadError[]
+  duration: number
 }
 ```
 
@@ -558,23 +558,23 @@ The `SyncManager` handles the hot path via file watching → `reconcileDirectory
 
 ```typescript
 interface NodeStore {
-  readonly mode: "memory" | "disk";
-  readonly rootPath: string;
+  readonly mode: "memory" | "disk"
+  readonly rootPath: string
 
   // Read
-  getNode(id: string): Node | null;
-  getChildren(parentId: string | null): Node[];
-  getAncestors(nodeId: string): Node[];
+  getNode(id: string): Node | null
+  getChildren(parentId: string | null): Node[]
+  getAncestors(nodeId: string): Node[]
 
   // Query
-  query<T>(sql: string, params?: unknown[]): T[];
+  query<T>(sql: string, params?: unknown[]): T[]
 
   // Write
-  updateNode(id: string, changes: Partial<Node>): void;
+  updateNode(id: string, changes: Partial<Node>): void
 
   // Lifecycle
-  refresh(): void;
-  close(): void;
+  refresh(): void
+  close(): void
 }
 ```
 
@@ -592,7 +592,7 @@ The `resolveNode` function provides flexible node lookup:
 // 6. Filename without extension ("@inbox" matches "@inbox.md")
 // 7. Content/title match
 
-function resolveNode(query: string, type?: string): Node | null;
+function resolveNode(query: string, type?: string): Node | null
 ```
 
 Used by CLI commands:

@@ -23,23 +23,23 @@
  * ```
  */
 
-import type { KNode } from "@km/core";
-import type { ChaosHooks, ChaosEvent, ChaosStats } from "./chaos-hooks.ts";
-import type { ChaosFakeVault, ConsistencyIssue } from "./chaos-fake-vault.ts";
-import type { Vault } from "../vault.ts";
+import type { KNode } from "@km/core"
+import type { ChaosHooks, ChaosEvent, ChaosStats } from "./chaos-hooks.ts"
+import type { ChaosFakeVault, ConsistencyIssue } from "./chaos-fake-vault.ts"
+import type { Vault } from "../vault.ts"
 
 /**
  * Scenario configuration for chaos testing
  */
 export interface ChaosScenario {
   /** Human-readable name for the scenario */
-  name: string;
+  name: string
   /** Random seed for reproducibility */
-  seed: number;
+  seed: number
   /** Description of what the scenario tests */
-  description?: string;
+  description?: string
   /** Configuration used (drop rates, etc.) */
-  config?: Record<string, unknown>;
+  config?: Record<string, unknown>
 }
 
 /**
@@ -47,15 +47,15 @@ export interface ChaosScenario {
  */
 export interface ChaosStateSnapshot {
   /** Nodes with missing parents */
-  orphanedNodes: KNode[];
+  orphanedNodes: KNode[]
   /** Duplicate IDs found */
-  duplicates: Array<{ id: string; count: number }>;
+  duplicates: Array<{ id: string; count: number }>
   /** Consistency issues from validation */
-  consistencyIssues: ConsistencyIssue[];
+  consistencyIssues: ConsistencyIssue[]
   /** Total node count at snapshot time */
-  nodeCount: number;
+  nodeCount: number
   /** Timestamp of snapshot */
-  timestamp: number;
+  timestamp: number
 }
 
 /**
@@ -63,15 +63,15 @@ export interface ChaosStateSnapshot {
  */
 export interface ChaosRecommendation {
   /** Type of issue */
-  type: "bug" | "robustness" | "test-gap" | "documentation";
+  type: "bug" | "robustness" | "test-gap" | "documentation"
   /** Priority (1 = critical, 2 = high, 3 = medium, 4 = low) */
-  priority: 1 | 2 | 3 | 4;
+  priority: 1 | 2 | 3 | 4
   /** Description of the recommendation */
-  description: string;
+  description: string
   /** Suggested fix or next step */
-  suggestion?: string;
+  suggestion?: string
   /** Related code location if known */
-  location?: string;
+  location?: string
 }
 
 /**
@@ -79,23 +79,23 @@ export interface ChaosRecommendation {
  */
 export interface ChaosReport {
   /** Scenario that was tested */
-  scenario: ChaosScenario;
+  scenario: ChaosScenario
   /** Whether the test passed or failed */
-  passed: boolean;
+  passed: boolean
   /** Invariants that were violated */
-  invariantsViolated: string[];
+  invariantsViolated: string[]
   /** State snapshot at failure/completion */
-  stateSnapshot: ChaosStateSnapshot;
+  stateSnapshot: ChaosStateSnapshot
   /** Chaos events that occurred (mutations dropped, corrupted, etc.) */
-  chaosEvents: ChaosEvent[];
+  chaosEvents: ChaosEvent[]
   /** Statistics about chaos injection */
-  chaosStats: ChaosStats;
+  chaosStats: ChaosStats
   /** Automated recommendations */
-  recommendations: ChaosRecommendation[];
+  recommendations: ChaosRecommendation[]
   /** Report generation timestamp */
-  generatedAt: number;
+  generatedAt: number
   /** Duration of the test in milliseconds */
-  durationMs?: number;
+  durationMs?: number
 }
 
 /**
@@ -103,19 +103,19 @@ export interface ChaosReport {
  */
 export interface GenerateReportOptions {
   /** The chaos scenario being tested */
-  scenario: ChaosScenario;
+  scenario: ChaosScenario
   /** ChaosHooks instance (if using real Vault) */
-  hooks?: ChaosHooks;
+  hooks?: ChaosHooks
   /** ChaosFakeVault instance (if using FakeVault) */
-  fakeVault?: ChaosFakeVault;
+  fakeVault?: ChaosFakeVault
   /** Real Vault instance (for state inspection) */
-  vault?: Vault;
+  vault?: Vault
   /** List of invariants that were violated */
-  invariantsViolated?: string[];
+  invariantsViolated?: string[]
   /** Whether the test passed */
-  passed?: boolean;
+  passed?: boolean
   /** Test duration in milliseconds */
-  durationMs?: number;
+  durationMs?: number
 }
 
 /**
@@ -139,19 +139,19 @@ export function generateChaosReport(
     invariantsViolated = [],
     passed = invariantsViolated.length === 0,
     durationMs,
-  } = options;
+  } = options
 
   // Gather chaos events and stats
-  const chaosEvents = hooks?.getChaosEvents() ?? [];
+  const chaosEvents = hooks?.getChaosEvents() ?? []
   const chaosStats = hooks?.getStats() ?? {
     totalMutations: 0,
     droppedMutations: 0,
     corruptedMutations: 0,
     successfulMutations: 0,
-  };
+  }
 
   // Capture state snapshot
-  const stateSnapshot = captureStateSnapshot(fakeVault, vault);
+  const stateSnapshot = captureStateSnapshot(fakeVault, vault)
 
   // Generate recommendations
   const recommendations = generateRecommendations(
@@ -159,7 +159,7 @@ export function generateChaosReport(
     stateSnapshot,
     chaosEvents,
     chaosStats,
-  );
+  )
 
   return {
     scenario,
@@ -171,7 +171,7 @@ export function generateChaosReport(
     recommendations,
     generatedAt: Date.now(),
     durationMs,
-  };
+  }
 }
 
 /**
@@ -181,20 +181,20 @@ function captureStateSnapshot(
   fakeVault?: ChaosFakeVault,
   vault?: Vault,
 ): ChaosStateSnapshot {
-  const timestamp = Date.now();
+  const timestamp = Date.now()
 
   if (fakeVault) {
     // Use ChaosFakeVault's built-in inspection methods
-    const orphanedNodes = fakeVault.getOrphanedNodes();
-    const duplicateMap = fakeVault.getDuplicateIds();
+    const orphanedNodes = fakeVault.getOrphanedNodes()
+    const duplicateMap = fakeVault.getDuplicateIds()
     const duplicates = Array.from(duplicateMap.entries()).map(
       ([id, count]) => ({
         id,
         count,
       }),
-    );
-    const consistencyIssues = fakeVault.validateConsistency();
-    const allNodes = fakeVault.getAllNodes();
+    )
+    const consistencyIssues = fakeVault.validateConsistency()
+    const allNodes = fakeVault.getAllNodes()
 
     return {
       orphanedNodes,
@@ -202,20 +202,20 @@ function captureStateSnapshot(
       consistencyIssues,
       nodeCount: allNodes.length,
       timestamp,
-    };
+    }
   }
 
   if (vault) {
     // For real vaults, we have limited inspection capabilities
     // Try to get root children to estimate node count
-    const rootChildren = vault.getChildren(null);
+    const rootChildren = vault.getChildren(null)
     return {
       orphanedNodes: [], // Can't detect without full scan
       duplicates: [], // Can't detect in real vault
       consistencyIssues: [], // Would need validation pass
       nodeCount: rootChildren.length, // Approximation
       timestamp,
-    };
+    }
   }
 
   // No vault available
@@ -225,7 +225,7 @@ function captureStateSnapshot(
     consistencyIssues: [],
     nodeCount: 0,
     timestamp,
-  };
+  }
 }
 
 /**
@@ -237,7 +237,7 @@ function generateRecommendations(
   chaosEvents: ChaosEvent[],
   chaosStats: ChaosStats,
 ): ChaosRecommendation[] {
-  const recommendations: ChaosRecommendation[] = [];
+  const recommendations: ChaosRecommendation[] = []
 
   // Check for orphaned nodes
   if (stateSnapshot.orphanedNodes.length > 0) {
@@ -247,7 +247,7 @@ function generateRecommendations(
       description: `Found ${stateSnapshot.orphanedNodes.length} orphaned node(s) with missing parents`,
       suggestion: "Add parent existence validation before node creation",
       location: "packages/km-storage/src/db.ts:addNode",
-    });
+    })
   }
 
   // Check for duplicates
@@ -258,62 +258,62 @@ function generateRecommendations(
       description: `Found ${stateSnapshot.duplicates.length} duplicate ID(s)`,
       suggestion: "Ensure ID uniqueness constraint is enforced",
       location: "packages/km-storage/src/db.ts:addNode",
-    });
+    })
   }
 
   // Check consistency issues
   for (const issue of stateSnapshot.consistencyIssues) {
-    const priority = issue.type === "circular_parent" ? 1 : 2;
+    const priority = issue.type === "circular_parent" ? 1 : 2
     recommendations.push({
       type: "bug",
       priority,
       description: `Consistency issue: ${issue.message}`,
       suggestion: `Fix ${issue.type} for node ${issue.nodeId}`,
-    });
+    })
   }
 
   // Check for high mutation drop rate impact
   if (chaosStats.droppedMutations > 0 && invariantsViolated.length > 0) {
-    const dropRate = chaosStats.droppedMutations / chaosStats.totalMutations;
+    const dropRate = chaosStats.droppedMutations / chaosStats.totalMutations
     if (dropRate > 0.5) {
       recommendations.push({
         type: "robustness",
         priority: 2,
         description: `System failed with ${Math.round(dropRate * 100)}% mutation drop rate`,
         suggestion: "Consider adding retry logic or graceful degradation",
-      });
+      })
     }
   }
 
   // Check for corruption-induced failures
-  const corruptionEvents = chaosEvents.filter((e) => e.type === "corrupt");
+  const corruptionEvents = chaosEvents.filter((e) => e.type === "corrupt")
   if (corruptionEvents.length > 0 && invariantsViolated.length > 0) {
     recommendations.push({
       type: "robustness",
       priority: 2,
       description: `System failed after ${corruptionEvents.length} corrupted mutation(s)`,
       suggestion: "Add input validation to detect and reject corrupted data",
-    });
+    })
   }
 
   // Add invariant-specific recommendations
   for (const invariant of invariantsViolated) {
     if (invariant.includes("orphan")) {
       // Already covered above
-      continue;
+      continue
     }
     recommendations.push({
       type: "test-gap",
       priority: 3,
       description: `Invariant violated: ${invariant}`,
       suggestion: "Add specific test case for this invariant",
-    });
+    })
   }
 
   // Sort by priority
-  recommendations.sort((a, b) => a.priority - b.priority);
+  recommendations.sort((a, b) => a.priority - b.priority)
 
-  return recommendations;
+  return recommendations
 }
 
 /**
@@ -323,106 +323,106 @@ function generateRecommendations(
  * @returns Formatted string suitable for console output or bug reports
  */
 export function formatChaosReport(report: ChaosReport): string {
-  const lines: string[] = [];
+  const lines: string[] = []
 
   // Header
-  lines.push("═".repeat(60));
-  lines.push(`CHAOS TEST REPORT: ${report.scenario.name}`);
-  lines.push("═".repeat(60));
-  lines.push("");
+  lines.push("═".repeat(60))
+  lines.push(`CHAOS TEST REPORT: ${report.scenario.name}`)
+  lines.push("═".repeat(60))
+  lines.push("")
 
   // Status
-  const status = report.passed ? "✓ PASSED" : "✗ FAILED";
-  lines.push(`Status: ${status}`);
-  lines.push(`Seed: ${report.scenario.seed} (use this seed to reproduce)`);
+  const status = report.passed ? "✓ PASSED" : "✗ FAILED"
+  lines.push(`Status: ${status}`)
+  lines.push(`Seed: ${report.scenario.seed} (use this seed to reproduce)`)
   if (report.durationMs) {
-    lines.push(`Duration: ${report.durationMs}ms`);
+    lines.push(`Duration: ${report.durationMs}ms`)
   }
-  lines.push(`Generated: ${new Date(report.generatedAt).toISOString()}`);
-  lines.push("");
+  lines.push(`Generated: ${new Date(report.generatedAt).toISOString()}`)
+  lines.push("")
 
   // Scenario details
   if (report.scenario.description) {
-    lines.push(`Description: ${report.scenario.description}`);
-    lines.push("");
+    lines.push(`Description: ${report.scenario.description}`)
+    lines.push("")
   }
 
   // Invariants violated
   if (report.invariantsViolated.length > 0) {
-    lines.push("─".repeat(40));
-    lines.push("INVARIANTS VIOLATED:");
+    lines.push("─".repeat(40))
+    lines.push("INVARIANTS VIOLATED:")
     for (const inv of report.invariantsViolated) {
-      lines.push(`  • ${inv}`);
+      lines.push(`  • ${inv}`)
     }
-    lines.push("");
+    lines.push("")
   }
 
   // Chaos statistics
-  lines.push("─".repeat(40));
-  lines.push("CHAOS STATISTICS:");
-  lines.push(`  Total mutations: ${report.chaosStats.totalMutations}`);
-  lines.push(`  Dropped: ${report.chaosStats.droppedMutations}`);
-  lines.push(`  Corrupted: ${report.chaosStats.corruptedMutations}`);
-  lines.push(`  Successful: ${report.chaosStats.successfulMutations}`);
-  lines.push("");
+  lines.push("─".repeat(40))
+  lines.push("CHAOS STATISTICS:")
+  lines.push(`  Total mutations: ${report.chaosStats.totalMutations}`)
+  lines.push(`  Dropped: ${report.chaosStats.droppedMutations}`)
+  lines.push(`  Corrupted: ${report.chaosStats.corruptedMutations}`)
+  lines.push(`  Successful: ${report.chaosStats.successfulMutations}`)
+  lines.push("")
 
   // State snapshot
-  lines.push("─".repeat(40));
-  lines.push("STATE SNAPSHOT:");
-  lines.push(`  Node count: ${report.stateSnapshot.nodeCount}`);
-  lines.push(`  Orphaned nodes: ${report.stateSnapshot.orphanedNodes.length}`);
-  lines.push(`  Duplicate IDs: ${report.stateSnapshot.duplicates.length}`);
+  lines.push("─".repeat(40))
+  lines.push("STATE SNAPSHOT:")
+  lines.push(`  Node count: ${report.stateSnapshot.nodeCount}`)
+  lines.push(`  Orphaned nodes: ${report.stateSnapshot.orphanedNodes.length}`)
+  lines.push(`  Duplicate IDs: ${report.stateSnapshot.duplicates.length}`)
   lines.push(
     `  Consistency issues: ${report.stateSnapshot.consistencyIssues.length}`,
-  );
-  lines.push("");
+  )
+  lines.push("")
 
   // Chaos events (last 10)
   if (report.chaosEvents.length > 0) {
-    lines.push("─".repeat(40));
+    lines.push("─".repeat(40))
     lines.push(
       `CHAOS EVENTS (last ${Math.min(10, report.chaosEvents.length)} of ${report.chaosEvents.length}):`,
-    );
-    const recentEvents = report.chaosEvents.slice(-10);
+    )
+    const recentEvents = report.chaosEvents.slice(-10)
     for (const event of recentEvents) {
-      const time = new Date(event.timestamp).toISOString().slice(11, 23);
+      const time = new Date(event.timestamp).toISOString().slice(11, 23)
       lines.push(
         `  [${time}] ${event.type}: ${event.mutation.type} ${event.mutation.nodeId}`,
-      );
+      )
     }
-    lines.push("");
+    lines.push("")
   }
 
   // Recommendations
   if (report.recommendations.length > 0) {
-    lines.push("─".repeat(40));
-    lines.push("RECOMMENDATIONS:");
+    lines.push("─".repeat(40))
+    lines.push("RECOMMENDATIONS:")
     for (const rec of report.recommendations) {
       const priority = ["", "P1-CRITICAL", "P2-HIGH", "P3-MEDIUM", "P4-LOW"][
         rec.priority
-      ];
-      lines.push(`  [${priority}] [${rec.type}] ${rec.description}`);
+      ]
+      lines.push(`  [${priority}] [${rec.type}] ${rec.description}`)
       if (rec.suggestion) {
-        lines.push(`    → ${rec.suggestion}`);
+        lines.push(`    → ${rec.suggestion}`)
       }
       if (rec.location) {
-        lines.push(`    @ ${rec.location}`);
+        lines.push(`    @ ${rec.location}`)
       }
     }
-    lines.push("");
+    lines.push("")
   }
 
   // Reproduction command
-  lines.push("─".repeat(40));
-  lines.push("TO REPRODUCE:");
+  lines.push("─".repeat(40))
+  lines.push("TO REPRODUCE:")
   lines.push(
     `  Use seed ${report.scenario.seed} with the same scenario configuration`,
-  );
-  lines.push("");
+  )
+  lines.push("")
 
-  lines.push("═".repeat(60));
+  lines.push("═".repeat(60))
 
-  return lines.join("\n");
+  return lines.join("\n")
 }
 
 /**
@@ -432,7 +432,7 @@ export function formatChaosReport(report: ChaosReport): string {
  * @returns JSON string
  */
 export function formatChaosReportJson(report: ChaosReport): string {
-  return JSON.stringify(report, null, 2);
+  return JSON.stringify(report, null, 2)
 }
 
 /**
@@ -442,79 +442,79 @@ export function formatChaosReportJson(report: ChaosReport): string {
  * @returns Markdown string suitable for issue trackers
  */
 export function formatChaosReportMarkdown(report: ChaosReport): string {
-  const lines: string[] = [];
+  const lines: string[] = []
 
   // Title
-  const status = report.passed ? "passed" : "failed";
-  lines.push(`# Chaos Test Report: ${report.scenario.name} (${status})`);
-  lines.push("");
+  const status = report.passed ? "passed" : "failed"
+  lines.push(`# Chaos Test Report: ${report.scenario.name} (${status})`)
+  lines.push("")
 
   // Summary
-  lines.push("## Summary");
-  lines.push("");
-  lines.push(`- **Status**: ${report.passed ? "✓ Passed" : "✗ Failed"}`);
-  lines.push(`- **Seed**: \`${report.scenario.seed}\``);
+  lines.push("## Summary")
+  lines.push("")
+  lines.push(`- **Status**: ${report.passed ? "✓ Passed" : "✗ Failed"}`)
+  lines.push(`- **Seed**: \`${report.scenario.seed}\``)
   if (report.durationMs) {
-    lines.push(`- **Duration**: ${report.durationMs}ms`);
+    lines.push(`- **Duration**: ${report.durationMs}ms`)
   }
-  lines.push(`- **Generated**: ${new Date(report.generatedAt).toISOString()}`);
-  lines.push("");
+  lines.push(`- **Generated**: ${new Date(report.generatedAt).toISOString()}`)
+  lines.push("")
 
   // Invariants violated
   if (report.invariantsViolated.length > 0) {
-    lines.push("## Invariants Violated");
-    lines.push("");
+    lines.push("## Invariants Violated")
+    lines.push("")
     for (const inv of report.invariantsViolated) {
-      lines.push(`- ${inv}`);
+      lines.push(`- ${inv}`)
     }
-    lines.push("");
+    lines.push("")
   }
 
   // Chaos statistics
-  lines.push("## Chaos Statistics");
-  lines.push("");
-  lines.push("| Metric | Value |");
-  lines.push("|--------|-------|");
-  lines.push(`| Total mutations | ${report.chaosStats.totalMutations} |`);
-  lines.push(`| Dropped | ${report.chaosStats.droppedMutations} |`);
-  lines.push(`| Corrupted | ${report.chaosStats.corruptedMutations} |`);
-  lines.push(`| Successful | ${report.chaosStats.successfulMutations} |`);
-  lines.push("");
+  lines.push("## Chaos Statistics")
+  lines.push("")
+  lines.push("| Metric | Value |")
+  lines.push("|--------|-------|")
+  lines.push(`| Total mutations | ${report.chaosStats.totalMutations} |`)
+  lines.push(`| Dropped | ${report.chaosStats.droppedMutations} |`)
+  lines.push(`| Corrupted | ${report.chaosStats.corruptedMutations} |`)
+  lines.push(`| Successful | ${report.chaosStats.successfulMutations} |`)
+  lines.push("")
 
   // Recommendations
   if (report.recommendations.length > 0) {
-    lines.push("## Recommendations");
-    lines.push("");
+    lines.push("## Recommendations")
+    lines.push("")
     for (const rec of report.recommendations) {
-      const priority = ["", "🔴 P1", "🟠 P2", "🟡 P3", "🟢 P4"][rec.priority];
-      lines.push(`### ${priority} [${rec.type}] ${rec.description}`);
-      lines.push("");
+      const priority = ["", "🔴 P1", "🟠 P2", "🟡 P3", "🟢 P4"][rec.priority]
+      lines.push(`### ${priority} [${rec.type}] ${rec.description}`)
+      lines.push("")
       if (rec.suggestion) {
-        lines.push(`**Suggestion**: ${rec.suggestion}`);
-        lines.push("");
+        lines.push(`**Suggestion**: ${rec.suggestion}`)
+        lines.push("")
       }
       if (rec.location) {
-        lines.push(`**Location**: \`${rec.location}\``);
-        lines.push("");
+        lines.push(`**Location**: \`${rec.location}\``)
+        lines.push("")
       }
     }
   }
 
   // Reproduction
-  lines.push("## Reproduction");
-  lines.push("");
-  lines.push("```typescript");
-  lines.push(`const random = createSeededRandom(${report.scenario.seed});`);
-  lines.push("const hooks = createChaosHooks({");
+  lines.push("## Reproduction")
+  lines.push("")
+  lines.push("```typescript")
+  lines.push(`const random = createSeededRandom(${report.scenario.seed});`)
+  lines.push("const hooks = createChaosHooks({")
   if (report.scenario.config) {
     for (const [key, value] of Object.entries(report.scenario.config)) {
-      lines.push(`  ${key}: ${JSON.stringify(value)},`);
+      lines.push(`  ${key}: ${JSON.stringify(value)},`)
     }
   }
-  lines.push("  random,");
-  lines.push("});");
-  lines.push("```");
-  lines.push("");
+  lines.push("  random,")
+  lines.push("});")
+  lines.push("```")
+  lines.push("")
 
-  return lines.join("\n");
+  return lines.join("\n")
 }

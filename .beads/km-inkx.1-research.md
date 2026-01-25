@@ -176,7 +176,7 @@ var box = blessed.box({
   width: "50%",
   height: "50%",
   content: "Hello!",
-});
+})
 ```
 
 Uses a painter's algorithm with damage buffers. Layout system is "experimental" - docs warn mechanics may change.
@@ -213,22 +213,22 @@ Uses a painter's algorithm with damage buffers. Layout system is "experimental" 
 ### Kiwi.js Example
 
 ```typescript
-import * as kiwi from "kiwi.js";
+import * as kiwi from "kiwi.js"
 
-const solver = new kiwi.Solver();
+const solver = new kiwi.Solver()
 
 // Create variables
-const leftWidth = new kiwi.Variable();
-const rightWidth = new kiwi.Variable();
-const totalWidth = 80;
+const leftWidth = new kiwi.Variable()
+const rightWidth = new kiwi.Variable()
+const totalWidth = 80
 
 // Add constraints
 solver.addConstraint(
   new kiwi.Constraint(leftWidth.plus(rightWidth), kiwi.Operator.Eq, totalWidth),
-);
+)
 solver.addConstraint(
   new kiwi.Constraint(leftWidth, kiwi.Operator.Ge, 20, kiwi.Strength.required),
-);
+)
 solver.addConstraint(
   new kiwi.Constraint(
     rightWidth,
@@ -236,9 +236,9 @@ solver.addConstraint(
     leftWidth,
     kiwi.Strength.strong,
   ),
-);
+)
 
-solver.updateVariables();
+solver.updateVariables()
 // leftWidth.value() → 20
 // rightWidth.value() → 60
 ```

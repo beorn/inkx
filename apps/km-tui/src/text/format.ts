@@ -5,13 +5,13 @@
  * Extracted from list.ts and show.ts for reuse.
  */
 
-import chalk from "chalk";
-import type { KNode } from "@km/core";
+import chalk from "chalk"
+import type { KNode } from "@km/core"
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
   type CollapsedAncestor,
-} from "@km/tree";
-import type { Vault } from "../vault-context.tsx";
+} from "@km/tree"
+import type { Vault } from "../vault-context.tsx"
 
 /**
  * Format a collapsed ancestor for display with its type suffix.
@@ -22,51 +22,51 @@ export function formatCollapsedAncestor(
   ca: CollapsedAncestor,
   showId: boolean,
 ): string {
-  let prefix = "";
+  let prefix = ""
   if (showId) {
-    prefix = chalk.dim(`[${ca.node.id.slice(0, 5)}] `);
+    prefix = chalk.dim(`[${ca.node.id.slice(0, 5)}] `)
   }
 
-  const name = getNodeDisplayNameBase(ca.node, (id) => vault.getChildren(id));
+  const name = getNodeDisplayNameBase(ca.node, (id) => vault.getChildren(id))
   if (ca.typeSuffix) {
-    return prefix + name + chalk.gray(` ${ca.typeSuffix}`);
+    return prefix + name + chalk.gray(` ${ca.typeSuffix}`)
   }
   // No collapsed suffix - show individual type indicator
   if (ca.node.type === "folder") {
-    return prefix + name + chalk.gray("/");
+    return prefix + name + chalk.gray("/")
   } else if (ca.node.type === "file") {
     // Only add .md if name doesn't already end with it
-    return prefix + (name.endsWith(".md") ? name : name + chalk.gray(".md"));
+    return prefix + (name.endsWith(".md") ? name : name + chalk.gray(".md"))
   } else if (ca.node.type === "section") {
-    const depth = (ca.node.data?.depth as number) ?? 1;
-    return prefix + chalk.gray("#".repeat(depth) + " ") + name;
+    const depth = (ca.node.data?.depth as number) ?? 1
+    return prefix + chalk.gray("#".repeat(depth) + " ") + name
   }
-  return prefix + name;
+  return prefix + name
 }
 
 /**
  * Format a node for display in listings.
  */
 export function formatNode(vault: Vault, node: KNode, showId: boolean): string {
-  let prefix = "";
+  let prefix = ""
   if (showId) {
-    prefix = chalk.dim(`[${node.id.slice(0, 5)}] `);
+    prefix = chalk.dim(`[${node.id.slice(0, 5)}] `)
   }
 
-  const name = getNodeDisplayNameBase(node, (id) => vault.getChildren(id));
+  const name = getNodeDisplayNameBase(node, (id) => vault.getChildren(id))
 
   switch (node.type) {
     case "folder":
-      return prefix + chalk.blue(name) + chalk.gray("/");
+      return prefix + chalk.blue(name) + chalk.gray("/")
     case "file":
-      return prefix + chalk.cyan(name);
+      return prefix + chalk.cyan(name)
     case "section": {
-      const depth = (node.data?.depth as number) ?? 1;
-      return prefix + chalk.gray("#".repeat(depth) + " ") + chalk.yellow(name);
+      const depth = (node.data?.depth as number) ?? 1
+      return prefix + chalk.gray("#".repeat(depth) + " ") + chalk.yellow(name)
     }
     case "task": {
-      const mark = node.task_mark ?? " ";
-      const status = node.task_status ?? "todo";
+      const mark = node.task_mark ?? " "
+      const status = node.task_status ?? "todo"
       // Only color the marker character, not the brackets
       const coloredMark =
         status === "done"
@@ -75,16 +75,16 @@ export function formatNode(vault: Vault, node: KNode, showId: boolean): string {
             ? chalk.yellow(mark)
             : status === "blocked"
               ? chalk.red(mark)
-              : chalk.dim(mark);
-      const checkbox = chalk.dim("[") + coloredMark + chalk.dim("]");
-      return prefix + checkbox + " " + (node.content ?? "(no content)");
+              : chalk.dim(mark)
+      const checkbox = chalk.dim("[") + coloredMark + chalk.dim("]")
+      return prefix + checkbox + " " + (node.content ?? "(no content)")
     }
     case "paragraph":
-      return prefix + chalk.dim("¶ ") + (node.content?.slice(0, 50) ?? "");
+      return prefix + chalk.dim("¶ ") + (node.content?.slice(0, 50) ?? "")
     default:
       return (
         prefix + chalk.dim("• ") + (node.content?.slice(0, 50) ?? node.type)
-      );
+      )
   }
 }
 
@@ -94,15 +94,15 @@ export function formatNode(vault: Vault, node: KNode, showId: boolean): string {
 export function formatStatus(status: string): string {
   switch (status) {
     case "done":
-      return chalk.green(status);
+      return chalk.green(status)
     case "wip":
-      return chalk.blue(status);
+      return chalk.blue(status)
     case "blocked":
-      return chalk.red(status);
+      return chalk.red(status)
     case "waiting":
-      return chalk.yellow(status);
+      return chalk.yellow(status)
     default:
-      return status;
+      return status
   }
 }
 
@@ -110,14 +110,14 @@ export function formatStatus(status: string): string {
  * Format a node briefly (for tree/children displays).
  */
 export function formatNodeBrief(node: KNode): string {
-  const parts: string[] = [];
+  const parts: string[] = []
 
-  parts.push(chalk.dim(node.id.slice(0, 8)));
-  parts.push(chalk.cyan(node.type));
+  parts.push(chalk.dim(node.id.slice(0, 8)))
+  parts.push(chalk.cyan(node.type))
 
   if (node.content) {
-    parts.push(node.content.slice(0, 50));
+    parts.push(node.content.slice(0, 50))
   }
 
-  return parts.join("  ");
+  return parts.join("  ")
 }

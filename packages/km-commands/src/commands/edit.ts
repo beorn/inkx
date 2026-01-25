@@ -1,4 +1,4 @@
-import type { CommandDef } from "../types.ts";
+import type { CommandDef } from "../types.ts"
 
 // Move mode
 export const enterMoveMode: CommandDef = {
@@ -8,7 +8,7 @@ export const enterMoveMode: CommandDef = {
   category: "Edit",
   shortcuts: ["m"],
   execute: () => ({ type: "ENTER_MOVE_MODE" }),
-};
+}
 
 export const confirmMove: CommandDef = {
   id: "confirm_move",
@@ -18,7 +18,7 @@ export const confirmMove: CommandDef = {
   shortcuts: ["Enter"],
   modes: ["move"],
   execute: () => ({ type: "CONFIRM_MOVE" }),
-};
+}
 
 export const cancelMove: CommandDef = {
   id: "cancel_move",
@@ -28,7 +28,7 @@ export const cancelMove: CommandDef = {
   shortcuts: ["Escape"],
   modes: ["move"],
   execute: () => ({ type: "CANCEL_MOVE" }),
-};
+}
 
 // Shifting (visual reorder)
 export const shiftUp: CommandDef = {
@@ -38,7 +38,7 @@ export const shiftUp: CommandDef = {
   category: "Edit",
   shortcuts: ["Alt+ArrowUp", "Alt+k"],
   execute: () => ({ type: "SHIFT_UP" }),
-};
+}
 
 export const shiftDown: CommandDef = {
   id: "shift_down",
@@ -47,7 +47,7 @@ export const shiftDown: CommandDef = {
   category: "Edit",
   shortcuts: ["Alt+ArrowDown", "Alt+j"],
   execute: () => ({ type: "SHIFT_DOWN" }),
-};
+}
 
 export const shiftLeft: CommandDef = {
   id: "shift_left",
@@ -56,7 +56,7 @@ export const shiftLeft: CommandDef = {
   category: "Edit",
   shortcuts: ["Alt+ArrowLeft", "Alt+h", "Shift+Tab"],
   execute: () => ({ type: "SHIFT_LEFT" }),
-};
+}
 
 export const shiftRight: CommandDef = {
   id: "shift_right",
@@ -65,7 +65,7 @@ export const shiftRight: CommandDef = {
   category: "Edit",
   shortcuts: ["Alt+ArrowRight", "Alt+l", "Tab"],
   execute: () => ({ type: "SHIFT_RIGHT" }),
-};
+}
 
 export const deleteNode: CommandDef = {
   id: "delete_node",
@@ -74,10 +74,10 @@ export const deleteNode: CommandDef = {
   category: "Edit",
   shortcuts: ["D"],
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
-    return { type: "DELETE_NODE", nodeId: ctx.currentNodeId };
+    if (!ctx.currentNodeId) return null
+    return { type: "DELETE_NODE", nodeId: ctx.currentNodeId }
   },
-};
+}
 
 export const editCommands: CommandDef[] = [
   enterMoveMode,
@@ -88,4 +88,4 @@ export const editCommands: CommandDef[] = [
   shiftLeft,
   shiftRight,
   deleteNode,
-];
+]

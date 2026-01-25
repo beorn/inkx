@@ -66,24 +66,24 @@ type SizeConstraint =
   | "auto" // Auto: size to content
   | "fill" // Fill: take remaining space
   | { min?: number; max?: number } // Range: between min and max
-  | { flex: number }; // Flex: proportional to other flex items
+  | { flex: number } // Flex: proportional to other flex items
 
 /** Computed dimensions passed via context */
 interface ComputedSize {
-  width: number;
-  height: number;
+  width: number
+  height: number
 }
 
 /** Terminal dimensions */
 interface TerminalSize {
-  columns: number;
-  rows: number;
+  columns: number
+  rows: number
 }
 
 /** Context value */
 interface ConstraintContextValue {
-  terminal: TerminalSize;
-  parent: ComputedSize;
+  terminal: TerminalSize
+  parent: ComputedSize
 }
 ```
 
@@ -538,13 +538,11 @@ Access the full constraint context.
 
 ```typescript
 function useConstraintContext(): ConstraintContextValue {
-  const context = useContext(ConstraintContext);
+  const context = useContext(ConstraintContext)
   if (!context) {
-    throw new Error(
-      "useConstraintContext must be used within a ConstraintRoot",
-    );
+    throw new Error("useConstraintContext must be used within a ConstraintRoot")
   }
-  return context;
+  return context
 }
 ```
 
@@ -554,8 +552,8 @@ Shorthand for accessing just the computed parent size.
 
 ```typescript
 function useComputedSize(): ComputedSize {
-  const { parent } = useConstraintContext();
-  return parent;
+  const { parent } = useConstraintContext()
+  return parent
 }
 ```
 
@@ -565,8 +563,8 @@ Access terminal dimensions.
 
 ```typescript
 function useTerminalSize(): TerminalSize {
-  const { terminal } = useConstraintContext();
-  return terminal;
+  const { terminal } = useConstraintContext()
+  return terminal
 }
 ```
 
@@ -708,20 +706,20 @@ describe("distributeSpace", () => {
       100,
       [{ flex: 1 }, { flex: 1 }, { flex: 1 }],
       0,
-    );
-    expect(widths).toEqual([34, 33, 33]); // 100 = 34 + 33 + 33 (integer division)
-  });
+    )
+    expect(widths).toEqual([34, 33, 33]) // 100 = 34 + 33 + 33 (integer division)
+  })
 
   it("respects fixed widths", () => {
-    const widths = distributeSpace(100, [{ width: 20 }, { flex: 1 }], 0);
-    expect(widths).toEqual([20, 80]);
-  });
+    const widths = distributeSpace(100, [{ width: 20 }, { flex: 1 }], 0)
+    expect(widths).toEqual([20, 80])
+  })
 
   it("handles gaps", () => {
-    const widths = distributeSpace(100, [{ flex: 1 }, { flex: 1 }], 2);
-    expect(widths).toEqual([49, 49]); // 100 - 2 = 98, split evenly
-  });
-});
+    const widths = distributeSpace(100, [{ flex: 1 }, { flex: 1 }], 2)
+    expect(widths).toEqual([49, 49]) // 100 - 2 = 98, split evenly
+  })
+})
 ```
 
 ### Visual Tests
@@ -733,7 +731,7 @@ it("FlexRow distributes space correctly", async () => {
   // Render test component
   // Capture screenshot
   // Compare to baseline
-});
+})
 ```
 
 ---

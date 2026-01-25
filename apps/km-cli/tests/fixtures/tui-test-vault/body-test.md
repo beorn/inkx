@@ -5,7 +5,7 @@ This is the board description paragraph - should appear in a virtual body column
 Here's some code that's also body content:
 
 ```javascript
-const example = "body content";
+const example = "body content"
 ```
 
 ## Column A

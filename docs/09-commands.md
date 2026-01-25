@@ -52,16 +52,16 @@ The actual `CommandContext` in `@km/commands` (see [types.ts](../packages/km-com
 
 ```typescript
 interface CommandContext {
-  currentNode: TNode | null;
-  currentNodeId: string | null;
-  selectedNodes: string[];
-  cursor: TPath;
-  boardState: BoardState;
-  viewMode: ViewMode;
-  siblingCount: number;
-  siblingIndex: number;
-  columnIndex: number;
-  columnCount: number;
+  currentNode: TNode | null
+  currentNodeId: string | null
+  selectedNodes: string[]
+  cursor: TPath
+  boardState: BoardState
+  viewMode: ViewMode
+  siblingCount: number
+  siblingIndex: number
+  columnIndex: number
+  columnCount: number
 }
 ```
 
@@ -73,45 +73,45 @@ The full context interface planned for when commands need storage access and dis
 // Context passed to commands and when predicates
 interface Ctx {
   // === LAYER STATE ===
-  layer: "board" | "pane" | "dialog";
-  dialog: "help" | "projectPicker" | "newItem" | null;
-  pane: "detail" | null;
-  mode: "normal" | "move";
+  layer: "board" | "pane" | "dialog"
+  dialog: "help" | "projectPicker" | "newItem" | null
+  pane: "detail" | null
+  mode: "normal" | "move"
 
   // === SELECTION ===
-  hasSelection: boolean;
-  multiSelection: Set<string>;
-  clipboardHasNodes: boolean;
+  hasSelection: boolean
+  multiSelection: Set<string>
+  clipboardHasNodes: boolean
 
   // === CURSOR ===
-  node: TNode | null;
-  knode: KNode | null;
-  column: number;
-  card: number;
-  path: TPath;
+  node: TNode | null
+  knode: KNode | null
+  column: number
+  card: number
+  path: TPath
 
   // === DERIVED ===
-  nodeIsTask: boolean;
-  nodeHasChildren: boolean;
-  taskStatus: TaskStatus | null;
-  canZoomIn: boolean;
-  canZoomOut: boolean;
-  canNavBack: boolean;
-  canNavForward: boolean;
-  inOutlineMode: boolean;
+  nodeIsTask: boolean
+  nodeHasChildren: boolean
+  taskStatus: TaskStatus | null
+  canZoomIn: boolean
+  canZoomOut: boolean
+  canNavBack: boolean
+  canNavForward: boolean
+  inOutlineMode: boolean
 
   // === DISPATCHERS ===
-  dispatch: Dispatch<UIAction>;
-  dispatchBoard: Dispatch<BoardAction>;
-  exit: () => void;
+  dispatch: Dispatch<UIAction>
+  dispatchBoard: Dispatch<BoardAction>
+  exit: () => void
 
   // === STORAGE ===
-  storage: StorageInterface;
+  storage: StorageInterface
 
   // === OPERATIONS ===
-  refresh: () => void;
-  buildTree: (rootId: string | null) => TNode[];
-  clearSelection: () => void;
+  refresh: () => void
+  buildTree: (rootId: string | null) => TNode[]
+  clearSelection: () => void
 }
 ```
 
@@ -186,10 +186,10 @@ const BINDINGS: Binding[] = [
 function resolveBinding(key: string, ctx: Ctx): Cmd | null {
   for (const b of BINDINGS) {
     if (b.keys.includes(key) && (!b.when || b.when(ctx))) {
-      return b.cmd;
+      return b.cmd
     }
   }
-  return null;
+  return null
 }
 ```
 
@@ -486,9 +486,9 @@ Create the command function in the appropriate category file:
 ```typescript
 // packages/km-commands/src/commands/navigation.ts
 export const cursorJumpToLine: Cmd = (ctx) => {
-  if (!ctx.targetLine) return;
-  ctx.dispatchBoard({ type: "CURSOR_SET", line: ctx.targetLine });
-};
+  if (!ctx.targetLine) return
+  ctx.dispatchBoard({ type: "CURSOR_SET", line: ctx.targetLine })
+}
 ```
 
 ### Step 2: Add Binding
@@ -504,7 +504,7 @@ export const BINDINGS: Binding[] = [
     cmd: cursorJumpToLine,
     when: (c) => c.layer === "board",
   },
-];
+]
 ```
 
 ### Step 3: Add Tests
@@ -513,32 +513,32 @@ export const BINDINGS: Binding[] = [
 // packages/km-commands/tests/navigation.test.ts
 describe("cursorJumpToLine", () => {
   it("dispatches CURSOR_SET with target line", () => {
-    const ctx = mockCtx({ targetLine: 5 });
-    cursorJumpToLine(ctx);
+    const ctx = mockCtx({ targetLine: 5 })
+    cursorJumpToLine(ctx)
     expect(ctx.dispatchBoard).toHaveBeenCalledWith({
       type: "CURSOR_SET",
       line: 5,
-    });
-  });
+    })
+  })
 
   it("does nothing when no target line", () => {
-    const ctx = mockCtx({ targetLine: undefined });
-    cursorJumpToLine(ctx);
-    expect(ctx.dispatchBoard).not.toHaveBeenCalled();
-  });
-});
+    const ctx = mockCtx({ targetLine: undefined })
+    cursorJumpToLine(ctx)
+    expect(ctx.dispatchBoard).not.toHaveBeenCalled()
+  })
+})
 
 describe("bindings", () => {
   it(": resolves to cursorJumpToLine on board", () => {
-    const ctx = mockCtx({ layer: "board" });
-    expect(resolveBinding(":", ctx)).toBe(cursorJumpToLine);
-  });
+    const ctx = mockCtx({ layer: "board" })
+    expect(resolveBinding(":", ctx)).toBe(cursorJumpToLine)
+  })
 
   it(": does not resolve in dialog", () => {
-    const ctx = mockCtx({ layer: "dialog" });
-    expect(resolveBinding(":", ctx)).toBeNull();
-  });
-});
+    const ctx = mockCtx({ layer: "dialog" })
+    expect(resolveBinding(":", ctx)).toBeNull()
+  })
+})
 ```
 
 ### Step 4: Document

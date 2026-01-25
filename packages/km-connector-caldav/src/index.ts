@@ -5,14 +5,14 @@
  * Supports sync with Google, iCloud, Fastmail, and other CalDAV servers.
  */
 
-export { CalDAVClient } from "./caldav-client.ts";
-export { CardDAVClient } from "./carddav-client.ts";
-export { parseICalendar, formatICalendar } from "./icalendar.ts";
-export { parseVCard, formatVCard } from "./vcard.ts";
+export { CalDAVClient } from "./caldav-client.ts"
+export { CardDAVClient } from "./carddav-client.ts"
+export { parseICalendar, formatICalendar } from "./icalendar.ts"
+export { parseVCard, formatVCard } from "./vcard.ts"
 export type {
   CalDAVConfig,
   CardDAVConfig,
   CalendarEvent,
   Contact,
   SyncState,
-} from "./types.ts";
+} from "./types.ts"

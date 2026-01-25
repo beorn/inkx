@@ -64,7 +64,7 @@ function Navigation() {
         <Link href="/about">About</Link>
       </Links>
     </Nav>
-  );
+  )
 }
 ```
 

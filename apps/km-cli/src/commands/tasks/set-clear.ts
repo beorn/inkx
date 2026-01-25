@@ -4,11 +4,11 @@
  * Set or clear task field values.
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
-import { emitNodeUpdated, getTaskByIdPrefix } from "@km/storage";
-import { getMarkForStatus } from "@km/core";
-import type { TaskStatus } from "@km/core";
+import { Command } from "commander"
+import chalk from "chalk"
+import { emitNodeUpdated, getTaskByIdPrefix } from "@km/storage"
+import { getMarkForStatus } from "@km/core"
+import type { TaskStatus } from "@km/core"
 
 /**
  * Create the set subcommand
@@ -27,74 +27,74 @@ export function createSetCommand(): Command {
     )
     .option("--json", "Output as JSON")
     .action((id, fields, options) => {
-      const task = getTaskByIdPrefix(id);
+      const task = getTaskByIdPrefix(id)
 
       if (!task) {
-        console.error(chalk.red(`No task found with ID prefix: ${id}`));
-        process.exit(1);
+        console.error(chalk.red(`No task found with ID prefix: ${id}`))
+        process.exit(1)
       }
 
-      const updates: Record<string, unknown> = {};
+      const updates: Record<string, unknown> = {}
 
       for (const field of fields) {
-        const colonIndex = field.indexOf(":");
+        const colonIndex = field.indexOf(":")
         if (colonIndex === -1) {
           console.error(
             chalk.red(`Invalid field format: ${field} (expected field:value)`),
-          );
-          process.exit(1);
+          )
+          process.exit(1)
         }
 
-        const key = field.slice(0, colonIndex).toLowerCase();
-        const value = field.slice(colonIndex + 1);
+        const key = field.slice(0, colonIndex).toLowerCase()
+        const value = field.slice(colonIndex + 1)
 
         switch (key) {
           case "due":
           case "due_date":
-            updates.due_date = value || null;
-            break;
+            updates.due_date = value || null
+            break
           case "start":
           case "scheduled":
           case "scheduled_date":
-            updates.scheduled_date = value || null;
-            break;
+            updates.scheduled_date = value || null
+            break
           case "p":
           case "priority":
-            updates.priority = value ? parseInt(value, 10) : null;
-            break;
+            updates.priority = value ? parseInt(value, 10) : null
+            break
           case "status":
           case "task_status":
-            updates.task_status = value as TaskStatus;
-            updates.task_mark = getMarkForStatus(value as TaskStatus);
-            break;
+            updates.task_status = value as TaskStatus
+            updates.task_mark = getMarkForStatus(value as TaskStatus)
+            break
           case "assigned":
           case "assigned_to":
           case "owner":
-            updates.assigned_to = value || null;
-            break;
+            updates.assigned_to = value || null
+            break
           default:
-            console.error(chalk.yellow(`Unknown field: ${key}`));
+            console.error(chalk.yellow(`Unknown field: ${key}`))
         }
       }
 
       if (Object.keys(updates).length === 0) {
-        console.error(chalk.red("No valid field updates provided"));
-        process.exit(1);
+        console.error(chalk.red("No valid field updates provided"))
+        process.exit(1)
       }
 
-      emitNodeUpdated(process.env.USER ?? "user", task.id, updates);
+      emitNodeUpdated(process.env.USER ?? "user", task.id, updates)
 
       if (options.json) {
-        console.log(JSON.stringify({ id: task.id, updates }));
-        return;
+        console.log(JSON.stringify({ id: task.id, updates }))
+        return
       }
 
       console.log(
         chalk.green("✓"),
         `Updated ${Object.keys(updates).join(", ")}:`,
         task.id.slice(0, 8),
-      );
-    });
+      )
+    })
 }
 
 /**
@@ -113,58 +113,58 @@ export function createClearCommand(): Command {
     )
     .option("--json", "Output as JSON")
     .action((id, fields, options) => {
-      const task = getTaskByIdPrefix(id);
+      const task = getTaskByIdPrefix(id)
 
       if (!task) {
-        console.error(chalk.red(`No task found with ID prefix: ${id}`));
-        process.exit(1);
+        console.error(chalk.red(`No task found with ID prefix: ${id}`))
+        process.exit(1)
       }
 
-      const updates: Record<string, unknown> = {};
+      const updates: Record<string, unknown> = {}
 
       for (const field of fields) {
-        const key = field.toLowerCase();
+        const key = field.toLowerCase()
 
         switch (key) {
           case "due":
           case "due_date":
-            updates.due_date = null;
-            break;
+            updates.due_date = null
+            break
           case "start":
           case "scheduled":
           case "scheduled_date":
-            updates.scheduled_date = null;
-            break;
+            updates.scheduled_date = null
+            break
           case "p":
           case "priority":
-            updates.priority = null;
-            break;
+            updates.priority = null
+            break
           case "assigned":
           case "assigned_to":
           case "owner":
-            updates.assigned_to = null;
-            break;
+            updates.assigned_to = null
+            break
           default:
-            console.error(chalk.yellow(`Unknown field: ${key}`));
+            console.error(chalk.yellow(`Unknown field: ${key}`))
         }
       }
 
       if (Object.keys(updates).length === 0) {
-        console.error(chalk.red("No valid fields to clear"));
-        process.exit(1);
+        console.error(chalk.red("No valid fields to clear"))
+        process.exit(1)
       }
 
-      emitNodeUpdated(process.env.USER ?? "user", task.id, updates);
+      emitNodeUpdated(process.env.USER ?? "user", task.id, updates)
 
       if (options.json) {
-        console.log(JSON.stringify({ id: task.id, cleared: fields }));
-        return;
+        console.log(JSON.stringify({ id: task.id, cleared: fields }))
+        return
       }
 
       console.log(
         chalk.dim("○"),
         `Cleared ${fields.join(", ")}:`,
         task.id.slice(0, 8),
-      );
-    });
+      )
+    })
 }

@@ -5,8 +5,8 @@
  * Supports both real filesystem and MockFileSystem for fast testing.
  */
 
-import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
-import { join, dirname } from "path";
+import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs"
+import { join, dirname } from "path"
 import type {
   ChaosTestConfig,
   ChaosTestResult,
@@ -14,17 +14,17 @@ import type {
   FsEvent,
   ChaosScenario,
   ChaosScenarioType,
-} from "./types.ts";
-import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos";
-import { Verifier } from "./verifier.ts";
-import { runWithKmDir, setDatabase } from "../../../src/emit.ts";
-import { resetDb, closeDb, applyEvent } from "../../../src/db.ts";
+} from "./types.ts"
+import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
+import { Verifier } from "./verifier.ts"
+import { runWithKmDir, setDatabase } from "../../../src/emit.ts"
+import { resetDb, closeDb, applyEvent } from "../../../src/db.ts"
 import {
   reconcileDirectory,
   reconcileDirectoryRecursive,
   applyReconcileOps,
-} from "../../../src/watch/reconcile.ts";
-import { MockFileSystem, createMockFileSystem } from "./mock-fs.ts";
+} from "../../../src/watch/reconcile.ts"
+import { MockFileSystem, createMockFileSystem } from "./mock-fs.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -32,7 +32,7 @@ import { MockFileSystem, createMockFileSystem } from "./mock-fs.ts";
 
 export interface ChaosTestOptions {
   /** Use in-memory MockFileSystem instead of real /tmp directories */
-  useMockFs?: boolean;
+  useMockFs?: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -46,12 +46,12 @@ export async function runChaosTest(
   config: ChaosTestConfig,
   options: ChaosTestOptions = {},
 ): Promise<ChaosTestResult> {
-  const { useMockFs = false } = options;
+  const { useMockFs = false } = options
 
   if (useMockFs) {
-    return runChaosTestWithMockFs(config);
+    return runChaosTestWithMockFs(config)
   } else {
-    return runChaosTestWithRealFs(config);
+    return runChaosTestWithRealFs(config)
   }
 }
 
@@ -61,17 +61,17 @@ export async function runChaosTest(
 async function runChaosTestWithMockFs(
   config: ChaosTestConfig,
 ): Promise<ChaosTestResult> {
-  const start = Date.now();
-  const mockFs = createMockFileSystem();
-  const vaultDir = "/vault";
-  const kmDir = "/tmp/.km"; // SQLite still needs real path
+  const start = Date.now()
+  const mockFs = createMockFileSystem()
+  const vaultDir = "/vault"
+  const kmDir = "/tmp/.km" // SQLite still needs real path
 
   // Create real .km directory for SQLite
-  mkdirSync(kmDir, { recursive: true });
+  mkdirSync(kmDir, { recursive: true })
 
   // Wrap in runWithKmDir for context-local kmDir (enables parallel test isolation)
   return runWithKmDir(kmDir, async () => {
-    let chaosWatcher: ChaosWatcher | null = null;
+    let chaosWatcher: ChaosWatcher | null = null
 
     try {
       // ─────────────────────────────────────────────────────────────
@@ -79,28 +79,28 @@ async function runChaosTestWithMockFs(
       // ─────────────────────────────────────────────────────────────
 
       // Create directories in mock filesystem
-      mockFs.mkdirSync(vaultDir, { recursive: true });
+      mockFs.mkdirSync(vaultDir, { recursive: true })
 
-      setDatabase({ applyEvent });
-      resetDb();
+      setDatabase({ applyEvent })
+      resetDb()
 
       // Create initial files in mock filesystem
       for (const file of config.setup) {
-        const fullPath = join(vaultDir, file.path);
-        const fileDir = dirname(fullPath);
+        const fullPath = join(vaultDir, file.path)
+        const fileDir = dirname(fullPath)
         if (!mockFs.existsSync(fileDir)) {
-          mockFs.mkdirSync(fileDir, { recursive: true });
+          mockFs.mkdirSync(fileDir, { recursive: true })
         }
-        mockFs.writeFileSync(fullPath, file.content);
+        mockFs.writeFileSync(fullPath, file.content)
       }
 
       // ─────────────────────────────────────────────────────────────
       // Initial Sync Phase
       // ─────────────────────────────────────────────────────────────
 
-      const scanner = mockFs.createScanner();
-      const ops = reconcileDirectory(vaultDir, vaultDir, undefined, scanner);
-      await applyReconcileOps(ops, vaultDir, mockFs);
+      const scanner = mockFs.createScanner()
+      const ops = reconcileDirectory(vaultDir, vaultDir, undefined, scanner)
+      await applyReconcileOps(ops, vaultDir, mockFs)
 
       // ─────────────────────────────────────────────────────────────
       // Chaos Injection Phase
@@ -110,20 +110,20 @@ async function runChaosTestWithMockFs(
         debounceMs: 50,
         scenario: config.scenario,
         seed: 12345,
-      });
+      })
 
-      chaosWatcher.start(vaultDir);
+      chaosWatcher.start(vaultDir)
 
       await new Promise<void>((resolve) => {
         if (config.scenario.type === "init_gap") {
-          chaosWatcher!.once("ready", resolve);
+          chaosWatcher!.once("ready", resolve)
           void chaosWatcher!.advanceTime(
             (config.scenario.params.initDurationMs as number) ?? 2000,
-          );
+          )
         } else {
-          chaosWatcher!.once("ready", resolve);
+          chaosWatcher!.once("ready", resolve)
         }
-      });
+      })
 
       // Wire up sync handler with mock fs
       chaosWatcher.on(
@@ -139,30 +139,30 @@ async function runChaosTestWithMockFs(
                       vaultDir,
                       undefined,
                       scanner,
-                    );
-              await applyReconcileOps(dirOps, vaultDir, mockFs);
+                    )
+              await applyReconcileOps(dirOps, vaultDir, mockFs)
             }
-          })();
+          })()
         },
-      );
+      )
 
       // Inject events
       const absoluteEvents: FsEvent[] = config.events.map((e) => ({
         ...e,
         path: join(vaultDir, e.path),
-      }));
+      }))
 
-      chaosWatcher.injectBatch(absoluteEvents);
-      await chaosWatcher.flush();
+      chaosWatcher.injectBatch(absoluteEvents)
+      await chaosWatcher.flush()
 
       // Minimal wait (no real I/O needed)
-      await new Promise((r) => setTimeout(r, config.timeout ?? 10));
+      await new Promise((r) => setTimeout(r, config.timeout ?? 10))
 
       // ─────────────────────────────────────────────────────────────
       // Verification Phase
       // ─────────────────────────────────────────────────────────────
 
-      const verifier = new Verifier(mockFs);
+      const verifier = new Verifier(mockFs)
 
       const expectedWithAbsolutePaths: ExpectedState = {
         ...config.expected,
@@ -174,12 +174,12 @@ async function runChaosTestWithMockFs(
           ...n,
           path: join(vaultDir, n.path),
         })),
-      };
+      }
 
       const verification = verifier.verifyAll(
         expectedWithAbsolutePaths,
         vaultDir,
-      );
+      )
 
       return {
         name: config.name,
@@ -188,18 +188,18 @@ async function runChaosTestWithMockFs(
         duration: Date.now() - start,
         eventsEmitted: chaosWatcher.getEmittedEvents().length,
         eventsDropped: chaosWatcher.getDroppedEvents().length,
-      };
+      }
     } finally {
       if (chaosWatcher) {
-        await chaosWatcher.stop();
+        await chaosWatcher.stop()
       }
-      closeDb();
+      closeDb()
       // Clean up real .km directory
       if (existsSync(kmDir)) {
-        rmSync(kmDir, { recursive: true });
+        rmSync(kmDir, { recursive: true })
       }
     }
-  });
+  })
 }
 
 /**
@@ -208,58 +208,58 @@ async function runChaosTestWithMockFs(
 async function runChaosTestWithRealFs(
   config: ChaosTestConfig,
 ): Promise<ChaosTestResult> {
-  const start = Date.now();
+  const start = Date.now()
   const testDir = join(
     "/tmp",
     `kmtest-chaos-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  );
-  const vaultDir = join(testDir, "vault");
-  const kmDir = join(testDir, ".km");
+  )
+  const vaultDir = join(testDir, "vault")
+  const kmDir = join(testDir, ".km")
 
   // Setup Phase
-  mkdirSync(kmDir, { recursive: true });
-  mkdirSync(vaultDir, { recursive: true });
+  mkdirSync(kmDir, { recursive: true })
+  mkdirSync(vaultDir, { recursive: true })
 
   // Wrap in runWithKmDir for context-local kmDir (enables parallel test isolation)
   return runWithKmDir(kmDir, async () => {
-    let chaosWatcher: ChaosWatcher | null = null;
+    let chaosWatcher: ChaosWatcher | null = null
 
     try {
-      setDatabase({ applyEvent });
-      resetDb();
+      setDatabase({ applyEvent })
+      resetDb()
 
       for (const file of config.setup) {
-        const fullPath = join(vaultDir, file.path);
-        const fileDir = dirname(fullPath);
+        const fullPath = join(vaultDir, file.path)
+        const fileDir = dirname(fullPath)
         if (!existsSync(fileDir)) {
-          mkdirSync(fileDir, { recursive: true });
+          mkdirSync(fileDir, { recursive: true })
         }
-        writeFileSync(fullPath, file.content);
+        writeFileSync(fullPath, file.content)
       }
 
       // Initial Sync Phase
-      const ops = reconcileDirectory(vaultDir, vaultDir);
-      await applyReconcileOps(ops, vaultDir);
+      const ops = reconcileDirectory(vaultDir, vaultDir)
+      await applyReconcileOps(ops, vaultDir)
 
       // Chaos Injection Phase
       chaosWatcher = createChaosWatcher({
         debounceMs: 50,
         scenario: config.scenario,
         seed: 12345,
-      });
+      })
 
-      chaosWatcher.start(vaultDir);
+      chaosWatcher.start(vaultDir)
 
       await new Promise<void>((resolve) => {
         if (config.scenario.type === "init_gap") {
-          chaosWatcher!.once("ready", resolve);
+          chaosWatcher!.once("ready", resolve)
           void chaosWatcher!.advanceTime(
             (config.scenario.params.initDurationMs as number) ?? 2000,
-          );
+          )
         } else {
-          chaosWatcher!.once("ready", resolve);
+          chaosWatcher!.once("ready", resolve)
         }
-      });
+      })
 
       chaosWatcher.on(
         "sync",
@@ -269,24 +269,24 @@ async function runChaosTestWithRealFs(
               const dirOps =
                 dir === vaultDir
                   ? reconcileDirectory(dir, vaultDir)
-                  : reconcileDirectoryRecursive(dir, vaultDir);
-              await applyReconcileOps(dirOps, vaultDir);
+                  : reconcileDirectoryRecursive(dir, vaultDir)
+              await applyReconcileOps(dirOps, vaultDir)
             }
-          })();
+          })()
         },
-      );
+      )
 
       const absoluteEvents: FsEvent[] = config.events.map((e) => ({
         ...e,
         path: join(vaultDir, e.path),
-      }));
+      }))
 
-      chaosWatcher.injectBatch(absoluteEvents);
-      await chaosWatcher.flush();
-      await new Promise((r) => setTimeout(r, config.timeout ?? 100));
+      chaosWatcher.injectBatch(absoluteEvents)
+      await chaosWatcher.flush()
+      await new Promise((r) => setTimeout(r, config.timeout ?? 100))
 
       // Verification Phase
-      const verifier = new Verifier();
+      const verifier = new Verifier()
 
       const expectedWithAbsolutePaths: ExpectedState = {
         ...config.expected,
@@ -298,12 +298,12 @@ async function runChaosTestWithRealFs(
           ...n,
           path: join(vaultDir, n.path),
         })),
-      };
+      }
 
       const verification = verifier.verifyAll(
         expectedWithAbsolutePaths,
         vaultDir,
-      );
+      )
 
       return {
         name: config.name,
@@ -312,17 +312,17 @@ async function runChaosTestWithRealFs(
         duration: Date.now() - start,
         eventsEmitted: chaosWatcher.getEmittedEvents().length,
         eventsDropped: chaosWatcher.getDroppedEvents().length,
-      };
+      }
     } finally {
       if (chaosWatcher) {
-        await chaosWatcher.stop();
+        await chaosWatcher.stop()
       }
-      closeDb();
+      closeDb()
       if (existsSync(testDir)) {
-        rmSync(testDir, { recursive: true });
+        rmSync(testDir, { recursive: true })
       }
     }
-  });
+  })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -336,20 +336,20 @@ export async function runChaosSuite(
   configs: ChaosTestConfig[],
   options: ChaosTestOptions = {},
 ): Promise<{
-  results: ChaosTestResult[];
+  results: ChaosTestResult[]
   summary: {
-    total: number;
-    passed: number;
-    failed: number;
-    totalDuration: number;
-  };
+    total: number
+    passed: number
+    failed: number
+    totalDuration: number
+  }
 }> {
-  const results: ChaosTestResult[] = [];
-  const start = Date.now();
+  const results: ChaosTestResult[] = []
+  const start = Date.now()
 
   for (const config of configs) {
-    const result = await runChaosTest(config, options);
-    results.push(result);
+    const result = await runChaosTest(config, options)
+    results.push(result)
   }
 
   return {
@@ -360,7 +360,7 @@ export async function runChaosSuite(
       failed: results.filter((r) => !r.passed).length,
       totalDuration: Date.now() - start,
     },
-  };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -374,10 +374,10 @@ export function createTestConfig(
   name: string,
   scenario: ChaosScenario,
   options: {
-    setup?: Array<{ path: string; content: string }>;
-    events?: FsEvent[];
-    expectedFiles?: string[];
-    timeout?: number;
+    setup?: Array<{ path: string; content: string }>
+    events?: FsEvent[]
+    expectedFiles?: string[]
+    timeout?: number
   } = {},
 ): ChaosTestConfig {
   return {
@@ -391,7 +391,7 @@ export function createTestConfig(
       files: options.expectedFiles ?? ["test.md"],
     },
     timeout: options.timeout ?? 100,
-  };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -403,41 +403,41 @@ export function createTestConfig(
  */
 export interface ParallelSuiteConfig {
   /** Number of vaults to test in parallel */
-  vaultCount: number;
+  vaultCount: number
   /** Chaos scenarios to run on each vault */
-  scenarios: ChaosScenario[];
+  scenarios: ChaosScenario[]
   /** Run tests in parallel (default: true) */
-  parallel?: boolean;
+  parallel?: boolean
   /** Use mock filesystem (default: true for parallel) */
-  useMockFs?: boolean;
+  useMockFs?: boolean
   /** Callback when a vault test completes */
   onVaultComplete?: (
     vaultIndex: number,
     result: ChaosTestResult,
     progress: { completed: number; total: number },
-  ) => void;
+  ) => void
   /** Base seed for reproducible tests (each vault gets seed + vaultIndex) */
-  baseSeed?: number;
+  baseSeed?: number
   /** Timeout per vault test (ms) */
-  timeout?: number;
+  timeout?: number
 }
 
 /**
  * Result from parallel suite execution
  */
 export interface ParallelSuiteResult {
-  results: ChaosTestResult[];
+  results: ChaosTestResult[]
   summary: {
-    total: number;
-    passed: number;
-    failed: number;
-    totalDuration: number;
-    parallelSpeedup: number; // estimated vs sequential
-  };
+    total: number
+    passed: number
+    failed: number
+    totalDuration: number
+    parallelSpeedup: number // estimated vs sequential
+  }
   /** Results grouped by scenario */
-  byScenario: Map<ChaosScenarioType, ChaosTestResult[]>;
+  byScenario: Map<ChaosScenarioType, ChaosTestResult[]>
   /** Results grouped by vault */
-  byVault: Map<number, ChaosTestResult[]>;
+  byVault: Map<number, ChaosTestResult[]>
 }
 
 /**
@@ -469,18 +469,18 @@ export async function runChaosSuiteParallel(
     useMockFs = true,
     onVaultComplete,
     timeout = 100,
-  } = config;
+  } = config
 
-  const start = Date.now();
-  let completed = 0;
-  const total = vaultCount * scenarios.length;
+  const start = Date.now()
+  let completed = 0
+  const total = vaultCount * scenarios.length
 
   // Generate all test configs
   const testConfigs: Array<{
-    vaultIndex: number;
-    scenario: ChaosScenario;
-    config: ChaosTestConfig;
-  }> = [];
+    vaultIndex: number
+    scenario: ChaosScenario
+    config: ChaosTestConfig
+  }> = []
 
   for (let vaultIndex = 0; vaultIndex < vaultCount; vaultIndex++) {
     for (const scenario of scenarios) {
@@ -502,62 +502,62 @@ export async function runChaosSuiteParallel(
             timeout,
           },
         ),
-      });
+      })
     }
   }
 
   // Run tests
   const runSingleTest = async (testInfo: (typeof testConfigs)[0]) => {
-    const result = await runChaosTest(testInfo.config, { useMockFs });
+    const result = await runChaosTest(testInfo.config, { useMockFs })
 
-    completed++;
+    completed++
     if (onVaultComplete) {
-      onVaultComplete(testInfo.vaultIndex, result, { completed, total });
+      onVaultComplete(testInfo.vaultIndex, result, { completed, total })
     }
 
-    return { ...testInfo, result };
-  };
+    return { ...testInfo, result }
+  }
 
   let results: Array<{
-    vaultIndex: number;
-    scenario: ChaosScenario;
-    result: ChaosTestResult;
-  }>;
+    vaultIndex: number
+    scenario: ChaosScenario
+    result: ChaosTestResult
+  }>
 
   if (parallel) {
     // Run all tests in parallel
-    results = await Promise.all(testConfigs.map(runSingleTest));
+    results = await Promise.all(testConfigs.map(runSingleTest))
   } else {
     // Run sequentially for comparison/debugging
-    results = [];
+    results = []
     for (const testConfig of testConfigs) {
-      results.push(await runSingleTest(testConfig));
+      results.push(await runSingleTest(testConfig))
     }
   }
 
-  const duration = Date.now() - start;
+  const duration = Date.now() - start
 
   // Group results by scenario
-  const byScenario = new Map<ChaosScenarioType, ChaosTestResult[]>();
+  const byScenario = new Map<ChaosScenarioType, ChaosTestResult[]>()
   for (const { scenario, result } of results) {
-    const scenarioResults = byScenario.get(scenario.type) || [];
-    scenarioResults.push(result);
-    byScenario.set(scenario.type, scenarioResults);
+    const scenarioResults = byScenario.get(scenario.type) || []
+    scenarioResults.push(result)
+    byScenario.set(scenario.type, scenarioResults)
   }
 
   // Group results by vault
-  const byVault = new Map<number, ChaosTestResult[]>();
+  const byVault = new Map<number, ChaosTestResult[]>()
   for (const { vaultIndex, result } of results) {
-    const vaultResults = byVault.get(vaultIndex) || [];
-    vaultResults.push(result);
-    byVault.set(vaultIndex, vaultResults);
+    const vaultResults = byVault.get(vaultIndex) || []
+    vaultResults.push(result)
+    byVault.set(vaultIndex, vaultResults)
   }
 
   // Calculate estimated sequential time
   const sequentialEstimate = results.reduce(
     (sum, r) => sum + r.result.duration,
     0,
-  );
+  )
 
   return {
     results: results.map((r) => r.result),
@@ -570,45 +570,45 @@ export async function runChaosSuiteParallel(
     },
     byScenario,
     byVault,
-  };
+  }
 }
 
 /**
  * Print test results to console
  */
 export function printResults(results: ChaosTestResult[]): void {
-  console.log("\n=== Chaos Test Results ===\n");
+  console.log("\n=== Chaos Test Results ===\n")
 
   for (const result of results) {
-    const status = result.passed ? "PASS" : "FAIL";
-    const icon = result.passed ? "✓" : "✗";
+    const status = result.passed ? "PASS" : "FAIL"
+    const icon = result.passed ? "✓" : "✗"
 
-    console.log(`${icon} [${status}] ${result.name}`);
-    console.log(`   Duration: ${result.duration}ms`);
-    console.log(`   Events emitted: ${result.eventsEmitted}`);
-    console.log(`   Events dropped: ${result.eventsDropped}`);
+    console.log(`${icon} [${status}] ${result.name}`)
+    console.log(`   Duration: ${result.duration}ms`)
+    console.log(`   Events emitted: ${result.eventsEmitted}`)
+    console.log(`   Events dropped: ${result.eventsDropped}`)
 
     if (!result.passed) {
-      console.log(`   Errors:`);
+      console.log(`   Errors:`)
       for (const error of result.verification.errors) {
-        console.log(`     - ${error}`);
+        console.log(`     - ${error}`)
       }
     }
 
     if (result.verification.warnings.length > 0) {
-      console.log(`   Warnings:`);
+      console.log(`   Warnings:`)
       for (const warning of result.verification.warnings) {
-        console.log(`     - ${warning}`);
+        console.log(`     - ${warning}`)
       }
     }
 
-    console.log();
+    console.log()
   }
 
-  const passed = results.filter((r) => r.passed).length;
-  const failed = results.filter((r) => !r.passed).length;
+  const passed = results.filter((r) => r.passed).length
+  const failed = results.filter((r) => !r.passed).length
 
   console.log(
     `Total: ${results.length} | Passed: ${passed} | Failed: ${failed}`,
-  );
+  )
 }

@@ -11,12 +11,12 @@
  *   km sh --json @inbox.md < commands.txt
  */
 
-import { Command } from "commander";
-import { createInterface } from "readline";
-import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs";
-import { homedir } from "os";
-import { join } from "path";
-import { getRootPath } from "../index.ts";
+import { Command } from "commander"
+import { createInterface } from "readline"
+import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs"
+import { homedir } from "os"
+import { join } from "path"
+import { getRootPath } from "../index.ts"
 import {
   createVault,
   runGenerator,
@@ -24,13 +24,13 @@ import {
   resolveNode,
   resolvePathArg,
   type Vault,
-} from "@km/storage";
-import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree";
+} from "@km/storage"
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
 // Bound version with store dependency
 const getNodeDisplayName = (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
-) => getNodeDisplayNameBase(node, getChildren);
+) => getNodeDisplayNameBase(node, getChildren)
 import {
   createBoardState,
   runShell,
@@ -44,14 +44,14 @@ import {
   type MutationHandler,
   type ShellCommand,
   type BoardState,
-} from "@km/repl";
-import type { KNode } from "@km/core";
+} from "@km/repl"
+import type { KNode } from "@km/core"
 
 // OSC 133 Shell Integration Protocol (Kitty, WezTerm, iTerm2, VS Code)
 // Emitted automatically when running in a real TTY, or when TERM_SHELL_INTEGRATION=1
-const OSC_133_A = "\x1b]133;A\x07"; // Prompt start (ready for input)
-const OSC_133_C = "\x1b]133;C\x07"; // Command start (execution beginning)
-const osc133D = (exitCode: number) => `\x1b]133;D;${exitCode}\x07`; // Command end
+const OSC_133_A = "\x1b]133;A\x07" // Prompt start (ready for input)
+const OSC_133_C = "\x1b]133;C\x07" // Command start (execution beginning)
+const osc133D = (exitCode: number) => `\x1b]133;D;${exitCode}\x07` // Command end
 
 /**
  * Determine if we should emit OSC 133 sequences
@@ -60,11 +60,11 @@ const osc133D = (exitCode: number) => `\x1b]133;D;${exitCode}\x07`; // Command e
  * - Force-disabled via TERM_SHELL_INTEGRATION=0
  */
 function shouldEmitOsc133(): boolean {
-  const envFlag = process.env.TERM_SHELL_INTEGRATION;
-  if (envFlag === "1") return true;
-  if (envFlag === "0") return false;
+  const envFlag = process.env.TERM_SHELL_INTEGRATION
+  if (envFlag === "1") return true
+  if (envFlag === "0") return false
   // Auto-detect: emit if running in a real TTY
-  return process.stdout.isTTY === true;
+  return process.stdout.isTTY === true
 }
 
 /**
@@ -74,28 +74,28 @@ function shouldEmitOsc133(): boolean {
 function getNodeName(node: KNode): string {
   // Prefer the stored name
   if (node.name) {
-    return node.name;
+    return node.name
   }
   // Fallback: derive from fs_path for files
   if (node.fs_path) {
-    const filename = node.fs_path.split("/").pop();
+    const filename = node.fs_path.split("/").pop()
     if (filename) {
-      return filename.replace(/\.md$/, "");
+      return filename.replace(/\.md$/, "")
     }
   }
   // Fallback: use md_slug for sections
   if (node.md_slug) {
-    return node.md_slug;
+    return node.md_slug
   }
   // Last resort: short ID
-  return node.id.slice(0, 8);
+  return node.id.slice(0, 8)
 }
 
 /**
  * Convert KNode to TNode (recursive)
  */
 function kNodeToTNode(node: KNode, depth: number): TNode {
-  const children = getChildren(node.id);
+  const children = getChildren(node.id)
   return {
     // KNode base properties
     id: node.id,
@@ -120,19 +120,19 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
 
     // TNode tree properties
     children: children.map((child, idx) => {
-      const childNode = kNodeToTNode(child, depth + 1);
+      const childNode = kNodeToTNode(child, depth + 1)
       // Update parent reference for the child
       return {
         ...childNode,
         parent_id: node.id,
         parent_idx: child.parent_idx ?? idx,
-      };
+      }
     }),
     childCount: children.length,
     childrenLoaded: true,
     isTask: node.task_status !== undefined,
     depth,
-  };
+  }
 }
 
 /**
@@ -140,20 +140,20 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
  */
 function buildNodes(rootId: string | null): TNode[] {
   if (!rootId) {
-    const roots = getChildren(null);
+    const roots = getChildren(null)
     if (roots.length === 0) {
-      return [];
+      return []
     }
-    return roots.map((node) => kNodeToTNode(node, 0));
+    return roots.map((node) => kNodeToTNode(node, 0))
   }
 
-  const node = resolveNode(rootId);
+  const node = resolveNode(rootId)
   if (!node) {
-    return [];
+    return []
   }
 
-  const children = getChildren(node.id);
-  return children.map((child) => kNodeToTNode(child, 0));
+  const children = getChildren(node.id)
+  return children.map((child) => kNodeToTNode(child, 0))
 }
 
 /**
@@ -161,27 +161,27 @@ function buildNodes(rootId: string | null): TNode[] {
  */
 async function readInputLines(inputFile?: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    const lines: string[] = [];
+    const lines: string[] = []
     const input =
       inputFile && existsSync(inputFile)
         ? createReadStream(inputFile)
-        : process.stdin;
+        : process.stdin
 
     const rl = createInterface({
       input,
       crlfDelay: Infinity,
-    });
+    })
 
     rl.on("line", (line) => {
-      lines.push(line);
-    });
+      lines.push(line)
+    })
 
     rl.on("close", () => {
-      resolve(lines);
-    });
+      resolve(lines)
+    })
 
-    rl.on("error", reject);
-  });
+    rl.on("error", reject)
+  })
 }
 
 /**
@@ -192,23 +192,23 @@ function parseCommandString(cmdString: string): string[] {
   return cmdString
     .split(/[;\n]/)
     .map((cmd) => cmd.trim())
-    .filter((cmd) => cmd.length > 0);
+    .filter((cmd) => cmd.length > 0)
 }
 
 /**
  * Get node at current cursor position
  */
 function getNodeAtCursor(state: BoardState): TNode | null {
-  let nodes = state.nodes;
+  let nodes = state.nodes
   for (let i = 0; i < state.cursor.length; i++) {
-    const idx = state.cursor[i];
-    if (idx === undefined || idx >= nodes.length) return null;
-    const node = nodes[idx];
-    if (!node) return null;
-    if (i === state.cursor.length - 1) return node;
-    nodes = node.children;
+    const idx = state.cursor[i]
+    if (idx === undefined || idx >= nodes.length) return null
+    const node = nodes[idx]
+    if (!node) return null
+    if (i === state.cursor.length - 1) return node
+    nodes = node.children
   }
-  return nodes[0] ?? null;
+  return nodes[0] ?? null
 }
 
 /**
@@ -221,56 +221,56 @@ function createMutationHandler(
   rootPath: string,
 ): MutationHandler {
   return (command: ShellCommand, state: BoardState) => {
-    const currentNode = getNodeAtCursor(state);
+    const currentNode = getNodeAtCursor(state)
     if (!currentNode) {
-      return { ok: false, error: "No node at cursor" };
+      return { ok: false, error: "No node at cursor" }
     }
 
     try {
       switch (command.type) {
         case "SET_STATUS": {
           // Use vault's updateNode which writes to filesystem synchronously
-          vault.updateNode(currentNode.id, { task_status: command.status });
-          break;
+          vault.updateNode(currentNode.id, { task_status: command.status })
+          break
         }
         case "DELETE": {
           // TODO: Implement delete - requires regenerating markdown file
-          return { ok: false, error: "delete command not yet implemented" };
+          return { ok: false, error: "delete command not yet implemented" }
         }
         case "SHIFT": {
           // TODO: Implement shift - requires regenerating markdown file
           return {
             ok: false,
             error: "shift_up/shift_down commands not yet implemented",
-          };
+          }
         }
         default:
           return {
             ok: false,
             error: `Unknown mutation: ${(command as ShellCommand).type}`,
-          };
+          }
       }
 
       // Rebuild state from storage after mutation
-      const newNodes = buildNodes(rootId);
-      const newState = createBoardState(newNodes, rootId, rootPath);
+      const newNodes = buildNodes(rootId)
+      const newState = createBoardState(newNodes, rootId, rootPath)
 
       // Preserve cursor position if valid, otherwise reset
-      let newCursor = state.cursor;
-      let testNodes = newState.nodes;
+      let newCursor = state.cursor
+      let testNodes = newState.nodes
       for (let i = 0; i < newCursor.length; i++) {
-        const idx = newCursor[i];
+        const idx = newCursor[i]
         if (idx === undefined || idx >= testNodes.length) {
           // Cursor invalid, truncate
-          newCursor = newCursor.slice(0, i);
-          break;
+          newCursor = newCursor.slice(0, i)
+          break
         }
-        const node = testNodes[idx];
+        const node = testNodes[idx]
         if (!node) {
-          newCursor = newCursor.slice(0, i);
-          break;
+          newCursor = newCursor.slice(0, i)
+          break
         }
-        testNodes = node.children;
+        testNodes = node.children
       }
 
       return {
@@ -283,14 +283,14 @@ function createMutationHandler(
           collapsedNodes: state.collapsedNodes,
           selectedNodes: new Set(), // Clear selection after mutation
         },
-      };
+      }
     } catch (err) {
       return {
         ok: false,
         error: err instanceof Error ? err.message : String(err),
-      };
+      }
     }
-  };
+  }
 }
 
 export const shCommand = new Command("sh")
@@ -305,17 +305,17 @@ export const shCommand = new Command("sh")
   .option("-v, --verbose", "Output JSON action event for each command")
   .action(async (root, options) => {
     // Resolve the root argument - handles directory paths, file paths, and node IDs
-    const resolved = resolvePathArg(root, getRootPath());
+    const resolved = resolvePathArg(root, getRootPath())
 
     // Create vault domain object (auto-closes via `using`)
-    using vault = runGenerator(createVault(resolved.vaultRoot));
+    using vault = runGenerator(createVault(resolved.vaultRoot))
 
     // Resolve the node reference if provided
-    let resolvedNodeId: string | null = null;
+    let resolvedNodeId: string | null = null
     if (resolved.nodeRef) {
-      const node = resolveNode(resolved.nodeRef);
+      const node = resolveNode(resolved.nodeRef)
       if (node) {
-        resolvedNodeId = node.id;
+        resolvedNodeId = node.id
       } else if (resolved.wasExplicitPath) {
         // Explicit path that didn't resolve - error
         if (options.json) {
@@ -325,18 +325,18 @@ export const shCommand = new Command("sh")
               error: `No node found for path: ${resolved.nodeRef}`,
               ts: Date.now(),
             }),
-          );
+          )
         } else {
-          console.error(`error: No node found for path: ${resolved.nodeRef}`);
+          console.error(`error: No node found for path: ${resolved.nodeRef}`)
         }
-        process.exit(1);
+        process.exit(1)
       } else {
         // Non-path that didn't resolve - could be invalid ID
-        resolvedNodeId = resolved.nodeRef; // Let buildNodes handle it
+        resolvedNodeId = resolved.nodeRef // Let buildNodes handle it
       }
     }
 
-    const nodes = buildNodes(resolvedNodeId);
+    const nodes = buildNodes(resolvedNodeId)
 
     if (nodes.length === 0) {
       if (options.json) {
@@ -346,50 +346,50 @@ export const shCommand = new Command("sh")
             error: "No nodes found",
             ts: Date.now(),
           }),
-        );
+        )
       } else {
-        console.error("error: No nodes found");
+        console.error("error: No nodes found")
       }
-      process.exit(1);
+      process.exit(1)
     }
 
     // Compute the root node's slug path for prompt display
     // e.g., if viewing @inbox.md, this will be "@inbox"
-    let rootSlugPath: string | undefined;
+    let rootSlugPath: string | undefined
     if (resolvedNodeId) {
-      const rootNode = resolveNode(resolvedNodeId);
+      const rootNode = resolveNode(resolvedNodeId)
       if (rootNode) {
-        rootSlugPath = getNodeName(rootNode);
+        rootSlugPath = getNodeName(rootNode)
       }
     }
 
     // Create initial state
-    const initialState = createBoardState(nodes, resolvedNodeId, vault.path);
+    const initialState = createBoardState(nodes, resolvedNodeId, vault.path)
 
     // Create mutation handler for storage operations
-    const onMutation = createMutationHandler(vault, resolvedNodeId, vault.path);
+    const onMutation = createMutationHandler(vault, resolvedNodeId, vault.path)
 
     // Output function
     const output = (event: OutputEvent | string) => {
       if (typeof event === "string") {
-        console.log(event);
+        console.log(event)
       } else {
-        console.log(JSON.stringify(event));
+        console.log(JSON.stringify(event))
       }
-    };
+    }
 
     // Read input: -c takes priority, then -f, then stdin (REPL mode)
-    const cmdStrings: string[] | undefined = options.command;
+    const cmdStrings: string[] | undefined = options.command
 
     if (cmdStrings && cmdStrings.length > 0) {
       // Batch mode: -c flag with commands
-      const lines = cmdStrings.flatMap(parseCommandString);
+      const lines = cmdStrings.flatMap(parseCommandString)
       const finalState = await runShell(lines, initialState, {
         jsonMode: options.json ?? false,
         verbose: options.verbose ?? false,
         output,
         onMutation,
-      });
+      })
 
       if (options.json) {
         console.log(
@@ -398,17 +398,17 @@ export const shCommand = new Command("sh")
             state: serializeState(finalState),
             ts: Date.now(),
           }),
-        );
+        )
       }
     } else if (options.file) {
       // Batch mode: -f flag with file
-      const lines = await readInputLines(options.file);
+      const lines = await readInputLines(options.file)
       const finalState = await runShell(lines, initialState, {
         jsonMode: options.json ?? false,
         verbose: options.verbose ?? false,
         output,
         onMutation,
-      });
+      })
 
       if (options.json) {
         console.log(
@@ -417,7 +417,7 @@ export const shCommand = new Command("sh")
             state: serializeState(finalState),
             ts: Date.now(),
           }),
-        );
+        )
       }
     } else {
       // REPL mode: read from stdin line by line, execute immediately
@@ -428,40 +428,40 @@ export const shCommand = new Command("sh")
         output,
         actionLog: [],
         onMutation,
-      };
+      }
 
       // OSC 133 shell integration - auto-enabled in TTY or via env var
-      const useOsc133 = shouldEmitOsc133();
+      const useOsc133 = shouldEmitOsc133()
 
       // History file path
-      const historyPath = join(homedir(), ".km_history");
+      const historyPath = join(homedir(), ".km_history")
 
       // Load history from file
-      let history: string[] = [];
+      let history: string[] = []
       try {
-        const historyContent = readFileSync(historyPath, "utf-8");
+        const historyContent = readFileSync(historyPath, "utf-8")
         history = historyContent
           .split("\n")
-          .filter((line) => line.trim().length > 0);
+          .filter((line) => line.trim().length > 0)
       } catch {
         // No history file yet, that's fine
       }
 
       // Get all command names for completion
-      const commandNames = getCommandNames();
+      const commandNames = getCommandNames()
 
       // Tab completion function
       const completer = (line: string): [string[], string] => {
         // Complete command names
         const hits = commandNames.filter((cmd) =>
           cmd.startsWith(line.toLowerCase()),
-        );
+        )
         // Show all completions if none found
-        return [hits.length ? hits : commandNames, line];
-      };
+        return [hits.length ? hits : commandNames, line]
+      }
 
       // Build prompt showing current path (including root node path)
-      const buildPrompt = () => `${getPromptPath(ctx.state, rootSlugPath)}> `;
+      const buildPrompt = () => `${getPromptPath(ctx.state, rootSlugPath)}> `
 
       const rl = createInterface({
         input: process.stdin,
@@ -472,13 +472,13 @@ export const shCommand = new Command("sh")
         crlfDelay: Infinity,
         terminal: process.stdin.isTTY ?? false,
         prompt: buildPrompt(),
-      });
+      })
 
       // Signal prompt ready and show initial prompt
       if (useOsc133) {
-        process.stdout.write(OSC_133_A);
+        process.stdout.write(OSC_133_A)
       }
-      rl.prompt();
+      rl.prompt()
 
       await new Promise<void>((resolve) => {
         rl.on("line", (line) => {
@@ -486,16 +486,16 @@ export const shCommand = new Command("sh")
           void (async () => {
             // Signal command start
             if (useOsc133) {
-              process.stdout.write(OSC_133_C);
+              process.stdout.write(OSC_133_C)
             }
 
-            const { state, quit } = await executeCommand(line, ctx);
-            ctx.state = state;
+            const { state, quit } = await executeCommand(line, ctx)
+            ctx.state = state
 
             // Append to history file (only non-empty lines)
             if (line.trim().length > 0) {
               try {
-                appendFileSync(historyPath, line + "\n");
+                appendFileSync(historyPath, line + "\n")
               } catch {
                 // Ignore history write errors
               }
@@ -503,27 +503,27 @@ export const shCommand = new Command("sh")
 
             // Signal command end (exit code 0 - shell commands don't have exit codes yet)
             if (useOsc133) {
-              process.stdout.write(osc133D(0));
+              process.stdout.write(osc133D(0))
               // Signal next prompt ready (unless quitting)
               if (!quit) {
-                process.stdout.write(OSC_133_A);
+                process.stdout.write(OSC_133_A)
               }
             }
 
             if (quit) {
-              rl.close();
+              rl.close()
             } else {
               // Update prompt with new path and show it
-              rl.setPrompt(buildPrompt());
-              rl.prompt();
+              rl.setPrompt(buildPrompt())
+              rl.prompt()
             }
-          })();
-        });
+          })()
+        })
 
         rl.on("close", () => {
-          resolve();
-        });
-      });
+          resolve()
+        })
+      })
 
       if (options.json) {
         console.log(
@@ -532,7 +532,7 @@ export const shCommand = new Command("sh")
             state: serializeState(ctx.state),
             ts: Date.now(),
           }),
-        );
+        )
       }
     }
-  });
+  })

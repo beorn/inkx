@@ -95,19 +95,19 @@ test("node shifting (move to different column)", () => {
       item("col1", item("1a"), item("1b")),
       item("col2", item("2a")),
     ),
-  );
+  )
 
   // BEFORE: 1a is child of col1
-  board.expect("#col1 > #1a").toExist();
-  board.expect("#1a + #1b").toExist(); // 1a before 1b
+  board.expect("#col1 > #1a").toExist()
+  board.expect("#1a + #1b").toExist() // 1a before 1b
 
   // Move 1a to col2
-  board.press("m").press("l").press("\r");
+  board.press("m").press("l").press("\r")
 
   // AFTER: 1a is now child of col2
-  board.expect("#col2 > #1a").toExist();
-  board.expect("#col1 > #1a").not.toExist();
-});
+  board.expect("#col2 > #1a").toExist()
+  board.expect("#col1 > #1a").not.toExist()
+})
 ```
 
 **Example - Visual layout test (position/spacing):**
@@ -116,16 +116,16 @@ test("node shifting (move to different column)", () => {
 test("columns are horizontal", () => {
   const { board } = testEnv(() =>
     item("board", item("col1", item("1a")), item("col2", item("2a"))),
-  );
+  )
 
-  const col1Box = board.q("#col1").boundingBox();
-  const col2Box = board.q("#col2").boundingBox();
+  const col1Box = board.q("#col1").boundingBox()
+  const col2Box = board.q("#col2").boundingBox()
 
   // col2 is to the right of col1
-  expect(col2Box.x).toBeGreaterThan(col1Box.x);
+  expect(col2Box.x).toBeGreaterThan(col1Box.x)
   // Both columns aligned top
-  expect(col2Box.y).toBe(col1Box.y);
-});
+  expect(col2Box.y).toBe(col1Box.y)
+})
 ```
 
 **Fixture pattern** (decker-inspired):
@@ -199,7 +199,7 @@ Per-layer, per-domain-object tests. Fast, isolated, use mocks by default.
 Tests requiring database access use `withTestEnv` for isolated environments:
 
 ```typescript
-import { withTestEnv } from "@km/storage";
+import { withTestEnv } from "@km/storage"
 
 test("creates node", async () => {
   await withTestEnv(async ({ db, vaultDir, kmDir }) => {
@@ -207,11 +207,11 @@ test("creates node", async () => {
     // - Unique /tmp/kmtest-{ulid}/ directory
     // - Fresh in-memory SQLite database
     // - Isolated AsyncLocalStorage contexts
-    createTask(db, "Test task");
-    expect(getNode(taskId)).toBeDefined();
-  });
+    createTask(db, "Test task")
+    expect(getNode(taskId)).toBeDefined()
+  })
   // Cleanup automatic: db closed, temp dirs removed
-});
+})
 ```
 
 **What `withTestEnv` provides**:
@@ -237,13 +237,13 @@ The `vault` object provides these methods (typed as `TestVault`):
 test("builds board from nodes", async () => {
   await withTestEnv(async ({ vault, vaultDir }) => {
     // Create test data
-    const rootId = createTestNode("board", "Test Board");
+    const rootId = createTestNode("board", "Test Board")
 
     // Pass vault to functions that need DB access
-    const state = buildBoardState(vault as Vault, rootId);
-    expect(state.columns).toHaveLength(2);
-  });
-});
+    const state = buildBoardState(vault as Vault, rootId)
+    expect(state.columns).toHaveLength(2)
+  })
+})
 ```
 
 **Custom fixture** (when you need different behavior):
@@ -290,10 +290,10 @@ Each domain object gets its own test file testing the **public API**:
 
 ```typescript
 test("creates node", () => {
-  using vault = runGenerator(createVault(testDir));
-  vault.addNode(parentId, { type: "task", content: "New task" });
-  expect(vault.getNode(id)).toBeDefined();
-});
+  using vault = runGenerator(createVault(testDir))
+  vault.addNode(parentId, { type: "task", content: "New task" })
+  expect(vault.getNode(id)).toBeDefined()
+})
 ```
 
 ### 2.3 Pure Function Tests

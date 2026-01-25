@@ -23,25 +23,23 @@
  * ```
  */
 
-import { Database } from "bun:sqlite";
-import { existsSync, mkdirSync, rmSync } from "fs";
-import { join } from "path";
-import { ulid } from "ulid";
-import { SCHEMA } from "../schema.ts";
-import { runWithDb } from "../db-instance.ts";
-import { runWithKmDir } from "../emit.ts";
+import { Database } from "bun:sqlite"
+import { existsSync, mkdirSync, rmSync } from "fs"
+import { join } from "path"
+import { ulid } from "ulid"
+import type { KNode } from "@km/core"
+import { SCHEMA } from "../schema.ts"
+import { runWithDb } from "../db-instance.ts"
+import { runWithKmDir } from "../emit.ts"
+import { getNode } from "../db-queries/core-lookup.ts"
 import {
-  getNode,
   getChildren,
   getChildCountsBatch,
-  getBacklinks,
   getAncestors,
-  getLinksTo,
-  moveNode,
-  updateNode,
-  deleteNode,
-  addNode,
-} from "../db.ts";
+} from "../db-queries/tree-traversal.ts"
+import { getLinksTo } from "../db-queries/task-queries.ts"
+import { getBacklinks, type Link } from "../db-links.ts"
+import { moveNode, updateNode, deleteNode, addNode } from "../db-ops.ts"
 
 // =============================================================================
 // Types
@@ -50,49 +48,49 @@ import {
 /**
  * Test infrastructure modes
  */
-export type TestMode = "mock" | "standard" | "real";
+export type TestMode = "mock" | "standard" | "real"
 
 /**
  * Get the current test mode from environment
  */
 export function getTestMode(): TestMode {
-  const mode = process.env.TEST_MODE?.toLowerCase();
-  if (mode === "mock" || mode === "real") return mode;
-  return "standard";
+  const mode = process.env.TEST_MODE?.toLowerCase()
+  if (mode === "mock" || mode === "real") return mode
+  return "standard"
 }
 
 /**
  * Check if running in real infrastructure mode
  */
 export function isRealMode(): boolean {
-  return getTestMode() === "real";
+  return getTestMode() === "real"
 }
 
 /**
  * Check if running in mock (memory-only) mode
  */
 export function isMockMode(): boolean {
-  return getTestMode() === "mock";
+  return getTestMode() === "mock"
 }
 
 /**
- * Vault-like object for tests - wraps singleton functions bound to test DB
+ * Vault-like object for tests - wraps db functions with db pre-bound
  */
 export interface TestVault {
-  getNode: typeof getNode;
-  getChildren: typeof getChildren;
-  getChildCountsBatch: typeof getChildCountsBatch;
-  getBacklinks: typeof getBacklinks;
-  getAncestors: typeof getAncestors;
-  getLinksTo: typeof getLinksTo;
-  moveNode: typeof moveNode;
-  updateNode: typeof updateNode;
-  deleteNode: typeof deleteNode;
-  addNode: typeof addNode;
+  getNode: (id: string) => KNode | null
+  getChildren: (parentId: string | null) => KNode[]
+  getChildCountsBatch: (parentIds: string[]) => Map<string, number>
+  getBacklinks: (nodeId: string) => Link[]
+  getAncestors: (nodeId: string) => KNode[]
+  getLinksTo: (targetId: string) => KNode[]
+  moveNode: (id: string, newParentId: string, position: number) => void
+  updateNode: (id: string, changes: Partial<KNode>) => void
+  deleteNode: (id: string) => void
+  addNode: (parentId: string | null, nodeData: Partial<KNode> & { type: string; content: string }) => string
   rawQuery: <T = Record<string, unknown>>(
     sql: string,
     params?: unknown[],
-  ) => T[];
+  ) => T[]
 }
 
 /**
@@ -100,19 +98,19 @@ export interface TestVault {
  */
 export interface TestEnv {
   /** Unique test ID */
-  testId: string;
+  testId: string
   /** Root test directory (deleted on cleanup) */
-  testDir: string;
+  testDir: string
   /** .km directory for state.db and events.jsonl */
-  kmDir: string;
+  kmDir: string
   /** Vault directory for markdown files */
-  vaultDir: string;
+  vaultDir: string
   /** Database for this test (memory or disk based on mode) */
-  db: Database;
+  db: Database
   /** Current test mode */
-  mode: TestMode;
+  mode: TestMode
   /** Vault-like object wrapping singleton functions bound to test DB */
-  vault: TestVault;
+  vault: TestVault
 }
 
 /**
@@ -143,56 +141,56 @@ export interface TestEnv {
 export async function withTestEnv<T>(
   fn: (env: TestEnv) => T | Promise<T>,
 ): Promise<T> {
-  const mode = getTestMode();
-  const testId = ulid();
-  const testDir = join("/tmp", `kmtest-${testId}`);
-  const vaultDir = join(testDir, "vault");
-  const kmDir = join(vaultDir, ".km");
+  const mode = getTestMode()
+  const testId = ulid()
+  const testDir = join("/tmp", `kmtest-${testId}`)
+  const vaultDir = join(testDir, "vault")
+  const kmDir = join(vaultDir, ".km")
 
   // Create vault directory (but NOT .km - let tests control that)
   // Tests that need disk mode should mkdirSync(kmDir) themselves
-  mkdirSync(vaultDir, { recursive: true });
+  mkdirSync(vaultDir, { recursive: true })
 
   // In real mode, also create .km for disk DB
   if (mode === "real") {
-    mkdirSync(kmDir, { recursive: true });
+    mkdirSync(kmDir, { recursive: true })
   }
 
   // Create database: disk for real mode, memory otherwise
-  const dbPath = mode === "real" ? join(kmDir, "state.db") : ":memory:";
-  const db = new Database(dbPath);
-  db.exec(SCHEMA);
+  const dbPath = mode === "real" ? join(kmDir, "state.db") : ":memory:"
+  const db = new Database(dbPath)
+  db.exec(SCHEMA)
 
   // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
   const vault: TestVault = {
-    getNode,
-    getChildren,
-    getChildCountsBatch,
-    getBacklinks,
-    getAncestors,
-    getLinksTo,
-    moveNode,
-    updateNode,
-    deleteNode,
-    addNode,
+    getNode: (id) => getNode(db, id),
+    getChildren: (parentId) => getChildren(db, parentId),
+    getChildCountsBatch: (parentIds) => getChildCountsBatch(db, parentIds),
+    getBacklinks: (nodeId) => getBacklinks(db, nodeId),
+    getAncestors: (nodeId) => getAncestors(db, nodeId),
+    getLinksTo: (targetId) => getLinksTo(db, targetId),
+    moveNode: (id, newParentId, position) => moveNode(db, id, newParentId, position),
+    updateNode: (id, changes) => updateNode(db, id, changes),
+    deleteNode: (id) => deleteNode(db, id),
+    addNode: (parentId, nodeData) => addNode(db, parentId, nodeData),
     rawQuery: <T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],
     ): T[] => {
-      return db.query(sql).all(...((params ?? []) as never)) as T[];
+      return db.query(sql).all(...((params ?? []) as never)) as T[]
     },
-  };
+  }
 
-  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault };
+  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault }
 
   try {
     // Run with both context-local db and kmDir
-    return await runWithKmDir(kmDir, () => runWithDb(db, () => fn(env)));
+    return await runWithKmDir(kmDir, () => runWithDb(db, () => fn(env)))
   } finally {
     // Cleanup
-    db.close();
+    db.close()
     if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true });
+      rmSync(testDir, { recursive: true })
     }
   }
 }
@@ -202,56 +200,56 @@ export async function withTestEnv<T>(
  * Same TEST_MODE behavior as withTestEnv.
  */
 export function withTestEnvSync<T>(fn: (env: TestEnv) => T): T {
-  const mode = getTestMode();
-  const testId = ulid();
-  const testDir = join("/tmp", `kmtest-${testId}`);
-  const vaultDir = join(testDir, "vault");
-  const kmDir = join(vaultDir, ".km");
+  const mode = getTestMode()
+  const testId = ulid()
+  const testDir = join("/tmp", `kmtest-${testId}`)
+  const vaultDir = join(testDir, "vault")
+  const kmDir = join(vaultDir, ".km")
 
   // Create vault directory (but NOT .km - let tests control that)
   // Tests that need disk mode should mkdirSync(kmDir) themselves
-  mkdirSync(vaultDir, { recursive: true });
+  mkdirSync(vaultDir, { recursive: true })
 
   // In real mode, also create .km for disk DB
   if (mode === "real") {
-    mkdirSync(kmDir, { recursive: true });
+    mkdirSync(kmDir, { recursive: true })
   }
 
   // Create database: disk for real mode, memory otherwise
-  const dbPath = mode === "real" ? join(kmDir, "state.db") : ":memory:";
-  const db = new Database(dbPath);
-  db.exec(SCHEMA);
+  const dbPath = mode === "real" ? join(kmDir, "state.db") : ":memory:"
+  const db = new Database(dbPath)
+  db.exec(SCHEMA)
 
   // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
   const vault: TestVault = {
-    getNode,
-    getChildren,
-    getChildCountsBatch,
-    getBacklinks,
-    getAncestors,
-    getLinksTo,
-    moveNode,
-    updateNode,
-    deleteNode,
-    addNode,
+    getNode: (id) => getNode(db, id),
+    getChildren: (parentId) => getChildren(db, parentId),
+    getChildCountsBatch: (parentIds) => getChildCountsBatch(db, parentIds),
+    getBacklinks: (nodeId) => getBacklinks(db, nodeId),
+    getAncestors: (nodeId) => getAncestors(db, nodeId),
+    getLinksTo: (targetId) => getLinksTo(db, targetId),
+    moveNode: (id, newParentId, position) => moveNode(db, id, newParentId, position),
+    updateNode: (id, changes) => updateNode(db, id, changes),
+    deleteNode: (id) => deleteNode(db, id),
+    addNode: (parentId, nodeData) => addNode(db, parentId, nodeData),
     rawQuery: <T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],
     ): T[] => {
-      return db.query(sql).all(...((params ?? []) as never)) as T[];
+      return db.query(sql).all(...((params ?? []) as never)) as T[]
     },
-  };
+  }
 
-  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault };
+  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault }
 
   try {
     // Run with both context-local db and kmDir
-    return runWithKmDir(kmDir, () => runWithDb(db, () => fn(env)));
+    return runWithKmDir(kmDir, () => runWithDb(db, () => fn(env)))
   } finally {
     // Cleanup
-    db.close();
+    db.close()
     if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true });
+      rmSync(testDir, { recursive: true })
     }
   }
 }

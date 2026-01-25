@@ -1,25 +1,25 @@
-import createDebug from "debug";
-import type { CommandContext, CommandAction, ViewMode } from "./types.ts";
-import { getCommand } from "./registry.ts";
+import createDebug from "debug"
+import type { CommandContext, CommandAction, ViewMode } from "./types.ts"
+import { getCommand } from "./registry.ts"
 
-const debug = createDebug("km:commands:executor");
+const debug = createDebug("km:commands:executor")
 
 export function executeCommand(
   id: string,
   ctx: CommandContext,
 ): CommandAction | CommandAction[] | null {
-  const cmd = getCommand(id);
+  const cmd = getCommand(id)
   if (!cmd) {
-    debug("command not found: %s", id);
-    return null;
+    debug("command not found: %s", id)
+    return null
   }
-  debug("executing: %s", id);
-  const result = cmd.execute(ctx);
+  debug("executing: %s", id)
+  const result = cmd.execute(ctx)
   debug("executed", {
     id,
     result: Array.isArray(result) ? result.map((r) => r.type) : result?.type,
-  });
-  return result;
+  })
+  return result
 }
 
 /**
@@ -35,5 +35,5 @@ export function buildContext(
   return {
     viewMode,
     ...fields,
-  };
+  }
 }

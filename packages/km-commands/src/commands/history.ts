@@ -13,7 +13,7 @@ import type {
   CommandDef,
   HistoryUndoAction,
   HistoryRedoAction,
-} from "../types.ts";
+} from "../types.ts"
 
 export const undoCommand: CommandDef = {
   id: "undo",
@@ -22,9 +22,9 @@ export const undoCommand: CommandDef = {
   category: "Edit",
   shortcuts: ["Ctrl+Z"],
   execute: () => {
-    return { type: "HISTORY_UNDO" } satisfies HistoryUndoAction;
+    return { type: "HISTORY_UNDO" } satisfies HistoryUndoAction
   },
-};
+}
 
 export const redoCommand: CommandDef = {
   id: "redo",
@@ -33,8 +33,8 @@ export const redoCommand: CommandDef = {
   category: "Edit",
   shortcuts: ["Ctrl+Shift+Z", "Ctrl+Y"],
   execute: () => {
-    return { type: "HISTORY_REDO" } satisfies HistoryRedoAction;
+    return { type: "HISTORY_REDO" } satisfies HistoryRedoAction
   },
-};
+}
 
-export const historyCommands: CommandDef[] = [undoCommand, redoCommand];
+export const historyCommands: CommandDef[] = [undoCommand, redoCommand]

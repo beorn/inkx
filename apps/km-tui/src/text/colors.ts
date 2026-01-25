@@ -5,7 +5,7 @@
  * Colors are inherited down the tree - a board's color applies to all its children.
  */
 
-import chalk, { type ChalkInstance } from "chalk";
+import chalk, { type ChalkInstance } from "chalk"
 
 /**
  * GTD board default colors
@@ -19,7 +19,7 @@ export const GTD_BOARD_COLORS: Record<string, string> = {
   done: "green",
   dropped: "gray",
   blocked: "red",
-};
+}
 
 /**
  * Valid chalk color names
@@ -34,7 +34,7 @@ export type ChalkColor =
   | "cyan"
   | "white"
   | "gray"
-  | "grey";
+  | "grey"
 
 /**
  * Get chalk function for a color name
@@ -42,26 +42,26 @@ export type ChalkColor =
 export function getChalkColor(color: string): ChalkInstance {
   switch (color) {
     case "black":
-      return chalk.black;
+      return chalk.black
     case "red":
-      return chalk.red;
+      return chalk.red
     case "green":
-      return chalk.green;
+      return chalk.green
     case "yellow":
-      return chalk.yellow;
+      return chalk.yellow
     case "blue":
-      return chalk.blue;
+      return chalk.blue
     case "magenta":
-      return chalk.magenta;
+      return chalk.magenta
     case "cyan":
-      return chalk.cyan;
+      return chalk.cyan
     case "white":
-      return chalk.white;
+      return chalk.white
     case "gray":
     case "grey":
-      return chalk.gray;
+      return chalk.gray
     default:
-      return chalk.dim; // fallback for unknown colors
+      return chalk.dim // fallback for unknown colors
   }
 }
 
@@ -70,21 +70,21 @@ export function getChalkColor(color: string): ChalkInstance {
  * Removes @ prefix and lowercases
  */
 export function normalizeBoardName(name: string): string {
-  return name.replace(/^@/, "").toLowerCase();
+  return name.replace(/^@/, "").toLowerCase()
 }
 
 /**
  * Get color for a board by name, checking GTD defaults
  */
 export function getBoardColorByName(name: string): string | undefined {
-  const normalized = normalizeBoardName(name);
-  return GTD_BOARD_COLORS[normalized];
+  const normalized = normalizeBoardName(name)
+  return GTD_BOARD_COLORS[normalized]
 }
 
 /**
  * Apply color to text
  */
 export function colorize(text: string, color: string | undefined): string {
-  if (!color) return text;
-  return getChalkColor(color)(text);
+  if (!color) return text
+  return getChalkColor(color)(text)
 }

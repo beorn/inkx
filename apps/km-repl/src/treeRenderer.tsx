@@ -5,14 +5,14 @@
  * Used by the `render` command to provide visual debugging.
  */
 
-import React from "react";
-import { Box, Text } from "inkx";
+import React from "react"
+import { Box, Text } from "inkx"
 import {
   createTestRenderer,
   bufferToText,
   bufferToStyledText,
-} from "inkx/testing";
-import type { BoardState, TNode, TPath } from "./board-types.ts";
+} from "inkx/testing"
+import type { BoardState, TNode, TPath } from "./board-types.ts"
 
 // Status icons for task status
 const STATUS_ICONS: Record<string, string> = {
@@ -21,17 +21,17 @@ const STATUS_ICONS: Record<string, string> = {
   blocked: "⊘",
   done: "✓",
   dropped: "∅",
-};
+}
 
 interface TreeLineProps {
-  prefix: string;
-  connector: string;
-  foldChar: string;
-  statusIcon: string;
-  title: string;
-  suffix: string;
-  isCursor: boolean;
-  isSelected: boolean;
+  prefix: string
+  connector: string
+  foldChar: string
+  statusIcon: string
+  title: string
+  suffix: string
+  isCursor: boolean
+  isSelected: boolean
 }
 
 /**
@@ -48,7 +48,7 @@ function TreeLine({
   isSelected,
 }: TreeLineProps): React.ReactElement {
   // Build the full line content
-  const contentText = `${foldChar} ${statusIcon} ${title}${suffix}`;
+  const contentText = `${foldChar} ${statusIcon} ${title}${suffix}`
 
   if (isCursor) {
     return (
@@ -61,7 +61,7 @@ function TreeLine({
           {contentText}
         </Text>
       </Text>
-    );
+    )
   }
 
   if (isSelected) {
@@ -73,7 +73,7 @@ function TreeLine({
         </Text>
         <Text color="cyan">{contentText}</Text>
       </Text>
-    );
+    )
   }
 
   return (
@@ -84,7 +84,7 @@ function TreeLine({
       </Text>
       <Text>{contentText}</Text>
     </Text>
-  );
+  )
 }
 
 /**
@@ -98,34 +98,34 @@ function buildTreeLines(
   parentPath: TPath,
   prefix: string,
 ): React.ReactElement[] {
-  const lines: React.ReactElement[] = [];
+  const lines: React.ReactElement[] = []
 
   for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i];
-    if (!node) continue;
+    const node = nodes[i]
+    if (!node) continue
 
-    const path = [...parentPath, i];
-    const isLast = i === nodes.length - 1;
-    const connector = isLast ? "└── " : "├── ";
-    const childPrefix = prefix + (isLast ? "    " : "│   ");
+    const path = [...parentPath, i]
+    const isLast = i === nodes.length - 1
+    const connector = isLast ? "└── " : "├── "
+    const childPrefix = prefix + (isLast ? "    " : "│   ")
 
     // Check if this node is at the cursor position
     const isCursor =
-      cursor.length === path.length && cursor.every((v, j) => v === path[j]);
-    const isSelected = selectedNodes.has(node.id);
-    const isFolded = foldedNodes.has(node.id);
+      cursor.length === path.length && cursor.every((v, j) => v === path[j])
+    const isSelected = selectedNodes.has(node.id)
+    const isFolded = foldedNodes.has(node.id)
 
     // Status icon
     const statusIcon = node.task_status
       ? (STATUS_ICONS[node.task_status] ?? " ")
-      : " ";
+      : " "
 
     // Fold indicator
-    const foldChar = node.childCount > 0 ? (isFolded ? "▸" : "▾") : " ";
+    const foldChar = node.childCount > 0 ? (isFolded ? "▸" : "▾") : " "
 
     // Title with count if folded
     const titleSuffix =
-      isFolded && node.childCount > 0 ? ` (+${node.childCount})` : "";
+      isFolded && node.childCount > 0 ? ` (+${node.childCount})` : ""
 
     lines.push(
       <TreeLine
@@ -139,7 +139,7 @@ function buildTreeLines(
         isCursor={isCursor}
         isSelected={isSelected}
       />,
-    );
+    )
 
     // Render children if not folded
     if (!isFolded && node.children.length > 0) {
@@ -152,17 +152,17 @@ function buildTreeLines(
           path,
           childPrefix,
         ),
-      );
+      )
     }
   }
 
-  return lines;
+  return lines
 }
 
 interface TreeViewProps {
-  state: BoardState;
-  width: number;
-  height: number;
+  state: BoardState
+  width: number
+  height: number
 }
 
 /**
@@ -176,7 +176,7 @@ function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
     state.selectedNodes,
     [],
     "",
-  );
+  )
 
   return (
     <Box flexDirection="column" width={width} height={height}>
@@ -193,7 +193,7 @@ function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
         </Text>
       </Box>
     </Box>
-  );
+  )
 }
 
 /**
@@ -203,21 +203,21 @@ export function renderTree(
   state: BoardState,
   options: { width?: number; height?: number; ansi?: boolean } = {},
 ): string {
-  const { width = 80, height = 24, ansi = false } = options;
+  const { width = 80, height = 24, ansi = false } = options
 
   // Create test renderer
-  const render = createTestRenderer({ columns: width, rows: height });
+  const render = createTestRenderer({ columns: width, rows: height })
 
   // Render the tree view
   const { lastBuffer } = render(
     React.createElement(TreeView, { state, width, height }),
-  );
+  )
 
   // Get the buffer and convert to text
-  const buffer = lastBuffer();
+  const buffer = lastBuffer()
   if (!buffer) {
-    return "(render failed)";
+    return "(render failed)"
   }
 
-  return ansi ? bufferToStyledText(buffer) : bufferToText(buffer);
+  return ansi ? bufferToStyledText(buffer) : bufferToText(buffer)
 }

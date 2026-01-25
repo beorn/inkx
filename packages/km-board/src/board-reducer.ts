@@ -9,4 +9,4 @@
 export {
   simplifiedBoardReducer as boardReducer,
   createBoardState,
-} from "./board-reducer-new.ts";
+} from "./board-reducer-new.ts"

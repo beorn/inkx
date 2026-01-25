@@ -29,12 +29,12 @@
  * See bead km-80j2 for the full plan.
  */
 
-import React from "react";
-import { createTestRenderer } from "inkx/testing";
+import React from "react"
+import { createTestRenderer } from "inkx/testing"
 
-const render = createTestRenderer({ columns: 120, rows: 500 });
-import { Box, Text } from "inkx";
-import chalk from "chalk";
+const render = createTestRenderer({ columns: 120, rows: 500 })
+import { Box, Text } from "inkx"
+import chalk from "chalk"
 
 import {
   renderRich,
@@ -45,7 +45,7 @@ import {
   FOLDED_MARKER,
   UNFOLDED_MARKER,
   EMPTY_MARKER,
-} from "../src/text/index.ts";
+} from "../src/text/index.ts"
 import {
   wrapText,
   truncateText,
@@ -54,23 +54,23 @@ import {
   renderPath,
   renderParentPath,
   type PathSegment,
-} from "../src/layout/index.ts";
-import { TreeNode } from "../src/views/TreeNode.tsx";
-import { ListView } from "../src/views/ListView.tsx";
-import { ColumnsView } from "../src/views/ColumnsView.tsx";
-import { TabsView } from "../src/views/TabsView.tsx";
-import { TopBar } from "../src/views/TopBar.tsx";
-import type { KNode } from "@km/core";
-import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts";
-import { UIProvider } from "../src/ui-context.tsx";
-import { createInitialUIState } from "../src/ui-reducer.ts";
-import { runWithDb } from "@km/storage";
-import Database from "bun:sqlite";
+} from "../src/layout/index.ts"
+import { TreeNode } from "../src/views/TreeNode.tsx"
+import { ListView } from "../src/views/ListView.tsx"
+import { ColumnsView } from "../src/views/ColumnsView.tsx"
+import { TabsView } from "../src/views/TabsView.tsx"
+import { TopBar } from "../src/views/TopBar.tsx"
+import type { KNode } from "@km/core"
+import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts"
+import { UIProvider } from "../src/ui-context.tsx"
+import { createInitialUIState } from "../src/ui-reducer.ts"
+import { runWithDb } from "@km/storage"
+import Database from "bun:sqlite"
 
 // Initialize an empty in-memory database for storybook rendering
 // This is still needed for functions like getBoardPills() that query the DB.
 // TreeNode's children/parentContext use DI props instead.
-const db = new Database(":memory:");
+const db = new Database(":memory:")
 db.exec(`
   CREATE TABLE IF NOT EXISTS nodes (
     id TEXT PRIMARY KEY,
@@ -109,61 +109,61 @@ db.exec(`
     alias TEXT,
     UNIQUE(source_id, target_name)
   );
-`);
+`)
 
 // In-memory node store for storybook - supplements the DB for DI props
 // TreeNode now accepts children/getChildren props for DI
-const nodeStore = new Map<string, KNode>();
-const childrenStore = new Map<string, KNode[]>(); // parentId -> children
+const nodeStore = new Map<string, KNode>()
+const childrenStore = new Map<string, KNode[]>() // parentId -> children
 
 // Register a node in the store and track its parent relationship
 function registerNode(node: KNode): void {
-  nodeStore.set(node.id, node);
+  nodeStore.set(node.id, node)
   if (node.parent_id) {
-    const siblings = childrenStore.get(node.parent_id) ?? [];
+    const siblings = childrenStore.get(node.parent_id) ?? []
     // Avoid duplicates if called multiple times
     if (!siblings.find((n) => n.id === node.id)) {
-      siblings.push(node);
-      childrenStore.set(node.parent_id, siblings);
+      siblings.push(node)
+      childrenStore.set(node.parent_id, siblings)
     }
   }
 }
 
 // Get children from the in-memory store
 function getChildrenFromStore(id: string): KNode[] {
-  return childrenStore.get(id) ?? [];
+  return childrenStore.get(id) ?? []
 }
 
 // Get parent context for embedded tasks (simplified for storybook)
 function getParentContextFromStore(node: KNode): string | null {
-  if (!node.link_to) return null;
-  const linkedNode = nodeStore.get(node.link_to);
-  if (!linkedNode?.parent_id) return null;
-  const parent = nodeStore.get(linkedNode.parent_id);
-  return parent?.content ?? parent?.name ?? null;
+  if (!node.link_to) return null
+  const linkedNode = nodeStore.get(node.link_to)
+  if (!linkedNode?.parent_id) return null
+  const parent = nodeStore.get(linkedNode.parent_id)
+  return parent?.content ?? parent?.name ?? null
 }
 
 // Get board pills for a task (storybook returns empty - no board context)
 function getBoardPillsFromStore(): [] {
-  return [];
+  return []
 }
 
 // Create a mock UI state for storybook rendering
 const mockUIState = createInitialUIState("cards", [], {
   columns: 120,
   rows: 40,
-});
-const noopDispatch = () => {};
+})
+const noopDispatch = () => {}
 
 // Force chalk colors
-chalk.level = 3;
+chalk.level = 3
 
 // ============================================================================
 // Section Header Components
 // ============================================================================
 
 function SectionHeader({ title }: { title: string }): React.ReactElement {
-  const divider = "═".repeat(60);
+  const divider = "═".repeat(60)
   return (
     <Box flexDirection="column" marginY={1}>
       <Text bold color="cyan">
@@ -177,18 +177,18 @@ function SectionHeader({ title }: { title: string }): React.ReactElement {
         {divider}
       </Text>
     </Box>
-  );
+  )
 }
 
 function SubsectionHeader({ title }: { title: string }): React.ReactElement {
-  const subDivider = "─".repeat(40);
+  const subDivider = "─".repeat(40)
   return (
     <Box flexDirection="column">
       <Text dimColor>{subDivider}</Text>
       <Text bold>{title}</Text>
       <Text> </Text>
     </Box>
-  );
+  )
 }
 
 // ============================================================================
@@ -214,7 +214,7 @@ function Layer1RichText(): React.ReactElement {
       { input: "This has ~~strikethrough~~ text" },
       { input: "**Bold** and *italic* and `code` together" },
     ],
-  };
+  }
 
   return (
     <Box flexDirection="column">
@@ -272,7 +272,7 @@ function Layer1RichText(): React.ReactElement {
       <Text>string.length: 40</Text>
       <Text>displayLength(): 11</Text>
     </Box>
-  );
+  )
 }
 
 // ============================================================================
@@ -289,13 +289,13 @@ function Layer1TagPills(): React.ReactElement {
     { name: "someday", desc: "Future consideration" },
     { name: "done", desc: "Completed" },
     { name: "blocked", desc: "Cannot proceed" },
-  ];
+  ]
 
   const customTags = [
     { name: "Sprint", color: "magenta" },
     { name: "Urgent", color: "red" },
     { name: "Research", color: "blue" },
-  ];
+  ]
 
   return (
     <Box flexDirection="column">
@@ -305,14 +305,14 @@ function Layer1TagPills(): React.ReactElement {
       <Text dimColor> Tag Name Color Pill Example</Text>
       <Text dimColor> ────────── ────── ─────────────────────</Text>
       {presetTags.map(({ name, desc }) => {
-        const color = GTD_BOARD_COLORS[name] || "white";
+        const color = GTD_BOARD_COLORS[name] || "white"
         return (
           <Text key={name}>
             {" "}
             {name.padEnd(10)} {color.padEnd(6)} {colorize(`@${name}`, color)}{" "}
             <Text dimColor>← {desc}</Text>
           </Text>
-        );
+        )
       })}
       <Text> </Text>
 
@@ -349,7 +349,7 @@ function Layer1TagPills(): React.ReactElement {
         {colorize("@waiting", "yellow")} {colorize("@Sprint", "magenta")}
       </Text>
     </Box>
-  );
+  )
 }
 
 function Layer1TaskStyling(): React.ReactElement {
@@ -361,13 +361,13 @@ function Layer1TaskStyling(): React.ReactElement {
     { mark: "!", status: "blocked", desc: "Blocked", icon: "■" },
     { mark: "x", status: "done", desc: "Completed", icon: "▣" },
     { mark: "-", status: "dropped", desc: "Dropped", icon: "■" },
-  ];
+  ]
 
   const customMarkers = [
     { mark: "?", desc: "Question/unknown" },
     { mark: ">", desc: "Forwarded/delegated" },
     { mark: "<", desc: "Waiting on external" },
-  ];
+  ]
 
   // Helper to get marker color based on status (uses Ink color names)
   const getMarkerColor = (
@@ -375,15 +375,15 @@ function Layer1TaskStyling(): React.ReactElement {
   ): "green" | "yellow" | "red" | undefined => {
     switch (status) {
       case "done":
-        return "green";
+        return "green"
       case "wip":
-        return "yellow";
+        return "yellow"
       case "blocked":
-        return "red";
+        return "red"
       default:
-        return undefined;
+        return undefined
     }
-  };
+  }
 
   return (
     <Box flexDirection="column">
@@ -393,9 +393,9 @@ function Layer1TaskStyling(): React.ReactElement {
       <Text dimColor> Plain Icon Description</Text>
       <Text dimColor> ───── ──── ─────────────────────</Text>
       {statusTable.map(({ mark, status, desc }) => {
-        const icon = getStatusIcon(status);
-        const isDoneOrDropped = status === "done" || status === "dropped";
-        const markerColor = getMarkerColor(status);
+        const icon = getStatusIcon(status)
+        const isDoneOrDropped = status === "done" || status === "dropped"
+        const markerColor = getMarkerColor(status)
 
         return (
           <Text key={status}>
@@ -408,7 +408,7 @@ function Layer1TaskStyling(): React.ReactElement {
             {"    "}
             <Text dimColor={isDoneOrDropped}>{desc}</Text>
           </Text>
-        );
+        )
       })}
       <Text> </Text>
 
@@ -440,7 +440,7 @@ function Layer1TaskStyling(): React.ReactElement {
         Missing status (null/undefined)
       </Text>
     </Box>
-  );
+  )
 }
 
 function Layer1FoldMarkers(): React.ReactElement {
@@ -450,9 +450,9 @@ function Layer1FoldMarkers(): React.ReactElement {
     { hasChildren: true, isFolded: true, desc: "Folded (has hidden children)" },
     { hasChildren: true, isFolded: false, desc: "Unfolded (children visible)" },
     { hasChildren: false, isFolded: false, desc: "Empty (no children)" },
-  ];
+  ]
 
-  const colors = ["white", "cyan", "red", "green", "yellow", "magenta", "blue"];
+  const colors = ["white", "cyan", "red", "green", "yellow", "magenta", "blue"]
 
   return (
     <Box flexDirection="column">
@@ -462,7 +462,7 @@ function Layer1FoldMarkers(): React.ReactElement {
       <Text dimColor> Marker Description</Text>
       <Text dimColor> ────── ─────────────────────────────</Text>
       {foldStates.map(({ hasChildren, isFolded, desc }, i) => {
-        const marker = getFoldMarker(hasChildren, isFolded);
+        const marker = getFoldMarker(hasChildren, isFolded)
         return (
           <Text key={i}>
             {" "}
@@ -470,7 +470,7 @@ function Layer1FoldMarkers(): React.ReactElement {
             {"      "}
             {desc}
           </Text>
-        );
+        )
       })}
       <Text> </Text>
 
@@ -496,9 +496,9 @@ function Layer1FoldMarkers(): React.ReactElement {
       <Text dimColor> When a node has a color, the marker inherits it:</Text>
       <Text> </Text>
       {colors.map((color) => {
-        const folded = getFoldMarker(true, true, color);
-        const unfolded = getFoldMarker(true, false, color);
-        const empty = getFoldMarker(false, false, color);
+        const folded = getFoldMarker(true, true, color)
+        const unfolded = getFoldMarker(true, false, color)
+        const empty = getFoldMarker(false, false, color)
         return (
           <Text key={color}>
             {" "}
@@ -508,7 +508,7 @@ function Layer1FoldMarkers(): React.ReactElement {
             {"  "}
             <Text dimColor>color={color}</Text>
           </Text>
-        );
+        )
       })}
       <Text> </Text>
 
@@ -538,7 +538,7 @@ function Layer1FoldMarkers(): React.ReactElement {
         <Text color="gray">{EMPTY_MARKER.char}</Text> Regular note (no status)
       </Text>
     </Box>
-  );
+  )
 }
 
 // ============================================================================
@@ -547,8 +547,8 @@ function Layer1FoldMarkers(): React.ReactElement {
 
 function Layer2Layout(): React.ReactElement {
   const longText =
-    "This is a longer text that needs to be wrapped at a certain width to fit in a column";
-  const truncText = "This is text that might be truncated";
+    "This is a longer text that needs to be wrapped at a certain width to fit in a column"
+  const truncText = "This is text that might be truncated"
 
   return (
     <Box flexDirection="column">
@@ -630,10 +630,10 @@ function Layer2Layout(): React.ReactElement {
             isWithinBoard: true,
             node: null,
           },
-        ];
+        ]
         // Helper to convert segments to string
         const segsToStr = (segs: PathSegment[]): string =>
-          segs.map((s) => s.name + (s.sep ? ` ${s.sep} ` : "")).join("");
+          segs.map((s) => s.name + (s.sep ? ` ${s.sep} ` : "")).join("")
         return (
           <>
             <Text dimColor>Full path (length=44):</Text>
@@ -649,7 +649,7 @@ function Layer2Layout(): React.ReactElement {
               Width=25: |{segsToStr(renderPath(segments, 25))}|
             </Text>
           </>
-        );
+        )
       })()}
       <Text> </Text>
 
@@ -666,7 +666,7 @@ function Layer2Layout(): React.ReactElement {
         Width=20: |{renderParentPath("Projects/Work/Tasks/Subtask", 20)}|
       </Text>
     </Box>
-  );
+  )
 }
 
 // ============================================================================
@@ -695,21 +695,21 @@ function mockNode(
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "1",
-  };
+  }
 
   // Register in the in-memory store so getChildrenFromStore() works
-  registerNode(node);
+  registerNode(node)
 
-  return node;
+  return node
 }
 
 function Layer3Views(): React.ReactElement {
   // Create sample nodes for TreeNode rendering
-  const todoTask = mockNode("todo-1", "Setup CI pipeline", "todo");
-  const wipTask = mockNode("wip-1", "Review PR #42", "wip");
-  const doneTask = mockNode("done-1", "Implement auth", "done");
-  const blockedTask = mockNode("blocked-1", "Wait on API", "blocked");
-  const droppedTask = mockNode("dropped-1", "Old approach", "dropped");
+  const todoTask = mockNode("todo-1", "Setup CI pipeline", "todo")
+  const wipTask = mockNode("wip-1", "Review PR #42", "wip")
+  const doneTask = mockNode("done-1", "Implement auth", "done")
+  const blockedTask = mockNode("blocked-1", "Wait on API", "blocked")
+  const droppedTask = mockNode("dropped-1", "Old approach", "dropped")
 
   // TreeNode now gets foldedNodes, maxDepth, maxContentLines, inOutlineMode,
   // currentSubIndex, variant, and multiSelected from context.
@@ -724,7 +724,7 @@ function Layer3Views(): React.ReactElement {
     getChildren: getChildrenFromStore,
     getParentContext: getParentContextFromStore,
     getBoardPills: getBoardPillsFromStore,
-  };
+  }
 
   return (
     <Box flexDirection="column">
@@ -761,7 +761,7 @@ function Layer3Views(): React.ReactElement {
       <Text bold>Multi-selected (also cyan background):</Text>
       <TreeNode {...commonProps} node={todoTask} isSelected={false} />
     </Box>
-  );
+  )
 }
 
 // ============================================================================
@@ -778,8 +778,8 @@ function mockCard(
     mockNode(`${node.id}-child-${i}`, def.content, def.status, "task", {
       parentId: node.id,
     }),
-  );
-  return { node, children };
+  )
+  return { node, children }
 }
 
 // Helper to create mock ColumnState
@@ -787,7 +787,7 @@ function mockColumn(name: string, cards: CardState[]): ColumnState {
   return {
     node: mockNode(`col-${name}`, name, undefined, "section"),
     cards,
-  };
+  }
 }
 
 // Create a rich mock TUIBoardState with varied content for view demos
@@ -804,41 +804,41 @@ function createMockTUIBoardState(): TUIBoardState {
   // When we link to source-task, it shows "source-section" as the parent context
 
   // File level (grandparent - not shown in context)
-  mockNode("source-file-api", "projects/api.md", undefined, "file");
-  mockNode("source-file-design", "projects/design.md", undefined, "file");
-  mockNode("source-file-infra", "projects/infra.md", undefined, "file");
+  mockNode("source-file-api", "projects/api.md", undefined, "file")
+  mockNode("source-file-design", "projects/design.md", undefined, "file")
+  mockNode("source-file-infra", "projects/infra.md", undefined, "file")
 
   // Section level (parent - THIS is shown in context as "{section name}")
   mockNode("source-api", "API Integration Project", undefined, "section", {
     parentId: "source-file-api",
-  });
+  })
   mockNode("source-design", "Design System Work", undefined, "section", {
     parentId: "source-file-design",
-  });
+  })
   mockNode("source-infra", "Infrastructure Tasks", undefined, "section", {
     parentId: "source-file-infra",
-  });
+  })
 
   // Original tasks (these are what we link TO from the board)
   // The embedded tasks in the board will link to these, and show their parent (section) as context
   mockNode("orig-api-endpoints", "Implement REST endpoints", "wip", "task", {
     parentId: "source-api",
-  });
+  })
   mockNode("orig-design-buttons", "Create button components", "todo", "task", {
     parentId: "source-design",
-  });
+  })
   mockNode("orig-infra-cicd", "Setup CI/CD pipeline", "done", "task", {
     parentId: "source-infra",
-  });
+  })
   mockNode("orig-infra-db", "Database migrations", "wip", "task", {
     parentId: "source-infra",
-  });
+  })
   mockNode("orig-infra-logging", "Configure logging", "done", "task", {
     parentId: "source-infra",
-  });
+  })
   mockNode("orig-api-review", "Review PR #42", "todo", "task", {
     parentId: "source-api",
-  });
+  })
 
   // Column 1 - Active Tasks with CHILDREN (shows inactive children dimming)
   // When this column is NOT selected, children at depth > 0 are dimmed
@@ -858,7 +858,7 @@ function createMockTUIBoardState(): TUIBoardState {
     mockCard(mockNode("act3", "Review [[architecture]] docs", "todo")),
     // Blocked task
     mockCard(mockNode("act4", "Deploy to staging", "blocked")),
-  ];
+  ]
 
   // Column 2 - EMBEDDED/LINKED Tasks (shows parent context with prefix)
   // These tasks have link_to set, pointing to ORIGINAL tasks in other files
@@ -899,7 +899,7 @@ function createMockTUIBoardState(): TUIBoardState {
         linkAlias: "API Review",
       }),
     ),
-  ];
+  ]
 
   // Column 3 - Completed (done/dropped = ALL dimmed)
   const completedCards: CardState[] = [
@@ -915,7 +915,7 @@ function createMockTUIBoardState(): TUIBoardState {
         linkTo: "orig-infra-logging",
       }),
     ),
-  ];
+  ]
 
   // Column 4 - Rich Text formatting showcase
   const formattingCards: CardState[] = [
@@ -927,7 +927,7 @@ function createMockTUIBoardState(): TUIBoardState {
     mockCard(
       mockNode("fmt6", "**Bold** and *italic* and `code` together", "wip"),
     ),
-  ];
+  ]
 
   return {
     rootId: "board-root",
@@ -947,7 +947,7 @@ function createMockTUIBoardState(): TUIBoardState {
     searchQuery: "",
     searchMode: false,
     helpMode: false,
-  };
+  }
 }
 
 // Sample path segments for TopBar demos - uses production TopBar component
@@ -965,15 +965,15 @@ const demoPathSegments: PathSegment[] = [
     isWithinBoard: true,
     node: null,
   },
-];
+]
 
 // Wrapper component with border and title
 function ViewBox({
   title,
   children,
 }: {
-  title: string;
-  children: React.ReactNode;
+  title: string
+  children: React.ReactNode
 }): React.ReactElement {
   return (
     <Box
@@ -991,7 +991,7 @@ function ViewBox({
         {children}
       </Box>
     </Box>
-  );
+  )
 }
 
 // Cards View - render cards in columns (simplified version of Board's Card/Column)
@@ -1000,13 +1000,13 @@ function CardsViewDemo({
   state,
   width,
 }: {
-  state: TUIBoardState;
-  width: number;
+  state: TUIBoardState
+  width: number
 }): React.ReactElement {
-  const numCols = Math.min(state.columns.length, 4);
+  const numCols = Math.min(state.columns.length, 4)
   // Account for separator lines (1 char each) between columns
-  const separatorWidth = numCols - 1;
-  const colWidth = Math.floor((width - separatorWidth) / numCols);
+  const separatorWidth = numCols - 1
+  const colWidth = Math.floor((width - separatorWidth) / numCols)
 
   // NOTE: Do NOT use height={height} on the row Box!
   // Ink clips bordered Box content from TOP (not bottom) when height is constrained.
@@ -1016,8 +1016,8 @@ function CardsViewDemo({
       <TopBar segments={demoPathSegments} width={width} />
       <Box flexDirection="row" width={width}>
         {state.columns.slice(0, 4).map((column, cIdx) => {
-          const isColSelected = cIdx === state.colIndex;
-          const isLastCol = cIdx === numCols - 1;
+          const isColSelected = cIdx === state.colIndex
+          const isLastCol = cIdx === numCols - 1
           return (
             <React.Fragment key={column.node.id}>
               <Box flexDirection="column" width={colWidth}>
@@ -1026,7 +1026,7 @@ function CardsViewDemo({
                 </Text>
                 {column.cards.slice(0, 3).map((card, cardIdx) => {
                   const isCardSelected =
-                    isColSelected && cardIdx === state.cardIndex;
+                    isColSelected && cardIdx === state.cardIndex
                   return (
                     <Box
                       key={card.node.id}
@@ -1048,7 +1048,7 @@ function CardsViewDemo({
                         getParentContext={getParentContextFromStore}
                       />
                     </Box>
-                  );
+                  )
                 })}
               </Box>
               {/* Vertical separator between columns */}
@@ -1058,19 +1058,19 @@ function CardsViewDemo({
                 </Box>
               )}
             </React.Fragment>
-          );
+          )
         })}
       </Box>
     </Box>
-  );
+  )
 }
 
 function Layer3AllViews(): React.ReactElement {
-  const mockState = createMockTUIBoardState();
+  const mockState = createMockTUIBoardState()
   // ViewBox has: border (2 chars) + paddingX (2 chars) = 4 chars overhead
   // Inner content width is outerWidth - 4
-  const viewWidth = 96; // Fits within ViewBox (100 - 4 for border/padding)
-  const viewHeight = 16;
+  const viewWidth = 96 // Fits within ViewBox (100 - 4 for border/padding)
+  const viewHeight = 16
 
   // Different selection levels to show variety across views:
   // - View 1 (Cards): card level - shows card selection + inactive children dimming
@@ -1087,7 +1087,7 @@ function Layer3AllViews(): React.ReactElement {
     cardIndex: 0,
     subIndex: 0,
     selectionLevel: "card" as const,
-  };
+  }
 
   // Column-level selection (selecting column header, not specific card)
   const columnLevelProps = {
@@ -1098,7 +1098,7 @@ function Layer3AllViews(): React.ReactElement {
     cardIndex: 0,
     subIndex: 0,
     selectionLevel: "column" as const,
-  };
+  }
 
   // List view with card selection in different column
   const listViewProps = {
@@ -1109,7 +1109,7 @@ function Layer3AllViews(): React.ReactElement {
     cardIndex: 1, // Select second card (has children)
     subIndex: 0,
     selectionLevel: "card" as const,
-  };
+  }
 
   // ColumnsView needs these extra props
   const columnsViewProps = {
@@ -1117,7 +1117,7 @@ function Layer3AllViews(): React.ReactElement {
     effectiveScrollOffset: 0,
     effectiveMaxCols: 4,
     effectiveVisibleColumns: mockState.columns,
-  };
+  }
 
   return (
     <Box flexDirection="column">
@@ -1159,7 +1159,7 @@ function Layer3AllViews(): React.ReactElement {
         <ListView {...listViewProps} />
       </ViewBox>
     </Box>
-  );
+  )
 }
 
 // ============================================================================
@@ -1167,9 +1167,9 @@ function Layer3AllViews(): React.ReactElement {
 // ============================================================================
 
 function VisualLanguageSection(): React.ReactElement {
-  const todoTask = mockNode("vl-1", "Example task content", "todo");
-  const wipTask = mockNode("vl-2", "Work in progress task", "wip");
-  const doneTask = mockNode("vl-3", "Completed task item", "done");
+  const todoTask = mockNode("vl-1", "Example task content", "todo")
+  const wipTask = mockNode("vl-2", "Work in progress task", "wip")
+  const doneTask = mockNode("vl-3", "Completed task item", "done")
 
   // TreeNode now gets most props from context.
   // DI props (getChildren, getParentContext) use the in-memory store.
@@ -1183,7 +1183,7 @@ function VisualLanguageSection(): React.ReactElement {
     getChildren: getChildrenFromStore,
     getParentContext: getParentContextFromStore,
     getBoardPills: getBoardPillsFromStore,
-  };
+  }
 
   return (
     <Box flexDirection="column">
@@ -1332,7 +1332,7 @@ function VisualLanguageSection(): React.ReactElement {
       </Text>
       <Text> Beyond 7 days: no underline</Text>
     </Box>
-  );
+  )
 }
 
 // ============================================================================
@@ -1359,7 +1359,7 @@ function Storybook(): React.ReactElement {
         <Text color="cyan"> bun km view @next</Text>
       </Box>
     </UIProvider>
-  );
+  )
 }
 
 // ============================================================================
@@ -1368,20 +1368,20 @@ function Storybook(): React.ReactElement {
 
 // Run rendering within db context (replaces deprecated setDb singleton)
 runWithDb(db, () => {
-  const { lastFrame } = render(<Storybook />);
+  const { lastFrame } = render(<Storybook />)
   // Clean up output from 500-row buffer:
   // 1. Remove trailing whitespace from each line
   // 2. Remove trailing blank/ANSI-only lines
-  const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
-  const rawOutput = lastFrame() ?? "";
-  const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")); // trim trailing whitespace
+  const ANSI_REGEX = /\x1b\[[0-9;]*m/g
+  const rawOutput = lastFrame() ?? ""
+  const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")) // trim trailing whitespace
   // Find last line with visible content (not just ANSI codes and whitespace)
-  let lastContentLine = lines.length - 1;
+  let lastContentLine = lines.length - 1
   while (lastContentLine >= 0) {
-    const line = lines[lastContentLine];
-    if (line && line.replace(ANSI_REGEX, "").trim() !== "") break;
-    lastContentLine--;
+    const line = lines[lastContentLine]
+    if (line && line.replace(ANSI_REGEX, "").trim() !== "") break
+    lastContentLine--
   }
-  const output = lines.slice(0, lastContentLine + 1).join("\n");
-  console.log(output);
-});
+  const output = lines.slice(0, lastContentLine + 1).join("\n")
+  console.log(output)
+})

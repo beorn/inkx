@@ -42,19 +42,19 @@ function TreeNode({ depth }) {
 
 ```typescript
 interface LayoutContext {
-  width: number;
-  height: number;
-  allocations: Map<string, number>;
-  registerWidth: (key: string, amount: number) => number;
-  availableWidth: () => number;
+  width: number
+  height: number
+  allocations: Map<string, number>
+  registerWidth: (key: string, amount: number) => number
+  availableWidth: () => number
 }
 
-const LayoutContext = createContext<LayoutContext | null>(null);
+const LayoutContext = createContext<LayoutContext | null>(null)
 
 function useLayout() {
-  const ctx = useContext(LayoutContext);
-  if (!ctx) throw new Error("useLayout requires LayoutProvider");
-  return ctx;
+  const ctx = useContext(LayoutContext)
+  if (!ctx) throw new Error("useLayout requires LayoutProvider")
+  return ctx
 }
 ```
 
@@ -172,11 +172,11 @@ return <Layout spec={layout} data={state} />;
 
 ```typescript
 interface LayoutSpec {
-  type: "row" | "column" | "text" | "separator";
-  width?: number;
-  flex?: number;
-  children?: LayoutSpec[];
-  render?: (width: number, data: any) => React.ReactNode;
+  type: "row" | "column" | "text" | "separator"
+  width?: number
+  flex?: number
+  children?: LayoutSpec[]
+  render?: (width: number, data: any) => React.ReactNode
 }
 
 function Layout({
@@ -184,14 +184,14 @@ function Layout({
   width,
   data,
 }: {
-  spec: LayoutSpec;
-  width: number;
-  data: any;
+  spec: LayoutSpec
+  width: number
+  data: any
 }) {
   // Resolve widths
-  const resolvedSpec = resolveWidths(spec, width);
+  const resolvedSpec = resolveWidths(spec, width)
   // Render tree
-  return renderSpec(resolvedSpec, data);
+  return renderSpec(resolvedSpec, data)
 }
 ```
 

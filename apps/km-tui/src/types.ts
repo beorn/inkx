@@ -4,8 +4,8 @@
  * Shared types for the boardliner TUI
  */
 
-import type { KNode, TaskStatus, TaskMark } from "@km/core";
-import type { Vault } from "./vault-context.tsx";
+import type { KNode, TaskStatus, TaskMark } from "@km/core"
+import type { Vault } from "./vault-context.tsx"
 
 /**
  * TUI-specific board rendering state.
@@ -13,18 +13,18 @@ import type { Vault } from "./vault-context.tsx";
  * Separate from @km/board's BoardState which is the navigation state.
  */
 export interface TUIBoardState {
-  rootId: string | null;
-  rootPath: string | null; // Filesystem path to the board root (for display)
-  columns: ColumnState[];
-  colIndex: number;
-  cardIndex: number;
-  selectedCards: Set<string>;
-  visualMode: boolean;
-  foldedCards: Set<string>;
-  collapsedColumns: Set<number>; // Column indices that are collapsed (show count only)
-  searchQuery: string;
-  searchMode: boolean;
-  helpMode: boolean;
+  rootId: string | null
+  rootPath: string | null // Filesystem path to the board root (for display)
+  columns: ColumnState[]
+  colIndex: number
+  cardIndex: number
+  selectedCards: Set<string>
+  visualMode: boolean
+  foldedCards: Set<string>
+  collapsedColumns: Set<number> // Column indices that are collapsed (show count only)
+  searchQuery: string
+  searchMode: boolean
+  helpMode: boolean
 }
 
 /**
@@ -32,25 +32,25 @@ export interface TUIBoardState {
  * Extracted from file frontmatter under columns.<column-name>.limit
  */
 export interface WipConfig {
-  limit?: number; // Maximum cards allowed in this column
+  limit?: number // Maximum cards allowed in this column
 }
 
 export interface ColumnState {
-  node: KNode;
-  cards: CardState[];
-  wipLimit?: number; // Optional WIP limit from frontmatter
-  rules?: ColumnRules; // Optional column rules parsed from heading
+  node: KNode
+  cards: CardState[]
+  wipLimit?: number // Optional WIP limit from frontmatter
+  rules?: ColumnRules // Optional column rules parsed from heading
   /** True for virtual body column (displays leading non-section content) */
-  isVirtual?: boolean;
+  isVirtual?: boolean
 }
 
 export interface CardState {
-  node: KNode;
-  children: KNode[];
+  node: KNode
+  children: KNode[]
   /** Child count for lazy loading (may be > 0 even when children array is empty) */
-  childCount?: number;
+  childCount?: number
   /** True for virtual body card (displays leading non-section content) */
-  isVirtual?: boolean;
+  isVirtual?: boolean
 }
 
 // Status cycle order
@@ -60,7 +60,7 @@ export const STATUS_CYCLE: TaskStatus[] = [
   "blocked",
   "done",
   "dropped",
-];
+]
 
 // Task marks by status
 export const STATUS_MARKS: Record<TaskStatus, TaskMark> = {
@@ -69,32 +69,32 @@ export const STATUS_MARKS: Record<TaskStatus, TaskMark> = {
   blocked: "!",
   done: "x",
   dropped: "-",
-};
+}
 
 /**
  * Column rule configuration parsed from heading attributes
  */
 export interface ColumnRules {
-  add?: string; // Query to auto-pull matching tasks
-  sync?: string; // Bidirectional field sync (e.g., "status:blocked")
-  collapse?: boolean; // Start collapsed
-  limit?: number; // WIP limit
-  default?: boolean; // Default column for new items
+  add?: string // Query to auto-pull matching tasks
+  sync?: string // Bidirectional field sync (e.g., "status:blocked")
+  collapse?: boolean // Start collapsed
+  limit?: number // WIP limit
+  default?: boolean // Default column for new items
 }
 
-export type BoardAction = "quit" | "refresh" | null;
+export type BoardAction = "quit" | "refresh" | null
 
 /**
  * Derived columns layout with cursor position.
  * Built from Vault + cursor state for rendering.
  */
 export interface ColumnsLayout {
-  columns: ColumnState[];
-  colIndex: number;
-  cardIndex: number;
-  subPath: number[];
-  isAtCardLevel: boolean;
-  isInOutlineMode: boolean;
+  columns: ColumnState[]
+  colIndex: number
+  cardIndex: number
+  subPath: number[]
+  isAtCardLevel: boolean
+  isInOutlineMode: boolean
 }
 
 /**
@@ -104,12 +104,12 @@ export interface ColumnsLayout {
  * - columns: Tree/outline view within each column
  * - tabs: Tab-based view (one column at a time with tab bar)
  */
-export type ViewMode = "cards" | "list" | "columns" | "tabs";
+export type ViewMode = "cards" | "list" | "columns" | "tabs"
 
 /**
  * Selection key format: "col:card:sub"
  */
-export type SelectionKey = `${number}:${number}:${number}`;
+export type SelectionKey = `${number}:${number}:${number}`
 
 /**
  * Create a selection key from column, card, and sub indices.
@@ -119,13 +119,13 @@ export function makeSelectionKey(
   card: number,
   sub: number,
 ): SelectionKey {
-  return `${col}:${card}:${sub}`;
+  return `${col}:${card}:${sub}`
 }
 
 export interface RenderOptions {
-  width: number;
-  height: number;
-  useColor: boolean;
+  width: number
+  height: number
+  useColor: boolean
 }
 
 /**
@@ -136,28 +136,28 @@ export interface TuiOptions {
    * Run in interactive mode (default: true).
    * When false, renders static output and exits.
    */
-  interactive?: boolean;
-  initialViewMode?: ViewMode;
+  interactive?: boolean
+  initialViewMode?: ViewMode
   /**
    * Enable file watching for live sync (default: true).
    * Set to false to disable watching - faster startup on large vaults.
    * Can also be set via config (tui.watch).
    */
-  watch?: boolean;
+  watch?: boolean
   /**
    * Use worker thread for file watching (default: true).
    * Worker-based watching doesn't block the main thread during initialization.
    * Can also be set via config (tui.watchWorker).
    */
-  watchWorker?: boolean;
+  watchWorker?: boolean
   /**
    * Loading spinner to stop when TUI is ready to render.
    * Passed from CLI to keep spinner running through board initialization.
    */
-  spinner?: { stop(): void };
+  spinner?: { stop(): void }
   /**
    * Vault domain object for storage operations.
    * When provided, TUI uses this instead of global getStore().
    */
-  vault?: Vault;
+  vault?: Vault
 }

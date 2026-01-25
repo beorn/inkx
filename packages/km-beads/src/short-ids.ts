@@ -1,31 +1,31 @@
-import { ulid } from "ulid";
-import type { Vault } from "@km/storage";
+import { ulid } from "ulid"
+import type { Vault } from "@km/storage"
 
-const PREFIX = "km";
-const SEPARATOR = "-";
-const AUTO_LENGTH = 4;
+const PREFIX = "km"
+const SEPARATOR = "-"
+const AUTO_LENGTH = 4
 
 /** Options for short ID functions */
 export interface ShortIdOptions {
   /** Vault to use for queries. Required for functions that access storage. */
-  vault?: Vault;
+  vault?: Vault
 }
 
 export function generateShortId(): string {
-  const id = ulid();
-  const suffix = id.slice(-AUTO_LENGTH).toLowerCase();
-  return `${PREFIX}${SEPARATOR}${suffix}`;
+  const id = ulid()
+  const suffix = id.slice(-AUTO_LENGTH).toLowerCase()
+  return `${PREFIX}${SEPARATOR}${suffix}`
 }
 
 export function generateCustomId(custom: string): string {
-  return `${PREFIX}${SEPARATOR}${custom}`;
+  return `${PREFIX}${SEPARATOR}${custom}`
 }
 
 export function generateSubId(
   parentShortId: string,
   childNumber: number,
 ): string {
-  return `${parentShortId}.${childNumber}`;
+  return `${parentShortId}.${childNumber}`
 }
 
 /**
@@ -39,11 +39,11 @@ export function resolveShortId(
   options: ShortIdOptions,
 ): string | null {
   if (!options.vault) {
-    throw new Error("resolveShortId requires a vault instance");
+    throw new Error("resolveShortId requires a vault instance")
   }
 
-  const sql = `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ? LIMIT 1`;
-  const params = [shortId];
-  const rows = options.vault.rawQuery<{ id: string }>(sql, params);
-  return rows[0]?.id ?? null;
+  const sql = `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ? LIMIT 1`
+  const params = [shortId]
+  const rows = options.vault.rawQuery<{ id: string }>(sql, params)
+  return rows[0]?.id ?? null
 }

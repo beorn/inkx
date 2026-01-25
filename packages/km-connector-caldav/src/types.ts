@@ -7,15 +7,15 @@
  */
 export interface CalDAVConfig {
   /** Server URL (e.g., https://caldav.icloud.com) */
-  url: string;
+  url: string
   /** Username or email */
-  username: string;
+  username: string
   /** Password or app-specific password */
-  password: string;
+  password: string
   /** Calendar path (optional, auto-discovered if not provided) */
-  calendarPath?: string;
+  calendarPath?: string
   /** Sync interval in milliseconds (default: 5 minutes) */
-  syncInterval?: number;
+  syncInterval?: number
 }
 
 /**
@@ -23,15 +23,15 @@ export interface CalDAVConfig {
  */
 export interface CardDAVConfig {
   /** Server URL (e.g., https://contacts.icloud.com) */
-  url: string;
+  url: string
   /** Username or email */
-  username: string;
+  username: string
   /** Password or app-specific password */
-  password: string;
+  password: string
   /** Address book path (optional, auto-discovered if not provided) */
-  addressBookPath?: string;
+  addressBookPath?: string
   /** Sync interval in milliseconds (default: 5 minutes) */
-  syncInterval?: number;
+  syncInterval?: number
 }
 
 /**
@@ -39,50 +39,50 @@ export interface CardDAVConfig {
  */
 export interface CalendarEvent {
   /** Unique identifier (UID from iCalendar) */
-  uid: string;
+  uid: string
   /** Event summary/title */
-  summary: string;
+  summary: string
   /** Event description */
-  description?: string;
+  description?: string
   /** Start date/time (ISO 8601) */
-  dtstart: string;
+  dtstart: string
   /** End date/time (ISO 8601) */
-  dtend?: string;
+  dtend?: string
   /** Duration (ISO 8601 duration format) */
-  duration?: string;
+  duration?: string
   /** Location */
-  location?: string;
+  location?: string
   /** All-day event */
-  allDay?: boolean;
+  allDay?: boolean
   /** Recurrence rule (RRULE) */
-  rrule?: string;
+  rrule?: string
   /** Attendees */
-  attendees?: Attendee[];
+  attendees?: Attendee[]
   /** Organizer */
-  organizer?: Organizer;
+  organizer?: Organizer
   /** Status (TENTATIVE, CONFIRMED, CANCELLED) */
-  status?: "TENTATIVE" | "CONFIRMED" | "CANCELLED";
+  status?: "TENTATIVE" | "CONFIRMED" | "CANCELLED"
   /** ETag for change detection */
-  etag?: string;
+  etag?: string
   /** Raw iCalendar data */
-  raw?: string;
+  raw?: string
 }
 
 /**
  * Event attendee
  */
 export interface Attendee {
-  email: string;
-  name?: string;
-  status?: "NEEDS-ACTION" | "ACCEPTED" | "DECLINED" | "TENTATIVE";
+  email: string
+  name?: string
+  status?: "NEEDS-ACTION" | "ACCEPTED" | "DECLINED" | "TENTATIVE"
 }
 
 /**
  * Event organizer
  */
 export interface Organizer {
-  email: string;
-  name?: string;
+  email: string
+  name?: string
 }
 
 /**
@@ -90,67 +90,67 @@ export interface Organizer {
  */
 export interface Contact {
   /** Unique identifier (UID from vCard) */
-  uid: string;
+  uid: string
   /** Full name (FN) */
-  fullName: string;
+  fullName: string
   /** Name components */
   name?: {
-    family?: string;
-    given?: string;
-    middle?: string;
-    prefix?: string;
-    suffix?: string;
-  };
+    family?: string
+    given?: string
+    middle?: string
+    prefix?: string
+    suffix?: string
+  }
   /** Email addresses */
-  emails?: ContactEmail[];
+  emails?: ContactEmail[]
   /** Phone numbers */
-  phones?: ContactPhone[];
+  phones?: ContactPhone[]
   /** Addresses */
-  addresses?: ContactAddress[];
+  addresses?: ContactAddress[]
   /** Organization */
-  org?: string;
+  org?: string
   /** Job title */
-  title?: string;
+  title?: string
   /** Birthday (YYYY-MM-DD) */
-  birthday?: string;
+  birthday?: string
   /** Notes */
-  note?: string;
+  note?: string
   /** Photo URL or base64 */
-  photo?: string;
+  photo?: string
   /** ETag for change detection */
-  etag?: string;
+  etag?: string
   /** Raw vCard data */
-  raw?: string;
+  raw?: string
 }
 
 /**
  * Contact email
  */
 export interface ContactEmail {
-  type?: "home" | "work" | "other";
-  value: string;
-  primary?: boolean;
+  type?: "home" | "work" | "other"
+  value: string
+  primary?: boolean
 }
 
 /**
  * Contact phone
  */
 export interface ContactPhone {
-  type?: "home" | "work" | "cell" | "fax" | "other";
-  value: string;
-  primary?: boolean;
+  type?: "home" | "work" | "cell" | "fax" | "other"
+  value: string
+  primary?: boolean
 }
 
 /**
  * Contact address
  */
 export interface ContactAddress {
-  type?: "home" | "work" | "other";
-  street?: string;
-  city?: string;
-  region?: string;
-  postalCode?: string;
-  country?: string;
+  type?: "home" | "work" | "other"
+  street?: string
+  city?: string
+  region?: string
+  postalCode?: string
+  country?: string
 }
 
 /**
@@ -158,13 +158,13 @@ export interface ContactAddress {
  */
 export interface SyncState {
   /** Sync token from server (for incremental sync) */
-  syncToken?: string;
+  syncToken?: string
   /** CTag (collection tag) for change detection */
-  ctag?: string;
+  ctag?: string
   /** Last sync timestamp */
-  lastSync?: number;
+  lastSync?: number
   /** Map of resource URL to ETag */
-  etags: Record<string, string>;
+  etags: Record<string, string>
 }
 
 /**
@@ -172,11 +172,11 @@ export interface SyncState {
  */
 export interface SyncResult {
   /** Added items */
-  added: string[];
+  added: string[]
   /** Modified items */
-  modified: string[];
+  modified: string[]
   /** Deleted items */
-  deleted: string[];
+  deleted: string[]
   /** New sync state */
-  state: SyncState;
+  state: SyncState
 }

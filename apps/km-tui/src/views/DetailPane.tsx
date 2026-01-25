@@ -4,18 +4,18 @@
  * Shows full task details in a split-pane view on the right side of the board.
  * Displays content, fields, references, subtasks, and backlinks.
  */
-import React from "react";
-import { Box, Text } from "inkx";
-import type { KNode } from "@km/core";
-import { useVault, type Vault } from "../vault-context.tsx";
-import { getNodeDisplayName } from "../state.ts";
-import { renderRich } from "../text/index.ts";
-import { wrapText } from "../layout/index.ts";
+import React from "react"
+import { Box, Text } from "inkx"
+import type { KNode } from "@km/core"
+import { useVault, type Vault } from "../vault-context.tsx"
+import { getNodeDisplayName } from "../state.ts"
+import { renderRich } from "../text/index.ts"
+import { wrapText } from "../layout/index.ts"
 
 export interface DetailPaneProps {
-  node: KNode;
-  width: number;
-  height: number;
+  node: KNode
+  width: number
+  height: number
 }
 
 export function DetailPane({
@@ -23,60 +23,60 @@ export function DetailPane({
   width,
   height,
 }: DetailPaneProps): React.ReactElement {
-  const vault = useVault();
-  const innerWidth = Math.max(10, width - 6); // Account for border + paddingX(1)
-  const title = getNodeDisplayName(vault, node);
+  const vault = useVault()
+  const innerWidth = Math.max(10, width - 6) // Account for border + paddingX(1)
+  const title = getNodeDisplayName(vault, node)
 
   // Get fields
-  const statusInfo = getStatusDisplay(node.task_status);
-  const dueDate = formatDate(node.due_date);
-  const assignedTo = node.assigned_to;
+  const statusInfo = getStatusDisplay(node.task_status)
+  const dueDate = formatDate(node.due_date)
+  const assignedTo = node.assigned_to
 
   // Get project path
-  const projectPath = getProjectPath(vault, node);
+  const projectPath = getProjectPath(vault, node)
 
   // Extract references from content
-  const refs = extractReferences(node.content);
+  const refs = extractReferences(node.content)
 
   // Also check data for stored references
   const dataRefs = node.data as
     | { mentions?: string[]; tags?: string[]; projects?: string[] }
-    | undefined;
+    | undefined
   if (dataRefs?.mentions) {
     for (const m of dataRefs.mentions) {
-      if (!refs.mentions.includes(m)) refs.mentions.push(m);
+      if (!refs.mentions.includes(m)) refs.mentions.push(m)
     }
   }
   if (dataRefs?.tags) {
     for (const t of dataRefs.tags) {
-      if (!refs.tags.includes(t)) refs.tags.push(t);
+      if (!refs.tags.includes(t)) refs.tags.push(t)
     }
   }
   if (dataRefs?.projects) {
     for (const p of dataRefs.projects) {
-      if (!refs.projects.includes(p)) refs.projects.push(p);
+      if (!refs.projects.includes(p)) refs.projects.push(p)
     }
   }
 
   // Get subtasks (children that are tasks)
-  const children = vault.getChildren(node.id);
-  const subtasks = children.filter((c: KNode) => c.type === "task");
+  const children = vault.getChildren(node.id)
+  const subtasks = children.filter((c: KNode) => c.type === "task")
 
   // Get backlinks
-  const backlinks = vault.getBacklinks(node.id);
-  const backlinkNodes: KNode[] = [];
+  const backlinks = vault.getBacklinks(node.id)
+  const backlinkNodes: KNode[] = []
   for (const link of backlinks) {
-    const sourceNode = vault.getNode(link.source_id);
+    const sourceNode = vault.getNode(link.source_id)
     if (sourceNode) {
-      backlinkNodes.push(sourceNode);
+      backlinkNodes.push(sourceNode)
     }
   }
 
   // Calculate available lines for content
   // Reserve: title (2), separator (1), fields (~4), refs (~2), subtasks header+items, backlinks header+items
-  const estimatedHeaderLines = 10;
-  const maxSubtasks = 5;
-  const maxBacklinks = 3;
+  const estimatedHeaderLines = 10
+  const maxSubtasks = 5
+  const maxBacklinks = 3
   const contentLines = Math.max(
     1,
     height -
@@ -84,24 +84,24 @@ export function DetailPane({
       Math.min(subtasks.length, maxSubtasks) -
       Math.min(backlinkNodes.length, maxBacklinks) -
       4,
-  );
+  )
 
   // Wrap content using shared utility
-  const fullContent = node.content || "";
-  const contentWidth = innerWidth - 2;
+  const fullContent = node.content || ""
+  const contentWidth = innerWidth - 2
   // Render to styled text first, then wrap
-  const styledContent = renderRich(fullContent);
-  const wrappedContent = wrapText(styledContent, contentWidth);
+  const styledContent = renderRich(fullContent)
+  const wrappedContent = wrapText(styledContent, contentWidth)
 
-  const displayContent = wrappedContent.slice(0, contentLines);
-  const hasMoreContent = wrappedContent.length > contentLines;
+  const displayContent = wrappedContent.slice(0, contentLines)
+  const hasMoreContent = wrappedContent.length > contentLines
 
   // Check if we have any references to show
   const hasRefs =
     refs.mentions.length > 0 ||
     refs.tags.length > 0 ||
     refs.projects.length > 0 ||
-    refs.wikilinks.length > 0;
+    refs.wikilinks.length > 0
 
   return (
     <Box
@@ -274,7 +274,7 @@ export function DetailPane({
         <Text dimColor>h/Esc:close Space:status</Text>
       </Box>
     </Box>
-  );
+  )
 }
 
 // =============================================================================
@@ -282,45 +282,45 @@ export function DetailPane({
 // =============================================================================
 
 // Due date urgency levels
-type DueUrgency = "overdue" | "urgent" | "soon" | "normal";
+type DueUrgency = "overdue" | "urgent" | "soon" | "normal"
 
 // Format date for display (e.g., "Jan 10" or "2026-01-10") with urgency info
 function formatDate(dateStr: string | undefined): {
-  text: string;
-  urgency: DueUrgency;
+  text: string
+  urgency: DueUrgency
 } {
-  if (!dateStr) return { text: "", urgency: "normal" };
+  if (!dateStr) return { text: "", urgency: "normal" }
   try {
-    const date = new Date(dateStr);
-    const now = new Date();
+    const date = new Date(dateStr)
+    const now = new Date()
 
     // Calculate days until due
     const daysUntilDue = Math.floor(
       (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-    );
+    )
 
     // Determine urgency
-    let urgency: DueUrgency = "normal";
+    let urgency: DueUrgency = "normal"
     if (daysUntilDue < 0) {
-      urgency = "overdue";
+      urgency = "overdue"
     } else if (daysUntilDue <= 1) {
-      urgency = "urgent"; // Due today or tomorrow
+      urgency = "urgent" // Due today or tomorrow
     } else if (daysUntilDue <= 3) {
-      urgency = "soon"; // Due within 3 days
+      urgency = "soon" // Due within 3 days
     }
 
     // Format display text
-    const sameYear = date.getFullYear() === now.getFullYear();
+    const sameYear = date.getFullYear() === now.getFullYear()
     const text = sameYear
       ? date.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         })
-      : dateStr;
+      : dateStr
 
-    return { text, urgency };
+    return { text, urgency }
   } catch {
-    return { text: dateStr, urgency: "normal" };
+    return { text: dateStr, urgency: "normal" }
   }
 }
 
@@ -330,10 +330,10 @@ const STATUS_DISPLAY: Record<string, { text: string; color: string }> = {
   wip: { text: "wip", color: "yellow" },
   blocked: { text: "blocked", color: "red" },
   dropped: { text: "dropped", color: "gray" },
-};
+}
 
 function getStatusDisplay(status?: string): { text: string; color: string } {
-  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "blue" };
+  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "blue" }
 }
 
 // Checkbox marks for subtask display (markdown style)
@@ -342,60 +342,60 @@ const CHECKBOX_MARKS: Record<string, string> = {
   wip: "[/]",
   blocked: "[!]",
   dropped: "[-]",
-};
+}
 
 function getSubtaskCheckbox(status?: string): string {
-  return CHECKBOX_MARKS[status ?? ""] ?? "[ ]";
+  return CHECKBOX_MARKS[status ?? ""] ?? "[ ]"
 }
 
 // Extract references from content
 interface References {
-  mentions: string[];
-  tags: string[];
-  projects: string[];
-  wikilinks: string[];
+  mentions: string[]
+  tags: string[]
+  projects: string[]
+  wikilinks: string[]
 }
 
 // Extract unique matches from content using a regex pattern
 function extractMatches(content: string, pattern: RegExp): string[] {
-  const matches = new Set<string>();
-  let match;
+  const matches = new Set<string>()
+  let match
   while ((match = pattern.exec(content)) !== null) {
-    if (match[1]) matches.add(match[1]);
+    if (match[1]) matches.add(match[1])
   }
-  return [...matches];
+  return [...matches]
 }
 
 function extractReferences(content: string | undefined): References {
   if (!content) {
-    return { mentions: [], tags: [], projects: [], wikilinks: [] };
+    return { mentions: [], tags: [], projects: [], wikilinks: [] }
   }
   return {
     mentions: extractMatches(content, /@(\w+)/g),
     tags: extractMatches(content, /#(\w+)/g),
     projects: extractMatches(content, /\+(\w+)/g),
     wikilinks: extractMatches(content, /\[\[([^\]]+)\]\]/g),
-  };
+  }
 }
 
 // Build project path (ancestors to root)
 function getProjectPath(vault: Vault, node: KNode): string[] {
-  const path: string[] = [];
-  let currentId = node.parent_id;
+  const path: string[] = []
+  let currentId = node.parent_id
 
   while (currentId) {
-    const parent = vault.getNode(currentId);
-    if (!parent) break;
+    const parent = vault.getNode(currentId)
+    if (!parent) break
 
     // Only include folders and files (not sections or the board root)
     if (parent.type === "folder" || parent.type === "file") {
-      path.unshift(getNodeDisplayName(vault, parent));
+      path.unshift(getNodeDisplayName(vault, parent))
     }
-    currentId = parent.parent_id;
+    currentId = parent.parent_id
   }
 
-  return path;
+  return path
 }
 
 // Export for testing
-export { extractReferences, formatDate, getStatusDisplay, getProjectPath };
+export { extractReferences, formatDate, getStatusDisplay, getProjectPath }

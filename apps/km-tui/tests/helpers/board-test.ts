@@ -53,23 +53,23 @@
  * ```
  */
 
-import React from "react";
+import React from "react"
 import {
   createTestRenderer,
   createLocator,
   type InkxLocator,
   type RenderResult,
-} from "inkx/testing";
-import { expect } from "bun:test";
-import { createFakeVault } from "@km/storage";
-import type { KNode } from "@km/core";
+} from "inkx/testing"
+import { expect } from "bun:test"
+import { createFakeVault } from "@km/storage"
+import type { KNode } from "@km/core"
 
-import { BoardCore, Board } from "../../src/views/Board.tsx";
-import { buildBoardState } from "../../src/state.ts";
-import { createInitialUIState } from "../../src/ui-reducer.ts";
-import { createLayoutRegistry } from "../../src/card-positions.ts";
-import { VaultProvider } from "../../src/vault-context.tsx";
-import type { TUIBoardState } from "../../src/types.ts";
+import { BoardCore, Board } from "../../src/views/Board.tsx"
+import { buildBoardState } from "../../src/state.ts"
+import { createInitialUIState } from "../../src/ui-reducer.ts"
+import { createLayoutRegistry } from "../../src/card-positions.ts"
+import { VaultProvider } from "../../src/vault-context.tsx"
+import type { TUIBoardState } from "../../src/types.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
 // Board includes useReducer + useInput - use for keyboard navigation tests.
@@ -77,7 +77,7 @@ import {
   createBoardState as createBoardStateFixture,
   createColumnState,
   createCardState,
-} from "../fixtures/board-fixtures.ts";
+} from "../fixtures/board-fixtures.ts"
 
 // =============================================================================
 // Tree Fixture Builder (decker-inspired)
@@ -110,22 +110,22 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
-  };
+  }
 
   // Process each child array (each call to item())
-  const result: KNode[] = [node];
+  const result: KNode[] = [node]
   childArrays.forEach((childArray, idx) => {
     // The first node in each child array is the direct child
-    const directChild = childArray[0];
+    const directChild = childArray[0]
     if (directChild) {
-      directChild.parent_id = content;
-      directChild.parent_idx = idx;
+      directChild.parent_id = content
+      directChild.parent_idx = idx
     }
     // Add all nodes from this child array to the result
-    result.push(...childArray);
-  });
+    result.push(...childArray)
+  })
 
-  return result;
+  return result
 }
 
 /**
@@ -137,12 +137,12 @@ export function standardBoard() {
     item("col1", item("1a"), item("1b")),
     item("col2", item("2a")),
     item("col3"),
-  );
+  )
 
   return {
     vault: createFakeVault({ nodes }),
     root: "board",
-  };
+  }
 }
 
 /**
@@ -160,64 +160,64 @@ export function testEnv(
   treeBuilder: () => KNode[],
   options?: { columns?: number; rows?: number },
 ) {
-  const nodes = treeBuilder();
-  const vault = createFakeVault({ nodes });
-  const rootNode = nodes[0];
+  const nodes = treeBuilder()
+  const vault = createFakeVault({ nodes })
+  const rootNode = nodes[0]
   if (!rootNode) {
-    throw new Error("Tree builder must return at least one node");
+    throw new Error("Tree builder must return at least one node")
   }
 
   // Build initial board state from vault
-  const initialState = buildBoardState(vault as any, rootNode.id);
+  const initialState = buildBoardState(vault as any, rootNode.id)
 
   // Render the full Board component (not BoardCore) for keyboard navigation + id attributes
-  const columns = options?.columns ?? 80;
-  const rows = options?.rows ?? 24;
-  const render = createTestRenderer({ columns, rows });
+  const columns = options?.columns ?? 80
+  const rows = options?.rows ?? 24
+  const render = createTestRenderer({ columns, rows })
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: "cards" as const,
     dimensions: { columns, rows },
     onExit: () => {},
     layoutRegistry: createLayoutRegistry(),
-  });
+  })
   const result = render(
     React.createElement(VaultProvider, { vault, children: boardElement }),
-  );
+  )
 
   // Create fluent API
   const board = {
     press: (key: string) => {
-      result.stdin.write(key);
-      return board;
+      result.stdin.write(key)
+      return board
     },
     q: (selector: string) => {
-      const freshLocator = createLocator(result.getContainer());
-      return freshLocator.locator(selector);
+      const freshLocator = createLocator(result.getContainer())
+      return freshLocator.locator(selector)
     },
     expect: (selector: string) => ({
       toExist: () => {
-        const freshLocator = createLocator(result.getContainer());
-        const loc = freshLocator.locator(selector);
-        expect(loc.count()).toBeGreaterThan(0);
+        const freshLocator = createLocator(result.getContainer())
+        const loc = freshLocator.locator(selector)
+        expect(loc.count()).toBeGreaterThan(0)
       },
       not: {
         toExist: () => {
-          const freshLocator = createLocator(result.getContainer());
-          const loc = freshLocator.locator(selector);
-          expect(loc.count()).toBe(0);
+          const freshLocator = createLocator(result.getContainer())
+          const loc = freshLocator.locator(selector)
+          expect(loc.count()).toBe(0)
         },
       },
       toHaveCount: (n: number) => {
-        const freshLocator = createLocator(result.getContainer());
-        const loc = freshLocator.locator(selector);
-        expect(loc.count()).toBe(n);
+        const freshLocator = createLocator(result.getContainer())
+        const loc = freshLocator.locator(selector)
+        expect(loc.count()).toBe(n)
       },
     }),
     screenshot: () => result.lastFrameText() ?? "",
     _result: result,
-  };
-  return { board };
+  }
+  return { board }
 }
 
 // =============================================================================
@@ -226,43 +226,43 @@ export function testEnv(
 
 declare module "bun:test" {
   interface Matchers<T> {
-    toExist(): void;
-    toHaveCount(expected: number): void;
+    toExist(): void
+    toHaveCount(expected: number): void
   }
 }
 
 expect.extend({
   toExist(received: unknown) {
-    const locator = received as InkxLocator;
-    const pass = locator.count() > 0;
+    const locator = received as InkxLocator
+    const pass = locator.count() > 0
     return {
       pass,
       message: () =>
         pass ? `Expected element not to exist` : `Expected element to exist`,
-    };
+    }
   },
   toHaveCount(received: unknown, expected: number) {
-    const locator = received as InkxLocator;
-    const count = locator.count();
+    const locator = received as InkxLocator
+    const count = locator.count()
     return {
       pass: count === expected,
       message: () => `Expected count ${expected}, got ${count}`,
-    };
+    }
   },
-});
+})
 
 // =============================================================================
 // Types
 // =============================================================================
 
 interface BoardTestOptions {
-  columns?: number;
-  rows?: number;
+  columns?: number
+  rows?: number
 }
 
 interface CursorPosition {
-  col?: number;
-  card?: number;
+  col?: number
+  card?: number
 }
 
 /**
@@ -270,17 +270,17 @@ interface CursorPosition {
  */
 interface ContentAssertion {
   /** Assert the text is visible in the rendered output */
-  toBeVisible(): BoardTest;
+  toBeVisible(): BoardTest
   /** Assert the text is in a specific column */
-  inColumn(title: string): BoardTest;
+  inColumn(title: string): BoardTest
   /** Assert this element is positioned left of another */
-  toBeLeftOf(testId: string): BoardTest;
+  toBeLeftOf(testId: string): BoardTest
   /** Assert this element is positioned right of another */
-  toBeRightOf(testId: string): BoardTest;
+  toBeRightOf(testId: string): BoardTest
   /** Assert this element is positioned above another */
-  toBeAbove(testId: string): BoardTest;
+  toBeAbove(testId: string): BoardTest
   /** Assert this element is positioned below another */
-  toBeBelow(testId: string): BoardTest;
+  toBeBelow(testId: string): BoardTest
 }
 
 /**
@@ -290,66 +290,86 @@ interface BoardTest {
   // === Actions ===
 
   /** Send a key press to the board */
-  press(key: string): this;
+  press(key: string): this
 
   /** Send multiple key presses */
-  pressSequence(...keys: string[]): this;
+  pressSequence(...keys: string[]): this
 
   /** Type text input */
-  type(text: string): this;
+  type(text: string): this
 
   /** Navigate cursor to a specific position (via multiple key presses) */
-  moveTo(pos: CursorPosition): this;
+  moveTo(pos: CursorPosition): this
 
   // === Cursor Assertions ===
 
   /** Assert cursor is at a specific column/card position */
-  expectCursor(pos: CursorPosition): this;
+  expectCursor(pos: CursorPosition): this
 
   /** Assert a specific text is selected (has cursor) */
-  expectSelected(text: string): this;
+  expectSelected(text: string): this
 
   // === Content Assertions ===
 
   /** Start a content assertion chain */
-  expect(text: string): ContentAssertion;
+  expect(text: string): ContentAssertion
 
   /** Assert number of columns */
-  expectColumnCount(n: number): this;
+  expectColumnCount(n: number): this
 
   /** Assert text is visible in the output */
-  expectVisible(text: string): this;
+  expectVisible(text: string): this
 
   /** Assert text is NOT visible in the output */
-  expectNotVisible(text: string): this;
+  expectNotVisible(text: string): this
 
   // === Position Assertions ===
 
   /** Assert element A is positioned left of element B (by testID) */
-  expectLeftOf(a: string, b: string): this;
+  expectLeftOf(a: string, b: string): this
 
   /** Assert element A is positioned right of element B (by testID) */
-  expectRightOf(a: string, b: string): this;
+  expectRightOf(a: string, b: string): this
 
   /** Assert element A is positioned above element B (by testID) */
-  expectAbove(a: string, b: string): this;
+  expectAbove(a: string, b: string): this
 
   /** Assert element A is positioned below element B (by testID) */
-  expectBelow(a: string, b: string): this;
+  expectBelow(a: string, b: string): this
 
   // === Debug ===
 
   /** Get the current frame as plain text (for debugging) */
-  screenshot(): string;
+  screenshot(): string
 
   /** Get the current frame with ANSI codes */
-  screenshotAnsi(): string;
+  screenshotAnsi(): string
 
   /** Get the inkx locator for advanced queries */
-  locator(): InkxLocator;
+  locator(): InkxLocator
 
   /** Get the underlying render result for advanced use */
-  renderResult(): RenderResult;
+  renderResult(): RenderResult
+
+  // === Status Bar Locators ===
+
+  /** Get the view mode text (e.g., "CARDS VIEW", "COLUMNS VIEW") */
+  getViewMode(): string
+
+  /** Get the storage mode text (e.g., "MEM", "DISK") */
+  getStorageMode(): string
+
+  /** Get the vault path text */
+  getVaultPath(): string
+
+  /** Get the node count from the bottom bar */
+  getNodeCount(): string
+
+  /** Get the watcher status text if visible */
+  getWatcherStatus(): string | null
+
+  /** Get the column position text if visible (e.g., "col 1/3") */
+  getColumnPosition(): string | null
 }
 
 // =============================================================================
@@ -357,36 +377,36 @@ interface BoardTest {
 // =============================================================================
 
 class BoardTestImpl implements BoardTest {
-  private result: RenderResult;
-  private currentLocator: InkxLocator;
+  private result: RenderResult
+  private currentLocator: InkxLocator
 
   constructor(result: RenderResult) {
-    this.result = result;
-    this.currentLocator = createLocator(result.getContainer());
+    this.result = result
+    this.currentLocator = createLocator(result.getContainer())
   }
 
   // --- Actions ---
 
   press(key: string): this {
-    this.result.stdin.write(key);
+    this.result.stdin.write(key)
     // Refresh locator after state change
-    this.currentLocator = createLocator(this.result.getContainer());
-    return this;
+    this.currentLocator = createLocator(this.result.getContainer())
+    return this
   }
 
   pressSequence(...keys: string[]): this {
     for (const key of keys) {
-      this.press(key);
+      this.press(key)
     }
-    return this;
+    return this
   }
 
   type(text: string): this {
     for (const char of text) {
-      this.result.stdin.write(char);
+      this.result.stdin.write(char)
     }
-    this.currentLocator = createLocator(this.result.getContainer());
-    return this;
+    this.currentLocator = createLocator(this.result.getContainer())
+    return this
   }
 
   moveTo(pos: CursorPosition): this {
@@ -395,36 +415,36 @@ class BoardTestImpl implements BoardTest {
     // NOTE: This assumes starting from origin - for complex navigation, use press()
     if (pos.col !== undefined) {
       for (let i = 0; i < pos.col; i++) {
-        this.press("l");
+        this.press("l")
       }
     }
     if (pos.card !== undefined) {
       for (let i = 0; i < pos.card; i++) {
-        this.press("j");
+        this.press("j")
       }
     }
-    return this;
+    return this
   }
 
   // --- Cursor Assertions ---
 
   expectCursor(pos: CursorPosition): this {
     // Find the cursor element by testID
-    const cursor = this.currentLocator.getByTestId("cursor");
-    const cursorBox = cursor.boundingBox();
+    const cursor = this.currentLocator.getByTestId("cursor")
+    const cursorBox = cursor.boundingBox()
 
-    expect(cursorBox).not.toBeNull();
+    expect(cursorBox).not.toBeNull()
 
     if (pos.col !== undefined) {
       // Find the target column and compare X positions
-      const column = this.currentLocator.getByTestId(`column-${pos.col}`);
-      const colBox = column.boundingBox();
-      expect(colBox).not.toBeNull();
+      const column = this.currentLocator.getByTestId(`column-${pos.col}`)
+      const colBox = column.boundingBox()
+      expect(colBox).not.toBeNull()
 
       // Cursor should be within the column's X range
       if (cursorBox && colBox) {
-        expect(cursorBox.x).toBeGreaterThanOrEqual(colBox.x);
-        expect(cursorBox.x).toBeLessThan(colBox.x + colBox.width);
+        expect(cursorBox.x).toBeGreaterThanOrEqual(colBox.x)
+        expect(cursorBox.x).toBeLessThan(colBox.x + colBox.width)
       }
     }
 
@@ -433,252 +453,287 @@ class BoardTestImpl implements BoardTest {
       // This requires the card to have a testID like "card-{colIndex}-{cardIndex}"
       const card = this.currentLocator.getByTestId(
         `card-${pos.col ?? 0}-${pos.card}`,
-      );
-      const cardBox = card.boundingBox();
+      )
+      const cardBox = card.boundingBox()
 
       if (cardBox && cursorBox) {
         // Cursor Y should overlap with card Y
-        expect(cursorBox.y).toBeGreaterThanOrEqual(cardBox.y);
-        expect(cursorBox.y).toBeLessThan(cardBox.y + cardBox.height);
+        expect(cursorBox.y).toBeGreaterThanOrEqual(cardBox.y)
+        expect(cursorBox.y).toBeLessThan(cardBox.y + cardBox.height)
       }
     }
 
-    return this;
+    return this
   }
 
   expectSelected(text: string): this {
     // Find text and check if it has selection styling
-    const element = this.currentLocator.getByText(text);
-    expect(element.count()).toBeGreaterThan(0);
+    const element = this.currentLocator.getByText(text)
+    expect(element.count()).toBeGreaterThan(0)
 
     // Check if parent has selection attribute
-    const selected = this.currentLocator.locator('[data-selected="true"]');
+    const selected = this.currentLocator.locator('[data-selected="true"]')
     const selectedTexts = selected.resolveAll().map((node) => {
       // Get text content recursively
       const getTextContent = (n: typeof node): string => {
-        if (n.textContent !== undefined) return n.textContent;
-        return n.children.map(getTextContent).join("");
-      };
-      return getTextContent(node);
-    });
+        if (n.textContent !== undefined) return n.textContent
+        return n.children.map(getTextContent).join("")
+      }
+      return getTextContent(node)
+    })
 
-    expect(selectedTexts.some((t) => t.includes(text))).toBe(true);
-    return this;
+    expect(selectedTexts.some((t) => t.includes(text))).toBe(true)
+    return this
   }
 
   // --- Content Assertions ---
 
   expect(text: string): ContentAssertion {
     // eslint-disable-next-line @typescript-eslint/no-this-alias -- needed to reference BoardTest in returned object
-    const self = this;
-    const element = this.currentLocator.getByText(text);
+    const self = this
+    const element = this.currentLocator.getByText(text)
 
     return {
       toBeVisible(): BoardTest {
-        expect(element.count()).toBeGreaterThan(0);
-        expect(element.isVisible()).toBe(true);
-        return self;
+        expect(element.count()).toBeGreaterThan(0)
+        expect(element.isVisible()).toBe(true)
+        return self
       },
 
       inColumn(title: string): BoardTest {
         // Find the column by its title text
-        const column = self.currentLocator.getByText(title);
-        expect(column.count()).toBeGreaterThan(0);
+        const column = self.currentLocator.getByText(title)
+        expect(column.count()).toBeGreaterThan(0)
 
-        const colBox = column.boundingBox();
-        const textBox = element.boundingBox();
+        const colBox = column.boundingBox()
+        const textBox = element.boundingBox()
 
-        expect(colBox).not.toBeNull();
-        expect(textBox).not.toBeNull();
+        expect(colBox).not.toBeNull()
+        expect(textBox).not.toBeNull()
 
         if (colBox && textBox) {
           // Text should be within the column's X range
-          expect(textBox.x).toBeGreaterThanOrEqual(colBox.x);
+          expect(textBox.x).toBeGreaterThanOrEqual(colBox.x)
         }
 
-        return self;
+        return self
       },
 
       toBeLeftOf(testId: string): BoardTest {
-        const other = self.currentLocator.getByTestId(testId);
-        const textBox = element.boundingBox();
-        const otherBox = other.boundingBox();
+        const other = self.currentLocator.getByTestId(testId)
+        const textBox = element.boundingBox()
+        const otherBox = other.boundingBox()
 
-        expect(textBox).not.toBeNull();
-        expect(otherBox).not.toBeNull();
+        expect(textBox).not.toBeNull()
+        expect(otherBox).not.toBeNull()
 
         if (textBox && otherBox) {
-          expect(textBox.x + textBox.width).toBeLessThanOrEqual(otherBox.x);
+          expect(textBox.x + textBox.width).toBeLessThanOrEqual(otherBox.x)
         }
 
-        return self;
+        return self
       },
 
       toBeRightOf(testId: string): BoardTest {
-        const other = self.currentLocator.getByTestId(testId);
-        const textBox = element.boundingBox();
-        const otherBox = other.boundingBox();
+        const other = self.currentLocator.getByTestId(testId)
+        const textBox = element.boundingBox()
+        const otherBox = other.boundingBox()
 
-        expect(textBox).not.toBeNull();
-        expect(otherBox).not.toBeNull();
+        expect(textBox).not.toBeNull()
+        expect(otherBox).not.toBeNull()
 
         if (textBox && otherBox) {
-          expect(textBox.x).toBeGreaterThanOrEqual(otherBox.x + otherBox.width);
+          expect(textBox.x).toBeGreaterThanOrEqual(otherBox.x + otherBox.width)
         }
 
-        return self;
+        return self
       },
 
       toBeAbove(testId: string): BoardTest {
-        const other = self.currentLocator.getByTestId(testId);
-        const textBox = element.boundingBox();
-        const otherBox = other.boundingBox();
+        const other = self.currentLocator.getByTestId(testId)
+        const textBox = element.boundingBox()
+        const otherBox = other.boundingBox()
 
-        expect(textBox).not.toBeNull();
-        expect(otherBox).not.toBeNull();
+        expect(textBox).not.toBeNull()
+        expect(otherBox).not.toBeNull()
 
         if (textBox && otherBox) {
-          expect(textBox.y + textBox.height).toBeLessThanOrEqual(otherBox.y);
+          expect(textBox.y + textBox.height).toBeLessThanOrEqual(otherBox.y)
         }
 
-        return self;
+        return self
       },
 
       toBeBelow(testId: string): BoardTest {
-        const other = self.currentLocator.getByTestId(testId);
-        const textBox = element.boundingBox();
-        const otherBox = other.boundingBox();
+        const other = self.currentLocator.getByTestId(testId)
+        const textBox = element.boundingBox()
+        const otherBox = other.boundingBox()
 
-        expect(textBox).not.toBeNull();
-        expect(otherBox).not.toBeNull();
+        expect(textBox).not.toBeNull()
+        expect(otherBox).not.toBeNull()
 
         if (textBox && otherBox) {
-          expect(textBox.y).toBeGreaterThanOrEqual(
-            otherBox.y + otherBox.height,
-          );
+          expect(textBox.y).toBeGreaterThanOrEqual(otherBox.y + otherBox.height)
         }
 
-        return self;
+        return self
       },
-    };
+    }
   }
 
   expectColumnCount(n: number): this {
     // Count columns by testID pattern
-    let count = 0;
+    let count = 0
     for (let i = 0; i < 20; i++) {
       // reasonable max
-      const col = this.currentLocator.getByTestId(`column-${i}`);
+      const col = this.currentLocator.getByTestId(`column-${i}`)
       if (col.count() > 0) {
-        count++;
+        count++
       } else {
-        break;
+        break
       }
     }
-    expect(count).toBe(n);
-    return this;
+    expect(count).toBe(n)
+    return this
   }
 
   expectVisible(text: string): this {
-    const frame = this.result.lastFrameText();
-    expect(frame).toBeDefined();
-    expect(frame).toContain(text);
-    return this;
+    const frame = this.result.lastFrameText()
+    expect(frame).toBeDefined()
+    expect(frame).toContain(text)
+    return this
   }
 
   expectNotVisible(text: string): this {
-    const frame = this.result.lastFrameText();
-    expect(frame).toBeDefined();
-    expect(frame).not.toContain(text);
-    return this;
+    const frame = this.result.lastFrameText()
+    expect(frame).toBeDefined()
+    expect(frame).not.toContain(text)
+    return this
   }
 
   // --- Position Assertions ---
 
   expectLeftOf(a: string, b: string): this {
-    const aEl = this.currentLocator.getByTestId(a);
-    const bEl = this.currentLocator.getByTestId(b);
+    const aEl = this.currentLocator.getByTestId(a)
+    const bEl = this.currentLocator.getByTestId(b)
 
-    const aBox = aEl.boundingBox();
-    const bBox = bEl.boundingBox();
+    const aBox = aEl.boundingBox()
+    const bBox = bEl.boundingBox()
 
-    expect(aBox).not.toBeNull();
-    expect(bBox).not.toBeNull();
+    expect(aBox).not.toBeNull()
+    expect(bBox).not.toBeNull()
 
     if (aBox && bBox) {
-      expect(aBox.x + aBox.width).toBeLessThanOrEqual(bBox.x);
+      expect(aBox.x + aBox.width).toBeLessThanOrEqual(bBox.x)
     }
 
-    return this;
+    return this
   }
 
   expectRightOf(a: string, b: string): this {
-    const aEl = this.currentLocator.getByTestId(a);
-    const bEl = this.currentLocator.getByTestId(b);
+    const aEl = this.currentLocator.getByTestId(a)
+    const bEl = this.currentLocator.getByTestId(b)
 
-    const aBox = aEl.boundingBox();
-    const bBox = bEl.boundingBox();
+    const aBox = aEl.boundingBox()
+    const bBox = bEl.boundingBox()
 
-    expect(aBox).not.toBeNull();
-    expect(bBox).not.toBeNull();
+    expect(aBox).not.toBeNull()
+    expect(bBox).not.toBeNull()
 
     if (aBox && bBox) {
-      expect(aBox.x).toBeGreaterThanOrEqual(bBox.x + bBox.width);
+      expect(aBox.x).toBeGreaterThanOrEqual(bBox.x + bBox.width)
     }
 
-    return this;
+    return this
   }
 
   expectAbove(a: string, b: string): this {
-    const aEl = this.currentLocator.getByTestId(a);
-    const bEl = this.currentLocator.getByTestId(b);
+    const aEl = this.currentLocator.getByTestId(a)
+    const bEl = this.currentLocator.getByTestId(b)
 
-    const aBox = aEl.boundingBox();
-    const bBox = bEl.boundingBox();
+    const aBox = aEl.boundingBox()
+    const bBox = bEl.boundingBox()
 
-    expect(aBox).not.toBeNull();
-    expect(bBox).not.toBeNull();
+    expect(aBox).not.toBeNull()
+    expect(bBox).not.toBeNull()
 
     if (aBox && bBox) {
-      expect(aBox.y + aBox.height).toBeLessThanOrEqual(bBox.y);
+      expect(aBox.y + aBox.height).toBeLessThanOrEqual(bBox.y)
     }
 
-    return this;
+    return this
   }
 
   expectBelow(a: string, b: string): this {
-    const aEl = this.currentLocator.getByTestId(a);
-    const bEl = this.currentLocator.getByTestId(b);
+    const aEl = this.currentLocator.getByTestId(a)
+    const bEl = this.currentLocator.getByTestId(b)
 
-    const aBox = aEl.boundingBox();
-    const bBox = bEl.boundingBox();
+    const aBox = aEl.boundingBox()
+    const bBox = bEl.boundingBox()
 
-    expect(aBox).not.toBeNull();
-    expect(bBox).not.toBeNull();
+    expect(aBox).not.toBeNull()
+    expect(bBox).not.toBeNull()
 
     if (aBox && bBox) {
-      expect(aBox.y).toBeGreaterThanOrEqual(bBox.y + bBox.height);
+      expect(aBox.y).toBeGreaterThanOrEqual(bBox.y + bBox.height)
     }
 
-    return this;
+    return this
   }
 
   // --- Debug ---
 
   screenshot(): string {
-    return this.result.lastFrameText() ?? "";
+    return this.result.lastFrameText() ?? ""
   }
 
   screenshotAnsi(): string {
-    return this.result.lastFrame() ?? "";
+    return this.result.lastFrame() ?? ""
   }
 
   locator(): InkxLocator {
-    return this.currentLocator;
+    return this.currentLocator
   }
 
   renderResult(): RenderResult {
-    return this.result;
+    return this.result
+  }
+
+  // --- Status Bar Locators ---
+
+  private getTextContent(selector: string): string {
+    const el = this.currentLocator.locator(selector)
+    const nodes = el.resolveAll()
+    if (nodes.length === 0) return ""
+    const node = nodes[0]
+    if (!node) return ""
+    return node.textContent ?? ""
+  }
+
+  getViewMode(): string {
+    return this.getTextContent("#view-mode")
+  }
+
+  getStorageMode(): string {
+    return this.getTextContent("#storage-mode")
+  }
+
+  getVaultPath(): string {
+    return this.getTextContent("#vault-path")
+  }
+
+  getNodeCount(): string {
+    return this.getTextContent("#node-count")
+  }
+
+  getWatcherStatus(): string | null {
+    const el = this.currentLocator.locator("#watcher-status")
+    return el.count() > 0 ? this.getTextContent("#watcher-status") : null
+  }
+
+  getColumnPosition(): string | null {
+    const el = this.currentLocator.locator("#column-position")
+    return el.count() > 0 ? this.getTextContent("#column-position") : null
   }
 }
 
@@ -693,12 +748,12 @@ export function renderBoard(
   state: TUIBoardState,
   options: BoardTestOptions = {},
 ): BoardTest {
-  const { columns = 80, rows = 24 } = options;
+  const { columns = 80, rows = 24 } = options
 
   // Create a fake vault for static rendering tests
-  const vault = createFakeVault();
+  const vault = createFakeVault()
 
-  const render = createTestRenderer({ columns, rows });
+  const render = createTestRenderer({ columns, rows })
   const boardCoreElement = React.createElement(BoardCore, {
     state,
     ui: createInitialUIState("cards", [], { columns, rows }),
@@ -712,12 +767,12 @@ export function renderBoard(
       handleNewItemCreate: () => {},
       handleNewItemCancel: () => {},
     },
-  });
+  })
   const result = render(
     React.createElement(VaultProvider, { vault, children: boardCoreElement }),
-  );
+  )
 
-  return new BoardTestImpl(result);
+  return new BoardTestImpl(result)
 }
 
 // =============================================================================
@@ -733,7 +788,7 @@ export function column(
 ) {
   const cardStates = cards.map((card, idx) => {
     if (typeof card === "string") {
-      return createCardState({ content: card, parent_idx: idx });
+      return createCardState({ content: card, parent_idx: idx })
     }
     const children = (card.children ?? []).map((childContent, childIdx) => ({
       id: `child-${idx}-${childIdx}`,
@@ -746,11 +801,11 @@ export function column(
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",
-    }));
-    return createCardState({ content: card.title, parent_idx: idx }, children);
-  });
+    }))
+    return createCardState({ content: card.title, parent_idx: idx }, children)
+  })
 
-  return createColumnState({ content: title }, cardStates);
+  return createColumnState({ content: title }, cardStates)
 }
 
 /**
@@ -767,12 +822,12 @@ export function column(
  * ```
  */
 export function board(config: {
-  columns: ReturnType<typeof column>[];
+  columns: ReturnType<typeof column>[]
 }): TUIBoardState {
   return createBoardStateFixture(config.columns, {
     colIndex: 0,
     cardIndex: 0,
-  });
+  })
 }
 
 // =============================================================================
@@ -784,7 +839,7 @@ export function board(config: {
  */
 export const SIMPLE_BOARD = board({
   columns: [column("To Do", ["Task 1", "Task 2"]), column("Done", ["Task 3"])],
-});
+})
 
 /**
  * Board with nested sections
@@ -796,7 +851,7 @@ export const NESTED_BOARD = board({
       { title: "Phase 2", children: ["Test", "Deploy"] },
     ]),
   ],
-});
+})
 
 /**
  * Board with many items for scroll testing
@@ -808,10 +863,10 @@ export const LONG_BOARD = board({
       Array.from({ length: 20 }, (_, i) => `Task ${i + 1}`),
     ),
   ],
-});
+})
 
 // =============================================================================
 // Re-exports for convenience
 // =============================================================================
 
-export type { BoardTest, ContentAssertion, CursorPosition, BoardTestOptions };
+export type { BoardTest, ContentAssertion, CursorPosition, BoardTestOptions }

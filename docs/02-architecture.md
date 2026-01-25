@@ -87,9 +87,9 @@ Objects with start/stop lifecycle (like Watcher) implement the Service interface
 
 ```typescript
 interface Service extends AsyncDisposable {
-  readonly status: "stopped" | "starting" | "running" | "stopping";
-  start(): Promise<void>;
-  stop(): Promise<void>;
+  readonly status: "stopped" | "starting" | "running" | "stopping"
+  start(): Promise<void>
+  stop(): Promise<void>
 }
 ```
 
@@ -98,13 +98,13 @@ interface Service extends AsyncDisposable {
 ```typescript
 async function runTui(path: string) {
   // Create domain objects with explicit dependencies
-  using vault = runGenerator(createVault(path));
-  using board = createBoard(vault);
-  await using watcher = vault.watch();
+  using vault = runGenerator(createVault(path))
+  using board = createBoard(vault)
+  await using watcher = vault.watch()
 
   // Start file watching
-  await watcher.start();
-  watcher.on("change", () => board.refresh());
+  await watcher.start()
+  watcher.on("change", () => board.refresh())
 
   // Run TUI...
 
@@ -164,13 +164,13 @@ Re-render
 Commands are functions that execute with a unified context:
 
 ```typescript
-type Cmd = (ctx: Ctx) => void;
-type When = (ctx: Ctx) => boolean;
+type Cmd = (ctx: Ctx) => void
+type When = (ctx: Ctx) => boolean
 
 interface Binding {
-  keys: string[];
-  cmd: Cmd;
-  when?: When;
+  keys: string[]
+  cmd: Cmd
+  when?: When
 }
 ```
 
@@ -186,15 +186,15 @@ Commands execute directly rather than returning action descriptors:
 
 ```typescript
 const cycleTaskStatus: Cmd = (ctx) => {
-  if (!ctx.knode?.task_status) return;
-  const next = nextStatus(ctx.knode.task_status);
-  ctx.storage.update(ctx.knode.id, { task_status: next });
-  ctx.refresh();
-};
+  if (!ctx.knode?.task_status) return
+  const next = nextStatus(ctx.knode.task_status)
+  ctx.storage.update(ctx.knode.id, { task_status: next })
+  ctx.refresh()
+}
 
 const cursorNext: Cmd = (ctx) => {
-  ctx.dispatchBoard({ type: "CURSOR_MOVE", dir: "next" });
-};
+  ctx.dispatchBoard({ type: "CURSOR_MOVE", dir: "next" })
+}
 ```
 
 This enables:

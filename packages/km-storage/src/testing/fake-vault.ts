@@ -5,28 +5,28 @@
  * real SQLite or file parsing. Uses canned data.
  */
 
-import type { KNode, TaskStatus } from "@km/core";
-import type { Vault, VaultStats, LoadError } from "../vault.ts";
-import type { Link } from "../db.ts";
+import type { KNode, TaskStatus } from "@km/core"
+import type { Vault, VaultStats, LoadError } from "../vault.ts"
+import type { Link } from "../db.ts"
 
 /**
  * Options for createFakeVault
  */
 export interface FakeVaultOptions {
   /** Path to report (default: "/fake/vault") */
-  path?: string;
+  path?: string
 
   /** Initial nodes (can also add via addNode) */
-  nodes?: KNode[];
+  nodes?: KNode[]
 
   /** Initial links (for backlinks) */
-  links?: Link[];
+  links?: Link[]
 
   /** Load errors to report */
-  loadErrors?: LoadError[];
+  loadErrors?: LoadError[]
 
   /** Stats to report */
-  stats?: Partial<VaultStats>;
+  stats?: Partial<VaultStats>
 }
 
 /**
@@ -34,13 +34,13 @@ export interface FakeVaultOptions {
  */
 export interface FakeVault extends Vault {
   /** Get all nodes (for test assertions) */
-  getAllNodes(): KNode[];
+  getAllNodes(): KNode[]
 
   /** Get all links (for test assertions) */
-  getAllLinks(): Link[];
+  getAllLinks(): Link[]
 
   /** Reset to initial state */
-  reset(): void;
+  reset(): void
 }
 
 /**
@@ -63,188 +63,188 @@ export interface FakeVault extends Vault {
  * @returns FakeVault instance
  */
 export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
-  const path = options.path ?? "/fake/vault";
-  const initialNodes = options.nodes ?? [];
-  const initialLinks = options.links ?? [];
-  const loadErrors = options.loadErrors ?? [];
+  const path = options.path ?? "/fake/vault"
+  const initialNodes = options.nodes ?? []
+  const initialLinks = options.links ?? []
+  const loadErrors = options.loadErrors ?? []
   const stats: VaultStats = {
     nodeCount: initialNodes.length,
     linkCount: initialLinks.length,
     duration: 0,
     ...options.stats,
-  };
+  }
 
   // Internal state
-  let nodes = new Map<string, KNode>();
-  let links: Link[] = [];
-  let nextId = 1;
-  let closed = false;
+  let nodes = new Map<string, KNode>()
+  let links: Link[] = []
+  let nextId = 1
+  let closed = false
 
   // Initialize with provided data
-  reset();
+  reset()
 
   const vault: FakeVault = {
     get path() {
-      return path;
+      return path
     },
 
     get mode() {
-      return "memory" as const;
+      return "memory" as const
     },
 
     get loadErrors() {
-      return loadErrors;
+      return loadErrors
     },
 
     get stats() {
-      return { ...stats, nodeCount: nodes.size };
+      return { ...stats, nodeCount: nodes.size }
     },
 
     get deferredFiles() {
-      return []; // FakeVault never has deferred files
+      return [] // FakeVault never has deferred files
     },
 
     // --- Query operations ---
 
     needsRebuild() {
-      return false; // FakeVault is in-memory, never needs rebuild
+      return false // FakeVault is in-memory, never needs rebuild
     },
 
     getNode(id) {
-      ensureNotClosed();
-      return nodes.get(id) ?? null;
+      ensureNotClosed()
+      return nodes.get(id) ?? null
     },
 
     getChildren(parentId) {
-      ensureNotClosed();
+      ensureNotClosed()
       return [...nodes.values()]
         .filter((n) => n.parent_id === parentId)
-        .sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0));
+        .sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0))
     },
 
     getChildCounts(parentIds) {
-      ensureNotClosed();
-      const counts = new Map<string, number>();
+      ensureNotClosed()
+      const counts = new Map<string, number>()
       for (const node of nodes.values()) {
         if (node.parent_id && parentIds.includes(node.parent_id)) {
-          counts.set(node.parent_id, (counts.get(node.parent_id) ?? 0) + 1);
+          counts.set(node.parent_id, (counts.get(node.parent_id) ?? 0) + 1)
         }
       }
-      return counts;
+      return counts
     },
 
     getSubtree(nodeId) {
-      ensureNotClosed();
-      const result: KNode[] = [];
-      const queue = [nodeId];
+      ensureNotClosed()
+      const result: KNode[] = []
+      const queue = [nodeId]
 
       while (queue.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounds checked by loop condition
-        const id = queue.shift()!;
-        const node = nodes.get(id);
+        const id = queue.shift()!
+        const node = nodes.get(id)
         if (node) {
-          result.push(node);
-          const children = this.getChildren(id);
-          queue.push(...children.map((c) => c.id));
+          result.push(node)
+          const children = this.getChildren(id)
+          queue.push(...children.map((c) => c.id))
         }
       }
 
-      return result;
+      return result
     },
 
     getAncestors(nodeId) {
-      ensureNotClosed();
-      const result: KNode[] = [];
-      let current = nodes.get(nodeId);
+      ensureNotClosed()
+      const result: KNode[] = []
+      let current = nodes.get(nodeId)
 
       while (current?.parent_id) {
-        const parent = nodes.get(current.parent_id);
+        const parent = nodes.get(current.parent_id)
         if (parent) {
-          result.unshift(parent);
-          current = parent;
+          result.unshift(parent)
+          current = parent
         } else {
-          break;
+          break
         }
       }
 
-      return result;
+      return result
     },
 
     getAllTasks() {
-      ensureNotClosed();
-      return [...nodes.values()].filter((n) => n.type === "task");
+      ensureNotClosed()
+      return [...nodes.values()].filter((n) => n.type === "task")
     },
 
     getTasksByStatus(status) {
-      ensureNotClosed();
+      ensureNotClosed()
       return [...nodes.values()].filter(
         (n) => n.type === "task" && n.task_status === status,
-      );
+      )
     },
 
     search(query) {
-      ensureNotClosed();
-      const q = query.toLowerCase();
+      ensureNotClosed()
+      const q = query.toLowerCase()
       return [...nodes.values()].filter(
         (n) =>
           n.content?.toLowerCase().includes(q) ||
           n.title?.toLowerCase().includes(q),
-      );
+      )
     },
 
     query(_expression) {
-      ensureNotClosed();
+      ensureNotClosed()
       // Simple implementation: return all tasks for basic tests
       // Full query language support is tested via real vault
-      return this.getAllTasks();
+      return this.getAllTasks()
     },
 
     getLinksTo(targetId) {
-      ensureNotClosed();
+      ensureNotClosed()
       const linkingIds = links
         .filter((l) => l.target_id === targetId)
-        .map((l) => l.source_id);
-      return [...nodes.values()].filter((n) => linkingIds.includes(n.id));
+        .map((l) => l.source_id)
+      return [...nodes.values()].filter((n) => linkingIds.includes(n.id))
     },
 
     getBacklinks(nodeId) {
-      ensureNotClosed();
-      return links.filter((l) => l.target_id === nodeId);
+      ensureNotClosed()
+      return links.filter((l) => l.target_id === nodeId)
     },
 
     // --- Mutation operations ---
 
     updateNode(id, changes) {
-      ensureNotClosed();
-      const node = nodes.get(id);
+      ensureNotClosed()
+      const node = nodes.get(id)
       if (!node) {
-        throw new Error(`Node ${id} not found`);
+        throw new Error(`Node ${id} not found`)
       }
-      nodes.set(id, { ...node, ...changes, id });
+      nodes.set(id, { ...node, ...changes, id })
     },
 
     moveNode(id, newParentId, position) {
-      ensureNotClosed();
-      const node = nodes.get(id);
+      ensureNotClosed()
+      const node = nodes.get(id)
       if (!node) {
-        throw new Error(`Node ${id} not found`);
+        throw new Error(`Node ${id} not found`)
       }
-      nodes.set(id, { ...node, parent_id: newParentId, parent_idx: position });
+      nodes.set(id, { ...node, parent_id: newParentId, parent_idx: position })
     },
 
     deleteNode(id) {
-      ensureNotClosed();
-      nodes.delete(id);
+      ensureNotClosed()
+      nodes.delete(id)
       // Remove any links from/to this node
-      links = links.filter((l) => l.source_id !== id && l.target_id !== id);
+      links = links.filter((l) => l.source_id !== id && l.target_id !== id)
     },
 
     addNode(parentId, nodeData) {
-      ensureNotClosed();
-      const id = `fake-${nextId++}`;
-      const siblings = this.getChildren(parentId);
-      const position = siblings.length;
-      const now = Date.now();
+      ensureNotClosed()
+      const id = `fake-${nextId++}`
+      const siblings = this.getChildren(parentId)
+      const position = siblings.length
+      const now = Date.now()
 
       const node: KNode = {
         id,
@@ -258,19 +258,19 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
         task_status:
           nodeData.type === "task" ? ("todo" as TaskStatus) : undefined,
         ...nodeData,
-      };
+      }
 
-      nodes.set(id, node);
-      return id;
+      nodes.set(id, node)
+      return id
     },
 
     cloneTask(sourceId, changes) {
-      ensureNotClosed();
-      const source = nodes.get(sourceId);
-      if (!source || source.type !== "task") return null;
+      ensureNotClosed()
+      const source = nodes.get(sourceId)
+      if (!source || source.type !== "task") return null
 
-      const id = `fake-${nextId++}`;
-      const now = Date.now();
+      const id = `fake-${nextId++}`
+      const now = Date.now()
 
       const cloned: KNode = {
         ...source,
@@ -285,92 +285,92 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
         created_at: now,
         updated_at: now,
         ...changes,
-      };
+      }
 
-      nodes.set(id, cloned);
-      return id;
+      nodes.set(id, cloned)
+      return id
     },
 
     appendTaskToFile(_filePath, _content, _options) {
-      ensureNotClosed();
+      ensureNotClosed()
       // No-op in fake vault - filesystem operations not supported
     },
 
     pathExists(_relativePath) {
-      ensureNotClosed();
+      ensureNotClosed()
       // Always return false in fake vault
-      return false;
+      return false
     },
 
     rawQuery<T = Record<string, unknown>>(
       sql: string,
       _params?: unknown[],
     ): T[] {
-      ensureNotClosed();
+      ensureNotClosed()
 
       // Pattern: SELECT * FROM nodes (used by ProjectPicker)
       if (sql.trim() === "SELECT * FROM nodes") {
-        return [...nodes.values()] as T[];
+        return [...nodes.values()] as T[]
       }
 
       // Unknown query - throw helpful error
       // Note: Use getChildCounts() instead of rawQuery for child count batching
       throw new Error(
         `FakeVault.rawQuery: unsupported query pattern: ${sql.slice(0, 100)}`,
-      );
+      )
     },
 
     // --- Lifecycle ---
 
     watch() {
-      ensureNotClosed();
-      throw new Error("FakeVault does not support watching");
+      ensureNotClosed()
+      throw new Error("FakeVault does not support watching")
     },
 
     refresh() {
-      ensureNotClosed();
+      ensureNotClosed()
       // No-op for fake vault
     },
 
     close() {
-      closed = true;
+      closed = true
     },
 
     [Symbol.dispose]() {
-      this.close();
+      this.close()
     },
 
     // --- Test helpers ---
 
     getAllNodes() {
-      return [...nodes.values()];
+      return [...nodes.values()]
     },
 
     getAllLinks() {
-      return [...links];
+      return [...links]
     },
 
     reset() {
-      reset();
+      reset()
     },
-  };
+  }
 
-  return vault;
+  return vault
 
   function reset() {
-    nodes = new Map();
-    links = [...initialLinks];
-    nextId = 1;
-    closed = false;
+    nodes = new Map()
+    links = [...initialLinks]
+    nextId = 1
+    closed = false
 
     for (const node of initialNodes) {
-      nodes.set(node.id, { ...node });
+      nodes.set(node.id, { ...node })
     }
   }
 
   function ensureNotClosed() {
     if (closed) {
-      throw new Error("Vault is closed");
+      throw new Error("Vault is closed")
     }
   }
 }

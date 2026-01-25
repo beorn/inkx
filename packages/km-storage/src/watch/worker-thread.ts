@@ -5,10 +5,10 @@
  * Chokidar's FSEvents setup can block for 20+ seconds on large directories (21k+ files).
  */
 
-import { watch, type FSWatcher } from "chokidar";
-import { dirname } from "path";
+import { watch, type FSWatcher } from "chokidar"
+import { dirname } from "path"
 
-const NAMESPACE = "km:storage:watch:worker";
+const NAMESPACE = "km:storage:watch:worker"
 
 // Wrapper that sends debug messages ONLY to main thread
 // This ensures all debug output goes through main thread's debug-log.ts,
@@ -16,22 +16,22 @@ const NAMESPACE = "km:storage:watch:worker";
 // Worker threads should NEVER log to stderr directly as it bypasses DEBUG_LOG.
 function debug(message: string, ...args: unknown[]): void {
   // Format the message with args (simple %s/%d/%O replacement)
-  let formatted = message;
-  let argIndex = 0;
+  let formatted = message
+  let argIndex = 0
   formatted = message.replace(/%[sdOo]/g, () => {
-    const arg = args[argIndex++];
-    if (arg === undefined) return "";
-    if (arg === null) return "null";
-    if (typeof arg === "object") return JSON.stringify(arg);
+    const arg = args[argIndex++]
+    if (arg === undefined) return ""
+    if (arg === null) return "null"
+    if (typeof arg === "object") return JSON.stringify(arg)
     // After checks above, arg is string | number | boolean | symbol | bigint
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    return String(arg);
-  });
+    return String(arg)
+  })
 
   // Send to main thread for DEBUG_LOG capture
   // Main thread's debug-log.ts handles redirection to file or suppression
   try {
-    postMessage({ type: "debug", namespace: NAMESPACE, message: formatted });
+    postMessage({ type: "debug", namespace: NAMESPACE, message: formatted })
   } catch {
     // Worker might not be fully initialized yet
   }
@@ -40,16 +40,16 @@ function debug(message: string, ...args: unknown[]): void {
 // Message types from main thread → worker
 export type WorkerCommand =
   | {
-      type: "start";
-      vaultPath: string;
-      ignorePatterns: string[];
-      debounceMs: number;
+      type: "start"
+      vaultPath: string
+      ignorePatterns: string[]
+      debounceMs: number
     }
   | { type: "stop" }
   | { type: "markInFlight"; path: string }
   | { type: "clearInFlight"; path: string; delayMs: number }
   | { type: "forceSync" }
-  | { type: "getStatus" };
+  | { type: "getStatus" }
 
 /** Watcher state for status reporting */
 export type WatcherState =
@@ -58,15 +58,15 @@ export type WatcherState =
   | "syncing"
   | "idle"
   | "stopped"
-  | "error";
+  | "error"
 
 /** Status information from the watcher */
 export interface WatcherStatus {
-  state: WatcherState;
-  pendingPaths: number;
-  watchedPaths?: number;
-  lastSync?: number; // timestamp
-  error?: string;
+  state: WatcherState
+  pendingPaths: number
+  watchedPaths?: number
+  lastSync?: number // timestamp
+  error?: string
 }
 
 // Message types from worker → main thread
@@ -76,19 +76,19 @@ export type WorkerMessage =
   | { type: "error"; message: string; stack?: string }
   | { type: "stopped" }
   | { type: "status"; status: WatcherStatus }
-  | { type: "debug"; namespace: string; message: string };
+  | { type: "debug"; namespace: string; message: string }
 
 // Worker state
-let watcher: FSWatcher | null = null;
-const pendingPaths: Set<string> = new Set();
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-const inFlightWrites: Set<string> = new Set();
-let currentDebounceMs = 5000;
-let currentState: WatcherState = "stopped";
-let watchedPathCount = 0;
-let lastSyncTime: number | undefined;
-let lastError: string | undefined;
-let statusInterval: ReturnType<typeof setInterval> | null = null;
+let watcher: FSWatcher | null = null
+const pendingPaths: Set<string> = new Set()
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+const inFlightWrites: Set<string> = new Set()
+let currentDebounceMs = 5000
+let currentState: WatcherState = "stopped"
+let watchedPathCount = 0
+let lastSyncTime: number | undefined
+let lastError: string | undefined
+let statusInterval: ReturnType<typeof setInterval> | null = null
 
 /**
  * Check if path should be ignored based on patterns
@@ -105,18 +105,18 @@ function shouldIgnore(
   patterns: string[],
   vaultPath: string,
 ): boolean {
-  const relativePath = path.replace(vaultPath, "").replace(/^\//, "");
+  const relativePath = path.replace(vaultPath, "").replace(/^\//, "")
 
   // Debug: check .git and vendor paths specifically
   if (relativePath.includes(".git") || relativePath.includes("vendor")) {
-    debug("worker: shouldIgnore check", { path, relativePath });
+    debug("worker: shouldIgnore check", { path, relativePath })
   }
 
   for (const pattern of patterns) {
     // Handle **/.git/** pattern - match directory anywhere in path
     if (pattern.startsWith("**/") && pattern.endsWith("/**")) {
       // Extract the middle part: **/.git/** -> .git
-      const middle = pattern.slice(3, -3);
+      const middle = pattern.slice(3, -3)
       // Match if path contains /middle/ OR starts with middle/ OR equals middle
       if (
         relativePath.includes("/" + middle + "/") ||
@@ -124,42 +124,42 @@ function shouldIgnore(
         relativePath === middle
       ) {
         if (relativePath.includes(".git") || relativePath.includes("vendor")) {
-          debug("worker: shouldIgnore MATCHED", { pattern, middle });
+          debug("worker: shouldIgnore MATCHED", { pattern, middle })
         }
-        return true;
+        return true
       }
     } else if (pattern.startsWith("**/")) {
       // Match suffix anywhere in path: **/foo matches any path ending with /foo or equal to foo
-      const suffix = pattern.slice(3);
+      const suffix = pattern.slice(3)
       if (
         relativePath === suffix ||
         relativePath.endsWith("/" + suffix) ||
         relativePath.includes("/" + suffix + "/") ||
         relativePath.startsWith(suffix + "/")
       ) {
-        return true;
+        return true
       }
     } else if (pattern.endsWith("/**")) {
       // Match directory prefix: foo/** matches foo and anything under foo
-      const prefix = pattern.slice(0, -3);
+      const prefix = pattern.slice(0, -3)
       if (relativePath === prefix || relativePath.startsWith(prefix + "/")) {
-        return true;
+        return true
       }
     } else if (pattern.includes("*")) {
       // Simple wildcard - convert to regex
-      const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
+      const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$")
       if (regex.test(relativePath)) {
-        return true;
+        return true
       }
     } else {
       // Exact match or directory prefix
       if (relativePath === pattern || relativePath.startsWith(pattern + "/")) {
-        return true;
+        return true
       }
     }
   }
 
-  return false;
+  return false
 }
 
 /**
@@ -175,7 +175,7 @@ function emitStatus(): void {
       lastSync: lastSyncTime,
       error: lastError,
     },
-  } satisfies WorkerMessage);
+  } satisfies WorkerMessage)
 }
 
 /**
@@ -183,9 +183,9 @@ function emitStatus(): void {
  */
 function setState(newState: WatcherState): void {
   if (currentState !== newState) {
-    debug("worker: state %s → %s", currentState, newState);
-    currentState = newState;
-    emitStatus();
+    debug("worker: state %s → %s", currentState, newState)
+    currentState = newState
+    emitStatus()
   }
 }
 
@@ -197,27 +197,27 @@ function startWatcher(
   ignorePatterns: string[],
   debounceMs: number,
 ): void {
-  debug("worker: starting watcher for %s", vaultPath);
-  currentDebounceMs = debounceMs;
-  setState("starting");
-  lastError = undefined;
+  debug("worker: starting watcher for %s", vaultPath)
+  currentDebounceMs = debounceMs
+  setState("starting")
+  lastError = undefined
 
   // Create ignored function that combines patterns with file type check
   const ignoredFn = (path: string, stats?: { isSocket?: () => boolean }) => {
     // Always ignore socket files
     if (stats?.isSocket?.()) {
-      return true;
+      return true
     }
     if (path.endsWith(".sock")) {
-      return true;
+      return true
     }
-    const result = shouldIgnore(path, ignorePatterns, vaultPath);
+    const result = shouldIgnore(path, ignorePatterns, vaultPath)
     // Debug: log when ignored function is called for .git/vendor paths
     if (path.includes(".git") || path.includes("vendor")) {
-      debug("worker: ignoredFn called: path=%s result=%s", path, result);
+      debug("worker: ignoredFn called: path=%s result=%s", path, result)
     }
-    return result;
-  };
+    return result
+  }
 
   watcher = watch(vaultPath, {
     persistent: true,
@@ -227,96 +227,96 @@ function startWatcher(
       stabilityThreshold: 500,
       pollInterval: 100,
     },
-  });
+  })
 
   watcher.on("all", (event, path) => {
     // Skip in-flight writes (our own writes)
     if (inFlightWrites.has(path)) {
-      debug("worker: skipping in-flight: %s %s", event, path);
-      return;
+      debug("worker: skipping in-flight: %s %s", event, path)
+      return
     }
 
     // Double-check ignored paths (FSEvents on macOS may bypass chokidar's ignored filter)
     if (shouldIgnore(path, ignorePatterns, vaultPath)) {
-      debug("worker: filtering ignored path: %s %s", event, path);
-      return;
+      debug("worker: filtering ignored path: %s %s", event, path)
+      return
     }
 
-    debug("worker: fs event: %s %s", event, path);
-    pendingPaths.add(path);
-    scheduleSync();
-  });
+    debug("worker: fs event: %s %s", event, path)
+    pendingPaths.add(path)
+    scheduleSync()
+  })
 
   watcher.on("error", (err: unknown) => {
-    const error = err instanceof Error ? err : new Error(String(err));
-    debug("worker: watcher error: %O", error);
-    lastError = error.message;
-    setState("error");
+    const error = err instanceof Error ? err : new Error(String(err))
+    debug("worker: watcher error: %O", error)
+    lastError = error.message
+    setState("error")
     postMessage({
       type: "error",
       message: error.message,
       stack: error.stack,
-    } satisfies WorkerMessage);
-  });
+    } satisfies WorkerMessage)
+  })
 
   watcher.on("ready", () => {
-    debug("worker: watcher ready");
+    debug("worker: watcher ready")
     // Get watched path count from chokidar
-    const watched = watcher?.getWatched();
+    const watched = watcher?.getWatched()
     if (watched) {
-      watchedPathCount = Object.keys(watched).length;
+      watchedPathCount = Object.keys(watched).length
     }
-    setState("idle");
+    setState("idle")
     postMessage({
       type: "ready",
       watchedPaths: watchedPathCount,
-    } satisfies WorkerMessage);
+    } satisfies WorkerMessage)
 
     // Start periodic status updates (every 5 seconds)
     if (statusInterval) {
-      clearInterval(statusInterval);
+      clearInterval(statusInterval)
     }
     statusInterval = setInterval(() => {
-      emitStatus();
-    }, 5000);
-  });
+      emitStatus()
+    }, 5000)
+  })
 }
 
 /**
  * Stop watching
  */
 async function stopWatcher(): Promise<void> {
-  debug("worker: stopping watcher");
+  debug("worker: stopping watcher")
 
   // Stop status interval
   if (statusInterval) {
-    clearInterval(statusInterval);
-    statusInterval = null;
+    clearInterval(statusInterval)
+    statusInterval = null
   }
 
   if (debounceTimer) {
-    clearTimeout(debounceTimer);
-    debounceTimer = null;
+    clearTimeout(debounceTimer)
+    debounceTimer = null
   }
 
   if (watcher) {
-    await watcher.close();
-    watcher = null;
+    await watcher.close()
+    watcher = null
   }
 
-  pendingPaths.clear();
-  inFlightWrites.clear();
-  watchedPathCount = 0;
+  pendingPaths.clear()
+  inFlightWrites.clear()
+  watchedPathCount = 0
 
-  setState("stopped");
-  postMessage({ type: "stopped" } satisfies WorkerMessage);
+  setState("stopped")
+  postMessage({ type: "stopped" } satisfies WorkerMessage)
 
   // Exit the worker thread cleanly after sending stopped message
   // This prevents the main process from hanging while waiting for the worker
   // Note: We use setTimeout to ensure the message is posted before exiting
   setTimeout(() => {
-    process.exit(0);
-  }, 50);
+    process.exit(0)
+  }, 50)
 }
 
 /**
@@ -324,54 +324,54 @@ async function stopWatcher(): Promise<void> {
  */
 function scheduleSync(): void {
   if (debounceTimer) {
-    clearTimeout(debounceTimer);
+    clearTimeout(debounceTimer)
   }
 
-  setState("syncing");
+  setState("syncing")
   debug(
     "worker: scheduling sync in %dms (%d pending)",
     currentDebounceMs,
     pendingPaths.size,
-  );
+  )
   debounceTimer = setTimeout(() => {
-    emitSync();
-  }, currentDebounceMs);
+    emitSync()
+  }, currentDebounceMs)
 }
 
 /**
  * Emit sync event with pending paths
  */
 function emitSync(): void {
-  const paths = [...pendingPaths];
-  pendingPaths.clear();
-  debounceTimer = null;
+  const paths = [...pendingPaths]
+  pendingPaths.clear()
+  debounceTimer = null
 
   if (paths.length === 0) {
-    debug("worker: sync: no pending paths");
-    setState("idle");
-    return;
+    debug("worker: sync: no pending paths")
+    setState("idle")
+    return
   }
 
   // Group by directory
-  const dirs = new Set<string>();
+  const dirs = new Set<string>()
   for (const path of paths) {
-    dirs.add(dirname(path));
+    dirs.add(dirname(path))
   }
 
   debug(
     "worker: sync: emitting %d paths, %d directories",
     paths.length,
     dirs.size,
-  );
-  lastSyncTime = Date.now();
+  )
+  lastSyncTime = Date.now()
 
   postMessage({
     type: "sync",
     paths,
     directories: [...dirs],
-  } satisfies WorkerMessage);
+  } satisfies WorkerMessage)
 
-  setState("idle");
+  setState("idle")
 }
 
 /**
@@ -384,49 +384,49 @@ function handleMessage(command: WorkerCommand): void {
         command.vaultPath,
         command.ignorePatterns,
         command.debounceMs,
-      );
-      break;
+      )
+      break
 
     case "stop":
-      void stopWatcher();
-      break;
+      void stopWatcher()
+      break
 
     case "markInFlight":
-      debug("worker: marking in-flight: %s", command.path);
-      inFlightWrites.add(command.path);
-      break;
+      debug("worker: marking in-flight: %s", command.path)
+      inFlightWrites.add(command.path)
+      break
 
     case "clearInFlight":
       setTimeout(() => {
-        inFlightWrites.delete(command.path);
-      }, command.delayMs);
-      break;
+        inFlightWrites.delete(command.path)
+      }, command.delayMs)
+      break
 
     case "forceSync":
       if (debounceTimer) {
-        clearTimeout(debounceTimer);
-        debounceTimer = null;
+        clearTimeout(debounceTimer)
+        debounceTimer = null
       }
-      emitSync();
-      break;
+      emitSync()
+      break
 
     case "getStatus":
-      emitStatus();
-      break;
+      emitStatus()
+      break
   }
 }
 
 // Listen for messages from main thread
 // Use Bun's self.onmessage for worker threads
 declare const self: {
-  onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
-  postMessage: (message: WorkerMessage) => void;
-};
+  onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null
+  postMessage: (message: WorkerMessage) => void
+}
 
 // Bun workers use self.onmessage
 self.onmessage = (event: MessageEvent<WorkerCommand>) => {
-  handleMessage(event.data);
-};
+  handleMessage(event.data)
+}
 
 // Also export for type checking
-export { handleMessage };
+export { handleMessage }

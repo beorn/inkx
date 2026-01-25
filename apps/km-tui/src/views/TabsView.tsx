@@ -6,22 +6,22 @@
  *
  * Uses inkx overflow="scroll" for native scrolling support.
  */
-import React from "react";
-import { Box, Text } from "inkx";
-import type { TUIBoardState } from "../types.ts";
-import { getNodeDisplayName } from "../state.ts";
-import { useTreeConfig } from "../ui-context.tsx";
-import { useVault } from "../vault-context.tsx";
-import { MemoizedTreeCard } from "./shared-components.tsx";
+import React from "react"
+import { Box, Text } from "inkx"
+import type { TUIBoardState } from "../types.ts"
+import { getNodeDisplayName } from "../state.ts"
+import { useTreeConfig } from "../ui-context.tsx"
+import { useVault } from "../vault-context.tsx"
+import { MemoizedTreeCard } from "./shared-components.tsx"
 
 interface TabsViewProps {
-  state: TUIBoardState;
-  width: number;
-  height: number;
-  colIndex: number;
-  cardIndex: number;
-  subIndex: number;
-  selectionLevel: "board" | "column" | "card";
+  state: TUIBoardState
+  width: number
+  height: number
+  colIndex: number
+  cardIndex: number
+  subIndex: number
+  selectionLevel: "board" | "column" | "card"
 }
 
 export function TabsView({
@@ -33,15 +33,15 @@ export function TabsView({
   subIndex,
   selectionLevel,
 }: TabsViewProps): React.ReactElement {
-  const vault = useVault();
-  const { inOutlineMode } = useTreeConfig();
+  const vault = useVault()
+  const { inOutlineMode } = useTreeConfig()
 
   // Get current column
-  const currentColumn = state.columns[colIndex];
-  const count = currentColumn?.cards.length ?? 0;
+  const currentColumn = state.columns[colIndex]
+  const count = currentColumn?.cards.length ?? 0
 
   // Column header is selected when at column level
-  const isColumnHeaderSelected = selectionLevel === "column";
+  const isColumnHeaderSelected = selectionLevel === "column"
 
   return (
     <Box
@@ -57,31 +57,31 @@ export function TabsView({
       {/* Each tab width = max(10, content length) + padding, extra space goes to right */}
       <Box flexDirection="row" width={width} height={1} flexShrink={0}>
         {state.columns.map((column, cIdx) => {
-          const isActive = cIdx === colIndex;
-          const colName = getNodeDisplayName(vault, column.node);
-          const colCount = column.cards.length;
-          const countStr = ` (${colCount})`;
+          const isActive = cIdx === colIndex
+          const colName = getNodeDisplayName(vault, column.node)
+          const colCount = column.cards.length
+          const countStr = ` (${colCount})`
 
           // Tab content: " name (count) " with min width of 10 chars for the name
-          const minNameWidth = 10;
-          const displayName = colName.length > minNameWidth ? colName : colName;
+          const minNameWidth = 10
+          const displayName = colName.length > minNameWidth ? colName : colName
           // Truncate if name exceeds reasonable width (20 chars)
-          const maxNameWidth = 20;
+          const maxNameWidth = 20
           const truncatedName =
             displayName.length > maxNameWidth
               ? displayName.slice(0, maxNameWidth - 1) + "\u2026"
-              : displayName;
+              : displayName
 
           // Style like cards view column headers
-          const isTabSelected = isActive && isColumnHeaderSelected;
-          const isBoardLevel = selectionLevel === "board";
-          const showActiveHighlight = isActive && !isBoardLevel;
+          const isTabSelected = isActive && isColumnHeaderSelected
+          const isBoardLevel = selectionLevel === "board"
+          const showActiveHighlight = isActive && !isBoardLevel
 
           const textColor = isTabSelected
             ? "black"
             : showActiveHighlight
               ? "yellow"
-              : "white";
+              : "white"
 
           return (
             <React.Fragment key={column.node.id}>
@@ -100,7 +100,7 @@ export function TabsView({
               {/* Separator with space padding */}
               {cIdx < state.columns.length - 1 && <Text dimColor> │ </Text>}
             </React.Fragment>
-          );
+          )
         })}
         {/* Flex space on the right */}
         <Box flexGrow={1} />
@@ -126,7 +126,7 @@ export function TabsView({
                 const isCardSelected =
                   selectionLevel === "card" &&
                   actualCardIndex === cardIndex &&
-                  (!inOutlineMode || subIndex === 0);
+                  (!inOutlineMode || subIndex === 0)
 
                 return (
                   <MemoizedTreeCard
@@ -136,7 +136,7 @@ export function TabsView({
                     cardIndex={actualCardIndex}
                     isSelected={isCardSelected}
                   />
-                );
+                )
               })}
             </Box>
           ) : (
@@ -149,5 +149,5 @@ export function TabsView({
         )}
       </Box>
     </Box>
-  );
+  )
 }

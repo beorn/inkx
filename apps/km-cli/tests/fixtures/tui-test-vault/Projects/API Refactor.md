@@ -74,10 +74,10 @@ Example resolver:
 const resolvers = {
   Query: {
     user: async (_, { id }, { dataSources }) => {
-      return dataSources.userAPI.getUser(id);
+      return dataSources.userAPI.getUser(id)
     },
   },
-};
+}
 ```
 
 ## Dependencies

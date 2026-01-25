@@ -54,19 +54,19 @@ Ask: "When X changes, what MUST re-render vs what SHOULDN'T?"
 
 ```tsx
 // BEFORE: Runs every render
-const style = getNodeStyle(node, isSelected, depth);
-const richContent = renderRich(content, options);
+const style = getNodeStyle(node, isSelected, depth)
+const richContent = renderRich(content, options)
 
 // AFTER: Only runs when dependencies change
 const style = useMemo(
   () => getNodeStyle(node, isSelected, depth),
   [node.id, node.task_status, isSelected, depth],
-);
+)
 
 const richContent = useMemo(
   () => renderRich(content, options),
   [content, options.excludeSigils, options.sigilColors],
-);
+)
 ```
 
 **Key insight:** Dependency arrays should use primitive values or stable references, not objects that change reference on every render.
@@ -132,10 +132,10 @@ function handleSelectItem(id) { ... }
 
 ```tsx
 // BEFORE: Re-renders when ANY state changes
-const { selectedId, allItems, settings } = useAppContext();
+const { selectedId, allItems, settings } = useAppContext()
 
 // AFTER: Only re-renders when selection changes
-const selectedId = useUISelector((state) => state.selectedId);
+const selectedId = useUISelector((state) => state.selectedId)
 ```
 
 ### Pattern 5: Virtualization for Long Lists
@@ -145,15 +145,15 @@ const selectedId = useUISelector((state) => state.selectedId);
 **Solution:** Only render visible items plus buffer.
 
 ```tsx
-const VISIBLE_ITEMS = 50;
-const OVERSCAN = 5;
+const VISIBLE_ITEMS = 50
+const OVERSCAN = 5
 
 function VirtualizedList({ items, selectedIndex }) {
   const { startIndex, endIndex } = useMemo(() => {
-    const start = Math.max(0, selectedIndex - VISIBLE_ITEMS / 2 - OVERSCAN);
-    const end = Math.min(items.length, start + VISIBLE_ITEMS + OVERSCAN * 2);
-    return { startIndex: start, endIndex: end };
-  }, [items.length, selectedIndex]);
+    const start = Math.max(0, selectedIndex - VISIBLE_ITEMS / 2 - OVERSCAN)
+    const end = Math.min(items.length, start + VISIBLE_ITEMS + OVERSCAN * 2)
+    return { startIndex: start, endIndex: end }
+  }, [items.length, selectedIndex])
 
   return (
     <>
@@ -165,7 +165,7 @@ function VirtualizedList({ items, selectedIndex }) {
         <Placeholder height={(items.length - endIndex) * ITEM_HEIGHT} />
       )}
     </>
-  );
+  )
 }
 ```
 
@@ -232,10 +232,10 @@ bun run test:all   # Final verification
 
 ```tsx
 // WRONG: node object changes reference every render
-useMemo(() => processNode(node), [node]);
+useMemo(() => processNode(node), [node])
 
 // RIGHT: Use stable identifiers
-useMemo(() => processNode(node), [node.id, node.content, node.status]);
+useMemo(() => processNode(node), [node.id, node.content, node.status])
 ```
 
 ### 2. Memo Without Custom Comparison

@@ -4,16 +4,16 @@
  * Lists tasks with optional filtering by path, status, or query.
  */
 
-import chalk from "chalk";
-import { queryTasks, getAncestors, getTasksFiltered } from "@km/storage";
-import { collapseAncestorsWithTypes } from "@km/tree";
-import type { KNode, TaskStatus } from "@km/core";
+import chalk from "chalk"
+import { queryTasks, getAncestors, getTasksFiltered } from "@km/storage"
+import { collapseAncestorsWithTypes } from "@km/tree"
+import type { KNode, TaskStatus } from "@km/core"
 import {
   getNodeDisplayName,
   formatCollapsedAncestor,
   formatTaskWithPath,
   formatTaskLine,
-} from "./formatters.ts";
+} from "./formatters.ts"
 import {
   findNodeByPathOrId,
   getTasksUnderNode,
@@ -21,16 +21,16 @@ import {
   sortByPath,
   taskPathMatches,
   looksLikeQuery,
-} from "./queries.ts";
+} from "./queries.ts"
 
 export interface ListTasksOptions {
-  status?: string;
-  query?: string;
-  all?: boolean;
-  verbose?: boolean;
-  flat?: boolean;
-  id?: boolean;
-  json?: boolean;
+  status?: string
+  query?: string
+  all?: boolean
+  verbose?: boolean
+  flat?: boolean
+  id?: boolean
+  json?: boolean
 }
 
 /**
@@ -40,61 +40,61 @@ export function listTasks(
   pathOrId: string | undefined,
   options: ListTasksOptions,
 ): void {
-  let tasks: KNode[];
-  let rootNode: KNode | null = null;
-  let pathFilter: string | null = null;
+  let tasks: KNode[]
+  let rootNode: KNode | null = null
+  let pathFilter: string | null = null
 
   // Handle query option first (takes precedence)
   // Also treat positional arg as query if it looks like one
   const queryArg =
-    options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null);
+    options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
   if (queryArg) {
     // Build query string, adding default status filter
-    let queryStr = queryArg;
+    let queryStr = queryArg
     if (!options.all && !queryStr.includes("status:")) {
-      queryStr = `-status:done ${queryStr}`;
+      queryStr = `-status:done ${queryStr}`
     }
     if (options.status) {
-      queryStr = `status:${options.status} ${queryStr}`;
+      queryStr = `status:${options.status} ${queryStr}`
     }
-    tasks = queryTasks(queryStr);
+    tasks = queryTasks(queryStr)
   } else if (pathOrId) {
     // Try to find an exact node match first
-    rootNode = findNodeByPathOrId(pathOrId);
+    rootNode = findNodeByPathOrId(pathOrId)
 
     if (rootNode) {
       // If the root IS a task, show its details
       if (rootNode.type === "task") {
-        showTaskDetails(rootNode, options);
-        return;
+        showTaskDetails(rootNode, options)
+        return
       }
 
       // Get tasks under this root
-      tasks = getTasksUnderNode(rootNode.id);
+      tasks = getTasksUnderNode(rootNode.id)
     } else {
       // No exact match - treat as path filter (like `bun test <filter>`)
-      pathFilter = pathOrId;
+      pathFilter = pathOrId
 
       // Get tasks with status filter via storage API
       const allTasks = getTasksFiltered({
         status: options.status as TaskStatus | undefined,
         excludeDone: !options.all && !options.status,
-      });
+      })
 
       // Filter by path match
       tasks = allTasks.filter(
         (t) => pathFilter && taskPathMatches(t, pathFilter),
-      );
+      )
     }
 
     // Apply status filter for root node case
     if (rootNode) {
       if (options.status) {
-        tasks = tasks.filter((t) => t.task_status === options.status);
+        tasks = tasks.filter((t) => t.task_status === options.status)
       } else if (!options.all) {
         tasks = tasks.filter(
           (t) => t.task_status === "todo" || t.task_status === "wip",
-        );
+        )
       }
     }
   } else {
@@ -102,108 +102,108 @@ export function listTasks(
     tasks = getTasksFiltered({
       status: options.status as TaskStatus | undefined,
       excludeDone: !options.all && !options.status,
-    });
+    })
   }
 
   if (options.json) {
-    console.log(JSON.stringify(tasks, null, 2));
-    return;
+    console.log(JSON.stringify(tasks, null, 2))
+    return
   }
 
   if (tasks.length === 0) {
-    console.log(chalk.dim("No tasks found"));
-    return;
+    console.log(chalk.dim("No tasks found"))
+    return
   }
 
   // Show context header
   if (rootNode) {
-    console.log(chalk.bold(getNodeDisplayName(rootNode)));
-    console.log();
+    console.log(chalk.bold(getNodeDisplayName(rootNode)))
+    console.log()
   } else if (pathFilter) {
-    console.log(chalk.dim(`Filter: ${pathFilter}`));
-    console.log();
+    console.log(chalk.dim(`Filter: ${pathFilter}`))
+    console.log()
   }
 
   // Flat mode: simple single-line display
   if (options.flat) {
     for (const task of tasks) {
-      const rawAncestors = getAncestors(task.id);
-      const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors);
+      const rawAncestors = getAncestors(task.id)
+      const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
       const lines = formatTaskWithPath(task, collapsedAncestors, {
         verbose: options.verbose,
         flat: true,
         showId: options.id,
-      });
+      })
       for (const line of lines) {
-        console.log(line);
+        console.log(line)
       }
     }
-    console.log();
-    console.log(chalk.dim(`${tasks.length} task(s)`));
-    return;
+    console.log()
+    console.log(chalk.dim(`${tasks.length} task(s)`))
+    return
   }
 
   // Tree mode: group tasks by shared paths
-  const tasksWithAncestors = buildTaskTree(tasks);
-  const sorted = sortByPath(tasksWithAncestors);
+  const tasksWithAncestors = buildTaskTree(tasks)
+  const sorted = sortByPath(tasksWithAncestors)
 
-  let previousAncestorKeys: string[] = [];
+  let previousAncestorKeys: string[] = []
 
   for (const { task, collapsedAncestors, ancestorKeys } of sorted) {
     // Find where current path diverges from previous
-    let divergeIndex = 0;
+    let divergeIndex = 0
     while (
       divergeIndex < previousAncestorKeys.length &&
       divergeIndex < ancestorKeys.length &&
       previousAncestorKeys[divergeIndex] === ancestorKeys[divergeIndex]
     ) {
-      divergeIndex++;
+      divergeIndex++
     }
 
     // Count fs depth (folders/files) before divergence point
-    let fsDepth = 0;
+    let fsDepth = 0
     for (let i = 0; i < divergeIndex && i < collapsedAncestors.length; i++) {
-      const ca = collapsedAncestors[i];
+      const ca = collapsedAncestors[i]
       if (ca && ca.node.type !== "section") {
-        fsDepth++;
+        fsDepth++
       }
     }
 
     // Print only the new path elements with appropriate indentation
     // - Folders/files: 1 space per level
     // - Sections: same indent as their file (# prefix shows heading level)
-    let hasSection = false;
+    let hasSection = false
     for (let i = divergeIndex; i < collapsedAncestors.length; i++) {
-      const ca = collapsedAncestors[i];
-      if (!ca) continue;
-      const prefix = " ".repeat(fsDepth);
-      console.log(prefix + chalk.dim(formatCollapsedAncestor(ca)));
+      const ca = collapsedAncestors[i]
+      if (!ca) continue
+      const prefix = " ".repeat(fsDepth)
+      console.log(prefix + chalk.dim(formatCollapsedAncestor(ca)))
       if (ca.node.type === "section") {
-        hasSection = true;
+        hasSection = true
       } else {
         // Only folders/files increase the depth
-        fsDepth++;
+        fsDepth++
       }
     }
 
     // Check if any ancestor was a section (for task indent)
     if (!hasSection) {
-      hasSection = collapsedAncestors.some((ca) => ca.node.type === "section");
+      hasSection = collapsedAncestors.some((ca) => ca.node.type === "section")
     }
 
     // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
-    const taskIndent = hasSection ? fsDepth + 3 : fsDepth;
-    const taskPrefix = " ".repeat(taskIndent);
+    const taskIndent = hasSection ? fsDepth + 3 : fsDepth
+    const taskPrefix = " ".repeat(taskIndent)
     console.log(
       taskPrefix +
         formatTaskLine(task, { verbose: options.verbose, showId: options.id }),
-    );
+    )
 
-    previousAncestorKeys = ancestorKeys;
+    previousAncestorKeys = ancestorKeys
   }
 
-  console.log();
-  console.log(chalk.dim(`${tasks.length} task(s)`));
+  console.log()
+  console.log(chalk.dim(`${tasks.length} task(s)`))
 }
 
 /**
@@ -214,34 +214,34 @@ export function showTaskDetails(
   options: { json?: boolean },
 ): void {
   if (options.json) {
-    console.log(JSON.stringify(task, null, 2));
-    return;
+    console.log(JSON.stringify(task, null, 2))
+    return
   }
 
-  console.log(chalk.bold("Task:"), task.id);
-  console.log(chalk.dim("Status:"), task.task_status ?? "todo");
-  console.log(chalk.dim("Content:"), task.content ?? "(none)");
-  if (task.due_date) console.log(chalk.dim("Due:"), task.due_date);
+  console.log(chalk.bold("Task:"), task.id)
+  console.log(chalk.dim("Status:"), task.task_status ?? "todo")
+  console.log(chalk.dim("Content:"), task.content ?? "(none)")
+  if (task.due_date) console.log(chalk.dim("Due:"), task.due_date)
   if (task.scheduled_date) {
-    console.log(chalk.dim("Scheduled:"), task.scheduled_date);
+    console.log(chalk.dim("Scheduled:"), task.scheduled_date)
   }
-  if (task.priority) console.log(chalk.dim("Priority:"), task.priority);
-  if (task.assigned_to) console.log(chalk.dim("Assigned:"), task.assigned_to);
+  if (task.priority) console.log(chalk.dim("Priority:"), task.priority)
+  if (task.assigned_to) console.log(chalk.dim("Assigned:"), task.assigned_to)
   if (task.parent_id) {
-    console.log(chalk.dim("Parent:"), task.parent_id.slice(0, 8));
+    console.log(chalk.dim("Parent:"), task.parent_id.slice(0, 8))
   }
   console.log(
     chalk.dim("Created:"),
     new Date(task.created_at ?? Date.now()).toISOString(),
-  );
+  )
 
   // Show child tasks if any
-  const children = getTasksUnderNode(task.id);
+  const children = getTasksUnderNode(task.id)
   if (children.length > 0) {
-    console.log();
-    console.log(chalk.dim(`${children.length} subtask(s):`));
+    console.log()
+    console.log(chalk.dim(`${children.length} subtask(s):`))
     for (const child of children) {
-      console.log("  " + formatTaskLine(child, { showId: true }));
+      console.log("  " + formatTaskLine(child, { showId: true }))
     }
   }
 }

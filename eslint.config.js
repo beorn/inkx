@@ -1,5 +1,5 @@
-import tseslint from "typescript-eslint";
-import pluginPromise from "eslint-plugin-promise";
+import tseslint from "typescript-eslint"
+import pluginPromise from "eslint-plugin-promise"
 
 export default [
   {
@@ -112,4 +112,4 @@ export default [
       "vendor/opentui/issues/",
     ],
   },
-];
+]

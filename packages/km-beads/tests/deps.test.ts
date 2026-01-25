@@ -1,12 +1,12 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "bun:test"
 import {
   addDependency,
   removeDependency,
   getDependencies,
   dependsOn,
   mergeDepProps,
-} from "../src/deps.ts";
-import type { Issue } from "../src/types.ts";
+} from "../src/deps.ts"
+import type { Issue } from "../src/types.ts"
 
 describe("addDependency", () => {
   test("adds first dependency", () => {
@@ -18,16 +18,16 @@ describe("addDependency", () => {
       priority: 2,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    const result = addDependency(issue, "km-xyz9");
+    const result = addDependency(issue, "km-xyz9")
 
     expect(result.props["blocked-by"]).toEqual({
       type: "link",
       target: "km-xyz9",
-    });
-    expect(result.propsRaw["blocked-by"]).toBe("[[km-xyz9]]");
-  });
+    })
+    expect(result.propsRaw["blocked-by"]).toBe("[[km-xyz9]]")
+  })
 
   test("adds second dependency creates list", () => {
     const issue: Issue = {
@@ -39,9 +39,9 @@ describe("addDependency", () => {
       blockedBy: ["km-xyz9"],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    const result = addDependency(issue, "km-def4");
+    const result = addDependency(issue, "km-def4")
 
     expect(result.props["blocked-by"]).toEqual({
       type: "list",
@@ -49,9 +49,9 @@ describe("addDependency", () => {
         { type: "link", target: "km-xyz9" },
         { type: "link", target: "km-def4" },
       ],
-    });
-    expect(result.propsRaw["blocked-by"]).toBe("[[km-xyz9]], [[km-def4]]");
-  });
+    })
+    expect(result.propsRaw["blocked-by"]).toBe("[[km-xyz9]], [[km-def4]]")
+  })
 
   test("does not add duplicate dependency", () => {
     const issue: Issue = {
@@ -63,16 +63,16 @@ describe("addDependency", () => {
       blockedBy: ["km-xyz9"],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    const result = addDependency(issue, "km-xyz9");
+    const result = addDependency(issue, "km-xyz9")
 
     expect(result.props["blocked-by"]).toEqual({
       type: "link",
       target: "km-xyz9",
-    });
-  });
-});
+    })
+  })
+})
 
 describe("removeDependency", () => {
   test("removes single dependency returns empty props", () => {
@@ -85,12 +85,12 @@ describe("removeDependency", () => {
       blockedBy: ["km-xyz9"],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    const result = removeDependency(issue, "km-xyz9");
+    const result = removeDependency(issue, "km-xyz9")
 
-    expect(result).toEqual({ props: {}, propsRaw: {} });
-  });
+    expect(result).toEqual({ props: {}, propsRaw: {} })
+  })
 
   test("removes one of multiple dependencies", () => {
     const issue: Issue = {
@@ -102,15 +102,15 @@ describe("removeDependency", () => {
       blockedBy: ["km-xyz9", "km-def4"],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    const result = removeDependency(issue, "km-xyz9");
+    const result = removeDependency(issue, "km-xyz9")
 
     expect(result?.props["blocked-by"]).toEqual({
       type: "link",
       target: "km-def4",
-    });
-  });
+    })
+  })
 
   test("returns null for non-existent dependency", () => {
     const issue: Issue = {
@@ -122,13 +122,13 @@ describe("removeDependency", () => {
       blockedBy: ["km-xyz9"],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    const result = removeDependency(issue, "km-other");
+    const result = removeDependency(issue, "km-other")
 
-    expect(result).toBeNull();
-  });
-});
+    expect(result).toBeNull()
+  })
+})
 
 describe("getDependencies", () => {
   test("returns empty array for issue without blockers", () => {
@@ -140,10 +140,10 @@ describe("getDependencies", () => {
       priority: 2,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    expect(getDependencies(issue)).toEqual([]);
-  });
+    expect(getDependencies(issue)).toEqual([])
+  })
 
   test("returns blockedBy array", () => {
     const issue: Issue = {
@@ -155,11 +155,11 @@ describe("getDependencies", () => {
       blockedBy: ["km-xyz9", "km-def4"],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    expect(getDependencies(issue)).toEqual(["km-xyz9", "km-def4"]);
-  });
-});
+    expect(getDependencies(issue)).toEqual(["km-xyz9", "km-def4"])
+  })
+})
 
 describe("dependsOn", () => {
   test("returns true when issue A depends on issue B", () => {
@@ -172,7 +172,7 @@ describe("dependsOn", () => {
       blockedBy: ["km-xyz9"],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
     const issueB: Issue = {
       id: "01XYZ999",
@@ -182,10 +182,10 @@ describe("dependsOn", () => {
       priority: 2,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    expect(dependsOn(issueA, issueB)).toBe(true);
-  });
+    expect(dependsOn(issueA, issueB)).toBe(true)
+  })
 
   test("returns false when issue A does not depend on issue B", () => {
     const issueA: Issue = {
@@ -196,7 +196,7 @@ describe("dependsOn", () => {
       priority: 2,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
     const issueB: Issue = {
       id: "01XYZ999",
@@ -206,43 +206,43 @@ describe("dependsOn", () => {
       priority: 2,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
+    }
 
-    expect(dependsOn(issueA, issueB)).toBe(false);
-  });
-});
+    expect(dependsOn(issueA, issueB)).toBe(false)
+  })
+})
 
 describe("mergeDepProps", () => {
   test("merges into empty data", () => {
     const depProps = {
       props: { "blocked-by": { type: "link", target: "km-xyz9" } },
       propsRaw: { "blocked-by": "[[km-xyz9]]" },
-    };
+    }
 
-    const result = mergeDepProps(undefined, depProps);
+    const result = mergeDepProps(undefined, depProps)
 
-    expect(result.props).toEqual(depProps.props);
-    expect(result.propsRaw).toEqual(depProps.propsRaw);
-  });
+    expect(result.props).toEqual(depProps.props)
+    expect(result.propsRaw).toEqual(depProps.propsRaw)
+  })
 
   test("merges with existing props", () => {
     const existingData = {
       tags: ["bug"],
       props: { status: { type: "text", value: "active" } },
       propsRaw: { status: "active" },
-    };
+    }
 
     const depProps = {
       props: { "blocked-by": { type: "link", target: "km-xyz9" } },
       propsRaw: { "blocked-by": "[[km-xyz9]]" },
-    };
+    }
 
-    const result = mergeDepProps(existingData, depProps);
+    const result = mergeDepProps(existingData, depProps)
 
-    expect(result.tags).toEqual(["bug"]);
+    expect(result.tags).toEqual(["bug"])
     expect(result.props).toEqual({
       status: { type: "text", value: "active" },
       "blocked-by": { type: "link", target: "km-xyz9" },
-    });
-  });
-});
+    })
+  })
+})

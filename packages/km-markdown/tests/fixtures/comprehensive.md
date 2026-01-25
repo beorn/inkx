@@ -75,7 +75,7 @@ They are treated as regular list items. Use standard marks only for reliable par
 
 ```javascript
 function hello(name) {
-  return `Hello, ${name}!`;
+  return `Hello, ${name}!`
 }
 ```
 

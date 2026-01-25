@@ -7,7 +7,7 @@
  * - Nested sections with body content
  */
 
-import { board, column, paragraph, section, task } from "@km/storage";
+import { board, column, paragraph, section, task } from "@km/storage"
 
 export const BODY_CONTENT_BOARD = board("Body Content Test Board", [
   // Board-level body content (virtual body column)
@@ -35,4 +35,4 @@ export const BODY_CONTENT_BOARD = board("Body Content Test Board", [
     ]),
     section("Card B2", [task("Completed task", { done: true })]),
   ]),
-]);
+])

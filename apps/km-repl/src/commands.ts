@@ -9,7 +9,7 @@
  * - Keyboard handler (reference)
  */
 
-import type { BoardAction } from "./board-types.ts";
+import type { BoardAction } from "./board-types.ts"
 
 /**
  * Command definition for the palette and help system.
@@ -17,22 +17,22 @@ import type { BoardAction } from "./board-types.ts";
  */
 export interface CommandDef {
   /** Unique identifier (snake_case) */
-  id: string;
+  id: string
   /** Human-readable name */
-  name: string;
+  name: string
   /** Brief description */
-  description: string;
+  description: string
   /** Keyboard shortcut (for display) */
-  shortcut?: string;
+  shortcut?: string
   /** Category for grouping */
-  category: CommandCategory;
+  category: CommandCategory
   /** The action to dispatch (or null if requires context) */
-  action: BoardAction | null;
+  action: BoardAction | null
   /** Whether this command needs additional context (like nodeId) */
-  needsContext?: boolean;
+  needsContext?: boolean
 }
 
-export type CommandCategory = "Navigation" | "Selection" | "Folding" | "View";
+export type CommandCategory = "Navigation" | "Selection" | "Folding" | "View"
 
 /**
  * All registered commands.
@@ -243,26 +243,26 @@ export const commands: CommandDef[] = [
     category: "View",
     action: { type: "DECREASE_CONTENT_LINES" },
   },
-];
+]
 
 /**
  * Get commands by category.
  */
 export function getCommandsByCategory(): Map<CommandCategory, CommandDef[]> {
-  const byCategory = new Map<CommandCategory, CommandDef[]>();
+  const byCategory = new Map<CommandCategory, CommandDef[]>()
   for (const cmd of commands) {
-    const list = byCategory.get(cmd.category) || [];
-    list.push(cmd);
-    byCategory.set(cmd.category, list);
+    const list = byCategory.get(cmd.category) || []
+    list.push(cmd)
+    byCategory.set(cmd.category, list)
   }
-  return byCategory;
+  return byCategory
 }
 
 /**
  * Get a command by ID.
  */
 export function getCommandById(id: string): CommandDef | undefined {
-  return commands.find((cmd) => cmd.id === id);
+  return commands.find((cmd) => cmd.id === id)
 }
 
 /**
@@ -270,26 +270,26 @@ export function getCommandById(id: string): CommandDef | undefined {
  * Returns true if all characters in query appear in target in order.
  */
 export function fuzzyMatch(query: string, target: string): boolean {
-  const q = query.toLowerCase();
-  const t = target.toLowerCase();
-  let qi = 0;
+  const q = query.toLowerCase()
+  const t = target.toLowerCase()
+  let qi = 0
   for (let ti = 0; ti < t.length && qi < q.length; ti++) {
     if (t[ti] === q[qi]) {
-      qi++;
+      qi++
     }
   }
-  return qi === q.length;
+  return qi === q.length
 }
 
 /**
  * Filter commands by fuzzy search query.
  */
 export function filterCommands(query: string): CommandDef[] {
-  if (!query) return commands;
+  if (!query) return commands
   return commands.filter(
     (cmd) =>
       fuzzyMatch(query, cmd.name) ||
       fuzzyMatch(query, cmd.description) ||
       fuzzyMatch(query, cmd.id),
-  );
+  )
 }

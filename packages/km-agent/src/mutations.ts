@@ -5,9 +5,9 @@
  * These return node updates but don't persist directly.
  */
 
-import type { KNode } from "@km/core";
-import { ulid } from "ulid";
-import type { Agent, AgentStatus, CreateAgentOptions } from "./types.ts";
+import type { KNode } from "@km/core"
+import { ulid } from "ulid"
+import type { Agent, AgentStatus, CreateAgentOptions } from "./types.ts"
 
 /**
  * Create a new agent node (in-memory).
@@ -17,9 +17,9 @@ export function createAgentNode(
   name: string,
   options: CreateAgentOptions = {},
 ): { node: KNode; shortId: string } {
-  const id = ulid();
-  const shortId = options.customId ?? id.slice(-4).toLowerCase();
-  const now = Date.now();
+  const id = ulid()
+  const shortId = options.customId ?? id.slice(-4).toLowerCase()
+  const now = Date.now()
 
   const node: KNode = {
     id,
@@ -39,9 +39,9 @@ export function createAgentNode(
       status: "idle" as AgentStatus,
       workdir: options.workdir,
     },
-  };
+  }
 
-  return { node, shortId: `agent-${shortId}` };
+  return { node, shortId: `agent-${shortId}` }
 }
 
 /**
@@ -56,33 +56,33 @@ export function updateAgentFields(
 ): Partial<KNode> {
   const updates: Partial<KNode> = {
     updated_at: Date.now(),
-  };
+  }
 
   if (changes.name !== undefined) {
-    updates.name = changes.name;
-    updates.content = changes.name;
+    updates.name = changes.name
+    updates.content = changes.name
   }
 
-  const dataUpdates: Record<string, unknown> = {};
+  const dataUpdates: Record<string, unknown> = {}
 
   if (changes.model !== undefined) {
-    dataUpdates.model = changes.model;
+    dataUpdates.model = changes.model
   }
   if (changes.harness !== undefined) {
-    dataUpdates.harness = changes.harness;
+    dataUpdates.harness = changes.harness
   }
   if (changes.status !== undefined) {
-    dataUpdates.status = changes.status;
+    dataUpdates.status = changes.status
   }
   if (changes.currentTaskId !== undefined) {
-    dataUpdates.current_task_id = changes.currentTaskId;
+    dataUpdates.current_task_id = changes.currentTaskId
   }
 
   if (Object.keys(dataUpdates).length > 0) {
-    updates.data = dataUpdates;
+    updates.data = dataUpdates
   }
 
-  return updates;
+  return updates
 }
 
 /**
@@ -95,7 +95,7 @@ export function startAgentFields(pid?: number): Partial<KNode> {
       status: "running" as AgentStatus,
       pid,
     },
-  };
+  }
 }
 
 /**
@@ -109,7 +109,7 @@ export function stopAgentFields(): Partial<KNode> {
       pid: undefined,
       current_task_id: undefined,
     },
-  };
+  }
 }
 
 /**
@@ -122,7 +122,7 @@ export function idleAgentFields(): Partial<KNode> {
       status: "idle" as AgentStatus,
       current_task_id: undefined,
     },
-  };
+  }
 }
 
 /**
@@ -135,7 +135,7 @@ export function errorAgentFields(error?: string): Partial<KNode> {
       status: "error" as AgentStatus,
       last_error: error,
     },
-  };
+  }
 }
 
 /**
@@ -153,7 +153,7 @@ export function assignIssueFields(agentShortId: string): IssueAssignment {
   return {
     assignee: agentShortId,
     updatedAt: Date.now(),
-  };
+  }
 }
 
 /**
@@ -164,7 +164,7 @@ export function unassignIssueFields(): IssueAssignment {
   return {
     assignee: undefined,
     updatedAt: Date.now(),
-  };
+  }
 }
 
 /**
@@ -186,13 +186,13 @@ export function claimIssueFields(
       assignee: agentShortId,
       updatedAt: Date.now(),
     },
-  };
+  }
 }
 
 /**
  * Issue assignment result.
  */
 export interface IssueAssignment {
-  assignee?: string;
-  updatedAt: number;
+  assignee?: string
+  updatedAt: number
 }

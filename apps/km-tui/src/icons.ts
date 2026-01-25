@@ -6,9 +6,9 @@
  */
 
 export interface StatusIcon {
-  char: string;
-  color: string;
-  backgroundColor?: string;
+  char: string
+  color: string
+  backgroundColor?: string
 }
 
 // =============================================================================
@@ -19,19 +19,19 @@ export interface StatusIcon {
 export const FOLDED_MARKER: StatusIcon = {
   char: "\u25CF", // ● filled circle
   color: "white",
-};
+}
 
 /** Marker for nodes with children that are visible (unfolded) - MEDIUM */
 export const UNFOLDED_MARKER: StatusIcon = {
   char: "\u2022", // • bullet
   color: "white",
-};
+}
 
 /** Marker for nodes without children - TINY */
 export const EMPTY_MARKER: StatusIcon = {
   char: "\u00B7", // · middle dot
   color: "gray",
-};
+}
 
 /**
  * Get fold marker based on children state and fold state.
@@ -46,10 +46,10 @@ export function getFoldMarker(
   color?: string,
 ): StatusIcon {
   if (!hasChildren) {
-    return color ? { ...EMPTY_MARKER, color } : EMPTY_MARKER;
+    return color ? { ...EMPTY_MARKER, color } : EMPTY_MARKER
   }
-  const marker = isFolded ? FOLDED_MARKER : UNFOLDED_MARKER;
-  return color ? { ...marker, color } : marker;
+  const marker = isFolded ? FOLDED_MARKER : UNFOLDED_MARKER
+  return color ? { ...marker, color } : marker
 }
 
 // =============================================================================
@@ -72,19 +72,19 @@ export function getFoldMarker(
 export function getStatusIcon(status: string | null | undefined): StatusIcon {
   switch (status) {
     case "todo":
-      return { char: "\u2610", color: "white" }; // ☐ ballot box
+      return { char: "\u2610", color: "white" } // ☐ ballot box
     case "wip":
-      return { char: "\u2610", color: "yellow" }; // ☐ ballot box (orange/yellow)
+      return { char: "\u2610", color: "yellow" } // ☐ ballot box (orange/yellow)
     case "blocked":
-      return { char: "\u2612", color: "red" }; // ☒ ballot box with X
+      return { char: "\u2612", color: "red" } // ☒ ballot box with X
     case "done":
-      return { char: "\u2611", color: "green" }; // ☑ ballot box with check
+      return { char: "\u2611", color: "green" } // ☑ ballot box with check
     case "dropped":
-      return { char: "\u2612", color: "gray" }; // ☒ ballot box with X
+      return { char: "\u2612", color: "gray" } // ☒ ballot box with X
     case null:
     case undefined:
       // Missing status - show red warning triangle
-      return { char: "\u26A0", color: "red" }; // warning ⚠
+      return { char: "\u26A0", color: "red" } // warning ⚠
     default:
       // Invalid/unknown status - show the actual value with inverted colors
       // This helps debug what invalid status was received
@@ -92,7 +92,7 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
         char: (status as string).charAt(0),
         color: "black",
         backgroundColor: "white",
-      };
+      }
   }
 }
 
@@ -105,17 +105,17 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
 export function getTypeIcon(type: string): string {
   switch (type) {
     case "folder":
-      return "\uD83D\uDCC1"; // folder 📁
+      return "\uD83D\uDCC1" // folder 📁
     case "file":
-      return "\uD83D\uDCC4"; // file 📄
+      return "\uD83D\uDCC4" // file 📄
     case "section":
-      return "#"; // hash for section
+      return "#" // hash for section
     case "paragraph":
     case "code":
     case "quote":
-      return ""; // empty - rely on rich text rendering
+      return "" // empty - rely on rich text rendering
     default:
-      return "\u00B7"; // middle dot · for list items
+      return "\u00B7" // middle dot · for list items
   }
 }
 
@@ -125,7 +125,7 @@ export function getTypeIcon(type: string): string {
 export const COLORED_CIRCLE: StatusIcon = {
   char: "\u25CF", // filled circle ●
   color: "white",
-};
+}
 
 /**
  * Small bullet for non-task items without color
@@ -133,7 +133,7 @@ export const COLORED_CIRCLE: StatusIcon = {
 export const SMALL_BULLET: StatusIcon = {
   char: "\u00B7", // middle dot ·
   color: "gray",
-};
+}
 
 /**
  * Get a node icon with color override support.
@@ -156,7 +156,7 @@ export function getNodeIcon(
 ): StatusIcon {
   // For tasks, get the base status icon
   if (status !== null && status !== undefined) {
-    const baseIcon = getStatusIcon(status);
+    const baseIcon = getStatusIcon(status)
 
     // If there's an inherited color, override the icon color
     if (inheritedColor) {
@@ -164,10 +164,10 @@ export function getNodeIcon(
         char: baseIcon.char,
         color: inheritedColor,
         backgroundColor: baseIcon.backgroundColor,
-      };
+      }
     }
 
-    return baseIcon;
+    return baseIcon
   }
 
   // For non-tasks with an inherited color, show a colored circle
@@ -175,14 +175,14 @@ export function getNodeIcon(
     return {
       char: COLORED_CIRCLE.char,
       color: inheritedColor,
-    };
+    }
   }
 
   // Non-task without color - show small bullet
   if (!isTask) {
-    return SMALL_BULLET;
+    return SMALL_BULLET
   }
 
   // Task with null/undefined status - show warning
-  return getStatusIcon(status);
+  return getStatusIcon(status)
 }

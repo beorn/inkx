@@ -5,10 +5,10 @@
  * Manages UI state separately from board navigation state.
  */
 
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { ViewMode, SelectionKey } from "./types.ts";
-import type { SelectionRange } from "./mouse-handler.ts";
-import type { WatcherStatus } from "@km/storage";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit"
+import type { ViewMode, SelectionKey } from "./types.ts"
+import type { SelectionRange } from "./mouse-handler.ts"
+import type { WatcherStatus } from "@km/storage"
 
 // =============================================================================
 // UI State Type
@@ -16,64 +16,64 @@ import type { WatcherStatus } from "@km/storage";
 
 export interface UIState {
   // View configuration
-  viewMode: ViewMode;
-  showDetailPane: boolean;
-  maxOutlineDepth: number;
-  maxContentLines: number;
+  viewMode: ViewMode
+  showDetailPane: boolean
+  maxOutlineDepth: number
+  maxContentLines: number
 
   // Board context
-  rootBoardId: string | null;
+  rootBoardId: string | null
 
   // Overlays/dialogs
-  showHelp: boolean;
-  showProjectPicker: boolean;
-  showNewItemDialog: boolean;
+  showHelp: boolean
+  showProjectPicker: boolean
+  showNewItemDialog: boolean
 
   // Selection state (selectionLevel is now derived from cursor depth in Board.tsx)
-  subIndex: number;
-  inOutlineMode: boolean;
-  multiSelected: Set<SelectionKey>;
-  selectionAnchor: { col: number; card: number; sub: number } | null;
-  selectAllLevel: number;
+  subIndex: number
+  inOutlineMode: boolean
+  multiSelected: Set<SelectionKey>
+  selectionAnchor: { col: number; card: number; sub: number } | null
+  selectAllLevel: number
 
   // Column state
-  collapsedColumns: Set<number>;
+  collapsedColumns: Set<number>
 
   // Node fold state (which tree nodes are collapsed)
-  foldedNodes: Set<string>;
+  foldedNodes: Set<string>
 
   // Mouse state
-  mouseSelection: SelectionRange | null;
-  isMouseDragging: boolean;
+  mouseSelection: SelectionRange | null
+  isMouseDragging: boolean
 
   // File drop state
-  droppedFiles: string[];
-  showDropNotification: boolean;
+  droppedFiles: string[]
+  showDropNotification: boolean
 
   // Navigation history
   navHistory: Array<{
-    rootId: string | null;
-    colIndex: number;
-    cardIndex: number;
-    subIndex: number;
-    multiSelected: Set<SelectionKey>;
-    inOutlineMode: boolean;
-  }>;
-  navHistoryIndex: number;
+    rootId: string | null
+    colIndex: number
+    cardIndex: number
+    subIndex: number
+    multiSelected: Set<SelectionKey>
+    inOutlineMode: boolean
+  }>
+  navHistoryIndex: number
 
   // Recent projects for picker
-  recentProjectIds: string[];
+  recentProjectIds: string[]
 
   // Terminal state
-  isReady: boolean;
-  dimensions: { columns: number; rows: number };
+  isReady: boolean
+  dimensions: { columns: number; rows: number }
 
   // Loading state (for large vaults)
-  isLoading: boolean;
-  loadingStartTime: number | null;
+  isLoading: boolean
+  loadingStartTime: number | null
 
   // Watcher status (for bottom bar display)
-  watcherStatus: WatcherStatus | null;
+  watcherStatus: WatcherStatus | null
 }
 
 // =============================================================================
@@ -128,7 +128,7 @@ export function createInitialUIState(
     loadingStartTime: null,
 
     watcherStatus: null,
-  };
+  }
 }
 
 // =============================================================================
@@ -141,125 +141,125 @@ const uiSlice = createSlice({
   reducers: {
     // View mode
     cycleViewMode: (state) => {
-      const modes: ViewMode[] = ["cards", "columns", "list", "tabs"];
-      const currentIndex = modes.indexOf(state.viewMode);
-      const nextIndex = (currentIndex + 1) % modes.length;
-      state.viewMode = modes[nextIndex] ?? "cards";
+      const modes: ViewMode[] = ["cards", "columns", "list", "tabs"]
+      const currentIndex = modes.indexOf(state.viewMode)
+      const nextIndex = (currentIndex + 1) % modes.length
+      state.viewMode = modes[nextIndex] ?? "cards"
     },
     setViewMode: (state, action: PayloadAction<ViewMode>) => {
-      state.viewMode = action.payload;
+      state.viewMode = action.payload
     },
 
     // Overlays
     toggleHelp: (state) => {
-      state.showHelp = !state.showHelp;
+      state.showHelp = !state.showHelp
     },
     showHelp: (state) => {
-      state.showHelp = true;
+      state.showHelp = true
     },
     hideHelp: (state) => {
-      state.showHelp = false;
+      state.showHelp = false
     },
     showProjectPicker: (state) => {
-      state.showProjectPicker = true;
+      state.showProjectPicker = true
     },
     hideProjectPicker: (state) => {
-      state.showProjectPicker = false;
+      state.showProjectPicker = false
     },
     showNewItemDialog: (state) => {
-      state.showNewItemDialog = true;
+      state.showNewItemDialog = true
     },
     hideNewItemDialog: (state) => {
-      state.showNewItemDialog = false;
+      state.showNewItemDialog = false
     },
 
     // Detail pane
     toggleDetailPane: (state) => {
-      state.showDetailPane = !state.showDetailPane;
+      state.showDetailPane = !state.showDetailPane
     },
     setDetailPane: (state, action: PayloadAction<boolean>) => {
-      state.showDetailPane = action.payload;
+      state.showDetailPane = action.payload
     },
 
     // View configuration
     increaseOutlineDepth: (state) => {
-      state.maxOutlineDepth = Math.min(10, state.maxOutlineDepth + 1);
+      state.maxOutlineDepth = Math.min(10, state.maxOutlineDepth + 1)
     },
     decreaseOutlineDepth: (state) => {
-      state.maxOutlineDepth = Math.max(0, state.maxOutlineDepth - 1);
+      state.maxOutlineDepth = Math.max(0, state.maxOutlineDepth - 1)
     },
     increaseContentLines: (state) => {
-      state.maxContentLines = Math.min(10, state.maxContentLines + 1);
+      state.maxContentLines = Math.min(10, state.maxContentLines + 1)
     },
     decreaseContentLines: (state) => {
-      state.maxContentLines = Math.max(1, state.maxContentLines - 1);
+      state.maxContentLines = Math.max(1, state.maxContentLines - 1)
     },
 
     // Outline mode (selectionLevel is now derived from cursor depth in Board.tsx)
     enterOutlineMode: (state) => {
-      state.inOutlineMode = true;
+      state.inOutlineMode = true
     },
     exitOutlineMode: (state) => {
-      state.inOutlineMode = false;
-      state.subIndex = 0;
+      state.inOutlineMode = false
+      state.subIndex = 0
     },
     setInOutlineMode: (state, action: PayloadAction<boolean>) => {
-      state.inOutlineMode = action.payload;
+      state.inOutlineMode = action.payload
     },
     setSubIndex: (state, action: PayloadAction<number>) => {
-      state.subIndex = action.payload;
+      state.subIndex = action.payload
     },
 
     // Multi-selection
     setMultiSelected: (state, action: PayloadAction<Set<SelectionKey>>) => {
-      state.multiSelected = action.payload;
+      state.multiSelected = action.payload
     },
     clearMultiSelection: (state) => {
-      state.multiSelected = new Set();
+      state.multiSelected = new Set()
     },
     setSelectionAnchor: (
       state,
       action: PayloadAction<{ col: number; card: number; sub: number } | null>,
     ) => {
-      state.selectionAnchor = action.payload;
+      state.selectionAnchor = action.payload
     },
     setSelectAllLevel: (state, action: PayloadAction<number>) => {
-      state.selectAllLevel = action.payload;
+      state.selectAllLevel = action.payload
     },
 
     // Column collapse
     toggleColumnCollapse: (state, action: PayloadAction<number>) => {
-      const colIndex = action.payload;
+      const colIndex = action.payload
       if (state.collapsedColumns.has(colIndex)) {
-        state.collapsedColumns.delete(colIndex);
+        state.collapsedColumns.delete(colIndex)
       } else {
-        state.collapsedColumns.add(colIndex);
+        state.collapsedColumns.add(colIndex)
       }
     },
     setCollapsedColumns: (state, action: PayloadAction<Set<number>>) => {
-      state.collapsedColumns = action.payload;
+      state.collapsedColumns = action.payload
     },
 
     // Node folding
     toggleFold: (state, action: PayloadAction<string>) => {
-      const nodeId = action.payload;
+      const nodeId = action.payload
       if (state.foldedNodes.has(nodeId)) {
-        state.foldedNodes.delete(nodeId);
+        state.foldedNodes.delete(nodeId)
       } else {
-        state.foldedNodes.add(nodeId);
+        state.foldedNodes.add(nodeId)
       }
     },
     setFoldedNodes: (state, action: PayloadAction<Set<string>>) => {
-      state.foldedNodes = action.payload;
+      state.foldedNodes = action.payload
     },
     foldAll: (state, action: PayloadAction<string[]>) => {
       for (const nodeId of action.payload) {
-        state.foldedNodes.add(nodeId);
+        state.foldedNodes.add(nodeId)
       }
     },
     unfoldAll: (state, action: PayloadAction<string[]>) => {
       for (const nodeId of action.payload) {
-        state.foldedNodes.delete(nodeId);
+        state.foldedNodes.delete(nodeId)
       }
     },
 
@@ -268,103 +268,103 @@ const uiSlice = createSlice({
       state,
       action: PayloadAction<SelectionRange | null>,
     ) => {
-      state.mouseSelection = action.payload;
+      state.mouseSelection = action.payload
     },
     setMouseDragging: (state, action: PayloadAction<boolean>) => {
-      state.isMouseDragging = action.payload;
+      state.isMouseDragging = action.payload
     },
 
     // File drop
     setDroppedFiles: (state, action: PayloadAction<string[]>) => {
-      state.droppedFiles = action.payload;
+      state.droppedFiles = action.payload
     },
     showDropNotification: (state) => {
-      state.showDropNotification = true;
+      state.showDropNotification = true
     },
     hideDropNotification: (state) => {
-      state.showDropNotification = false;
+      state.showDropNotification = false
     },
 
     // Navigation history
     pushNavHistory: (
       state,
       action: PayloadAction<{
-        rootId: string | null;
-        colIndex: number;
-        cardIndex: number;
-        subIndex: number;
-        multiSelected: Set<SelectionKey>;
-        inOutlineMode: boolean;
+        rootId: string | null
+        colIndex: number
+        cardIndex: number
+        subIndex: number
+        multiSelected: Set<SelectionKey>
+        inOutlineMode: boolean
       }>,
     ) => {
       // Truncate forward history when adding new entry
-      state.navHistory = state.navHistory.slice(0, state.navHistoryIndex + 1);
-      state.navHistory.push(action.payload);
-      state.navHistoryIndex = state.navHistory.length - 1;
+      state.navHistory = state.navHistory.slice(0, state.navHistoryIndex + 1)
+      state.navHistory.push(action.payload)
+      state.navHistoryIndex = state.navHistory.length - 1
     },
     navBack: (state) => {
       if (state.navHistoryIndex > 0) {
-        state.navHistoryIndex -= 1;
+        state.navHistoryIndex -= 1
       }
     },
     navForward: (state) => {
       if (state.navHistoryIndex < state.navHistory.length - 1) {
-        state.navHistoryIndex += 1;
+        state.navHistoryIndex += 1
       }
     },
     setNavHistoryIndex: (state, action: PayloadAction<number>) => {
-      state.navHistoryIndex = action.payload;
+      state.navHistoryIndex = action.payload
     },
 
     // Recent projects
     addRecentProject: (state, action: PayloadAction<string>) => {
-      const projectId = action.payload;
+      const projectId = action.payload
       state.recentProjectIds = [
         projectId,
         ...state.recentProjectIds.filter((id) => id !== projectId),
-      ].slice(0, 10);
+      ].slice(0, 10)
     },
 
     // Terminal
     setReady: (state, action: PayloadAction<boolean>) => {
-      state.isReady = action.payload;
+      state.isReady = action.payload
     },
     setDimensions: (
       state,
       action: PayloadAction<{ columns: number; rows: number }>,
     ) => {
-      state.dimensions = action.payload;
+      state.dimensions = action.payload
     },
 
     // Board context
     setRootBoardId: (state, action: PayloadAction<string | null>) => {
-      state.rootBoardId = action.payload;
+      state.rootBoardId = action.payload
     },
 
     // Loading state
     startLoading: (state) => {
-      state.isLoading = true;
-      state.loadingStartTime = Date.now();
+      state.isLoading = true
+      state.loadingStartTime = Date.now()
     },
     stopLoading: (state) => {
-      state.isLoading = false;
-      state.loadingStartTime = null;
+      state.isLoading = false
+      state.loadingStartTime = null
     },
 
     // Watcher status
     setWatcherStatus: (state, action: PayloadAction<WatcherStatus | null>) => {
-      state.watcherStatus = action.payload;
+      state.watcherStatus = action.payload
     },
   },
-});
+})
 
 // Export actions object for namespace import: `import { actions } from ...`
-export const actions = uiSlice.actions;
+export const actions = uiSlice.actions
 
 // Export reducer
-export const uiReducer = uiSlice.reducer;
+export const uiReducer = uiSlice.reducer
 
 // Action union type for dispatch signatures
 export type UIAction = ReturnType<
   (typeof uiSlice.actions)[keyof typeof uiSlice.actions]
->;
+>

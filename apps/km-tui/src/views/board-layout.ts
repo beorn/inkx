@@ -3,11 +3,11 @@
  */
 
 // Layout constants - centralized to avoid magic numbers scattered through rendering code
-export const TOP_BAR_HEIGHT = 1;
-export const BOTTOM_BAR_HEIGHT = 1;
+export const TOP_BAR_HEIGHT = 1
+export const BOTTOM_BAR_HEIGHT = 1
 
 // Padding from edge before scrolling (in columns)
-const COLUMN_SCROLL_PADDING = 1;
+const COLUMN_SCROLL_PADDING = 1
 
 /**
  * Calculate edge-based scroll offset for horizontal column scrolling.
@@ -26,51 +26,51 @@ export function calcEdgeBasedColumnScrollOffset(
   totalCount: number,
 ): number {
   // If everything fits, no scrolling needed
-  if (totalCount <= maxVisible) return 0;
+  if (totalCount <= maxVisible) return 0
 
   // Calculate visible range
-  const visibleStart = currentOffset;
-  const visibleEnd = currentOffset + maxVisible - 1;
+  const visibleStart = currentOffset
+  const visibleEnd = currentOffset + maxVisible - 1
 
   // Check if selected is outside visible range (with padding)
-  const paddedStart = visibleStart + COLUMN_SCROLL_PADDING;
-  const paddedEnd = visibleEnd - COLUMN_SCROLL_PADDING;
+  const paddedStart = visibleStart + COLUMN_SCROLL_PADDING
+  const paddedEnd = visibleEnd - COLUMN_SCROLL_PADDING
 
-  let newOffset = currentOffset;
+  let newOffset = currentOffset
 
   if (selectedIndex < paddedStart) {
     // Cursor is near/left of left edge - scroll left
-    newOffset = Math.max(0, selectedIndex - COLUMN_SCROLL_PADDING);
+    newOffset = Math.max(0, selectedIndex - COLUMN_SCROLL_PADDING)
   } else if (selectedIndex > paddedEnd) {
     // Cursor is near/right of right edge - scroll right
     newOffset = Math.min(
       totalCount - maxVisible,
       selectedIndex - maxVisible + COLUMN_SCROLL_PADDING + 1,
-    );
+    )
   }
 
   // Clamp to valid range
-  return Math.max(0, Math.min(newOffset, totalCount - maxVisible));
+  return Math.max(0, Math.min(newOffset, totalCount - maxVisible))
 }
 
 /**
  * Compute board layout dimensions based on terminal size and state
  */
 export interface BoardLayoutConfig {
-  termWidth: number;
-  termHeight: number;
-  columnCount: number;
-  showDetailPane: boolean;
-  colIndex: number;
-  currentScrollOffset: number;
+  termWidth: number
+  termHeight: number
+  columnCount: number
+  showDetailPane: boolean
+  colIndex: number
+  currentScrollOffset: number
 }
 
 export interface BoardLayout {
-  contentHeight: number;
-  boardWidth: number;
-  detailPaneWidth: number;
-  maxCols: number;
-  colScrollOffset: number;
+  contentHeight: number
+  boardWidth: number
+  detailPaneWidth: number
+  maxCols: number
+  colScrollOffset: number
 }
 
 export function computeBoardLayout(config: BoardLayoutConfig): BoardLayout {
@@ -81,19 +81,19 @@ export function computeBoardLayout(config: BoardLayoutConfig): BoardLayout {
     showDetailPane,
     colIndex,
     currentScrollOffset,
-  } = config;
+  } = config
 
   // Calculate content area height - space between top and bottom bars
-  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT;
+  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT
 
   // Calculate widths for split view
-  const detailPaneWidth = showDetailPane ? Math.floor(termWidth * 0.4) : 0;
-  const boardWidth = termWidth - detailPaneWidth;
+  const detailPaneWidth = showDetailPane ? Math.floor(termWidth * 0.4) : 0
+  const boardWidth = termWidth - detailPaneWidth
 
   // Max columns that can fit
   const maxCols = showDetailPane
     ? Math.min(columnCount, Math.max(1, Math.floor(boardWidth / 35)))
-    : Math.min(columnCount, Math.max(2, Math.floor(termWidth / 35)));
+    : Math.min(columnCount, Math.max(2, Math.floor(termWidth / 35)))
 
   // Horizontal scrolling offset
   const colScrollOffset = calcEdgeBasedColumnScrollOffset(
@@ -101,7 +101,7 @@ export function computeBoardLayout(config: BoardLayoutConfig): BoardLayout {
     currentScrollOffset,
     maxCols,
     columnCount,
-  );
+  )
 
   return {
     contentHeight,
@@ -109,5 +109,5 @@ export function computeBoardLayout(config: BoardLayoutConfig): BoardLayout {
     detailPaneWidth,
     maxCols,
     colScrollOffset,
-  };
+  }
 }

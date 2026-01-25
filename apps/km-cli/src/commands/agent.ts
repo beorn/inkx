@@ -4,8 +4,8 @@
  * AI agent lifecycle and runtime management.
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
+import { Command } from "commander"
+import chalk from "chalk"
 import {
   queryAgents,
   getAgent,
@@ -17,8 +17,8 @@ import {
   getSession,
   type Agent,
   type AgentStatus,
-} from "@km/agent";
-import { resolveTask } from "@km/storage";
+} from "@km/agent"
+import { resolveTask } from "@km/storage"
 
 export const agentCommand = new Command("agent")
   .description(
@@ -68,7 +68,7 @@ Examples:
   km agent run agent-1 --target km-a1b2
   km agent ls --status running`,
   )
-  .allowUnknownOption(false);
+  .allowUnknownOption(false)
 
 // km agent ls - List all agents
 agentCommand
@@ -81,27 +81,27 @@ agentCommand
   .option("--harness <name>", "Filter by harness")
   .option("--json", "Output as JSON")
   .action((opts) => {
-    const filter: { status?: AgentStatus; harness?: string } = {};
-    if (opts.status) filter.status = opts.status as AgentStatus;
-    if (opts.harness) filter.harness = opts.harness;
+    const filter: { status?: AgentStatus; harness?: string } = {}
+    if (opts.status) filter.status = opts.status as AgentStatus
+    if (opts.harness) filter.harness = opts.harness
 
-    const agents = queryAgents(filter);
+    const agents = queryAgents(filter)
 
     if (opts.json) {
-      console.log(JSON.stringify(agents, null, 2));
-      return;
+      console.log(JSON.stringify(agents, null, 2))
+      return
     }
 
     if (agents.length === 0) {
-      console.log(chalk.yellow("No agents found."));
-      return;
+      console.log(chalk.yellow("No agents found."))
+      return
     }
 
-    console.log(chalk.bold(`Agents (${agents.length}):\n`));
+    console.log(chalk.bold(`Agents (${agents.length}):\n`))
     for (const agent of agents) {
-      printAgent(agent);
+      printAgent(agent)
     }
-  });
+  })
 
 // km agent spawn <name> - Create a new agent
 agentCommand
@@ -115,14 +115,14 @@ agentCommand
   .action((name, opts) => {
     // Validate harness exists
     if (opts.harness) {
-      const harness = loadHarness(opts.harness);
+      const harness = loadHarness(opts.harness)
       if (!harness) {
-        console.error(chalk.red(`Harness not found: ${opts.harness}`));
+        console.error(chalk.red(`Harness not found: ${opts.harness}`))
         console.error(
           chalk.dim(`Available harnesses: ${listHarnesses().join(", ")}`),
-        );
-        process.exitCode = 1;
-        return;
+        )
+        process.exitCode = 1
+        return
       }
     }
 
@@ -131,70 +131,70 @@ agentCommand
       harness: opts.harness,
       customId: opts.id,
       workdir: opts.workdir,
-    });
+    })
 
     if (opts.json) {
-      console.log(JSON.stringify({ shortId, node }, null, 2));
-      return;
+      console.log(JSON.stringify({ shortId, node }, null, 2))
+      return
     }
 
-    console.log(chalk.green(`Created agent: ${shortId}`));
-    console.log(chalk.dim(`  Name: ${name}`));
-    console.log(chalk.dim(`  Model: ${opts.model ?? "claude-sonnet-4"}`));
-    console.log(chalk.dim(`  Harness: ${opts.harness ?? "general"}`));
+    console.log(chalk.green(`Created agent: ${shortId}`))
+    console.log(chalk.dim(`  Name: ${name}`))
+    console.log(chalk.dim(`  Model: ${opts.model ?? "claude-sonnet-4"}`))
+    console.log(chalk.dim(`  Harness: ${opts.harness ?? "general"}`))
 
     // Note: Actual persistence requires km-storage integration
     console.log(
       chalk.yellow("\nNote: Agent created in memory. Persistence pending."),
-    );
-  });
+    )
+  })
 
 // km agent stop <id> - Stop an agent
 agentCommand
   .command("stop <id>")
   .description("Stop an agent gracefully")
   .action((id) => {
-    const agent = getAgent(id);
+    const agent = getAgent(id)
     if (!agent) {
-      console.error(chalk.red(`Agent not found: ${id}`));
-      process.exitCode = 1;
-      return;
+      console.error(chalk.red(`Agent not found: ${id}`))
+      process.exitCode = 1
+      return
     }
 
-    const updates = stopAgentFields();
-    void updates; // Use for persistence later
+    const updates = stopAgentFields()
+    void updates // Use for persistence later
 
-    console.log(chalk.green(`Stopped agent: ${agent.shortId}`));
+    console.log(chalk.green(`Stopped agent: ${agent.shortId}`))
     console.log(
       chalk.yellow("\nNote: Update created in memory. Persistence pending."),
-    );
-  });
+    )
+  })
 
 // km agent kill <id> - Force kill an agent
 agentCommand
   .command("kill <id>")
   .description("Force kill an agent")
   .action((id) => {
-    const agent = getAgent(id);
+    const agent = getAgent(id)
     if (!agent) {
-      console.error(chalk.red(`Agent not found: ${id}`));
-      process.exitCode = 1;
-      return;
+      console.error(chalk.red(`Agent not found: ${id}`))
+      process.exitCode = 1
+      return
     }
 
     // If agent has a PID, we could kill the process here
     if (agent.pid) {
-      console.log(chalk.dim(`Would kill process ${agent.pid}`));
+      console.log(chalk.dim(`Would kill process ${agent.pid}`))
     }
 
-    const updates = stopAgentFields();
-    void updates;
+    const updates = stopAgentFields()
+    void updates
 
-    console.log(chalk.yellow(`Killed agent: ${agent.shortId}`));
+    console.log(chalk.yellow(`Killed agent: ${agent.shortId}`))
     console.log(
       chalk.yellow("\nNote: Update created in memory. Persistence pending."),
-    );
-  });
+    )
+  })
 
 // km agent show <id> - Show agent details
 agentCommand
@@ -202,20 +202,20 @@ agentCommand
   .description("Show agent details")
   .option("--json", "Output as JSON")
   .action((id, opts) => {
-    const agent = getAgent(id);
+    const agent = getAgent(id)
     if (!agent) {
-      console.error(chalk.red(`Agent not found: ${id}`));
-      process.exitCode = 1;
-      return;
+      console.error(chalk.red(`Agent not found: ${id}`))
+      process.exitCode = 1
+      return
     }
 
     if (opts.json) {
-      console.log(JSON.stringify(agent, null, 2));
-      return;
+      console.log(JSON.stringify(agent, null, 2))
+      return
     }
 
-    printAgentDetails(agent);
-  });
+    printAgentDetails(agent)
+  })
 
 // km agent harnesses - List available harnesses
 agentCommand
@@ -223,26 +223,26 @@ agentCommand
   .description("List available harnesses")
   .option("--json", "Output as JSON")
   .action((opts) => {
-    const harnesses = listHarnesses();
+    const harnesses = listHarnesses()
 
     if (opts.json) {
       const detailed = harnesses.map((name) => {
-        const h = loadHarness(name);
-        return { name, description: h?.description, tools: h?.tools };
-      });
-      console.log(JSON.stringify(detailed, null, 2));
-      return;
+        const h = loadHarness(name)
+        return { name, description: h?.description, tools: h?.tools }
+      })
+      console.log(JSON.stringify(detailed, null, 2))
+      return
     }
 
-    console.log(chalk.bold("Available harnesses:\n"));
+    console.log(chalk.bold("Available harnesses:\n"))
     for (const name of harnesses) {
-      const h = loadHarness(name);
-      console.log(`  ${chalk.cyan(name)}`);
+      const h = loadHarness(name)
+      console.log(`  ${chalk.cyan(name)}`)
       if (h?.description) {
-        console.log(chalk.dim(`    ${h.description}`));
+        console.log(chalk.dim(`    ${h.description}`))
       }
     }
-  });
+  })
 
 // km agent sessions [agent-id] - List sessions
 agentCommand
@@ -251,24 +251,24 @@ agentCommand
   .option("-n, --limit <n>", "Limit results", parseInt)
   .option("--json", "Output as JSON")
   .action((agentId, opts) => {
-    const sessions = agentId ? getAgentSessions(agentId, opts.limit) : [];
+    const sessions = agentId ? getAgentSessions(agentId, opts.limit) : []
 
     if (opts.json) {
-      console.log(JSON.stringify(sessions, null, 2));
-      return;
+      console.log(JSON.stringify(sessions, null, 2))
+      return
     }
 
     if (sessions.length === 0) {
-      console.log(chalk.yellow("No sessions found."));
-      console.log(chalk.dim("(Session querying not yet implemented)"));
-      return;
+      console.log(chalk.yellow("No sessions found."))
+      console.log(chalk.dim("(Session querying not yet implemented)"))
+      return
     }
 
-    console.log(chalk.bold(`Sessions (${sessions.length}):\n`));
+    console.log(chalk.bold(`Sessions (${sessions.length}):\n`))
     for (const session of sessions) {
-      console.log(`  ${chalk.cyan(session.id)} - ${session.status}`);
+      console.log(`  ${chalk.cyan(session.id)} - ${session.status}`)
     }
-  });
+  })
 
 // km agent session <session-id> - View session transcript
 agentCommand
@@ -276,25 +276,25 @@ agentCommand
   .description("View session transcript")
   .option("--json", "Output as JSON")
   .action((sessionId, opts) => {
-    const session = getSession(sessionId);
+    const session = getSession(sessionId)
 
     if (!session) {
-      console.error(chalk.red(`Session not found: ${sessionId}`));
-      console.log(chalk.dim("(Session querying not yet implemented)"));
-      process.exitCode = 1;
-      return;
+      console.error(chalk.red(`Session not found: ${sessionId}`))
+      console.log(chalk.dim("(Session querying not yet implemented)"))
+      process.exitCode = 1
+      return
     }
 
     if (opts.json) {
-      console.log(JSON.stringify(session, null, 2));
-      return;
+      console.log(JSON.stringify(session, null, 2))
+      return
     }
 
-    console.log(chalk.bold(`Session: ${session.id}`));
-    console.log(`  Agent: ${session.agentId}`);
-    console.log(`  Status: ${session.status}`);
-    if (session.taskId) console.log(`  Task: ${session.taskId}`);
-  });
+    console.log(chalk.bold(`Session: ${session.id}`))
+    console.log(`  Agent: ${session.agentId}`)
+    console.log(`  Status: ${session.status}`)
+    if (session.taskId) console.log(`  Task: ${session.taskId}`)
+  })
 
 // km agent run <id> [prompt] - Run an agent
 agentCommand
@@ -308,97 +308,95 @@ agentCommand
   .option("--max-tasks <n>", "Max tasks in continuous mode", parseInt)
   .option("--dry-run", "Show plan without executing")
   .action((id, prompt, opts) => {
-    const agent = getAgent(id);
+    const agent = getAgent(id)
     if (!agent) {
-      console.error(chalk.red(`Agent not found: ${id}`));
-      process.exitCode = 1;
-      return;
+      console.error(chalk.red(`Agent not found: ${id}`))
+      process.exitCode = 1
+      return
     }
 
     // Resolve target task if specified
-    let targetTask: { id: string; name?: string; path?: string } | null = null;
+    let targetTask: { id: string; name?: string; path?: string } | null = null
     if (opts.target) {
-      const resolved = resolveTask(opts.target);
+      const resolved = resolveTask(opts.target)
       if (!resolved) {
-        console.error(chalk.red(`Could not resolve target: ${opts.target}`));
-        console.error(chalk.dim("Target can be a file path, node ID, or @ref"));
-        process.exitCode = 1;
-        return;
+        console.error(chalk.red(`Could not resolve target: ${opts.target}`))
+        console.error(chalk.dim("Target can be a file path, node ID, or @ref"))
+        process.exitCode = 1
+        return
       }
       targetTask = {
         id: resolved.id,
         name: resolved.name ?? undefined,
         path: resolved.fs_path ?? undefined,
-      };
+      }
     }
 
     if (opts.dryRun) {
-      console.log(chalk.bold("Dry run mode - would execute:"));
-      console.log(`  Agent: ${agent.shortId} (${agent.name})`);
-      console.log(`  Model: ${agent.model}`);
-      console.log(`  Harness: ${agent.harness}`);
-      if (prompt) console.log(`  Prompt: "${prompt}"`);
+      console.log(chalk.bold("Dry run mode - would execute:"))
+      console.log(`  Agent: ${agent.shortId} (${agent.name})`)
+      console.log(`  Model: ${agent.model}`)
+      console.log(`  Harness: ${agent.harness}`)
+      if (prompt) console.log(`  Prompt: "${prompt}"`)
       if (targetTask) {
-        console.log(`  Target: ${targetTask.id}`);
+        console.log(`  Target: ${targetTask.id}`)
         if (targetTask.name) {
-          console.log(`          ${chalk.dim(targetTask.name)}`);
+          console.log(`          ${chalk.dim(targetTask.name)}`)
         }
         if (targetTask.path) {
-          console.log(`          ${chalk.dim(targetTask.path)}`);
+          console.log(`          ${chalk.dim(targetTask.path)}`)
         }
       }
-      if (opts.continuous) console.log(`  Mode: continuous`);
-      return;
+      if (opts.continuous) console.log(`  Mode: continuous`)
+      return
     }
 
-    console.log(chalk.yellow("Agent runtime not yet implemented."));
-    console.log(chalk.dim("This will execute the agent with the Claude API."));
-  });
+    console.log(chalk.yellow("Agent runtime not yet implemented."))
+    console.log(chalk.dim("This will execute the agent with the Claude API."))
+  })
 
 // Helper functions
 
 function printAgent(agent: Agent): void {
-  const status = formatStatus(agent.status);
-  const task = agent.currentTaskId
-    ? chalk.dim(` → ${agent.currentTaskId}`)
-    : "";
+  const status = formatStatus(agent.status)
+  const task = agent.currentTaskId ? chalk.dim(` → ${agent.currentTaskId}`) : ""
 
-  console.log(`${status} ${chalk.cyan(agent.shortId)} ${agent.name}${task}`);
-  console.log(chalk.dim(`   ${agent.model} / ${agent.harness}`));
+  console.log(`${status} ${chalk.cyan(agent.shortId)} ${agent.name}${task}`)
+  console.log(chalk.dim(`   ${agent.model} / ${agent.harness}`))
 }
 
 function printAgentDetails(agent: Agent): void {
-  console.log(chalk.bold(`Agent: ${agent.shortId}`));
-  console.log();
-  console.log(`  Name:     ${agent.name}`);
-  console.log(`  Status:   ${formatStatus(agent.status)}`);
-  console.log(`  Model:    ${agent.model}`);
-  console.log(`  Harness:  ${agent.harness}`);
+  console.log(chalk.bold(`Agent: ${agent.shortId}`))
+  console.log()
+  console.log(`  Name:     ${agent.name}`)
+  console.log(`  Status:   ${formatStatus(agent.status)}`)
+  console.log(`  Model:    ${agent.model}`)
+  console.log(`  Harness:  ${agent.harness}`)
 
-  if (agent.workdir) console.log(`  Workdir:  ${agent.workdir}`);
-  if (agent.pid) console.log(`  PID:      ${agent.pid}`);
-  if (agent.currentTaskId) console.log(`  Task:     ${agent.currentTaskId}`);
+  if (agent.workdir) console.log(`  Workdir:  ${agent.workdir}`)
+  if (agent.pid) console.log(`  PID:      ${agent.pid}`)
+  if (agent.currentTaskId) console.log(`  Task:     ${agent.currentTaskId}`)
 
-  console.log();
+  console.log()
   console.log(
     chalk.dim(`  Created:  ${new Date(agent.createdAt).toISOString()}`),
-  );
+  )
   console.log(
     chalk.dim(`  Updated:  ${new Date(agent.updatedAt).toISOString()}`),
-  );
+  )
 }
 
 function formatStatus(status: AgentStatus): string {
   switch (status) {
     case "idle":
-      return chalk.dim("○");
+      return chalk.dim("○")
     case "running":
-      return chalk.green("●");
+      return chalk.green("●")
     case "paused":
-      return chalk.yellow("◐");
+      return chalk.yellow("◐")
     case "stopped":
-      return chalk.gray("○");
+      return chalk.gray("○")
     case "error":
-      return chalk.red("✗");
+      return chalk.red("✗")
   }
 }

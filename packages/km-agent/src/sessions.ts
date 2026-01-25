@@ -5,9 +5,9 @@
  * Sessions are stored as events in events.jsonl.
  */
 
-import type { SessionStartedData, SessionEndedData } from "@km/core";
-import { readEvents } from "@km/storage";
-import type { Session, SessionFilter, SessionStatus } from "./types.ts";
+import type { SessionStartedData, SessionEndedData } from "@km/core"
+import { readEvents } from "@km/storage"
+import type { Session, SessionFilter, SessionStatus } from "./types.ts"
 
 /**
  * Query sessions, optionally filtered.
@@ -16,14 +16,14 @@ import type { Session, SessionFilter, SessionStatus } from "./types.ts";
  * reconstructs Session objects, and applies filters.
  */
 export function querySessions(filter?: SessionFilter): Session[] {
-  const events = readEvents();
+  const events = readEvents()
 
   // Build sessions from events
-  const sessionMap = new Map<string, Session>();
+  const sessionMap = new Map<string, Session>()
 
   for (const event of events) {
     if (event.type === "session_started") {
-      const data = event.data as unknown as SessionStartedData;
+      const data = event.data as unknown as SessionStartedData
       sessionMap.set(data.session_id, {
         id: data.session_id,
         agentId: event.actor,
@@ -31,37 +31,37 @@ export function querySessions(filter?: SessionFilter): Session[] {
         model: data.model,
         status: "active" as SessionStatus,
         startedAt: event.ts,
-      });
+      })
     } else if (event.type === "session_ended") {
-      const data = event.data as unknown as SessionEndedData;
-      const session = sessionMap.get(data.session_id);
+      const data = event.data as unknown as SessionEndedData
+      const session = sessionMap.get(data.session_id)
       if (session) {
-        session.status = mapSessionStatus(data.status);
-        session.endedAt = event.ts;
-        session.totalTokens = data.total_tokens;
-        session.costUsd = data.cost_usd;
-        session.summary = data.summary;
+        session.status = mapSessionStatus(data.status)
+        session.endedAt = event.ts
+        session.totalTokens = data.total_tokens
+        session.costUsd = data.cost_usd
+        session.summary = data.summary
       }
     }
   }
 
-  let sessions = Array.from(sessionMap.values());
+  let sessions = Array.from(sessionMap.values())
 
   // Apply filters
   if (filter?.agentId) {
-    sessions = sessions.filter((s) => s.agentId === filter.agentId);
+    sessions = sessions.filter((s) => s.agentId === filter.agentId)
   }
   if (filter?.taskId) {
-    sessions = sessions.filter((s) => s.taskId === filter.taskId);
+    sessions = sessions.filter((s) => s.taskId === filter.taskId)
   }
   if (filter?.status) {
     const statuses = Array.isArray(filter.status)
       ? filter.status
-      : [filter.status];
-    sessions = sessions.filter((s) => statuses.includes(s.status));
+      : [filter.status]
+    sessions = sessions.filter((s) => statuses.includes(s.status))
   }
 
-  return sessions;
+  return sessions
 }
 
 /**
@@ -72,11 +72,11 @@ function mapSessionStatus(
 ): SessionStatus {
   switch (eventStatus) {
     case "success":
-      return "completed";
+      return "completed"
     case "error":
-      return "error";
+      return "error"
     case "cancelled":
-      return "cancelled";
+      return "cancelled"
   }
 }
 
@@ -84,37 +84,37 @@ function mapSessionStatus(
  * Get a single session by ID.
  */
 export function getSession(sessionId: string): Session | null {
-  const sessions = querySessions();
-  return sessions.find((s) => s.id === sessionId) ?? null;
+  const sessions = querySessions()
+  return sessions.find((s) => s.id === sessionId) ?? null
 }
 
 /**
  * Get all sessions for an agent.
  */
 export function getAgentSessions(agentId: string, limit?: number): Session[] {
-  let sessions = querySessions({ agentId });
+  let sessions = querySessions({ agentId })
 
   // Sort by startedAt descending (most recent first)
-  sessions.sort((a, b) => b.startedAt - a.startedAt);
+  sessions.sort((a, b) => b.startedAt - a.startedAt)
 
   if (limit !== undefined) {
-    sessions = sessions.slice(0, limit);
+    sessions = sessions.slice(0, limit)
   }
 
-  return sessions;
+  return sessions
 }
 
 /**
  * Get all sessions for an issue/task.
  */
 export function getTaskSessions(taskId: string): Session[] {
-  return querySessions({ taskId });
+  return querySessions({ taskId })
 }
 
 /**
  * Get the currently active session for an agent, if any.
  */
 export function getActiveSession(agentId: string): Session | null {
-  const sessions = querySessions({ agentId, status: "active" });
-  return sessions[0] ?? null;
+  const sessions = querySessions({ agentId, status: "active" })
+  return sessions[0] ?? null
 }

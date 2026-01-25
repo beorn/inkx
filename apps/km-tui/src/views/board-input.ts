@@ -5,21 +5,21 @@
  * They're extracted here for organization, but the actual useInput calls
  * remain in Board.tsx since they need access to component-level state.
  */
-import type { Key } from "inkx";
-import type { Dispatch } from "react";
-import { actions, type UIAction } from "../ui-reducer.ts";
-import type { BoardState, BoardAction } from "@km/board";
-import type { Vault } from "../vault-context.tsx";
-import type { TUIContext } from "../tui-context.ts";
-import { handleTreeNavigation } from "../navigation-handlers.ts";
+import type { Key } from "inkx"
+import type { Dispatch } from "react"
+import { actions, type UIAction } from "../ui-reducer.ts"
+import type { BoardState, BoardAction } from "@km/board"
+import type { Vault } from "../vault-context.tsx"
+import type { TUIContext } from "../tui-context.ts"
+import { handleTreeNavigation } from "../navigation-handlers.ts"
 import {
   processKeyWithContext,
   ensureCommandSystemInitialized,
-} from "../command-bridge.ts";
-import { handleCommandAction } from "../board-actions.ts";
+} from "../command-bridge.ts"
+import { handleCommandAction } from "../board-actions.ts"
 
 // Re-export for convenience
-export { ensureCommandSystemInitialized };
+export { ensureCommandSystemInitialized }
 
 /**
  * Handle main keyboard input through command system
@@ -30,46 +30,46 @@ export function handleBoardKeyInput(
   key: Key,
   tuiContext: TUIContext,
   ui: {
-    showNewItemDialog: boolean;
-    showProjectPicker: boolean;
-    showHelp: boolean;
+    showNewItemDialog: boolean
+    showProjectPicker: boolean
+    showHelp: boolean
   },
   dispatch: Dispatch<UIAction>,
   exit: () => void,
 ): boolean {
   // Dialog modes have their own input handling via dialog components
   if (ui.showNewItemDialog || ui.showProjectPicker) {
-    return false;
+    return false
   }
 
   // Help overlay blocks most keys - only allow dismiss keys
   if (ui.showHelp) {
     if (input === "?" || key.escape) {
-      dispatch(actions.hideHelp());
-      return true;
+      dispatch(actions.hideHelp())
+      return true
     } else if (input === "q") {
-      exit();
-      return true;
+      exit()
+      return true
     }
     // All other keys are blocked while help is showing
-    return true;
+    return true
   }
 
   // Route ALL keys through the command system
-  const result = processKeyWithContext(input, key, tuiContext);
+  const result = processKeyWithContext(input, key, tuiContext)
 
   if (result.handled && result.actions) {
     const actionList = Array.isArray(result.actions)
       ? result.actions
-      : [result.actions];
+      : [result.actions]
     for (const action of actionList) {
-      handleCommandAction(tuiContext, action);
+      handleCommandAction(tuiContext, action)
     }
-    return true;
+    return true
   }
 
   // Unhandled keys are silently ignored
-  return false;
+  return false
 }
 
 /**
@@ -88,27 +88,27 @@ export function handleDetailPaneKeyInput(
   exit: () => void,
 ): void {
   if (input === "h" || key.escape) {
-    dispatch(actions.setDetailPane(false));
-    return;
+    dispatch(actions.setDetailPane(false))
+    return
   }
   if (input === "q") {
-    exit();
-    return;
+    exit()
+    return
   }
 
   // Use navigation handlers to compute target nodeId
   if (input === "j" || key.downArrow) {
-    const targetId = handleTreeNavigation("next", boardState, vault);
+    const targetId = handleTreeNavigation("next", boardState, vault)
     if (targetId) {
-      dispatchBoard({ type: "SELECT", nodeId: targetId });
+      dispatchBoard({ type: "SELECT", nodeId: targetId })
     }
-    return;
+    return
   }
   if (input === "k" || key.upArrow) {
-    const targetId = handleTreeNavigation("prev", boardState, vault);
+    const targetId = handleTreeNavigation("prev", boardState, vault)
     if (targetId) {
-      dispatchBoard({ type: "SELECT", nodeId: targetId });
+      dispatchBoard({ type: "SELECT", nodeId: targetId })
     }
-    return;
+    return
   }
 }

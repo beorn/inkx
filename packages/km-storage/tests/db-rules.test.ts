@@ -8,23 +8,23 @@
  * then MemoryStore parses them, and test runs within runWithDb context.
  */
 
-import { describe, test, expect } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
-import { join } from "path";
-import { ulid } from "ulid";
-import { MemoryStore } from "../src/store.ts";
+import { describe, test, expect } from "bun:test"
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
+import { join } from "path"
+import { ulid } from "ulid"
+import { MemoryStore } from "../src/store.ts"
 import {
   evaluateNodeRules,
   evaluateAllRules,
   getNodesWithRules,
   getNodesWithRule,
-} from "../src/db-rules.ts";
-import { getChildren, getChildCountsBatch } from "../src/db-queries/index.ts";
-import { runWithDb } from "../src/db-instance.ts";
+} from "../src/db-rules.ts"
+import { getChildren, getChildCountsBatch } from "../src/db-queries/index.ts"
+import { runWithDb } from "../src/db-instance.ts"
 
 interface TestEnv {
-  store: MemoryStore;
-  vaultDir: string;
+  store: MemoryStore
+  vaultDir: string
 }
 
 /**
@@ -36,24 +36,24 @@ function withMemoryStore<T>(
   setup: (vaultDir: string) => void,
   fn: (env: TestEnv) => T,
 ): T {
-  const testId = ulid();
-  const testDir = join("/tmp", `kmtest-${testId}`);
-  const vaultDir = join(testDir, "vault");
+  const testId = ulid()
+  const testDir = join("/tmp", `kmtest-${testId}`)
+  const vaultDir = join(testDir, "vault")
 
-  mkdirSync(vaultDir, { recursive: true });
+  mkdirSync(vaultDir, { recursive: true })
 
   // Write files first
-  setup(vaultDir);
+  setup(vaultDir)
 
   // Create store (will parse the files)
-  using store = new MemoryStore(vaultDir);
+  using store = new MemoryStore(vaultDir)
 
   try {
     // Run within ALS context using the store's database
-    return runWithDb(store.getDatabase(), () => fn({ store, vaultDir }));
+    return runWithDb(store.getDatabase(), () => fn({ store, vaultDir }))
   } finally {
     if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true });
+      rmSync(testDir, { recursive: true })
     }
   }
 }
@@ -71,18 +71,18 @@ describe("Database Rules", () => {
 
 ## Done add="@issue status:done"
 `,
-          );
+          )
         },
         ({ store }) => {
-          const nodesWithRules = getNodesWithRules();
-          expect(nodesWithRules.length).toBe(2);
+          const nodesWithRules = getNodesWithRules()
+          expect(nodesWithRules.length).toBe(2)
 
           for (const node of nodesWithRules) {
-            expect(node.type).toBe("section");
-            expect(node.rules?.add).toBeDefined();
+            expect(node.type).toBe("section")
+            expect(node.rules?.add).toBeDefined()
           }
         },
-      ));
+      ))
 
     test("should return empty array when no rules exist", () =>
       withMemoryStore(
@@ -99,14 +99,14 @@ describe("Database Rules", () => {
 
 - [ ] Task 2
 `,
-          );
+          )
         },
         () => {
-          const nodesWithRules = getNodesWithRules();
-          expect(nodesWithRules.length).toBe(0);
+          const nodesWithRules = getNodesWithRules()
+          expect(nodesWithRules.length).toBe(0)
         },
-      ));
-  });
+      ))
+  })
 
   describe("getNodesWithRule", () => {
     test("should find nodes with specific rule type", () =>
@@ -122,19 +122,19 @@ describe("Database Rules", () => {
 
 ## Limited limit=3
 `,
-          );
+          )
         },
         () => {
-          const addRuleNodes = getNodesWithRule("add");
-          expect(addRuleNodes.length).toBe(1);
-          expect(addRuleNodes[0]?.rules?.add).toBe("@issue status:todo");
+          const addRuleNodes = getNodesWithRule("add")
+          expect(addRuleNodes.length).toBe(1)
+          expect(addRuleNodes[0]?.rules?.add).toBe("@issue status:todo")
 
-          const collapseRuleNodes = getNodesWithRule("collapse");
-          expect(collapseRuleNodes.length).toBe(1);
-          expect(collapseRuleNodes[0]?.rules?.collapse).toBe(true);
+          const collapseRuleNodes = getNodesWithRule("collapse")
+          expect(collapseRuleNodes.length).toBe(1)
+          expect(collapseRuleNodes[0]?.rules?.collapse).toBe(true)
         },
-      ));
-  });
+      ))
+  })
 
   describe("evaluateNodeRules - add= rule", () => {
     test("should create embed children for matching nodes", () =>
@@ -148,7 +148,7 @@ describe("Database Rules", () => {
 - [ ] Add feature @issue
 - [x] Done task @issue
 `,
-          );
+          )
 
           writeFileSync(
             join(vaultDir, "board.md"),
@@ -156,25 +156,25 @@ describe("Database Rules", () => {
 
 ## Open add="@issue status:todo"
 `,
-          );
+          )
         },
         ({ store }) => {
-          const allNodes = store.getAllNodes();
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@issue status:todo",
-          );
-          expect(openSection).toBeDefined();
+          )
+          expect(openSection).toBeDefined()
 
-          evaluateNodeRules(openSection!.id);
+          evaluateNodeRules(openSection!.id)
 
-          const children = getChildren(openSection!.id);
-          const embeds = children.filter((c) => c.type === "embed");
+          const children = getChildren(openSection!.id)
+          const embeds = children.filter((c) => c.type === "embed")
 
-          expect(embeds.length).toBe(2);
-          expect(embeds.every((e) => e.link_to)).toBe(true);
+          expect(embeds.length).toBe(2)
+          expect(embeds.every((e) => e.link_to)).toBe(true)
         },
-      ));
+      ))
 
     test("should not create embeds for direct children", () =>
       withMemoryStore(
@@ -193,27 +193,27 @@ describe("Database Rules", () => {
 
 - [ ] Other task @issue
 `,
-          );
+          )
         },
         ({ store }) => {
-          const allNodes = store.getAllNodes();
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@issue status:todo",
-          );
-          expect(openSection).toBeDefined();
+          )
+          expect(openSection).toBeDefined()
 
-          evaluateNodeRules(openSection!.id);
+          evaluateNodeRules(openSection!.id)
 
-          const children = getChildren(openSection!.id);
-          const embeds = children.filter((c) => c.type === "embed");
-          const directTasks = children.filter((c) => c.type === "task");
+          const children = getChildren(openSection!.id)
+          const embeds = children.filter((c) => c.type === "embed")
+          const directTasks = children.filter((c) => c.type === "task")
 
-          expect(embeds.length).toBe(1);
-          expect(directTasks.length).toBe(1);
+          expect(embeds.length).toBe(1)
+          expect(directTasks.length).toBe(1)
         },
-      ));
-  });
+      ))
+  })
 
   describe("evaluateAllRules", () => {
     test("should evaluate all rules in database", () =>
@@ -227,7 +227,7 @@ describe("Database Rules", () => {
 - [ ] Task B @project
 - [x] Task C @project
 `,
-          );
+          )
 
           writeFileSync(
             join(vaultDir, "board.md"),
@@ -237,38 +237,38 @@ describe("Database Rules", () => {
 
 ## Done add="@project status:done"
 `,
-          );
+          )
         },
         ({ store }) => {
           for (const _ of evaluateAllRules()) {
             /* exhaust generator */
           }
 
-          const allNodes = store.getAllNodes();
+          const allNodes = store.getAllNodes()
           const todoSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@project status:todo",
-          );
+          )
           const doneSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@project status:done",
-          );
+          )
 
-          expect(todoSection).toBeDefined();
-          expect(doneSection).toBeDefined();
+          expect(todoSection).toBeDefined()
+          expect(doneSection).toBeDefined()
 
           const todoEmbeds = getChildren(todoSection!.id).filter(
             (c) => c.type === "embed",
-          );
+          )
           const doneEmbeds = getChildren(doneSection!.id).filter(
             (c) => c.type === "embed",
-          );
+          )
 
-          expect(todoEmbeds.length).toBe(2);
-          expect(doneEmbeds.length).toBe(1);
+          expect(todoEmbeds.length).toBe(2)
+          expect(doneEmbeds.length).toBe(1)
         },
-      ));
-  });
+      ))
+  })
 
   describe("getChildren with computed links", () => {
     test("should include embed children from add= rule", () =>
@@ -281,7 +281,7 @@ describe("Database Rules", () => {
 - [ ] Bug 1 @issue
 - [ ] Bug 2 @issue
 `,
-          );
+          )
 
           writeFileSync(
             join(vaultDir, "board.md"),
@@ -289,25 +289,25 @@ describe("Database Rules", () => {
 
 ## Open add="@issue status:todo"
 `,
-          );
+          )
         },
         ({ store }) => {
-          const allNodes = store.getAllNodes();
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@issue status:todo",
-          );
-          expect(openSection).toBeDefined();
+          )
+          expect(openSection).toBeDefined()
 
-          evaluateNodeRules(openSection!.id);
+          evaluateNodeRules(openSection!.id)
 
-          const children = getChildren(openSection!.id);
+          const children = getChildren(openSection!.id)
 
-          expect(children.length).toBe(2);
-          expect(children.every((c) => c.type === "embed")).toBe(true);
-          expect(children.every((c) => c.link_to)).toBe(true);
+          expect(children.length).toBe(2)
+          expect(children.every((c) => c.type === "embed")).toBe(true)
+          expect(children.every((c) => c.link_to)).toBe(true)
         },
-      ));
+      ))
 
     test("should deduplicate direct children and linked children", () =>
       withMemoryStore(
@@ -320,22 +320,22 @@ describe("Database Rules", () => {
 
 - [ ] Direct task
 `,
-          );
+          )
         },
         ({ store }) => {
-          const allNodes = store.getAllNodes();
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) => n.type === "section" && n.rules?.add === "status:todo",
-          );
-          expect(openSection).toBeDefined();
+          )
+          expect(openSection).toBeDefined()
 
-          evaluateNodeRules(openSection!.id);
+          evaluateNodeRules(openSection!.id)
 
-          const children = getChildren(openSection!.id);
-          expect(children.length).toBe(1);
+          const children = getChildren(openSection!.id)
+          expect(children.length).toBe(1)
         },
-      ));
-  });
+      ))
+  })
 
   describe("incremental updates", () => {
     test("should update links when task status changes", () =>
@@ -348,7 +348,7 @@ describe("Database Rules", () => {
 - [ ] Task A @tag
 - [ ] Task B @tag
 `,
-          );
+          )
 
           writeFileSync(
             join(vaultDir, "board.md"),
@@ -358,49 +358,49 @@ describe("Database Rules", () => {
 
 ## Done add="@tag status:done"
 `,
-          );
+          )
         },
         ({ store }) => {
           for (const _ of evaluateAllRules()) {
             /* exhaust generator */
           }
 
-          const allNodes = store.getAllNodes();
+          const allNodes = store.getAllNodes()
           const todoSection = allNodes.find(
             (n) => n.type === "section" && n.rules?.add === "@tag status:todo",
-          );
+          )
           const doneSection = allNodes.find(
             (n) => n.type === "section" && n.rules?.add === "@tag status:done",
-          );
+          )
 
-          expect(todoSection).toBeDefined();
-          expect(doneSection).toBeDefined();
+          expect(todoSection).toBeDefined()
+          expect(doneSection).toBeDefined()
 
-          let todoChildren = getChildren(todoSection!.id);
-          let doneChildren = getChildren(doneSection!.id);
+          let todoChildren = getChildren(todoSection!.id)
+          let doneChildren = getChildren(doneSection!.id)
 
-          expect(todoChildren.length).toBe(2);
-          expect(doneChildren.length).toBe(0);
+          expect(todoChildren.length).toBe(2)
+          expect(doneChildren.length).toBe(0)
 
           const taskA = allNodes.find(
             (n) => n.type === "task" && n.content?.includes("Task A"),
-          );
-          expect(taskA).toBeDefined();
+          )
+          expect(taskA).toBeDefined()
 
-          store.updateNode(taskA!.id, { task_status: "done", task_mark: "x" });
+          store.updateNode(taskA!.id, { task_status: "done", task_mark: "x" })
 
           for (const _ of evaluateAllRules()) {
             /* exhaust generator */
           }
 
-          todoChildren = getChildren(todoSection!.id);
-          doneChildren = getChildren(doneSection!.id);
+          todoChildren = getChildren(todoSection!.id)
+          doneChildren = getChildren(doneSection!.id)
 
-          expect(todoChildren.length).toBe(1);
-          expect(doneChildren.length).toBe(1);
+          expect(todoChildren.length).toBe(1)
+          expect(doneChildren.length).toBe(1)
         },
-      ));
-  });
+      ))
+  })
 
   describe("getChildCountsBatch with computed links", () => {
     test("should count linked children from query:add rules", () =>
@@ -414,7 +414,7 @@ describe("Database Rules", () => {
 - [ ] Bug 2 @issue
 - [ ] Bug 3 @issue
 `,
-          );
+          )
 
           writeFileSync(
             join(vaultDir, "board.md"),
@@ -422,23 +422,23 @@ describe("Database Rules", () => {
 
 ## Open add="@issue status:todo"
 `,
-          );
+          )
         },
         ({ store }) => {
           for (const _ of evaluateAllRules()) {
             /* exhaust generator */
           }
 
-          const allNodes = store.getAllNodes();
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@issue status:todo",
-          );
-          expect(openSection).toBeDefined();
+          )
+          expect(openSection).toBeDefined()
 
-          const counts = getChildCountsBatch([openSection!.id]);
-          expect(counts.get(openSection!.id)).toBe(3);
+          const counts = getChildCountsBatch([openSection!.id])
+          expect(counts.get(openSection!.id)).toBe(3)
         },
-      ));
-  });
-});
+      ))
+  })
+})

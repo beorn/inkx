@@ -11,13 +11,13 @@
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
-import createDebug from "debug";
-import type { Vault } from "@km/storage";
-import type { LayoutRegistry } from "./card-positions.ts";
-import { getCardMidY } from "./card-positions.ts";
-import type { BoardState } from "@km/board";
+import createDebug from "debug"
+import type { Vault } from "@km/storage"
+import type { LayoutRegistry } from "./card-positions.ts"
+import { getCardMidY } from "./card-positions.ts"
+import type { BoardState } from "@km/board"
 
-const debug = createDebug("km:tui:nav");
+const debug = createDebug("km:tui:nav")
 
 // =============================================================================
 // Tree Navigation
@@ -30,7 +30,13 @@ const debug = createDebug("km:tui:nav");
  * - child: enter first child
  * - parent: go to parent
  */
-export type TreeDirection = "next" | "prev" | "first" | "last" | "child" | "parent";
+export type TreeDirection =
+  | "next"
+  | "prev"
+  | "first"
+  | "last"
+  | "child"
+  | "parent"
 
 /**
  * Handle tree-based navigation.
@@ -47,107 +53,107 @@ export function handleTreeNavigation(
   state: BoardState,
   vault: Vault,
 ): string | null {
-  const { cursorNodeId, rootId, foldedNodes } = state;
+  const { cursorNodeId, rootId, foldedNodes } = state
 
   // If no cursor, can't navigate
   if (!cursorNodeId) {
-    return null;
+    return null
   }
 
-  const currentNode = vault.getNode(cursorNodeId);
+  const currentNode = vault.getNode(cursorNodeId)
   if (!currentNode) {
-    debug("tree nav: current node not found");
-    return null;
+    debug("tree nav: current node not found")
+    return null
   }
 
   switch (direction) {
     case "next": {
       // Move to next sibling
-      const siblings = vault.getChildren(currentNode.parent_id);
-      const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId);
+      const siblings = vault.getChildren(currentNode.parent_id)
+      const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId)
       if (currentIndex < 0 || currentIndex >= siblings.length - 1) {
-        debug("tree nav: at last sibling, can't move next");
-        return null; // At last sibling
+        debug("tree nav: at last sibling, can't move next")
+        return null // At last sibling
       }
-      const nextSibling = siblings[currentIndex + 1];
-      debug("tree nav: next sibling %s", nextSibling?.id.slice(-8));
-      return nextSibling?.id ?? null;
+      const nextSibling = siblings[currentIndex + 1]
+      debug("tree nav: next sibling %s", nextSibling?.id.slice(-8))
+      return nextSibling?.id ?? null
     }
 
     case "prev": {
       // Move to previous sibling
-      const siblings = vault.getChildren(currentNode.parent_id);
-      const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId);
+      const siblings = vault.getChildren(currentNode.parent_id)
+      const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId)
       if (currentIndex <= 0) {
-        debug("tree nav: at first sibling, can't move prev");
-        return null; // At first sibling
+        debug("tree nav: at first sibling, can't move prev")
+        return null // At first sibling
       }
-      const prevSibling = siblings[currentIndex - 1];
-      debug("tree nav: prev sibling %s", prevSibling?.id.slice(-8));
-      return prevSibling?.id ?? null;
+      const prevSibling = siblings[currentIndex - 1]
+      debug("tree nav: prev sibling %s", prevSibling?.id.slice(-8))
+      return prevSibling?.id ?? null
     }
 
     case "first": {
       // Jump to first sibling
-      const siblings = vault.getChildren(currentNode.parent_id);
+      const siblings = vault.getChildren(currentNode.parent_id)
       if (siblings.length === 0) {
-        debug("tree nav: no siblings, can't jump to first");
-        return null;
+        debug("tree nav: no siblings, can't jump to first")
+        return null
       }
-      const firstSibling = siblings[0];
-      debug("tree nav: first sibling %s", firstSibling?.id.slice(-8));
-      return firstSibling?.id ?? null;
+      const firstSibling = siblings[0]
+      debug("tree nav: first sibling %s", firstSibling?.id.slice(-8))
+      return firstSibling?.id ?? null
     }
 
     case "last": {
       // Jump to last sibling
-      const siblings = vault.getChildren(currentNode.parent_id);
+      const siblings = vault.getChildren(currentNode.parent_id)
       if (siblings.length === 0) {
-        debug("tree nav: no siblings, can't jump to last");
-        return null;
+        debug("tree nav: no siblings, can't jump to last")
+        return null
       }
-      const lastSibling = siblings[siblings.length - 1];
-      debug("tree nav: last sibling %s", lastSibling?.id.slice(-8));
-      return lastSibling?.id ?? null;
+      const lastSibling = siblings[siblings.length - 1]
+      debug("tree nav: last sibling %s", lastSibling?.id.slice(-8))
+      return lastSibling?.id ?? null
     }
 
     case "child": {
       // Move to first child (if not folded and has children)
       if (foldedNodes.has(cursorNodeId)) {
-        debug("tree nav: node is folded, can't enter child");
-        return null;
+        debug("tree nav: node is folded, can't enter child")
+        return null
       }
-      const children = vault.getChildren(cursorNodeId);
+      const children = vault.getChildren(cursorNodeId)
       if (children.length === 0) {
-        debug("tree nav: no children, can't enter child");
-        return null;
+        debug("tree nav: no children, can't enter child")
+        return null
       }
-      const firstChild = children[0];
-      debug("tree nav: first child %s", firstChild?.id.slice(-8));
-      return firstChild?.id ?? null;
+      const firstChild = children[0]
+      debug("tree nav: first child %s", firstChild?.id.slice(-8))
+      return firstChild?.id ?? null
     }
 
     case "parent": {
       // Move to parent
       if (currentNode.parent_id === null) {
-        debug("tree nav: at root level, can't move to parent");
-        return null; // At root level
+        debug("tree nav: at root level, can't move to parent")
+        return null // At root level
       }
       // Don't go above the current zoom root
       if (currentNode.parent_id === rootId) {
-        debug("tree nav: at zoom root, returning to root");
-        return rootId;
+        debug("tree nav: at zoom root, returning to root")
+        return rootId
       }
-      debug("tree nav: parent %s", currentNode.parent_id.slice(-8));
-      return currentNode.parent_id;
+      debug("tree nav: parent %s", currentNode.parent_id.slice(-8))
+      return currentNode.parent_id
     }
 
     default: {
       // Exhaustiveness check - TypeScript will error if new TreeDirection values are added
-      const _exhaustive: never = direction;
+      const _exhaustive: never = direction
       throw new Error(
         `Unhandled tree direction: ${_exhaustive as string}. This is a programming error.`,
-      );
+      )
     }
   }
 }
@@ -166,18 +172,18 @@ export function handleSiblingJump(
   cursorNodeId: string | null,
   vault: Vault,
 ): string | null {
-  if (!cursorNodeId) return null;
+  if (!cursorNodeId) return null
 
-  const currentNode = vault.getNode(cursorNodeId);
-  if (!currentNode) return null;
+  const currentNode = vault.getNode(cursorNodeId)
+  if (!currentNode) return null
 
-  const siblings = vault.getChildren(currentNode.parent_id);
-  if (siblings.length === 0) return null;
+  const siblings = vault.getChildren(currentNode.parent_id)
+  if (siblings.length === 0) return null
 
   if (direction === "first") {
-    return siblings[0]?.id ?? null;
+    return siblings[0]?.id ?? null
   } else {
-    return siblings[siblings.length - 1]?.id ?? null;
+    return siblings[siblings.length - 1]?.id ?? null
   }
 }
 
@@ -204,67 +210,67 @@ export function handleVisualNavigation(
   vault: Vault,
   layout: LayoutRegistry,
 ): string | null {
-  const { cursorNodeId, rootId } = state;
+  const { cursorNodeId, rootId } = state
 
   if (!cursorNodeId) {
-    return null;
+    return null
   }
 
   // Get current node's layout
-  const currentLayout = layout.getNodeOptional(cursorNodeId);
+  const currentLayout = layout.getNodeOptional(cursorNodeId)
   if (!currentLayout) {
-    debug("visual nav: current node layout not found");
-    return null;
+    debug("visual nav: current node layout not found")
+    return null
   }
 
   // Get columns (children of root)
-  const columns = vault.getChildren(rootId);
+  const columns = vault.getChildren(rootId)
   if (columns.length === 0) {
-    return null;
+    return null
   }
 
   // Find which column the current node is in
-  const currentColIndex = findColumnIndex(cursorNodeId, vault, rootId);
+  const currentColIndex = findColumnIndex(cursorNodeId, vault, rootId)
   if (currentColIndex < 0) {
-    debug("visual nav: could not find current column");
-    return null;
+    debug("visual nav: could not find current column")
+    return null
   }
 
   // Calculate target column
   const targetColIndex =
-    direction === "right" ? currentColIndex + 1 : currentColIndex - 1;
+    direction === "right" ? currentColIndex + 1 : currentColIndex - 1
 
   // Bounds check
   if (targetColIndex < 0 || targetColIndex >= columns.length) {
-    debug("visual nav: at edge, can't move %s", direction);
-    return null;
+    debug("visual nav: at edge, can't move %s", direction)
+    return null
   }
 
   // Get or set sticky Y position
   // Use head midpoint of current card as sticky Y
-  let targetY = layout.getStickyY();
+  let targetY = layout.getStickyY()
   if (targetY === null) {
-    targetY = getCardMidY(currentLayout);
-    layout.setStickyY(targetY);
-    debug("visual nav: set stickyY=%d", targetY);
+    targetY = getCardMidY(currentLayout)
+    layout.setStickyY(targetY)
+    debug("visual nav: set stickyY=%d", targetY)
   }
 
   // Find card in target column at sticky Y position
-  const cardIndex = layout.findCardAtYVisual(targetColIndex, targetY);
+  const cardIndex = layout.findCardAtYVisual(targetColIndex, targetY)
 
   if (cardIndex < 0) {
     // No cards in column, or should land on column header
     // Return the column node itself
-    const columnNode = columns[targetColIndex];
-    debug("visual nav: landing on column header %s", columnNode?.id.slice(-8));
-    return columnNode?.id ?? null;
+    const columnNode = columns[targetColIndex]
+    debug("visual nav: landing on column header %s", columnNode?.id.slice(-8))
+    return columnNode?.id ?? null
   }
 
   // Get the card at that position
-  const cardEntry = layout.getCardOptional(targetColIndex, cardIndex);
+  const cardEntry = layout.getCardOptional(targetColIndex, cardIndex)
   if (!cardEntry) {
-    debug("visual nav: card entry not found");
-    return null;
+    debug("visual nav: card entry not found")
+    return null
   }
 
   debug(
@@ -273,9 +279,9 @@ export function handleVisualNavigation(
     targetColIndex,
     cardIndex,
     cardEntry.nodeId.slice(-8),
-  );
+  )
 
-  return cardEntry.nodeId;
+  return cardEntry.nodeId
 }
 
 /**
@@ -292,8 +298,8 @@ function findColumnIndex(
   vault: Vault,
   rootId: string | null,
 ): number {
-  let current = vault.getNode(nodeId);
-  if (!current) return -1;
+  let current = vault.getNode(nodeId)
+  if (!current) return -1
 
   // Traverse up to find the column (direct child of root)
   while (
@@ -301,18 +307,18 @@ function findColumnIndex(
     current.parent_id !== null &&
     current.parent_id !== rootId
   ) {
-    const parent = vault.getNode(current.parent_id);
-    if (!parent) return -1;
-    current = parent;
+    const parent = vault.getNode(current.parent_id)
+    if (!parent) return -1
+    current = parent
   }
 
-  if (!current) return -1;
+  if (!current) return -1
 
   // Now 'current' is a direct child of root (a column)
   // Find its index among siblings
-  const columns = vault.getChildren(rootId);
-  const currentId = current.id;
-  return columns.findIndex((col) => col.id === currentId);
+  const columns = vault.getChildren(rootId)
+  const currentId = current.id
+  return columns.findIndex((col) => col.id === currentId)
 }
 
 // =============================================================================
@@ -334,43 +340,43 @@ export function deriveCursorPosition(
   rootId: string | null,
 ): { colIndex: number; cardIndex: number } | null {
   if (!cursorNodeId) {
-    return null;
+    return null
   }
 
-  const columns = vault.getChildren(rootId);
+  const columns = vault.getChildren(rootId)
   if (columns.length === 0) {
-    return null;
+    return null
   }
 
   // Check if cursor is on a column itself
-  const colIndex = columns.findIndex((col) => col.id === cursorNodeId);
+  const colIndex = columns.findIndex((col) => col.id === cursorNodeId)
   if (colIndex >= 0) {
     // Cursor is on a column header
-    return { colIndex, cardIndex: -1 };
+    return { colIndex, cardIndex: -1 }
   }
 
   // Otherwise, find which column and card the cursor is in
   for (let ci = 0; ci < columns.length; ci++) {
-    const column = columns[ci];
-    if (!column) continue;
+    const column = columns[ci]
+    if (!column) continue
 
-    const cards = vault.getChildren(column.id);
-    const cardIndex = cards.findIndex((card) => card.id === cursorNodeId);
+    const cards = vault.getChildren(column.id)
+    const cardIndex = cards.findIndex((card) => card.id === cursorNodeId)
     if (cardIndex >= 0) {
-      return { colIndex: ci, cardIndex };
+      return { colIndex: ci, cardIndex }
     }
 
     // Check if cursor is in a nested child of this column
     for (let cai = 0; cai < cards.length; cai++) {
-      const card = cards[cai];
-      if (!card) continue;
+      const card = cards[cai]
+      if (!card) continue
       if (isDescendant(cursorNodeId, card.id, vault)) {
-        return { colIndex: ci, cardIndex: cai };
+        return { colIndex: ci, cardIndex: cai }
       }
     }
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -381,14 +387,14 @@ function isDescendant(
   ancestorId: string,
   vault: Vault,
 ): boolean {
-  let current = vault.getNode(nodeId);
+  let current = vault.getNode(nodeId)
   while (current && current.parent_id) {
     if (current.parent_id === ancestorId) {
-      return true;
+      return true
     }
-    current = vault.getNode(current.parent_id);
+    current = vault.getNode(current.parent_id)
   }
-  return false;
+  return false
 }
 
 // =============================================================================
@@ -400,5 +406,5 @@ function isDescendant(
  * Clears the sticky Y so next h/l uses fresh position.
  */
 export function clearStickyY(layout: LayoutRegistry): void {
-  layout.clearStickyY();
+  layout.clearStickyY()
 }

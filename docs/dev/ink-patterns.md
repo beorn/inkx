@@ -121,13 +121,13 @@ When the bordered box has 5 lines (top border + 3 content + bottom border) plus 
 **Solution:** Use `displayLength()` for all width calculations:
 
 ```typescript
-import { displayLength } from "../text/rich.ts";
+import { displayLength } from "../text/rich.ts"
 
 // Wrong - counts ANSI codes
-const width = styledText.length;
+const width = styledText.length
 
 // Correct - visual character count
-const width = displayLength(styledText);
+const width = displayLength(styledText)
 ```
 
 ## Constraint Components
@@ -141,17 +141,17 @@ We've built constraint components to reduce boilerplate for common layout patter
 Provides width to descendant components without prop drilling:
 
 ```tsx
-import { ConstraintContext, useConstraint } from "../constraints";
+import { ConstraintContext, useConstraint } from "../constraints"
 
 // Parent provides width
-<ConstraintContext.Provider value={{ width: 80 }}>
+;<ConstraintContext.Provider value={{ width: 80 }}>
   <MyComponent />
-</ConstraintContext.Provider>;
+</ConstraintContext.Provider>
 
 // Child consumes width
 function MyComponent() {
-  const { width } = useConstraint();
-  return <Text>{truncate(text, width)}</Text>;
+  const { width } = useConstraint()
+  return <Text>{truncate(text, width)}</Text>
 }
 ```
 
@@ -171,20 +171,20 @@ import { TruncatedText } from "../constraints";
 Handles overflow with scrolling and virtualization:
 
 ```tsx
-import { ScrollableList } from "../constraints";
+import { ScrollableList } from "../constraints"
 
 // Simple fixed-height items (1 line per item)
-<ScrollableList
+;<ScrollableList
   items={nodes}
   selectedIndex={cursorIndex}
   height={availableHeight}
   renderItem={(node, index, isSelected) => (
     <TreeNode node={node} isSelected={isSelected} />
   )}
-/>;
+/>
 
 // Variable-height items (REQUIRED for multi-line content)
-<ScrollableList
+;<ScrollableList
   items={cards}
   selectedIndex={cursorIndex}
   height={availableHeight}
@@ -195,7 +195,7 @@ import { ScrollableList } from "../constraints";
   renderOverflow={(direction, count) => (
     <OverflowIndicator direction={direction} count={count} />
   )}
-/>;
+/>
 ```
 
 **Features:**
@@ -209,16 +209,16 @@ import { ScrollableList } from "../constraints";
 Divides width between columns with optional fixed-width columns:
 
 ```tsx
-import { FlexRow } from "../constraints";
+import { FlexRow } from "../constraints"
 
-<FlexRow
+;<FlexRow
   width={80}
   columns={[
     { flex: 1, render: (w) => <Text>{truncate(title, w)}</Text> },
     { width: 10, render: () => <Text>{status}</Text> },
     { width: 12, render: () => <Text>{date}</Text> },
   ]}
-/>;
+/>
 ```
 
 ## Text Rendering Pipeline
@@ -234,9 +234,9 @@ Raw markdown → renderRich() → styled ANSI → constrainText() → <Text>
 Convert markdown to styled ANSI string:
 
 ```typescript
-import { renderRich } from "../text/rich.ts";
+import { renderRich } from "../text/rich.ts"
 
-const styled = renderRich("**bold** and _italic_");
+const styled = renderRich("**bold** and _italic_")
 // Returns: "\x1b[1mbold\x1b[22m and \x1b[3mitalic\x1b[23m"
 ```
 
@@ -245,13 +245,13 @@ const styled = renderRich("**bold** and _italic_");
 Apply width constraints (truncate/wrap) to styled text:
 
 ```typescript
-import { constrainText } from "../layout/constrain.ts";
+import { constrainText } from "../layout/constrain.ts"
 
 const lines = constrainText(styled, {
   width: 40,
   maxLines: 2,
   mode: "wrap", // or "truncate"
-});
+})
 ```
 
 ### Layer 3: Render Lines
@@ -260,7 +260,7 @@ Render each line in `<Text>`:
 
 ```tsx
 {
-  lines.map((line, i) => <Text key={i}>{line}</Text>);
+  lines.map((line, i) => <Text key={i}>{line}</Text>)
 }
 ```
 
@@ -325,8 +325,8 @@ Pass width down the component tree:
 
 ```tsx
 function Board({ width }: { width: number }) {
-  const columnWidth = Math.floor(width / columns.length);
-  return columns.map((col) => <Column width={columnWidth} {...col} />);
+  const columnWidth = Math.floor(width / columns.length)
+  return columns.map((col) => <Column width={columnWidth} {...col} />)
 }
 ```
 
@@ -347,9 +347,9 @@ Use Ink's `useInput()` hook:
 ```tsx
 useInput((input, key) => {
   if (key.downArrow || input === "j") {
-    moveCursor("down");
+    moveCursor("down")
   }
-});
+})
 ```
 
 ## Critical Pattern: Variable-Height Lists
@@ -360,9 +360,9 @@ useInput((input, key) => {
 
 ```typescript
 // WRONG: Assumes each card is exactly 1 line
-const maxVisibleCards = Math.max(1, contentHeight);
-const needsScroll = column.cards.length > maxVisibleCards;
-const visibleCards = column.cards.slice(0, maxVisibleCards);
+const maxVisibleCards = Math.max(1, contentHeight)
+const needsScroll = column.cards.length > maxVisibleCards
+const visibleCards = column.cards.slice(0, maxVisibleCards)
 ```
 
 If you have 20 cards and 42 lines of height, this shows all 20 cards. But if those cards actually render to 50+ lines, they overflow past the container boundary.

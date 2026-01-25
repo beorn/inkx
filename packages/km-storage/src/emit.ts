@@ -2,26 +2,26 @@
  * Event emission - append events to events.jsonl
  */
 
-import createDebug from "debug";
-import { appendFileSync, existsSync, mkdirSync } from "fs";
-import { AsyncLocalStorage } from "async_hooks";
+import createDebug from "debug"
+import { appendFileSync, existsSync, mkdirSync } from "fs"
+import { AsyncLocalStorage } from "async_hooks"
 
-const debug = createDebug("km:storage:emit");
-import { ulid } from "ulid";
-import { join } from "path";
-import type { Event } from "@km/core";
+const debug = createDebug("km:storage:emit")
+import { ulid } from "ulid"
+import { join } from "path"
+import type { Event } from "@km/core"
 
 // Event hub for real-time broadcasting (set by km-code)
-let eventHub: { broadcast: (event: Event) => void } | null = null;
+let eventHub: { broadcast: (event: Event) => void } | null = null
 
 // Database for immediate projection (set when db is loaded)
-let db: { applyEvent: (event: Event) => void } | null = null;
+let db: { applyEvent: (event: Event) => void } | null = null
 
 // Filesystem sync callback (set by km-watch when sync is enabled)
-let fsSync: { applyEventToFs: (event: Event) => void } | null = null;
+let fsSync: { applyEventToFs: (event: Event) => void } | null = null
 
 // AsyncLocalStorage for context-local kmDir (enables parallel test isolation)
-const kmDirContext = new AsyncLocalStorage<string>();
+const kmDirContext = new AsyncLocalStorage<string>()
 
 /**
  * Set the km state directory path.
@@ -30,11 +30,11 @@ const kmDirContext = new AsyncLocalStorage<string>();
  */
 export function setKmDir(path: string): void {
   // Store as default for legacy code paths that don't use ALS context
-  defaultKmDir = path;
+  defaultKmDir = path
 }
 
 // Default kmDir for legacy code paths (prefer ALS context via runWithKmDir)
-let defaultKmDir = process.env.KM_DIR ?? ".km";
+let defaultKmDir = process.env.KM_DIR ?? ".km"
 
 /**
  * Get the current km state directory path.
@@ -45,11 +45,11 @@ let defaultKmDir = process.env.KM_DIR ?? ".km";
  */
 export function getKmDir(): string {
   // Check async context first (enables parallel test isolation)
-  const contextKmDir = kmDirContext.getStore();
+  const contextKmDir = kmDirContext.getStore()
   if (contextKmDir) {
-    return contextKmDir;
+    return contextKmDir
   }
-  return defaultKmDir;
+  return defaultKmDir
 }
 
 /**
@@ -58,14 +58,14 @@ export function getKmDir(): string {
  * without affecting other concurrent tests.
  */
 export function runWithKmDir<T>(path: string, fn: () => T): T {
-  return kmDirContext.run(path, fn);
+  return kmDirContext.run(path, fn)
 }
 
 /**
  * Set the event hub for real-time broadcasting
  */
 export function setEventHub(hub: { broadcast: (event: Event) => void }): void {
-  eventHub = hub;
+  eventHub = hub
 }
 
 /**
@@ -73,10 +73,10 @@ export function setEventHub(hub: { broadcast: (event: Event) => void }): void {
  */
 export function setDatabase(
   database: {
-    applyEvent: (event: Event) => void;
+    applyEvent: (event: Event) => void
   } | null,
 ): void {
-  db = database;
+  db = database
 }
 
 /**
@@ -86,23 +86,23 @@ export function setDatabase(
 export function setFsSync(
   sync: { applyEventToFs: (event: Event) => void } | null,
 ): void {
-  fsSync = sync;
+  fsSync = sync
 }
 
 /**
  * Clear the database reference (for testing)
  */
 export function clearDatabase(): void {
-  db = null;
+  db = null
 }
 
 /**
  * Ensure the km directory exists
  */
 function ensureKmDir(): void {
-  const dir = getKmDir();
+  const dir = getKmDir()
   if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
+    mkdirSync(dir, { recursive: true })
   }
 }
 
@@ -110,7 +110,7 @@ function ensureKmDir(): void {
  * Get the events file path
  */
 export function getEventsPath(): string {
-  return join(getKmDir(), "events.jsonl");
+  return join(getKmDir(), "events.jsonl")
 }
 
 /**
@@ -124,35 +124,35 @@ export function emit(
     id: ulid(),
     ts: Date.now(),
     ...event,
-  };
+  }
 
-  debug("emit: %s target=%s", full.type, full.target ?? "(none)");
+  debug("emit: %s target=%s", full.type, full.target ?? "(none)")
 
   // Ensure directory exists
-  ensureKmDir();
+  ensureKmDir()
 
   // 1. Append to events file (persistent)
   if (!options.skipPersist) {
-    const eventsPath = getEventsPath();
-    appendFileSync(eventsPath, JSON.stringify(full) + "\n");
+    const eventsPath = getEventsPath()
+    appendFileSync(eventsPath, JSON.stringify(full) + "\n")
   }
 
   // 2. Apply to state.db if loaded
   if (db) {
-    db.applyEvent(full);
+    db.applyEvent(full)
   }
 
   // 3. Broadcast via socket (real-time)
   if (eventHub && !options.skipBroadcast) {
-    eventHub.broadcast(full);
+    eventHub.broadcast(full)
   }
 
   // 4. Sync to filesystem if enabled
   if (fsSync) {
-    fsSync.applyEventToFs(full);
+    fsSync.applyEventToFs(full)
   }
 
-  return full;
+  return full
 }
 
 /**
@@ -166,7 +166,7 @@ export function emitNodeCreated(
     type: "node_created",
     actor,
     data,
-  });
+  })
 }
 
 /**
@@ -182,7 +182,7 @@ export function emitNodeUpdated(
     actor,
     target,
     data,
-  });
+  })
 }
 
 /**
@@ -198,7 +198,7 @@ export function emitNodeMoved(
     actor,
     target,
     data,
-  });
+  })
 }
 
 /**
@@ -214,7 +214,7 @@ export function emitNodeDeleted(
     actor,
     target,
     data: { reason },
-  });
+  })
 }
 
 /**
@@ -226,7 +226,7 @@ export function emitTaskClaimed(target: string, actor: string): Event {
     actor,
     target,
     data: {},
-  });
+  })
 }
 
 /**
@@ -242,7 +242,7 @@ export function emitTaskReleased(
     actor,
     target,
     data: { reason },
-  });
+  })
 }
 
 /**
@@ -258,7 +258,7 @@ export function emitTaskCompleted(
     actor,
     target,
     data: { summary },
-  });
+  })
 }
 
 /**
@@ -280,7 +280,7 @@ export function emitSessionStarted(
       model,
       system_prompt_hash: systemPromptHash,
     },
-  });
+  })
 }
 
 /**
@@ -302,7 +302,7 @@ export function emitSessionMessage(
       content,
       tokens,
     },
-  });
+  })
 }
 
 /**
@@ -326,7 +326,7 @@ export function emitSessionToolCall(
       result,
       tokens,
     },
-  });
+  })
 }
 
 /**
@@ -337,11 +337,11 @@ export function emitSessionEnded(
   sessionId: string,
   status: "success" | "error" | "cancelled",
   options?: {
-    totalTokens?: number;
-    costUsd?: number;
-    filesModified?: string[];
-    summary?: string;
-    error?: string;
+    totalTokens?: number
+    costUsd?: number
+    filesModified?: string[]
+    summary?: string
+    error?: string
   },
 ): Event {
   return emit({
@@ -356,5 +356,5 @@ export function emitSessionEnded(
       summary: options?.summary,
       error: options?.error,
     },
-  });
+  })
 }

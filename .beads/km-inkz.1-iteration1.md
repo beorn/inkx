@@ -123,19 +123,19 @@ Use a **constraint-based** approach inspired by Cassowary (used in macOS Auto La
 
 ```typescript
 interface SizeConstraint {
-  min?: number;
-  preferred?: number;
-  max?: number;
-  flex?: number; // Flex grow factor
+  min?: number
+  preferred?: number
+  max?: number
+  flex?: number // Flex grow factor
 }
 
 interface LayoutNode {
-  width: SizeConstraint;
-  height: SizeConstraint;
-  children: LayoutNode[];
+  width: SizeConstraint
+  height: SizeConstraint
+  children: LayoutNode[]
 
   // Called after layout resolution
-  onLayout(finalWidth: number, finalHeight: number): void;
+  onLayout(finalWidth: number, finalHeight: number): void
 }
 ```
 

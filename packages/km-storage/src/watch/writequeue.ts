@@ -4,12 +4,12 @@
  * Manages pending filesystem writes with debouncing and retry logic
  */
 
-import createDebug from "debug";
-import * as fs from "fs";
-import { dirname } from "path";
-import { EventEmitter } from "events";
+import createDebug from "debug"
+import * as fs from "fs"
+import { dirname } from "path"
+import { EventEmitter } from "events"
 
-const debug = createDebug("km:storage:watch:writequeue");
+const debug = createDebug("km:storage:watch:writequeue")
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Error Classification
@@ -18,7 +18,7 @@ const debug = createDebug("km:storage:watch:writequeue");
 /**
  * Error classification for retry decisions
  */
-export type ErrorClass = "transient" | "permanent";
+export type ErrorClass = "transient" | "permanent"
 
 /**
  * Detailed error type for user-facing messages
@@ -29,24 +29,24 @@ export type ErrorType =
   | "not_found" // ENOENT - file missing
   | "read_only" // EROFS - filesystem read-only
   | "disk_full" // ENOSPC after retries exhausted
-  | "other"; // Other permanent errors
+  | "other" // Other permanent errors
 
 /**
  * Permission error information for user notification
  */
 export interface PermissionError {
-  path: string;
-  operation: "read" | "write" | "delete" | "rename";
-  code: string;
-  message: string;
-  suggestion: string;
+  path: string
+  operation: "read" | "write" | "delete" | "rename"
+  code: string
+  message: string
+  suggestion: string
 }
 
 /**
  * Classify an error as transient (should retry) or permanent (don't retry)
  */
 export function classifyError(error: Error & { code?: string }): ErrorClass {
-  const code = error.code;
+  const code = error.code
 
   // Transient errors - worth retrying
   const transientCodes = [
@@ -61,51 +61,51 @@ export function classifyError(error: Error & { code?: string }): ErrorClass {
     "ECONNRESET", // Connection reset (network FS)
     "ENETUNREACH", // Network unreachable
     "EHOSTUNREACH", // Host unreachable
-  ];
+  ]
 
   if (code && transientCodes.includes(code)) {
-    return "transient";
+    return "transient"
   }
 
   // Permanent errors - don't retry
   // ENOENT, EACCES, EPERM, EEXIST, EISDIR, ENOTDIR, EROFS, etc.
-  return "permanent";
+  return "permanent"
 }
 
 /**
  * Get detailed error type for user-facing messages
  */
 export function getErrorType(error: Error & { code?: string }): ErrorType {
-  const code = error.code;
+  const code = error.code
 
-  if (!code) return "other";
+  if (!code) return "other"
 
   // Permission errors - user can potentially fix
   if (code === "EACCES" || code === "EPERM") {
-    return "permission";
+    return "permission"
   }
 
   // Not found - often expected
   if (code === "ENOENT") {
-    return "not_found";
+    return "not_found"
   }
 
   // Read-only filesystem
   if (code === "EROFS") {
-    return "read_only";
+    return "read_only"
   }
 
   // Disk full (after retries exhausted)
   if (code === "ENOSPC") {
-    return "disk_full";
+    return "disk_full"
   }
 
   // Check if transient
   if (classifyError(error) === "transient") {
-    return "transient";
+    return "transient"
   }
 
-  return "other";
+  return "other"
 }
 
 /**
@@ -113,15 +113,15 @@ export function getErrorType(error: Error & { code?: string }): ErrorType {
  */
 export function getPermissionSuggestion(path: string, code: string): string {
   if (code === "EACCES") {
-    return `Check file permissions for "${path}". You may need to run: chmod u+rw "${path}"`;
+    return `Check file permissions for "${path}". You may need to run: chmod u+rw "${path}"`
   }
   if (code === "EPERM") {
-    return `Operation not permitted on "${path}". The file may be owned by another user or have special attributes.`;
+    return `Operation not permitted on "${path}". The file may be owned by another user or have special attributes.`
   }
   if (code === "EROFS") {
-    return `The filesystem containing "${path}" is mounted read-only.`;
+    return `The filesystem containing "${path}" is mounted read-only.`
   }
-  return `Unable to access "${path}". Check file and directory permissions.`;
+  return `Unable to access "${path}". Check file and directory permissions.`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,13 +133,13 @@ export function getPermissionSuggestion(path: string, code: string): string {
  */
 export interface RetryConfig {
   /** Maximum number of retry attempts (default: 3) */
-  maxRetries: number;
+  maxRetries: number
   /** Base delay in ms for exponential backoff (default: 100) */
-  baseDelayMs: number;
+  baseDelayMs: number
   /** Maximum delay in ms (default: 5000) */
-  maxDelayMs: number;
+  maxDelayMs: number
   /** Jitter factor 0-1 to randomize delays (default: 0.1) */
-  jitterFactor: number;
+  jitterFactor: number
 }
 
 export const DEFAULT_RETRY_CONFIG: RetryConfig = {
@@ -147,7 +147,7 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   baseDelayMs: 100,
   maxDelayMs: 5000,
   jitterFactor: 0.1,
-};
+}
 
 /**
  * Calculate delay for a given attempt using exponential backoff with jitter
@@ -157,12 +157,12 @@ export function calculateBackoffDelay(
   config: RetryConfig,
 ): number {
   // Exponential: baseDelay * 2^attempt
-  const exponentialDelay = config.baseDelayMs * Math.pow(2, attempt);
-  const clampedDelay = Math.min(exponentialDelay, config.maxDelayMs);
+  const exponentialDelay = config.baseDelayMs * Math.pow(2, attempt)
+  const clampedDelay = Math.min(exponentialDelay, config.maxDelayMs)
 
   // Add jitter: ±jitterFactor of the delay
-  const jitter = clampedDelay * config.jitterFactor * (Math.random() * 2 - 1);
-  return Math.max(0, Math.round(clampedDelay + jitter));
+  const jitter = clampedDelay * config.jitterFactor * (Math.random() * 2 - 1)
+  return Math.max(0, Math.round(clampedDelay + jitter))
 }
 
 /**
@@ -170,8 +170,8 @@ export function calculateBackoffDelay(
  */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
+    setTimeout(resolve, ms)
+  })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -182,24 +182,24 @@ function sleep(ms: number): Promise<void> {
  * Stat result interface compatible with Node's fs.Stats
  */
 export interface StatResult {
-  ino: number;
-  mtimeMs: number;
-  size: number;
-  isDirectory(): boolean;
-  isFile(): boolean;
+  ino: number
+  mtimeMs: number
+  size: number
+  isDirectory(): boolean
+  isFile(): boolean
 }
 
 /**
  * Filesystem operations interface for dependency injection
  */
 export interface FileSystemOps {
-  writeFileSync(path: string, content: string, encoding?: BufferEncoding): void;
-  unlinkSync(path: string): void;
-  mkdirSync(path: string, options?: { recursive?: boolean }): void;
-  existsSync(path: string): boolean;
-  renameSync(oldPath: string, newPath: string): void;
-  readFileSync(path: string, encoding?: BufferEncoding): string;
-  statSync(path: string): StatResult;
+  writeFileSync(path: string, content: string, encoding?: BufferEncoding): void
+  unlinkSync(path: string): void
+  mkdirSync(path: string, options?: { recursive?: boolean }): void
+  existsSync(path: string): boolean
+  renameSync(oldPath: string, newPath: string): void
+  readFileSync(path: string, encoding?: BufferEncoding): string
+  statSync(path: string): StatResult
 }
 
 /**
@@ -213,15 +213,15 @@ export const realFs: FileSystemOps = {
   renameSync: fs.renameSync,
   readFileSync: (p, e) => fs.readFileSync(p, e ?? "utf-8"),
   statSync: (p) => fs.statSync(p),
-};
+}
 
 /**
  * Interface for watcher in-flight tracking
  * Both FileSystemWatcher and WorkerWatcher implement this
  */
 export interface InFlightTracker {
-  markInFlight(path: string): void;
-  clearInFlight(path: string, delayMs?: number): void;
+  markInFlight(path: string): void
+  clearInFlight(path: string, delayMs?: number): void
 }
 
 /**
@@ -230,90 +230,90 @@ export interface InFlightTracker {
 export type ConflictStrategy =
   | "last_write_wins" // Always write (current behavior)
   | "fs_wins" // If file changed, discard pending write
-  | "db_wins"; // If file changed, still write but emit warning
+  | "db_wins" // If file changed, still write but emit warning
 
 /**
  * Write operation types using discriminated union
  */
 export type WriteOperation =
   | {
-      type: "write";
-      path: string;
-      content: string;
-      sourceEventId: string;
+      type: "write"
+      path: string
+      content: string
+      sourceEventId: string
       /** mtime when the write was queued (for conflict detection) */
-      baseMtime?: number;
+      baseMtime?: number
     }
   | { type: "delete"; path: string; sourceEventId: string }
   | {
-      type: "rename";
-      path: string;
-      newPath: string;
-      sourceEventId: string;
-    };
+      type: "rename"
+      path: string
+      newPath: string
+      sourceEventId: string
+    }
 
 // Legacy interface for backwards compatibility
 export interface PendingWrite {
-  path: string;
-  content: string;
-  sourceEventId: string;
+  path: string
+  content: string
+  sourceEventId: string
   /** mtime when the write was queued (for conflict detection) */
-  baseMtime?: number;
+  baseMtime?: number
 }
 
 /**
  * Conflict information when detected
  */
 export interface ConflictInfo {
-  path: string;
-  baseMtime: number;
-  currentMtime: number;
-  strategy: ConflictStrategy;
-  resolution: "written" | "discarded";
+  path: string
+  baseMtime: number
+  currentMtime: number
+  strategy: ConflictStrategy
+  resolution: "written" | "discarded"
 }
 
 export interface WriteQueueConfig {
-  debounceMs: number;
-  fs?: FileSystemOps;
+  debounceMs: number
+  fs?: FileSystemOps
   /** Retry configuration for transient failures */
-  retry?: Partial<RetryConfig>;
+  retry?: Partial<RetryConfig>
   /** Conflict resolution strategy (default: last_write_wins) */
-  conflictStrategy?: ConflictStrategy;
+  conflictStrategy?: ConflictStrategy
 }
 
 const DEFAULT_CONFIG: WriteQueueConfig = {
   debounceMs: 3000,
   conflictStrategy: "last_write_wins",
-};
+}
 
 /**
  * Result of a single operation execution with retry
  */
 export interface OperationResult {
-  op: WriteOperation;
-  success: boolean;
-  attempts: number;
-  error?: Error & { code?: string };
-  errorClass?: ErrorClass;
+  op: WriteOperation
+  success: boolean
+  attempts: number
+  error?: Error & { code?: string }
+  errorClass?: ErrorClass
   /** Conflict detected during execution */
-  conflict?: ConflictInfo;
+  conflict?: ConflictInfo
 }
 
 export class WriteQueue extends EventEmitter {
-  private pending: Map<string, WriteOperation> = new Map();
-  private debounceTimer: NodeJS.Timeout | null = null;
-  private config: WriteQueueConfig;
-  private retryConfig: RetryConfig;
-  private conflictStrategy: ConflictStrategy;
-  private watcher: InFlightTracker | null = null;
-  private fs: FileSystemOps;
+  private pending: Map<string, WriteOperation> = new Map()
+  private debounceTimer: NodeJS.Timeout | null = null
+  private config: WriteQueueConfig
+  private retryConfig: RetryConfig
+  private conflictStrategy: ConflictStrategy
+  private watcher: InFlightTracker | null = null
+  private fs: FileSystemOps
 
   constructor(config: Partial<WriteQueueConfig> = {}) {
-    super();
-    this.config = { ...DEFAULT_CONFIG, ...config };
-    this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...config.retry };
-    this.conflictStrategy = config.conflictStrategy ?? "last_write_wins";
-    this.fs = config.fs ?? realFs;
+    super()
+    this.config = { ...DEFAULT_CONFIG, ...config }
+    this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...config.retry }
+    this.conflictStrategy = config.conflictStrategy ?? "last_write_wins"
+    this.fs = config.fs ?? realFs
   }
 
   /**
@@ -321,21 +321,21 @@ export class WriteQueue extends EventEmitter {
    * Accepts any object implementing InFlightTracker (FileSystemWatcher or WorkerWatcher)
    */
   setWatcher(watcher: InFlightTracker): void {
-    this.watcher = watcher;
+    this.watcher = watcher
   }
 
   /**
    * Queue a write operation
    */
   queue(write: PendingWrite): void {
-    debug("queuing write: %s (%d bytes)", write.path, write.content.length);
+    debug("queuing write: %s (%d bytes)", write.path, write.content.length)
 
     // Get current mtime for conflict detection (if file exists)
-    let baseMtime = write.baseMtime;
+    let baseMtime = write.baseMtime
     if (baseMtime === undefined && this.fs.statSync) {
       try {
-        const stat = this.fs.statSync(write.path);
-        baseMtime = stat.mtimeMs;
+        const stat = this.fs.statSync(write.path)
+        baseMtime = stat.mtimeMs
       } catch {
         // File doesn't exist yet, no conflict possible
       }
@@ -348,35 +348,35 @@ export class WriteQueue extends EventEmitter {
       content: write.content,
       sourceEventId: write.sourceEventId,
       baseMtime,
-    });
-    this.scheduleFlush();
+    })
+    this.scheduleFlush()
   }
 
   /**
    * Queue a delete operation
    */
   queueDelete(path: string, sourceEventId: string): void {
-    debug("queuing delete: %s", path);
+    debug("queuing delete: %s", path)
     this.pending.set(path, {
       type: "delete",
       path,
       sourceEventId,
-    });
-    this.scheduleFlush();
+    })
+    this.scheduleFlush()
   }
 
   /**
    * Queue a rename operation
    */
   queueRename(oldPath: string, newPath: string, sourceEventId: string): void {
-    debug("queuing rename: %s → %s", oldPath, newPath);
+    debug("queuing rename: %s → %s", oldPath, newPath)
     this.pending.set(oldPath, {
       type: "rename",
       path: oldPath,
       newPath,
       sourceEventId,
-    });
-    this.scheduleFlush();
+    })
+    this.scheduleFlush()
   }
 
   /**
@@ -384,12 +384,12 @@ export class WriteQueue extends EventEmitter {
    */
   private scheduleFlush(): void {
     if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
+      clearTimeout(this.debounceTimer)
     }
 
     this.debounceTimer = setTimeout(() => {
-      void this.flush();
-    }, this.config.debounceMs);
+      void this.flush()
+    }, this.config.debounceMs)
   }
 
   /**
@@ -399,25 +399,25 @@ export class WriteQueue extends EventEmitter {
     switch (op.type) {
       case "delete":
         if (this.fs.existsSync(op.path)) {
-          this.fs.unlinkSync(op.path);
+          this.fs.unlinkSync(op.path)
         }
-        break;
+        break
       case "rename":
         if (this.fs.existsSync(op.path)) {
-          const newDir = dirname(op.newPath);
+          const newDir = dirname(op.newPath)
           if (!this.fs.existsSync(newDir)) {
-            this.fs.mkdirSync(newDir, { recursive: true });
+            this.fs.mkdirSync(newDir, { recursive: true })
           }
-          this.fs.renameSync(op.path, op.newPath);
+          this.fs.renameSync(op.path, op.newPath)
         }
-        break;
+        break
       case "write": {
-        const dir = dirname(op.path);
+        const dir = dirname(op.path)
         if (!this.fs.existsSync(dir)) {
-          this.fs.mkdirSync(dir, { recursive: true });
+          this.fs.mkdirSync(dir, { recursive: true })
         }
-        this.fs.writeFileSync(op.path, op.content, "utf-8");
-        break;
+        this.fs.writeFileSync(op.path, op.content, "utf-8")
+        break
       }
     }
   }
@@ -427,24 +427,24 @@ export class WriteQueue extends EventEmitter {
    */
   private checkForConflict(op: WriteOperation): ConflictInfo | null {
     if (op.type !== "write" || op.baseMtime === undefined) {
-      return null;
+      return null
     }
 
     // Get current file mtime
-    let currentMtime: number;
+    let currentMtime: number
     try {
-      if (!this.fs.statSync) return null;
-      const stat = this.fs.statSync(op.path);
-      currentMtime = stat.mtimeMs;
+      if (!this.fs.statSync) return null
+      const stat = this.fs.statSync(op.path)
+      currentMtime = stat.mtimeMs
     } catch {
       // File doesn't exist - no conflict
-      return null;
+      return null
     }
 
     // Check if file changed since we queued the write
     if (currentMtime !== op.baseMtime) {
       const resolution =
-        this.conflictStrategy === "fs_wins" ? "discarded" : "written";
+        this.conflictStrategy === "fs_wins" ? "discarded" : "written"
 
       debug("conflict detected", {
         path: op.path,
@@ -452,7 +452,7 @@ export class WriteQueue extends EventEmitter {
         currentMtime,
         strategy: this.conflictStrategy,
         resolution,
-      });
+      })
 
       return {
         path: op.path,
@@ -460,38 +460,38 @@ export class WriteQueue extends EventEmitter {
         currentMtime,
         strategy: this.conflictStrategy,
         resolution,
-      };
+      }
     }
 
-    return null;
+    return null
   }
 
   /**
    * Execute operation with retry logic for transient failures
    */
   private async executeWithRetry(op: WriteOperation): Promise<OperationResult> {
-    let lastError: (Error & { code?: string }) | undefined;
-    let attempts = 0;
+    let lastError: (Error & { code?: string }) | undefined
+    let attempts = 0
 
     // Check for conflict before attempting write
-    const conflict = this.checkForConflict(op);
+    const conflict = this.checkForConflict(op)
     if (conflict) {
       if (conflict.resolution === "discarded") {
         // fs_wins: don't write, return success with conflict info
-        return { op, success: true, attempts: 0, conflict };
+        return { op, success: true, attempts: 0, conflict }
       }
       // db_wins or last_write_wins: proceed with write but attach conflict info
     }
 
     for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
-      attempts = attempt + 1;
+      attempts = attempt + 1
 
       try {
-        this.executeOp(op);
-        return { op, success: true, attempts, conflict: conflict ?? undefined };
+        this.executeOp(op)
+        return { op, success: true, attempts, conflict: conflict ?? undefined }
       } catch (err) {
-        lastError = err as Error & { code?: string };
-        const errorClass = classifyError(lastError);
+        lastError = err as Error & { code?: string }
+        const errorClass = classifyError(lastError)
 
         // Don't retry permanent errors
         if (errorClass === "permanent") {
@@ -499,8 +499,8 @@ export class WriteQueue extends EventEmitter {
             path: op.path,
             attempts,
             error: lastError.code || lastError.message,
-          });
-          return { op, success: false, attempts, error: lastError, errorClass };
+          })
+          return { op, success: false, attempts, error: lastError, errorClass }
         }
 
         // Last attempt - don't sleep, just fail
@@ -509,25 +509,25 @@ export class WriteQueue extends EventEmitter {
             path: op.path,
             attempts,
             error: lastError.code || lastError.message,
-          });
+          })
           return {
             op,
             success: false,
             attempts,
             error: lastError,
             errorClass: "transient",
-          };
+          }
         }
 
         // Calculate backoff delay and wait
-        const delay = calculateBackoffDelay(attempt, this.retryConfig);
+        const delay = calculateBackoffDelay(attempt, this.retryConfig)
         debug("transient error, retrying", {
           path: op.path,
           attempts,
           delayMs: delay,
           error: lastError.code || lastError.message,
-        });
-        await sleep(delay);
+        })
+        await sleep(delay)
       }
     }
 
@@ -538,7 +538,7 @@ export class WriteQueue extends EventEmitter {
       attempts,
       error: lastError,
       errorClass: lastError ? classifyError(lastError) : undefined,
-    };
+    }
   }
 
   /**
@@ -546,37 +546,37 @@ export class WriteQueue extends EventEmitter {
    */
   async flush(): Promise<void> {
     if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = null;
+      clearTimeout(this.debounceTimer)
+      this.debounceTimer = null
     }
 
-    const writes = [...this.pending.values()];
-    this.pending.clear();
+    const writes = [...this.pending.values()]
+    this.pending.clear()
 
     if (writes.length === 0) {
-      debug("flush: nothing pending");
-      return;
+      debug("flush: nothing pending")
+      return
     }
 
-    debug("flushing %d operations", writes.length);
-    const start = Date.now();
+    debug("flushing %d operations", writes.length)
+    const start = Date.now()
 
     // Mark paths as in-flight to prevent watch triggering re-sync
     for (const write of writes) {
       if (this.watcher) {
-        this.watcher.markInFlight(write.path);
+        this.watcher.markInFlight(write.path)
       }
     }
 
     // Process writes with retry logic
-    const results: OperationResult[] = [];
-    let totalRetries = 0;
+    const results: OperationResult[] = []
+    let totalRetries = 0
 
     for (const op of writes) {
-      const result = await this.executeWithRetry(op);
-      results.push(result);
+      const result = await this.executeWithRetry(op)
+      results.push(result)
       if (result.attempts > 1) {
-        totalRetries += result.attempts - 1;
+        totalRetries += result.attempts - 1
       }
     }
 
@@ -584,33 +584,33 @@ export class WriteQueue extends EventEmitter {
     setTimeout(() => {
       for (const op of writes) {
         if (this.watcher) {
-          this.watcher.clearInFlight(op.path, 0);
+          this.watcher.clearInFlight(op.path, 0)
         }
       }
-    }, 1000);
+    }, 1000)
 
     // Collect failures for error reporting (filter guarantees error exists)
     const failures = results.filter(
       (r): r is OperationResult & { error: Error & { code?: string } } =>
         !r.success && r.error !== undefined,
-    );
+    )
     const errors = failures.map((f) => ({
       path: f.op.path,
       error: f.error,
       errorClass: f.errorClass,
       attempts: f.attempts,
-    }));
+    }))
 
     // Collect conflicts
     const conflicts = results
       .map((r) => r.conflict)
-      .filter((c): c is ConflictInfo => c !== undefined);
+      .filter((c): c is ConflictInfo => c !== undefined)
 
     // Collect permission errors specifically (user can act on these)
     const permissionErrors: PermissionError[] = failures
       .filter((f) => {
-        const code = f.error.code;
-        return code === "EACCES" || code === "EPERM" || code === "EROFS";
+        const code = f.error.code
+        return code === "EACCES" || code === "EPERM" || code === "EROFS"
       })
       .map((f) => ({
         path: f.op.path,
@@ -618,7 +618,7 @@ export class WriteQueue extends EventEmitter {
         code: f.error.code ?? "UNKNOWN",
         message: f.error.message,
         suggestion: getPermissionSuggestion(f.op.path, f.error.code ?? ""),
-      }));
+      }))
 
     // Emit events
     if (errors.length > 0) {
@@ -631,8 +631,8 @@ export class WriteQueue extends EventEmitter {
           class: e.errorClass,
           attempts: e.attempts,
         })),
-      );
-      this.emit("errors", errors);
+      )
+      this.emit("errors", errors)
     }
 
     // Emit specific event for permission errors (actionable by user)
@@ -644,8 +644,8 @@ export class WriteQueue extends EventEmitter {
           operation: p.operation,
           code: p.code,
         })),
-      );
-      this.emit("permission-denied", permissionErrors);
+      )
+      this.emit("permission-denied", permissionErrors)
     }
 
     if (conflicts.length > 0) {
@@ -658,8 +658,8 @@ export class WriteQueue extends EventEmitter {
           strategy: c.strategy,
           resolution: c.resolution,
         })),
-      );
-      this.emit("conflicts", conflicts);
+      )
+      this.emit("conflicts", conflicts)
     }
 
     debug(
@@ -670,7 +670,7 @@ export class WriteQueue extends EventEmitter {
       totalRetries,
       conflicts.length,
       permissionErrors.length,
-    );
+    )
     this.emit("flushed", {
       count: writes.length,
       errors: errors.length,
@@ -678,21 +678,21 @@ export class WriteQueue extends EventEmitter {
       conflicts: conflicts.length,
       permissionErrors: permissionErrors.length,
       results,
-    });
+    })
   }
 
   /**
    * Force immediate flush
    */
   forceFlush(): Promise<void> {
-    return this.flush();
+    return this.flush()
   }
 
   /**
    * Get pending write count
    */
   getPendingCount(): number {
-    return this.pending.size;
+    return this.pending.size
   }
 
   /**
@@ -700,10 +700,10 @@ export class WriteQueue extends EventEmitter {
    */
   clear(): void {
     if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = null;
+      clearTimeout(this.debounceTimer)
+      this.debounceTimer = null
     }
-    this.pending.clear();
+    this.pending.clear()
   }
 }
 
@@ -712,5 +712,5 @@ export class WriteQueue extends EventEmitter {
  */
 export function shouldApplyToFs(actor: string): boolean {
   // Don't apply events that came from filesystem watching
-  return actor !== "fs-watch";
+  return actor !== "fs-watch"
 }

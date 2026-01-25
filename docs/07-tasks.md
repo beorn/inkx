@@ -88,18 +88,18 @@ All references create links to boards. The first `@` becomes the **assigned pers
 
 ```typescript
 interface Node {
-  id: string;
-  type: string;
+  id: string
+  type: string
 
   // Task fields (optional)
-  status?: "todo" | "wip" | "blocked" | "done" | "dropped";
-  assigned_to?: string; // First @ reference (without sigil)
-  refs?: string[]; // All @, #, + references (with sigils)
-  due?: string; // YYYY-MM-DD
-  start?: string; // YYYY-MM-DD (defer until)
-  p?: number; // Priority 1-5
-  recur?: string; // iCal RRULE
-  recur_prev?: string; // Previous instance ID
+  status?: "todo" | "wip" | "blocked" | "done" | "dropped"
+  assigned_to?: string // First @ reference (without sigil)
+  refs?: string[] // All @, #, + references (with sigils)
+  due?: string // YYYY-MM-DD
+  start?: string // YYYY-MM-DD (defer until)
+  p?: number // Priority 1-5
+  recur?: string // iCal RRULE
+  recur_prev?: string // Previous instance ID
 }
 ```
 

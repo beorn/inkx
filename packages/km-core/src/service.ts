@@ -8,7 +8,7 @@
 /**
  * Service status indicates the lifecycle state.
  */
-export type ServiceStatus = "stopped" | "starting" | "running" | "stopping";
+export type ServiceStatus = "stopped" | "starting" | "running" | "stopping"
 
 /**
  * Service interface for objects with start/stop lifecycle.
@@ -25,21 +25,21 @@ export type ServiceStatus = "stopped" | "starting" | "running" | "stopping";
  */
 export interface Service extends AsyncDisposable {
   /** Current lifecycle status */
-  readonly status: ServiceStatus;
+  readonly status: ServiceStatus
 
   /**
    * Start the service.
    * Transitions: stopped → starting → running
    * No-op if already starting or running.
    */
-  start(): Promise<void>;
+  start(): Promise<void>
 
   /**
    * Stop the service.
    * Transitions: running → stopping → stopped
    * No-op if already stopping or stopped.
    */
-  stop(): Promise<void>;
+  stop(): Promise<void>
 }
 
 /**
@@ -50,11 +50,11 @@ export interface Service extends AsyncDisposable {
  * const vault = runGenerator(createVault(path));
  */
 export function runGenerator<T>(gen: Generator<unknown, T, unknown>): T {
-  let result = gen.next();
+  let result = gen.next()
   while (!result.done) {
-    result = gen.next();
+    result = gen.next()
   }
-  return result.value;
+  return result.value
 }
 
 /**
@@ -71,10 +71,10 @@ export function runWithProgress<P, T>(
   gen: Generator<P, T, unknown>,
   onProgress: (info: P) => void,
 ): T {
-  let result = gen.next();
+  let result = gen.next()
   while (!result.done) {
-    onProgress(result.value as P);
-    result = gen.next();
+    onProgress(result.value as P)
+    result = gen.next()
   }
-  return result.value as T;
+  return result.value as T
 }

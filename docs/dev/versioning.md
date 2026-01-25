@@ -17,11 +17,11 @@ The version is defined in **one place only**: `package.json`
 At build time, `bun run build:info` generates `packages/km-core/src/build-info.gen.ts`:
 
 ```typescript
-export const VERSION = "0.1.0";
-export const GIT_COMMIT = "5197ef0";
-export const GIT_BRANCH = "main";
-export const GIT_DIRTY = false;
-export const BUILD_TIME = "2026-01-23T10:00:00.000Z";
+export const VERSION = "0.1.0"
+export const GIT_COMMIT = "5197ef0"
+export const GIT_BRANCH = "main"
+export const GIT_DIRTY = false
+export const BUILD_TIME = "2026-01-23T10:00:00.000Z"
 
 export const BUILD_INFO: BuildInfo = {
   version: VERSION,
@@ -29,7 +29,7 @@ export const BUILD_INFO: BuildInfo = {
   gitBranch: GIT_BRANCH,
   gitDirty: GIT_DIRTY,
   buildTime: BUILD_TIME,
-};
+}
 ```
 
 This file is **gitignored** — it's regenerated on every build.
@@ -39,13 +39,13 @@ This file is **gitignored** — it's regenerated on every build.
 Import from `@km/core`:
 
 ```typescript
-import { VERSION, BUILD_INFO } from "@km/core";
+import { VERSION, BUILD_INFO } from "@km/core"
 
 // For CLI version flag
-program.version(VERSION);
+program.version(VERSION)
 
 // For diagnostics
-console.log(`km v${VERSION} (${BUILD_INFO.gitCommit})`);
+console.log(`km v${VERSION} (${BUILD_INFO.gitCommit})`)
 ```
 
 ## Bumping the Version

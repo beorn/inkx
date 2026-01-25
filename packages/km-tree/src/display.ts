@@ -5,14 +5,14 @@
  * Moved from @km/tui-core to @km/tree during architecture restructuring.
  */
 
-import type { KNode } from "@km/core";
+import type { KNode } from "@km/core"
 
 /**
  * Lookup function types for dependency injection.
  * These allow tree traversal without importing @km/storage directly.
  */
-export type GetChildrenFn = (nodeId: string) => KNode[];
-export type GetNodeFn = (nodeId: string) => KNode | null | undefined;
+export type GetChildrenFn = (nodeId: string) => KNode[]
+export type GetNodeFn = (nodeId: string) => KNode | null | undefined
 
 /**
  * Strip inline section rules from a string
@@ -34,7 +34,7 @@ function stripInlineRules(text: string): string {
         "",
       )
       .trim()
-  );
+  )
 }
 
 /**
@@ -57,37 +57,37 @@ export function getNodeDisplayName(
 ): string {
   // 1. Frontmatter title takes priority
   if (node.data?.name) {
-    return node.data.name as string;
+    return node.data.name as string
   }
 
   // 2. Use pre-parsed title (for sections, already has rules stripped)
   // Check node.title first (set during parsing), then data.title (persisted to DB)
   // Strip inline rules as a safety fallback for legacy data
   if (node.title) {
-    return stripInlineRules(node.title).slice(0, 50);
+    return stripInlineRules(node.title).slice(0, 50)
   }
   if (node.data?.title) {
-    return stripInlineRules(node.data.title as string).slice(0, 50);
+    return stripInlineRules(node.data.title as string).slice(0, 50)
   }
 
   // 3. For file nodes, use first section's title or content (H1 heading)
   if (node.type === "file" && getChildren) {
-    const children = getChildren(node.id);
-    const firstSection = children.find((c: KNode) => c.type === "section");
+    const children = getChildren(node.id)
+    const firstSection = children.find((c: KNode) => c.type === "section")
     if (firstSection) {
       // Use pre-parsed title if available (node.title or data.title)
       if (firstSection.title) {
-        return stripInlineRules(firstSection.title).slice(0, 50);
+        return stripInlineRules(firstSection.title).slice(0, 50)
       }
       if (firstSection.data?.title) {
-        return stripInlineRules(firstSection.data.title as string).slice(0, 50);
+        return stripInlineRules(firstSection.data.title as string).slice(0, 50)
       }
       // Fallback: strip rules from content
       if (firstSection.content) {
-        const heading = firstSection.content.split("\n")[0] ?? "";
-        const cleanHeading = stripInlineRules(heading);
+        const heading = firstSection.content.split("\n")[0] ?? ""
+        const cleanHeading = stripInlineRules(heading)
         if (cleanHeading) {
-          return cleanHeading.slice(0, 50);
+          return cleanHeading.slice(0, 50)
         }
       }
     }
@@ -95,7 +95,7 @@ export function getNodeDisplayName(
 
   // 4. Use node content (for tasks, etc.)
   if (node.content) {
-    return (node.content.split("\n")[0] ?? "").slice(0, 50);
+    return (node.content.split("\n")[0] ?? "").slice(0, 50)
   }
 
   // 5. Use filename (strip .md extension)
@@ -105,12 +105,12 @@ export function getNodeDisplayName(
   // - Legacy data migration scenarios
   // This is intentional - we fall back to short ID rather than throwing.
   if (node.fs_path) {
-    const filename = node.fs_path.split("/").pop() || "";
-    return filename.replace(/\.md$/, "") || node.id.slice(0, 8);
+    const filename = node.fs_path.split("/").pop() || ""
+    return filename.replace(/\.md$/, "") || node.id.slice(0, 8)
   }
 
   // 6. Fallback to short ID
-  return node.id.slice(0, 8);
+  return node.id.slice(0, 8)
 }
 
 /**
@@ -122,13 +122,13 @@ export function getNodeDisplayName(
 export function getTypeIndicator(type: string): string {
   switch (type) {
     case "folder":
-      return "/";
+      return "/"
     case "file":
-      return ".md";
+      return ".md"
     case "section":
-      return "#";
+      return "#"
     default:
-      return "";
+      return ""
   }
 }
 
@@ -147,14 +147,14 @@ export function normalizeName(name: string): string {
     .replace(/[^\w\s]/g, "") // Remove special chars
     .replace(/\s+/g, " ") // Collapse whitespace
     .trim()
-    .toLowerCase();
+    .toLowerCase()
 }
 
 /**
  * Check if two names are substantially the same
  */
 export function namesAreSimilar(a: string, b: string): boolean {
-  return normalizeName(a) === normalizeName(b);
+  return normalizeName(a) === normalizeName(b)
 }
 
 /**
@@ -173,51 +173,51 @@ export function getCollapsedTypeSuffix(
   node: KNode,
   getChildren?: GetChildrenFn,
 ): string {
-  const indicators: string[] = [];
+  const indicators: string[] = []
 
   // Add this node's type indicator
-  const thisIndicator = getTypeIndicator(node.type);
+  const thisIndicator = getTypeIndicator(node.type)
   if (thisIndicator) {
-    indicators.push(thisIndicator);
+    indicators.push(thisIndicator)
   }
 
   // Without getChildren, we can't traverse - return just this node's indicator
   if (!getChildren) {
-    return "";
+    return ""
   }
 
   // Follow children with matching normalized name
-  const nodeName = normalizeName(getNodeDisplayName(node, getChildren));
-  let current: KNode | undefined = node;
+  const nodeName = normalizeName(getNodeDisplayName(node, getChildren))
+  let current: KNode | undefined = node
 
   while (current) {
-    const children: KNode[] = getChildren(current.id);
+    const children: KNode[] = getChildren(current.id)
     // Find a child with the same normalized name
     const matchingChild: KNode | undefined = children.find(
       (c: KNode) =>
         normalizeName(getNodeDisplayName(c, getChildren)) === nodeName,
-    );
-    if (!matchingChild) break;
+    )
+    if (!matchingChild) break
 
-    const childIndicator = getTypeIndicator(matchingChild.type);
+    const childIndicator = getTypeIndicator(matchingChild.type)
     if (childIndicator) {
-      indicators.push(childIndicator);
+      indicators.push(childIndicator)
     }
-    current = matchingChild;
+    current = matchingChild
   }
 
   // If only one indicator (just the node itself), don't show suffix
-  if (indicators.length <= 1) return "";
+  if (indicators.length <= 1) return ""
 
-  return indicators.join(" ");
+  return indicators.join(" ")
 }
 
 /**
  * Result of collapsing ancestors - includes both the nodes and their type suffixes
  */
 export interface CollapsedAncestor {
-  node: KNode;
-  typeSuffix: string; // e.g., "/ .md" if folder and file were unified
+  node: KNode
+  typeSuffix: string // e.g., "/ .md" if folder and file were unified
 }
 
 /**
@@ -228,7 +228,7 @@ export interface CollapsedAncestor {
  * Returns: [{node: projects/, suffix: "/ .md #"}, {node: ## Subtask, suffix: ""}]
  */
 export function collapseRedundantAncestors(ancestors: KNode[]): KNode[] {
-  return collapseAncestorsWithTypes(ancestors).map((ca) => ca.node);
+  return collapseAncestorsWithTypes(ancestors).map((ca) => ca.node)
 }
 
 /**
@@ -237,44 +237,43 @@ export function collapseRedundantAncestors(ancestors: KNode[]): KNode[] {
 export function collapseAncestorsWithTypes(
   ancestors: KNode[],
 ): CollapsedAncestor[] {
-  if (ancestors.length === 0) return [];
+  if (ancestors.length === 0) return []
 
-  const result: CollapsedAncestor[] = [];
-  let i = 0;
+  const result: CollapsedAncestor[] = []
+  let i = 0
 
   while (i < ancestors.length) {
-    const current = ancestors[i];
-    if (!current) break;
-    const currentName = normalizeName(getNodeDisplayName(current));
+    const current = ancestors[i]
+    if (!current) break
+    const currentName = normalizeName(getNodeDisplayName(current))
 
     // Collect all consecutive ancestors with the same normalized name
-    const collapsedTypes: string[] = [];
-    let j = i;
+    const collapsedTypes: string[] = []
+    let j = i
     while (j < ancestors.length) {
-      const candidate = ancestors[j];
-      if (!candidate) break;
-      const candidateName = normalizeName(getNodeDisplayName(candidate));
-      if (candidateName !== currentName) break;
+      const candidate = ancestors[j]
+      if (!candidate) break
+      const candidateName = normalizeName(getNodeDisplayName(candidate))
+      if (candidateName !== currentName) break
 
-      const indicator = getTypeIndicator(candidate.type);
+      const indicator = getTypeIndicator(candidate.type)
       if (indicator) {
-        collapsedTypes.push(indicator);
+        collapsedTypes.push(indicator)
       }
-      j++;
+      j++
     }
 
     // If we collapsed multiple items, the LAST one is kept (deepest in hierarchy)
     // and we show all the types as a suffix
-    const keptNode = ancestors[j - 1];
-    if (!keptNode) break;
-    const typeSuffix =
-      collapsedTypes.length > 1 ? collapsedTypes.join(" ") : "";
+    const keptNode = ancestors[j - 1]
+    if (!keptNode) break
+    const typeSuffix = collapsedTypes.length > 1 ? collapsedTypes.join(" ") : ""
 
-    result.push({ node: keptNode, typeSuffix });
-    i = j;
+    result.push({ node: keptNode, typeSuffix })
+    i = j
   }
 
-  return result;
+  return result
 }
 
 /**
@@ -299,47 +298,47 @@ export function getParentContext(
   getNode?: GetNodeFn,
 ): string | null {
   // Without getNode, we can't traverse
-  if (!getNode) return null;
+  if (!getNode) return null
 
   // For linked nodes (transclusions), follow the link to get original context
   // This allows board items to show their original location even when displayed on a board
-  let targetNode = node;
+  let targetNode = node
   if (node.link_to) {
-    const originalNode = getNode(node.link_to);
+    const originalNode = getNode(node.link_to)
     if (originalNode) {
-      targetNode = originalNode;
+      targetNode = originalNode
     }
   }
 
-  if (!targetNode.parent_id) return null;
+  if (!targetNode.parent_id) return null
 
-  let currentId: string | null = targetNode.parent_id;
+  let currentId: string | null = targetNode.parent_id
 
   // Walk up the parent chain
   while (currentId) {
     // Skip the specified parent (e.g., board column)
     if (skipParentId && currentId === skipParentId) {
-      const parent = getNode(currentId);
-      currentId = parent?.parent_id ?? null;
-      continue;
+      const parent = getNode(currentId)
+      currentId = parent?.parent_id ?? null
+      continue
     }
 
-    const parent = getNode(currentId);
-    if (!parent) break;
+    const parent = getNode(currentId)
+    if (!parent) break
 
     // If we find a file node, return its display name
     if (parent.type === "file") {
-      return getNodeDisplayName(parent);
+      return getNodeDisplayName(parent)
     }
 
     // If we find a meaningful section (not a board column), return it
     // Board columns typically have rules like add=, sync=, default=
     if (parent.type === "section" && !parent.rules) {
-      return getNodeDisplayName(parent);
+      return getNodeDisplayName(parent)
     }
 
-    currentId = parent.parent_id;
+    currentId = parent.parent_id
   }
 
-  return null;
+  return null
 }

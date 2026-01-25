@@ -2,14 +2,14 @@
  * Layout components bound to inkx
  */
 
-import { Box, Text, useStdout } from "inkx";
-import { createLayoutComponents } from "./factory.tsx";
+import { Box, Text, useStdout } from "inkx"
+import { createLayoutComponents } from "./factory.tsx"
 
 // Re-export everything from factory (types, pure utilities)
-export * from "./factory.tsx";
+export * from "./factory.tsx"
 
 // Create and export inkx-bound components
-const components = createLayoutComponents({ Box, Text, useStdout });
+const components = createLayoutComponents({ Box, Text, useStdout })
 
 export const {
   ConstraintRoot,
@@ -18,4 +18,4 @@ export const {
   ScrollableList,
   useTruncatedText,
   useScrollState,
-} = components;
+} = components

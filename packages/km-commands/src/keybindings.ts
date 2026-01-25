@@ -1,40 +1,40 @@
-import type { CommandMode, TNode } from "./types.ts";
+import type { CommandMode, TNode } from "./types.ts"
 
 export interface Keybinding {
-  key: string;
-  ctrl?: boolean;
-  meta?: boolean;
-  shift?: boolean;
-  alt?: boolean;
-  commandId: string;
-  modes?: CommandMode[];
-  when?: (ctx: KeybindingContext) => boolean;
+  key: string
+  ctrl?: boolean
+  meta?: boolean
+  shift?: boolean
+  alt?: boolean
+  commandId: string
+  modes?: CommandMode[]
+  when?: (ctx: KeybindingContext) => boolean
 }
 
 export interface KeybindingContext {
-  mode: CommandMode;
-  hasSelection: boolean;
-  isInDetailPane: boolean;
-  isInOutlineMode: boolean;
-  currentNode: TNode | null;
+  mode: CommandMode
+  hasSelection: boolean
+  isInDetailPane: boolean
+  isInOutlineMode: boolean
+  currentNode: TNode | null
 }
 
-const keybindings: Keybinding[] = [];
+const keybindings: Keybinding[] = []
 
 export function registerKeybinding(binding: Keybinding): void {
-  keybindings.push(binding);
+  keybindings.push(binding)
 }
 
 export function registerKeybindings(bindings: Keybinding[]): void {
-  keybindings.push(...bindings);
+  keybindings.push(...bindings)
 }
 
 export function clearKeybindings(): void {
-  keybindings.length = 0;
+  keybindings.length = 0
 }
 
 export function getAllKeybindings(): Keybinding[] {
-  return [...keybindings];
+  return [...keybindings]
 }
 
 export function resolveKeybinding(
@@ -44,29 +44,29 @@ export function resolveKeybinding(
 ): string | null {
   for (const binding of keybindings) {
     // Check key match
-    if (binding.key !== key) continue;
+    if (binding.key !== key) continue
 
     // Check modifiers
-    if (!!binding.ctrl !== !!modifiers.ctrl) continue;
-    if (!!binding.meta !== !!modifiers.meta) continue;
+    if (!!binding.ctrl !== !!modifiers.ctrl) continue
+    if (!!binding.meta !== !!modifiers.meta) continue
     // For single uppercase letters (A-Z), the shift key is implicit in the character
     // Don't require explicit shift: true in the binding for capital letters
     const isUppercaseLetter =
-      key.length === 1 && key >= "A" && key <= "Z" && !binding.shift;
-    if (!isUppercaseLetter && !!binding.shift !== !!modifiers.shift) continue;
-    if (!!binding.alt !== !!modifiers.alt) continue;
+      key.length === 1 && key >= "A" && key <= "Z" && !binding.shift
+    if (!isUppercaseLetter && !!binding.shift !== !!modifiers.shift) continue
+    if (!!binding.alt !== !!modifiers.alt) continue
 
     // Check mode
     if (binding.modes && binding.modes.length > 0) {
-      if (!binding.modes.includes(ctx.mode)) continue;
+      if (!binding.modes.includes(ctx.mode)) continue
     }
 
     // Check conditional
-    if (binding.when && !binding.when(ctx)) continue;
+    if (binding.when && !binding.when(ctx)) continue
 
-    return binding.commandId;
+    return binding.commandId
   }
-  return null;
+  return null
 }
 
 // Default keybindings
@@ -199,10 +199,10 @@ export const defaultKeybindings: Keybinding[] = [
   // Contextual close/quit (Escape)
   // Closes dialogs, panes, modes, or quits if nothing to close
   { key: "Escape", commandId: "close_or_quit" },
-];
+]
 
 // Initialize with defaults
 export function initDefaultKeybindings(): void {
-  clearKeybindings();
-  registerKeybindings(defaultKeybindings);
+  clearKeybindings()
+  registerKeybindings(defaultKeybindings)
 }

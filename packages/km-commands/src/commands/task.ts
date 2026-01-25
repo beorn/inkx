@@ -1,21 +1,21 @@
-import type { CommandDef, TaskStatus, TaskSetStatusAction } from "../types.ts";
+import type { CommandDef, TaskStatus, TaskSetStatusAction } from "../types.ts"
 
 // Re-export for consumers
-export type { TaskSetStatusAction as TaskAction } from "../types.ts";
+export type { TaskSetStatusAction as TaskAction } from "../types.ts"
 
 // Status cycle: todo -> wip -> done -> dropped -> todo
 function getNextStatus(current: TaskStatus | null | undefined): TaskStatus {
   switch (current) {
     case "todo":
-      return "wip";
+      return "wip"
     case "wip":
-      return "done";
+      return "done"
     case "done":
-      return "dropped";
+      return "dropped"
     case "dropped":
-      return "todo";
+      return "todo"
     default:
-      return "todo";
+      return "todo"
   }
 }
 
@@ -29,18 +29,18 @@ export const cycleTaskStatus: CommandDef = {
   category: "Task",
   shortcuts: ["Space"],
   execute: (ctx) => {
-    if (!ctx.currentNode || !ctx.currentNodeId) return null;
-    const node = ctx.currentNode;
+    if (!ctx.currentNode || !ctx.currentNodeId) return null
+    const node = ctx.currentNode
     // Check if node is a task
-    if (!node.isTask) return null;
-    const newStatus = getNextStatus(node.task_status);
+    if (!node.isTask) return null
+    const newStatus = getNextStatus(node.task_status)
     return {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
       status: newStatus,
-    } satisfies TaskSetStatusAction;
+    } satisfies TaskSetStatusAction
   },
-};
+}
 
 export const toggleTaskDone: CommandDef = {
   id: "toggle_task_done",
@@ -49,16 +49,16 @@ export const toggleTaskDone: CommandDef = {
   category: "Task",
   shortcuts: ["x"],
   execute: (ctx) => {
-    if (!ctx.currentNode || !ctx.currentNodeId) return null;
-    if (!ctx.currentNode.isTask) return null;
-    const newStatus = ctx.currentNode.task_status === "done" ? "todo" : "done";
+    if (!ctx.currentNode || !ctx.currentNodeId) return null
+    if (!ctx.currentNode.isTask) return null
+    const newStatus = ctx.currentNode.task_status === "done" ? "todo" : "done"
     return {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
       status: newStatus,
-    } satisfies TaskSetStatusAction;
+    } satisfies TaskSetStatusAction
   },
-};
+}
 
 export const setStatusTodo: CommandDef = {
   id: "set_status_todo",
@@ -66,14 +66,14 @@ export const setStatusTodo: CommandDef = {
   description: "Set task status to todo",
   category: "Task",
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
+    if (!ctx.currentNodeId) return null
     return {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
       status: "todo",
-    } satisfies TaskSetStatusAction;
+    } satisfies TaskSetStatusAction
   },
-};
+}
 
 export const setStatusWip: CommandDef = {
   id: "set_status_wip",
@@ -81,14 +81,14 @@ export const setStatusWip: CommandDef = {
   description: "Set task status to work in progress",
   category: "Task",
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
+    if (!ctx.currentNodeId) return null
     return {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
       status: "wip",
-    } satisfies TaskSetStatusAction;
+    } satisfies TaskSetStatusAction
   },
-};
+}
 
 export const setStatusBlocked: CommandDef = {
   id: "set_status_blocked",
@@ -96,14 +96,14 @@ export const setStatusBlocked: CommandDef = {
   description: "Set task status to blocked",
   category: "Task",
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
+    if (!ctx.currentNodeId) return null
     return {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
       status: "blocked",
-    } satisfies TaskSetStatusAction;
+    } satisfies TaskSetStatusAction
   },
-};
+}
 
 export const setStatusDone: CommandDef = {
   id: "set_status_done",
@@ -111,14 +111,14 @@ export const setStatusDone: CommandDef = {
   description: "Mark task as done",
   category: "Task",
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
+    if (!ctx.currentNodeId) return null
     return {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
       status: "done",
-    } satisfies TaskSetStatusAction;
+    } satisfies TaskSetStatusAction
   },
-};
+}
 
 export const setStatusDropped: CommandDef = {
   id: "set_status_dropped",
@@ -126,14 +126,14 @@ export const setStatusDropped: CommandDef = {
   description: "Mark task as dropped/cancelled",
   category: "Task",
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null;
+    if (!ctx.currentNodeId) return null
     return {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
       status: "dropped",
-    } satisfies TaskSetStatusAction;
+    } satisfies TaskSetStatusAction
   },
-};
+}
 
 export const taskCommands: CommandDef[] = [
   cycleTaskStatus,
@@ -143,4 +143,4 @@ export const taskCommands: CommandDef[] = [
   setStatusBlocked,
   setStatusDone,
   setStatusDropped,
-];
+]

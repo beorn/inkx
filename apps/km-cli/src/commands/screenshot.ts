@@ -5,16 +5,16 @@
  * Useful for debugging, snapshot testing, and CI visual verification.
  */
 
-import { Command } from "commander";
-import createDebug from "debug";
-import { setDebugVaultRoot } from "../debug-log.ts";
+import { Command } from "commander"
+import createDebug from "debug"
+import { setDebugVaultRoot } from "../debug-log.ts"
 
-const debug = createDebug("km:cli:screenshot");
+const debug = createDebug("km:cli:screenshot")
 
-type ViewMode = "cards" | "columns" | "list" | "tabs";
-type OutputFormat = "text" | "ansi" | "debug";
+type ViewMode = "cards" | "columns" | "list" | "tabs"
+type OutputFormat = "text" | "ansi" | "debug"
 
-const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"];
+const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"]
 
 export const screenshotCommand = new Command("screenshot")
   .description("Capture TUI view as text (for debugging and testing)")
@@ -33,12 +33,12 @@ export const screenshotCommand = new Command("screenshot")
   .option("--height <n>", "Terminal height", "24")
   .option("-o, --output <file>", "Output file (default: stdout)")
   .action(async (root, options) => {
-    debug("screenshot command", { root, ...options });
+    debug("screenshot command", { root, ...options })
 
-    const width = parseInt(options.width, 10);
-    const height = parseInt(options.height, 10);
-    const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards";
-    const format: OutputFormat = options.format as OutputFormat;
+    const width = parseInt(options.width, 10)
+    const height = parseInt(options.height, 10)
+    const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards"
+    const format: OutputFormat = options.format as OutputFormat
 
     // Import modules
     const [storageModule, cliModule, tuiModule, inkxTesting] =
@@ -47,14 +47,11 @@ export const screenshotCommand = new Command("screenshot")
         import("../index.ts"),
         import("@km/tui"),
         import("inkx/testing"),
-      ]);
+      ])
 
     // Resolve path and load vault
-    const resolved = storageModule.resolvePathArg(
-      root,
-      cliModule.getRootPath(),
-    );
-    setDebugVaultRoot(resolved.vaultRoot);
+    const resolved = storageModule.resolvePathArg(root, cliModule.getRootPath())
+    setDebugVaultRoot(resolved.vaultRoot)
 
     // Load vault (full parse for accurate screenshot)
     const vault = storageModule.runGenerator(
@@ -62,34 +59,34 @@ export const screenshotCommand = new Command("screenshot")
         searchAncestors: false,
         discoverOnly: false,
       }),
-    );
+    )
 
     // Initialize board state
     const state = storageModule.runGenerator(
       tuiModule.initBoardStateGenerator(vault, resolved.nodeRef ?? undefined),
-    );
+    )
 
     if (!state) {
-      console.error("Failed to initialize board state");
-      process.exit(1);
+      console.error("Failed to initialize board state")
+      process.exit(1)
     }
 
-    state.rootPath = resolved.vaultRoot;
+    state.rootPath = resolved.vaultRoot
 
     // Create test renderer with specified dimensions
     const render = inkxTesting.createTestRenderer({
       columns: width,
       rows: height,
-    });
+    })
 
     // Import React and Board components
-    const React = await import("react");
+    const React = await import("react")
     const {
       BoardCore,
       VaultProvider,
       createInitialUIState,
       createLayoutRegistry,
-    } = await import("@km/tui");
+    } = await import("@km/tui")
 
     // Create the BoardCore element with all required props
     const boardCoreElement = React.createElement(BoardCore, {
@@ -105,31 +102,31 @@ export const screenshotCommand = new Command("screenshot")
         handleNewItemCreate: () => {},
         handleNewItemCancel: () => {},
       },
-    });
+    })
 
     // Render the board wrapped in VaultProvider
     const { lastBuffer, lastFrameText } = render(
       React.createElement(VaultProvider, { vault, children: boardCoreElement }),
-    );
+    )
 
     // Generate output based on format
-    let output: string;
-    const buffer = lastBuffer();
+    let output: string
+    const buffer = lastBuffer()
 
     if (!buffer) {
-      console.error("Failed to render buffer");
-      process.exit(1);
+      console.error("Failed to render buffer")
+      process.exit(1)
     }
 
     switch (format) {
       case "text":
-        output = lastFrameText() ?? "";
-        break;
+        output = lastFrameText() ?? ""
+        break
       case "ansi":
-        output = inkxTesting.bufferToStyledText(buffer);
-        break;
+        output = inkxTesting.bufferToStyledText(buffer)
+        break
       case "debug": {
-        const text = lastFrameText() ?? "";
+        const text = lastFrameText() ?? ""
         output = [
           `# TUI Screenshot`,
           `# Dimensions: ${width}x${height}`,
@@ -138,19 +135,19 @@ export const screenshotCommand = new Command("screenshot")
           `# Node: ${resolved.nodeRef ?? "(root)"}`,
           ``,
           text,
-        ].join("\n");
-        break;
+        ].join("\n")
+        break
       }
       default:
-        output = lastFrameText() ?? "";
+        output = lastFrameText() ?? ""
     }
 
     // Output to file or stdout
     if (options.output) {
-      const fs = await import("fs");
-      fs.writeFileSync(options.output, output);
-      console.error(`Screenshot saved to ${options.output}`);
+      const fs = await import("fs")
+      fs.writeFileSync(options.output, output)
+      console.error(`Screenshot saved to ${options.output}`)
     } else {
-      console.log(output);
+      console.log(output)
     }
-  });
+  })

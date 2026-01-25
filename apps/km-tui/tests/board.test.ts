@@ -3,13 +3,13 @@
  * Run with: bun run test:all (includes slow tests)
  */
 
-import { describe, test, expect } from "bun:test";
-import { createTestRenderer } from "inkx/testing";
-const render = createTestRenderer();
-import React from "react";
-import { createFakeVault } from "@km/storage";
-import type { Vault } from "@km/storage";
-import type { KNode, NodeType } from "@km/core";
+import { describe, test, expect } from "bun:test"
+import { createTestRenderer } from "inkx/testing"
+const render = createTestRenderer()
+import React from "react"
+import { createFakeVault } from "@km/storage"
+import type { Vault } from "@km/storage"
+import type { KNode, NodeType } from "@km/core"
 import {
   createEmptyState,
   initBoardState,
@@ -17,22 +17,22 @@ import {
   getNodeDisplayName,
   getCurrentCard,
   getCurrentColumn,
-} from "../src/state.ts";
-import { renderBoardStatic, renderCard } from "../src/render.ts";
-import type { CardState } from "../src/types.ts";
-import { BoardCore } from "../src/views/Board.tsx";
-import { createInitialUIState } from "../src/ui-reducer.ts";
-import { createLayoutRegistry } from "../src/card-positions.ts";
-import { VaultProvider } from "../src/vault-context.tsx";
-import type { TUIBoardState } from "../src/types.ts";
-import { testEnv, item } from "./helpers/board-test.ts";
+} from "../src/state.ts"
+import { renderBoardStatic, renderCard } from "../src/render.ts"
+import type { CardState } from "../src/types.ts"
+import { BoardCore } from "../src/views/Board.tsx"
+import { createInitialUIState } from "../src/ui-reducer.ts"
+import { createLayoutRegistry } from "../src/card-positions.ts"
+import { VaultProvider } from "../src/vault-context.tsx"
+import type { TUIBoardState } from "../src/types.ts"
+import { testEnv, item } from "./helpers/board-test.ts"
 
 function renderBoardCore(
   state: TUIBoardState,
   vault: Vault,
   options: { width?: number; height?: number } = {},
 ) {
-  const { width = 80, height = 24 } = options;
+  const { width = 80, height = 24 } = options
   const boardCoreElement = React.createElement(BoardCore, {
     state,
     ui: createInitialUIState("cards", [], { columns: width, rows: height }),
@@ -46,11 +46,11 @@ function renderBoardCore(
       handleNewItemCreate: () => {},
       handleNewItemCancel: () => {},
     },
-  });
+  })
   return React.createElement(VaultProvider, {
     vault,
     children: boardCoreElement,
-  });
+  })
 }
 
 function makeNode(
@@ -61,7 +61,7 @@ function makeNode(
   parentIdx: number,
   extra?: Partial<KNode>,
 ): KNode {
-  const now = Date.now();
+  const now = Date.now()
   return {
     id,
     type,
@@ -74,7 +74,7 @@ function makeNode(
     updated_at: now,
     version: "v1",
     ...extra,
-  };
+  }
 }
 
 describe.serial("State", () => {
@@ -88,13 +88,13 @@ describe.serial("State", () => {
         makeNode("card2", "task", "Card 1.2", "col1", 1),
         makeNode("card3", "task", "Card 2.1", "col2", 0),
       ],
-    });
-    const state = buildBoardState(vault, "root");
-    expect(state.rootId).toBe("root");
-    expect(state.columns).toHaveLength(2);
-    expect(state.columns[0]?.cards).toHaveLength(2);
-    expect(state.columns[1]?.cards).toHaveLength(1);
-  });
+    })
+    const state = buildBoardState(vault, "root")
+    expect(state.rootId).toBe("root")
+    expect(state.columns).toHaveLength(2)
+    expect(state.columns[0]?.cards).toHaveLength(2)
+    expect(state.columns[1]?.cards).toHaveLength(1)
+  })
 
   test("initBoardState groups root nodes by name", () => {
     const vault = createFakeVault({
@@ -103,12 +103,12 @@ describe.serial("State", () => {
         makeNode("proj2", "folder", "Projects", null, 1),
         makeNode("arch", "folder", "Archive", null, 2),
       ],
-    });
-    const state = initBoardState(vault);
-    expect(state).not.toBeNull();
-    expect(state!.rootId).toBeNull();
-    expect(state!.columns).toHaveLength(2);
-  });
+    })
+    const state = initBoardState(vault)
+    expect(state).not.toBeNull()
+    expect(state!.rootId).toBeNull()
+    expect(state!.columns).toHaveLength(2)
+  })
 
   test("initBoardState deduplicates cards by name within grouped columns", () => {
     const vault = createFakeVault({
@@ -122,31 +122,31 @@ describe.serial("State", () => {
         makeNode("a1", "folder", "Archive", "ref1", 1),
         makeNode("w1", "folder", "Work", "ref2", 1),
       ],
-    });
-    const state = initBoardState(vault);
-    expect(state).not.toBeNull();
-    expect(state!.columns).toHaveLength(1);
+    })
+    const state = initBoardState(vault)
+    expect(state).not.toBeNull()
+    expect(state!.columns).toHaveLength(1)
     const cardNames = state!.columns[0]!.cards.map(
       (c) => c.node.content || c.node.data?.name,
-    );
-    const uniqueNames = new Set(cardNames);
-    expect(uniqueNames.size).toBe(3);
-    expect(cardNames.length).toBe(3);
-  });
+    )
+    const uniqueNames = new Set(cardNames)
+    expect(uniqueNames.size).toBe(3)
+    expect(cardNames.length).toBe(3)
+  })
 
   test("initBoardState returns null for empty database", () => {
-    const vault = createFakeVault({ nodes: [] });
-    const state = initBoardState(vault);
-    expect(state).toBeNull();
-  });
+    const vault = createFakeVault({ nodes: [] })
+    const state = initBoardState(vault)
+    expect(state).toBeNull()
+  })
 
   test("getNodeDisplayName returns content", () => {
     const vault = createFakeVault({
       nodes: [makeNode("task1", "task", "Test Task", null, 0)],
-    });
-    const node = vault.getNode("task1")!;
-    expect(getNodeDisplayName(vault, node)).toBe("Test Task");
-  });
+    })
+    const node = vault.getNode("task1")!
+    expect(getNodeDisplayName(vault, node)).toBe("Test Task")
+  })
 
   test("getNodeDisplayName returns data.name if present", () => {
     const vault = createFakeVault({
@@ -155,10 +155,10 @@ describe.serial("State", () => {
           data: { name: "My Folder" },
         }),
       ],
-    });
-    const node = vault.getNode("folder1")!;
-    expect(getNodeDisplayName(vault, node)).toBe("My Folder");
-  });
+    })
+    const node = vault.getNode("folder1")!
+    expect(getNodeDisplayName(vault, node)).toBe("My Folder")
+  })
 
   test("getCurrentCard returns current card", () => {
     const vault = createFakeVault({
@@ -167,12 +167,12 @@ describe.serial("State", () => {
         makeNode("col", "folder", "Column", "board", 0),
         makeNode("card", "task", "Card", "col", 0),
       ],
-    });
-    const state = buildBoardState(vault, "board");
-    const card = getCurrentCard(state);
-    expect(card).not.toBeNull();
-    expect(card!.node.id).toBe("card");
-  });
+    })
+    const state = buildBoardState(vault, "board")
+    const card = getCurrentCard(state)
+    expect(card).not.toBeNull()
+    expect(card!.node.id).toBe("card")
+  })
 
   test("getCurrentColumn returns current column", () => {
     const vault = createFakeVault({
@@ -180,12 +180,12 @@ describe.serial("State", () => {
         makeNode("board", "board", "Board", null, 0),
         makeNode("col", "folder", "Column", "board", 0),
       ],
-    });
-    const state = buildBoardState(vault, "board");
-    const col = getCurrentColumn(state);
-    expect(col).not.toBeNull();
-    expect(col!.node.id).toBe("col");
-  });
+    })
+    const state = buildBoardState(vault, "board")
+    const col = getCurrentColumn(state)
+    expect(col).not.toBeNull()
+    expect(col!.node.id).toBe("col")
+  })
 
   test("buildBoardState filters out paragraph nodes as columns (km-1tho)", () => {
     const vault = createFakeVault({
@@ -203,15 +203,15 @@ describe.serial("State", () => {
         makeNode("task1", "task", "Fix bug #1", "col1", 0),
         makeNode("task2", "task", "Fix bug #2", "col2", 0),
       ],
-    });
-    const state = buildBoardState(vault, "root");
-    expect(state.columns).toHaveLength(3);
-    expect(state.columns[0]!.isVirtual).toBe(true);
-    expect(state.columns[0]!.cards).toHaveLength(1);
-    expect(state.columns[0]!.cards[0]!.node.type).toBe("paragraph");
-    expect(state.columns[1]!.node.type).toBe("section");
-    expect(state.columns[2]!.node.type).toBe("section");
-  });
+    })
+    const state = buildBoardState(vault, "root")
+    expect(state.columns).toHaveLength(3)
+    expect(state.columns[0]!.isVirtual).toBe(true)
+    expect(state.columns[0]!.cards).toHaveLength(1)
+    expect(state.columns[0]!.cards[0]!.node.type).toBe("paragraph")
+    expect(state.columns[1]!.node.type).toBe("section")
+    expect(state.columns[2]!.node.type).toBe("section")
+  })
 
   test("buildBoardState filters out code and quote nodes as columns", () => {
     const vault = createFakeVault({
@@ -222,75 +222,75 @@ describe.serial("State", () => {
         makeNode("col", "section", "Getting Started", "root", 2),
         makeNode("task", "task", "Install dependencies", "col", 0),
       ],
-    });
-    const state = buildBoardState(vault, "root");
-    expect(state.columns).toHaveLength(2);
-    expect(state.columns[0]!.isVirtual).toBe(true);
-    expect(state.columns[0]!.cards).toHaveLength(2);
-    expect(state.columns[1]!.node.id).toBe("col");
-  });
-});
+    })
+    const state = buildBoardState(vault, "root")
+    expect(state.columns).toHaveLength(2)
+    expect(state.columns[0]!.isVirtual).toBe(true)
+    expect(state.columns[0]!.cards).toHaveLength(2)
+    expect(state.columns[1]!.node.id).toBe("col")
+  })
+})
 
 describe.serial("Keys", () => {
   test("h moves left (column)", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("task1")), item("col2", item("task2"))),
-    );
-    board.expect("#task1[data-cursor]").toExist();
-    board.press("l");
-    board.expect("#task2[data-cursor]").toExist();
-    board.press("h");
-    board.expect("#task1[data-cursor]").toExist();
-  });
+    )
+    board.expect("#task1[data-cursor]").toExist()
+    board.press("l")
+    board.expect("#task2[data-cursor]").toExist()
+    board.press("h")
+    board.expect("#task1[data-cursor]").toExist()
+  })
 
   test("l moves right (column)", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("task1")), item("col2", item("task2"))),
-    );
-    board.expect("#task1[data-cursor]").toExist();
-    board.press("l");
-    board.expect("#task2[data-cursor]").toExist();
-  });
+    )
+    board.expect("#task1[data-cursor]").toExist()
+    board.press("l")
+    board.expect("#task2[data-cursor]").toExist()
+  })
 
   test("j moves down (card)", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("task1"), item("task2"))),
-    );
-    board.expect("#task1[data-cursor]").toExist();
-    board.press("j");
-    board.expect("#task2[data-cursor]").toExist();
-  });
+    )
+    board.expect("#task1[data-cursor]").toExist()
+    board.press("j")
+    board.expect("#task2[data-cursor]").toExist()
+  })
 
   test("k moves up (card)", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("task1"), item("task2"))),
-    );
-    board.press("j");
-    board.expect("#task2[data-cursor]").toExist();
-    board.press("k");
-    board.expect("#task1[data-cursor]").toExist();
-  });
+    )
+    board.press("j")
+    board.expect("#task2[data-cursor]").toExist()
+    board.press("k")
+    board.expect("#task1[data-cursor]").toExist()
+  })
 
   test("g jumps to first card", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("task1"), item("task2"), item("task3"))),
-    );
-    board.press("j");
-    board.press("j");
-    board.expect("#task3[data-cursor]").toExist();
-    board.press("g");
-    board.expect("#task1[data-cursor]").toExist();
-  });
+    )
+    board.press("j")
+    board.press("j")
+    board.expect("#task3[data-cursor]").toExist()
+    board.press("g")
+    board.expect("#task1[data-cursor]").toExist()
+  })
 
   test("G jumps to last card", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("task1"), item("task2"), item("task3"))),
-    );
-    board.expect("#task1[data-cursor]").toExist();
-    board.press("G");
-    board.expect("#task3[data-cursor]").toExist();
-  });
-});
+    )
+    board.expect("#task1[data-cursor]").toExist()
+    board.press("G")
+    board.expect("#task3[data-cursor]").toExist()
+  })
+})
 
 describe.serial("Render", () => {
   test("renderBoardStatic renders columns", () => {
@@ -301,23 +301,23 @@ describe.serial("Render", () => {
         makeNode("col2", "folder", "Done", "board", 1),
         makeNode("task1", "task", "Task 1", "col1", 0),
       ],
-    });
-    const state = buildBoardState(vault, "board");
-    const output = renderBoardStatic(vault, state, 80);
-    expect(output).toContain("Todo");
-    expect(output).toContain("Done");
-    expect(output).toContain("Task 1");
-  });
+    })
+    const state = buildBoardState(vault, "board")
+    const output = renderBoardStatic(vault, state, 80)
+    expect(output).toContain("Todo")
+    expect(output).toContain("Done")
+    expect(output).toContain("Task 1")
+  })
 
   test("renderBoardStatic handles empty board", () => {
-    const vault = createFakeVault();
-    const state = createEmptyState();
-    const output = renderBoardStatic(vault, state, 80);
-    expect(output).toContain("Empty board");
-  });
+    const vault = createFakeVault()
+    const state = createEmptyState()
+    const output = renderBoardStatic(vault, state, 80)
+    expect(output).toContain("Empty board")
+  })
 
   test("renderCard includes content", () => {
-    const vault = createFakeVault();
+    const vault = createFakeVault()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -332,13 +332,13 @@ describe.serial("Render", () => {
         version: "v1",
       },
       children: [],
-    };
-    const output = renderCard(vault, cardState, 40, false, false, false);
-    expect(output).toContain("My Test Task");
-  });
+    }
+    const output = renderCard(vault, cardState, 40, false, false, false)
+    expect(output).toContain("My Test Task")
+  })
 
   test("renderCard shows children when not folded", () => {
-    const vault = createFakeVault();
+    const vault = createFakeVault()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -366,13 +366,13 @@ describe.serial("Render", () => {
           version: "v1",
         },
       ],
-    };
-    const output = renderCard(vault, cardState, 40, false, false, false);
-    expect(output).toContain("Child Task 1");
-  });
+    }
+    const output = renderCard(vault, cardState, 40, false, false, false)
+    expect(output).toContain("Child Task 1")
+  })
 
   test("renderCard shows item count when folded", () => {
-    const vault = createFakeVault();
+    const vault = createFakeVault()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -412,9 +412,9 @@ describe.serial("Render", () => {
           version: "v1",
         },
       ],
-    };
-    const output = renderCard(vault, cardState, 40, false, false, true);
-    expect(output).toContain("\u25b6 2");
-    expect(output).not.toContain("Child 1");
-  });
-});
+    }
+    const output = renderCard(vault, cardState, 40, false, false, true)
+    expect(output).toContain("\u25b6 2")
+    expect(output).not.toContain("Child 1")
+  })
+})

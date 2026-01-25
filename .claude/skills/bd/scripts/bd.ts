@@ -18,33 +18,33 @@
  *   whoami           - Show current session info
  */
 
-import { execSync, spawnSync } from "child_process";
-import { Glob } from "bun";
-import * as path from "path";
-import * as os from "os";
-import * as fs from "fs";
+import { execSync, spawnSync } from "child_process"
+import { Glob } from "bun"
+import * as path from "path"
+import * as os from "os"
+import * as fs from "fs"
 
-const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
-const STALE_MINUTES = 30;
-const GC_MINUTES = 120;
+const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects")
+const STALE_MINUTES = 30
+const GC_MINUTES = 120
 
 interface SessionInfo {
-  sessionId: string;
-  shortId: string;
-  project: string;
-  lastActivity: Date;
-  inactiveMin: number;
-  expiresIn: number;
-  isStale: boolean;
-  isGarbage: boolean;
+  sessionId: string
+  shortId: string
+  project: string
+  lastActivity: Date
+  inactiveMin: number
+  expiresIn: number
+  isStale: boolean
+  isGarbage: boolean
 }
 
 interface BeadIssue {
-  id: string;
-  title: string;
-  status: string;
-  priority: number;
-  assignee?: string;
+  id: string
+  title: string
+  status: string
+  priority: number
+  assignee?: string
 }
 
 // ============================================================================
@@ -54,16 +54,16 @@ interface BeadIssue {
 function getCurrentSessionId(): string | null {
   // 1. Check environment variable (set by SessionStart hook)
   if (process.env.CLAUDE_SESSION_ID) {
-    return process.env.CLAUDE_SESSION_ID;
+    return process.env.CLAUDE_SESSION_ID
   }
 
   // 2. Find most recently modified session in current project
-  const cwd = process.cwd();
-  const encodedPath = cwd.replace(/\//g, "-");
-  const projectDir = path.join(PROJECTS_DIR, encodedPath);
+  const cwd = process.cwd()
+  const encodedPath = cwd.replace(/\//g, "-")
+  const projectDir = path.join(PROJECTS_DIR, encodedPath)
 
   if (!fs.existsSync(projectDir)) {
-    return null;
+    return null
   }
 
   const sessions = fs
@@ -73,33 +73,33 @@ function getCurrentSessionId(): string | null {
       id: path.basename(f, ".jsonl"),
       mtime: fs.statSync(path.join(projectDir, f)).mtime,
     }))
-    .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+    .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
 
   // Return most recent if active within 5 minutes
   if (sessions[0] && Date.now() - sessions[0].mtime.getTime() < 5 * 60 * 1000) {
-    return sessions[0].id;
+    return sessions[0].id
   }
 
-  return null;
+  return null
 }
 
 function getSessionInfo(sessionId: string): SessionInfo | null {
-  const glob = new Glob("*/sessions-index.json");
+  const glob = new Glob("*/sessions-index.json")
 
   for (const indexPath of glob.scanSync({
     cwd: PROJECTS_DIR,
     absolute: true,
   })) {
     try {
-      const index = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+      const index = JSON.parse(fs.readFileSync(indexPath, "utf-8"))
       const entry = index.entries?.find((e: { sessionId: string }) =>
         e.sessionId.startsWith(sessionId),
-      );
+      )
 
       if (entry) {
-        const lastActivity = new Date(entry.modified);
-        const inactiveMin = (Date.now() - lastActivity.getTime()) / 60000;
-        const expiresIn = STALE_MINUTES - inactiveMin;
+        const lastActivity = new Date(entry.modified)
+        const inactiveMin = (Date.now() - lastActivity.getTime()) / 60000
+        const expiresIn = STALE_MINUTES - inactiveMin
 
         return {
           sessionId: entry.sessionId,
@@ -110,14 +110,14 @@ function getSessionInfo(sessionId: string): SessionInfo | null {
           expiresIn,
           isStale: inactiveMin > STALE_MINUTES,
           isGarbage: inactiveMin > GC_MINUTES,
-        };
+        }
       }
     } catch {
       // Skip invalid index files
     }
   }
 
-  return null;
+  return null
 }
 
 // ============================================================================
@@ -130,10 +130,10 @@ function runBd(args: string[]): string {
       encoding: "utf-8",
       timeout: 10000,
       stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
+    }).trim()
   } catch (err: unknown) {
-    const error = err as { stderr?: string; message?: string };
-    throw new Error(error.stderr || error.message || "bd command failed");
+    const error = err as { stderr?: string; message?: string }
+    throw new Error(error.stderr || error.message || "bd command failed")
   }
 }
 
@@ -142,36 +142,36 @@ function runBdPassthrough(args: string[]): void {
   const result = spawnSync("bd", args, {
     stdio: "inherit",
     encoding: "utf-8",
-  });
-  process.exit(result.status ?? 0);
+  })
+  process.exit(result.status ?? 0)
 }
 
 function getReadyBeads(): BeadIssue[] {
   try {
-    const output = runBd(["ready", "--json"]);
-    return JSON.parse(output || "[]");
+    const output = runBd(["ready", "--json"])
+    return JSON.parse(output || "[]")
   } catch {
-    return [];
+    return []
   }
 }
 
 function getClaimedBeads(): BeadIssue[] {
   try {
-    const output = runBd(["list", "--status", "in_progress", "--json"]);
-    const beads = JSON.parse(output || "[]");
-    return beads.filter((b: BeadIssue) => b.assignee);
+    const output = runBd(["list", "--status", "in_progress", "--json"])
+    const beads = JSON.parse(output || "[]")
+    return beads.filter((b: BeadIssue) => b.assignee)
   } catch {
-    return [];
+    return []
   }
 }
 
 function claimBead(beadId: string, sessionId: string): void {
-  const shortId = sessionId.slice(0, 8);
-  runBd(["update", beadId, "--status", "in_progress", "--assignee", shortId]);
+  const shortId = sessionId.slice(0, 8)
+  runBd(["update", beadId, "--status", "in_progress", "--assignee", shortId])
 }
 
 function releaseBead(beadId: string): void {
-  runBd(["update", beadId, "--status", "open"]);
+  runBd(["update", beadId, "--status", "open"])
 }
 
 // ============================================================================
@@ -179,17 +179,17 @@ function releaseBead(beadId: string): void {
 // ============================================================================
 
 function formatAge(minutes: number): string {
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${Math.floor(minutes)}m ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
+  if (minutes < 1) return "just now"
+  if (minutes < 60) return `${Math.floor(minutes)}m ago`
+  const hours = Math.floor(minutes / 60)
+  return `${hours}h ago`
 }
 
 function formatExpiry(expiresIn: number): string {
   if (expiresIn > 0) {
-    return `expires in ${Math.floor(expiresIn)}m`;
+    return `expires in ${Math.floor(expiresIn)}m`
   } else {
-    return `EXPIRED ${Math.floor(-expiresIn)}m ago`;
+    return `EXPIRED ${Math.floor(-expiresIn)}m ago`
   }
 }
 
@@ -198,203 +198,199 @@ function formatExpiry(expiresIn: number): string {
 // ============================================================================
 
 function cmdDashboard(currentSessionId: string | null): void {
-  const shortId = currentSessionId?.slice(0, 8) || "unknown";
-  const sessionInfo = currentSessionId
-    ? getSessionInfo(currentSessionId)
-    : null;
-  const project = sessionInfo?.project || path.basename(process.cwd());
+  const shortId = currentSessionId?.slice(0, 8) || "unknown"
+  const sessionInfo = currentSessionId ? getSessionInfo(currentSessionId) : null
+  const project = sessionInfo?.project || path.basename(process.cwd())
 
-  console.log(`Session: ${shortId} (${project})\n`);
+  console.log(`Session: ${shortId} (${project})\n`)
 
   // Ready beads
-  const ready = getReadyBeads();
+  const ready = getReadyBeads()
   if (ready.length > 0) {
-    console.log("READY (unclaimed):");
+    console.log("READY (unclaimed):")
     for (const bead of ready.slice(0, 10)) {
-      console.log(`  ${bead.id}  P${bead.priority}  "${bead.title}"`);
+      console.log(`  ${bead.id}  P${bead.priority}  "${bead.title}"`)
     }
     if (ready.length > 10) {
-      console.log(`  ... and ${ready.length - 10} more`);
+      console.log(`  ... and ${ready.length - 10} more`)
     }
-    console.log();
+    console.log()
   }
 
   // Claimed beads
-  const claimed = getClaimedBeads();
+  const claimed = getClaimedBeads()
   if (claimed.length > 0) {
     const staleCount = claimed.filter((b) => {
-      const info = getSessionInfo(b.assignee!);
-      return !info || info.isStale;
-    }).length;
+      const info = getSessionInfo(b.assignee!)
+      return !info || info.isStale
+    }).length
 
     console.log(
       `CLAIMED (${claimed.length - staleCount} active, ${staleCount} stale):`,
-    );
+    )
     for (const bead of claimed) {
-      const info = bead.assignee ? getSessionInfo(bead.assignee) : null;
-      const age = info ? formatAge(info.inactiveMin) : "unknown";
-      const expiry = info ? formatExpiry(info.expiresIn) : "EXPIRED";
-      const status = info?.isStale ? "STALE" : "ACTIVE";
-      const isYou = bead.assignee === shortId ? " <- you" : "";
+      const info = bead.assignee ? getSessionInfo(bead.assignee) : null
+      const age = info ? formatAge(info.inactiveMin) : "unknown"
+      const expiry = info ? formatExpiry(info.expiresIn) : "EXPIRED"
+      const status = info?.isStale ? "STALE" : "ACTIVE"
+      const isYou = bead.assignee === shortId ? " <- you" : ""
 
       console.log(
         `  ${bead.id}  ${bead.assignee || "?"}  "${bead.title}"  ${age}  ${expiry}  ${status}${isYou}`,
-      );
+      )
     }
-    console.log();
+    console.log()
   } else {
-    console.log("CLAIMED: (none)\n");
+    console.log("CLAIMED: (none)\n")
   }
 
   console.log(
     "Commands: /bd work <id>, /bd show <id>, /bd release, /bd close <id>",
-  );
+  )
 }
 
 function cmdWork(beadId: string, currentSessionId: string): void {
   // First claim
-  const shortId = currentSessionId.slice(0, 8);
-  const claimed = getClaimedBeads();
-  const existing = claimed.find((b) => b.id === beadId);
+  const shortId = currentSessionId.slice(0, 8)
+  const claimed = getClaimedBeads()
+  const existing = claimed.find((b) => b.id === beadId)
 
   if (existing?.assignee) {
-    const info = getSessionInfo(existing.assignee);
+    const info = getSessionInfo(existing.assignee)
     if (info && !info.isStale && existing.assignee !== shortId) {
       console.error(
         `Already claimed by ${existing.assignee} (active ${formatAge(info.inactiveMin)})`,
-      );
-      process.exit(1);
+      )
+      process.exit(1)
     }
     if (existing.assignee !== shortId) {
       // Stale - release first
-      console.log(`Released stale claim (was ${existing.assignee})`);
-      releaseBead(existing.id);
+      console.log(`Released stale claim (was ${existing.assignee})`)
+      releaseBead(existing.id)
     }
   }
 
   if (existing?.assignee !== shortId) {
-    claimBead(beadId, currentSessionId);
-    console.log(`Claimed ${beadId} (expires in ${STALE_MINUTES}m)\n`);
+    claimBead(beadId, currentSessionId)
+    console.log(`Claimed ${beadId} (expires in ${STALE_MINUTES}m)\n`)
   } else {
-    console.log(`Already claimed by you\n`);
+    console.log(`Already claimed by you\n`)
   }
 
   // Then show details
-  runBdPassthrough(["show", beadId]);
+  runBdPassthrough(["show", beadId])
 }
 
 function cmdClaim(beadId: string, currentSessionId: string): void {
   // Check if already claimed
-  const claimed = getClaimedBeads();
-  const existing = claimed.find((b) => b.id === beadId);
+  const claimed = getClaimedBeads()
+  const existing = claimed.find((b) => b.id === beadId)
 
   if (existing?.assignee) {
-    const info = getSessionInfo(existing.assignee);
+    const info = getSessionInfo(existing.assignee)
     if (info && !info.isStale) {
-      const isYou = existing.assignee === currentSessionId.slice(0, 8);
+      const isYou = existing.assignee === currentSessionId.slice(0, 8)
       if (isYou) {
         console.log(
           `Already claimed by you (expires in ${Math.floor(info.expiresIn)}m)`,
-        );
-        return;
+        )
+        return
       }
       console.error(
         `Already claimed by ${existing.assignee} (active ${formatAge(info.inactiveMin)})`,
-      );
-      process.exit(1);
+      )
+      process.exit(1)
     }
     // Stale - release first
-    console.log(`Released stale claim (was ${existing.assignee})`);
-    releaseBead(existing.id);
+    console.log(`Released stale claim (was ${existing.assignee})`)
+    releaseBead(existing.id)
   }
 
-  claimBead(beadId, currentSessionId);
-  console.log(`Claimed ${beadId} (expires in ${STALE_MINUTES}m)`);
+  claimBead(beadId, currentSessionId)
+  console.log(`Claimed ${beadId} (expires in ${STALE_MINUTES}m)`)
 }
 
 function cmdRelease(
   beadId: string | undefined,
   currentSessionId: string,
 ): void {
-  const shortId = currentSessionId.slice(0, 8);
+  const shortId = currentSessionId.slice(0, 8)
 
   if (beadId) {
-    releaseBead(beadId);
-    console.log(`Released ${beadId}`);
+    releaseBead(beadId)
+    console.log(`Released ${beadId}`)
   } else {
     // Release all for current session
-    const claimed = getClaimedBeads().filter((b) => b.assignee === shortId);
+    const claimed = getClaimedBeads().filter((b) => b.assignee === shortId)
     if (claimed.length === 0) {
-      console.log("No claims to release");
-      return;
+      console.log("No claims to release")
+      return
     }
     for (const bead of claimed) {
-      releaseBead(bead.id);
-      console.log(`Released ${bead.id}`);
+      releaseBead(bead.id)
+      console.log(`Released ${bead.id}`)
     }
   }
 }
 
 function cmdMy(currentSessionId: string): void {
-  const shortId = currentSessionId.slice(0, 8);
-  const claimed = getClaimedBeads().filter((b) => b.assignee === shortId);
+  const shortId = currentSessionId.slice(0, 8)
+  const claimed = getClaimedBeads().filter((b) => b.assignee === shortId)
 
-  console.log(`MY CLAIMS (session ${shortId}):`);
+  console.log(`MY CLAIMS (session ${shortId}):`)
   if (claimed.length === 0) {
-    console.log("  (none)");
-    return;
+    console.log("  (none)")
+    return
   }
 
-  const sessionInfo = getSessionInfo(currentSessionId);
+  const sessionInfo = getSessionInfo(currentSessionId)
   for (const bead of claimed) {
-    const expiry = sessionInfo
-      ? formatExpiry(sessionInfo.expiresIn)
-      : "unknown";
-    console.log(`  ${bead.id}  "${bead.title}"  ${expiry}`);
+    const expiry = sessionInfo ? formatExpiry(sessionInfo.expiresIn) : "unknown"
+    console.log(`  ${bead.id}  "${bead.title}"  ${expiry}`)
   }
 }
 
 function cmdGc(): void {
-  const claimed = getClaimedBeads();
-  const garbage: Array<{ bead: BeadIssue; info: SessionInfo | null }> = [];
+  const claimed = getClaimedBeads()
+  const garbage: Array<{ bead: BeadIssue; info: SessionInfo | null }> = []
 
   for (const bead of claimed) {
-    if (!bead.assignee) continue;
-    const info = getSessionInfo(bead.assignee);
+    if (!bead.assignee) continue
+    const info = getSessionInfo(bead.assignee)
     if (!info || info.isGarbage) {
-      garbage.push({ bead, info });
+      garbage.push({ bead, info })
     }
   }
 
   if (garbage.length === 0) {
-    console.log("No garbage claims to collect");
-    return;
+    console.log("No garbage claims to collect")
+    return
   }
 
   console.log(
     `Released ${garbage.length} garbage claims (>${GC_MINUTES / 60}hr stale):`,
-  );
+  )
   for (const { bead, info } of garbage) {
-    releaseBead(bead.id);
-    const age = info ? formatAge(info.inactiveMin) : "session not found";
-    console.log(`  ${bead.id}  ${bead.assignee}  ${age}`);
+    releaseBead(bead.id)
+    const age = info ? formatAge(info.inactiveMin) : "session not found"
+    console.log(`  ${bead.id}  ${bead.assignee}  ${age}`)
   }
 }
 
 function cmdWhoami(currentSessionId: string | null): void {
   if (!currentSessionId) {
-    console.log("Session: unknown");
-    console.log("\nTip: Set up SessionStart hook to export CLAUDE_SESSION_ID");
-    return;
+    console.log("Session: unknown")
+    console.log("\nTip: Set up SessionStart hook to export CLAUDE_SESSION_ID")
+    return
   }
 
-  const info = getSessionInfo(currentSessionId);
-  console.log(`Session: ${currentSessionId.slice(0, 8)}`);
-  console.log(`Full ID: ${currentSessionId}`);
+  const info = getSessionInfo(currentSessionId)
+  console.log(`Session: ${currentSessionId.slice(0, 8)}`)
+  console.log(`Full ID: ${currentSessionId}`)
   if (info) {
-    console.log(`Project: ${info.project}`);
-    console.log(`Last activity: ${formatAge(info.inactiveMin)}`);
-    console.log(`Status: ${info.isStale ? "STALE" : "ACTIVE"}`);
+    console.log(`Project: ${info.project}`)
+    console.log(`Last activity: ${formatAge(info.inactiveMin)}`)
+    console.log(`Status: ${info.isStale ? "STALE" : "ACTIVE"}`)
   }
 }
 
@@ -413,115 +409,115 @@ Commands:
   my               Show current session's claims
   gc               Garbage collect expired claims (>2hr)
   whoami           Show current session info
-  help             Show this help`);
+  help             Show this help`)
 }
 
 // ============================================================================
 // Main
 // ============================================================================
 
-const [cmd, ...args] = process.argv.slice(2);
-const currentSessionId = getCurrentSessionId();
+const [cmd, ...args] = process.argv.slice(2)
+const currentSessionId = getCurrentSessionId()
 
 switch (cmd) {
   case undefined:
   case "":
-    cmdDashboard(currentSessionId);
-    break;
+    cmdDashboard(currentSessionId)
+    break
 
   // Passthrough commands
   case "ready":
-    runBdPassthrough(["ready", ...args]);
-    break;
+    runBdPassthrough(["ready", ...args])
+    break
 
   case "show":
     if (!args[0]) {
-      console.error("Usage: /bd show <bead-id>");
-      process.exit(1);
+      console.error("Usage: /bd show <bead-id>")
+      process.exit(1)
     }
-    runBdPassthrough(["show", ...args]);
-    break;
+    runBdPassthrough(["show", ...args])
+    break
 
   case "close":
     if (!args[0]) {
-      console.error("Usage: /bd close <bead-id>");
-      process.exit(1);
+      console.error("Usage: /bd close <bead-id>")
+      process.exit(1)
     }
-    runBdPassthrough(["close", ...args]);
-    break;
+    runBdPassthrough(["close", ...args])
+    break
 
   case "sync":
-    runBdPassthrough(["sync", ...args]);
-    break;
+    runBdPassthrough(["sync", ...args])
+    break
 
   // Session-aware commands
   case "work":
     if (!args[0]) {
-      console.error("Usage: /bd work <bead-id>");
-      process.exit(1);
+      console.error("Usage: /bd work <bead-id>")
+      process.exit(1)
     }
     if (!currentSessionId) {
-      console.error("Cannot detect current session");
-      process.exit(1);
+      console.error("Cannot detect current session")
+      process.exit(1)
     }
-    cmdWork(args[0], currentSessionId);
-    break;
+    cmdWork(args[0], currentSessionId)
+    break
 
   case "claim":
     if (!args[0]) {
-      console.error("Usage: /bd claim <bead-id>");
-      process.exit(1);
+      console.error("Usage: /bd claim <bead-id>")
+      process.exit(1)
     }
     if (!currentSessionId) {
-      console.error("Cannot detect current session");
-      process.exit(1);
+      console.error("Cannot detect current session")
+      process.exit(1)
     }
-    cmdClaim(args[0], currentSessionId);
-    break;
+    cmdClaim(args[0], currentSessionId)
+    break
 
   case "release":
     if (!currentSessionId) {
-      console.error("Cannot detect current session");
-      process.exit(1);
+      console.error("Cannot detect current session")
+      process.exit(1)
     }
-    cmdRelease(args[0], currentSessionId);
-    break;
+    cmdRelease(args[0], currentSessionId)
+    break
 
   case "my":
     if (!currentSessionId) {
-      console.error("Cannot detect current session");
-      process.exit(1);
+      console.error("Cannot detect current session")
+      process.exit(1)
     }
-    cmdMy(currentSessionId);
-    break;
+    cmdMy(currentSessionId)
+    break
 
   case "gc":
-    cmdGc();
-    break;
+    cmdGc()
+    break
 
   case "whoami":
-    cmdWhoami(currentSessionId);
-    break;
+    cmdWhoami(currentSessionId)
+    break
 
   case "help":
   case "--help":
   case "-h":
-    printHelp();
-    break;
+    printHelp()
+    break
 
   default:
     // Check if it looks like a bead ID (starts with km-)
     if (cmd.startsWith("km-")) {
       // Treat as /bd work <id>
       if (!currentSessionId) {
-        console.error("Cannot detect current session");
-        process.exit(1);
+        console.error("Cannot detect current session")
+        process.exit(1)
       }
-      cmdWork(cmd, currentSessionId);
+      cmdWork(cmd, currentSessionId)
     } else {
-      console.error(`Unknown command: ${cmd}`);
-      console.error('Run "/bd help" for usage');
-      process.exit(1);
+      console.error(`Unknown command: ${cmd}`)
+      console.error('Run "/bd help" for usage')
+      process.exit(1)
     }
-    break;
+    break
 }

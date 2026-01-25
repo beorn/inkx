@@ -7,18 +7,18 @@
  * Inspired by Decker's CmdContext pattern where all commands receive full context.
  */
 
-import type { KNode } from "@km/core";
-import type { Vault } from "./vault-context.tsx";
-import type { BoardState, BoardAction } from "@km/board";
+import type { KNode } from "@km/core"
+import type { Vault } from "./vault-context.tsx"
+import type { BoardState, BoardAction } from "@km/board"
 import type {
   TUIBoardState,
   CardState,
   ColumnState,
   ColumnsLayout,
-} from "./types.ts";
-import type { UIState } from "./ui-reducer.ts";
-import { actions } from "./ui-reducer.ts";
-import type { LayoutRegistry } from "./card-positions.ts";
+} from "./types.ts"
+import type { UIState } from "./ui-reducer.ts"
+import { actions } from "./ui-reducer.ts"
+import type { LayoutRegistry } from "./card-positions.ts"
 
 // =============================================================================
 // Types
@@ -33,35 +33,35 @@ import type { LayoutRegistry } from "./card-positions.ts";
 export interface TUIContext {
   // === Storage ===
   /** Vault for storage operations */
-  vault: Vault;
+  vault: Vault
 
   // === State ===
   /** TUI rendering state (columns/cards structure) */
-  state: TUIBoardState;
+  state: TUIBoardState
   /** Board state from boardReducer */
-  boardState: BoardState;
+  boardState: BoardState
   /** UI state (dialogs, view mode, selection) */
-  ui: UIState;
+  ui: UIState
   /** Derived column layout from tree state */
-  layout: ColumnsLayout;
+  layout: ColumnsLayout
   /** Card position registry for h/l navigation (Y-position tracking) */
-  positionRegistry: LayoutRegistry;
+  positionRegistry: LayoutRegistry
 
   // === Derived (computed once) ===
   /** Current column (from layout) */
-  column: ColumnState | undefined;
+  column: ColumnState | undefined
   /** Current card (from layout) */
-  card: CardState | undefined;
+  card: CardState | undefined
   /** Currently selected node */
-  selectedNode: KNode | undefined;
+  selectedNode: KNode | undefined
 
   // === Dispatchers ===
   /** Dispatch to UI reducer */
-  dispatch: React.Dispatch<ReturnType<(typeof actions)[keyof typeof actions]>>;
+  dispatch: React.Dispatch<ReturnType<(typeof actions)[keyof typeof actions]>>
   /** Dispatch to board reducer */
-  dispatchBoard: React.Dispatch<BoardAction>;
+  dispatchBoard: React.Dispatch<BoardAction>
   /** Exit the application */
-  exit: () => void;
+  exit: () => void
 
   // === Utilities ===
   /** Count visible descendants for outline mode */
@@ -70,25 +70,25 @@ export interface TUIContext {
     depth: number,
     maxDepth: number,
     foldedNodes: Set<string>,
-  ) => number;
+  ) => number
 }
 
 /**
  * Minimal key event interface (matches Ink's useInput callback).
  */
 export interface KeyEvent {
-  escape?: boolean;
-  return?: boolean;
-  ctrl?: boolean;
-  upArrow?: boolean;
-  downArrow?: boolean;
-  leftArrow?: boolean;
-  rightArrow?: boolean;
-  tab?: boolean;
-  backspace?: boolean;
-  delete?: boolean;
-  shift?: boolean;
-  meta?: boolean;
+  escape?: boolean
+  return?: boolean
+  ctrl?: boolean
+  upArrow?: boolean
+  downArrow?: boolean
+  leftArrow?: boolean
+  rightArrow?: boolean
+  tab?: boolean
+  backspace?: boolean
+  delete?: boolean
+  shift?: boolean
+  meta?: boolean
 }
 
 // =============================================================================
@@ -96,17 +96,17 @@ export interface KeyEvent {
 // =============================================================================
 
 export interface BuildTUIContextParams {
-  vault: Vault;
-  state: TUIBoardState;
-  boardState: BoardState;
-  ui: UIState;
-  layout: ColumnsLayout;
+  vault: Vault
+  state: TUIBoardState
+  boardState: BoardState
+  ui: UIState
+  layout: ColumnsLayout
   /** Card position registry for h/l navigation */
-  positionRegistry: LayoutRegistry;
-  dispatch: TUIContext["dispatch"];
-  dispatchBoard: TUIContext["dispatchBoard"];
-  exit: TUIContext["exit"];
-  countVisibleDescendants: TUIContext["countVisibleDescendants"];
+  positionRegistry: LayoutRegistry
+  dispatch: TUIContext["dispatch"]
+  dispatchBoard: TUIContext["dispatchBoard"]
+  exit: TUIContext["exit"]
+  countVisibleDescendants: TUIContext["countVisibleDescendants"]
 }
 
 /**
@@ -114,12 +114,12 @@ export interface BuildTUIContextParams {
  * Call this once per render, then pass to all handlers.
  */
 export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
-  const { vault, state, boardState, ui, layout, positionRegistry } = params;
+  const { vault, state, boardState, ui, layout, positionRegistry } = params
 
   // Derive current column and card from layout
-  const column = layout.columns[layout.colIndex];
-  const card = column?.cards[layout.cardIndex];
-  const selectedNode = card?.node;
+  const column = layout.columns[layout.colIndex]
+  const card = column?.cards[layout.cardIndex]
+  const selectedNode = card?.node
 
   return {
     vault,
@@ -135,7 +135,7 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
     dispatchBoard: params.dispatchBoard,
     exit: params.exit,
     countVisibleDescendants: params.countVisibleDescendants,
-  };
+  }
 }
 
 // =============================================================================
@@ -147,7 +147,7 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
  * TODO: Outline mode support will be added in a future update.
  */
 export function getSubIndex(ctx: TUIContext): number {
-  return ctx.layout.subPath[0] ?? 0;
+  return ctx.layout.subPath[0] ?? 0
 }
 
 /**
@@ -155,5 +155,5 @@ export function getSubIndex(ctx: TUIContext): number {
  * TODO: Outline mode support will be added in a future update.
  */
 export function isInOutlineMode(ctx: TUIContext): boolean {
-  return ctx.layout.isInOutlineMode;
+  return ctx.layout.isInOutlineMode
 }

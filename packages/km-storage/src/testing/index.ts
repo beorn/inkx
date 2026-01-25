@@ -4,45 +4,45 @@
  * Test doubles and helpers for storage layer testing.
  */
 
-export { createFakeVault } from "./fake-vault.ts";
-export { createChaosFakeVault } from "./chaos-fake-vault.ts";
-export { createChaosHooks, createSeededRandom } from "./chaos-hooks.ts";
+export { createFakeVault } from "./fake-vault.ts"
+export { createChaosFakeVault } from "./chaos-fake-vault.ts"
+export { createChaosHooks, createSeededRandom } from "./chaos-hooks.ts"
 export {
   generateChaosReport,
   formatChaosReport,
   formatChaosReportJson,
   formatChaosReportMarkdown,
-} from "./chaos-report.ts";
+} from "./chaos-report.ts"
 export {
   withTestEnv,
   withTestEnvSync,
   getTestMode,
   isRealMode,
   isMockMode,
-} from "./env.ts";
+} from "./env.ts"
 
-export type { FakeVault, FakeVaultOptions } from "./fake-vault.ts";
-export type { TestEnv, TestMode } from "./env.ts";
+export type { FakeVault, FakeVaultOptions } from "./fake-vault.ts"
+export type { TestEnv, TestMode } from "./env.ts"
 export type {
   ChaosFakeVault,
   ChaosFakeVaultOptions,
   TransactionLogEntry,
   CorruptionType,
   ConsistencyIssue,
-} from "./chaos-fake-vault.ts";
+} from "./chaos-fake-vault.ts"
 export type {
   ChaosHooksConfig,
   ChaosEvent,
   ChaosHooks,
   ChaosStats,
-} from "./chaos-hooks.ts";
+} from "./chaos-hooks.ts"
 export type {
   ChaosScenario,
   ChaosStateSnapshot,
   ChaosRecommendation,
   ChaosReport,
   GenerateReportOptions,
-} from "./chaos-report.ts";
+} from "./chaos-report.ts"
 
 // Fixture DSL for building test data
 export {
@@ -55,7 +55,7 @@ export {
   NESTED_BOARD,
   BODY_CONTENT_BOARD,
   type BoardFixture,
-} from "./fixtures.ts";
+} from "./fixtures.ts"
 
 // Mock watcher for testing without real filesystem
-export { createMockWatcher, type MockWatcher } from "./mock-watcher.ts";
+export { createMockWatcher, type MockWatcher } from "./mock-watcher.ts"

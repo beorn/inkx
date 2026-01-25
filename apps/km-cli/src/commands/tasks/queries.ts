@@ -9,14 +9,14 @@ import {
   getNodeByIdPrefix,
   getAncestors,
   getTasksUnderNode as storageGetTasksUnderNode,
-} from "@km/storage";
+} from "@km/storage"
 import {
   normalizeName,
   collapseAncestorsWithTypes,
   type CollapsedAncestor,
-} from "@km/tree";
-import type { KNode } from "@km/core";
-import { getNodeDisplayName } from "./formatters.ts";
+} from "@km/tree"
+import type { KNode } from "@km/core"
+import { getNodeDisplayName } from "./formatters.ts"
 
 /**
  * Find a node by path or ID prefix/suffix
@@ -24,38 +24,38 @@ import { getNodeDisplayName } from "./formatters.ts";
  */
 export function findNodeByPathOrId(pathOrId: string): KNode | null {
   // Try ID match (exact, prefix, or suffix)
-  const node = getNodeByIdPrefix(pathOrId);
-  if (node) return node;
+  const node = getNodeByIdPrefix(pathOrId)
+  if (node) return node
 
   // Try path match (exact)
-  const byPath = getNodeByPath(pathOrId);
-  if (byPath) return byPath;
+  const byPath = getNodeByPath(pathOrId)
+  if (byPath) return byPath
 
   // Try path match with vault path prefix (user may provide relative path)
   // Check if it looks like a relative path
   if (!pathOrId.startsWith("/")) {
-    const cwd = process.cwd();
-    const fullPath = `${cwd}/${pathOrId}`;
-    const byFullPath = getNodeByPath(fullPath);
-    if (byFullPath) return byFullPath;
+    const cwd = process.cwd()
+    const fullPath = `${cwd}/${pathOrId}`
+    const byFullPath = getNodeByPath(fullPath)
+    if (byFullPath) return byFullPath
   }
 
-  return null;
+  return null
 }
 
 /**
  * Get all tasks under a root node (recursive)
  * Re-exports from @km/storage for backwards compatibility
  */
-export const getTasksUnderNode = storageGetTasksUnderNode;
+export const getTasksUnderNode = storageGetTasksUnderNode
 
 /**
  * Task with computed ancestor data for display
  */
 export interface TaskWithAncestors {
-  task: KNode;
-  collapsedAncestors: CollapsedAncestor[]; // Collapsed with type suffixes
-  ancestorKeys: string[]; // For sorting/grouping by normalized name
+  task: KNode
+  collapsedAncestors: CollapsedAncestor[] // Collapsed with type suffixes
+  ancestorKeys: string[] // For sorting/grouping by normalized name
 }
 
 /**
@@ -63,7 +63,7 @@ export interface TaskWithAncestors {
  * Uses normalized name so similar names group together
  */
 function getAncestorKey(ca: CollapsedAncestor): string {
-  return normalizeName(getNodeDisplayName(ca.node));
+  return normalizeName(getNodeDisplayName(ca.node))
 }
 
 /**
@@ -71,14 +71,14 @@ function getAncestorKey(ca: CollapsedAncestor): string {
  */
 export function buildTaskTree(tasks: KNode[]): TaskWithAncestors[] {
   return tasks.map((task) => {
-    const rawAncestors = getAncestors(task.id);
-    const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors);
+    const rawAncestors = getAncestors(task.id)
+    const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
     return {
       task,
       collapsedAncestors,
       ancestorKeys: collapsedAncestors.map((ca) => getAncestorKey(ca)),
-    };
-  });
+    }
+  })
 }
 
 /**
@@ -89,16 +89,16 @@ export function sortByPath(
 ): TaskWithAncestors[] {
   return tasksWithAncestors.sort((a, b) => {
     // Compare ancestor paths by keys (fs_path/slug/content), not IDs
-    const minLen = Math.min(a.ancestorKeys.length, b.ancestorKeys.length);
+    const minLen = Math.min(a.ancestorKeys.length, b.ancestorKeys.length)
     for (let i = 0; i < minLen; i++) {
-      const aKey = a.ancestorKeys[i] ?? "";
-      const bKey = b.ancestorKeys[i] ?? "";
-      if (aKey < bKey) return -1;
-      if (aKey > bKey) return 1;
+      const aKey = a.ancestorKeys[i] ?? ""
+      const bKey = b.ancestorKeys[i] ?? ""
+      if (aKey < bKey) return -1
+      if (aKey > bKey) return 1
     }
     // Shorter paths come first
-    return a.ancestorKeys.length - b.ancestorKeys.length;
-  });
+    return a.ancestorKeys.length - b.ancestorKeys.length
+  })
 }
 
 /**
@@ -111,14 +111,14 @@ function segmentMatches(
   filter: string,
   mode: "prefix" | "contains",
 ): boolean {
-  const segmentLower = segment.toLowerCase();
-  const filterLower = filter.toLowerCase();
+  const segmentLower = segment.toLowerCase()
+  const filterLower = filter.toLowerCase()
 
   if (mode === "contains") {
-    return segmentLower.includes(filterLower);
+    return segmentLower.includes(filterLower)
   }
   // prefix mode: segment starts with filter
-  return segmentLower.startsWith(filterLower);
+  return segmentLower.startsWith(filterLower)
 }
 
 /**
@@ -130,15 +130,15 @@ function segmentMatches(
 function getNodeSegmentName(node: KNode): string | null {
   if (node.fs_path) {
     // Get basename from path
-    return node.fs_path.split("/").pop() ?? null;
+    return node.fs_path.split("/").pop() ?? null
   }
   if (node.content) {
-    return node.content;
+    return node.content
   }
   if (node.md_slug) {
-    return node.md_slug;
+    return node.md_slug
   }
-  return null;
+  return null
 }
 
 /**
@@ -150,35 +150,35 @@ function getNodeSegmentName(node: KNode): string | null {
  */
 export function taskPathMatches(task: KNode, filter: string): boolean {
   // Determine matching mode based on filter syntax
-  let mode: "prefix" | "contains" = "prefix";
-  let cleanFilter = filter;
+  let mode: "prefix" | "contains" = "prefix"
+  let cleanFilter = filter
 
   if (filter.startsWith("*") && filter.endsWith("*") && filter.length > 2) {
     // *foo* means contains
-    mode = "contains";
-    cleanFilter = filter.slice(1, -1);
+    mode = "contains"
+    cleanFilter = filter.slice(1, -1)
   } else if (filter.includes("*")) {
     // Has wildcard but not wrapped - treat as contains for flexibility
-    mode = "contains";
-    cleanFilter = filter.replace(/\*/g, "");
+    mode = "contains"
+    cleanFilter = filter.replace(/\*/g, "")
   }
 
   // Check task content
-  const taskName = getNodeSegmentName(task);
+  const taskName = getNodeSegmentName(task)
   if (taskName && segmentMatches(taskName, cleanFilter, mode)) {
-    return true;
+    return true
   }
 
   // Check ancestors for path match
-  const ancestors = getAncestors(task.id);
+  const ancestors = getAncestors(task.id)
   for (const ancestor of ancestors) {
-    const ancestorName = getNodeSegmentName(ancestor);
+    const ancestorName = getNodeSegmentName(ancestor)
     if (ancestorName && segmentMatches(ancestorName, cleanFilter, mode)) {
-      return true;
+      return true
     }
   }
 
-  return false;
+  return false
 }
 
 /**
@@ -187,12 +187,12 @@ export function taskPathMatches(task: KNode, filter: string): boolean {
  */
 export function looksLikeQuery(str: string): boolean {
   // Reference filters
-  if (/^[@#+-]/.test(str)) return true;
+  if (/^[@#+-]/.test(str)) return true
   // Field:value filters
-  if (/[a-z]+:/.test(str)) return true;
+  if (/[a-z]+:/.test(str)) return true
   // Path patterns (these ARE queries, not just paths)
-  if (/\*\*$/.test(str)) return true;
+  if (/\*\*$/.test(str)) return true
   // Quoted phrases
-  if (/^".*"$/.test(str)) return true;
-  return false;
+  if (/^".*"$/.test(str)) return true
+  return false
 }

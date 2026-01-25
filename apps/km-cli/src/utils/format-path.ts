@@ -2,8 +2,8 @@
  * Path formatting utilities for CLI output
  */
 
-import { homedir } from "os";
-import { relative } from "path";
+import { homedir } from "os"
+import { relative } from "path"
 
 /**
  * Format a path for display - uses shorter of:
@@ -12,19 +12,19 @@ import { relative } from "path";
  * - Absolute (fallback)
  */
 export function formatPath(absPath: string): string {
-  const home = homedir();
-  const cwd = process.cwd();
+  const home = homedir()
+  const cwd = process.cwd()
 
   // Try relative to CWD
-  const relPath = relative(cwd, absPath);
+  const relPath = relative(cwd, absPath)
   // Add ./ prefix for paths that don't start with ..
-  const relDisplay = relPath.startsWith("..") ? relPath : `./${relPath}`;
+  const relDisplay = relPath.startsWith("..") ? relPath : `./${relPath}`
 
   // Try home-relative
   const homeDisplay = absPath.startsWith(home)
     ? "~" + absPath.slice(home.length)
-    : absPath;
+    : absPath
 
   // Return shorter one
-  return relDisplay.length <= homeDisplay.length ? relDisplay : homeDisplay;
+  return relDisplay.length <= homeDisplay.length ? relDisplay : homeDisplay
 }

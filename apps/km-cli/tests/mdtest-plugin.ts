@@ -6,7 +6,7 @@ import type {
   PluginFactory,
   FileOpts,
   BlockOpts,
-} from "../../../vendor/beorn-mdtest/src/types.js";
+} from "../../../vendor/beorn-mdtest/src/types.js"
 
 /**
  * km CLI mdtest plugin
@@ -20,27 +20,27 @@ export default function kmPlugin(opts: FileOpts): Plugin {
   return {
     block(opts: BlockOpts) {
       // Only handle console blocks
-      if (opts.type !== "console") return null;
+      if (opts.type !== "console") return null
 
       // Parse commands to check if all are km commands
-      const lines = opts.content.split("\n");
+      const lines = opts.content.split("\n")
       const commands = lines
         .filter((l) => l.startsWith("$"))
-        .map((l) => l.slice(1).trim());
+        .map((l) => l.slice(1).trim())
 
       // Check if all commands start with 'km '
-      const hasKmCommands = commands.some((c) => c.startsWith("km "));
-      const hasOtherCommands = commands.some((c) => !c.startsWith("km "));
+      const hasKmCommands = commands.some((c) => c.startsWith("km "))
+      const hasOtherCommands = commands.some((c) => !c.startsWith("km "))
 
       // Only handle pure km command blocks
-      if (!hasKmCommands) return null;
+      if (!hasKmCommands) return null
 
       // For mixed commands, fall back to bash
-      if (hasOtherCommands) return null;
+      if (hasOtherCommands) return null
 
       // TODO: Return in-process executor
       // For now, fall back to bash
-      return null;
+      return null
     },
-  };
+  }
 }

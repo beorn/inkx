@@ -12,26 +12,26 @@
  * Regex to match inline field attributes like [due:: 2024-01-15], [priority:: 1]
  * These are Dataview/Obsidian Tasks style inline fields.
  */
-const INLINE_FIELD_REGEX = /\[(\w+)::\s*([^\]]*)\]/g;
+const INLINE_FIELD_REGEX = /\[(\w+)::\s*([^\]]*)\]/g
 
 /**
  * Regex to match wiki links: [[note]] or [[path/to/note|alias]]
  */
-const WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g;
+const WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g
 
 /**
  * Regex to match markdown links: [text](url)
  */
-const MD_LINK_REGEX = /\[([^\]]+)\]\(([^)]+)\)/g;
+const MD_LINK_REGEX = /\[([^\]]+)\]\(([^)]+)\)/g
 
 /**
  * Regex to match markdown formatting: **bold**, *italic*, `code`, ~~strike~~
  */
-const BOLD_REGEX = /\*\*([^*]+)\*\*/g;
-const ITALIC_ASTERISK_REGEX = /(?<!\*)\*([^*]+)\*(?!\*)/g;
-const ITALIC_UNDERSCORE_REGEX = /(?<![_\w])_([^_]+)_(?![_\w])/g;
-const CODE_REGEX = /`([^`]+)`/g;
-const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g;
+const BOLD_REGEX = /\*\*([^*]+)\*\*/g
+const ITALIC_ASTERISK_REGEX = /(?<!\*)\*([^*]+)\*(?!\*)/g
+const ITALIC_UNDERSCORE_REGEX = /(?<![_\w])_([^_]+)_(?![_\w])/g
+const CODE_REGEX = /`([^`]+)`/g
+const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g
 
 /**
  * Extract display text and target from a wiki link content.
@@ -39,17 +39,17 @@ const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g;
  * For [[text]], returns { display: "text", target: "text" }.
  */
 function extractLinkParts(linkContent: string): {
-  display: string;
-  target: string;
+  display: string
+  target: string
 } {
   if (linkContent.includes("|")) {
-    const parts = linkContent.split("|");
+    const parts = linkContent.split("|")
     return {
       target: parts[0] ?? linkContent,
       display: parts[1] ?? linkContent,
-    };
+    }
   }
-  return { display: linkContent, target: linkContent };
+  return { display: linkContent, target: linkContent }
 }
 
 /**
@@ -68,42 +68,42 @@ function extractLinkParts(linkContent: string): {
  */
 export function renderPlain(text: string): string {
   // Strip inline fields
-  let result = text.replace(INLINE_FIELD_REGEX, "");
+  let result = text.replace(INLINE_FIELD_REGEX, "")
 
   // Strip markdown links [text](url) → text
   result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => {
-    return linkText;
-  });
+    return linkText
+  })
 
   // Strip wiki links (keep display text only)
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
-    return extractLinkParts(content).display;
-  });
+    return extractLinkParts(content).display
+  })
 
   // Strip bold markers
-  result = result.replace(BOLD_REGEX, (_match, content: string) => content);
+  result = result.replace(BOLD_REGEX, (_match, content: string) => content)
 
   // Strip italic markers
   result = result.replace(
     ITALIC_ASTERISK_REGEX,
     (_match, content: string) => content,
-  );
+  )
   result = result.replace(
     ITALIC_UNDERSCORE_REGEX,
     (_match, content: string) => content,
-  );
+  )
 
   // Strip code markers
-  result = result.replace(CODE_REGEX, (_match, content: string) => content);
+  result = result.replace(CODE_REGEX, (_match, content: string) => content)
 
   // Strip strikethrough markers
   result = result.replace(
     STRIKETHROUGH_REGEX,
     (_match, content: string) => content,
-  );
+  )
 
   // Clean up whitespace
-  return result.replace(/  +/g, " ").trim();
+  return result.replace(/  +/g, " ").trim()
 }
 
 /**
@@ -111,5 +111,5 @@ export function renderPlain(text: string): string {
  * This mirrors the ANSI-aware version in @km/cli for compatibility.
  */
 export function displayLength(text: string): number {
-  return text.length;
+  return text.length
 }

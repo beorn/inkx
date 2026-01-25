@@ -17,11 +17,11 @@ export {
   type QueryPhrase,
   type QueryPropCondition,
   type QuerySpecial,
-} from "./parser.ts";
+} from "./parser.ts"
 
 export {
   resolveDateQuery,
   isDateShortcut,
   isDateField,
   type DateRange,
-} from "./date.ts";
+} from "./date.ts"

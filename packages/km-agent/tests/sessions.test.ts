@@ -8,8 +8,8 @@
  * setting up a proper test vault with events.jsonl.
  */
 
-import { describe, test, expect } from "bun:test";
-import type { SessionStatus } from "../src/types.ts";
+import { describe, test, expect } from "bun:test"
+import type { SessionStatus } from "../src/types.ts"
 
 /**
  * mapSessionStatus is a private function, but we can test its behavior
@@ -29,14 +29,14 @@ describe("Session types", () => {
       "completed",
       "error",
       "cancelled",
-    ];
+    ]
 
-    expect(statuses).toContain("active");
-    expect(statuses).toContain("completed");
-    expect(statuses).toContain("error");
-    expect(statuses).toContain("cancelled");
-  });
-});
+    expect(statuses).toContain("active")
+    expect(statuses).toContain("completed")
+    expect(statuses).toContain("error")
+    expect(statuses).toContain("cancelled")
+  })
+})
 
 // Note: Full integration tests for querySessions, getSession, getAgentSessions,
 // getTaskSessions, and getActiveSession would require:

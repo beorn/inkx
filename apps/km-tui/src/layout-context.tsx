@@ -6,14 +6,14 @@
  * which are then available for h/l navigation to find cards by Y position.
  */
 
-import React, { createContext, useContext } from "react";
-import type { LayoutRegistry } from "./card-positions.ts";
+import React, { createContext, useContext } from "react"
+import type { LayoutRegistry } from "./card-positions.ts"
 
 // =============================================================================
 // Context
 // =============================================================================
 
-const LayoutContext = createContext<LayoutRegistry | null>(null);
+const LayoutContext = createContext<LayoutRegistry | null>(null)
 
 // =============================================================================
 // Provider
@@ -21,8 +21,8 @@ const LayoutContext = createContext<LayoutRegistry | null>(null);
 
 interface LayoutProviderProps {
   /** The position registry instance (created by parent) */
-  registry: LayoutRegistry;
-  children: React.ReactNode;
+  registry: LayoutRegistry
+  children: React.ReactNode
 }
 
 /**
@@ -35,7 +35,7 @@ export function LayoutProvider({
 }: LayoutProviderProps): React.ReactElement {
   return (
     <LayoutContext.Provider value={registry}>{children}</LayoutContext.Provider>
-  );
+  )
 }
 
 // =============================================================================
@@ -49,11 +49,11 @@ export function LayoutProvider({
  * @throws Error if called outside LayoutProvider
  */
 export function useLayoutRegistry(): LayoutRegistry {
-  const registry = useContext(LayoutContext);
+  const registry = useContext(LayoutContext)
   if (!registry) {
-    throw new Error("useLayoutRegistry must be used within LayoutProvider");
+    throw new Error("useLayoutRegistry must be used within LayoutProvider")
   }
-  return registry;
+  return registry
 }
 
 /**
@@ -61,5 +61,5 @@ export function useLayoutRegistry(): LayoutRegistry {
  * Use this for optional position tracking (e.g., in tests).
  */
 export function useLayoutRegistryOptional(): LayoutRegistry | null {
-  return useContext(LayoutContext);
+  return useContext(LayoutContext)
 }

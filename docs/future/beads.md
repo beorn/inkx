@@ -207,7 +207,7 @@ Short IDs are stored in `data.short_id`:
 
 ```typescript
 interface NodeData {
-  short_id?: string; // e.g., "auth-epic" or "auth-epic.1"
+  short_id?: string // e.g., "auth-epic" or "auth-epic.1"
   // ... other fields
 }
 ```
@@ -218,26 +218,26 @@ The full display ID is `{prefix}{separator}{short_id}`, e.g., `km-auth-epic`.
 
 ```typescript
 function getDisplayId(node: KNode, config = defaultConfig): string {
-  const { prefix, separator } = config.shortId;
+  const { prefix, separator } = config.shortId
   const shortId =
     node.data.short_id ??
-    node.id.slice(-config.shortId.autoLength).toLowerCase();
-  return `${prefix}${separator}${shortId}`;
+    node.id.slice(-config.shortId.autoLength).toLowerCase()
+  return `${prefix}${separator}${shortId}`
 }
 
 function resolveShortId(displayId: string): string | null {
   // Strip prefix
-  const shortId = displayId.replace(/^[a-z]+-/, "");
+  const shortId = displayId.replace(/^[a-z]+-/, "")
 
   // Try exact match on data.short_id
   const exact = db.query(
     `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ?`,
     [shortId],
-  );
-  if (exact) return exact;
+  )
+  if (exact) return exact
 
   // Fall back to ULID suffix match
-  return db.query(`SELECT id FROM nodes WHERE id LIKE ?`, [`%${shortId}`]);
+  return db.query(`SELECT id FROM nodes WHERE id LIKE ?`, [`%${shortId}`])
 }
 
 function nextSubId(parentShortId: string): string {
@@ -245,12 +245,12 @@ function nextSubId(parentShortId: string): string {
     `SELECT json_extract(data, '$.short_id') as sid FROM nodes
      WHERE json_extract(data, '$.short_id') LIKE ?`,
     [`${parentShortId}.%`],
-  );
+  )
   const maxN = existing.reduce((max, row) => {
-    const n = parseInt(row.sid.split(".").pop(), 10);
-    return n > max ? n : max;
-  }, 0);
-  return `${parentShortId}.${maxN + 1}`;
+    const n = parseInt(row.sid.split(".").pop(), 10)
+    return n > max ? n : max
+  }, 0)
+  return `${parentShortId}.${maxN + 1}`
 }
 ```
 
@@ -268,7 +268,7 @@ When closing an issue, the reason is stored in two places:
 emitNodeUpdated(id, {
   task_status: "done",
   data: { close_reason: "Fixed in commit abc123" },
-});
+})
 ```
 
 This enables:

@@ -5,10 +5,10 @@
  * These enable fast tests that don't need SQLite setup/teardown.
  */
 
-import { ulid } from "ulid";
-import type { KNode } from "@km/core";
-import type { TUIBoardState, CardState, ColumnState } from "../../src/types.ts";
-import { createEmptyState } from "../../src/state.ts";
+import { ulid } from "ulid"
+import type { KNode } from "@km/core"
+import type { TUIBoardState, CardState, ColumnState } from "../../src/types.ts"
+import { createEmptyState } from "../../src/state.ts"
 
 /**
  * Create a test KNode with defaults
@@ -16,7 +16,7 @@ import { createEmptyState } from "../../src/state.ts";
 export function createTestKNode(
   overrides: Partial<KNode> & { id?: string } = {},
 ): KNode {
-  const id = overrides.id ?? ulid();
+  const id = overrides.id ?? ulid()
   return {
     id,
     type: overrides.type ?? "task",
@@ -28,7 +28,7 @@ export function createTestKNode(
     created_at: overrides.created_at ?? Date.now(),
     updated_at: overrides.updated_at ?? Date.now(),
     version: overrides.version ?? "v1",
-  };
+  }
 }
 
 /**
@@ -38,8 +38,8 @@ export function createCardState(
   nodeOverrides: Partial<KNode> = {},
   children: KNode[] = [],
 ): CardState {
-  const node = createTestKNode(nodeOverrides);
-  return { node, children };
+  const node = createTestKNode(nodeOverrides)
+  return { node, children }
 }
 
 /**
@@ -52,8 +52,8 @@ export function createColumnState(
   const node = createTestKNode({
     type: "folder",
     ...nodeOverrides,
-  });
-  return { node, cards };
+  })
+  return { node, cards }
 }
 
 /**
@@ -63,13 +63,13 @@ export function createBoardState(
   columns: ColumnState[] = [],
   overrides: Partial<TUIBoardState> = {},
 ): TUIBoardState {
-  const base = createEmptyState();
+  const base = createEmptyState()
   return {
     ...base,
     columns,
     rootId: overrides.rootId ?? (columns.length > 0 ? "root" : null),
     ...overrides,
-  };
+  }
 }
 
 /**
@@ -77,29 +77,29 @@ export function createBoardState(
  * Useful for testing navigation, rendering, etc.
  */
 export function createSimpleTestBoard(): {
-  state: TUIBoardState;
+  state: TUIBoardState
   nodeIds: {
-    root: string;
-    col1: string;
-    col2: string;
-    card1: string;
-    card2: string;
-    card3: string;
-  };
+    root: string
+    col1: string
+    col2: string
+    card1: string
+    card2: string
+    card3: string
+  }
 } {
-  const rootId = ulid();
-  const col1Id = ulid();
-  const col2Id = ulid();
-  const card1Id = ulid();
-  const card2Id = ulid();
-  const card3Id = ulid();
+  const rootId = ulid()
+  const col1Id = ulid()
+  const col2Id = ulid()
+  const card1Id = ulid()
+  const card2Id = ulid()
+  const card3Id = ulid()
 
   const card1 = createCardState({
     id: card1Id,
     parent_id: col1Id,
     content: "Task 1",
     type: "task",
-  });
+  })
 
   const card2 = createCardState({
     id: card2Id,
@@ -107,24 +107,24 @@ export function createSimpleTestBoard(): {
     parent_idx: 1,
     content: "Task 2",
     type: "task",
-  });
+  })
 
   const card3 = createCardState({
     id: card3Id,
     parent_id: col2Id,
     content: "Task 3",
     type: "task",
-  });
+  })
 
   const col1 = createColumnState(
     { id: col1Id, parent_id: rootId, content: "Todo" },
     [card1, card2],
-  );
+  )
 
   const col2 = createColumnState(
     { id: col2Id, parent_id: rootId, parent_idx: 1, content: "Done" },
     [card3],
-  );
+  )
 
   return {
     state: createBoardState([col1, col2], { rootId }),
@@ -136,29 +136,29 @@ export function createSimpleTestBoard(): {
       card2: card2Id,
       card3: card3Id,
     },
-  };
+  }
 }
 
 /**
  * Create a nested board for zoom testing
  */
 export function createNestedTestBoard(): {
-  state: TUIBoardState;
+  state: TUIBoardState
   nodeIds: {
-    root: string;
-    col: string;
-    card: string;
-    subCol: string;
-    subCard1: string;
-    subCard2: string;
-  };
+    root: string
+    col: string
+    card: string
+    subCol: string
+    subCard1: string
+    subCard2: string
+  }
 } {
-  const rootId = ulid();
-  const colId = ulid();
-  const cardId = ulid();
-  const subColId = ulid();
-  const subCard1Id = ulid();
-  const subCard2Id = ulid();
+  const rootId = ulid()
+  const colId = ulid()
+  const cardId = ulid()
+  const subColId = ulid()
+  const subCard1Id = ulid()
+  const subCard2Id = ulid()
 
   // The card has children that form a nested board when zoomed
   const subCard1 = createCardState({
@@ -166,7 +166,7 @@ export function createNestedTestBoard(): {
     parent_id: subColId,
     content: "Sub-task 1",
     type: "task",
-  });
+  })
 
   const subCard2 = createCardState({
     id: subCard2Id,
@@ -174,7 +174,7 @@ export function createNestedTestBoard(): {
     parent_idx: 1,
     content: "Sub-task 2",
     type: "task",
-  });
+  })
 
   const card = createCardState(
     {
@@ -197,12 +197,12 @@ export function createNestedTestBoard(): {
         content: "Sub-task 2",
       }),
     ],
-  );
+  )
 
   const col = createColumnState(
     { id: colId, parent_id: rootId, content: "Column" },
     [card],
-  );
+  )
 
   return {
     state: createBoardState([col], { rootId }),
@@ -214,7 +214,7 @@ export function createNestedTestBoard(): {
       subCard1: subCard1Id,
       subCard2: subCard2Id,
     },
-  };
+  }
 }
 
 /**
@@ -247,7 +247,7 @@ export function createStatusTestBoard(): TUIBoardState {
       type: "task",
       data: { task_status: "dropped" },
     }),
-  ]);
+  ])
 
-  return createBoardState([col]);
+  return createBoardState([col])
 }

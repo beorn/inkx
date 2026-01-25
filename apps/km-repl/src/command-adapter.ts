@@ -19,13 +19,13 @@ import {
   type CommandAction,
   type CommandContext,
   type ViewMode,
-} from "@km/commands";
-import type { TNode } from "@km/board";
+} from "@km/commands"
+import type { TNode } from "@km/board"
 
 // Re-export types for consumers
-export type { CommandAction, CommandContext };
+export type { CommandAction, CommandContext }
 
-let initialized = false;
+let initialized = false
 
 /**
  * Initialize the command system for shell use.
@@ -33,8 +33,8 @@ let initialized = false;
  */
 export function initShellCommands(): void {
   if (!initialized) {
-    initCommandSystem();
-    initialized = true;
+    initCommandSystem()
+    initialized = true
   }
 }
 
@@ -42,8 +42,8 @@ export function initShellCommands(): void {
  * Get all registered command IDs for help/completion.
  */
 export function getRegisteredCommandIds(): string[] {
-  initShellCommands();
-  return getAllCommands().map((cmd) => cmd.id);
+  initShellCommands()
+  return getAllCommands().map((cmd) => cmd.id)
 }
 
 /**
@@ -52,14 +52,14 @@ export function getRegisteredCommandIds(): string[] {
 export function getCommandInfo(
   id: string,
 ): { name: string; description: string; category: string } | null {
-  initShellCommands();
-  const cmd = getCommand(id);
-  if (!cmd) return null;
+  initShellCommands()
+  const cmd = getCommand(id)
+  if (!cmd) return null
   return {
     name: cmd.name,
     description: cmd.description,
     category: cmd.category,
-  };
+  }
 }
 
 /**
@@ -67,15 +67,15 @@ export function getCommandInfo(
  * Most fields have sensible defaults for shell use.
  */
 interface ShellContextOptions {
-  currentNode?: TNode | null;
-  currentNodeId?: string | null;
-  selectedNodes?: string[];
-  siblingIndex?: number;
-  siblingCount?: number;
-  columnIndex?: number;
-  columnCount?: number;
-  moveMode?: boolean;
-  foldedNodes?: Set<string>;
+  currentNode?: TNode | null
+  currentNodeId?: string | null
+  selectedNodes?: string[]
+  siblingIndex?: number
+  siblingCount?: number
+  columnIndex?: number
+  columnCount?: number
+  moveMode?: boolean
+  foldedNodes?: Set<string>
 }
 
 /**
@@ -96,7 +96,7 @@ export function buildShellContext(
     columnCount: options.columnCount ?? 0,
     moveMode: options.moveMode ?? false,
     foldedNodes: options.foldedNodes ?? new Set(),
-  });
+  })
 }
 
 /**
@@ -112,23 +112,23 @@ export function tryExecuteRegisteredCommand(
   viewMode: ViewMode = "list",
   options: ShellContextOptions = {},
 ): CommandAction | CommandAction[] | null {
-  initShellCommands();
+  initShellCommands()
 
-  const cmd = getCommand(commandId);
+  const cmd = getCommand(commandId)
   if (!cmd) {
-    return null;
+    return null
   }
 
-  const ctx = buildShellContext(viewMode, options);
-  return executeRegisteredCommand(commandId, ctx);
+  const ctx = buildShellContext(viewMode, options)
+  return executeRegisteredCommand(commandId, ctx)
 }
 
 /**
  * Check if a command ID exists in the unified registry.
  */
 export function isRegisteredCommand(commandId: string): boolean {
-  initShellCommands();
-  return getCommand(commandId) !== null;
+  initShellCommands()
+  return getCommand(commandId) !== null
 }
 
 /**
@@ -138,22 +138,22 @@ export function getCommandsByCategory(): Map<
   string,
   Array<{ id: string; name: string; description: string }>
 > {
-  initShellCommands();
-  const commands = getAllCommands();
+  initShellCommands()
+  const commands = getAllCommands()
   const byCategory = new Map<
     string,
     Array<{ id: string; name: string; description: string }>
-  >();
+  >()
 
   for (const cmd of commands) {
-    const existing = byCategory.get(cmd.category) ?? [];
+    const existing = byCategory.get(cmd.category) ?? []
     existing.push({
       id: cmd.id,
       name: cmd.name,
       description: cmd.description,
-    });
-    byCategory.set(cmd.category, existing);
+    })
+    byCategory.set(cmd.category, existing)
   }
 
-  return byCategory;
+  return byCategory
 }

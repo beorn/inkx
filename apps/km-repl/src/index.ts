@@ -15,7 +15,7 @@ export {
   getCommandNames,
   type ParseResult,
   type ShellCommand,
-} from "./commandParser.ts";
+} from "./commandParser.ts"
 
 // Shell Executor
 export {
@@ -32,7 +32,7 @@ export {
   type ShellContext,
   type MutationResult,
   type MutationHandler,
-} from "./shellExecutor.ts";
+} from "./shellExecutor.ts"
 
 // Command Registry (legacy - use @km/commands directly for new code)
 // These re-exports are for backwards compatibility
@@ -44,10 +44,10 @@ export {
   fuzzyMatch,
   type CommandDef,
   type CommandCategory,
-} from "./commands.ts";
+} from "./commands.ts"
 
 // Plain text utilities (for OpenTUI - no ANSI codes)
-export { renderPlain, displayLength } from "./text.ts";
+export { renderPlain, displayLength } from "./text.ts"
 
 // Command Adapter (unified @km/commands integration - preferred over legacy)
 export {
@@ -60,7 +60,7 @@ export {
   getCommandsByCategory,
   type CommandAction,
   type CommandContext,
-} from "./command-adapter.ts";
+} from "./command-adapter.ts"
 
 // Board state types (local to km-repl - decoupled from @km/board)
 export type {
@@ -69,11 +69,11 @@ export type {
   TNode,
   TPath,
   NodeDirection,
-} from "./board-types.ts";
+} from "./board-types.ts"
 export {
   boardReducer,
   createBoardState,
   findPathToNode,
   getNodeAtPath,
-} from "./board-reducer.ts";
-export type { TaskStatus } from "@km/core";
+} from "./board-reducer.ts"
+export type { TaskStatus } from "@km/core"

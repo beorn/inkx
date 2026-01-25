@@ -13,22 +13,22 @@ This document analyzes the 5 known TUI1 pain points with 5 alternative approache
 **Example from TreeNode.tsx lines 187-190**:
 
 ```typescript
-const wrapWidth = Math.max(1, width - prefixLength);
+const wrapWidth = Math.max(1, width - prefixLength)
 const { lines: wrappedLines } = constrainText(
   styledContent,
   wrapWidth,
   maxContentLines,
-);
+)
 ```
 
 **Example from ColumnsView.tsx lines 229-235**:
 
 ```typescript
-const separatorCount = effectiveVisibleColumns.length - 1;
-const availWidthForCols = availableWidth - separatorCount;
-const colBaseWidth = Math.floor(availWidthForCols / effectiveMaxCols);
-const colRemainder = availWidthForCols % effectiveMaxCols;
-const colWidth = colBaseWidth + (i < colRemainder ? 1 : 0);
+const separatorCount = effectiveVisibleColumns.length - 1
+const availWidthForCols = availableWidth - separatorCount
+const colBaseWidth = Math.floor(availWidthForCols / effectiveMaxCols)
+const colRemainder = availWidthForCols % effectiveMaxCols
+const colWidth = colBaseWidth + (i < colRemainder ? 1 : 0)
 ```
 
 ### Alternative Approaches
@@ -74,8 +74,8 @@ function Column({ children }) {
 
 ```typescript
 function TreeNode() {
-  const { stdout } = useStdout();
-  const width = stdout?.columns ?? 80;
+  const { stdout } = useStdout()
+  const width = stdout?.columns ?? 80
   // Calculate own width based on position
 }
 ```
@@ -153,11 +153,11 @@ function useMeasuredLayout(children) {
 **Concept**: Replace custom code with established npm packages.
 
 ```typescript
-import wrapAnsi from "wrap-ansi";
-import sliceAnsi from "slice-ansi";
+import wrapAnsi from "wrap-ansi"
+import sliceAnsi from "slice-ansi"
 
-const truncated = sliceAnsi(text, 0, width - 1) + "…";
-const wrapped = wrapAnsi(text, width, { hard: true });
+const truncated = sliceAnsi(text, 0, width - 1) + "…"
+const wrapped = wrapAnsi(text, width, { hard: true })
 ```
 
 **Assessment**:
@@ -171,8 +171,8 @@ const wrapped = wrapAnsi(text, width, { hard: true });
 **Concept**: Use chalk's built-in string-width for display length.
 
 ```typescript
-import stringWidth from "string-width";
-const len = stringWidth(styledText); // Handles ANSI + Unicode width
+import stringWidth from "string-width"
+const len = stringWidth(styledText) // Handles ANSI + Unicode width
 ```
 
 **Assessment**:
@@ -186,10 +186,10 @@ const len = stringWidth(styledText); // Handles ANSI + Unicode width
 **Concept**: Store plain text + style positions separately, truncate plain text, re-apply styles.
 
 ```typescript
-const { plain, styles } = parseStyled("Hello **world**");
+const { plain, styles } = parseStyled("Hello **world**")
 // plain: "Hello world"
 // styles: [{start: 6, end: 11, style: 'bold'}]
-const truncated = applyStyles(plain.slice(0, 8) + "…", styles);
+const truncated = applyStyles(plain.slice(0, 8) + "…", styles)
 ```
 
 **Assessment**:
@@ -245,7 +245,7 @@ return <Text>{styled}</Text>;
 
 ```typescript
 export function displayLength(text: string): number {
-  return text.replace(ANSI_REGEX, "").length;
+  return text.replace(ANSI_REGEX, "").length
 }
 ```
 
@@ -256,8 +256,8 @@ export function displayLength(text: string): number {
 **Concept**: Use battle-tested npm package that handles ANSI + Unicode.
 
 ```typescript
-import stringWidth from "string-width";
-const len = stringWidth(text);
+import stringWidth from "string-width"
+const len = stringWidth(text)
 ```
 
 **Assessment**:
@@ -271,12 +271,12 @@ const len = stringWidth(text);
 **Concept**: Memoize display length calculations for repeated strings.
 
 ```typescript
-const lengthCache = new Map<string, number>();
+const lengthCache = new Map<string, number>()
 function displayLength(text: string): number {
-  if (lengthCache.has(text)) return lengthCache.get(text)!;
-  const len = text.replace(ANSI_REGEX, "").length;
-  lengthCache.set(text, len);
-  return len;
+  if (lengthCache.has(text)) return lengthCache.get(text)!
+  const len = text.replace(ANSI_REGEX, "").length
+  lengthCache.set(text, len)
+  return len
 }
 ```
 
@@ -293,7 +293,7 @@ function displayLength(text: string): number {
 ```typescript
 function renderRich(text: string): { styled: string; length: number } {
   // Calculate length as we build the string
-  return { styled: result, length: visibleChars };
+  return { styled: result, length: visibleChars }
 }
 ```
 
@@ -308,7 +308,7 @@ function renderRich(text: string): { styled: string; length: number } {
 **Concept**: Always stripAnsi before measuring.
 
 ```typescript
-const len = stripAnsi(text).length;
+const len = stripAnsi(text).length
 ```
 
 **Assessment**:
@@ -424,7 +424,7 @@ const { visibleItems, scrollOffset, hasOverflow } = useScrollState({
   selectedIndex,
   containerHeight,
   itemHeight,
-});
+})
 ```
 
 **Assessment**:
@@ -440,7 +440,7 @@ const { visibleItems, scrollOffset, hasOverflow } = useScrollState({
 ```typescript
 // Current: estimatedCardHeight = maxContentLines + 3
 // Better: measure first render, cache heights
-const cardHeights = cards.map((c) => measureCard(c));
+const cardHeights = cards.map((c) => measureCard(c))
 ```
 
 **Assessment**:
@@ -466,7 +466,7 @@ const cardHeights = cards.map((c) => measureCard(c));
 ```typescript
 // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
 // Solution: Delay rendering the actual UI until the terminal is fully ready
-const [isReady, setIsReady] = useState(false);
+const [isReady, setIsReady] = useState(false)
 // Poll for dimensions, then wait 50ms
 ```
 

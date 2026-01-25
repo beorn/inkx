@@ -77,9 +77,9 @@ Before fixing, write a test that fails due to the bug:
 ```typescript
 test("should not crash when X happens", () => {
   // This test should FAIL before the fix
-  const result = doThing(edgeCaseInput);
-  expect(result).toBe(expectedValue);
-});
+  const result = doThing(edgeCaseInput)
+  expect(result).toBe(expectedValue)
+})
 ```
 
 This:
