@@ -5,8 +5,7 @@
  */
 
 import { describe, test, expect } from "bun:test"
-import { Database } from "bun:sqlite"
-import { runWithDb, SCHEMA } from "@km/storage"
+import { createFakeVault } from "@km/storage"
 import {
   queryAgents,
   getAgent,
@@ -14,28 +13,28 @@ import {
   nodeToAgent,
 } from "../src/queries.ts"
 import type { KNode } from "@km/core"
+import { ulid } from "ulid"
 
-/** Create an in-memory test database with minimal schema for agents */
-function createTestDb(): Database {
-  const db = new Database(":memory:")
-  db.exec(SCHEMA)
-  return db
-}
-
-/** Insert a test agent into the database */
-function insertAgent(
-  db: Database,
-  id: string,
+/** Create a test agent node */
+function createAgent(
   name: string,
   data: Record<string, unknown>,
   parentIdx = 0,
-): void {
+): KNode {
   const now = Date.now()
-  db.run(
-    `INSERT INTO nodes (id, type, name, content, data, created_at, updated_at, parent_idx)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, "agent", name, name, JSON.stringify(data), now, now, parentIdx],
-  )
+  return {
+    id: ulid(),
+    type: "agent",
+    name,
+    content: name,
+    parent_id: null,
+    parent_idx: parentIdx,
+    link_to: null,
+    data,
+    created_at: now,
+    updated_at: now,
+    version: "test-0",
+  }
 }
 
 describe("nodeToAgent", () => {
@@ -114,204 +113,217 @@ describe("nodeToAgent", () => {
 
 describe("queryAgents", () => {
   test("returns all agents when no filter", () => {
-    const db = createTestDb()
-    insertAgent(db, "agent-0001", "Agent One", {
-      short_id: "0001",
-      model: "claude-sonnet-4",
-      harness: "general",
-      status: "idle",
+    const vault = createFakeVault({
+      nodes: [
+        createAgent("Agent One", {
+          short_id: "0001",
+          model: "claude-sonnet-4",
+          harness: "general",
+          status: "idle",
+        }),
+        createAgent(
+          "Agent Two",
+          {
+            short_id: "0002",
+            model: "claude-opus-4",
+            harness: "code-reviewer",
+            status: "running",
+          },
+          1,
+        ),
+        createAgent(
+          "Agent Three",
+          {
+            short_id: "0003",
+            model: "claude-sonnet-4",
+            harness: "general",
+            status: "error",
+          },
+          2,
+        ),
+      ],
     })
-    insertAgent(
-      db,
-      "agent-0002",
-      "Agent Two",
-      {
-        short_id: "0002",
-        model: "claude-opus-4",
-        harness: "code-reviewer",
-        status: "running",
-      },
-      1,
-    )
-    insertAgent(
-      db,
-      "agent-0003",
-      "Agent Three",
-      {
-        short_id: "0003",
-        model: "claude-sonnet-4",
-        harness: "general",
-        status: "error",
-      },
-      2,
-    )
 
-    runWithDb(db, () => {
-      const agents = queryAgents()
-      expect(agents.length).toBe(3)
-    })
+    const agents = queryAgents(vault)
+    expect(agents.length).toBe(3)
   })
 
   test("filters by status", () => {
-    const db = createTestDb()
-    insertAgent(db, "agent-0001", "Agent One", {
-      short_id: "0001",
-      status: "idle",
-    })
-    insertAgent(db, "agent-0002", "Agent Two", {
-      short_id: "0002",
-      status: "running",
+    const vault = createFakeVault({
+      nodes: [
+        createAgent("Agent One", {
+          short_id: "0001",
+          status: "idle",
+        }),
+        createAgent("Agent Two", {
+          short_id: "0002",
+          status: "running",
+        }),
+      ],
     })
 
-    runWithDb(db, () => {
-      const idle = queryAgents({ status: "idle" })
-      expect(idle.length).toBe(1)
-      expect(idle[0]!.name).toBe("Agent One")
+    const idle = queryAgents(vault, { status: "idle" })
+    expect(idle.length).toBe(1)
+    expect(idle[0]!.name).toBe("Agent One")
 
-      const running = queryAgents({ status: "running" })
-      expect(running.length).toBe(1)
-      expect(running[0]!.name).toBe("Agent Two")
-    })
+    const running = queryAgents(vault, { status: "running" })
+    expect(running.length).toBe(1)
+    expect(running[0]!.name).toBe("Agent Two")
   })
 
   test("filters by status array", () => {
-    const db = createTestDb()
-    insertAgent(db, "agent-0001", "Agent One", { status: "idle" })
-    insertAgent(db, "agent-0002", "Agent Two", { status: "running" })
-    insertAgent(db, "agent-0003", "Agent Three", { status: "error" })
-
-    runWithDb(db, () => {
-      const agents = queryAgents({ status: ["idle", "error"] })
-
-      expect(agents.length).toBe(2)
-      expect(agents.map((a) => a.status)).toContain("idle")
-      expect(agents.map((a) => a.status)).toContain("error")
+    const vault = createFakeVault({
+      nodes: [
+        createAgent("Agent One", { status: "idle" }),
+        createAgent("Agent Two", { status: "running" }),
+        createAgent("Agent Three", { status: "error" }),
+      ],
     })
+
+    const agents = queryAgents(vault, { status: ["idle", "error"] })
+
+    expect(agents.length).toBe(2)
+    expect(agents.map((a) => a.status)).toContain("idle")
+    expect(agents.map((a) => a.status)).toContain("error")
   })
 
   test("filters by harness", () => {
-    const db = createTestDb()
-    insertAgent(db, "agent-0001", "Agent One", { harness: "general" })
-    insertAgent(db, "agent-0002", "Agent Two", { harness: "code-reviewer" })
-    insertAgent(db, "agent-0003", "Agent Three", { harness: "general" })
-
-    runWithDb(db, () => {
-      const general = queryAgents({ harness: "general" })
-      expect(general.length).toBe(2)
-
-      const codeReviewer = queryAgents({ harness: "code-reviewer" })
-      expect(codeReviewer.length).toBe(1)
-      expect(codeReviewer[0]!.name).toBe("Agent Two")
+    const vault = createFakeVault({
+      nodes: [
+        createAgent("Agent One", { harness: "general" }),
+        createAgent("Agent Two", { harness: "code-reviewer" }),
+        createAgent("Agent Three", { harness: "general" }),
+      ],
     })
+
+    const general = queryAgents(vault, { harness: "general" })
+    expect(general.length).toBe(2)
+
+    const codeReviewer = queryAgents(vault, { harness: "code-reviewer" })
+    expect(codeReviewer.length).toBe(1)
+    expect(codeReviewer[0]!.name).toBe("Agent Two")
   })
 
   test("filters by model", () => {
-    const db = createTestDb()
-    insertAgent(db, "agent-0001", "Agent One", { model: "claude-sonnet-4" })
-    insertAgent(db, "agent-0002", "Agent Two", { model: "claude-opus-4" })
-    insertAgent(db, "agent-0003", "Agent Three", { model: "claude-sonnet-4" })
-
-    runWithDb(db, () => {
-      const sonnet = queryAgents({ model: "claude-sonnet-4" })
-      expect(sonnet.length).toBe(2)
-
-      const opus = queryAgents({ model: "claude-opus-4" })
-      expect(opus.length).toBe(1)
-      expect(opus[0]!.name).toBe("Agent Two")
+    const vault = createFakeVault({
+      nodes: [
+        createAgent("Agent One", { model: "claude-sonnet-4" }),
+        createAgent("Agent Two", { model: "claude-opus-4" }),
+        createAgent("Agent Three", { model: "claude-sonnet-4" }),
+      ],
     })
+
+    const sonnet = queryAgents(vault, { model: "claude-sonnet-4" })
+    expect(sonnet.length).toBe(2)
+
+    const opus = queryAgents(vault, { model: "claude-opus-4" })
+    expect(opus.length).toBe(1)
+    expect(opus[0]!.name).toBe("Agent Two")
   })
 
   test("combines multiple filters", () => {
-    const db = createTestDb()
-    insertAgent(db, "agent-0001", "Agent One", {
+    const vault = createFakeVault({
+      nodes: [
+        createAgent("Agent One", {
+          model: "claude-sonnet-4",
+          harness: "general",
+          status: "idle",
+        }),
+        createAgent("Agent Two", {
+          model: "claude-opus-4",
+          harness: "code-reviewer",
+          status: "running",
+        }),
+      ],
+    })
+
+    const agents = queryAgents(vault, {
       model: "claude-sonnet-4",
       harness: "general",
       status: "idle",
     })
-    insertAgent(db, "agent-0002", "Agent Two", {
-      model: "claude-opus-4",
-      harness: "code-reviewer",
-      status: "running",
-    })
 
-    runWithDb(db, () => {
-      const agents = queryAgents({
-        model: "claude-sonnet-4",
-        harness: "general",
-        status: "idle",
-      })
-
-      expect(agents.length).toBe(1)
-      expect(agents[0]!.name).toBe("Agent One")
-    })
+    expect(agents.length).toBe(1)
+    expect(agents[0]!.name).toBe("Agent One")
   })
 })
 
 describe("getAgent", () => {
   test("finds agent by short ID", () => {
-    const db = createTestDb()
-    insertAgent(db, "01ABC123DEFG456", "Test Agent", {
-      short_id: "test",
-      model: "claude-sonnet-4",
-      harness: "general",
-      status: "idle",
+    const vault = createFakeVault({
+      nodes: [
+        {
+          ...createAgent("Test Agent", {
+            short_id: "test",
+            model: "claude-sonnet-4",
+            harness: "general",
+            status: "idle",
+          }),
+          id: "01ABC123DEFG456",
+        },
+      ],
     })
 
-    runWithDb(db, () => {
-      const agent = getAgent("agent-test")
+    const agent = getAgent(vault, "agent-test")
 
-      expect(agent).not.toBeNull()
-      expect(agent!.name).toBe("Test Agent")
-    })
+    expect(agent).not.toBeNull()
+    expect(agent!.name).toBe("Test Agent")
   })
 
   test("finds agent by full ID", () => {
-    const db = createTestDb()
-    insertAgent(db, "01ABC123DEFG456", "Test Agent", { short_id: "test" })
-
-    runWithDb(db, () => {
-      const agent = getAgent("01ABC123DEFG456")
-
-      expect(agent).not.toBeNull()
-      expect(agent!.name).toBe("Test Agent")
+    const vault = createFakeVault({
+      nodes: [
+        {
+          ...createAgent("Test Agent", { short_id: "test" }),
+          id: "01ABC123DEFG456",
+        },
+      ],
     })
+
+    const agent = getAgent(vault, "01ABC123DEFG456")
+
+    expect(agent).not.toBeNull()
+    expect(agent!.name).toBe("Test Agent")
   })
 
   test("finds agent by partial ID (without agent- prefix)", () => {
-    const db = createTestDb()
-    insertAgent(db, "01ABC123DEFG456", "Test Agent", { short_id: "test" })
-
-    runWithDb(db, () => {
-      const agent = getAgent("test")
-
-      expect(agent).not.toBeNull()
-      expect(agent!.name).toBe("Test Agent")
+    const vault = createFakeVault({
+      nodes: [
+        {
+          ...createAgent("Test Agent", { short_id: "test" }),
+          id: "01ABC123DEFG456",
+        },
+      ],
     })
+
+    const agent = getAgent(vault, "test")
+
+    expect(agent).not.toBeNull()
+    expect(agent!.name).toBe("Test Agent")
   })
 
   test("returns null for non-existent agent", () => {
-    const db = createTestDb()
+    const vault = createFakeVault({ nodes: [] })
 
-    runWithDb(db, () => {
-      const agent = getAgent("nonexistent")
+    const agent = getAgent(vault, "nonexistent")
 
-      expect(agent).toBeNull()
-    })
+    expect(agent).toBeNull()
   })
 })
 
 describe("getActiveAgents", () => {
   test("returns only running agents", () => {
-    const db = createTestDb()
-    insertAgent(db, "agent-1", "Idle Agent", { status: "idle" })
-    insertAgent(db, "agent-2", "Running Agent", { status: "running" }, 1)
-
-    runWithDb(db, () => {
-      const active = getActiveAgents()
-
-      expect(active.length).toBe(1)
-      expect(active[0]!.name).toBe("Running Agent")
-      expect(active[0]!.status).toBe("running")
+    const vault = createFakeVault({
+      nodes: [
+        createAgent("Idle Agent", { status: "idle" }),
+        createAgent("Running Agent", { status: "running" }, 1),
+      ],
     })
+
+    const active = getActiveAgents(vault)
+
+    expect(active.length).toBe(1)
+    expect(active[0]!.name).toBe("Running Agent")
+    expect(active[0]!.status).toBe("running")
   })
 })

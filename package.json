@@ -30,6 +30,7 @@
     "format:fix": "prettier --write . --log-level warn",
     "codemod": "bun scripts/codemod.ts",
     "typecheck": "tsc --noEmit",
+    "type:coverage": "type-coverage --detail --at-least 90",
     "fix": "bun run codemod && bun run lint:fix && bun run format:fix",
     "test:fast": "bun test $(find packages apps vendor \\( -name '*.test.ts' -o -name '*.spec.ts' \\) ! -name '*.slow.test.ts' ! -path '*/node_modules/*' 2>/dev/null)",
     "test:mock": "TEST_MODE=mock bun run test:fast",
@@ -53,6 +54,7 @@
     "@release-it/conventional-changelog": "^10.0.4",
     "@sinonjs/fake-timers": "^15.1.0",
     "@steipete/peekaboo": "^3.0.0-beta3",
+    "@total-typescript/ts-reset": "^0.6.1",
     "@types/bun": "^1.3.6",
     "@types/sinonjs__fake-timers": "^15.0.1",
     "eslint": "^9.39.2",
@@ -65,6 +67,7 @@
     "prettier": "^3.8.1",
     "react-devtools-core": "^7.0.1",
     "release-it": "^19.2.4",
+    "type-coverage": "^2.29.7",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.1",
     "yaml": "^2.8.2"

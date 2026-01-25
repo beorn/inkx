@@ -69,6 +69,7 @@ import { buildBoardState } from "../../src/state.ts"
 import { createInitialUIState } from "../../src/ui-reducer.ts"
 import { createLayoutRegistry } from "../../src/card-positions.ts"
 import { VaultProvider } from "../../src/vault-context.tsx"
+import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
 import type { TUIBoardState } from "../../src/types.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
@@ -174,7 +175,6 @@ export function testEnv(
 
   // Ensure command system is initialized before rendering
   // Note: Board.tsx also calls this in useEffect, but in tests that might not run
-  const { ensureCommandSystemInitialized } = require("../../src/command-bridge.ts")
   ensureCommandSystemInitialized()
 
   // Render the full Board component (not BoardCore) for keyboard navigation + id attributes

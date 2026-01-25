@@ -192,10 +192,19 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       )
     },
 
-    query(_expression) {
+    query(expression) {
       ensureNotClosed()
-      // Simple implementation: return all tasks for basic tests
+      // Simple implementation: basic type filtering for tests
       // Full query language support is tested via real vault
+
+      // Handle "type:X" queries
+      const typeMatch = expression.match(/^type:(\w+)$/)
+      if (typeMatch) {
+        const type = typeMatch[1]
+        return [...nodes.values()].filter((n) => n.type === type)
+      }
+
+      // Default: return all tasks (for backwards compatibility)
       return this.getAllTasks()
     },
 
