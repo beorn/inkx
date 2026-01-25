@@ -8,6 +8,10 @@
   "bin": {
     "km": "./src/bootstrap.ts"
   },
+  "exports": {
+    ".": "./src/index.ts",
+    "./mdtest": "./tests/mdtest-plugin.ts"
+  },
   "dependencies": {
     "@beorn/chalkx": "workspace:*",
     "@beorn/inkx-ui": "workspace:*",

@@ -8,7 +8,7 @@
 import type { Key } from "inkx";
 import type { Dispatch } from "react";
 import { actions, type UIAction } from "../ui-reducer.ts";
-import type { SimplifiedBoardState, TransitionalBoardAction } from "@km/board";
+import type { BoardState, TransitionalBoardAction } from "@km/board";
 import type { Vault } from "../vault-context.tsx";
 import type { TUIContext } from "../tui-context.ts";
 import { handleTreeNavigation } from "../navigation-handlers.ts";
@@ -82,7 +82,7 @@ export function handleDetailPaneKeyInput(
   input: string,
   key: Key,
   vault: Vault,
-  boardState: SimplifiedBoardState,
+  boardState: BoardState,
   dispatch: Dispatch<UIAction>,
   dispatchBoard: Dispatch<TransitionalBoardAction>,
   exit: () => void,

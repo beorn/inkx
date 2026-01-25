@@ -26,7 +26,7 @@ export type {
   JumpToColumnAction,
   CloseOrQuitAction,
   OutdentNodeAction,
-  SimplifiedBoardAction,
+  BoardAction,
   TNode,
   ViewMode,
   TaskStatus,

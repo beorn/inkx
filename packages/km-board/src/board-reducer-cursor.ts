@@ -5,7 +5,7 @@
  * Contains CURSOR_MOVE direction handlers and visual navigation helpers.
  */
 
-import type { BoardState, TNode, TPath } from "./board-types.ts";
+import type { BoardStateLegacy, TNode, TPath } from "./board-types.ts";
 import { getNodeAtPath, getSiblingCount, getCurrentIndex } from "@km/tree";
 
 // =============================================================================
@@ -181,9 +181,9 @@ function getNodeIdAtPath(nodes: TNode[], path: TPath): string | null {
  * This ensures they stay in sync.
  */
 export function updateCursor(
-  state: BoardState,
+  state: BoardStateLegacy,
   newCursor: TPath,
-): Pick<BoardState, "cursor" | "cursorNodeId"> {
+): Pick<BoardStateLegacy, "cursor" | "cursorNodeId"> {
   return {
     cursor: newCursor,
     cursorNodeId: getNodeIdAtPath(state.nodes, newCursor),
@@ -215,13 +215,13 @@ export type CursorDirection =
  * @returns Updated board state
  */
 export function handleCursorMove(
-  state: BoardState,
+  state: BoardStateLegacy,
   dir: CursorDirection,
   crossColumnHandler: (
-    state: BoardState,
+    state: BoardStateLegacy,
     direction: "left" | "right",
-  ) => BoardState,
-): BoardState {
+  ) => BoardStateLegacy,
+): BoardStateLegacy {
   switch (dir) {
     // Structural directions (hjkl)
     case "prev": {

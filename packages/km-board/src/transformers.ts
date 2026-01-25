@@ -5,16 +5,16 @@
  * Pure functions - no side effects, no React, no domain imports.
  */
 
-import type { BoardState, ViewMode, BoardViewModel } from "./board-types.ts";
+import type { BoardStateLegacy, ViewMode, BoardViewModel } from "./board-types.ts";
 
 /**
- * Transform BoardState into BoardViewModel
+ * Transform BoardStateLegacy into BoardViewModel
  *
  * No node transformation needed - TNode is used directly.
  * UI state (selection, folding) is passed through as Sets.
  */
 export function toBoardViewModel(
-  state: BoardState,
+  state: BoardStateLegacy,
   viewMode: ViewMode,
 ): BoardViewModel {
   return {

@@ -4,9 +4,9 @@
  * Core state types for board navigation and view models.
  * Does NOT include app-specific UI state (modals, dialogs) - that belongs in each app.
  *
- * MIGRATION IN PROGRESS (km-board-refactor):
- * - BoardState: Current type with nodes/cursor (being phased out)
- * - SimplifiedBoardState: New type with cursorNodeId only (target)
+ * MIGRATION STATUS (km-board-refactor):
+ * - BoardState: Simplified type with cursorNodeId only (NEW - renamed from SimplifiedBoardState)
+ * - BoardStateLegacy: Old type with nodes/cursor (DEPRECATED - will be deleted)
  *
  * See plan hazy-forging-crayon.md for design rationale.
  */
@@ -23,10 +23,10 @@ export type { TPath } from "@km/tree";
 
 export type ViewMode = "cards" | "list" | "columns" | "tabs";
 
-// ===== Simplified State Types (NEW - target architecture) =====
+// ===== Board State (NEW - simplified architecture) =====
 
 /**
- * Zoom stack entry for simplified state.
+ * Zoom stack entry.
  * Stores node IDs, not paths.
  */
 export interface ZoomEntry {
@@ -35,7 +35,7 @@ export interface ZoomEntry {
 }
 
 /**
- * Navigation history entry for simplified state.
+ * Navigation history entry.
  * Stores node IDs, not paths.
  */
 export interface NavHistoryEntry {
@@ -45,14 +45,14 @@ export interface NavHistoryEntry {
 }
 
 /**
- * NEW: Simplified board state - target architecture.
+ * Board navigation state.
  *
  * KEY DESIGN: No tree data (nodes) in state!
  * - cursorNodeId is the single source of truth for cursor position
  * - Visual indices (colIndex, cardIndex) are derived at render time
  * - Navigation uses Vault for tree queries, not state
  */
-export interface SimplifiedBoardState {
+export interface BoardState {
   // Root context
   rootId: string | null;
   rootPath: string | null;
@@ -90,10 +90,10 @@ export interface SimplifiedBoardState {
 }
 
 /**
- * NEW: Simplified board actions - all ID-based, no tree traversal.
+ * Board actions - all ID-based, no tree traversal.
  * Navigation handlers compute target nodeIds using Vault, then dispatch these.
  */
-export type SimplifiedBoardAction =
+export type BoardAction =
   // Cursor selection (navigation handler calls this with computed nodeId)
   | { type: "SELECT"; nodeId: string | null }
 
@@ -136,11 +136,11 @@ export type SimplifiedBoardAction =
 /**
  * Transitional action type that accepts both old and new actions.
  * Used during migration to allow gradual update of action handlers.
- * TODO: Remove once all handlers use SimplifiedBoardAction.
+ * TODO: Remove once all handlers use BoardAction (the new simplified type).
  */
-export type TransitionalBoardAction = SimplifiedBoardAction | BoardAction;
+export type TransitionalBoardAction = BoardAction | BoardActionLegacy;
 
-// ===== Current Board State (legacy, being phased out) =====
+// ===== Legacy Board State (DEPRECATED - being phased out) =====
 
 /**
  * Direction for node-relative operations (cursor movement, selection, etc.)
@@ -171,10 +171,10 @@ export type NodeDirection =
   | "last";
 
 /**
- * Current board navigation state (includes nodes array).
- * Being migrated to SimplifiedBoardState.
+ * LEGACY: Board navigation state with nodes array.
+ * @deprecated Use BoardState (the new simplified type without nodes array).
  */
-export interface BoardState {
+export interface BoardStateLegacy {
   // Root context
   rootId: string | null;
   rootPath: string | null;
@@ -221,10 +221,10 @@ export interface BoardState {
 }
 
 /**
- * Current board actions (some require tree data).
- * Being migrated to SimplifiedBoardAction.
+ * LEGACY: Board actions that require tree data (nodes array).
+ * @deprecated Use BoardAction (the new simplified type without tree data).
  */
-export type BoardAction =
+export type BoardActionLegacy =
   // Cursor movement (parameterized)
   | { type: "CURSOR_MOVE"; dir: NodeDirection }
 

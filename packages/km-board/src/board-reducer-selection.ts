@@ -5,7 +5,7 @@
  * Contains SELECT_* and EXTEND_SELECT_* action handlers.
  */
 
-import type { BoardState, TPath } from "./board-types.ts";
+import type { BoardStateLegacy, TPath } from "./board-types.ts";
 import { getNodeAtPath, getSiblings, collectAllNodeIds } from "@km/tree";
 import {
   getNextVisiblePath,
@@ -22,9 +22,9 @@ import {
  * Adds a node to the selection set.
  */
 export function handleSelectNodeAdd(
-  state: BoardState,
+  state: BoardStateLegacy,
   nodeId: string,
-): BoardState {
+): BoardStateLegacy {
   const newSelected = new Set(state.selectedNodes);
   newSelected.add(nodeId);
   return { ...state, selectedNodes: newSelected };
@@ -35,9 +35,9 @@ export function handleSelectNodeAdd(
  * Removes a node from the selection set.
  */
 export function handleSelectNodeRemove(
-  state: BoardState,
+  state: BoardStateLegacy,
   nodeId: string,
-): BoardState {
+): BoardStateLegacy {
   const newSelected = new Set(state.selectedNodes);
   newSelected.delete(nodeId);
   return { ...state, selectedNodes: newSelected };
@@ -48,9 +48,9 @@ export function handleSelectNodeRemove(
  * Toggles a node's selection state.
  */
 export function handleSelectNodeToggle(
-  state: BoardState,
+  state: BoardStateLegacy,
   nodeId: string,
-): BoardState {
+): BoardStateLegacy {
   const newSelected = new Set(state.selectedNodes);
   if (newSelected.has(nodeId)) {
     newSelected.delete(nodeId);
@@ -64,7 +64,7 @@ export function handleSelectNodeToggle(
  * Handle SELECT_ALL_SIBLINGS action.
  * Selects all siblings at the current cursor level.
  */
-export function handleSelectAllSiblings(state: BoardState): BoardState {
+export function handleSelectAllSiblings(state: BoardStateLegacy): BoardStateLegacy {
   const siblings = getSiblings(state.nodes, state.cursor);
   const newSelected = new Set(state.selectedNodes);
   for (const sibling of siblings) {
@@ -77,7 +77,7 @@ export function handleSelectAllSiblings(state: BoardState): BoardState {
  * Handle SELECT_ALL action.
  * Selects all nodes in the tree.
  */
-export function handleSelectAll(state: BoardState): BoardState {
+export function handleSelectAll(state: BoardStateLegacy): BoardStateLegacy {
   const allIds = collectAllNodeIds(state.nodes);
   return { ...state, selectedNodes: new Set(allIds) };
 }
@@ -86,7 +86,7 @@ export function handleSelectAll(state: BoardState): BoardState {
  * Handle CLEAR_SELECTION action.
  * Clears all selected nodes.
  */
-export function handleClearSelection(state: BoardState): BoardState {
+export function handleClearSelection(state: BoardStateLegacy): BoardStateLegacy {
   return { ...state, selectedNodes: new Set() };
 }
 
@@ -98,7 +98,7 @@ export function handleClearSelection(state: BoardState): BoardState {
  * Handle EXTEND_SELECT_DOWN action.
  * Adds current node to selection and moves down.
  */
-export function handleExtendSelectDown(state: BoardState): BoardState {
+export function handleExtendSelectDown(state: BoardStateLegacy): BoardStateLegacy {
   const currentNode = getNodeAtPath(state.nodes, state.cursor);
   if (!currentNode) return state;
 
@@ -133,7 +133,7 @@ export function handleExtendSelectDown(state: BoardState): BoardState {
  * Handle EXTEND_SELECT_UP action.
  * Adds current node to selection and moves up.
  */
-export function handleExtendSelectUp(state: BoardState): BoardState {
+export function handleExtendSelectUp(state: BoardStateLegacy): BoardStateLegacy {
   const currentNode = getNodeAtPath(state.nodes, state.cursor);
   if (!currentNode) return state;
 
@@ -168,7 +168,7 @@ export function handleExtendSelectUp(state: BoardState): BoardState {
  * Handle EXTEND_SELECT_LEFT action.
  * Adds current node to selection and moves left (cross-column).
  */
-export function handleExtendSelectLeft(state: BoardState): BoardState {
+export function handleExtendSelectLeft(state: BoardStateLegacy): BoardStateLegacy {
   const currentNode = getNodeAtPath(state.nodes, state.cursor);
   if (!currentNode) return state;
 
@@ -219,7 +219,7 @@ export function handleExtendSelectLeft(state: BoardState): BoardState {
  * Handle EXTEND_SELECT_RIGHT action.
  * Adds current node to selection and moves right (cross-column).
  */
-export function handleExtendSelectRight(state: BoardState): BoardState {
+export function handleExtendSelectRight(state: BoardStateLegacy): BoardStateLegacy {
   const currentNode = getNodeAtPath(state.nodes, state.cursor);
   if (!currentNode) return state;
 

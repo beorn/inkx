@@ -9,7 +9,7 @@
  * - Keyboard handler (reference)
  */
 
-import type { BoardAction } from "@km/board";
+import type { BoardAction } from "./board-types.ts";
 
 /**
  * Command definition for the palette and help system.

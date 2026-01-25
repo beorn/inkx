@@ -1,5 +1,5 @@
 import type {
-  SimplifiedBoardAction,
+  BoardAction,
   TNode,
   ViewMode,
   TaskStatus,
@@ -175,7 +175,7 @@ export type UIAction =
   | TUIAction;
 
 // High-level navigation actions (interpreted by TUI, not dispatched to reducer)
-// These are returned by commands and converted to SimplifiedBoardAction by the TUI handler
+// These are returned by commands and converted to BoardAction by the TUI handler
 export interface CursorMoveAction {
   type: "CURSOR_MOVE";
   dir: NodeDirection;
@@ -273,11 +273,11 @@ export type NavigationAction =
 
 // Combined action type that commands can return
 export type CommandAction =
-  | SimplifiedBoardAction
+  | BoardAction
   | NavigationAction
   | TaskSetStatusAction
   | HistoryAction
   | UIAction;
 
 // Re-export for convenience
-export type { SimplifiedBoardAction, TNode, ViewMode, TaskStatus };
+export type { BoardAction, TNode, ViewMode, TaskStatus };

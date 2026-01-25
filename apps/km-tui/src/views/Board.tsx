@@ -53,8 +53,8 @@ import { ConstraintRoot } from "../layout/index.ts";
 import { ensureCommandSystemInitialized } from "../command-bridge.ts";
 import { buildTUIContext, type TUIContext } from "../tui-context.ts";
 import {
-  simplifiedBoardReducer,
-  createSimplifiedBoardState,
+  boardReducer,
+  createBoardState,
   type TransitionalBoardAction,
 } from "@km/board";
 import { useColumns } from "../hooks/use-columns.ts";
@@ -438,13 +438,13 @@ export function Board({
     return null;
   }, [initialState]);
 
-  // Board navigation state managed by simplifiedBoardReducer
+  // Board navigation state managed by boardReducer
   // No nodes array - just IDs and Sets
   const [boardState, dispatchBoard] = useReducer(
-    simplifiedBoardReducer,
+    boardReducer,
     null, // unused
     () =>
-      createSimplifiedBoardState(
+      createBoardState(
         initialState.rootId,
         initialState.rootPath,
         initialCursorNodeId,

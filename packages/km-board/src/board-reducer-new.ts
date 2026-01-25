@@ -1,5 +1,5 @@
 /**
- * Simplified Board State Reducer
+ * Board State Reducer
  *
  * ID-based reducer for board navigation.
  * No tree traversal - just updates IDs and Sets.
@@ -10,8 +10,8 @@
 
 import createDebug from "debug";
 import type {
-  SimplifiedBoardState,
-  SimplifiedBoardAction,
+  BoardState,
+  BoardAction,
   ZoomEntry,
 } from "./board-types.ts";
 
@@ -26,9 +26,9 @@ const debug = createDebug("km:board:reducer");
  * IMPORTANT: No tree traversal here - navigation handlers use Vault.
  */
 export function simplifiedBoardReducer(
-  state: SimplifiedBoardState,
-  action: SimplifiedBoardAction,
-): SimplifiedBoardState {
+  state: BoardState,
+  action: BoardAction,
+): BoardState {
   debug("action: %s", action.type);
 
   switch (action.type) {
@@ -237,11 +237,11 @@ export function simplifiedBoardReducer(
 /**
  * Create initial simplified board state
  */
-export function createSimplifiedBoardState(
+export function createBoardState(
   rootId: string | null = null,
   rootPath: string | null = null,
   cursorNodeId: string | null = null,
-): SimplifiedBoardState {
+): BoardState {
   return {
     rootId,
     rootPath,

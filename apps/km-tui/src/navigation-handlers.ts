@@ -15,7 +15,7 @@ import createDebug from "debug";
 import type { Vault } from "@km/storage";
 import type { LayoutRegistry } from "./card-positions.ts";
 import { getCardMidY } from "./card-positions.ts";
-import type { SimplifiedBoardState } from "@km/board";
+import type { BoardState } from "@km/board";
 
 const debug = createDebug("km:tui:nav");
 
@@ -43,7 +43,7 @@ export type TreeDirection = "next" | "prev" | "child" | "parent";
  */
 export function handleTreeNavigation(
   direction: TreeDirection,
-  state: SimplifiedBoardState,
+  state: BoardState,
   vault: Vault,
 ): string | null {
   const { cursorNodeId, rootId, foldedNodes } = state;
@@ -170,7 +170,7 @@ export function handleSiblingJump(
  */
 export function handleVisualNavigation(
   direction: "left" | "right",
-  state: SimplifiedBoardState,
+  state: BoardState,
   vault: Vault,
   layout: LayoutRegistry,
 ): string | null {

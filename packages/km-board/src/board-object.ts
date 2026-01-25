@@ -1,7 +1,7 @@
 /**
  * Board - Navigation State Domain Object
  *
- * Wraps BoardState and boardReducer with a simpler API.
+ * Wraps BoardStateLegacy and boardReducer with a simpler API.
  * Created via createBoard() factory function.
  *
  * The Board doesn't need Disposable - it's just state + reducer.
@@ -10,14 +10,14 @@
 import createDebug from "debug";
 import type { KNode, TNode } from "@km/core";
 import type {
-  BoardState,
-  BoardAction,
+  BoardStateLegacy,
+  BoardActionLegacy,
   TPath,
   NodeDirection,
 } from "./board-types.ts";
 import {
-  boardReducer,
-  createBoardState,
+  boardReducerLegacy,
+  createBoardStateLegacy,
   findPathToNode,
 } from "./board-reducer.ts";
 import {
@@ -46,7 +46,7 @@ interface VaultInterface {
  */
 export interface Board {
   /** Current board state */
-  readonly state: BoardState;
+  readonly state: BoardStateLegacy;
 
   /** Vault this board is attached to */
   readonly vault: VaultInterface;
@@ -119,7 +119,7 @@ export interface Board {
   refresh(): void;
 
   /** Dispatch a raw action */
-  dispatch(action: BoardAction): void;
+  dispatch(action: BoardActionLegacy): void;
 }
 
 /** Options for createBoard */
@@ -155,7 +155,7 @@ export function createBoard(
   const nodes = rootNode ? buildTree(vault, rootNode.id) : buildRootTree(vault);
 
   // Create initial state
-  let state = createBoardState(nodes, options?.rootId ?? null);
+  let state = createBoardStateLegacy(nodes, options?.rootId ?? null);
 
   const board: Board = {
     get state() {
@@ -266,14 +266,14 @@ export function createBoard(
       dispatch({ type: "REFRESH", nodes });
     },
 
-    dispatch(action: BoardAction) {
+    dispatch(action: BoardActionLegacy) {
       dispatch(action);
     },
   };
 
   return board;
 
-  function dispatch(action: BoardAction) {
+  function dispatch(action: BoardActionLegacy) {
     state = boardReducer(state, action);
   }
 }

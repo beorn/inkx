@@ -1,25 +1,25 @@
 /**
  * Board State Selectors
  *
- * Pure functions to derive values from BoardState.
+ * Pure functions to derive values from BoardStateLegacy.
  * No side effects, no React imports - pure TypeScript.
  */
 
-import type { BoardState, TNode } from "./board-types.ts";
+import type { BoardStateLegacy, TNode } from "./board-types.ts";
 import { getNodeAtPath, getSiblingCount } from "@km/tree";
 import { findPathToNode } from "./board-reducer.ts";
 
 /**
  * Get the currently selected node
  */
-export function getCurrentNode(state: BoardState): TNode | null {
+export function getCurrentNode(state: BoardStateLegacy): TNode | null {
   return getNodeAtPath(state.nodes, state.cursor);
 }
 
 /**
  * Get the parent of the currently selected node
  */
-export function getParentNode(state: BoardState): TNode | null {
+export function getParentNode(state: BoardStateLegacy): TNode | null {
   if (state.cursor.length <= 1) return null;
   const parentPath = state.cursor.slice(0, -1);
   return getNodeAtPath(state.nodes, parentPath);
@@ -28,7 +28,7 @@ export function getParentNode(state: BoardState): TNode | null {
 /**
  * Get siblings at the current cursor level
  */
-export function getSiblings(state: BoardState): TNode[] {
+export function getSiblings(state: BoardStateLegacy): TNode[] {
   if (state.cursor.length === 0) return [];
   if (state.cursor.length === 1) return state.nodes;
 
@@ -40,7 +40,7 @@ export function getSiblings(state: BoardState): TNode[] {
 /**
  * Get the current index (last element of cursor path)
  */
-export function getCurrentIndex(state: BoardState): number {
+export function getCurrentIndex(state: BoardStateLegacy): number {
   if (state.cursor.length === 0) return 0;
   const lastIdx = state.cursor[state.cursor.length - 1];
   return lastIdx ?? 0;
@@ -49,14 +49,14 @@ export function getCurrentIndex(state: BoardState): number {
 /**
  * Check if cursor can navigate to previous sibling
  */
-export function canNavigateUp(state: BoardState): boolean {
+export function canNavigateUp(state: BoardStateLegacy): boolean {
   return getCurrentIndex(state) > 0;
 }
 
 /**
  * Check if cursor can navigate to next sibling
  */
-export function canNavigateDown(state: BoardState): boolean {
+export function canNavigateDown(state: BoardStateLegacy): boolean {
   const siblingCount = getSiblingCount(state.nodes, state.cursor);
   return getCurrentIndex(state) < siblingCount - 1;
 }
@@ -64,14 +64,14 @@ export function canNavigateDown(state: BoardState): boolean {
 /**
  * Check if cursor can navigate to parent
  */
-export function canNavigateParent(state: BoardState): boolean {
+export function canNavigateParent(state: BoardStateLegacy): boolean {
   return state.cursor.length > 1;
 }
 
 /**
  * Check if cursor can navigate into children
  */
-export function canNavigateChild(state: BoardState): boolean {
+export function canNavigateChild(state: BoardStateLegacy): boolean {
   const currentNode = getCurrentNode(state);
   return (currentNode?.children.length ?? 0) > 0;
 }
@@ -79,21 +79,21 @@ export function canNavigateChild(state: BoardState): boolean {
 /**
  * Check if a node is folded
  */
-export function isNodeFolded(state: BoardState, nodeId: string): boolean {
+export function isNodeFolded(state: BoardStateLegacy, nodeId: string): boolean {
   return state.foldedNodes.has(nodeId);
 }
 
 /**
  * Check if a node is collapsed
  */
-export function isNodeCollapsed(state: BoardState, nodeId: string): boolean {
+export function isNodeCollapsed(state: BoardStateLegacy, nodeId: string): boolean {
   return state.collapsedNodes.has(nodeId);
 }
 
 /**
  * Get total node count (recursive)
  */
-export function getTotalNodeCount(state: BoardState): number {
+export function getTotalNodeCount(state: BoardStateLegacy): number {
   function countNodes(nodes: TNode[]): number {
     return nodes.reduce((sum, node) => sum + 1 + countNodes(node.children), 0);
   }
@@ -103,21 +103,21 @@ export function getTotalNodeCount(state: BoardState): number {
 /**
  * Get top-level node count
  */
-export function getTopLevelCount(state: BoardState): number {
+export function getTopLevelCount(state: BoardStateLegacy): number {
   return state.nodes.length;
 }
 
 /**
  * Get cursor depth (0 = top level)
  */
-export function getCursorDepth(state: BoardState): number {
+export function getCursorDepth(state: BoardStateLegacy): number {
   return state.cursor.length > 0 ? state.cursor.length - 1 : 0;
 }
 
 /**
  * Get breadcrumb trail from root to current node
  */
-export function getBreadcrumbs(state: BoardState): TNode[] {
+export function getBreadcrumbs(state: BoardStateLegacy): TNode[] {
   const crumbs: TNode[] = [];
   let current = state.nodes;
 
@@ -208,17 +208,17 @@ export function columnIndicesToPath(
 }
 
 /**
- * Get column indices from BoardState.
+ * Get column indices from BoardStateLegacy.
  * Convenience wrapper around pathToColumnIndices using state.cursor.
  */
-export function getCursorColumnIndices(state: BoardState): ColumnIndices {
+export function getCursorColumnIndices(state: BoardStateLegacy): ColumnIndices {
   return pathToColumnIndices(state.cursor);
 }
 
 /**
  * Get the column node at cursor position (depth 0).
  */
-export function getCurrentColumn(state: BoardState): TNode | null {
+export function getCurrentColumn(state: BoardStateLegacy): TNode | null {
   const { colIndex } = pathToColumnIndices(state.cursor);
   if (colIndex < 0) return null;
   return state.nodes[colIndex] ?? null;
@@ -227,7 +227,7 @@ export function getCurrentColumn(state: BoardState): TNode | null {
 /**
  * Get the card node at cursor position (depth 1).
  */
-export function getCurrentCard(state: BoardState): TNode | null {
+export function getCurrentCard(state: BoardStateLegacy): TNode | null {
   const { colIndex, cardIndex } = pathToColumnIndices(state.cursor);
   if (colIndex < 0 || cardIndex < 0) return null;
   const column = state.nodes[colIndex];
@@ -237,7 +237,7 @@ export function getCurrentCard(state: BoardState): TNode | null {
 /**
  * Get card count in the current column.
  */
-export function getCurrentColumnCardCount(state: BoardState): number {
+export function getCurrentColumnCardCount(state: BoardStateLegacy): number {
   const column = getCurrentColumn(state);
   return column?.children.length ?? 0;
 }

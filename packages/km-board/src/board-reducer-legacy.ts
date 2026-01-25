@@ -10,7 +10,7 @@
  */
 
 import createDebug from "debug";
-import type { BoardState, BoardAction, TNode, TPath } from "./board-types.ts";
+import type { BoardStateLegacy, BoardActionLegacy, TNode, TPath } from "./board-types.ts";
 
 const debug = createDebug("km:board:reducer");
 import { isTAction, getNodeAtPath } from "@km/tree";
@@ -87,9 +87,9 @@ export function findPathToNode(
  * Does NOT handle app-specific UI (modals, dialogs).
  */
 export function boardReducer(
-  state: BoardState,
+  state: BoardStateLegacy,
   action: BoardAction,
-): BoardState {
+): BoardStateLegacy {
   // Check if this is a tree action (content manipulation)
   // These are pass-through - the app layer handles them via @km/storage
   if (isTAction(action)) {
@@ -100,7 +100,7 @@ export function boardReducer(
   debug("action: %s", action.type);
 
   // Cross-column handler for CURSOR_MOVE left/right
-  const handleCrossColumn = (s: BoardState, dir: "left" | "right") =>
+  const handleCrossColumn = (s: BoardStateLegacy, dir: "left" | "right") =>
     boardReducer(s, { type: "NAV_CROSS_COLUMN", direction: dir });
 
   switch (action.type) {
@@ -544,11 +544,11 @@ export function boardReducer(
  * Cursor starts at [0, 0] (first card in first column) if there are children,
  * otherwise [0] (first column) if there are nodes, otherwise empty.
  */
-export function createBoardState(
+export function createBoardStateLegacy(
   nodes: TNode[],
   rootId: string | null = null,
   rootPath: string | null = null,
-): BoardState {
+): BoardStateLegacy {
   // Determine initial cursor position and cursor node
   // Prefer starting at card level [0, 0] if first node has children
   let cursor: TPath = [];

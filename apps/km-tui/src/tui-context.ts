@@ -9,7 +9,7 @@
 
 import type { KNode } from "@km/core";
 import type { Vault } from "./vault-context.tsx";
-import type { SimplifiedBoardState, TransitionalBoardAction } from "@km/board";
+import type { BoardState, TransitionalBoardAction } from "@km/board";
 import type {
   TUIBoardState,
   CardState,
@@ -38,8 +38,8 @@ export interface TUIContext {
   // === State ===
   /** Legacy column-based board state (for backward compatibility) */
   state: TUIBoardState;
-  /** Simplified board state from simplifiedBoardReducer */
-  boardState: SimplifiedBoardState;
+  /** Board state from boardReducer */
+  boardState: BoardState;
   /** UI state (dialogs, view mode, selection) */
   ui: UIState;
   /** Derived column layout from tree state */
@@ -98,7 +98,7 @@ export interface KeyEvent {
 export interface BuildTUIContextParams {
   vault: Vault;
   state: TUIBoardState;
-  boardState: SimplifiedBoardState;
+  boardState: BoardState;
   ui: UIState;
   layout: ColumnsLayout;
   /** Card position registry for h/l navigation */

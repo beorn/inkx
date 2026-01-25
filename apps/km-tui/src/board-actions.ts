@@ -171,7 +171,7 @@ export function handleCommandAction(
       clearSelection(ctx);
       break;
 
-    // === SimplifiedBoardAction passthrough (forward to board reducer) ===
+    // === BoardAction passthrough (forward to board reducer) ===
     case "SELECT":
     case "SET_ROOT":
     case "SET_CURSWANT":
