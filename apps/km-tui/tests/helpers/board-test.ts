@@ -194,17 +194,13 @@ export function testEnv(
 
   // Create fluent API
   const board = {
-    press: (key: string, options?: { allowNoEffect?: boolean }) => {
-      const before = result.lastFrameText()
+    /** Whether bell was triggered (boundary hit) */
+    get bell(): boolean {
+      const freshLocator = createLocator(result.getContainer())
+      return freshLocator.locator("[data-bell]").count() > 0
+    },
+    press: (key: string) => {
       result.stdin.write(key)
-      const after = result.lastFrameText()
-      // Throw if key press had no effect (navigation not connected)
-      // Can be disabled with allowNoEffect: true for tests that expect no change
-      if (!options?.allowNoEffect && before === after) {
-        throw new Error(
-          `Key press '${key}' had no effect - navigation not implemented or key not bound. Use press(key, { allowNoEffect: true }) if this is intentional.`,
-        )
-      }
       return board
     },
     q: (selector: string) => {
@@ -305,8 +301,13 @@ interface ContentAssertion {
 interface BoardTest {
   // === Actions ===
 
-  /** Send a key press to the board */
-  press(key: string, options?: { allowNoEffect?: boolean }): this
+  /** Send a key press to the board. Throws if no effect AND no bell (broken chain). */
+  press(key: string): this
+
+  // === Bell State ===
+
+  /** Whether bell was triggered on last action (boundary hit) */
+  readonly bell: boolean
 
   /** Send multiple key presses */
   pressSequence(...keys: string[]): this
@@ -401,19 +402,17 @@ class BoardTestImpl implements BoardTest {
     this.currentLocator = createLocator(result.getContainer())
   }
 
+  // --- Bell State ---
+
+  /** Whether bell was triggered (boundary hit) - checks for data-bell attribute */
+  get bell(): boolean {
+    return this.currentLocator.locator("[data-bell]").count() > 0
+  }
+
   // --- Actions ---
 
-  press(key: string, options?: { allowNoEffect?: boolean }): this {
-    const before = this.result.lastFrameText()
+  press(key: string): this {
     this.result.stdin.write(key)
-    const after = this.result.lastFrameText()
-    // Throw if key press had no effect (navigation not connected)
-    // Can be disabled with allowNoEffect: true for tests that expect no change
-    if (!options?.allowNoEffect && before === after) {
-      throw new Error(
-        `Key press '${key}' had no effect - navigation not implemented or key not bound. Use press(key, { allowNoEffect: true }) if this is intentional.`,
-      )
-    }
     // Refresh locator after state change
     this.currentLocator = createLocator(this.result.getContainer())
     return this

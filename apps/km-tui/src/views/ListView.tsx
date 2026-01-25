@@ -117,7 +117,7 @@ export function ListView({
     return (
       <Box flexDirection="column" width={width} height={height}>
         <Text> </Text>
-        <Text dimColor>No columns to display</Text>
+        <Text dimColor>Empty board</Text>
       </Box>
     )
   }

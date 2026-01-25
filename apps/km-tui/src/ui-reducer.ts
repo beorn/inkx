@@ -78,6 +78,9 @@ export interface UIState {
 
   // Watcher status (for bottom bar display)
   watcherStatus: WatcherStatus | null
+
+  // Bell state - set when action hits boundary, cleared on next keypress
+  bellState: string | null
 }
 
 // =============================================================================
@@ -132,6 +135,8 @@ export function createInitialUIState(
     loadingStartTime: null,
 
     watcherStatus: null,
+
+    bellState: null,
   }
 }
 
@@ -302,9 +307,9 @@ const uiSlice = createSlice({
       }>,
     ) => {
       // Truncate forward history when adding new entry
-      state.navHistory = state.navHistory.slice(0, state.navHistoryIndex + 1)
+      state.navHistory = state.navHistory.slice(0, state.navHistoryIndex)
       state.navHistory.push(action.payload)
-      state.navHistoryIndex = state.navHistory.length - 1
+      state.navHistoryIndex = state.navHistory.length
     },
     navBack: (state) => {
       if (state.navHistoryIndex > 0) {
@@ -358,6 +363,14 @@ const uiSlice = createSlice({
     // Watcher status
     setWatcherStatus: (state, action: PayloadAction<WatcherStatus | null>) => {
       state.watcherStatus = action.payload
+    },
+
+    // Bell state (for boundary feedback)
+    setBell: (state, action: PayloadAction<string>) => {
+      state.bellState = action.payload
+    },
+    clearBell: (state) => {
+      state.bellState = null
     },
   },
 })

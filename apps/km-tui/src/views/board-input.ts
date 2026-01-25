@@ -17,6 +17,7 @@ import {
   ensureCommandSystemInitialized,
 } from "../command-bridge.ts"
 import { handleCommandAction } from "../board-actions.ts"
+import { isErr } from "@km/core"
 
 // Re-export for convenience
 export { ensureCommandSystemInitialized }
@@ -55,6 +56,9 @@ export function handleBoardKeyInput(
     return true
   }
 
+  // Clear bell state at start of each keypress
+  dispatch(actions.clearBell())
+
   // Route ALL keys through the command system
   const result = processKeyWithContext(input, key, tuiContext)
 
@@ -63,7 +67,12 @@ export function handleBoardKeyInput(
       ? result.actions
       : [result.actions]
     for (const action of actionList) {
-      handleCommandAction(tuiContext, action)
+      const actionResult = handleCommandAction(tuiContext, action)
+
+      // Check for boundary errors and ring bell
+      if (isErr(actionResult) && actionResult.error.type === "boundary") {
+        dispatch(actions.setBell(actionResult.error.direction))
+      }
     }
     return true
   }

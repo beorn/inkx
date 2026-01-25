@@ -27,8 +27,15 @@ import {
   moveCardToColumn,
 } from "./keyboard-card-ops.ts"
 import { DEFAULT_FAVORITES } from "./keyboard-types.ts"
-import { assertNever, beepUnimplemented } from "./action-handlers.ts"
+import { assertNever } from "./action-handlers.ts"
 import type { CommandAction } from "@km/commands"
+import {
+  type ActionResult,
+  boundary,
+  precondition,
+  unimplemented,
+  ok,
+} from "@km/commands"
 import { getCardMidY } from "./card-positions.ts"
 import createDebug from "debug"
 import {
@@ -42,7 +49,7 @@ const debug = createDebug("km:tui:nav")
 // Action Handler Type
 // =============================================================================
 
-export type ActionHandler = (ctx: TUIContext, action: CommandAction) => void
+export type ActionHandler = (ctx: TUIContext, action: CommandAction) => ActionResult
 
 // =============================================================================
 // Main Action Dispatcher
@@ -53,11 +60,14 @@ export type ActionHandler = (ctx: TUIContext, action: CommandAction) => void
  *
  * Uses exhaustive switch - TypeScript errors if any action type is missing.
  * See km-y00m for why this pattern replaced the layered type guard approach.
+ *
+ * Returns ActionResult: ok() on success, boundary/precondition/unimplemented on expected failure.
+ * Callers should check result and provide feedback (e.g., ring bell for boundary).
  */
 export function handleCommandAction(
   ctx: TUIContext,
   action: CommandAction,
-): void {
+): ActionResult {
   const { state, dispatch, exit } = ctx
   const col = state.columns[state.colIndex]
   const card = col?.cards[state.cardIndex]
@@ -66,14 +76,14 @@ export function handleCommandAction(
     // === TUI-specific actions ===
     case "QUIT":
       exit()
-      break
+      return ok()
     case "SHOW_NEW_ITEM_DIALOG":
       dispatch(actions.showNewItemDialog())
       dispatch(actions.exitOutlineMode())
       dispatch(actions.setSubIndex(0))
       clearSelection(ctx)
       dispatch(actions.setDetailPane(false))
-      break
+      return ok()
     case "SHOW_PROJECT_PICKER":
       if (card) {
         dispatch(actions.showProjectPicker())
@@ -82,138 +92,127 @@ export function handleCommandAction(
         clearSelection(ctx)
         dispatch(actions.setDetailPane(false))
       }
-      break
+      return ok()
     case "JUMP_TO_FAVORITE":
       handleJumpToFavorite(ctx, action.favoriteNumber)
-      break
+      return ok()
     case "JUMP_TO_COLUMN":
-      handleJumpToColumn(ctx, action.columnNumber)
-      break
+      return handleJumpToColumn(ctx, action.columnNumber)
     case "CLOSE_OR_QUIT":
-      handleCloseOrQuit(ctx)
-      break
+      return handleCloseOrQuit(ctx)
     case "OUTDENT_NODE":
       if (card) outdentNode(ctx, card)
-      break
+      return ok()
     case "NAV_SIBLING_BOARD":
-      handleNavSiblingBoard(ctx, action.direction)
-      break
+      return handleNavSiblingBoard(ctx, action.direction)
     case "ZOOM_INWARDS":
-      handleZoomInwards(ctx)
-      break
+      return handleZoomInwards(ctx)
     case "PAGE_JUMP":
       handlePageJump(ctx, action.direction)
-      break
+      return ok()
 
     // === UI actions ===
     case "CYCLE_VIEW_MODE":
       dispatch(actions.cycleViewMode())
-      break
+      return ok()
     case "SHOW_HELP":
       dispatch(actions.showHelp())
-      break
+      return ok()
     case "HIDE_HELP":
       dispatch(actions.hideHelp())
-      break
+      return ok()
     case "OPEN_DETAIL_PANE":
       dispatch(actions.setDetailPane(true))
-      break
+      return ok()
     case "CLOSE_DETAIL_PANE":
       dispatch(actions.setDetailPane(false))
-      break
+      return ok()
     case "ZOOM_OUTWARDS":
-      handleZoomOutwards(ctx)
-      break
+      return handleZoomOutwards(ctx)
     case "DELETE_NODE":
       handleDeleteNode(ctx)
-      break
+      return ok()
     case "SELECT_ALL_PROGRESSIVE":
       progressiveSelectAll(ctx)
-      break
+      return ok()
 
     // === Task actions ===
     case "TASK_SET_STATUS":
       handleTaskStatusCycle(ctx)
-      break
+      return ok()
 
     // === History actions (not yet implemented) ===
     case "HISTORY_UNDO":
     case "HISTORY_REDO":
-      beepUnimplemented()
-      break
+      return unimplemented("history")
 
     // === Board/navigation actions ===
     case "CURSOR_MOVE":
-      handleCursorMove(ctx, action.dir)
-      break
+      return handleCursorMove(ctx, action.dir)
     case "TOGGLE_FOLD":
-      handleToggleFold(ctx)
-      break
+      return handleToggleFold(ctx)
     case "FOLD_LEVEL":
       if (col) dispatch(actions.foldAll(col.cards.map((c) => c.node.id)))
-      break
+      return ok()
     case "UNFOLD_LEVEL":
       if (col) dispatch(actions.unfoldAll(col.cards.map((c) => c.node.id)))
-      break
+      return ok()
     case "TOGGLE_COLLAPSE":
       dispatch(actions.toggleColumnCollapse(state.colIndex))
-      break
+      return ok()
     case "NAV_BACK":
-      handleNavBack(ctx)
-      break
+      return handleNavBack(ctx)
     case "NAV_FORWARD":
-      handleNavForward(ctx)
-      break
+      return handleNavForward(ctx)
     case "ZOOM_IN":
-      handleZoomIn(ctx)
-      break
+      return handleZoomIn(ctx)
     case "CLEAR_SELECTION":
       clearSelection(ctx)
-      break
+      return ok()
 
     // === BoardAction passthrough (forward to board reducer) ===
     case "SELECT":
     case "SET_ROOT":
     case "SET_CURSWANT":
       ctx.dispatchBoard(action)
-      break
+      return ok()
 
     case "EXTEND_SELECT_UP":
       handleExtendSelectVertical(ctx, "up")
-      break
+      return ok()
     case "EXTEND_SELECT_DOWN":
       handleExtendSelectVertical(ctx, "down")
-      break
+      return ok()
     case "EXTEND_SELECT_LEFT":
       handleExtendSelectHorizontal(ctx, "left")
-      break
+      return ok()
     case "EXTEND_SELECT_RIGHT":
       handleExtendSelectHorizontal(ctx, "right")
-      break
+      return ok()
     case "INCREASE_OUTLINE_DEPTH":
       dispatch(actions.increaseOutlineDepth())
-      break
+      return ok()
     case "DECREASE_OUTLINE_DEPTH":
       dispatch(actions.decreaseOutlineDepth())
-      break
+      return ok()
     case "INCREASE_CONTENT_LINES":
       dispatch(actions.increaseContentLines())
-      break
+      return ok()
     case "DECREASE_CONTENT_LINES":
       dispatch(actions.decreaseContentLines())
-      break
+      return ok()
     case "SHIFT_UP":
       handleShiftCard(ctx, "up")
-      break
+      return ok()
     case "SHIFT_DOWN":
       handleShiftCard(ctx, "down")
-      break
+      return ok()
     case "SHIFT_LEFT":
       handleShiftCard(ctx, "left")
-      break
+      return ok()
     case "SHIFT_RIGHT":
       handleShiftCard(ctx, "right")
-      break
+      return ok()
 
     // === Selection actions ===
     case "SELECT_NODE_ADD":
@@ -221,21 +220,20 @@ export function handleCommandAction(
     case "SELECT_NODE_TOGGLE":
     case "SELECT_ALL_SIBLINGS":
     case "SELECT_ALL":
-      beepUnimplemented()
-      break
+      return unimplemented("selection")
 
     // Legacy navigation actions removed (were in BoardAction, not in CommandAction)
 
     // === Move mode actions ===
     case "ENTER_MOVE_MODE":
       ctx.dispatchBoard(action)
-      break
+      return ok()
     case "CONFIRM_MOVE":
       handleConfirmMove(ctx)
-      break
+      return ok()
     case "CANCEL_MOVE":
       ctx.dispatchBoard(action)
-      break
+      return ok()
 
     default:
       assertNever(action)
@@ -246,20 +244,20 @@ export function handleCommandAction(
 // Individual Action Handlers
 // =============================================================================
 
-function handleZoomOutwards(ctx: TUIContext): void {
+function handleZoomOutwards(ctx: TUIContext): ActionResult {
   const { state, boardState, ui, layout, dispatch, dispatchBoard } = ctx
   const col = state.columns[state.colIndex]
   const card = col?.cards[state.cardIndex]
 
   if (ui.showDetailPane) {
     dispatch(actions.setDetailPane(false))
-    return
+    return ok()
   }
   if (ui.inOutlineMode) {
     dispatch(actions.exitOutlineMode())
     dispatch(actions.setSubIndex(0))
     clearSelection(ctx)
-    return
+    return ok()
   }
   if (boardState.rootId) {
     const currentRoot = ctx.vault.getNode(boardState.rootId)
@@ -281,7 +279,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
           nodeId: parentNode.id,
         })
         clearSelection(ctx)
-        return
+        return ok()
       }
     } else {
       const rootView = initBoardState(ctx.vault)
@@ -301,7 +299,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
           nodeId: rootView.rootId,
         })
         clearSelection(ctx)
-        return
+        return ok()
       }
     }
   }
@@ -318,7 +316,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
       if (colIdx >= 0) {
         dispatchBoard({ type: "SELECT", nodeId: parentNode.id })
         clearSelection(ctx)
-        return
+        return ok()
       }
 
       // Check if parent is a card within any column
@@ -331,7 +329,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
         if (cardIdx >= 0) {
           dispatchBoard({ type: "SELECT", nodeId: parentNode.id })
           clearSelection(ctx)
-          return
+          return ok()
         }
       }
     }
@@ -343,7 +341,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
     if (column) {
       dispatchBoard({ type: "SELECT", nodeId: column.node.id })
     }
-    return
+    return ok()
   }
 
   // Try moving from column level to board level
@@ -352,10 +350,10 @@ function handleZoomOutwards(ctx: TUIContext): void {
     layout.cardIndex >= 0 ? "card" : layout.colIndex >= 0 ? "column" : "board"
   if (derivedSelectionLevel === "column") {
     dispatchBoard({ type: "SELECT", nodeId: null })
-    return
+    return ok()
   }
 
-  process.stdout.write("\x07")
+  return boundary("up", "already at top level")
 }
 
 function handleDeleteNode(ctx: TUIContext): void {
@@ -518,7 +516,7 @@ function handleHierarchicalNavigation(
   return null
 }
 
-function handleCursorMove(ctx: TUIContext, dir: string): void {
+function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
   const { state, ui, dispatch, dispatchBoard, positionRegistry } = ctx
   const col = state.columns[state.colIndex]
   const card = col?.cards[state.cardIndex]
@@ -528,7 +526,7 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     // Outline mode sub-item navigation
     if (dir === "prev" && ui.subIndex > 0) {
       dispatch(actions.setSubIndex(ui.subIndex - 1))
-      return
+      return ok()
     }
     if (dir === "next" && card) {
       const maxIdx = ctx.countVisibleDescendants(
@@ -539,10 +537,10 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       )
       if (ui.subIndex < maxIdx) {
         dispatch(actions.setSubIndex(ui.subIndex + 1))
-        return
+        return ok()
       }
     }
-    return
+    return boundary(dir)
   }
 
   // Vertical movement (j/k) clears sticky Y
@@ -576,9 +574,10 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
           if (ui.selectionAnchor !== null) {
             updateSelectionRange(ctx, state.colIndex, targetIdx, 0)
           }
+          return ok()
         }
       }
-      return
+      return boundary(dir)
     }
 
     if (horizontalDirs.includes(dir)) {
@@ -612,20 +611,20 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       targetColIndex === state.colIndex ||
       state.columns[targetColIndex]?.isVirtual
     ) {
-      return
+      return boundary(dir)
     }
 
     const targetCol = state.columns[targetColIndex]
     if (!targetCol || targetCol.cards.length === 0) {
       // Target column is empty - just move to column level
       dispatchBoard({ type: "SELECT", nodeId: targetCol?.node.id ?? null })
-      return
+      return ok()
     }
 
     // If at column level (cardIndex < 0), move to target column's header (not a card)
     if (state.cardIndex < 0) {
       dispatchBoard({ type: "SELECT", nodeId: targetCol.node.id })
-      return
+      return ok()
     }
 
     // Position-based navigation: Check if we have registered positions
@@ -655,8 +654,9 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       const firstCard = targetCol.cards[0]
       if (firstCard) {
         dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
+        return ok()
       }
-      return
+      return boundary(dir)
     }
 
     if (!hasCurrentPositions) {
@@ -668,8 +668,9 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       const firstCard = targetCol.cards[0]
       if (firstCard) {
         dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
+        return ok()
       }
-      return
+      return boundary(dir)
     }
 
     // Get or calculate curswantY (head midpoint of current card)
@@ -713,8 +714,9 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     const targetCard = targetCol.cards[finalCardIndex]
     if (targetCard) {
       dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
+      return ok()
     }
-    return
+    return boundary(dir)
   }
 
   // Hierarchical vertical navigation (j/k)
@@ -723,40 +725,55 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     const targetId = handleHierarchicalNavigation(ctx, dir)
     if (targetId) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
+      return ok()
     }
-    return
+    return boundary(dir)
   }
 
   // Normal cursor movement (first, last, etc.)
   const treeDir = dir as TreeDirection
   const targetId = handleTreeNavigation(treeDir, ctx.boardState, ctx.vault)
-  if (targetId) dispatchBoard({ type: "SELECT", nodeId: targetId })
+  if (targetId && targetId !== ctx.boardState.cursorNodeId) {
+    dispatchBoard({ type: "SELECT", nodeId: targetId })
+    return ok()
+  }
+  return boundary(dir)
 }
 
-function handleToggleFold(ctx: TUIContext): void {
-  const { state, dispatch } = ctx
+function handleToggleFold(ctx: TUIContext): ActionResult {
+  const { state, dispatch, vault } = ctx
   const col = state.columns[state.colIndex]
   const card = col?.cards[state.cardIndex]
 
-  if (!card) return
+  if (!card) return boundary("fold", "no card selected")
+
+  // Check if card has children to fold/unfold
+  const children = vault.getChildren(card.node.id)
+  if (children.length === 0) {
+    return boundary("fold", "no children to fold")
+  }
+
   dispatch(actions.toggleFold(card.node.id))
+  return ok()
 }
 
-function handleNavBack(ctx: TUIContext): void {
+function handleNavBack(ctx: TUIContext): ActionResult {
   const { ui, dispatch, dispatchBoard } = ctx
 
   // Check if we can go back
   if (ui.navHistoryIndex <= 0) {
-    process.stdout.write("\x07")
-    return
+    return boundary("back", "no history")
   }
 
-  // Move index back
-  dispatch(actions.navBack())
+  // Calculate new index
+  const newIndex = ui.navHistoryIndex - 1
 
   // Get the entry we're navigating to
-  const entry = ui.navHistory[ui.navHistoryIndex - 1]
-  if (!entry) return
+  const entry = ui.navHistory[newIndex]
+  if (!entry) return ok()
+
+  // Move index back
+  dispatch(actions.setNavHistoryIndex(newIndex))
 
   // Navigate to the saved state
   dispatchBoard({
@@ -775,15 +792,15 @@ function handleNavBack(ctx: TUIContext): void {
     dispatch(actions.enterOutlineMode())
     dispatch(actions.setSubIndex(entry.subIndex))
   }
+  return ok()
 }
 
-function handleNavForward(ctx: TUIContext): void {
+function handleNavForward(ctx: TUIContext): ActionResult {
   const { ui, dispatch, dispatchBoard } = ctx
 
   // Check if we can go forward
   if (ui.navHistoryIndex >= ui.navHistory.length - 1) {
-    process.stdout.write("\x07")
-    return
+    return boundary("forward", "at end of history")
   }
 
   // Move index forward
@@ -791,7 +808,7 @@ function handleNavForward(ctx: TUIContext): void {
 
   // Get the entry we're navigating to
   const entry = ui.navHistory[ui.navHistoryIndex + 1]
-  if (!entry) return
+  if (!entry) return ok()
 
   // Navigate to the saved state
   dispatchBoard({
@@ -810,20 +827,20 @@ function handleNavForward(ctx: TUIContext): void {
     dispatch(actions.enterOutlineMode())
     dispatch(actions.setSubIndex(entry.subIndex))
   }
+  return ok()
 }
 
-function handleZoomIn(ctx: TUIContext): void {
+function handleZoomIn(ctx: TUIContext): ActionResult {
   const { state, boardState, ui, dispatch, dispatchBoard, layout } = ctx
   const col = state.columns[state.colIndex]
   const card = col?.cards[state.cardIndex]
 
-  if (!card) return
+  if (!card) return precondition("card")
 
-  // If card has no children, beep and return (nothing to zoom into)
+  // If card has no children, return boundary (nothing to zoom into)
   const hasChildren = ctx.vault.getChildren(card.node.id).length > 0
   if (!hasChildren) {
-    process.stdout.write("\x07")
-    return
+    return boundary("in", "no children")
   }
 
   // Save current state to history
@@ -844,6 +861,7 @@ function handleZoomIn(ctx: TUIContext): void {
   })
 
   clearSelection(ctx)
+  return ok()
 }
 
 function handleExtendSelectVertical(
@@ -937,15 +955,14 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
   clearSelection(ctx)
 }
 
-function handleJumpToColumn(ctx: TUIContext, columnNumber: number): void {
+function handleJumpToColumn(ctx: TUIContext, columnNumber: number): ActionResult {
   const { state, dispatchBoard } = ctx
 
   // Column numbers are 1-indexed for user, 0-indexed internally
   const targetColIdx = columnNumber - 1
 
   if (targetColIdx < 0 || targetColIdx >= state.columns.length) {
-    process.stdout.write("\x07")
-    return
+    return boundary("column", `column ${columnNumber} does not exist`)
   }
 
   const targetCol = state.columns[targetColIdx]
@@ -955,36 +972,42 @@ function handleJumpToColumn(ctx: TUIContext, columnNumber: number): void {
       dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
     }
   }
+  return ok()
 }
 
-function handleCloseOrQuit(ctx: TUIContext): void {
-  const { ui, dispatch, exit } = ctx
+function handleCloseOrQuit(ctx: TUIContext): ActionResult {
+  const { ui, dispatch } = ctx
 
   // Close any open overlay first
   if (ui.showDetailPane) {
     dispatch(actions.setDetailPane(false))
-    return
+    return ok()
   }
   if (ui.inOutlineMode) {
     dispatch(actions.exitOutlineMode())
     dispatch(actions.setSubIndex(0))
-    return
+    return ok()
   }
   if (ui.showHelp) {
     dispatch(actions.hideHelp())
-    return
+    return ok()
   }
   if (ui.showProjectPicker) {
     dispatch(actions.hideProjectPicker())
-    return
+    return ok()
   }
   if (ui.showNewItemDialog) {
     dispatch(actions.hideNewItemDialog())
-    return
+    return ok()
   }
 
-  // Nothing to close, quit
-  exit()
+  // Try to navigate back (zoom out) if we have history
+  if (ui.navHistoryIndex > 0) {
+    return handleNavBack(ctx)
+  }
+
+  // Nothing to close or navigate - indicate boundary
+  return boundary("escape", "nothing to close")
 }
 
 function handleShiftCard(
@@ -1007,24 +1030,22 @@ function handleShiftCard(
 function handleNavSiblingBoard(
   ctx: TUIContext,
   direction: "next" | "prev",
-): void {
+): ActionResult {
   const { boardState, ui, dispatch, dispatchBoard, layout } = ctx
 
   if (!boardState.rootId) {
-    process.stdout.write("\x07")
-    return
+    return boundary(direction, "no root")
   }
 
   const currentRoot = ctx.vault.getNode(boardState.rootId)
   if (!currentRoot?.parent_id) {
-    process.stdout.write("\x07")
-    return
+    return boundary(direction, "no parent")
   }
 
   const siblings = ctx.vault.getChildren(currentRoot.parent_id)
   const currentIdx = siblings.findIndex((n) => n.id === currentRoot.id)
 
-  if (currentIdx < 0) return
+  if (currentIdx < 0) return ok()
 
   const targetIdx =
     direction === "next"
@@ -1032,7 +1053,7 @@ function handleNavSiblingBoard(
       : (currentIdx - 1 + siblings.length) % siblings.length
 
   const targetSibling = siblings[targetIdx]
-  if (!targetSibling || targetSibling.id === currentRoot.id) return
+  if (!targetSibling || targetSibling.id === currentRoot.id) return ok()
 
   // Save current state
   pushNavHistoryEntry(
@@ -1052,16 +1073,16 @@ function handleNavSiblingBoard(
   })
 
   clearSelection(ctx)
+  return ok()
 }
 
-function handleZoomInwards(ctx: TUIContext): void {
+function handleZoomInwards(ctx: TUIContext): ActionResult {
   const { state, boardState, ui, dispatch, dispatchBoard, layout } = ctx
   const col = state.columns[state.colIndex]
   const card = col?.cards[state.cardIndex]
 
   if (!card) {
-    process.stdout.write("\x07")
-    return
+    return precondition("card")
   }
 
   // If we're in outline mode with a sub-selection, zoom to that child
@@ -1108,12 +1129,12 @@ function handleZoomInwards(ctx: TUIContext): void {
       })
 
       clearSelection(ctx)
-      return
+      return ok()
     }
   }
 
   // Standard zoom in behavior
-  handleZoomIn(ctx)
+  return handleZoomIn(ctx)
 }
 
 function handlePageJump(ctx: TUIContext, direction: "up" | "down"): void {

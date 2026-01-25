@@ -26,12 +26,12 @@ test("h/l at right boundary doesn't crash", () => {
   board.expect("#3a[data-cursor]").toExist()
 
   // Try to move right past boundary (should not crash)
-  board.press("l", { allowNoEffect: true })
+  board.press("l")
   board.expect("#3a[data-cursor]").toExist()
 
   // Try multiple times
   for (let i = 0; i < 10; i++) {
-    board.press("l", { allowNoEffect: true })
+    board.press("l")
     board.expect("#3a[data-cursor]").toExist()
   }
 })
@@ -50,12 +50,12 @@ test("h at left boundary doesn't crash", () => {
   board.expect("#1a[data-cursor]").toExist()
 
   // Try to move left past boundary (should not crash)
-  board.press("h", { allowNoEffect: true })
+  board.press("h")
   board.expect("#1a[data-cursor]").toExist()
 
   // Try multiple times
   for (let i = 0; i < 10; i++) {
-    board.press("h", { allowNoEffect: true })
+    board.press("h")
     board.expect("#1a[data-cursor]").toExist()
   }
 })
