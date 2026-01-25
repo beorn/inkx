@@ -441,16 +441,16 @@ describe("Boundaries and Edge Cases", () => {
       // Move to col2
       board.press("l")
       // Can't move down in empty column
-      board.press("j")
+      board.press("j", { allowNoEffect: true })
       board.expect("#col2[data-cursor]").toExist() // Still at column header
     })
 
     test("single card - g/G do nothing", () => {
       const { board } = testEnv(() => item("board", item("col", item("only"))))
       board.expect("#only[data-cursor]").toExist()
-      board.press("g")
+      board.press("g", { allowNoEffect: true })
       board.expect("#only[data-cursor]").toExist()
-      board.press("G")
+      board.press("G", { allowNoEffect: true })
       board.expect("#only[data-cursor]").toExist()
     })
   })
@@ -459,14 +459,14 @@ describe("Boundaries and Edge Cases", () => {
     test("h does nothing (no columns to left)", () => {
       const { board } = testEnv(() => item("board", item("col", item("task"))))
       board.expect("#task[data-cursor]").toExist()
-      board.press("h")
+      board.press("h", { allowNoEffect: true })
       board.expect("#task[data-cursor]").toExist()
     })
 
     test("l does nothing (no columns to right)", () => {
       const { board } = testEnv(() => item("board", item("col", item("task"))))
       board.expect("#task[data-cursor]").toExist()
-      board.press("l")
+      board.press("l", { allowNoEffect: true })
       board.expect("#task[data-cursor]").toExist()
     })
   })
@@ -483,11 +483,11 @@ describe("Boundaries and Edge Cases", () => {
     board.expect("#board[data-cursor]").toExist()
 
     // Try k multiple times - should stay at board
-    board.press("k")
+    board.press("k", { allowNoEffect: true })
     board.expect("#board[data-cursor]").toExist()
-    board.press("k")
+    board.press("k", { allowNoEffect: true })
     board.expect("#board[data-cursor]").toExist()
-    board.press("k")
+    board.press("k", { allowNoEffect: true })
     board.expect("#board[data-cursor]").toExist()
   })
 
@@ -503,11 +503,11 @@ describe("Boundaries and Edge Cases", () => {
     board.expect("#1c[data-cursor]").toExist()
 
     // Try j multiple times - should stay at 1c
-    board.press("j")
+    board.press("j", { allowNoEffect: true })
     board.expect("#1c[data-cursor]").toExist()
-    board.press("j")
+    board.press("j", { allowNoEffect: true })
     board.expect("#1c[data-cursor]").toExist()
-    board.press("j")
+    board.press("j", { allowNoEffect: true })
     board.expect("#1c[data-cursor]").toExist()
   })
 
@@ -528,11 +528,11 @@ describe("Boundaries and Edge Cases", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Try h multiple times - should stay at col1
-    board.press("h")
+    board.press("h", { allowNoEffect: true })
     board.expect("#1a[data-cursor]").toExist()
-    board.press("h")
+    board.press("h", { allowNoEffect: true })
     board.expect("#1a[data-cursor]").toExist()
-    board.press("h")
+    board.press("h", { allowNoEffect: true })
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -553,11 +553,11 @@ describe("Boundaries and Edge Cases", () => {
     board.expect("#3a[data-cursor]").toExist()
 
     // Try l multiple times - should stay at col3
-    board.press("l")
+    board.press("l", { allowNoEffect: true })
     board.expect("#3a[data-cursor]").toExist()
-    board.press("l")
+    board.press("l", { allowNoEffect: true })
     board.expect("#3a[data-cursor]").toExist()
-    board.press("l")
+    board.press("l", { allowNoEffect: true })
     board.expect("#3a[data-cursor]").toExist()
   })
 
@@ -568,9 +568,9 @@ describe("Boundaries and Edge Cases", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Repeatedly try g - should stay at 1a
-    board.press("g")
+    board.press("g", { allowNoEffect: true })
     board.expect("#1a[data-cursor]").toExist()
-    board.press("g")
+    board.press("g", { allowNoEffect: true })
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -583,9 +583,9 @@ describe("Boundaries and Edge Cases", () => {
     board.expect("#1c[data-cursor]").toExist()
 
     // Repeatedly try G - should stay at 1c
-    board.press("G")
+    board.press("G", { allowNoEffect: true })
     board.expect("#1c[data-cursor]").toExist()
-    board.press("G")
+    board.press("G", { allowNoEffect: true })
     board.expect("#1c[data-cursor]").toExist()
   })
 
@@ -593,7 +593,7 @@ describe("Boundaries and Edge Cases", () => {
     test("Enter on card without children does nothing", () => {
       const { board } = testEnv(() => item("board", item("col", item("leaf"))))
       board.expect("#leaf[data-cursor]").toExist()
-      board.press("\r")
+      board.press("\r", { allowNoEffect: true })
       // Should stay in board view, not open detail pane
       board.expect("#leaf[data-cursor]").toExist()
     })
@@ -601,7 +601,7 @@ describe("Boundaries and Edge Cases", () => {
     test("Escape in board view does nothing", () => {
       const { board } = testEnv(() => item("board", item("col", item("task"))))
       board.expect("#task[data-cursor]").toExist()
-      board.press("\x1B")
+      board.press("\x1B", { allowNoEffect: true })
       // Should stay at same position
       board.expect("#task[data-cursor]").toExist()
     })
@@ -609,7 +609,7 @@ describe("Boundaries and Edge Cases", () => {
     test("[ when no history does nothing", () => {
       const { board } = testEnv(() => item("board", item("col", item("task"))))
       board.expect("#task[data-cursor]").toExist()
-      board.press("[")
+      board.press("[", { allowNoEffect: true })
       // Should stay at same position
       board.expect("#task[data-cursor]").toExist()
     })
@@ -617,7 +617,7 @@ describe("Boundaries and Edge Cases", () => {
     test("] when no forward history does nothing", () => {
       const { board } = testEnv(() => item("board", item("col", item("task"))))
       board.expect("#task[data-cursor]").toExist()
-      board.press("]")
+      board.press("]", { allowNoEffect: true })
       // Should stay at same position
       board.expect("#task[data-cursor]").toExist()
     })
@@ -627,7 +627,7 @@ describe("Boundaries and Edge Cases", () => {
     test("z on card without children does nothing", () => {
       const { board } = testEnv(() => item("board", item("col", item("leaf"))))
       board.expect("#leaf[data-cursor]").toExist()
-      board.press("z")
+      board.press("z", { allowNoEffect: true })
       // Should stay unfolded (no children to fold)
       board.expect("#leaf[data-cursor]").toExist()
     })
@@ -636,7 +636,7 @@ describe("Boundaries and Edge Cases", () => {
       const { board } = testEnv(() => item("board", item("col", item("task"))))
       board.press("k")
       board.expect("#col[data-cursor]").toExist()
-      board.press("z")
+      board.press("z", { allowNoEffect: true })
       // Should stay at column header
       board.expect("#col[data-cursor]").toExist()
     })
