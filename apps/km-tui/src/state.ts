@@ -775,10 +775,7 @@ export function handleKey(
     case "\r": // Enter
     case "o":
       // Use childCount for hasChildren check (children array may be empty due to lazy loading)
-      if (
-        card &&
-        (card.childCount ?? card.children.length) > 0
-      ) {
+      if (card && (card.childCount ?? card.children.length) > 0) {
         const zoomed = buildBoardState(vault, card.node.id);
         return { state: zoomed, action: null };
       }

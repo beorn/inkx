@@ -77,7 +77,12 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         message.fsPath,
       );
 
-      debug("parsed %s: %d nodes, %d links", message.fsPath, nodes.length, wikilinks.length);
+      debug(
+        "parsed %s: %d nodes, %d links",
+        message.fsPath,
+        nodes.length,
+        wikilinks.length,
+      );
       self.postMessage({
         type: "parsed",
         id: message.id,
@@ -87,7 +92,11 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         wikilinks,
       } satisfies ParseResponse);
     } catch (err) {
-      debug("parse error %s: %s", message.fsPath, err instanceof Error ? err.message : String(err));
+      debug(
+        "parse error %s: %s",
+        message.fsPath,
+        err instanceof Error ? err.message : String(err),
+      );
       self.postMessage({
         type: "parsed",
         id: message.id,

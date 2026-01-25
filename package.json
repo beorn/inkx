@@ -38,7 +38,7 @@
     "test:mdtest": "bun run vendor/beorn-mdtest/src/index.ts $(find packages apps vendor -name '*.test.md' ! -path '*/node_modules/*' 2>/dev/null)",
     "test:mdtest:update": "bun run vendor/beorn-mdtest/src/index.ts --update $(find packages apps vendor -name '*.test.md' ! -path '*/node_modules/*' 2>/dev/null)",
     "test:all": "bun run test:fast && bun run test:slow && bun run test:mdtest",
-    "test:perf": "bun scripts/test-perf.ts",
+    "test:perf": "bun scripts/measure-tests.ts",
     "build:info": "bun scripts/generate-build-info.ts",
     "prebuild": "bun run build:info",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",

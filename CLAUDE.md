@@ -46,28 +46,35 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 
 **Important logic first, details later.**
 
+**CRITICAL PRINCIPLE**: When reading a file or function, the most important logic should appear first. Implementation details and helper functions belong at the bottom. This makes code self-documenting and easy to scan.
+
 #### File Layout
 
 1. Imports
 2. Exports / re-exports
-3. **Main components/functions** (core logic)
+3. **Main components/functions** (core logic) ← **Reader starts here**
 4. Helper functions (pure utilities)
 5. Constants/config
 
 #### Function Layout
 
+**Use JavaScript hoisting to your advantage:**
+
 - Main logic at top, helpers after `return` (hoisting makes this work)
 - Pure functions that don't need closure → move to module level
 - Functions needing closure but not part of main flow → after return statement
 
+**Key insight**: Function declarations are hoisted, so you can call them before they're defined. This lets you write code in reading order (what → how).
+
 ```tsx
+// ✅ GOOD - Reading flow: what it does, then how
 function Component() {
   useEffect(handleRefresh, []);
   useInput(handleKeyboardInput);
 
   return <Box>...</Box>;
 
-  // Hoisted helpers (need closure access)
+  // Hoisted helpers (need closure access) - AFTER return
   function handleRefresh() {
     /* ... */
   }
@@ -76,9 +83,52 @@ function Component() {
   }
 }
 
-// Pure helpers at module level
+// Pure helpers at module level - BOTTOM of file
 function formatDate(d: Date): string {
   /* ... */
+}
+```
+
+```typescript
+// ❌ BAD - Reader has to wade through details first
+function processVault() {
+  // Helper defined at top
+  function validatePath(p: string) {
+    if (!p.startsWith('/')) throw new Error('...');
+    if (!existsSync(p)) throw new Error('...');
+    return resolve(p);
+  }
+
+  function loadDatabase(p: string) {
+    const db = new Database(p);
+    db.pragma('journal_mode = WAL');
+    return db;
+  }
+
+  // Main logic buried at bottom
+  const path = validatePath(vaultPath);
+  const db = loadDatabase(path);
+  return { path, db };
+}
+
+// ✅ GOOD - Main logic first, details after return
+function processVault() {
+  const path = validatePath(vaultPath);
+  const db = loadDatabase(path);
+  return { path, db };
+
+  // Implementation details - reader can skip if not interested
+  function validatePath(p: string) {
+    if (!p.startsWith('/')) throw new Error('...');
+    if (!existsSync(p)) throw new Error('...');
+    return resolve(p);
+  }
+
+  function loadDatabase(p: string) {
+    const db = new Database(p);
+    db.pragma('journal_mode = WAL');
+    return db;
+  }
 }
 ```
 
@@ -88,6 +138,8 @@ function formatDate(d: Date): string {
 useEffect(() => dispatch(setRootId(id)), [id]);
 const doubled = items.map((x) => x * 2);
 ```
+
+**When NOT to hoist**: Keep functions at the top only when they're the primary export/purpose of the file, or when they're very short (1-3 lines) and used once.
 
 #### ESM Only - No require()
 
@@ -542,6 +594,7 @@ logger.error("Failed to sync", { error });
 Suppressing output hides bugs. Worker threads MUST forward all debug output to the main thread.
 
 **Why worker threads need special handling:**
+
 - Worker threads can't share file descriptors with main thread
 - `DEBUG_LOG` redirection only works in main thread
 - Calling `createDebug()` in worker goes to stderr, bypassing `DEBUG_LOG`
@@ -588,6 +641,7 @@ case "debug":
 ```
 
 **Message type definition:**
+
 ```typescript
 export type WorkerMessage =
   | { type: "debug"; namespace: string; message: string }
@@ -595,11 +649,13 @@ export type WorkerMessage =
 ```
 
 **✅ DO:**
+
 - Forward ALL debug output to main thread via `postMessage()`
 - Use custom `debug()` function in worker that only sends messages
 - Format messages in worker, log in main thread
 
 **❌ NEVER:**
+
 - Call `createDebug()` directly in worker threads
 - Delete or suppress `process.env.DEBUG`
 - Use `console.log/error/warn` in workers (same issue as `debug()`)
