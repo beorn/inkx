@@ -163,12 +163,14 @@ export const toFts5Query: typeof dbToFts5Query = (query) =>
   dbToFts5Query(query)
 
 /** @deprecated Use vault.search() instead */
-export const search: typeof dbSearch = (query) =>
-  dbSearch(getDb(), query)
+export function search(query: string, limit = 50): KNode[] {
+  return dbSearch(getDb(), query, limit)
+}
 
 /** @deprecated Use vault API */
-export const searchWithSnippet: typeof dbSearchWithSnippet = (query) =>
-  dbSearchWithSnippet(getDb(), query)
+export function searchWithSnippet(query: string, limit = 50): SearchResult[] {
+  return dbSearchWithSnippet(getDb(), query, limit)
+}
 
 /** @deprecated Use vault API */
 export const getLastEventId: typeof dbGetLastEventId = () =>
