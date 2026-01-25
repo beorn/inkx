@@ -8,15 +8,11 @@
 
 // ===== Board Types =====
 export type {
-  // Current types (simplified architecture - NEW)
+  // Board state and actions
   BoardState,
   BoardAction,
   ZoomEntry,
   NavHistoryEntry,
-  // Legacy types (DEPRECATED - will be removed)
-  BoardStateLegacy,
-  BoardActionLegacy,
-  NodeDirection,
   // Transitional type for gradual migration
   TransitionalBoardAction,
   // Common types
@@ -38,13 +34,8 @@ export { getNodeAtPath, getSiblingCount } from "@km/tree";
 
 // ===== Board Reducer =====
 export {
-  // Current reducer (uses simplified BoardState without nodes - NEW)
   boardReducer,
   createBoardState,
-  // Legacy reducer (uses BoardStateLegacy with nodes - DEPRECATED)
-  boardReducerLegacy,
-  createBoardStateLegacy,
-  findPathToNode,
 } from "./board-reducer.ts";
 
 // ===== Selectors =====
@@ -86,6 +77,6 @@ export type { NodeMap, NodeMapEntry } from "./node-map.ts";
 export { visualToStructural, canMove } from "./navigation.ts";
 export type { VisualDir, StructuralAction } from "./navigation.ts";
 
-// ===== Board Domain Object (preferred API) =====
-export { createBoard } from "./board-object.ts";
-export type { Board, BoardOptions } from "./board-object.ts";
+// ===== Board Domain Object (DEPRECATED - will be updated in audit phase) =====
+// export { createBoard } from "./board-object.ts";
+// export type { Board, BoardOptions } from "./board-object.ts";
