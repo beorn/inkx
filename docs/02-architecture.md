@@ -119,19 +119,19 @@ See [dev/domain-objects.md](dev/domain-objects.md) for complete patterns guide
 ## Data Types
 
 ```
-FS → Storage:    File content  → KNode     (parse markdown)
-Storage → Tree:  KNode[]       → TNode[] (build recursive tree)
-Tree → Board:    TNode[]    → (used as-is, visual state in Sets)
-Board → App:     BoardState    → AppState  (add modals, search)
+FS → Storage:    File content  → KNode         (parse markdown)
+Storage → App:   vault.getChildren() → KNode[] (on-demand tree queries)
+App Render:      vault + state → columns       (derived at render time)
 ```
 
-| Type         | Package   | Description                            |
-| ------------ | --------- | -------------------------------------- |
-| `KNode`      | @km/core  | Flat record with `parent_id` (SQLite)  |
-| `TNode`      | @km/core  | Recursive with `children[]`            |
-| `TPath`      | @km/tree  | Array of indices `[col, row, ...]`     |
-| `BoardState` | @km/board | cursor, selection, fold, zoom, history |
-| `AppState`   | apps/     | BoardState + modals, search, etc.      |
+| Type                   | Package   | Description                                |
+| ---------------------- | --------- | ------------------------------------------ |
+| `KNode`                | @km/core  | Flat record with `parent_id` (SQLite)      |
+| `TNode`                | @km/core  | Recursive with `children[]` (legacy paths) |
+| `SimplifiedBoardState` | @km/board | cursorNodeId, fold, zoom (no tree data)    |
+| `UIState`              | apps/     | Dialogs, view mode, dimensions             |
+
+**Key design:** No tree data in board state. Navigation uses `vault.getChildren()` directly. Columns are derived at render time via `useColumns()`, cursor position via `useCursorPosition()`.
 
 | Action Type   | Package   | Examples                          |
 | ------------- | --------- | --------------------------------- |
