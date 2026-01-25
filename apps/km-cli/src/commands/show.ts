@@ -7,19 +7,14 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import {
-  resolveNode,
-  getChildren,
-  getSubtree,
-  getBacklinks,
-  getOutgoingLinks,
-  getNode,
   resolvePathArg,
-  loadVault,
+  createVault,
   runGenerator,
+  type Vault,
+  type Link,
 } from "@km/storage";
 import { getRootPath } from "../index.ts";
 import type { KNode } from "@km/core";
-import type { Link } from "@km/storage";
 import { formatStatus, formatNodeBrief } from "@km/tui";
 
 export const showCommand = new Command("show")
@@ -32,7 +27,9 @@ export const showCommand = new Command("show")
   .action((id, options) => {
     // Resolve path argument - may initialize store with detected vault root
     const resolved = resolvePathArg(id, getRootPath());
-    runGenerator(loadVault(resolved.vaultRoot, { searchAncestors: false }));
+    using vault = runGenerator(
+      createVault(resolved.vaultRoot, { searchAncestors: false }),
+    );
 
     // Directory paths don't resolve to a specific node
     if (!resolved.nodeRef) {
@@ -42,7 +39,7 @@ export const showCommand = new Command("show")
       process.exit(1);
     }
 
-    const node = resolveNode(resolved.nodeRef);
+    const node = vault.resolveNode(resolved.nodeRef);
 
     if (!node) {
       console.error(chalk.red(`Node not found: ${id}`));
@@ -51,10 +48,14 @@ export const showCommand = new Command("show")
 
     if (options.json) {
       if (options.tree) {
-        console.log(JSON.stringify(getSubtree(node.id), null, 2));
+        console.log(JSON.stringify(vault.getSubtree(node.id), null, 2));
       } else if (options.children) {
         console.log(
-          JSON.stringify({ node, children: getChildren(node.id) }, null, 2),
+          JSON.stringify(
+            { node, children: vault.getChildren(node.id) },
+            null,
+            2,
+          ),
         );
       } else {
         console.log(JSON.stringify(node, null, 2));
@@ -150,8 +151,8 @@ export const showCommand = new Command("show")
     // Children
     if (options.children || options.tree) {
       const children = options.tree
-        ? getSubtree(node.id).slice(1) // Exclude self
-        : getChildren(node.id);
+        ? vault.getSubtree(node.id).slice(1) // Exclude self
+        : vault.getChildren(node.id);
 
       if (children.length > 0) {
         console.log(chalk.bold("\nChildren:"));
@@ -164,20 +165,20 @@ export const showCommand = new Command("show")
 
     // Links
     if (options.links) {
-      const outgoing = getOutgoingLinks(node.id);
-      const backlinks = getBacklinks(node.id);
+      const outgoing = vault.getOutgoingLinks(node.id);
+      const backlinks = vault.getBacklinks(node.id);
 
       if (outgoing.length > 0) {
         console.log(chalk.bold("\nOutgoing links:"));
         for (const link of outgoing) {
-          console.log(`  ${formatLink(link)}`);
+          console.log(`  ${formatLink(link, vault)}`);
         }
       }
 
       if (backlinks.length > 0) {
         console.log(chalk.bold("\nBacklinks:"));
         for (const link of backlinks) {
-          console.log(`  ${formatBacklink(link)}`);
+          console.log(`  ${formatBacklink(link, vault)}`);
         }
       }
 
@@ -207,7 +208,7 @@ function getIndent(node: KNode, rootId: string): string {
 /**
  * Format an outgoing link
  */
-function formatLink(link: Link): string {
+function formatLink(link: Link, vault: Vault): string {
   const parts: string[] = [];
 
   // Target name with section/block
@@ -222,7 +223,7 @@ function formatLink(link: Link): string {
 
   // Resolution status
   if (link.target_id) {
-    const targetNode = getNode(link.target_id);
+    const targetNode = vault.getNode(link.target_id);
     if (targetNode) {
       parts.push(
         chalk.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`),
@@ -243,8 +244,8 @@ function formatLink(link: Link): string {
 /**
  * Format a backlink (incoming link)
  */
-function formatBacklink(link: Link): string {
-  const sourceNode = getNode(link.source_id);
+function formatBacklink(link: Link, vault: Vault): string {
+  const sourceNode = vault.getNode(link.source_id);
   const parts: string[] = [];
 
   if (sourceNode) {

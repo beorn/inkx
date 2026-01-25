@@ -42,7 +42,9 @@ import {
   getSubtree as dbGetSubtree,
   getAncestors as dbGetAncestors,
   getLinksTo as dbGetLinksTo,
+  getOutgoingLinks as dbGetOutgoingLinks,
   getBacklinks as dbGetBacklinks,
+  resolveNode as dbResolveNode,
   getDb,
   closeDb,
   type Link,
@@ -107,8 +109,23 @@ export interface Vault extends Disposable {
   /** Get nodes linking to a target */
   getLinksTo(targetId: string): KNode[];
 
+  /** Get outgoing links from a node */
+  getOutgoingLinks(sourceId: string): Link[];
+
   /** Get backlinks (link records pointing to this node) */
   getBacklinks(nodeId: string): Link[];
+
+  /**
+   * Smart node resolver - finds a node by various identifiers.
+   * Resolution order: ID match, ID prefix, ID suffix, path, filename, content.
+   * @param query - ID, path, or filename to search for
+   * @param typeOrOptions - Optional type filter string or options object
+   * @returns The matching node, or null if not found
+   */
+  resolveNode(
+    query: string,
+    typeOrOptions?: string | { type?: string; taskOnly?: boolean },
+  ): KNode | null;
 
   /**
    * Batch get child counts for multiple parent IDs.
@@ -462,10 +479,24 @@ export function* createVault(
       return result;
     },
 
+    getOutgoingLinks(sourceId) {
+      ensureNotClosed();
+      const result = dbGetOutgoingLinks(sourceId);
+      hooks?.afterQuery?.("getOutgoingLinks", result);
+      return result;
+    },
+
     getBacklinks(nodeId) {
       ensureNotClosed();
       const result = dbGetBacklinks(nodeId);
       hooks?.afterQuery?.("getBacklinks", result);
+      return result;
+    },
+
+    resolveNode(query, typeOrOptions) {
+      ensureNotClosed();
+      const result = dbResolveNode(query, typeOrOptions);
+      hooks?.afterQuery?.("resolveNode", result);
       return result;
     },
 

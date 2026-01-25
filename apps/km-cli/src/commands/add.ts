@@ -13,11 +13,9 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { ulid } from "ulid";
 import {
-  resolveNode,
   queryTasks,
-  getChildren,
   resolvePathArg,
-  loadVault,
+  createVault,
   runGenerator,
   emitNodeCreated,
 } from "@km/storage";
@@ -33,8 +31,8 @@ export const addCommand = new Command("add")
   .action((target, sources, options) => {
     // Resolve target path argument - may detect vault root
     const resolvedTarget = resolvePathArg(target, getRootPath());
-    runGenerator(
-      loadVault(resolvedTarget.vaultRoot, { searchAncestors: false }),
+    using vault = runGenerator(
+      createVault(resolvedTarget.vaultRoot, { searchAncestors: false }),
     );
 
     if (!resolvedTarget.nodeRef) {
@@ -43,7 +41,7 @@ export const addCommand = new Command("add")
     }
 
     // Resolve target board/container
-    const targetNode = resolveNode(resolvedTarget.nodeRef);
+    const targetNode = vault.resolveNode(resolvedTarget.nodeRef);
     if (!targetNode) {
       console.error(chalk.red(`Target not found: ${target}`));
       console.error(
@@ -61,7 +59,7 @@ export const addCommand = new Command("add")
 
       // Try as node ID/path first
       const nodeRef = resolvedSource.nodeRef || source;
-      const node = resolveNode(nodeRef, "task");
+      const node = vault.resolveNode(nodeRef, "task");
       if (node) {
         tasksToAdd.push(node);
         continue;
@@ -92,7 +90,7 @@ export const addCommand = new Command("add")
     // Falls back to the first section if no explicit default is set
     let actualTarget = targetNode;
     const findDefaultSection = (parentId: string): KNode | undefined => {
-      const children = getChildren(parentId);
+      const children = vault.getChildren(parentId);
       let firstSection: KNode | undefined;
       for (const child of children) {
         if (child.type === "section") {

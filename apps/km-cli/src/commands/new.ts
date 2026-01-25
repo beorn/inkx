@@ -9,12 +9,10 @@ import chalk from "chalk";
 import { join } from "path";
 import {
   createVault,
-  resolveNode,
   parseTaskMetadata,
   extractTags,
   extractMentions,
   resolvePathArg,
-  loadVault,
   runGenerator,
 } from "@km/storage";
 import { getRootPath } from "../index.ts";
@@ -105,9 +103,6 @@ export const newCommand = new Command("new")
     if (options.parent) {
       // Resolve parent path argument
       const resolvedParent = resolvePathArg(options.parent, rootPath);
-      runGenerator(
-        loadVault(resolvedParent.vaultRoot, { searchAncestors: false }),
-      );
 
       if (!resolvedParent.nodeRef) {
         console.error(chalk.red(`Cannot create task in a directory`));
@@ -115,7 +110,7 @@ export const newCommand = new Command("new")
       }
 
       // Try to resolve parent by ID, path, or filename
-      const parentNode = resolveNode(resolvedParent.nodeRef);
+      const parentNode = vault.resolveNode(resolvedParent.nodeRef);
       if (parentNode && parentNode.fs_path) {
         targetPath = parentNode.fs_path;
         targetName = parentNode.fs_path.split("/").pop() || options.parent;
