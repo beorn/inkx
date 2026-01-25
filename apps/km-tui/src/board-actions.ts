@@ -535,19 +535,27 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     debug("registry dump:\n%s", positionRegistry.dump());
 
     if (!hasCurrentPositions || !hasTargetPositions) {
-      // Positions not yet registered (first render hasn't completed).
-      // Fall back to same card index, clamped to target column bounds.
+      // Positions not yet registered (target column hasn't been rendered).
+      // Use proportional fallback: maintain relative position in column.
+      const currentCol = state.columns[state.colIndex];
+      const currentCount = currentCol?.cards.length ?? 1;
+      const targetCount = targetCol.cards.length;
+
+      // Calculate proportional index (e.g., 3rd of 6 cards → 50% → 2nd of 4 cards)
+      // This maintains visual position better than absolute index for uneven columns
+      const proportion =
+        currentCount > 1 ? state.cardIndex / (currentCount - 1) : 0;
+      const targetCardIndex = Math.round(proportion * (targetCount - 1));
+
       debug(
-        "h/l fallback: current=%d has=%s, target=%d has=%s",
-        state.colIndex,
-        hasCurrentPositions,
-        targetColIndex,
-        hasTargetPositions,
-      );
-      const targetCardIndex = Math.min(
+        "h/l proportional fallback: current=%d/%d (%.1f%%) -> target=%d/%d",
         state.cardIndex,
-        targetCol.cards.length - 1,
+        currentCount,
+        proportion * 100,
+        targetCardIndex,
+        targetCount,
       );
+
       dispatchBoard({
         type: "NAV_TO_PATH",
         path: [targetColIndex, Math.max(0, targetCardIndex)],
@@ -570,11 +578,20 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
         currentLayout ? JSON.stringify(currentLayout.layout) : "null",
       );
       if (!currentLayout) {
-        // Current card not registered (virtualized out) - fall back
-        debug("h/l: current card not registered, fallback to same index");
-        const targetCardIndex = Math.min(
+        // Current card not registered (virtualized out) - use proportional fallback
+        const currentCol = state.columns[state.colIndex];
+        const currentCount = currentCol?.cards.length ?? 1;
+        const targetCount = targetCol.cards.length;
+        const proportion =
+          currentCount > 1 ? state.cardIndex / (currentCount - 1) : 0;
+        const targetCardIndex = Math.round(proportion * (targetCount - 1));
+
+        debug(
+          "h/l: current card not registered, proportional fallback %d/%d -> %d/%d",
           state.cardIndex,
-          targetCol.cards.length - 1,
+          currentCount,
+          targetCardIndex,
+          targetCount,
         );
         dispatchBoard({
           type: "NAV_TO_PATH",
