@@ -12,6 +12,12 @@
   - Escape key is now hierarchical: close overlays → zoom out → boundary
   - Simplified test helpers by removing `allowNoEffect` flags
   - Resolves: km-defensive-chain.6
+- **tui,core**: Status bar for user action feedback
+  - Added `NotificationLevel` type to `@km/core` for consistent UI feedback levels
+  - Created StatusBar component with icon+color mapping (info/success/warning/error)
+  - Selection actions now show status messages ("3 items selected", etc.)
+  - Status messages automatically truncate to fit terminal width
+  - Resolves: km-defensive-chain.7
 
 ### Fixed
 
@@ -19,6 +25,9 @@
 
 ### Changed
 
+- **docs,tests**: Clarified .spec.ts is reserved for acceptance tests only (UI-level, CLI)
+  - Unit tests use .test.ts naming convention
+  - Updated testing.md with test level table and file naming guidelines
 - **tui,tests:** migrate UI tests to spec pattern with tree fixtures
   - Created `board.spec.ts` with decker-inspired `item()` tree builder
   - Added `testEnv()` helper for one-line fixture creation + rendering
