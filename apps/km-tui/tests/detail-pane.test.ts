@@ -10,19 +10,8 @@ import { createTestRenderer } from "inkx/testing";
 
 const render = createTestRenderer();
 
-import {
-  getNode,
-  getChildren,
-  getBacklinks,
-  applyEvent,
-  addLink,
-  emitNodeCreated,
-  setDatabase,
-  withTestEnv,
-} from "@km/storage";
-import type { Vault } from "@km/storage";
-import type { NodeType, KNode } from "@km/core";
-import { ulid } from "ulid";
+import { createFakeVault } from "@km/storage";
+import type { KNode } from "@km/core";
 
 import {
   DetailPane,
@@ -33,49 +22,20 @@ import {
 } from "../src/views/DetailPane.tsx";
 import { VaultProvider } from "../src/vault-context.tsx";
 
-// Create a minimal vault wrapper for tests that use singleton functions
-function createTestVault(): Vault {
-  return {
-    getChildren: (parentId: string | null) => getChildren(parentId),
-    getNode: (id: string) => getNode(id),
-    getBacklinks: (nodeId: string) => getBacklinks(nodeId),
-    // Stub out other required Vault methods
-    path: "/test",
-    mode: "memory",
-    stats: { nodeCount: 0, linkCount: 0, duration: 0 },
-    close: () => {},
-    [Symbol.dispose]: () => {},
-  } as unknown as Vault;
-}
-
 // Helper to render DetailPane with VaultProvider
-function renderDetailPane(node: KNode, width: number, height: number) {
-  const vault = createTestVault();
+function renderDetailPane(
+  vault: ReturnType<typeof createFakeVault>,
+  node: KNode,
+  width: number,
+  height: number,
+) {
   const detailPane = React.createElement(DetailPane, { node, width, height });
   return render(
     React.createElement(VaultProvider, { vault, children: detailPane }),
   );
 }
 
-// Test helper to create nodes
-function createTestNode(
-  type: NodeType,
-  content?: string,
-  parentId?: string | null,
-  extra?: Record<string, unknown>,
-): string {
-  const id = ulid();
-  emitNodeCreated("test-user", {
-    id,
-    type,
-    parent_id: parentId ?? null,
-    content,
-    ...extra,
-  });
-  return id;
-}
-
-describe.serial("extractReferences", () => {
+describe("extractReferences", () => {
   test("extracts @mentions", () => {
     const refs = extractReferences("Contact @john and @jane about this");
     expect(refs.mentions).toEqual(["john", "jane"]);
@@ -130,7 +90,7 @@ describe.serial("extractReferences", () => {
   });
 });
 
-describe.serial("formatDate", () => {
+describe("formatDate", () => {
   test("returns empty string for undefined", () => {
     expect(formatDate(undefined).text).toBe("");
   });
@@ -184,7 +144,7 @@ describe.serial("formatDate", () => {
   });
 });
 
-describe.serial("getStatusDisplay", () => {
+describe("getStatusDisplay", () => {
   test("returns todo for undefined status", () => {
     const result = getStatusDisplay(undefined);
     expect(result.text).toBe("todo");
@@ -216,197 +176,406 @@ describe.serial("getStatusDisplay", () => {
   });
 });
 
-describe.serial("getProjectPath", () => {
-  test("returns empty array for node with no parent", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      const vault = createTestVault();
-      const nodeId = createTestNode("task", "Standalone task");
-      const node = getNode(nodeId)!;
-      expect(getProjectPath(vault, node)).toEqual([]);
+describe("getProjectPath", () => {
+  test("returns empty array for node with no parent", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "task1",
+          type: "task",
+          content: "Standalone task",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
     });
+    const node = vault.getNode("task1")!;
+    expect(getProjectPath(vault, node)).toEqual([]);
   });
 
-  test("returns folder names in path", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      const vault = createTestVault();
-      const folderId = createTestNode("folder", "Work", null);
-      const subfolderId = createTestNode("folder", "Finance", folderId);
-      const taskId = createTestNode("task", "Review budget", subfolderId);
-      const task = getNode(taskId)!;
-
-      const path = getProjectPath(vault, task);
-      expect(path).toEqual(["Work", "Finance"]);
+  test("returns folder names in path", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "folder1",
+          type: "folder",
+          content: "Work",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+        {
+          id: "folder2",
+          type: "folder",
+          content: "Finance",
+          parent_id: "folder1",
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+        {
+          id: "task1",
+          type: "task",
+          content: "Review budget",
+          parent_id: "folder2",
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
     });
+    const task = vault.getNode("task1")!;
+    const path = getProjectPath(vault, task);
+    expect(path).toEqual(["Work", "Finance"]);
   });
 
-  test("includes files in path", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      const vault = createTestVault();
-      const folderId = createTestNode("folder", "Projects", null);
-      const fileId = createTestNode("file", "todo.md", folderId);
-      const taskId = createTestNode("task", "Do something", fileId);
-      const task = getNode(taskId)!;
-
-      const path = getProjectPath(vault, task);
-      expect(path).toEqual(["Projects", "todo.md"]);
+  test("includes files in path", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "folder1",
+          type: "folder",
+          content: "Projects",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+        {
+          id: "file1",
+          type: "file",
+          content: "todo.md",
+          parent_id: "folder1",
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+        {
+          id: "task1",
+          type: "task",
+          content: "Do something",
+          parent_id: "file1",
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
     });
-  });
-});
-
-describe.serial("DetailPane Component", () => {
-  test("renders with all task fields", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      const taskId = createTestNode("task", "Review Q1 budget", null, {
-        task_status: "todo",
-        due_date: "2026-01-10",
-        assigned_to: "bjorn",
-      });
-      const task = getNode(taskId)!;
-
-      const { lastFrame } = renderDetailPane(task, 40, 24);
-
-      const output = lastFrame() ?? "";
-
-      // Check title
-      expect(output).toContain("Review Q1 budget");
-
-      // Check status
-      expect(output).toContain("Status:");
-      expect(output).toContain("todo");
-
-      // Check due date
-      expect(output).toContain("Due:");
-      expect(output).toContain("Jan");
-
-      // Check assigned
-      expect(output).toContain("Assigned:");
-      expect(output).toContain("@bjorn");
-    });
-  });
-
-  test("shows subtasks", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      const parentId = createTestNode("task", "Parent task");
-      createTestNode("task", "Subtask 1", parentId, { task_status: "done" });
-      createTestNode("task", "Subtask 2", parentId, { task_status: "todo" });
-
-      const parent = getNode(parentId)!;
-
-      const { lastFrame } = renderDetailPane(parent, 40, 24);
-
-      const output = lastFrame() ?? "";
-
-      expect(output).toContain("Subtasks");
-      expect(output).toContain("Subtask 1");
-      expect(output).toContain("Subtask 2");
-    });
-  });
-
-  test("shows references from content", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      const taskId = createTestNode(
-        "task",
-        "Talk to @john about #budget for +work project [[Meeting Notes]]",
-      );
-      const task = getNode(taskId)!;
-
-      const { lastFrame } = renderDetailPane(task, 50, 24);
-
-      const output = lastFrame() ?? "";
-
-      // Check references are shown
-      expect(output).toContain("#budget");
-      expect(output).toContain("@john");
-      expect(output).toContain("+work");
-      expect(output).toContain("[[Meeting Notes]]");
-    });
-  });
-
-  test("shows project path", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      const folderId = createTestNode("folder", "Work");
-      const subfolderId = createTestNode("folder", "Finance", folderId);
-      const taskId = createTestNode("task", "Review budget", subfolderId);
-      const task = getNode(taskId)!;
-
-      const { lastFrame } = renderDetailPane(task, 50, 24);
-
-      const output = lastFrame() ?? "";
-
-      expect(output).toContain("Project:");
-      expect(output).toContain("Work");
-      expect(output).toContain("Finance");
-    });
-  });
-
-  test("shows keybindings hint", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      const taskId = createTestNode("task", "Simple task");
-      const task = getNode(taskId)!;
-
-      const { lastFrame } = renderDetailPane(task, 50, 24);
-
-      const output = lastFrame() ?? "";
-
-      // Should show keybindings at bottom
-      expect(output).toContain("h/Esc:close");
-    });
-  });
-
-  test("handles task with done status", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      const taskId = createTestNode("task", "Completed task", null, {
-        task_status: "done",
-      });
-      const task = getNode(taskId)!;
-
-      const { lastFrame } = renderDetailPane(task, 40, 24);
-
-      const output = lastFrame() ?? "";
-
-      expect(output).toContain("done");
-    });
+    const task = vault.getNode("task1")!;
+    const path = getProjectPath(vault, task);
+    expect(path).toEqual(["Projects", "todo.md"]);
   });
 });
 
-describe.serial("DetailPane with Backlinks", () => {
-  test("shows backlinks when present", async () => {
-    await withTestEnv(async () => {
-      setDatabase({ applyEvent });
-      // Create target node
-      const targetId = createTestNode("task", "Target task");
-      const target = getNode(targetId)!;
-
-      // Create source node that links to target
-      const sourceId = createTestNode("file", "Meeting Notes");
-
-      // Add a link from source to target
-      addLink({
-        source_id: sourceId,
-        target_name: "Target task",
-        target_id: targetId,
-        section: null,
-        block_id: null,
-        alias: null,
-        embedded: false,
-        relationship: null,
-      });
-
-      const { lastFrame } = renderDetailPane(target, 50, 24);
-
-      const output = lastFrame() ?? "";
-
-      expect(output).toContain("Backlinks");
-      expect(output).toContain("Meeting Notes");
+describe("DetailPane Component", () => {
+  test("renders with all task fields", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "task1",
+          type: "task",
+          content: "Review Q1 budget",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          task_status: "todo",
+          due_date: "2026-01-10",
+          assigned_to: "bjorn",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
     });
+    const task = vault.getNode("task1")!;
+
+    const { lastFrame } = renderDetailPane(vault, task, 40, 24);
+
+    const output = lastFrame() ?? "";
+
+    // Check title
+    expect(output).toContain("Review Q1 budget");
+
+    // Check status
+    expect(output).toContain("Status:");
+    expect(output).toContain("todo");
+
+    // Check due date
+    expect(output).toContain("Due:");
+    expect(output).toContain("Jan");
+
+    // Check assigned
+    expect(output).toContain("Assigned:");
+    expect(output).toContain("@bjorn");
+  });
+
+  test("shows subtasks", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "parent1",
+          type: "task",
+          content: "Parent task",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+        {
+          id: "sub1",
+          type: "task",
+          content: "Subtask 1",
+          parent_id: "parent1",
+          parent_idx: 0,
+          link_to: null,
+          task_status: "done",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+        {
+          id: "sub2",
+          type: "task",
+          content: "Subtask 2",
+          parent_id: "parent1",
+          parent_idx: 1,
+          link_to: null,
+          task_status: "todo",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
+    });
+    const parent = vault.getNode("parent1")!;
+
+    const { lastFrame } = renderDetailPane(vault, parent, 40, 24);
+
+    const output = lastFrame() ?? "";
+
+    expect(output).toContain("Subtasks");
+    expect(output).toContain("Subtask 1");
+    expect(output).toContain("Subtask 2");
+  });
+
+  test("shows references from content", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "task1",
+          type: "task",
+          content:
+            "Talk to @john about #budget for +work project [[Meeting Notes]]",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
+    });
+    const task = vault.getNode("task1")!;
+
+    const { lastFrame } = renderDetailPane(vault, task, 50, 24);
+
+    const output = lastFrame() ?? "";
+
+    // Check references are shown
+    expect(output).toContain("#budget");
+    expect(output).toContain("@john");
+    expect(output).toContain("+work");
+    expect(output).toContain("[[Meeting Notes]]");
+  });
+
+  test("shows project path", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "folder1",
+          type: "folder",
+          content: "Work",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+        {
+          id: "folder2",
+          type: "folder",
+          content: "Finance",
+          parent_id: "folder1",
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+        {
+          id: "task1",
+          type: "task",
+          content: "Review budget",
+          parent_id: "folder2",
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
+    });
+    const task = vault.getNode("task1")!;
+
+    const { lastFrame } = renderDetailPane(vault, task, 50, 24);
+
+    const output = lastFrame() ?? "";
+
+    expect(output).toContain("Project:");
+    expect(output).toContain("Work");
+    expect(output).toContain("Finance");
+  });
+
+  test("shows keybindings hint", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "task1",
+          type: "task",
+          content: "Simple task",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
+    });
+    const task = vault.getNode("task1")!;
+
+    const { lastFrame } = renderDetailPane(vault, task, 50, 24);
+
+    const output = lastFrame() ?? "";
+
+    // Should show keybindings at bottom
+    expect(output).toContain("h/Esc:close");
+  });
+
+  test("handles task with done status", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "task1",
+          type: "task",
+          content: "Completed task",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          task_status: "done",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
+    });
+    const task = vault.getNode("task1")!;
+
+    const { lastFrame } = renderDetailPane(vault, task, 40, 24);
+
+    const output = lastFrame() ?? "";
+
+    expect(output).toContain("done");
+  });
+});
+
+describe("DetailPane with Backlinks", () => {
+  test("shows backlinks when present", () => {
+    const vault = createFakeVault({
+      nodes: [
+        {
+          id: "target1",
+          type: "task",
+          content: "Target task",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+        {
+          id: "source1",
+          type: "file",
+          content: "Meeting Notes",
+          parent_id: null,
+          parent_idx: 1,
+          link_to: null,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "test",
+        },
+      ],
+      links: [
+        {
+          source_id: "source1",
+          target_name: "Target task",
+          target_id: "target1",
+          section: null,
+          block_id: null,
+          alias: null,
+          embedded: false,
+          relationship: null,
+          created_at: Date.now(),
+        },
+      ],
+    });
+    const target = vault.getNode("target1")!;
+
+    const { lastFrame } = renderDetailPane(vault, target, 50, 24);
+
+    const output = lastFrame() ?? "";
+
+    expect(output).toContain("Backlinks");
+    expect(output).toContain("Meeting Notes");
   });
 });

@@ -110,6 +110,13 @@ export interface Vault extends Disposable {
   /** Get backlinks (link records pointing to this node) */
   getBacklinks(nodeId: string): Link[];
 
+  /**
+   * Batch get child counts for multiple parent IDs.
+   * Returns a Map from parentId to count of direct children.
+   * More efficient than calling getChildren().length for each.
+   */
+  getChildCounts(parentIds: string[]): Map<string, number>;
+
   // --- Mutation operations ---
 
   /** Update a node's properties */
@@ -380,6 +387,27 @@ export function* createVault(
       const result = dbGetChildren(parentId);
       hooks?.afterQuery?.("getChildren", result);
       return result;
+    },
+
+    getChildCounts(parentIds) {
+      ensureNotClosed();
+      const counts = new Map<string, number>();
+      if (parentIds.length === 0) return counts;
+
+      const db = getDb();
+      const placeholders = parentIds.map(() => "?").join(",");
+      const rows = db
+        .query<
+          { parent_id: string; count: number },
+          string[]
+        >(`SELECT parent_id, COUNT(*) as count FROM nodes WHERE parent_id IN (${placeholders}) GROUP BY parent_id`)
+        .all(...parentIds);
+
+      for (const row of rows) {
+        counts.set(row.parent_id, row.count);
+      }
+      hooks?.afterQuery?.("getChildCounts", counts);
+      return counts;
     },
 
     getSubtree(nodeId) {

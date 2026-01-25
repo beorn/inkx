@@ -23,28 +23,6 @@ import {
   extractBody,
 } from "@km/tree";
 
-/**
- * Batch query for child counts using vault.rawQuery
- * Replaces the singleton getChildCountsBatch from @km/storage
- */
-function getChildCountsBatch(
-  vault: Vault,
-  parentIds: string[],
-): Map<string, number> {
-  const counts = new Map<string, number>();
-  if (parentIds.length === 0) return counts;
-
-  const placeholders = parentIds.map(() => "?").join(",");
-  const rows = vault.rawQuery<{ parent_id: string; count: number }>(
-    `SELECT parent_id, COUNT(*) as count FROM nodes WHERE parent_id IN (${placeholders}) GROUP BY parent_id`,
-    parentIds,
-  );
-
-  for (const row of rows) {
-    counts.set(row.parent_id, row.count);
-  }
-  return counts;
-}
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
 // The handleKey function below is legacy code - keys are handled via the command system
 
@@ -147,7 +125,7 @@ export function initBoardState(
   }
 
   // Batch query for child counts using rawQuery
-  const childCounts = getChildCountsBatch(vault, allCardIds);
+  const childCounts = vault.getChildCounts(allCardIds);
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = [];
@@ -244,7 +222,7 @@ export function* initBoardStateGenerator(
   }
 
   // Single batch query for all child counts
-  const childCounts = getChildCountsBatch(vault, allCardIds);
+  const childCounts = vault.getChildCounts(allCardIds);
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = [];
@@ -295,7 +273,7 @@ export function* buildBoardStateGenerator(
 
   // Batch query child counts for all columns
   const columnIds = columnNodes.map((n) => n.id);
-  const columnChildCounts = getChildCountsBatch(vault, columnIds);
+  const columnChildCounts = vault.getChildCounts(columnIds);
 
   // First pass: collect all card IDs
   const columnCardNodes: KNode[][] = [];
@@ -323,7 +301,7 @@ export function* buildBoardStateGenerator(
   }
 
   // Single batch query for all child counts
-  const childCounts = getChildCountsBatch(vault, allCardIds);
+  const childCounts = vault.getChildCounts(allCardIds);
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = [];
@@ -527,7 +505,7 @@ export function buildBoardState(vault: Vault, rootId: string): BoardState {
   // This lets us skip getChildren() calls for columns with 0 children.
   // For flat boards like @issue with 766 files, this reduces 766 queries to 1.
   const columnIds = columnNodes.map((n) => n.id);
-  const columnChildCounts = getChildCountsBatch(vault, columnIds);
+  const columnChildCounts = vault.getChildCounts(columnIds);
 
   // First pass: collect all card IDs across all columns for batch child count query
   // Note: getChildren() now includes query:add links from storage layer,
@@ -557,7 +535,7 @@ export function buildBoardState(vault: Vault, rootId: string): BoardState {
   }
 
   // Single batch query for all child counts - avoids N+1 problem
-  const childCounts = getChildCountsBatch(vault, allCardIds);
+  const childCounts = vault.getChildCounts(allCardIds);
 
   // Second pass: build columns with the pre-fetched child counts
   const columns: ColumnState[] = [];

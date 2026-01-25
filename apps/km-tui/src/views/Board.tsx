@@ -85,10 +85,18 @@ export { makeSelectionKey } from "../types.ts";
 export interface BoardProps {
   initialState: BoardState;
   initialViewMode?: ViewMode;
+  /** Optional layout registry for card position tracking (used by h/l navigation).
+   * If not provided, one will be created automatically.
+   * Pass a registry for testing to inspect card positions. */
+  layoutRegistry?: ReturnType<typeof createLayoutRegistry>;
 }
 
 // Exported for testing with inkx createTestRenderer
-export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
+export function Board({
+  initialState,
+  initialViewMode = "cards",
+  layoutRegistry: injectedRegistry,
+}: BoardProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const vault = useVault();
@@ -142,12 +150,13 @@ export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   const colScrollOffsetRef = useRef(0);
 
   // Layout registry for card position tracking (used by h/l navigation)
+  // Use injected registry if provided (for testing), otherwise create one
   // Created once and never changes - stable reference for context
   const layoutRegistryRef = useRef<ReturnType<
     typeof createLayoutRegistry
   > | null>(null);
   if (!layoutRegistryRef.current) {
-    layoutRegistryRef.current = createLayoutRegistry();
+    layoutRegistryRef.current = injectedRegistry ?? createLayoutRegistry();
   }
   const layoutRegistry = layoutRegistryRef.current;
 

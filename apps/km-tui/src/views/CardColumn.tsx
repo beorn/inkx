@@ -80,7 +80,11 @@ function CardLayoutRegistrar({
   const handleLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
       if (!registry) {
-        debug("CardLayoutRegistrar: no registry for col=%d card=%d", colIndex, cardIndex);
+        debug(
+          "CardLayoutRegistrar: no registry for col=%d card=%d",
+          colIndex,
+          cardIndex,
+        );
         return;
       }
 

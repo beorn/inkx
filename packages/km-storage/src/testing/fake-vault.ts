@@ -122,6 +122,17 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
         .sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0));
     },
 
+    getChildCounts(parentIds) {
+      ensureNotClosed();
+      const counts = new Map<string, number>();
+      for (const node of nodes.values()) {
+        if (node.parent_id && parentIds.includes(node.parent_id)) {
+          counts.set(node.parent_id, (counts.get(node.parent_id) ?? 0) + 1);
+        }
+      }
+      return counts;
+    },
+
     getSubtree(nodeId) {
       ensureNotClosed();
       const result: KNode[] = [];
@@ -291,14 +302,18 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       return false;
     },
 
-    rawQuery<T = Record<string, unknown>>(
-      _sql: string,
-      _params?: unknown[],
-    ): T[] {
+    rawQuery<T = Record<string, unknown>>(sql: string, _params?: unknown[]): T[] {
       ensureNotClosed();
-      // FakeVault doesn't have a real database - return empty results
+
+      // Pattern: SELECT * FROM nodes (used by ProjectPicker)
+      if (sql.trim() === "SELECT * FROM nodes") {
+        return [...nodes.values()] as T[];
+      }
+
+      // Unknown query - throw helpful error
+      // Note: Use getChildCounts() instead of rawQuery for child count batching
       throw new Error(
-        "FakeVault does not support rawQuery - use real Vault for SQL queries",
+        `FakeVault.rawQuery: unsupported query pattern: ${sql.slice(0, 100)}`,
       );
     },
 
