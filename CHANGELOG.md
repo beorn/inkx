@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **tui,tests:** migrate UI tests to spec pattern with tree fixtures
+  - Created `board.spec.ts` with decker-inspired `item()` tree builder
+  - Added `testEnv()` helper for one-line fixture creation + rendering
+  - Migrated 14 UI acceptance tests from `board.test.ts` to `board.spec.ts`
+  - Reduced `board.test.ts` from 1056 lines to 520 lines (unit tests only)
+  - Tests now use tree builder pattern: `item("board", item("col", item("card")))`
+  - CSS selectors for structural tests: `#col1 #1a`, `#card[data-cursor]`
+  - boundingBox() for visual layout tests
+  - Resolves: km-lp7k
+
 ### Bug Fixes
 
 - **tui:** prevent constant re-renders from spinner animation ([db5457d](https://github.com/beorn/km/commit/db5457d))

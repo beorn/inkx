@@ -94,14 +94,14 @@ function formatDate(d: Date): string {
 function processVault() {
   // Helper defined at top
   function validatePath(p: string) {
-    if (!p.startsWith('/')) throw new Error('...');
-    if (!existsSync(p)) throw new Error('...');
+    if (!p.startsWith("/")) throw new Error("...");
+    if (!existsSync(p)) throw new Error("...");
     return resolve(p);
   }
 
   function loadDatabase(p: string) {
     const db = new Database(p);
-    db.pragma('journal_mode = WAL');
+    db.pragma("journal_mode = WAL");
     return db;
   }
 
@@ -119,14 +119,14 @@ function processVault() {
 
   // Implementation details - reader can skip if not interested
   function validatePath(p: string) {
-    if (!p.startsWith('/')) throw new Error('...');
-    if (!existsSync(p)) throw new Error('...');
+    if (!p.startsWith("/")) throw new Error("...");
+    if (!existsSync(p)) throw new Error("...");
     return resolve(p);
   }
 
   function loadDatabase(p: string) {
     const db = new Database(p);
-    db.pragma('journal_mode = WAL');
+    db.pragma("journal_mode = WAL");
     return db;
   }
 }
@@ -228,6 +228,15 @@ bun run test:fast    # Run this frequently - 24 second feedback loop
 4. `bun fix` passes
 5. `bun run test:all` passes (final check before commit)
 6. Commit
+
+**Spec Tests (.spec.ts / .test.md):**
+
+- Acceptance tests that serve as executable requirements (AC)
+- Operate at UI/outermost level - test behavior, check visual results
+- TUI: board.spec.ts (CSS selectors + boundingBox + interactions)
+- CLI: km-<command>.test.md files (e.g., km-view.test.md, km-sync.test.md)
+- Use full command system (stdin.write for TUI, shell for CLI)
+- **Recommended**: Run with `bun run test:mock` for fastest iteration (~20s)
 
 **⚠️ CRITICAL: Test Safety - Use Isolated Test Directories**
 

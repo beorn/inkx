@@ -11,6 +11,31 @@
  * - ✅ Static visual testing with BoardCore
  * - ✅ Keyboard navigation with Board (useReducer + useInput)
  *
+ * ## Tree Builder API (NEW - decker-inspired)
+ *
+ * Quick fixture creation with nested function calls:
+ *
+ * @example
+ * ```typescript
+ * // Create nodes inline
+ * const nodes = item("board",
+ *   item("col1", item("1a"), item("1b")),
+ *   item("col2", item("2a"))
+ * );
+ *
+ * // One-line test with fluent API
+ * const { board } = testEnv(() =>
+ *   item("board", item("col1", item("task1"), item("task2")))
+ * );
+ * board.press("j").expectVisible("task2");
+ *
+ * // Use standardBoard() for common tests
+ * const { vault, root } = standardBoard();
+ * const state = buildBoardState(vault, root);
+ * ```
+ *
+ * ## Classic API (existing)
+ *
  * @example
  * ```typescript
  * const b = renderBoard(SIMPLE_BOARD);
@@ -37,8 +62,10 @@ import {
 } from "inkx/testing";
 import { expect } from "bun:test";
 import { createFakeVault } from "@km/storage";
+import type { KNode } from "@km/core";
 
 import { BoardCore, Board } from "../../src/views/Board.tsx";
+import { buildBoardState } from "../../src/state.ts";
 import { createInitialUIState } from "../../src/ui-reducer.ts";
 import { createLayoutRegistry } from "../../src/card-positions.ts";
 import { VaultProvider } from "../../src/vault-context.tsx";
@@ -51,6 +78,173 @@ import {
   createColumnState,
   createCardState,
 } from "../fixtures/board-fixtures.ts";
+
+// =============================================================================
+// Tree Fixture Builder (decker-inspired)
+// =============================================================================
+
+/**
+ * Tree-style fixture builder using nested function calls
+ * Content is used as the ID for easy test referencing
+ *
+ * @example
+ * const nodes = item("board",
+ *   item("col1",
+ *     item("1a"),
+ *     item("1b")
+ *   ),
+ *   item("col2",
+ *     item("2a")
+ *   )
+ * );
+ */
+export function item(content: string, ...childArrays: KNode[][]): KNode[] {
+  const node: KNode = {
+    id: content,
+    type: "task",
+    content,
+    parent_id: null,
+    parent_idx: 0,
+    data: {},
+    link_to: null,
+    created_at: Date.now(),
+    updated_at: Date.now(),
+    version: "v1",
+  };
+
+  // Process each child array (each call to item())
+  const result: KNode[] = [node];
+  childArrays.forEach((childArray, idx) => {
+    // The first node in each child array is the direct child
+    const directChild = childArray[0];
+    if (directChild) {
+      directChild.parent_id = content;
+      directChild.parent_idx = idx;
+    }
+    // Add all nodes from this child array to the result
+    result.push(...childArray);
+  });
+
+  return result;
+}
+
+/**
+ * Standard board fixture for common tests
+ */
+export function standardBoard() {
+  const nodes = item(
+    "board",
+    item("col1", item("1a"), item("1b")),
+    item("col2", item("2a")),
+    item("col3"),
+  );
+
+  return {
+    vault: createFakeVault({ nodes }),
+    root: "board",
+  };
+}
+
+/**
+ * One-line fixture creation + rendering with fluent API
+ *
+ * @example
+ * const { board } = testEnv(() =>
+ *   item("board",
+ *     item("col1", item("1a"), item("1b"))
+ *   )
+ * );
+ * board.press("j").expect("#1b[data-cursor]").toExist();
+ */
+export function testEnv(treeBuilder: () => KNode[]) {
+  const nodes = treeBuilder();
+  const vault = createFakeVault({ nodes });
+  const rootNode = nodes[0];
+  if (!rootNode) {
+    throw new Error("Tree builder must return at least one node");
+  }
+
+  // Build initial board state from vault
+  const initialState = buildBoardState(vault as any, rootNode.id);
+
+  // Render the full Board component (not BoardCore) for keyboard navigation + id attributes
+  const render = createTestRenderer({ columns: 80, rows: 24 });
+  const boardElement = React.createElement(Board, {
+    initialState,
+    initialViewMode: "cards" as const,
+    dimensions: { columns: 80, rows: 24 },
+    onExit: () => {},
+    layoutRegistry: createLayoutRegistry(),
+  });
+  const result = render(
+    React.createElement(VaultProvider, { vault, children: boardElement }),
+  );
+
+  // Create fluent API
+  const board = {
+    press: (key: string) => {
+      result.stdin.write(key);
+      return board;
+    },
+    q: (selector: string) => {
+      const freshLocator = createLocator(result.getContainer());
+      return freshLocator.locator(selector);
+    },
+    expect: (selector: string) => ({
+      toExist: () => {
+        const freshLocator = createLocator(result.getContainer());
+        const loc = freshLocator.locator(selector);
+        expect(loc.count()).toBeGreaterThan(0);
+      },
+      not: {
+        toExist: () => {
+          const freshLocator = createLocator(result.getContainer());
+          const loc = freshLocator.locator(selector);
+          expect(loc.count()).toBe(0);
+        },
+      },
+      toHaveCount: (n: number) => {
+        const freshLocator = createLocator(result.getContainer());
+        const loc = freshLocator.locator(selector);
+        expect(loc.count()).toBe(n);
+      },
+    }),
+    screenshot: () => result.lastFrameText() ?? "",
+    _result: result,
+  };
+  return { board };
+}
+
+// =============================================================================
+// Custom Matchers
+// =============================================================================
+
+declare module "bun:test" {
+  interface Matchers<T> {
+    toExist(): void;
+    toHaveCount(expected: number): void;
+  }
+}
+
+expect.extend({
+  toExist(received: unknown) {
+    const locator = received as InkxLocator;
+    const pass = locator.count() > 0;
+    return {
+      pass,
+      message: () =>
+        pass ? `Expected element not to exist` : `Expected element to exist`,
+    };
+  },
+  toHaveCount(received: unknown, expected: number) {
+    const locator = received as InkxLocator;
+    const count = locator.count();
+    return {
+      pass: count === expected,
+      message: () => `Expected count ${expected}, got ${count}`,
+    };
+  },
+});
 
 // =============================================================================
 // Types

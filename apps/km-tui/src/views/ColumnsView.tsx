@@ -276,7 +276,15 @@ const ColumnTree = React.memo(function ColumnTree({
   const iconColor = isColumnHeaderSelected ? "black" : icon.color;
 
   return (
-    <Box flexDirection="column" width={width} height={height} overflow="hidden">
+    <Box
+      id={column.node.id}
+      data-view="column"
+      data-selected={isSelected}
+      flexDirection="column"
+      width={width}
+      height={height}
+      overflow="hidden"
+    >
       {/* Header section */}
       <Box flexDirection="column" height={2} flexShrink={0}>
         {/* Header row - backgroundColor on Text ensures fg color applies correctly */}

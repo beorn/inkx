@@ -88,14 +88,15 @@ async function main() {
     files = positionals;
   } else if (analyze === "fast") {
     // Replicate test:fast pattern
-    files = Array.from(
-      new Bun.Glob("**/*.test.ts").scanSync(".")
-    ).filter(f => !f.includes(".slow.test.ts") && !f.includes("node_modules"));
+    files = Array.from(new Bun.Glob("**/*.test.ts").scanSync(".")).filter(
+      (f) => !f.includes(".slow.test.ts") && !f.includes("node_modules"),
+    );
   } else if (analyze === "slow") {
     files = Array.from(new Bun.Glob("**/*.slow.test.ts").scanSync("."));
   } else {
-    files = Array.from(new Bun.Glob(pattern).scanSync("."))
-      .filter(f => !f.includes("node_modules"));
+    files = Array.from(new Bun.Glob(pattern).scanSync(".")).filter(
+      (f) => !f.includes("node_modules"),
+    );
   }
 
   if (files.length === 0) {
@@ -122,8 +123,8 @@ async function main() {
   // Analysis
   console.log("\n" + "=".repeat(80) + "\n");
 
-  const passed = results.filter(r => r.passed);
-  const failed = results.filter(r => !r.passed);
+  const passed = results.filter((r) => r.passed);
+  const failed = results.filter((r) => !r.passed);
   const totalDuration = passed.reduce((sum, r) => sum + r.duration, 0);
   const totalTests = passed.reduce((sum, r) => sum + r.testCount, 0);
 
@@ -131,7 +132,9 @@ async function main() {
   const sortedByDuration = [...passed].sort((a, b) => b.duration - a.duration);
 
   console.log(`📈 Performance Analysis\n`);
-  console.log(`Target: ${(targetTime / 1000).toFixed(1)}s | Actual: ${(totalDuration / 1000).toFixed(2)}s | Status: ${totalDuration <= targetTime ? "✅ PASS" : "❌ OVER"}\n`);
+  console.log(
+    `Target: ${(targetTime / 1000).toFixed(1)}s | Actual: ${(totalDuration / 1000).toFixed(2)}s | Status: ${totalDuration <= targetTime ? "✅ PASS" : "❌ OVER"}\n`,
+  );
 
   if (totalDuration > targetTime) {
     const overBy = totalDuration - targetTime;
@@ -143,19 +146,24 @@ async function main() {
   sortedByDuration.slice(0, 10).forEach((r, i) => {
     const durationSec = (r.duration / 1000).toFixed(2);
     const pct = ((r.duration / totalDuration) * 100).toFixed(1);
-    const avgPerTest = r.testCount > 0 ? (r.duration / r.testCount).toFixed(0) : "N/A";
-    console.log(`   ${i + 1}. ${durationSec}s (${pct}%) - ${avgPerTest}ms/test - ${r.file}`);
+    const avgPerTest =
+      r.testCount > 0 ? (r.duration / r.testCount).toFixed(0) : "N/A";
+    console.log(
+      `   ${i + 1}. ${durationSec}s (${pct}%) - ${avgPerTest}ms/test - ${r.file}`,
+    );
   });
   console.log();
 
   // Identify candidates to move to .slow.test
   if (analyze === "fast") {
     const candidates = passed
-      .filter(r => r.duration > SLOW_FILE_THRESHOLD)
+      .filter((r) => r.duration > SLOW_FILE_THRESHOLD)
       .sort((a, b) => b.duration - a.duration);
 
     if (candidates.length > 0) {
-      console.log(`💡 Candidates to move to .slow.test (>${SLOW_FILE_THRESHOLD}ms):\n`);
+      console.log(
+        `💡 Candidates to move to .slow.test (>${SLOW_FILE_THRESHOLD}ms):\n`,
+      );
       let savings = 0;
       for (const r of candidates) {
         const durationSec = (r.duration / 1000).toFixed(2);
@@ -164,7 +172,9 @@ async function main() {
         savings += r.duration;
 
         if (totalDuration - savings <= targetTime) {
-          console.log(`   ↑ Moving these would bring total under ${(targetTime / 1000).toFixed(1)}s`);
+          console.log(
+            `   ↑ Moving these would bring total under ${(targetTime / 1000).toFixed(1)}s`,
+          );
           break;
         }
       }
@@ -175,17 +185,21 @@ async function main() {
   // Identify candidates to move FROM .slow.test
   if (analyze === "slow") {
     const candidates = passed
-      .filter(r => r.duration < SLOW_FILE_THRESHOLD)
+      .filter((r) => r.duration < SLOW_FILE_THRESHOLD)
       .sort((a, b) => a.duration - b.duration);
 
     if (candidates.length > 0) {
-      console.log(`💡 Candidates to move FROM .slow.test (<${SLOW_FILE_THRESHOLD}ms):\n`);
-      candidates.forEach(r => {
+      console.log(
+        `💡 Candidates to move FROM .slow.test (<${SLOW_FILE_THRESHOLD}ms):\n`,
+      );
+      candidates.forEach((r) => {
         const durationSec = (r.duration / 1000).toFixed(2);
         const newName = r.file.replace(".slow.test.", ".test.");
         console.log(`   ${durationSec}s - mv ${r.file} ${newName}`);
       });
-      console.log(`\n   Note: Verify test:fast remains under ${(targetTime / 1000).toFixed(1)}s after moving!\n`);
+      console.log(
+        `\n   Note: Verify test:fast remains under ${(targetTime / 1000).toFixed(1)}s after moving!\n`,
+      );
     }
   }
 
@@ -196,7 +210,9 @@ async function main() {
   console.log(`  Failed: ${failed.length}`);
   console.log(`  Total tests: ${totalTests}`);
   console.log(`  Total time: ${(totalDuration / 1000).toFixed(2)}s`);
-  console.log(`  Avg per file: ${((totalDuration / passed.length) / 1000).toFixed(2)}s`);
+  console.log(
+    `  Avg per file: ${(totalDuration / passed.length / 1000).toFixed(2)}s`,
+  );
   if (totalTests > 0) {
     console.log(`  Avg per test: ${(totalDuration / totalTests).toFixed(0)}ms`);
   }
@@ -204,7 +220,7 @@ async function main() {
 
   if (failed.length > 0) {
     console.log(`❌ Failed tests:\n`);
-    failed.forEach(r => {
+    failed.forEach((r) => {
       const durationSec = (r.duration / 1000).toFixed(2);
       console.log(`   ${durationSec}s  ${r.file}`);
       if (r.error) {

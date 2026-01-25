@@ -296,6 +296,9 @@ function TreeNodeImpl({
       {/* height={1} in oneliner mode prevents background from bleeding to next line */}
       <HeadRow onLayout={handleHeadLayout}>
         <Box
+          id={node.id}
+          data-view="item"
+          data-cursor={isSelected}
           flexDirection="row"
           alignItems="flex-start"
           paddingLeft={depth}

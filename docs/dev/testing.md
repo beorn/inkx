@@ -58,40 +58,101 @@ ALL TESTS: Default lightweight (memory/mocks) + flag for real infra
 
 End-user visible tests that serve as documentation. A new developer should understand system behavior by reading these tests.
 
-### 1.1 Visual Tests (TUI)
+### 1.1 TUI Spec Tests
 
-**Framework**: `inkx/testing` with `createTestRenderer()` + `InkxLocator`
+**Framework**: `inkx/testing` with `testEnv()` helper from `board-test.ts`
 
-**Location**: `apps/km-tui/tests/`
+**Location**: `apps/km-tui/tests/*.spec.ts`
 
-**Key capabilities**:
+**Purpose**: UI acceptance tests that verify end-user visible behavior. Spec tests are executable requirements.
 
-- `createTestRenderer({ columns, rows })` - fast character-based rendering (~ms)
-- `stdin.write()` - simulate keyboard input
-- `InkxLocator.boundingBox()` - get `{x, y, width, height}` screen coordinates
-- `getByText()`, `getByTestId()`, `locator('[data-attr]')` - DOM-like queries
+**Organization**:
 
-**Example using helper toolbelt**:
+- ONE file: `board.spec.ts` - All UI acceptance tests
+- Combines structural (CSS selectors), visual (boundingBox), and interaction tests
+- Organized by feature/behavior using describe blocks
+
+**Pattern**: Tree fixtures + CSS selectors + fluent API (inspired by decker's Playwright tests)
+
+**Example - Structural test (DOM hierarchy):**
 
 ```typescript
-const board = renderBoard(SIMPLE_BOARD);
+test("node shifting (move to different column)", () => {
+  const { board } = testEnv(() =>
+    item(
+      "board",
+      item("col1", item("1a"), item("1b")),
+      item("col2", item("2a")),
+    ),
+  );
 
-// Navigation - reads like documentation
-board.press("l").expectCursor({ col: 1 });
-board.press("j").expectCursor({ card: 1 });
+  // BEFORE: 1a is child of col1
+  board.expect("#col1 > #1a").toExist();
+  board.expect("#1a + #1b").toExist(); // 1a before 1b
 
-// Content assertions
-board.expect("Task 1").inColumn("To Do");
-board.expect("cursor").rightOf("column-0");
+  // Move 1a to col2
+  board.press("m").press("l").press("\r");
 
-// State
-board.expectSelected("Task 2");
-board.expectColumnCount(2);
+  // AFTER: 1a is now child of col2
+  board.expect("#col2 > #1a").toExist();
+  board.expect("#col1 > #1a").not.toExist();
+});
 ```
 
-**When to use**: Testing TUI rendering, navigation, keyboard handling.
+**Example - Visual layout test (position/spacing):**
 
-**Size budget:** Acceptance tests cover representative paths, not combinatorial coverage. If a test grows beyond ~10 steps, extract the complex logic to a core test.
+```typescript
+test("columns are horizontal", () => {
+  const { board } = testEnv(() =>
+    item("board", item("col1", item("1a")), item("col2", item("2a"))),
+  );
+
+  const col1Box = board.q("#col1").boundingBox();
+  const col2Box = board.q("#col2").boundingBox();
+
+  // col2 is to the right of col1
+  expect(col2Box.x).toBeGreaterThan(col1Box.x);
+  // Both columns aligned top
+  expect(col2Box.y).toBe(col1Box.y);
+});
+```
+
+**Fixture pattern** (decker-inspired):
+
+- **Tree builder** - `item()` creates nested hierarchy
+- **Content as ID** - "1a", "1b", "2a" are self-documenting
+- **Inline fixtures** - passed directly to `testEnv()`
+- No manual parent_id/parent_idx bookkeeping
+
+**Test API**:
+
+- `board.press(key)` - keyboard input (chainable)
+- `board.expect(selector)` - fluent assertions
+- `board.q(selector)` - advanced queries (returns InkxLocator)
+- `.toExist()` / `.toHaveCount(n)` - custom matchers
+- `.boundingBox()` - visual position checks
+
+**CSS selectors**:
+
+- `#col1 > #1a` - 1a is direct child of col1
+- `#1a + #1b` - 1b immediately follows 1a
+- `#1a[data-cursor]` - cursor is on 1a
+- `[data-selected]` - all selected items
+- `[data-view="card"]` - all cards
+
+**Key benefits**:
+
+- Tests read like documentation
+- Inline fixtures show hierarchy visually
+- CSS selectors test structure declaratively
+- Auto re-render after each action
+- Works at UI level (rendered DOM), not internal state
+
+**Spec vs Unit Tests**:
+
+- `.spec.ts` - UI acceptance tests using `stdin.write()` (full command system)
+- `.test.ts` - Unit tests can use `handleKey()` directly (faster, focused)
+- Both are valid - use the right tool for the test level
 
 ### 1.2 CLI Tests (mdtest)
 

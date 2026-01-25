@@ -61,6 +61,7 @@ export const MemoizedTreeCard = React.memo(
         nodeId={card.node.id}
         colIndex={colIndex}
         cardIndex={cardIndex}
+        isSelected={isSelected}
       >
         <TreeNode
           node={card.node}
@@ -96,6 +97,7 @@ interface CardLayoutTrackerProps {
   nodeId: string;
   colIndex: number;
   cardIndex: number;
+  isSelected: boolean;
   children: React.ReactNode;
 }
 
@@ -109,6 +111,7 @@ function CardLayoutTracker({
   nodeId,
   colIndex,
   cardIndex,
+  isSelected,
   children,
 }: CardLayoutTrackerProps): React.ReactElement {
   const registry = useLayoutRegistryOptional();
@@ -139,7 +142,16 @@ function CardLayoutTracker({
 
   useLayoutCallback(handleLayout);
 
-  return <Box flexDirection="column">{children}</Box>;
+  return (
+    <Box
+      flexDirection="column"
+      id={nodeId}
+      data-view="card"
+      data-cursor={isSelected}
+    >
+      {children}
+    </Box>
+  );
 }
 
 // =============================================================================

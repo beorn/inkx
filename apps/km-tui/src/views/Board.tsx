@@ -192,6 +192,8 @@ export function BoardCore({
       <LayoutProvider registry={layoutRegistry}>
         <UIProvider state={ui} dispatch={dispatch}>
           <Box
+            id={state.rootId ?? undefined}
+            data-view="board"
             flexDirection="column"
             width={termWidth}
             height={termHeight}
