@@ -26,6 +26,7 @@ export type {
   SessionMessageData,
   SessionToolCallData,
   SessionEndedData,
+  NotificationLevel,
 } from "./types.ts"
 
 // Constants

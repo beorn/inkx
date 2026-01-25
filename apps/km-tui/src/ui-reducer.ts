@@ -81,6 +81,9 @@ export interface UIState {
 
   // Bell state - set when action hits boundary, cleared on next keypress
   bellState: string | null
+
+  // Status message - user feedback for actions (selection count, mode changes)
+  status: { level: "info" | "success" | "warning" | "error"; message: string } | null
 }
 
 // =============================================================================
@@ -137,6 +140,7 @@ export function createInitialUIState(
     watcherStatus: null,
 
     bellState: null,
+    status: null,
   }
 }
 
@@ -371,6 +375,20 @@ const uiSlice = createSlice({
     },
     clearBell: (state) => {
       state.bellState = null
+    },
+
+    // Status message (for action feedback)
+    setStatus: (
+      state,
+      action: PayloadAction<{
+        level: "info" | "success" | "warning" | "error"
+        message: string
+      }>,
+    ) => {
+      state.status = action.payload
+    },
+    clearStatus: (state) => {
+      state.status = null
     },
   },
 })

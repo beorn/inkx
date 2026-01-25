@@ -886,6 +886,10 @@ function handleExtendSelectVertical(
     const newSelected = new Set(ui.multiSelected)
     newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, 0))
     dispatch(actions.setMultiSelected(newSelected))
+    dispatch(actions.setStatus({
+      level: "info",
+      message: "1 item selected"
+    }))
   }
 
   // Calculate target
@@ -905,7 +909,7 @@ function handleExtendSelectVertical(
   )
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
-    // Update selection range
+    // Update selection range (will also set status)
     updateSelectionRange(ctx, state.colIndex, targetIdx, 0)
   }
 }
@@ -920,6 +924,7 @@ function handleExtendSelectHorizontal(
   if (ui.multiSelected.size > 0) {
     dispatch(actions.clearMultiSelection())
     dispatch(actions.setSelectionAnchor(null))
+    dispatch(actions.clearStatus())
   }
 }
 

@@ -62,6 +62,7 @@ import {
 } from "./board-layout.ts"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
+import { StatusBar } from "./StatusBar.tsx"
 import {
   createSyncTerminalDimensions,
   createFileDropHandler,
@@ -355,6 +356,8 @@ export function BoardCore({
                 <HelpOverlay width={termWidth} height={contentHeight} />
               )}
             </Box>
+            {/* Status bar - user feedback messages */}
+            <StatusBar ui={ui} termWidth={termWidth} />
             {/* Bottom bar */}
             <BottomBar
               ui={ui}

@@ -95,6 +95,15 @@ export function updateSelectionRange(
     }
   }
   ctx.dispatch(actions.setMultiSelected(newSelected))
+
+  // Show status feedback
+  const count = newSelected.size
+  if (count > 1) {
+    ctx.dispatch(actions.setStatus({
+      level: "info",
+      message: `${count} items selected`
+    }))
+  }
 }
 
 /** Clear all selection state */
@@ -102,6 +111,7 @@ export function clearSelection(ctx: TUIContext): void {
   ctx.dispatch(actions.setMultiSelected(new Set()))
   ctx.dispatch(actions.setSelectionAnchor(null))
   ctx.dispatch(actions.setSelectAllLevel(0))
+  ctx.dispatch(actions.clearStatus())
 }
 
 /** Get unique selected card indices from multi-selection */
@@ -201,6 +211,10 @@ export function progressiveSelectAll(ctx: TUIContext): void {
     }
     ctx.dispatch(actions.setMultiSelected(newSelected))
     ctx.dispatch(actions.setSelectAllLevel(1))
+    ctx.dispatch(actions.setStatus({
+      level: "info",
+      message: `All ${newSelected.size} items in card selected`
+    }))
   } else if (currentLevel <= 1 && col) {
     const newSelected = new Set<SelectionKey>()
     for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
@@ -221,6 +235,10 @@ export function progressiveSelectAll(ctx: TUIContext): void {
     }
     ctx.dispatch(actions.setMultiSelected(newSelected))
     ctx.dispatch(actions.setSelectAllLevel(2))
+    ctx.dispatch(actions.setStatus({
+      level: "info",
+      message: `All ${newSelected.size} items in column selected`
+    }))
   } else {
     const newSelected = new Set<SelectionKey>()
     for (let colIdx = 0; colIdx < ctx.layout.columns.length; colIdx++) {
@@ -246,5 +264,9 @@ export function progressiveSelectAll(ctx: TUIContext): void {
     }
     ctx.dispatch(actions.setMultiSelected(newSelected))
     ctx.dispatch(actions.setSelectAllLevel(0))
+    ctx.dispatch(actions.setStatus({
+      level: "info",
+      message: `All ${newSelected.size} items in board selected`
+    }))
   }
 }

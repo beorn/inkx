@@ -4,6 +4,16 @@
  */
 
 // =============================================================================
+// UI Feedback Types
+// =============================================================================
+
+/**
+ * Notification severity level for status messages and toasts.
+ * Used consistently across status bar, toasts, and other feedback UI.
+ */
+export type NotificationLevel = "info" | "success" | "warning" | "error"
+
+// =============================================================================
 // Node Type Hierarchy
 // =============================================================================
 
