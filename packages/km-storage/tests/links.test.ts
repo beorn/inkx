@@ -10,6 +10,7 @@ import { mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
 import { MemoryStore } from "../src/store.ts"
+import { getDb } from "../src/db.ts"
 
 // Track created directories for cleanup
 const createdDirs: string[] = []
@@ -44,7 +45,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes(getDb())
+      const nodes = store.getAllNodes()
       const task = nodes.find((n) => n.type === "task")
       expect(task).toBeDefined()
       expect(task?.content).toContain("[[project notes]]")
@@ -58,7 +59,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes(getDb())
+      const nodes = store.getAllNodes()
       const task = nodes.find((n) => n.type === "task")
       expect(task).toBeDefined()
       expect(task?.content).toContain("[[Real Target|Display Name]]")
@@ -72,7 +73,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes(getDb())
+      const nodes = store.getAllNodes()
       const task = nodes.find((n) => n.type === "task")
       expect(task).toBeDefined()
       expect(task?.content).toContain("[[other#section]]")
@@ -86,7 +87,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes(getDb())
+      const nodes = store.getAllNodes()
       const task = nodes.find((n) => n.type === "task")
       expect(task).toBeDefined()
       expect(task?.content).toContain("[[one]]")
@@ -132,7 +133,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes(getDb())
+      const nodes = store.getAllNodes()
 
       // Find the embedding node (the list item with ![[...]])
       const embedNode = nodes.find((n) =>
@@ -163,7 +164,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes(getDb())
+      const nodes = store.getAllNodes()
 
       // Find the embedding node
       const embedNode = nodes.find((n) =>
@@ -194,7 +195,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes(getDb())
+      const nodes = store.getAllNodes()
 
       // Find the embedding node
       const embedNode = nodes.find((n) =>
@@ -223,7 +224,7 @@ describe("Links and Backlinks", () => {
 
       using store = new MemoryStore(testDir)
       // File has sections as children, sections have tasks
-      const allNodes = store.getAllNodes(getDb())
+      const allNodes = store.getAllNodes()
       const tasks = allNodes.filter((n) => n.type === "task")
       expect(tasks.length).toBe(2)
 
@@ -242,7 +243,7 @@ describe("Links and Backlinks", () => {
       )
 
       using store = new MemoryStore(testDir)
-      const nodes = store.getAllNodes(getDb())
+      const nodes = store.getAllNodes()
       const task = nodes.find(
         (n) => n.type === "task" && n.content?.includes("Deep task"),
       )

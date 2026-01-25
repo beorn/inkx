@@ -67,7 +67,7 @@ describe("createVault", () => {
       expect(tasks.length).toBeGreaterThan(0)
 
       const task = tasks[0]!
-      const fetched = vault.getNode(getDb(), task.id)
+      const fetched = vault.getNode(task.id)
 
       expect(fetched).not.toBeNull()
       expect(fetched!.id).toBe(task.id)
@@ -93,7 +93,7 @@ Some content here.
 
       using vault = runGenerator(createVault(vaultDir))
       // Root children
-      const rootChildren = vault.getChildren(getDb(), null)
+      const rootChildren = vault.getChildren(null)
       expect(rootChildren.length).toBeGreaterThan(0)
 
       const fileNames = rootChildren.map((n) => n.content)
@@ -151,13 +151,13 @@ Some content here with [[tasks]] link.
       )
 
       using vault = runGenerator(createVault(vaultDir))
-      const todo = vault.getTasksByStatus(getDb(), "todo")
+      const todo = vault.getTasksByStatus("todo")
       expect(todo.length).toBe(2)
 
-      const done = vault.getTasksByStatus(getDb(), "done")
+      const done = vault.getTasksByStatus("done")
       expect(done.length).toBe(1)
 
-      const wip = vault.getTasksByStatus(getDb(), "wip")
+      const wip = vault.getTasksByStatus("wip")
       expect(wip.length).toBe(1)
     }))
 
@@ -191,12 +191,12 @@ Some content here with [[tasks]] link.
       const tasks = vault.getAllTasks()
       const openTask = tasks.find((t) => t.content === "Open task")!
 
-      vault.updateNode(getDb(), openTask.id, {
+      vault.updateNode(openTask.id, {
         task_status: "done",
         task_mark: "x",
       })
 
-      const updated = vault.getNode(getDb(), openTask.id)
+      const updated = vault.getNode(openTask.id)
       expect(updated!.task_status).toBe("done")
     }))
 
@@ -214,7 +214,7 @@ Some content here with [[tasks]] link.
       vault.close()
 
       expect(() => vault.getAllTasks()).toThrow("Vault is closed")
-      expect(() => vault.getNode(getDb(), "any-id")).toThrow("Vault is closed")
+      expect(() => vault.getNode("any-id")).toThrow("Vault is closed")
     }))
 
   test("close is idempotent", () =>
@@ -398,8 +398,8 @@ Some content here with [[tasks]] link.
 
         using vault = runGenerator(createVault(vaultDir, { hooks }))
         vault.getAllTasks()
-        vault.getNode(getDb(), vault.getAllTasks()[0]!.id)
-        vault.getChildren(getDb(), null)
+        vault.getNode(vault.getAllTasks()[0]!.id)
+        vault.getChildren(null)
         vault.search("task")
 
         expect(queryCalls.length).toBe(5) // getAllTasks x2, getNode, getChildren, search
@@ -430,7 +430,7 @@ Some content here with [[tasks]] link.
         const tasks = vault.getAllTasks()
         const task = tasks[0]!
 
-        vault.updateNode(getDb(), task.id, { task_status: "done" })
+        vault.updateNode(task.id, { task_status: "done" })
 
         expect(mutations.length).toBe(1)
         expect(mutations[0]!.type).toBe("update")
@@ -459,7 +459,7 @@ Some content here with [[tasks]] link.
         const tasks = vault.getAllTasks()
         const task = tasks[0]!
 
-        vault.updateNode(getDb(), task.id, { task_status: "done" })
+        vault.updateNode(task.id, { task_status: "done" })
 
         expect(mutations.length).toBe(1)
         expect(mutations[0]!.type).toBe("update")
@@ -488,11 +488,11 @@ Some content here with [[tasks]] link.
         const originalStatus = task.task_status
 
         expect(() =>
-          vault.updateNode(getDb(), task.id, { task_status: "done" }),
+          vault.updateNode(task.id, { task_status: "done" }),
         ).toThrow(/Mutation cancelled by hook/)
 
         // Verify mutation didn't happen
-        const unchanged = vault.getNode(getDb(), task.id)
+        const unchanged = vault.getNode(task.id)
         expect(unchanged!.task_status).toBe(originalStatus)
       }))
 
@@ -525,9 +525,9 @@ Some content here with [[tasks]] link.
         const task = tasks[0]!
 
         // Request "done" but hook transforms to "wip"
-        vault.updateNode(getDb(), task.id, { task_status: "done" })
+        vault.updateNode(task.id, { task_status: "done" })
 
-        const updated = vault.getNode(getDb(), task.id)
+        const updated = vault.getNode(task.id)
         expect(updated!.task_status).toBe("wip")
       }))
 
@@ -602,7 +602,7 @@ Some content here with [[tasks]] link.
         }
 
         using vault = runGenerator(createVault(vaultDir, { hooks }))
-        const rootChildren = vault.getChildren(getDb(), null)
+        const rootChildren = vault.getChildren(null)
         const fileNode = rootChildren[0]!
 
         vault.addNode(fileNode.id, {

@@ -13,7 +13,7 @@ import { describe, test, expect } from "bun:test"
 import { join } from "path"
 import { ulid } from "ulid"
 
-import { resolveNode } from "../src/db.ts"
+import { getDb, resolveNode } from "../src/db.ts"
 import { emitNodeCreated } from "../src/emit.ts"
 import { withTestEnvSync } from "@km/storage"
 

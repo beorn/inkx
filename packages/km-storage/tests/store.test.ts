@@ -11,6 +11,7 @@ import { join } from "path"
 import { ulid } from "ulid"
 import { initStore, closeStore, MemoryStore, DiskStore } from "../src/store.ts"
 import { withTestEnvSync } from "@km/storage"
+import { getDb } from "../src/db.ts"
 
 // Track created directories for cleanup
 const createdDirs: string[] = []
@@ -87,7 +88,7 @@ describe("MemoryStore", () => {
     const rootDir = createMemoryStoreTestVault()
     using store = new MemoryStore(rootDir)
 
-    const allNodes = store.getAllNodes(getDb())
+    const allNodes = store.getAllNodes()
     expect(allNodes.length).toBeGreaterThan(0)
 
     // Should have files (3 .md + 3 non-md)
@@ -103,7 +104,7 @@ describe("MemoryStore", () => {
     const rootDir = createMemoryStoreTestVault()
     using store = new MemoryStore(rootDir)
 
-    const allNodes = store.getAllNodes(getDb())
+    const allNodes = store.getAllNodes()
     const fileNames = allNodes
       .filter((n) => n.type === "file")
       .map((n) => n.content)
@@ -161,7 +162,7 @@ describe("MemoryStore", () => {
     const rootDir = createMemoryStoreTestVault()
     using store = new MemoryStore(rootDir)
 
-    const sections = store.getAllNodes(getDb()).filter((n) => n.type === "section")
+    const sections = store.getAllNodes().filter((n) => n.type === "section")
     expect(sections.length).toBeGreaterThan(0)
 
     // notes.md has "Notes" (H1 merged into file), "Section One", "Section Two" (H2s)

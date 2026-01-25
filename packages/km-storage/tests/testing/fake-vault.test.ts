@@ -31,8 +31,8 @@ describe("FakeVault", () => {
 
       const vault = createFakeVault({ nodes })
       expect(vault.stats.nodeCount).toBe(2)
-      expect(vault.getNode(getDb(), "1")).not.toBeNull()
-      expect(vault.getNode(getDb(), "2")).not.toBeNull()
+      expect(vault.getNode("1")).not.toBeNull()
+      expect(vault.getNode("2")).not.toBeNull()
     })
   })
 
@@ -42,14 +42,14 @@ describe("FakeVault", () => {
         nodes: [createNode({ id: "abc", content: "Test" })],
       })
 
-      const node = vault.getNode(getDb(), "abc")
+      const node = vault.getNode("abc")
       expect(node).not.toBeNull()
       expect(node!.content).toBe("Test")
     })
 
     it("getNode returns null for unknown id", () => {
       const vault = createFakeVault()
-      expect(vault.getNode(getDb(), "unknown")).toBeNull()
+      expect(vault.getNode("unknown")).toBeNull()
     })
 
     it("getChildren returns children sorted by parent_idx", () => {
@@ -62,7 +62,7 @@ describe("FakeVault", () => {
         ],
       })
 
-      const children = vault.getChildren(getDb(), "parent")
+      const children = vault.getChildren("parent")
       expect(children.map((c) => c.id)).toEqual(["child1", "child2", "child0"])
     })
 
@@ -77,7 +77,7 @@ describe("FakeVault", () => {
         ],
       })
 
-      const subtree = vault.getSubtree(getDb(), "root")
+      const subtree = vault.getSubtree("root")
       expect(subtree.map((n) => n.id)).toContain("root")
       expect(subtree.map((n) => n.id)).toContain("child1")
       expect(subtree.map((n) => n.id)).toContain("child2")
@@ -94,7 +94,7 @@ describe("FakeVault", () => {
         ],
       })
 
-      const ancestors = vault.getAncestors(getDb(), "grandchild")
+      const ancestors = vault.getAncestors("grandchild")
       expect(ancestors.map((n) => n.id)).toEqual(["root", "child"])
     })
 
@@ -122,7 +122,7 @@ describe("FakeVault", () => {
         ],
       })
 
-      const todos = vault.getTasksByStatus(getDb(), "todo")
+      const todos = vault.getTasksByStatus("todo")
       expect(todos).toHaveLength(2)
       expect(todos.every((t) => t.task_status === "todo")).toBe(true)
     })
@@ -147,15 +147,15 @@ describe("FakeVault", () => {
         nodes: [createNode({ id: "1", content: "Original" })],
       })
 
-      vault.updateNode(getDb(), "1", { content: "Updated" })
+      vault.updateNode("1", { content: "Updated" })
 
-      const node = vault.getNode(getDb(), "1")
+      const node = vault.getNode("1")
       expect(node!.content).toBe("Updated")
     })
 
     it("updateNode throws for unknown id", () => {
       const vault = createFakeVault()
-      expect(() => vault.updateNode(getDb(), "unknown", {})).toThrow(
+      expect(() => vault.updateNode("unknown", {})).toThrow(
         "Node unknown not found",
       )
     })
@@ -171,7 +171,7 @@ describe("FakeVault", () => {
 
       vault.moveNode("child", "parent2", 5)
 
-      const node = vault.getNode(getDb(), "child")
+      const node = vault.getNode("child")
       expect(node!.parent_id).toBe("parent2")
       expect(node!.parent_idx).toBe(5)
     })
@@ -182,7 +182,7 @@ describe("FakeVault", () => {
       })
 
       vault.deleteNode("1")
-      expect(vault.getNode(getDb(), "1")).toBeNull()
+      expect(vault.getNode("1")).toBeNull()
     })
 
     it("addNode creates new node with generated id", () => {
@@ -194,7 +194,7 @@ describe("FakeVault", () => {
       })
 
       expect(id).toMatch(/^fake-\d+$/)
-      const node = vault.getNode(getDb(), id)
+      const node = vault.getNode(id)
       expect(node).not.toBeNull()
       expect(node!.content).toBe("New section")
       expect(node!.parent_id).toBeNull()
@@ -205,7 +205,7 @@ describe("FakeVault", () => {
 
       const id = vault.addNode(null, { type: "task", content: "New task" })
 
-      const node = vault.getNode(getDb(), id)
+      const node = vault.getNode(id)
       expect(node!.task_status).toBe("todo")
     })
   })
@@ -223,7 +223,7 @@ describe("FakeVault", () => {
 
       vault.close()
 
-      expect(() => vault.getNode(getDb(), "1")).toThrow("Vault is closed")
+      expect(() => vault.getNode("1")).toThrow("Vault is closed")
     })
 
     it("Symbol.dispose calls close", () => {
@@ -233,7 +233,7 @@ describe("FakeVault", () => {
 
       vault[Symbol.dispose]()
 
-      expect(() => vault.getNode(getDb(), "1")).toThrow("Vault is closed")
+      expect(() => vault.getNode("1")).toThrow("Vault is closed")
     })
 
     it("reset restores initial state", () => {
@@ -241,13 +241,13 @@ describe("FakeVault", () => {
         nodes: [createNode({ id: "1", content: "Original" })],
       })
 
-      vault.updateNode(getDb(), "1", { content: "Modified" })
+      vault.updateNode("1", { content: "Modified" })
       vault.addNode(null, { type: "section", content: "New" })
 
       vault.reset()
 
-      expect(vault.getAllNodes(getDb())).toHaveLength(1)
-      expect(vault.getNode(getDb(), "1")!.content).toBe("Original")
+      expect(vault.getAllNodes()).toHaveLength(1)
+      expect(vault.getNode("1")!.content).toBe("Original")
     })
   })
 
@@ -257,7 +257,7 @@ describe("FakeVault", () => {
         nodes: [createNode({ id: "1" }), createNode({ id: "2" })],
       })
 
-      expect(vault.getAllNodes(getDb())).toHaveLength(2)
+      expect(vault.getAllNodes()).toHaveLength(2)
     })
 
     it("getAllLinks returns all links", () => {

@@ -162,7 +162,7 @@ describe("Database Rules", () => {
           )
         },
         ({ store }) => {
-          const allNodes = store.getAllNodes(getDb())
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@issue status:todo",
@@ -199,7 +199,7 @@ describe("Database Rules", () => {
           )
         },
         ({ store }) => {
-          const allNodes = store.getAllNodes(getDb())
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@issue status:todo",
@@ -247,7 +247,7 @@ describe("Database Rules", () => {
             /* exhaust generator */
           }
 
-          const allNodes = store.getAllNodes(getDb())
+          const allNodes = store.getAllNodes()
           const todoSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@project status:todo",
@@ -297,7 +297,7 @@ describe("Database Rules", () => {
           )
         },
         ({ store }) => {
-          const allNodes = store.getAllNodes(getDb())
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@issue status:todo",
@@ -328,7 +328,7 @@ describe("Database Rules", () => {
           )
         },
         ({ store }) => {
-          const allNodes = store.getAllNodes(getDb())
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) => n.type === "section" && n.rules?.add === "status:todo",
           )
@@ -370,7 +370,7 @@ describe("Database Rules", () => {
             /* exhaust generator */
           }
 
-          const allNodes = store.getAllNodes(getDb())
+          const allNodes = store.getAllNodes()
           const todoSection = allNodes.find(
             (n) => n.type === "section" && n.rules?.add === "@tag status:todo",
           )
@@ -434,7 +434,7 @@ describe("Database Rules", () => {
             /* exhaust generator */
           }
 
-          const allNodes = store.getAllNodes(getDb())
+          const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
             (n) =>
               n.type === "section" && n.rules?.add === "@issue status:todo",
