@@ -282,10 +282,14 @@ When starting work on ANY bead, you MUST use `/bd work <id>` first. This:
 ```bash
 bd ready              # Find available work (no blockers)
 bd show <id>          # View issue details
-bd show <id> --json | jq -r '.body'  # Get JSON output (--json is global flag)
+bd show <id> --json   # Get JSON output (--json is global flag)
+bd show <id> --json | jq -r '.[0].body'      # Extract body field
+bd show <id> --json | jq -r '.[0].status'    # Check status
+bd show <id> --json | jq -r '.[0].notes'     # Check notes
 bd create --title="..." --type=task --priority=2
 bd close <id>         # Complete work
 bd sync               # Commit beads changes
+bd dep add <issue> <depends-on>  # Add dependency
 ```
 
 **Workflow:**
@@ -298,11 +302,29 @@ bd sync               # Commit beads changes
 
 **⚠️ Close beads immediately when done.** Don't leave finished work open while moving to other tasks. If a bead is complete, close it before starting new work. Orphaned open beads cause confusion for other sessions.
 
+**Checking bead status:**
+
+```bash
+# View full details
+bd show km-mdtest-plugins
+
+# Check specific fields
+bd show km-mdtest-plugins --json | jq -r '.[0] | .status, .priority, .assignee'
+
+# View status update notes
+bd show km-mdtest-plugins --json | jq -r '.[0].notes'
+
+# List all children of a parent
+bd show km-mdtest-plugins --json | jq -r '.[0].children[]?'
+```
+
 **Key concepts:**
 
 - Priority: P0=critical, P1=high, P2=medium, P3=low, P4=backlog
 - Types: task, bug, feature, epic, chore
 - Dependencies: `bd dep add <issue> <depends-on>`
+- Parent/child: Children automatically depend on parent completion
+- Status: open, in_progress, blocked, completed, cancelled
 
 **Grouped beads (for related issues):**
 
