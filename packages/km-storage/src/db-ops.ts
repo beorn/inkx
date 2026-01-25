@@ -62,6 +62,9 @@ export function updateNode(
   nodeId: string,
   updates: Record<string, unknown>,
 ): void {
+  if (!updates) {
+    throw new Error(`updateNode called with undefined updates for node ${nodeId}`)
+  }
   debug("updateNode: %s keys=%o", nodeId, Object.keys(updates))
   if (isMemoryMode()) {
     const sets: string[] = []
