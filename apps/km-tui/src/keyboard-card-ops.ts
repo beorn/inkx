@@ -12,7 +12,6 @@ import {
   getSelectedCardIndices,
   refreshBoardState,
 } from "./keyboard-helpers.ts";
-import { buildTreeNodes } from "./board-adapter.ts";
 
 // =============================================================================
 // Card Movement
@@ -100,11 +99,14 @@ export function moveCardInColumn(
 
   if (movedCardIds.length > 1 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>();
-    const nodes = buildTreeNodes(ctx.vault, ctx.boardState.rootId);
-    const newCol = nodes[ctx.layout.colIndex];
+    const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"]);
+    const allChildren = ctx.vault.getChildren(ctx.boardState.rootId);
+    const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type));
+    const newCol = columns[ctx.layout.colIndex];
     if (newCol) {
-      for (let cardIdx = 0; cardIdx < newCol.children.length; cardIdx++) {
-        const c = newCol.children[cardIdx];
+      const cards = ctx.vault.getChildren(newCol.id);
+      for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
+        const c = cards[cardIdx];
         if (c && movedCardIds.includes(c.id)) {
           newSelected.add(makeSelectionKey(ctx.layout.colIndex, cardIdx, 0));
         }
@@ -160,11 +162,14 @@ export function moveCardToColumn(
 
   if (movedCardIds.length > 0 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>();
-    const nodes = buildTreeNodes(ctx.vault, ctx.boardState.rootId);
-    const newCol = nodes[targetColIndex];
+    const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"]);
+    const allChildren = ctx.vault.getChildren(ctx.boardState.rootId);
+    const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type));
+    const newCol = columns[targetColIndex];
     if (newCol) {
-      for (let cardIdx = 0; cardIdx < newCol.children.length; cardIdx++) {
-        const c = newCol.children[cardIdx];
+      const cards = ctx.vault.getChildren(newCol.id);
+      for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
+        const c = cards[cardIdx];
         if (c && movedCardIds.includes(c.id)) {
           newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
         }
@@ -222,15 +227,14 @@ export function moveCardToColumnByIndex(
 
   if (movedCardIds.length > 0 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>();
-    const nodes = buildTreeNodes(ctx.vault, ctx.boardState.rootId);
-    const targetColumnState = nodes[targetColIndex];
+    const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"]);
+    const allChildren = ctx.vault.getChildren(ctx.boardState.rootId);
+    const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type));
+    const targetColumnState = columns[targetColIndex];
     if (targetColumnState) {
-      for (
-        let cardIdx = 0;
-        cardIdx < targetColumnState.children.length;
-        cardIdx++
-      ) {
-        const c = targetColumnState.children[cardIdx];
+      const cards = ctx.vault.getChildren(targetColumnState.id);
+      for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
+        const c = cards[cardIdx];
         if (c && movedCardIds.includes(c.id)) {
           newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0));
         }

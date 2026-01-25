@@ -7,7 +7,6 @@
 import type { CardState, SelectionKey } from "./types.ts";
 import { makeSelectionKey } from "./types.ts";
 import { actions } from "./ui-reducer.ts";
-import { buildTreeNodes } from "./board-adapter.ts";
 import type { TUIContext } from "./tui-context.ts";
 
 // =============================================================================
@@ -138,18 +137,21 @@ export function refreshBoardState(
   // vault at render time via useColumns hook. React automatically re-renders
   // when vault.stats.nodeCount changes.
 
-  // Build tree nodes to calculate new cursor position
-  const nodes = buildTreeNodes(ctx.vault, ctx.boardState.rootId);
+  // Query vault to calculate new cursor position
+  const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"]);
+  const allChildren = ctx.vault.getChildren(ctx.boardState.rootId);
+  const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type));
 
   // Calculate new cursor position
   const colIndex = options?.colIndex ?? ctx.layout.colIndex;
-  const colNode = nodes[colIndex];
+  const colNode = columns[colIndex];
+  const cards = colNode ? ctx.vault.getChildren(colNode.id) : [];
   let cardIndex: number;
 
   if (typeof options?.cardIndex === "function") {
-    // Function receives a simplified column shape for compatibility
+    // cardIndex callback receives column shape with cards array
     const colShape = colNode
-      ? { cards: colNode.children.map((c) => ({ node: c, children: [] })) }
+      ? { cards: cards.map((c) => ({ node: c, children: [] })) }
       : undefined;
     cardIndex = options.cardIndex(colShape);
   } else {
@@ -157,7 +159,7 @@ export function refreshBoardState(
   }
 
   // Clamp card index to valid range
-  const maxCardIndex = Math.max(0, (colNode?.children.length ?? 1) - 1);
+  const maxCardIndex = Math.max(0, cards.length - 1);
   cardIndex = Math.min(cardIndex, maxCardIndex);
 
   // Dispatch navigation if cursor changed

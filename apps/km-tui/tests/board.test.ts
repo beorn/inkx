@@ -27,7 +27,6 @@ import {
   getCurrentCard,
   getCurrentColumn,
 } from "../src/state.ts";
-import { buildTreeNodes } from "../src/board-adapter.ts";
 import { stripAnsi } from "../src/layout/index.ts";
 
 import { renderBoardStatic, renderCard } from "../src/render.ts";
@@ -271,48 +270,6 @@ describe.serial("Board State", () => {
     expect(state.columns[0]!.isVirtual).toBe(true);
     expect(state.columns[0]!.cards).toHaveLength(2); // code + quote
     expect(state.columns[1]!.node.id).toBe("col");
-  });
-
-  test("buildTreeNodes filters out paragraph nodes (km-1tho refresh path)", () => {
-    const vault = createFakeVault({
-      nodes: [
-        makeNode("root", "file", "@issue.md", null, 0),
-        // Create paragraph (should NOT appear in tree nodes)
-        makeNode(
-          "para",
-          "paragraph",
-          "All issues tracked with the @issue tag.",
-          "root",
-          0,
-        ),
-        // Create actual columns
-        makeNode("col1", "section", "Open Issues", "root", 1),
-        makeNode("col2", "section", "Closed Issues", "root", 2),
-      ],
-    });
-
-    const nodes = buildTreeNodes(vault, "root");
-
-    // Should have exactly 2 nodes (sections), NOT 3 (with paragraph)
-    expect(nodes).toHaveLength(2);
-    expect(nodes[0]!.type).toBe("section");
-    expect(nodes[1]!.type).toBe("section");
-  });
-
-  test("buildTreeNodes filters out code and quote nodes", () => {
-    const vault = createFakeVault({
-      nodes: [
-        makeNode("root", "file", "readme.md", null, 0),
-        makeNode("code", "code", "const x = 1;", "root", 0),
-        makeNode("quote", "quote", "Some quote text", "root", 1),
-        makeNode("col", "section", "Getting Started", "root", 2),
-      ],
-    });
-
-    const nodes = buildTreeNodes(vault, "root");
-
-    expect(nodes).toHaveLength(1);
-    expect(nodes[0]!.type).toBe("section");
   });
 });
 

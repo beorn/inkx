@@ -200,15 +200,8 @@ function TreeNodeImpl({
 
   // Memoize prefix - only recalc when fold state or children count changes
   const prefix = useMemo(
-    () =>
-      buildPrefix(
-        depth,
-        hasChildren,
-        isFolded,
-        children.length,
-        style.ownColor,
-      ),
-    [depth, hasChildren, isFolded, children.length, style.ownColor],
+    () => buildPrefix(hasChildren, isFolded, children.length, style.ownColor),
+    [hasChildren, isFolded, children.length, style.ownColor],
   );
 
   // Get content, stripping task marks for nodes with task_status
@@ -248,8 +241,7 @@ function TreeNodeImpl({
     ],
   );
 
-  // Parent context for embedded tasks
-  // Wrap getParentContextFromState with vault when used as fallback
+  // Parent context for embedded tasks - use prop or default implementation
   const resolvedGetParentContext = useCallback(
     (n: KNode) =>
       getParentContextProp

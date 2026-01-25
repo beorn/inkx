@@ -484,7 +484,7 @@ export function Board({
   // Derive selection level from cursor position
   const derivedSelectionLevel = cursorPosition.selectionLevel;
 
-  // Legacy state accessor for compatibility during migration
+  // Assemble TUIBoardState for rendering from board state + derived layout
   const state: TUIBoardState = useMemo(
     () => ({
       rootId: boardState.rootId,

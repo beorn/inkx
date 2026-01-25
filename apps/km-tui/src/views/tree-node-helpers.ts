@@ -165,7 +165,6 @@ const MARKER_SLOT_WIDTH = 1;
  * @param ownColor - Node's own color (applies to marker)
  */
 export function buildPrefix(
-  _depth: number, // Kept for API compatibility, but not used for indent
   hasChildren: boolean,
   isFolded: boolean,
   childCount: number,
