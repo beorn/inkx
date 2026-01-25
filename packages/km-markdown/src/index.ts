@@ -18,7 +18,7 @@ export {
 
 export type {
   Root,
-  Content,
+  RootContent,
   ListItem,
   Heading,
   Paragraph,

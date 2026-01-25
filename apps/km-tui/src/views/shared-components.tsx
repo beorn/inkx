@@ -5,7 +5,7 @@
  * to provide consistent, optimized rendering of cards and headers.
  */
 import React, { useCallback } from "react";
-import { Box, Text, useLayoutCallback } from "inkx";
+import { Box, Text, useContentRectCallback } from "inkx";
 import createDebug from "debug";
 
 const debug = createDebug("km:tui:layout");
@@ -104,7 +104,7 @@ interface CardLayoutTrackerProps {
 /**
  * Wrapper that tracks the card's layout and registers it with the registry.
  *
- * Uses useLayoutCallback to register measured positions without causing re-renders.
+ * Uses useContentRectCallback to register measured positions without causing re-renders.
  * This avoids the blank screen issue with useLayout() + many cards.
  */
 function CardLayoutTracker({
@@ -140,7 +140,7 @@ function CardLayoutTracker({
     [registry, colIndex, cardIndex, nodeId],
   );
 
-  useLayoutCallback(handleLayout);
+  useContentRectCallback(handleLayout);
 
   return (
     <Box

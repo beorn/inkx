@@ -462,27 +462,35 @@ describe("Visual navigation scenarios", () => {
     // Set up 3 columns with varying card sizes
     // Column 0: 2 cards
     registry.registerCard(0, 0, "c0-0", makeLayout(2, 5)); // y=2-7
+    registry.updateCardHead(0, 0, 2, 1);
     registry.registerCard(0, 1, "c0-1", makeLayout(7, 5)); // y=7-12
+    registry.updateCardHead(0, 1, 7, 1);
 
     // Column 1: 4 smaller cards
     registry.registerCard(1, 0, "c1-0", makeLayout(2, 3)); // y=2-5
+    registry.updateCardHead(1, 0, 2, 1);
     registry.registerCard(1, 1, "c1-1", makeLayout(5, 3)); // y=5-8
+    registry.updateCardHead(1, 1, 5, 1);
     registry.registerCard(1, 2, "c1-2", makeLayout(8, 3)); // y=8-11
+    registry.updateCardHead(1, 2, 8, 1);
     registry.registerCard(1, 3, "c1-3", makeLayout(11, 3)); // y=11-14
+    registry.updateCardHead(1, 3, 11, 1);
 
     // Column 2: 2 cards same as column 0
     registry.registerCard(2, 0, "c2-0", makeLayout(2, 5)); // y=2-7
+    registry.updateCardHead(2, 0, 2, 1);
     registry.registerCard(2, 1, "c2-1", makeLayout(7, 5)); // y=7-12
+    registry.updateCardHead(2, 1, 7, 1);
 
-    // Start on column 0, card 1 (y=7-12)
-    // Card center = 7 + 5/2 = 9.5
-    const curswantY = getCardMidY(makeLayout(7, 5));
-    expect(curswantY).toBe(9.5);
+    // Start on column 0, card 1 (y=7-12, head at y=7, headHeight=1)
+    // Head midpoint = 7 + 1/2 = 7.5
+    const curswantY = getCardMidY(makeLayoutWithHead(7, 5, 1));
+    expect(curswantY).toBe(7.5);
 
-    // Move to column 1: should land on card 2 (y=8-11 contains 9.5)
-    expect(registry.findCardAtYVisual(1, curswantY)).toBe(2);
+    // Move to column 1: should land on card 1 (y=5-8 contains 7.5)
+    expect(registry.findCardAtYVisual(1, curswantY)).toBe(1);
 
-    // Move to column 2: should land on card 1 (y=7-12 contains 9.5)
+    // Move to column 2: should land on card 1 (y=7-12 contains 7.5)
     expect(registry.findCardAtYVisual(2, curswantY)).toBe(1);
   });
 });

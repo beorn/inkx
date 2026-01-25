@@ -24,7 +24,7 @@ import createDebug from "debug";
 import { ulid } from "ulid";
 
 const debug = createDebug("km:markdown:ast2nodes");
-import type { Root, Content, Heading, List, ListItem } from "mdast";
+import type { Root, RootContent, Heading, List, ListItem } from "mdast";
 import { parse as parseYaml } from "yaml";
 import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core";
 import { CUSTOM_TASK_MARKS } from "@km/core";
@@ -584,7 +584,7 @@ function getEmbeddingText(text: string): string | null {
  * Convert a block element to a node
  */
 function convertBlock(
-  block: Content,
+  block: RootContent,
   parent: KNode,
   sortOrder: number,
 ): KNode | null {

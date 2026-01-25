@@ -6,7 +6,7 @@
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
 import React, { useCallback, useMemo } from "react";
-import { Box, Text, useLayoutCallback } from "inkx";
+import { Box, Text, useContentRectCallback } from "inkx";
 import type { KNode } from "@km/core";
 import { useVault } from "../vault-context.tsx";
 import {
@@ -399,7 +399,7 @@ interface HeadRowProps {
 }
 
 function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
-  useLayoutCallback(onLayout);
+  useContentRectCallback(onLayout);
   return <Box flexDirection="column">{children}</Box>;
 }
 

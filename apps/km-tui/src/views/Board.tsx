@@ -52,7 +52,7 @@ import { useBoardDialogs } from "./use-board-dialogs.ts";
 import { ConstraintRoot } from "../layout/index.ts";
 import { ensureCommandSystemInitialized } from "../command-bridge.ts";
 import { buildTUIContext, type TUIContext } from "../tui-context.ts";
-import { boardReducer, createBoardState, type BoardAction } from "@km/board";
+import { boardReducer, createBoardState } from "@km/board";
 import { useColumns } from "../hooks/use-columns.ts";
 import { useCursorPosition } from "../hooks/use-cursor-position.ts";
 import type { ColumnsLayout } from "../types.ts";

@@ -24,11 +24,11 @@
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmFromMarkdown } from "mdast-util-gfm";
 import { gfm } from "micromark-extension-gfm";
-import type { Root, Content, ListItem, Heading, Paragraph, List } from "mdast";
+import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdast";
 import { TASK_MARK_REGEX_CLASS } from "@km/core";
 
 // Re-export types
-export type { Root, Content, ListItem, Heading, Paragraph, List };
+export type { Root, RootContent, ListItem, Heading, Paragraph, List };
 
 // =============================================================================
 // km-fast-md.1: Module-level compiled regexes (compile once, use many times)
@@ -421,13 +421,13 @@ export function parseHeadingRules(text: string): ParsedHeading {
 /**
  * Convert mdast node to plain text
  */
-export function nodeToText(node: Content | Root): string {
+export function nodeToText(node: RootContent | Root): string {
   if ("value" in node && typeof node.value === "string") {
     return node.value;
   }
 
   if ("children" in node && Array.isArray(node.children)) {
-    return node.children.map((child) => nodeToText(child as Content)).join("");
+    return node.children.map((child) => nodeToText(child as RootContent)).join("");
   }
 
   return "";
@@ -437,15 +437,15 @@ export function nodeToText(node: Content | Root): string {
  * Extract text content from a list item, excluding nested lists.
  * Only extracts text from direct paragraph/text content, not from child lists.
  */
-export function listItemToText(item: Content): string {
+export function listItemToText(item: RootContent): string {
   if (!("children" in item) || !Array.isArray(item.children)) {
     return nodeToText(item);
   }
 
   // Only process direct content (paragraphs, text), not nested lists
   return item.children
-    .filter((child: Content) => child.type !== "list")
-    .map((child: Content) => nodeToText(child))
+    .filter((child: RootContent) => child.type !== "list")
+    .map((child: RootContent) => nodeToText(child))
     .join("");
 }
 
