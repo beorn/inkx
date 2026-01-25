@@ -58,7 +58,6 @@ function makeTUIBoardState(rootId: string): TUIBoardState {
     searchMode: false,
     searchQuery: "",
     collapsedColumns: new Set(),
-    zoomStack: [],
   };
 }
 

@@ -225,10 +225,6 @@ export function renderStatusBar(state: TUIBoardState, width: number): string {
     parts.push(chalk.yellow(`${state.selectedCards.size} selected`));
   }
 
-  if (state.zoomStack.length > 0) {
-    parts.push(chalk.cyan(`depth: ${state.zoomStack.length}`));
-  }
-
   const left = parts.join(" ");
   const right = "h/l:cols j/k:cards x:status Tab:fold ?:help q:quit";
 

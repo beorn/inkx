@@ -168,9 +168,6 @@ export function handleCommandAction(
     case "ZOOM_IN":
       handleZoomIn(ctx);
       break;
-    case "ZOOM_OUT":
-      handleZoomOutwards(ctx);
-      break;
     case "CLEAR_SELECTION":
       clearSelection(ctx);
       break;

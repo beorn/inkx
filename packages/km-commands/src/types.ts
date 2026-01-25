@@ -151,6 +151,22 @@ export interface PageJumpAction {
   direction: "up" | "down";
 }
 
+export interface ShiftUpAction {
+  type: "SHIFT_UP";
+}
+
+export interface ShiftDownAction {
+  type: "SHIFT_DOWN";
+}
+
+export interface ShiftLeftAction {
+  type: "SHIFT_LEFT";
+}
+
+export interface ShiftRightAction {
+  type: "SHIFT_RIGHT";
+}
+
 export type TUIAction =
   | QuitAction
   | ShowNewItemDialogAction
@@ -161,7 +177,11 @@ export type TUIAction =
   | OutdentNodeAction
   | NavSiblingBoardAction
   | ZoomInwardsAction
-  | PageJumpAction;
+  | PageJumpAction
+  | ShiftUpAction
+  | ShiftDownAction
+  | ShiftLeftAction
+  | ShiftRightAction;
 
 export type UIAction =
   | ZoomOutwardsAction

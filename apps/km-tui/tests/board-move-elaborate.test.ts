@@ -111,7 +111,6 @@ function buildStateFromVault(vault: FakeVault, rootId: string): TUIBoardState {
     searchQuery: "",
     searchMode: false,
     helpMode: false,
-    zoomStack: [],
   };
 }
 

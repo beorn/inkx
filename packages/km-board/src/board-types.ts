@@ -20,15 +20,6 @@ export type ViewMode = "cards" | "list" | "columns" | "tabs";
 // ===== Board State (NEW - simplified architecture) =====
 
 /**
- * Zoom stack entry.
- * Stores node IDs, not paths.
- */
-export interface ZoomEntry {
-  rootId: string | null;
-  cursorNodeId: string | null;
-}
-
-/**
  * Navigation history entry.
  * Stores node IDs, not paths.
  */
@@ -60,9 +51,6 @@ export interface BoardState {
   selectedNodes: Set<string>;
   foldedNodes: Set<string>;
   collapsedNodes: Set<string>; // Top-level nodes that are collapsed
-
-  // Zoom stack (stores cursorNodeId, NOT paths)
-  zoomStack: ZoomEntry[];
 
   // Navigation history (stores cursorNodeId, NOT paths)
   navHistory: NavHistoryEntry[];
@@ -97,7 +85,6 @@ export type BoardAction =
 
   // Zoom
   | { type: "ZOOM_IN"; nodeId: string }
-  | { type: "ZOOM_OUT" }
 
   // Root change (e.g., navigating to different file)
   | {

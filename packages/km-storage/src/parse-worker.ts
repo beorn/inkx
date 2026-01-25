@@ -5,33 +5,33 @@
  * km-fast-md.6: Worker pool for parallel parsing
  */
 
+// CRITICAL: Intercept debug output BEFORE importing any modules
+// This ensures ALL debug() calls (including from @km/markdown) are forwarded to main thread
+import createDebug from "debug";
+
+// Override createDebug.log to forward all worker debug output to main thread
+// This captures debug() calls from ALL imported modules (@km/markdown, etc.)
+createDebug.log = (...args: unknown[]) => {
+  // First arg is the formatted string from debug (includes namespace prefix and colors)
+  const message = typeof args[0] === "string" ? args[0] : String(args[0]);
+
+  try {
+    postMessage({
+      type: "debug",
+      namespace: "km:worker", // Generic namespace, actual namespace is in message
+      message,
+    });
+  } catch {
+    // Worker might not be fully initialized yet - silently fail
+  }
+};
+
+// Now import modules - their debug() calls will use our intercepted logger
 import { readFileSync } from "fs";
 import { parseMarkdownWithLinks } from "@km/markdown";
 
-const NAMESPACE = "km:storage:parse-worker";
-
-// Custom debug function that forwards to main thread
-// Worker threads MUST forward debug output to main thread for proper DEBUG_LOG handling
-function debug(message: string, ...args: unknown[]): void {
-  // Format the message with args (simple %s/%d/%O replacement)
-  let formatted = message;
-  let argIndex = 0;
-  formatted = message.replace(/%[sdOo]/g, () => {
-    const arg = args[argIndex++];
-    if (arg === undefined) return "";
-    if (arg === null) return "null";
-    if (typeof arg === "object") return JSON.stringify(arg);
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    return String(arg);
-  });
-
-  // Send to main thread - NEVER call createDebug() in worker
-  try {
-    postMessage({ type: "debug", namespace: NAMESPACE, message: formatted });
-  } catch {
-    // Worker might not be fully initialized yet
-  }
-}
+// Create debug instance using the intercepted createDebug
+const debug = createDebug("km:storage:parse-worker");
 
 export interface ParseRequest {
   type: "parse";

@@ -9,7 +9,7 @@
  */
 
 import createDebug from "debug";
-import type { BoardState, BoardAction, ZoomEntry } from "./board-types.ts";
+import type { BoardState, BoardAction } from "./board-types.ts";
 
 const debug = createDebug("km:board:reducer");
 
@@ -65,38 +65,13 @@ export function simplifiedBoardReducer(
     // ===== Zoom =====
 
     case "ZOOM_IN": {
-      // Push current state to zoom stack
-      const newZoomStack: ZoomEntry[] = [
-        ...state.zoomStack,
-        {
-          rootId: state.rootId,
-          cursorNodeId: state.cursorNodeId,
-        },
-      ];
-
+      // Zoom is now just a root change - no stack needed
+      // Parent can be derived from tree via parent_id
       return {
         ...state,
         rootId: action.nodeId,
         // When zooming into a node, that node becomes the cursor
         cursorNodeId: action.nodeId,
-        zoomStack: newZoomStack,
-        curswantX: null,
-        curswantY: null,
-      };
-    }
-
-    case "ZOOM_OUT": {
-      if (state.zoomStack.length === 0) return state;
-
-      const newZoomStack = [...state.zoomStack];
-      const prev = newZoomStack.pop();
-      if (!prev) return state;
-
-      return {
-        ...state,
-        rootId: prev.rootId,
-        cursorNodeId: prev.cursorNodeId,
-        zoomStack: newZoomStack,
         curswantX: null,
         curswantY: null,
       };
@@ -122,7 +97,6 @@ export function simplifiedBoardReducer(
         cursorNodeId: action.cursorNodeId,
         navHistory: newHistory,
         navHistoryIndex: newHistory.length,
-        zoomStack: [], // Clear zoom stack on root change
         curswantX: null,
         curswantY: null,
       };
@@ -245,7 +219,6 @@ export function createBoardState(
     selectedNodes: new Set(),
     foldedNodes: new Set(),
     collapsedNodes: new Set(),
-    zoomStack: [],
     navHistory: [],
     navHistoryIndex: 0,
     moveMode: false,

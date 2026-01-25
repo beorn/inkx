@@ -25,7 +25,6 @@ export interface TUIBoardState {
   searchQuery: string;
   searchMode: boolean;
   helpMode: boolean;
-  zoomStack: string[];
 }
 
 /**

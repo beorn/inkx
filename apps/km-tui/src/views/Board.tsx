@@ -499,9 +499,6 @@ export function Board({
       searchQuery: "",
       searchMode: false,
       helpMode: false,
-      zoomStack: boardState.zoomStack.map(
-        (z: { rootId: string | null }) => z.rootId ?? "",
-      ),
     }),
     [boardState, columnsLayout],
   );

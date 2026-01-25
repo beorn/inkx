@@ -126,18 +126,6 @@ export const zoomIn: CommandDef = {
   },
 };
 
-export const zoomOut: CommandDef = {
-  id: "zoom_out",
-  name: "Zoom Out",
-  description: "Return to previous zoom level (from zoom stack)",
-  category: "Navigation",
-  shortcuts: [], // Not directly bound - see goUpPath
-  execute: () => {
-    // BoardAction: no tree data needed
-    return { type: "ZOOM_OUT" };
-  },
-};
-
 // Zoom outwards one level (to parent of current root)
 export const zoomOutwards: CommandDef = {
   id: "zoom_outwards",
@@ -221,7 +209,6 @@ export const navigationCommands: CommandDef[] = [
   navBack,
   navForward,
   zoomIn,
-  zoomOut,
   zoomOutwards,
   openDetailPane,
   pageDown,

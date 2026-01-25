@@ -578,7 +578,7 @@ describe.serial("Board Zoom Navigation", () => {
     const result = handleKey(vault, state, "\r");
 
     expect(result.state.rootId).toBe("card");
-    expect(result.state.zoomStack).toContain("board");
+    // zoomStack removed - parent_id is now used for zoom out
     expect(result.action).toBeNull();
   });
 
@@ -594,12 +594,11 @@ describe.serial("Board Zoom Navigation", () => {
 
     // Start zoomed in
     const state = buildBoardState(vault, "card");
-    state.zoomStack = ["board"];
 
     const result = handleKey(vault, state, "\x1B");
 
-    expect(result.state.rootId).toBe("board");
-    expect(result.state.zoomStack).toHaveLength(0);
+    // Should zoom out to parent (col)
+    expect(result.state.rootId).toBe("col");
     expect(result.action).toBeNull();
   });
 

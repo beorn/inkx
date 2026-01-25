@@ -947,7 +947,6 @@ function createMockTUIBoardState(): TUIBoardState {
     searchQuery: "",
     searchMode: false,
     helpMode: false,
-    zoomStack: [],
   };
 }
 

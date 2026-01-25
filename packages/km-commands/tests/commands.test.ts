@@ -220,14 +220,6 @@ describe("navigationCommands", () => {
 
       expect(result).toBeNull();
     });
-
-    it("zoom_out returns ZOOM_OUT", () => {
-      const cmd = navigationCommands.find((c) => c.id === "zoom_out");
-      const result = cmd!.execute(createContext());
-
-      // Simplified action - no nodes array
-      expect(result).toEqual({ type: "ZOOM_OUT" });
-    });
   });
 });
 

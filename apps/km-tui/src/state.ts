@@ -59,7 +59,6 @@ export function createEmptyState(): TUIBoardState {
     searchQuery: "",
     searchMode: false,
     helpMode: false,
-    zoomStack: [],
   };
 }
 
@@ -151,7 +150,6 @@ export function initBoardState(
     searchQuery: "",
     searchMode: false,
     helpMode: false,
-    zoomStack: [],
   };
 }
 
@@ -248,7 +246,6 @@ export function* initBoardStateGenerator(
     searchQuery: "",
     searchMode: false,
     helpMode: false,
-    zoomStack: [],
   };
 }
 
@@ -389,7 +386,6 @@ export function* buildBoardStateGenerator(
     searchQuery: "",
     searchMode: false,
     helpMode: false,
-    zoomStack: [],
   };
 }
 
@@ -595,7 +591,6 @@ export function buildBoardState(vault: Vault, rootId: string): TUIBoardState {
     searchQuery: "",
     searchMode: false,
     helpMode: false,
-    zoomStack: [],
   };
 }
 
@@ -648,11 +643,11 @@ export function handleKey(
     // Quit / zoom out
     case "q":
     case "\x1B": // Escape
-      if (state.zoomStack.length > 0) {
-        const parentId = state.zoomStack[state.zoomStack.length - 1];
-        if (parentId) {
-          const zoomed = buildBoardState(vault, parentId);
-          zoomed.zoomStack = state.zoomStack.slice(0, -1);
+      // Zoom out if we have a parent
+      if (state.rootId) {
+        const currentRoot = vault.getNode(state.rootId);
+        if (currentRoot?.parent_id) {
+          const zoomed = buildBoardState(vault, currentRoot.parent_id);
           return { state: zoomed, action: null };
         }
       }
@@ -782,11 +777,9 @@ export function handleKey(
       // Use childCount for hasChildren check (children array may be empty due to lazy loading)
       if (
         card &&
-        (card.childCount ?? card.children.length) > 0 &&
-        state.rootId
+        (card.childCount ?? card.children.length) > 0
       ) {
         const zoomed = buildBoardState(vault, card.node.id);
-        zoomed.zoomStack = [...state.zoomStack, state.rootId];
         return { state: zoomed, action: null };
       }
       return { state: newState, action: null };
