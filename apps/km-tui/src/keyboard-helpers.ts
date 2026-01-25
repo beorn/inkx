@@ -134,7 +134,11 @@ export function refreshBoardState(
 ): void {
   if (!ctx.boardState.rootId) return;
 
-  // Build tree nodes directly and dispatch to boardReducer
+  // NOTE: No longer dispatches REFRESH action - columns are now derived from
+  // vault at render time via useColumns hook. React automatically re-renders
+  // when vault.stats.nodeCount changes.
+
+  // Build tree nodes to calculate new cursor position
   const nodes = buildTreeNodes(ctx.vault, ctx.boardState.rootId);
 
   // Calculate new cursor position
@@ -156,10 +160,7 @@ export function refreshBoardState(
   const maxCardIndex = Math.max(0, (colNode?.children.length ?? 1) - 1);
   cardIndex = Math.min(cardIndex, maxCardIndex);
 
-  // Dispatch refresh with updated cursor
-  ctx.dispatchBoard({ type: "REFRESH", nodes });
-
-  // If cursor changed, also dispatch navigation
+  // Dispatch navigation if cursor changed
   if (colIndex !== ctx.layout.colIndex || cardIndex !== ctx.layout.cardIndex) {
     ctx.dispatchBoard({
       type: "NAV_TO_PATH",

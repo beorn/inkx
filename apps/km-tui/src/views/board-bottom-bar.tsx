@@ -12,10 +12,14 @@ const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", 
 const SPINNER_INTERVAL = 80;
 
 /** Hook for animated spinner frame - uses React from inkx to avoid version mismatch */
-function useSpinnerFrame(): string {
+function useSpinnerFrame(enabled: boolean): string {
   const [frameIndex, setFrameIndex] = useState(0);
 
   useEffect(() => {
+    // Only run animation when spinner is actually displayed
+    if (!enabled) {
+      return;
+    }
     // Skip animation during tests to avoid act() warnings
     // @ts-expect-error - React internal flag set by inkx test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
@@ -25,7 +29,7 @@ function useSpinnerFrame(): string {
       setFrameIndex((i) => (i + 1) % SPINNER_FRAMES.length);
     }, SPINNER_INTERVAL);
     return () => clearInterval(timer);
-  }, []);
+  }, [enabled]);
 
   return SPINNER_FRAMES[frameIndex] ?? "⠋";
 }
@@ -52,12 +56,13 @@ export function BottomBar({
 }: BottomBarProps): React.ReactElement {
   const homeDir = process.env.HOME || "";
 
-  // Spinner for sync/loading states (hook runs always but frame only displayed when active)
-  const spinnerFrame = useSpinnerFrame();
+  // Determine if we need spinner animation
   const isSyncing =
     ui.watcherStatus?.state === "syncing" ||
     ui.watcherStatus?.state === "starting";
   const isLoading = ui.isLoading || isSyncing;
+  // Only run spinner animation when actually displaying it
+  const spinnerFrame = useSpinnerFrame(isLoading);
 
   // Shorten path: replace home directory with ~/
   let displayPath = state.rootPath || "";

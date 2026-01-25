@@ -9,7 +9,7 @@
 
 import type { KNode } from "@km/core";
 import type { Vault } from "./vault-context.tsx";
-import type { BoardState, TransitionalBoardAction } from "@km/board";
+import type { BoardState, BoardAction } from "@km/board";
 import type {
   TUIBoardState,
   CardState,
@@ -58,8 +58,8 @@ export interface TUIContext {
   // === Dispatchers ===
   /** Dispatch to UI reducer */
   dispatch: React.Dispatch<ReturnType<(typeof actions)[keyof typeof actions]>>;
-  /** Dispatch to board reducer (transitional: accepts old and new actions) */
-  dispatchBoard: React.Dispatch<TransitionalBoardAction>;
+  /** Dispatch to board reducer */
+  dispatchBoard: React.Dispatch<BoardAction>;
   /** Exit the application */
   exit: () => void;
 

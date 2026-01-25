@@ -3,12 +3,6 @@
  *
  * Core state types for board navigation and view models.
  * Does NOT include app-specific UI state (modals, dialogs) - that belongs in each app.
- *
- * MIGRATION STATUS (km-board-refactor):
- * - BoardState: Simplified type with cursorNodeId only (NEW - renamed from SimplifiedBoardState)
- * - BoardStateLegacy: Old type with nodes/cursor (DEPRECATED - will be deleted)
- *
- * See plan hazy-forging-crayon.md for design rationale.
  */
 
 // Import types from @km/core and @km/tree
@@ -133,14 +127,7 @@ export type BoardAction =
   // Sticky cursor (set by navigation handlers)
   | { type: "SET_CURSWANT"; x?: number | null; y?: number | null };
 
-/**
- * Transitional action type that accepts both old and new actions.
- * Used during migration to allow gradual update of action handlers.
- * TODO: Remove once all handlers use BoardAction (the new simplified type).
- */
-export type TransitionalBoardAction = BoardAction | BoardActionLegacy;
-
-// ===== Legacy Board State (DEPRECATED - being phased out) =====
+// ===== Navigation Types =====
 
 /**
  * Direction for node-relative operations (cursor movement, selection, etc.)
@@ -157,135 +144,18 @@ export type TransitionalBoardAction = BoardAction | BoardActionLegacy;
  * See docs/06-ui.md for the visual navigation model.
  */
 export type NodeDirection =
-  // Visual/spatial (arrows)
+  // Visual/spatial
   | "up"
   | "down"
   | "left"
   | "right"
-  // Structural (hjkl)
+  // Structural
   | "prev"
   | "next"
   | "in"
   | "out"
   | "first"
   | "last";
-
-/**
- * LEGACY: Board navigation state with nodes array.
- * @deprecated Use BoardState (the new simplified type without nodes array).
- */
-export interface BoardStateLegacy {
-  // Root context
-  rootId: string | null;
-  rootPath: string | null;
-
-  // Tree data (BEING REMOVED - use Vault instead)
-  nodes: TNode[]; // Top-level nodes
-
-  // Cursor node - the ACTUAL selected node (stable across zoom)
-  cursorNodeId: string | null;
-
-  // Path-based cursor (BEING REMOVED - derive from cursorNodeId)
-  cursor: TPath;
-
-  // Selection state
-  selectedNodes: Set<string>;
-  foldedNodes: Set<string>;
-  collapsedNodes: Set<string>; // Top-level nodes that are collapsed
-
-  // Zoom stack (with cursor memory)
-  zoomStack: Array<{
-    rootId: string | null;
-    cursor: TPath;
-  }>;
-
-  // Navigation history
-  navHistory: Array<{
-    rootId: string | null;
-    cursor: TPath;
-  }>;
-  navHistoryIndex: number;
-
-  // Move mode (m + destination)
-  moveMode: boolean;
-  moveSourceNodes: string[]; // Node IDs being moved
-  moveSourceCursor: TPath; // Original cursor position
-
-  // View configuration
-  maxOutlineDepth: number;
-  maxContentLines: number;
-
-  // Sticky cursor coordinates (curswant)
-  curswantX: number | null;
-  curswantY: number | null;
-}
-
-/**
- * LEGACY: Board actions that require tree data (nodes array).
- * @deprecated Use BoardAction (the new simplified type without tree data).
- */
-export type BoardActionLegacy =
-  // Cursor movement (parameterized)
-  | { type: "CURSOR_MOVE"; dir: NodeDirection }
-
-  // Jump navigation (not cursor movement)
-  | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" }
-  | { type: "NAV_TO_PATH"; path: TPath }
-  | { type: "NAV_PAGE"; direction: "up" | "down"; pageSize: number }
-
-  // Node operations
-  | { type: "TOGGLE_FOLD"; nodeId: string }
-  | { type: "TOGGLE_COLLAPSE"; nodeId: string }
-  | { type: "FOLD_LEVEL"; depth: number }
-  | { type: "UNFOLD_LEVEL"; depth: number }
-
-  // Zoom/root change
-  | { type: "ZOOM_IN"; nodeId: string | null; nodes: TNode[]; cursor?: TPath }
-  | { type: "ZOOM_OUT"; nodes: TNode[] }
-
-  // Refresh
-  | { type: "REFRESH"; nodes: TNode[] }
-
-  // Navigation history
-  | { type: "NAV_BACK" }
-  | { type: "NAV_FORWARD" }
-  | {
-      type: "NAV_TO";
-      rootId: string | null;
-      nodes: TNode[];
-      rootPath: string | null;
-    }
-
-  // Selection
-  | { type: "SELECT_NODE_ADD"; nodeId: string }
-  | { type: "SELECT_NODE_REMOVE"; nodeId: string }
-  | { type: "SELECT_NODE_TOGGLE"; nodeId: string }
-  | { type: "SELECT_ALL_SIBLINGS" }
-  | { type: "SELECT_ALL" }
-  | { type: "CLEAR_SELECTION" }
-
-  // Extend-select
-  | { type: "EXTEND_SELECT_UP" }
-  | { type: "EXTEND_SELECT_DOWN" }
-  | { type: "EXTEND_SELECT_LEFT" }
-  | { type: "EXTEND_SELECT_RIGHT" }
-
-  // Shifting (move selected nodes)
-  | { type: "SHIFT_UP" }
-  | { type: "SHIFT_DOWN" }
-  | { type: "SHIFT_LEFT" }
-  | { type: "SHIFT_RIGHT" }
-
-  // Move mode
-  | { type: "ENTER_MOVE_MODE" }
-  | { type: "CONFIRM_MOVE" }
-  | { type: "CANCEL_MOVE" }
-
-  // View configuration
-  | { type: "INCREASE_OUTLINE_DEPTH" }
-  | { type: "DECREASE_OUTLINE_DEPTH" }
-  | { type: "INCREASE_CONTENT_LINES" }
-  | { type: "DECREASE_CONTENT_LINES" };
 
 // ===== View Level Configuration =====
 

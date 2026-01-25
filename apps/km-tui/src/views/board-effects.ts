@@ -9,7 +9,7 @@ import type { SelectionRange } from "../mouse-handler.ts";
 import { tuiEvents } from "../tui.ts";
 import type { WatcherStatus } from "@km/storage";
 import type { Vault } from "../vault-context.tsx";
-import type { TransitionalBoardAction } from "@km/board";
+import type { BoardAction } from "@km/board";
 
 /**
  * Creates the terminal dimension sync effect
@@ -88,11 +88,11 @@ export function createFileDropHandler(
  * Handles mouse drag-select and scroll wheel events
  *
  * NOTE: Mouse support disabled pending migration to new navigation handlers.
- * TODO: Re-enable with TransitionalBoardAction when navigation handlers support it.
+ * TODO: Re-enable when navigation handlers support it.
  */
 export function createMouseHandler_(
   _dispatch: Dispatch<UIAction>,
-  _dispatchBoard: Dispatch<TransitionalBoardAction>,
+  _dispatchBoard: Dispatch<BoardAction>,
   _mouseSelection: SelectionRange | null,
 ): () => void | undefined {
   // TODO: Fix mouse integration - not working properly yet
@@ -115,7 +115,7 @@ export function createMouseHandler_(
 export function createRefreshHandler(
   _vault: Vault,
   _rootIdRef: React.RefObject<string | null>,
-  _dispatchBoard: Dispatch<TransitionalBoardAction>,
+  _dispatchBoard: Dispatch<BoardAction>,
 ): () => void {
   // The refresh event is still useful for logging/debugging
   const handleRefresh = () => {

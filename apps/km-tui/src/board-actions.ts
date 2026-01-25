@@ -32,6 +32,10 @@ import { assertNever, beepUnimplemented } from "./action-handlers.ts";
 import type { CommandAction } from "@km/commands";
 import { getCardMidY } from "./card-positions.ts";
 import createDebug from "debug";
+import {
+  handleTreeNavigation,
+  type TreeDirection,
+} from "./navigation-handlers.ts";
 
 const debug = createDebug("km:tui:nav");
 
@@ -318,7 +322,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
       // Check if parent is a column header
       const colIdx = columns.findIndex((col) => col.node.id === parentNode.id);
       if (colIdx >= 0) {
-        dispatchBoard({ type: "NAV_TO_PATH", path: [colIdx] });
+        dispatchBoard({ type: "SELECT", nodeId: parentNode.id });
         clearSelection(ctx);
         return;
       }
@@ -331,7 +335,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
           (c) => c.node.id === parentNode.id,
         );
         if (cardIdx >= 0) {
-          dispatchBoard({ type: "NAV_TO_PATH", path: [cIdx, cardIdx] });
+          dispatchBoard({ type: "SELECT", nodeId: parentNode.id });
           clearSelection(ctx);
           return;
         }
@@ -341,7 +345,10 @@ function handleZoomOutwards(ctx: TUIContext): void {
 
   // Try moving from card to column level
   if (layout.cardIndex >= 0) {
-    dispatchBoard({ type: "NAV_TO_PATH", path: [layout.colIndex] });
+    const column = layout.columns[layout.colIndex];
+    if (column) {
+      dispatchBoard({ type: "SELECT", nodeId: column.node.id });
+    }
     return;
   }
 
@@ -350,7 +357,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
   const derivedSelectionLevel =
     layout.cardIndex >= 0 ? "card" : layout.colIndex >= 0 ? "column" : "board";
   if (derivedSelectionLevel === "column") {
-    dispatchBoard({ type: "NAV_TO_PATH", path: [] });
+    dispatchBoard({ type: "SELECT", nodeId: null });
     return;
   }
 
@@ -453,12 +460,17 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
           : Math.min((col?.cards.length ?? 1) - 1, state.cardIndex + 1);
 
       if (targetIdx !== state.cardIndex) {
-        dispatchBoard({
-          type: "CURSOR_MOVE",
-          dir: dir === "prev" ? "prev" : "next",
-        });
-        if (ui.selectionAnchor !== null) {
-          updateSelectionRange(ctx, state.colIndex, targetIdx, 0);
+        const direction = dir === "prev" ? "prev" : "next";
+        const targetId = handleTreeNavigation(
+          direction as TreeDirection,
+          ctx.boardState,
+          ctx.vault,
+        );
+        if (targetId) {
+          dispatchBoard({ type: "SELECT", nodeId: targetId });
+          if (ui.selectionAnchor !== null) {
+            updateSelectionRange(ctx, state.colIndex, targetIdx, 0);
+          }
         }
       }
       return;
@@ -501,13 +513,13 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     const targetCol = state.columns[targetColIndex];
     if (!targetCol || targetCol.cards.length === 0) {
       // Target column is empty - just move to column level
-      dispatchBoard({ type: "NAV_TO_PATH", path: [targetColIndex] });
+      dispatchBoard({ type: "SELECT", nodeId: targetCol?.node.id ?? null });
       return;
     }
 
     // If at column level (cardIndex < 0), move to target column's header (not a card)
     if (state.cardIndex < 0) {
-      dispatchBoard({ type: "NAV_TO_PATH", path: [targetColIndex] });
+      dispatchBoard({ type: "SELECT", nodeId: targetCol.node.id });
       return;
     }
 
@@ -587,18 +599,20 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
       finalCardIndex,
     );
 
-    dispatchBoard({
-      type: "NAV_TO_PATH",
-      path: [targetColIndex, finalCardIndex],
-    });
+    const targetCard = targetCol.cards[finalCardIndex];
+    if (targetCard) {
+      dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id });
+    }
     return;
   }
 
   // Normal cursor movement (first, last, etc.)
-  dispatchBoard({
-    type: "CURSOR_MOVE",
-    dir: dir as "prev" | "next" | "left" | "right" | "first" | "last",
-  });
+  const targetId = handleTreeNavigation(
+    dir as TreeDirection,
+    ctx.boardState,
+    ctx.vault,
+  );
+  if (targetId) dispatchBoard({ type: "SELECT", nodeId: targetId });
 }
 
 function handleToggleFold(ctx: TUIContext): void {
@@ -764,32 +778,30 @@ function handleExtendSelectVertical(
   if (targetIdx === state.cardIndex) return;
 
   // Move cursor
-  dispatchBoard({
-    type: "CURSOR_MOVE",
-    dir: direction === "up" ? "prev" : "next",
-  });
-
-  // Update selection range
-  updateSelectionRange(ctx, state.colIndex, targetIdx, 0);
+  const treeDir = direction === "up" ? "prev" : "next";
+  const targetId = handleTreeNavigation(
+    treeDir as TreeDirection,
+    ctx.boardState,
+    ctx.vault,
+  );
+  if (targetId) {
+    dispatchBoard({ type: "SELECT", nodeId: targetId });
+    // Update selection range
+    updateSelectionRange(ctx, state.colIndex, targetIdx, 0);
+  }
 }
 
 function handleExtendSelectHorizontal(
   ctx: TUIContext,
-  direction: "left" | "right",
+  _direction: "left" | "right",
 ): void {
-  const { state, ui, dispatch, dispatchBoard } = ctx;
-  const col = state.columns[state.colIndex];
-  const card = col?.cards[state.cardIndex];
+  const { ui, dispatch } = ctx;
 
-  if (!card) return;
-
-  // Clear selection and move
+  // Clear selection only (TODO: horizontal extend-select doesn't support range selection)
   if (ui.multiSelected.size > 0) {
     dispatch(actions.clearMultiSelection());
     dispatch(actions.setSelectionAnchor(null));
   }
-
-  dispatchBoard({ type: "CURSOR_MOVE", dir: direction });
 }
 
 function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
@@ -838,7 +850,13 @@ function handleJumpToColumn(ctx: TUIContext, columnNumber: number): void {
     return;
   }
 
-  dispatchBoard({ type: "NAV_TO_PATH", path: [targetColIdx, 0] });
+  const targetCol = state.columns[targetColIdx];
+  if (targetCol && targetCol.cards.length > 0) {
+    const firstCard = targetCol.cards[0];
+    if (firstCard) {
+      dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id });
+    }
+  }
 }
 
 function handleCloseOrQuit(ctx: TUIContext): void {
@@ -1021,9 +1039,9 @@ function handlePageJump(ctx: TUIContext, direction: "up" | "down"): void {
       : Math.min(col.cards.length - 1, state.cardIndex + pageSize);
 
   if (targetIdx !== state.cardIndex) {
-    dispatchBoard({
-      type: "NAV_TO_PATH",
-      path: [state.colIndex, targetIdx],
-    });
+    const targetCard = col.cards[targetIdx];
+    if (targetCard) {
+      dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id });
+    }
   }
 }

@@ -16,7 +16,6 @@ export type {
   // Core state and actions
   BoardState,
   BoardAction,
-  TransitionalBoardAction,
   ZoomEntry,
   NavHistoryEntry,
   // Common types
@@ -26,6 +25,7 @@ export type {
   TaskStatus,
   ViewLevelConfig,
   BoardViewModel,
+  NodeDirection,
 } from "./board-types.ts";
 export { VIEW_LEVEL_PRESETS } from "./board-types.ts";
 

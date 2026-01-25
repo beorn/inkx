@@ -52,11 +52,7 @@ import { useBoardDialogs } from "./use-board-dialogs.ts";
 import { ConstraintRoot } from "../layout/index.ts";
 import { ensureCommandSystemInitialized } from "../command-bridge.ts";
 import { buildTUIContext, type TUIContext } from "../tui-context.ts";
-import {
-  boardReducer,
-  createBoardState,
-  type TransitionalBoardAction,
-} from "@km/board";
+import { boardReducer, createBoardState, type BoardAction } from "@km/board";
 import { useColumns } from "../hooks/use-columns.ts";
 import { useCursorPosition } from "../hooks/use-cursor-position.ts";
 import type { ColumnsLayout } from "../types.ts";
@@ -533,10 +529,6 @@ export function Board({
   );
   colScrollOffsetRef.current = colScrollOffset;
 
-  // Cast dispatchBoard to transitional type for legacy action compatibility
-  const transitionalDispatch =
-    dispatchBoard as React.Dispatch<TransitionalBoardAction>;
-
   // Build unified TUI context once - passed to all handlers
   const tuiContext: TUIContext = buildTUIContext({
     vault,
@@ -546,7 +538,7 @@ export function Board({
     layout: columnsLayout,
     positionRegistry: layoutRegistry,
     dispatch,
-    dispatchBoard: transitionalDispatch,
+    dispatchBoard,
     exit: onExit,
     countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
       countVisibleDescendants(vault, node, depth, maxDepth, foldedNodes),
@@ -565,8 +557,8 @@ export function Board({
 
   // Subscribe to external refresh events (filesystem changes)
   useEffect(
-    () => createRefreshHandler(vault, rootIdRef, transitionalDispatch),
-    [vault],
+    () => createRefreshHandler(vault, rootIdRef, dispatchBoard),
+    [vault, dispatchBoard],
   );
 
   // Main keyboard input handler - ALL keys go through @km/commands
@@ -594,7 +586,7 @@ export function Board({
         vault,
         boardState,
         dispatch,
-        transitionalDispatch,
+        dispatchBoard,
         onExit,
       );
     },
