@@ -1,17 +1,29 @@
+---
+mdtest:
+  plugin: ../apps/km-cli/tests/mdtest-plugin.ts
+---
+
 # KM CLI - Happy Path Tests
 
 End-to-end tests for the km (Knowledge Machine) CLI.
 
 ## Setup
 
+Initialize a test vault:
+
 ```console
-$ beforeAll() {
->   # Set up km function to run from source tree
->   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
->   export -f km
->   # Create a test vault with GTD structure in temp dir
->   km init .
-> }
+$ km init .
+Initializing .km (repo ...)
+✓ Created .km/
+  Created: inbox/
+  Created: archive/
+  Created: @inbox.md
+  Created: @next.md
+  Created: @someday.md
+
+✓ Synced ... file(s) in ... directories
+Next steps:
+[...]
 ```
 
 ### km sync
