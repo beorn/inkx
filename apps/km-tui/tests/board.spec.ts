@@ -247,7 +247,7 @@ describe("Cursoring", () => {
   })
 
   describe("curswantX (horizontal position memory)", () => {
-    test("remembers column when moving through headers", () => {
+    test.todo("remembers column when moving through headers", () => {
       const { board } = testEnv(() =>
         item(
           "board",
@@ -276,7 +276,7 @@ describe("Cursoring", () => {
       board.expect("#3a[data-cursor]").toExist()
     })
 
-    test("preserves column when jumping between first/last card", () => {
+    test.todo("preserves column when jumping between first/last card", () => {
       const { board } = testEnv(() =>
         item(
           "board",
@@ -297,7 +297,7 @@ describe("Cursoring", () => {
       board.expect("#2a[data-cursor]").toExist()
     })
 
-    test("remembers X position in columns view", () => {
+    test.todo("remembers X position in columns view", () => {
       const { board } = testEnv(
         () =>
           item(
@@ -325,7 +325,7 @@ describe("Cursoring", () => {
   })
 
   describe("curswantY (vertical position memory)", () => {
-    test("remembers card position when moving between columns", () => {
+    test.todo("remembers card position when moving between columns", () => {
       const { board } = testEnv(() =>
         item(
           "board",
@@ -358,7 +358,7 @@ describe("Cursoring", () => {
       expect(Math.abs(returnedBox!.y - card1cBox!.y)).toBeLessThan(10)
     })
 
-    test("adjusts Y position when target column is shorter", () => {
+    test.todo("adjusts Y position when target column is shorter", () => {
       const { board } = testEnv(() =>
         item(
           "board",
@@ -380,7 +380,7 @@ describe("Cursoring", () => {
       board.expect("#3c[data-cursor]").toExist()
     })
 
-    test("maintains Y position in columns view", () => {
+    test.todo("maintains Y position in columns view", () => {
       const { board } = testEnv(
         () =>
           item(

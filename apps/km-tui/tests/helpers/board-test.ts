@@ -187,8 +187,17 @@ export function testEnv(
 
   // Create fluent API
   const board = {
-    press: (key: string) => {
+    press: (key: string, options?: { allowNoEffect?: boolean }) => {
+      const before = result.lastFrameText()
       result.stdin.write(key)
+      const after = result.lastFrameText()
+      // Throw if key press had no effect (navigation not connected)
+      // Can be disabled with allowNoEffect: true for tests that expect no change
+      if (!options?.allowNoEffect && before === after) {
+        throw new Error(
+          `Key press '${key}' had no effect - navigation not implemented or key not bound. Use press(key, { allowNoEffect: true }) if this is intentional.`,
+        )
+      }
       return board
     },
     q: (selector: string) => {
@@ -290,7 +299,7 @@ interface BoardTest {
   // === Actions ===
 
   /** Send a key press to the board */
-  press(key: string): this
+  press(key: string, options?: { allowNoEffect?: boolean }): this
 
   /** Send multiple key presses */
   pressSequence(...keys: string[]): this
@@ -387,8 +396,17 @@ class BoardTestImpl implements BoardTest {
 
   // --- Actions ---
 
-  press(key: string): this {
+  press(key: string, options?: { allowNoEffect?: boolean }): this {
+    const before = this.result.lastFrameText()
     this.result.stdin.write(key)
+    const after = this.result.lastFrameText()
+    // Throw if key press had no effect (navigation not connected)
+    // Can be disabled with allowNoEffect: true for tests that expect no change
+    if (!options?.allowNoEffect && before === after) {
+      throw new Error(
+        `Key press '${key}' had no effect - navigation not implemented or key not bound. Use press(key, { allowNoEffect: true }) if this is intentional.`,
+      )
+    }
     // Refresh locator after state change
     this.currentLocator = createLocator(this.result.getContainer())
     return this

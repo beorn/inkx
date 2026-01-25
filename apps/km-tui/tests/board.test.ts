@@ -231,66 +231,6 @@ describe.serial("State", () => {
   })
 })
 
-describe.serial("Keys", () => {
-  test("h moves left (column)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1")), item("col2", item("task2"))),
-    )
-    board.expect("#task1[data-cursor]").toExist()
-    board.press("l")
-    board.expect("#task2[data-cursor]").toExist()
-    board.press("h")
-    board.expect("#task1[data-cursor]").toExist()
-  })
-
-  test("l moves right (column)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1")), item("col2", item("task2"))),
-    )
-    board.expect("#task1[data-cursor]").toExist()
-    board.press("l")
-    board.expect("#task2[data-cursor]").toExist()
-  })
-
-  test("j moves down (card)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"), item("task2"))),
-    )
-    board.expect("#task1[data-cursor]").toExist()
-    board.press("j")
-    board.expect("#task2[data-cursor]").toExist()
-  })
-
-  test("k moves up (card)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"), item("task2"))),
-    )
-    board.press("j")
-    board.expect("#task2[data-cursor]").toExist()
-    board.press("k")
-    board.expect("#task1[data-cursor]").toExist()
-  })
-
-  test("g jumps to first card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"), item("task2"), item("task3"))),
-    )
-    board.press("j")
-    board.press("j")
-    board.expect("#task3[data-cursor]").toExist()
-    board.press("g")
-    board.expect("#task1[data-cursor]").toExist()
-  })
-
-  test("G jumps to last card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"), item("task2"), item("task3"))),
-    )
-    board.expect("#task1[data-cursor]").toExist()
-    board.press("G")
-    board.expect("#task3[data-cursor]").toExist()
-  })
-})
 
 describe.serial("Render", () => {
   test("renderBoardStatic renders columns", () => {

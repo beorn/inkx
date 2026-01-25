@@ -204,6 +204,10 @@ export function createPasteHandler(
 
   // Listen for raw data if stdin is available in raw mode
   if (process.stdin.isTTY) {
+    // Increase max listeners for test scenarios (tests create many Board components)
+    if (process.stdin.getMaxListeners() < 50) {
+      process.stdin.setMaxListeners(50)
+    }
     process.stdin.on("data", handleData)
   }
 
