@@ -1,6 +1,6 @@
-# km sh - Navigation Tests
+# km sh - Cursor Navigation Tests
 
-Tests for TUI state navigation commands using `km sh`.
+Tests for cursor movement commands (j/k/g/G) using `km sh`.
 
 ## Setup
 
