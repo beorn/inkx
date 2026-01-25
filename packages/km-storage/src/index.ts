@@ -159,11 +159,15 @@ export {
 // Query language
 export {
   parseQuery,
+  resolveDateQuery,
+} from "./query.ts"
+
+// Re-export singleton wrappers for query functions (from db.ts)
+export {
   executeQuery,
   queryTasks,
   queryNodes,
-  resolveDateQuery,
-} from "./query.ts"
+} from "./db.ts"
 
 export type { QueryAST, QueryCondition, QueryRef, DateRange } from "./query.ts"
 

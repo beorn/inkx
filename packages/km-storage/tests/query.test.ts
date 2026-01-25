@@ -1076,7 +1076,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:todo matches only nodes with that status, any type", () => {
     const ast = parseQuery("status:todo")
-    const results = executeQuery(ast)
+    const results = executeQuery(getDb(), ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task1")
     expect(results[0]!.type).toBe("task")
@@ -1084,7 +1084,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:wip matches section with status", () => {
     const ast = parseQuery("status:wip")
-    const results = executeQuery(ast)
+    const results = executeQuery(getDb(), ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("section1")
     expect(results[0]!.type).toBe("section")
@@ -1092,7 +1092,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:done matches file with status", () => {
     const ast = parseQuery("status:done")
-    const results = executeQuery(ast)
+    const results = executeQuery(getDb(), ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("file1")
     expect(results[0]!.type).toBe("file")
@@ -1100,7 +1100,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:blocked matches paragraph with status", () => {
     const ast = parseQuery("status:blocked")
-    const results = executeQuery(ast)
+    const results = executeQuery(getDb(), ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("para1")
     expect(results[0]!.type).toBe("paragraph")
@@ -1108,14 +1108,14 @@ describe("Status on Any Node Type", () => {
 
   test("type:task only matches checkbox-originated nodes", () => {
     const ast = parseQuery("type:task")
-    const results = executeQuery(ast)
+    const results = executeQuery(getDb(), ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task1")
   })
 
   test("type:section matches sections regardless of status", () => {
     const ast = parseQuery("type:section")
-    const results = executeQuery(ast)
+    const results = executeQuery(getDb(), ast)
     expect(results.length).toBe(2)
     const ids = results.map((r) => r.id)
     expect(ids).toContain("section1") // has status
@@ -1124,7 +1124,7 @@ describe("Status on Any Node Type", () => {
 
   test("combining type and status filters", () => {
     const ast = parseQuery("type:section status:wip")
-    const results = executeQuery(ast)
+    const results = executeQuery(getDb(), ast)
     expect(results.length).toBe(1)
     expect(results[0]?.id).toBe("section1")
   })
@@ -1138,7 +1138,7 @@ describe("Status on Any Node Type", () => {
 
   test("-status:done excludes nodes with that status, any type", () => {
     const ast = parseQuery("-status:done")
-    const results = executeQuery(ast)
+    const results = executeQuery(getDb(), ast)
     // Should include task1, section1, para1, section2 (no status counts as not done)
     expect(results.length).toBe(4)
     expect(results.every((r) => r.task_status !== "done")).toBe(true)
@@ -1146,7 +1146,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:todo,wip matches multiple statuses across types", () => {
     const ast = parseQuery("status:todo,wip")
-    const results = executeQuery(ast)
+    const results = executeQuery(getDb(), ast)
     expect(results.length).toBe(2)
     const ids = results.map((r) => r.id)
     expect(ids).toContain("task1") // todo

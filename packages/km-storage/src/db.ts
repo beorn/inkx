@@ -182,6 +182,35 @@ export const getAllNodes: typeof dbGetAllNodes = () =>
 export const getNodeCount: typeof dbGetNodeCount = () =>
   dbGetNodeCount(getDb())
 
+// Import query operations with different names
+import {
+  executeQuery as dbExecuteQuery,
+  queryTasks as dbQueryTasks,
+  queryNodes as dbQueryNodes,
+  type QueryAST,
+} from "./query.ts"
+
+// Singleton wrapper functions for query operations
+
+/** @deprecated Use vault API */
+export function executeQuery(
+  ast: QueryAST,
+  baseType?: string,
+  options?: { requireTaskStatus?: boolean },
+): KNode[] {
+  return dbExecuteQuery(getDb(), ast, baseType, options)
+}
+
+/** @deprecated Use vault API */
+export function queryTasks(query: string): KNode[] {
+  return dbQueryTasks(getDb(), query)
+}
+
+/** @deprecated Use vault API */
+export function queryNodes(query: string, type?: string): KNode[] {
+  return dbQueryNodes(getDb(), query, type)
+}
+
 // Re-export types and utilities
 export { rowToNode, type SearchResult }
 
