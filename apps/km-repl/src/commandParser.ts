@@ -8,7 +8,8 @@
  * - JSON actions: {"type": "CURSOR_NEXT"}
  */
 
-import type { BoardAction } from "@km/board";
+import type { BoardAction } from "./board-types.ts";
+import type { TaskStatus } from "@km/core";
 
 /**
  * Result of parsing a command
@@ -17,8 +18,6 @@ export type ParseResult =
   | { ok: true; action: BoardAction }
   | { ok: true; command: ShellCommand }
   | { ok: false; error: string };
-
-import type { TaskStatus } from "@km/board";
 
 /**
  * Shell-specific commands (not BoardActions)

@@ -65,6 +65,7 @@
       "dependencies": {
         "@km/board": "workspace:*",
         "@km/commands": "workspace:*",
+        "@km/core": "workspace:*",
         "inkx": "workspace:*",
         "react": "catalog:",
       },
@@ -1703,7 +1704,7 @@
 
     "inkx/@beorn/chalkx": ["@beorn/chalkx@github:beorn/chalkx#75fbbe4", { "dependencies": { "chalk": "^5.4.1", "string-width": "^7.0.0" } }, "beorn-chalkx-75fbbe4"],
 
-    "inkx/@beorn/flexx": ["@beorn/flexx@github:beorn/flexx#e2d7e03", {}, "beorn-flexx-e2d7e03"],
+    "inkx/@beorn/flexx": ["@beorn/flexx@github:beorn/flexx#c70aca7", {}, "beorn-flexx-c70aca7"],
 
     "inkx/@types/react": ["@types/react@19.2.7", "", { "dependencies": { "csstype": "^3.2.2" } }, "sha512-MWtvHrGZLFttgeEj28VXHxpmwYbor/ATPYbBfSFZEIRK0ecCFLl2Qo55z52Hss+UV9CRN7trSeq1zbgx7YDWWg=="],
 

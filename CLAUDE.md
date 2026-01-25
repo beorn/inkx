@@ -282,6 +282,7 @@ When starting work on ANY bead, you MUST use `/bd work <id>` first. This:
 ```bash
 bd ready              # Find available work (no blockers)
 bd show <id>          # View issue details
+bd show <id> --json | jq -r '.body'  # Get JSON output (--json is global flag)
 bd create --title="..." --type=task --priority=2
 bd close <id>         # Complete work
 bd sync               # Commit beads changes

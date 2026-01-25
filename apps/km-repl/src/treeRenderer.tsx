@@ -12,7 +12,7 @@ import {
   bufferToText,
   bufferToStyledText,
 } from "inkx/testing";
-import type { BoardState, TNode, TPath } from "@km/board";
+import type { BoardState, TNode, TPath } from "./board-types.ts";
 
 // Status icons for task status
 const STATUS_ICONS: Record<string, string> = {
