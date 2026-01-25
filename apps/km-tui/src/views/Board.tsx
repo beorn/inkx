@@ -587,6 +587,18 @@ export function Board({
     ensureCommandSystemInitialized();
   }, []);
 
+  // Handle file drops via bracketed paste
+  useEffect(() => createFileDropHandler(dispatch), []);
+
+  // Subscribe to watcher status updates
+  useEffect(() => createWatcherStatusHandler(dispatch), []);
+
+  // Subscribe to external refresh events (filesystem changes)
+  useEffect(
+    () => createRefreshHandler(vault, rootIdRef, transitionalDispatch),
+    [vault],
+  );
+
   // Main keyboard input handler - ALL keys go through @km/commands
   useInput((input, key) => {
     handleBoardKeyInput(
@@ -650,7 +662,7 @@ export interface BoardAppProps {
 /**
  * Production entry component with external integrations.
  * Gets vault, dimensions, exit from context/hooks.
- * Has file watcher and other external effects.
+ * Handles terminal dimension sync only - other effects moved to Board.
  */
 export function BoardApp({
   initialState,
@@ -659,10 +671,8 @@ export function BoardApp({
 }: BoardAppProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
-  const vault = useVault();
 
-  // Create dispatch for dimension sync (passed to effects)
-  // This is separate from Board's dispatch to keep effects at this layer
+  // Create dispatch for dimension sync
   const [dimensionState, dimensionDispatch] = useReducer(
     (
       state: { columns: number; rows: number },
@@ -670,15 +680,6 @@ export function BoardApp({
     ) => action,
     { columns: stdout?.columns ?? 80, rows: stdout?.rows ?? 24 },
   );
-
-  // Ref to track current rootId for event handlers
-  const rootIdRef = useRef(initialState.rootId);
-
-  // UI dispatch for effects (watcher status, file drops, etc.)
-  // We need a stable dispatch reference for effects, but Board manages its own state
-  // Solution: use a ref that gets updated by Board through a callback
-  const dispatchBoardRef =
-    useRef<React.Dispatch<TransitionalBoardAction> | null>(null);
 
   // WORKAROUND: fullscreen-ink alternate buffer race condition
   useEffect(
@@ -689,18 +690,6 @@ export function BoardApp({
       ),
     [stdout],
   );
-
-  // Handle file drops via bracketed paste
-  useEffect(() => createFileDropHandler(() => {}), []);
-
-  // Subscribe to external refresh events (filesystem changes)
-  useEffect(() => {
-    if (!dispatchBoardRef.current) return;
-    return createRefreshHandler(vault, rootIdRef, dispatchBoardRef.current);
-  }, [vault]);
-
-  // Subscribe to watcher status updates
-  useEffect(() => createWatcherStatusHandler(() => {}), []);
 
   return (
     <Board
