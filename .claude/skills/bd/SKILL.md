@@ -50,6 +50,24 @@ When multiple Claude Code sessions work on the same codebase:
 - Use `/bd my` to see your active claims
 - Use `/bd release` before switching tasks
 
+## Checking Bead Status
+
+Use direct `bd` commands (not `/bd` skill) for detailed queries:
+
+```bash
+# View full details
+bd show km-mdtest-plugins
+
+# Check specific fields with JSON + jq
+bd show km-mdtest-plugins --json | jq -r '.[0] | .status, .priority, .assignee'
+
+# View status update notes
+bd show km-mdtest-plugins --json | jq -r '.[0].notes'
+
+# Check parent/child relationships
+bd show km-mdtest-plugins.1 --json | jq -r '.[0].parent'
+```
+
 ## Examples
 
 ```bash
