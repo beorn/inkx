@@ -172,6 +172,11 @@ export function testEnv(
   // Build initial board state from vault
   const initialState = buildBoardState(vault, rootNode.id)
 
+  // Ensure command system is initialized before rendering
+  // Note: Board.tsx also calls this in useEffect, but in tests that might not run
+  const { ensureCommandSystemInitialized } = require("../../src/command-bridge.ts")
+  ensureCommandSystemInitialized()
+
   // Render the full Board component (not BoardCore) for keyboard navigation + id attributes
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24

@@ -6,9 +6,13 @@
  */
 
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit"
+import { enableMapSet } from "immer"
 import type { ViewMode, SelectionKey } from "./types.ts"
 import type { SelectionRange } from "./mouse-handler.ts"
 import type { WatcherStatus } from "@km/storage"
+
+// Enable Immer's MapSet plugin for Set/Map support in Redux state
+enableMapSet()
 
 // =============================================================================
 // UI State Type
