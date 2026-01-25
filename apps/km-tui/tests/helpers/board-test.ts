@@ -170,7 +170,7 @@ export function testEnv(
   }
 
   // Build initial board state from vault
-  const initialState = buildBoardState(vault as any, rootNode.id)
+  const initialState = buildBoardState(vault, rootNode.id)
 
   // Render the full Board component (not BoardCore) for keyboard navigation + id attributes
   const columns = options?.columns ?? 80

@@ -17,6 +17,7 @@ import React, {
 import { createSelector } from "reselect"
 import type { UIState, UIAction } from "./ui-reducer.ts"
 import type { SelectionKey } from "./types.ts"
+import { useVault } from "./vault-context.tsx"
 
 // =============================================================================
 // Context Types
@@ -242,13 +243,11 @@ export function useRootBoardId(): string | null {
  */
 export function useExcludedSigils(): string[] {
   const rootBoardId = useRootBoardId()
+  const vault = useVault()
   return useMemo(() => {
     if (!rootBoardId) return []
 
-    // Import getNode lazily to avoid circular dependencies
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getNode } = require("@km/storage")
-    const node = getNode(rootBoardId)
+    const node = vault.getNode(rootBoardId)
     if (!node?.fs_path) return []
 
     // Extract filename without extension (e.g., "@issue.md" → "@issue")
@@ -261,7 +260,7 @@ export function useExcludedSigils(): string[] {
     }
 
     return []
-  }, [rootBoardId])
+  }, [rootBoardId, vault])
 }
 
 /**
