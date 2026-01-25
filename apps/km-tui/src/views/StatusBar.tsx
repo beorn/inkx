@@ -26,7 +26,10 @@ const STATUS_DISPLAY = {
 /**
  * StatusBar component - displays feedback messages for user actions
  */
-export function StatusBar({ ui, termWidth }: StatusBarProps): React.ReactElement | null {
+export function StatusBar({
+  ui,
+  termWidth,
+}: StatusBarProps): React.ReactElement | null {
   // Don't render if no status message
   if (!ui.status) {
     return null

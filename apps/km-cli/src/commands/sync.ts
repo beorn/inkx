@@ -9,6 +9,7 @@ import { Command } from "commander"
 import chalk from "chalk"
 import { steps } from "@beorn/inkx-ui/progress"
 import { Database } from "bun:sqlite"
+import { dirname, resolve, join } from "path"
 
 const debug = createDebug("km:cli:sync")
 import {
@@ -16,9 +17,7 @@ import {
   findKmRootFromPath,
   runWithKmDir,
   syncState,
-  getDb,
 } from "@km/storage"
-import { dirname, resolve } from "path"
 import { formatPath } from "../utils/format-path.ts"
 
 /**
@@ -185,10 +184,8 @@ export const syncCommand = new Command("sync")
     const vaultPath = dirname(kmRoot)
     debug("resolved vault path: %s (from kmRoot: %s)", vaultPath, kmRoot)
 
-    // Get database instance (needed by SyncManager)
-    // Note: getDb() is deprecated, but SyncManager requires a Database object.
-    // TODO: Refactor to use Vault domain object when that API is available
-    const db = getDb()
+    // Open database directly from kmRoot
+    const db = new Database(join(kmRoot, "state.db"))
 
     if (options.watch) {
       const debounceMs = parseInt(options.debounce, 10)

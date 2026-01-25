@@ -130,7 +130,7 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
   }
 }
 
-import { getAllNodes, updateNode, applyEventWithDb, getDb } from "@km/storage"
+import { getAllNodes, updateNode, applyEventWithDb } from "@km/storage"
 
 import { setFsSync } from "../../../src/emit.ts"
 import { SyncManager } from "../../../src/watch/sync.ts"
@@ -169,7 +169,6 @@ async function withConcurrentTestEnv(
 
   try {
     await withTestEnv(async ({ vaultDir }) => {
-
       // Create event emitter for test observation
       const events = new EventEmitter()
 

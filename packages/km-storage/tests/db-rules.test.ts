@@ -392,7 +392,7 @@ describe("Database Rules", () => {
           )
           expect(taskA).toBeDefined()
 
-          store.updateNode( taskA!.id, { task_status: "done", task_mark: "x" })
+          store.updateNode(taskA!.id, { task_status: "done", task_mark: "x" })
 
           for (const _ of evaluateAllRules(store.getDatabase())) {
             /* exhaust generator */

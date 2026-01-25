@@ -404,9 +404,7 @@ export function ColumnsView({
         {/* Right scroll indicator */}
         {hasRightIndicator && <VerticalScrollIndicator direction="right" />}
 
-        {state.columns.length === 0 && (
-          <Text dimColor>Empty board</Text>
-        )}
+        {state.columns.length === 0 && <Text dimColor>Empty board</Text>}
       </Box>
     </Box>
   )

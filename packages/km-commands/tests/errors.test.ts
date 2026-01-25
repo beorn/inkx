@@ -32,7 +32,10 @@ describe("ActionError constructors", () => {
     const result = precondition("currentNode")
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.error).toEqual({ type: "precondition", missing: "currentNode" })
+      expect(result.error).toEqual({
+        type: "precondition",
+        missing: "currentNode",
+      })
     }
   })
 

@@ -67,8 +67,12 @@ export async function executeKmCommand(
     }
 
     // Intercept stdout/stderr
-    process.stdout.write = stdoutStream.write.bind(stdoutStream) as typeof process.stdout.write
-    process.stderr.write = stderrStream.write.bind(stderrStream) as typeof process.stderr.write
+    process.stdout.write = stdoutStream.write.bind(
+      stdoutStream,
+    ) as typeof process.stdout.write
+    process.stderr.write = stderrStream.write.bind(
+      stderrStream,
+    ) as typeof process.stderr.write
 
     // Intercept process.exit
     process.exit = ((code?: number) => {

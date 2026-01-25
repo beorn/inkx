@@ -82,6 +82,13 @@ export interface Vault extends Disposable {
    */
   readonly deferredFiles: DeferredFile[]
 
+  /**
+   * Database instance for internal consumers (SyncManager, etc).
+   * Prefer using Vault methods over direct db access when possible.
+   * @internal
+   */
+  readonly database: Database
+
   // --- Query operations ---
 
   /** Get a single node by ID */
@@ -394,6 +401,10 @@ export function* createVault(
     },
     get deferredFiles() {
       return result.deferredFiles ?? []
+    },
+    get database() {
+      ensureNotClosed()
+      return db
     },
 
     // Query operations (with afterQuery hook)

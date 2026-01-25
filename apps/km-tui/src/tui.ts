@@ -86,12 +86,16 @@ export async function runBoard(
   let syncManager: SyncManager | null = null
 
   if (state.rootPath) {
+    if (!options?.vault) {
+      throw new Error("Vault required for SyncManager - cannot sync without database")
+    }
     debug("Creating SyncManager", {
       rootPath: state.rootPath,
       watch: watchEnabled,
       worker: useWorker,
     })
     syncManager = new SyncManager({
+      db: options.vault.database,
       vaultPath: state.rootPath,
       debounceFs: 2000, // Debounce external changes (2s)
       debounceApply: 100, // Small debounce for batching TUI changes

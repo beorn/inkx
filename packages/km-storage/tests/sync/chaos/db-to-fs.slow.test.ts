@@ -34,7 +34,6 @@ describe("DB → File Sync Tests", () => {
   describe("Task Status Updates", () => {
     test("marking task as done updates file", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           db: getDb(),
           vaultPath: vaultDir,
@@ -74,7 +73,6 @@ describe("DB → File Sync Tests", () => {
 
     test("marking task as todo updates file", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           db: getDb(),
           vaultPath: vaultDir,
@@ -116,7 +114,6 @@ describe("DB → File Sync Tests", () => {
   describe("Task Content Updates", () => {
     test("editing task content updates file", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           db: getDb(),
           vaultPath: vaultDir,
@@ -157,7 +154,6 @@ describe("DB → File Sync Tests", () => {
   describe("Multiple Rapid Updates", () => {
     test("rapid updates coalesce correctly", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           db: getDb(),
           vaultPath: vaultDir,
@@ -198,7 +194,6 @@ describe("DB → File Sync Tests", () => {
 
     test("alternating status updates result in final state", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           db: getDb(),
           vaultPath: vaultDir,
@@ -242,7 +237,6 @@ describe("DB → File Sync Tests", () => {
   describe("Multiple Files", () => {
     test("updates to different files are independent", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           db: getDb(),
           vaultPath: vaultDir,
@@ -295,7 +289,6 @@ describe("DB → File Sync Tests", () => {
   describe("Error Handling", () => {
     test("update to non-existent node is handled gracefully", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           db: getDb(),
           vaultPath: vaultDir,
@@ -330,7 +323,6 @@ describe("DB → File Sync Tests", () => {
   describe("Data Preservation", () => {
     test("non-task content is preserved during task update", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           db: getDb(),
           vaultPath: vaultDir,

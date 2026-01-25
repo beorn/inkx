@@ -203,14 +203,12 @@ export const initCommand = new Command("init")
     // Sync by default (unless --no-sync)
     if (options.sync !== false) {
       // Initialize vault to set up database
-      const { createVault, runGenerator, getDb } = await import("@km/storage")
-      using _vault = runGenerator(createVault(targetDir))
+      const { createVault, runGenerator } = await import("@km/storage")
+      using vault = runGenerator(createVault(targetDir))
 
-      // Create SyncManager with the database
-      // Note: getDb() is deprecated, but SyncManager requires a Database object.
-      // TODO: Refactor to use vault.syncFromFs() when that method is added
+      // Create SyncManager with the database from vault
       const manager = new SyncManager({
-        db: getDb(),
+        db: vault.database,
         vaultPath: targetDir,
         debounceFs: 0,
         debounceApply: 0,

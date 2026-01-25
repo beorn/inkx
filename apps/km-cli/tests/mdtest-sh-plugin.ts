@@ -5,7 +5,10 @@ import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { CmdSession } from "../../../vendor/beorn-mdtest/src/cmdSession.js"
-import { buildScript, buildHookScript } from "../../../vendor/beorn-mdtest/src/shell.js"
+import {
+  buildScript,
+  buildHookScript,
+} from "../../../vendor/beorn-mdtest/src/shell.js"
 import { splitNorm } from "../../../vendor/beorn-mdtest/src/core.js"
 import { bunShell } from "../../../vendor/beorn-mdtest/src/integrations/bun.js"
 import { DEFAULTS } from "../../../vendor/beorn-mdtest/src/constants.js"
@@ -139,7 +142,13 @@ export default async function kmShPlugin(opts: FileOpts): Promise<Plugin> {
         }
 
         // Build script with state persistence
-        const script = buildScript([cmd], scriptOpts, envFile, cwdFile, funcFile)
+        const script = buildScript(
+          [cmd],
+          scriptOpts,
+          envFile,
+          cwdFile,
+          funcFile,
+        )
 
         // Execute command
         const res = await bunShell(["bash", "-lc", script], {

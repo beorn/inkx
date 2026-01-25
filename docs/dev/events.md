@@ -27,11 +27,11 @@ unsub()
 
 Events are organized by purpose:
 
-| Category | Purpose          | Consumers                 |
-| -------- | ---------------- | ------------------------- |
-| **User** | UI feedback      | TUI status bar, CLI logs  |
-| **Debug** | Internal tracing | debug() logger            |
-| **Metric** | Performance     | Monitoring, optimization  |
+| Category   | Purpose          | Consumers                |
+| ---------- | ---------------- | ------------------------ |
+| **User**   | UI feedback      | TUI status bar, CLI logs |
+| **Debug**  | Internal tracing | debug() logger           |
+| **Metric** | Performance      | Monitoring, optimization |
 
 ### User Events
 
@@ -182,11 +182,11 @@ test("emits parse error", () => {
 
 ### Why nanoevents?
 
-| Library      | Size  | TypeScript | Why Not?                     |
-| ------------ | ----- | ---------- | ---------------------------- |
-| nanoevents   | 107b  | ✅ Best    | **Our choice**               |
-| mitt         | 200b  | ✅ Good    | Larger, less ergonomic types |
-| emittery     | 48kb  | ✅ Good    | 400x larger                  |
+| Library       | Size  | TypeScript | Why Not?                     |
+| ------------- | ----- | ---------- | ---------------------------- |
+| nanoevents    | 107b  | ✅ Best    | **Our choice**               |
+| mitt          | 200b  | ✅ Good    | Larger, less ergonomic types |
+| emittery      | 48kb  | ✅ Good    | 400x larger                  |
 | eventemitter3 | 1.5kb | ⚠️ Manual  | No built-in types            |
 
 nanoevents offers:
@@ -235,12 +235,12 @@ See [Appendix C in plan](../../.claude/plans/swirling-launching-chipmunk.md#appe
 
 ## Comparison with VSCode
 
-| Concept      | VSCode                    | km                   |
-| ------------ | ------------------------- | -------------------- |
-| API          | `Event<T>`, `onDidX/onWillX` | `on/emit`            |
-| Cleanup      | `Disposable`              | `Subscription` (callable + Disposable) |
-| Size         | ~500 lines                | 107 bytes            |
-| Features     | Buffering, debouncing     | Core only            |
+| Concept  | VSCode                       | km                                     |
+| -------- | ---------------------------- | -------------------------------------- |
+| API      | `Event<T>`, `onDidX/onWillX` | `on/emit`                              |
+| Cleanup  | `Disposable`                 | `Subscription` (callable + Disposable) |
+| Size     | ~500 lines                   | 107 bytes                              |
+| Features | Buffering, debouncing        | Core only                              |
 
 km's simpler model fits our needs. If we need buffering/debouncing, we add utilities separately.
 

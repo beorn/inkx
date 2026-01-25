@@ -19,6 +19,7 @@ import {
 import { join, dirname } from "path"
 import { Command } from "commander"
 import chalk from "chalk"
+import { Database } from "bun:sqlite"
 import {
   SyncManager,
   findKmRootFromPath,
@@ -77,7 +78,11 @@ class KmDaemon extends EventEmitter {
     this.vaultPath = vaultPath
     this.paths = getDaemonPaths(kmDir)
 
+    // Open database directly from kmDir
+    const db = new Database(join(kmDir, "state.db"))
+
     this.sync = new SyncManager({
+      db,
       vaultPath,
       debounceFs: 5000,
       debounceApply: 3000,

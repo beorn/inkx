@@ -165,7 +165,10 @@ export interface CancelMoveAction {
   type: "CANCEL_MOVE"
 }
 
-export type MoveAction = EnterMoveModeAction | ConfirmMoveAction | CancelMoveAction
+export type MoveAction =
+  | EnterMoveModeAction
+  | ConfirmMoveAction
+  | CancelMoveAction
 
 export interface ShiftUpAction {
   type: "SHIFT_UP"

@@ -41,7 +41,6 @@ describe("Bidirectional Sync E2E", () => {
   describe("TUI → Filesystem", () => {
     test("editing task status in model writes to file", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           vaultPath: vaultDir,
           db: getDb(),
@@ -81,7 +80,6 @@ describe("Bidirectional Sync E2E", () => {
 
     test("creating new task in model creates file entry", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           vaultPath: vaultDir,
           db: getDb(),
@@ -125,7 +123,6 @@ describe("Bidirectional Sync E2E", () => {
   describe("Filesystem → Model", () => {
     test("external file edit triggers state-change event", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const events = new EventEmitter()
         const syncManager = new SyncManager({
           vaultPath: vaultDir,
@@ -189,7 +186,6 @@ describe("Bidirectional Sync E2E", () => {
 
     test("external file edit updates database", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const events = new EventEmitter()
         const syncManager = new SyncManager({
           vaultPath: vaultDir,
@@ -261,7 +257,6 @@ describe("Bidirectional Sync E2E", () => {
 
     test("external file delete removes from database", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const events = new EventEmitter()
         const syncManager = new SyncManager({
           vaultPath: vaultDir,
@@ -331,7 +326,6 @@ describe("Bidirectional Sync E2E", () => {
   describe("Race Conditions", () => {
     test("rapid external edits are coalesced", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const events = new EventEmitter()
         const syncManager = new SyncManager({
           vaultPath: vaultDir,
@@ -389,7 +383,6 @@ describe("Bidirectional Sync E2E", () => {
 
     test("TUI edit during filesystem sync doesn't cause data loss", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const syncManager = new SyncManager({
           vaultPath: vaultDir,
           db: getDb(),

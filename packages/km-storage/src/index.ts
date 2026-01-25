@@ -4,15 +4,9 @@ export { SCHEMA } from "./schema.ts"
 // Database operations (db-accepting functions for internal use)
 // All application code should use Vault domain object (createVault) instead
 export {
-  // Instance management (for testing)
+  // Path utility
   getDbPath,
-  getDb,
   closeDb,
-  setDb,
-  isMemoryMode,
-  resetDb,
-  runWithDb,
-  tryGetContextDb,
   // Query operations (require Database parameter)
   getNode,
   getNodeByIdPrefix,

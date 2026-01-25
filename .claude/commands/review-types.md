@@ -18,24 +18,24 @@ Find type issues, fix quick wins, track larger refactors.
 
 ### Safety Issues (bugs hiding in types)
 
-| Pattern | Fix |
-|---------|-----|
-| `any` in signature | Narrow to specific type or generic |
-| `as X` after JSON/fetch | Type guard + runtime validation |
-| `x!.prop` non-null | Guard clause or restructure |
-| `catch (e) { e.message }` | `if (e instanceof Error)` |
-| switch without exhaustive | `default: assertNever(x)` |
+| Pattern                   | Fix                                |
+| ------------------------- | ---------------------------------- |
+| `any` in signature        | Narrow to specific type or generic |
+| `as X` after JSON/fetch   | Type guard + runtime validation    |
+| `x!.prop` non-null        | Guard clause or restructure        |
+| `catch (e) { e.message }` | `if (e instanceof Error)`          |
+| switch without exhaustive | `default: assertNever(x)`          |
 
 **OK to skip**: FFI, JSON.parse with immediate validation, documented perf hack
 
 ### Ergonomic Wins (less code, same safety)
 
-| Pattern | Fix |
-|---------|-----|
-| `const x: T = expr` (T inferrable) | Remove `: T` |
-| Explicit return type = inferred | Remove return type |
-| Object literal needing validation | Use `satisfies` |
-| Repeated inline type | Extract type alias |
+| Pattern                            | Fix                |
+| ---------------------------------- | ------------------ |
+| `const x: T = expr` (T inferrable) | Remove `: T`       |
+| Explicit return type = inferred    | Remove return type |
+| Object literal needing validation  | Use `satisfies`    |
+| Repeated inline type               | Extract type alias |
 
 **km models**: [vault.ts](packages/km-storage/src/vault.ts) (factory inference), [watch/types.ts](packages/km-storage/src/watch/types.ts) (discriminated unions)
 
@@ -77,21 +77,27 @@ grep -rE ": any\b" packages/ apps/ --include="*.ts" | grep -v test | grep -v ".d
 ## Type Safety: [scope]
 
 ### Automated Check Results
+
 - Type coverage: X% (target: 90%)
 - ESLint unsafe violations: N
 - Explicit any count: N
 
 ### Manual Findings
+
 #### Safety Issues
+
 - [file:line](path#Lnn) - Description
 
 #### Ergonomic Wins
+
 - [file:line](path#Lnn) - Description
 
 ### Quick Wins
+
 1. ...
 
 ### Larger Refactors
+
 1. ...
 ```
 

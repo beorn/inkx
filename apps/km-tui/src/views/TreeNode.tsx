@@ -312,7 +312,7 @@ function TreeNodeImpl({
           alignItems="flex-start"
           paddingLeft={depth}
           backgroundColor={style.backgroundColor}
-          height={1}
+          height={isOneliner ? 1 : undefined}
         >
           {/* Fixed-width prefix box (fold marker only - new cards style) */}
           <Box width={prefix.length} flexShrink={0}>

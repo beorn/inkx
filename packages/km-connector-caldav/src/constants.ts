@@ -55,7 +55,9 @@ export type AddressType = (typeof ADDRESS_TYPES)[number]
 /**
  * Validate and narrow a string to EventStatus
  */
-export function parseEventStatus(v: string | undefined): EventStatus | undefined {
+export function parseEventStatus(
+  v: string | undefined,
+): EventStatus | undefined {
   return v && EVENT_STATUSES.includes(v as EventStatus)
     ? (v as EventStatus)
     : undefined
@@ -93,7 +95,9 @@ export function parsePhoneType(v: string | undefined): PhoneType | undefined {
 /**
  * Validate and narrow a string to AddressType
  */
-export function parseAddressType(v: string | undefined): AddressType | undefined {
+export function parseAddressType(
+  v: string | undefined,
+): AddressType | undefined {
   return v && ADDRESS_TYPES.includes(v as AddressType)
     ? (v as AddressType)
     : undefined

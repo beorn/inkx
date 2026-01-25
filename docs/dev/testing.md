@@ -15,20 +15,22 @@ A test system that is:
 ## File Naming Conventions
 
 **Reserved for acceptance tests:**
+
 - `.spec.ts` - TUI UI-level acceptance tests (board.spec.ts)
 - `.spec.md` - CLI acceptance tests (reserved, not yet used)
 
 **For unit/integration tests:**
+
 - `.test.ts` - Fast unit/integration tests (<1s each)
 - `.slow.test.ts` - Slow tests (chaos fuzzer, heavy integration)
 - `.test.md` - mdtest CLI tests (current convention, may migrate to `.spec.md`)
 
-| Suffix          | Purpose                         | Test Level | Included in           |
-| --------------- | ------------------------------- | ---------- | --------------------- |
-| `.spec.ts`      | TUI acceptance (UI-level)       | E2E        | test:fast, test:all   |
-| `.test.ts`      | Unit/integration tests          | Unit/Int   | test:fast, test:all   |
-| `.slow.test.ts` | Slow integration, chaos         | Int/E2E    | test:all only         |
-| `.test.md`      | mdtest CLI tests                | E2E        | test:mdtest, test:all |
+| Suffix          | Purpose                   | Test Level | Included in           |
+| --------------- | ------------------------- | ---------- | --------------------- |
+| `.spec.ts`      | TUI acceptance (UI-level) | E2E        | test:fast, test:all   |
+| `.test.ts`      | Unit/integration tests    | Unit/Int   | test:fast, test:all   |
+| `.slow.test.ts` | Slow integration, chaos   | Int/E2E    | test:all only         |
+| `.test.md`      | mdtest CLI tests          | E2E        | test:mdtest, test:all |
 
 **Rule**: Use `.spec.ts` ONLY for acceptance tests (board UI-level, CLI workflows). All other tests use `.test.ts`.
 

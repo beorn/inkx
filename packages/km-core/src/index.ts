@@ -73,7 +73,17 @@ export { runGenerator, runWithProgress } from "./service.ts"
 
 // Result type for explicit error handling
 export type { Result } from "./result.ts"
-export { Ok, Err, OkVoid, isOk, isErr, map, andThen, all, tryCatch } from "./result.ts"
+export {
+  Ok,
+  Err,
+  OkVoid,
+  isOk,
+  isErr,
+  map,
+  andThen,
+  all,
+  tryCatch,
+} from "./result.ts"
 
 // Logger (re-export from @beorn/logger)
 export {

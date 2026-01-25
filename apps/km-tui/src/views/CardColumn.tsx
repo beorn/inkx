@@ -168,7 +168,7 @@ export const Card = React.memo(
         <TreeNode
           node={card.node}
           depth={0}
-          isSelected={isSelected && selectedSubIndex === 0}
+          isSelected={isSelected && selectedSubIndex <= 0}
           colIndex={colIndex}
           cardIndex={cardIndex}
           subIndex={0}
@@ -388,10 +388,6 @@ function VirtualizedCardList({
           isSelected &&
           actualIndex === selectedCardIndex &&
           selectionLevel === "card"
-        // DEBUG
-        if (actualIndex === 0) {
-          console.log("DEBUG CardColumn:", { isSelected, selectedCardIndex, selectionLevel, cardIsSelected, actualIndex })
-        }
         return (
           <Card
             key={card.node.id}

@@ -49,7 +49,10 @@ const debug = createDebug("km:tui:nav")
 // Action Handler Type
 // =============================================================================
 
-export type ActionHandler = (ctx: TUIContext, action: CommandAction) => ActionResult
+export type ActionHandler = (
+  ctx: TUIContext,
+  action: CommandAction,
+) => ActionResult
 
 // =============================================================================
 // Main Action Dispatcher
@@ -962,10 +965,12 @@ function handleExtendSelectVertical(
     const newSelected = new Set(ui.multiSelected)
     newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, 0))
     dispatch(actions.setMultiSelected(newSelected))
-    dispatch(actions.setStatus({
-      level: "info",
-      message: "1 item selected"
-    }))
+    dispatch(
+      actions.setStatus({
+        level: "info",
+        message: "1 item selected",
+      }),
+    )
   }
 
   // Calculate target
@@ -1037,7 +1042,10 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
   clearSelection(ctx)
 }
 
-function handleJumpToColumn(ctx: TUIContext, columnNumber: number): ActionResult {
+function handleJumpToColumn(
+  ctx: TUIContext,
+  columnNumber: number,
+): ActionResult {
   const { state, dispatchBoard } = ctx
 
   // Column numbers are 1-indexed for user, 0-indexed internally

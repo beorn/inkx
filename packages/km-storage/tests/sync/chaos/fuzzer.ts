@@ -18,7 +18,12 @@ import { combineScenarios } from "./scenario-transformer.ts"
 import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
 import { runWithKmDir } from "../../../src/emit.ts"
-import { resetDb, closeDb, applyEventWithDb, getAllNodes } from "../../../src/db.ts"
+import {
+  resetDb,
+  closeDb,
+  applyEventWithDb,
+  getAllNodes,
+} from "../../../src/db.ts"
 import { runWithDb } from "../../../src/db-instance.ts"
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../../../src/schema.ts"
@@ -654,7 +659,6 @@ async function runSingleIterationWithMockFs(
   // Use runWithDb for context-local database (parallel-safe)
   try {
     return await runWithDb(db, async () => {
-
       // Create files in mock filesystem
       for (const file of scenario.setup) {
         const fullPath = join(vaultDir, file.path)

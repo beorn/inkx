@@ -5,14 +5,14 @@
  * All code should use Vault domain object (createVault) instead of these functions.
  */
 
-// Database instance management (for internal use and test setup)
+// Database path utility and global instance management
 export {
   getDbPath,
-  getDb,
   closeDb,
+  getDb,
   setDb,
-  isMemoryMode,
   resetDb,
+  isMemoryMode,
   runWithDb,
   tryGetContextDb,
 } from "./db-instance.ts"

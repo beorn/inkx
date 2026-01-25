@@ -25,7 +25,6 @@ describe("Sync Integration", () => {
   describe("syncFromFs", () => {
     test("should sync a simple markdown file to database", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const testFile = join(vaultDir, "test.md")
         writeFileSync(
           testFile,
@@ -68,7 +67,6 @@ This is a paragraph.
 
     test("should sync files in subdirectories", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const subFolder = join(vaultDir, "subfolder")
         mkdirSync(subFolder)
 
@@ -96,7 +94,6 @@ This is a paragraph.
 
     test("should sync file with frontmatter correctly", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const testFile = join(vaultDir, "frontmatter.md")
         writeFileSync(
           testFile,
@@ -132,7 +129,6 @@ Some content here.
 
     test("should sync tasks with Obsidian metadata", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const testFile = join(vaultDir, "tasks.md")
         writeFileSync(
           testFile,
@@ -174,7 +170,6 @@ Some content here.
 
     test("should create nodes with valid IDs", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const testFile = join(vaultDir, "ids.md")
         writeFileSync(testFile, "# Test\n\n- [ ] Task\n")
 
@@ -199,7 +194,6 @@ Some content here.
 
     test("should create nodes with valid types", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const testFile = join(vaultDir, "types.md")
         writeFileSync(
           testFile,
@@ -255,7 +249,6 @@ code
 
     test("should handle nested task structure", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const testFile = join(vaultDir, "nested-tasks.md")
         writeFileSync(
           testFile,
@@ -287,7 +280,6 @@ code
   describe("Event format validation", () => {
     test("events should have actor as string, not object", () =>
       withTestEnv(async ({ vaultDir, kmDir }) => {
-
         const testFile = join(vaultDir, "event-test.md")
         writeFileSync(testFile, "# Test\n")
 
@@ -327,7 +319,6 @@ code
   describe("Folder hierarchy", () => {
     test("should create folder nodes for parent directories", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const subFolder = join(vaultDir, "projects")
         const deepFolder = join(subFolder, "active")
         mkdirSync(deepFolder, { recursive: true })
@@ -362,7 +353,6 @@ code
 
     test("should link files to their parent folder via parent_id", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const subFolder = join(vaultDir, "docs")
         mkdirSync(subFolder)
 
@@ -390,7 +380,6 @@ code
 
     test("should create parent chain from nested folders to vault root", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const level1 = join(vaultDir, "level1")
         const level2 = join(level1, "level2")
         const level3 = join(level2, "level3")
@@ -427,7 +416,6 @@ code
 
     test("getAncestors should return full path from root to parent", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const subFolder = join(vaultDir, "work")
         mkdirSync(subFolder)
 
@@ -474,7 +462,6 @@ code
 
     test("should handle multiple files in same folder efficiently", () =>
       withTestEnv(async ({ vaultDir }) => {
-
         const subFolder = join(vaultDir, "multi")
         mkdirSync(subFolder)
 

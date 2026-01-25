@@ -146,10 +146,13 @@ export function createWatcherStatusHandler(
     if (status.state === "idle" || status.state === "ready") {
       const syncedCount = status.pendingPaths
       if (syncedCount > 0 && syncedCount !== lastSyncCount) {
-        toast.success(`Synced ${syncedCount} file${syncedCount === 1 ? "" : "s"}`, {
-          batchKey: "sync",
-          duration: 2000,
-        })
+        toast.success(
+          `Synced ${syncedCount} file${syncedCount === 1 ? "" : "s"}`,
+          {
+            batchKey: "sync",
+            duration: 2000,
+          },
+        )
         lastSyncCount = syncedCount
       }
     }

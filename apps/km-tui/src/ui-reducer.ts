@@ -84,7 +84,10 @@ export interface UIState {
   bellState: string | null
 
   // Status message - user feedback for actions (selection count, mode changes)
-  status: { level: "info" | "success" | "warning" | "error"; message: string } | null
+  status: {
+    level: "info" | "success" | "warning" | "error"
+    message: string
+  } | null
 }
 
 // =============================================================================

@@ -287,9 +287,12 @@ export function renderPlain(text: string): string {
   result = result.replace(ITALIC_ASTERISK_REGEX, (_match, content: string) => {
     return content
   })
-  result = result.replace(ITALIC_UNDERSCORE_REGEX, (_match, content: string) => {
-    return content
-  })
+  result = result.replace(
+    ITALIC_UNDERSCORE_REGEX,
+    (_match, content: string) => {
+      return content
+    },
+  )
   result = result.replace(CODE_REGEX, (_match, content: string) => {
     return content
   })
