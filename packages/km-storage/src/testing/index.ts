@@ -56,3 +56,6 @@ export {
   BODY_CONTENT_BOARD,
   type BoardFixture,
 } from "./fixtures.ts";
+
+// Mock watcher for testing without real filesystem
+export { createMockWatcher, type MockWatcher } from "./mock-watcher.ts";

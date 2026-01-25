@@ -24,7 +24,7 @@ import {
   getDbPath,
   resolvePathArg,
   loadConfigObject,
-  loadVault,
+  createVault,
   runGenerator,
 } from "@km/storage";
 import { join } from "path";
@@ -436,14 +436,15 @@ bdCommand
     const resolved = resolvePathArg(scope);
     const kmDir = join(resolved.vaultRoot, ".km");
 
-    // Load vault and get store from result (no global singleton)
-    const { store } = runGenerator(
-      loadVault(resolved.vaultRoot, { searchAncestors: false }),
+    // Load vault to set up context for getDbPath()
+    using vault = runGenerator(
+      createVault(resolved.vaultRoot, { searchAncestors: false }),
     );
     const scopePath = resolved.nodeRef ?? undefined;
     const configObj = loadConfigObject(resolved.vaultRoot);
     const config = configObj.beads;
     const dbPath = getDbPath();
+    const vaultMode = vault.mode;
 
     // Query with board filter if configured
     const boardTag = config.board || undefined;
@@ -484,7 +485,7 @@ bdCommand
     console.log();
     console.log(chalk.bold("Storage"));
     console.log(`  Database: ${dbPath}`);
-    console.log(`  Mode: ${store.mode}`);
+    console.log(`  Mode: ${vaultMode}`);
     console.log(`  Vault: ${resolved.vaultRoot}`);
     if (kmDir) {
       console.log(`  KM Dir: ${kmDir}`);

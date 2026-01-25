@@ -277,6 +277,8 @@ export interface VaultOptions extends LoadOptions {
   };
   /** Lifecycle hooks for extending vault behavior */
   hooks?: VaultHooks;
+  /** Factory for creating watcher (for test injection) */
+  watcherFactory?: (vaultPath: string) => Watcher;
 }
 
 // --- Factory ---
@@ -585,6 +587,10 @@ export function* createVault(
       ensureNotClosed();
       if (mode === "memory") {
         throw new Error("Cannot watch a memory vault - no .km directory");
+      }
+      // Use injected factory if provided (for testing)
+      if (options?.watcherFactory) {
+        return options.watcherFactory(path);
       }
       const kmDir = getKmDir();
       return createWatcher(kmDir ? kmDir.replace(/\/.km$/, "") : path);
