@@ -130,7 +130,7 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
   }
 }
 
-import { getAllNodes, updateNode, applyEvent, getDb } from "@km/storage"
+import { getAllNodes, updateNode, applyEventWithDb, getDb } from "@km/storage"
 
 import { setFsSync } from "../../../src/emit.ts"
 import { SyncManager } from "../../../src/watch/sync.ts"

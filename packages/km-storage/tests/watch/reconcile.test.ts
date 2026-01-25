@@ -190,7 +190,7 @@ describe("reconcile.ts", () => {
         expect(fileNode).not.toBeNull()
         expect(fileNode!.type).toBe("file")
 
-        const children = getChildren(getDb(), db, fileNode!.id)
+        const children = getChildren(db, fileNode!.id)
         const tasks = children.filter((n) => n.type === "task")
         expect(tasks.length).toBe(2)
       }))
@@ -301,14 +301,14 @@ describe("reconcile.ts", () => {
 
         const fileNode = getNodeByPath(db, filePath)
         expect(fileNode).not.toBeNull()
-        const allChildren = getChildren(getDb(), db, fileNode!.id)
+        const allChildren = getChildren(db, fileNode!.id)
 
         const sections = allChildren.filter((n) => n.type === "section")
         expect(sections.length).toBe(2)
 
         const openSection = sections.find((s) => s.content?.includes("Open"))
         expect(openSection).toBeDefined()
-        const openTasks = getChildren(getDb(), db, openSection!.id)
+        const openTasks = getChildren(db, openSection!.id)
         expect(openTasks.filter((t) => t.type === "task").length).toBe(2)
 
         const { getNodeCount } = await import("../../src/db-queries/index.ts")
@@ -330,7 +330,7 @@ describe("reconcile.ts", () => {
         expect(fileNodeAfter).not.toBeNull()
         expect(fileNodeAfter!.id).toBe(fileNode!.id)
 
-        const sectionsAfter = getChildren(getDb(), db, fileNodeAfter!.id).filter(
+        const sectionsAfter = getChildren(db, fileNodeAfter!.id).filter(
           (n) => n.type === "section",
         )
         expect(sectionsAfter.length).toBe(2)
@@ -339,7 +339,7 @@ describe("reconcile.ts", () => {
           s.content?.includes("Open"),
         )
         expect(openSectionAfter).toBeDefined()
-        const openTasksAfter = getChildren(getDb(), db, openSectionAfter!.id)
+        const openTasksAfter = getChildren(db, openSectionAfter!.id)
         expect(openTasksAfter.filter((t) => t.type === "task").length).toBe(2)
       }))
 
@@ -357,7 +357,7 @@ describe("reconcile.ts", () => {
         await applyReconcileOps(db, createOps, vaultDir)
 
         const fileNode = getNodeByPath(db, filePath)
-        const originalTasks = getChildren(getDb(), db, fileNode!.id).filter(
+        const originalTasks = getChildren(db, fileNode!.id).filter(
           (n) => n.type === "task",
         )
         expect(originalTasks.length).toBe(2)
@@ -386,7 +386,7 @@ describe("reconcile.ts", () => {
         await applyReconcileOps(db, updateOps, vaultDir)
 
         const fileNodeAfter = getNodeByPath(db, filePath)
-        const tasksAfter = getChildren(getDb(), db, fileNodeAfter!.id).filter(
+        const tasksAfter = getChildren(db, fileNodeAfter!.id).filter(
           (n) => n.type === "task",
         )
         expect(tasksAfter.length).toBe(2)
@@ -424,7 +424,7 @@ describe("reconcile.ts", () => {
         expect(folderNode).not.toBeNull()
         const folderId = folderNode!.id
 
-        const childrenBefore = getChildren(getDb(), db, folderId)
+        const childrenBefore = getChildren(db, folderId)
         expect(childrenBefore.length).toBe(2)
 
         const futureTime = new Date(Date.now() + 1000)
@@ -441,7 +441,7 @@ describe("reconcile.ts", () => {
         expect(folderNodeAfter).not.toBeNull()
         expect(folderNodeAfter!.id).toBe(folderId)
 
-        const childrenAfter = getChildren(getDb(), db, folderId)
+        const childrenAfter = getChildren(db, folderId)
         expect(childrenAfter.length).toBe(2)
 
         for (const child of childrenAfter) {
@@ -480,18 +480,18 @@ describe("reconcile.ts", () => {
         expect(folderNode).not.toBeNull()
         const folderId = folderNode!.id
 
-        const fileNodes = getChildren(getDb(), db, folderId)
+        const fileNodes = getChildren(db, folderId)
         expect(fileNodes.length).toBe(1)
 
         const fileNode = fileNodes[0]
         expect(fileNode?.type).toBe("file")
 
-        const sections = getChildren(getDb(), db, fileNode!.id)
+        const sections = getChildren(db, fileNode!.id)
         expect(sections.length).toBe(2)
 
         let totalTasksBefore = 0
         for (const section of sections) {
-          const tasks = getChildren(getDb(), db, section.id).filter(
+          const tasks = getChildren(db, section.id).filter(
             (n) => n.type === "task",
           )
           totalTasksBefore += tasks.length
@@ -510,16 +510,16 @@ describe("reconcile.ts", () => {
         const folderNodeAfter = getNodeByPath(db, issueFolder)
         expect(folderNodeAfter!.id).toBe(folderId)
 
-        const fileNodesAfter = getChildren(getDb(), db, folderId)
+        const fileNodesAfter = getChildren(db, folderId)
         expect(fileNodesAfter.length).toBe(1)
         expect(fileNodesAfter[0]!.id).toBe(fileNode!.id)
 
-        const sectionsAfter = getChildren(getDb(), db, fileNodesAfter[0]!.id)
+        const sectionsAfter = getChildren(db, fileNodesAfter[0]!.id)
         expect(sectionsAfter.length).toBe(2)
 
         let totalTasksAfter = 0
         for (const section of sectionsAfter) {
-          const tasks = getChildren(getDb(), db, section.id).filter(
+          const tasks = getChildren(db, section.id).filter(
             (n) => n.type === "task",
           )
           totalTasksAfter += tasks.length

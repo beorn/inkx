@@ -11,7 +11,7 @@ import { describe, test, expect } from "bun:test"
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { SyncManager } from "../../src/watch/sync.ts"
-import { getAllNodes, applyEvent, getDb } from "../../src/index.ts"
+import { getAllNodes, applyEventWithDb, getDb } from "../../src/index.ts"
 import { withTestEnv } from "@km/storage"
 
 /**

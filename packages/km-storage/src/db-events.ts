@@ -12,7 +12,6 @@ const debug = createDebug("km:storage:db:events")
 import { readFileSync } from "fs"
 import { getMarkForStatus } from "@km/core"
 import type { Event, TaskStatus } from "@km/core"
-import { getDb } from "./db-instance.ts"
 
 // =============================================================================
 // Event Application
@@ -62,15 +61,6 @@ export function applyEventWithDb(db: Database, event: Event): void {
     "last_event",
     event.id,
   ])
-}
-
-/**
- * Apply an event to the database (singleton wrapper)
- * @deprecated Use applyEventWithDb(db, event) instead
- */
-export function applyEvent(event: Event): void {
-  const db = getDb()
-  applyEventWithDb(db, event)
 }
 
 // =============================================================================
@@ -282,4 +272,3 @@ function applyTaskCompleted(db: Database, event: Event): void {
 }
 
 // Export for use with emit
-export const dbApplyEvent = { applyEvent }

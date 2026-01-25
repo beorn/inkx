@@ -782,7 +782,7 @@ export class MemoryStore extends BaseStore {
           targetNode = childNode
         }
       }
-      addLink({
+      addLink(this.db, {
         source_id: nodeId,
         target_name: link.target,
         target_id: targetNode?.id ?? null,

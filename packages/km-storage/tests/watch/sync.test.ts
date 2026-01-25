@@ -52,7 +52,7 @@ This is a paragraph.
         const allNodes = getAllNodes(getDb())
         expect(allNodes.length).toBeGreaterThan(0)
 
-        const fileNode = getNodeByPath(testFile)
+        const fileNode = getNodeByPath(getDb(), testFile)
         expect(fileNode).not.toBeNull()
         expect(fileNode!.type).toBe("file")
         expect(fileNode!.fs_path).toBe(testFile)
@@ -122,7 +122,7 @@ Some content here.
 
         await manager.syncFromFs()
 
-        const fileNode = getNodeByPath(testFile)
+        const fileNode = getNodeByPath(getDb(), testFile)
         expect(fileNode).not.toBeNull()
         expect(fileNode!.type).toBe("file")
         expect(fileNode!.data).toBeDefined()
@@ -350,8 +350,8 @@ code
         const folderNodes = allNodes.filter((n) => n.type === "folder")
         expect(folderNodes.length).toBeGreaterThanOrEqual(2)
 
-        const projectsFolder = getNodeByPath(subFolder)
-        const activeFolder = getNodeByPath(deepFolder)
+        const projectsFolder = getNodeByPath(getDb(), subFolder)
+        const activeFolder = getNodeByPath(getDb(), deepFolder)
 
         expect(projectsFolder).not.toBeNull()
         expect(projectsFolder!.type).toBe("folder")
@@ -379,8 +379,8 @@ code
 
         await manager.syncFromFs()
 
-        const fileNode = getNodeByPath(testFile)
-        const folderNode = getNodeByPath(subFolder)
+        const fileNode = getNodeByPath(getDb(), testFile)
+        const folderNode = getNodeByPath(getDb(), subFolder)
 
         expect(fileNode).not.toBeNull()
         expect(folderNode).not.toBeNull()
@@ -409,10 +409,10 @@ code
 
         await manager.syncFromFs()
 
-        const folder1 = getNodeByPath(level1)
-        const folder2 = getNodeByPath(level2)
-        const folder3 = getNodeByPath(level3)
-        const file = getNodeByPath(testFile)
+        const folder1 = getNodeByPath(getDb(), level1)
+        const folder2 = getNodeByPath(getDb(), level2)
+        const folder3 = getNodeByPath(getDb(), level3)
+        const file = getNodeByPath(getDb(), testFile)
 
         expect(folder1).not.toBeNull()
         expect(folder2).not.toBeNull()

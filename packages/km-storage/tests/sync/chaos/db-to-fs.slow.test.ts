@@ -9,7 +9,7 @@ import { describe, test, expect } from "bun:test"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 
-import { getAllNodes, updateNode, applyEvent } from "@km/storage"
+import { getAllNodes, updateNode, applyEventWithDb } from "@km/storage"
 
 import { setFsSync } from "../../../src/emit.ts"
 import { SyncManager } from "../../../src/watch/sync.ts"

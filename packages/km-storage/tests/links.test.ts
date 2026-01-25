@@ -248,7 +248,7 @@ describe("Links and Backlinks", () => {
       )
       expect(task).toBeDefined()
 
-      const ancestors = store.getAncestors(getDb(), task!.id)
+      const ancestors = store.getAncestors( task!.id)
       expect(ancestors.length).toBeGreaterThan(0)
     })
   })

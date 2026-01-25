@@ -73,5 +73,5 @@ export type { Link } from "./db-links.ts"
 // Re-export db-accepting mutation operations
 export { moveNode, updateNode, deleteNode, addNode } from "./db-ops.ts"
 
-// Re-export event application (internal use)
-export { dbApplyEvent, applyEvent } from "./db-events.ts"
+// Re-export db-accepting event application (internal use)
+export { applyEventWithDb } from "./db-events.ts"

@@ -60,8 +60,7 @@ export {
   deleteNode,
   addNode,
   // Event application (internal use)
-  dbApplyEvent,
-  applyEvent,
+  applyEventWithDb,
 } from "./db.ts"
 
 export type { Link, SearchResult, QueryAST } from "./db.ts"

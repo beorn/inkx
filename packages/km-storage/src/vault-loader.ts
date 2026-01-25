@@ -33,7 +33,7 @@ export type StepYield =
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA } from "./schema.ts"
 import { getDb, resetDb, setDb, tryGetContextDb } from "./db.ts"
-import { applyEvent } from "./db-events.ts"
+import { applyEventWithDb } from "./db-events.ts"
 import { findChildByContent } from "./db-queries/index.ts"
 import { rowToNode } from "./db-queries/utils.ts"
 import type { KNode } from "@km/core"
@@ -726,7 +726,7 @@ function* applyEvents(
           )
         } else {
           // Use generic applyEvent for other event types
-          applyEvent(event)
+          applyEventWithDb(db, event)
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
