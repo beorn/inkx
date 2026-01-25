@@ -10,7 +10,6 @@
  */
 
 import type { TaskStatus, TaskMark, KNode } from "@km/core";
-import { buildTreeNodes } from "./board-adapter.ts";
 import { initBoardState } from "./state.ts";
 import { actions } from "./ui-reducer.ts";
 import type { TUIContext } from "./tui-context.ts";
