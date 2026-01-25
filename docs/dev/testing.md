@@ -144,15 +144,16 @@ test("creates node", async () => {
 
 **What `withTestEnv` provides**:
 
-| Property   | Description                                      |
-| ---------- | ------------------------------------------------ |
-| `vault`    | Vault-like object wrapping DB-bound singletons   |
-| `db`       | In-memory SQLite with schema initialized         |
-| `vaultDir` | Isolated `/tmp/kmtest-{id}/vault/`               |
-| `kmDir`    | Isolated `/tmp/kmtest-{id}/vault/.km/`           |
-| `testId`   | Unique ULID for this test                        |
+| Property   | Description                                    |
+| ---------- | ---------------------------------------------- |
+| `vault`    | Vault-like object wrapping DB-bound singletons |
+| `db`       | In-memory SQLite with schema initialized       |
+| `vaultDir` | Isolated `/tmp/kmtest-{id}/vault/`             |
+| `kmDir`    | Isolated `/tmp/kmtest-{id}/vault/.km/`         |
+| `testId`   | Unique ULID for this test                      |
 
 The `vault` object provides these methods (typed as `TestVault`):
+
 - `getNode`, `getChildren`, `getChildCountsBatch`
 - `getBacklinks`, `getAncestors`, `getLinksTo`
 - `moveNode`, `updateNode`, `deleteNode`, `addNode`
@@ -192,11 +193,11 @@ test("renders board component", async () => {
 
 **When to use which**:
 
-| Scenario | Fixture |
-| --- | --- |
+| Scenario                                           | Fixture                     |
+| -------------------------------------------------- | --------------------------- |
 | Tests calling `buildBoardState`, `handleKey`, etc. | `withTestEnv` → `env.vault` |
-| Ink component rendering (no DB mutations) | `createFakeVault()` |
-| Pure function tests (no DB) | None needed |
+| Ink component rendering (no DB mutations)          | `createFakeVault()`         |
+| Pure function tests (no DB)                        | None needed                 |
 
 **When NOT to use withTestEnv**:
 
