@@ -5,12 +5,7 @@
  * Supports both JSON and line (human-readable) output modes.
  */
 
-import type {
-  BoardState,
-  BoardAction,
-  TPath,
-  TNode,
-} from "./board-types.ts";
+import type { BoardState, BoardAction, TPath, TNode } from "./board-types.ts";
 import type { TaskStatus } from "@km/core";
 import { boardReducer, getNodeAtPath } from "./board-reducer.ts";
 import { parseCommand, getCommandHelp } from "./commandParser.ts";
@@ -165,7 +160,9 @@ export function renderAsciiView(state: BoardState): string {
         done: "✓",
         dropped: "∅",
       };
-      const statusIcon = node.task_status ? STATUS_ICONS[node.task_status] : " ";
+      const statusIcon = node.task_status
+        ? STATUS_ICONS[node.task_status]
+        : " ";
 
       lines.push(
         `${indent}${marker}${foldMarker} ${statusIcon} ${node.title}${node.childCount > 0 ? ` (+${node.childCount})` : ""}`,

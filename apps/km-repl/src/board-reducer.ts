@@ -8,7 +8,13 @@
  * its own BoardState with the full tree for REPL navigation.
  */
 
-import type { BoardState, BoardAction, TNode, TPath, NodeDirection } from "./board-types.ts";
+import type {
+  BoardState,
+  BoardAction,
+  TNode,
+  TPath,
+  NodeDirection,
+} from "./board-types.ts";
 
 /**
  * Get node at a given path in the tree
@@ -21,7 +27,9 @@ export function getNodeAtPath(nodes: TNode[], path: TPath): TNode | null {
     if (!node) return null;
     current = node.children;
   }
-  return current.length > 0 ? (current[0] ?? null) : (nodes[path[path.length - 1] ?? 0] ?? null);
+  return current.length > 0
+    ? (current[0] ?? null)
+    : (nodes[path[path.length - 1] ?? 0] ?? null);
 }
 
 /**
@@ -153,7 +161,10 @@ function handleCursorMove(state: BoardState, dir: NodeDirection): BoardState {
 /**
  * Handle cross-column navigation (left/right at column level)
  */
-function handleCrossColumn(state: BoardState, direction: "left" | "right"): BoardState {
+function handleCrossColumn(
+  state: BoardState,
+  direction: "left" | "right",
+): BoardState {
   const { nodes, cursor } = state;
 
   if (cursor.length === 0) return state;
@@ -280,7 +291,10 @@ function handleUnfoldLevel(state: BoardState, depth: number): BoardState {
 /**
  * Board state reducer - handles navigation and UI state
  */
-export function boardReducer(state: BoardState, action: BoardAction): BoardState {
+export function boardReducer(
+  state: BoardState,
+  action: BoardAction,
+): BoardState {
   switch (action.type) {
     case "CURSOR_MOVE":
       return handleCursorMove(state, action.dir);

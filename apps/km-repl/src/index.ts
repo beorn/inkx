@@ -70,5 +70,10 @@ export type {
   TPath,
   NodeDirection,
 } from "./board-types.ts";
-export { boardReducer, createBoardState, findPathToNode, getNodeAtPath } from "./board-reducer.ts";
+export {
+  boardReducer,
+  createBoardState,
+  findPathToNode,
+  getNodeAtPath,
+} from "./board-reducer.ts";
 export type { TaskStatus } from "@km/core";

@@ -1,20 +1,24 @@
 /**
  * @km/board - Board Navigation State
  *
- * Visual navigation state for board navigation.
- * Manages cursor, selection, fold/collapse, zoom, and history.
+ * ID-based board state for visual navigation.
+ * Manages cursor selection, fold/collapse, zoom, and history.
  * Does NOT include app-specific UI state (modals, dialogs).
+ *
+ * After radical simplification (km-refactor-audit):
+ * - No tree data in state (use Vault instead)
+ * - No path-based cursor (use cursorNodeId)
+ * - No selectors/helpers (use Vault queries)
  */
 
 // ===== Board Types =====
 export type {
-  // Board state and actions
+  // Core state and actions
   BoardState,
   BoardAction,
+  TransitionalBoardAction,
   ZoomEntry,
   NavHistoryEntry,
-  // Transitional type for gradual migration
-  TransitionalBoardAction,
   // Common types
   TNode,
   TPath,
@@ -33,50 +37,4 @@ export { isTAction, TActionTypes } from "@km/tree";
 export { getNodeAtPath, getSiblingCount } from "@km/tree";
 
 // ===== Board Reducer =====
-export {
-  boardReducer,
-  createBoardState,
-} from "./board-reducer.ts";
-
-// ===== Selectors =====
-export {
-  getCurrentNode,
-  getParentNode,
-  getSiblings,
-  getCurrentIndex,
-  canNavigateUp,
-  canNavigateDown,
-  canNavigateParent,
-  canNavigateChild,
-  isNodeFolded,
-  isNodeCollapsed,
-  getTotalNodeCount,
-  getTopLevelCount,
-  getCursorDepth,
-  getBreadcrumbs,
-  isNodeInTree,
-  // TPath <-> Column/Card index conversion
-  pathToColumnIndices,
-  columnIndicesToPath,
-  getCursorColumnIndices,
-  getCurrentColumn,
-  getCurrentCard,
-  getCurrentColumnCardCount,
-} from "./selectors.ts";
-
-export type { ColumnIndices } from "./selectors.ts";
-
-// ===== Transformers =====
-export { toBoardViewModel } from "./transformers.ts";
-
-// ===== Node Map (O(1) ID Lookup) =====
-export { createNodeMap } from "./node-map.ts";
-export type { NodeMap, NodeMapEntry } from "./node-map.ts";
-
-// ===== Visual-to-Structural Navigation =====
-export { visualToStructural, canMove } from "./navigation.ts";
-export type { VisualDir, StructuralAction } from "./navigation.ts";
-
-// ===== Board Domain Object (DEPRECATED - will be updated in audit phase) =====
-// export { createBoard } from "./board-object.ts";
-// export type { Board, BoardOptions } from "./board-object.ts";
+export { boardReducer, createBoardState } from "./board-reducer.ts";

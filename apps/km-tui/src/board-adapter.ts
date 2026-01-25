@@ -11,8 +11,6 @@
 
 import type { TNode } from "@km/core";
 import type { KNode } from "@km/core";
-import type { ColumnIndices } from "@km/board";
-import { pathToColumnIndices, columnIndicesToPath } from "@km/board";
 import type { Vault } from "./vault-context.tsx";
 
 /**
@@ -113,7 +111,4 @@ export function buildTreeNodes(
   );
 }
 
-// ===== Re-exports for convenience =====
-
-export { pathToColumnIndices, columnIndicesToPath };
-export type { ColumnIndices };
+// Column indices helpers removed - no longer exported from @km/board after simplification

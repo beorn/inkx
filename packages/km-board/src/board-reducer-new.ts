@@ -9,11 +9,7 @@
  */
 
 import createDebug from "debug";
-import type {
-  BoardState,
-  BoardAction,
-  ZoomEntry,
-} from "./board-types.ts";
+import type { BoardState, BoardAction, ZoomEntry } from "./board-types.ts";
 
 const debug = createDebug("km:board:reducer");
 

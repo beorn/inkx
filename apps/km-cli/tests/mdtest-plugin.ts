@@ -1,7 +1,12 @@
 // mdtest plugin for km CLI - in-process command execution
 // Enables fast testing without subprocess overhead
 
-import type { Plugin, PluginFactory, FileOpts, BlockOpts } from '../../../vendor/beorn-mdtest/src/types.js';
+import type {
+  Plugin,
+  PluginFactory,
+  FileOpts,
+  BlockOpts,
+} from "../../../vendor/beorn-mdtest/src/types.js";
 
 /**
  * km CLI mdtest plugin
@@ -15,15 +20,17 @@ export default function kmPlugin(opts: FileOpts): Plugin {
   return {
     block(opts: BlockOpts) {
       // Only handle console blocks
-      if (opts.type !== 'console') return null;
+      if (opts.type !== "console") return null;
 
       // Parse commands to check if all are km commands
-      const lines = opts.content.split('\n');
-      const commands = lines.filter(l => l.startsWith('$')).map(l => l.slice(1).trim());
+      const lines = opts.content.split("\n");
+      const commands = lines
+        .filter((l) => l.startsWith("$"))
+        .map((l) => l.slice(1).trim());
 
       // Check if all commands start with 'km '
-      const hasKmCommands = commands.some(c => c.startsWith('km '));
-      const hasOtherCommands = commands.some(c => !c.startsWith('km '));
+      const hasKmCommands = commands.some((c) => c.startsWith("km "));
+      const hasOtherCommands = commands.some((c) => !c.startsWith("km "));
 
       // Only handle pure km command blocks
       if (!hasKmCommands) return null;
