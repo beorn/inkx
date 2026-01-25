@@ -9,13 +9,7 @@
  * but this extraction is a first step to make Board.tsx manageable.
  */
 
-import type { TaskStatus } from "@km/core";
-import {
-  getNode,
-  getChildren,
-  updateNode,
-  deleteNode as storageDeleteNode,
-} from "@km/storage";
+import type { TaskStatus, TaskMark, KNode } from "@km/core";
 import { buildTreeNodes } from "./board-adapter.ts";
 import { initBoardState } from "./state.ts";
 import { actions } from "./ui-reducer.ts";
@@ -266,11 +260,11 @@ function handleZoomOutwards(ctx: TUIContext): void {
     return;
   }
   if (boardState.rootId) {
-    const currentRoot = getNode(boardState.rootId);
+    const currentRoot = ctx.vault.getNode(boardState.rootId);
     if (currentRoot?.parent_id) {
-      const parentNode = getNode(currentRoot.parent_id);
+      const parentNode = ctx.vault.getNode(currentRoot.parent_id);
       if (parentNode) {
-        const nodes = buildTreeNodes(parentNode.id);
+        const nodes = buildTreeNodes(ctx.vault, parentNode.id);
 
         pushNavHistoryEntry(
           dispatch,
@@ -291,9 +285,9 @@ function handleZoomOutwards(ctx: TUIContext): void {
         return;
       }
     } else {
-      const rootView = initBoardState();
+      const rootView = initBoardState(ctx.vault);
       if (rootView && rootView.rootId !== boardState.rootId) {
-        const nodes = buildTreeNodes(rootView.rootId);
+        const nodes = buildTreeNodes(ctx.vault, rootView.rootId);
 
         pushNavHistoryEntry(
           dispatch,
@@ -318,7 +312,7 @@ function handleZoomOutwards(ctx: TUIContext): void {
 
   // Already at root level - try to move cursor to parent of current selection
   if (card?.node.parent_id) {
-    const parentNode = getNode(card.node.parent_id);
+    const parentNode = ctx.vault.getNode(card.node.parent_id);
     if (parentNode) {
       const nodes = boardState.nodes;
 
@@ -369,7 +363,7 @@ function handleDeleteNode(ctx: TUIContext): void {
   const card = col?.cards[state.cardIndex];
 
   if (!card) return;
-  storageDeleteNode(card.node.id);
+  ctx.vault.deleteNode(card.node.id);
   refreshBoardState(keyboardContext, {
     cardIndex: (c) =>
       Math.min(state.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
@@ -384,7 +378,9 @@ function handleTaskStatusCycle(ctx: TUIContext): void {
 
   if (!card) return;
   const targetId = card.node.link_to || card.node.id;
-  const targetNode = card.node.link_to ? getNode(card.node.link_to) : card.node;
+  const targetNode = card.node.link_to
+    ? ctx.vault.getNode(card.node.link_to)
+    : card.node;
   const currentStatus = targetNode?.task_status || "todo";
   const statusCycle: TaskStatus[] = [
     "todo",
@@ -397,14 +393,14 @@ function handleTaskStatusCycle(ctx: TUIContext): void {
   const nextStatus = statusCycle[
     (currentIndex + 1) % statusCycle.length
   ] as TaskStatus;
-  const markMap: Record<TaskStatus, string> = {
+  const markMap: Record<TaskStatus, TaskMark> = {
     todo: " ",
     wip: "/",
     blocked: "!",
     done: "x",
     dropped: "-",
   };
-  updateNode(targetId, {
+  ctx.vault.updateNode(targetId, {
     task_status: nextStatus,
     task_mark: markMap[nextStatus],
   });
@@ -525,16 +521,25 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
     const hasTargetPositions =
       positionRegistry.hasCardsInColumn(targetColIndex);
 
+    // Debug: always show registry state on h/l
+    debug(
+      "h/l nav: curCol=%d hasCur=%s, targetCol=%d hasTgt=%s",
+      state.colIndex,
+      hasCurrentPositions,
+      targetColIndex,
+      hasTargetPositions,
+    );
+    debug("registry dump:\n%s", positionRegistry.dump());
+
     if (!hasCurrentPositions || !hasTargetPositions) {
       // Positions not yet registered (first render hasn't completed).
       // Fall back to same card index, clamped to target column bounds.
       debug(
-        "h/l fallback: current=%d has=%s, target=%d has=%s, registry=%s",
+        "h/l fallback: current=%d has=%s, target=%d has=%s",
         state.colIndex,
         hasCurrentPositions,
         targetColIndex,
         hasTargetPositions,
-        positionRegistry.dump(),
       );
       const targetCardIndex = Math.min(
         state.cardIndex,
@@ -555,8 +560,15 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
         state.colIndex,
         state.cardIndex,
       );
+      debug(
+        "h/l: getting curswantY from current card col=%d idx=%d layout=%s",
+        state.colIndex,
+        state.cardIndex,
+        currentLayout ? JSON.stringify(currentLayout.layout) : "null",
+      );
       if (!currentLayout) {
         // Current card not registered (virtualized out) - fall back
+        debug("h/l: current card not registered, fallback to same index");
         const targetCardIndex = Math.min(
           state.cardIndex,
           targetCol.cards.length - 1,
@@ -568,7 +580,10 @@ function handleCursorMove(ctx: TUIContext, dir: string): void {
         return;
       }
       curswantY = getCardMidY(currentLayout.layout);
+      debug("h/l: computed curswantY=%d", curswantY);
       positionRegistry.setStickyY(curswantY);
+    } else {
+      debug("h/l: using sticky curswantY=%d", curswantY);
     }
 
     // Find card in target column whose box intersects curswantY (or closest)
@@ -629,7 +644,7 @@ function handleNavBack(ctx: TUIContext): void {
   if (!entry) return;
 
   // Navigate to the saved state
-  const nodes = buildTreeNodes(entry.rootId || null);
+  const nodes = buildTreeNodes(ctx.vault, entry.rootId || null);
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: entry.rootId || null,
@@ -671,7 +686,7 @@ function handleNavForward(ctx: TUIContext): void {
   if (!entry) return;
 
   // Navigate to the saved state
-  const nodes = buildTreeNodes(entry.rootId || null);
+  const nodes = buildTreeNodes(ctx.vault, entry.rootId || null);
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: entry.rootId || null,
@@ -704,7 +719,7 @@ function handleZoomIn(ctx: TUIContext): void {
   if (!card) return;
 
   // If card has no children, beep and return (nothing to zoom into)
-  const hasChildren = getChildren(card.node.id).length > 0;
+  const hasChildren = ctx.vault.getChildren(card.node.id).length > 0;
   if (!hasChildren) {
     process.stdout.write("\x07");
     return;
@@ -722,7 +737,7 @@ function handleZoomIn(ctx: TUIContext): void {
   );
 
   // Build tree for new root
-  const nodes = buildTreeNodes(card.node.id);
+  const nodes = buildTreeNodes(ctx.vault, card.node.id);
 
   // Dispatch zoom - board reducer handles cursor reset
   dispatchBoard({
@@ -807,7 +822,7 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
 
   if (!favoriteId) return;
 
-  const targetNode = getNode(favoriteId);
+  const targetNode = ctx.vault.getNode(favoriteId);
   if (!targetNode) return;
 
   // Save current state
@@ -822,7 +837,7 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
   );
 
   // Navigate to favorite
-  const nodes = buildTreeNodes(favoriteId);
+  const nodes = buildTreeNodes(ctx.vault, favoriteId);
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: favoriteId,
@@ -907,13 +922,13 @@ function handleNavSiblingBoard(
     return;
   }
 
-  const currentRoot = getNode(boardState.rootId);
+  const currentRoot = ctx.vault.getNode(boardState.rootId);
   if (!currentRoot?.parent_id) {
     process.stdout.write("\x07");
     return;
   }
 
-  const siblings = getChildren(currentRoot.parent_id);
+  const siblings = ctx.vault.getChildren(currentRoot.parent_id);
   const currentIdx = siblings.findIndex((n) => n.id === currentRoot.id);
 
   if (currentIdx < 0) return;
@@ -938,7 +953,7 @@ function handleNavSiblingBoard(
   );
 
   // Navigate to sibling
-  const nodes = buildTreeNodes(targetSibling.id);
+  const nodes = buildTreeNodes(ctx.vault, targetSibling.id);
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: targetSibling.id,
@@ -962,8 +977,7 @@ function handleZoomInwards(ctx: TUIContext): void {
 
   // If we're in outline mode with a sub-selection, zoom to that child
   if (ui.inOutlineMode && ui.subIndex > 0) {
-    const flatChildren: { node: ReturnType<typeof getNode>; depth: number }[] =
-      [];
+    const flatChildren: { node: KNode; depth: number }[] = [];
 
     // Build flat list of visible descendants
     function collectVisible(
@@ -972,7 +986,7 @@ function handleZoomInwards(ctx: TUIContext): void {
       maxDepth: number,
     ): void {
       if (depth > maxDepth) return;
-      const nodeChildren = getChildren(nodeId);
+      const nodeChildren = ctx.vault.getChildren(nodeId);
       for (const child of nodeChildren) {
         flatChildren.push({ node: child, depth });
         if (!ui.foldedNodes.has(child.id)) {
@@ -999,7 +1013,7 @@ function handleZoomInwards(ctx: TUIContext): void {
       dispatch(actions.exitOutlineMode());
       dispatch(actions.setSubIndex(0));
 
-      const nodes = buildTreeNodes(targetChild.node.id);
+      const nodes = buildTreeNodes(ctx.vault, targetChild.node.id);
       dispatchBoard({
         type: "ZOOM_IN",
         nodeId: targetChild.node.id,

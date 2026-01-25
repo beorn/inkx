@@ -8,6 +8,7 @@ import { EventEmitter } from "events";
 import chalk from "chalk";
 import createDebug from "debug";
 import type { BoardState, TuiOptions } from "./types.ts";
+import type { Vault } from "@km/storage";
 import { renderBoardStatic } from "./render.ts";
 import { renderInkxBoard } from "./views/index.ts";
 import { setFsSync, SyncManager } from "@km/storage";
@@ -23,9 +24,9 @@ export const tuiEvents = new EventEmitter();
 /**
  * Run the board in static (non-interactive) mode
  */
-export function runBoardStatic(state: BoardState): void {
+export function runBoardStatic(vault: Vault, state: BoardState): void {
   const width = process.stdout.columns || 80;
-  console.log(renderBoardStatic(state, width));
+  console.log(renderBoardStatic(vault, state, width));
 }
 
 /**
@@ -50,8 +51,13 @@ export async function runBoard(
 
   // Non-interactive mode: just print and exit
   const interactive = options?.interactive !== false;
+  const vault = options?.vault;
   if (!interactive) {
-    runBoardStatic(state);
+    if (!vault) {
+      console.error(chalk.red("Vault required for static mode"));
+      process.exit(1);
+    }
+    runBoardStatic(vault, state);
     return;
   }
 
@@ -61,7 +67,11 @@ export async function runBoard(
   const forceTTY = process.env.FORCE_TTY === "1";
   if (!forceTTY && (!stdin.isTTY || !stdout.isTTY)) {
     console.log(chalk.yellow("Not running in a TTY, using static mode"));
-    runBoardStatic(state);
+    if (!vault) {
+      console.error(chalk.red("Vault required for static mode"));
+      process.exit(1);
+    }
+    runBoardStatic(vault, state);
     return;
   }
 

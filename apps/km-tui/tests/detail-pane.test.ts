@@ -12,13 +12,16 @@ const render = createTestRenderer();
 
 import {
   getNode,
+  getChildren,
+  getBacklinks,
   applyEvent,
   addLink,
   emitNodeCreated,
   setDatabase,
   withTestEnv,
 } from "@km/storage";
-import type { NodeType } from "@km/core";
+import type { Vault } from "@km/storage";
+import type { NodeType, KNode } from "@km/core";
 import { ulid } from "ulid";
 
 import {
@@ -28,6 +31,31 @@ import {
   getStatusDisplay,
   getProjectPath,
 } from "../src/views/DetailPane.tsx";
+import { VaultProvider } from "../src/vault-context.tsx";
+
+// Create a minimal vault wrapper for tests that use singleton functions
+function createTestVault(): Vault {
+  return {
+    getChildren: (parentId: string | null) => getChildren(parentId),
+    getNode: (id: string) => getNode(id),
+    getBacklinks: (nodeId: string) => getBacklinks(nodeId),
+    // Stub out other required Vault methods
+    path: "/test",
+    mode: "memory",
+    stats: { nodeCount: 0, linkCount: 0, duration: 0 },
+    close: () => {},
+    [Symbol.dispose]: () => {},
+  } as unknown as Vault;
+}
+
+// Helper to render DetailPane with VaultProvider
+function renderDetailPane(node: KNode, width: number, height: number) {
+  const vault = createTestVault();
+  const detailPane = React.createElement(DetailPane, { node, width, height });
+  return render(
+    React.createElement(VaultProvider, { vault, children: detailPane }),
+  );
+}
 
 // Test helper to create nodes
 function createTestNode(
@@ -192,21 +220,23 @@ describe.serial("getProjectPath", () => {
   test("returns empty array for node with no parent", async () => {
     await withTestEnv(async () => {
       setDatabase({ applyEvent });
+      const vault = createTestVault();
       const nodeId = createTestNode("task", "Standalone task");
       const node = getNode(nodeId)!;
-      expect(getProjectPath(node)).toEqual([]);
+      expect(getProjectPath(vault, node)).toEqual([]);
     });
   });
 
   test("returns folder names in path", async () => {
     await withTestEnv(async () => {
       setDatabase({ applyEvent });
+      const vault = createTestVault();
       const folderId = createTestNode("folder", "Work", null);
       const subfolderId = createTestNode("folder", "Finance", folderId);
       const taskId = createTestNode("task", "Review budget", subfolderId);
       const task = getNode(taskId)!;
 
-      const path = getProjectPath(task);
+      const path = getProjectPath(vault, task);
       expect(path).toEqual(["Work", "Finance"]);
     });
   });
@@ -214,12 +244,13 @@ describe.serial("getProjectPath", () => {
   test("includes files in path", async () => {
     await withTestEnv(async () => {
       setDatabase({ applyEvent });
+      const vault = createTestVault();
       const folderId = createTestNode("folder", "Projects", null);
       const fileId = createTestNode("file", "todo.md", folderId);
       const taskId = createTestNode("task", "Do something", fileId);
       const task = getNode(taskId)!;
 
-      const path = getProjectPath(task);
+      const path = getProjectPath(vault, task);
       expect(path).toEqual(["Projects", "todo.md"]);
     });
   });
@@ -236,13 +267,7 @@ describe.serial("DetailPane Component", () => {
       });
       const task = getNode(taskId)!;
 
-      const { lastFrame } = render(
-        React.createElement(DetailPane, {
-          node: task,
-          width: 40,
-          height: 24,
-        }),
-      );
+      const { lastFrame } = renderDetailPane(task, 40, 24);
 
       const output = lastFrame() ?? "";
 
@@ -272,13 +297,7 @@ describe.serial("DetailPane Component", () => {
 
       const parent = getNode(parentId)!;
 
-      const { lastFrame } = render(
-        React.createElement(DetailPane, {
-          node: parent,
-          width: 40,
-          height: 24,
-        }),
-      );
+      const { lastFrame } = renderDetailPane(parent, 40, 24);
 
       const output = lastFrame() ?? "";
 
@@ -297,13 +316,7 @@ describe.serial("DetailPane Component", () => {
       );
       const task = getNode(taskId)!;
 
-      const { lastFrame } = render(
-        React.createElement(DetailPane, {
-          node: task,
-          width: 50,
-          height: 24,
-        }),
-      );
+      const { lastFrame } = renderDetailPane(task, 50, 24);
 
       const output = lastFrame() ?? "";
 
@@ -323,13 +336,7 @@ describe.serial("DetailPane Component", () => {
       const taskId = createTestNode("task", "Review budget", subfolderId);
       const task = getNode(taskId)!;
 
-      const { lastFrame } = render(
-        React.createElement(DetailPane, {
-          node: task,
-          width: 50,
-          height: 24,
-        }),
-      );
+      const { lastFrame } = renderDetailPane(task, 50, 24);
 
       const output = lastFrame() ?? "";
 
@@ -345,13 +352,7 @@ describe.serial("DetailPane Component", () => {
       const taskId = createTestNode("task", "Simple task");
       const task = getNode(taskId)!;
 
-      const { lastFrame } = render(
-        React.createElement(DetailPane, {
-          node: task,
-          width: 50,
-          height: 24,
-        }),
-      );
+      const { lastFrame } = renderDetailPane(task, 50, 24);
 
       const output = lastFrame() ?? "";
 
@@ -368,13 +369,7 @@ describe.serial("DetailPane Component", () => {
       });
       const task = getNode(taskId)!;
 
-      const { lastFrame } = render(
-        React.createElement(DetailPane, {
-          node: task,
-          width: 40,
-          height: 24,
-        }),
-      );
+      const { lastFrame } = renderDetailPane(task, 40, 24);
 
       const output = lastFrame() ?? "";
 
@@ -406,13 +401,7 @@ describe.serial("DetailPane with Backlinks", () => {
         relationship: null,
       });
 
-      const { lastFrame } = render(
-        React.createElement(DetailPane, {
-          node: target,
-          width: 50,
-          height: 24,
-        }),
-      );
+      const { lastFrame } = renderDetailPane(target, 50, 24);
 
       const output = lastFrame() ?? "";
 

@@ -13,7 +13,6 @@ import {
   type StatusIcon,
 } from "../text/index.ts";
 import {
-  getBoardPills as getBoardPillsFromStorage,
   formatBoardPills,
   getOwnColor,
   type BoardPill,
@@ -219,7 +218,7 @@ function formatDueDate(dueDate: Date): string {
   return dueDisplay;
 }
 
-/** Type for getBoardPills callback */
+/** Type for getBoardPills callback (vault is captured in closure by caller) */
 export type GetBoardPillsFn = (
   node: KNode,
   excludeBoardIds: Set<string>,
@@ -235,7 +234,7 @@ export function formatInfoSuffix(
   node: KNode,
   isCompact: boolean,
   excludeBoardIds: Set<string>,
-  getBoardPills: GetBoardPillsFn = getBoardPillsFromStorage,
+  getBoardPills: GetBoardPillsFn,
 ): string {
   // A node is a task if it has task_status set, regardless of structural type
   const isTask = node.task_status != null;

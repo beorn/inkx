@@ -13,17 +13,15 @@
  * that properly wires up the LayoutProvider.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect } from "bun:test";
 import React, {
-  useReducer,
-  useMemo,
   useRef,
   useEffect,
   useLayoutEffect,
   useState,
   useCallback,
 } from "react";
-import { createTestRenderer, bufferToText, createLocator } from "inkx/testing";
+import { createTestRenderer } from "inkx/testing";
 import {
   Box,
   Text,
@@ -33,16 +31,6 @@ import {
 } from "inkx";
 
 import {
-  withTestEnv,
-  setDatabase,
-  applyEvent,
-  emitNodeCreated,
-  createFakeVault,
-} from "@km/storage";
-import type { NodeType, KNode } from "@km/core";
-import { ulid } from "ulid";
-
-import {
   createLayoutRegistry,
   type LayoutRegistry,
 } from "../src/card-positions.ts";
@@ -50,81 +38,133 @@ import {
   LayoutProvider,
   useLayoutRegistryOptional,
 } from "../src/layout-context.tsx";
-import { UIProvider } from "../src/ui-context.tsx";
-import { createInitialUIState } from "../src/ui-reducer.ts";
-import { Column } from "../src/views/CardColumn.tsx";
-import type { ColumnState, CardState, BoardState } from "../src/types.ts";
-import { buildBoardState } from "../src/state.ts";
 
 // =============================================================================
 // Test Helpers
 // =============================================================================
 
-function createTestNode(
-  type: NodeType,
-  content?: string,
-  parentId?: string | null,
-  extra?: Record<string, unknown>,
-): string {
-  const id = ulid();
-  emitNodeCreated("test-user", {
-    id,
-    type,
-    parent_id: parentId ?? null,
-    content,
-    ...extra,
-  });
-  return id;
+/** Simple card data for tests */
+interface SimpleCard {
+  id: string;
+  content: string;
+}
+
+/** Simple column data for tests */
+interface SimpleColumn {
+  id: string;
+  cards: SimpleCard[];
 }
 
 /**
- * Create a minimal CardState for testing
+ * Create a simple card for testing
  */
-function makeCard(id: string, content: string): CardState {
-  return {
-    node: {
-      id,
-      type: "task",
-      parent_id: null,
-      parent_idx: 0,
-      link_to: null,
-      content,
-      data: {},
-      created_at: Date.now(),
-      updated_at: Date.now(),
-      version: "v1",
-    },
-    children: [],
-  };
+function makeCard(id: string, content: string): SimpleCard {
+  return { id, content };
 }
 
 /**
- * Create a minimal ColumnState for testing
+ * Create a simple column for testing
  */
-function makeColumn(id: string, name: string, cards: CardState[]): ColumnState {
-  return {
-    node: {
-      id,
-      type: "section",
-      parent_id: null,
-      parent_idx: 0,
-      link_to: null,
-      content: name,
-      data: {},
-      created_at: Date.now(),
-      updated_at: Date.now(),
-      version: "v1",
-    },
-    cards,
-  };
+function makeColumn(id: string, cards: SimpleCard[]): SimpleColumn {
+  return { id, cards };
 }
 
 // =============================================================================
-// Test Component
+// Test Components - Minimal implementations that don't require Vault
 // =============================================================================
+
+/**
+ * Inner component that registers position - must be inside a Box
+ */
+function CardLayoutRegistrar({
+  colIndex,
+  cardIndex,
+  nodeId,
+}: {
+  colIndex: number;
+  cardIndex: number;
+  nodeId: string;
+}): null {
+  const registry = useLayoutRegistryOptional();
+
+  const handleLayout = useCallback(
+    (rect: { x: number; y: number; width: number; height: number }) => {
+      if (!registry) return;
+      registry.registerCard(colIndex, cardIndex, nodeId, {
+        x: rect.x,
+        y: rect.y,
+        cardWidth: rect.width,
+        cardHeight: rect.height,
+      });
+    },
+    [registry, colIndex, cardIndex, nodeId],
+  );
+
+  useScreenRectCallback(handleLayout);
+
+  return null;
+}
+
+/**
+ * Minimal card component that registers its position
+ */
+function TestCard({
+  colIndex,
+  cardIndex,
+  nodeId,
+  content,
+  height = 3,
+}: {
+  colIndex: number;
+  cardIndex: number;
+  nodeId: string;
+  content: string;
+  height?: number;
+}): React.ReactElement {
+  return (
+    <Box height={height} borderStyle="single">
+      <CardLayoutRegistrar
+        colIndex={colIndex}
+        cardIndex={cardIndex}
+        nodeId={nodeId}
+      />
+      <Text>{content}</Text>
+    </Box>
+  );
+}
+
+/**
+ * Minimal column component
+ */
+function TestColumn({
+  cards,
+  colIndex,
+  width,
+}: {
+  cards: { id: string; content: string }[];
+  colIndex: number;
+  width: number;
+}): React.ReactElement {
+  return (
+    <Box flexDirection="column" width={width}>
+      <Box height={2}>
+        <Text>Column {colIndex}</Text>
+      </Box>
+      {cards.map((card, cardIdx) => (
+        <TestCard
+          key={card.id}
+          colIndex={colIndex}
+          cardIndex={cardIdx}
+          nodeId={card.id}
+          content={card.content}
+        />
+      ))}
+    </Box>
+  );
+}
 
 interface TestBoardProps {
-  columns: ColumnState[];
+  columns: { id: string; cards: { id: string; content: string }[] }[];
   initialColIndex?: number;
   initialCardIndex?: number;
   width: number;
@@ -175,7 +215,7 @@ function TestBoard({
   }, [colIndex, cardIndex, onCursorChange]);
 
   // Handle keyboard input
-  useInput((input, key) => {
+  useInput((input, _key) => {
     if (input === "j") {
       // Move down
       const col = columns[colIndex];
@@ -293,34 +333,19 @@ function TestBoard({
   // Calculate column width
   const colWidth = Math.floor(width / columns.length);
 
-  // Create UI state for the provider
-  const uiState = useMemo(
-    () => createInitialUIState("cards", [], { columns: width, rows: height }),
-    [width, height],
-  );
-  const noopDispatch = () => {};
-
   return (
-    <UIProvider state={uiState} dispatch={noopDispatch}>
-      <LayoutProvider registry={registry}>
-        <Box flexDirection="row" width={width} height={height}>
-          {columns.map((col, idx) => (
-            <Column
-              key={col.node.id}
-              column={col}
-              colIndex={idx}
-              isSelected={idx === colIndex}
-              isCollapsed={false}
-              selectedCardIndex={idx === colIndex ? cardIndex : -1}
-              selectedSubIndex={0}
-              width={colWidth}
-              height={height}
-              selectionLevel="card"
-            />
-          ))}
-        </Box>
-      </LayoutProvider>
-    </UIProvider>
+    <LayoutProvider registry={registry}>
+      <Box flexDirection="row" width={width} height={height}>
+        {columns.map((col, idx) => (
+          <TestColumn
+            key={col.id}
+            cards={col.cards}
+            colIndex={idx}
+            width={colWidth}
+          />
+        ))}
+      </Box>
+    </LayoutProvider>
   );
 }
 
@@ -471,12 +496,12 @@ describe("Visual Navigation Integration", () => {
   test("cards register screen positions via useScreenRectCallback", async () => {
     // Create two columns with cards
     const columns = [
-      makeColumn("col1", "Column 1", [
+      makeColumn("col1", [
         makeCard("card1", "Card 1"),
         makeCard("card2", "Card 2"),
         makeCard("card3", "Card 3"),
       ]),
-      makeColumn("col2", "Column 2", [
+      makeColumn("col2", [
         makeCard("card4", "Card 4"),
         makeCard("card5", "Card 5"),
       ]),
@@ -523,11 +548,11 @@ describe("Visual Navigation Integration", () => {
   test("cards at same visual row have similar Y positions", async () => {
     // Create two columns with same number of cards
     const columns = [
-      makeColumn("col1", "Column 1", [
+      makeColumn("col1", [
         makeCard("card1", "Card A"),
         makeCard("card2", "Card B"),
       ]),
-      makeColumn("col2", "Column 2", [
+      makeColumn("col2", [
         makeCard("card3", "Card X"),
         makeCard("card4", "Card Y"),
       ]),
@@ -577,12 +602,12 @@ describe("Visual Navigation Integration", () => {
   test("h/l navigation moves to visually adjacent card", async () => {
     // Create two columns with cards
     const columns = [
-      makeColumn("col1", "Column 1", [
+      makeColumn("col1", [
         makeCard("card1", "Card A"),
         makeCard("card2", "Card B"),
         makeCard("card3", "Card C"),
       ]),
-      makeColumn("col2", "Column 2", [
+      makeColumn("col2", [
         makeCard("card4", "Card X"),
         makeCard("card5", "Card Y"),
         makeCard("card6", "Card Z"),
@@ -635,17 +660,17 @@ describe("Visual Navigation Integration", () => {
   test("curswantY is preserved across multiple h/l moves", async () => {
     // Create 3 columns
     const columns = [
-      makeColumn("col1", "Col 1", [
+      makeColumn("col1", [
         makeCard("c1", "A"),
         makeCard("c2", "B"),
         makeCard("c3", "C"),
       ]),
-      makeColumn("col2", "Col 2", [
+      makeColumn("col2", [
         makeCard("c4", "D"),
         makeCard("c5", "E"),
         makeCard("c6", "F"),
       ]),
-      makeColumn("col3", "Col 3", [
+      makeColumn("col3", [
         makeCard("c7", "G"),
         makeCard("c8", "H"),
         makeCard("c9", "I"),
@@ -691,12 +716,12 @@ describe("Visual Navigation Integration", () => {
 
   test("j/k clears curswantY", async () => {
     const columns = [
-      makeColumn("col1", "Col 1", [
+      makeColumn("col1", [
         makeCard("c1", "A"),
         makeCard("c2", "B"),
         makeCard("c3", "C"),
       ]),
-      makeColumn("col2", "Col 2", [
+      makeColumn("col2", [
         makeCard("c4", "D"),
         makeCard("c5", "E"),
         makeCard("c6", "F"),
@@ -749,11 +774,11 @@ describe("Visual Navigation Integration", () => {
     // Column 1 has 2 cards, column 2 has 4 cards
     // This tests that visual position (not index ratio) is used
     const columns = [
-      makeColumn("col1", "Col 1", [
+      makeColumn("col1", [
         makeCard("c1", "First"),
         makeCard("c2", "Second"),
       ]),
-      makeColumn("col2", "Col 2", [
+      makeColumn("col2", [
         makeCard("c3", "One"),
         makeCard("c4", "Two"),
         makeCard("c5", "Three"),
@@ -817,7 +842,7 @@ describe("Screen Rect Correctness", () => {
 
   test("card positions are screen-relative (account for column header)", async () => {
     const columns = [
-      makeColumn("col1", "My Column", [makeCard("card1", "Task 1")]),
+      makeColumn("col1", [makeCard("card1", "Task 1")]),
     ];
 
     let capturedRegistry: LayoutRegistry | null = null;
@@ -847,7 +872,7 @@ describe("Screen Rect Correctness", () => {
 
   test("positions have expected dimensions", async () => {
     const columns = [
-      makeColumn("col1", "Column", [makeCard("card1", "A task")]),
+      makeColumn("col1", [makeCard("card1", "A task")]),
     ];
 
     let capturedRegistry: LayoutRegistry | null = null;
@@ -872,6 +897,78 @@ describe("Screen Rect Correctness", () => {
     expect(card!.layout.cardWidth).toBeGreaterThan(10);
     expect(card!.layout.cardHeight).toBeGreaterThan(0);
     expect(card!.layout.x).toBeGreaterThanOrEqual(0);
+
+    unmount();
+  });
+
+  test("stacked cards have INCREASING Y values", async () => {
+    // This is the critical test - if cards are stacked vertically,
+    // they MUST have different Y positions for visual navigation to work
+    const columns = [
+      makeColumn("col1", [
+        makeCard("card1", "First Card"),
+        makeCard("card2", "Second Card"),
+        makeCard("card3", "Third Card"),
+      ]),
+    ];
+
+    let capturedRegistry: LayoutRegistry | null = null;
+
+    const { unmount } = render(
+      React.createElement(TestBoard, {
+        columns,
+        width: 80,
+        height: 30, // Tall enough for all cards
+        onRegistryReady: (registry) => {
+          capturedRegistry = registry;
+        },
+      }),
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(capturedRegistry).not.toBeNull();
+
+    const card0 = capturedRegistry!.getCardOptional(0, 0);
+    const card1 = capturedRegistry!.getCardOptional(0, 1);
+    const card2 = capturedRegistry!.getCardOptional(0, 2);
+
+    expect(card0).toBeDefined();
+    expect(card1).toBeDefined();
+    expect(card2).toBeDefined();
+
+    console.log(
+      "Card 0 Y:",
+      card0!.layout.y,
+      "height:",
+      card0!.layout.cardHeight,
+    );
+    console.log(
+      "Card 1 Y:",
+      card1!.layout.y,
+      "height:",
+      card1!.layout.cardHeight,
+    );
+    console.log(
+      "Card 2 Y:",
+      card2!.layout.y,
+      "height:",
+      card2!.layout.cardHeight,
+    );
+
+    // CRITICAL: Stacked cards MUST have increasing Y values
+    // Card 1 should be below card 0
+    expect(card1!.layout.y).toBeGreaterThan(card0!.layout.y);
+    // Card 2 should be below card 1
+    expect(card2!.layout.y).toBeGreaterThan(card1!.layout.y);
+
+    // Y position of card N+1 should be at least card N's Y + height
+    expect(card1!.layout.y).toBeGreaterThanOrEqual(
+      card0!.layout.y + card0!.layout.cardHeight,
+    );
+    expect(card2!.layout.y).toBeGreaterThanOrEqual(
+      card1!.layout.y + card1!.layout.cardHeight,
+    );
 
     unmount();
   });

@@ -220,7 +220,7 @@ export class SyncManager extends EventEmitter {
    * Note: This runs within runWithKmDir context because it's triggered by
    * setInterval, which doesn't inherit AsyncLocalStorage context.
    */
-  private async runHeartbeat(): Promise<void> {
+  private runHeartbeat(): void {
     const now = Date.now();
     const idleTime = now - this.lastActivityTime;
 
@@ -255,7 +255,7 @@ export class SyncManager extends EventEmitter {
     try {
       this.setState("reconciling");
 
-      await runWithKmDir(this.kmDir, async () => {
+      runWithKmDir(this.kmDir, () => {
         // Scan entire vault for changes
         const ops = reconcileDirectory(
           this.config.vaultPath,
@@ -268,7 +268,7 @@ export class SyncManager extends EventEmitter {
           this.heartbeatDrift += ops.length;
 
           this.setState("emitting");
-          await applyReconcileOps(ops, this.config.vaultPath);
+          applyReconcileOps(ops, this.config.vaultPath);
 
           // Emit event so consumers know about drift
           this.emit("heartbeat:drift", {
@@ -301,12 +301,12 @@ export class SyncManager extends EventEmitter {
    * Note: This runs within runWithKmDir context because it may be called
    * from contexts that don't have AsyncLocalStorage setup.
    */
-  async forceHeartbeat(): Promise<{ opsCount: number; duration: number }> {
+  forceHeartbeat(): { opsCount: number; duration: number } {
     const start = Date.now();
     this.setState("reconciling");
 
     try {
-      return await runWithKmDir(this.kmDir, async () => {
+      return runWithKmDir(this.kmDir, () => {
         const ops = reconcileDirectory(
           this.config.vaultPath,
           this.config.vaultPath,
@@ -315,7 +315,7 @@ export class SyncManager extends EventEmitter {
 
         if (ops.length > 0) {
           this.setState("emitting");
-          await applyReconcileOps(ops, this.config.vaultPath);
+          applyReconcileOps(ops, this.config.vaultPath);
           this.heartbeatDrift += ops.length;
         }
 
@@ -356,10 +356,7 @@ export class SyncManager extends EventEmitter {
    * Note: This runs within runWithKmDir context because it's triggered by
    * worker thread messages, which don't inherit AsyncLocalStorage context.
    */
-  private async handleFsSync(data: {
-    paths: string[];
-    directories: string[];
-  }): Promise<void> {
+  private handleFsSync(data: { paths: string[]; directories: string[] }): void {
     debug(
       "fs sync triggered: %d paths, %d directories",
       data.paths.length,
@@ -369,7 +366,7 @@ export class SyncManager extends EventEmitter {
     this.setState("reconciling");
 
     try {
-      await runWithKmDir(this.kmDir, async () => {
+      runWithKmDir(this.kmDir, () => {
         for (const dir of data.directories) {
           const ops = reconcileDirectory(
             dir,
@@ -380,7 +377,7 @@ export class SyncManager extends EventEmitter {
 
           if (ops.length > 0) {
             this.setState("emitting");
-            await applyReconcileOps(ops, this.config.vaultPath);
+            applyReconcileOps(ops, this.config.vaultPath);
           }
         }
       });
@@ -615,7 +612,7 @@ export class SyncManager extends EventEmitter {
           this.config.vaultPath,
           ignorePatterns,
         );
-        await applyReconcileOps(ops, this.config.vaultPath);
+        applyReconcileOps(ops, this.config.vaultPath);
         processed += ops.length;
 
         // Report progress for each directory

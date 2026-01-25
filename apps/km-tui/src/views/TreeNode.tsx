@@ -135,7 +135,7 @@ function TreeNodeImpl({
   parentContext: parentContextProp,
   getChildren: getChildrenProp,
   getParentContext: getParentContextProp,
-  getBoardPills: getBoardPillsProp,
+  getBoardPills = () => [],
 }: TreeNodeProps): React.ReactElement {
   // Get UI state from context
   const {
@@ -215,8 +215,8 @@ function TreeNodeImpl({
   // The task mark is displayed via the icon, so we don't need it in the text
   const rawContent =
     displayNode.type === "section"
-      ? getNodeDisplayName(displayNode)
-      : displayNode.content || getNodeDisplayName(displayNode);
+      ? getNodeDisplayName(vault, displayNode)
+      : displayNode.content || getNodeDisplayName(vault, displayNode);
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent;
 
   // Memoize rich text rendering - only recalc when content or sigil config changes
@@ -234,7 +234,7 @@ function TreeNodeImpl({
         displayNode,
         !isOneliner,
         excludeBoardIds,
-        getBoardPillsProp,
+        getBoardPills,
       ),
     [
       displayNode.id,
@@ -244,12 +244,19 @@ function TreeNodeImpl({
       displayNode.task_status,
       isOneliner,
       rootBoardId,
+      getBoardPills,
     ],
   );
 
   // Parent context for embedded tasks
-  const resolvedGetParentContext =
-    getParentContextProp ?? getParentContextFromState;
+  // Wrap getParentContextFromState with vault when used as fallback
+  const resolvedGetParentContext = useCallback(
+    (n: KNode) =>
+      getParentContextProp
+        ? getParentContextProp(n)
+        : getParentContextFromState(vault, n),
+    [getParentContextProp, vault],
+  );
   const parentContext =
     parentContextProp !== undefined
       ? parentContextProp
@@ -375,7 +382,7 @@ function TreeNodeImpl({
           hiddenCount={hiddenCount}
           getChildren={resolvedGetChildren}
           getParentContext={resolvedGetParentContext}
-          getBoardPills={getBoardPillsProp}
+          getBoardPills={getBoardPills}
         />
       )}
     </Box>

@@ -16,6 +16,14 @@ import {
 } from "../src/render.ts";
 import { createCardState } from "./fixtures/board-fixtures.ts";
 import type { CardState } from "../src/types.ts";
+import type { Vault } from "@km/storage";
+
+// Minimal mock vault for pure rendering tests - only needs getChildren for display name
+function createMockVault(): Vault {
+  return {
+    getChildren: () => [],
+  } as unknown as Vault;
+}
 
 describe("Board Pure Rendering", () => {
   test("renderStatusBar shows visual mode", () => {
@@ -53,6 +61,7 @@ describe("Board Pure Rendering", () => {
   });
 
   test("renderCard includes content", () => {
+    const vault = createMockVault();
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -69,11 +78,12 @@ describe("Board Pure Rendering", () => {
       children: [],
     };
 
-    const output = renderCard(cardState, 40, false, false, false);
+    const output = renderCard(vault, cardState, 40, false, false, false);
     expect(output).toContain("My Test Task");
   });
 
   test("renderCard shows children when not folded", () => {
+    const vault = createMockVault();
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -103,11 +113,12 @@ describe("Board Pure Rendering", () => {
       ],
     };
 
-    const output = renderCard(cardState, 40, false, false, false);
+    const output = renderCard(vault, cardState, 40, false, false, false);
     expect(output).toContain("Child Task 1");
   });
 
   test("renderCard shows item count when folded", () => {
+    const vault = createMockVault();
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -149,19 +160,20 @@ describe("Board Pure Rendering", () => {
       ],
     };
 
-    const output = renderCard(cardState, 40, false, false, true);
+    const output = renderCard(vault, cardState, 40, false, false, true);
     expect(output).toContain("▶ 2"); // Collapsed indicator with count
     expect(output).not.toContain("Child 1");
   });
 
   test("renderCard using fixture helper", () => {
+    const vault = createMockVault();
     // Demonstrate using the createCardState fixture
     const cardState = createCardState({
       content: "Fixture Card",
       type: "task",
     });
 
-    const output = renderCard(cardState, 40, false, false, false);
+    const output = renderCard(vault, cardState, 40, false, false, false);
     expect(output).toContain("Fixture Card");
   });
 });

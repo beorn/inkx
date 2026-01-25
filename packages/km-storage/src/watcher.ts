@@ -120,6 +120,7 @@ export function createWatcher(
       return status;
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Service interface requires Promise<void>
     async start() {
       if (status !== "stopped") {
         debug("start called but status is %s", status);

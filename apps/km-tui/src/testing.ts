@@ -111,15 +111,20 @@ export async function createBoardTest(
   const storageModule = await import("@km/storage");
 
   // Load vault and get reference
+  // searchAncestors: false prevents finding .km in parent directories (e.g., project root)
   const vault = storageModule.runGenerator(
-    storageModule.createVault(vaultPath),
+    storageModule.createVault(vaultPath, { searchAncestors: false }),
   );
 
-  // Resolve the file reference if provided
-  let nodeRef: string | undefined;
+  // Resolve the file reference to a node ID if provided
+  let rootNodeId: string | undefined;
   if (file) {
     const resolved = storageModule.resolvePathArg(file, vaultPath);
-    nodeRef = resolved.nodeRef ?? undefined;
+    if (resolved.nodeRef) {
+      // resolveNode converts filename/path/ID to actual node
+      const node = storageModule.resolveNode(resolved.nodeRef);
+      rootNodeId = node?.id;
+    }
   }
 
   // Import TUI module for state initialization
@@ -127,7 +132,7 @@ export async function createBoardTest(
 
   // Initialize board state
   const state = storageModule.runGenerator(
-    tuiModule.initBoardStateGenerator(nodeRef),
+    tuiModule.initBoardStateGenerator(vault, rootNodeId),
   );
 
   if (!state) {

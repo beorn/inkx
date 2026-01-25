@@ -4,7 +4,7 @@
  * Fuzzy search picker for re-parenting tasks to different projects.
  * Press 'p' on a task to open, search to filter, Enter to move.
  */
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Box, Text, useInput } from "inkx";
 import type { KNode } from "@km/core";
 import { useVault } from "../vault-context.tsx";
@@ -77,13 +77,17 @@ function fuzzyScore(query: string, target: string): number {
 /**
  * Get project path from a node (folder/file ancestors)
  */
-function getProjectPath(node: KNode): string {
+function getProjectPath(
+  node: KNode,
+  getNode: (id: string) => KNode | null,
+  getDisplayName: (node: KNode) => string,
+): string {
   const parts: string[] = [];
   let current: KNode | null = node;
 
   while (current) {
     if (current.type === "folder" || current.type === "file") {
-      parts.unshift(getNodeDisplayName(current));
+      parts.unshift(getDisplayName(current));
     }
     current = current.parent_id ? (getNode(current.parent_id) ?? null) : null;
   }
@@ -94,11 +98,15 @@ function getProjectPath(node: KNode): string {
 /**
  * Get parent display name for context
  */
-function getParentName(node: KNode): string | null {
+function getParentName(
+  node: KNode,
+  getNode: (id: string) => KNode | null,
+  getDisplayName: (node: KNode) => string,
+): string | null {
   if (!node.parent_id) return null;
   const parent = getNode(node.parent_id);
   if (!parent) return null;
-  return getNodeDisplayName(parent);
+  return getDisplayName(parent);
 }
 
 /**
@@ -115,8 +123,12 @@ interface ProjectOption {
 /**
  * Get all available project targets (sections, files, folders)
  */
-function getProjectOptions(recentIds?: string[]): ProjectOption[] {
-  const allNodes = getAllNodes();
+function getProjectOptions(
+  allNodes: KNode[],
+  getNode: (id: string) => KNode | null,
+  getDisplayName: (node: KNode) => string,
+  recentIds?: string[],
+): ProjectOption[] {
   const options: ProjectOption[] = [];
   const recentSet = new Set(recentIds ?? []);
 
@@ -127,9 +139,9 @@ function getProjectOptions(recentIds?: string[]): ProjectOption[] {
       node.type === "file" ||
       node.type === "folder"
     ) {
-      const title = getNodeDisplayName(node);
-      const parentContext = getParentName(node);
-      const path = getProjectPath(node);
+      const title = getDisplayName(node);
+      const parentContext = getParentName(node, getNode, getDisplayName);
+      const path = getProjectPath(node, getNode, getDisplayName);
       options.push({
         node,
         title,
@@ -158,13 +170,32 @@ export function ProjectPicker({
   height,
   recentProjectIds = [],
 }: ProjectPickerProps): React.ReactElement {
+  const vault = useVault();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // Get all nodes using rawQuery
+  const allNodes = useMemo(
+    () => vault.rawQuery<KNode>("SELECT * FROM nodes"),
+    [vault],
+  );
+
+  // Wrap getNodeDisplayName with vault for use in helper functions
+  const getDisplayName = useCallback(
+    (node: KNode) => getNodeDisplayName(vault, node),
+    [vault],
+  );
+
   // Get and filter options
   const allOptions = useMemo(
-    () => getProjectOptions(recentProjectIds),
-    [recentProjectIds],
+    () =>
+      getProjectOptions(
+        allNodes,
+        vault.getNode.bind(vault),
+        getDisplayName,
+        recentProjectIds,
+      ),
+    [allNodes, vault, getDisplayName, recentProjectIds],
   );
 
   const filteredOptions = useMemo(() => {

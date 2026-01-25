@@ -19,7 +19,7 @@ import createDebug from "debug";
 const debug = createDebug("km:board");
 import type { BoardState, ViewMode } from "../types.ts";
 import type { KNode } from "@km/core";
-import { getStore, getNodeCount } from "@km/storage";
+// Removed singleton imports: getStore, getNodeCount - use vault.mode and vault.stats instead
 import { useVault, VaultProvider } from "../vault-context.tsx";
 import type { KeyboardContext } from "../keyboard-types.ts";
 import { DetailPane } from "./DetailPane.tsx";
@@ -118,12 +118,12 @@ export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   // Uses initialState in deps to ensure it's captured on mount
   const initialTreeState = useMemo(
     () =>
-      tuiStateToTreeState(initialState, {
+      tuiStateToTreeState(vault, initialState, {
         foldedNodes: new Set<string>(),
         navHistory: [],
         navHistoryIndex: 0,
       }),
-    [initialState],
+    [vault, initialState],
   );
 
   // Board navigation state managed by @km/board's boardReducer
@@ -219,7 +219,7 @@ export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
     handleProjectCancel,
     handleNewItemCreate,
     handleNewItemCancel,
-  } = useBoardDialogs({ state, boardState, dispatch, dispatchBoard });
+  } = useBoardDialogs({ vault, state, boardState, dispatch, dispatchBoard });
 
   // WORKAROUND: fullscreen-ink alternate buffer race condition (issue km-rqt6)
   // See board-effects.ts for detailed explanation
@@ -241,7 +241,10 @@ export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
   );
 
   // Subscribe to external refresh events (filesystem changes)
-  useEffect(() => createRefreshHandler(rootIdRef, dispatchBoard), []);
+  useEffect(
+    () => createRefreshHandler(vault, rootIdRef, dispatchBoard),
+    [vault],
+  );
 
   // Subscribe to watcher status updates (for bottom bar display)
   useEffect(() => createWatcherStatusHandler(dispatch), []);
@@ -553,8 +556,8 @@ export function Board({ initialState, initialViewMode = "cards" }: BoardProps) {
               ui={ui}
               state={state}
               termWidth={termWidth}
-              storageMode={getStore().mode}
-              nodeCount={getNodeCount()}
+              storageMode={vault.mode}
+              nodeCount={vault.stats.nodeCount}
             />
           </Box>
         </UIProvider>
@@ -726,7 +729,9 @@ export function InkBoardTestable({
     .map((seg) => {
       const sepPart = seg.sep ? chalk.bgWhite.gray(` ${seg.sep} `) : "";
       // Get color icon for this segment if it has one
-      const segColor = seg.node ? getInheritedColor(seg.node) : undefined;
+      const segColor = seg.node
+        ? getInheritedColor(vault, seg.node)
+        : undefined;
       const segIcon = segColor ? getNodeIcon(null, segColor) : null;
       const iconPart = segIcon
         ? chalk.bgWhite(getChalkColor(segIcon.color)(segIcon.char)) + " "
@@ -743,7 +748,9 @@ export function InkBoardTestable({
   const testVisibleLen =
     1 +
     selectedPathSegments.reduce((acc, seg) => {
-      const segColor = seg.node ? getInheritedColor(seg.node) : undefined;
+      const segColor = seg.node
+        ? getInheritedColor(vault, seg.node)
+        : undefined;
       const iconLen = segColor ? 2 : 0; // icon char + space
       return (
         acc + seg.name.length + iconLen + (seg.sep ? seg.sep.length + 2 : 0)

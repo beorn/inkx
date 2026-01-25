@@ -5,6 +5,8 @@
  * Implements React-level virtualization for large card lists.
  */
 import React, { useCallback, useMemo, useRef } from "react";
+import createDebug from "debug";
+import { useVault } from "../vault-context.tsx";
 import { Box, Text, useScreenRectCallback } from "inkx";
 import { styledUnderline } from "@beorn/chalkx";
 import type { CardState, ColumnState } from "../types.ts";
@@ -14,6 +16,8 @@ import { TreeNode } from "./TreeNode.tsx";
 import { getNodeIcon, renderPlain } from "../text/index.ts";
 import { useLayoutRegistryOptional } from "../layout-context.tsx";
 import type { NodeLayout } from "../card-positions.ts";
+
+const debug = createDebug("km:tui:card-layout");
 
 // =============================================================================
 // Virtualization
@@ -75,7 +79,10 @@ function CardLayoutRegistrar({
 
   const handleLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
-      if (!registry) return;
+      if (!registry) {
+        debug("CardLayoutRegistrar: no registry for col=%d card=%d", colIndex, cardIndex);
+        return;
+      }
 
       const layout: NodeLayout = {
         x: computed.x,
@@ -84,6 +91,13 @@ function CardLayoutRegistrar({
         cardHeight: computed.height,
       };
 
+      debug(
+        "CardLayoutRegistrar: col=%d card=%d y=%d h=%d",
+        colIndex,
+        cardIndex,
+        computed.y,
+        computed.height,
+      );
       registry.registerCard(colIndex, cardIndex, nodeId, layout);
     },
     [registry, colIndex, cardIndex, nodeId],
@@ -426,9 +440,10 @@ export const Column = React.memo(function Column({
   height,
   selectionLevel,
 }: ColumnProps): React.ReactElement {
+  const vault = useVault();
   // Render name with wiki links stripped: [[target|alias]] → "alias"
-  const name = renderPlain(getNodeDisplayName(column.node));
-  const typeSuffix = getCollapsedTypeSuffix(column.node);
+  const name = renderPlain(getNodeDisplayName(vault, column.node));
+  const typeSuffix = getCollapsedTypeSuffix(vault, column.node);
   const count = column.cards.length;
   const wipLimit = column.wipLimit;
   const isVirtual = column.isVirtual ?? false;

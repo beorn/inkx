@@ -7,7 +7,6 @@
 import type { CardState, SelectionKey } from "./types.ts";
 import { makeSelectionKey } from "./types.ts";
 import { actions } from "./ui-reducer.ts";
-import { getNode, getChildren, moveNode } from "@km/storage";
 import type { KeyboardContext } from "./keyboard-types.ts";
 import {
   getSelectedCardIndices,
@@ -90,7 +89,7 @@ export function moveCardInColumn(
       }
     }
 
-    moveNode(cardToMove.node.id, col.node.id, newSortOrder);
+    ctx.vault.moveNode(cardToMove.node.id, col.node.id, newSortOrder);
   }
 
   const movedCardIds = validCards.map((c) => c.card.node.id);
@@ -101,7 +100,7 @@ export function moveCardInColumn(
 
   if (movedCardIds.length > 1 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>();
-    const nodes = buildTreeNodes(ctx.boardState.rootId);
+    const nodes = buildTreeNodes(ctx.vault, ctx.boardState.rootId);
     const newCol = nodes[ctx.layout.colIndex];
     if (newCol) {
       for (let cardIdx = 0; cardIdx < newCol.children.length; cardIdx++) {
@@ -147,7 +146,7 @@ export function moveCardToColumn(
       : 0;
 
   for (const cardToMove of cardsToMove) {
-    moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder);
+    ctx.vault.moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder);
     newSortOrder++;
   }
 
@@ -161,7 +160,7 @@ export function moveCardToColumn(
 
   if (movedCardIds.length > 0 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>();
-    const nodes = buildTreeNodes(ctx.boardState.rootId);
+    const nodes = buildTreeNodes(ctx.vault, ctx.boardState.rootId);
     const newCol = nodes[targetColIndex];
     if (newCol) {
       for (let cardIdx = 0; cardIdx < newCol.children.length; cardIdx++) {
@@ -206,7 +205,7 @@ export function moveCardToColumnByIndex(
       : 0;
 
   for (const cardToMove of cardsToMove) {
-    moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder);
+    ctx.vault.moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder);
     newSortOrder++;
   }
 
@@ -223,7 +222,7 @@ export function moveCardToColumnByIndex(
 
   if (movedCardIds.length > 0 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>();
-    const nodes = buildTreeNodes(ctx.boardState.rootId);
+    const nodes = buildTreeNodes(ctx.vault, ctx.boardState.rootId);
     const targetColumnState = nodes[targetColIndex];
     if (targetColumnState) {
       for (
@@ -260,7 +259,7 @@ export function indentNode(ctx: KeyboardContext, card: CardState): void {
   if (!siblingAbove) return;
 
   const newSortOrder = Date.now();
-  moveNode(card.node.id, siblingAbove.node.id, newSortOrder);
+  ctx.vault.moveNode(card.node.id, siblingAbove.node.id, newSortOrder);
   refreshBoardState(ctx, { cardIndex: Math.max(0, cardIndex - 1) });
 }
 
@@ -272,14 +271,14 @@ export function outdentNode(ctx: KeyboardContext, card: CardState): void {
     return;
   }
 
-  const parent = getNode(parentId);
+  const parent = ctx.vault.getNode(parentId);
   const grandparentId = parent?.parent_id;
   if (!parent || !grandparentId) {
     process.stdout.write("\x07");
     return;
   }
 
-  const grandparentChildren = getChildren(grandparentId);
+  const grandparentChildren = ctx.vault.getChildren(grandparentId);
   const parentIndex = grandparentChildren.findIndex((c) => c.id === parentId);
 
   let newSortOrder: number;
@@ -292,6 +291,6 @@ export function outdentNode(ctx: KeyboardContext, card: CardState): void {
       2;
   }
 
-  moveNode(card.node.id, grandparentId, newSortOrder);
+  ctx.vault.moveNode(card.node.id, grandparentId, newSortOrder);
   refreshBoardState(ctx);
 }

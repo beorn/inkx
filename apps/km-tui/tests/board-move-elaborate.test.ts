@@ -21,15 +21,45 @@ import { InkBoardTestable } from "../src/views/Board.tsx";
 import { buildBoardState, handleKey, getCurrentCard } from "../src/state.ts";
 import {
   getNode,
+  getChildren,
   applyEvent,
   emitNodeCreated,
+  emitNodeMoved,
+  emitNodeUpdated,
   setDatabase,
   getEventsPath,
   withTestEnv,
   createFakeVault,
 } from "@km/storage";
+import type { Vault } from "@km/storage";
 import type { NodeType, Event } from "@km/core";
+import type { Database } from "bun:sqlite";
 import { ulid } from "ulid";
+
+// Create a vault wrapper for tests that use singleton functions with withTestEnv
+// Only implements the methods needed by buildBoardState and handleKey
+// Uses emit functions directly to ensure events are persisted to events.jsonl
+function createTestVault(db: Database): Vault {
+  return {
+    getChildren: (parentId: string | null) => getChildren(parentId),
+    getNode: (id: string) => getNode(id),
+    moveNode: (id: string, newParentId: string, position: number) => {
+      emitNodeMoved("test-user", id, {
+        parent_id: newParentId,
+        parent_idx: position,
+      });
+    },
+    updateNode: (id: string, changes: Partial<import("@km/core").KNode>) => {
+      emitNodeUpdated("test-user", id, changes);
+    },
+    rawQuery: <T = Record<string, unknown>>(
+      sql: string,
+      params?: unknown[],
+    ): T[] => {
+      return db.query(sql).all(...((params ?? []) as never)) as T[];
+    },
+  } as Vault;
+}
 
 // Helper to create nodes via emit
 function createTestNode(
@@ -90,20 +120,21 @@ function createStandardBoard(): {
 
 describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   it("persists move events to events.jsonl", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       // Create .km directory for disk-based event persistence
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card1Id, col2Id } = createStandardBoard();
 
       // Build state and move card1 to col2 (L key moves right)
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       expect(state.colIndex).toBe(0);
       expect(getCurrentCard(state)?.node.id).toBe(card1Id);
 
       // Press L to move card to next column
-      const result = handleKey(state, "L");
+      const result = handleKey(vault, state, "L");
       expect(result.action).toBe("refresh");
 
       // Verify event was persisted
@@ -124,9 +155,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("state reflects move after event application", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card1Id, col2Id } = createStandardBoard();
 
@@ -135,8 +167,8 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
       expect(node?.parent_id).not.toBe(col2Id);
 
       // Build state and move
-      const state = buildBoardState(rootId);
-      handleKey(state, "L");
+      const state = buildBoardState(vault, rootId);
+      handleKey(vault, state, "L");
 
       // Verify node was moved in database
       node = getNode(card1Id);
@@ -145,20 +177,21 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("moves card up within column (K key)", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card2Id, col1Id } = createStandardBoard();
 
       // Start at second card
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       state.cardIndex = 1; // Select card2
 
       expect(getCurrentCard(state)?.node.id).toBe(card2Id);
 
       // Move up with K
-      const result = handleKey(state, "K");
+      const result = handleKey(vault, state, "K");
       expect(result.action).toBe("refresh");
 
       // Verify card moved (parent_idx should be less than before)
@@ -169,17 +202,18 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("moves card down within column (J key)", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card1Id, col1Id } = createStandardBoard();
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       expect(getCurrentCard(state)?.node.id).toBe(card1Id);
 
       // Move down with J
-      const result = handleKey(state, "J");
+      const result = handleKey(vault, state, "J");
       expect(result.action).toBe("refresh");
 
       // Verify card moved (parent_idx should be greater)
@@ -190,20 +224,21 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("moves card to previous column (H key)", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card3Id, col1Id, col2Id } = createStandardBoard();
 
       // Start in second column
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       state.colIndex = 1;
       expect(getCurrentCard(state)?.node.id).toBe(card3Id);
       expect(getCurrentCard(state)?.node.parent_id).toBe(col2Id);
 
       // Move left with H
-      const result = handleKey(state, "H");
+      const result = handleKey(vault, state, "H");
       expect(result.action).toBe("refresh");
 
       // Verify card moved to first column
@@ -213,9 +248,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("handles moving to empty column", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const rootId = createTestNode("board", "Test Board");
       const col1Id = createTestNode("folder", "Full", rootId, {
@@ -228,11 +264,11 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
         parent_idx: 0,
       });
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       expect(getCurrentCard(state)?.node.id).toBe(cardId);
 
       // Move to empty column
-      const result = handleKey(state, "L");
+      const result = handleKey(vault, state, "L");
       expect(result.action).toBe("refresh");
 
       const node = getNode(cardId);
@@ -245,12 +281,13 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
     await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card1Id, col2Id } = createStandardBoard();
 
       // Move a card
-      const state = buildBoardState(rootId);
-      handleKey(state, "L");
+      const state = buildBoardState(vault, rootId);
+      handleKey(vault, state, "L");
 
       // Re-read events and replay to the same db (it's already open)
       const eventsPath = getEventsPath();
@@ -271,17 +308,18 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("prevents move at boundary (first column, H key)", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card1Id, col1Id } = createStandardBoard();
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       expect(state.colIndex).toBe(0); // Already at first column
 
       // Try to move left - should not trigger action
-      const result = handleKey(state, "H");
+      const result = handleKey(vault, state, "H");
       expect(result.action).toBeNull();
 
       // Card should not have moved
@@ -291,19 +329,20 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("prevents move at boundary (last column, L key)", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card4Id, col3Id } = createStandardBoard();
 
       // Move to last column
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       state.colIndex = 2;
       expect(getCurrentCard(state)?.node.id).toBe(card4Id);
 
       // Try to move right - should not trigger action
-      const result = handleKey(state, "L");
+      const result = handleKey(vault, state, "L");
       expect(result.action).toBeNull();
 
       // Card should not have moved
@@ -313,17 +352,18 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("prevents move up at first position (K key)", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card1Id, col1Id } = createStandardBoard();
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       expect(state.cardIndex).toBe(0); // Already at first card
 
       // Try to move up - should not trigger action
-      const result = handleKey(state, "K");
+      const result = handleKey(vault, state, "K");
       expect(result.action).toBeNull();
 
       // Card should not have moved
@@ -333,9 +373,10 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
   });
 
   it("handles fractional index calculations correctly", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       // Create board with specific indices
       const rootId = createTestNode("board", "Test Board");
@@ -353,11 +394,11 @@ describe.serial("Board Move - Fresh Disk-Based Repo", () => {
       });
 
       // Move card C between A and B
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       state.cardIndex = 2; // Select Card C
 
       // Move up twice to get between A and B
-      handleKey(state, "K"); // C moves before B
+      handleKey(vault, state, "K"); // C moves before B
       const nodeAfterFirst = getNode(cardCId);
       expect(nodeAfterFirst?.parent_idx).toBeGreaterThan(0);
       expect(nodeAfterFirst?.parent_idx).toBeLessThan(10);
@@ -369,6 +410,7 @@ describe.serial("Board Move - In-Memory Mode", () => {
   it("renders board with move indicators in TUI", async () => {
     await withTestEnv(async ({ db }) => {
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
       const now = Date.now();
 
       // Insert nodes directly
@@ -392,15 +434,14 @@ describe.serial("Board Move - In-Memory Mode", () => {
         [cardId, col1Id, now, now],
       );
 
-      const state = buildBoardState(rootId);
-      const vault = createFakeVault();
+      const state = buildBoardState(vault, rootId);
 
       const { lastFrame } = render(
         React.createElement(InkBoardTestable, {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
-          vault,
+          vault: createFakeVault(),
         }),
       );
 
@@ -413,6 +454,7 @@ describe.serial("Board Move - In-Memory Mode", () => {
   it("updates TUI state after move", async () => {
     await withTestEnv(async ({ db }) => {
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
       const now = Date.now();
 
       // Create a board with 2 columns
@@ -443,15 +485,15 @@ describe.serial("Board Move - In-Memory Mode", () => {
       );
 
       // Build initial state
-      let state = buildBoardState(rootId);
+      let state = buildBoardState(vault, rootId);
       expect(state.columns[0]?.cards.length).toBe(1);
       expect(state.columns[1]?.cards.length).toBe(0);
 
       // Move card right
-      handleKey(state, "L");
+      handleKey(vault, state, "L");
 
       // Rebuild state to see changes
-      state = buildBoardState(rootId);
+      state = buildBoardState(vault, rootId);
       expect(state.columns[0]?.cards.length).toBe(0);
       expect(state.columns[1]?.cards.length).toBe(1);
     });
@@ -460,19 +502,20 @@ describe.serial("Board Move - In-Memory Mode", () => {
 
 describe.serial("Board Move - Multi-card Selection", () => {
   it("moves multiple selected cards with x (status cycle)", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const { rootId, card1Id, card2Id } = createStandardBoard();
 
       // Select multiple cards
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       state.selectedCards.add(card1Id);
       state.selectedCards.add(card2Id);
 
       // Cycle status for all selected
-      handleKey(state, "x");
+      handleKey(vault, state, "x");
 
       // Both should have changed status (todo → wip in the cycle)
       const node1 = getNode(card1Id);
@@ -485,22 +528,23 @@ describe.serial("Board Move - Multi-card Selection", () => {
 
 describe.serial("Board Move - Edge Cases", () => {
   it("handles board with single column", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Only Column", rootId);
       const cardId = createTestNode("task", "Card", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
 
       // Try to move left - should not work
-      let result = handleKey(state, "H");
+      let result = handleKey(vault, state, "H");
       expect(result.action).toBeNull();
 
       // Try to move right - should not work
-      result = handleKey(state, "L");
+      result = handleKey(vault, state, "L");
       expect(result.action).toBeNull();
 
       // Card should still be in same column
@@ -510,30 +554,32 @@ describe.serial("Board Move - Edge Cases", () => {
   });
 
   it("handles column with single card", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode("task", "Only Card", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
 
       // Try to move up - should not work (already first)
-      let result = handleKey(state, "K");
+      let result = handleKey(vault, state, "K");
       expect(result.action).toBeNull();
 
       // Try to move down - should not work (already last)
-      result = handleKey(state, "J");
+      result = handleKey(vault, state, "J");
       expect(result.action).toBeNull();
     });
   });
 
   it("handles empty column navigation", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const rootId = createTestNode("board", "Board");
       createTestNode("folder", "Empty", rootId, { parent_idx: 0 });
@@ -542,23 +588,24 @@ describe.serial("Board Move - Edge Cases", () => {
       });
       createTestNode("task", "Card", col2Id);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault, rootId);
       expect(state.columns[0]?.cards.length).toBe(0);
       expect(state.columns[1]?.cards.length).toBe(1);
 
       // Navigate to empty column
-      handleKey(state, "h"); // Should not crash
+      handleKey(vault, state, "h"); // Should not crash
 
       // No card to move in empty column
-      const result = handleKey(state, "L");
+      const result = handleKey(vault, state, "L");
       expect(result.action).toBeNull();
     });
   });
 
   it("preserves card order after multiple moves", async () => {
-    await withTestEnv(async ({ kmDir }) => {
+    await withTestEnv(async ({ kmDir, db }) => {
       mkdirSync(kmDir, { recursive: true });
       setDatabase({ applyEvent });
+      const vault = createTestVault(db);
 
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
@@ -571,28 +618,28 @@ describe.serial("Board Move - Edge Cases", () => {
 
       // Move D up one position - state must be rebuilt after each move
       // to get fresh parent_idx values (like the real TUI does on "refresh")
-      let state = buildBoardState(rootId);
+      let state = buildBoardState(vault, rootId);
       state.cardIndex = 3; // Select D
-      handleKey(state, "K"); // D moves before C
+      handleKey(vault, state, "K"); // D moves before C
 
       // Rebuild state after move (simulating "refresh" action)
-      state = buildBoardState(rootId);
+      state = buildBoardState(vault, rootId);
       // Find D's new position
       const col = state.columns[0];
       if (col) {
         state.cardIndex = col.cards.findIndex((c) => c.node.id === cardDId);
       }
-      handleKey(state, "K"); // D moves before B
+      handleKey(vault, state, "K"); // D moves before B
 
-      state = buildBoardState(rootId);
+      state = buildBoardState(vault, rootId);
       const col2 = state.columns[0];
       if (col2) {
         state.cardIndex = col2.cards.findIndex((c) => c.node.id === cardDId);
       }
-      handleKey(state, "K"); // D moves before A
+      handleKey(vault, state, "K"); // D moves before A
 
       // Rebuild and verify order
-      state = buildBoardState(rootId);
+      state = buildBoardState(vault, rootId);
 
       // Get indices - D should now be first
       const nodeA = getNode(cardAId);

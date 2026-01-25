@@ -14,9 +14,9 @@
 
 import chalk from "chalk";
 import type { TaskStatus } from "@km/core";
+import type { Vault } from "@km/storage";
 import type { BoardState, CardState, RenderOptions } from "./types.ts";
 import { getNodeDisplayName } from "./state.ts";
-import { getNode } from "@km/storage";
 import {
   getStatusIcon as getStatusIconBase,
   renderRich,
@@ -37,7 +37,11 @@ export function defaultRenderOptions(): RenderOptions {
 /**
  * Render the entire board to a string
  */
-export function renderBoard(state: BoardState, opts: RenderOptions): string {
+export function renderBoard(
+  vault: Vault,
+  state: BoardState,
+  opts: RenderOptions,
+): string {
   const lines: string[] = [];
   const { width, height } = opts;
 
@@ -47,8 +51,8 @@ export function renderBoard(state: BoardState, opts: RenderOptions): string {
   }
 
   // Get root node for title
-  const root = state.rootId ? getNode(state.rootId) : null;
-  const title = root ? getNodeDisplayName(root) : "Board";
+  const root = state.rootId ? vault.getNode(state.rootId) : null;
+  const title = root ? getNodeDisplayName(vault, root) : "Board";
 
   // Header
   lines.push(chalk.bold.inverse(` ${title} `.padEnd(width)));
@@ -66,7 +70,7 @@ export function renderBoard(state: BoardState, opts: RenderOptions): string {
 
   // Column headers
   const headers = state.columns.map((col, i) => {
-    const name = getNodeDisplayName(col.node);
+    const name = getNodeDisplayName(vault, col.node);
     const count = col.cards.length;
     const header = ` ${name} (${count}) `;
     const isSelected = i === state.colIndex;
@@ -91,6 +95,7 @@ export function renderBoard(state: BoardState, opts: RenderOptions): string {
       const isFolded = state.foldedCards.has(card.node.id);
 
       return renderCard(
+        vault,
         card,
         colWidth - 1,
         isCurrentCard,
@@ -138,6 +143,7 @@ export function renderBoard(state: BoardState, opts: RenderOptions): string {
  * Format: "○ Content" with 2-space indent for children (greyed out)
  */
 export function renderCard(
+  vault: Vault,
   card: CardState,
   width: number,
   isCurrent: boolean,
@@ -149,7 +155,7 @@ export function renderCard(
 
   // Status icon and content - compact format: "○ Content"
   const statusIcon = renderStatusIcon(node.task_status);
-  const rawContent = (node.content || getNodeDisplayName(node)).slice(
+  const rawContent = (node.content || getNodeDisplayName(vault, node)).slice(
     0,
     width - 3,
   );
@@ -281,7 +287,11 @@ ${chalk.dim("Press any key to close")}
  * Render static board (non-TUI mode)
  * Displays columns vertically, one after another
  */
-export function renderBoardStatic(state: BoardState, width: number): string {
+export function renderBoardStatic(
+  vault: Vault,
+  state: BoardState,
+  width: number,
+): string {
   const { columns } = state;
   const lines: string[] = [];
 
@@ -291,7 +301,7 @@ export function renderBoardStatic(state: BoardState, width: number): string {
 
   // Show each column with its cards
   for (const col of columns) {
-    const name = getNodeDisplayName(col.node);
+    const name = getNodeDisplayName(vault, col.node);
     const count = col.cards.length;
 
     // Column header
@@ -306,7 +316,8 @@ export function renderBoardStatic(state: BoardState, width: number): string {
       const visibleCards = col.cards.slice(0, maxCards);
       for (const card of visibleCards) {
         const statusIcon = renderStatusIcon(card.node.task_status);
-        const rawContent = card.node.content || getNodeDisplayName(card.node);
+        const rawContent =
+          card.node.content || getNodeDisplayName(vault, card.node);
         const firstLine = rawContent.split("\n")[0] ?? rawContent;
         const truncContent = firstLine.slice(0, width - 4);
         // Apply markdown styling, then dim+strikethrough for done/dropped

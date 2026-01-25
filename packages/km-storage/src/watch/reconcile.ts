@@ -209,11 +209,11 @@ export function reconcileDirectoryRecursive(
 /**
  * Apply reconciliation operations
  */
-export async function applyReconcileOps(
+export function applyReconcileOps(
   ops: ReconcileOp[],
   vaultRoot: string,
   fs: FileSystemOps = realFs,
-): Promise<void> {
+): void {
   debug("applying %d reconcile ops", ops.length);
   const start = Date.now();
 

@@ -11,18 +11,14 @@ import {
   getNodeDisplayName as getNodeDisplayNameBase,
   type CollapsedAncestor,
 } from "@km/tree";
-import { getChildren } from "@km/storage";
-
-// Bound version with store dependency
-const getNodeDisplayName = (
-  node: Parameters<typeof getNodeDisplayNameBase>[0],
-) => getNodeDisplayNameBase(node, getChildren);
+import type { Vault } from "@km/storage";
 
 /**
  * Format a collapsed ancestor for display with its type suffix.
  * Used in tree/context displays.
  */
 export function formatCollapsedAncestor(
+  vault: Vault,
   ca: CollapsedAncestor,
   showId: boolean,
 ): string {
@@ -31,7 +27,7 @@ export function formatCollapsedAncestor(
     prefix = chalk.dim(`[${ca.node.id.slice(0, 5)}] `);
   }
 
-  const name = getNodeDisplayName(ca.node);
+  const name = getNodeDisplayNameBase(ca.node, (id) => vault.getChildren(id));
   if (ca.typeSuffix) {
     return prefix + name + chalk.gray(` ${ca.typeSuffix}`);
   }
@@ -51,13 +47,13 @@ export function formatCollapsedAncestor(
 /**
  * Format a node for display in listings.
  */
-export function formatNode(node: KNode, showId: boolean): string {
+export function formatNode(vault: Vault, node: KNode, showId: boolean): string {
   let prefix = "";
   if (showId) {
     prefix = chalk.dim(`[${node.id.slice(0, 5)}] `);
   }
 
-  const name = getNodeDisplayName(node);
+  const name = getNodeDisplayNameBase(node, (id) => vault.getChildren(id));
 
   switch (node.type) {
     case "folder":

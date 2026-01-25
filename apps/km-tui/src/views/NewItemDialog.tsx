@@ -6,7 +6,6 @@
  */
 import React, { useState } from "react";
 import { Box, Text, useInput } from "inkx";
-import { ulid } from "ulid";
 import type { KNode } from "@km/core";
 import { useVault } from "../vault-context.tsx";
 import { getNodeDisplayName } from "../state.ts";
@@ -44,6 +43,7 @@ function getInsertParentId(cursorNode: KNode | null): string | null {
 function getInsertIdx(
   cursorNode: KNode | null,
   parentId: string | null,
+  getChildren: (id: string | null) => KNode[],
 ): number {
   if (!cursorNode || !parentId) return 0;
 
@@ -67,17 +67,19 @@ function getInsertIdx(
 function getInsertContext(
   cursorNode: KNode | null,
   parentId: string | null,
+  getNode: (id: string) => KNode | null,
+  getDisplayName: (node: KNode) => string,
 ): string {
   if (!parentId) return "root";
 
   const parent = getNode(parentId);
   if (!parent) return "unknown";
 
-  const parentName = getNodeDisplayName(parent);
+  const parentName = getDisplayName(parent);
 
   // If inserting as sibling, show "above X in Y"
   if (cursorNode && cursorNode.parent_id === parentId) {
-    const cursorName = getNodeDisplayName(cursorNode);
+    const cursorName = getDisplayName(cursorNode);
     return `above "${cursorName}" in ${parentName}`;
   }
 
@@ -92,12 +94,22 @@ export function NewItemDialog({
   width,
   height,
 }: NewItemDialogProps): React.ReactElement {
+  const vault = useVault();
   const [content, setContent] = useState("");
 
   // Determine insert location
   const parentId = getInsertParentId(cursorNode);
-  const parentIdx = getInsertIdx(cursorNode, parentId);
-  const insertContext = getInsertContext(cursorNode, parentId);
+  const _parentIdx = getInsertIdx(
+    cursorNode,
+    parentId,
+    vault.getChildren.bind(vault),
+  );
+  const insertContext = getInsertContext(
+    cursorNode,
+    parentId,
+    vault.getNode.bind(vault),
+    (node) => getNodeDisplayName(vault, node),
+  );
 
   // Determine if cursor is a task (new item will also be a task)
   const isTask = cursorNode?.type === "task" || cursorNode === null;
@@ -116,13 +128,9 @@ export function NewItemDialog({
         return;
       }
 
-      // Create the new node
-      const nodeId = ulid();
-      emitNodeCreated(process.env.USER ?? "user", {
-        id: nodeId,
+      // Create the new node using vault.addNode
+      const nodeId = vault.addNode(parentId, {
         type: isTask ? "task" : "paragraph",
-        parent_id: parentId,
-        parent_idx: parentIdx,
         content: content.trim(),
         task_status: isTask ? "todo" : undefined,
         task_mark: isTask ? " " : undefined,

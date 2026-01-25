@@ -135,7 +135,7 @@ export function refreshBoardState(
   if (!ctx.boardState.rootId) return;
 
   // Build tree nodes directly and dispatch to boardReducer
-  const nodes = buildTreeNodes(ctx.boardState.rootId);
+  const nodes = buildTreeNodes(ctx.vault, ctx.boardState.rootId);
 
   // Calculate new cursor position
   const colIndex = options?.colIndex ?? ctx.layout.colIndex;

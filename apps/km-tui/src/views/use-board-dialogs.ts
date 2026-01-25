@@ -6,9 +6,9 @@
  */
 import { useCallback } from "react";
 import type { KNode } from "@km/core";
+import type { Vault } from "../vault-context.tsx";
 import type { BoardState } from "../types.ts";
 import type { BoardState as TreeBoardState, BoardAction } from "@km/board";
-import { getChildren, moveNode } from "@km/storage";
 import { buildTreeNodes } from "../board-adapter.ts";
 import { actions } from "../ui-reducer.ts";
 
@@ -17,6 +17,7 @@ import { actions } from "../ui-reducer.ts";
 // =============================================================================
 
 interface UseBoardDialogsParams {
+  vault: Vault;
   state: BoardState;
   boardState: TreeBoardState;
   dispatch: (
@@ -41,6 +42,7 @@ interface BoardDialogHandlers {
  * Extracts dialog logic to improve Board.tsx maintainability.
  */
 export function useBoardDialogs({
+  vault,
   state,
   boardState,
   dispatch,
@@ -60,12 +62,12 @@ export function useBoardDialogs({
       const nodeToMove = card.node.link_to || card.node.id;
 
       // Calculate sort order (add at end of target)
-      const targetChildren = getChildren(targetNode.id);
+      const targetChildren = vault.getChildren(targetNode.id);
       const lastChild = targetChildren[targetChildren.length - 1];
       const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0;
 
-      // Update database via store layer (handles memory/disk mode)
-      moveNode(nodeToMove, targetNode.id, newSortOrder);
+      // Update database via vault (handles memory/disk mode)
+      vault.moveNode(nodeToMove, targetNode.id, newSortOrder);
 
       // Track as recent project
       dispatch(actions.addRecentProject(targetNode.id));
@@ -76,12 +78,12 @@ export function useBoardDialogs({
       setTimeout(() => {
         if (boardState.rootId) {
           // Build tree nodes directly and dispatch to boardReducer
-          const nodes = buildTreeNodes(boardState.rootId);
+          const nodes = buildTreeNodes(vault, boardState.rootId);
           dispatchBoard({ type: "REFRESH", nodes });
         }
       }, 50);
     },
-    [state, boardState, dispatch, dispatchBoard],
+    [vault, state, boardState, dispatch, dispatchBoard],
   );
 
   const handleProjectCancel = useCallback(() => {
@@ -94,7 +96,7 @@ export function useBoardDialogs({
       dispatch(actions.hideNewItemDialog());
       // Refresh the board to show the new item
       if (boardState.rootId) {
-        const nodes = buildTreeNodes(boardState.rootId);
+        const nodes = buildTreeNodes(vault, boardState.rootId);
         dispatchBoard({ type: "REFRESH", nodes });
       }
     },

@@ -15,35 +15,54 @@ import type {
   BoardAction,
   ColumnRules,
 } from "./types.ts";
-import { STATUS_CYCLE, STATUS_MARKS } from "./types.ts";
-import {
-  getChildren,
-  getChildCountsBatch,
-  getNode,
-  resolveNode,
-  emit,
-} from "@km/storage";
+import type { Vault } from "@km/storage";
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
   getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,
   getParentContext as getParentContextBase,
   extractBody,
 } from "@km/tree";
+
+/**
+ * Batch query for child counts using vault.rawQuery
+ * Replaces the singleton getChildCountsBatch from @km/storage
+ */
+function getChildCountsBatch(
+  vault: Vault,
+  parentIds: string[],
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  if (parentIds.length === 0) return counts;
+
+  const placeholders = parentIds.map(() => "?").join(",");
+  const rows = vault.rawQuery<{ parent_id: string; count: number }>(
+    `SELECT parent_id, COUNT(*) as count FROM nodes WHERE parent_id IN (${placeholders}) GROUP BY parent_id`,
+    parentIds,
+  );
+
+  for (const row of rows) {
+    counts.set(row.parent_id, row.count);
+  }
+  return counts;
+}
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
 // The handleKey function below is legacy code - keys are handled via the command system
 
-// Bound versions that inject store dependencies
+// Bound versions that inject vault dependencies
 // These are the primary exports for TUI components
 export const getNodeDisplayName = (
+  vault: Vault,
   node: Parameters<typeof getNodeDisplayNameBase>[0],
-) => getNodeDisplayNameBase(node, getChildren);
+) => getNodeDisplayNameBase(node, (id) => vault.getChildren(id));
 export const getCollapsedTypeSuffix = (
+  vault: Vault,
   node: Parameters<typeof getCollapsedTypeSuffixBase>[0],
-) => getCollapsedTypeSuffixBase(node, getChildren);
+) => getCollapsedTypeSuffixBase(node, (id) => vault.getChildren(id));
 export const getParentContext = (
+  vault: Vault,
   node: Parameters<typeof getParentContextBase>[0],
   skipParentId?: string | null,
-) => getParentContextBase(node, skipParentId, getNode);
+) => getParentContextBase(node, skipParentId, (id) => vault.getNode(id));
 
 /**
  * Create an empty board state
@@ -70,19 +89,22 @@ export function createEmptyState(): BoardState {
  * Initialize board state from a root node ID, path, or filename
  * Returns null if no suitable board found
  */
-export function initBoardState(rootId?: string): BoardState | null {
+export function initBoardState(
+  vault: Vault,
+  rootId?: string,
+): BoardState | null {
   if (rootId) {
-    // Use smart resolver to find by ID, path, or filename
-    const root = resolveNode(rootId);
+    // Use vault.getNode for ID lookup (caller should resolve path/filename before calling)
+    const root = vault.getNode(rootId);
     if (!root) {
       return null;
     }
-    return buildBoardState(root.id);
+    return buildBoardState(vault, root.id);
   }
 
   // No root specified - show root-level nodes as columns
   // Group roots by name to avoid duplicate columns
-  const roots = getChildren(null);
+  const roots = vault.getChildren(null);
 
   if (roots.length === 0) {
     return null;
@@ -91,7 +113,7 @@ export function initBoardState(rootId?: string): BoardState | null {
   // Group roots by display name
   const groups = new Map<string, KNode[]>();
   for (const root of roots) {
-    const name = getNodeDisplayName(root);
+    const name = getNodeDisplayName(vault, root);
     if (!groups.has(name)) {
       groups.set(name, []);
     }
@@ -111,8 +133,8 @@ export function initBoardState(rootId?: string): BoardState | null {
     const seenNames = new Set<string>();
     const uniqueCardNodes: KNode[] = [];
     for (const root of groupRoots) {
-      for (const child of getChildren(root.id)) {
-        const cardName = getNodeDisplayName(child);
+      for (const child of vault.getChildren(root.id)) {
+        const cardName = getNodeDisplayName(vault, child);
         if (!seenNames.has(cardName)) {
           seenNames.add(cardName);
           uniqueCardNodes.push(child);
@@ -124,8 +146,8 @@ export function initBoardState(rootId?: string): BoardState | null {
     columnData.push({ colNode, cardNodes: uniqueCardNodes });
   }
 
-  // Single batch query for all child counts - avoids N+1 problem
-  const childCounts = getChildCountsBatch(allCardIds);
+  // Batch query for child counts using rawQuery
+  const childCounts = getChildCountsBatch(vault, allCardIds);
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = [];
@@ -160,19 +182,21 @@ export function initBoardState(rootId?: string): BoardState | null {
  * Use this for loading screens to allow event loop updates between yields
  */
 export function* initBoardStateGenerator(
+  vault: Vault,
   rootId?: string,
 ): Generator<StepYield, BoardState | null, unknown> {
   if (rootId) {
-    const root = resolveNode(rootId);
+    // Use vault.getNode for ID lookup (caller should resolve path/filename before calling)
+    const root = vault.getNode(rootId);
     if (!root) {
       return null;
     }
     // Delegate to generator version of buildBoardState
-    return yield* buildBoardStateGenerator(root.id);
+    return yield* buildBoardStateGenerator(vault, root.id);
   }
 
   // No root specified - show root-level nodes as columns
-  const roots = getChildren(null);
+  const roots = vault.getChildren(null);
   if (roots.length === 0) {
     return null;
   }
@@ -180,7 +204,7 @@ export function* initBoardStateGenerator(
   // Group roots by display name
   const groups = new Map<string, KNode[]>();
   for (const root of roots) {
-    const name = getNodeDisplayName(root);
+    const name = getNodeDisplayName(vault, root);
     if (!groups.has(name)) {
       groups.set(name, []);
     }
@@ -204,8 +228,8 @@ export function* initBoardStateGenerator(
     const seenNames = new Set<string>();
     const uniqueCardNodes: KNode[] = [];
     for (const root of groupRoots) {
-      for (const child of getChildren(root.id)) {
-        const cardName = getNodeDisplayName(child);
+      for (const child of vault.getChildren(root.id)) {
+        const cardName = getNodeDisplayName(vault, child);
         if (!seenNames.has(cardName)) {
           seenNames.add(cardName);
           uniqueCardNodes.push(child);
@@ -220,7 +244,7 @@ export function* initBoardStateGenerator(
   }
 
   // Single batch query for all child counts
-  const childCounts = getChildCountsBatch(allCardIds);
+  const childCounts = getChildCountsBatch(vault, allCardIds);
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = [];
@@ -254,14 +278,15 @@ export function* initBoardStateGenerator(
  * Generator version of buildBoardState that yields progress
  */
 export function* buildBoardStateGenerator(
+  vault: Vault,
   rootId: string,
 ): Generator<StepYield, BoardState, unknown> {
-  const rootNode = getNode(rootId);
+  const rootNode = vault.getNode(rootId);
   const wipLimits = extractWipLimits(rootNode);
   const collapsedColumns = new Set<number>();
 
   // Get direct children and split into body content vs structural items
-  const allChildren = getChildren(rootId);
+  const allChildren = vault.getChildren(rootId);
   const { body: bodyNodes, items: columnNodes } = extractBody(allChildren);
 
   const total = columnNodes.length + (bodyNodes.length > 0 ? 1 : 0);
@@ -270,7 +295,7 @@ export function* buildBoardStateGenerator(
 
   // Batch query child counts for all columns
   const columnIds = columnNodes.map((n) => n.id);
-  const columnChildCounts = getChildCountsBatch(columnIds);
+  const columnChildCounts = getChildCountsBatch(vault, columnIds);
 
   // First pass: collect all card IDs
   const columnCardNodes: KNode[][] = [];
@@ -286,7 +311,7 @@ export function* buildBoardStateGenerator(
       continue;
     }
 
-    const cardNodes = getChildren(colNode.id);
+    const cardNodes = vault.getChildren(colNode.id);
     columnCardNodes[colIdx] = cardNodes;
 
     for (const cardNode of cardNodes) {
@@ -298,7 +323,7 @@ export function* buildBoardStateGenerator(
   }
 
   // Single batch query for all child counts
-  const childCounts = getChildCountsBatch(allCardIds);
+  const childCounts = getChildCountsBatch(vault, allCardIds);
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = [];
@@ -360,7 +385,7 @@ export function* buildBoardStateGenerator(
       }
     }
 
-    const colName = getNodeDisplayName(colNode);
+    const colName = getNodeDisplayName(vault, colNode);
     const normalizedName = normalizeColumnName(colName);
     const wipLimit = rules.limit ?? wipLimits.get(normalizedName);
 
@@ -489,20 +514,20 @@ export function parseColumnRules(content: string): ColumnRules {
  * For markdown files, the parser merges the H1 into the file node,
  * so H2 sections are direct children of the file node (columns).
  */
-export function buildBoardState(rootId: string): BoardState {
-  const rootNode = getNode(rootId);
+export function buildBoardState(vault: Vault, rootId: string): BoardState {
+  const rootNode = vault.getNode(rootId);
   const wipLimits = extractWipLimits(rootNode);
   const collapsedColumns = new Set<number>();
 
   // Get direct children and split into body content vs structural items
-  const allChildren = getChildren(rootId);
+  const allChildren = vault.getChildren(rootId);
   const { body: bodyNodes, items: columnNodes } = extractBody(allChildren);
 
   // PERFORMANCE OPTIMIZATION: Batch query child counts for all columns FIRST
   // This lets us skip getChildren() calls for columns with 0 children.
   // For flat boards like @issue with 766 files, this reduces 766 queries to 1.
   const columnIds = columnNodes.map((n) => n.id);
-  const columnChildCounts = getChildCountsBatch(columnIds);
+  const columnChildCounts = getChildCountsBatch(vault, columnIds);
 
   // First pass: collect all card IDs across all columns for batch child count query
   // Note: getChildren() now includes query:add links from storage layer,
@@ -522,7 +547,7 @@ export function buildBoardState(rootId: string): BoardState {
     }
 
     // getChildren includes both direct children AND linked children from add= rules
-    const cardNodes = getChildren(colNode.id);
+    const cardNodes = vault.getChildren(colNode.id);
     columnCardNodes[colIdx] = cardNodes;
 
     // Collect IDs for batch query
@@ -532,7 +557,7 @@ export function buildBoardState(rootId: string): BoardState {
   }
 
   // Single batch query for all child counts - avoids N+1 problem
-  const childCounts = getChildCountsBatch(allCardIds);
+  const childCounts = getChildCountsBatch(vault, allCardIds);
 
   // Second pass: build columns with the pre-fetched child counts
   const columns: ColumnState[] = [];
@@ -566,7 +591,7 @@ export function buildBoardState(rootId: string): BoardState {
     }));
 
     // Look up WIP limit (from rules or frontmatter)
-    const colName = getNodeDisplayName(colNode);
+    const colName = getNodeDisplayName(vault, colNode);
     const normalizedName = normalizeColumnName(colName);
     const wipLimit = rules.limit ?? wipLimits.get(normalizedName);
 
@@ -627,8 +652,12 @@ export function getCurrentColumn(state: BoardState): ColumnState | null {
 /**
  * Handle a key press in normal mode
  * Returns a new state and an action
+ *
+ * NOTE: This is legacy code. Keys are now handled via command system in board-actions.ts.
+ * This function is kept for test compatibility.
  */
 export function handleKey(
+  vault: Vault,
   state: BoardState,
   key: string,
 ): { state: BoardState; action: BoardAction } {
@@ -644,7 +673,7 @@ export function handleKey(
       if (state.zoomStack.length > 0) {
         const parentId = state.zoomStack[state.zoomStack.length - 1];
         if (parentId) {
-          const zoomed = buildBoardState(parentId);
+          const zoomed = buildBoardState(vault, parentId);
           zoomed.zoomStack = state.zoomStack.slice(0, -1);
           return { state: zoomed, action: null };
         }
@@ -778,7 +807,7 @@ export function handleKey(
         (card.childCount ?? card.children.length) > 0 &&
         state.rootId
       ) {
-        const zoomed = buildBoardState(card.node.id);
+        const zoomed = buildBoardState(vault, card.node.id);
         zoomed.zoomStack = [...state.zoomStack, state.rootId];
         return { state: zoomed, action: null };
       }
@@ -827,40 +856,90 @@ export function handleKey(
       }
       return { state: newState, action: null };
 
-    // Cycle status
-    case "x":
-      cycleStatus(state);
+    // Cycle status for current card and all selected cards
+    case "x": {
+      const cycle = ["todo", "wip", "blocked", "done", "dropped"] as const;
+      const getNextStatus = (currentStatus: string | null | undefined) => {
+        const idx = cycle.indexOf(
+          (currentStatus ?? "todo") as (typeof cycle)[number],
+        );
+        return cycle[(idx >= 0 ? idx + 1 : 1) % cycle.length];
+      };
+
+      // Get cards to update: selected cards + current card
+      const cardsToUpdate = new Set<string>();
+      if (card) cardsToUpdate.add(card.node.id);
+      for (const cardId of state.selectedCards) {
+        cardsToUpdate.add(cardId);
+      }
+
+      // Update all cards
+      for (const cardId of cardsToUpdate) {
+        const node = vault.getNode(cardId);
+        if (node) {
+          vault.updateNode(cardId, {
+            task_status: getNextStatus(node.task_status),
+          });
+        }
+      }
       return { state: newState, action: "refresh" };
+    }
 
     // Move card to prev/next column
-    case "H":
+    case "H": {
       if (card && state.colIndex > 0) {
-        moveCardToColumn(state, state.colIndex - 1);
+        const targetCol = state.columns[state.colIndex - 1];
+        if (targetCol) {
+          // Calculate new parent_idx at end of target column
+          const lastCard = targetCol.cards[targetCol.cards.length - 1];
+          const newIdx = lastCard ? (lastCard.node.parent_idx ?? 0) + 1 : 0;
+          vault.moveNode(card.node.id, targetCol.node.id, newIdx);
+        }
         return { state: newState, action: "refresh" };
       }
       return { state: newState, action: null };
+    }
 
-    case "L":
+    case "L": {
       if (card && state.colIndex < state.columns.length - 1) {
-        moveCardToColumn(state, state.colIndex + 1);
+        const targetCol = state.columns[state.colIndex + 1];
+        if (targetCol) {
+          // Calculate new parent_idx at end of target column
+          const lastCard = targetCol.cards[targetCol.cards.length - 1];
+          const newIdx = lastCard ? (lastCard.node.parent_idx ?? 0) + 1 : 0;
+          vault.moveNode(card.node.id, targetCol.node.id, newIdx);
+        }
         return { state: newState, action: "refresh" };
       }
       return { state: newState, action: null };
+    }
 
     // Move card up/down
-    case "K":
+    case "K": {
       if (card && col && state.cardIndex > 0) {
-        moveCardInColumn(state, state.cardIndex - 1);
+        const targetCard = col.cards[state.cardIndex - 1];
+        if (targetCard) {
+          // Move before target (subtract small amount from its idx)
+          const newIdx = (targetCard.node.parent_idx ?? 0) - 0.001;
+          vault.moveNode(card.node.id, col.node.id, newIdx);
+        }
         return { state: newState, action: "refresh" };
       }
       return { state: newState, action: null };
+    }
 
-    case "J":
+    case "J": {
       if (card && col && state.cardIndex < col.cards.length - 1) {
-        moveCardInColumn(state, state.cardIndex + 1);
+        const targetCard = col.cards[state.cardIndex + 1];
+        if (targetCard) {
+          // Move after target (add small amount to its idx)
+          const newIdx = (targetCard.node.parent_idx ?? 0) + 0.001;
+          vault.moveNode(card.node.id, col.node.id, newIdx);
+        }
         return { state: newState, action: "refresh" };
       }
       return { state: newState, action: null };
+    }
 
     default:
       return { state: newState, action: null };
@@ -927,148 +1006,4 @@ export function handleSearchKey(
   }
 
   return { state: newState, exitSearch: false };
-}
-
-/**
- * Get cards to operate on (selected or current)
- */
-function getTargetCards(state: BoardState): CardState[] {
-  if (state.selectedCards.size > 0) {
-    const targets: CardState[] = [];
-    for (const col of state.columns) {
-      for (const card of col.cards) {
-        if (state.selectedCards.has(card.node.id)) {
-          targets.push(card);
-        }
-      }
-    }
-    return targets;
-  }
-
-  const currentCard = getCurrentCard(state);
-  return currentCard ? [currentCard] : [];
-}
-
-/**
- * Cycle task status for selected cards
- */
-function cycleStatus(state: BoardState): void {
-  const targets = getTargetCards(state);
-
-  for (const card of targets) {
-    const currentStatus = card.node.task_status || "todo";
-    const currentIndex = STATUS_CYCLE.indexOf(currentStatus);
-    const nextIndex = (currentIndex + 1) % STATUS_CYCLE.length;
-    const nextStatus = STATUS_CYCLE[nextIndex] ?? "todo";
-    const nextMark = STATUS_MARKS[nextStatus];
-
-    emit({
-      type: "node_updated",
-      actor: "user",
-      target: card.node.id,
-      data: {
-        task_status: nextStatus,
-        task_mark: nextMark,
-      },
-    });
-  }
-}
-
-/**
- * Parse sync rule to extract field and value
- * Format: "field:value" (e.g., "status:blocked")
- */
-function parseSyncRule(sync: string): { field: string; value: string } | null {
-  const match = sync.match(/^(\w+):(.+)$/);
-  if (!match) return null;
-  return { field: match[1] || "", value: match[2] || "" };
-}
-
-/**
- * Move card to a different column
- */
-function moveCardToColumn(state: BoardState, targetColIndex: number): void {
-  const sourceCol = state.columns[state.colIndex];
-  const targetCol = state.columns[targetColIndex];
-  const card = sourceCol?.cards[state.cardIndex];
-
-  if (!card || !targetCol) return;
-
-  const lastCard = targetCol.cards[targetCol.cards.length - 1];
-  const sortOrder = lastCard ? lastCard.node.parent_idx + 1 : 0;
-
-  // Move the node
-  emit({
-    type: "node_moved",
-    actor: "user",
-    target: card.node.id,
-    data: {
-      parent_id: targetCol.node.id,
-      parent_idx: sortOrder,
-    },
-  });
-
-  // Apply sync= rule if present on target column
-  if (targetCol.rules?.sync) {
-    const syncRule = parseSyncRule(targetCol.rules.sync);
-    if (syncRule) {
-      const fieldName =
-        syncRule.field === "status" ? "task_status" : syncRule.field;
-      const updateData: Record<string, unknown> = {
-        [fieldName]: syncRule.value,
-      };
-
-      // Also update task_mark if setting status
-      if (fieldName === "task_status") {
-        const mark = STATUS_MARKS[syncRule.value as keyof typeof STATUS_MARKS];
-        if (mark) {
-          updateData.task_mark = mark;
-        }
-      }
-
-      emit({
-        type: "node_updated",
-        actor: "user",
-        target: card.node.id,
-        data: updateData,
-      });
-    }
-  }
-}
-
-/**
- * Move card up/down within column
- */
-function moveCardInColumn(state: BoardState, targetIndex: number): void {
-  const col = state.columns[state.colIndex];
-  const card = col?.cards[state.cardIndex];
-
-  if (!card || !col) return;
-
-  let sortOrder: number;
-  if (targetIndex === 0) {
-    const first = col.cards[0];
-    sortOrder = first ? first.node.parent_idx - 1 : 0;
-  } else if (targetIndex >= col.cards.length - 1) {
-    const last = col.cards[col.cards.length - 1];
-    sortOrder = last ? last.node.parent_idx + 1 : 0;
-  } else {
-    const prev = col.cards[targetIndex - 1];
-    const next = col.cards[targetIndex];
-    if (prev && next) {
-      sortOrder = (prev.node.parent_idx + next.node.parent_idx) / 2;
-    } else {
-      sortOrder = 0;
-    }
-  }
-
-  emit({
-    type: "node_moved",
-    actor: "user",
-    target: card.node.id,
-    data: {
-      parent_id: col.node.id,
-      parent_idx: sortOrder,
-    },
-  });
 }

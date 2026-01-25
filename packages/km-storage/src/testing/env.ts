@@ -30,6 +30,18 @@ import { ulid } from "ulid";
 import { SCHEMA } from "../schema.ts";
 import { runWithDb } from "../db-instance.ts";
 import { runWithKmDir } from "../emit.ts";
+import {
+  getNode,
+  getChildren,
+  getChildCountsBatch,
+  getBacklinks,
+  getAncestors,
+  getLinksTo,
+  moveNode,
+  updateNode,
+  deleteNode,
+  addNode,
+} from "../db.ts";
 
 // =============================================================================
 // Types
@@ -64,6 +76,26 @@ export function isMockMode(): boolean {
 }
 
 /**
+ * Vault-like object for tests - wraps singleton functions bound to test DB
+ */
+export interface TestVault {
+  getNode: typeof getNode;
+  getChildren: typeof getChildren;
+  getChildCountsBatch: typeof getChildCountsBatch;
+  getBacklinks: typeof getBacklinks;
+  getAncestors: typeof getAncestors;
+  getLinksTo: typeof getLinksTo;
+  moveNode: typeof moveNode;
+  updateNode: typeof updateNode;
+  deleteNode: typeof deleteNode;
+  addNode: typeof addNode;
+  rawQuery: <T = Record<string, unknown>>(
+    sql: string,
+    params?: unknown[],
+  ) => T[];
+}
+
+/**
  * Isolated test environment paths
  */
 export interface TestEnv {
@@ -79,6 +111,8 @@ export interface TestEnv {
   db: Database;
   /** Current test mode */
   mode: TestMode;
+  /** Vault-like object wrapping singleton functions bound to test DB */
+  vault: TestVault;
 }
 
 /**
@@ -129,7 +163,27 @@ export async function withTestEnv<T>(
   const db = new Database(dbPath);
   db.exec(SCHEMA);
 
-  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode };
+  // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
+  const vault: TestVault = {
+    getNode,
+    getChildren,
+    getChildCountsBatch,
+    getBacklinks,
+    getAncestors,
+    getLinksTo,
+    moveNode,
+    updateNode,
+    deleteNode,
+    addNode,
+    rawQuery: <T = Record<string, unknown>>(
+      sql: string,
+      params?: unknown[],
+    ): T[] => {
+      return db.query(sql).all(...((params ?? []) as never)) as T[];
+    },
+  };
+
+  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault };
 
   try {
     // Run with both context-local db and kmDir
@@ -168,7 +222,27 @@ export function withTestEnvSync<T>(fn: (env: TestEnv) => T): T {
   const db = new Database(dbPath);
   db.exec(SCHEMA);
 
-  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode };
+  // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
+  const vault: TestVault = {
+    getNode,
+    getChildren,
+    getChildCountsBatch,
+    getBacklinks,
+    getAncestors,
+    getLinksTo,
+    moveNode,
+    updateNode,
+    deleteNode,
+    addNode,
+    rawQuery: <T = Record<string, unknown>>(
+      sql: string,
+      params?: unknown[],
+    ): T[] => {
+      return db.query(sql).all(...((params ?? []) as never)) as T[];
+    },
+  };
+
+  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault };
 
   try {
     // Run with both context-local db and kmDir

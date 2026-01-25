@@ -144,20 +144,61 @@ test("creates node", async () => {
 
 **What `withTestEnv` provides**:
 
-| Property   | Description                              |
-| ---------- | ---------------------------------------- |
-| `db`       | In-memory SQLite with schema initialized |
-| `vaultDir` | Isolated `/tmp/kmtest-{id}/vault/`       |
-| `kmDir`    | Isolated `/tmp/kmtest-{id}/vault/.km/`   |
-| `testId`   | Unique ULID for this test                |
+| Property   | Description                                      |
+| ---------- | ------------------------------------------------ |
+| `vault`    | Vault-like object wrapping DB-bound singletons   |
+| `db`       | In-memory SQLite with schema initialized         |
+| `vaultDir` | Isolated `/tmp/kmtest-{id}/vault/`               |
+| `kmDir`    | Isolated `/tmp/kmtest-{id}/vault/.km/`           |
+| `testId`   | Unique ULID for this test                        |
 
-**When to use**:
+The `vault` object provides these methods (typed as `TestVault`):
+- `getNode`, `getChildren`, `getChildCountsBatch`
+- `getBacklinks`, `getAncestors`, `getLinksTo`
+- `moveNode`, `updateNode`, `deleteNode`, `addNode`
+- `rawQuery` for direct SQL access
 
-- Tests that call database functions (`getNode`, `getTasksByStatus`, etc.)
-- Tests that need filesystem isolation
-- Integration tests with multiple components
+**Standard usage** (most tests):
 
-**When NOT to use**:
+```typescript
+test("builds board from nodes", async () => {
+  await withTestEnv(async ({ vault, vaultDir }) => {
+    // Create test data
+    const rootId = createTestNode("board", "Test Board");
+
+    // Pass vault to functions that need DB access
+    const state = buildBoardState(vault as Vault, rootId);
+    expect(state.columns).toHaveLength(2);
+  });
+});
+```
+
+**Custom fixture** (when you need different behavior):
+
+For Ink component tests that don't need real DB operations, use `createFakeVault()`:
+
+```typescript
+test("renders board component", async () => {
+  // createFakeVault() returns an isolated in-memory vault
+  const fakeVault = createFakeVault();
+
+  const { lastFrame } = render(
+    <InkBoard vault={fakeVault} initialState={state} />
+  );
+
+  expect(lastFrame()).toContain("Task 1");
+});
+```
+
+**When to use which**:
+
+| Scenario | Fixture |
+| --- | --- |
+| Tests calling `buildBoardState`, `handleKey`, etc. | `withTestEnv` → `env.vault` |
+| Ink component rendering (no DB mutations) | `createFakeVault()` |
+| Pure function tests (no DB) | None needed |
+
+**When NOT to use withTestEnv**:
 
 - Pure function tests (no DB needed)
 - Tests using `createFakeVault()` (already isolated)

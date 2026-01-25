@@ -57,8 +57,8 @@ export const screenshotCommand = new Command("screenshot")
     setDebugVaultRoot(resolved.vaultRoot);
 
     // Load vault (full parse for accurate screenshot)
-    storageModule.runGenerator(
-      storageModule.loadVault(resolved.vaultRoot, {
+    const vault = storageModule.runGenerator(
+      storageModule.createVault(resolved.vaultRoot, {
         searchAncestors: false,
         discoverOnly: false,
       }),
@@ -66,7 +66,7 @@ export const screenshotCommand = new Command("screenshot")
 
     // Initialize board state
     const state = storageModule.runGenerator(
-      tuiModule.initBoardStateGenerator(resolved.nodeRef ?? undefined),
+      tuiModule.initBoardStateGenerator(vault, resolved.nodeRef ?? undefined),
     );
 
     if (!state) {

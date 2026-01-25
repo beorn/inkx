@@ -44,6 +44,7 @@ export const viewCommand = new Command("view")
     let tuiModule: typeof import("@km/tui");
     let storageModule: typeof import("@km/storage");
     let cliModule: typeof import("../index.ts");
+    let createdVault: import("@km/storage").Vault;
 
     // Run loading steps with declarative API
     // loadVault() handles both memory and disk modes with unified progress
@@ -69,10 +70,11 @@ export const viewCommand = new Command("view")
         // For non-interactive mode, we need full parsing before rendering
         const interactive = options.interactive !== false;
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return yield* storageModule!.createVault(vaultRoot, {
+        createdVault = yield* storageModule!.createVault(vaultRoot, {
           searchAncestors: false,
           discoverOnly: interactive,
         });
+        return createdVault;
       },
 
       buildView: function* () {
@@ -82,9 +84,18 @@ export const viewCommand = new Command("view")
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           cliModule!.getRootPath(),
         );
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        // Resolve nodeRef (path/filename/@ref) to actual node ID
+        // initBoardStateGenerator expects a node ID, not a path
+        let rootNodeId: string | undefined;
+        if (resolved.nodeRef) {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const node = storageModule!.resolveNode(resolved.nodeRef);
+          rootNodeId = node?.id;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees createVault runs first
         const state = yield* tuiModule!.initBoardStateGenerator(
-          resolved.nodeRef ?? undefined,
+          createdVault,
+          rootNodeId,
         );
         if (state) {
           state.rootPath = resolved.vaultRoot;

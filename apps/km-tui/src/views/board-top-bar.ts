@@ -3,7 +3,7 @@
  */
 import chalk from "chalk";
 import type { KNode } from "@km/core";
-import type { Vault } from "@km/storage";
+import type { Vault } from "../vault-context.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { renderPlain } from "../text/index.ts";
 
@@ -69,7 +69,7 @@ export function getPathSegments(
     const node = nodes[i];
     if (!node) continue;
     // Strip wiki link brackets and show alias for display
-    const rawName = getNodeDisplayName(node);
+    const rawName = getNodeDisplayName(vault, node);
     const name = renderPlain(rawName);
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex;
 

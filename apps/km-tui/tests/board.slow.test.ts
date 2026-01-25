@@ -16,13 +16,13 @@ const render = createTestRenderer();
 import React from "react";
 
 import {
-  getNode,
   applyEvent,
   emitNodeCreated,
   setDatabase,
   withTestEnv,
   createFakeVault,
 } from "@km/storage";
+import type { Vault } from "@km/storage";
 
 import type { NodeType } from "@km/core";
 import { ulid } from "ulid";
@@ -65,7 +65,7 @@ function createTestNode(
 
 describe.serial("Board State", () => {
   test("buildBoardState creates columns from children", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       // Create a root with two children (columns)
       const rootId = createTestNode("board", "Test Board");
@@ -77,7 +77,7 @@ describe.serial("Board State", () => {
       createTestNode("task", "Card 1.2", col1Id);
       createTestNode("task", "Card 2.1", col2Id);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       expect(state.rootId).toBe(rootId);
       expect(state.columns).toHaveLength(2);
@@ -87,14 +87,14 @@ describe.serial("Board State", () => {
   });
 
   test("initBoardState groups root nodes by name", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       // Create root nodes - two with same name, one different
       createTestNode("folder", "Projects");
       createTestNode("folder", "Projects"); // Duplicate name
       createTestNode("folder", "Archive");
 
-      const state = initBoardState();
+      const state = initBoardState(vault as unknown as Vault);
 
       expect(state).not.toBeNull();
       expect(state!.rootId).toBeNull(); // null means root level view
@@ -103,7 +103,7 @@ describe.serial("Board State", () => {
   });
 
   test("initBoardState deduplicates cards by name within grouped columns", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       // Create multiple root nodes with same name
       const ref1 = createTestNode("folder", "ref");
@@ -119,7 +119,7 @@ describe.serial("Board State", () => {
       createTestNode("folder", "Archive", ref1);
       createTestNode("folder", "Work", ref2);
 
-      const state = initBoardState();
+      const state = initBoardState(vault as unknown as Vault);
 
       expect(state).not.toBeNull();
       expect(state!.columns).toHaveLength(1); // Only one "ref" column
@@ -135,41 +135,45 @@ describe.serial("Board State", () => {
   });
 
   test("initBoardState returns null for empty database", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
-      const state = initBoardState();
+      const state = initBoardState(vault as unknown as Vault);
       expect(state).toBeNull();
     });
   });
 
   test("getNodeDisplayName returns content", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const id = createTestNode("task", "Test Task");
-      const node = getNode(id)!;
-      expect(getNodeDisplayName(node)).toBe("Test Task");
+      const node = vault.getNode(id)!;
+      expect(getNodeDisplayName(vault as unknown as Vault, node)).toBe(
+        "Test Task",
+      );
     });
   });
 
   test("getNodeDisplayName returns data.name if present", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const id = createTestNode("folder", undefined, null, {
         data: { name: "My Folder" },
       });
-      const node = getNode(id)!;
-      expect(getNodeDisplayName(node)).toBe("My Folder");
+      const node = vault.getNode(id)!;
+      expect(getNodeDisplayName(vault as unknown as Vault, node)).toBe(
+        "My Folder",
+      );
     });
   });
 
   test("getCurrentCard returns current card", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       const cardId = createTestNode("task", "Card", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
       const card = getCurrentCard(state);
 
       expect(card).not.toBeNull();
@@ -178,12 +182,12 @@ describe.serial("Board State", () => {
   });
 
   test("getCurrentColumn returns current column", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
       const col = getCurrentColumn(state);
 
       expect(col).not.toBeNull();
@@ -192,7 +196,7 @@ describe.serial("Board State", () => {
   });
 
   test("buildBoardState filters out paragraph nodes as columns (km-1tho)", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       // Bug: paragraph text like "All issues tracked with @issue tag" was appearing as column
       // Expected: paragraphs, code blocks, and quotes should be filtered out as non-columns
@@ -213,7 +217,7 @@ describe.serial("Board State", () => {
       createTestNode("task", "Fix bug #1", col1Id);
       createTestNode("task", "Fix bug #2", col2Id);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       // Should have 3 columns: virtual body column + 2 sections
       // Body content (paragraph) is grouped into a virtual body column
@@ -227,7 +231,7 @@ describe.serial("Board State", () => {
   });
 
   test("buildBoardState filters out code and quote nodes as columns", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("file", "readme.md");
 
@@ -239,7 +243,7 @@ describe.serial("Board State", () => {
       const colId = createTestNode("section", "Getting Started", rootId);
       createTestNode("task", "Install dependencies", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       // Should have 2 columns: virtual body column + 1 section
       // Body content (code, quote) is grouped into a virtual body column
@@ -251,7 +255,7 @@ describe.serial("Board State", () => {
   });
 
   test("buildTreeNodes filters out paragraph nodes (km-1tho refresh path)", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       // This tests the REFRESH code path - buildTreeNodes is called on file watcher sync
       // The original bug: paragraph appeared as column after sync because buildTreeNodes
@@ -269,7 +273,7 @@ describe.serial("Board State", () => {
       createTestNode("section", "Open Issues", rootId);
       createTestNode("section", "Closed Issues", rootId);
 
-      const nodes = buildTreeNodes(rootId);
+      const nodes = buildTreeNodes(vault as unknown as Vault, rootId);
 
       // Should have exactly 2 nodes (sections), NOT 3 (with paragraph)
       expect(nodes).toHaveLength(2);
@@ -279,7 +283,7 @@ describe.serial("Board State", () => {
   });
 
   test("buildTreeNodes filters out code and quote nodes", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("file", "readme.md");
 
@@ -287,7 +291,7 @@ describe.serial("Board State", () => {
       createTestNode("quote", "Some quote text", rootId);
       createTestNode("section", "Getting Started", rootId);
 
-      const nodes = buildTreeNodes(rootId);
+      const nodes = buildTreeNodes(vault as unknown as Vault, rootId);
 
       expect(nodes).toHaveLength(1);
       expect(nodes[0]!.type).toBe("section");
@@ -296,7 +300,7 @@ describe.serial("Board State", () => {
 });
 
 describe.serial("Board Key Handling", () => {
-  function createTestBoard() {
+  function createTestBoard(vault: Vault) {
     setDatabase({ applyEvent });
     const rootId = createTestNode("board", "Test Board");
     const col1Id = createTestNode("folder", "Todo", rootId);
@@ -304,122 +308,122 @@ describe.serial("Board Key Handling", () => {
     createTestNode("task", "Task 1", col1Id);
     createTestNode("task", "Task 2", col1Id);
     createTestNode("task", "Task 3", col2Id);
-    return buildBoardState(rootId);
+    return buildBoardState(vault, rootId);
   }
 
   test("h key moves left", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
       state.colIndex = 1;
-      const result = handleKey(state, "h");
+      const result = handleKey(vault as unknown as Vault, state, "h");
       expect(result.state.colIndex).toBe(0);
       expect(result.action).toBeNull();
     });
   });
 
   test("l key moves right", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
-      const result = handleKey(state, "l");
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
+      const result = handleKey(vault as unknown as Vault, state, "l");
       expect(result.state.colIndex).toBe(1);
       expect(result.action).toBeNull();
     });
   });
 
   test("j key moves down", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
-      const result = handleKey(state, "j");
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
+      const result = handleKey(vault as unknown as Vault, state, "j");
       expect(result.state.cardIndex).toBe(1);
       expect(result.action).toBeNull();
     });
   });
 
   test("k key moves up", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
       state.cardIndex = 1;
-      const result = handleKey(state, "k");
+      const result = handleKey(vault as unknown as Vault, state, "k");
       expect(result.state.cardIndex).toBe(0);
       expect(result.action).toBeNull();
     });
   });
 
   test("g jumps to first card", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
       state.cardIndex = 1;
-      const result = handleKey(state, "g");
+      const result = handleKey(vault as unknown as Vault, state, "g");
       expect(result.state.cardIndex).toBe(0);
     });
   });
 
   test("G jumps to last card", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
-      const result = handleKey(state, "G");
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
+      const result = handleKey(vault as unknown as Vault, state, "G");
       expect(result.state.cardIndex).toBe(1); // Column 1 has 2 cards
     });
   });
 
   test("q returns quit action", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
-      const result = handleKey(state, "q");
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
+      const result = handleKey(vault as unknown as Vault, state, "q");
       expect(result.action).toBe("quit");
     });
   });
 
   test("? enables help mode", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
-      const result = handleKey(state, "?");
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
+      const result = handleKey(vault as unknown as Vault, state, "?");
       expect(result.state.helpMode).toBe(true);
     });
   });
 
   test("/ enables search mode", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
-      const result = handleKey(state, "/");
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
+      const result = handleKey(vault as unknown as Vault, state, "/");
       expect(result.state.searchMode).toBe(true);
       expect(result.state.searchQuery).toBe("");
     });
   });
 
   test("v toggles visual mode", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
-      const result1 = handleKey(state, "v");
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
+      const result1 = handleKey(vault as unknown as Vault, state, "v");
       expect(result1.state.visualMode).toBe(true);
       expect(result1.state.selectedCards.size).toBe(1);
 
-      const result2 = handleKey(result1.state, "v");
+      const result2 = handleKey(vault as unknown as Vault, result1.state, "v");
       expect(result2.state.visualMode).toBe(false);
       expect(result2.state.selectedCards.size).toBe(0);
     });
   });
 
   test("space toggles selection", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
-      const result1 = handleKey(state, " ");
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
+      const result1 = handleKey(vault as unknown as Vault, state, " ");
       expect(result1.state.selectedCards.size).toBe(1);
 
-      const result2 = handleKey(result1.state, " ");
+      const result2 = handleKey(vault as unknown as Vault, result1.state, " ");
       expect(result2.state.selectedCards.size).toBe(0);
     });
   });
 
   test("Tab toggles fold", async () => {
-    await withTestEnv(async () => {
-      const state = createTestBoard();
+    await withTestEnv(async ({ vault }) => {
+      const state = createTestBoard(vault as unknown as Vault);
       const card = getCurrentCard(state)!;
 
-      const result1 = handleKey(state, "\t");
+      const result1 = handleKey(vault as unknown as Vault, state, "\t");
       expect(result1.state.foldedCards.has(card.node.id)).toBe(true);
 
-      const result2 = handleKey(result1.state, "\t");
+      const result2 = handleKey(vault as unknown as Vault, result1.state, "\t");
       expect(result2.state.foldedCards.has(card.node.id)).toBe(false);
     });
   });
@@ -427,15 +431,15 @@ describe.serial("Board Key Handling", () => {
 
 describe.serial("Board Rendering", () => {
   test("renderBoardStatic renders columns", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const col1Id = createTestNode("folder", "Todo", rootId);
       createTestNode("folder", "Done", rootId);
       createTestNode("task", "Task 1", col1Id);
 
-      const state = buildBoardState(rootId);
-      const output = renderBoardStatic(state, 80);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
+      const output = renderBoardStatic(vault as unknown as Vault, state, 80);
 
       expect(output).toContain("Todo");
       expect(output).toContain("Done");
@@ -443,128 +447,157 @@ describe.serial("Board Rendering", () => {
     });
   });
 
-  test("renderBoardStatic handles empty board", () => {
-    const state = createEmptyState();
-    const output = renderBoardStatic(state, 80);
-    expect(output).toContain("Empty board");
+  test("renderBoardStatic handles empty board", async () => {
+    await withTestEnv(async ({ vault }) => {
+      const state = createEmptyState();
+      const output = renderBoardStatic(vault as unknown as Vault, state, 80);
+      expect(output).toContain("Empty board");
+    });
   });
 
-  test("renderCard includes content", () => {
-    const cardState: CardState = {
-      node: {
-        id: "test-card",
-        type: "task",
-        parent_id: null,
-        parent_idx: 0,
-        link_to: null,
-        content: "My Test Task",
-        data: {},
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      children: [],
-    };
-
-    const output = renderCard(cardState, 40, false, false, false);
-    expect(output).toContain("My Test Task");
-  });
-
-  test("renderCard shows children when not folded", () => {
-    const cardState: CardState = {
-      node: {
-        id: "test-card",
-        type: "task",
-        parent_id: null,
-        parent_idx: 0,
-        link_to: null,
-        content: "Parent Task",
-        data: {},
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      children: [
-        {
-          id: "child-1",
+  test("renderCard includes content", async () => {
+    await withTestEnv(async ({ vault }) => {
+      const cardState: CardState = {
+        node: {
+          id: "test-card",
           type: "task",
-          parent_id: "test-card",
+          parent_id: null,
           parent_idx: 0,
           link_to: null,
-          content: "Child Task 1",
+          content: "My Test Task",
           data: {},
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
         },
-      ],
-    };
+        children: [],
+      };
 
-    const output = renderCard(cardState, 40, false, false, false);
-    expect(output).toContain("Child Task 1");
+      const output = renderCard(
+        vault as unknown as Vault,
+        cardState,
+        40,
+        false,
+        false,
+        false,
+      );
+      expect(output).toContain("My Test Task");
+    });
   });
 
-  test("renderCard shows item count when folded", () => {
-    const cardState: CardState = {
-      node: {
-        id: "test-card",
-        type: "task",
-        parent_id: null,
-        parent_idx: 0,
-        link_to: null,
-        content: "Parent Task",
-        data: {},
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      children: [
-        {
-          id: "child-1",
+  test("renderCard shows children when not folded", async () => {
+    await withTestEnv(async ({ vault }) => {
+      const cardState: CardState = {
+        node: {
+          id: "test-card",
           type: "task",
-          parent_id: "test-card",
+          parent_id: null,
           parent_idx: 0,
           link_to: null,
-          content: "Child 1",
+          content: "Parent Task",
           data: {},
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
         },
-        {
-          id: "child-2",
-          type: "task",
-          parent_id: "test-card",
-          parent_idx: 1,
-          link_to: null,
-          content: "Child 2",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        },
-      ],
-    };
+        children: [
+          {
+            id: "child-1",
+            type: "task",
+            parent_id: "test-card",
+            parent_idx: 0,
+            link_to: null,
+            content: "Child Task 1",
+            data: {},
+            created_at: Date.now(),
+            updated_at: Date.now(),
+            version: "v1",
+          },
+        ],
+      };
 
-    const output = renderCard(cardState, 40, false, false, true);
-    expect(output).toContain("\u25b6 2"); // Collapsed indicator with count
-    expect(output).not.toContain("Child 1");
+      const output = renderCard(
+        vault as unknown as Vault,
+        cardState,
+        40,
+        false,
+        false,
+        false,
+      );
+      expect(output).toContain("Child Task 1");
+    });
+  });
+
+  test("renderCard shows item count when folded", async () => {
+    await withTestEnv(async ({ vault }) => {
+      const cardState: CardState = {
+        node: {
+          id: "test-card",
+          type: "task",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          content: "Parent Task",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        },
+        children: [
+          {
+            id: "child-1",
+            type: "task",
+            parent_id: "test-card",
+            parent_idx: 0,
+            link_to: null,
+            content: "Child 1",
+            data: {},
+            created_at: Date.now(),
+            updated_at: Date.now(),
+            version: "v1",
+          },
+          {
+            id: "child-2",
+            type: "task",
+            parent_id: "test-card",
+            parent_idx: 1,
+            link_to: null,
+            content: "Child 2",
+            data: {},
+            created_at: Date.now(),
+            updated_at: Date.now(),
+            version: "v1",
+          },
+        ],
+      };
+
+      const output = renderCard(
+        vault as unknown as Vault,
+        cardState,
+        40,
+        false,
+        false,
+        true,
+      );
+      expect(output).toContain("\u25b6 2"); // Collapsed indicator with count
+      expect(output).not.toContain("Child 1");
+    });
   });
 });
 
 describe.serial("Board Zoom Navigation", () => {
   test("Enter zooms into card with children", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       const cardId = createTestNode("task", "Card", colId);
       createTestNode("task", "Sub-card", cardId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       // Enter should zoom into the card
-      const result = handleKey(state, "\r");
+      const result = handleKey(vault as unknown as Vault, state, "\r");
 
       expect(result.state.rootId).toBe(cardId);
       expect(result.state.zoomStack).toContain(rootId);
@@ -573,7 +606,7 @@ describe.serial("Board Zoom Navigation", () => {
   });
 
   test("Escape zooms out", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
@@ -581,10 +614,10 @@ describe.serial("Board Zoom Navigation", () => {
       createTestNode("task", "Sub-card", cardId);
 
       // Start zoomed in
-      const state = buildBoardState(cardId);
+      const state = buildBoardState(vault as unknown as Vault, cardId);
       state.zoomStack = [rootId];
 
-      const result = handleKey(state, "\x1B");
+      const result = handleKey(vault as unknown as Vault, state, "\x1B");
 
       expect(result.state.rootId).toBe(rootId);
       expect(result.state.zoomStack).toHaveLength(0);
@@ -593,12 +626,12 @@ describe.serial("Board Zoom Navigation", () => {
   });
 
   test("Escape quits when at root", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
-      const result = handleKey(state, "\x1B");
+      const result = handleKey(vault as unknown as Vault, state, "\x1B");
       expect(result.action).toBe("quit");
     });
   });
@@ -609,16 +642,16 @@ describe.serial("Ink Board Rendering", () => {
   // These tests verify the static rendering which shares logic with Ink components
 
   test("board with rootPath shows filesystem path", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Test Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode("task", "Task 1", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
       state.rootPath = "/Users/test/vault";
 
-      const output = renderBoardStatic(state, 80);
+      const output = renderBoardStatic(vault as unknown as Vault, state, 80);
       // The static renderer doesn't show rootPath, but this verifies state setup
       expect(state.rootPath).toBe("/Users/test/vault");
       expect(output).toContain("Column");
@@ -626,19 +659,19 @@ describe.serial("Ink Board Rendering", () => {
   });
 
   test("board state includes rootPath field", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const state = createEmptyState();
       expect(state.rootPath).toBeNull();
 
       const rootId = createTestNode("board", "Board");
-      const boardState = buildBoardState(rootId);
+      const boardState = buildBoardState(vault as unknown as Vault, rootId);
       expect(boardState.rootPath).toBeNull(); // Set by caller, not buildBoardState
     });
   });
 
   test("renderBoardStatic truncates long content", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
@@ -648,8 +681,8 @@ describe.serial("Ink Board Rendering", () => {
         colId,
       );
 
-      const state = buildBoardState(rootId);
-      const output = renderBoardStatic(state, 40); // Narrow width
+      const state = buildBoardState(vault as unknown as Vault, rootId);
+      const output = renderBoardStatic(vault as unknown as Vault, state, 40); // Narrow width
 
       // Content should be present but may be truncated
       expect(output).toContain("This is a very long");
@@ -658,7 +691,7 @@ describe.serial("Ink Board Rendering", () => {
   });
 
   test("renderBoardStatic shows column counts", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Todo", rootId);
@@ -666,8 +699,8 @@ describe.serial("Ink Board Rendering", () => {
       createTestNode("task", "Task 2", colId);
       createTestNode("task", "Task 3", colId);
 
-      const state = buildBoardState(rootId);
-      const output = renderBoardStatic(state, 80);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
+      const output = renderBoardStatic(vault as unknown as Vault, state, 80);
 
       expect(output).toContain("Todo");
       expect(output).toContain("(3)"); // Card count
@@ -675,15 +708,15 @@ describe.serial("Ink Board Rendering", () => {
   });
 
   test("renderBoardStatic handles multiple columns", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       createTestNode("folder", "Todo", rootId);
       createTestNode("folder", "In Progress", rootId);
       createTestNode("folder", "Done", rootId);
 
-      const state = buildBoardState(rootId);
-      const output = renderBoardStatic(state, 120);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
+      const output = renderBoardStatic(vault as unknown as Vault, state, 120);
 
       expect(output).toContain("Todo");
       expect(output).toContain("In Progress");
@@ -696,13 +729,13 @@ describe.serial("Ink Board TUI Rendering", () => {
   // Tests using ink-testing-library to test the ACTUAL Ink components
 
   test("ink board shows header path on first render", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Test Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode("task", "Task 1", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
       state.rootPath = "/Users/test/vault";
 
       const { lastFrame } = render(
@@ -710,7 +743,7 @@ describe.serial("Ink Board TUI Rendering", () => {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
-          vault: createFakeVault(),
+          vault: vault as unknown as Vault,
         }),
       );
 
@@ -728,13 +761,13 @@ describe.serial("Ink Board TUI Rendering", () => {
   });
 
   test("ink board card content does not overflow into borders", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode("task", "Stretching exercises for morning routine", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       // Use narrow width to force content handling
       const { lastFrame } = render(
@@ -762,13 +795,13 @@ describe.serial("Ink Board TUI Rendering", () => {
   });
 
   test("ink board cards have minimal padding", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       createTestNode("task", "TestContent", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       const { lastFrame } = render(
         React.createElement(InkBoardTestable, {
@@ -800,14 +833,14 @@ describe.serial("Ink Board TUI Rendering", () => {
   });
 
   test("ink board columns show side by side", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       createTestNode("folder", "Todo", rootId);
       createTestNode("folder", "InProgress", rootId);
       createTestNode("folder", "Done", rootId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       // Wide enough for 3 columns - must set both testWidth and render columns
       const { lastFrame } = render(
@@ -839,7 +872,7 @@ describe.serial("Ink Board TUI Rendering", () => {
   });
 
   test("ink board shows card count in column header", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "MyColumn", rootId);
@@ -847,7 +880,7 @@ describe.serial("Ink Board TUI Rendering", () => {
       createTestNode("task", "Task 2", colId);
       createTestNode("task", "Task 3", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       const { lastFrame } = render(
         React.createElement(InkBoardTestable, {
@@ -868,7 +901,7 @@ describe.serial("Ink Board TUI Rendering", () => {
 
 describe.serial("Navigation History with Selection", () => {
   test("navigation history stores selection state", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       // Create a board with nested structure for navigation
       const rootId = createTestNode("board", "Root Board");
@@ -879,14 +912,14 @@ describe.serial("Navigation History with Selection", () => {
       createTestNode("task", "Sub-task 1", card1Id);
       createTestNode("task", "Sub-task 2", card1Id);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       const { lastFrame, stdin } = render(
         React.createElement(InkBoardTestable, {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
-          vault: createFakeVault(),
+          vault: vault as unknown as Vault,
         }),
       );
 
@@ -916,7 +949,7 @@ describe.serial("Navigation History with Selection", () => {
   });
 
   test("navigation history preserves subIndex on restore", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       // Create a board with a card that has children (for outline mode)
       const rootId = createTestNode("board", "Board");
@@ -928,14 +961,14 @@ describe.serial("Navigation History with Selection", () => {
       const card2Id = createTestNode("task", "Card 2", colId);
       createTestNode("task", "Card 2 Child", card2Id);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       const { lastFrame, stdin } = render(
         React.createElement(InkBoardTestable, {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
-          vault: createFakeVault(),
+          vault: vault as unknown as Vault,
         }),
       );
 
@@ -960,7 +993,7 @@ describe.serial("Navigation History with Selection", () => {
   });
 
   test("forward navigation with ] restores selection", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
@@ -968,14 +1001,14 @@ describe.serial("Navigation History with Selection", () => {
       createTestNode("task", "Child A", cardId);
       createTestNode("task", "Child B", cardId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       const { lastFrame, stdin } = render(
         React.createElement(InkBoardTestable, {
           initialState: state,
           testWidth: 80,
           testHeight: 24,
-          vault: createFakeVault(),
+          vault: vault as unknown as Vault,
         }),
       );
 
@@ -1002,14 +1035,14 @@ describe.serial("Navigation History with Selection", () => {
 
 describe.serial("Wiki Link Rendering", () => {
   test("wiki links are rendered without brackets", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       // Create a task with wiki link in content
       createTestNode("task", "Check out [[my note]] for details", colId);
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       const { lastFrame } = render(
         React.createElement(InkBoardTestable, {
@@ -1031,7 +1064,7 @@ describe.serial("Wiki Link Rendering", () => {
   });
 
   test("aliased wiki links show only the alias", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
@@ -1042,7 +1075,7 @@ describe.serial("Wiki Link Rendering", () => {
         colId,
       );
 
-      const state = buildBoardState(rootId);
+      const state = buildBoardState(vault as unknown as Vault, rootId);
 
       const { lastFrame } = render(
         React.createElement(InkBoardTestable, {
@@ -1070,22 +1103,28 @@ describe.serial("Wiki Link Rendering", () => {
 
 describe.serial("New Item Dialog", () => {
   test("NewItemDialog renders with cursor context", async () => {
-    await withTestEnv(async () => {
+    await withTestEnv(async ({ vault }) => {
       setDatabase({ applyEvent });
       // Create test nodes
       const rootId = createTestNode("board", "Board");
       const colId = createTestNode("folder", "Column", rootId);
       const taskId = createTestNode("task", "Test task", colId);
 
-      const cursorNode = getNode(taskId);
+      const cursorNode = vault.getNode(taskId);
+
+      // Import VaultProvider for context
+      const { VaultProvider } = await import("../src/vault-context.tsx");
 
       const { lastFrame } = render(
-        React.createElement(NewItemDialog, {
-          cursorNode,
-          onCreate: () => {},
-          onCancel: () => {},
-          width: 40,
-          height: 10,
+        React.createElement(VaultProvider, {
+          vault: createFakeVault(),
+          children: React.createElement(NewItemDialog, {
+            cursorNode,
+            onCreate: () => {},
+            onCancel: () => {},
+            width: 40,
+            height: 10,
+          }),
         }),
       );
 
@@ -1105,13 +1144,19 @@ describe.serial("New Item Dialog", () => {
       cancelled = true;
     };
 
+    // Import VaultProvider for context
+    const { VaultProvider } = await import("../src/vault-context.tsx");
+
     const { stdin } = render(
-      React.createElement(NewItemDialog, {
-        cursorNode: null,
-        onCreate: () => {},
-        onCancel,
-        width: 40,
-        height: 10,
+      React.createElement(VaultProvider, {
+        vault: createFakeVault(),
+        children: React.createElement(NewItemDialog, {
+          cursorNode: null,
+          onCreate: () => {},
+          onCancel,
+          width: 40,
+          height: 10,
+        }),
       }),
     );
 

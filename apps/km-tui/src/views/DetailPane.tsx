@@ -7,7 +7,7 @@
 import React from "react";
 import { Box, Text } from "inkx";
 import type { KNode } from "@km/core";
-import { useVault } from "../vault-context.tsx";
+import { useVault, type Vault } from "../vault-context.tsx";
 import { getNodeDisplayName } from "../state.ts";
 import { renderRich } from "../text/index.ts";
 import { wrapText } from "../layout/index.ts";
@@ -25,7 +25,7 @@ export function DetailPane({
 }: DetailPaneProps): React.ReactElement {
   const vault = useVault();
   const innerWidth = Math.max(10, width - 6); // Account for border + paddingX(1)
-  const title = getNodeDisplayName(node);
+  const title = getNodeDisplayName(vault, node);
 
   // Get fields
   const statusInfo = getStatusDisplay(node.task_status);
@@ -33,7 +33,7 @@ export function DetailPane({
   const assignedTo = node.assigned_to;
 
   // Get project path
-  const projectPath = getProjectPath(node);
+  const projectPath = getProjectPath(vault, node);
 
   // Extract references from content
   const refs = extractReferences(node.content);
@@ -236,7 +236,7 @@ export function DetailPane({
                 {getSubtaskCheckbox(task.task_status)}{" "}
               </Text>
               <Text dimColor={task.task_status === "done"}>
-                {task.content || getNodeDisplayName(task)}
+                {task.content || getNodeDisplayName(vault, task)}
               </Text>
             </Text>
           ))}
@@ -259,7 +259,7 @@ export function DetailPane({
           </Text>
           {backlinkNodes.slice(0, maxBacklinks).map((bl) => (
             <Text key={bl.id} wrap="truncate" dimColor>
-              {"- "}[[{getNodeDisplayName(bl)}]]
+              {"- "}[[{getNodeDisplayName(vault, bl)}]]
             </Text>
           ))}
           {backlinkNodes.length > maxBacklinks && (
@@ -379,17 +379,17 @@ function extractReferences(content: string | undefined): References {
 }
 
 // Build project path (ancestors to root)
-function getProjectPath(node: KNode): string[] {
+function getProjectPath(vault: Vault, node: KNode): string[] {
   const path: string[] = [];
   let currentId = node.parent_id;
 
   while (currentId) {
-    const parent = getNode(currentId);
+    const parent = vault.getNode(currentId);
     if (!parent) break;
 
     // Only include folders and files (not sections or the board root)
     if (parent.type === "folder" || parent.type === "file") {
-      path.unshift(getNodeDisplayName(parent));
+      path.unshift(getNodeDisplayName(vault, parent));
     }
     currentId = parent.parent_id;
   }

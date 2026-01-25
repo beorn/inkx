@@ -14,6 +14,7 @@ import { Box, Text } from "inkx";
 import type { BoardState, CardState } from "../types.ts";
 import { getBoardPills, type BoardPill } from "../board-pills.ts";
 import { useTreeConfig, useRootBoardId } from "../ui-context.tsx";
+import { useVault } from "../vault-context.tsx";
 import type { KNode } from "@km/core";
 import {
   MemoizedTreeCard,
@@ -61,6 +62,7 @@ export function ListView({
 }: ListViewProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig();
   const rootBoardId = useRootBoardId();
+  const vault = useVault();
 
   // Flatten all cards into a single list
   const flatItems = useMemo(() => {
@@ -88,12 +90,12 @@ export function ListView({
       if (item.type === "card" && item.card.node.task_status != null) {
         cache.set(
           item.card.node.id,
-          getBoardPills(item.card.node, excludeBoardIds),
+          getBoardPills(vault, item.card.node, excludeBoardIds),
         );
       }
     }
     return cache;
-  }, [flatItems, rootBoardId]);
+  }, [flatItems, rootBoardId, vault]);
 
   // Cached getBoardPills function to pass to TreeNode
   // Use useCallback to maintain stable reference when cache content is same

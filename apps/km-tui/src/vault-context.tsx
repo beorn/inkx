@@ -18,6 +18,7 @@
 
 import React, { createContext, useContext, type ReactNode } from "react";
 import type { Vault } from "@km/storage";
+export type { Vault };
 
 const VaultContext = createContext<Vault | null>(null);
 

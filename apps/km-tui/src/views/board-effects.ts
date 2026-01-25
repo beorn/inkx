@@ -14,6 +14,7 @@ import {
 import { tuiEvents } from "../tui.ts";
 import { buildTreeNodes } from "../board-adapter.ts";
 import type { WatcherStatus } from "@km/storage";
+import type { Vault } from "../vault-context.tsx";
 import type { BoardAction } from "@km/board";
 import type { SelectionRange } from "../mouse-handler.ts";
 
@@ -146,6 +147,7 @@ export function createMouseHandler_(
  * Subscribes to external refresh events (filesystem changes)
  */
 export function createRefreshHandler(
+  vault: Vault,
   rootIdRef: React.RefObject<string | null>,
   dispatchBoard: Dispatch<BoardAction>,
 ): () => void {
@@ -154,7 +156,7 @@ export function createRefreshHandler(
     // Must use deep loading (true) to include children - shallow loading loses them!
     // Uses rootIdRef to get current rootId (avoids stale closure from useEffect deps)
     // Note: rootIdRef.current can be null for root-level view, which is valid
-    const nodes = buildTreeNodes(rootIdRef.current, true);
+    const nodes = buildTreeNodes(vault, rootIdRef.current, true);
     dispatchBoard({ type: "REFRESH", nodes });
   };
 

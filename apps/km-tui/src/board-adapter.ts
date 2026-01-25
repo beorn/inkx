@@ -23,7 +23,7 @@ import {
   findPathToNode,
   getNodeAtPath,
 } from "@km/board";
-import { getChildren, getChildCount } from "@km/storage";
+import type { Vault } from "@km/storage";
 import type { ColumnState, CardState, ColumnRules } from "./types.ts";
 import { parseColumnRules } from "./state.ts";
 
@@ -240,8 +240,11 @@ export function getLayoutCard(layout: ColumnsLayout): CardState | null {
 /**
  * Convert TUI's initial BoardState to @km/board's BoardState.
  * This is used during the migration to seed the tree-based reducer.
+ *
+ * @param vault - Vault instance for storage operations
  */
 export function tuiStateToTreeState(
+  vault: Vault,
   tuiState: {
     rootId: string | null;
     rootPath: string | null;
@@ -263,7 +266,9 @@ export function tuiStateToTreeState(
   },
 ): TreeBoardState {
   // Convert columns to TNode array
-  const nodes: TNode[] = tuiState.columns.map((col) => columnToTNode(col));
+  const nodes: TNode[] = tuiState.columns.map((col) =>
+    columnToTNode(vault, col),
+  );
 
   // Convert cursor from (colIndex, cardIndex) to TPath
   const cursor: number[] =
@@ -336,7 +341,7 @@ export function tuiStateToTreeState(
 /**
  * Convert a ColumnState to a TNode.
  */
-function columnToTNode(col: ColumnState): TNode {
+function columnToTNode(vault: Vault, col: ColumnState): TNode {
   return {
     id: col.node.id,
     type: col.node.type,
@@ -345,7 +350,7 @@ function columnToTNode(col: ColumnState): TNode {
     link_to: col.node.link_to ?? null,
     name: col.node.name ?? col.node.title ?? "",
     title: col.node.title ?? "",
-    children: col.cards.map((card) => cardToTNode(card)),
+    children: col.cards.map((card) => cardToTNode(vault, card)),
     childCount: col.cards.length,
     childrenLoaded: true,
     isTask: col.node.type === "task",
@@ -362,7 +367,7 @@ function columnToTNode(col: ColumnState): TNode {
  * Convert a CardState to a TNode.
  * Uses shallow loading for children to avoid recursive database queries.
  */
-function cardToTNode(card: CardState): TNode {
+function cardToTNode(vault: Vault, card: CardState): TNode {
   return {
     id: card.node.id,
     type: card.node.type,
@@ -372,7 +377,9 @@ function cardToTNode(card: CardState): TNode {
     name: card.node.name ?? card.node.title ?? "",
     title: card.node.title ?? "",
     // Use shallow loading to avoid O(n^2) recursive queries
-    children: card.children.map((child) => kNodeToTNodeShallow(child, 2)),
+    children: card.children.map((child) =>
+      kNodeToTNodeShallow(vault, child, 2),
+    ),
     childCount: card.children.length,
     childrenLoaded: true,
     isTask: card.node.type === "task",
@@ -392,7 +399,7 @@ function cardToTNode(card: CardState): TNode {
  * Convert a KNode to a shallow TNode (children not loaded).
  * Use for fast initial load and refresh.
  */
-function kNodeToTNodeShallow(node: KNode, depth: number): TNode {
+function kNodeToTNodeShallow(vault: Vault, node: KNode, depth: number): TNode {
   return {
     id: node.id,
     type: node.type,
@@ -402,7 +409,7 @@ function kNodeToTNodeShallow(node: KNode, depth: number): TNode {
     name: node.name ?? node.title ?? "",
     title: node.title ?? "",
     children: [],
-    childCount: getChildCount(node.id),
+    childCount: vault.getChildren(node.id).length,
     childrenLoaded: false,
     isTask: node.type === "task",
     depth,
@@ -420,8 +427,12 @@ function kNodeToTNodeShallow(node: KNode, depth: number): TNode {
  * Convert a KNode to a TNode with children loaded (one level deep).
  * Children are loaded as shallow nodes.
  */
-function kNodeToTNodeWithChildren(node: KNode, depth: number): TNode {
-  const children = getChildren(node.id);
+function kNodeToTNodeWithChildren(
+  vault: Vault,
+  node: KNode,
+  depth: number,
+): TNode {
+  const children = vault.getChildren(node.id);
   return {
     id: node.id,
     type: node.type,
@@ -430,7 +441,9 @@ function kNodeToTNodeWithChildren(node: KNode, depth: number): TNode {
     link_to: node.link_to ?? null,
     name: node.name ?? node.title ?? "",
     title: node.title ?? "",
-    children: children.map((child) => kNodeToTNodeShallow(child, depth + 1)),
+    children: children.map((child) =>
+      kNodeToTNodeShallow(vault, child, depth + 1),
+    ),
     childCount: children.length,
     childrenLoaded: true,
     isTask: node.type === "task",
@@ -460,36 +473,41 @@ const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"]);
  * Filters out non-column types (paragraph, code, quote) to prevent content blocks
  * from appearing as columns in the board view. (Fix for km-1tho)
  *
+ * @param vault - Vault instance for storage operations
  * @param rootId - Root node ID to load children from (null for root level)
  * @param loadChildren - If true, load children one level deep. If false, shallow load only.
  * @returns TNode[] for immediate children of root (excluding non-column types)
  */
 export function buildTreeNodes(
+  vault: Vault,
   rootId: string | null,
   loadChildren: boolean = true,
 ): TNode[] {
-  const allChildren = getChildren(rootId);
+  const allChildren = vault.getChildren(rootId);
   // Filter out non-column types (paragraph, code, quote) to match buildBoardState behavior
   const columnNodes = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type));
   return columnNodes.map((node) =>
     loadChildren
-      ? kNodeToTNodeWithChildren(node, 0)
-      : kNodeToTNodeShallow(node, 0),
+      ? kNodeToTNodeWithChildren(vault, node, 0)
+      : kNodeToTNodeShallow(vault, node, 0),
   );
 }
 
 /**
  * Load children for a node that has childrenLoaded: false.
  * Returns the node with children populated (one level deep).
+ *
+ * @param vault - Vault instance for storage operations
+ * @param node - TNode with childrenLoaded: false
  */
-export function loadNodeChildren(node: TNode): TNode {
+export function loadNodeChildren(vault: Vault, node: TNode): TNode {
   if (node.childrenLoaded) return node;
 
-  const children = getChildren(node.id);
+  const children = vault.getChildren(node.id);
   return {
     ...node,
     children: children.map((child) =>
-      kNodeToTNodeShallow(child, node.depth + 1),
+      kNodeToTNodeShallow(vault, child, node.depth + 1),
     ),
     childCount: children.length,
     childrenLoaded: true,
