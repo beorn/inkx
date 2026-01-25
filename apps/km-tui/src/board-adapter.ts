@@ -124,6 +124,9 @@ function extractWipLimits(nodes: TNode[]): Map<string, number> {
  * 2. Otherwise fall back to stored cursor path
  *
  * This ensures the cursor follows the selected node across zoom operations.
+ *
+ * @deprecated Use deriveColumnsFromVault() from hooks/use-columns.ts instead.
+ * This function uses TreeBoardState with nodes array, which is being phased out.
  */
 export function deriveColumnsLayout(state: TreeBoardState): ColumnsLayout {
   const wipLimits = extractWipLimits(state.nodes);
@@ -165,6 +168,8 @@ export function deriveColumnsLayout(state: TreeBoardState): ColumnsLayout {
  *
  * PERFORMANCE: This function rebuilds all column state, so only call it when
  * the tree structure changes (state.nodes reference changes), NOT on cursor moves.
+ *
+ * @deprecated Use deriveColumnsFromVault() from hooks/use-columns.ts instead.
  */
 export function deriveColumns(nodes: TNode[]): ColumnState[] {
   const wipLimits = extractWipLimits(nodes);
@@ -179,6 +184,8 @@ export function deriveColumns(nodes: TNode[]): ColumnState[] {
  * PERFORMANCE: This function is called on every cursor move, so it must be fast.
  * - Fast path: O(depth) - just validate cursor path via array indexing
  * - Slow path: O(n) tree search - only used after zoom when tree changes
+ *
+ * @deprecated Use useCursorPosition() from hooks/use-cursor-position.ts instead.
  */
 export function deriveCursorIndices(
   state: TreeBoardState,
@@ -221,6 +228,7 @@ export function deriveCursorIndices(
 
 /**
  * Get the current column from derived layout.
+ * @deprecated Access layout.columns[layout.colIndex] directly.
  */
 export function getLayoutColumn(layout: ColumnsLayout): ColumnState | null {
   return layout.columns[layout.colIndex] ?? null;
@@ -228,6 +236,7 @@ export function getLayoutColumn(layout: ColumnsLayout): ColumnState | null {
 
 /**
  * Get the current card from derived layout.
+ * @deprecated Access column.cards[layout.cardIndex] directly.
  */
 export function getLayoutCard(layout: ColumnsLayout): CardState | null {
   const col = getLayoutColumn(layout);
@@ -240,6 +249,8 @@ export function getLayoutCard(layout: ColumnsLayout): CardState | null {
 /**
  * Convert TUI's initial BoardState to @km/board's BoardState.
  * This is used during the migration to seed the tree-based reducer.
+ *
+ * @deprecated No longer needed. Board now uses SimplifiedBoardState with vault-derived columns.
  *
  * @param vault - Vault instance for storage operations
  */
@@ -496,6 +507,8 @@ export function buildTreeNodes(
 /**
  * Load children for a node that has childrenLoaded: false.
  * Returns the node with children populated (one level deep).
+ *
+ * @deprecated Use vault.getChildren() directly. TNode tree is being phased out.
  *
  * @param vault - Vault instance for storage operations
  * @param node - TNode with childrenLoaded: false
