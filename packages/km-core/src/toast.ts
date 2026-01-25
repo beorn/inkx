@@ -8,6 +8,12 @@
 
 import type { NotificationLevel } from "./types.ts"
 
+// Type declarations for global timer functions
+declare global {
+  function setTimeout(callback: () => void, ms: number): number
+  function clearTimeout(id: number): void
+}
+
 // =============================================================================
 // Toast Types
 // =============================================================================
@@ -58,7 +64,11 @@ export class ToastQueue {
    * Add a toast to the queue.
    * If batchKey is provided, similar toasts will be batched.
    */
-  push(level: NotificationLevel, message: string, options?: ToastOptions): string {
+  push(
+    level: NotificationLevel,
+    message: string,
+    options?: ToastOptions,
+  ): string {
     const id = `toast-${this.nextId++}`
     const toast: Toast = {
       id,
@@ -80,7 +90,9 @@ export class ToastQueue {
   }
 
   private handleBatch(toast: Toast): void {
-    const key = toast.batchKey!
+    if (!toast.batchKey) return
+
+    const key = toast.batchKey
 
     // Cancel existing batch timer
     const existingTimer = this.batchTimers.get(key)
@@ -89,11 +101,10 @@ export class ToastQueue {
     }
 
     // Find existing batched toast
-    const existingIndex = this.toasts.findIndex((t) => t.batchKey === key)
+    const existing = this.toasts.find((t) => t.batchKey === key)
 
-    if (existingIndex >= 0) {
+    if (existing) {
       // Update existing batched toast
-      const existing = this.toasts[existingIndex]!
 
       // If toast has items array, accumulate them
       if (toast.items && toast.items.length > 0) {
@@ -129,7 +140,7 @@ export class ToastQueue {
           // Show count
           this.toasts.push({
             ...toast,
-            message: `${toast.items.length} ${toast.message}`
+            message: `${toast.items.length} ${toast.message}`,
           })
         }
       } else {
@@ -229,7 +240,7 @@ export const toast = Object.assign(
     },
 
     // Promise helper (future - not implemented yet)
-    promise: <T,>(
+    promise: <T>(
       _promise: Promise<T>,
       _opts: {
         loading: string

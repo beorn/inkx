@@ -234,16 +234,19 @@ export function BoardCore({
                       )}
                       {effectiveVisibleColumns.map((col, i) => {
                         const actualColIndex = effectiveScrollOffset + i
-                        const isLastCol = i === effectiveVisibleColumns.length - 1
+                        const isLastCol =
+                          i === effectiveVisibleColumns.length - 1
                         // Reduce column width if scroll indicators are shown
                         const hasLeftIndicator = effectiveScrollOffset > 0
                         const hasRightIndicator =
                           effectiveScrollOffset + effectiveMaxCols <
                           state.columns.length
                         const indicatorWidth =
-                          (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0)
+                          (hasLeftIndicator ? 1 : 0) +
+                          (hasRightIndicator ? 1 : 0)
                         // Account for separator lines between columns (1 char each, n-1 separators)
-                        const separatorCount = effectiveVisibleColumns.length - 1
+                        const separatorCount =
+                          effectiveVisibleColumns.length - 1
                         const availableWidth =
                           boardWidth - indicatorWidth - separatorCount
                         const baseColWidth = Math.floor(
@@ -259,9 +262,13 @@ export function BoardCore({
                               column={col}
                               colIndex={actualColIndex}
                               isSelected={actualColIndex === state.colIndex}
-                              isCollapsed={ui.collapsedColumns.has(actualColIndex)}
+                              isCollapsed={ui.collapsedColumns.has(
+                                actualColIndex,
+                              )}
                               selectedCardIndex={state.cardIndex}
-                              selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
+                              selectedSubIndex={
+                                ui.inOutlineMode ? ui.subIndex : -1
+                              }
                               width={adjustedColWidth}
                               height={contentHeight}
                               selectionLevel={derivedSelectionLevel}

@@ -1483,7 +1483,9 @@ function ToastAndStatusSection(): React.ReactElement {
       </ViewBox>
 
       <SubsectionHeader title="Status Bar with Messages" />
-      <Text dimColor>Bottom bar shows watcher status and optional messages</Text>
+      <Text dimColor>
+        Bottom bar shows watcher status and optional messages
+      </Text>
       <Text> </Text>
 
       <Text bold>Normal state (no status message):</Text>
@@ -1550,7 +1552,7 @@ function ToastAndStatusSection(): React.ReactElement {
 // Create a minimal mock vault for storybook
 // Uses the existing db created at the top of the file
 const mockVault = runGenerator(
-  createVault(":memory:", { inject: { database: db } })
+  createVault(":memory:", { inject: { database: db } }),
 )
 
 function Storybook(): React.ReactElement {

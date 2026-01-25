@@ -15,12 +15,14 @@ interface TopBarProps {
   isBoardSelected?: boolean
 }
 
-export function TopBar({ segments, width, isBoardSelected = true }: TopBarProps): React.ReactElement {
+export function TopBar({
+  segments,
+  width,
+  isBoardSelected = true,
+}: TopBarProps): React.ReactElement {
   return (
     <Box width={width} paddingLeft={1} paddingRight={1} flexShrink={0}>
-      <Text>
-        {renderTopBarContent(segments, isBoardSelected)}
-      </Text>
+      <Text>{renderTopBarContent(segments, isBoardSelected)}</Text>
     </Box>
   )
 }

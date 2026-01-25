@@ -46,7 +46,8 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
 
   // Determine if we should show items individually
   const threshold = toast.itemThreshold ?? 3
-  const shouldShowItems = toast.items && toast.items.length > 0 && toast.items.length < threshold
+  const shouldShowItems =
+    toast.items && toast.items.length > 0 && toast.items.length < threshold
 
   return (
     <Box
@@ -74,11 +75,12 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
         </Text>
       )}
       {/* Show individual items if below threshold */}
-      {shouldShowItems && toast.items!.map((item, i) => (
-        <Text key={i} dimColor wrap="truncate-end">
-          {"  • " + item}
-        </Text>
-      ))}
+      {shouldShowItems &&
+        toast.items?.map((item, i) => (
+          <Text key={i} dimColor wrap="truncate-end">
+            {"  • " + item}
+          </Text>
+        ))}
     </Box>
   )
 }
