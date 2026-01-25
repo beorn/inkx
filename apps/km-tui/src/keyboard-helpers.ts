@@ -164,9 +164,11 @@ export function refreshBoardState(
 
   // Dispatch navigation if cursor changed
   if (colIndex !== ctx.layout.colIndex || cardIndex !== ctx.layout.cardIndex) {
+    // Get the target card node ID
+    const targetCard = cards[cardIndex]
     ctx.dispatchBoard({
-      type: "NAV_TO_PATH",
-      path: cardIndex >= 0 ? [colIndex, cardIndex] : [colIndex],
+      type: "SELECT",
+      nodeId: targetCard?.id ?? null,
     })
   }
 }

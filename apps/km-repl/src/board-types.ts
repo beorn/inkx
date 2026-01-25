@@ -6,7 +6,7 @@
  * while the TUI uses SimplifiedBoardState with just cursorNodeId.
  */
 
-import type { TaskStatus, TaskMark } from "@km/core"
+import type { TaskStatus, TaskMark, NodeRules } from "@km/core"
 
 /**
  * Tree path - array of indices into nodes/children arrays
@@ -33,7 +33,7 @@ export interface TNode {
   due_date?: string
   scheduled_date?: string
   content?: string
-  rules?: string[]
+  rules?: NodeRules
   data: Record<string, unknown>
   created_at: number
   updated_at: number

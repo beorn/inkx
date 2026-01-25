@@ -15,42 +15,109 @@ const render = createTestRenderer()
 
 describe("BottomBar", () => {
   const mockUIState: UIState = {
-    isReady: true,
-    isLoading: false,
+    // View configuration
+    viewMode: "columns",
+    showDetailPane: false,
+    maxOutlineDepth: 2,
+    maxContentLines: 3,
+
+    // Board context
+    rootBoardId: null,
+
+    // Overlays/dialogs
     showHelp: false,
     showProjectPicker: false,
     showNewItemDialog: false,
-    showDropNotification: false,
-    droppedFiles: [],
-    isMouseDragging: false,
-    mouseSelection: null,
-    multiSelected: new Set(),
+
+    // Selection state
+    subIndex: 0,
     inOutlineMode: false,
-    viewMode: "columns",
-    watcherStatus: null,
+    multiSelected: new Set(),
+    selectionAnchor: null,
+    selectAllLevel: 0,
+
+    // Column state
+    collapsedColumns: new Set(),
+
+    // Node fold state
+    foldedNodes: new Set(),
+
+    // Mouse state
+    mouseSelection: null,
+    isMouseDragging: false,
+
+    // File drop state
+    droppedFiles: [],
+    showDropNotification: false,
+
+    // Navigation history
+    navHistory: [],
+    navHistoryIndex: 0,
+
+    // Recent projects
+    recentProjectIds: [],
+
+    // Terminal state
+    isReady: true,
     dimensions: { columns: 80, rows: 24 },
+
+    // Loading state
+    isLoading: false,
+    loadingStartTime: null,
+
+    // Watcher status
+    watcherStatus: null,
+
+    // Bell state
+    bellState: null,
   }
 
   const mockBoardState: TUIBoardState = {
     rootPath: "/tmp/test-vault",
     rootId: "root-123",
     colIndex: 0,
+    cardIndex: 0,
     columns: [
       {
-        sectionId: "section-1",
-        sectionTitle: "Todo",
+        node: {
+          id: "section-1",
+          type: "section",
+          parent_id: "root-123",
+          parent_idx: 0,
+          link_to: null,
+          title: "Todo",
+          content: "",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        },
         cards: [],
-        selectedCardIndex: null,
-        focusedCardId: null,
       },
       {
-        sectionId: "section-2",
-        sectionTitle: "Done",
+        node: {
+          id: "section-2",
+          type: "section",
+          parent_id: "root-123",
+          parent_idx: 1,
+          link_to: null,
+          title: "Done",
+          content: "",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        },
         cards: [],
-        selectedCardIndex: null,
-        focusedCardId: null,
       },
     ],
+    selectedCards: new Set(),
+    visualMode: false,
+    foldedCards: new Set(),
+    collapsedColumns: new Set(),
+    searchQuery: "",
+    searchMode: false,
+    helpMode: false,
   }
 
   it("renders storage mode and path", () => {
