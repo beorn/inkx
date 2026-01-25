@@ -83,3 +83,7 @@ export {
   type Logger,
   type LogLevel,
 } from "@beorn/logger"
+
+// Event system
+export { kmEvents, DisposableStore } from "./events.ts"
+export type { KmEvents, Subscription } from "./events.ts"

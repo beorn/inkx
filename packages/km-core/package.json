@@ -9,6 +9,7 @@
   "private": true,
   "dependencies": {
     "@beorn/logger": "workspace:*",
+    "nanoevents": "^9.1.0",
     "ulid": "^2.3.0"
   }
 }
