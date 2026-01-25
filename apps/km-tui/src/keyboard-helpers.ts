@@ -22,12 +22,14 @@ export function pushNavHistoryEntry(
   subIndex: number,
   multiSelected: Set<SelectionKey>,
   inOutlineMode: boolean,
+  cursorNodeId: string | null = null,
 ): void {
   dispatch(
     actions.pushNavHistory({
       rootId,
       colIndex,
       cardIndex,
+      cursorNodeId,
       subIndex,
       multiSelected: new Set(multiSelected),
       inOutlineMode,

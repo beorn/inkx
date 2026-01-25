@@ -126,8 +126,15 @@ export function handleCommandAction(
       const curCol = state.columns[state.colIndex]
       const curCard = curCol?.cards[state.cardIndex]
       const curNodeId = curCard?.node.id ?? curCol?.node.id
+      debug(
+        "OPEN_DETAIL_PANE: colIndex=%d cardIndex=%d curNodeId=%s",
+        state.colIndex,
+        state.cardIndex,
+        curNodeId,
+      )
       if (curNodeId) {
         const children = ctx.vault.getChildren(curNodeId)
+        debug("OPEN_DETAIL_PANE: children=%d", children.length)
         if (children.length > 0) {
           // Use handleZoomInNode to support both card and column level zoom
           return handleZoomInNode(ctx, curNodeId)
@@ -289,11 +296,14 @@ function handleZoomOutwards(ctx: TUIContext): ActionResult {
           ui.subIndex,
           ui.multiSelected,
           ui.inOutlineMode,
+          boardState.cursorNodeId,
         )
 
+        // When zooming out, keep the current root as the cursor
         dispatchBoard({
           type: "ZOOM_IN",
           nodeId: parentNode.id,
+          cursorNodeId: boardState.rootId,
         })
         clearSelection(ctx)
         return ok()
@@ -309,11 +319,14 @@ function handleZoomOutwards(ctx: TUIContext): ActionResult {
           ui.subIndex,
           ui.multiSelected,
           ui.inOutlineMode,
+          boardState.cursorNodeId,
         )
 
+        // When zooming out to root, keep the current root as the cursor
         dispatchBoard({
           type: "ZOOM_IN",
           nodeId: rootView.rootId,
+          cursorNodeId: boardState.rootId,
         })
         clearSelection(ctx)
         return ok()
@@ -370,7 +383,15 @@ function handleZoomOutwards(ctx: TUIContext): ActionResult {
     return ok()
   }
 
-  return boundary("up", "already at top level")
+  // At root level - try hierarchical cursor up instead
+  const targetId = handleHierarchicalNavigation(ctx, "up")
+  if (targetId) {
+    dispatchBoard({ type: "SELECT", nodeId: targetId })
+    return ok()
+  }
+
+  // Cursor up also failed - now return boundary
+  return boundary("up", "already at board level")
 }
 
 function handleDeleteNode(ctx: TUIContext): void {
@@ -389,28 +410,21 @@ function handleDeleteNode(ctx: TUIContext): void {
 function handleConfirmMove(ctx: TUIContext): void {
   const { boardState, layout, vault, dispatchBoard } = ctx
   const sourceNodeIds = boardState.moveSourceNodes
-  console.log("handleConfirmMove:", {
-    sourceNodeIds,
-    colIndex: layout.colIndex,
-  })
   if (sourceNodeIds.length === 0) return
   const targetCol = layout.columns[layout.colIndex]
-  console.log("targetCol:", targetCol?.node.id, targetCol?.node.title)
   if (!targetCol) return
   let newSortOrder =
     targetCol.cards.length > 0
       ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1
       : 0
   for (const nodeId of sourceNodeIds) {
-    console.log("Moving:", nodeId, "to", targetCol.node.id, "at", newSortOrder)
     vault.moveNode(nodeId, targetCol.node.id, newSortOrder)
     newSortOrder++
   }
   dispatchBoard({ type: "CONFIRM_MOVE" })
   refreshBoardState(ctx, {
     colIndex: layout.colIndex,
-    cardIndex: (col) =>
-      Math.min(targetCol.cards.length, col?.cards.length || 0),
+    cardIndex: () => targetCol.cards.length,
   })
 }
 
@@ -800,6 +814,7 @@ function handleNavBack(ctx: TUIContext): ActionResult {
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: entry.rootId || null,
+    cursorNodeId: entry.cursorNodeId || null,
   })
 
   // Restore selection state
@@ -835,6 +850,7 @@ function handleNavForward(ctx: TUIContext): ActionResult {
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: entry.rootId || null,
+    cursorNodeId: entry.cursorNodeId || null,
   })
 
   // Restore selection state
@@ -859,8 +875,8 @@ function handleZoomIn(ctx: TUIContext): ActionResult {
   if (!card) return precondition("card")
 
   // If card has no children, return boundary (nothing to zoom into)
-  const hasChildren = ctx.vault.getChildren(card.node.id).length > 0
-  if (!hasChildren) {
+  const children = ctx.vault.getChildren(card.node.id)
+  if (children.length === 0) {
     return boundary("in", "no children")
   }
 
@@ -873,12 +889,15 @@ function handleZoomIn(ctx: TUIContext): ActionResult {
     ui.subIndex,
     ui.multiSelected,
     ui.inOutlineMode,
+    boardState.cursorNodeId,
   )
 
-  // Dispatch zoom - board reducer handles cursor reset
+  // Dispatch zoom to the card node, with first child as initial cursor
+  const firstChild = children[0]
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: card.node.id,
+    cursorNodeId: firstChild?.id ?? null,
   })
 
   clearSelection(ctx)
@@ -906,12 +925,15 @@ function handleZoomInNode(ctx: TUIContext, nodeId: string): ActionResult {
     ui.subIndex,
     ui.multiSelected,
     ui.inOutlineMode,
+    boardState.cursorNodeId,
   )
 
-  // Dispatch zoom
+  // Dispatch zoom with first child as initial cursor
+  const firstChild = children[0]
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId,
+    cursorNodeId: firstChild?.id ?? null,
   })
 
   clearSelection(ctx)
@@ -1003,6 +1025,7 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
     ui.subIndex,
     ui.multiSelected,
     ui.inOutlineMode,
+    boardState.cursorNodeId,
   )
 
   // Navigate to favorite
@@ -1123,6 +1146,7 @@ function handleNavSiblingBoard(
     ui.subIndex,
     ui.multiSelected,
     ui.inOutlineMode,
+    boardState.cursorNodeId,
   )
 
   // Navigate to sibling
@@ -1177,14 +1201,20 @@ function handleZoomInwards(ctx: TUIContext): ActionResult {
         ui.subIndex,
         ui.multiSelected,
         ui.inOutlineMode,
+        boardState.cursorNodeId,
       )
 
       dispatch(actions.exitOutlineMode())
       dispatch(actions.setSubIndex(0))
 
+      // Get first child of zoom target for cursor initialization
+      const targetChildChildren = ctx.vault.getChildren(targetChild.node.id)
+      const firstChild = targetChildChildren[0]
+
       dispatchBoard({
         type: "ZOOM_IN",
         nodeId: targetChild.node.id,
+        cursorNodeId: firstChild?.id ?? null,
       })
 
       clearSelection(ctx)

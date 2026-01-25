@@ -119,7 +119,8 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
   // Derive current column and card from layout
   const column = layout.columns[layout.colIndex]
   const card = column?.cards[layout.cardIndex]
-  const selectedNode = card?.node
+  // At column level (cardIndex -1), use column node; at card level, use card node
+  const selectedNode = card?.node ?? column?.node
 
   return {
     vault,

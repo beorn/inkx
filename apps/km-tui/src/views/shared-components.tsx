@@ -147,7 +147,7 @@ function CardLayoutTracker({
       flexDirection="column"
       id={nodeId}
       data-view="card"
-      data-cursor={isSelected}
+      {...(isSelected && { "data-cursor": true })}
     >
       {children}
     </Box>

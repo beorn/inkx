@@ -6,6 +6,7 @@
  */
 
 import createDebug from "debug"
+import type { Database } from "bun:sqlite"
 import { getDb } from "./db.ts"
 import { SyncManager, type SyncConfig } from "./watch/index.ts"
 import type { FileChange } from "./watch/index.ts"
@@ -43,6 +44,8 @@ export interface Watcher extends Service {
 
 /** Options for createWatcher */
 export interface WatcherOptions {
+  /** Database instance (injected from vault) */
+  db?: Database
   /** Debounce time for filesystem events in ms (default: 5000) */
   debounceFs?: number
   /** Debounce time for database apply in ms (default: 3000) */
@@ -77,9 +80,9 @@ export function createWatcher(
 
   let status: ServiceStatus = "stopped"
 
-  // Create SyncManager with config
+  // Create SyncManager with config (use injected db or fallback to global)
   const config: SyncConfig = {
-    db: getDb(),
+    db: options?.db ?? getDb(),
     vaultPath,
     debounceFs: options?.debounceFs ?? 5000,
     debounceApply: options?.debounceApply ?? 3000,

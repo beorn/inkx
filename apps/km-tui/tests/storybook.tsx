@@ -60,12 +60,16 @@ import { ListView } from "../src/views/ListView.tsx"
 import { ColumnsView } from "../src/views/ColumnsView.tsx"
 import { TabsView } from "../src/views/TabsView.tsx"
 import { TopBar } from "../src/views/TopBar.tsx"
+import { BottomBar } from "../src/views/board-bottom-bar.tsx"
+import { ToastStack } from "../src/views/ToastStack.tsx"
 import type { KNode } from "@km/core"
 import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts"
 import { UIProvider } from "../src/ui-context.tsx"
-import { createInitialUIState } from "../src/ui-reducer.ts"
-import { runWithDb } from "@km/storage"
+import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
+import { VaultProvider } from "../src/vault-context.tsx"
+import { runWithDb, createVault, runGenerator } from "@km/storage"
 import Database from "bun:sqlite"
+import type { Toast } from "@km/core"
 
 // Initialize an empty in-memory database for storybook rendering
 // This is still needed for functions like getBoardPills() that query the DB.
@@ -1336,29 +1340,242 @@ function VisualLanguageSection(): React.ReactElement {
 }
 
 // ============================================================================
+// Toast & Status Bar Section
+// ============================================================================
+
+function ToastAndStatusSection(): React.ReactElement {
+  // Create mock toasts for demonstration
+  const mockToasts: Toast[] = [
+    {
+      id: "toast-1",
+      level: "info",
+      message: "3 tasks selected",
+      duration: 4000,
+      dismissible: true,
+    },
+    {
+      id: "toast-2",
+      level: "success",
+      message: "Synced 5 files",
+      duration: 2000,
+      dismissible: true,
+    },
+    {
+      id: "toast-3",
+      level: "warning",
+      message: "Disk space low",
+      description: "Less than 10% remaining",
+      duration: 4000,
+      dismissible: true,
+    },
+    {
+      id: "toast-4",
+      level: "error",
+      message: "Failed to save",
+      description: "Network connection lost",
+      duration: 4000,
+      dismissible: true,
+    },
+    {
+      id: "toast-5",
+      level: "info",
+      message: "Task archived",
+      action: { label: "Undo", trigger: "z" },
+      duration: 4000,
+      dismissible: true,
+    },
+  ]
+
+  const demoTermWidth = 100
+  const demoTermHeight = 30
+
+  // Create mock UI state with status message
+  const uiStateWithStatus: UIState = {
+    ...mockUIState,
+    status: { level: "info", message: "Move mode active" },
+  }
+
+  const mockState = createMockTUIBoardState()
+
+  return (
+    <Box flexDirection="column">
+      <SectionHeader title="Toast Stack & Status Bar" />
+
+      <SubsectionHeader title="Single Toast - All Levels" />
+      <Text dimColor>
+        Toasts appear in bottom-right corner with border and black background
+      </Text>
+      <Text> </Text>
+
+      <ViewBox title="Info Toast">
+        <Box width={demoTermWidth} height={10} position="relative">
+          <ToastStack
+            toasts={[mockToasts[0]!]}
+            termWidth={demoTermWidth}
+            termHeight={10}
+          />
+        </Box>
+      </ViewBox>
+
+      <ViewBox title="Success Toast">
+        <Box width={demoTermWidth} height={10} position="relative">
+          <ToastStack
+            toasts={[mockToasts[1]!]}
+            termWidth={demoTermWidth}
+            termHeight={10}
+          />
+        </Box>
+      </ViewBox>
+
+      <ViewBox title="Warning Toast with Description">
+        <Box width={demoTermWidth} height={10} position="relative">
+          <ToastStack
+            toasts={[mockToasts[2]!]}
+            termWidth={demoTermWidth}
+            termHeight={10}
+          />
+        </Box>
+      </ViewBox>
+
+      <ViewBox title="Error Toast with Description">
+        <Box width={demoTermWidth} height={10} position="relative">
+          <ToastStack
+            toasts={[mockToasts[3]!]}
+            termWidth={demoTermWidth}
+            termHeight={10}
+          />
+        </Box>
+      </ViewBox>
+
+      <ViewBox title="Toast with Action Button">
+        <Box width={demoTermWidth} height={10} position="relative">
+          <ToastStack
+            toasts={[mockToasts[4]!]}
+            termWidth={demoTermWidth}
+            termHeight={10}
+          />
+        </Box>
+      </ViewBox>
+
+      <SubsectionHeader title="Stacked Toasts (shadcn/ui pattern)" />
+      <Text dimColor>Multiple toasts stack vertically, newest at bottom</Text>
+      <Text dimColor>Shows latest 5 toasts maximum</Text>
+      <Text> </Text>
+
+      <ViewBox title="3 Stacked Toasts">
+        <Box width={demoTermWidth} height={20} position="relative">
+          <ToastStack
+            toasts={mockToasts.slice(0, 3)}
+            termWidth={demoTermWidth}
+            termHeight={20}
+          />
+        </Box>
+      </ViewBox>
+
+      <ViewBox title="All 5 Toasts Stacked">
+        <Box width={demoTermWidth} height={demoTermHeight} position="relative">
+          <ToastStack
+            toasts={mockToasts}
+            termWidth={demoTermWidth}
+            termHeight={demoTermHeight}
+          />
+        </Box>
+      </ViewBox>
+
+      <SubsectionHeader title="Status Bar with Messages" />
+      <Text dimColor>Bottom bar shows watcher status and optional messages</Text>
+      <Text> </Text>
+
+      <Text bold>Normal state (no status message):</Text>
+      <BottomBar
+        ui={mockUIState}
+        state={mockState}
+        termWidth={demoTermWidth}
+        storageMode="disk"
+        nodeCount={42}
+      />
+      <Text> </Text>
+
+      <Text bold>With status message:</Text>
+      <BottomBar
+        ui={uiStateWithStatus}
+        state={mockState}
+        termWidth={demoTermWidth}
+        storageMode="disk"
+        nodeCount={42}
+      />
+      <Text> </Text>
+
+      <SubsectionHeader title="Complete Layout: Toasts + Bottom Bar" />
+      <Text dimColor>Shows how toasts appear above the bottom bar</Text>
+      <Text> </Text>
+
+      <ViewBox title="Full Layout with Toasts">
+        <Box
+          width={demoTermWidth}
+          height={demoTermHeight}
+          flexDirection="column"
+          position="relative"
+        >
+          {/* Content area */}
+          <Box flexGrow={1} flexShrink={1}>
+            <Text dimColor>Board content area...</Text>
+          </Box>
+
+          {/* Toast stack in bottom-right */}
+          <ToastStack
+            toasts={mockToasts.slice(0, 3)}
+            termWidth={demoTermWidth}
+            termHeight={demoTermHeight}
+          />
+
+          {/* Bottom bar at bottom */}
+          <BottomBar
+            ui={uiStateWithStatus}
+            state={mockState}
+            termWidth={demoTermWidth}
+            storageMode="disk"
+            nodeCount={42}
+          />
+        </Box>
+      </ViewBox>
+    </Box>
+  )
+}
+
+// ============================================================================
 // Main Storybook Component
 // ============================================================================
 
+// Create a minimal mock vault for storybook
+// Uses the existing db created at the top of the file
+const mockVault = runGenerator(
+  createVault(":memory:", { inject: { database: db } })
+)
+
 function Storybook(): React.ReactElement {
   return (
-    <UIProvider state={mockUIState} dispatch={noopDispatch}>
-      <Box flexDirection="column">
-        <Layer1RichText />
-        <Layer1TagPills />
-        <Layer1TaskStyling />
-        <Layer1FoldMarkers />
-        <Layer2Layout />
-        <Layer3Views />
-        <Layer3AllViews />
-        <VisualLanguageSection />
+    <VaultProvider vault={mockVault}>
+      <UIProvider state={mockUIState} dispatch={noopDispatch}>
+        <Box flexDirection="column">
+          <Layer1RichText />
+          <Layer1TagPills />
+          <Layer1TaskStyling />
+          <Layer1FoldMarkers />
+          <Layer2Layout />
+          <Layer3Views />
+          <Layer3AllViews />
+          <VisualLanguageSection />
+          <ToastAndStatusSection />
 
-        <SectionHeader title="Summary" />
-        <Text>All components rendered successfully.</Text>
-        <Text> </Text>
-        <Text>To verify TUI components with real data, use:</Text>
-        <Text color="cyan"> bun km view @next</Text>
-      </Box>
-    </UIProvider>
+          <SectionHeader title="Summary" />
+          <Text>All components rendered successfully.</Text>
+          <Text> </Text>
+          <Text>To verify TUI components with real data, use:</Text>
+          <Text color="cyan"> bun km view @next</Text>
+        </Box>
+      </UIProvider>
+    </VaultProvider>
   )
 }
 

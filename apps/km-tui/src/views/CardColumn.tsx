@@ -388,6 +388,10 @@ function VirtualizedCardList({
           isSelected &&
           actualIndex === selectedCardIndex &&
           selectionLevel === "card"
+        // DEBUG
+        if (actualIndex === 0) {
+          console.log("DEBUG CardColumn:", { isSelected, selectedCardIndex, selectionLevel, cardIsSelected, actualIndex })
+        }
         return (
           <Card
             key={card.node.id}
@@ -480,8 +484,8 @@ export const Column = React.memo(function Column({
     <Box
       id={column.node.id}
       data-view="column"
-      data-selected={isSelected}
-      data-cursor={isColumnSelected}
+      {...(isSelected && { "data-selected": true })}
+      {...(isColumnSelected && { "data-cursor": true })}
       flexDirection="column"
       width={width}
       maxHeight={height}

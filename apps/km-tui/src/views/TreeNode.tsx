@@ -15,6 +15,7 @@ import {
 } from "../state.ts"
 import { extractBody } from "@km/tree"
 import { renderRich } from "../text/index.ts"
+import { truncateText } from "../layout/index.ts"
 import { makeSelectionKey } from "../types.ts"
 import {
   useTreeConfig,
@@ -213,11 +214,19 @@ function TreeNodeImpl({
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
 
   // Memoize rich text rendering - only recalc when content or sigil config changes
-  const styledContent = useMemo(
-    () =>
-      renderRich(cleanContent, { excludeSigils: excludedSigils, sigilColors }),
-    [cleanContent, excludedSigils, sigilColors],
-  )
+  // In multiline (cards) mode, truncate with ellipsis to fit on single line
+  const styledContent = useMemo(() => {
+    const rich = renderRich(cleanContent, {
+      excludeSigils: excludedSigils,
+      sigilColors,
+    })
+    // Estimate available width for cards (accounting for borders, padding, prefix)
+    // This is approximate - actual width depends on terminal and column layout
+    if (!isOneliner) {
+      return truncateText(rich, 70) // Default ~70 chars for card title
+    }
+    return rich
+  }, [cleanContent, excludedSigils, sigilColors, isOneliner])
 
   // Memoize info suffix - only recalc when node metadata changes
   // Use displayNode for metadata (due_date, assigned_to, etc.)
@@ -293,17 +302,17 @@ function TreeNodeImpl({
       {/* paddingLeft={depth} makes marker flush with border at depth 0 */}
       {/* alignItems="flex-start" prevents row from stretching to match content height */}
       {/* backgroundColor on Box (not Text) to fill row background properly */}
-      {/* height={1} in oneliner mode prevents background from bleeding to next line */}
+      {/* Always height={1} to keep title on single line; use truncateText() for ellipsis in cards view */}
       <HeadRow onLayout={handleHeadLayout}>
         <Box
           id={node.id}
           data-view="item"
-          data-cursor={isSelected}
+          {...(isSelected && { "data-cursor": true })}
           flexDirection="row"
           alignItems="flex-start"
           paddingLeft={depth}
           backgroundColor={style.backgroundColor}
-          height={isOneliner ? 1 : undefined}
+          height={1}
         >
           {/* Fixed-width prefix box (fold marker only - new cards style) */}
           <Box width={prefix.length} flexShrink={0}>
@@ -323,6 +332,7 @@ function TreeNodeImpl({
                 {prefix.markerChar}
               </Text>
               {prefix.afterMarker}
+              {prefix.foldedCount}
             </Text>
           </Box>
           {/* Flexible content box */}
@@ -350,10 +360,9 @@ function TreeNodeImpl({
                   {style.taskStatusIcon.char}{" "}
                 </Text>
               )}
-              {styledContent}
-              {prefix.foldedCount}
-              {infoSuffix && <Text dimColor>{infoSuffix}</Text>}
-              {showInlineContext && (
+              {!isFolded && styledContent}
+              {!isFolded && infoSuffix && <Text dimColor>{infoSuffix}</Text>}
+              {!isFolded && showInlineContext && (
                 <Text dimColor italic>
                   {contextSuffix}
                 </Text>

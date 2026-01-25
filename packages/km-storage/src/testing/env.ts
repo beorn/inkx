@@ -31,12 +31,13 @@ import type { KNode } from "@km/core"
 import { SCHEMA } from "../schema.ts"
 import { runWithDb } from "../db-instance.ts"
 import { runWithKmDir } from "../emit.ts"
-import { getNode } from "../db-queries/core-lookup.ts"
+import { getNode, getNodeByPath } from "../db-queries/core-lookup.ts"
 import {
   getChildren,
   getChildCountsBatch,
   getAncestors,
 } from "../db-queries/tree-traversal.ts"
+import { getAllNodes } from "../db-queries/utils.ts"
 import { getLinksTo } from "../db-queries/task-queries.ts"
 import { getBacklinks, type Link } from "../db-links.ts"
 import { moveNode, updateNode, deleteNode, addNode } from "../db-ops.ts"
@@ -78,6 +79,8 @@ export function isMockMode(): boolean {
  */
 export interface TestVault {
   getNode: (id: string) => KNode | null
+  getNodeByPath: (fsPath: string) => KNode | null
+  getAllNodes: () => KNode[]
   getChildren: (parentId: string | null) => KNode[]
   getChildCountsBatch: (parentIds: string[]) => Map<string, number>
   getBacklinks: (nodeId: string) => Link[]
@@ -167,6 +170,8 @@ export async function withTestEnv<T>(
   // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
   const vault: TestVault = {
     getNode: (id) => getNode(db, id),
+    getNodeByPath: (fsPath) => getNodeByPath(db, fsPath),
+    getAllNodes: () => getAllNodes(db),
     getChildren: (parentId) => getChildren(db, parentId),
     getChildCountsBatch: (parentIds) => getChildCountsBatch(db, parentIds),
     getBacklinks: (nodeId) => getBacklinks(db, nodeId),
@@ -227,6 +232,8 @@ export function withTestEnvSync<T>(fn: (env: TestEnv) => T): T {
   // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
   const vault: TestVault = {
     getNode: (id) => getNode(db, id),
+    getNodeByPath: (fsPath) => getNodeByPath(db, fsPath),
+    getAllNodes: () => getAllNodes(db),
     getChildren: (parentId) => getChildren(db, parentId),
     getChildCountsBatch: (parentIds) => getChildCountsBatch(db, parentIds),
     getBacklinks: (nodeId) => getBacklinks(db, nodeId),

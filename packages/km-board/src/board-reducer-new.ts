@@ -70,8 +70,8 @@ export function simplifiedBoardReducer(
       return {
         ...state,
         rootId: action.nodeId,
-        // When zooming into a node, that node becomes the cursor
-        cursorNodeId: action.nodeId,
+        // Set cursor to provided cursorNodeId, or null if not provided (UI will initialize to first child)
+        cursorNodeId: action.cursorNodeId ?? null,
         curswantX: null,
         curswantY: null,
       }

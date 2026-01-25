@@ -29,6 +29,12 @@ export interface Toast {
   action?: ToastAction
   // For batching similar toasts
   batchKey?: string
+  // For grouped toasts: show individual items when count is low
+  items?: string[] // e.g., ["file1.md", "file2.md"] for sync toasts
+  // Threshold for showing items vs summary (default 3)
+  // If items.length < threshold: show all items
+  // If items.length >= threshold: show "N items" summary
+  itemThreshold?: number
 }
 
 export type ToastOptions = Omit<Toast, "id" | "level" | "message">
@@ -44,7 +50,8 @@ export type ToastOptions = Omit<Toast, "id" | "level" | "message">
 export class ToastQueue {
   private toasts: Toast[] = []
   private nextId = 1
-  private batchTimers = new Map<string, Timer>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private batchTimers = new Map<string, any>()
   private batchDebounce = 100 // ms
 
   /**
@@ -85,13 +92,49 @@ export class ToastQueue {
     const existingIndex = this.toasts.findIndex((t) => t.batchKey === key)
 
     if (existingIndex >= 0) {
-      // Update count in message (assumes format like "N items archived")
+      // Update existing batched toast
       const existing = this.toasts[existingIndex]!
-      const count = this.extractCount(existing.message) + 1
-      existing.message = `${count} ${toast.message}`
+
+      // If toast has items array, accumulate them
+      if (toast.items && toast.items.length > 0) {
+        const existingItems = existing.items ?? []
+        existing.items = [...existingItems, ...toast.items]
+
+        // Update message based on threshold
+        const threshold = toast.itemThreshold ?? 3
+        const totalCount = existing.items.length
+
+        if (totalCount < threshold) {
+          // Show individual items
+          existing.message = toast.message // Keep base message
+        } else {
+          // Show summary count
+          existing.message = `${totalCount} ${toast.message}`
+        }
+
+        existing.itemThreshold = threshold
+      } else {
+        // No items - just increment count in message
+        const count = this.extractCount(existing.message) + 1
+        existing.message = `${count} ${toast.message}`
+      }
     } else {
       // First toast with this key
-      this.toasts.push({ ...toast, message: `1 ${toast.message}` })
+      if (toast.items && toast.items.length > 0) {
+        const threshold = toast.itemThreshold ?? 3
+        if (toast.items.length < threshold) {
+          // Keep original message and items
+          this.toasts.push({ ...toast })
+        } else {
+          // Show count
+          this.toasts.push({
+            ...toast,
+            message: `${toast.items.length} ${toast.message}`
+          })
+        }
+      } else {
+        this.toasts.push({ ...toast, message: `1 ${toast.message}` })
+      }
     }
 
     // Set new batch timer

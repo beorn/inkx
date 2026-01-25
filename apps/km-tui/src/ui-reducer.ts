@@ -59,6 +59,7 @@ export interface UIState {
     rootId: string | null
     colIndex: number
     cardIndex: number
+    cursorNodeId: string | null
     subIndex: number
     multiSelected: Set<SelectionKey>
     inOutlineMode: boolean
@@ -305,6 +306,7 @@ const uiSlice = createSlice({
         rootId: string | null
         colIndex: number
         cardIndex: number
+        cursorNodeId: string | null
         subIndex: number
         multiSelected: Set<SelectionKey>
         inOutlineMode: boolean

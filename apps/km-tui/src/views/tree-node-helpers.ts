@@ -172,11 +172,14 @@ export function buildPrefix(
 ): PrefixResult {
   // Get fold marker based on children state
   const marker = getFoldMarker(hasChildren, isFolded, ownColor)
-  const foldedCount = hasChildren && isFolded ? ` (${childCount})` : ""
 
-  // Layout: [marker][space] - no depth indent (handled by Box)
-  const afterMarker = " " // Single space before content
-  const length = MARKER_SLOT_WIDTH + afterMarker.length
+  // Layout: [marker][space] + [count if folded] - no depth indent (handled by Box)
+  // When folded, the space comes from the start of foldedCount
+  // When not folded, afterMarker provides the space
+  const isFoldedWithChildren = hasChildren && isFolded
+  const afterMarker = isFoldedWithChildren ? "" : " " // Space before content (or empty if count replaces it)
+  const foldedCount = isFoldedWithChildren ? ` ${childCount}` : ""
+  const length = MARKER_SLOT_WIDTH + afterMarker.length + foldedCount.length
 
   return {
     markerChar: marker.char,

@@ -136,7 +136,7 @@ export function resolveLinks(
     // Determine the actual target: if there's a section, try to find the child
     let actualTargetId = targetId
     if (link.section) {
-      const childNode = findChildByContent(targetId, link.section)
+      const childNode = findChildByContent(db, targetId, link.section)
       if (childNode) {
         actualTargetId = childNode.id
         debug("resolveLinks: resolved section to child", {

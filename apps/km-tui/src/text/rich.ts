@@ -252,6 +252,7 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
  *
  * Transformations:
  * - Strips inline fields: [due:: 2024-01-15] → ""
+ * - Strips markdown formatting: **bold** → "bold", *italic* → "italic"
  * - Strips wiki link syntax: [[note]] → "note", [[path|alias]] → "alias"
  * - Cleans up whitespace
  *
@@ -260,6 +261,10 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
  * @example
  * renderPlain("Task [[project|My Project]] [due:: 2024-01-15]")
  * // Returns: "Task My Project"
+ *
+ * @example
+ * renderPlain("**bold** and *italic* text")
+ * // Returns: "bold and italic text"
  */
 export function renderPlain(text: string): string {
   // Strip inline fields
@@ -273,6 +278,23 @@ export function renderPlain(text: string): string {
   // Strip wiki links (keep display text only)
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
     return extractLinkParts(content).display
+  })
+
+  // Strip markdown formatting markers (keep content only)
+  result = result.replace(BOLD_REGEX, (_match, content: string) => {
+    return content
+  })
+  result = result.replace(ITALIC_ASTERISK_REGEX, (_match, content: string) => {
+    return content
+  })
+  result = result.replace(ITALIC_UNDERSCORE_REGEX, (_match, content: string) => {
+    return content
+  })
+  result = result.replace(CODE_REGEX, (_match, content: string) => {
+    return content
+  })
+  result = result.replace(STRIKETHROUGH_REGEX, (_match, content: string) => {
+    return content
   })
 
   // Clean up whitespace

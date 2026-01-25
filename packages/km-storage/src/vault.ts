@@ -29,7 +29,7 @@ import {
   type DeferredFile,
   type StepYield,
 } from "./vault-loader.ts"
-import { getDb, closeDb, type Link } from "./db.ts"
+import { closeDb, type Link } from "./db.ts"
 import {
   getNode as dbGetNode,
   getChildren as dbGetChildren,
@@ -341,8 +341,8 @@ export function* createVault(
     duration: result.duration,
   }
 
-  // Capture database instance for dependency injection
-  const db = getDb()
+  // Use database from load result (pure DI - no singleton)
+  const db = result.database
 
   let closed = false
 
@@ -625,7 +625,7 @@ export function* createVault(
         return options.watcherFactory(path)
       }
       const kmDir = getKmDir()
-      return createWatcher(kmDir ? kmDir.replace(/\/.km$/, "") : path)
+      return createWatcher(kmDir ? kmDir.replace(/\/.km$/, "") : path, { db })
     },
 
     refresh() {

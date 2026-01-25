@@ -17,7 +17,7 @@ import {
   ensureCommandSystemInitialized,
 } from "../command-bridge.ts"
 import { handleCommandAction } from "../board-actions.ts"
-import { isErr, toastQueue } from "@km/core"
+import { isErr, toast, toastQueue } from "@km/core"
 
 // Re-export for convenience
 export { ensureCommandSystemInitialized }
@@ -59,6 +59,23 @@ export function handleBoardKeyInput(
   // Clear bell and status at start of each keypress
   dispatch(actions.clearBell())
   dispatch(actions.clearStatus())
+
+  // DEV: Test toast command (Ctrl+T)
+  if (key.ctrl && input === "t") {
+    const examples = [
+      () => toast.success("Task completed!"),
+      () => toast.error("Failed to save", { description: "Network error" }),
+      () => toast.warning("Disk space low"),
+      () => toast.info("3 tasks selected"),
+      () =>
+        toast("File deleted", {
+          action: { label: "Undo", trigger: "z" },
+        }),
+    ]
+    const randomToast = examples[Math.floor(Math.random() * examples.length)]
+    randomToast?.()
+    return true
+  }
 
   // Escape dismisses toast if present
   if (key.escape && toastQueue.getLatest()) {

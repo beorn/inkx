@@ -84,7 +84,7 @@ export type BoardAction =
   | { type: "TOGGLE_COLLAPSE"; nodeId: string }
 
   // Zoom
-  | { type: "ZOOM_IN"; nodeId: string | null }
+  | { type: "ZOOM_IN"; nodeId: string | null; cursorNodeId?: string | null }
 
   // Root change (e.g., navigating to different file)
   | {

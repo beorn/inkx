@@ -62,7 +62,7 @@ import {
 } from "./board-layout.ts"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
-import { Toast } from "./Toast.tsx"
+import { ToastStack } from "./ToastStack.tsx"
 import {
   createSyncTerminalDimensions,
   createFileDropHandler,
@@ -191,7 +191,7 @@ export function BoardCore({
           <Box
             id={state.rootId ?? undefined}
             data-view="board"
-            data-cursor={isBoardSelected}
+            {...(isBoardSelected && { "data-cursor": true })}
             flexDirection="column"
             width={termWidth}
             height={termHeight}
@@ -358,10 +358,12 @@ export function BoardCore({
                 <HelpOverlay width={termWidth} height={contentHeight} />
               )}
             </Box>
-            {/* Toast area - above bottom bar */}
-            {toastQueue.getLatest() && (
-              <Toast toast={toastQueue.getLatest()!} termWidth={termWidth} />
-            )}
+            {/* Toast stack - bottom-right corner */}
+            <ToastStack
+              toasts={toastQueue.getAll()}
+              termWidth={termWidth}
+              termHeight={termHeight}
+            />
             {/* Bottom bar (includes status messages) */}
             <BottomBar
               ui={ui}
