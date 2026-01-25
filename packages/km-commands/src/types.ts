@@ -151,6 +151,22 @@ export interface PageJumpAction {
   direction: "up" | "down"
 }
 
+// Move mode command actions (TUI augments with context before dispatching to board)
+// These are returned by commands and converted to full BoardAction by board-actions.ts
+export interface EnterMoveModeAction {
+  type: "ENTER_MOVE_MODE"
+}
+
+export interface ConfirmMoveAction {
+  type: "CONFIRM_MOVE"
+}
+
+export interface CancelMoveAction {
+  type: "CANCEL_MOVE"
+}
+
+export type MoveAction = EnterMoveModeAction | ConfirmMoveAction | CancelMoveAction
+
 export interface ShiftUpAction {
   type: "SHIFT_UP"
 }
@@ -182,6 +198,7 @@ export type TUIAction =
   | ShiftDownAction
   | ShiftLeftAction
   | ShiftRightAction
+  | MoveAction
 
 export type UIAction =
   | ZoomOutwardsAction

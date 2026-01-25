@@ -1,18 +1,17 @@
 import type { CommandDef } from "../types.ts"
 
-// Move mode commands use partial action types that TUI augments before dispatch
-// These use : CommandDef annotation instead of satisfies to allow the type mismatch
-// TODO: Create proper CommandAction types for move mode (km-commands-move-types)
-export const enterMoveMode: CommandDef = {
+// Move mode commands return minimal actions (MoveAction types).
+// TUI handler in board-actions.ts augments with context before dispatching to board.
+export const enterMoveMode = {
   id: "enter_move_mode",
   name: "Enter Move Mode",
   description: "Start moving selected nodes",
   category: "Edit",
   shortcuts: ["m"],
   execute: () => ({ type: "ENTER_MOVE_MODE" }),
-}
+} satisfies CommandDef
 
-export const confirmMove: CommandDef = {
+export const confirmMove = {
   id: "confirm_move",
   name: "Confirm Move",
   description: "Confirm node movement to current position",
@@ -20,9 +19,9 @@ export const confirmMove: CommandDef = {
   shortcuts: ["Enter"],
   modes: ["move"],
   execute: () => ({ type: "CONFIRM_MOVE" }),
-}
+} satisfies CommandDef
 
-export const cancelMove: CommandDef = {
+export const cancelMove = {
   id: "cancel_move",
   name: "Cancel Move",
   description: "Cancel move operation",
@@ -30,7 +29,7 @@ export const cancelMove: CommandDef = {
   shortcuts: ["Escape"],
   modes: ["move"],
   execute: () => ({ type: "CANCEL_MOVE" }),
-}
+} satisfies CommandDef
 
 // Shifting (visual reorder)
 export const shiftUp = {

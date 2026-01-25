@@ -225,9 +225,13 @@ export function handleCommandAction(
     // Legacy navigation actions removed (were in BoardAction, not in CommandAction)
 
     // === Move mode actions ===
-    case "ENTER_MOVE_MODE":
-      ctx.dispatchBoard(action)
+    // Commands return minimal actions; TUI augments with context before dispatching
+    case "ENTER_MOVE_MODE": {
+      const nodeIds = Array.from(ctx.boardState.selectedNodes)
+      const cursorNodeId = ctx.boardState.cursorNodeId
+      ctx.dispatchBoard({ type: "ENTER_MOVE_MODE", nodeIds, cursorNodeId })
       return ok()
+    }
     case "CONFIRM_MOVE":
       handleConfirmMove(ctx)
       return ok()
