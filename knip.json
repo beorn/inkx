@@ -43,7 +43,7 @@
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "apps/km-tui": {
-      "entry": ["src/index.ts", "src/tui.ts", "tests/**/*.test.ts", "tests/**/*.slow.test.ts"],
+      "entry": ["src/index.ts", "src/tui.ts", "tests/**/*.test.ts", "tests/**/*.slow.test.ts", "tests/storybook.tsx"],
       "project": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"]
     },
     "apps/km-tui/packages/flexx": {
@@ -51,7 +51,7 @@
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "apps/km-tui/packages/km-ink": {
-      "entry": ["src/index.ts", "tests/**/*.test.tsx", "tests/storybook.tsx"],
+      "entry": ["src/index.ts", "tests/**/*.test.tsx"],
       "project": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.tsx"]
     },
     "vendor/beorn-logger": {
