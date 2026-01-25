@@ -5,8 +5,8 @@
  * and low-level database operations.
  */
 
+import type { Database } from "bun:sqlite";
 import type { KNode, TaskStatus, NodeType, NodeRules } from "@km/core";
-import { getDb } from "../db-instance.ts";
 
 // =============================================================================
 // Utility Queries
@@ -15,8 +15,7 @@ import { getDb } from "../db-instance.ts";
 /**
  * Get the last event ID processed
  */
-export function getLastEventId(): string | null {
-  const db = getDb();
+export function getLastEventId(db: Database): string | null {
   const row = db
     .query("SELECT value FROM meta WHERE key = ?")
     .get("last_event") as { value: string } | null;
@@ -27,8 +26,7 @@ export function getLastEventId(): string | null {
 /**
  * Get all nodes (for debugging/export)
  */
-export function getAllNodes(): KNode[] {
-  const db = getDb();
+export function getAllNodes(db: Database): KNode[] {
   const rows = db.query("SELECT * FROM nodes").all() as Record<
     string,
     unknown
@@ -39,8 +37,7 @@ export function getAllNodes(): KNode[] {
 /**
  * Get total count of nodes in the database
  */
-export function getNodeCount(): number {
-  const db = getDb();
+export function getNodeCount(db: Database): number {
   const result = db.query("SELECT COUNT(*) as count FROM nodes").get() as {
     count: number;
   };

@@ -5,8 +5,8 @@
  * and finding sections within files.
  */
 
+import type { Database } from "bun:sqlite";
 import type { KNode } from "@km/core";
-import { getDb } from "../db-instance.ts";
 import { rowToNode } from "./utils.ts";
 
 // =============================================================================
@@ -16,8 +16,7 @@ import { rowToNode } from "./utils.ts";
 /**
  * Find a file node by name (for wikilink resolution)
  */
-export function findFileByName(name: string): KNode | null {
-  const db = getDb();
+export function findFileByName(db: Database, name: string): KNode | null {
   const normalizedName = name.toLowerCase().replace(/\.md$/, "");
 
   const row = db
@@ -47,15 +46,16 @@ export function findFileByName(name: string): KNode | null {
  * - Task content (first line of content)
  * - Node name
  *
+ * @param db - Database instance
  * @param fileId - The file node ID to search within
  * @param sectionName - The section/content name to match
  * @returns The matching child node, or null if not found
  */
 export function findChildByContent(
+  db: Database,
   fileId: string,
   sectionName: string,
 ): KNode | null {
-  const db = getDb();
   const normalizedSection = sectionName.toLowerCase().trim();
 
   // Get all descendants of this file

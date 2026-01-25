@@ -8,8 +8,8 @@
  * - Resolving unresolved links
  */
 
+import type { Database } from "bun:sqlite";
 import createDebug from "debug";
-import { getDb } from "./db-instance.ts";
 import { updateNode } from "./db-ops.ts";
 import { findChildByContent } from "./db-queries/index.ts";
 
@@ -42,13 +42,12 @@ export interface Link {
 /**
  * Add a link from source to target
  */
-export function addLink(link: Omit<Link, "created_at">): void {
+export function addLink(db: Database, link: Omit<Link, "created_at">): void {
   debug("addLink", {
     source: link.source_id,
     target: link.target_name,
     relationship: link.relationship ?? "wikilink",
   });
-  const db = getDb();
   db.run(
     `
     INSERT OR REPLACE INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
@@ -83,9 +82,8 @@ export function addLink(link: Omit<Link, "created_at">): void {
 /**
  * Remove all links from a source node
  */
-export function removeLinksFromSource(sourceId: string): void {
+export function removeLinksFromSource(db: Database, sourceId: string): void {
   debug("removeLinksFromSource: %s", sourceId);
-  const db = getDb();
   db.run("DELETE FROM links WHERE source_id = ?", [sourceId]);
 }
 
@@ -94,11 +92,11 @@ export function removeLinksFromSource(sourceId: string): void {
  * Used to clear computed links before re-evaluation.
  */
 export function removeLinksFromSourceByRelationship(
+  db: Database,
   sourceId: string,
   relationship: string,
 ): void {
   debug("removeLinksFromSourceByRelationship", { sourceId, relationship });
-  const db = getDb();
   db.run("DELETE FROM links WHERE source_id = ? AND relationship = ?", [
     sourceId,
     relationship,
@@ -109,8 +107,11 @@ export function removeLinksFromSourceByRelationship(
  * Resolve unresolved links to a target node
  * Call this when a new node is created that might match pending links
  */
-export function resolveLinks(targetId: string, targetName: string): number {
-  const db = getDb();
+export function resolveLinks(
+  db: Database,
+  targetId: string,
+  targetName: string,
+): number {
   const normalizedName = targetName.toLowerCase().replace(/\.md$/, "");
 
   // Find all unresolved links that match this target name
@@ -182,8 +183,7 @@ export function resolveLinks(targetId: string, targetName: string): number {
 /**
  * Get outgoing links from a node (forward links)
  */
-export function getOutgoingLinks(sourceId: string): Link[] {
-  const db = getDb();
+export function getOutgoingLinks(db: Database, sourceId: string): Link[] {
   const rows = db
     .query("SELECT * FROM links WHERE source_id = ?")
     .all(sourceId) as Array<Record<string, unknown>>;
@@ -194,8 +194,7 @@ export function getOutgoingLinks(sourceId: string): Link[] {
 /**
  * Get incoming links to a node (backlinks)
  */
-export function getBacklinks(targetId: string): Link[] {
-  const db = getDb();
+export function getBacklinks(db: Database, targetId: string): Link[] {
   const rows = db
     .query("SELECT * FROM links WHERE target_id = ?")
     .all(targetId) as Array<Record<string, unknown>>;
@@ -206,8 +205,7 @@ export function getBacklinks(targetId: string): Link[] {
 /**
  * Get backlinks by target name (for unresolved links)
  */
-export function getBacklinksByName(targetName: string): Link[] {
-  const db = getDb();
+export function getBacklinksByName(db: Database, targetName: string): Link[] {
   // Match by name (case-insensitive, with or without .md extension)
   const normalizedName = targetName.toLowerCase().replace(/\.md$/, "");
   const rows = db

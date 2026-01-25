@@ -14,20 +14,18 @@ import {
   createEmptyState,
   initBoardState,
   buildBoardState,
-  handleKey,
   getNodeDisplayName,
   getCurrentCard,
   getCurrentColumn,
 } from "../src/state.ts";
-import { stripAnsi } from "../src/layout/index.ts";
 import { renderBoardStatic, renderCard } from "../src/render.ts";
 import type { CardState } from "../src/types.ts";
 import { BoardCore } from "../src/views/Board.tsx";
 import { createInitialUIState } from "../src/ui-reducer.ts";
 import { createLayoutRegistry } from "../src/card-positions.ts";
 import { VaultProvider } from "../src/vault-context.tsx";
-import { NewItemDialog } from "../src/views/NewItemDialog.tsx";
 import type { TUIBoardState } from "../src/types.ts";
+import { testEnv, item } from "./helpers/board-test.ts";
 
 function renderBoardCore(
   state: TUIBoardState,
@@ -234,111 +232,63 @@ describe.serial("State", () => {
 });
 
 describe.serial("Keys", () => {
-  function createTestBoard(): {
-    vault: Vault;
-    state: ReturnType<typeof buildBoardState>;
-  } {
-    const vault = createFakeVault({
-      nodes: [
-        makeNode("root", "board", "Test Board", null, 0),
-        makeNode("col1", "folder", "Todo", "root", 0),
-        makeNode("col2", "folder", "Done", "root", 1),
-        makeNode("task1", "task", "Task 1", "col1", 0),
-        makeNode("task2", "task", "Task 2", "col1", 1),
-        makeNode("task3", "task", "Task 3", "col2", 0),
-      ],
-    });
-    const state = buildBoardState(vault, "root");
-    return { vault, state };
-  }
-
-  test("h key moves left", () => {
-    const { vault, state } = createTestBoard();
-    state.colIndex = 1;
-    const result = handleKey(vault, state, "h");
-    expect(result.state.colIndex).toBe(0);
-    expect(result.action).toBeNull();
+  test("h moves left (column)", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("task1")), item("col2", item("task2"))),
+    );
+    board.expect("#task1[data-cursor]").toExist();
+    board.press("l");
+    board.expect("#task2[data-cursor]").toExist();
+    board.press("h");
+    board.expect("#task1[data-cursor]").toExist();
   });
 
-  test("l key moves right", () => {
-    const { vault, state } = createTestBoard();
-    const result = handleKey(vault, state, "l");
-    expect(result.state.colIndex).toBe(1);
-    expect(result.action).toBeNull();
+  test("l moves right (column)", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("task1")), item("col2", item("task2"))),
+    );
+    board.expect("#task1[data-cursor]").toExist();
+    board.press("l");
+    board.expect("#task2[data-cursor]").toExist();
   });
 
-  test("j key moves down", () => {
-    const { vault, state } = createTestBoard();
-    const result = handleKey(vault, state, "j");
-    expect(result.state.cardIndex).toBe(1);
-    expect(result.action).toBeNull();
+  test("j moves down (card)", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("task1"), item("task2"))),
+    );
+    board.expect("#task1[data-cursor]").toExist();
+    board.press("j");
+    board.expect("#task2[data-cursor]").toExist();
   });
 
-  test("k key moves up", () => {
-    const { vault, state } = createTestBoard();
-    state.cardIndex = 1;
-    const result = handleKey(vault, state, "k");
-    expect(result.state.cardIndex).toBe(0);
-    expect(result.action).toBeNull();
+  test("k moves up (card)", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("task1"), item("task2"))),
+    );
+    board.press("j");
+    board.expect("#task2[data-cursor]").toExist();
+    board.press("k");
+    board.expect("#task1[data-cursor]").toExist();
   });
 
   test("g jumps to first card", () => {
-    const { vault, state } = createTestBoard();
-    state.cardIndex = 1;
-    const result = handleKey(vault, state, "g");
-    expect(result.state.cardIndex).toBe(0);
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("task1"), item("task2"), item("task3"))),
+    );
+    board.press("j");
+    board.press("j");
+    board.expect("#task3[data-cursor]").toExist();
+    board.press("g");
+    board.expect("#task1[data-cursor]").toExist();
   });
 
   test("G jumps to last card", () => {
-    const { vault, state } = createTestBoard();
-    const result = handleKey(vault, state, "G");
-    expect(result.state.cardIndex).toBe(1);
-  });
-
-  test("q returns quit action", () => {
-    const { vault, state } = createTestBoard();
-    const result = handleKey(vault, state, "q");
-    expect(result.action).toBe("quit");
-  });
-
-  test("? enables help mode", () => {
-    const { vault, state } = createTestBoard();
-    const result = handleKey(vault, state, "?");
-    expect(result.state.helpMode).toBe(true);
-  });
-
-  test("/ enables search mode", () => {
-    const { vault, state } = createTestBoard();
-    const result = handleKey(vault, state, "/");
-    expect(result.state.searchMode).toBe(true);
-    expect(result.state.searchQuery).toBe("");
-  });
-
-  test("v toggles visual mode", () => {
-    const { vault, state } = createTestBoard();
-    const result1 = handleKey(vault, state, "v");
-    expect(result1.state.visualMode).toBe(true);
-    expect(result1.state.selectedCards.size).toBe(1);
-    const result2 = handleKey(vault, result1.state, "v");
-    expect(result2.state.visualMode).toBe(false);
-    expect(result2.state.selectedCards.size).toBe(0);
-  });
-
-  test("space toggles selection", () => {
-    const { vault, state } = createTestBoard();
-    const result1 = handleKey(vault, state, " ");
-    expect(result1.state.selectedCards.size).toBe(1);
-    const result2 = handleKey(vault, result1.state, " ");
-    expect(result2.state.selectedCards.size).toBe(0);
-  });
-
-  test("Tab toggles fold", () => {
-    const { vault, state } = createTestBoard();
-    const card = getCurrentCard(state)!;
-    const result1 = handleKey(vault, state, "\t");
-    expect(result1.state.foldedCards.has(card.node.id)).toBe(true);
-    const result2 = handleKey(vault, result1.state, "\t");
-    expect(result2.state.foldedCards.has(card.node.id)).toBe(false);
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("task1"), item("task2"), item("task3"))),
+    );
+    board.expect("#task1[data-cursor]").toExist();
+    board.press("G");
+    board.expect("#task3[data-cursor]").toExist();
   });
 });
 

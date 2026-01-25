@@ -5,12 +5,13 @@
  * Operations handle both memory mode (direct SQL) and disk mode (via emit).
  */
 
+import type { Database } from "bun:sqlite";
 import createDebug from "debug";
 import { ulid } from "ulid";
 
 const debug = createDebug("km:storage:db:ops");
 import type { KNode } from "@km/core";
-import { getDb, isMemoryMode } from "./db-instance.ts";
+import { isMemoryMode } from "./db-instance.ts";
 import { emit } from "./emit.ts";
 
 // =============================================================================
@@ -25,13 +26,13 @@ import { emit } from "./emit.ts";
  * UI components should use this instead of raw SQL.
  */
 export function moveNode(
+  db: Database,
   nodeId: string,
   newParentId: string,
   newParentIdx: number,
 ): void {
   debug("moveNode: %s → parent=%s idx=%d", nodeId, newParentId, newParentIdx);
   if (isMemoryMode()) {
-    const db = getDb();
     db.run(
       "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
       [newParentId, newParentIdx, Date.now(), nodeId],
@@ -57,12 +58,12 @@ export function moveNode(
  * UI components should use this instead of raw SQL.
  */
 export function updateNode(
+  db: Database,
   nodeId: string,
   updates: Record<string, unknown>,
 ): void {
   debug("updateNode: %s keys=%o", nodeId, Object.keys(updates));
   if (isMemoryMode()) {
-    const db = getDb();
     const sets: string[] = [];
     const values: (string | number | null)[] = [];
 
@@ -94,10 +95,9 @@ export function updateNode(
  * This is the proper store-layer API for deleting nodes.
  * UI components should use this instead of raw SQL.
  */
-export function deleteNode(nodeId: string): void {
+export function deleteNode(db: Database, nodeId: string): void {
   debug("deleteNode: %s", nodeId);
   if (isMemoryMode()) {
-    const db = getDb();
     db.run("DELETE FROM nodes WHERE id = ?", [nodeId]);
   } else {
     emit({
@@ -116,11 +116,16 @@ export function deleteNode(nodeId: string): void {
  * This is the proper store-layer API for creating nodes.
  * UI components should use this instead of raw SQL or appendTaskToFile.
  *
+ * @param db - Database instance
  * @param parentId - Parent node ID (or null for root level)
  * @param node - Partial node data (id will be generated if not provided)
  * @returns The created node's ID
  */
-export function addNode(parentId: string | null, node: Partial<KNode>): string {
+export function addNode(
+  db: Database,
+  parentId: string | null,
+  node: Partial<KNode>,
+): string {
   const nodeId = node.id ?? ulid();
   debug("addNode: %s type=%s parent=%s", nodeId, node.type ?? "task", parentId);
   const now = Date.now();
@@ -153,7 +158,6 @@ export function addNode(parentId: string | null, node: Partial<KNode>): string {
   };
 
   if (isMemoryMode()) {
-    const db = getDb();
     db.run(
       `INSERT INTO nodes (
         id, type, parent_id, parent_idx, link_to, link_alias,

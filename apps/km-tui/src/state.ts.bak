@@ -622,6 +622,297 @@ export function getCurrentColumn(state: TUIBoardState): ColumnState | null {
   return state.columns[state.colIndex] ?? null;
 }
 
+/**
+ * Handle a key press in normal mode
+ * Returns a new state and an action
+ *
+ * NOTE: This is legacy code. Keys are now handled via command system in board-actions.ts.
+ * This function is kept for test compatibility.
+ */
+export function handleKey(
+  vault: Vault,
+  state: TUIBoardState,
+  key: string,
+): { state: TUIBoardState; action: BoardAction } {
+  // Clone state for immutability
+  const newState = { ...state };
+  const col = getCurrentColumn(state);
+  const card = getCurrentCard(state);
+
+  switch (key) {
+    // Quit / zoom out
+    case "q":
+    case "\x1B": // Escape
+      // Zoom out if we have a parent
+      if (state.rootId) {
+        const currentRoot = vault.getNode(state.rootId);
+        if (currentRoot?.parent_id) {
+          const zoomed = buildBoardState(vault, currentRoot.parent_id);
+          return { state: zoomed, action: null };
+        }
+      }
+      return { state: newState, action: "quit" };
+
+    // Help
+    case "?":
+      newState.helpMode = true;
+      return { state: newState, action: null };
+
+    // Search
+    case "/":
+      newState.searchMode = true;
+      newState.searchQuery = "";
+      return { state: newState, action: null };
+
+    // Navigation - left/right columns
+    // NOTE: This is legacy code. Keys are now handled via command system in board-actions.ts
+    // which uses LayoutContext for sticky Y position tracking.
+    case "h":
+    case "\x02": {
+      // Ctrl+B - skip virtual columns
+      let targetColIndex = state.colIndex - 1;
+      while (targetColIndex >= 0 && state.columns[targetColIndex]?.isVirtual) {
+        targetColIndex--;
+      }
+      if (targetColIndex < 0 || targetColIndex === state.colIndex) {
+        return { state: newState, action: null };
+      }
+      newState.colIndex = targetColIndex;
+      const targetCol = state.columns[targetColIndex];
+      if (targetCol && targetCol.cards.length > 0) {
+        // Ensure we land on a non-virtual card
+        const firstReal = getFirstRealCardIndex(targetCol);
+        newState.cardIndex = Math.max(
+          firstReal,
+          Math.min(state.cardIndex, targetCol.cards.length - 1),
+        );
+      } else {
+        newState.cardIndex = 0;
+      }
+      return { state: newState, action: null };
+    }
+
+    case "l":
+    case "\x06": {
+      // Ctrl+F - skip virtual columns
+      let targetColIndex = state.colIndex + 1;
+      while (
+        targetColIndex < state.columns.length &&
+        state.columns[targetColIndex]?.isVirtual
+      ) {
+        targetColIndex++;
+      }
+      if (
+        targetColIndex >= state.columns.length ||
+        targetColIndex === state.colIndex
+      ) {
+        return { state: newState, action: null };
+      }
+      newState.colIndex = targetColIndex;
+      const targetCol = state.columns[targetColIndex];
+      if (targetCol && targetCol.cards.length > 0) {
+        // Ensure we land on a non-virtual card
+        const firstReal = getFirstRealCardIndex(targetCol);
+        newState.cardIndex = Math.max(
+          firstReal,
+          Math.min(state.cardIndex, targetCol.cards.length - 1),
+        );
+      } else {
+        newState.cardIndex = 0;
+      }
+      return { state: newState, action: null };
+    }
+
+    // Navigation - up/down cards (skip virtual body cards)
+    case "k":
+    case "\x10": // Ctrl+P
+      if (col) {
+        const firstReal = getFirstRealCardIndex(col);
+        newState.cardIndex = Math.max(firstReal, state.cardIndex - 1);
+        if (state.visualMode) {
+          const newCard = col.cards[newState.cardIndex];
+          if (newCard) {
+            newState.selectedCards = new Set(state.selectedCards);
+            newState.selectedCards.add(newCard.node.id);
+          }
+        }
+      }
+      return { state: newState, action: null };
+
+    case "j":
+    case "\x0E": // Ctrl+N
+      if (col) {
+        newState.cardIndex = Math.min(
+          col.cards.length - 1,
+          state.cardIndex + 1,
+        );
+        if (state.visualMode) {
+          const newCard = col.cards[newState.cardIndex];
+          if (newCard) {
+            newState.selectedCards = new Set(state.selectedCards);
+            newState.selectedCards.add(newCard.node.id);
+          }
+        }
+      }
+      return { state: newState, action: null };
+
+    // Jump to top/bottom (skip virtual body cards)
+    case "g":
+      if (col) {
+        newState.cardIndex = getFirstRealCardIndex(col);
+      } else {
+        newState.cardIndex = 0;
+      }
+      return { state: newState, action: null };
+
+    case "G":
+      if (col) {
+        newState.cardIndex = Math.max(0, col.cards.length - 1);
+      }
+      return { state: newState, action: null };
+
+    // Zoom into card
+    case "\r": // Enter
+    case "o":
+      // Use childCount for hasChildren check (children array may be empty due to lazy loading)
+      if (card && (card.childCount ?? card.children.length) > 0) {
+        const zoomed = buildBoardState(vault, card.node.id);
+        return { state: zoomed, action: null };
+      }
+      return { state: newState, action: null };
+
+    // Fold/unfold card
+    case "\t": // Tab
+      if (card) {
+        newState.foldedCards = new Set(state.foldedCards);
+        if (state.foldedCards.has(card.node.id)) {
+          newState.foldedCards.delete(card.node.id);
+        } else {
+          newState.foldedCards.add(card.node.id);
+        }
+      }
+      return { state: newState, action: null };
+
+    // Toggle column collapse (show count only)
+    case "c":
+      newState.collapsedColumns = new Set(state.collapsedColumns);
+      if (state.collapsedColumns.has(state.colIndex)) {
+        newState.collapsedColumns.delete(state.colIndex);
+      } else {
+        newState.collapsedColumns.add(state.colIndex);
+      }
+      return { state: newState, action: null };
+
+    // Visual mode
+    case "v":
+      newState.visualMode = !state.visualMode;
+      newState.selectedCards = new Set();
+      if (newState.visualMode && card) {
+        newState.selectedCards.add(card.node.id);
+      }
+      return { state: newState, action: null };
+
+    // Toggle selection
+    case " ":
+      if (card) {
+        newState.selectedCards = new Set(state.selectedCards);
+        if (state.selectedCards.has(card.node.id)) {
+          newState.selectedCards.delete(card.node.id);
+        } else {
+          newState.selectedCards.add(card.node.id);
+        }
+      }
+      return { state: newState, action: null };
+
+    // Cycle status for current card and all selected cards
+    case "x": {
+      const cycle = ["todo", "wip", "blocked", "done", "dropped"] as const;
+      const getNextStatus = (currentStatus: string | null | undefined) => {
+        const idx = cycle.indexOf(
+          (currentStatus ?? "todo") as (typeof cycle)[number],
+        );
+        return cycle[(idx >= 0 ? idx + 1 : 1) % cycle.length];
+      };
+
+      // Get cards to update: selected cards + current card
+      const cardsToUpdate = new Set<string>();
+      if (card) cardsToUpdate.add(card.node.id);
+      for (const cardId of state.selectedCards) {
+        cardsToUpdate.add(cardId);
+      }
+
+      // Update all cards
+      for (const cardId of cardsToUpdate) {
+        const node = vault.getNode(cardId);
+        if (node) {
+          vault.updateNode(cardId, {
+            task_status: getNextStatus(node.task_status),
+          });
+        }
+      }
+      return { state: newState, action: "refresh" };
+    }
+
+    // Move card to prev/next column
+    case "H": {
+      if (card && state.colIndex > 0) {
+        const targetCol = state.columns[state.colIndex - 1];
+        if (targetCol) {
+          // Calculate new parent_idx at end of target column
+          const lastCard = targetCol.cards[targetCol.cards.length - 1];
+          const newIdx = lastCard ? (lastCard.node.parent_idx ?? 0) + 1 : 0;
+          vault.moveNode(card.node.id, targetCol.node.id, newIdx);
+        }
+        return { state: newState, action: "refresh" };
+      }
+      return { state: newState, action: null };
+    }
+
+    case "L": {
+      if (card && state.colIndex < state.columns.length - 1) {
+        const targetCol = state.columns[state.colIndex + 1];
+        if (targetCol) {
+          // Calculate new parent_idx at end of target column
+          const lastCard = targetCol.cards[targetCol.cards.length - 1];
+          const newIdx = lastCard ? (lastCard.node.parent_idx ?? 0) + 1 : 0;
+          vault.moveNode(card.node.id, targetCol.node.id, newIdx);
+        }
+        return { state: newState, action: "refresh" };
+      }
+      return { state: newState, action: null };
+    }
+
+    // Move card up/down
+    case "K": {
+      if (card && col && state.cardIndex > 0) {
+        const targetCard = col.cards[state.cardIndex - 1];
+        if (targetCard) {
+          // Move before target (subtract small amount from its idx)
+          const newIdx = (targetCard.node.parent_idx ?? 0) - 0.001;
+          vault.moveNode(card.node.id, col.node.id, newIdx);
+        }
+        return { state: newState, action: "refresh" };
+      }
+      return { state: newState, action: null };
+    }
+
+    case "J": {
+      if (card && col && state.cardIndex < col.cards.length - 1) {
+        const targetCard = col.cards[state.cardIndex + 1];
+        if (targetCard) {
+          // Move after target (add small amount to its idx)
+          const newIdx = (targetCard.node.parent_idx ?? 0) + 0.001;
+          vault.moveNode(card.node.id, col.node.id, newIdx);
+        }
+        return { state: newState, action: "refresh" };
+      }
+      return { state: newState, action: null };
+    }
+
+    default:
+      return { state: newState, action: null };
+  }
+}
 
 /**
  * Check if search has any visible matches

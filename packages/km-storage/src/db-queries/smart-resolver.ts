@@ -6,9 +6,9 @@
  */
 
 import createDebug from "debug";
+import type { Database } from "bun:sqlite";
 import type { KNode } from "@km/core";
 import { resolve } from "path";
-import { getDb } from "../db-instance.ts";
 import { isExplicitPath } from "../path-utils.ts";
 import { rowToNode } from "./utils.ts";
 
@@ -37,11 +37,13 @@ interface ResolveOptions {
  * 6. Filename without extension (e.g., "@inbox" matches "@inbox.md")
  * 7. Content/title match (for nodes without fs_path)
  *
+ * @param db - Database instance
  * @param query - ID, path, or filename to search for
  * @param typeOrOptions - Optional type filter string or options object
  * @returns The matching node, or null if not found
  */
 export function resolveNode(
+  db: Database,
   query: string,
   typeOrOptions?: string | ResolveOptions,
 ): KNode | null {
@@ -58,7 +60,6 @@ export function resolveNode(
     type ?? "any",
     taskOnly ?? false,
   );
-  const db = getDb();
 
   // Build filter conditions
   const filters: string[] = [];
@@ -186,10 +187,11 @@ export function resolveNode(
  * Smart task resolver - like resolveNode but only returns nodes with task_status.
  * A "task" is any node with task_status set, regardless of structural type.
  *
+ * @param db - Database instance
  * @param query - ID, path, or filename to search for
  * @returns The matching task node, or null if not found
  */
-export function resolveTask(query: string): KNode | null {
+export function resolveTask(db: Database, query: string): KNode | null {
   // Use resolveNode with taskOnly filter to ensure we match nodes with task_status
-  return resolveNode(query, { taskOnly: true });
+  return resolveNode(db, query, { taskOnly: true });
 }

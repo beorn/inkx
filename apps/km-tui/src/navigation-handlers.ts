@@ -26,10 +26,11 @@ const debug = createDebug("km:tui:nav");
 /**
  * Tree navigation direction.
  * - next/prev: sibling navigation (mapped from cursor_down/cursor_up in board-actions)
+ * - first/last: jump to first/last sibling
  * - child: enter first child
  * - parent: go to parent
  */
-export type TreeDirection = "next" | "prev" | "child" | "parent";
+export type TreeDirection = "next" | "prev" | "first" | "last" | "child" | "parent";
 
 /**
  * Handle tree-based navigation.
@@ -84,6 +85,30 @@ export function handleTreeNavigation(
       const prevSibling = siblings[currentIndex - 1];
       debug("tree nav: prev sibling %s", prevSibling?.id.slice(-8));
       return prevSibling?.id ?? null;
+    }
+
+    case "first": {
+      // Jump to first sibling
+      const siblings = vault.getChildren(currentNode.parent_id);
+      if (siblings.length === 0) {
+        debug("tree nav: no siblings, can't jump to first");
+        return null;
+      }
+      const firstSibling = siblings[0];
+      debug("tree nav: first sibling %s", firstSibling?.id.slice(-8));
+      return firstSibling?.id ?? null;
+    }
+
+    case "last": {
+      // Jump to last sibling
+      const siblings = vault.getChildren(currentNode.parent_id);
+      if (siblings.length === 0) {
+        debug("tree nav: no siblings, can't jump to last");
+        return null;
+      }
+      const lastSibling = siblings[siblings.length - 1];
+      debug("tree nav: last sibling %s", lastSibling?.id.slice(-8));
+      return lastSibling?.id ?? null;
     }
 
     case "child": {

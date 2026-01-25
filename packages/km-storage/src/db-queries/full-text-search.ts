@@ -4,9 +4,9 @@
  * FTS5-based full-text search with snippet highlighting.
  */
 
+import type { Database } from "bun:sqlite";
 import createDebug from "debug";
 import type { KNode } from "@km/core";
-import { getDb } from "../db-instance.ts";
 import { rowToNode } from "./utils.ts";
 
 const debug = createDebug("km:storage:db:queries");
@@ -58,8 +58,7 @@ export function toFts5Query(query: string): string {
 /**
  * Full-text search
  */
-export function search(query: string, limit = 50): KNode[] {
-  const db = getDb();
+export function search(db: Database, query: string, limit = 50): KNode[] {
   const ftsQuery = toFts5Query(query);
 
   debug("search: %s → fts5: %s", query, ftsQuery);
@@ -94,12 +93,14 @@ export interface SearchResult {
  * Returns nodes with a snippet showing matching context.
  * Uses FTS5 snippet() function for efficient highlighting.
  *
+ * @param db - Database instance
  * @param query - Search query (supports "quoted phrases" and individual terms)
  * @param limit - Maximum results to return
  * @param snippetOptions - Options for snippet generation
  * @returns Array of search results with highlighted snippets
  */
 export function searchWithSnippet(
+  db: Database,
   query: string,
   limit = 50,
   snippetOptions: {
@@ -109,7 +110,6 @@ export function searchWithSnippet(
     maxTokens?: number;
   } = {},
 ): SearchResult[] {
-  const db = getDb();
   const ftsQuery = toFts5Query(query);
 
   const {

@@ -4,8 +4,8 @@
  * Basic node lookup operations by ID, path, and content hash.
  */
 
+import type { Database } from "bun:sqlite";
 import type { KNode } from "@km/core";
-import { getDb } from "../db-instance.ts";
 import { rowToNode } from "./utils.ts";
 
 // =============================================================================
@@ -15,8 +15,7 @@ import { rowToNode } from "./utils.ts";
 /**
  * Get a node by ID
  */
-export function getNode(id: string): KNode | null {
-  const db = getDb();
+export function getNode(db: Database, id: string): KNode | null {
   const row = db.query("SELECT * FROM nodes WHERE id = ?").get(id) as Record<
     string,
     unknown
@@ -43,10 +42,10 @@ interface LookupOptions {
  * @param options - Optional filters (type or taskOnly)
  */
 function getNodeByIdPrefixWithOptions(
+  db: Database,
   idPrefix: string,
   options?: LookupOptions,
 ): KNode | null {
-  const db = getDb();
   const { type, taskOnly } = options ?? {};
 
   // Build filter clause
@@ -90,23 +89,22 @@ function getNodeByIdPrefixWithOptions(
 /**
  * Get a node by ID prefix or suffix (for CLI convenience)
  */
-export function getNodeByIdPrefix(idPrefix: string): KNode | null {
-  return getNodeByIdPrefixWithOptions(idPrefix);
+export function getNodeByIdPrefix(db: Database, idPrefix: string): KNode | null {
+  return getNodeByIdPrefixWithOptions(db, idPrefix);
 }
 
 /**
  * Get a task by ID prefix or suffix (for CLI convenience)
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getTaskByIdPrefix(idPrefix: string): KNode | null {
-  return getNodeByIdPrefixWithOptions(idPrefix, { taskOnly: true });
+export function getTaskByIdPrefix(db: Database, idPrefix: string): KNode | null {
+  return getNodeByIdPrefixWithOptions(db, idPrefix, { taskOnly: true });
 }
 
 /**
  * Get a node by filesystem path
  */
-export function getNodeByPath(fsPath: string): KNode | null {
-  const db = getDb();
+export function getNodeByPath(db: Database, fsPath: string): KNode | null {
   const row = db
     .query("SELECT * FROM nodes WHERE fs_path = ?")
     .get(fsPath) as Record<string, unknown> | null;
@@ -118,8 +116,7 @@ export function getNodeByPath(fsPath: string): KNode | null {
 /**
  * Get all folder/file nodes under a directory path (for reconciliation)
  */
-export function getNodesUnderPath(dirPath: string): KNode[] {
-  const db = getDb();
+export function getNodesUnderPath(db: Database, dirPath: string): KNode[] {
   const rows = db
     .query(
       `
@@ -137,8 +134,7 @@ export function getNodesUnderPath(dirPath: string): KNode[] {
  * Get a file node and ALL its descendants (sections, tasks, nested items, etc.)
  * Uses recursive CTE to get the complete subtree.
  */
-export function getFileWithChildren(fsPath: string): KNode[] {
-  const db = getDb();
+export function getFileWithChildren(db: Database, fsPath: string): KNode[] {
   const rows = db
     .query(
       `
@@ -161,8 +157,7 @@ export function getFileWithChildren(fsPath: string): KNode[] {
 /**
  * Get content hash for a node (for change detection)
  */
-export function getNodeContentHash(nodeId: string): string | null {
-  const db = getDb();
+export function getNodeContentHash(db: Database, nodeId: string): string | null {
   const row = db
     .query("SELECT content_hash FROM nodes WHERE id = ?")
     .get(nodeId) as { content_hash: string | null } | undefined;

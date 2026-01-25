@@ -4,8 +4,8 @@
  * Operations for traversing the node tree: children, subtrees, ancestors.
  */
 
+import type { Database } from "bun:sqlite";
 import type { KNode } from "@km/core";
-import { getDb } from "../db-instance.ts";
 import { rowToNode } from "./utils.ts";
 
 // =============================================================================
@@ -15,9 +15,7 @@ import { rowToNode } from "./utils.ts";
 /**
  * Get count of children for a node (cheap COUNT query for lazy loading)
  */
-export function getChildCount(parentId: string | null): number {
-  const db = getDb();
-
+export function getChildCount(db: Database, parentId: string | null): number {
   if (parentId === null) {
     const result = db
       .query("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL")
@@ -36,11 +34,12 @@ export function getChildCount(parentId: string | null): number {
  * Returns a Map of parentId → count.
  * This is much more efficient than calling getChildCount() N times.
  */
-export function getChildCountsBatch(parentIds: string[]): Map<string, number> {
+export function getChildCountsBatch(
+  db: Database,
+  parentIds: string[],
+): Map<string, number> {
   const counts = new Map<string, number>();
   if (parentIds.length === 0) return counts;
-
-  const db = getDb();
 
   // SQLite doesn't have native array parameters, so we build a query with placeholders
   const placeholders = parentIds.map(() => "?").join(",");
@@ -67,9 +66,7 @@ export function getChildCountsBatch(parentIds: string[]): Map<string, number> {
 /**
  * Get children of a node
  */
-export function getChildren(parentId: string | null): KNode[] {
-  const db = getDb();
-
+export function getChildren(db: Database, parentId: string | null): KNode[] {
   let rows: Record<string, unknown>[];
   if (parentId === null) {
     rows = db
@@ -99,8 +96,7 @@ export function getChildren(parentId: string | null): KNode[] {
 /**
  * Get subtree (recursive)
  */
-export function getSubtree(rootId: string): KNode[] {
-  const db = getDb();
+export function getSubtree(db: Database, rootId: string): KNode[] {
   const rows = db
     .query(
       `
@@ -124,11 +120,11 @@ export function getSubtree(rootId: string): KNode[] {
  * Returns a Set of node IDs that are already embedded somewhere on the board.
  */
 export function getEmbedTargetsOnBoard(
+  db: Database,
   boardRootId: string | null,
 ): Set<string> {
   if (!boardRootId) return new Set();
 
-  const db = getDb();
   const result = db
     .query(
       `
@@ -152,8 +148,7 @@ export function getEmbedTargetsOnBoard(
  * Get ancestors of a node (from root to parent)
  * Returns array from root down to immediate parent (excludes the node itself)
  */
-export function getAncestors(nodeId: string): KNode[] {
-  const db = getDb();
+export function getAncestors(db: Database, nodeId: string): KNode[] {
   const rows = db
     .query(
       `

@@ -4,8 +4,8 @@
  * Operations for querying tasks: by status, filtered, under nodes.
  */
 
+import type { Database } from "bun:sqlite";
 import type { KNode, TaskStatus } from "@km/core";
-import { getDb } from "../db-instance.ts";
 import { rowToNode } from "./utils.ts";
 
 // =============================================================================
@@ -16,8 +16,7 @@ import { rowToNode } from "./utils.ts";
  * Get tasks by status
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getTasksByStatus(status: TaskStatus | TaskStatus[]): KNode[] {
-  const db = getDb();
+export function getTasksByStatus(db: Database, status: TaskStatus | TaskStatus[]): KNode[] {
   const statuses = Array.isArray(status) ? status : [status];
   const placeholders = statuses.map(() => "?").join(", ");
 
@@ -38,8 +37,7 @@ export function getTasksByStatus(status: TaskStatus | TaskStatus[]): KNode[] {
  * Get all tasks
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getAllTasks(): KNode[] {
-  const db = getDb();
+export function getAllTasks(db: Database): KNode[] {
   const rows = db
     .query(
       `
@@ -57,8 +55,7 @@ export function getAllTasks(): KNode[] {
  * Get all links pointing to a given node
  * Used to find which boards/sections contain a task
  */
-export function getLinksTo(nodeId: string): KNode[] {
-  const db = getDb();
+export function getLinksTo(db: Database, nodeId: string): KNode[] {
   const rows = db
     .query(
       `
@@ -76,12 +73,10 @@ export function getLinksTo(nodeId: string): KNode[] {
  * Get tasks with optional status filter
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getTasksFiltered(options: {
+export function getTasksFiltered(db: Database, options: {
   status?: TaskStatus;
   excludeDone?: boolean;
 }): KNode[] {
-  const db = getDb();
-
   let sql = "SELECT * FROM nodes WHERE task_status IS NOT NULL";
   const params: string[] = [];
 
@@ -103,9 +98,7 @@ export function getTasksFiltered(options: {
  * Get all tasks under a node (recursive via descendants)
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getTasksUnderNode(rootId: string): KNode[] {
-  const db = getDb();
-
+export function getTasksUnderNode(db: Database, rootId: string): KNode[] {
   // Use recursive CTE to get all descendants
   const rows = db
     .query(
@@ -129,13 +122,11 @@ export function getTasksUnderNode(rootId: string): KNode[] {
 /**
  * Get filtered nodes by type and optional status
  */
-export function getFilteredNodes(options: {
+export function getFilteredNodes(db: Database, options: {
   type?: string;
   status?: string;
   excludeDone?: boolean;
 }): KNode[] {
-  const db = getDb();
-
   let sql = "SELECT * FROM nodes WHERE 1=1";
   const params: string[] = [];
 
@@ -164,8 +155,7 @@ export function getFilteredNodes(options: {
 /**
  * Find a project/container by name (searches folders, files, sections)
  */
-export function findProject(name: string): KNode | null {
-  const db = getDb();
+export function findProject(db: Database, name: string): KNode | null {
   const normalizedName = name.toLowerCase();
 
   // Search by content or fs_path basename
