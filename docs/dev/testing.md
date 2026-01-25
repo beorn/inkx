@@ -301,17 +301,20 @@ test("creates node", () => {
 Per-layer tests for pure logic (no database, no I/O):
 
 **Parser Layer** (`@km/markdown`):
+
 - [markdown.test.ts](../../packages/km-markdown/tests/markdown.test.ts) - Parse markdown constructs
 - [roundtrip.test.ts](../../packages/km-markdown/tests/roundtrip.test.ts) - Serialize and re-parse
 - [properties.test.ts](../../packages/km-markdown/tests/properties.test.ts) - Property-based parsing
 - [properties-roundtrip.test.ts](../../packages/km-markdown/tests/properties-roundtrip.test.ts) - Property-based roundtrip
 
 **Tree Layer** (`@km/tree`):
+
 - [body.test.ts](../../packages/km-tree/tests/body.test.ts) - Body text extraction
 - [display.test.ts](../../packages/km-tree/tests/display.test.ts) - Display name generation
 - [queries.test.ts](../../packages/km-tree/tests/queries.test.ts) - Tree queries (ancestors, descendants)
 
 **Board Layer** (`@km/board`):
+
 - [selectors.test.ts](../../packages/km-board/tests/selectors.test.ts) - Derived state calculations
 - [node-map.test.ts](../../packages/km-board/tests/node-map.test.ts) - Node indexing
 - [transformers.test.ts](../../packages/km-board/tests/transformers.test.ts) - State transformations
@@ -329,12 +332,14 @@ Vendor packages (`vendor/beorn-*`) are git submodules - part of km's test suite.
 ### 2.5 Utility Tests
 
 **TUI Layout** (`apps/km-tui/tests/layout/`):
+
 - [constrain.test.ts](../../apps/km-tui/tests/layout/constrain.test.ts) - Width constraint logic
 - [path.test.ts](../../apps/km-tui/tests/layout/path.test.ts) - Path formatting
 - [truncate.test.ts](../../apps/km-tui/tests/layout/truncate.test.ts) - Text truncation
 - [wrap.test.ts](../../apps/km-tui/tests/layout/wrap.test.ts) - Text wrapping
 
 **TUI Text** (`apps/km-tui/tests/text/`):
+
 - [icons.test.ts](../../apps/km-tui/tests/text/icons.test.ts) - Icon rendering
 - [rich.test.ts](../../apps/km-tui/tests/text/rich.test.ts) - Rich text formatting
 
@@ -342,13 +347,13 @@ Vendor packages (`vendor/beorn-*`) are git submodules - part of km's test suite.
 
 Each package has focused unit tests:
 
-| Package              | Test Files | Focus Area                  |
-| -------------------- | ---------- | --------------------------- |
-| km-commands          | 5          | Command system, keybindings |
-| km-agent             | 4          | Agent harness, mutations    |
-| km-beads             | 3          | Issue tracking, dependencies |
-| km-connector-caldav  | 5          | CalDAV/CardDAV sync         |
-| km-core              | 4          | Query parser, types         |
+| Package             | Test Files | Focus Area                   |
+| ------------------- | ---------- | ---------------------------- |
+| km-commands         | 5          | Command system, keybindings  |
+| km-agent            | 4          | Agent harness, mutations     |
+| km-beads            | 3          | Issue tracking, dependencies |
+| km-connector-caldav | 5          | CalDAV/CardDAV sync          |
+| km-core             | 4          | Query parser, types          |
 
 ---
 
@@ -496,6 +501,25 @@ pkill -f ttyd
 | `.slow.test.ts` | Slow tests (integration, chaos) | test:all only         |
 | `.spec.ts`      | TUI acceptance tests            | test:fast, test:all   |
 | `.test.md`      | mdtest CLI tests                | test:mdtest, test:all |
+
+### Test File Guidelines
+
+**File Size:**
+
+- Target: <500 lines per file for maintainability
+- Warning: Files >500 lines should be considered for splitting by logical concerns
+- Action: Files >1500 lines should be split (see [test-quality-report.md](test-quality-report.md))
+
+**Test Syntax:**
+
+- Prefer `test()` over `it()` for consistency across the codebase
+- Use `describe()` to organize related tests into logical groups
+
+**Organization:**
+
+- Group related tests with `describe()` blocks
+- Test files should focus on a single logical concern
+- Example: `query-filters.test.ts`, `query-execution.test.ts` > one monolithic `query.test.ts`
 
 ### Commands
 
