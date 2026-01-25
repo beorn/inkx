@@ -8,12 +8,12 @@
  * - Resolving unresolved links
  */
 
-import type { Database } from "bun:sqlite";
-import createDebug from "debug";
-import { updateNode } from "./db-ops.ts";
-import { findChildByContent } from "./db-queries/index.ts";
+import type { Database } from "bun:sqlite"
+import createDebug from "debug"
+import { updateNode } from "./db-ops.ts"
+import { findChildByContent } from "./db-queries/index.ts"
 
-const debug = createDebug("km:storage:db:links");
+const debug = createDebug("km:storage:db:links")
 
 // =============================================================================
 // Types
@@ -23,16 +23,16 @@ const debug = createDebug("km:storage:db:links");
  * Link record for wikilinks and property-based links
  */
 export interface Link {
-  source_id: string;
-  target_name: string;
-  target_id: string | null;
-  section: string | null;
-  block_id: string | null;
-  alias: string | null;
-  embedded: boolean;
+  source_id: string
+  target_name: string
+  target_id: string | null
+  section: string | null
+  block_id: string | null
+  alias: string | null
+  embedded: boolean
   /** Property name for property-based links (e.g., "blocked-by"), null for wikilinks */
-  relationship: string | null;
-  created_at: number;
+  relationship: string | null
+  created_at: number
 }
 
 // =============================================================================
@@ -47,7 +47,7 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
     source: link.source_id,
     target: link.target_name,
     relationship: link.relationship ?? "wikilink",
-  });
+  })
   db.run(
     `
     INSERT OR REPLACE INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
@@ -64,18 +64,18 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
       link.relationship,
       Date.now(),
     ],
-  );
+  )
 
   // For embedded links, update the source node's link_to field for transclusion
   if (link.embedded && link.target_id) {
     debug("addLink: updating source node link_to for embedding", {
       source: link.source_id,
       target: link.target_id,
-    });
+    })
     updateNode(link.source_id, {
       link_to: link.target_id,
       link_alias: link.alias ?? undefined,
-    });
+    })
   }
 }
 
@@ -83,8 +83,8 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
  * Remove all links from a source node
  */
 export function removeLinksFromSource(db: Database, sourceId: string): void {
-  debug("removeLinksFromSource: %s", sourceId);
-  db.run("DELETE FROM links WHERE source_id = ?", [sourceId]);
+  debug("removeLinksFromSource: %s", sourceId)
+  db.run("DELETE FROM links WHERE source_id = ?", [sourceId])
 }
 
 /**
@@ -96,11 +96,11 @@ export function removeLinksFromSourceByRelationship(
   sourceId: string,
   relationship: string,
 ): void {
-  debug("removeLinksFromSourceByRelationship", { sourceId, relationship });
+  debug("removeLinksFromSourceByRelationship", { sourceId, relationship })
   db.run("DELETE FROM links WHERE source_id = ? AND relationship = ?", [
     sourceId,
     relationship,
-  ]);
+  ])
 }
 
 /**
@@ -112,7 +112,7 @@ export function resolveLinks(
   targetId: string,
   targetName: string,
 ): number {
-  const normalizedName = targetName.toLowerCase().replace(/\.md$/, "");
+  const normalizedName = targetName.toLowerCase().replace(/\.md$/, "")
 
   // Find all unresolved links that match this target name
   const unresolvedLinks = db
@@ -124,25 +124,25 @@ export function resolveLinks(
   `,
     )
     .all(normalizedName) as Array<{
-    source_id: string;
-    section: string | null;
-    alias: string | null;
-    embedded: number;
-  }>;
+    source_id: string
+    section: string | null
+    alias: string | null
+    embedded: number
+  }>
 
-  let resolvedCount = 0;
+  let resolvedCount = 0
 
   for (const link of unresolvedLinks) {
     // Determine the actual target: if there's a section, try to find the child
-    let actualTargetId = targetId;
+    let actualTargetId = targetId
     if (link.section) {
-      const childNode = findChildByContent(targetId, link.section);
+      const childNode = findChildByContent(targetId, link.section)
       if (childNode) {
-        actualTargetId = childNode.id;
+        actualTargetId = childNode.id
         debug("resolveLinks: resolved section to child", {
           section: link.section,
           childId: childNode.id,
-        });
+        })
       }
     }
 
@@ -156,24 +156,24 @@ export function resolveLinks(
       AND LOWER(REPLACE(target_name, '.md', '')) = ?
     `,
       [actualTargetId, link.source_id, normalizedName],
-    );
-    resolvedCount++;
+    )
+    resolvedCount++
 
     // For embedded links, update the source node's link_to
     if (link.embedded) {
       debug("resolveLinks: updating source node link_to for embedding", {
         source: link.source_id,
         target: actualTargetId,
-      });
+      })
       updateNode(link.source_id, {
         link_to: actualTargetId,
         link_alias: link.alias ?? undefined,
-      });
+      })
     }
   }
 
-  debug("resolveLinks", { targetName, targetId, resolved: resolvedCount });
-  return resolvedCount;
+  debug("resolveLinks", { targetName, targetId, resolved: resolvedCount })
+  return resolvedCount
 }
 
 // =============================================================================
@@ -186,9 +186,9 @@ export function resolveLinks(
 export function getOutgoingLinks(db: Database, sourceId: string): Link[] {
   const rows = db
     .query("SELECT * FROM links WHERE source_id = ?")
-    .all(sourceId) as Array<Record<string, unknown>>;
+    .all(sourceId) as Array<Record<string, unknown>>
 
-  return rows.map(rowToLink);
+  return rows.map(rowToLink)
 }
 
 /**
@@ -197,9 +197,9 @@ export function getOutgoingLinks(db: Database, sourceId: string): Link[] {
 export function getBacklinks(db: Database, targetId: string): Link[] {
   const rows = db
     .query("SELECT * FROM links WHERE target_id = ?")
-    .all(targetId) as Array<Record<string, unknown>>;
+    .all(targetId) as Array<Record<string, unknown>>
 
-  return rows.map(rowToLink);
+  return rows.map(rowToLink)
 }
 
 /**
@@ -207,7 +207,7 @@ export function getBacklinks(db: Database, targetId: string): Link[] {
  */
 export function getBacklinksByName(db: Database, targetName: string): Link[] {
   // Match by name (case-insensitive, with or without .md extension)
-  const normalizedName = targetName.toLowerCase().replace(/\.md$/, "");
+  const normalizedName = targetName.toLowerCase().replace(/\.md$/, "")
   const rows = db
     .query(
       `
@@ -215,9 +215,9 @@ export function getBacklinksByName(db: Database, targetName: string): Link[] {
     WHERE LOWER(REPLACE(target_name, '.md', '')) = ?
   `,
     )
-    .all(normalizedName) as Array<Record<string, unknown>>;
+    .all(normalizedName) as Array<Record<string, unknown>>
 
-  return rows.map(rowToLink);
+  return rows.map(rowToLink)
 }
 
 // =============================================================================
@@ -238,5 +238,5 @@ function rowToLink(row: Record<string, unknown>): Link {
     embedded: Boolean(row.embedded),
     relationship: (row.relationship as string | null) ?? null,
     created_at: row.created_at as number,
-  };
+  }
 }

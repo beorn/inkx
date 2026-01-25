@@ -11,7 +11,7 @@ export {
   getLastEventId,
   getAllNodes,
   getNodeCount,
-} from "./utils.ts";
+} from "./utils.ts"
 
 // Core Lookup (getNode*, getNodeByPath, getNodesUnderPath)
 export {
@@ -22,7 +22,7 @@ export {
   getNodesUnderPath,
   getFileWithChildren,
   getNodeContentHash,
-} from "./core-lookup.ts";
+} from "./core-lookup.ts"
 
 // Tree Traversal (getChildren, getSubtree, getAncestors)
 export {
@@ -32,7 +32,7 @@ export {
   getSubtree,
   getEmbedTargetsOnBoard,
   getAncestors,
-} from "./tree-traversal.ts";
+} from "./tree-traversal.ts"
 
 // Task Queries (getTasksByStatus, getAllTasks, getLinksTo)
 export {
@@ -43,13 +43,13 @@ export {
   getTasksUnderNode,
   getFilteredNodes,
   findProject,
-} from "./task-queries.ts";
+} from "./task-queries.ts"
 
 // Wikilink Resolver (findFileByName, findChildByContent)
-export { findFileByName, findChildByContent } from "./wikilink-resolver.ts";
+export { findFileByName, findChildByContent } from "./wikilink-resolver.ts"
 
 // Smart Resolver (resolveNode, resolveTask)
-export { resolveNode, resolveTask } from "./smart-resolver.ts";
+export { resolveNode, resolveTask } from "./smart-resolver.ts"
 
 // Full-Text Search (search, searchWithSnippet)
 export {
@@ -57,4 +57,4 @@ export {
   search,
   searchWithSnippet,
   type SearchResult,
-} from "./full-text-search.ts";
+} from "./full-text-search.ts"

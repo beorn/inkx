@@ -5,14 +5,14 @@
  * Events are the source of truth for all state changes.
  */
 
-import createDebug from "debug";
-import type { Database, SQLQueryBindings } from "bun:sqlite";
+import createDebug from "debug"
+import type { Database, SQLQueryBindings } from "bun:sqlite"
 
-const debug = createDebug("km:storage:db:events");
-import { readFileSync } from "fs";
-import { getMarkForStatus } from "@km/core";
-import type { Event, TaskStatus } from "@km/core";
-import { getDb } from "./db-instance.ts";
+const debug = createDebug("km:storage:db:events")
+import { readFileSync } from "fs"
+import { getMarkForStatus } from "@km/core"
+import type { Event, TaskStatus } from "@km/core"
+import { getDb } from "./db-instance.ts"
 
 // =============================================================================
 // Event Application
@@ -22,32 +22,32 @@ import { getDb } from "./db-instance.ts";
  * Apply an event to the database
  */
 export function applyEvent(event: Event): void {
-  const db = getDb();
+  const db = getDb()
 
-  debug("applying %s: %s", event.type, event.target ?? event.id.slice(-8));
+  debug("applying %s: %s", event.type, event.target ?? event.id.slice(-8))
 
   switch (event.type) {
     case "node_created":
-      applyNodeCreated(db, event);
-      break;
+      applyNodeCreated(db, event)
+      break
     case "node_updated":
-      applyNodeUpdated(db, event);
-      break;
+      applyNodeUpdated(db, event)
+      break
     case "node_moved":
-      applyNodeMoved(db, event);
-      break;
+      applyNodeMoved(db, event)
+      break
     case "node_deleted":
-      applyNodeDeleted(db, event);
-      break;
+      applyNodeDeleted(db, event)
+      break
     case "task_claimed":
-      applyTaskClaimed(db, event);
-      break;
+      applyTaskClaimed(db, event)
+      break
     case "task_released":
-      applyTaskReleased(db, event);
-      break;
+      applyTaskReleased(db, event)
+      break
     case "task_completed":
-      applyTaskCompleted(db, event);
-      break;
+      applyTaskCompleted(db, event)
+      break
     // Session events don't modify state.db
     case "session_started":
     case "session_message":
@@ -56,14 +56,14 @@ export function applyEvent(event: Event): void {
     case "message":
     case "conflict_created":
       // No-op for state.db
-      break;
+      break
   }
 
   // Update last event cursor
   db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", [
     "last_event",
     event.id,
-  ]);
+  ])
 }
 
 // =============================================================================
@@ -71,7 +71,7 @@ export function applyEvent(event: Event): void {
 // =============================================================================
 
 function applyNodeCreated(db: Database, event: Event): void {
-  const data = event.data as Record<string, unknown>;
+  const data = event.data as Record<string, unknown>
 
   db.run(
     `
@@ -117,32 +117,32 @@ function applyNodeCreated(db: Database, event: Event): void {
       event.ts,
       event.id,
     ],
-  );
+  )
 }
 
 function applyNodeUpdated(db: Database, event: Event): void {
-  if (!event.target) return;
+  if (!event.target) return
 
-  const data = event.data as Record<string, unknown>;
-  const sets: string[] = [];
-  const values: unknown[] = [];
+  const data = event.data as Record<string, unknown>
+  const sets: string[] = []
+  const values: unknown[] = []
 
   for (const [key, value] of Object.entries(data)) {
     if (key === "data") {
       // Merge JSON data
-      sets.push("data = json_patch(data, ?)");
-      values.push(JSON.stringify(value));
+      sets.push("data = json_patch(data, ?)")
+      values.push(JSON.stringify(value))
     } else {
-      sets.push(`${key} = ?`);
-      values.push(value);
+      sets.push(`${key} = ?`)
+      values.push(value)
     }
   }
 
-  sets.push("updated_at = ?", "version = ?");
-  values.push(event.ts, event.id, event.target);
+  sets.push("updated_at = ?", "version = ?")
+  values.push(event.ts, event.id, event.target)
 
-  const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`;
-  db.run(sql, values as SQLQueryBindings[]);
+  const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`
+  db.run(sql, values as SQLQueryBindings[])
 
   // Bidirectional sync: write task status changes back to markdown file
   if (data.task_status !== undefined) {
@@ -150,13 +150,13 @@ function applyNodeUpdated(db: Database, event: Event): void {
     const task = db
       .query("SELECT parent_id, md_line, fs_path FROM nodes WHERE id = ?")
       .get(event.target) as {
-      parent_id: string | null;
-      md_line: number | null;
-      fs_path: string | null;
-    } | null;
+      parent_id: string | null
+      md_line: number | null
+      fs_path: string | null
+    } | null
 
     if (task && task.md_line !== null) {
-      let fsPath = task.fs_path;
+      let fsPath = task.fs_path
 
       // If task doesn't have fs_path directly, walk up to find parent file
       if (!fsPath && task.parent_id) {
@@ -173,8 +173,8 @@ function applyNodeUpdated(db: Database, event: Event): void {
             SELECT fs_path FROM ancestors WHERE type = 'file' AND fs_path IS NOT NULL LIMIT 1
           `,
           )
-          .get(task.parent_id) as { fs_path: string } | null;
-        fsPath = file?.fs_path ?? null;
+          .get(task.parent_id) as { fs_path: string } | null
+        fsPath = file?.fs_path ?? null
       }
 
       if (fsPath) {
@@ -182,7 +182,7 @@ function applyNodeUpdated(db: Database, event: Event): void {
           fsPath,
           task.md_line,
           data.task_status as TaskStatus,
-        );
+        )
       }
     }
   }
@@ -197,28 +197,28 @@ function writeTaskStatusToFile(
   newStatus: TaskStatus,
 ): void {
   try {
-    const content = readFileSync(fsPath, "utf-8");
-    const lines = content.split("\n");
+    const content = readFileSync(fsPath, "utf-8")
+    const lines = content.split("\n")
 
-    if (mdLine >= lines.length) return;
+    if (mdLine >= lines.length) return
 
-    const line = lines[mdLine];
-    if (!line) return;
+    const line = lines[mdLine]
+    if (!line) return
 
-    const newMark = getMarkForStatus(newStatus);
+    const newMark = getMarkForStatus(newStatus)
 
-    lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`);
+    lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`)
 
-    void Bun.write(fsPath, lines.join("\n"));
+    void Bun.write(fsPath, lines.join("\n"))
   } catch {
     // Ignore write errors
   }
 }
 
 function applyNodeMoved(db: Database, event: Event): void {
-  if (!event.target) return;
+  if (!event.target) return
 
-  const data = event.data as { parent_id: string | null; parent_idx?: number };
+  const data = event.data as { parent_id: string | null; parent_idx?: number }
 
   db.run(
     `
@@ -227,16 +227,16 @@ function applyNodeMoved(db: Database, event: Event): void {
     WHERE id = ?
   `,
     [data.parent_id, data.parent_idx ?? 0, event.ts, event.id, event.target],
-  );
+  )
 }
 
 function applyNodeDeleted(db: Database, event: Event): void {
-  if (!event.target) return;
-  db.run("DELETE FROM nodes WHERE id = ?", [event.target]);
+  if (!event.target) return
+  db.run("DELETE FROM nodes WHERE id = ?", [event.target])
 }
 
 function applyTaskClaimed(db: Database, event: Event): void {
-  if (!event.target) return;
+  if (!event.target) return
 
   db.run(
     `
@@ -245,11 +245,11 @@ function applyTaskClaimed(db: Database, event: Event): void {
     WHERE id = ?
   `,
     [event.actor, event.ts, event.id, event.target],
-  );
+  )
 }
 
 function applyTaskReleased(db: Database, event: Event): void {
-  if (!event.target) return;
+  if (!event.target) return
 
   db.run(
     `
@@ -258,11 +258,11 @@ function applyTaskReleased(db: Database, event: Event): void {
     WHERE id = ?
   `,
     [event.ts, event.id, event.target],
-  );
+  )
 }
 
 function applyTaskCompleted(db: Database, event: Event): void {
-  if (!event.target) return;
+  if (!event.target) return
 
   db.run(
     `
@@ -271,8 +271,8 @@ function applyTaskCompleted(db: Database, event: Event): void {
     WHERE id = ?
   `,
     [event.ts, event.id, event.target],
-  );
+  )
 }
 
 // Export for use with emit
-export const dbApplyEvent = { applyEvent };
+export const dbApplyEvent = { applyEvent }

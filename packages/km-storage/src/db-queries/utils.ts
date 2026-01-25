@@ -5,8 +5,8 @@
  * and low-level database operations.
  */
 
-import type { Database } from "bun:sqlite";
-import type { KNode, TaskStatus, NodeType, NodeRules } from "@km/core";
+import type { Database } from "bun:sqlite"
+import type { KNode, TaskStatus, NodeType, NodeRules } from "@km/core"
 
 // =============================================================================
 // Utility Queries
@@ -18,9 +18,9 @@ import type { KNode, TaskStatus, NodeType, NodeRules } from "@km/core";
 export function getLastEventId(db: Database): string | null {
   const row = db
     .query("SELECT value FROM meta WHERE key = ?")
-    .get("last_event") as { value: string } | null;
+    .get("last_event") as { value: string } | null
 
-  return row?.value ?? null;
+  return row?.value ?? null
 }
 
 /**
@@ -30,8 +30,8 @@ export function getAllNodes(db: Database): KNode[] {
   const rows = db.query("SELECT * FROM nodes").all() as Record<
     string,
     unknown
-  >[];
-  return rows.map(rowToNode);
+  >[]
+  return rows.map(rowToNode)
 }
 
 /**
@@ -39,9 +39,9 @@ export function getAllNodes(db: Database): KNode[] {
  */
 export function getNodeCount(db: Database): number {
   const result = db.query("SELECT COUNT(*) as count FROM nodes").get() as {
-    count: number;
-  };
-  return result.count;
+    count: number
+  }
+  return result.count
 }
 
 // =============================================================================
@@ -53,17 +53,17 @@ export function getNodeCount(db: Database): number {
  * Title and rules are read from stored values (data.title, data.rules)
  */
 export function rowToNode(row: Record<string, unknown>): KNode {
-  const type = row.type as NodeType;
-  const content = row.content as string | undefined;
+  const type = row.type as NodeType
+  const content = row.content as string | undefined
 
   // Parse data JSON
   const data =
     typeof row.data === "string"
       ? (JSON.parse(row.data) as Record<string, unknown>)
-      : ((row.data as Record<string, unknown>) ?? {});
+      : ((row.data as Record<string, unknown>) ?? {})
 
   // Extract rules from data.rules (stored by parser during sync)
-  const rules = data.rules as NodeRules | undefined;
+  const rules = data.rules as NodeRules | undefined
 
   return {
     id: row.id as string,
@@ -93,5 +93,5 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     created_at: row.created_at as number,
     updated_at: row.updated_at as number,
     version: row.version as string,
-  };
+  }
 }

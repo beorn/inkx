@@ -4,15 +4,16 @@
  * Compares filesystem state to database state and generates operations
  */
 
-import createDebug from "debug";
+import createDebug from "debug"
+import type { Database } from "bun:sqlite"
 
-const debug = createDebug("km:storage:watch:reconcile");
-import type { FileSystemOps } from "./writequeue.ts";
-import { realFs } from "./writequeue.ts";
-import { dirname, basename } from "path";
-import { ulid } from "ulid";
-import type { KNode } from "@km/core";
-import { emitNodeCreated, emitNodeUpdated, emitNodeDeleted } from "../emit.ts";
+const debug = createDebug("km:storage:watch:reconcile")
+import type { FileSystemOps } from "./writequeue.ts"
+import { realFs } from "./writequeue.ts"
+import { dirname, basename } from "path"
+import { ulid } from "ulid"
+import type { KNode } from "@km/core"
+import { emitNodeCreated, emitNodeUpdated, emitNodeDeleted } from "../emit.ts"
 import {
   getNodeByPath,
   getNodesUnderPath,
@@ -25,74 +26,75 @@ import {
   resolveLinks,
   hashContent,
   parseMarkdownWithLinks,
-} from "../index.ts";
-import { scanDirectory } from "./watcher.ts";
+} from "../index.ts"
+import { scanDirectory } from "./watcher.ts"
 
 export interface ReconcileOp {
-  type: "create" | "update" | "rename" | "delete";
-  path: string;
-  nodeId?: string;
-  oldPath?: string;
-  ino?: number;
-  mtime?: number;
+  type: "create" | "update" | "rename" | "delete"
+  path: string
+  nodeId?: string
+  oldPath?: string
+  ino?: number
+  mtime?: number
 }
 
 export interface FsEntry {
-  path: string;
-  ino: number;
-  mtime: number;
-  isDirectory: boolean;
+  path: string
+  ino: number
+  mtime: number
+  isDirectory: boolean
   /** If true, entry is a symlink (typically skipped during scanning) */
-  isSymlink?: boolean;
+  isSymlink?: boolean
 }
 
 export type DirectoryScanner = (
   dirPath: string,
   ignorePatterns?: string[],
-) => FsEntry[];
+) => FsEntry[]
 
 /**
  * Reconcile a directory - compare filesystem to database
  */
 export function reconcileDirectory(
+  db: Database,
   dirPath: string,
   vaultRoot: string,
   ignorePatterns?: string[],
   scanner?: DirectoryScanner,
 ): ReconcileOp[] {
-  const ops: ReconcileOp[] = [];
+  const ops: ReconcileOp[] = []
 
   // Get filesystem state (pass ignore patterns to filter out ignored files)
   const fsEntries = scanner
     ? scanner(dirPath, ignorePatterns)
-    : scanDirectory(dirPath, ignorePatterns);
+    : scanDirectory(dirPath, ignorePatterns)
 
   // Get database state for this directory (using km-storage abstraction)
-  const dbNodes = getNodesUnderPath(dirPath);
+  const dbNodes = getNodesUnderPath(db, dirPath)
 
   debug("reconciling", {
     dirPath,
     fsEntries: fsEntries.length,
     dbNodes: dbNodes.length,
-  });
+  })
 
   // Index by inode and path for efficient lookup
-  const dbByIno = new Map<number, KNode>();
-  const dbByPath = new Map<string, KNode>();
+  const dbByIno = new Map<number, KNode>()
+  const dbByPath = new Map<string, KNode>()
 
   for (const node of dbNodes) {
     if (node.fs_ino) {
-      dbByIno.set(node.fs_ino, node);
+      dbByIno.set(node.fs_ino, node)
     }
     if (node.fs_path) {
-      dbByPath.set(node.fs_path, node);
+      dbByPath.set(node.fs_path, node)
     }
   }
 
   // Process filesystem entries
   for (const entry of fsEntries) {
-    const existingByIno = dbByIno.get(entry.ino);
-    const existingByPath = dbByPath.get(entry.path);
+    const existingByIno = dbByIno.get(entry.ino)
+    const existingByPath = dbByPath.get(entry.path)
 
     if (existingByIno && existingByIno.fs_path !== entry.path) {
       // Renamed (same inode, different path)
@@ -102,7 +104,7 @@ export function reconcileDirectory(
         oldPath: existingByIno.fs_path,
         path: entry.path,
         ino: entry.ino,
-      });
+      })
     } else if (
       existingByPath &&
       existingByPath.fs_ino &&
@@ -115,14 +117,14 @@ export function reconcileDirectory(
         path: entry.path,
         oldIno: existingByPath.fs_ino,
         newIno: entry.ino,
-      });
+      })
       ops.push({
         type: "update",
         nodeId: existingByPath.id,
         path: entry.path,
         ino: entry.ino, // New inode to track
         mtime: entry.mtime,
-      });
+      })
     } else if (!existingByPath) {
       // New file/folder
       ops.push({
@@ -130,7 +132,7 @@ export function reconcileDirectory(
         path: entry.path,
         ino: entry.ino,
         mtime: entry.mtime,
-      });
+      })
     } else if (entry.mtime !== existingByPath.fs_mtime && !entry.isDirectory) {
       // Modified (mtime changed - works for both forward and backward time changes)
       // Skip directories - their mtime changes when any file inside changes,
@@ -141,11 +143,11 @@ export function reconcileDirectory(
         path: entry.path,
         ino: entry.ino, // Also track inode in normal updates for consistency
         mtime: entry.mtime,
-      });
+      })
     }
 
     // Remove from dbByPath so we can find deletions
-    dbByPath.delete(entry.path);
+    dbByPath.delete(entry.path)
   }
 
   // Remaining in dbByPath are deleted
@@ -156,7 +158,7 @@ export function reconcileDirectory(
         type: "delete",
         nodeId: node.id,
         path,
-      });
+      })
     }
   }
 
@@ -165,10 +167,10 @@ export function reconcileDirectory(
       "generated %d ops: %O",
       ops.length,
       ops.map((o) => ({ type: o.type, path: o.path })),
-    );
+    )
   }
 
-  return ops;
+  return ops
 }
 
 /**
@@ -176,66 +178,71 @@ export function reconcileDirectory(
  * Used when FSEvents coalesces multiple file events into a single directory event
  */
 export function reconcileDirectoryRecursive(
+  db: Database,
   dirPath: string,
   vaultRoot: string,
   ignorePatterns?: string[],
   scanner?: DirectoryScanner,
 ): ReconcileOp[] {
-  const ops: ReconcileOp[] = [];
+  const ops: ReconcileOp[] = []
 
   // Reconcile this directory
-  ops.push(...reconcileDirectory(dirPath, vaultRoot, ignorePatterns, scanner));
+  ops.push(
+    ...reconcileDirectory(db, dirPath, vaultRoot, ignorePatterns, scanner),
+  )
 
   // Get subdirectories and recursively reconcile them
   const fsEntries = scanner
     ? scanner(dirPath, ignorePatterns)
-    : scanDirectory(dirPath, ignorePatterns);
+    : scanDirectory(dirPath, ignorePatterns)
   for (const entry of fsEntries) {
     if (entry.isDirectory) {
       ops.push(
         ...reconcileDirectoryRecursive(
+          db,
           entry.path,
           vaultRoot,
           ignorePatterns,
           scanner,
         ),
-      );
+      )
     }
   }
 
-  return ops;
+  return ops
 }
 
 /**
  * Apply reconciliation operations
  */
 export function applyReconcileOps(
+  db: Database,
   ops: ReconcileOp[],
   vaultRoot: string,
   fs: FileSystemOps = realFs,
 ): void {
-  debug("applying %d reconcile ops", ops.length);
-  const start = Date.now();
+  debug("applying %d reconcile ops", ops.length)
+  const start = Date.now()
 
   for (const op of ops) {
-    debug("applying op: %s %s", op.type, op.path);
+    debug("applying op: %s %s", op.type, op.path)
     switch (op.type) {
       case "create":
-        handleCreate(op, vaultRoot, fs);
-        break;
+        handleCreate(db, op, vaultRoot, fs)
+        break
       case "update":
-        handleUpdate(op, vaultRoot, fs);
-        break;
+        handleUpdate(db, op, vaultRoot, fs)
+        break
       case "rename":
-        handleRename(op);
-        break;
+        handleRename(op)
+        break
       case "delete":
-        handleDelete(op);
-        break;
+        handleDelete(op)
+        break
     }
   }
 
-  debug("applied %d ops in %dms", ops.length, Date.now() - start);
+  debug("applied %d ops in %dms", ops.length, Date.now() - start)
 }
 
 /**
@@ -243,11 +250,12 @@ export function applyReconcileOps(
  * Returns the ID of the immediate parent folder node.
  */
 function ensureFolderHierarchy(
+  db: Database,
   path: string,
   vaultRoot: string,
   fs: FileSystemOps = realFs,
 ): string | null {
-  const parentPath = dirname(path);
+  const parentPath = dirname(path)
 
   // If we're at or above the vault root, no parent
   if (
@@ -255,22 +263,22 @@ function ensureFolderHierarchy(
     parentPath === dirname(vaultRoot) ||
     parentPath === path
   ) {
-    return null;
+    return null
   }
 
   // Check if parent folder node already exists
-  const parentNode = getNodeByPath(parentPath);
+  const parentNode = getNodeByPath(db, parentPath)
   if (parentNode) {
-    return parentNode.id;
+    return parentNode.id
   }
 
   // Recursively ensure grandparent exists first
-  const grandparentId = ensureFolderHierarchy(parentPath, vaultRoot, fs);
+  const grandparentId = ensureFolderHierarchy(db, parentPath, vaultRoot, fs)
 
   // Create the parent folder node
   try {
-    const stat = fs.statSync(parentPath);
-    const folderId = ulid();
+    const stat = fs.statSync(parentPath)
+    const folderId = ulid()
     emitNodeCreated("fs-watch", {
       id: folderId,
       type: "folder",
@@ -280,11 +288,11 @@ function ensureFolderHierarchy(
       parent_id: grandparentId,
       content: basename(parentPath),
       data: { name: basename(parentPath) },
-    });
-    return folderId;
+    })
+    return folderId
   } catch {
     // Parent folder doesn't exist on filesystem
-    return null;
+    return null
   }
 }
 
@@ -292,14 +300,15 @@ function ensureFolderHierarchy(
  * Handle new file/folder creation
  */
 function handleCreate(
+  db: Database,
   op: ReconcileOp,
   vaultRoot: string,
   fs: FileSystemOps = realFs,
 ): void {
-  const stat = fs.statSync(op.path);
+  const stat = fs.statSync(op.path)
 
   // Ensure all parent folders exist as nodes
-  const parentId = ensureFolderHierarchy(op.path, vaultRoot, fs);
+  const parentId = ensureFolderHierarchy(db, op.path, vaultRoot, fs)
 
   if (stat.isDirectory()) {
     // Create folder node
@@ -312,44 +321,44 @@ function handleCreate(
       parent_id: parentId,
       content: basename(op.path),
       data: { name: basename(op.path) },
-    });
+    })
   } else if (op.path.endsWith(".md")) {
     // Parse markdown file and create nodes with wikilinks
-    const content = fs.readFileSync(op.path, "utf-8");
-    const contentHash = hashContent(content);
+    const content = fs.readFileSync(op.path, "utf-8")
+    const contentHash = hashContent(content)
     const { nodes, wikilinks } = parseMarkdownWithLinks(
       content,
       op.path,
       op.ino,
       op.mtime ?? stat.mtimeMs,
-    );
+    )
 
     // Set parent and content_hash for file node
     // km-fast-md.0: Store content_hash so updates can skip parsing if unchanged
-    const fileNode = nodes[0];
+    const fileNode = nodes[0]
     if (fileNode) {
-      fileNode.parent_id = parentId;
-      fileNode.content_hash = contentHash;
+      fileNode.parent_id = parentId
+      fileNode.content_hash = contentHash
     }
 
     // Emit creation events for all nodes
     for (const node of nodes) {
-      emitNodeCreated("fs-watch", node as unknown as Record<string, unknown>);
+      emitNodeCreated("fs-watch", node as unknown as Record<string, unknown>)
     }
 
     // Store wikilinks and try to resolve them
     for (const { nodeId, link, relationship } of wikilinks) {
       // Try to find target node by name
-      const fileNode = findNodeByName(link.target);
+      const fileNode = findNodeByName(db, link.target)
       // If there's a section reference, try to find the specific child node
-      let targetNode = fileNode;
+      let targetNode = fileNode
       if (fileNode && link.section) {
-        const childNode = findChildByContent(fileNode.id, link.section);
+        const childNode = findChildByContent(db, fileNode.id, link.section)
         if (childNode) {
-          targetNode = childNode;
+          targetNode = childNode
         }
       }
-      addLink({
+      addLink(db, {
         source_id: nodeId,
         target_name: link.target,
         target_id: targetNode?.id ?? null,
@@ -358,13 +367,13 @@ function handleCreate(
         alias: link.alias ?? null,
         embedded: link.embedded ?? false,
         relationship: relationship ?? null,
-      });
+      })
     }
 
     // Try to resolve any pending links that point to this file
-    const fileName = basename(op.path).replace(/\.md$/, "");
+    const fileName = basename(op.path).replace(/\.md$/, "")
     if (fileNode) {
-      resolveLinks(fileNode.id, fileName);
+      resolveLinks(db, fileNode.id, fileName)
     }
   } else {
     // Non-markdown file - create simple file node
@@ -378,48 +387,49 @@ function handleCreate(
       name: basename(op.path),
       content: basename(op.path),
       data: { name: basename(op.path) },
-    });
+    })
   }
 }
 
 // Use km-storage's findFileByName for link resolution (aliased as findNodeByName for local use)
-const findNodeByName = findFileByName;
+const findNodeByName = findFileByName
 
 /**
  * Handle file modification
  */
 function handleUpdate(
+  db: Database,
   op: ReconcileOp,
   _vaultRoot: string,
   fs: FileSystemOps = realFs,
 ): void {
   if (!op.nodeId) {
-    return;
+    return
   }
 
   // For non-.md files, just update mtime/ino tracking
   if (!op.path.endsWith(".md")) {
-    const updates: Record<string, unknown> = { fs_mtime: op.mtime };
+    const updates: Record<string, unknown> = { fs_mtime: op.mtime }
     if (op.ino !== undefined) {
-      updates.fs_ino = op.ino;
+      updates.fs_ino = op.ino
     }
-    emitNodeUpdated("fs-watch", op.nodeId, updates);
-    return;
+    emitNodeUpdated("fs-watch", op.nodeId, updates)
+    return
   }
 
-  const content = fs.readFileSync(op.path, "utf-8");
-  const contentHash = hashContent(content);
+  const content = fs.readFileSync(op.path, "utf-8")
+  const contentHash = hashContent(content)
 
   // Use km-storage abstraction to get content hash
-  const existingHash = getNodeContentHash(op.nodeId);
+  const existingHash = getNodeContentHash(db, op.nodeId)
 
   // Skip if content hasn't actually changed
   if (existingHash === contentHash) {
-    return;
+    return
   }
 
   // Get existing nodes for this file using km-storage abstraction
-  const existingNodes = getFileWithChildren(op.path);
+  const existingNodes = getFileWithChildren(db, op.path)
   debug(
     "handleUpdate: existing nodes count=%d, ids=%O",
     existingNodes.length,
@@ -428,30 +438,30 @@ function handleUpdate(
       type: n.type,
       parent_idx: n.parent_idx,
     })),
-  );
+  )
 
   // Parse new content with wikilinks
-  const stat = fs.statSync(op.path);
-  const newMtime = op.mtime ?? stat.mtimeMs;
+  const stat = fs.statSync(op.path)
+  const newMtime = op.mtime ?? stat.mtimeMs
   const { nodes: newNodes, wikilinks } = parseMarkdownWithLinks(
     content,
     op.path,
     stat.ino,
     newMtime,
-  );
+  )
   debug(
     "handleUpdate: new nodes count=%d, ids=%O",
     newNodes.length,
     newNodes.map((n) => ({ id: n.id, type: n.type, parent_idx: n.parent_idx })),
-  );
+  )
 
   // Diff and emit changes
-  const { changes, idMap } = diffNodes(existingNodes, newNodes);
+  const { changes, idMap } = diffNodes(existingNodes, newNodes)
   debug(
     "handleUpdate: changes=%O",
     changes.map((c) => ({ type: c.type, nodeId: c.nodeId, node: c.node?.id })),
-  );
-  debug("handleUpdate: idMap (new→existing)=%O", Object.fromEntries(idMap));
+  )
+  debug("handleUpdate: idMap (new→existing)=%O", Object.fromEntries(idMap))
 
   for (const change of changes) {
     switch (change.type) {
@@ -460,17 +470,17 @@ function handleUpdate(
           emitNodeCreated(
             "fs-watch",
             change.node as unknown as Record<string, unknown>,
-          );
+          )
         }
-        break;
+        break
       case "updated":
         if (change.nodeId && change.changes) {
-          emitNodeUpdated("fs-watch", change.nodeId, change.changes);
+          emitNodeUpdated("fs-watch", change.nodeId, change.changes)
         }
-        break;
+        break
       case "deleted":
-        if (change.nodeId) emitNodeDeleted("fs-watch", change.nodeId);
-        break;
+        if (change.nodeId) emitNodeDeleted("fs-watch", change.nodeId)
+        break
     }
   }
 
@@ -480,12 +490,12 @@ function handleUpdate(
     const updates: Record<string, unknown> = {
       fs_mtime: newMtime,
       content_hash: contentHash,
-    };
+    }
     // Update fs_ino if it changed (atomic write detection)
     if (op.ino !== undefined) {
-      updates.fs_ino = op.ino;
+      updates.fs_ino = op.ino
     }
-    emitNodeUpdated("fs-watch", op.nodeId, updates);
+    emitNodeUpdated("fs-watch", op.nodeId, updates)
   }
 
   // Update wikilinks: remove old links from EXISTING nodes (not new ones)
@@ -493,25 +503,25 @@ function handleUpdate(
   debug(
     "handleUpdate: removing links from existing nodes: %O",
     existingNodes.map((n) => n.id),
-  );
+  )
   for (const node of existingNodes) {
-    removeLinksFromSource(node.id);
+    removeLinksFromSource(db, node.id)
   }
 
   for (const { nodeId, link, relationship } of wikilinks) {
     // Map new node ID to existing ID (if the node existed before)
-    const mappedSourceId = idMap.get(nodeId) ?? nodeId;
+    const mappedSourceId = idMap.get(nodeId) ?? nodeId
     // Try to find target node by name
-    const fileNode = findNodeByName(link.target);
+    const fileNode = findNodeByName(db, link.target)
     // If there's a section reference, try to find the specific child node
-    let targetNode = fileNode;
+    let targetNode = fileNode
     if (fileNode && link.section) {
-      const childNode = findChildByContent(fileNode.id, link.section);
+      const childNode = findChildByContent(db, fileNode.id, link.section)
       if (childNode) {
-        targetNode = childNode;
+        targetNode = childNode
       }
     }
-    addLink({
+    addLink(db, {
       source_id: mappedSourceId,
       target_name: link.target,
       target_id: targetNode?.id ?? null,
@@ -520,7 +530,7 @@ function handleUpdate(
       alias: link.alias ?? null,
       embedded: link.embedded ?? false,
       relationship: relationship ?? null,
-    });
+    })
   }
 }
 
@@ -528,30 +538,30 @@ function handleUpdate(
  * Handle file/folder rename
  */
 function handleRename(op: ReconcileOp): void {
-  if (!op.nodeId) return;
+  if (!op.nodeId) return
 
   emitNodeUpdated("fs-watch", op.nodeId, {
     fs_path: op.path,
-  });
+  })
 }
 
 /**
  * Handle file/folder deletion
  */
 function handleDelete(op: ReconcileOp): void {
-  if (!op.nodeId) return;
+  if (!op.nodeId) return
 
-  emitNodeDeleted("fs-watch", op.nodeId);
+  emitNodeDeleted("fs-watch", op.nodeId)
 }
 
 /**
  * Diff existing nodes against new nodes
  */
 interface NodeChange {
-  type: "created" | "updated" | "deleted";
-  nodeId?: string;
-  node?: KNode;
-  changes?: Record<string, unknown>;
+  type: "created" | "updated" | "deleted"
+  nodeId?: string
+  node?: KNode
+  changes?: Record<string, unknown>
 }
 
 /**
@@ -559,84 +569,84 @@ interface NodeChange {
  * This is more stable than md_pos which shifts when content changes.
  */
 function makeStructuralKey(node: KNode): string {
-  return `${node.parent_id ?? "root"}:${node.parent_idx ?? 0}:${node.type}`;
+  return `${node.parent_id ?? "root"}:${node.parent_idx ?? 0}:${node.type}`
 }
 
 interface DiffResult {
-  changes: NodeChange[];
-  idMap: Map<string, string>; // new ID → existing ID
+  changes: NodeChange[]
+  idMap: Map<string, string> // new ID → existing ID
 }
 
 function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
-  const changes: NodeChange[] = [];
+  const changes: NodeChange[] = []
 
   // Index existing by structural key (parent + index + type)
-  const existingByKey = new Map<string, KNode>();
+  const existingByKey = new Map<string, KNode>()
   for (const node of existing) {
-    const key = makeStructuralKey(node);
-    existingByKey.set(key, node);
+    const key = makeStructuralKey(node)
+    existingByKey.set(key, node)
   }
 
   // Map from new node IDs to existing node IDs (for parent_id remapping)
-  const idMap = new Map<string, string>();
+  const idMap = new Map<string, string>()
 
   // First pass: match file nodes by type (always root)
-  const existingFile = existing.find((n) => n.type === "file");
-  const newFile = newNodes.find((n) => n.type === "file");
+  const existingFile = existing.find((n) => n.type === "file")
+  const newFile = newNodes.find((n) => n.type === "file")
   if (existingFile && newFile) {
-    idMap.set(newFile.id, existingFile.id);
+    idMap.set(newFile.id, existingFile.id)
   }
 
   // Process non-file nodes with remapped parent IDs
   for (const node of newNodes) {
-    if (node.type === "file") continue;
+    if (node.type === "file") continue
 
     // Remap parent_id for key lookup
     const remappedParentId = node.parent_id
       ? (idMap.get(node.parent_id) ?? node.parent_id)
-      : null;
-    const key = `${remappedParentId ?? "root"}:${node.parent_idx ?? 0}:${node.type}`;
+      : null
+    const key = `${remappedParentId ?? "root"}:${node.parent_idx ?? 0}:${node.type}`
 
-    const existingNode = existingByKey.get(key);
+    const existingNode = existingByKey.get(key)
 
     if (!existingNode) {
       // New node - need to remap its parent_id to existing parent
-      const nodeToCreate = { ...node };
+      const nodeToCreate = { ...node }
       if (nodeToCreate.parent_id && idMap.has(nodeToCreate.parent_id)) {
-        const mappedId = idMap.get(nodeToCreate.parent_id);
+        const mappedId = idMap.get(nodeToCreate.parent_id)
         if (mappedId) {
-          nodeToCreate.parent_id = mappedId;
+          nodeToCreate.parent_id = mappedId
         }
       }
       changes.push({
         type: "created",
         node: nodeToCreate,
-      });
+      })
     } else {
       // Map new ID to existing ID for child nodes
-      idMap.set(node.id, existingNode.id);
+      idMap.set(node.id, existingNode.id)
 
       // Check for changes
-      const nodeChanges: Record<string, unknown> = {};
+      const nodeChanges: Record<string, unknown> = {}
 
       if (node.content !== existingNode.content) {
-        nodeChanges.content = node.content;
+        nodeChanges.content = node.content
       }
       if (node.task_status !== existingNode.task_status) {
-        nodeChanges.task_status = node.task_status;
+        nodeChanges.task_status = node.task_status
       }
       if (node.task_mark !== existingNode.task_mark) {
-        nodeChanges.task_mark = node.task_mark;
+        nodeChanges.task_mark = node.task_mark
       }
       // Compare data field for mentions, tags, projects changes
-      const newData = JSON.stringify(node.data ?? {});
-      const existingData = JSON.stringify(existingNode.data ?? {});
+      const newData = JSON.stringify(node.data ?? {})
+      const existingData = JSON.stringify(existingNode.data ?? {})
       if (newData !== existingData) {
-        nodeChanges.data = node.data;
+        nodeChanges.data = node.data
       }
       // Update md_pos since it may have shifted
       if (node.md_pos !== existingNode.md_pos) {
-        nodeChanges.md_pos = node.md_pos;
+        nodeChanges.md_pos = node.md_pos
       }
 
       if (Object.keys(nodeChanges).length > 0) {
@@ -644,57 +654,57 @@ function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
           type: "updated",
           nodeId: existingNode.id,
           changes: nodeChanges,
-        });
+        })
       }
 
-      existingByKey.delete(key);
+      existingByKey.delete(key)
     }
   }
 
   // Handle file node updates
   if (existingFile && newFile) {
-    const nodeChanges: Record<string, unknown> = {};
+    const nodeChanges: Record<string, unknown> = {}
     if (newFile.content !== existingFile.content) {
-      nodeChanges.content = newFile.content;
+      nodeChanges.content = newFile.content
     }
     if (newFile.title !== existingFile.title) {
-      nodeChanges.title = newFile.title;
+      nodeChanges.title = newFile.title
     }
-    const newData = JSON.stringify(newFile.data ?? {});
-    const existingData = JSON.stringify(existingFile.data ?? {});
+    const newData = JSON.stringify(newFile.data ?? {})
+    const existingData = JSON.stringify(existingFile.data ?? {})
     if (newData !== existingData) {
-      nodeChanges.data = newFile.data;
+      nodeChanges.data = newFile.data
     }
     if (Object.keys(nodeChanges).length > 0) {
       changes.push({
         type: "updated",
         nodeId: existingFile.id,
         changes: nodeChanges,
-      });
+      })
     }
     // Remove file from remaining check
-    const fileKey = makeStructuralKey(existingFile);
-    existingByKey.delete(fileKey);
+    const fileKey = makeStructuralKey(existingFile)
+    existingByKey.delete(fileKey)
   }
 
   // Remaining existing nodes were deleted
   for (const [, node] of existingByKey) {
     // Don't delete file nodes
-    if (node.type === "file") continue;
+    if (node.type === "file") continue
     changes.push({
       type: "deleted",
       nodeId: node.id,
-    });
+    })
   }
 
-  return { changes, idMap };
+  return { changes, idMap }
 }
 
 /**
  * Get parent node ID from filesystem path
  */
-export function getParentNodeId(fsPath: string): string | null {
-  const parentPath = dirname(fsPath);
-  const parentNode = getNodeByPath(parentPath);
-  return parentNode?.id ?? null;
+export function getParentNodeId(db: Database, fsPath: string): string | null {
+  const parentPath = dirname(fsPath)
+  const parentNode = getNodeByPath(db, parentPath)
+  return parentNode?.id ?? null
 }

@@ -4,9 +4,9 @@
  * Quick capture - creates new task in inbox.md file
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
-import { join } from "path";
+import { Command } from "commander"
+import chalk from "chalk"
+import { join } from "path"
 import {
   createVault,
   parseTaskMetadata,
@@ -14,41 +14,41 @@ import {
   extractMentions,
   resolvePathArg,
   runGenerator,
-} from "@km/storage";
-import { getRootPath } from "../index.ts";
+} from "@km/storage"
+import { getRootPath } from "../index.ts"
 
 /**
  * Format task metadata as inline fields
  */
 function formatMetadata(options: {
-  due?: string;
-  start?: string;
-  priority?: string;
-  owner?: string;
+  due?: string
+  start?: string
+  priority?: string
+  owner?: string
 }): string {
-  const parts: string[] = [];
+  const parts: string[] = []
 
   if (options.due) {
-    parts.push(`due:${options.due}`);
+    parts.push(`due:${options.due}`)
   }
   if (options.start) {
-    parts.push(`start:${options.start}`);
+    parts.push(`start:${options.start}`)
   }
   if (options.priority) {
-    parts.push(`p:${options.priority}`);
+    parts.push(`p:${options.priority}`)
   }
   if (options.owner) {
-    parts.push(`@${options.owner}`);
+    parts.push(`@${options.owner}`)
   }
 
-  return parts.length > 0 ? " " + parts.join(" ") : "";
+  return parts.length > 0 ? " " + parts.join(" ") : ""
 }
 
 /**
  * Get the default inbox path
  */
 function getInboxPath(rootPath: string): string {
-  return join(rootPath, "inbox", "inbox.md");
+  return join(rootPath, "inbox", "inbox.md")
 }
 
 export const newCommand = new Command("new")
@@ -65,17 +65,17 @@ export const newCommand = new Command("new")
   .option("-P, --priority <n>", "Set priority (1-5)")
   .option("--json", "Output as JSON")
   .action((content, options) => {
-    const rootPath = getRootPath();
-    using vault = runGenerator(createVault(rootPath));
-    const text = content.join(" ");
+    const rootPath = getRootPath()
+    using vault = runGenerator(createVault(rootPath))
+    const text = content.join(" ")
 
     // Parse any metadata already in the content
-    const existingMetadata = parseTaskMetadata(text);
-    const tags = extractTags(text);
-    const mentions = extractMentions(text);
+    const existingMetadata = parseTaskMetadata(text)
+    const tags = extractTags(text)
+    const mentions = extractMentions(text)
 
     // Build the task line
-    const taskContent = text;
+    const taskContent = text
 
     // Add metadata from options (if not already in content)
     const metadata = formatMetadata({
@@ -92,47 +92,47 @@ export const newCommand = new Command("new")
         options.owner && !mentions.includes(options.owner)
           ? options.owner
           : undefined,
-    });
+    })
 
-    const taskLine = `- [ ] ${taskContent}${metadata}\n`;
+    const taskLine = `- [ ] ${taskContent}${metadata}\n`
 
     // Determine target file
-    let targetPath: string;
-    let targetName: string;
+    let targetPath: string
+    let targetName: string
 
     if (options.parent) {
       // Resolve parent path argument
-      const resolvedParent = resolvePathArg(options.parent, rootPath);
+      const resolvedParent = resolvePathArg(options.parent, rootPath)
 
       if (!resolvedParent.nodeRef) {
-        console.error(chalk.red(`Cannot create task in a directory`));
-        process.exit(1);
+        console.error(chalk.red(`Cannot create task in a directory`))
+        process.exit(1)
       }
 
       // Try to resolve parent by ID, path, or filename
-      const parentNode = vault.resolveNode(resolvedParent.nodeRef);
+      const parentNode = vault.resolveNode(resolvedParent.nodeRef)
       if (parentNode && parentNode.fs_path) {
-        targetPath = parentNode.fs_path;
-        targetName = parentNode.fs_path.split("/").pop() || options.parent;
+        targetPath = parentNode.fs_path
+        targetName = parentNode.fs_path.split("/").pop() || options.parent
       } else if (vault.pathExists(options.parent)) {
         // Try as relative path
-        targetPath = join(vault.path, options.parent);
-        targetName = options.parent;
+        targetPath = join(vault.path, options.parent)
+        targetName = options.parent
       } else {
         console.error(
           chalk.red(`Parent not found: ${options.parent}`),
           chalk.dim("\nUse ID, path, or filename (e.g., @next.md)"),
-        );
-        process.exit(1);
+        )
+        process.exit(1)
       }
     } else {
       // Default to inbox
-      targetPath = getInboxPath(vault.path);
-      targetName = "inbox";
+      targetPath = getInboxPath(vault.path)
+      targetName = "inbox"
     }
 
     // Append to target file via vault (handles directory/file creation)
-    vault.appendTaskToFile(targetPath, taskLine, { ensure: true });
+    vault.appendTaskToFile(targetPath, taskLine, { ensure: true })
 
     if (options.json) {
       console.log(
@@ -147,16 +147,16 @@ export const newCommand = new Command("new")
             mentions,
           },
         }),
-      );
-      return;
+      )
+      return
     }
 
-    console.log(chalk.green("✓"), `Added to ${targetName}: ${taskContent}`);
+    console.log(chalk.green("✓"), `Added to ${targetName}: ${taskContent}`)
 
     // If --next flag, remind user to sync and add to @next
     if (options.next) {
       console.log(
         chalk.dim("  Hint: Run 'km sync' then 'km @next add' to add to board"),
-      );
+      )
     }
-  });
+  })

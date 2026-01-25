@@ -4,9 +4,9 @@
  * Basic node lookup operations by ID, path, and content hash.
  */
 
-import type { Database } from "bun:sqlite";
-import type { KNode } from "@km/core";
-import { rowToNode } from "./utils.ts";
+import type { Database } from "bun:sqlite"
+import type { KNode } from "@km/core"
+import { rowToNode } from "./utils.ts"
 
 // =============================================================================
 // Core Queries
@@ -19,17 +19,17 @@ export function getNode(db: Database, id: string): KNode | null {
   const row = db.query("SELECT * FROM nodes WHERE id = ?").get(id) as Record<
     string,
     unknown
-  > | null;
+  > | null
 
-  if (!row) return null;
-  return rowToNode(row);
+  if (!row) return null
+  return rowToNode(row)
 }
 
 interface LookupOptions {
   /** Filter by node type (e.g., 'task') */
-  type?: string;
+  type?: string
   /** Only return nodes with task_status set */
-  taskOnly?: boolean;
+  taskOnly?: boolean
 }
 
 /**
@@ -46,59 +46,64 @@ function getNodeByIdPrefixWithOptions(
   idPrefix: string,
   options?: LookupOptions,
 ): KNode | null {
-  const { type, taskOnly } = options ?? {};
+  const { type, taskOnly } = options ?? {}
 
   // Build filter clause
-  const filters: string[] = [];
-  const filterParams: string[] = [];
+  const filters: string[] = []
+  const filterParams: string[] = []
 
   if (type) {
-    filters.push("type = ?");
-    filterParams.push(type);
+    filters.push("type = ?")
+    filterParams.push(type)
   }
   if (taskOnly) {
-    filters.push("task_status IS NOT NULL");
+    filters.push("task_status IS NOT NULL")
   }
 
-  const filterClause =
-    filters.length > 0 ? " AND " + filters.join(" AND ") : "";
+  const filterClause = filters.length > 0 ? " AND " + filters.join(" AND ") : ""
 
   // Try exact match first
   let row = db
     .query(`SELECT * FROM nodes WHERE id = ?${filterClause}`)
-    .get(idPrefix, ...filterParams) as Record<string, unknown> | null;
+    .get(idPrefix, ...filterParams) as Record<string, unknown> | null
 
-  if (row) return rowToNode(row);
+  if (row) return rowToNode(row)
 
   // Try prefix match (ID starts with input)
   row = db
     .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`)
-    .get(`${idPrefix}%`, ...filterParams) as Record<string, unknown> | null;
+    .get(`${idPrefix}%`, ...filterParams) as Record<string, unknown> | null
 
-  if (row) return rowToNode(row);
+  if (row) return rowToNode(row)
 
   // Try suffix match (ID ends with input) - for short IDs displayed as last 8 chars
   row = db
     .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`)
-    .get(`%${idPrefix}`, ...filterParams) as Record<string, unknown> | null;
+    .get(`%${idPrefix}`, ...filterParams) as Record<string, unknown> | null
 
-  if (!row) return null;
-  return rowToNode(row);
+  if (!row) return null
+  return rowToNode(row)
 }
 
 /**
  * Get a node by ID prefix or suffix (for CLI convenience)
  */
-export function getNodeByIdPrefix(db: Database, idPrefix: string): KNode | null {
-  return getNodeByIdPrefixWithOptions(db, idPrefix);
+export function getNodeByIdPrefix(
+  db: Database,
+  idPrefix: string,
+): KNode | null {
+  return getNodeByIdPrefixWithOptions(db, idPrefix)
 }
 
 /**
  * Get a task by ID prefix or suffix (for CLI convenience)
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getTaskByIdPrefix(db: Database, idPrefix: string): KNode | null {
-  return getNodeByIdPrefixWithOptions(db, idPrefix, { taskOnly: true });
+export function getTaskByIdPrefix(
+  db: Database,
+  idPrefix: string,
+): KNode | null {
+  return getNodeByIdPrefixWithOptions(db, idPrefix, { taskOnly: true })
 }
 
 /**
@@ -107,10 +112,10 @@ export function getTaskByIdPrefix(db: Database, idPrefix: string): KNode | null 
 export function getNodeByPath(db: Database, fsPath: string): KNode | null {
   const row = db
     .query("SELECT * FROM nodes WHERE fs_path = ?")
-    .get(fsPath) as Record<string, unknown> | null;
+    .get(fsPath) as Record<string, unknown> | null
 
-  if (!row) return null;
-  return rowToNode(row);
+  if (!row) return null
+  return rowToNode(row)
 }
 
 /**
@@ -125,9 +130,9 @@ export function getNodesUnderPath(db: Database, dirPath: string): KNode[] {
       AND (type = 'folder' OR type = 'file')
     `,
     )
-    .all(dirPath) as Record<string, unknown>[];
+    .all(dirPath) as Record<string, unknown>[]
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 /**
@@ -149,18 +154,21 @@ export function getFileWithChildren(db: Database, fsPath: string): KNode[] {
       SELECT * FROM subtree
     `,
     )
-    .all(fsPath) as Record<string, unknown>[];
+    .all(fsPath) as Record<string, unknown>[]
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 /**
  * Get content hash for a node (for change detection)
  */
-export function getNodeContentHash(db: Database, nodeId: string): string | null {
+export function getNodeContentHash(
+  db: Database,
+  nodeId: string,
+): string | null {
   const row = db
     .query("SELECT content_hash FROM nodes WHERE id = ?")
-    .get(nodeId) as { content_hash: string | null } | undefined;
+    .get(nodeId) as { content_hash: string | null } | undefined
 
-  return row?.content_hash ?? null;
+  return row?.content_hash ?? null
 }

@@ -5,11 +5,12 @@
  * Parsing is done by @km/core query module.
  */
 
-import createDebug from "debug";
-import { getDb } from "./db.ts";
-import { rowToNode } from "./db-queries/index.ts";
+import createDebug from "debug"
+import type { Database } from "bun:sqlite"
+import { getDb } from "./db.ts"
+import { rowToNode } from "./db-queries/index.ts"
 
-const debug = createDebug("km:storage:query");
+const debug = createDebug("km:storage:query")
 import {
   parseQuery as parse,
   resolveDateQuery as resolveDate,
@@ -21,7 +22,7 @@ import {
   type QueryRef,
   type QueryPath,
   type DateRange,
-} from "@km/core";
+} from "@km/core"
 
 // Re-export parsing types and functions from @km/core
 export {
@@ -32,32 +33,32 @@ export {
   type QueryRef,
   type QueryPath,
   type DateRange,
-};
+}
 
 /** Options for executeQuery */
 export interface QueryOptions {
   /** Filter by structural type (e.g., "file", "section") */
-  baseType?: string;
+  baseType?: string
   /** If true, only return nodes with task_status set (any node acting as a task) */
-  requireTaskStatus?: boolean;
+  requireTaskStatus?: boolean
 }
 
 /**
  * Execute a query against the database
  */
 export function executeQuery(
+  db: Database,
   ast: QueryAST,
   baseType?: string,
   options?: QueryOptions,
 ): KNode[] {
-  const db = getDb();
-  const requireTaskStatus = options?.requireTaskStatus ?? false;
+  const requireTaskStatus = options?.requireTaskStatus ?? false
 
   // Check if we need path filtering (requires CTE for ancestor lookup)
-  const needsPathFilter = ast.paths.length > 0;
+  const needsPathFilter = ast.paths.length > 0
 
-  let sql: string;
-  const params: (string | number)[] = [];
+  let sql: string
+  const params: (string | number)[] = []
 
   if (needsPathFilter) {
     // Use a recursive CTE to compute effective_path for all nodes
@@ -96,84 +97,84 @@ export function executeQuery(
       SELECT n.*, COALESCE(n.fs_path, np.effective_path) AS effective_path
       FROM nodes n
       LEFT JOIN node_paths np ON n.id = np.node_id
-      WHERE 1=1`;
+      WHERE 1=1`
   } else {
-    sql = "SELECT * FROM nodes WHERE 1=1";
+    sql = "SELECT * FROM nodes WHERE 1=1"
   }
 
   // Filter by type if specified
   if (baseType) {
-    sql += " AND type = ?";
-    params.push(baseType);
+    sql += " AND type = ?"
+    params.push(baseType)
   }
 
   // Filter to only nodes with task_status (nodes acting as tasks)
   if (requireTaskStatus) {
-    sql += " AND task_status IS NOT NULL";
+    sql += " AND task_status IS NOT NULL"
   }
 
   // Apply field conditions
   for (const cond of ast.conditions) {
-    const { field, op, value } = cond;
+    const { field, op, value } = cond
 
     // Handle date shortcuts for date fields
     if (isDateField(field) && isDateShortcut(value)) {
-      const dateRange = resolveDate(value);
+      const dateRange = resolveDate(value)
       if (dateRange) {
         if (op === "=" || op === "!=") {
           if (dateRange.start === dateRange.end) {
             // Single day - use exact match or not equal
             if (op === "=") {
-              sql += ` AND ${field} = ?`;
-              params.push(dateRange.start);
+              sql += ` AND ${field} = ?`
+              params.push(dateRange.start)
             } else {
-              sql += ` AND (${field} != ? OR ${field} IS NULL)`;
-              params.push(dateRange.start);
+              sql += ` AND (${field} != ? OR ${field} IS NULL)`
+              params.push(dateRange.start)
             }
           } else {
             // Date range
             if (op === "=") {
-              sql += ` AND ${field} >= ? AND ${field} <= ?`;
-              params.push(dateRange.start, dateRange.end);
+              sql += ` AND ${field} >= ? AND ${field} <= ?`
+              params.push(dateRange.start, dateRange.end)
             } else {
-              sql += ` AND (${field} < ? OR ${field} > ? OR ${field} IS NULL)`;
-              params.push(dateRange.start, dateRange.end);
+              sql += ` AND (${field} < ? OR ${field} > ? OR ${field} IS NULL)`
+              params.push(dateRange.start, dateRange.end)
             }
           }
         }
-        continue;
+        continue
       }
     }
 
     // Handle comma-separated values (e.g., status:open,blocked → IN clause)
-    const values = value.split(",").filter((v: string) => v.length > 0);
+    const values = value.split(",").filter((v: string) => v.length > 0)
 
     if (op === "=") {
       if (values.length > 1) {
         // Multiple values: use IN clause (OR semantics)
-        const placeholders = values.map(() => "?").join(", ");
-        sql += ` AND ${field} IN (${placeholders})`;
-        params.push(...values);
+        const placeholders = values.map(() => "?").join(", ")
+        sql += ` AND ${field} IN (${placeholders})`
+        params.push(...values)
       } else {
-        sql += ` AND ${field} = ?`;
-        params.push(value);
+        sql += ` AND ${field} = ?`
+        params.push(value)
       }
     } else if (op === "!=") {
       if (values.length > 1) {
         // Multiple values: NOT IN clause
-        const placeholders = values.map(() => "?").join(", ");
-        sql += ` AND (${field} NOT IN (${placeholders}) OR ${field} IS NULL)`;
-        params.push(...values);
+        const placeholders = values.map(() => "?").join(", ")
+        sql += ` AND (${field} NOT IN (${placeholders}) OR ${field} IS NULL)`
+        params.push(...values)
       } else {
-        sql += ` AND (${field} != ? OR ${field} IS NULL)`;
-        params.push(value);
+        sql += ` AND (${field} != ? OR ${field} IS NULL)`
+        params.push(value)
       }
     } else if (op === ">" || op === "<" || op === ">=" || op === "<=") {
-      sql += ` AND ${field} ${op} ?`;
-      params.push(value);
+      sql += ` AND ${field} ${op} ?`
+      params.push(value)
     } else if (op === "LIKE") {
-      sql += ` AND ${field} LIKE ?`;
-      params.push(`%${value}%`);
+      sql += ` AND ${field} LIKE ?`
+      params.push(`%${value}%`)
     }
   }
 
@@ -184,16 +185,16 @@ export function executeQuery(
         ? "mentions"
         : ref.type === "tag"
           ? "tags"
-          : "projects";
+          : "projects"
 
     if (ref.negated) {
       // Exclude nodes with this ref
-      sql += ` AND (data IS NULL OR json_extract(data, '$') NOT LIKE ?)`;
-      params.push(`%"${ref.value}"%`);
+      sql += ` AND (data IS NULL OR json_extract(data, '$') NOT LIKE ?)`
+      params.push(`%"${ref.value}"%`)
     } else {
       // Include only nodes with this ref
-      sql += ` AND json_extract(data, '$.${jsonPath}') LIKE ?`;
-      params.push(`%"${ref.value}"%`);
+      sql += ` AND json_extract(data, '$.${jsonPath}') LIKE ?`
+      params.push(`%"${ref.value}"%`)
     }
   }
 
@@ -205,28 +206,28 @@ export function executeQuery(
   // - { type: "date", value: "YYYY-MM-DD" }
   // - { type: "list", values: [...] }
   for (const propCond of ast.propConditions) {
-    const { prop, op, value, negated } = propCond;
-    const jsonPath = `$.props.${prop}`;
-    const valuePath = `$.props.${prop}.value`; // For number/text/date
-    const targetPath = `$.props.${prop}.target`; // For link
+    const { prop, op, value, negated } = propCond
+    const jsonPath = `$.props.${prop}`
+    const valuePath = `$.props.${prop}.value` // For number/text/date
+    const targetPath = `$.props.${prop}.target` // For link
 
     if (op === "exists") {
       if (negated) {
         // Property does not exist
-        sql += ` AND (data IS NULL OR json_extract(data, ?) IS NULL)`;
+        sql += ` AND (data IS NULL OR json_extract(data, ?) IS NULL)`
       } else {
         // Property exists
-        sql += ` AND json_extract(data, ?) IS NOT NULL`;
+        sql += ` AND json_extract(data, ?) IS NOT NULL`
       }
-      params.push(jsonPath);
+      params.push(jsonPath)
     } else if ((op === "=" || op === "!=") && value !== undefined) {
-      const effectiveOp = negated ? (op === "=" ? "!=" : "=") : op;
+      const effectiveOp = negated ? (op === "=" ? "!=" : "=") : op
       if (effectiveOp === "=") {
         // Match value in different property types:
         // - number/text/date: $.props.X.value = ?
         // - link: $.props.X.target = ?
         // - list: $.props.X.values contains the value (LIKE search)
-        sql += ` AND (json_extract(data, ?) = ? OR json_extract(data, ?) = ? OR json_extract(data, ?) LIKE ?)`;
+        sql += ` AND (json_extract(data, ?) = ? OR json_extract(data, ?) = ? OR json_extract(data, ?) LIKE ?)`
         params.push(
           valuePath,
           value,
@@ -234,10 +235,10 @@ export function executeQuery(
           value,
           jsonPath,
           `%"${value}"%`,
-        );
+        )
       } else {
         // Not equal - must not match in any form
-        sql += ` AND (json_extract(data, ?) IS NULL OR (json_extract(data, ?) != ? AND json_extract(data, ?) != ? AND json_extract(data, ?) NOT LIKE ?))`;
+        sql += ` AND (json_extract(data, ?) IS NULL OR (json_extract(data, ?) != ? AND json_extract(data, ?) != ? AND json_extract(data, ?) NOT LIKE ?))`
         params.push(
           jsonPath,
           valuePath,
@@ -246,15 +247,15 @@ export function executeQuery(
           value,
           jsonPath,
           `%"${value}"%`,
-        );
+        )
       }
     } else if (
       (op === ">" || op === "<" || op === ">=" || op === "<=") &&
       value !== undefined
     ) {
       // Numeric comparison - extract from $.props.X.value
-      sql += ` AND CAST(json_extract(data, ?) AS REAL) ${op} ?`;
-      params.push(valuePath, value);
+      sql += ` AND CAST(json_extract(data, ?) AS REAL) ${op} ?`
+      params.push(valuePath, value)
     }
   }
 
@@ -262,13 +263,13 @@ export function executeQuery(
   // blocked:true = has blocked-by property pointing to at least one non-done task
   // blocked:false = no blocked-by property OR all blockers are done
   // Table alias: when path filter is used, outer query is "FROM nodes n", otherwise "FROM nodes"
-  const outerTable = needsPathFilter ? "n" : "nodes";
+  const outerTable = needsPathFilter ? "n" : "nodes"
   for (const special of ast.specials) {
     if (special.type === "blocked") {
       if (special.value) {
         // blocked:true - has blocked-by property with at least one unresolved blocker
         // Properties are stored as PropertyValue: {type: "link", target: "..."} or {type: "list", values: [...]}
-        sql += ` AND json_extract(data, '$.props.blocked-by') IS NOT NULL`;
+        sql += ` AND json_extract(data, '$.props.blocked-by') IS NOT NULL`
         // Subquery to check if any blocker is not done
         sql += ` AND EXISTS (
           SELECT 1 FROM nodes AS blocker
@@ -279,7 +280,7 @@ export function executeQuery(
             OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.name || '"%'
           )
           AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
-        )`;
+        )`
       } else {
         // blocked:false - no blocked-by property OR all blockers are done
         sql += ` AND (
@@ -294,7 +295,7 @@ export function executeQuery(
             )
             AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
           )
-        )`;
+        )`
       }
     }
   }
@@ -303,11 +304,11 @@ export function executeQuery(
   if (ast.text.length > 0) {
     for (const term of ast.text) {
       if (term.startsWith("-")) {
-        sql += " AND content NOT LIKE ?";
-        params.push(`%${term.slice(1)}%`);
+        sql += " AND content NOT LIKE ?"
+        params.push(`%${term.slice(1)}%`)
       } else {
-        sql += " AND content LIKE ?";
-        params.push(`%${term}%`);
+        sql += " AND content LIKE ?"
+        params.push(`%${term}%`)
       }
     }
   }
@@ -315,33 +316,33 @@ export function executeQuery(
   // Apply path pattern filters
   // Path patterns match against effective_path (includes ancestor lookup for child nodes)
   // When needsPathFilter is true, we use the CTE with effective_path column
-  const pathColumn = needsPathFilter ? "effective_path" : "fs_path";
+  const pathColumn = needsPathFilter ? "effective_path" : "fs_path"
 
   for (const pathFilter of ast.paths) {
-    const { pattern, recursive, negated } = pathFilter;
+    const { pattern, recursive, negated } = pathFilter
 
     // Normalize pattern:
     // - Remove leading ./ for relative paths
     // - Remove leading / for absolute paths
     // - Remove trailing / if present
-    let normalizedPattern = pattern;
+    let normalizedPattern = pattern
     if (normalizedPattern.startsWith("./")) {
-      normalizedPattern = normalizedPattern.slice(2);
+      normalizedPattern = normalizedPattern.slice(2)
     }
     if (normalizedPattern.startsWith("/")) {
-      normalizedPattern = normalizedPattern.slice(1);
+      normalizedPattern = normalizedPattern.slice(1)
     }
     if (normalizedPattern.endsWith("/")) {
-      normalizedPattern = normalizedPattern.slice(0, -1);
+      normalizedPattern = normalizedPattern.slice(0, -1)
     }
 
     // Default to recursive matching (./folder matches all contents)
     // Use ./folder$ for non-recursive (direct children only)
-    const isNonRecursive = normalizedPattern.endsWith("$");
+    const isNonRecursive = normalizedPattern.endsWith("$")
     if (isNonRecursive) {
-      normalizedPattern = normalizedPattern.slice(0, -1);
+      normalizedPattern = normalizedPattern.slice(0, -1)
     }
-    const effectiveRecursive = recursive || !isNonRecursive;
+    const effectiveRecursive = recursive || !isNonRecursive
 
     if (effectiveRecursive) {
       // Recursive pattern (e.g., ./inbox/** or ./inbox)
@@ -350,63 +351,67 @@ export function executeQuery(
       //   - /root/inbox/sub/file.md (file in subfolder)
       //   - /root/inbox.md (the folder itself as a file)
       if (negated) {
-        sql += ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ?))`;
+        sql += ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ?))`
         params.push(
           `%/${normalizedPattern}/%`, // files inside folder
           `%/${normalizedPattern}.md`, // the folder file itself
           `%/${normalizedPattern}`, // exact match at end
-        );
+        )
       } else {
-        sql += ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ?)`;
+        sql += ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ?)`
         params.push(
           `%/${normalizedPattern}/%`, // files inside folder
           `%/${normalizedPattern}.md`, // the folder file itself
           `%/${normalizedPattern}`, // exact match at end (for folder names without extension)
-        );
+        )
       }
     } else {
       // Non-recursive pattern (e.g., ./inbox$) - direct children only
       // Only matches files directly in the folder, not subfolders
       if (negated) {
-        sql += ` AND (${pathColumn} IS NULL OR ${pathColumn} NOT GLOB ?)`;
-        params.push(`*/${normalizedPattern}/*[!/]*`);
+        sql += ` AND (${pathColumn} IS NULL OR ${pathColumn} NOT GLOB ?)`
+        params.push(`*/${normalizedPattern}/*[!/]*`)
       } else {
         // Match direct children: /folder/file.md but not /folder/sub/file.md
         // GLOB pattern: */folder/* where the part after folder/ has no more slashes
-        sql += ` AND ${pathColumn} GLOB ? AND ${pathColumn} NOT GLOB ?`;
-        params.push(`*/${normalizedPattern}/*`, `*/${normalizedPattern}/*/*`);
+        sql += ` AND ${pathColumn} GLOB ? AND ${pathColumn} NOT GLOB ?`
+        params.push(`*/${normalizedPattern}/*`, `*/${normalizedPattern}/*/*`)
       }
     }
   }
 
-  sql += " ORDER BY parent_idx ASC, created_at DESC";
+  sql += " ORDER BY parent_idx ASC, created_at DESC"
 
-  const start = Date.now();
-  const rows = db.prepare(sql).all(...params) as Record<string, unknown>[];
-  const nodes = rows.map(rowToNode);
+  const start = Date.now()
+  const rows = db.prepare(sql).all(...params) as Record<string, unknown>[]
+  const nodes = rows.map(rowToNode)
   debug("executeQuery", {
     results: nodes.length,
     ms: Date.now() - start,
     type: baseType ?? "any",
     conditions: ast.conditions.length,
     paths: ast.paths.length,
-  });
-  return nodes;
+  })
+  return nodes
 }
 
 /**
  * Query tasks with a string query
  * A "task" is any node with task_status set, regardless of structural type
  */
-export function queryTasks(query: string): KNode[] {
-  const ast = parse(query);
-  return executeQuery(ast, undefined, { requireTaskStatus: true });
+export function queryTasks(db: Database, query: string): KNode[] {
+  const ast = parse(query)
+  return executeQuery(db, ast, undefined, { requireTaskStatus: true })
 }
 
 /**
  * Query all nodes with a string query
  */
-export function queryNodes(query: string, type?: string): KNode[] {
-  const ast = parse(query);
-  return executeQuery(ast, type);
+export function queryNodes(
+  db: Database,
+  query: string,
+  type?: string,
+): KNode[] {
+  const ast = parse(query)
+  return executeQuery(db, ast, type)
 }

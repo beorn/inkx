@@ -22,7 +22,7 @@ export {
   resetDb,
   runWithDb,
   tryGetContextDb,
-} from "./db-instance.ts";
+} from "./db-instance.ts"
 
 // Read-only queries
 export {
@@ -57,7 +57,7 @@ export {
   getNodeCount,
   rowToNode,
   type SearchResult,
-} from "./db-queries/index.ts";
+} from "./db-queries/index.ts"
 
 // Link management
 export {
@@ -68,10 +68,10 @@ export {
   getBacklinksByName,
   resolveLinks,
   type Link,
-} from "./db-links.ts";
+} from "./db-links.ts"
 
 // Write operations
-export { moveNode, updateNode, deleteNode, addNode } from "./db-ops.ts";
+export { moveNode, updateNode, deleteNode, addNode } from "./db-ops.ts"
 
 // Event application
-export { applyEvent, dbApplyEvent } from "./db-events.ts";
+export { applyEvent, dbApplyEvent } from "./db-events.ts"

@@ -5,14 +5,14 @@
  * Operations handle both memory mode (direct SQL) and disk mode (via emit).
  */
 
-import type { Database } from "bun:sqlite";
-import createDebug from "debug";
-import { ulid } from "ulid";
+import type { Database } from "bun:sqlite"
+import createDebug from "debug"
+import { ulid } from "ulid"
 
-const debug = createDebug("km:storage:db:ops");
-import type { KNode } from "@km/core";
-import { isMemoryMode } from "./db-instance.ts";
-import { emit } from "./emit.ts";
+const debug = createDebug("km:storage:db:ops")
+import type { KNode } from "@km/core"
+import { isMemoryMode } from "./db-instance.ts"
+import { emit } from "./emit.ts"
 
 // =============================================================================
 // Node Operations
@@ -31,12 +31,12 @@ export function moveNode(
   newParentId: string,
   newParentIdx: number,
 ): void {
-  debug("moveNode: %s → parent=%s idx=%d", nodeId, newParentId, newParentIdx);
+  debug("moveNode: %s → parent=%s idx=%d", nodeId, newParentId, newParentIdx)
   if (isMemoryMode()) {
     db.run(
       "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
       [newParentId, newParentIdx, Date.now(), nodeId],
-    );
+    )
   } else {
     emit({
       type: "node_moved",
@@ -46,7 +46,7 @@ export function moveNode(
         parent_id: newParentId,
         parent_idx: newParentIdx,
       },
-    });
+    })
   }
 }
 
@@ -62,29 +62,29 @@ export function updateNode(
   nodeId: string,
   updates: Record<string, unknown>,
 ): void {
-  debug("updateNode: %s keys=%o", nodeId, Object.keys(updates));
+  debug("updateNode: %s keys=%o", nodeId, Object.keys(updates))
   if (isMemoryMode()) {
-    const sets: string[] = [];
-    const values: (string | number | null)[] = [];
+    const sets: string[] = []
+    const values: (string | number | null)[] = []
 
     for (const [key, value] of Object.entries(updates)) {
-      sets.push(`${key} = ?`);
-      values.push(value as string | number | null);
+      sets.push(`${key} = ?`)
+      values.push(value as string | number | null)
     }
 
-    sets.push("updated_at = ?");
-    values.push(Date.now());
-    values.push(nodeId);
+    sets.push("updated_at = ?")
+    values.push(Date.now())
+    values.push(nodeId)
 
-    const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`;
-    db.run(sql, values);
+    const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`
+    db.run(sql, values)
   } else {
     emit({
       type: "node_updated",
       actor: "user",
       target: nodeId,
       data: updates,
-    });
+    })
   }
 }
 
@@ -96,16 +96,16 @@ export function updateNode(
  * UI components should use this instead of raw SQL.
  */
 export function deleteNode(db: Database, nodeId: string): void {
-  debug("deleteNode: %s", nodeId);
+  debug("deleteNode: %s", nodeId)
   if (isMemoryMode()) {
-    db.run("DELETE FROM nodes WHERE id = ?", [nodeId]);
+    db.run("DELETE FROM nodes WHERE id = ?", [nodeId])
   } else {
     emit({
       type: "node_deleted",
       actor: "user",
       target: nodeId,
       data: {},
-    });
+    })
   }
 }
 
@@ -126,9 +126,9 @@ export function addNode(
   parentId: string | null,
   node: Partial<KNode>,
 ): string {
-  const nodeId = node.id ?? ulid();
-  debug("addNode: %s type=%s parent=%s", nodeId, node.type ?? "task", parentId);
-  const now = Date.now();
+  const nodeId = node.id ?? ulid()
+  debug("addNode: %s type=%s parent=%s", nodeId, node.type ?? "task", parentId)
+  const now = Date.now()
 
   const nodeData = {
     id: nodeId,
@@ -155,7 +155,7 @@ export function addNode(
     data: node.data ?? {},
     created_at: now,
     updated_at: now,
-  };
+  }
 
   if (isMemoryMode()) {
     db.run(
@@ -196,14 +196,14 @@ export function addNode(
         nodeData.created_at,
         nodeData.updated_at,
       ],
-    );
+    )
   } else {
     emit({
       type: "node_created",
       actor: "user",
       data: nodeData,
-    });
+    })
   }
 
-  return nodeId;
+  return nodeId
 }

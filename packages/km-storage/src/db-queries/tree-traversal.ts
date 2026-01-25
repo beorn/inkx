@@ -4,9 +4,9 @@
  * Operations for traversing the node tree: children, subtrees, ancestors.
  */
 
-import type { Database } from "bun:sqlite";
-import type { KNode } from "@km/core";
-import { rowToNode } from "./utils.ts";
+import type { Database } from "bun:sqlite"
+import type { KNode } from "@km/core"
+import { rowToNode } from "./utils.ts"
 
 // =============================================================================
 // Tree Queries
@@ -19,14 +19,14 @@ export function getChildCount(db: Database, parentId: string | null): number {
   if (parentId === null) {
     const result = db
       .query("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL")
-      .get() as { count: number } | null;
-    return result?.count ?? 0;
+      .get() as { count: number } | null
+    return result?.count ?? 0
   }
 
   const result = db
     .query("SELECT COUNT(*) as count FROM nodes WHERE parent_id = ?")
-    .get(parentId) as { count: number } | null;
-  return result?.count ?? 0;
+    .get(parentId) as { count: number } | null
+  return result?.count ?? 0
 }
 
 /**
@@ -38,36 +38,36 @@ export function getChildCountsBatch(
   db: Database,
   parentIds: string[],
 ): Map<string, number> {
-  const counts = new Map<string, number>();
-  if (parentIds.length === 0) return counts;
+  const counts = new Map<string, number>()
+  if (parentIds.length === 0) return counts
 
   // SQLite doesn't have native array parameters, so we build a query with placeholders
-  const placeholders = parentIds.map(() => "?").join(",");
+  const placeholders = parentIds.map(() => "?").join(",")
   const rows = db
     .query(
       `SELECT parent_id, COUNT(*) as count FROM nodes WHERE parent_id IN (${placeholders}) GROUP BY parent_id`,
     )
-    .all(...parentIds) as Array<{ parent_id: string; count: number }>;
+    .all(...parentIds) as Array<{ parent_id: string; count: number }>
 
   for (const row of rows) {
-    counts.set(row.parent_id, row.count);
+    counts.set(row.parent_id, row.count)
   }
 
   // Set 0 for any parentIds not in results (nodes with no children)
   for (const id of parentIds) {
     if (!counts.has(id)) {
-      counts.set(id, 0);
+      counts.set(id, 0)
     }
   }
 
-  return counts;
+  return counts
 }
 
 /**
  * Get children of a node
  */
 export function getChildren(db: Database, parentId: string | null): KNode[] {
-  let rows: Record<string, unknown>[];
+  let rows: Record<string, unknown>[]
   if (parentId === null) {
     rows = db
       .query(
@@ -77,7 +77,7 @@ export function getChildren(db: Database, parentId: string | null): KNode[] {
       ORDER BY parent_idx, created_at
     `,
       )
-      .all() as Record<string, unknown>[];
+      .all() as Record<string, unknown>[]
   } else {
     rows = db
       .query(
@@ -87,10 +87,10 @@ export function getChildren(db: Database, parentId: string | null): KNode[] {
       ORDER BY parent_idx, created_at
     `,
       )
-      .all(parentId) as Record<string, unknown>[];
+      .all(parentId) as Record<string, unknown>[]
   }
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 /**
@@ -110,9 +110,9 @@ export function getSubtree(db: Database, rootId: string): KNode[] {
     ORDER BY parent_idx, created_at
   `,
     )
-    .all(rootId) as Record<string, unknown>[];
+    .all(rootId) as Record<string, unknown>[]
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 /**
@@ -123,7 +123,7 @@ export function getEmbedTargetsOnBoard(
   db: Database,
   boardRootId: string | null,
 ): Set<string> {
-  if (!boardRootId) return new Set();
+  if (!boardRootId) return new Set()
 
   const result = db
     .query(
@@ -139,9 +139,9 @@ export function getEmbedTargetsOnBoard(
     AND type = 'embed' AND link_to IS NOT NULL
   `,
     )
-    .all(boardRootId) as { link_to: string }[];
+    .all(boardRootId) as { link_to: string }[]
 
-  return new Set(result.map((r) => r.link_to));
+  return new Set(result.map((r) => r.link_to))
 }
 
 /**
@@ -161,8 +161,8 @@ export function getAncestors(db: Database, nodeId: string): KNode[] {
     SELECT * FROM ancestors
   `,
     )
-    .all(nodeId) as Record<string, unknown>[];
+    .all(nodeId) as Record<string, unknown>[]
 
   // Results come in child-to-root order, reverse to get root-to-parent
-  return rows.map(rowToNode).reverse();
+  return rows.map(rowToNode).reverse()
 }

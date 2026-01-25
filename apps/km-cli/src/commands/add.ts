@@ -9,18 +9,18 @@
  * km add +project TASKID       # Link task to project
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
-import { ulid } from "ulid";
+import { Command } from "commander"
+import chalk from "chalk"
+import { ulid } from "ulid"
 import {
   queryTasks,
   resolvePathArg,
   createVault,
   runGenerator,
   emitNodeCreated,
-} from "@km/storage";
-import type { KNode } from "@km/core";
-import { getRootPath } from "../index.ts";
+} from "@km/storage"
+import type { KNode } from "@km/core"
+import { getRootPath } from "../index.ts"
 
 export const addCommand = new Command("add")
   .description("Add tasks to a board or list")
@@ -30,113 +30,113 @@ export const addCommand = new Command("add")
   .option("--json", "Output as JSON")
   .action((target, sources, options) => {
     // Resolve target path argument - may detect vault root
-    const resolvedTarget = resolvePathArg(target, getRootPath());
+    const resolvedTarget = resolvePathArg(target, getRootPath())
     using vault = runGenerator(
       createVault(resolvedTarget.vaultRoot, { searchAncestors: false }),
-    );
+    )
 
     if (!resolvedTarget.nodeRef) {
-      console.error(chalk.red(`Cannot add to a directory`));
-      process.exit(1);
+      console.error(chalk.red(`Cannot add to a directory`))
+      process.exit(1)
     }
 
     // Resolve target board/container
-    const targetNode = vault.resolveNode(resolvedTarget.nodeRef);
+    const targetNode = vault.resolveNode(resolvedTarget.nodeRef)
     if (!targetNode) {
-      console.error(chalk.red(`Target not found: ${target}`));
+      console.error(chalk.red(`Target not found: ${target}`))
       console.error(
         chalk.dim("Use ID, path, or filename (e.g., @next, @inbox.md)"),
-      );
-      process.exit(1);
+      )
+      process.exit(1)
     }
 
     // Collect tasks to add (store full node for link creation)
-    const tasksToAdd: KNode[] = [];
+    const tasksToAdd: KNode[] = []
 
     for (const source of sources) {
       // Resolve source path if it's a filesystem path
-      const resolvedSource = resolvePathArg(source, resolvedTarget.vaultRoot);
+      const resolvedSource = resolvePathArg(source, resolvedTarget.vaultRoot)
 
       // Try as node ID/path first
-      const nodeRef = resolvedSource.nodeRef || source;
-      const node = vault.resolveNode(nodeRef, "task");
+      const nodeRef = resolvedSource.nodeRef || source
+      const node = vault.resolveNode(nodeRef, "task")
       if (node) {
-        tasksToAdd.push(node);
-        continue;
+        tasksToAdd.push(node)
+        continue
       }
 
       // Try as query
-      const queryResults = queryTasks(source);
+      const queryResults = queryTasks(source)
       if (queryResults.length > 0) {
         for (const task of queryResults) {
           // Don't add duplicates
           if (!tasksToAdd.some((t) => t.id === task.id)) {
-            tasksToAdd.push(task);
+            tasksToAdd.push(task)
           }
         }
-        continue;
+        continue
       }
 
       // Nothing found
-      console.warn(chalk.yellow(`No tasks found for: ${source}`));
+      console.warn(chalk.yellow(`No tasks found for: ${source}`))
     }
 
     if (tasksToAdd.length === 0) {
-      console.log(chalk.yellow("No tasks to add"));
-      process.exit(0);
+      console.log(chalk.yellow("No tasks to add"))
+      process.exit(0)
     }
 
     // Find the default column (section with data.rules.default=true)
     // Falls back to the first section if no explicit default is set
-    let actualTarget = targetNode;
+    let actualTarget = targetNode
     const findDefaultSection = (parentId: string): KNode | undefined => {
-      const children = vault.getChildren(parentId);
-      let firstSection: KNode | undefined;
+      const children = vault.getChildren(parentId)
+      let firstSection: KNode | undefined
       for (const child of children) {
         if (child.type === "section") {
           // Track first section as fallback
           if (!firstSection) {
-            firstSection = child;
+            firstSection = child
           }
-          const rules = child.data?.rules as { default?: boolean } | undefined;
+          const rules = child.data?.rules as { default?: boolean } | undefined
           if (rules?.default) {
-            return child;
+            return child
           }
           // Search deeper for explicit default
-          const found = findDefaultSection(child.id);
-          if (found) return found;
+          const found = findDefaultSection(child.id)
+          if (found) return found
         }
       }
       // No explicit default found, return first section as fallback
-      return firstSection;
-    };
-    const defaultColumn = findDefaultSection(targetNode.id);
+      return firstSection
+    }
+    const defaultColumn = findDefaultSection(targetNode.id)
     if (defaultColumn) {
-      actualTarget = defaultColumn;
+      actualTarget = defaultColumn
     }
 
     // Use timestamp-based ordering for new items
-    let nextIdx = Date.now();
+    let nextIdx = Date.now()
 
     if (options.dryRun) {
-      console.log(chalk.cyan("Dry run - would link:"));
+      console.log(chalk.cyan("Dry run - would link:"))
       for (const task of tasksToAdd) {
         console.log(
           `  ${chalk.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
-        );
+        )
       }
       console.log(
         chalk.dim(
           `\nTo: ${targetNode.content || targetNode.fs_path || target}`,
         ),
-      );
-      return;
+      )
+      return
     }
 
     // Create link nodes in the target (transclusion - tasks stay in original location)
     for (const task of tasksToAdd) {
       // Create a link node that points to the original task
-      const linkId = ulid();
+      const linkId = ulid()
       emitNodeCreated("cli:add", {
         id: linkId,
         type: "task",
@@ -147,7 +147,7 @@ export const addCommand = new Command("add")
         content: task.content,
         task_status: task.task_status,
         task_mark: task.task_mark,
-      });
+      })
     }
 
     if (options.json) {
@@ -157,22 +157,22 @@ export const addCommand = new Command("add")
           linked: tasksToAdd.map((t) => t.id),
           count: tasksToAdd.length,
         }),
-      );
-      return;
+      )
+      return
     }
 
     console.log(
       chalk.green("✓"),
       `Linked ${tasksToAdd.length} task(s) to ${targetNode.content || target}`,
-    );
+    )
     for (const task of tasksToAdd.slice(0, 5)) {
       console.log(
         chalk.dim(
           `  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`,
         ),
-      );
+      )
     }
     if (tasksToAdd.length > 5) {
-      console.log(chalk.dim(`  ... and ${tasksToAdd.length - 5} more`));
+      console.log(chalk.dim(`  ... and ${tasksToAdd.length - 5} more`))
     }
-  });
+  })

@@ -4,9 +4,9 @@
  * Operations for querying tasks: by status, filtered, under nodes.
  */
 
-import type { Database } from "bun:sqlite";
-import type { KNode, TaskStatus } from "@km/core";
-import { rowToNode } from "./utils.ts";
+import type { Database } from "bun:sqlite"
+import type { KNode, TaskStatus } from "@km/core"
+import { rowToNode } from "./utils.ts"
 
 // =============================================================================
 // Task Queries
@@ -16,9 +16,12 @@ import { rowToNode } from "./utils.ts";
  * Get tasks by status
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getTasksByStatus(db: Database, status: TaskStatus | TaskStatus[]): KNode[] {
-  const statuses = Array.isArray(status) ? status : [status];
-  const placeholders = statuses.map(() => "?").join(", ");
+export function getTasksByStatus(
+  db: Database,
+  status: TaskStatus | TaskStatus[],
+): KNode[] {
+  const statuses = Array.isArray(status) ? status : [status]
+  const placeholders = statuses.map(() => "?").join(", ")
 
   const rows = db
     .query(
@@ -28,9 +31,9 @@ export function getTasksByStatus(db: Database, status: TaskStatus | TaskStatus[]
     ORDER BY priority ASC, due_date ASC, created_at ASC
   `,
     )
-    .all(...statuses) as Record<string, unknown>[];
+    .all(...statuses) as Record<string, unknown>[]
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 /**
@@ -46,9 +49,9 @@ export function getAllTasks(db: Database): KNode[] {
     ORDER BY task_status, priority ASC, due_date ASC, created_at ASC
   `,
     )
-    .all() as Record<string, unknown>[];
+    .all() as Record<string, unknown>[]
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 /**
@@ -64,34 +67,37 @@ export function getLinksTo(db: Database, nodeId: string): KNode[] {
     ORDER BY parent_idx ASC
   `,
     )
-    .all(nodeId) as Record<string, unknown>[];
+    .all(nodeId) as Record<string, unknown>[]
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 /**
  * Get tasks with optional status filter
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getTasksFiltered(db: Database, options: {
-  status?: TaskStatus;
-  excludeDone?: boolean;
-}): KNode[] {
-  let sql = "SELECT * FROM nodes WHERE task_status IS NOT NULL";
-  const params: string[] = [];
+export function getTasksFiltered(
+  db: Database,
+  options: {
+    status?: TaskStatus
+    excludeDone?: boolean
+  },
+): KNode[] {
+  let sql = "SELECT * FROM nodes WHERE task_status IS NOT NULL"
+  const params: string[] = []
 
   if (options.status) {
-    sql += " AND task_status = ?";
-    params.push(options.status);
+    sql += " AND task_status = ?"
+    params.push(options.status)
   } else if (options.excludeDone) {
-    sql += " AND task_status IN ('todo', 'wip')";
+    sql += " AND task_status IN ('todo', 'wip')"
   }
 
   sql +=
-    " ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC";
+    " ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC"
 
-  const rows = db.prepare(sql).all(...params) as Record<string, unknown>[];
-  return rows.map(rowToNode);
+  const rows = db.prepare(sql).all(...params) as Record<string, unknown>[]
+  return rows.map(rowToNode)
 }
 
 /**
@@ -114,49 +120,52 @@ export function getTasksUnderNode(db: Database, rootId: string): KNode[] {
     ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC
   `,
     )
-    .all(rootId) as Record<string, unknown>[];
+    .all(rootId) as Record<string, unknown>[]
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 /**
  * Get filtered nodes by type and optional status
  */
-export function getFilteredNodes(db: Database, options: {
-  type?: string;
-  status?: string;
-  excludeDone?: boolean;
-}): KNode[] {
-  let sql = "SELECT * FROM nodes WHERE 1=1";
-  const params: string[] = [];
+export function getFilteredNodes(
+  db: Database,
+  options: {
+    type?: string
+    status?: string
+    excludeDone?: boolean
+  },
+): KNode[] {
+  let sql = "SELECT * FROM nodes WHERE 1=1"
+  const params: string[] = []
 
   // Filter by type
   if (options.type) {
-    sql += " AND type = ?";
-    params.push(options.type);
+    sql += " AND type = ?"
+    params.push(options.type)
   }
 
   // Filter by status (for tasks)
   if (options.type === "task") {
     if (options.status) {
-      sql += " AND task_status = ?";
-      params.push(options.status);
+      sql += " AND task_status = ?"
+      params.push(options.status)
     } else if (options.excludeDone) {
-      sql += " AND (task_status IS NULL OR task_status != 'done')";
+      sql += " AND (task_status IS NULL OR task_status != 'done')"
     }
   }
 
-  sql += " ORDER BY parent_idx ASC, created_at DESC";
+  sql += " ORDER BY parent_idx ASC, created_at DESC"
 
-  const rows = db.prepare(sql).all(...params) as Record<string, unknown>[];
-  return rows.map(rowToNode);
+  const rows = db.prepare(sql).all(...params) as Record<string, unknown>[]
+  return rows.map(rowToNode)
 }
 
 /**
  * Find a project/container by name (searches folders, files, sections)
  */
 export function findProject(db: Database, name: string): KNode | null {
-  const normalizedName = name.toLowerCase();
+  const normalizedName = name.toLowerCase()
 
   // Search by content or fs_path basename
   const rows = db
@@ -176,20 +185,20 @@ export function findProject(db: Database, name: string): KNode | null {
       normalizedName,
       `%${normalizedName}%`,
       `%/${normalizedName}%`,
-    ) as Record<string, unknown>[];
+    ) as Record<string, unknown>[]
 
-  const nodes = rows.map(rowToNode);
+  const nodes = rows.map(rowToNode)
 
   // Prefer exact match
   for (const node of nodes) {
     if (node.content?.toLowerCase() === normalizedName) {
-      return node;
+      return node
     }
     if (node.fs_path?.split("/").pop()?.toLowerCase() === normalizedName) {
-      return node;
+      return node
     }
   }
 
   // Otherwise return first match
-  return nodes[0] ?? null;
+  return nodes[0] ?? null
 }

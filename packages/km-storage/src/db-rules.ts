@@ -16,46 +16,46 @@
  * - color: Board/section color
  */
 
-import createDebug from "debug";
-import { ulid } from "ulid";
-import { getDb } from "./db-instance.ts";
-import { queryNodes } from "./query.ts";
-import { removeLinksFromSourceByRelationship } from "./db-links.ts";
+import createDebug from "debug"
+import { ulid } from "ulid"
+import type { Database } from "bun:sqlite"
+import { queryNodes } from "./query.ts"
+import { removeLinksFromSourceByRelationship } from "./db-links.ts"
 import {
   rowToNode,
   getChildren,
   getEmbedTargetsOnBoard,
   getNode,
-} from "./db-queries/index.ts";
+} from "./db-queries/index.ts"
 // Note: We insert embed nodes directly into DB rather than using emitNodeCreated
 // because that would require the event system to be set up (which isn't always the case)
-import type { KNode, NodeRules } from "@km/core";
+import type { KNode, NodeRules } from "@km/core"
 
-const debug = createDebug("km:storage:db:rules");
+const debug = createDebug("km:storage:db:rules")
 
 /** Relationship type for add= rule results */
-export const ADD_RULE_RELATIONSHIP = "query:add";
+export const ADD_RULE_RELATIONSHIP = "query:add"
 
 // =============================================================================
 // Bulk Mode - Suppresses incremental rule evaluation during rebuild
 // =============================================================================
 
-let bulkMode = false;
+let bulkMode = false
 
 /**
  * Enable bulk mode - suppresses incremental rule evaluation.
  * Call evaluateAllRules() after bulk operations complete.
  */
 export function setBulkMode(enabled: boolean): void {
-  debug("setBulkMode: %s", enabled);
-  bulkMode = enabled;
+  debug("setBulkMode: %s", enabled)
+  bulkMode = enabled
 }
 
 /**
  * Check if bulk mode is enabled.
  */
 export function isBulkMode(): boolean {
-  return bulkMode;
+  return bulkMode
 }
 
 // =============================================================================
@@ -66,54 +66,53 @@ export function isBulkMode(): boolean {
  * Evaluate a single node's rules and update links accordingly.
  * Call this after a node with rules is created or updated.
  */
-export function evaluateNodeRules(nodeId: string): void {
-  const db = getDb();
+export function evaluateNodeRules(db: Database, nodeId: string): void {
   const row = db
     .query("SELECT * FROM nodes WHERE id = ?")
-    .get(nodeId) as Record<string, unknown> | null;
+    .get(nodeId) as Record<string, unknown> | null
   if (!row) {
-    debug("evaluateNodeRules: node %s not found", nodeId);
-    return;
+    debug("evaluateNodeRules: node %s not found", nodeId)
+    return
   }
 
-  const node = rowToNode(row);
+  const node = rowToNode(row)
   if (!node.rules) {
-    debug("evaluateNodeRules: node %s has no rules", nodeId);
-    return;
+    debug("evaluateNodeRules: node %s has no rules", nodeId)
+    return
   }
 
-  evaluateRulesForNode(node);
+  evaluateRulesForNode(db, node)
 }
 
 /**
  * Evaluate rules for a node object (internal helper).
  */
-function evaluateRulesForNode(node: KNode): void {
-  const rules = node.rules;
-  if (!rules) return;
+function evaluateRulesForNode(db: Database, node: KNode): void {
+  const rules = node.rules
+  if (!rules) return
 
   // Evaluate add= rule
   if (rules.add) {
-    evaluateAddRule(node.id, rules.add);
+    evaluateAddRule(db, node.id, rules.add)
   }
 
   // Future: evaluate sync= rule
   // if (rules.sync) {
-  //   evaluateSyncRule(node.id, rules.sync);
+  //   evaluateSyncRule(db, node.id, rules.sync);
   // }
 }
 
 /** Files that need to be written back after materialization */
-const pendingWriteBack = new Set<string>();
+const pendingWriteBack = new Set<string>()
 
 /**
  * Get files pending write-back and clear the set.
  * Called by sync after rule evaluation to write materialized embeds to disk.
  */
 export function getPendingWriteBack(): string[] {
-  const files = Array.from(pendingWriteBack);
-  pendingWriteBack.clear();
-  return files;
+  const files = Array.from(pendingWriteBack)
+  pendingWriteBack.clear()
+  return files
 }
 
 /**
@@ -121,80 +120,78 @@ export function getPendingWriteBack(): string[] {
  * Creates embed nodes as children of the section, which get written back to markdown.
  * Removes embeds that no longer match the query (e.g., after status change).
  */
-function evaluateAddRule(sectionId: string, query: string): void {
-  debug("evaluateAddRule: section=%s query=%s", sectionId, query);
+function evaluateAddRule(db: Database, sectionId: string, query: string): void {
+  debug("evaluateAddRule: section=%s query=%s", sectionId, query)
 
-  const section = getNode(sectionId);
+  const section = getNode(db, sectionId)
   if (!section) {
-    debug("evaluateAddRule: section not found");
-    return;
+    debug("evaluateAddRule: section not found")
+    return
   }
 
   // Clear existing add-rule links from this section (for backward compat)
-  removeLinksFromSourceByRelationship(sectionId, ADD_RULE_RELATIONSHIP);
+  removeLinksFromSourceByRelationship(db, sectionId, ADD_RULE_RELATIONSHIP)
 
   // Evaluate query
-  const matchingNodes = queryNodes(query);
-  const matchingIds = new Set(matchingNodes.map((n) => n.id));
-  debug("evaluateAddRule: found %d matches", matchingNodes.length);
+  const matchingNodes = queryNodes(db, query)
+  const matchingIds = new Set(matchingNodes.map((n) => n.id))
+  debug("evaluateAddRule: found %d matches", matchingNodes.length)
 
   // Remove embeds that no longer match the query
-  const db = getDb();
-  const existingEmbedNodes = getChildren(sectionId).filter(
+  const existingEmbedNodes = getChildren(db, sectionId).filter(
     (n) => n.type === "embed" && n.link_to,
-  );
-  let removedCount = 0;
+  )
+  let removedCount = 0
   for (const embed of existingEmbedNodes) {
     // link_to is guaranteed by the filter above, but TypeScript doesn't narrow through filter
-    const linkTo = embed.link_to;
+    const linkTo = embed.link_to
     if (linkTo && !matchingIds.has(linkTo)) {
-      db.run("DELETE FROM nodes WHERE id = ?", [embed.id]);
-      removedCount++;
+      db.run("DELETE FROM nodes WHERE id = ?", [embed.id])
+      removedCount++
     }
   }
   if (removedCount > 0) {
-    debug("evaluateAddRule: removed %d stale embeds", removedCount);
+    debug("evaluateAddRule: removed %d stale embeds", removedCount)
   }
 
   // Get the board root (parent of section) to check board-wide deduplication
-  const boardRootId = section.parent_id;
-  const existingOnBoard = getEmbedTargetsOnBoard(boardRootId);
-  debug("evaluateAddRule: existing embeds on board: %d", existingOnBoard.size);
+  const boardRootId = section.parent_id
+  const existingOnBoard = getEmbedTargetsOnBoard(db, boardRootId)
+  debug("evaluateAddRule: existing embeds on board: %d", existingOnBoard.size)
 
   // Get existing embed children in this section (by link_to) - refresh after cleanup
-  const existingEmbeds = getChildren(sectionId)
+  const existingEmbeds = getChildren(db, sectionId)
     .filter((n) => n.type === "embed" && n.link_to)
-    .map((n) => n.link_to as string);
+    .map((n) => n.link_to as string)
 
   // Get next parent_idx for new embeds
-  const existingChildren = getChildren(sectionId);
-  let nextIdx = existingChildren.length;
+  const existingChildren = getChildren(db, sectionId)
+  let nextIdx = existingChildren.length
 
-  let addedCount = 0;
+  let addedCount = 0
   for (const match of matchingNodes) {
     // Skip self-reference and direct children (they're already children)
     if (match.id === sectionId || match.parent_id === sectionId) {
-      continue;
+      continue
     }
 
     // Skip if already on board anywhere (deduplication)
     if (existingOnBoard.has(match.id)) {
-      debug("evaluateAddRule: skip %s (already on board)", match.id);
-      continue;
+      debug("evaluateAddRule: skip %s (already on board)", match.id)
+      continue
     }
 
     // Skip if already an embed in this section
     if (existingEmbeds.includes(match.id)) {
-      debug("evaluateAddRule: skip %s (already embedded here)", match.id);
-      continue;
+      debug("evaluateAddRule: skip %s (already embedded here)", match.id)
+      continue
     }
 
     // Create embed node directly in database
     // Use a relative path or node ID for the embed link
-    const targetPath = getEmbedPath(match);
-    const embedId = ulid();
-    const now = Date.now();
-    const db = getDb();
+    const targetPath = getEmbedPath(match)
+    const embedId = ulid()
+    const now = Date.now()
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, link_to, content, data, created_at, updated_at, version)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -210,24 +207,24 @@ function evaluateAddRule(sectionId: string, query: string): void {
         now,
         ulid(),
       ],
-    );
+    )
 
-    addedCount++;
-    existingOnBoard.add(match.id); // Prevent adding same match twice
+    addedCount++
+    existingOnBoard.add(match.id) // Prevent adding same match twice
   }
 
   debug(
     "evaluateAddRule: created %d embeds, removed %d",
     addedCount,
     removedCount,
-  );
+  )
 
   // Mark the file for write-back if we added or removed any embeds
   if (addedCount > 0 || removedCount > 0) {
-    const fileNode = findFileAncestor(sectionId);
+    const fileNode = findFileAncestor(db, sectionId)
     if (fileNode?.fs_path) {
-      pendingWriteBack.add(fileNode.fs_path);
-      debug("evaluateAddRule: marked %s for write-back", fileNode.fs_path);
+      pendingWriteBack.add(fileNode.fs_path)
+      debug("evaluateAddRule: marked %s for write-back", fileNode.fs_path)
     }
   }
 }
@@ -236,24 +233,24 @@ function evaluateAddRule(sectionId: string, query: string): void {
  * Find the file ancestor of a node (the nearest ancestor with type='file')
  * Uses cached lookup during bulk evaluation for O(1) access.
  */
-function findFileAncestor(nodeId: string): KNode | null {
+function findFileAncestor(db: Database, nodeId: string): KNode | null {
   // km-load-perf.3: Use cache if available (during evaluateAllRules)
   if (fileAncestorCache) {
-    return fileAncestorCache.get(nodeId) ?? null;
+    return fileAncestorCache.get(nodeId) ?? null
   }
 
   // Fallback to tree walk for incremental updates
-  let current = getNode(nodeId);
+  let current = getNode(db, nodeId)
   while (current) {
     if (current.type === "file") {
-      return current;
+      return current
     }
     if (!current.parent_id) {
-      return null;
+      return null
     }
-    current = getNode(current.parent_id);
+    current = getNode(db, current.parent_id)
   }
-  return null;
+  return null
 }
 
 /**
@@ -264,22 +261,20 @@ function getEmbedPath(node: KNode): string {
   // For file nodes, extract the relative path (filename without .md)
   if (node.fs_path) {
     // Extract just the filename, removing .md extension
-    const parts = node.fs_path.split("/");
-    const filename = parts[parts.length - 1] || "";
-    return filename.replace(/\.md$/, "");
+    const parts = node.fs_path.split("/")
+    const filename = parts[parts.length - 1] || ""
+    return filename.replace(/\.md$/, "")
   }
 
   // For task/section nodes, use a short ID (last 8 chars)
   // This allows linking to specific nodes within files
-  return node.id.slice(-8);
+  return node.id.slice(-8)
 }
 
 /**
  * Get all nodes that have rules defined.
  */
-export function getNodesWithRules(): KNode[] {
-  const db = getDb();
-
+export function getNodesWithRules(db: Database): KNode[] {
   // Query nodes where data contains rules
   // SQLite JSON: check if data.rules exists and has content
   const rows = db
@@ -290,17 +285,18 @@ export function getNodesWithRules(): KNode[] {
       AND json_extract(data, '$.rules') != '{}'
     `,
     )
-    .all() as Record<string, unknown>[];
+    .all() as Record<string, unknown>[]
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 /**
  * Get all nodes that have a specific rule type defined.
  */
-export function getNodesWithRule(ruleType: keyof NodeRules): KNode[] {
-  const db = getDb();
-
+export function getNodesWithRule(
+  db: Database,
+  ruleType: keyof NodeRules,
+): KNode[] {
   const rows = db
     .query(
       `
@@ -308,89 +304,88 @@ export function getNodesWithRule(ruleType: keyof NodeRules): KNode[] {
       WHERE json_extract(data, '$.rules.${String(ruleType)}') IS NOT NULL
     `,
     )
-    .all() as Record<string, unknown>[];
+    .all() as Record<string, unknown>[]
 
-  return rows.map(rowToNode);
+  return rows.map(rowToNode)
 }
 
 export interface RulesProgress {
-  current: number;
-  total: number;
+  current: number
+  total: number
 }
 
 // km-load-perf.3: Cache for file ancestors to avoid repeated tree walks
-let fileAncestorCache: Map<string, KNode | null> | null = null;
+let fileAncestorCache: Map<string, KNode | null> | null = null
 
 /**
  * Build a cache mapping all nodes to their file ancestor.
  * This avoids O(depth) tree walks per rule evaluation.
  */
-function buildFileAncestorCache(): Map<string, KNode | null> {
-  const db = getDb();
-  const cache = new Map<string, KNode | null>();
+function buildFileAncestorCache(db: Database): Map<string, KNode | null> {
+  const cache = new Map<string, KNode | null>()
 
   // Get all file nodes first
   const fileRows = db
     .query("SELECT * FROM nodes WHERE type = 'file'")
-    .all() as Record<string, unknown>[];
-  const fileNodes = new Map<string, KNode>();
+    .all() as Record<string, unknown>[]
+  const fileNodes = new Map<string, KNode>()
   for (const row of fileRows) {
-    const node = rowToNode(row);
-    fileNodes.set(node.id, node);
-    cache.set(node.id, node); // Files are their own ancestor
+    const node = rowToNode(row)
+    fileNodes.set(node.id, node)
+    cache.set(node.id, node) // Files are their own ancestor
   }
 
   // Get all non-file nodes and build parent chain
   const nodeRows = db
     .query("SELECT id, parent_id FROM nodes WHERE type != 'file'")
-    .all() as { id: string; parent_id: string | null }[];
+    .all() as { id: string; parent_id: string | null }[]
 
   // Build parent lookup
-  const parentMap = new Map<string, string | null>();
+  const parentMap = new Map<string, string | null>()
   for (const row of nodeRows) {
-    parentMap.set(row.id, row.parent_id);
+    parentMap.set(row.id, row.parent_id)
   }
 
   // For each non-file node, walk up to find file ancestor
   for (const row of nodeRows) {
-    let currentId: string | null = row.id;
-    const visited = new Set<string>();
+    let currentId: string | null = row.id
+    const visited = new Set<string>()
 
     while (currentId && !cache.has(currentId)) {
-      if (visited.has(currentId)) break; // Prevent cycles
-      visited.add(currentId);
+      if (visited.has(currentId)) break // Prevent cycles
+      visited.add(currentId)
 
-      const parentId = parentMap.get(currentId);
+      const parentId = parentMap.get(currentId)
       if (!parentId) {
-        cache.set(row.id, null);
-        break;
+        cache.set(row.id, null)
+        break
       }
 
       // Check if parent is a file
-      const fileNode = fileNodes.get(parentId);
+      const fileNode = fileNodes.get(parentId)
       if (fileNode) {
         // Found file ancestor - cache for all visited nodes
         for (const id of visited) {
-          cache.set(id, fileNode);
+          cache.set(id, fileNode)
         }
-        break;
+        break
       }
 
-      currentId = parentId;
+      currentId = parentId
     }
 
     // If we found a cached result during walk, propagate it
     if (currentId && cache.has(currentId) && !cache.has(row.id)) {
-      const result = cache.get(currentId);
+      const result = cache.get(currentId)
       if (result !== undefined) {
         for (const id of visited) {
-          cache.set(id, result);
+          cache.set(id, result)
         }
       }
     }
   }
 
-  return cache;
+  return cache
 }
 
 /**
@@ -398,32 +393,34 @@ function buildFileAncestorCache(): Map<string, KNode | null> {
  * Call this on startup/migration to ensure all computed links are current.
  * Yields progress updates as each rule is evaluated.
  */
-export function* evaluateAllRules(): Generator<RulesProgress, void, unknown> {
-  debug("evaluateAllRules: starting");
-  const start = Date.now();
+export function* evaluateAllRules(
+  db: Database,
+): Generator<RulesProgress, void, unknown> {
+  debug("evaluateAllRules: starting")
+  const start = Date.now()
 
-  const nodesWithRules = getNodesWithRules();
-  debug("evaluateAllRules: found %d nodes with rules", nodesWithRules.length);
+  const nodesWithRules = getNodesWithRules(db)
+  debug("evaluateAllRules: found %d nodes with rules", nodesWithRules.length)
 
-  yield { current: 0, total: nodesWithRules.length };
+  yield { current: 0, total: nodesWithRules.length }
 
   // km-load-perf.3: Build file ancestor cache before evaluation
-  fileAncestorCache = buildFileAncestorCache();
+  fileAncestorCache = buildFileAncestorCache(db)
 
   try {
     for (let i = 0; i < nodesWithRules.length; i++) {
-      const node = nodesWithRules[i];
+      const node = nodesWithRules[i]
       if (node) {
-        evaluateRulesForNode(node);
+        evaluateRulesForNode(db, node)
       }
-      yield { current: i + 1, total: nodesWithRules.length };
+      yield { current: i + 1, total: nodesWithRules.length }
     }
   } finally {
     // Clear cache after evaluation completes
-    fileAncestorCache = null;
+    fileAncestorCache = null
   }
 
-  debug("evaluateAllRules: completed in %dms", Date.now() - start);
+  debug("evaluateAllRules: completed in %dms", Date.now() - start)
 }
 
 /**
@@ -434,10 +431,11 @@ export function* evaluateAllRules(): Generator<RulesProgress, void, unknown> {
  * @param changes - What changed on the node (for optimization)
  */
 export function onNodeChanged(
+  db: Database,
   changedNodeId: string,
   changes?: Record<string, unknown>,
 ): void {
-  debug("onNodeChanged: %s changes=%O", changedNodeId, changes);
+  debug("onNodeChanged: %s changes=%O", changedNodeId, changes)
 
   // For simplicity, re-evaluate all add= rules when any node changes.
   // This is O(rules * matches) but rules count is typically small (<20).
@@ -446,11 +444,11 @@ export function onNodeChanged(
   // rules whose terms match the changed fields (e.g., if task_status
   // changed, only re-evaluate rules containing "status:").
 
-  const nodesWithAddRule = getNodesWithRule("add");
+  const nodesWithAddRule = getNodesWithRule(db, "add")
 
   for (const node of nodesWithAddRule) {
     if (node.rules?.add) {
-      evaluateAddRule(node.id, node.rules.add);
+      evaluateAddRule(db, node.id, node.rules.add)
     }
   }
 }
@@ -458,18 +456,16 @@ export function onNodeChanged(
 /**
  * Called when a node is deleted to clean up any links pointing to it.
  */
-export function onNodeDeleted(deletedNodeId: string): void {
-  debug("onNodeDeleted: %s", deletedNodeId);
-
-  const db = getDb();
+export function onNodeDeleted(db: Database, deletedNodeId: string): void {
+  debug("onNodeDeleted: %s", deletedNodeId)
 
   // Remove any computed links that point TO this node
   db.run("DELETE FROM links WHERE target_id = ? AND relationship = ?", [
     deletedNodeId,
     ADD_RULE_RELATIONSHIP,
-  ]);
+  ])
 
   // If this node had rules, its outgoing links are already deleted
   // by the node deletion cascade (if FK is set) or we need to clean up
-  removeLinksFromSourceByRelationship(deletedNodeId, ADD_RULE_RELATIONSHIP);
+  removeLinksFromSourceByRelationship(db, deletedNodeId, ADD_RULE_RELATIONSHIP)
 }
