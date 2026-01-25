@@ -12,11 +12,12 @@
   - Escape key is now hierarchical: close overlays → zoom out → boundary
   - Simplified test helpers by removing `allowNoEffect` flags
   - Resolves: km-defensive-chain.6
-- **tui,core**: Status bar for user action feedback
+- **tui,core**: Status messages integrated into bottom bar with boundary feedback
   - Added `NotificationLevel` type to `@km/core` for consistent UI feedback levels
-  - Created StatusBar component with icon+color mapping (info/success/warning/error)
-  - Selection actions now show status messages ("3 items selected", etc.)
-  - Status messages automatically truncate to fit terminal width
+  - Status messages display in bottom bar middle section (takes priority over indicators)
+  - Selection actions show status messages ("3 items selected", etc.)
+  - Boundary navigation rings terminal bell (\x07) + shows warning message
+  - Status messages clear automatically on next keypress
   - Resolves: km-defensive-chain.7
 
 ### Fixed
