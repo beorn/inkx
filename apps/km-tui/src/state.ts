@@ -24,7 +24,6 @@ import {
 } from "@km/tree";
 
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
-// The handleKey function below is legacy code - keys are handled via the command system
 
 // Bound versions that inject vault dependencies
 // These are the primary exports for TUI components

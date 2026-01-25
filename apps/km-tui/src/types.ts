@@ -9,7 +9,7 @@ import type { Vault } from "./vault-context.tsx";
 
 /**
  * TUI-specific board rendering state.
- * This is the legacy rendering state with columns/cards structure.
+ * Contains columns/cards structure for rendering the board view.
  * Separate from @km/board's BoardState which is the navigation state.
  */
 export interface TUIBoardState {

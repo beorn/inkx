@@ -36,7 +36,7 @@ export interface TUIContext {
   vault: Vault;
 
   // === State ===
-  /** Legacy column-based board state (for backward compatibility) */
+  /** TUI rendering state (columns/cards structure) */
   state: TUIBoardState;
   /** Board state from boardReducer */
   boardState: BoardState;
