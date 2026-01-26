@@ -9,11 +9,13 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs"
 import { join } from "path"
 
+import { runGenerator } from "@km/core"
 import {
   createRepo,
   createBareRepo,
   createTestRepo,
   createMemDataStore,
+  type Repo,
 } from "../src/index.ts"
 
 // =============================================================================
@@ -149,7 +151,7 @@ describe("createRepo", () => {
   })
 
   test("creates repo with DataStore and FileTree", () => {
-    using repo = createRepo(tempDir)
+    using repo = runGenerator(createRepo(tempDir))
 
     expect(repo.data).toBeDefined()
     expect(repo.files).toBeDefined()
@@ -157,7 +159,7 @@ describe("createRepo", () => {
   })
 
   test("uses memory mode without .km directory", () => {
-    using repo = createRepo(tempDir)
+    using repo = runGenerator(createRepo(tempDir))
 
     // No .km dir = memory mode
     const id = repo.data.addNode(null, { type: "task", content: "Memory task" })
@@ -168,7 +170,7 @@ describe("createRepo", () => {
     const kmDir = join(tempDir, ".km")
     mkdirSync(kmDir, { recursive: true })
 
-    using repo = createRepo(tempDir)
+    using repo = runGenerator(createRepo(tempDir))
 
     const id = repo.data.addNode(null, { type: "task", content: "Disk task" })
     expect(repo.data.getNode(id)).toBeDefined()
@@ -181,7 +183,7 @@ describe("createRepo", () => {
     const kmDir = join(tempDir, ".km")
     mkdirSync(kmDir, { recursive: true })
 
-    using repo = createRepo(tempDir, { forceMemory: true })
+    using repo = runGenerator(createRepo(tempDir, { forceMemory: true }))
 
     // Should work even with .km dir present
     const id = repo.data.addNode(null, { type: "task", content: "Forced memory" })
@@ -189,7 +191,7 @@ describe("createRepo", () => {
   })
 
   test("FileTree can read/write files", () => {
-    using repo = createRepo(tempDir)
+    using repo = runGenerator(createRepo(tempDir))
 
     repo.files!.write("test.md", "# Test\n- [ ] Task 1")
 
@@ -198,7 +200,7 @@ describe("createRepo", () => {
   })
 
   test("sync returns empty result (not yet implemented)", async () => {
-    using repo = createRepo(tempDir)
+    using repo = runGenerator(createRepo(tempDir))
 
     const result = await repo.sync()
 
@@ -208,7 +210,7 @@ describe("createRepo", () => {
   })
 
   test("watch returns Watcher instance", () => {
-    using repo = createRepo(tempDir)
+    using repo = runGenerator(createRepo(tempDir))
 
     const watcher = repo.watch()
 
@@ -218,7 +220,7 @@ describe("createRepo", () => {
   })
 
   test("close releases all resources", () => {
-    const repo = createRepo(tempDir)
+    const repo = runGenerator(createRepo(tempDir))
     repo.close()
 
     expect(() => repo.data).toThrow("closed")
@@ -227,16 +229,16 @@ describe("createRepo", () => {
   })
 
   test("close is idempotent", () => {
-    const repo = createRepo(tempDir)
+    const repo = runGenerator(createRepo(tempDir))
     repo.close()
     repo.close() // Should not throw
   })
 
   test("supports using syntax", () => {
-    let repoRef: ReturnType<typeof createRepo> | null = null
+    let repoRef: Repo | null = null
 
     {
-      using repo = createRepo(tempDir)
+      using repo = runGenerator(createRepo(tempDir))
       repoRef = repo
       repo.data.addNode(null, { type: "task", content: "Test" })
     }
@@ -262,7 +264,7 @@ describe("Repo.path", () => {
   })
 
   test("createRepo returns vault root path", () => {
-    using repo = createRepo(tempDir)
+    using repo = runGenerator(createRepo(tempDir))
     expect(repo.path).toBe(tempDir)
   })
 
@@ -301,14 +303,14 @@ describe("Repo.config", () => {
       JSON.stringify({ specialFiles: { inbox: "custom-inbox.md" } }),
     )
 
-    using repo = createRepo(tempDir)
+    using repo = runGenerator(createRepo(tempDir))
 
     // Config should reflect the custom setting
     expect(repo.config).toBeDefined()
   })
 
   test("uses default config when no config file", () => {
-    using repo = createRepo(tempDir)
+    using repo = runGenerator(createRepo(tempDir))
     expect(repo.config).toBeDefined()
   })
 })

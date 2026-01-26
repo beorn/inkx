@@ -28,6 +28,7 @@ import type { Config } from "./config-object.ts"
 import { loadConfigObject } from "./config-object.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 import { SCHEMA } from "./schema.ts"
+import type { StepYield } from "./vault-loader.ts"
 // Vault-compatible query functions (for proxy methods)
 import {
   getSubtree as dbGetSubtree,
@@ -263,10 +264,18 @@ export interface CreateRepoOptions {
  * - Creates FileTree for the vault root
  * - Loads config from cosmiconfig
  *
+ * This is a generator that yields progress info during loading.
+ * Use runGenerator() for silent loading, or iterate for progress.
+ *
  * @example
  * ```typescript
- * // Standard usage
- * using repo = createRepo("/path/to/vault")
+ * // Silent loading
+ * using repo = runGenerator(createRepo("/path/to/vault"))
+ *
+ * // With progress
+ * for (const progress of createRepo(path)) {
+ *   spinner.update(`${progress}`);
+ * }
  *
  * // Query nodes
  * const node = repo.data.getNode("abc123")
@@ -281,21 +290,28 @@ export interface CreateRepoOptions {
  *
  * @param rootPath - Path to the vault root directory
  * @param options - Creation options
+ * @yields Progress info for each loading phase
  * @returns Repo domain object
  */
-export function createRepo(
+export function* createRepo(
   rootPath: string = process.cwd(),
   options: CreateRepoOptions = {},
-): Repo {
+): Generator<StepYield, Repo, unknown> {
   debug("createRepo", { rootPath, options })
 
+  // Declare all sub-steps upfront so they appear as pending
+  yield { declare: ["Detecting mode", "Initializing database", "Scanning files"] }
+
+  // Step 1: Detect mode
+  yield "Detecting mode"
   const kmDir = join(rootPath, ".km")
   const hasKmDir = existsSync(kmDir) && !options.forceMemory
   const mode = hasKmDir ? "disk" : "memory"
 
   debug("detected mode: %s (hasKmDir=%s)", mode, hasKmDir)
 
-  // Create DataStore based on mode
+  // Step 2: Initialize database
+  yield "Initializing database"
   let dataStore: DataStore & HasDatabase
   let db: Database
 
@@ -316,6 +332,8 @@ export function createRepo(
     dataStore = createDBDataStore(db, "memory")
   }
 
+  // Step 3: Scan files (for full repo)
+  yield "Scanning files"
   // Create FileTree for the vault root
   const fileTree = createDiskFileTree(rootPath)
 

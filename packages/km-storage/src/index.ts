@@ -141,10 +141,18 @@ export type {
   ParsePoolOptions,
 } from "./parse-pool.ts"
 
-// Vault domain object (legacy API - use Repo for new code)
-// See: docs/adr/002-domain-objects-refactor.md
+/**
+ * @deprecated Use {@link createRepo} for new code.
+ * Vault is the legacy API that combines loading + storage.
+ * Repo separates concerns: DataStore (indexed storage) + FileTree (file I/O).
+ * See: docs/adr/002-domain-objects-refactor.md
+ */
 export { createVault } from "./vault.ts"
 
+/**
+ * @deprecated Use {@link Repo} for new code.
+ * These types are preserved for backwards compatibility during migration.
+ */
 export type {
   Vault,
   VaultOptions,
