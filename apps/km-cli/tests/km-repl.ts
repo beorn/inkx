@@ -1,0 +1,154 @@
+/**
+ * km-repl - In-process km command execution for mdtest
+ *
+ * This plugin enables fast in-process execution of km commands during testing,
+ * avoiding subprocess overhead. Provides ~8-15x speedup over bunShell approach.
+ *
+ * Usage:
+ * ```yaml
+ * ---
+ * mdtest:
+ *   plugin: ./km-repl.ts
+ *   fixture: two-columns
+ *   memory: true  # Use :memory: database for max speed
+ * ---
+ * ```
+ */
+
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "fs"
+import { tmpdir } from "os"
+import { join } from "path"
+import type { Plugin, ReplResult } from "../../../vendor/beorn-mdtest/src/types.js"
+import { executeKmCommand } from "../src/execute.ts"
+
+interface Opts {
+  fixture?: string
+  reset?: boolean
+  memory?: boolean // Use :memory: database for speed
+}
+
+/**
+ * Setup a test fixture (temp vault with sample data)
+ */
+function setupFixture(fixture?: string): string {
+  const tempDir = mkdtempSync(join(tmpdir(), "kmtest-"))
+
+  // Create .km directory (required even for memory mode)
+  mkdirSync(join(tempDir, ".km"))
+
+  // Create fixture files based on fixture name
+  if (fixture === "two-columns") {
+    writeFileSync(
+      join(tempDir, "board.md"),
+      `# Test Board
+## Tasks
+- [ ] Task A
+- [ ] Task B
+- [ ] Task C
+## Done
+- [x] Task D
+`,
+    )
+  } else if (fixture === "basic-vault") {
+    writeFileSync(join(tempDir, "inbox.md"), `# Inbox\n- [ ] Task 1\n`)
+    writeFileSync(join(tempDir, "projects.md"), `# Projects\n## Project A\n`)
+  } else if (fixture === "empty-vault") {
+    // Empty vault - no files
+  } else {
+    // Default fixture: single task list
+    writeFileSync(
+      join(tempDir, "test.md"),
+      `# Test\n## Tasks\n- [ ] Task A\n- [ ] Task B\n`,
+    )
+  }
+
+  return tempDir
+}
+
+/**
+ * km-repl plugin factory
+ *
+ * @param fileOpts - File-level options from frontmatter
+ * @returns Plugin instance
+ */
+export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
+  // File-level state (persists across blocks unless reset)
+  let vaultPath: string | null = null
+  let currentFixture: string | null = null
+
+  return {
+    block(blockOpts) {
+      const opts = { ...fileOpts, ...blockOpts } as Opts
+
+      // Handle reset or fixture change
+      const shouldReset =
+        opts.reset || opts.fixture !== currentFixture || !vaultPath
+
+      if (shouldReset) {
+        // Clean up old vault
+        if (vaultPath) {
+          try {
+            rmSync(vaultPath, { recursive: true, force: true })
+          } catch {
+            // Ignore cleanup errors
+          }
+        }
+
+        // Create new vault with fixture
+        vaultPath = setupFixture(opts.fixture)
+        currentFixture = opts.fixture ?? null
+
+        // Set environment variable for memory mode
+        if (opts.memory) {
+          process.env.KM_DB_PATH = ":memory:"
+        } else {
+          delete process.env.KM_DB_PATH
+        }
+      }
+
+      // Skip non-console blocks
+      if (
+        !blockOpts.type ||
+        !["console", "sh", "bash"].includes(blockOpts.type as string)
+      ) {
+        return null
+      }
+
+      // Return executor function
+      return async (cmd: string): Promise<ReplResult | null> => {
+        // Only handle km commands
+        if (!cmd.trim().startsWith("km ")) {
+          return null // Fall back to bash plugin
+        }
+
+        try {
+          // Execute in-process with vault path as cwd
+          const result = await executeKmCommand(cmd, {
+            cwd: vaultPath!,
+            env: opts.memory ? { KM_DB_PATH: ":memory:" } : {},
+          })
+
+          return result
+        } catch (error) {
+          return {
+            stdout: "",
+            stderr: String(error),
+            exitCode: 1,
+          }
+        }
+      }
+    },
+
+    // Clean up vault on teardown
+    async afterAll() {
+      if (vaultPath) {
+        try {
+          rmSync(vaultPath, { recursive: true, force: true })
+        } catch {
+          // Ignore cleanup errors
+        }
+        vaultPath = null
+      }
+    },
+  }
+}

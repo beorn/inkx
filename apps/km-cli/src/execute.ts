@@ -58,6 +58,9 @@ export async function executeKmCommand(
   const originalStdout = process.stdout.write
   const originalStderr = process.stderr.write
   const originalExit = process.exit
+  const originalConsoleLog = console.log
+  const originalConsoleError = console.error
+  const originalConsoleWarn = console.warn
 
   try {
     // Set up test environment
@@ -73,6 +76,20 @@ export async function executeKmCommand(
     process.stderr.write = stderrStream.write.bind(
       stderrStream,
     ) as typeof process.stderr.write
+
+    // Intercept console methods (commands use console.log, not process.stdout.write)
+    console.log = (...args: unknown[]) => {
+      const message = args.map((arg) => String(arg)).join(" ") + "\n"
+      stdout += message
+    }
+    console.error = (...args: unknown[]) => {
+      const message = args.map((arg) => String(arg)).join(" ") + "\n"
+      stderr += message
+    }
+    console.warn = (...args: unknown[]) => {
+      const message = args.map((arg) => String(arg)).join(" ") + "\n"
+      stderr += message
+    }
 
     // Intercept process.exit
     process.exit = ((code?: number) => {
@@ -107,6 +124,9 @@ export async function executeKmCommand(
     process.stdout.write = originalStdout
     process.stderr.write = originalStderr
     process.exit = originalExit
+    console.log = originalConsoleLog
+    console.error = originalConsoleError
+    console.warn = originalConsoleWarn
   }
 
   return {
