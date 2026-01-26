@@ -141,7 +141,8 @@ export type {
   ParsePoolOptions,
 } from "./parse-pool.ts"
 
-// Vault domain object (preferred API)
+// Vault domain object (legacy API - use Repo for new code)
+// See: docs/adr/002-domain-objects-refactor.md
 export { createVault } from "./vault.ts"
 
 export type {
@@ -296,7 +297,8 @@ export { loadConfigObject } from "./config-object.ts"
 
 export type { Config } from "./config-object.ts"
 
-// Repo domain object (composed: DataStore + FileTree + Config)
+// Repo domain object - PREFERRED API for new code
+// Composed: DataStore + FileTree + Config
 // See: docs/adr/002-domain-objects-refactor.md
 export { createRepo, createBareRepo, createTestRepo } from "./repo.ts"
 

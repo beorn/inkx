@@ -17,8 +17,9 @@
 import createDebug from "debug"
 import { Database } from "bun:sqlite"
 import { existsSync, mkdirSync } from "fs"
-import { join } from "path"
+import { join, dirname, basename } from "path"
 
+import type { KNode, TaskStatus } from "@km/core"
 import type { DataStore, HasDatabase } from "./data-store.ts"
 import { createMemDataStore, createDBDataStore } from "./data-store.ts"
 import type { FileTree } from "./file-tree.ts"
@@ -27,6 +28,20 @@ import type { Config } from "./config-object.ts"
 import { loadConfigObject } from "./config-object.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 import { SCHEMA } from "./schema.ts"
+// Vault-compatible query functions (for proxy methods)
+import {
+  getSubtree as dbGetSubtree,
+  getAncestors as dbGetAncestors,
+  getChildCountsBatch as dbGetChildCountsBatch,
+} from "./db-queries/tree-traversal.ts"
+import {
+  getAllTasks as dbGetAllTasks,
+  getTasksByStatus as dbGetTasksByStatus,
+  getLinksTo as dbGetLinksTo,
+} from "./db-queries/task-queries.ts"
+import { resolveNode as dbResolveNode } from "./db-queries/smart-resolver.ts"
+import { getOutgoingLinks as dbGetOutgoingLinks, getBacklinks as dbGetBacklinks, type Link } from "./db-links.ts"
+import { parseQuery, executeQuery } from "./query.ts"
 
 const debug = createDebug("km:storage:repo")
 
@@ -79,6 +94,9 @@ export interface Repo extends Disposable {
   /** Root path of the repository */
   readonly path: string
 
+  /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
+  readonly mode: "memory" | "disk"
+
   /** Indexed storage - always present */
   readonly data: DataStore
 
@@ -87,6 +105,114 @@ export interface Repo extends Disposable {
 
   /** Configuration */
   readonly config: Config
+
+  /** Raw database access (for infrastructure code) */
+  readonly database: Database
+
+  // ===========================================================================
+  // Vault-compatible query methods (proxies to data store)
+  // ===========================================================================
+
+  /** Get a single node by ID */
+  getNode(id: string): KNode | null
+
+  /** Get children of a node (null for root) */
+  getChildren(parentId: string | null): KNode[]
+
+  /** Get full subtree under a node */
+  getSubtree(nodeId: string): KNode[]
+
+  /** Get ancestors of a node (from root to parent) */
+  getAncestors(nodeId: string): KNode[]
+
+  /** Get all tasks */
+  getAllTasks(): KNode[]
+
+  /** Get tasks by status */
+  getTasksByStatus(status: TaskStatus): KNode[]
+
+  /** Full-text search */
+  search(query: string): KNode[]
+
+  /** Execute query language expression */
+  query(expression: string): KNode[]
+
+  /** Get nodes linking to a target */
+  getLinksTo(targetId: string): KNode[]
+
+  /** Get outgoing links from a node */
+  getOutgoingLinks(sourceId: string): Link[]
+
+  /** Get backlinks (link records pointing to this node) */
+  getBacklinks(nodeId: string): Link[]
+
+  /**
+   * Smart node resolver - finds a node by various identifiers.
+   * @param query - ID, path, or filename to search for
+   * @param typeOrOptions - Optional type filter
+   */
+  resolveNode(
+    query: string,
+    typeOrOptions?: string | { type?: string; taskOnly?: boolean },
+  ): KNode | null
+
+  /** Batch get child counts for multiple parent IDs */
+  getChildCounts(parentIds: string[]): Map<string, number>
+
+  // ===========================================================================
+  // Vault-compatible mutation methods (proxies to data store)
+  // ===========================================================================
+
+  /** Update a node's properties */
+  updateNode(id: string, changes: Partial<KNode>): void
+
+  /** Move a node to a new parent with new sort order */
+  moveNode(id: string, newParentId: string, position: number): void
+
+  /** Delete a node */
+  deleteNode(id: string): void
+
+  /** Add a new node */
+  addNode(parentId: string | null, node: Partial<KNode>): string
+
+  /**
+   * Clone a task with modifications (e.g., for recurring tasks).
+   * @param sourceId - ID of the task to clone
+   * @param changes - Changes to apply to the clone
+   * @returns ID of the new task, or null if source not found
+   */
+  cloneTask(sourceId: string, changes: Partial<KNode>): string | null
+
+  /**
+   * Append a task line to a markdown file.
+   * @param filePath - Relative or absolute path to the file
+   * @param content - Content to append
+   * @param options.ensure - Create file/directory if not exists
+   * @throws Error if repo has no files (bare repo)
+   */
+  appendTaskToFile(
+    filePath: string,
+    content: string,
+    options?: { ensure?: boolean },
+  ): void
+
+  /**
+   * Check if a path exists relative to repo root.
+   * @param relativePath - Path relative to repo root
+   */
+  pathExists(relativePath: string): boolean
+
+  /**
+   * Execute a raw SQL query on the database.
+   * @param sql - SQL query string
+   * @param params - Query parameters
+   * @returns Query results as array of objects
+   */
+  rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[]
+
+  // ===========================================================================
+  // Sync and lifecycle
+  // ===========================================================================
 
   /**
    * One-shot sync between files and data.
@@ -203,6 +329,10 @@ export function createRepo(
       return rootPath
     },
 
+    get mode() {
+      return mode
+    },
+
     get data() {
       ensureOpen()
       return dataStore
@@ -217,6 +347,181 @@ export function createRepo(
       ensureOpen()
       return config
     },
+
+    get database() {
+      ensureOpen()
+      return db
+    },
+
+    // =========================================================================
+    // Vault-compatible query methods
+    // =========================================================================
+
+    getNode(id) {
+      ensureOpen()
+      return dataStore.getNode(id)
+    },
+
+    getChildren(parentId) {
+      ensureOpen()
+      return dataStore.getChildren(parentId)
+    },
+
+    getSubtree(nodeId) {
+      ensureOpen()
+      return dbGetSubtree(db, nodeId)
+    },
+
+    getAncestors(nodeId) {
+      ensureOpen()
+      return dbGetAncestors(db, nodeId)
+    },
+
+    getAllTasks() {
+      ensureOpen()
+      return dbGetAllTasks(db)
+    },
+
+    getTasksByStatus(status) {
+      ensureOpen()
+      return dbGetTasksByStatus(db, status)
+    },
+
+    search(queryStr) {
+      ensureOpen()
+      return dataStore.search(queryStr)
+    },
+
+    query(expression) {
+      ensureOpen()
+      const ast = parseQuery(expression)
+      return executeQuery(db, ast)
+    },
+
+    getLinksTo(targetId) {
+      ensureOpen()
+      return dbGetLinksTo(db, targetId)
+    },
+
+    getOutgoingLinks(sourceId) {
+      ensureOpen()
+      return dbGetOutgoingLinks(db, sourceId)
+    },
+
+    getBacklinks(nodeId) {
+      ensureOpen()
+      return dbGetBacklinks(db, nodeId)
+    },
+
+    resolveNode(queryStr, typeOrOptions) {
+      ensureOpen()
+      return dbResolveNode(db, queryStr, typeOrOptions)
+    },
+
+    getChildCounts(parentIds) {
+      ensureOpen()
+      return dbGetChildCountsBatch(db, parentIds)
+    },
+
+    // =========================================================================
+    // Vault-compatible mutation methods
+    // =========================================================================
+
+    updateNode(id, changes) {
+      ensureOpen()
+      dataStore.updateNode(id, changes)
+    },
+
+    moveNode(id, newParentId, position) {
+      ensureOpen()
+      dataStore.moveNode(id, newParentId, position)
+    },
+
+    deleteNode(id) {
+      ensureOpen()
+      dataStore.deleteNode(id)
+    },
+
+    addNode(parentId, node) {
+      ensureOpen()
+      return dataStore.addNode(parentId, node)
+    },
+
+    cloneTask(sourceId, changes) {
+      ensureOpen()
+      const source = dataStore.getNode(sourceId)
+      if (!source || source.type !== "task") return null
+
+      const clonedNode: Partial<KNode> & { type: "task"; content: string } = {
+        type: "task",
+        content: changes.content ?? source.content ?? "",
+        parent_id: changes.parent_id ?? source.parent_id,
+        parent_idx: changes.parent_idx ?? (source.parent_idx ?? 0) + 0.001,
+        task_status: changes.task_status ?? "todo",
+        task_mark: changes.task_mark ?? " ",
+        assigned_to: changes.assigned_to ?? source.assigned_to,
+        due_date: changes.due_date ?? source.due_date,
+        scheduled_date: changes.scheduled_date ?? source.scheduled_date,
+        priority: changes.priority ?? source.priority,
+        data: {
+          ...source.data,
+          ...changes.data,
+          recur_prev: sourceId,
+        },
+      }
+
+      return dataStore.addNode(clonedNode.parent_id ?? null, clonedNode)
+    },
+
+    appendTaskToFile(filePath, content, options) {
+      ensureOpen()
+      if (!fileTree) {
+        throw new Error("Cannot appendTaskToFile: repo has no files (bare repo)")
+      }
+
+      const relativePath = filePath.startsWith("/")
+        ? filePath.slice(rootPath.length + 1)
+        : filePath
+
+      if (options?.ensure) {
+        const dir = dirname(relativePath)
+        if (dir && dir !== "." && !fileTree.exists(dir)) {
+          // Create directory by writing a placeholder file (FileTree auto-creates dirs)
+          const baseName = basename(relativePath).replace(/\.md$/, "")
+          const header = `---\ntitle: ${baseName}\n---\n\n`
+          fileTree.write(relativePath, header)
+        }
+        if (!fileTree.exists(relativePath)) {
+          const baseName = basename(relativePath).replace(/\.md$/, "")
+          fileTree.write(relativePath, `---\ntitle: ${baseName}\n---\n\n`)
+        }
+      }
+
+      const existing = fileTree.read(relativePath)
+      fileTree.write(relativePath, existing + content)
+    },
+
+    pathExists(relativePath) {
+      ensureOpen()
+      if (!fileTree) {
+        return existsSync(join(rootPath, relativePath))
+      }
+      return fileTree.exists(relativePath)
+    },
+
+    rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
+      ensureOpen()
+      const stmt = db.prepare(sql)
+      return (
+        params
+          ? stmt.all(...(params as Parameters<typeof stmt.all>))
+          : stmt.all()
+      ) as T[]
+    },
+
+    // =========================================================================
+    // Sync and lifecycle
+    // =========================================================================
 
     async sync() {
       ensureOpen()
@@ -307,19 +612,24 @@ export interface CreateBareRepoOptions {
  * @returns Bare Repo domain object
  */
 export function createBareRepo(
-  data: DataStore,
+  data: DataStore & HasDatabase,
   options: CreateBareRepoOptions = {},
 ): Repo {
   debug("createBareRepo", { options })
 
   // Load or use provided config
   const config = options.config ?? loadConfigObject(options.configPath)
+  const db = data.database
 
   let closed = false
 
   const repo: Repo = {
     get path() {
       return options.configPath ?? process.cwd()
+    },
+
+    get mode() {
+      return "memory" as const // Bare repos are always in-memory semantically
     },
 
     get data() {
@@ -335,6 +645,155 @@ export function createBareRepo(
       ensureOpen()
       return config
     },
+
+    get database() {
+      ensureOpen()
+      return db
+    },
+
+    // =========================================================================
+    // Vault-compatible query methods
+    // =========================================================================
+
+    getNode(id) {
+      ensureOpen()
+      return data.getNode(id)
+    },
+
+    getChildren(parentId) {
+      ensureOpen()
+      return data.getChildren(parentId)
+    },
+
+    getSubtree(nodeId) {
+      ensureOpen()
+      return dbGetSubtree(db, nodeId)
+    },
+
+    getAncestors(nodeId) {
+      ensureOpen()
+      return dbGetAncestors(db, nodeId)
+    },
+
+    getAllTasks() {
+      ensureOpen()
+      return dbGetAllTasks(db)
+    },
+
+    getTasksByStatus(status) {
+      ensureOpen()
+      return dbGetTasksByStatus(db, status)
+    },
+
+    search(queryStr) {
+      ensureOpen()
+      return data.search(queryStr)
+    },
+
+    query(expression) {
+      ensureOpen()
+      const ast = parseQuery(expression)
+      return executeQuery(db, ast)
+    },
+
+    getLinksTo(targetId) {
+      ensureOpen()
+      return dbGetLinksTo(db, targetId)
+    },
+
+    getOutgoingLinks(sourceId) {
+      ensureOpen()
+      return dbGetOutgoingLinks(db, sourceId)
+    },
+
+    getBacklinks(nodeId) {
+      ensureOpen()
+      return dbGetBacklinks(db, nodeId)
+    },
+
+    resolveNode(queryStr, typeOrOptions) {
+      ensureOpen()
+      return dbResolveNode(db, queryStr, typeOrOptions)
+    },
+
+    getChildCounts(parentIds) {
+      ensureOpen()
+      return dbGetChildCountsBatch(db, parentIds)
+    },
+
+    // =========================================================================
+    // Vault-compatible mutation methods
+    // =========================================================================
+
+    updateNode(id, changes) {
+      ensureOpen()
+      data.updateNode(id, changes)
+    },
+
+    moveNode(id, newParentId, position) {
+      ensureOpen()
+      data.moveNode(id, newParentId, position)
+    },
+
+    deleteNode(id) {
+      ensureOpen()
+      data.deleteNode(id)
+    },
+
+    addNode(parentId, node) {
+      ensureOpen()
+      return data.addNode(parentId, node)
+    },
+
+    cloneTask(sourceId, changes) {
+      ensureOpen()
+      const source = data.getNode(sourceId)
+      if (!source || source.type !== "task") return null
+
+      const clonedNode: Partial<KNode> & { type: "task"; content: string } = {
+        type: "task",
+        content: changes.content ?? source.content ?? "",
+        parent_id: changes.parent_id ?? source.parent_id,
+        parent_idx: changes.parent_idx ?? (source.parent_idx ?? 0) + 0.001,
+        task_status: changes.task_status ?? "todo",
+        task_mark: changes.task_mark ?? " ",
+        assigned_to: changes.assigned_to ?? source.assigned_to,
+        due_date: changes.due_date ?? source.due_date,
+        scheduled_date: changes.scheduled_date ?? source.scheduled_date,
+        priority: changes.priority ?? source.priority,
+        data: {
+          ...source.data,
+          ...changes.data,
+          recur_prev: sourceId,
+        },
+      }
+
+      return data.addNode(clonedNode.parent_id ?? null, clonedNode)
+    },
+
+    appendTaskToFile() {
+      throw new Error("Cannot appendTaskToFile: bare repo has no files")
+    },
+
+    pathExists(relativePath) {
+      ensureOpen()
+      const repoPath = options.configPath ?? process.cwd()
+      return existsSync(join(repoPath, relativePath))
+    },
+
+    rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
+      ensureOpen()
+      const stmt = db.prepare(sql)
+      return (
+        params
+          ? stmt.all(...(params as Parameters<typeof stmt.all>))
+          : stmt.all()
+      ) as T[]
+    },
+
+    // =========================================================================
+    // Sync and lifecycle
+    // =========================================================================
 
     async sync() {
       throw new Error("Cannot sync: bare repo has no files")

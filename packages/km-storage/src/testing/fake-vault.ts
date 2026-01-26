@@ -104,6 +104,13 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       return [] // FakeVault never has deferred files
     },
 
+    get database() {
+      // FakeVault doesn't have a real database - return null
+      // Tests that need database access should use a real vault
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return null as any
+    },
+
     // --- Query operations ---
 
     needsRebuild() {
