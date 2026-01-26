@@ -180,6 +180,15 @@ Add to `.claude/settings.json` or `.claude/settings.local.json`:
 
 ## Plugins
 
+### Standalone vs Plugin - When to Use Each
+
+| Approach | Command names | Best for |
+|----------|---------------|----------|
+| **Standalone** (`.claude/commands/`) | `/hello` | Project-specific, quick iteration |
+| **Plugins** (with `.claude-plugin/`) | `/plugin-name:hello` | Sharing across projects, distribution |
+
+**Plugin commands are NAMESPACED**: A plugin named `batch` with `commands/batch.md` becomes `/batch:batch`, not `/batch`.
+
 ### Using Plugins
 
 ```bash
@@ -190,7 +199,7 @@ claude plugin list
 claude plugin install plugin-name
 claude plugin install plugin-name@marketplace-name
 
-# Install from local directory (for development)
+# Test plugin during development (no install needed)
 claude --plugin-dir ./path/to/plugin
 
 # Enable/disable plugins
@@ -204,13 +213,23 @@ claude plugin update plugin-name
 claude plugin uninstall plugin-name
 ```
 
+**Using plugin commands:**
+```bash
+# Plugin commands use namespace:command format
+/my-plugin:hello
+/batch:batch rename "old" "new"
+
+# Run /help to see all available commands including plugin commands
+```
+
 ### Managing Marketplaces
 
 ```bash
 # List marketplaces
 claude plugin marketplace list
 
-# Add a marketplace
+# Add a marketplace (from GitHub repo or URL)
+claude plugin marketplace add github:user/repo
 claude plugin marketplace add https://example.com/marketplace.json
 
 # Remove a marketplace
@@ -219,21 +238,31 @@ claude plugin marketplace remove marketplace-name
 
 ### Creating Plugins
 
-Plugin directory structure:
+**IMPORTANT:** Don't put `commands/`, `skills/`, etc inside `.claude-plugin/`. Only `plugin.json` goes there.
 
 ```
 my-plugin/
 ├── .claude-plugin/
-│   └── plugin.json          # Plugin manifest (required)
-├── commands/                 # Slash commands (auto-loaded)
+│   └── plugin.json          # Manifest (required) - ONLY this goes here
+├── commands/                 # Slash commands → /my-plugin:command-name
 │   └── my-command.md
-├── skills/                   # Skills (auto-loaded)
+├── skills/                   # Agent Skills (model-invoked, not slash commands)
 │   └── my-skill/
 │       └── SKILL.md
 ├── agents/                   # Custom agents
 ├── .mcp.json                 # Plugin's MCP servers
 └── README.md
 ```
+
+### Commands vs Skills (Important Difference!)
+
+| Type | Location | Invocation | Use case |
+|------|----------|------------|----------|
+| **Commands** | `commands/*.md` | User types `/plugin:cmd` | Interactive workflows |
+| **Skills** | `skills/*/SKILL.md` | Model auto-invokes based on context | Background capabilities |
+
+**Commands** are user-triggered slash commands.
+**Skills** are model-triggered - Claude uses them automatically when relevant.
 
 ### plugin.json Manifest
 
@@ -242,48 +271,50 @@ my-plugin/
   "name": "my-plugin",
   "version": "1.0.0",
   "description": "What this plugin does",
-  "author": {
-    "name": "Your Name",
-    "email": "you@example.com",
-    "url": "https://github.com/you"
-  },
-  "repository": "https://github.com/you/my-plugin",
-  "license": "MIT",
-  "keywords": ["keyword1", "keyword2"],
-  "commands": ["./custom/commands/special.md"],
-  "skills": "./custom/skills/",
-  "agents": "./custom/agents/",
-  "mcpServers": "./.mcp.json",
-  "hooks": "./config/hooks.json"
+  "author": { "name": "Your Name" }
 }
 ```
 
 **Required fields:** `name` only. All others optional.
 
-**Path variables:** Use `${CLAUDE_PLUGIN_ROOT}` in MCP and hook configs:
+**Optional fields:** `repository`, `license`, `keywords`, `homepage`
 
-```json
-{
-  "mcpServers": {
-    "my-server": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/bin/server",
-      "args": ["--config", "${CLAUDE_PLUGIN_ROOT}/config.json"]
-    }
-  }
-}
-```
+**Path variables:** Use `${CLAUDE_PLUGIN_ROOT}` in MCP and hook configs.
 
-### Validating Plugins
+### Development Workflow
 
 ```bash
-claude plugin validate ./path/to/plugin
+# 1. Create plugin structure
+mkdir -p my-plugin/.claude-plugin my-plugin/commands
+
+# 2. Create manifest
+echo '{"name": "my-plugin", "version": "0.1.0"}' > my-plugin/.claude-plugin/plugin.json
+
+# 3. Add a command
+cat > my-plugin/commands/hello.md << 'EOF'
+---
+description: Say hello
+---
+Greet the user: $ARGUMENTS
+EOF
+
+# 4. Test locally (restart Claude Code to pick up changes)
+claude --plugin-dir ./my-plugin
+
+# 5. Use the command
+/my-plugin:hello World
 ```
 
-### Publishing Plugins
+### Validating & Publishing
 
-1. Create a GitHub repo with your plugin
-2. Add to a marketplace manifest or share the repo URL
-3. Users install via `claude plugin install github:user/repo`
+```bash
+# Validate plugin structure
+claude plugin validate ./path/to/plugin
+
+# Publish via GitHub
+# 1. Create repo with plugin files
+# 2. Users install: claude plugin install github:user/repo
+```
 
 ## Hooks
 
@@ -370,6 +401,14 @@ Add to `.claude/settings.local.json`:
 2. Check plugin is enabled: `claude plugin list`
 3. Ensure paths in plugin.json start with `./`
 4. Restart Claude Code after installing
+
+### Plugin command not found
+
+Plugin commands are namespaced! Use `/plugin-name:command-name`:
+- Plugin `batch` with `commands/batch.md` → `/batch:batch`
+- Plugin `tools` with `commands/review.md` → `/tools:review`
+
+Check available commands with `/help` - plugin commands appear under their namespace.
 
 ## Actions
 
