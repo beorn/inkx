@@ -7,7 +7,7 @@
  * km init              # Create .km/ in cwd
  * km init ./path       # Create .km/ in ./path
  * km init gtd          # Create .km/ plus GTD folder structure in cwd
- * km --root /path init # Uses --root as target directory
+ * km --repo /path init # Uses --repo as target directory
  * km -r ./path init gtd # Create .km/ and GTD structure in ./path
  *
  * Note: This command intentionally uses fs directly because it creates the
@@ -126,8 +126,8 @@ export const initCommand = new Command("init")
   .option("--no-gtd", "Skip GTD folder structure")
   .option("--no-sync", "Skip initial sync")
   .action(async (pathArg, options, command) => {
-    // Priority: --root from parent > path arg > KM_ROOT env > cwd
-    const globalRoot = command.parent?.opts()?.root || process.env.KM_ROOT
+    // Priority: --repo from parent > path arg > KM_ROOT env > cwd
+    const globalRoot = command.parent?.opts()?.repo || process.env.KM_ROOT
     let targetDir: string
 
     if (pathArg) {
