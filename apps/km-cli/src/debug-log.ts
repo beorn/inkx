@@ -17,14 +17,14 @@ import { homedir } from "os"
 let stream: WriteStream | null = null
 
 // Optional vault root for formatting paths relative to vault
-let vaultRoot: string | null = null
+let repoRoot: string | null = null
 
 /**
  * Set the vault root for path formatting in debug output.
  * Paths inside this root will be shown as relative.
  */
-export function setDebugVaultRoot(root: string | null): void {
-  vaultRoot = root
+export function setDebugRepoRoot(root: string | null): void {
+  repoRoot = root
 }
 
 /**
@@ -33,8 +33,8 @@ export function setDebugVaultRoot(root: string | null): void {
  */
 function formatPath(absPath: string): string {
   // Try relative to vault root (most useful for debug output)
-  if (vaultRoot && absPath.startsWith(vaultRoot)) {
-    const rel = absPath.slice(vaultRoot.length)
+  if (repoRoot && absPath.startsWith(repoRoot)) {
+    const rel = absPath.slice(repoRoot.length)
     return rel.startsWith("/") ? rel.slice(1) : rel
   }
 

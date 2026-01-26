@@ -94,22 +94,22 @@ describe("rebuild.ts", () => {
 
   describe("vault.needsRebuild()", () => {
     test("returns false for memory mode vaults", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         // No .km directory = memory mode
-        writeFileSync(join(vaultDir, "test.md"), "# Test\n- [ ] Task\n")
+        writeFileSync(join(repoDir, "test.md"), "# Test\n- [ ] Task\n")
 
-        using vault = runGenerator(createVault(vaultDir))
+        using vault = runGenerator(createVault(repoDir))
         expect(vault.mode).toBe("memory")
         expect(vault.needsRebuild()).toBe(false)
       }))
 
     test("returns true for disk mode without state.db", () =>
-      withTestEnv(async ({ vaultDir, kmDir }) => {
+      withTestEnv(async ({ repoDir, kmDir }) => {
         // Create .km directory for disk mode (but no state.db created yet)
         mkdirSync(kmDir, { recursive: true })
-        writeFileSync(join(vaultDir, "test.md"), "# Test\n- [ ] Task\n")
+        writeFileSync(join(repoDir, "test.md"), "# Test\n- [ ] Task\n")
 
-        using vault = runGenerator(createVault(vaultDir))
+        using vault = runGenerator(createVault(repoDir))
         expect(vault.mode).toBe("disk")
         // No state.db file exists = needs rebuild
         // (test uses ALS in-memory db, so physical state.db doesn't exist)
@@ -117,13 +117,13 @@ describe("rebuild.ts", () => {
       }))
 
     test("returns false for disk mode with state.db and no events", () =>
-      withTestEnv(async ({ vaultDir, kmDir }) => {
+      withTestEnv(async ({ repoDir, kmDir }) => {
         // Create .km directory and empty state.db for disk mode
         mkdirSync(kmDir, { recursive: true })
         writeFileSync(join(kmDir, "state.db"), "") // Empty file simulates existing db
-        writeFileSync(join(vaultDir, "test.md"), "# Test\n- [ ] Task\n")
+        writeFileSync(join(repoDir, "test.md"), "# Test\n- [ ] Task\n")
 
-        using vault = runGenerator(createVault(vaultDir))
+        using vault = runGenerator(createVault(repoDir))
         expect(vault.mode).toBe("disk")
         // state.db exists, no events = no rebuild needed
         expect(vault.needsRebuild()).toBe(false)

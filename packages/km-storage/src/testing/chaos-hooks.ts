@@ -17,7 +17,7 @@
  */
 
 import type {
-  VaultHooks,
+  RepoHooks,
   MutationContext,
   BeforeMutationResult,
 } from "../vault.ts"
@@ -83,7 +83,7 @@ export interface ChaosEvent {
 /**
  * Extended hooks with chaos testing utilities
  */
-export interface ChaosHooks extends VaultHooks {
+export interface ChaosHooks extends RepoHooks {
   /** Get all chaos events that occurred */
   getChaosEvents(): ChaosEvent[]
 

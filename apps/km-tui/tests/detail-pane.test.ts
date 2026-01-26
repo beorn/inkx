@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test"
 import React from "react"
 import { createTestRenderer } from "inkx/testing"
 const render = createTestRenderer()
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 import {
   DetailPane,
@@ -14,7 +14,7 @@ import {
 import { VaultProvider } from "../src/vault-context.tsx"
 
 function renderDetailPane(
-  vault: ReturnType<typeof createFakeVault>,
+  vault: ReturnType<typeof createFakeRepo>,
   node: KNode,
   width: number,
   height: number,
@@ -143,7 +143,7 @@ describe("getStatusDisplay", () => {
 
 describe("getProjectPath", () => {
   test("returns empty array for node with no parent", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -163,7 +163,7 @@ describe("getProjectPath", () => {
     expect(getProjectPath(vault, node)).toEqual([])
   })
   test("returns folder names in path", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "folder1",
@@ -208,7 +208,7 @@ describe("getProjectPath", () => {
     expect(path).toEqual(["Work", "Finance"])
   })
   test("includes files in path", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "folder1",
@@ -256,7 +256,7 @@ describe("getProjectPath", () => {
 
 describe("DetailPane", () => {
   test("renders with all task fields", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -287,7 +287,7 @@ describe("DetailPane", () => {
     expect(output).toContain("@bjorn")
   })
   test("shows subtasks", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "parent1",
@@ -337,7 +337,7 @@ describe("DetailPane", () => {
     expect(output).toContain("Subtask 2")
   })
   test("shows references from content", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -363,7 +363,7 @@ describe("DetailPane", () => {
     expect(output).toContain("[[Meeting Notes]]")
   })
   test("shows project path", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "folder1",
@@ -411,7 +411,7 @@ describe("DetailPane", () => {
     expect(output).toContain("Finance")
   })
   test("shows keybindings hint", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -433,7 +433,7 @@ describe("DetailPane", () => {
     expect(output).toContain("h/Esc:close")
   })
   test("handles task with done status", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -456,7 +456,7 @@ describe("DetailPane", () => {
     expect(output).toContain("done")
   })
   test("shows backlinks when present", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           id: "target1",

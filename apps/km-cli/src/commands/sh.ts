@@ -311,7 +311,7 @@ export const shCommand = new Command("sh")
     const resolved = resolvePathArg(root, getRootPath())
 
     // Create repo domain object (auto-closes via `using`)
-    using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+    using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
 
     // Get database instance (TODO: use vault.rawQuery() instead)
     const db = getDb()

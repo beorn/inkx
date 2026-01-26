@@ -25,7 +25,7 @@
 
 import type { KNode } from "@km/core"
 import type { ChaosHooks, ChaosEvent, ChaosStats } from "./chaos-hooks.ts"
-import type { ChaosFakeVault, ConsistencyIssue } from "./chaos-fake-vault.ts"
+import type { ChaosFakeRepo, ConsistencyIssue } from "./chaos-fake-vault.ts"
 import type { Vault } from "../vault.ts"
 
 /**
@@ -107,7 +107,7 @@ export interface GenerateReportOptions {
   /** ChaosHooks instance (if using real Vault) */
   hooks?: ChaosHooks
   /** ChaosFakeVault instance (if using FakeVault) */
-  fakeVault?: ChaosFakeVault
+  fakeRepo?: ChaosFakeRepo
   /** Real Vault instance (for state inspection) */
   vault?: Vault
   /** List of invariants that were violated */
@@ -134,7 +134,7 @@ export function generateChaosReport(
   const {
     scenario,
     hooks,
-    fakeVault,
+    fakeRepo,
     vault,
     invariantsViolated = [],
     passed = invariantsViolated.length === 0,
@@ -151,7 +151,7 @@ export function generateChaosReport(
   }
 
   // Capture state snapshot
-  const stateSnapshot = captureStateSnapshot(fakeVault, vault)
+  const stateSnapshot = captureStateSnapshot(fakeRepo, vault)
 
   // Generate recommendations
   const recommendations = generateRecommendations(
@@ -178,23 +178,23 @@ export function generateChaosReport(
  * Capture current state snapshot from vault
  */
 function captureStateSnapshot(
-  fakeVault?: ChaosFakeVault,
+  fakeRepo?: ChaosFakeRepo,
   vault?: Vault,
 ): ChaosStateSnapshot {
   const timestamp = Date.now()
 
-  if (fakeVault) {
+  if (fakeRepo) {
     // Use ChaosFakeVault's built-in inspection methods
-    const orphanedNodes = fakeVault.getOrphanedNodes()
-    const duplicateMap = fakeVault.getDuplicateIds()
+    const orphanedNodes = fakeRepo.getOrphanedNodes()
+    const duplicateMap = fakeRepo.getDuplicateIds()
     const duplicates = Array.from(duplicateMap.entries()).map(
       ([id, count]) => ({
         id,
         count,
       }),
     )
-    const consistencyIssues = fakeVault.validateConsistency()
-    const allNodes = fakeVault.getAllNodes()
+    const consistencyIssues = fakeRepo.validateConsistency()
+    const allNodes = fakeRepo.getAllNodes()
 
     return {
       orphanedNodes,

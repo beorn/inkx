@@ -37,7 +37,7 @@ export function useColumns(
   foldedNodes: Set<string>,
 ): ColumnState[] {
   return useMemo(() => {
-    return deriveColumnsFromVault(vault, rootId, foldedNodes)
+    return deriveColumnsFromRepo(vault, rootId, foldedNodes)
   }, [vault.stats.nodeCount, rootId, foldedNodes])
 }
 
@@ -45,7 +45,7 @@ export function useColumns(
  * Pure function to derive columns from Vault.
  * Can be used outside of React for testing.
  */
-export function deriveColumnsFromVault(
+export function deriveColumnsFromRepo(
   vault: Vault,
   rootId: string | null,
   foldedNodes: Set<string>,

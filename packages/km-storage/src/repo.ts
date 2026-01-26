@@ -29,7 +29,7 @@ import { loadConfigObject } from "./config-object.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 import { SCHEMA } from "./schema.ts"
 import {
-  loadVault,
+  loadRepo,
   type StepYield,
   type LoadError,
   type DeferredFile,
@@ -377,7 +377,7 @@ export function* createRepo(
     // =========================================================================
     // File loading mode - use loadVault to discover, parse, and populate
     // =========================================================================
-    const loadResult = yield* loadVault(rootPath, {
+    const loadResult = yield* loadRepo(rootPath, {
       searchAncestors: false, // rootPath is already the vault root
       skipLinkResolution: options.skipLinkResolution,
       discoverOnly: options.discoverOnly,

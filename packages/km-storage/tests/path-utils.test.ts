@@ -199,7 +199,7 @@ describe("getEffectiveRoot", () => {
 describe("resolvePathArg", () => {
   test("no argument returns fallback root with null nodeRef", () => {
     const result = resolvePathArg(undefined, "/fallback")
-    expect(result.vaultRoot).toBe("/fallback")
+    expect(result.repoRoot).toBe("/fallback")
     expect(result.nodeRef).toBeNull()
     expect(result.wasExplicitPath).toBe(false)
   })
@@ -211,7 +211,7 @@ describe("resolvePathArg", () => {
 
     const filePath = join(testDir, "vault/inbox.md")
     const result = resolvePathArg(filePath)
-    expect(result.vaultRoot).toBe(join(testDir, "vault"))
+    expect(result.repoRoot).toBe(join(testDir, "vault"))
     expect(result.nodeRef).toBe(filePath)
     expect(result.wasExplicitPath).toBe(true)
   })
@@ -223,7 +223,7 @@ describe("resolvePathArg", () => {
 
     const dirPath = join(testDir, "vault/Projects")
     const result = resolvePathArg(dirPath)
-    expect(result.vaultRoot).toBe(join(testDir, "vault"))
+    expect(result.repoRoot).toBe(join(testDir, "vault"))
     expect(result.nodeRef).toBe(dirPath)
     expect(result.wasExplicitPath).toBe(true)
   })
@@ -234,7 +234,7 @@ describe("resolvePathArg", () => {
 
     const vaultPath = join(testDir, "vault")
     const result = resolvePathArg(vaultPath)
-    expect(result.vaultRoot).toBe(vaultPath)
+    expect(result.repoRoot).toBe(vaultPath)
     expect(result.nodeRef).toBeNull()
     expect(result.wasExplicitPath).toBe(true)
   })
@@ -245,14 +245,14 @@ describe("resolvePathArg", () => {
 
     const dirPath = join(testDir, "standalone")
     const result = resolvePathArg(dirPath)
-    expect(result.vaultRoot).toBe(dirPath)
+    expect(result.repoRoot).toBe(dirPath)
     expect(result.nodeRef).toBeNull()
     expect(result.wasExplicitPath).toBe(true)
   })
 
   test("non-path argument passes through as nodeRef", () => {
     const result = resolvePathArg("@inbox", "/fallback")
-    expect(result.vaultRoot).toBe("/fallback")
+    expect(result.repoRoot).toBe("/fallback")
     expect(result.nodeRef).toBe("@inbox")
     expect(result.wasExplicitPath).toBe(false)
   })

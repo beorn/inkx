@@ -67,7 +67,7 @@ import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts"
 import { UIProvider } from "../src/ui-context.tsx"
 import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
 import { RepoProvider } from "../src/vault-context.tsx"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import Database from "bun:sqlite"
 import type { Toast } from "@km/core"
 
@@ -1550,7 +1550,7 @@ function ToastAndStatusSection(): React.ReactElement {
 // ============================================================================
 
 // Create a minimal mock repo for storybook
-const mockRepo = createFakeVault()
+const mockRepo = createFakeRepo()
 
 function Storybook(): React.ReactElement {
   return (

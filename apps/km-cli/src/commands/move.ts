@@ -32,7 +32,7 @@ export const moveCommand = new Command("move")
     // Resolve the node argument - may detect vault root from path
     const resolvedNode = resolvePathArg(nodeArg, getRootPath())
     using repo = runGenerator(
-      createRepo(resolvedNode.vaultRoot, { loadFiles: true }),
+      createRepo(resolvedNode.repoRoot, { loadFiles: true }),
     )
 
     const nodeRef = resolvedNode.nodeRef
@@ -65,7 +65,7 @@ export const moveCommand = new Command("move")
       targetParentId = targetParent.id
     } else if (parentArg) {
       // Resolve parent path argument
-      const resolvedParent = resolvePathArg(parentArg, resolvedNode.vaultRoot)
+      const resolvedParent = resolvePathArg(parentArg, resolvedNode.repoRoot)
       const parentRef = resolvedParent.nodeRef
       if (!parentRef) {
         console.error(chalk.red(`Cannot use a directory as parent`))

@@ -40,9 +40,9 @@ function setupSyncManager(
 describe("Bidirectional Sync E2E", () => {
   describe("TUI → Filesystem", () => {
     test("editing task status in model writes to file", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           db: getDb(),
           debounceFs: 100,
           debounceApply: 50,
@@ -54,7 +54,7 @@ describe("Bidirectional Sync E2E", () => {
         setupSyncManager(stack, syncManager)
 
         // Create test file with a task
-        const testFile = join(vaultDir, "tasks.md")
+        const testFile = join(repoDir, "tasks.md")
         writeFileSync(testFile, "# Tasks\n\n- [ ] Test task\n")
 
         // Wait for initial sync
@@ -79,9 +79,9 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("creating new task in model creates file entry", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           db: getDb(),
           debounceFs: 100,
           debounceApply: 50,
@@ -93,7 +93,7 @@ describe("Bidirectional Sync E2E", () => {
         setupSyncManager(stack, syncManager)
 
         // Create file first
-        const testFile = join(vaultDir, "new-tasks.md")
+        const testFile = join(repoDir, "new-tasks.md")
         writeFileSync(testFile, "# New Tasks\n\n- [ ] First task\n")
 
         // Sync
@@ -122,10 +122,10 @@ describe("Bidirectional Sync E2E", () => {
 
   describe("Filesystem → Model", () => {
     test("external file edit triggers state-change event", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const events = new EventEmitter()
         const syncManager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           db: getDb(),
           debounceFs: 100,
           debounceApply: 50,
@@ -141,7 +141,7 @@ describe("Bidirectional Sync E2E", () => {
         setupSyncManager(stack, syncManager)
 
         // Create initial file
-        const testFile = join(vaultDir, "watch-test.md")
+        const testFile = join(repoDir, "watch-test.md")
         writeFileSync(testFile, "# Initial\n\n- [ ] Task 1\n")
 
         // Sync initial state
@@ -185,10 +185,10 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("external file edit updates database", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const events = new EventEmitter()
         const syncManager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           db: getDb(),
           debounceFs: 100,
           debounceApply: 50,
@@ -204,7 +204,7 @@ describe("Bidirectional Sync E2E", () => {
         setupSyncManager(stack, syncManager)
 
         // Create initial file
-        const testFile = join(vaultDir, "external-edit.md")
+        const testFile = join(repoDir, "external-edit.md")
         writeFileSync(testFile, "# Test\n\n- [ ] Original task\n")
 
         // Sync initial state
@@ -256,10 +256,10 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("external file delete removes from database", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const events = new EventEmitter()
         const syncManager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           db: getDb(),
           debounceFs: 100,
           debounceApply: 50,
@@ -275,7 +275,7 @@ describe("Bidirectional Sync E2E", () => {
         setupSyncManager(stack, syncManager)
 
         // Create initial file
-        const testFile = join(vaultDir, "to-delete.md")
+        const testFile = join(repoDir, "to-delete.md")
         writeFileSync(testFile, "# To Delete\n\n- [ ] Task\n")
 
         // Sync initial state
@@ -325,10 +325,10 @@ describe("Bidirectional Sync E2E", () => {
 
   describe("Race Conditions", () => {
     test("rapid external edits are coalesced", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const events = new EventEmitter()
         const syncManager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           db: getDb(),
           debounceFs: 100,
           debounceApply: 50,
@@ -344,7 +344,7 @@ describe("Bidirectional Sync E2E", () => {
         setupSyncManager(stack, syncManager)
 
         // Create initial file
-        const testFile = join(vaultDir, "rapid.md")
+        const testFile = join(repoDir, "rapid.md")
         writeFileSync(testFile, "# Rapid\n\n- [ ] Task\n")
 
         await syncManager.syncFromFs()
@@ -382,9 +382,9 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("TUI edit during filesystem sync doesn't cause data loss", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           db: getDb(),
           debounceFs: 100,
           debounceApply: 50,
@@ -396,7 +396,7 @@ describe("Bidirectional Sync E2E", () => {
         setupSyncManager(stack, syncManager)
 
         // Create initial file
-        const testFile = join(vaultDir, "conflict.md")
+        const testFile = join(repoDir, "conflict.md")
         writeFileSync(testFile, "# Conflict\n\n- [ ] Task A\n")
 
         await syncManager.syncFromFs()

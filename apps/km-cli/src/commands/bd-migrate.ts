@@ -33,10 +33,10 @@ export const migrateCommand = new Command("migrate")
   .option("--target <dir>", "Target directory for markdown files")
   .action((opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.vaultRoot)
+    const configObj = loadConfigObject(resolved.repoRoot)
 
     // Find .beads directory
-    const beadsDir = findBeadsDir(resolved.vaultRoot)
+    const beadsDir = findBeadsDir(resolved.repoRoot)
     if (!beadsDir) {
       console.error(chalk.red("No .beads directory found."))
       console.log(
@@ -49,7 +49,7 @@ export const migrateCommand = new Command("migrate")
     }
 
     // Read original beads config for issue prefix
-    const originalConfig = getOriginalBeadsConfig(resolved.vaultRoot)
+    const originalConfig = getOriginalBeadsConfig(resolved.repoRoot)
     const originalConfigPath = getOriginalBeadsConfigPath()
 
     // Show stats first
@@ -85,8 +85,8 @@ export const migrateCommand = new Command("migrate")
     const targetDir =
       opts.target ||
       (beadsConfig.parent
-        ? `${resolved.vaultRoot}/${beadsConfig.parent}`
-        : `${resolved.vaultRoot}/issue`)
+        ? `${resolved.repoRoot}/${beadsConfig.parent}`
+        : `${resolved.repoRoot}/issue`)
 
     // Parse status filter
     const statusFilter = opts.status ? opts.status.split(",") : undefined
@@ -141,7 +141,7 @@ export const exportCommand = new Command("export")
   .option("--target <dir>", "Target .beads directory")
   .action((opts) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.vaultRoot)
+    const configObj = loadConfigObject(resolved.repoRoot)
 
     // Get issues from km
     const boardTag = configObj.beads.board || undefined
@@ -162,8 +162,8 @@ export const exportCommand = new Command("export")
     // Determine target directory
     const beadsDir =
       opts.target ||
-      findBeadsDir(resolved.vaultRoot) ||
-      `${resolved.vaultRoot}/.beads`
+      findBeadsDir(resolved.repoRoot) ||
+      `${resolved.repoRoot}/.beads`
 
     console.log(chalk.bold("Export Target"))
     console.log(`  .beads dir: ${beadsDir}`)

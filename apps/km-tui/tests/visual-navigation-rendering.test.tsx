@@ -15,7 +15,7 @@ import { createTestRenderer } from "inkx/testing"
 import { Board } from "../src/views/Board.tsx"
 import { VaultProvider } from "../src/vault-context.tsx"
 import { createLayoutRegistry } from "../src/card-positions.ts"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import type { TUIBoardState } from "../src/types.ts"
 import type { KNode } from "@km/core"
 
@@ -66,7 +66,7 @@ describe("Visual navigation integration: card position registration", () => {
     const registry = createLayoutRegistry()
 
     // Create vault with nodes: root -> column -> cards
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("root", "Root", "section"),
         makeNode("col-1", "Column 1", "section", "root", 0),
@@ -118,7 +118,7 @@ describe("Visual navigation integration: card position registration", () => {
     const registry = createLayoutRegistry()
 
     // Create vault with two columns, each with cards
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("root", "Root", "section"),
         makeNode("col-1", "Column 1", "section", "root", 0),
@@ -166,7 +166,7 @@ describe("Visual navigation integration: card position registration", () => {
     const registry = createLayoutRegistry()
 
     // Create vault with two columns with different card counts
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("root", "Root", "section"),
         makeNode("col-1", "Column 1", "section", "root", 0),

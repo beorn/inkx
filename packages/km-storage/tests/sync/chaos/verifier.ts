@@ -329,7 +329,7 @@ export class Verifier implements IVerifier {
    * Verify content matches between filesystem and database
    * CRITICAL: This catches silent data loss/corruption that existence checks miss
    */
-  verifyContentSync(_vaultPath: string): VerificationResult {
+  verifyContentSync(_repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
     const nodes = getAllNodes(getDb())
@@ -398,7 +398,7 @@ export class Verifier implements IVerifier {
   /**
    * Verify metadata (mtime, ino) matches between filesystem and database
    */
-  verifyMetadataSync(_vaultPath: string): VerificationResult {
+  verifyMetadataSync(_repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
     const nodes = getAllNodes(getDb())

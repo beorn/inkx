@@ -63,7 +63,7 @@ bdCommand
   .action((scope, opts) => {
     const resolved = resolvePathArg(scope)
     const scopePath = resolved.nodeRef ?? undefined
-    const configObj = loadConfigObject(resolved.vaultRoot)
+    const configObj = loadConfigObject(resolved.repoRoot)
 
     const filter: Partial<IssueFilter> = {}
     if (opts.type) filter.type = opts.type
@@ -123,7 +123,7 @@ bdCommand
   .action((scope, opts) => {
     const resolved = resolvePathArg(scope)
     const scopePath = resolved.nodeRef ?? undefined
-    const configObj = loadConfigObject(resolved.vaultRoot)
+    const configObj = loadConfigObject(resolved.repoRoot)
 
     const filter: IssueFilter = {}
     if (opts.status) filter.status = opts.status.split(",")
@@ -177,7 +177,7 @@ const showCmd = bdCommand
 
     const resolved = resolvePathArg(undefined)
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
     const issue = resolveIssueArg(repo, id)
 
@@ -251,7 +251,7 @@ const updateCmd = bdCommand
 
     const resolved = resolvePathArg(undefined)
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
@@ -295,7 +295,7 @@ const closeCmd = bdCommand
 
     const resolved = resolvePathArg(undefined)
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
@@ -327,7 +327,7 @@ const dropCmd = bdCommand
 
     const resolved = resolvePathArg(undefined)
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
@@ -360,7 +360,7 @@ const depAddCmd = depCommand
 
     const resolved = resolvePathArg(undefined)
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
@@ -391,7 +391,7 @@ const depRemoveCmd = depCommand
 
     const resolved = resolvePathArg(undefined)
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
@@ -429,7 +429,7 @@ const depListCmd = depCommand
 
     const resolved = resolvePathArg(undefined)
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
@@ -462,14 +462,14 @@ bdCommand
   .description("Show beads configuration and statistics")
   .action((scope) => {
     const resolved = resolvePathArg(scope)
-    const kmDir = join(resolved.vaultRoot, ".km")
+    const kmDir = join(resolved.repoRoot, ".km")
 
     // Load repo to set up context for getDbPath()
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
     const scopePath = resolved.nodeRef ?? undefined
-    const configObj = loadConfigObject(resolved.vaultRoot)
+    const configObj = loadConfigObject(resolved.repoRoot)
     const config = configObj.beads
     const dbPath = getDbPath()
     const repoMode = repo.mode
@@ -514,7 +514,7 @@ bdCommand
     console.log(chalk.bold("Storage"))
     console.log(`  Database: ${dbPath}`)
     console.log(`  Mode: ${repoMode}`)
-    console.log(`  Vault: ${resolved.vaultRoot}`)
+    console.log(`  Vault: ${resolved.repoRoot}`)
     if (kmDir) {
       console.log(`  KM Dir: ${kmDir}`)
     }
@@ -575,12 +575,12 @@ bdCommand
   .description("Show beads paths and configuration")
   .action((scope) => {
     const resolved = resolvePathArg(scope)
-    const kmDir = join(resolved.vaultRoot, ".km")
+    const kmDir = join(resolved.repoRoot, ".km")
 
     // Load repo to set up global state for getDbPath()
-    runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+    runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
     const dbPath = getDbPath()
-    const configObj = loadConfigObject(resolved.vaultRoot)
+    const configObj = loadConfigObject(resolved.repoRoot)
 
     if (existsSync(kmDir)) {
       console.log(kmDir)
@@ -588,13 +588,13 @@ bdCommand
       console.log(`  board: ${configObj.beads.board || "(none)"}`)
       console.log(`  parent: ${configObj.beads.parent || "(none)"}`)
       console.log(`  database: ${dbPath}`)
-      console.log(`  vault: ${resolved.vaultRoot}`)
+      console.log(`  vault: ${resolved.repoRoot}`)
       if (resolved.nodeRef) {
         console.log(`  scope: ${resolved.nodeRef}`)
       }
     } else {
       console.log(chalk.yellow("No km directory found."))
-      console.log(`  vault: ${resolved.vaultRoot}`)
+      console.log(`  vault: ${resolved.repoRoot}`)
     }
   })
 

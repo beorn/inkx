@@ -14,7 +14,7 @@ import type { StepYield } from "../vault-loader.ts"
 /**
  * Options for createFakeVault
  */
-export interface FakeVaultOptions {
+export interface FakeRepoOptions {
   /** Path to report (default: "/fake/vault") */
   path?: string
 
@@ -34,7 +34,7 @@ export interface FakeVaultOptions {
 /**
  * Extended Repo interface with test helpers
  */
-export interface FakeVault extends Repo {
+export interface FakeRepo extends Repo {
   /** Get all nodes (for test assertions) */
   getAllNodes(): KNode[]
 
@@ -64,7 +64,7 @@ export interface FakeVault extends Repo {
  * @param options - Configuration with initial data
  * @returns FakeVault instance
  */
-export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
+export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   const path = options.path ?? "/fake/vault"
   const initialNodes = options.nodes ?? []
   const initialLinks = options.links ?? []
@@ -85,7 +85,7 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
   // Initialize with provided data
   reset()
 
-  const vault: FakeVault = {
+  const vault: FakeRepo = {
     get path() {
       return path
     },

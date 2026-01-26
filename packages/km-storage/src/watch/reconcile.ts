@@ -57,7 +57,7 @@ export type DirectoryScanner = (
 export function reconcileDirectory(
   db: Database,
   dirPath: string,
-  vaultRoot: string,
+  repoRoot: string,
   ignorePatterns?: string[],
   scanner?: DirectoryScanner,
 ): ReconcileOp[] {
@@ -179,7 +179,7 @@ export function reconcileDirectory(
 export function reconcileDirectoryRecursive(
   db: Database,
   dirPath: string,
-  vaultRoot: string,
+  repoRoot: string,
   ignorePatterns?: string[],
   scanner?: DirectoryScanner,
 ): ReconcileOp[] {
@@ -187,7 +187,7 @@ export function reconcileDirectoryRecursive(
 
   // Reconcile this directory
   ops.push(
-    ...reconcileDirectory(db, dirPath, vaultRoot, ignorePatterns, scanner),
+    ...reconcileDirectory(db, dirPath, repoRoot, ignorePatterns, scanner),
   )
 
   // Get subdirectories and recursively reconcile them
@@ -200,7 +200,7 @@ export function reconcileDirectoryRecursive(
         ...reconcileDirectoryRecursive(
           db,
           entry.path,
-          vaultRoot,
+          repoRoot,
           ignorePatterns,
           scanner,
         ),
@@ -217,7 +217,7 @@ export function reconcileDirectoryRecursive(
 export function applyReconcileOps(
   db: Database,
   ops: ReconcileOp[],
-  vaultRoot: string,
+  repoRoot: string,
   fs: FileSystemOps = realFs,
 ): void {
   debug("applying %d reconcile ops", ops.length)
@@ -227,10 +227,10 @@ export function applyReconcileOps(
     debug("applying op: %s %s", op.type, op.path)
     switch (op.type) {
       case "create":
-        handleCreate(db, op, vaultRoot, fs)
+        handleCreate(db, op, repoRoot, fs)
         break
       case "update":
-        handleUpdate(db, op, vaultRoot, fs)
+        handleUpdate(db, op, repoRoot, fs)
         break
       case "rename":
         handleRename(op)
@@ -251,15 +251,15 @@ export function applyReconcileOps(
 function ensureFolderHierarchy(
   db: Database,
   path: string,
-  vaultRoot: string,
+  repoRoot: string,
   fs: FileSystemOps = realFs,
 ): string | null {
   const parentPath = dirname(path)
 
   // If we're at or above the vault root, no parent
   if (
-    parentPath === vaultRoot ||
-    parentPath === dirname(vaultRoot) ||
+    parentPath === repoRoot ||
+    parentPath === dirname(repoRoot) ||
     parentPath === path
   ) {
     return null
@@ -272,7 +272,7 @@ function ensureFolderHierarchy(
   }
 
   // Recursively ensure grandparent exists first
-  const grandparentId = ensureFolderHierarchy(db, parentPath, vaultRoot, fs)
+  const grandparentId = ensureFolderHierarchy(db, parentPath, repoRoot, fs)
 
   // Create the parent folder node
   try {
@@ -301,13 +301,13 @@ function ensureFolderHierarchy(
 function handleCreate(
   db: Database,
   op: ReconcileOp,
-  vaultRoot: string,
+  repoRoot: string,
   fs: FileSystemOps = realFs,
 ): void {
   const stat = fs.statSync(op.path)
 
   // Ensure all parent folders exist as nodes
-  const parentId = ensureFolderHierarchy(db, op.path, vaultRoot, fs)
+  const parentId = ensureFolderHierarchy(db, op.path, repoRoot, fs)
 
   if (stat.isDirectory()) {
     // Create folder node
@@ -399,7 +399,7 @@ const findNodeByName = findFileByName
 function handleUpdate(
   db: Database,
   op: ReconcileOp,
-  _vaultRoot: string,
+  _repoRoot: string,
   fs: FileSystemOps = realFs,
 ): void {
   if (!op.nodeId) {

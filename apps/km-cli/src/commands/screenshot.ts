@@ -7,7 +7,7 @@
 
 import { Command } from "commander"
 import createDebug from "debug"
-import { setDebugVaultRoot } from "../debug-log.ts"
+import { setDebugRepoRoot } from "../debug-log.ts"
 
 const debug = createDebug("km:cli:screenshot")
 
@@ -51,11 +51,11 @@ export const screenshotCommand = new Command("screenshot")
 
     // Resolve path and load vault
     const resolved = storageModule.resolvePathArg(root, cliModule.getRootPath())
-    setDebugVaultRoot(resolved.vaultRoot)
+    setDebugRepoRoot(resolved.repoRoot)
 
     // Load repo (full parse for accurate screenshot)
     const repo = storageModule.runGenerator(
-      storageModule.createRepo(resolved.vaultRoot, { loadFiles: true }),
+      storageModule.createRepo(resolved.repoRoot, { loadFiles: true }),
     )
 
     // Initialize board state
@@ -68,7 +68,7 @@ export const screenshotCommand = new Command("screenshot")
       process.exit(1)
     }
 
-    state.rootPath = resolved.vaultRoot
+    state.rootPath = resolved.repoRoot
 
     // Create test renderer with specified dimensions
     const render = inkxTesting.createTestRenderer({
@@ -128,7 +128,7 @@ export const screenshotCommand = new Command("screenshot")
           `# TUI Screenshot`,
           `# Dimensions: ${width}x${height}`,
           `# View: ${viewMode}`,
-          `# Root: ${resolved.vaultRoot}`,
+          `# Root: ${resolved.repoRoot}`,
           `# Node: ${resolved.nodeRef ?? "(root)"}`,
           ``,
           text,

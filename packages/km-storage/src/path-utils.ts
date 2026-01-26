@@ -125,7 +125,7 @@ export function getEffectiveRoot(resolution: PathResolution): string {
  */
 export interface ResolvedPathArg {
   /** Vault root path (directory containing .km or the directory itself) */
-  vaultRoot: string
+  repoRoot: string
   /** Node reference to resolve after store init, or null for vault root */
   nodeRef: string | null
   /** Whether the input was an explicit filesystem path */
@@ -151,7 +151,7 @@ export function resolvePathArg(
   // No argument - use fallback root, show all nodes
   if (!arg) {
     return {
-      vaultRoot: fallbackRoot || process.cwd(),
+      repoRoot: fallbackRoot || process.cwd(),
       nodeRef: null,
       wasExplicitPath: false,
     }
@@ -164,43 +164,43 @@ export function resolvePathArg(
     if (resolution.exists && resolution.isDirectory) {
       // Directory path - check if it's within a vault (has .km ancestor)
       if (resolution.kmRoot) {
-        const vaultRoot = dirname(resolution.kmRoot)
+        const repoRoot = dirname(resolution.kmRoot)
         // Check if this directory IS the vault root
-        if (resolution.absolutePath === vaultRoot) {
+        if (resolution.absolutePath === repoRoot) {
           // Pointing at vault root - show all top-level nodes
           return {
-            vaultRoot,
+            repoRoot,
             nodeRef: null,
             wasExplicitPath: true,
           }
         }
         // Subdirectory of a vault - use directory path as node ref
         return {
-          vaultRoot,
+          repoRoot,
           nodeRef: resolution.absolutePath,
           wasExplicitPath: true,
         }
       }
       // No .km found - treat directory itself as vault root
       return {
-        vaultRoot: resolution.absolutePath,
+        repoRoot: resolution.absolutePath,
         nodeRef: null,
         wasExplicitPath: true,
       }
     } else if (resolution.exists && resolution.isFile) {
       // File path - find vault root, use file path as node ref
-      const vaultRoot = resolution.kmRoot
+      const repoRoot = resolution.kmRoot
         ? dirname(resolution.kmRoot)
         : dirname(resolution.absolutePath)
       return {
-        vaultRoot,
+        repoRoot,
         nodeRef: resolution.absolutePath,
         wasExplicitPath: true,
       }
     } else {
       // Path doesn't exist - still treat as explicit path
       // Use detected vault root if available (e.g., /tmp/repo/@next.md -> /tmp/repo)
-      const vaultRoot = resolution.kmRoot
+      const repoRoot = resolution.kmRoot
         ? dirname(resolution.kmRoot)
         : fallbackRoot || process.cwd()
 
@@ -216,7 +216,7 @@ export function resolvePathArg(
       }
 
       return {
-        vaultRoot,
+        repoRoot,
         nodeRef,
         wasExplicitPath: true,
       }
@@ -225,7 +225,7 @@ export function resolvePathArg(
 
   // Non-path argument (ID, @ref, etc) - pass through
   return {
-    vaultRoot: fallbackRoot || process.cwd(),
+    repoRoot: fallbackRoot || process.cwd(),
     nodeRef: arg,
     wasExplicitPath: false,
   }

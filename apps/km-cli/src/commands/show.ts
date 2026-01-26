@@ -28,7 +28,7 @@ export const showCommand = new Command("show")
     // Resolve path argument - may initialize store with detected vault root
     const resolved = resolvePathArg(id, getRootPath())
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
 
     // Directory paths don't resolve to a specific node

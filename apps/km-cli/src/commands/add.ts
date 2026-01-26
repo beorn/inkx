@@ -32,7 +32,7 @@ export const addCommand = new Command("add")
     // Resolve target path argument - may detect vault root
     const resolvedTarget = resolvePathArg(target, getRootPath())
     using repo = runGenerator(
-      createRepo(resolvedTarget.vaultRoot, { loadFiles: true }),
+      createRepo(resolvedTarget.repoRoot, { loadFiles: true }),
     )
 
     if (!resolvedTarget.nodeRef) {
@@ -55,7 +55,7 @@ export const addCommand = new Command("add")
 
     for (const source of sources) {
       // Resolve source path if it's a filesystem path
-      const resolvedSource = resolvePathArg(source, resolvedTarget.vaultRoot)
+      const resolvedSource = resolvePathArg(source, resolvedTarget.repoRoot)
 
       // Try as node ID/path first
       const nodeRef = resolvedSource.nodeRef || source

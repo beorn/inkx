@@ -15,7 +15,7 @@ import { join, dirname } from "path"
 import type { Event } from "@km/core"
 import { getEventsPath, getKmDir } from "./emit.ts"
 import { getDb, getDbPath, closeDb } from "./db.ts"
-import { loadVault, type StepYield } from "./vault-loader.ts"
+import { loadRepo, type StepYield } from "./vault-loader.ts"
 
 /** Result from rebuildState */
 export interface RebuildResult {
@@ -93,10 +93,10 @@ export function* rebuildState(): Generator<StepYield, RebuildResult, unknown> {
 
   // Get vault root from already-configured kmDir (set by setKmDir())
   const kmDir = getKmDir()
-  const vaultRoot = dirname(kmDir)
+  const repoRoot = dirname(kmDir)
 
   // Delegate to loadVault with force flag
-  const result = yield* loadVault(vaultRoot, {
+  const result = yield* loadRepo(repoRoot, {
     searchAncestors: false,
     force: true,
   })
@@ -135,10 +135,10 @@ export function* syncState(): Generator<StepYield, SyncResult, unknown> {
 
   // Get vault root from already-configured kmDir (set by setKmDir())
   const kmDir = getKmDir()
-  const vaultRoot = dirname(kmDir)
+  const repoRoot = dirname(kmDir)
 
   // Delegate to loadVault (incremental mode)
-  const result = yield* loadVault(vaultRoot, { searchAncestors: false })
+  const result = yield* loadRepo(repoRoot, { searchAncestors: false })
 
   return {
     applied: newEvents.length,

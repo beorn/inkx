@@ -10,7 +10,7 @@
  */
 
 import { describe, test, expect, afterEach } from "bun:test"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { BODY_CONTENT_BOARD } from "./fixtures/body-content-fixture.ts"
 
@@ -25,7 +25,7 @@ describe("Body Content Visual Tests", () => {
   })
 
   test("body content file renders correctly", async () => {
-    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: BODY_CONTENT_BOARD.nodes })
     board = await createBoardTest(vault)
     const screenshot = board.screenshot()
 
@@ -35,7 +35,7 @@ describe("Body Content Visual Tests", () => {
   })
 
   test("navigation with h/l moves between columns", async () => {
-    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: BODY_CONTENT_BOARD.nodes })
     board = await createBoardTest(vault)
 
     // Initial state
@@ -60,7 +60,7 @@ describe("Body Content Visual Tests", () => {
   })
 
   test("navigation with j/k moves between cards", async () => {
-    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: BODY_CONTENT_BOARD.nodes })
     board = await createBoardTest(vault)
 
     // Navigate to a column first
@@ -78,7 +78,7 @@ describe("Body Content Visual Tests", () => {
   })
 
   test("g (go top) navigates to first card", async () => {
-    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: BODY_CONTENT_BOARD.nodes })
     board = await createBoardTest(vault)
 
     // Navigate to a column
@@ -98,7 +98,7 @@ describe("Body Content Visual Tests", () => {
   })
 
   test("nested content expands correctly", async () => {
-    const vault = createFakeVault({ nodes: BODY_CONTENT_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: BODY_CONTENT_BOARD.nodes })
     board = await createBoardTest(vault)
 
     // Navigate to Column B (two 'l' presses)

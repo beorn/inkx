@@ -7,7 +7,7 @@ import { describe, test, expect } from "bun:test"
 import { createTestRenderer } from "inkx/testing"
 const render = createTestRenderer()
 import React from "react"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import type { Repo } from "@km/storage"
 import type { KNode, NodeType } from "@km/core"
 import {
@@ -79,7 +79,7 @@ function makeNode(
 
 describe.serial("State", () => {
   test("buildBoardState creates columns from children", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("root", "board", "Test Board", null, 0),
         makeNode("col1", "folder", "Column 1", "root", 0),
@@ -97,7 +97,7 @@ describe.serial("State", () => {
   })
 
   test("initBoardState groups root nodes by name", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("proj1", "folder", "Projects", null, 0),
         makeNode("proj2", "folder", "Projects", null, 1),
@@ -111,7 +111,7 @@ describe.serial("State", () => {
   })
 
   test("initBoardState deduplicates cards by name within grouped columns", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("ref1", "folder", "ref", null, 0),
         makeNode("ref2", "folder", "ref", null, 1),
@@ -135,13 +135,13 @@ describe.serial("State", () => {
   })
 
   test("initBoardState returns null for empty database", () => {
-    const vault = createFakeVault({ nodes: [] })
+    const vault = createFakeRepo({ nodes: [] })
     const state = initBoardState(vault)
     expect(state).toBeNull()
   })
 
   test("getNodeDisplayName returns content", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [makeNode("task1", "task", "Test Task", null, 0)],
     })
     const node = vault.getNode("task1")!
@@ -149,7 +149,7 @@ describe.serial("State", () => {
   })
 
   test("getNodeDisplayName returns data.name if present", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("folder1", "folder", undefined, null, 0, {
           data: { name: "My Folder" },
@@ -161,7 +161,7 @@ describe.serial("State", () => {
   })
 
   test("getCurrentCard returns current card", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("board", "board", "Board", null, 0),
         makeNode("col", "folder", "Column", "board", 0),
@@ -175,7 +175,7 @@ describe.serial("State", () => {
   })
 
   test("getCurrentColumn returns current column", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("board", "board", "Board", null, 0),
         makeNode("col", "folder", "Column", "board", 0),
@@ -188,7 +188,7 @@ describe.serial("State", () => {
   })
 
   test("buildBoardState filters out paragraph nodes as columns (km-1tho)", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("root", "file", "@issue.md", null, 0),
         makeNode(
@@ -214,7 +214,7 @@ describe.serial("State", () => {
   })
 
   test("buildBoardState filters out code and quote nodes as columns", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("root", "file", "readme.md", null, 0),
         makeNode("code", "code", "const x = 1;", "root", 0),
@@ -233,7 +233,7 @@ describe.serial("State", () => {
 
 describe.serial("Render", () => {
   test("renderBoardStatic renders columns", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         makeNode("board", "board", "Board", null, 0),
         makeNode("col1", "folder", "Todo", "board", 0),
@@ -249,14 +249,14 @@ describe.serial("Render", () => {
   })
 
   test("renderBoardStatic handles empty board", () => {
-    const vault = createFakeVault()
+    const vault = createFakeRepo()
     const state = createEmptyState()
     const output = renderBoardStatic(vault, state, 80)
     expect(output).toContain("Empty board")
   })
 
   test("renderCard includes content", () => {
-    const vault = createFakeVault()
+    const vault = createFakeRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -277,7 +277,7 @@ describe.serial("Render", () => {
   })
 
   test("renderCard shows children when not folded", () => {
-    const vault = createFakeVault()
+    const vault = createFakeRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -311,7 +311,7 @@ describe.serial("Render", () => {
   })
 
   test("renderCard shows item count when folded", () => {
-    const vault = createFakeVault()
+    const vault = createFakeRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",

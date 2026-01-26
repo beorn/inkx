@@ -42,7 +42,7 @@ export function listTasks(
   options: ListTasksOptions,
 ): void {
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
 
   let tasks: KNode[]
   let rootNode: KNode | null = null

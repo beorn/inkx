@@ -111,7 +111,7 @@ export type { RebuildResult, SyncResult } from "./rebuild.ts"
 
 // Unified vault loading (the ONE function for loading vaults)
 export {
-  loadVault,
+  loadRepo,
   resolveLinksAsync,
   parseDeferredAsync,
 } from "./vault-loader.ts"
@@ -155,10 +155,10 @@ export { createVault } from "./vault.ts"
  */
 export type {
   Vault,
-  VaultOptions,
+  RepoOptions,
   VaultStats,
   LoadError,
-  VaultHooks,
+  RepoHooks,
   MutationType,
   MutationContext,
   BeforeMutationResult,
@@ -321,8 +321,8 @@ export type {
 
 // Testing utilities
 export {
-  createFakeVault,
-  createChaosFakeVault,
+  createFakeRepo,
+  createChaosFakeRepo,
   createChaosHooks,
   createSeededRandom,
   generateChaosReport,
@@ -347,10 +347,10 @@ export {
 } from "./testing/index.ts"
 
 export type {
-  FakeVault,
-  FakeVaultOptions,
-  ChaosFakeVault,
-  ChaosFakeVaultOptions,
+  FakeRepo,
+  FakeRepoOptions,
+  ChaosFakeRepo,
+  ChaosFakeRepoOptions,
   TransactionLogEntry,
   CorruptionType,
   ConsistencyIssue,

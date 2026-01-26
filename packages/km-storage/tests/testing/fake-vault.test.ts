@@ -1,11 +1,11 @@
 import { describe, it, expect } from "bun:test"
-import { createFakeVault } from "../../src/testing/fake-vault.ts"
+import { createFakeRepo } from "../../src/testing/fake-vault.ts"
 import type { KNode } from "@km/core"
 
 describe("FakeVault", () => {
   describe("creation", () => {
     it("creates empty vault with defaults", () => {
-      const vault = createFakeVault()
+      const vault = createFakeRepo()
 
       expect(vault.path).toBe("/fake/vault")
       expect(vault.mode).toBe("memory")
@@ -14,7 +14,7 @@ describe("FakeVault", () => {
     })
 
     it("accepts custom path", () => {
-      const vault = createFakeVault({ path: "/custom/path" })
+      const vault = createFakeRepo({ path: "/custom/path" })
       expect(vault.path).toBe("/custom/path")
     })
 
@@ -29,7 +29,7 @@ describe("FakeVault", () => {
         }),
       ]
 
-      const vault = createFakeVault({ nodes })
+      const vault = createFakeRepo({ nodes })
       expect(vault.stats.nodeCount).toBe(2)
       expect(vault.getNode("1")).not.toBeNull()
       expect(vault.getNode("2")).not.toBeNull()
@@ -38,7 +38,7 @@ describe("FakeVault", () => {
 
   describe("queries", () => {
     it("getNode returns node by id", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [createNode({ id: "abc", content: "Test" })],
       })
 
@@ -48,12 +48,12 @@ describe("FakeVault", () => {
     })
 
     it("getNode returns null for unknown id", () => {
-      const vault = createFakeVault()
+      const vault = createFakeRepo()
       expect(vault.getNode("unknown")).toBeNull()
     })
 
     it("getChildren returns children sorted by parent_idx", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [
           createNode({ id: "parent", parent_id: null }),
           createNode({ id: "child1", parent_id: "parent", parent_idx: 0 }),
@@ -67,7 +67,7 @@ describe("FakeVault", () => {
     })
 
     it("getSubtree returns node and all descendants", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [
           createNode({ id: "root", parent_id: null }),
           createNode({ id: "child1", parent_id: "root" }),
@@ -86,7 +86,7 @@ describe("FakeVault", () => {
     })
 
     it("getAncestors returns path from root to parent", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [
           createNode({ id: "root", parent_id: null }),
           createNode({ id: "child", parent_id: "root" }),
@@ -99,7 +99,7 @@ describe("FakeVault", () => {
     })
 
     it("getAllTasks returns only task nodes", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [
           createNode({ id: "1", type: "section" }),
           createNode({ id: "2", type: "task" }),
@@ -114,7 +114,7 @@ describe("FakeVault", () => {
     })
 
     it("getTasksByStatus filters by task_status", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [
           createNode({ id: "1", type: "task", task_status: "todo" }),
           createNode({ id: "2", type: "task", task_status: "done" }),
@@ -128,7 +128,7 @@ describe("FakeVault", () => {
     })
 
     it("search finds nodes by content", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [
           createNode({ id: "1", content: "Buy groceries" }),
           createNode({ id: "2", content: "Write report" }),
@@ -143,7 +143,7 @@ describe("FakeVault", () => {
 
   describe("mutations", () => {
     it("updateNode modifies node properties", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [createNode({ id: "1", content: "Original" })],
       })
 
@@ -154,14 +154,14 @@ describe("FakeVault", () => {
     })
 
     it("updateNode throws for unknown id", () => {
-      const vault = createFakeVault()
+      const vault = createFakeRepo()
       expect(() => vault.updateNode("unknown", {})).toThrow(
         "Node unknown not found",
       )
     })
 
     it("moveNode changes parent and position", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [
           createNode({ id: "parent1", parent_id: null }),
           createNode({ id: "parent2", parent_id: null }),
@@ -177,7 +177,7 @@ describe("FakeVault", () => {
     })
 
     it("deleteNode removes node", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 
@@ -186,7 +186,7 @@ describe("FakeVault", () => {
     })
 
     it("addNode creates new node with generated id", () => {
-      const vault = createFakeVault()
+      const vault = createFakeRepo()
 
       const id = vault.addNode(null, {
         type: "section",
@@ -201,7 +201,7 @@ describe("FakeVault", () => {
     })
 
     it("addNode sets task_status for tasks", () => {
-      const vault = createFakeVault()
+      const vault = createFakeRepo()
 
       const id = vault.addNode(null, { type: "task", content: "New task" })
 
@@ -212,12 +212,12 @@ describe("FakeVault", () => {
 
   describe("lifecycle", () => {
     it("watch throws (not supported)", () => {
-      const vault = createFakeVault()
+      const vault = createFakeRepo()
       expect(() => vault.watch()).toThrow("FakeVault does not support watching")
     })
 
     it("close prevents further operations", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 
@@ -227,7 +227,7 @@ describe("FakeVault", () => {
     })
 
     it("Symbol.dispose calls close", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 
@@ -237,7 +237,7 @@ describe("FakeVault", () => {
     })
 
     it("reset restores initial state", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [createNode({ id: "1", content: "Original" })],
       })
 
@@ -253,7 +253,7 @@ describe("FakeVault", () => {
 
   describe("test helpers", () => {
     it("getAllNodes returns all nodes", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         nodes: [createNode({ id: "1" }), createNode({ id: "2" })],
       })
 
@@ -261,7 +261,7 @@ describe("FakeVault", () => {
     })
 
     it("getAllLinks returns all links", () => {
-      const vault = createFakeVault({
+      const vault = createFakeRepo({
         links: [
           {
             source_id: "1",

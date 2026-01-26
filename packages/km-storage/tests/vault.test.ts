@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
 import { runGenerator } from "@km/core"
 import { createVault } from "../src/index.ts"
-import type { MutationContext, Vault, VaultHooks } from "../src/index.ts"
+import type { MutationContext, Vault, RepoHooks } from "../src/index.ts"
 import {
   withTestEnv,
   isMockMode,
@@ -18,10 +18,10 @@ import {
 
 describe("createVault", () => {
   test("creates vault in memory mode (no .km dir)", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       // Write test content FIRST
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
@@ -29,40 +29,40 @@ describe("createVault", () => {
 `,
       )
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       expect(vault.mode).toBe("memory")
-      expect(vault.path).toBe(vaultDir)
+      expect(vault.path).toBe(repoDir)
       expect(vault.stats.nodeCount).toBeGreaterThan(0)
     }))
 
   test("creates vault in disk mode (with .km dir)", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       // Write test content FIRST
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
-      mkdirSync(join(vaultDir, ".km"), { recursive: true })
+      mkdirSync(join(repoDir, ".km"), { recursive: true })
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       expect(vault.mode).toBe("disk")
-      expect(vault.path).toBe(vaultDir)
+      expect(vault.path).toBe(repoDir)
     }))
 
   test("getNode returns node by ID", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       const tasks = vault.getAllTasks()
       expect(tasks.length).toBeGreaterThan(0)
 
@@ -75,23 +75,23 @@ describe("createVault", () => {
     }))
 
   test("getChildren returns children of parent", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
       writeFileSync(
-        join(vaultDir, "notes.md"),
+        join(repoDir, "notes.md"),
         `# Notes
 
 Some content here.
 `,
       )
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       // Root children
       const rootChildren = vault.getChildren(null)
       expect(rootChildren.length).toBeGreaterThan(0)
@@ -102,9 +102,9 @@ Some content here.
     }))
 
   test("getAllTasks returns all tasks", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
@@ -113,7 +113,7 @@ Some content here.
 `,
       )
       writeFileSync(
-        join(vaultDir, "notes.md"),
+        join(repoDir, "notes.md"),
         `# Notes
 
 ## Section One
@@ -126,15 +126,15 @@ Some content here with [[tasks]] link.
 `,
       )
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       const tasks = vault.getAllTasks()
       expect(tasks.length).toBe(4) // 3 in tasks.md, 1 in notes.md
     }))
 
   test("getTasksByStatus filters by status", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
@@ -143,14 +143,14 @@ Some content here with [[tasks]] link.
 `,
       )
       writeFileSync(
-        join(vaultDir, "notes.md"),
+        join(repoDir, "notes.md"),
         `# Notes
 
 - [ ] Nested task
 `,
       )
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       const todo = vault.getTasksByStatus("todo")
       expect(todo.length).toBe(2)
 
@@ -162,32 +162,32 @@ Some content here with [[tasks]] link.
     }))
 
   test("search finds nodes by text", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       const results = vault.search("Open task")
       expect(results.length).toBeGreaterThan(0)
       expect(results.some((n) => n.content === "Open task")).toBe(true)
     }))
 
   test("updateNode modifies node", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       const tasks = vault.getAllTasks()
       const openTask = tasks.find((t) => t.content === "Open task")!
 
@@ -201,16 +201,16 @@ Some content here with [[tasks]] link.
     }))
 
   test("close prevents further operations", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
 
-      const vault = runGenerator(createVault(vaultDir))
+      const vault = runGenerator(createVault(repoDir))
       vault.close()
 
       expect(() => vault.getAllTasks()).toThrow("Vault is closed")
@@ -218,16 +218,16 @@ Some content here with [[tasks]] link.
     }))
 
   test("close is idempotent", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
 
-      const vault = runGenerator(createVault(vaultDir))
+      const vault = runGenerator(createVault(repoDir))
 
       vault.close()
       vault.close() // Should not throw
@@ -236,16 +236,16 @@ Some content here with [[tasks]] link.
     }))
 
   test("Symbol.dispose calls close", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
 
-      const vault = runGenerator(createVault(vaultDir))
+      const vault = runGenerator(createVault(repoDir))
 
       // Manually call dispose
       vault[Symbol.dispose]()
@@ -254,9 +254,9 @@ Some content here with [[tasks]] link.
     }))
 
   test("using syntax calls close automatically", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
@@ -265,7 +265,7 @@ Some content here with [[tasks]] link.
 `,
       )
       writeFileSync(
-        join(vaultDir, "notes.md"),
+        join(repoDir, "notes.md"),
         `# Notes
 
 - [ ] Nested task
@@ -275,7 +275,7 @@ Some content here with [[tasks]] link.
       let vaultRef: Vault
 
       {
-        using vault = runGenerator(createVault(vaultDir))
+        using vault = runGenerator(createVault(repoDir))
         vaultRef = vault
 
         // Should work inside scope
@@ -288,36 +288,36 @@ Some content here with [[tasks]] link.
     }))
 
   test("watch throws in memory mode", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       expect(vault.mode).toBe("memory")
       expect(() => vault.watch()).toThrow("Cannot watch a memory vault")
     }))
 
   test("watch returns Watcher in disk mode", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
 `,
       )
-      mkdirSync(join(vaultDir, ".km"), { recursive: true })
+      mkdirSync(join(repoDir, ".km"), { recursive: true })
 
       // Use mock watcher in mock mode, real watcher otherwise
       const mockWatcher = isMockMode() ? createMockWatcher() : undefined
 
       using vault = runGenerator(
-        createVault(vaultDir, {
+        createVault(repoDir, {
           watcherFactory: mockWatcher ? () => mockWatcher : undefined,
         }),
       )
@@ -329,9 +329,9 @@ Some content here with [[tasks]] link.
     }))
 
   test("yields progress info during loading", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
@@ -340,7 +340,7 @@ Some content here with [[tasks]] link.
 
       const progress: Array<string | { current?: number; total?: number }> = []
 
-      const gen = createVault(vaultDir)
+      const gen = createVault(repoDir)
       let result = gen.next()
       while (!result.done) {
         progress.push(result.value as any)
@@ -348,7 +348,7 @@ Some content here with [[tasks]] link.
       }
       const vault = result.value
 
-      using _vault = vault
+      using _repo = vault
       expect(progress.length).toBeGreaterThan(0)
       // New format: strings for labels, objects for progress
       // First yield should be declare object, then "Discovering files" string
@@ -356,9 +356,9 @@ Some content here with [[tasks]] link.
     }))
 
   test("loadErrors captures non-fatal parse errors", () =>
-    withTestEnv(async ({ vaultDir }) => {
+    withTestEnv(async ({ repoDir }) => {
       writeFileSync(
-        join(vaultDir, "tasks.md"),
+        join(repoDir, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
@@ -366,13 +366,13 @@ Some content here with [[tasks]] link.
       )
       // Create a file with invalid content that won't crash but may have warnings
       writeFileSync(
-        join(vaultDir, "weird.md"),
+        join(repoDir, "weird.md"),
         `# Weird
 - [ ] Task with [[broken link
 `,
       )
 
-      using vault = runGenerator(createVault(vaultDir))
+      using vault = runGenerator(createVault(repoDir))
       // loadErrors may or may not have content depending on parser behavior
       expect(vault.loadErrors).toBeDefined()
       expect(Array.isArray(vault.loadErrors)).toBe(true)
@@ -380,9 +380,9 @@ Some content here with [[tasks]] link.
 
   describe("hooks", () => {
     test("afterQuery is called for query operations", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, "tasks.md"),
+          join(repoDir, "tasks.md"),
           `# Tasks
 
 - [ ] Open task
@@ -390,13 +390,13 @@ Some content here with [[tasks]] link.
         )
 
         const queryCalls: Array<{ operation: string; result: unknown }> = []
-        const hooks: VaultHooks = {
+        const hooks: RepoHooks = {
           afterQuery: (operation, result) => {
             queryCalls.push({ operation, result })
           },
         }
 
-        using vault = runGenerator(createVault(vaultDir, { hooks }))
+        using vault = runGenerator(createVault(repoDir, { hooks }))
         vault.getAllTasks()
         vault.getNode(vault.getAllTasks()[0]!.id)
         vault.getChildren(null)
@@ -410,9 +410,9 @@ Some content here with [[tasks]] link.
       }))
 
     test("beforeMutation is called before mutations", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, "tasks.md"),
+          join(repoDir, "tasks.md"),
           `# Tasks
 
 - [ ] Open task
@@ -420,13 +420,13 @@ Some content here with [[tasks]] link.
         )
 
         const mutations: MutationContext[] = []
-        const hooks: VaultHooks = {
+        const hooks: RepoHooks = {
           beforeMutation: (ctx) => {
             mutations.push({ ...ctx })
           },
         }
 
-        using vault = runGenerator(createVault(vaultDir, { hooks }))
+        using vault = runGenerator(createVault(repoDir, { hooks }))
         const tasks = vault.getAllTasks()
         const task = tasks[0]!
 
@@ -439,9 +439,9 @@ Some content here with [[tasks]] link.
       }))
 
     test("afterMutation is called after mutations", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, "tasks.md"),
+          join(repoDir, "tasks.md"),
           `# Tasks
 
 - [ ] Open task
@@ -449,13 +449,13 @@ Some content here with [[tasks]] link.
         )
 
         const mutations: MutationContext[] = []
-        const hooks: VaultHooks = {
+        const hooks: RepoHooks = {
           afterMutation: (ctx) => {
             mutations.push({ ...ctx })
           },
         }
 
-        using vault = runGenerator(createVault(vaultDir, { hooks }))
+        using vault = runGenerator(createVault(repoDir, { hooks }))
         const tasks = vault.getAllTasks()
         const task = tasks[0]!
 
@@ -467,22 +467,22 @@ Some content here with [[tasks]] link.
       }))
 
     test("beforeMutation can cancel mutations", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, "tasks.md"),
+          join(repoDir, "tasks.md"),
           `# Tasks
 
 - [ ] Open task
 `,
         )
 
-        const hooks: VaultHooks = {
+        const hooks: RepoHooks = {
           beforeMutation: () => {
             return { cancel: true }
           },
         }
 
-        using vault = runGenerator(createVault(vaultDir, { hooks }))
+        using vault = runGenerator(createVault(repoDir, { hooks }))
         const tasks = vault.getAllTasks()
         const task = tasks[0]!
         const originalStatus = task.task_status
@@ -497,16 +497,16 @@ Some content here with [[tasks]] link.
       }))
 
     test("beforeMutation can modify context", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, "tasks.md"),
+          join(repoDir, "tasks.md"),
           `# Tasks
 
 - [ ] Open task
 `,
         )
 
-        const hooks: VaultHooks = {
+        const hooks: RepoHooks = {
           beforeMutation: (ctx) => {
             if (ctx.type === "update" && ctx.changes) {
               // Force all status updates to "wip"
@@ -520,7 +520,7 @@ Some content here with [[tasks]] link.
           },
         }
 
-        using vault = runGenerator(createVault(vaultDir, { hooks }))
+        using vault = runGenerator(createVault(repoDir, { hooks }))
         const tasks = vault.getAllTasks()
         const task = tasks[0]!
 
@@ -532,9 +532,9 @@ Some content here with [[tasks]] link.
       }))
 
     test("onClose is called when vault is closed", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, "tasks.md"),
+          join(repoDir, "tasks.md"),
           `# Tasks
 
 - [ ] Open task
@@ -542,13 +542,13 @@ Some content here with [[tasks]] link.
         )
 
         let closeCalled = false
-        const hooks: VaultHooks = {
+        const hooks: RepoHooks = {
           onClose: () => {
             closeCalled = true
           },
         }
 
-        const vault = runGenerator(createVault(vaultDir, { hooks }))
+        const vault = runGenerator(createVault(repoDir, { hooks }))
 
         expect(closeCalled).toBe(false)
         vault.close()
@@ -556,9 +556,9 @@ Some content here with [[tasks]] link.
       }))
 
     test("onClose is called only once", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, "tasks.md"),
+          join(repoDir, "tasks.md"),
           `# Tasks
 
 - [ ] Open task
@@ -566,13 +566,13 @@ Some content here with [[tasks]] link.
         )
 
         let closeCount = 0
-        const hooks: VaultHooks = {
+        const hooks: RepoHooks = {
           onClose: () => {
             closeCount++
           },
         }
 
-        const vault = runGenerator(createVault(vaultDir, { hooks }))
+        const vault = runGenerator(createVault(repoDir, { hooks }))
 
         vault.close()
         vault.close()
@@ -582,9 +582,9 @@ Some content here with [[tasks]] link.
       }))
 
     test("addNode triggers mutation hooks", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, "tasks.md"),
+          join(repoDir, "tasks.md"),
           `# Tasks
 
 - [ ] Open task
@@ -592,7 +592,7 @@ Some content here with [[tasks]] link.
         )
 
         const mutations: MutationContext[] = []
-        const hooks: VaultHooks = {
+        const hooks: RepoHooks = {
           beforeMutation: (ctx) => {
             mutations.push({ ...ctx })
           },
@@ -601,7 +601,7 @@ Some content here with [[tasks]] link.
           },
         }
 
-        using vault = runGenerator(createVault(vaultDir, { hooks }))
+        using vault = runGenerator(createVault(repoDir, { hooks }))
         const rootChildren = vault.getChildren(null)
         const fileNode = rootChildren[0]!
 
@@ -616,9 +616,9 @@ Some content here with [[tasks]] link.
       }))
 
     test("deleteNode triggers mutation hooks", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, "tasks.md"),
+          join(repoDir, "tasks.md"),
           `# Tasks
 
 - [ ] Open task
@@ -626,7 +626,7 @@ Some content here with [[tasks]] link.
         )
 
         const mutations: MutationContext[] = []
-        const hooks: VaultHooks = {
+        const hooks: RepoHooks = {
           beforeMutation: (ctx) => {
             mutations.push({ ...ctx })
           },
@@ -635,7 +635,7 @@ Some content here with [[tasks]] link.
           },
         }
 
-        using vault = runGenerator(createVault(vaultDir, { hooks }))
+        using vault = runGenerator(createVault(repoDir, { hooks }))
         const tasks = vault.getAllTasks()
         const task = tasks[0]!
 

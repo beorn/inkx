@@ -7,7 +7,7 @@
  * Event categories:
  * - User events: parse-error, sync-error, validation-warning → UI feedback
  * - Debug events: command-executed, action-handled → debug() log
- * - Metric events: vault-loaded, file-parsed → performance monitoring
+ * - Metric events: repo-loaded, file-parsed → performance monitoring
  */
 
 import { createNanoEvents } from "nanoevents"
@@ -31,7 +31,7 @@ export interface KmEvents {
   "action-handled": (e: { action: string; result: "ok" | "error" }) => void
 
   // Metric events (→ performance monitoring)
-  "vault-loaded": (e: { nodeCount: number; duration: number }) => void
+  "repo-loaded": (e: { nodeCount: number; duration: number }) => void
   "file-parsed": (e: { taskCount: number; duration: number }) => void
 }
 

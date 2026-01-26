@@ -1,11 +1,11 @@
 import { describe, it, expect } from "bun:test"
-import { createChaosFakeVault } from "../../src/testing/chaos-fake-vault.ts"
+import { createChaosFakeRepo } from "../../src/testing/chaos-fake-vault.ts"
 import type { KNode } from "@km/core"
 
 describe("ChaosFakeVault", () => {
   describe("transaction logging", () => {
     it("logs addNode operations", () => {
-      const vault = createChaosFakeVault()
+      const vault = createChaosFakeRepo()
 
       vault.addNode(null, { type: "section", content: "Test" })
 
@@ -15,7 +15,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("logs updateNode operations", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 
@@ -28,7 +28,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("logs deleteNode operations", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 
@@ -40,7 +40,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("logs moveNode operations", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [
           createNode({ id: "parent", parent_id: null }),
           createNode({ id: "child", parent_id: "parent" }),
@@ -55,7 +55,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("can disable logging", () => {
-      const vault = createChaosFakeVault({ logTransactions: false })
+      const vault = createChaosFakeRepo({ logTransactions: false })
 
       vault.addNode(null, { type: "section", content: "Test" })
 
@@ -63,7 +63,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("clearTransactionLog clears the log", () => {
-      const vault = createChaosFakeVault()
+      const vault = createChaosFakeRepo()
       vault.addNode(null, { type: "section", content: "Test" })
 
       vault.clearTransactionLog()
@@ -74,7 +74,7 @@ describe("ChaosFakeVault", () => {
 
   describe("orphan detection", () => {
     it("detects nodes with non-existent parents", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [
           createNode({ id: "1", parent_id: null }),
           createNode({ id: "2", parent_id: "nonexistent" }),
@@ -88,7 +88,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("injectOrphan creates an orphaned node", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1", parent_id: null })],
       })
 
@@ -114,7 +114,7 @@ describe("ChaosFakeVault", () => {
 
   describe("duplicate detection", () => {
     it("tracks duplicate IDs when injected", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1", parent_id: null })],
       })
 
@@ -125,7 +125,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("returns original node when injecting duplicate", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1", content: "Original" })],
       })
 
@@ -140,7 +140,7 @@ describe("ChaosFakeVault", () => {
 
   describe("circular reference detection", () => {
     it("detects circular parent chains", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [
           createNode({ id: "a", parent_id: null }),
           createNode({ id: "b", parent_id: "a" }),
@@ -156,7 +156,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("simulateCorruption with circular_parent makes node its own parent", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1", parent_id: null })],
       })
 
@@ -169,7 +169,7 @@ describe("ChaosFakeVault", () => {
 
   describe("consistency validation", () => {
     it("finds missing parent issues", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1", parent_id: "missing" })],
       })
 
@@ -179,7 +179,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("finds duplicate position issues", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [
           createNode({ id: "parent", parent_id: null }),
           createNode({ id: "a", parent_id: "parent", parent_idx: 0 }),
@@ -193,7 +193,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("returns empty for consistent vault", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [
           createNode({ id: "parent", parent_id: null, content: "Parent" }),
           createNode({
@@ -213,7 +213,7 @@ describe("ChaosFakeVault", () => {
 
   describe("corruption simulation", () => {
     it("simulatePartialWrite removes specified fields", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1", content: "Content", title: "Title" })],
       })
 
@@ -224,7 +224,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("simulateCorruption with missing_parent sets invalid parent", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1", parent_id: null })],
       })
 
@@ -235,7 +235,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("simulateCorruption with stale_hash creates mismatched hash", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1", content: "Original" })],
       })
 
@@ -247,7 +247,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("simulateCorruption with invalid_position sets negative index", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1", parent_idx: 0 })],
       })
 
@@ -260,7 +260,7 @@ describe("ChaosFakeVault", () => {
 
   describe("reset", () => {
     it("clears transaction log on reset", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 
@@ -273,7 +273,7 @@ describe("ChaosFakeVault", () => {
     })
 
     it("resets duplicate tracking on reset", () => {
-      const vault = createChaosFakeVault({
+      const vault = createChaosFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 

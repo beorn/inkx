@@ -7,7 +7,7 @@
 
 import createDebug from "debug"
 import { Command } from "commander"
-import { setDebugVaultRoot } from "../debug-log.ts"
+import { setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 
 const debug = createDebug("km:cli:view")
@@ -58,17 +58,17 @@ export const viewCommand = new Command("view")
 
       createRepo: function* () {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees sequential execution
-        const vaultRoot = storageModule!.resolvePathArg(
+        const repoRoot = storageModule!.resolvePathArg(
           root,
           getRootPath(),
-        ).vaultRoot
+        ).repoRoot
         // Set vault root for debug path formatting
-        setDebugVaultRoot(vaultRoot)
+        setDebugRepoRoot(repoRoot)
         // km-fast-md.7: Use discoverOnly for interactive mode (instant render)
         // For non-interactive mode, we need full parsing before rendering
         const interactive = options.interactive !== false
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        createdRepo = yield* storageModule!.createRepo(vaultRoot, {
+        createdRepo = yield* storageModule!.createRepo(repoRoot, {
           loadFiles: true,
           discoverOnly: interactive,
         })
@@ -94,7 +94,7 @@ export const viewCommand = new Command("view")
           rootNodeId,
         )
         if (state) {
-          state.rootPath = resolved.vaultRoot
+          state.rootPath = resolved.repoRoot
         }
         return { state, resolved }
       },
@@ -115,7 +115,7 @@ export const viewCommand = new Command("view")
 
     // Watch options: CLI flag > config > default (true)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
-    const tuiConfig = storageModule!.getTuiConfig(resolved.vaultRoot)
+    const tuiConfig = storageModule!.getTuiConfig(resolved.repoRoot)
     const watchEnabled = options.watch !== false ? tuiConfig.watch : false
     const watchWorker = tuiConfig.watchWorker
     debug("watch config", {

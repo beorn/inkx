@@ -35,14 +35,14 @@ const ORIGINAL_FILES: Record<string, string> = {
 /**
  * Create the test vault with all file types
  */
-function createTestVault(vaultDir: string): void {
+function createTestVault(repoDir: string): void {
   // Create directories
-  mkdirSync(join(vaultDir, "src"), { recursive: true })
-  mkdirSync(join(vaultDir, "notes"), { recursive: true })
+  mkdirSync(join(repoDir, "src"), { recursive: true })
+  mkdirSync(join(repoDir, "notes"), { recursive: true })
 
   // Write all files
   for (const [relativePath, content] of Object.entries(ORIGINAL_FILES)) {
-    const fullPath = join(vaultDir, relativePath)
+    const fullPath = join(repoDir, relativePath)
     writeFileSync(fullPath, content)
   }
 }
@@ -50,7 +50,7 @@ function createTestVault(vaultDir: string): void {
 /**
  * Verify that all non-markdown files are unchanged
  */
-function verifyNonMdFilesUnchanged(vaultDir: string): {
+function verifyNonMdFilesUnchanged(repoDir: string): {
   passed: boolean
   errors: string[]
 } {
@@ -62,7 +62,7 @@ function verifyNonMdFilesUnchanged(vaultDir: string): {
     // Skip markdown files - they're expected to potentially change
     if (relativePath.endsWith(".md")) continue
 
-    const fullPath = join(vaultDir, relativePath)
+    const fullPath = join(repoDir, relativePath)
 
     if (!existsSync(fullPath)) {
       errors.push(`File deleted: ${relativePath}`)
@@ -85,11 +85,11 @@ function verifyNonMdFilesUnchanged(vaultDir: string): {
 describe("E2E Sync Safety", () => {
   describe("syncFromFs", () => {
     test("should import markdown files into database", () =>
-      withTestEnv(async ({ vaultDir, data }) => {
-        createTestVault(vaultDir)
+      withTestEnv(async ({ repoDir, data }) => {
+        createTestVault(repoDir)
 
         const manager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -112,11 +112,11 @@ describe("E2E Sync Safety", () => {
       }))
 
     test("should not modify non-markdown files during import", () =>
-      withTestEnv(async ({ vaultDir, data }) => {
-        createTestVault(vaultDir)
+      withTestEnv(async ({ repoDir, data }) => {
+        createTestVault(repoDir)
 
         const manager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -127,7 +127,7 @@ describe("E2E Sync Safety", () => {
         await manager.syncFromFs()
 
         // Verify all non-markdown files are unchanged
-        const verification = verifyNonMdFilesUnchanged(vaultDir)
+        const verification = verifyNonMdFilesUnchanged(repoDir)
         expect(verification.errors).toEqual([])
         expect(verification.passed).toBe(true)
       }))
@@ -135,12 +135,12 @@ describe("E2E Sync Safety", () => {
 
   describe("syncToFs", () => {
     test("should only write .md files to filesystem", () =>
-      withTestEnv(async ({ vaultDir, data }) => {
-        createTestVault(vaultDir)
+      withTestEnv(async ({ repoDir, data }) => {
+        createTestVault(repoDir)
 
         // First import from filesystem
         const manager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -157,7 +157,7 @@ describe("E2E Sync Safety", () => {
         expect(result.written).toBe(2)
 
         // CRITICAL: Verify non-markdown files are unchanged
-        const verification = verifyNonMdFilesUnchanged(vaultDir)
+        const verification = verifyNonMdFilesUnchanged(repoDir)
         if (!verification.passed) {
           console.error("Non-markdown files were corrupted:")
           for (const error of verification.errors) {
@@ -169,11 +169,11 @@ describe("E2E Sync Safety", () => {
       }))
 
     test("should never write source code files", () =>
-      withTestEnv(async ({ vaultDir, data }) => {
-        createTestVault(vaultDir)
+      withTestEnv(async ({ repoDir, data }) => {
+        createTestVault(repoDir)
 
         const manager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -185,14 +185,14 @@ describe("E2E Sync Safety", () => {
         await manager.syncToFs()
 
         // Read the source files - they should be UNCHANGED
-        const indexTs = readFileSync(join(vaultDir, "src/index.ts"), "utf-8")
+        const indexTs = readFileSync(join(repoDir, "src/index.ts"), "utf-8")
         expect(indexTs).toBe(ORIGINAL_FILES["src/index.ts"]!)
 
-        const utilsTs = readFileSync(join(vaultDir, "src/utils.ts"), "utf-8")
+        const utilsTs = readFileSync(join(repoDir, "src/utils.ts"), "utf-8")
         expect(utilsTs).toBe(ORIGINAL_FILES["src/utils.ts"]!)
 
         const configJson = readFileSync(
-          join(vaultDir, "src/config.json"),
+          join(repoDir, "src/config.json"),
           "utf-8",
         )
         expect(configJson).toBe(ORIGINAL_FILES["src/config.json"]!)
@@ -201,11 +201,11 @@ describe("E2E Sync Safety", () => {
 
   describe("round-trip safety", () => {
     test("should preserve all non-markdown files through multiple sync cycles", () =>
-      withTestEnv(async ({ vaultDir, data }) => {
-        createTestVault(vaultDir)
+      withTestEnv(async ({ repoDir, data }) => {
+        createTestVault(repoDir)
 
         const manager = new SyncManager({
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -220,7 +220,7 @@ describe("E2E Sync Safety", () => {
         }
 
         // All non-markdown files should be unchanged
-        const verification = verifyNonMdFilesUnchanged(vaultDir)
+        const verification = verifyNonMdFilesUnchanged(repoDir)
         expect(verification.errors).toEqual([])
         expect(verification.passed).toBe(true)
       }))

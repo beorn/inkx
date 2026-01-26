@@ -33,10 +33,10 @@ function setupSyncManager(
 describe("DB → File Sync Tests", () => {
   describe("Task Status Updates", () => {
     test("marking task as done updates file", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -47,7 +47,7 @@ describe("DB → File Sync Tests", () => {
         setupSyncManager(stack, syncManager)
 
         // Create test file
-        const testFile = join(vaultDir, "tasks.md")
+        const testFile = join(repoDir, "tasks.md")
         writeFileSync(testFile, "# Tasks\n\n- [ ] Test task\n")
 
         // Initial sync
@@ -72,10 +72,10 @@ describe("DB → File Sync Tests", () => {
       }))
 
     test("marking task as todo updates file", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -86,7 +86,7 @@ describe("DB → File Sync Tests", () => {
         setupSyncManager(stack, syncManager)
 
         // Create test file with completed task
-        const testFile = join(vaultDir, "tasks.md")
+        const testFile = join(repoDir, "tasks.md")
         writeFileSync(testFile, "# Tasks\n\n- [x] Completed task\n")
 
         // Initial sync
@@ -113,10 +113,10 @@ describe("DB → File Sync Tests", () => {
 
   describe("Task Content Updates", () => {
     test("editing task content updates file", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -127,7 +127,7 @@ describe("DB → File Sync Tests", () => {
         setupSyncManager(stack, syncManager)
 
         // Create test file
-        const testFile = join(vaultDir, "tasks.md")
+        const testFile = join(repoDir, "tasks.md")
         writeFileSync(testFile, "# Tasks\n\n- [ ] Original text\n")
 
         // Initial sync
@@ -153,10 +153,10 @@ describe("DB → File Sync Tests", () => {
 
   describe("Multiple Rapid Updates", () => {
     test("rapid updates coalesce correctly", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -167,7 +167,7 @@ describe("DB → File Sync Tests", () => {
         setupSyncManager(stack, syncManager)
 
         // Create test file
-        const testFile = join(vaultDir, "tasks.md")
+        const testFile = join(repoDir, "tasks.md")
         writeFileSync(testFile, "# Tasks\n\n- [ ] Task to update\n")
 
         // Initial sync
@@ -193,10 +193,10 @@ describe("DB → File Sync Tests", () => {
       }))
 
     test("alternating status updates result in final state", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -207,7 +207,7 @@ describe("DB → File Sync Tests", () => {
         setupSyncManager(stack, syncManager)
 
         // Create test file
-        const testFile = join(vaultDir, "tasks.md")
+        const testFile = join(repoDir, "tasks.md")
         writeFileSync(testFile, "# Tasks\n\n- [ ] Toggle task\n")
 
         // Initial sync
@@ -236,10 +236,10 @@ describe("DB → File Sync Tests", () => {
 
   describe("Multiple Files", () => {
     test("updates to different files are independent", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -250,8 +250,8 @@ describe("DB → File Sync Tests", () => {
         setupSyncManager(stack, syncManager)
 
         // Create test files
-        const file1 = join(vaultDir, "file1.md")
-        const file2 = join(vaultDir, "file2.md")
+        const file1 = join(repoDir, "file1.md")
+        const file2 = join(repoDir, "file2.md")
         writeFileSync(file1, "# File 1\n\n- [ ] Task 1\n")
         writeFileSync(file2, "# File 2\n\n- [ ] Task 2\n")
 
@@ -288,10 +288,10 @@ describe("DB → File Sync Tests", () => {
 
   describe("Error Handling", () => {
     test("update to non-existent node is handled gracefully", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -302,7 +302,7 @@ describe("DB → File Sync Tests", () => {
         setupSyncManager(stack, syncManager)
 
         // Create test file
-        const testFile = join(vaultDir, "tasks.md")
+        const testFile = join(repoDir, "tasks.md")
         writeFileSync(testFile, "# Tasks\n\n- [ ] Task\n")
 
         // Initial sync
@@ -322,10 +322,10 @@ describe("DB → File Sync Tests", () => {
 
   describe("Data Preservation", () => {
     test("non-task content is preserved during task update", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ repoDir }) => {
         const syncManager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          vaultPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -336,7 +336,7 @@ describe("DB → File Sync Tests", () => {
         setupSyncManager(stack, syncManager)
 
         // Create test file with mixed content
-        const testFile = join(vaultDir, "mixed.md")
+        const testFile = join(repoDir, "mixed.md")
         writeFileSync(
           testFile,
           `# Project

@@ -12,7 +12,7 @@
  */
 
 import { describe, test, expect, afterEach } from "bun:test"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { GENERIC_BOARD } from "./fixtures/generic-board-fixture.ts"
 
@@ -27,7 +27,7 @@ describe("TUI View Tests", () => {
   })
 
   test("should display cards view by default", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
     board = await createBoardTest(vault)
     const screenshot = board.screenshot()
 
@@ -37,7 +37,7 @@ describe("TUI View Tests", () => {
   })
 
   test("should switch views with 'v' key", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
     board = await createBoardTest(vault)
 
     // Initial view
@@ -69,7 +69,7 @@ describe("TUI View Tests", () => {
   // The visual rendering tests above cover the core board rendering functionality.
 
   test("should navigate with arrow keys", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
     board = await createBoardTest(vault)
 
     // Navigate right
@@ -99,7 +99,7 @@ describe("TUI View Tests", () => {
   })
 
   test("should navigate with vim keys", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
     board = await createBoardTest(vault)
 
     // Navigate with h/j/k/l
@@ -113,7 +113,7 @@ describe("TUI View Tests", () => {
   })
 
   test("should expand/collapse with Enter", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
+    const vault = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
     board = await createBoardTest(vault)
 
     // Navigate to an item

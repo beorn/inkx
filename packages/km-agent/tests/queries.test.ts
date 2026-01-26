@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect } from "bun:test"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import {
   queryAgents,
   getAgent,
@@ -113,7 +113,7 @@ describe("nodeToAgent", () => {
 
 describe("queryAgents", () => {
   test("returns all agents when no filter", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         createAgent("Agent One", {
           short_id: "0001",
@@ -149,7 +149,7 @@ describe("queryAgents", () => {
   })
 
   test("filters by status", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         createAgent("Agent One", {
           short_id: "0001",
@@ -172,7 +172,7 @@ describe("queryAgents", () => {
   })
 
   test("filters by status array", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         createAgent("Agent One", { status: "idle" }),
         createAgent("Agent Two", { status: "running" }),
@@ -188,7 +188,7 @@ describe("queryAgents", () => {
   })
 
   test("filters by harness", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         createAgent("Agent One", { harness: "general" }),
         createAgent("Agent Two", { harness: "code-reviewer" }),
@@ -205,7 +205,7 @@ describe("queryAgents", () => {
   })
 
   test("filters by model", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         createAgent("Agent One", { model: "claude-sonnet-4" }),
         createAgent("Agent Two", { model: "claude-opus-4" }),
@@ -222,7 +222,7 @@ describe("queryAgents", () => {
   })
 
   test("combines multiple filters", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         createAgent("Agent One", {
           model: "claude-sonnet-4",
@@ -250,7 +250,7 @@ describe("queryAgents", () => {
 
 describe("getAgent", () => {
   test("finds agent by short ID", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           ...createAgent("Test Agent", {
@@ -271,7 +271,7 @@ describe("getAgent", () => {
   })
 
   test("finds agent by full ID", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           ...createAgent("Test Agent", { short_id: "test" }),
@@ -287,7 +287,7 @@ describe("getAgent", () => {
   })
 
   test("finds agent by partial ID (without agent- prefix)", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         {
           ...createAgent("Test Agent", { short_id: "test" }),
@@ -303,7 +303,7 @@ describe("getAgent", () => {
   })
 
   test("returns null for non-existent agent", () => {
-    const vault = createFakeVault({ nodes: [] })
+    const vault = createFakeRepo({ nodes: [] })
 
     const agent = getAgent(vault, "nonexistent")
 
@@ -313,7 +313,7 @@ describe("getAgent", () => {
 
 describe("getActiveAgents", () => {
   test("returns only running agents", () => {
-    const vault = createFakeVault({
+    const vault = createFakeRepo({
       nodes: [
         createAgent("Idle Agent", { status: "idle" }),
         createAgent("Running Agent", { status: "running" }, 1),

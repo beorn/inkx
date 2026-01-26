@@ -61,7 +61,7 @@ import {
   type RenderResult,
 } from "inkx/testing"
 import { expect } from "bun:test"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 
 import { BoardCore, Board } from "../../src/views/Board.tsx"
@@ -143,7 +143,7 @@ export function standardBoard() {
   )
 
   return {
-    vault: createFakeVault({ nodes }),
+    vault: createFakeRepo({ nodes }),
     root: "board",
   }
 }
@@ -164,7 +164,7 @@ export function testEnv(
   options?: { columns?: number; rows?: number },
 ) {
   const nodes = treeBuilder()
-  const vault = createFakeVault({ nodes })
+  const vault = createFakeRepo({ nodes })
   const rootNode = nodes[0]
   if (!rootNode) {
     throw new Error("Tree builder must return at least one node")
@@ -831,7 +831,7 @@ export function renderBoard(
   const { columns = 80, rows = 24 } = options
 
   // Create a fake vault for static rendering tests
-  const vault = createFakeVault()
+  const vault = createFakeRepo()
 
   const render = createTestRenderer({ columns, rows })
   const boardCoreElement = React.createElement(BoardCore, {

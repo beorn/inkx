@@ -23,7 +23,7 @@ import {
 import { join, dirname, basename } from "path"
 import type { KNode, TaskStatus } from "@km/core"
 import {
-  loadVault,
+  loadRepo,
   type LoadOptions,
   type LoadResult,
   type DeferredFile,
@@ -270,7 +270,7 @@ export interface BeforeMutationResult {
 }
 
 /** Vault lifecycle hooks for extending behavior */
-export interface VaultHooks {
+export interface RepoHooks {
   /**
    * Called before each mutation (update, move, delete, add).
    * Return { cancel: true } to prevent the mutation.
@@ -296,13 +296,13 @@ export interface VaultHooks {
 }
 
 /** Options for createVault */
-export interface VaultOptions extends LoadOptions {
+export interface RepoOptions extends LoadOptions {
   /** Dependency injection for testing */
   inject?: {
     database?: Database
   }
   /** Lifecycle hooks for extending vault behavior */
-  hooks?: VaultHooks
+  hooks?: RepoHooks
   /** Factory for creating watcher (for test injection) */
   watcherFactory?: (vaultPath: string) => Watcher
 }
@@ -331,12 +331,12 @@ export interface VaultOptions extends LoadOptions {
  */
 export function* createVault(
   rootPath?: string,
-  options?: VaultOptions,
+  options?: RepoOptions,
 ): Generator<StepYield, Vault, unknown> {
   debug("createVault rootPath=%s options=%o", rootPath, options)
 
   // Load vault using existing infrastructure
-  const result: LoadResult = yield* loadVault(rootPath, options)
+  const result: LoadResult = yield* loadRepo(rootPath, options)
 
   // Capture state from globals (will be encapsulated in the vault object)
   const path = rootPath ?? process.cwd()

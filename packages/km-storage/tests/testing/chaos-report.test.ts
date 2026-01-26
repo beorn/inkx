@@ -12,7 +12,7 @@ import {
   createVault,
   createChaosHooks,
   createSeededRandom,
-  createChaosFakeVault,
+  createChaosFakeRepo,
   generateChaosReport,
   formatChaosReport,
   formatChaosReportJson,
@@ -54,7 +54,7 @@ describe("generateChaosReport", () => {
   })
 
   test("generates report with ChaosFakeVault", () => {
-    const fakeVault = createChaosFakeVault({
+    const fakeRepo = createChaosFakeRepo({
       nodes: [
         {
           id: "1",
@@ -78,7 +78,7 @@ describe("generateChaosReport", () => {
 
     const report = generateChaosReport({
       scenario,
-      fakeVault,
+      fakeRepo,
       passed: true,
     })
 
@@ -88,7 +88,7 @@ describe("generateChaosReport", () => {
   })
 
   test("detects orphaned nodes in ChaosFakeVault", () => {
-    const fakeVault = createChaosFakeVault({
+    const fakeRepo = createChaosFakeRepo({
       nodes: [
         {
           id: "1",
@@ -119,7 +119,7 @@ describe("generateChaosReport", () => {
 
     const report = generateChaosReport({
       scenario: { name: "orphan-test", seed: 1 },
-      fakeVault,
+      fakeRepo,
       passed: false,
       invariantsViolated: ["orphaned nodes found"],
     })
@@ -323,12 +323,12 @@ describe("formatChaosReportMarkdown", () => {
 // Tests using createVault must be serial - createVault manages its own database
 // via loadVault which uses global singletons. Cannot use withTestEnv.
 const TEST_DIR = "/tmp/kmtest-chaos-report"
-const VAULT_DIR = join(TEST_DIR, "vault")
+const REPO_DIR = join(TEST_DIR, "vault")
 
 describe.serial("integration with real vault", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
   })
 
   afterEach(() => {
@@ -338,7 +338,7 @@ describe.serial("integration with real vault", () => {
 
   test("generates report from real vault chaos test", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -352,7 +352,7 @@ describe.serial("integration with real vault", () => {
       random,
     })
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using vault = runGenerator(createVault(REPO_DIR, { hooks }))
 
     // Perform some mutations that may be dropped
     const tasks = vault.getAllTasks()

@@ -114,7 +114,7 @@ export function createMouseHandler_(
  * change stats reference.
  */
 export function createRefreshHandler(
-  _vault: Vault,
+  _repo: Vault,
   _rootIdRef: React.RefObject<string | null>,
   _dispatchBoard: Dispatch<BoardAction>,
 ): () => void {

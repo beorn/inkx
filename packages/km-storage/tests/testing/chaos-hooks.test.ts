@@ -21,12 +21,12 @@ import {
 import type { ChaosEvent, ChaosHooks } from "../../src/index.ts"
 
 const TEST_DIR = "/tmp/kmtest-chaos-hooks"
-const VAULT_DIR = join(TEST_DIR, "vault")
+const REPO_DIR = join(TEST_DIR, "vault")
 
 describe.serial("createChaosHooks", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
   })
 
   afterEach(() => {
@@ -36,7 +36,7 @@ describe.serial("createChaosHooks", () => {
 
   test("creates hooks with default config (no chaos)", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -46,7 +46,7 @@ describe.serial("createChaosHooks", () => {
     )
 
     const hooks = createChaosHooks()
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using vault = runGenerator(createVault(REPO_DIR, { hooks }))
 
     const tasks = vault.getAllTasks()
     expect(tasks.length).toBe(3)
@@ -63,7 +63,7 @@ describe.serial("createChaosHooks", () => {
 
   test("drops mutations at configured rate", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -82,7 +82,7 @@ describe.serial("createChaosHooks", () => {
       onChaosEvent: (e) => events.push(e),
     })
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using vault = runGenerator(createVault(REPO_DIR, { hooks }))
 
     const tasks = vault.getAllTasks()
     expect(tasks.length).toBe(3)
@@ -104,7 +104,7 @@ describe.serial("createChaosHooks", () => {
 
   test("corrupts mutations at configured rate", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -123,7 +123,7 @@ describe.serial("createChaosHooks", () => {
       onChaosEvent: (e) => events.push(e),
     })
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using vault = runGenerator(createVault(REPO_DIR, { hooks }))
 
     const tasks = vault.getAllTasks()
     const task = tasks[0]!
@@ -138,7 +138,7 @@ describe.serial("createChaosHooks", () => {
 
   test("supports type-specific drop rates", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -155,7 +155,7 @@ describe.serial("createChaosHooks", () => {
       },
     })
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using vault = runGenerator(createVault(REPO_DIR, { hooks }))
 
     const tasks = vault.getAllTasks()
 
@@ -176,7 +176,7 @@ describe.serial("createChaosHooks", () => {
 
   test("can be disabled and enabled", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -189,7 +189,7 @@ describe.serial("createChaosHooks", () => {
       mutationDropRate: 1.0, // Would drop all mutations
     }) as ChaosHooks
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using vault = runGenerator(createVault(REPO_DIR, { hooks }))
 
     const tasks = vault.getAllTasks()
 
@@ -220,7 +220,7 @@ describe.serial("createChaosHooks", () => {
 
   test("tracks statistics", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -236,7 +236,7 @@ describe.serial("createChaosHooks", () => {
       random,
     }) as ChaosHooks
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using vault = runGenerator(createVault(REPO_DIR, { hooks }))
 
     const tasks = vault.getAllTasks()
 
@@ -256,7 +256,7 @@ describe.serial("createChaosHooks", () => {
 
   test("clearChaosEvents resets event log", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -269,7 +269,7 @@ describe.serial("createChaosHooks", () => {
       mutationDropRate: 1.0,
     }) as ChaosHooks
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using vault = runGenerator(createVault(REPO_DIR, { hooks }))
 
     const tasks = vault.getAllTasks()
 
@@ -287,7 +287,7 @@ describe.serial("createChaosHooks", () => {
 
   test("seeded random produces deterministic results", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -307,7 +307,7 @@ describe.serial("createChaosHooks", () => {
         random,
       })
 
-      using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+      using vault = runGenerator(createVault(REPO_DIR, { hooks }))
 
       const tasks = vault.getAllTasks()
       for (const task of tasks) {

@@ -24,7 +24,7 @@ import { runWithDb } from "../src/db-instance.ts"
 
 interface TestEnv {
   store: MemoryStore
-  vaultDir: string
+  repoDir: string
 }
 
 /**
@@ -33,24 +33,24 @@ interface TestEnv {
  * Test runs within runWithDb context using the store's database.
  */
 function withMemoryStore<T>(
-  setup: (vaultDir: string) => void,
+  setup: (repoDir: string) => void,
   fn: (env: TestEnv) => T,
 ): T {
   const testId = ulid()
   const testDir = join("/tmp", `kmtest-${testId}`)
-  const vaultDir = join(testDir, "vault")
+  const repoDir = join(testDir, "vault")
 
-  mkdirSync(vaultDir, { recursive: true })
+  mkdirSync(repoDir, { recursive: true })
 
   // Write files first
-  setup(vaultDir)
+  setup(repoDir)
 
   // Create store (will parse the files)
-  using store = new MemoryStore(vaultDir)
+  using store = new MemoryStore(repoDir)
 
   try {
     // Run within ALS context using the store's database
-    return runWithDb(store.getDatabase(), () => fn({ store, vaultDir }))
+    return runWithDb(store.getDatabase(), () => fn({ store, repoDir }))
   } finally {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true })
@@ -62,9 +62,9 @@ describe("Database Rules", () => {
   describe("getNodesWithRules", () => {
     test("should find nodes with add= rules", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "board.md"),
+            join(repoDir, "board.md"),
             `# Board
 
 ## Open add="@issue status:todo"
@@ -86,9 +86,9 @@ describe("Database Rules", () => {
 
     test("should return empty array when no rules exist", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "simple.md"),
+            join(repoDir, "simple.md"),
             `# Simple
 
 ## Section 1
@@ -111,9 +111,9 @@ describe("Database Rules", () => {
   describe("getNodesWithRule", () => {
     test("should find nodes with specific rule type", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "mixed.md"),
+            join(repoDir, "mixed.md"),
             `# Mixed Rules
 
 ## Open add="@issue status:todo"
@@ -142,9 +142,9 @@ describe("Database Rules", () => {
   describe("evaluateNodeRules - add= rule", () => {
     test("should create embed children for matching nodes", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "issues.md"),
+            join(repoDir, "issues.md"),
             `# Issues
 
 - [ ] Fix bug @issue
@@ -154,7 +154,7 @@ describe("Database Rules", () => {
           )
 
           writeFileSync(
-            join(vaultDir, "board.md"),
+            join(repoDir, "board.md"),
             `# Board
 
 ## Open add="@issue status:todo"
@@ -181,9 +181,9 @@ describe("Database Rules", () => {
 
     test("should not create embeds for direct children", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "mixed.md"),
+            join(repoDir, "mixed.md"),
             `# Mixed
 
 ## Open add="@issue status:todo"
@@ -221,9 +221,9 @@ describe("Database Rules", () => {
   describe("evaluateAllRules", () => {
     test("should evaluate all rules in database", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "tasks.md"),
+            join(repoDir, "tasks.md"),
             `# Tasks
 
 - [ ] Task A @project
@@ -233,7 +233,7 @@ describe("Database Rules", () => {
           )
 
           writeFileSync(
-            join(vaultDir, "board.md"),
+            join(repoDir, "board.md"),
             `# Board
 
 ## Todo add="@project status:todo"
@@ -278,9 +278,9 @@ describe("Database Rules", () => {
   describe("getChildren with computed links", () => {
     test("should include embed children from add= rule", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "issues.md"),
+            join(repoDir, "issues.md"),
             `# Issues
 
 - [ ] Bug 1 @issue
@@ -289,7 +289,7 @@ describe("Database Rules", () => {
           )
 
           writeFileSync(
-            join(vaultDir, "board.md"),
+            join(repoDir, "board.md"),
             `# Board
 
 ## Open add="@issue status:todo"
@@ -316,9 +316,9 @@ describe("Database Rules", () => {
 
     test("should deduplicate direct children and linked children", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "board.md"),
+            join(repoDir, "board.md"),
             `# Board
 
 ## Open add="status:todo"
@@ -345,9 +345,9 @@ describe("Database Rules", () => {
   describe("incremental updates", () => {
     test("should update links when task status changes", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "tasks.md"),
+            join(repoDir, "tasks.md"),
             `# Tasks
 
 - [ ] Task A @tag
@@ -356,7 +356,7 @@ describe("Database Rules", () => {
           )
 
           writeFileSync(
-            join(vaultDir, "board.md"),
+            join(repoDir, "board.md"),
             `# Board
 
 ## Todo add="@tag status:todo"
@@ -410,9 +410,9 @@ describe("Database Rules", () => {
   describe("getChildCountsBatch with computed links", () => {
     test("should count linked children from query:add rules", () =>
       withMemoryStore(
-        (vaultDir) => {
+        (repoDir) => {
           writeFileSync(
-            join(vaultDir, "issues.md"),
+            join(repoDir, "issues.md"),
             `# Issues
 
 - [ ] Bug 1 @issue
@@ -422,7 +422,7 @@ describe("Database Rules", () => {
           )
 
           writeFileSync(
-            join(vaultDir, "board.md"),
+            join(repoDir, "board.md"),
             `# Board
 
 ## Open add="@issue status:todo"
