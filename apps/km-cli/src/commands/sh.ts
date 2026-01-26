@@ -16,10 +16,12 @@ import { createInterface } from "readline"
 import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs"
 import { homedir } from "os"
 import { join } from "path"
+import type { Database } from "bun:sqlite"
 import { getRootPath } from "../index.ts"
 import {
   createVault,
   runGenerator,
+  getDb,
   getChildren,
   resolveNode,
   resolvePathArg,
@@ -27,10 +29,10 @@ import {
 } from "@km/storage"
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
-// Bound version with store dependency
-const getNodeDisplayName = (
+// Bound version with store dependency (closure will be set after vault init)
+let getNodeDisplayName: (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
-) => getNodeDisplayNameBase(node, getChildren)
+) => ReturnType<typeof getNodeDisplayNameBase>
 import {
   createBoardState,
   runShell,
@@ -94,8 +96,8 @@ function getNodeName(node: KNode): string {
 /**
  * Convert KNode to TNode (recursive)
  */
-function kNodeToTNode(node: KNode, depth: number): TNode {
-  const children = getChildren(node.id)
+function kNodeToTNode(db: Database, node: KNode, depth: number): TNode {
+  const children = getChildren(db, node.id)
   return {
     // KNode base properties
     id: node.id,
@@ -120,7 +122,7 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
 
     // TNode tree properties
     children: children.map((child, idx) => {
-      const childNode = kNodeToTNode(child, depth + 1)
+      const childNode = kNodeToTNode(db, child, depth + 1)
       // Update parent reference for the child
       return {
         ...childNode,
@@ -138,22 +140,22 @@ function kNodeToTNode(node: KNode, depth: number): TNode {
 /**
  * Build tree nodes from root
  */
-function buildNodes(rootId: string | null): TNode[] {
+function buildNodes(db: Database, rootId: string | null): TNode[] {
   if (!rootId) {
-    const roots = getChildren(null)
+    const roots = getChildren(db, null)
     if (roots.length === 0) {
       return []
     }
-    return roots.map((node) => kNodeToTNode(node, 0))
+    return roots.map((node) => kNodeToTNode(db, node, 0))
   }
 
-  const node = resolveNode(rootId)
+  const node = resolveNode(db, rootId)
   if (!node) {
     return []
   }
 
-  const children = getChildren(node.id)
-  return children.map((child) => kNodeToTNode(child, 0))
+  const children = getChildren(db, node.id)
+  return children.map((child) => kNodeToTNode(db, child, 0))
 }
 
 /**
@@ -216,6 +218,7 @@ function getNodeAtCursor(state: BoardState): TNode | null {
  * Uses the vault's methods which handle filesystem writes synchronously
  */
 function createMutationHandler(
+  db: Database,
   vault: Vault,
   rootId: string | null,
   rootPath: string,
@@ -252,7 +255,7 @@ function createMutationHandler(
       }
 
       // Rebuild state from storage after mutation
-      const newNodes = buildNodes(rootId)
+      const newNodes = buildNodes(db, rootId)
       const newState = createBoardState(newNodes, rootId, rootPath)
 
       // Preserve cursor position if valid, otherwise reset
@@ -310,10 +313,16 @@ export const shCommand = new Command("sh")
     // Create vault domain object (auto-closes via `using`)
     using vault = runGenerator(createVault(resolved.vaultRoot))
 
+    // Get database instance (TODO: use vault.rawQuery() instead)
+    const db = getDb()
+
+    // Initialize bound helper functions
+    getNodeDisplayName = (node) => getNodeDisplayNameBase(node, (parentId) => getChildren(db, parentId))
+
     // Resolve the node reference if provided
     let resolvedNodeId: string | null = null
     if (resolved.nodeRef) {
-      const node = resolveNode(resolved.nodeRef)
+      const node = resolveNode(db, resolved.nodeRef)
       if (node) {
         resolvedNodeId = node.id
       } else if (resolved.wasExplicitPath) {
@@ -336,7 +345,7 @@ export const shCommand = new Command("sh")
       }
     }
 
-    const nodes = buildNodes(resolvedNodeId)
+    const nodes = buildNodes(db, resolvedNodeId)
 
     if (nodes.length === 0) {
       if (options.json) {
@@ -357,7 +366,7 @@ export const shCommand = new Command("sh")
     // e.g., if viewing @inbox.md, this will be "@inbox"
     let rootSlugPath: string | undefined
     if (resolvedNodeId) {
-      const rootNode = resolveNode(resolvedNodeId)
+      const rootNode = resolveNode(db, resolvedNodeId)
       if (rootNode) {
         rootSlugPath = getNodeName(rootNode)
       }
@@ -367,7 +376,7 @@ export const shCommand = new Command("sh")
     const initialState = createBoardState(nodes, resolvedNodeId, vault.path)
 
     // Create mutation handler for storage operations
-    const onMutation = createMutationHandler(vault, resolvedNodeId, vault.path)
+    const onMutation = createMutationHandler(db, vault, resolvedNodeId, vault.path)
 
     // Output function
     const output = (event: OutputEvent | string) => {

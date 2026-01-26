@@ -48,19 +48,15 @@ Using `cmd="km sh board.md"` - state persists between commands:
 $ state
 $ j
 $ state
-! 26 |  * Returns true for paths starting with / or ./  or ../
-! 27 |  * Note: ~ is handled by the shell before reaching the program
-! 28 |  */
-! 29 | export function isExplicitPath(query: string): boolean {
-! 30 |   return (
-! 31 |     query.startsWith("/") || query.startsWith("./") || query.startsWith("../")
-!          ^
-! TypeError: undefined is not an object (evaluating 'query.startsWith')
-!       at isExplicitPath (/Users/beorn/Code/pim/km/packages/km-storage/src/path-utils.ts:31:5)
-!       at resolveNode (/Users/beorn/Code/pim/km/packages/km-storage/src/db-queries/smart-resolver.ts:80:7)
-!       at <anonymous> (/Users/beorn/Code/pim/km/apps/km-cli/src/commands/sh.ts:316:20)
-!       at <anonymous> (/Users/beorn/Code/pim/km/apps/km-cli/src/commands/sh.ts:306:18)
-! Bun v1.3.6 (macOS arm64)
+/board/tasks> cursor: [0]
+node: Task Alpha
+topLevel: 1 nodes
+/board/tasks>
+/board/tasks>
+cursor: [0]
+node: Task Alpha
+topLevel: 1 nodes
+/board/tasks>
 ```
 
 ## Simple REPL examples

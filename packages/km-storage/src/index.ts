@@ -7,6 +7,8 @@ export {
   // Path utility
   getDbPath,
   closeDb,
+  getDb, // Deprecated singleton - use Vault.rawQuery() instead
+
   // Query operations (require Database parameter)
   getNode,
   getNodeByIdPrefix,
