@@ -1,37 +1,37 @@
 /**
  * Task Query Helpers
  *
- * Functions for finding and querying tasks - now accept Vault parameter.
+ * Functions for finding and querying tasks - now accept Repo parameter.
  */
 
-import type { Vault } from "@km/storage"
+import type { Repo } from "@km/storage"
 import {
   normalizeName,
   collapseAncestorsWithTypes,
   type CollapsedAncestor,
 } from "@km/tree"
 import type { KNode } from "@km/core"
-import { getNodeDisplayName as getNodeDisplayNameWithVault } from "./formatters.ts"
+import { getNodeDisplayName as getNodeDisplayNameWithRepo } from "./formatters.ts"
 
 /**
  * Find a node by path or ID prefix/suffix
  * Returns the node if found, null otherwise
  */
 export function findNodeByPathOrId(
-  vault: Vault,
+  repo: Repo,
   pathOrId: string,
 ): KNode | null {
   // Try ID match via resolveNode (handles prefixes)
-  const node = vault.resolveNode(pathOrId)
+  const node = repo.resolveNode(pathOrId)
   if (node) return node
 
-  // Try path match with vault path prefix (user may provide relative path)
+  // Try path match with repo path prefix (user may provide relative path)
   // Check if it looks like a relative path
   if (!pathOrId.startsWith("/")) {
     const cwd = process.cwd()
     const fullPath = `${cwd}/${pathOrId}`
     // Try resolving the full path
-    const byFullPath = vault.resolveNode(fullPath)
+    const byFullPath = repo.resolveNode(fullPath)
     if (byFullPath) return byFullPath
   }
 
@@ -41,8 +41,8 @@ export function findNodeByPathOrId(
 /**
  * Get all tasks under a root node (recursive)
  */
-export function getTasksUnderNode(vault: Vault, nodeId: string): KNode[] {
-  const subtree = vault.getSubtree(nodeId)
+export function getTasksUnderNode(repo: Repo, nodeId: string): KNode[] {
+  const subtree = repo.getSubtree(nodeId)
   return subtree.filter((n) => n.type === "task" || n.task_status)
 }
 
@@ -59,24 +59,24 @@ export interface TaskWithAncestors {
  * Get a stable key for a collapsed ancestor (for grouping)
  * Uses normalized name so similar names group together
  */
-function getAncestorKey(vault: Vault, ca: CollapsedAncestor): string {
-  return normalizeName(getNodeDisplayNameWithVault(vault, ca.node))
+function getAncestorKey(repo: Repo, ca: CollapsedAncestor): string {
+  return normalizeName(getNodeDisplayNameWithRepo(repo, ca.node))
 }
 
 /**
  * Build task tree data (ancestors, keys) for a list of tasks
  */
 export function buildTaskTree(
-  vault: Vault,
+  repo: Repo,
   tasks: KNode[],
 ): TaskWithAncestors[] {
   return tasks.map((task) => {
-    const rawAncestors = vault.getAncestors(task.id)
+    const rawAncestors = repo.getAncestors(task.id)
     const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
     return {
       task,
       collapsedAncestors,
-      ancestorKeys: collapsedAncestors.map((ca) => getAncestorKey(vault, ca)),
+      ancestorKeys: collapsedAncestors.map((ca) => getAncestorKey(repo, ca)),
     }
   })
 }
@@ -149,7 +149,7 @@ function getNodeSegmentName(node: KNode): string | null {
  * - "*projects*"  -> matches path segments that CONTAIN "projects" (explicit contains)
  */
 export function taskPathMatches(
-  vault: Vault,
+  repo: Repo,
   task: KNode,
   filter: string,
 ): boolean {
@@ -174,7 +174,7 @@ export function taskPathMatches(
   }
 
   // Check ancestors for path match
-  const ancestors = vault.getAncestors(task.id)
+  const ancestors = repo.getAncestors(task.id)
   for (const ancestor of ancestors) {
     const ancestorName = getNodeSegmentName(ancestor)
     if (ancestorName && segmentMatches(ancestorName, cleanFilter, mode)) {

@@ -5,7 +5,7 @@
  * It combines:
  * - DataStore: Indexed tree of nodes (fast queries)
  * - FileTree: Human-editable files (optional, for sync)
- * - Config: Vault configuration
+ * - Config: Repo configuration
  *
  * Key insight from ADR-002: FileTree and DataStore are NOT peers.
  * FileTree is a human-editable representation that syncs with DataStore.
@@ -29,12 +29,12 @@ import { loadConfigObject } from "./config-object.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 import { SCHEMA } from "./schema.ts"
 import {
-  loadVault,
+  loadRepo,
   type StepYield,
   type LoadError,
   type DeferredFile,
-} from "./vault-loader.ts"
-// Vault-compatible query functions (for proxy methods)
+} from "./repo-loader.ts"
+// Repo-compatible query functions (for proxy methods)
 import {
   getSubtree as dbGetSubtree,
   getAncestors as dbGetAncestors,
@@ -100,7 +100,7 @@ export interface SyncConflict {
  * @example
  * ```typescript
  * // Full repo with files (most common)
- * using repo = createRepo("/path/to/vault")
+ * using repo = createRepo("/path/to/repo")
  * const tasks = repo.data.getAllNodes().filter(n => n.type === "task")
  *
  * // Bare repo - no files (daemon, API server)
@@ -137,7 +137,7 @@ export interface Repo extends Disposable {
   readonly deferredFiles: DeferredFile[]
 
   // ===========================================================================
-  // Vault-compatible query methods (proxies to data store)
+  // Repo-compatible query methods (proxies to data store)
   // ===========================================================================
 
   /** Get a single node by ID */
@@ -187,7 +187,7 @@ export interface Repo extends Disposable {
   getChildCounts(parentIds: string[]): Map<string, number>
 
   // ===========================================================================
-  // Vault-compatible mutation methods (proxies to data store)
+  // Repo-compatible mutation methods (proxies to data store)
   // ===========================================================================
 
   /** Update a node's properties */
@@ -294,6 +294,43 @@ export interface Repo extends Disposable {
 }
 
 // =============================================================================
+// Mutation Hooks
+// =============================================================================
+
+/** Type of mutation operation */
+export type MutationType = "add" | "update" | "delete" | "move"
+
+/** Context passed to mutation hooks */
+export interface MutationContext {
+  type: MutationType
+  nodeId: string
+  changes?: Partial<KNode>
+  newParentId?: string
+  position?: number
+  node?: Partial<KNode>
+}
+
+/** Result from beforeMutation hook */
+export interface BeforeMutationResult {
+  /** Cancel the mutation */
+  cancel?: boolean
+  /** Modified context to use instead */
+  context?: MutationContext
+}
+
+/** Lifecycle hooks for repo operations */
+export interface RepoHooks {
+  /** Called before a mutation. Can cancel or modify the mutation. */
+  beforeMutation?(ctx: MutationContext): BeforeMutationResult | void
+  /** Called after a successful mutation. */
+  afterMutation?(ctx: MutationContext): void
+  /** Called after a query operation. */
+  afterQuery?(operation: string, result: unknown): void
+  /** Called when repo is closed. */
+  onClose?(): void
+}
+
+// =============================================================================
 // Factory: createRepo
 // =============================================================================
 
@@ -326,7 +363,7 @@ export interface CreateRepoOptions {
  * This is the most common way to create a Repo. It:
  * - Detects .km/ directory to determine persistence mode
  * - Creates DataStore (disk or memory based on mode)
- * - Creates FileTree for the vault root
+ * - Creates FileTree for the repo root
  * - Loads config from cosmiconfig
  *
  * This is a generator that yields progress info during loading.
@@ -335,7 +372,7 @@ export interface CreateRepoOptions {
  * @example
  * ```typescript
  * // Silent loading
- * using repo = runGenerator(createRepo("/path/to/vault"))
+ * using repo = runGenerator(createRepo("/path/to/repo"))
  *
  * // With progress
  * for (const progress of createRepo(path)) {
@@ -353,7 +390,7 @@ export interface CreateRepoOptions {
  * await watcher.start()
  * ```
  *
- * @param rootPath - Path to the vault root directory
+ * @param rootPath - Path to the repo root directory
  * @param options - Creation options
  * @yields Progress info for each loading phase
  * @returns Repo domain object
@@ -375,10 +412,10 @@ export function* createRepo(
 
   if (options.loadFiles) {
     // =========================================================================
-    // File loading mode - use loadVault to discover, parse, and populate
+    // File loading mode - use loadRepo to discover, parse, and populate
     // =========================================================================
-    const loadResult = yield* loadVault(rootPath, {
-      searchAncestors: false, // rootPath is already the vault root
+    const loadResult = yield* loadRepo(rootPath, {
+      searchAncestors: false, // rootPath is already the repo root
       skipLinkResolution: options.skipLinkResolution,
       discoverOnly: options.discoverOnly,
     })
@@ -437,7 +474,7 @@ export function* createRepo(
     yield "Scanning files"
   }
 
-  // Create FileTree for the vault root
+  // Create FileTree for the repo root
   const fileTree = createDiskFileTree(rootPath)
 
   // Load config
@@ -487,7 +524,7 @@ export function* createRepo(
     },
 
     // =========================================================================
-    // Vault-compatible query methods
+    // Repo-compatible query methods
     // =========================================================================
 
     getNode(id) {
@@ -557,7 +594,7 @@ export function* createRepo(
     },
 
     // =========================================================================
-    // Vault-compatible mutation methods
+    // Repo-compatible mutation methods
     // =========================================================================
 
     updateNode(id, changes) {
@@ -882,7 +919,7 @@ export function createBareRepo(
     },
 
     // =========================================================================
-    // Vault-compatible query methods
+    // Repo-compatible query methods
     // =========================================================================
 
     getNode(id) {
@@ -952,7 +989,7 @@ export function createBareRepo(
     },
 
     // =========================================================================
-    // Vault-compatible mutation methods
+    // Repo-compatible mutation methods
     // =========================================================================
 
     updateNode(id, changes) {

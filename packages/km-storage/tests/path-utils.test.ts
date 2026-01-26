@@ -81,39 +81,39 @@ describe("isExplicitPath", () => {
 describe("findKmRootFromPath", () => {
   test("finds .km directory in parent", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/deep/nested"), { recursive: true })
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
+    mkdirSync(join(testDir, "repo/deep/nested"), { recursive: true })
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
 
-    const result = findKmRootFromPath(join(testDir, "vault/deep"))
-    expect(result).toBe(join(testDir, "vault/.km"))
+    const result = findKmRootFromPath(join(testDir, "repo/deep"))
+    expect(result).toBe(join(testDir, "repo/.km"))
   })
 
   test("finds .km directory from deeply nested path", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/deep/nested"), { recursive: true })
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
+    mkdirSync(join(testDir, "repo/deep/nested"), { recursive: true })
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
 
-    const result = findKmRootFromPath(join(testDir, "vault/deep/nested"))
-    expect(result).toBe(join(testDir, "vault/.km"))
+    const result = findKmRootFromPath(join(testDir, "repo/deep/nested"))
+    expect(result).toBe(join(testDir, "repo/.km"))
   })
 
   test("finds .km directory from file path", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/deep/nested"), { recursive: true })
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
-    writeFileSync(join(testDir, "vault/deep/nested/file.md"), "# Test")
+    mkdirSync(join(testDir, "repo/deep/nested"), { recursive: true })
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
+    writeFileSync(join(testDir, "repo/deep/nested/file.md"), "# Test")
 
     const result = findKmRootFromPath(
-      join(testDir, "vault/deep/nested/file.md"),
+      join(testDir, "repo/deep/nested/file.md"),
     )
-    expect(result).toBe(join(testDir, "vault/.km"))
+    expect(result).toBe(join(testDir, "repo/.km"))
   })
 
   test("returns null when no .km directory exists", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "no-vault/folder"), { recursive: true })
+    mkdirSync(join(testDir, "no-repo/folder"), { recursive: true })
 
-    const result = findKmRootFromPath(join(testDir, "no-vault/folder"))
+    const result = findKmRootFromPath(join(testDir, "no-repo/folder"))
     expect(result).toBeNull()
   })
 })
@@ -121,41 +121,41 @@ describe("findKmRootFromPath", () => {
 describe("resolveFsPath", () => {
   test("resolves existing file", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
-    writeFileSync(join(testDir, "vault/file.md"), "# Test")
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
+    writeFileSync(join(testDir, "repo/file.md"), "# Test")
 
-    const result = resolveFsPath(join(testDir, "vault/file.md"))
+    const result = resolveFsPath(join(testDir, "repo/file.md"))
     expect(result.exists).toBe(true)
     expect(result.isFile).toBe(true)
     expect(result.isDirectory).toBe(false)
-    expect(result.kmRoot).toBe(join(testDir, "vault/.km"))
+    expect(result.kmRoot).toBe(join(testDir, "repo/.km"))
   })
 
   test("resolves existing directory", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
-    mkdirSync(join(testDir, "vault/folder"), { recursive: true })
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
+    mkdirSync(join(testDir, "repo/folder"), { recursive: true })
 
-    const result = resolveFsPath(join(testDir, "vault/folder"))
+    const result = resolveFsPath(join(testDir, "repo/folder"))
     expect(result.exists).toBe(true)
     expect(result.isFile).toBe(false)
     expect(result.isDirectory).toBe(true)
-    expect(result.kmRoot).toBe(join(testDir, "vault/.km"))
+    expect(result.kmRoot).toBe(join(testDir, "repo/.km"))
   })
 
   test("handles non-existent path", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
 
-    const result = resolveFsPath(join(testDir, "vault/nonexistent.md"))
+    const result = resolveFsPath(join(testDir, "repo/nonexistent.md"))
     expect(result.exists).toBe(false)
     expect(result.isFile).toBe(false)
     expect(result.isDirectory).toBe(false)
     // Should still find .km from parent
-    expect(result.kmRoot).toBe(join(testDir, "vault/.km"))
+    expect(result.kmRoot).toBe(join(testDir, "repo/.km"))
   })
 
-  test("returns null kmRoot when outside any vault", () => {
+  test("returns null kmRoot when outside any repo", () => {
     const testDir = createTestDir()
     mkdirSync(join(testDir, "outside"), { recursive: true })
 
@@ -166,93 +166,93 @@ describe("resolveFsPath", () => {
 })
 
 describe("getEffectiveRoot", () => {
-  test("returns vault root when .km exists", () => {
+  test("returns repo root when .km exists", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
-    writeFileSync(join(testDir, "vault/file.md"), "# Test")
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
+    writeFileSync(join(testDir, "repo/file.md"), "# Test")
 
-    const resolution = resolveFsPath(join(testDir, "vault/file.md"))
+    const resolution = resolveFsPath(join(testDir, "repo/file.md"))
     const root = getEffectiveRoot(resolution)
-    expect(root).toBe(join(testDir, "vault"))
+    expect(root).toBe(join(testDir, "repo"))
   })
 
   test("returns file parent for memory mode", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "no-vault"), { recursive: true })
-    writeFileSync(join(testDir, "no-vault/file.md"), "# Test")
+    mkdirSync(join(testDir, "no-repo"), { recursive: true })
+    writeFileSync(join(testDir, "no-repo/file.md"), "# Test")
 
-    const resolution = resolveFsPath(join(testDir, "no-vault/file.md"))
+    const resolution = resolveFsPath(join(testDir, "no-repo/file.md"))
     const root = getEffectiveRoot(resolution)
-    expect(root).toBe(join(testDir, "no-vault"))
+    expect(root).toBe(join(testDir, "no-repo"))
   })
 
   test("returns directory itself for memory mode directory", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "no-vault"), { recursive: true })
+    mkdirSync(join(testDir, "no-repo"), { recursive: true })
 
-    const resolution = resolveFsPath(join(testDir, "no-vault"))
+    const resolution = resolveFsPath(join(testDir, "no-repo"))
     const root = getEffectiveRoot(resolution)
-    expect(root).toBe(join(testDir, "no-vault"))
+    expect(root).toBe(join(testDir, "no-repo"))
   })
 })
 
 describe("resolvePathArg", () => {
   test("no argument returns fallback root with null nodeRef", () => {
     const result = resolvePathArg(undefined, "/fallback")
-    expect(result.vaultRoot).toBe("/fallback")
+    expect(result.repoRoot).toBe("/fallback")
     expect(result.nodeRef).toBeNull()
     expect(result.wasExplicitPath).toBe(false)
   })
 
-  test("file path returns vault root and file as nodeRef", () => {
+  test("file path returns repo root and file as nodeRef", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
-    writeFileSync(join(testDir, "vault/inbox.md"), "# Inbox")
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
+    writeFileSync(join(testDir, "repo/inbox.md"), "# Inbox")
 
-    const filePath = join(testDir, "vault/inbox.md")
+    const filePath = join(testDir, "repo/inbox.md")
     const result = resolvePathArg(filePath)
-    expect(result.vaultRoot).toBe(join(testDir, "vault"))
+    expect(result.repoRoot).toBe(join(testDir, "repo"))
     expect(result.nodeRef).toBe(filePath)
     expect(result.wasExplicitPath).toBe(true)
   })
 
-  test("directory inside vault returns vault root and directory as nodeRef", () => {
+  test("directory inside repo returns repo root and directory as nodeRef", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
-    mkdirSync(join(testDir, "vault/Projects"), { recursive: true })
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
+    mkdirSync(join(testDir, "repo/Projects"), { recursive: true })
 
-    const dirPath = join(testDir, "vault/Projects")
+    const dirPath = join(testDir, "repo/Projects")
     const result = resolvePathArg(dirPath)
-    expect(result.vaultRoot).toBe(join(testDir, "vault"))
+    expect(result.repoRoot).toBe(join(testDir, "repo"))
     expect(result.nodeRef).toBe(dirPath)
     expect(result.wasExplicitPath).toBe(true)
   })
 
-  test("vault root directory returns itself with null nodeRef", () => {
+  test("repo root directory returns itself with null nodeRef", () => {
     const testDir = createTestDir()
-    mkdirSync(join(testDir, "vault/.km"), { recursive: true })
+    mkdirSync(join(testDir, "repo/.km"), { recursive: true })
 
-    const vaultPath = join(testDir, "vault")
-    const result = resolvePathArg(vaultPath)
-    expect(result.vaultRoot).toBe(vaultPath)
+    const repoPath = join(testDir, "repo")
+    const result = resolvePathArg(repoPath)
+    expect(result.repoRoot).toBe(repoPath)
     expect(result.nodeRef).toBeNull()
     expect(result.wasExplicitPath).toBe(true)
   })
 
-  test("directory outside any vault returns itself as root with null nodeRef", () => {
+  test("directory outside any repo returns itself as root with null nodeRef", () => {
     const testDir = createTestDir()
     mkdirSync(join(testDir, "standalone"), { recursive: true })
 
     const dirPath = join(testDir, "standalone")
     const result = resolvePathArg(dirPath)
-    expect(result.vaultRoot).toBe(dirPath)
+    expect(result.repoRoot).toBe(dirPath)
     expect(result.nodeRef).toBeNull()
     expect(result.wasExplicitPath).toBe(true)
   })
 
   test("non-path argument passes through as nodeRef", () => {
     const result = resolvePathArg("@inbox", "/fallback")
-    expect(result.vaultRoot).toBe("/fallback")
+    expect(result.repoRoot).toBe("/fallback")
     expect(result.nodeRef).toBe("@inbox")
     expect(result.wasExplicitPath).toBe(false)
   })

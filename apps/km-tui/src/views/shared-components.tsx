@@ -16,7 +16,7 @@ import { getNodeDisplayName } from "../state.ts"
 import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
-import { useRepo } from "../vault-context.tsx"
+import { useRepo } from "../repo-context.tsx"
 
 // =============================================================================
 // Memoized Tree Card Component
@@ -183,7 +183,7 @@ export const MemoizedColumnHeader = React.memo(
     showTopSpacer = false,
     showSeparator = true,
   }: MemoizedColumnHeaderProps): React.ReactElement {
-    const vault = useRepo()
+    const repo = useRepo()
     const ownColor = getOwnColor(column.node)
     const headerStyle = getHeaderStyle(ownColor, isSelected, isColSelected)
 
@@ -192,7 +192,7 @@ export const MemoizedColumnHeader = React.memo(
     const iconColor = isColSelected ? "black" : icon.color
 
     // Render header with wiki links stripped: [[target|alias]] → "alias"
-    const headerText = renderPlain(getNodeDisplayName(vault, column.node))
+    const headerText = renderPlain(getNodeDisplayName(repo, column.node))
     const countText = ` (${column.cards.length})`
     // Calculate padding to fill full width: " [icon] headerText countText" = 3 + headerText + countText
     const headerContentLen = 3 + headerText.length + countText.length

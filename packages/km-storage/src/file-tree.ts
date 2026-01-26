@@ -40,7 +40,7 @@ import { watch, type FSWatcher } from "chokidar"
  *
  * @example
  * ```typescript
- * const files = createDiskFileTree("/path/to/vault")
+ * const files = createDiskFileTree("/path/to/repo")
  *
  * // Read a file
  * const content = files.read("projects.md")
@@ -133,7 +133,7 @@ export interface FileTree extends Disposable {
  *
  * @example
  * ```typescript
- * const files = createDiskFileTree("/Users/me/vault")
+ * const files = createDiskFileTree("/Users/me/repo")
  * const content = files.read("inbox.md")
  * ```
  */

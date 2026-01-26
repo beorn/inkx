@@ -61,7 +61,7 @@ describe("Board Pure Rendering", () => {
   })
 
   test("renderCard includes content", () => {
-    const vault = createMockRepo()
+    const repo = createMockRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -78,12 +78,12 @@ describe("Board Pure Rendering", () => {
       children: [],
     }
 
-    const output = renderCard(vault, cardState, 40, false, false, false)
+    const output = renderCard(repo, cardState, 40, false, false, false)
     expect(output).toContain("My Test Task")
   })
 
   test("renderCard shows children when not folded", () => {
-    const vault = createMockRepo()
+    const repo = createMockRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -113,12 +113,12 @@ describe("Board Pure Rendering", () => {
       ],
     }
 
-    const output = renderCard(vault, cardState, 40, false, false, false)
+    const output = renderCard(repo, cardState, 40, false, false, false)
     expect(output).toContain("Child Task 1")
   })
 
   test("renderCard shows item count when folded", () => {
-    const vault = createMockRepo()
+    const repo = createMockRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -160,20 +160,20 @@ describe("Board Pure Rendering", () => {
       ],
     }
 
-    const output = renderCard(vault, cardState, 40, false, false, true)
+    const output = renderCard(repo, cardState, 40, false, false, true)
     expect(output).toContain("▶ 2") // Collapsed indicator with count
     expect(output).not.toContain("Child 1")
   })
 
   test("renderCard using fixture helper", () => {
-    const vault = createMockRepo()
+    const repo = createMockRepo()
     // Demonstrate using the createCardState fixture
     const cardState = createCardState({
       content: "Fixture Card",
       type: "task",
     })
 
-    const output = renderCard(vault, cardState, 40, false, false, false)
+    const output = renderCard(repo, cardState, 40, false, false, false)
     expect(output).toContain("Fixture Card")
   })
 })

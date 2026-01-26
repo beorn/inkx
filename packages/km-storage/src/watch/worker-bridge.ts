@@ -39,7 +39,7 @@ const DEFAULT_CONFIG: WorkerWatcherConfig = {
 export class WorkerWatcher extends EventEmitter {
   private worker: Worker | null = null
   private config: WorkerWatcherConfig
-  private vaultPath: string = ""
+  private repoPath: string = ""
   private isReady: boolean = false
   private currentStatus: WatcherStatus = {
     state: "stopped",
@@ -57,12 +57,12 @@ export class WorkerWatcher extends EventEmitter {
    * Unlike FileSystemWatcher, this returns immediately and emits 'ready' when
    * the worker has finished initializing chokidar.
    */
-  start(vaultPath: string): void {
-    this.vaultPath = vaultPath
-    debug("starting worker watcher for %s", vaultPath)
+  start(repoPath: string): void {
+    this.repoPath = repoPath
+    debug("starting worker watcher for %s", repoPath)
 
     // Load ignore patterns (this is fast, runs in main thread)
-    const ignorePatterns = getIgnorePatterns(vaultPath)
+    const ignorePatterns = getIgnorePatterns(repoPath)
     debug("ignore patterns: %O", ignorePatterns)
 
     // Create worker
@@ -82,7 +82,7 @@ export class WorkerWatcher extends EventEmitter {
     // Send start command to worker
     this.postCommand({
       type: "start",
-      vaultPath,
+      repoPath,
       ignorePatterns,
       debounceMs: this.config.debounceMs,
     })

@@ -13,7 +13,7 @@ export const watchCommand = new Command("watch")
   .description(
     "Watch for filesystem changes (deprecated: use 'km sync --watch')",
   )
-  .argument("[path]", "Path to watch (default: vault root)")
+  .argument("[path]", "Path to watch (default: repo root)")
   .option("--debounce <ms>", "Debounce interval in ms", "5000")
   .action(async (path, options) => {
     console.log(

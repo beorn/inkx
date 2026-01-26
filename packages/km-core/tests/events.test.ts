@@ -23,16 +23,16 @@ describe("kmEvents", () => {
   test("unsubscribe stops receiving events", () => {
     const calls: number[] = []
 
-    const unsub = kmEvents.on("vault-loaded", (e) => {
+    const unsub = kmEvents.on("repo-loaded", (e) => {
       calls.push(e.nodeCount)
     })
 
-    kmEvents.emit("vault-loaded", { nodeCount: 100, duration: 50 })
+    kmEvents.emit("repo-loaded", { nodeCount: 100, duration: 50 })
     expect(calls).toEqual([100])
 
     unsub()
 
-    kmEvents.emit("vault-loaded", { nodeCount: 200, duration: 60 })
+    kmEvents.emit("repo-loaded", { nodeCount: 200, duration: 60 })
     expect(calls).toEqual([100]) // Still 100, not updated
   })
 

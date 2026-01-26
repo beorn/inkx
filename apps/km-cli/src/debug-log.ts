@@ -16,25 +16,25 @@ import { homedir } from "os"
 
 let stream: WriteStream | null = null
 
-// Optional vault root for formatting paths relative to vault
-let vaultRoot: string | null = null
+// Optional repo root for formatting paths relative to repo
+let repoRoot: string | null = null
 
 /**
- * Set the vault root for path formatting in debug output.
+ * Set the repo root for path formatting in debug output.
  * Paths inside this root will be shown as relative.
  */
-export function setDebugVaultRoot(root: string | null): void {
-  vaultRoot = root
+export function setDebugRepoRoot(root: string | null): void {
+  repoRoot = root
 }
 
 /**
  * Format an absolute path for human readability.
- * Priority: vault-relative > cwd-relative > ~/relative > absolute
+ * Priority: repo-relative > cwd-relative > ~/relative > absolute
  */
 function formatPath(absPath: string): string {
-  // Try relative to vault root (most useful for debug output)
-  if (vaultRoot && absPath.startsWith(vaultRoot)) {
-    const rel = absPath.slice(vaultRoot.length)
+  // Try relative to repo root (most useful for debug output)
+  if (repoRoot && absPath.startsWith(repoRoot)) {
+    const rel = absPath.slice(repoRoot.length)
     return rel.startsWith("/") ? rel.slice(1) : rel
   }
 
@@ -80,7 +80,7 @@ function formatPathsInObject(obj: unknown, depth = 0): unknown {
         key === "fs_path" ||
         key === "path" ||
         key === "rootPath" ||
-        key === "vaultRoot" ||
+        key === "repoRoot" ||
         key.endsWith("Path"))
     ) {
       result[key] = formatPath(value)

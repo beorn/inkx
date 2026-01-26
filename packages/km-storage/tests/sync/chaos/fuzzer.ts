@@ -461,12 +461,12 @@ async function runSingleIteration(
     "/tmp",
     `kmtest-fuzz-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   )
-  const vaultDir = join(testDir, "vault")
+  const repoDir = join(testDir, "repo")
   const kmDir = join(testDir, ".km")
 
   // Setup
   mkdirSync(kmDir, { recursive: true })
-  mkdirSync(vaultDir, { recursive: true })
+  mkdirSync(repoDir, { recursive: true })
 
   // Wrap in runWithKmDir for context-local kmDir (enables parallel test isolation)
   return runWithKmDir(kmDir, async () => {
@@ -478,7 +478,7 @@ async function runSingleIteration(
 
       // Create files
       for (const file of scenario.setup) {
-        const fullPath = join(vaultDir, file.path)
+        const fullPath = join(repoDir, file.path)
         const fileDir = dirname(fullPath)
         if (!existsSync(fileDir)) {
           mkdirSync(fileDir, { recursive: true })
@@ -487,8 +487,8 @@ async function runSingleIteration(
       }
 
       // Initial reconciliation - use recursive to handle files in subdirectories
-      const ops = reconcileDirectoryRecursive(vaultDir, vaultDir)
-      await applyReconcileOps(ops, vaultDir)
+      const ops = reconcileDirectoryRecursive(repoDir, repoDir)
+      await applyReconcileOps(ops, repoDir)
 
       // Create watcher with combined scenarios
       const combinedScenario =
@@ -502,7 +502,7 @@ async function runSingleIteration(
         seed: scenario.seed,
       })
 
-      chaosWatcher.start(vaultDir)
+      chaosWatcher.start(repoDir)
 
       // Wait for ready (init_gap scenarios need advanceTime)
       await new Promise<void>((resolve) => {
@@ -523,10 +523,10 @@ async function runSingleIteration(
           void (async () => {
             for (const dir of data.directories) {
               const dirOps =
-                dir === vaultDir
-                  ? reconcileDirectory(dir, vaultDir)
-                  : reconcileDirectoryRecursive(dir, vaultDir)
-              await applyReconcileOps(dirOps, vaultDir)
+                dir === repoDir
+                  ? reconcileDirectory(dir, repoDir)
+                  : reconcileDirectoryRecursive(dir, repoDir)
+              await applyReconcileOps(dirOps, repoDir)
             }
           })()
         },
@@ -535,7 +535,7 @@ async function runSingleIteration(
       // Inject events
       const absoluteEvents = scenario.events.map((e) => ({
         ...e,
-        path: join(vaultDir, e.path),
+        path: join(repoDir, e.path),
       }))
 
       chaosWatcher.injectBatch(absoluteEvents)
@@ -573,7 +573,7 @@ async function runSingleIteration(
         })
       }
 
-      const fsDbSync = verifier.verifyFsDbSync(vaultDir)
+      const fsDbSync = verifier.verifyFsDbSync(repoDir)
       if (!fsDbSync.passed) {
         violations.push({
           invariant: "fs_db_sync",
@@ -643,14 +643,14 @@ async function runSingleIterationWithMockFs(
 ): Promise<FuzzIterationResult> {
   const start = Date.now()
   const mockFs = createMockFileSystem()
-  const vaultDir = "/vault"
+  const repoDir = "/repo"
 
   // Use in-memory database for parallel isolation
   const db = new Database(":memory:")
   db.exec(SCHEMA)
 
   // Setup - create virtual directories
-  mockFs.mkdirSync(vaultDir, { recursive: true })
+  mockFs.mkdirSync(repoDir, { recursive: true })
 
   // Declare outside runWithDb so catch/finally can access
   const violations: InvariantViolation[] = []
@@ -661,7 +661,7 @@ async function runSingleIterationWithMockFs(
     return await runWithDb(db, async () => {
       // Create files in mock filesystem
       for (const file of scenario.setup) {
-        const fullPath = join(vaultDir, file.path)
+        const fullPath = join(repoDir, file.path)
         const fileDir = dirname(fullPath)
         if (!mockFs.existsSync(fileDir)) {
           mockFs.mkdirSync(fileDir, { recursive: true })
@@ -672,12 +672,12 @@ async function runSingleIterationWithMockFs(
       // Initial reconciliation with mock scanner
       const scanner = mockFs.createScanner()
       const ops = reconcileDirectoryRecursive(
-        vaultDir,
-        vaultDir,
+        repoDir,
+        repoDir,
         undefined,
         scanner,
       )
-      await applyReconcileOps(ops, vaultDir, mockFs)
+      await applyReconcileOps(ops, repoDir, mockFs)
 
       // Create watcher with combined scenarios
       const combinedScenario =
@@ -691,7 +691,7 @@ async function runSingleIterationWithMockFs(
         seed: scenario.seed,
       })
 
-      chaosWatcher.start(vaultDir)
+      chaosWatcher.start(repoDir)
 
       // Wait for ready (init_gap scenarios need advanceTime)
       await new Promise<void>((resolve) => {
@@ -712,15 +712,15 @@ async function runSingleIterationWithMockFs(
           void (async () => {
             for (const dir of data.directories) {
               const dirOps =
-                dir === vaultDir
-                  ? reconcileDirectory(dir, vaultDir, undefined, scanner)
+                dir === repoDir
+                  ? reconcileDirectory(dir, repoDir, undefined, scanner)
                   : reconcileDirectoryRecursive(
                       dir,
-                      vaultDir,
+                      repoDir,
                       undefined,
                       scanner,
                     )
-              await applyReconcileOps(dirOps, vaultDir, mockFs)
+              await applyReconcileOps(dirOps, repoDir, mockFs)
             }
           })()
         },
@@ -729,7 +729,7 @@ async function runSingleIterationWithMockFs(
       // Inject events
       const absoluteEvents = scenario.events.map((e) => ({
         ...e,
-        path: join(vaultDir, e.path),
+        path: join(repoDir, e.path),
       }))
 
       chaosWatcher.injectBatch(absoluteEvents)
@@ -767,7 +767,7 @@ async function runSingleIterationWithMockFs(
         })
       }
 
-      const fsDbSync = verifier.verifyFsDbSync(vaultDir)
+      const fsDbSync = verifier.verifyFsDbSync(repoDir)
       if (!fsDbSync.passed) {
         violations.push({
           invariant: "fs_db_sync",

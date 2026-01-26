@@ -76,9 +76,9 @@ export function isMockMode(): boolean {
 }
 
 /**
- * Vault-like object for tests - wraps db functions with db pre-bound
+ * Repo-like object for tests - wraps db functions with db pre-bound
  */
-export interface TestVault {
+export interface TestRepo {
   getNode: (id: string) => KNode | null
   getNodeByPath: (fsPath: string) => KNode | null
   getAllNodes: () => KNode[]
@@ -110,14 +110,14 @@ export interface TestEnv {
   testDir: string
   /** .km directory for state.db and events.jsonl */
   kmDir: string
-  /** Vault directory for markdown files */
-  vaultDir: string
+  /** Repo directory for markdown files */
+  repoDir: string
   /** Database for this test (memory or disk based on mode) */
   db: Database
   /** Current test mode */
   mode: TestMode
-  /** Vault-like object wrapping singleton functions bound to test DB */
-  vault: TestVault
+  /** Repo-like object wrapping singleton functions bound to test DB */
+  repo: TestRepo
   /**
    * DataStore interface for ergonomic test access.
    * Preferred API - use data.getAllNodes() instead of getAllNodes(db).
@@ -141,8 +141,8 @@ export interface TestEnv {
  *
  * @example
  * test("my test", async () => {
- *   await withTestEnv(async ({ vaultDir, kmDir }) => {
- *     writeFileSync(join(vaultDir, "test.md"), "# Hello");
+ *   await withTestEnv(async ({ repoDir, kmDir }) => {
+ *     writeFileSync(join(repoDir, "test.md"), "# Hello");
  *     // All getDb() calls return the isolated db
  *     // All getKmDir() calls return the isolated kmDir
  *   });
@@ -158,12 +158,12 @@ export async function withTestEnv<T>(
   const mode = options?.mode ?? getTestMode()
   const testId = ulid()
   const testDir = join("/tmp", `kmtest-${testId}`)
-  const vaultDir = join(testDir, "vault")
-  const kmDir = join(vaultDir, ".km")
+  const repoDir = join(testDir, "repo")
+  const kmDir = join(repoDir, ".km")
 
-  // Create vault directory (but NOT .km - let tests control that)
+  // Create repo directory (but NOT .km - let tests control that)
   // Tests that need disk mode should mkdirSync(kmDir) themselves
-  mkdirSync(vaultDir, { recursive: true })
+  mkdirSync(repoDir, { recursive: true })
 
   // In real mode, also create .km for disk DB
   if (mode === "real") {
@@ -178,8 +178,8 @@ export async function withTestEnv<T>(
   // Derive StorageMode from TestMode (real → disk, otherwise → memory)
   const storageMode: StorageMode = mode === "real" ? "disk" : "memory"
 
-  // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
-  const vault: TestVault = {
+  // Create repo wrapping singleton functions (bound to test DB via AsyncLocalStorage)
+  const repo: TestRepo = {
     getNode: (id) => getNode(db, id),
     getNodeByPath: (fsPath) => getNodeByPath(db, fsPath),
     getAllNodes: () => getAllNodes(db),
@@ -205,7 +205,7 @@ export async function withTestEnv<T>(
   // Use storageMode so DB→FS sync events fire when appropriate
   const data = createDBDataStore(db, storageMode)
 
-  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault, data }
+  const env: TestEnv = { testId, testDir, kmDir, repoDir, db, mode, repo, data }
 
   try {
     // Run with both context-local db and kmDir
@@ -230,12 +230,12 @@ export function withTestEnvSync<T>(
   const mode = options?.mode ?? getTestMode()
   const testId = ulid()
   const testDir = join("/tmp", `kmtest-${testId}`)
-  const vaultDir = join(testDir, "vault")
-  const kmDir = join(vaultDir, ".km")
+  const repoDir = join(testDir, "repo")
+  const kmDir = join(repoDir, ".km")
 
-  // Create vault directory (but NOT .km - let tests control that)
+  // Create repo directory (but NOT .km - let tests control that)
   // Tests that need disk mode should mkdirSync(kmDir) themselves
-  mkdirSync(vaultDir, { recursive: true })
+  mkdirSync(repoDir, { recursive: true })
 
   // In real mode, also create .km for disk DB
   if (mode === "real") {
@@ -250,8 +250,8 @@ export function withTestEnvSync<T>(
   // Derive StorageMode from TestMode (real → disk, otherwise → memory)
   const storageMode: StorageMode = mode === "real" ? "disk" : "memory"
 
-  // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
-  const vault: TestVault = {
+  // Create repo wrapping singleton functions (bound to test DB via AsyncLocalStorage)
+  const repo: TestRepo = {
     getNode: (id) => getNode(db, id),
     getNodeByPath: (fsPath) => getNodeByPath(db, fsPath),
     getAllNodes: () => getAllNodes(db),
@@ -277,7 +277,7 @@ export function withTestEnvSync<T>(
   // Use storageMode so DB→FS sync events fire when appropriate
   const data = createDBDataStore(db, storageMode)
 
-  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault, data }
+  const env: TestEnv = { testId, testDir, kmDir, repoDir, db, mode, repo, data }
 
   try {
     // Run with both context-local db and kmDir

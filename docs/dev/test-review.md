@@ -48,7 +48,7 @@ Reference for reviewing, pruning, and organizing the km test suite.
 
 | Should Test                     | Should NOT Test   |
 | ------------------------------- | ----------------- |
-| CRUD operations via Vault API   | UI rendering      |
+| CRUD operations via Repo API   | UI rendering      |
 | Query parsing & evaluation      | Navigation state  |
 | Sync correctness (file ↔ DB)    | Visual appearance |
 | Event sourcing & replay         |                   |
@@ -175,7 +175,7 @@ Golden file testing for CLI and TUI state.
 ```markdown
 # Navigation Test
 
-$ echo -e "move_down\nstate" | km sh -r $PWD/vault @inbox.md
+$ echo -e "move_down\nstate" | km sh -r $PWD/repo @inbox.md
 
 > MOVE_DOWN
 > position: col=0 card=1
@@ -286,16 +286,16 @@ Move up when:
 
 ### Domain Object Testing
 
-- [ ] Use factory pattern (`createVault()`, not `new Vault()`)
-- [ ] Use `using` for automatic cleanup (`using vault = ...`)
+- [ ] Use factory pattern (`createRepo()`, not `new Repo()`)
+- [ ] Use `using` for automatic cleanup (`using repo = ...`)
 - [ ] Use dependency injection for mocking (`options.inject`), not global singletons
-- [ ] Test via public API (Vault), not internal functions (`emit*`)
+- [ ] Test via public API (Repo), not internal functions (`emit*`)
 
 ```typescript
 // GOOD: Tests via domain object API
-using vault = runGenerator(createVault(vaultDir))
-vault.updateNode(id, { task_status: "done" })
-expect(vault.getNode(id)!.task_status).toBe("done")
+using repo = runGenerator(createRepo(repoDir))
+repo.updateNode(id, { task_status: "done" })
+expect(repo.getNode(id)!.task_status).toBe("done")
 
 // BAD: Tests internal implementation
 setDatabase({ applyEvent }) // Global singleton
@@ -322,7 +322,7 @@ emitNodeUpdated("user", id, { task_status: "done" }) // Internal function
 
 | Files                                                                            | Issue                        | Resolution                                           |
 | -------------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------- |
-| `vault.test.ts` + `node-crud.test.ts`                                            | Both test mutations          | Keep vault tests (public API), consolidate node-crud |
+| `repo.test.ts` + `node-crud.test.ts`                                            | Both test mutations          | Keep repo tests (public API), consolidate node-crud |
 | `navigation.test.ts` + `cursor-navigation.test.ts` + `visual-navigation.test.ts` | Overlapping cursor logic     | Clarify ownership or merge                           |
 | `markdown.test.ts`                                                               | Mixes parser + tree concerns | Split by layer                                       |
 
@@ -391,7 +391,7 @@ emitNodeUpdated("user", id, { task_status: "done" }) // Internal function
 
 | File:Line           | From    | To    | Reason                       |
 | ------------------- | ------- | ----- | ---------------------------- |
-| `vault.test.ts:100` | Storage | Board | Tests state, not persistence |
+| `repo.test.ts:100` | Storage | Board | Tests state, not persistence |
 
 #### D. Refactor (N tests)
 

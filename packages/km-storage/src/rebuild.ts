@@ -1,8 +1,8 @@
 /**
  * State Rebuild
  *
- * @deprecated Legacy API for state rebuilding. Use createVault() instead.
- * These functions are kept for backwards compatibility but all use loadVault() internally.
+ * @deprecated Legacy API for state rebuilding. Use createRepo() instead.
+ * These functions are kept for backwards compatibility but all use loadRepo() internally.
  *
  * For the generator helpers (runGenerator, runWithProgress), import from @km/core instead.
  */
@@ -15,7 +15,7 @@ import { join, dirname } from "path"
 import type { Event } from "@km/core"
 import { getEventsPath, getKmDir } from "./emit.ts"
 import { getDb, getDbPath, closeDb } from "./db.ts"
-import { loadVault, type StepYield } from "./vault-loader.ts"
+import { loadRepo, type StepYield } from "./repo-loader.ts"
 
 /** Result from rebuildState */
 export interface RebuildResult {
@@ -82,21 +82,21 @@ export function readEvents(): Event[] {
  * This is the primary recovery mechanism.
  * Yields progress info for each step.
  *
- * Now delegates to loadVault() with force: true.
+ * Now delegates to loadRepo() with force: true.
  */
 export function* rebuildState(): Generator<StepYield, RebuildResult, unknown> {
-  debug("rebuildState: delegating to loadVault with force=true")
+  debug("rebuildState: delegating to loadRepo with force=true")
 
-  // Count events for the return value (loadVault doesn't track this)
+  // Count events for the return value (loadRepo doesn't track this)
   const events = readEvents()
   const eventCount = events.length
 
-  // Get vault root from already-configured kmDir (set by setKmDir())
+  // Get repo root from already-configured kmDir (set by setKmDir())
   const kmDir = getKmDir()
-  const vaultRoot = dirname(kmDir)
+  const repoRoot = dirname(kmDir)
 
-  // Delegate to loadVault with force flag
-  const result = yield* loadVault(vaultRoot, {
+  // Delegate to loadRepo with force flag
+  const result = yield* loadRepo(repoRoot, {
     searchAncestors: false,
     force: true,
   })
@@ -118,10 +118,10 @@ export interface SyncResult {
  * Incremental sync - apply only new events
  * Yields progress info for each step.
  *
- * Now delegates to loadVault() (which handles incremental sync internally).
+ * Now delegates to loadRepo() (which handles incremental sync internally).
  */
 export function* syncState(): Generator<StepYield, SyncResult, unknown> {
-  debug("syncState: delegating to loadVault")
+  debug("syncState: delegating to loadRepo")
 
   // Get current state to calculate how many events were applied
   const db = getDb()
@@ -133,12 +133,12 @@ export function* syncState(): Generator<StepYield, SyncResult, unknown> {
     (e) => !lastApplied?.value || e.id > lastApplied.value,
   )
 
-  // Get vault root from already-configured kmDir (set by setKmDir())
+  // Get repo root from already-configured kmDir (set by setKmDir())
   const kmDir = getKmDir()
-  const vaultRoot = dirname(kmDir)
+  const repoRoot = dirname(kmDir)
 
-  // Delegate to loadVault (incremental mode)
-  const result = yield* loadVault(vaultRoot, { searchAncestors: false })
+  // Delegate to loadRepo (incremental mode)
+  const result = yield* loadRepo(repoRoot, { searchAncestors: false })
 
   return {
     applied: newEvents.length,
@@ -167,7 +167,7 @@ export function* fullReset(): Generator<StepYield, RebuildResult, unknown> {
     unlinkSync(shmPath)
   }
 
-  // Delegate to rebuildState (which now uses loadVault)
+  // Delegate to rebuildState (which now uses loadRepo)
   return yield* rebuildState()
 }
 
@@ -209,7 +209,7 @@ export function runWithProgress<T>(
 
 /**
  * Consume a generator without progress reporting.
- * Use this when you need to run loadVault() but don't need progress updates.
+ * Use this when you need to run loadRepo() but don't need progress updates.
  */
 export function runGenerator<T>(generator: Generator<unknown, T, unknown>): T {
   let result = generator.next()

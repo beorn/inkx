@@ -522,9 +522,9 @@ describe.serial("Chaos Scenario Unit Tests", () => {
 })
 
 describe.serial("Parallel Suite Runner", () => {
-  test("runs multiple vaults with single scenario", async () => {
+  test("runs multiple repos with single scenario", async () => {
     const result = await runChaosSuiteParallel({
-      vaultCount: 3,
+      repoCount: 3,
       scenarios: [NO_CHAOS],
       parallel: false, // Sequential for predictable test
       useMockFs: true,
@@ -534,13 +534,13 @@ describe.serial("Parallel Suite Runner", () => {
     expect(result.summary.total).toBe(3)
     expect(result.summary.passed).toBe(3)
     expect(result.summary.failed).toBe(0)
-    expect(result.byVault.size).toBe(3)
+    expect(result.byRepo.size).toBe(3)
     expect(result.byScenario.size).toBe(1)
   })
 
-  test("runs single vault with multiple scenarios", async () => {
+  test("runs single repo with multiple scenarios", async () => {
     const result = await runChaosSuiteParallel({
-      vaultCount: 1,
+      repoCount: 1,
       scenarios: [NO_CHAOS, CHAOS_SCENARIOS.reorder_chaos],
       parallel: false,
       useMockFs: true,
@@ -548,7 +548,7 @@ describe.serial("Parallel Suite Runner", () => {
     })
 
     expect(result.summary.total).toBe(2)
-    expect(result.byVault.size).toBe(1)
+    expect(result.byRepo.size).toBe(1)
     expect(result.byScenario.size).toBe(2)
 
     // Check grouping by scenario
@@ -560,20 +560,20 @@ describe.serial("Parallel Suite Runner", () => {
 
   test("calls progress callback for each test", async () => {
     const progressUpdates: Array<{
-      vaultIndex: number
+      repoIndex: number
       completed: number
       total: number
     }> = []
 
     await runChaosSuiteParallel({
-      vaultCount: 2,
+      repoCount: 2,
       scenarios: [NO_CHAOS],
       parallel: false,
       useMockFs: true,
       timeout: 100,
-      onVaultComplete: (vaultIndex, _result, progress) => {
+      onRepoComplete: (repoIndex, _result, progress) => {
         progressUpdates.push({
-          vaultIndex,
+          repoIndex,
           completed: progress.completed,
           total: progress.total,
         })
@@ -589,7 +589,7 @@ describe.serial("Parallel Suite Runner", () => {
 
   test("parallel execution completes all tests", async () => {
     const result = await runChaosSuiteParallel({
-      vaultCount: 5,
+      repoCount: 5,
       scenarios: [NO_CHAOS],
       parallel: true, // Actually run in parallel
       useMockFs: true,
@@ -598,15 +598,15 @@ describe.serial("Parallel Suite Runner", () => {
 
     expect(result.summary.total).toBe(5)
     expect(result.results.length).toBe(5)
-    // All vaults should complete
+    // All repos should complete
     for (let i = 0; i < 5; i++) {
-      expect(result.byVault.has(i)).toBe(true)
+      expect(result.byRepo.has(i)).toBe(true)
     }
   })
 
   test("calculates parallel speedup", async () => {
     const result = await runChaosSuiteParallel({
-      vaultCount: 3,
+      repoCount: 3,
       scenarios: [NO_CHAOS],
       parallel: true,
       useMockFs: true,
@@ -618,23 +618,23 @@ describe.serial("Parallel Suite Runner", () => {
     expect(result.summary.totalDuration).toBeGreaterThan(0)
   })
 
-  test("groups results correctly by vault and scenario", async () => {
+  test("groups results correctly by repo and scenario", async () => {
     const result = await runChaosSuiteParallel({
-      vaultCount: 2,
+      repoCount: 2,
       scenarios: [NO_CHAOS, CHAOS_SCENARIOS.reorder_chaos],
       parallel: false,
       useMockFs: true,
       timeout: 100,
     })
 
-    // 2 vaults × 2 scenarios = 4 total tests
+    // 2 repos × 2 scenarios = 4 total tests
     expect(result.summary.total).toBe(4)
 
-    // Each vault should have 2 results (one per scenario)
-    expect(result.byVault.get(0)?.length ?? 0).toBe(2)
-    expect(result.byVault.get(1)?.length ?? 0).toBe(2)
+    // Each repo should have 2 results (one per scenario)
+    expect(result.byRepo.get(0)?.length ?? 0).toBe(2)
+    expect(result.byRepo.get(1)?.length ?? 0).toBe(2)
 
-    // Each scenario should have 2 results (one per vault)
+    // Each scenario should have 2 results (one per repo)
     expect(result.byScenario.get("slow_disk")?.length ?? 0).toBe(2)
     expect(result.byScenario.get("reorder_chaos")?.length ?? 0).toBe(2)
   })

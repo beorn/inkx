@@ -1,0 +1,31 @@
+{
+  "id": "text-replace-1769468314667",
+  "operation": "rename",
+  "pattern": "vault",
+  "from": "vault",
+  "to": "repo",
+  "refs": [
+    {
+      "refId": "f3c161c4",
+      "file": "./apps/km-tui/src/views/board-bottom-bar.tsx",
+      "range": [
+        124,
+        29,
+        124,
+        34
+      ],
+      "preview": "// 📁 = folder icon for vault/repo path // \"vault\" → \"vault\"",
+      "checksum": "2b79edb1da05",
+      "selected": true
+    }
+  ],
+  "edits": [
+    {
+      "file": "./apps/km-tui/src/views/board-bottom-bar.tsx",
+      "offset": 4118,
+      "length": 5,
+      "replacement": "ult/r"
+    }
+  ],
+  "createdAt": "2026-01-26T22:58:34.667Z"
+}

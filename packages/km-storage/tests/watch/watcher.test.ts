@@ -18,142 +18,142 @@ import { withTestEnvSync } from "@km/storage"
 
 describe("scanDirectory", () => {
   test("scans files and directories", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      writeFileSync(join(vaultDir, "file1.md"), "# File 1")
-      writeFileSync(join(vaultDir, "file2.md"), "# File 2")
-      mkdirSync(join(vaultDir, "subdir"))
+    withTestEnvSync(({ repoDir }) => {
+      writeFileSync(join(repoDir, "file1.md"), "# File 1")
+      writeFileSync(join(repoDir, "file2.md"), "# File 2")
+      mkdirSync(join(repoDir, "subdir"))
 
-      const entries = scanDirectory(vaultDir)
+      const entries = scanDirectory(repoDir)
 
       expect(entries).toHaveLength(3)
-      expect(entries.map((e) => e.path)).toContain(join(vaultDir, "file1.md"))
-      expect(entries.map((e) => e.path)).toContain(join(vaultDir, "file2.md"))
-      expect(entries.map((e) => e.path)).toContain(join(vaultDir, "subdir"))
+      expect(entries.map((e) => e.path)).toContain(join(repoDir, "file1.md"))
+      expect(entries.map((e) => e.path)).toContain(join(repoDir, "file2.md"))
+      expect(entries.map((e) => e.path)).toContain(join(repoDir, "subdir"))
     }))
 
   test("skips hidden files", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      writeFileSync(join(vaultDir, "visible.md"), "# Visible")
-      writeFileSync(join(vaultDir, ".hidden"), "hidden content")
-      mkdirSync(join(vaultDir, ".hidden-dir"))
+    withTestEnvSync(({ repoDir }) => {
+      writeFileSync(join(repoDir, "visible.md"), "# Visible")
+      writeFileSync(join(repoDir, ".hidden"), "hidden content")
+      mkdirSync(join(repoDir, ".hidden-dir"))
 
-      const entries = scanDirectory(vaultDir)
+      const entries = scanDirectory(repoDir)
 
       expect(entries).toHaveLength(1)
-      expect(entries[0]?.path).toBe(join(vaultDir, "visible.md"))
+      expect(entries[0]?.path).toBe(join(repoDir, "visible.md"))
     }))
 
   test("skips symlinks to avoid circular references", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      writeFileSync(join(vaultDir, "real-file.md"), "# Real file")
-      mkdirSync(join(vaultDir, "real-dir"))
+    withTestEnvSync(({ repoDir }) => {
+      writeFileSync(join(repoDir, "real-file.md"), "# Real file")
+      mkdirSync(join(repoDir, "real-dir"))
 
       // Create symlink to file
       symlinkSync(
-        join(vaultDir, "real-file.md"),
-        join(vaultDir, "link-to-file.md"),
+        join(repoDir, "real-file.md"),
+        join(repoDir, "link-to-file.md"),
       )
 
       // Create symlink to directory
-      symlinkSync(join(vaultDir, "real-dir"), join(vaultDir, "link-to-dir"))
+      symlinkSync(join(repoDir, "real-dir"), join(repoDir, "link-to-dir"))
 
       // Create circular symlink (points to parent)
-      symlinkSync(vaultDir, join(vaultDir, "circular-link"))
+      symlinkSync(repoDir, join(repoDir, "circular-link"))
 
-      const entries = scanDirectory(vaultDir)
+      const entries = scanDirectory(repoDir)
 
       // Should only contain real file and real directory, not symlinks
       expect(entries).toHaveLength(2)
       const paths = entries.map((e) => e.path)
-      expect(paths).toContain(join(vaultDir, "real-file.md"))
-      expect(paths).toContain(join(vaultDir, "real-dir"))
-      expect(paths).not.toContain(join(vaultDir, "link-to-file.md"))
-      expect(paths).not.toContain(join(vaultDir, "link-to-dir"))
-      expect(paths).not.toContain(join(vaultDir, "circular-link"))
+      expect(paths).toContain(join(repoDir, "real-file.md"))
+      expect(paths).toContain(join(repoDir, "real-dir"))
+      expect(paths).not.toContain(join(repoDir, "link-to-file.md"))
+      expect(paths).not.toContain(join(repoDir, "link-to-dir"))
+      expect(paths).not.toContain(join(repoDir, "circular-link"))
     }))
 
   test("returns empty array for nonexistent directory", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      const entries = scanDirectory(join(vaultDir, "nonexistent"))
+    withTestEnvSync(({ repoDir }) => {
+      const entries = scanDirectory(join(repoDir, "nonexistent"))
       expect(entries).toEqual([])
     }))
 })
 
 describe("scanSymlinks", () => {
   test("detects symlinks and their targets", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      writeFileSync(join(vaultDir, "real-file.md"), "# Real file")
+    withTestEnvSync(({ repoDir }) => {
+      writeFileSync(join(repoDir, "real-file.md"), "# Real file")
       symlinkSync(
-        join(vaultDir, "real-file.md"),
-        join(vaultDir, "link-to-file.md"),
+        join(repoDir, "real-file.md"),
+        join(repoDir, "link-to-file.md"),
       )
 
-      const symlinks = scanSymlinks(vaultDir)
+      const symlinks = scanSymlinks(repoDir)
 
       expect(symlinks).toHaveLength(1)
-      expect(symlinks[0]?.path).toBe(join(vaultDir, "link-to-file.md"))
-      expect(symlinks[0]?.target).toBe(join(vaultDir, "real-file.md"))
+      expect(symlinks[0]?.path).toBe(join(repoDir, "link-to-file.md"))
+      expect(symlinks[0]?.target).toBe(join(repoDir, "real-file.md"))
     }))
 
   test("detects broken symlinks", () =>
-    withTestEnvSync(({ vaultDir }) => {
+    withTestEnvSync(({ repoDir }) => {
       // Create symlink to nonexistent target
-      symlinkSync(join(vaultDir, "nonexistent"), join(vaultDir, "broken-link"))
+      symlinkSync(join(repoDir, "nonexistent"), join(repoDir, "broken-link"))
 
-      const symlinks = scanSymlinks(vaultDir)
+      const symlinks = scanSymlinks(repoDir)
 
       expect(symlinks).toHaveLength(1)
-      expect(symlinks[0]?.path).toBe(join(vaultDir, "broken-link"))
-      expect(symlinks[0]?.target).toBe(join(vaultDir, "nonexistent"))
+      expect(symlinks[0]?.path).toBe(join(repoDir, "broken-link"))
+      expect(symlinks[0]?.target).toBe(join(repoDir, "nonexistent"))
     }))
 
   test("detects circular symlinks", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      symlinkSync(vaultDir, join(vaultDir, "circular"))
+    withTestEnvSync(({ repoDir }) => {
+      symlinkSync(repoDir, join(repoDir, "circular"))
 
-      const symlinks = scanSymlinks(vaultDir)
+      const symlinks = scanSymlinks(repoDir)
 
       expect(symlinks).toHaveLength(1)
-      expect(symlinks[0]?.path).toBe(join(vaultDir, "circular"))
-      expect(symlinks[0]?.target).toBe(vaultDir)
+      expect(symlinks[0]?.path).toBe(join(repoDir, "circular"))
+      expect(symlinks[0]?.target).toBe(repoDir)
     }))
 
   test("scans recursively when enabled", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      mkdirSync(join(vaultDir, "subdir"))
-      writeFileSync(join(vaultDir, "subdir", "file.md"), "# File")
+    withTestEnvSync(({ repoDir }) => {
+      mkdirSync(join(repoDir, "subdir"))
+      writeFileSync(join(repoDir, "subdir", "file.md"), "# File")
       symlinkSync(
-        join(vaultDir, "subdir", "file.md"),
-        join(vaultDir, "subdir", "link.md"),
+        join(repoDir, "subdir", "file.md"),
+        join(repoDir, "subdir", "link.md"),
       )
 
       // Non-recursive: should not find symlink in subdir
-      const nonRecursive = scanSymlinks(vaultDir, undefined, false)
+      const nonRecursive = scanSymlinks(repoDir, undefined, false)
       expect(nonRecursive).toHaveLength(0)
 
       // Recursive: should find symlink in subdir
-      const recursive = scanSymlinks(vaultDir, undefined, true)
+      const recursive = scanSymlinks(repoDir, undefined, true)
       expect(recursive).toHaveLength(1)
-      expect(recursive[0]?.path).toBe(join(vaultDir, "subdir", "link.md"))
+      expect(recursive[0]?.path).toBe(join(repoDir, "subdir", "link.md"))
     }))
 
   test("skips hidden symlinks", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      symlinkSync(vaultDir, join(vaultDir, ".hidden-link"))
-      symlinkSync(vaultDir, join(vaultDir, "visible-link"))
+    withTestEnvSync(({ repoDir }) => {
+      symlinkSync(repoDir, join(repoDir, ".hidden-link"))
+      symlinkSync(repoDir, join(repoDir, "visible-link"))
 
-      const symlinks = scanSymlinks(vaultDir)
+      const symlinks = scanSymlinks(repoDir)
 
       expect(symlinks).toHaveLength(1)
-      expect(symlinks[0]?.path).toBe(join(vaultDir, "visible-link"))
+      expect(symlinks[0]?.path).toBe(join(repoDir, "visible-link"))
     }))
 
   test("returns empty array when no symlinks", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      writeFileSync(join(vaultDir, "file.md"), "# File")
-      mkdirSync(join(vaultDir, "dir"))
+    withTestEnvSync(({ repoDir }) => {
+      writeFileSync(join(repoDir, "file.md"), "# File")
+      mkdirSync(join(repoDir, "dir"))
 
-      const symlinks = scanSymlinks(vaultDir)
+      const symlinks = scanSymlinks(repoDir)
 
       expect(symlinks).toHaveLength(0)
     }))
@@ -161,9 +161,9 @@ describe("scanSymlinks", () => {
 
 describe("Case Sensitivity", () => {
   test("detectCaseSensitivity returns boolean", () =>
-    withTestEnvSync(({ vaultDir }) => {
+    withTestEnvSync(({ repoDir }) => {
       // This test is environment-dependent but should always return a boolean
-      const result = detectCaseSensitivity(vaultDir)
+      const result = detectCaseSensitivity(repoDir)
       expect(typeof result).toBe("boolean")
     }))
 
@@ -178,11 +178,11 @@ describe("Case Sensitivity", () => {
   })
 
   test("detectCaseCollisions finds no collisions in normal case", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      writeFileSync(join(vaultDir, "file1.md"), "# File 1")
-      writeFileSync(join(vaultDir, "file2.md"), "# File 2")
+    withTestEnvSync(({ repoDir }) => {
+      writeFileSync(join(repoDir, "file1.md"), "# File 1")
+      writeFileSync(join(repoDir, "file2.md"), "# File 2")
 
-      const collisions = detectCaseCollisions(vaultDir)
+      const collisions = detectCaseCollisions(repoDir)
 
       expect(collisions).toHaveLength(0)
     }))
@@ -190,56 +190,56 @@ describe("Case Sensitivity", () => {
   // This test is only valid on case-sensitive filesystems (Linux)
   // On macOS/Windows, creating File.md and file.md will overwrite
   test("detectCaseCollisions finds collisions on case-sensitive fs", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      const isCaseSensitive = detectCaseSensitivity(vaultDir)
+    withTestEnvSync(({ repoDir }) => {
+      const isCaseSensitive = detectCaseSensitivity(repoDir)
 
       if (isCaseSensitive) {
         // Create files that differ only by case
-        writeFileSync(join(vaultDir, "File.md"), "# File")
-        writeFileSync(join(vaultDir, "file.md"), "# file")
+        writeFileSync(join(repoDir, "File.md"), "# File")
+        writeFileSync(join(repoDir, "file.md"), "# file")
 
-        const collisions = detectCaseCollisions(vaultDir)
+        const collisions = detectCaseCollisions(repoDir)
 
         expect(collisions).toHaveLength(1)
         expect(collisions[0]?.paths).toHaveLength(2)
-        expect(collisions[0]?.paths).toContain(join(vaultDir, "File.md"))
-        expect(collisions[0]?.paths).toContain(join(vaultDir, "file.md"))
+        expect(collisions[0]?.paths).toContain(join(repoDir, "File.md"))
+        expect(collisions[0]?.paths).toContain(join(repoDir, "file.md"))
       } else {
         // On case-insensitive fs, we can't create case-colliding files
         // Just verify the function handles empty case
-        const collisions = detectCaseCollisions(vaultDir)
+        const collisions = detectCaseCollisions(repoDir)
         expect(Array.isArray(collisions)).toBe(true)
       }
     }))
 
   test("detectCaseCollisions scans recursively when enabled", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      const isCaseSensitive = detectCaseSensitivity(vaultDir)
+    withTestEnvSync(({ repoDir }) => {
+      const isCaseSensitive = detectCaseSensitivity(repoDir)
 
       if (isCaseSensitive) {
-        mkdirSync(join(vaultDir, "subdir"))
-        writeFileSync(join(vaultDir, "subdir", "Test.md"), "# Test")
-        writeFileSync(join(vaultDir, "subdir", "test.md"), "# test")
+        mkdirSync(join(repoDir, "subdir"))
+        writeFileSync(join(repoDir, "subdir", "Test.md"), "# Test")
+        writeFileSync(join(repoDir, "subdir", "test.md"), "# test")
 
         // Non-recursive: should not find collision in subdir
-        const nonRecursive = detectCaseCollisions(vaultDir, false)
+        const nonRecursive = detectCaseCollisions(repoDir, false)
         expect(nonRecursive).toHaveLength(0)
 
         // Recursive: should find collision in subdir
-        const recursive = detectCaseCollisions(vaultDir, true)
+        const recursive = detectCaseCollisions(repoDir, true)
         expect(recursive).toHaveLength(1)
       }
     }))
 
   test("detectCaseCollisions skips hidden files", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      const isCaseSensitive = detectCaseSensitivity(vaultDir)
+    withTestEnvSync(({ repoDir }) => {
+      const isCaseSensitive = detectCaseSensitivity(repoDir)
 
       if (isCaseSensitive) {
-        writeFileSync(join(vaultDir, ".Hidden"), "hidden")
-        writeFileSync(join(vaultDir, ".hidden"), "hidden2")
+        writeFileSync(join(repoDir, ".Hidden"), "hidden")
+        writeFileSync(join(repoDir, ".hidden"), "hidden2")
 
-        const collisions = detectCaseCollisions(vaultDir)
+        const collisions = detectCaseCollisions(repoDir)
         // Hidden files are skipped, so no collisions detected
         expect(collisions).toHaveLength(0)
       }

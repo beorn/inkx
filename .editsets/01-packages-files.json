@@ -1,0 +1,9 @@
+{
+  "id": "file-rename-vault-to-repo-1769467500748",
+  "operation": "file-rename",
+  "pattern": "vault",
+  "replacement": "repo",
+  "fileOps": [],
+  "importEdits": [],
+  "createdAt": "2026-01-26T22:45:00.748Z"
+}

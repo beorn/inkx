@@ -7,7 +7,7 @@
  * @example
  * ```typescript
  * const hooks = createChaosHooks({ mutationDropRate: 0.1 });
- * using vault = runGenerator(createVault(path, { hooks }));
+ * using repo = runGenerator(createRepo(path, { hooks }));
  *
  * // Run test scenario...
  *
@@ -15,7 +15,7 @@
  * const report = generateChaosReport({
  *   scenario: { name: "concurrent-updates", seed: 12345 },
  *   hooks,
- *   vault,
+ *   repo,
  *   invariantsViolated: ["orphaned nodes found"],
  * });
  *
@@ -25,8 +25,8 @@
 
 import type { KNode } from "@km/core"
 import type { ChaosHooks, ChaosEvent, ChaosStats } from "./chaos-hooks.ts"
-import type { ChaosFakeVault, ConsistencyIssue } from "./chaos-fake-vault.ts"
-import type { Vault } from "../vault.ts"
+import type { ChaosFakeRepo, ConsistencyIssue } from "./chaos-fake-repo.ts"
+import type { Repo } from "../repo.ts"
 
 /**
  * Scenario configuration for chaos testing
@@ -104,12 +104,12 @@ export interface ChaosReport {
 export interface GenerateReportOptions {
   /** The chaos scenario being tested */
   scenario: ChaosScenario
-  /** ChaosHooks instance (if using real Vault) */
+  /** ChaosHooks instance (if using real Repo) */
   hooks?: ChaosHooks
-  /** ChaosFakeVault instance (if using FakeVault) */
-  fakeVault?: ChaosFakeVault
-  /** Real Vault instance (for state inspection) */
-  vault?: Vault
+  /** ChaosFakeRepo instance (if using FakeRepo) */
+  fakeRepo?: ChaosFakeRepo
+  /** Real Repo instance (for state inspection) */
+  repo?: Repo
   /** List of invariants that were violated */
   invariantsViolated?: string[]
   /** Whether the test passed */
@@ -122,8 +122,8 @@ export interface GenerateReportOptions {
  * Generate a chaos report from test results.
  *
  * Can work with either:
- * - ChaosHooks + real Vault (application-level chaos)
- * - ChaosFakeVault (in-memory chaos testing)
+ * - ChaosHooks + real Repo (application-level chaos)
+ * - ChaosFakeRepo (in-memory chaos testing)
  *
  * @param options - Report generation options
  * @returns Complete chaos report
@@ -134,8 +134,8 @@ export function generateChaosReport(
   const {
     scenario,
     hooks,
-    fakeVault,
-    vault,
+    fakeRepo,
+    repo,
     invariantsViolated = [],
     passed = invariantsViolated.length === 0,
     durationMs,
@@ -151,7 +151,7 @@ export function generateChaosReport(
   }
 
   // Capture state snapshot
-  const stateSnapshot = captureStateSnapshot(fakeVault, vault)
+  const stateSnapshot = captureStateSnapshot(fakeRepo, repo)
 
   // Generate recommendations
   const recommendations = generateRecommendations(
@@ -175,26 +175,26 @@ export function generateChaosReport(
 }
 
 /**
- * Capture current state snapshot from vault
+ * Capture current state snapshot from repo
  */
 function captureStateSnapshot(
-  fakeVault?: ChaosFakeVault,
-  vault?: Vault,
+  fakeRepo?: ChaosFakeRepo,
+  repo?: Repo,
 ): ChaosStateSnapshot {
   const timestamp = Date.now()
 
-  if (fakeVault) {
-    // Use ChaosFakeVault's built-in inspection methods
-    const orphanedNodes = fakeVault.getOrphanedNodes()
-    const duplicateMap = fakeVault.getDuplicateIds()
+  if (fakeRepo) {
+    // Use ChaosFakeRepo's built-in inspection methods
+    const orphanedNodes = fakeRepo.getOrphanedNodes()
+    const duplicateMap = fakeRepo.getDuplicateIds()
     const duplicates = Array.from(duplicateMap.entries()).map(
       ([id, count]) => ({
         id,
         count,
       }),
     )
-    const consistencyIssues = fakeVault.validateConsistency()
-    const allNodes = fakeVault.getAllNodes()
+    const consistencyIssues = fakeRepo.validateConsistency()
+    const allNodes = fakeRepo.getAllNodes()
 
     return {
       orphanedNodes,
@@ -205,20 +205,20 @@ function captureStateSnapshot(
     }
   }
 
-  if (vault) {
-    // For real vaults, we have limited inspection capabilities
+  if (repo) {
+    // For real repos, we have limited inspection capabilities
     // Try to get root children to estimate node count
-    const rootChildren = vault.getChildren(null)
+    const rootChildren = repo.getChildren(null)
     return {
       orphanedNodes: [], // Can't detect without full scan
-      duplicates: [], // Can't detect in real vault
+      duplicates: [], // Can't detect in real repo
       consistencyIssues: [], // Would need validation pass
       nodeCount: rootChildren.length, // Approximation
       timestamp,
     }
   }
 
-  // No vault available
+  // No repo available
   return {
     orphanedNodes: [],
     duplicates: [],

@@ -14,8 +14,8 @@ import { Command } from "commander"
 import { runGenerator, createRepo } from "@km/storage"
 
 export const statsCommand = new Command("stats")
-  .description("Show vault statistics (domain object example)")
-  .argument("[path]", "Path to vault (default: cwd)")
+  .description("Show repo statistics (domain object example)")
+  .argument("[path]", "Path to repo (default: cwd)")
   .action((path) => {
     // Use 'using' for automatic cleanup when scope exits
     // runGenerator consumes the generator without progress display

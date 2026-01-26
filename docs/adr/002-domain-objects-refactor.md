@@ -34,7 +34,7 @@ On Jan 25, commit `8014128` introduced "singleton wrappers for backwards compati
 1. **Gradual migration never completed** — With fallbacks available, old patterns persisted
 2. **Fix-on-top-of-fix cycle** — Many commits patching symptoms instead of removing root cause:
    - `d1321c1 fix(storage): add missing getDb imports and fix incorrect method calls`
-   - `973bf7c fix(storage): import db-accepting functions directly in vault and store`
+   - `973bf7c fix(storage): import db-accepting functions directly in repo and store`
    - `5b03ab1 fix(test): restore 11 tests after singleton removal`
 3. **Inconsistent codebase** — Some code used new patterns, some still used singletons
 4. **False sense of progress** — Exports removed but internal code still depended on singletons
@@ -601,7 +601,7 @@ id: abc123
 21. **Implement createRepo()** — files + data, auto-detection
 22. **Implement createBareRepo()** — data only, no files (daemon/db-only)
 23. **Implement createTestRepo()** — Map data store, no files (fastest)
-24. **Migrate existing createVault() callers**
+24. **Migrate existing createRepo() callers**
 25. **Delete old store.ts** — Replaced by DataStore
 
 ### Phase 5: DataStore vs Repo Audit
@@ -621,10 +621,10 @@ id: abc123
 **Terminology mapping:**
 | Old term | New term |
 |----------|----------|
-| Vault | Repo |
+| Repo | Repo |
 | Store | DataStore |
 | FileStore | FileTree |
-| vault path | repo path |
+| repo path | repo path |
 
 ---
 
@@ -667,7 +667,7 @@ bun km view /tmp/repo   # TUI works
 ### In Progress
 
 - **Phase 1: Singleton Removal** — `getDb()`, `setDb()`, `isMemoryMode()` still used in 50+ places
-- **Vault → Repo Migration** — Current `Vault` (vault.ts) coexists with new `Repo` (repo.ts)
+- **Repo → Repo Migration** — Current `Vault` (vault.ts) coexists with new `Repo` (repo.ts)
 
 ### Migration Path
 
@@ -675,7 +675,7 @@ The new `Repo` interface aligns with ADR-002's composition pattern:
 
 ```typescript
 // New pattern (ADR-002 compliant)
-using repo = createRepo("/path/to/vault")
+using repo = createRepo("/path/to/repo")
 const tasks = repo.data.getAllNodes().filter(n => n.type === "task")
 
 // Bare repo for daemon/API (no files)
@@ -685,18 +685,18 @@ using repo = createBareRepo(dataStore)
 using repo = createTestRepo()
 ```
 
-Existing `Vault` (createVault) remains for backwards compatibility during migration. The key differences:
+Existing `Repo` (createRepo) remains for backwards compatibility during migration. The key differences:
 
-| Aspect | Vault (legacy) | Repo (ADR-002) |
+| Aspect | Repo (legacy) | Repo (ADR-002) |
 |--------|----------------|----------------|
-| Data access | `vault.getNode()` | `repo.data.getNode()` |
+| Data access | `repo.getNode()` | `repo.data.getNode()` |
 | File access | N/A | `repo.files?.read()` |
 | Composition | Monolithic | DataStore + FileTree + Config |
 | Testing | Requires full load | `createTestRepo()` instant |
 
 ### Phase 5 Audit Findings
 
-**Vault methods used across codebase:**
+**Repo methods used across codebase:**
 
 | Method | DataStore? | Usage Pattern |
 |--------|------------|---------------|
@@ -711,7 +711,7 @@ Existing `Vault` (createVault) remains for backwards compatibility during migrat
 | `getSubtree/getAncestors` | ❌ Vault only | Tree queries |
 | `appendTaskToFile` | ❌ Vault only | File mutation |
 
-**Conclusion:** Most code genuinely needs Vault features. Pure DataStore usage is rare.
+**Conclusion:** Most code genuinely needs Repo features. Pure DataStore usage is rare.
 The pattern should be:
 - Use `DataStore` for pure tree operations in isolated components
-- Use `Vault` (or `Repo` after migration) for full application features
+- Use `Repo` for full application features

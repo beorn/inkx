@@ -7,7 +7,7 @@
 import React from "react"
 import { Box, Text } from "inkx"
 import type { KNode } from "@km/core"
-import { useVault, type Vault } from "../vault-context.tsx"
+import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderRich } from "../text/index.ts"
 import { wrapText } from "../layout/index.ts"
@@ -23,9 +23,9 @@ export function DetailPane({
   width,
   height,
 }: DetailPaneProps): React.ReactElement {
-  const vault = useVault()
+  const repo = useRepo()
   const innerWidth = Math.max(10, width - 6) // Account for border + paddingX(1)
-  const title = getNodeDisplayName(vault, node)
+  const title = getNodeDisplayName(repo, node)
 
   // Get fields
   const statusInfo = getStatusDisplay(node.task_status)
@@ -33,7 +33,7 @@ export function DetailPane({
   const assignedTo = node.assigned_to
 
   // Get project path
-  const projectPath = getProjectPath(vault, node)
+  const projectPath = getProjectPath(repo, node)
 
   // Extract references from content
   const refs = extractReferences(node.content)
@@ -59,14 +59,14 @@ export function DetailPane({
   }
 
   // Get subtasks (children that are tasks)
-  const children = vault.getChildren(node.id)
+  const children = repo.getChildren(node.id)
   const subtasks = children.filter((c: KNode) => c.type === "task")
 
   // Get backlinks
-  const backlinks = vault.getBacklinks(node.id)
+  const backlinks = repo.getBacklinks(node.id)
   const backlinkNodes: KNode[] = []
   for (const link of backlinks) {
-    const sourceNode = vault.getNode(link.source_id)
+    const sourceNode = repo.getNode(link.source_id)
     if (sourceNode) {
       backlinkNodes.push(sourceNode)
     }
@@ -236,7 +236,7 @@ export function DetailPane({
                 {getSubtaskCheckbox(task.task_status)}{" "}
               </Text>
               <Text dimColor={task.task_status === "done"}>
-                {task.content || getNodeDisplayName(vault, task)}
+                {task.content || getNodeDisplayName(repo, task)}
               </Text>
             </Text>
           ))}
@@ -259,7 +259,7 @@ export function DetailPane({
           </Text>
           {backlinkNodes.slice(0, maxBacklinks).map((bl) => (
             <Text key={bl.id} wrap="truncate" dimColor>
-              {"- "}[[{getNodeDisplayName(vault, bl)}]]
+              {"- "}[[{getNodeDisplayName(repo, bl)}]]
             </Text>
           ))}
           {backlinkNodes.length > maxBacklinks && (
@@ -379,17 +379,17 @@ function extractReferences(content: string | undefined): References {
 }
 
 // Build project path (ancestors to root)
-function getProjectPath(vault: Vault, node: KNode): string[] {
+function getProjectPath(repo: Repo, node: KNode): string[] {
   const path: string[] = []
   let currentId = node.parent_id
 
   while (currentId) {
-    const parent = vault.getNode(currentId)
+    const parent = repo.getNode(currentId)
     if (!parent) break
 
     // Only include folders and files (not sections or the board root)
     if (parent.type === "folder" || parent.type === "file") {
-      path.unshift(getNodeDisplayName(vault, parent))
+      path.unshift(getNodeDisplayName(repo, parent))
     }
     currentId = parent.parent_id
   }

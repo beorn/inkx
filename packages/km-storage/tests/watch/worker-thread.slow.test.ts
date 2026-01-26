@@ -22,13 +22,13 @@ import { closeDb, getDb } from "../../src/db-instance.ts"
 import { runWithKmDir } from "../../src/emit.ts"
 
 const TEST_DIR = "/tmp/kmtest-worker-thread"
-const VAULT_DIR = join(TEST_DIR, "vault")
-const KM_DIR = join(VAULT_DIR, ".km")
+const REPO_DIR = join(TEST_DIR, "repo")
+const KM_DIR = join(REPO_DIR, ".km")
 
 describe.serial("Worker Thread Integration", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
   })
 
@@ -41,13 +41,13 @@ describe.serial("Worker Thread Integration", () => {
     const events = new EventEmitter()
 
     // Create initial file
-    writeFileSync(join(VAULT_DIR, "test.md"), "# Test\n\n- [ ] Task\n")
+    writeFileSync(join(REPO_DIR, "test.md"), "# Test\n\n- [ ] Task\n")
 
     // Create SyncManager with default useWorker: true
     // SyncManager handles its own runWithKmDir internally for async operations
     await using syncManager = new SyncManager({
       db: getDb(),
-      vaultPath: VAULT_DIR,
+      repoPath: REPO_DIR,
       debounceFs: 100,
       debounceApply: 50,
       conflictStrategy: "last_write_wins",
@@ -83,7 +83,7 @@ describe.serial("Worker Thread Integration", () => {
     })
 
     // Make an external edit
-    writeFileSync(join(VAULT_DIR, "test.md"), "# Test\n\n- [x] Task\n")
+    writeFileSync(join(REPO_DIR, "test.md"), "# Test\n\n- [x] Task\n")
 
     // Wait for worker to detect and sync (with timeout)
     await Promise.race([

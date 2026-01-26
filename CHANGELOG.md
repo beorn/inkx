@@ -66,7 +66,7 @@
 - **board,storage:** add Board and Config domain objects ([40beb76](https://github.com/beorn/km/commit/40beb76f09c9be4d926712366740dd201c7f4741))
 - **cli:** add stats command as domain object migration example ([3eb7473](https://github.com/beorn/km/commit/3eb74737505d8b97516620f44e67d24ec830412a))
 - **core:** add Service interface and generator utilities ([3d45cc4](https://github.com/beorn/km/commit/3d45cc4efda983c7de6a70cba4eddd960e560a5b))
-- **storage:** add Vault domain object and createVault factory ([7b4a052](https://github.com/beorn/km/commit/7b4a05212caae07ba9f344aa36fe287354f378d9))
+- **storage:** add Repo domain object and createRepo factory ([7b4a052](https://github.com/beorn/km/commit/7b4a05212caae07ba9f344aa36fe287354f378d9))
 - **storage:** add Watcher service and createWatcher factory ([a37a67b](https://github.com/beorn/km/commit/a37a67bb2173ff5d0b2053df3ad93c6dfc439aec))
 
 ## 0.1.1 (2026-01-23)
@@ -87,7 +87,7 @@
 - **cli:** add bootstrap entry point for early loading indicator ([81dc923](https://github.com/beorn/km/commit/81dc92373eee9e078264d80f6b482fd04e2d7cab))
 - **cli:** improve /commit with bd sync and submodule guidance ([e83849e](https://github.com/beorn/km/commit/e83849ef8895effdca59de4185af4f846785d83b))
 - **cli:** improve bd commands and add task progress utility ([4d86cf6](https://github.com/beorn/km/commit/4d86cf6564cbbc29db86c0a120a8bc8c26e52033))
-- **cli:** improve progress reporting for vault loading ([edf3b93](https://github.com/beorn/km/commit/edf3b930d5819a24ad6ee0ff2d1d0191853b4ae4))
+- **cli:** improve progress reporting for repo loading ([edf3b93](https://github.com/beorn/km/commit/edf3b930d5819a24ad6ee0ff2d1d0191853b4ae4))
 - **cli:** improve view loading with task progress ([84f5d79](https://github.com/beorn/km/commit/84f5d79a5653fcb1057ff9cd1501aae296389e71))
 - **cli:** integrate progressx for progress indicators ([30a6af9](https://github.com/beorn/km/commit/30a6af9d2b53a522d313f38a2861b4402796729a))
 - **cli:** restore loading indicator with dynamic storage import ([1171730](https://github.com/beorn/km/commit/117173049ffda7249d86b0553500ad6f0e131654))

@@ -8,11 +8,11 @@
  * - Navigation
  * - Expand/collapse
  *
- * Uses createFakeVault for fast in-memory testing.
+ * Uses createFakeRepo for fast in-memory testing.
  */
 
 import { describe, test, expect, afterEach } from "bun:test"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { GENERIC_BOARD } from "./fixtures/generic-board-fixture.ts"
 
@@ -27,18 +27,18 @@ describe("TUI View Tests", () => {
   })
 
   test("should display cards view by default", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
-    board = await createBoardTest(vault)
+    const repo = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
+    board = await createBoardTest(repo)
     const screenshot = board.screenshot()
 
-    // Should show content from the vault
+    // Should show content from the repo
     expect(screenshot.length).toBeGreaterThan(0)
     expect(screenshot).toBeTruthy()
   })
 
   test("should switch views with 'v' key", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
-    board = await createBoardTest(vault)
+    const repo = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
+    board = await createBoardTest(repo)
 
     // Initial view
     const initial = board.screenshot()
@@ -69,8 +69,8 @@ describe("TUI View Tests", () => {
   // The visual rendering tests above cover the core board rendering functionality.
 
   test("should navigate with arrow keys", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
-    board = await createBoardTest(vault)
+    const repo = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
+    board = await createBoardTest(repo)
 
     // Navigate right
     board.press("right")
@@ -99,8 +99,8 @@ describe("TUI View Tests", () => {
   })
 
   test("should navigate with vim keys", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
-    board = await createBoardTest(vault)
+    const repo = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
+    board = await createBoardTest(repo)
 
     // Navigate with h/j/k/l
     board.press("l") // right
@@ -113,8 +113,8 @@ describe("TUI View Tests", () => {
   })
 
   test("should expand/collapse with Enter", async () => {
-    const vault = createFakeVault({ nodes: GENERIC_BOARD.nodes })
-    board = await createBoardTest(vault)
+    const repo = createFakeRepo({ nodes: GENERIC_BOARD.nodes })
+    board = await createBoardTest(repo)
 
     // Navigate to an item
     board.press("j")

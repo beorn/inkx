@@ -30,7 +30,7 @@ Any node can have properties. A node with a `status` property is a task. A node 
 Nodes form a tree representing your markdown files and their content:
 
 ```
-vault/
+repo/
 ├── folder          # Directory
 ├── file            # .md file (merged with H1 if names match)
 │   ├── section     # ## Heading (H2+)

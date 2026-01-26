@@ -76,7 +76,7 @@ describe("BottomBar", () => {
   }
 
   const mockBoardState: TUIBoardState = {
-    rootPath: "/tmp/test-vault",
+    rootPath: "/tmp/test-repo",
     rootId: "root-123",
     colIndex: 0,
     cardIndex: 0,
@@ -135,14 +135,14 @@ describe("BottomBar", () => {
     )
     const output = lastFrameText() || ""
     expect(output).toContain("DISK")
-    expect(output).toContain("/tmp/test-vault")
+    expect(output).toContain("/tmp/test-repo")
   })
 
   it("shows home directory as tilde", () => {
     const homeDir = process.env.HOME || "/Users/test"
     const boardStateWithHome: TUIBoardState = {
       ...mockBoardState,
-      rootPath: `${homeDir}/Documents/vault`,
+      rootPath: `${homeDir}/Documents/repo`,
     }
     const { lastFrameText } = render(
       <BottomBar
@@ -154,7 +154,7 @@ describe("BottomBar", () => {
       />,
     )
     const output = lastFrameText() || ""
-    expect(output).toContain("~/Documents/vault")
+    expect(output).toContain("~/Documents/repo")
   })
 
   it("shows node count with clipboard icon", () => {

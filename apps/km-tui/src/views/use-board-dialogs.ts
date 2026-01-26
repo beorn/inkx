@@ -6,7 +6,7 @@
  */
 import { useCallback } from "react"
 import type { KNode } from "@km/core"
-import type { Vault } from "../vault-context.tsx"
+import type { Repo } from "../repo-context.tsx"
 import type { TUIBoardState } from "../types.ts"
 import { actions } from "../ui-reducer.ts"
 
@@ -15,7 +15,7 @@ import { actions } from "../ui-reducer.ts"
 // =============================================================================
 
 interface UseBoardDialogsParams {
-  vault: Vault
+  repo: Repo
   state: TUIBoardState
   dispatch: (action: ReturnType<(typeof actions)[keyof typeof actions]>) => void
 }
@@ -36,7 +36,7 @@ interface BoardDialogHandlers {
  * Extracts dialog logic to improve Board.tsx maintainability.
  */
 export function useBoardDialogs({
-  vault,
+  repo,
   state,
   dispatch,
 }: UseBoardDialogsParams): BoardDialogHandlers {
@@ -54,20 +54,20 @@ export function useBoardDialogs({
       const nodeToMove = card.node.link_to || card.node.id
 
       // Calculate sort order (add at end of target)
-      const targetChildren = vault.getChildren(targetNode.id)
+      const targetChildren = repo.getChildren(targetNode.id)
       const lastChild = targetChildren[targetChildren.length - 1]
       const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0
 
-      // Update database via vault (handles memory/disk mode)
-      vault.moveNode(nodeToMove, targetNode.id, newSortOrder)
+      // Update database via repo (handles memory/disk mode)
+      repo.moveNode(nodeToMove, targetNode.id, newSortOrder)
 
       // Track as recent project
       dispatch(actions.addRecentProject(targetNode.id))
 
-      // Close picker - columns will be re-derived from vault on next render
+      // Close picker - columns will be re-derived from repo on next render
       dispatch(actions.hideProjectPicker())
     },
-    [vault, state, dispatch],
+    [repo, state, dispatch],
   )
 
   const handleProjectCancel = useCallback(() => {
@@ -77,7 +77,7 @@ export function useBoardDialogs({
   // Handler for new item creation
   const handleNewItemCreate = useCallback(
     (_newNodeId: string) => {
-      // Close dialog - columns will be re-derived from vault on next render
+      // Close dialog - columns will be re-derived from repo on next render
       dispatch(actions.hideNewItemDialog())
     },
     [dispatch],

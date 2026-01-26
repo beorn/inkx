@@ -1,5 +1,5 @@
 /**
- * FakeVault - Test Double for Repo
+ * FakeRepo - Test Double for Repo
  *
  * In-memory Repo implementation for unit tests that don't need
  * real SQLite or file parsing. Uses canned data.
@@ -7,15 +7,15 @@
 
 import type { KNode, TaskStatus } from "@km/core"
 import type { Repo, RepoStats } from "../repo.ts"
-import type { LoadError } from "../vault.ts"
+import type { LoadError } from "../repo.ts"
 import type { Link } from "../db.ts"
-import type { StepYield } from "../vault-loader.ts"
+import type { StepYield } from "../repo-loader.ts"
 
 /**
- * Options for createFakeVault
+ * Options for createFakeRepo
  */
-export interface FakeVaultOptions {
-  /** Path to report (default: "/fake/vault") */
+export interface FakeRepoOptions {
+  /** Path to report (default: "/fake/repo") */
   path?: string
 
   /** Initial nodes (can also add via addNode) */
@@ -34,7 +34,7 @@ export interface FakeVaultOptions {
 /**
  * Extended Repo interface with test helpers
  */
-export interface FakeVault extends Repo {
+export interface FakeRepo extends Repo {
   /** Get all nodes (for test assertions) */
   getAllNodes(): KNode[]
 
@@ -46,26 +46,26 @@ export interface FakeVault extends Repo {
 }
 
 /**
- * Create a FakeVault for testing.
+ * Create a FakeRepo for testing.
  *
  * @example
  * // With canned data
- * const vault = createFakeVault({
+ * const repo = createFakeRepo({
  *   nodes: [
  *     { id: "1", type: "section", content: "Tasks", parentId: null, ... },
  *     { id: "2", type: "task", content: "Do something", parentId: "1", ... },
  *   ],
  * });
  *
- * // Empty vault
- * const vault = createFakeVault();
- * vault.addNode(null, { type: "section", content: "New section" });
+ * // Empty repo
+ * const repo = createFakeRepo();
+ * repo.addNode(null, { type: "section", content: "New section" });
  *
  * @param options - Configuration with initial data
- * @returns FakeVault instance
+ * @returns FakeRepo instance
  */
-export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
-  const path = options.path ?? "/fake/vault"
+export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
+  const path = options.path ?? "/fake/repo"
   const initialNodes = options.nodes ?? []
   const initialLinks = options.links ?? []
   const loadErrors = options.loadErrors ?? []
@@ -85,7 +85,7 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
   // Initialize with provided data
   reset()
 
-  const vault: FakeVault = {
+  const repo: FakeRepo = {
     get path() {
       return path
     },
@@ -103,43 +103,43 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
     },
 
     get deferredFiles() {
-      return [] // FakeVault never has deferred files
+      return [] // FakeRepo never has deferred files
     },
 
     get database() {
-      // FakeVault doesn't have a real database - return null
-      // Tests that need database access should use a real vault
+      // FakeRepo doesn't have a real database - return null
+      // Tests that need database access should use a real repo
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return null as any
     },
 
-    // Repo-specific properties (stubs for FakeVault)
+    // Repo-specific properties (stubs for FakeRepo)
     get data() {
-      // FakeVault doesn't have a real DataStore
+      // FakeRepo doesn't have a real DataStore
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return null as any
     },
 
     get files() {
-      // FakeVault doesn't have files
+      // FakeRepo doesn't have files
       return null
     },
 
     get config() {
-      // FakeVault returns minimal config
+      // FakeRepo returns minimal config
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return {} as any
     },
 
     async sync() {
-      // FakeVault is in-memory, sync is a no-op
+      // FakeRepo is in-memory, sync is a no-op
       return { fromFiles: 0, fromData: 0, conflicts: [] }
     },
 
     // --- Query operations ---
 
     needsRebuild() {
-      return false // FakeVault is in-memory, never needs rebuild
+      return false // FakeRepo is in-memory, never needs rebuild
     },
 
     getNode(id) {
@@ -227,7 +227,7 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
     query(expression) {
       ensureNotClosed()
       // Simple implementation: basic type filtering for tests
-      // Full query language support is tested via real vault
+      // Full query language support is tested via real repo
 
       // Handle "type:X" queries
       const typeMatch = expression.match(/^type:(\w+)$/)
@@ -355,12 +355,12 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
 
     appendTaskToFile(_filePath, _content, _options) {
       ensureNotClosed()
-      // No-op in fake vault - filesystem operations not supported
+      // No-op in fake repo - filesystem operations not supported
     },
 
     pathExists(_relativePath) {
       ensureNotClosed()
-      // Always return false in fake vault
+      // Always return false in fake repo
       return false
     },
 
@@ -378,7 +378,7 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       // Unknown query - throw helpful error
       // Note: Use getChildCounts() instead of rawQuery for child count batching
       throw new Error(
-        `FakeVault.rawQuery: unsupported query pattern: ${sql.slice(0, 100)}`,
+        `FakeRepo.rawQuery: unsupported query pattern: ${sql.slice(0, 100)}`,
       )
     },
 
@@ -386,12 +386,12 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
 
     watch() {
       ensureNotClosed()
-      throw new Error("FakeVault does not support watching")
+      throw new Error("FakeRepo does not support watching")
     },
 
     *refresh(): Generator<StepYield, void, unknown> {
       ensureNotClosed()
-      // No-op for fake vault - just yield a progress update
+      // No-op for fake repo - just yield a progress update
       yield { current: 1, total: 1 }
     },
 
@@ -418,7 +418,7 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
     },
   }
 
-  return vault
+  return repo
 
   function reset() {
     nodes = new Map()
@@ -433,7 +433,7 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
 
   function ensureNotClosed() {
     if (closed) {
-      throw new Error("Vault is closed")
+      throw new Error("Repo is closed")
     }
   }
 }

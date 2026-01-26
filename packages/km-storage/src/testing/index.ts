@@ -4,8 +4,8 @@
  * Test doubles and helpers for storage layer testing.
  */
 
-export { createFakeVault } from "./fake-vault.ts"
-export { createChaosFakeVault } from "./chaos-fake-vault.ts"
+export { createFakeRepo } from "./fake-repo.ts"
+export { createChaosFakeRepo } from "./chaos-fake-repo.ts"
 export { createChaosHooks, createSeededRandom } from "./chaos-hooks.ts"
 export {
   generateChaosReport,
@@ -21,15 +21,15 @@ export {
   isMockMode,
 } from "./env.ts"
 
-export type { FakeVault, FakeVaultOptions } from "./fake-vault.ts"
+export type { FakeRepo, FakeRepoOptions } from "./fake-repo.ts"
 export type { TestEnv, TestMode } from "./env.ts"
 export type {
-  ChaosFakeVault,
-  ChaosFakeVaultOptions,
+  ChaosFakeRepo,
+  ChaosFakeRepoOptions,
   TransactionLogEntry,
   CorruptionType,
   ConsistencyIssue,
-} from "./chaos-fake-vault.ts"
+} from "./chaos-fake-repo.ts"
 export type {
   ChaosHooksConfig,
   ChaosEvent,

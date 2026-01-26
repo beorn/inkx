@@ -57,7 +57,7 @@ interface DaemonStatus {
   startTime?: number
   eventsProcessed?: number
   pendingWrites?: number
-  vaultPath?: string
+  repoPath?: string
 }
 
 /**
@@ -70,12 +70,12 @@ class KmDaemon extends EventEmitter {
   private eventsProcessed: number = 0
   private subscribers: Set<Socket> = new Set()
   private paths: ReturnType<typeof getDaemonPaths>
-  private vaultPath: string
+  private repoPath: string
 
-  constructor(vaultPath: string, kmDir: string) {
+  constructor(repoPath: string, kmDir: string) {
     super()
-    debug("creating daemon for vault: %s", vaultPath)
-    this.vaultPath = vaultPath
+    debug("creating daemon for repo: %s", repoPath)
+    this.repoPath = repoPath
     this.paths = getDaemonPaths(kmDir)
 
     // Open database directly from kmDir
@@ -83,7 +83,7 @@ class KmDaemon extends EventEmitter {
 
     this.sync = new SyncManager({
       db,
-      vaultPath,
+      repoPath,
       debounceFs: 5000,
       debounceApply: 3000,
       conflictStrategy: "last_write_wins",
@@ -260,7 +260,7 @@ class KmDaemon extends EventEmitter {
       startTime: this.startTime,
       eventsProcessed: this.eventsProcessed,
       pendingWrites: this.sync.getStatus().pendingWrites,
-      vaultPath: this.vaultPath,
+      repoPath: this.repoPath,
     }
   }
 
@@ -308,7 +308,7 @@ class KmDaemon extends EventEmitter {
     // Start file watching
     this.sync.start()
     debug("start: daemon running, pid=%d", process.pid)
-    this.log(`Daemon started, watching: ${this.vaultPath}`)
+    this.log(`Daemon started, watching: ${this.repoPath}`)
 
     // Handle shutdown signals
     process.on("SIGINT", () => void this.stop())
@@ -448,12 +448,12 @@ const daemonStartCommand = new Command("start")
       console.error(chalk.red("No .km directory found. Run 'km init' first."))
       process.exit(1)
     }
-    const vaultPath = dirname(kmDir)
+    const repoPath = dirname(kmDir)
 
     if (options.foreground) {
       // Run in foreground
       process.env.KM_DAEMON_FOREGROUND = "1"
-      const daemon = new KmDaemon(vaultPath, kmDir)
+      const daemon = new KmDaemon(repoPath, kmDir)
       await daemon.start()
     } else {
       // Check if already running
@@ -471,7 +471,7 @@ const daemonStartCommand = new Command("start")
       const proc = Bun.spawn(
         ["bun", "run", cliPath, "daemon", "start", "--foreground"],
         {
-          cwd: vaultPath,
+          cwd: repoPath,
           env: { ...process.env, KM_DIR: kmDir },
           stdio: ["ignore", "ignore", "ignore"],
         },
@@ -594,7 +594,7 @@ const daemonStatusCommand = new Command("status")
           console.log()
           console.log("Events processed:", status.eventsProcessed)
           console.log("Pending writes:", status.pendingWrites)
-          console.log("Vault:", status.vaultPath)
+          console.log("Repo:", status.repoPath)
           return
         }
       } catch {

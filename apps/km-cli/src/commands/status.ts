@@ -46,7 +46,7 @@ export const statusCommand = new Command("status")
   .option("--json", "Output as JSON")
   .action((id, newStatus, options) => {
     const resolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+    using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
     const node = repo.resolveNode(id, { taskOnly: true })
 
     if (!node) {

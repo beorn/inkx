@@ -71,7 +71,7 @@ export const DEFAULT_IGNORE_PATTERNS = [
   "**/.pytest_cache/**",
   "**/.mypy_cache/**",
 
-  // Environment and secrets (shouldn't be in vault anyway)
+  // Environment and secrets (shouldn't be in repo anyway)
   "**/.env",
   "**/.env.*",
   "**/credentials.json",
@@ -129,8 +129,8 @@ function gitignoreToGlob(pattern: string, _basePath: string): string {
 /**
  * Read and parse a .gitignore file
  */
-export function readGitignore(vaultPath: string): string[] {
-  const gitignorePath = join(vaultPath, ".gitignore")
+export function readGitignore(repoPath: string): string[] {
+  const gitignorePath = join(repoPath, ".gitignore")
 
   if (!existsSync(gitignorePath)) {
     return []
@@ -141,7 +141,7 @@ export function readGitignore(vaultPath: string): string[] {
     const patterns: string[] = []
 
     for (const line of content.split("\n")) {
-      const glob = gitignoreToGlob(line, vaultPath)
+      const glob = gitignoreToGlob(line, repoPath)
       if (glob) {
         patterns.push(glob)
       }
@@ -156,8 +156,8 @@ export function readGitignore(vaultPath: string): string[] {
 /**
  * Read and parse a .kmignore file (km-specific ignore patterns)
  */
-export function readKmignore(vaultPath: string): string[] {
-  const kmignorePath = join(vaultPath, ".kmignore")
+export function readKmignore(repoPath: string): string[] {
+  const kmignorePath = join(repoPath, ".kmignore")
 
   if (!existsSync(kmignorePath)) {
     return []
@@ -187,8 +187,8 @@ export function readKmignore(vaultPath: string): string[] {
  * Read and parse Obsidian's .obsidianignore file
  * This file uses gitignore-style patterns
  */
-export function readObsidianIgnore(vaultPath: string): string[] {
-  const obsidianIgnorePath = join(vaultPath, ".obsidianignore")
+export function readObsidianIgnore(repoPath: string): string[] {
+  const obsidianIgnorePath = join(repoPath, ".obsidianignore")
 
   if (!existsSync(obsidianIgnorePath)) {
     return []
@@ -199,7 +199,7 @@ export function readObsidianIgnore(vaultPath: string): string[] {
     const patterns: string[] = []
 
     for (const line of content.split("\n")) {
-      const glob = gitignoreToGlob(line, vaultPath)
+      const glob = gitignoreToGlob(line, repoPath)
       if (glob) {
         patterns.push(glob)
       }
@@ -212,20 +212,20 @@ export function readObsidianIgnore(vaultPath: string): string[] {
 }
 
 /**
- * Get all ignore patterns for a vault
+ * Get all ignore patterns for a repo
  * Combines default patterns with .gitignore, .obsidianignore, and .kmignore
  */
-export function getIgnorePatterns(vaultPath: string): string[] {
+export function getIgnorePatterns(repoPath: string): string[] {
   const patterns = [...DEFAULT_IGNORE_PATTERNS]
 
   // Add .gitignore patterns
-  patterns.push(...readGitignore(vaultPath))
+  patterns.push(...readGitignore(repoPath))
 
   // Add .obsidianignore patterns (Obsidian's native ignore file)
-  patterns.push(...readObsidianIgnore(vaultPath))
+  patterns.push(...readObsidianIgnore(repoPath))
 
   // Add .kmignore patterns (km-specific)
-  patterns.push(...readKmignore(vaultPath))
+  patterns.push(...readKmignore(repoPath))
 
   return patterns
 }
@@ -296,10 +296,10 @@ export function matchesPattern(path: string, pattern: string): boolean {
 export function shouldIgnore(
   path: string,
   patterns: string[],
-  vaultPath?: string,
+  repoPath?: string,
 ): boolean {
   // Normalize path for matching
-  const normalizedPath = vaultPath ? relative(vaultPath, path) : path
+  const normalizedPath = repoPath ? relative(repoPath, path) : path
 
   for (const pattern of patterns) {
     if (matchesPattern(normalizedPath, pattern)) {

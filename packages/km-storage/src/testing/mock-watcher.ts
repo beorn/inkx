@@ -28,10 +28,10 @@ export interface MockWatcher extends Watcher {
  *
  * @example
  * const mockWatcher = createMockWatcher();
- * using vault = runGenerator(createVault(vaultDir, {
+ * using repo = runGenerator(createRepo(repoDir, {
  *   watcherFactory: () => mockWatcher,
  * }));
- * const watcher = vault.watch();
+ * const watcher = repo.watch();
  * await watcher.start();
  * mockWatcher.emitChange([{ type: "change", path: "/test.md" }]);
  */

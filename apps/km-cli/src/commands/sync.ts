@@ -23,15 +23,15 @@ import { formatPath } from "../utils/format-path.ts"
 /**
  * Start the continuous filesystem watcher
  */
-function startWatch(vaultPath: string, debounceMs: number, db: Database): void {
-  debug("starting watch: %s (debounce=%dms)", vaultPath, debounceMs)
-  console.log(chalk.dim(`Watching: ${vaultPath}`))
+function startWatch(repoPath: string, debounceMs: number, db: Database): void {
+  debug("starting watch: %s (debounce=%dms)", repoPath, debounceMs)
+  console.log(chalk.dim(`Watching: ${repoPath}`))
   console.log(chalk.dim(`Debounce: ${debounceMs}ms`))
   console.log(chalk.dim("Press Ctrl+C to stop\n"))
 
   const manager = new SyncManager({
     db,
-    vaultPath,
+    repoPath,
     debounceFs: debounceMs,
     debounceApply: 3000,
     conflictStrategy: "last_write_wins",
@@ -87,15 +87,15 @@ function startWatch(vaultPath: string, debounceMs: number, db: Database): void {
  * Perform a one-time sync operation
  */
 async function runSync(
-  vaultPath: string,
+  repoPath: string,
   kmRoot: string,
   options: { toFs?: boolean; dryRun?: boolean },
   db: Database,
 ): Promise<void> {
-  debug("runSync", { vaultPath, toFs: options.toFs, dryRun: options.dryRun })
+  debug("runSync", { repoPath, toFs: options.toFs, dryRun: options.dryRun })
   console.log(
     chalk.bold(`Syncing .km/state.db with files`),
-    chalk.dim(`(repo ${formatPath(vaultPath)})`),
+    chalk.dim(`(repo ${formatPath(repoPath)})`),
   )
 
   if (options.dryRun) {
@@ -125,7 +125,7 @@ async function runSync(
       // Step 2: Sync with filesystem
       const manager = new SyncManager({
         db,
-        vaultPath,
+        repoPath,
         debounceFs: 0,
         debounceApply: 0,
         conflictStrategy: "last_write_wins",
@@ -160,7 +160,7 @@ async function runSync(
 
 export const syncCommand = new Command("sync")
   .description("Sync filesystem with database (use --watch for continuous)")
-  .argument("[path]", "Path to sync (default: vault root)")
+  .argument("[path]", "Path to sync (default: repo root)")
   .option("--from-fs", "Sync from filesystem to database")
   .option("--to-fs", "Sync from database to filesystem")
   .option("--dry-run", "Show what would be synced without making changes")
@@ -171,26 +171,26 @@ export const syncCommand = new Command("sync")
     "5000",
   )
   .action(async (path, options) => {
-    // Resolve vault path from argument or current directory
+    // Resolve repo path from argument or current directory
     const searchPath = path ? resolve(path) : process.cwd()
     const kmRoot = findKmRootFromPath(searchPath)
 
     if (!kmRoot) {
       console.error(`No .km directory found in ${searchPath} or ancestors.`)
-      console.error("Run 'km init' to initialize a vault.")
+      console.error("Run 'km init' to initialize a repo.")
       process.exit(1)
     }
 
-    const vaultPath = dirname(kmRoot)
-    debug("resolved vault path: %s (from kmRoot: %s)", vaultPath, kmRoot)
+    const repoPath = dirname(kmRoot)
+    debug("resolved repo path: %s (from kmRoot: %s)", repoPath, kmRoot)
 
     // Open database directly from kmRoot
     const db = new Database(join(kmRoot, "state.db"))
 
     if (options.watch) {
       const debounceMs = parseInt(options.debounce, 10)
-      startWatch(vaultPath, debounceMs, db)
+      startWatch(repoPath, debounceMs, db)
     } else {
-      await runSync(vaultPath, kmRoot, options, db)
+      await runSync(repoPath, kmRoot, options, db)
     }
   })

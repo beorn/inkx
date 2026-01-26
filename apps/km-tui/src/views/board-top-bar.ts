@@ -3,7 +3,7 @@
  */
 import chalk from "chalk"
 import type { KNode } from "@km/core"
-import type { Repo } from "../vault-context.tsx"
+import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderPlain } from "../text/index.ts"
 

@@ -29,10 +29,10 @@ export const moveCommand = new Command("move")
   .option("--to-root", "Move to root level (no parent)")
   .option("--json", "Output as JSON")
   .action((nodeArg, parentArg, options) => {
-    // Resolve the node argument - may detect vault root from path
+    // Resolve the node argument - may detect repo root from path
     const resolvedNode = resolvePathArg(nodeArg, getRootPath())
     using repo = runGenerator(
-      createRepo(resolvedNode.vaultRoot, { loadFiles: true }),
+      createRepo(resolvedNode.repoRoot, { loadFiles: true }),
     )
 
     const nodeRef = resolvedNode.nodeRef
@@ -65,7 +65,7 @@ export const moveCommand = new Command("move")
       targetParentId = targetParent.id
     } else if (parentArg) {
       // Resolve parent path argument
-      const resolvedParent = resolvePathArg(parentArg, resolvedNode.vaultRoot)
+      const resolvedParent = resolvePathArg(parentArg, resolvedNode.repoRoot)
       const parentRef = resolvedParent.nodeRef
       if (!parentRef) {
         console.error(chalk.red(`Cannot use a directory as parent`))
@@ -105,7 +105,7 @@ export const moveCommand = new Command("move")
       return
     }
 
-    // Move via vault (handles event emission and persistence)
+    // Move via repo (handles event emission and persistence)
     repo.moveNode(node.id, targetParentId as string, Date.now())
 
     if (options.json) {

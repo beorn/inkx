@@ -9,7 +9,7 @@
  */
 
 import type { KNode } from "@km/core"
-import type { Repo } from "./vault-context.tsx"
+import type { Repo } from "./repo-context.tsx"
 import { getNodeDisplayName } from "./state.ts"
 import { GTD_BOARD_COLORS, normalizeBoardName, colorize } from "./text/index.ts"
 

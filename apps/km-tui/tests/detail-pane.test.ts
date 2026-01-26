@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test"
 import React from "react"
 import { createTestRenderer } from "inkx/testing"
 const render = createTestRenderer()
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 import {
   DetailPane,
@@ -11,17 +11,17 @@ import {
   getStatusDisplay,
   getProjectPath,
 } from "../src/views/DetailPane.tsx"
-import { VaultProvider } from "../src/vault-context.tsx"
+import { RepoProvider } from "../src/repo-context.tsx"
 
 function renderDetailPane(
-  vault: ReturnType<typeof createFakeVault>,
+  repo: ReturnType<typeof createFakeRepo>,
   node: KNode,
   width: number,
   height: number,
 ) {
   const detailPane = React.createElement(DetailPane, { node, width, height })
   return render(
-    React.createElement(VaultProvider, { vault, children: detailPane }),
+    React.createElement(RepoProvider, { repo, children: detailPane }),
   )
 }
 
@@ -143,7 +143,7 @@ describe("getStatusDisplay", () => {
 
 describe("getProjectPath", () => {
   test("returns empty array for node with no parent", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -159,11 +159,11 @@ describe("getProjectPath", () => {
         },
       ],
     })
-    const node = vault.getNode("task1")!
-    expect(getProjectPath(vault, node)).toEqual([])
+    const node = repo.getNode("task1")!
+    expect(getProjectPath(repo, node)).toEqual([])
   })
   test("returns folder names in path", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "folder1",
@@ -203,12 +203,12 @@ describe("getProjectPath", () => {
         },
       ],
     })
-    const task = vault.getNode("task1")!
-    const path = getProjectPath(vault, task)
+    const task = repo.getNode("task1")!
+    const path = getProjectPath(repo, task)
     expect(path).toEqual(["Work", "Finance"])
   })
   test("includes files in path", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "folder1",
@@ -248,15 +248,15 @@ describe("getProjectPath", () => {
         },
       ],
     })
-    const task = vault.getNode("task1")!
-    const path = getProjectPath(vault, task)
+    const task = repo.getNode("task1")!
+    const path = getProjectPath(repo, task)
     expect(path).toEqual(["Projects", "todo.md"])
   })
 })
 
 describe("DetailPane", () => {
   test("renders with all task fields", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -275,8 +275,8 @@ describe("DetailPane", () => {
         },
       ],
     })
-    const task = vault.getNode("task1")!
-    const { lastFrame } = renderDetailPane(vault, task, 40, 24)
+    const task = repo.getNode("task1")!
+    const { lastFrame } = renderDetailPane(repo, task, 40, 24)
     const output = lastFrame() ?? ""
     expect(output).toContain("Review Q1 budget")
     expect(output).toContain("Status:")
@@ -287,7 +287,7 @@ describe("DetailPane", () => {
     expect(output).toContain("@bjorn")
   })
   test("shows subtasks", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "parent1",
@@ -329,15 +329,15 @@ describe("DetailPane", () => {
         },
       ],
     })
-    const parent = vault.getNode("parent1")!
-    const { lastFrame } = renderDetailPane(vault, parent, 40, 24)
+    const parent = repo.getNode("parent1")!
+    const { lastFrame } = renderDetailPane(repo, parent, 40, 24)
     const output = lastFrame() ?? ""
     expect(output).toContain("Subtasks")
     expect(output).toContain("Subtask 1")
     expect(output).toContain("Subtask 2")
   })
   test("shows references from content", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -354,8 +354,8 @@ describe("DetailPane", () => {
         },
       ],
     })
-    const task = vault.getNode("task1")!
-    const { lastFrame } = renderDetailPane(vault, task, 50, 24)
+    const task = repo.getNode("task1")!
+    const { lastFrame } = renderDetailPane(repo, task, 50, 24)
     const output = lastFrame() ?? ""
     expect(output).toContain("#budget")
     expect(output).toContain("@john")
@@ -363,7 +363,7 @@ describe("DetailPane", () => {
     expect(output).toContain("[[Meeting Notes]]")
   })
   test("shows project path", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "folder1",
@@ -403,15 +403,15 @@ describe("DetailPane", () => {
         },
       ],
     })
-    const task = vault.getNode("task1")!
-    const { lastFrame } = renderDetailPane(vault, task, 50, 24)
+    const task = repo.getNode("task1")!
+    const { lastFrame } = renderDetailPane(repo, task, 50, 24)
     const output = lastFrame() ?? ""
     expect(output).toContain("Project:")
     expect(output).toContain("Work")
     expect(output).toContain("Finance")
   })
   test("shows keybindings hint", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -427,13 +427,13 @@ describe("DetailPane", () => {
         },
       ],
     })
-    const task = vault.getNode("task1")!
-    const { lastFrame } = renderDetailPane(vault, task, 50, 24)
+    const task = repo.getNode("task1")!
+    const { lastFrame } = renderDetailPane(repo, task, 50, 24)
     const output = lastFrame() ?? ""
     expect(output).toContain("h/Esc:close")
   })
   test("handles task with done status", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "task1",
@@ -450,13 +450,13 @@ describe("DetailPane", () => {
         },
       ],
     })
-    const task = vault.getNode("task1")!
-    const { lastFrame } = renderDetailPane(vault, task, 40, 24)
+    const task = repo.getNode("task1")!
+    const { lastFrame } = renderDetailPane(repo, task, 40, 24)
     const output = lastFrame() ?? ""
     expect(output).toContain("done")
   })
   test("shows backlinks when present", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           id: "target1",
@@ -497,8 +497,8 @@ describe("DetailPane", () => {
         },
       ],
     })
-    const target = vault.getNode("target1")!
-    const { lastFrame } = renderDetailPane(vault, target, 50, 24)
+    const target = repo.getNode("target1")!
+    const { lastFrame } = renderDetailPane(repo, target, 50, 24)
     const output = lastFrame() ?? ""
     expect(output).toContain("Backlinks")
     expect(output).toContain("Meeting Notes")

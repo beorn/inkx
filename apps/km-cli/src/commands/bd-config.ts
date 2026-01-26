@@ -18,7 +18,7 @@ configCommand
   .description("List current configuration")
   .action(() => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.vaultRoot)
+    const configObj = loadConfigObject(resolved.repoRoot)
 
     console.log(chalk.bold("Beads Configuration"))
     console.log(`  board:  ${configObj.beads.board || chalk.dim("(not set)")}`)
@@ -40,7 +40,7 @@ configCommand
   .description("Get a configuration value")
   .action((key) => {
     const resolved = resolvePathArg(undefined)
-    const configObj = loadConfigObject(resolved.vaultRoot)
+    const configObj = loadConfigObject(resolved.repoRoot)
 
     switch (key) {
       case "board":
@@ -72,7 +72,7 @@ configCommand
     }
 
     const resolved = resolvePathArg(undefined)
-    const configPath = `${resolved.vaultRoot}/.km/config.yaml`
+    const configPath = `${resolved.repoRoot}/.km/config.yaml`
 
     console.log(chalk.yellow(`To set ${key}=${value}, edit ${configPath}:`))
     console.log()
@@ -85,7 +85,7 @@ configCommand
 // Show config list by default when no subcommand
 configCommand.action(() => {
   const resolved = resolvePathArg(undefined)
-  const configObj = loadConfigObject(resolved.vaultRoot)
+  const configObj = loadConfigObject(resolved.repoRoot)
 
   console.log(chalk.bold("Beads Configuration"))
   console.log(`  board:  ${configObj.beads.board || chalk.dim("(not set)")}`)

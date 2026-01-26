@@ -5,7 +5,7 @@
  *
  * Note: These tests are limited because querySessions relies on readEvents
  * which reads from the filesystem. Full integration tests would require
- * setting up a proper test vault with events.jsonl.
+ * setting up a proper test repo with events.jsonl.
  */
 
 import { describe, test, expect } from "bun:test"
@@ -40,7 +40,7 @@ describe("Session types", () => {
 
 // Note: Full integration tests for querySessions, getSession, getAgentSessions,
 // getTaskSessions, and getActiveSession would require:
-// 1. Setting up a test vault with .km directory
+// 1. Setting up a test repo with .km directory
 // 2. Creating events.jsonl with session_started and session_ended events
 // 3. Properly initializing the storage module
 //

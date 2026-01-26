@@ -1,7 +1,7 @@
 /**
  * Config - Configuration Domain Object
  *
- * Provides access to vault configuration.
+ * Provides access to repo configuration.
  * Created via loadConfigObject() factory function.
  */
 
@@ -20,7 +20,7 @@ import {
 const debug = createDebug("km:storage:config")
 
 /**
- * Config interface - vault configuration.
+ * Config interface - repo configuration.
  * Plain object, no Disposable needed (stateless).
  */
 export interface Config {
@@ -41,10 +41,10 @@ export interface Config {
 }
 
 /**
- * Create a Config domain object for a vault.
+ * Create a Config domain object for a repo.
  *
  * @example
- * const config = loadConfigObject("/path/to/vault");
+ * const config = loadConfigObject("/path/to/repo");
  * console.log(config.beads.prefix);  // "km"
  * config.reload();  // Reload from disk
  *

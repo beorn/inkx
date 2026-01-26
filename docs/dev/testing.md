@@ -56,7 +56,7 @@ A test system that is:
 │         (per layer, per domain object)                      │
 ├─────────────────────────────────────────────────────────────┤
 │  DOMAIN TESTS            │  LOGIC TESTS                     │
-│  - Vault: CRUD, queries  │  - Parser: parse/serialize       │
+│  - Repo: CRUD, queries   │  - Parser: parse/serialize       │
 │  - Board: state machine  │  - Tree: queries, formatting     │
 │  - Config: loading       │  - Formatters, validators        │
 ├──────────────────────────┼──────────────────────────────────┤
@@ -189,7 +189,7 @@ test("columns are horizontal", () => {
 ```markdown
 # Navigation Test
 
-$ echo -e "move_down\nstate" | km sh -r $PWD/vault @inbox.md
+$ echo -e "move_down\nstate" | km sh -r $PWD/repo @inbox.md
 
 > MOVE_DOWN
 > position: col=0 card=1
@@ -215,7 +215,7 @@ Tests requiring database access use `withTestEnv` for isolated environments:
 import { withTestEnv } from "@km/storage"
 
 test("creates node", async () => {
-  await withTestEnv(async ({ db, vaultDir, kmDir }) => {
+  await withTestEnv(async ({ db, repoDir, kmDir }) => {
     // Each test gets:
     // - Unique /tmp/kmtest-{ulid}/ directory
     // - Fresh in-memory SQLite database
@@ -231,13 +231,13 @@ test("creates node", async () => {
 
 | Property   | Description                                    |
 | ---------- | ---------------------------------------------- |
-| `vault`    | Vault-like object wrapping DB-bound singletons |
+| `repo`    | Repo-like object wrapping DB-bound singletons |
 | `db`       | In-memory SQLite with schema initialized       |
-| `vaultDir` | Isolated `/tmp/kmtest-{id}/vault/`             |
-| `kmDir`    | Isolated `/tmp/kmtest-{id}/vault/.km/`         |
+| `repoDir` | Isolated `/tmp/kmtest-{id}/repo/`             |
+| `kmDir`    | Isolated `/tmp/kmtest-{id}/repo/.km/`         |
 | `testId`   | Unique ULID for this test                      |
 
-The `vault` object provides these methods (typed as `TestVault`):
+The `repo` object provides these methods (typed as `TestRepo`):
 
 - `getNode`, `getChildren`, `getChildCountsBatch`
 - `getBacklinks`, `getAncestors`, `getLinksTo`
@@ -248,12 +248,12 @@ The `vault` object provides these methods (typed as `TestVault`):
 
 ```typescript
 test("builds board from nodes", async () => {
-  await withTestEnv(async ({ vault, vaultDir }) => {
+  await withTestEnv(async ({ repo, repoDir }) => {
     // Create test data
     const rootId = createTestNode("board", "Test Board")
 
-    // Pass vault to functions that need DB access
-    const state = buildBoardState(vault as Vault, rootId)
+    // Pass repo to functions that need DB access
+    const state = buildBoardState(repo as Repo, rootId)
     expect(state.columns).toHaveLength(2)
   })
 })
@@ -261,15 +261,15 @@ test("builds board from nodes", async () => {
 
 **Custom fixture** (when you need different behavior):
 
-For Ink component tests that don't need real DB operations, use `createFakeVault()`:
+For Ink component tests that don't need real DB operations, use `createFakeRepo()`:
 
 ```typescript
 test("renders board component", async () => {
-  // createFakeVault() returns an isolated in-memory vault
-  const fakeVault = createFakeVault();
+  // createFakeRepo() returns an isolated in-memory repo
+  const fakeRepo = createFakeRepo();
 
   const { lastFrame } = render(
-    <InkBoard vault={fakeVault} initialState={state} />
+    <InkBoard repo={fakeRepo} initialState={state} />
   );
 
   expect(lastFrame()).toContain("Task 1");
@@ -280,14 +280,14 @@ test("renders board component", async () => {
 
 | Scenario                                           | Fixture                     |
 | -------------------------------------------------- | --------------------------- |
-| Tests calling `buildBoardState`, `handleKey`, etc. | `withTestEnv` → `env.vault` |
-| Ink component rendering (no DB mutations)          | `createFakeVault()`         |
+| Tests calling `buildBoardState`, `handleKey`, etc. | `withTestEnv` → `env.repo`  |
+| Ink component rendering (no DB mutations)          | `createFakeRepo()`         |
 | Pure function tests (no DB)                        | None needed                 |
 
 **When NOT to use withTestEnv**:
 
 - Pure function tests (no DB needed)
-- Tests using `createFakeVault()` (already isolated)
+- Tests using `createFakeRepo()` (already isolated)
 
 ### 2.2 Domain Object Tests
 
@@ -295,7 +295,7 @@ Each domain object gets its own test file testing the **public API**:
 
 | Domain Object | Test File        | What to Test                     |
 | ------------- | ---------------- | -------------------------------- |
-| `Vault`       | `vault.test.ts`  | CRUD, queries, lifecycle         |
+| `Repo`       | `repo.test.ts`  | CRUD, queries, lifecycle         |
 | `Board`       | `board.test.ts`  | State machine, reducers, actions |
 | `Config`      | `config.test.ts` | Loading, validation, defaults    |
 
@@ -303,9 +303,9 @@ Each domain object gets its own test file testing the **public API**:
 
 ```typescript
 test("creates node", () => {
-  using vault = runGenerator(createVault(testDir))
-  vault.addNode(parentId, { type: "task", content: "New task" })
-  expect(vault.getNode(id)).toBeDefined()
+  using repo = runGenerator(createRepo(testDir))
+  repo.addNode(parentId, { type: "task", content: "New task" })
+  expect(repo.getNode(id)).toBeDefined()
 })
 ```
 
@@ -479,7 +479,7 @@ stdin.write("j"); // Move down
 Quick capture of current TUI state for **manual inspection**. Not for automated testing - you can't send keystrokes programmatically.
 
 ```bash
-km screenshot /path/to/vault --width 80 --height 24
+km screenshot /path/to/repo --width 80 --height 24
 km screenshot /path/to/file.md --format ansi -o /tmp/out.txt
 ```
 
@@ -494,7 +494,7 @@ Pixel-perfect terminal rendering via browser. **Not recommended** - slow, flaky,
 ```bash
 # Legacy approach - prefer inkx createTestRenderer instead
 TTYD_PORT=$((7700 + RANDOM % 300))
-FORCE_TTY=1 ttyd -W -p $TTYD_PORT bun km view /tmp/vault &
+FORCE_TTY=1 ttyd -W -p $TTYD_PORT bun km view /tmp/repo &
 sleep 3
 HEADLESS=true bun x playwright screenshot \
   --viewport-size=1000,700 \
@@ -580,7 +580,7 @@ Is it end-user visible behavior?
 
 ```bash
 # Terminal 1: Run with debug logging
-DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
+DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/repo
 
 # Terminal 2: Watch log
 tail -f /tmp/km.log

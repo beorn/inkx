@@ -26,12 +26,12 @@ export { createDiskFileTree, createMemFileTree } from "./file-tree.ts"
 export type { FileTree } from "./file-tree.ts"
 
 // Database operations (db-accepting functions for internal use)
-// All application code should use Vault domain object (createVault) instead
+// All application code should use Repo domain object (createRepo) instead
 export {
   // Path utility
   getDbPath,
   closeDb,
-  getDb, // Deprecated singleton - use Vault.rawQuery() instead
+  getDb, // Deprecated singleton - use Repo.rawQuery() instead
 
   // Query operations (require Database parameter)
   getNode,
@@ -109,12 +109,12 @@ export {
 
 export type { RebuildResult, SyncResult } from "./rebuild.ts"
 
-// Unified vault loading (the ONE function for loading vaults)
+// Unified repo loading (the ONE function for loading repos)
 export {
-  loadVault,
+  loadRepo,
   resolveLinksAsync,
   parseDeferredAsync,
-} from "./vault-loader.ts"
+} from "./repo-loader.ts"
 
 export type {
   LoadResult,
@@ -122,8 +122,8 @@ export type {
   PendingLink,
   DeferredFile,
   StepYield,
-} from "./vault-loader.ts"
-export type { LoadError as VaultLoaderError } from "./vault-loader.ts"
+} from "./repo-loader.ts"
+export type { LoadError as RepoLoaderError } from "./repo-loader.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
@@ -140,29 +140,6 @@ export type {
   ParseResult as PoolParseResult,
   ParsePoolOptions,
 } from "./parse-pool.ts"
-
-/**
- * @deprecated Use {@link createRepo} for new code.
- * Vault is the legacy API that combines loading + storage.
- * Repo separates concerns: DataStore (indexed storage) + FileTree (file I/O).
- * See: docs/adr/002-domain-objects-refactor.md
- */
-export { createVault } from "./vault.ts"
-
-/**
- * @deprecated Use {@link Repo} for new code.
- * These types are preserved for backwards compatibility during migration.
- */
-export type {
-  Vault,
-  VaultOptions,
-  VaultStats,
-  LoadError,
-  VaultHooks,
-  MutationType,
-  MutationContext,
-  BeforeMutationResult,
-} from "./vault.ts"
 
 // Watcher domain object (Service for file sync)
 export { createWatcher } from "./watcher.ts"
@@ -321,8 +298,8 @@ export type {
 
 // Testing utilities
 export {
-  createFakeVault,
-  createChaosFakeVault,
+  createFakeRepo,
+  createChaosFakeRepo,
   createChaosHooks,
   createSeededRandom,
   generateChaosReport,
@@ -347,10 +324,10 @@ export {
 } from "./testing/index.ts"
 
 export type {
-  FakeVault,
-  FakeVaultOptions,
-  ChaosFakeVault,
-  ChaosFakeVaultOptions,
+  FakeRepo,
+  FakeRepoOptions,
+  ChaosFakeRepo,
+  ChaosFakeRepoOptions,
   TransactionLogEntry,
   CorruptionType,
   ConsistencyIssue,

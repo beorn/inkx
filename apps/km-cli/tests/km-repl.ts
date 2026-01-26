@@ -29,7 +29,7 @@ interface Opts {
 }
 
 /**
- * Setup a test fixture (temp vault with sample data)
+ * Setup a test fixture (temp repo with sample data)
  */
 function setupFixture(fixture?: string): string {
   const tempDir = mkdtempSync(join(tmpdir(), "kmtest-"))
@@ -74,11 +74,11 @@ function setupFixture(fixture?: string): string {
 ## Empty
 `,
     )
-  } else if (fixture === "basic-vault") {
+  } else if (fixture === "basic-repo") {
     writeFileSync(join(tempDir, "inbox.md"), `# Inbox\n- [ ] Task 1\n`)
     writeFileSync(join(tempDir, "projects.md"), `# Projects\n## Project A\n`)
-  } else if (fixture === "empty-vault") {
-    // Empty vault - no files
+  } else if (fixture === "empty-repo") {
+    // Empty repo - no files
   } else {
     // Default fixture: single task list
     writeFileSync(
@@ -98,7 +98,7 @@ function setupFixture(fixture?: string): string {
  */
 export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
   // File-level state (persists across blocks unless reset)
-  let vaultPath: string | null = null
+  let repoPath: string | null = null
   let currentFixture: string | null = null
 
   return {
@@ -107,21 +107,21 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
 
       // Handle reset or fixture change
       const shouldReset =
-        opts.reset || opts.fixture !== currentFixture || !vaultPath
+        opts.reset || opts.fixture !== currentFixture || !repoPath
 
       if (shouldReset) {
-        // Clean up old vault - must close database before deleting directory
-        if (vaultPath) {
+        // Clean up old repo - must close database before deleting directory
+        if (repoPath) {
           try {
             closeDb() // Close database handle before deleting files
-            rmSync(vaultPath, { recursive: true, force: true })
+            rmSync(repoPath, { recursive: true, force: true })
           } catch {
             // Ignore cleanup errors
           }
         }
 
-        // Create new vault with fixture
-        vaultPath = setupFixture(opts.fixture)
+        // Create new repo with fixture
+        repoPath = setupFixture(opts.fixture)
         currentFixture = opts.fixture ?? null
 
         // Set environment variable for memory mode
@@ -148,9 +148,9 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
         }
 
         try {
-          // Execute in-process with vault path as cwd
+          // Execute in-process with repo path as cwd
           const result = await executeKmCommand(cmd, {
-            cwd: vaultPath!,
+            cwd: repoPath!,
             env: opts.memory ? { KM_DB_PATH: ":memory:" } : {},
           })
 
@@ -165,16 +165,16 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
       }
     },
 
-    // Clean up vault on teardown
+    // Clean up repo on teardown
     async afterAll() {
-      if (vaultPath) {
+      if (repoPath) {
         try {
           closeDb() // Close database handle before deleting files
-          rmSync(vaultPath, { recursive: true, force: true })
+          rmSync(repoPath, { recursive: true, force: true })
         } catch {
           // Ignore cleanup errors
         }
-        vaultPath = null
+        repoPath = null
       }
     },
   }

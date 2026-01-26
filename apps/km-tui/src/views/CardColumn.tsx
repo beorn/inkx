@@ -6,7 +6,7 @@
  */
 import React, { useCallback, useMemo, useRef } from "react"
 import createDebug from "debug"
-import { useRepo } from "../vault-context.tsx"
+import { useRepo } from "../repo-context.tsx"
 import { Box, Text, useScreenRectCallback } from "inkx"
 import { styledUnderline } from "@beorn/chalkx"
 import type { CardState, ColumnState } from "../types.ts"
@@ -444,10 +444,10 @@ export const Column = React.memo(function Column({
   height,
   selectionLevel,
 }: ColumnProps): React.ReactElement {
-  const vault = useRepo()
+  const repo = useRepo()
   // Render name with wiki links stripped: [[target|alias]] → "alias"
-  const name = renderPlain(getNodeDisplayName(vault, column.node))
-  const typeSuffix = getCollapsedTypeSuffix(vault, column.node)
+  const name = renderPlain(getNodeDisplayName(repo, column.node))
+  const typeSuffix = getCollapsedTypeSuffix(repo, column.node)
   const count = column.cards.length
   const wipLimit = column.wipLimit
   const isVirtual = column.isVirtual ?? false

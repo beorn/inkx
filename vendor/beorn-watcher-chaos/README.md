@@ -111,8 +111,8 @@ const watcher = new ChaosWatcher({
   seed: 12345,
 });
 
-watcher.start("/vault");
-watcher.inject({ type: "change", path: "/vault/test.md" });
+watcher.start("/repo");
+watcher.inject({ type: "change", path: "/repo/test.md" });
 
 // Instantly advance 5 seconds (no actual waiting)
 await watcher.advanceTime(5000);
@@ -166,24 +166,24 @@ import { MockFileSystem } from "@beorn/watcher-chaos";
 const fs = new MockFileSystem();
 
 // Standard fs operations
-fs.mkdirSync("/vault", { recursive: true });
-fs.writeFileSync("/vault/test.md", "# Hello");
-const content = fs.readFileSync("/vault/test.md", "utf8");
+fs.mkdirSync("/repo", { recursive: true });
+fs.writeFileSync("/repo/test.md", "# Hello");
+const content = fs.readFileSync("/repo/test.md", "utf8");
 
 // Error injection for testing error handling
 fs.setErrorInjection({
-  permissionDenied: ["/vault/secret.md"], // EACCES
-  ioError: ["/vault/corrupt.md"], // EIO
-  readOnly: ["/vault/readonly/"], // EROFS on writes
+  permissionDenied: ["/repo/secret.md"], // EACCES
+  ioError: ["/repo/corrupt.md"], // EIO
+  readOnly: ["/repo/readonly/"], // EROFS on writes
   errorRate: 0.1, // 10% random I/O errors
 });
 
 // Directory scanning (for reconciliation tests)
 const scanner = fs.createScanner();
-const entries = scanner("/vault", ["*.tmp", "node_modules"]);
+const entries = scanner("/repo", ["*.tmp", "node_modules"]);
 
 // Test helpers
-fs.setMtime("/vault/test.md", Date.now() - 60000); // Set mtime
+fs.setMtime("/repo/test.md", Date.now() - 60000); // Set mtime
 console.log(fs.dump()); // Debug state
 fs.reset(); // Clear all
 ```
@@ -204,7 +204,7 @@ new ChaosWatcher(config?: {
 
 **Methods:**
 
-- `start(vaultPath)` - Start watching
+- `start(repoPath)` - Start watching
 - `stop()` - Stop watching
 - `inject(event, timing?)` - Inject single event
 - `injectBatch(events)` - Inject batch (transformed together)

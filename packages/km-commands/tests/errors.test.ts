@@ -66,9 +66,9 @@ describe("ActionError constructors", () => {
       ok(),
     ]
 
-    expect(results[0].ok).toBe(false)
-    expect(results[1].ok).toBe(false)
-    expect(results[2].ok).toBe(false)
-    expect(results[3].ok).toBe(true)
+    expect(results[0]!.ok).toBe(false)
+    expect(results[1]!.ok).toBe(false)
+    expect(results[2]!.ok).toBe(false)
+    expect(results[3]!.ok).toBe(true)
   })
 })

@@ -35,7 +35,7 @@ export interface NavHistoryEntry {
  * KEY DESIGN: No tree data (nodes) in state!
  * - cursorNodeId is the single source of truth for cursor position
  * - Visual indices (colIndex, cardIndex) are derived at render time
- * - Navigation uses Vault for tree queries, not state
+ * - Navigation uses Repo for tree queries, not state
  */
 export interface BoardState {
   // Root context
@@ -73,7 +73,7 @@ export interface BoardState {
 
 /**
  * Board actions - all ID-based, no tree traversal.
- * Navigation handlers compute target nodeIds using Vault, then dispatch these.
+ * Navigation handlers compute target nodeIds using Repo, then dispatch these.
  */
 export type BoardAction =
   // Cursor selection (navigation handler calls this with computed nodeId)

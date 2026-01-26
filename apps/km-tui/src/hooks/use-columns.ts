@@ -1,14 +1,14 @@
 /**
  * useColumns Hook
  *
- * Derives ColumnState[] directly from Vault.
+ * Derives ColumnState[] directly from Repo.
  * Replaces the old pattern of storing nodes in BoardState and deriving columns from there.
  *
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
 import { useMemo } from "react"
-import type { Vault } from "@km/storage"
+import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import type { ColumnState, CardState, ColumnRules } from "../types.ts"
 import { parseColumnRules } from "../state.ts"
@@ -24,34 +24,34 @@ const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
 // =============================================================================
 
 /**
- * Derive columns from Vault for rendering.
+ * Derive columns from Repo for rendering.
  *
- * @param vault - Vault instance
- * @param rootId - Current zoom root (null for vault root)
+ * @param repo - Repo instance
+ * @param rootId - Current zoom root (null for repo root)
  * @param foldedNodes - Set of folded node IDs
  * @returns ColumnState[] for rendering
  */
 export function useColumns(
-  vault: Vault,
+  repo: Repo,
   rootId: string | null,
   foldedNodes: Set<string>,
 ): ColumnState[] {
   return useMemo(() => {
-    return deriveColumnsFromVault(vault, rootId, foldedNodes)
-  }, [vault.stats.nodeCount, rootId, foldedNodes])
+    return deriveColumnsFromRepo(repo, rootId, foldedNodes)
+  }, [repo.stats.nodeCount, rootId, foldedNodes])
 }
 
 /**
- * Pure function to derive columns from Vault.
+ * Pure function to derive columns from Repo.
  * Can be used outside of React for testing.
  */
-export function deriveColumnsFromVault(
-  vault: Vault,
+export function deriveColumnsFromRepo(
+  repo: Repo,
   rootId: string | null,
   foldedNodes: Set<string>,
 ): ColumnState[] {
   // Get children of root, filtered to exclude non-column types
-  const allChildren = vault.getChildren(rootId)
+  const allChildren = repo.getChildren(rootId)
   const columnNodes = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
 
   // Extract WIP limits from root frontmatter
@@ -59,7 +59,7 @@ export function deriveColumnsFromVault(
 
   // Convert to column state
   return columnNodes.map((node) =>
-    kNodeToColumnState(vault, node, wipLimits, foldedNodes),
+    kNodeToColumnState(repo, node, wipLimits, foldedNodes),
   )
 }
 
@@ -94,7 +94,7 @@ function extractWipLimits(nodes: KNode[]): Map<string, number> {
  * Convert a KNode to ColumnState.
  */
 function kNodeToColumnState(
-  vault: Vault,
+  repo: Repo,
   node: KNode,
   wipLimits: Map<string, number>,
   foldedNodes: Set<string>,
@@ -109,15 +109,15 @@ function kNodeToColumnState(
   const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
 
   // Get cards (children of column)
-  const cardNodes = vault.getChildren(node.id)
+  const cardNodes = repo.getChildren(node.id)
 
   // Convert children to cards
   const cards: CardState[] = cardNodes.map((child) => ({
     node: child,
     children: foldedNodes.has(child.id)
       ? [] // Don't load children for folded nodes
-      : vault.getChildren(child.id),
-    childCount: vault.getChildren(child.id).length,
+      : repo.getChildren(child.id),
+    childCount: repo.getChildren(child.id).length,
   }))
 
   return {

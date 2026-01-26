@@ -227,7 +227,7 @@ The `using` and `await using` declarations provide automatic cleanup at scope ex
 | Object        | Disposable Type   | Cleanup Action             |
 | ------------- | ----------------- | -------------------------- |
 | `Repo`        | `Disposable`      | Closes database connection |
-| `FakeVault`   | `Disposable`      | Closes in-memory database  |
+| `FakeRepo`   | `Disposable`      | Closes in-memory database  |
 | `MemoryStore` | `Disposable`      | Closes database            |
 | `DiskStore`   | `Disposable`      | Closes database            |
 | `Watcher`     | `AsyncDisposable` | Stops file watchers        |
@@ -235,7 +235,7 @@ The `using` and `await using` declarations provide automatic cleanup at scope ex
 
 ### Synchronous Cleanup (Disposable)
 
-For objects with sync cleanup (Repo, Store, FakeVault):
+For objects with sync cleanup (Repo, Store, FakeRepo):
 
 ```typescript
 // ✅ GOOD - automatic cleanup via using

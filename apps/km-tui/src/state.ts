@@ -15,7 +15,7 @@ import type {
   BoardAction,
   ColumnRules,
 } from "./types.ts"
-import type { Repo } from "./vault-context.tsx"
+import type { Repo } from "./repo-context.tsx"
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
   getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,
@@ -25,7 +25,7 @@ import {
 
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
 
-// Bound versions that inject vault dependencies
+// Bound versions that inject repo dependencies
 // These are the primary exports for TUI components
 export const getNodeDisplayName = (
   repo: Repo,

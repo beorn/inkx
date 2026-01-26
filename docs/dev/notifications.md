@@ -81,7 +81,7 @@ In the TUI, toasts appear above the bottom bar:
 ├────────────────────────────────────────────────────┤
 │ ✓ 3 tasks archived  [z] Undo  Esc                  │  ← Toast
 ├────────────────────────────────────────────────────┤
-│ DISK 📁~/vault   📋123 📄45   CARDS VIEW           │  ← Bottom bar
+│ DISK 📁~/repo   📋123 📄45   CARDS VIEW            │  ← Bottom bar
 └────────────────────────────────────────────────────┘
 ```
 

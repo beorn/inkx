@@ -1,10 +1,10 @@
 /**
  * ChaosHooks Tests
  *
- * Tests for the Vault lifecycle hooks chaos testing utility.
+ * Tests for the Repo lifecycle hooks chaos testing utility.
  *
- * Note: These tests use createVault which internally manages its own database
- * via loadVault. They CANNOT use withTestEnv because createVault's internal
+ * Note: These tests use createRepo which internally manages its own database
+ * via loadRepo. They CANNOT use withTestEnv because createRepo's internal
  * setDb() call would overwrite the ALS context. Must remain serial.
  */
 
@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { runGenerator } from "@km/core"
 import {
-  createVault,
+  createRepo,
   createChaosHooks,
   createSeededRandom,
   closeDb,
@@ -21,12 +21,12 @@ import {
 import type { ChaosEvent, ChaosHooks } from "../../src/index.ts"
 
 const TEST_DIR = "/tmp/kmtest-chaos-hooks"
-const VAULT_DIR = join(TEST_DIR, "vault")
+const REPO_DIR = join(TEST_DIR, "repo")
 
 describe.serial("createChaosHooks", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
   })
 
   afterEach(() => {
@@ -36,7 +36,7 @@ describe.serial("createChaosHooks", () => {
 
   test("creates hooks with default config (no chaos)", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -46,15 +46,15 @@ describe.serial("createChaosHooks", () => {
     )
 
     const hooks = createChaosHooks()
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
-    const tasks = vault.getAllTasks()
+    const tasks = repo.getAllTasks()
     expect(tasks.length).toBe(3)
 
     // Update should succeed
-    vault.updateNode(tasks[0]!.id, { task_status: "done" })
+    repo.updateNode(tasks[0]!.id, { task_status: "done" })
 
-    const updated = vault.getNode(tasks[0]!.id)
+    const updated = repo.getNode(tasks[0]!.id)
     expect(updated!.task_status).toBe("done")
 
     // No chaos events
@@ -63,7 +63,7 @@ describe.serial("createChaosHooks", () => {
 
   test("drops mutations at configured rate", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -82,18 +82,18 @@ describe.serial("createChaosHooks", () => {
       onChaosEvent: (e) => events.push(e),
     })
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
-    const tasks = vault.getAllTasks()
+    const tasks = repo.getAllTasks()
     expect(tasks.length).toBe(3)
 
     // Update should be dropped
     expect(() =>
-      vault.updateNode(tasks[0]!.id, { task_status: "done" }),
+      repo.updateNode(tasks[0]!.id, { task_status: "done" }),
     ).toThrow(/Mutation cancelled by hook/)
 
     // Verify mutation was dropped
-    const unchanged = vault.getNode(tasks[0]!.id)
+    const unchanged = repo.getNode(tasks[0]!.id)
     expect(unchanged!.task_status).toBe("todo")
 
     // Check chaos events
@@ -104,7 +104,7 @@ describe.serial("createChaosHooks", () => {
 
   test("corrupts mutations at configured rate", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -123,13 +123,13 @@ describe.serial("createChaosHooks", () => {
       onChaosEvent: (e) => events.push(e),
     })
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
-    const tasks = vault.getAllTasks()
+    const tasks = repo.getAllTasks()
     const task = tasks[0]!
 
     // Update will be corrupted
-    vault.updateNode(task.id, { task_status: "done" })
+    repo.updateNode(task.id, { task_status: "done" })
 
     // Check that corruption event was logged
     expect(events).toHaveLength(1)
@@ -138,7 +138,7 @@ describe.serial("createChaosHooks", () => {
 
   test("supports type-specific drop rates", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -155,19 +155,19 @@ describe.serial("createChaosHooks", () => {
       },
     })
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
-    const tasks = vault.getAllTasks()
+    const tasks = repo.getAllTasks()
 
     // Update should be dropped
     expect(() =>
-      vault.updateNode(tasks[0]!.id, { task_status: "done" }),
+      repo.updateNode(tasks[0]!.id, { task_status: "done" }),
     ).toThrow(/Mutation cancelled by hook/)
 
     // Add should succeed
-    const rootChildren = vault.getChildren(null)
+    const rootChildren = repo.getChildren(null)
     const fileNode = rootChildren[0]!
-    const newId = vault.addNode(fileNode.id, {
+    const newId = repo.addNode(fileNode.id, {
       type: "task",
       content: "New task",
     })
@@ -176,7 +176,7 @@ describe.serial("createChaosHooks", () => {
 
   test("can be disabled and enabled", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -189,14 +189,14 @@ describe.serial("createChaosHooks", () => {
       mutationDropRate: 1.0, // Would drop all mutations
     }) as ChaosHooks
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
-    const tasks = vault.getAllTasks()
+    const tasks = repo.getAllTasks()
 
     // With chaos enabled, update should fail
     expect(hooks.isEnabled()).toBe(true)
     expect(() =>
-      vault.updateNode(tasks[0]!.id, { task_status: "done" }),
+      repo.updateNode(tasks[0]!.id, { task_status: "done" }),
     ).toThrow(/Mutation cancelled by hook/)
 
     // Disable chaos
@@ -204,8 +204,8 @@ describe.serial("createChaosHooks", () => {
     expect(hooks.isEnabled()).toBe(false)
 
     // Now update should succeed
-    vault.updateNode(tasks[1]!.id, { task_status: "done" })
-    const updated = vault.getNode(tasks[1]!.id)
+    repo.updateNode(tasks[1]!.id, { task_status: "done" })
+    const updated = repo.getNode(tasks[1]!.id)
     expect(updated!.task_status).toBe("done")
 
     // Re-enable chaos
@@ -214,13 +214,13 @@ describe.serial("createChaosHooks", () => {
 
     // Now update should fail again
     expect(() =>
-      vault.updateNode(tasks[2]!.id, { task_status: "done" }),
+      repo.updateNode(tasks[2]!.id, { task_status: "done" }),
     ).toThrow(/Mutation cancelled by hook/)
   })
 
   test("tracks statistics", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -236,14 +236,14 @@ describe.serial("createChaosHooks", () => {
       random,
     }) as ChaosHooks
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
-    const tasks = vault.getAllTasks()
+    const tasks = repo.getAllTasks()
 
     // Try multiple mutations
     for (const task of tasks) {
       try {
-        vault.updateNode(task.id, { task_status: "done" })
+        repo.updateNode(task.id, { task_status: "done" })
       } catch {
         // Expected for dropped mutations
       }
@@ -256,7 +256,7 @@ describe.serial("createChaosHooks", () => {
 
   test("clearChaosEvents resets event log", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -269,12 +269,12 @@ describe.serial("createChaosHooks", () => {
       mutationDropRate: 1.0,
     }) as ChaosHooks
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
-    const tasks = vault.getAllTasks()
+    const tasks = repo.getAllTasks()
 
     try {
-      vault.updateNode(tasks[0]!.id, { task_status: "done" })
+      repo.updateNode(tasks[0]!.id, { task_status: "done" })
     } catch {
       // Expected
     }
@@ -287,7 +287,7 @@ describe.serial("createChaosHooks", () => {
 
   test("seeded random produces deterministic results", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -307,12 +307,12 @@ describe.serial("createChaosHooks", () => {
         random,
       })
 
-      using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+      using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
-      const tasks = vault.getAllTasks()
+      const tasks = repo.getAllTasks()
       for (const task of tasks) {
         try {
-          vault.updateNode(task.id, { task_status: "done" })
+          repo.updateNode(task.id, { task_status: "done" })
           results.push("success")
         } catch {
           results.push("dropped")

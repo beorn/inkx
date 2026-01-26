@@ -11,7 +11,7 @@
  * ```typescript
  * import { createBoardTest } from "@km/tui/testing";
  *
- * const board = await createBoardTest("/tmp/vault", { file: "tasks.md" });
+ * const board = await createBoardTest("/tmp/repo", { file: "tasks.md" });
  *
  * // Navigate and assert
  * board.press("j");  // Move down
@@ -42,13 +42,13 @@ import type { TUIBoardState } from "./types.ts"
 import { BoardCore } from "./views/index.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createLayoutRegistry } from "./card-positions.ts"
-import { RepoProvider } from "./vault-context.tsx"
+import { RepoProvider } from "./repo-context.tsx"
 
 /**
  * Options for creating a board test harness
  */
 export interface BoardTestOptions {
-  /** Specific file to view (relative to vault) */
+  /** Specific file to view (relative to repo) */
   file?: string
   /** Terminal width in columns */
   width?: number
@@ -90,19 +90,19 @@ export interface BoardTestHarness extends InkxLocator {
 }
 
 /**
- * Create a board test harness with a loaded vault
+ * Create a board test harness with a loaded repo
  *
- * @param vaultPath - Path to the vault directory
+ * @param repoPath - Path to the repo directory
  * @param options - Test configuration options
  * @returns Harness with query and input methods
  *
  * @example
  * ```typescript
  * // Test with a specific file
- * const board = await createBoardTest("/tmp/vault", { file: "tasks.md" });
+ * const board = await createBoardTest("/tmp/repo", { file: "tasks.md" });
  *
  * // Test with custom dimensions
- * const board = await createBoardTest("/tmp/vault", { width: 120, height: 40 });
+ * const board = await createBoardTest("/tmp/repo", { width: 120, height: 40 });
  * ```
  */
 export async function createBoardTest(

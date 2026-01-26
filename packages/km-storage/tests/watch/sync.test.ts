@@ -24,8 +24,8 @@ import { withTestEnv } from "@km/storage"
 describe("Sync Integration", () => {
   describe("syncFromFs", () => {
     test("should sync a simple markdown file to database", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const testFile = join(vaultDir, "test.md")
+      withTestEnv(async ({ repoDir }) => {
+        const testFile = join(repoDir, "test.md")
         writeFileSync(
           testFile,
           `# Test Document
@@ -39,7 +39,7 @@ This is a paragraph.
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -66,8 +66,8 @@ This is a paragraph.
       }))
 
     test("should sync files in subdirectories", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const subFolder = join(vaultDir, "subfolder")
+      withTestEnv(async ({ repoDir }) => {
+        const subFolder = join(repoDir, "subfolder")
         mkdirSync(subFolder)
 
         const testFile = join(subFolder, "nested.md")
@@ -75,7 +75,7 @@ This is a paragraph.
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -93,8 +93,8 @@ This is a paragraph.
       }))
 
     test("should sync file with frontmatter correctly", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const testFile = join(vaultDir, "frontmatter.md")
+      withTestEnv(async ({ repoDir }) => {
+        const testFile = join(repoDir, "frontmatter.md")
         writeFileSync(
           testFile,
           `---
@@ -111,7 +111,7 @@ Some content here.
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -128,8 +128,8 @@ Some content here.
       }))
 
     test("should sync tasks with Obsidian metadata", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const testFile = join(vaultDir, "tasks.md")
+      withTestEnv(async ({ repoDir }) => {
+        const testFile = join(repoDir, "tasks.md")
         writeFileSync(
           testFile,
           `# Task List
@@ -143,7 +143,7 @@ Some content here.
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -169,13 +169,13 @@ Some content here.
       }))
 
     test("should create nodes with valid IDs", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const testFile = join(vaultDir, "ids.md")
+      withTestEnv(async ({ repoDir }) => {
+        const testFile = join(repoDir, "ids.md")
         writeFileSync(testFile, "# Test\n\n- [ ] Task\n")
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -193,8 +193,8 @@ Some content here.
       }))
 
     test("should create nodes with valid types", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const testFile = join(vaultDir, "types.md")
+      withTestEnv(async ({ repoDir }) => {
+        const testFile = join(repoDir, "types.md")
         writeFileSync(
           testFile,
           `# Section
@@ -214,7 +214,7 @@ code
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -248,8 +248,8 @@ code
       }))
 
     test("should handle nested task structure", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const testFile = join(vaultDir, "nested-tasks.md")
+      withTestEnv(async ({ repoDir }) => {
+        const testFile = join(repoDir, "nested-tasks.md")
         writeFileSync(
           testFile,
           `# Project
@@ -262,7 +262,7 @@ code
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -279,13 +279,13 @@ code
 
   describe("Event format validation", () => {
     test("events should have actor as string, not object", () =>
-      withTestEnv(async ({ vaultDir, kmDir }) => {
-        const testFile = join(vaultDir, "event-test.md")
+      withTestEnv(async ({ repoDir, kmDir }) => {
+        const testFile = join(repoDir, "event-test.md")
         writeFileSync(testFile, "# Test\n")
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -318,8 +318,8 @@ code
 
   describe("Folder hierarchy", () => {
     test("should create folder nodes for parent directories", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const subFolder = join(vaultDir, "projects")
+      withTestEnv(async ({ repoDir }) => {
+        const subFolder = join(repoDir, "projects")
         const deepFolder = join(subFolder, "active")
         mkdirSync(deepFolder, { recursive: true })
 
@@ -328,7 +328,7 @@ code
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -352,8 +352,8 @@ code
       }))
 
     test("should link files to their parent folder via parent_id", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const subFolder = join(vaultDir, "docs")
+      withTestEnv(async ({ repoDir }) => {
+        const subFolder = join(repoDir, "docs")
         mkdirSync(subFolder)
 
         const testFile = join(subFolder, "readme.md")
@@ -361,7 +361,7 @@ code
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -378,9 +378,9 @@ code
         expect(fileNode!.parent_id).toBe(folderNode!.id)
       }))
 
-    test("should create parent chain from nested folders to vault root", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const level1 = join(vaultDir, "level1")
+    test("should create parent chain from nested folders to repo root", () =>
+      withTestEnv(async ({ repoDir }) => {
+        const level1 = join(repoDir, "level1")
         const level2 = join(level1, "level2")
         const level3 = join(level2, "level3")
         mkdirSync(level3, { recursive: true })
@@ -390,7 +390,7 @@ code
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -415,8 +415,8 @@ code
       }))
 
     test("getAncestors should return full path from root to parent", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const subFolder = join(vaultDir, "work")
+      withTestEnv(async ({ repoDir }) => {
+        const subFolder = join(repoDir, "work")
         mkdirSync(subFolder)
 
         const testFile = join(subFolder, "tasks.md")
@@ -432,7 +432,7 @@ code
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -461,8 +461,8 @@ code
       }))
 
     test("should handle multiple files in same folder efficiently", () =>
-      withTestEnv(async ({ vaultDir }) => {
-        const subFolder = join(vaultDir, "multi")
+      withTestEnv(async ({ repoDir }) => {
+        const subFolder = join(repoDir, "multi")
         mkdirSync(subFolder)
 
         writeFileSync(join(subFolder, "file1.md"), "# File 1\n")
@@ -471,7 +471,7 @@ code
 
         const manager = new SyncManager({
           db: getDb(),
-          vaultPath: vaultDir,
+          repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",

@@ -9,7 +9,7 @@
 import "./debug-log.ts"
 
 import { existsSync, statSync } from "fs"
-import { dirname, resolve } from "path"
+import { dirname, join, resolve } from "path"
 import { Command } from "commander"
 import chalk from "chalk"
 import { setLogLevel, type LogLevel } from "@km/core"
@@ -41,6 +41,8 @@ import { screenshotCommand } from "./commands/screenshot.ts"
 let resolvedRootPath: string | undefined
 // Track whether root was explicitly set (vs falling back to cwd)
 let rootExplicitlySet = false
+// Detected repo mode (memory if no .km/, disk if .km/ exists)
+let detectedRepoMode: "memory" | "disk" | undefined
 
 /**
  * Get the resolved root path (for use by commands that need it)
@@ -54,6 +56,14 @@ export function getRootPath(): string | undefined {
  */
 export function wasRootExplicit(): boolean {
   return rootExplicitlySet
+}
+
+/**
+ * Get the detected repo mode (memory or disk)
+ * Set in preAction based on presence of .km/ directory
+ */
+export function getRepoMode(): "memory" | "disk" | undefined {
+  return detectedRepoMode
 }
 
 /**
@@ -184,15 +194,13 @@ export function configureProgram(): Command {
 
     resolvedRootPath = rootPath
 
-    // Import @km/storage here (after log level is set) to allow
-    // view command to show "Loading..." before heavy imports
-    const { createRepo, runGenerator } = await import("@km/storage")
-    const repo = runGenerator(createRepo(rootPath, { loadFiles: true }))
-
     // Warn if using cwd in memory mode (no .km/ found, no explicit root)
     // Skip warning if we auto-detected from a path (user knows what they're doing)
-    if (!rootExplicitlySet && repo.mode === "memory" && !pathArg) {
-      console.error(chalk.yellow(`Using current directory: ${repo.path}`))
+    // Check for .km/ directly without loading repo (fast)
+    const kmDir = join(rootPath, ".km")
+    const isMemoryMode = !existsSync(kmDir)
+    if (!rootExplicitlySet && isMemoryMode && !pathArg) {
+      console.error(chalk.yellow(`Using current directory: ${rootPath}`))
       console.error(
         chalk.yellow(
           `Hint: Use --root <path> or set KM_ROOT, or run 'km init' for disk mode\n`,
@@ -224,7 +232,7 @@ export function configureProgram(): Command {
   program.addCommand(shCommand) // km sh [root] - scripting shell for TUI2 debugging
   program.addCommand(bdCommand) // km bd - issue tracking (beads-compatible)
   program.addCommand(agentCommand) // km agent - AI agent management
-  program.addCommand(statsCommand) // km stats [path] - vault statistics (domain object example)
+  program.addCommand(statsCommand) // km stats [path] - repo statistics (domain object example)
   program.addCommand(screenshotCommand) // km screenshot [root] - capture TUI as text
 
   // Handle unknown commands with helpful error message

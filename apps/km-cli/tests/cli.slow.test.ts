@@ -29,11 +29,11 @@ interface NewTaskJson {
 }
 
 // Set test environment before imports
-// KM_DIR should be inside the vault so sync defaults to correct directory
+// KM_DIR should be inside the repo so sync defaults to correct directory
 // Use process.pid to ensure unique directories across parallel test runs
 const TEST_DIR = join("/tmp", `kmtest-cli-${process.pid}`)
-const VAULT_DIR = join(TEST_DIR, "vault")
-const KM_DIR = join(VAULT_DIR, ".km") // .km inside vault, not sibling
+const REPO_DIR = join(TEST_DIR, "repo")
+const KM_DIR = join(REPO_DIR, ".km") // .km inside repo, not sibling
 
 // CLI path
 const CLI_PATH = join(import.meta.dir, "..", "src", "index.ts")
@@ -45,7 +45,7 @@ async function km(
   args: string[],
   options: { cwd?: string; env?: Record<string, string> } = {},
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  const cwd = options.cwd ?? VAULT_DIR
+  const cwd = options.cwd ?? REPO_DIR
   const env = {
     ...process.env,
     KM_DIR,
@@ -80,7 +80,7 @@ describe.serial("CLI Integration", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
   })
 
@@ -104,7 +104,7 @@ describe.serial("CLI Integration", () => {
     test("should sync files to database", async () => {
       // Create test file
       writeFileSync(
-        join(VAULT_DIR, "test.md"),
+        join(REPO_DIR, "test.md"),
         `# Test Document
 
 - [ ] First task
@@ -120,7 +120,7 @@ describe.serial("CLI Integration", () => {
 
     test("should sync nested folder structure", async () => {
       // Create nested structure
-      const projectDir = join(VAULT_DIR, "projects")
+      const projectDir = join(REPO_DIR, "projects")
       mkdirSync(projectDir, { recursive: true })
 
       writeFileSync(
@@ -140,7 +140,7 @@ describe.serial("CLI Integration", () => {
     beforeEach(async () => {
       // Create test files with tasks
       writeFileSync(
-        join(VAULT_DIR, "inbox.md"),
+        join(REPO_DIR, "inbox.md"),
         `# Inbox
 
 - [ ] Inbox task 1
@@ -149,7 +149,7 @@ describe.serial("CLI Integration", () => {
 `,
       )
 
-      const projectDir = join(VAULT_DIR, "projects")
+      const projectDir = join(REPO_DIR, "projects")
       mkdirSync(projectDir, { recursive: true })
       writeFileSync(
         join(projectDir, "work.md"),
@@ -232,7 +232,7 @@ describe.serial("CLI Integration", () => {
 
   describe("km tasks --add", () => {
     beforeEach(async () => {
-      writeFileSync(join(VAULT_DIR, "inbox.md"), "# Inbox\n")
+      writeFileSync(join(REPO_DIR, "inbox.md"), "# Inbox\n")
       await km(["sync"])
     })
 
@@ -262,7 +262,7 @@ describe.serial("CLI Integration", () => {
   describe("km tasks --done", () => {
     beforeEach(async () => {
       writeFileSync(
-        join(VAULT_DIR, "tasks.md"),
+        join(REPO_DIR, "tasks.md"),
         `# Tasks
 
 - [ ] Task to complete
@@ -317,7 +317,7 @@ describe.serial("CLI Integration", () => {
 
   describe("km rebuild", () => {
     beforeEach(async () => {
-      writeFileSync(join(VAULT_DIR, "test.md"), "# Test\n\n- [ ] Task\n")
+      writeFileSync(join(REPO_DIR, "test.md"), "# Test\n\n- [ ] Task\n")
       await km(["sync"])
     })
 
@@ -339,7 +339,7 @@ describe.serial("CLI Integration", () => {
   describe("km show", () => {
     beforeEach(async () => {
       writeFileSync(
-        join(VAULT_DIR, "doc.md"),
+        join(REPO_DIR, "doc.md"),
         `# Document Title
 
 Some content here.
@@ -370,12 +370,12 @@ describe.serial("km list", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
 
     // Create test files
     writeFileSync(
-      join(VAULT_DIR, "notes.md"),
+      join(REPO_DIR, "notes.md"),
       `# Notes
 
 Some paragraph content.
@@ -384,7 +384,7 @@ Some paragraph content.
 `,
     )
 
-    const projectDir = join(VAULT_DIR, "projects")
+    const projectDir = join(REPO_DIR, "projects")
     mkdirSync(projectDir, { recursive: true })
     writeFileSync(
       join(projectDir, "work.md"),
@@ -450,11 +450,11 @@ describe.serial("km task status", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
 
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task to toggle
@@ -713,7 +713,7 @@ describe.serial("CLI Error Handling", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
   })
 
@@ -738,32 +738,32 @@ describe.serial("CLI Error Handling", () => {
 
 describe.serial("Global --root option", () => {
   const ROOT_TEST_DIR = `/tmp/km-root-test-${process.pid}`
-  const VAULT_A = join(ROOT_TEST_DIR, "vault-a")
-  const VAULT_B = join(ROOT_TEST_DIR, "vault-b")
+  const REPO_A = join(ROOT_TEST_DIR, "repo-a")
+  const REPO_B = join(ROOT_TEST_DIR, "repo-b")
 
   beforeEach(() => {
     // Clean up and create test directories
     if (existsSync(ROOT_TEST_DIR)) {
       rmSync(ROOT_TEST_DIR, { recursive: true })
     }
-    mkdirSync(VAULT_A, { recursive: true })
-    mkdirSync(VAULT_B, { recursive: true })
+    mkdirSync(REPO_A, { recursive: true })
+    mkdirSync(REPO_B, { recursive: true })
 
-    // Create test files in vault-a
+    // Create test files in repo-a
     writeFileSync(
-      join(VAULT_A, "tasks-a.md"),
-      `# Vault A Tasks
+      join(REPO_A, "tasks-a.md"),
+      `# Repo A Tasks
 
-- [ ] Task from vault A
+- [ ] Task from repo A
 `,
     )
 
-    // Create test files in vault-b
+    // Create test files in repo-b
     writeFileSync(
-      join(VAULT_B, "tasks-b.md"),
-      `# Vault B Tasks
+      join(REPO_B, "tasks-b.md"),
+      `# Repo B Tasks
 
-- [ ] Task from vault B
+- [ ] Task from repo B
 `,
     )
   })
@@ -776,37 +776,37 @@ describe.serial("Global --root option", () => {
 
   test("should use --root option for memory mode", async () => {
     // Run from a different directory but specify --root
-    const result = await km(["--root", VAULT_A, "tasks"], {
+    const result = await km(["--root", REPO_A, "tasks"], {
       cwd: "/tmp",
       env: { KM_DIR: "" }, // Ensure no KM_DIR interference
     })
 
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain("Task from vault A")
-    expect(result.stdout).not.toContain("Task from vault B")
+    expect(result.stdout).toContain("Task from repo A")
+    expect(result.stdout).not.toContain("Task from repo B")
   })
 
   test("should use KM_ROOT env var for memory mode", async () => {
     const result = await km(["tasks"], {
       cwd: "/tmp",
-      env: { KM_ROOT: VAULT_B, KM_DIR: "" },
+      env: { KM_ROOT: REPO_B, KM_DIR: "" },
     })
 
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain("Task from vault B")
-    expect(result.stdout).not.toContain("Task from vault A")
+    expect(result.stdout).toContain("Task from repo B")
+    expect(result.stdout).not.toContain("Task from repo A")
   })
 
   test("--root should override KM_ROOT env var", async () => {
-    const result = await km(["--root", VAULT_A, "tasks"], {
+    const result = await km(["--root", REPO_A, "tasks"], {
       cwd: "/tmp",
-      env: { KM_ROOT: VAULT_B, KM_DIR: "" },
+      env: { KM_ROOT: REPO_B, KM_DIR: "" },
     })
 
     expect(result.exitCode).toBe(0)
-    // Should use --root (vault A), not KM_ROOT (vault B)
-    expect(result.stdout).toContain("Task from vault A")
-    expect(result.stdout).not.toContain("Task from vault B")
+    // Should use --root (repo A), not KM_ROOT (repo B)
+    expect(result.stdout).toContain("Task from repo A")
+    expect(result.stdout).not.toContain("Task from repo B")
   })
 
   test("should support tilde expansion in --root", async () => {
@@ -848,7 +848,7 @@ describe.serial("km new", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
   })
 
@@ -864,7 +864,7 @@ describe.serial("km new", () => {
     expect(result.stdout).toContain("Added to inbox")
 
     // Verify inbox file was created with task
-    const inboxPath = join(VAULT_DIR, "inbox", "inbox.md")
+    const inboxPath = join(REPO_DIR, "inbox", "inbox.md")
     expect(existsSync(inboxPath)).toBe(true)
     const content = readFileSync(inboxPath, "utf-8")
     expect(content).toContain("- [ ] Call dentist")
@@ -874,7 +874,7 @@ describe.serial("km new", () => {
     const result = await km(["new", "Task @bjorn due:2026-01-20 p:1"])
     expect(result.exitCode).toBe(0)
 
-    const inboxPath = join(VAULT_DIR, "inbox", "inbox.md")
+    const inboxPath = join(REPO_DIR, "inbox", "inbox.md")
     const content = readFileSync(inboxPath, "utf-8")
     expect(content).toContain("- [ ] Task @bjorn due:2026-01-20 p:1")
   })
@@ -890,7 +890,7 @@ describe.serial("km new", () => {
     ])
     expect(result.exitCode).toBe(0)
 
-    const inboxPath = join(VAULT_DIR, "inbox", "inbox.md")
+    const inboxPath = join(REPO_DIR, "inbox", "inbox.md")
     const content = readFileSync(inboxPath, "utf-8")
     expect(content).toContain("- [ ] Simple task due:2026-01-15 p:2")
   })
@@ -908,7 +908,7 @@ describe.serial("km new", () => {
     await km(["new", "First task"])
     await km(["new", "Second task"])
 
-    const inboxPath = join(VAULT_DIR, "inbox", "inbox.md")
+    const inboxPath = join(REPO_DIR, "inbox", "inbox.md")
     const content = readFileSync(inboxPath, "utf-8")
     expect(content).toContain("- [ ] First task")
     expect(content).toContain("- [ ] Second task")
@@ -931,11 +931,11 @@ describe.serial("km done", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
 
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task to mark done
@@ -1028,11 +1028,11 @@ describe.serial(
         rmSync(TEST_DIR, { recursive: true })
       }
       mkdirSync(TEST_DIR, { recursive: true })
-      mkdirSync(VAULT_DIR, { recursive: true })
+      mkdirSync(REPO_DIR, { recursive: true })
       mkdirSync(KM_DIR, { recursive: true })
 
       writeFileSync(
-        join(VAULT_DIR, "tasks.md"),
+        join(REPO_DIR, "tasks.md"),
         `# Tasks
 
 - [ ] Open task
@@ -1062,7 +1062,7 @@ describe.serial(
       expect(doneResult.exitCode).toBe(0)
 
       // Read the markdown file and verify it was updated
-      const content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
+      const content = readFileSync(join(REPO_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [x] Open task")
       // Other tasks should remain unchanged
       expect(content).toContain("- [ ] Another open task")
@@ -1082,17 +1082,17 @@ describe.serial(
       expect(blockedResult.exitCode).toBe(0)
 
       // Read the markdown file - should now show [!]
-      let content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
+      let content = readFileSync(join(REPO_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [!] Another open task")
 
       // Set to done
       await km(["status", task!.id, "done"])
-      content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
+      content = readFileSync(join(REPO_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [x] Another open task")
 
       // Set back to todo
       await km(["status", task!.id, "todo"])
-      content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
+      content = readFileSync(join(REPO_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [ ] Another open task")
     })
 
@@ -1107,23 +1107,23 @@ describe.serial(
       const statusResult = await km(["tasks", "status", task!.id, "blocked"])
       expect(statusResult.exitCode).toBe(0)
 
-      let content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
+      let content = readFileSync(join(REPO_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [!] Open task")
 
       // Set to done
       await km(["tasks", "status", task!.id, "done"])
-      content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
+      content = readFileSync(join(REPO_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [x] Open task")
 
       // Set back to todo
       await km(["tasks", "status", task!.id, "todo"])
-      content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
+      content = readFileSync(join(REPO_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [ ] Open task")
     })
 
     test("nested task should update in correct file", async () => {
       // Create a nested structure
-      const projectDir = join(VAULT_DIR, "projects")
+      const projectDir = join(REPO_DIR, "projects")
       mkdirSync(projectDir, { recursive: true })
       writeFileSync(
         join(projectDir, "alpha.md"),
@@ -1167,14 +1167,14 @@ describe.serial("Task mark types - parsing and status mapping", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
 
     // Test file with GFM-standard task mark types ([ ] and [x]/[X])
     // Note: Extended marks ([!], [-], [/], [?]) are not recognized by GFM parser
     // See bead km-afp for tracking extended mark support
     writeFileSync(
-      join(VAULT_DIR, "all-marks.md"),
+      join(REPO_DIR, "all-marks.md"),
       `# All Task Marks
 
 - [ ] Open task (space mark)
@@ -1242,12 +1242,12 @@ describe.serial("Query language integration - km task with queries", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
 
     // Create test file with tasks having various metadata
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task with @bjorn mention
@@ -1260,7 +1260,7 @@ describe.serial("Query language integration - km task with queries", () => {
     )
 
     // Create nested folder structure
-    const projectDir = join(VAULT_DIR, "projects")
+    const projectDir = join(REPO_DIR, "projects")
     mkdirSync(projectDir, { recursive: true })
     writeFileSync(
       join(projectDir, "work.md"),
@@ -1373,19 +1373,19 @@ describe.serial("km move - re-parent nodes", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
 
     // Create test structure
     writeFileSync(
-      join(VAULT_DIR, "inbox.md"),
+      join(REPO_DIR, "inbox.md"),
       `# Inbox
 
 - [ ] Task in inbox
 `,
     )
 
-    const projectDir = join(VAULT_DIR, "projects")
+    const projectDir = join(REPO_DIR, "projects")
     mkdirSync(projectDir, { recursive: true })
     writeFileSync(
       join(projectDir, "work.md"),
@@ -1466,7 +1466,7 @@ describe.serial("km view - state initialization", () => {
       rmSync(TEST_DIR, { recursive: true })
     }
     mkdirSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
     mkdirSync(KM_DIR, { recursive: true })
   })
 
@@ -1484,7 +1484,7 @@ describe.serial("km view - state initialization", () => {
 
     // Create a board file
     writeFileSync(
-      join(VAULT_DIR, "@next.md"),
+      join(REPO_DIR, "@next.md"),
       `# Next Actions
 
 ## Tasks
@@ -1492,7 +1492,7 @@ describe.serial("km view - state initialization", () => {
     )
 
     // Create tasks in a separate folder
-    const projectDir = join(VAULT_DIR, "projects")
+    const projectDir = join(REPO_DIR, "projects")
     mkdirSync(projectDir, { recursive: true })
     writeFileSync(
       join(projectDir, "work.md"),
@@ -1524,14 +1524,14 @@ describe.serial("km view - state initialization", () => {
   test("km view should find board after km sync and km add in sequence", async () => {
     // Create initial structure with board
     writeFileSync(
-      join(VAULT_DIR, "@inbox.md"),
+      join(REPO_DIR, "@inbox.md"),
       `# Inbox
 
 ## Unprocessed
 `,
     )
 
-    const inboxDir = join(VAULT_DIR, "inbox")
+    const inboxDir = join(REPO_DIR, "inbox")
     mkdirSync(inboxDir, { recursive: true })
     writeFileSync(
       join(inboxDir, "new.md"),
@@ -1558,7 +1558,7 @@ describe.serial("km view - state initialization", () => {
 
   test("km view should work with filesystem path to board", async () => {
     // Create board file
-    const boardPath = join(VAULT_DIR, "board.md")
+    const boardPath = join(REPO_DIR, "board.md")
     writeFileSync(
       boardPath,
       `# My Board

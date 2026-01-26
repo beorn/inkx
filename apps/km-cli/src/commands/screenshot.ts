@@ -7,7 +7,7 @@
 
 import { Command } from "commander"
 import createDebug from "debug"
-import { setDebugVaultRoot } from "../debug-log.ts"
+import { setDebugRepoRoot } from "../debug-log.ts"
 
 const debug = createDebug("km:cli:screenshot")
 
@@ -49,13 +49,13 @@ export const screenshotCommand = new Command("screenshot")
         import("inkx/testing"),
       ])
 
-    // Resolve path and load vault
+    // Resolve path and load repo
     const resolved = storageModule.resolvePathArg(root, cliModule.getRootPath())
-    setDebugVaultRoot(resolved.vaultRoot)
+    setDebugRepoRoot(resolved.repoRoot)
 
     // Load repo (full parse for accurate screenshot)
     const repo = storageModule.runGenerator(
-      storageModule.createRepo(resolved.vaultRoot, { loadFiles: true }),
+      storageModule.createRepo(resolved.repoRoot, { loadFiles: true }),
     )
 
     // Initialize board state
@@ -68,7 +68,7 @@ export const screenshotCommand = new Command("screenshot")
       process.exit(1)
     }
 
-    state.rootPath = resolved.vaultRoot
+    state.rootPath = resolved.repoRoot
 
     // Create test renderer with specified dimensions
     const render = inkxTesting.createTestRenderer({
@@ -80,7 +80,7 @@ export const screenshotCommand = new Command("screenshot")
     const React = await import("react")
     const {
       BoardCore,
-      VaultProvider,
+      RepoProvider,
       createInitialUIState,
       createLayoutRegistry,
     } = await import("@km/tui")
@@ -101,9 +101,9 @@ export const screenshotCommand = new Command("screenshot")
       },
     })
 
-    // Render the board wrapped in VaultProvider
+    // Render the board wrapped in RepoProvider
     const { lastBuffer, lastFrameText } = render(
-      React.createElement(VaultProvider, { vault: repo, children: boardCoreElement }),
+      React.createElement(RepoProvider, { repo: repo, children: boardCoreElement }),
     )
 
     // Generate output based on format
@@ -128,7 +128,7 @@ export const screenshotCommand = new Command("screenshot")
           `# TUI Screenshot`,
           `# Dimensions: ${width}x${height}`,
           `# View: ${viewMode}`,
-          `# Root: ${resolved.vaultRoot}`,
+          `# Root: ${resolved.repoRoot}`,
           `# Node: ${resolved.nodeRef ?? "(root)"}`,
           ``,
           text,

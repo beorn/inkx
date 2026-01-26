@@ -83,7 +83,7 @@ agentCommand
   .option("--json", "Output as JSON")
   .action((opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
+    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
 
     const filter: { status?: AgentStatus; harness?: string } = {}
     if (opts.status) filter.status = opts.status as AgentStatus
@@ -159,7 +159,7 @@ agentCommand
   .description("Stop an agent gracefully")
   .action((id) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
+    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
     const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
@@ -182,7 +182,7 @@ agentCommand
   .description("Force kill an agent")
   .action((id) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
+    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
     const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
@@ -211,7 +211,7 @@ agentCommand
   .option("--json", "Output as JSON")
   .action((id, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
+    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
     const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
@@ -319,7 +319,7 @@ agentCommand
   .option("--dry-run", "Show plan without executing")
   .action((id, prompt, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
+    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
     const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))

@@ -29,9 +29,9 @@ export interface BeadsConfig {
 }
 
 export interface TuiConfig {
-  /** Enable file watching for live sync (default: true). Disable on large vaults for faster startup. */
+  /** Enable file watching for live sync (default: true). Disable on large repos for faster startup. */
   watch?: boolean
-  /** Use worker thread for file watching (default: true). Prevents UI blocking on large vaults. */
+  /** Use worker thread for file watching (default: true). Prevents UI blocking on large repos. */
   watchWorker?: boolean
 }
 

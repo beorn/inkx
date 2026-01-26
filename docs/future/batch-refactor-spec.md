@@ -152,7 +152,7 @@ Combine D + C: Claude scores and categorizes, then present uncertain ones as a d
 
 ### Example Session
 ```
-/batch rename "createVault" "createRepo" --glob "packages/**/*.ts"
+/batch rename "createRepo" "createRepo" --glob "packages/**/*.ts"
 
 Found 47 matches across 12 files.
 - HIGH (auto-apply): 38
@@ -223,7 +223,7 @@ interface RefactorPlan {
 --- a/src/foo.ts
 +++ b/src/foo.ts
 @@ -45,3 +45,3 @@
--  const vault = createVault(path)
+-  const repo = createRepo(path)
 +  const repo = createRepo(path)
 ```
 - Human readable, can be reviewed externally

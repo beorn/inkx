@@ -481,7 +481,7 @@ export class DiskStore extends BaseStore {
 
   refresh(): void {
     // In disk mode, refresh means rebuild from events
-    // This is handled by loadVault()
+    // This is handled by loadRepo()
   }
 
   close(): void {
@@ -519,14 +519,14 @@ export class MemoryStore extends BaseStore {
     super()
     this.rootPath = rootPath
     if (options?.inject?.database) {
-      // Use injected database (e.g., from loadVault)
+      // Use injected database (e.g., from loadRepo)
       this.db = options.inject.database
       this.initialized = true // Already populated by caller
     } else {
       this.db = new Database(":memory:")
       this.db.exec(SCHEMA)
       // Only set the db singleton if not lazy - in lazy mode, the db is managed elsewhere
-      // (e.g., by vault-loader.ts which may have already set up a database)
+      // (e.g., by repo-loader.ts which may have already set up a database)
       if (!options?.lazy) {
         setDb(this.db)
         this.scanFilesystem()
@@ -1064,7 +1064,7 @@ function findKmDirectoryExact(path: string): string | null {
 /**
  * Get the current store instance.
  * If no store exists, creates one in lazy mode (deferred scanning).
- * @deprecated Use createVault() factory to create a Vault domain object instead.
+ * @deprecated Use createRepo() factory to create a Repo domain object instead.
  * This singleton will be removed in a future version.
  */
 export function getStore(): NodeStore {

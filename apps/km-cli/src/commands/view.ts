@@ -7,7 +7,7 @@
 
 import createDebug from "debug"
 import { Command } from "commander"
-import { setDebugVaultRoot } from "../debug-log.ts"
+import { setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 
 const debug = createDebug("km:cli:view")
@@ -27,95 +27,60 @@ export const viewCommand = new Command("view")
   )
   .option(
     "--no-watch",
-    "Disable file watching (faster startup on large vaults)",
+    "Disable file watching (faster startup on large repos)",
   )
   .action(async (root, options) => {
     debug("view command", { root, as: options.as, watch: options.watch })
 
-    // Import step runner and ANSI helpers first (small, fast)
-    const [{ steps }, { CURSOR_TO_START, CLEAR_LINE_END }] = await Promise.all([
-      import("@beorn/inkx-ui/progress"),
-      import("@beorn/inkx-ui/cli"),
-    ])
-
     // Clear the "Loading..." line from bootstrap.ts
+    const { CURSOR_TO_START, CLEAR_LINE_END } = await import(
+      "@beorn/inkx-ui/cli"
+    )
     process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
 
-    // Modules loaded by tasks
-    let tuiModule: typeof import("@km/tui")
-    let storageModule: typeof import("@km/storage")
-    let createdRepo: import("@km/storage").Repo
+    // Import modules
+    const [storageModule, tuiModule, { loadRepo }] = await Promise.all([
+      import("@km/storage"),
+      import("@km/tui"),
+      import("../load-repo.ts"),
+    ])
 
-    // Run loading steps with declarative API
-    // loadVault() handles both memory and disk modes with unified progress
-    const results = await steps({
-      loadModules: async () => {
-        ;[tuiModule, storageModule] = await Promise.all([
-          import("@km/tui"),
-          import("@km/storage"),
-        ])
-      },
+    // Resolve path and set debug root
+    const resolved = storageModule.resolvePathArg(root, getRootPath())
+    setDebugRepoRoot(resolved.repoRoot)
 
-      createRepo: function* () {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees sequential execution
-        const vaultRoot = storageModule!.resolvePathArg(
-          root,
-          getRootPath(),
-        ).vaultRoot
-        // Set vault root for debug path formatting
-        setDebugVaultRoot(vaultRoot)
-        // km-fast-md.7: Use discoverOnly for interactive mode (instant render)
-        // For non-interactive mode, we need full parsing before rendering
-        const interactive = options.interactive !== false
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        createdRepo = yield* storageModule!.createRepo(vaultRoot, {
-          loadFiles: true,
-          discoverOnly: interactive,
-        })
-        return createdRepo
-      },
+    // km-fast-md.7: Use discoverOnly for interactive mode (instant render)
+    const interactive = options.interactive !== false
 
-      buildView: function* () {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees sequential execution
-        const resolved = storageModule!.resolvePathArg(
-          root,
-          getRootPath(),
-        )
-        // Resolve nodeRef (path/filename/@ref) to actual node ID
-        // initBoardStateGenerator expects a node ID, not a path
-        let rootNodeId: string | undefined
-        if (resolved.nodeRef) {
-          const node = createdRepo.resolveNode(resolved.nodeRef)
-          rootNodeId = node?.id
-        }
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees createRepo runs first
-        const state = yield* tuiModule!.initBoardStateGenerator(
-          createdRepo,
-          rootNodeId,
-        )
-        if (state) {
-          state.rootPath = resolved.vaultRoot
-        }
-        return { state, resolved }
-      },
-    }).run({ clear: true })
+    // Load repo with progress display
+    const createdRepo = await loadRepo(resolved.repoRoot, {
+      showProgress: true,
+      discoverOnly: interactive,
+    })
 
-    // Extract results (generator return types need double assertion)
-    const { state, resolved } = results.buildView as unknown as {
-      state: import("@km/tui").TUIBoardState | null
-      resolved: ReturnType<typeof storageModule.resolvePathArg>
+    // Resolve nodeRef to actual node ID
+    let rootNodeId: string | undefined
+    if (resolved.nodeRef) {
+      const node = createdRepo.resolveNode(resolved.nodeRef)
+      rootNodeId = node?.id
+    }
+
+    // Build view state
+    const state = storageModule.runGenerator(
+      tuiModule.initBoardStateGenerator(createdRepo, rootNodeId),
+    )
+    if (state) {
+      state.rootPath = resolved.repoRoot
     }
 
     // km-fast-md.7: Extract deferred files for background parsing
-    const repo = results.createRepo as unknown as import("@km/storage").Repo
-    const deferredFiles = repo.deferredFiles
+    const deferredFiles = createdRepo.deferredFiles
 
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards"
-    const interactive = options.interactive !== false
 
     // Watch options: CLI flag > config > default (true)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
-    const tuiConfig = storageModule!.getTuiConfig(resolved.vaultRoot)
+    const tuiConfig = storageModule!.getTuiConfig(resolved.repoRoot)
     const watchEnabled = options.watch !== false ? tuiConfig.watch : false
     const watchWorker = tuiConfig.watchWorker
     debug("watch config", {
@@ -167,13 +132,12 @@ export const viewCommand = new Command("view")
       })()
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
-    await tuiModule!.runBoard(state, {
+    await tuiModule.runBoard(state, {
       interactive,
       initialViewMode: viewMode as ViewMode,
       watch: watchEnabled,
       watchWorker,
-      repo,
+      repo: createdRepo,
     })
 
     // Signal background task to stop (don't wait - causes Bun crash on cleanup)

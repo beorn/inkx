@@ -7,7 +7,7 @@
 import React, { useState } from "react"
 import { Box, Text, useInput } from "inkx"
 import type { KNode } from "@km/core"
-import { useVault } from "../vault-context.tsx"
+import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
 
@@ -94,7 +94,7 @@ export function NewItemDialog({
   width,
   height,
 }: NewItemDialogProps): React.ReactElement {
-  const vault = useVault()
+  const repo = useRepo()
   const [content, setContent] = useState("")
 
   // Determine insert location
@@ -102,13 +102,13 @@ export function NewItemDialog({
   const _parentIdx = getInsertIdx(
     cursorNode,
     parentId,
-    vault.getChildren.bind(vault),
+    repo.getChildren.bind(repo),
   )
   const insertContext = getInsertContext(
     cursorNode,
     parentId,
-    vault.getNode.bind(vault),
-    (node) => getNodeDisplayName(vault, node),
+    repo.getNode.bind(repo),
+    (node) => getNodeDisplayName(repo, node),
   )
 
   // Determine if cursor is a task (new item will also be a task)
@@ -128,8 +128,8 @@ export function NewItemDialog({
         return
       }
 
-      // Create the new node using vault.addNode
-      const nodeId = vault.addNode(parentId, {
+      // Create the new node using repo.addNode
+      const nodeId = repo.addNode(parentId, {
         type: isTask ? "task" : "paragraph",
         content: content.trim(),
         task_status: isTask ? "todo" : undefined,

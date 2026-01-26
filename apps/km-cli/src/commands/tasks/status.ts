@@ -22,7 +22,7 @@ export function createStatusCommand(): Command {
     .option("--json", "Output as JSON")
     .action((id, newStatus, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
-      using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+      using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {

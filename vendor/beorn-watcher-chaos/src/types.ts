@@ -138,7 +138,7 @@ export interface WatcherInterface extends EventEmitter, Service {
 export interface ChaosWatcherConfig {
   /** Base debounce time (ms) */
   debounceMs: number;
-  /** Vault path to watch (can also be set in start()) */
+  /** Repo path to watch (can also be set in start()) */
   repoPath?: string;
   /** Chaos scenario to apply */
   scenario?: ChaosScenario;

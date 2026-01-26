@@ -148,18 +148,18 @@ export function refreshBoardState(
   if (!ctx.boardState.rootId) return
 
   // NOTE: No longer dispatches REFRESH action - columns are now derived from
-  // vault at render time via useColumns hook. React automatically re-renders
-  // when vault.stats.nodeCount changes.
+  // repo at render time via useColumns hook. React automatically re-renders
+  // when repo.stats.nodeCount changes.
 
-  // Query vault to calculate new cursor position
+  // Query repo to calculate new cursor position
   const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
-  const allChildren = ctx.vault.getChildren(ctx.boardState.rootId)
+  const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
   const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
 
   // Calculate new cursor position
   const colIndex = options?.colIndex ?? ctx.layout.colIndex
   const colNode = columns[colIndex]
-  const cards = colNode ? ctx.vault.getChildren(colNode.id) : []
+  const cards = colNode ? ctx.repo.getChildren(colNode.id) : []
   let cardIndex: number
 
   if (typeof options?.cardIndex === "function") {

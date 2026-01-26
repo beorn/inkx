@@ -46,7 +46,7 @@ export class FileSystemWatcher extends EventEmitter {
   private pendingPaths: Set<string> = new Set()
   private debounceTimer: NodeJS.Timeout | null = null
   private config: WatcherConfig
-  private vaultPath: string = ""
+  private repoPath: string = ""
   private inFlightWrites: Set<string> = new Set()
 
   constructor(config: Partial<WatcherConfig> = {}) {
@@ -57,12 +57,12 @@ export class FileSystemWatcher extends EventEmitter {
   /**
    * Start watching a directory
    */
-  start(vaultPath: string): void {
-    this.vaultPath = vaultPath
-    debug("starting watcher for %s", vaultPath)
+  start(repoPath: string): void {
+    this.repoPath = repoPath
+    debug("starting watcher for %s", repoPath)
 
-    // Load ignore patterns from vault's ignore files
-    const ignorePatterns = getIgnorePatterns(vaultPath)
+    // Load ignore patterns from repo's ignore files
+    const ignorePatterns = getIgnorePatterns(repoPath)
     debug("ignore patterns: %O", ignorePatterns)
 
     // Create ignored function that combines patterns with file type check
@@ -77,10 +77,10 @@ export class FileSystemWatcher extends EventEmitter {
         return true
       }
       // Check against glob patterns
-      return shouldIgnore(path, ignorePatterns, vaultPath)
+      return shouldIgnore(path, ignorePatterns, repoPath)
     }
 
-    this.watcher = watch(vaultPath, {
+    this.watcher = watch(repoPath, {
       persistent: true,
       ignoreInitial: true,
       ignored: ignoredFn,
@@ -279,9 +279,9 @@ export function scanDirectory(
     }
 
     // Skip symlinks to avoid potential infinite loops and inconsistent behavior
-    // Symlinks pointing to directories above the vault root could cause:
+    // Symlinks pointing to directories above the repo root could cause:
     // - Infinite recursion during scans
-    // - Duplicate nodes if symlink target is also in vault
+    // - Duplicate nodes if symlink target is also in repo
     // - Confusing behavior if symlink target is modified
     if (entry.isSymbolicLink()) {
       debug("skipping symlink: %s", fullPath)

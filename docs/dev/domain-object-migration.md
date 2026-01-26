@@ -7,7 +7,7 @@ This guide explains how to migrate from the singleton-based storage APIs to the 
 The km codebase is transitioning from global singletons to domain objects. The benefits:
 
 - **No hidden dependencies** - All state is explicitly owned by objects
-- **Multiple vaults** - Can work with multiple vaults simultaneously
+- **Multiple repos** - Can work with multiple repos simultaneously
 - **Testability** - Easy to inject mock dependencies
 - **Automatic cleanup** - `using` syntax ensures proper resource disposal
 
@@ -15,12 +15,12 @@ The km codebase is transitioning from global singletons to domain objects. The b
 
 | Old API (deprecated)      | New API (preferred)             |
 | ------------------------- | ------------------------------- |
-| `loadVault(path)`         | `createVault(path)`             |
-| `getNode(id)`             | `vault.getNode(id)`             |
-| `getChildren(id)`         | `vault.getChildren(id)`         |
-| `getAllTasks()`           | `vault.getAllTasks()`           |
-| `search(query)`           | `vault.search(query)`           |
-| `updateNode(id, changes)` | `vault.updateNode(id, changes)` |
+| `loadRepo(path)`         | `createRepo(path)`             |
+| `getNode(id)`             | `repo.getNode(id)`             |
+| `getChildren(id)`         | `repo.getChildren(id)`         |
+| `getAllTasks()`           | `repo.getAllTasks()`           |
+| `search(query)`           | `repo.search(query)`           |
+| `updateNode(id, changes)` | `repo.updateNode(id, changes)` |
 | `getTuiConfig()`          | `loadConfigObject().tui`        |
 | `getBeadsConfig()`        | `loadConfigObject().beads`      |
 
@@ -31,12 +31,12 @@ The km codebase is transitioning from global singletons to domain objects. The b
 **Before (singleton pattern):**
 
 ```typescript
-import { loadVault, getNode, getAllTasks, getTasksByStatus } from "@km/storage"
+import { loadRepo, getNode, getAllTasks, getTasksByStatus } from "@km/storage"
 import { runGenerator } from "@km/storage"
 
 export async function myCommand(path: string) {
-  // Load vault using singletons
-  runGenerator(loadVault(path))
+  // Load repo using singletons
+  runGenerator(loadRepo(path))
 
   // Access data through global functions
   const tasks = getAllTasks()
@@ -50,19 +50,19 @@ export async function myCommand(path: string) {
 **After (domain object pattern):**
 
 ```typescript
-import { createVault, runGenerator } from "@km/storage"
+import { createRepo, runGenerator } from "@km/storage"
 
 export async function myCommand(path: string) {
-  // Create vault object - 'using' ensures cleanup
-  using vault = runGenerator(createVault(path))
+  // Create repo object - 'using' ensures cleanup
+  using repo = runGenerator(createRepo(path))
 
-  // Access data through vault methods
-  const tasks = vault.getAllTasks()
-  const todoCount = vault.getTasksByStatus("todo").length
-  const node = vault.getNode(someId)
+  // Access data through repo methods
+  const tasks = repo.getAllTasks()
+  const todoCount = repo.getTasksByStatus("todo").length
+  const node = repo.getNode(someId)
 
   console.log(`${todoCount} todos, ${tasks.length} total`)
-  // vault.close() called automatically when scope exits
+  // repo.close() called automatically when scope exits
 }
 ```
 
@@ -71,9 +71,9 @@ export async function myCommand(path: string) {
 **Before:**
 
 ```typescript
-import { loadVault, runWithProgress } from "@km/storage"
+import { loadRepo, runWithProgress } from "@km/storage"
 
-const result = runWithProgress(loadVault(path), (progress) => {
+const result = runWithProgress(loadRepo(path), (progress) => {
   spinner.update(`${progress.phase}: ${progress.current}/${progress.total}`)
 })
 ```
@@ -81,9 +81,9 @@ const result = runWithProgress(loadVault(path), (progress) => {
 **After:**
 
 ```typescript
-import { createVault, runWithProgress } from "@km/storage"
+import { createRepo, runWithProgress } from "@km/storage"
 
-using vault = runWithProgress(createVault(path), (progress) => {
+using repo = runWithProgress(createRepo(path), (progress) => {
   spinner.update(`${progress.phase}: ${progress.current}/${progress.total}`)
 })
 ```
@@ -95,8 +95,8 @@ using vault = runWithProgress(createVault(path), (progress) => {
 ```typescript
 import { getTuiConfig, getBeadsConfig } from "@km/storage"
 
-const tuiConfig = getTuiConfig(vaultPath)
-const beadsConfig = getBeadsConfig(vaultPath)
+const tuiConfig = getTuiConfig(repoPath)
+const beadsConfig = getBeadsConfig(repoPath)
 const watchEnabled = tuiConfig.watch
 ```
 
@@ -105,7 +105,7 @@ const watchEnabled = tuiConfig.watch
 ```typescript
 import { loadConfigObject } from "@km/storage"
 
-const config = loadConfigObject(vaultPath)
+const config = loadConfigObject(repoPath)
 const watchEnabled = config.tui.watch
 const beadsPrefix = config.beads.prefix
 
@@ -113,21 +113,21 @@ const beadsPrefix = config.beads.prefix
 config.reload()
 ```
 
-### Multiple Vaults
+### Multiple Repos
 
-The domain object pattern makes working with multiple vaults natural:
+The domain object pattern makes working with multiple repos natural:
 
 ```typescript
-import { createVault, runGenerator } from "@km/storage"
+import { createRepo, runGenerator } from "@km/storage"
 
-async function syncVaults(srcPath: string, dstPath: string) {
-  using srcVault = runGenerator(createVault(srcPath))
-  using dstVault = runGenerator(createVault(dstPath))
+async function syncRepos(srcPath: string, dstPath: string) {
+  using srcRepo = runGenerator(createRepo(srcPath))
+  using dstRepo = runGenerator(createRepo(dstPath))
 
   // Copy tasks from src to dst
-  const tasks = srcVault.getAllTasks()
+  const tasks = srcRepo.getAllTasks()
   for (const task of tasks) {
-    dstVault.addNode(null, {
+    dstRepo.addNode(null, {
       type: task.type,
       content: task.content,
       task_status: task.task_status,
@@ -143,7 +143,7 @@ async function syncVaults(srcPath: string, dstPath: string) {
 ```typescript
 import { SyncManager } from "@km/storage"
 
-const sync = new SyncManager({ vaultPath: path })
+const sync = new SyncManager({ repoPath: path })
 sync.start()
 sync.on("state-change", handleChange)
 // Manual cleanup needed
@@ -152,14 +152,14 @@ sync.on("state-change", handleChange)
 **After:**
 
 ```typescript
-import { createVault, runGenerator } from "@km/storage"
+import { createRepo, runGenerator } from "@km/storage"
 
-using vault = runGenerator(createVault(path))
-await using watcher = vault.watch()
+using repo = runGenerator(createRepo(path))
+await using watcher = repo.watch()
 
 await watcher.start()
 watcher.on("change", handleChange)
-// Both watcher.stop() and vault.close() called automatically
+// Both watcher.stop() and repo.close() called automatically
 ```
 
 ## Board Domain Object
@@ -167,11 +167,11 @@ watcher.on("change", handleChange)
 For TUI applications, the Board domain object wraps BoardState and boardReducer:
 
 ```typescript
-import { createVault, runGenerator } from "@km/storage"
+import { createRepo, runGenerator } from "@km/storage"
 import { createBoard } from "@km/board"
 
-using vault = runGenerator(createVault(path))
-const board = createBoard(vault, { rootId: "@projects" })
+using repo = runGenerator(createRepo(path))
+const board = createBoard(repo, { rootId: "@projects" })
 
 // Navigation
 board.moveCursor("down")
@@ -198,19 +198,19 @@ board.zoomOut()
 board.back()
 board.forward()
 
-// Refresh from vault
+// Refresh from repo
 board.refresh()
 ```
 
 ## Disposable Patterns
 
-### Sync Disposal (Vault, Board)
+### Sync Disposal (Repo, Board)
 
 Objects with sync cleanup use `using`:
 
 ```typescript
-using vault = runGenerator(createVault(path))
-// vault.close() called automatically via Symbol.dispose
+using repo = runGenerator(createRepo(path))
+// repo.close() called automatically via Symbol.dispose
 ```
 
 ### Async Disposal (Watcher)
@@ -218,7 +218,7 @@ using vault = runGenerator(createVault(path))
 Services with async cleanup use `await using`:
 
 ```typescript
-await using watcher = vault.watch()
+await using watcher = repo.watch()
 await watcher.start()
 // watcher.stop() awaited automatically via Symbol.asyncDispose
 ```
@@ -228,11 +228,11 @@ await watcher.start()
 If you can't use `using` syntax, call cleanup explicitly:
 
 ```typescript
-const vault = runGenerator(createVault(path))
+const repo = runGenerator(createRepo(path))
 try {
-  // ... use vault
+  // ... use repo
 } finally {
-  vault.close()
+  repo.close()
 }
 ```
 
@@ -240,7 +240,7 @@ try {
 
 The domain objects internally use the same infrastructure as the singleton APIs. This means:
 
-1. **Mixed usage works** - Code using `createVault()` sets up the same globals that `getNode()` reads from
+1. **Mixed usage works** - Code using `createRepo()` sets up the same globals that `getNode()` reads from
 2. **Migrate incrementally** - Update one command at a time
 3. **Test thoroughly** - Both APIs should produce identical results
 
@@ -250,18 +250,18 @@ See `apps/km-cli/src/commands/stats.ts` for a complete example of the domain obj
 
 ```typescript
 import { Command } from "commander"
-import { runGenerator, createVault } from "@km/storage"
+import { runGenerator, createRepo } from "@km/storage"
 
 export const statsCommand = new Command("stats")
-  .description("Show vault statistics")
-  .argument("[path]", "Path to vault (default: cwd)")
+  .description("Show repo statistics")
+  .argument("[path]", "Path to repo (default: cwd)")
   .action(async (path) => {
-    using vault = runGenerator(createVault(path))
+    using repo = runGenerator(createRepo(path))
 
-    const tasks = vault.getAllTasks()
-    console.log(`Vault: ${vault.path}`)
-    console.log(`Mode: ${vault.mode}`)
-    console.log(`Nodes: ${vault.stats.nodeCount}`)
+    const tasks = repo.getAllTasks()
+    console.log(`Repo: ${repo.path}`)
+    console.log(`Mode: ${repo.mode}`)
+    console.log(`Nodes: ${repo.stats.nodeCount}`)
     console.log(`Tasks: ${tasks.length}`)
   })
 ```

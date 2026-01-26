@@ -2,7 +2,7 @@
  * SQLite Database - state.db management
  *
  * Re-exports db-accepting functions from sub-modules.
- * All code should use Vault domain object (createVault) instead of these functions.
+ * All code should use Repo domain object (createRepo) instead of these functions.
  */
 
 // Database path utility and global instance management

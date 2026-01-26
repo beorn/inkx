@@ -5,7 +5,7 @@
  */
 
 import type { KNode, TaskStatus, TaskMark } from "@km/core"
-import type { Repo } from "./vault-context.tsx"
+import type { Repo } from "./repo-context.tsx"
 
 /**
  * TUI-specific board rendering state.
@@ -140,7 +140,7 @@ export interface TuiOptions {
   initialViewMode?: ViewMode
   /**
    * Enable file watching for live sync (default: true).
-   * Set to false to disable watching - faster startup on large vaults.
+   * Set to false to disable watching - faster startup on large repos.
    * Can also be set via config (tui.watch).
    */
   watch?: boolean

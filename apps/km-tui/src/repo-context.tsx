@@ -47,28 +47,3 @@ export function RepoProvider({
 }
 
 export { RepoContext }
-
-// Backward-compatible aliases (deprecated - use Repo versions)
-export { useRepo as useVault }
-export type { Repo as Vault }
-export { RepoContext as VaultContext }
-
-/**
- * Backward-compatible VaultProvider (deprecated - use RepoProvider)
- * Accepts either `vault` or `repo` prop for compatibility.
- */
-export function VaultProvider({
-  vault,
-  repo,
-  children,
-}: {
-  vault?: Repo
-  repo?: Repo
-  children: ReactNode
-}) {
-  const actualRepo = repo ?? vault
-  if (!actualRepo) {
-    throw new Error("VaultProvider requires either vault or repo prop")
-  }
-  return <RepoContext.Provider value={actualRepo}>{children}</RepoContext.Provider>
-}

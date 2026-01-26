@@ -419,7 +419,7 @@ queue.on("permission-denied", (errors) => {
 Directory scanning skips symbolic links to avoid potential infinite loops and inconsistent behavior:
 
 - **Circular symlinks** - Pointing to parent directories would cause infinite recursion
-- **Duplicate content** - Symlink target may also be in the vault, causing duplicates
+- **Duplicate content** - Symlink target may also be in the repo, causing duplicates
 - **Confusing edits** - Changes to symlink target may not sync as expected
 
 **Detecting symlinks for user notification:**
@@ -427,7 +427,7 @@ Directory scanning skips symbolic links to avoid potential infinite loops and in
 ```typescript
 import { scanSymlinks } from "@km/storage"
 
-const symlinks = scanSymlinks("/path/to/vault", ignorePatterns, true)
+const symlinks = scanSymlinks("/path/to/repo", ignorePatterns, true)
 if (symlinks.length > 0) {
   console.warn("Symlinks detected (will be skipped):")
   for (const s of symlinks) {
@@ -452,11 +452,11 @@ Different filesystems handle case differently:
 import { detectCaseSensitivity, detectCaseCollisions } from "@km/storage"
 
 // Test actual filesystem behavior (creates temp file)
-const isCaseSensitive = detectCaseSensitivity("/path/to/vault")
+const isCaseSensitive = detectCaseSensitivity("/path/to/repo")
 
 // Find potential problems for case-insensitive systems
 if (isCaseSensitive) {
-  const collisions = detectCaseCollisions("/path/to/vault", true)
+  const collisions = detectCaseCollisions("/path/to/repo", true)
   if (collisions.length > 0) {
     console.warn("Case collisions found (would conflict on macOS/Windows):")
     for (const c of collisions) {
@@ -471,7 +471,7 @@ if (isCaseSensitive) {
 ```typescript
 import { normalizePath } from "@km/storage"
 
-const caseSensitive = detectCaseSensitivity(vaultPath)
+const caseSensitive = detectCaseSensitivity(repoPath)
 const normalizedPath = normalizePath(filePath, caseSensitive)
 ```
 
@@ -557,7 +557,7 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
 // In test setup:
 const testWatcher = new TestWatcher(100) // 100ms debounce
 const syncManager = new SyncManager({
-  vaultPath: VAULT_DIR,
+  repoPath: REPO_DIR,
   watcher: testWatcher, // Inject controllable watcher
   heartbeat: { enabled: false }, // Disable setInterval heartbeat
 })

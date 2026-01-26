@@ -170,13 +170,13 @@ export const initCommand = new Command("init")
     // Check if there's a .km/ in an ancestor directory
     const ancestorKm = findAncestorKmDir(targetDir)
     if (ancestorKm && !options.force) {
-      console.log(chalk.yellow(`Found existing km vault at ${ancestorKm}`))
+      console.log(chalk.yellow(`Found existing km repo at ${ancestorKm}`))
       console.log(
         chalk.yellow(
-          `Creating a nested vault may cause conflicts. Consider using the parent vault instead.`,
+          `Creating a nested repo may cause conflicts. Consider using the parent repo instead.`,
         ),
       )
-      console.log(chalk.dim("Use --force to create a nested vault"))
+      console.log(chalk.dim("Use --force to create a nested repo"))
       return
     }
 
@@ -209,7 +209,7 @@ export const initCommand = new Command("init")
       // Create SyncManager with the database from repo
       const manager = new SyncManager({
         db: repo.database,
-        vaultPath: targetDir,
+        repoPath: targetDir,
         debounceFs: 0,
         debounceApply: 0,
         conflictStrategy: "last_write_wins",

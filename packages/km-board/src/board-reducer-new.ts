@@ -3,7 +3,7 @@
  *
  * ID-based reducer for board navigation.
  * No tree traversal - just updates IDs and Sets.
- * Navigation handlers compute target nodeIds using Vault.
+ * Navigation handlers compute target nodeIds using Repo.
  *
  * See hazy-forging-crayon.md plan for design rationale.
  */
@@ -19,7 +19,7 @@ const debug = createDebug("km:board:reducer")
  * Pure reducer for board state transitions.
  * Handles cursor selection, fold/collapse, zoom, move mode.
  *
- * IMPORTANT: No tree traversal here - navigation handlers use Vault.
+ * IMPORTANT: No tree traversal here - navigation handlers use Repo.
  */
 export function simplifiedBoardReducer(
   state: BoardState,

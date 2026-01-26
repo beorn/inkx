@@ -63,20 +63,20 @@ describe("runWithProgress", () => {
       total: number
     }
 
-    function* loadVault(): Generator<ProgressInfo, { name: string }, unknown> {
+    function* loadRepo(): Generator<ProgressInfo, { name: string }, unknown> {
       yield { phase: "discover", current: 0, total: 10 }
       yield { phase: "discover", current: 10, total: 10 }
       yield { phase: "parse", current: 5, total: 10 }
       yield { phase: "parse", current: 10, total: 10 }
-      return { name: "test-vault" }
+      return { name: "test-repo" }
     }
 
     const progress: ProgressInfo[] = []
-    const result = runWithProgress(loadVault(), (p) => {
+    const result = runWithProgress(loadRepo(), (p) => {
       progress.push(p)
     })
 
-    expect(result).toEqual({ name: "test-vault" })
+    expect(result).toEqual({ name: "test-repo" })
     expect(progress).toHaveLength(4)
     expect(progress[0]).toEqual({ phase: "discover", current: 0, total: 10 })
     expect(progress[3]).toEqual({ phase: "parse", current: 10, total: 10 })

@@ -39,7 +39,7 @@ let defaultKmDir = process.env.KM_DIR ?? ".km"
  * Get the current km state directory path.
  * Prefers ALS context (set via runWithKmDir), falls back to default.
  *
- * @deprecated Use Vault.path or pass kmDir explicitly to functions that need it.
+ * @deprecated Use Repo.path or pass kmDir explicitly to functions that need it.
  * Prefer using runWithKmDir() to establish context.
  */
 export function getKmDir(): string {

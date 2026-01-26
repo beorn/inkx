@@ -22,7 +22,7 @@ export interface SyncData {
  */
 export interface WatcherInterface extends EventEmitter {
   /** Start watching a directory */
-  start(vaultPath: string): void
+  start(repoPath: string): void
 
   /** Stop watching */
   stop(): Promise<void>

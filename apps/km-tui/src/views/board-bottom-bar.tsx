@@ -121,7 +121,7 @@ export function BottomBar({
   rightParts.push(viewModeStr)
 
   // Left side: storage mode + folder icon + path
-  // 📁 = folder icon for vault/repo path
+  // 📁 = folder icon for repo path
   const modeLabel = storageMode === "memory" ? "MEM" : "DISK"
   const middle = statusParts.join("  ") // Double space between status parts
   const right = ` ${rightParts.join("   ")} ` // Triple space between groups
@@ -143,7 +143,7 @@ export function BottomBar({
           {/* Storage mode indicator */}
           <Text id="storage-mode">{modeLabel}</Text>
           {" 📁"}
-          <Text id="vault-path">{displayPath}</Text>
+          <Text id="repo-path">{displayPath}</Text>
           {middle && (
             <>
               {"   "}

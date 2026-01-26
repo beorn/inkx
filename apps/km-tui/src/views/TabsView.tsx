@@ -11,7 +11,7 @@ import { Box, Text } from "inkx"
 import type { TUIBoardState } from "../types.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { useTreeConfig } from "../ui-context.tsx"
-import { useVault } from "../vault-context.tsx"
+import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 
 interface TabsViewProps {
@@ -33,7 +33,7 @@ export function TabsView({
   subIndex,
   selectionLevel,
 }: TabsViewProps): React.ReactElement {
-  const vault = useVault()
+  const repo = useRepo()
   const { inOutlineMode } = useTreeConfig()
 
   // Get current column
@@ -58,7 +58,7 @@ export function TabsView({
       <Box flexDirection="row" width={width} height={1} flexShrink={0}>
         {state.columns.map((column, cIdx) => {
           const isActive = cIdx === colIndex
-          const colName = getNodeDisplayName(vault, column.node)
+          const colName = getNodeDisplayName(repo, column.node)
           const colCount = column.cards.length
           const countStr = ` (${colCount})`
 

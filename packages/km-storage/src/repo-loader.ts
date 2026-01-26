@@ -1,7 +1,7 @@
 /**
- * Unified Vault Loading
+ * Unified Repo Loading
  *
- * THE single entry point for loading vaults in both memory and disk modes.
+ * THE single entry point for loading repos in both memory and disk modes.
  * This replaces the fragmented ensureState/rebuildState/syncState functions
  * with a unified generator-based pipeline.
  *
@@ -42,12 +42,12 @@ import { evaluateAllRules, setBulkMode } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { DiskStore, MemoryStore, type NodeStore } from "./store.ts"
 
-const debug = createDebug("km:storage:vault-loader")
+const debug = createDebug("km:storage:repo-loader")
 
-/** Result from loadVault */
+/** Result from loadRepo */
 export interface LoadResult {
   mode: "memory" | "disk"
-  /** Root path of the vault */
+  /** Root path of the repo */
   rootPath: string
   nodeCount: number
   linkCount: number
@@ -70,7 +70,7 @@ export interface LoadError {
   message: string
 }
 
-/** Options for loadVault */
+/** Options for loadRepo */
 export interface LoadOptions {
   /** Search for .km in parent directories (default: true) */
   searchAncestors?: boolean
@@ -93,10 +93,10 @@ export interface DeferredFile {
 }
 
 /**
- * THE unified vault loading function.
+ * THE unified repo loading function.
  * Handles both memory and disk modes with a shared pipeline.
  *
- * @deprecated Use createVault() instead for a proper domain object with
+ * @deprecated Use createRepo() instead for a proper domain object with
  * encapsulated state. This function uses global singletons.
  *
  * @param rootPath - Directory to load (default: cwd)
@@ -104,7 +104,7 @@ export interface DeferredFile {
  * @yields Progress info for each phase
  * @returns Load result with stats and errors
  */
-export function* loadVault(
+export function* loadRepo(
   rootPath?: string,
   options?: LoadOptions,
 ): Generator<StepYield, LoadResult, unknown> {
@@ -113,10 +113,10 @@ export function* loadVault(
 
   // 1. Resolve path and detect mode
   const searchAncestors = options?.searchAncestors ?? true
-  const { vaultRoot, kmDir } = resolveVaultRoot(rootPath, searchAncestors)
+  const { repoRoot, kmDir } = resolveRepoRoot(rootPath, searchAncestors)
   const mode = kmDir ? "disk" : "memory"
 
-  debug("loadVault vaultRoot=%s mode=%s", vaultRoot, mode)
+  debug("loadRepo repoRoot=%s mode=%s", repoRoot, mode)
 
   // Declare all sub-steps upfront so they appear as pending
   const skipLinks = options?.skipLinkResolution ?? false
@@ -177,8 +177,8 @@ export function* loadVault(
   const source: EventSource =
     mode === "memory"
       ? discoverOnly
-        ? yield* discoverFilesOnly(vaultRoot, errors)
-        : yield* discoverFromFilesystem(vaultRoot, errors)
+        ? yield* discoverFilesOnly(repoRoot, errors)
+        : yield* discoverFromFilesystem(repoRoot, errors)
       : yield* discoverFromEvents(kmDir ?? "", options?.force ?? false, errors)
 
   // 4. Shared pipeline (SAME for both modes)
@@ -222,17 +222,17 @@ export function* loadVault(
   // Real-time event application now handled via context-local database in emit.ts
 
   const duration = Date.now() - start
-  debug("loadVault complete", { mode, nodeCount, linkCount, duration })
+  debug("loadRepo complete", { mode, nodeCount, linkCount, duration })
 
   // Create the appropriate store with the database we just set up
   const store: NodeStore =
     mode === "disk" && kmDir
       ? new DiskStore(kmDir, { inject: { database: db } })
-      : new MemoryStore(vaultRoot, { inject: { database: db } })
+      : new MemoryStore(repoRoot, { inject: { database: db } })
 
   return {
     mode,
-    rootPath: vaultRoot,
+    rootPath: repoRoot,
     nodeCount,
     linkCount,
     errors,
@@ -268,25 +268,25 @@ export interface PendingLink {
 
 // --- Path Resolution ---
 
-function resolveVaultRoot(
+function resolveRepoRoot(
   rootPath: string | undefined,
   searchAncestors: boolean,
-): { vaultRoot: string; kmDir: string | null } {
+): { repoRoot: string; kmDir: string | null } {
   const path = rootPath ?? process.cwd()
 
   if (searchAncestors) {
     const kmDir = findKmRootFromPath(path)
     if (kmDir) {
-      return { vaultRoot: dirname(kmDir), kmDir }
+      return { repoRoot: dirname(kmDir), kmDir }
     }
   } else {
     const kmDir = join(path, ".km")
     if (existsSync(kmDir) && statSync(kmDir).isDirectory()) {
-      return { vaultRoot: path, kmDir }
+      return { repoRoot: path, kmDir }
     }
   }
 
-  return { vaultRoot: path, kmDir: null }
+  return { repoRoot: path, kmDir: null }
 }
 
 // --- Memory Mode Discovery ---
@@ -297,7 +297,7 @@ function resolveVaultRoot(
  * Returns deferred files list for later background parsing.
  */
 function* discoverFilesOnly(
-  vaultRoot: string,
+  repoRoot: string,
   _errors: LoadError[],
 ): Generator<StepYield, EventSource, unknown> {
   yield "Discovering files"
@@ -307,11 +307,11 @@ function* discoverFilesOnly(
   const now = Date.now()
 
   // Count files for progress
-  const total = countMarkdownFilesFast(vaultRoot)
+  const total = countMarkdownFilesFast(repoRoot)
   yield { current: 0, total }
 
   let current = 0
-  yield* scanDirectory(vaultRoot, null)
+  yield* scanDirectory(repoRoot, null)
 
   yield { current, total }
   return { events, pendingLinks: [], deferredFiles }
@@ -341,7 +341,7 @@ function* discoverFilesOnly(
 
       if (entry.isDirectory()) {
         // Create folder node
-        const folderId = generateId(vaultRoot, fullPath)
+        const folderId = generateId(repoRoot, fullPath)
         events.push({
           id: folderId,
           type: "node_created",
@@ -359,7 +359,7 @@ function* discoverFilesOnly(
 
         yield* scanDirectory(fullPath, folderId)
       } else if (entry.isFile()) {
-        const fileId = generateId(vaultRoot, fullPath)
+        const fileId = generateId(repoRoot, fullPath)
 
         if (entry.name.endsWith(".md")) {
           // Create stub file node WITHOUT parsing
@@ -413,7 +413,7 @@ function* discoverFilesOnly(
 }
 
 function* discoverFromFilesystem(
-  vaultRoot: string,
+  repoRoot: string,
   errors: LoadError[],
 ): Generator<StepYield, EventSource, unknown> {
   // Single-pass: discover AND parse in one traversal (km-load-perf.0)
@@ -425,14 +425,14 @@ function* discoverFromFilesystem(
 
   // First pass: count markdown files (fast - no parsing)
   // Use a stack-based iteration to count without recursion overhead
-  const total = countMarkdownFilesFast(vaultRoot)
+  const total = countMarkdownFilesFast(repoRoot)
   yield { current: total, total }
 
   // Parse - scan filesystem and generate events
   yield "Parsing markdown"
   let current = 0
 
-  yield* scanDirectory(vaultRoot, null, 0)
+  yield* scanDirectory(repoRoot, null, 0)
 
   return { events, pendingLinks }
 
@@ -462,7 +462,7 @@ function* discoverFromFilesystem(
 
       if (entry.isDirectory()) {
         // Create folder node
-        const folderId = generateId(vaultRoot, fullPath)
+        const folderId = generateId(repoRoot, fullPath)
         events.push({
           id: folderId,
           type: "node_created",
@@ -499,7 +499,7 @@ function* discoverFromFilesystem(
             // Convert nodes to events
             for (const node of nodes) {
               const nodeId =
-                node.id ?? generateId(vaultRoot, fullPath, node.md_line)
+                node.id ?? generateId(repoRoot, fullPath, node.md_line)
               events.push({
                 id: nodeId,
                 type: "node_created",
@@ -525,7 +525,7 @@ function* discoverFromFilesystem(
           }
         } else {
           // Non-markdown file node
-          const fileId = generateId(vaultRoot, fullPath)
+          const fileId = generateId(repoRoot, fullPath)
           events.push({
             id: fileId,
             type: "node_created",
@@ -591,11 +591,11 @@ function countMarkdownFilesFast(rootPath: string): number {
 }
 
 function generateId(
-  vaultRoot: string,
+  repoRoot: string,
   filePath: string,
   lineNum?: number,
 ): string {
-  const relPath = relative(vaultRoot, filePath)
+  const relPath = relative(repoRoot, filePath)
   return lineNum !== undefined ? `${relPath}:${lineNum}` : relPath
 }
 
@@ -883,7 +883,7 @@ function* resolveLinks(
 
 /**
  * Resolve pending links asynchronously (after board renders).
- * Call this with pendingLinks from loadVault({ skipLinkResolution: true }).
+ * Call this with pendingLinks from loadRepo({ skipLinkResolution: true }).
  *
  * Yields to event loop between batches to keep UI responsive.
  *

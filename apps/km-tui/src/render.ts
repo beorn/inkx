@@ -14,7 +14,7 @@
 
 import chalk from "chalk"
 import type { TaskStatus } from "@km/core"
-import type { Repo } from "./vault-context.tsx"
+import type { Repo } from "./repo-context.tsx"
 import type { TUIBoardState, CardState, RenderOptions } from "./types.ts"
 import { getNodeDisplayName } from "./state.ts"
 import {

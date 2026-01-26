@@ -220,7 +220,7 @@ function formatDueDate(dueDate: Date): string {
   return dueDisplay
 }
 
-/** Type for getBoardPills callback (vault is captured in closure by caller) */
+/** Type for getBoardPills callback (repo is captured in closure by caller) */
 export type GetBoardPillsFn = (
   node: KNode,
   excludeBoardIds: Set<string>,

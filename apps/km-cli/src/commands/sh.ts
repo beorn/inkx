@@ -29,7 +29,7 @@ import {
 } from "@km/storage"
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
-// Bound version with store dependency (closure will be set after vault init)
+// Bound version with store dependency (closure will be set after repo init)
 let getNodeDisplayName: (
   node: Parameters<typeof getNodeDisplayNameBase>[0],
 ) => ReturnType<typeof getNodeDisplayNameBase>
@@ -215,7 +215,7 @@ function getNodeAtCursor(state: BoardState): TNode | null {
 
 /**
  * Create mutation handler that integrates with storage layer
- * Uses the vault's methods which handle filesystem writes synchronously
+ * Uses the repo's methods which handle filesystem writes synchronously
  */
 function createMutationHandler(
   db: Database,
@@ -311,9 +311,9 @@ export const shCommand = new Command("sh")
     const resolved = resolvePathArg(root, getRootPath())
 
     // Create repo domain object (auto-closes via `using`)
-    using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+    using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
 
-    // Get database instance (TODO: use vault.rawQuery() instead)
+    // Get database instance (TODO: use repo.rawQuery() instead)
     const db = getDb()
 
     // Initialize bound helper functions

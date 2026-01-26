@@ -1,21 +1,21 @@
 import { describe, it, expect } from "bun:test"
-import { createFakeVault } from "../../src/testing/fake-vault.ts"
+import { createFakeRepo } from "../../src/testing/fake-repo.ts"
 import type { KNode } from "@km/core"
 
-describe("FakeVault", () => {
+describe("FakeRepo", () => {
   describe("creation", () => {
-    it("creates empty vault with defaults", () => {
-      const vault = createFakeVault()
+    it("creates empty repo with defaults", () => {
+      const repo = createFakeRepo()
 
-      expect(vault.path).toBe("/fake/vault")
-      expect(vault.mode).toBe("memory")
-      expect(vault.loadErrors).toEqual([])
-      expect(vault.stats.nodeCount).toBe(0)
+      expect(repo.path).toBe("/fake/repo")
+      expect(repo.mode).toBe("memory")
+      expect(repo.loadErrors).toEqual([])
+      expect(repo.stats.nodeCount).toBe(0)
     })
 
     it("accepts custom path", () => {
-      const vault = createFakeVault({ path: "/custom/path" })
-      expect(vault.path).toBe("/custom/path")
+      const repo = createFakeRepo({ path: "/custom/path" })
+      expect(repo.path).toBe("/custom/path")
     })
 
     it("accepts initial nodes", () => {
@@ -29,31 +29,31 @@ describe("FakeVault", () => {
         }),
       ]
 
-      const vault = createFakeVault({ nodes })
-      expect(vault.stats.nodeCount).toBe(2)
-      expect(vault.getNode("1")).not.toBeNull()
-      expect(vault.getNode("2")).not.toBeNull()
+      const repo = createFakeRepo({ nodes })
+      expect(repo.stats.nodeCount).toBe(2)
+      expect(repo.getNode("1")).not.toBeNull()
+      expect(repo.getNode("2")).not.toBeNull()
     })
   })
 
   describe("queries", () => {
     it("getNode returns node by id", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [createNode({ id: "abc", content: "Test" })],
       })
 
-      const node = vault.getNode("abc")
+      const node = repo.getNode("abc")
       expect(node).not.toBeNull()
       expect(node!.content).toBe("Test")
     })
 
     it("getNode returns null for unknown id", () => {
-      const vault = createFakeVault()
-      expect(vault.getNode("unknown")).toBeNull()
+      const repo = createFakeRepo()
+      expect(repo.getNode("unknown")).toBeNull()
     })
 
     it("getChildren returns children sorted by parent_idx", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [
           createNode({ id: "parent", parent_id: null }),
           createNode({ id: "child1", parent_id: "parent", parent_idx: 0 }),
@@ -62,12 +62,12 @@ describe("FakeVault", () => {
         ],
       })
 
-      const children = vault.getChildren("parent")
+      const children = repo.getChildren("parent")
       expect(children.map((c) => c.id)).toEqual(["child1", "child2", "child0"])
     })
 
     it("getSubtree returns node and all descendants", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [
           createNode({ id: "root", parent_id: null }),
           createNode({ id: "child1", parent_id: "root" }),
@@ -77,7 +77,7 @@ describe("FakeVault", () => {
         ],
       })
 
-      const subtree = vault.getSubtree("root")
+      const subtree = repo.getSubtree("root")
       expect(subtree.map((n) => n.id)).toContain("root")
       expect(subtree.map((n) => n.id)).toContain("child1")
       expect(subtree.map((n) => n.id)).toContain("child2")
@@ -86,7 +86,7 @@ describe("FakeVault", () => {
     })
 
     it("getAncestors returns path from root to parent", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [
           createNode({ id: "root", parent_id: null }),
           createNode({ id: "child", parent_id: "root" }),
@@ -94,12 +94,12 @@ describe("FakeVault", () => {
         ],
       })
 
-      const ancestors = vault.getAncestors("grandchild")
+      const ancestors = repo.getAncestors("grandchild")
       expect(ancestors.map((n) => n.id)).toEqual(["root", "child"])
     })
 
     it("getAllTasks returns only task nodes", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [
           createNode({ id: "1", type: "section" }),
           createNode({ id: "2", type: "task" }),
@@ -108,13 +108,13 @@ describe("FakeVault", () => {
         ],
       })
 
-      const tasks = vault.getAllTasks()
+      const tasks = repo.getAllTasks()
       expect(tasks).toHaveLength(2)
       expect(tasks.every((t) => t.type === "task")).toBe(true)
     })
 
     it("getTasksByStatus filters by task_status", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [
           createNode({ id: "1", type: "task", task_status: "todo" }),
           createNode({ id: "2", type: "task", task_status: "done" }),
@@ -122,13 +122,13 @@ describe("FakeVault", () => {
         ],
       })
 
-      const todos = vault.getTasksByStatus("todo")
+      const todos = repo.getTasksByStatus("todo")
       expect(todos).toHaveLength(2)
       expect(todos.every((t) => t.task_status === "todo")).toBe(true)
     })
 
     it("search finds nodes by content", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [
           createNode({ id: "1", content: "Buy groceries" }),
           createNode({ id: "2", content: "Write report" }),
@@ -136,32 +136,32 @@ describe("FakeVault", () => {
         ],
       })
 
-      const results = vault.search("groceries")
+      const results = repo.search("groceries")
       expect(results).toHaveLength(2)
     })
   })
 
   describe("mutations", () => {
     it("updateNode modifies node properties", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [createNode({ id: "1", content: "Original" })],
       })
 
-      vault.updateNode("1", { content: "Updated" })
+      repo.updateNode("1", { content: "Updated" })
 
-      const node = vault.getNode("1")
+      const node = repo.getNode("1")
       expect(node!.content).toBe("Updated")
     })
 
     it("updateNode throws for unknown id", () => {
-      const vault = createFakeVault()
-      expect(() => vault.updateNode("unknown", {})).toThrow(
+      const repo = createFakeRepo()
+      expect(() => repo.updateNode("unknown", {})).toThrow(
         "Node unknown not found",
       )
     })
 
     it("moveNode changes parent and position", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [
           createNode({ id: "parent1", parent_id: null }),
           createNode({ id: "parent2", parent_id: null }),
@@ -169,99 +169,99 @@ describe("FakeVault", () => {
         ],
       })
 
-      vault.moveNode("child", "parent2", 5)
+      repo.moveNode("child", "parent2", 5)
 
-      const node = vault.getNode("child")
+      const node = repo.getNode("child")
       expect(node!.parent_id).toBe("parent2")
       expect(node!.parent_idx).toBe(5)
     })
 
     it("deleteNode removes node", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 
-      vault.deleteNode("1")
-      expect(vault.getNode("1")).toBeNull()
+      repo.deleteNode("1")
+      expect(repo.getNode("1")).toBeNull()
     })
 
     it("addNode creates new node with generated id", () => {
-      const vault = createFakeVault()
+      const repo = createFakeRepo()
 
-      const id = vault.addNode(null, {
+      const id = repo.addNode(null, {
         type: "section",
         content: "New section",
       })
 
       expect(id).toMatch(/^fake-\d+$/)
-      const node = vault.getNode(id)
+      const node = repo.getNode(id)
       expect(node).not.toBeNull()
       expect(node!.content).toBe("New section")
       expect(node!.parent_id).toBeNull()
     })
 
     it("addNode sets task_status for tasks", () => {
-      const vault = createFakeVault()
+      const repo = createFakeRepo()
 
-      const id = vault.addNode(null, { type: "task", content: "New task" })
+      const id = repo.addNode(null, { type: "task", content: "New task" })
 
-      const node = vault.getNode(id)
+      const node = repo.getNode(id)
       expect(node!.task_status).toBe("todo")
     })
   })
 
   describe("lifecycle", () => {
     it("watch throws (not supported)", () => {
-      const vault = createFakeVault()
-      expect(() => vault.watch()).toThrow("FakeVault does not support watching")
+      const repo = createFakeRepo()
+      expect(() => repo.watch()).toThrow("FakeRepo does not support watching")
     })
 
     it("close prevents further operations", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 
-      vault.close()
+      repo.close()
 
-      expect(() => vault.getNode("1")).toThrow("Vault is closed")
+      expect(() => repo.getNode("1")).toThrow("Repo is closed")
     })
 
     it("Symbol.dispose calls close", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [createNode({ id: "1" })],
       })
 
-      vault[Symbol.dispose]()
+      repo[Symbol.dispose]()
 
-      expect(() => vault.getNode("1")).toThrow("Vault is closed")
+      expect(() => repo.getNode("1")).toThrow("Repo is closed")
     })
 
     it("reset restores initial state", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [createNode({ id: "1", content: "Original" })],
       })
 
-      vault.updateNode("1", { content: "Modified" })
-      vault.addNode(null, { type: "section", content: "New" })
+      repo.updateNode("1", { content: "Modified" })
+      repo.addNode(null, { type: "section", content: "New" })
 
-      vault.reset()
+      repo.reset()
 
-      expect(vault.getAllNodes()).toHaveLength(1)
-      expect(vault.getNode("1")!.content).toBe("Original")
+      expect(repo.getAllNodes()).toHaveLength(1)
+      expect(repo.getNode("1")!.content).toBe("Original")
     })
   })
 
   describe("test helpers", () => {
     it("getAllNodes returns all nodes", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         nodes: [createNode({ id: "1" }), createNode({ id: "2" })],
       })
 
-      expect(vault.getAllNodes()).toHaveLength(2)
+      expect(repo.getAllNodes()).toHaveLength(2)
     })
 
     it("getAllLinks returns all links", () => {
-      const vault = createFakeVault({
+      const repo = createFakeRepo({
         links: [
           {
             source_id: "1",
@@ -277,7 +277,7 @@ describe("FakeVault", () => {
         ],
       })
 
-      expect(vault.getAllLinks()).toHaveLength(1)
+      expect(repo.getAllLinks()).toHaveLength(1)
     })
   })
 })

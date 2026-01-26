@@ -63,8 +63,8 @@ When modifying TUI styling, see [.claude/skills/tui-design.md](.claude/skills/tu
 
 ```tsx
 // ✅ GOOD - Main logic first, helpers after return
-function processVault() {
-  const path = validatePath(vaultPath)
+function processRepo() {
+  const path = validatePath(repoPath)
   const db = loadDatabase(path)
   return { path, db }
 
@@ -117,14 +117,14 @@ This applies to all code including:
 // ✅ GOOD - inference works
 const items = nodes.map((n) => n.id);
 const count = items.length;
-const result = await loadVault(path);
+const result = await loadRepo(path);
 
 // ✅ GOOD - explicit type needed (exported API)
-export function buildBoardState(vault: Vault, rootId: string): BoardState {
+export function buildBoardState(repo: Repo, rootId: string): BoardState {
 
 // ✅ GOOD - explicit type needed (interface)
 interface Context {
-  vault: Vault;
+  repo: Repo;
 }
 
 // ❌ BAD - unnecessary type annotation
@@ -187,18 +187,18 @@ bun run test:fast    # Run this frequently - 24 second feedback loop
 **NEVER run sync operations or tests on:**
 
 - The km source code repository itself
-- User vaults with real data
+- User repos with real data
 - Any directory containing non-markdown files you care about
 
 **ALWAYS use isolated test directories:**
 
 - Tests use `/tmp/kmtest-*` directories that are created and destroyed per test
-- Manual testing should use throw-away test vaults:
+- Manual testing should use throw-away test repos:
   ```bash
-  # Create a test vault
-  rm -rf /tmp/test-vault && mkdir -p /tmp/test-vault
-  echo -e "# Test\n- [ ] Task 1" > /tmp/test-vault/test.md
-  bun km view /tmp/test-vault
+  # Create a test repo
+  rm -rf /tmp/test-repo && mkdir -p /tmp/test-repo
+  echo -e "# Test\n- [ ] Task 1" > /tmp/test-repo/test.md
+  bun km view /tmp/test-repo
   ```
 
 **Why this matters (km-me0n incident):**
@@ -258,11 +258,11 @@ Don't work around limitations by duplicating functionality or creating wrapper a
 
 - Speculative documentation drifts from reality
 - Write docs by reading the actual code, not from memory
-- If you update an interface, grep for doc references and update them
+- If you update an interface, search for doc references and update them (`rg "TypeName" docs/`)
 
 **When docs exist:**
 
-- Before modifying a type, check if it's documented (grep for type name in `docs/`)
+- Before modifying a type, check if it's documented (`rg "TypeName" docs/`)
 - After modifying, update docs in the SAME commit
 - If docs and code disagree, code is truth - update docs to match
 
@@ -457,7 +457,7 @@ For debugging TUI issues, combine debug logging with visual inspection to see bo
 
 ```bash
 # Terminal 1: Run TUI with debug logging to file
-DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
+DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/repo
 
 # Terminal 2: Watch the debug log
 tail -f /tmp/km.log
@@ -481,12 +481,12 @@ This gives you:
 See [.claude/skills/visual-test.md](.claude/skills/visual-test.md) for ttyd + Playwright.
 
 ```bash
-# Small test vault for faster loading
-rm -rf /tmp/test-vault && mkdir -p /tmp/test-vault
-echo -e "# Test\n- [ ] Task 1\n- [x] Task 2" > /tmp/test-vault/test.md
+# Small test repo for faster loading
+rm -rf /tmp/test-repo && mkdir -p /tmp/test-repo
+echo -e "# Test\n- [ ] Task 1\n- [x] Task 2" > /tmp/test-repo/test.md
 
 pkill -f ttyd 2>/dev/null || true
-FORCE_TTY=1 ttyd -W -p 7681 bun km view -r /tmp/test-vault test.md &
+FORCE_TTY=1 ttyd -W -p 7681 bun km view -r /tmp/test-repo test.md &
 sleep 5
 HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:7681 /tmp/tui.png
 ```
@@ -549,7 +549,7 @@ All major functionality MUST be exposed through **domain objects created by fact
 | `Watcher` | `repo.watch()`            | `Service`    | File sync                           |
 | `Config`  | `loadConfigObject()`      | plain object | Repository configuration            |
 
-> **Deprecated:** `Vault` / `createVault()` is the legacy API. Use `Repo` / `createRepo()` for new code.
+> **Deprecated:** `Repo` / `createRepo()` is the legacy API. Use `Repo` / `createRepo()` for new code.
 > See [ADR-002](docs/adr/002-domain-objects-refactor.md) for migration details.
 
 > **Board note:** ADR-002 specifies `createBoard(data: DataStore, rootId)`. Current implementation

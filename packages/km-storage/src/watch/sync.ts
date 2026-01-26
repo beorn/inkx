@@ -48,11 +48,11 @@ export interface HeartbeatConfig {
 
 export interface SyncConfig {
   db: Database
-  vaultPath: string
+  repoPath: string
   debounceFs: number
   debounceApply: number
   conflictStrategy: "last_write_wins" | "fs_wins" | "db_wins"
-  /** Use worker thread for file watching (default: true). Prevents UI blocking on large vaults. */
+  /** Use worker thread for file watching (default: true). Prevents UI blocking on large repos. */
   useWorker?: boolean
   /** Heartbeat reconciliation config */
   heartbeat?: Partial<HeartbeatConfig>
@@ -101,7 +101,7 @@ export class SyncManager extends EventEmitter {
     super()
     this.db = config.db
     this.config = { ...DEFAULT_CONFIG, ...config } as SyncConfig
-    this.kmDir = join(this.config.vaultPath, ".km")
+    this.kmDir = join(this.config.repoPath, ".km")
 
     // Initialize heartbeat config
     this.heartbeatConfig = {
@@ -153,10 +153,10 @@ export class SyncManager extends EventEmitter {
    * Start watching and syncing
    */
   start(): void {
-    debug("starting sync manager for %s", this.config.vaultPath)
+    debug("starting sync manager for %s", this.config.repoPath)
     // Load ignore patterns for reconciliation
-    this.ignorePatterns = getIgnorePatterns(this.config.vaultPath)
-    this.watcher.start(this.config.vaultPath)
+    this.ignorePatterns = getIgnorePatterns(this.config.repoPath)
+    this.watcher.start(this.config.repoPath)
 
     // Start heartbeat timer if enabled
     this.startHeartbeat()
@@ -259,11 +259,11 @@ export class SyncManager extends EventEmitter {
       this.setState("reconciling")
 
       runWithKmDir(this.kmDir, () => {
-        // Scan entire vault for changes
+        // Scan entire repo for changes
         const ops = reconcileDirectory(
           this.db,
-          this.config.vaultPath,
-          this.config.vaultPath,
+          this.config.repoPath,
+          this.config.repoPath,
           this.ignorePatterns,
         )
 
@@ -272,7 +272,7 @@ export class SyncManager extends EventEmitter {
           this.heartbeatDrift += ops.length
 
           this.setState("emitting")
-          applyReconcileOps(this.db, ops, this.config.vaultPath)
+          applyReconcileOps(this.db, ops, this.config.repoPath)
 
           // Emit event so consumers know about drift
           this.emit("heartbeat:drift", {
@@ -313,14 +313,14 @@ export class SyncManager extends EventEmitter {
       return runWithKmDir(this.kmDir, () => {
         const ops = reconcileDirectory(
           this.db,
-          this.config.vaultPath,
-          this.config.vaultPath,
+          this.config.repoPath,
+          this.config.repoPath,
           this.ignorePatterns,
         )
 
         if (ops.length > 0) {
           this.setState("emitting")
-          applyReconcileOps(this.db, ops, this.config.vaultPath)
+          applyReconcileOps(this.db, ops, this.config.repoPath)
           this.heartbeatDrift += ops.length
         }
 
@@ -376,14 +376,14 @@ export class SyncManager extends EventEmitter {
           const ops = reconcileDirectory(
             this.db,
             dir,
-            this.config.vaultPath,
+            this.config.repoPath,
             this.ignorePatterns,
           )
           debug("reconciled %s: %d ops", dir, ops.length)
 
           if (ops.length > 0) {
             this.setState("emitting")
-            applyReconcileOps(this.db, ops, this.config.vaultPath)
+            applyReconcileOps(this.db, ops, this.config.repoPath)
           }
         }
       })
@@ -486,14 +486,14 @@ export class SyncManager extends EventEmitter {
         const ops = reconcileDirectory(
           this.db,
           dir,
-          this.config.vaultPath,
+          this.config.repoPath,
           this.ignorePatterns,
         )
 
         if (ops.length > 0) {
           debug("reconcile-before-write: applying %d ops", ops.length)
           // Apply synchronously to ensure DB is updated before we regenerate
-          void applyReconcileOps(this.db, ops, this.config.vaultPath)
+          void applyReconcileOps(this.db, ops, this.config.repoPath)
         }
       }
     } catch (err) {
@@ -575,23 +575,23 @@ export class SyncManager extends EventEmitter {
    * @param onProgress - Optional callback for progress reporting
    */
   async syncFromFs(onProgress?: ProgressCallback): Promise<SyncFromFsResult> {
-    debug("syncFromFs: scanning %s", this.config.vaultPath)
+    debug("syncFromFs: scanning %s", this.config.repoPath)
     const start = Date.now()
 
     // Run within kmDir context so database operations use correct path
-    const kmDir = join(this.config.vaultPath, ".km")
+    const kmDir = join(this.config.repoPath, ".km")
 
     return runWithKmDir(kmDir, async () => {
       // Event application handled via context-local database in emit.ts
 
-      // Load ignore patterns for this vault
-      const ignorePatterns = getIgnorePatterns(this.config.vaultPath)
+      // Load ignore patterns for this repo
+      const ignorePatterns = getIgnorePatterns(this.config.repoPath)
 
       // Phase 1: Scanning
       onProgress?.({ phase: "scanning", current: 0, total: 1 })
 
       const entries = scanDirectoryRecursive(
-        this.config.vaultPath,
+        this.config.repoPath,
         (path) => path.endsWith(".md"),
         ignorePatterns,
       )
@@ -616,10 +616,10 @@ export class SyncManager extends EventEmitter {
         const ops = reconcileDirectory(
           this.db,
           dir,
-          this.config.vaultPath,
+          this.config.repoPath,
           ignorePatterns,
         )
-        applyReconcileOps(this.db, ops, this.config.vaultPath)
+        applyReconcileOps(this.db, ops, this.config.repoPath)
         processed += ops.length
 
         // Report progress for each directory
@@ -688,14 +688,14 @@ export class SyncManager extends EventEmitter {
    * Force sync to filesystem
    *
    * SAFETY: Only writes .md files. Never touches source code, config files, or binaries.
-   * This is critical to prevent corruption of non-vault files (km-me0n bug).
+   * This is critical to prevent corruption of non-repo files (km-me0n bug).
    */
   async syncToFs(): Promise<{ written: number }> {
     debug("syncToFs: starting")
     const start = Date.now()
 
     // Run within kmDir context so database operations use correct path
-    const kmDir = join(this.config.vaultPath, ".km")
+    const kmDir = join(this.config.repoPath, ".km")
 
     return runWithKmDir(kmDir, async () => {
       const nodes = getAllNodes(this.db)
@@ -735,18 +735,18 @@ export class SyncManager extends EventEmitter {
   getStatus(): {
     state: SyncState
     pendingWrites: number
-    vaultPath: string
+    repoPath: string
     watcher?: WatcherStatus
   } {
     const status: {
       state: SyncState
       pendingWrites: number
-      vaultPath: string
+      repoPath: string
       watcher?: WatcherStatus
     } = {
       state: this.state,
       pendingWrites: this.writeQueue.getPendingCount(),
-      vaultPath: this.config.vaultPath,
+      repoPath: this.config.repoPath,
     }
 
     // Include watcher status if using WorkerWatcher
@@ -793,7 +793,7 @@ function findFileNode(db: Database, node: KNode): KNode | null {
  */
 export async function syncOnce(
   db: Database,
-  vaultPath: string,
+  repoPath: string,
 ): Promise<{
   created: number
   updated: number
@@ -801,7 +801,7 @@ export async function syncOnce(
 }> {
   const manager = new SyncManager({
     db,
-    vaultPath,
+    repoPath,
     debounceFs: 0,
     debounceApply: 0,
     conflictStrategy: "fs_wins",

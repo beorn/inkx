@@ -17,18 +17,18 @@ describe("Result type", () => {
     it("creates success result with Ok", () => {
       const result = Ok(42)
       expect(result.ok).toBe(true)
-      expect(result.value).toBe(42)
+      if (result.ok) expect(result.value).toBe(42)
     })
 
     it("creates failure result with Err", () => {
       const result = Err("error")
       expect(result.ok).toBe(false)
-      expect(result.error).toBe("error")
+      if (!result.ok) expect(result.error).toBe("error")
     })
 
     it("OkVoid creates void success", () => {
       expect(OkVoid.ok).toBe(true)
-      expect(OkVoid.value).toBeUndefined()
+      if (OkVoid.ok) expect(OkVoid.value).toBeUndefined()
     })
   })
 

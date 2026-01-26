@@ -6,9 +6,9 @@
  * Does NOT include app-specific UI state (modals, dialogs).
  *
  * After radical simplification (km-refactor-audit):
- * - No tree data in state (use Vault instead)
+ * - No tree data in state (use Repo instead)
  * - No path-based cursor (use cursorNodeId)
- * - No selectors/helpers (use Vault queries)
+ * - No selectors/helpers (use Repo queries)
  */
 
 // ===== Board Types =====

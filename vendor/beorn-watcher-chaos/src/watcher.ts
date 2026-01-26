@@ -59,7 +59,7 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
     return this._status;
   }
 
-  /** Vault path being watched */
+  /** Repo path being watched */
   get repoPath(): string {
     return this._repoPath;
   }

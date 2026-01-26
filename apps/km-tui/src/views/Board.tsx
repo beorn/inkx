@@ -4,7 +4,7 @@
  * 3-Layer Architecture:
  * 1. BoardCore - Pure rendering, no hooks (testable)
  * 2. Board - State management (useReducer, useInput)
- * 3. BoardApp - Production entry (useVault, useStdout, external integrations)
+ * 3. BoardApp - Production entry (useRepo, useStdout, external integrations)
  */
 import React, { useEffect, useReducer, useMemo, useRef } from "react"
 import { writeSync } from "fs"
@@ -21,7 +21,7 @@ import createDebug from "debug"
 const debug = createDebug("km:board")
 import type { TUIBoardState, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
-import { useRepo, RepoProvider } from "../vault-context.tsx"
+import { useRepo, RepoProvider } from "../repo-context.tsx"
 import type { Repo } from "@km/storage"
 import { DetailPane } from "./DetailPane.tsx"
 import { ProjectPicker } from "./ProjectPicker.tsx"
@@ -114,7 +114,7 @@ export function BoardCore({
   dispatch,
   dialogHandlers,
 }: BoardCoreProps): React.ReactElement {
-  const vault = useRepo()
+  const repo = useRepo()
   const termWidth = dimensions.columns
   const termHeight = dimensions.rows
 
@@ -144,7 +144,7 @@ export function BoardCore({
         ? selectedCol.node.id
         : selectedCard.node.id
   const selectedPathSegments = renderPath(
-    getPathSegments(vault, pathNodeId, state.rootId),
+    getPathSegments(repo, pathNodeId, state.rootId),
     termWidth - 4,
   )
 
@@ -376,8 +376,8 @@ export function BoardCore({
               ui={ui}
               state={state}
               termWidth={termWidth}
-              storageMode={vault.mode}
-              nodeCount={vault.stats.nodeCount}
+              storageMode={repo.mode}
+              nodeCount={repo.stats.nodeCount}
             />
             {/* Bell indicator - hidden element for test detection */}
             {ui.bellState && (
@@ -415,7 +415,7 @@ export interface BoardProps {
  *
  * NEW ARCHITECTURE:
  * - Uses SimplifiedBoardState (cursorNodeId only, no nodes array)
- * - Derives columns from Vault at render time via useColumns
+ * - Derives columns from Repo at render time via useColumns
  * - Derives cursor position from cursorNodeId via useCursorPosition
  */
 export function Board({
@@ -426,7 +426,7 @@ export function Board({
   layoutRegistry: injectedRegistry,
   reducer = uiReducer,
 }: BoardProps) {
-  const vault = useRepo()
+  const repo = useRepo()
 
   // UI state managed by reducer (enables extracting input handlers)
   const [ui, dispatch] = useReducer(
@@ -488,8 +488,8 @@ export function Board({
   }
   const layoutRegistry = layoutRegistryRef.current
 
-  // NEW: Derive columns from Vault (not from state.nodes)
-  const columns = useColumns(vault, boardState.rootId, boardState.foldedNodes)
+  // NEW: Derive columns from Repo (not from state.nodes)
+  const columns = useColumns(repo, boardState.rootId, boardState.foldedNodes)
 
   // NEW: Derive cursor position from cursorNodeId (not from state.cursor path)
   const cursorPosition = useCursorPosition(columns, boardState.cursorNodeId)
@@ -528,9 +528,9 @@ export function Board({
     [boardState, columnsLayout],
   )
 
-  // Dialog handlers (no longer need boardState/dispatchBoard - columns derived from vault)
+  // Dialog handlers (no longer need boardState/dispatchBoard - columns derived from repo)
   const dialogHandlers = useBoardDialogs({
-    vault,
+    repo,
     state,
     dispatch,
   })
@@ -553,7 +553,7 @@ export function Board({
 
   // Build unified TUI context once - passed to all handlers
   const tuiContext: TUIContext = buildTUIContext({
-    vault,
+    repo,
     state,
     boardState,
     ui,
@@ -563,7 +563,7 @@ export function Board({
     dispatchBoard,
     exit: onExit,
     countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
-      countVisibleDescendants(vault, node, depth, maxDepth, foldedNodes),
+      countVisibleDescendants(repo, node, depth, maxDepth, foldedNodes),
   })
 
   // Initialize command system on first render
@@ -582,8 +582,8 @@ export function Board({
 
   // Subscribe to external refresh events (filesystem changes)
   useEffect(
-    () => createRefreshHandler(vault, rootIdRef, dispatchBoard),
-    [vault, dispatchBoard],
+    () => createRefreshHandler(repo, rootIdRef, dispatchBoard),
+    [repo, dispatchBoard],
   )
 
   // Main keyboard input handler - ALL keys go through @km/commands
@@ -608,7 +608,7 @@ export function Board({
       handleDetailPaneKeyInput(
         input,
         key,
-        vault,
+        repo,
         boardState,
         dispatch,
         dispatchBoard,
@@ -634,7 +634,7 @@ export function Board({
 }
 
 // =============================================================================
-// BoardApp - Production Entry (useVault, useStdout, external integrations)
+// BoardApp - Production Entry (useRepo, useStdout, external integrations)
 // =============================================================================
 
 export interface BoardAppProps {
@@ -648,7 +648,7 @@ export interface BoardAppProps {
 
 /**
  * Production entry component with external integrations.
- * Gets vault, dimensions, exit from context/hooks.
+ * Gets repo, dimensions, exit from context/hooks.
  * Handles terminal dimension sync only - other effects moved to Board.
  */
 export function BoardApp({
@@ -694,7 +694,7 @@ export function BoardApp({
 // =============================================================================
 
 function countVisibleDescendants(
-  vault: Repo,
+  repo: Repo,
   node: KNode,
   depth: number,
   maxDepth: number,
@@ -703,11 +703,11 @@ function countVisibleDescendants(
   if (depth > maxDepth || foldedNodes.has(node.id)) {
     return 0
   }
-  const children = vault.getChildren(node.id).slice(0, 10)
+  const children = repo.getChildren(node.id).slice(0, 10)
   let count = children.length
   for (const child of children) {
     count += countVisibleDescendants(
-      vault,
+      repo,
       child,
       depth + 1,
       maxDepth,

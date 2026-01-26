@@ -136,7 +136,7 @@ export function handleCommandAction(
         curNodeId,
       )
       if (curNodeId) {
-        const children = ctx.vault.getChildren(curNodeId)
+        const children = ctx.repo.getChildren(curNodeId)
         debug("OPEN_DETAIL_PANE: children=%d", children.length)
         if (children.length > 0) {
           // Use handleZoomInNode to support both card and column level zoom
@@ -287,9 +287,9 @@ function handleZoomOutwards(ctx: TUIContext): ActionResult {
     return ok()
   }
   if (boardState.rootId) {
-    const currentRoot = ctx.vault.getNode(boardState.rootId)
+    const currentRoot = ctx.repo.getNode(boardState.rootId)
     if (currentRoot?.parent_id) {
-      const parentNode = ctx.vault.getNode(currentRoot.parent_id)
+      const parentNode = ctx.repo.getNode(currentRoot.parent_id)
       if (parentNode) {
         pushNavHistoryEntry(
           dispatch,
@@ -312,7 +312,7 @@ function handleZoomOutwards(ctx: TUIContext): ActionResult {
         return ok()
       }
     } else {
-      const rootView = initBoardState(ctx.vault)
+      const rootView = initBoardState(ctx.repo)
       if (rootView && rootView.rootId !== boardState.rootId) {
         pushNavHistoryEntry(
           dispatch,
@@ -339,7 +339,7 @@ function handleZoomOutwards(ctx: TUIContext): ActionResult {
 
   // Already at root level - try to move cursor to parent of current selection
   if (card?.node.parent_id) {
-    const parentNode = ctx.vault.getNode(card.node.parent_id)
+    const parentNode = ctx.repo.getNode(card.node.parent_id)
     if (parentNode) {
       // Search in layout.columns for the parent node
       const columns = layout.columns
@@ -403,7 +403,7 @@ function handleDeleteNode(ctx: TUIContext): void {
   const card = col?.cards[state.cardIndex]
 
   if (!card) return
-  ctx.vault.deleteNode(card.node.id)
+  ctx.repo.deleteNode(card.node.id)
   refreshBoardState(ctx, {
     cardIndex: (c) =>
       Math.min(state.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
@@ -411,7 +411,7 @@ function handleDeleteNode(ctx: TUIContext): void {
 }
 
 function handleConfirmMove(ctx: TUIContext): void {
-  const { boardState, layout, vault, dispatchBoard } = ctx
+  const { boardState, layout, repo, dispatchBoard } = ctx
   const sourceNodeIds = boardState.moveSourceNodes
   if (sourceNodeIds.length === 0) return
   const targetCol = layout.columns[layout.colIndex]
@@ -421,7 +421,7 @@ function handleConfirmMove(ctx: TUIContext): void {
       ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1
       : 0
   for (const nodeId of sourceNodeIds) {
-    vault.moveNode(nodeId, targetCol.node.id, newSortOrder)
+    repo.moveNode(nodeId, targetCol.node.id, newSortOrder)
     newSortOrder++
   }
   dispatchBoard({ type: "CONFIRM_MOVE" })
@@ -439,7 +439,7 @@ function handleTaskStatusCycle(ctx: TUIContext): void {
   if (!card) return
   const targetId = card.node.link_to || card.node.id
   const targetNode = card.node.link_to
-    ? ctx.vault.getNode(card.node.link_to)
+    ? ctx.repo.getNode(card.node.link_to)
     : card.node
   const currentStatus = targetNode?.task_status || "todo"
   const statusCycle: TaskStatus[] = [
@@ -460,7 +460,7 @@ function handleTaskStatusCycle(ctx: TUIContext): void {
     done: "x",
     dropped: "-",
   }
-  ctx.vault.updateNode(targetId, {
+  ctx.repo.updateNode(targetId, {
     task_status: nextStatus,
     task_mark: markMap[nextStatus],
   })
@@ -479,7 +479,7 @@ function handleHierarchicalNavigation(
   ctx: TUIContext,
   dir: "up" | "down",
 ): string | null {
-  const { state, boardState, vault, positionRegistry } = ctx
+  const { state, boardState, repo, positionRegistry } = ctx
   const { cursorNodeId, rootId } = boardState
   const col = state.columns[state.colIndex]
 
@@ -525,13 +525,13 @@ function handleHierarchicalNavigation(
 
     if (isAtCardLevel) {
       // Card → next card (sibling navigation)
-      return handleTreeNavigation("next", boardState, vault)
+      return handleTreeNavigation("next", boardState, repo)
     }
   } else {
     // k: move up through hierarchy
     if (isAtCardLevel) {
       // Try to move to previous card first
-      const prevCard = handleTreeNavigation("prev", boardState, vault)
+      const prevCard = handleTreeNavigation("prev", boardState, repo)
       if (prevCard) {
         return prevCard
       }
@@ -605,7 +605,7 @@ function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
         const targetId = handleTreeNavigation(
           direction as TreeDirection,
           ctx.boardState,
-          ctx.vault,
+          ctx.repo,
         )
         if (targetId) {
           dispatchBoard({ type: "SELECT", nodeId: targetId })
@@ -770,7 +770,7 @@ function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
 
   // Normal cursor movement (first, last, etc.)
   const treeDir = dir as TreeDirection
-  const targetId = handleTreeNavigation(treeDir, ctx.boardState, ctx.vault)
+  const targetId = handleTreeNavigation(treeDir, ctx.boardState, ctx.repo)
   if (targetId && targetId !== ctx.boardState.cursorNodeId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
     return ok()
@@ -779,14 +779,14 @@ function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
 }
 
 function handleToggleFold(ctx: TUIContext): ActionResult {
-  const { state, dispatch, vault } = ctx
+  const { state, dispatch, repo } = ctx
   const col = state.columns[state.colIndex]
   const card = col?.cards[state.cardIndex]
 
   if (!card) return boundary("fold", "no card selected")
 
   // Check if card has children to fold/unfold
-  const children = vault.getChildren(card.node.id)
+  const children = repo.getChildren(card.node.id)
   if (children.length === 0) {
     return boundary("fold", "no children to fold")
   }
@@ -878,7 +878,7 @@ function handleZoomIn(ctx: TUIContext): ActionResult {
   if (!card) return precondition("card")
 
   // If card has no children, return boundary (nothing to zoom into)
-  const children = ctx.vault.getChildren(card.node.id)
+  const children = ctx.repo.getChildren(card.node.id)
   if (children.length === 0) {
     return boundary("in", "no children")
   }
@@ -914,7 +914,7 @@ function handleZoomInNode(ctx: TUIContext, nodeId: string): ActionResult {
   const { boardState, ui, dispatch, dispatchBoard, layout } = ctx
 
   // Verify node has children
-  const children = ctx.vault.getChildren(nodeId)
+  const children = ctx.repo.getChildren(nodeId)
   if (children.length === 0) {
     return boundary("in", "no children")
   }
@@ -986,7 +986,7 @@ function handleExtendSelectVertical(
   const targetId = handleTreeNavigation(
     treeDir as TreeDirection,
     ctx.boardState,
-    ctx.vault,
+    ctx.repo,
   )
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
@@ -1018,7 +1018,7 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
 
   if (!favoriteId) return
 
-  const targetNode = ctx.vault.getNode(favoriteId)
+  const targetNode = ctx.repo.getNode(favoriteId)
   if (!targetNode) return
 
   // Save current state
@@ -1127,12 +1127,12 @@ function handleNavSiblingBoard(
     return boundary(direction, "no root")
   }
 
-  const currentRoot = ctx.vault.getNode(boardState.rootId)
+  const currentRoot = ctx.repo.getNode(boardState.rootId)
   if (!currentRoot?.parent_id) {
     return boundary(direction, "no parent")
   }
 
-  const siblings = ctx.vault.getChildren(currentRoot.parent_id)
+  const siblings = ctx.repo.getChildren(currentRoot.parent_id)
   const currentIdx = siblings.findIndex((n) => n.id === currentRoot.id)
 
   if (currentIdx < 0) return ok()
@@ -1187,7 +1187,7 @@ function handleZoomInwards(ctx: TUIContext): ActionResult {
       maxDepth: number,
     ): void {
       if (depth > maxDepth) return
-      const nodeChildren = ctx.vault.getChildren(nodeId)
+      const nodeChildren = ctx.repo.getChildren(nodeId)
       for (const child of nodeChildren) {
         flatChildren.push({ node: child, depth })
         if (!ui.foldedNodes.has(child.id)) {
@@ -1216,7 +1216,7 @@ function handleZoomInwards(ctx: TUIContext): ActionResult {
       dispatch(actions.setSubIndex(0))
 
       // Get first child of zoom target for cursor initialization
-      const targetChildChildren = ctx.vault.getChildren(targetChild.node.id)
+      const targetChildChildren = ctx.repo.getChildren(targetChild.node.id)
       const firstChild = targetChildChildren[0]
 
       dispatchBoard({

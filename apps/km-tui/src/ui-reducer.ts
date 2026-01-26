@@ -73,7 +73,7 @@ export interface UIState {
   isReady: boolean
   dimensions: { columns: number; rows: number }
 
-  // Loading state (for large vaults)
+  // Loading state (for large repos)
   isLoading: boolean
   loadingStartTime: number | null
 

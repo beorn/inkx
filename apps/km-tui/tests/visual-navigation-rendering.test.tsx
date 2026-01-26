@@ -13,9 +13,9 @@ import { describe, test, expect } from "bun:test"
 import React from "react"
 import { createTestRenderer } from "inkx/testing"
 import { Board } from "../src/views/Board.tsx"
-import { VaultProvider } from "../src/vault-context.tsx"
+import { RepoProvider } from "../src/repo-context.tsx"
 import { createLayoutRegistry } from "../src/card-positions.ts"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import type { TUIBoardState } from "../src/types.ts"
 import type { KNode } from "@km/core"
 
@@ -43,12 +43,12 @@ function makeNode(
   }
 }
 
-// Helper to create a minimal TUIBoardState (columns are derived from vault now)
+// Helper to create a minimal TUIBoardState (columns are derived from repo now)
 function makeTUIBoardState(rootId: string): TUIBoardState {
   return {
     rootId,
     rootPath: null,
-    columns: [], // Derived from vault
+    columns: [], // Derived from repo
     colIndex: 0,
     cardIndex: 0,
     selectedCards: new Set(),
@@ -65,8 +65,8 @@ describe("Visual navigation integration: card position registration", () => {
   test("cards in single column register with increasing Y positions", () => {
     const registry = createLayoutRegistry()
 
-    // Create vault with nodes: root -> column -> cards
-    const vault = createFakeVault({
+    // Create repo with nodes: root -> column -> cards
+    const repo = createFakeRepo({
       nodes: [
         makeNode("root", "Root", "section"),
         makeNode("col-1", "Column 1", "section", "root", 0),
@@ -79,7 +79,7 @@ describe("Visual navigation integration: card position registration", () => {
     const state = makeTUIBoardState("root")
 
     const { lastFrameText } = render(
-      <VaultProvider vault={vault}>
+      <RepoProvider repo={repo}>
         <Board
           initialState={state}
           initialViewMode="cards"
@@ -87,7 +87,7 @@ describe("Visual navigation integration: card position registration", () => {
           onExit={() => {}}
           layoutRegistry={registry}
         />
-      </VaultProvider>,
+      </RepoProvider>,
     )
 
     // Verify render contains the tasks
@@ -117,8 +117,8 @@ describe("Visual navigation integration: card position registration", () => {
   test("cards in same row across columns have same Y position", () => {
     const registry = createLayoutRegistry()
 
-    // Create vault with two columns, each with cards
-    const vault = createFakeVault({
+    // Create repo with two columns, each with cards
+    const repo = createFakeRepo({
       nodes: [
         makeNode("root", "Root", "section"),
         makeNode("col-1", "Column 1", "section", "root", 0),
@@ -133,7 +133,7 @@ describe("Visual navigation integration: card position registration", () => {
     const state = makeTUIBoardState("root")
 
     render(
-      <VaultProvider vault={vault}>
+      <RepoProvider repo={repo}>
         <Board
           initialState={state}
           initialViewMode="cards"
@@ -141,7 +141,7 @@ describe("Visual navigation integration: card position registration", () => {
           onExit={() => {}}
           layoutRegistry={registry}
         />
-      </VaultProvider>,
+      </RepoProvider>,
     )
 
     // Both columns should have cards registered
@@ -165,8 +165,8 @@ describe("Visual navigation integration: card position registration", () => {
   test("findCardAtYVisual returns correct card index", () => {
     const registry = createLayoutRegistry()
 
-    // Create vault with two columns with different card counts
-    const vault = createFakeVault({
+    // Create repo with two columns with different card counts
+    const repo = createFakeRepo({
       nodes: [
         makeNode("root", "Root", "section"),
         makeNode("col-1", "Column 1", "section", "root", 0),
@@ -182,7 +182,7 @@ describe("Visual navigation integration: card position registration", () => {
     const state = makeTUIBoardState("root")
 
     render(
-      <VaultProvider vault={vault}>
+      <RepoProvider repo={repo}>
         <Board
           initialState={state}
           initialViewMode="cards"
@@ -190,7 +190,7 @@ describe("Visual navigation integration: card position registration", () => {
           onExit={() => {}}
           layoutRegistry={registry}
         />
-      </VaultProvider>,
+      </RepoProvider>,
     )
 
     // Get the Y position of card-a2

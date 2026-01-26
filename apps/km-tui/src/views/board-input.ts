@@ -9,7 +9,7 @@ import type { Key } from "inkx"
 import type { Dispatch } from "react"
 import { actions, type UIAction } from "../ui-reducer.ts"
 import type { BoardState, BoardAction } from "@km/board"
-import type { Repo } from "../vault-context.tsx"
+import type { Repo } from "../repo-context.tsx"
 import type { TUIContext } from "../tui-context.ts"
 import { handleTreeNavigation } from "../navigation-handlers.ts"
 import {

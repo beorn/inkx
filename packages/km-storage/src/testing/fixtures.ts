@@ -15,8 +15,8 @@
  *   column("Done", []),
  * ]);
  *
- * // Use with createFakeVault for testing
- * const vault = createFakeVault({ nodes: fixture.nodes });
+ * // Use with createFakeRepo for testing
+ * const repo = createFakeRepo({ nodes: fixture.nodes });
  */
 
 import type { KNode, NodeType } from "@km/core"
@@ -34,7 +34,7 @@ interface NodeBuilder {
   _children?: NodeBuilder[]
 }
 
-/** Fixture data that can be passed to createFakeVault */
+/** Fixture data that can be passed to createFakeRepo */
 export interface BoardFixture {
   nodes: KNode[]
 }

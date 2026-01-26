@@ -52,7 +52,7 @@ Internal diagnostics (used with `DEBUG=km:*`):
 
 Performance monitoring:
 
-- `vault-loaded` - Vault initialization timing
+- `repo-loaded` - Repo initialization timing
 - `file-parsed` - File parsing stats
 
 ## Subscription Patterns
@@ -103,7 +103,7 @@ import { DisposableStore } from "@km/core"
 const store = new DisposableStore()
 store.add(kmEvents.on("parse-error", handler1))
 store.add(kmEvents.on("sync-error", handler2))
-store.add(vault.watch()) // Any Disposable
+store.add(repo.watch()) // Any Disposable
 
 // Later, or with `using`:
 store.dispose() // cleans up all
@@ -208,7 +208,7 @@ Events are **synchronous** (emit → handlers run immediately → emit returns).
 **When you need async**: Use promises in handlers, not async events:
 
 ```typescript
-kmEvents.on("vault-loaded", async (e) => {
+kmEvents.on("repo-loaded", async (e) => {
   await syncToRemote(e.nodeCount)
 })
 ```

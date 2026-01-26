@@ -41,7 +41,7 @@ export function findKmRootFromPath(startPath: string): string | null {
 
   // Determine starting directory:
   // - If path is a file, start from its parent
-  // - If path doesn't exist, start from its parent (e.g., /vault/@next -> /vault)
+  // - If path doesn't exist, start from its parent (e.g., /repo/@next -> /repo)
   // - If path is a directory, start from that directory
   let current: string
   try {
@@ -124,25 +124,25 @@ export function getEffectiveRoot(resolution: PathResolution): string {
  * Result of resolving a path argument from CLI
  */
 export interface ResolvedPathArg {
-  /** Vault root path (directory containing .km or the directory itself) */
-  vaultRoot: string
-  /** Node reference to resolve after store init, or null for vault root */
+  /** Repo root path (directory containing .km or the directory itself) */
+  repoRoot: string
+  /** Node reference to resolve after store init, or null for repo root */
   nodeRef: string | null
   /** Whether the input was an explicit filesystem path */
   wasExplicitPath: boolean
 }
 
 /**
- * Resolve a CLI path argument to vault root + optional node reference.
+ * Resolve a CLI path argument to repo root + optional node reference.
  *
  * Handles three cases:
- * 1. Directory path → vault root, no specific node
- * 2. File path → vault root from ancestors, file path as node ref
- * 3. Non-path (ID, @ref) → use existing vault root, pass through as node ref
+ * 1. Directory path → repo root, no specific node
+ * 2. File path → repo root from ancestors, file path as node ref
+ * 3. Non-path (ID, @ref) → use existing repo root, pass through as node ref
  *
  * @param arg - CLI argument (path, ID, or @ref)
- * @param fallbackRoot - Fallback vault root if not determined from path
- * @returns Resolved vault root and node reference
+ * @param fallbackRoot - Fallback repo root if not determined from path
+ * @returns Resolved repo root and node reference
  */
 export function resolvePathArg(
   arg: string | undefined,
@@ -151,7 +151,7 @@ export function resolvePathArg(
   // No argument - use fallback root, show all nodes
   if (!arg) {
     return {
-      vaultRoot: fallbackRoot || process.cwd(),
+      repoRoot: fallbackRoot || process.cwd(),
       nodeRef: null,
       wasExplicitPath: false,
     }
@@ -162,49 +162,49 @@ export function resolvePathArg(
     const resolution = resolveFsPath(arg)
 
     if (resolution.exists && resolution.isDirectory) {
-      // Directory path - check if it's within a vault (has .km ancestor)
+      // Directory path - check if it's within a repo (has .km ancestor)
       if (resolution.kmRoot) {
-        const vaultRoot = dirname(resolution.kmRoot)
-        // Check if this directory IS the vault root
-        if (resolution.absolutePath === vaultRoot) {
-          // Pointing at vault root - show all top-level nodes
+        const repoRoot = dirname(resolution.kmRoot)
+        // Check if this directory IS the repo root
+        if (resolution.absolutePath === repoRoot) {
+          // Pointing at repo root - show all top-level nodes
           return {
-            vaultRoot,
+            repoRoot,
             nodeRef: null,
             wasExplicitPath: true,
           }
         }
-        // Subdirectory of a vault - use directory path as node ref
+        // Subdirectory of a repo - use directory path as node ref
         return {
-          vaultRoot,
+          repoRoot,
           nodeRef: resolution.absolutePath,
           wasExplicitPath: true,
         }
       }
-      // No .km found - treat directory itself as vault root
+      // No .km found - treat directory itself as repo root
       return {
-        vaultRoot: resolution.absolutePath,
+        repoRoot: resolution.absolutePath,
         nodeRef: null,
         wasExplicitPath: true,
       }
     } else if (resolution.exists && resolution.isFile) {
-      // File path - find vault root, use file path as node ref
-      const vaultRoot = resolution.kmRoot
+      // File path - find repo root, use file path as node ref
+      const repoRoot = resolution.kmRoot
         ? dirname(resolution.kmRoot)
         : dirname(resolution.absolutePath)
       return {
-        vaultRoot,
+        repoRoot,
         nodeRef: resolution.absolutePath,
         wasExplicitPath: true,
       }
     } else {
       // Path doesn't exist - still treat as explicit path
-      // Use detected vault root if available (e.g., /tmp/repo/@next.md -> /tmp/repo)
-      const vaultRoot = resolution.kmRoot
+      // Use detected repo root if available (e.g., /tmp/repo/@next.md -> /tmp/repo)
+      const repoRoot = resolution.kmRoot
         ? dirname(resolution.kmRoot)
         : fallbackRoot || process.cwd()
 
-      // If we found a vault root, extract the filename as a node reference
+      // If we found a repo root, extract the filename as a node reference
       // This handles cases like `/tmp/repo/@next.md` -> nodeRef becomes `@next`
       // (without .md) so it can be resolved by title/content matching
       let nodeRef = resolution.kmRoot ? basename(resolution.absolutePath) : arg
@@ -216,7 +216,7 @@ export function resolvePathArg(
       }
 
       return {
-        vaultRoot,
+        repoRoot,
         nodeRef,
         wasExplicitPath: true,
       }
@@ -225,7 +225,7 @@ export function resolvePathArg(
 
   // Non-path argument (ID, @ref, etc) - pass through
   return {
-    vaultRoot: fallbackRoot || process.cwd(),
+    repoRoot: fallbackRoot || process.cwd(),
     nodeRef: arg,
     wasExplicitPath: false,
   }

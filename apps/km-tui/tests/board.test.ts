@@ -1,5 +1,5 @@
 /**
- * Board Slow Tests - Integration tests using createFakeVault test double
+ * Board Slow Tests - Integration tests using createFakeRepo test double
  * Run with: bun run test:all (includes slow tests)
  */
 
@@ -7,7 +7,7 @@ import { describe, test, expect } from "bun:test"
 import { createTestRenderer } from "inkx/testing"
 const render = createTestRenderer()
 import React from "react"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import type { Repo } from "@km/storage"
 import type { KNode, NodeType } from "@km/core"
 import {
@@ -23,7 +23,7 @@ import type { CardState } from "../src/types.ts"
 import { BoardCore } from "../src/views/Board.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createLayoutRegistry } from "../src/card-positions.ts"
-import { RepoProvider } from "../src/vault-context.tsx"
+import { RepoProvider } from "../src/repo-context.tsx"
 import type { TUIBoardState } from "../src/types.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
@@ -79,7 +79,7 @@ function makeNode(
 
 describe.serial("State", () => {
   test("buildBoardState creates columns from children", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         makeNode("root", "board", "Test Board", null, 0),
         makeNode("col1", "folder", "Column 1", "root", 0),
@@ -89,7 +89,7 @@ describe.serial("State", () => {
         makeNode("card3", "task", "Card 2.1", "col2", 0),
       ],
     })
-    const state = buildBoardState(vault, "root")
+    const state = buildBoardState(repo, "root")
     expect(state.rootId).toBe("root")
     expect(state.columns).toHaveLength(2)
     expect(state.columns[0]?.cards).toHaveLength(2)
@@ -97,21 +97,21 @@ describe.serial("State", () => {
   })
 
   test("initBoardState groups root nodes by name", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         makeNode("proj1", "folder", "Projects", null, 0),
         makeNode("proj2", "folder", "Projects", null, 1),
         makeNode("arch", "folder", "Archive", null, 2),
       ],
     })
-    const state = initBoardState(vault)
+    const state = initBoardState(repo)
     expect(state).not.toBeNull()
     expect(state!.rootId).toBeNull()
     expect(state!.columns).toHaveLength(2)
   })
 
   test("initBoardState deduplicates cards by name within grouped columns", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         makeNode("ref1", "folder", "ref", null, 0),
         makeNode("ref2", "folder", "ref", null, 1),
@@ -123,7 +123,7 @@ describe.serial("State", () => {
         makeNode("w1", "folder", "Work", "ref2", 1),
       ],
     })
-    const state = initBoardState(vault)
+    const state = initBoardState(repo)
     expect(state).not.toBeNull()
     expect(state!.columns).toHaveLength(1)
     const cardNames = state!.columns[0]!.cards.map(
@@ -135,60 +135,60 @@ describe.serial("State", () => {
   })
 
   test("initBoardState returns null for empty database", () => {
-    const vault = createFakeVault({ nodes: [] })
-    const state = initBoardState(vault)
+    const repo = createFakeRepo({ nodes: [] })
+    const state = initBoardState(repo)
     expect(state).toBeNull()
   })
 
   test("getNodeDisplayName returns content", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [makeNode("task1", "task", "Test Task", null, 0)],
     })
-    const node = vault.getNode("task1")!
-    expect(getNodeDisplayName(vault, node)).toBe("Test Task")
+    const node = repo.getNode("task1")!
+    expect(getNodeDisplayName(repo, node)).toBe("Test Task")
   })
 
   test("getNodeDisplayName returns data.name if present", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         makeNode("folder1", "folder", undefined, null, 0, {
           data: { name: "My Folder" },
         }),
       ],
     })
-    const node = vault.getNode("folder1")!
-    expect(getNodeDisplayName(vault, node)).toBe("My Folder")
+    const node = repo.getNode("folder1")!
+    expect(getNodeDisplayName(repo, node)).toBe("My Folder")
   })
 
   test("getCurrentCard returns current card", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         makeNode("board", "board", "Board", null, 0),
         makeNode("col", "folder", "Column", "board", 0),
         makeNode("card", "task", "Card", "col", 0),
       ],
     })
-    const state = buildBoardState(vault, "board")
+    const state = buildBoardState(repo, "board")
     const card = getCurrentCard(state)
     expect(card).not.toBeNull()
     expect(card!.node.id).toBe("card")
   })
 
   test("getCurrentColumn returns current column", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         makeNode("board", "board", "Board", null, 0),
         makeNode("col", "folder", "Column", "board", 0),
       ],
     })
-    const state = buildBoardState(vault, "board")
+    const state = buildBoardState(repo, "board")
     const col = getCurrentColumn(state)
     expect(col).not.toBeNull()
     expect(col!.node.id).toBe("col")
   })
 
   test("buildBoardState filters out paragraph nodes as columns (km-1tho)", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         makeNode("root", "file", "@issue.md", null, 0),
         makeNode(
@@ -204,7 +204,7 @@ describe.serial("State", () => {
         makeNode("task2", "task", "Fix bug #2", "col2", 0),
       ],
     })
-    const state = buildBoardState(vault, "root")
+    const state = buildBoardState(repo, "root")
     expect(state.columns).toHaveLength(3)
     expect(state.columns[0]!.isVirtual).toBe(true)
     expect(state.columns[0]!.cards).toHaveLength(1)
@@ -214,7 +214,7 @@ describe.serial("State", () => {
   })
 
   test("buildBoardState filters out code and quote nodes as columns", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         makeNode("root", "file", "readme.md", null, 0),
         makeNode("code", "code", "const x = 1;", "root", 0),
@@ -223,7 +223,7 @@ describe.serial("State", () => {
         makeNode("task", "task", "Install dependencies", "col", 0),
       ],
     })
-    const state = buildBoardState(vault, "root")
+    const state = buildBoardState(repo, "root")
     expect(state.columns).toHaveLength(2)
     expect(state.columns[0]!.isVirtual).toBe(true)
     expect(state.columns[0]!.cards).toHaveLength(2)
@@ -233,7 +233,7 @@ describe.serial("State", () => {
 
 describe.serial("Render", () => {
   test("renderBoardStatic renders columns", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         makeNode("board", "board", "Board", null, 0),
         makeNode("col1", "folder", "Todo", "board", 0),
@@ -241,22 +241,22 @@ describe.serial("Render", () => {
         makeNode("task1", "task", "Task 1", "col1", 0),
       ],
     })
-    const state = buildBoardState(vault, "board")
-    const output = renderBoardStatic(vault, state, 80)
+    const state = buildBoardState(repo, "board")
+    const output = renderBoardStatic(repo, state, 80)
     expect(output).toContain("Todo")
     expect(output).toContain("Done")
     expect(output).toContain("Task 1")
   })
 
   test("renderBoardStatic handles empty board", () => {
-    const vault = createFakeVault()
+    const repo = createFakeRepo()
     const state = createEmptyState()
-    const output = renderBoardStatic(vault, state, 80)
+    const output = renderBoardStatic(repo, state, 80)
     expect(output).toContain("Empty board")
   })
 
   test("renderCard includes content", () => {
-    const vault = createFakeVault()
+    const repo = createFakeRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -272,12 +272,12 @@ describe.serial("Render", () => {
       },
       children: [],
     }
-    const output = renderCard(vault, cardState, 40, false, false, false)
+    const output = renderCard(repo, cardState, 40, false, false, false)
     expect(output).toContain("My Test Task")
   })
 
   test("renderCard shows children when not folded", () => {
-    const vault = createFakeVault()
+    const repo = createFakeRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -306,12 +306,12 @@ describe.serial("Render", () => {
         },
       ],
     }
-    const output = renderCard(vault, cardState, 40, false, false, false)
+    const output = renderCard(repo, cardState, 40, false, false, false)
     expect(output).toContain("Child Task 1")
   })
 
   test("renderCard shows item count when folded", () => {
-    const vault = createFakeVault()
+    const repo = createFakeRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -352,7 +352,7 @@ describe.serial("Render", () => {
         },
       ],
     }
-    const output = renderCard(vault, cardState, 40, false, false, true)
+    const output = renderCard(repo, cardState, 40, false, false, true)
     expect(output).toContain("\u25b6 2")
     expect(output).not.toContain("Child 1")
   })

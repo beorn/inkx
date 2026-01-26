@@ -20,15 +20,7 @@ export {
 } from "./views/index.ts"
 
 // Export repo context for wrapping components
-export {
-  RepoProvider,
-  useRepo,
-  type Repo,
-  // Backward-compatible aliases (deprecated)
-  VaultProvider,
-  useVault,
-  type Vault,
-} from "./vault-context.tsx"
+export { RepoProvider, useRepo, type Repo } from "./repo-context.tsx"
 
 // Export UI reducer utilities
 export { createInitialUIState } from "./ui-reducer.ts"

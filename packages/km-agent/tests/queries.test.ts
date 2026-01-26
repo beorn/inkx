@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect } from "bun:test"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import {
   queryAgents,
   getAgent,
@@ -113,7 +113,7 @@ describe("nodeToAgent", () => {
 
 describe("queryAgents", () => {
   test("returns all agents when no filter", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         createAgent("Agent One", {
           short_id: "0001",
@@ -144,12 +144,12 @@ describe("queryAgents", () => {
       ],
     })
 
-    const agents = queryAgents(vault)
+    const agents = queryAgents(repo)
     expect(agents.length).toBe(3)
   })
 
   test("filters by status", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         createAgent("Agent One", {
           short_id: "0001",
@@ -162,17 +162,17 @@ describe("queryAgents", () => {
       ],
     })
 
-    const idle = queryAgents(vault, { status: "idle" })
+    const idle = queryAgents(repo, { status: "idle" })
     expect(idle.length).toBe(1)
     expect(idle[0]!.name).toBe("Agent One")
 
-    const running = queryAgents(vault, { status: "running" })
+    const running = queryAgents(repo, { status: "running" })
     expect(running.length).toBe(1)
     expect(running[0]!.name).toBe("Agent Two")
   })
 
   test("filters by status array", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         createAgent("Agent One", { status: "idle" }),
         createAgent("Agent Two", { status: "running" }),
@@ -180,7 +180,7 @@ describe("queryAgents", () => {
       ],
     })
 
-    const agents = queryAgents(vault, { status: ["idle", "error"] })
+    const agents = queryAgents(repo, { status: ["idle", "error"] })
 
     expect(agents.length).toBe(2)
     expect(agents.map((a) => a.status)).toContain("idle")
@@ -188,7 +188,7 @@ describe("queryAgents", () => {
   })
 
   test("filters by harness", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         createAgent("Agent One", { harness: "general" }),
         createAgent("Agent Two", { harness: "code-reviewer" }),
@@ -196,16 +196,16 @@ describe("queryAgents", () => {
       ],
     })
 
-    const general = queryAgents(vault, { harness: "general" })
+    const general = queryAgents(repo, { harness: "general" })
     expect(general.length).toBe(2)
 
-    const codeReviewer = queryAgents(vault, { harness: "code-reviewer" })
+    const codeReviewer = queryAgents(repo, { harness: "code-reviewer" })
     expect(codeReviewer.length).toBe(1)
     expect(codeReviewer[0]!.name).toBe("Agent Two")
   })
 
   test("filters by model", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         createAgent("Agent One", { model: "claude-sonnet-4" }),
         createAgent("Agent Two", { model: "claude-opus-4" }),
@@ -213,16 +213,16 @@ describe("queryAgents", () => {
       ],
     })
 
-    const sonnet = queryAgents(vault, { model: "claude-sonnet-4" })
+    const sonnet = queryAgents(repo, { model: "claude-sonnet-4" })
     expect(sonnet.length).toBe(2)
 
-    const opus = queryAgents(vault, { model: "claude-opus-4" })
+    const opus = queryAgents(repo, { model: "claude-opus-4" })
     expect(opus.length).toBe(1)
     expect(opus[0]!.name).toBe("Agent Two")
   })
 
   test("combines multiple filters", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         createAgent("Agent One", {
           model: "claude-sonnet-4",
@@ -237,7 +237,7 @@ describe("queryAgents", () => {
       ],
     })
 
-    const agents = queryAgents(vault, {
+    const agents = queryAgents(repo, {
       model: "claude-sonnet-4",
       harness: "general",
       status: "idle",
@@ -250,7 +250,7 @@ describe("queryAgents", () => {
 
 describe("getAgent", () => {
   test("finds agent by short ID", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           ...createAgent("Test Agent", {
@@ -264,14 +264,14 @@ describe("getAgent", () => {
       ],
     })
 
-    const agent = getAgent(vault, "agent-test")
+    const agent = getAgent(repo, "agent-test")
 
     expect(agent).not.toBeNull()
     expect(agent!.name).toBe("Test Agent")
   })
 
   test("finds agent by full ID", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           ...createAgent("Test Agent", { short_id: "test" }),
@@ -280,14 +280,14 @@ describe("getAgent", () => {
       ],
     })
 
-    const agent = getAgent(vault, "01ABC123DEFG456")
+    const agent = getAgent(repo, "01ABC123DEFG456")
 
     expect(agent).not.toBeNull()
     expect(agent!.name).toBe("Test Agent")
   })
 
   test("finds agent by partial ID (without agent- prefix)", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         {
           ...createAgent("Test Agent", { short_id: "test" }),
@@ -296,16 +296,16 @@ describe("getAgent", () => {
       ],
     })
 
-    const agent = getAgent(vault, "test")
+    const agent = getAgent(repo, "test")
 
     expect(agent).not.toBeNull()
     expect(agent!.name).toBe("Test Agent")
   })
 
   test("returns null for non-existent agent", () => {
-    const vault = createFakeVault({ nodes: [] })
+    const repo = createFakeRepo({ nodes: [] })
 
-    const agent = getAgent(vault, "nonexistent")
+    const agent = getAgent(repo, "nonexistent")
 
     expect(agent).toBeNull()
   })
@@ -313,14 +313,14 @@ describe("getAgent", () => {
 
 describe("getActiveAgents", () => {
   test("returns only running agents", () => {
-    const vault = createFakeVault({
+    const repo = createFakeRepo({
       nodes: [
         createAgent("Idle Agent", { status: "idle" }),
         createAgent("Running Agent", { status: "running" }, 1),
       ],
     })
 
-    const active = getActiveAgents(vault)
+    const active = getActiveAgents(repo)
 
     expect(active.length).toBe(1)
     expect(active[0]!.name).toBe("Running Agent")

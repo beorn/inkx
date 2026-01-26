@@ -281,13 +281,13 @@ export class Verifier implements IVerifier {
     }
   }
 
-  verifyFsDbSync(vaultPath: string): VerificationResult {
+  verifyFsDbSync(repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
 
     // Scan filesystem for markdown files
     const fsFiles = new Set<string>()
-    this.scanDir(vaultPath, fsFiles)
+    this.scanDir(repoPath, fsFiles)
 
     // Get database file nodes
     const nodes = getAllNodes(getDb())
@@ -329,7 +329,7 @@ export class Verifier implements IVerifier {
    * Verify content matches between filesystem and database
    * CRITICAL: This catches silent data loss/corruption that existence checks miss
    */
-  verifyContentSync(_vaultPath: string): VerificationResult {
+  verifyContentSync(_repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
     const nodes = getAllNodes(getDb())
@@ -398,7 +398,7 @@ export class Verifier implements IVerifier {
   /**
    * Verify metadata (mtime, ino) matches between filesystem and database
    */
-  verifyMetadataSync(_vaultPath: string): VerificationResult {
+  verifyMetadataSync(_repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
     const nodes = getAllNodes(getDb())
@@ -458,13 +458,13 @@ export class Verifier implements IVerifier {
     }
   }
 
-  verifyAll(expected: ExpectedState, vaultPath: string): VerificationResult {
+  verifyAll(expected: ExpectedState, repoPath: string): VerificationResult {
     const results = [
       this.verifyState(expected),
       this.verifyTreeConsistency(),
-      this.verifyFsDbSync(vaultPath),
-      this.verifyContentSync(vaultPath),
-      this.verifyMetadataSync(vaultPath),
+      this.verifyFsDbSync(repoPath),
+      this.verifyContentSync(repoPath),
+      this.verifyMetadataSync(repoPath),
     ]
 
     return {

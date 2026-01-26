@@ -41,7 +41,7 @@ function debug(message: string, ...args: unknown[]): void {
 export type WorkerCommand =
   | {
       type: "start"
-      vaultPath: string
+      repoPath: string
       ignorePatterns: string[]
       debounceMs: number
     }
@@ -103,9 +103,9 @@ let statusInterval: ReturnType<typeof setInterval> | null = null
 function shouldIgnore(
   path: string,
   patterns: string[],
-  vaultPath: string,
+  repoPath: string,
 ): boolean {
-  const relativePath = path.replace(vaultPath, "").replace(/^\//, "")
+  const relativePath = path.replace(repoPath, "").replace(/^\//, "")
 
   // Debug: check .git and vendor paths specifically
   if (relativePath.includes(".git") || relativePath.includes("vendor")) {
@@ -193,11 +193,11 @@ function setState(newState: WatcherState): void {
  * Start watching a directory
  */
 function startWatcher(
-  vaultPath: string,
+  repoPath: string,
   ignorePatterns: string[],
   debounceMs: number,
 ): void {
-  debug("worker: starting watcher for %s", vaultPath)
+  debug("worker: starting watcher for %s", repoPath)
   currentDebounceMs = debounceMs
   setState("starting")
   lastError = undefined
@@ -211,7 +211,7 @@ function startWatcher(
     if (path.endsWith(".sock")) {
       return true
     }
-    const result = shouldIgnore(path, ignorePatterns, vaultPath)
+    const result = shouldIgnore(path, ignorePatterns, repoPath)
     // Debug: log when ignored function is called for .git/vendor paths
     if (path.includes(".git") || path.includes("vendor")) {
       debug("worker: ignoredFn called: path=%s result=%s", path, result)
@@ -219,7 +219,7 @@ function startWatcher(
     return result
   }
 
-  watcher = watch(vaultPath, {
+  watcher = watch(repoPath, {
     persistent: true,
     ignoreInitial: true,
     ignored: ignoredFn,
@@ -237,7 +237,7 @@ function startWatcher(
     }
 
     // Double-check ignored paths (FSEvents on macOS may bypass chokidar's ignored filter)
-    if (shouldIgnore(path, ignorePatterns, vaultPath)) {
+    if (shouldIgnore(path, ignorePatterns, repoPath)) {
       debug("worker: filtering ignored path: %s %s", event, path)
       return
     }
@@ -381,7 +381,7 @@ function handleMessage(command: WorkerCommand): void {
   switch (command.type) {
     case "start":
       startWatcher(
-        command.vaultPath,
+        command.repoPath,
         command.ignorePatterns,
         command.debounceMs,
       )

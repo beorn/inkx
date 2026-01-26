@@ -12,13 +12,13 @@ Refactor to **composable domain objects** with clear separation of concerns:
 
 1. **Remove singletons** - No more getDb/setDb/isMemoryMode globals
 2. **Composable layers** - FileStore (markdown) + DataStore (.km/) + ConfigStore
-3. **Clear Vault composition** - Mix/match real/memory/mock for each layer
+3. **Clear Repo composition** - Mix/match real/memory/mock for each layer
 4. **Optional: Drizzle** - Typed queries (nice-to-have, not the focus)
 
 **Naming convention:**
 
-- **Vault** = composed domain object (FileStore + DataStore + ConfigStore)
-- Methods like `getNode()`, `search()` delegate to `vault.data`
+- **Repo** = composed domain object (FileStore + DataStore + ConfigStore)
+- Methods like `getNode()`, `search()` delegate to `repo.data`
 
 ---
 
@@ -26,14 +26,14 @@ Refactor to **composable domain objects** with clear separation of concerns:
 
 The current architecture has unclear boundaries:
 
-- `Vault` = database + mode + queries + mutations + events + fs + ...
+- `Repo` = database + mode + queries + mutations + events + fs + ...
 - `mode` = memory vs disk (but _what_ is in memory/disk?)
-- `FakeVault` = completely different implementation, not composition
+- `FakeRepo` = completely different implementation, not composition
 
-**Better model:** Vault composes three domain objects:
+**Better model:** Repo composes three domain objects:
 
 ```
-Vault = FileStore + DataStore + ConfigStore
+Repo = FileStore + DataStore + ConfigStore
 ```
 
 Each can be real, in-memory, or mocked independently.
@@ -66,7 +66,7 @@ All stores share the same API surface — query, mutate, watch. Stores can be sy
 When you run `km` on a file store (point it at a folder or markdown file):
 
 1. **If `.km/` exists:**
-   - Load config via cosmicconfig rooted at vault path
+   - Load config via cosmicconfig rooted at repo path
    - Open DataStore from `.km/store/` (database, blobs) + `.km/store-events.jsonl`
    - Sync is **opt-in** — call `vault.sync()` or `vault.watch()` to start
    - Both stores persist independently
@@ -82,7 +82,7 @@ When you run `km` on a file store (point it at a folder or markdown file):
 - **Without `.km/`**: FileStore persists, DataStore is just a query cache
 
 ```
-/my-vault/
+/my-repo/
 ├── km.config.yaml            ← config (cosmicconfig at root)
 ├── projects.md               ┐
 ├── inbox.md                  ├─ file store
@@ -128,7 +128,7 @@ interface Store extends Disposable {
 }
 
 // Note: Store.watch() watches ONE store for changes
-// Vault.watch() coordinates sync BETWEEN stores (files ↔ data)
+// Repo.watch() coordinates sync BETWEEN stores (files ↔ data)
 
 // Both file and data stores implement the same interface:
 interface FileStore extends Store { /* file-specific: root, readFile, etc. */ }
@@ -170,15 +170,15 @@ Note: Performance characteristics differ (see Backend Semantics), but semantics 
 
 ---
 
-## Store vs Vault: Which to Use?
+## Store vs Repo: Which to Use?
 
 **Store** is the simpler interface — use it when you only need tree operations:
 
-| Use Store when... | Use Vault when... |
+| Use Store when... | Use Repo when... |
 |-------------------|-------------------|
 | Unit testing tree logic | Need sync between files ↔ data |
 | Components that query/mutate | Need config (TUI settings, etc.) |
-| Board navigation logic | CLI commands on full vaults |
+| Board navigation logic | CLI commands on full repos |
 | Pure data transformations | File watching / watcher lifecycle |
 
 ```typescript
@@ -192,10 +192,10 @@ test("getChildren returns sorted nodes", () => {
   // ...
 })
 
-// Vault for full CLI commands
+// Repo for full CLI commands
 async function viewCommand(path: string) {
-  using vault = createVault(path)
-  const board = createBoard(vault.data, "@projects")
+  using repo = createRepo(path)
+  const board = createBoard(repo.data, "@projects")
   // ...
 }
 ```
@@ -204,7 +204,7 @@ async function viewCommand(path: string) {
 
 ## Architecture: Two Peer Stores
 
-**Key insight:** FileStore and DataStore are peers - two different storage backends for the same vault that sync with each other.
+**Key insight:** FileStore and DataStore are peers - two different storage backends for the same repo that sync with each other.
 
 | Aspect   | FileStore                     | DataStore                     |
 | -------- | ----------------------------- | ----------------------------- |
@@ -248,8 +248,8 @@ Sync keeps two stores in alignment. It has two phases:
 2. **Ongoing sync** — Watch both stores, propagate changes
 
 ```typescript
-// Sync operations on Vault
-interface Vault {
+// Sync operations on Repo
+interface Repo {
   // One-shot: reconcile now and return
   sync(): Promise<SyncResult>
 
@@ -331,14 +331,14 @@ interface EventLog {
 ## Factory Pattern
 
 ```typescript
-function createVault(
+function createRepo(
   path: string,
   options?: {
     files?: FileStore
     data?: DataStore
     config?: Config
   },
-): Vault {
+): Repo {
   const files = options?.files ?? createDiskFileStore(path)
   const data =
     options?.data ??
@@ -348,7 +348,7 @@ function createVault(
   const config = options?.config ?? createCosmicConfig(path, "km")
 
   // Note: sync is NOT started automatically
-  // Caller must use vault.sync() or vault.watch()
+  // Caller must use repo.sync() or repo.watch()
   return { files, data, config, ...methods }
 }
 ```
@@ -374,7 +374,7 @@ createMemDataStore(): DataStore
 // - blobs: Map<string, string>
 // - events: array in memory
 
-// Map data store (fastest, for FakeVault)
+// Map data store (fastest, for FakeRepo)
 createMapDataStore(): DataStore
 // - nodes: Map<string, KNode> (no SQLite overhead)
 // - blobs: Map<string, string>
@@ -388,22 +388,22 @@ createDiskFileStore(root: string): FileStore   // node:fs
 createMemFileStore(): FileStore                // memfs
 ```
 
-**Vault Factories:**
+**Repo Factories:**
 
 ```typescript
-// Full vault with files + data (most common)
-createVault(path: string, options?: {
+// Full repo with files + data (most common)
+createRepo(path: string, options?: {
   data?: DataStore        // Override data store (default: auto based on .km/)
   files?: FileStore       // Override file store (default: node:fs)
-}): Vault
+}): Repo
 
-// Data-only vault - no files, just structured data
-createDataVault(data: DataStore, config?: ConfigStore): Vault
+// Data-only repo - no files, just structured data
+createDataRepo(data: DataStore, config?: ConfigStore): Repo
 // files: null (no sync)
 // Useful for: daemon, database-only ops, imports, API server
 
-// Fake vault - all in-memory, fastest
-createFakeVault(options?: { nodes?: KNode[] }): Vault
+// Fake repo - all in-memory, fastest
+createFakeRepo(options?: { nodes?: KNode[] }): Repo
 // files: null
 // data: createMapDataStore()
 // Fastest for unit tests with canned data
@@ -413,9 +413,9 @@ createFakeVault(options?: { nodes?: KNode[] }): Vault
 
 | Creates | Factory name | Example |
 |---------|--------------|---------|
-| Vault (full) | `createVault()` | `createVault("/path")` |
-| Vault (data-only) | `createDataVault()` | `createDataVault(dataStore)` |
-| Vault (testing) | `createFakeVault()` | `createFakeVault({ nodes })` |
+| Repo (full) | `createRepo()` | `createRepo("/path")` |
+| Repo (data-only) | `createDataRepo()` | `createDataRepo(dataStore)` |
+| Repo (testing) | `createFakeRepo()` | `createFakeRepo({ nodes })` |
 | DataStore (disk) | `createDiskDataStore()` | `createDiskDataStore("/path/.km/store")` |
 | DataStore (memory) | `createMemDataStore()` | `createMemDataStore()` |
 | DataStore (maps) | `createMapDataStore()` | `createMapDataStore()` |
@@ -495,7 +495,7 @@ On Jan 25, commit `8014128` introduced "singleton wrappers for backwards compati
 
 1. **Delete all singleton code from db-instance.ts** - Make fallbacks impossible
 2. **Run tsc --noEmit** - Get full list of breaks
-3. **Fix each break using correct pattern** - env.db, vault.database, or direct db param
+3. **Fix each break using correct pattern** - env.db, repo.database, or direct db param
 4. **Never re-add getDb/setDb/etc.** - If tempted to "fall back", STOP and use correct pattern
 
 ---
@@ -511,7 +511,7 @@ On Jan 25, commit `8014128` introduced "singleton wrappers for backwards compati
 
 1. **Comment out singleton code in db-instance.ts** with stern warnings
 2. **Run `bun tsc --noEmit`** - Capture all breaks
-3. **Fix internal source files** - query.ts, watcher.ts, rebuild.ts, store.ts, vault-loader.ts, db-ops.ts
+3. **Fix internal source files** - query.ts, watcher.ts, rebuild.ts, store.ts, repo-loader.ts, db-ops.ts
 4. **Fix testing/env.ts** - Replace runWithDb usage
 5. **Fix test files** - 11 files use getDb()
 6. **Verify** - `bun tsc --noEmit && bun run test:fast`
@@ -532,20 +532,20 @@ On Jan 25, commit `8014128` introduced "singleton wrappers for backwards compati
 15. **Implement createMemoryFileStore()** - In-memory (memfs)
 16. **Update sync layer** - Use FileStore instead of direct fs calls
 
-### Phase 4: Vault Composition
+### Phase 4: Repo Composition
 
-17. **Create Vault interface** - `{ config, files, data }` with files optional
-18. **Implement createVault()** - files + data, auto-detection
-19. **Implement createDataVault()** - data only, no files (daemon/db-only)
-20. **Implement createFakeVault()** - Map data store, no files (fastest)
-21. **Migrate existing createVault() callers**
+17. **Create Repo interface** - `{ config, files, data }` with files optional
+18. **Implement createRepo()** - files + data, auto-detection
+19. **Implement createDataRepo()** - data only, no files (daemon/db-only)
+20. **Implement createFakeRepo()** - Map data store, no files (fastest)
+21. **Migrate existing createRepo() callers**
 22. **Delete old store.ts** - Replaced by new DataStore
 
-### Phase 5: Store vs Vault Audit
+### Phase 5: Store vs Repo Audit
 
-23. **Audit tests** - Which tests create Vault but only need Store?
-24. **Audit components** - Which take Vault but only use Store methods?
-25. **Simplify signatures** - Change `vault: Vault` to `store: Store` where possible
+23. **Audit tests** - Which tests create Repo but only need Store?
+24. **Audit components** - Which take Repo but only use Store methods?
+25. **Simplify signatures** - Change `repo: Repo` to `store: Store` where possible
 
 ---
 
@@ -554,7 +554,7 @@ On Jan 25, commit `8014128` introduced "singleton wrappers for backwards compati
 | File                         | Action                               |
 | ---------------------------- | ------------------------------------ |
 | `db-instance.ts`             | Keep only `getDbPath()`, `closeDb()` |
-| `store.ts`                   | Delete - use Vault instead           |
+| `store.ts`                   | Delete - use Repo instead           |
 | Singleton exports in `db.ts` | Remove                               |
 | `isMemoryMode()`             | Delete - use explicit mode           |
 | `runWithDb()`                | Delete - tests use env.db            |
@@ -566,5 +566,5 @@ On Jan 25, commit `8014128` introduced "singleton wrappers for backwards compati
 ```bash
 bun tsc --noEmit        # No getDb/setDb errors
 bun run test:fast       # Tests pass
-bun km view /tmp/vault  # TUI works
+bun km view /tmp/repo  # TUI works
 ```

@@ -1,19 +1,19 @@
 /**
- * ChaosFakeVault - FakeVault with Chaos Testing Capabilities
+ * ChaosFakeRepo - FakeRepo with Chaos Testing Capabilities
  *
- * Extends FakeVault with methods for injecting inconsistencies,
+ * Extends FakeRepo with methods for injecting inconsistencies,
  * simulating failures, and testing reconciliation logic.
  */
 
 import type { KNode } from "@km/core"
 import {
-  createFakeVault,
-  type FakeVault,
-  type FakeVaultOptions,
-} from "./fake-vault.ts"
+  createFakeRepo,
+  type FakeRepo,
+  type FakeRepoOptions,
+} from "./fake-repo.ts"
 
 /**
- * Transaction log entry for tracking vault operations
+ * Transaction log entry for tracking repo operations
  */
 export interface TransactionLogEntry {
   timestamp: number
@@ -35,17 +35,17 @@ export type CorruptionType =
   | "stale_hash" // content_hash doesn't match content
 
 /**
- * Options for createChaosFakeVault
+ * Options for createChaosFakeRepo
  */
-export interface ChaosFakeVaultOptions extends FakeVaultOptions {
+export interface ChaosFakeRepoOptions extends FakeRepoOptions {
   /** Enable transaction logging (default: true) */
   logTransactions?: boolean
 }
 
 /**
- * ChaosFakeVault interface with chaos testing methods
+ * ChaosFakeRepo interface with chaos testing methods
  */
-export interface ChaosFakeVault extends FakeVault {
+export interface ChaosFakeRepo extends FakeRepo {
   // --- State Manipulation ---
 
   /**
@@ -94,7 +94,7 @@ export interface ChaosFakeVault extends FakeVault {
   getCircularRefs(): KNode[]
 
   /**
-   * Validate vault consistency and return all issues found.
+   * Validate repo consistency and return all issues found.
    */
   validateConsistency(): ConsistencyIssue[]
 
@@ -127,27 +127,27 @@ export interface ConsistencyIssue {
 }
 
 /**
- * Create a ChaosFakeVault for chaos testing.
+ * Create a ChaosFakeRepo for chaos testing.
  *
  * @example
- * const vault = createChaosFakeVault({
+ * const repo = createChaosFakeRepo({
  *   nodes: [createNode({ id: "1", parent_id: null })],
  * });
  *
  * // Inject an orphan (parent "999" doesn't exist)
- * vault.injectOrphan({ id: "2", parent_id: "999", ... });
+ * repo.injectOrphan({ id: "2", parent_id: "999", ... });
  *
  * // Check for issues
- * const orphans = vault.getOrphanedNodes();
+ * const orphans = repo.getOrphanedNodes();
  * expect(orphans).toHaveLength(1);
  *
  * @param options - Configuration with initial data
- * @returns ChaosFakeVault instance
+ * @returns ChaosFakeRepo instance
  */
-export function createChaosFakeVault(
-  options: ChaosFakeVaultOptions = {},
-): ChaosFakeVault {
-  const baseVault = createFakeVault(options)
+export function createChaosFakeRepo(
+  options: ChaosFakeRepoOptions = {},
+): ChaosFakeRepo {
+  const baseRepo = createFakeRepo(options)
   const logTransactions = options.logTransactions ?? true
 
   // Internal chaos state
@@ -159,15 +159,15 @@ export function createChaosFakeVault(
     idCounts.set(node.id, (idCounts.get(node.id) ?? 0) + 1)
   }
 
-  // Wrap base vault methods to log transactions
-  const originalAddNode = baseVault.addNode.bind(baseVault)
-  const originalUpdateNode = baseVault.updateNode.bind(baseVault)
-  const originalDeleteNode = baseVault.deleteNode.bind(baseVault)
-  const originalMoveNode = baseVault.moveNode.bind(baseVault)
+  // Wrap base repo methods to log transactions
+  const originalAddNode = baseRepo.addNode.bind(baseRepo)
+  const originalUpdateNode = baseRepo.updateNode.bind(baseRepo)
+  const originalDeleteNode = baseRepo.deleteNode.bind(baseRepo)
+  const originalMoveNode = baseRepo.moveNode.bind(baseRepo)
 
-  const chaosVault: ChaosFakeVault = {
-    // Spread base vault properties and methods
-    ...baseVault,
+  const chaosRepo: ChaosFakeRepo = {
+    // Spread base repo properties and methods
+    ...baseRepo,
 
     // Override mutation methods to log transactions
     addNode(parentId, nodeData) {
@@ -224,10 +224,10 @@ export function createChaosFakeVault(
 
     setNode(node) {
       // Directly inject node without validation
-      const nodes = baseVault.getAllNodes()
+      const nodes = baseRepo.getAllNodes()
       const existing = nodes.find((n) => n.id === node.id)
 
-      // Update internal state via the base vault's backing store
+      // Update internal state via the base repo's backing store
       // We need to use updateNode or delete+add since we can't access the Map directly
       if (existing) {
         // Replace existing node
@@ -238,7 +238,7 @@ export function createChaosFakeVault(
           type: node.type,
           content: node.content ?? "",
         })
-        // Now we need to swap the ID - this is tricky with the base vault
+        // Now we need to swap the ID - this is tricky with the base repo
         // Instead, let's use deleteNode + direct injection
         originalDeleteNode(tempId)
 
@@ -247,7 +247,7 @@ export function createChaosFakeVault(
       }
 
       // Simpler approach: track separately for chaos scenarios
-      // The base vault handles normal ops, we layer chaos on top
+      // The base repo handles normal ops, we layer chaos on top
       idCounts.set(node.id, (idCounts.get(node.id) ?? 0) + 1)
 
       if (logTransactions) {
@@ -278,7 +278,7 @@ export function createChaosFakeVault(
     },
 
     injectDuplicate(node) {
-      const existing = baseVault.getNode(node.id)
+      const existing = baseRepo.getNode(node.id)
 
       // Increment duplicate count
       idCounts.set(node.id, (idCounts.get(node.id) ?? 0) + 1)
@@ -296,8 +296,8 @@ export function createChaosFakeVault(
     },
 
     injectCircularRef(nodeId, ancestorId) {
-      const node = baseVault.getNode(nodeId)
-      const ancestor = baseVault.getNode(ancestorId)
+      const node = baseRepo.getNode(nodeId)
+      const ancestor = baseRepo.getNode(ancestorId)
 
       if (!node || !ancestor) {
         throw new Error(`Node ${nodeId} or ancestor ${ancestorId} not found`)
@@ -323,7 +323,7 @@ export function createChaosFakeVault(
     },
 
     getOrphanedNodes() {
-      const nodes = baseVault.getAllNodes()
+      const nodes = baseRepo.getAllNodes()
       const nodeIds = new Set(nodes.map((n) => n.id))
 
       return nodes.filter(
@@ -342,7 +342,7 @@ export function createChaosFakeVault(
     },
 
     getCircularRefs() {
-      const nodes = baseVault.getAllNodes()
+      const nodes = baseRepo.getAllNodes()
       const circular: KNode[] = []
 
       for (const node of nodes) {
@@ -355,7 +355,7 @@ export function createChaosFakeVault(
             break
           }
           visited.add(current.id)
-          current = baseVault.getNode(current.parent_id)
+          current = baseRepo.getNode(current.parent_id)
         }
       }
 
@@ -364,7 +364,7 @@ export function createChaosFakeVault(
 
     validateConsistency() {
       const issues: ConsistencyIssue[] = []
-      const nodes = baseVault.getAllNodes()
+      const nodes = baseRepo.getAllNodes()
       const nodeIds = new Set(nodes.map((n) => n.id))
 
       for (const node of nodes) {
@@ -448,7 +448,7 @@ export function createChaosFakeVault(
     // --- Scenario Triggers ---
 
     simulatePartialWrite(nodeId, missingFields) {
-      const node = baseVault.getNode(nodeId)
+      const node = baseRepo.getNode(nodeId)
       if (!node) {
         throw new Error(`Node ${nodeId} not found`)
       }
@@ -471,7 +471,7 @@ export function createChaosFakeVault(
     },
 
     simulateCorruption(nodeId, type) {
-      const node = baseVault.getNode(nodeId)
+      const node = baseRepo.getNode(nodeId)
       if (!node) {
         throw new Error(`Node ${nodeId} not found`)
       }
@@ -532,7 +532,7 @@ export function createChaosFakeVault(
 
     // Override reset to clear chaos state too
     reset() {
-      baseVault.reset()
+      baseRepo.reset()
       transactionLog = []
       idCounts.clear()
       for (const node of options.nodes ?? []) {
@@ -541,7 +541,7 @@ export function createChaosFakeVault(
     },
   }
 
-  return chaosVault
+  return chaosRepo
 }
 
 /**

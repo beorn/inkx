@@ -42,7 +42,7 @@ export function listTasks(
   options: ListTasksOptions,
 ): void {
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
 
   let tasks: KNode[]
   let rootNode: KNode | null = null
@@ -79,7 +79,7 @@ export function listTasks(
       // No exact match - treat as path filter (like `bun test <filter>`)
       pathFilter = pathOrId
 
-      // Get tasks with status filter via vault
+      // Get tasks with status filter via repo
       const allTasks = repo.getAllTasks().filter((t) => {
         if (options.status && t.task_status !== options.status) return false
         if (!options.all && !options.status && t.task_status === "done") {
@@ -105,7 +105,7 @@ export function listTasks(
       }
     }
   } else {
-    // Global task list via vault
+    // Global task list via repo
     tasks = repo.getAllTasks().filter((t) => {
       if (options.status && t.task_status !== options.status) return false
       if (!options.all && !options.status && t.task_status === "done") {

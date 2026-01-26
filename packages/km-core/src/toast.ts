@@ -158,7 +158,7 @@ export class ToastQueue {
 
   private extractCount(message: string): number {
     const match = message.match(/^(\d+)\s/)
-    return match ? parseInt(match[1], 10) : 1
+    return match?.[1] ? parseInt(match[1], 10) : 1
   }
 
   /**

@@ -1,5 +1,5 @@
 import { ulid } from "ulid"
-import type { Vault } from "@km/storage"
+import type { Repo } from "@km/storage"
 
 const PREFIX = "km"
 const SEPARATOR = "-"
@@ -7,8 +7,8 @@ const AUTO_LENGTH = 4
 
 /** Options for short ID functions */
 export interface ShortIdOptions {
-  /** Vault to use for queries. Required for functions that access storage. */
-  vault?: Vault
+  /** Repo to use for queries. Required for functions that access storage. */
+  repo?: Repo
 }
 
 export function generateShortId(): string {
@@ -32,18 +32,18 @@ export function generateSubId(
  * Resolve a short ID (e.g., "km-a1b2") to a full node ID
  * Queries storage for nodes with matching data.short_id
  * @param shortId - The short ID to resolve
- * @param options - Optional options (vault for DI)
+ * @param options - Optional options (repo for DI)
  */
 export function resolveShortId(
   shortId: string,
   options: ShortIdOptions,
 ): string | null {
-  if (!options.vault) {
-    throw new Error("resolveShortId requires a vault instance")
+  if (!options.repo) {
+    throw new Error("resolveShortId requires a repo instance")
   }
 
   const sql = `SELECT id FROM nodes WHERE json_extract(data, '$.short_id') = ? LIMIT 1`
   const params = [shortId]
-  const rows = options.vault.rawQuery<{ id: string }>(sql, params)
+  const rows = options.repo.rawQuery<{ id: string }>(sql, params)
   return rows[0]?.id ?? null
 }

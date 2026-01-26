@@ -11,12 +11,12 @@ import type { ReplResult } from "../../../vendor/beorn-mdtest/src/types.js"
 /**
  * Execute a km command in-process and capture output
  *
- * @param cmdLine - Full command line (e.g., "km list" or "km view /path/to/vault")
+ * @param cmdLine - Full command line (e.g., "km list" or "km view /path/to/repo")
  * @param options - Execution options
  * @returns Promise with stdout, stderr, and exit code
  *
  * @example
- * const result = await executeKmCommand("km list", { cwd: "/tmp/vault" })
+ * const result = await executeKmCommand("km list", { cwd: "/tmp/repo" })
  * console.log(result.stdout) // Command output
  */
 export async function executeKmCommand(

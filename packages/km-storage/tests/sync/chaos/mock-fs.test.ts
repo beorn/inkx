@@ -14,16 +14,16 @@ describe("MockFileSystem", () => {
 
   describe("writeFileSync / readFileSync", () => {
     test("writes and reads file content", () => {
-      fs.mkdirSync("/vault", { recursive: true })
-      fs.writeFileSync("/vault/test.md", "# Hello")
-      expect(fs.readFileSync("/vault/test.md")).toBe("# Hello")
+      fs.mkdirSync("/repo", { recursive: true })
+      fs.writeFileSync("/repo/test.md", "# Hello")
+      expect(fs.readFileSync("/repo/test.md")).toBe("# Hello")
     })
 
     test("overwrites existing file", () => {
-      fs.mkdirSync("/vault", { recursive: true })
-      fs.writeFileSync("/vault/test.md", "first")
-      fs.writeFileSync("/vault/test.md", "second")
-      expect(fs.readFileSync("/vault/test.md")).toBe("second")
+      fs.mkdirSync("/repo", { recursive: true })
+      fs.writeFileSync("/repo/test.md", "first")
+      fs.writeFileSync("/repo/test.md", "second")
+      expect(fs.readFileSync("/repo/test.md")).toBe("second")
     })
 
     test("throws ENOENT for missing parent directory", () => {
@@ -45,10 +45,10 @@ describe("MockFileSystem", () => {
     })
 
     test("throws EISDIR for reading directory", () => {
-      fs.mkdirSync("/vault", { recursive: true })
-      expect(() => fs.readFileSync("/vault")).toThrow()
+      fs.mkdirSync("/repo", { recursive: true })
+      expect(() => fs.readFileSync("/repo")).toThrow()
       try {
-        fs.readFileSync("/vault")
+        fs.readFileSync("/repo")
       } catch (e) {
         expect((e as NodeJS.ErrnoException).code).toBe("EISDIR")
       }
@@ -57,40 +57,40 @@ describe("MockFileSystem", () => {
 
   describe("mkdirSync", () => {
     test("creates directory", () => {
-      fs.mkdirSync("/vault")
-      expect(fs.existsSync("/vault")).toBe(true)
+      fs.mkdirSync("/repo")
+      expect(fs.existsSync("/repo")).toBe(true)
     })
 
     test("creates nested directories with recursive option", () => {
-      fs.mkdirSync("/vault/nested/deep", { recursive: true })
-      expect(fs.existsSync("/vault")).toBe(true)
-      expect(fs.existsSync("/vault/nested")).toBe(true)
-      expect(fs.existsSync("/vault/nested/deep")).toBe(true)
+      fs.mkdirSync("/repo/nested/deep", { recursive: true })
+      expect(fs.existsSync("/repo")).toBe(true)
+      expect(fs.existsSync("/repo/nested")).toBe(true)
+      expect(fs.existsSync("/repo/nested/deep")).toBe(true)
     })
 
     test("throws ENOENT without recursive for missing parent", () => {
-      expect(() => fs.mkdirSync("/vault/nested")).toThrow()
+      expect(() => fs.mkdirSync("/repo/nested")).toThrow()
       try {
-        fs.mkdirSync("/vault/nested")
+        fs.mkdirSync("/repo/nested")
       } catch (e) {
         expect((e as NodeJS.ErrnoException).code).toBe("ENOENT")
       }
     })
 
     test("silently succeeds if directory already exists", () => {
-      fs.mkdirSync("/vault")
-      fs.mkdirSync("/vault") // Should not throw
-      expect(fs.existsSync("/vault")).toBe(true)
+      fs.mkdirSync("/repo")
+      fs.mkdirSync("/repo") // Should not throw
+      expect(fs.existsSync("/repo")).toBe(true)
     })
   })
 
   describe("unlinkSync", () => {
     test("deletes file", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/test.md", "content")
-      expect(fs.existsSync("/vault/test.md")).toBe(true)
-      fs.unlinkSync("/vault/test.md")
-      expect(fs.existsSync("/vault/test.md")).toBe(false)
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/test.md", "content")
+      expect(fs.existsSync("/repo/test.md")).toBe(true)
+      fs.unlinkSync("/repo/test.md")
+      expect(fs.existsSync("/repo/test.md")).toBe(false)
     })
 
     test("throws ENOENT for missing file", () => {
@@ -103,10 +103,10 @@ describe("MockFileSystem", () => {
     })
 
     test("throws EISDIR for directory", () => {
-      fs.mkdirSync("/vault")
-      expect(() => fs.unlinkSync("/vault")).toThrow()
+      fs.mkdirSync("/repo")
+      expect(() => fs.unlinkSync("/repo")).toThrow()
       try {
-        fs.unlinkSync("/vault")
+        fs.unlinkSync("/repo")
       } catch (e) {
         expect((e as NodeJS.ErrnoException).code).toBe("EISDIR")
       }
@@ -115,21 +115,21 @@ describe("MockFileSystem", () => {
 
   describe("renameSync", () => {
     test("renames file", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/old.md", "content")
-      fs.renameSync("/vault/old.md", "/vault/new.md")
-      expect(fs.existsSync("/vault/old.md")).toBe(false)
-      expect(fs.existsSync("/vault/new.md")).toBe(true)
-      expect(fs.readFileSync("/vault/new.md")).toBe("content")
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/old.md", "content")
+      fs.renameSync("/repo/old.md", "/repo/new.md")
+      expect(fs.existsSync("/repo/old.md")).toBe(false)
+      expect(fs.existsSync("/repo/new.md")).toBe(true)
+      expect(fs.readFileSync("/repo/new.md")).toBe("content")
     })
 
     test("moves file to different directory", () => {
-      fs.mkdirSync("/vault/a", { recursive: true })
-      fs.mkdirSync("/vault/b", { recursive: true })
-      fs.writeFileSync("/vault/a/file.md", "content")
-      fs.renameSync("/vault/a/file.md", "/vault/b/file.md")
-      expect(fs.existsSync("/vault/a/file.md")).toBe(false)
-      expect(fs.existsSync("/vault/b/file.md")).toBe(true)
+      fs.mkdirSync("/repo/a", { recursive: true })
+      fs.mkdirSync("/repo/b", { recursive: true })
+      fs.writeFileSync("/repo/a/file.md", "content")
+      fs.renameSync("/repo/a/file.md", "/repo/b/file.md")
+      expect(fs.existsSync("/repo/a/file.md")).toBe(false)
+      expect(fs.existsSync("/repo/b/file.md")).toBe(true)
     })
 
     test("throws ENOENT for missing source", () => {
@@ -139,9 +139,9 @@ describe("MockFileSystem", () => {
 
   describe("statSync", () => {
     test("returns stat for file", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/test.md", "content")
-      const stat = fs.statSync("/vault/test.md")
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/test.md", "content")
+      const stat = fs.statSync("/repo/test.md")
       expect(stat.isFile()).toBe(true)
       expect(stat.isDirectory()).toBe(false)
       expect(stat.size).toBe(7) // "content".length
@@ -150,8 +150,8 @@ describe("MockFileSystem", () => {
     })
 
     test("returns stat for directory", () => {
-      fs.mkdirSync("/vault")
-      const stat = fs.statSync("/vault")
+      fs.mkdirSync("/repo")
+      const stat = fs.statSync("/repo")
       expect(stat.isFile()).toBe(false)
       expect(stat.isDirectory()).toBe(true)
     })
@@ -168,57 +168,57 @@ describe("MockFileSystem", () => {
 
   describe("createScanner", () => {
     test("scans directory entries", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/a.md", "content a")
-      fs.writeFileSync("/vault/b.md", "content b")
-      fs.mkdirSync("/vault/subdir")
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/a.md", "content a")
+      fs.writeFileSync("/repo/b.md", "content b")
+      fs.mkdirSync("/repo/subdir")
 
       const scanner = fs.createScanner()
-      const entries = scanner("/vault")
+      const entries = scanner("/repo")
 
       expect(entries.length).toBe(3)
       const paths = entries.map((e) => e.path).sort()
-      expect(paths).toEqual(["/vault/a.md", "/vault/b.md", "/vault/subdir"])
+      expect(paths).toEqual(["/repo/a.md", "/repo/b.md", "/repo/subdir"])
     })
 
     test("only returns direct children", () => {
-      fs.mkdirSync("/vault/subdir", { recursive: true })
-      fs.writeFileSync("/vault/root.md", "root")
-      fs.writeFileSync("/vault/subdir/nested.md", "nested")
+      fs.mkdirSync("/repo/subdir", { recursive: true })
+      fs.writeFileSync("/repo/root.md", "root")
+      fs.writeFileSync("/repo/subdir/nested.md", "nested")
 
       const scanner = fs.createScanner()
-      const entries = scanner("/vault")
+      const entries = scanner("/repo")
 
       const paths = entries.map((e) => e.path)
-      expect(paths).toContain("/vault/root.md")
-      expect(paths).toContain("/vault/subdir")
-      expect(paths).not.toContain("/vault/subdir/nested.md")
+      expect(paths).toContain("/repo/root.md")
+      expect(paths).toContain("/repo/subdir")
+      expect(paths).not.toContain("/repo/subdir/nested.md")
     })
 
     test("respects ignore patterns", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/visible.md", "visible")
-      fs.writeFileSync("/vault/.hidden", "hidden")
-      fs.mkdirSync("/vault/node_modules")
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/visible.md", "visible")
+      fs.writeFileSync("/repo/.hidden", "hidden")
+      fs.mkdirSync("/repo/node_modules")
 
       const scanner = fs.createScanner()
-      const entries = scanner("/vault", [".*", "node_modules"])
+      const entries = scanner("/repo", [".*", "node_modules"])
 
       const paths = entries.map((e) => e.path)
-      expect(paths).toContain("/vault/visible.md")
-      expect(paths).not.toContain("/vault/.hidden")
-      expect(paths).not.toContain("/vault/node_modules")
+      expect(paths).toContain("/repo/visible.md")
+      expect(paths).not.toContain("/repo/.hidden")
+      expect(paths).not.toContain("/repo/node_modules")
     })
 
     test("returns correct FsEntry shape", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/test.md", "content")
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/test.md", "content")
 
       const scanner = fs.createScanner()
-      const entries = scanner("/vault")
+      const entries = scanner("/repo")
       const entry = entries[0]!
 
-      expect(entry.path).toBe("/vault/test.md")
+      expect(entry.path).toBe("/repo/test.md")
       expect(entry.ino).toBeGreaterThan(0)
       expect(entry.mtime).toBeGreaterThan(0)
       expect(entry.isDirectory).toBe(false)
@@ -227,47 +227,47 @@ describe("MockFileSystem", () => {
 
   describe("test helpers", () => {
     test("setMtime updates file mtime", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/test.md", "content")
-      const before = fs.statSync("/vault/test.md").mtimeMs
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/test.md", "content")
+      const before = fs.statSync("/repo/test.md").mtimeMs
 
-      fs.setMtime("/vault/test.md", 12345)
-      const after = fs.statSync("/vault/test.md").mtimeMs
+      fs.setMtime("/repo/test.md", 12345)
+      const after = fs.statSync("/repo/test.md").mtimeMs
 
       expect(after).toBe(12345)
       expect(after).not.toBe(before)
     })
 
     test("reset clears all files", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/test.md", "content")
-      expect(fs.existsSync("/vault")).toBe(true)
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/test.md", "content")
+      expect(fs.existsSync("/repo")).toBe(true)
 
       fs.reset()
 
-      expect(fs.existsSync("/vault")).toBe(false)
+      expect(fs.existsSync("/repo")).toBe(false)
       expect(fs.existsSync("/")).toBe(true) // Root always exists
     })
 
     test("getAllPaths returns all paths", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/a.md", "a")
-      fs.writeFileSync("/vault/b.md", "b")
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/a.md", "a")
+      fs.writeFileSync("/repo/b.md", "b")
 
       const paths = fs.getAllPaths()
       expect(paths).toContain("/")
-      expect(paths).toContain("/vault")
-      expect(paths).toContain("/vault/a.md")
-      expect(paths).toContain("/vault/b.md")
+      expect(paths).toContain("/repo")
+      expect(paths).toContain("/repo/a.md")
+      expect(paths).toContain("/repo/b.md")
     })
 
     test("getContent returns file content without throwing", () => {
-      fs.mkdirSync("/vault")
-      fs.writeFileSync("/vault/test.md", "content")
+      fs.mkdirSync("/repo")
+      fs.writeFileSync("/repo/test.md", "content")
 
-      expect(fs.getContent("/vault/test.md")).toBe("content")
+      expect(fs.getContent("/repo/test.md")).toBe("content")
       expect(fs.getContent("/missing.md")).toBeUndefined()
-      expect(fs.getContent("/vault")).toBeUndefined() // Directory
+      expect(fs.getContent("/repo")).toBeUndefined() // Directory
     })
   })
 })

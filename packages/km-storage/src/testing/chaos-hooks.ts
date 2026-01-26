@@ -1,8 +1,8 @@
 /**
- * ChaosHooks - Vault lifecycle hooks for chaos testing
+ * ChaosHooks - Repo lifecycle hooks for chaos testing
  *
- * Creates VaultHooks that inject failures at configurable rates.
- * Use with createVault() for application-level chaos testing.
+ * Creates RepoHooks that inject failures at configurable rates.
+ * Use with createRepo() for application-level chaos testing.
  *
  * @example
  * ```typescript
@@ -11,16 +11,16 @@
  *   mutationDelayMs: 50,      // Add latency to mutations
  * });
  *
- * using vault = runGenerator(createVault(path, { hooks }));
- * vault.updateNode(id, { ... }); // May be dropped or delayed
+ * using repo = runGenerator(createRepo(path, { hooks }));
+ * repo.updateNode(id, { ... }); // May be dropped or delayed
  * ```
  */
 
 import type {
-  VaultHooks,
+  RepoHooks,
   MutationContext,
   BeforeMutationResult,
-} from "../vault.ts"
+} from "../repo.ts"
 
 /**
  * Configuration for chaos hook behavior
@@ -83,7 +83,7 @@ export interface ChaosEvent {
 /**
  * Extended hooks with chaos testing utilities
  */
-export interface ChaosHooks extends VaultHooks {
+export interface ChaosHooks extends RepoHooks {
   /** Get all chaos events that occurred */
   getChaosEvents(): ChaosEvent[]
 
@@ -114,10 +114,10 @@ export interface ChaosStats {
 }
 
 /**
- * Create VaultHooks that inject chaos for testing.
+ * Create RepoHooks that inject chaos for testing.
  *
- * Use these hooks with createVault() to test how your application
- * handles failures at the vault layer.
+ * Use these hooks with createRepo() to test how your application
+ * handles failures at the repo layer.
  *
  * @param config - Chaos configuration (drop rates, corruption, etc.)
  * @returns ChaosHooks with failure injection and monitoring
@@ -126,7 +126,7 @@ export interface ChaosStats {
  * ```typescript
  * // Basic usage - 10% mutation drop rate
  * const hooks = createChaosHooks({ mutationDropRate: 0.1 });
- * using vault = runGenerator(createVault(path, { hooks }));
+ * using repo = runGenerator(createRepo(path, { hooks }));
  *
  * // Deterministic testing with seeded random
  * const seededRandom = createSeededRandom(12345);

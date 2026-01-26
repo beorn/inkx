@@ -5,14 +5,14 @@
  */
 
 import type { KNode } from "@km/core"
-import type { Vault } from "@km/storage"
+import type { Repo } from "@km/storage"
 import type { Agent, AgentFilter } from "./types.ts"
 
 /**
  * Query all agents, optionally filtered.
  */
-export function queryAgents(vault: Vault, filter?: AgentFilter): Agent[] {
-  const nodes = vault.query("type:agent")
+export function queryAgents(repo: Repo, filter?: AgentFilter): Agent[] {
+  const nodes = repo.query("type:agent")
   let agents = nodes.map(nodeToAgent)
 
   if (filter?.status) {
@@ -34,8 +34,8 @@ export function queryAgents(vault: Vault, filter?: AgentFilter): Agent[] {
 /**
  * Get a single agent by short ID or full ID.
  */
-export function getAgent(vault: Vault, idOrShortId: string): Agent | null {
-  const agents = queryAgents(vault)
+export function getAgent(repo: Repo, idOrShortId: string): Agent | null {
+  const agents = queryAgents(repo)
 
   // Try exact short ID match
   const byShortId = agents.find((a) => a.shortId === idOrShortId)
@@ -56,8 +56,8 @@ export function getAgent(vault: Vault, idOrShortId: string): Agent | null {
 /**
  * Get agents that are currently running.
  */
-export function getActiveAgents(vault: Vault): Agent[] {
-  return queryAgents(vault, { status: "running" })
+export function getActiveAgents(repo: Repo): Agent[] {
+  return queryAgents(repo, { status: "running" })
 }
 
 /**
@@ -98,9 +98,9 @@ export function nodeToAgent(node: KNode): Agent {
  * Note: This returns Issue objects from @km/beads.
  * Agents claim issues by having issues assigned to them via the assignee field.
  */
-export function getAgentQueue(vault: Vault, agentId: string): AgentQueueItem[] {
+export function getAgentQueue(repo: Repo, agentId: string): AgentQueueItem[] {
   // Find the agent to get its shortId
-  const agent = getAgent(vault, agentId)
+  const agent = getAgent(repo, agentId)
   if (!agent) {
     return []
   }
@@ -108,7 +108,7 @@ export function getAgentQueue(vault: Vault, agentId: string): AgentQueueItem[] {
   // Query tasks assigned to this agent
   // Issues are assigned via the assignee field matching agent.shortId
   // Don't filter by type='task' - issues can be file nodes with task_status
-  const nodes = vault.query(`@${agent.shortId}`)
+  const nodes = repo.query(`@${agent.shortId}`)
 
   return nodes.map((node) => {
     const data = node.data ?? {}

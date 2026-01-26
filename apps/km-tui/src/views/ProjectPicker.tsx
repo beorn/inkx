@@ -7,7 +7,7 @@
 import React, { useState, useMemo, useCallback } from "react"
 import { Box, Text, useInput } from "inkx"
 import type { KNode } from "@km/core"
-import { useVault } from "../vault-context.tsx"
+import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
 
@@ -170,20 +170,20 @@ export function ProjectPicker({
   height,
   recentProjectIds = [],
 }: ProjectPickerProps): React.ReactElement {
-  const vault = useVault()
+  const repo = useRepo()
   const [query, setQuery] = useState("")
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   // Get all nodes using rawQuery
   const allNodes = useMemo(
-    () => vault.rawQuery<KNode>("SELECT * FROM nodes"),
-    [vault],
+    () => repo.rawQuery<KNode>("SELECT * FROM nodes"),
+    [repo],
   )
 
-  // Wrap getNodeDisplayName with vault for use in helper functions
+  // Wrap getNodeDisplayName with repo for use in helper functions
   const getDisplayName = useCallback(
-    (node: KNode) => getNodeDisplayName(vault, node),
-    [vault],
+    (node: KNode) => getNodeDisplayName(repo, node),
+    [repo],
   )
 
   // Get and filter options
@@ -191,11 +191,11 @@ export function ProjectPicker({
     () =>
       getProjectOptions(
         allNodes,
-        vault.getNode.bind(vault),
+        repo.getNode.bind(repo),
         getDisplayName,
         recentProjectIds,
       ),
-    [allNodes, vault, getDisplayName, recentProjectIds],
+    [allNodes, repo, getDisplayName, recentProjectIds],
   )
 
   const filteredOptions = useMemo(() => {

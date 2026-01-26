@@ -88,7 +88,7 @@ export function moveCardInColumn(
       }
     }
 
-    ctx.vault.moveNode(cardToMove.node.id, col.node.id, newSortOrder)
+    ctx.repo.moveNode(cardToMove.node.id, col.node.id, newSortOrder)
   }
 
   const movedCardIds = validCards.map((c) => c.card.node.id)
@@ -100,11 +100,11 @@ export function moveCardInColumn(
   if (movedCardIds.length > 1 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>()
     const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
-    const allChildren = ctx.vault.getChildren(ctx.boardState.rootId)
+    const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
     const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
     const newCol = columns[ctx.layout.colIndex]
     if (newCol) {
-      const cards = ctx.vault.getChildren(newCol.id)
+      const cards = ctx.repo.getChildren(newCol.id)
       for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
         const c = cards[cardIdx]
         if (c && movedCardIds.includes(c.id)) {
@@ -148,7 +148,7 @@ export function moveCardToColumn(
       : 0
 
   for (const cardToMove of cardsToMove) {
-    ctx.vault.moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder)
+    ctx.repo.moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder)
     newSortOrder++
   }
 
@@ -163,11 +163,11 @@ export function moveCardToColumn(
   if (movedCardIds.length > 0 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>()
     const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
-    const allChildren = ctx.vault.getChildren(ctx.boardState.rootId)
+    const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
     const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
     const newCol = columns[targetColIndex]
     if (newCol) {
-      const cards = ctx.vault.getChildren(newCol.id)
+      const cards = ctx.repo.getChildren(newCol.id)
       for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
         const c = cards[cardIdx]
         if (c && movedCardIds.includes(c.id)) {
@@ -210,7 +210,7 @@ export function moveCardToColumnByIndex(
       : 0
 
   for (const cardToMove of cardsToMove) {
-    ctx.vault.moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder)
+    ctx.repo.moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder)
     newSortOrder++
   }
 
@@ -228,11 +228,11 @@ export function moveCardToColumnByIndex(
   if (movedCardIds.length > 0 && ctx.boardState.rootId) {
     const newSelected = new Set<SelectionKey>()
     const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
-    const allChildren = ctx.vault.getChildren(ctx.boardState.rootId)
+    const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
     const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
     const targetColumnState = columns[targetColIndex]
     if (targetColumnState) {
-      const cards = ctx.vault.getChildren(targetColumnState.id)
+      const cards = ctx.repo.getChildren(targetColumnState.id)
       for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
         const c = cards[cardIdx]
         if (c && movedCardIds.includes(c.id)) {
@@ -263,7 +263,7 @@ export function indentNode(ctx: TUIContext, card: CardState): void {
   if (!siblingAbove) return
 
   const newSortOrder = Date.now()
-  ctx.vault.moveNode(card.node.id, siblingAbove.node.id, newSortOrder)
+  ctx.repo.moveNode(card.node.id, siblingAbove.node.id, newSortOrder)
   refreshBoardState(ctx, { cardIndex: Math.max(0, cardIndex - 1) })
 }
 
@@ -275,14 +275,14 @@ export function outdentNode(ctx: TUIContext, card: CardState): void {
     return
   }
 
-  const parent = ctx.vault.getNode(parentId)
+  const parent = ctx.repo.getNode(parentId)
   const grandparentId = parent?.parent_id
   if (!parent || !grandparentId) {
     process.stdout.write("\x07")
     return
   }
 
-  const grandparentChildren = ctx.vault.getChildren(grandparentId)
+  const grandparentChildren = ctx.repo.getChildren(grandparentId)
   const parentIndex = grandparentChildren.findIndex((c) => c.id === parentId)
 
   let newSortOrder: number
@@ -295,6 +295,6 @@ export function outdentNode(ctx: TUIContext, card: CardState): void {
       2
   }
 
-  ctx.vault.moveNode(card.node.id, grandparentId, newSortOrder)
+  ctx.repo.moveNode(card.node.id, grandparentId, newSortOrder)
   refreshBoardState(ctx)
 }

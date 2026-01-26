@@ -15,7 +15,7 @@ import type {
  */
 export default function kmPlugin(_opts: FileOpts): Plugin {
   // File-level state - reserved for future use
-  // let vaultPath: string | null = null
+  // let repoPath: string | null = null
 
   return {
     block(blockOpts: BlockOpts) {

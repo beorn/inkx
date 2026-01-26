@@ -81,7 +81,7 @@ Functionality is exposed through **domain objects created by factory functions**
 | `Watcher` | `repo.watch()`     | `Service`    | File sync (start/stop lifecycle)           |
 | `Config`  | `loadConfigObject` | plain object | Repository configuration                   |
 
-> **Deprecated:** `Vault` / `createVault()` is the legacy API. Use `Repo` / `createRepo()` for new code.
+> **Deprecated:** `Repo` / `createRepo()` is the legacy API. Use `Repo` / `createRepo()` for new code.
 
 ### Service Interface
 
@@ -122,8 +122,8 @@ See [dev/domain-objects.md](dev/domain-objects.md) for complete patterns guide
 
 ```
 FS → Storage:    File content  → KNode         (parse markdown)
-Storage → App:   vault.getChildren() → KNode[] (on-demand tree queries)
-App Render:      vault + state → columns       (derived at render time)
+Storage → App:   repo.data.getChildren() → KNode[] (on-demand tree queries)
+App Render:      repo + state → columns       (derived at render time)
 ```
 
 | Type                   | Package   | Description                                |
@@ -133,7 +133,7 @@ App Render:      vault + state → columns       (derived at render time)
 | `SimplifiedBoardState` | @km/board | cursorNodeId, fold, zoom (no tree data)    |
 | `UIState`              | apps/     | Dialogs, view mode, dimensions             |
 
-**Key design:** No tree data in board state. Navigation uses `vault.getChildren()` directly. Columns are derived at render time via `useColumns()`, cursor position via `useCursorPosition()`.
+**Key design:** No tree data in board state. Navigation uses `repo.getChildren()` directly. Columns are derived at render time via `useColumns()`, cursor position via `useCursorPosition()`.
 
 | Action Type   | Package   | Examples                          |
 | ------------- | --------- | --------------------------------- |

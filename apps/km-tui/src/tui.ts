@@ -8,7 +8,7 @@ import { EventEmitter } from "events"
 import chalk from "chalk"
 import createDebug from "debug"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
-import type { Repo } from "./vault-context.tsx"
+import type { Repo } from "./repo-context.tsx"
 import { renderBoardStatic } from "./render.ts"
 import { renderInkxBoard } from "./views/index.ts"
 import { setFsSync, SyncManager } from "@km/storage"
@@ -34,7 +34,7 @@ export function runBoardStatic(repo: Repo, state: TUIBoardState): void {
 /**
  * Entry point for the board command
  *
- * State must already be loaded (via loadVault) and board state built
+ * State must already be loaded (via loadRepo) and board state built
  * (via initBoardState) before calling this. The CLI handles both with
  * a progress indicator.
  */
@@ -96,7 +96,7 @@ export async function runBoard(
     })
     syncManager = new SyncManager({
       db: options.repo.database,
-      vaultPath: state.rootPath,
+      repoPath: state.rootPath,
       debounceFs: 2000, // Debounce external changes (2s)
       debounceApply: 100, // Small debounce for batching TUI changes
       conflictStrategy: "last_write_wins",

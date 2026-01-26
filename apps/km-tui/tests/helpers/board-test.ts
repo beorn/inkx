@@ -30,8 +30,8 @@
  * board.press("j").expectVisible("task2");
  *
  * // Use standardBoard() for common tests
- * const { vault, root } = standardBoard();
- * const state = buildBoardState(vault, root);
+ * const { repo, root } = standardBoard();
+ * const state = buildBoardState(repo, root);
  * ```
  *
  * ## Classic API (existing)
@@ -61,14 +61,14 @@ import {
   type RenderResult,
 } from "inkx/testing"
 import { expect } from "bun:test"
-import { createFakeVault } from "@km/storage"
+import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 
 import { BoardCore, Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
 import { createInitialUIState } from "../../src/ui-reducer.ts"
 import { createLayoutRegistry } from "../../src/card-positions.ts"
-import { VaultProvider } from "../../src/vault-context.tsx"
+import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
 import type { TUIBoardState } from "../../src/types.ts"
 
@@ -143,7 +143,7 @@ export function standardBoard() {
   )
 
   return {
-    vault: createFakeVault({ nodes }),
+    repo: createFakeRepo({ nodes }),
     root: "board",
   }
 }
@@ -164,14 +164,14 @@ export function testEnv(
   options?: { columns?: number; rows?: number },
 ) {
   const nodes = treeBuilder()
-  const vault = createFakeVault({ nodes })
+  const repo = createFakeRepo({ nodes })
   const rootNode = nodes[0]
   if (!rootNode) {
     throw new Error("Tree builder must return at least one node")
   }
 
-  // Build initial board state from vault
-  const initialState = buildBoardState(vault, rootNode.id)
+  // Build initial board state from repo
+  const initialState = buildBoardState(repo, rootNode.id)
 
   // Ensure command system is initialized before rendering
   // Note: Board.tsx also calls this in useEffect, but in tests that might not run
@@ -189,7 +189,7 @@ export function testEnv(
     layoutRegistry: createLayoutRegistry(),
   })
   const result = render(
-    React.createElement(VaultProvider, { vault, children: boardElement }),
+    React.createElement(RepoProvider, { repo, children: boardElement }),
   )
 
   // Create fluent API
@@ -403,8 +403,8 @@ interface BoardTest {
   /** Get the storage mode text (e.g., "MEM", "DISK") */
   getStorageMode(): string
 
-  /** Get the vault path text */
-  getVaultPath(): string
+  /** Get the repo path text */
+  getRepoPath(): string
 
   /** Get the node count from the bottom bar */
   getNodeCount(): string
@@ -798,8 +798,8 @@ class BoardTestImpl implements BoardTest {
     return this.getTextContent("#storage-mode")
   }
 
-  getVaultPath(): string {
-    return this.getTextContent("#vault-path")
+  getRepoPath(): string {
+    return this.getTextContent("#repo-path")
   }
 
   getNodeCount(): string {
@@ -830,8 +830,8 @@ export function renderBoard(
 ): BoardTest {
   const { columns = 80, rows = 24 } = options
 
-  // Create a fake vault for static rendering tests
-  const vault = createFakeVault()
+  // Create a fake repo for static rendering tests
+  const repo = createFakeRepo()
 
   const render = createTestRenderer({ columns, rows })
   const boardCoreElement = React.createElement(BoardCore, {
@@ -849,7 +849,7 @@ export function renderBoard(
     },
   })
   const result = render(
-    React.createElement(VaultProvider, { vault, children: boardCoreElement }),
+    React.createElement(RepoProvider, { repo, children: boardCoreElement }),
   )
 
   return new BoardTestImpl(result)

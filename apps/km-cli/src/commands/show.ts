@@ -25,10 +25,10 @@ export const showCommand = new Command("show")
   .option("-l, --links", "Show links (outgoing and backlinks)")
   .option("--json", "Output as JSON")
   .action((id, options) => {
-    // Resolve path argument - may initialize store with detected vault root
+    // Resolve path argument - may initialize store with detected repo root
     const resolved = resolvePathArg(id, getRootPath())
     using repo = runGenerator(
-      createRepo(resolved.vaultRoot, { loadFiles: true }),
+      createRepo(resolved.repoRoot, { loadFiles: true }),
     )
 
     // Directory paths don't resolve to a specific node

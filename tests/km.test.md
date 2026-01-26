@@ -9,7 +9,7 @@ End-to-end tests for the km (Knowledge Machine) CLI.
 
 ## Setup
 
-Initialize a test vault:
+Initialize a test repo:
 
 ```console
 $ km init .
@@ -276,7 +276,7 @@ Usage: km [options] [command]
 
 ### km list
 
-List all nodes in the vault:
+List all nodes in the repo:
 
 ```console
 $ km ls

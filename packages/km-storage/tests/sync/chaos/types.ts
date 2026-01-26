@@ -84,7 +84,7 @@ export interface ChaosScenario {
  */
 export interface IMockWatcher extends EventEmitter {
   // Standard watcher interface
-  start(vaultPath: string): void
+  start(repoPath: string): void
   stop(): Promise<void>
   markInFlight(path: string): void
   clearInFlight(path: string, delayMs?: number): void
@@ -182,23 +182,23 @@ export interface IVerifier {
   /**
    * Compare filesystem state to database state
    */
-  verifyFsDbSync(vaultPath: string): VerificationResult
+  verifyFsDbSync(repoPath: string): VerificationResult
 
   /**
    * Verify content matches between filesystem and database
    * CRITICAL: Catches silent data loss/corruption
    */
-  verifyContentSync(vaultPath: string): VerificationResult
+  verifyContentSync(repoPath: string): VerificationResult
 
   /**
    * Verify metadata (mtime, ino) matches between filesystem and database
    */
-  verifyMetadataSync(vaultPath: string): VerificationResult
+  verifyMetadataSync(repoPath: string): VerificationResult
 
   /**
    * Run all verifications
    */
-  verifyAll(expected: ExpectedState, vaultPath: string): VerificationResult
+  verifyAll(expected: ExpectedState, repoPath: string): VerificationResult
 }
 
 /**

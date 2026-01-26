@@ -28,7 +28,7 @@ export function addTask(
   options: { json?: boolean },
 ): void {
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
 
   // Parse metadata from content
   const metadata = parseTaskMetadata(content)
@@ -80,7 +80,7 @@ export function markDone(
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
@@ -114,7 +114,7 @@ export function claimTask(
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
@@ -156,7 +156,7 @@ export function releaseTask(
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
@@ -194,7 +194,7 @@ export function assignTask(
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {

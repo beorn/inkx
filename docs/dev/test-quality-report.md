@@ -50,7 +50,7 @@ Reviewed 9 representative test files from different layers (2,714 tests total ac
 - **Strengths**: Good coverage of CLI functionality
 - **Recommendation**: Keep as-is
 
-**vault.test.ts (649 lines, 25 tests)**
+**repo.test.ts (649 lines, 25 tests)**
 
 - **Rating**: ⭐⭐⭐⭐
 - **Strengths**: Tests domain object public API

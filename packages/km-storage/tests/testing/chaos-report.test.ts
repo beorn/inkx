@@ -9,10 +9,10 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { runGenerator } from "@km/core"
 import {
-  createVault,
+  createRepo,
   createChaosHooks,
   createSeededRandom,
-  createChaosFakeVault,
+  createChaosFakeRepo,
   generateChaosReport,
   formatChaosReport,
   formatChaosReportJson,
@@ -21,7 +21,7 @@ import {
 } from "../../src/index.ts"
 import type { ChaosReport, ChaosScenario } from "../../src/index.ts"
 
-// Tests that don't use createVault can run in parallel
+// Tests that don't use createRepo can run in parallel
 describe("generateChaosReport", () => {
   test("generates report with ChaosHooks", () => {
     const random = createSeededRandom(12345)
@@ -53,8 +53,8 @@ describe("generateChaosReport", () => {
     expect(report.generatedAt).toBeGreaterThan(0)
   })
 
-  test("generates report with ChaosFakeVault", () => {
-    const fakeVault = createChaosFakeVault({
+  test("generates report with ChaosFakeRepo", () => {
+    const fakeRepo = createChaosFakeRepo({
       nodes: [
         {
           id: "1",
@@ -72,13 +72,13 @@ describe("generateChaosReport", () => {
     })
 
     const scenario: ChaosScenario = {
-      name: "fake-vault-test",
+      name: "fake-repo-test",
       seed: 99999,
     }
 
     const report = generateChaosReport({
       scenario,
-      fakeVault,
+      fakeRepo,
       passed: true,
     })
 
@@ -87,8 +87,8 @@ describe("generateChaosReport", () => {
     expect(report.stateSnapshot.duplicates).toHaveLength(0)
   })
 
-  test("detects orphaned nodes in ChaosFakeVault", () => {
-    const fakeVault = createChaosFakeVault({
+  test("detects orphaned nodes in ChaosFakeRepo", () => {
+    const fakeRepo = createChaosFakeRepo({
       nodes: [
         {
           id: "1",
@@ -119,7 +119,7 @@ describe("generateChaosReport", () => {
 
     const report = generateChaosReport({
       scenario: { name: "orphan-test", seed: 1 },
-      fakeVault,
+      fakeRepo,
       passed: false,
       invariantsViolated: ["orphaned nodes found"],
     })
@@ -135,7 +135,7 @@ describe("generateChaosReport", () => {
     const hooks = createChaosHooks({ mutationDropRate: 1.0 })
 
     // Simulate some mutations being tracked
-    // We can't easily trigger mutations without a real vault, so just check the structure
+    // We can't easily trigger mutations without a real repo, so just check the structure
     const report = generateChaosReport({
       scenario: { name: "high-drop-test", seed: 1 },
       hooks,
@@ -320,15 +320,15 @@ describe("formatChaosReportMarkdown", () => {
   })
 })
 
-// Tests using createVault must be serial - createVault manages its own database
-// via loadVault which uses global singletons. Cannot use withTestEnv.
+// Tests using createRepo must be serial - createRepo manages its own database
+// via loadRepo which uses global singletons. Cannot use withTestEnv.
 const TEST_DIR = "/tmp/kmtest-chaos-report"
-const VAULT_DIR = join(TEST_DIR, "vault")
+const REPO_DIR = join(TEST_DIR, "repo")
 
-describe.serial("integration with real vault", () => {
+describe.serial("integration with real repo", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
-    mkdirSync(VAULT_DIR, { recursive: true })
+    mkdirSync(REPO_DIR, { recursive: true })
   })
 
   afterEach(() => {
@@ -336,9 +336,9 @@ describe.serial("integration with real vault", () => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
   })
 
-  test("generates report from real vault chaos test", () => {
+  test("generates report from real repo chaos test", () => {
     writeFileSync(
-      join(VAULT_DIR, "tasks.md"),
+      join(REPO_DIR, "tasks.md"),
       `# Tasks
 
 - [ ] Task one
@@ -352,13 +352,13 @@ describe.serial("integration with real vault", () => {
       random,
     })
 
-    using vault = runGenerator(createVault(VAULT_DIR, { hooks }))
+    using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
     // Perform some mutations that may be dropped
-    const tasks = vault.getAllTasks()
+    const tasks = repo.getAllTasks()
     for (const task of tasks) {
       try {
-        vault.updateNode(task.id, { task_status: "done" })
+        repo.updateNode(task.id, { task_status: "done" })
       } catch {
         // Expected for dropped mutations
       }
@@ -366,12 +366,12 @@ describe.serial("integration with real vault", () => {
 
     const report = generateChaosReport({
       scenario: {
-        name: "real-vault-chaos",
+        name: "real-repo-chaos",
         seed: 99999,
         config: { mutationDropRate: 0.5 },
       },
       hooks,
-      vault,
+      repo,
       passed: true,
       durationMs: 100,
     })
@@ -381,6 +381,6 @@ describe.serial("integration with real vault", () => {
 
     // Verify we can format it
     const text = formatChaosReport(report)
-    expect(text).toContain("real-vault-chaos")
+    expect(text).toContain("real-repo-chaos")
   })
 })

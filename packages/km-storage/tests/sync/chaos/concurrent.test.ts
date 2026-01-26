@@ -31,7 +31,7 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
   private pendingPaths: Set<string> = new Set()
   private debounceTimer: NodeJS.Timeout | null = null
   private debounceMs: number
-  private vaultPath: string = ""
+  private repoPath: string = ""
   private inFlightWrites: Set<string> = new Set()
 
   constructor(debounceMs: number = 100) {
@@ -39,8 +39,8 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
     this.debounceMs = debounceMs
   }
 
-  start(vaultPath: string): void {
-    this.vaultPath = vaultPath
+  start(repoPath: string): void {
+    this.repoPath = repoPath
     // Emit ready immediately (no real watcher to initialize)
     setImmediate(() => this.emit("ready"))
   }
@@ -145,7 +145,7 @@ import { SyncManager } from "../../../src/watch/sync.ts"
  */
 async function withConcurrentTestEnv(
   fn: (ctx: {
-    vaultDir: string
+    repoDir: string
     /** DataStore for ergonomic access - use data.getAllNodes(), data.updateNode() */
     data: DataStore & HasDatabase
     syncManager: SyncManager
@@ -171,7 +171,7 @@ async function withConcurrentTestEnv(
   try {
     // Use "real" mode to get disk storage mode, which triggers DB→FS sync events
     await withTestEnv(
-      async ({ vaultDir, data }) => {
+      async ({ repoDir, data }) => {
         // Create event emitter for test observation
         const events = new EventEmitter()
 
@@ -182,7 +182,7 @@ async function withConcurrentTestEnv(
       // This bypasses chokidar entirely, giving us deterministic control
       const syncManager = new SyncManager({
         db: data.database, // Use raw db from DataStore's HasDatabase capability
-        vaultPath: vaultDir,
+        repoPath: repoDir,
         debounceFs: 100,
         debounceApply: 50,
         conflictStrategy: "last_write_wins",
@@ -213,7 +213,7 @@ async function withConcurrentTestEnv(
 
       try {
         await fn({
-          vaultDir,
+          repoDir,
           data,
           syncManager,
           testWatcher,
@@ -240,7 +240,7 @@ describe("Concurrent Edit Tests", () => {
     test("DB edit followed by FS edit preserves both changes", () =>
       withConcurrentTestEnv(
         async ({
-          vaultDir,
+          repoDir,
           data,
           syncManager,
           advanceTime,
@@ -248,7 +248,7 @@ describe("Concurrent Edit Tests", () => {
           writeAndTrigger,
         }) => {
           // Create test file with two tasks
-          const testFile = join(vaultDir, "tasks.md")
+          const testFile = join(repoDir, "tasks.md")
           writeFileSync(testFile, "# Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n")
 
           // Initial sync
@@ -291,7 +291,7 @@ describe("Concurrent Edit Tests", () => {
     test("FS edit followed by DB edit preserves both changes", () =>
       withConcurrentTestEnv(
         async ({
-          vaultDir,
+          repoDir,
           data,
           syncManager,
           advanceTime,
@@ -299,7 +299,7 @@ describe("Concurrent Edit Tests", () => {
           writeAndTrigger,
         }) => {
           // Create test file
-          const testFile = join(vaultDir, "tasks.md")
+          const testFile = join(repoDir, "tasks.md")
           writeFileSync(testFile, "# Tasks\n\n- [ ] Original task\n")
 
           // Initial sync
@@ -345,7 +345,7 @@ describe("Concurrent Edit Tests", () => {
     test("many rapid FS edits are coalesced", () =>
       withConcurrentTestEnv(
         async ({
-          vaultDir,
+          repoDir,
           data,
           syncManager,
           advanceTime,
@@ -353,7 +353,7 @@ describe("Concurrent Edit Tests", () => {
           writeAndTrigger,
         }) => {
           // Create test file
-          const testFile = join(vaultDir, "tasks.md")
+          const testFile = join(repoDir, "tasks.md")
           writeFileSync(testFile, "# Tasks\n\n- [ ] Task\n")
 
           // Initial sync
@@ -386,9 +386,9 @@ describe("Concurrent Edit Tests", () => {
 
     test("many rapid DB edits are coalesced", () =>
       withConcurrentTestEnv(
-        async ({ vaultDir, data, syncManager, advanceTime, flushTimers }) => {
+        async ({ repoDir, data, syncManager, advanceTime, flushTimers }) => {
           // Create test file
-          const testFile = join(vaultDir, "tasks.md")
+          const testFile = join(repoDir, "tasks.md")
           writeFileSync(testFile, "# Tasks\n\n- [ ] Task\n")
 
           // Initial sync
@@ -421,7 +421,7 @@ describe("Concurrent Edit Tests", () => {
     test("same task edited in DB and FS resolves without crash", () =>
       withConcurrentTestEnv(
         async ({
-          vaultDir,
+          repoDir,
           data,
           syncManager,
           advanceTime,
@@ -429,7 +429,7 @@ describe("Concurrent Edit Tests", () => {
           writeAndTrigger,
         }) => {
           // Create test file
-          const testFile = join(vaultDir, "tasks.md")
+          const testFile = join(repoDir, "tasks.md")
           writeFileSync(testFile, "# Tasks\n\n- [ ] Contested task\n")
 
           // Initial sync
@@ -464,7 +464,7 @@ describe("Concurrent Edit Tests", () => {
     test("task deleted in FS while edited in DB handles gracefully", () =>
       withConcurrentTestEnv(
         async ({
-          vaultDir,
+          repoDir,
           data,
           syncManager,
           advanceTime,
@@ -472,7 +472,7 @@ describe("Concurrent Edit Tests", () => {
           writeAndTrigger,
         }) => {
           // Create test file with task
-          const testFile = join(vaultDir, "tasks.md")
+          const testFile = join(repoDir, "tasks.md")
           writeFileSync(testFile, "# Tasks\n\n- [ ] Task to delete\n")
 
           // Initial sync
@@ -508,7 +508,7 @@ describe("Concurrent Edit Tests", () => {
     test("concurrent edits to different files are independent", () =>
       withConcurrentTestEnv(
         async ({
-          vaultDir,
+          repoDir,
           data,
           syncManager,
           advanceTime,
@@ -516,8 +516,8 @@ describe("Concurrent Edit Tests", () => {
           writeAndTrigger,
         }) => {
           // Create test files
-          const file1 = join(vaultDir, "file1.md")
-          const file2 = join(vaultDir, "file2.md")
+          const file1 = join(repoDir, "file1.md")
+          const file2 = join(repoDir, "file2.md")
           writeFileSync(file1, "# File 1\n\n- [ ] Task 1\n")
           writeFileSync(file2, "# File 2\n\n- [ ] Task 2\n")
 
@@ -556,7 +556,7 @@ describe("Concurrent Edit Tests", () => {
     test("no data loss during interleaved edits", () =>
       withConcurrentTestEnv(async (ctx) => {
         // Create test file with multiple tasks
-        const testFile = join(ctx.vaultDir, "tasks.md")
+        const testFile = join(ctx.repoDir, "tasks.md")
         writeFileSync(
           testFile,
           `# Tasks
@@ -608,7 +608,7 @@ describe("Concurrent Edit Tests", () => {
     test("file structure preserved during concurrent edits", () =>
       withConcurrentTestEnv(async (ctx) => {
         // Create test file with sections
-        const testFile = join(ctx.vaultDir, "project.md")
+        const testFile = join(ctx.repoDir, "project.md")
         writeFileSync(
           testFile,
           `# Project

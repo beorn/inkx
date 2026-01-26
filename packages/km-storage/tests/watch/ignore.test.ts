@@ -72,7 +72,7 @@ describe("Ignore Patterns", () => {
       // When pattern has path separators, path structure matters
       // Pattern "**/.git/**" would require: anything, then /.git/, then anything
       // But the ** only matches the path when combined correctly
-      // These patterns work best when the full path from vault root is used
+      // These patterns work best when the full path from repo root is used
       // The shouldIgnore function also does basename matching as fallback
     })
 
@@ -100,13 +100,13 @@ describe("Ignore Patterns", () => {
       expect(shouldIgnore("src/app.ts", patterns)).toBe(false)
     })
 
-    test("should match paths with vault path normalization", () => {
-      const vaultPath = "/home/user/vault"
+    test("should match paths with repo path normalization", () => {
+      const repoPath = "/home/user/repo"
       const patterns = ["*.log"]
 
-      // When vault path is provided, paths are made relative
+      // When repo path is provided, paths are made relative
       expect(
-        shouldIgnore("/home/user/vault/debug.log", patterns, vaultPath),
+        shouldIgnore("/home/user/repo/debug.log", patterns, repoPath),
       ).toBe(true)
     })
   })
@@ -138,15 +138,15 @@ describe("Ignore Patterns", () => {
 
   describe("readGitignore", () => {
     test("should return empty array if .gitignore doesn't exist", () =>
-      withTestEnvSync(({ vaultDir }) => {
-        const patterns = readGitignore(vaultDir)
+      withTestEnvSync(({ repoDir }) => {
+        const patterns = readGitignore(repoDir)
         expect(patterns).toEqual([])
       }))
 
     test("should parse simple gitignore patterns", () =>
-      withTestEnvSync(({ vaultDir }) => {
+      withTestEnvSync(({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, ".gitignore"),
+          join(repoDir, ".gitignore"),
           `# Comment
 node_modules
 *.log
@@ -154,7 +154,7 @@ dist/
 `,
         )
 
-        const patterns = readGitignore(vaultDir)
+        const patterns = readGitignore(repoDir)
         expect(patterns.length).toBe(3)
         expect(patterns).toContain("**/node_modules")
         expect(patterns).toContain("**/*.log")
@@ -163,18 +163,18 @@ dist/
       }))
 
     test("should handle leading slashes (root-relative)", () =>
-      withTestEnvSync(({ vaultDir }) => {
-        writeFileSync(join(vaultDir, ".gitignore"), "/build\n")
+      withTestEnvSync(({ repoDir }) => {
+        writeFileSync(join(repoDir, ".gitignore"), "/build\n")
 
-        const patterns = readGitignore(vaultDir)
+        const patterns = readGitignore(repoDir)
         // Leading slash is stripped, pattern doesn't contain / so ** is added
         expect(patterns.some((p) => p.includes("build"))).toBe(true)
       }))
 
     test("should skip comments and empty lines", () =>
-      withTestEnvSync(({ vaultDir }) => {
+      withTestEnvSync(({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, ".gitignore"),
+          join(repoDir, ".gitignore"),
           `# This is a comment
 
 # Another comment
@@ -182,43 +182,43 @@ dist/
 `,
         )
 
-        const patterns = readGitignore(vaultDir)
+        const patterns = readGitignore(repoDir)
         expect(patterns.length).toBe(1)
         expect(patterns[0]).toBe("**/*.log")
       }))
 
     test("should skip negation patterns (not supported)", () =>
-      withTestEnvSync(({ vaultDir }) => {
+      withTestEnvSync(({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, ".gitignore"),
+          join(repoDir, ".gitignore"),
           `*.log
 !important.log
 `,
         )
 
-        const patterns = readGitignore(vaultDir)
+        const patterns = readGitignore(repoDir)
         expect(patterns.length).toBe(1)
       }))
   })
 
   describe("readKmignore", () => {
     test("should return empty array if .kmignore doesn't exist", () =>
-      withTestEnvSync(({ vaultDir }) => {
-        const patterns = readKmignore(vaultDir)
+      withTestEnvSync(({ repoDir }) => {
+        const patterns = readKmignore(repoDir)
         expect(patterns).toEqual([])
       }))
 
     test("should parse .kmignore patterns directly as globs", () =>
-      withTestEnvSync(({ vaultDir }) => {
+      withTestEnvSync(({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, ".kmignore"),
+          join(repoDir, ".kmignore"),
           `# KM-specific ignores
 **/private/**
 **/*.draft.md
 `,
         )
 
-        const patterns = readKmignore(vaultDir)
+        const patterns = readKmignore(repoDir)
         expect(patterns.length).toBe(2)
         expect(patterns).toContain("**/private/**")
         expect(patterns).toContain("**/*.draft.md")
@@ -227,22 +227,22 @@ dist/
 
   describe("readObsidianIgnore", () => {
     test("should return empty array if .obsidianignore doesn't exist", () =>
-      withTestEnvSync(({ vaultDir }) => {
-        const patterns = readObsidianIgnore(vaultDir)
+      withTestEnvSync(({ repoDir }) => {
+        const patterns = readObsidianIgnore(repoDir)
         expect(patterns).toEqual([])
       }))
 
     test("should parse .obsidianignore like gitignore", () =>
-      withTestEnvSync(({ vaultDir }) => {
+      withTestEnvSync(({ repoDir }) => {
         writeFileSync(
-          join(vaultDir, ".obsidianignore"),
+          join(repoDir, ".obsidianignore"),
           `# Obsidian ignore
 Archive/
 *.tmp
 `,
         )
 
-        const patterns = readObsidianIgnore(vaultDir)
+        const patterns = readObsidianIgnore(repoDir)
         expect(patterns.length).toBe(2)
         // Archive/ converted to Archive/**
         expect(patterns.some((p) => p.includes("Archive"))).toBe(true)
@@ -252,8 +252,8 @@ Archive/
 
   describe("getIgnorePatterns", () => {
     test("should return default patterns when no ignore files exist", () =>
-      withTestEnvSync(({ vaultDir }) => {
-        const patterns = getIgnorePatterns(vaultDir)
+      withTestEnvSync(({ repoDir }) => {
+        const patterns = getIgnorePatterns(repoDir)
 
         // Should include defaults
         expect(patterns).toContain("**/.git/**")
@@ -261,13 +261,13 @@ Archive/
       }))
 
     test("should combine patterns from all sources", () =>
-      withTestEnvSync(({ vaultDir }) => {
+      withTestEnvSync(({ repoDir }) => {
         // Create all ignore files
-        writeFileSync(join(vaultDir, ".gitignore"), "*.log\n")
-        writeFileSync(join(vaultDir, ".kmignore"), "**/drafts/**\n")
-        writeFileSync(join(vaultDir, ".obsidianignore"), "Archive/\n")
+        writeFileSync(join(repoDir, ".gitignore"), "*.log\n")
+        writeFileSync(join(repoDir, ".kmignore"), "**/drafts/**\n")
+        writeFileSync(join(repoDir, ".obsidianignore"), "Archive/\n")
 
-        const patterns = getIgnorePatterns(vaultDir)
+        const patterns = getIgnorePatterns(repoDir)
 
         // Should include defaults
         expect(patterns).toContain("**/.git/**")

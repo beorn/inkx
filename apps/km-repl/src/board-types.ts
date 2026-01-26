@@ -54,7 +54,7 @@ export interface TNode {
  * This is the legacy state model used by km-repl's REPL commands.
  */
 export interface BoardState {
-  /** Root node ID being viewed (or null for vault root) */
+  /** Root node ID being viewed (or null for repo root) */
   rootId: string | null
   /** Human-readable root path for display */
   rootPath: string | null

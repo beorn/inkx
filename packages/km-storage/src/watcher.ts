@@ -2,7 +2,7 @@
  * Watcher - File Sync Service
  *
  * Wraps SyncManager to implement the Service interface for lifecycle control.
- * Created via createWatcher() or vault.watch().
+ * Created via createWatcher() or repo.watch().
  */
 
 import createDebug from "debug"
@@ -56,33 +56,33 @@ export interface WatcherOptions {
 }
 
 /**
- * Create a Watcher for a vault path.
+ * Create a Watcher for a repo path.
  *
  * The watcher implements the Service interface with start/stop lifecycle.
  * Use `await using watcher = createWatcher(path)` for automatic cleanup.
  *
  * @example
- * await using watcher = createWatcher("/path/to/vault");
+ * await using watcher = createWatcher("/path/to/repo");
  * await watcher.start();
  * watcher.on("change", (changes) => console.log(changes));
  * // ... watcher.stop() called automatically
  *
- * @param vaultPath - Path to the vault root
+ * @param repoPath - Path to the repo root
  * @param options - Watcher configuration
  * @returns Watcher service
  */
 export function createWatcher(
-  vaultPath: string,
+  repoPath: string,
   options: WatcherOptions,
 ): Watcher {
-  debug("createWatcher", { vaultPath, options })
+  debug("createWatcher", { repoPath, options })
 
   let status: ServiceStatus = "stopped"
 
   // Create SyncManager with config (db is required - no singleton fallback)
   const config: SyncConfig = {
     db: options.db,
-    vaultPath,
+    repoPath,
     debounceFs: options.debounceFs ?? 5000,
     debounceApply: options.debounceApply ?? 3000,
     conflictStrategy: options.conflictStrategy ?? "last_write_wins",

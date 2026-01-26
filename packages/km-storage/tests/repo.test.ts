@@ -301,7 +301,7 @@ describe("Repo.path", () => {
     cleanupTempDir(tempDir)
   })
 
-  test("createRepo returns vault root path", () => {
+  test("createRepo returns repo root path", () => {
     using repo = runGenerator(createRepo(tempDir))
     expect(repo.path).toBe(tempDir)
   })
@@ -334,7 +334,7 @@ describe("Repo.config", () => {
     cleanupTempDir(tempDir)
   })
 
-  test("loads config from vault root", () => {
+  test("loads config from repo root", () => {
     // Write a km config file
     writeFileSync(
       join(tempDir, ".kmrc.json"),

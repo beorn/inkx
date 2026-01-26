@@ -27,12 +27,12 @@ import { formatPath } from "../utils/format-path.ts"
 
 export const rebuildCommand = new Command("rebuild")
   .description("Rebuild state from events")
-  .argument("[path]", "Path to vault (default: current directory)")
+  .argument("[path]", "Path to repo (default: current directory)")
   .option("--full", "Full rebuild (delete and recreate state.db)")
   .option("--fresh", "Fresh start (delete all .km data including events)")
   .option("--status", "Show rebuild status only")
   .action(async (path, options) => {
-    // Resolve vault path from argument or current directory
+    // Resolve repo path from argument or current directory
     const searchPath = path ? resolve(path) : process.cwd()
     const kmRoot = findKmRootFromPath(searchPath)
 
@@ -40,7 +40,7 @@ export const rebuildCommand = new Command("rebuild")
       console.error(
         chalk.red(`No .km directory found in ${searchPath} or ancestors.`),
       )
-      console.error("Run 'km init' to initialize a vault.")
+      console.error("Run 'km init' to initialize a repo.")
       process.exit(1)
     }
 
@@ -63,11 +63,11 @@ export const rebuildCommand = new Command("rebuild")
         return
       }
 
-      const vaultPath = dirname(kmRoot)
+      const repoPath = dirname(kmRoot)
       debug("rebuild: starting (full=%s)", !!options.full)
       console.log(
         chalk.bold("Rebuilding .km/state.db from .km/events.jsonl"),
-        chalk.dim(`(repo ${formatPath(vaultPath)})`),
+        chalk.dim(`(repo ${formatPath(repoPath)})`),
       )
 
       try {

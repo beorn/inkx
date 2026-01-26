@@ -8,7 +8,7 @@
  */
 
 import type { KNode } from "@km/core"
-import type { Vault } from "./vault-context.tsx"
+import type { Repo } from "./repo-context.tsx"
 import type { BoardState, BoardAction } from "@km/board"
 import type {
   TUIBoardState,
@@ -32,8 +32,8 @@ import type { LayoutRegistry } from "./card-positions.ts"
  */
 export interface TUIContext {
   // === Storage ===
-  /** Vault for storage operations */
-  vault: Vault
+  /** Repo for storage operations */
+  repo: Repo
 
   // === State ===
   /** TUI rendering state (columns/cards structure) */
@@ -96,7 +96,7 @@ export interface KeyEvent {
 // =============================================================================
 
 export interface BuildTUIContextParams {
-  vault: Vault
+  repo: Repo
   state: TUIBoardState
   boardState: BoardState
   ui: UIState
@@ -114,7 +114,7 @@ export interface BuildTUIContextParams {
  * Call this once per render, then pass to all handlers.
  */
 export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
-  const { vault, state, boardState, ui, layout, positionRegistry } = params
+  const { repo, state, boardState, ui, layout, positionRegistry } = params
 
   // Derive current column and card from layout
   const column = layout.columns[layout.colIndex]
@@ -123,7 +123,7 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
   const selectedNode = card?.node ?? column?.node
 
   return {
-    vault,
+    repo,
     state,
     boardState,
     ui,

@@ -35,8 +35,8 @@ function createTestDir(): string {
   return dir
 }
 
-/** Create a test vault with standard test files */
-function createMemoryStoreTestVault(): string {
+/** Create a test repo with standard test files */
+function createMemoryStoreTestRepo(): string {
   const rootDir = createTestDir()
 
   // Create test files
@@ -85,7 +85,7 @@ Some content here.
 
 describe("MemoryStore", () => {
   test("should scan filesystem and create nodes", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     const allNodes = store.getAllNodes()
@@ -101,7 +101,7 @@ describe("MemoryStore", () => {
   })
 
   test("should include non-markdown files as nodes", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     const allNodes = store.getAllNodes()
@@ -120,7 +120,7 @@ describe("MemoryStore", () => {
   })
 
   test("should find all tasks", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     const tasks = store.getAllTasks()
@@ -128,7 +128,7 @@ describe("MemoryStore", () => {
   })
 
   test("should correctly parse task status", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     const tasks = store.getAllTasks()
@@ -147,7 +147,7 @@ describe("MemoryStore", () => {
   })
 
   test("should create ULID IDs for parsed nodes", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     const tasks = store.getAllTasks()
@@ -159,7 +159,7 @@ describe("MemoryStore", () => {
   })
 
   test("should build section hierarchy from headings", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     const sections = store.getAllNodes().filter((n) => n.type === "section")
@@ -175,7 +175,7 @@ describe("MemoryStore", () => {
   })
 
   test("should get node by path", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     const tasksFile = store.getNodeByPath(join(rootDir, "tasks.md"))
@@ -186,7 +186,7 @@ describe("MemoryStore", () => {
   })
 
   test("should get children of a node", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     // Get root children
@@ -202,7 +202,7 @@ describe("MemoryStore", () => {
   })
 
   test("should get ancestors of a node", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     // Find a nested task
@@ -220,7 +220,7 @@ describe("MemoryStore", () => {
   })
 
   test("should get tasks by status", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     const todoTasks = store.getTasksByStatus("todo")
@@ -234,7 +234,7 @@ describe("MemoryStore", () => {
   })
 
   test("should update node and write through to file", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     // Find an open task
@@ -258,7 +258,7 @@ describe("MemoryStore", () => {
   })
 
   test("should refresh and rescan filesystem", () => {
-    const rootDir = createMemoryStoreTestVault()
+    const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
     const initialTasks = store.getAllTasks()
@@ -306,10 +306,10 @@ describe("DiskStore", () => {
 
 describe("initStore mode detection", () => {
   test("should return MemoryStore when no .km directory exists", () =>
-    withTestEnvSync(({ vaultDir }) => {
+    withTestEnvSync(({ repoDir }) => {
       // No .km directory - should use memory mode
       // Pass false to disable ancestor search (avoid /tmp/.km pollution)
-      const store = initStore(vaultDir, false)
+      const store = initStore(repoDir, false)
       try {
         expect(store.mode).toBe("memory")
         expect(store).toBeInstanceOf(MemoryStore)
@@ -319,12 +319,12 @@ describe("initStore mode detection", () => {
     }))
 
   test("should return DiskStore when .km directory exists", () =>
-    withTestEnvSync(({ vaultDir }) => {
+    withTestEnvSync(({ repoDir }) => {
       // Create .km to trigger disk mode
-      mkdirSync(join(vaultDir, ".km"), { recursive: true })
+      mkdirSync(join(repoDir, ".km"), { recursive: true })
 
       // Pass false to disable ancestor search (test specific directory)
-      const store = initStore(vaultDir, false)
+      const store = initStore(repoDir, false)
       try {
         expect(store.mode).toBe("disk")
         expect(store).toBeInstanceOf(DiskStore)
@@ -334,17 +334,17 @@ describe("initStore mode detection", () => {
     }))
 
   test("should find .km in parent directory", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      // Create .km in vaultDir
-      mkdirSync(join(vaultDir, ".km"), { recursive: true })
+    withTestEnvSync(({ repoDir }) => {
+      // Create .km in repoDir
+      mkdirSync(join(repoDir, ".km"), { recursive: true })
       // Create subdir to test ancestor search
-      const subDir = join(vaultDir, "subdir")
+      const subDir = join(repoDir, "subdir")
       mkdirSync(subDir, { recursive: true })
 
       const store = initStore(subDir)
       try {
         expect(store.mode).toBe("disk")
-        expect(store.rootPath).toBe(vaultDir)
+        expect(store.rootPath).toBe(repoDir)
       } finally {
         closeStore()
       }

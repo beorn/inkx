@@ -17,7 +17,7 @@ export type ServiceStatus = "stopped" | "starting" | "running" | "stopping"
  *
  * Usage:
  * ```typescript
- * await using watcher = createWatcher(vault);
+ * await using watcher = createWatcher(repo);
  * await watcher.start();
  * // ... do stuff ...
  * // watcher.stop() called automatically via asyncDispose
@@ -47,7 +47,7 @@ export interface Service extends AsyncDisposable {
  * Use this when you don't need progress updates.
  *
  * @example
- * const vault = runGenerator(createVault(path));
+ * const repo = runGenerator(createRepo(path));
  */
 export function runGenerator<T>(gen: Generator<unknown, T, unknown>): T {
   let result = gen.next()
@@ -63,7 +63,7 @@ export function runGenerator<T>(gen: Generator<unknown, T, unknown>): T {
  * Progress type P is generic to work with any progress info shape.
  *
  * @example
- * const vault = runWithProgress(createVault(path), (p) => {
+ * const repo = runWithProgress(createRepo(path), (p) => {
  *   spinner.update(`${p.phase}: ${p.current}/${p.total}`);
  * });
  */

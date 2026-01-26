@@ -8,7 +8,7 @@ import { createPasteHandler, supportsFileDrop } from "../paste-handler.ts"
 import type { SelectionRange } from "../mouse-handler.ts"
 import { tuiEvents } from "../tui.ts"
 import type { WatcherStatus } from "@km/storage"
-import type { Vault } from "../vault-context.tsx"
+import type { Repo } from "../repo-context.tsx"
 import type { BoardAction } from "@km/board"
 import { toast, kmEvents } from "@km/core"
 
@@ -106,22 +106,22 @@ export function createMouseHandler_(
  * Subscribes to external refresh events (filesystem changes)
  *
  * NEW ARCHITECTURE: No longer dispatches REFRESH action.
- * The useColumns hook depends on vault.stats.nodeCount, so React
- * automatically re-renders when vault changes.
+ * The useColumns hook depends on repo.stats.nodeCount, so React
+ * automatically re-renders when repo changes.
  *
- * TODO: Verify vault stats update triggers re-render correctly.
- * May need to add a forceUpdate mechanism if vault mutation doesn't
+ * TODO: Verify repo stats update triggers re-render correctly.
+ * May need to add a forceUpdate mechanism if repo mutation doesn't
  * change stats reference.
  */
 export function createRefreshHandler(
-  _vault: Vault,
+  _repo: Repo,
   _rootIdRef: React.RefObject<string | null>,
   _dispatchBoard: Dispatch<BoardAction>,
 ): () => void {
   // The refresh event is still useful for logging/debugging
   const handleRefresh = () => {
-    // No-op: columns are derived from vault at render time
-    // React will re-render when vault.stats changes
+    // No-op: columns are derived from repo at render time
+    // React will re-render when repo.stats changes
   }
 
   tuiEvents.on("refresh", handleRefresh)

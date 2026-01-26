@@ -17,7 +17,7 @@ import {
   runWithProgress,
 } from "../src/rebuild.ts"
 import { getDb } from "../src/db.ts"
-import { createVault } from "../src/vault.ts"
+import { createRepo } from "../src/repo.ts"
 import { runGenerator } from "../src/rebuild.ts"
 import { withTestEnvSync, withTestEnv } from "@km/storage"
 
@@ -92,41 +92,41 @@ describe("rebuild.ts", () => {
       }))
   })
 
-  describe("vault.needsRebuild()", () => {
-    test("returns false for memory mode vaults", () =>
-      withTestEnv(async ({ vaultDir }) => {
+  describe("repo.needsRebuild()", () => {
+    test("returns false for memory mode repos", () =>
+      withTestEnv(async ({ repoDir }) => {
         // No .km directory = memory mode
-        writeFileSync(join(vaultDir, "test.md"), "# Test\n- [ ] Task\n")
+        writeFileSync(join(repoDir, "test.md"), "# Test\n- [ ] Task\n")
 
-        using vault = runGenerator(createVault(vaultDir))
-        expect(vault.mode).toBe("memory")
-        expect(vault.needsRebuild()).toBe(false)
+        using repo = runGenerator(createRepo(repoDir))
+        expect(repo.mode).toBe("memory")
+        expect(repo.needsRebuild()).toBe(false)
       }))
 
     test("returns true for disk mode without state.db", () =>
-      withTestEnv(async ({ vaultDir, kmDir }) => {
+      withTestEnv(async ({ repoDir, kmDir }) => {
         // Create .km directory for disk mode (but no state.db created yet)
         mkdirSync(kmDir, { recursive: true })
-        writeFileSync(join(vaultDir, "test.md"), "# Test\n- [ ] Task\n")
+        writeFileSync(join(repoDir, "test.md"), "# Test\n- [ ] Task\n")
 
-        using vault = runGenerator(createVault(vaultDir))
-        expect(vault.mode).toBe("disk")
+        using repo = runGenerator(createRepo(repoDir))
+        expect(repo.mode).toBe("disk")
         // No state.db file exists = needs rebuild
         // (test uses ALS in-memory db, so physical state.db doesn't exist)
-        expect(vault.needsRebuild()).toBe(true)
+        expect(repo.needsRebuild()).toBe(true)
       }))
 
     test("returns false for disk mode with state.db and no events", () =>
-      withTestEnv(async ({ vaultDir, kmDir }) => {
+      withTestEnv(async ({ repoDir, kmDir }) => {
         // Create .km directory and empty state.db for disk mode
         mkdirSync(kmDir, { recursive: true })
         writeFileSync(join(kmDir, "state.db"), "") // Empty file simulates existing db
-        writeFileSync(join(vaultDir, "test.md"), "# Test\n- [ ] Task\n")
+        writeFileSync(join(repoDir, "test.md"), "# Test\n- [ ] Task\n")
 
-        using vault = runGenerator(createVault(vaultDir))
-        expect(vault.mode).toBe("disk")
+        using repo = runGenerator(createRepo(repoDir))
+        expect(repo.mode).toBe("disk")
         // state.db exists, no events = no rebuild needed
-        expect(vault.needsRebuild()).toBe(false)
+        expect(repo.needsRebuild()).toBe(false)
       }))
   })
 

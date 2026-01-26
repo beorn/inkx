@@ -255,7 +255,7 @@ function findFileAncestor(db: Database, nodeId: string): KNode | null {
 
 /**
  * Get the embed path for a node.
- * Uses relative path from vault root, or a short ID for non-file nodes.
+ * Uses relative path from repo root, or a short ID for non-file nodes.
  */
 function getEmbedPath(node: KNode): string {
   // For file nodes, extract the relative path (filename without .md)

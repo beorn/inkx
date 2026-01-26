@@ -19,7 +19,7 @@ import { withTestEnvSync } from "@km/storage"
 
 describe("resolveNode", () => {
   test("resolves by exact ID", () =>
-    withTestEnvSync(({ vaultDir }) => {
+    withTestEnvSync(({ repoDir }) => {
       const id = ulid()
       emitNodeCreated("test", { id, type: "task", content: "Test task" })
 
@@ -51,8 +51,8 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by exact filesystem path", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      const fsPath = join(vaultDir, "test.md")
+    withTestEnvSync(({ repoDir }) => {
+      const fsPath = join(repoDir, "test.md")
       emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath })
 
       const node = resolveNode(getDb(), fsPath)
@@ -61,8 +61,8 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by filename with extension", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      const fsPath = join(vaultDir, "@inbox.md")
+    withTestEnvSync(({ repoDir }) => {
+      const fsPath = join(repoDir, "@inbox.md")
       emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath })
 
       const node = resolveNode(getDb(), "@inbox.md")
@@ -71,8 +71,8 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by filename without extension", () =>
-    withTestEnvSync(({ vaultDir }) => {
-      const fsPath = join(vaultDir, "@inbox.md")
+    withTestEnvSync(({ repoDir }) => {
+      const fsPath = join(repoDir, "@inbox.md")
       emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath })
 
       const node = resolveNode(getDb(), "@inbox")
@@ -101,14 +101,14 @@ describe("resolveNode", () => {
     }))
 
   test("filters by type when specified", () =>
-    withTestEnvSync(({ vaultDir }) => {
+    withTestEnvSync(({ repoDir }) => {
       const taskId = ulid()
       const fileId = ulid()
       emitNodeCreated("test", { id: taskId, type: "task", content: "Test" })
       emitNodeCreated("test", {
         id: fileId,
         type: "file",
-        fs_path: join(vaultDir, "Test.md"),
+        fs_path: join(repoDir, "Test.md"),
       })
 
       // Without type filter, could match either

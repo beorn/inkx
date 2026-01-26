@@ -479,21 +479,21 @@ async function rebuildState(): Promise<Database> {
 
 ---
 
-## Vault Loader
+## Repo Loader
 
-The `loadVault()` function is the **unified entry point** for loading vaults in both memory and disk modes. It replaces the fragmented `ensureState`, `rebuildState`, `syncState` functions with a single generator-based pipeline.
+The `loadRepo()` function is the **unified entry point** for loading repos in both memory and disk modes. It replaces the fragmented `ensureState`, `rebuildState`, `syncState` functions with a single generator-based pipeline.
 
 ### Usage
 
 ```typescript
-import { loadVault, runGenerator } from "@km/storage"
+import { loadRepo, runGenerator } from "@km/storage"
 
 // Basic usage (silent, no progress)
-const result = runGenerator(loadVault("/path/to/vault"))
+const result = runGenerator(loadRepo("/path/to/repo"))
 
 // With progress reporting
 import { withProgress } from "@beorn/inkx-ui/wrappers"
-const result = await withProgress(loadVault("/path/to/vault"), {
+const result = await withProgress(loadRepo("/path/to/repo"), {
   phases: PHASES,
 })
 ```
@@ -509,7 +509,7 @@ interface LoadOptions {
 
 ### Pipeline Phases
 
-`loadVault()` yields progress through these phases:
+`loadRepo()` yields progress through these phases:
 
 | Phase           | Memory Mode                   | Disk Mode                         |
 | --------------- | ----------------------------- | --------------------------------- |
@@ -533,21 +533,21 @@ interface LoadResult {
 
 ### Legacy API
 
-The old functions still work but delegate to `loadVault()`:
+The old functions still work but delegate to `loadRepo()`:
 
 | Old Function        | New Equivalent                     |
 | ------------------- | ---------------------------------- |
-| `ensureState(root)` | `loadVault(root)`                  |
-| `rebuildState()`    | `loadVault(root, { force: true })` |
-| `syncState()`       | `loadVault(root)`                  |
+| `ensureState(root)` | `loadRepo(root)`                  |
+| `rebuildState()`    | `loadRepo(root, { force: true })` |
+| `syncState()`       | `loadRepo(root)`                  |
 
 ### Cold Start vs Hot Path
 
-`loadVault()` is for **cold start** (initial loading). For incremental updates after loading:
+`loadRepo()` is for **cold start** (initial loading). For incremental updates after loading:
 
 | Path       | Function       | When                           |
 | ---------- | -------------- | ------------------------------ |
-| Cold start | `loadVault()`  | CLI startup, initial load      |
+| Cold start | `loadRepo()`  | CLI startup, initial load      |
 | Hot path   | `applyEvent()` | Real-time file watcher changes |
 
 The `SyncManager` handles the hot path via file watching → `reconcileDirectory()` → `applyEvent()`.

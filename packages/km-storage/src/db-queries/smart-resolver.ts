@@ -86,7 +86,7 @@ export function resolveNode(
     if (row) return rowToNode(row)
 
     // For directory paths, try finding the corresponding .md file
-    // e.g., /vault/Projects → /vault/Projects.md or /vault/Projects/index.md
+    // e.g., /repo/Projects → /repo/Projects.md or /repo/Projects/index.md
     if (!absolutePath.endsWith(".md")) {
       // Try sibling .md file (Projects → Projects.md)
       row = db
@@ -105,7 +105,7 @@ export function resolveNode(
     }
 
     // Also try matching by filename suffix (handles relative paths in DB)
-    // When DB stores "board.md" but query is "/tmp/vault/board.md"
+    // When DB stores "board.md" but query is "/tmp/repo/board.md"
     row = db
       .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`)
       .get(`%${absolutePath.split("/").pop()}`, ...params) as Record<

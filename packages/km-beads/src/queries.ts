@@ -4,28 +4,28 @@
  * Query issues from the km database.
  */
 
-import type { Vault } from "@km/storage"
+import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import type { Issue, IssueFilter } from "./types.ts"
 
 /** Options for beads query functions */
 export interface BeadsQueryOptions {
-  /** Vault to use for queries. Required for functions that access storage. */
-  vault?: Vault
+  /** Repo to use for queries. Required for functions that access storage. */
+  repo?: Repo
 }
 
 /**
  * Get the file path for a node (either direct fs_path or from ancestor)
  */
-function getNodePath(node: KNode, vault?: Vault): string | undefined {
+function getNodePath(node: KNode, repo?: Repo): string | undefined {
   if (node.fs_path) {
     return node.fs_path
   }
   // For embedded nodes, try to get parent's path
-  if (node.parent_id && vault) {
-    const parent = vault.getNode(node.parent_id)
+  if (node.parent_id && repo) {
+    const parent = repo.getNode(node.parent_id)
     if (parent) {
-      return getNodePath(parent, vault)
+      return getNodePath(parent, repo)
     }
   }
   return undefined
@@ -35,9 +35,9 @@ function getNodePath(node: KNode, vault?: Vault): string | undefined {
  * Count how many issues are blocked by the given short ID
  * This performs a reverse dependency lookup
  */
-function countDependents(shortId: string, vault?: Vault): number {
-  if (!vault) {
-    return 0 // Can't count without vault access
+function countDependents(shortId: string, repo?: Repo): number {
+  if (!repo) {
+    return 0 // Can't count without repo access
   }
 
   const sql = `
@@ -45,18 +45,18 @@ function countDependents(shortId: string, vault?: Vault): number {
     WHERE json_extract(data, '$.blocked_by') LIKE ?
   `
   const params = [`%"${shortId}"%`]
-  const result = vault.rawQuery<{ count: number }>(sql, params)
+  const result = repo.rawQuery<{ count: number }>(sql, params)
   return result[0]?.count ?? 0
 }
 
 /**
  * Get parent context for embedded nodes (section/file name)
  */
-function getParentContext(node: KNode, vault?: Vault): string | undefined {
-  if (!node.parent_id || !vault) {
+function getParentContext(node: KNode, repo?: Repo): string | undefined {
+  if (!node.parent_id || !repo) {
     return undefined
   }
-  const parent = vault.getNode(node.parent_id)
+  const parent = repo.getNode(node.parent_id)
   if (!parent) {
     return undefined
   }
@@ -68,7 +68,7 @@ function getParentContext(node: KNode, vault?: Vault): string | undefined {
  * Convert a KNode to an Issue
  */
 export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
-  const vault = options?.vault
+  const repo = options?.repo
   const data = node.data as Record<string, unknown> | undefined
   const props = data?.props as
     | Record<
@@ -142,8 +142,8 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   const assignee = mentions?.[0]
 
   // Get path and context
-  const path = getNodePath(node, vault)
-  const parentContext = getParentContext(node, vault)
+  const path = getNodePath(node, repo)
+  const parentContext = getParentContext(node, repo)
 
   // Count dependencies
   const dependencyCount = blockedBy?.length || 0
@@ -153,7 +153,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
     (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
 
   // Count dependents (issues that are blocked by this one)
-  const dependentCount = countDependents(shortId, vault)
+  const dependentCount = countDependents(shortId, repo)
 
   return {
     id: node.id,
@@ -177,24 +177,24 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
 /**
  * Check if an issue is blocked (has unresolved blockers)
  * @param issue - The issue to check
- * @param options - Optional query options (vault for DI)
+ * @param options - Optional query options (repo for DI)
  */
 export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
-  const vault = options?.vault
+  const repo = options?.repo
   if (!issue.blockedBy || issue.blockedBy.length === 0) {
     return false
   }
 
   // Check if any blocker is not done
   for (const blockerId of issue.blockedBy) {
-    if (!vault) {
-      // Without vault, we can't check if blockers are done - assume blocked
+    if (!repo) {
+      // Without repo, we can't check if blockers are done - assume blocked
       return true
     }
-    const blockers = vault.query(`short_id:${blockerId}`)
+    const blockers = repo.query(`short_id:${blockerId}`)
     const [firstBlocker] = blockers
     if (firstBlocker) {
-      const blocker = nodeToIssue(firstBlocker, { vault })
+      const blocker = nodeToIssue(firstBlocker, { repo })
       if (blocker.status !== "done" && blocker.status !== "dropped") {
         return true
       }
@@ -207,9 +207,9 @@ export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
 /**
  * Query ready issues (unblocked, todo status, sorted by priority)
  * @param filter - Optional filters for type, assignee, priority
- * @param scopePath - Optional path to scope results to (e.g., "/vault/Projects")
+ * @param scopePath - Optional path to scope results to (e.g., "/repo/Projects")
  * @param boardTag - Optional board tag to filter by (e.g., "issues" for @issues)
- * @param options - Optional query options (vault for DI)
+ * @param options - Optional query options (repo for DI)
  */
 export function queryReady(
   filter?: Partial<IssueFilter>,
@@ -217,7 +217,7 @@ export function queryReady(
   boardTag?: string,
   options?: BeadsQueryOptions,
 ): Issue[] {
-  const vault = options?.vault
+  const repo = options?.repo
   // Build query for open tasks
   let query = "status:todo"
 
@@ -239,11 +239,11 @@ export function queryReady(
   }
 
   // Don't filter by type='task' - issues can be file nodes with task_status
-  if (!vault) {
-    return [] // Cannot query without vault
+  if (!repo) {
+    return [] // Cannot query without repo
   }
-  const nodes = vault.query(query)
-  let issues = nodes.map((n) => nodeToIssue(n, { vault }))
+  const nodes = repo.query(query)
+  let issues = nodes.map((n) => nodeToIssue(n, { repo }))
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {
@@ -266,9 +266,9 @@ export function queryReady(
 /**
  * Query issues with filters
  * @param filter - Optional filters for status, type, assignee, priority, blocked
- * @param scopePath - Optional path to scope results to (e.g., "/vault/Projects")
+ * @param scopePath - Optional path to scope results to (e.g., "/repo/Projects")
  * @param boardTag - Optional board tag to filter by (e.g., "issues" for @issues)
- * @param options - Optional query options (vault for DI)
+ * @param options - Optional query options (repo for DI)
  */
 export function queryIssues(
   filter?: IssueFilter,
@@ -276,7 +276,7 @@ export function queryIssues(
   boardTag?: string,
   options?: BeadsQueryOptions,
 ): Issue[] {
-  const vault = options?.vault
+  const repo = options?.repo
   let query = ""
 
   // Add board tag filter if provided (tasks tagged with @board)
@@ -303,11 +303,11 @@ export function queryIssues(
   }
 
   // Don't filter by type='task' - issues can be file nodes with task_status
-  if (!vault) {
-    return [] // Cannot query without vault
+  if (!repo) {
+    return [] // Cannot query without repo
   }
-  const nodes = vault.query(query.trim() || "*")
-  let issues = nodes.map((n) => nodeToIssue(n, { vault }))
+  const nodes = repo.query(query.trim() || "*")
+  let issues = nodes.map((n) => nodeToIssue(n, { repo }))
 
   // Apply path scope filter after query (since path: syntax not supported)
   if (scopePath) {
@@ -329,19 +329,19 @@ export function queryIssues(
 /**
  * Get a single issue by short ID
  * @param shortId - The short ID to look up
- * @param options - Optional query options (vault for DI)
+ * @param options - Optional query options (repo for DI)
  */
 export function getIssue(
   shortId: string,
   options?: BeadsQueryOptions,
 ): Issue | null {
-  const vault = options?.vault
+  const repo = options?.repo
   // Try to find by short_id in data
   // Don't filter by type='task' - issues can be file nodes with task_status
-  if (!vault) {
-    return null // Cannot query without vault
+  if (!repo) {
+    return null // Cannot query without repo
   }
-  const nodes = vault.query(`@issue`)
+  const nodes = repo.query(`@issue`)
 
   for (const node of nodes) {
     const data = node.data as Record<string, unknown> | undefined
@@ -349,7 +349,7 @@ export function getIssue(
     const derivedShortId = `km-${node.id.slice(-4).toLowerCase()}`
 
     if (nodeShortId === shortId || derivedShortId === shortId) {
-      return nodeToIssue(node, { vault })
+      return nodeToIssue(node, { repo })
     }
   }
 
