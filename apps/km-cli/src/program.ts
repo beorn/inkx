@@ -41,8 +41,6 @@ import { screenshotCommand } from "./commands/screenshot.ts"
 let resolvedRootPath: string | undefined
 // Track whether root was explicitly set (vs falling back to cwd)
 let rootExplicitlySet = false
-// Detected repo mode (memory if no .km/, disk if .km/ exists)
-let detectedRepoMode: "memory" | "disk" | undefined
 
 /**
  * Get the resolved root path (for use by commands that need it)
@@ -56,14 +54,6 @@ export function getRootPath(): string | undefined {
  */
 export function wasRootExplicit(): boolean {
   return rootExplicitlySet
-}
-
-/**
- * Get the detected repo mode (memory or disk)
- * Set in preAction based on presence of .km/ directory
- */
-export function getRepoMode(): "memory" | "disk" | undefined {
-  return detectedRepoMode
 }
 
 /**

@@ -6,14 +6,9 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import {
-  resolvePathArg,
-  createRepo,
-  runGenerator,
-  type Repo,
-  type Link,
-} from "@km/storage"
+import { resolvePathArg, type Repo, type Link } from "@km/storage"
 import { getRootPath } from "../program.ts"
+import { loadRepo } from "../load-repo.ts"
 import type { KNode } from "@km/core"
 import { formatStatus, formatNodeBrief } from "@km/tui"
 
@@ -24,12 +19,10 @@ export const showCommand = new Command("show")
   .option("-t, --tree", "Show full subtree")
   .option("-l, --links", "Show links (outgoing and backlinks)")
   .option("--json", "Output as JSON")
-  .action((id, options) => {
+  .action(async (id, options) => {
     // Resolve path argument - may initialize store with detected repo root
     const resolved = resolvePathArg(id, getRootPath())
-    using repo = runGenerator(
-      createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolved.repoRoot)
 
     // Directory paths don't resolve to a specific node
     if (!resolved.nodeRef) {

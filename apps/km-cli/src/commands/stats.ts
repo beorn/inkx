@@ -11,15 +11,14 @@
  */
 
 import { Command } from "commander"
-import { runGenerator, createRepo } from "@km/storage"
+import { loadRepo } from "../load-repo.ts"
 
 export const statsCommand = new Command("stats")
   .description("Show repo statistics (domain object example)")
   .argument("[path]", "Path to repo (default: cwd)")
-  .action((path) => {
+  .action(async (path) => {
     // Use 'using' for automatic cleanup when scope exits
-    // runGenerator consumes the generator without progress display
-    using repo = runGenerator(createRepo(path, { loadFiles: true }))
+    using repo = await loadRepo(path ?? process.cwd())
 
     // All data access through the repo object
     const tasks = repo.getAllTasks()
