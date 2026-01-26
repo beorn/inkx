@@ -19,6 +19,12 @@ export type {
   StoreEvent,
 } from "./data-store.ts"
 
+// FileTree interface and factories (simple file I/O abstraction)
+// See: docs/adr/002-domain-objects-refactor.md
+export { createDiskFileTree, createMemFileTree } from "./file-tree.ts"
+
+export type { FileTree } from "./file-tree.ts"
+
 // Database operations (db-accepting functions for internal use)
 // All application code should use Vault domain object (createVault) instead
 export {
@@ -289,6 +295,18 @@ export type {
 export { loadConfigObject } from "./config-object.ts"
 
 export type { Config } from "./config-object.ts"
+
+// Repo domain object (composed: DataStore + FileTree + Config)
+// See: docs/adr/002-domain-objects-refactor.md
+export { createRepo, createBareRepo, createTestRepo } from "./repo.ts"
+
+export type {
+  Repo,
+  CreateRepoOptions,
+  CreateBareRepoOptions,
+  SyncResult as RepoSyncResult,
+  SyncConflict,
+} from "./repo.ts"
 
 // Testing utilities
 export {

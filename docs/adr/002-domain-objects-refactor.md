@@ -653,3 +653,43 @@ bun km view /tmp/repo   # TUI works
 ## Related
 
 - [ADR-001: TUI Architecture](./001-tui-architecture.md)
+
+---
+
+## Implementation Status
+
+### Completed
+
+- **Phase 2: DataStore** (pre-existing) — `data-store.ts` with `createMapDataStore()`, `createMemDataStore()`, `createDBDataStore()`
+- **Phase 3: FileTree** — `file-tree.ts` with `createDiskFileTree()`, `createMemFileTree()` (58 tests)
+- **Phase 4: Repo** — `repo.ts` with `createRepo()`, `createBareRepo()`, `createTestRepo()` (25 tests)
+
+### In Progress
+
+- **Phase 1: Singleton Removal** — `getDb()`, `setDb()`, `isMemoryMode()` still used in 50+ places
+- **Vault → Repo Migration** — Current `Vault` (vault.ts) coexists with new `Repo` (repo.ts)
+
+### Migration Path
+
+The new `Repo` interface aligns with ADR-002's composition pattern:
+
+```typescript
+// New pattern (ADR-002 compliant)
+using repo = createRepo("/path/to/vault")
+const tasks = repo.data.getAllNodes().filter(n => n.type === "task")
+
+// Bare repo for daemon/API (no files)
+using repo = createBareRepo(dataStore)
+
+// Fast testing (in-memory, no files)
+using repo = createTestRepo()
+```
+
+Existing `Vault` (createVault) remains for backwards compatibility during migration. The key differences:
+
+| Aspect | Vault (legacy) | Repo (ADR-002) |
+|--------|----------------|----------------|
+| Data access | `vault.getNode()` | `repo.data.getNode()` |
+| File access | N/A | `repo.files?.read()` |
+| Composition | Monolithic | DataStore + FileTree + Config |
+| Testing | Requires full load | `createTestRepo()` instant |
