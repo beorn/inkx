@@ -182,7 +182,7 @@ class KmDaemon extends EventEmitter {
     socket.on("data", (data) => {
       void (async () => {
         try {
-          const msg: DaemonMessage = JSON.parse(data.toString())
+          const msg = JSON.parse(data.toString()) as DaemonMessage
           const response = await this.handleMessage(msg, socket)
           socket.write(JSON.stringify(response) + "\n")
         } catch (error) {
@@ -367,7 +367,7 @@ async function sendToDaemon(
       // Try to parse complete response
       if (data.includes("\n")) {
         try {
-          const response: DaemonResponse = JSON.parse(data.trim())
+          const response = JSON.parse(data.trim()) as DaemonResponse
           socket.end()
           resolve(response)
         } catch {

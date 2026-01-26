@@ -19,13 +19,13 @@ import { join } from "path"
 import type { Database } from "bun:sqlite"
 import { getRootPath } from "../program.ts"
 import {
-  createVault,
+  createRepo,
   runGenerator,
   getDb,
   getChildren,
   resolveNode,
   resolvePathArg,
-  type Vault,
+  type Repo,
 } from "@km/storage"
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
@@ -219,7 +219,7 @@ function getNodeAtCursor(state: BoardState): TNode | null {
  */
 function createMutationHandler(
   db: Database,
-  vault: Vault,
+  repo: Repo,
   rootId: string | null,
   rootPath: string,
 ): MutationHandler {
@@ -232,8 +232,8 @@ function createMutationHandler(
     try {
       switch (command.type) {
         case "SET_STATUS": {
-          // Use vault's updateNode which writes to filesystem synchronously
-          vault.updateNode(currentNode.id, { task_status: command.status })
+          // Use repo's updateNode which writes to filesystem synchronously
+          repo.updateNode(currentNode.id, { task_status: command.status })
           break
         }
         case "DELETE": {
@@ -310,8 +310,8 @@ export const shCommand = new Command("sh")
     // Resolve the root argument - handles directory paths, file paths, and node IDs
     const resolved = resolvePathArg(root, getRootPath())
 
-    // Create vault domain object (auto-closes via `using`)
-    using vault = runGenerator(createVault(resolved.vaultRoot))
+    // Create repo domain object (auto-closes via `using`)
+    using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
 
     // Get database instance (TODO: use vault.rawQuery() instead)
     const db = getDb()
@@ -373,10 +373,10 @@ export const shCommand = new Command("sh")
     }
 
     // Create initial state
-    const initialState = createBoardState(nodes, resolvedNodeId, vault.path)
+    const initialState = createBoardState(nodes, resolvedNodeId, repo.path)
 
     // Create mutation handler for storage operations
-    const onMutation = createMutationHandler(db, vault, resolvedNodeId, vault.path)
+    const onMutation = createMutationHandler(db, repo, resolvedNodeId, repo.path)
 
     // Output function
     const output = (event: OutputEvent | string) => {

@@ -16,13 +16,13 @@ import {
 } from "../src/render.ts"
 import { createCardState } from "./fixtures/board-fixtures.ts"
 import type { CardState } from "../src/types.ts"
-import type { Vault } from "@km/storage"
+import type { Repo } from "@km/storage"
 
-// Minimal mock vault for pure rendering tests - only needs getChildren for display name
-function createMockVault(): Vault {
+// Minimal mock repo for pure rendering tests - only needs getChildren for display name
+function createMockRepo(): Repo {
   return {
     getChildren: () => [],
-  } as unknown as Vault
+  } as unknown as Repo
 }
 
 describe("Board Pure Rendering", () => {
@@ -61,7 +61,7 @@ describe("Board Pure Rendering", () => {
   })
 
   test("renderCard includes content", () => {
-    const vault = createMockVault()
+    const vault = createMockRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -83,7 +83,7 @@ describe("Board Pure Rendering", () => {
   })
 
   test("renderCard shows children when not folded", () => {
-    const vault = createMockVault()
+    const vault = createMockRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -118,7 +118,7 @@ describe("Board Pure Rendering", () => {
   })
 
   test("renderCard shows item count when folded", () => {
-    const vault = createMockVault()
+    const vault = createMockRepo()
     const cardState: CardState = {
       node: {
         id: "test-card",
@@ -166,7 +166,7 @@ describe("Board Pure Rendering", () => {
   })
 
   test("renderCard using fixture helper", () => {
-    const vault = createMockVault()
+    const vault = createMockRepo()
     // Demonstrate using the createCardState fixture
     const cardState = createCardState({
       content: "Fixture Card",

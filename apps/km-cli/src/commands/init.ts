@@ -202,13 +202,13 @@ export const initCommand = new Command("init")
 
     // Sync by default (unless --no-sync)
     if (options.sync !== false) {
-      // Initialize vault to set up database
-      const { createVault, runGenerator } = await import("@km/storage")
-      using vault = runGenerator(createVault(targetDir))
+      // Initialize repo to set up database
+      const { createRepo, runGenerator } = await import("@km/storage")
+      using repo = runGenerator(createRepo(targetDir, { loadFiles: true }))
 
-      // Create SyncManager with the database from vault
+      // Create SyncManager with the database from repo
       const manager = new SyncManager({
-        db: vault.database,
+        db: repo.database,
         vaultPath: targetDir,
         debounceFs: 0,
         debounceApply: 0,

@@ -21,8 +21,8 @@ import createDebug from "debug"
 const debug = createDebug("km:board")
 import type { TUIBoardState, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
-import { useVault, VaultProvider } from "../vault-context.tsx"
-import type { Vault } from "@km/storage"
+import { useRepo, RepoProvider } from "../vault-context.tsx"
+import type { Repo } from "@km/storage"
 import { DetailPane } from "./DetailPane.tsx"
 import { ProjectPicker } from "./ProjectPicker.tsx"
 import { HelpOverlay } from "./HelpOverlay.tsx"
@@ -114,7 +114,7 @@ export function BoardCore({
   dispatch,
   dialogHandlers,
 }: BoardCoreProps): React.ReactElement {
-  const vault = useVault()
+  const vault = useRepo()
   const termWidth = dimensions.columns
   const termHeight = dimensions.rows
 
@@ -426,7 +426,7 @@ export function Board({
   layoutRegistry: injectedRegistry,
   reducer = uiReducer,
 }: BoardProps) {
-  const vault = useVault()
+  const vault = useRepo()
 
   // UI state managed by reducer (enables extracting input handlers)
   const [ui, dispatch] = useReducer(
@@ -694,7 +694,7 @@ export function BoardApp({
 // =============================================================================
 
 function countVisibleDescendants(
-  vault: Vault,
+  vault: Repo,
   node: KNode,
   depth: number,
   maxDepth: number,
@@ -752,18 +752,18 @@ function restoreTerminal(): void {
 export async function renderInkxBoard(
   state: TUIBoardState,
   initialViewMode?: ViewMode,
-  vault?: Vault,
+  repo?: Repo,
 ): Promise<void> {
   debug("renderInkxBoard start")
 
-  if (!vault) {
-    throw new Error("renderInkxBoard requires a vault")
+  if (!repo) {
+    throw new Error("renderInkxBoard requires a repo")
   }
 
   const app = (
-    <VaultProvider vault={vault}>
+    <RepoProvider repo={repo}>
       <BoardApp initialState={state} initialViewMode={initialViewMode} />
-    </VaultProvider>
+    </RepoProvider>
   )
 
   // Register error handlers to clean up terminal on crash

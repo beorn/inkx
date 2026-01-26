@@ -8,7 +8,7 @@ import { EventEmitter } from "events"
 import chalk from "chalk"
 import createDebug from "debug"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
-import type { Vault } from "./vault-context.tsx"
+import type { Repo } from "./vault-context.tsx"
 import { renderBoardStatic } from "./render.ts"
 import { renderInkxBoard } from "./views/index.ts"
 import { setFsSync, SyncManager } from "@km/storage"
@@ -26,9 +26,9 @@ tuiEvents.setMaxListeners(50)
 /**
  * Run the board in static (non-interactive) mode
  */
-export function runBoardStatic(vault: Vault, state: TUIBoardState): void {
+export function runBoardStatic(repo: Repo, state: TUIBoardState): void {
   const width = process.stdout.columns || 80
-  console.log(renderBoardStatic(vault, state, width))
+  console.log(renderBoardStatic(repo, state, width))
 }
 
 /**
@@ -53,13 +53,13 @@ export async function runBoard(
 
   // Non-interactive mode: just print and exit
   const interactive = options?.interactive !== false
-  const vault = options?.vault
+  const repo = options?.repo
   if (!interactive) {
-    if (!vault) {
-      console.error(chalk.red("Vault required for static mode"))
+    if (!repo) {
+      console.error(chalk.red("Repo required for static mode"))
       process.exit(1)
     }
-    runBoardStatic(vault, state)
+    runBoardStatic(repo, state)
     return
   }
 
@@ -69,15 +69,15 @@ export async function runBoard(
   const forceTTY = process.env.FORCE_TTY === "1"
   if (!forceTTY && (!stdin.isTTY || !stdout.isTTY)) {
     console.log(chalk.yellow("Not running in a TTY, using static mode"))
-    if (!vault) {
-      console.error(chalk.red("Vault required for static mode"))
+    if (!repo) {
+      console.error(chalk.red("Repo required for static mode"))
       process.exit(1)
     }
-    runBoardStatic(vault, state)
+    runBoardStatic(repo, state)
     return
   }
 
-  // Initialize filesystem sync if we have a vault path
+  // Initialize filesystem sync if we have a repo path
   // Watch can be disabled via: --no-watch CLI flag or config tui.watch=false
   // Note: Disabling watch still allows TUI edits to write to filesystem,
   // it just disables watching for external file changes
@@ -86,8 +86,8 @@ export async function runBoard(
   let syncManager: SyncManager | null = null
 
   if (state.rootPath) {
-    if (!options?.vault) {
-      throw new Error("Vault required for SyncManager - cannot sync without database")
+    if (!options?.repo) {
+      throw new Error("Repo required for SyncManager - cannot sync without database")
     }
     debug("Creating SyncManager", {
       rootPath: state.rootPath,
@@ -95,7 +95,7 @@ export async function runBoard(
       worker: useWorker,
     })
     syncManager = new SyncManager({
-      db: options.vault.database,
+      db: options.repo.database,
       vaultPath: state.rootPath,
       debounceFs: 2000, // Debounce external changes (2s)
       debounceApply: 100, // Small debounce for batching TUI changes
@@ -131,7 +131,7 @@ export async function runBoard(
     // Stop CLI spinner - TUI is about to take over the screen
     options?.spinner?.stop()
     debug("Starting interactive TUI")
-    await renderInkxBoard(state, options?.initialViewMode, options?.vault)
+    await renderInkxBoard(state, options?.initialViewMode, options?.repo)
   } finally {
     // Clean up sync manager
     if (syncManager) {

@@ -6,7 +6,7 @@
  */
 import React, { useCallback, useMemo, useRef } from "react"
 import createDebug from "debug"
-import { useVault } from "../vault-context.tsx"
+import { useRepo } from "../vault-context.tsx"
 import { Box, Text, useScreenRectCallback } from "inkx"
 import { styledUnderline } from "@beorn/chalkx"
 import type { CardState, ColumnState } from "../types.ts"
@@ -444,7 +444,7 @@ export const Column = React.memo(function Column({
   height,
   selectionLevel,
 }: ColumnProps): React.ReactElement {
-  const vault = useVault()
+  const vault = useRepo()
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = renderPlain(getNodeDisplayName(vault, column.node))
   const typeSuffix = getCollapsedTypeSuffix(vault, column.node)

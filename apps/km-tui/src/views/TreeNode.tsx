@@ -8,7 +8,7 @@
 import React, { useCallback, useMemo } from "react"
 import { Box, Text, useContentRectCallback } from "inkx"
 import type { KNode } from "@km/core"
-import { useVault } from "../vault-context.tsx"
+import { useRepo } from "../vault-context.tsx"
 import {
   getNodeDisplayName,
   getParentContext as getParentContextFromState,
@@ -160,7 +160,7 @@ function TreeNodeImpl({
     ? new Set([rootBoardId])
     : new Set<string>()
 
-  const vault = useVault()
+  const vault = useRepo()
   const isOneliner = variant === "oneliner"
   // Use provided children or fetch from vault
   const resolvedGetChildren = getChildrenProp ?? vault.getChildren.bind(vault)

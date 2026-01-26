@@ -2,16 +2,16 @@
  * Stats Command - Example of Domain Object Pattern
  *
  * This command demonstrates the recommended way to use the storage layer
- * with domain objects (createVault) instead of singletons.
+ * with domain objects (createRepo) instead of singletons.
  *
  * Key patterns:
- * 1. Use `createVault()` generator for loading with progress
- * 2. Use `using vault = ...` for automatic cleanup
- * 3. Access data through vault methods, not global functions
+ * 1. Use `createRepo()` generator for loading with progress
+ * 2. Use `using repo = ...` for automatic cleanup
+ * 3. Access data through repo methods, not global functions
  */
 
 import { Command } from "commander"
-import { runGenerator, createVault } from "@km/storage"
+import { runGenerator, createRepo } from "@km/storage"
 
 export const statsCommand = new Command("stats")
   .description("Show vault statistics (domain object example)")
@@ -19,24 +19,24 @@ export const statsCommand = new Command("stats")
   .action((path) => {
     // Use 'using' for automatic cleanup when scope exits
     // runGenerator consumes the generator without progress display
-    using vault = runGenerator(createVault(path))
+    using repo = runGenerator(createRepo(path, { loadFiles: true }))
 
-    // All data access through the vault object
-    const tasks = vault.getAllTasks()
+    // All data access through the repo object
+    const tasks = repo.getAllTasks()
     const tasksByStatus = {
-      todo: vault.getTasksByStatus("todo").length,
-      wip: vault.getTasksByStatus("wip").length,
-      blocked: vault.getTasksByStatus("blocked").length,
-      done: vault.getTasksByStatus("done").length,
-      dropped: vault.getTasksByStatus("dropped").length,
+      todo: repo.getTasksByStatus("todo").length,
+      wip: repo.getTasksByStatus("wip").length,
+      blocked: repo.getTasksByStatus("blocked").length,
+      done: repo.getTasksByStatus("done").length,
+      dropped: repo.getTasksByStatus("dropped").length,
     }
 
-    console.log(`Vault: ${vault.path}`)
-    console.log(`Mode: ${vault.mode}`)
+    console.log(`Repo: ${repo.path}`)
+    console.log(`Mode: ${repo.mode}`)
     console.log(`\nStats:`)
-    console.log(`  Nodes: ${vault.stats.nodeCount}`)
-    console.log(`  Links: ${vault.stats.linkCount}`)
-    console.log(`  Load time: ${vault.stats.duration}ms`)
+    console.log(`  Nodes: ${repo.stats.nodeCount}`)
+    console.log(`  Links: ${repo.stats.linkCount}`)
+    console.log(`  Load time: ${repo.stats.duration}ms`)
     console.log(`\nTasks: ${tasks.length} total`)
     console.log(`  Todo: ${tasksByStatus.todo}`)
     console.log(`  WIP: ${tasksByStatus.wip}`)
@@ -44,15 +44,15 @@ export const statsCommand = new Command("stats")
     console.log(`  Done: ${tasksByStatus.done}`)
     console.log(`  Dropped: ${tasksByStatus.dropped}`)
 
-    if (vault.loadErrors.length > 0) {
-      console.log(`\nWarnings: ${vault.loadErrors.length}`)
-      for (const err of vault.loadErrors.slice(0, 5)) {
+    if (repo.loadErrors.length > 0) {
+      console.log(`\nWarnings: ${repo.loadErrors.length}`)
+      for (const err of repo.loadErrors.slice(0, 5)) {
         console.log(`  [${err.phase}] ${err.message}`)
       }
-      if (vault.loadErrors.length > 5) {
-        console.log(`  ... and ${vault.loadErrors.length - 5} more`)
+      if (repo.loadErrors.length > 5) {
+        console.log(`  ... and ${repo.loadErrors.length - 5} more`)
       }
     }
 
-    // vault.close() called automatically via Symbol.dispose
+    // repo.close() called automatically via Symbol.dispose
   })

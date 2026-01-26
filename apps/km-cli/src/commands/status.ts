@@ -12,12 +12,13 @@
 import { Command } from "commander"
 import chalk from "chalk"
 import {
-  resolveTask,
+  resolvePathArg,
   runGenerator,
-  createVault,
+  createRepo,
   getNextOccurrence,
   naturalToRRule,
 } from "@km/storage"
+import { getRootPath } from "../program.ts"
 import type { TaskStatus, TaskMark } from "@km/core"
 
 /**
@@ -44,8 +45,9 @@ export const statusCommand = new Command("status")
   .argument("[status]", "New status: todo, wip, blocked, done, dropped")
   .option("--json", "Output as JSON")
   .action((id, newStatus, options) => {
-    using vault = runGenerator(createVault())
-    const node = resolveTask(id)
+    const resolved = resolvePathArg(process.cwd(), getRootPath())
+    using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+    const node = repo.resolveNode(id, { taskOnly: true })
 
     if (!node) {
       console.error(chalk.red(`Task not found: ${id}`))
@@ -106,7 +108,7 @@ export const statusCommand = new Command("status")
 
         if (nextDue) {
           // Clone the task with new due date
-          const newId = vault.cloneTask(node.id, {
+          const newId = repo.cloneTask(node.id, {
             due_date: nextDue,
             task_status: "todo",
             task_mark: " ",
@@ -135,7 +137,7 @@ export const statusCommand = new Command("status")
 
     const newMark = getMarkForStatus(newStatus as TaskStatus)
 
-    vault.updateNode(node.id, {
+    repo.updateNode(node.id, {
       task_status: newStatus as TaskStatus,
       task_mark: newMark,
     })

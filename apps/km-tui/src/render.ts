@@ -14,7 +14,7 @@
 
 import chalk from "chalk"
 import type { TaskStatus } from "@km/core"
-import type { Vault } from "./vault-context.tsx"
+import type { Repo } from "./vault-context.tsx"
 import type { TUIBoardState, CardState, RenderOptions } from "./types.ts"
 import { getNodeDisplayName } from "./state.ts"
 import {
@@ -38,7 +38,7 @@ export function defaultRenderOptions(): RenderOptions {
  * Render the entire board to a string
  */
 export function renderBoard(
-  vault: Vault,
+  repo: Repo,
   state: TUIBoardState,
   opts: RenderOptions,
 ): string {
@@ -51,8 +51,8 @@ export function renderBoard(
   }
 
   // Get root node for title
-  const root = state.rootId ? vault.getNode(state.rootId) : null
-  const title = root ? getNodeDisplayName(vault, root) : "Board"
+  const root = state.rootId ? repo.getNode(state.rootId) : null
+  const title = root ? getNodeDisplayName(repo, root) : "Board"
 
   // Header
   lines.push(chalk.bold.inverse(` ${title} `.padEnd(width)))
@@ -70,7 +70,7 @@ export function renderBoard(
 
   // Column headers
   const headers = state.columns.map((col, i) => {
-    const name = getNodeDisplayName(vault, col.node)
+    const name = getNodeDisplayName(repo, col.node)
     const count = col.cards.length
     const header = ` ${name} (${count}) `
     const isSelected = i === state.colIndex
@@ -95,7 +95,7 @@ export function renderBoard(
       const isFolded = state.foldedCards.has(card.node.id)
 
       return renderCard(
-        vault,
+        repo,
         card,
         colWidth - 1,
         isCurrentCard,
@@ -143,7 +143,7 @@ export function renderBoard(
  * Format: "○ Content" with 2-space indent for children (greyed out)
  */
 export function renderCard(
-  vault: Vault,
+  repo: Repo,
   card: CardState,
   width: number,
   isCurrent: boolean,
@@ -155,7 +155,7 @@ export function renderCard(
 
   // Status icon and content - compact format: "○ Content"
   const statusIcon = renderStatusIcon(node.task_status)
-  const rawContent = (node.content || getNodeDisplayName(vault, node)).slice(
+  const rawContent = (node.content || getNodeDisplayName(repo, node)).slice(
     0,
     width - 3,
   )
@@ -284,7 +284,7 @@ ${chalk.dim("Press any key to close")}
  * Displays columns vertically, one after another
  */
 export function renderBoardStatic(
-  vault: Vault,
+  repo: Repo,
   state: TUIBoardState,
   width: number,
 ): string {
@@ -297,7 +297,7 @@ export function renderBoardStatic(
 
   // Show each column with its cards
   for (const col of columns) {
-    const name = getNodeDisplayName(vault, col.node)
+    const name = getNodeDisplayName(repo, col.node)
     const count = col.cards.length
 
     // Column header
@@ -313,7 +313,7 @@ export function renderBoardStatic(
       for (const card of visibleCards) {
         const statusIcon = renderStatusIcon(card.node.task_status)
         const rawContent =
-          card.node.content || getNodeDisplayName(vault, card.node)
+          card.node.content || getNodeDisplayName(repo, card.node)
         const firstLine = rawContent.split("\n")[0] ?? rawContent
         const truncContent = firstLine.slice(0, width - 4)
         // Apply markdown styling, then dim+strikethrough for done/dropped

@@ -6,12 +6,7 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import {
-  createVault,
-  runGenerator,
-  resolvePathArg,
-  emitNodeUpdated,
-} from "@km/storage"
+import { createRepo, runGenerator, resolvePathArg } from "@km/storage"
 import { getMarkForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
@@ -27,8 +22,8 @@ export function createStatusCommand(): Command {
     .option("--json", "Output as JSON")
     .action((id, newStatus, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
-      using vault = runGenerator(createVault(resolved.vaultRoot))
-      const task = vault.resolveNode(id, { taskOnly: true })
+      using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
+      const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {
         console.error(chalk.red(`No task found with ID prefix: ${id}`))
@@ -75,7 +70,7 @@ export function createStatusCommand(): Command {
 
       const newMark = getMarkForStatus(newStatus as TaskStatus)
 
-      emitNodeUpdated("cli", task.id, {
+      repo.updateNode(task.id, {
         task_status: newStatus as TaskStatus,
         task_mark: newMark,
       })

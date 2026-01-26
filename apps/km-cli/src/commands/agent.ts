@@ -18,7 +18,7 @@ import {
   type Agent,
   type AgentStatus,
 } from "@km/agent"
-import { createVault, runGenerator, resolvePathArg } from "@km/storage"
+import { createRepo, runGenerator, resolvePathArg } from "@km/storage"
 import { getRootPath } from "../program.ts"
 
 export const agentCommand = new Command("agent")
@@ -83,13 +83,13 @@ agentCommand
   .option("--json", "Output as JSON")
   .action((opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using vault = runGenerator(createVault(pathResolved.vaultRoot))
+    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
 
     const filter: { status?: AgentStatus; harness?: string } = {}
     if (opts.status) filter.status = opts.status as AgentStatus
     if (opts.harness) filter.harness = opts.harness
 
-    const agents = queryAgents(vault, filter)
+    const agents = queryAgents(repo, filter)
 
     if (opts.json) {
       console.log(JSON.stringify(agents, null, 2))
@@ -159,8 +159,8 @@ agentCommand
   .description("Stop an agent gracefully")
   .action((id) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using vault = runGenerator(createVault(pathResolved.vaultRoot))
-    const agent = getAgent(vault, id)
+    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
+    const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
       process.exitCode = 1
@@ -182,8 +182,8 @@ agentCommand
   .description("Force kill an agent")
   .action((id) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using vault = runGenerator(createVault(pathResolved.vaultRoot))
-    const agent = getAgent(vault, id)
+    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
+    const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
       process.exitCode = 1
@@ -211,8 +211,8 @@ agentCommand
   .option("--json", "Output as JSON")
   .action((id, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using vault = runGenerator(createVault(pathResolved.vaultRoot))
-    const agent = getAgent(vault, id)
+    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
+    const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
       process.exitCode = 1
@@ -319,8 +319,8 @@ agentCommand
   .option("--dry-run", "Show plan without executing")
   .action((id, prompt, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using vault = runGenerator(createVault(pathResolved.vaultRoot))
-    const agent = getAgent(vault, id)
+    using repo = runGenerator(createRepo(pathResolved.vaultRoot, { loadFiles: true }))
+    const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
       process.exitCode = 1
@@ -330,9 +330,7 @@ agentCommand
     // Resolve target task if specified
     let targetTask: { id: string; name?: string; path?: string } | null = null
     if (opts.target) {
-      const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-      using vault = runGenerator(createVault(pathResolved.vaultRoot))
-      const resolved = vault.resolveNode(opts.target, { taskOnly: true })
+      const resolved = repo.resolveNode(opts.target, { taskOnly: true })
       if (!resolved) {
         console.error(chalk.red(`Could not resolve target: ${opts.target}`))
         console.error(chalk.dim("Target can be a file path, node ID, or @ref"))

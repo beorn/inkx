@@ -5,7 +5,7 @@
  */
 
 import chalk from "chalk"
-import { createVault, runGenerator, resolvePathArg } from "@km/storage"
+import { createRepo, runGenerator, resolvePathArg, type Repo } from "@km/storage"
 import { collapseAncestorsWithTypes } from "@km/tree"
 import type { KNode, TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
@@ -42,7 +42,7 @@ export function listTasks(
   options: ListTasksOptions,
 ): void {
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using vault = runGenerator(createVault(resolved.vaultRoot))
+  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
 
   let tasks: KNode[]
   let rootNode: KNode | null = null
@@ -61,26 +61,26 @@ export function listTasks(
     if (options.status) {
       queryStr = `status:${options.status} ${queryStr}`
     }
-    tasks = vault.query(queryStr)
+    tasks = repo.query(queryStr)
   } else if (pathOrId) {
     // Try to find an exact node match first
-    rootNode = findNodeByPathOrId(vault, pathOrId)
+    rootNode = findNodeByPathOrId(repo, pathOrId)
 
     if (rootNode) {
       // If the root IS a task, show its details
       if (rootNode.type === "task") {
-        showTaskDetails(vault, rootNode, options)
+        showTaskDetails(repo, rootNode, options)
         return
       }
 
       // Get tasks under this root
-      tasks = getTasksUnderNode(vault, rootNode.id)
+      tasks = getTasksUnderNode(repo, rootNode.id)
     } else {
       // No exact match - treat as path filter (like `bun test <filter>`)
       pathFilter = pathOrId
 
       // Get tasks with status filter via vault
-      const allTasks = vault.getAllTasks().filter((t) => {
+      const allTasks = repo.getAllTasks().filter((t) => {
         if (options.status && t.task_status !== options.status) return false
         if (!options.all && !options.status && t.task_status === "done") {
           return false
@@ -90,7 +90,7 @@ export function listTasks(
 
       // Filter by path match
       tasks = allTasks.filter(
-        (t) => pathFilter && taskPathMatches(vault, t, pathFilter),
+        (t) => pathFilter && taskPathMatches(repo, t, pathFilter),
       )
     }
 
@@ -106,7 +106,7 @@ export function listTasks(
     }
   } else {
     // Global task list via vault
-    tasks = vault.getAllTasks().filter((t) => {
+    tasks = repo.getAllTasks().filter((t) => {
       if (options.status && t.task_status !== options.status) return false
       if (!options.all && !options.status && t.task_status === "done") {
         return false
@@ -127,7 +127,7 @@ export function listTasks(
 
   // Show context header
   if (rootNode) {
-    console.log(chalk.bold(getNodeDisplayName(vault, rootNode)))
+    console.log(chalk.bold(getNodeDisplayName(repo, rootNode)))
     console.log()
   } else if (pathFilter) {
     console.log(chalk.dim(`Filter: ${pathFilter}`))
@@ -137,9 +137,9 @@ export function listTasks(
   // Flat mode: simple single-line display
   if (options.flat) {
     for (const task of tasks) {
-      const rawAncestors = vault.getAncestors(task.id)
+      const rawAncestors = repo.getAncestors(task.id)
       const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
-      const lines = formatTaskWithPath(vault, task, collapsedAncestors, {
+      const lines = formatTaskWithPath(repo, task, collapsedAncestors, {
         verbose: options.verbose,
         flat: true,
         showId: options.id,
@@ -154,7 +154,7 @@ export function listTasks(
   }
 
   // Tree mode: group tasks by shared paths
-  const tasksWithAncestors = buildTaskTree(vault, tasks)
+  const tasksWithAncestors = buildTaskTree(repo, tasks)
   const sorted = sortByPath(tasksWithAncestors)
 
   let previousAncestorKeys: string[] = []
@@ -187,7 +187,7 @@ export function listTasks(
       const ca = collapsedAncestors[i]
       if (!ca) continue
       const prefix = " ".repeat(fsDepth)
-      console.log(prefix + chalk.dim(formatCollapsedAncestor(vault, ca)))
+      console.log(prefix + chalk.dim(formatCollapsedAncestor(repo, ca)))
       if (ca.node.type === "section") {
         hasSection = true
       } else {
@@ -220,7 +220,7 @@ export function listTasks(
  * Show task details
  */
 export function showTaskDetails(
-  vault: import("@km/storage").Vault,
+  repo: Repo,
   task: KNode,
   options: { json?: boolean },
 ): void {
@@ -247,7 +247,7 @@ export function showTaskDetails(
   )
 
   // Show child tasks if any
-  const children = getTasksUnderNode(vault, task.id)
+  const children = getTasksUnderNode(repo, task.id)
   if (children.length > 0) {
     console.log()
     console.log(chalk.dim(`${children.length} subtask(s):`))

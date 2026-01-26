@@ -15,7 +15,7 @@ import { ulid } from "ulid"
 import {
   queryTasks,
   resolvePathArg,
-  createVault,
+  createRepo,
   runGenerator,
   emitNodeCreated,
 } from "@km/storage"
@@ -31,8 +31,8 @@ export const addCommand = new Command("add")
   .action((target, sources, options) => {
     // Resolve target path argument - may detect vault root
     const resolvedTarget = resolvePathArg(target, getRootPath())
-    using vault = runGenerator(
-      createVault(resolvedTarget.vaultRoot, { searchAncestors: false }),
+    using repo = runGenerator(
+      createRepo(resolvedTarget.vaultRoot, { loadFiles: true }),
     )
 
     if (!resolvedTarget.nodeRef) {
@@ -41,7 +41,7 @@ export const addCommand = new Command("add")
     }
 
     // Resolve target board/container
-    const targetNode = vault.resolveNode(resolvedTarget.nodeRef)
+    const targetNode = repo.resolveNode(resolvedTarget.nodeRef)
     if (!targetNode) {
       console.error(chalk.red(`Target not found: ${target}`))
       console.error(
@@ -59,14 +59,14 @@ export const addCommand = new Command("add")
 
       // Try as node ID/path first
       const nodeRef = resolvedSource.nodeRef || source
-      const node = vault.resolveNode(nodeRef, "task")
+      const node = repo.resolveNode(nodeRef, "task")
       if (node) {
         tasksToAdd.push(node)
         continue
       }
 
       // Try as query
-      const queryResults = queryTasks(source)
+      const queryResults = queryTasks(repo.database, source)
       if (queryResults.length > 0) {
         for (const task of queryResults) {
           // Don't add duplicates
@@ -90,7 +90,7 @@ export const addCommand = new Command("add")
     // Falls back to the first section if no explicit default is set
     let actualTarget = targetNode
     const findDefaultSection = (parentId: string): KNode | undefined => {
-      const children = vault.getChildren(parentId)
+      const children = repo.getChildren(parentId)
       let firstSection: KNode | undefined
       for (const child of children) {
         if (child.type === "section") {

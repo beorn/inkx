@@ -9,7 +9,7 @@
  */
 
 import type { KNode } from "@km/core"
-import type { Vault } from "./vault-context.tsx"
+import type { Repo } from "./vault-context.tsx"
 import { getNodeDisplayName } from "./state.ts"
 import { GTD_BOARD_COLORS, normalizeBoardName, colorize } from "./text/index.ts"
 
@@ -43,7 +43,7 @@ export function getOwnColor(node: KNode): string | undefined {
  * Note: For file nodes, H1 rules are stored in node.data.rules (not node.rules)
  */
 export function getInheritedColor(
-  vault: Vault,
+  repo: Repo,
   node: KNode,
 ): string | undefined {
   // Check node's own color first
@@ -53,7 +53,7 @@ export function getInheritedColor(
   }
 
   // Check ancestors for inherited color
-  const ancestors = vault.getAncestors(node.id)
+  const ancestors = repo.getAncestors(node.id)
   for (const ancestor of ancestors) {
     const ancestorColor = getOwnColor(ancestor)
     if (ancestorColor) {
@@ -68,10 +68,10 @@ export function getInheritedColor(
  * Get the board (column parent) for a link node
  * Returns the first section/file ancestor that represents a board column
  */
-function getBoardForLink(vault: Vault, linkNode: KNode): KNode | null {
+function getBoardForLink(repo: Repo, linkNode: KNode): KNode | null {
   if (!linkNode.parent_id) return null
 
-  const parent = vault.getNode(linkNode.parent_id)
+  const parent = repo.getNode(linkNode.parent_id)
   if (!parent) return null
 
   // The link's parent is typically the board column (a section)
@@ -81,7 +81,7 @@ function getBoardForLink(vault: Vault, linkNode: KNode): KNode | null {
   }
 
   // Otherwise, look up ancestors to find the board
-  const ancestors = vault.getAncestors(linkNode.id)
+  const ancestors = repo.getAncestors(linkNode.id)
   for (const ancestor of ancestors) {
     if (ancestor.type === "section" || ancestor.type === "file") {
       return ancestor
@@ -94,13 +94,13 @@ function getBoardForLink(vault: Vault, linkNode: KNode): KNode | null {
 /**
  * Get board pills for a task node
  *
- * @param vault - Vault instance for querying nodes
+ * @param repo - Repo instance for querying nodes
  * @param taskNode - The task to check for board membership
  * @param excludeBoardIds - Board IDs to exclude (e.g., current view's board)
  * @returns Array of board pills with name and color
  */
 export function getBoardPills(
-  vault: Vault,
+  repo: Repo,
   taskNode: KNode,
   excludeBoardIds: Set<string> = new Set(),
 ): BoardPill[] {
@@ -108,14 +108,14 @@ export function getBoardPills(
   if (taskNode.task_status == null) return []
 
   // Find all links pointing to this task
-  const links = vault.getLinksTo(taskNode.id)
+  const links = repo.getLinksTo(taskNode.id)
   if (links.length === 0) return []
 
   const pills: BoardPill[] = []
   const seenBoards = new Set<string>()
 
   for (const link of links) {
-    const board = getBoardForLink(vault, link)
+    const board = getBoardForLink(repo, link)
     if (!board) continue
 
     // Skip if this board is excluded (we're viewing it)
@@ -125,10 +125,10 @@ export function getBoardPills(
     if (seenBoards.has(board.id)) continue
     seenBoards.add(board.id)
 
-    const boardName = getNodeDisplayName(vault, board)
+    const boardName = getNodeDisplayName(repo, board)
 
     // Get color: custom rules > inherited > GTD default
-    const customColor = getInheritedColor(vault, board)
+    const customColor = getInheritedColor(repo, board)
     const gtdColor = GTD_BOARD_COLORS[normalizeBoardName(boardName)]
     const color = customColor || gtdColor || "white"
 

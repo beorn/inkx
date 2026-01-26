@@ -1,13 +1,15 @@
 /**
- * FakeVault - Test Double for Vault
+ * FakeVault - Test Double for Repo
  *
- * In-memory Vault implementation for unit tests that don't need
+ * In-memory Repo implementation for unit tests that don't need
  * real SQLite or file parsing. Uses canned data.
  */
 
 import type { KNode, TaskStatus } from "@km/core"
-import type { Vault, VaultStats, LoadError } from "../vault.ts"
+import type { Repo, RepoStats } from "../repo.ts"
+import type { LoadError } from "../vault.ts"
 import type { Link } from "../db.ts"
+import type { StepYield } from "../vault-loader.ts"
 
 /**
  * Options for createFakeVault
@@ -26,13 +28,13 @@ export interface FakeVaultOptions {
   loadErrors?: LoadError[]
 
   /** Stats to report */
-  stats?: Partial<VaultStats>
+  stats?: Partial<RepoStats>
 }
 
 /**
- * Extended Vault interface with test helpers
+ * Extended Repo interface with test helpers
  */
-export interface FakeVault extends Vault {
+export interface FakeVault extends Repo {
   /** Get all nodes (for test assertions) */
   getAllNodes(): KNode[]
 
@@ -67,7 +69,7 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
   const initialNodes = options.nodes ?? []
   const initialLinks = options.links ?? []
   const loadErrors = options.loadErrors ?? []
-  const stats: VaultStats = {
+  const stats: RepoStats = {
     nodeCount: initialNodes.length,
     linkCount: initialLinks.length,
     duration: 0,
@@ -109,6 +111,29 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       // Tests that need database access should use a real vault
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return null as any
+    },
+
+    // Repo-specific properties (stubs for FakeVault)
+    get data() {
+      // FakeVault doesn't have a real DataStore
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return null as any
+    },
+
+    get files() {
+      // FakeVault doesn't have files
+      return null
+    },
+
+    get config() {
+      // FakeVault returns minimal config
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return {} as any
+    },
+
+    async sync() {
+      // FakeVault is in-memory, sync is a no-op
+      return { fromFiles: 0, fromData: 0, conflicts: [] }
     },
 
     // --- Query operations ---
@@ -228,6 +253,26 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       return links.filter((l) => l.target_id === nodeId)
     },
 
+    getOutgoingLinks(sourceId) {
+      ensureNotClosed()
+      return links.filter((l) => l.source_id === sourceId)
+    },
+
+    resolveNode(query, _typeOrOptions) {
+      ensureNotClosed()
+      // Simple implementation: exact ID match or content match
+      const byId = nodes.get(query)
+      if (byId) return byId
+
+      // Try content match
+      for (const node of nodes.values()) {
+        if (node.content?.includes(query) || node.title?.includes(query)) {
+          return node
+        }
+      }
+      return null
+    },
+
     // --- Mutation operations ---
 
     updateNode(id, changes) {
@@ -262,7 +307,9 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       const position = siblings.length
       const now = Date.now()
 
-      const node: KNode = {
+      // nodeData.type is required by the interface signature
+      const node = {
+        ...nodeData,
         id,
         parent_id: parentId,
         parent_idx: position,
@@ -273,8 +320,7 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
         version: "fake-0",
         task_status:
           nodeData.type === "task" ? ("todo" as TaskStatus) : undefined,
-        ...nodeData,
-      }
+      } as KNode
 
       nodes.set(id, node)
       return id
@@ -343,9 +389,10 @@ export function createFakeVault(options: FakeVaultOptions = {}): FakeVault {
       throw new Error("FakeVault does not support watching")
     },
 
-    refresh() {
+    *refresh(): Generator<StepYield, void, unknown> {
       ensureNotClosed()
-      // No-op for fake vault
+      // No-op for fake vault - just yield a progress update
+      yield { current: 1, total: 1 }
     },
 
     close() {

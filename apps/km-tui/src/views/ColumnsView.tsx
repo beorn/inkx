@@ -8,7 +8,7 @@
  * Implements React-level virtualization for large card lists.
  */
 import React, { useMemo, useRef } from "react"
-import { useVault } from "../vault-context.tsx"
+import { useRepo } from "../vault-context.tsx"
 import { Box, Text } from "inkx"
 import createDebug from "debug"
 
@@ -255,7 +255,7 @@ const ColumnTree = React.memo(function ColumnTree({
   width,
   height,
 }: ColumnTreeProps): React.ReactElement {
-  const vault = useVault()
+  const vault = useRepo()
   const { inOutlineMode } = useTreeConfig()
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"

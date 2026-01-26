@@ -19,8 +19,16 @@ export {
   makeSelectionKey,
 } from "./views/index.ts"
 
-// Export vault context for wrapping components
-export { VaultProvider, useVault, type Vault } from "./vault-context.tsx"
+// Export repo context for wrapping components
+export {
+  RepoProvider,
+  useRepo,
+  type Repo,
+  // Backward-compatible aliases (deprecated)
+  VaultProvider,
+  useVault,
+  type Vault,
+} from "./vault-context.tsx"
 
 // Export UI reducer utilities
 export { createInitialUIState } from "./ui-reducer.ts"

@@ -16,7 +16,7 @@
 
 import createDebug from "debug"
 import { Database } from "bun:sqlite"
-import { existsSync, mkdirSync } from "fs"
+import { existsSync, mkdirSync, readFileSync } from "fs"
 import { join, dirname, basename } from "path"
 
 import type { KNode, TaskStatus } from "@km/core"
@@ -28,7 +28,12 @@ import type { Config } from "./config-object.ts"
 import { loadConfigObject } from "./config-object.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 import { SCHEMA } from "./schema.ts"
-import type { StepYield } from "./vault-loader.ts"
+import {
+  loadVault,
+  type StepYield,
+  type LoadError,
+  type DeferredFile,
+} from "./vault-loader.ts"
 // Vault-compatible query functions (for proxy methods)
 import {
   getSubtree as dbGetSubtree,
@@ -49,6 +54,18 @@ const debug = createDebug("km:storage:repo")
 // =============================================================================
 // Core Interface
 // =============================================================================
+
+/**
+ * Stats from loading a Repo.
+ */
+export interface RepoStats {
+  /** Number of nodes loaded */
+  nodeCount: number
+  /** Number of links resolved */
+  linkCount: number
+  /** Time to load in milliseconds */
+  duration: number
+}
 
 /**
  * SyncResult from one-shot sync operation.
@@ -109,6 +126,15 @@ export interface Repo extends Disposable {
 
   /** Raw database access (for infrastructure code) */
   readonly database: Database
+
+  /** Errors encountered during file loading (empty if loadFiles was false) */
+  readonly loadErrors: LoadError[]
+
+  /** Loading statistics (zeroed if loadFiles was false) */
+  readonly stats: RepoStats
+
+  /** Files pending deferred parsing (for discoverOnly mode) */
+  readonly deferredFiles: DeferredFile[]
 
   // ===========================================================================
   // Vault-compatible query methods (proxies to data store)
@@ -239,6 +265,32 @@ export interface Repo extends Disposable {
    * Close and release all resources.
    */
   close(): void
+
+  // ===========================================================================
+  // Rebuild helpers
+  // ===========================================================================
+
+  /**
+   * Check if state.db needs rebuild.
+   * Returns true if:
+   * - Disk mode: state.db doesn't exist or has unapplied events
+   * - Memory mode: always returns false (ephemeral, no persistence)
+   *
+   * @throws Error if called on bare repo
+   */
+  needsRebuild(): boolean
+
+  /**
+   * Refresh the repo state.
+   * - Memory mode: re-scan filesystem
+   * - Disk mode: re-apply unapplied events
+   *
+   * This is a generator that yields progress info during refresh.
+   * Use runGenerator() for silent refresh, or iterate for progress.
+   *
+   * @throws Error if called on bare repo
+   */
+  refresh(): Generator<StepYield, void, unknown>
 }
 
 // =============================================================================
@@ -253,6 +305,19 @@ export interface CreateRepoOptions {
   lazy?: boolean
   /** Custom config path */
   configPath?: string
+  /**
+   * Load and parse markdown files into the database.
+   * When true, discovers files, parses markdown, and populates the database.
+   * Default: false (database starts empty, use sync() to populate)
+   */
+  loadFiles?: boolean
+  /** Skip link resolution for faster startup (only when loadFiles is true) */
+  skipLinkResolution?: boolean
+  /**
+   * Discover-only mode for instant render (only when loadFiles is true).
+   * Creates stub nodes without parsing - call parseDeferredAsync() afterward.
+   */
+  discoverOnly?: boolean
 }
 
 /**
@@ -299,41 +364,79 @@ export function* createRepo(
 ): Generator<StepYield, Repo, unknown> {
   debug("createRepo", { rootPath, options })
 
-  // Declare all sub-steps upfront so they appear as pending
-  yield { declare: ["Detecting mode", "Initializing database", "Scanning files"] }
+  // Track loading results
+  let loadErrors: LoadError[] = []
+  let stats: RepoStats = { nodeCount: 0, linkCount: 0, duration: 0 }
+  let deferredFiles: DeferredFile[] = []
 
-  // Step 1: Detect mode
-  yield "Detecting mode"
-  const kmDir = join(rootPath, ".km")
-  const hasKmDir = existsSync(kmDir) && !options.forceMemory
-  const mode = hasKmDir ? "disk" : "memory"
-
-  debug("detected mode: %s (hasKmDir=%s)", mode, hasKmDir)
-
-  // Step 2: Initialize database
-  yield "Initializing database"
   let dataStore: DataStore & HasDatabase
   let db: Database
+  let mode: "memory" | "disk"
 
-  if (mode === "disk") {
-    // Ensure .km directory exists
-    if (!existsSync(kmDir)) {
-      mkdirSync(kmDir, { recursive: true })
+  if (options.loadFiles) {
+    // =========================================================================
+    // File loading mode - use loadVault to discover, parse, and populate
+    // =========================================================================
+    const loadResult = yield* loadVault(rootPath, {
+      searchAncestors: false, // rootPath is already the vault root
+      skipLinkResolution: options.skipLinkResolution,
+      discoverOnly: options.discoverOnly,
+    })
+
+    db = loadResult.database
+    mode = loadResult.mode
+    dataStore = createDBDataStore(db, mode)
+
+    // Capture loading results
+    loadErrors = loadResult.errors
+    stats = {
+      nodeCount: loadResult.nodeCount,
+      linkCount: loadResult.linkCount,
+      duration: loadResult.duration,
+    }
+    deferredFiles = loadResult.deferredFiles ?? []
+
+    debug("loaded files: %d nodes, %d links, %d errors",
+      stats.nodeCount, stats.linkCount, loadErrors.length)
+  } else {
+    // =========================================================================
+    // Empty database mode - no file loading
+    // =========================================================================
+    // Declare all sub-steps upfront so they appear as pending
+    yield { declare: ["Detecting mode", "Initializing database", "Scanning files"] }
+
+    // Step 1: Detect mode
+    yield "Detecting mode"
+    const kmDir = join(rootPath, ".km")
+    const hasKmDir = existsSync(kmDir) && !options.forceMemory
+    mode = hasKmDir ? "disk" : "memory"
+
+    debug("detected mode: %s (hasKmDir=%s)", mode, hasKmDir)
+
+    // Step 2: Initialize database
+    yield "Initializing database"
+
+    if (mode === "disk") {
+      // Ensure .km directory exists
+      if (!existsSync(kmDir)) {
+        mkdirSync(kmDir, { recursive: true })
+      }
+
+      const dbPath = join(kmDir, "state.db")
+      db = new Database(dbPath)
+      db.exec(SCHEMA)
+      dataStore = createDBDataStore(db, "disk")
+    } else {
+      // Memory mode - ephemeral
+      db = new Database(":memory:")
+      db.exec(SCHEMA)
+      dataStore = createDBDataStore(db, "memory")
     }
 
-    const dbPath = join(kmDir, "state.db")
-    db = new Database(dbPath)
-    db.exec(SCHEMA)
-    dataStore = createDBDataStore(db, "disk")
-  } else {
-    // Memory mode - ephemeral
-    db = new Database(":memory:")
-    db.exec(SCHEMA)
-    dataStore = createDBDataStore(db, "memory")
+    // Step 3: Scan files (for full repo)
+    yield "Scanning files"
   }
 
-  // Step 3: Scan files (for full repo)
-  yield "Scanning files"
   // Create FileTree for the vault root
   const fileTree = createDiskFileTree(rootPath)
 
@@ -369,6 +472,18 @@ export function* createRepo(
     get database() {
       ensureOpen()
       return db
+    },
+
+    get loadErrors() {
+      return loadErrors
+    },
+
+    get stats() {
+      return stats
+    },
+
+    get deferredFiles() {
+      return deferredFiles
     },
 
     // =========================================================================
@@ -569,6 +684,90 @@ export function* createRepo(
       })
     },
 
+    // =========================================================================
+    // Rebuild helpers
+    // =========================================================================
+
+    needsRebuild() {
+      ensureOpen()
+
+      // Memory mode never needs rebuild (ephemeral)
+      if (mode === "memory") {
+        debug("needsRebuild: no (memory mode)")
+        return false
+      }
+
+      // Disk mode: check state.db and events.jsonl
+      const kmDir = join(rootPath, ".km")
+      const dbPath = join(kmDir, "state.db")
+      const eventsPath = join(kmDir, "events.jsonl")
+
+      if (!existsSync(dbPath)) {
+        debug("needsRebuild: yes (no state.db)")
+        return true
+      }
+
+      if (!existsSync(eventsPath)) {
+        debug("needsRebuild: no (no events.jsonl)")
+        return false
+      }
+
+      // Check if there are unapplied events
+      const lastApplied = db
+        .prepare("SELECT value FROM meta WHERE key = ?")
+        .get("last_event") as { value: string } | undefined
+
+      const lastAppliedId = lastApplied?.value
+      if (!lastAppliedId) {
+        // DB exists but hasn't applied any events - check if events exist
+        const content = existsSync(eventsPath)
+          ? readFileSync(eventsPath, "utf-8")
+          : ""
+        const hasEvents = content.trim().length > 0
+        debug("needsRebuild", {
+          result: hasEvents ? "yes" : "no",
+          reason: "no last_event",
+        })
+        return hasEvents
+      }
+
+      // Check if events file has newer events (read last line)
+      const content = readFileSync(eventsPath, "utf-8")
+      const lines = content.split("\n").filter((l: string) => l.trim())
+      if (lines.length === 0) {
+        debug("needsRebuild: no (no events)")
+        return false
+      }
+
+      // Parse last event to get its ID
+      const lastLine = lines.at(-1)
+      if (!lastLine) {
+        debug("needsRebuild: no (empty last line)")
+        return false
+      }
+      try {
+        const lastEvent = JSON.parse(lastLine) as { id: string }
+        const needs = lastEvent.id > lastAppliedId
+        debug("needsRebuild", {
+          result: needs ? "yes" : "no",
+          last: lastEvent.id.slice(-8),
+          applied: (lastAppliedId as string).slice(-8),
+        })
+        return needs
+      } catch {
+        // Malformed last line, assume rebuild needed
+        debug("needsRebuild: yes (malformed events)")
+        return true
+      }
+    },
+
+    *refresh() {
+      ensureOpen()
+      // TODO: Re-scan or re-apply events
+      debug("refresh not yet implemented")
+      yield "Refreshing"
+    },
+
     close() {
       if (closed) return
       closed = true
@@ -667,6 +866,19 @@ export function createBareRepo(
     get database() {
       ensureOpen()
       return db
+    },
+
+    // Bare repos don't load files, so these are always empty
+    get loadErrors() {
+      return []
+    },
+
+    get stats() {
+      return { nodeCount: 0, linkCount: 0, duration: 0 }
+    },
+
+    get deferredFiles() {
+      return []
     },
 
     // =========================================================================
@@ -819,6 +1031,18 @@ export function createBareRepo(
 
     watch() {
       throw new Error("Cannot watch: bare repo has no files")
+    },
+
+    // =========================================================================
+    // Rebuild helpers
+    // =========================================================================
+
+    needsRebuild() {
+      throw new Error("Cannot check needsRebuild: bare repo has no files")
+    },
+
+    *refresh() {
+      throw new Error("Cannot refresh: bare repo has no files")
     },
 
     close() {

@@ -316,6 +316,7 @@ export type {
   CreateBareRepoOptions,
   SyncResult as RepoSyncResult,
   SyncConflict,
+  RepoStats,
 } from "./repo.ts"
 
 // Testing utilities

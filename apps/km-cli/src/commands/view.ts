@@ -8,6 +8,7 @@
 import createDebug from "debug"
 import { Command } from "commander"
 import { setDebugVaultRoot } from "../debug-log.ts"
+import { getRootPath } from "../program.ts"
 
 const debug = createDebug("km:cli:view")
 
@@ -43,26 +44,23 @@ export const viewCommand = new Command("view")
     // Modules loaded by tasks
     let tuiModule: typeof import("@km/tui")
     let storageModule: typeof import("@km/storage")
-    let cliModule: typeof import("../index.ts")
-    let createdVault: import("@km/storage").Vault
+    let createdRepo: import("@km/storage").Repo
 
     // Run loading steps with declarative API
     // loadVault() handles both memory and disk modes with unified progress
     const results = await steps({
       loadModules: async () => {
-        ;[tuiModule, storageModule, cliModule] = await Promise.all([
+        ;[tuiModule, storageModule] = await Promise.all([
           import("@km/tui"),
           import("@km/storage"),
-          import("../index.ts"),
         ])
       },
 
-      createVault: function* () {
+      createRepo: function* () {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees sequential execution
         const vaultRoot = storageModule!.resolvePathArg(
           root,
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          cliModule!.getRootPath(),
+          getRootPath(),
         ).vaultRoot
         // Set vault root for debug path formatting
         setDebugVaultRoot(vaultRoot)
@@ -70,31 +68,29 @@ export const viewCommand = new Command("view")
         // For non-interactive mode, we need full parsing before rendering
         const interactive = options.interactive !== false
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        createdVault = yield* storageModule!.createVault(vaultRoot, {
-          searchAncestors: false,
+        createdRepo = yield* storageModule!.createRepo(vaultRoot, {
+          loadFiles: true,
           discoverOnly: interactive,
         })
-        return createdVault
+        return createdRepo
       },
 
       buildView: function* () {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees sequential execution
         const resolved = storageModule!.resolvePathArg(
           root,
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          cliModule!.getRootPath(),
+          getRootPath(),
         )
         // Resolve nodeRef (path/filename/@ref) to actual node ID
         // initBoardStateGenerator expects a node ID, not a path
         let rootNodeId: string | undefined
         if (resolved.nodeRef) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const node = storageModule!.resolveNode(resolved.nodeRef)
+          const node = createdRepo.resolveNode(resolved.nodeRef)
           rootNodeId = node?.id
         }
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees createVault runs first
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees createRepo runs first
         const state = yield* tuiModule!.initBoardStateGenerator(
-          createdVault,
+          createdRepo,
           rootNodeId,
         )
         if (state) {
@@ -111,8 +107,8 @@ export const viewCommand = new Command("view")
     }
 
     // km-fast-md.7: Extract deferred files for background parsing
-    const vault = results.createVault as unknown as import("@km/storage").Vault
-    const deferredFiles = vault.deferredFiles
+    const repo = results.createRepo as unknown as import("@km/storage").Repo
+    const deferredFiles = repo.deferredFiles
 
     const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards"
     const interactive = options.interactive !== false
@@ -177,7 +173,7 @@ export const viewCommand = new Command("view")
       initialViewMode: viewMode as ViewMode,
       watch: watchEnabled,
       watchWorker,
-      vault,
+      repo,
     })
 
     // Signal background task to stop (don't wait - causes Bun crash on cleanup)

@@ -5,7 +5,7 @@
  */
 
 import type { KNode, TaskStatus, TaskMark } from "@km/core"
-import type { Vault } from "./vault-context.tsx"
+import type { Repo } from "./vault-context.tsx"
 
 /**
  * TUI-specific board rendering state.
@@ -86,7 +86,7 @@ export type BoardAction = "quit" | "refresh" | null
 
 /**
  * Derived columns layout with cursor position.
- * Built from Vault + cursor state for rendering.
+ * Built from Repo + cursor state for rendering.
  */
 export interface ColumnsLayout {
   columns: ColumnState[]
@@ -156,8 +156,8 @@ export interface TuiOptions {
    */
   spinner?: { stop(): void }
   /**
-   * Vault domain object for storage operations.
+   * Repo domain object for storage operations.
    * When provided, TUI uses this instead of global getStore().
    */
-  vault?: Vault
+  repo?: Repo
 }

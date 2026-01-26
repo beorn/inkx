@@ -37,12 +37,12 @@ import {
   type InkxLocator,
 } from "inkx/testing"
 import type { KNode } from "@km/core"
-import type { Vault } from "@km/storage"
+import type { Repo } from "@km/storage"
 import type { TUIBoardState } from "./types.ts"
 import { BoardCore } from "./views/index.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createLayoutRegistry } from "./card-positions.ts"
-import { VaultProvider } from "./vault-context.tsx"
+import { RepoProvider } from "./vault-context.tsx"
 
 /**
  * Options for creating a board test harness
@@ -106,7 +106,7 @@ export interface BoardTestHarness extends InkxLocator {
  * ```
  */
 export async function createBoardTest(
-  vaultOrPath: string | Vault,
+  repoOrPath: string | Repo,
   options: BoardTestOptions = {},
 ): Promise<BoardTestHarness> {
   const { file, width = 80, height = 24 } = options
@@ -114,31 +114,31 @@ export async function createBoardTest(
   // Import storage module
   const storageModule = await import("@km/storage")
 
-  // Load vault based on input type
-  let vault: Vault
-  let vaultPath: string
+  // Load repo based on input type
+  let repo: Repo
+  let repoPath: string
 
-  if (typeof vaultOrPath === "string") {
-    // Load vault from disk (original behavior)
+  if (typeof repoOrPath === "string") {
+    // Load repo from disk (original behavior)
     // searchAncestors: false prevents finding .km in parent directories (e.g., project root)
-    vault = storageModule.runGenerator(
-      storageModule.createVault(vaultOrPath, { searchAncestors: false }),
+    repo = storageModule.runGenerator(
+      storageModule.createRepo(repoOrPath, { loadFiles: true }),
     )
-    vaultPath = vaultOrPath
+    repoPath = repoOrPath
   } else {
-    // Use provided vault instance (new behavior for fake vaults)
-    vault = vaultOrPath
-    vaultPath = vault.path
+    // Use provided repo instance (new behavior for fake repos)
+    repo = repoOrPath
+    repoPath = repo.path
   }
 
   // Resolve the file reference to a node ID if provided
   let rootNodeId: string | undefined
-  if (file && typeof vaultOrPath === "string") {
-    // File references only work with real vaults (not fake vaults)
-    const resolved = storageModule.resolvePathArg(file, vaultPath)
+  if (file && typeof repoOrPath === "string") {
+    // File references only work with real repos (not fake repos)
+    const resolved = storageModule.resolvePathArg(file, repoPath)
     if (resolved.nodeRef) {
       // resolveNode converts filename/path/ID to actual node
-      const node = storageModule.resolveNode(resolved.nodeRef)
+      const node = storageModule.resolveNode(repo.database, resolved.nodeRef)
       rootNodeId = node?.id
     }
   }
@@ -148,19 +148,19 @@ export async function createBoardTest(
 
   // Initialize board state
   const state = storageModule.runGenerator(
-    tuiModule.initBoardStateGenerator(vault, rootNodeId),
+    tuiModule.initBoardStateGenerator(repo, rootNodeId),
   )
 
   if (!state) {
-    throw new Error(`Failed to initialize board state for ${vaultPath}`)
+    throw new Error(`Failed to initialize board state for ${repoPath}`)
   }
 
-  state.rootPath = vaultPath
+  state.rootPath = repoPath
 
   // Create test renderer
   const render = createTestRenderer({ columns: width, rows: height })
 
-  // Render the board using BoardCore (pure rendering) wrapped in VaultProvider
+  // Render the board using BoardCore (pure rendering) wrapped in RepoProvider
   const boardCoreElement = React.createElement(BoardCore, {
     state,
     ui: createInitialUIState("cards", [], { columns: width, rows: height }),
@@ -177,7 +177,7 @@ export async function createBoardTest(
   })
 
   const result = render(
-    React.createElement(VaultProvider, { vault, children: boardCoreElement }),
+    React.createElement(RepoProvider, { repo, children: boardCoreElement }),
   )
 
   // Current state - updated after each input

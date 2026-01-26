@@ -44,7 +44,7 @@ export const screenshotCommand = new Command("screenshot")
     const [storageModule, cliModule, tuiModule, inkxTesting] =
       await Promise.all([
         import("@km/storage"),
-        import("../index.ts"),
+        import("../program.ts"),
         import("@km/tui"),
         import("inkx/testing"),
       ])
@@ -53,17 +53,14 @@ export const screenshotCommand = new Command("screenshot")
     const resolved = storageModule.resolvePathArg(root, cliModule.getRootPath())
     setDebugVaultRoot(resolved.vaultRoot)
 
-    // Load vault (full parse for accurate screenshot)
-    const vault = storageModule.runGenerator(
-      storageModule.createVault(resolved.vaultRoot, {
-        searchAncestors: false,
-        discoverOnly: false,
-      }),
+    // Load repo (full parse for accurate screenshot)
+    const repo = storageModule.runGenerator(
+      storageModule.createRepo(resolved.vaultRoot, { loadFiles: true }),
     )
 
     // Initialize board state
     const state = storageModule.runGenerator(
-      tuiModule.initBoardStateGenerator(vault, resolved.nodeRef ?? undefined),
+      tuiModule.initBoardStateGenerator(repo, resolved.nodeRef ?? undefined),
     )
 
     if (!state) {
@@ -106,7 +103,7 @@ export const screenshotCommand = new Command("screenshot")
 
     // Render the board wrapped in VaultProvider
     const { lastBuffer, lastFrameText } = render(
-      React.createElement(VaultProvider, { vault, children: boardCoreElement }),
+      React.createElement(VaultProvider, { vault: repo, children: boardCoreElement }),
     )
 
     // Generate output based on format

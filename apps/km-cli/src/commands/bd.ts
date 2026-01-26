@@ -24,7 +24,7 @@ import {
   getDbPath,
   resolvePathArg,
   loadConfigObject,
-  createVault,
+  createRepo,
   runGenerator,
 } from "@km/storage"
 import { join } from "path"
@@ -175,7 +175,11 @@ const showCmd = bdCommand
       return
     }
 
-    const issue = resolveIssueArg(id)
+    const resolved = resolvePathArg(undefined)
+    using repo = runGenerator(
+      createRepo(resolved.vaultRoot, { loadFiles: true }),
+    )
+    const issue = resolveIssueArg(repo, id)
 
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
@@ -245,7 +249,11 @@ const updateCmd = bdCommand
       return
     }
 
-    const issue = resolveIssueArg(id)
+    const resolved = resolvePathArg(undefined)
+    using repo = runGenerator(
+      createRepo(resolved.vaultRoot, { loadFiles: true }),
+    )
+    const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
       process.exitCode = 1
@@ -285,7 +293,11 @@ const closeCmd = bdCommand
       return
     }
 
-    const issue = resolveIssueArg(id)
+    const resolved = resolvePathArg(undefined)
+    using repo = runGenerator(
+      createRepo(resolved.vaultRoot, { loadFiles: true }),
+    )
+    const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
       process.exitCode = 1
@@ -313,7 +325,11 @@ const dropCmd = bdCommand
       return
     }
 
-    const issue = resolveIssueArg(id)
+    const resolved = resolvePathArg(undefined)
+    using repo = runGenerator(
+      createRepo(resolved.vaultRoot, { loadFiles: true }),
+    )
+    const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
       process.exitCode = 1
@@ -342,7 +358,11 @@ const depAddCmd = depCommand
       return
     }
 
-    const issue = resolveIssueArg(id)
+    const resolved = resolvePathArg(undefined)
+    using repo = runGenerator(
+      createRepo(resolved.vaultRoot, { loadFiles: true }),
+    )
+    const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
       process.exitCode = 1
@@ -369,7 +389,11 @@ const depRemoveCmd = depCommand
       return
     }
 
-    const issue = resolveIssueArg(id)
+    const resolved = resolvePathArg(undefined)
+    using repo = runGenerator(
+      createRepo(resolved.vaultRoot, { loadFiles: true }),
+    )
+    const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
       process.exitCode = 1
@@ -403,7 +427,11 @@ const depListCmd = depCommand
       return
     }
 
-    const issue = resolveIssueArg(id)
+    const resolved = resolvePathArg(undefined)
+    using repo = runGenerator(
+      createRepo(resolved.vaultRoot, { loadFiles: true }),
+    )
+    const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
       process.exitCode = 1
@@ -436,15 +464,15 @@ bdCommand
     const resolved = resolvePathArg(scope)
     const kmDir = join(resolved.vaultRoot, ".km")
 
-    // Load vault to set up context for getDbPath()
-    using vault = runGenerator(
-      createVault(resolved.vaultRoot, { searchAncestors: false }),
+    // Load repo to set up context for getDbPath()
+    using repo = runGenerator(
+      createRepo(resolved.vaultRoot, { loadFiles: true }),
     )
     const scopePath = resolved.nodeRef ?? undefined
     const configObj = loadConfigObject(resolved.vaultRoot)
     const config = configObj.beads
     const dbPath = getDbPath()
-    const vaultMode = vault.mode
+    const repoMode = repo.mode
 
     // Query with board filter if configured
     const boardTag = config.board || undefined
@@ -485,7 +513,7 @@ bdCommand
     console.log()
     console.log(chalk.bold("Storage"))
     console.log(`  Database: ${dbPath}`)
-    console.log(`  Mode: ${vaultMode}`)
+    console.log(`  Mode: ${repoMode}`)
     console.log(`  Vault: ${resolved.vaultRoot}`)
     if (kmDir) {
       console.log(`  KM Dir: ${kmDir}`)
@@ -549,8 +577,8 @@ bdCommand
     const resolved = resolvePathArg(scope)
     const kmDir = join(resolved.vaultRoot, ".km")
 
-    // Load vault to set up global state for getDbPath()
-    runGenerator(createVault(resolved.vaultRoot, { searchAncestors: false }))
+    // Load repo to set up global state for getDbPath()
+    runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
     const dbPath = getDbPath()
     const configObj = loadConfigObject(resolved.vaultRoot)
 

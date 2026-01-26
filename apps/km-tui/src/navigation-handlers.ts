@@ -2,7 +2,7 @@
  * Navigation Handlers
  *
  * Pure navigation functions that compute the next cursor position.
- * Tree navigation uses Vault for tree structure.
+ * Tree navigation uses Repo for tree structure.
  * Visual navigation uses LayoutRegistry for screen positions.
  *
  * These handlers return the new cursorNodeId or null if movement not possible.
@@ -12,7 +12,7 @@
  */
 
 import createDebug from "debug"
-import type { Vault } from "@km/storage"
+import type { Repo } from "@km/storage"
 import type { LayoutRegistry } from "./card-positions.ts"
 import { getCardMidY } from "./card-positions.ts"
 import type { BoardState } from "@km/board"
@@ -41,17 +41,17 @@ export type TreeDirection =
 /**
  * Handle tree-based navigation.
  *
- * Uses Vault for tree structure queries. No visual layout involved.
+ * Uses Repo for tree structure queries. No visual layout involved.
  *
  * @param direction - Navigation direction ("next"/"prev" for siblings, "child"/"parent" for tree traversal)
  * @param state - Current board state (for cursorNodeId, rootId, foldedNodes)
- * @param vault - Vault for tree queries
+ * @param repo - Repo for tree queries
  * @returns New cursorNodeId, or null if can't move
  */
 export function handleTreeNavigation(
   direction: TreeDirection,
   state: BoardState,
-  vault: Vault,
+  repo: Repo,
 ): string | null {
   const { cursorNodeId, rootId, foldedNodes } = state
 
@@ -60,7 +60,7 @@ export function handleTreeNavigation(
     return null
   }
 
-  const currentNode = vault.getNode(cursorNodeId)
+  const currentNode = repo.getNode(cursorNodeId)
   if (!currentNode) {
     debug("tree nav: current node not found")
     return null
@@ -69,7 +69,7 @@ export function handleTreeNavigation(
   switch (direction) {
     case "next": {
       // Move to next sibling
-      const siblings = vault.getChildren(currentNode.parent_id)
+      const siblings = repo.getChildren(currentNode.parent_id)
       const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId)
       if (currentIndex < 0 || currentIndex >= siblings.length - 1) {
         debug("tree nav: at last sibling, can't move next")
@@ -82,7 +82,7 @@ export function handleTreeNavigation(
 
     case "prev": {
       // Move to previous sibling
-      const siblings = vault.getChildren(currentNode.parent_id)
+      const siblings = repo.getChildren(currentNode.parent_id)
       const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId)
       if (currentIndex <= 0) {
         debug("tree nav: at first sibling, can't move prev")
@@ -95,7 +95,7 @@ export function handleTreeNavigation(
 
     case "first": {
       // Jump to first sibling
-      const siblings = vault.getChildren(currentNode.parent_id)
+      const siblings = repo.getChildren(currentNode.parent_id)
       if (siblings.length === 0) {
         debug("tree nav: no siblings, can't jump to first")
         return null
@@ -107,7 +107,7 @@ export function handleTreeNavigation(
 
     case "last": {
       // Jump to last sibling
-      const siblings = vault.getChildren(currentNode.parent_id)
+      const siblings = repo.getChildren(currentNode.parent_id)
       if (siblings.length === 0) {
         debug("tree nav: no siblings, can't jump to last")
         return null
@@ -123,7 +123,7 @@ export function handleTreeNavigation(
         debug("tree nav: node is folded, can't enter child")
         return null
       }
-      const children = vault.getChildren(cursorNodeId)
+      const children = repo.getChildren(cursorNodeId)
       if (children.length === 0) {
         debug("tree nav: no children, can't enter child")
         return null
@@ -164,20 +164,20 @@ export function handleTreeNavigation(
  *
  * @param direction - "first" or "last"
  * @param cursorNodeId - Current cursor node
- * @param vault - Vault for tree queries
+ * @param repo - Repo for tree queries
  * @returns New cursorNodeId, or null if can't move
  */
 export function handleSiblingJump(
   direction: "first" | "last",
   cursorNodeId: string | null,
-  vault: Vault,
+  repo: Repo,
 ): string | null {
   if (!cursorNodeId) return null
 
-  const currentNode = vault.getNode(cursorNodeId)
+  const currentNode = repo.getNode(cursorNodeId)
   if (!currentNode) return null
 
-  const siblings = vault.getChildren(currentNode.parent_id)
+  const siblings = repo.getChildren(currentNode.parent_id)
   if (siblings.length === 0) return null
 
   if (direction === "first") {
@@ -199,7 +199,7 @@ export function handleSiblingJump(
  *
  * @param direction - "left" or "right"
  * @param state - Current board state (for cursorNodeId)
- * @param vault - Vault for getting column structure
+ * @param repo - Repo for getting column structure
  * @param layout - Layout registry with card positions
  * @param rootId - Current zoom root (to get columns)
  * @returns New cursorNodeId, or null if can't move
@@ -207,7 +207,7 @@ export function handleSiblingJump(
 export function handleVisualNavigation(
   direction: "left" | "right",
   state: BoardState,
-  vault: Vault,
+  repo: Repo,
   layout: LayoutRegistry,
 ): string | null {
   const { cursorNodeId, rootId } = state
@@ -224,13 +224,13 @@ export function handleVisualNavigation(
   }
 
   // Get columns (children of root)
-  const columns = vault.getChildren(rootId)
+  const columns = repo.getChildren(rootId)
   if (columns.length === 0) {
     return null
   }
 
   // Find which column the current node is in
-  const currentColIndex = findColumnIndex(cursorNodeId, vault, rootId)
+  const currentColIndex = findColumnIndex(cursorNodeId, repo, rootId)
   if (currentColIndex < 0) {
     debug("visual nav: could not find current column")
     return null
@@ -289,16 +289,16 @@ export function handleVisualNavigation(
  * Works by traversing up to find the column ancestor.
  *
  * @param nodeId - Node to find
- * @param vault - Vault for tree queries
+ * @param repo - Repo for tree queries
  * @param rootId - Current zoom root
  * @returns Column index, or -1 if not found
  */
 function findColumnIndex(
   nodeId: string,
-  vault: Vault,
+  repo: Repo,
   rootId: string | null,
 ): number {
-  let current = vault.getNode(nodeId)
+  let current = repo.getNode(nodeId)
   if (!current) return -1
 
   // Traverse up to find the column (direct child of root)
@@ -307,7 +307,7 @@ function findColumnIndex(
     current.parent_id !== null &&
     current.parent_id !== rootId
   ) {
-    const parent = vault.getNode(current.parent_id)
+    const parent = repo.getNode(current.parent_id)
     if (!parent) return -1
     current = parent
   }
@@ -316,7 +316,7 @@ function findColumnIndex(
 
   // Now 'current' is a direct child of root (a column)
   // Find its index among siblings
-  const columns = vault.getChildren(rootId)
+  const columns = repo.getChildren(rootId)
   const currentId = current.id
   return columns.findIndex((col) => col.id === currentId)
 }
@@ -330,20 +330,20 @@ function findColumnIndex(
  * Used at render time to position the cursor.
  *
  * @param cursorNodeId - Current cursor node
- * @param vault - Vault for tree queries
+ * @param repo - Repo for tree queries
  * @param rootId - Current zoom root
  * @returns { colIndex, cardIndex } or null if not in a column/card position
  */
 export function deriveCursorPosition(
   cursorNodeId: string | null,
-  vault: Vault,
+  repo: Repo,
   rootId: string | null,
 ): { colIndex: number; cardIndex: number } | null {
   if (!cursorNodeId) {
     return null
   }
 
-  const columns = vault.getChildren(rootId)
+  const columns = repo.getChildren(rootId)
   if (columns.length === 0) {
     return null
   }
@@ -360,7 +360,7 @@ export function deriveCursorPosition(
     const column = columns[ci]
     if (!column) continue
 
-    const cards = vault.getChildren(column.id)
+    const cards = repo.getChildren(column.id)
     const cardIndex = cards.findIndex((card) => card.id === cursorNodeId)
     if (cardIndex >= 0) {
       return { colIndex: ci, cardIndex }
@@ -370,7 +370,7 @@ export function deriveCursorPosition(
     for (let cai = 0; cai < cards.length; cai++) {
       const card = cards[cai]
       if (!card) continue
-      if (isDescendant(cursorNodeId, card.id, vault)) {
+      if (isDescendant(cursorNodeId, card.id, repo)) {
         return { colIndex: ci, cardIndex: cai }
       }
     }
@@ -385,14 +385,14 @@ export function deriveCursorPosition(
 function isDescendant(
   nodeId: string,
   ancestorId: string,
-  vault: Vault,
+  repo: Repo,
 ): boolean {
-  let current = vault.getNode(nodeId)
+  let current = repo.getNode(nodeId)
   while (current && current.parent_id) {
     if (current.parent_id === ancestorId) {
       return true
     }
-    current = vault.getNode(current.parent_id)
+    current = repo.getNode(current.parent_id)
   }
   return false
 }

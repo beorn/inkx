@@ -7,7 +7,7 @@
 import chalk from "chalk"
 import { ulid } from "ulid"
 import {
-  createVault,
+  createRepo,
   runGenerator,
   resolvePathArg,
   emitNodeCreated,
@@ -28,7 +28,7 @@ export function addTask(
   options: { json?: boolean },
 ): void {
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using vault = runGenerator(createVault(resolved.vaultRoot))
+  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
 
   // Parse metadata from content
   const metadata = parseTaskMetadata(content)
@@ -37,7 +37,7 @@ export function addTask(
   // Resolve parent
   let parentId: string | null = null
   if (pathOrId) {
-    const parent = findNodeByPathOrId(vault, pathOrId)
+    const parent = findNodeByPathOrId(repo, pathOrId)
     if (!parent) {
       console.error(chalk.red(`Parent not found: ${pathOrId}`))
       process.exit(1)
@@ -80,9 +80,9 @@ export function markDone(
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using vault = runGenerator(createVault(resolved.vaultRoot))
+  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
 
-  const task = vault.resolveNode(pathOrId, { taskOnly: true })
+  const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -114,9 +114,9 @@ export function claimTask(
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using vault = runGenerator(createVault(resolved.vaultRoot))
+  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
 
-  const task = vault.resolveNode(pathOrId, { taskOnly: true })
+  const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -156,9 +156,9 @@ export function releaseTask(
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using vault = runGenerator(createVault(resolved.vaultRoot))
+  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
 
-  const task = vault.resolveNode(pathOrId, { taskOnly: true })
+  const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`))
     process.exit(1)
@@ -194,9 +194,9 @@ export function assignTask(
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using vault = runGenerator(createVault(resolved.vaultRoot))
+  using repo = runGenerator(createRepo(resolved.vaultRoot, { loadFiles: true }))
 
-  const task = vault.resolveNode(pathOrId, { taskOnly: true })
+  const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
     console.error(chalk.red(`Task not found: ${pathOrId}`))
     process.exit(1)

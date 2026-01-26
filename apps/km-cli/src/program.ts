@@ -131,8 +131,7 @@ export function configureProgram(): Command {
       logLevel = "silent"
     } else if (verboseOption) {
       if (verboseOption >= 3) logLevel = "trace"
-      else if (verboseOption === 2) logLevel = "debug"
-      else if (verboseOption === 1) logLevel = "verbose"
+      else if (verboseOption >= 1) logLevel = "debug"
     }
     setLogLevel(logLevel)
 
@@ -187,13 +186,13 @@ export function configureProgram(): Command {
 
     // Import @km/storage here (after log level is set) to allow
     // view command to show "Loading..." before heavy imports
-    const { createVault, runGenerator } = await import("@km/storage")
-    const vault = runGenerator(createVault(rootPath))
+    const { createRepo, runGenerator } = await import("@km/storage")
+    const repo = runGenerator(createRepo(rootPath, { loadFiles: true }))
 
     // Warn if using cwd in memory mode (no .km/ found, no explicit root)
     // Skip warning if we auto-detected from a path (user knows what they're doing)
-    if (!rootExplicitlySet && vault.mode === "memory" && !pathArg) {
-      console.error(chalk.yellow(`Using current directory: ${vault.path}`))
+    if (!rootExplicitlySet && repo.mode === "memory" && !pathArg) {
+      console.error(chalk.yellow(`Using current directory: ${repo.path}`))
       console.error(
         chalk.yellow(
           `Hint: Use --root <path> or set KM_ROOT, or run 'km init' for disk mode\n`,

@@ -8,9 +8,9 @@ import { Command } from "commander"
 import chalk from "chalk"
 import {
   resolvePathArg,
-  createVault,
+  createRepo,
   runGenerator,
-  type Vault,
+  type Repo,
   type Link,
 } from "@km/storage"
 import { getRootPath } from "../program.ts"
@@ -27,8 +27,8 @@ export const showCommand = new Command("show")
   .action((id, options) => {
     // Resolve path argument - may initialize store with detected vault root
     const resolved = resolvePathArg(id, getRootPath())
-    using vault = runGenerator(
-      createVault(resolved.vaultRoot, { searchAncestors: false }),
+    using repo = runGenerator(
+      createRepo(resolved.vaultRoot, { loadFiles: true }),
     )
 
     // Directory paths don't resolve to a specific node
@@ -39,7 +39,7 @@ export const showCommand = new Command("show")
       process.exit(1)
     }
 
-    const node = vault.resolveNode(resolved.nodeRef)
+    const node = repo.resolveNode(resolved.nodeRef)
 
     if (!node) {
       console.error(chalk.red(`Node not found: ${id}`))
@@ -48,11 +48,11 @@ export const showCommand = new Command("show")
 
     if (options.json) {
       if (options.tree) {
-        console.log(JSON.stringify(vault.getSubtree(node.id), null, 2))
+        console.log(JSON.stringify(repo.getSubtree(node.id), null, 2))
       } else if (options.children) {
         console.log(
           JSON.stringify(
-            { node, children: vault.getChildren(node.id) },
+            { node, children: repo.getChildren(node.id) },
             null,
             2,
           ),
@@ -113,13 +113,13 @@ export const showCommand = new Command("show")
     ) {
       console.log(
         chalk.bold("Refs:"),
-        data.mentions.map((m: string) => chalk.magenta(`@${m}`)).join(" "),
+        (data.mentions as string[]).map((m) => chalk.magenta(`@${m}`)).join(" "),
       )
     }
     if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
       console.log(
         chalk.bold("Tags:"),
-        data.tags.map((t: string) => chalk.cyan(`#${t}`)).join(" "),
+        (data.tags as string[]).map((t) => chalk.cyan(`#${t}`)).join(" "),
       )
     }
     if (
@@ -129,7 +129,7 @@ export const showCommand = new Command("show")
     ) {
       console.log(
         chalk.bold("Projects:"),
-        data.projects.map((p: string) => chalk.yellow(`+${p}`)).join(" "),
+        (data.projects as string[]).map((p) => chalk.yellow(`+${p}`)).join(" "),
       )
     }
 
@@ -145,8 +145,8 @@ export const showCommand = new Command("show")
     // Children
     if (options.children || options.tree) {
       const children = options.tree
-        ? vault.getSubtree(node.id).slice(1) // Exclude self
-        : vault.getChildren(node.id)
+        ? repo.getSubtree(node.id).slice(1) // Exclude self
+        : repo.getChildren(node.id)
 
       if (children.length > 0) {
         console.log(chalk.bold("\nChildren:"))
@@ -159,20 +159,20 @@ export const showCommand = new Command("show")
 
     // Links
     if (options.links) {
-      const outgoing = vault.getOutgoingLinks(node.id)
-      const backlinks = vault.getBacklinks(node.id)
+      const outgoing = repo.getOutgoingLinks(node.id)
+      const backlinks = repo.getBacklinks(node.id)
 
       if (outgoing.length > 0) {
         console.log(chalk.bold("\nOutgoing links:"))
         for (const link of outgoing) {
-          console.log(`  ${formatLink(link, vault)}`)
+          console.log(`  ${formatLink(link, repo)}`)
         }
       }
 
       if (backlinks.length > 0) {
         console.log(chalk.bold("\nBacklinks:"))
         for (const link of backlinks) {
-          console.log(`  ${formatBacklink(link, vault)}`)
+          console.log(`  ${formatBacklink(link, repo)}`)
         }
       }
 
@@ -202,7 +202,7 @@ function getIndent(node: KNode, rootId: string): string {
 /**
  * Format an outgoing link
  */
-function formatLink(link: Link, vault: Vault): string {
+function formatLink(link: Link, repo: Repo): string {
   const parts: string[] = []
 
   // Target name with section/block
@@ -217,7 +217,7 @@ function formatLink(link: Link, vault: Vault): string {
 
   // Resolution status
   if (link.target_id) {
-    const targetNode = vault.getNode(link.target_id)
+    const targetNode = repo.getNode(link.target_id)
     if (targetNode) {
       parts.push(
         chalk.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`),
@@ -238,8 +238,8 @@ function formatLink(link: Link, vault: Vault): string {
 /**
  * Format a backlink (incoming link)
  */
-function formatBacklink(link: Link, vault: Vault): string {
-  const sourceNode = vault.getNode(link.source_id)
+function formatBacklink(link: Link, repo: Repo): string {
+  const sourceNode = repo.getNode(link.source_id)
   const parts: string[] = []
 
   if (sourceNode) {

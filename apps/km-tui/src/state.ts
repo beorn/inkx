@@ -15,7 +15,7 @@ import type {
   BoardAction,
   ColumnRules,
 } from "./types.ts"
-import type { Vault } from "./vault-context.tsx"
+import type { Repo } from "./vault-context.tsx"
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
   getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,
@@ -28,18 +28,18 @@ import {
 // Bound versions that inject vault dependencies
 // These are the primary exports for TUI components
 export const getNodeDisplayName = (
-  vault: Vault,
+  repo: Repo,
   node: Parameters<typeof getNodeDisplayNameBase>[0],
-) => getNodeDisplayNameBase(node, (id) => vault.getChildren(id))
+) => getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
 export const getCollapsedTypeSuffix = (
-  vault: Vault,
+  repo: Repo,
   node: Parameters<typeof getCollapsedTypeSuffixBase>[0],
-) => getCollapsedTypeSuffixBase(node, (id) => vault.getChildren(id))
+) => getCollapsedTypeSuffixBase(node, (id) => repo.getChildren(id))
 export const getParentContext = (
-  vault: Vault,
+  repo: Repo,
   node: Parameters<typeof getParentContextBase>[0],
   skipParentId?: string | null,
-) => getParentContextBase(node, skipParentId, (id) => vault.getNode(id))
+) => getParentContextBase(node, skipParentId, (id) => repo.getNode(id))
 
 /**
  * Create an empty board state
@@ -66,21 +66,21 @@ export function createEmptyState(): TUIBoardState {
  * Returns null if no suitable board found
  */
 export function initBoardState(
-  vault: Vault,
+  repo: Repo,
   rootId?: string,
 ): TUIBoardState | null {
   if (rootId) {
-    // Use vault.getNode for ID lookup (caller should resolve path/filename before calling)
-    const root = vault.getNode(rootId)
+    // Use repo.getNode for ID lookup (caller should resolve path/filename before calling)
+    const root = repo.getNode(rootId)
     if (!root) {
       return null
     }
-    return buildBoardState(vault, root.id)
+    return buildBoardState(repo, root.id)
   }
 
   // No root specified - show root-level nodes as columns
   // Group roots by name to avoid duplicate columns
-  const roots = vault.getChildren(null)
+  const roots = repo.getChildren(null)
 
   if (roots.length === 0) {
     return null
@@ -89,7 +89,7 @@ export function initBoardState(
   // Group roots by display name
   const groups = new Map<string, KNode[]>()
   for (const root of roots) {
-    const name = getNodeDisplayName(vault, root)
+    const name = getNodeDisplayName(repo, root)
     if (!groups.has(name)) {
       groups.set(name, [])
     }
@@ -109,8 +109,8 @@ export function initBoardState(
     const seenNames = new Set<string>()
     const uniqueCardNodes: KNode[] = []
     for (const root of groupRoots) {
-      for (const child of vault.getChildren(root.id)) {
-        const cardName = getNodeDisplayName(vault, child)
+      for (const child of repo.getChildren(root.id)) {
+        const cardName = getNodeDisplayName(repo, child)
         if (!seenNames.has(cardName)) {
           seenNames.add(cardName)
           uniqueCardNodes.push(child)
@@ -123,7 +123,7 @@ export function initBoardState(
   }
 
   // Batch query for child counts using rawQuery
-  const childCounts = vault.getChildCounts(allCardIds)
+  const childCounts = repo.getChildCounts(allCardIds)
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = []
@@ -157,21 +157,21 @@ export function initBoardState(
  * Use this for loading screens to allow event loop updates between yields
  */
 export function* initBoardStateGenerator(
-  vault: Vault,
+  repo: Repo,
   rootId?: string,
 ): Generator<StepYield, TUIBoardState | null, unknown> {
   if (rootId) {
-    // Use vault.getNode for ID lookup (caller should resolve path/filename before calling)
-    const root = vault.getNode(rootId)
+    // Use repo.getNode for ID lookup (caller should resolve path/filename before calling)
+    const root = repo.getNode(rootId)
     if (!root) {
       return null
     }
     // Delegate to generator version of buildBoardState
-    return yield* buildBoardStateGenerator(vault, root.id)
+    return yield* buildBoardStateGenerator(repo, root.id)
   }
 
   // No root specified - show root-level nodes as columns
-  const roots = vault.getChildren(null)
+  const roots = repo.getChildren(null)
   if (roots.length === 0) {
     return null
   }
@@ -179,7 +179,7 @@ export function* initBoardStateGenerator(
   // Group roots by display name
   const groups = new Map<string, KNode[]>()
   for (const root of roots) {
-    const name = getNodeDisplayName(vault, root)
+    const name = getNodeDisplayName(repo, root)
     if (!groups.has(name)) {
       groups.set(name, [])
     }
@@ -203,8 +203,8 @@ export function* initBoardStateGenerator(
     const seenNames = new Set<string>()
     const uniqueCardNodes: KNode[] = []
     for (const root of groupRoots) {
-      for (const child of vault.getChildren(root.id)) {
-        const cardName = getNodeDisplayName(vault, child)
+      for (const child of repo.getChildren(root.id)) {
+        const cardName = getNodeDisplayName(repo, child)
         if (!seenNames.has(cardName)) {
           seenNames.add(cardName)
           uniqueCardNodes.push(child)
@@ -219,7 +219,7 @@ export function* initBoardStateGenerator(
   }
 
   // Single batch query for all child counts
-  const childCounts = vault.getChildCounts(allCardIds)
+  const childCounts = repo.getChildCounts(allCardIds)
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = []
@@ -252,15 +252,15 @@ export function* initBoardStateGenerator(
  * Generator version of buildBoardState that yields progress
  */
 export function* buildBoardStateGenerator(
-  vault: Vault,
+  repo: Repo,
   rootId: string,
 ): Generator<StepYield, TUIBoardState, unknown> {
-  const rootNode = vault.getNode(rootId)
+  const rootNode = repo.getNode(rootId)
   const wipLimits = extractWipLimits(rootNode)
   const collapsedColumns = new Set<number>()
 
   // Get direct children and split into body content vs structural items
-  const allChildren = vault.getChildren(rootId)
+  const allChildren = repo.getChildren(rootId)
   const { body: bodyNodes, items: columnNodes } = extractBody(allChildren)
 
   const total = columnNodes.length + (bodyNodes.length > 0 ? 1 : 0)
@@ -269,7 +269,7 @@ export function* buildBoardStateGenerator(
 
   // Batch query child counts for all columns
   const columnIds = columnNodes.map((n) => n.id)
-  const columnChildCounts = vault.getChildCounts(columnIds)
+  const columnChildCounts = repo.getChildCounts(columnIds)
 
   // First pass: collect all card IDs
   const columnCardNodes: KNode[][] = []
@@ -285,7 +285,7 @@ export function* buildBoardStateGenerator(
       continue
     }
 
-    const cardNodes = vault.getChildren(colNode.id)
+    const cardNodes = repo.getChildren(colNode.id)
     columnCardNodes[colIdx] = cardNodes
 
     for (const cardNode of cardNodes) {
@@ -297,7 +297,7 @@ export function* buildBoardStateGenerator(
   }
 
   // Single batch query for all child counts
-  const childCounts = vault.getChildCounts(allCardIds)
+  const childCounts = repo.getChildCounts(allCardIds)
 
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = []
@@ -359,7 +359,7 @@ export function* buildBoardStateGenerator(
       }
     }
 
-    const colName = getNodeDisplayName(vault, colNode)
+    const colName = getNodeDisplayName(repo, colNode)
     const normalizedName = normalizeColumnName(colName)
     const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
 
@@ -487,20 +487,20 @@ export function parseColumnRules(content: string): ColumnRules {
  * For markdown files, the parser merges the H1 into the file node,
  * so H2 sections are direct children of the file node (columns).
  */
-export function buildBoardState(vault: Vault, rootId: string): TUIBoardState {
-  const rootNode = vault.getNode(rootId)
+export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
+  const rootNode = repo.getNode(rootId)
   const wipLimits = extractWipLimits(rootNode)
   const collapsedColumns = new Set<number>()
 
   // Get direct children and split into body content vs structural items
-  const allChildren = vault.getChildren(rootId)
+  const allChildren = repo.getChildren(rootId)
   const { body: bodyNodes, items: columnNodes } = extractBody(allChildren)
 
   // PERFORMANCE OPTIMIZATION: Batch query child counts for all columns FIRST
   // This lets us skip getChildren() calls for columns with 0 children.
   // For flat boards like @issue with 766 files, this reduces 766 queries to 1.
   const columnIds = columnNodes.map((n) => n.id)
-  const columnChildCounts = vault.getChildCounts(columnIds)
+  const columnChildCounts = repo.getChildCounts(columnIds)
 
   // First pass: collect all card IDs across all columns for batch child count query
   // Note: getChildren() now includes query:add links from storage layer,
@@ -520,7 +520,7 @@ export function buildBoardState(vault: Vault, rootId: string): TUIBoardState {
     }
 
     // getChildren includes both direct children AND linked children from add= rules
-    const cardNodes = vault.getChildren(colNode.id)
+    const cardNodes = repo.getChildren(colNode.id)
     columnCardNodes[colIdx] = cardNodes
 
     // Collect IDs for batch query
@@ -530,7 +530,7 @@ export function buildBoardState(vault: Vault, rootId: string): TUIBoardState {
   }
 
   // Single batch query for all child counts - avoids N+1 problem
-  const childCounts = vault.getChildCounts(allCardIds)
+  const childCounts = repo.getChildCounts(allCardIds)
 
   // Second pass: build columns with the pre-fetched child counts
   const columns: ColumnState[] = []
@@ -564,7 +564,7 @@ export function buildBoardState(vault: Vault, rootId: string): TUIBoardState {
     }))
 
     // Look up WIP limit (from rules or frontmatter)
-    const colName = getNodeDisplayName(vault, colNode)
+    const colName = getNodeDisplayName(repo, colNode)
     const normalizedName = normalizeColumnName(colName)
     const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
 

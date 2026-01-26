@@ -14,7 +14,7 @@ import { Box, Text } from "inkx"
 import type { TUIBoardState, CardState } from "../types.ts"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
 import { useTreeConfig, useRootBoardId } from "../ui-context.tsx"
-import { useVault } from "../vault-context.tsx"
+import { useRepo } from "../vault-context.tsx"
 import type { KNode } from "@km/core"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
 
@@ -59,7 +59,7 @@ export function ListView({
 }: ListViewProps): React.ReactElement {
   const { inOutlineMode } = useTreeConfig()
   const rootBoardId = useRootBoardId()
-  const vault = useVault()
+  const vault = useRepo()
 
   // Flatten all cards into a single list
   const flatItems = useMemo(() => {

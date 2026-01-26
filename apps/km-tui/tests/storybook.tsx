@@ -66,8 +66,8 @@ import type { KNode } from "@km/core"
 import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts"
 import { UIProvider } from "../src/ui-context.tsx"
 import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
-import { VaultProvider } from "../src/vault-context.tsx"
-import { runWithDb, createVault, runGenerator } from "@km/storage"
+import { RepoProvider } from "../src/vault-context.tsx"
+import { createFakeVault } from "@km/storage"
 import Database from "bun:sqlite"
 import type { Toast } from "@km/core"
 
@@ -1549,15 +1549,12 @@ function ToastAndStatusSection(): React.ReactElement {
 // Main Storybook Component
 // ============================================================================
 
-// Create a minimal mock vault for storybook
-// Uses the existing db created at the top of the file
-const mockVault = runGenerator(
-  createVault(":memory:", { inject: { database: db } }),
-)
+// Create a minimal mock repo for storybook
+const mockRepo = createFakeVault()
 
 function Storybook(): React.ReactElement {
   return (
-    <VaultProvider vault={mockVault}>
+    <RepoProvider repo={mockRepo}>
       <UIProvider state={mockUIState} dispatch={noopDispatch}>
         <Box flexDirection="column">
           <Layer1RichText />
@@ -1577,7 +1574,7 @@ function Storybook(): React.ReactElement {
           <Text color="cyan"> bun km view @next</Text>
         </Box>
       </UIProvider>
-    </VaultProvider>
+    </RepoProvider>
   )
 }
 
@@ -1585,22 +1582,20 @@ function Storybook(): React.ReactElement {
 // Render and Output
 // ============================================================================
 
-// Run rendering within db context (replaces deprecated setDb singleton)
-runWithDb(db, () => {
-  const { lastFrame } = render(<Storybook />)
-  // Clean up output from 500-row buffer:
-  // 1. Remove trailing whitespace from each line
-  // 2. Remove trailing blank/ANSI-only lines
-  const ANSI_REGEX = /\x1b\[[0-9;]*m/g
-  const rawOutput = lastFrame() ?? ""
-  const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")) // trim trailing whitespace
-  // Find last line with visible content (not just ANSI codes and whitespace)
-  let lastContentLine = lines.length - 1
-  while (lastContentLine >= 0) {
-    const line = lines[lastContentLine]
-    if (line && line.replace(ANSI_REGEX, "").trim() !== "") break
-    lastContentLine--
-  }
-  const output = lines.slice(0, lastContentLine + 1).join("\n")
-  console.log(output)
-})
+// Run rendering (the VaultProvider handles db context now)
+const { lastFrame } = render(<Storybook />)
+// Clean up output from 500-row buffer:
+// 1. Remove trailing whitespace from each line
+// 2. Remove trailing blank/ANSI-only lines
+const ANSI_REGEX = /\x1b\[[0-9;]*m/g
+const rawOutput = lastFrame() ?? ""
+const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")) // trim trailing whitespace
+// Find last line with visible content (not just ANSI codes and whitespace)
+let lastContentLine = lines.length - 1
+while (lastContentLine >= 0) {
+  const line = lines[lastContentLine]
+  if (line && line.replace(ANSI_REGEX, "").trim() !== "") break
+  lastContentLine--
+}
+const output = lines.slice(0, lastContentLine + 1).join("\n")
+console.log(output)

@@ -16,7 +16,7 @@ import { getNodeDisplayName } from "../state.ts"
 import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
-import { useVault } from "../vault-context.tsx"
+import { useRepo } from "../vault-context.tsx"
 
 // =============================================================================
 // Memoized Tree Card Component
@@ -183,7 +183,7 @@ export const MemoizedColumnHeader = React.memo(
     showTopSpacer = false,
     showSeparator = true,
   }: MemoizedColumnHeaderProps): React.ReactElement {
-    const vault = useVault()
+    const vault = useRepo()
     const ownColor = getOwnColor(column.node)
     const headerStyle = getHeaderStyle(ownColor, isSelected, isColSelected)
 

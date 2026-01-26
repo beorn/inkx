@@ -8,7 +8,7 @@ import { Command } from "commander"
 import chalk from "chalk"
 import { join } from "path"
 import {
-  createVault,
+  createRepo,
   parseTaskMetadata,
   extractTags,
   extractMentions,
@@ -66,7 +66,7 @@ export const newCommand = new Command("new")
   .option("--json", "Output as JSON")
   .action((content, options) => {
     const rootPath = getRootPath()
-    using vault = runGenerator(createVault(rootPath))
+    using repo = runGenerator(createRepo(rootPath, { loadFiles: true }))
     const text = content.join(" ")
 
     // Parse any metadata already in the content
@@ -110,13 +110,13 @@ export const newCommand = new Command("new")
       }
 
       // Try to resolve parent by ID, path, or filename
-      const parentNode = vault.resolveNode(resolvedParent.nodeRef)
+      const parentNode = repo.resolveNode(resolvedParent.nodeRef)
       if (parentNode && parentNode.fs_path) {
         targetPath = parentNode.fs_path
         targetName = parentNode.fs_path.split("/").pop() || options.parent
-      } else if (vault.pathExists(options.parent)) {
+      } else if (repo.pathExists(options.parent)) {
         // Try as relative path
-        targetPath = join(vault.path, options.parent)
+        targetPath = join(repo.path, options.parent)
         targetName = options.parent
       } else {
         console.error(
@@ -127,12 +127,12 @@ export const newCommand = new Command("new")
       }
     } else {
       // Default to inbox
-      targetPath = getInboxPath(vault.path)
+      targetPath = getInboxPath(repo.path)
       targetName = "inbox"
     }
 
-    // Append to target file via vault (handles directory/file creation)
-    vault.appendTaskToFile(targetPath, taskLine, { ensure: true })
+    // Append to target file via repo (handles directory/file creation)
+    repo.appendTaskToFile(targetPath, taskLine, { ensure: true })
 
     if (options.json) {
       console.log(

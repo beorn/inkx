@@ -6,15 +6,15 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import { runGenerator, createVault, resolveNode } from "@km/storage"
+import { runGenerator, createRepo, type Repo } from "@km/storage"
 import * as readline from "readline"
 
 /**
  * Get the inbox node (or default to ./inbox folder)
  */
-function getInboxNode() {
+function getInboxNode(repo: Repo) {
   // Try to find @inbox or inbox folder
-  const inbox = resolveNode("inbox")
+  const inbox = repo.resolveNode("inbox")
   return inbox
 }
 
@@ -22,10 +22,10 @@ export const inboxCommand = new Command("inbox")
   .description("GTD-style inbox processing")
   .option("--json", "Output as JSON")
   .action((options: { json?: boolean }) => {
-    using vault = runGenerator(createVault())
+    using repo = runGenerator(createRepo(".", { loadFiles: true }))
 
     // List inbox items
-    const inbox = getInboxNode()
+    const inbox = getInboxNode(repo)
     if (!inbox) {
       if (options.json) {
         console.log(JSON.stringify({ items: [], count: 0 }))
@@ -36,7 +36,7 @@ export const inboxCommand = new Command("inbox")
     }
 
     // Get all tasks in inbox
-    const items = vault.getChildren(inbox.id).filter((n) => n.type === "task")
+    const items = repo.getChildren(inbox.id).filter((n) => n.type === "task")
 
     if (items.length === 0) {
       if (options.json) {
@@ -67,8 +67,8 @@ inboxCommand
   .command("process")
   .description("Interactive inbox processing")
   .action(async () => {
-    using vault = runGenerator(createVault())
-    const inbox = getInboxNode()
+    using repo = runGenerator(createRepo(".", { loadFiles: true }))
+    const inbox = getInboxNode(repo)
 
     if (!inbox) {
       console.log(chalk.yellow("No inbox found. Create an inbox/ folder."))
@@ -76,7 +76,7 @@ inboxCommand
     }
 
     // Get all tasks in inbox
-    const items = vault.getChildren(inbox.id).filter((n) => n.type === "task")
+    const items = repo.getChildren(inbox.id).filter((n) => n.type === "task")
 
     if (items.length === 0) {
       console.log(chalk.green("Inbox is empty!"))
@@ -84,8 +84,8 @@ inboxCommand
     }
 
     // Find target destinations
-    const nextNode = resolveNode("next")
-    const somedayNode = resolveNode("someday")
+    const nextNode = repo.resolveNode("next")
+    const somedayNode = repo.resolveNode("someday")
 
     const rl = readline.createInterface({
       input: process.stdin,
@@ -116,7 +116,7 @@ inboxCommand
         switch (key) {
           case "n": // Move to next
             if (nextNode) {
-              vault.moveNode(item.id, nextNode.id, 0)
+              repo.moveNode(item.id, nextNode.id, 0)
               console.log(chalk.green("→ Moved to @next"))
             } else {
               console.log(chalk.yellow("No @next board found"))
@@ -127,7 +127,7 @@ inboxCommand
 
           case "s": // Move to someday
             if (somedayNode) {
-              vault.moveNode(item.id, somedayNode.id, 0)
+              repo.moveNode(item.id, somedayNode.id, 0)
               console.log(chalk.green("→ Moved to @someday"))
             } else {
               console.log(chalk.yellow("No @someday board found"))
@@ -137,7 +137,7 @@ inboxCommand
             break
 
           case "d": // Mark done
-            vault.updateNode(item.id, {
+            repo.updateNode(item.id, {
               task_status: "done",
               task_mark: "x",
             })
@@ -146,7 +146,7 @@ inboxCommand
             break
 
           case "D": // Delete (drop)
-            vault.updateNode(item.id, {
+            repo.updateNode(item.id, {
               task_status: "dropped",
               task_mark: "-",
             })
@@ -185,8 +185,8 @@ inboxCommand
   .argument("<content...>", "Task content")
   .option("--json", "Output as JSON")
   .action((content: string[], options: { json?: boolean }) => {
-    using vault = runGenerator(createVault())
-    const inbox = getInboxNode()
+    using repo = runGenerator(createRepo(".", { loadFiles: true }))
+    const inbox = getInboxNode(repo)
 
     if (!inbox) {
       console.error(chalk.red("No inbox found. Create an inbox/ folder."))
@@ -202,8 +202,8 @@ inboxCommand
       process.exit(1)
     }
 
-    // Use vault method to append task
-    vault.appendTaskToFile(inboxPath, taskContent)
+    // Use repo method to append task
+    repo.appendTaskToFile(inboxPath, taskContent)
 
     if (options.json) {
       console.log(JSON.stringify({ added: true, content: taskContent }))

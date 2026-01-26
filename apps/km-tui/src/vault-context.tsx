@@ -1,49 +1,74 @@
 /**
- * VaultContext - Dependency Injection for Storage Operations
+ * RepoContext - Dependency Injection for Storage Operations
  *
- * Provides the Vault domain object to TUI components via React Context.
- * This enables testing with mock vaults.
+ * Provides the Repo domain object to TUI components via React Context.
+ * This enables testing with mock repos.
  *
  * @example
  * // In component
- * const vault = useVault();
- * const children = vault.getChildren(parentId);
+ * const repo = useRepo();
+ * const children = repo.getChildren(parentId);
  *
  * // In production
- * <VaultProvider vault={realVault}><Board /></VaultProvider>
+ * <RepoProvider repo={realRepo}><Board /></RepoProvider>
  *
  * // In tests
- * <VaultProvider vault={mockVault}><Board /></VaultProvider>
+ * <RepoProvider repo={mockRepo}><Board /></RepoProvider>
  */
 
 import React, { createContext, useContext, type ReactNode } from "react"
-import type { Vault } from "@km/storage"
-export type { Vault }
+import type { Repo } from "@km/storage"
+export type { Repo }
 
-const VaultContext = createContext<Vault | null>(null)
+const RepoContext = createContext<Repo | null>(null)
 
 /**
- * Hook to access the vault. Must be used within a VaultProvider.
+ * Hook to access the repo. Must be used within a RepoProvider.
  */
-export function useVault(): Vault {
-  const ctx = useContext(VaultContext)
+export function useRepo(): Repo {
+  const ctx = useContext(RepoContext)
   if (!ctx) {
-    throw new Error("useVault must be used within a VaultProvider")
+    throw new Error("useRepo must be used within a RepoProvider")
   }
   return ctx
 }
 
 /**
- * Provides the vault to child components.
+ * Provides the repo to child components.
+ */
+export function RepoProvider({
+  repo,
+  children,
+}: {
+  repo: Repo
+  children: ReactNode
+}) {
+  return <RepoContext.Provider value={repo}>{children}</RepoContext.Provider>
+}
+
+export { RepoContext }
+
+// Backward-compatible aliases (deprecated - use Repo versions)
+export { useRepo as useVault }
+export type { Repo as Vault }
+export { RepoContext as VaultContext }
+
+/**
+ * Backward-compatible VaultProvider (deprecated - use RepoProvider)
+ * Accepts either `vault` or `repo` prop for compatibility.
  */
 export function VaultProvider({
   vault,
+  repo,
   children,
 }: {
-  vault: Vault
+  vault?: Repo
+  repo?: Repo
   children: ReactNode
 }) {
-  return <VaultContext.Provider value={vault}>{children}</VaultContext.Provider>
+  const actualRepo = repo ?? vault
+  if (!actualRepo) {
+    throw new Error("VaultProvider requires either vault or repo prop")
+  }
+  return <RepoContext.Provider value={actualRepo}>{children}</RepoContext.Provider>
 }
-
-export { VaultContext }

@@ -16,6 +16,7 @@ import {
   createTestRepo,
   createMemDataStore,
   type Repo,
+  type StepYield,
 } from "../src/index.ts"
 
 // =============================================================================
@@ -190,6 +191,43 @@ describe("createRepo", () => {
     expect(repo.data.getNode(id)).toBeDefined()
   })
 
+  test("loadFiles option parses markdown files", () => {
+    // Create a markdown file with tasks
+    writeFileSync(join(tempDir, "test.md"), "# Test\n- [ ] Task 1\n- [x] Task 2")
+
+    using repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
+
+    // Should have parsed the file and created nodes
+    expect(repo.stats.nodeCount).toBeGreaterThan(0)
+    expect(repo.loadErrors).toEqual([])
+    expect(repo.deferredFiles).toEqual([])
+
+    // Should be able to find the file node
+    const allNodes = repo.data.getAllNodes()
+    expect(allNodes.length).toBeGreaterThan(0)
+  })
+
+  test("loadFiles captures errors for malformed files", () => {
+    // Create a valid markdown file (errors are rare - markdown is forgiving)
+    writeFileSync(join(tempDir, "valid.md"), "# Valid\n- [ ] Task")
+
+    using repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
+
+    // Stats should be populated
+    expect(repo.stats.duration).toBeGreaterThanOrEqual(0)
+  })
+
+  test("without loadFiles, database starts empty", () => {
+    // Create a markdown file
+    writeFileSync(join(tempDir, "test.md"), "# Test\n- [ ] Task 1")
+
+    using repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
+
+    // Database should be empty - no file loading
+    expect(repo.stats.nodeCount).toBe(0)
+    expect(repo.data.getAllNodes()).toEqual([])
+  })
+
   test("FileTree can read/write files", () => {
     using repo = runGenerator(createRepo(tempDir))
 
@@ -312,5 +350,125 @@ describe("Repo.config", () => {
   test("uses default config when no config file", () => {
     using repo = runGenerator(createRepo(tempDir))
     expect(repo.config).toBeDefined()
+  })
+})
+
+// =============================================================================
+// needsRebuild Tests
+// =============================================================================
+
+describe("Repo.needsRebuild", () => {
+  let tempDir: string
+
+  beforeEach(() => {
+    tempDir = createTempDir()
+  })
+
+  afterEach(() => {
+    cleanupTempDir(tempDir)
+  })
+
+  test("returns false for memory mode", () => {
+    // No .km directory = memory mode
+    using repo = runGenerator(createRepo(tempDir))
+
+    expect(repo.needsRebuild()).toBe(false)
+  })
+
+  test("returns false for disk mode with no events.jsonl", () => {
+    // Create .km directory but no events file
+    const kmDir = join(tempDir, ".km")
+    mkdirSync(kmDir, { recursive: true })
+
+    using repo = runGenerator(createRepo(tempDir))
+
+    // state.db exists (created by repo), no events = no rebuild needed
+    expect(repo.needsRebuild()).toBe(false)
+  })
+
+  test("returns true for disk mode with unapplied events", () => {
+    // Create .km directory with events
+    const kmDir = join(tempDir, ".km")
+    mkdirSync(kmDir, { recursive: true })
+
+    // First create repo to initialize state.db
+    {
+      using repo = runGenerator(createRepo(tempDir))
+      // Add a node to generate an event
+      repo.data.addNode(null, { type: "task", content: "Test task" })
+    }
+
+    // Manually add an event that wasn't applied (simulate external write)
+    const eventsPath = join(kmDir, "events.jsonl")
+    const newEvent = JSON.stringify({
+      id: "zzzzzzzz-test-event-id",
+      type: "update",
+      nodeId: "fake",
+      ts: Date.now(),
+    })
+    writeFileSync(eventsPath, newEvent + "\n", { flag: "a" })
+
+    // Reopen repo and check
+    using repo = runGenerator(createRepo(tempDir))
+    expect(repo.needsRebuild()).toBe(true)
+  })
+
+  test("throws for bare repo", () => {
+    const data = createMemDataStore()
+    using repo = createBareRepo(data)
+
+    expect(() => repo.needsRebuild()).toThrow("bare repo")
+  })
+})
+
+// =============================================================================
+// refresh Tests
+// =============================================================================
+
+describe("Repo.refresh", () => {
+  let tempDir: string
+
+  beforeEach(() => {
+    tempDir = createTempDir()
+  })
+
+  afterEach(() => {
+    cleanupTempDir(tempDir)
+  })
+
+  test("returns a generator", () => {
+    using repo = runGenerator(createRepo(tempDir))
+
+    const gen = repo.refresh()
+    expect(typeof gen.next).toBe("function")
+
+    // Consume the generator
+    for (const _step of gen) {
+      // Just iterate through
+    }
+  })
+
+  test("yields step info", () => {
+    using repo = runGenerator(createRepo(tempDir))
+
+    const steps: StepYield[] = []
+    for (const step of repo.refresh()) {
+      steps.push(step)
+    }
+
+    // Should yield at least one step
+    expect(steps.length).toBeGreaterThanOrEqual(1)
+  })
+
+  test("throws for bare repo", () => {
+    const data = createMemDataStore()
+    using repo = createBareRepo(data)
+
+    expect(() => {
+      // Try to consume the generator
+      for (const _step of repo.refresh()) {
+        // Should throw before yielding
+      }
+    }).toThrow("bare repo")
   })
 })

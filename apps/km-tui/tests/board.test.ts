@@ -8,7 +8,7 @@ import { createTestRenderer } from "inkx/testing"
 const render = createTestRenderer()
 import React from "react"
 import { createFakeVault } from "@km/storage"
-import type { Vault } from "@km/storage"
+import type { Repo } from "@km/storage"
 import type { KNode, NodeType } from "@km/core"
 import {
   createEmptyState,
@@ -23,13 +23,13 @@ import type { CardState } from "../src/types.ts"
 import { BoardCore } from "../src/views/Board.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createLayoutRegistry } from "../src/card-positions.ts"
-import { VaultProvider } from "../src/vault-context.tsx"
+import { RepoProvider } from "../src/vault-context.tsx"
 import type { TUIBoardState } from "../src/types.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 function renderBoardCore(
   state: TUIBoardState,
-  vault: Vault,
+  repo: Repo,
   options: { width?: number; height?: number } = {},
 ) {
   const { width = 80, height = 24 } = options
@@ -47,8 +47,8 @@ function renderBoardCore(
       handleNewItemCancel: () => {},
     },
   })
-  return React.createElement(VaultProvider, {
-    vault,
+  return React.createElement(RepoProvider, {
+    repo,
     children: boardCoreElement,
   })
 }
