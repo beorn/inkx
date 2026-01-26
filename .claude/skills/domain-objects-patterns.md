@@ -17,12 +17,14 @@ All major functionality MUST be exposed through **domain objects created by fact
 
 ## Core Domain Objects
 
-| Object    | Factory         | Lifecycle    | Purpose                     |
-| --------- | --------------- | ------------ | --------------------------- |
-| `Vault`   | `createVault()` | `Disposable` | Storage, queries, mutations |
-| `Board`   | `createBoard()` | plain object | Navigation state            |
-| `Watcher` | `vault.watch()` | `Service`    | File sync                   |
-| `Config`  | `loadConfig()`  | plain object | Vault configuration         |
+> **Note:** Per ADR-002, terminology will change: Vault → Repo, createVault → createRepo
+
+| Object    | Factory                   | Lifecycle    | Purpose                     |
+| --------- | ------------------------- | ------------ | --------------------------- |
+| `Vault`   | `createVault()`           | `Disposable` | Storage, queries, mutations |
+| `Board`   | `createBoard(data, root)` | plain object | Navigation state            |
+| `Watcher` | `vault.watch()`           | `Service`    | File sync                   |
+| `Config`  | `loadConfigObject()`      | plain object | Vault configuration         |
 
 ## Service Interface
 

@@ -572,36 +572,45 @@ describe("Vault", () => {
 
 ## Composition
 
+> **Note:** Per [ADR-002](../adr/002-domain-objects-refactor.md), terminology will change:
+> Vault → Repo, and Board will take `DataStore` instead of full Repo.
+> Examples below show both current and target patterns.
+
 ### Domain Object Dependencies
 
 ```typescript
-// Vault is independent (root of dependency tree)
-const vault = runGenerator(createVault(path))
+// Vault/Repo is independent (root of dependency tree)
+using vault = runGenerator(createVault(path))
 
-// Board depends on Vault
-const board = createBoard(vault)
+// Board takes DataStore, not full Vault/Repo (per ADR-002)
+// Target: createBoard(vault.data, rootId)
+// Current: createBoardState(rootId, rootPath)
+const board = createBoard(vault.data, rootId)
 
 // Watcher is created from Vault
 const watcher = vault.watch()
 
 // Config is independent
-const config = loadConfig(path)
+const config = loadConfigObject(path)
 ```
 
 ### Full Application Composition
 
 ```typescript
-async function main(vaultPath: string) {
+async function main(repoPath: string) {
   // Create domain objects with explicit dependencies
-  using vault = runGenerator(createVault(vaultPath))
-  using board = createBoard(vault)
-  const config = loadConfig(vaultPath)
+  using repo = runGenerator(createVault(repoPath))
+  // Board takes DataStore and rootId (per ADR-002)
+  const board = createBoard(repo.data, "@projects")
+  const config = loadConfigObject(repoPath)
 
   // Watcher is optional (only for disk mode)
-  if (vault.mode === "disk") {
-    await using watcher = vault.watch()
+  if (repo.mode === "disk") {
+    await using watcher = repo.watch()
     await watcher.start()
-    watcher.on("change", () => board.refresh())
+    watcher.on("change", (nodes) => {
+      // Handle changed nodes - update board state as needed
+    })
 
     // Run application with watcher active
     await runTui(board, config)
@@ -611,7 +620,7 @@ async function main(vaultPath: string) {
     await runTui(board, config)
   }
 
-  // vault and board cleaned up by 'using' at scope exit
+  // repo cleaned up by 'using' at scope exit
 }
 ```
 

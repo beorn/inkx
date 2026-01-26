@@ -33,7 +33,7 @@ When modifying TUI styling, see [.claude/skills/tui-design.md](.claude/skills/tu
 
 - **Selection**: `cyan` bg + `black` fg (NEVER blue/white)
 - **Status icons**: Color AND shape (colorblind-safe)
-- **Background colors**: Use inkx `backgroundColor` OR chalk.bg*, never both
+- **Background colors**: Use inkx `backgroundColor` OR chalk.bg\*, never both
 
 **Ink Framework**: See [docs/dev/ink-patterns.md](docs/dev/ink-patterns.md) for critical workarounds (fullscreen race, width management, ANSI-aware text)
 
@@ -69,12 +69,18 @@ function processVault() {
   return { path, db }
 
   // Implementation details after return (hoisted)
-  function validatePath(p: string) { /* ... */ }
-  function loadDatabase(p: string) { /* ... */ }
+  function validatePath(p: string) {
+    /* ... */
+  }
+  function loadDatabase(p: string) {
+    /* ... */
+  }
 }
 
 // Pure helpers at module level - BOTTOM of file
-function formatDate(d: Date): string { /* ... */ }
+function formatDate(d: Date): string {
+  /* ... */
+}
 ```
 
 **Short lambdas (1-3 lines) are fine inline.** Keep functions at top only when they're the primary export or very short and used once.
@@ -492,6 +498,9 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 
 All major functionality MUST be exposed through **domain objects created by factory functions**.
 
+> **Note:** Per [ADR-002](docs/adr/002-domain-objects-refactor.md), terminology will change:
+> Vault → Repo, createVault → createRepo. See ADR-002 Phase 6 for migration plan.
+
 **Principles:**
 
 - **Factory functions** (not classes) - return plain objects with methods
@@ -501,14 +510,17 @@ All major functionality MUST be exposed through **domain objects created by fact
 
 **Core domain objects:**
 
-| Object    | Factory         | Lifecycle    | Purpose                     |
-| --------- | --------------- | ------------ | --------------------------- |
-| `Vault`   | `createVault()` | `Disposable` | Storage, queries, mutations |
-| `Board`   | `createBoard()` | plain object | Navigation state            |
-| `Watcher` | `vault.watch()` | `Service`    | File sync                   |
-| `Config`  | `loadConfig()`  | plain object | Vault configuration         |
+| Object    | Factory                   | Lifecycle    | Purpose                     |
+| --------- | ------------------------- | ------------ | --------------------------- |
+| `Vault`   | `createVault()`           | `Disposable` | Storage, queries, mutations |
+| `Board`   | `createBoard(data, root)` | plain object | Navigation state (see note) |
+| `Watcher` | `vault.watch()`           | `Service`    | File sync                   |
+| `Config`  | `loadConfigObject()`      | plain object | Vault configuration         |
 
-See [.claude/skills/domain-objects-patterns.md](.claude/skills/domain-objects-patterns.md) for code examples and [docs/dev/domain-objects.md](docs/dev/domain-objects.md) for architecture details
+> **Board note:** ADR-002 specifies `createBoard(data: DataStore, rootId)`. Current implementation
+> uses `createBoardState()` + `boardReducer()` pattern pending migration.
+
+See [.claude/skills/domain-objects-patterns.md](.claude/skills/domain-objects-patterns.md) for code examples and [docs/adr/002-domain-objects-refactor.md](docs/adr/002-domain-objects-refactor.md) for architecture details
 
 ### 16. Version Info
 
