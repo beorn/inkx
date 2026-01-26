@@ -309,6 +309,7 @@ This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for
 
 - **ALWAYS** use `/bd work <id>` before starting work (claims the bead for your session)
 - **ALWAYS** close beads immediately when done (`/bd close <id>`)
+- **NEVER** edit `.beads/` files directly — always use `bd` commands
 - **NEVER** use bare `bd update --status in_progress` — it breaks session coordination
 
 **Common operations:**
