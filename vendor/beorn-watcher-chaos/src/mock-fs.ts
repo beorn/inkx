@@ -88,17 +88,17 @@ export interface ErrorInjection {
  * const fs = new MockFileSystem();
  *
  * // Setup initial state
- * fs.mkdirSync("/vault", { recursive: true });
- * fs.writeFileSync("/vault/test.md", "# Hello");
+ * fs.mkdirSync("/repo", { recursive: true });
+ * fs.writeFileSync("/repo/test.md", "# Hello");
  *
  * // Inject errors
  * fs.setErrorInjection({
- *   permissionDenied: ["/vault/secret.md"],
- *   ioError: ["/vault/corrupt.md"],
+ *   permissionDenied: ["/repo/secret.md"],
+ *   ioError: ["/repo/corrupt.md"],
  * });
  *
  * // Use as drop-in fs replacement
- * const content = fs.readFileSync("/vault/test.md", "utf8");
+ * const content = fs.readFileSync("/repo/test.md", "utf8");
  * ```
  */
 export class MockFileSystem implements FileSystemOps {

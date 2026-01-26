@@ -27,7 +27,7 @@ const DEFAULT_CONFIG: ChaosWatcherConfig = {
 
 export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
   private config: ChaosWatcherConfig;
-  private _vaultPath: string = "";
+  private _repoPath: string = "";
   private _status: ServiceStatus = "stopped";
   private pendingEvents: ScheduledEvent[] = [];
   private emittedEvents: FsEvent[] = [];
@@ -49,8 +49,8 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
     if (config.scenario) {
       this.scenario = config.scenario;
     }
-    if (config.vaultPath) {
-      this._vaultPath = config.vaultPath;
+    if (config.repoPath) {
+      this._repoPath = config.repoPath;
     }
   }
 
@@ -60,8 +60,8 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
   }
 
   /** Vault path being watched */
-  get vaultPath(): string {
-    return this._vaultPath;
+  get repoPath(): string {
+    return this._repoPath;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -70,17 +70,17 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
 
   /**
    * Start the watcher.
-   * @param vaultPath - Optional path to watch (uses config.vaultPath if not provided)
+   * @param repoPath - Optional path to watch (uses config.repoPath if not provided)
    */
-  async start(vaultPath?: string): Promise<void> {
+  async start(repoPath?: string): Promise<void> {
     if (this._status !== "stopped") {
       return;
     }
 
     this._status = "starting";
 
-    if (vaultPath) {
-      this._vaultPath = vaultPath;
+    if (repoPath) {
+      this._repoPath = repoPath;
     }
 
     // Handle init gap scenario
@@ -214,7 +214,7 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
   simulateQueueOverflow(): void {
     this.emit("sync", {
       paths: [],
-      directories: [this.vaultPath],
+      directories: [this.repoPath],
       overflow: true,
     });
   }

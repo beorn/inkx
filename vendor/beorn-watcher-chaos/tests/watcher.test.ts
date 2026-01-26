@@ -24,7 +24,7 @@ describe("ChaosWatcher", () => {
       watcher.on("ready", () => {
         ready = true;
       });
-      watcher.start("/vault");
+      watcher.start("/repo");
       await new Promise((r) => setImmediate(r));
       expect(ready).toBe(true);
     });
@@ -35,40 +35,40 @@ describe("ChaosWatcher", () => {
         syncData = data;
       });
 
-      watcher.start("/vault");
-      watcher.inject({ type: "change", path: "/vault/test.md" });
+      watcher.start("/repo");
+      watcher.inject({ type: "change", path: "/repo/test.md" });
       await watcher.flush();
 
       expect(syncData).not.toBeNull();
-      expect(syncData!.paths).toContain("/vault/test.md");
-      expect(syncData!.directories).toContain("/vault");
+      expect(syncData!.paths).toContain("/repo/test.md");
+      expect(syncData!.directories).toContain("/repo");
     });
 
     it("tracks emitted events", async () => {
-      watcher.start("/vault");
-      watcher.inject({ type: "change", path: "/vault/test.md" });
+      watcher.start("/repo");
+      watcher.inject({ type: "change", path: "/repo/test.md" });
       await watcher.flush();
 
       expect(watcher.getEmittedEvents()).toHaveLength(1);
-      expect(watcher.getEmittedEvents()[0]!.path).toBe("/vault/test.md");
+      expect(watcher.getEmittedEvents()[0]!.path).toBe("/repo/test.md");
     });
   });
 
   describe("in-flight writes", () => {
     it("skips in-flight paths", async () => {
-      watcher.start("/vault");
-      watcher.markInFlight("/vault/test.md");
-      watcher.inject({ type: "change", path: "/vault/test.md" });
+      watcher.start("/repo");
+      watcher.markInFlight("/repo/test.md");
+      watcher.inject({ type: "change", path: "/repo/test.md" });
       await watcher.flush();
 
       expect(watcher.getEmittedEvents()).toHaveLength(0);
     });
 
     it("processes after clearing in-flight", async () => {
-      watcher.start("/vault");
-      watcher.markInFlight("/vault/test.md");
-      watcher.clearInFlight("/vault/test.md");
-      watcher.inject({ type: "change", path: "/vault/test.md" });
+      watcher.start("/repo");
+      watcher.markInFlight("/repo/test.md");
+      watcher.clearInFlight("/repo/test.md");
+      watcher.inject({ type: "change", path: "/repo/test.md" });
       await watcher.flush();
 
       expect(watcher.getEmittedEvents()).toHaveLength(1);
@@ -78,10 +78,10 @@ describe("ChaosWatcher", () => {
   describe("scenarios", () => {
     it("NO_CHAOS passes events unchanged", async () => {
       watcher.setScenario(NO_CHAOS);
-      watcher.start("/vault");
+      watcher.start("/repo");
       watcher.injectBatch([
-        { type: "change", path: "/vault/a.md" },
-        { type: "change", path: "/vault/b.md" },
+        { type: "change", path: "/repo/a.md" },
+        { type: "change", path: "/repo/b.md" },
       ]);
       await watcher.flush();
 
@@ -92,10 +92,10 @@ describe("ChaosWatcher", () => {
     it("queueOverflow drops events", async () => {
       // 100% drop rate for deterministic test
       watcher.setScenario(queueOverflow(1.0));
-      watcher.start("/vault");
+      watcher.start("/repo");
       watcher.injectBatch([
-        { type: "change", path: "/vault/a.md" },
-        { type: "change", path: "/vault/b.md" },
+        { type: "change", path: "/repo/a.md" },
+        { type: "change", path: "/repo/b.md" },
       ]);
       await watcher.flush();
 
@@ -105,8 +105,8 @@ describe("ChaosWatcher", () => {
 
     it("editorAtomic converts change to unlink+add sequence", async () => {
       watcher.setScenario(editorAtomic(10));
-      watcher.start("/vault");
-      watcher.inject({ type: "change", path: "/vault/test.md" });
+      watcher.start("/repo");
+      watcher.inject({ type: "change", path: "/repo/test.md" });
       await watcher.flush();
 
       const events = watcher.getEmittedEvents();
@@ -119,30 +119,30 @@ describe("ChaosWatcher", () => {
 
     it("fseventsCoalesce merges many file events to directory event", async () => {
       watcher.setScenario(fseventsCoalesce(3)); // Coalesce when > 3 files
-      watcher.start("/vault");
+      watcher.start("/repo");
 
       // Inject 5 file changes in same directory
       watcher.injectBatch([
-        { type: "change", path: "/vault/dir/a.md" },
-        { type: "change", path: "/vault/dir/b.md" },
-        { type: "change", path: "/vault/dir/c.md" },
-        { type: "change", path: "/vault/dir/d.md" },
-        { type: "change", path: "/vault/dir/e.md" },
+        { type: "change", path: "/repo/dir/a.md" },
+        { type: "change", path: "/repo/dir/b.md" },
+        { type: "change", path: "/repo/dir/c.md" },
+        { type: "change", path: "/repo/dir/d.md" },
+        { type: "change", path: "/repo/dir/e.md" },
       ]);
       await watcher.flush();
 
       // Should coalesce to single directory event
       const events = watcher.getEmittedEvents();
       expect(events).toHaveLength(1);
-      expect(events[0]!.path).toBe("/vault/dir");
+      expect(events[0]!.path).toBe("/repo/dir");
     });
   });
 
   describe("virtual time", () => {
     it("advanceTime processes delayed events", async () => {
       watcher.setScenario(slowDisk(100, 100)); // Fixed 100ms delay
-      watcher.start("/vault");
-      watcher.inject({ type: "change", path: "/vault/test.md" });
+      watcher.start("/repo");
+      watcher.inject({ type: "change", path: "/repo/test.md" });
 
       // Before advancing time, event is pending
       expect(watcher.getEmittedEvents()).toHaveLength(0);
@@ -155,7 +155,7 @@ describe("ChaosWatcher", () => {
     });
 
     it("getVirtualTime tracks time advancement", async () => {
-      watcher.start("/vault");
+      watcher.start("/repo");
       expect(watcher.getVirtualTime()).toBe(0);
 
       await watcher.advanceTime(100);
@@ -168,8 +168,8 @@ describe("ChaosWatcher", () => {
 
   describe("reset", () => {
     it("clears all state", async () => {
-      watcher.start("/vault");
-      watcher.inject({ type: "change", path: "/vault/test.md" });
+      watcher.start("/repo");
+      watcher.inject({ type: "change", path: "/repo/test.md" });
       await watcher.flush();
 
       expect(watcher.getEmittedEvents()).toHaveLength(1);
@@ -239,24 +239,24 @@ describe("Service interface", () => {
 
   it("status transitions to running after start", async () => {
     const watcher = createChaosWatcher();
-    await watcher.start("/vault");
+    await watcher.start("/repo");
     expect(watcher.status).toBe("running");
   });
 
   it("status transitions to stopped after stop", async () => {
     const watcher = createChaosWatcher();
-    await watcher.start("/vault");
+    await watcher.start("/repo");
     await watcher.stop();
     expect(watcher.status).toBe("stopped");
   });
 
   it("start is idempotent (no-op when running)", async () => {
     const watcher = createChaosWatcher();
-    await watcher.start("/vault");
+    await watcher.start("/repo");
     expect(watcher.status).toBe("running");
 
     // Second start should be no-op
-    await watcher.start("/vault");
+    await watcher.start("/repo");
     expect(watcher.status).toBe("running");
   });
 
@@ -271,22 +271,22 @@ describe("Service interface", () => {
 
   it("supports AsyncDisposable", async () => {
     const watcher = createChaosWatcher();
-    await watcher.start("/vault");
+    await watcher.start("/repo");
     expect(watcher.status).toBe("running");
 
     await watcher[Symbol.asyncDispose]();
     expect(watcher.status).toBe("stopped");
   });
 
-  it("can use vaultPath from config", async () => {
-    const watcher = createChaosWatcher({ vaultPath: "/configured/vault" });
-    await watcher.start(); // No vaultPath argument
-    expect(watcher.vaultPath).toBe("/configured/vault");
+  it("can use repoPath from config", async () => {
+    const watcher = createChaosWatcher({ repoPath: "/configured/repo" });
+    await watcher.start(); // No repoPath argument
+    expect(watcher.repoPath).toBe("/configured/repo");
   });
 
-  it("start argument overrides config vaultPath", async () => {
-    const watcher = createChaosWatcher({ vaultPath: "/configured/vault" });
-    await watcher.start("/override/vault");
-    expect(watcher.vaultPath).toBe("/override/vault");
+  it("start argument overrides config repoPath", async () => {
+    const watcher = createChaosWatcher({ repoPath: "/configured/repo" });
+    await watcher.start("/override/repo");
+    expect(watcher.repoPath).toBe("/override/repo");
   });
 });

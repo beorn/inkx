@@ -108,8 +108,8 @@ export interface SyncData {
  * Implement this interface to create a drop-in replacement watcher.
  */
 export interface WatcherInterface extends EventEmitter, Service {
-  /** Start watching a directory (vaultPath optional if set via config) */
-  start(vaultPath?: string): Promise<void>;
+  /** Start watching a directory (repoPath optional if set via config) */
+  start(repoPath?: string): Promise<void>;
 
   /** Stop watching */
   stop(): Promise<void>;
@@ -139,7 +139,7 @@ export interface ChaosWatcherConfig {
   /** Base debounce time (ms) */
   debounceMs: number;
   /** Vault path to watch (can also be set in start()) */
-  vaultPath?: string;
+  repoPath?: string;
   /** Chaos scenario to apply */
   scenario?: ChaosScenario;
   /** Custom event transformer */
