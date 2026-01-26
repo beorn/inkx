@@ -41,6 +41,7 @@ import { getAllNodes } from "../db-queries/utils.ts"
 import { getLinksTo } from "../db-queries/task-queries.ts"
 import { getBacklinks, type Link } from "../db-links.ts"
 import { moveNode, updateNode, deleteNode, addNode, type StorageMode } from "../db-ops.ts"
+import { createDBDataStore, type DataStore, type HasDatabase } from "../data-store.ts"
 
 // =============================================================================
 // Types
@@ -117,6 +118,12 @@ export interface TestEnv {
   mode: TestMode
   /** Vault-like object wrapping singleton functions bound to test DB */
   vault: TestVault
+  /**
+   * DataStore interface for ergonomic test access.
+   * Preferred API - use data.getAllNodes() instead of getAllNodes(db).
+   * Access raw db via data.database when needed.
+   */
+  data: DataStore & HasDatabase
 }
 
 /**
@@ -146,8 +153,9 @@ export interface TestEnv {
  */
 export async function withTestEnv<T>(
   fn: (env: TestEnv) => T | Promise<T>,
+  options?: { mode?: TestMode },
 ): Promise<T> {
-  const mode = getTestMode()
+  const mode = options?.mode ?? getTestMode()
   const testId = ulid()
   const testDir = join("/tmp", `kmtest-${testId}`)
   const vaultDir = join(testDir, "vault")
@@ -193,7 +201,11 @@ export async function withTestEnv<T>(
     },
   }
 
-  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault }
+  // Create DataStore wrapping the test db for ergonomic access
+  // Use storageMode so DB→FS sync events fire when appropriate
+  const data = createDBDataStore(db, storageMode)
+
+  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault, data }
 
   try {
     // Run with both context-local db and kmDir
@@ -211,8 +223,11 @@ export async function withTestEnv<T>(
  * Synchronous version of withTestEnv for non-async tests.
  * Same TEST_MODE behavior as withTestEnv.
  */
-export function withTestEnvSync<T>(fn: (env: TestEnv) => T): T {
-  const mode = getTestMode()
+export function withTestEnvSync<T>(
+  fn: (env: TestEnv) => T,
+  options?: { mode?: TestMode },
+): T {
+  const mode = options?.mode ?? getTestMode()
   const testId = ulid()
   const testDir = join("/tmp", `kmtest-${testId}`)
   const vaultDir = join(testDir, "vault")
@@ -258,7 +273,11 @@ export function withTestEnvSync<T>(fn: (env: TestEnv) => T): T {
     },
   }
 
-  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault }
+  // Create DataStore wrapping the test db for ergonomic access
+  // Use storageMode so DB→FS sync events fire when appropriate
+  const data = createDBDataStore(db, storageMode)
+
+  const env: TestEnv = { testId, testDir, kmDir, vaultDir, db, mode, vault, data }
 
   try {
     // Run with both context-local db and kmDir

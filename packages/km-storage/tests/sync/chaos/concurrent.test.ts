@@ -130,11 +130,10 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
   }
 }
 
-import { getAllNodes, updateNode, applyEventWithDb } from "@km/storage"
+import { withTestEnv, type DataStore, type HasDatabase } from "@km/storage"
 
 import { setFsSync } from "../../../src/emit.ts"
 import { SyncManager } from "../../../src/watch/sync.ts"
-import { withTestEnv } from "@km/storage"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Suite
@@ -147,7 +146,8 @@ import { withTestEnv } from "@km/storage"
 async function withConcurrentTestEnv(
   fn: (ctx: {
     vaultDir: string
-    db: import("bun:sqlite").Database
+    /** DataStore for ergonomic access - use data.getAllNodes(), data.updateNode() */
+    data: DataStore & HasDatabase
     syncManager: SyncManager
     testWatcher: TestWatcher
     events: EventEmitter
@@ -169,9 +169,11 @@ async function withConcurrentTestEnv(
   })
 
   try {
-    await withTestEnv(async ({ vaultDir, db }) => {
-      // Create event emitter for test observation
-      const events = new EventEmitter()
+    // Use "real" mode to get disk storage mode, which triggers DB→FS sync events
+    await withTestEnv(
+      async ({ vaultDir, data }) => {
+        // Create event emitter for test observation
+        const events = new EventEmitter()
 
       // Create our controllable test watcher
       const testWatcher = new TestWatcher(100) // 100ms debounce
@@ -179,7 +181,7 @@ async function withConcurrentTestEnv(
       // Create sync manager with our test watcher injected
       // This bypasses chokidar entirely, giving us deterministic control
       const syncManager = new SyncManager({
-        db,
+        db: data.database, // Use raw db from DataStore's HasDatabase capability
         vaultPath: vaultDir,
         debounceFs: 100,
         debounceApply: 50,
@@ -212,7 +214,7 @@ async function withConcurrentTestEnv(
       try {
         await fn({
           vaultDir,
-          db,
+          data,
           syncManager,
           testWatcher,
           events,
@@ -224,7 +226,9 @@ async function withConcurrentTestEnv(
         setFsSync(null)
         await syncManager.stop()
       }
-    })
+      },
+      { mode: "real" },
+    )
   } finally {
     // Restore real timers AFTER cleanup
     clock.uninstall()
@@ -237,7 +241,7 @@ describe("Concurrent Edit Tests", () => {
       withConcurrentTestEnv(
         async ({
           vaultDir,
-          db,
+          data,
           syncManager,
           advanceTime,
           flushTimers,
@@ -252,12 +256,12 @@ describe("Concurrent Edit Tests", () => {
           syncManager.start()
 
           // Find tasks
-          let allNodes = getAllNodes(db)
+          let allNodes = data.getAllNodes()
           const task1 = allNodes.find((n) => n.content === "Task 1")
           expect(task1).toBeDefined()
 
           // DB edit: mark task 1 as done
-          updateNode(db, task1!.id, { task_status: "done" })
+          data.updateNode(task1!.id, { task_status: "done" })
 
           // Advance time to allow DB→FS sync
           await advanceTime(100)
@@ -273,7 +277,7 @@ describe("Concurrent Edit Tests", () => {
           await flushTimers()
 
           // Verify final state in DB
-          allNodes = getAllNodes(db)
+          allNodes = data.getAllNodes()
           const tasks = allNodes.filter((n) => n.type === "task")
 
           // Should have task 1 (done), task 2 (todo), and task 3 (new)
@@ -288,7 +292,7 @@ describe("Concurrent Edit Tests", () => {
       withConcurrentTestEnv(
         async ({
           vaultDir,
-          db,
+          data,
           syncManager,
           advanceTime,
           flushTimers,
@@ -312,21 +316,21 @@ describe("Concurrent Edit Tests", () => {
           await advanceTime(300)
 
           // Find the original task and update it
-          let allNodes = getAllNodes(db)
+          let allNodes = data.getAllNodes()
           const originalTask = allNodes.find(
             (n) => n.content === "Original task",
           )
           expect(originalTask).toBeDefined()
 
           // DB edit: mark original task as done
-          updateNode(db, originalTask!.id, { task_status: "done" })
+          data.updateNode(originalTask!.id, { task_status: "done" })
 
           // Advance time for sync
           await advanceTime(300)
           await flushTimers()
 
           // Verify final state
-          allNodes = getAllNodes(db)
+          allNodes = data.getAllNodes()
           const tasks = allNodes.filter((n) => n.type === "task")
           expect(tasks.length).toBeGreaterThanOrEqual(2)
 
@@ -342,7 +346,7 @@ describe("Concurrent Edit Tests", () => {
       withConcurrentTestEnv(
         async ({
           vaultDir,
-          db,
+          data,
           syncManager,
           advanceTime,
           flushTimers,
@@ -371,7 +375,7 @@ describe("Concurrent Edit Tests", () => {
           await flushTimers()
 
           // Verify final state
-          const allNodes = getAllNodes(db)
+          const allNodes = data.getAllNodes()
           const task = allNodes.find((n) => n.type === "task")
           expect(task?.content).toBe("Edit 10")
 
@@ -382,7 +386,7 @@ describe("Concurrent Edit Tests", () => {
 
     test("many rapid DB edits are coalesced", () =>
       withConcurrentTestEnv(
-        async ({ vaultDir, syncManager, advanceTime, flushTimers }) => {
+        async ({ vaultDir, data, syncManager, advanceTime, flushTimers }) => {
           // Create test file
           const testFile = join(vaultDir, "tasks.md")
           writeFileSync(testFile, "# Tasks\n\n- [ ] Task\n")
@@ -391,13 +395,13 @@ describe("Concurrent Edit Tests", () => {
           await syncManager.syncFromFs()
 
           // Find the task
-          const allNodes = getAllNodes(db)
+          const allNodes = data.getAllNodes()
           const task = allNodes.find((n) => n.type === "task")
           expect(task).toBeDefined()
 
           // Make 10 rapid DB edits
           for (let i = 1; i <= 10; i++) {
-            updateNode(db, task!.id, { content: `DB Edit ${i}` })
+            data.updateNode(task!.id, { content: `DB Edit ${i}` })
           }
 
           // Advance time for write queue to flush
@@ -418,6 +422,7 @@ describe("Concurrent Edit Tests", () => {
       withConcurrentTestEnv(
         async ({
           vaultDir,
+          data,
           syncManager,
           advanceTime,
           flushTimers,
@@ -432,12 +437,12 @@ describe("Concurrent Edit Tests", () => {
           syncManager.start()
 
           // Find the task
-          let allNodes = getAllNodes(db)
+          let allNodes = data.getAllNodes()
           const task = allNodes.find((n) => n.type === "task")
           expect(task).toBeDefined()
 
           // Simultaneous edits (as close as we can get)
-          updateNode(db, task!.id, { content: "DB version" })
+          data.updateNode(task!.id, { content: "DB version" })
           writeAndTrigger(testFile, "# Tasks\n\n- [ ] FS version\n")
 
           // Advance time for sync to settle
@@ -446,7 +451,7 @@ describe("Concurrent Edit Tests", () => {
 
           // System should not have crashed
           // Final state depends on conflict resolution strategy
-          allNodes = getAllNodes(db)
+          allNodes = data.getAllNodes()
           const finalTask = allNodes.find((n) => n.type === "task")
           expect(finalTask).toBeDefined()
 
@@ -460,6 +465,7 @@ describe("Concurrent Edit Tests", () => {
       withConcurrentTestEnv(
         async ({
           vaultDir,
+          data,
           syncManager,
           advanceTime,
           flushTimers,
@@ -474,13 +480,13 @@ describe("Concurrent Edit Tests", () => {
           syncManager.start()
 
           // Find the task
-          let allNodes = getAllNodes(db)
+          let allNodes = data.getAllNodes()
           const task = allNodes.find((n) => n.content === "Task to delete")
           expect(task).toBeDefined()
           const taskId = task!.id
 
           // Edit task in DB
-          updateNode(db, taskId, { content: "Edited task" })
+          data.updateNode(taskId, { content: "Edited task" })
 
           // Delete from FS (overwrite file without the task)
           writeAndTrigger(testFile, "# Tasks\n\n")
@@ -490,7 +496,7 @@ describe("Concurrent Edit Tests", () => {
           await flushTimers()
 
           // System should handle gracefully (no crash)
-          allNodes = getAllNodes(db)
+          allNodes = data.getAllNodes()
           // Task may or may not exist depending on timing
           // The important thing is no crash occurred
           expect(true).toBe(true)
@@ -503,6 +509,7 @@ describe("Concurrent Edit Tests", () => {
       withConcurrentTestEnv(
         async ({
           vaultDir,
+          data,
           syncManager,
           advanceTime,
           flushTimers,
@@ -519,14 +526,14 @@ describe("Concurrent Edit Tests", () => {
           syncManager.start()
 
           // Find tasks
-          let allNodes = getAllNodes(db)
+          let allNodes = data.getAllNodes()
           const task1 = allNodes.find((n) => n.content === "Task 1")
           const task2 = allNodes.find((n) => n.content === "Task 2")
           expect(task1).toBeDefined()
           expect(task2).toBeDefined()
 
           // Edit task1 in DB, task2 in FS
-          updateNode(db, task1!.id, { task_status: "done" })
+          data.updateNode(task1!.id, { task_status: "done" })
           writeAndTrigger(file2, "# File 2\n\n- [x] Task 2 modified\n")
 
           // Advance time for sync
@@ -534,7 +541,7 @@ describe("Concurrent Edit Tests", () => {
           await flushTimers()
 
           // Verify both edits took effect
-          allNodes = getAllNodes(db)
+          allNodes = data.getAllNodes()
 
           const finalTask1 = allNodes.find((n) => n.content === "Task 1")
           expect(finalTask1?.task_status).toBe("done")
@@ -547,73 +554,64 @@ describe("Concurrent Edit Tests", () => {
 
   describe("Data Integrity", () => {
     test("no data loss during interleaved edits", () =>
-      withConcurrentTestEnv(
-        async ({
-          vaultDir,
-          syncManager,
-          advanceTime,
-          flushTimers,
-          writeAndTrigger,
-        }) => {
-          // Create test file with multiple tasks
-          const testFile = join(vaultDir, "tasks.md")
-          writeFileSync(
-            testFile,
-            `# Tasks
+      withConcurrentTestEnv(async (ctx) => {
+        // Create test file with multiple tasks
+        const testFile = join(ctx.vaultDir, "tasks.md")
+        writeFileSync(
+          testFile,
+          `# Tasks
 
 - [ ] Task A
 - [ ] Task B
 - [ ] Task C
 `,
-          )
+        )
 
-          // Initial sync
-          await syncManager.syncFromFs()
-          syncManager.start()
+        // Initial sync
+        await ctx.syncManager.syncFromFs()
+        ctx.syncManager.start()
 
-          // Find task B
-          let allNodes = getAllNodes(db)
-          const taskB = allNodes.find((n) => n.content === "Task B")
-          expect(taskB).toBeDefined()
+        // Find task B
+        let allNodes = ctx.data.getAllNodes()
+        const taskB = allNodes.find((n) => n.content === "Task B")
+        expect(taskB).toBeDefined()
 
-          // Edit task B in DB
-          updateNode(db, taskB!.id, { task_status: "done" })
+        // Edit task B in DB
+        ctx.data.updateNode(taskB!.id, { task_status: "done" })
 
-          // Advance time
-          await advanceTime(100)
+        // Advance time
+        await ctx.advanceTime(100)
 
-          // FS edit: add task D
-          const content = readFileSync(testFile, "utf-8")
-          writeAndTrigger(testFile, content + "- [ ] Task D\n")
+        // FS edit: add task D
+        const content = readFileSync(testFile, "utf-8")
+        ctx.writeAndTrigger(testFile, content + "- [ ] Task D\n")
 
-          // Advance time for sync
-          await advanceTime(500)
-          await flushTimers()
+        // Advance time for sync
+        await ctx.advanceTime(500)
+        await ctx.flushTimers()
 
-          // Verify no data loss
-          allNodes = getAllNodes(db)
-          const tasks = allNodes.filter((n) => n.type === "task")
-          const taskContents = tasks.map((t) => t.content)
+        // Verify no data loss
+        allNodes = ctx.data.getAllNodes()
+        const tasks = allNodes.filter((n) => n.type === "task")
+        const taskContents = tasks.map((t) => t.content)
 
-          // All original tasks should still exist
-          expect(taskContents).toContain("Task A")
-          expect(taskContents).toContain("Task B")
-          expect(taskContents).toContain("Task C")
+        // All original tasks should still exist
+        expect(taskContents).toContain("Task A")
+        expect(taskContents).toContain("Task B")
+        expect(taskContents).toContain("Task C")
 
-          // Task B should be done
-          const finalTaskB = tasks.find((t) => t.content === "Task B")
-          expect(finalTaskB?.task_status).toBe("done")
-        },
-      ))
+        // Task B should be done
+        const finalTaskB = tasks.find((t) => t.content === "Task B")
+        expect(finalTaskB?.task_status).toBe("done")
+      }))
 
     test("file structure preserved during concurrent edits", () =>
-      withConcurrentTestEnv(
-        async ({ vaultDir, syncManager, advanceTime, flushTimers }) => {
-          // Create test file with sections
-          const testFile = join(vaultDir, "project.md")
-          writeFileSync(
-            testFile,
-            `# Project
+      withConcurrentTestEnv(async (ctx) => {
+        // Create test file with sections
+        const testFile = join(ctx.vaultDir, "project.md")
+        writeFileSync(
+          testFile,
+          `# Project
 
 ## Active
 
@@ -627,31 +625,30 @@ describe("Concurrent Edit Tests", () => {
 
 Important notes here.
 `,
-          )
+        )
 
-          // Initial sync
-          await syncManager.syncFromFs()
-          syncManager.start()
+        // Initial sync
+        await ctx.syncManager.syncFromFs()
+        ctx.syncManager.start()
 
-          // Find active task
-          const allNodes = getAllNodes(db)
-          const activeTask = allNodes.find((n) => n.content === "Active task")
-          expect(activeTask).toBeDefined()
+        // Find active task
+        const allNodes = ctx.data.getAllNodes()
+        const activeTask = allNodes.find((n) => n.content === "Active task")
+        expect(activeTask).toBeDefined()
 
-          // Edit in DB
-          updateNode(db, activeTask!.id, { task_status: "done" })
+        // Edit in DB
+        ctx.data.updateNode(activeTask!.id, { task_status: "done" })
 
-          // Advance time for sync
-          await advanceTime(300)
-          await flushTimers()
+        // Advance time for sync
+        await ctx.advanceTime(300)
+        await ctx.flushTimers()
 
-          // Verify file structure preserved
-          const content = readFileSync(testFile, "utf-8")
-          expect(content).toContain("## Active")
-          expect(content).toContain("## Completed")
-          expect(content).toContain("## Notes")
-          expect(content).toContain("Important notes here")
-        },
-      ))
+        // Verify file structure preserved
+        const content = readFileSync(testFile, "utf-8")
+        expect(content).toContain("## Active")
+        expect(content).toContain("## Completed")
+        expect(content).toContain("## Notes")
+        expect(content).toContain("Important notes here")
+      }))
   })
 })

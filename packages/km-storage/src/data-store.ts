@@ -26,6 +26,7 @@ import {
   updateNode as dbUpdateNode,
   deleteNode as dbDeleteNode,
   moveNode as dbMoveNode,
+  type StorageMode,
 } from "./db-ops.ts"
 import { search as dbSearch } from "./db-queries/full-text-search.ts"
 
@@ -377,9 +378,13 @@ export function createMemDataStore(): DataStore & HasDatabase {
  * or createDiskDataStore() instead.
  *
  * @param db - SQLite database instance (caller manages lifecycle)
+ * @param mode - Storage mode for mutations ("memory" skips events, "disk" emits events for sync)
  * @returns DataStore + HasDatabase (no event sourcing - caller manages)
  */
-export function createDBDataStore(db: Database): DataStore & HasDatabase {
+export function createDBDataStore(
+  db: Database,
+  mode: StorageMode = "memory",
+): DataStore & HasDatabase {
   let closed = false
 
   return {
@@ -410,22 +415,22 @@ export function createDBDataStore(db: Database): DataStore & HasDatabase {
 
     addNode(parentId, node) {
       ensureOpen()
-      return dbAddNode(db, parentId, node, "memory")
+      return dbAddNode(db, parentId, node, mode)
     },
 
     updateNode(id, changes) {
       ensureOpen()
-      dbUpdateNode(db, id, changes, "memory")
+      dbUpdateNode(db, id, changes, mode)
     },
 
     deleteNode(id) {
       ensureOpen()
-      dbDeleteNode(db, id, "memory")
+      dbDeleteNode(db, id, mode)
     },
 
     moveNode(id, newParentId, position) {
       ensureOpen()
-      dbMoveNode(db, id, newParentId, position, "memory")
+      dbMoveNode(db, id, newParentId, position, mode)
     },
 
     close() {
