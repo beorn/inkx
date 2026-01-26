@@ -296,12 +296,12 @@ Don't just fix your command and move on — fix the docs so next time you (or an
 
 This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
 
-**When user mentions beads, bd, or issue tracking → use `/bd` skill.**
+**When user mentions beads, bd, or issue tracking → use `/bd` command.**
 
-| Context | Command |
-|---------|---------|
-| Claude Code session | `/bd <action>` (skill) |
-| Bash scripts/quick CLI | `bd <action>` (CLI) |
+| Context | Command | Notes |
+|---------|---------|-------|
+| Claude Code | `/bd <action>` | Slash command (invokes bd CLI internally) |
+| Bash | `bd <action>` | Direct CLI usage |
 
 **Run `/bd` for the full command reference.**
 
