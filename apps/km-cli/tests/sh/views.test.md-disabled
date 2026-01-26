@@ -1,3 +1,8 @@
+---
+mdtest:
+  plugin: ../mdtest-sh-plugin.ts
+---
+
 # km sh - View Mode Tests
 
 Tests for TUI view modes and folding commands using `km sh`.

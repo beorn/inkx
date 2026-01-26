@@ -1,3 +1,8 @@
+---
+mdtest:
+  plugin: ../mdtest-sh-plugin.ts
+---
+
 # km sh - JSON Mode Tests
 
 Tests for `km sh --json` mode which outputs NDJSON for automation.

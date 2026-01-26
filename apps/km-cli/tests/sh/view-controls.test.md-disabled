@@ -1,3 +1,8 @@
+---
+mdtest:
+  plugin: ../mdtest-sh-plugin.ts
+---
+
 # km sh - View Controls Tests
 
 Tests for TUI view controls (fold, collapse, depth, content lines) using `km sh`.

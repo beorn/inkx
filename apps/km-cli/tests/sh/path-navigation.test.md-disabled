@@ -1,3 +1,8 @@
+---
+mdtest:
+  plugin: ../mdtest-sh-plugin.ts
+---
+
 # km sh - Path Navigation Tests
 
 Tests for path-based navigation commands using `km sh`.

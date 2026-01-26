@@ -1,3 +1,8 @@
+---
+mdtest:
+  plugin: ../mdtest-sh-plugin.ts
+---
+
 # km sh - Cursor Navigation Tests
 
 Tests for cursor movement commands (j/k/g/G) using `km sh`.
