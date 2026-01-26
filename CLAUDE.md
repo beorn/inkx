@@ -296,13 +296,29 @@ Don't just fix your command and move on — fix the docs so next time you (or an
 
 This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
 
-**Use `/bd` for all issue tracking.** Run `/bd` for the full command reference.
+**When user mentions beads, bd, or issue tracking → use `/bd` skill.**
+
+| Context | Command |
+|---------|---------|
+| Claude Code session | `/bd <action>` (skill) |
+| Bash scripts/quick CLI | `bd <action>` (CLI) |
+
+**Run `/bd` for the full command reference.**
 
 **Key rules:**
 
 - **ALWAYS** use `/bd work <id>` before starting work (claims the bead for your session)
 - **ALWAYS** close beads immediately when done (`/bd close <id>`)
 - **NEVER** use bare `bd update --status in_progress` — it breaks session coordination
+
+**Common operations:**
+```bash
+/bd list              # Show open beads
+/bd work <id>         # Claim and start working
+/bd show <id>         # View bead details
+/bd close <id>        # Mark complete
+bd sync               # Sync beads with git (in Bash)
+```
 
 ---
 
