@@ -320,6 +320,8 @@ This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for
 bd sync               # Sync beads with git (in Bash)
 ```
 
+**⚠️ Do NOT use `bun km bd` or `km bd`** - not ready yet. Use `/bd` or `bd` directly.
+
 ---
 
 ### 9. Conventional Commits
