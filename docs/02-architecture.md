@@ -46,17 +46,17 @@ Functionality is exposed through **domain objects created by factory functions**
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Application Code                                                   │
 │                                                                     │
-│    using vault = runGenerator(createVault(path))                    │
-│    using board = createBoard(vault)                                 │
-│    await using watcher = vault.watch()                              │
+│    using repo = runGenerator(createRepo(path))                      │
+│    using board = createBoard(repo)                                  │
+│    await using watcher = repo.watch()                               │
 │                                                                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Domain Objects                                                     │
 │                                                                     │
-│    Vault         Board          Watcher         Config              │
-│    ├─ getNode()  ├─ moveCursor()├─ start()      ├─ beads            │
-│    ├─ search()   ├─ select()    ├─ stop()       └─ tui              │
-│    ├─ update()   ├─ zoom()      └─ on("change")                     │
+│    Repo          Board          Watcher         Config              │
+│    ├─ data       ├─ moveCursor()├─ start()      ├─ beads            │
+│    ├─ files      ├─ select()    ├─ stop()       └─ tui              │
+│    ├─ config     ├─ zoom()      └─ on("change")                     │
 │    ├─ watch()    └─ refresh()                                       │
 │    └─ close()                                                       │
 │                                                                     │
@@ -65,21 +65,23 @@ Functionality is exposed through **domain objects created by factory functions**
 ├─────────────────────────────────────────────────────────────────────┤
 │  Factory Functions                                                  │
 │                                                                     │
-│    createVault(path, options)   → Vault                             │
-│    createBoard(vault, options)  → Board                             │
-│    vault.watch()                → Watcher (Service)                 │
-│    loadConfig(vaultPath)        → Config                            │
+│    createRepo(path, options)    → Repo                              │
+│    createBoard(repo, options)   → Board                             │
+│    repo.watch()                 → Watcher (Service)                 │
+│    loadConfigObject(repoPath)   → Config                            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Domain Objects
 
-| Object    | Factory         | Lifecycle    | Purpose                                    |
-| --------- | --------------- | ------------ | ------------------------------------------ |
-| `Vault`   | `createVault()` | `Disposable` | Storage, queries, mutations                |
-| `Board`   | `createBoard()` | plain object | Navigation state (cursor, selection, zoom) |
-| `Watcher` | `vault.watch()` | `Service`    | File sync (start/stop lifecycle)           |
-| `Config`  | `loadConfig()`  | plain object | Vault configuration                        |
+| Object    | Factory            | Lifecycle    | Purpose                                    |
+| --------- | ------------------ | ------------ | ------------------------------------------ |
+| `Repo`    | `createRepo()`     | `Disposable` | DataStore + FileTree + Config              |
+| `Board`   | `createBoard()`    | plain object | Navigation state (cursor, selection, zoom) |
+| `Watcher` | `repo.watch()`     | `Service`    | File sync (start/stop lifecycle)           |
+| `Config`  | `loadConfigObject` | plain object | Repository configuration                   |
+
+> **Deprecated:** `Vault` / `createVault()` is the legacy API. Use `Repo` / `createRepo()` for new code.
 
 ### Service Interface
 
@@ -98,9 +100,9 @@ interface Service extends AsyncDisposable {
 ```typescript
 async function runTui(path: string) {
   // Create domain objects with explicit dependencies
-  using vault = runGenerator(createVault(path))
-  using board = createBoard(vault)
-  await using watcher = vault.watch()
+  using repo = runGenerator(createRepo(path))
+  using board = createBoard(repo)
+  await using watcher = repo.watch()
 
   // Start file watching
   await watcher.start()
@@ -108,7 +110,7 @@ async function runTui(path: string) {
 
   // Run TUI...
 
-  // Cleanup order (reverse): watcher.stop(), board cleanup, vault.close()
+  // Cleanup order (reverse): watcher.stop(), board cleanup, repo.close()
 }
 ```
 

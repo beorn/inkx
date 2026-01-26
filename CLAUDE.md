@@ -274,6 +274,22 @@ Don't work around limitations by duplicating functionality or creating wrapper a
 
 **Chaos testing for sync bugs:** Use `/chaos-test` to discover and fix file synchronization bugs. This runs a property-based fuzzer that simulates edge cases like dropped events, reordering, and race conditions. See [docs/dev/chaos-testing.md](docs/dev/chaos-testing.md) for details.
 
+**Documentation Self-Improvement:**
+
+When you run a command incorrectly (wrong flags, wrong field names, unexpected output), **immediately update the relevant documentation** with correct usage. This applies to:
+
+- Skill files (`.claude/skills/*/SKILL.md`) - for slash commands like `/bd`, `/commit`
+- CLAUDE.md - for project-wide commands and patterns
+- docs/ files - for detailed guides
+
+Examples of when to update:
+- You use `jq '.title'` but the actual field is `.id` → document correct field name
+- You try `--filter` but the flag is `--title` → document the correct flag
+- A command has options you discover → add them to the docs
+- Output format differs from expected → document actual format
+
+Don't just fix your command and move on — fix the docs so next time you (or another session) get it right immediately.
+
 ---
 
 ### 8. Beads Issue Tracking
@@ -498,9 +514,6 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 
 All major functionality MUST be exposed through **domain objects created by factory functions**.
 
-> **Note:** Per [ADR-002](docs/adr/002-domain-objects-refactor.md), terminology will change:
-> Vault → Repo, createVault → createRepo. See ADR-002 Phase 6 for migration plan.
-
 **Principles:**
 
 - **Factory functions** (not classes) - return plain objects with methods
@@ -510,12 +523,15 @@ All major functionality MUST be exposed through **domain objects created by fact
 
 **Core domain objects:**
 
-| Object    | Factory                   | Lifecycle    | Purpose                     |
-| --------- | ------------------------- | ------------ | --------------------------- |
-| `Vault`   | `createVault()`           | `Disposable` | Storage, queries, mutations |
-| `Board`   | `createBoard(data, root)` | plain object | Navigation state (see note) |
-| `Watcher` | `vault.watch()`           | `Service`    | File sync                   |
-| `Config`  | `loadConfigObject()`      | plain object | Vault configuration         |
+| Object    | Factory                   | Lifecycle    | Purpose                             |
+| --------- | ------------------------- | ------------ | ----------------------------------- |
+| `Repo`    | `createRepo()`            | `Disposable` | DataStore + FileTree + Config       |
+| `Board`   | `createBoard(data, root)` | plain object | Navigation state (see note)         |
+| `Watcher` | `repo.watch()`            | `Service`    | File sync                           |
+| `Config`  | `loadConfigObject()`      | plain object | Repository configuration            |
+
+> **Deprecated:** `Vault` / `createVault()` is the legacy API. Use `Repo` / `createRepo()` for new code.
+> See [ADR-002](docs/adr/002-domain-objects-refactor.md) for migration details.
 
 > **Board note:** ADR-002 specifies `createBoard(data: DataStore, rootId)`. Current implementation
 > uses `createBoardState()` + `boardReducer()` pattern pending migration.

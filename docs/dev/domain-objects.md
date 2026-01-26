@@ -20,19 +20,29 @@ This guide documents the domain object architecture used throughout km. All new 
 
 ```typescript
 // ✅ GOOD - factory returns plain object with closure-based state
-export interface Vault extends Disposable {
+export interface Repo extends Disposable {
   readonly path: string
   readonly mode: "memory" | "disk"
-  getNode(id: string): KNode | null
+  readonly data: DataStore
+  readonly files: FileTree | null
   close(): void
 }
 
-export function createVault(path: string, options?: VaultOptions): Vault {
+export function* createRepo(
+  path: string,
+  options?: RepoOptions,
+): Generator<StepYield, Repo, unknown> {
   // Internal state via closure (not class fields)
   const resolvedPath = resolvePath(path)
   const mode = detectMode(resolvedPath)
-  const db = options?.inject?.database ?? openDatabase(mode, resolvedPath)
   let closed = false
+
+  yield "Initializing database"
+  const db = options?.inject?.database ?? openDatabase(mode, resolvedPath)
+  const dataStore = createDBDataStore(db)
+
+  yield "Setting up file tree"
+  const fileTree = createDiskFileTree(resolvedPath)
 
   // Return plain object with methods
   return {
@@ -42,10 +52,13 @@ export function createVault(path: string, options?: VaultOptions): Vault {
     get mode() {
       return mode
     },
-
-    getNode(id) {
+    get data() {
       ensureNotClosed()
-      return queryNode(db, id)
+      return dataStore
+    },
+    get files() {
+      ensureNotClosed()
+      return fileTree
     },
 
     close() {
@@ -61,7 +74,7 @@ export function createVault(path: string, options?: VaultOptions): Vault {
 
   // Private helper (hoisted)
   function ensureNotClosed() {
-    if (closed) throw new Error("Vault is closed")
+    if (closed) throw new Error("Repo is closed")
   }
 }
 ```
@@ -70,7 +83,7 @@ export function createVault(path: string, options?: VaultOptions): Vault {
 
 ```typescript
 // ❌ BAD - class with internal state
-export class Vault {
+export class Repo {
   private db: Database
   private closed = false
 
@@ -95,15 +108,15 @@ export class Vault {
 ```typescript
 // ❌ BAD - singleton pattern
 let _db: Database | null = null
-let _vaultPath: string | null = null
+let _repoPath: string | null = null
 
-export function initVault(path: string) {
+export function initRepo(path: string) {
   _db = openDatabase(path)
-  _vaultPath = path
+  _repoPath = path
 }
 
 export function getDb() {
-  if (!_db) throw new Error("Vault not initialized")
+  if (!_db) throw new Error("Repo not initialized")
   return _db
 }
 
@@ -113,7 +126,7 @@ export function getNode(id: string) {
 
 // Problems:
 // - Hidden global state
-// - Can't have multiple vaults open
+// - Can't have multiple repos open
 // - Testing requires careful setup/teardown
 // - Implicit dependencies
 ```
@@ -125,31 +138,28 @@ export function getNode(id: string) {
 When loading involves multiple phases, use a generator factory:
 
 ```typescript
-export function* createVault(
+export function* createRepo(
   path: string,
-  options?: VaultOptions,
-): Generator<ProgressInfo, Vault, unknown> {
-  // Phase 1: Discover
-  yield { phase: "discover", current: 0, total: 0 }
-  const files = discoverFiles(path)
-  yield { phase: "discover", current: files.length, total: files.length }
+  options?: RepoOptions,
+): Generator<StepYield, Repo, unknown> {
+  // Declare all steps upfront (for progress UI)
+  yield { declare: ["Detecting mode", "Initializing database", "Scanning files"] }
 
-  // Phase 2: Parse
-  const events: Event[] = []
-  for (const [i, file] of files.entries()) {
-    events.push(...parseFile(file))
-    yield { phase: "parse", current: i + 1, total: files.length }
-  }
+  // Phase 1: Detect mode
+  yield "Detecting mode"
+  const mode = detectMode(path)
 
-  // Phase 3: Apply
-  const db = createDatabase()
-  for (const [i, event] of events.entries()) {
-    applyEvent(db, event)
-    yield { phase: "apply", current: i + 1, total: events.length }
-  }
+  // Phase 2: Initialize database
+  yield "Initializing database"
+  const db = createDatabase(mode)
+  const dataStore = createDBDataStore(db)
 
-  // Return the vault
-  return createVaultFromDb(db, path)
+  // Phase 3: Scan files
+  yield "Scanning files"
+  const fileTree = createDiskFileTree(path)
+
+  // Return the repo
+  return createRepoObject(dataStore, fileTree, path)
 }
 ```
 
@@ -157,16 +167,20 @@ export function* createVault(
 
 ```typescript
 // Option A: With progress reporting
-for (const progress of createVault(path)) {
-  spinner.update(`${progress.phase}: ${progress.current}/${progress.total}`)
+for (const step of createRepo(path)) {
+  if (typeof step === "string") {
+    spinner.update(step)
+  }
 }
-const vault = runGenerator(createVault(path)) // Get final value
+const repo = runGenerator(createRepo(path)) // Get final value
 
 // Option B: Silent (no progress)
-const vault = runGenerator(createVault(path))
+using repo = runGenerator(createRepo(path))
 
-// Option C: Async wrapper (for promise-based APIs)
-const vault = await toPromise(createVault(path))
+// Option C: With runWithProgress helper
+const repo = runWithProgress(createRepo(path), (step) => {
+  console.log(`Loading: ${step}`)
+})
 ```
 
 ### Helper Functions
@@ -212,7 +226,7 @@ The `using` and `await using` declarations provide automatic cleanup at scope ex
 
 | Object        | Disposable Type   | Cleanup Action             |
 | ------------- | ----------------- | -------------------------- |
-| `Vault`       | `Disposable`      | Closes database connection |
+| `Repo`        | `Disposable`      | Closes database connection |
 | `FakeVault`   | `Disposable`      | Closes in-memory database  |
 | `MemoryStore` | `Disposable`      | Closes database            |
 | `DiskStore`   | `Disposable`      | Closes database            |
@@ -221,20 +235,20 @@ The `using` and `await using` declarations provide automatic cleanup at scope ex
 
 ### Synchronous Cleanup (Disposable)
 
-For objects with sync cleanup (Vault, Store, FakeVault):
+For objects with sync cleanup (Repo, Store, FakeVault):
 
 ```typescript
 // ✅ GOOD - automatic cleanup via using
-using vault = runGenerator(createVault(vaultDir))
-const tasks = vault.getAllTasks()
-// vault.close() called automatically at scope exit
+using repo = runGenerator(createRepo(repoDir))
+const tasks = repo.data.getAllTasks()
+// repo.close() called automatically at scope exit
 
 // ❌ AVOID - manual try/finally
-const vault = runGenerator(createVault(vaultDir))
+const repo = runGenerator(createRepo(repoDir))
 try {
-  const tasks = vault.getAllTasks()
+  const tasks = repo.data.getAllTasks()
 } finally {
-  vault.close()
+  repo.close()
 }
 ```
 
@@ -260,9 +274,9 @@ await watcher.stop()
 When using both types together, declare them in dependency order:
 
 ```typescript
-async function watchVault(path: string) {
-  using vault = runGenerator(createVault(path))
-  await using watcher = vault.watch()
+async function watchRepo(path: string) {
+  using repo = runGenerator(createRepo(path))
+  await using watcher = repo.watch()
 
   await watcher.start()
   watcher.on("change", (changes) => console.log(changes))
@@ -271,7 +285,7 @@ async function watchVault(path: string) {
 
   // At scope exit (reverse order):
   // 1. await watcher[Symbol.asyncDispose]() → await watcher.stop()
-  // 2. vault[Symbol.dispose]() → vault.close()
+  // 2. repo[Symbol.dispose]() → repo.close()
 }
 ```
 
@@ -293,15 +307,15 @@ await runWithDb(db, async () => {
 
 **Resource owners** create and own resources. They MUST be Disposable:
 
-- `Vault` - Owns and closes database connection
+- `Repo` - Owns and closes database connection
 - `Watcher` - Owns and stops file watchers
 - `ParsePool` - Owns and terminates worker threads
 - `MemoryStore`/`DiskStore` - Own and close database connection
 
 ```typescript
 // Resource owner - creates and owns the db
-using vault = runGenerator(createVault(path))
-// vault.close() called at scope exit, closing the db it owns
+using repo = runGenerator(createRepo(path))
+// repo.close() called at scope exit, closing the db it owns
 ```
 
 **Rule of thumb**: If your factory calls `new Database()`, `spawn()`, `watch()`, or similar resource-creating functions, the returned object MUST be Disposable.
@@ -315,12 +329,13 @@ using vault = runGenerator(createVault(path))
 For objects with synchronous cleanup (database close, etc.):
 
 ```typescript
-export interface Vault extends Disposable {
+export interface Repo extends Disposable {
   close(): void
   [Symbol.dispose](): void
 }
 
-export function createVault(path: string): Vault {
+export function* createRepo(path: string): Generator<StepYield, Repo, unknown> {
+  yield "Opening database"
   const db = openDatabase(path)
 
   return {
@@ -334,10 +349,10 @@ export function createVault(path: string): Vault {
 }
 
 // Usage with 'using'
-function processVault(path: string) {
-  using vault = runGenerator(createVault(path))
-  const tasks = vault.getAllTasks()
-  // vault[Symbol.dispose]() → vault.close() called at scope exit
+function processRepo(path: string) {
+  using repo = runGenerator(createRepo(path))
+  const tasks = repo.data.getAllTasks()
+  // repo[Symbol.dispose]() → repo.close() called at scope exit
 }
 ```
 
@@ -357,7 +372,7 @@ export interface Watcher extends Service {
   off(event: "change", handler: (changes: FileChange[]) => void): void
 }
 
-export function createWatcher(vault: Vault): Watcher {
+export function createWatcher(repo: Repo): Watcher {
   let status: Service["status"] = "stopped"
   const handlers = new Map<string, Set<Function>>()
   let fsWatcher: FSWatcher | null = null
@@ -370,7 +385,7 @@ export function createWatcher(vault: Vault): Watcher {
     async start() {
       if (status !== "stopped") return
       status = "starting"
-      fsWatcher = watch(vault.path, handleChange)
+      fsWatcher = watch(repo.path, handleChange)
       status = "running"
     },
 
@@ -403,9 +418,9 @@ export function createWatcher(vault: Vault): Watcher {
 }
 
 // Usage with 'await using'
-async function watchVault(path: string) {
-  using vault = runGenerator(createVault(path))
-  await using watcher = vault.watch()
+async function watchRepo(path: string) {
+  using repo = runGenerator(createRepo(path))
+  await using watcher = repo.watch()
 
   await watcher.start()
   watcher.on("change", (changes) => console.log(changes))
@@ -414,7 +429,7 @@ async function watchVault(path: string) {
 
   // At scope exit:
   // 1. await watcher[Symbol.asyncDispose]() → await watcher.stop()
-  // 2. vault[Symbol.dispose]() → vault.close()
+  // 2. repo[Symbol.dispose]() → repo.close()
 }
 ```
 
@@ -464,11 +479,11 @@ await watcher.start()
 **Combining disposables with state cleanup:**
 
 ```typescript
-async function runWithTempState(vault: Vault) {
+async function runWithTempState(repo: Repo) {
   await using stack = new AsyncDisposableStack()
 
   // Disposable resource
-  const watcher = stack.use(vault.watch())
+  const watcher = stack.use(repo.watch())
 
   // Non-disposable with cleanup
   const tempDir = stack.adopt(mkdtemp("/tmp/km-"), (dir) =>
@@ -489,11 +504,11 @@ async function runWithTempState(vault: Vault) {
 **Conditional resource acquisition:**
 
 ```typescript
-async function maybeWatch(vault: Vault, enableWatch: boolean) {
+async function maybeWatch(repo: Repo, enableWatch: boolean) {
   await using stack = new AsyncDisposableStack()
 
   if (enableWatch) {
-    const watcher = stack.use(vault.watch())
+    const watcher = stack.use(repo.watch())
     await watcher.start()
   }
 
@@ -524,11 +539,11 @@ await using resources = createManagedResources()
 ### Options Pattern
 
 ```typescript
-export interface VaultOptions {
-  /** Search for .km in parent directories (default: true) */
-  searchAncestors?: boolean
-  /** Force full rebuild even if state exists (default: false) */
-  force?: boolean
+export interface RepoOptions {
+  /** Force memory mode even if .km/ exists */
+  forceMemory?: boolean
+  /** Skip initial file scan (for faster startup) */
+  lazy?: boolean
   /** Dependency injection for testing */
   inject?: {
     database?: Database
@@ -536,7 +551,11 @@ export interface VaultOptions {
   }
 }
 
-export function createVault(path: string, options?: VaultOptions): Vault {
+export function* createRepo(
+  path: string,
+  options?: RepoOptions,
+): Generator<StepYield, Repo, unknown> {
+  yield "Initializing database"
   const db = options?.inject?.database ?? openDatabase(path)
   const fs = options?.inject?.fs ?? realFs
   // ...
@@ -548,10 +567,10 @@ export function createVault(path: string, options?: VaultOptions): Vault {
 ```typescript
 import { describe, test, expect } from "bun:test"
 import { Database } from "bun:sqlite"
-import { createVault } from "./vault"
+import { createRepo, runGenerator } from "@km/storage"
 
-describe("Vault", () => {
-  test("queries nodes", () => {
+describe("Repo", () => {
+  test("queries nodes via DataStore", () => {
     // Inject in-memory database
     const mockDb = new Database(":memory:")
     mockDb.exec(`
@@ -559,11 +578,11 @@ describe("Vault", () => {
       INSERT INTO nodes VALUES ('1', 'Test node');
     `)
 
-    using vault = createVault("/test", { inject: { database: mockDb } })
+    using repo = runGenerator(createRepo("/test", { inject: { database: mockDb } }))
 
-    expect(vault.getNode("1")?.content).toBe("Test node")
-    expect(vault.getNode("999")).toBeNull()
-    // vault.close() called automatically at scope exit
+    expect(repo.data.getNode("1")?.content).toBe("Test node")
+    expect(repo.data.getNode("999")).toBeNull()
+    // repo.close() called automatically at scope exit
   })
 })
 ```
@@ -572,26 +591,22 @@ describe("Vault", () => {
 
 ## Composition
 
-> **Note:** Per [ADR-002](../adr/002-domain-objects-refactor.md), terminology will change:
-> Vault → Repo, and Board will take `DataStore` instead of full Repo.
-> Examples below show both current and target patterns.
-
 ### Domain Object Dependencies
 
 ```typescript
-// Vault/Repo is independent (root of dependency tree)
-using vault = runGenerator(createVault(path))
+// Repo is independent (root of dependency tree)
+using repo = runGenerator(createRepo(path))
 
-// Board takes DataStore, not full Vault/Repo (per ADR-002)
-// Target: createBoard(vault.data, rootId)
+// Board takes DataStore and rootId
 // Current: createBoardState(rootId, rootPath)
-const board = createBoard(vault.data, rootId)
+// Target: createBoard(repo.data, rootId)
+const board = createBoard(repo.data, rootId)
 
-// Watcher is created from Vault
-const watcher = vault.watch()
+// Watcher is created from Repo
+const watcher = repo.watch()
 
-// Config is independent
-const config = loadConfigObject(path)
+// Config is accessed via Repo
+const config = repo.config
 ```
 
 ### Full Application Composition
@@ -599,10 +614,9 @@ const config = loadConfigObject(path)
 ```typescript
 async function main(repoPath: string) {
   // Create domain objects with explicit dependencies
-  using repo = runGenerator(createVault(repoPath))
-  // Board takes DataStore and rootId (per ADR-002)
+  using repo = runGenerator(createRepo(repoPath))
+  // Board takes DataStore and rootId
   const board = createBoard(repo.data, "@projects")
-  const config = loadConfigObject(repoPath)
 
   // Watcher is optional (only for disk mode)
   if (repo.mode === "disk") {
@@ -613,11 +627,11 @@ async function main(repoPath: string) {
     })
 
     // Run application with watcher active
-    await runTui(board, config)
+    await runTui(board, repo.config)
     // watcher.stop() called automatically at scope exit
   } else {
     // Run application without watcher
-    await runTui(board, config)
+    await runTui(board, repo.config)
   }
 
   // repo cleaned up by 'using' at scope exit
@@ -632,12 +646,12 @@ async function main(repoPath: string) {
 
 ```typescript
 // ❌ BAD - factory that also sets singletons
-export function createVault(path: string): Vault {
-  const vault = {
+export function* createRepo(path: string): Generator<StepYield, Repo, unknown> {
+  const repo = {
     /* ... */
   }
-  _globalVault = vault // Don't do this!
-  return vault
+  _globalRepo = repo // Don't do this!
+  return repo
 }
 ```
 
@@ -645,14 +659,19 @@ export function createVault(path: string): Vault {
 
 ```typescript
 // ❌ BAD - exposes internal database
-export interface Vault {
+export interface Repo {
   db: Database // Don't expose this!
 }
 
-// ✅ GOOD - only expose operations
-export interface Vault {
-  getNode(id: string): KNode | null
-  updateNode(id: string, changes: Partial<KNode>): void
+// ✅ GOOD - expose through capability interface
+export interface Repo {
+  readonly data: DataStore
+  readonly files: FileTree | null
+}
+
+// Access database only through HasDatabase intersection type
+export interface HasDatabase {
+  readonly database: Database
 }
 ```
 
@@ -660,17 +679,19 @@ export interface Vault {
 
 ```typescript
 // ❌ BAD - no cleanup path
-export function createVault(path: string) {
+export function* createRepo(path: string) {
+  yield "Opening database"
   const db = openDatabase(path)
-  return { getNode: (id) => queryNode(db, id) }
+  return { data: createDBDataStore(db) }
   // db is never closed!
 }
 
 // ✅ GOOD - implement Disposable for automatic cleanup
-export function createVault(path: string): Vault {
+export function* createRepo(path: string): Generator<StepYield, Repo, unknown> {
+  yield "Opening database"
   const db = openDatabase(path)
   return {
-    getNode: (id) => queryNode(db, id),
+    data: createDBDataStore(db),
     close() {
       db.close()
     },
@@ -681,10 +702,10 @@ export function createVault(path: string): Vault {
 }
 
 // ✅ GOOD - use 'using' for automatic cleanup at call sites
-function processVault(path: string) {
-  using vault = createVault(path)
-  return vault.getNode("1")
-  // vault.close() called automatically
+function processRepo(path: string) {
+  using repo = runGenerator(createRepo(path))
+  return repo.data.getNode("1")
+  // repo.close() called automatically
 }
 ```
 
