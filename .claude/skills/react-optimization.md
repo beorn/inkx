@@ -4,6 +4,8 @@ description: Optimize React/Ink component rendering performance
 
 # Skill: React Rendering Optimization
 
+**Keywords**: slow, laggy, performance, TUI optimization, render, useMemo, React.memo, useCallback
+
 When a user reports slow rendering or you identify performance issues in React components (especially TUI/Ink), follow this systematic approach.
 
 ## When to Use This Skill

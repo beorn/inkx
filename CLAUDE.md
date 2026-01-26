@@ -27,20 +27,15 @@ ALL task edits MUST flow both directions:
 
 ### 3. TUI Design System
 
-When modifying TUI styling (colors, selection states, visual hierarchy), you MUST consult [docs/06-ui.md](docs/06-ui.md). Key rules:
+When modifying TUI styling, see [.claude/skills/tui-design.md](.claude/skills/tui-design.md) for patterns and [docs/06-ui.md](docs/06-ui.md) for the full spec.
 
-- **Selection**: `cyan` background + `black` foreground (NEVER blue/white)
-- **Reserved colors**: `cyan` bg = selection only, `inverse` = input cursor only
-- **Headers**: `yellow` (selected) / `yellowBright` + dim (unselected)
-- **Status icons**: Use both color AND shape (colorblind-safe)
-- **Background colors**: Use inkx `backgroundColor` OR chalk.bg\*, never both on same element (throws by default)
+**Critical rules:**
 
-**Ink Framework Patterns**: When working on TUI code using Ink, you MUST read [docs/dev/ink-patterns.md](docs/dev/ink-patterns.md). This documents critical workarounds for Ink's layout limitations including:
+- **Selection**: `cyan` bg + `black` fg (NEVER blue/white)
+- **Status icons**: Color AND shape (colorblind-safe)
+- **Background colors**: Use inkx `backgroundColor` OR chalk.bg*, never both
 
-- Fullscreen initialization race condition (50ms delay fix)
-- Manual width management and constraint propagation
-- ANSI-aware text length calculations
-- Text truncation and wrapping patterns
+**Ink Framework**: See [docs/dev/ink-patterns.md](docs/dev/ink-patterns.md) for critical workarounds (fullscreen race, width management, ANSI-aware text)
 
 ### 4. Code Structure Style
 
@@ -67,79 +62,22 @@ When modifying TUI styling (colors, selection states, visual hierarchy), you MUS
 **Key insight**: Function declarations are hoisted, so you can call them before they're defined. This lets you write code in reading order (what → how).
 
 ```tsx
-// ✅ GOOD - Reading flow: what it does, then how
-function Component() {
-  useEffect(handleRefresh, [])
-  useInput(handleKeyboardInput)
+// ✅ GOOD - Main logic first, helpers after return
+function processVault() {
+  const path = validatePath(vaultPath)
+  const db = loadDatabase(path)
+  return { path, db }
 
-  return <Box>...</Box>
-
-  // Hoisted helpers (need closure access) - AFTER return
-  function handleRefresh() {
-    /* ... */
-  }
-  function handleKeyboardInput(input: string, key: Key) {
-    /* ... */
-  }
+  // Implementation details after return (hoisted)
+  function validatePath(p: string) { /* ... */ }
+  function loadDatabase(p: string) { /* ... */ }
 }
 
 // Pure helpers at module level - BOTTOM of file
-function formatDate(d: Date): string {
-  /* ... */
-}
+function formatDate(d: Date): string { /* ... */ }
 ```
 
-```typescript
-// ❌ BAD - Reader has to wade through details first
-function processVault() {
-  // Helper defined at top
-  function validatePath(p: string) {
-    if (!p.startsWith("/")) throw new Error("...")
-    if (!existsSync(p)) throw new Error("...")
-    return resolve(p)
-  }
-
-  function loadDatabase(p: string) {
-    const db = new Database(p)
-    db.pragma("journal_mode = WAL")
-    return db
-  }
-
-  // Main logic buried at bottom
-  const path = validatePath(vaultPath)
-  const db = loadDatabase(path)
-  return { path, db }
-}
-
-// ✅ GOOD - Main logic first, details after return
-function processVault() {
-  const path = validatePath(vaultPath)
-  const db = loadDatabase(path)
-  return { path, db }
-
-  // Implementation details - reader can skip if not interested
-  function validatePath(p: string) {
-    if (!p.startsWith("/")) throw new Error("...")
-    if (!existsSync(p)) throw new Error("...")
-    return resolve(p)
-  }
-
-  function loadDatabase(p: string) {
-    const db = new Database(p)
-    db.pragma("journal_mode = WAL")
-    return db
-  }
-}
-```
-
-**Short lambdas (1-3 lines) are fine inline:**
-
-```tsx
-useEffect(() => dispatch(setRootId(id)), [id])
-const doubled = items.map((x) => x * 2)
-```
-
-**When NOT to hoist**: Keep functions at the top only when they're the primary export/purpose of the file, or when they're very short (1-3 lines) and used once.
+**Short lambdas (1-3 lines) are fine inline.** Keep functions at top only when they're the primary export or very short and used once.
 
 #### ESM Only - No require()
 
@@ -336,94 +274,13 @@ Don't work around limitations by duplicating functionality or creating wrapper a
 
 This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
 
-**⚠️ MANDATORY: Claim before working**
+**Use `/bd` for all issue tracking.** Run `/bd` for the full command reference.
 
-When starting work on ANY bead, you MUST use `/bd work <id>` first. This:
+**Key rules:**
 
-- Sets your session as the `assignee` (visible to other sessions via `/bd`)
-- Prevents duplicate work when multiple Claude sessions are active
-- Auto-expires after 30 min of inactivity (so abandoned work can be picked up)
-
-**Never use bare `bd update --status in_progress`** — it doesn't set assignee and breaks session coordination.
-
-```bash
-/bd                 # Dashboard: ready work + active claims
-/bd work <bead-id>  # REQUIRED before starting work (claims + shows details)
-/bd my              # See your active claims
-/bd close <bead-id> # Complete work (auto-releases claim)
-/bd release         # Release claim if switching tasks
-```
-
-**Direct bd commands** (for queries and creation only):
-
-```bash
-bd ready              # Find available work (no blockers)
-bd show <id>          # View issue details
-bd show <id> --json   # Get JSON output (--json is global flag)
-bd show <id> --json | jq -r '.[0].body'      # Extract body field
-bd show <id> --json | jq -r '.[0].status'    # Check status
-bd show <id> --json | jq -r '.[0].notes'     # Check notes
-bd create --title="..." --type=task --priority=2
-bd close <id>         # Complete work
-bd sync               # Commit beads changes
-bd dep add <issue> <depends-on>  # Add dependency
-```
-
-**Workflow:**
-
-1. `/bd` or `bd ready` — Find available work
-2. `/bd work <id>` — **Claim and start** (REQUIRED before implementation)
-3. Implement the work
-4. `/bd close <id>` — Complete (releases claim)
-5. `bd sync` — Commit beads changes
-
-**⚠️ Close beads immediately when done.** Don't leave finished work open while moving to other tasks. If a bead is complete, close it before starting new work. Orphaned open beads cause confusion for other sessions.
-
-**Checking bead status:**
-
-```bash
-# View full details
-bd show km-mdtest-plugins
-
-# Check specific fields
-bd show km-mdtest-plugins --json | jq -r '.[0] | .status, .priority, .assignee'
-
-# View status update notes
-bd show km-mdtest-plugins --json | jq -r '.[0].notes'
-
-# List all children of a parent
-bd show km-mdtest-plugins --json | jq -r '.[0].children[]?'
-```
-
-**Key concepts:**
-
-- Priority: P0=critical, P1=high, P2=medium, P3=low, P4=backlog
-- Types: task, bug, feature, epic, chore
-- Dependencies: `bd dep add <issue> <depends-on>`
-- Parent/child: Children automatically depend on parent completion
-- Status: open, in_progress, blocked, completed, cancelled
-
-**Grouped beads (for related issues):**
-
-When creating multiple related beads (e.g., from an architecture review or multi-part feature), use parent-child hierarchy with explicit IDs:
-
-```bash
-# 1. Create parent with descriptive slug
-bd create --id "km-review-sync" --type=epic --priority=2 \
-  --title="Architecture review: sync layer" \
-  --body-file /tmp/review.md
-
-# 2. Create children with sequential suffix
-bd create --id "km-review-sync.0" --title="Fix race condition" --type=bug --priority=1
-bd create --id "km-review-sync.1" --title="Add retry logic" --type=task --priority=2
-bd create --id "km-review-sync.2" --title="Update docs" --type=task --priority=3
-```
-
-Benefits:
-
-- `bd show km-review-sync` shows parent with all children
-- Related issues stay grouped in listings
-- Clear audit trail of what was found together
+- **ALWAYS** use `/bd work <id>` before starting work (claims the bead for your session)
+- **ALWAYS** close beads immediately when done (`/bd close <id>`)
+- **NEVER** use bare `bd update --status in_progress` — it breaks session coordination
 
 ---
 
@@ -530,7 +387,7 @@ When a user reports a bug, follow [.claude/skills/bug-report.md](.claude/skills/
 
 ### 12. Logging
 
-km has two logging systems for different purposes:
+km has two logging systems. See [.claude/skills/logging.md](.claude/skills/logging.md) for full patterns.
 
 | System    | Purpose            | When to use                                             |
 | --------- | ------------------ | ------------------------------------------------------- |
@@ -540,153 +397,16 @@ km has two logging systems for different purposes:
 **Quick reference:**
 
 ```typescript
-// Internal diagnostics - use debug()
 import createDebug from "debug"
 const debug = createDebug("km:storage:watch")
-debug("config", { watchEnabled, debounceMs })
 
-// User-facing messages - use logger
 import { createLogger } from "@km/core"
 const logger = createLogger("@km/storage")
-logger.info("Syncing vault...")
-logger.error("Failed to write file", { path, error })
 ```
 
-**CLI flags for log levels:**
+**TUI debugging:** `DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view ...`
 
-```bash
-bun km -s sync /tmp/test        # Silent (errors only)
-bun km -v view /tmp/test        # Verbose (debug level)
-bun km -vv view /tmp/test       # Very verbose (trace level)
-bun km --log-level trace view   # Explicit level
-LOG_LEVEL=debug bun km view     # Environment variable
-DEBUG=km:* bun km view          # debug() still works independently
-```
-
-**Log levels:** `silent < error < warn < info < debug < trace`
-
-#### debug() - Internal Diagnostics
-
-Use for detailed internal tracing that's only useful when debugging.
-
-**Namespace convention:**
-
-```
-km:<layer>:<subsystem>       # Main packages
-inkx:<subsystem>             # inkx renderer
-flexx:<subsystem>            # flexx layout engine
-```
-
-**Keep statements concise:**
-
-```typescript
-debug("resolved", resolved) // Objects
-debug("loading %s...", filename) // Inline text
-debug("state: %s → %s", oldState, newState) // Transitions
-```
-
-**TUI debugging (separate from TUI display):**
-
-```bash
-DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
-# Then: tail -f /tmp/km.log
-```
-
-#### @beorn/logger - User Output
-
-Use for messages the user should see during normal operation.
-
-```typescript
-import { createLogger } from "@km/core"
-const logger = createLogger("@km/storage")
-
-logger.info("Loading vault...")
-logger.warn("Config file not found, using defaults")
-logger.error("Failed to sync", { error })
-```
-
-**When to use which:**
-
-- `debug()` → internal state, performance timing, data flow tracing
-- `logger.info()` → progress, success messages, normal operation
-- `logger.warn()` → recoverable issues, deprecation notices
-- `logger.error()` → failures that affect user (show error to user)
-
-#### Worker Thread Debug Output (MANDATORY)
-
-**CRITICAL: Never delete `process.env.DEBUG` or suppress `console.*` or `debug()` calls.**
-
-Suppressing output hides bugs. Worker threads MUST forward all debug output to the main thread.
-
-**Why worker threads need special handling:**
-
-- Worker threads can't share file descriptors with main thread
-- `DEBUG_LOG` redirection only works in main thread
-- Calling `createDebug()` in worker goes to stderr, bypassing `DEBUG_LOG`
-- This causes debug output to appear in TUI and interfere with rendering
-
-**MANDATORY Pattern for ALL Worker Threads:**
-
-```typescript
-// Worker thread (e.g., worker-thread.ts)
-const NAMESPACE = "km:storage:watch:worker"
-
-// Custom debug function that forwards to main thread
-function debug(message: string, ...args: unknown[]): void {
-  // Format the message with args (simple %s/%d/%O replacement)
-  let formatted = message
-  let argIndex = 0
-  formatted = message.replace(/%[sdOo]/g, () => {
-    const arg = args[argIndex++]
-    if (arg === undefined) return ""
-    if (arg === null) return "null"
-    if (typeof arg === "object") return JSON.stringify(arg)
-    return String(arg)
-  })
-
-  // Send to main thread - NEVER call createDebug() in worker
-  postMessage({ type: "debug", namespace: NAMESPACE, message: formatted })
-}
-
-// Use this debug() throughout worker
-debug("worker started, watching %s", vaultPath)
-```
-
-```typescript
-// Main thread bridge (e.g., worker-bridge.ts)
-import createDebug from "debug";
-const workerDebug = createDebug("km:storage:watch:worker");
-
-// In message handler:
-case "debug":
-  // Forward worker debug through main thread's debug logger
-  // This ensures DEBUG_LOG captures worker output
-  workerDebug("%s", message.message);
-  break;
-```
-
-**Message type definition:**
-
-```typescript
-export type WorkerMessage =
-  | { type: "debug"; namespace: string; message: string }
-  | /* ... other message types */;
-```
-
-**✅ DO:**
-
-- Forward ALL debug output to main thread via `postMessage()`
-- Use custom `debug()` function in worker that only sends messages
-- Format messages in worker, log in main thread
-
-**❌ NEVER:**
-
-- Call `createDebug()` directly in worker threads
-- Delete or suppress `process.env.DEBUG`
-- Use `console.log/error/warn` in workers (same issue as `debug()`)
-- Assume "this worker doesn't need debugging" - bugs happen everywhere
-
-**Reference implementation:** [packages/km-storage/src/watch/worker-thread.ts](packages/km-storage/src/watch/worker-thread.ts)
+**Worker threads:** MUST forward debug output to main thread via `postMessage()`. See logging skill for mandatory pattern.
 
 ### 13. Visual Testing & TUI Debugging
 
@@ -746,35 +466,7 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 
 ### 14. No Defensive Fallbacks or Compatibility Shims
 
-**Fail fast, don't mask bugs.**
-
-**Programming errors MUST throw, never log or ignore:**
-
-```typescript
-// BAD - silently ignoring missing context
-function useMyHook() {
-  const ctx = useContext(MyContext)
-  if (!ctx) return // Silent failure - caller has no idea it's broken!
-}
-
-// BAD - logging instead of throwing
-function useMyHook() {
-  const ctx = useContext(MyContext)
-  if (!ctx) {
-    console.warn("Missing context")
-    return defaultValue // Caller doesn't know it's using a fallback
-  }
-}
-
-// GOOD - throw immediately so caller knows during development
-function useMyHook() {
-  const ctx = useContext(MyContext)
-  if (!ctx) {
-    throw new Error("useMyHook must be used within MyProvider")
-  }
-  return ctx
-}
-```
+**Fail fast, don't mask bugs.** Programming errors MUST throw, never log or ignore.
 
 **When to throw vs. handle gracefully:**
 
@@ -788,51 +480,11 @@ function useMyHook() {
 | File not found (expected to exist)  | **Throw** - programming error         |
 | File not found (optional)           | Handle gracefully                     |
 
-**No backwards compatibility re-exports:**
+**Rules:**
 
-```typescript
-// BAD - keeping old export location "for compatibility"
-export { foo } from "./old-location.ts" // backwards compat
-
-// GOOD - just remove it, update callers
-// (delete the re-export entirely)
-```
-
-**No fallback chains that mask programming errors:**
-
-```typescript
-// BAD - silently hides missing data
-function getName(node: Node): string {
-  return node.title ?? node.data?.title ?? node.content ?? node.id.slice(0, 8)
-}
-
-// GOOD - throw if invariant is violated
-function getName(node: Node): string {
-  if (node.type === "section" && !node.title) {
-    throw new Error(`Section ${node.id} missing title`)
-  }
-  return node.title!
-}
-```
-
-**When you find fallback/compat/deprecated code:**
-
-1. **Determine intent**: Is this handling legitimate data variations, or masking bugs?
-2. **Legitimate**: External input, user data, optional features → keep the handling
-3. **Bug masking**: Internal invariants, required fields → replace with throw
-4. **If unsure**: Create a bead to investigate, don't leave it unresolved
-
-**Comments indicating tech debt:**
-
-```typescript
-// BAD - leaving breadcrumbs of past mistakes
-// backwards compatibility
-// legacy fallback
-// deprecated, remove in v2
-
-// GOOD - either fix it or create a bead
-// Delete the code OR: bd create --title="Remove legacy X" --type=chore
-```
+- No backwards compatibility re-exports — just delete and update callers
+- No fallback chains that mask missing data — throw on invariant violations
+- No `// backwards compat` or `// legacy fallback` comments — fix it or create a bead
 
 **Rule of thumb**: If you wouldn't add this fallback/compat code today from scratch, remove it or create a bead to remove it later
 
@@ -856,110 +508,7 @@ All major functionality MUST be exposed through **domain objects created by fact
 | `Watcher` | `vault.watch()` | `Service`    | File sync                   |
 | `Config`  | `loadConfig()`  | plain object | Vault configuration         |
 
-**Service interface** (for objects with start/stop lifecycle):
-
-```typescript
-interface Service extends AsyncDisposable {
-  readonly status: "stopped" | "starting" | "running" | "stopping"
-  start(): Promise<void>
-  stop(): Promise<void>
-}
-```
-
-**Factory function pattern:**
-
-```typescript
-// ✅ GOOD - factory returns plain object
-export function createVault(path: string, options?: VaultOptions): Vault {
-  // Internal state via closure
-  const db = options?.inject?.database ?? openDatabase(path)
-  let closed = false
-
-  return {
-    get path() {
-      return path
-    },
-
-    getNode(id) {
-      if (closed) throw new Error("Vault is closed")
-      return queryNode(db, id)
-    },
-
-    close() {
-      if (closed) return
-      closed = true
-      db.close()
-    },
-
-    [Symbol.dispose]() {
-      this.close()
-    },
-  }
-}
-
-// ❌ BAD - class with internal state
-export class Vault {
-  private db: Database
-  constructor(path: string) {
-    this.db = openDatabase(path)
-  }
-}
-
-// ❌ BAD - singleton
-let _db: Database | null = null
-export function getDb() {
-  if (!_db) throw new Error("Not initialized")
-  return _db
-}
-```
-
-**Generator factories for progress reporting:**
-
-```typescript
-// Single factory - always a generator
-function* createVault(path: string): Generator<ProgressInfo, Vault> {
-  yield { phase: "discover", current: 0, total: 0 }
-  // ... load vault ...
-  return vault
-}
-
-// Caller chooses consumption:
-// A) With progress: for (const p of createVault(path)) spinner.update(p);
-// B) Without:       const vault = runGenerator(createVault(path));
-```
-
-**Usage with disposables:**
-
-```typescript
-// Sync disposable (Vault, Board)
-function processVault(path: string) {
-  using vault = runGenerator(createVault(path))
-  const tasks = vault.getAllTasks()
-  // vault.close() called automatically at scope exit
-}
-
-// Async disposable (Service like Watcher)
-async function watchVault(path: string) {
-  using vault = runGenerator(createVault(path))
-  await using watcher = vault.watch()
-  await watcher.start()
-  // ... do stuff ...
-  // watcher.stop() awaited, then vault.close() called
-}
-```
-
-**Dependency injection for testing:**
-
-```typescript
-const mockDb = new Database(":memory:")
-const vault = runGenerator(
-  createVault("/test", {
-    inject: { database: mockDb },
-  }),
-)
-```
-
-See [docs/dev/domain-objects.md](docs/dev/domain-objects.md) for complete patterns guide
+See [.claude/skills/domain-objects-patterns.md](.claude/skills/domain-objects-patterns.md) for code examples and [docs/dev/domain-objects.md](docs/dev/domain-objects.md) for architecture details
 
 ### 16. Version Info
 
@@ -983,57 +532,9 @@ import { BUILD_INFO } from "@km/core"
 debug("startup", { version: BUILD_INFO.version, commit: BUILD_INFO.gitCommit })
 ```
 
-### 17. Prior Art / Related Projects (cloudi, kimmi, decker)
+### 17. Prior Art
 
-These sibling projects share ideas, patterns, and code with km. Reference them for inspiration on implementation approaches. All are accessible on the local filesystem. For detailed comparisons, see [docs/dev/prior-art.md](docs/dev/prior-art.md).
-
----
-
-**../cloudi** — AI email assistant + cloud PIM (Nov 2025 – Jan 2026, ~1300 commits)
-
-Cloudi is a multi-mode Claude AI assistant combining an interactive CLI chat interface with an autonomous Gmail bot. The system stores all state in Gmail (tasks, contacts, drafts as key-value storage) rather than managing a separate database, enabling zero-infrastructure deployment. Features include conversation continuity across chat/email modes, tool result caching, and integration with Google Tasks/Contacts APIs. Built with Vercel AI SDK, TypeScript, Bun workspaces.
-
-Notable patterns to borrow:
-
-- Build-time version generation (`scripts/generate-build-info.ts` → `build-info.gen.ts`)
-- Structured logger (`@beorn/logger`) with log levels + `--log-level` CLI flag
-- Type-safe env config via Zod (`@cloudi/env-config`)
-- AppContext pattern for dependency injection
-- Feature/task ID system (F###, T###) in CHANGELOG
-- Factory functions over classes for better tree-shaking
-
----
-
-**../kimmi** — Local-first PIM with CRDT sync (Oct 2025 – Jan 2026, ~1200 commits)
-
-Kimmi is a local-first personal information manager that unifies contacts, calendar, notes, tasks, and files using Automerge CRDTs for conflict-free replication. It syncs bidirectionally with external PIM systems (CardDAV/CalDAV for iCloud, Google, Outlook) while maintaining complete local control. The architecture uses a Repo-based CRDT model with separate tree and content documents, enabling partial replication and efficient network sync.
-
-Key differences from km:
-
-- **Storage**: Automerge CRDTs vs SQLite — CRDTs enable automatic conflict resolution for multi-device sync
-- **Scope**: Full PIM (contacts, calendar, notes, tasks, files) vs task-focused markdown files
-- **Sync**: Bidirectional with external systems (CardDAV connectors) vs file system as source of truth
-
-Notable patterns:
-
-- `@kimmi/obs` — Structured logging with hierarchical namespaces
-- Connector architecture for external system sync
-- Shadow cache pattern for external data
-
----
-
-**../../DZ/decker** — Web-based collaborative boards (Jan 2020 – Jan 2025, ~3000 commits)
-
-Decker (also called Boardliner) is a web-based document and project management app built with Next.js, React, Slate editor, and Yjs for real-time collaboration. Enables hierarchical document organization with kanban-style board views, drag-and-drop cards, outline editing, live cursors, and cloud sync. Collaboration with Mike Welch exploring rich board interfaces before km's TUI approach.
-
-Relationship to km's board view:
-
-- Both model tasks as hierarchical nodes with columns/cards, cursor navigation, fold states
-- Decker is web-based with drag-and-drop; km is TUI-optimized for keyboard efficiency
-- Decker has real-time multi-user collaboration (Yjs); km is single-user file-based
-- Similar concepts: zoom, navigation history, move mode, selection states
-
-Tech stack: Next.js, React, Slate, Yjs, Radix UI, Tailwind, PostgreSQL, Redis
+Related projects (cloudi, kimmi, decker) share patterns with km. See [docs/dev/prior-art.md](docs/dev/prior-art.md) for details.
 
 ### 18. Releasing
 

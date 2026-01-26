@@ -1,4 +1,10 @@
+---
+description: Handle bugs in upstream dependencies - report, vendorize, fix
+---
+
 # Skill: Handle Upstream Package Bugs
+
+**Keywords**: upstream bug, vendor, submodule, dependency bug, package bug, vendorize
 
 When encountering a bug in an upstream dependency, follow this systematic workflow to investigate, report, and optionally fix the issue.
 

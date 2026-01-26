@@ -4,6 +4,8 @@ description: Handle user bug reports with proper reproduction, tracking, and ver
 
 # Skill: Bug Report Handling
 
+**Keywords**: bug report, user reported bug, reproduction, verify fix, bead, tracking
+
 When a user reports a bug, follow this workflow to ensure it's properly reproduced, tracked, and verified fixed.
 
 ## Core Principles
