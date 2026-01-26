@@ -13,7 +13,7 @@ import {
   type Vault,
   type Link,
 } from "@km/storage"
-import { getRootPath } from "../index.ts"
+import { getRootPath } from "../program.ts"
 import type { KNode } from "@km/core"
 import { formatStatus, formatNodeBrief } from "@km/tui"
 

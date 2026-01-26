@@ -12,7 +12,7 @@ import { withTestEnv } from "@km/storage"
 
 describe("createWatcher", () => {
   test("creates watcher with stopped status", () =>
-    withTestEnv(async ({ testDir }) => {
+    withTestEnv(async ({ testDir, db }) => {
       const rootDir = join(testDir, "vault")
       const kmDir = join(rootDir, ".km")
       mkdirSync(kmDir, { recursive: true })
@@ -26,13 +26,13 @@ describe("createWatcher", () => {
 `,
       )
 
-      const watcher = createWatcher(rootDir)
+      const watcher = createWatcher(rootDir, { db })
 
       expect(watcher.status).toBe("stopped")
     }))
 
   test("start transitions to running", () =>
-    withTestEnv(async ({ testDir }) => {
+    withTestEnv(async ({ testDir, db }) => {
       const rootDir = join(testDir, "vault")
       const kmDir = join(rootDir, ".km")
       mkdirSync(kmDir, { recursive: true })
@@ -46,7 +46,7 @@ describe("createWatcher", () => {
 `,
       )
 
-      await using watcher = createWatcher(rootDir)
+      await using watcher = createWatcher(rootDir, { db })
 
       expect(watcher.status).toBe("stopped")
 
@@ -56,7 +56,7 @@ describe("createWatcher", () => {
     }))
 
   test("stop transitions to stopped", () =>
-    withTestEnv(async ({ testDir }) => {
+    withTestEnv(async ({ testDir, db }) => {
       const rootDir = join(testDir, "vault")
       const kmDir = join(rootDir, ".km")
       mkdirSync(kmDir, { recursive: true })
@@ -70,7 +70,7 @@ describe("createWatcher", () => {
 `,
       )
 
-      await using watcher = createWatcher(rootDir)
+      await using watcher = createWatcher(rootDir, { db })
 
       await watcher.start()
       expect(watcher.status).toBe("running")
@@ -80,7 +80,7 @@ describe("createWatcher", () => {
     }))
 
   test("start is idempotent when running", () =>
-    withTestEnv(async ({ testDir }) => {
+    withTestEnv(async ({ testDir, db }) => {
       const rootDir = join(testDir, "vault")
       const kmDir = join(rootDir, ".km")
       mkdirSync(kmDir, { recursive: true })
@@ -94,7 +94,7 @@ describe("createWatcher", () => {
 `,
       )
 
-      await using watcher = createWatcher(rootDir)
+      await using watcher = createWatcher(rootDir, { db })
 
       await watcher.start()
       expect(watcher.status).toBe("running")
@@ -105,7 +105,7 @@ describe("createWatcher", () => {
     }))
 
   test("stop is idempotent when stopped", () =>
-    withTestEnv(async ({ testDir }) => {
+    withTestEnv(async ({ testDir, db }) => {
       const rootDir = join(testDir, "vault")
       const kmDir = join(rootDir, ".km")
       mkdirSync(kmDir, { recursive: true })
@@ -119,7 +119,7 @@ describe("createWatcher", () => {
 `,
       )
 
-      await using watcher = createWatcher(rootDir)
+      await using watcher = createWatcher(rootDir, { db })
 
       expect(watcher.status).toBe("stopped")
 
@@ -129,7 +129,7 @@ describe("createWatcher", () => {
     }))
 
   test("on/off subscribe and unsubscribe handlers", () =>
-    withTestEnv(async ({ testDir }) => {
+    withTestEnv(async ({ testDir, db }) => {
       const rootDir = join(testDir, "vault")
       const kmDir = join(rootDir, ".km")
       mkdirSync(kmDir, { recursive: true })
@@ -143,7 +143,7 @@ describe("createWatcher", () => {
 `,
       )
 
-      await using watcher = createWatcher(rootDir)
+      await using watcher = createWatcher(rootDir, { db })
       const calls: string[] = []
 
       const handler = () => {
@@ -161,7 +161,7 @@ describe("createWatcher", () => {
     }))
 
   test("Symbol.asyncDispose calls stop", () =>
-    withTestEnv(async ({ testDir }) => {
+    withTestEnv(async ({ testDir, db }) => {
       const rootDir = join(testDir, "vault")
       const kmDir = join(rootDir, ".km")
       mkdirSync(kmDir, { recursive: true })
@@ -175,7 +175,7 @@ describe("createWatcher", () => {
 `,
       )
 
-      const watcher = createWatcher(rootDir)
+      const watcher = createWatcher(rootDir, { db })
 
       await watcher.start()
       expect(watcher.status).toBe("running")
@@ -185,7 +185,7 @@ describe("createWatcher", () => {
     }))
 
   test("await using syntax calls stop automatically", () =>
-    withTestEnv(async ({ testDir }) => {
+    withTestEnv(async ({ testDir, db }) => {
       const rootDir = join(testDir, "vault")
       const kmDir = join(rootDir, ".km")
       mkdirSync(kmDir, { recursive: true })
@@ -202,7 +202,7 @@ describe("createWatcher", () => {
       let watcherRef: Awaited<ReturnType<typeof createWatcher>>
 
       {
-        await using watcher = createWatcher(rootDir)
+        await using watcher = createWatcher(rootDir, { db })
         watcherRef = watcher
 
         await watcher.start()
@@ -214,7 +214,7 @@ describe("createWatcher", () => {
     }))
 
   test("accepts custom options", () =>
-    withTestEnv(async ({ testDir }) => {
+    withTestEnv(async ({ testDir, db }) => {
       const rootDir = join(testDir, "vault")
       const kmDir = join(rootDir, ".km")
       mkdirSync(kmDir, { recursive: true })
@@ -229,6 +229,7 @@ describe("createWatcher", () => {
       )
 
       const watcher = createWatcher(rootDir, {
+        db,
         debounceFs: 1000,
         debounceApply: 500,
         conflictStrategy: "fs_wins",

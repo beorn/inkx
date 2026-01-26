@@ -67,6 +67,7 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
   )
 
   // For embedded links, update the source node's link_to field for transclusion
+  // Use "memory" mode - link_to is derived state, not user intent (no events)
   if (link.embedded && link.target_id) {
     debug("addLink: updating source node link_to for embedding", {
       source: link.source_id,
@@ -75,7 +76,7 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
     updateNode(db, link.source_id, {
       link_to: link.target_id,
       link_alias: link.alias ?? undefined,
-    })
+    }, "memory")
   }
 }
 
@@ -160,6 +161,7 @@ export function resolveLinks(
     resolvedCount++
 
     // For embedded links, update the source node's link_to
+    // Use "memory" mode - link_to is derived state, not user intent (no events)
     if (link.embedded) {
       debug("resolveLinks: updating source node link_to for embedding", {
         source: link.source_id,
@@ -168,7 +170,7 @@ export function resolveLinks(
       updateNode(db, link.source_id, {
         link_to: actualTargetId,
         link_alias: link.alias ?? undefined,
-      })
+      }, "memory")
     }
   }
 

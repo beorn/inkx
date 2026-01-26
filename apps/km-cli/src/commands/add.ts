@@ -20,7 +20,7 @@ import {
   emitNodeCreated,
 } from "@km/storage"
 import type { KNode } from "@km/core"
-import { getRootPath } from "../index.ts"
+import { getRootPath } from "../program.ts"
 
 export const addCommand = new Command("add")
   .description("Add tasks to a board or list")

@@ -72,6 +72,7 @@ export type { Link } from "./db-links.ts"
 
 // Re-export db-accepting mutation operations
 export { moveNode, updateNode, deleteNode, addNode } from "./db-ops.ts"
+export type { StorageMode } from "./db-ops.ts"
 
 // Re-export db-accepting event application (internal use)
 export { applyEventWithDb } from "./db-events.ts"

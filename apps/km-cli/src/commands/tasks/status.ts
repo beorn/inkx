@@ -14,7 +14,7 @@ import {
 } from "@km/storage"
 import { getMarkForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
-import { getRootPath } from "../../index.ts"
+import { getRootPath } from "../../program.ts"
 
 /**
  * Create the status subcommand

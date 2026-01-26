@@ -84,10 +84,9 @@ export async function executeKmCommand(
     // Set up argv for Commander to parse
     process.argv = ["bun", "km", ...args]
 
-    // Dynamically import and execute the command
-    // We use a fresh import to get a clean program instance
-    // Note: This relies on Commander's parseAsync() being used
-    const { program } = await import("./program.js")
+    // Get a fresh program instance (configureProgram() doesn't call parse())
+    const { configureProgram } = await import("./program.js")
+    const program = configureProgram()
 
     try {
       await program.parseAsync(process.argv)

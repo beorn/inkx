@@ -15,7 +15,7 @@ import {
   resolvePathArg,
   runGenerator,
 } from "@km/storage"
-import { getRootPath } from "../index.ts"
+import { getRootPath } from "../program.ts"
 
 /**
  * Format task metadata as inline fields

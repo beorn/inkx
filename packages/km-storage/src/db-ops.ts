@@ -3,6 +3,8 @@
  *
  * This module contains all write operations that modify the database.
  * Operations handle both memory mode (direct SQL) and disk mode (via emit).
+ *
+ * Mode is now passed explicitly to each function (no singleton).
  */
 
 import type { Database } from "bun:sqlite"
@@ -11,8 +13,10 @@ import { ulid } from "ulid"
 
 const debug = createDebug("km:storage:db:ops")
 import type { KNode } from "@km/core"
-import { isMemoryMode } from "./db-instance.ts"
 import { emit } from "./emit.ts"
+
+/** Storage mode: memory (ephemeral) or disk (persistent with file sync) */
+export type StorageMode = "memory" | "disk"
 
 // =============================================================================
 // Node Operations
@@ -24,15 +28,22 @@ import { emit } from "./emit.ts"
  *
  * This is the proper store-layer API for moving nodes.
  * UI components should use this instead of raw SQL.
+ *
+ * @param db - Database instance
+ * @param nodeId - Node to move
+ * @param newParentId - New parent node ID
+ * @param newParentIdx - New sort index under parent
+ * @param mode - Storage mode (memory = direct SQL, disk = emit event)
  */
 export function moveNode(
   db: Database,
   nodeId: string,
   newParentId: string,
   newParentIdx: number,
+  mode: StorageMode,
 ): void {
-  debug("moveNode: %s → parent=%s idx=%d", nodeId, newParentId, newParentIdx)
-  if (isMemoryMode()) {
+  debug("moveNode: %s → parent=%s idx=%d mode=%s", nodeId, newParentId, newParentIdx, mode)
+  if (mode === "memory") {
     db.run(
       "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
       [newParentId, newParentIdx, Date.now(), nodeId],
@@ -56,19 +67,25 @@ export function moveNode(
  *
  * This is the proper store-layer API for updating nodes.
  * UI components should use this instead of raw SQL.
+ *
+ * @param db - Database instance
+ * @param nodeId - Node to update
+ * @param updates - Properties to update
+ * @param mode - Storage mode (memory = direct SQL, disk = emit event)
  */
 export function updateNode(
   db: Database,
   nodeId: string,
   updates: Record<string, unknown>,
+  mode: StorageMode,
 ): void {
   if (!updates) {
     throw new Error(
       `updateNode called with undefined updates for node ${nodeId}`,
     )
   }
-  debug("updateNode: %s keys=%o", nodeId, Object.keys(updates))
-  if (isMemoryMode()) {
+  debug("updateNode: %s keys=%o mode=%s", nodeId, Object.keys(updates), mode)
+  if (mode === "memory") {
     const sets: string[] = []
     const values: (string | number | null)[] = []
 
@@ -99,10 +116,14 @@ export function updateNode(
  *
  * This is the proper store-layer API for deleting nodes.
  * UI components should use this instead of raw SQL.
+ *
+ * @param db - Database instance
+ * @param nodeId - Node to delete
+ * @param mode - Storage mode (memory = direct SQL, disk = emit event)
  */
-export function deleteNode(db: Database, nodeId: string): void {
-  debug("deleteNode: %s", nodeId)
-  if (isMemoryMode()) {
+export function deleteNode(db: Database, nodeId: string, mode: StorageMode): void {
+  debug("deleteNode: %s mode=%s", nodeId, mode)
+  if (mode === "memory") {
     db.run("DELETE FROM nodes WHERE id = ?", [nodeId])
   } else {
     emit({
@@ -124,15 +145,17 @@ export function deleteNode(db: Database, nodeId: string): void {
  * @param db - Database instance
  * @param parentId - Parent node ID (or null for root level)
  * @param node - Partial node data (id will be generated if not provided)
+ * @param mode - Storage mode (memory = direct SQL, disk = emit event)
  * @returns The created node's ID
  */
 export function addNode(
   db: Database,
   parentId: string | null,
   node: Partial<KNode>,
+  mode: StorageMode,
 ): string {
   const nodeId = node.id ?? ulid()
-  debug("addNode: %s type=%s parent=%s", nodeId, node.type ?? "task", parentId)
+  debug("addNode: %s type=%s parent=%s mode=%s", nodeId, node.type ?? "task", parentId, mode)
   const now = Date.now()
 
   const nodeData = {
@@ -162,7 +185,7 @@ export function addNode(
     updated_at: now,
   }
 
-  if (isMemoryMode()) {
+  if (mode === "memory") {
     db.run(
       `INSERT INTO nodes (
         id, type, parent_id, parent_idx, link_to, link_alias,

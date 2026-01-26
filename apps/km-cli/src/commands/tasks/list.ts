@@ -8,7 +8,7 @@ import chalk from "chalk"
 import { createVault, runGenerator, resolvePathArg } from "@km/storage"
 import { collapseAncestorsWithTypes } from "@km/tree"
 import type { KNode, TaskStatus } from "@km/core"
-import { getRootPath } from "../../index.ts"
+import { getRootPath } from "../../program.ts"
 import {
   getNodeDisplayName,
   formatCollapsedAncestor,

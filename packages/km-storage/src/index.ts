@@ -1,6 +1,24 @@
 // Database schema (for testing with in-memory databases)
 export { SCHEMA } from "./schema.ts"
 
+// DataStore interface and factories (preferred API for tree operations)
+// See: docs/adr/002-domain-objects-refactor.md
+export {
+  createMapDataStore,
+  createMemDataStore,
+  createDBDataStore,
+} from "./data-store.ts"
+
+export type {
+  DataStore,
+  MapDataStore,
+  DBDataStore,
+  EventSourced,
+  HasDatabase,
+  EventLog,
+  StoreEvent,
+} from "./data-store.ts"
+
 // Database operations (db-accepting functions for internal use)
 // All application code should use Vault domain object (createVault) instead
 export {

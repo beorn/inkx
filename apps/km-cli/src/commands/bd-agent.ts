@@ -18,7 +18,7 @@ import {
 } from "@km/agent"
 import { queryReady, getIssue } from "@km/beads"
 import { createVault, runGenerator, resolvePathArg } from "@km/storage"
-import { getRootPath } from "../index.ts"
+import { getRootPath } from "../program.ts"
 
 export const bdAgentCommand = new Command("agent")
   .description("Assign issues to agents and manage work queues")

@@ -19,7 +19,7 @@ import {
   type AgentStatus,
 } from "@km/agent"
 import { createVault, runGenerator, resolvePathArg } from "@km/storage"
-import { getRootPath } from "../index.ts"
+import { getRootPath } from "../program.ts"
 
 export const agentCommand = new Command("agent")
   .description(

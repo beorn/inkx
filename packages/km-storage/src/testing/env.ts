@@ -40,7 +40,7 @@ import {
 import { getAllNodes } from "../db-queries/utils.ts"
 import { getLinksTo } from "../db-queries/task-queries.ts"
 import { getBacklinks, type Link } from "../db-links.ts"
-import { moveNode, updateNode, deleteNode, addNode } from "../db-ops.ts"
+import { moveNode, updateNode, deleteNode, addNode, type StorageMode } from "../db-ops.ts"
 
 // =============================================================================
 // Types
@@ -167,6 +167,9 @@ export async function withTestEnv<T>(
   const db = new Database(dbPath)
   db.exec(SCHEMA)
 
+  // Derive StorageMode from TestMode (real → disk, otherwise → memory)
+  const storageMode: StorageMode = mode === "real" ? "disk" : "memory"
+
   // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
   const vault: TestVault = {
     getNode: (id) => getNode(db, id),
@@ -178,10 +181,10 @@ export async function withTestEnv<T>(
     getAncestors: (nodeId) => getAncestors(db, nodeId),
     getLinksTo: (targetId) => getLinksTo(db, targetId),
     moveNode: (id, newParentId, position) =>
-      moveNode(db, id, newParentId, position),
-    updateNode: (id, changes) => updateNode(db, id, changes),
-    deleteNode: (id) => deleteNode(db, id),
-    addNode: (parentId, nodeData) => addNode(db, parentId, nodeData),
+      moveNode(db, id, newParentId, position, storageMode),
+    updateNode: (id, changes) => updateNode(db, id, changes, storageMode),
+    deleteNode: (id) => deleteNode(db, id, storageMode),
+    addNode: (parentId, nodeData) => addNode(db, parentId, nodeData, storageMode),
     rawQuery: <T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],
@@ -229,6 +232,9 @@ export function withTestEnvSync<T>(fn: (env: TestEnv) => T): T {
   const db = new Database(dbPath)
   db.exec(SCHEMA)
 
+  // Derive StorageMode from TestMode (real → disk, otherwise → memory)
+  const storageMode: StorageMode = mode === "real" ? "disk" : "memory"
+
   // Create vault wrapping singleton functions (bound to test DB via AsyncLocalStorage)
   const vault: TestVault = {
     getNode: (id) => getNode(db, id),
@@ -240,10 +246,10 @@ export function withTestEnvSync<T>(fn: (env: TestEnv) => T): T {
     getAncestors: (nodeId) => getAncestors(db, nodeId),
     getLinksTo: (targetId) => getLinksTo(db, targetId),
     moveNode: (id, newParentId, position) =>
-      moveNode(db, id, newParentId, position),
-    updateNode: (id, changes) => updateNode(db, id, changes),
-    deleteNode: (id) => deleteNode(db, id),
-    addNode: (parentId, nodeData) => addNode(db, parentId, nodeData),
+      moveNode(db, id, newParentId, position, storageMode),
+    updateNode: (id, changes) => updateNode(db, id, changes, storageMode),
+    deleteNode: (id) => deleteNode(db, id, storageMode),
+    addNode: (parentId, nodeData) => addNode(db, parentId, nodeData, storageMode),
     rawQuery: <T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],

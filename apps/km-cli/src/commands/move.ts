@@ -18,7 +18,7 @@ import {
   createVault,
   findProject,
 } from "@km/storage"
-import { getRootPath } from "../index.ts"
+import { getRootPath } from "../program.ts"
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
 // Bound version with store dependency

@@ -16,7 +16,7 @@ import {
   extractTags,
 } from "@km/storage"
 import type { TaskStatus } from "@km/core"
-import { getRootPath } from "../../index.ts"
+import { getRootPath } from "../../program.ts"
 import { findNodeByPathOrId } from "./queries.ts"
 
 /**

@@ -17,7 +17,7 @@ import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs"
 import { homedir } from "os"
 import { join } from "path"
 import type { Database } from "bun:sqlite"
-import { getRootPath } from "../index.ts"
+import { getRootPath } from "../program.ts"
 import {
   createVault,
   runGenerator,

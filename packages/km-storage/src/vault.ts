@@ -518,7 +518,7 @@ export function* createVault(
       ensureNotClosed()
       runMutation({ type: "update", nodeId: id, changes }, (ctx) => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- ctx.changes is set by caller
-        dbUpdateNode(db, ctx.nodeId, ctx.changes!)
+        dbUpdateNode(db, ctx.nodeId, ctx.changes!, mode)
       })
     },
 
@@ -528,7 +528,7 @@ export function* createVault(
         { type: "move", nodeId: id, newParentId, position },
         (ctx) => {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- ctx fields set by caller
-          dbMoveNode(db, ctx.nodeId, ctx.newParentId!, ctx.position!)
+          dbMoveNode(db, ctx.nodeId, ctx.newParentId!, ctx.position!, mode)
         },
       )
     },
@@ -536,7 +536,7 @@ export function* createVault(
     deleteNode(id) {
       ensureNotClosed()
       runMutation({ type: "delete", nodeId: id }, (ctx) => {
-        dbDeleteNode(db, ctx.nodeId)
+        dbDeleteNode(db, ctx.nodeId, mode)
       })
     },
 
@@ -545,7 +545,7 @@ export function* createVault(
       return runMutation(
         { type: "add", nodeId: parentId ?? "root", node },
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- ctx.node set by caller
-        (ctx) => dbAddNode(db, parentId, ctx.node!),
+        (ctx) => dbAddNode(db, parentId, ctx.node!, mode),
       )
     },
 
@@ -580,7 +580,7 @@ export function* createVault(
           nodeId: clonedNode.parent_id ?? "root",
           node: clonedNode,
         },
-        () => dbAddNode(db, clonedNode.parent_id ?? null, clonedNode),
+        () => dbAddNode(db, clonedNode.parent_id ?? null, clonedNode, mode),
       )
     },
 
