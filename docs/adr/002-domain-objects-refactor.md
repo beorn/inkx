@@ -693,3 +693,25 @@ Existing `Vault` (createVault) remains for backwards compatibility during migrat
 | File access | N/A | `repo.files?.read()` |
 | Composition | Monolithic | DataStore + FileTree + Config |
 | Testing | Requires full load | `createTestRepo()` instant |
+
+### Phase 5 Audit Findings
+
+**Vault methods used across codebase:**
+
+| Method | DataStore? | Usage Pattern |
+|--------|------------|---------------|
+| `getNode(id)` | ✅ Yes | Basic lookup |
+| `getChildren(parentId)` | ✅ Yes | Tree traversal |
+| `getAllNodes()` | ✅ Yes | Bulk operations |
+| `search(query)` | ✅ Yes | Full-text search |
+| `addNode/updateNode/deleteNode/moveNode` | ✅ Yes | Mutations |
+| `getChildCounts(parentIds)` | ❌ Vault only | Batch optimization |
+| `resolveNode(query)` | ❌ Vault only | Smart resolution |
+| `query(expression)` | ❌ Vault only | Query language |
+| `getSubtree/getAncestors` | ❌ Vault only | Tree queries |
+| `appendTaskToFile` | ❌ Vault only | File mutation |
+
+**Conclusion:** Most code genuinely needs Vault features. Pure DataStore usage is rare.
+The pattern should be:
+- Use `DataStore` for pure tree operations in isolated components
+- Use `Vault` (or `Repo` after migration) for full application features
