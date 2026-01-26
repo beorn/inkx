@@ -131,7 +131,7 @@ export class DisposableStore implements Disposable {
   }
 
   dispose(): void {
-    this.disposables.forEach((d) => d.dispose())
+    this.disposables.forEach((d) => d[Symbol.dispose]())
     this.disposables = []
   }
 

@@ -9,7 +9,7 @@ import type { Key } from "inkx"
 import type { Dispatch } from "react"
 import { actions, type UIAction } from "../ui-reducer.ts"
 import type { BoardState, BoardAction } from "@km/board"
-import type { Vault } from "../vault-context.tsx"
+import type { Repo } from "../vault-context.tsx"
 import type { TUIContext } from "../tui-context.ts"
 import { handleTreeNavigation } from "../navigation-handlers.ts"
 import {
@@ -124,7 +124,7 @@ export function handleBoardKeyInput(
 export function handleDetailPaneKeyInput(
   input: string,
   key: Key,
-  vault: Vault,
+  repo: Repo,
   boardState: BoardState,
   dispatch: Dispatch<UIAction>,
   dispatchBoard: Dispatch<BoardAction>,
@@ -141,14 +141,14 @@ export function handleDetailPaneKeyInput(
 
   // Use navigation handlers to compute target nodeId
   if (input === "j" || key.downArrow) {
-    const targetId = handleTreeNavigation("next", boardState, vault)
+    const targetId = handleTreeNavigation("next", boardState, repo)
     if (targetId) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
     }
     return
   }
   if (input === "k" || key.upArrow) {
-    const targetId = handleTreeNavigation("prev", boardState, vault)
+    const targetId = handleTreeNavigation("prev", boardState, repo)
     if (targetId) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
     }

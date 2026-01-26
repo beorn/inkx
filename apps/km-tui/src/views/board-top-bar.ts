@@ -3,7 +3,7 @@
  */
 import chalk from "chalk"
 import type { KNode } from "@km/core"
-import type { Vault } from "../vault-context.tsx"
+import type { Repo } from "../vault-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderPlain } from "../text/index.ts"
 
@@ -21,12 +21,12 @@ export interface PathSegment {
  * isWithinBoard distinguishes the board root path from path within the board
  * Always includes a repo root segment (📁) at the start
  *
- * @param vault - Vault for node lookups
+ * @param repo - Repo for node lookups
  * @param nodeId - Target node ID
  * @param boardRootId - Board root ID for determining "within board" segments
  */
 export function getPathSegments(
-  vault: Vault,
+  repo: Repo,
   nodeId: string | null,
   boardRootId: string | null,
 ): PathSegment[] {
@@ -47,7 +47,7 @@ export function getPathSegments(
   const nodes: KNode[] = []
   let currentId: string | null = nodeId
   while (currentId) {
-    const node = vault.getNode(currentId)
+    const node = repo.getNode(currentId)
     if (!node) break
     nodes.unshift(node)
     currentId = node.parent_id
@@ -69,7 +69,7 @@ export function getPathSegments(
     const node = nodes[i]
     if (!node) continue
     // Strip wiki link brackets and show alias for display
-    const rawName = getNodeDisplayName(vault, node)
+    const rawName = getNodeDisplayName(repo, node)
     const name = renderPlain(rawName)
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex
 

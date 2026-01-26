@@ -3,6 +3,27 @@ mdtest:
   plugin: ../mdtest-sh-plugin.ts
 ---
 
+<!--
+Migration status: CANNOT BE MIGRATED to km-repl
+
+Reason: These tests use shell pipelines and utilities that require real shell execution:
+- `2>&1 | head -1` - stderr redirect + head
+- `| tail -1` - tail filtering
+- `| grep '...'` - grep filtering
+- `| grep -c '...'` - grep counting
+- `echo '...' | km sh` - stdin piping
+
+The km-repl plugin only supports direct `km` command execution, not shell pipelines.
+These are shell-based integration tests for JSON output format verification.
+
+To migrate these tests, they would need to be completely rewritten:
+1. Create a custom mdtest plugin that parses JSON output
+2. Use programmatic assertions instead of shell filtering
+3. This would require significant effort for minimal benefit
+
+Recommendation: Keep as shell-based tests, fix the underlying issues causing them to fail.
+-->
+
 # km sh - JSON Mode Tests
 
 Tests for `km sh --json` mode which outputs NDJSON for automation.

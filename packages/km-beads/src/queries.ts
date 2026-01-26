@@ -4,7 +4,6 @@
  * Query issues from the km database.
  */
 
-import { queryNodes } from "@km/storage"
 import type { Vault } from "@km/storage"
 import type { KNode } from "@km/core"
 import type { Issue, IssueFilter } from "./types.ts"
@@ -188,9 +187,11 @@ export function isBlocked(issue: Issue, options?: BeadsQueryOptions): boolean {
 
   // Check if any blocker is not done
   for (const blockerId of issue.blockedBy) {
-    const blockers = vault
-      ? vault.query(`short_id:${blockerId}`)
-      : queryNodes(`short_id:${blockerId}`)
+    if (!vault) {
+      // Without vault, we can't check if blockers are done - assume blocked
+      return true
+    }
+    const blockers = vault.query(`short_id:${blockerId}`)
     const [firstBlocker] = blockers
     if (firstBlocker) {
       const blocker = nodeToIssue(firstBlocker, { vault })
@@ -238,7 +239,10 @@ export function queryReady(
   }
 
   // Don't filter by type='task' - issues can be file nodes with task_status
-  const nodes = vault ? vault.query(query) : queryNodes(query)
+  if (!vault) {
+    return [] // Cannot query without vault
+  }
+  const nodes = vault.query(query)
   let issues = nodes.map((n) => nodeToIssue(n, { vault }))
 
   // Apply path scope filter after query (since path: syntax not supported)
@@ -299,9 +303,10 @@ export function queryIssues(
   }
 
   // Don't filter by type='task' - issues can be file nodes with task_status
-  const nodes = vault
-    ? vault.query(query.trim() || "*")
-    : queryNodes(query.trim() || "*")
+  if (!vault) {
+    return [] // Cannot query without vault
+  }
+  const nodes = vault.query(query.trim() || "*")
   let issues = nodes.map((n) => nodeToIssue(n, { vault }))
 
   // Apply path scope filter after query (since path: syntax not supported)
@@ -333,7 +338,10 @@ export function getIssue(
   const vault = options?.vault
   // Try to find by short_id in data
   // Don't filter by type='task' - issues can be file nodes with task_status
-  const nodes = vault ? vault.query(`@issue`) : queryNodes(`@issue`)
+  if (!vault) {
+    return null // Cannot query without vault
+  }
+  const nodes = vault.query(`@issue`)
 
   for (const node of nodes) {
     const data = node.data as Record<string, unknown> | undefined

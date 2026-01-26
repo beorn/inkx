@@ -224,11 +224,11 @@ export function parseCommand(input: string): ParseResult {
   // JSON mode: starts with {
   if (trimmed.startsWith("{")) {
     try {
-      const parsed = JSON.parse(trimmed)
+      const parsed = JSON.parse(trimmed) as { type?: string }
       if (!parsed.type) {
         return { ok: false, error: "JSON action missing 'type' field" }
       }
-      return { ok: true, action: parsed as BoardAction }
+      return { ok: true, action: parsed as unknown as BoardAction }
     } catch (e) {
       return {
         ok: false,

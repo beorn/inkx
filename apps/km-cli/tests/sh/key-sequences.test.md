@@ -1,6 +1,8 @@
 ---
 mdtest:
-  plugin: ../mdtest-sh-plugin.ts
+  plugin: ../km-repl.ts
+  fixture: path-navigation
+  memory: true
 ---
 
 # km sh - Key Sequence Tests
@@ -8,34 +10,6 @@ mdtest:
 Tests for quoted key sequences and special key handling.
 
 ## Setup
-
-```console
-$ beforeAll() {
->   export TEST_ROOT="$(mktemp -d)"
->   cd "$TEST_ROOT"
->   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
->   export -f km
->   mkdir -p .km
-> }
-$ afterAll() {
->   rm -rf "$TEST_ROOT"
-> }
-```
-
-Create a test board:
-
-```console
-$ cat > board.md << 'EOF'
-> # Test Board
-> ## Column A
-> - [ ] Task A1
-> - [ ] Task A2
-> - [ ] Task A3
-> ## Column B
-> - [ ] Task B1
-> - [ ] Task B2
-> EOF
-```
 
 ```console
 $ km sync
@@ -48,68 +22,74 @@ Syncing .km/state.db with files (repo ...)
 
 ### Double-quoted key sequence sends multiple keys
 
-Navigate into Column A then down twice using "jj":
+Move down twice using "jj" (j moves between top-level nodes):
 
 ```console
-$ km sh board.md -c 'key enter; "jj"; state'
-cursor: [0,2]
-node: Task A3
+$ km sh board.md -c '"jj"; state'
+cursor: [1]
+node: Task B1
 topLevel: 2 nodes
 ```
 
 ### Single-quoted key sequence works too
 
+Move down twice then back up with 'jjk':
+
 ```console
-$ km sh board.md -c "key enter; 'jjk'; state"
-cursor: [0,1]
-node: Task A2
+$ km sh board.md -c "'jjk'; state"
+cursor: [0]
+node: Task A1
 topLevel: 2 nodes
 ```
 
 ### Multiple keys then jump to top
 
+Move down twice then jump to top with "jjg":
+
 ```console
-$ km sh board.md -c 'key enter; "jjg"; state'
-cursor: [0,0]
+$ km sh board.md -c '"jjg"; state'
+cursor: [0]
 node: Task A1
 topLevel: 2 nodes
 ```
 
 ### key command with quoted sequence
 
+The key command also accepts quoted sequences:
+
 ```console
-$ km sh board.md -c 'key enter; key "jjk"; state'
-cursor: [0,1]
-node: Task A2
+$ km sh board.md -c 'key "jjk"; state'
+cursor: [0]
+node: Task A1
 topLevel: 2 nodes
 ```
 
 ## Special Key Names
 
-### key enter drills into children
+### key enter navigates to parent section
 
 ```console
 $ km sh board.md -c 'key enter; state'
 cursor: [0,0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
 ### key esc clears selection
 
 ```console
-$ km sh board.md -c 'key enter; A; key esc; state'
-cursor: [0,0]
+$ km sh board.md -c 'A; key esc; state'
+cursor: [0]
 node: Task A1
 topLevel: 2 nodes
 ```
 
-### key backspace goes to parent
+### key backspace at initial state stays at same position
 
 ```console
-$ km sh board.md -c 'key enter; key backspace; state'
+$ km sh board.md -c 'key backspace; state'
 cursor: [0]
-node: Column A
+node: Task A1
 topLevel: 2 nodes
 ```
 
@@ -129,7 +109,7 @@ error: Unknown key:
 
 ## Error Cases
 
-### Empty quoted string is ignored
+### Empty quoted string is rejected
 
 ```console
 $ km sh board.md -c '""'

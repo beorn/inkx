@@ -70,6 +70,9 @@ describe("BottomBar", () => {
 
     // Bell state
     bellState: null,
+
+    // Status message
+    status: null,
   }
 
   const mockBoardState: TUIBoardState = {

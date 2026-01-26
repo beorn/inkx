@@ -3,6 +3,18 @@ mdtest:
   plugin: ../mdtest-sh-plugin.ts
 ---
 
+<!--
+  MIGRATION NOTE: This file CANNOT be migrated to km-repl.ts plugin.
+
+  Reason: Uses `km sh` interactive REPL with TUI-specific commands (toggle_fold,
+  toggle_collapse, state) that require BoardState context. The km-repl.ts plugin
+  only handles standard km CLI commands (sync, list, etc.), not the TUI shell.
+
+  To enable this test:
+  1. Create a km-sh-repl.ts plugin that integrates with @km/repl's runShell/executeCommand
+  2. Or fix the underlying mdtest-sh-plugin.ts to work with `km sh` commands
+-->
+
 # km sh - View Mode Tests
 
 Tests for TUI view modes and folding commands using `km sh`.

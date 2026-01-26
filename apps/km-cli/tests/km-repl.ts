@@ -20,6 +20,7 @@ import { tmpdir } from "os"
 import { join } from "path"
 import type { Plugin, ReplResult } from "../../../vendor/beorn-mdtest/src/types.js"
 import { executeKmCommand } from "../src/execute.ts"
+import { closeDb } from "@km/storage"
 
 interface Opts {
   fixture?: string
@@ -47,6 +48,30 @@ function setupFixture(fixture?: string): string {
 - [ ] Task C
 ## Done
 - [x] Task D
+`,
+    )
+  } else if (fixture === "path-navigation") {
+    writeFileSync(
+      join(tempDir, "board.md"),
+      `# Test Board
+## Section A
+- [ ] Task A1
+- [ ] Task A2
+- [ ] Task A3
+## Section B
+- [ ] Task B1
+- [ ] Task B2
+`,
+    )
+  } else if (fixture === "empty-column") {
+    // Board with one populated column and one empty column
+    writeFileSync(
+      join(tempDir, "empty-col.md"),
+      `# Board
+## Tasks
+- [ ] Task A
+- [ ] Task B
+## Empty
 `,
     )
   } else if (fixture === "basic-vault") {
@@ -85,9 +110,10 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
         opts.reset || opts.fixture !== currentFixture || !vaultPath
 
       if (shouldReset) {
-        // Clean up old vault
+        // Clean up old vault - must close database before deleting directory
         if (vaultPath) {
           try {
+            closeDb() // Close database handle before deleting files
             rmSync(vaultPath, { recursive: true, force: true })
           } catch {
             // Ignore cleanup errors
@@ -143,6 +169,7 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
     async afterAll() {
       if (vaultPath) {
         try {
+          closeDb() // Close database handle before deleting files
           rmSync(vaultPath, { recursive: true, force: true })
         } catch {
           // Ignore cleanup errors

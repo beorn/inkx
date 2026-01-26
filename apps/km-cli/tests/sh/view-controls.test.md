@@ -1,6 +1,8 @@
 ---
 mdtest:
-  plugin: ../mdtest-sh-plugin.ts
+  plugin: ../km-repl.ts
+  fixture: two-columns
+  memory: true
 ---
 
 # km sh - View Controls Tests
@@ -8,31 +10,6 @@ mdtest:
 Tests for TUI view controls (fold, collapse, depth, content lines) using `km sh`.
 
 ## Setup
-
-```console
-$ beforeAll() {
->   export TEST_ROOT="$(mktemp -d)"
->   cd "$TEST_ROOT"
->   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
->   export -f km
->   mkdir -p .km
-> }
-$ afterAll() {
->   rm -rf "$TEST_ROOT"
-> }
-```
-
-Create a test board with flat tasks:
-
-```console
-$ cat > board.md << 'EOF'
-> # Test Board
-> ## Tasks
-> - [ ] Task A
-> - [ ] Task B
-> - [ ] Task C
-> EOF
-```
 
 ```console
 $ km sync
@@ -43,42 +20,40 @@ Syncing .km/state.db with files (repo ...)
 
 ## Fold Commands
 
-### z folds current level
+### z folds current level (no-op on flat tasks)
 
 ```console
 $ km sh board.md -c 'z; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
-folded: 3 nodes
+topLevel: 2 nodes
 ```
 
 ### Z unfolds all
 
 ```console
 $ km sh board.md -c 'z; Z; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
-### fold_level command folds specific depth
+### fold_level command folds specific depth (no-op on flat tasks)
 
 ```console
 $ km sh board.md -c 'fold_level 1; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
-folded: 3 nodes
+topLevel: 2 nodes
 ```
 
 ### unfold_level command unfolds specific depth
 
 ```console
 $ km sh board.md -c 'fold_level 1; unfold_level 1; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ## Outline Depth Commands
@@ -87,36 +62,36 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'decrease_outline_depth; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ### > increases outline depth
 
 ```console
 $ km sh board.md -c 'increase_outline_depth; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ### key < decreases outline depth
 
 ```console
 $ km sh board.md -c '<; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ### key > increases outline depth
 
 ```console
 $ km sh board.md -c '<; >; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ## Content Lines Commands
@@ -125,36 +100,36 @@ topLevel: 1 nodes
 
 ```console
 $ km sh board.md -c 'increase_content_lines; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ### - decreases content lines
 
 ```console
 $ km sh board.md -c 'decrease_content_lines; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ### key + increases content lines
 
 ```console
 $ km sh board.md -c '+; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ### key - decreases content lines
 
 ```console
 $ km sh board.md -c '+; -; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ## Toggle Fold Commands
@@ -170,9 +145,9 @@ error: toggle_fold requires a nodeId argument
 
 ```console
 $ km sh board.md -c 'toggle_fold test-id; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 folded: 1 nodes
 ```
 
@@ -180,9 +155,9 @@ folded: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_fold test-id; toggle_fold test-id; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```
 
 ## Toggle Collapse Commands
@@ -198,9 +173,9 @@ error: toggle_collapse requires a nodeId argument
 
 ```console
 $ km sh board.md -c 'toggle_collapse test-id; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 collapsed: 1 nodes
 ```
 
@@ -208,7 +183,7 @@ collapsed: 1 nodes
 
 ```console
 $ km sh board.md -c 'toggle_collapse test-id; toggle_collapse test-id; state'
-cursor: [0,0]
+cursor: [0]
 node: Task A
-topLevel: 1 nodes
+topLevel: 2 nodes
 ```

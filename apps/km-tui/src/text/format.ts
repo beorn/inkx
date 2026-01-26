@@ -11,14 +11,14 @@ import {
   getNodeDisplayName as getNodeDisplayNameBase,
   type CollapsedAncestor,
 } from "@km/tree"
-import type { Vault } from "../vault-context.tsx"
+import type { Repo } from "../vault-context.tsx"
 
 /**
  * Format a collapsed ancestor for display with its type suffix.
  * Used in tree/context displays.
  */
 export function formatCollapsedAncestor(
-  vault: Vault,
+  repo: Repo,
   ca: CollapsedAncestor,
   showId: boolean,
 ): string {
@@ -27,7 +27,7 @@ export function formatCollapsedAncestor(
     prefix = chalk.dim(`[${ca.node.id.slice(0, 5)}] `)
   }
 
-  const name = getNodeDisplayNameBase(ca.node, (id) => vault.getChildren(id))
+  const name = getNodeDisplayNameBase(ca.node, (id) => repo.getChildren(id))
   if (ca.typeSuffix) {
     return prefix + name + chalk.gray(` ${ca.typeSuffix}`)
   }
@@ -47,13 +47,13 @@ export function formatCollapsedAncestor(
 /**
  * Format a node for display in listings.
  */
-export function formatNode(vault: Vault, node: KNode, showId: boolean): string {
+export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   let prefix = ""
   if (showId) {
     prefix = chalk.dim(`[${node.id.slice(0, 5)}] `)
   }
 
-  const name = getNodeDisplayNameBase(node, (id) => vault.getChildren(id))
+  const name = getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
 
   switch (node.type) {
     case "folder":

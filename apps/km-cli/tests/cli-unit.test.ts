@@ -57,11 +57,11 @@ describe.serial("Task Status Filtering", () => {
       createTask(db, "Done task", { task_status: "done" })
       createTask(db, "In progress", { task_status: "wip" })
 
-      const openTasks = getTasksByStatus(["todo"])
+      const openTasks = getTasksByStatus(db, ["todo"])
       expect(openTasks.length).toBe(1)
       expect(openTasks[0]!.content).toBe("Open task")
 
-      const doneTasks = getTasksByStatus(["done"])
+      const doneTasks = getTasksByStatus(db, ["done"])
       expect(doneTasks.length).toBe(1)
       expect(doneTasks[0]!.content).toBe("Done task")
     })
@@ -73,7 +73,7 @@ describe.serial("Task Status Filtering", () => {
       createTask(db, "Done task", { task_status: "done" })
       createTask(db, "In progress", { task_status: "wip" })
 
-      const tasks = getTasksByStatus(["todo", "wip"])
+      const tasks = getTasksByStatus(db, ["todo", "wip"])
       expect(tasks.length).toBe(2)
       expect(tasks.map((t) => t.content)).toContain("Open task")
       expect(tasks.map((t) => t.content)).toContain("In progress")
@@ -84,7 +84,7 @@ describe.serial("Task Status Filtering", () => {
     await withTestEnv(async ({ db }) => {
       createTask(db, "Open task", { task_status: "todo" })
 
-      const blockedTasks = getTasksByStatus(["blocked"])
+      const blockedTasks = getTasksByStatus(db, ["blocked"])
       expect(blockedTasks.length).toBe(0)
     })
   })
@@ -97,7 +97,7 @@ describe.serial("Task Priority Sorting", () => {
       createTask(db, "High priority", { priority: 1 })
       createTask(db, "Medium priority", { priority: 3 })
 
-      const tasks = getTasksByStatus(["todo"])
+      const tasks = getTasksByStatus(db, ["todo"])
       tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
 
       expect(tasks[0]!.content).toBe("High priority")
@@ -111,7 +111,7 @@ describe.serial("Task Priority Sorting", () => {
       createTask(db, "No priority")
       createTask(db, "Has priority", { priority: 2 })
 
-      const tasks = getTasksByStatus(["todo"])
+      const tasks = getTasksByStatus(db, ["todo"])
       tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
 
       expect(tasks[0]!.content).toBe("Has priority")
@@ -127,7 +127,7 @@ describe.serial("Task Due Date Sorting", () => {
       createTask(db, "Due today", { due_date: "2026-01-09" })
       createTask(db, "Due next week", { due_date: "2026-01-16" })
 
-      const tasks = getTasksByStatus(["todo"])
+      const tasks = getTasksByStatus(db, ["todo"])
       tasks.sort((a, b) => {
         if (!a.due_date && !b.due_date) return 0
         if (!a.due_date) return 1
@@ -146,7 +146,7 @@ describe.serial("Task Due Date Sorting", () => {
       createTask(db, "No due date")
       createTask(db, "Has due date", { due_date: "2026-01-15" })
 
-      const tasks = getTasksByStatus(["todo"])
+      const tasks = getTasksByStatus(db, ["todo"])
       tasks.sort((a, b) => {
         if (!a.due_date && !b.due_date) return 0
         if (!a.due_date) return 1
@@ -197,7 +197,7 @@ describe.serial("Node ID Prefix Matching", () => {
   test("should find node by full ID", async () => {
     await withTestEnv(async ({ db }) => {
       const task = createTask(db, "Test task")
-      const found = getNode(task.id)
+      const found = getNode(db, task.id)
 
       expect(found).not.toBeNull()
       expect(found?.id).toBe(task.id)
@@ -205,8 +205,8 @@ describe.serial("Node ID Prefix Matching", () => {
   })
 
   test("should return null for non-existent ID", async () => {
-    await withTestEnv(async () => {
-      const found = getNode("nonexistent-id")
+    await withTestEnv(async ({ db }) => {
+      const found = getNode(db, "nonexistent-id")
       expect(found).toBeNull()
     })
   })
@@ -219,7 +219,7 @@ describe.serial("Node ID Prefix Matching", () => {
         assigned_to: "alice",
       })
 
-      const found = getNode(task.id)
+      const found = getNode(db, task.id)
 
       expect(found?.content).toBe("Test task")
       expect(found?.priority).toBe(2)
@@ -269,7 +269,7 @@ describe.serial("Task Content Parsing", () => {
   test("should store content with emoji markers", async () => {
     await withTestEnv(async ({ db }) => {
       const task = createTask(db, "Task with due 📅 2025-12-25")
-      const found = getNode(task.id)
+      const found = getNode(db, task.id)
 
       expect(found?.content).toContain("📅")
       expect(found?.content).toContain("2025-12-25")
@@ -279,7 +279,7 @@ describe.serial("Task Content Parsing", () => {
   test("should store content with priority marker", async () => {
     await withTestEnv(async ({ db }) => {
       const task = createTask(db, "Urgent task ⏫")
-      const found = getNode(task.id)
+      const found = getNode(db, task.id)
 
       expect(found?.content).toContain("⏫")
     })
@@ -288,7 +288,7 @@ describe.serial("Task Content Parsing", () => {
   test("should store content with tags", async () => {
     await withTestEnv(async ({ db }) => {
       const task = createTask(db, "Task #work #urgent")
-      const found = getNode(task.id)
+      const found = getNode(db, task.id)
 
       expect(found?.content).toContain("#work")
       expect(found?.content).toContain("#urgent")
@@ -359,7 +359,7 @@ describe.serial("Task Data Field", () => {
         Date.now(),
       )
 
-      const found = getNode(id)
+      const found = getNode(db, id)
       expect(found?.data).toEqual(data)
     })
   })
@@ -367,7 +367,7 @@ describe.serial("Task Data Field", () => {
   test("should handle empty data field", async () => {
     await withTestEnv(async ({ db }) => {
       const task = createTask(db, "Task without data")
-      const found = getNode(task.id)
+      const found = getNode(db, task.id)
 
       // Data defaults to empty object when not specified
       expect(found?.data).toEqual({})
@@ -384,7 +384,7 @@ describe.serial("Overdue Detection", () => {
 
       createTask(db, "Overdue task", { due_date: yesterdayStr })
 
-      const tasks = getTasksByStatus(["todo"])
+      const tasks = getTasksByStatus(db, ["todo"])
       const overdue = tasks.filter((t) => {
         if (!t.due_date) return false
         return new Date(t.due_date) < new Date()
@@ -403,7 +403,7 @@ describe.serial("Overdue Detection", () => {
 
       createTask(db, "Future task", { due_date: tomorrowStr })
 
-      const tasks = getTasksByStatus(["todo"])
+      const tasks = getTasksByStatus(db, ["todo"])
       const overdue = tasks.filter((t) => {
         if (!t.due_date) return false
         return new Date(t.due_date) < new Date()
@@ -421,7 +421,7 @@ describe.serial("Timestamp Handling", () => {
       const task = createTask(db, "Timestamped task")
       const after = Date.now()
 
-      const found = getNode(task.id)
+      const found = getNode(db, task.id)
 
       expect(found?.created_at).toBeGreaterThanOrEqual(before)
       expect(found?.created_at).toBeLessThanOrEqual(after)

@@ -85,7 +85,7 @@ function verifyNonMdFilesUnchanged(vaultDir: string): {
 describe("E2E Sync Safety", () => {
   describe("syncFromFs", () => {
     test("should import markdown files into database", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ vaultDir, data }) => {
         createTestVault(vaultDir)
 
         const manager = new SyncManager({
@@ -94,7 +94,7 @@ describe("E2E Sync Safety", () => {
           debounceApply: 0,
           conflictStrategy: "fs_wins",
           useWorker: false,
-          db: getDb(),
+          db: data.database,
         })
 
         const result = await manager.syncFromFs()
@@ -103,7 +103,7 @@ describe("E2E Sync Safety", () => {
         expect(result.processed).toBeGreaterThan(0)
 
         // Should have markdown file nodes
-        const nodes = getAllNodes(getDb())
+        const nodes = getAllNodes(data.database)
         const fileNodes = nodes.filter((n) => n.type === "file")
 
         // Should have exactly 2 markdown files (README.md and notes/daily.md)
@@ -112,7 +112,7 @@ describe("E2E Sync Safety", () => {
       }))
 
     test("should not modify non-markdown files during import", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ vaultDir, data }) => {
         createTestVault(vaultDir)
 
         const manager = new SyncManager({
@@ -121,7 +121,7 @@ describe("E2E Sync Safety", () => {
           debounceApply: 0,
           conflictStrategy: "fs_wins",
           useWorker: false,
-          db: getDb(),
+          db: data.database,
         })
 
         await manager.syncFromFs()
@@ -135,7 +135,7 @@ describe("E2E Sync Safety", () => {
 
   describe("syncToFs", () => {
     test("should only write .md files to filesystem", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ vaultDir, data }) => {
         createTestVault(vaultDir)
 
         // First import from filesystem
@@ -145,7 +145,7 @@ describe("E2E Sync Safety", () => {
           debounceApply: 0,
           conflictStrategy: "fs_wins",
           useWorker: false,
-          db: getDb(),
+          db: data.database,
         })
 
         await manager.syncFromFs()
@@ -169,7 +169,7 @@ describe("E2E Sync Safety", () => {
       }))
 
     test("should never write source code files", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ vaultDir, data }) => {
         createTestVault(vaultDir)
 
         const manager = new SyncManager({
@@ -178,7 +178,7 @@ describe("E2E Sync Safety", () => {
           debounceApply: 0,
           conflictStrategy: "fs_wins",
           useWorker: false,
-          db: getDb(),
+          db: data.database,
         })
 
         await manager.syncFromFs()
@@ -201,7 +201,7 @@ describe("E2E Sync Safety", () => {
 
   describe("round-trip safety", () => {
     test("should preserve all non-markdown files through multiple sync cycles", () =>
-      withTestEnv(async ({ vaultDir }) => {
+      withTestEnv(async ({ vaultDir, data }) => {
         createTestVault(vaultDir)
 
         const manager = new SyncManager({
@@ -210,7 +210,7 @@ describe("E2E Sync Safety", () => {
           debounceApply: 0,
           conflictStrategy: "fs_wins",
           useWorker: false,
-          db: getDb(),
+          db: data.database,
         })
 
         // Multiple round-trips

@@ -10,6 +10,24 @@ import { rmSync, mkdirSync, existsSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { $ } from "bun"
 
+// Type for parsed task objects from JSON output
+interface TaskJson {
+  id: string
+  type: string
+  content: string
+  task_status?: string
+  due_date?: string
+  priority?: number
+  parent_id?: string | null
+  fs_path?: string
+}
+
+// Type for km new --json output
+interface NewTaskJson {
+  content: string
+  file: string
+}
+
 // Set test environment before imports
 // KM_DIR should be inside the vault so sync defaults to correct directory
 // Use process.pid to ensure unique directories across parallel test runs
@@ -204,7 +222,7 @@ describe.serial("CLI Integration", () => {
     test("should output JSON with --json", async () => {
       const result = await km(["tasks", "--json"])
       expect(result.exitCode).toBe(0)
-      const tasks = JSON.parse(result.stdout)
+      const tasks = JSON.parse(result.stdout) as TaskJson[]
       expect(Array.isArray(tasks)).toBe(true)
       expect(tasks.length).toBeGreaterThan(0)
       expect(tasks[0]).toHaveProperty("id")
@@ -234,12 +252,10 @@ describe.serial("CLI Integration", () => {
 
       // Verify task with verbose output
       const listResult = await km(["tasks", "--verbose", "--json"])
-      const tasks = JSON.parse(listResult.stdout)
-      const newTask = tasks.find((t: { content: string }) =>
-        t.content.includes("Task with due"),
-      )
+      const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+      const newTask = tasks.find((t) => t.content.includes("Task with due"))
       expect(newTask).toBeDefined()
-      expect(newTask.due_date).toBe("2025-12-25")
+      expect(newTask!.due_date).toBe("2025-12-25")
     })
   })
 
@@ -258,45 +274,41 @@ describe.serial("CLI Integration", () => {
     test("should mark task as done by ID prefix", async () => {
       // Get task ID
       const listResult = await km(["tasks", "--json"])
-      const tasks = JSON.parse(listResult.stdout)
-      const task = tasks.find((t: { content: string }) =>
-        t.content.includes("Task to complete"),
-      )
+      const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+      const task = tasks.find((t) => t.content.includes("Task to complete"))
       expect(task).toBeDefined()
 
       // Mark as done using ID prefix (first 8 chars)
-      const idPrefix = task.id.slice(0, 8)
+      const idPrefix = task!.id.slice(0, 8)
       const doneResult = await km(["tasks", "--done", idPrefix])
       expect(doneResult.exitCode).toBe(0)
       expect(doneResult.stdout).toContain("Marked as done")
 
       // Verify task is now done
       const allResult = await km(["tasks", "--all", "--json"])
-      const allTasks = JSON.parse(allResult.stdout)
-      const doneTask = allTasks.find((t: { id: string }) => t.id === task.id)
-      expect(doneTask.task_status).toBe("done")
+      const allTasks = JSON.parse(allResult.stdout) as TaskJson[]
+      const doneTask = allTasks.find((t) => t.id === task!.id)
+      expect(doneTask!.task_status).toBe("done")
     })
 
     test("should mark task as done by ID suffix (displayed short ID)", async () => {
       // Reset task status first
       const listResult = await km(["tasks", "--all", "--json"])
-      const tasks = JSON.parse(listResult.stdout)
-      const task = tasks.find((t: { content: string }) =>
-        t.content.includes("Task to complete"),
-      )
+      const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+      const task = tasks.find((t) => t.content.includes("Task to complete"))
       expect(task).toBeDefined()
 
       // Mark as done using ID suffix (last 8 chars - what 'km task -i' displays)
-      const idSuffix = task.id.slice(-8)
+      const idSuffix = task!.id.slice(-8)
       const doneResult = await km(["status", idSuffix, "done"])
       expect(doneResult.exitCode).toBe(0)
       expect(doneResult.stdout).toContain("done")
 
       // Verify task is now done
       const afterResult = await km(["tasks", "--all", "--json"])
-      const afterTasks = JSON.parse(afterResult.stdout)
-      const doneTask = afterTasks.find((t: { id: string }) => t.id === task.id)
-      expect(doneTask.task_status).toBe("done")
+      const afterTasks = JSON.parse(afterResult.stdout) as TaskJson[]
+      const doneTask = afterTasks.find((t) => t.id === task!.id)
+      expect(doneTask!.task_status).toBe("done")
     })
   })
 
@@ -341,10 +353,10 @@ Some content here.
     test("should show node by ID prefix", async () => {
       // Get a task ID
       const listResult = await km(["tasks", "--json"])
-      const tasks = JSON.parse(listResult.stdout)
+      const tasks = JSON.parse(listResult.stdout) as TaskJson[]
       expect(tasks.length).toBeGreaterThan(0)
 
-      const idPrefix = tasks[0].id.slice(0, 8)
+      const idPrefix = tasks[0]!.id.slice(0, 8)
       const result = await km(["show", idPrefix])
       expect(result.exitCode).toBe(0)
     })
@@ -424,7 +436,7 @@ Some paragraph content.
   test("should output JSON with --json", async () => {
     const result = await km(["ls", "--type", "task", "--json"])
     expect(result.exitCode).toBe(0)
-    const nodes = JSON.parse(result.stdout)
+    const nodes = JSON.parse(result.stdout) as TaskJson[]
     expect(Array.isArray(nodes)).toBe(true)
     expect(nodes.length).toBeGreaterThan(0)
     expect(nodes[0]).toHaveProperty("type", "task")
@@ -461,17 +473,15 @@ describe.serial("km task status", () => {
   test("should set task status to in_progress", async () => {
     // Get task ID
     const listResult = await km(["tasks", "--json"])
-    const tasks = JSON.parse(listResult.stdout)
-    const task = tasks.find((t: { content: string }) =>
-      t.content.includes("Task to toggle"),
-    )
+    const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+    const task = tasks.find((t) => t.content.includes("Task to toggle"))
     expect(task).toBeDefined()
 
     // Set status (using valid status "blocked" instead of "in_progress")
     const statusResult = await km([
       "tasks",
       "status",
-      task.id.slice(0, 8),
+      task!.id.slice(0, 8),
       "blocked",
     ])
     expect(statusResult.exitCode).toBe(0)
@@ -479,24 +489,22 @@ describe.serial("km task status", () => {
 
     // Verify
     const afterResult = await km(["tasks", "--all", "--json"])
-    const afterTasks = JSON.parse(afterResult.stdout)
-    const updated = afterTasks.find((t: { id: string }) => t.id === task.id)
-    expect(updated.task_status).toBe("blocked")
+    const afterTasks = JSON.parse(afterResult.stdout) as TaskJson[]
+    const updated = afterTasks.find((t) => t.id === task!.id)
+    expect(updated!.task_status).toBe("blocked")
   })
 
   test("should set task status to done", async () => {
     // Get task ID
     const listResult = await km(["tasks", "--json"])
-    const tasks = JSON.parse(listResult.stdout)
-    const task = tasks.find((t: { content: string }) =>
-      t.content.includes("Task to toggle"),
-    )
+    const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+    const task = tasks.find((t) => t.content.includes("Task to toggle"))
 
     // Set done
     const statusResult = await km([
       "tasks",
       "status",
-      task.id.slice(0, 8),
+      task!.id.slice(0, 8),
       "done",
     ])
     expect(statusResult.exitCode).toBe(0)
@@ -891,7 +899,7 @@ describe.serial("km new", () => {
     const result = await km(["new", "JSON task", "--json"])
     expect(result.exitCode).toBe(0)
 
-    const output = JSON.parse(result.stdout)
+    const output = JSON.parse(result.stdout) as NewTaskJson
     expect(output.content).toBe("JSON task")
     expect(output.file).toContain("inbox.md")
   })
@@ -946,23 +954,21 @@ describe.serial("km done", () => {
   test("should mark task as done by ID prefix", async () => {
     // Get task ID
     const listResult = await km(["tasks", "--json"])
-    const tasks = JSON.parse(listResult.stdout)
-    const task = tasks.find((t: { content: string }) =>
-      t.content.includes("Task to mark done"),
-    )
+    const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+    const task = tasks.find((t) => t.content.includes("Task to mark done"))
     expect(task).toBeDefined()
 
     // Mark as done using km status
-    const idPrefix = task.id.slice(0, 8)
+    const idPrefix = task!.id.slice(0, 8)
     const doneResult = await km(["status", idPrefix, "done"])
     expect(doneResult.exitCode).toBe(0)
     expect(doneResult.stdout).toContain("done")
 
     // Verify task is now done
     const allResult = await km(["tasks", "--all", "--json"])
-    const allTasks = JSON.parse(allResult.stdout)
-    const doneTask = allTasks.find((t: { id: string }) => t.id === task.id)
-    expect(doneTask.task_status).toBe("done")
+    const allTasks = JSON.parse(allResult.stdout) as TaskJson[]
+    const doneTask = allTasks.find((t) => t.id === task!.id)
+    expect(doneTask!.task_status).toBe("done")
   })
 
   test("should error on task not found", async () => {
@@ -974,14 +980,12 @@ describe.serial("km done", () => {
   test("should show status for already done task", async () => {
     // Get the already completed task - use full ID to avoid prefix collisions
     const listResult = await km(["tasks", "--all", "--json"])
-    const tasks = JSON.parse(listResult.stdout)
-    const task = tasks.find((t: { content: string }) =>
-      t.content.includes("Already completed task"),
-    )
+    const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+    const task = tasks.find((t) => t.content.includes("Already completed task"))
     expect(task).toBeDefined()
 
     // View status - should show done
-    const statusResult = await km(["status", task.id])
+    const statusResult = await km(["status", task!.id])
     expect(statusResult.exitCode).toBe(0)
     expect(statusResult.stdout).toContain("done")
   })
@@ -989,11 +993,11 @@ describe.serial("km done", () => {
   test("should error when file ID prefix has no matching task", async () => {
     // Get a file node (not a task)
     const listResult = await km(["ls", "--type", "file", "--json"])
-    const nodes = JSON.parse(listResult.stdout)
+    const nodes = JSON.parse(listResult.stdout) as TaskJson[]
     expect(nodes.length).toBeGreaterThan(0)
 
     // Use full ID to ensure no accidental task matches
-    const fileNode = nodes[0]
+    const fileNode = nodes[0]!
     const result = await km(["status", fileNode.id])
     expect(result.exitCode).not.toBe(0)
     // Since resolveTask only looks for tasks, a file ID returns "Task not found"
@@ -1003,17 +1007,15 @@ describe.serial("km done", () => {
   test("should output JSON with --json", async () => {
     // Get task ID
     const listResult = await km(["tasks", "--json"])
-    const tasks = JSON.parse(listResult.stdout)
-    const task = tasks.find((t: { content: string }) =>
-      t.content.includes("Task to mark done"),
-    )
+    const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+    const task = tasks.find((t) => t.content.includes("Task to mark done"))
 
     // Use full ID to avoid race condition with other tasks created same millisecond
-    const doneResult = await km(["status", task.id, "done", "--json"])
+    const doneResult = await km(["status", task!.id, "done", "--json"])
     expect(doneResult.exitCode).toBe(0)
 
-    const output = JSON.parse(doneResult.stdout)
-    expect(output.id).toBe(task.id)
+    const output = JSON.parse(doneResult.stdout) as { id: string; status: string }
+    expect(output.id).toBe(task!.id)
     expect(output.status).toBe("done")
   })
 })
@@ -1051,14 +1053,12 @@ describe.serial(
     test("km status done should update markdown file with [x]", async () => {
       // Get task ID for "Open task"
       const listResult = await km(["tasks", "--json"])
-      const tasks = JSON.parse(listResult.stdout)
-      const task = tasks.find(
-        (t: { content: string }) => t.content === "Open task",
-      )
+      const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+      const task = tasks.find((t) => t.content === "Open task")
       expect(task).toBeDefined()
 
       // Mark as done
-      const doneResult = await km(["status", task.id, "done"])
+      const doneResult = await km(["status", task!.id, "done"])
       expect(doneResult.exitCode).toBe(0)
 
       // Read the markdown file and verify it was updated
@@ -1073,14 +1073,12 @@ describe.serial(
     test("km status should cycle through statuses and update markdown", async () => {
       // Get task ID for "Another open task"
       const listResult = await km(["tasks", "--json"])
-      const tasks = JSON.parse(listResult.stdout)
-      const task = tasks.find(
-        (t: { content: string }) => t.content === "Another open task",
-      )
+      const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+      const task = tasks.find((t) => t.content === "Another open task")
       expect(task).toBeDefined()
 
       // Set to blocked
-      const blockedResult = await km(["status", task.id, "blocked"])
+      const blockedResult = await km(["status", task!.id, "blocked"])
       expect(blockedResult.exitCode).toBe(0)
 
       // Read the markdown file - should now show [!]
@@ -1088,12 +1086,12 @@ describe.serial(
       expect(content).toContain("- [!] Another open task")
 
       // Set to done
-      await km(["status", task.id, "done"])
+      await km(["status", task!.id, "done"])
       content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [x] Another open task")
 
       // Set back to todo
-      await km(["status", task.id, "todo"])
+      await km(["status", task!.id, "todo"])
       content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [ ] Another open task")
     })
@@ -1101,26 +1099,24 @@ describe.serial(
     test("km tasks status should update markdown with correct mark", async () => {
       // Get task ID
       const listResult = await km(["tasks", "--all", "--json"])
-      const tasks = JSON.parse(listResult.stdout)
-      const task = tasks.find(
-        (t: { content: string }) => t.content === "Open task",
-      )
+      const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+      const task = tasks.find((t) => t.content === "Open task")
       expect(task).toBeDefined()
 
       // Set to blocked
-      const statusResult = await km(["tasks", "status", task.id, "blocked"])
+      const statusResult = await km(["tasks", "status", task!.id, "blocked"])
       expect(statusResult.exitCode).toBe(0)
 
       let content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [!] Open task")
 
       // Set to done
-      await km(["tasks", "status", task.id, "done"])
+      await km(["tasks", "status", task!.id, "done"])
       content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [x] Open task")
 
       // Set back to todo
-      await km(["tasks", "status", task.id, "todo"])
+      await km(["tasks", "status", task!.id, "todo"])
       content = readFileSync(join(VAULT_DIR, "tasks.md"), "utf-8")
       expect(content).toContain("- [ ] Open task")
     })
@@ -1144,14 +1140,14 @@ describe.serial(
 
       // Get the nested task
       const listResult = await km(["tasks", "--json"])
-      const tasks = JSON.parse(listResult.stdout)
-      const nestedTask = tasks.find((t: { content: string }) =>
+      const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+      const nestedTask = tasks.find((t) =>
         t.content.includes("Nested task in project"),
       )
       expect(nestedTask).toBeDefined()
 
       // Mark as done
-      await km(["status", nestedTask.id, "done"])
+      await km(["status", nestedTask!.id, "done"])
 
       // Verify the nested file was updated
       const content = readFileSync(join(projectDir, "alpha.md"), "utf-8")
@@ -1198,16 +1194,14 @@ describe.serial("Task mark types - parsing and status mapping", () => {
   test("should parse GFM-standard mark types correctly", async () => {
     const result = await km(["tasks", "--all", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     // Find each task by content
-    const openTask = tasks.find((t: { content: string }) =>
+    const openTask = tasks.find((t) =>
       t.content.includes("Open task (space mark)"),
     )
-    const doneTask = tasks.find((t: { content: string }) =>
-      t.content.includes("Done task (x mark)"),
-    )
-    const doneUpperTask = tasks.find((t: { content: string }) =>
+    const doneTask = tasks.find((t) => t.content.includes("Done task (x mark)"))
+    const doneUpperTask = tasks.find((t) =>
       t.content.includes("Done task uppercase"),
     )
 
@@ -1220,16 +1214,13 @@ describe.serial("Task mark types - parsing and status mapping", () => {
   test("km task (default) should only show todo tasks", async () => {
     const result = await km(["tasks", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     // Should only include todo status tasks
     const hasTodo = tasks.some(
-      (t: { content: string }) =>
-        t.content.includes("Open task") && !t.content.includes("Done"),
+      (t) => t.content.includes("Open task") && !t.content.includes("Done"),
     )
-    const hasDone = tasks.some((t: { content: string }) =>
-      t.content.includes("Done task"),
-    )
+    const hasDone = tasks.some((t) => t.content.includes("Done task"))
 
     expect(hasTodo).toBe(true)
     expect(hasDone).toBe(false)
@@ -1238,7 +1229,7 @@ describe.serial("Task mark types - parsing and status mapping", () => {
   test("km task --all should show all statuses", async () => {
     const result = await km(["tasks", "--all", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     // Should have 3 tasks (standard GFM marks)
     expect(tasks.length).toBe(3)
@@ -1292,110 +1283,87 @@ describe.serial("Query language integration - km task with queries", () => {
   test("should filter by @mention", async () => {
     const result = await km(["tasks", "@bjorn", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     expect(tasks.length).toBeGreaterThanOrEqual(1)
-    expect(
-      tasks.some((t: { content: string }) => t.content.includes("@bjorn")),
-    ).toBe(true)
-    expect(
-      tasks.every((t: { content: string }) => t.content.includes("@bjorn")),
-    ).toBe(true)
+    expect(tasks.some((t) => t.content.includes("@bjorn"))).toBe(true)
+    expect(tasks.every((t) => t.content.includes("@bjorn"))).toBe(true)
   })
 
   test("should filter by #tag", async () => {
     const result = await km(["tasks", "#urgent", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     expect(tasks.length).toBeGreaterThanOrEqual(1)
-    expect(
-      tasks.some((t: { content: string }) => t.content.includes("#urgent")),
-    ).toBe(true)
+    expect(tasks.some((t) => t.content.includes("#urgent"))).toBe(true)
   })
 
   test("should filter by +project", async () => {
     const result = await km(["tasks", "+project-alpha", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     expect(tasks.length).toBeGreaterThanOrEqual(1)
-    expect(
-      tasks.some((t: { content: string }) =>
-        t.content.includes("+project-alpha"),
-      ),
-    ).toBe(true)
+    expect(tasks.some((t) => t.content.includes("+project-alpha"))).toBe(true)
   })
 
   test("should filter by status:todo", async () => {
     const result = await km(["tasks", "status:todo", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     expect(tasks.length).toBeGreaterThan(0)
-    expect(
-      tasks.every((t: { task_status: string }) => t.task_status === "todo"),
-    ).toBe(true)
+    expect(tasks.every((t) => t.task_status === "todo")).toBe(true)
   })
 
   test("should filter by status:done with --all", async () => {
     const result = await km(["tasks", "--all", "status:done", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     expect(tasks.length).toBeGreaterThan(0)
-    expect(
-      tasks.every((t: { task_status: string }) => t.task_status === "done"),
-    ).toBe(true)
+    expect(tasks.every((t) => t.task_status === "done")).toBe(true)
   })
 
   test("should exclude with negation -status:done", async () => {
     const result = await km(["tasks", "--all", "-status:done", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
-    expect(
-      tasks.every((t: { task_status: string }) => t.task_status !== "done"),
-    ).toBe(true)
+    expect(tasks.every((t) => t.task_status !== "done")).toBe(true)
   })
 
   test("should filter by path pattern ./projects/**", async () => {
     const result = await km(["tasks", "--all", "./projects/**", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     // Should only find tasks from projects folder
     expect(tasks.length).toBeGreaterThanOrEqual(1)
-    expect(
-      tasks.some((t: { content: string }) => t.content.includes("Work task")),
-    ).toBe(true)
+    expect(tasks.some((t) => t.content.includes("Work task"))).toBe(true)
     // Should NOT include tasks from root tasks.md
-    expect(
-      tasks.some((t: { content: string }) => t.content.includes("@bjorn")),
-    ).toBe(false)
+    expect(tasks.some((t) => t.content.includes("@bjorn"))).toBe(false)
   })
 
   test("should combine multiple conditions (AND)", async () => {
     const result = await km(["tasks", "@bjorn", "status:todo", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     // Should match only todo tasks with @bjorn
     expect(
-      tasks.every(
-        (t: { content: string; task_status: string }) =>
-          t.content.includes("@bjorn") && t.task_status === "todo",
-      ),
+      tasks.every((t) => t.content.includes("@bjorn") && t.task_status === "todo"),
     ).toBe(true)
   })
 
   test("should filter by priority p:1", async () => {
     const result = await km(["tasks", "p:1", "--json"])
     expect(result.exitCode).toBe(0)
-    const tasks = JSON.parse(result.stdout)
+    const tasks = JSON.parse(result.stdout) as TaskJson[]
 
     expect(tasks.length).toBeGreaterThanOrEqual(1)
-    expect(tasks.some((t: { priority: number }) => t.priority === 1)).toBe(true)
+    expect(tasks.some((t) => t.priority === 1)).toBe(true)
   })
 })
 
@@ -1439,47 +1407,39 @@ describe.serial("km move - re-parent nodes", () => {
   test("should move task to different parent by ID", async () => {
     // Get IDs
     const listResult = await km(["tasks", "--json"])
-    const tasks = JSON.parse(listResult.stdout)
-    const inboxTask = tasks.find((t: { content: string }) =>
-      t.content.includes("Task in inbox"),
-    )
-    const workTask = tasks.find((t: { content: string }) =>
-      t.content.includes("Existing work task"),
-    )
+    const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+    const inboxTask = tasks.find((t) => t.content.includes("Task in inbox"))
+    const workTask = tasks.find((t) => t.content.includes("Existing work task"))
     expect(inboxTask).toBeDefined()
     expect(workTask).toBeDefined()
 
     // Get the work project file node (parent of work task)
     const nodesResult = await km(["ls", "--type", "file", "--json"])
-    const nodes = JSON.parse(nodesResult.stdout)
-    const workFile = nodes.find((n: { fs_path: string }) =>
-      n.fs_path?.includes("work.md"),
-    )
+    const nodes = JSON.parse(nodesResult.stdout) as TaskJson[]
+    const workFile = nodes.find((n) => n.fs_path?.includes("work.md"))
     expect(workFile).toBeDefined()
 
     // Move inbox task to work project
-    const moveResult = await km(["move", inboxTask.id, workFile.id, "--json"])
+    const moveResult = await km(["move", inboxTask!.id, workFile!.id, "--json"])
     expect(moveResult.exitCode).toBe(0)
 
-    const output = JSON.parse(moveResult.stdout)
-    expect(output.id).toBe(inboxTask.id)
-    expect(output.parent_id).toBe(workFile.id)
+    const output = JSON.parse(moveResult.stdout) as { id: string; parent_id: string | null }
+    expect(output.id).toBe(inboxTask!.id)
+    expect(output.parent_id).toBe(workFile!.id)
   })
 
   test("should move task to root with --root", async () => {
     const listResult = await km(["tasks", "--json"])
-    const tasks = JSON.parse(listResult.stdout)
-    const task = tasks.find((t: { content: string }) =>
-      t.content.includes("Task in inbox"),
-    )
+    const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+    const task = tasks.find((t) => t.content.includes("Task in inbox"))
     expect(task).toBeDefined()
-    expect(task.parent_id).not.toBeNull()
+    expect(task!.parent_id).not.toBeNull()
 
     // Move to root
-    const moveResult = await km(["move", task.id, "--to-root", "--json"])
+    const moveResult = await km(["move", task!.id, "--to-root", "--json"])
     expect(moveResult.exitCode).toBe(0)
 
-    const output = JSON.parse(moveResult.stdout)
+    const output = JSON.parse(moveResult.stdout) as { id: string; parent_id: string | null }
     expect(output.parent_id).toBeNull()
   })
 
@@ -1491,8 +1451,8 @@ describe.serial("km move - re-parent nodes", () => {
 
   test("should error when no parent specified", async () => {
     const listResult = await km(["tasks", "--json"])
-    const tasks = JSON.parse(listResult.stdout)
-    const task = tasks[0]
+    const tasks = JSON.parse(listResult.stdout) as TaskJson[]
+    const task = tasks[0]!
 
     const result = await km(["move", task.id])
     expect(result.exitCode).not.toBe(0)

@@ -3,6 +3,20 @@ mdtest:
   plugin: ../mdtest-sh-plugin.ts
 ---
 
+<!--
+MIGRATION NOTE: This file CANNOT be migrated to km-repl.ts in-process execution.
+
+Reason: This file tests `km sh` interactive REPL functionality using persistent
+subprocess mode (cmd="km sh board.md"). Commands like j, k, g, G, state, view,
+log, q are internal km sh REPL commands sent to a persistent subprocess that
+maintains state between commands.
+
+The km-repl.ts plugin only supports one-shot `km` CLI commands, not interactive
+REPL sessions with state persistence. To migrate this, we would need either:
+1. An in-process km sh REPL executor, or
+2. Refactoring the tests to use one-shot km sh -c '...' commands
+-->
+
 # km sh - Cursor Navigation Tests
 
 Tests for cursor movement commands (j/k/g/G) using `km sh`.
