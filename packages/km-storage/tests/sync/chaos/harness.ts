@@ -18,9 +18,6 @@ import type {
 } from "./types.ts"
 import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
-import { runWithKmDir } from "../../../src/emit.ts"
-import { resetDb, closeDb, getDb } from "../../../src/db.ts"
-import { runWithDb } from "../../../src/db-instance.ts"
 import { createEmitter } from "../../../src/emitter.ts"
 import { SCHEMA } from "../../../src/schema.ts"
 import {
@@ -222,116 +219,106 @@ async function runChaosTestWithRealFs(
   mkdirSync(kmDir, { recursive: true })
   mkdirSync(repoDir, { recursive: true })
 
-  // Wrap in runWithKmDir for context-local kmDir (enables parallel test isolation)
-  return runWithKmDir(kmDir, async () => {
-    let chaosWatcher: ChaosWatcher | null = null
+  // Create in-memory database for parallel isolation (no shared state)
+  const db = new Database(":memory:")
+  db.exec(SCHEMA)
 
-    try {
-      resetDb()
-      const db = getDb()
-      const emitter = createEmitter({ kmDir, db })
+  // Create emitter with db wired for event application
+  const emitter = createEmitter({ kmDir, db })
 
-      for (const file of config.setup) {
-        const fullPath = join(repoDir, file.path)
-        const fileDir = dirname(fullPath)
-        if (!existsSync(fileDir)) {
-          mkdirSync(fileDir, { recursive: true })
-        }
-        writeFileSync(fullPath, file.content)
+  let chaosWatcher: ChaosWatcher | null = null
+
+  try {
+    for (const file of config.setup) {
+      const fullPath = join(repoDir, file.path)
+      const fileDir = dirname(fullPath)
+      if (!existsSync(fileDir)) {
+        mkdirSync(fileDir, { recursive: true })
       }
-
-      // Initial Sync Phase - wrap in runWithDb so emitNodeCreated applies to db
-      // Use reconcileDirectoryRecursive to handle subdirectories
-      runWithDb(db, () => {
-        const ops = reconcileDirectoryRecursive(db, repoDir, repoDir)
-        applyReconcileOps(db, ops, repoDir, emitter)
-      })
-
-      // Chaos Injection Phase
-      chaosWatcher = createChaosWatcher({
-        debounceMs: 50,
-        scenario: config.scenario,
-        seed: 12345,
-      })
-
-      chaosWatcher.start(repoDir)
-
-      await new Promise<void>((resolve) => {
-        if (config.scenario.type === "init_gap") {
-          chaosWatcher!.once("ready", resolve)
-          void chaosWatcher!.advanceTime(
-            (config.scenario.params.initDurationMs as number) ?? 2000,
-          )
-        } else {
-          chaosWatcher!.once("ready", resolve)
-        }
-      })
-
-      chaosWatcher.on(
-        "sync",
-        (data: { paths: string[]; directories: string[] }) => {
-          void (async () => {
-            // Wrap in runWithDb so emitNodeCreated applies to db
-            runWithDb(db, () => {
-              for (const dir of data.directories) {
-                const dirOps =
-                  dir === repoDir
-                    ? reconcileDirectory(db, dir, repoDir)
-                    : reconcileDirectoryRecursive(db, dir, repoDir)
-                applyReconcileOps(db, dirOps, repoDir, emitter)
-              }
-            })
-          })()
-        },
-      )
-
-      const absoluteEvents: FsEvent[] = config.events.map((e) => ({
-        ...e,
-        path: join(repoDir, e.path),
-      }))
-
-      chaosWatcher.injectBatch(absoluteEvents)
-      await chaosWatcher.flush()
-      await new Promise((r) => setTimeout(r, config.timeout ?? 100))
-
-      // Verification Phase
-      const verifier = new Verifier(db)
-
-      const expectedWithAbsolutePaths: ExpectedState = {
-        ...config.expected,
-        files: config.expected.files.map((f) => join(repoDir, f)),
-        deletedFiles: config.expected.deletedFiles?.map((f) =>
-          join(repoDir, f),
-        ),
-        nodes: config.expected.nodes?.map((n) => ({
-          ...n,
-          path: join(repoDir, n.path),
-        })),
-      }
-
-      const verification = verifier.verifyAll(
-        expectedWithAbsolutePaths,
-        repoDir,
-      )
-
-      return {
-        name: config.name,
-        passed: verification.passed,
-        verification,
-        duration: Date.now() - start,
-        eventsEmitted: chaosWatcher.getEmittedEvents().length,
-        eventsDropped: chaosWatcher.getDroppedEvents().length,
-      }
-    } finally {
-      if (chaosWatcher) {
-        await chaosWatcher.stop()
-      }
-      closeDb()
-      if (existsSync(testDir)) {
-        rmSync(testDir, { recursive: true })
-      }
+      writeFileSync(fullPath, file.content)
     }
-  })
+
+    // Initial Sync Phase
+    // Use reconcileDirectoryRecursive to handle subdirectories
+    const ops = reconcileDirectoryRecursive(db, repoDir, repoDir)
+    applyReconcileOps(db, ops, repoDir, emitter)
+
+    // Chaos Injection Phase
+    chaosWatcher = createChaosWatcher({
+      debounceMs: 50,
+      scenario: config.scenario,
+      seed: 12345,
+    })
+
+    chaosWatcher.start(repoDir)
+
+    await new Promise<void>((resolve) => {
+      if (config.scenario.type === "init_gap") {
+        chaosWatcher!.once("ready", resolve)
+        void chaosWatcher!.advanceTime(
+          (config.scenario.params.initDurationMs as number) ?? 2000,
+        )
+      } else {
+        chaosWatcher!.once("ready", resolve)
+      }
+    })
+
+    chaosWatcher.on(
+      "sync",
+      (data: { paths: string[]; directories: string[] }) => {
+        void (async () => {
+          for (const dir of data.directories) {
+            const dirOps =
+              dir === repoDir
+                ? reconcileDirectory(db, dir, repoDir)
+                : reconcileDirectoryRecursive(db, dir, repoDir)
+            applyReconcileOps(db, dirOps, repoDir, emitter)
+          }
+        })()
+      },
+    )
+
+    const absoluteEvents: FsEvent[] = config.events.map((e) => ({
+      ...e,
+      path: join(repoDir, e.path),
+    }))
+
+    chaosWatcher.injectBatch(absoluteEvents)
+    await chaosWatcher.flush()
+    await new Promise((r) => setTimeout(r, config.timeout ?? 100))
+
+    // Verification Phase
+    const verifier = new Verifier(db)
+
+    const expectedWithAbsolutePaths: ExpectedState = {
+      ...config.expected,
+      files: config.expected.files.map((f) => join(repoDir, f)),
+      deletedFiles: config.expected.deletedFiles?.map((f) => join(repoDir, f)),
+      nodes: config.expected.nodes?.map((n) => ({
+        ...n,
+        path: join(repoDir, n.path),
+      })),
+    }
+
+    const verification = verifier.verifyAll(expectedWithAbsolutePaths, repoDir)
+
+    return {
+      name: config.name,
+      passed: verification.passed,
+      verification,
+      duration: Date.now() - start,
+      eventsEmitted: chaosWatcher.getEmittedEvents().length,
+      eventsDropped: chaosWatcher.getDroppedEvents().length,
+    }
+  } finally {
+    if (chaosWatcher) {
+      await chaosWatcher.stop()
+    }
+    db.close()
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true })
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

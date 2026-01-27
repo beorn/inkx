@@ -941,6 +941,10 @@ export interface CreateBareRepoOptions {
   configPath?: string
   /** Lifecycle hooks for mutation interception */
   hooks?: RepoHooks
+  /** Pre-created emitter (if not provided, one is created) */
+  emitter?: Emitter
+  /** Skip persisting events to events.jsonl (useful for tests) */
+  skipPersist?: boolean
 }
 
 /**
@@ -978,10 +982,16 @@ export function createBareRepo(
   const config = options.config ?? loadConfigObject(options.configPath)
   const db = data.database
 
-  // Create Emitter (uses configPath or cwd for kmDir)
+  // Create or use provided Emitter
   const repoPath = options.configPath ?? process.cwd()
   const kmDir = join(repoPath, ".km")
-  const emitter = createEmitter({ kmDir })
+  const emitter =
+    options.emitter ??
+    createEmitter({
+      kmDir,
+      db,
+      skipPersist: options.skipPersist,
+    })
 
   // Capture hooks from options
   const hooks = options.hooks

@@ -272,10 +272,9 @@ export function handleCommandAction(
 // =============================================================================
 
 function handleZoomOutwards(ctx: TUIContext): ActionResult {
-  const { state, boardState, ui, layout, dispatch, dispatchBoard } = ctx
-  const col = state.columns[state.colIndex]
-  const card = col?.cards[state.cardIndex]
+  const { boardState, ui, layout, dispatch, dispatchBoard } = ctx
 
+  // Close overlays first
   if (ui.showDetailPane) {
     dispatch(actions.setDetailPane(false))
     return ok()
@@ -286,6 +285,8 @@ function handleZoomOutwards(ctx: TUIContext): ActionResult {
     clearSelection(ctx)
     return ok()
   }
+
+  // Try actual zoom out (to parent of current root)
   if (boardState.rootId) {
     const currentRoot = ctx.repo.getNode(boardState.rootId)
     if (currentRoot?.parent_id) {
@@ -337,64 +338,9 @@ function handleZoomOutwards(ctx: TUIContext): ActionResult {
     }
   }
 
-  // Already at root level - try to move cursor to parent of current selection
-  if (card?.node.parent_id) {
-    const parentNode = ctx.repo.getNode(card.node.parent_id)
-    if (parentNode) {
-      // Search in layout.columns for the parent node
-      const columns = layout.columns
-
-      // Check if parent is a column header
-      const colIdx = columns.findIndex((col) => col.node.id === parentNode.id)
-      if (colIdx >= 0) {
-        dispatchBoard({ type: "SELECT", nodeId: parentNode.id })
-        clearSelection(ctx)
-        return ok()
-      }
-
-      // Check if parent is a card within any column
-      for (let cIdx = 0; cIdx < columns.length; cIdx++) {
-        const column = columns[cIdx]
-        if (!column) continue
-        const cardIdx = column.cards.findIndex(
-          (c) => c.node.id === parentNode.id,
-        )
-        if (cardIdx >= 0) {
-          dispatchBoard({ type: "SELECT", nodeId: parentNode.id })
-          clearSelection(ctx)
-          return ok()
-        }
-      }
-    }
-  }
-
-  // Try moving from card to column level
-  if (layout.cardIndex >= 0) {
-    const column = layout.columns[layout.colIndex]
-    if (column) {
-      dispatchBoard({ type: "SELECT", nodeId: column.node.id })
-    }
-    return ok()
-  }
-
-  // Try moving from column level to board level
-  // Derive selection level from layout indices
-  const derivedSelectionLevel =
-    layout.cardIndex >= 0 ? "card" : layout.colIndex >= 0 ? "column" : "board"
-  if (derivedSelectionLevel === "column") {
-    dispatchBoard({ type: "SELECT", nodeId: null })
-    return ok()
-  }
-
-  // At root level - try hierarchical cursor up instead
-  const targetId = handleHierarchicalNavigation(ctx, "up")
-  if (targetId) {
-    dispatchBoard({ type: "SELECT", nodeId: targetId })
-    return ok()
-  }
-
-  // Cursor up also failed - now return boundary
-  return boundary("up", "already at board level")
+  // Can't zoom out - delegate to cursor up for card→column→board navigation
+  // This ensures 'u' and 'k' use the same boundary checking logic
+  return handleCursorMove(ctx, "up")
 }
 
 function handleDeleteNode(ctx: TUIContext): void {
@@ -489,9 +435,11 @@ function handleHierarchicalNavigation(
     return null
   }
 
-  // Determine current level in hierarchy
+  // Determine current level in hierarchy using repo (not layout state)
+  // This is more reliable than checking state.columns which may be stale
+  const cursorNode = repo.getNode(cursorNodeId)
   const isAtBoardLevel = cursorNodeId === rootId
-  const isAtColumnLevel = state.columns.some((c) => c.node.id === cursorNodeId)
+  const isAtColumnLevel = cursorNode?.parent_id === rootId && !isAtBoardLevel
   const isAtCardLevel = !isAtBoardLevel && !isAtColumnLevel
 
   debug(
