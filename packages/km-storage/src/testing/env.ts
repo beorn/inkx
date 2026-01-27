@@ -39,13 +39,7 @@ import {
 import { getAllNodes } from "../db-queries/utils.ts"
 import { getLinksTo } from "../db-queries/task-queries.ts"
 import { getBacklinks, type Link } from "../db-links.ts"
-import {
-  moveNode,
-  updateNode,
-  deleteNode,
-  addNode,
-  type StorageMode,
-} from "../db-ops.ts"
+import { createDbOps } from "../db-ops.ts"
 import {
   createDBDataStore,
   type DataStore,
@@ -188,8 +182,12 @@ export async function withTestEnv<T>(
   const db = new Database(dbPath)
   db.exec(SCHEMA)
 
-  // Derive StorageMode from TestMode (real → disk, otherwise → memory)
-  const storageMode: StorageMode = mode === "real" ? "disk" : "memory"
+  // Create emitter for event emission (with db for applying events)
+  const emitter = createEmitter({ kmDir, db })
+
+  // Create db ops - pass emitter for disk mode (events), omit for memory mode (direct SQL)
+  const isDiskMode = mode === "real"
+  const ops = createDbOps(db, isDiskMode ? emitter : undefined)
 
   // Create repo wrapping db functions with db pre-bound
   const repo: TestRepo = {
@@ -202,11 +200,10 @@ export async function withTestEnv<T>(
     getAncestors: (nodeId) => getAncestors(db, nodeId),
     getLinksTo: (targetId) => getLinksTo(db, targetId),
     moveNode: (id, newParentId, position) =>
-      moveNode(db, id, newParentId, position, storageMode),
-    updateNode: (id, changes) => updateNode(db, id, changes, storageMode),
-    deleteNode: (id) => deleteNode(db, id, storageMode),
-    addNode: (parentId, nodeData) =>
-      addNode(db, parentId, nodeData, storageMode),
+      ops.moveNode(id, newParentId, position),
+    updateNode: (id, changes) => ops.updateNode(id, changes),
+    deleteNode: (id) => ops.deleteNode(id),
+    addNode: (parentId, nodeData) => ops.addNode(parentId, nodeData),
     rawQuery: <T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],
@@ -215,15 +212,9 @@ export async function withTestEnv<T>(
     },
   }
 
-  // Create emitter for event emission (with db for applying events)
-  const emitter = createEmitter({ kmDir, db })
-
   // Create DataStore wrapping the test db for ergonomic access
   // Pass emitter for disk mode so DB→FS sync events fire when appropriate
-  const data = createDBDataStore(
-    db,
-    storageMode === "disk" ? { emitter } : undefined,
-  )
+  const data = createDBDataStore(db, isDiskMode ? { emitter } : undefined)
 
   const env: TestEnv = {
     testId,
@@ -279,8 +270,12 @@ export function withTestEnvSync<T>(
   const db = new Database(dbPath)
   db.exec(SCHEMA)
 
-  // Derive StorageMode from TestMode (real → disk, otherwise → memory)
-  const storageMode: StorageMode = mode === "real" ? "disk" : "memory"
+  // Create emitter for event emission (with db for applying events)
+  const emitter = createEmitter({ kmDir, db })
+
+  // Create db ops - pass emitter for disk mode (events), omit for memory mode (direct SQL)
+  const isDiskMode = mode === "real"
+  const ops = createDbOps(db, isDiskMode ? emitter : undefined)
 
   // Create repo wrapping db functions with db pre-bound
   const repo: TestRepo = {
@@ -293,11 +288,10 @@ export function withTestEnvSync<T>(
     getAncestors: (nodeId) => getAncestors(db, nodeId),
     getLinksTo: (targetId) => getLinksTo(db, targetId),
     moveNode: (id, newParentId, position) =>
-      moveNode(db, id, newParentId, position, storageMode),
-    updateNode: (id, changes) => updateNode(db, id, changes, storageMode),
-    deleteNode: (id) => deleteNode(db, id, storageMode),
-    addNode: (parentId, nodeData) =>
-      addNode(db, parentId, nodeData, storageMode),
+      ops.moveNode(id, newParentId, position),
+    updateNode: (id, changes) => ops.updateNode(id, changes),
+    deleteNode: (id) => ops.deleteNode(id),
+    addNode: (parentId, nodeData) => ops.addNode(parentId, nodeData),
     rawQuery: <T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],
@@ -306,15 +300,9 @@ export function withTestEnvSync<T>(
     },
   }
 
-  // Create emitter for event emission (with db for applying events)
-  const emitter = createEmitter({ kmDir, db })
-
   // Create DataStore wrapping the test db for ergonomic access
   // Pass emitter for disk mode so DB→FS sync events fire when appropriate
-  const data = createDBDataStore(
-    db,
-    storageMode === "disk" ? { emitter } : undefined,
-  )
+  const data = createDBDataStore(db, isDiskMode ? { emitter } : undefined)
 
   const env: TestEnv = {
     testId,

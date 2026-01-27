@@ -74,16 +74,13 @@ export {
   getBacklinks,
   getBacklinksByName,
   resolveLinks,
-  // Mutation operations (require Database parameter)
-  moveNode,
-  updateNode,
-  deleteNode,
-  addNode,
+  // Mutation operations (factory pattern - use createDbOps())
+  createDbOps,
   // Event application (internal use)
   applyEventWithDb,
 } from "./db.ts"
 
-export type { Link, SearchResult, QueryAST } from "./db.ts"
+export type { Link, SearchResult, QueryAST, DbOps } from "./db.ts"
 
 // Store abstraction
 export { DiskStore, MemoryStore } from "./store.ts"

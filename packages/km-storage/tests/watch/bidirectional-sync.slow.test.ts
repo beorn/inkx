@@ -15,34 +15,20 @@ import { rmSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { EventEmitter } from "events"
 
-import { getNodeByPath, getAllNodes, updateNode } from "@km/storage"
-
-import { setFsSync } from "../../src/emit.ts"
-import { SyncManager } from "../../src/watch/sync.ts"
-import { withTestEnv } from "@km/storage"
-
-/** Helper to set up sync manager with automatic cleanup via AsyncDisposableStack */
-function setupSyncManager(
-  stack: AsyncDisposableStack,
-  syncManager: SyncManager,
-): void {
-  setFsSync(syncManager)
-  stack.defer(() => setFsSync(null))
-  stack.defer(async () => await syncManager.stop())
-}
+import { getNodeByPath, getAllNodes, withTestEnv } from "@km/storage"
+import {
+  createTestSyncManager,
+  setupSyncManager,
+  waitForReady,
+  waitForStateChange,
+  withTimeout,
+} from "./sync-test-helpers.ts"
 
 describe("Bidirectional Sync E2E", () => {
   describe("TUI → Filesystem", () => {
     test("editing task status in model writes to file", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          repoPath: repoDir,
-          db: db,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false, // Use main thread for ALS access
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -61,7 +47,7 @@ describe("Bidirectional Sync E2E", () => {
         expect(task!.task_status).toBe("todo")
 
         // Update task status (simulating TUI edit)
-        updateNode(db, task!.id, { task_status: "done" }, "disk")
+        data.updateNode(task!.id, { task_status: "done" })
 
         // Wait for write queue to flush
         await Bun.sleep(200)
@@ -73,15 +59,8 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("creating new task in model creates file entry", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          repoPath: repoDir,
-          db: db,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -103,7 +82,7 @@ describe("Bidirectional Sync E2E", () => {
         expect(task).toBeDefined()
 
         // Update task text (simulating TUI edit)
-        updateNode(db, task!.id, { content: "Updated task content" }, "disk")
+        data.updateNode(task!.id, { content: "Updated task content" })
 
         // Wait for write
         await Bun.sleep(200)
@@ -118,14 +97,7 @@ describe("Bidirectional Sync E2E", () => {
     test("external file edit triggers state-change event", () =>
       withTestEnv(async ({ repoDir, db }) => {
         const events = new EventEmitter()
-        const syncManager = new SyncManager({
-          repoPath: repoDir,
-          db: db,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+        const syncManager = createTestSyncManager(db, repoDir)
 
         syncManager.on("state-change", (state) => {
           events.emit("state-change", state)
@@ -143,34 +115,16 @@ describe("Bidirectional Sync E2E", () => {
 
         // Start watching and wait for ready
         syncManager.start()
-        await new Promise<void>((resolve) => {
-          syncManager.once("ready", resolve)
-        })
+        await waitForReady(syncManager)
 
         // Set up promise to wait for state change - wait for full cycle
-        const stateChanged = new Promise<void>((resolve) => {
-          let sawReconciling = false
-          const handler = (state: string) => {
-            if (state === "reconciling") {
-              sawReconciling = true
-            }
-            if (state === "idle" && sawReconciling) {
-              events.off("state-change", handler)
-              resolve()
-            }
-          }
-          events.on("state-change", handler)
-        })
+        const stateChanged = waitForStateChange(events)
 
         // Make external edit
         writeFileSync(testFile, "# Initial\n\n- [ ] Task 1\n- [ ] Task 2\n")
 
         // Wait for sync to complete (with timeout)
-        const timeout = new Promise<void>((_, reject) => {
-          setTimeout(() => reject(new Error("Timeout waiting for sync")), 5000)
-        })
-
-        await Promise.race([stateChanged, timeout])
+        await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
 
         // Verify new task was synced
         const allNodes = getAllNodes(db)
@@ -181,14 +135,7 @@ describe("Bidirectional Sync E2E", () => {
     test("external file edit updates database", () =>
       withTestEnv(async ({ repoDir, db }) => {
         const events = new EventEmitter()
-        const syncManager = new SyncManager({
-          repoPath: repoDir,
-          db: db,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+        const syncManager = createTestSyncManager(db, repoDir)
 
         syncManager.on("state-change", (state) => {
           events.emit("state-change", state)
@@ -212,35 +159,16 @@ describe("Bidirectional Sync E2E", () => {
 
         // Start watching and wait for ready
         syncManager.start()
-        await new Promise<void>((resolve) => {
-          syncManager.once("ready", resolve)
-        })
+        await waitForReady(syncManager)
 
         // Set up wait for sync - wait for full cycle
-        const stateChanged = new Promise<void>((resolve) => {
-          let sawReconciling = false
-          const handler = (state: string) => {
-            if (state === "reconciling") {
-              sawReconciling = true
-            }
-            if (state === "idle" && sawReconciling) {
-              events.off("state-change", handler)
-              resolve()
-            }
-          }
-          events.on("state-change", handler)
-        })
+        const stateChanged = waitForStateChange(events)
 
         // External edit - change task text
         writeFileSync(testFile, "# Test\n\n- [ ] Modified task\n")
 
         // Wait for sync
-        await Promise.race([
-          stateChanged,
-          new Promise<void>((_, reject) =>
-            setTimeout(() => reject(new Error("Timeout")), 5000),
-          ),
-        ])
+        await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
 
         // Verify database was updated
         allNodes = getAllNodes(db)
@@ -252,14 +180,7 @@ describe("Bidirectional Sync E2E", () => {
     test("external file delete removes from database", () =>
       withTestEnv(async ({ repoDir, db }) => {
         const events = new EventEmitter()
-        const syncManager = new SyncManager({
-          repoPath: repoDir,
-          db: db,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+        const syncManager = createTestSyncManager(db, repoDir)
 
         syncManager.on("state-change", (state) => {
           events.emit("state-change", state)
@@ -281,35 +202,16 @@ describe("Bidirectional Sync E2E", () => {
 
         // Start watching and wait for ready
         syncManager.start()
-        await new Promise<void>((resolve) => {
-          syncManager.once("ready", resolve)
-        })
+        await waitForReady(syncManager)
 
         // Set up wait for sync - wait for full cycle
-        const stateChanged = new Promise<void>((resolve) => {
-          let sawReconciling = false
-          const handler = (state: string) => {
-            if (state === "reconciling") {
-              sawReconciling = true
-            }
-            if (state === "idle" && sawReconciling) {
-              events.off("state-change", handler)
-              resolve()
-            }
-          }
-          events.on("state-change", handler)
-        })
+        const stateChanged = waitForStateChange(events)
 
         // Delete file externally
         rmSync(testFile)
 
         // Wait for sync
-        await Promise.race([
-          stateChanged,
-          new Promise<void>((_, reject) =>
-            setTimeout(() => reject(new Error("Timeout")), 5000),
-          ),
-        ])
+        await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
 
         // Verify removed from database
         fileNode = getNodeByPath(db, testFile)
@@ -321,14 +223,7 @@ describe("Bidirectional Sync E2E", () => {
     test("rapid external edits are coalesced", () =>
       withTestEnv(async ({ repoDir, db }) => {
         const events = new EventEmitter()
-        const syncManager = new SyncManager({
-          repoPath: repoDir,
-          db: db,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+        const syncManager = createTestSyncManager(db, repoDir)
 
         syncManager.on("state-change", (state) => {
           events.emit("state-change", state)
@@ -345,13 +240,11 @@ describe("Bidirectional Sync E2E", () => {
 
         // Start watching and wait for ready
         syncManager.start()
-        await new Promise<void>((resolve) => {
-          syncManager.once("ready", resolve)
-        })
+        await waitForReady(syncManager)
 
         // Count state changes
         let idleCount = 0
-        events.on("state-change", (state) => {
+        events.on("state-change", (state: string) => {
           if (state === "idle") idleCount++
         })
 
@@ -376,15 +269,8 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("TUI edit during filesystem sync doesn't cause data loss", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          repoPath: repoDir,
-          db: db,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -397,9 +283,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Start watching and wait for ready
         syncManager.start()
-        await new Promise<void>((resolve) => {
-          syncManager.once("ready", resolve)
-        })
+        await waitForReady(syncManager)
 
         // Get task node
         const allNodes = getAllNodes(db)
@@ -414,7 +298,7 @@ describe("Bidirectional Sync E2E", () => {
         writeFileSync(testFile, "# Conflict\n\n- [ ] Task A\n- [ ] Task B\n")
 
         // Immediately do TUI edit on original task
-        updateNode(db, task!.id, { task_status: "done" }, "disk")
+        data.updateNode(task!.id, { task_status: "done" })
 
         // Wait for everything to settle (needs to account for chokidar's awaitWriteFinish)
         await Bun.sleep(1000)

@@ -10,7 +10,7 @@
 
 import type { Database } from "bun:sqlite"
 import createDebug from "debug"
-import { updateNode } from "./db-ops.ts"
+import { createDbOps } from "./db-ops.ts"
 import { findChildByContent } from "./db-queries/index.ts"
 
 const debug = createDebug("km:storage:db:links")
@@ -73,15 +73,10 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
       source: link.source_id,
       target: link.target_id,
     })
-    updateNode(
-      db,
-      link.source_id,
-      {
-        link_to: link.target_id,
-        link_alias: link.alias ?? undefined,
-      },
-      "memory",
-    )
+    createDbOps(db).updateNode(link.source_id, {
+      link_to: link.target_id,
+      link_alias: link.alias ?? undefined,
+    })
   }
 }
 
@@ -172,15 +167,10 @@ export function resolveLinks(
         source: link.source_id,
         target: actualTargetId,
       })
-      updateNode(
-        db,
-        link.source_id,
-        {
-          link_to: actualTargetId,
-          link_alias: link.alias ?? undefined,
-        },
-        "memory",
-      )
+      createDbOps(db).updateNode(link.source_id, {
+        link_to: actualTargetId,
+        link_alias: link.alias ?? undefined,
+      })
     }
   }
 

@@ -3,10 +3,8 @@
  *
  * This module contains all write operations that modify the database.
  *
- * Primary API: createDbOps(db, emitter?) returns operations bound to dependencies.
+ * API: createDbOps(db, emitter?) returns operations bound to dependencies.
  * If emitter is provided, mutations emit events; otherwise direct SQL.
- *
- * Legacy API: Individual functions with StorageMode parameter (deprecated).
  */
 
 import type { Database } from "bun:sqlite"
@@ -16,9 +14,6 @@ import { ulid } from "ulid"
 const debug = createDebug("km:storage:db:ops")
 import type { KNode } from "@km/core"
 import type { Emitter } from "./emitter.ts"
-
-/** @deprecated Use createDbOps() factory instead */
-export type StorageMode = "memory" | "disk"
 
 // =============================================================================
 // Factory: createDbOps
@@ -111,7 +106,12 @@ function updateNodeImpl(
       `updateNode called with undefined updates for node ${nodeId}`,
     )
   }
-  debug("updateNode: %s keys=%o emitter=%s", nodeId, Object.keys(updates), !!emitter)
+  debug(
+    "updateNode: %s keys=%o emitter=%s",
+    nodeId,
+    Object.keys(updates),
+    !!emitter,
+  )
   if (emitter) {
     emitter.emit({
       type: "node_updated",
@@ -137,11 +137,7 @@ function updateNodeImpl(
   }
 }
 
-function deleteNodeImpl(
-  db: Database,
-  nodeId: string,
-  emitter?: Emitter,
-): void {
+function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
   debug("deleteNode: %s emitter=%s", nodeId, !!emitter)
   if (emitter) {
     emitter.emit({
@@ -247,114 +243,4 @@ function addNodeImpl(
   }
 
   return nodeId
-}
-
-// =============================================================================
-// Legacy API (deprecated - use createDbOps instead)
-// =============================================================================
-
-/**
- * @deprecated Use createDbOps() factory instead
- */
-export function moveNode(
-  db: Database,
-  nodeId: string,
-  newParentId: string,
-  newParentIdx: number,
-  mode: StorageMode,
-): void {
-  // Legacy: convert mode to emitter presence
-  // Note: This still uses global emit() - callers should migrate to createDbOps
-  if (mode === "disk") {
-    // For legacy callers, we need the global emit
-    // This will be removed once all callers migrate
-    const { emit } = require("./emit.ts")
-    emit({
-      type: "node_moved",
-      actor: "user",
-      target: nodeId,
-      data: { parent_id: newParentId, parent_idx: newParentIdx },
-    })
-  } else {
-    moveNodeImpl(db, nodeId, newParentId, newParentIdx, undefined)
-  }
-}
-
-/**
- * @deprecated Use createDbOps() factory instead
- */
-export function updateNode(
-  db: Database,
-  nodeId: string,
-  updates: Record<string, unknown>,
-  mode: StorageMode,
-): void {
-  if (mode === "disk") {
-    const { emit } = require("./emit.ts")
-    emit({ type: "node_updated", actor: "user", target: nodeId, data: updates })
-  } else {
-    updateNodeImpl(db, nodeId, updates, undefined)
-  }
-}
-
-/**
- * @deprecated Use createDbOps() factory instead
- */
-export function deleteNode(
-  db: Database,
-  nodeId: string,
-  mode: StorageMode,
-): void {
-  if (mode === "disk") {
-    const { emit } = require("./emit.ts")
-    emit({ type: "node_deleted", actor: "user", target: nodeId, data: {} })
-  } else {
-    deleteNodeImpl(db, nodeId, undefined)
-  }
-}
-
-/**
- * @deprecated Use createDbOps() factory instead
- */
-export function addNode(
-  db: Database,
-  parentId: string | null,
-  node: Partial<KNode>,
-  mode: StorageMode,
-): string {
-  if (mode === "disk") {
-    const nodeId = node.id ?? ulid()
-    const now = Date.now()
-    const nodeData = {
-      id: nodeId,
-      type: node.type ?? "task",
-      parent_id: parentId,
-      parent_idx: node.parent_idx ?? now,
-      link_to: node.link_to ?? null,
-      link_alias: node.link_alias ?? null,
-      fs_path: node.fs_path ?? null,
-      fs_ino: node.fs_ino ?? null,
-      name: node.name ?? null,
-      title: node.title ?? null,
-      md_pos: node.md_pos ?? null,
-      md_line: node.md_line ?? null,
-      md_slug: node.md_slug ?? null,
-      task_status: node.task_status ?? (node.type === "task" ? "todo" : null),
-      task_mark: node.task_mark ?? (node.type === "task" ? " " : null),
-      assigned_to: node.assigned_to ?? null,
-      due_date: node.due_date ?? null,
-      scheduled_date: node.scheduled_date ?? null,
-      priority: node.priority ?? null,
-      content: node.content ?? null,
-      content_hash: node.content_hash ?? null,
-      data: node.data ?? {},
-      created_at: now,
-      updated_at: now,
-    }
-    const { emit } = require("./emit.ts")
-    emit({ type: "node_created", actor: "user", data: nodeData })
-    return nodeId
-  } else {
-    return addNodeImpl(db, parentId, node, undefined)
-  }
 }

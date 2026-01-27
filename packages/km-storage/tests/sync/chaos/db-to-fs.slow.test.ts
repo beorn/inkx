@@ -9,21 +9,11 @@ import { describe, test, expect } from "bun:test"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 
-import { getAllNodes, updateNode, applyEventWithDb } from "@km/storage"
-
-import { setFsSync } from "../../../src/emit.ts"
-import { SyncManager } from "../../../src/watch/sync.ts"
-import { withTestEnv } from "@km/storage"
-
-/** Helper to set up sync manager with automatic cleanup via AsyncDisposableStack */
-function setupSyncManager(
-  stack: AsyncDisposableStack,
-  syncManager: SyncManager,
-): void {
-  setFsSync(syncManager)
-  stack.defer(() => setFsSync(null))
-  stack.defer(async () => await syncManager.stop())
-}
+import { getAllNodes, withTestEnv } from "@km/storage"
+import {
+  createTestSyncManager,
+  setupSyncManager,
+} from "../../watch/sync-test-helpers.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Suite
@@ -32,15 +22,8 @@ function setupSyncManager(
 describe("DB → File Sync Tests", () => {
   describe("Task Status Updates", () => {
     test("marking task as done updates file", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          db: db,
-          repoPath: repoDir,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -59,10 +42,10 @@ describe("DB → File Sync Tests", () => {
         expect(task!.task_status).toBe("todo")
 
         // Update task status
-        updateNode(db, task!.id, { task_status: "done" }, "disk")
+        data.updateNode(task!.id, { task_status: "done" })
 
         // Wait for write queue to flush
-        await new Promise((r) => setTimeout(r, 200))
+        await Bun.sleep(200)
 
         // Verify file was updated
         const content = readFileSync(testFile, "utf-8")
@@ -71,15 +54,8 @@ describe("DB → File Sync Tests", () => {
       }))
 
     test("marking task as todo updates file", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          db: db,
-          repoPath: repoDir,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -98,10 +74,10 @@ describe("DB → File Sync Tests", () => {
         expect(task!.task_status).toBe("done")
 
         // Update task status back to todo
-        updateNode(db, task!.id, { task_status: "todo" }, "disk")
+        data.updateNode(task!.id, { task_status: "todo" })
 
         // Wait for write queue to flush
-        await new Promise((r) => setTimeout(r, 200))
+        await Bun.sleep(200)
 
         // Verify file was updated
         const content = readFileSync(testFile, "utf-8")
@@ -112,15 +88,8 @@ describe("DB → File Sync Tests", () => {
 
   describe("Task Content Updates", () => {
     test("editing task content updates file", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          db: db,
-          repoPath: repoDir,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -138,10 +107,10 @@ describe("DB → File Sync Tests", () => {
         expect(task).toBeDefined()
 
         // Update task content
-        updateNode(db, task!.id, { content: "Updated text" }, "disk")
+        data.updateNode(task!.id, { content: "Updated text" })
 
         // Wait for write queue to flush
-        await new Promise((r) => setTimeout(r, 200))
+        await Bun.sleep(200)
 
         // Verify file was updated
         const content = readFileSync(testFile, "utf-8")
@@ -152,15 +121,8 @@ describe("DB → File Sync Tests", () => {
 
   describe("Multiple Rapid Updates", () => {
     test("rapid updates coalesce correctly", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          db: db,
-          repoPath: repoDir,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -179,11 +141,11 @@ describe("DB → File Sync Tests", () => {
 
         // Make 5 rapid updates
         for (let i = 1; i <= 5; i++) {
-          updateNode(db, task!.id, { content: `Update ${i}` }, "disk")
+          data.updateNode(task!.id, { content: `Update ${i}` })
         }
 
         // Wait for write queue to flush
-        await new Promise((r) => setTimeout(r, 300))
+        await Bun.sleep(300)
 
         // Verify final state
         const content = readFileSync(testFile, "utf-8")
@@ -192,15 +154,8 @@ describe("DB → File Sync Tests", () => {
       }))
 
     test("alternating status updates result in final state", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          db: db,
-          repoPath: repoDir,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -218,14 +173,14 @@ describe("DB → File Sync Tests", () => {
         expect(task).toBeDefined()
 
         // Toggle status rapidly
-        updateNode(db, task!.id, { task_status: "done" }, "disk")
-        updateNode(db, task!.id, { task_status: "todo" }, "disk")
-        updateNode(db, task!.id, { task_status: "done" }, "disk")
-        updateNode(db, task!.id, { task_status: "todo" }, "disk")
-        updateNode(db, task!.id, { task_status: "done" }, "disk") // Final: done
+        data.updateNode(task!.id, { task_status: "done" })
+        data.updateNode(task!.id, { task_status: "todo" })
+        data.updateNode(task!.id, { task_status: "done" })
+        data.updateNode(task!.id, { task_status: "todo" })
+        data.updateNode(task!.id, { task_status: "done" }) // Final: done
 
         // Wait for write queue to flush
-        await new Promise((r) => setTimeout(r, 300))
+        await Bun.sleep(300)
 
         // Verify final state
         const content = readFileSync(testFile, "utf-8")
@@ -235,15 +190,8 @@ describe("DB → File Sync Tests", () => {
 
   describe("Multiple Files", () => {
     test("updates to different files are independent", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          db: db,
-          repoPath: repoDir,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -268,11 +216,11 @@ describe("DB → File Sync Tests", () => {
         expect(task2).toBeDefined()
 
         // Update both tasks
-        updateNode(db, task1!.id, { task_status: "done" }, "disk")
-        updateNode(db, task2!.id, { content: "Modified Task 2" }, "disk")
+        data.updateNode(task1!.id, { task_status: "done" })
+        data.updateNode(task2!.id, { content: "Modified Task 2" })
 
         // Wait for write queue to flush
-        await new Promise((r) => setTimeout(r, 300))
+        await Bun.sleep(300)
 
         // Verify both files updated correctly
         const content1 = readFileSync(file1, "utf-8")
@@ -287,15 +235,8 @@ describe("DB → File Sync Tests", () => {
 
   describe("Error Handling", () => {
     test("update to non-existent node is handled gracefully", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          db: db,
-          repoPath: repoDir,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -309,11 +250,11 @@ describe("DB → File Sync Tests", () => {
 
         // Try to update a non-existent node
         expect(() => {
-          updateNode(db, "non-existent-id", { task_status: "done" }, "disk")
+          data.updateNode("non-existent-id", { task_status: "done" })
         }).not.toThrow()
 
         // File should be unchanged
-        await new Promise((r) => setTimeout(r, 200))
+        await Bun.sleep(200)
         const content = readFileSync(testFile, "utf-8")
         expect(content).toContain("[ ]")
       }))
@@ -321,15 +262,8 @@ describe("DB → File Sync Tests", () => {
 
   describe("Data Preservation", () => {
     test("non-task content is preserved during task update", () =>
-      withTestEnv(async ({ repoDir, db }) => {
-        const syncManager = new SyncManager({
-          db: db,
-          repoPath: repoDir,
-          debounceFs: 100,
-          debounceApply: 50,
-          conflictStrategy: "last_write_wins",
-          useWorker: false,
-        })
+      withTestEnv(async ({ repoDir, db, data }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         setupSyncManager(stack, syncManager)
@@ -361,10 +295,10 @@ More content that should be preserved.
         expect(task).toBeDefined()
 
         // Update task
-        updateNode(db, task!.id, { task_status: "done" }, "disk")
+        data.updateNode(task!.id, { task_status: "done" })
 
         // Wait for write queue to flush
-        await new Promise((r) => setTimeout(r, 200))
+        await Bun.sleep(200)
 
         // Verify all content preserved
         const content = readFileSync(testFile, "utf-8")
