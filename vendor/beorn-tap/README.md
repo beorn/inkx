@@ -20,7 +20,7 @@ Result: 3 separate outputs, manual aggregation, no unified summary
 **After @beorn/tap:**
 ```
 $ bun run test:all
-...........X.......................................
+···········X·······································
 ✗ 183 tests: 182 passed, 1 failed, 0 skipped
 Timing: bun:fast: 1.2s, bun:slow: 3.4s, mdtest: 0.8s
 Total: 3.5s
@@ -87,9 +87,84 @@ tap --help
 }
 ```
 
+### Multi-Suite Orchestration
+
+Run multiple test suites in parallel with automatic TTY detection:
+
+```typescript
+import { createOrchestrator } from "@beorn/tap"
+
+const orchestrator = createOrchestrator({
+  mode: "auto", // TTY detection (default)
+  suites: [
+    { name: "unit", runner: "bun", files: ["tests/unit/**/*.test.ts"] },
+    { name: "integration", runner: "bun", files: ["tests/integration/**/*.test.ts"] },
+    {
+      name: "e2e",
+      runner: "custom",
+      command: ["playwright", "test", "--reporter=tap"],
+      files: ["tests/e2e/**/*.spec.ts"],
+    },
+  ],
+})
+
+const exitCode = await orchestrator.run()
+process.exit(exitCode)
+```
+
+**Display modes** (automatic based on TTY):
+
+- **TTY (terminal)**: Parallel TUI with inkx - 3 separate streams updating in real-time
+- **Non-TTY (CI/pipes)**: Unified TAP stream with interleaved dots
+
+**Parallel TUI mode** (requires `inkx` and `react` peer dependencies):
+
+```typescript
+import { createOrchestrator } from "@beorn/tap"
+import { renderParallel } from "@beorn/tap/parallel-tui"
+
+const orchestrator = createOrchestrator({
+  mode: "parallel", // Force parallel TUI
+  suites: [/* ... */],
+  renderParallel, // Inject inkx renderer
+})
+```
+
+Output:
+```
+unit         .....X.................  1.2s
+integration  .....................  3.4s
+e2e          .......              5.1s
+
+✓ 183 tests: 182 passed, 1 failed, 0 skipped
+```
+
+**In package.json:**
+```json
+{
+  "scripts": {
+    "test:all": "bun scripts/test-all.ts"
+  }
+}
+```
+
+Where `scripts/test-all.ts`:
+```typescript
+import { createOrchestrator } from "@beorn/tap"
+
+const orchestrator = createOrchestrator({
+  suites: [
+    { name: "fast", runner: "bun", files: await findTests("fast") },
+    { name: "slow", runner: "bun", files: await findTests("slow") },
+  ],
+})
+
+process.exit(await orchestrator.run())
+```
+
 ### Programmatic Usage
 
-For advanced orchestration, use the library API:
+For single-suite usage, use the library API directly:
 
 ```typescript
 import { createConsumer, runBunTap } from "@beorn/tap"
@@ -133,7 +208,7 @@ consumer.end()
 
 **Output:**
 ```
-.......X........
+·······X········
 ✗ my failing test
   Expected: 42
   Actual: 43
@@ -179,7 +254,7 @@ process.exit(results.failed > 0 ? 1 : 0)
 
 **Output:**
 ```
-.................................................................
+·································································
 ✓ 183 tests: 183 passed, 0 failed, 0 skipped
 Total: 3.5s
 ```
@@ -239,6 +314,56 @@ not ok 3 - Checkout fails # 523ms
 
 ## API Reference
 
+### `createOrchestrator(options)`
+
+Creates a multi-suite test orchestrator with automatic TTY detection.
+
+**Type:**
+```typescript
+function createOrchestrator(options: OrchestratorOptions): {
+  run(): Promise<number>
+}
+
+interface OrchestratorOptions {
+  suites: Suite[]
+  mode?: "unified" | "parallel" | "auto"  // Default: "auto"
+  output?: Writable  // Default: process.stdout
+  renderParallel?: (suites: Suite[]) => Promise<number>  // For parallel mode
+}
+
+interface Suite {
+  name: string
+  runner: "bun" | "custom"
+  command?: string[]  // For custom runners (e.g., ["playwright", "test"])
+  files: string[]
+}
+```
+
+**Returns:** Orchestrator object with `run()` method that returns exit code (0 = pass, 1 = fail).
+
+**Mode selection:**
+- `"auto"` (default) - TTY detection: parallel for terminals, unified for CI/pipes
+- `"unified"` - Force merged TAP stream with interleaved dots
+- `"parallel"` - Force inkx TUI with separate streams (requires renderParallel)
+
+**Example:**
+```typescript
+import { createOrchestrator } from "@beorn/tap"
+
+const orchestrator = createOrchestrator({
+  mode: "auto",
+  suites: [
+    { name: "unit", runner: "bun", files: ["tests/unit/**/*.test.ts"] },
+    { name: "e2e", runner: "custom", command: ["playwright", "test", "--reporter=tap"], files: ["tests/e2e/**/*.spec.ts"] },
+  ],
+})
+
+const exitCode = await orchestrator.run()
+process.exit(exitCode)
+```
+
+---
+
 ### `createConsumer(options?)`
 
 Creates a TAP consumer that parses TAP input and displays formatted output.
@@ -281,7 +406,7 @@ consumer.write("ok 1 - test passes\n")
 consumer.write("not ok 2 - test fails\n")
 consumer.end()
 // Output:
-// .X
+// ·X
 // ✗ 2 tests: 1 passed, 1 failed, 0 skipped
 ```
 

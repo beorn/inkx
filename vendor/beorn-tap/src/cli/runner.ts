@@ -47,7 +47,7 @@ interface Options {
 	dots: boolean
 	bail: boolean
 	timeout?: number
-	color: boolean
+	color?: boolean // undefined = auto-detect, true = force colors, false = no colors
 }
 
 async function runTests(patterns: string[], options: Options) {
@@ -61,7 +61,11 @@ async function runTests(patterns: string[], options: Options) {
 
 	// For now, simple implementation: run bun test on all files
 	// Future: split by jobs, run in parallel
-	const consumer = createConsumer({ dots: options.dots || options.reporter === "dots" })
+	const consumer = createConsumer({
+		dots: options.dots || options.reporter === "dots",
+		// Only pass color if explicitly set via --no-color, otherwise let createConsumer auto-detect
+		color: options.color === false ? false : undefined,
+	})
 
 	if (options.reporter === "spec" || options.reporter === "dots") {
 		// Use consumer with dots
