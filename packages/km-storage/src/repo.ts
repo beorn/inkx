@@ -11,7 +11,7 @@
  * FileTree is a human-editable representation that syncs with DataStore.
  * Sync is translation between formats, not a generic store-to-store operation.
  *
- * See: docs/adr/002-domain-objects-refactor.md
+ * See: docs/00-principles.md
  */
 
 import createDebug from "debug"
@@ -27,6 +27,7 @@ import { createDiskFileTree } from "./file-tree.ts"
 import type { Config } from "./config-object.ts"
 import { loadConfigObject } from "./config-object.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
+import { createEmitter, type Emitter } from "./emitter.ts"
 import { SCHEMA } from "./schema.ts"
 import {
   loadRepo,
@@ -139,6 +140,9 @@ export interface Repo extends Disposable {
 
   /** Files pending deferred parsing (for discoverOnly mode) */
   readonly deferredFiles: DeferredFile[]
+
+  /** Event emitter for this repo (owns kmDir, eventHub, fsSync) */
+  readonly emitter: Emitter
 
   // ===========================================================================
   // Repo-compatible query methods (proxies to data store)
@@ -511,6 +515,10 @@ export function* createRepo(
   // Load config
   const config = loadConfigObject(rootPath)
 
+  // Create Emitter (owns kmDir for event emission)
+  const kmDir = join(rootPath, ".km")
+  const emitter = createEmitter({ kmDir })
+
   // Capture hooks from options
   const hooks = options.hooks
 
@@ -555,6 +563,11 @@ export function* createRepo(
 
     get deferredFiles() {
       return deferredFiles
+    },
+
+    get emitter() {
+      ensureOpen()
+      return emitter
     },
 
     // =========================================================================
@@ -893,6 +906,7 @@ export function* createRepo(
       hooks?.onClose?.()
 
       // Close in reverse order of creation
+      emitter.close()
       fileTree.close()
       dataStore.close()
       db.close()
@@ -959,6 +973,11 @@ export function createBareRepo(
   const config = options.config ?? loadConfigObject(options.configPath)
   const db = data.database
 
+  // Create Emitter (uses configPath or cwd for kmDir)
+  const repoPath = options.configPath ?? process.cwd()
+  const kmDir = join(repoPath, ".km")
+  const emitter = createEmitter({ kmDir })
+
   // Capture hooks from options
   const hooks = options.hooks
 
@@ -1003,6 +1022,11 @@ export function createBareRepo(
 
     get deferredFiles() {
       return []
+    },
+
+    get emitter() {
+      ensureOpen()
+      return emitter
     },
 
     // =========================================================================
@@ -1219,6 +1243,9 @@ export function createBareRepo(
 
       // Call onClose hook
       hooks?.onClose?.()
+
+      // Close emitter (bare repo owns it)
+      emitter.close()
 
       // Note: caller manages DataStore lifecycle for bare repos
     },
