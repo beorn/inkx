@@ -25,6 +25,16 @@ Activated by requests about:
 - `ready` → Show actionable work
 - (empty) → Infer from context, default to `ready`
 
+## Contents
+
+- [Quick Modes](#quick-modes)
+  - [status - Health Summary](#status---health-summary)
+  - [ready - Actionable Work](#ready---actionable-work)
+- [Full Groom Mode](#full-groom-mode)
+  - [Phase 1: Survey](#phase-1-survey)
+  - [Phase 2: Analyze & Categorize](#phase-2-analyze--categorize)
+  - [Phase 3: Present Plan](#phase-3-present-plan)
+
 ---
 
 ## Quick Modes
@@ -246,5 +256,158 @@ Before presenting plan, self-check:
 - Bulk priority changes without cascade analysis
 - Adding deps for org-chart aesthetics
 - Spending time on P4 items when P1s exist
+
+## Retrospective: Backlog Health Patterns
+
+After completing backlog grooming, analyze patterns to improve issue tracking practices.
+
+### 1. Pattern Recognition
+
+Review grooming findings to identify systemic issues:
+
+**Key questions:**
+
+- Which category had most issues? (Close, merge, reprioritize, restructure, clarify)
+- Were problems due to process (e.g., no cleanup cadence) or tooling (e.g., duplicate detection)?
+- Did stale issues cluster around specific themes or work areas?
+- Were duplicate issues created by same person/process repeatedly?
+
+### 2. Root Cause Analysis
+
+For each major pattern, identify why it occurred:
+
+| Pattern Example          | Root Cause Hypothesis         | Evidence/Context                            |
+| ------------------------ | ----------------------------- | ------------------------------------------- |
+| Many stale P4 issues     | No periodic P4 cleanup        | 50+ P4 issues untouched for 60+ days        |
+| Duplicate issues         | No pre-search habit           | Same person created 3 similar issues        |
+| Priority inflation       | No priority guidelines        | 15 P1 issues but only 3 are truly blocking  |
+| Vague issue descriptions | Templates not enforced        | Many issues lack acceptance criteria        |
+| Orphaned subtasks        | Epic planning incomplete      | Tasks created without parent epic           |
+| Circular dependencies    | No validation on dep creation | Issue A depends on B depends on A           |
+| Abandoned in_progress    | No claiming time limits       | Issues claimed 30+ days ago with no commits |
+| Missing dependencies     | No planning review step       | Work blocked but blocker not linked         |
+
+### 3. Process Improvements
+
+Propose concrete improvements based on root causes:
+
+**Workflow improvements:**
+
+- Add monthly P4 cleanup cadence (auto-close or promote)
+- Require search before creating new issue (pre-creation checklist)
+- Add priority decision tree to documentation
+- Create issue templates with required fields
+- Add epic planning step before task creation
+- Validate dependencies on creation (detect cycles)
+- Add claiming time limits (auto-release after 14 days of inactivity)
+
+**Tooling enhancements:**
+
+- Add `bd duplicates` to pre-commit hook for author awareness
+- Create `bd validate` command to check for circular deps, orphans, etc.
+- Add priority health check (warn if >5 P0-P1 issues)
+- Auto-tag stale issues (flag after 30 days)
+- Add `bd search <query>` before `bd create` workflow
+- Generate backlog health dashboard (metrics over time)
+
+**Documentation:**
+
+- Document priority criteria with examples
+- Create issue templates for each type (bug, task, epic, feature)
+- Add "When to Create an Epic" guide
+- Document dependency best practices
+- Create grooming checklist for regular cadence
+
+**Team practices:**
+
+- Schedule regular grooming sessions (e.g., weekly)
+- Assign backlog health owner (rotating responsibility)
+- Set WIP limits for in_progress status
+- Review closed issues in retros (learning from what worked)
+
+### 4. Self-Assessment
+
+Evaluate grooming effectiveness:
+
+| Dimension       | Assessment                                         |
+| --------------- | -------------------------------------------------- |
+| Coverage        | Did we review all statuses and priorities?         |
+| Decisiveness    | Did we make clear decisions or defer too much?     |
+| Evidence        | Were closures backed by evidence, not assumptions? |
+| Impact          | Did grooming make the backlog more actionable?     |
+| Sustainability  | Did we address root causes or just symptoms?       |
+| Tool efficiency | Did tools help or was everything manual?           |
+| Time spent      | Was grooming time proportional to backlog size?    |
+
+### 5. Metrics Tracking
+
+Compare before/after to measure improvement:
+
+| Metric                   | Before | After | Target |
+| ------------------------ | ------ | ----- | ------ |
+| Open issues              | X      | Y     | -      |
+| Stale issues (14+ days)  | X      | Y     | <10%   |
+| In progress              | X      | Y     | <10    |
+| P0-P1 issues             | X      | Y     | <8     |
+| Issues without desc      | X      | Y     | 0      |
+| Orphaned subtasks        | X      | Y     | 0      |
+| Circular dependencies    | X      | Y     | 0      |
+| Duplicate issues         | X      | Y     | 0      |
+| Issues closed            | -      | Y     | -      |
+| Issues merged            | -      | Y     | -      |
+| Avg time to first action | X days | Y     | <3d    |
+
+### 6. Create Process Improvement Beads (Optional)
+
+For significant process gaps identified:
+
+```bash
+DATE_SUFFIX=$(date +%m%d)
+
+# Example: Workflow improvement
+bd create --id "km-proc-groom-cadence-$DATE_SUFFIX" --type=task --priority=3 \
+  --title="Establish monthly grooming cadence" \
+  --body="Review found 50+ stale P4 issues. Add recurring grooming schedule."
+
+# Example: Tooling gap
+bd create --id "km-proc-bd-validate-$DATE_SUFFIX" --type=task --priority=3 \
+  --title="Add bd validate command for health checks" \
+  --body="Auto-detect circular deps, orphans, priority inflation, etc."
+
+# Example: Documentation gap
+bd create --id "km-proc-priority-guide-$DATE_SUFFIX" --type=task --priority=3 \
+  --title="Document priority decision criteria" \
+  --body="Create flowchart: user-facing bug > blocking > standalone > nice-to-have"
+
+# Example: Template improvement
+bd create --id "km-proc-issue-templates-$DATE_SUFFIX" --type=task --priority=3 \
+  --title="Create issue templates for bd" \
+  --body="Templates for bug, task, epic, feature with required fields"
+```
+
+### 7. Update Backlog Review Workflow
+
+If the grooming revealed gaps in this review process itself, consider updating [review-beads.md](review-beads.md):
+
+**New analysis checks:**
+
+- Example: "Check for issues with no activity in 90+ days (not just 14+)"
+- Example: "Detect issues that changed priority 3+ times (priority thrashing)"
+- Example: "Find epics with no children (orphaned epics)"
+
+**Severity criteria refinements:**
+
+- Example: "Abandoned in_progress for 60+ days is higher severity than 30+ days"
+- Example: "Circular deps involving P0 issues are Critical vs Medium for P3"
+
+**Workflow improvements:**
+
+- Example: "Run `bd ready` before and after grooming to show impact"
+- Example: "Add 'health score' calculation based on multiple metrics"
+- Example: "Generate trend chart showing backlog health over time"
+
+Make edits directly to this file or create a process improvement bead.
+
+**This creates a continuous feedback loop for backlog health and issue tracking practices.**
 
 **Keywords**: review-beads, pm, groom, backlog, triage, cleanup, organize, stale, duplicates, priorities, hygiene, beads, issues, tasks, work, ready, sprint

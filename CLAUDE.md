@@ -40,8 +40,14 @@ See [docs/principles.md](docs/principles.md) for philosophy.
 ## Issue Tracking
 
 We use `bd` which calls the issues/tasks/epics/features **beads**.
-**Load `/pm` before using bd commands** - it has full CLI reference and common mistakes.
+
+**Common bd mistakes:**
+
+- `bd close --note "x"` → use `--reason "x"`
+- `bd update --comment "x"` → use `--notes "x"`
+
 Always `bd work <id>` to claim a bead before starting, `bd close <id>` when done.
+See [.claude/skills/pm/bd.md] for full CLI reference.
 
 ## Commits
 

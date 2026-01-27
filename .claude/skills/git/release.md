@@ -7,6 +7,19 @@ allowed-tools: Bash, Read, Glob, Skill, AskUserQuestion
 
 Create a GitHub release using release-it. Handles uncommitted changes automatically via `/commit`.
 
+## Contents
+
+- [Decision Flow](#decision-flow)
+- [Step 1: Pre-flight Check](#step-1-pre-flight-check-single-command)
+- [Step 2: Auto-Commit](#step-2-auto-commit-if-needed)
+- [Step 3: Run Tests](#step-3-run-tests-optional)
+- [Step 4: Preview Release](#step-4-preview-release)
+- [Step 5: Confirm Release Type](#step-5-confirm-release-type)
+- [Step 6: Execute Release](#step-6-execute-release)
+- [Step 7: Verify Success](#step-7-verify-success)
+- [When NOT to Release](#when-not-to-release)
+- [Error Recovery](#error-recovery)
+
 ## Decision Flow
 
 ```

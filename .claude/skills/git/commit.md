@@ -12,6 +12,16 @@ Atomically commit all pending changes across the main repo and vendor submodules
 1. **Gather** - One command that collects ALL state
 2. **Execute** - One script that does ALL operations
 
+## Contents
+
+- [Step 1: Gather Everything](#step-1-gather-everything-one-bash-call)
+- [Step 2: Analyze & Generate Script](#step-2-analyze--generate-script-no-bash---just-thinking)
+- [Step 3: Execute Everything](#step-3-execute-everything-one-bash-call)
+- [Quick Templates](#quick-templates)
+- [Safety Checks](#safety-checks-mental-not-bash)
+- [Error Recovery](#error-recovery)
+- [When to Ask User](#when-to-ask-user)
+
 ## Step 1: Gather Everything (ONE Bash Call)
 
 Run this single command to capture complete repo state:

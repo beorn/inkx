@@ -142,7 +142,7 @@ async function runSync(
       } else {
         // Default: from filesystem
         const syncResults = await steps({
-          syncFromFs: () => manager.syncFromFs(),
+          syncFromFs: () => manager.syncFromFsWithProgress(),
         }).run({ clear: true })
 
         const result = syncResults.syncFromFs as {

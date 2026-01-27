@@ -6,6 +6,17 @@ description: Bead ID conventions and scope tokens
 
 This document defines the ID structure for beads in the km project. All skills that create beads should follow these conventions.
 
+## Contents
+
+- [ID Patterns](#id-patterns)
+- [Scope Tokens](#scope-tokens)
+- [Type Tokens](#type-tokens)
+- [Subtasks (Dot Notation)](#subtasks-dot-notation)
+- [Epic Children](#epic-children)
+- [Auto-Increment Guidance](#auto-increment-guidance)
+- [Fields vs ID Encoding](#fields-vs-id-encoding)
+- [Complete Examples](#complete-examples)
+
 ## ID Patterns
 
 ### Package-Specific Issues

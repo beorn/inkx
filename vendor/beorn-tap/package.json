@@ -1,0 +1,51 @@
+{
+  "name": "@beorn/tap",
+  "version": "0.1.0",
+  "description": "TAP stream orchestration: merge parallel test runners, convert formats (Bun JUnit, Playwright), beautiful terminal output",
+  "type": "module",
+  "bin": {
+    "tap": "./src/cli/runner.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./consumer": "./src/consumer.ts",
+    "./merge": "./src/merge.ts",
+    "./producers/bun": "./src/producers/bun.ts",
+    "./producers/playwright": "./src/producers/playwright.ts"
+  },
+  "keywords": [
+    "tap",
+    "test",
+    "testing",
+    "test-anything-protocol",
+    "bun",
+    "playwright",
+    "parallel",
+    "junit",
+    "orchestration",
+    "reporter"
+  ],
+  "author": "Beorn",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beorn/tap.git"
+  },
+  "homepage": "https://github.com/beorn/tap#readme",
+  "bugs": {
+    "url": "https://github.com/beorn/tap/issues"
+  },
+  "scripts": {
+    "test": "bun test tests/",
+    "test:fast": "bun test tests/ --timeout 5000",
+    "test:all": "bun test tests/",
+    "typecheck": "tsc --noEmit",
+    "example:basic": "bun run examples/basic.ts",
+    "example:parallel": "bun run examples/parallel.ts"
+  },
+  "dependencies": {
+    "commander": "^14.0.1",
+    "glob": "^11.0.0",
+    "tap-parser": "^18.3.0"
+  }
+}

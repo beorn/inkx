@@ -12,6 +12,17 @@ Review tests for pruning, overlap, and architecture alignment.
 **Reference**: See `docs/dev/test-review.md` for full checklist and guidelines.
 **Related**: `/review-code` (architecture), `/review-types` (type safety)
 
+## Contents
+
+- [Modes](#modes)
+- [Phase 1: Inventory](#phase-1-inventory)
+- [Phase 1.5: DI Compliance Check](#phase-15-di-compliance-check)
+- [Phase 1.6: Test Setup Complexity Check](#phase-16-test-setup-complexity-check)
+- [Phase 2: Layer Analysis](#phase-2-layer-analysis)
+- [Phase 3: Overlap Detection](#phase-3-overlap-detection)
+- [Phase 4: Smell Detection](#phase-4-smell-detection)
+- [Phase 5: Report](#phase-5-report)
+
 ## Modes
 
 | Argument    | Behavior                                     |
@@ -273,6 +284,153 @@ bun run test:all    # Full verification
 ```
 
 Compare timing before/after.
+
+## Retrospective: Test Infrastructure Learnings
+
+After completing test review and executing changes, analyze patterns for continuous improvement.
+
+### 1. Pattern Recognition
+
+Review test issues found to identify recurring themes:
+
+**Key questions:**
+
+- Which categories had most issues? (Delete, merge, move, fix, refactor setup)
+- Were problems clustered in specific layers or packages?
+- Did test complexity correlate with production code complexity?
+- Were issues symptoms of missing test infrastructure?
+
+### 2. Root Cause Analysis
+
+For each major pattern, identify why it occurred:
+
+| Pattern Example               | Root Cause Hypothesis               | Evidence/Context                          |
+| ----------------------------- | ----------------------------------- | ----------------------------------------- |
+| Many DI compliance violations | Infrastructure migration incomplete | Old tests not updated when DI was added   |
+| Large test helper files       | Production code not composable      | Tests reimplementing domain construction  |
+| Duplicate test coverage       | No integration test strategy        | Unit tests duplicating integration tests  |
+| Tests in wrong layer          | Unclear layer boundaries            | Storage tests in CLI, board tests in sync |
+| Console output in tests       | No debug() pattern awareness        | Tests not using proper debug tooling      |
+| Slow unmarked tests           | No timing enforcement               | Database tests not marked .slow.test.ts   |
+| Flaky tests                   | Race conditions or shared state     | Tests depend on filesystem timing         |
+| Test setup complexity         | Missing factory composability       | Each test file has custom setup           |
+
+### 3. Process Improvements
+
+Propose concrete improvements based on root causes:
+
+**Test infrastructure:**
+
+- Add test-only utilities to reduce helper duplication (e.g., `withTestEnv` standard)
+- Create shared fixtures package for common test data
+- Document DI testing patterns with examples
+- Add timing enforcement (fail if fast test >500ms)
+- Create test templates for each layer
+
+**Production code composability:**
+
+- Refactor factories to be more composable (reduce test-only factory variants)
+- Extract dependency injection patterns that simplify testing
+- Make production code testable without extensive mocking
+- Document testing strategy per layer in docs/
+
+**Tooling enhancements:**
+
+- Add pre-commit hook to check test:fast timing (<5s)
+- Enforce DI compliance checks in CI (no getDb/setDb in tests)
+- Add automated detection for tests in wrong layer
+- Create lint rule for console.log in test files (should use debug())
+- Add test coverage tracking (not just line coverage, but feature coverage)
+
+**Documentation:**
+
+- Document test pyramid strategy (unit vs integration vs chaos)
+- Add examples of good test setup patterns per layer
+- Create "Testing Checklist" for new features
+- Document when to use .slow.test.ts vs regular tests
+
+### 4. Self-Assessment
+
+Evaluate test review effectiveness:
+
+| Dimension      | Assessment                                           |
+| -------------- | ---------------------------------------------------- |
+| Coverage       | Did we check all test types and layers?              |
+| Actionability  | Were recommendations clear and implementable?        |
+| Impact         | Did changes improve test speed, clarity, or quality? |
+| Safety         | Did deletions/merges maintain coverage?              |
+| Timing         | Did we actually improve test:fast speed?             |
+| False positive | How many flagged tests were actually valuable?       |
+
+### 5. Metrics Tracking
+
+Compare before/after:
+
+| Metric                        | Before | After | Target |
+| ----------------------------- | ------ | ----- | ------ |
+| test:fast time                | Xs     | Ys    | <5s    |
+| Total test files              | X      | Y     | -      |
+| DI compliance violations      | X      | Y     | 0      |
+| Unmarked slow tests           | X      | Y     | 0      |
+| Console output in tests       | X      | Y     | 0      |
+| Test helpers >150 lines       | X      | Y     | 0      |
+| Tests deleted (obsolete)      | -      | Y     | -      |
+| Tests merged (duplicate)      | -      | Y     | -      |
+| Test setup refactors          | -      | Y     | -      |
+| Production composability gaps | X      | Y     | 0      |
+
+### 6. Create Process Improvement Beads (Optional)
+
+For significant gaps identified:
+
+```bash
+DATE_SUFFIX=$(date +%m%d)
+
+# Example: Test infrastructure gap
+bd create --id "km-proc-test-infra-$DATE_SUFFIX" --type=task --priority=2 \
+  --title="Standardize test setup utilities" \
+  --body="Create shared withTestEnv helpers to eliminate duplication across test files"
+
+# Example: Production code gap
+bd create --id "km-proc-factories-$DATE_SUFFIX" --type=task --priority=2 \
+  --title="Refactor factories for test composability" \
+  --body="Review found createTestX duplicating createX. Make production factories composable."
+
+# Example: Tooling gap
+bd create --id "km-proc-test-timing-$DATE_SUFFIX" --type=task --priority=3 \
+  --title="Add test timing enforcement to CI" \
+  --body="Fail build if test:fast >5s to prevent regression"
+
+# Example: Documentation gap
+bd create --id "km-proc-test-docs-$DATE_SUFFIX" --type=task --priority=3 \
+  --title="Document test pyramid and layer testing strategy" \
+  --body="Add docs/testing.md with examples for each layer's testing approach"
+```
+
+### 7. Update Test Review Workflow
+
+If the review revealed gaps in this review process itself, consider updating [review-tests.md](review-tests.md):
+
+**New checks to add:**
+
+- Example: "Check for .only() or .skip() left in committed tests"
+- Example: "Detect tests that import from parent directories (layer violation)"
+- Example: "Find tests with >10 assertions (probably testing too much)"
+
+**Phase improvements:**
+
+- Example: "Phase 1.5 should also check for test timeouts being set appropriately"
+- Example: "Phase 3 overlap detection should use AST analysis, not just line counts"
+- Example: "Phase 4 should check for assertion library consistency (expect vs assert)"
+
+**Smell detection refinements:**
+
+- Example: "Test setup >50 lines is red flag, not just >150"
+- Example: "Pure functions with database tests should suggest mock, not layer move"
+
+Make edits directly to this file or create a process improvement bead.
+
+**This creates a continuous feedback loop for test quality and infrastructure evolution.**
 
 ---
 

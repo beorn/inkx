@@ -217,7 +217,7 @@ export const initCommand = new Command("init")
       })
       try {
         const results = await steps({
-          syncFiles: () => manager.syncFromFs(),
+          syncFiles: () => manager.syncFromFsWithProgress(),
         }).run({ clear: true })
 
         const result = results.syncFiles as {

@@ -420,8 +420,7 @@ describe("Cursoring", () => {
   describe("List View", () => {
     test("vertical (j/k): navigation same as cards view", () => {
       const { board } = testEnv(
-        () =>
-          item("board", item("col1", item("1a"), item("1b"), item("1c"))),
+        () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
         { viewMode: "list" },
       )
       // j down through cards

@@ -8,6 +8,16 @@ description: Handle bugs in upstream dependencies - report, vendorize, fix
 
 When encountering a bug in an upstream dependency, follow this systematic workflow to investigate, report, and optionally fix the issue.
 
+## Contents
+
+- [Workflow](#workflow)
+  - [0. Update Dependencies First](#0-update-dependencies-first)
+  - [1. Isolate and Confirm the Bug](#1-isolate-and-confirm-the-bug)
+  - [2. Search for Existing Reports](#2-search-for-existing-reports)
+  - [3. If Fix Exists](#3-if-fix-exists)
+  - [4. If No Fix Exists - File Bug Report](#4-if-no-fix-exists---file-bug-report)
+  - [5. Subscribe to the Issue](#5-subscribe-to-the-issue)
+
 ## Workflow
 
 ### 0. Update Dependencies First

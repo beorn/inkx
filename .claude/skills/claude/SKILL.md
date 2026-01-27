@@ -64,5 +64,5 @@ Use $ARGUMENTS for all args, or $1, $2 for positional.
 | [mcp.md](mcp.md)                           | Server configuration            |
 | [session.md](session.md)                   | Session history recovery        |
 | [session-errors.md](session-errors.md)     | Analyze sessions for cmd errors |
-| [review.md](review.md)                     | Audit steering docs (workflow)  |
+| [review-claude.md](review-claude.md)       | Audit steering docs (workflow)  |
 | [review-reference.md](review-reference.md) | Audit rules (reference only)    |
