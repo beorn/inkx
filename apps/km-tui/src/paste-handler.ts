@@ -11,6 +11,10 @@
 import { existsSync, statSync } from "fs"
 import { homedir } from "os"
 
+// Increase max listeners for test scenarios where many Board components are created
+// Each Board adds a paste handler that listens to stdin
+process.stdin.setMaxListeners(200)
+
 /**
  * Bracketed paste escape sequences
  */

@@ -5,7 +5,7 @@
  * Uses isolated temp directories for parallel test execution.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect, spyOn } from "bun:test"
 import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
 import {
@@ -85,8 +85,16 @@ describe("rebuild.ts", () => {
             '{"id":"01HQ1B","type":"node_created","data":{"id":"n2","type":"task"}}\n',
         )
 
+        // Spy on console.warn since readEvents warns about malformed lines
+        const warnSpy = spyOn(console, "warn").mockImplementation(() => {})
+
         const events = readEvents(kmDir)
         expect(events.length).toBe(2)
+        expect(warnSpy).toHaveBeenCalledWith(
+          "Skipping malformed event line:",
+          "not json",
+        )
+        warnSpy.mockRestore()
       }))
   })
 

@@ -20,8 +20,9 @@ const debug = createDebug("km:tui")
  * Board components can subscribe to this to refresh when filesystem changes
  */
 export const tuiEvents = new EventEmitter()
-// Increase max listeners for test scenarios where multiple Board components are created
-tuiEvents.setMaxListeners(50)
+// Increase max listeners for test scenarios where many Board components are created
+// Tests run 50+ Board instances, each adding refresh/watcher-status listeners
+tuiEvents.setMaxListeners(200)
 
 /**
  * Run the board in static (non-interactive) mode
