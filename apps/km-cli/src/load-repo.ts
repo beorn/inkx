@@ -8,7 +8,7 @@
 import type { Repo, CreateRepoOptions } from "@km/storage"
 
 export interface LoadRepoOptions extends CreateRepoOptions {
-  /** Show progress display during loading (default: false) */
+  /** Show progress display during loading (default: auto-detect TTY) */
   showProgress?: boolean
 }
 
@@ -32,7 +32,8 @@ export async function loadRepo(
   rootPath: string,
   options: LoadRepoOptions = {},
 ): Promise<Repo> {
-  const { showProgress = false, ...createOptions } = options
+  // Auto-detect TTY: show progress in interactive mode, silent in scripts/pipes
+  const { showProgress = process.stdout.isTTY === true, ...createOptions } = options
 
   // Ensure loadFiles is set (default behavior)
   if (createOptions.loadFiles === undefined) {
