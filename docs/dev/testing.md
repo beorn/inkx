@@ -12,6 +12,60 @@ A test system that is:
 
 ---
 
+## Test Infrastructure Rules
+
+> **MANDATORY**: All tests use in-memory infrastructure by default.
+> This ensures tests are fast, isolated, and can run in parallel.
+
+### The Rule
+
+| Resource   | Default                   | Exception                                    |
+| ---------- | ------------------------- | -------------------------------------------- |
+| Database   | `:memory:` SQLite         | Worker thread tests (need disk for sharing)  |
+| Filesystem | `/tmp/kmtest-*`           | Never use real user paths                    |
+| Watchers   | Mocks                     | Worker thread integration tests              |
+| State      | Injected via DI           | Never use `getDb()`, `getKmDir()`            |
+
+### Why This Matters
+
+1. **Speed** - Memory DB is 10-100x faster than disk
+2. **Isolation** - Tests can run in parallel without conflicts
+3. **Reliability** - No shared state = no flaky tests
+4. **Cleanup** - withTestEnv handles teardown automatically
+
+### Anti-Patterns (NEVER DO)
+
+```typescript
+// ❌ Global getter - shared state, can't parallelize
+const db = getDb()
+
+// ❌ Direct instantiation - who cleans this up?
+const db = new Database("/path/to/db")
+
+// ❌ Real filesystem path - affects user data
+const repoPath = "/Users/beorn/myrepo"
+
+// ❌ Real watcher - slow, flaky, non-deterministic
+const syncManager = new SyncManager({ useWorker: true })
+```
+
+### Correct Patterns
+
+```typescript
+// ✅ DI via withTestEnv - in-memory DB, isolated /tmp
+await withTestEnv(async ({ db, repo, repoDir }) => {
+  // Test code here
+})
+
+// ✅ FakeRepo for state-only tests - no DB at all
+const repo = createFakeRepo({ nodes: fixtures })
+
+// ✅ Mock watcher for sync tests
+const syncManager = new SyncManager({ db, useWorker: false })
+```
+
+---
+
 ## File Naming Conventions
 
 **Reserved for acceptance tests:**
@@ -180,24 +234,57 @@ test("columns are horizontal", () => {
 
 ### 1.2 CLI Tests (mdtest)
 
-**Framework**: mdtest (`.test.md` files)
+**Framework**: mdtest (`.test.md` files) with km-repl plugin
 
 **Location**: `apps/km-cli/tests/sh/`
 
-**Pattern**: Markdown files with embedded shell commands and expected output.
+**Pattern**: In-process execution with memory database for fast tests.
+
+#### Configuration (REQUIRED)
+
+```yaml
+---
+mdtest:
+  plugin: ../km-repl.ts
+  fixture: two-columns
+  memory: true  # ← CRITICAL: Use in-memory database
+---
+```
+
+**The `memory: true` flag is required for fast tests.** Without it:
+- Uses disk database
+- 16x slower (190ms vs 12ms per command)
+- Creates unnecessary I/O
+
+#### Example Test
 
 ```markdown
 # Navigation Test
 
-$ echo -e "move_down\nstate" | km sh -r $PWD/repo @inbox.md
+## Setup
+$ km sync
+✓ Synced ...
 
-> MOVE_DOWN
-> position: col=0 card=1
+## Test
+$ km sh board.md -c 'j; state'
+cursor: [1]
 ```
 
-**When to use**: Testing CLI command output, error messages, workflows.
+#### How It Works
 
-**Related**: `km sh` enables scripted TUI testing without rendering.
+1. km-repl plugin creates isolated `/tmp/kmtest-*` directory
+2. `memory: true` sets `KM_DB_PATH=:memory:` environment
+3. `executeKmCommand()` runs km commands in-process (no subprocess)
+4. Plugin cleans up temp directory after all tests
+
+#### When to Use Subprocess Instead
+
+Use subprocess (`$ bun km ...`) only when testing:
+- CLI exit codes
+- Environment variable handling
+- Actual binary execution
+
+These tests should be in separate slow test files.
 
 **Doctrine:** mdtest asserts semantic output, not formatting or layout. Don't assert spacing, ANSI colors, or cursor position in mdtest.
 
@@ -587,6 +674,46 @@ tail -f /tmp/km.log
 ```
 
 This captures visual state + internal events for correlation.
+
+---
+
+## Performance Verification
+
+### Speed Targets
+
+| Suite     | Target  | Rationale                 |
+| --------- | ------- | ------------------------- |
+| test:fast | <5s     | Developer iteration loop  |
+| test:all  | <2min   | Pre-commit full check     |
+
+### Check for Violations
+
+```bash
+# Run performance analysis
+bun run test:perf
+
+# Find slow tests not marked .slow
+bun run test:perf 2>&1 | grep -E "^\s+[0-9]+\." | awk '$2 > 1'
+
+# Find tests using deprecated singletons
+grep -r "getDb()" packages/*/tests/*.test.ts
+
+# Find tests creating raw Database
+grep -r "new Database" packages/*/tests/*.test.ts | grep -v ".slow."
+
+# Find mdtests without memory: true
+grep -L "memory: true" apps/km-cli/tests/sh/*.test.md
+```
+
+### File Naming Rules
+
+Tests taking >1s MUST be marked `.slow.test.ts`:
+
+| Time | Action                                         |
+| ---- | ---------------------------------------------- |
+| <1s  | Keep as `.test.ts`                             |
+| 1-5s | Consider optimization or mark `.slow.test.ts` |
+| >5s  | MUST be `.slow.test.ts`                        |
 
 ---
 

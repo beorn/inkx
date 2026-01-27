@@ -51,6 +51,36 @@ find packages apps -name "*.test.ts" -o -name "*.slow.test.ts" -o -name "*.test.
   xargs wc -l 2>/dev/null | sort -n | tail -30
 ```
 
+## Phase 1.5: DI Compliance Check
+
+Run these checks to verify proper infrastructure usage:
+
+```bash
+# Tests using deprecated getDb/setDb (MUST BE ZERO)
+echo "=== Singleton Usage ==="
+grep -r "getDb()\|setDb(" packages/*/tests/*.test.ts apps/*/tests/*.test.ts 2>/dev/null | wc -l
+
+# Tests creating raw Database (should use withTestEnv)
+echo "=== Raw Database Creation ==="
+grep -r "new Database" packages/*/tests/*.test.ts apps/*/tests/*.test.ts 2>/dev/null | grep -v ".slow." | wc -l
+
+# mdtests without memory: true (SHOULD BE ZERO for fast tests)
+echo "=== mdtests without memory: true ==="
+for f in apps/km-cli/tests/sh/*.test.md; do
+  grep -q "memory: true" "$f" || echo "$f"
+done
+
+# Sync tests using real watcher (should use useWorker: false)
+echo "=== Real Watcher Usage ==="
+grep -r "useWorker: true" packages/*/tests/*.test.ts 2>/dev/null | grep -v ".slow." | wc -l
+```
+
+**Expected results:**
+- Singleton usage: 0
+- Raw Database in fast tests: 0
+- mdtests without memory: 0
+- Real watcher in fast tests: 0
+
 ## Phase 2: Layer Analysis
 
 Use Task agents in parallel to analyze each layer:
@@ -126,6 +156,22 @@ Output structured findings:
 | Chaos tests       | N     |
 | Delete candidates | N     |
 | Merge candidates  | N     |
+
+### DI Compliance
+
+| Check                           | Count | Target | Status |
+| ------------------------------- | ----- | ------ | ------ |
+| Singleton usage (getDb/setDb)   | N     | 0      | ✅/❌  |
+| Raw Database in fast tests      | N     | 0      | ✅/❌  |
+| mdtests without memory: true    | N     | 0      | ✅/❌  |
+| Real watcher in fast tests      | N     | 0      | ✅/❌  |
+
+### Performance
+
+| Metric               | Value | Target | Status |
+| -------------------- | ----- | ------ | ------ |
+| test:fast time       | Xs    | <5s    | ✅/❌  |
+| Unmarked slow tests  | N     | 0      | ✅/❌  |
 
 ### By Layer
 
