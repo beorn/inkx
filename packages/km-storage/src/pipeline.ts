@@ -1,0 +1,548 @@
+/**
+ * Composable Async Generator Pipeline
+ *
+ * Unified pipeline for loading and syncing markdown files.
+ * Replaces duplicated code in repo-loader.ts and reconcile.ts.
+ *
+ * Architecture:
+ *   Sources (file paths)
+ *       ↓
+ *   parseFiles()      ← Streaming: yields as workers complete
+ *       ↓
+ *   applyNodes()      ← Buffering: exhausts upstream, then yields
+ *       ↓
+ *   pipelineResolveLinks()    ← Buffering: needs all nodes first
+ *       ↓
+ *   applyLinks()      ← Buffering: batch INSERT
+ *
+ * Each stage is an async generator. Stages that need buffering
+ * exhaust their upstream generator before proceeding.
+ *
+ * Usage:
+ *   const parsed = parseFiles(sources, pool)
+ *   const applied = applyNodes(parsed, db, { emitter })
+ *   const resolved = pipelineResolveLinks(applied, db)
+ *   const done = applyLinks(resolved, db)
+ *   await runPipeline(done)
+ */
+
+import createDebug from "debug"
+import type { Database } from "bun:sqlite"
+import { basename } from "path"
+import type { KNode } from "@km/core"
+import type { ParsePoolService } from "./parse-pool.ts"
+import type { Emitter } from "./emitter.ts"
+import { emitNodeCreated, emitNodeUpdated } from "./emitter.ts"
+import { createLinkResolver, type LinkResolver } from "./link-resolver.ts"
+import type { WikilinkRef, ResolvedLink } from "./markdown-processing.ts"
+
+const debug = createDebug("km:storage:pipeline")
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+/** Input source for parsing */
+export interface ParseSource {
+  path: string
+  nodeId: string
+  isCreate: boolean
+}
+
+/** Stage 1 output: parsed file ready for application */
+export interface ParsedFile {
+  path: string
+  nodeId: string
+  nodes: KNode[]
+  wikilinks: WikilinkRef[]
+  hash: string
+  ino: number
+  mtime: number
+  isCreate: boolean
+  error?: string
+}
+
+/** Stage 2 output: applied node with wikilinks for resolution */
+export interface AppliedFile {
+  nodeId: string
+  name: string
+  path: string
+  wikilinks: WikilinkRef[]
+}
+
+/** Pipeline options shared across stages */
+export interface PipelineOptions {
+  signal?: AbortSignal
+  emitter?: Emitter
+  repoRoot?: string
+  /** For creates: pre-computed parent info from stub lookup */
+  stubInfo?: Map<string, { parent_id: string | null; parent_idx: number }>
+  /** For updates: map of old ID -> new ID for node matching */
+  idMap?: Map<string, string>
+}
+
+// ============================================================================
+// STAGE 1: parseFiles - Streaming
+// ============================================================================
+
+/**
+ * Parse markdown files using worker pool.
+ * Streams results as workers complete (not in order, but fast).
+ */
+export async function* parseFiles(
+  sources: ParseSource[],
+  parsePool: ParsePoolService,
+  signal?: AbortSignal,
+): AsyncGenerator<ParsedFile> {
+  if (sources.length === 0) return
+
+  debug("parseFiles: starting %d files", sources.length)
+
+  // Build lookup for isCreate flag
+  const sourceMap = new Map<string, ParseSource>()
+  for (const source of sources) {
+    sourceMap.set(source.path, source)
+  }
+
+  // Stream results from worker pool
+  const files = sources.map((s) => ({ nodeId: s.nodeId, fsPath: s.path }))
+  for await (const result of parsePool.stream(files, signal)) {
+    if (signal?.aborted) return
+
+    const source = sourceMap.get(result.fsPath)
+    if (!source) continue
+
+    if (result.error) {
+      debug("parseFiles: error for %s: %s", result.fsPath, result.error)
+      yield {
+        path: result.fsPath,
+        nodeId: result.nodeId,
+        nodes: [],
+        wikilinks: [],
+        hash: "",
+        ino: result.ino,
+        mtime: result.mtime,
+        isCreate: source.isCreate,
+        error: result.error,
+      }
+      continue
+    }
+
+    yield {
+      path: result.fsPath,
+      nodeId: result.nodeId,
+      nodes: result.nodes as KNode[],
+      wikilinks: result.wikilinks as WikilinkRef[],
+      hash: result.hash,
+      ino: result.ino,
+      mtime: result.mtime,
+      isCreate: source.isCreate,
+    }
+  }
+
+  debug("parseFiles: completed")
+}
+
+// ============================================================================
+// STAGE 2: applyNodes - Buffering
+// ============================================================================
+
+/**
+ * Apply parsed nodes to database.
+ * Exhausts upstream, then applies in single transaction.
+ */
+export async function* applyNodes(
+  upstream: AsyncGenerator<ParsedFile>,
+  db: Database,
+  options: PipelineOptions = {},
+): AsyncGenerator<AppliedFile> {
+  const { signal, emitter, stubInfo } = options
+
+  // Collect all parsed files (exhaust upstream)
+  const files: ParsedFile[] = []
+  for await (const file of upstream) {
+    if (signal?.aborted) return
+    files.push(file)
+  }
+
+  if (files.length === 0) return
+
+  debug("applyNodes: applying %d files", files.length)
+
+  // Prepare statements
+  const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?")
+  const insertStmt = db.prepare(`
+    INSERT INTO nodes (
+      id, type, parent_id, link_to, link_alias, parent_idx,
+      fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
+      task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+      content, content_hash, data,
+      created_at, updated_at, version
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  const now = Date.now()
+
+  // Apply in single transaction
+  db.run("BEGIN IMMEDIATE")
+  try {
+    for (const file of files) {
+      if (file.error) continue
+
+      if (file.isCreate) {
+        // Get stub info if available (for deferred parsing)
+        const stub = stubInfo?.get(file.nodeId)
+
+        // Set parent info on file node
+        const fileNode = file.nodes[0]
+        if (fileNode && stub) {
+          fileNode.parent_id = stub.parent_id
+          fileNode.parent_idx = stub.parent_idx
+        }
+
+        // Delete stub if it exists
+        if (stub) {
+          deleteStmt.run(file.nodeId)
+        }
+
+        // Insert all nodes
+        for (const node of file.nodes) {
+          const data = node.data ?? {}
+          insertStmt.run(
+            node.id,
+            node.type,
+            node.parent_id ?? null,
+            node.link_to ?? null,
+            node.link_alias ?? null,
+            node.parent_idx ?? 0,
+            node.fs_path ?? null,
+            node.fs_ino ?? null,
+            node.fs_mtime ?? null,
+            node.name ?? null,
+            node.title ?? null,
+            node.md_pos ?? null,
+            node.md_line ?? null,
+            node.md_slug ?? null,
+            node.task_status ?? null,
+            node.task_mark ?? null,
+            node.assigned_to ?? null,
+            node.due_date ?? null,
+            node.scheduled_date ?? null,
+            node.priority ?? null,
+            node.content ?? null,
+            node.content_hash ?? null,
+            JSON.stringify(data),
+            now,
+            now,
+            node.version || "",
+          )
+
+          // Emit event if emitter provided (syncing path)
+          if (emitter) {
+            emitNodeCreated(
+              emitter,
+              "fs-watch",
+              node as unknown as Record<string, unknown>,
+            )
+          }
+        }
+      } else {
+        // Update path - update file node metadata
+        if (file.nodes[0]) {
+          const updates: Record<string, unknown> = {
+            fs_mtime: file.mtime,
+            fs_ino: file.ino,
+            content_hash: file.hash,
+          }
+
+          db.run(
+            `UPDATE nodes SET fs_mtime = ?, fs_ino = ?, content_hash = ?, updated_at = ? WHERE id = ?`,
+            [file.mtime, file.ino, file.hash, now, file.nodeId],
+          )
+
+          // Emit update event if emitter provided
+          if (emitter) {
+            emitNodeUpdated(emitter, "fs-watch", file.nodeId, updates)
+          }
+        }
+      }
+
+      // Yield with wikilinks for next stage
+      const name = basename(file.path).replace(/\.md$/, "")
+      yield {
+        nodeId: file.nodeId,
+        name,
+        path: file.path,
+        wikilinks: file.wikilinks,
+      }
+    }
+
+    db.run("COMMIT")
+    debug("applyNodes: committed %d files", files.length)
+  } catch (error) {
+    db.run("ROLLBACK")
+    throw error
+  }
+}
+
+// ============================================================================
+// STAGE 3: pipelineResolveLinks - Buffering
+// ============================================================================
+
+/**
+ * Resolve wikilinks using LinkResolver.
+ * Exhausts upstream (building resolver), then yields resolved links.
+ */
+export async function* pipelineResolveLinks(
+  upstream: AsyncGenerator<AppliedFile>,
+  db: Database,
+  signal?: AbortSignal,
+): AsyncGenerator<ResolvedLink> {
+  // Build resolver from existing files and collect pending links
+  const resolver = createLinkResolver(db)
+  const pendingLinks: Array<{ file: AppliedFile; link: WikilinkRef }> = []
+
+  // Exhaust upstream: register files AND collect their links
+  for await (const file of upstream) {
+    if (signal?.aborted) return
+
+    // Add file to resolver (so subsequent files can link to it)
+    resolver.addFile(file.nodeId, file.name)
+
+    // Collect links for resolution
+    for (const link of file.wikilinks) {
+      pendingLinks.push({ file, link })
+    }
+  }
+
+  debug("pipelineResolveLinks: resolving %d links", pendingLinks.length)
+
+  // Now all files exist - resolve and yield links
+  for (const { link } of pendingLinks) {
+    if (signal?.aborted) return
+
+    yield resolveWikilink(link, resolver)
+  }
+
+  debug("pipelineResolveLinks: completed")
+}
+
+/**
+ * Resolve a single wikilink using the resolver.
+ */
+function resolveWikilink(
+  ref: WikilinkRef,
+  resolver: LinkResolver,
+): ResolvedLink {
+  const { nodeId, link, relationship } = ref
+
+  let targetId = resolver.resolveTarget(link.target)
+  if (targetId && link.section) {
+    const sectionId = resolver.resolveSection(targetId, link.section)
+    if (sectionId) {
+      targetId = sectionId
+    }
+  }
+
+  return {
+    source_id: nodeId,
+    target_name: link.target,
+    target_id: targetId,
+    section: link.section ?? null,
+    block_id: link.blockId ?? null,
+    alias: link.alias ?? null,
+    embedded: link.embedded ?? false,
+    relationship: relationship ?? null,
+  }
+}
+
+// ============================================================================
+// STAGE 4: applyLinks - Buffering
+// ============================================================================
+
+/**
+ * Batch insert resolved links into database.
+ * Exhausts upstream, then inserts in single transaction.
+ */
+export async function* applyLinks(
+  upstream: AsyncGenerator<ResolvedLink>,
+  db: Database,
+  signal?: AbortSignal,
+): AsyncGenerator<void> {
+  // Collect all links
+  const links: ResolvedLink[] = []
+  const embeddedUpdates: Array<{
+    source_id: string
+    target_id: string
+    alias: string | null
+  }> = []
+
+  for await (const link of upstream) {
+    if (signal?.aborted) return
+    links.push(link)
+
+    // Track embedded links for node updates
+    if (link.embedded && link.target_id) {
+      embeddedUpdates.push({
+        source_id: link.source_id,
+        target_id: link.target_id,
+        alias: link.alias,
+      })
+    }
+  }
+
+  if (links.length === 0) return
+
+  debug("applyLinks: inserting %d links", links.length)
+
+  const now = Date.now()
+
+  // Batch insert in single transaction
+  db.run("BEGIN IMMEDIATE")
+  try {
+    const insertStmt = db.prepare(`
+      INSERT OR REPLACE INTO links
+      (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+
+    for (const link of links) {
+      insertStmt.run(
+        link.source_id,
+        link.target_name,
+        link.target_id,
+        link.section,
+        link.block_id,
+        link.alias,
+        link.embedded ? 1 : 0,
+        link.relationship,
+        now,
+      )
+      yield // Progress indication
+    }
+
+    // Batch UPDATE for embedded links (update source node's link_to)
+    if (embeddedUpdates.length > 0) {
+      const updateStmt = db.prepare(`
+        UPDATE nodes SET link_to = ?, link_alias = ?, updated_at = ? WHERE id = ?
+      `)
+      for (const update of embeddedUpdates) {
+        updateStmt.run(update.target_id, update.alias, now, update.source_id)
+      }
+    }
+
+    db.run("COMMIT")
+    debug("applyLinks: committed %d links", links.length)
+  } catch (error) {
+    db.run("ROLLBACK")
+    throw error
+  }
+}
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+
+/**
+ * Run a pipeline to completion.
+ * Returns the count of items processed.
+ */
+export async function runPipeline<T>(
+  pipeline: AsyncGenerator<T>,
+  onProgress?: (item: T) => void,
+): Promise<number> {
+  let count = 0
+  for await (const item of pipeline) {
+    onProgress?.(item)
+    count++
+  }
+  return count
+}
+
+/**
+ * Collect all items from a generator into an array.
+ */
+export async function collect<T>(gen: AsyncGenerator<T>): Promise<T[]> {
+  const items: T[] = []
+  for await (const item of gen) {
+    items.push(item)
+  }
+  return items
+}
+
+/**
+ * Convert an array to an async generator.
+ * Note: async function* is required for AsyncGenerator return type,
+ * even though no await is needed.
+ */
+// eslint-disable-next-line @typescript-eslint/require-await
+async function* toAsyncGenerator<T>(items: T[]): AsyncGenerator<T> {
+  for (const item of items) {
+    yield item
+  }
+}
+
+// ============================================================================
+// COMPOSED PIPELINES
+// ============================================================================
+
+/**
+ * Run the full deferred parsing pipeline.
+ * Used by repo-loader for background parsing after initial load.
+ *
+ * @param db - Database instance
+ * @param deferredFiles - Files to parse
+ * @param pool - Parse worker pool
+ * @param options - Pipeline options
+ * @returns Parsed count and pending links
+ */
+export async function runDeferredPipeline(
+  db: Database,
+  deferredFiles: Array<{ nodeId: string; fsPath: string }>,
+  pool: ParsePoolService,
+  options: PipelineOptions = {},
+): Promise<{ parsed: number; pendingLinks: ResolvedLink[] }> {
+  const { signal } = options
+
+  // Build stub info from existing nodes
+  const stubInfo = new Map<
+    string,
+    { parent_id: string | null; parent_idx: number }
+  >()
+  for (const { nodeId } of deferredFiles) {
+    const row = db
+      .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
+      .get(nodeId) as { parent_id: string | null; parent_idx: number } | null
+    if (row) {
+      stubInfo.set(nodeId, row)
+    }
+  }
+
+  // Build sources
+  const sources: ParseSource[] = deferredFiles.map((f) => ({
+    path: f.fsPath,
+    nodeId: f.nodeId,
+    isCreate: true,
+  }))
+
+  // Compose pipeline: parse → apply → resolve
+  const parsed = parseFiles(sources, pool, signal)
+  const applied = applyNodes(parsed, db, { ...options, stubInfo })
+  const resolved = pipelineResolveLinks(applied, db, signal)
+
+  // Collect resolved links (don't apply yet - let caller decide)
+  const pendingLinks = await collect(resolved)
+
+  // Apply links - wrap array as async generator
+  const linkGen = applyLinks(toAsyncGenerator(pendingLinks), db, signal)
+  await runPipeline(linkGen)
+
+  const parsedCount = stubInfo.size
+  debug(
+    "runDeferredPipeline: %d parsed, %d links",
+    parsedCount,
+    pendingLinks.length,
+  )
+
+  return { parsed: parsedCount, pendingLinks }
+}

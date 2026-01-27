@@ -36,7 +36,14 @@ import {
   resolveLinksBatch,
 } from "../db-links.ts"
 import { createLinkResolver, type LinkResolver } from "../link-resolver.ts"
-import { hashContent, parseMarkdownWithLinks } from "../index.ts"
+import {
+  processMarkdownFile,
+  toResolvedLinks,
+  type ProcessedMarkdown,
+  type WikilinkRef,
+} from "../markdown-processing.ts"
+import type { ParsePoolService, ParseResult } from "../parse-pool.ts"
+import { parseFiles, collect, type ParseSource } from "../pipeline.ts"
 import { scanDirectory } from "./watcher.ts"
 import type { PatternMatcher } from "../ignore.ts"
 
@@ -376,10 +383,9 @@ function handleCreate(
       data: { name: basename(op.path) },
     })
   } else if (op.path.endsWith(".md")) {
-    // Parse markdown file and create nodes with wikilinks
+    // Parse markdown file using the data layer
     const content = fs.readFileSync(op.path, "utf-8")
-    const contentHash = hashContent(content)
-    const { nodes, wikilinks } = parseMarkdownWithLinks(
+    const processed = processMarkdownFile(
       content,
       op.path,
       op.ino,
@@ -388,14 +394,14 @@ function handleCreate(
 
     // Set parent and content_hash for file node
     // km-fast-md.0: Store content_hash so updates can skip parsing if unchanged
-    const fileNode = nodes[0]
+    const fileNode = processed.nodes[0]
     if (fileNode) {
       fileNode.parent_id = parentId
-      fileNode.content_hash = contentHash
+      fileNode.content_hash = processed.hash
     }
 
     // Emit creation events for all nodes
-    for (const node of nodes) {
+    for (const node of processed.nodes) {
       emitNodeCreated(
         emitter,
         "fs-watch",
@@ -404,20 +410,16 @@ function handleCreate(
     }
 
     // Store wikilinks - use resolver for efficient lookup (avoids O(n²) DB queries)
-    for (const { nodeId, link, relationship } of wikilinks) {
-      // Use pre-built lookup map instead of per-link DB query
-      let targetId: string | null = null
-      if (ctx?.resolver) {
-        targetId = ctx.resolver.resolveTarget(link.target)
-        // If there's a section reference, resolve that too
-        if (targetId && link.section) {
-          const sectionId = ctx.resolver.resolveSection(targetId, link.section)
-          if (sectionId) {
-            targetId = sectionId
-          }
-        }
-      } else {
-        // Fallback for single-file creation (no ctx) - use DB queries
+    if (ctx?.resolver) {
+      // Use data layer transform for batch resolution
+      const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
+      for (const link of resolvedLinks) {
+        addLink(db, link)
+      }
+    } else {
+      // Fallback for single-file creation (no ctx) - use DB queries
+      for (const { nodeId, link, relationship } of processed.wikilinks) {
+        let targetId: string | null = null
         const targetFileNode = findNodeByName(db, link.target)
         if (targetFileNode) {
           targetId = targetFileNode.id
@@ -432,18 +434,18 @@ function handleCreate(
             }
           }
         }
-      }
 
-      addLink(db, {
-        source_id: nodeId,
-        target_name: link.target,
-        target_id: targetId,
-        section: link.section ?? null,
-        block_id: link.blockId ?? null,
-        alias: link.alias ?? null,
-        embedded: link.embedded ?? false,
-        relationship: relationship ?? null,
-      })
+        addLink(db, {
+          source_id: nodeId,
+          target_name: link.target,
+          target_id: targetId,
+          section: link.section ?? null,
+          block_id: link.blockId ?? null,
+          alias: link.alias ?? null,
+          embedded: link.embedded ?? false,
+          relationship: relationship ?? null,
+        })
+      }
     }
 
     // Collect new file for batch link resolution and update resolver map
@@ -476,6 +478,362 @@ function handleCreate(
 const findNodeByName = findFileByName
 
 /**
+ * Apply reconciliation operations with parallel parsing.
+ *
+ * Uses async generator pipeline to parse markdown files in parallel,
+ * then applies the results sequentially (DB writes must be serial).
+ *
+ * This is ~3x faster than applyReconcileOps for bulk operations (10+ files).
+ */
+export async function applyReconcileOpsAsync(
+  db: Database,
+  ops: ReconcileOp[],
+  repoRoot: string,
+  emitter: Emitter,
+  parsePool: ParsePoolService,
+  fs: FileSystemOps = realFs,
+): Promise<void> {
+  debug("applying %d reconcile ops (async)", ops.length)
+  const start = Date.now()
+
+  // Collect markdown files that need parsing
+  const parseJobs: Array<{
+    op: ReconcileOp
+    nodeId: string
+    isCreate: boolean
+  }> = []
+
+  for (const op of ops) {
+    if (op.path.endsWith(".md")) {
+      if (op.type === "create") {
+        // Generate ID upfront for creates
+        parseJobs.push({ op, nodeId: ulid(), isCreate: true })
+      } else if (op.type === "update" && op.nodeId) {
+        parseJobs.push({ op, nodeId: op.nodeId, isCreate: false })
+      }
+    }
+  }
+
+  // Parse all markdown files in parallel using pipeline
+  const parseResultMap = new Map<string, ParseResult>()
+  if (parseJobs.length > 0) {
+    debug("parallel parsing %d markdown files via pipeline", parseJobs.length)
+
+    // Build sources for pipeline
+    const sources: ParseSource[] = parseJobs.map((job) => ({
+      path: job.op.path,
+      nodeId: job.nodeId,
+      isCreate: job.isCreate,
+    }))
+
+    // Use pipeline's parseFiles generator
+    const parsedFiles = await collect(parseFiles(sources, parsePool))
+
+    // Convert to ParseResult map for backward compatibility with apply logic
+    for (const file of parsedFiles) {
+      parseResultMap.set(file.path, {
+        nodeId: file.nodeId,
+        fsPath: file.path,
+        nodes: file.nodes as unknown[],
+        wikilinks: file.wikilinks as unknown[],
+        hash: file.hash,
+        ino: file.ino,
+        mtime: file.mtime,
+        error: file.error,
+      })
+    }
+    debug("parsed %d files via pipeline", parsedFiles.length)
+  }
+
+  // Build lookup map once for efficient link resolution (avoids O(n²) DB queries)
+  const resolver = createLinkResolver(db)
+  debug("resolver ready with %d files", resolver.size)
+
+  // Context for collecting new files for batch link resolution
+  const ctx: ReconcileContext = { newFiles: [], resolver }
+
+  // Map from generated IDs to parse jobs (for creates)
+  const createJobMap = new Map<string, { op: ReconcileOp; nodeId: string }>()
+  for (const job of parseJobs) {
+    if (job.isCreate) {
+      createJobMap.set(job.op.path, { op: job.op, nodeId: job.nodeId })
+    }
+  }
+
+  // Apply ops sequentially (DB writes must be serial)
+  for (const op of ops) {
+    debug("applying op: %s %s", op.type, op.path)
+    switch (op.type) {
+      case "create": {
+        const parseResult = parseResultMap.get(op.path)
+        const createJob = createJobMap.get(op.path)
+        if (parseResult && createJob) {
+          // Use pre-parsed result for markdown files
+          handleCreateWithParsed(
+            db,
+            op,
+            parseResult,
+            repoRoot,
+            emitter,
+            fs,
+            ctx,
+          )
+        } else {
+          // Non-markdown files or parse failures - use sync path
+          handleCreate(db, op, repoRoot, emitter, fs, ctx)
+        }
+        break
+      }
+      case "update": {
+        const parseResult = parseResultMap.get(op.path)
+        if (parseResult && op.path.endsWith(".md")) {
+          // Use pre-parsed result for markdown files
+          handleUpdateWithParsed(db, op, parseResult, emitter, ctx)
+        } else {
+          // Non-markdown files or parse failures - use sync path
+          handleUpdate(db, op, repoRoot, emitter, fs, ctx)
+        }
+        break
+      }
+      case "rename":
+        handleRename(emitter, op)
+        break
+      case "delete":
+        handleDelete(emitter, op)
+        break
+    }
+  }
+
+  // Batch resolve links for all new files at once (avoids O(n²) per-file resolution)
+  if (ctx.newFiles.length > 0) {
+    const resolved = resolveLinksBatch(db, ctx.newFiles)
+    debug(
+      "batch resolved %d links for %d new files",
+      resolved,
+      ctx.newFiles.length,
+    )
+  }
+
+  debug("applied %d ops (async) in %dms", ops.length, Date.now() - start)
+}
+
+/**
+ * Handle new markdown file creation with pre-parsed content.
+ */
+function handleCreateWithParsed(
+  db: Database,
+  op: ReconcileOp,
+  parsed: ParseResult,
+  repoRoot: string,
+  emitter: Emitter,
+  fs: FileSystemOps = realFs,
+  ctx?: ReconcileContext,
+): void {
+  // Ensure all parent folders exist as nodes
+  const parentId = ensureFolderHierarchy(db, op.path, repoRoot, emitter, fs)
+
+  // Convert ParseResult to ProcessedMarkdown-like structure
+  const nodes = parsed.nodes as KNode[]
+  const wikilinks = parsed.wikilinks as WikilinkRef[]
+
+  // Set parent and content_hash for file node
+  const fileNode = nodes[0]
+  if (fileNode) {
+    fileNode.parent_id = parentId
+    fileNode.content_hash = parsed.hash
+    // Ensure fs metadata is set (worker already computed these)
+    fileNode.fs_path = op.path
+    fileNode.fs_ino = parsed.ino
+    fileNode.fs_mtime = parsed.mtime
+  }
+
+  // Emit creation events for all nodes
+  for (const node of nodes) {
+    emitNodeCreated(
+      emitter,
+      "fs-watch",
+      node as unknown as Record<string, unknown>,
+    )
+  }
+
+  // Store wikilinks - use resolver for efficient lookup
+  if (ctx?.resolver) {
+    const processed: ProcessedMarkdown = {
+      path: op.path,
+      hash: parsed.hash,
+      nodes,
+      wikilinks,
+      warnings: [],
+    }
+    const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
+    for (const link of resolvedLinks) {
+      addLink(db, link)
+    }
+  } else {
+    // Fallback - use DB queries for target resolution
+    for (const { nodeId, link, relationship } of wikilinks) {
+      let targetId: string | null = null
+      const targetFileNode = findNodeByName(db, link.target)
+      if (targetFileNode) {
+        targetId = targetFileNode.id
+        if (link.section) {
+          const childNode = findChildByContent(
+            db,
+            targetFileNode.id,
+            link.section,
+          )
+          if (childNode) {
+            targetId = childNode.id
+          }
+        }
+      }
+
+      addLink(db, {
+        source_id: nodeId,
+        target_name: link.target,
+        target_id: targetId,
+        section: link.section ?? null,
+        block_id: link.blockId ?? null,
+        alias: link.alias ?? null,
+        embedded: link.embedded ?? false,
+        relationship: relationship ?? null,
+      })
+    }
+  }
+
+  // Collect new file for batch link resolution and update resolver map
+  const fileName = basename(op.path).replace(/\.md$/, "")
+  if (fileNode && ctx) {
+    ctx.newFiles.push({ id: fileNode.id, name: fileName })
+    // Update resolver so subsequent files can link to this one
+    ctx.resolver.addFile(fileNode.id, fileName)
+  } else if (fileNode) {
+    // Fallback for single-file creation (no ctx) - resolve immediately
+    resolveLinks(db, fileNode.id, fileName)
+  }
+}
+
+/**
+ * Handle markdown file update with pre-parsed content.
+ */
+function handleUpdateWithParsed(
+  db: Database,
+  op: ReconcileOp,
+  parsed: ParseResult,
+  emitter: Emitter,
+  ctx?: ReconcileContext,
+): void {
+  if (!op.nodeId) {
+    return
+  }
+
+  // Use km-storage abstraction to get content hash
+  const existingHash = getNodeContentHash(db, op.nodeId)
+
+  // Skip if content hasn't actually changed
+  if (existingHash === parsed.hash) {
+    return
+  }
+
+  // Get existing nodes for this file using km-storage abstraction
+  const existingNodes = getFileWithChildren(db, op.path)
+  const newNodes = parsed.nodes as KNode[]
+
+  debug(
+    "handleUpdateWithParsed: existing nodes count=%d, new nodes count=%d",
+    existingNodes.length,
+    newNodes.length,
+  )
+
+  // Diff and emit changes
+  const { changes, idMap } = diffNodes(existingNodes, newNodes)
+
+  for (const change of changes) {
+    switch (change.type) {
+      case "created":
+        if (change.node) {
+          emitNodeCreated(
+            emitter,
+            "fs-watch",
+            change.node as unknown as Record<string, unknown>,
+          )
+        }
+        break
+      case "updated":
+        if (change.nodeId && change.changes) {
+          emitNodeUpdated(emitter, "fs-watch", change.nodeId, change.changes)
+        }
+        break
+      case "deleted":
+        if (change.nodeId) emitNodeDeleted(emitter, "fs-watch", change.nodeId)
+        break
+    }
+  }
+
+  // Always update the file node's fs_mtime, fs_ino, and content_hash
+  const updates: Record<string, unknown> = {
+    fs_mtime: parsed.mtime,
+    content_hash: parsed.hash,
+  }
+  if (parsed.ino) {
+    updates.fs_ino = parsed.ino
+  }
+  emitNodeUpdated(emitter, "fs-watch", op.nodeId, updates)
+
+  // Update wikilinks: remove old links from EXISTING nodes
+  for (const node of existingNodes) {
+    removeLinksFromSource(db, node.id)
+  }
+
+  // Add new links with source ID remapping (new parser IDs → existing DB IDs)
+  const wikilinks = parsed.wikilinks as WikilinkRef[]
+  if (ctx?.resolver) {
+    const processed: ProcessedMarkdown = {
+      path: op.path,
+      hash: parsed.hash,
+      nodes: newNodes,
+      wikilinks,
+      warnings: [],
+    }
+    const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
+    for (const link of resolvedLinks) {
+      addLink(db, {
+        ...link,
+        source_id: idMap.get(link.source_id) ?? link.source_id,
+      })
+    }
+  } else {
+    // Fallback - use DB queries for target resolution
+    for (const { nodeId, link, relationship } of wikilinks) {
+      const mappedSourceId = idMap.get(nodeId) ?? nodeId
+
+      let targetId: string | null = null
+      const fileNode = findNodeByName(db, link.target)
+      if (fileNode) {
+        targetId = fileNode.id
+        if (link.section) {
+          const childNode = findChildByContent(db, fileNode.id, link.section)
+          if (childNode) {
+            targetId = childNode.id
+          }
+        }
+      }
+
+      addLink(db, {
+        source_id: mappedSourceId,
+        target_name: link.target,
+        target_id: targetId,
+        section: link.section ?? null,
+        block_id: link.blockId ?? null,
+        alias: link.alias ?? null,
+        embedded: link.embedded ?? false,
+        relationship: relationship ?? null,
+      })
+    }
+  }
+}
+
+/**
  * Handle file modification
  */
 function handleUpdate(
@@ -501,13 +859,17 @@ function handleUpdate(
   }
 
   const content = fs.readFileSync(op.path, "utf-8")
-  const contentHash = hashContent(content)
+  const stat = fs.statSync(op.path)
+  const newMtime = op.mtime ?? stat.mtimeMs
+
+  // Parse using the data layer
+  const processed = processMarkdownFile(content, op.path, stat.ino, newMtime)
 
   // Use km-storage abstraction to get content hash
   const existingHash = getNodeContentHash(db, op.nodeId)
 
   // Skip if content hasn't actually changed
-  if (existingHash === contentHash) {
+  if (existingHash === processed.hash) {
     return
   }
 
@@ -523,23 +885,18 @@ function handleUpdate(
     })),
   )
 
-  // Parse new content with wikilinks
-  const stat = fs.statSync(op.path)
-  const newMtime = op.mtime ?? stat.mtimeMs
-  const { nodes: newNodes, wikilinks } = parseMarkdownWithLinks(
-    content,
-    op.path,
-    stat.ino,
-    newMtime,
-  )
   debug(
     "handleUpdate: new nodes count=%d, ids=%O",
-    newNodes.length,
-    newNodes.map((n) => ({ id: n.id, type: n.type, parent_idx: n.parent_idx })),
+    processed.nodes.length,
+    processed.nodes.map((n) => ({
+      id: n.id,
+      type: n.type,
+      parent_idx: n.parent_idx,
+    })),
   )
 
   // Diff and emit changes
-  const { changes, idMap } = diffNodes(existingNodes, newNodes)
+  const { changes, idMap } = diffNodes(existingNodes, processed.nodes)
   debug(
     "handleUpdate: changes=%O",
     changes.map((c) => ({ type: c.type, nodeId: c.nodeId, node: c.node?.id })),
@@ -573,7 +930,7 @@ function handleUpdate(
   if (op.nodeId) {
     const updates: Record<string, unknown> = {
       fs_mtime: newMtime,
-      content_hash: contentHash,
+      content_hash: processed.hash,
     }
     // Update fs_ino if it changed (atomic write detection)
     if (op.ino !== undefined) {
@@ -583,7 +940,7 @@ function handleUpdate(
   }
 
   // Update wikilinks: remove old links from EXISTING nodes (not new ones)
-  // Note: newNodes have brand new IDs, so we need to use existingNodes for removal
+  // Note: processed.nodes have brand new IDs, so we need to use existingNodes for removal
   debug(
     "handleUpdate: removing links from existing nodes: %O",
     existingNodes.map((n) => n.id),
@@ -592,22 +949,22 @@ function handleUpdate(
     removeLinksFromSource(db, node.id)
   }
 
-  for (const { nodeId, link, relationship } of wikilinks) {
-    // Map new node ID to existing ID (if the node existed before)
-    const mappedSourceId = idMap.get(nodeId) ?? nodeId
+  // Add new links with source ID remapping (new parser IDs → existing DB IDs)
+  if (ctx?.resolver) {
+    // Use data layer transform for batch resolution, then remap source IDs
+    const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
+    for (const link of resolvedLinks) {
+      addLink(db, {
+        ...link,
+        source_id: idMap.get(link.source_id) ?? link.source_id,
+      })
+    }
+  } else {
+    // Fallback - use DB queries for target resolution
+    for (const { nodeId, link, relationship } of processed.wikilinks) {
+      const mappedSourceId = idMap.get(nodeId) ?? nodeId
 
-    // Use pre-built lookup map instead of per-link DB query
-    let targetId: string | null = null
-    if (ctx?.resolver) {
-      targetId = ctx.resolver.resolveTarget(link.target)
-      if (targetId && link.section) {
-        const sectionId = ctx.resolver.resolveSection(targetId, link.section)
-        if (sectionId) {
-          targetId = sectionId
-        }
-      }
-    } else {
-      // Fallback - use DB queries
+      let targetId: string | null = null
       const fileNode = findNodeByName(db, link.target)
       if (fileNode) {
         targetId = fileNode.id
@@ -618,18 +975,18 @@ function handleUpdate(
           }
         }
       }
-    }
 
-    addLink(db, {
-      source_id: mappedSourceId,
-      target_name: link.target,
-      target_id: targetId,
-      section: link.section ?? null,
-      block_id: link.blockId ?? null,
-      alias: link.alias ?? null,
-      embedded: link.embedded ?? false,
-      relationship: relationship ?? null,
-    })
+      addLink(db, {
+        source_id: mappedSourceId,
+        target_name: link.target,
+        target_id: targetId,
+        section: link.section ?? null,
+        block_id: link.blockId ?? null,
+        alias: link.alias ?? null,
+        embedded: link.embedded ?? false,
+        relationship: relationship ?? null,
+      })
+    }
   }
 }
 

@@ -28,6 +28,12 @@ export interface ParseResult {
   fsPath: string
   nodes: unknown[]
   wikilinks: unknown[]
+  /** SHA-256 hash of file content (for change detection) */
+  hash: string
+  /** Filesystem inode */
+  ino: number
+  /** Filesystem mtime in ms */
+  mtime: number
   error?: string
 }
 
@@ -161,6 +167,37 @@ export class ParsePool {
   }
 
   /**
+   * Stream parse results as workers complete.
+   * Yields results as they arrive (not in order, but fast).
+   * Use this for pipeline composition with async generators.
+   */
+  async *stream(
+    files: Array<{ nodeId: string; fsPath: string }>,
+    signal?: AbortSignal,
+  ): AsyncGenerator<ParseResult> {
+    if (files.length === 0) return
+
+    // Create all parse promises upfront
+    const pending = new Map<string, Promise<ParseResult>>()
+
+    for (const file of files) {
+      const parsePromise = this.parse(file.nodeId, file.fsPath)
+      pending.set(file.fsPath, parsePromise)
+    }
+
+    // Yield as each completes
+    while (pending.size > 0) {
+      if (signal?.aborted) return
+
+      // Race all pending promises
+      const result = await Promise.race(pending.values())
+
+      pending.delete(result.fsPath)
+      yield result
+    }
+  }
+
+  /**
    * Shutdown the worker pool.
    */
   async shutdown(): Promise<void> {
@@ -222,6 +259,9 @@ export class ParsePool {
             fsPath: message.fsPath,
             nodes: message.nodes,
             wikilinks: message.wikilinks,
+            hash: message.hash,
+            ino: message.ino,
+            mtime: message.mtime,
           })
         }
       }
@@ -251,6 +291,11 @@ export interface ParsePoolService extends AsyncDisposable {
     onProgress?: (current: number, total: number) => void,
     shouldAbort?: () => boolean,
   ): Promise<ParseResult[]>
+  /** Stream parse results as workers complete. Yields results as they arrive. */
+  stream(
+    files: Array<{ nodeId: string; fsPath: string }>,
+    signal?: AbortSignal,
+  ): AsyncGenerator<ParseResult>
 }
 
 /**
@@ -328,6 +373,13 @@ export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
       shouldAbort?: () => boolean,
     ) {
       return pool.parseMany(files, onProgress, shouldAbort)
+    },
+
+    stream(
+      files: Array<{ nodeId: string; fsPath: string }>,
+      signal?: AbortSignal,
+    ) {
+      return pool.stream(files, signal)
     },
 
     async [Symbol.asyncDispose]() {

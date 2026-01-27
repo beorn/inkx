@@ -176,6 +176,35 @@ export {
 
 export type { ParseResult, ParseWarning } from "@km/markdown"
 
+// Markdown processing utilities (shared between loading and syncing)
+export {
+  processMarkdownFile,
+  toNodeEvents,
+  toPendingLinks,
+  toResolvedLinks,
+  getFileNode,
+} from "./markdown-processing.ts"
+
+export type { ProcessedMarkdown, ResolvedLink } from "./markdown-processing.ts"
+
+// Async generator pipeline (composable stages for loading/syncing)
+export {
+  parseFiles,
+  applyNodes,
+  pipelineResolveLinks,
+  applyLinks,
+  runPipeline,
+  collect,
+  runDeferredPipeline,
+} from "./pipeline.ts"
+
+export type {
+  ParseSource,
+  ParsedFile,
+  AppliedFile,
+  PipelineOptions,
+} from "./pipeline.ts"
+
 // Path utilities for filesystem-based node resolution
 export {
   isExplicitPath,
@@ -195,6 +224,7 @@ export {
   SyncManager,
   reconcileDirectory,
   applyReconcileOps,
+  applyReconcileOpsAsync,
   getParentNodeId,
   DEFAULT_IGNORE_PATTERNS,
   HIDDEN_FILE_PATTERN,

@@ -1,39 +1,37 @@
 # Architectural Principles
 
-> **The thesis**: Compose domain objects with explicit dependencies.
-> Everything else—testability, resource management, fast feedback—follows from this.
+> **The thesis**: Build from composable pieces. Maintain quality through fast feedback. Write for humans and LLMs.
 
 ---
 
-## The Story
+## Overview
 
-We build software from **domain objects**—plain objects with methods, created by factory functions. Because we use factories (not classes or singletons), we can **pass dependencies explicitly**. Because dependencies are explicit, we can **swap implementations** and run tests in parallel (no shared state). Because we create objects, we must **dispose of them**—so we use `using` for automatic cleanup. Because dependencies are explicit, a missing one is a **programming error**—so we throw immediately, never fall back. Because we can swap implementations, **tests use in-memory infrastructure** and run in <5s. Because domain objects compose, our **architecture is layers** of composed objects. When two things sync, **one is authoritative** (DataStore) and one is a representation (FileTree)—sync is translation, not peer-to-peer copy. When we refactor, we **delete old code first**—because if fallbacks exist, they never get cleaned up.
+1. **Composability** — Build from simple, reusable pieces
+   - Domain Objects via Composition
+   - Explicit Dependencies
+   - Layered Architecture
+   - Disposable Lifecycle
+   - Async Generator Pipelines
+2. **Fast Feedback Enables Quality** — Keep the loop tight to maintain extreme quality
+   - Fail Fast
+   - Fast Tests by Default
+   - Delete First, Fix Second
+3. **Readability Matters** — Make the "right way" locally obvious
+   - Important Logic First
+4. **Building for LLMs** — Why these principles matter even more with AI agents
+5. **Context** — Industry comparison and lessons learned
 
-**The causal chain:**
-
-```
-Domain objects via factory functions
-         ↓ enables
-Explicit dependencies (DI)
-    ↓           ↓           ↓
-Swappable    Fail fast    No shared state
-    ↓           ↓           ↓
-Fast tests   Bugs early   Parallel tests
-    ↓
-Disposable lifecycle (cleanup what you create)
-    ↓
-Layered architecture (layers are composed objects)
-    ↓
-Representation, not peers (clarify authority in composition)
-    ↓
-Delete first (because fallbacks never die)
-```
+These principles reinforce each other: composable pieces enable fast tests, fast tests protect quality, and quality makes LLM-assisted development safe.
 
 ---
 
-## Part 1: Foundation (The Mental Model)
+## Part 1: Composability
 
-These are the core ideas. Everything else is a consequence.
+Software is built from composable pieces. Both **structures** (objects) and **flows** (pipelines) should compose.
+
+### Objects
+
+Domain objects are plain objects created by factory functions. They compose via explicit dependencies, enabling testing, swapping, and isolation.
 
 ### 1. Domain Objects via Composition
 
@@ -70,6 +68,55 @@ export function createRepo(path: string, options?: RepoOptions): Repo {
 }
 ```
 
+**Composition example**:
+
+```typescript
+// Repo composes DataStore + FileTree + Config
+const repo = createRepo(path, {
+  inject: {
+    db: mockDb, // Swap database implementation
+    fileTree: memFs, // Swap filesystem implementation
+  },
+})
+```
+
+---
+
+### 2. Explicit Dependencies
+
+**The insight**: If you need something, it must be passed in.
+
+**The pattern**: Dependencies via options, with defaults for production.
+
+```typescript
+// Dependencies are explicit and swappable
+const repo = createRepo("/path", {
+  inject: {
+    db: mockDb, // Swap for testing
+    fileTree: memFs, // Swap for testing
+  },
+})
+```
+
+**The anti-pattern**: Global getters, implicit initialization.
+
+```typescript
+// ❌ BAD - hidden dependency
+function processNodes() {
+  const db = getDb() // Where does this come from?
+  // ...
+}
+
+// ✅ GOOD - explicit dependency
+function processNodes(db: Database) {
+  // Caller provides db, we use it
+}
+```
+
+---
+
+### Rejected Patterns
+
 **Why not classes**:
 
 - `this` binding issues (callbacks lose context)
@@ -104,80 +151,7 @@ export function createRepo(path: string, options?: RepoOptions): Repo
 
 ---
 
-### 2. Explicit Dependencies
-
-**The insight**: If you need something, it must be passed in.
-
-**The pattern**: Dependencies via options, with defaults for production.
-
-```typescript
-// Dependencies are explicit and swappable
-const repo = createRepo("/path", {
-  inject: {
-    db: mockDb, // Swap for testing
-    fileTree: memFs, // Swap for testing
-  },
-})
-```
-
-**Why it matters**:
-
-- Dependencies are visible (read the signature, know the deps)
-- Data flow is traceable (follow the arguments)
-- Implementations are swappable (inject mocks, stubs, alternates)
-
-**The anti-pattern**: Global getters, implicit initialization.
-
-```typescript
-// ❌ BAD - hidden dependency
-function processNodes() {
-  const db = getDb() // Where does this come from?
-  // ...
-}
-
-// ✅ GOOD - explicit dependency
-function processNodes(db: Database) {
-  // Caller provides db, we use it
-}
-```
-
----
-
-### 3. Representation, Not Peers
-
-**The insight**: When A and B sync, one is usually a representation of the other—not a peer.
-
-**The pattern**: FileTree is a human-editable representation of DataStore state. Sync is translation, not store-to-store copy.
-
-```
-┌────────────┐                  ┌─────────────┐
-│ FileTree   │ ←──── sync ────→ │  DataStore  │
-│  (files)   │    (translate)   │  (indexed)  │
-└────────────┘                  └─────────────┘
-   optional                        authoritative
-   human-editable                  fast queries
-   O(n) for queries                O(1)/O(log n)
-```
-
-**Why it matters**:
-
-- Sync becomes translation with clear direction
-- One side is authoritative (resolves conflicts)
-- Semantics differ (files have no node IDs natively)
-
-**The mistake**: Treating files and DB as interchangeable peers led to:
-
-- Generic sync that didn't understand either format
-- Complexity in conflict resolution
-- Confusion about which was authoritative
-
----
-
-## Part 2: Structure (How We Build)
-
-These follow from the foundation.
-
-### 4. Layered Architecture
+### 3. Layered Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -205,7 +179,7 @@ These follow from the foundation.
 
 ---
 
-### 5. Disposable Lifecycle
+### 4. Disposable Lifecycle
 
 **The insight**: Resources acquired = resources released. If you create something, you must clean it up.
 
@@ -228,15 +202,100 @@ async function watchRepo(path: string) {
 }
 ```
 
-**Why**:
+**Benefits**:
 
 - No resource leaks (database connections, file handles)
 - Clear ownership (creator is responsible for cleanup)
 - Predictable teardown order (reverse of creation)
 
-This is the resource management consequence of domain objects.
+---
+
+### Flows
+
+Async generators make multi-stage data processing composable. Each stage is a function that yields items, and stages compose like building blocks.
+
+### 5. Async Generator Pipelines
+
+**The insight**: Multi-stage data processing composes naturally with async generators.
+
+**The pattern**: Each stage is a generator. Stages that need buffering exhaust upstream first.
+
+```typescript
+// Streaming stage - yields as items arrive
+async function* parseFiles(sources, pool) {
+  for await (const result of pool.stream(sources)) {
+    yield transform(result)
+  }
+}
+
+// Buffering stage - exhausts upstream, then yields
+async function* applyNodes(upstream, db) {
+  const files = []
+  for await (const file of upstream) {
+    files.push(file) // Collect all
+  }
+
+  db.run("BEGIN IMMEDIATE")
+  for (const file of files) {
+    yield apply(file) // Then emit
+  }
+  db.run("COMMIT")
+}
+
+// Composition is natural
+const parsed = parseFiles(sources, pool)
+const applied = applyNodes(parsed, db)
+const resolved = resolveLinks(applied, db)
+
+for await (const link of resolved) {
+  // Process as they arrive
+}
+```
+
+**Real example** from km:
+
+Both loading and syncing use the same composable pipeline:
+
+```
+Sources (file paths)
+    ↓
+parseFiles() — Streaming: yields as workers complete
+    ↓
+applyNodes() — Buffering: transaction boundary
+    ↓
+resolveLinks() — Buffering: needs all nodes first
+    ↓
+applyLinks() — Buffering: batch INSERT
+```
+
+See [ref/pipelines.md](ref/pipelines.md) for the full implementation.
+
+**When to use**:
+
+- Multi-stage data transformation
+- Parallel processing with serial application
+- Progress-reportable batch operations
+
+**The anti-pattern**: Callback-based or Promise.all with intermediate arrays.
+
+```typescript
+// ❌ BAD - intermediate arrays, no composition
+const parsed = await Promise.all(files.map(f => parse(f)))
+const applied = await Promise.all(parsed.map(p => apply(p)))
+const resolved = await Promise.all(applied.map(a => resolve(a)))
+
+// ✅ GOOD - composable generators
+const pipeline = resolveLinks(applyNodes(parseFiles(sources)))
+for await (const item of pipeline) { ... }
+```
 
 ---
+
+## Part 2: Fast Feedback Enables Quality
+
+Fast feedback enables extreme quality: tests run in <5s, programming errors throw loudly, and failures happen at the call site—not in production.
+
+Bad quality propagates and multiplies, especially with LLMs. Fast feedback is how you keep the codebase clean.
 
 ### 6. Fail Fast
 
@@ -268,13 +327,7 @@ function getNode(id: string) {
 
 **Why**: Bugs surface at the call site, not later as mysterious failures.
 
-This is the error handling consequence of explicit dependencies.
-
 ---
-
-## Part 3: Practice (How We Work)
-
-Day-to-day patterns that support the structure.
 
 ### 7. Fast Tests by Default
 
@@ -293,11 +346,7 @@ await withTestEnv(async ({ db, repo, repoDir }) => {
 const db = new Database("/tmp/test.db")
 ```
 
-**Why**: <5s feedback loop enables TDD. Parallel tests (no shared state).
-
 **Target**: `bun run test:fast` < 5 seconds.
-
-This is the testing consequence of explicit dependencies.
 
 ---
 
@@ -327,9 +376,11 @@ export function getDb() { ... }
 
 **Why**: Backwards compat shims never get cleaned up. If fallbacks exist, old patterns persist forever.
 
-This is the refactoring consequence of explicit dependencies.
-
 ---
+
+## Part 3: Readability Matters
+
+Code is read more than written.
 
 ### 9. Important Logic First
 
@@ -371,9 +422,9 @@ function formatDate(d: Date): string {
 
 ---
 
-## Part 4: Architecture for AI-Assisted Development
+## Part 4: Building for LLMs
 
-These principles matter MORE when working with LLM coding agents.
+These principles matter MORE when working with AI coding agents.
 
 ### Why LLMs Amplify Architecture Problems
 
@@ -421,6 +472,8 @@ Code Quality      ╱
 
 ### Principles That Matter More with LLMs
 
+**Composability** — When pieces compose cleanly, LLMs can combine them correctly. When composition is implicit or has multiple paths, LLMs guess wrong.
+
 **Delete first, fix second** — If old patterns exist, LLMs will use them. The only way to prevent old patterns is to make them impossible.
 
 **Fast tests** — LLMs iterate extremely quickly. A 5-second test loop means an agent can try 100 approaches in the time a human tries 10. Fast feedback is a force multiplier.
@@ -442,7 +495,9 @@ Code Quality      ╱
 
 ---
 
-## Industry Comparison
+## Part 5: Context
+
+### Industry Comparison
 
 | km Principle      | Common Alternative   | Why We Chose Differently                             |
 | ----------------- | -------------------- | ---------------------------------------------------- |
@@ -452,46 +507,19 @@ Code Quality      ╱
 | Fail fast         | Defensive coding     | Defensive coding masks bugs until production         |
 | Delete first      | Deprecation warnings | Warnings are ignored forever (especially by LLMs)    |
 | In-memory tests   | Real infrastructure  | Real infra is slow, flaky, blocks parallel execution |
+| Async generators  | Promise.all chains   | Generators compose, arrays don't                     |
 
 ---
 
-## Lessons Learned
+### Lessons Learned
 
 Real stories from km development that shaped these principles.
 
-### The Backwards Compatibility Trap (Jan 25, 2025)
+- **The Backwards Compatibility Trap** — Singleton wrappers for "backwards compatibility" prevented migration from ever completing. The lesson: delete first, fix second. See [lesson-backwards-compatibility.md](ref/lesson-backwards-compatibility.md)
 
-Commit `8014128` introduced "singleton wrappers for backwards compatibility":
+- **FileTree as Peer DataStore** — Treating FileTree and DataStore as interchangeable peers led to performance asymmetry, semantic mismatch, and overly generic sync logic. The lesson: identify representation vs peer. See [lesson-filetree-as-peer.md](ref/lesson-filetree-as-peer.md)
 
-> This maintains backwards compatibility for existing code while migrating to the new dependency injection pattern.
-
-**What happened**: With fallbacks available, old patterns persisted. Migration never completed. Multiple commits patched symptoms instead of removing the root cause.
-
-**The lesson**: Make fallbacks impossible by deleting the code first. The old code cannot be used as a crutch if it doesn't exist.
-
-### FileTree as Peer DataStore
-
-The original design treated FileTree and DataStore as peers implementing the same `Store` interface.
-
-**What happened**:
-
-- Performance asymmetry broke the contract (FileTree is O(n), DataStore is O(1))
-- Semantic mismatch (files don't naturally have node IDs)
-- Sync became too generic (when it's really translation)
-
-**The lesson**: When A and B sync, ask: are they peers or is one a representation? FileTree is a representation of DataStore, not a peer.
-
-### The km-me0n Incident
-
-`km sync --to-fs` once corrupted source files by converting them to markdown stubs.
-
-**What happened**: Sync operation wrote to real files instead of test fixtures.
-
-**The lesson**:
-
-- Tests MUST use isolated directories (`/tmp/kmtest-*`)
-- E2E safety tests verify sync never touches non-`.md` files
-- Fast tests use in-memory infrastructure
+- **The km-me0n Incident** — `km sync --to-fs` corrupted source files by writing to real files instead of test fixtures. The lesson: tests use isolated directories, in-memory infrastructure. See [lesson-km-me0n.md](ref/lesson-km-me0n.md)
 
 ---
 
@@ -514,6 +542,10 @@ await withTestEnv(async ({ db }) => { ... })
 
 // Delete old code, fix callers
 // (not: add deprecation warning)
+
+// Compose generators
+const pipeline = resolveLinks(applyNodes(parseFiles(sources)))
+for await (const item of pipeline) { ... }
 ```
 
 ### Don't
@@ -533,6 +565,9 @@ const db = new Database("/tmp/real.db")
 
 // ❌ Backwards compat shims
 export { oldFunction as newFunction }
+
+// ❌ Promise.all chains
+const resolved = await Promise.all(items.map(resolve))
 ```
 
 ### Test Commands
@@ -549,5 +584,6 @@ bun fix              # Lint + format
 
 - [concepts.md](concepts.md) — What km is (nodes, modes, status)
 - [architecture.md](architecture.md) — System architecture (layers, data flow)
+- [ref/pipelines.md](ref/pipelines.md) — Async generator pipeline case study
 - [ADR-002](adr/archive/002-domain-objects-refactor.md) — Historical context on domain object architecture
 - [dev/testing.md](dev/testing.md) — Detailed testing guide

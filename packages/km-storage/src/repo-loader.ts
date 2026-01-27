@@ -18,7 +18,8 @@ import { Database } from "bun:sqlite"
 import { existsSync, readdirSync, readFileSync, statSync } from "fs"
 import { join, dirname, relative } from "path"
 import type { Event } from "@km/core"
-import { ParsePool, type ParseResult } from "./parse-pool.ts"
+import { ParsePool } from "./parse-pool.ts"
+import { runDeferredPipeline } from "./pipeline.ts"
 
 /**
  * Progress yield type for step generators.
@@ -1061,162 +1062,46 @@ export async function parseDeferredAsync(
 
 /**
  * km-fast-md.6: Parse files in parallel using worker pool.
- * Workers handle CPU-intensive parsing, main thread updates database.
+ * Uses composable async generator pipeline for unified parse/apply flow.
  */
 async function parseDeferredWithPool(
   db: Database,
   deferredFiles: DeferredFile[],
-  shouldAbort?: () => boolean,
+  _shouldAbort?: () => boolean,
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
   const total = deferredFiles.length
-  debug("parseDeferredWithPool: starting %d files with worker pool", total)
+  debug("parseDeferredWithPool: starting %d files with pipeline", total)
 
   const pool = new ParsePool()
   await pool.start()
 
   try {
-    // Parse all files in parallel using worker threads
-    const parseResults = await pool.parseMany(
-      deferredFiles,
-      (current, total) => {
-        debug("parseDeferredWithPool: progress %d/%d", current, total)
+    // Use composable pipeline: parseFiles → applyNodes → resolveLinks → applyLinks
+    const result = await runDeferredPipeline(db, deferredFiles, pool)
+
+    // Convert ResolvedLink[] back to PendingLink[] for compatibility
+    const pendingLinks: PendingLink[] = result.pendingLinks.map((link) => ({
+      nodeId: link.source_id,
+      link: {
+        target: link.target_name,
+        section: link.section ?? undefined,
+        blockId: link.block_id ?? undefined,
+        alias: link.alias ?? undefined,
+        embedded: link.embedded,
       },
-      shouldAbort,
+      relationship: link.relationship ?? undefined,
+    }))
+
+    debug(
+      "parseDeferredWithPool: completed, %d parsed, %d links",
+      result.parsed,
+      pendingLinks.length,
     )
 
-    // Now apply results to database (must be on main thread)
-    return applyParseResults(db, parseResults, deferredFiles)
+    return { parsed: result.parsed, pendingLinks }
   } finally {
     await pool.shutdown()
   }
-}
-
-/**
- * Apply parse results to database. Called after worker pool parsing.
- */
-function applyParseResults(
-  db: Database,
-  parseResults: ParseResult[],
-  deferredFiles: DeferredFile[],
-): { parsed: number; pendingLinks: PendingLink[] } {
-  const pendingLinks: PendingLink[] = []
-  let parsed = 0
-
-  // Build lookup map for stub info
-  const stubInfoMap = new Map<
-    string,
-    { parent_id: string | null; parent_idx: number }
-  >()
-  for (const { nodeId } of deferredFiles) {
-    const stubRow = db
-      .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
-      .get(nodeId) as { parent_id: string | null; parent_idx: number } | null
-    if (stubRow) {
-      stubInfoMap.set(nodeId, stubRow)
-    }
-  }
-
-  db.run("BEGIN IMMEDIATE")
-
-  try {
-    const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?")
-    const insertStmt = db.prepare(`
-      INSERT INTO nodes (
-        id, type, parent_id, link_to, link_alias, parent_idx,
-        fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
-        task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
-        content, content_hash, data,
-        created_at, updated_at, version
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-
-    const now = Date.now()
-
-    for (const result of parseResults) {
-      if (result.error) {
-        debug(
-          "parseDeferredWithPool: error for %s: %s",
-          result.fsPath,
-          result.error,
-        )
-        continue
-      }
-
-      const stubInfo = stubInfoMap.get(result.nodeId)
-      if (!stubInfo) {
-        debug(
-          "parseDeferredWithPool: stub %s not found, skipping",
-          result.nodeId,
-        )
-        continue
-      }
-
-      // Delete the stub node
-      deleteStmt.run(result.nodeId)
-
-      // Process nodes from worker result
-      const nodes = result.nodes as Array<Record<string, unknown>>
-      const fileNode = nodes[0]
-      if (fileNode?.type === "file") {
-        fileNode.id = result.nodeId // Keep original ID
-        fileNode.parent_id = stubInfo.parent_id
-        fileNode.parent_idx = stubInfo.parent_idx
-      }
-
-      // Insert all parsed nodes
-      for (const node of nodes) {
-        const data = (node.data as Record<string, unknown>) ?? {}
-        insertStmt.run(
-          node.id as string,
-          node.type as string,
-          (node.parent_id as string) ?? null,
-          (node.link_to as string) ?? null,
-          (node.link_alias as string) ?? null,
-          (node.parent_idx as number) ?? 0,
-          (node.fs_path as string) ?? null,
-          (node.fs_ino as number) ?? null,
-          (node.fs_mtime as number) ?? null,
-          (node.name as string) ?? null,
-          (node.title as string) ?? null,
-          (node.md_pos as number) ?? null,
-          (node.md_line as number) ?? null,
-          (node.md_slug as string) ?? null,
-          (node.task_status as string) ?? null,
-          (node.task_mark as string) ?? null,
-          (node.assigned_to as string) ?? null,
-          (node.due_date as string) ?? null,
-          (node.scheduled_date as string) ?? null,
-          (node.priority as number) ?? null,
-          (node.content as string) ?? null,
-          (node.content_hash as string) ?? null,
-          JSON.stringify(data),
-          now,
-          now,
-          (node.version as string) || "",
-        )
-      }
-
-      // Collect wikilinks for later resolution
-      const wikilinks = result.wikilinks as PendingLink[]
-      for (const wikilink of wikilinks) {
-        pendingLinks.push(wikilink)
-      }
-
-      parsed++
-    }
-
-    db.run("COMMIT")
-  } catch (error) {
-    db.run("ROLLBACK")
-    throw error
-  }
-
-  debug(
-    "parseDeferredWithPool: completed, %d parsed, %d links",
-    parsed,
-    pendingLinks.length,
-  )
-  return { parsed, pendingLinks }
 }
 
 /**
