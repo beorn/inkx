@@ -35,6 +35,7 @@ import {
   resolveLinks,
   resolveLinksBatch,
 } from "../db-links.ts"
+import { createLinkResolver, type LinkResolver } from "../link-resolver.ts"
 import { hashContent, parseMarkdownWithLinks } from "../index.ts"
 import { scanDirectory } from "./watcher.ts"
 import type { PatternMatcher } from "../ignore.ts"
@@ -227,12 +228,14 @@ export function reconcileDirectoryRecursive(
 }
 
 /**
- * Context for tracking new files during reconciliation.
- * Used to batch link resolution at the end.
+ * Context for tracking state during reconciliation.
+ * Enables efficient link resolution via lookup maps.
  */
 interface ReconcileContext {
   /** Newly created file nodes: {id, name} */
   newFiles: Array<{ id: string; name: string }>
+  /** Pre-built lookup map for efficient link resolution */
+  resolver: LinkResolver
 }
 
 /**
@@ -248,8 +251,12 @@ export function applyReconcileOps(
   debug("applying %d reconcile ops", ops.length)
   const start = Date.now()
 
+  // Build lookup map once for efficient link resolution (avoids O(n²) DB queries)
+  const resolver = createLinkResolver(db)
+  debug("resolver ready with %d files", resolver.size)
+
   // Context for collecting new files for batch link resolution
-  const ctx: ReconcileContext = { newFiles: [] }
+  const ctx: ReconcileContext = { newFiles: [], resolver }
 
   for (const op of ops) {
     debug("applying op: %s %s", op.type, op.path)
@@ -258,7 +265,7 @@ export function applyReconcileOps(
         handleCreate(db, op, repoRoot, emitter, fs, ctx)
         break
       case "update":
-        handleUpdate(db, op, repoRoot, emitter, fs)
+        handleUpdate(db, op, repoRoot, emitter, fs, ctx)
         break
       case "rename":
         handleRename(emitter, op)
@@ -396,26 +403,41 @@ function handleCreate(
       )
     }
 
-    // Store wikilinks and try to resolve them
+    // Store wikilinks - use resolver for efficient lookup (avoids O(n²) DB queries)
     for (const { nodeId, link, relationship } of wikilinks) {
-      // Try to find target node by name
-      const targetFileNode = findNodeByName(db, link.target)
-      // If there's a section reference, try to find the specific child node
-      let targetNode = targetFileNode
-      if (targetFileNode && link.section) {
-        const childNode = findChildByContent(
-          db,
-          targetFileNode.id,
-          link.section,
-        )
-        if (childNode) {
-          targetNode = childNode
+      // Use pre-built lookup map instead of per-link DB query
+      let targetId: string | null = null
+      if (ctx?.resolver) {
+        targetId = ctx.resolver.resolveTarget(link.target)
+        // If there's a section reference, resolve that too
+        if (targetId && link.section) {
+          const sectionId = ctx.resolver.resolveSection(targetId, link.section)
+          if (sectionId) {
+            targetId = sectionId
+          }
+        }
+      } else {
+        // Fallback for single-file creation (no ctx) - use DB queries
+        const targetFileNode = findNodeByName(db, link.target)
+        if (targetFileNode) {
+          targetId = targetFileNode.id
+          if (link.section) {
+            const childNode = findChildByContent(
+              db,
+              targetFileNode.id,
+              link.section,
+            )
+            if (childNode) {
+              targetId = childNode.id
+            }
+          }
         }
       }
+
       addLink(db, {
         source_id: nodeId,
         target_name: link.target,
-        target_id: targetNode?.id ?? null,
+        target_id: targetId,
         section: link.section ?? null,
         block_id: link.blockId ?? null,
         alias: link.alias ?? null,
@@ -424,11 +446,12 @@ function handleCreate(
       })
     }
 
-    // Collect new file for batch link resolution (deferred to end of batch)
-    // This avoids O(n²) behavior when creating many files
+    // Collect new file for batch link resolution and update resolver map
     const fileName = basename(op.path).replace(/\.md$/, "")
     if (fileNode && ctx) {
       ctx.newFiles.push({ id: fileNode.id, name: fileName })
+      // Update resolver so subsequent files can link to this one
+      ctx.resolver.addFile(fileNode.id, fileName)
     } else if (fileNode) {
       // Fallback for single-file creation (no ctx) - resolve immediately
       resolveLinks(db, fileNode.id, fileName)
@@ -461,6 +484,7 @@ function handleUpdate(
   _repoRoot: string,
   emitter: Emitter,
   fs: FileSystemOps = realFs,
+  ctx?: ReconcileContext,
 ): void {
   if (!op.nodeId) {
     return
@@ -571,20 +595,35 @@ function handleUpdate(
   for (const { nodeId, link, relationship } of wikilinks) {
     // Map new node ID to existing ID (if the node existed before)
     const mappedSourceId = idMap.get(nodeId) ?? nodeId
-    // Try to find target node by name
-    const fileNode = findNodeByName(db, link.target)
-    // If there's a section reference, try to find the specific child node
-    let targetNode = fileNode
-    if (fileNode && link.section) {
-      const childNode = findChildByContent(db, fileNode.id, link.section)
-      if (childNode) {
-        targetNode = childNode
+
+    // Use pre-built lookup map instead of per-link DB query
+    let targetId: string | null = null
+    if (ctx?.resolver) {
+      targetId = ctx.resolver.resolveTarget(link.target)
+      if (targetId && link.section) {
+        const sectionId = ctx.resolver.resolveSection(targetId, link.section)
+        if (sectionId) {
+          targetId = sectionId
+        }
+      }
+    } else {
+      // Fallback - use DB queries
+      const fileNode = findNodeByName(db, link.target)
+      if (fileNode) {
+        targetId = fileNode.id
+        if (link.section) {
+          const childNode = findChildByContent(db, fileNode.id, link.section)
+          if (childNode) {
+            targetId = childNode.id
+          }
+        }
       }
     }
+
     addLink(db, {
       source_id: mappedSourceId,
       target_name: link.target,
-      target_id: targetNode?.id ?? null,
+      target_id: targetId,
       section: link.section ?? null,
       block_id: link.blockId ?? null,
       alias: link.alias ?? null,
