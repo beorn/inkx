@@ -41,7 +41,7 @@ import { getEventsPath, setKmDir } from "./emit.ts"
 import { evaluateAllRules, setBulkMode } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { DiskStore, MemoryStore, type NodeStore } from "./store.ts"
-import { getIgnorePatterns, shouldIgnore } from "./watch/ignore.ts"
+import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 
 const debug = createDebug("km:storage:repo-loader")
 

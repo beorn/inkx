@@ -27,7 +27,7 @@ import { setKmDir, emitNodeMoved } from "./emit.ts"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA, MIGRATIONS } from "./schema.ts"
 import { addLink, setDb } from "./db.ts"
-import { getIgnorePatterns, shouldIgnore } from "./watch/ignore.ts"
+import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import {
   findChildByContent,
   findFileByName,

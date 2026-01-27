@@ -10,7 +10,7 @@
 
 import createDebug from "debug"
 import { EventEmitter } from "events"
-import { getIgnorePatterns } from "./ignore.ts"
+import { getIgnorePatterns } from "../ignore.ts"
 import type {
   WorkerCommand,
   WorkerMessage,

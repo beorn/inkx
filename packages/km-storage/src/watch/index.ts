@@ -53,7 +53,7 @@ export {
   matchesPattern,
   shouldIgnore,
   isHiddenFile,
-} from "./ignore.ts"
+} from "../ignore.ts"
 
 // Write queue
 export { WriteQueue, shouldApplyToFs } from "./writequeue.ts"

@@ -23,7 +23,7 @@ import {
   getIgnorePatterns,
   shouldIgnore,
   isHiddenFile,
-} from "./ignore.ts"
+} from "../ignore.ts"
 
 export interface WatcherConfig {
   debounceMs: number

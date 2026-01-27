@@ -18,7 +18,7 @@ import {
   readKmignore,
   readObsidianIgnore,
   getIgnorePatterns,
-} from "../../src/watch/ignore.ts"
+} from "../../src/ignore.ts"
 import { withTestEnvSync } from "@km/storage"
 
 describe("Ignore Patterns", () => {

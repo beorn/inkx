@@ -21,6 +21,7 @@ import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { SyncManager } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
+import { loadRepo } from "../load-repo.ts"
 
 /**
  * Search for .km/ in ancestors of the given directory
@@ -203,8 +204,7 @@ export const initCommand = new Command("init")
     // Sync by default (unless --no-sync)
     if (options.sync !== false) {
       // Initialize repo to set up database
-      const { createRepo, runGenerator } = await import("@km/storage")
-      using repo = runGenerator(createRepo(targetDir, { loadFiles: true }))
+      using repo = await loadRepo(targetDir)
 
       // Create SyncManager with the database from repo
       const manager = new SyncManager({

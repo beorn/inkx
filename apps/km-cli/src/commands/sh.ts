@@ -18,9 +18,8 @@ import { homedir } from "os"
 import { join } from "path"
 import type { Database } from "bun:sqlite"
 import { getRootPath } from "../program.ts"
+import { loadRepo } from "../load-repo.ts"
 import {
-  createRepo,
-  runGenerator,
   getDb,
   getChildren,
   resolveNode,
@@ -311,7 +310,7 @@ export const shCommand = new Command("sh")
     const resolved = resolvePathArg(root, getRootPath())
 
     // Create repo domain object (auto-closes via `using`)
-    using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(resolved.repoRoot)
 
     // Get database instance (TODO: use repo.rawQuery() instead)
     const db = getDb()
