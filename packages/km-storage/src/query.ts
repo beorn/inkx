@@ -7,7 +7,6 @@
 
 import createDebug from "debug"
 import type { Database } from "bun:sqlite"
-import { getDb } from "./db.ts"
 import { rowToNode } from "./db-queries/index.ts"
 
 const debug = createDebug("km:storage:query")

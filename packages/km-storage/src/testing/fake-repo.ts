@@ -166,9 +166,9 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       return fakeEmitter
     },
 
-    async sync() {
+    sync() {
       // FakeRepo is in-memory, sync is a no-op
-      return { fromFiles: 0, fromData: 0, conflicts: [] }
+      return Promise.resolve({ fromFiles: 0, fromData: 0, conflicts: [] })
     },
 
     // --- Query operations ---

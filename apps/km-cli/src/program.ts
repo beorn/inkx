@@ -10,9 +10,17 @@ import "./debug-log.ts"
 
 import { existsSync, statSync } from "fs"
 import { dirname, join, resolve } from "path"
-import { Command } from "@commander-js/extra-typings"
+import { Command, type OptionValues } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { setLogLevel, type LogLevel } from "@km/core"
+
+/** Global options available on the root program */
+interface GlobalOptions extends OptionValues {
+  repo?: string
+  silent?: boolean
+  verbose?: number
+  logLevel?: string
+}
 
 // @km/storage is imported dynamically in preAction hook to allow
 // view command to show "Loading..." before heavy module loading
@@ -106,16 +114,17 @@ export function configureProgram(): Command {
     })
 
   // Pre-action hook: runs before any command
-  program.hook("preAction", async (thisCommand, actionCommand) => {
+  program.hook("preAction", (thisCommand, actionCommand) => {
     // Find options from the command chain (global options may be on parent)
-    let cmd: Command | null = actionCommand
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let cmd: any = actionCommand
     let rootOption: string | undefined
     let silentOption: boolean | undefined
     let verboseOption: number | undefined
     let logLevelOption: string | undefined
 
     while (cmd) {
-      const opts = cmd.opts()
+      const opts = cmd.opts() as GlobalOptions
       rootOption ??= opts.repo
       silentOption ??= opts.silent
       verboseOption ??= opts.verbose
@@ -232,7 +241,7 @@ export function configureProgram(): Command {
     // If there are extra args, they're unknown commands
     const unknownArgs = command.args
     if (unknownArgs.length > 0) {
-      const unknown = unknownArgs[0]
+      const unknown = String(unknownArgs[0])
       console.error(chalk.red(`error: unknown command '${unknown}'`))
 
       // Try to suggest similar commands

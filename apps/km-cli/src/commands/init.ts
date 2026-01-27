@@ -128,7 +128,8 @@ export const initCommand = new Command("init")
   .option("--no-sync", "Skip initial sync")
   .action(async (pathArg, options, command) => {
     // Priority: --repo from parent > path arg > KM_ROOT env > cwd
-    const globalRoot = command.parent?.opts()?.repo || process.env.KM_ROOT
+    const parentOpts = command.parent?.opts() as { repo?: string } | undefined
+    const globalRoot = parentOpts?.repo || process.env.KM_ROOT
     let targetDir: string
 
     if (pathArg) {
@@ -198,7 +199,7 @@ export const initCommand = new Command("init")
 
     // Add GTD structure by default (unless --no-gtd)
     if (options.gtd !== false) {
-      createGtdStructure(targetDir, options.force)
+      createGtdStructure(targetDir, options.force ?? false)
     }
 
     // Sync by default (unless --no-sync)

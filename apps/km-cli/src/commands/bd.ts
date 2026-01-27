@@ -56,35 +56,6 @@ interface ListOptions {
   json?: boolean
 }
 
-interface ShowOptions {
-  json?: boolean
-}
-
-interface CreateOptions {
-  type?: string
-  priority?: number
-  assignee?: string
-  label?: string[]
-  id?: string
-  parent?: string
-  json?: boolean
-}
-
-interface UpdateOptions {
-  status?: string
-  priority?: number
-  assignee?: string
-  title?: string
-}
-
-interface CloseOptions {
-  reason?: string
-}
-
-interface DropOptions {
-  reason?: string
-}
-
 export const bdCommand = new Command("bd")
   .description(
     `Issue tracking (beads-compatible)

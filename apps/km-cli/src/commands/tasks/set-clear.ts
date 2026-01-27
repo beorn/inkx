@@ -19,7 +19,7 @@ import { loadRepo } from "../../load-repo.ts"
  * km task set <id> p:1                 # Set priority
  * km task set <id> status:blocked      # Set blocked
  */
-export function createSetCommand(): Command {
+export function createSetCommand() {
   return new Command("set")
     .description("Set task field values")
     .argument("<id>", "Task ID or prefix")
@@ -107,7 +107,7 @@ export function createSetCommand(): Command {
  * km task clear <id> due        # Clear due date
  * km task clear <id> priority   # Clear priority
  */
-export function createClearCommand(): Command {
+export function createClearCommand() {
   return new Command("clear")
     .description("Clear task field values")
     .argument("<id>", "Task ID or prefix")

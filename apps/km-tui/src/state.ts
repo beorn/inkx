@@ -12,7 +12,6 @@ import type {
   TUIBoardState,
   ColumnState,
   CardState,
-  BoardAction,
   ColumnRules,
 } from "./types.ts"
 import type { Repo } from "./repo-context.tsx"
@@ -599,19 +598,6 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
 export function getCurrentCard(state: TUIBoardState): CardState | null {
   const col = state.columns[state.colIndex]
   return col?.cards[state.cardIndex] ?? null
-}
-
-/**
- * Find the index of the first non-virtual card in a column.
- * Virtual body cards are at the start; this returns the first real card.
- * Returns 0 if no virtual cards, or cards.length if all are virtual.
- */
-function getFirstRealCardIndex(col: ColumnState | null): number {
-  if (!col) return 0
-  for (let i = 0; i < col.cards.length; i++) {
-    if (!col.cards[i]?.isVirtual) return i
-  }
-  return col.cards.length // All virtual (shouldn't happen in practice)
 }
 
 /**

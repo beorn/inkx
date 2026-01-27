@@ -8,7 +8,7 @@ import chalk from "chalk"
 import { resolvePathArg, type Repo } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
-import type { KNode, TaskStatus } from "@km/core"
+import type { KNode } from "@km/core"
 import { getRootPath } from "../../program.ts"
 import {
   getNodeDisplayName,

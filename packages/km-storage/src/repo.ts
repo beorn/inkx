@@ -785,7 +785,7 @@ export function* createRepo(
     // Sync and lifecycle
     // =========================================================================
 
-    async sync() {
+    sync() {
       ensureOpen()
       if (!fileTree) {
         throw new Error("Cannot sync: repo has no files (bare repo)")
@@ -794,11 +794,11 @@ export function* createRepo(
       // TODO: Implement actual sync logic using reconcileDirectory
       // For now, return empty result
       debug("sync() called - not yet implemented")
-      return {
+      return Promise.resolve({
         fromFiles: 0,
         fromData: 0,
         conflicts: [],
-      }
+      })
     },
 
     watch(watchOptions = {}) {
@@ -1216,8 +1216,8 @@ export function createBareRepo(
     // Sync and lifecycle
     // =========================================================================
 
-    async sync() {
-      throw new Error("Cannot sync: bare repo has no files")
+    sync() {
+      return Promise.reject(new Error("Cannot sync: bare repo has no files"))
     },
 
     watch() {

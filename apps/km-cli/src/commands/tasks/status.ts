@@ -15,7 +15,7 @@ import { getRootPath } from "../../program.ts"
 /**
  * Create the status subcommand
  */
-export function createStatusCommand(): Command {
+export function createStatusCommand() {
   return new Command("status")
     .description("View or set task status")
     .argument("<id>", "Task ID or prefix")

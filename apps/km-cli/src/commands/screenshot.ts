@@ -37,7 +37,9 @@ export const screenshotCommand = new Command("screenshot")
 
     const width = parseInt(options.width, 10)
     const height = parseInt(options.height, 10)
-    const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards"
+    const viewMode: ViewMode = VIEW_MODES.includes(options.as)
+      ? (options.as as ViewMode)
+      : "cards"
     const format: OutputFormat = options.format as OutputFormat
 
     // Import modules
