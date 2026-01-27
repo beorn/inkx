@@ -4,9 +4,13 @@ argument-hint: [groom | status | ready | --dry-run]
 allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion
 ---
 
-# Project Management
+# Beads Review
 
-Manage the project backlog using beads issue tracking. Activated by requests about:
+Review and manage the beads backlog. Part of the `/review-*` family.
+
+**Related**: `/bd` (daily operations), `/review-code`, `/review-tests`
+
+Activated by requests about:
 
 - Backlog grooming, triage, cleanup
 - Task/issue management
@@ -243,4 +247,4 @@ Before presenting plan, self-check:
 - Adding deps for org-chart aesthetics
 - Spending time on P4 items when P1s exist
 
-**Keywords**: pm, groom, backlog, triage, cleanup, organize, stale, duplicates, priorities, hygiene, beads, issues, tasks, work, ready, sprint
+**Keywords**: review-beads, pm, groom, backlog, triage, cleanup, organize, stale, duplicates, priorities, hygiene, beads, issues, tasks, work, ready, sprint

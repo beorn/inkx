@@ -19,8 +19,17 @@ import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 import { getIgnorePatterns } from "../ignore.ts"
 import type { Event, KNode } from "@km/core"
-import type { ProgressCallback } from "@beorn/inkx-ui"
 import { runWithKmDir } from "../emit.ts"
+
+/** Progress info for sync operations */
+export interface SyncProgress {
+  phase: string
+  current: number
+  total: number
+}
+
+/** Callback for sync progress reporting */
+export type SyncProgressCallback = (info: SyncProgress) => void
 import {
   getAllNodes,
   getNode,
@@ -575,7 +584,9 @@ export class SyncManager extends EventEmitter {
    *
    * @param onProgress - Optional callback for progress reporting
    */
-  async syncFromFs(onProgress?: ProgressCallback): Promise<SyncFromFsResult> {
+  async syncFromFs(
+    onProgress?: SyncProgressCallback,
+  ): Promise<SyncFromFsResult> {
     debug("syncFromFs: scanning %s", this.config.repoPath)
     const start = Date.now()
 
