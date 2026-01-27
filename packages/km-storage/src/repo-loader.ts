@@ -37,7 +37,7 @@ import { applyEventWithDb } from "./db-events.ts"
 import { findChildByContent } from "./db-queries/index.ts"
 import { rowToNode } from "./db-queries/utils.ts"
 import type { KNode } from "@km/core"
-import { getEventsPath, setKmDir } from "./emit.ts"
+import { setKmDir } from "./emit.ts"
 import { evaluateAllRules, createRuleContext } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { DiskStore, MemoryStore, type NodeStore } from "./store.ts"
@@ -163,8 +163,14 @@ export function* loadRepo(
   if (options?.db) {
     // Use provided database (ADR-002: avoid singletons)
     db = options.db
+    // Still set kmDir for getEventsPath() in disk mode - will be removed in Phase 3
     if (kmDir) setKmDir(kmDir)
   } else if (mode === "disk" && kmDir) {
+    // DEPRECATED: This path uses singletons. Pass options.db instead.
+    debug(
+      "DEPRECATED: loadRepo() called without options.db in disk mode. " +
+        "Use createRepo() or pass options.db to avoid singletons.",
+    )
     setKmDir(kmDir)
     db = getDb()
     if (options?.force) {
@@ -172,10 +178,19 @@ export function* loadRepo(
     }
   } else {
     // Memory mode - use context db if available (enables test isolation)
+    // DEPRECATED: This path uses singletons. Pass options.db instead.
     const contextDb = tryGetContextDb()
     if (contextDb) {
+      debug(
+        "DEPRECATED: loadRepo() using context db from tryGetContextDb(). " +
+          "Pass options.db explicitly instead.",
+      )
       db = contextDb
     } else {
+      debug(
+        "DEPRECATED: loadRepo() creating new in-memory db without options.db. " +
+          "Use createRepo() or pass options.db to avoid singletons.",
+      )
       db = new Database(":memory:")
       db.exec(SCHEMA)
       setDb(db)
@@ -620,14 +635,15 @@ function generateId(
 
 function* discoverFromEvents(
   db: Database,
-  _kmDir: string,
+  kmDir: string,
   force: boolean,
   _errors: LoadError[],
 ): Generator<StepYield, EventSource, unknown> {
   // Discover - read and count events
   yield "Reading events"
 
-  const eventsPath = getEventsPath()
+  // Use passed kmDir instead of getEventsPath() singleton (ADR-002)
+  const eventsPath = join(kmDir, "events.jsonl")
   if (!existsSync(eventsPath)) {
     debug("no events file at %s", eventsPath)
     yield { current: 0, total: 0 }

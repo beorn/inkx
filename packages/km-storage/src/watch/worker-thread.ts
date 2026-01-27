@@ -88,8 +88,8 @@ let currentState: WatcherState = "stopped"
 let watchedPathCount = 0
 let lastSyncTime: number | undefined
 let lastError: string | undefined
-// Timer ID type - Bun returns number, Node returns Timeout object
-let statusInterval: number | undefined
+// Timer ID type - setInterval returns Timer in Node/Bun
+let statusInterval: ReturnType<typeof setInterval> | undefined
 
 /**
  * Check if path should be ignored based on patterns

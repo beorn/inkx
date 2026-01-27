@@ -93,8 +93,8 @@ export class SyncManager extends EventEmitter {
 
   // Heartbeat reconciliation
   private heartbeatConfig: HeartbeatConfig
-  // Timer ID type - Bun returns number, Node returns Timeout object
-  private heartbeatTimer: number | undefined
+  // Timer ID type - setInterval returns Timer in Node/Bun
+  private heartbeatTimer: ReturnType<typeof setInterval> | undefined
   private lastActivityTime: number = Date.now()
   private heartbeatDrift: number = 0 // Changes found during heartbeat
 

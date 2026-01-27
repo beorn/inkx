@@ -5,11 +5,13 @@
  * real SQLite or file parsing. Uses canned data.
  */
 
-import type { KNode, TaskStatus } from "@km/core"
+import type { KNode, TaskStatus, Event } from "@km/core"
 import type { Repo, RepoStats } from "../repo.ts"
 import type { LoadError } from "../repo-loader.ts"
 import type { Link } from "../db.ts"
 import type { StepYield } from "../repo-loader.ts"
+import type { Emitter, EventHub, FsSync } from "../emitter.ts"
+import { ulid } from "ulid"
 
 /**
  * Options for createFakeRepo
@@ -85,6 +87,34 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   // Initialize with provided data
   reset()
 
+  // Create a no-op emitter for FakeRepo
+  let fakeEventHub: EventHub | null = null
+  let fakeFsSync: FsSync | null = null
+  const fakeEmitter: Emitter = {
+    kmDir: "/fake/.km",
+    eventsPath: "/fake/.km/events.jsonl",
+    emit(event) {
+      // No-op emit for fake repo - just return a full event
+      return { id: ulid(), ts: Date.now(), ...event } as Event
+    },
+    setEventHub(hub) {
+      fakeEventHub = hub
+    },
+    setFsSync(sync) {
+      fakeFsSync = sync
+    },
+    getEventHub() {
+      return fakeEventHub
+    },
+    getFsSync() {
+      return fakeFsSync
+    },
+    close() {
+      fakeEventHub = null
+      fakeFsSync = null
+    },
+  }
+
   const repo: FakeRepo = {
     get path() {
       return path
@@ -129,6 +159,11 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       // FakeRepo returns minimal config
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return {} as any
+    },
+
+    get emitter(): Emitter {
+      // FakeRepo returns a no-op emitter
+      return fakeEmitter
     },
 
     async sync() {
