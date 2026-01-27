@@ -46,31 +46,52 @@ State Updates (reducers + storage)
 
 ## Core Types
 
-### Current Implementation
+### Actual Implementation
 
-The actual `CommandContext` in `@km/commands` (see [types.ts](../packages/km-commands/src/types.ts)):
+The actual `CommandContext` in `@km/commands` (see [packages/km-commands/src/types.ts](../packages/km-commands/src/types.ts)):
 
 ```typescript
 interface CommandContext {
+  // Current node (passed by caller)
   currentNode: TNode | null
   currentNodeId: string | null
+
+  // Selection
   selectedNodes: string[]
-  cursor: TPath
-  boardState: BoardState
+
+  // View
   viewMode: ViewMode
-  siblingCount: number
+
+  // Position (passed by caller, not derived from tree)
   siblingIndex: number
+  siblingCount: number
   columnIndex: number
   columnCount: number
+
+  // State flags (for commands that need them)
+  moveMode: boolean
+  foldedNodes: Set<string>
+}
+
+export interface CommandDef {
+  id: string
+  name: string
+  description: string
+  category: CommandCategory
+  shortcuts?: string[]
+  modes?: CommandMode[]
+  execute: (ctx: CommandContext) => CommandAction | CommandAction[] | null
 }
 ```
 
+The command returns `CommandAction` which is dispatched by the caller (TUI handler).
+
 ### Design Target (Future)
 
-The full context interface planned for when commands need storage access and dispatchers:
+The planned expanded context interface (not yet implemented) would include:
 
 ```typescript
-// Context passed to commands and when predicates
+// Future: when commands need storage access and dispatchers
 interface Ctx {
   // === LAYER STATE ===
   layer: "board" | "pane" | "dialog"
@@ -113,20 +134,22 @@ interface Ctx {
   buildTree: (rootId: string | null) => TNode[]
   clearSelection: () => void
 }
-```
 
-// Command: function that executes with context
+// Future: function that executes with expanded context
 type Cmd = (ctx: Ctx) => void;
 
-// When predicate: TypeScript function for conditional bindings
+// Future: when predicate with expanded context
 type When = (ctx: Ctx) => boolean;
 
-// Binding: maps keys to commands with optional conditions
+// Future: binding with expanded context
 interface Binding {
-keys: string[];
-cmd: Cmd;
-when?: When;
+  keys: string[];
+  cmd: Cmd;
+  when?: When;
 }
+```
+
+**Note**: The current implementation is simpler and more testable. The expanded interface is aspirational for future features requiring storage access and multi-window sync.
 
 ````
 

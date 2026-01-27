@@ -374,6 +374,57 @@ store.add(kmEvents.on("sync-error", handler2))
 store.dispose() // cleans up all
 ```
 
+### DisposableStore Pattern
+
+`DisposableStore` manages multiple `Disposable` subscriptions with a single cleanup call:
+
+```typescript
+// packages/km-core/src/events.ts
+export class DisposableStore implements Disposable {
+  private disposables: Disposable[] = []
+
+  add<T extends Disposable>(d: T): T {
+    this.disposables.push(d)
+    return d
+  }
+
+  dispose(): void {
+    this.disposables.forEach((d) => d[Symbol.dispose]())
+    this.disposables = []
+  }
+
+  [Symbol.dispose](): void {
+    this.dispose()
+  }
+}
+```
+
+**Usage pattern:**
+
+```typescript
+// Manual cleanup
+const store = new DisposableStore()
+store.add(kmEvents.on("parse-error", handler1))
+store.add(kmEvents.on("sync-error", handler2))
+// ... use store ...
+store.dispose()
+
+// Automatic cleanup with `using` keyword (TypeScript 5.2+)
+async function withAutoCleanup() {
+  using store = new DisposableStore()
+  store.add(kmEvents.on("parse-error", handler1))
+  store.add(kmEvents.on("sync-error", handler2))
+  // All cleaned up automatically when scope exits
+}
+```
+
+**Benefits:**
+
+- Single disposal point for related subscriptions
+- Prevents memory leaks from forgotten unsubscriptions
+- Works seamlessly with TypeScript 5.2+ `using` declarations
+- Commonly used in component lifecycles and service shutdown
+
 ### Adding New Events
 
 1. **Define in KmEvents interface**:

@@ -105,6 +105,7 @@ interface KNode {
   // Filesystem mapping (for folder/file nodes)
   fs_path?: string // Absolute path to .md file or directory
   fs_ino?: number // Inode number for rename detection
+  fs_mtime?: number // File modification time at last sync (milliseconds)
 
   // Identity
   name?: string // Slug/identifier (filename without .md, or heading slug)
@@ -154,6 +155,7 @@ interface KNode {
 | `link_alias`     | string         | Display alias from `\|alias` syntax           |
 | `fs_path`        | string         | Absolute filesystem path                      |
 | `fs_ino`         | number         | Filesystem inode (for rename detection)       |
+| `fs_mtime`       | number         | File modification time at last sync (ms)      |
 | `name`           | string         | Identifier slug (filename or heading slug)    |
 | `md_pos`         | number         | Byte offset in markdown file                  |
 | `md_line`        | number         | Line number (0-indexed)                       |
@@ -211,8 +213,9 @@ type NodeType =
   | "html"
 
   // Special (persisted mode)
-  | "board"
-  | "agent"
+  | "board" // Board section/column
+  | "agent" // Persistent agent
+  | "embed" // Embedded reference (![[target]]) linking to another node
 ````
 
 ### Task Status
