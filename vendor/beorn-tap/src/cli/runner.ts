@@ -12,7 +12,7 @@ import { createConsumer } from "../consumer"
 import { mergeStreams } from "../merge"
 import { runBunTap } from "../producers/bun"
 import { spawn } from "bun"
-import { readFileSync } from "node:fs"
+import { readFileSync, existsSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -31,10 +31,16 @@ async function getVersion(): Promise<string> {
 async function findFiles(patterns: string[]): Promise<string[]> {
 	const files: string[] = []
 	for (const pattern of patterns) {
-		const glob = new Glob(pattern)
-		for await (const file of glob.scan({ cwd: ".", onlyFiles: true })) {
-			if (!file.includes("node_modules")) {
-				files.push(file)
+		// Check if pattern is an explicit file path
+		if (existsSync(pattern)) {
+			files.push(pattern)
+		} else {
+			// Treat as glob pattern
+			const glob = new Glob(pattern)
+			for await (const file of glob.scan({ cwd: ".", onlyFiles: true })) {
+				if (!file.includes("node_modules")) {
+					files.push(file)
+				}
 			}
 		}
 	}
