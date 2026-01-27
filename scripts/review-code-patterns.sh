@@ -83,4 +83,27 @@ grep -rn "getDb()\|emit()\|getEventHub()" packages apps --include="*.ts" \
   --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/\|@deprecated" || true
 echo ""
 
+echo "=== PATTERN 15: parseMarkdownWithLinks usage ==="
+# Multiple files using the same parser suggests potential shared wrapper needed
+grep -rln "parseMarkdownWithLinks" packages apps --include="*.ts" \
+  --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/\|index.ts" || true
+echo ""
+
+echo "=== PATTERN 16: Inline map building from DB ==="
+# Building lookup maps inline suggests extractable pattern
+grep -rn "new Map<.*string" packages apps --include="*.ts" \
+  --exclude="*.test.ts" -A3 2>/dev/null | grep -E "\.query\(|\.all\(\)" | head -20 || true
+echo ""
+
+echo "=== PATTERN 17: Duplicate DB queries ==="
+# Same SQL pattern in multiple files suggests shared query needed
+for query in "SELECT.*FROM nodes WHERE type = 'file'" "findNodeByName\|findFileByName" "findChildByContent"; do
+  count=$(grep -rln "$query" packages apps --include="*.ts" --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/" | wc -l)
+  if [ "$count" -gt 1 ]; then
+    echo "Query pattern '$query' appears in $count files:"
+    grep -rln "$query" packages apps --include="*.ts" --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/" | head -5
+  fi
+done || true
+echo ""
+
 echo "Pattern detection complete."
