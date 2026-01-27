@@ -14,45 +14,46 @@
  * See: docs/00-principles.md
  */
 
-import createDebug from "debug"
 import { Database } from "bun:sqlite"
+import createDebug from "debug"
 import { existsSync, mkdirSync, readFileSync } from "fs"
-import { join, dirname, basename } from "path"
+import { basename, dirname, join } from "path"
 
 import type { KNode, TaskStatus } from "@km/core"
-import type { DataStore, HasDatabase } from "./data-store.ts"
-import { createMemDataStore, createDBDataStore } from "./data-store.ts"
-import type { FileTree } from "./file-tree.ts"
-import { createDiskFileTree } from "./file-tree.ts"
 import type { Config } from "./config-object.ts"
 import { loadConfigObject } from "./config-object.ts"
-import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
+import type { DataStore, HasDatabase } from "./data-store.ts"
+import { createDBDataStore } from "./data-store.ts"
 import { createEmitter, type Emitter } from "./emitter.ts"
-import { SCHEMA } from "./schema.ts"
+import type { FileTree } from "./file-tree.ts"
+import { createDiskFileTree } from "./file-tree.ts"
 import {
   loadRepo,
-  type StepYield,
-  type LoadError,
   type DeferredFile,
+  type LoadError,
+  type StepYield,
 } from "./repo-loader.ts"
+import { SCHEMA } from "./schema.ts"
+import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 // Repo-compatible query functions (for proxy methods)
 import {
-  getSubtree as dbGetSubtree,
-  getAncestors as dbGetAncestors,
-  getChildCountsBatch as dbGetChildCountsBatch,
-} from "./db-queries/tree-traversal.ts"
-import {
-  getAllTasks as dbGetAllTasks,
-  getTasksByStatus as dbGetTasksByStatus,
-  getLinksTo as dbGetLinksTo,
-} from "./db-queries/task-queries.ts"
-import { resolveNode as dbResolveNode } from "./db-queries/smart-resolver.ts"
-import {
-  getOutgoingLinks as dbGetOutgoingLinks,
   getBacklinks as dbGetBacklinks,
+  getOutgoingLinks as dbGetOutgoingLinks,
   type Link,
 } from "./db-links.ts"
-import { parseQuery, executeQuery } from "./query.ts"
+import { resolveNode as dbResolveNode } from "./db-queries/smart-resolver.ts"
+import {
+  getAllTasks as dbGetAllTasks,
+  getLinksTo as dbGetLinksTo,
+  getTasksByStatus as dbGetTasksByStatus,
+} from "./db-queries/task-queries.ts"
+import {
+  getAncestors as dbGetAncestors,
+  getChildCountsBatch as dbGetChildCountsBatch,
+  getSubtree as dbGetSubtree,
+} from "./db-queries/tree-traversal.ts"
+import { executeQuery, parseQuery } from "./query.ts"
+import { type MutationContext, type RepoHooks } from "./repo-hooks.ts"
 
 const debug = createDebug("km:storage:repo")
 
@@ -299,43 +300,6 @@ export interface Repo extends Disposable {
    * @throws Error if called on bare repo
    */
   refresh(): Generator<StepYield, void, unknown>
-}
-
-// =============================================================================
-// Mutation Hooks
-// =============================================================================
-
-/** Type of mutation operation */
-export type MutationType = "add" | "update" | "delete" | "move"
-
-/** Context passed to mutation hooks */
-export interface MutationContext {
-  type: MutationType
-  nodeId: string
-  changes?: Partial<KNode>
-  newParentId?: string
-  position?: number
-  node?: Partial<KNode>
-}
-
-/** Result from beforeMutation hook */
-export interface BeforeMutationResult {
-  /** Cancel the mutation */
-  cancel?: boolean
-  /** Modified context to use instead */
-  context?: MutationContext
-}
-
-/** Lifecycle hooks for repo operations */
-export interface RepoHooks {
-  /** Called before a mutation. Can cancel or modify the mutation. */
-  beforeMutation?(ctx: MutationContext): BeforeMutationResult | void
-  /** Called after a successful mutation. */
-  afterMutation?(ctx: MutationContext): void
-  /** Called after a query operation. */
-  afterQuery?(operation: string, result: unknown): void
-  /** Called when repo is closed. */
-  onClose?(): void
 }
 
 // =============================================================================
@@ -1278,108 +1242,23 @@ export function createBareRepo(
 }
 
 // =============================================================================
-// Factory: createTestRepo
+// Re-export test factories from repo-test.ts
 // =============================================================================
 
-/**
- * Create a test Repo with in-memory DataStore and optional in-memory FileTree.
- *
- * This is the fastest way to create a Repo for testing.
- * No disk I/O, no persistence, no file watching.
- *
- * @example
- * ```typescript
- * using repo = createTestRepo()
- * repo.data.addNode(null, { type: "task", content: "Test" })
- * ```
- *
- * @returns Test Repo with in-memory storage
- */
-export function createTestRepo(): Repo {
-  debug("createTestRepo")
-
-  const data = createMemDataStore()
-  return createBareRepo(data)
-}
+export {
+  createTestEnvRepo,
+  createTestRepo,
+  type CreateTestEnvRepoOptions,
+  type TestEnvRepoResult,
+} from "./repo-test.ts"
 
 // =============================================================================
-// Factory: createTestEnvRepo
+// Re-export hook types from repo-hooks.ts
 // =============================================================================
 
-/** Options for createTestEnvRepo */
-export interface CreateTestEnvRepoOptions {
-  /** Database to use (creates in-memory if not provided) */
-  db?: Database
-  /** Path to repo directory (required for kmDir calculation) */
-  repoPath: string
-  /** Skip persisting events to events.jsonl (default: true for tests) */
-  skipPersist?: boolean
-}
-
-/** Result from createTestEnvRepo - all pieces for test access */
-export interface TestEnvRepoResult {
-  /** Full Repo domain object */
-  repo: Repo
-  /** Database instance (same as repo.database) */
-  db: Database
-  /** Emitter instance (same as repo.emitter) */
-  emitter: Emitter
-  /** DataStore instance (same as repo.data) */
-  data: DataStore & HasDatabase
-}
-
-/**
- * Create a test environment with Repo and all dependencies properly wired.
- *
- * This factory handles the chicken-and-egg problem where:
- * - DataStore needs emitter for mutations to emit events
- * - Repo creates emitter internally
- *
- * By creating emitter first and sharing it with both DataStore and Repo,
- * all components are properly connected.
- *
- * @example
- * ```typescript
- * const { repo, db, emitter, data } = createTestEnvRepo({
- *   repoPath: testDir,
- *   skipPersist: true,
- * })
- *
- * // Use emitter for sync wiring
- * emitter.setFsSync(syncManager)
- *
- * // Use data for mutations (events flow to emitter)
- * data.addNode(null, { type: "task", content: "Test" })
- *
- * // Cleanup
- * repo.close()
- * ```
- */
-export function createTestEnvRepo(
-  options: CreateTestEnvRepoOptions,
-): TestEnvRepoResult {
-  debug("createTestEnvRepo", { repoPath: options.repoPath })
-
-  const skipPersist = options.skipPersist ?? true
-  const kmDir = join(options.repoPath, ".km")
-
-  // Create or use provided database
-  const db = options.db ?? new Database(":memory:")
-  if (!options.db) {
-    db.exec(SCHEMA)
-  }
-
-  // Create emitter with db wired for event application
-  const emitter = createEmitter({ kmDir, db, skipPersist })
-
-  // Create DataStore with emitter for mutation events
-  const data = createDBDataStore(db, { emitter })
-
-  // Create Repo with shared emitter
-  const repo = createBareRepo(data, {
-    emitter,
-    configPath: options.repoPath,
-  })
-
-  return { repo, db, emitter, data }
-}
+export {
+  type BeforeMutationResult,
+  type MutationContext,
+  type MutationType,
+  type RepoHooks,
+} from "./repo-hooks.ts"
