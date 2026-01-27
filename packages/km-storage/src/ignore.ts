@@ -3,6 +3,9 @@
  *
  * Centralized ignore pattern handling for sync and watch operations.
  * Supports default patterns, .gitignore, .obsidianignore, and custom .kmignore files.
+ *
+ * Performance: Uses PatternMatcher class to pre-compile regex patterns once.
+ * This avoids O(n*m) regex compilation where n=files and m=patterns.
  */
 
 import { existsSync, readFileSync } from "fs"
@@ -231,15 +234,10 @@ export function getIgnorePatterns(repoPath: string): string[] {
 }
 
 /**
- * Simple glob pattern matcher
- * Supports *, **, and ? wildcards
- *
- * **  - matches any path segment(s), including none
- * *   - matches any characters except /
- * ?   - matches single character
+ * Convert a glob pattern to a compiled RegExp.
+ * Used internally by PatternMatcher for one-time compilation.
  */
-export function matchesPattern(path: string, pattern: string): boolean {
-  // Convert glob pattern to regex
+function patternToRegex(pattern: string): RegExp | null {
   // Use placeholders to avoid double-replacement issues
   const DOUBLE_STAR_SLASH = "\x00DSS\x00" // **/ at start
   const SLASH_DOUBLE_STAR_SLASH = "\x00SDSS\x00" // /**/
@@ -284,21 +282,100 @@ export function matchesPattern(path: string, pattern: string): boolean {
   regex = "^" + regex + "$"
 
   try {
-    return new RegExp(regex).test(path)
+    return new RegExp(regex)
   } catch {
-    return false
+    return null
   }
 }
 
 /**
- * Check if a path should be ignored
+ * Pre-compiled pattern matcher for efficient ignore checking.
+ *
+ * Compiles all glob patterns to RegExp once at construction time,
+ * avoiding O(n*m) regex compilation during file scanning.
+ *
+ * Usage:
+ *   const matcher = createIgnoreMatcher(repoPath)
+ *   if (matcher.matches(filePath)) { skip this file }
+ */
+export class PatternMatcher {
+  private patterns: Array<{ regex: RegExp; original: string }>
+
+  constructor(patterns: string[]) {
+    this.patterns = []
+    for (const pattern of patterns) {
+      const regex = patternToRegex(pattern)
+      if (regex) {
+        this.patterns.push({ regex, original: pattern })
+      }
+    }
+  }
+
+  /**
+   * Check if a path matches any pattern.
+   * Tests both the full path and the basename.
+   */
+  matches(path: string, repoPath?: string): boolean {
+    const normalizedPath = repoPath ? relative(repoPath, path) : path
+    const name = basename(path)
+
+    for (const { regex } of this.patterns) {
+      if (regex.test(normalizedPath) || regex.test(name)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /** Number of compiled patterns */
+  get size(): number {
+    return this.patterns.length
+  }
+}
+
+/**
+ * Create a PatternMatcher for a repository.
+ * Combines default patterns with .gitignore, .obsidianignore, and .kmignore.
+ */
+export function createIgnoreMatcher(repoPath: string): PatternMatcher {
+  const patterns = getIgnorePatterns(repoPath)
+  return new PatternMatcher(patterns)
+}
+
+/**
+ * Simple glob pattern matcher (non-cached version)
+ * Supports *, **, and ? wildcards
+ *
+ * **  - matches any path segment(s), including none
+ * *   - matches any characters except /
+ * ?   - matches single character
+ *
+ * NOTE: For hot paths, use PatternMatcher instead to avoid repeated regex compilation.
+ */
+export function matchesPattern(path: string, pattern: string): boolean {
+  const regex = patternToRegex(pattern)
+  if (!regex) return false
+  return regex.test(path)
+}
+
+/**
+ * Check if a path should be ignored.
+ *
+ * Accepts either a string[] of patterns (legacy, recompiles each call)
+ * or a PatternMatcher (preferred, pre-compiled).
  */
 export function shouldIgnore(
   path: string,
-  patterns: string[],
+  patternsOrMatcher: string[] | PatternMatcher,
   repoPath?: string,
 ): boolean {
-  // Normalize path for matching
+  // Use PatternMatcher if provided (fast path)
+  if (patternsOrMatcher instanceof PatternMatcher) {
+    return patternsOrMatcher.matches(path, repoPath)
+  }
+
+  // Legacy: array of patterns (recompiles each call)
+  const patterns = patternsOrMatcher
   const normalizedPath = repoPath ? relative(repoPath, path) : path
 
   for (const pattern of patterns) {

@@ -178,6 +178,95 @@ export function resolveLinks(
   return resolvedCount
 }
 
+/**
+ * Batch resolve unresolved links to multiple target nodes.
+ * Much faster than calling resolveLinks() per file when processing many files.
+ *
+ * Call this after creating multiple files to resolve all pending links in one pass.
+ *
+ * @param targets - Array of {id, name} for newly created file nodes
+ * @returns Number of links resolved
+ */
+export function resolveLinksBatch(
+  db: Database,
+  targets: Array<{ id: string; name: string }>,
+): number {
+  if (targets.length === 0) return 0
+
+  // Build lookup map: normalized name -> target id
+  const targetsByName = new Map<string, string>()
+  for (const t of targets) {
+    const normalized = t.name.toLowerCase().replace(/\.md$/, "")
+    targetsByName.set(normalized, t.id)
+  }
+
+  // Single query for all unresolved links
+  const unresolvedLinks = db
+    .query(
+      `
+    SELECT source_id, target_name, section, alias, embedded FROM links
+    WHERE target_id IS NULL
+  `,
+    )
+    .all() as Array<{
+    source_id: string
+    target_name: string
+    section: string | null
+    alias: string | null
+    embedded: number
+  }>
+
+  let resolved = 0
+
+  for (const link of unresolvedLinks) {
+    const normalized = link.target_name.toLowerCase().replace(/\.md$/, "")
+    const targetId = targetsByName.get(normalized)
+
+    if (!targetId) continue
+
+    // Determine actual target: if there's a section, try to find the child
+    let actualTargetId = targetId
+    if (link.section) {
+      const childNode = findChildByContent(db, targetId, link.section)
+      if (childNode) {
+        actualTargetId = childNode.id
+        debug("resolveLinksBatch: resolved section to child", {
+          section: link.section,
+          childId: childNode.id,
+        })
+      }
+    }
+
+    // Update the link
+    db.run(
+      `
+      UPDATE links
+      SET target_id = ?
+      WHERE source_id = ?
+      AND target_id IS NULL
+      AND LOWER(REPLACE(target_name, '.md', '')) = ?
+    `,
+      [actualTargetId, link.source_id, normalized],
+    )
+    resolved++
+
+    // For embedded links, update the source node's link_to
+    if (link.embedded) {
+      debug("resolveLinksBatch: updating source node link_to for embedding", {
+        source: link.source_id,
+        target: actualTargetId,
+      })
+      createDbOps(db).updateNode(link.source_id, {
+        link_to: actualTargetId,
+        link_alias: link.alias ?? undefined,
+      })
+    }
+  }
+
+  debug("resolveLinksBatch", { targets: targets.length, resolved })
+  return resolved
+}
+
 // =============================================================================
 // Read Operations
 // =============================================================================

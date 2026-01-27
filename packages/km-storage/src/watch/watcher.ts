@@ -21,8 +21,10 @@ import { EventEmitter } from "events"
 import {
   DEFAULT_IGNORE_PATTERNS,
   getIgnorePatterns,
+  createIgnoreMatcher,
   shouldIgnore,
   isHiddenFile,
+  type PatternMatcher,
 } from "../ignore.ts"
 
 export interface WatcherConfig {
@@ -61,9 +63,9 @@ export class FileSystemWatcher extends EventEmitter {
     this.repoPath = repoPath
     debug("starting watcher for %s", repoPath)
 
-    // Load ignore patterns from repo's ignore files
-    const ignorePatterns = getIgnorePatterns(repoPath)
-    debug("ignore patterns: %O", ignorePatterns)
+    // Load ignore patterns and pre-compile once
+    const ignoreMatcher = createIgnoreMatcher(repoPath)
+    debug("ignore patterns: %d compiled", ignoreMatcher.size)
 
     // Create ignored function that combines patterns with file type check
     // This prevents chokidar from trying to watch socket files (which causes EOPNOTSUPP)
@@ -76,8 +78,8 @@ export class FileSystemWatcher extends EventEmitter {
       if (path.endsWith(".sock")) {
         return true
       }
-      // Check against glob patterns
-      return shouldIgnore(path, ignorePatterns, repoPath)
+      // Check against pre-compiled patterns (fast)
+      return ignoreMatcher.matches(path, repoPath)
     }
 
     this.watcher = watch(repoPath, {
@@ -240,10 +242,12 @@ export interface SymlinkInfo {
 /**
  * Scan a directory for files, applying ignore patterns.
  * Symlinks are skipped to avoid potential infinite loops from circular symlinks.
+ *
+ * @param ignorePatterns - Either string[] (legacy, slow) or PatternMatcher (fast)
  */
 export function scanDirectory(
   dirPath: string,
-  ignorePatterns?: string[],
+  ignorePatterns?: string[] | PatternMatcher,
 ): Array<{
   path: string
   ino: number
@@ -273,7 +277,7 @@ export function scanDirectory(
       continue
     }
 
-    // Skip files matching ignore patterns
+    // Skip files matching ignore patterns (works with both string[] and PatternMatcher)
     if (ignorePatterns && shouldIgnore(fullPath, ignorePatterns)) {
       continue
     }
@@ -304,41 +308,58 @@ export function scanDirectory(
   return results
 }
 
+/** Entry from directory scan */
+export interface ScanEntry {
+  path: string
+  ino: number
+  mtime: number
+  isDirectory: boolean
+}
+
 /**
- * Recursively scan directory tree
+ * Recursively scan directory tree (generator version)
+ * Yields entries as they're found for progress reporting.
+ *
+ * @param ignorePatterns - Either string[] (legacy, slow) or PatternMatcher (fast)
  */
-export function scanDirectoryRecursive(
+export function* scanDirectoryRecursiveGen(
   dirPath: string,
   filter?: (path: string) => boolean,
-  ignorePatterns?: string[],
-): Array<{ path: string; ino: number; mtime: number; isDirectory: boolean }> {
-  const results: Array<{
-    path: string
-    ino: number
-    mtime: number
-    isDirectory: boolean
-  }> = []
-
-  function scan(dir: string) {
+  ignorePatterns?: string[] | PatternMatcher,
+): Generator<ScanEntry, void, unknown> {
+  function* scan(dir: string): Generator<ScanEntry, void, unknown> {
     const entries = scanDirectory(dir, ignorePatterns)
 
     for (const entry of entries) {
-      // Always recurse into directories, but only add to results if filter passes
+      // Always recurse into directories
       if (entry.isDirectory) {
-        scan(entry.path)
+        yield* scan(entry.path)
       }
 
-      // Apply filter to determine if entry should be in results
+      // Apply filter to determine if entry should be yielded
       if (filter && !filter(entry.path)) {
         continue
       }
 
-      results.push(entry)
+      yield entry
     }
   }
 
-  scan(dirPath)
-  return results
+  yield* scan(dirPath)
+}
+
+/**
+ * Recursively scan directory tree (array version)
+ * Returns all entries at once - use scanDirectoryRecursiveGen for progress.
+ *
+ * @param ignorePatterns - Either string[] (legacy, slow) or PatternMatcher (fast)
+ */
+export function scanDirectoryRecursive(
+  dirPath: string,
+  filter?: (path: string) => boolean,
+  ignorePatterns?: string[] | PatternMatcher,
+): ScanEntry[] {
+  return [...scanDirectoryRecursiveGen(dirPath, filter, ignorePatterns)]
 }
 
 /**

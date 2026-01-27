@@ -29,9 +29,15 @@ import {
   findFileByName,
   findChildByContent,
 } from "../db-queries/wikilink-resolver.ts"
-import { addLink, removeLinksFromSource, resolveLinks } from "../db-links.ts"
+import {
+  addLink,
+  removeLinksFromSource,
+  resolveLinks,
+  resolveLinksBatch,
+} from "../db-links.ts"
 import { hashContent, parseMarkdownWithLinks } from "../index.ts"
 import { scanDirectory } from "./watcher.ts"
+import type { PatternMatcher } from "../ignore.ts"
 
 export interface ReconcileOp {
   type: "create" | "update" | "rename" | "delete"
@@ -53,17 +59,19 @@ export interface FsEntry {
 
 export type DirectoryScanner = (
   dirPath: string,
-  ignorePatterns?: string[],
+  ignorePatterns?: string[] | PatternMatcher,
 ) => FsEntry[]
 
 /**
  * Reconcile a directory - compare filesystem to database
+ *
+ * @param ignorePatterns - Either string[] (legacy) or PatternMatcher (fast, pre-compiled)
  */
 export function reconcileDirectory(
   db: Database,
   dirPath: string,
   repoRoot: string,
-  ignorePatterns?: string[],
+  ignorePatterns?: string[] | PatternMatcher,
   scanner?: DirectoryScanner,
 ): ReconcileOp[] {
   const ops: ReconcileOp[] = []
@@ -180,12 +188,14 @@ export function reconcileDirectory(
 /**
  * Recursively reconcile a directory and all subdirectories
  * Used when FSEvents coalesces multiple file events into a single directory event
+ *
+ * @param ignorePatterns - Either string[] (legacy) or PatternMatcher (fast, pre-compiled)
  */
 export function reconcileDirectoryRecursive(
   db: Database,
   dirPath: string,
   repoRoot: string,
-  ignorePatterns?: string[],
+  ignorePatterns?: string[] | PatternMatcher,
   scanner?: DirectoryScanner,
 ): ReconcileOp[] {
   const ops: ReconcileOp[] = []
@@ -217,6 +227,15 @@ export function reconcileDirectoryRecursive(
 }
 
 /**
+ * Context for tracking new files during reconciliation.
+ * Used to batch link resolution at the end.
+ */
+interface ReconcileContext {
+  /** Newly created file nodes: {id, name} */
+  newFiles: Array<{ id: string; name: string }>
+}
+
+/**
  * Apply reconciliation operations
  */
 export function applyReconcileOps(
@@ -229,11 +248,14 @@ export function applyReconcileOps(
   debug("applying %d reconcile ops", ops.length)
   const start = Date.now()
 
+  // Context for collecting new files for batch link resolution
+  const ctx: ReconcileContext = { newFiles: [] }
+
   for (const op of ops) {
     debug("applying op: %s %s", op.type, op.path)
     switch (op.type) {
       case "create":
-        handleCreate(db, op, repoRoot, emitter, fs)
+        handleCreate(db, op, repoRoot, emitter, fs, ctx)
         break
       case "update":
         handleUpdate(db, op, repoRoot, emitter, fs)
@@ -245,6 +267,16 @@ export function applyReconcileOps(
         handleDelete(emitter, op)
         break
     }
+  }
+
+  // Batch resolve links for all new files at once (avoids O(n²) per-file resolution)
+  if (ctx.newFiles.length > 0) {
+    const resolved = resolveLinksBatch(db, ctx.newFiles)
+    debug(
+      "batch resolved %d links for %d new files",
+      resolved,
+      ctx.newFiles.length,
+    )
   }
 
   debug("applied %d ops in %dms", ops.length, Date.now() - start)
@@ -317,6 +349,7 @@ function handleCreate(
   repoRoot: string,
   emitter: Emitter,
   fs: FileSystemOps = realFs,
+  ctx?: ReconcileContext,
 ): void {
   const stat = fs.statSync(op.path)
 
@@ -366,11 +399,15 @@ function handleCreate(
     // Store wikilinks and try to resolve them
     for (const { nodeId, link, relationship } of wikilinks) {
       // Try to find target node by name
-      const fileNode = findNodeByName(db, link.target)
+      const targetFileNode = findNodeByName(db, link.target)
       // If there's a section reference, try to find the specific child node
-      let targetNode = fileNode
-      if (fileNode && link.section) {
-        const childNode = findChildByContent(db, fileNode.id, link.section)
+      let targetNode = targetFileNode
+      if (targetFileNode && link.section) {
+        const childNode = findChildByContent(
+          db,
+          targetFileNode.id,
+          link.section,
+        )
         if (childNode) {
           targetNode = childNode
         }
@@ -387,9 +424,13 @@ function handleCreate(
       })
     }
 
-    // Try to resolve any pending links that point to this file
+    // Collect new file for batch link resolution (deferred to end of batch)
+    // This avoids O(n²) behavior when creating many files
     const fileName = basename(op.path).replace(/\.md$/, "")
-    if (fileNode) {
+    if (fileNode && ctx) {
+      ctx.newFiles.push({ id: fileNode.id, name: fileName })
+    } else if (fileNode) {
+      // Fallback for single-file creation (no ctx) - resolve immediately
       resolveLinks(db, fileNode.id, fileName)
     }
   } else {

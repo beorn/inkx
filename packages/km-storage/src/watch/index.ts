@@ -50,6 +50,8 @@ export {
   readKmignore,
   readObsidianIgnore,
   getIgnorePatterns,
+  createIgnoreMatcher,
+  PatternMatcher,
   matchesPattern,
   shouldIgnore,
   isHiddenFile,

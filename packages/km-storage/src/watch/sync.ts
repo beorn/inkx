@@ -11,13 +11,17 @@ import type { Database } from "bun:sqlite"
 const debug = createDebug("km:storage:watch:sync")
 import { dirname, join } from "path"
 import { EventEmitter } from "events"
-import { FileSystemWatcher, scanDirectoryRecursive } from "./watcher.ts"
+import {
+  FileSystemWatcher,
+  scanDirectoryRecursiveGen,
+  type ScanEntry,
+} from "./watcher.ts"
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
-import { getIgnorePatterns } from "../ignore.ts"
+import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
 import type { Event, KNode } from "@km/core"
 import { createEmitter, type Emitter } from "../emitter.ts"
 
@@ -37,6 +41,7 @@ import {
   nodesToMarkdown,
   evaluateAllRules,
   createRuleContext,
+  type StepYield,
 } from "../index.ts"
 
 /** Result from syncFromFs */
@@ -567,70 +572,122 @@ export class SyncManager extends EventEmitter {
   }
 
   /**
-   * Force sync from filesystem
+   * Force sync from filesystem (callback version)
    *
    * @param onProgress - Optional callback for progress reporting
    */
   async syncFromFs(
     onProgress?: SyncProgressCallback,
   ): Promise<SyncFromFsResult> {
+    // Delegate to generator version, forwarding progress via callback
+    const gen = this.syncFromFsWithProgress()
+    let result = await gen.next()
+    while (!result.done) {
+      onProgress?.(result.value)
+      result = await gen.next()
+    }
+    return result.value
+  }
+
+  /**
+   * Force sync from filesystem (async generator version)
+   *
+   * Yields StepYield updates for use with steps() - file-based progress.
+   * Uses same pattern as loadRepo for consistent styling.
+   *
+   * @example
+   * ```typescript
+   * const results = await steps({
+   *   syncFiles: () => manager.syncFromFsWithProgress(),
+   * }).run({ clear: true })
+   * ```
+   */
+  async *syncFromFsWithProgress(): AsyncGenerator<StepYield, SyncFromFsResult> {
     debug("syncFromFs: scanning %s", this.config.repoPath)
     const start = Date.now()
 
-    // Load ignore patterns for this repo
-    const ignorePatterns = getIgnorePatterns(this.config.repoPath)
+    // Pre-compile ignore patterns once (avoids O(n*m) regex compilation during scan)
+    const ignoreMatcher = createIgnoreMatcher(this.config.repoPath)
 
-    // Phase 1: Scanning
-    onProgress?.({ phase: "scanning", current: 0, total: 1 })
+    // Declare sub-steps upfront for consistent display
+    yield { declare: ["Scanning", "Reconciling", "Rules"] }
 
-    const entries = scanDirectoryRecursive(
+    // Phase 1: Scanning - use generator for progress during scan
+    yield "Scanning"
+
+    const entries: ScanEntry[] = []
+    const dirToFiles = new Map<string, ScanEntry[]>()
+    let scanCount = 0
+
+    // Scan with periodic yields to keep UI responsive
+    for (const entry of scanDirectoryRecursiveGen(
       this.config.repoPath,
       (path) => path.endsWith(".md"),
-      ignorePatterns,
-    )
+      ignoreMatcher,
+    )) {
+      entries.push(entry)
+      const dir = dirname(entry.path)
+      const files = dirToFiles.get(dir) ?? []
+      files.push(entry)
+      dirToFiles.set(dir, files)
 
-    debug("syncFromFs: found %d entries", entries.length)
-
-    // Group by directory
-    const dirs = new Set<string>()
-
-    for (const entry of entries) {
-      dirs.add(dirname(entry.path))
+      scanCount++
+      // Yield frequently - display layer debounces at 80ms
+      if (scanCount % 25 === 0) {
+        yield { current: scanCount, total: 0 } // total=0 means "unknown"
+      }
     }
 
-    onProgress?.({ phase: "scanning", current: 1, total: 1 })
+    const totalFiles = entries.length
+    debug("syncFromFs: found %d files", totalFiles)
+    yield { current: totalFiles, total: totalFiles }
 
-    // Phase 2: Reconciling
-    const dirArray = Array.from(dirs)
-    const totalDirs = dirArray.length
-    let processed = 0
+    // Phase 2: Reconciling - collect all ops first, then apply in batches
+    yield "Reconciling"
 
-    for (const [i, dir] of dirArray.entries()) {
+    // Step 2a: Collect all reconcile ops (fast - just comparing metadata)
+    const allOps: ReturnType<typeof reconcileDirectory> = []
+    for (const dir of dirToFiles.keys()) {
       const ops = reconcileDirectory(
         this.db,
         dir,
         this.config.repoPath,
-        ignorePatterns,
+        ignoreMatcher,
       )
-      applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
-      processed += ops.length
+      allOps.push(...ops)
+    }
 
-      // Report progress for each directory
-      onProgress?.({
-        phase: "reconciling",
-        current: i + 1,
-        total: totalDirs,
-      })
+    // Step 2b: Apply ops in batches with progress
+    // Display layer auto-debounces at 80ms, so we can yield freely after each batch
+    const BATCH_SIZE = 25 // Balance between progress granularity and function call overhead
+    const totalOps = allOps.length || 1
+    let opsProcessed = 0
+
+    // Wrap in transaction for much faster DB writes (avoids per-op commit overhead)
+    this.db.run("BEGIN IMMEDIATE")
+    try {
+      for (let i = 0; i < allOps.length; i += BATCH_SIZE) {
+        const batch = allOps.slice(i, i + BATCH_SIZE)
+        applyReconcileOps(this.db, batch, this.config.repoPath, this.emitter)
+        opsProcessed += batch.length
+        yield { current: opsProcessed, total: totalOps }
+      }
+      this.db.run("COMMIT")
+    } catch (error) {
+      this.db.run("ROLLBACK")
+      throw error
+    }
+
+    // If no ops, still show completion
+    if (allOps.length === 0) {
+      yield { current: 1, total: 1 }
     }
 
     // Phase 3: Evaluate rules (add= materialization)
+    yield "Rules"
     const ruleCtx = createRuleContext()
     for (const progress of evaluateAllRules(this.db, ruleCtx)) {
-      onProgress?.({
-        phase: "rules",
-        current: progress.current,
-        total: progress.total,
-      })
+      yield { current: progress.current, total: progress.total }
     }
 
     // Write back any files that were modified by rule evaluation
@@ -668,13 +725,14 @@ export class SyncManager extends EventEmitter {
     }
 
     const duration = Date.now() - start
+    const dirCount = dirToFiles.size
     debug(
       "syncFromFs: processed %d ops in %d dirs in %dms",
-      processed,
-      totalDirs,
+      opsProcessed,
+      dirCount,
       duration,
     )
-    return { processed, directories: totalDirs, duration }
+    return { processed: opsProcessed, directories: dirCount, duration }
   }
 
   /**
