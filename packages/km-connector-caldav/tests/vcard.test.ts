@@ -4,7 +4,7 @@
  * Tests for RFC 6350 vCard parsing and formatting.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { parseVCard, formatVCard } from "../src/vcard.ts"
 
 describe("parseVCard", () => {

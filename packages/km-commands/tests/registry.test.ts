@@ -4,7 +4,7 @@
  * Tests for command registration, lookup, filtering, and fuzzy matching.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach } from "vitest"
 import {
   registerCommand,
   registerCommands,

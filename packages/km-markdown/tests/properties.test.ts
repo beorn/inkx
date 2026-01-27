@@ -4,7 +4,7 @@
  * Tests for Logseq-style property:: value syntax parsing.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { parseInlineProperties } from "../src/parser.ts"
 
 describe("parseInlineProperties", () => {

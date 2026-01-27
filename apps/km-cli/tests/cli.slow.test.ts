@@ -5,7 +5,7 @@
  * Tests the full workflow from command to database to output.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { rmSync, mkdirSync, existsSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { $ } from "bun"

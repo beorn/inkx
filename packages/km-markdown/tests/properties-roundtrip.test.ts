@@ -5,7 +5,7 @@
  * are preserved through markdown -> parse -> serialize -> markdown cycles.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { parseMarkdownToNodes } from "../src/ast2nodes.ts"
 import { nodesToMarkdown } from "../src/nodes2md.ts"
 import { normalizeMarkdown } from "./helpers/test-utils.ts"

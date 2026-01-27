@@ -8,7 +8,7 @@
  * setting up a proper test repo with events.jsonl.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import type { SessionStatus } from "../src/types.ts"
 
 /**

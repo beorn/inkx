@@ -1,7 +1,7 @@
 /**
  * Tests for @km/core type utilities
  */
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { getMarkForStatus, type TaskStatus } from "../src/types.ts"
 
 describe("getMarkForStatus", () => {

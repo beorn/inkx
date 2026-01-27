@@ -21,12 +21,11 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 ## Overview
 
 1. **Composable Domain Objects & Flows** — Build from simple, reusable pieces
-   - Principle: Plain Language
-   - Principle: Plain Objects
-   - Principle: Lego Blocks
-   - Principle: Inject All Dependencies
+   - Principle: Plain Domain Language
+   - Principle: Plain Objects from Factories
+   - Principle: Compose Objects as Lego Blocks
    - Principle: Organize Objects Into Layers
-   - Principle: Organize Flows Too
+   - Principle: Compose Flows using Generators
 2. **The Fast Feedback Loop** — Keep the loop tight to maintain extreme quality
    - Principle: Fail Loud, Fail Now
    - Principle: 5-Second Test Loops
@@ -49,9 +48,9 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 
 - [Overview](#overview)
 - [Part 1: Composable Domain Objects & Flows](#part-1-composable-domain-objects--flows)
-  - [Principle: Plain Language](#principle-plain-language)
-  - [Principle: Lego Blocks](#principle-lego-blocks)
-  - [Principle: Plain Objects, Factory Functions](#principle-plain-objects-factory-functions)
+  - [Principle: Plain Domain Language](#principle-plain-language)
+  - [Principle: Plain Objects from Factories](#principle-plain-objects)
+  - [Principle: Compose Objects as Lego Blocks](#principle-lego-blocks)
   - [Principle: Organize Objects Into Layers](#principle-organize-objects-into-layers)
   - [Principle: Compose Flows using Generators](#principle-compose-flows-using-generators)
 - [Part 2: The Fast Feedback Loop](#part-2-the-fast-feedback-loop)
@@ -88,7 +87,9 @@ Software is built from composable pieces. Both **structures** (objects) and **fl
 
 Domain objects are plain objects created by factory functions. They compose via explicit dependencies, enabling testing, swapping, and isolation.
 
-### Principle: Plain Language
+<a id="principle-plain-language"></a>
+
+### Principle: Plain Domain Language
 
 **The insight**: Names should come from the problem domain, not the implementation.
 
@@ -102,7 +103,9 @@ If your narrative needs technical jargon to make sense, the names are wrong.
 
 ---
 
-### Principle: Plain Objects, Factory Functions
+<a id="principle-plain-objects"></a>
+
+### Principle: Plain Objects from Factories
 
 **The insight**: All functionality lives in domain objects (Repo, Board, Watcher).
 
@@ -203,7 +206,9 @@ Domain objects (Repo, Board, Watcher) must still use factory functions.
 
 ---
 
-### Principle: Lego Blocks
+<a id="principle-lego-blocks"></a>
+
+### Principle: Compose Objects as Lego Blocks
 
 **The insight**: Use the fewest possible building blocks to maximize interoperability. Every additional abstraction type creates impedance mismatch.
 
@@ -719,9 +724,9 @@ Code Quality      ╱
 
 These principles exist in Parts 1-3 because they're universal. But LLMs suffer MORE from violations because of their specific constraints: no persistent memory, limited context, and pure pattern matching.
 
-**[Principle: Plain Objects, Factory Functions](#principle-plain-objects-factory-functions)** — LLMs can't track hidden state or method inheritance across files. Plain objects with explicit dependencies are self-documenting.
+**[Principle: Plain Objects from Factories](#principle-plain-objects)** — LLMs can't track hidden state or method inheritance across files. Plain objects with explicit dependencies are self-documenting.
 
-**[Principle: Lego Blocks](#principle-lego-blocks)** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` works without hidden context. Minimal types (plain objects, functions, generators) reduce impedance mismatch.
+**[Principle: Compose Objects as Lego Blocks](#principle-lego-blocks)** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` works without hidden context. Minimal types (plain objects, functions, generators) reduce impedance mismatch.
 
 **[Principle: Quarantine and Delete](#principle-quarantine-and-delete)** — If old patterns exist, LLMs will use them. With no memory of "this is deprecated," the only way to prevent old patterns is to make them impossible.
 
@@ -739,7 +744,7 @@ A codebase optimized for LLM agents has:
 - **Fast feedback loops** (<5s tests - [Principle: 5-Second Test Loops](#principle-5-second-test-loops))
 - **Loud failures** (throw, don't log - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now))
 - **No legacy patterns** (quarantined/deleted - [Principle: Quarantine and Delete](#principle-quarantine-and-delete))
-- **Self-documenting APIs** (explicit deps - [Principle: Lego Blocks](#principle-lego-blocks))
+- **Self-documenting APIs** (explicit deps - [Principle: Compose Objects as Lego Blocks](#principle-lego-blocks))
 - **Continuous merciless refactoring** to maintain the plateau
 
 ---

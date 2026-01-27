@@ -4,8 +4,6 @@
  * Test suite for file watcher robustness using chaos simulation.
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-call -- Vitest test functions return any */
-
 import { describe, test, expect } from "vitest"
 import {
   runChaosTest,

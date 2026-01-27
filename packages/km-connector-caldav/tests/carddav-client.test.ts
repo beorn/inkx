@@ -4,7 +4,7 @@
  * Tests for CardDAVClient class using mocked fetch responses.
  */
 
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach, mock } from "vitest"
 import { CardDAVClient } from "../src/carddav-client.ts"
 import type { Contact } from "../src/types.ts"
 

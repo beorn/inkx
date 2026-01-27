@@ -5,7 +5,7 @@
  * and handle context appropriately.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach } from "vitest"
 import { allCommands } from "../src/commands/index.ts"
 import { navigationCommands } from "../src/commands/navigation.ts"
 import { selectionCommands } from "../src/commands/selection.ts"

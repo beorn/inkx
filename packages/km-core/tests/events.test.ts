@@ -1,7 +1,7 @@
 /**
  * Event System Tests
  */
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { kmEvents, DisposableStore } from "../src/events.ts"
 
 describe("kmEvents", () => {

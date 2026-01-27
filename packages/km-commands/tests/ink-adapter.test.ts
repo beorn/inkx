@@ -4,7 +4,7 @@
  * Tests for the Ink key event to command system bridge.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach } from "vitest"
 import {
   initCommandSystem,
   inkKeyToString,

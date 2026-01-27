@@ -4,7 +4,7 @@
  * Tests for keybinding registration, resolution, and mode-aware dispatch.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach } from "vitest"
 import {
   registerKeybinding,
   registerKeybindings,

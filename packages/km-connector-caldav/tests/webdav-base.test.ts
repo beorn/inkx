@@ -4,7 +4,7 @@
  * Tests for the shared WebDAV functionality.
  */
 
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach, mock } from "vitest"
 import {
   createBasicAuthHeader,
   webdavRequest,

@@ -4,7 +4,7 @@
  * Tests for CalDAVClient class using mocked fetch responses.
  */
 
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach, mock } from "vitest"
 import { CalDAVClient } from "../src/caldav-client.ts"
 import type { CalendarEvent } from "../src/types.ts"
 

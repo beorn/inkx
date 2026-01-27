@@ -6,7 +6,7 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment -- Test file accesses untyped AST nodes from markdown parser */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 
 import {
   parseMarkdown,

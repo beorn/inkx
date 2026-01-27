@@ -5,7 +5,7 @@
  * semicolon-separated command lists (e.g., 'j; j; state')
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { runShell, createBoardState, serializeState } from "../src/index.ts"
 import type { TNode, OutputEvent } from "../src/index.ts"
 

@@ -23,11 +23,12 @@ import { spawn } from "bun"
 import { createConsumer } from "./consumer"
 import { mergeStreams } from "./merge"
 import { runBunTap } from "./producers/bun"
+import { runVitestTap } from "./producers/vitest"
 import type { Writable } from "node:stream"
 
 export interface Suite {
 	name: string
-	runner: "bun" | "custom"
+	runner: "bun" | "vitest" | "custom"
 	command?: string[] // For custom runners like mdtest
 	files: string[]
 }
@@ -77,10 +78,16 @@ async function runUnified(suites: Suite[], output: Writable): Promise<number> {
 	for (const suite of suites) {
 		if (suite.files.length === 0) continue
 
-		const stdout =
-			suite.runner === "bun"
-				? runBunTap({ args: suite.files }).stdout
-				: spawn([...suite.command!, ...suite.files], { stdout: "pipe" }).stdout
+		let stdout
+		if (suite.runner === "bun") {
+			stdout = runBunTap({ args: suite.files }).stdout
+		} else if (suite.runner === "vitest") {
+			stdout = runVitestTap({ args: suite.files }).stdout
+		} else {
+			// custom runner
+			stdout = spawn([...suite.command!, ...suite.files], { stdout: "pipe" })
+				.stdout
+		}
 
 		streams.push({ name: suite.name, stream: stdout })
 	}

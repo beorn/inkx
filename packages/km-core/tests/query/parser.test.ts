@@ -1,7 +1,7 @@
 /**
  * Tests for query parser
  */
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { parseQuery, mapFieldName } from "../../src/query/parser.ts"
 
 describe("mapFieldName", () => {

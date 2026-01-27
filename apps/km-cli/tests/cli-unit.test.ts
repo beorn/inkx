@@ -5,7 +5,7 @@
  * These test the command logic directly rather than through the CLI.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 
 import { getNode, getTasksByStatus, withTestEnv } from "@km/storage"
 import type { KNode, TaskStatus } from "@km/core"

@@ -4,7 +4,7 @@
  * Tests for command execution and context building.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach } from "vitest"
 import { executeCommand, buildContext } from "../src/executor.ts"
 import {
   registerCommand,

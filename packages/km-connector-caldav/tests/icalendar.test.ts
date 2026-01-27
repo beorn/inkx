@@ -4,7 +4,7 @@
  * Tests for RFC 5545 iCalendar parsing and formatting.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { parseICalendar, formatICalendar } from "../src/icalendar.ts"
 
 describe("parseICalendar", () => {

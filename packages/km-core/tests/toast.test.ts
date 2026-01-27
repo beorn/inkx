@@ -1,7 +1,7 @@
 /**
  * Toast System Tests
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { toast, toastQueue, ToastQueue } from "../src/toast.ts"
 
 describe("ToastQueue", () => {

@@ -5,7 +5,7 @@
  * These tests verify that parsing and then serializing produces equivalent output.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { readFileSync } from "fs"
 import { join } from "path"
 import type { KNode } from "@km/core"

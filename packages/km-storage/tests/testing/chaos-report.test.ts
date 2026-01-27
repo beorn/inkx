@@ -4,8 +4,6 @@
  * Tests for chaos test report generation and formatting.
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-call -- Vitest test functions return any */
-
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"

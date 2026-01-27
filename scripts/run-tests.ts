@@ -2,7 +2,7 @@
 /**
  * Cross-platform test runner for km project
  *
- * Replaces shell-based `find` commands in package.json with portable TypeScript.
+ * Runs tests via Vitest, which handles .test.ts, .spec.ts, and .test.md files.
  * Uses centralized test patterns from test-patterns.ts.
  *
  * Usage:
@@ -12,8 +12,9 @@
  *   bun scripts/run-tests.ts --all
  */
 
-import { spawn } from "bun"
 import { parseArgs } from "node:util"
+import { runVitestTap } from "../vendor/beorn-tap/src/producers/vitest"
+import { createConsumer } from "../vendor/beorn-tap/src/consumer"
 import { discoverTests, type TestType } from "./test-patterns"
 
 const { values } = parseArgs({
@@ -54,28 +55,18 @@ if (files.length === 0) {
   process.exit(0)
 }
 
-// Run tests based on type
-if (testType === "mdtest") {
-  const args = ["run", "vendor/beorn-mdtest/src/index.ts", "--dots"]
-  if (values.update) {
-    args.push("--update")
-  }
-  args.push(...files)
+// Run tests via Vitest with TAP output and dots
+const { stdout, exited } = runVitestTap({ args: files })
+const consumer = createConsumer({ dots: true, output: process.stdout })
 
-  const proc = spawn(["bun", ...args], {
-    stdout: "inherit",
-    stderr: "inherit",
-  })
-
-  const exitCode = await proc.exited
-  process.exit(exitCode)
-} else {
-  // Fast or slow Bun tests
-  const proc = spawn(["bun", "test", "--dots", ...files], {
-    stdout: "inherit",
-    stderr: "inherit",
-  })
-
-  const exitCode = await proc.exited
-  process.exit(exitCode)
+// Stream TAP output through consumer for dot display
+for await (const chunk of stdout) {
+  consumer.write(chunk)
 }
+
+consumer.end()
+const results = consumer.getResults()
+const exitCode = await exited
+
+// Exit with test failure code if any tests failed
+process.exit(results.failed > 0 ? 1 : exitCode)

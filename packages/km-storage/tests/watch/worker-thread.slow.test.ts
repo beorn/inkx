@@ -12,8 +12,6 @@
  * the same database during async operations.
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-call -- Vitest test functions return any */
-
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"

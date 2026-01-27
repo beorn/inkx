@@ -8,8 +8,6 @@
  * setDb() call would overwrite the ALS context. Must remain serial.
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-call -- Vitest test functions return any */
-
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
